@@ -1,5 +1,5 @@
 # gobot-instance
-A slack instance of gobot-chatops for development and experimentation.
+A chatops-oriented chatbot written in Go, inspired by Hubot
 
 ## Development Status
-This code is currently pre-alpha, feel free to watch this space for updates.
+Still pre-alpha, but development should move along quickly
