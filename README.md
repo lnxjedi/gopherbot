@@ -1,4 +1,4 @@
-# gobot-instance
+# GoBot
 A chatops-oriented chatbot written in Go, inspired by Hubot
 
 ## Development Status
