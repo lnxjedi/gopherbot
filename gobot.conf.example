@@ -1,0 +1,8 @@
+# Example gobot.conf
+BOT_CONNECTOR=slack # currently the only *cough*supported*cough* connector
+#BOT_DEBUG=true
+BOT_NAME="Floyd"
+BOT_ALIAS=";"
+# Bender is another bot - we don't want them talking to each other
+BOT_IGNORE="Bender"
+SLACK_TOKEN=<yourtokenhere>
