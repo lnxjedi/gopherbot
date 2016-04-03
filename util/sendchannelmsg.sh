@@ -8,8 +8,8 @@ MESSAGE="$*"
 
 JSON=$(cat <<EOF
 {
-	"Command": "ChannelMessage",
-	"CmdData": {
+	"Command": "SendChannelMessage",
+	"CmdArgs": {
 		"ChanID": "$CHANNEL",
 		"Message": "$MESSAGE"
 	}

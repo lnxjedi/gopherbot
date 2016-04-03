@@ -15,7 +15,7 @@ type slackConnector struct {
 	conn *slack.RTM
 }
 
-func (s *slackConnector) SendChannelMsg(c string, m string) {
+func (s *slackConnector) SendChannelMessage(c string, m string) {
 	s.conn.SendMessage(s.conn.NewOutgoingMessage(m, c))
 }
 

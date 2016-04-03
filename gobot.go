@@ -22,11 +22,7 @@ func main() {
 		debug = true
 	}
 
-	bot := gobot.New(string(alias), debug)
-
-	if len(os.Getenv("GOBOT_HTTP_PORT")) > 0 {
-		bot.SetHttpPort(os.Getenv("GOBOT_HTTP_PORT"))
-	}
+	bot := gobot.New(string(alias), os.Getenv("GOBOT_HTTP_PORT"), debug)
 
 	switch os.Getenv("GOBOT_CONNECTOR") {
 	case "slack":

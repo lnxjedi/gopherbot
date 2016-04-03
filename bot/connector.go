@@ -10,5 +10,5 @@ package gobot
 type Connector interface {
 	//	GetChannelID(name string) string
 	//	GetChannelName(id string) string
-	SendChannelMsg(chanid string, msg string)
+	SendChannelMessage(chanid string, msg string)
 }

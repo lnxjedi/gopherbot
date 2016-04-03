@@ -6,18 +6,27 @@ import (
 	"log"
 )
 
+type botListener struct {
+	port  string
+	owner *Bot
+}
+
+var listener botListener
+
 type Bot struct {
 	debug bool
 	alias string
 	name  string
-	port  string
 	conn  Connector
 }
 
-func New(a string, d bool) *Bot {
-	return &Bot{
+func New(a string, p string, d bool) *Bot {
+	b := &Bot{
 		alias: a,
 		debug: d}
+	listener.owner = b
+	listener.port = p
+	return b
 }
 
 func (b *Bot) Debug(v ...interface{}) {
@@ -35,12 +44,8 @@ func (b *Bot) SetName(n string) {
 	b.name = n
 }
 
-func (b *Bot) SetHttpPort(p string) {
-	b.port = p
-}
-
 func (b *Bot) Init(c Connector) {
 	b.conn = c
-	go b.ListenHttpJSON()
-	b.conn.SendChannelMsg("C0RK4DG68", "Hello world")
+	go listener.listenHttpJSON()
+	b.conn.SendChannelMessage("C0RK4DG68", "Hello world")
 }
