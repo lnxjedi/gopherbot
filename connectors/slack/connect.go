@@ -1,4 +1,6 @@
-package slackConnector
+// package slackConnector connects gobot to Slack and implements
+// the gobot Connector interface
+package slack
 
 import (
 	"fmt"
@@ -8,27 +10,37 @@ import (
 	"github.com/parsley42/gobot/bot"
 )
 
-func Start(bot *gobot.Bot, token string) {
+type slackConnector struct {
+	api  *slack.Client
+	conn *slack.RTM
+}
+
+func (s *slackConnector) SendChannelMsg(c string, m string) {
+	s.conn.SendMessage(s.conn.NewOutgoingMessage(m, c))
+}
+
+func StartConnector(bot *gobot.Bot, token string) {
 	api := slack.New(token)
 	if bot.GetDebug() {
 		api.SetDebug(true)
 	}
 
-	rtm := api.NewRTM()
-	go rtm.ManageConnection()
+	sc := &slackConnector{api: api, conn: api.NewRTM()}
+	go sc.conn.ManageConnection()
 
 Loop:
 	for {
 		select {
-		case msg := <-rtm.IncomingEvents:
+		case msg := <-sc.conn.IncomingEvents:
 
 			switch ev := msg.Data.(type) {
 
 			case *slack.ConnectedEvent:
 				bot.Debug("Infos:", ev.Info)
 				bot.Debug("Connection counter:", ev.ConnectionCount)
+				// bot.SetName(name)
 				// Replace #general with your Channel ID
-				rtm.SendMessage(rtm.NewOutgoingMessage("Hello world", "C0RK4DG68"))
+				//	sc.conn.SendMessage(sc.conn.NewOutgoingMessage("Hello world", "C0RK4DG68"))
 				break Loop
 
 			case *slack.InvalidAuthEvent:
@@ -37,9 +49,13 @@ Loop:
 		}
 	}
 
+	// We're connected, set the bot's connector to a struct
+
+	bot.Init(sc)
+
 	for {
 		select {
-		case msg := <-rtm.IncomingEvents:
+		case msg := <-sc.conn.IncomingEvents:
 			bot.Debug("Event Received: ")
 			switch ev := msg.Data.(type) {
 			case *slack.HelloEvent:

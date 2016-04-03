@@ -29,8 +29,9 @@ source $GOBOT_CONF
 [ -z "$GOBOT_CONNECTOR" ] && errorout "GOBOT_CONNECTOR not set, see README.md"
 
 export GOBOT_CONNECTOR
-[ -n "$GOBOT_DEBUG" ] && export GOBOT_DEBUG
 [ -n "$GOBOT_ALIAS" ] && export GOBOT_ALIAS
+[ -n "$GOBOT_DEBUG" ] && export GOBOT_DEBUG
+[ -n "$GOBOT_HTTP_PORT" ] && export GOBOT_HTTP_PORT
 
 case $GOBOT_CONNECTOR in
 	slack)

@@ -5,9 +5,9 @@ import (
 	"os"
 	"unicode/utf8"
 
-	"github.com/parsley42/gobot/bot"
-	"github.com/parsley42/gobot/slackConnector"
 	//	_ "github.com/parsley42/gobot-instance/plugin"
+	"github.com/parsley42/gobot/bot"
+	"github.com/parsley42/gobot/connectors/slack"
 )
 
 func main() {
@@ -24,12 +24,16 @@ func main() {
 
 	bot := gobot.New(string(alias), debug)
 
+	if len(os.Getenv("GOBOT_HTTP_PORT")) > 0 {
+		bot.SetHttpPort(os.Getenv("GOBOT_HTTP_PORT"))
+	}
+
 	switch os.Getenv("GOBOT_CONNECTOR") {
 	case "slack":
 		if len(os.Getenv("GOBOT_SLACK_TOKEN")) == 0 {
 			log.Fatal("\"slack\" GOBOT_CONNECTOR requires GOBOT_SLACK_TOKEN")
 		}
-		slackConnector.Start(bot, os.Getenv("GOBOT_SLACK_TOKEN"))
+		slack.StartConnector(bot, os.Getenv("GOBOT_SLACK_TOKEN"))
 	default:
 		log.Fatalln("Unsupport/unknown GOBOT_CONNECTOR: " + os.Getenv("GOBOT_CONNECTOR"))
 	}
