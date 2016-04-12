@@ -1,8 +1,10 @@
 # Example gobot.conf
-BOT_CONNECTOR=slack # currently the only *cough*supported*cough* connector
+GOBOT_CONNECTOR=slack # currently the only *cough*supported*cough* connector
 #BOT_DEBUG=true
-BOT_NAME="Floyd"
-BOT_ALIAS=";"
+GOBOT_NAME="Floyd"
+GOBOT_ALIAS=";"
 # Bender is another bot - we don't want them talking to each other
-BOT_IGNORE="Bender"
-SLACK_TOKEN=<yourtokenhere>
+GOBOT_IGNORE="Bender"
+GOBOT_SLACK_TOKEN=<yourtokenhere>
+# GOBOT_DEBUG=true
+GOBOT_HTTP_PORT="127.0.0.1:8880"

@@ -18,21 +18,20 @@ type ChannelMessage struct {
 	Message string
 }
 
-func (l *botListener) listenHttpJSON() {
-	if len(l.port) > 0 {
-		http.Handle("/json", l)
-		log.Fatal(http.ListenAndServe(l.port, nil))
+func (b *Bot) listenHttpJSON() {
+	if len(b.port) > 0 {
+		http.Handle("/json", b)
+		log.Fatal(http.ListenAndServe(b.port, nil))
 	}
 }
 
-func (l *botListener) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (b *Bot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer r.Body.Close()
 
-	b := l.owner
 	var c JSONCommand
 	err = json.Unmarshal(data, &c)
 	if err != nil {

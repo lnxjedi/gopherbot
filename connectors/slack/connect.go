@@ -36,7 +36,7 @@ Loop:
 			switch ev := msg.Data.(type) {
 
 			case *slack.ConnectedEvent:
-				bot.Debug("Infos:", ev.Info)
+				bot.Debug(fmt.Sprintf("Infos: %T %v\n", ev, *ev.Info.User))
 				bot.Debug("Connection counter:", ev.ConnectionCount)
 				// bot.SetName(name)
 				// Replace #general with your Channel ID
@@ -52,6 +52,7 @@ Loop:
 	// We're connected, set the bot's connector to a struct
 
 	bot.Init(sc)
+	//TODO: get users, get channels, and store
 
 	for {
 		select {
