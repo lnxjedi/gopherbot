@@ -11,12 +11,13 @@ var botLock sync.Mutex
 var botCreated bool
 
 type Bot struct {
-	debug bool
-	alias rune         // single-char alias for addressing the bot
-	name  string       // e.g. "Gort"
-	lock  sync.RWMutex // for safe updating of bot data structures
-	conn  Connector    // Connector interface, implemented by each specific protocol
-	port  string
+	debug        bool
+	alias        rune      // single-char alias for addressing the bot
+	name         string    // e.g. "Gort"
+	channels     []string  // list of channels to join
+	sync.RWMutex           // for safe updating of bot data structures
+	conn         Connector // Connector interface, implemented by each specific protocol
+	port         string
 }
 
 // Instantiate the one and only instance of a Gobot
@@ -38,40 +39,55 @@ func (b *Bot) Debug(v ...interface{}) {
 	}
 }
 
-// Set a
+// Set a one-rune alias for the 'bot'
 func (b *Bot) SetAlias(a rune) {
-	b.lock.Lock()
+	b.Lock()
 	b.alias = a
-	b.lock.Unlock()
+	b.Unlock()
 }
 
+// report whether bot debug messages are on or off
 func (b *Bot) GetDebug() bool {
 	return b.debug
 }
 
+// set debugging messages to on or off
 func (b *Bot) SetDebug(d bool) {
-	b.lock.Lock()
+	b.Lock()
 	b.debug = d
-	b.lock.Unlock()
+	b.Unlock()
+}
+
+func (b *Bot) GetInitChannels() []string {
+	b.Lock()
+	c := b.channels
+	b.Unlock()
+	return c
+}
+
+func (b *Bot) SetInitChannels(ic []string) {
+	b.Lock()
+	b.channels = ic
+	b.Unlock()
 }
 
 func (b *Bot) SetName(n string) {
-	b.lock.Lock()
+	b.Lock()
 	b.Debug("Setting name to: " + n)
 	b.name = n
-	b.lock.Unlock()
+	b.Unlock()
 }
 
 func (b *Bot) SetPort(p string) {
-	b.lock.Lock()
+	b.Lock()
 	b.port = p
-	b.lock.Unlock()
+	b.Unlock()
 }
 
 func (b *Bot) Init(c Connector) {
-	b.lock.Lock()
+	b.Lock()
 	b.conn = c
 	go b.listenHttpJSON()
-	b.lock.Unlock()
+	b.Unlock()
 	//	b.conn.SendChannelMessage("C0RK4DG68", "Hello, World!")
 }

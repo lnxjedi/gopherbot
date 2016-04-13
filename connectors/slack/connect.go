@@ -7,16 +7,16 @@ import (
 	"log"
 
 	"github.com/nlopes/slack"
-	"github.com/parsley42/gobot/bot"
+	bot "github.com/parsley42/gobot/bot"
 )
 
-func StartConnector(bot *gobot.Bot, token string) {
+func StartConnector(bot *bot.Bot, token string, l bot.LogLevel) {
 	api := slack.New(token)
 	if bot.GetDebug() {
 		api.SetDebug(true)
 	}
 
-	sc := &slackConnector{api: api, conn: api.NewRTM()}
+	sc := &slackConnector{api: api, conn: api.NewRTM(), level: l}
 	go sc.conn.ManageConnection()
 
 Loop:
@@ -30,8 +30,8 @@ Loop:
 				bot.Debug(fmt.Sprintf("Infos: %T %v\n", ev, *ev.Info.User))
 				bot.Debug("Connection counter:", ev.ConnectionCount)
 				bot.SetName(ev.Info.User.Name)
-				// Replace #general with your Channel ID
-				//	sc.conn.SendMessage(sc.conn.NewOutgoingMessage("Hello world", "C0RK4DG68"))
+				//TODO: remove this later
+				sc.SendChannelMessage("botdev", "Hello, world!")
 				break Loop
 
 			case *slack.InvalidAuthEvent:
@@ -43,7 +43,10 @@ Loop:
 	// We're connected, set the bot's connector to a struct
 
 	bot.Init(sc)
-	//TODO: get users, get channels, and store
+	sc.updateChannels()
+	for _, channel := range bot.GetInitChannels() {
+		sc.JoinChannel(channel)
+	}
 
 	for {
 		select {

@@ -28,15 +28,12 @@ source $GOBOT_CONF
 
 [ -z "$GOBOT_CONNECTOR" ] && errorout "GOBOT_CONNECTOR not set, see README.md"
 
-export GOBOT_CONNECTOR
-[ -n "$GOBOT_ALIAS" ] && export GOBOT_ALIAS
-[ -n "$GOBOT_DEBUG" ] && export GOBOT_DEBUG
-[ -n "$GOBOT_HTTP_PORT" ] && export GOBOT_HTTP_PORT
+# Export all the GOBOT variables
+eval export ${!GOBOT*}
 
 case $GOBOT_CONNECTOR in
 	slack)
 		[ -z "$GOBOT_SLACK_TOKEN" ] && errorout "Error: GOBOT_SLACK_TOKEN not in environment"
-		export GOBOT_SLACK_TOKEN
 		;;
 	*)
 		errorout "Unknown/unsupported GOBOT_CONNECTOR: $GOBOT_CONNECTOR"
