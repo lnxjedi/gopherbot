@@ -10,15 +10,6 @@ import (
 	"github.com/parsley42/gobot/bot"
 )
 
-type slackConnector struct {
-	api  *slack.Client
-	conn *slack.RTM
-}
-
-func (s *slackConnector) SendChannelMessage(c string, m string) {
-	s.conn.SendMessage(s.conn.NewOutgoingMessage(m, c))
-}
-
 func StartConnector(bot *gobot.Bot, token string) {
 	api := slack.New(token)
 	if bot.GetDebug() {
@@ -38,7 +29,7 @@ Loop:
 			case *slack.ConnectedEvent:
 				bot.Debug(fmt.Sprintf("Infos: %T %v\n", ev, *ev.Info.User))
 				bot.Debug("Connection counter:", ev.ConnectionCount)
-				// bot.SetName(name)
+				bot.SetName(ev.Info.User.Name)
 				// Replace #general with your Channel ID
 				//	sc.conn.SendMessage(sc.conn.NewOutgoingMessage("Hello world", "C0RK4DG68"))
 				break Loop

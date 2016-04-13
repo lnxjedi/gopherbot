@@ -1,7 +1,6 @@
 # Example gobot.conf
 GOBOT_CONNECTOR=slack # currently the only *cough*supported*cough* connector
-#BOT_DEBUG=true
-GOBOT_NAME="Floyd"
+# GOBOT_NAME="Floyd" # the slack plugin supplies this
 GOBOT_ALIAS=";"
 # Bender is another bot - we don't want them talking to each other
 GOBOT_IGNORE="Bender"
