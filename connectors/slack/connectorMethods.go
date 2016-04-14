@@ -16,7 +16,22 @@ func (s *slackConnector) SendChannelMessage(c string, m string) {
 
 // SendUserMessage sends a direct message to a user
 func (s *slackConnector) SendUserMessage(u string, m string) {
-	return
+	userID, ok := s.userID(u)
+	if !ok {
+		s.log(bot.Error, "No user ID found for user:", u)
+	}
+	var userIMchan string
+	var err error
+	userIMchan, ok = s.userIMID(userID)
+	if !ok {
+		s.log(bot.Warn, "No IM channel found for user:", u, "ID:", userID, "trying to open IM")
+		_, _, userIMchan, err = s.conn.OpenIMChannel(userID)
+		if err != nil {
+			s.log(bot.Error, "Unable to open an IM channel to user:", u, "ID:", userID)
+			return
+		}
+	}
+	s.conn.SendMessage(s.conn.NewOutgoingMessage(m, userIMchan))
 }
 
 // SetLogLevel updates the connector log level

@@ -49,7 +49,7 @@ Loop:
 		sc.JoinChannel(channel)
 	}
 	//TODO: remove this later
-	sc.SendChannelMessage("botdev", "Hello, world!")
+	sc.SendUserMessage("davidp", "Hello, sir!")
 
 	for {
 		select {
