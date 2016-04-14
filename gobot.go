@@ -13,36 +13,36 @@ import (
 
 func main() {
 	//	bot := gobot.New(string(alias), os.Getenv("GOBOT_HTTP_PORT"), debug)
-	bot := gobot.New()
+	gobot := bot.Create()
 
 	alias := ';'
 	if len(os.Getenv("GOBOT_ALIAS")) > 0 {
 		alias, _ = utf8.DecodeRuneInString(os.Getenv("GOBOT_ALIAS"))
 	}
-	bot.SetAlias(alias)
+	gobot.SetAlias(alias)
 
 	debug := false
 	if os.Getenv("GOBOT_DEBUG") == "true" {
 		debug = true
 	}
-	bot.SetDebug(debug)
+	gobot.SetDebug(debug)
 
-	bot.SetPort(os.Getenv("GOBOT_HTTP_PORT"))
+	gobot.SetPort(os.Getenv("GOBOT_HTTP_PORT"))
 
-	bot.SetInitChannels(strings.Split(os.Getenv("GOBOT_JOIN_CHANNELS"), " "))
+	gobot.SetInitChannels(strings.Split(os.Getenv("GOBOT_JOIN_CHANNELS"), " "))
 
-	var loglevel gobot.LogLevel
+	var loglevel bot.LogLevel
 	switch os.Getenv("GOBOT_LOGLEVEL") {
 	case "trace":
-		loglevel = gobot.Trace
+		loglevel = bot.Trace
 	case "debug":
-		loglevel = gobot.Debug
+		loglevel = bot.Debug
 	case "info":
-		loglevel = gobot.Info
+		loglevel = bot.Info
 	case "warn":
-		loglevel = gobot.Warn
+		loglevel = bot.Warn
 	default:
-		loglevel = gobot.Error
+		loglevel = bot.Error
 	}
 	log.Println("Setting log level to ", loglevel)
 
@@ -51,7 +51,7 @@ func main() {
 		if len(os.Getenv("GOBOT_SLACK_TOKEN")) == 0 {
 			log.Fatal("\"slack\" GOBOT_CONNECTOR requires GOBOT_SLACK_TOKEN")
 		}
-		slack.StartConnector(bot, os.Getenv("GOBOT_SLACK_TOKEN"), loglevel)
+		slack.StartConnector(gobot, os.Getenv("GOBOT_SLACK_TOKEN"), loglevel)
 	default:
 		log.Fatalln("Unsupported/unknown GOBOT_CONNECTOR: " + os.Getenv("GOBOT_CONNECTOR"))
 	}

@@ -7,7 +7,7 @@ import (
 	"log"
 
 	"github.com/nlopes/slack"
-	bot "github.com/parsley42/gobot/bot"
+	"github.com/parsley42/gobot/bot"
 )
 
 func StartConnector(bot *bot.Bot, token string, l bot.LogLevel) {
@@ -30,7 +30,6 @@ Loop:
 				bot.Debug(fmt.Sprintf("Infos: %T %v\n", ev, *ev.Info.User))
 				bot.Debug("Connection counter:", ev.ConnectionCount)
 				bot.SetName(ev.Info.User.Name)
-				//TODO: remove this later
 				sc.SendChannelMessage("botdev", "Hello, world!")
 				break Loop
 
@@ -44,9 +43,13 @@ Loop:
 
 	bot.Init(sc)
 	sc.updateChannels()
+	sc.updateUsers()
+	sc.updateIMChannels()
 	for _, channel := range bot.GetInitChannels() {
 		sc.JoinChannel(channel)
 	}
+	//TODO: remove this later
+	sc.SendChannelMessage("botdev", "Hello, world!")
 
 	for {
 		select {

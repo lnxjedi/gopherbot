@@ -1,6 +1,6 @@
-// Package gobot provides the interfaces for a Gobot chatops
+// Package bot provides the interfaces for creating a chatops
 // bot.
-package gobot
+package bot
 
 import (
 	"log"
@@ -21,7 +21,7 @@ type Bot struct {
 }
 
 // Instantiate the one and only instance of a Gobot
-func New() *Bot {
+func Create() *Bot {
 	botLock.Lock()
 	if botCreated {
 		return nil

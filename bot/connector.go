@@ -1,4 +1,4 @@
-package gobot
+package bot
 
 /* Definition of Connector interface, plus types and constants needed
 by a Connector */
@@ -18,7 +18,11 @@ type Connector interface {
 	// JoinChannel joins a channel given it's human-readable name, e.g. "general"
 	JoinChannel(c string)
 	// SendChannelMessage sends a message to a channel
-	SendChannelMessage(chanid string, msg string)
+	SendChannelMessage(channelname string, msg string)
 	// SetLogLevel updates the connector log level
 	SetLogLevel(l LogLevel)
+	/* SendUserMessage sends a direct message to a user if supported.
+	For protocols not supportint DM, the bot should send a message addressed
+	to the user in an implementation-specific channel */
+	SendUserMessage(username string, msg string)
 }

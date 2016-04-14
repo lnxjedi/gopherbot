@@ -1,4 +1,4 @@
-package gobot
+package bot
 
 import (
 	"encoding/json"
