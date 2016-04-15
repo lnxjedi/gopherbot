@@ -34,14 +34,14 @@ type slackConnector struct {
 }
 
 func (s *slackConnector) addMessageMentions(msg string) string {
-	re := regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
-	mentions := re.FindAllString(msg, -1)
+	re := regexp.MustCompile(`(?:^| )(@[0-9a-z]{1,21})\b`)
+	mentions := re.FindAllStringSubmatch(msg, -1)
 	if len(mentions) == 0 {
 		return msg
 	}
 	mset := make(map[string]bool)
 	for _, mention := range mentions {
-		mset[mention] = true
+		mset[mention[1]] = true
 	}
 	for mention, _ := range mset {
 		userName := mention[1:]
