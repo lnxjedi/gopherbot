@@ -27,7 +27,9 @@ func main() {
 	}
 	gobot.SetDebug(debug)
 
-	gobot.SetPort(os.Getenv("GOBOT_HTTP_PORT"))
+	if len(os.Getenv("GOBOT_LOCAL_PORT")) > 0 {
+		gobot.SetPort("127.0.0.1:" + os.Getenv("GOBOT_LOCAL_PORT"))
+	}
 
 	gobot.SetInitChannels(strings.Split(os.Getenv("GOBOT_JOIN_CHANNELS"), " "))
 

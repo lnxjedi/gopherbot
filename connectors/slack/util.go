@@ -4,7 +4,10 @@ package slack
 most of the internal methods. */
 
 import (
+	"fmt"
 	"log"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,12 +20,60 @@ const optimeout = 1 * time.Minute
 type slackConnector struct {
 	api          *slack.Client
 	conn         *slack.RTM
+	botName      string            // human-readable name of bot
+	botID        string            // slack internal bot ID
+	bot.Handler                    // bot interface for handling messages
 	sync.RWMutex                   // shared mutex for locking connector data structures
 	channelToID  map[string]string // map from channel names to channel IDs
+	idToChannel  map[string]string // map from channel ID to channel name
 	userToID     map[string]string // map from user names to user IDs
+	idToUser     map[string]string // map from user name to user ID
 	userIDToIM   map[string]string // map from user ID to IM channel ID
 	imToUser     map[string]string // map from IM channel ID to user name
 	level        bot.LogLevel      // current log level
+}
+
+// Examine incoming messages and route them to the appropriate bot
+// method.
+func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
+	s.log(bot.Trace, fmt.Sprintf("Message received: %v\n", msg))
+	re := regexp.MustCompile("<@U[A-Z0-9]{8}>") // match a @user mention
+	text := msg.Msg.Text
+	chanID := msg.Msg.Channel
+	mentions := re.FindAllString(text, -1)
+	if len(mentions) != 0 {
+		mset := make(map[string]bool)
+		for _, mention := range mentions {
+			mset[mention] = true
+		}
+		for mention, _ := range mset {
+			mID := mention[2:11]
+			replace, ok := s.userName(mID)
+			if !ok {
+				s.log(bot.Warn, "Couldn't find username for mentioned", mID)
+				continue
+			}
+			text = strings.Replace(text, mention, "@"+replace, -1)
+		}
+	}
+	switch chanID[:1] {
+	case "D":
+		userName, ok := s.imUser(chanID)
+		if !ok {
+			s.log(bot.Warn, "Couldn't find user name for IM", chanID)
+			s.DirectMsg(chanID, text)
+			return
+		}
+		s.DirectMsg(userName, text)
+	case "C":
+		channelName, ok := s.channelName(chanID)
+		if !ok {
+			s.log(bot.Warn, "Coudln't find channel name for ID", chanID)
+			s.ChannelMsg(chanID, text)
+			return
+		}
+		s.ChannelMsg(channelName, text)
+	}
 }
 
 // log logs messages whenever the connector log level is
@@ -104,30 +155,41 @@ func (s *slackConnector) updateMaps() {
 		log.Fatalf("Protocol timeout updating channels: %v\n", err)
 	}
 	chanMap := make(map[string]string)
+	chanIDMap := make(map[string]string)
 	for _, channel := range chanlist {
 		s.log(bot.Trace, "Mapping channel name", channel.Name, "to", channel.ID)
 		chanMap[channel.Name] = channel.ID
+		chanIDMap[channel.ID] = channel.Name
 	}
 
 	s.Lock()
 	s.userToID = userMap
+	s.idToUser = userIDMap
 	s.userIDToIM = userIMMap
 	s.channelToID = chanMap
+	s.idToChannel = chanIDMap
 	s.imToUser = userNameMap
 	s.Unlock()
 	s.log(bot.Info, "Users updated")
 }
 
-func (s *slackConnector) userID(c string) (i string, ok bool) {
+func (s *slackConnector) userID(u string) (i string, ok bool) {
 	s.RLock()
-	i, ok = s.userToID[c]
+	i, ok = s.userToID[u]
 	s.RUnlock()
 	return i, ok
 }
 
-func (s *slackConnector) userIMID(c string) (i string, ok bool) {
+func (s *slackConnector) userName(i string) (u string, ok bool) {
 	s.RLock()
-	i, ok = s.userIDToIM[c]
+	u, ok = s.idToUser[i]
+	s.RUnlock()
+	return u, ok
+}
+
+func (s *slackConnector) userIMID(u string) (i string, ok bool) {
+	s.RLock()
+	i, ok = s.userIDToIM[u]
 	s.RUnlock()
 	return i, ok
 }
@@ -137,6 +199,13 @@ func (s *slackConnector) chanID(c string) (i string, ok bool) {
 	i, ok = s.channelToID[c]
 	s.RUnlock()
 	return i, ok
+}
+
+func (s *slackConnector) channelName(i string) (c string, ok bool) {
+	s.RLock()
+	c, ok = s.idToChannel[i]
+	s.RUnlock()
+	return c, ok
 }
 
 func (s *slackConnector) imUser(c string) (u string, ok bool) {

@@ -20,6 +20,18 @@ type Bot struct {
 	port         string
 }
 
+// interface ChatBot defines the API for plugins
+type ChatBot interface {
+	GetDebug() bool
+	SetDebug(d bool)
+	Connector
+}
+
+type Handler interface {
+	ChannelMsg(channelName, message string)
+	DirectMsg(userName, message string)
+}
+
 // Instantiate the one and only instance of a Gobot
 func Create() *Bot {
 	botLock.Lock()

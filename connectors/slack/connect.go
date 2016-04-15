@@ -10,9 +10,9 @@ import (
 	"github.com/parsley42/gobot/bot"
 )
 
-func StartConnector(bot *bot.Bot, token string, l bot.LogLevel) {
+func StartConnector(gobot *bot.Bot, token string, l bot.LogLevel) {
 	api := slack.New(token)
-	if bot.GetDebug() {
+	if gobot.GetDebug() {
 		api.SetDebug(true)
 	}
 
@@ -27,10 +27,12 @@ Loop:
 			switch ev := msg.Data.(type) {
 
 			case *slack.ConnectedEvent:
-				bot.Debug(fmt.Sprintf("Infos: %T %v\n", ev, *ev.Info.User))
-				bot.Debug("Connection counter:", ev.ConnectionCount)
-				bot.SetName(ev.Info.User.Name)
-				sc.SendChannelMessage("botdev", "Hello, world!")
+				gobot.Debug(fmt.Sprintf("Infos: %T %v\n", ev, *ev.Info.User))
+				gobot.Debug("Connection counter:", ev.ConnectionCount)
+				gobot.SetName(ev.Info.User.Name)
+				sc.botName = ev.Info.User.Name
+				sc.botID = ev.Info.User.ID
+				sc.log(bot.Trace, "Set bot ID to", sc.botID)
 				break Loop
 
 			case *slack.InvalidAuthEvent:
@@ -39,35 +41,37 @@ Loop:
 		}
 	}
 
-	// We're connected, set the bot's connector to a struct
-
-	bot.Init(sc)
 	sc.updateMaps()
+	// We're connected, set the bot's connector to a struct
+	gobot.Init(sc)
+	sc.Handler = gobot
 
 	for {
 		select {
 		case msg := <-sc.conn.IncomingEvents:
-			bot.Debug("Event Received: ")
+			gobot.Debug("Event Received: ")
 			switch ev := msg.Data.(type) {
 			case *slack.HelloEvent:
 				// Ignore hello
+			case *slack.ChannelArchiveEvent, *slack.ChannelCreatedEvent, *slack.ChannelDeletedEvent, *slack.ChannelRenameEvent, *slack.TeamJoinEvent:
+				sc.updateMaps()
 
 			case *slack.MessageEvent:
-				bot.Debug(fmt.Sprintf("Message: %v\n", ev))
+				sc.processMessage(ev)
 
 			case *slack.PresenceChangeEvent:
-				bot.Debug(fmt.Sprintf("Presence Change: %v\n", ev))
+				gobot.Debug(fmt.Sprintf("Presence Change: %v\n", ev))
 
 			case *slack.LatencyReport:
-				bot.Debug(fmt.Sprintf("Current latency: %v\n", ev.Value))
+				gobot.Debug(fmt.Sprintf("Current latency: %v\n", ev.Value))
 
 			case *slack.RTMError:
-				bot.Debug(fmt.Sprintf("Error: %s\n", ev.Error()))
+				gobot.Debug(fmt.Sprintf("Error: %s\n", ev.Error()))
 
 			default:
 
 				// Ignore other events..
-				// bot.Debug(fmt.Sprintf("Unexpected: %v\n", msg.Data)
+				// gobot.Debug(fmt.Sprintf("Unexpected: %v\n", msg.Data)
 			}
 		}
 	}

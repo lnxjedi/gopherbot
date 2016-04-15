@@ -3,7 +3,9 @@ GOBOT_CONNECTOR=slack # currently the only *cough*supported*cough* connector
 # GOBOT_NAME="Floyd" # the slack plugin supplies this
 GOBOT_ALIAS=";"
 # Bender is another bot - we don't want them talking to each other
-GOBOT_IGNORE="Bender"
+#GOBOT_IGNORE="Bender"
 GOBOT_SLACK_TOKEN=<yourtokenhere>
 # GOBOT_DEBUG=true
-GOBOT_HTTP_PORT="127.0.0.1:8880"
+#GOBOT_LOGLEVEL="error"
+GOBOT_LOCAL_PORT="8880"
+#GOBOT_JOIN_CHANNELS="general random botdev"
