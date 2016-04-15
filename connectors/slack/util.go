@@ -33,11 +33,33 @@ type slackConnector struct {
 	level        bot.LogLevel      // current log level
 }
 
+func (s *slackConnector) addMessageMentions(msg string) string {
+	re := regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
+	mentions := re.FindAllString(msg, -1)
+	if len(mentions) == 0 {
+		return msg
+	}
+	mset := make(map[string]bool)
+	for _, mention := range mentions {
+		mset[mention] = true
+	}
+	for mention, _ := range mset {
+		userName := mention[1:]
+		replace, ok := s.userID(userName)
+		if !ok {
+			// it's ok to have @notactuallyauser
+			continue
+		}
+		msg = strings.Replace(msg, mention, "<@"+replace+">", -1)
+	}
+	return msg
+}
+
 // Examine incoming messages and route them to the appropriate bot
 // method.
 func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	s.log(bot.Trace, fmt.Sprintf("Message received: %v\n", msg))
-	re := regexp.MustCompile("<@U[A-Z0-9]{8}>") // match a @user mention
+	re := regexp.MustCompile(`<@U[A-Z0-9]{8}>`) // match a @user mention
 	text := msg.Msg.Text
 	chanID := msg.Msg.Channel
 	mentions := re.FindAllString(text, -1)

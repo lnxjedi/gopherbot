@@ -11,6 +11,7 @@ func (s *slackConnector) SendChannelMessage(c string, m string) {
 		s.log(bot.Error, "Channel ID not found for:", c)
 		return
 	}
+	m = s.addMessageMentions(m)
 	s.conn.SendMessage(s.conn.NewOutgoingMessage(m, chanID))
 }
 
@@ -31,6 +32,7 @@ func (s *slackConnector) SendUserMessage(u string, m string) {
 			return
 		}
 	}
+	m = s.addMessageMentions(m)
 	s.conn.SendMessage(s.conn.NewOutgoingMessage(m, userIMchan))
 }
 
