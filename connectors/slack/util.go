@@ -34,25 +34,14 @@ type slackConnector struct {
 }
 
 func (s *slackConnector) addMessageMentions(msg string) string {
-	re := regexp.MustCompile(`(?:^| )(@[0-9a-z]{1,21})\b`)
-	mentions := re.FindAllStringSubmatch(msg, -1)
-	if len(mentions) == 0 {
-		return msg
-	}
-	mset := make(map[string]bool)
-	for _, mention := range mentions {
-		mset[mention[1]] = true
-	}
-	for mention, _ := range mset {
-		userName := mention[1:]
-		replace, ok := s.userID(userName)
-		if !ok {
-			// it's ok to have @notactuallyauser
-			continue
+	re := regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
+	return re.ReplaceAllStringFunc(msg, func(str string) string {
+		replace, ok := s.userID(str[1:])
+		if ok {
+			return "<@" + replace + ">"
 		}
-		msg = strings.Replace(msg, mention, "<@"+replace+">", -1)
-	}
-	return msg
+		return str
+	})
 }
 
 // Examine incoming messages and route them to the appropriate bot
