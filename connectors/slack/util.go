@@ -18,9 +18,10 @@ type slackConnector struct {
 	api          *slack.Client
 	conn         *slack.RTM
 	sync.RWMutex                   // shared mutex for locking connector data structures
-	channelIDs   map[string]string // map from channel names to channel IDs
-	userIDs      map[string]string // map from user names to user IDs
-	userIMIDs    map[string]string // map from user ID to IM channel ID
+	channelToID  map[string]string // map from channel names to channel IDs
+	userToID     map[string]string // map from user names to user IDs
+	userIDToIM   map[string]string // map from user ID to IM channel ID
+	imToUser     map[string]string // map from IM channel ID to user name
 	level        bot.LogLevel      // current log level
 }
 
@@ -29,7 +30,7 @@ type slackConnector struct {
 func (s *slackConnector) log(l bot.LogLevel, v ...interface{}) {
 	if l >= s.level {
 		var prefix string
-		switch s.level {
+		switch l {
 		case bot.Trace:
 			prefix = "Trace:"
 		case bot.Debug:
@@ -45,15 +46,19 @@ func (s *slackConnector) log(l bot.LogLevel, v ...interface{}) {
 	}
 }
 
-// update users is called whenever there are any user
-// updates, to re-populate the name -> id user map
-func (s *slackConnector) updateUsers() {
-	s.log(bot.Trace, "Updating users")
+// update maps is called whenever there are any changes
+// to users or channels, so that plugins can use
+// human-readable names for users and channels.
+func (s *slackConnector) updateMaps() {
+	s.log(bot.Trace, "Updating maps")
 	deadline := time.Now().Add(optimeout)
 	var (
-		err      error
-		userlist []slack.User
+		err        error
+		userlist   []slack.User
+		userIMlist []slack.IM
+		chanlist   []slack.Channel
 	)
+
 	for tries := uint(0); time.Now().Before(deadline); tries++ {
 		userlist, err = s.api.GetUsers()
 		if err == nil {
@@ -64,32 +69,13 @@ func (s *slackConnector) updateUsers() {
 		log.Fatalf("Protocol timeout updating users: %v\n", err)
 	}
 	userMap := make(map[string]string)
+	userIDMap := make(map[string]string)
 	for _, user := range userlist {
-		s.log(bot.Trace, "Mapping ", user.Name, " to ", user.ID)
+		s.log(bot.Trace, "Mapping user name", user.Name, "to", user.ID)
 		userMap[user.Name] = user.ID
+		userIDMap[user.ID] = user.Name
 	}
-	s.Lock()
-	s.userIDs = userMap
-	s.Unlock()
-	s.log(bot.Info, "Users updated")
-}
 
-func (s *slackConnector) userID(c string) (i string, ok bool) {
-	s.Lock()
-	i, ok = s.userIDs[c]
-	s.Unlock()
-	return i, ok
-}
-
-// update IMchannels is called whenever there are any IM channel
-// updates, to re-populate the user id -> channel id map
-func (s *slackConnector) updateIMChannels() {
-	s.log(bot.Trace, "Updating IM channels")
-	deadline := time.Now().Add(optimeout)
-	var (
-		err        error
-		userIMlist []slack.IM
-	)
 	for tries := uint(0); time.Now().Before(deadline); tries++ {
 		userIMlist, err = s.api.GetIMChannels()
 		if err == nil {
@@ -100,32 +86,14 @@ func (s *slackConnector) updateIMChannels() {
 		log.Fatalf("Protocol timeout updating IMchannels: %v\n", err)
 	}
 	userIMMap := make(map[string]string)
+	userNameMap := make(map[string]string)
 	for _, userIM := range userIMlist {
-		s.log(bot.Trace, "Mapping ", userIM.User, " to ", userIM.ID)
+		s.log(bot.Trace, "Mapping user ID", userIM.User, "to IM channel", userIM.ID)
 		userIMMap[userIM.User] = userIM.ID
+		s.log(bot.Trace, "Mapping IM channel", userIM.ID, "to user name", userIDMap[userIM.User])
+		userNameMap[userIM.ID] = userIDMap[userIM.User]
 	}
-	s.Lock()
-	s.userIMIDs = userIMMap
-	s.Unlock()
-	s.log(bot.Info, "IMChannels updated")
-}
 
-func (s *slackConnector) userIMID(c string) (i string, ok bool) {
-	s.Lock()
-	i, ok = s.userIMIDs[c]
-	s.Unlock()
-	return i, ok
-}
-
-// update channels is called whenever there are any channel
-// updates, to re-populate the name -> id channel map
-func (s *slackConnector) updateChannels() {
-	s.log(bot.Trace, "Updating channels")
-	deadline := time.Now().Add(optimeout)
-	var (
-		err      error
-		chanlist []slack.Channel
-	)
 	for tries := uint(0); time.Now().Before(deadline); tries++ {
 		chanlist, err = s.api.GetChannels(true)
 		if err == nil {
@@ -137,18 +105,43 @@ func (s *slackConnector) updateChannels() {
 	}
 	chanMap := make(map[string]string)
 	for _, channel := range chanlist {
-		s.log(bot.Trace, "Mapping ", channel.Name, " to ", channel.ID)
+		s.log(bot.Trace, "Mapping channel name", channel.Name, "to", channel.ID)
 		chanMap[channel.Name] = channel.ID
 	}
+
 	s.Lock()
-	s.channelIDs = chanMap
+	s.userToID = userMap
+	s.userIDToIM = userIMMap
+	s.channelToID = chanMap
+	s.imToUser = userNameMap
 	s.Unlock()
-	s.log(bot.Info, "Channels updated")
+	s.log(bot.Info, "Users updated")
+}
+
+func (s *slackConnector) userID(c string) (i string, ok bool) {
+	s.RLock()
+	i, ok = s.userToID[c]
+	s.RUnlock()
+	return i, ok
+}
+
+func (s *slackConnector) userIMID(c string) (i string, ok bool) {
+	s.RLock()
+	i, ok = s.userIDToIM[c]
+	s.RUnlock()
+	return i, ok
 }
 
 func (s *slackConnector) chanID(c string) (i string, ok bool) {
-	s.Lock()
-	i, ok = s.channelIDs[c]
-	s.Unlock()
+	s.RLock()
+	i, ok = s.channelToID[c]
+	s.RUnlock()
 	return i, ok
+}
+
+func (s *slackConnector) imUser(c string) (u string, ok bool) {
+	s.RLock()
+	u, ok = s.imToUser[c]
+	s.RUnlock()
+	return u, ok
 }

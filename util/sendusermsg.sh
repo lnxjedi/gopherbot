@@ -1,16 +1,16 @@
 #!/bin/bash
 
-[ $# -lt 2 ] && { echo "Usage: sendchannelmsg.sh <channel> message"; exit 1; }
+[ $# -lt 2 ] && { echo "Usage: sendusermsg.sh <user> message"; exit 1; }
 
-CHANNEL=$1
+CHATUSER=$1
 shift
 MESSAGE="$*"
 
 JSON=$(cat <<EOF
 {
-	"Command": "SendChannelMessage",
+	"Command": "SendUserMessage",
 	"CmdArgs": {
-		"Channel": "$CHANNEL",
+		"User": "$CHATUSER",
 		"Message": "$MESSAGE"
 	}
 }

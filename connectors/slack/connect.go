@@ -42,14 +42,7 @@ Loop:
 	// We're connected, set the bot's connector to a struct
 
 	bot.Init(sc)
-	sc.updateChannels()
-	sc.updateUsers()
-	sc.updateIMChannels()
-	for _, channel := range bot.GetInitChannels() {
-		sc.JoinChannel(channel)
-	}
-	//TODO: remove this later
-	sc.SendUserMessage("davidp", "Hello, sir!")
+	sc.updateMaps()
 
 	for {
 		select {

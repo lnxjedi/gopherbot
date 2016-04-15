@@ -14,7 +14,12 @@ type JSONCommand struct {
 }
 
 type ChannelMessage struct {
-	ChanID  string
+	Channel string
+	Message string
+}
+
+type UserMessage struct {
+	User    string
 	Message string
 }
 
@@ -48,7 +53,15 @@ func (b *Bot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		b.conn.SendChannelMessage(cm.ChanID, cm.Message)
+		b.SendChannelMessage(cm.Channel, cm.Message)
+	case "SendUserMessage":
+		var um UserMessage
+		err := json.Unmarshal(c.CmdArgs, &um)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		b.SendUserMessage(um.User, um.Message)
 	default:
 		rw.WriteHeader(http.StatusBadRequest)
 		return

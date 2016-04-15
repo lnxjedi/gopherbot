@@ -12,11 +12,11 @@ var botCreated bool
 
 type Bot struct {
 	debug        bool
-	alias        rune      // single-char alias for addressing the bot
-	name         string    // e.g. "Gort"
-	channels     []string  // list of channels to join
-	sync.RWMutex           // for safe updating of bot data structures
-	conn         Connector // Connector interface, implemented by each specific protocol
+	alias        rune     // single-char alias for addressing the bot
+	name         string   // e.g. "Gort"
+	channels     []string // list of channels to join
+	sync.RWMutex          // for safe updating of bot data structures
+	Connector             // Connector interface, implemented by each specific protocol
 	port         string
 }
 
@@ -86,8 +86,13 @@ func (b *Bot) SetPort(p string) {
 
 func (b *Bot) Init(c Connector) {
 	b.Lock()
-	b.conn = c
-	go b.listenHttpJSON()
+	b.Connector = c
 	b.Unlock()
+	go b.listenHttpJSON()
+	for _, channel := range b.GetInitChannels() {
+		b.JoinChannel(channel)
+	}
+	//TODO: remove this later
+	b.SendUserMessage("davidp", "Hello, sir!")
 	//	b.conn.SendChannelMessage("C0RK4DG68", "Hello, World!")
 }
