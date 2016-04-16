@@ -4,19 +4,23 @@ package bot
 
 import (
 	"log"
+	"regexp"
 	"sync"
 )
 
 var botLock sync.Mutex
 var botCreated bool
 
+// Bot holds all the interal data relevant to the Bot
 type Bot struct {
 	debug        bool
-	alias        rune     // single-char alias for addressing the bot
-	name         string   // e.g. "Gort"
-	channels     []string // list of channels to join
-	sync.RWMutex          // for safe updating of bot data structures
-	Connector             // Connector interface, implemented by each specific protocol
+	alias        rune           // single-char alias for addressing the bot
+	name         string         // e.g. "Gort"
+	preRegex     *regexp.Regexp // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
+	postRegex    *regexp.Regexp // regex for matching, e.g. "open the pod bay doors, hal"
+	channels     []string       // list of channels to join
+	sync.RWMutex                // for safe updating of bot data structures
+	Connector                   // Connector interface, implemented by each specific protocol
 	port         string
 }
 
@@ -27,6 +31,7 @@ type ChatBot interface {
 	Connector
 }
 
+// interface Handler defines the callback API for Connectors
 type Handler interface {
 	ChannelMsg(channelName, message string)
 	DirectMsg(userName, message string)
@@ -56,6 +61,7 @@ func (b *Bot) SetAlias(a rune) {
 	b.Lock()
 	b.alias = a
 	b.Unlock()
+	b.updateRegexes()
 }
 
 // report whether bot debug messages are on or off
@@ -88,6 +94,7 @@ func (b *Bot) SetName(n string) {
 	b.Debug("Setting name to: " + n)
 	b.name = n
 	b.Unlock()
+	b.updateRegexes()
 }
 
 func (b *Bot) SetPort(p string) {
@@ -105,6 +112,7 @@ func (b *Bot) Init(c Connector) {
 		b.JoinChannel(channel)
 	}
 	//TODO: remove this later
-	b.SendUserMessage("davidp", "Hello, sir!")
+	name, _ := b.GetProtocolUserAttribute("davidp", "realName")
+	b.SendUserMessage("davidp", "Hello, sir! I know who you are now: "+name)
 	//	b.conn.SendChannelMessage("C0RK4DG68", "Hello, World!")
 }

@@ -4,6 +4,30 @@ import (
 	"github.com/parsley42/gobot/bot"
 )
 
+// GetUserAttribute returns a string attribute or nil if slack doesn't
+// have that information
+func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string, ok bool) {
+	user, ok := s.getUser(u)
+	if !ok {
+		return "", false
+	}
+	switch attr {
+	case "email":
+		return user.Profile.Email, ok
+	case "realName":
+		return user.RealName, ok
+	case "firstName":
+		return user.Profile.FirstName, ok
+	case "lastName":
+		return user.Profile.LastName, ok
+	case "phone":
+		return user.Profile.Phone, ok
+	// that's all the attributes slack knows about
+	default:
+		return "", false
+	}
+}
+
 // SendChannelMessage sends a message to a channel
 func (s *slackConnector) SendChannelMessage(c string, m string) {
 	chanID, ok := s.chanID(c)

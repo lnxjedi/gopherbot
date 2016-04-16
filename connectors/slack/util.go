@@ -17,22 +17,24 @@ import (
 
 const optimeout = 1 * time.Minute
 
+// slackConnector holds all the relevant data about a connection
 type slackConnector struct {
 	api          *slack.Client
 	conn         *slack.RTM
-	botName      string            // human-readable name of bot
-	botID        string            // slack internal bot ID
-	bot.Handler                    // bot interface for handling messages
-	sync.RWMutex                   // shared mutex for locking connector data structures
-	channelToID  map[string]string // map from channel names to channel IDs
-	idToChannel  map[string]string // map from channel ID to channel name
-	userToID     map[string]string // map from user names to user IDs
-	idToUser     map[string]string // map from user name to user ID
-	userIDToIM   map[string]string // map from user ID to IM channel ID
-	imToUser     map[string]string // map from IM channel ID to user name
-	level        bot.LogLevel      // current log level
+	botName      string                // human-readable name of bot
+	botID        string                // slack internal bot ID
+	bot.Handler                        // bot interface for handling messages
+	sync.RWMutex                       // shared mutex for locking connector data structures
+	channelToID  map[string]string     // map from channel names to channel IDs
+	idToChannel  map[string]string     // map from channel ID to channel name
+	userInfo     map[string]slack.User // map from user names to slack.User struct
+	idToUser     map[string]string     // map from user ID to user name
+	userIDToIM   map[string]string     // map from user ID to IM channel ID
+	imToUser     map[string]string     // map from IM channel ID to user name
+	level        bot.LogLevel          // current log level
 }
 
+// addMessageMentions replaces @username with the slack-internal representation
 func (s *slackConnector) addMessageMentions(msg string) string {
 	re := regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
 	return re.ReplaceAllStringFunc(msg, func(str string) string {
@@ -44,7 +46,7 @@ func (s *slackConnector) addMessageMentions(msg string) string {
 	})
 }
 
-// Examine incoming messages and route them to the appropriate bot
+// processMessage examines incoming messages and routes them to the appropriate bot
 // method.
 func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	s.log(bot.Trace, fmt.Sprintf("Message received: %v\n", msg))
@@ -130,11 +132,11 @@ func (s *slackConnector) updateMaps() {
 	if err != nil {
 		log.Fatalf("Protocol timeout updating users: %v\n", err)
 	}
-	userMap := make(map[string]string)
+	userMap := make(map[string]slack.User)
 	userIDMap := make(map[string]string)
 	for _, user := range userlist {
 		s.log(bot.Trace, "Mapping user name", user.Name, "to", user.ID)
-		userMap[user.Name] = user.ID
+		userMap[user.Name] = user
 		userIDMap[user.ID] = user.Name
 	}
 
@@ -174,7 +176,7 @@ func (s *slackConnector) updateMaps() {
 	}
 
 	s.Lock()
-	s.userToID = userMap
+	s.userInfo = userMap
 	s.idToUser = userIDMap
 	s.userIDToIM = userIMMap
 	s.channelToID = chanMap
@@ -184,11 +186,24 @@ func (s *slackConnector) updateMaps() {
 	s.log(bot.Info, "Users updated")
 }
 
+func (s *slackConnector) getUser(u string) (user slack.User, ok bool) {
+	s.RLock()
+	user, ok = s.userInfo[u]
+	s.RUnlock()
+	if !ok {
+		return user, false
+	}
+	return user, ok
+}
+
 func (s *slackConnector) userID(u string) (i string, ok bool) {
 	s.RLock()
-	i, ok = s.userToID[u]
+	user, ok := s.userInfo[u]
 	s.RUnlock()
-	return i, ok
+	if !ok {
+		return "", false
+	}
+	return user.ID, ok
 }
 
 func (s *slackConnector) userName(i string) (u string, ok bool) {

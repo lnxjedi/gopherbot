@@ -15,11 +15,10 @@ func main() {
 	//	bot := gobot.New(string(alias), os.Getenv("GOBOT_HTTP_PORT"), debug)
 	gobot := bot.Create()
 
-	alias := ';'
 	if len(os.Getenv("GOBOT_ALIAS")) > 0 {
-		alias, _ = utf8.DecodeRuneInString(os.Getenv("GOBOT_ALIAS"))
+		alias, _ := utf8.DecodeRuneInString(os.Getenv("GOBOT_ALIAS"))
+		gobot.SetAlias(alias)
 	}
-	gobot.SetAlias(alias)
 
 	debug := false
 	if os.Getenv("GOBOT_DEBUG") == "true" {
