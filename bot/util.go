@@ -16,7 +16,7 @@ func (b *Bot) updateRegexes() {
 		b.preRegex = re
 		b.Unlock()
 	}
-	postString := `^([^,@]+),?\s*((?i)@?` + b.name + `)([.?!])?$`
+	postString := `^([^,@]+),?\s*((?i)@?` + b.name + `)([.?! ])?$`
 	b.Debug("postString is", postString)
 	re, err = regexp.Compile(postString)
 	if err == nil {

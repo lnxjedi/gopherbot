@@ -9,6 +9,7 @@ import (
 	//	_ "github.com/parsley42/gobot-instance/plugin"
 	"github.com/parsley42/gobot/bot"
 	"github.com/parsley42/gobot/connectors/slack"
+	_ "github.com/parsley42/gobot/plugins/meme"
 )
 
 func main() {
