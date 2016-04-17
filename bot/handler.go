@@ -1,8 +1,15 @@
 package bot
 
-import "fmt"
-
 /* Handle incoming messages */
+
+// interface Handler defines the callback API for Connectors
+type Handler interface {
+	ChannelMsg(channelName, message string)
+	DirectMsg(userName, message string)
+	Log(l LogLevel, v ...interface{})
+	// SetLogLevel updates the connector log level
+	SetLogLevel(l LogLevel)
+}
 
 func (b *Bot) ChannelMsg(channelName, message string) {
 	matched := false
@@ -16,16 +23,15 @@ func (b *Bot) ChannelMsg(channelName, message string) {
 	}
 	if !matched && b.postRegex != nil {
 		matches := b.postRegex.FindAllStringSubmatch(message, 2)
-		b.Debug(fmt.Sprintf("%q", matches))
 		if matches != nil && len(matches[0]) == 4 {
 			matched = true
 			command := matches[0][1] + matches[0][3]
 			b.SendChannelMessage(channelName, "I heard you! You said \""+command+"\"")
 		}
 	}
-	b.Debug("Message", message, "in channel", channelName)
+	b.Log(Trace, "Message", message, "in channel", channelName)
 }
 
 func (b *Bot) DirectMsg(user, message string) {
-	b.Debug("Direct message", message, "from user", user)
+	b.Log(Trace, "Direct message", message, "from user", user)
 }

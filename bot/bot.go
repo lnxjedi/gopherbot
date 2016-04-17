@@ -2,7 +2,11 @@
 // bot.
 package bot
 
+/* bot.go defines core data structures and public methods for startup
+   and the connector, but not exposed to plugins. */
+
 import (
+	"encoding/json"
 	"log"
 	"regexp"
 	"sync"
@@ -11,31 +15,34 @@ import (
 var botLock sync.Mutex
 var botCreated bool
 
-// Bot holds all the interal data relevant to the Bot
+// Bot holds all the interal data relevant to the Bot. Much of it is populated
+// by LoadConfig.
 type Bot struct {
-	debug        bool
-	alias        rune           // single-char alias for addressing the bot
-	name         string         // e.g. "Gort"
-	preRegex     *regexp.Regexp // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
-	postRegex    *regexp.Regexp // regex for matching, e.g. "open the pod bay doors, hal"
-	channels     []string       // list of channels to join
-	sync.RWMutex                // for safe updating of bot data structures
-	Connector                   // Connector interface, implemented by each specific protocol
-	port         string
+	level          LogLevel        // Log level for bot methods
+	alias          rune            // single-char alias for addressing the bot
+	name           string          // e.g. "Gort"
+	ignoreusers    []string        // list of users to never listen to, like other bots
+	preRegex       *regexp.Regexp  // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
+	postRegex      *regexp.Regexp  // regex for matching, e.g. "open the pod bay doors, hal"
+	channels       []string        // list of channels to join
+	plugchannels   []string        // list of channels where plugins are active by default
+	sync.RWMutex                   // for safe updating of bot data structures
+	Connector                      // Connector interface, implemented by each specific protocol
+	protocolConfig json.RawMessage // Raw JSON configuration to pass to the connector
+	port           string
 }
 
-// interface ChatBot defines the API for plugins
-type ChatBot interface {
-	GetDebug() bool
-	SetDebug(d bool)
-	Connector
-}
+// LogLevel for determining when to output a log entry
+type LogLevel int
 
-// interface Handler defines the callback API for Connectors
-type Handler interface {
-	ChannelMsg(channelName, message string)
-	DirectMsg(userName, message string)
-}
+// Definitions of log levels in order from most to least verbose
+const (
+	Trace LogLevel = iota
+	Debug
+	Info
+	Warn
+	Error
+)
 
 // Instantiate the one and only instance of a Gobot
 func Create() *Bot {
@@ -49,10 +56,34 @@ func Create() *Bot {
 	return b
 }
 
-// Print debugging messages if the debug flag is set
-func (b *Bot) Debug(v ...interface{}) {
-	if b.debug {
-		log.Println(v)
+// GetProtocolConfig returns the connector protocol's json.RawMessage to the connector
+func (b *Bot) GetProtocolConfig() json.RawMessage {
+	var pc []byte
+	b.RLock()
+	// Make of copy of the protocol config for the plugin
+	pc = append(pc, []byte(b.protocolConfig)...)
+	b.RUnlock()
+	return pc
+}
+
+// Log logs messages whenever the connector log level is
+// less than the given level
+func (b *Bot) Log(l LogLevel, v ...interface{}) {
+	if l >= b.level {
+		var prefix string
+		switch l {
+		case Trace:
+			prefix = "Trace:"
+		case Debug:
+			prefix = "Debug:"
+		case Info:
+			prefix = "Info"
+		case Warn:
+			prefix = "Warning:"
+		case Error:
+			prefix = "Error"
+		}
+		log.Println(prefix, v)
 	}
 }
 
@@ -64,43 +95,27 @@ func (b *Bot) SetAlias(a rune) {
 	b.updateRegexes()
 }
 
-// report whether bot debug messages are on or off
-func (b *Bot) GetDebug() bool {
-	return b.debug
-}
-
-// set debugging messages to on or off
-func (b *Bot) SetDebug(d bool) {
+// SetLogLevel updates the connector log level
+func (b *Bot) SetLogLevel(l LogLevel) {
 	b.Lock()
-	b.debug = d
+	b.level = l
 	b.Unlock()
 }
 
-func (b *Bot) GetInitChannels() []string {
-	b.Lock()
-	c := b.channels
-	b.Unlock()
-	return c
-}
-
-func (b *Bot) SetInitChannels(ic []string) {
-	b.Lock()
-	b.channels = ic
-	b.Unlock()
+// GetLogLevel returns the current log level
+func (b *Bot) GetLogLevel() LogLevel {
+	b.RLock()
+	l := b.level
+	b.RUnlock()
+	return l
 }
 
 func (b *Bot) SetName(n string) {
 	b.Lock()
-	b.Debug("Setting name to: " + n)
+	b.Log(Debug, "Setting name to: "+n)
 	b.name = n
 	b.Unlock()
 	b.updateRegexes()
-}
-
-func (b *Bot) SetPort(p string) {
-	b.Lock()
-	b.port = p
-	b.Unlock()
 }
 
 func (b *Bot) Init(c Connector) {
@@ -108,7 +123,11 @@ func (b *Bot) Init(c Connector) {
 	b.Connector = c
 	b.Unlock()
 	go b.listenHttpJSON()
-	for _, channel := range b.GetInitChannels() {
+	var cl []string
+	b.RLock()
+	cl = append(cl, b.channels...)
+	b.RUnlock()
+	for _, channel := range cl {
 		b.JoinChannel(channel)
 	}
 	//TODO: remove this later

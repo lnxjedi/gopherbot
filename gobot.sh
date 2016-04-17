@@ -3,11 +3,10 @@
 
 usage(){
 	cat <<EOF
-Usage: gobot.sh (-D)
+Usage: gobot.sh
 
-Download, build and run an instance of gobot-chatops. GOBOT_CONF
-must be set to a file containing configuration and credentials.
-See the README.md for the details of this file.
+Build and run an instance of gobot. GOBOT_CONFIGDIR should point
+to a directory holding gobot.json and any plugin configuration files.
 EOF
 }
 
@@ -20,25 +19,10 @@ echo "Building / Installing..."
 go install
 [ $? -ne 0 ] && errorout "Error building, aborting."
 
-[ -z "$GOBOT_CONF" ] && errorout "GOBOT_CONF not set, see README.md"
-[ ! -e "$GOBOT_CONF" ] && errorout "File \"$GOBOT_CONF\" (env[GOBOT_CONF]) not found, see README.md"
-source $GOBOT_CONF
+export GOBOT_DEBUG
 
-[ "$1" = "-D" ] && GOBOT_DEBUG=true
-
-[ -z "$GOBOT_CONNECTOR" ] && errorout "GOBOT_CONNECTOR not set, see README.md"
-
-# Export all the GOBOT variables
-eval export ${!GOBOT*}
-
-case $GOBOT_CONNECTOR in
-	slack)
-		[ -z "$GOBOT_SLACK_TOKEN" ] && errorout "Error: GOBOT_SLACK_TOKEN not in environment"
-		;;
-	*)
-		errorout "Unknown/unsupported GOBOT_CONNECTOR: $GOBOT_CONNECTOR"
-		;;
-esac
+[ ! -d "$GOBOT_CONFIGDIR" ] && errorout "GOBOT_CONFIGDIR not set to a directory, see README.md"
+[ ! -e "$GOBOT_CONFIGDIR/gobot.json" ] && errorout "Couldn't find gobot.json in $GOBOT_CONFIGDIR"
 
 echo "Exec'ing bot..."
 exec $GOPATH/bin/gobot

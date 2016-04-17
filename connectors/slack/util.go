@@ -23,7 +23,7 @@ type slackConnector struct {
 	conn         *slack.RTM
 	botName      string                // human-readable name of bot
 	botID        string                // slack internal bot ID
-	bot.Handler                        // bot interface for handling messages
+	bot.Handler                        // bot API for connectors
 	sync.RWMutex                       // shared mutex for locking connector data structures
 	channelToID  map[string]string     // map from channel names to channel IDs
 	idToChannel  map[string]string     // map from channel ID to channel name
@@ -31,7 +31,6 @@ type slackConnector struct {
 	idToUser     map[string]string     // map from user ID to user name
 	userIDToIM   map[string]string     // map from user ID to IM channel ID
 	imToUser     map[string]string     // map from IM channel ID to user name
-	level        bot.LogLevel          // current log level
 }
 
 // addMessageMentions replaces @username with the slack-internal representation
@@ -49,7 +48,7 @@ func (s *slackConnector) addMessageMentions(msg string) string {
 // processMessage examines incoming messages and routes them to the appropriate bot
 // method.
 func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
-	s.log(bot.Trace, fmt.Sprintf("Message received: %v\n", msg))
+	s.Log(bot.Trace, fmt.Sprintf("Message received: %v\n", msg))
 	re := regexp.MustCompile(`<@U[A-Z0-9]{8}>`) // match a @user mention
 	text := msg.Msg.Text
 	chanID := msg.Msg.Channel
@@ -63,7 +62,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 			mID := mention[2:11]
 			replace, ok := s.userName(mID)
 			if !ok {
-				s.log(bot.Warn, "Couldn't find username for mentioned", mID)
+				s.Log(bot.Warn, "Couldn't find username for mentioned", mID)
 				continue
 			}
 			text = strings.Replace(text, mention, "@"+replace, -1)
@@ -73,7 +72,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	case "D":
 		userName, ok := s.imUser(chanID)
 		if !ok {
-			s.log(bot.Warn, "Couldn't find user name for IM", chanID)
+			s.Log(bot.Warn, "Couldn't find user name for IM", chanID)
 			s.DirectMsg(chanID, text)
 			return
 		}
@@ -81,7 +80,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	case "C":
 		channelName, ok := s.channelName(chanID)
 		if !ok {
-			s.log(bot.Warn, "Coudln't find channel name for ID", chanID)
+			s.Log(bot.Warn, "Coudln't find channel name for ID", chanID)
 			s.ChannelMsg(chanID, text)
 			return
 		}
@@ -89,32 +88,11 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	}
 }
 
-// log logs messages whenever the connector log level is
-// less than the given level
-func (s *slackConnector) log(l bot.LogLevel, v ...interface{}) {
-	if l >= s.level {
-		var prefix string
-		switch l {
-		case bot.Trace:
-			prefix = "Trace:"
-		case bot.Debug:
-			prefix = "Debug:"
-		case bot.Info:
-			prefix = "Info"
-		case bot.Warn:
-			prefix = "Warning:"
-		case bot.Error:
-			prefix = "Error"
-		}
-		log.Println(prefix, v)
-	}
-}
-
 // update maps is called whenever there are any changes
 // to users or channels, so that plugins can use
 // human-readable names for users and channels.
 func (s *slackConnector) updateMaps() {
-	s.log(bot.Trace, "Updating maps")
+	s.Log(bot.Trace, "Updating maps")
 	deadline := time.Now().Add(optimeout)
 	var (
 		err        error
@@ -135,7 +113,7 @@ func (s *slackConnector) updateMaps() {
 	userMap := make(map[string]slack.User)
 	userIDMap := make(map[string]string)
 	for _, user := range userlist {
-		s.log(bot.Trace, "Mapping user name", user.Name, "to", user.ID)
+		s.Log(bot.Trace, "Mapping user name", user.Name, "to", user.ID)
 		userMap[user.Name] = user
 		userIDMap[user.ID] = user.Name
 	}
@@ -152,9 +130,9 @@ func (s *slackConnector) updateMaps() {
 	userIMMap := make(map[string]string)
 	userNameMap := make(map[string]string)
 	for _, userIM := range userIMlist {
-		s.log(bot.Trace, "Mapping user ID", userIM.User, "to IM channel", userIM.ID)
+		s.Log(bot.Trace, "Mapping user ID", userIM.User, "to IM channel", userIM.ID)
 		userIMMap[userIM.User] = userIM.ID
-		s.log(bot.Trace, "Mapping IM channel", userIM.ID, "to user name", userIDMap[userIM.User])
+		s.Log(bot.Trace, "Mapping IM channel", userIM.ID, "to user name", userIDMap[userIM.User])
 		userNameMap[userIM.ID] = userIDMap[userIM.User]
 	}
 
@@ -170,7 +148,7 @@ func (s *slackConnector) updateMaps() {
 	chanMap := make(map[string]string)
 	chanIDMap := make(map[string]string)
 	for _, channel := range chanlist {
-		s.log(bot.Trace, "Mapping channel name", channel.Name, "to", channel.ID)
+		s.Log(bot.Trace, "Mapping channel name", channel.Name, "to", channel.ID)
 		chanMap[channel.Name] = channel.ID
 		chanIDMap[channel.ID] = channel.Name
 	}
@@ -183,7 +161,7 @@ func (s *slackConnector) updateMaps() {
 	s.idToChannel = chanIDMap
 	s.imToUser = userNameMap
 	s.Unlock()
-	s.log(bot.Info, "Users updated")
+	s.Log(bot.Info, "Users updated")
 }
 
 func (s *slackConnector) getUser(u string) (user slack.User, ok bool) {

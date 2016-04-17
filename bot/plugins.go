@@ -1,5 +1,14 @@
 package bot
 
+// interface ChatBot defines the API for plugins
+type ChatBot interface {
+	Connector
+	Log(l LogLevel, v ...interface{})
+	GetLogLevel() LogLevel
+	// SetLogLevel updates the connector log level
+	SetLogLevel(l LogLevel)
+}
+
 // map from plugin names to handler functions
 var goPluginHandlers map[string]func(bot ChatBot, channel, user, command string, args ...string) error = make(map[string]func(bot ChatBot, channel, user, command string, args ...string) error)
 

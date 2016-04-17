@@ -3,6 +3,7 @@
 package slack
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -10,13 +11,22 @@ import (
 	"github.com/parsley42/gobot/bot"
 )
 
-func StartConnector(gobot *bot.Bot, token string, l bot.LogLevel) {
-	api := slack.New(token)
-	if gobot.GetDebug() {
+type config struct {
+	SlackToken string // the 'bot token for connecting to Slack
+}
+
+func StartConnector(gobot *bot.Bot) {
+	var c config
+
+	configJSON := gobot.GetProtocolConfig()
+	json.Unmarshal(configJSON, &c)
+
+	api := slack.New(c.SlackToken)
+	if gobot.GetLogLevel() <= bot.Debug {
 		api.SetDebug(true)
 	}
 
-	sc := &slackConnector{api: api, conn: api.NewRTM(), level: l}
+	sc := &slackConnector{api: api, conn: api.NewRTM()}
 	go sc.conn.ManageConnection()
 
 Loop:
@@ -27,12 +37,13 @@ Loop:
 			switch ev := msg.Data.(type) {
 
 			case *slack.ConnectedEvent:
-				gobot.Debug(fmt.Sprintf("Infos: %T %v\n", ev, *ev.Info.User))
-				gobot.Debug("Connection counter:", ev.ConnectionCount)
-				gobot.SetName(ev.Info.User.Name)
+				gobot.Log(bot.Debug, fmt.Sprintf("Infos: %T %v\n", ev, *ev.Info.User))
+				gobot.Log(bot.Debug, "Connection counter:", ev.ConnectionCount)
 				sc.botName = ev.Info.User.Name
+				gobot.SetName(sc.botName)
+				gobot.Log(bot.Debug, "Set bot name to", sc.botName)
 				sc.botID = ev.Info.User.ID
-				sc.log(bot.Trace, "Set bot ID to", sc.botID)
+				gobot.Log(bot.Trace, "Set bot ID to", sc.botID)
 				break Loop
 
 			case *slack.InvalidAuthEvent:
@@ -41,15 +52,15 @@ Loop:
 		}
 	}
 
+	sc.Handler = gobot
 	sc.updateMaps()
 	// We're connected, set the bot's connector to a struct
 	gobot.Init(sc)
-	sc.Handler = gobot
 
 	for {
 		select {
 		case msg := <-sc.conn.IncomingEvents:
-			gobot.Debug("Event Received: ")
+			gobot.Log(bot.Debug, "Event Received: ")
 			switch ev := msg.Data.(type) {
 			case *slack.HelloEvent:
 				// Ignore hello
@@ -60,13 +71,13 @@ Loop:
 				sc.processMessage(ev)
 
 			case *slack.PresenceChangeEvent:
-				gobot.Debug(fmt.Sprintf("Presence Change: %v\n", ev))
+				gobot.Log(bot.Debug, fmt.Sprintf("Presence Change: %v\n", ev))
 
 			case *slack.LatencyReport:
-				gobot.Debug(fmt.Sprintf("Current latency: %v\n", ev.Value))
+				gobot.Log(bot.Debug, fmt.Sprintf("Current latency: %v\n", ev.Value))
 
 			case *slack.RTMError:
-				gobot.Debug(fmt.Sprintf("Error: %s\n", ev.Error()))
+				gobot.Log(bot.Debug, fmt.Sprintf("Error: %s\n", ev.Error()))
 
 			default:
 
