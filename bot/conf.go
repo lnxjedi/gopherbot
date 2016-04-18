@@ -16,6 +16,7 @@ type botconf struct {
 	DefaultChannels []string        // Channels where plugins are active by default, e.g. [ "general", "random" ]
 	IgnoreUsers     []string        // Users the 'bot never talks to - like other bots
 	JoinChannels    []string        // Channels the 'bot should join when it logs in (not supported by all protocols)
+	ExternalPlugins []string        // List of non-Go plugins to load from $GOBOT_CONFIGDIR/plugins/<pluginName>.json
 	Alias           string          // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
 	LocalPort       string          // Port number for listening on localhost, for CLI plugins
 	LogLevel        string          // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
@@ -69,6 +70,9 @@ func (b *Bot) LoadConfig(configPath string) error {
 
 	if config.DefaultChannels != nil {
 		b.plugChannels = config.DefaultChannels
+	}
+	if config.ExternalPlugins != nil {
+		b.externalPlugins = config.ExternalPlugins
 	}
 	if config.IgnoreUsers != nil {
 		b.ignoreUsers = config.IgnoreUsers

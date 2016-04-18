@@ -15,23 +15,24 @@ import (
 var botLock sync.RWMutex
 var botCreated bool
 
-// Bot holds all the interal data relevant to the Bot. Much of it is populated
-// by LoadConfig.
+// Bot holds all the interal data relevant to the Bot. Most of it is populated
+// by LoadConfig, other stuff is populated by the connector.
 type Bot struct {
-	configPath     string          // directory holding the bot's json config files
-	level          LogLevel        // Log level for bot methods
-	alias          rune            // single-char alias for addressing the bot
-	name           string          // e.g. "Gort"
-	ignoreUsers    []string        // list of users to never listen to, like other bots
-	preRegex       *regexp.Regexp  // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
-	postRegex      *regexp.Regexp  // regex for matching, e.g. "open the pod bay doors, hal"
-	channels       []string        // list of channels to join
-	plugChannels   []string        // list of channels where plugins are active by default
-	sync.RWMutex                   // for safe updating of bot data structures
-	Connector                      // Connector interface, implemented by each specific protocol
-	protocolConfig json.RawMessage // Raw JSON configuration to pass to the connector
-	plugins        []Plugin        // Slice of all the configured plugins
-	port           string
+	configPath      string          // directory holding the bot's json config files
+	level           LogLevel        // Log level for bot methods
+	alias           rune            // single-char alias for addressing the bot
+	name            string          // e.g. "Gort"
+	ignoreUsers     []string        // list of users to never listen to, like other bots
+	preRegex        *regexp.Regexp  // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
+	postRegex       *regexp.Regexp  // regex for matching, e.g. "open the pod bay doors, hal"
+	channels        []string        // list of channels to join
+	plugChannels    []string        // list of channels where plugins are active by default
+	sync.RWMutex                    // for safe updating of bot data structures
+	Connector                       // Connector interface, implemented by each specific protocol
+	protocolConfig  json.RawMessage // Raw JSON configuration to pass to the connector
+	plugins         []Plugin        // Slice of all the configured plugins
+	externalPlugins []string        // List of external plugins to load
+	port            string
 }
 
 // LogLevel for determining when to output a log entry

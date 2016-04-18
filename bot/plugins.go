@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os/exec"
 	"regexp"
 )
 
@@ -19,7 +20,7 @@ type ChatBot interface {
 // PluginHelp specifies keywords and help text for the 'bot help system
 type PluginHelp struct {
 	Keywords []string // match words for 'help XXX'
-	Helptext string   // help string to give for the keywords, conventionally starting with (bot) for commands or (hear) when the bot needn't be addressed directly
+	Helptext []string // help string to give for the keywords, conventionally starting with (bot) for commands or (hear) when the bot needn't be addressed directly
 }
 
 // InputMatchers specify the command or message to match and what to pass to the plugin
@@ -75,7 +76,55 @@ func (b *Bot) handleMessage(isCommand bool, channel, user, messagetext string) {
 				matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
 				if matches != nil {
 					b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", matcher.Command, plugin.Name))
-					go goPluginHandlers[plugin.Name](ChatBot(b), channel, user, matcher.Command, matches[0][1:]...)
+					switch plugin.PluginType {
+					case "go":
+						go goPluginHandlers[plugin.Name](ChatBot(b), channel, user, matcher.Command, matches[0][1:]...)
+						//case "external":
+					case "external":
+						var fullPath string // full path to the executable
+						if len(plugin.PluginPath) == 0 {
+							b.Log(Error, "PluginPath empty for external plugin:", plugin.Name)
+						}
+						if byte(plugin.PluginPath[0]) == byte("/"[0]) {
+							fullPath = plugin.PluginPath
+						} else {
+							fullPath = b.configPath + "/" + plugin.PluginPath
+						}
+						args := make([]string, 0, 3+len(matches[0])-1)
+						args = append(args, channel, user, matcher.Command)
+						args = append(args, matches[0][1:]...)
+						b.Log(Trace, fmt.Sprintf("Calling \"%s\" with args: %q", fullPath, args))
+						// cmd := exec.Command(fullPath, channel, user, matcher.Command, matches[0][1:]...)
+						cmd := exec.Command(fullPath, args...)
+						cmd.Stdout = nil
+						stderr, err := cmd.StderrPipe()
+						if err != nil {
+							b.Log(Error, fmt.Errorf("Creating stderr pipe for external command \"%s\": %v", fullPath, err))
+							continue
+						}
+						go func() {
+							if err := cmd.Start(); err != nil {
+								b.Log(Error, fmt.Errorf("Starting command \"%s\": %v", fullPath, err))
+								return
+							}
+							defer func() {
+								if err := cmd.Wait(); err != nil {
+									b.Log(Error, fmt.Errorf("Waiting on external command \"%s\": %v", fullPath, err))
+								}
+							}()
+							stdErrBytes, err := ioutil.ReadAll(stderr)
+							if err != nil {
+								b.Log(Error, fmt.Errorf("Reading from stderr for external command \"%s\": %v", fullPath, err))
+								return
+							}
+							stdErrString := string(stdErrBytes)
+							if len(stdErrString) > 0 {
+								b.Log(Warn, fmt.Errorf("Output from stderr of external command \"%s\": %s", fullPath, stdErrString))
+							}
+						}()
+					default:
+						b.Log(Error, fmt.Sprintf("Invalid plugin type \"%s\" for plugin \"%s\"", plugin.PluginType, plugin.Name))
+					}
 				}
 			}
 		}
@@ -103,23 +152,29 @@ func RegisterPlugin(name string, handler func(bot ChatBot, channel, user, comman
 // loadPluginConfig() loads the configuration for all the plugins from
 // $GOBOT_CONFIGDIR/plugins/<pluginname>.json
 func (b *Bot) loadPluginConfig() error {
-	// Get a list of all plugins from the package goPluginHandlers var
-	nump := len(goPluginHandlers)
+	i := 0
+
+	// Copy some data from the bot under lock
+	b.RLock()
+	// Get a list of all plugins from the package goPluginHandlers var and
+	// the list of external plugins
+	nump := len(goPluginHandlers) + len(b.externalPlugins)
 	pnames := make([]string, nump)
 
-	i := 0
+	for _, plug := range b.externalPlugins {
+		pnames[i] = plug
+		i++
+	}
+	cpath := b.configPath
+	pchan := make([]string, len(b.channels))
+	pchan = append(pchan, b.channels...)
+	b.RUnlock()
+
 	for plug, _ := range goPluginHandlers {
 		pnames[i] = plug
 		i++
 	}
 	plist := make([]Plugin, nump)
-
-	// Copy some data from the bot under lock
-	b.RLock()
-	cpath := b.configPath
-	pchan := make([]string, len(b.channels))
-	pchan = append(pchan, b.channels...)
-	b.RUnlock()
 
 	i = 0
 	for _, plug := range pnames {

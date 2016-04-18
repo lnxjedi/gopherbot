@@ -19,7 +19,9 @@ echo "Building / Installing..."
 go install
 [ $? -ne 0 ] && errorout "Error building, aborting."
 
-export GOBOT_DEBUG
+EXECPATH=$(dirname `readlink -f $0`)
+echo "EXECPATH:$EXECPATH"
+export GOBOT_SHELLLIB="$EXECPATH/util/shellLib.sh"
 
 [ ! -d "$GOBOT_CONFIGDIR" ] && errorout "GOBOT_CONFIGDIR not set to a directory, see README.md"
 [ ! -e "$GOBOT_CONFIGDIR/gobot.json" ] && errorout "Couldn't find gobot.json in $GOBOT_CONFIGDIR"
