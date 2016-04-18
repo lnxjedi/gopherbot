@@ -12,23 +12,25 @@ import (
 	"sync"
 )
 
-var botLock sync.Mutex
+var botLock sync.RWMutex
 var botCreated bool
 
 // Bot holds all the interal data relevant to the Bot. Much of it is populated
 // by LoadConfig.
 type Bot struct {
+	configPath     string          // directory holding the bot's json config files
 	level          LogLevel        // Log level for bot methods
 	alias          rune            // single-char alias for addressing the bot
 	name           string          // e.g. "Gort"
-	ignoreusers    []string        // list of users to never listen to, like other bots
+	ignoreUsers    []string        // list of users to never listen to, like other bots
 	preRegex       *regexp.Regexp  // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
 	postRegex      *regexp.Regexp  // regex for matching, e.g. "open the pod bay doors, hal"
 	channels       []string        // list of channels to join
-	plugchannels   []string        // list of channels where plugins are active by default
+	plugChannels   []string        // list of channels where plugins are active by default
 	sync.RWMutex                   // for safe updating of bot data structures
 	Connector                      // Connector interface, implemented by each specific protocol
 	protocolConfig json.RawMessage // Raw JSON configuration to pass to the connector
+	plugins        []Plugin        // Slice of all the configured plugins
 	port           string
 }
 
@@ -87,14 +89,6 @@ func (b *Bot) Log(l LogLevel, v ...interface{}) {
 	}
 }
 
-// Set a one-rune alias for the 'bot'
-func (b *Bot) SetAlias(a rune) {
-	b.Lock()
-	b.alias = a
-	b.Unlock()
-	b.updateRegexes()
-}
-
 // SetLogLevel updates the connector log level
 func (b *Bot) SetLogLevel(l LogLevel) {
 	b.Lock()
@@ -118,6 +112,7 @@ func (b *Bot) SetName(n string) {
 	b.updateRegexes()
 }
 
+// Init is called after the bot is connected.
 func (b *Bot) Init(c Connector) {
 	b.Lock()
 	b.Connector = c
@@ -130,6 +125,7 @@ func (b *Bot) Init(c Connector) {
 	for _, channel := range cl {
 		b.JoinChannel(channel)
 	}
+	b.initializePlugins()
 	//TODO: remove this later
 	name, _ := b.GetProtocolUserAttribute("davidp", "realName")
 	b.SendUserMessage("davidp", "Hello, sir! I know who you are now: "+name)

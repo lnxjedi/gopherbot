@@ -68,7 +68,8 @@ Loop:
 				sc.updateMaps()
 
 			case *slack.MessageEvent:
-				sc.processMessage(ev)
+				// Message processing is done concurrently
+				go sc.processMessage(ev)
 
 			case *slack.PresenceChangeEvent:
 				gobot.Log(bot.Debug, fmt.Sprintf("Presence Change: %v\n", ev))

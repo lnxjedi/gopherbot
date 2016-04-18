@@ -52,6 +52,12 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	re := regexp.MustCompile(`<@U[A-Z0-9]{8}>`) // match a @user mention
 	text := msg.Msg.Text
 	chanID := msg.Msg.Channel
+	userID := msg.Msg.User
+	userName, ok := s.userName(userID)
+	if !ok {
+		s.Log(bot.Error, "Couldn't find user name for user ID", userID)
+		userName = userID
+	}
 	mentions := re.FindAllString(text, -1)
 	if len(mentions) != 0 {
 		mset := make(map[string]bool)
@@ -81,10 +87,10 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		channelName, ok := s.channelName(chanID)
 		if !ok {
 			s.Log(bot.Warn, "Coudln't find channel name for ID", chanID)
-			s.ChannelMsg(chanID, text)
+			s.ChannelMsg(chanID, userName, text)
 			return
 		}
-		s.ChannelMsg(channelName, text)
+		s.ChannelMsg(channelName, userName, text)
 	}
 }
 

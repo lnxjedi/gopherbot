@@ -9,7 +9,7 @@ import (
 
 /* conf.go - methods and types for reading and storing json configuration */
 
-// botconf specifies 'bot configuration, and is read from $execdir/conf/botconf.json
+// botconf specifies 'bot configuration, and is read from $GOBOT_CONFIGDIR/botconf.json
 type botconf struct {
 	Protocol        string          // Name of the connector protocol to use, e.g. "slack"
 	Name            string          // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
@@ -24,20 +24,21 @@ type botconf struct {
 
 // LoadConfig loads the 'bot's json configuration files. An error on first load
 // results in log.fatal, but later Loads just log the error.
-func (b *Bot) LoadConfig(configpath string) error {
+func (b *Bot) LoadConfig(configPath string) error {
 	var (
 		bc       []byte
 		config   botconf
 		loglevel LogLevel
 	)
 
-	bc, err := ioutil.ReadFile(configpath + "/gobot.json")
+	bc, err := ioutil.ReadFile(configPath + "/gobot.json")
 	if err != nil {
-		return fmt.Errorf("Loading %s: %v", configpath+"/gobot.json", err)
+		return fmt.Errorf("Loading %s: %v", configPath+"/gobot.json", err)
 	}
 	if err := json.Unmarshal(bc, &config); err != nil {
-		return fmt.Errorf("Unmarshalling JSON at %s: %v", configpath+"/gobot.json", err)
+		return fmt.Errorf("Unmarshalling JSON at %s: %v", configPath+"/gobot.json", err)
 	}
+	b.configPath = configPath
 
 	switch config.LogLevel {
 	case "trace":
@@ -54,7 +55,6 @@ func (b *Bot) LoadConfig(configpath string) error {
 	b.SetLogLevel(loglevel)
 
 	b.Lock()
-	defer b.Unlock()
 
 	if len(config.Alias) > 0 {
 		alias, _ := utf8.DecodeRuneInString(config.Alias)
@@ -68,16 +68,22 @@ func (b *Bot) LoadConfig(configpath string) error {
 	}
 
 	if config.DefaultChannels != nil {
-		b.plugchannels = config.DefaultChannels
+		b.plugChannels = config.DefaultChannels
 	}
 	if config.IgnoreUsers != nil {
-		b.ignoreusers = config.IgnoreUsers
+		b.ignoreUsers = config.IgnoreUsers
 	}
 	if config.JoinChannels != nil {
 		b.channels = config.JoinChannels
 	}
 	if config.ProtocolConfig != nil {
 		b.protocolConfig = config.ProtocolConfig
+	}
+
+	// loadPluginConfig does it's own locking
+	b.Unlock()
+	if err := b.loadPluginConfig(); err != nil {
+		return fmt.Errorf("Loading plugin configuration: %v", err)
 	}
 
 	return nil
