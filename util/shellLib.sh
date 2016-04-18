@@ -33,7 +33,7 @@ sendUserMessage(){
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- http://localhost:$GOBOT_LOCALPORT/json
+	echo "$JSON" | curl -X POST -d @- http://localhost:$GOBOT_LOCALPORT/json 2>/dev/null
 }
 
 sendChannelMessage(){
@@ -51,6 +51,6 @@ JSON=$(cat <<EOF
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- http://localhost:$GOBOT_LOCALPORT/json
+	echo "$JSON" | curl -X POST -d @- http://localhost:$GOBOT_LOCALPORT/json 2>/dev/null
 }
 

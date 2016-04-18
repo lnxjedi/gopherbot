@@ -1,0 +1,18 @@
+{
+	"PluginType": "external",
+	"PluginPath": "../plugins/external/echo",
+	"Channels": [],
+	"Help": [
+		{
+			"Keywords": [ "echo" ],
+			"Helptext": [ "(bot), echo <simple text> - trivially repeat a phrase" ]
+		}
+	],
+	"comment": "Note that backslashes need to be escaped as double backslashes, e.g. \\",
+	"CommandMatches": [
+		{
+			"Command": "echo",
+			"Regex": "echo ([\\d\\w- ]+)"
+		}
+	]
+}

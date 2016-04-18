@@ -1,0 +1,27 @@
+#!/bin/bash -e
+
+# echo - trivial shell plugin for Gobot
+[ -z "$GOBOT_SHELLLIB" ] && { echo "GOBOT_SHELLLIB not set"; exit 1; }
+source $GOBOT_SHELLLIB
+
+HOSTSARR=($*)
+for LOOKUP in "${HOSTSARR[@]}"
+do
+	ERROR=false
+	if echo "$LOOKUP" | grep -qP "[a-zA-Z]+"
+	then
+		HOSTNAME=${LOOKUP##*\|}
+		HOSTNAME=${HOSTNAME%\>}
+		IPADDR=$(host $HOSTNAME) || ERROR=true
+		IPADDR=${IPADDR##* }
+		[ "$ERROR" = "true" ] && IPADDR="(not found)"
+	else
+		IPADDR=$LOOKUP
+		HOSTNAME=$(host $LOOKUP) || ERROR=true
+		HOSTNAME=${HOSTNAME##* }
+		HOSTNAME=${HOSTNAME%.}
+		[ "$ERROR" = "true" ] && HOSTNAME="(not found)"
+	fi
+	MESSAGE="$MESSAGE${IPADDR}\t${HOSTNAME}\n"
+done
+sendChannelMessage $CHANNEL $MESSAGE

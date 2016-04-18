@@ -132,8 +132,4 @@ func (b *Bot) Init(c Connector) {
 		b.JoinChannel(channel)
 	}
 	b.initializePlugins()
-	//TODO: remove this later
-	name, _ := b.GetProtocolUserAttribute("davidp", "realName")
-	b.SendUserMessage("davidp", "Hello, sir! I know who you are now: "+name)
-	//	b.conn.SendChannelMessage("C0RK4DG68", "Hello, World!")
 }

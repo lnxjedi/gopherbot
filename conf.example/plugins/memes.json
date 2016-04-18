@@ -1,0 +1,17 @@
+{
+	"PluginType": "go",
+	"Channels": [],
+	"Help": [
+		{
+			"Keywords": [ "meme", "simply" ],
+			"Helptext": [ "(bot), one does not simply <do something> - Summon Boromir to make your point" ]
+		}
+	],
+	"comment": "I'd like to add some comments, hopefully go won't care",
+	"CommandMatches": [
+		{
+			"Command": "simply",
+			"Regex": "one does not simply (.+)"
+		}
+	]
+}

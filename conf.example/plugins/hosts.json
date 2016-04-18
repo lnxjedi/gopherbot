@@ -1,0 +1,23 @@
+{
+	"PluginType": "external",
+	"comment": "relative paths are relative to GOBOT_CONFIGDIR",
+	"PluginPath": "../plugins/external/hosts",
+	"Channels": [],
+	"Help": [
+		{
+			"Keywords": [ "hosts", "lookup", "dig", "nslookup" ],
+			"Helptext": [
+				"(bot), dig <hostname|ip> ... - lookup a list of hosts and reply with a table of results",
+				"(bot), hosts <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
+			]
+		}
+	],
+	"comment": "Note that backslashes need to be escaped as double backslashes, e.g. \\",
+	"CommandMatches": [
+		{
+			"Command": "hosts",
+			"comment": "Note that the regex and hosts script are slack specific",
+			"Regex": "(?:(?i)hosts|lookup|dig|nslookup) ([\\\\.\\d\\w-/:<>| ]+)"
+		}
+	]
+}
