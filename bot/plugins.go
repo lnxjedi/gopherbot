@@ -50,7 +50,7 @@ func (b *Bot) initializePlugins() {
 
 // dispatch checks the message against plugins and sends it to all applicable
 // handlers.
-func (b *Bot) dispatch(channel, user, messagetext string) {
+func (b *Bot) handleMessage(command bool, channel, user, messagetext string) {
 	b.RLock()
 	for _, plugin := range b.plugins {
 		if len(plugin.Channels) > 0 {
@@ -64,20 +64,23 @@ func (b *Bot) dispatch(channel, user, messagetext string) {
 				b.Log(Trace, fmt.Sprintf("Plugin %s ignoring message in channel %s, not in list", plugin.Name, channel))
 				continue
 			}
-			for _, matcher := range plugin.CommandMatches {
-				b.Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", messagetext, matcher.Regex))
-				matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
-				if matches != nil {
-					b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", matcher.Command, plugin.Name))
-					go goPluginHandlers[plugin.Name](ChatBot(b), channel, user, matcher.Command, matches[0][1:]...)
+			if command {
+				for _, matcher := range plugin.CommandMatches {
+					b.Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", messagetext, matcher.Regex))
+					matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
+					if matches != nil {
+						b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", matcher.Command, plugin.Name))
+						go goPluginHandlers[plugin.Name](ChatBot(b), channel, user, matcher.Command, matches[0][1:]...)
+					}
 				}
-			}
-			for _, matcher := range plugin.MessageMatches {
-				b.Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", messagetext, matcher.Regex))
-				matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
-				if matches != nil {
-					b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", matcher.Command, plugin.Name))
-					go goPluginHandlers[plugin.Name](ChatBot(b), channel, user, matcher.Command, matches[0][1:]...)
+			} else {
+				for _, matcher := range plugin.MessageMatches {
+					b.Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", messagetext, matcher.Regex))
+					matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
+					if matches != nil {
+						b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", matcher.Command, plugin.Name))
+						go goPluginHandlers[plugin.Name](ChatBot(b), channel, user, matcher.Command, matches[0][1:]...)
+					}
 				}
 			}
 		}

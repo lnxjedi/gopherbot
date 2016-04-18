@@ -6,32 +6,34 @@ import "fmt"
 
 // interface Handler defines the callback API for Connectors
 type Handler interface {
-	ChannelMsg(channelName, userName, message string)
-	DirectMsg(userName, message string)
+	ChannelMessage(channelName, userName, message string)
+	DirectMessage(userName, message string)
 	Log(l LogLevel, v ...interface{})
 	// SetLogLevel updates the connector log level
 	SetLogLevel(l LogLevel)
 }
 
-func (b *Bot) ChannelMsg(channelName, userName, message string) {
-	matched := false
-	var command string
+// ChannelMessage
+func (b *Bot) ChannelMessage(channelName, userName, messageFull string) {
+	// When command == true, the message was directed at the bot
+	isCommand := false
+	var message string
 
 	if b.preRegex != nil {
-		matches := b.preRegex.FindAllStringSubmatch(message, 2)
+		matches := b.preRegex.FindAllStringSubmatch(messageFull, 2)
 		if matches != nil && len(matches[0]) == 3 {
-			matched = true
-			command = matches[0][2]
+			isCommand = true
+			message = matches[0][2]
 		}
 	}
-	if !matched && b.postRegex != nil {
-		matches := b.postRegex.FindAllStringSubmatch(message, 2)
+	if !isCommand && b.postRegex != nil {
+		matches := b.postRegex.FindAllStringSubmatch(messageFull, 2)
 		if matches != nil && len(matches[0]) == 4 {
-			matched = true
-			command = matches[0][1] + matches[0][3]
+			isCommand = true
+			message = matches[0][1] + matches[0][3]
 		}
 	}
-	b.Log(Trace, fmt.Sprintf("Command \"%s\" in channel \"%s\"", command, channelName))
+	b.Log(Trace, fmt.Sprintf("Command \"%s\" in channel \"%s\"", message, channelName))
 	b.RLock()
 	for _, user := range b.ignoreUsers {
 		if userName == user {
@@ -41,10 +43,10 @@ func (b *Bot) ChannelMsg(channelName, userName, message string) {
 		}
 	}
 	b.RUnlock()
-	b.dispatch(channelName, userName, command)
+	b.handleMessage(isCommand, channelName, userName, message)
 }
 
-func (b *Bot) DirectMsg(userName, message string) {
+func (b *Bot) DirectMessage(userName, message string) {
 	b.Log(Trace, "Direct message", message, "from user", userName)
 	b.RLock()
 	for _, user := range b.ignoreUsers {
@@ -55,5 +57,5 @@ func (b *Bot) DirectMsg(userName, message string) {
 		}
 	}
 	b.RUnlock()
-	b.dispatch("", userName, message)
+	b.handleMessage(true, "", userName, message)
 }
