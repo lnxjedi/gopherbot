@@ -19,6 +19,15 @@ func (b *Bot) ChannelMessage(channelName, userName, messageFull string) {
 	isCommand := false
 	var message string
 
+	b.RLock()
+	for _, user := range b.ignoreUsers {
+		if userName == user {
+			b.Log(Debug, "Ignoring user", userName)
+			b.RUnlock()
+			return
+		}
+	}
+	b.RUnlock()
 	if b.preRegex != nil {
 		matches := b.preRegex.FindAllStringSubmatch(messageFull, 2)
 		if matches != nil && len(matches[0]) == 3 {
@@ -33,16 +42,10 @@ func (b *Bot) ChannelMessage(channelName, userName, messageFull string) {
 			message = matches[0][1] + matches[0][3]
 		}
 	}
-	b.Log(Trace, fmt.Sprintf("Command \"%s\" in channel \"%s\"", message, channelName))
-	b.RLock()
-	for _, user := range b.ignoreUsers {
-		if userName == user {
-			b.Log(Trace, "Ignoring user", userName)
-			b.RUnlock()
-			return
-		}
+	if !isCommand {
+		message = messageFull
 	}
-	b.RUnlock()
+	b.Log(Trace, fmt.Sprintf("Command \"%s\" in channel \"%s\"", message, channelName))
 	b.handleMessage(isCommand, channelName, userName, message)
 }
 
