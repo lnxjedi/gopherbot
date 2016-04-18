@@ -32,11 +32,9 @@ type InputMatcher struct {
 // Plugin specifies the structure of a plugin configuration - plugins should include an example
 type Plugin struct {
 	Name           string          // the name of the plugin
-	Plugtype       string          // "go" or "shell", determines how commands are interpreted
-	Plugpath       string          // Path to the shell script that expects <command> <arg> <arg> from regex matches - for Plugtype=shell only
+	PluginType     string          // "go" or "external", determines how commands are interpreted
+	PluginPath     string          // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=shell only
 	Channels       []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
-	WriteUsers     []string        // Optional, mainly for chatops, enforced by plugin. Users who have access to 'action' commands (vs., say, 'reporting' commands)
-	ReadUsers      []string        // Optional, for users who can do query type operations.
 	Help           []PluginHelp    // All the keyword sets / help texts for this plugin
 	CommandMatches []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
 	MessageMatches []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
@@ -67,7 +65,15 @@ func (b *Bot) dispatch(channel, user, messagetext string) {
 				continue
 			}
 			for _, matcher := range plugin.CommandMatches {
-				b.Log(Info, fmt.Sprintf("Checking \"%s\" against \"%s\"", messagetext, matcher.Regex))
+				b.Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", messagetext, matcher.Regex))
+				matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
+				if matches != nil {
+					b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", matcher.Command, plugin.Name))
+					go goPluginHandlers[plugin.Name](ChatBot(b), channel, user, matcher.Command, matches[0][1:]...)
+				}
+			}
+			for _, matcher := range plugin.MessageMatches {
+				b.Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", messagetext, matcher.Regex))
 				matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
 				if matches != nil {
 					b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", matcher.Command, plugin.Name))
@@ -79,14 +85,20 @@ func (b *Bot) dispatch(channel, user, messagetext string) {
 	b.RUnlock()
 }
 
-// map from plugin names to handler functions
+// goPluginHandlers maps from plugin names to handler functions; populated during package initialization and never written to again.
 var goPluginHandlers map[string]func(bot ChatBot, channel, user, command string, args ...string) error = make(map[string]func(bot ChatBot, channel, user, command string, args ...string) error)
+
+// stopRegistrations is set "true" when the bot is created to prevent registration outside of init functions
+var stopRegistrations bool = false
 
 // RegisterPlugin allows plugins to register a handler function in a func init().
 // When the bot initializes, it will call each plugin's handler with a command
 // "start", empty channel, the bot's username, and no arguments, so the plugin
 // can store this information for, e.g., scheduled jobs.
 func RegisterPlugin(name string, handler func(bot ChatBot, channel, user, command string, args ...string) error) {
+	if stopRegistrations {
+		return
+	}
 	goPluginHandlers[name] = handler
 }
 
@@ -94,7 +106,6 @@ func RegisterPlugin(name string, handler func(bot ChatBot, channel, user, comman
 // $GOBOT_CONFIGDIR/plugins/<pluginname>.json
 func (b *Bot) loadPluginConfig() error {
 	// Get a list of all plugins from the package goPluginHandlers var
-	botLock.RLock()
 	nump := len(goPluginHandlers)
 	pnames := make([]string, nump)
 
@@ -103,7 +114,6 @@ func (b *Bot) loadPluginConfig() error {
 		pnames[i] = plug
 		i++
 	}
-	botLock.RUnlock()
 	plist := make([]Plugin, nump)
 
 	// Copy some data from the bot under lock

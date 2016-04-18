@@ -52,7 +52,10 @@ func Create() *Bot {
 	if botCreated {
 		return nil
 	}
+	// There can be only one
 	botCreated = true
+	// Prevent plugin registration after program init
+	stopRegistrations = true
 	b := &Bot{}
 	botLock.Unlock()
 	return b
@@ -104,6 +107,8 @@ func (b *Bot) GetLogLevel() LogLevel {
 	return l
 }
 
+// Connectors that support it can call SetName; otherwise it should
+// be configured in gobot.conf.
 func (b *Bot) SetName(n string) {
 	b.Lock()
 	b.Log(Debug, "Setting name to: "+n)
