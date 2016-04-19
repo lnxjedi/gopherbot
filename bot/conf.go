@@ -25,21 +25,20 @@ type botconf struct {
 
 // LoadConfig loads the 'bot's json configuration files. An error on first load
 // results in log.fatal, but later Loads just log the error.
-func (b *Bot) LoadConfig(configPath string) error {
+func (b *Bot) LoadConfig() error {
 	var (
 		bc       []byte
 		config   botconf
 		loglevel LogLevel
 	)
 
-	bc, err := ioutil.ReadFile(configPath + "/gobot.json")
+	bc, err := ioutil.ReadFile(b.configPath + "/gobot.json")
 	if err != nil {
-		return fmt.Errorf("Loading %s: %v", configPath+"/gobot.json", err)
+		return fmt.Errorf("Loading %s: %v", b.configPath+"/gobot.json", err)
 	}
 	if err := json.Unmarshal(bc, &config); err != nil {
-		return fmt.Errorf("Unmarshalling JSON at %s: %v", configPath+"/gobot.json", err)
+		return fmt.Errorf("Unmarshalling JSON at %s: %v", b.configPath+"/gobot.json", err)
 	}
-	b.configPath = configPath
 
 	switch config.LogLevel {
 	case "trace":
@@ -66,6 +65,12 @@ func (b *Bot) LoadConfig(configPath string) error {
 	}
 	if config.Name != "" {
 		b.name = config.Name
+	}
+
+	if config.Protocol != "" {
+		b.protocol = config.Protocol
+	} else {
+		return fmt.Errorf("Protocol not specified in gobot.json")
 	}
 
 	if config.DefaultChannels != nil {

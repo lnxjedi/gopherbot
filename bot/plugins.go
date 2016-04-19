@@ -8,14 +8,20 @@ import (
 	"regexp"
 )
 
-// interface ChatBot defines the API for plugins
-type ChatBot interface {
-	Connector
-	Log(l LogLevel, v ...interface{})
-	GetLogLevel() LogLevel
-	// SetLogLevel updates the connector log level
-	SetLogLevel(l LogLevel)
+// interface Gobot defines the API for plugins
+type Gobot interface {
+	Chatbot
+	BotLogger
 }
+
+// Robot is passed to the plugin to enable convenience functions Say and Reply
+type Robot struct {
+	user    string
+	channel string
+	Gobot
+}
+
+// TODO: implement Say and Reply convenience functions
 
 // PluginHelp specifies keywords and help text for the 'bot help system
 type PluginHelp struct {
@@ -44,15 +50,42 @@ type Plugin struct {
 
 // initialize sends the "start" command to every plugin
 func (b *Bot) initializePlugins() {
-	for _, handler := range goPluginHandlers {
-		go handler(ChatBot(b), "", b.name, "start")
+	bot := Robot{
+		user:    b.name,
+		channel: "",
+		Gobot:   b,
 	}
+	for _, handler := range goPluginHandlers {
+		go handler(bot, "", b.name, "start")
+	}
+}
+
+// goPluginHandlers maps from plugin names to handler functions; populated during package initialization and never written to again.
+var goPluginHandlers map[string]func(bot Robot, channel, user, command string, args ...string) error = make(map[string]func(bot Robot, channel, user, command string, args ...string) error)
+
+// stopRegistrations is set "true" when the bot is created to prevent registration outside of init functions
+var stopRegistrations bool = false
+
+// RegisterPlugin allows plugins to register a handler function in a func init().
+// When the bot initializes, it will call each plugin's handler with a command
+// "start", empty channel, the bot's username, and no arguments, so the plugin
+// can store this information for, e.g., scheduled jobs.
+func RegisterPlugin(name string, handler func(bot Robot, channel, user, command string, args ...string) error) {
+	if stopRegistrations {
+		return
+	}
+	goPluginHandlers[name] = handler
 }
 
 // handle checks the message against plugin commands and full-message matches,
 // then dispatches it to all applicable handlers.
 func (b *Bot) handleMessage(isCommand bool, channel, user, messagetext string) {
 	b.RLock()
+	bot := Robot{
+		user:    user,
+		channel: channel,
+		Gobot:   b,
+	}
 	for _, plugin := range b.plugins {
 		if len(plugin.Channels) > 0 {
 			ok := false
@@ -78,7 +111,7 @@ func (b *Bot) handleMessage(isCommand bool, channel, user, messagetext string) {
 					b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", matcher.Command, plugin.Name))
 					switch plugin.PluginType {
 					case "go":
-						go goPluginHandlers[plugin.Name](ChatBot(b), channel, user, matcher.Command, matches[0][1:]...)
+						go goPluginHandlers[plugin.Name](bot, channel, user, matcher.Command, matches[0][1:]...)
 						//case "external":
 					case "external":
 						var fullPath string // full path to the executable
@@ -130,23 +163,6 @@ func (b *Bot) handleMessage(isCommand bool, channel, user, messagetext string) {
 		}
 	}
 	b.RUnlock()
-}
-
-// goPluginHandlers maps from plugin names to handler functions; populated during package initialization and never written to again.
-var goPluginHandlers map[string]func(bot ChatBot, channel, user, command string, args ...string) error = make(map[string]func(bot ChatBot, channel, user, command string, args ...string) error)
-
-// stopRegistrations is set "true" when the bot is created to prevent registration outside of init functions
-var stopRegistrations bool = false
-
-// RegisterPlugin allows plugins to register a handler function in a func init().
-// When the bot initializes, it will call each plugin's handler with a command
-// "start", empty channel, the bot's username, and no arguments, so the plugin
-// can store this information for, e.g., scheduled jobs.
-func RegisterPlugin(name string, handler func(bot ChatBot, channel, user, command string, args ...string) error) {
-	if stopRegistrations {
-		return
-	}
-	goPluginHandlers[name] = handler
 }
 
 // loadPluginConfig() loads the configuration for all the plugins from

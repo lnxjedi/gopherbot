@@ -1,15 +1,15 @@
 package memes
 
 import (
-	"github.com/parsley42/gobot/bot"
+	"github.com/parsley42/gobot-chatops/bot"
 )
 
 var (
-	gobot   bot.ChatBot
+	gobot   bot.Robot
 	botName string
 )
 
-func memegen(bot bot.ChatBot, channel, user, command string, args ...string) error {
+func memegen(bot bot.Robot, channel, user, command string, args ...string) error {
 	switch command {
 	case "start":
 		gobot = bot

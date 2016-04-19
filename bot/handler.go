@@ -1,19 +1,25 @@
 package bot
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
-/* Handle incoming messages */
+/* Handle incoming messages and other callbacks from the connector. */
 
-// interface Handler defines the callback API for Connectors
+// Handler is the interface that defines the callback API for Connectors
 type Handler interface {
+	// ChannelMessage is called by the connector for all messages the bot
+	// can hear. The channelName and userName should be human-readable,
+	// not internal representations.
 	ChannelMessage(channelName, userName, message string)
 	DirectMessage(userName, message string)
-	Log(l LogLevel, v ...interface{})
-	// SetLogLevel updates the connector log level
-	SetLogLevel(l LogLevel)
+	GetProtocolConfig() json.RawMessage
+	SetName(n string)
+	BotLogger
 }
 
-// ChannelMessage
+// ChannelMessage accepts an incoming channel message from the connector.
 func (b *Bot) ChannelMessage(channelName, userName, messageFull string) {
 	// When command == true, the message was directed at the bot
 	isCommand := false
@@ -49,6 +55,7 @@ func (b *Bot) ChannelMessage(channelName, userName, messageFull string) {
 	b.handleMessage(isCommand, channelName, userName, message)
 }
 
+// DirectMessage accepts an incoming direct message from the connector.
 func (b *Bot) DirectMessage(userName, message string) {
 	b.Log(Trace, "Direct message", message, "from user", userName)
 	b.RLock()
@@ -61,4 +68,24 @@ func (b *Bot) DirectMessage(userName, message string) {
 	}
 	b.RUnlock()
 	b.handleMessage(true, "", userName, message)
+}
+
+// GetProtocolConfig returns the connector protocol's json.RawMessage to the connector
+func (b *Bot) GetProtocolConfig() json.RawMessage {
+	var pc []byte
+	b.RLock()
+	// Make of copy of the protocol config for the plugin
+	pc = append(pc, []byte(b.protocolConfig)...)
+	b.RUnlock()
+	return pc
+}
+
+// Connectors that support it can call SetName; otherwise it should
+// be configured in gobot.conf.
+func (b *Bot) SetName(n string) {
+	b.Lock()
+	b.Log(Debug, "Setting name to: "+n)
+	b.name = n
+	b.Unlock()
+	b.updateRegexes()
 }

@@ -1,7 +1,7 @@
 package slack
 
 import (
-	"github.com/parsley42/gobot/bot"
+	"github.com/parsley42/gobot-chatops/bot"
 )
 
 // GetUserAttribute returns a string attribute or nil if slack doesn't

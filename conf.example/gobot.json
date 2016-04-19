@@ -11,6 +11,7 @@
 		"hosts",
 		"echo"
 	],
+	"Protocol": "slack",
 	"ProtocolConfig": {
 		"SlackToken": "<your_token_here>"
 	}

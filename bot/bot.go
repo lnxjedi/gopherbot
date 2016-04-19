@@ -2,12 +2,12 @@
 // bot.
 package bot
 
-/* bot.go defines core data structures and public methods for startup
-   and the connector, but not exposed to plugins. */
+/* bot.go defines core data structures and public methods for startup.
+   handler.go has the methods for callbacks from the connector, */
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"regexp"
 	"sync"
 )
@@ -29,93 +29,39 @@ type Bot struct {
 	plugChannels    []string        // list of channels where plugins are active by default
 	sync.RWMutex                    // for safe updating of bot data structures
 	Connector                       // Connector interface, implemented by each specific protocol
+	protocol        string          // Name of the protocol, e.g. "slack"
 	protocolConfig  json.RawMessage // Raw JSON configuration to pass to the connector
 	plugins         []Plugin        // Slice of all the configured plugins
 	externalPlugins []string        // List of external plugins to load
 	port            string
 }
 
-// LogLevel for determining when to output a log entry
-type LogLevel int
-
-// Definitions of log levels in order from most to least verbose
-const (
-	Trace LogLevel = iota
-	Debug
-	Info
-	Warn
-	Error
-)
-
-// Instantiate the one and only instance of a Gobot
-func Create() *Bot {
+// Create instantiates the one and only instance of a Gobot, and loads
+// configuration.
+func Create(cpath string) (*Bot, error) {
 	botLock.Lock()
 	if botCreated {
-		return nil
+		return nil, fmt.Errorf("bot already created")
 	}
 	// There can be only one
 	botCreated = true
 	// Prevent plugin registration after program init
 	stopRegistrations = true
+
 	b := &Bot{}
 	botLock.Unlock()
-	return b
-}
 
-// GetProtocolConfig returns the connector protocol's json.RawMessage to the connector
-func (b *Bot) GetProtocolConfig() json.RawMessage {
-	var pc []byte
-	b.RLock()
-	// Make of copy of the protocol config for the plugin
-	pc = append(pc, []byte(b.protocolConfig)...)
-	b.RUnlock()
-	return pc
-}
+	b.configPath = cpath
 
-// Log logs messages whenever the connector log level is
-// less than the given level
-func (b *Bot) Log(l LogLevel, v ...interface{}) {
-	if l >= b.level {
-		var prefix string
-		switch l {
-		case Trace:
-			prefix = "Trace:"
-		case Debug:
-			prefix = "Debug:"
-		case Info:
-			prefix = "Info"
-		case Warn:
-			prefix = "Warning:"
-		case Error:
-			prefix = "Error"
-		}
-		log.Println(prefix, v)
+	if err := b.LoadConfig(); err != nil {
+		return nil, err
 	}
+	return b, nil
 }
 
-// SetLogLevel updates the connector log level
-func (b *Bot) SetLogLevel(l LogLevel) {
-	b.Lock()
-	b.level = l
-	b.Unlock()
-}
-
-// GetLogLevel returns the current log level
-func (b *Bot) GetLogLevel() LogLevel {
-	b.RLock()
-	l := b.level
-	b.RUnlock()
-	return l
-}
-
-// Connectors that support it can call SetName; otherwise it should
-// be configured in gobot.conf.
-func (b *Bot) SetName(n string) {
-	b.Lock()
-	b.Log(Debug, "Setting name to: "+n)
-	b.name = n
-	b.Unlock()
-	b.updateRegexes()
+// GetConnectorName returns the name of the configured connector
+func (b *Bot) GetConnectorName() string {
+	return b.protocol
 }
 
 // Init is called after the bot is connected.

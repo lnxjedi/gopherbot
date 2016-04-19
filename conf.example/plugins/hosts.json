@@ -5,7 +5,7 @@
 	"Channels": [],
 	"Help": [
 		{
-			"Keywords": [ "hosts", "lookup", "dig", "nslookup" ],
+			"Keywords": [ "hosts?", "lookup", "dig", "nslookup" ],
 			"Helptext": [
 				"(bot), dig <hostname|ip> ... - lookup a list of hosts and reply with a table of results",
 				"(bot), hosts <hostname|ip> ... - lookup a list of hosts and reply with a table of results"

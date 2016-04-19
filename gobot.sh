@@ -27,4 +27,4 @@ export GOBOT_SHELLLIB="$EXECPATH/util/shellLib.sh"
 [ ! -e "$GOBOT_CONFIGDIR/gobot.json" ] && errorout "Couldn't find gobot.json in $GOBOT_CONFIGDIR"
 
 echo "Exec'ing bot..."
-exec $GOPATH/bin/gobot
+exec $GOPATH/bin/gobot-chatops
