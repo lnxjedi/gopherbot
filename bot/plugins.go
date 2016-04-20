@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"math/rand"
 	"os"
 	"os/exec"
 	"regexp"
+	"time"
 )
 
 // interface Gobot defines the API for plugins
@@ -17,9 +20,10 @@ type Gobot interface {
 
 // Robot is passed to the plugin to enable convenience functions Say and Reply
 type Robot struct {
-	User    string // The user who sent the message; this can be modified for replying to an arbitrary user
-	Channel string // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	Format  string // The outgoing message format, one of "fixed", "variable"
+	User     string // The user who sent the message; this can be modified for replying to an arbitrary user
+	Channel  string // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	Format   string // The outgoing message format, one of "fixed", "variable"
+	pluginID string // Pass the ID in for later identificaton of the plugin
 	Gobot
 }
 
@@ -49,6 +53,7 @@ type Plugin struct {
 	CommandMatches []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
 	MessageMatches []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
 	Config         json.RawMessage // Plugin Configuration - the plugin needs to decode this
+	pluginID       string          // 32-char random ID for identifying plugins in callbacks
 }
 
 // initialize sends the "start" command to every plugin
@@ -194,6 +199,8 @@ func (b *Bot) handleMessage(isCommand bool, channel, user, messagetext string) {
 func (b *Bot) loadPluginConfig() error {
 	i := 0
 
+	// Seed the pseudo-random number generator, for plugin IDs
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	// Copy some data from the bot under lock
 	b.RLock()
 	// Get a list of all plugins from the package goPluginHandlers var and
@@ -250,7 +257,15 @@ func (b *Bot) loadPluginConfig() error {
 			message.re = re
 		}
 		plugin.Name = plug
+		// Generate the random id
+		p := make([]byte, 16)
+		_, rerr := r.Read(p)
+		if rerr != nil {
+			log.Fatal("Couldn't generate plugin id:", err)
+		}
+		plugin.pluginID = fmt.Sprintf("%x", p)
 		// Store this plugin's config in the temporary list
+		b.Log(Info, fmt.Sprintf("Recorded plugin %s with ID %s", plugin.Name, plugin.pluginID))
 		plist[i] = plugin
 		i++
 	}
