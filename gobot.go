@@ -6,23 +6,28 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/parsley42/gobot-chatops/bot"
-	// Select a connector, put configuration in $GOBOT_CONFIGDIR/gobot.conf
-	"github.com/parsley42/gobot-chatops/connectors/slack"
+	"github.com/parsley42/gopherbot/bot"
+	// Select a connector, put configuration in $GOPHER_LOCALDIR/gobot.conf
+	"github.com/parsley42/gopherbot/connectors/slack"
 	// Select the plugins you want
-	_ "github.com/parsley42/gobot-chatops/plugins/meme"
+	_ "github.com/parsley42/gopherbot/plugins/meme"
 )
 
 func main() {
-	installdir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	var (
+		installdir string
+		err        error
+	)
+	installdir = os.Getenv("GOPHER_LOCALDIR")
+	installdir, err = filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Create the 'bot and load configuration, suppying configdir and installdir.
-	// When loading configuration, gobot first checks GOBOT_CONFIGDIR, then
+	// When loading configuration, gobot first checks GOPHER_LOCALDIR, then
 	// installdir/conf
-	gobot, err := bot.Create(os.Getenv("GOBOT_CONFIGDIR"), installdir)
+	gobot, err := bot.Create(os.Getenv("GOPHER_LOCALDIR"), installdir)
 	if err != nil {
 		log.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
 	}

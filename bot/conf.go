@@ -9,35 +9,35 @@ import (
 
 /* conf.go - methods and types for reading and storing json configuration */
 
-// botconf specifies 'bot configuration, and is read from $GOBOT_CONFIGDIR/botconf.json
+// botconf specifies 'bot configuration, and is read from $GOPHER_LOCALDIR/botconf.json
 type botconf struct {
 	Protocol        string          // Name of the connector protocol to use, e.g. "slack"
 	Name            string          // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
 	DefaultChannels []string        // Channels where plugins are active by default, e.g. [ "general", "random" ]
 	IgnoreUsers     []string        // Users the 'bot never talks to - like other bots
 	JoinChannels    []string        // Channels the 'bot should join when it logs in (not supported by all protocols)
-	ExternalPlugins []string        // List of non-Go plugins to load from $GOBOT_CONFIGDIR/plugins/<pluginName>.json
+	ExternalPlugins []string        // List of non-Go plugins to load from $GOPHER_LOCALDIR/plugins/<pluginName>.json
 	Alias           string          // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
 	LocalPort       string          // Port number for listening on localhost, for CLI plugins
 	LogLevel        string          // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 	ProtocolConfig  json.RawMessage // Protocol-specific configuration
 }
 
-// getConfigFile looks for configuration first in configPath/, then execPath/conf/
+// getConfigFile looks for configuration first in localPath/conf/, then installPath/conf/
 func (b *Bot) getConfigFile(name string) ([]byte, error) {
 	var (
 		cf  []byte
 		err error
 	)
-	cf, err = ioutil.ReadFile(b.configPath + "/" + name)
+	cf, err = ioutil.ReadFile(b.localPath + "/conf/" + name)
 	if err != nil {
-		cf, err = ioutil.ReadFile(b.execPath + "/conf/" + name)
+		cf, err = ioutil.ReadFile(b.installPath + "/conf/" + name)
 		if err != nil {
 			return nil, err
 		}
 		b.Log(Trace, fmt.Sprintf("Loaded stock configuration file %s", name))
 	} else {
-		b.Log(Trace, fmt.Sprintf("Loaded custom configuration file %s", name))
+		b.Log(Trace, fmt.Sprintf("Loaded local configuration file %s", name))
 	}
 	return cf, nil
 }
@@ -51,12 +51,12 @@ func (b *Bot) LoadConfig() error {
 		loglevel LogLevel
 	)
 
-	bc, err := b.getConfigFile("gobot.json")
+	bc, err := b.getConfigFile("gopherbot.json")
 	if err != nil {
-		return fmt.Errorf("Loading %s: %v", b.configPath+"/gobot.json", err)
+		return fmt.Errorf("Loading %s: %v", b.localPath+"/gopherbot.json", err)
 	}
 	if err := json.Unmarshal(bc, &config); err != nil {
-		return fmt.Errorf("Unmarshalling JSON at %s: %v", b.configPath+"/gobot.json", err)
+		return fmt.Errorf("Unmarshalling JSON at %s: %v", b.localPath+"/gopherbot.json", err)
 	}
 
 	switch config.LogLevel {
@@ -89,7 +89,7 @@ func (b *Bot) LoadConfig() error {
 	if config.Protocol != "" {
 		b.protocol = config.Protocol
 	} else {
-		return fmt.Errorf("Protocol not specified in gobot.json")
+		return fmt.Errorf("Protocol not specified in gopherbot.json")
 	}
 
 	if config.DefaultChannels != nil {

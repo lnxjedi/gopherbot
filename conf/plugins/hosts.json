@@ -1,7 +1,7 @@
 {
 	"PluginType": "external",
-	"comment": "relative paths are relative to GOBOT_CONFIGDIR",
-	"PluginPath": "../plugins/external/hosts",
+	"comment": "relative paths are relative to GOPHER_LOCALDIR",
+	"PluginPath": "plugins/external/hosts",
 	"Channels": [],
 	"Help": [
 		{

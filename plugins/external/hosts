@@ -1,8 +1,8 @@
 #!/bin/bash -e
 
 # echo - trivial shell plugin for Gobot
-[ -z "$GOBOT_SHELLLIB" ] && { echo "GOBOT_SHELLLIB not set"; exit 1; }
-source $GOBOT_SHELLLIB
+[ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set"; exit 1; }
+source $GOPHER_INSTALLDIR/util/shellLib.sh
 
 HOSTSARR=($*)
 for LOOKUP in "${HOSTSARR[@]}"
@@ -12,7 +12,7 @@ do
 	then
 		HOSTNAME=${LOOKUP##*\|}
 		HOSTNAME=${HOSTNAME%\>}
-		IPADDR=$(host $HOSTNAME) || ERROR=true
+		IPADDR=$(host $HOSTNAME | grep 'has address') || ERROR=true
 		IPADDR=${IPADDR##* }
 		[ "$ERROR" = "true" ] && IPADDR="(not found)"
 	else

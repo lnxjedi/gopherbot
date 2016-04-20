@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"regexp"
 )
@@ -129,7 +130,19 @@ func (b *Bot) handleMessage(isCommand bool, channel, user, messagetext string) {
 						if byte(plugin.PluginPath[0]) == byte("/"[0]) {
 							fullPath = plugin.PluginPath
 						} else {
-							fullPath = b.configPath + "/" + plugin.PluginPath
+							_, err := os.Stat(b.localPath + "/" + plugin.PluginPath)
+							if err != nil {
+								_, err := os.Stat(b.installPath + "/" + plugin.PluginPath)
+								if err != nil {
+									b.Log(Error, fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.Name, err))
+									continue
+								}
+								fullPath = b.installPath + "/" + plugin.PluginPath
+								b.Log(Debug, "Using stock external plugin:", fullPath)
+							} else {
+								fullPath = b.localPath + "/" + plugin.PluginPath
+								b.Log(Debug, "Using local external plugin:", fullPath)
+							}
 						}
 						args := make([]string, 0, 3+len(matches[0])-1)
 						args = append(args, channel, user, matcher.Command)
@@ -174,7 +187,7 @@ func (b *Bot) handleMessage(isCommand bool, channel, user, messagetext string) {
 }
 
 // loadPluginConfig() loads the configuration for all the plugins from
-// $GOBOT_CONFIGDIR/plugins/<pluginname>.json
+// $GOPHER_LOCALDIR/plugins/<pluginname>.json
 func (b *Bot) loadPluginConfig() error {
 	i := 0
 

@@ -13,10 +13,12 @@ CHATUSER=$2
 COMMAND=$3
 shift 3
 
-PORTMATCH=$(grep LocalPort "$GOBOT_CONFIGDIR/gobot.json")
+[ -z "$GOPHER_LOCALDIR" ] && { echo "GOPHER_LOCALDIR not set" >&2; exit 1; }
+
+PORTMATCH=$(grep LocalPort "$GOPHER_LOCALDIR/conf/gopherbot.json")
 PORTMATCH=${PORTMATCH%\",}
 PORTMATCH=${PORTMATCH##*\"}
-GOBOT_LOCALPORT=$PORTMATCH
+GOPHER_LOCALPORT=$PORTMATCH
 
 sendUserMessage(){
 	CHATUSER=$1
@@ -33,7 +35,7 @@ sendUserMessage(){
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- http://localhost:$GOBOT_LOCALPORT/json 2>/dev/null
+	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
 }
 
 sendChannelMessage(){
@@ -51,7 +53,7 @@ JSON=$(cat <<EOF
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- http://localhost:$GOBOT_LOCALPORT/json 2>/dev/null
+	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
 }
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins

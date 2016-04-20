@@ -18,8 +18,8 @@ var botCreated bool
 // Bot holds all the interal data relevant to the Bot. Most of it is populated
 // by LoadConfig, other stuff is populated by the connector.
 type Bot struct {
-	configPath      string          // directory holding the bot's json config files
-	execPath        string          // Path to the bot's installation directory
+	localPath       string          // Directory for local files overriding default config
+	installPath     string          // Path to the bot's installation directory
 	level           LogLevel        // Log level for bot methods
 	alias           rune            // single-char alias for addressing the bot
 	name            string          // e.g. "Gort"
@@ -52,8 +52,8 @@ func Create(cpath, epath string) (*Bot, error) {
 	b := &Bot{}
 	botLock.Unlock()
 
-	b.configPath = cpath
-	b.execPath = epath
+	b.localPath = cpath
+	b.installPath = epath
 
 	if err := b.LoadConfig(); err != nil {
 		return nil, err

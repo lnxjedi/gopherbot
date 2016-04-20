@@ -1,7 +1,7 @@
 package memes
 
 import (
-	"github.com/parsley42/gobot-chatops/bot"
+	"github.com/parsley42/gopherbot/bot"
 )
 
 var (
