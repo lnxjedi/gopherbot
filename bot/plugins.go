@@ -41,6 +41,7 @@ type Plugin struct {
 	Name           string          // the name of the plugin
 	PluginType     string          // "go" or "external", determines how commands are interpreted
 	PluginPath     string          // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=shell only
+	AllowDirect    bool            // Whether or not the plugin responds to direct messages
 	Channels       []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	Help           []PluginHelp    // All the keyword sets / help texts for this plugin
 	CommandMatches []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
@@ -89,8 +90,15 @@ func (b *Bot) handleMessage(isCommand bool, channel, user, messagetext string) {
 	for _, plugin := range b.plugins {
 		if len(plugin.Channels) > 0 {
 			ok := false
-			for _, pchannel := range plugin.Channels {
-				if pchannel == channel {
+			if len(channel) > 0 {
+				for _, pchannel := range plugin.Channels {
+					if pchannel == channel {
+						ok = true
+					}
+				}
+			} else {
+				b.Log(Debug, fmt.Sprintf("Checking whether direct messages allowed for %s, AllowDirect is %b", plugin.Name, plugin.AllowDirect))
+				if plugin.AllowDirect {
 					ok = true
 				}
 			}
@@ -181,8 +189,7 @@ func (b *Bot) loadPluginConfig() error {
 		pnames[i] = plug
 		i++
 	}
-	cpath := b.configPath
-	pchan := make([]string, len(b.channels))
+	pchan := make([]string, 0, len(b.channels))
 	pchan = append(pchan, b.channels...)
 	b.RUnlock()
 
@@ -194,7 +201,7 @@ func (b *Bot) loadPluginConfig() error {
 
 	i = 0
 	for _, plug := range pnames {
-		pc, err := ioutil.ReadFile(cpath + "/plugins/" + plug + ".json")
+		pc, err := b.getConfigFile("plugins/" + plug + ".json")
 		if err != nil {
 			return fmt.Errorf("Loading configuration for plugin %s: %v", plug, err)
 		}
@@ -207,6 +214,7 @@ func (b *Bot) loadPluginConfig() error {
 		if len(plugin.Channels) == 0 && len(pchan) > 0 {
 			plugin.Channels = pchan
 		}
+		b.Log(Trace, fmt.Sprintf("Plugin %s will be active in channels %q", plug, plugin.Channels))
 		// Compile the regex's
 		for i, _ := range plugin.CommandMatches {
 			command := &plugin.CommandMatches[i]

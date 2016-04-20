@@ -19,6 +19,7 @@ var botCreated bool
 // by LoadConfig, other stuff is populated by the connector.
 type Bot struct {
 	configPath      string          // directory holding the bot's json config files
+	execPath        string          // Path to the bot's installation directory
 	level           LogLevel        // Log level for bot methods
 	alias           rune            // single-char alias for addressing the bot
 	name            string          // e.g. "Gort"
@@ -38,7 +39,7 @@ type Bot struct {
 
 // Create instantiates the one and only instance of a Gobot, and loads
 // configuration.
-func Create(cpath string) (*Bot, error) {
+func Create(cpath, epath string) (*Bot, error) {
 	botLock.Lock()
 	if botCreated {
 		return nil, fmt.Errorf("bot already created")
@@ -52,6 +53,7 @@ func Create(cpath string) (*Bot, error) {
 	botLock.Unlock()
 
 	b.configPath = cpath
+	b.execPath = epath
 
 	if err := b.LoadConfig(); err != nil {
 		return nil, err

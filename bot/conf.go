@@ -23,6 +23,25 @@ type botconf struct {
 	ProtocolConfig  json.RawMessage // Protocol-specific configuration
 }
 
+// getConfigFile looks for configuration first in configPath/, then execPath/conf/
+func (b *Bot) getConfigFile(name string) ([]byte, error) {
+	var (
+		cf  []byte
+		err error
+	)
+	cf, err = ioutil.ReadFile(b.configPath + "/" + name)
+	if err != nil {
+		cf, err = ioutil.ReadFile(b.execPath + "/conf/" + name)
+		if err != nil {
+			return nil, err
+		}
+		b.Log(Trace, fmt.Sprintf("Loaded stock configuration file %s", name))
+	} else {
+		b.Log(Trace, fmt.Sprintf("Loaded custom configuration file %s", name))
+	}
+	return cf, nil
+}
+
 // LoadConfig loads the 'bot's json configuration files. An error on first load
 // results in log.fatal, but later Loads just log the error.
 func (b *Bot) LoadConfig() error {
@@ -32,7 +51,7 @@ func (b *Bot) LoadConfig() error {
 		loglevel LogLevel
 	)
 
-	bc, err := ioutil.ReadFile(b.configPath + "/gobot.json")
+	bc, err := b.getConfigFile("gobot.json")
 	if err != nil {
 		return fmt.Errorf("Loading %s: %v", b.configPath+"/gobot.json", err)
 	}

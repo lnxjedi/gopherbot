@@ -15,16 +15,15 @@ errorout(){
 	exit 1
 }
 
-echo "Building / Installing..."
-go install
+echo "Building gobot-chatops..."
+go build
 [ $? -ne 0 ] && errorout "Error building, aborting."
 
 EXECPATH=$(dirname `readlink -f $0`)
-echo "EXECPATH:$EXECPATH"
 export GOBOT_SHELLLIB="$EXECPATH/util/shellLib.sh"
 
 [ ! -d "$GOBOT_CONFIGDIR" ] && errorout "GOBOT_CONFIGDIR not set to a directory, see README.md"
 [ ! -e "$GOBOT_CONFIGDIR/gobot.json" ] && errorout "Couldn't find gobot.json in $GOBOT_CONFIGDIR"
 
 echo "Exec'ing bot..."
-exec $GOPATH/bin/gobot-chatops
+exec $EXECPATH/gobot-chatops

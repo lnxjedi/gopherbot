@@ -5,7 +5,7 @@
 	"Channels": [],
 	"Help": [
 		{
-			"Keywords": [ "hosts?", "lookup", "dig", "nslookup" ],
+			"Keywords": [ "hosts", "lookup", "dig", "nslookup" ],
 			"Helptext": [
 				"(bot), dig <hostname|ip> ... - lookup a list of hosts and reply with a table of results",
 				"(bot), hosts <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
@@ -17,7 +17,7 @@
 		{
 			"Command": "hosts",
 			"comment": "Note that the regex and hosts script are slack specific",
-			"Regex": "(?:(?i)hosts|lookup|dig|nslookup) ([\\\\.\\d\\w-/:<>| ]+)"
+			"Regex": "(?:(?i)hosts?|lookup|dig|nslookup) ([\\\\.\\d\\w-/:<>| ]+)"
 		}
 	]
 }

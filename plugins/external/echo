@@ -4,4 +4,4 @@
 [ -z "$GOBOT_SHELLLIB" ] && { echo "GOBOT_SHELLLIB not set"; exit 1; }
 source $GOBOT_SHELLLIB
 
-sendChannelMessage $CHANNEL $*
+reply $*

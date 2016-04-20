@@ -1,7 +1,9 @@
 {
 	"PluginType": "external",
 	"PluginPath": "../plugins/external/echo",
-	"Channels": [],
+	"comment": "AllowDirect determines whether the plugin responds to direct messages",
+	"AllowDirect": true,
+	"Channels": [ "botdev" ],
 	"Help": [
 		{
 			"Keywords": [ "echo" ],

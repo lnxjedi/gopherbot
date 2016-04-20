@@ -9,7 +9,7 @@ fi
 [ $# -lt 2 ] && { echo "Usage: sendusermsg.sh <user> message" >&2; exit 1; }
 
 CHANNEL=$1
-USER=$2
+CHATUSER=$2
 COMMAND=$3
 shift 3
 
@@ -54,3 +54,21 @@ EOF
 	echo "$JSON" | curl -X POST -d @- http://localhost:$GOBOT_LOCALPORT/json 2>/dev/null
 }
 
+# Convenience functions so that copies of this logic don't wind up in a bunch of plugins
+say(){
+	if [ -n "$CHANNEL" ]
+	then
+		sendChannelMessage "$CHANNEL" "$*"
+	else
+		sendUserMessage "$CHATUSER" "$*"
+	fi
+}
+
+reply(){
+	if [ -n "$CHANNEL" ]
+	then
+		sendChannelMessage "$CHANNEL" "@$CHATUSER:" "$*"
+	else
+		sendUserMessage "$CHATUSER" "$*"
+	fi
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/parsley42/gobot-chatops/bot"
 	// Select a connector, put configuration in $GOBOT_CONFIGDIR/gobot.conf
@@ -13,8 +14,15 @@ import (
 )
 
 func main() {
-	// Create the 'bot and load configuration'
-	gobot, err := bot.Create(os.Getenv("GOBOT_CONFIGDIR"))
+	installdir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create the 'bot and load configuration, suppying configdir and installdir.
+	// When loading configuration, gobot first checks GOBOT_CONFIGDIR, then
+	// installdir/conf
+	gobot, err := bot.Create(os.Getenv("GOBOT_CONFIGDIR"), installdir)
 	if err != nil {
 		log.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
 	}
