@@ -1,4 +1,7 @@
 #!/bin/bash
+# shellLib.sh - bash plugins should source this with 'source $GOPHER_INSTALLDIR/util/shellLib.sh'
+[ -z "$GOPHER_LOCALDIR" ] && { echo "GOPHER_LOCALDIR not set" >&2; exit 1; }
+[ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
 
 if [ $# -lt 3 ]
 then
@@ -6,71 +9,9 @@ then
 	exit 1
 fi
 
-[ $# -lt 2 ] && { echo "Usage: sendusermsg.sh <user> message" >&2; exit 1; }
-
 CHANNEL=$1
 CHATUSER=$2
 COMMAND=$3
 shift 3
 
-[ -z "$GOPHER_LOCALDIR" ] && { echo "GOPHER_LOCALDIR not set" >&2; exit 1; }
-
-PORTMATCH=$(grep LocalPort "$GOPHER_LOCALDIR/conf/gopherbot.json")
-PORTMATCH=${PORTMATCH%\",}
-PORTMATCH=${PORTMATCH##*\"}
-GOPHER_LOCALPORT=$PORTMATCH
-
-sendUserMessage(){
-	CHATUSER=$1
-	shift
-	MESSAGE="$*"
-
-	JSON=$(cat <<EOF
-{
-	"Command": "SendUserMessage",
-	"CmdArgs": {
-		"User": "$CHATUSER",
-		"Message": "$MESSAGE"
-	}
-}
-EOF
-)
-	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
-}
-
-sendChannelMessage(){
-	CHANNEL=$1
-	shift
-	MESSAGE="$*"
-
-JSON=$(cat <<EOF
-{
-	"Command": "SendChannelMessage",
-	"CmdArgs": {
-		"Channel": "$CHANNEL",
-		"Message": "$MESSAGE"
-	}
-}
-EOF
-)
-	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
-}
-
-# Convenience functions so that copies of this logic don't wind up in a bunch of plugins
-say(){
-	if [ -n "$CHANNEL" ]
-	then
-		sendChannelMessage "$CHANNEL" "$*"
-	else
-		sendUserMessage "$CHATUSER" "$*"
-	fi
-}
-
-reply(){
-	if [ -n "$CHANNEL" ]
-	then
-		sendChannelMessage "$CHANNEL" "@$CHATUSER:" "$*"
-	else
-		sendUserMessage "$CHATUSER" "$*"
-	fi
-}
+source $GOPHER_INSTALLDIR/util/shellFuncs.sh

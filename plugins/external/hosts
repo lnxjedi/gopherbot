@@ -22,6 +22,11 @@ do
 		HOSTNAME=${HOSTNAME%.}
 		[ "$ERROR" = "true" ] && HOSTNAME="(not found)"
 	fi
-	MESSAGE="$MESSAGE${IPADDR}\t${HOSTNAME}\n"
+	MESSAGE=$(echo -e "${IPADDR}\t${HOSTNAME}\n$MESSAGE")
+#	MESSAGE="${IPADDR}\t${HOSTNAME}
+#$MESSAGE"
 done
-sendChannelMessage $CHANNEL $MESSAGE
+
+echo "$MESSAGE"
+GOPHER_MESSAGE_FORMAT="fixed"
+sendChannelMessage $CHANNEL "$MESSAGE"

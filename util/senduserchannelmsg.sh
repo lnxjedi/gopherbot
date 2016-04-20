@@ -4,13 +4,14 @@
 
 [ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT="fixed"; shift; }
 
-[ $# -lt 2 ] && { echo "Usage: sendusermsg.sh <channel> message"; exit 1; }
+[ $# -lt 3 ] && { echo "Usage: senduserchannelmsg.sh <user> <channel> message"; exit 1; }
 EXECPATH=$(dirname `readlink -f $0`)
 
 source $EXECPATH/shellFuncs.sh
 
 CHATUSER=$1
-shift
+CHANNEL=$2
+shift 2
 MESSAGE="$*"
 
-sendUserMessage $CHATUSER "$MESSAGE"
+sendUserChannelMessage $CHATUSER $CHANNEL "$MESSAGE"

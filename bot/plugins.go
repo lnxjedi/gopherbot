@@ -17,8 +17,9 @@ type Gobot interface {
 
 // Robot is passed to the plugin to enable convenience functions Say and Reply
 type Robot struct {
-	user    string
-	channel string
+	User    string // The user who sent the message; this can be modified for replying to an arbitrary user
+	Channel string // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	Format  string // The outgoing message format, one of "fixed", "variable"
 	Gobot
 }
 
@@ -53,8 +54,9 @@ type Plugin struct {
 // initialize sends the "start" command to every plugin
 func (b *Bot) initializePlugins() {
 	bot := Robot{
-		user:    b.name,
-		channel: "",
+		User:    b.name,
+		Channel: "",
+		Format:  "variable",
 		Gobot:   b,
 	}
 	for _, handler := range goPluginHandlers {
@@ -84,8 +86,9 @@ func RegisterPlugin(name string, handler func(bot Robot, channel, user, command 
 func (b *Bot) handleMessage(isCommand bool, channel, user, messagetext string) {
 	b.RLock()
 	bot := Robot{
-		user:    user,
-		channel: channel,
+		User:    user,
+		Channel: channel,
+		Format:  "variable",
 		Gobot:   b,
 	}
 	for _, plugin := range b.plugins {

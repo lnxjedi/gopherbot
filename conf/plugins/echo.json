@@ -14,7 +14,7 @@
 	"CommandMatches": [
 		{
 			"Command": "echo",
-			"Regex": "echo ([\\d\\w- ]+)"
+			"Regex": "echo ([.;!\\d\\w-, ]+)"
 		}
 	]
 }

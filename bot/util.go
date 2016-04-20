@@ -4,6 +4,15 @@ import (
 	"regexp"
 )
 
+func setFormat(format string) MessageFormat {
+	switch format {
+	case "fixed":
+		return Fixed
+	default:
+		return Variable
+	}
+}
+
 func (b *Bot) updateRegexes() {
 	preString := `^(`
 	if b.alias != 0 {

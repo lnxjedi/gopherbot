@@ -4,6 +4,7 @@ package slack
 most of the internal methods. */
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"regexp"
@@ -33,16 +34,26 @@ type slackConnector struct {
 	imToUser     map[string]string     // map from IM channel ID to user name
 }
 
-// addMessageMentions replaces @username with the slack-internal representation
-func (s *slackConnector) addMessageMentions(msg string) string {
-	re := regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
-	return re.ReplaceAllStringFunc(msg, func(str string) string {
-		replace, ok := s.userID(str[1:])
+// slackifyMessage replaces @username with the slack-internal representation, handles escaping,
+// and takes care of formatting.
+func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) string {
+	if f == bot.Fixed {
+		msg = "```" + msg + "```"
+	}
+	sbytes := []byte(msg)
+	sbytes = bytes.Replace(sbytes, []byte("&"), []byte("&amp;"), -1)
+	sbytes = bytes.Replace(sbytes, []byte("<"), []byte("&lt;"), -1)
+	sbytes = bytes.Replace(sbytes, []byte(">"), []byte("&gt;"), -1)
+
+	mentionRe := regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
+	sbytes = mentionRe.ReplaceAllFunc(sbytes, func(bytes []byte) []byte {
+		replace, ok := s.userID(string(bytes[1:]))
 		if ok {
-			return "<@" + replace + ">"
+			return []byte("<@" + replace + ">")
 		}
-		return str
+		return bytes
 	})
+	return string(sbytes)
 }
 
 // processMessage examines incoming messages and routes them to the appropriate bot
