@@ -56,20 +56,26 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) string
 	return string(sbytes)
 }
 
-// processMessage examines incoming messages and routes them to the appropriate bot
-// method.
+// processMessage examines incoming messages, removes extra slack cruft, and
+// routes them to the appropriate bot method.
 func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	s.Log(bot.Trace, fmt.Sprintf("Message received: %v\n", msg))
-	re := regexp.MustCompile(`<@U[A-Z0-9]{8}>`) // match a @user mention
+
+	reLinks := regexp.MustCompile(`<https?://[\w-.]+\|([\w-.]+)>`) // match a slack-inserted link
+	reUser := regexp.MustCompile(`<@U[A-Z0-9]{8}>`)                // match a @user mention
+
+	// Remove auto-links - chatbots don't want those
 	text := msg.Msg.Text
+	text = reLinks.ReplaceAllString(text, "$1")
 	chanID := msg.Msg.Channel
 	userID := msg.Msg.User
+
 	userName, ok := s.userName(userID)
 	if !ok {
 		s.Log(bot.Error, "Couldn't find user name for user ID", userID)
 		userName = userID
 	}
-	mentions := re.FindAllString(text, -1)
+	mentions := reUser.FindAllString(text, -1)
 	if len(mentions) != 0 {
 		mset := make(map[string]bool)
 		for _, mention := range mentions {
