@@ -13,7 +13,7 @@ func setFormat(format string) MessageFormat {
 	}
 }
 
-func (b *Bot) updateRegexes() {
+func (b *robot) updateRegexes() {
 	preString := `^(`
 	if b.alias != 0 {
 		preString += string(b.alias) + "|"

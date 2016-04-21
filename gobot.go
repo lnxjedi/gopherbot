@@ -25,25 +25,25 @@ func main() {
 	}
 
 	// Create the 'bot and load configuration, suppying configdir and installdir.
-	// When loading configuration, gobot first checks GOPHER_LOCALDIR, then
+	// When loading configuration, gopherbot first checks GOPHER_LOCALDIR, then
 	// installdir/conf
-	gobot, err := bot.Create(os.Getenv("GOPHER_LOCALDIR"), installdir)
+	gopherbot, err := bot.Create(os.Getenv("GOPHER_LOCALDIR"), installdir)
 	if err != nil {
 		log.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
 	}
 
 	var conn bot.Connector
-	var handler bot.Handler = gobot
+	var handler bot.Handler = gopherbot
 
-	switch gobot.GetConnectorName() {
+	switch gopherbot.GetConnectorName() {
 	case "slack":
 		conn = slack.Start(handler)
 	default:
-		log.Fatal("Unsupported connector:", gobot.GetConnectorName())
+		log.Fatal("Unsupported connector:", gopherbot.GetConnectorName())
 	}
 
 	// Initialize the robot with a valid connector
-	gobot.Init(conn)
+	gopherbot.Init(conn)
 
 	// Start the connector's main loop
 	conn.Run()

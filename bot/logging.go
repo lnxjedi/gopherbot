@@ -23,7 +23,7 @@ type BotLogger interface {
 
 // Log logs messages whenever the connector log level is
 // less than the given level
-func (b *Bot) Log(l LogLevel, v ...interface{}) {
+func (b *robot) Log(l LogLevel, v ...interface{}) {
 	if l >= b.level {
 		var prefix string
 		switch l {
@@ -43,7 +43,7 @@ func (b *Bot) Log(l LogLevel, v ...interface{}) {
 }
 
 // GetLogLevel returns the current log level
-func (b *Bot) GetLogLevel() LogLevel {
+func (b *robot) GetLogLevel() LogLevel {
 	b.RLock()
 	l := b.level
 	b.RUnlock()
@@ -51,7 +51,7 @@ func (b *Bot) GetLogLevel() LogLevel {
 }
 
 // SetLogLevel updates the connector log level
-func (b *Bot) SetLogLevel(l LogLevel) {
+func (b *robot) SetLogLevel(l LogLevel) {
 	b.Lock()
 	b.level = l
 	b.Unlock()

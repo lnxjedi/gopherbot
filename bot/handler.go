@@ -20,7 +20,7 @@ type Handler interface {
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
-func (b *Bot) ChannelMessage(channelName, userName, messageFull string) {
+func (b *robot) ChannelMessage(channelName, userName, messageFull string) {
 	// When command == true, the message was directed at the bot
 	isCommand := false
 	var message string
@@ -56,7 +56,7 @@ func (b *Bot) ChannelMessage(channelName, userName, messageFull string) {
 }
 
 // DirectMessage accepts an incoming direct message from the connector.
-func (b *Bot) DirectMessage(userName, message string) {
+func (b *robot) DirectMessage(userName, message string) {
 	b.Log(Trace, "Direct message", message, "from user", userName)
 	b.RLock()
 	for _, user := range b.ignoreUsers {
@@ -71,7 +71,7 @@ func (b *Bot) DirectMessage(userName, message string) {
 }
 
 // GetProtocolConfig returns the connector protocol's json.RawMessage to the connector
-func (b *Bot) GetProtocolConfig() json.RawMessage {
+func (b *robot) GetProtocolConfig() json.RawMessage {
 	var pc []byte
 	b.RLock()
 	// Make of copy of the protocol config for the plugin
@@ -82,7 +82,7 @@ func (b *Bot) GetProtocolConfig() json.RawMessage {
 
 // Connectors that support it can call SetName; otherwise it should
 // be configured in gobot.conf.
-func (b *Bot) SetName(n string) {
+func (b *robot) SetName(n string) {
 	b.Lock()
 	b.Log(Debug, "Setting name to: "+n)
 	b.name = n

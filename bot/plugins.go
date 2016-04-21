@@ -57,7 +57,7 @@ type Plugin struct {
 }
 
 // initialize sends the "start" command to every plugin
-func (b *Bot) initializePlugins() {
+func (b *robot) initializePlugins() {
 	bot := Robot{
 		User:    b.name,
 		Channel: "",
@@ -88,7 +88,7 @@ func RegisterPlugin(name string, handler func(bot Robot, channel, user, command 
 
 // handle checks the message against plugin commands and full-message matches,
 // then dispatches it to all applicable handlers.
-func (b *Bot) handleMessage(isCommand bool, channel, user, messagetext string) {
+func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string) {
 	b.RLock()
 	bot := Robot{
 		User:    user,
@@ -196,7 +196,7 @@ func (b *Bot) handleMessage(isCommand bool, channel, user, messagetext string) {
 
 // loadPluginConfig() loads the configuration for all the plugins from
 // $GOPHER_LOCALDIR/plugins/<pluginname>.json
-func (b *Bot) loadPluginConfig() error {
+func (b *robot) loadPluginConfig() error {
 	i := 0
 
 	// Seed the pseudo-random number generator, for plugin IDs

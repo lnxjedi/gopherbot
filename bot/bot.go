@@ -15,9 +15,9 @@ import (
 var botLock sync.RWMutex
 var botCreated bool
 
-// Bot holds all the interal data relevant to the Bot. Most of it is populated
+// robot holds all the interal data relevant to the Bot. Most of it is populated
 // by LoadConfig, other stuff is populated by the connector.
-type Bot struct {
+type robot struct {
 	localPath       string          // Directory for local files overriding default config
 	installPath     string          // Path to the bot's installation directory
 	level           LogLevel        // Log level for bot methods
@@ -37,9 +37,16 @@ type Bot struct {
 	port            string
 }
 
+// Public interface for package main to initialize the robot with a connector
+type GopherBot interface {
+	GetConnectorName() string
+	Init(c Connector)
+	Handler // the Connector needs a Handler
+}
+
 // Create instantiates the one and only instance of a Gobot, and loads
 // configuration.
-func Create(cpath, epath string) (*Bot, error) {
+func Create(cpath, epath string) (GopherBot, error) {
 	botLock.Lock()
 	if botCreated {
 		return nil, fmt.Errorf("bot already created")
@@ -49,7 +56,7 @@ func Create(cpath, epath string) (*Bot, error) {
 	// Prevent plugin registration after program init
 	stopRegistrations = true
 
-	b := &Bot{}
+	b := &robot{}
 	botLock.Unlock()
 
 	b.localPath = cpath
@@ -58,17 +65,21 @@ func Create(cpath, epath string) (*Bot, error) {
 	if err := b.LoadConfig(); err != nil {
 		return nil, err
 	}
-	return b, nil
+	return GopherBot(b), nil
 }
 
 // GetConnectorName returns the name of the configured connector
-func (b *Bot) GetConnectorName() string {
+func (b *robot) GetConnectorName() string {
 	return b.protocol
 }
 
 // Init is called after the bot is connected.
-func (b *Bot) Init(c Connector) {
+func (b *robot) Init(c Connector) {
 	b.Lock()
+	if b.Connector != nil {
+		b.Unlock()
+		return
+	}
 	b.Connector = c
 	b.Unlock()
 	go b.listenHttpJSON()

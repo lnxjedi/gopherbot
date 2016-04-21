@@ -24,7 +24,7 @@ type botconf struct {
 }
 
 // getConfigFile looks for configuration first in localPath/conf/, then installPath/conf/
-func (b *Bot) getConfigFile(name string) ([]byte, error) {
+func (b *robot) getConfigFile(name string) ([]byte, error) {
 	var (
 		cf  []byte
 		err error
@@ -44,7 +44,7 @@ func (b *Bot) getConfigFile(name string) ([]byte, error) {
 
 // LoadConfig loads the 'bot's json configuration files. An error on first load
 // results in log.fatal, but later Loads just log the error.
-func (b *Bot) LoadConfig() error {
+func (b *robot) LoadConfig() error {
 	var (
 		bc       []byte
 		config   botconf

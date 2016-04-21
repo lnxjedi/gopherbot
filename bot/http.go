@@ -34,7 +34,7 @@ type UserChannelMessage struct {
 	Format  string
 }
 
-func (b *Bot) listenHttpJSON() {
+func (b *robot) listenHttpJSON() {
 	if len(b.port) > 0 {
 		http.Handle("/json", b)
 		log.Fatal(http.ListenAndServe(b.port, nil))
@@ -42,7 +42,7 @@ func (b *Bot) listenHttpJSON() {
 }
 
 // decode looks for a base64: prefix, then removes it and tries to decode the message
-func (b *Bot) decode(msg string) string {
+func (b *robot) decode(msg string) string {
 	if strings.HasPrefix(msg, "base64:") {
 		msg = strings.TrimPrefix(msg, "base64:")
 		decoded, err := base64.StdEncoding.DecodeString(msg)
@@ -56,7 +56,7 @@ func (b *Bot) decode(msg string) string {
 	}
 }
 
-func (b *Bot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Fatal(err)
