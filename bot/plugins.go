@@ -95,7 +95,8 @@ func RegisterPlugin(name string, handler func(bot Robot, channel, user, command 
 }
 
 // loadPluginConfig() loads the configuration for all the plugins from
-// $GOPHER_LOCALDIR/plugins/<pluginname>.json
+// $GOPHER_LOCALDIR/plugins/<pluginname>.json (excepting builtins), assigns
+// a pluginID, and stores the resulting array in b.plugins
 func (b *robot) loadPluginConfig() error {
 	i := 0
 
@@ -105,9 +106,18 @@ func (b *robot) loadPluginConfig() error {
 	b.RLock()
 	// Get a list of all plugins from the package pluginHandlers var and
 	// the list of external plugins
-	nump := len(pluginHandlers) + len(b.externalPlugins)
+	nump := len(pluginHandlers) + len(b.externalPlugins) + len(builtIns)
 	pnames := make([]string, nump)
 	ptypes := make([]plugType, nump)
+	pfinder := make(map[string]int) // keep a map of pluginIDs to identify plugins during a callback
+
+	// builtins come first so indexes match, see loop below
+	for _, plugin := range builtIns {
+		pnames[i] = plugin.Name
+		ptypes[i] = plugBuiltin
+		i++
+	}
+	b.Log(Trace, fmt.Sprintf("Loaded %d builtin plugins", i))
 
 	for _, plug := range b.externalPlugins {
 		pnames[i] = plug
@@ -126,13 +136,18 @@ func (b *robot) loadPluginConfig() error {
 	plist := make([]Plugin, nump)
 
 	for i, plug := range pnames {
-		pc, err := b.getConfigFile("plugins/" + plug + ".json")
-		if err != nil {
-			return fmt.Errorf("Loading configuration for plugin %s: %v", plug, err)
-		}
 		var plugin Plugin
-		if err := json.Unmarshal(pc, &plugin); err != nil {
-			return fmt.Errorf("Unmarshalling JSON for plugin %s: %v", plug, err)
+		b.Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", i, plug, ptypes[i]))
+		if ptypes[i] == plugBuiltin {
+			plugin = builtIns[i]
+		} else {
+			pc, err := b.getConfigFile("plugins/" + plug + ".json")
+			if err != nil {
+				return fmt.Errorf("Loading configuration for plugin %s: %v", plug, err)
+			}
+			if err := json.Unmarshal(pc, &plugin); err != nil {
+				return fmt.Errorf("Unmarshalling JSON for plugin %s: %v", plug, err)
+			}
 		}
 		plugin.pluginType = ptypes[i]
 		b.Log(Info, "Loaded configuration for plugin", plug)
@@ -164,9 +179,10 @@ func (b *robot) loadPluginConfig() error {
 		p := make([]byte, 16)
 		_, rerr := r.Read(p)
 		if rerr != nil {
-			log.Fatal("Couldn't generate plugin id:", err)
+			log.Fatal("Couldn't generate plugin id:", rerr)
 		}
 		plugin.pluginID = fmt.Sprintf("%x", p)
+		pfinder[plugin.pluginID] = i
 		// Store this plugin's config in the temporary list
 		b.Log(Info, fmt.Sprintf("Recorded plugin %s with ID %s", plugin.Name, plugin.pluginID))
 		plist[i] = plugin
@@ -220,11 +236,12 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 				matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
 				if matches != nil {
 					b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", matcher.Command, plugin.Name))
+					bot.pluginID = plugin.pluginID
 					switch plugin.pluginType {
 					case plugGo:
 						go pluginHandlers[plugin.Name](bot, channel, user, matcher.Command, matches[0][1:]...)
 						//case "external":
-					case plugExternal:
+					case plugExternal, plugBuiltin:
 						var fullPath string // full path to the executable
 						if len(plugin.PluginPath) == 0 {
 							b.Log(Error, "PluginPath empty for external plugin:", plugin.Name)

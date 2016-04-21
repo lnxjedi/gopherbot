@@ -11,6 +11,7 @@ import (
 	"github.com/parsley42/gopherbot/connectors/slack"
 	// Select the plugins you want
 	_ "github.com/parsley42/gopherbot/plugins/meme"
+	_ "github.com/parsley42/gopherbot/plugins/ping"
 )
 
 func main() {

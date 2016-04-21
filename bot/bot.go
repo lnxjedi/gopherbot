@@ -33,6 +33,7 @@ type robot struct {
 	protocol        string          // Name of the protocol, e.g. "slack"
 	protocolConfig  json.RawMessage // Raw JSON configuration to pass to the connector
 	plugins         []Plugin        // Slice of all the configured plugins
+	plugIDmap       map[string]int  // Map of pluginID to it's index in plugins
 	externalPlugins []string        // List of external plugins to load
 	port            string
 }

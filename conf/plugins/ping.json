@@ -1,0 +1,22 @@
+{
+	"comment": "AllowDirect determines whether the plugin responds to direct messages",
+	"AllowDirect": true,
+	"Channels": [ ],
+	"Help": [
+		{
+			"Keywords": [ "ping", "beep" ],
+			"Helptext": [ "(bot), ping - see if the bot is alive", "(bot), beep - see if the bot can hear you" ]
+		}
+	],
+	"comment": "Note that backslashes need to be escaped as double backslashes, e.g. \\",
+	"CommandMatches": [
+		{
+			"Command": "ping",
+			"Regex": "ping"
+		},
+		{
+			"Command": "beep",
+			"Regex": "beep"
+		}
+	]
+}
