@@ -133,6 +133,8 @@ func (b *robot) loadPluginConfig() error {
 		ptypes[i] = plugGo
 		i++
 	}
+	b.Log(Trace, fmt.Sprintf("pnames: %q", pnames))
+	b.Log(Trace, fmt.Sprintf("ptypes: %q", ptypes))
 	plist := make([]Plugin, nump)
 
 	for i, plug := range pnames {
@@ -191,6 +193,7 @@ func (b *robot) loadPluginConfig() error {
 
 	b.Lock()
 	b.plugins = plist
+	b.plugIDmap = pfinder
 	b.Unlock()
 
 	return nil
@@ -240,8 +243,9 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 					switch plugin.pluginType {
 					case plugGo:
 						go pluginHandlers[plugin.Name](bot, channel, user, matcher.Command, matches[0][1:]...)
-						//case "external":
-					case plugExternal, plugBuiltin:
+					case plugBuiltin:
+						go builtinHandlers[plugin.Name](bot, channel, user, matcher.Command, matches[0][1:]...)
+					case plugExternal:
 						var fullPath string // full path to the executable
 						if len(plugin.PluginPath) == 0 {
 							b.Log(Error, "PluginPath empty for external plugin:", plugin.Name)

@@ -15,7 +15,7 @@ errorout(){
 	exit 1
 }
 
-echo "Building gobot-chatops..."
+echo "Building gopherbot..."
 go build
 [ $? -ne 0 ] && errorout "Error building, aborting."
 
@@ -23,8 +23,13 @@ EXECPATH=$(dirname `readlink -f $0`)
 [ -z "$GOPHER_INSTALLDIR" ] && export GOPHER_INSTALLDIR=$EXECPATH
 
 [ ! -d "$GOPHER_LOCALDIR" ] && errorout "GOPHER_LOCALDIR not set to a directory, see README.md"
-[ ! -e "$GOPHER_LOCALDIR/conf/gopherbot.json" ] && errorout "Couldn't find gopherbot.json in $GOPHER_LOCALDIR"
+[ ! -e "$GOPHER_LOCALDIR/conf/gopherbot.json" ] && errorout "Couldn't find gopherbot.json in $GOPHER_LOCALDIR/conf/"
 export GOPHER_SHELLLIB="$GOPHER_INSTALLDIR/util/shellLib.sh"
 
 echo "Exec'ing bot..."
-$EXECPATH/gopherbot 2> /tmp/gopherbot.log &
+if [ -n "$1" ]
+then
+	$EXECPATH/gopherbot
+else
+	$EXECPATH/gopherbot 2> /tmp/gopherbot.log &
+fi

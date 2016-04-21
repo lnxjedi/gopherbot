@@ -8,7 +8,7 @@ var builtIns []Plugin = []Plugin{
 		AllowDirect: true,
 		CommandMatches: []InputMatcher{
 			InputMatcher{
-				Regex:   `help ([\d\w]+)`,
+				Regex:   `help ?([\d\w]+)?`,
 				Command: "help",
 			},
 		},
@@ -24,6 +24,8 @@ var builtIns []Plugin = []Plugin{
 		},
 	},
 }
+
+var builtinHandlers map[string]func(bot Robot, channel, user, command string, args ...string) error = make(map[string]func(bot Robot, channel, user, command string, args ...string) error)
 
 func help(bot Robot, channel, user, command string, args ...string) error {
 	b := bot.Gobot
@@ -42,6 +44,6 @@ func reload(bot Robot, channel, user, command string, args ...string) error {
 }
 
 func init() {
-	RegisterPlugin("help", help)
-	RegisterPlugin("reload", reload)
+	builtinHandlers["help"] = help
+	builtinHandlers["reload"] = reload
 }

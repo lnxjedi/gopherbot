@@ -42,9 +42,9 @@ func (b *robot) getConfigFile(name string) ([]byte, error) {
 	return cf, nil
 }
 
-// LoadConfig loads the 'bot's json configuration files. An error on first load
+// loadConfig loads the 'bot's json configuration files. An error on first load
 // results in log.fatal, but later Loads just log the error.
-func (b *robot) LoadConfig() error {
+func (b *robot) loadConfig() error {
 	var (
 		bc       []byte
 		config   botconf

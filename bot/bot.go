@@ -16,7 +16,7 @@ var botLock sync.RWMutex
 var botCreated bool
 
 // robot holds all the interal data relevant to the Bot. Most of it is populated
-// by LoadConfig, other stuff is populated by the connector.
+// by loadConfig, other stuff is populated by the connector.
 type robot struct {
 	localPath       string          // Directory for local files overriding default config
 	installPath     string          // Path to the bot's installation directory
@@ -63,7 +63,7 @@ func Create(cpath, epath string) (GopherBot, error) {
 	b.localPath = cpath
 	b.installPath = epath
 
-	if err := b.LoadConfig(); err != nil {
+	if err := b.loadConfig(); err != nil {
 		return nil, err
 	}
 	return GopherBot(b), nil
