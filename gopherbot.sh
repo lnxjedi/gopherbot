@@ -27,4 +27,4 @@ EXECPATH=$(dirname `readlink -f $0`)
 export GOPHER_SHELLLIB="$GOPHER_INSTALLDIR/util/shellLib.sh"
 
 echo "Exec'ing bot..."
-exec $EXECPATH/gopherbot
+$EXECPATH/gopherbot 2> /tmp/gopherbot.log &
