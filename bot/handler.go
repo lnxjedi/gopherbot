@@ -12,17 +12,17 @@ type Handler interface {
 	// ChannelMessage is called by the connector for all messages the bot
 	// can hear. The channelName and userName should be human-readable,
 	// not internal representations.
-	ChannelMessage(channelName, userName, message string)
-	DirectMessage(userName, message string)
+	IncomingMessage(channelName, userName, message string)
 	GetProtocolConfig() json.RawMessage
 	SetName(n string)
 	BotLogger
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
-func (b *robot) ChannelMessage(channelName, userName, messageFull string) {
+func (b *robot) IncomingMessage(channelName, userName, messageFull string) {
 	// When command == true, the message was directed at the bot
 	isCommand := false
+	logChannel := channelName
 	var message string
 
 	b.RLock()
@@ -51,23 +51,12 @@ func (b *robot) ChannelMessage(channelName, userName, messageFull string) {
 	if !isCommand {
 		message = messageFull
 	}
-	b.Log(Trace, fmt.Sprintf("Command \"%s\" in channel \"%s\"", message, channelName))
-	b.handleMessage(isCommand, channelName, userName, message)
-}
-
-// DirectMessage accepts an incoming direct message from the connector.
-func (b *robot) DirectMessage(userName, message string) {
-	b.Log(Trace, "Direct message", message, "from user", userName)
-	b.RLock()
-	for _, user := range b.ignoreUsers {
-		if userName == user {
-			b.Log(Trace, "Ignoring user", userName)
-			b.RUnlock()
-			return
-		}
+	if len(channelName) == 0 { // true for direct messages
+		isCommand = true
+		logChannel = "(direct message)"
 	}
-	b.RUnlock()
-	b.handleMessage(true, "", userName, message)
+	b.Log(Trace, fmt.Sprintf("Command \"%s\" in channel \"%s\"", message, logChannel))
+	b.handleMessage(isCommand, channelName, userName, message)
 }
 
 // GetProtocolConfig returns the connector protocol's json.RawMessage to the connector

@@ -96,18 +96,18 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		userName, ok := s.imUser(chanID)
 		if !ok {
 			s.Log(bot.Warn, "Couldn't find user name for IM", chanID)
-			s.DirectMessage(chanID, text)
+			s.IncomingMessage("", chanID, text)
 			return
 		}
-		s.DirectMessage(userName, text)
+		s.IncomingMessage("", userName, text)
 	case "C":
 		channelName, ok := s.channelName(chanID)
 		if !ok {
 			s.Log(bot.Warn, "Coudln't find channel name for ID", chanID)
-			s.ChannelMessage(chanID, userName, text)
+			s.IncomingMessage(chanID, userName, text)
 			return
 		}
-		s.ChannelMessage(channelName, userName, text)
+		s.IncomingMessage(channelName, userName, text)
 	}
 }
 
