@@ -42,10 +42,18 @@ type InputMatcher struct {
 	re      *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
+type plugType int
+
+const (
+	plugGo plugType = iota
+	plugExternal
+	plugBuiltin
+)
+
 // Plugin specifies the structure of a plugin configuration - plugins should include an example
 type Plugin struct {
-	Name           string          // the name of the plugin
-	PluginType     string          // "go" or "external", determines how commands are interpreted
+	Name           string          // the name of the plugin, used as a key in to the
+	pluginType     plugType        // plugGo, plugExternal, plugBuiltin - determines how commands are routed
 	PluginPath     string          // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=shell only
 	AllowDirect    bool            // Whether or not the plugin responds to direct messages
 	Channels       []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
@@ -64,13 +72,13 @@ func (b *robot) initializePlugins() {
 		Format:  "variable",
 		Gobot:   b,
 	}
-	for _, handler := range goPluginHandlers {
+	for _, handler := range pluginHandlers {
 		go handler(bot, "", b.name, "start")
 	}
 }
 
-// goPluginHandlers maps from plugin names to handler functions; populated during package initialization and never written to again.
-var goPluginHandlers map[string]func(bot Robot, channel, user, command string, args ...string) error = make(map[string]func(bot Robot, channel, user, command string, args ...string) error)
+// pluginHandlers maps from plugin names to handler functions; populated during package initialization and never written to again.
+var pluginHandlers map[string]func(bot Robot, channel, user, command string, args ...string) error = make(map[string]func(bot Robot, channel, user, command string, args ...string) error)
 
 // stopRegistrations is set "true" when the bot is created to prevent registration outside of init functions
 var stopRegistrations bool = false
@@ -83,7 +91,93 @@ func RegisterPlugin(name string, handler func(bot Robot, channel, user, command 
 	if stopRegistrations {
 		return
 	}
-	goPluginHandlers[name] = handler
+	pluginHandlers[name] = handler
+}
+
+// loadPluginConfig() loads the configuration for all the plugins from
+// $GOPHER_LOCALDIR/plugins/<pluginname>.json
+func (b *robot) loadPluginConfig() error {
+	i := 0
+
+	// Seed the pseudo-random number generator, for plugin IDs
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	// Copy some data from the bot under lock
+	b.RLock()
+	// Get a list of all plugins from the package pluginHandlers var and
+	// the list of external plugins
+	nump := len(pluginHandlers) + len(b.externalPlugins)
+	pnames := make([]string, nump)
+	ptypes := make([]plugType, nump)
+
+	for _, plug := range b.externalPlugins {
+		pnames[i] = plug
+		ptypes[i] = plugExternal
+		i++
+	}
+	pchan := make([]string, 0, len(b.channels))
+	pchan = append(pchan, b.channels...)
+	b.RUnlock()
+
+	for plug, _ := range pluginHandlers {
+		pnames[i] = plug
+		ptypes[i] = plugGo
+		i++
+	}
+	plist := make([]Plugin, nump)
+
+	for i, plug := range pnames {
+		pc, err := b.getConfigFile("plugins/" + plug + ".json")
+		if err != nil {
+			return fmt.Errorf("Loading configuration for plugin %s: %v", plug, err)
+		}
+		var plugin Plugin
+		if err := json.Unmarshal(pc, &plugin); err != nil {
+			return fmt.Errorf("Unmarshalling JSON for plugin %s: %v", plug, err)
+		}
+		plugin.pluginType = ptypes[i]
+		b.Log(Info, "Loaded configuration for plugin", plug)
+		// Use bot default plugin channels if none defined
+		if len(plugin.Channels) == 0 && len(pchan) > 0 {
+			plugin.Channels = pchan
+		}
+		b.Log(Trace, fmt.Sprintf("Plugin %s will be active in channels %q", plug, plugin.Channels))
+		// Compile the regex's
+		for i, _ := range plugin.CommandMatches {
+			command := &plugin.CommandMatches[i]
+			re, err := regexp.Compile(`^\s*` + command.Regex + `\s*$`)
+			if err != nil {
+				return fmt.Errorf("Compiling command regular expression %s for plugin %s: %v", command.Regex, plug, err)
+			}
+			command.re = re
+		}
+		for i, _ := range plugin.MessageMatches {
+			// Note that full message regexes don't get the beginning and end anchors added
+			message := &plugin.CommandMatches[i]
+			re, err := regexp.Compile(message.Regex)
+			if err != nil {
+				return fmt.Errorf("Compiling message regular expression %s for plugin %s: %v", message.Regex, plug, err)
+			}
+			message.re = re
+		}
+		plugin.Name = plug
+		// Generate the random id
+		p := make([]byte, 16)
+		_, rerr := r.Read(p)
+		if rerr != nil {
+			log.Fatal("Couldn't generate plugin id:", err)
+		}
+		plugin.pluginID = fmt.Sprintf("%x", p)
+		// Store this plugin's config in the temporary list
+		b.Log(Info, fmt.Sprintf("Recorded plugin %s with ID %s", plugin.Name, plugin.pluginID))
+		plist[i] = plugin
+		i++
+	}
+
+	b.Lock()
+	b.plugins = plist
+	b.Unlock()
+
+	return nil
 }
 
 // handle checks the message against plugin commands and full-message matches,
@@ -126,11 +220,11 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 				matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
 				if matches != nil {
 					b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", matcher.Command, plugin.Name))
-					switch plugin.PluginType {
-					case "go":
-						go goPluginHandlers[plugin.Name](bot, channel, user, matcher.Command, matches[0][1:]...)
+					switch plugin.pluginType {
+					case plugGo:
+						go pluginHandlers[plugin.Name](bot, channel, user, matcher.Command, matches[0][1:]...)
 						//case "external":
-					case "external":
+					case plugExternal:
 						var fullPath string // full path to the executable
 						if len(plugin.PluginPath) == 0 {
 							b.Log(Error, "PluginPath empty for external plugin:", plugin.Name)
@@ -184,95 +278,10 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 								b.Log(Warn, fmt.Errorf("Output from stderr of external command \"%s\": %s", fullPath, stdErrString))
 							}
 						}()
-					default:
-						b.Log(Error, fmt.Sprintf("Invalid plugin type \"%s\" for plugin \"%s\"", plugin.PluginType, plugin.Name))
 					}
 				}
 			}
 		}
 	}
 	b.RUnlock()
-}
-
-// loadPluginConfig() loads the configuration for all the plugins from
-// $GOPHER_LOCALDIR/plugins/<pluginname>.json
-func (b *robot) loadPluginConfig() error {
-	i := 0
-
-	// Seed the pseudo-random number generator, for plugin IDs
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	// Copy some data from the bot under lock
-	b.RLock()
-	// Get a list of all plugins from the package goPluginHandlers var and
-	// the list of external plugins
-	nump := len(goPluginHandlers) + len(b.externalPlugins)
-	pnames := make([]string, nump)
-
-	for _, plug := range b.externalPlugins {
-		pnames[i] = plug
-		i++
-	}
-	pchan := make([]string, 0, len(b.channels))
-	pchan = append(pchan, b.channels...)
-	b.RUnlock()
-
-	for plug, _ := range goPluginHandlers {
-		pnames[i] = plug
-		i++
-	}
-	plist := make([]Plugin, nump)
-
-	i = 0
-	for _, plug := range pnames {
-		pc, err := b.getConfigFile("plugins/" + plug + ".json")
-		if err != nil {
-			return fmt.Errorf("Loading configuration for plugin %s: %v", plug, err)
-		}
-		var plugin Plugin
-		if err := json.Unmarshal(pc, &plugin); err != nil {
-			return fmt.Errorf("Unmarshalling JSON for plugin %s: %v", plug, err)
-		}
-		b.Log(Info, "Loaded configuration for plugin", plug)
-		// Use bot default plugin channels if none defined
-		if len(plugin.Channels) == 0 && len(pchan) > 0 {
-			plugin.Channels = pchan
-		}
-		b.Log(Trace, fmt.Sprintf("Plugin %s will be active in channels %q", plug, plugin.Channels))
-		// Compile the regex's
-		for i, _ := range plugin.CommandMatches {
-			command := &plugin.CommandMatches[i]
-			re, err := regexp.Compile(`^\s*` + command.Regex + `\s*$`)
-			if err != nil {
-				return fmt.Errorf("Compiling command regular expression %s for plugin %s: %v", command.Regex, plug, err)
-			}
-			command.re = re
-		}
-		for i, _ := range plugin.MessageMatches {
-			// Note that full message regexes don't get the beginning and end anchors added
-			message := &plugin.CommandMatches[i]
-			re, err := regexp.Compile(message.Regex)
-			if err != nil {
-				return fmt.Errorf("Compiling message regular expression %s for plugin %s: %v", message.Regex, plug, err)
-			}
-			message.re = re
-		}
-		plugin.Name = plug
-		// Generate the random id
-		p := make([]byte, 16)
-		_, rerr := r.Read(p)
-		if rerr != nil {
-			log.Fatal("Couldn't generate plugin id:", err)
-		}
-		plugin.pluginID = fmt.Sprintf("%x", p)
-		// Store this plugin's config in the temporary list
-		b.Log(Info, fmt.Sprintf("Recorded plugin %s with ID %s", plugin.Name, plugin.pluginID))
-		plist[i] = plugin
-		i++
-	}
-
-	b.Lock()
-	b.plugins = plist
-	b.Unlock()
-
-	return nil
 }

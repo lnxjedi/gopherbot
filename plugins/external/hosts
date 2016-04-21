@@ -23,8 +23,6 @@ do
 		[ "$ERROR" = "true" ] && HOSTNAME="(not found)"
 	fi
 	MESSAGE=$(echo -e "${IPADDR}\t${HOSTNAME}\n$MESSAGE")
-#	MESSAGE="${IPADDR}\t${HOSTNAME}
-#$MESSAGE"
 done
 
 echo "$MESSAGE"

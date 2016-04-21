@@ -75,7 +75,7 @@ JSON=$(cat <<EOF
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json
+	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
 }
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins

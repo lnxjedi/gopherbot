@@ -1,5 +1,4 @@
 {
-	"PluginType": "external",
 	"comment": "relative paths are relative to GOPHER_LOCALDIR",
 	"PluginPath": "plugins/external/hosts",
 	"Channels": [],
