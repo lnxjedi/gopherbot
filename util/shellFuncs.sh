@@ -11,6 +11,7 @@ encode(){
 }
 
 sendUserMessage(){
+	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
 	local CHATUSER CHANNEL
 	GOPHER_MESSAGE_FORMAT=${GOPHER_MESSAGE_FORMAT:-variable}
 	CHATUSER=$1
@@ -33,6 +34,7 @@ EOF
 }
 
 sendUserChannelMessage(){
+	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
 	local CHATUSER CHANNEL
 	GOPHER_MESSAGE_FORMAT=${GOPHER_MESSAGE_FORMAT:-variable}
 	CHATUSER=$1
@@ -57,6 +59,7 @@ EOF
 }
 
 sendChannelMessage(){
+	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
 	local CHATUSER CHANNEL
 	GOPHER_MESSAGE_FORMAT=${GOPHER_MESSAGE_FORMAT:-variable}
 	CHANNEL=$1
@@ -80,6 +83,7 @@ EOF
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins
 say(){
+	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
 	if [ -n "$CHANNEL" ]
 	then
 		sendChannelMessage "$CHANNEL" "$*"
@@ -89,6 +93,7 @@ say(){
 }
 
 reply(){
+	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
 	if [ -n "$CHANNEL" ]
 	then
 		sendUserChannelMessage "$CHATUSER" "$CHANNEL" "$*"

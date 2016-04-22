@@ -25,15 +25,15 @@ func (b *robot) IncomingMessage(channelName, userName, messageFull string) {
 	logChannel := channelName
 	var message string
 
-	b.RLock()
+	b.lock.RLock()
 	for _, user := range b.ignoreUsers {
 		if userName == user {
 			b.Log(Debug, "Ignoring user", userName)
-			b.RUnlock()
+			b.lock.RUnlock()
 			return
 		}
 	}
-	b.RUnlock()
+	b.lock.RUnlock()
 	if b.preRegex != nil {
 		matches := b.preRegex.FindAllStringSubmatch(messageFull, 2)
 		if matches != nil && len(matches[0]) == 3 {
@@ -62,19 +62,19 @@ func (b *robot) IncomingMessage(channelName, userName, messageFull string) {
 // GetProtocolConfig returns the connector protocol's json.RawMessage to the connector
 func (b *robot) GetProtocolConfig() json.RawMessage {
 	var pc []byte
-	b.RLock()
+	b.lock.RLock()
 	// Make of copy of the protocol config for the plugin
 	pc = append(pc, []byte(b.protocolConfig)...)
-	b.RUnlock()
+	b.lock.RUnlock()
 	return pc
 }
 
 // Connectors that support it can call SetName; otherwise it should
 // be configured in gobot.conf.
 func (b *robot) SetName(n string) {
-	b.Lock()
+	b.lock.Lock()
 	b.Log(Debug, "Setting name to: "+n)
 	b.name = n
-	b.Unlock()
+	b.lock.Unlock()
 	b.updateRegexes()
 }

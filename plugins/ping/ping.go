@@ -19,9 +19,13 @@ func ping(bot bot.Robot, channel, user, command string, args ...string) error {
 		gobot = bot
 		botName = user
 	case "ping":
-		bot.SendChannelMessage(channel, "PONG")
+		bot.Fixed().Reply("PONG")
 	case "beep":
-		bot.SendChannelMessage(channel, "Did anybody else here that beep?")
+		if channel == "" {
+			bot.Say("Eh, talking to yourself?")
+		} else {
+			bot.Say("Did anybody else hear something go \"beep\" ?")
+		}
 	}
 	return nil
 }

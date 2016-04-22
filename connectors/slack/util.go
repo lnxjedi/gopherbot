@@ -22,6 +22,7 @@ const optimeout = 1 * time.Minute
 type slackConnector struct {
 	api          *slack.Client
 	conn         *slack.RTM
+	running      bool                  // set on call to Run
 	botName      string                // human-readable name of bot
 	botID        string                // slack internal bot ID
 	bot.Handler                        // bot API for connectors

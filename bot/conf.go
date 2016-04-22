@@ -73,7 +73,7 @@ func (b *robot) loadConfig() error {
 	}
 	b.SetLogLevel(loglevel)
 
-	b.Lock()
+	b.lock.Lock()
 
 	if len(config.Alias) > 0 {
 		alias, _ := utf8.DecodeRuneInString(config.Alias)
@@ -109,7 +109,7 @@ func (b *robot) loadConfig() error {
 	}
 
 	// loadPluginConfig does it's own locking
-	b.Unlock()
+	b.lock.Unlock()
 	if err := b.loadPluginConfig(); err != nil {
 		return fmt.Errorf("Loading plugin configuration: %v", err)
 	}

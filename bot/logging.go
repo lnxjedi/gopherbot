@@ -44,15 +44,15 @@ func (b *robot) Log(l LogLevel, v ...interface{}) {
 
 // GetLogLevel returns the current log level
 func (b *robot) GetLogLevel() LogLevel {
-	b.RLock()
+	b.lock.RLock()
 	l := b.level
-	b.RUnlock()
+	b.lock.RUnlock()
 	return l
 }
 
 // SetLogLevel updates the connector log level
 func (b *robot) SetLogLevel(l LogLevel) {
-	b.Lock()
+	b.lock.Lock()
 	b.level = l
-	b.Unlock()
+	b.lock.Unlock()
 }

@@ -28,7 +28,7 @@ type robot struct {
 	postRegex       *regexp.Regexp  // regex for matching, e.g. "open the pod bay doors, hal"
 	channels        []string        // list of channels to join
 	plugChannels    []string        // list of channels where plugins are active by default
-	sync.RWMutex                    // for safe updating of bot data structures
+	lock            sync.RWMutex    // for safe updating of bot data structures
 	Connector                       // Connector interface, implemented by each specific protocol
 	protocol        string          // Name of the protocol, e.g. "slack"
 	protocolConfig  json.RawMessage // Raw JSON configuration to pass to the connector
@@ -76,18 +76,18 @@ func (b *robot) GetConnectorName() string {
 
 // Init is called after the bot is connected.
 func (b *robot) Init(c Connector) {
-	b.Lock()
+	b.lock.Lock()
 	if b.Connector != nil {
-		b.Unlock()
+		b.lock.Unlock()
 		return
 	}
 	b.Connector = c
-	b.Unlock()
+	b.lock.Unlock()
 	go b.listenHttpJSON()
 	var cl []string
-	b.RLock()
+	b.lock.RLock()
 	cl = append(cl, b.channels...)
-	b.RUnlock()
+	b.lock.RUnlock()
 	for _, channel := range cl {
 		b.JoinChannel(channel)
 	}

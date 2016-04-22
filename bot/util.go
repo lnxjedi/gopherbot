@@ -22,16 +22,16 @@ func (b *robot) updateRegexes() {
 	b.Log(Debug, "preString is", preString)
 	re, err := regexp.Compile(preString)
 	if err == nil {
-		b.Lock()
+		b.lock.Lock()
 		b.preRegex = re
-		b.Unlock()
+		b.lock.Unlock()
 	}
 	postString := `^([^,@]+),?\s*((?i)@?` + b.name + `)([.?! ])?$`
 	b.Log(Debug, "postString is", postString)
 	re, err = regexp.Compile(postString)
 	if err == nil {
-		b.Lock()
+		b.lock.Lock()
 		b.postRegex = re
-		b.Unlock()
+		b.lock.Unlock()
 	}
 }

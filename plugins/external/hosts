@@ -26,5 +26,4 @@ do
 done
 
 echo "$MESSAGE"
-GOPHER_MESSAGE_FORMAT="fixed"
-sendChannelMessage $CHANNEL "$MESSAGE"
+sendChannelMessage -f $CHANNEL "$MESSAGE"

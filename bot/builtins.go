@@ -4,7 +4,7 @@ package bot
 
 var builtIns []Plugin = []Plugin{
 	{
-		Name:        "help",
+		Name:        "builtInhelp", // MUST match registered name below
 		AllowDirect: true,
 		CommandMatches: []InputMatcher{
 			InputMatcher{
@@ -14,7 +14,7 @@ var builtIns []Plugin = []Plugin{
 		},
 	},
 	{
-		Name:        "reload",
+		Name:        "builtInreload", // MUST match registered name below
 		AllowDirect: true,
 		CommandMatches: []InputMatcher{
 			InputMatcher{
@@ -24,8 +24,6 @@ var builtIns []Plugin = []Plugin{
 		},
 	},
 }
-
-var builtinHandlers map[string]func(bot Robot, channel, user, command string, args ...string) error = make(map[string]func(bot Robot, channel, user, command string, args ...string) error)
 
 func help(bot Robot, channel, user, command string, args ...string) error {
 	b := bot.Gobot
@@ -44,6 +42,6 @@ func reload(bot Robot, channel, user, command string, args ...string) error {
 }
 
 func init() {
-	builtinHandlers["help"] = help
-	builtinHandlers["reload"] = reload
+	RegisterPlugin("builtInhelp", help)     // MUST match plugin name above
+	RegisterPlugin("builtInreload", reload) // MUST match plugin name above
 }

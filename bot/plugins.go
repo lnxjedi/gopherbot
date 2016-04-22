@@ -18,15 +18,6 @@ type Gobot interface {
 	BotLogger
 }
 
-// Robot is passed to the plugin to enable convenience functions Say and Reply
-type Robot struct {
-	User     string // The user who sent the message; this can be modified for replying to an arbitrary user
-	Channel  string // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	Format   string // The outgoing message format, one of "fixed", "variable"
-	pluginID string // Pass the ID in for later identificaton of the plugin
-	Gobot
-}
-
 // TODO: implement Say and Reply convenience functions
 
 // PluginHelp specifies keywords and help text for the 'bot help system
@@ -69,7 +60,7 @@ func (b *robot) initializePlugins() {
 	bot := Robot{
 		User:    b.name,
 		Channel: "",
-		Format:  "variable",
+		Format:  Variable,
 		Gobot:   b,
 	}
 	for _, handler := range pluginHandlers {
@@ -103,35 +94,55 @@ func (b *robot) loadPluginConfig() error {
 	// Seed the pseudo-random number generator, for plugin IDs
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	// Copy some data from the bot under lock
-	b.RLock()
+	b.lock.RLock()
 	// Get a list of all plugins from the package pluginHandlers var and
 	// the list of external plugins
-	nump := len(pluginHandlers) + len(b.externalPlugins) + len(builtIns)
+	nump := len(pluginHandlers) + len(b.externalPlugins)
 	pnames := make([]string, nump)
 	ptypes := make([]plugType, nump)
 	pfinder := make(map[string]int) // keep a map of pluginIDs to identify plugins during a callback
+	pset := make(map[string]bool)   // track plugin names, panic on duplicates
 
 	// builtins come first so indexes match, see loop below
+	// Note this doesn't need to be under RLock, but it needs to precede
+	// external plugins. This should be fast enough that it doesn't matter.
 	for _, plugin := range builtIns {
 		pnames[i] = plugin.Name
+		pset[plugin.Name] = true
 		ptypes[i] = plugBuiltin
 		i++
 	}
-	b.Log(Trace, fmt.Sprintf("Loaded %d builtin plugins", i))
 
 	for _, plug := range b.externalPlugins {
 		pnames[i] = plug
+		if pset[plug] {
+			log.Fatal("External plugin name duplicates builtIn:", plug)
+		}
+		pset[plug] = true
 		ptypes[i] = plugExternal
 		i++
 	}
+	// copy the list of default channels
 	pchan := make([]string, 0, len(b.channels))
 	pchan = append(pchan, b.channels...)
-	b.RUnlock()
+	b.lock.RUnlock() // we're done with bot data 'til the end
 
+PlugLoop:
 	for plug, _ := range pluginHandlers {
-		pnames[i] = plug
-		ptypes[i] = plugGo
-		i++
+		if pset[plug] { // have to check builtIns, already loaded
+			for _, plugin := range builtIns {
+				if plug == plugin.Name {
+					continue PlugLoop // skip it, already loaded
+				}
+			}
+			// Since external plugins can change on reload, just log an error if
+			// we get a duplicate plugin name.
+			b.Log(Error, "Plugin name duplicates builtin or external, skipping:", plug)
+		} else {
+			pnames[i] = plug
+			ptypes[i] = plugGo
+			i++
+		}
 	}
 	b.Log(Trace, fmt.Sprintf("pnames: %q", pnames))
 	b.Log(Trace, fmt.Sprintf("ptypes: %q", ptypes))
@@ -191,10 +202,10 @@ func (b *robot) loadPluginConfig() error {
 		i++
 	}
 
-	b.Lock()
+	b.lock.Lock()
 	b.plugins = plist
 	b.plugIDmap = pfinder
-	b.Unlock()
+	b.lock.Unlock()
 
 	return nil
 }
@@ -202,11 +213,11 @@ func (b *robot) loadPluginConfig() error {
 // handle checks the message against plugin commands and full-message matches,
 // then dispatches it to all applicable handlers.
 func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string) {
-	b.RLock()
+	b.lock.RLock()
 	bot := Robot{
 		User:    user,
 		Channel: channel,
-		Format:  "variable",
+		Format:  Variable,
 		Gobot:   b,
 	}
 	for _, plugin := range b.plugins {
@@ -241,10 +252,8 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 					b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", matcher.Command, plugin.Name))
 					bot.pluginID = plugin.pluginID
 					switch plugin.pluginType {
-					case plugGo:
+					case plugBuiltin, plugGo:
 						go pluginHandlers[plugin.Name](bot, channel, user, matcher.Command, matches[0][1:]...)
-					case plugBuiltin:
-						go builtinHandlers[plugin.Name](bot, channel, user, matcher.Command, matches[0][1:]...)
 					case plugExternal:
 						var fullPath string // full path to the executable
 						if len(plugin.PluginPath) == 0 {
@@ -304,5 +313,5 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 			}
 		}
 	}
-	b.RUnlock()
+	b.lock.RUnlock()
 }

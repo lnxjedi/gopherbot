@@ -60,6 +60,14 @@ Loop:
 }
 
 func (sc *slackConnector) Run() {
+	sc.Lock()
+	// This should never happen, just a bit of defensive coding
+	if sc.running {
+		sc.Unlock()
+		return
+	}
+	sc.running = true
+	sc.Unlock()
 	for {
 		select {
 		case msg := <-sc.conn.IncomingEvents:
