@@ -111,7 +111,8 @@ func (b *robot) loadPluginConfig() error {
 	for _, plug := range b.externalPlugins {
 		pnames[i] = plug
 		if pset[plug] {
-			log.Fatal("External plugin name duplicates builtIn:", plug)
+			b.Log(Error, "External plugin name duplicates builtIn, skipping:", plug)
+			continue
 		}
 		pset[plug] = true
 		ptypes[i] = plugExternal
