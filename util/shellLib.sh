@@ -12,6 +12,7 @@ fi
 CHANNEL=$1
 CHATUSER=$2
 COMMAND=$3
-shift 3
+PLUGID=$4
+shift 4
 
 source $GOPHER_INSTALLDIR/util/shellFuncs.sh

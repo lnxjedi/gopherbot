@@ -9,8 +9,7 @@ import (
 
 var builtIns []Plugin = []Plugin{
 	{
-		Name:        "builtInhelp", // MUST match registered name below
-		AllowDirect: true,
+		Name: "builtInhelp", // MUST match registered name below
 		CommandMatches: []InputMatcher{
 			InputMatcher{
 				Regex:   `help ?([\d\w]+)?`,
@@ -19,8 +18,7 @@ var builtIns []Plugin = []Plugin{
 		},
 	},
 	{
-		Name:        "builtInreload", // MUST match registered name below
-		AllowDirect: true,
+		Name: "builtInreload", // MUST match registered name below
 		CommandMatches: []InputMatcher{
 			InputMatcher{
 				Regex:   `reload`,

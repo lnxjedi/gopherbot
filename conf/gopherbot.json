@@ -7,7 +7,8 @@
 	"Alias": ";",
 	"comment": "Leave the port number on a line by itself for shellLib.sh",
 	"LocalPort": "8880",
-	"LogLevel": "trace",
+	"comment": "LogLevel one of trace, debug, info, warn, error",
+	"LogLevel": "info",
 	"comment": "ScriptPlugins will cause the bot to look for these extra <pluginname>.json files",
 	"ExternalPlugins": [
 		"hosts",

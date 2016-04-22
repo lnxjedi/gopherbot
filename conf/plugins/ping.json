@@ -1,6 +1,4 @@
 {
-	"comment": "AllowDirect determines whether the plugin responds to direct messages",
-	"AllowDirect": true,
 	"Channels": [ ],
 	"Help": [
 		{
