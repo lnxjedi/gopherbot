@@ -49,14 +49,19 @@ type Plugin struct {
 
 // initialize sends the "start" command to every plugin
 func (b *robot) initializePlugins() {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
 	bot := Robot{
 		User:    b.name,
 		Channel: "",
 		Format:  Variable,
 		robot:   b,
 	}
-	for _, handler := range pluginHandlers {
-		go handler(bot, "", b.name, "start")
+	for _, plugin := range b.plugins {
+		if handler, ok := pluginHandlers[plugin.Name]; ok {
+			bot.pluginID = plugin.pluginID
+			go handler(bot, "", b.name, "start")
+		}
 	}
 }
 

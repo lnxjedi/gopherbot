@@ -3,7 +3,6 @@
 package slack
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
@@ -12,7 +11,7 @@ import (
 	"github.com/parsley42/gopherbot/bot"
 )
 
-type config struct {
+type Config struct {
 	SlackToken string // the 'bot token for connecting to Slack
 }
 
@@ -28,10 +27,12 @@ func Start(gobot bot.Handler) bot.Connector {
 	started = true
 	lock.Unlock()
 
-	var c config
+	var c Config
 
-	configJSON := gobot.GetProtocolConfig()
-	json.Unmarshal(configJSON, &c)
+	err := gobot.GetProtocolConfig(&c)
+	if err != nil {
+		log.Fatal(fmt.Errorf("Unable to retrieve protocol configuration: %v", err))
+	}
 
 	api := slack.New(c.SlackToken)
 	if gobot.GetLogLevel() <= bot.Debug {

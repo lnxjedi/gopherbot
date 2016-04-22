@@ -70,14 +70,12 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 }
 
 // GetProtocolConfig returns the connector protocol's json.RawMessage to the connector
-func (h handler) GetProtocolConfig() json.RawMessage {
+func (h handler) GetProtocolConfig(v interface{}) error {
 	b := h.bot
-	var pc []byte
 	b.lock.RLock()
-	// Make of copy of the protocol config for the plugin
-	pc = append(pc, []byte(b.protocolConfig)...)
+	err := json.Unmarshal(b.protocolConfig, v)
 	b.lock.RUnlock()
-	return pc
+	return err
 }
 
 // Connectors that support it can call SetName; otherwise it should

@@ -1,5 +1,10 @@
 package bot
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 type MessageFormat int
 
 // Outgoing message format, Variable or Fixed
@@ -37,6 +42,21 @@ func (b *robot) CheckAdmin(user string) bool {
 func (r Robot) Fixed() Robot {
 	r.Format = Fixed
 	return r
+}
+
+// GetPluginConfig will unmarshall the plugin's Config section into
+// a provided struct.
+func (r Robot) GetPluginConfig(v interface{}) error {
+	b := r.robot
+	b.lock.RLock()
+	defer b.lock.RUnlock()
+	plugin := b.plugins[b.plugIDmap[r.pluginID]]
+	b.Log(Trace, fmt.Sprintf("Preparing to unmarshal: %v", plugin.Config))
+	err := json.Unmarshal(plugin.Config, v)
+	if err != nil {
+		b.Log(Error, fmt.Errorf("Unmarshaling plugin config for %s: %v", plugin.Name, err))
+	}
+	return err
 }
 
 // SendXXXMessage functions exist so plugin writers don't need

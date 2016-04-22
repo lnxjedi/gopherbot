@@ -1,7 +1,5 @@
 package bot
 
-import "encoding/json"
-
 /* Gather all the interfaces in once place. Structs should be defined
    close the their methods. */
 
@@ -18,7 +16,7 @@ type Handler interface {
 	// can hear. The channelName and userName should be human-readable,
 	// not internal representations.
 	IncomingMessage(channelName, userName, message string)
-	GetProtocolConfig() json.RawMessage
+	GetProtocolConfig(interface{}) error
 	SetName(n string)
 	GetLogLevel() LogLevel
 	Log(l LogLevel, v ...interface{})
