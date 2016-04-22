@@ -5,21 +5,31 @@ import (
 	"fmt"
 )
 
+// handler struct hides robot methods that shouldn't be accessible
+// to a connector.
+type handler struct {
+	bot *robot
+}
+
 /* Handle incoming messages and other callbacks from the connector. */
 
-// Handler is the interface that defines the callback API for Connectors
-type Handler interface {
-	// ChannelMessage is called by the connector for all messages the bot
-	// can hear. The channelName and userName should be human-readable,
-	// not internal representations.
-	IncomingMessage(channelName, userName, message string)
-	GetProtocolConfig() json.RawMessage
-	SetName(n string)
-	BotLogger
+// Log exposes the private robot Log
+func (h handler) Log(l LogLevel, v ...interface{}) {
+	h.bot.Log(l, v)
+}
+
+// GetLogLevel returns the bot's current loglevel, mainly for the
+// connector to make it's own decision about logging
+func (h handler) GetLogLevel() LogLevel {
+	h.bot.lock.RLock()
+	l := h.bot.level
+	h.bot.lock.RUnlock()
+	return l
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
-func (b *robot) IncomingMessage(channelName, userName, messageFull string) {
+func (h handler) IncomingMessage(channelName, userName, messageFull string) {
+	b := h.bot
 	// When command == true, the message was directed at the bot
 	isCommand := false
 	logChannel := channelName
@@ -60,7 +70,8 @@ func (b *robot) IncomingMessage(channelName, userName, messageFull string) {
 }
 
 // GetProtocolConfig returns the connector protocol's json.RawMessage to the connector
-func (b *robot) GetProtocolConfig() json.RawMessage {
+func (h handler) GetProtocolConfig() json.RawMessage {
+	b := h.bot
 	var pc []byte
 	b.lock.RLock()
 	// Make of copy of the protocol config for the plugin
@@ -71,7 +82,8 @@ func (b *robot) GetProtocolConfig() json.RawMessage {
 
 // Connectors that support it can call SetName; otherwise it should
 // be configured in gobot.conf.
-func (b *robot) SetName(n string) {
+func (h handler) SetName(n string) {
+	b := h.bot
 	b.lock.Lock()
 	b.Log(Debug, "Setting name to: "+n)
 	b.name = n

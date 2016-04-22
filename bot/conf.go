@@ -17,6 +17,7 @@ type botconf struct {
 	IgnoreUsers     []string        // Users the 'bot never talks to - like other bots
 	JoinChannels    []string        // Channels the 'bot should join when it logs in (not supported by all protocols)
 	ExternalPlugins []string        // List of non-Go plugins to load from $GOPHER_LOCALDIR/plugins/<pluginName>.json
+	AdminUsers      []string        // List of users who can access administrative commands
 	Alias           string          // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
 	LocalPort       string          // Port number for listening on localhost, for CLI plugins
 	LogLevel        string          // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
@@ -71,7 +72,7 @@ func (b *robot) loadConfig() error {
 	default:
 		loglevel = Error
 	}
-	b.SetLogLevel(loglevel)
+	b.setLogLevel(loglevel)
 
 	b.lock.Lock()
 
@@ -92,6 +93,9 @@ func (b *robot) loadConfig() error {
 		return fmt.Errorf("Protocol not specified in gopherbot.json")
 	}
 
+	if config.AdminUsers != nil {
+		b.adminUsers = config.AdminUsers
+	}
 	if config.DefaultChannels != nil {
 		b.plugChannels = config.DefaultChannels
 	}

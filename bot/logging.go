@@ -14,13 +14,6 @@ const (
 	Error
 )
 
-type BotLogger interface {
-	Log(l LogLevel, v ...interface{})
-	GetLogLevel() LogLevel
-	// SetLogLevel updates the connector log level
-	SetLogLevel(l LogLevel)
-}
-
 // Log logs messages whenever the connector log level is
 // less than the given level
 func (b *robot) Log(l LogLevel, v ...interface{}) {
@@ -42,16 +35,8 @@ func (b *robot) Log(l LogLevel, v ...interface{}) {
 	}
 }
 
-// GetLogLevel returns the current log level
-func (b *robot) GetLogLevel() LogLevel {
-	b.lock.RLock()
-	l := b.level
-	b.lock.RUnlock()
-	return l
-}
-
 // SetLogLevel updates the connector log level
-func (b *robot) SetLogLevel(l LogLevel) {
+func (b *robot) setLogLevel(l LogLevel) {
 	b.lock.Lock()
 	b.level = l
 	b.lock.Unlock()

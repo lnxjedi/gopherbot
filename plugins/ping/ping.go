@@ -11,7 +11,7 @@ var (
 )
 
 // Define the handler function
-func ping(bot bot.Robot, channel, user, command string, args ...string) error {
+func ping(bot bot.Robot, channel, user, command string, args ...string) {
 	// The plugin can handle multiple different commands
 	switch command {
 	// This isn't really necessary
@@ -27,7 +27,6 @@ func ping(bot bot.Robot, channel, user, command string, args ...string) error {
 			bot.Say("Did anybody else hear something go \"beep\" ?")
 		}
 	}
-	return nil
 }
 
 func init() {

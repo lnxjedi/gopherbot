@@ -9,7 +9,7 @@ var (
 	botName string
 )
 
-func memegen(bot bot.Robot, channel, user, command string, args ...string) error {
+func memegen(bot bot.Robot, channel, user, command string, args ...string) {
 	switch command {
 	case "start":
 		gobot = bot
@@ -17,7 +17,6 @@ func memegen(bot bot.Robot, channel, user, command string, args ...string) error
 	case "simply":
 		bot.SendChannelMessage(channel, "Yeah, you're right about that!")
 	}
-	return nil
 }
 
 func init() {

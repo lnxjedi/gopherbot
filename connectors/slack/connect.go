@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/nlopes/slack"
 	"github.com/parsley42/gopherbot/bot"
@@ -15,7 +16,18 @@ type config struct {
 	SlackToken string // the 'bot token for connecting to Slack
 }
 
+var lock sync.Mutex // package var lock
+var started bool    // set when connector is started
+
 func Start(gobot bot.Handler) bot.Connector {
+	lock.Lock()
+	if started {
+		lock.Unlock()
+		return nil
+	}
+	started = true
+	lock.Unlock()
+
 	var c config
 
 	configJSON := gobot.GetProtocolConfig()

@@ -28,7 +28,7 @@ func main() {
 	// Create the 'bot and load configuration, suppying configdir and installdir.
 	// When loading configuration, gopherbot first checks GOPHER_LOCALDIR, then
 	// installdir/conf
-	gopherbot, err := bot.Create(os.Getenv("GOPHER_LOCALDIR"), installdir)
+	gopherbot, err := bot.New(os.Getenv("GOPHER_LOCALDIR"), installdir)
 	if err != nil {
 		log.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
 	}

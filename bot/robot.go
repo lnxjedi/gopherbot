@@ -1,16 +1,35 @@
 package bot
 
+type MessageFormat int
+
+// Outgoing message format, Variable or Fixed
+const (
+	Variable MessageFormat = iota // variable font width
+	Fixed
+)
+
 // Robot is passed to the plugin to enable convenience functions Say and Reply
 type Robot struct {
 	User     string        // The user who sent the message; this can be modified for replying to an arbitrary user
 	Channel  string        // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
 	Format   MessageFormat // The outgoing message format, one of Fixed or Variable
 	pluginID string        // Pass the ID in for later identificaton of the plugin
-	Gobot
+	*robot                 // Add a pointer to the robot for it's public methods, which includes the Connector provided by e.g. slack
 }
 
 /* robot.go defines some convenience functions on struct Robot to
    simplify use by plugins. */
+
+func (b *robot) CheckAdmin(user string) bool {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
+	for _, adminUser := range b.adminUsers {
+		if user == adminUser {
+			return true
+		}
+	}
+	return false
+}
 
 // Fixed is a convenience function for sending a message with fixed width
 // font. e.g. r.Reply(xxx) replies in variable width font, but

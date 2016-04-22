@@ -2,6 +2,7 @@
 	"DefaultChannels": [ "botdev" ],
 	"IgnoreUsers": [ "Bender" ],
 	"JoinChannels": [ "random", "general", "botdev" ],
+	"AdminUsers": [],
 	"Alias": ";",
 	"comment": "Leave the port number on a line by itself for shellLib.sh",
 	"LocalPort": "8880",

@@ -12,14 +12,6 @@ import (
 	"time"
 )
 
-// interface Gobot defines the API for plugins
-type Gobot interface {
-	Chatbot
-	BotLogger
-}
-
-// TODO: implement Say and Reply convenience functions
-
 // PluginHelp specifies keywords and help text for the 'bot help system
 type PluginHelp struct {
 	Keywords []string // match words for 'help XXX'
@@ -61,7 +53,7 @@ func (b *robot) initializePlugins() {
 		User:    b.name,
 		Channel: "",
 		Format:  Variable,
-		Gobot:   b,
+		robot:   b,
 	}
 	for _, handler := range pluginHandlers {
 		go handler(bot, "", b.name, "start")
@@ -69,7 +61,7 @@ func (b *robot) initializePlugins() {
 }
 
 // pluginHandlers maps from plugin names to handler functions; populated during package initialization and never written to again.
-var pluginHandlers map[string]func(bot Robot, channel, user, command string, args ...string) error = make(map[string]func(bot Robot, channel, user, command string, args ...string) error)
+var pluginHandlers map[string]func(bot Robot, channel, user, command string, args ...string) = make(map[string]func(bot Robot, channel, user, command string, args ...string))
 
 // stopRegistrations is set "true" when the bot is created to prevent registration outside of init functions
 var stopRegistrations bool = false
@@ -78,9 +70,12 @@ var stopRegistrations bool = false
 // When the bot initializes, it will call each plugin's handler with a command
 // "start", empty channel, the bot's username, and no arguments, so the plugin
 // can store this information for, e.g., scheduled jobs.
-func RegisterPlugin(name string, handler func(bot Robot, channel, user, command string, args ...string) error) {
+func RegisterPlugin(name string, handler func(bot Robot, channel, user, command string, args ...string)) {
 	if stopRegistrations {
 		return
+	}
+	if pluginHandlers[name] != nil {
+		log.Fatal("Attempted registration of duplicate plugin name:", name)
 	}
 	pluginHandlers[name] = handler
 }
@@ -101,7 +96,7 @@ func (b *robot) loadPluginConfig() error {
 	pnames := make([]string, nump)
 	ptypes := make([]plugType, nump)
 	pfinder := make(map[string]int) // keep a map of pluginIDs to identify plugins during a callback
-	pset := make(map[string]bool)   // track plugin names, panic on duplicates
+	pset := make(map[string]bool)   // track plugin names
 
 	// builtins come first so indexes match, see loop below
 	// Note this doesn't need to be under RLock, but it needs to precede
@@ -137,7 +132,7 @@ PlugLoop:
 			}
 			// Since external plugins can change on reload, just log an error if
 			// we get a duplicate plugin name.
-			b.Log(Error, "Plugin name duplicates builtin or external, skipping:", plug)
+			b.Log(Error, "Plugin name duplicates external, skipping:", plug)
 		} else {
 			pnames[i] = plug
 			ptypes[i] = plugGo
@@ -218,7 +213,7 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 		User:    user,
 		Channel: channel,
 		Format:  Variable,
-		Gobot:   b,
+		robot:   b,
 	}
 	for _, plugin := range b.plugins {
 		if len(plugin.Channels) > 0 {
