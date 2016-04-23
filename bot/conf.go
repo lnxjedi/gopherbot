@@ -11,6 +11,7 @@ import (
 
 // botconf specifies 'bot configuration, and is read from $GOPHER_LOCALDIR/botconf.json
 type botconf struct {
+	AdminContact    string          // Contact info for whomever administers the robot
 	Protocol        string          // Name of the connector protocol to use, e.g. "slack"
 	Name            string          // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
 	DefaultChannels []string        // Channels where plugins are active by default, e.g. [ "general", "random" ]
@@ -91,7 +92,10 @@ func (b *robot) loadConfig() error {
 
 	b.lock.Lock()
 
-	if len(config.Alias) > 0 {
+	if config.AdminContact != "" {
+		b.adminContact = config.AdminContact
+	}
+	if config.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(config.Alias)
 		b.alias = alias
 	}
@@ -129,9 +133,7 @@ func (b *robot) loadConfig() error {
 
 	// loadPluginConfig does it's own locking
 	b.lock.Unlock()
-	if err := b.loadPluginConfig(); err != nil {
-		return fmt.Errorf("Loading plugin configuration: %v", err)
-	}
+	b.loadPluginConfig()
 
 	return nil
 }

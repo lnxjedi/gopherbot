@@ -1,7 +1,8 @@
 {
 	"comment": "If you specify default channels, plugins without a channel list will only respond in these channels",
+	"AdminContact": "",
 	"DefaultChannels": [ "botdev" ],
-	"IgnoreUsers": [ "Bender" ],
+	"IgnoreUsers": [],
 	"JoinChannels": [ "random", "general", "botdev" ],
 	"AdminUsers": [],
 	"Alias": ";",

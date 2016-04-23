@@ -68,6 +68,9 @@ Loop:
 	}
 
 	sc.updateMaps()
+	sc.botFullName = sc.userInfo[sc.botName].RealName
+	sc.SetFullName(sc.botFullName)
+	sc.Log(bot.Debug, "Set bot full name to", sc.botFullName)
 
 	return bot.Connector(sc)
 }

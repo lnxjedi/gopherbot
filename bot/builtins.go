@@ -16,6 +16,12 @@ var builtIns []Plugin = []Plugin{
 				Command: "help",
 			},
 		},
+		MessageMatches: []InputMatcher{
+			InputMatcher{
+				Regex:   `^(?i)help$`,
+				Command: "barehelp",
+			},
+		},
 	},
 	{
 		Name: "builtInreload", // MUST match registered name below
@@ -31,6 +37,29 @@ var builtIns []Plugin = []Plugin{
 func help(bot Robot, channel, user, command string, args ...string) {
 	// Get access to the underlying struct
 	b := bot.robot
+	if command == "barehelp" { // user just typed 'help' - the robot should introduce itself
+		b.lock.RLock()
+		reply := "Hello, I'm "
+		if len(b.fullName) > 0 {
+			reply += b.fullName + ", but you should just call me " + b.name + ".\n"
+		} else {
+			reply += b.name + ".\n"
+		}
+		reply += "I'm one of the staff robots available to your team, and can perform a variety of tasks. To find out what I can do, try:\n"
+		reply += b.name + ", help (keyword)\nor:\nhelp (keyword), " + b.name + "\n"
+		if b.alias != 0 {
+			reply += "To save a little typing, you can prefix your message with my alias (" + string(b.alias) + "), like this:\n" + string(b.alias) + "help (keyword)\n"
+		}
+		reply += "The (keyword) is optional. If not supplied, you will get help for every command available to you in the current channel. If supplied, you will get help for every command with a matching keyword, along with the channels where it can be used. In all cases help will be sent as a direct message so the channels don't fill up with help text.\n"
+		reply += "Additionally, some messages (like a bare 'help') will trigger commands as well, and help may or may not be available for those.\n\nFinally, if there's anything else you'd like to see me do, please contact my administrator"
+		if len(b.adminContact) > 0 {
+			reply += ", " + b.adminContact + "."
+		} else {
+			reply += "."
+		}
+		b.lock.RUnlock()
+		bot.SendUserMessage(user, reply)
+	}
 	if command == "help" {
 		b.lock.RLock()
 		defer b.lock.RUnlock()
@@ -45,20 +74,8 @@ func help(bot Robot, channel, user, command string, args ...string) {
 
 		for _, plugin := range b.plugins {
 			b.Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.Name, term))
-			if !hasTerm { // if you ask for help without a term, you just get whatever commands are available in your channel
-				if len(plugin.Channels) > 0 {
-					b.Log(Trace, fmt.Sprintf("Seeing if %s is available in channel %s", plugin.Name, channel))
-					for _, pchan := range plugin.Channels {
-						b.Log(Trace, fmt.Sprintf("... checking current channel %s against plugin channel %s", channel, pchan))
-						if channel == pchan {
-							for _, phelp := range plugin.Help {
-								for _, helptext := range phelp.Helptext {
-									helpOutput += helptext + string('\n')
-								}
-							}
-						}
-					}
-				} else {
+			if !hasTerm { // if you ask for help without a term, you just get help for whatever commands are available to you
+				if b.messageAppliesToPlugin(user, channel, command, plugin) {
 					for _, phelp := range plugin.Help {
 						for _, helptext := range phelp.Helptext {
 							helpOutput += helptext + string('\n')
@@ -91,9 +108,9 @@ func help(bot Robot, channel, user, command string, args ...string) {
 			}
 		}
 		if len(helpOutput) == 0 {
-			bot.Reply("Sorry, bub - I got nothin' for ya'")
+			bot.SendUserMessage(user, "Sorry, bub - I got nothin' for ya'")
 		} else {
-			bot.Say(strings.TrimRight(helpOutput, "\n"))
+			bot.SendUserMessage(user, strings.TrimRight(helpOutput, "\n"))
 		}
 	}
 }

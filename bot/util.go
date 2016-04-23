@@ -13,6 +13,40 @@ func setFormat(format string) MessageFormat {
 	}
 }
 
+// messageAppliesToPlugin checks the user and channel against the plugin's
+// configuration to determine if the message should be evaluated. Used by
+// both handleMessage and the help builtin.
+// TODO: add logic for checking plugin.Users[]
+func (b *robot) messageAppliesToPlugin(user, channel, message string, plugin Plugin) bool {
+	ok := false
+	directMsg := false
+	if len(channel) == 0 {
+		directMsg = true
+	}
+	if len(plugin.Channels) > 0 {
+		if !directMsg {
+			for _, pchannel := range plugin.Channels {
+				if pchannel == channel {
+					ok = true
+				}
+			}
+		} else { // direct message
+			if !plugin.DisallowDirect {
+				ok = true
+			}
+		}
+	} else {
+		if directMsg {
+			if !plugin.DisallowDirect {
+				ok = true
+			}
+		} else {
+			ok = true
+		}
+	}
+	return ok
+}
+
 func (b *robot) updateRegexes() {
 	preString := `^(`
 	if b.alias != 0 {

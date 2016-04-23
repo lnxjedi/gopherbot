@@ -12,13 +12,25 @@ type GopherBot interface {
 
 // Handler is the interface that defines the callback API for Connectors
 type Handler interface {
-	// ChannelMessage is called by the connector for all messages the bot
+	// IncomingMessage is called by the connector for all messages the bot
 	// can hear. The channelName and userName should be human-readable,
-	// not internal representations.
+	// not internal representations. If channelName is blank, it's a direct message
 	IncomingMessage(channelName, userName, message string)
+	// GetProtocolConfig unmarshals the ProtocolConfig section of gopherbot.json
+	// into a connector-provided struct
 	GetProtocolConfig(interface{}) error
+	// SetFullName allows the connector to set the robot's full name if it
+	// has access to it.
+	SetFullName(n string)
+	// SetName allows the connect to set the robot's name that it should be addressed
+	// by, if it has access to it.
 	SetName(n string)
+	// GetLogLevel allows the connector to check the robot's configured log level
+	// to make it's own decision about how much it should log. For slack, this
+	// determines whether the plugin does api logging.
 	GetLogLevel() LogLevel
+	// Log provides a standard logging interface with a level as defined in
+	// bot/logging.go
 	Log(l LogLevel, v ...interface{})
 }
 

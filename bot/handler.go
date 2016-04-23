@@ -69,7 +69,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 	b.handleMessage(isCommand, channelName, userName, message)
 }
 
-// GetProtocolConfig returns the connector protocol's json.RawMessage to the connector
+// GetProtocolConfig unmarshals the connectors configuration data into a provided struct
 func (h handler) GetProtocolConfig(v interface{}) error {
 	b := h.bot
 	b.lock.RLock()
@@ -78,12 +78,23 @@ func (h handler) GetProtocolConfig(v interface{}) error {
 	return err
 }
 
+// Connectors that support it can call SetFullName; otherwise it can
+// be configured in gobot.conf.
+func (h handler) SetFullName(n string) {
+	b := h.bot
+	b.Log(Debug, "Setting full name to: "+n)
+	b.lock.Lock()
+	b.fullName = n
+	b.lock.Unlock()
+	b.updateRegexes()
+}
+
 // Connectors that support it can call SetName; otherwise it should
 // be configured in gobot.conf.
 func (h handler) SetName(n string) {
 	b := h.bot
-	b.lock.Lock()
 	b.Log(Debug, "Setting name to: "+n)
+	b.lock.Lock()
 	b.name = n
 	b.lock.Unlock()
 	b.updateRegexes()

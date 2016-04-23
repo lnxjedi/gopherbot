@@ -24,6 +24,7 @@ type slackConnector struct {
 	conn         *slack.RTM
 	running      bool                  // set on call to Run
 	botName      string                // human-readable name of bot
+	botFullName  string                // human-readble full name of the bot
 	botID        string                // slack internal bot ID
 	bot.Handler                        // bot API for connectors
 	sync.RWMutex                       // shared mutex for locking connector data structures

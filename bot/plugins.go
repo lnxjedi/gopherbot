@@ -88,8 +88,9 @@ func RegisterPlugin(name string, handler func(bot Robot, channel, user, command 
 
 // loadPluginConfig() loads the configuration for all the plugins from
 // $GOPHER_LOCALDIR/plugins/<pluginname>.json (excepting builtins), assigns
-// a pluginID, and stores the resulting array in b.plugins
-func (b *robot) loadPluginConfig() error {
+// a pluginID, and stores the resulting array in b.plugins. Bad plugins
+// are skipped and logged.
+func (b *robot) loadPluginConfig() {
 	i := 0
 
 	// Seed the pseudo-random number generator, for plugin IDs
@@ -129,12 +130,12 @@ func (b *robot) loadPluginConfig() error {
 	pchan = append(pchan, b.channels...)
 	b.lock.RUnlock() // we're done with bot data 'til the end
 
-PlugLoop:
+PlugHandlerLoop:
 	for plug, _ := range pluginHandlers {
 		if pset[plug] { // have to check builtIns, already loaded
 			for _, plugin := range builtIns {
 				if plug == plugin.Name {
-					continue PlugLoop // skip it, already loaded
+					continue PlugHandlerLoop // skip it, already loaded
 				}
 			}
 			// Since external plugins can change on reload, just log an error if
@@ -152,6 +153,8 @@ PlugLoop:
 
 	// Because some plugins may be disabled, pnames and plugins won't necessarily sync
 	plugIndex := 0
+
+PlugLoop:
 	for i, plug := range pnames {
 		var plugin Plugin
 		b.Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", i, plug, ptypes[i]))
@@ -180,16 +183,19 @@ PlugLoop:
 			command := &plugin.CommandMatches[i]
 			re, err := regexp.Compile(`^\s*` + command.Regex + `\s*$`)
 			if err != nil {
-				return fmt.Errorf("Compiling command regular expression %s for plugin %s: %v", command.Regex, plug, err)
+				b.Log(Error, fmt.Errorf("Skipping %s, couldn't compile command regular expression \"%s\": %v", plug, command.Regex, err))
+				continue PlugLoop
 			}
 			command.re = re
 		}
 		for i, _ := range plugin.MessageMatches {
-			// Note that full message regexes don't get the beginning and end anchors added
-			message := &plugin.CommandMatches[i]
+			// Note that full message regexes don't get the beginning and end anchors added - the individual plugin
+			// will need to do this if necessary.
+			message := &plugin.MessageMatches[i]
 			re, err := regexp.Compile(message.Regex)
 			if err != nil {
-				return fmt.Errorf("Compiling message regular expression %s for plugin %s: %v", message.Regex, plug, err)
+				b.Log(Error, fmt.Errorf("Skipping %s, couldn't compile message regular expression \"%s\": %v", plug, message.Regex, err))
+				continue PlugLoop
 			}
 			message.re = re
 		}
@@ -219,20 +225,11 @@ PlugLoop:
 	if reInitPlugins {
 		b.initializePlugins()
 	}
-
-	return nil
 }
 
-/* handleMessage checks the message against plugin commands and full-message matches,
-   then dispatches it to all applicable handlers in a separate go routine.
+// handleMessage checks the message against plugin commands and full-message matches,
+// then dispatches it to all applicable handlers in a separate go routine.
 
-   When deciding whether a message should be checked against a plugin:
-   - If the message is in one of the configured channels for the plugin, it's checked
-   - If the plugin has an empty channel list, it's checked
-   - If the message is a direct message and the plugin doesn't DisallowDirect, it's checked
-   - If the message is in a channel that's not in the plugin's non-empty list, it's skipped
-   - If the message is a direct message, but DisallowDirect is set, it's skipped
-*/
 func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string) {
 	b.lock.RLock()
 	bot := Robot{
@@ -241,35 +238,12 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 		Format:  Variable,
 		robot:   b,
 	}
-	directMsg := false
 	if len(channel) == 0 {
 		b.Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", user, messagetext))
-		directMsg = true
 	}
 	for _, plugin := range b.plugins {
 		b.Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels", messagetext, plugin.Name, len(plugin.Channels)))
-		ok := false
-		if len(plugin.Channels) > 0 {
-			if !directMsg {
-				for _, pchannel := range plugin.Channels {
-					if pchannel == channel {
-						ok = true
-					}
-				}
-			} else { // direct message
-				if !plugin.DisallowDirect {
-					ok = true
-				}
-			}
-		} else {
-			if directMsg {
-				if !plugin.DisallowDirect {
-					ok = true
-				}
-			} else {
-				ok = true
-			}
-		}
+		ok := b.messageAppliesToPlugin(user, channel, messagetext, plugin)
 		if !ok {
 			b.Log(Trace, fmt.Sprintf("Plugin %s ignoring message in channel %s, doesn't meet criteria", plugin.Name, channel))
 			continue
