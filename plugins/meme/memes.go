@@ -35,8 +35,19 @@ func memegen(r bot.Robot, channel, user, command string, args ...string) {
 		}
 	case "simply":
 		sendMeme(r, "61579", "ONE DOES NOT SIMPLY", args[0])
+
 	case "prepare":
 		sendMeme(r, "47779539", "You "+args[0], "PREPARE TO DIE")
+
+	case "prettymuch":
+		sendMeme(r, "8070362", args[0]+" pretty much", "the "+args[1]+"ever "+args[2])
+
+	case "gosh":
+		sendMeme(r, "18304105", args[0], "Gosh!")
+
+	case "skills":
+		sendMeme(r, "20509936", args[0]+" "+args[1], args[2])
+
 	}
 }
 
