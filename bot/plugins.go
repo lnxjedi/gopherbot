@@ -223,8 +223,16 @@ PlugLoop:
 	return nil
 }
 
-// handle checks the message against plugin commands and full-message matches,
-// then dispatches it to all applicable handlers.
+/* handleMessage checks the message against plugin commands and full-message matches,
+   then dispatches it to all applicable handlers in a separate go routine.
+
+   When deciding whether a message should be checked against a plugin:
+   - If the message is in one of the configured channels for the plugin, it's checked
+   - If the plugin has an empty channel list, it's checked
+   - If the message is a direct message and the plugin doesn't DisallowDirect, it's checked
+   - If the message is in a channel that's not in the plugin's non-empty list, it's skipped
+   - If the message is a direct message, but DisallowDirect is set, it's skipped
+*/
 func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string) {
 	b.lock.RLock()
 	bot := Robot{
@@ -247,6 +255,10 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 					if pchannel == channel {
 						ok = true
 					}
+				}
+			} else { // direct message
+				if !plugin.DisallowDirect {
+					ok = true
 				}
 			}
 		} else {

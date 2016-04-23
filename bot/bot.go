@@ -46,7 +46,7 @@ type gopherBot struct {
 	Handler
 }
 
-// Create instantiates the one and only instance of a Gobot, and loads
+// New instantiates the one and only instance of a Gobot, and loads
 // configuration.
 func New(cpath, epath string) (GopherBot, error) {
 	botLock.Lock()
