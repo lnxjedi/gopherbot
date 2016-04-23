@@ -38,6 +38,7 @@ type Plugin struct {
 	Name           string          // the name of the plugin, used as a key in to the
 	pluginType     plugType        // plugGo, plugExternal, plugBuiltin - determines how commands are routed
 	PluginPath     string          // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=shell only
+	Disabled       bool            // Set true to disable the plugin
 	DisallowDirect bool            // Set this true if this plugin can never be accessed via direct message
 	Channels       []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	Help           []PluginHelp    // All the keyword sets / help texts for this plugin
@@ -47,7 +48,7 @@ type Plugin struct {
 	pluginID       string          // 32-char random ID for identifying plugins in callbacks
 }
 
-// initialize sends the "start" command to every plugin
+// initialize sends the "init" command to every plugin
 func (b *robot) initializePlugins() {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
@@ -60,7 +61,7 @@ func (b *robot) initializePlugins() {
 	for _, plugin := range b.plugins {
 		if handler, ok := pluginHandlers[plugin.Name]; ok {
 			bot.pluginID = plugin.pluginID
-			go handler(bot, "", b.name, "start")
+			go handler(bot, "", b.name, "init")
 		}
 	}
 }
@@ -149,19 +150,23 @@ PlugLoop:
 	b.Log(Trace, fmt.Sprintf("ptypes: %q", ptypes))
 	plist := make([]Plugin, nump)
 
+	// Because some plugins may be disabled, pnames and plugins won't necessarily sync
+	plugIndex := 0
 	for i, plug := range pnames {
 		var plugin Plugin
 		b.Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", i, plug, ptypes[i]))
 		if ptypes[i] == plugBuiltin {
 			plugin = builtIns[i]
 		} else {
-			pc, err := b.getConfigFile("plugins/" + plug + ".json")
+			// getConfigFile loads stock config, then overlays with local
+			err := b.getConfigFile("plugins/"+plug+".json", &plugin)
 			if err != nil {
-				return fmt.Errorf("Loading configuration for plugin %s: %v", plug, err)
+				b.Log(Error, fmt.Errorf("Unable to load configuration for plugin \"%s\": %v", plug, err))
+				continue
 			}
-			if err := json.Unmarshal(pc, &plugin); err != nil {
-				return fmt.Errorf("Unmarshalling JSON for plugin %s: %v", plug, err)
-			}
+		}
+		if plugin.Disabled {
+			continue
 		}
 		plugin.pluginType = ptypes[i]
 		b.Log(Info, "Loaded configuration for plugin", plug)
@@ -196,17 +201,24 @@ PlugLoop:
 			log.Fatal("Couldn't generate plugin id:", rerr)
 		}
 		plugin.pluginID = fmt.Sprintf("%x", p)
-		pfinder[plugin.pluginID] = i
+		pfinder[plugin.pluginID] = plugIndex
 		// Store this plugin's config in the temporary list
-		b.Log(Info, fmt.Sprintf("Recorded plugin %s with ID %s", plugin.Name, plugin.pluginID))
-		plist[i] = plugin
-		i++
+		b.Log(Info, fmt.Sprintf("Recorded plugin #%d, \"%s\" with ID %s", plugIndex, plugin.Name, plugin.pluginID))
+		plist[plugIndex] = plugin
+		plugIndex++
 	}
 
+	reInitPlugins := false
 	b.lock.Lock()
 	b.plugins = plist
 	b.plugIDmap = pfinder
+	if b.Connector != nil {
+		reInitPlugins = true
+	}
 	b.lock.Unlock()
+	if reInitPlugins {
+		b.initializePlugins()
+	}
 
 	return nil
 }

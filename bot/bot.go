@@ -25,6 +25,7 @@ type robot struct {
 	adminUsers      []string        // List of users with access to administrative commands
 	alias           rune            // single-char alias for addressing the bot
 	name            string          // e.g. "Gort"
+	fullName        string          // e.g. "Robbie Robot"
 	ignoreUsers     []string        // list of users to never listen to, like other bots
 	preRegex        *regexp.Regexp  // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
 	postRegex       *regexp.Regexp  // regex for matching, e.g. "open the pod bay doors, hal"

@@ -26,7 +26,7 @@ var configured bool = false
 
 func memegen(r bot.Robot, channel, user, command string, args ...string) {
 	switch command {
-	case "start":
+	case "init":
 		gobot = r
 		botName = user
 		err := r.GetPluginConfig(&config)
@@ -45,6 +45,7 @@ func sendMeme(r bot.Robot, templateId, topText, bottomText string) {
 	if err == nil {
 		r.Say(url)
 	} else {
+		r.Reply("Sorry, something went wrong. Check the logs?")
 		r.Log(bot.Error, fmt.Errorf("Generating a meme: %v", err))
 	}
 }

@@ -1,5 +1,7 @@
 {
+	"comment": "Note: you should copy this file to your local conf/plugins, and delete all but Disabled and Config sections",
 	"Channels": [],
+	"Disabled": true,
 	"Help": [
 		{
 			"Keywords": [ "meme", "simply" ],
@@ -10,7 +12,6 @@
 			"Helptext": [ "(bot), you <did something>, prepare to die - Let Inigo threaten your friends" ]
 		}
 	],
-	"comment": "I'd like to add some comments, hopefully go won't care",
 	"CommandMatches": [
 		{
 			"Command": "simply",

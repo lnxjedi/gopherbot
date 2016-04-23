@@ -51,7 +51,6 @@ func (r Robot) GetPluginConfig(v interface{}) error {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	plugin := b.plugins[b.plugIDmap[r.pluginID]]
-	b.Log(Trace, fmt.Sprintf("Preparing to unmarshal: %v", plugin.Config))
 	err := json.Unmarshal(plugin.Config, v)
 	if err != nil {
 		b.Log(Error, fmt.Errorf("Unmarshaling plugin config for %s: %v", plugin.Name, err))

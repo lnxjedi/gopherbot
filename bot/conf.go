@@ -24,40 +24,55 @@ type botconf struct {
 	ProtocolConfig  json.RawMessage // Protocol-specific configuration
 }
 
-// getConfigFile looks for configuration first in localPath/conf/, then installPath/conf/
-func (b *robot) getConfigFile(name string) ([]byte, error) {
+// getConfigFile loads a configuration file first from installPath, then
+// from localPath, allowing local config to override stock config
+func (b *robot) getConfigFile(filename string, c interface{}) error {
 	var (
 		cf  []byte
 		err error
+		ok  bool
 	)
-	cf, err = ioutil.ReadFile(b.localPath + "/conf/" + name)
+	ok = false
+
+	cf, err = ioutil.ReadFile(b.installPath + "/conf/" + filename)
 	if err != nil {
-		cf, err = ioutil.ReadFile(b.installPath + "/conf/" + name)
-		if err != nil {
-			return nil, err
-		}
-		b.Log(Trace, fmt.Sprintf("Loaded stock configuration file %s", name))
+		b.Log(Warn, fmt.Errorf("Loading stock configuration for \"%s\": %v", filename, err))
 	} else {
-		b.Log(Trace, fmt.Sprintf("Loaded local configuration file %s", name))
+		if err := json.Unmarshal(cf, c); err != nil {
+			b.Log(Error, fmt.Errorf("Unmarshalling JSON for \"%s\": %v", filename, err))
+		} else {
+			ok = true
+		}
 	}
-	return cf, nil
+
+	cf, err = ioutil.ReadFile(b.localPath + "/conf/" + filename)
+	if err != nil {
+		b.Log(Debug, fmt.Errorf("Loading custom configuration for \"%s\": %v", filename, err))
+	} else {
+		if err := json.Unmarshal(cf, c); err != nil {
+			b.Log(Error, fmt.Errorf("Unmarshalling JSON for plugin %s: %v", filename, err))
+		} else {
+			ok = true
+		}
+	}
+
+	if !ok {
+		return fmt.Errorf("No stock or local configuration found for %s", filename)
+	}
+	return nil
 }
 
 // loadConfig loads the 'bot's json configuration files. An error on first load
 // results in log.fatal, but later Loads just log the error.
 func (b *robot) loadConfig() error {
 	var (
-		bc       []byte
 		config   botconf
 		loglevel LogLevel
 	)
 
-	bc, err := b.getConfigFile("gopherbot.json")
+	err := b.getConfigFile("gopherbot.json", &config)
 	if err != nil {
-		return fmt.Errorf("Loading %s: %v", b.localPath+"/gopherbot.json", err)
-	}
-	if err := json.Unmarshal(bc, &config); err != nil {
-		return fmt.Errorf("Unmarshalling JSON at %s: %v", b.localPath+"/gopherbot.json", err)
+		return err
 	}
 
 	switch config.LogLevel {

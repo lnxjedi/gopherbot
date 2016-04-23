@@ -15,7 +15,7 @@ func ping(bot bot.Robot, channel, user, command string, args ...string) {
 	// The plugin can handle multiple different commands
 	switch command {
 	// This isn't really necessary
-	case "start":
+	case "init":
 		gobot = bot
 		botName = user
 	case "ping":
