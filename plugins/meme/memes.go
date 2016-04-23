@@ -34,12 +34,18 @@ func memegen(r bot.Robot, channel, user, command string, args ...string) {
 			configured = true
 		}
 	case "simply":
-		url, err := createMeme("61579", "ONE DOES NOT SIMPLY", args[0])
-		if err == nil {
-			r.Say(url)
-		} else {
-			r.Log(bot.Error, fmt.Errorf("Generating a meme: %v", err))
-		}
+		sendMeme(r, "61579", "ONE DOES NOT SIMPLY", args[0])
+	case "prepare":
+		sendMeme(r, "47779539", "You "+args[0], "PREPARE TO DIE")
+	}
+}
+
+func sendMeme(r bot.Robot, templateId, topText, bottomText string) {
+	url, err := createMeme(templateId, topText, bottomText)
+	if err == nil {
+		r.Say(url)
+	} else {
+		r.Log(bot.Error, fmt.Errorf("Generating a meme: %v", err))
 	}
 }
 

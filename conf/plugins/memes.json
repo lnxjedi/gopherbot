@@ -4,13 +4,25 @@
 		{
 			"Keywords": [ "meme", "simply" ],
 			"Helptext": [ "(bot), one does not simply <do something> - Summon Boromir to make your point" ]
+		},
+		{
+			"Keywords": [ "meme", "prepare" ],
+			"Helptext": [ "(bot), you <did something>, prepare to die - Let Inigo threaten your friends" ]
 		}
 	],
 	"comment": "I'd like to add some comments, hopefully go won't care",
 	"CommandMatches": [
 		{
 			"Command": "simply",
-			"Regex": "one does not simply (.+)"
+			"Regex": "one does not simply ([\\w! ]+)"
+		},
+		{
+			"Command": "prepare",
+			"Regex": "you ([\\w! ]+),? prepare to die"
 		}
-	]
+	],
+	"Config": {
+		"Username": "<your-imgflip-username>",
+		"Password": "<your-password>"
+	}
 }
