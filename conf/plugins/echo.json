@@ -1,5 +1,5 @@
 {
-	"PluginPath": "plugins/external/echo",
+	"PluginPath": "plugins/echo.sh",
 	"Channels": [ "botdev" ],
 	"Help": [
 		{

@@ -1,13 +1,19 @@
 #!/bin/bash
 # shellLib.sh - bash plugins should source this with 'source $GOPHER_INSTALLDIR/util/shellLib.sh'
-[ -z "$GOPHER_LOCALDIR" ] && { echo "GOPHER_LOCALDIR not set" >&2; exit 1; }
-[ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
 
-if [ $# -lt 3 ]
+# shellLib.sh needs localdir to suss out the local http port for posting JSON
+if [ -z "$GOPHER_LOCALDIR" ]
 then
-	echo "Usage: $0 <channel> <user> <command> (<args>...)"
-	exit 1
+	if [ -d ~/.gopherbot ]
+	then
+		GOPHER_LOCALDIR=~/.gopherbot
+	elif [ -d /etc/gopherbot ]
+	then
+		GOPHER_LOCALDIR=/etc/gopherbot
+	fi
 fi
+[ -z "$GOPHER_LOCALDIR" ] && { echo "GOPHER_LOCALDIR not found (~/.gopherbot/ or /etc/gopherbot/)" >&2; exit 1; }
+[ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not in environment" >&2; exit 1; }
 
 CHANNEL=$1
 CHATUSER=$2

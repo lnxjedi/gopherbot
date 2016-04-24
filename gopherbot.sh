@@ -1,11 +1,11 @@
 #!/bin/bash
-# gobot.sh - download/build/install everything bot-related, then run it
+# gopherbot.sh - run the gopherbot
 
 usage(){
 	cat <<EOF
 Usage: gopherbot.sh (-h) (-f)
 
-Run an instance of gopherbot. GOPHER_LOCALDIR should point
+Run an instance of gopherbot. GOPHER_INSTALLDIR should point
 to a directory holding gopherbot.json and any plugin configuration files.
 	-f run in foreground
 	-h print this message
@@ -23,13 +23,27 @@ errorout(){
 EXECPATH=$(dirname `readlink -f $0`)
 [ -z "$GOPHER_INSTALLDIR" ] && export GOPHER_INSTALLDIR=$EXECPATH
 
-[ ! -d "$GOPHER_LOCALDIR" ] && errorout "GOPHER_LOCALDIR not set to a directory, see README.md"
-[ ! -e "$GOPHER_LOCALDIR/conf/gopherbot.json" ] && errorout "Couldn't find gopherbot.json in $GOPHER_LOCALDIR/conf/"
+if [ -z "$GOPHER_LOCALDIR" ]
+then
+	if [ -d ~/.gopherbot ]
+	then
+		GOPHER_LOCALDIR=~/.gopherbot
+	elif [ -d /etc/gopherbot ]
+	then
+		GOPHER_LOCALDIR=/etc/gopherbot
+	fi
+fi
+[ -z "$GOPHER_LOCALDIR" ] && errorout "GOPHER_LOCALDIR not found (~/.gopherbot/ or /etc/gopherbot/)"
+
+[ ! -d "$GOPHER_INSTALLDIR" ] && errorout "GOPHER_INSTALLDIR not set to a directory, see README.md"
+[ ! -e "$GOPHER_INSTALLDIR/conf/gopherbot.json" ] && errorout "Couldn't find gopherbot.json in $GOPHER_INSTALLDIR/conf/"
+
+export GOPHER_INSTALLDIR GOPHER_LOCALDIR
 
 echo "Exec'ing bot..."
 if [ -n "$1" ]
 then
-	$EXECPATH/gopherbot
+	$EXECPATH/robot
 else
-	$EXECPATH/gopherbot 2> /tmp/gopherbot.log &
+	$EXECPATH/robot 2> /tmp/gopherbot.log &
 fi

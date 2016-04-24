@@ -10,8 +10,8 @@ import (
 	// Select a connector, put configuration in $GOPHER_LOCALDIR/gobot.conf
 	"github.com/parsley42/gopherbot/connectors/slack"
 	// Select the plugins you want
-	_ "github.com/parsley42/gopherbot/plugins/meme"
-	_ "github.com/parsley42/gopherbot/plugins/ping"
+	_ "github.com/parsley42/gopherbot/goplugins/meme"
+	_ "github.com/parsley42/gopherbot/goplugins/ping"
 )
 
 func main() {
@@ -19,15 +19,24 @@ func main() {
 		installdir string
 		err        error
 	)
-	installdir = os.Getenv("GOPHER_LOCALDIR")
+	// Installdir is where the binary, default config, and stock external
+	// plugins are.
+	installdir = os.Getenv("GOPHER_INSTALLDIR")
 	installdir, err = filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Localdir is where all user-supplied configuration and
+	// external plugins are. The launch script should determine this.
+	installdir = os.Getenv("GOPHER_LOCALDIR")
+	if len(installdir) == 0 {
+		log.Fatal("GOPHER_LOCALDIR not set")
+	}
 
 	// Create the 'bot and load configuration, suppying configdir and installdir.
-	// When loading configuration, gopherbot first checks GOPHER_LOCALDIR, then
-	// installdir/conf
+	// When loading configuration, gopherbot first loads default configuration
+	// frim installdir/conf/..., then loads from localdir/conf/..., which
+	// overrides defaults.
 	gopherbot, err := bot.New(os.Getenv("GOPHER_LOCALDIR"), installdir)
 	if err != nil {
 		log.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
