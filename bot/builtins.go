@@ -41,7 +41,7 @@ func help(bot Robot, channel, user, command string, args ...string) {
 		b.lock.RLock()
 		reply := "Hello, I'm "
 		if len(b.fullName) > 0 {
-			reply += b.fullName + ", but you should just call me " + b.name + ".\n"
+			reply += b.fullName + " - but you should just call me " + b.name + ".\n"
 		} else {
 			reply += b.name + ".\n"
 		}
