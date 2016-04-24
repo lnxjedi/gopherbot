@@ -21,7 +21,8 @@ errorout(){
 }
 
 EXECPATH=$(dirname `readlink -f $0`)
-[ -z "$GOPHER_INSTALLDIR" ] && export GOPHER_INSTALLDIR=$EXECPATH
+[ -z "$GOPHER_INSTALLDIR" ] && GOPHER_INSTALLDIR=$EXECPATH
+[ -e "$GOPHER_INSTALLDIR/gopherbot" ] && echo "WARNING: found $EXECPATH/gopherbot, you might not be running the latest build. Use build.sh" >&2
 
 if [ -z "$GOPHER_LOCALDIR" ]
 then

@@ -16,20 +16,22 @@ import (
 
 func main() {
 	var (
-		installdir string
-		err        error
+		installdir, localdir string
+		err                  error
 	)
 	// Installdir is where the binary, default config, and stock external
 	// plugins are.
 	installdir = os.Getenv("GOPHER_INSTALLDIR")
-	installdir, err = filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		log.Fatal(err)
+	if len(installdir) == 0 {
+		installdir, err = filepath.Abs(filepath.Dir(os.Args[0]))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	// Localdir is where all user-supplied configuration and
 	// external plugins are. The launch script should determine this.
-	installdir = os.Getenv("GOPHER_LOCALDIR")
-	if len(installdir) == 0 {
+	localdir = os.Getenv("GOPHER_LOCALDIR")
+	if len(localdir) == 0 {
 		log.Fatal("GOPHER_LOCALDIR not set")
 	}
 
@@ -37,7 +39,7 @@ func main() {
 	// When loading configuration, gopherbot first loads default configuration
 	// frim installdir/conf/..., then loads from localdir/conf/..., which
 	// overrides defaults.
-	gopherbot, err := bot.New(os.Getenv("GOPHER_LOCALDIR"), installdir)
+	gopherbot, err := bot.New(localdir, installdir)
 	if err != nil {
 		log.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
 	}
