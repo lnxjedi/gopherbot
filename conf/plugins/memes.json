@@ -13,7 +13,7 @@
 		},
 		{
 			"Keywords": [ "meme", "skill", "skills" ],
-			"Helptext": [ "(bot), <something> skill(s) something - Hear about Napoleons incredible skill" ]
+			"Helptext": [ "(bot), <something> skill(s) <something> - Hear about Napoleon's incredible skills" ]
 		},
 		{
 			"Keywords": [ "meme", "simply" ],
