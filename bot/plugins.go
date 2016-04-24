@@ -74,7 +74,7 @@ var stopRegistrations bool = false
 
 // RegisterPlugin allows plugins to register a handler function in a func init().
 // When the bot initializes, it will call each plugin's handler with a command
-// "start", empty channel, the bot's username, and no arguments, so the plugin
+// "init", empty channel, the bot's username, and no arguments, so the plugin
 // can store this information for, e.g., scheduled jobs.
 func RegisterPlugin(name string, handler func(bot Robot, channel, user, command string, args ...string)) {
 	if stopRegistrations {
