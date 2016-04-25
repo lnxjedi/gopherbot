@@ -2,31 +2,25 @@
 
 # mkdist.sh - create a distributable .zip file
 
+GOPHERBOT_VERSION=0.7
+
 usage(){
 	cat <<EOF
-Usage: mkdist.sh <destfile> (platform)
+Usage: mkdist.sh <destdir>
 
-Generate a distributable .zip file for the given platform. Platform defaults
-to "linux", but "macos" can also be specified.
+Generate distributable .zip files for the supported platforms,
+currently linux and macos (darwin).
 EOF
 	exit 0
 }
 
 [ $# -eq 0 ] && usage
 
-GOOS="linux"
-case "$2" in
-	"macos")
-		GOOS="darwin"
-		;;
-esac
-export GOOS
+for PLATFORM in darwin linux
+do
+	./build.sh $PLATFORM
+	OUTFILE=$1/gopherbot-$GOPHERBOT_VERSION-$PLATFORM.zip
 
-echo "Building for $GOOS"
-go build
-
-OUTFILE=$1
-[[ $1 != *.zip ]] && OUTFILE=$1.zip
-
-echo "Creating $OUTFILE"
-zip -r $OUTFILE gopherbot.sh gopherbot LICENSE README.md conf plugins/external util
+	echo "Creating $OUTFILE"
+	zip -r $OUTFILE gopherbot.sh robot LICENSE README.md conf/ plugins/ util/ gopherbot.template/
+done
