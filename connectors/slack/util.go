@@ -71,6 +71,7 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []stri
 	// It's too big, gotta chop it up. We will send at most maxMessageSplit
 	// messages, plus "(message truncated)".
 	msgs := make([]string, 0, s.maxMessageSplit+1)
+	s.Log(bot.Info, fmt.Sprintf("Message too long, segmenting: %d bytes", msgLen))
 	// Chop it up into <=maxSize pieces
 	for len(sbytes) > maxSize && len(msgs) < s.maxMessageSplit {
 		lineEnd := bytes.LastIndexByte(sbytes[:maxSize], byte('\n'))
@@ -87,7 +88,7 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []stri
 			msgs = append(msgs, "(message too long, truncated)")
 		}
 	} else { // the last chunk fits
-		msgs = append(msgs, string(sbytes))
+		msgs = append(msgs, optQuote(string(sbytes), f))
 	}
 	return msgs
 }
