@@ -11,8 +11,9 @@ import (
 )
 
 type JSONCommand struct {
-	Command string
-	CmdArgs json.RawMessage
+	Command  string
+	PluginID string
+	CmdArgs  json.RawMessage
 }
 
 type Attr struct {
@@ -106,7 +107,8 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		fmt.Fprintln(rw, bot.GetUserAttribute(ua.User, ua.Attribute))
+		bot.User = ua.User
+		fmt.Fprintln(rw, bot.GetUserAttribute(ua.Attribute))
 	case "SendChannelMessage":
 		var cm ChannelMessage
 		err := json.Unmarshal(c.CmdArgs, &cm)
@@ -115,8 +117,9 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		f := setFormat(cm.Format)
-		b.SendProtocolChannelMessage(cm.Channel, b.decode(cm.Message), f)
+		bot.Channel = cm.Channel
+		bot.Format = setFormat(cm.Format)
+		bot.SendChannelMessage(b.decode(cm.Message))
 	case "SendUserChannelMessage":
 		var ucm UserChannelMessage
 		err := json.Unmarshal(c.CmdArgs, &ucm)
@@ -125,8 +128,10 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		f := setFormat(ucm.Format)
-		b.SendProtocolUserChannelMessage(ucm.User, ucm.Channel, b.decode(ucm.Message), f)
+		bot.User = ucm.User
+		bot.Channel = ucm.Channel
+		bot.Format = setFormat(ucm.Format)
+		bot.SendUserChannelMessage(b.decode(ucm.Message))
 	case "SendUserMessage":
 		var um UserMessage
 		err := json.Unmarshal(c.CmdArgs, &um)
@@ -135,8 +140,10 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		f := setFormat(um.Format)
-		b.SendProtocolUserMessage(um.User, b.decode(um.Message), f)
+		bot.User = um.User
+		bot.Format = setFormat(um.Format)
+		bot.SendUserMessage(b.decode(um.Message))
+	// NOTE: "Say" and "Reply" are implemented in shellLib.sh or other scripting library
 	default:
 		rw.WriteHeader(http.StatusBadRequest)
 		return

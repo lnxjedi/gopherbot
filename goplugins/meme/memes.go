@@ -24,11 +24,11 @@ type MemeConfig struct {
 var config MemeConfig
 var configured bool = false
 
-func memegen(r bot.Robot, channel, user, command string, args ...string) {
+func memegen(r bot.Robot, command string, args ...string) {
 	switch command {
 	case "init":
 		gobot = r
-		botName = user
+		botName = r.User
 		err := r.GetPluginConfig(&config)
 		if err == nil {
 			configured = true

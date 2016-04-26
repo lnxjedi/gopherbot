@@ -22,5 +22,5 @@ do
 	OUTFILE=$1/gopherbot-$GOPHERBOT_VERSION-$PLATFORM.zip
 
 	echo "Creating $OUTFILE"
-	zip -r $OUTFILE gopherbot.sh robot LICENSE README.md conf/ plugins/ util/ gopherbot.template/
+	zip -r $OUTFILE gopherbot.sh robot LICENSE README.md conf/ plugins/ util/ gopherbot.template/ --exclude *.swp
 done

@@ -15,10 +15,10 @@ fi
 [ -z "$GOPHER_LOCALDIR" ] && { echo "GOPHER_LOCALDIR not found (~/.gopherbot/ or /etc/gopherbot/)" >&2; exit 1; }
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not in environment" >&2; exit 1; }
 
-CHANNEL=$1
-CHATUSER=$2
+GB_CHANNEL=$1
+GB_USER=$2
 COMMAND=$3
-PLUGID=$4
+GB_PLUGID=$4
 shift 4
 
 source $GOPHER_INSTALLDIR/util/shellFuncs.sh

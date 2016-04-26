@@ -31,7 +31,7 @@ var builtIns []Plugin = []Plugin{
 	},
 }
 
-func help(bot Robot, channel, user, command string, args ...string) {
+func help(bot Robot, command string, args ...string) {
 	// Get access to the underlying struct
 	b := bot.robot
 	if command == "help" {
@@ -50,7 +50,7 @@ func help(bot Robot, channel, user, command string, args ...string) {
 		for _, plugin := range b.plugins {
 			b.Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.Name, term))
 			if !hasTerm { // if you ask for help without a term, you just get help for whatever commands are available to you
-				if b.messageAppliesToPlugin(user, channel, command, plugin) {
+				if b.messageAppliesToPlugin(bot.User, bot.Channel, command, plugin) {
 					for _, phelp := range plugin.Help {
 						for _, helptext := range phelp.Helptext {
 							helpOutput += helptext + string('\n')
@@ -64,7 +64,7 @@ func help(bot Robot, channel, user, command string, args ...string) {
 						if term == keyword {
 							chantext := ""
 							for _, pchan := range plugin.Channels {
-								if channel != pchan {
+								if bot.Channel != pchan {
 									if len(chantext) == 0 {
 										chantext += " (channels: " + pchan
 									} else {
@@ -88,26 +88,26 @@ func help(bot Robot, channel, user, command string, args ...string) {
 		case helpLines == 0:
 			bot.Say("Sorry, bub - I got nothin' for ya'")
 		case helpLines > tooLong:
-			bot.SendUserMessage(user, strings.TrimRight(helpOutput, "\n"))
+			bot.SendUserMessage(strings.TrimRight(helpOutput, "\n"))
 		default:
 			bot.Say(strings.TrimRight(helpOutput, "\n"))
 		}
 	}
 }
 
-func reload(bot Robot, channel, user, command string, args ...string) {
+func reload(bot Robot, command string, args ...string) {
 	// Get access to the underlying struct
 	b := bot.robot
 	if command == "reload" {
-		if bot.CheckAdmin(user) {
+		if bot.CheckAdmin() {
 			err := b.loadConfig()
 			if err != nil {
 				bot.Reply("Error encountered during reload, check the logs")
-				b.Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", user, err))
+				b.Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))
 				return
 			}
 			bot.Reply("Configuration reloaded successfully")
-			b.Log(Info, "Configuration successfully reloaded after a request from:", user)
+			b.Log(Info, "Configuration successfully reloaded after a request from:", bot.User)
 		} else {
 			bot.Reply("Sorry, only an admin user can request that")
 		}

@@ -26,12 +26,12 @@ type Robot struct {
    simplify use by plugins. */
 
 // CheckAdmin returns true if the user is a configured administrator of the robot.
-func (r Robot) CheckAdmin(user string) bool {
+func (r Robot) CheckAdmin() bool {
 	b := r.robot
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	for _, adminUser := range b.adminUsers {
-		if user == adminUser {
+		if r.User == adminUser {
 			return true
 		}
 	}
@@ -70,8 +70,8 @@ func (r Robot) GetAttribute(a string) string {
 // Current attributes:
 // name(handle), fullName, email, firstName, lastName, phone
 // TODO: supplement data with gopherbot.json user's table
-func (r Robot) GetUserAttribute(u, a string) string {
-	attr, _ := r.GetProtocolUserAttribute(u, a)
+func (r Robot) GetUserAttribute(a string) string {
+	attr, _ := r.GetProtocolUserAttribute(r.User, a)
 	return attr
 }
 
@@ -93,16 +93,16 @@ func (r Robot) GetPluginConfig(v interface{}) error {
 // to pass a format var for every message, when a Variable font is
 // wanted 99% of the time. It's easy to get Fixed, though, using
 // the convenience function, or by manually setting r.Format.
-func (r Robot) SendChannelMessage(ch, msg string) {
-	r.SendProtocolChannelMessage(ch, msg, r.Format)
+func (r Robot) SendChannelMessage(msg string) {
+	r.SendProtocolChannelMessage(r.Channel, msg, r.Format)
 }
 
-func (r Robot) SendUserChannelMessage(u, ch, msg string) {
-	r.SendProtocolUserChannelMessage(u, ch, msg, r.Format)
+func (r Robot) SendUserChannelMessage(msg string) {
+	r.SendProtocolUserChannelMessage(r.User, r.Channel, msg, r.Format)
 }
 
-func (r Robot) SendUserMessage(u, msg string) {
-	r.SendProtocolUserMessage(u, msg, r.Format)
+func (r Robot) SendUserMessage(msg string) {
+	r.SendProtocolUserMessage(r.User, msg, r.Format)
 }
 
 // Reply directs a message to the user

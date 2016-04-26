@@ -11,17 +11,17 @@ var (
 )
 
 // Define the handler function
-func ping(bot bot.Robot, channel, user, command string, args ...string) {
+func ping(bot bot.Robot, command string, args ...string) {
 	// The plugin can handle multiple different commands
 	switch command {
 	// This isn't really necessary
 	case "init":
 		gobot = bot
-		botName = user
+		botName = bot.User
 	case "ping":
 		bot.Fixed().Reply("PONG")
 	case "beep":
-		if channel == "" {
+		if bot.Channel == "" {
 			bot.Say("Eh, talking to yourself?")
 		} else {
 			bot.Say("Did anybody else hear something go \"beep\" ?")

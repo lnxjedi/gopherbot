@@ -1,7 +1,6 @@
 #!/bin/bash -e
 
 # echo.sh - less trivial example shell plugin for gopherbot
-set -x
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
 source $GOPHER_INSTALLDIR/util/shellLib.sh
 
@@ -27,4 +26,4 @@ do
 done
 
 echo "$MESSAGE"
-say -f $CHANNEL "$MESSAGE"
+Say -f "$MESSAGE"

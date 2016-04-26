@@ -3,7 +3,7 @@ PORTMATCH=${PORTMATCH%\",}
 PORTMATCH=${PORTMATCH##*\"}
 GOPHER_LOCALPORT=$PORTMATCH
 
-encode(){
+gb_json_encode(){
 	local MESSAGE
 	MESSAGE=$(echo "$@" | base64)
 	MESSAGE=$(echo "base64:$MESSAGE")
@@ -16,6 +16,7 @@ GetAttribute(){
 	JSON=$(cat <<EOF
 {
 	"Command": "GetAttribute",
+	"PluginID": "$GB_PLUGID",
 	"CmdArgs": {
 		"Attribute": "$ATTR"
 	}
@@ -27,13 +28,13 @@ EOF
 
 GetUserAttribute(){
 	local JSON
-	local GETUSER="$1"
-	local ATTR="$2"
+	local ATTR="$1"
 	JSON=$(cat <<EOF
 {
 	"Command": "GetUserAttribute",
+	"PluginID": "$GB_PLUGID",
 	"CmdArgs": {
-		"User": "$GETUSER",
+		"User": "$GB_USER",
 		"Attribute": "$ATTR"
 	}
 }
@@ -44,20 +45,18 @@ EOF
 
 SendUserMessage(){
 	local JSON
-	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
-	local CHATUSER CHANNEL
-	GOPHER_MESSAGE_FORMAT=${GOPHER_MESSAGE_FORMAT:-variable}
-	CHATUSER=$1
-	shift
+	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	GB_FORMAT=${GB_FORMAT:-variable}
 	MESSAGE="$*"
-	MESSAGE=$(encode "$MESSAGE")
+	MESSAGE=$(gb_json_encode "$MESSAGE")
 
 	JSON=$(cat <<EOF
 {
 	"Command": "SendUserMessage",
+	"PluginID": "$GB_PLUGID",
 	"CmdArgs": {
-		"User": "$CHATUSER",
-		"Format": "$GOPHER_MESSAGE_FORMAT",
+		"User": "$GB_USER",
+		"Format": "$GB_FORMAT",
 		"Message": "$MESSAGE"
 	}
 }
@@ -68,22 +67,19 @@ EOF
 
 SendUserChannelMessage(){
 	local JSON
-	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
-	local CHATUSER CHANNEL
-	GOPHER_MESSAGE_FORMAT=${GOPHER_MESSAGE_FORMAT:-variable}
-	CHATUSER=$1
-	CHANNEL=$2
-	shift 2
+	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	GB_FORMAT=${GB_FORMAT:-variable}
 	MESSAGE="$*"
-	MESSAGE=$(encode "$MESSAGE")
+	MESSAGE=$(gb_json_encode "$MESSAGE")
 
 	JSON=$(cat <<EOF
 {
 	"Command": "SendUserChannelMessage",
+	"PluginID": "$GB_PLUGID",
 	"CmdArgs": {
-		"User": "$CHATUSER",
-		"Channel": "$CHANNEL",
-		"Format": "$GOPHER_MESSAGE_FORMAT",
+		"User": "$GB_USER",
+		"Channel": "$GB_CHANNEL",
+		"Format": "$GB_FORMAT",
 		"Message": "$MESSAGE"
 	}
 }
@@ -94,20 +90,18 @@ EOF
 
 SendChannelMessage(){
 	local JSON
-	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
-	local CHATUSER CHANNEL
-	GOPHER_MESSAGE_FORMAT=${GOPHER_MESSAGE_FORMAT:-variable}
-	CHANNEL=$1
-	shift
+	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	GB_FORMAT=${GB_FORMAT:-variable}
 	MESSAGE="$*"
-	MESSAGE=$(encode "$MESSAGE")
+	MESSAGE=$(gb_json_encode "$MESSAGE")
 
 JSON=$(cat <<EOF
 {
 	"Command": "SendChannelMessage",
+	"PluginID": "$GB_PLUGID",
 	"CmdArgs": {
-		"Channel": "$CHANNEL",
-		"Format": "$GOPHER_MESSAGE_FORMAT",
+		"Channel": "$GB_CHANNEL",
+		"Format": "$GB_FORMAT",
 		"Message": "$MESSAGE"
 	}
 }
@@ -118,21 +112,21 @@ EOF
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins
 Say(){
-	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
-	if [ -n "$CHANNEL" ]
+	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	if [ -n "$GB_CHANNEL" ]
 	then
-		SendChannelMessage "$CHANNEL" "$*"
+		SendChannelMessage "$*"
 	else
-		SendUserMessage "$CHATUSER" "$*"
+		SendUserMessage "$*"
 	fi
 }
 
 Reply(){
-	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
-	if [ -n "$CHANNEL" ]
+	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	if [ -n "$GB_CHANNEL" ]
 	then
-		SendUserChannelMessage "$CHATUSER" "$CHANNEL" "$*"
+		SendUserChannelMessage "$*"
 	else
-		SendUserMessage "$CHATUSER" "$*"
+		SendUserMessage "$*"
 	fi
 }

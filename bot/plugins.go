@@ -67,7 +67,7 @@ func (b *robot) initializePlugins() {
 }
 
 // pluginHandlers maps from plugin names to handler functions; populated during package initialization and never written to again.
-var pluginHandlers map[string]func(bot Robot, channel, user, command string, args ...string) = make(map[string]func(bot Robot, channel, user, command string, args ...string))
+var pluginHandlers map[string]func(bot Robot, command string, args ...string) = make(map[string]func(bot Robot, command string, args ...string))
 
 // stopRegistrations is set "true" when the bot is created to prevent registration outside of init functions
 var stopRegistrations bool = false
@@ -76,7 +76,7 @@ var stopRegistrations bool = false
 // When the bot initializes, it will call each plugin's handler with a command
 // "init", empty channel, the bot's username, and no arguments, so the plugin
 // can store this information for, e.g., scheduled jobs.
-func RegisterPlugin(name string, handler func(bot Robot, channel, user, command string, args ...string)) {
+func RegisterPlugin(name string, handler func(bot Robot, command string, args ...string)) {
 	if stopRegistrations {
 		return
 	}
@@ -262,7 +262,7 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 				bot.pluginID = plugin.pluginID
 				switch plugin.pluginType {
 				case plugBuiltin, plugGo:
-					go pluginHandlers[plugin.Name](bot, channel, user, matcher.Command, matches[0][1:]...)
+					go pluginHandlers[plugin.Name](bot, matcher.Command, matches[0][1:]...)
 				case plugExternal:
 					var fullPath string // full path to the executable
 					if len(plugin.PluginPath) == 0 {

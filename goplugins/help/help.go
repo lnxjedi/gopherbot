@@ -12,7 +12,7 @@ var (
 )
 
 // Define the handler function
-func help(bot bot.Robot, channel, user, command string, args ...string) {
+func help(bot bot.Robot, command string, args ...string) {
 	if command == "help" { // user just typed 'help' - the robot should introduce itself
 		botName := bot.GetAttribute("name")
 		botFullName := bot.GetAttribute("fullName")
@@ -38,7 +38,7 @@ func help(bot bot.Robot, channel, user, command string, args ...string) {
 		} else {
 			reply += "."
 		}
-		bot.SendUserMessage(user, reply)
+		bot.SendUserMessage(reply)
 	}
 }
 
