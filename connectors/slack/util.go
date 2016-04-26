@@ -20,27 +20,36 @@ const optimeout = 1 * time.Minute
 
 // slackConnector holds all the relevant data about a connection
 type slackConnector struct {
-	api          *slack.Client
-	conn         *slack.RTM
-	running      bool                  // set on call to Run
-	botName      string                // human-readable name of bot
-	botFullName  string                // human-readble full name of the bot
-	botID        string                // slack internal bot ID
-	bot.Handler                        // bot API for connectors
-	sync.RWMutex                       // shared mutex for locking connector data structures
-	channelToID  map[string]string     // map from channel names to channel IDs
-	idToChannel  map[string]string     // map from channel ID to channel name
-	userInfo     map[string]slack.User // map from user names to slack.User struct
-	idToUser     map[string]string     // map from user ID to user name
-	userIDToIM   map[string]string     // map from user ID to IM channel ID
-	imToUser     map[string]string     // map from IM channel ID to user name
+	api             *slack.Client
+	conn            *slack.RTM
+	maxMessageSplit int                   // The maximum # of ~4000 byte messages to send before truncating
+	running         bool                  // set on call to Run
+	botName         string                // human-readable name of bot
+	botFullName     string                // human-readble full name of the bot
+	botID           string                // slack internal bot ID
+	bot.Handler                           // bot API for connectors
+	sync.RWMutex                          // shared mutex for locking connector data structures
+	channelToID     map[string]string     // map from channel names to channel IDs
+	idToChannel     map[string]string     // map from channel ID to channel name
+	userInfo        map[string]slack.User // map from user names to slack.User struct
+	idToUser        map[string]string     // map from user ID to user name
+	userIDToIM      map[string]string     // map from user ID to IM channel ID
+	imToUser        map[string]string     // map from IM channel ID to user name
+}
+
+func optQuote(msg string, f bot.MessageFormat) string {
+	if f == bot.Fixed {
+		return "```" + msg + "```"
+	}
+	return msg
 }
 
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
-// and takes care of formatting.
-func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) string {
+// takes care of formatting, and segments the message if needed.
+func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []string {
+	maxSize := slack.MaxMessageTextLength
 	if f == bot.Fixed {
-		msg = "```" + msg + "```"
+		maxSize -= 6
 	}
 	sbytes := []byte(msg)
 	sbytes = bytes.Replace(sbytes, []byte("&"), []byte("&amp;"), -1)
@@ -55,7 +64,32 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) string
 		}
 		return bytes
 	})
-	return string(sbytes)
+	msgLen := len(sbytes)
+	if msgLen <= maxSize {
+		return []string{optQuote(string(sbytes), f)}
+	}
+	// It's too big, gotta chop it up. We will send at most maxMessageSplit
+	// messages, plus "(message truncated)".
+	msgs := make([]string, 0, s.maxMessageSplit+1)
+	// Chop it up into <=maxSize pieces
+	for len(sbytes) > maxSize && len(msgs) < s.maxMessageSplit {
+		lineEnd := bytes.LastIndexByte(sbytes[:maxSize], byte('\n'))
+		if lineEnd == -1 { // no newline in this chunk
+			msgs = append(msgs, optQuote(string(sbytes[:maxSize]), f))
+			sbytes = sbytes[maxSize:]
+		} else {
+			msgs = append(msgs, optQuote(string(sbytes[:lineEnd]), f))
+			sbytes = sbytes[lineEnd+1:] // skip over the newline
+		}
+	}
+	if len(msgs) == s.maxMessageSplit { // we've maxed out
+		if len(sbytes) > 0 { // if there's anything left, we've truncated
+			msgs = append(msgs, "(message too long, truncated)")
+		}
+	} else { // the last chunk fits
+		msgs = append(msgs, string(sbytes))
+	}
+	return msgs
 }
 
 // processMessage examines incoming messages, removes extra slack cruft, and

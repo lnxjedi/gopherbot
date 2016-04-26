@@ -12,7 +12,8 @@ import (
 )
 
 type Config struct {
-	SlackToken string // the 'bot token for connecting to Slack
+	SlackToken      string // the 'bot token for connecting to Slack
+	MaxMessageSplit int    // the maximum # of ~4000 byte messages to split a large message into
 }
 
 var lock sync.Mutex // package var lock
@@ -30,6 +31,9 @@ func Start(gobot bot.Handler) bot.Connector {
 	var c Config
 
 	err := gobot.GetProtocolConfig(&c)
+	if c.MaxMessageSplit == 0 {
+		c.MaxMessageSplit = 1
+	}
 	if err != nil {
 		log.Fatal(fmt.Errorf("Unable to retrieve protocol configuration: %v", err))
 	}
@@ -39,7 +43,7 @@ func Start(gobot bot.Handler) bot.Connector {
 		api.SetDebug(true)
 	}
 
-	sc := &slackConnector{api: api, conn: api.NewRTM()}
+	sc := &slackConnector{api: api, conn: api.NewRTM(), maxMessageSplit: c.MaxMessageSplit}
 	go sc.conn.ManageConnection()
 
 	sc.Handler = gobot

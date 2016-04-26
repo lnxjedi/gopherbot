@@ -60,8 +60,9 @@ func (b *robot) initializePlugins() {
 	}
 	for _, plugin := range b.plugins {
 		if handler, ok := pluginHandlers[plugin.Name]; ok {
+			b.Log(Info, "Initializing plugin:", plugin.Name)
 			bot.pluginID = plugin.pluginID
-			go handler(bot, "", b.name, "init")
+			go handler(bot, "init")
 		}
 	}
 }

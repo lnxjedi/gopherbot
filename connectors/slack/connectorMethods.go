@@ -1,8 +1,13 @@
 package slack
 
 import (
+	"time"
+
 	"github.com/parsley42/gopherbot/bot"
 )
+
+// How long to delay between sending bits of a chopped up message
+const msgDelay = 200 * time.Millisecond
 
 // GetUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
@@ -28,6 +33,16 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 	}
 }
 
+func (s *slackConnector) sendMessages(msgs []string, chanID string) {
+	l := len(msgs)
+	for i, msg := range msgs {
+		s.conn.SendMessage(s.conn.NewOutgoingMessage(msg, chanID))
+		if i != (l - 1) {
+			time.Sleep(msgDelay)
+		}
+	}
+}
+
 // SendProtocolChannelMessage sends a message to a channel
 func (s *slackConnector) SendProtocolChannelMessage(ch string, msg string, f bot.MessageFormat) {
 	chanID, ok := s.chanID(ch)
@@ -35,8 +50,8 @@ func (s *slackConnector) SendProtocolChannelMessage(ch string, msg string, f bot
 		s.Log(bot.Error, "Channel ID not found for:", ch)
 		return
 	}
-	msg = s.slackifyMessage(msg, f)
-	s.conn.SendMessage(s.conn.NewOutgoingMessage(msg, chanID))
+	msgs := s.slackifyMessage(msg, f)
+	s.sendMessages(msgs, chanID)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
@@ -47,8 +62,8 @@ func (s *slackConnector) SendProtocolUserChannelMessage(u, ch, msg string, f bot
 		return
 	}
 	msg = "@" + u + ": " + msg
-	msg = s.slackifyMessage(msg, f)
-	s.conn.SendMessage(s.conn.NewOutgoingMessage(msg, chanID))
+	msgs := s.slackifyMessage(msg, f)
+	s.sendMessages(msgs, chanID)
 }
 
 // SendProtocolUserMessage sends a direct message to a user
@@ -68,8 +83,8 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f bot.Mes
 			return
 		}
 	}
-	msg = s.slackifyMessage(msg, f)
-	s.conn.SendMessage(s.conn.NewOutgoingMessage(msg, userIMchan))
+	msgs := s.slackifyMessage(msg, f)
+	s.sendMessages(msgs, userIMchan)
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"
