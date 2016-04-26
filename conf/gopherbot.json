@@ -13,7 +13,8 @@
 	"comment": "ScriptPlugins will cause the bot to look for these extra <pluginname>.json files",
 	"ExternalPlugins": [
 		"hosts",
-		"echo"
+		"echo",
+		"whoami"
 	],
 	"Protocol": "slack",
 	"ProtocolConfig": {

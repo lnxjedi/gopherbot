@@ -1,0 +1,8 @@
+{
+	"MessageMatches": [
+		{
+			"Command": "help",
+			"Regex": "^(?i)help$"
+		}
+	]
+}

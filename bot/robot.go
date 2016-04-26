@@ -25,7 +25,9 @@ type Robot struct {
 /* robot.go defines some convenience functions on struct Robot to
    simplify use by plugins. */
 
-func (b *robot) CheckAdmin(user string) bool {
+// CheckAdmin returns true if the user is a configured administrator of the robot.
+func (r Robot) CheckAdmin(user string) bool {
+	b := r.robot
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	for _, adminUser := range b.adminUsers {
@@ -42,6 +44,35 @@ func (b *robot) CheckAdmin(user string) bool {
 func (r Robot) Fixed() Robot {
 	r.Format = Fixed
 	return r
+}
+
+// GetAttribute returns an attribute of the robot or "" if unknown.
+// Current attributes:
+// name, alias, fullName, contact
+func (r Robot) GetAttribute(a string) string {
+	b := r.robot
+	b.lock.RLock()
+	defer b.lock.RUnlock()
+	switch a {
+	case "name":
+		return b.name
+	case "fullName", "realName":
+		return b.fullName
+	case "alias":
+		return string(b.alias)
+	case "contact", "admin", "adminContact":
+		return b.adminContact
+	}
+	return ""
+}
+
+// GetUserAttribute returns an attribute of a user or "" if unknown.
+// Current attributes:
+// name(handle), fullName, email, firstName, lastName, phone
+// TODO: supplement data with gopherbot.json user's table
+func (r Robot) GetUserAttribute(u, a string) string {
+	attr, _ := r.GetProtocolUserAttribute(u, a)
+	return attr
 }
 
 // GetPluginConfig will unmarshall the plugin's Config section into

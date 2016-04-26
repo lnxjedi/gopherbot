@@ -15,6 +15,15 @@ type JSONCommand struct {
 	CmdArgs json.RawMessage
 }
 
+type Attr struct {
+	Attribute string
+}
+
+type UserAttr struct {
+	User      string
+	Attribute string
+}
+
 type ChannelMessage struct {
 	Channel string
 	Message string
@@ -71,11 +80,38 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate a synthetic Robot for access to it's methods
+	bot := Robot{
+		User:    "",
+		Channel: "",
+		Format:  Variable,
+		robot:   b,
+	}
+
 	switch c.Command {
+	case "GetAttribute":
+		var a Attr
+		err := json.Unmarshal(c.CmdArgs, &a)
+		if err != nil {
+			fmt.Fprintln(rw, "Couldn't decipher JSON command data: ", err)
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		fmt.Fprintln(rw, bot.GetAttribute(a.Attribute))
+	case "GetUserAttribute":
+		var ua UserAttr
+		err := json.Unmarshal(c.CmdArgs, &ua)
+		if err != nil {
+			fmt.Fprintln(rw, "Couldn't decipher JSON command data: ", err)
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		fmt.Fprintln(rw, bot.GetUserAttribute(ua.User, ua.Attribute))
 	case "SendChannelMessage":
 		var cm ChannelMessage
 		err := json.Unmarshal(c.CmdArgs, &cm)
 		if err != nil {
+			fmt.Fprintln(rw, "Couldn't decipher JSON command data: ", err)
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -85,6 +121,7 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		var ucm UserChannelMessage
 		err := json.Unmarshal(c.CmdArgs, &ucm)
 		if err != nil {
+			fmt.Fprintln(rw, "Couldn't decipher JSON command data: ", err)
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -94,6 +131,7 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		var um UserMessage
 		err := json.Unmarshal(c.CmdArgs, &um)
 		if err != nil {
+			fmt.Fprintln(rw, "Couldn't decipher JSON command data: ", err)
 			rw.WriteHeader(http.StatusBadRequest)
 			return
 		}

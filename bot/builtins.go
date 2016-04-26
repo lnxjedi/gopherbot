@@ -5,6 +5,9 @@ import (
 	"strings"
 )
 
+// if help is more than tooLong lines long, send a private message
+const tooLong = 14
+
 /* builtin plugins, like help */
 
 var builtIns []Plugin = []Plugin{
@@ -14,12 +17,6 @@ var builtIns []Plugin = []Plugin{
 			InputMatcher{
 				Regex:   `help ?([\d\w]+)?`,
 				Command: "help",
-			},
-		},
-		MessageMatches: []InputMatcher{
-			InputMatcher{
-				Regex:   `^(?i)help$`,
-				Command: "barehelp",
 			},
 		},
 	},
@@ -37,37 +34,13 @@ var builtIns []Plugin = []Plugin{
 func help(bot Robot, channel, user, command string, args ...string) {
 	// Get access to the underlying struct
 	b := bot.robot
-	if command == "barehelp" { // user just typed 'help' - the robot should introduce itself
-		b.lock.RLock()
-		reply := "Hi, I'm "
-		if len(b.fullName) > 0 {
-			reply += b.fullName + " - but you should just call me " + b.name + ".\n"
-		} else {
-			reply += b.name + ".\n"
-		}
-		reply += "I'm one of the staff robots available to your team, and can respond in different ways to messages that match specific patterns. " +
-			"For instance, I will give you help on some of the things I can do when you send me a message that matches the word \"help\" followed by an optional keyword. " +
-			"You can address messages to me by using a direct message, or in a channel like this: \"" + b.name + ", help (keyword)\". For instance:\n`"
-		reply += b.name + ", help ping`\nor:\n`help ping, " + b.name + "`\nwould give you help on my ping command.\n"
-		if b.alias != 0 {
-			reply += "To save a little typing, you can also direct a message to me by prefixing it with my alias (" + string(b.alias) + "), like this:\n`" + string(b.alias) + "help ping`\n"
-		}
-		reply += "When you see (something) in parentheses, that term or phrase is optional. If <something> is in angle brackets, it's required. With the help function, if you don't supply a keyword you will get help for every command available to you in the current channel. If you use a keyword, you will get help for every command with a matching keyword, along with the channels where it can be used. In all cases help will be sent as a direct message so the channels don't fill up with help text.\n"
-		reply += "Additionally, some messages (like a bare 'help') will trigger commands as well, and help may or may not be available for those.\n\nFinally, if there's anything else you'd like to see me do, please contact my administrator"
-		if len(b.adminContact) > 0 {
-			reply += ", " + b.adminContact + "."
-		} else {
-			reply += "."
-		}
-		b.lock.RUnlock()
-		bot.SendUserMessage(user, reply)
-	}
 	if command == "help" {
 		b.lock.RLock()
 		defer b.lock.RUnlock()
 
 		var term, helpOutput string
 		hasTerm := false
+		helpLines := 0
 		if len(args) == 1 && len(args[0]) > 0 {
 			hasTerm = true
 			term = args[0]
@@ -81,6 +54,7 @@ func help(bot Robot, channel, user, command string, args ...string) {
 					for _, phelp := range plugin.Help {
 						for _, helptext := range phelp.Helptext {
 							helpOutput += helptext + string('\n')
+							helpLines++
 						}
 					}
 				}
@@ -102,17 +76,21 @@ func help(bot Robot, channel, user, command string, args ...string) {
 								chantext += ")"
 							}
 							for _, helptext := range phelp.Helptext {
-								helpOutput += helptext + string('\n')
+								helpOutput += helptext + chantext + string('\n')
+								helpLines++
 							}
 						}
 					}
 				}
 			}
 		}
-		if len(helpOutput) == 0 {
-			bot.SendUserMessage(user, "Sorry, bub - I got nothin' for ya'")
-		} else {
+		switch {
+		case helpLines == 0:
+			bot.Say("Sorry, bub - I got nothin' for ya'")
+		case helpLines > tooLong:
 			bot.SendUserMessage(user, strings.TrimRight(helpOutput, "\n"))
+		default:
+			bot.Say(strings.TrimRight(helpOutput, "\n"))
 		}
 	}
 }
@@ -121,7 +99,7 @@ func reload(bot Robot, channel, user, command string, args ...string) {
 	// Get access to the underlying struct
 	b := bot.robot
 	if command == "reload" {
-		if b.CheckAdmin(user) {
+		if bot.CheckAdmin(user) {
 			err := b.loadConfig()
 			if err != nil {
 				bot.Reply("Error encountered during reload, check the logs")

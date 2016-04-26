@@ -10,6 +10,7 @@ import (
 	// Select a connector, put configuration in $GOPHER_LOCALDIR/gobot.conf
 	"github.com/parsley42/gopherbot/connectors/slack"
 	// Select the plugins you want
+	_ "github.com/parsley42/gopherbot/goplugins/help"
 	_ "github.com/parsley42/gopherbot/goplugins/meme"
 	_ "github.com/parsley42/gopherbot/goplugins/ping"
 )

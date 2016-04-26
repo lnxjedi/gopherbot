@@ -10,7 +10,40 @@ encode(){
 	echo "$MESSAGE"
 }
 
-sendUserMessage(){
+GetAttribute(){
+	local JSON
+	local ATTR="$1"
+	JSON=$(cat <<EOF
+{
+	"Command": "GetAttribute",
+	"CmdArgs": {
+		"Attribute": "$ATTR"
+	}
+}
+EOF
+)
+	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
+}
+
+GetUserAttribute(){
+	local JSON
+	local GETUSER="$1"
+	local ATTR="$2"
+	JSON=$(cat <<EOF
+{
+	"Command": "GetAttribute",
+	"CmdArgs": {
+		"User": "$GETUSER",
+		"Attribute": "$ATTR"
+	}
+}
+EOF
+)
+	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
+}
+
+SendUserMessage(){
+	local JSON
 	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
 	local CHATUSER CHANNEL
 	GOPHER_MESSAGE_FORMAT=${GOPHER_MESSAGE_FORMAT:-variable}
@@ -33,7 +66,8 @@ EOF
 	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
 }
 
-sendUserChannelMessage(){
+SendUserChannelMessage(){
+	local JSON
 	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
 	local CHATUSER CHANNEL
 	GOPHER_MESSAGE_FORMAT=${GOPHER_MESSAGE_FORMAT:-variable}
@@ -58,7 +92,8 @@ EOF
 	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
 }
 
-sendChannelMessage(){
+SendChannelMessage(){
+	local JSON
 	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
 	local CHATUSER CHANNEL
 	GOPHER_MESSAGE_FORMAT=${GOPHER_MESSAGE_FORMAT:-variable}
@@ -82,22 +117,22 @@ EOF
 }
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins
-say(){
+Say(){
 	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
 	if [ -n "$CHANNEL" ]
 	then
-		sendChannelMessage "$CHANNEL" "$*"
+		SendChannelMessage "$CHANNEL" "$*"
 	else
-		sendUserMessage "$CHATUSER" "$*"
+		SendUserMessage "$CHATUSER" "$*"
 	fi
 }
 
-reply(){
+Reply(){
 	[ "$1" = "-f" ] && { GOPHER_MESSAGE_FORMAT=fixed; shift; }
 	if [ -n "$CHANNEL" ]
 	then
-		sendUserChannelMessage "$CHATUSER" "$CHANNEL" "$*"
+		SendUserChannelMessage "$CHATUSER" "$CHANNEL" "$*"
 	else
-		sendUserMessage "$CHATUSER" "$*"
+		SendUserMessage "$CHATUSER" "$*"
 	fi
 }
