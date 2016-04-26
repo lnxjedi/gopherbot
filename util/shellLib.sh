@@ -17,8 +17,8 @@ fi
 
 GB_CHANNEL=$1
 GB_USER=$2
-COMMAND=$3
-GB_PLUGID=$4
-shift 4
+GB_PLUGID=$3
+shift 3
+# Now $1 is the command
 
 source $GOPHER_INSTALLDIR/util/shellFuncs.sh

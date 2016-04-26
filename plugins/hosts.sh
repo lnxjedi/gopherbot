@@ -4,6 +4,13 @@
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
 source $GOPHER_INSTALLDIR/util/shellLib.sh
 
+# Ignore any command but "hosts"
+if [ "$1" != "hosts" ]
+then
+	exit 0
+fi
+shift
+
 HOSTSARR=($*)
 for LOOKUP in "${HOSTSARR[@]}"
 do

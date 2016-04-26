@@ -287,7 +287,7 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 						}
 					}
 					args := make([]string, 0, 3+len(matches[0])-1)
-					args = append(args, channel, user, matcher.Command, plugin.pluginID)
+					args = append(args, channel, user, plugin.pluginID, matcher.Command)
 					args = append(args, matches[0][1:]...)
 					b.Log(Trace, fmt.Sprintf("Calling \"%s\" with args: %q", fullPath, args))
 					// cmd := exec.Command(fullPath, channel, user, matcher.Command, matches[0][1:]...)
