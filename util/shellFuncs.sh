@@ -31,7 +31,7 @@ GetUserAttribute(){
 	local ATTR="$2"
 	JSON=$(cat <<EOF
 {
-	"Command": "GetAttribute",
+	"Command": "GetUserAttribute",
 	"CmdArgs": {
 		"User": "$GETUSER",
 		"Attribute": "$ATTR"
