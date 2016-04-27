@@ -1,16 +1,15 @@
 {
-	"comment": "If you specify default channels, plugins without a channel list will only respond in these channels",
 	"AdminContact": "",
-	"DefaultChannels": [ "botdev" ],
+	"comment": "If you specify default channels, plugins without a channel list will only respond in these channels",
+	"DefaultChannels": [ "general", "random" ],
 	"IgnoreUsers": [],
-	"JoinChannels": [ "random", "general", "botdev" ],
+	"JoinChannels": [ "random", "general" ],
 	"AdminUsers": [],
 	"Alias": ";",
-	"comment": "Leave the port number on a line by itself for shellLib.sh",
 	"LocalPort": "8880",
 	"comment": "LogLevel one of trace, debug, info, warn, error",
 	"LogLevel": "info",
-	"comment": "ScriptPlugins will cause the bot to look for these extra <pluginname>.json files",
+	"comment": "ExternalPlugins will cause the bot to look for these extra <pluginname>.json files. If it's not listed here it won't be active",
 	"ExternalPlugins": [
 		"hosts",
 		"echo",
@@ -18,6 +17,8 @@
 	],
 	"Protocol": "slack",
 	"ProtocolConfig": {
-		"SlackToken": "<your_token_here>"
+		"SlackToken": "<your_token_here>",
+		"comment": "MaxMessageSplit specifies the maximum number of messages to break a message into when it's too long (>4000 char)",
+		"MaxMessageSplit": 2
 	}
 }
