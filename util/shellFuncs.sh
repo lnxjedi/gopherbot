@@ -1,8 +1,3 @@
-PORTMATCH=$(grep LocalPort "$GOPHER_LOCALDIR/conf/gopherbot.json")
-PORTMATCH=${PORTMATCH%\",}
-PORTMATCH=${PORTMATCH##*\"}
-GOPHER_LOCALPORT=$PORTMATCH
-
 gb_json_encode(){
 	local MESSAGE
 	MESSAGE=$(echo "$@" | base64)
@@ -23,7 +18,7 @@ GetAttribute(){
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
+	echo "$JSON" | curl -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
 }
 
 GetUserAttribute(){
@@ -40,7 +35,7 @@ GetUserAttribute(){
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
+	echo "$JSON" | curl -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
 }
 
 SendUserMessage(){
@@ -62,7 +57,7 @@ SendUserMessage(){
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
+	echo "$JSON" | curl -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
 }
 
 SendUserChannelMessage(){
@@ -85,7 +80,7 @@ SendUserChannelMessage(){
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
+	echo "$JSON" | curl -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
 }
 
 SendChannelMessage(){
@@ -107,7 +102,7 @@ JSON=$(cat <<EOF
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- http://localhost:$GOPHER_LOCALPORT/json 2>/dev/null
+	echo "$JSON" | curl -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
 }
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins

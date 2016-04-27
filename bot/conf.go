@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"unicode/utf8"
 )
 
@@ -101,6 +102,10 @@ func (b *robot) loadConfig() error {
 	}
 	if config.LocalPort != "" {
 		b.port = "127.0.0.1:" + config.LocalPort
+		err := os.Setenv("GOPHER_HTTP_POST", "http://"+b.port)
+		if err != nil {
+			b.Log(Error, fmt.Errorf("Error exporting GOPHER_HTTP_PORT: ", err))
+		}
 	}
 	if config.Name != "" {
 		b.name = config.Name
