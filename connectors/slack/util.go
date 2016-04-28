@@ -130,13 +130,17 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	}
 	switch chanID[:1] {
 	case "D":
-		userName, ok := s.imUser(chanID)
+		directUserName, ok := s.imUser(chanID)
+		if directUserName != userName { // sometimes the bot hears his own last message
+			s.Log(bot.Debug, fmt.Sprintf("Direct message user \"%s\" doesn't match sending user \"%s\", ignoring", directUserName, userName))
+			return
+		}
 		if !ok {
 			s.Log(bot.Warn, "Couldn't find user name for IM", chanID)
 			s.IncomingMessage("", chanID, text)
 			return
 		}
-		s.IncomingMessage("", userName, text)
+		s.IncomingMessage("", directUserName, text)
 	case "C":
 		channelName, ok := s.channelName(chanID)
 		if !ok {
