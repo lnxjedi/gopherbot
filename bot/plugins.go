@@ -41,6 +41,8 @@ type Plugin struct {
 	Disabled       bool            // Set true to disable the plugin
 	DisallowDirect bool            // Set this true if this plugin can never be accessed via direct message
 	Channels       []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
+	AllChannels    bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
+	Users          []string        // If non-empty, list of all the users with access to this plugin
 	Help           []PluginHelp    // All the keyword sets / help texts for this plugin
 	CommandMatches []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
 	MessageMatches []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
@@ -60,11 +62,8 @@ func (b *robot) initializePlugins() {
 		robot:   b,
 	}
 	for _, plugin := range b.plugins {
-		if handler, ok := pluginHandlers[plugin.Name]; ok {
-			b.Log(Info, "Initializing plugin:", plugin.Name)
-			bot.pluginID = plugin.pluginID
-			go handler(bot, "init")
-		}
+		b.Log(Info, "Initializing plugin:", plugin.Name)
+		go b.callPlugin(bot, plugin, "init")
 	}
 }
 
@@ -175,8 +174,8 @@ PlugLoop:
 		}
 		plugin.pluginType = ptypes[i]
 		b.Log(Info, "Loaded configuration for plugin", plug)
-		// Use bot default plugin channels if none defined; only builtins default to all channels
-		if len(plugin.Channels) == 0 && len(pchan) > 0 && plugin.pluginType != plugBuiltin {
+		// Use bot default plugin channels if none defined, unless AllChannels requested. Admin can override.
+		if len(plugin.Channels) == 0 && len(pchan) > 0 && !plugin.AllChannels {
 			plugin.Channels = pchan
 		}
 		b.Log(Trace, fmt.Sprintf("Plugin %s will be active in channels %q", plug, plugin.Channels))
@@ -227,6 +226,50 @@ PlugLoop:
 	if reInitPlugins {
 		b.initializePlugins()
 	}
+}
+
+// messageAppliesToPlugin checks the user and channel against the plugin's
+// configuration to determine if the message should be evaluated. Used by
+// both handleMessage and the help builtin.
+// TODO: add logic for checking plugin.Users[]
+func (b *robot) messageAppliesToPlugin(user, channel, message string, plugin Plugin) bool {
+	ok := false
+	directMsg := false
+	if len(channel) == 0 {
+		directMsg = true
+	}
+	if len(plugin.Users) > 0 {
+		for _, allowedUser := range plugin.Users {
+			if user == allowedUser {
+				ok = true
+			}
+		}
+		if !ok {
+			return false
+		}
+	}
+	if len(plugin.Channels) > 0 {
+		if !directMsg {
+			for _, pchannel := range plugin.Channels {
+				if pchannel == channel {
+					ok = true
+				}
+			}
+		} else { // direct message
+			if !plugin.DisallowDirect {
+				ok = true
+			}
+		}
+	} else {
+		if directMsg {
+			if !plugin.DisallowDirect {
+				ok = true
+			}
+		} else {
+			ok = true
+		}
+	}
+	return ok
 }
 
 // handleMessage checks the message against plugin commands and full-message matches,

@@ -12,7 +12,8 @@ const tooLong = 14
 
 var builtIns []Plugin = []Plugin{
 	{
-		Name: "builtInhelp", // MUST match registered name below
+		Name:        "builtInhelp", // MUST match registered name below
+		AllChannels: true,
 		CommandMatches: []InputMatcher{
 			InputMatcher{
 				Regex:   `help ?([\d\w]+)?`,
@@ -21,7 +22,8 @@ var builtIns []Plugin = []Plugin{
 		},
 	},
 	{
-		Name: "builtInreload", // MUST match registered name below
+		Name:        "builtInreload", // MUST match registered name below
+		AllChannels: true,
 		CommandMatches: []InputMatcher{
 			InputMatcher{
 				Regex:   `reload`,
