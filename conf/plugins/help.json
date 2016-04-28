@@ -4,5 +4,6 @@
 			"Command": "help",
 			"Regex": "^(?i)help$"
 		}
-	]
+	],
+	"CatchAll": true
 }

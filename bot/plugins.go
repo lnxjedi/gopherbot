@@ -44,6 +44,7 @@ type Plugin struct {
 	Help           []PluginHelp    // All the keyword sets / help texts for this plugin
 	CommandMatches []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
 	MessageMatches []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
+	CatchAll       bool            // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
 	Config         json.RawMessage // Plugin Configuration - the plugin needs to decode this
 	pluginID       string          // 32-char random ID for identifying plugins in callbacks
 }
@@ -230,7 +231,6 @@ PlugLoop:
 
 // handleMessage checks the message against plugin commands and full-message matches,
 // then dispatches it to all applicable handlers in a separate go routine.
-
 func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string) {
 	b.lock.RLock()
 	bot := Robot{
@@ -242,6 +242,11 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 	if len(channel) == 0 {
 		b.Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", user, messagetext))
 	}
+	commandMatched := false
+	var catchAllPlugins []Plugin
+	if isCommand {
+		catchAllPlugins = make([]Plugin, 0, len(b.plugins))
+	}
 	for _, plugin := range b.plugins {
 		b.Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels", messagetext, plugin.Name, len(plugin.Channels)))
 		ok := b.messageAppliesToPlugin(user, channel, messagetext, plugin)
@@ -252,6 +257,9 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 		var matchers []InputMatcher
 		if isCommand {
 			matchers = plugin.CommandMatches
+			if plugin.CatchAll {
+				catchAllPlugins = append(catchAllPlugins, plugin)
+			}
 		} else {
 			matchers = plugin.MessageMatches
 		}
@@ -259,68 +267,79 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 			b.Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", messagetext, matcher.Regex))
 			matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
 			if matches != nil {
-				b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", matcher.Command, plugin.Name))
-				bot.pluginID = plugin.pluginID
-				switch plugin.pluginType {
-				case plugBuiltin, plugGo:
-					go pluginHandlers[plugin.Name](bot, matcher.Command, matches[0][1:]...)
-				case plugExternal:
-					var fullPath string // full path to the executable
-					if len(plugin.PluginPath) == 0 {
-						b.Log(Error, "PluginPath empty for external plugin:", plugin.Name)
-					}
-					if byte(plugin.PluginPath[0]) == byte("/"[0]) {
-						fullPath = plugin.PluginPath
-					} else {
-						_, err := os.Stat(b.localPath + "/" + plugin.PluginPath)
-						if err != nil {
-							_, err := os.Stat(b.installPath + "/" + plugin.PluginPath)
-							if err != nil {
-								b.Log(Error, fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.Name, err))
-								continue
-							}
-							fullPath = b.installPath + "/" + plugin.PluginPath
-							b.Log(Debug, "Using stock external plugin:", fullPath)
-						} else {
-							fullPath = b.localPath + "/" + plugin.PluginPath
-							b.Log(Debug, "Using local external plugin:", fullPath)
-						}
-					}
-					args := make([]string, 0, 3+len(matches[0])-1)
-					args = append(args, channel, user, plugin.pluginID, matcher.Command)
-					args = append(args, matches[0][1:]...)
-					b.Log(Trace, fmt.Sprintf("Calling \"%s\" with args: %q", fullPath, args))
-					// cmd := exec.Command(fullPath, channel, user, matcher.Command, matches[0][1:]...)
-					cmd := exec.Command(fullPath, args...)
-					cmd.Stdout = nil
-					stderr, err := cmd.StderrPipe()
-					if err != nil {
-						b.Log(Error, fmt.Errorf("Creating stderr pipe for external command \"%s\": %v", fullPath, err))
-						continue
-					}
-					go func() {
-						if err := cmd.Start(); err != nil {
-							b.Log(Error, fmt.Errorf("Starting command \"%s\": %v", fullPath, err))
-							return
-						}
-						defer func() {
-							if err := cmd.Wait(); err != nil {
-								b.Log(Error, fmt.Errorf("Waiting on external command \"%s\": %v", fullPath, err))
-							}
-						}()
-						stdErrBytes, err := ioutil.ReadAll(stderr)
-						if err != nil {
-							b.Log(Error, fmt.Errorf("Reading from stderr for external command \"%s\": %v", fullPath, err))
-							return
-						}
-						stdErrString := string(stdErrBytes)
-						if len(stdErrString) > 0 {
-							b.Log(Warn, fmt.Errorf("Output from stderr of external command \"%s\": %s", fullPath, stdErrString))
-						}
-					}()
-				}
+				commandMatched = true
+				go b.callPlugin(bot, plugin, matcher.Command, matches[0][1:]...)
 			}
 		}
 	}
+	if isCommand && !commandMatched { // the robot was spoken too, but nothing matched - call catchAlls
+		for _, plugin := range catchAllPlugins {
+			go b.callPlugin(bot, plugin, "catchall", messagetext)
+		}
+	}
 	b.lock.RUnlock()
+}
+
+// callPlugin (normally called with go ...) sends a command to a plugin.
+func (b *robot) callPlugin(bot Robot, plugin Plugin, command string, args ...string) {
+	b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", command, plugin.Name))
+	bot.pluginID = plugin.pluginID
+	switch plugin.pluginType {
+	case plugBuiltin, plugGo:
+		pluginHandlers[plugin.Name](bot, command, args...)
+	case plugExternal:
+		var fullPath string // full path to the executable
+		if len(plugin.PluginPath) == 0 {
+			b.Log(Error, "PluginPath empty for external plugin:", plugin.Name)
+		}
+		if byte(plugin.PluginPath[0]) == byte("/"[0]) {
+			fullPath = plugin.PluginPath
+		} else {
+			_, err := os.Stat(b.localPath + "/" + plugin.PluginPath)
+			if err != nil {
+				_, err := os.Stat(b.installPath + "/" + plugin.PluginPath)
+				if err != nil {
+					b.Log(Error, fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.Name, err))
+					return
+				}
+				fullPath = b.installPath + "/" + plugin.PluginPath
+				b.Log(Debug, "Using stock external plugin:", fullPath)
+			} else {
+				fullPath = b.localPath + "/" + plugin.PluginPath
+				b.Log(Debug, "Using local external plugin:", fullPath)
+			}
+		}
+		externalArgs := make([]string, 0, 4+len(args))
+		externalArgs = append(externalArgs, bot.Channel, bot.User, plugin.pluginID, command)
+		externalArgs = append(externalArgs, args...)
+		b.Log(Trace, fmt.Sprintf("Calling \"%s\" with args: %q", fullPath, externalArgs))
+		// cmd := exec.Command(fullPath, channel, user, matcher.Command, matches[0][1:]...)
+		cmd := exec.Command(fullPath, externalArgs...)
+		// close stdout on the external plugin...
+		cmd.Stdout = nil
+		// but hold on to stderr in case we need to log an error
+		stderr, err := cmd.StderrPipe()
+		if err != nil {
+			b.Log(Error, fmt.Errorf("Creating stderr pipe for external command \"%s\": %v", fullPath, err))
+			return
+		}
+		if err := cmd.Start(); err != nil {
+			b.Log(Error, fmt.Errorf("Starting command \"%s\": %v", fullPath, err))
+			return
+		}
+		defer func() {
+			if err := cmd.Wait(); err != nil {
+				b.Log(Error, fmt.Errorf("Waiting on external command \"%s\": %v", fullPath, err))
+			}
+		}()
+		stdErrBytes, err := ioutil.ReadAll(stderr)
+		if err != nil {
+			b.Log(Error, fmt.Errorf("Reading from stderr for external command \"%s\": %v", fullPath, err))
+			return
+		}
+		stdErrString := string(stdErrBytes)
+		if len(stdErrString) > 0 {
+			b.Log(Warn, fmt.Errorf("Output from stderr of external command \"%s\": %s", fullPath, stdErrString))
+		}
+	}
 }
