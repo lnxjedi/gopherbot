@@ -1,7 +1,6 @@
 {
 	"PluginPath": "plugins/whoami.sh",
 	"Channels": [ "botdev" ],
-	"Users": [ "adrienne", "parsley" ],
 	"Help": [
 		{
 			"Keywords": [ "whoami" ],

@@ -8,12 +8,15 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"regexp"
 	"sync"
+	"time"
 )
 
 var botLock sync.RWMutex
 var botCreated bool
+var random *rand.Rand
 
 // robot holds all the interal data relevant to the Bot. Most of it is populated
 // by loadConfig, other stuff is populated by the connector.
@@ -59,6 +62,8 @@ func New(cpath, epath string) (GopherBot, error) {
 	botCreated = true
 	// Prevent plugin registration after program init
 	stopRegistrations = true
+	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	b := &robot{}
 	botLock.Unlock()

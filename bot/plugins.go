@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"os"
 	"os/exec"
 	"regexp"
-	"time"
 )
 
 // PluginHelp specifies keywords and help text for the 'bot help system
@@ -51,6 +49,12 @@ type Plugin struct {
 	pluginID       string          // 32-char random ID for identifying plugins in callbacks
 }
 
+// pluginHandlers maps from plugin names to handler functions; populated during package initialization and never written to again.
+var pluginHandlers map[string]func(bot Robot, command string, args ...string) = make(map[string]func(bot Robot, command string, args ...string))
+
+// stopRegistrations is set "true" when the bot is created to prevent registration outside of init functions
+var stopRegistrations bool = false
+
 // initialize sends the "init" command to every plugin
 func (b *robot) initializePlugins() {
 	b.lock.RLock()
@@ -66,12 +70,6 @@ func (b *robot) initializePlugins() {
 		go b.callPlugin(bot, plugin, "init")
 	}
 }
-
-// pluginHandlers maps from plugin names to handler functions; populated during package initialization and never written to again.
-var pluginHandlers map[string]func(bot Robot, command string, args ...string) = make(map[string]func(bot Robot, command string, args ...string))
-
-// stopRegistrations is set "true" when the bot is created to prevent registration outside of init functions
-var stopRegistrations bool = false
 
 // RegisterPlugin allows plugins to register a handler function in a func init().
 // When the bot initializes, it will call each plugin's handler with a command
@@ -94,8 +92,6 @@ func RegisterPlugin(name string, handler func(bot Robot, command string, args ..
 func (b *robot) loadPluginConfig() {
 	i := 0
 
-	// Seed the pseudo-random number generator, for plugin IDs
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	// Copy some data from the bot under lock
 	b.lock.RLock()
 	// Get a list of all plugins from the package pluginHandlers var and
@@ -203,7 +199,7 @@ PlugLoop:
 		plugin.Name = plug
 		// Generate the random id
 		p := make([]byte, 16)
-		_, rerr := r.Read(p)
+		_, rerr := random.Read(p)
 		if rerr != nil {
 			log.Fatal("Couldn't generate plugin id:", rerr)
 		}
@@ -231,7 +227,6 @@ PlugLoop:
 // messageAppliesToPlugin checks the user and channel against the plugin's
 // configuration to determine if the message should be evaluated. Used by
 // both handleMessage and the help builtin.
-// TODO: add logic for checking plugin.Users[]
 func (b *robot) messageAppliesToPlugin(user, channel, message string, plugin Plugin) bool {
 	ok := false
 	directMsg := false
@@ -273,7 +268,9 @@ func (b *robot) messageAppliesToPlugin(user, channel, message string, plugin Plu
 }
 
 // handleMessage checks the message against plugin commands and full-message matches,
-// then dispatches it to all applicable handlers in a separate go routine.
+// then dispatches it to all applicable handlers in a separate go routine. If the robot
+// was addressed directly but nothing matched, any registered CatchAll plugins are called.
+// There Should Be Only One
 func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string) {
 	b.lock.RLock()
 	bot := Robot{

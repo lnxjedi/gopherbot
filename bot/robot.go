@@ -46,6 +46,16 @@ func (r Robot) Fixed() Robot {
 	return r
 }
 
+// RandomString is a convenience function for returning a random string
+// from a slice of strings, so that replies can vary.
+func (r Robot) RandomString(s []string) string {
+	l := len(s)
+	if l == 0 {
+		return ""
+	}
+	return s[random.Intn(l)]
+}
+
 // GetAttribute returns an attribute of the robot or "" if unknown.
 // Current attributes:
 // name, alias, fullName, contact
