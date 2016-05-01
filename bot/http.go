@@ -31,6 +31,14 @@ type ChannelMessage struct {
 	Format  string
 }
 
+type ReplyRequest struct {
+	User        string
+	Channel     string
+	RegExId     string
+	Timeout     int
+	NeedCommand bool
+}
+
 type UserMessage struct {
 	User    string
 	Message string
@@ -143,6 +151,23 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		bot.User = um.User
 		bot.Format = setFormat(um.Format)
 		bot.SendUserMessage(b.decode(um.Message))
+	case "WaitForReply":
+		var rr ReplyRequest
+		err := json.Unmarshal(c.CmdArgs, &rr)
+		if err != nil {
+			fmt.Fprintln(rw, "Couldn't decipher JSON command data: ", err)
+			rw.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		bot.User = rr.User
+		bot.Channel = rr.Channel
+		reply, err := bot.WaitForReply(rr.RegExId, rr.Timeout, rr.NeedCommand)
+		if err != nil {
+			fmt.Fprintf(rw, "Waiting for reply: %v\n", err)
+			rw.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		fmt.Fprintln(rw, reply)
 	// NOTE: "Say" and "Reply" are implemented in shellLib.sh or other scripting library
 	default:
 		rw.WriteHeader(http.StatusBadRequest)
