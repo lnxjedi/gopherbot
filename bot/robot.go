@@ -3,6 +3,7 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 type MessageFormat int
@@ -56,6 +57,11 @@ func (r Robot) RandomString(s []string) string {
 	return s[random.Intn(l)]
 }
 
+// RandomInt uses the robot's seeded random to return a random int 0 <= retval < n
+func (r Robot) RandomInt(n int) int {
+	return random.Intn(n)
+}
+
 // GetAttribute returns an attribute of the robot or "" if unknown.
 // Current attributes:
 // name, alias, fullName, contact
@@ -97,6 +103,70 @@ func (r Robot) GetPluginConfig(v interface{}) error {
 		b.Log(Error, fmt.Errorf("Unmarshaling plugin config for %s: %v", plugin.Name, err))
 	}
 	return err
+}
+
+// WaitForReply lets a plugin temporarily register a regex for a reply
+// expected to an multi-step command, e.g. sending an email. An error
+// is returned if the user already has a multi-step command in progress
+// in the given channel, or if the timeout expires. If needCommand is true,
+// the reply must be directed at the robot.
+func (r Robot) WaitForReply(regexId string, timeout int, needCommand bool) (string, error) {
+	matcher := replyMatcher{
+		user:    r.User,
+		channel: r.Channel,
+	}
+	// We don't immediately defer an unlock because this function blocks on the
+	// reply channel - so we need to Unlock() at every error return point.
+	botLock.Lock()
+	// See if there's already a continuation in progress for this Robot:user,channel,
+	rep, exists := replies[matcher]
+	if exists {
+		err := fmt.Errorf("A reply is already being waited on for user %s in channel %s", r.User, r.Channel)
+		r.Log(Warn, err)
+		botLock.Unlock()
+		return "", err
+	}
+	b := r.robot
+	b.lock.RLock()
+	plugin := b.plugins[b.plugIDmap[r.pluginID]]
+	plugName := plugin.Name
+	for _, matcher := range plugin.ReplyMatchers {
+		if matcher.Command == regexId {
+			rep.regex = matcher.Regex
+			// Copy the regex - if a reload happens while waiting for a reply, a pointer could invalidate
+			rep.re = matcher.re.Copy()
+			break
+		}
+	}
+	b.lock.RUnlock()
+	if rep.re == nil {
+		err := fmt.Errorf("Unable to resolve a reply matcher for plugin %s, regexID %s", plugin.Name, regexId)
+		r.Log(Error, err)
+		botLock.Unlock()
+		return "", err
+	}
+	rep.reply = make(chan string)
+	rep.needCommand = needCommand
+	r.Log(Trace, fmt.Sprintf("Adding matcher to replies: %q", matcher))
+	replies[matcher] = rep
+	// Now that we've added the reply to the map, unlock the bot so we can block
+	// on the channel for a reply.
+	botLock.Unlock()
+	// Start a goroutine to delete the reply request if it still exists after a minute.
+	// If it's matched in the meantime, it should get deleted at that point.
+	select {
+	case <-time.After(time.Duration(timeout) * time.Second):
+		err := fmt.Errorf("Plugin \"%s\" timed out waiting for a reply to regex \"%s\"", plugName, regexId)
+		b.Log(Warn, err)
+		botLock.Lock()
+		// reply timed out, free up this matcher for later reply requests
+		delete(replies, matcher)
+		botLock.Unlock()
+		return "", err
+	case reply := <-rep.reply:
+		// Note: the replies[] entry is deleted in handleMessage
+		return reply, nil
+	}
 }
 
 // SendXXXMessage functions exist so plugin writers don't need

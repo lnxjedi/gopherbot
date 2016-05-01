@@ -43,11 +43,27 @@ type Plugin struct {
 	Users          []string        // If non-empty, list of all the users with access to this plugin
 	Help           []PluginHelp    // All the keyword sets / help texts for this plugin
 	CommandMatches []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
+	ReplyMatchers  []InputMatcher  // Input matchers for replies to questions, only match after a RequestContinuation
 	MessageMatches []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
 	CatchAll       bool            // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
 	Config         json.RawMessage // Plugin Configuration - the plugin needs to decode this
 	pluginID       string          // 32-char random ID for identifying plugins in callbacks
 }
+
+// a replyWaiter is used when a plugin is waiting for a reply
+type replyWaiter struct {
+	needCommand bool           // Whether or not the the reply should be directed at the robot
+	regex       string         // The text of the regular expression
+	re          *regexp.Regexp // The regular expression the reply needs to match
+	reply       chan string    // The channel to send the reply to when it is received
+}
+
+// a reply matcher is used as the key in the replys map
+type replyMatcher struct {
+	user, channel string // Only one reply at a time can be requested for a given user/channel combination
+}
+
+var replies = make(map[replyMatcher]replyWaiter)
 
 // pluginHandlers maps from plugin names to handler functions; populated during package initialization and never written to again.
 var pluginHandlers map[string]func(bot Robot, command string, args ...string) = make(map[string]func(bot Robot, command string, args ...string))
@@ -146,7 +162,7 @@ PlugHandlerLoop:
 	}
 	b.Log(Trace, fmt.Sprintf("pnames: %q", pnames))
 	b.Log(Trace, fmt.Sprintf("ptypes: %q", ptypes))
-	plist := make([]Plugin, nump)
+	plist := make([]Plugin, 0, nump)
 
 	// Because some plugins may be disabled, pnames and plugins won't necessarily sync
 	plugIndex := 0
@@ -154,7 +170,7 @@ PlugHandlerLoop:
 PlugLoop:
 	for i, plug := range pnames {
 		var plugin Plugin
-		b.Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", i, plug, ptypes[i]))
+		b.Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", plugIndex, plug, ptypes[i]))
 		if ptypes[i] == plugBuiltin {
 			plugin = builtIns[i]
 		} else {
@@ -185,6 +201,15 @@ PlugLoop:
 			}
 			command.re = re
 		}
+		for i, _ := range plugin.ReplyMatchers {
+			reply := &plugin.ReplyMatchers[i]
+			re, err := regexp.Compile(`^\s*` + reply.Regex + `\s*$`)
+			if err != nil {
+				b.Log(Error, fmt.Errorf("Skipping %s, couldn't compile reply regular expression \"%s\": %v", plug, reply.Regex, err))
+				continue PlugLoop
+			}
+			reply.re = re
+		}
 		for i, _ := range plugin.MessageMatches {
 			// Note that full message regexes don't get the beginning and end anchors added - the individual plugin
 			// will need to do this if necessary.
@@ -207,7 +232,7 @@ PlugLoop:
 		pfinder[plugin.pluginID] = plugIndex
 		// Store this plugin's config in the temporary list
 		b.Log(Info, fmt.Sprintf("Recorded plugin #%d, \"%s\" with ID %s", plugIndex, plugin.Name, plugin.pluginID))
-		plist[plugIndex] = plugin
+		plist = append(plist, plugin)
 		plugIndex++
 	}
 
@@ -287,6 +312,29 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 	if isCommand {
 		catchAllPlugins = make([]Plugin, 0, len(b.plugins))
 	}
+	// See if this is a reply that was requested
+	matcher := replyMatcher{user, channel}
+	botLock.Lock()
+	if len(replies) > 0 {
+		b.Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
+		rep, exists := replies[matcher]
+		if exists {
+			if !rep.needCommand || rep.needCommand && isCommand {
+				b.Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking message \"%s\" against \"%s\"", user, channel, messagetext, rep.regex))
+				if rep.re.MatchString(messagetext) {
+					commandMatched = true
+					// we got a match - so delete the matcher and send the reply
+					delete(replies, matcher)
+					rep.reply <- messagetext
+				}
+			} else {
+				b.Log(Debug, fmt.Sprintf("Not checking reply \"%s\" against regex \"%s\", reply has needCommand set", messagetext, rep.regex))
+			}
+		} else {
+			b.Log(Trace, "No matching replyWaiter")
+		}
+	}
+	botLock.Unlock()
 	for _, plugin := range b.plugins {
 		b.Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels", messagetext, plugin.Name, len(plugin.Channels)))
 		ok := b.messageAppliesToPlugin(user, channel, messagetext, plugin)

@@ -1,0 +1,32 @@
+{
+	"comment": "Note: you should copy this file to your local conf/plugins, and delete all but Disabled and Config sections",
+	"Channels": [ ],
+	"Help": [
+		{
+			"Keywords": [ "knock", "joke" ],
+			"Helptext": [ "(bot), tell me a (knock-knock) joke" ]
+		}
+	],
+	"CommandMatches": [
+		{
+			"Command": "knock",
+			"Regex": "(?i:tell me a( knock-knock)? joke)"
+		}
+	],
+	"ReplyMatchers": [
+		{
+			"Command": "whosthere",
+			"Regex": "(?i:who.s there\\??)"
+		},
+		{
+			"Command": "who",
+			"Regex": "(?i:\\w+ who\\??)"
+		}
+	],
+	"Config": [
+		{ "First": "Police", "Second": "Police let me in, it's cold out here!" },
+		{ "First": "Isabel", "Second": "Isabel working, or should I keep knocking?" },
+		{ "First": "H", "Second": "Bless you!" },
+		{ "First": "Dishes", "Second": "Dishes a nice place ya got here" }
+	]
+}
