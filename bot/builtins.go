@@ -8,30 +8,21 @@ import (
 // if help is more than tooLong lines long, send a private message
 const tooLong = 14
 
-/* builtin plugins, like help */
-
-var builtIns []Plugin = []Plugin{
-	{
-		Name:        "builtInhelp", // MUST match registered name below
-		AllChannels: true,
-		CommandMatches: []InputMatcher{
-			InputMatcher{
-				Regex:   `help ?([\d\w]+)?`,
-				Command: "help",
-			},
-		},
-	},
-	{
-		Name:        "builtInreload", // MUST match registered name below
-		AllChannels: true,
-		CommandMatches: []InputMatcher{
-			InputMatcher{
-				Regex:   `reload`,
-				Command: "reload",
-			},
-		},
-	},
+// If this list doesn't match what's registered below,
+// you're gonna have a bad time
+var builtIns = []string{
+	"builtInhelp",
+	"builtInreload",
+	"builtIndump",
 }
+
+func init() {
+	RegisterPlugin("builtIndump", dump)
+	RegisterPlugin("builtInhelp", help)
+	RegisterPlugin("builtInreload", reload)
+}
+
+/* builtin plugins, like help */
 
 func help(bot Robot, command string, args ...string) {
 	// Get access to the underlying struct
@@ -97,6 +88,33 @@ func help(bot Robot, command string, args ...string) {
 	}
 }
 
+func dump(bot Robot, command string, args ...string) {
+	// Get access to the underlying struct
+	b := bot.robot
+	if !bot.CheckAdmin() {
+		bot.Reply("Sorry, only an admin user can request that")
+		return
+	}
+	switch command {
+	case "robot":
+		bot.Fixed().Say(fmt.Sprintf("%+v", bot))
+	case "plugin":
+		b.lock.RLock()
+		defer b.lock.RUnlock()
+		found := false
+		for _, plugin := range b.plugins {
+			if args[0] == plugin.Name {
+				found = true
+				bot.Fixed().Say(fmt.Sprintf("%+v", plugin))
+				bot.Log(Info, fmt.Sprintf("Dump of plugin %s:\n%+v", args[0], plugin))
+			}
+		}
+		if !found {
+			bot.Say("Didn't find a plugin named " + args[0])
+		}
+	}
+}
+
 func reload(bot Robot, command string, args ...string) {
 	// Get access to the underlying struct
 	b := bot.robot
@@ -114,9 +132,4 @@ func reload(bot Robot, command string, args ...string) {
 			bot.Reply("Sorry, only an admin user can request that")
 		}
 	}
-}
-
-func init() {
-	RegisterPlugin("builtInhelp", help)     // MUST match plugin name above
-	RegisterPlugin("builtInreload", reload) // MUST match plugin name above
 }

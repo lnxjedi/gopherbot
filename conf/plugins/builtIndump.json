@@ -1,0 +1,13 @@
+{
+	"AllChannels": true,
+	"CommandMatches": [
+		{
+			"Command": "plugin",
+			"Regex": "dump plugin ([\\d\\w]+)"
+		},
+		{
+			"Command": "robot",
+			"Regex": "dump robot"
+		}
+	]
+}

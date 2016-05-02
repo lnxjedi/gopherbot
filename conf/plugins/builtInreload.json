@@ -1,0 +1,9 @@
+{
+	"AllChannels": true,
+	"CommandMatches": [
+		{
+			"Command": "reload",
+			"Regex": "reload"
+		}
+	]
+}

@@ -122,8 +122,8 @@ func (b *robot) loadPluginConfig() {
 	// Note this doesn't need to be under RLock, but it needs to precede
 	// external plugins. This should be fast enough that it doesn't matter.
 	for _, plugin := range builtIns {
-		pnames[i] = plugin.Name
-		pset[plugin.Name] = true
+		pnames[i] = plugin
+		pset[plugin] = true
 		ptypes[i] = plugBuiltin
 		i++
 	}
@@ -147,7 +147,7 @@ PlugHandlerLoop:
 	for plug, _ := range pluginHandlers {
 		if pset[plug] { // have to check builtIns, already loaded
 			for _, plugin := range builtIns {
-				if plug == plugin.Name {
+				if plug == plugin {
 					continue PlugHandlerLoop // skip it, already loaded
 				}
 			}
@@ -171,15 +171,11 @@ PlugLoop:
 	for i, plug := range pnames {
 		var plugin Plugin
 		b.Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", plugIndex, plug, ptypes[i]))
-		if ptypes[i] == plugBuiltin {
-			plugin = builtIns[i]
-		} else {
-			// getConfigFile loads stock config, then overlays with local
-			err := b.getConfigFile("plugins/"+plug+".json", &plugin)
-			if err != nil {
-				b.Log(Error, fmt.Errorf("Unable to load configuration for plugin \"%s\": %v", plug, err))
-				continue
-			}
+		// getConfigFile loads stock config, then overlays with local
+		err := b.getConfigFile("plugins/"+plug+".json", &plugin)
+		if err != nil {
+			b.Log(Error, fmt.Errorf("Unable to load configuration for plugin \"%s\": %v", plug, err))
+			continue
 		}
 		if plugin.Disabled {
 			continue

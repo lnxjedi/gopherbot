@@ -2,8 +2,9 @@
 	"MessageMatches": [
 		{
 			"Command": "help",
-			"Regex": "^(?i)help$"
+			"Regex": "^(?i:help)$"
 		}
 	],
+	"AllChannels": true,
 	"CatchAll": true
 }
