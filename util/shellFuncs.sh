@@ -18,7 +18,21 @@ GetAttribute(){
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+}
+
+# Post the JSON and get error output
+gbPostJSON(){
+	local JSON="$1"
+	local OUTPUTVAR=$2
+	local OUTTEMP=$(mktemp /tmp/gopherpost-XXXXXX)
+	local HEADTEMP=$(mktemp /tmp/gopherhead-XXXXXX)
+	local OUTPUT
+	echo "$JSON" | curl -f -X POST -D $HEADTEMP -d @- $GOPHER_HTTP_POST/json 2>/dev/null > $OUTTEMP
+	echo "Headers in $HEADTEMP" >&2
+	OUTPUT=$(cat $OUTTEMP)
+	rm -f $OUTTEMP
+	eval $OUTPUTVAR=\"$OUTPUT\"
 }
 
 GetUserAttribute(){
@@ -35,7 +49,29 @@ GetUserAttribute(){
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+}
+
+WaitForReply(){
+	local JSON
+	local REGEX="$1"
+	local TIMEOUT="${2:-14}"
+	local NEEDCMD="${3:-false}"
+	JSON=$(cat <<EOF
+{
+	"Command": "WaitForReply",
+	"PluginID": "$GB_PLUGID",
+	"CmdArgs": {
+		"User": "$GB_USER",
+		"Channel": "$GB_CHANNEL",
+		"RegExId": "$REGEX",
+		"Timeout": $TIMEOUT,
+		"NeedCommand": $NEEDCMD
+	}
+}
+EOF
+)
+	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
 }
 
 SendUserMessage(){
@@ -57,7 +93,7 @@ SendUserMessage(){
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
 }
 
 SendUserChannelMessage(){
@@ -80,7 +116,7 @@ SendUserChannelMessage(){
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
 }
 
 SendChannelMessage(){
@@ -102,7 +138,7 @@ JSON=$(cat <<EOF
 }
 EOF
 )
-	echo "$JSON" | curl -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
 }
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins

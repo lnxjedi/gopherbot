@@ -84,17 +84,18 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	var c JSONCommand
 	err = json.Unmarshal(data, &c)
 	if err != nil {
-		fmt.Fprintln(rw, "Couldn't decipher JSON command: ", err)
 		rw.WriteHeader(http.StatusBadRequest)
+		b.Log(Error, "Couldn't decipher JSON command: ", err)
 		return
 	}
 
 	// Generate a synthetic Robot for access to it's methods
 	bot := Robot{
-		User:    "",
-		Channel: "",
-		Format:  Variable,
-		robot:   b,
+		User:     "",
+		Channel:  "",
+		Format:   Variable,
+		pluginID: c.PluginID,
+		robot:    b,
 	}
 
 	switch c.Command {
@@ -102,8 +103,8 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		var a Attr
 		err := json.Unmarshal(c.CmdArgs, &a)
 		if err != nil {
-			fmt.Fprintln(rw, "Couldn't decipher JSON command data: ", err)
 			rw.WriteHeader(http.StatusBadRequest)
+			b.Log(Error, "Couldn't decipher JSON command data: ", err)
 			return
 		}
 		fmt.Fprintln(rw, bot.GetAttribute(a.Attribute))
@@ -111,8 +112,8 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		var ua UserAttr
 		err := json.Unmarshal(c.CmdArgs, &ua)
 		if err != nil {
-			fmt.Fprintln(rw, "Couldn't decipher JSON command data: ", err)
 			rw.WriteHeader(http.StatusBadRequest)
+			b.Log(Error, "Couldn't decipher JSON command data: ", err)
 			return
 		}
 		bot.User = ua.User
@@ -121,8 +122,8 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		var cm ChannelMessage
 		err := json.Unmarshal(c.CmdArgs, &cm)
 		if err != nil {
-			fmt.Fprintln(rw, "Couldn't decipher JSON command data: ", err)
 			rw.WriteHeader(http.StatusBadRequest)
+			b.Log(Error, "Couldn't decipher JSON command data: ", err)
 			return
 		}
 		bot.Channel = cm.Channel
@@ -132,8 +133,8 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		var ucm UserChannelMessage
 		err := json.Unmarshal(c.CmdArgs, &ucm)
 		if err != nil {
-			fmt.Fprintln(rw, "Couldn't decipher JSON command data: ", err)
 			rw.WriteHeader(http.StatusBadRequest)
+			b.Log(Error, "Couldn't decipher JSON command data: ", err)
 			return
 		}
 		bot.User = ucm.User
@@ -144,8 +145,8 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		var um UserMessage
 		err := json.Unmarshal(c.CmdArgs, &um)
 		if err != nil {
-			fmt.Fprintln(rw, "Couldn't decipher JSON command data: ", err)
 			rw.WriteHeader(http.StatusBadRequest)
+			b.Log(Error, "Couldn't decipher JSON command data: ", err)
 			return
 		}
 		bot.User = um.User
@@ -155,16 +156,18 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		var rr ReplyRequest
 		err := json.Unmarshal(c.CmdArgs, &rr)
 		if err != nil {
-			fmt.Fprintln(rw, "Couldn't decipher JSON command data: ", err)
 			rw.WriteHeader(http.StatusBadRequest)
+			b.Log(Error, "Couldn't decipher JSON command data: ", err)
 			return
 		}
+		bot.Log(Trace, "")
 		bot.User = rr.User
 		bot.Channel = rr.Channel
 		reply, err := bot.WaitForReply(rr.RegExId, rr.Timeout, rr.NeedCommand)
 		if err != nil {
-			fmt.Fprintf(rw, "Waiting for reply: %v\n", err)
 			rw.WriteHeader(http.StatusServiceUnavailable)
+			b.Log(Error, "Waiting for reply: ", err)
+			//			rw.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
 		fmt.Fprintln(rw, reply)

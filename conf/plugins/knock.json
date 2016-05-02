@@ -10,7 +10,7 @@
 	"CommandMatches": [
 		{
 			"Command": "knock",
-			"Regex": "(?i:tell me a( knock-knock)? joke)"
+			"Regex": "(?i:tell me a(?: knock-knock)? joke)"
 		}
 	],
 	"ReplyMatchers": [
@@ -20,7 +20,7 @@
 		},
 		{
 			"Command": "who",
-			"Regex": "(?i:\\w+ who\\??)"
+			"Regex": "(?i:[\\w ]+ who\\??)"
 		}
 	],
 	"Config": [
