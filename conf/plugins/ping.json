@@ -15,6 +15,10 @@
 			"Regex": "ping"
 		},
 		{
+			"Command": "thanks",
+			"Regex": "(?i:thanks?( you)?!?)"
+		},
+		{
 			"Command": "beep",
 			"Regex": "beep"
 		}

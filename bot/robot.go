@@ -47,6 +47,12 @@ func (r Robot) Fixed() Robot {
 	return r
 }
 
+// Pause is a convenience function to pause some fractional number of seconds.
+func (r Robot) Pause(s float64) {
+	ms := time.Duration(s * float64(1000))
+	time.Sleep(ms * time.Millisecond)
+}
+
 // RandomString is a convenience function for returning a random string
 // from a slice of strings, so that replies can vary.
 func (r Robot) RandomString(s []string) string {

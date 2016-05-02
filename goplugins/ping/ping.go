@@ -10,6 +10,17 @@ var (
 	botName string
 )
 
+var welcome = []string{
+	"You're welcome!",
+	"Don't mention it",
+	"De nada",
+	"Sure thing",
+	"No problem!",
+	"No problemo!",
+	"Happy to help",
+	"T'was nothing",
+}
+
 // Define the handler function
 func ping(bot bot.Robot, command string, args ...string) {
 	// The plugin can handle multiple different commands
@@ -20,6 +31,8 @@ func ping(bot bot.Robot, command string, args ...string) {
 		botName = bot.User
 	case "ping":
 		bot.Fixed().Reply("PONG")
+	case "thanks":
+		bot.Reply(bot.RandomString(welcome))
 	case "beep":
 		if bot.Channel == "" {
 			bot.Say("Eh, talking to yourself?")

@@ -20,6 +20,7 @@ for PLATFORM in darwin linux
 do
 	./build.sh $PLATFORM
 	OUTFILE=$1/gopherbot-$GOPHERBOT_VERSION-$PLATFORM.zip
+	rm -f $OUTFILE
 
 	echo "Creating $OUTFILE"
 	zip -r $OUTFILE gopherbot.sh robot LICENSE README.md conf/ plugins/ util/ gopherbot.template/ --exclude *.swp

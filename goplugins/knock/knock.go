@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/parsley42/gopherbot/bot"
 )
@@ -35,11 +34,14 @@ var phooey = []string{
 func knock(r bot.Robot, command string, args ...string) {
 	switch command {
 	case "init":
+		lock.Lock()
+		defer lock.Unlock()
 		err := r.GetPluginConfig(&Jokes)
 		if err == nil {
 			r.Log(bot.Info, fmt.Sprintf("Knock-knock plugin successfully loaded %d jokes.", len(Jokes)))
 			configured = true
 		} else {
+			configured = false
 			r.Log(bot.Error, fmt.Errorf("Loading jokes: %v", err))
 		}
 	case "knock":
@@ -47,23 +49,27 @@ func knock(r bot.Robot, command string, args ...string) {
 			r.Reply("Sorry, I don't know any jokes :-(")
 			return
 		}
+		//
 		lock.Lock()
 		j := Jokes[r.RandomInt(len(Jokes))]
 		lock.Unlock()
+		r.Pause(0.5)
 		r.Say(r.RandomString(openings))
-		time.Sleep(500 * time.Millisecond)
+		r.Pause(1.2)
 		r.Reply("Knock knock")
-		_, err := r.WaitForReply("whosthere", 7, false)
+		_, err := r.WaitForReply("whosthere", 14, false)
 		if err != nil {
 			r.Reply(r.RandomString(phooey))
 			return
 		}
+		r.Pause(0.5)
 		r.Say(j.First)
 		reply, err := r.WaitForReply("who", 14, false)
 		if err != nil {
 			r.Say(r.RandomString(phooey))
 			return
 		}
+		r.Pause(0.5)
 		// Did the user reply correctly with <j.First> who?
 		if strings.HasPrefix(strings.ToLower(reply), strings.ToLower(j.First)) {
 			r.Say(j.Second)
