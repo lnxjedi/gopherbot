@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"sync"
 )
 
 // PluginHelp specifies keywords and help text for the 'bot help system
@@ -48,6 +49,7 @@ type Plugin struct {
 	CatchAll       bool            // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
 	Config         json.RawMessage // Plugin Configuration - the plugin needs to decode this
 	pluginID       string          // 32-char random ID for identifying plugins in callbacks
+	lock           sync.Mutex      // For use with the robot's Brain
 }
 
 // a replyWaiter is used when a plugin is waiting for a reply

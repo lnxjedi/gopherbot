@@ -6,6 +6,10 @@
 		{
 			"Keywords": [ "ping", "beep" ],
 			"Helptext": [ "(bot), ping - see if the bot is alive", "(bot), beep - see if the bot can hear you" ]
+		},
+		{
+			"Keywords": [ "rules" ],
+			"Helptext": [ "(bot), what are the rules? - Be sure the robot knows how to conduct his/herself." ]
 		}
 	],
 	"comment": "Note that backslashes need to be escaped as double backslashes, e.g. \\",
@@ -17,6 +21,10 @@
 		{
 			"Command": "thanks",
 			"Regex": "(?i:thanks?( you)?!?)"
+		},
+		{
+			"Command": "rules",
+			"Regex": "(?i:(?:what are )?the rules\\??)"
 		},
 		{
 			"Command": "beep",

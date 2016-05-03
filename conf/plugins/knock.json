@@ -10,7 +10,7 @@
 	"CommandMatches": [
 		{
 			"Command": "knock",
-			"Regex": "(?i:tell me a(?: knock-knock)? joke)"
+			"Regex": "(?i:tell me a(?:nother)?(?: knock-knock)? joke)"
 		}
 	],
 	"ReplyMatchers": [
@@ -24,6 +24,13 @@
 		}
 	],
 	"Config": [
+		{ "First": "To", "Second": "\"To *whom*\"" },
+		{ "First": "Doctor", "Second": "Man, I wish!" },
+		{ "First": "Eskimo", "Second": "Eskimo questions, I tell no lies" },
+		{ "First": "Spell", "Second": "W H O" },
+		{ "First": "Toby", "Second": "Toby or not Toby - that is the question" },
+		{ "First": "Ya", "Second": "Well, I'm happy to see you, too!" },
+		{ "First": "Keith", "Second": "Keith me, my thweet preenthith!" },
 		{ "First": "Police", "Second": "Police let me in, it's cold out here!" },
 		{ "First": "Isabel", "Second": "Isabel working, or should I keep knocking?" },
 		{ "First": "Etch", "Second": "Bless you!" },
