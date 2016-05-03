@@ -10,46 +10,27 @@ import (
 	"strings"
 )
 
-type JSONCommand struct {
-	Command  string
+type JSONFunction struct {
+	FuncName string
+	User     string
+	Channel  string
+	Format   string
 	PluginID string
-	CmdArgs  json.RawMessage
+	FuncArgs json.RawMessage
 }
 
 type Attr struct {
 	Attribute string
 }
 
-type UserAttr struct {
-	User      string
-	Attribute string
-}
-
-type ChannelMessage struct {
-	Channel string
+type Message struct {
 	Message string
-	Format  string
 }
 
 type ReplyRequest struct {
-	User        string
-	Channel     string
 	RegExId     string
 	Timeout     int
 	NeedCommand bool
-}
-
-type UserMessage struct {
-	User    string
-	Message string
-	Format  string
-}
-
-type UserChannelMessage struct {
-	User    string
-	Channel string
-	Message string
-	Format  string
 }
 
 func (b *robot) listenHttpJSON() {
@@ -81,8 +62,8 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var c JSONCommand
-	err = json.Unmarshal(data, &c)
+	var f JSONFunction
+	err = json.Unmarshal(data, &f)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		b.Log(Error, "Couldn't decipher JSON command: ", err)
@@ -91,83 +72,55 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	// Generate a synthetic Robot for access to it's methods
 	bot := Robot{
-		User:     "",
-		Channel:  "",
-		Format:   Variable,
-		pluginID: c.PluginID,
+		User:     f.User,
+		Channel:  f.Channel,
+		Format:   setFormat(f.Format),
+		pluginID: f.PluginID,
 		robot:    b,
 	}
 
-	switch c.Command {
-	case "GetAttribute":
+	switch f.FuncName {
+	case "GetAttribute", "GetUserAttribute":
 		var a Attr
-		err := json.Unmarshal(c.CmdArgs, &a)
+		err := json.Unmarshal(f.FuncArgs, &a)
 		if err != nil {
 			rw.WriteHeader(http.StatusBadRequest)
 			b.Log(Error, "Couldn't decipher JSON command data: ", err)
 			return
 		}
-		fmt.Fprintln(rw, bot.GetAttribute(a.Attribute))
-	case "GetUserAttribute":
-		var ua UserAttr
-		err := json.Unmarshal(c.CmdArgs, &ua)
+		if f.FuncName == "GetAttribute" {
+			fmt.Fprintln(rw, bot.GetAttribute(a.Attribute))
+		} else {
+			fmt.Fprintln(rw, bot.GetUserAttribute(a.Attribute))
+		}
+	case "SendChannelMessage", "SendUserChannelMessage", "SendUserMessage":
+		var m Message
+		err := json.Unmarshal(f.FuncArgs, &m)
 		if err != nil {
 			rw.WriteHeader(http.StatusBadRequest)
 			b.Log(Error, "Couldn't decipher JSON command data: ", err)
 			return
 		}
-		bot.User = ua.User
-		fmt.Fprintln(rw, bot.GetUserAttribute(ua.Attribute))
-	case "SendChannelMessage":
-		var cm ChannelMessage
-		err := json.Unmarshal(c.CmdArgs, &cm)
-		if err != nil {
-			rw.WriteHeader(http.StatusBadRequest)
-			b.Log(Error, "Couldn't decipher JSON command data: ", err)
-			return
+		switch f.FuncName {
+		case "SendChannelMessage":
+			bot.SendChannelMessage(b.decode(m.Message))
+		case "SendUserChannelMessage":
+			bot.SendUserChannelMessage(b.decode(m.Message))
+		case "SendUserMessage":
+			bot.SendUserMessage(b.decode(m.Message))
 		}
-		bot.Channel = cm.Channel
-		bot.Format = setFormat(cm.Format)
-		bot.SendChannelMessage(b.decode(cm.Message))
-	case "SendUserChannelMessage":
-		var ucm UserChannelMessage
-		err := json.Unmarshal(c.CmdArgs, &ucm)
-		if err != nil {
-			rw.WriteHeader(http.StatusBadRequest)
-			b.Log(Error, "Couldn't decipher JSON command data: ", err)
-			return
-		}
-		bot.User = ucm.User
-		bot.Channel = ucm.Channel
-		bot.Format = setFormat(ucm.Format)
-		bot.SendUserChannelMessage(b.decode(ucm.Message))
-	case "SendUserMessage":
-		var um UserMessage
-		err := json.Unmarshal(c.CmdArgs, &um)
-		if err != nil {
-			rw.WriteHeader(http.StatusBadRequest)
-			b.Log(Error, "Couldn't decipher JSON command data: ", err)
-			return
-		}
-		bot.User = um.User
-		bot.Format = setFormat(um.Format)
-		bot.SendUserMessage(b.decode(um.Message))
 	case "WaitForReply":
 		var rr ReplyRequest
-		err := json.Unmarshal(c.CmdArgs, &rr)
+		err := json.Unmarshal(f.FuncArgs, &rr)
 		if err != nil {
 			rw.WriteHeader(http.StatusBadRequest)
 			b.Log(Error, "Couldn't decipher JSON command data: ", err)
 			return
 		}
-		bot.Log(Trace, "")
-		bot.User = rr.User
-		bot.Channel = rr.Channel
 		reply, err := bot.WaitForReply(rr.RegExId, rr.Timeout, rr.NeedCommand)
 		if err != nil {
 			rw.WriteHeader(http.StatusServiceUnavailable)
 			b.Log(Error, "Waiting for reply: ", err)
-			//			rw.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
 		fmt.Fprintln(rw, reply)

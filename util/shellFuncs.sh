@@ -5,140 +5,98 @@ gb_json_encode(){
 	echo "$MESSAGE"
 }
 
-GetAttribute(){
+# Create the full JSON string and post it
+gbPostJSON(){
+	local GB_FUNCNAME=$1
+	local GB_FUNCARGS="$2"
 	local JSON
-	local ATTR="$1"
+	GB_FORMAT=${GB_FORMAT:-variable}
 	JSON=$(cat <<EOF
 {
-	"Command": "GetAttribute",
+	"FuncName": "$GB_FUNCNAME",
+	"User": "$GB_USER",
+	"Channel": "$GB_CHANNEL",
+	"Format": "$GB_FORMAT",
 	"PluginID": "$GB_PLUGID",
-	"CmdArgs": {
-		"Attribute": "$ATTR"
-	}
+	"FuncArgs": $GB_FUNCARGS
 }
 EOF
 )
 	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
 }
 
-# Post the JSON and get error output
-gbPostJSON(){
-	local JSON="$1"
-	local OUTPUTVAR=$2
-	local OUTTEMP=$(mktemp /tmp/gopherpost-XXXXXX)
-	local HEADTEMP=$(mktemp /tmp/gopherhead-XXXXXX)
-	local OUTPUT
-	echo "$JSON" | curl -f -X POST -D $HEADTEMP -d @- $GOPHER_HTTP_POST/json 2>/dev/null > $OUTTEMP
-	echo "Headers in $HEADTEMP" >&2
-	OUTPUT=$(cat $OUTTEMP)
-	rm -f $OUTTEMP
-	eval $OUTPUTVAR=\"$OUTPUT\"
+GetAttribute(){
+	local GB_FUNCARGS
+	local GB_FUNCNAME="GetAttribute"
+	local ATTR="$1"
+	GB_FUNCARGS=$(cat <<EOF
+{
+	"Attribute": "$ATTR"
+}
+EOF
+)
+	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
 }
 
 GetUserAttribute(){
-	local JSON
+	local GB_FUNCARGS
+	local GB_FUNCNAME="GetUserAttribute"
 	local ATTR="$1"
-	JSON=$(cat <<EOF
+	GB_FUNCARGS=$(cat <<EOF
 {
-	"Command": "GetUserAttribute",
-	"PluginID": "$GB_PLUGID",
-	"CmdArgs": {
-		"User": "$GB_USER",
-		"Attribute": "$ATTR"
-	}
+	"Attribute": "$ATTR"
 }
 EOF
 )
-	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
 }
 
 WaitForReply(){
-	local JSON
+	local GB_FUNCARGS
+	local GB_FUNCNAME="WaitForReply"
 	local REGEX="$1"
 	local TIMEOUT="${2:-14}"
 	local NEEDCMD="${3:-false}"
-	JSON=$(cat <<EOF
+	GB_FUNCARGS=$(cat <<EOF
 {
-	"Command": "WaitForReply",
-	"PluginID": "$GB_PLUGID",
-	"CmdArgs": {
-		"User": "$GB_USER",
-		"Channel": "$GB_CHANNEL",
-		"RegExId": "$REGEX",
-		"Timeout": $TIMEOUT,
-		"NeedCommand": $NEEDCMD
-	}
+	"RegExId": "$REGEX",
+	"Timeout": $TIMEOUT,
+	"NeedCommand": $NEEDCMD
 }
 EOF
 )
-	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
 }
 
-SendUserMessage(){
-	local JSON
-	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
-	GB_FORMAT=${GB_FORMAT:-variable}
+SendMessage(){
+	local GB_FUNCARGS
+	local GB_FUNCNAME=$1
+	shift
 	MESSAGE="$*"
 	MESSAGE=$(gb_json_encode "$MESSAGE")
 
-	JSON=$(cat <<EOF
+	GB_FUNCARGS=$(cat <<EOF
 {
-	"Command": "SendUserMessage",
-	"PluginID": "$GB_PLUGID",
-	"CmdArgs": {
-		"User": "$GB_USER",
-		"Format": "$GB_FORMAT",
-		"Message": "$MESSAGE"
-	}
+	"Message": "$MESSAGE"
 }
 EOF
 )
-	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
 }
 
 SendUserChannelMessage(){
-	local JSON
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
-	GB_FORMAT=${GB_FORMAT:-variable}
-	MESSAGE="$*"
-	MESSAGE=$(gb_json_encode "$MESSAGE")
-
-	JSON=$(cat <<EOF
-{
-	"Command": "SendUserChannelMessage",
-	"PluginID": "$GB_PLUGID",
-	"CmdArgs": {
-		"User": "$GB_USER",
-		"Channel": "$GB_CHANNEL",
-		"Format": "$GB_FORMAT",
-		"Message": "$MESSAGE"
-	}
+	SendMessage "SendUserChannelMessage" "$*"
 }
-EOF
-)
-	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+
+SendUserMessage(){
+	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	SendMessage "SendUserMessage" "$*"
 }
 
 SendChannelMessage(){
-	local JSON
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
-	GB_FORMAT=${GB_FORMAT:-variable}
-	MESSAGE="$*"
-	MESSAGE=$(gb_json_encode "$MESSAGE")
-
-JSON=$(cat <<EOF
-{
-	"Command": "SendChannelMessage",
-	"PluginID": "$GB_PLUGID",
-	"CmdArgs": {
-		"Channel": "$GB_CHANNEL",
-		"Format": "$GB_FORMAT",
-		"Message": "$MESSAGE"
-	}
-}
-EOF
-)
-	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+	SendMessage "SendChannelMessage" "$*"
 }
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins
@@ -146,9 +104,9 @@ Say(){
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
 	if [ -n "$GB_CHANNEL" ]
 	then
-		SendChannelMessage "$*"
+		SendMessage "SendChannelMessage" "$*"
 	else
-		SendUserMessage "$*"
+		SendMessage "SendUserMessage" "$*"
 	fi
 }
 
@@ -156,8 +114,8 @@ Reply(){
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
 	if [ -n "$GB_CHANNEL" ]
 	then
-		SendUserChannelMessage "$*"
+		SendMessage "SendUserChannelMessage" "$*"
 	else
-		SendUserMessage "$*"
+		SendMessage "SendUserMessage" "$*"
 	fi
 }

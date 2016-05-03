@@ -32,5 +32,4 @@ do
 	MESSAGE=$(echo -e "${IPADDR}\t${HOSTNAME}\n$MESSAGE")
 done
 
-echo "$MESSAGE"
 Say -f "$MESSAGE"

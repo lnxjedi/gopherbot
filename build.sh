@@ -5,4 +5,4 @@ GOOS=${1:-linux}
 export GOOS
 
 echo "Building for $GOOS"
-go build -o robot
+go build -o robot -i -race
