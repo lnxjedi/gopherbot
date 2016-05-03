@@ -30,6 +30,7 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+	os.Setenv("GOPHER_INSTALLDIR", installdir)
 	// Localdir is where all user-supplied configuration and
 	// external plugins are. The launch script should determine this.
 	localdir = os.Getenv("GOPHER_LOCALDIR")
