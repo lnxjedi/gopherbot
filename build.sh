@@ -3,6 +3,10 @@
 
 GOOS=${1:-linux}
 export GOOS
+if [ "$GOOS" = "linux" ]
+then
+	BUILDARGS="-i -race"
+fi
 
 echo "Building for $GOOS"
-go build -o robot -i -race
+go build -o robot $BUILDARG
