@@ -37,6 +37,8 @@ func ping(bot bot.Robot, command string, args ...string) {
 		botName = bot.User
 	case "rules":
 		bot.Say(rules)
+	case "hello":
+		bot.Reply("Howdy. Try 'help' if you want me to do something cool.")
 	case "ping":
 		bot.Fixed().Reply("PONG")
 	case "thanks":

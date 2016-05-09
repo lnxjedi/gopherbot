@@ -27,6 +27,10 @@
 			"Regex": "(?i:(?:what are )?the rules\\??)"
 		},
 		{
+			"Command": "hello",
+			"Regex": "(?i:(?:hi|hello)[.!]?)"
+		},
+		{
 			"Command": "beep",
 			"Regex": "beep"
 		}

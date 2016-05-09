@@ -99,7 +99,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	s.Log(bot.Trace, fmt.Sprintf("Message received: %v\n", msg))
 
 	reAddedLinks := regexp.MustCompile(`<https?://[\w-.]+\|([\w-.]+)>`) // match a slack-inserted link
-	reLinks := regexp.MustCompile(`<(https?://[.\w-:/?=]+)>`)           // match a link where slack added <>
+	reLinks := regexp.MustCompile(`<(https?://[.\w-:/?=~]+)>`)          // match a link where slack added <>
 	reUser := regexp.MustCompile(`<@U[A-Z0-9]{8}>`)                     // match a @user mention
 
 	// Remove auto-links - chatbots don't want those
