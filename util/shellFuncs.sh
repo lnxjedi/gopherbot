@@ -68,15 +68,17 @@ EOF
 	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
 }
 
-SendMessage(){
+SendUserMessage(){
 	local GB_FUNCARGS
-	local GB_FUNCNAME=$1
+	local GB_FUNCNAME="SendUserMessage"
+	local SUM_USER=$1
 	shift
 	MESSAGE="$*"
 	MESSAGE=$(gb_json_encode "$MESSAGE")
 
 	GB_FUNCARGS=$(cat <<EOF
 {
+	"User": "$SUM_USER"
 	"Message": "$MESSAGE"
 }
 EOF
@@ -85,18 +87,59 @@ EOF
 }
 
 SendUserChannelMessage(){
-	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
-	SendMessage "SendUserChannelMessage" "$*"
-}
+	local GB_FUNCARGS
+	local GB_FUNCNAME="SendUserChannelMessage"
+	local SUCM_USER=$1
+	local SUCM_CHANNEL=$2
+	shift 2
+	MESSAGE="$*"
+	MESSAGE=$(gb_json_encode "$MESSAGE")
 
-SendUserMessage(){
-	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
-	SendMessage "SendUserMessage" "$*"
+	GB_FUNCARGS=$(cat <<EOF
+{
+	"User": "$SUCM_USER",
+	"Channel": "$SUCM_CHANNEL",
+	"Message": "$MESSAGE"
+}
+EOF
+)
+	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
 }
 
 SendChannelMessage(){
-	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
-	SendMessage "SendChannelMessage" "$*"
+	local GB_FUNCARGS
+	local GB_FUNCNAME="SendChannelMessage"
+	local SCM_CHANNEL=$1
+	shift
+	MESSAGE="$*"
+	MESSAGE=$(gb_json_encode "$MESSAGE")
+
+	GB_FUNCARGS=$(cat <<EOF
+{
+	"Channel": "$SCM_CHANNEL",
+	"Message": "$MESSAGE"
+}
+EOF
+)
+	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
+}
+
+SendUserMessage(){
+	local GB_FUNCARGS
+	local GB_FUNCNAME="SendUserMessage"
+	local SUM_USER=$1
+	shift
+	MESSAGE="$*"
+	MESSAGE=$(gb_json_encode "$MESSAGE")
+
+	GB_FUNCARGS=$(cat <<EOF
+{
+	"User": "$SUM_USER",
+	"Message": "$MESSAGE"
+}
+EOF
+)
+	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
 }
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins
@@ -104,9 +147,9 @@ Say(){
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
 	if [ -n "$GB_CHANNEL" ]
 	then
-		SendMessage "SendChannelMessage" "$*"
+		SendChannelMessage "$GB_CHANNEL" "$*"
 	else
-		SendMessage "SendUserMessage" "$*"
+		SendUserMessage "$GB_USER" "$*"
 	fi
 }
 
@@ -114,8 +157,8 @@ Reply(){
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
 	if [ -n "$GB_CHANNEL" ]
 	then
-		SendMessage "SendUserChannelMessage" "$*"
+		SendUserChannelMessage "$GB_USER" "$GB_CHANNEL" "$*"
 	else
-		SendMessage "SendUserMessage" "$*"
+		SendUserMessage "$GB_USER" "$*"
 	fi
 }

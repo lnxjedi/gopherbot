@@ -34,7 +34,7 @@ func help(bot bot.Robot, command string, args ...string) {
 		} else {
 			reply += "."
 		}
-		bot.SendUserMessage(reply)
+		bot.SendUserMessage(bot.User, reply)
 	} else if command == "catchall" {
 		bot.Reply("Sorry, that didn't match any commands I know")
 	}

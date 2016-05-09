@@ -175,20 +175,25 @@ func (r Robot) WaitForReply(regexId string, timeout int, needCommand bool) (stri
 	}
 }
 
-// SendXXXMessage functions exist so plugin writers don't need
-// to pass a format var for every message, when a Variable font is
-// wanted 99% of the time. It's easy to get Fixed, though, using
-// the convenience function, or by manually setting r.Format.
-func (r Robot) SendChannelMessage(msg string) {
-	r.SendProtocolChannelMessage(r.Channel, msg, r.Format)
+// SendChannelMessage lets a plugin easily send a message to an arbitrary
+// channel. Use Robot.Fixed().SencChannelMessage(...) for fixed-width
+// font.
+func (r Robot) SendChannelMessage(channel, msg string) {
+	r.SendProtocolChannelMessage(channel, msg, r.Format)
 }
 
-func (r Robot) SendUserChannelMessage(msg string) {
-	r.SendProtocolUserChannelMessage(r.User, r.Channel, msg, r.Format)
+// SendUserChannelMessage lets a plugin easily send a message directed to
+// a specific user in a specific channel without fiddling with the robot
+// object. Use Robot.Fixed().SencChannelMessage(...) for fixed-width
+// font.
+func (r Robot) SendUserChannelMessage(user, channel, msg string) {
+	r.SendProtocolUserChannelMessage(user, channel, msg, r.Format)
 }
 
-func (r Robot) SendUserMessage(msg string) {
-	r.SendProtocolUserMessage(r.User, msg, r.Format)
+// SendUserMessage lets a plugin easily send a DM to a user. If a DM
+// isn't possible, the connector should message the user in a channel.
+func (r Robot) SendUserMessage(user, msg string) {
+	r.SendProtocolUserMessage(user, msg, r.Format)
 }
 
 // Reply directs a message to the user

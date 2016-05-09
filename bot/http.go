@@ -23,8 +23,23 @@ type Attr struct {
 	Attribute string
 }
 
-type Message struct {
+type ChannelMessage struct {
+	Channel string
 	Message string
+	Format  string
+}
+
+type UserMessage struct {
+	User    string
+	Message string
+	Format  string
+}
+
+type UserChannelMessage struct {
+	User    string
+	Channel string
+	Message string
+	Format  string
 }
 
 type ReplyRequest struct {
@@ -93,22 +108,37 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		} else {
 			fmt.Fprintln(rw, bot.GetUserAttribute(a.Attribute))
 		}
-	case "SendChannelMessage", "SendUserChannelMessage", "SendUserMessage":
-		var m Message
-		err := json.Unmarshal(f.FuncArgs, &m)
+	case "SendChannelMessage":
+		var cm ChannelMessage
+		err := json.Unmarshal(f.FuncArgs, &cm)
 		if err != nil {
 			rw.WriteHeader(http.StatusBadRequest)
 			b.Log(Error, "Couldn't decipher JSON command data: ", err)
 			return
 		}
-		switch f.FuncName {
-		case "SendChannelMessage":
-			bot.SendChannelMessage(b.decode(m.Message))
-		case "SendUserChannelMessage":
-			bot.SendUserChannelMessage(b.decode(m.Message))
-		case "SendUserMessage":
-			bot.SendUserMessage(b.decode(m.Message))
+		bot.Channel = cm.Channel
+		bot.SendChannelMessage(cm.Channel, b.decode(cm.Message))
+	case "SendUserChannelMessage":
+		var ucm UserChannelMessage
+		err := json.Unmarshal(f.FuncArgs, &ucm)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			b.Log(Error, "Couldn't decipher JSON command data: ", err)
+			return
 		}
+		bot.User = ucm.User
+		bot.Channel = ucm.Channel
+		bot.SendUserChannelMessage(ucm.User, ucm.Channel, b.decode(ucm.Message))
+	case "SendUserMessage":
+		var um UserMessage
+		err := json.Unmarshal(f.FuncArgs, &um)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			b.Log(Error, "Couldn't decipher JSON command data: ", err)
+			return
+		}
+		bot.User = um.User
+		bot.SendUserMessage(um.User, b.decode(um.Message))
 	case "WaitForReply":
 		var rr ReplyRequest
 		err := json.Unmarshal(f.FuncArgs, &rr)
