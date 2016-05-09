@@ -43,9 +43,8 @@ type UserChannelMessage struct {
 }
 
 type ReplyRequest struct {
-	RegExId     string
-	Timeout     int
-	NeedCommand bool
+	RegExId string
+	Timeout int
 }
 
 func (b *robot) listenHttpJSON() {
@@ -147,7 +146,7 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			b.Log(Error, "Couldn't decipher JSON command data: ", err)
 			return
 		}
-		reply, err := bot.WaitForReply(rr.RegExId, rr.Timeout, rr.NeedCommand)
+		_, _, reply, err := bot.WaitForReply(rr.RegExId, rr.Timeout)
 		if err != nil {
 			rw.WriteHeader(http.StatusServiceUnavailable)
 			b.Log(Error, "Waiting for reply: ", err)

@@ -54,15 +54,20 @@ type Plugin struct {
 
 // a replyWaiter is used when a plugin is waiting for a reply
 type replyWaiter struct {
-	needCommand bool           // Whether or not the the reply should be directed at the robot
-	regex       string         // The text of the regular expression
-	re          *regexp.Regexp // The regular expression the reply needs to match
-	reply       chan string    // The channel to send the reply to when it is received
+	regex        string         // The text of the regular expression
+	re           *regexp.Regexp // The regular expression the reply needs to match
+	replyChannel chan reply     // The channel to send the reply to when it is received
 }
 
 // a reply matcher is used as the key in the replys map
 type replyMatcher struct {
 	user, channel string // Only one reply at a time can be requested for a given user/channel combination
+}
+
+// a reply is sent over the replyWaiter channel when a user replies
+type reply struct {
+	matched bool   // true if the regex matched
+	rep     string // text of the reply if matched=true, else ""
 }
 
 var replies = make(map[replyMatcher]replyWaiter)
@@ -317,17 +322,15 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 		b.Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
 		rep, exists := replies[matcher]
 		if exists {
-			if !rep.needCommand || rep.needCommand && isCommand {
-				b.Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking message \"%s\" against \"%s\"", user, channel, messagetext, rep.regex))
-				if rep.re.MatchString(messagetext) {
-					commandMatched = true
-					// we got a match - so delete the matcher and send the reply
-					delete(replies, matcher)
-					rep.reply <- messagetext
-				}
-			} else {
-				b.Log(Debug, fmt.Sprintf("Not checking reply \"%s\" against regex \"%s\", reply has needCommand set", messagetext, rep.regex))
+			b.Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking message \"%s\" against \"%s\"", user, channel, messagetext, rep.regex))
+			commandMatched = true
+			// we got a match - so delete the matcher and send the reply struct
+			delete(replies, matcher)
+			matched := false
+			if rep.re.MatchString(messagetext) {
+				matched = true
 			}
+			rep.replyChannel <- reply{matched, messagetext}
 		} else {
 			b.Log(Trace, "No matching replyWaiter")
 		}

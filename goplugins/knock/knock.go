@@ -63,24 +63,67 @@ func knock(r bot.Robot, command string, args ...string) {
 		r.Say(r.RandomString(openings))
 		r.Pause(1.2)
 		r.Reply("Knock knock")
-		_, err := r.WaitForReply("whosthere", 14, false)
-		if err != nil {
-			r.Reply(r.RandomString(phooey))
-			return
+		for i := 0; i < 2; i++ {
+			matched, timedOut, _, err := r.WaitForReply("whosthere", 14)
+			fmt.Printf("Return from WFR - matched: %v, timedOut: %v, err: %v", matched, timedOut, err)
+			if timedOut {
+				r.Reply(r.RandomString(phooey))
+				return
+			}
+			if err != nil {
+				r.Reply("... wait, sorry - my joke algorithm broke!")
+			}
+			if !matched {
+				switch i {
+				case 0:
+					fmt.Println("Not matched")
+					r.Pause(0.5)
+					r.Reply("(Uh, didn't you mean to say \"who's there?\")")
+				case 1:
+					r.Reply(r.RandomString(phooey))
+					return
+				}
+			} else {
+				break // matched
+			}
 		}
 		r.Pause(0.5)
 		r.Say(j.First)
-		reply, err := r.WaitForReply("who", 14, false)
-		if err != nil {
-			r.Say(r.RandomString(phooey))
-			return
-		}
-		r.Pause(0.5)
-		// Did the user reply correctly with <j.First> who?
-		if strings.HasPrefix(strings.ToLower(reply), strings.ToLower(j.First)) {
-			r.Say(j.Second)
-		} else {
-			r.Reply(r.RandomString(phooey))
+		for i := 0; i < 2; i++ {
+			matched, timedOut, reply, err := r.WaitForReply("who", 14)
+			if timedOut {
+				r.Reply(r.RandomString(phooey))
+				return
+			}
+			if err != nil {
+				r.Reply("... wait, sorry - my joke algorithm broke!")
+			}
+			if !matched {
+				switch i {
+				case 0:
+					r.Pause(0.5)
+					r.Reply("(Uh, didn't you mean to say \"" + strings.Title(j.First) + " who?\")")
+				case 1:
+					r.Reply(r.RandomString(phooey))
+					return
+				}
+			} else {
+				// Did the user reply correctly with <j.First> who?
+				if strings.HasPrefix(strings.ToLower(reply), strings.ToLower(j.First)) {
+					r.Say(j.Second)
+					return
+				} else {
+					switch i {
+					case 1:
+						r.Pause(0.5)
+						r.Reply("(Uh, didn't you mean to say \"" + strings.Title(j.First) + " who?\")")
+					case 2:
+						r.Pause(0.5)
+						r.Reply(r.RandomString(phooey))
+						return
+					}
+				}
+			}
 		}
 	}
 }

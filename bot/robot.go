@@ -114,9 +114,10 @@ func (r Robot) GetPluginConfig(v interface{}) error {
 // WaitForReply lets a plugin temporarily register a regex for a reply
 // expected to an multi-step command, e.g. sending an email. An error
 // is returned if the user already has a multi-step command in progress
-// in the given channel, or if the timeout expires. If needCommand is true,
-// the reply must be directed at the robot.
-func (r Robot) WaitForReply(regexId string, timeout int, needCommand bool) (string, error) {
+// in the given channel, or if the regex id is wrong. Otherwise, any
+// reply is returned with matched indicating whether the reply matched
+// the regex. If the timeout is reached, timedOut is true and the reply is "".
+func (r Robot) WaitForReply(regexId string, timeout int) (matched, timedOut bool, replyText string, err error) {
 	matcher := replyMatcher{
 		user:    r.User,
 		channel: r.Channel,
@@ -130,7 +131,7 @@ func (r Robot) WaitForReply(regexId string, timeout int, needCommand bool) (stri
 		err := fmt.Errorf("A reply is already being waited on for user %s in channel %s", r.User, r.Channel)
 		r.Log(Warn, err)
 		botLock.Unlock()
-		return "", err
+		return false, false, "", err
 	}
 	b := r.robot
 	b.lock.RLock()
@@ -149,10 +150,9 @@ func (r Robot) WaitForReply(regexId string, timeout int, needCommand bool) (stri
 		err := fmt.Errorf("Unable to resolve a reply matcher for plugin %s, regexID %s", plugin.Name, regexId)
 		r.Log(Error, err)
 		botLock.Unlock()
-		return "", err
+		return false, false, "", err
 	}
-	rep.reply = make(chan string)
-	rep.needCommand = needCommand
+	rep.replyChannel = make(chan reply)
 	r.Log(Trace, fmt.Sprintf("Adding matcher to replies: %q", matcher))
 	replies[matcher] = rep
 	// Now that we've added the reply to the map, unlock the bot so we can block
@@ -168,10 +168,11 @@ func (r Robot) WaitForReply(regexId string, timeout int, needCommand bool) (stri
 		// reply timed out, free up this matcher for later reply requests
 		delete(replies, matcher)
 		botLock.Unlock()
-		return "", err
-	case reply := <-rep.reply:
+		// matched=false, timedOut=true
+		return false, true, "", err
+	case replied, _ := <-rep.replyChannel:
 		// Note: the replies[] entry is deleted in handleMessage
-		return reply, nil
+		return replied.matched, false, replied.rep, nil
 	}
 }
 
