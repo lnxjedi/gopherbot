@@ -71,7 +71,7 @@ func (r Robot) RandomInt(n int) int {
 // GetAttribute returns an attribute of the robot or "" if unknown.
 // Current attributes:
 // name, alias, fullName, contact
-func (r Robot) GetAttribute(a string) string {
+func (r Robot) GetBotAttribute(a string) string {
 	b := r.robot
 	b.lock.RLock()
 	defer b.lock.RUnlock()
@@ -92,7 +92,16 @@ func (r Robot) GetAttribute(a string) string {
 // Current attributes:
 // name(handle), fullName, email, firstName, lastName, phone
 // TODO: supplement data with gopherbot.json user's table
-func (r Robot) GetUserAttribute(a string) string {
+func (r Robot) GetUserAttribute(u, a string) string {
+	attr, _ := r.GetProtocolUserAttribute(u, a)
+	return attr
+}
+
+// GetSenderAttribute returns an attribute of the sending user or "" if unknown.
+// Current attributes:
+// name(handle), fullName, email, firstName, lastName, phone
+// TODO: supplement data with gopherbot.json user's table
+func (r Robot) GetSenderAttribute(a string) string {
 	attr, _ := r.GetProtocolUserAttribute(r.User, a)
 	return attr
 }

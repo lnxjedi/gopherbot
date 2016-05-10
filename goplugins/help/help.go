@@ -15,9 +15,9 @@ var (
 // Define the handler function
 func help(bot bot.Robot, command string, args ...string) {
 	if command == "help" { // user just typed 'help' - the robot should introduce itself
-		botName := bot.GetAttribute("name")
-		botContact := bot.GetAttribute("contact")
-		botAlias := bot.GetAttribute("alias")
+		botName := bot.GetBotAttribute("name")
+		botContact := bot.GetBotAttribute("contact")
+		botAlias := bot.GetBotAttribute("alias")
 		reply := "Hi, I'm "
 		reply += strings.Title(botName) + ", a staff robot. I see you've asked for help.\n\n"
 		reply += "I've been programmed to perform a variety of tasks for your team, and will respond to messages that match specific patterns. " +

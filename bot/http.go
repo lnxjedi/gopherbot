@@ -23,6 +23,11 @@ type Attr struct {
 	Attribute string
 }
 
+type UserAttr struct {
+	User      string
+	Attribute string
+}
+
 type ChannelMessage struct {
 	Channel string
 	Message string
@@ -94,7 +99,7 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	switch f.FuncName {
-	case "GetAttribute", "GetUserAttribute":
+	case "GetSenderAttribute", "GetBotAttribute":
 		var a Attr
 		err := json.Unmarshal(f.FuncArgs, &a)
 		if err != nil {
@@ -102,11 +107,20 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			b.Log(Error, "Couldn't decipher JSON command data: ", err)
 			return
 		}
-		if f.FuncName == "GetAttribute" {
-			fmt.Fprintln(rw, bot.GetAttribute(a.Attribute))
+		if f.FuncName == "GetBotAttribute" {
+			fmt.Fprintln(rw, bot.GetBotAttribute(a.Attribute))
 		} else {
-			fmt.Fprintln(rw, bot.GetUserAttribute(a.Attribute))
+			fmt.Fprintln(rw, bot.GetSenderAttribute(a.Attribute))
 		}
+	case "GetUserAttribute":
+		var ua UserAttr
+		err := json.Unmarshal(f.FuncArgs, &ua)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			b.Log(Error, "Couldn't decipher JSON command data: ", err)
+			return
+		}
+		fmt.Fprintln(rw, bot.GetUserAttribute(ua.User, ua.Attribute))
 	case "SendChannelMessage":
 		var cm ChannelMessage
 		err := json.Unmarshal(f.FuncArgs, &cm)

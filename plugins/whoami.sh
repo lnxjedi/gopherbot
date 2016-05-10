@@ -10,6 +10,6 @@ then
 fi
 shift
 
-USERFULLNAME=$(GetUserAttribute fullName)
-USEREMAIL=$(GetUserAttribute email)
+USERFULLNAME=$(GetSenderAttribute fullName)
+USEREMAIL=$(GetSenderAttribute email)
 Reply "You're $USERFULLNAME, $USEREMAIL"

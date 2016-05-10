@@ -25,9 +25,22 @@ EOF
 	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
 }
 
-GetAttribute(){
+GetBotAttribute(){
 	local GB_FUNCARGS
-	local GB_FUNCNAME="GetAttribute"
+	local GB_FUNCNAME="GetBotAttribute"
+	local ATTR="$1"
+	GB_FUNCARGS=$(cat <<EOF
+{
+	"Attribute": "$ATTR"
+}
+EOF
+)
+	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
+}
+
+GetSenderAttribute(){
+	local GB_FUNCARGS
+	local GB_FUNCNAME="GetSenderAttribute"
 	local ATTR="$1"
 	GB_FUNCARGS=$(cat <<EOF
 {
@@ -41,9 +54,11 @@ EOF
 GetUserAttribute(){
 	local GB_FUNCARGS
 	local GB_FUNCNAME="GetUserAttribute"
-	local ATTR="$1"
+	local GUA_USER="$1"
+	local ATTR="$2"
 	GB_FUNCARGS=$(cat <<EOF
 {
+	"User": "$GUA_USER",
 	"Attribute": "$ATTR"
 }
 EOF
