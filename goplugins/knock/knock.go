@@ -78,6 +78,7 @@ func knock(r bot.Robot, command string, args ...string) {
 					r.Pause(0.5)
 					r.Reply("(Uh, didn't you mean to say \"who's there?\")")
 				case 1:
+					r.Pause(0.5)
 					r.Reply(r.RandomString(phooey))
 					return
 				}
@@ -102,6 +103,7 @@ func knock(r bot.Robot, command string, args ...string) {
 					r.Pause(0.5)
 					r.Reply("(Uh, didn't you mean to say \"" + strings.Title(j.First) + " who?\")")
 				case 1:
+					r.Pause(0.5)
 					r.Reply(r.RandomString(phooey))
 					return
 				}
