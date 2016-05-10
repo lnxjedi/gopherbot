@@ -65,7 +65,6 @@ func knock(r bot.Robot, command string, args ...string) {
 		r.Reply("Knock knock")
 		for i := 0; i < 2; i++ {
 			matched, timedOut, _, err := r.WaitForReply("whosthere", 14)
-			fmt.Printf("Return from WFR - matched: %v, timedOut: %v, err: %v", matched, timedOut, err)
 			if timedOut {
 				r.Reply(r.RandomString(phooey))
 				return
@@ -76,7 +75,6 @@ func knock(r bot.Robot, command string, args ...string) {
 			if !matched {
 				switch i {
 				case 0:
-					fmt.Println("Not matched")
 					r.Pause(0.5)
 					r.Reply("(Uh, didn't you mean to say \"who's there?\")")
 				case 1:
