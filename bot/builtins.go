@@ -81,10 +81,11 @@ func help(bot Robot, command string, args ...string) {
 		case helpLines == 0:
 			bot.Say("Sorry, bub - I got nothin' for ya'")
 		case helpLines > tooLong:
-			bot.SendUserMessage(bot.User, strings.TrimRight(helpOutput, "\n"))
 			if len(bot.Channel) > 0 {
 				bot.Reply("(the help for this channel was pretty long, so I sent you a private message)")
+				helpOutput = "Help for channel: " + bot.Channel + "\n" + helpOutput
 			}
+			bot.SendUserMessage(bot.User, strings.TrimRight(helpOutput, "\n"))
 		default:
 			bot.Say(strings.TrimRight(helpOutput, "\n"))
 		}
