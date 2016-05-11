@@ -6,7 +6,7 @@ import (
 )
 
 // if help is more than tooLong lines long, send a private message
-const tooLong = 14
+const tooLong = 7
 
 // If this list doesn't match what's registered below,
 // you're gonna have a bad time
@@ -82,6 +82,9 @@ func help(bot Robot, command string, args ...string) {
 			bot.Say("Sorry, bub - I got nothin' for ya'")
 		case helpLines > tooLong:
 			bot.SendUserMessage(bot.User, strings.TrimRight(helpOutput, "\n"))
+			if len(bot.Channel) > 0 {
+				bot.Reply("(the help for this channel was pretty long, so I sent you a private message)")
+			}
 		default:
 			bot.Say(strings.TrimRight(helpOutput, "\n"))
 		}
