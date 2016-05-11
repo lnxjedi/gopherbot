@@ -256,43 +256,36 @@ PlugLoop:
 // configuration to determine if the message should be evaluated. Used by
 // both handleMessage and the help builtin.
 func (b *robot) messageAppliesToPlugin(user, channel, message string, plugin Plugin) bool {
-	ok := false
 	directMsg := false
 	if len(channel) == 0 {
 		directMsg = true
 	}
 	if len(plugin.Users) > 0 {
+		userOk := false
 		for _, allowedUser := range plugin.Users {
 			if user == allowedUser {
-				ok = true
+				userOk = true
 			}
 		}
-		if !ok {
+		if !userOk {
 			return false
 		}
 	}
+	if directMsg && !plugin.DisallowDirect {
+		return true
+	}
 	if len(plugin.Channels) > 0 {
-		if !directMsg {
-			for _, pchannel := range plugin.Channels {
-				if pchannel == channel {
-					ok = true
-				}
-			}
-		} else { // direct message
-			if !plugin.DisallowDirect {
-				ok = true
+		for _, pchannel := range plugin.Channels {
+			if pchannel == channel {
+				return true
 			}
 		}
 	} else {
-		if directMsg {
-			if !plugin.DisallowDirect {
-				ok = true
-			}
-		} else {
-			ok = true
+		if plugin.AllChannels {
+			return true
 		}
 	}
-	return ok
+	return false
 }
 
 // handleMessage checks the message against plugin commands and full-message matches,
