@@ -10,6 +10,11 @@ type GopherBot interface {
 	Handler // the Connector needs a Handler
 }
 
+// Logger is used by a Brain for logging errors
+type Logger interface {
+	Log(l LogLevel, v ...interface{})
+}
+
 // Handler is the interface that defines the callback API for Connectors
 type Handler interface {
 	// IncomingMessage is called by the connector for all messages the bot
@@ -34,7 +39,16 @@ type Handler interface {
 	Log(l LogLevel, v ...interface{})
 }
 
-// Chatbot is the interface defining methods that should be provided by
+// SimpleBrain is the simple interface for a configured brain, where the robot
+// handles all locking issues.
+type SimpleBrain interface {
+	// Store stores a blob of data with a string key
+	Store(key string, blob []byte) error
+	// Retrieve returns a blob of data (probably JSON) given a string key
+	Retrieve(key string) (blob []byte, err error)
+}
+
+// Connector is the interface defining methods that should be provided by
 // the connector for use by plugins/robot.
 type Connector interface {
 	// GetProtocolUserAttribute retrieves a piece of information about a user

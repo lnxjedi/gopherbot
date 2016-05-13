@@ -11,6 +11,12 @@ import (
 	"sync"
 )
 
+// PluginNames can be letters, numbers & underscores only, mainly so
+// brain functions can use ':' as a separator.
+const pNameRegex = `[\w]+`
+
+var pNameRe = regexp.MustCompile(pNameRegex)
+
 // PluginHelp specifies keywords and help text for the 'bot help system
 type PluginHelp struct {
 	Keywords []string // match words for 'help XXX'
@@ -136,6 +142,10 @@ func (b *robot) loadPluginConfig() {
 	}
 
 	for _, plug := range b.externalPlugins {
+		if !pNameRe.MatchString(plug) {
+			b.Log(Error, "Plugin name \"%s\" doesn't matche plugin name regex \"%s\", skipping")
+			continue
+		}
 		pnames[i] = plug
 		if pset[plug] {
 			b.Log(Error, "External plugin name duplicates builtIn, skipping:", plug)
@@ -152,6 +162,10 @@ func (b *robot) loadPluginConfig() {
 
 PlugHandlerLoop:
 	for plug, _ := range pluginHandlers {
+		if !pNameRe.MatchString(plug) {
+			b.Log(Error, "Plugin name \"%s\" doesn't matche plugin name regex \"%s\", skipping")
+			continue
+		}
 		if pset[plug] { // have to check builtIns, already loaded
 			for _, plugin := range builtIns {
 				if plug == plugin {

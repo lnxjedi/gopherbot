@@ -14,6 +14,9 @@ import (
 type botconf struct {
 	AdminContact    string          // Contact info for whomever administers the robot
 	Protocol        string          // Name of the connector protocol to use, e.g. "slack"
+	ProtocolConfig  json.RawMessage // Protocol-specific configuration
+	Brain           string          // Type of Brain to use
+	BrainConfig     json.RawMessage // Brain-specific configuration
 	Name            string          // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
 	DefaultChannels []string        // Channels where plugins are active by default, e.g. [ "general", "random" ]
 	IgnoreUsers     []string        // Users the 'bot never talks to - like other bots
@@ -23,7 +26,6 @@ type botconf struct {
 	Alias           string          // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
 	LocalPort       string          // Port number for listening on localhost, for CLI plugins
 	LogLevel        string          // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
-	ProtocolConfig  json.RawMessage // Protocol-specific configuration
 }
 
 // getConfigFile loads a configuration file first from installPath, then
@@ -109,6 +111,13 @@ func (b *robot) loadConfig() error {
 	}
 	if config.Name != "" {
 		b.name = config.Name
+	}
+
+	if config.Brain != "" {
+		b.brainProvider = config.Brain
+	}
+	if config.BrainConfig != nil {
+		b.brainConfig = config.BrainConfig
 	}
 
 	if config.Protocol != "" {
