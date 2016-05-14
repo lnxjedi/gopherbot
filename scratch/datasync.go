@@ -13,6 +13,19 @@ var glist []string = []string{"bananas"}
 // A list of items to add to the grocery list
 var alist []string = []string{
 	"cereal",
+	"bricks",
+	"tiles",
+	"lollipops",
+	"gum",
+	"drinks",
+	"beer",
+	"tortillas",
+	"lemons",
+	"pears",
+	"fritos",
+	"cake",
+	"broccoli",
+	"cheezits",
 	"carrots",
 	"milk",
 	"cheese",
@@ -142,20 +155,26 @@ func main() {
 	for i := 0; i < len(alist); i++ {
 		wg.Add(1)
 		go func(i int) {
+			log.Printf("Thread #%d waiting for the lock", i)
 			gl, lt := checkout("grocerylist") // get a 1 second exclusive lock on grocerylist
 			log.Printf("Thread #%d acquired the lock", i)
-			time.Sleep(time.Duration(i*100) * time.Millisecond)
+			sleep := i / 2 * 100
+			if i%2 == 0 {
+				time.Sleep(time.Duration(sleep) * time.Millisecond)
+			} else {
+				sleep = 0
+			}
 			gl = append(gl, alist[i])
 			err := update("grocerylist", gl, lt)
 			if err != nil {
-				log.Printf("*** ERROR *** Thread #%d error adding %s to grocery list after sleeping %d milliseconds: %v\n", i, alist[i], i*100, err)
+				log.Printf("*** ERROR *** Thread #%d error adding %s to grocery list after sleeping %d milliseconds: %v\n", i, alist[i], sleep, err)
 			} else {
-				log.Printf("Thread #%d successfully added %s to the grocery list after sleeping %d milliseconds, exiting", i, alist[i], i*100)
+				log.Printf("Thread #%d successfully added %s to the grocery list after sleeping %d milliseconds, exiting", i, alist[i], sleep)
 			}
 			wg.Done()
 		}(i)
 	}
 	wg.Wait()
 	fmt.Println()
-	fmt.Printf("List at end: %v\n", glist)
+	fmt.Printf("List at end: %v, tried to add %d items, total %d\n", glist, len(alist), len(glist))
 }
