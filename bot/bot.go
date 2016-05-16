@@ -31,6 +31,7 @@ type robot struct {
 	name            string          // e.g. "Gort"
 	fullName        string          // e.g. "Robbie Robot"
 	adminContact    string          // who to contact for problems with the robot.
+	email           string          // the from: when the robot sends email
 	ignoreUsers     []string        // list of users to never listen to, like other bots
 	preRegex        *regexp.Regexp  // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
 	postRegex       *regexp.Regexp  // regex for matching, e.g. "open the pod bay doors, hal"

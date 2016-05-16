@@ -13,6 +13,7 @@ import (
 // botconf specifies 'bot configuration, and is read from $GOPHER_LOCALDIR/botconf.json
 type botconf struct {
 	AdminContact    string          // Contact info for whomever administers the robot
+	Email           string          // From: address when the robot wants to send an email
 	Protocol        string          // Name of the connector protocol to use, e.g. "slack"
 	ProtocolConfig  json.RawMessage // Protocol-specific configuration
 	Brain           string          // Type of Brain to use
@@ -97,6 +98,9 @@ func (b *robot) loadConfig() error {
 
 	if config.AdminContact != "" {
 		b.adminContact = config.AdminContact
+	}
+	if config.Email != "" {
+		b.email = config.Email
 	}
 	if config.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(config.Alias)

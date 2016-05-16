@@ -68,7 +68,7 @@ func (r Robot) RandomInt(n int) int {
 	return random.Intn(n)
 }
 
-// GetAttribute returns an attribute of the robot or "" if unknown.
+// GetBotAttribute returns an attribute of the robot or "" if unknown.
 // Current attributes:
 // name, alias, fullName, contact
 func (r Robot) GetBotAttribute(a string) string {
@@ -82,6 +82,8 @@ func (r Robot) GetBotAttribute(a string) string {
 		return b.fullName
 	case "alias":
 		return string(b.alias)
+	case "email":
+		return b.email
 	case "contact", "admin", "adminContact":
 		return b.adminContact
 	}
