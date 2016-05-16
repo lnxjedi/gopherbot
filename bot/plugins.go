@@ -241,10 +241,7 @@ PlugLoop:
 		plugin.Name = plug
 		// Generate the random id
 		p := make([]byte, 16)
-		_, rerr := random.Read(p)
-		if rerr != nil {
-			log.Fatal("Couldn't generate plugin id:", rerr)
-		}
+		random.Read(p)
 		plugin.pluginID = fmt.Sprintf("%x", p)
 		pfinder[plugin.pluginID] = plugIndex
 		// Store this plugin's config in the temporary list

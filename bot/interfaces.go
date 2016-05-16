@@ -42,10 +42,12 @@ type Handler interface {
 // SimpleBrain is the simple interface for a configured brain, where the robot
 // handles all locking issues.
 type SimpleBrain interface {
-	// Store stores a blob of data with a string key
+	// Store stores a blob of data with a string key, returns error
+	// if there's a problem storing the datum.
 	Store(key string, blob []byte) error
-	// Retrieve returns a blob of data (probably JSON) given a string key
-	Retrieve(key string) (blob []byte, err error)
+	// Retrieve returns a blob of data (probably JSON) given a string key,
+	// and exists=true if the data blob was found.
+	Retrieve(key string) (blob []byte, exists bool)
 }
 
 // Connector is the interface defining methods that should be provided by

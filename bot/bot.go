@@ -41,7 +41,7 @@ type robot struct {
 	protocolConfig  json.RawMessage // Raw JSON configuration to pass to the connector
 	brainProvider   string          // Type of Brain provider to use
 	brainConfig     json.RawMessage // Raw JSON configuration to pass to the brain
-	brain           interface{}     // Interface for robot to Store and Retrieve data
+	brain           SimpleBrain     // Interface for robot to Store and Retrieve data
 	plugins         []Plugin        // Slice of all the configured plugins
 	plugIDmap       map[string]int  // Map of pluginID to it's index in plugins
 	externalPlugins []string        // List of external plugins to load
