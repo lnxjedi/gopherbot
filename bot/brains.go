@@ -149,10 +149,12 @@ func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken
 	if err != nil {
 		return "", false, err
 	}
-	err = json.Unmarshal(*dbytes, datum)
-	if err != nil {
-		r.Log(Error, fmt.Errorf("Unmarshalling datum %s:", key, err))
-		return "", false, err
+	if exists {
+		err = json.Unmarshal(*dbytes, datum)
+		if err != nil {
+			r.Log(Error, fmt.Errorf("Unmarshalling datum %s:", key, err))
+			return "", false, err
+		}
 	}
 	return locktoken, exists, nil
 }
