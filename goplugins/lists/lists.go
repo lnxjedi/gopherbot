@@ -4,7 +4,6 @@ package lists
 import (
 	"bytes"
 	"fmt"
-	"net/smtp"
 	"strings"
 
 	"github.com/parsley42/gopherbot/bot"
@@ -120,22 +119,8 @@ func lists(r bot.Robot, command string, args ...string) {
 			return
 		}
 		lineEnd := "\n"
-		var mailTo, mailFrom, botName string
 		if command == "send" {
 			lineEnd = "\r\n"
-			mailFrom = r.GetBotAttribute("email")
-			botName = r.GetBotAttribute("fullName")
-			mailTo = r.GetSenderAttribute("email")
-			if len(mailFrom) == 0 {
-				r.Say("Sorry, I don't have an email address to send from!")
-				return
-			}
-			if len(mailTo) == 0 {
-				r.Say("Sorry, I wasn't able to look up your email address")
-				return
-			}
-			fmt.Fprintf(&listBuffer, "From: %s <%s>\r\n", botName, mailFrom)
-			fmt.Fprintf(&listBuffer, "Subject: The %s list\r\n\r\n", listName)
 		}
 		for _, li := range list {
 			fmt.Fprintf(&listBuffer, "%s%s", li, lineEnd)
@@ -144,49 +129,11 @@ func lists(r bot.Robot, command string, args ...string) {
 		case "show":
 			r.Say(fmt.Sprintf("Here's what I have on the %s list:\n%s", listName, listBuffer.String()))
 		case "send":
-			// Connect to the remote SMTP server.
-			c, err := smtp.Dial("127.0.0.1:25")
-			if err != nil {
-				r.Say("Couldn't connect to localhost email server, have somebody check my log file")
-				r.Log(bot.Error, fmt.Errorf("Sending email: %v", err))
+			if err := r.Email(fmt.Sprintf("The %s list", listName), &listBuffer); err != nil {
+				r.Say("Sorry, there was an error sending the email - have somebody check the my log file")
 				return
 			}
-			if err := c.Mail(mailFrom); err != nil {
-				r.Say("Sorry, I had a problem setting the sender, have somebody check my log file")
-				r.Log(bot.Error, fmt.Errorf("Setting sender to %s: %v", mailFrom, err))
-				return
-			}
-			if err := c.Rcpt(mailTo); err != nil {
-				r.Say("Sorry, I had a problem setting the recipient, have somebody check my log file")
-				r.Log(bot.Error, fmt.Errorf("Setting recipient to %s: %v", mailTo, err))
-				return
-			}
-			// Send the email body.
-			wc, err := c.Data()
-			if err != nil {
-				r.Say("Sorry, I had a problem starting the message body, have somebody check my log file")
-				r.Log(bot.Error, fmt.Errorf("Starting message body: %v", err))
-				return
-			}
-			_, err = wc.Write(listBuffer.Bytes())
-			if err != nil {
-				r.Say("Sorry, I had a problem sending the message body, have somebody check my log file")
-				r.Log(bot.Error, fmt.Errorf("Sending message body: %v", err))
-				return
-			}
-			err = wc.Close()
-			if err != nil {
-				r.Say("Sorry, I had a problem closing the message body, have somebody check my log file")
-				r.Log(bot.Error, fmt.Errorf("Closing message body: %v", err))
-				return
-			}
-			err = c.Quit()
-			if err != nil {
-				r.Say("Sorry, I had a problem closing the mail connection, have somebody check my log file")
-				r.Log(bot.Error, fmt.Errorf("Closing mail connection: %v", err))
-				return
-			}
-			r.Say(fmt.Sprintf("Ok, I sent the %s list to %s - look for an email from %s", listName, mailTo, mailFrom))
+			r.Say(fmt.Sprintf("Ok, I sent the %s list to you - look for email from %s", listName, r.GetBotAttribute("email")))
 		}
 	case "add":
 		// Case sensitive input, case insensitve equality checking
