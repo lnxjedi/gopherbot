@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base32"
 	"fmt"
-	"net/url"
 	"strings"
 
 	otp "github.com/dgryski/dgoogauth"
@@ -40,14 +39,14 @@ func launchCode(bot Robot, command string, args ...string) {
 	var userOTP otp.OTPConfig
 	otpKey := "bot:OTP:" + bot.User
 	updated := false
-	lock, exists, err := bot.CheckoutDatum(otpKey, &userOTP, true)
+	lock, exists, err := bot.checkoutDatum(otpKey, &userOTP, true)
 	if err != nil {
 		bot.Say("Yikes - something went wrong with my brain, have somebody check my log")
 		return
 	}
 	defer func() {
 		if updated {
-			err := bot.UpdateDatum(otpKey, lock, &userOTP)
+			err := bot.updateDatum(otpKey, lock, &userOTP)
 			if err != nil {
 				bot.Log(Error, fmt.Errorf("Saving OTP config: %v", err))
 				bot.Reply("Good grief. I'm having trouble remembering your launch codes - have somebody check my log")
@@ -55,7 +54,7 @@ func launchCode(bot Robot, command string, args ...string) {
 		} else {
 			// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
 			// in case there's another thread waiting.
-			bot.Checkin(otpKey, lock)
+			bot.checkin(otpKey, lock)
 		}
 	}()
 	switch command {
@@ -78,9 +77,8 @@ func launchCode(bot Robot, command string, args ...string) {
 		random.Read(otpb)
 		userOTP.Secret = base32.StdEncoding.EncodeToString(otpb)
 		userOTP.WindowSize = 2
-		otpuri := userOTP.ProvisionURIWithIssuer(user, issuer)
 		var codeMail bytes.Buffer
-		fmt.Fprintf(&codeMail, "https://chart.googleapis.com/chart?chs=%dx%d&cht=qr&choe=UTF-8&chl=%s", qrsize, qrsize, url.QueryEscape(otpuri))
+		fmt.Fprintf(&codeMail, "For your authenticator:\n%s\n", userOTP.Secret)
 		if err := bot.Email("Your launch codes - if you print this email, please chew it up and swallow it", &codeMail); err != nil {
 			bot.Reply("There was a problem sending your launch codes, contact an administrator")
 			return

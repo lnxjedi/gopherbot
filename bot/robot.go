@@ -45,7 +45,7 @@ func (r Robot) CheckAdmin() bool {
 func (r Robot) CheckOTP(code string) bool {
 	otpKey := "bot:OTP:" + r.User
 	var userOTP otp.OTPConfig
-	_, exists, err := r.CheckoutDatum(otpKey, &userOTP, false)
+	_, exists, err := r.checkoutDatum(otpKey, &userOTP, false)
 	if err != nil {
 		return false
 	}

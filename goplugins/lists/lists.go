@@ -16,7 +16,6 @@ const maxlistnamelen = 14
 const datumName = "listmap"
 
 type itemList []string
-type listMap map[string]itemList
 
 // Define the handler function
 func lists(r bot.Robot, command string, args ...string) {

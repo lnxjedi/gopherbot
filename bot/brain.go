@@ -168,14 +168,19 @@ func (r *Robot) checkoutDatum(key string, datum interface{}, rw bool) (locktoken
 
 // Checkin unlocks a datum without updating it
 func (r *Robot) Checkin(key, locktoken string) {
+	b := r.robot
+	b.lock.RLock()
+	pluginName := b.plugins[b.plugIDmap[r.pluginID]].Name
+	b.lock.RUnlock()
+	key = pluginName + ":" + key
+	r.checkin(key, locktoken)
+}
+
+// checkin is the internal version of Checkin that uses the key as-is
+func (r *Robot) checkin(key, locktoken string) {
 	ltLock.Lock()
 	if _, ok := lockTokens[locktoken]; ok { // see if the lock was even held
 		delete(lockTokens, locktoken)
-		b := r.robot
-		b.lock.RLock()
-		pluginName := b.plugins[b.plugIDmap[r.pluginID]].Name
-		b.lock.RUnlock()
-		key = pluginName + ":" + key
 		dataLock.Lock()
 		dl, ok := data[key]
 		if ok {
@@ -194,6 +199,16 @@ func (r *Robot) Checkin(key, locktoken string) {
 // a struct to marshall and a (hopefully good) lock token. If err != nil, the
 // update failed.
 func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) error {
+	b := r.robot
+	b.lock.RLock()
+	pluginName := b.plugins[b.plugIDmap[r.pluginID]].Name
+	b.lock.RUnlock()
+	key = pluginName + ":" + key
+	return r.updateDatum(key, locktoken, datum)
+}
+
+// updateDatum is the internal version of UpdateDatum that uses the key as-is
+func (r *Robot) updateDatum(key, locktoken string, datum interface{}) error {
 	dbytes, err := json.Marshal(datum)
 	if err != nil {
 		errmsg := fmt.Errorf("Unmarshalling datum: %v", err)
@@ -201,10 +216,6 @@ func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) error {
 		return errmsg
 	}
 	b := r.robot
-	b.lock.RLock()
-	pluginName := b.plugins[b.plugIDmap[r.pluginID]].Name
-	b.lock.RUnlock()
-	key = pluginName + ":" + key
 	err = b.update(key, locktoken, &dbytes)
 	if err != nil {
 		b.Log(Error, fmt.Errorf("Updating datum %s: %v", key, err))
