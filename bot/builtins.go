@@ -84,7 +84,7 @@ func launchCode(bot Robot, command string, args ...string) {
 			return
 		}
 		updated = true
-		bot.Reply("I've emailed a link for your launch codes to you - please delete it promptly")
+		bot.Reply("I've emailed your launch codes - please delete it promptly")
 	case "check":
 		if !exists {
 			bot.Reply("It doesn't appear you've been issued any launch codes, try 'send launch codes'")
