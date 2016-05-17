@@ -1,7 +1,10 @@
 package bot
 
 import (
+	"bytes"
+	"encoding/base32"
 	"fmt"
+	"net/url"
 	"strings"
 
 	otp "github.com/dgryski/dgoogauth"
@@ -9,6 +12,9 @@ import (
 
 // if help is more than tooLong lines long, send a private message
 const tooLong = 7
+
+// Size of QR code
+const qrsize = 400
 
 // If this list doesn't match what's registered below,
 // you're gonna have a bad time
@@ -27,34 +33,33 @@ func init() {
 
 /* builtin plugins, like help */
 
-type OTPConfig otp.OTPConfig
-
 func launchCode(bot Robot, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
-	var userOTP OTPConfig
+	var userOTP otp.OTPConfig
+	otpKey := "bot:OTP:" + bot.User
 	updated := false
-	lock, exists, err := bot.CheckoutDatum(bot.User, &userOTP, true)
+	lock, exists, err := bot.CheckoutDatum(otpKey, &userOTP, true)
 	if err != nil {
 		bot.Say("Yikes - something went wrong with my brain, have somebody check my log")
 		return
 	}
 	defer func() {
 		if updated {
-			err := r.UpdateDatum(datumName, lock, lists)
+			err := bot.UpdateDatum(otpKey, lock, &userOTP)
 			if err != nil {
-				r.Log(bot.Error, fmt.Errorf("Saving OTP config: %v", err))
-				r.Reply("Good grief. I'm having trouble remembering your launch codes - have somebody check my log")
+				bot.Log(Error, fmt.Errorf("Saving OTP config: %v", err))
+				bot.Reply("Good grief. I'm having trouble remembering your launch codes - have somebody check my log")
 			}
 		} else {
 			// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
 			// in case there's another thread waiting.
-			r.Checkin(datumName, lock)
+			bot.Checkin(otpKey, lock)
 		}
 	}()
 	switch command {
-	case "sendCodes":
+	case "send":
 		if exists {
 			bot.Reply("I've already sent you the launch codes, contact an administrator if you're having problems")
 			return
@@ -74,6 +79,30 @@ func launchCode(bot Robot, command string, args ...string) {
 		userOTP.Secret = base32.StdEncoding.EncodeToString(otpb)
 		userOTP.WindowSize = 2
 		otpuri := userOTP.ProvisionURIWithIssuer(user, issuer)
+		var codeMail bytes.Buffer
+		fmt.Fprintf(&codeMail, "https://chart.googleapis.com/chart?chs=%dx%d&cht=qr&choe=UTF-8&chl=%s", qrsize, qrsize, url.QueryEscape(otpuri))
+		if err := bot.Email("Your launch codes - if you print this email, please chew it up and swallow it", &codeMail); err != nil {
+			bot.Reply("There was a problem sending your launch codes, contact an administrator")
+			return
+		}
+		updated = true
+		bot.Reply("I've emailed a link for your launch codes to you - please delete it promptly")
+	case "check":
+		if !exists {
+			bot.Reply("It doesn't appear you've been issued any launch codes, try 'send launch codes'")
+			return
+		}
+		valid, err := userOTP.Authenticate(args[0])
+		if err != nil {
+			bot.Log(Error, fmt.Errorf("Problem authenticating launch code: %v", err))
+			bot.Reply("There was an error authenticating your launch code, have an adminstrator check the log")
+			return
+		}
+		if valid {
+			bot.Reply("The launch code was valid")
+		} else {
+			bot.Reply("You supplied an invalid launch code, and I've contacted POTUS and the NSA")
+		}
 	}
 }
 

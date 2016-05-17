@@ -5,16 +5,20 @@
 		{
 			"Keywords": [ "send", "launch", "codes" ],
 			"Helptext": [ "(bot), send launch codes - one-time send of URL for configuring Google Authenticator, for 2FA commands" ]
+		},
+		{
+			"Keywords": [ "check", "launch", "codes", "code" ],
+			"Helptext": [ "(bot), check launch code <code> - verify launch codes operation without launching any missiles" ]
 		}
 	],
 	"CommandMatches": [
 		{
-			"Command": "sendCodes",
-			"Regex": "(?i:send (?:launch )?codes)"
+			"Command": "send",
+			"Regex": "(?i:send (?:launch )?codes?)"
 		},
 		{
-			"Command": "robot",
-			"Regex": "dump robot"
+			"Command": "check",
+			"Regex": "(?i:check (?:launch )?codes? ([\\d]{6}))"
 		}
 	]
 }

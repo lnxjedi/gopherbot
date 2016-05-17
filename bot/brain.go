@@ -144,6 +144,12 @@ func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken
 	pluginName := b.plugins[b.plugIDmap[r.pluginID]].Name
 	b.lock.RUnlock()
 	key = pluginName + ":" + key
+	return r.checkoutDatum(key, datum, rw)
+}
+
+// checkoutDatum is the robot internal version of CheckoutDatum that uses
+// the provided key as-is.
+func (r *Robot) checkoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, err error) {
 	var dbytes *[]byte
 	locktoken, dbytes, exists, err = r.checkout(key, rw)
 	if err != nil {

@@ -3,6 +3,7 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	otp "github.com/dgryski/dgoogauth"
 	"time"
 )
 
@@ -35,6 +36,29 @@ func (r Robot) CheckAdmin() bool {
 		if r.User == adminUser {
 			return true
 		}
+	}
+	return false
+}
+
+// CheckOTP returns true if the provided string is a valid OTP code for the user.
+// See the builtInlaunchcodes.go plugin.
+func (r Robot) CheckOTP(code string) bool {
+	otpKey := "bot:OTP:" + r.User
+	var userOTP otp.OTPConfig
+	_, exists, err := r.CheckoutDatum(otpKey, &userOTP, false)
+	if err != nil {
+		return false
+	}
+	if !exists {
+		return false
+	}
+	valid, err := userOTP.Authenticate(code)
+	if err != nil {
+		r.Log(Error, fmt.Errorf("Problem authenticating launch code: %v", err))
+		return false
+	}
+	if valid {
+		return true
 	}
 	return false
 }
