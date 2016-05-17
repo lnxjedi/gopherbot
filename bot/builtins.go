@@ -3,6 +3,8 @@ package bot
 import (
 	"fmt"
 	"strings"
+
+	otp "github.com/dgryski/dgoogauth"
 )
 
 // if help is more than tooLong lines long, send a private message
@@ -20,9 +22,60 @@ func init() {
 	RegisterPlugin("builtIndump", dump)
 	RegisterPlugin("builtInhelp", help)
 	RegisterPlugin("builtInreload", reload)
+	RegisterPlugin("builtInlaunchcodes", launchCode)
 }
 
 /* builtin plugins, like help */
+
+type OTPConfig otp.OTPConfig
+
+func launchCode(bot Robot, command string, args ...string) {
+	if command == "init" {
+		return // ignore init
+	}
+	var userOTP OTPConfig
+	updated := false
+	lock, exists, err := bot.CheckoutDatum(bot.User, &userOTP, true)
+	if err != nil {
+		bot.Say("Yikes - something went wrong with my brain, have somebody check my log")
+		return
+	}
+	defer func() {
+		if updated {
+			err := r.UpdateDatum(datumName, lock, lists)
+			if err != nil {
+				r.Log(bot.Error, fmt.Errorf("Saving OTP config: %v", err))
+				r.Reply("Good grief. I'm having trouble remembering your launch codes - have somebody check my log")
+			}
+		} else {
+			// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
+			// in case there's another thread waiting.
+			r.Checkin(datumName, lock)
+		}
+	}()
+	switch command {
+	case "sendCodes":
+		if exists {
+			bot.Reply("I've already sent you the launch codes, contact an administrator if you're having problems")
+			return
+		}
+		user := bot.GetSenderAttribute("email")
+		if len(user) == 0 {
+			bot.Reply("Problem - I couldn't get your email address; check with my administrator")
+			return
+		}
+		issuer := bot.GetBotAttribute("fullName")
+		if len(issuer) == 0 {
+			bot.Reply("Problem - I need to have a full name; check with my administrator")
+			return
+		}
+		otpb := make([]byte, 10)
+		random.Read(otpb)
+		userOTP.Secret = base32.StdEncoding.EncodeToString(otpb)
+		userOTP.WindowSize = 2
+		otpuri := userOTP.ProvisionURIWithIssuer(user, issuer)
+	}
+}
 
 func help(bot Robot, command string, args ...string) {
 	// Get access to the underlying struct

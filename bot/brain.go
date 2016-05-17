@@ -147,6 +147,7 @@ func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken
 	var dbytes *[]byte
 	locktoken, dbytes, exists, err = r.checkout(key, rw)
 	if err != nil {
+		r.Log(Error, fmt.Errorf("Reading key %s from brain:", key, err))
 		return "", false, err
 	}
 	if exists {
