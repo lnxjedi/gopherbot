@@ -1,0 +1,24 @@
+{
+	"AllChannels": true,
+	"RequireAdmin": true,
+	"Help": [
+		{
+			"Keywords": [ "reload" ],
+			"Helptext": [ "(bot), reload - have the robot reload configuration files" ]
+		},
+		{
+			"Keywords": [ "quit" ],
+			"Helptext": [ "(bot), quit - request a graceful shutdown" ]
+		}
+	],
+	"CommandMatches": [
+		{
+			"Command": "reload",
+			"Regex": "reload"
+		},
+		{
+			"Command": "quit",
+			"Regex": "(?:quit|exit)"
+		}
+	]
+}

@@ -19,14 +19,15 @@ const qrsize = 400
 // you're gonna have a bad time
 var builtIns = []string{
 	"builtInhelp",
-	"builtInreload",
+	"builtInadmin",
 	"builtIndump",
+	"builtInlaunchcodes",
 }
 
 func init() {
 	RegisterPlugin("builtIndump", dump)
 	RegisterPlugin("builtInhelp", help)
-	RegisterPlugin("builtInreload", reload)
+	RegisterPlugin("builtInadmin", admin)
 	RegisterPlugin("builtInlaunchcodes", launchCode)
 }
 
@@ -77,6 +78,7 @@ func launchCode(bot Robot, command string, args ...string) {
 		random.Read(otpb)
 		userOTP.Secret = base32.StdEncoding.EncodeToString(otpb)
 		userOTP.WindowSize = 2
+		userOTP.DisallowReuse = []int{}
 		var codeMail bytes.Buffer
 		fmt.Fprintf(&codeMail, "For your authenticator:\n%s\n", userOTP.Secret)
 		if err := bot.Email("Your launch codes - if you print this email, please chew it up and swallow it", &codeMail); err != nil {
@@ -96,6 +98,8 @@ func launchCode(bot Robot, command string, args ...string) {
 			bot.Reply("There was an error authenticating your launch code, have an adminstrator check the log")
 			return
 		}
+		// Whether valid or not, the otp lib may update the struct
+		updated = true
 		if valid {
 			bot.Reply("The launch code was valid")
 		} else {
@@ -199,7 +203,7 @@ func dump(bot Robot, command string, args ...string) {
 	}
 }
 
-func reload(bot Robot, command string, args ...string) {
+func admin(bot Robot, command string, args ...string) {
 	// Get access to the underlying struct
 	b := bot.robot
 	if command == "reload" {
