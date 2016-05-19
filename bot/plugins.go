@@ -53,7 +53,7 @@ type Plugin struct {
 	ReplyMatchers  []InputMatcher  // Input matchers for replies to questions, only match after a RequestContinuation
 	MessageMatches []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
 	CatchAll       bool            // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
-	Config         json.RawMessage // Plugin Configuration - the plugin needs to decode this
+	Config         json.RawMessage // Plugin Configuration
 	pluginID       string          // 32-char random ID for identifying plugins in callbacks
 	lock           sync.Mutex      // For use with the robot's Brain
 }
@@ -118,6 +118,8 @@ func RegisterPlugin(name string, handler func(bot Robot, command string, args ..
 // $GOPHER_LOCALDIR/plugins/<pluginname>.json (excepting builtins), assigns
 // a pluginID, and stores the resulting array in b.plugins. Bad plugins
 // are skipped and logged.
+// Plugin configuration is initially loaded into temporary data structures,
+// then stored in the robot under the global bot lock.
 func (b *robot) loadPluginConfig() {
 	i := 0
 
@@ -143,7 +145,7 @@ func (b *robot) loadPluginConfig() {
 
 	for _, plug := range b.externalPlugins {
 		if !pNameRe.MatchString(plug) {
-			b.Log(Error, "Plugin name \"%s\" doesn't matche plugin name regex \"%s\", skipping")
+			b.Log(Error, "Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping")
 			continue
 		}
 		pnames[i] = plug
@@ -163,7 +165,7 @@ func (b *robot) loadPluginConfig() {
 PlugHandlerLoop:
 	for plug, _ := range pluginHandlers {
 		if !pNameRe.MatchString(plug) {
-			b.Log(Error, "Plugin name \"%s\" doesn't matche plugin name regex \"%s\", skipping")
+			b.Log(Error, "Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping")
 			continue
 		}
 		if pset[plug] { // have to check builtIns, already loaded

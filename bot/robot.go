@@ -45,10 +45,23 @@ func (r Robot) CheckAdmin() bool {
 func (r Robot) CheckOTP(code string) bool {
 	otpKey := "bot:OTP:" + r.User
 	var userOTP otp.OTPConfig
-	_, exists, err := r.checkoutDatum(otpKey, &userOTP, false)
+	updated := false
+	_, exists, err := r.checkoutDatum(otpKey, &userOTP, true)
 	if err != nil {
 		return false
 	}
+	defer func() {
+		if updated {
+			err := bot.updateDatum(otpKey, lock, &userOTP)
+			if err != nil {
+				bot.Log(Error, fmt.Errorf("Saving OTP config: %v", err))
+			}
+		} else {
+			// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
+			// in case there's another thread waiting.
+			bot.checkin(otpKey, lock)
+		}
+	}()
 	if !exists {
 		return false
 	}
