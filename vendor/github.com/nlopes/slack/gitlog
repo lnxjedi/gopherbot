@@ -1,7 +1,7 @@
-commit 14b5c06da227e7d8fe3e411b58ace3977df0d00d
+commit e337a7316d3fe9aa55b7063035d6d32f3dbcaeb9
 Author: Norberto Lopes <nlopes.ml@gmail.com>
-Date:   Wed Mar 30 08:13:57 2016 +0100
+Date:   Sat Apr 30 17:04:49 2016 +0100
 
-    Merge pull request #66 from prashanthsadasivan/master
+    Merge pull request #67 from mihaip/master
     
-    adding account_inactive to fatal errors during websocket connection
+    Parse reactions in messages.

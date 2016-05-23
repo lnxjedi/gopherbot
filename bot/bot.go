@@ -8,6 +8,7 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"regexp"
 	"sync"
@@ -30,6 +31,7 @@ type robot struct {
 	name            string          // e.g. "Gort"
 	fullName        string          // e.g. "Robbie Robot"
 	adminContact    string          // who to contact for problems with the robot.
+	email           string          // the from: when the robot sends email
 	ignoreUsers     []string        // list of users to never listen to, like other bots
 	preRegex        *regexp.Regexp  // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
 	postRegex       *regexp.Regexp  // regex for matching, e.g. "open the pod bay doors, hal"
@@ -38,6 +40,9 @@ type robot struct {
 	lock            sync.RWMutex    // for safe updating of bot data structures
 	protocol        string          // Name of the protocol, e.g. "slack"
 	protocolConfig  json.RawMessage // Raw JSON configuration to pass to the connector
+	brainProvider   string          // Type of Brain provider to use
+	brainConfig     json.RawMessage // Raw JSON configuration to pass to the brain
+	brain           SimpleBrain     // Interface for robot to Store and Retrieve data
 	plugins         []Plugin        // Slice of all the configured plugins
 	plugIDmap       map[string]int  // Map of pluginID to it's index in plugins
 	externalPlugins []string        // List of external plugins to load
@@ -73,6 +78,13 @@ func New(cpath, epath string) (GopherBot, error) {
 
 	if err := b.loadConfig(); err != nil {
 		return nil, err
+	}
+	if len(b.brainProvider) > 0 {
+		provider, ok := brains[b.brainProvider]
+		if !ok {
+			log.Fatalf("No provider registered for brain: \"%s\"", b.brainProvider)
+		}
+		b.brain = provider(b, b.brainConfig)
 	}
 	h := handler{bot: b}
 	g := gopherBot{bot: b, Handler: h}

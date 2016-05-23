@@ -84,7 +84,8 @@ EOF
 }
 
 SendUserMessage(){
-	local GB_FUNCARGS
+	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	local GB_FUNCARGS GB_RETVAL
 	local GB_FUNCNAME="SendUserMessage"
 	local SUM_USER=$1
 	shift
@@ -93,16 +94,18 @@ SendUserMessage(){
 
 	GB_FUNCARGS=$(cat <<EOF
 {
-	"User": "$SUM_USER"
+	"User": "$SUM_USER",
 	"Message": "$MESSAGE"
 }
 EOF
 )
 	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
+	GB_RETVAL=$?; GB_FORMAT=variable; return $GB_RETVAL
 }
 
 SendUserChannelMessage(){
-	local GB_FUNCARGS
+	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	local GB_FUNCARGS GB_RETVAL
 	local GB_FUNCNAME="SendUserChannelMessage"
 	local SUCM_USER=$1
 	local SUCM_CHANNEL=$2
@@ -119,10 +122,12 @@ SendUserChannelMessage(){
 EOF
 )
 	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
+	GB_RETVAL=$?; GB_FORMAT=variable; return $GB_RETVAL
 }
 
 SendChannelMessage(){
-	local GB_FUNCARGS
+	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	local GB_FUNCARGS GB_RETVAL
 	local GB_FUNCNAME="SendChannelMessage"
 	local SCM_CHANNEL=$1
 	shift
@@ -137,28 +142,12 @@ SendChannelMessage(){
 EOF
 )
 	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
-}
-
-SendUserMessage(){
-	local GB_FUNCARGS
-	local GB_FUNCNAME="SendUserMessage"
-	local SUM_USER=$1
-	shift
-	MESSAGE="$*"
-	MESSAGE=$(gb_json_encode "$MESSAGE")
-
-	GB_FUNCARGS=$(cat <<EOF
-{
-	"User": "$SUM_USER",
-	"Message": "$MESSAGE"
-}
-EOF
-)
-	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
+	GB_RETVAL=$?; GB_FORMAT=variable; return $GB_RETVAL
 }
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins
 Say(){
+	local GB_RETVAL
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
 	if [ -n "$GB_CHANNEL" ]
 	then
@@ -166,9 +155,11 @@ Say(){
 	else
 		SendUserMessage "$GB_USER" "$*"
 	fi
+	GB_RETVAL=$?; GB_FORMAT=variable; return $GB_RETVAL
 }
 
 Reply(){
+	local GB_RETVAL
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
 	if [ -n "$GB_CHANNEL" ]
 	then
@@ -176,4 +167,5 @@ Reply(){
 	else
 		SendUserMessage "$GB_USER" "$*"
 	fi
+	GB_RETVAL=$?; GB_FORMAT=variable; return $GB_RETVAL
 }

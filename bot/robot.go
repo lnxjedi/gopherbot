@@ -3,6 +3,7 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	otp "github.com/dgryski/dgoogauth"
 	"time"
 )
 
@@ -39,6 +40,42 @@ func (r Robot) CheckAdmin() bool {
 	return false
 }
 
+// CheckOTP returns true if the provided string is a valid OTP code for the user.
+// See the builtInlaunchcodes.go plugin.
+func (r Robot) CheckOTP(code string) bool {
+	otpKey := "bot:OTP:" + r.User
+	var userOTP otp.OTPConfig
+	updated := false
+	_, exists, err := r.checkoutDatum(otpKey, &userOTP, true)
+	if err != nil {
+		return false
+	}
+	defer func() {
+		if updated {
+			err := bot.updateDatum(otpKey, lock, &userOTP)
+			if err != nil {
+				bot.Log(Error, fmt.Errorf("Saving OTP config: %v", err))
+			}
+		} else {
+			// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
+			// in case there's another thread waiting.
+			bot.checkin(otpKey, lock)
+		}
+	}()
+	if !exists {
+		return false
+	}
+	valid, err := userOTP.Authenticate(code)
+	if err != nil {
+		r.Log(Error, fmt.Errorf("Problem authenticating launch code: %v", err))
+		return false
+	}
+	if valid {
+		return true
+	}
+	return false
+}
+
 // Fixed is a convenience function for sending a message with fixed width
 // font. e.g. r.Reply(xxx) replies in variable width font, but
 // r.Fixed().Reply(xxx) replies in a fixed-width font.
@@ -68,7 +105,7 @@ func (r Robot) RandomInt(n int) int {
 	return random.Intn(n)
 }
 
-// GetAttribute returns an attribute of the robot or "" if unknown.
+// GetBotAttribute returns an attribute of the robot or "" if unknown.
 // Current attributes:
 // name, alias, fullName, contact
 func (r Robot) GetBotAttribute(a string) string {
@@ -82,6 +119,8 @@ func (r Robot) GetBotAttribute(a string) string {
 		return b.fullName
 	case "alias":
 		return string(b.alias)
+	case "email":
+		return b.email
 	case "contact", "admin", "adminContact":
 		return b.adminContact
 	}

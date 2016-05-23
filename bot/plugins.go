@@ -11,6 +11,12 @@ import (
 	"sync"
 )
 
+// PluginNames can be letters, numbers & underscores only, mainly so
+// brain functions can use ':' as a separator.
+const pNameRegex = `[\w]+`
+
+var pNameRe = regexp.MustCompile(pNameRegex)
+
 // PluginHelp specifies keywords and help text for the 'bot help system
 type PluginHelp struct {
 	Keywords []string // match words for 'help XXX'
@@ -47,7 +53,7 @@ type Plugin struct {
 	ReplyMatchers  []InputMatcher  // Input matchers for replies to questions, only match after a RequestContinuation
 	MessageMatches []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
 	CatchAll       bool            // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
-	Config         json.RawMessage // Plugin Configuration - the plugin needs to decode this
+	Config         json.RawMessage // Plugin Configuration
 	pluginID       string          // 32-char random ID for identifying plugins in callbacks
 	lock           sync.Mutex      // For use with the robot's Brain
 }
@@ -112,6 +118,8 @@ func RegisterPlugin(name string, handler func(bot Robot, command string, args ..
 // $GOPHER_LOCALDIR/plugins/<pluginname>.json (excepting builtins), assigns
 // a pluginID, and stores the resulting array in b.plugins. Bad plugins
 // are skipped and logged.
+// Plugin configuration is initially loaded into temporary data structures,
+// then stored in the robot under the global bot lock.
 func (b *robot) loadPluginConfig() {
 	i := 0
 
@@ -136,6 +144,10 @@ func (b *robot) loadPluginConfig() {
 	}
 
 	for _, plug := range b.externalPlugins {
+		if !pNameRe.MatchString(plug) {
+			b.Log(Error, "Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping")
+			continue
+		}
 		pnames[i] = plug
 		if pset[plug] {
 			b.Log(Error, "External plugin name duplicates builtIn, skipping:", plug)
@@ -152,6 +164,10 @@ func (b *robot) loadPluginConfig() {
 
 PlugHandlerLoop:
 	for plug, _ := range pluginHandlers {
+		if !pNameRe.MatchString(plug) {
+			b.Log(Error, "Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping")
+			continue
+		}
 		if pset[plug] { // have to check builtIns, already loaded
 			for _, plugin := range builtIns {
 				if plug == plugin {
@@ -227,10 +243,7 @@ PlugLoop:
 		plugin.Name = plug
 		// Generate the random id
 		p := make([]byte, 16)
-		_, rerr := random.Read(p)
-		if rerr != nil {
-			log.Fatal("Couldn't generate plugin id:", rerr)
-		}
+		random.Read(p)
 		plugin.pluginID = fmt.Sprintf("%x", p)
 		pfinder[plugin.pluginID] = plugIndex
 		// Store this plugin's config in the temporary list
@@ -256,43 +269,36 @@ PlugLoop:
 // configuration to determine if the message should be evaluated. Used by
 // both handleMessage and the help builtin.
 func (b *robot) messageAppliesToPlugin(user, channel, message string, plugin Plugin) bool {
-	ok := false
 	directMsg := false
 	if len(channel) == 0 {
 		directMsg = true
 	}
 	if len(plugin.Users) > 0 {
+		userOk := false
 		for _, allowedUser := range plugin.Users {
 			if user == allowedUser {
-				ok = true
+				userOk = true
 			}
 		}
-		if !ok {
+		if !userOk {
 			return false
 		}
 	}
+	if directMsg && !plugin.DisallowDirect {
+		return true
+	}
 	if len(plugin.Channels) > 0 {
-		if !directMsg {
-			for _, pchannel := range plugin.Channels {
-				if pchannel == channel {
-					ok = true
-				}
-			}
-		} else { // direct message
-			if !plugin.DisallowDirect {
-				ok = true
+		for _, pchannel := range plugin.Channels {
+			if pchannel == channel {
+				return true
 			}
 		}
 	} else {
-		if directMsg {
-			if !plugin.DisallowDirect {
-				ok = true
-			}
-		} else {
-			ok = true
+		if plugin.AllChannels {
+			return true
 		}
 	}
-	return ok
+	return false
 }
 
 // handleMessage checks the message against plugin commands and full-message matches,

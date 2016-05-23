@@ -14,6 +14,9 @@ type Joke struct {
 }
 
 var Jokes []Joke
+
+// Note that loading configuration is thread-safe, but an explicit lock is
+// needed to protect the jokes array when the robot picks a joke.
 var lock sync.Mutex
 var configured bool
 

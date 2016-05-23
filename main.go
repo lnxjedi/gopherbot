@@ -7,11 +7,17 @@ import (
 	"path/filepath"
 
 	"github.com/parsley42/gopherbot/bot"
-	// Select a connector, put configuration in $GOPHER_LOCALDIR/gobot.conf
+	// If re-compiling Gopherbot, you can comment out unused connectors.
+	// Select the connector and provide configuration in $GOPHER_LOCALDIR/conf/gobot.conf
+	// TODO: re-implement connectors so they register with names in init()
 	"github.com/parsley42/gopherbot/connectors/slack"
+	// If re-compiling, you can comment out unused brain implementations.
+	// Select the brain to use and provide configuration in $GOPHER_LOCALDIR/conf/gobot.conf
+	_ "github.com/parsley42/gopherbot/brains/file"
 	// Select the plugins you want
 	_ "github.com/parsley42/gopherbot/goplugins/help"
 	_ "github.com/parsley42/gopherbot/goplugins/knock"
+	_ "github.com/parsley42/gopherbot/goplugins/lists"
 	_ "github.com/parsley42/gopherbot/goplugins/meme"
 	_ "github.com/parsley42/gopherbot/goplugins/ping"
 )

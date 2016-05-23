@@ -20,5 +20,11 @@
 		"SlackToken": "<your_token_here>",
 		"comment": "MaxMessageSplit specifies the maximum number of messages to break a message into when it's too long (>4000 char)",
 		"MaxMessageSplit": 2
+	},
+	"comment": "How to store plugin and plugin:user data",
+	"Brain": "file",
+	"BrainConfig": {
+		"comment": "For a file-storage based brain, just store files in a directory. Relative paths are relative to the local config dir.",
+		"BrainDirectory": "brain"
 	}
 }
