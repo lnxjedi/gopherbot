@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/base32"
 	"fmt"
+	"os"
 	"strings"
+	"time"
 
 	otp "github.com/dgryski/dgoogauth"
 )
@@ -109,6 +111,9 @@ func launchCode(bot Robot, command string, args ...string) {
 }
 
 func help(bot Robot, command string, args ...string) {
+	if command == "init" {
+		return // ignore init
+	}
 	// Get access to the underlying struct
 	b := bot.robot
 	if command == "help" {
@@ -177,6 +182,9 @@ func help(bot Robot, command string, args ...string) {
 }
 
 func dump(bot Robot, command string, args ...string) {
+	if command == "init" {
+		return // ignore init
+	}
 	// Get access to the underlying struct
 	b := bot.robot
 	if !bot.CheckAdmin() {
@@ -203,21 +211,41 @@ func dump(bot Robot, command string, args ...string) {
 	}
 }
 
+var byebye = []string{
+	"Sayonara!",
+	"Adios",
+	"Hasta la vista!",
+	"Later gator!",
+}
+
 func admin(bot Robot, command string, args ...string) {
+	if command == "init" {
+		return // ignore init
+	}
 	// Get access to the underlying struct
 	b := bot.robot
-	if command == "reload" {
-		if bot.CheckAdmin() {
-			err := b.loadConfig()
-			if err != nil {
-				bot.Reply("Error encountered during reload, check the logs")
-				b.Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))
-				return
-			}
-			bot.Reply("Configuration reloaded successfully")
-			b.Log(Info, "Configuration successfully reloaded after a request from:", bot.User)
-		} else {
-			bot.Reply("Sorry, only an admin user can request that")
+	if !bot.CheckAdmin() {
+		bot.Reply("Sorry, only an admin user can request that")
+		return
+	}
+	switch command {
+	case "reload":
+		err := b.loadConfig()
+		if err != nil {
+			bot.Reply("Error encountered during reload, check the logs")
+			b.Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))
+			return
 		}
+		bot.Reply("Configuration reloaded successfully")
+		b.Log(Info, "Configuration successfully reloaded after a request from:", bot.User)
+	case "quit":
+		// Get all important locks to make sure nothing is being changed - then exit
+		botLock.Lock()
+		b.lock.Lock()
+		dataLock.Lock()
+		bot.Say(bot.RandomString(byebye))
+		// How long does it _actually_ take for the message to go out?
+		time.Sleep(time.Second)
+		os.Exit(0)
 	}
 }
