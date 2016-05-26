@@ -1,0 +1,8 @@
+commit 67642ac6f9144f6610279e37e7be9af13f1cd668
+Merge: e007731 c078365
+Author: Damian Gryski <dmg@pobox.com>
+Date:   Tue Nov 10 09:37:49 2015 +0100
+
+    Merge pull request #4 from kisom/kyle/timefix
+    
+    Make UTC time selectable

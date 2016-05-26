@@ -1,6 +1,9 @@
 package bot
 
-import "log"
+import (
+	"os"
+	"time"
+)
 
 // LogLevel for determining when to output a log entry
 type LogLevel int
@@ -12,6 +15,7 @@ const (
 	Info
 	Warn
 	Error
+	Fatal
 )
 
 // Log logs messages whenever the connector log level is
@@ -25,13 +29,19 @@ func (b *robot) Log(l LogLevel, v ...interface{}) {
 		case Debug:
 			prefix = "Debug:"
 		case Info:
-			prefix = "Info"
+			prefix = "Info:"
 		case Warn:
 			prefix = "Warning:"
 		case Error:
-			prefix = "Error"
+			prefix = "Error:"
+		case Fatal:
+			prefix = "Fatal:"
 		}
-		log.Println(prefix, v)
+		b.logger.Println(prefix, v)
+		if l == Fatal {
+			time.Sleep(time.Second) // ample time for the log message to reach the file
+			os.Exit(1)
+		}
 	}
 }
 

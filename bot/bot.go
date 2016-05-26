@@ -46,7 +46,8 @@ type robot struct {
 	plugins         []Plugin        // Slice of all the configured plugins
 	plugIDmap       map[string]int  // Map of pluginID to it's index in plugins
 	externalPlugins []string        // List of external plugins to load
-	port            string
+	port            string          // Localhost port to listen on
+	logger          *log.Logger     // Where to log to
 }
 
 // gopherBot implements GopherBot for startup
@@ -57,7 +58,7 @@ type gopherBot struct {
 
 // New instantiates the one and only instance of a Gobot, and loads
 // configuration.
-func New(cpath, epath string) (GopherBot, error) {
+func New(cpath, epath string, logger *log.Logger) (GopherBot, error) {
 	botLock.Lock()
 	if botCreated {
 		botLock.Unlock()
@@ -75,6 +76,7 @@ func New(cpath, epath string) (GopherBot, error) {
 
 	b.localPath = cpath
 	b.installPath = epath
+	b.logger = logger
 
 	if err := b.loadConfig(); err != nil {
 		return nil, err
