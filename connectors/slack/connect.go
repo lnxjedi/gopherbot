@@ -4,7 +4,6 @@ package slack
 
 import (
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/nlopes/slack"
@@ -35,7 +34,7 @@ func Start(gobot bot.Handler) bot.Connector {
 		c.MaxMessageSplit = 1
 	}
 	if err != nil {
-		log.Fatal(fmt.Errorf("Unable to retrieve protocol configuration: %v", err))
+		gobot.Log(bot.Fatal, fmt.Errorf("Unable to retrieve protocol configuration: %v", err))
 	}
 
 	api := slack.New(c.SlackToken)
@@ -66,7 +65,7 @@ Loop:
 				break Loop
 
 			case *slack.InvalidAuthEvent:
-				log.Fatalln("Invalid credentials")
+				sc.Log(bot.Fatal, "Invalid credentials")
 			}
 		}
 	}

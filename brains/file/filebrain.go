@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 
 	"github.com/parsley42/gopherbot/bot"
@@ -47,10 +46,10 @@ func provider(l bot.Logger, j json.RawMessage) bot.SimpleBrain {
 	}
 	bd, err := os.Stat(brainPath)
 	if err != nil {
-		log.Fatalf("Checking brain directory \"%s\": %v", err)
+		l.Log(bot.Fatal, fmt.Sprintf("Checking brain directory \"%s\": %v", err))
 	}
 	if !bd.Mode().IsDir() {
-		log.Fatalf("Checking brain directory: \"%s\" isn't a directory", brainPath)
+		l.Log(bot.Fatal, fmt.Sprintf("Checking brain directory: \"%s\" isn't a directory", brainPath))
 	}
 	logger = l
 	return &fb

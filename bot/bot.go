@@ -84,7 +84,7 @@ func New(cpath, epath string, logger *log.Logger) (GopherBot, error) {
 	if len(b.brainProvider) > 0 {
 		provider, ok := brains[b.brainProvider]
 		if !ok {
-			log.Fatalf("No provider registered for brain: \"%s\"", b.brainProvider)
+			b.Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", b.brainProvider))
 		}
 		b.brain = provider(b, b.brainConfig)
 	}

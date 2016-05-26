@@ -9,4 +9,4 @@ then
 fi
 
 echo "Building for $GOOS"
-go build -o robot $BUILDARG
+go build $BUILDARG

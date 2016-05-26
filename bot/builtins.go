@@ -244,6 +244,7 @@ func admin(bot Robot, command string, args ...string) {
 		b.lock.Lock()
 		dataLock.Lock()
 		bot.Say(bot.RandomString(byebye))
+		bot.Log(Info, "Exiting on administrator command")
 		// How long does it _actually_ take for the message to go out?
 		time.Sleep(time.Second)
 		os.Exit(0)

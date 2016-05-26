@@ -6,7 +6,6 @@ most of the internal methods. */
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 	"sync"
@@ -174,7 +173,7 @@ func (s *slackConnector) updateMaps() {
 		}
 	}
 	if err != nil {
-		log.Fatalf("Protocol timeout updating users: %v\n", err)
+		s.Log(bot.Fatal, fmt.Sprintf("Protocol timeout updating users: %v\n", err))
 	}
 	userMap := make(map[string]slack.User)
 	userIDMap := make(map[string]string)
@@ -191,7 +190,7 @@ func (s *slackConnector) updateMaps() {
 		}
 	}
 	if err != nil {
-		log.Fatalf("Protocol timeout updating IMchannels: %v\n", err)
+		s.Log(bot.Fatal, fmt.Sprintf("Protocol timeout updating IMchannels: %v\n", err))
 	}
 	userIMMap := make(map[string]string)
 	userNameMap := make(map[string]string)
@@ -209,7 +208,7 @@ func (s *slackConnector) updateMaps() {
 		}
 	}
 	if err != nil {
-		log.Fatalf("Protocol timeout updating channels: %v\n", err)
+		s.Log(bot.Fatal, fmt.Sprintf("Protocol timeout updating channels: %v\n", err))
 	}
 	chanMap := make(map[string]string)
 	chanIDMap := make(map[string]string)

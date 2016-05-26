@@ -2,7 +2,7 @@
 
 # mkdist.sh - create a distributable .zip file
 
-GOPHERBOT_VERSION=0.7
+GOPHERBOT_VERSION=0.8
 
 usage(){
 	cat <<EOF
@@ -23,5 +23,5 @@ do
 	rm -f $OUTFILE
 
 	echo "Creating $OUTFILE"
-	zip -r $OUTFILE gopherbot.sh robot LICENSE README.md conf/ plugins/ util/ gopherbot.template/ --exclude *.swp
+	zip -r $OUTFILE gopherbot LICENSE README.md conf/ plugins/ util/ gopherbot.template/ --exclude *.swp
 done

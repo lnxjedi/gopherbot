@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -55,7 +54,7 @@ type ReplyRequest struct {
 func (b *robot) listenHttpJSON() {
 	if len(b.port) > 0 {
 		http.Handle("/json", b)
-		log.Fatal(http.ListenAndServe(b.port, nil))
+		b.Log(Fatal, http.ListenAndServe(b.port, nil))
 	}
 }
 
@@ -77,7 +76,7 @@ func (b *robot) decode(msg string) string {
 func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Fatal(err)
+		b.Log(Fatal, err)
 	}
 	defer r.Body.Close()
 
