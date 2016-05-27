@@ -1,10 +1,5 @@
 package bot
 
-import (
-	"os"
-	"time"
-)
-
 // LogLevel for determining when to output a log entry
 type LogLevel int
 
@@ -37,10 +32,10 @@ func (b *robot) Log(l LogLevel, v ...interface{}) {
 		case Fatal:
 			prefix = "Fatal:"
 		}
-		b.logger.Println(prefix, v)
 		if l == Fatal {
-			time.Sleep(time.Second) // ample time for the log message to reach the file
-			os.Exit(1)
+			b.logger.Fatalln(prefix, v)
+		} else {
+			b.logger.Println(prefix, v)
 		}
 	}
 }
