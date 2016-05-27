@@ -107,17 +107,23 @@ func main() {
 	if foreground {
 		botLogger = log.New(os.Stderr, "", log.LstdFlags)
 	} else { // run as a daemon
-		var lp string
-		if len(*logFile) != 0 {
-			lp = *logFile
-		} else if len(l.LogFile) != 0 {
-			lp = l.LogFile
-		} else {
-			lp = "/tmp/gopherbot.log"
-		}
-		f, err := os.Create(lp)
-		if err != nil {
-			log.Fatalf("Couldn't create log file: %v", err)
+		var f *os.File
+		if godaemon.Stage() == godaemon.StageParent {
+			var (
+				lp  string
+				err error
+			)
+			if len(*logFile) != 0 {
+				lp = *logFile
+			} else if len(l.LogFile) != 0 {
+				lp = l.LogFile
+			} else {
+				lp = "/tmp/gopherbot.log"
+			}
+			f, err = os.Create(lp)
+			if err != nil {
+				log.Fatalf("Couldn't create log file: %v", err)
+			}
 		}
 		stdout, stderr, err := godaemon.MakeDaemon(&godaemon.DaemonAttr{
 			Files:         []**os.File{&f},
@@ -127,6 +133,10 @@ func main() {
 		// Don't double-timestamp if another package is using the default logger
 		log.SetFlags(0)
 		botLogger = log.New(f, "", log.LstdFlags)
+		if err != nil {
+			botLogger.Fatalln("Problem daemonizing")
+		}
+		botLogger.Println("Gopherbot started in background")
 		// Write stderr and stdout to logs
 		go func() {
 			scanner := bufio.NewScanner(stdout)
