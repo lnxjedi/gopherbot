@@ -1,7 +1,0 @@
-commit e337a7316d3fe9aa55b7063035d6d32f3dbcaeb9
-Author: Norberto Lopes <nlopes.ml@gmail.com>
-Date:   Sat Apr 30 17:04:49 2016 +0100
-
-    Merge pull request #67 from mihaip/master
-    
-    Parse reactions in messages.

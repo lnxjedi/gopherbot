@@ -4,10 +4,11 @@ package slack
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
-	"github.com/nlopes/slack"
 	"github.com/parsley42/gopherbot/bot"
+	"github.com/parsley42/slack"
 )
 
 type Config struct {
@@ -18,7 +19,7 @@ type Config struct {
 var lock sync.Mutex // package var lock
 var started bool    // set when connector is started
 
-func Start(gobot bot.Handler) bot.Connector {
+func Start(gobot bot.Handler, l *log.Logger) bot.Connector {
 	lock.Lock()
 	if started {
 		lock.Unlock()
@@ -40,6 +41,7 @@ func Start(gobot bot.Handler) bot.Connector {
 	api := slack.New(c.SlackToken)
 	if gobot.GetLogLevel() <= bot.Debug {
 		api.SetDebug(true)
+		slack.SetLogger(l)
 	}
 
 	sc := &slackConnector{api: api, conn: api.NewRTM(), maxMessageSplit: c.MaxMessageSplit}

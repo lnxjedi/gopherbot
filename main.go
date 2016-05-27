@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -67,10 +66,10 @@ func main() {
 	// Process command-line flags
 	configDir := flag.String("config", "", "path to the local configuration directory")
 	logFile := flag.String("log", "", "path to robot's log file")
-	var foreground bool
-	fusage := "run the robot in the foreground and log to stderr, for testing/debugging"
-	flag.BoolVar(&foreground, "foreground", false, fusage)
-	flag.BoolVar(&foreground, "f", false, fusage+" (shorthand)")
+	var daemonize bool
+	fusage := "run the robot as a background process"
+	flag.BoolVar(&daemonize, "daemonize", false, fusage)
+	flag.BoolVar(&daemonize, "d", false, fusage+" (shorthand)")
 	flag.Parse()
 
 	// Localdir is where all user-supplied configuration and
@@ -104,9 +103,7 @@ func main() {
 	}
 
 	var botLogger *log.Logger
-	if foreground {
-		botLogger = log.New(os.Stderr, "", log.LstdFlags)
-	} else { // run as a daemon
+	if daemonize {
 		var f *os.File
 		if godaemon.Stage() == godaemon.StageParent {
 			var (
@@ -124,11 +121,12 @@ func main() {
 			if err != nil {
 				log.Fatalf("Couldn't create log file: %v", err)
 			}
+			log.Printf("Backgrounding and logging to: %s\n", lp)
 		}
-		stdout, stderr, err := godaemon.MakeDaemon(&godaemon.DaemonAttr{
+		_, _, err := godaemon.MakeDaemon(&godaemon.DaemonAttr{
 			Files:         []**os.File{&f},
 			ProgramName:   "gopherbot",
-			CaptureOutput: true,
+			CaptureOutput: false,
 		})
 		// Don't double-timestamp if another package is using the default logger
 		log.SetFlags(0)
@@ -136,21 +134,10 @@ func main() {
 		if err != nil {
 			botLogger.Fatalln("Problem daemonizing")
 		}
-		botLogger.Println("Gopherbot started in background")
-		// Write stderr and stdout to logs
-		go func() {
-			scanner := bufio.NewScanner(stdout)
-			for scanner.Scan() {
-				botLogger.Printf("stdout: %s\n", scanner.Text())
-			}
-		}()
-		go func() {
-			scanner := bufio.NewScanner(stderr)
-			for scanner.Scan() {
-				botLogger.Printf("stderr: %s", scanner.Text())
-			}
-		}()
+	} else { // run in the foreground, log to stderr
+		botLogger = log.New(os.Stderr, "", log.LstdFlags)
 	}
+	botLogger.Println("Starting up")
 
 	// From here on out we're daemonized, unless -f was passed
 	os.Setenv("GOPHER_INSTALLDIR", installdir)
@@ -161,7 +148,7 @@ func main() {
 	// overrides defaults.
 	gopherbot, err := bot.New(localdir, installdir, botLogger)
 	if err != nil {
-		log.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
+		botLogger.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
 	}
 
 	var conn bot.Connector
@@ -169,9 +156,9 @@ func main() {
 
 	switch gopherbot.GetConnectorName() {
 	case "slack":
-		conn = slack.Start(handler)
+		conn = slack.Start(handler, botLogger)
 	default:
-		log.Fatal("Unsupported connector:", gopherbot.GetConnectorName())
+		botLogger.Fatal("Unsupported connector:", gopherbot.GetConnectorName())
 	}
 
 	// Initialize the robot with a valid connector
