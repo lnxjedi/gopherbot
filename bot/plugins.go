@@ -158,8 +158,8 @@ func (b *robot) loadPluginConfig() {
 		i++
 	}
 	// copy the list of default channels
-	pchan := make([]string, 0, len(b.channels))
-	pchan = append(pchan, b.channels...)
+	pchan := make([]string, 0, len(b.plugChannels))
+	pchan = append(pchan, b.plugChannels...)
 	b.lock.RUnlock() // we're done with bot data 'til the end
 
 PlugHandlerLoop:

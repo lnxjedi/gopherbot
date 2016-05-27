@@ -143,7 +143,7 @@ func (b *robot) loadConfig() error {
 		b.ignoreUsers = config.IgnoreUsers
 	}
 	if config.JoinChannels != nil {
-		b.channels = config.JoinChannels
+		b.joinChannels = config.JoinChannels
 	}
 	if config.ProtocolConfig != nil {
 		b.protocolConfig = config.ProtocolConfig

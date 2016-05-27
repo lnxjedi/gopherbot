@@ -35,7 +35,7 @@ type robot struct {
 	ignoreUsers     []string        // list of users to never listen to, like other bots
 	preRegex        *regexp.Regexp  // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
 	postRegex       *regexp.Regexp  // regex for matching, e.g. "open the pod bay doors, hal"
-	channels        []string        // list of channels to join
+	joinChannels    []string        // list of channels to join
 	plugChannels    []string        // list of channels where plugins are active by default
 	lock            sync.RWMutex    // for safe updating of bot data structures
 	protocol        string          // Name of the protocol, e.g. "slack"
@@ -114,7 +114,7 @@ func (g gopherBot) Init(c Connector) {
 	go b.listenHttpJSON()
 	var cl []string
 	b.lock.RLock()
-	cl = append(cl, b.channels...)
+	cl = append(cl, b.joinChannels...)
 	b.lock.RUnlock()
 	for _, channel := range cl {
 		b.JoinChannel(channel)
