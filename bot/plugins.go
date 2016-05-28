@@ -53,7 +53,8 @@ type Plugin struct {
 	ReplyMatchers  []InputMatcher  // Input matchers for replies to questions, only match after a RequestContinuation
 	MessageMatches []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
 	CatchAll       bool            // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
-	Config         json.RawMessage // Plugin Configuration
+	Config         json.RawMessage // Plugin Configuration, raw JSON that can be sent to a script plugin
+	config         interface{}     // A configuration struct defined by the plugin
 	pluginID       string          // 32-char random ID for identifying plugins in callbacks
 	lock           sync.Mutex      // For use with the robot's Brain
 }
@@ -78,8 +79,15 @@ type reply struct {
 
 var replies = make(map[replyMatcher]replyWaiter)
 
-// pluginHandlers maps from plugin names to handler functions; populated during package initialization and never written to again.
-var pluginHandlers map[string]func(bot Robot, command string, args ...string) = make(map[string]func(bot Robot, command string, args ...string))
+// type PluginV1 is the struct a plugin registers for Gopherbot plugin API
+// Version 1; there may never actually be a V2+
+type PluginV1 struct {
+	Config  interface{} // an empty instance of a config to be deserialized into
+	Handler func(bot Robot, config interface{}, command string, args ...string)
+}
+
+// pluginHandlers maps from plugin names to PluginV1 (later interface{} with a type selector, maybe)
+var pluginHandlers map[string]PluginV1 = make(map[string]PluginV1)
 
 // stopRegistrations is set "true" when the bot is created to prevent registration outside of init functions
 var stopRegistrations bool = false
@@ -104,14 +112,14 @@ func (b *robot) initializePlugins() {
 // When the bot initializes, it will call each plugin's handler with a command
 // "init", empty channel, the bot's username, and no arguments, so the plugin
 // can store this information for, e.g., scheduled jobs.
-func RegisterPlugin(name string, handler func(bot Robot, command string, args ...string)) {
+func RegisterPluginV1(name string, plug PluginV1) {
 	if stopRegistrations {
 		return
 	}
-	if pluginHandlers[name] != nil {
+	if _, exists := pluginHandlers[name]; exists {
 		log.Fatal("Attempted registration of duplicate plugin name:", name)
 	}
-	pluginHandlers[name] = handler
+	pluginHandlers[name] = plug
 }
 
 // loadPluginConfig() loads the configuration for all the plugins from
@@ -241,6 +249,12 @@ PlugLoop:
 			message.re = re
 		}
 		plugin.Name = plug
+		// Copy the emptry struct
+		plugin.config = pluginHandlers[plug].Config
+		err = json.Unmarshal(plugin.Config, &plugin.config)
+		if err != nil {
+			b.Log(Warn, "Error unmarshalling plugin config json to config struct: %v", err)
+		}
 		// Generate the random id
 		p := make([]byte, 16)
 		random.Read(p)
@@ -381,7 +395,7 @@ func (b *robot) callPlugin(bot Robot, plugin Plugin, command string, args ...str
 	bot.pluginID = plugin.pluginID
 	switch plugin.pluginType {
 	case plugBuiltin, plugGo:
-		pluginHandlers[plugin.Name](bot, command, args...)
+		pluginHandlers[plugin.Name].Handler(bot, plugin.config, command, args...)
 	case plugExternal:
 		var fullPath string // full path to the executable
 		if len(plugin.PluginPath) == 0 {

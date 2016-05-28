@@ -25,11 +25,11 @@ import (
 
 	// If re-compiling, you can select the plugins you want. Otherwise you can disable
 	// them in conf/plugins/<plugin>.json with "Disabled": true
-	_ "github.com/parsley42/gopherbot/goplugins/help"
+	//	_ "github.com/parsley42/gopherbot/goplugins/help"
 	_ "github.com/parsley42/gopherbot/goplugins/knock"
-	_ "github.com/parsley42/gopherbot/goplugins/lists"
-	_ "github.com/parsley42/gopherbot/goplugins/meme"
-	_ "github.com/parsley42/gopherbot/goplugins/ping"
+	//	_ "github.com/parsley42/gopherbot/goplugins/lists"
+	//	_ "github.com/parsley42/gopherbot/goplugins/meme"
+	//	_ "github.com/parsley42/gopherbot/goplugins/ping"
 )
 
 type LogInfo struct {
@@ -132,7 +132,7 @@ func main() {
 		log.SetFlags(0)
 		botLogger = log.New(f, "", log.LstdFlags)
 		if err != nil {
-			botLogger.Fatalln("Problem daemonizing")
+			botLogger.Fatalf("Problem daemonizing: %v", err)
 		}
 	} else { // run in the foreground, log to stderr
 		botLogger = log.New(os.Stderr, "", log.LstdFlags)

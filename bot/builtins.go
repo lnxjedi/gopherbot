@@ -27,15 +27,15 @@ var builtIns = []string{
 }
 
 func init() {
-	RegisterPlugin("builtIndump", dump)
-	RegisterPlugin("builtInhelp", help)
-	RegisterPlugin("builtInadmin", admin)
-	RegisterPlugin("builtInlaunchcodes", launchCode)
+	RegisterPluginV1("builtIndump", PluginV1{struct{}{}, dump})
+	RegisterPluginV1("builtInhelp", PluginV1{struct{}{}, help})
+	RegisterPluginV1("builtInadmin", PluginV1{struct{}{}, admin})
+	RegisterPluginV1("builtInlaunchcodes", PluginV1{struct{}{}, launchCode})
 }
 
 /* builtin plugins, like help */
 
-func launchCode(bot Robot, command string, args ...string) {
+func launchCode(bot Robot, _ interface{}, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
@@ -110,7 +110,7 @@ func launchCode(bot Robot, command string, args ...string) {
 	}
 }
 
-func help(bot Robot, command string, args ...string) {
+func help(bot Robot, _ interface{}, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
@@ -181,7 +181,7 @@ func help(bot Robot, command string, args ...string) {
 	}
 }
 
-func dump(bot Robot, command string, args ...string) {
+func dump(bot Robot, _ interface{}, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
@@ -218,7 +218,7 @@ var byebye = []string{
 	"Later gator!",
 }
 
-func admin(bot Robot, command string, args ...string) {
+func admin(bot Robot, _ interface{}, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
