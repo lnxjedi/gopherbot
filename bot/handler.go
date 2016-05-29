@@ -5,31 +5,19 @@ import (
 	"fmt"
 )
 
-// handler struct hides robot methods that shouldn't be accessible
-// to a connector.
-type handler struct {
-	bot *robot
-}
-
 /* Handle incoming messages and other callbacks from the connector. */
-
-// Log exposes the private robot Log
-func (h handler) Log(l LogLevel, v ...interface{}) {
-	h.bot.Log(l, v)
-}
 
 // GetLogLevel returns the bot's current loglevel, mainly for the
 // connector to make it's own decision about logging
-func (h handler) GetLogLevel() LogLevel {
-	h.bot.lock.RLock()
-	l := h.bot.level
-	h.bot.lock.RUnlock()
+func (b *robot) GetLogLevel() LogLevel {
+	b.lock.RLock()
+	l := b.level
+	b.lock.RUnlock()
 	return l
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
-func (h handler) IncomingMessage(channelName, userName, messageFull string) {
-	b := h.bot
+func (b *robot) IncomingMessage(channelName, userName, messageFull string) {
 	// When command == true, the message was directed at the bot
 	isCommand := false
 	logChannel := channelName
@@ -70,8 +58,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 }
 
 // GetProtocolConfig unmarshals the connectors configuration data into a provided struct
-func (h handler) GetProtocolConfig(v interface{}) error {
-	b := h.bot
+func (b *robot) GetProtocolConfig(v interface{}) error {
 	b.lock.RLock()
 	err := json.Unmarshal(b.protocolConfig, v)
 	b.lock.RUnlock()
@@ -80,8 +67,7 @@ func (h handler) GetProtocolConfig(v interface{}) error {
 
 // Connectors that support it can call SetFullName; otherwise it can
 // be configured in gobot.conf.
-func (h handler) SetFullName(n string) {
-	b := h.bot
+func (b *robot) SetFullName(n string) {
 	b.Log(Debug, "Setting full name to: "+n)
 	b.lock.Lock()
 	b.fullName = n
@@ -91,8 +77,7 @@ func (h handler) SetFullName(n string) {
 
 // Connectors that support it can call SetName; otherwise it should
 // be configured in gobot.conf.
-func (h handler) SetName(n string) {
-	b := h.bot
+func (b *robot) SetName(n string) {
 	b.Log(Debug, "Setting name to: "+n)
 	b.lock.Lock()
 	b.name = n

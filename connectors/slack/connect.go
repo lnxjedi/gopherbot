@@ -19,6 +19,10 @@ type Config struct {
 var lock sync.Mutex // package var lock
 var started bool    // set when connector is started
 
+func init() {
+	bot.RegisterConnector("slack", Start)
+}
+
 func Start(gobot bot.Handler, l *log.Logger) bot.Connector {
 	lock.Lock()
 	if started {

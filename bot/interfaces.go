@@ -3,13 +3,6 @@ package bot
 /* Gather all the interfaces in once place. Structs should be defined
    close the their methods. */
 
-// Public interface for package main to initialize the robot with a connector
-type GopherBot interface {
-	GetConnectorName() string
-	Init(c Connector)
-	Handler // the Connector needs a Handler
-}
-
 // Logger is used by a Brain for logging errors
 type Logger interface {
 	Log(l LogLevel, v ...interface{})

@@ -16,8 +16,19 @@ import (
 )
 
 var botLock sync.RWMutex
-var botCreated bool
 var random *rand.Rand
+
+var connectors map[string]func(Handler, *log.Logger) Connector = make(map[string]func(Handler, *log.Logger) Connector)
+
+func RegisterConnector(name string, connstarter func(Handler, *log.Logger) Connector) {
+	if stopRegistrations {
+		return
+	}
+	if connectors[name] != nil {
+		log.Fatal("Attempted registration of duplicate connector:", name)
+	}
+	connectors[name] = connstarter
+}
 
 // robot holds all the interal data relevant to the Bot. Most of it is populated
 // by loadConfig, other stuff is populated by the connector.
@@ -50,22 +61,10 @@ type robot struct {
 	logger          *log.Logger     // Where to log to
 }
 
-// gopherBot implements GopherBot for startup
-type gopherBot struct {
-	bot *robot
-	Handler
-}
-
-// New instantiates the one and only instance of a Gobot, and loads
+// newBot instantiates the one and only instance of a Gobot, and loads
 // configuration.
-func New(cpath, epath string, logger *log.Logger) (GopherBot, error) {
+func newBot(cpath, epath string, logger *log.Logger) (*robot, error) {
 	botLock.Lock()
-	if botCreated {
-		botLock.Unlock()
-		return nil, fmt.Errorf("bot already created")
-	}
-	// There can be only one
-	botCreated = true
 	// Prevent plugin registration after program init
 	stopRegistrations = true
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
@@ -88,22 +87,11 @@ func New(cpath, epath string, logger *log.Logger) (GopherBot, error) {
 		}
 		b.brain = provider(b, b.brainConfig)
 	}
-	h := handler{bot: b}
-	g := gopherBot{bot: b, Handler: h}
-	return g, nil
-}
-
-// GetConnectorName returns the name of the configured connector
-func (g gopherBot) GetConnectorName() string {
-	g.bot.lock.RLock()
-	proto := g.bot.protocol
-	g.bot.lock.RUnlock()
-	return proto
+	return b, nil
 }
 
 // Init is called after the bot is connected.
-func (g gopherBot) Init(c Connector) {
-	b := g.bot
+func (b *robot) init(c Connector) {
 	b.lock.Lock()
 	if b.Connector != nil {
 		b.lock.Unlock()
