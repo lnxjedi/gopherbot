@@ -32,8 +32,8 @@ import (
 	_ "github.com/parsley42/gopherbot/goplugins/ping"
 )
 
-type LogInfo struct {
-	LogFile string // Where the bot should log to
+type BotInfo struct {
+	LogFile, PidFile string // Locations for the bots log file and pid file
 }
 
 func dirExists(path string) bool {
@@ -51,35 +51,63 @@ func dirExists(path string) bool {
 }
 
 func main() {
-	var execpath, installdir, localdir string
+	var execpath, execdir, installdir, localdir string
 	var err error
 
-	// Installdir is where the binary, default config, and stock external
-	// plugins are.
-	if execpath, err = godaemon.GetExecutablePath(); err != nil {
-		log.Fatalf("Couldn't get executable path: %v", err)
-	}
-	if installdir, err = filepath.Abs(filepath.Dir(execpath)); err != nil {
-		log.Fatalf("Couldn't determine install path: %v", err)
-	}
-
 	// Process command-line flags
-	configDir := flag.String("config", "", "path to the local configuration directory")
-	logFile := flag.String("log", "", "path to robot's log file")
+	var configDir string
+	cusage := "path to the local configuration directory"
+	flag.StringVar(&configDir, "config", "", cusage)
+	flag.StringVar(&configDir, "c", "", cusage+" (shorthand)")
+	var installDir string
+	iusage := "path to the local install directory containing default/stock configuration"
+	flag.StringVar(&installDir, "install", "", iusage)
+	flag.StringVar(&installDir, "i", "", iusage+" (shorthand)")
+	var logFile string
+	lusage := "path to robot's log file"
+	flag.StringVar(&logFile, "log", "", lusage)
+	flag.StringVar(&logFile, "l", "", lusage+" (shorthand)")
+	var pidFile string
+	pusage := "path to robot's pid file"
+	flag.StringVar(&pidFile, "pid", "", pusage)
+	flag.StringVar(&pidFile, "p", "", pusage+" (shorthand)")
 	var daemonize bool
 	fusage := "run the robot as a background process"
 	flag.BoolVar(&daemonize, "daemonize", false, fusage)
 	flag.BoolVar(&daemonize, "d", false, fusage+" (shorthand)")
 	flag.Parse()
 
+	// Installdir is where the binary, default config, and stock external
+	// plugins are.
+	if execpath, err = godaemon.GetExecutablePath(); err != nil {
+		log.Fatalf("Couldn't get executable path: %v", err)
+	}
+	if execdir, err = filepath.Abs(filepath.Dir(execpath)); err != nil {
+		log.Fatalf("Couldn't determine install path: %v", err)
+	}
+	instSearchPath := []string{
+		installDir,
+		os.Getenv("GOPHER_INSTALLDIR"),
+		"/usr/local/share/gopherbot",
+		"/usr/share/gopherbot",
+		execdir,
+	}
+	for _, spath := range instSearchPath {
+		if dirExists(spath) {
+			installdir = spath
+			break
+		}
+	}
+
 	// Localdir is where all user-supplied configuration and
 	// external plugins are. It should be in $HOME/.gopherbot, /etc/gopherbot,
 	// or TODO: supplied on the command line.
 	home := os.Getenv("HOME")
 	confSearchPath := []string{
-		*configDir,
+		configDir,
 		os.Getenv("GOPHER_LOCALDIR"),
 		home + "/.gopherbot",
+		"/usr/local/etc/gopherbot",
 		"/etc/gopherbot",
 	}
 	for _, spath := range confSearchPath {
@@ -92,13 +120,13 @@ func main() {
 		log.Fatal("Coudln't locate local configuration directory")
 	}
 
-	// Read the config just to extract the LogFile path
+	// Read the config just to extract the LogFile PidFile path
 	var cf []byte
 	if cf, err = ioutil.ReadFile(localdir + "/conf/gopherbot.json"); err != nil {
 		log.Fatalf("Couldn't read conf/gopherbot.json in local configuration directory: %s\n", localdir)
 	}
-	var l LogInfo
-	if err := json.Unmarshal(cf, &l); err != nil {
+	var b BotInfo
+	if err := json.Unmarshal(cf, &b); err != nil {
 		log.Fatalf("Error unmarshalling \"%s\": %v", localdir+"/conf/gopherbot.json", err)
 	}
 
@@ -110,10 +138,10 @@ func main() {
 				lp  string
 				err error
 			)
-			if len(*logFile) != 0 {
-				lp = *logFile
-			} else if len(l.LogFile) != 0 {
-				lp = l.LogFile
+			if len(logFile) != 0 {
+				lp = logFile
+			} else if len(b.LogFile) != 0 {
+				lp = b.LogFile
 			} else {
 				lp = "/tmp/gopherbot.log"
 			}
@@ -133,6 +161,23 @@ func main() {
 		botLogger = log.New(f, "", log.LstdFlags)
 		if err != nil {
 			botLogger.Fatalf("Problem daemonizing: %v", err)
+		}
+		var pf string
+		if len(pidFile) != 0 {
+			pf = pidFile
+		} else if len(b.PidFile) != 0 {
+			pf = b.PidFile
+		}
+		if len(pf) != 0 {
+			f, err := os.Create(pf)
+			if err != nil {
+				botLogger.Printf("Couldn't create pid file: %v", err)
+			} else {
+				pid := os.Getpid()
+				fmt.Fprintf(f, "%d", pid)
+				botLogger.Printf("Wrote pid (%d) to: %s\n", pid, pf)
+				f.Close()
+			}
 		}
 	} else { // run in the foreground, log to stderr
 		botLogger = log.New(os.Stderr, "", log.LstdFlags)
