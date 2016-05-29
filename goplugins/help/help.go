@@ -41,5 +41,5 @@ func help(bot bot.Robot, command string, args ...string) {
 }
 
 func init() {
-	bot.RegisterPlugin("help", help)
+	bot.RegisterPlugin("help", bot.PluginHandler{Handler: help})
 }

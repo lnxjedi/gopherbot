@@ -5,11 +5,6 @@ import (
 	"github.com/parsley42/gopherbot/bot"
 )
 
-var (
-	gobot   bot.Robot
-	botName string
-)
-
 var welcome = []string{
 	"You're welcome!",
 	"Don't mention it",
@@ -33,8 +28,7 @@ func ping(bot bot.Robot, command string, args ...string) {
 	switch command {
 	// This isn't really necessary
 	case "init":
-		gobot = bot
-		botName = bot.User
+		// ignore
 	case "rules":
 		bot.Say(rules)
 	case "hello":
@@ -53,5 +47,5 @@ func ping(bot bot.Robot, command string, args ...string) {
 }
 
 func init() {
-	bot.RegisterPlugin("ping", ping)
+	bot.RegisterPlugin("ping", bot.PluginHandler{Handler: ping})
 }

@@ -1,10 +1,11 @@
 package bot
 
 import (
-	"encoding/json"
 	"fmt"
-	otp "github.com/dgryski/dgoogauth"
+	"reflect"
 	"time"
+
+	otp "github.com/dgryski/dgoogauth"
 )
 
 type MessageFormat int
@@ -147,16 +148,24 @@ func (r Robot) GetSenderAttribute(a string) string {
 
 // GetPluginConfig will unmarshall the plugin's Config section into
 // a provided struct.
-func (r Robot) GetPluginConfig(v interface{}) error {
+func (r Robot) GetPluginConfig(dptr interface{}) bool {
 	b := r.robot
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	plugin := b.plugins[b.plugIDmap[r.pluginID]]
-	err := json.Unmarshal(plugin.Config, v)
-	if err != nil {
-		b.Log(Error, fmt.Errorf("Unmarshaling plugin config for %s: %v", plugin.Name, err))
+	tp := reflect.ValueOf(dptr)
+	if tp.Kind() != reflect.Ptr {
+		return false
 	}
-	return err
+	p := reflect.Indirect(tp)
+	if p.Kind() != reflect.Ptr {
+		return false
+	}
+	if p.Type() != reflect.ValueOf(plugin.config).Type() {
+		return false
+	}
+	p.Set(reflect.ValueOf(plugin.config))
+	return true
 }
 
 // WaitForReply lets a plugin temporarily register a regex for a reply

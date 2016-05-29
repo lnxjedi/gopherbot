@@ -11,18 +11,21 @@ type Joke struct {
 	Second string
 }
 
-type Config struct {
+type JokeConfig struct {
 	Jokes    []Joke   // The actual jokes, first and second parts
 	Openings []string // Stuff the robot says before starting the joke
 	Phooey   []string // Ways the robot complains if the user doesn't respond correctly
 }
 
-func knock(r bot.Robot, c interface{}, command string, args ...string) {
-	j := c.(*Config) // get access to a copy of the plugin's config
+func knock(r bot.Robot, command string, args ...string) {
+	var j *JokeConfig // get access to a copy of the plugin's config
 	switch command {
 	case "init":
 		// Ignore, this plugin has no start-up
 	case "knock":
+		if ok := r.GetPluginConfig(&j); !ok {
+			r.Reply("Sorry, I couldn't find my joke book")
+		}
 		if len(j.Jokes) == 0 {
 			r.Reply("Sorry, I don't know any jokes :-(")
 			return
@@ -99,8 +102,8 @@ func knock(r bot.Robot, c interface{}, command string, args ...string) {
 }
 
 func init() {
-	bot.RegisterPluginV1("knock", bot.PluginV1{
-		Config{},
+	bot.RegisterPlugin("knock", bot.PluginHandler{
+		&JokeConfig{},
 		knock,
 	})
 }

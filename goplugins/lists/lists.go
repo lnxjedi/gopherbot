@@ -170,5 +170,5 @@ func lists(r bot.Robot, command string, args ...string) {
 }
 
 func init() {
-	bot.RegisterPlugin("lists", lists)
+	bot.RegisterPlugin("lists", bot.PluginHandler{Handler: lists})
 }

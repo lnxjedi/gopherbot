@@ -21,38 +21,37 @@ type MemeConfig struct {
 	Password string
 }
 
-var config MemeConfig
-var configured bool = false
-
 func memegen(r bot.Robot, command string, args ...string) {
+	var m *MemeConfig
+	ok := r.GetPluginConfig(&m) // make m point to a valid, thread-safe MemeConfig
+	if !ok || m.Password == "" {
+		if command != "init" {
+			r.Reply("I couldn't remember my password for the meme generator")
+		}
+	}
 	switch command {
 	case "init":
-		gobot = r
-		botName = r.User
-		err := r.GetPluginConfig(&config)
-		if err == nil {
-			configured = true
-		}
+		// ignore
 	case "simply":
-		sendMeme(r, "61579", "ONE DOES NOT SIMPLY", args[0])
+		sendMeme(m, r, "61579", "ONE DOES NOT SIMPLY", args[0])
 
 	case "prepare":
-		sendMeme(r, "47779539", "You "+args[0], "PREPARE TO DIE")
+		sendMeme(m, r, "47779539", "You "+args[0], "PREPARE TO DIE")
 
 	case "prettymuch":
-		sendMeme(r, "8070362", args[0]+" pretty much", "the "+args[1]+" ever "+args[2])
+		sendMeme(m, r, "8070362", args[0]+" pretty much", "the "+args[1]+" ever "+args[2])
 
 	case "gosh":
-		sendMeme(r, "18304105", args[0], "Gosh!")
+		sendMeme(m, r, "18304105", args[0], "Gosh!")
 
 	case "skills":
-		sendMeme(r, "20509936", args[0]+" "+args[1], args[2])
+		sendMeme(m, r, "20509936", args[0]+" "+args[1], args[2])
 
 	}
 }
 
-func sendMeme(r bot.Robot, templateId, topText, bottomText string) {
-	url, err := createMeme(templateId, topText, bottomText)
+func sendMeme(m *MemeConfig, r bot.Robot, templateId, topText, bottomText string) {
+	url, err := createMeme(m, templateId, topText, bottomText)
 	if err == nil {
 		r.Say(url)
 	} else {
@@ -62,11 +61,11 @@ func sendMeme(r bot.Robot, templateId, topText, bottomText string) {
 }
 
 // Compose imgflip meme - thanks to Adam Georgeson for this function
-func createMeme(templateId, topText, bottomText string) (string, error) {
+func createMeme(m *MemeConfig, templateId, topText, bottomText string) (string, error) {
 	values := url.Values{}
 	values.Set("template_id", templateId)
-	values.Set("username", config.Username)
-	values.Set("password", config.Password)
+	values.Set("username", m.Username)
+	values.Set("password", m.Password)
 	values.Set("text0", topText)
 	values.Set("text1", bottomText)
 	resp, err := http.PostForm("https://api.imgflip.com/caption_image", values)
@@ -96,5 +95,5 @@ func createMeme(templateId, topText, bottomText string) (string, error) {
 }
 
 func init() {
-	bot.RegisterPlugin("memes", memegen)
+	bot.RegisterPlugin("memes", bot.PluginHandler{Config: &MemeConfig{}, Handler: memegen})
 }
