@@ -4,12 +4,11 @@ import (
 	"github.com/parsley42/gopherbot/bot"
 
 	// If re-compiling Gopherbot, you can comment out unused connectors.
-	// Select the connector and provide configuration in $GOPHER_LOCALDIR/conf/gobot.conf
-	// TODO: re-implement connectors so they register with names in init()
+	// Select the connector and provide configuration in conf/gopherbot.conf
 	_ "github.com/parsley42/gopherbot/connectors/slack"
 
 	// If re-compiling, you can comment out unused brain implementations.
-	// Select the brain to use and provide configuration in $GOPHER_LOCALDIR/conf/gobot.conf
+	// Select the brain to use and provide configuration in conf/gopherbot.conf
 	_ "github.com/parsley42/gopherbot/brains/file"
 
 	// If re-compiling, you can select the plugins you want. Otherwise you can disable
