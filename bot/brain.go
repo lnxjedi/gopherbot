@@ -145,7 +145,7 @@ func (r *robot) update(d, lt string, datum *[]byte) (ret BotRetVal) {
 func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret BotRetVal) {
 	b := r.robot
 	b.lock.RLock()
-	pluginName := b.plugins[b.plugIDmap[r.pluginID]].Name
+	pluginName := plugins[plugIDmap[r.pluginID]].Name
 	b.lock.RUnlock()
 	key = pluginName + ":" + key
 	return r.checkoutDatum(key, datum, rw)
@@ -174,7 +174,7 @@ func (r *Robot) Checkin(key, locktoken string) {
 	}
 	b := r.robot
 	b.lock.RLock()
-	pluginName := b.plugins[b.plugIDmap[r.pluginID]].Name
+	pluginName := plugins[plugIDmap[r.pluginID]].Name
 	b.lock.RUnlock()
 	key = pluginName + ":" + key
 	r.checkin(key, locktoken)
@@ -208,7 +208,7 @@ func (r *Robot) checkin(key, locktoken string) {
 func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret BotRetVal) {
 	b := r.robot
 	b.lock.RLock()
-	pluginName := b.plugins[b.plugIDmap[r.pluginID]].Name
+	pluginName := plugins[plugIDmap[r.pluginID]].Name
 	b.lock.RUnlock()
 	key = pluginName + ":" + key
 	return r.updateDatum(key, locktoken, datum)

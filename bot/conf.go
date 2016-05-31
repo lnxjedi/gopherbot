@@ -121,7 +121,7 @@ func (b *robot) loadConfig() error {
 		b.brainProvider = config.Brain
 	}
 	if config.BrainConfig != nil {
-		b.brainConfig = config.BrainConfig
+		brainConfig = config.BrainConfig
 	}
 
 	if config.Protocol != "" {
@@ -146,7 +146,7 @@ func (b *robot) loadConfig() error {
 		b.joinChannels = config.JoinChannels
 	}
 	if config.ProtocolConfig != nil {
-		b.protocolConfig = config.ProtocolConfig
+		protocolConfig = config.ProtocolConfig
 	}
 
 	// loadPluginConfig does it's own locking

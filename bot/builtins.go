@@ -119,7 +119,7 @@ func help(bot Robot, command string, args ...string) {
 			b.Log(Trace, "Help requested for term", term)
 		}
 
-		for _, plugin := range b.plugins {
+		for _, plugin := range plugins {
 			b.Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.Name, term))
 			if !hasTerm { // if you ask for help without a term, you just get help for whatever commands are available to you
 				if b.messageAppliesToPlugin(bot.User, bot.Channel, command, plugin) {
@@ -188,7 +188,7 @@ func dump(bot Robot, command string, args ...string) {
 		b.lock.RLock()
 		defer b.lock.RUnlock()
 		found := false
-		for _, plugin := range b.plugins {
+		for _, plugin := range plugins {
 			if args[0] == plugin.Name {
 				found = true
 				bot.Fixed().Say(fmt.Sprintf("%+v", plugin))

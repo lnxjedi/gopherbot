@@ -14,6 +14,8 @@ import (
 const pNameRegex = `[\w]+`
 
 var pNameRe = regexp.MustCompile(pNameRegex)
+var plugins []Plugin
+var plugIDmap map[string]int
 
 // PluginHelp specifies keywords and help text for the 'bot help system
 type PluginHelp struct {
@@ -81,7 +83,7 @@ func (b *robot) initializePlugins() {
 		Format:  Variable,
 		robot:   b,
 	}
-	for _, plugin := range b.plugins {
+	for _, plugin := range plugins {
 		b.Log(Info, "Initializing plugin:", plugin.Name)
 		go b.callPlugin(bot, plugin, "init")
 	}
@@ -245,15 +247,15 @@ PlugLoop:
 		plugin.pluginID = fmt.Sprintf("%x", p)
 		pfinder[plugin.pluginID] = plugIndex
 		// Store this plugin's config in the temporary list
-		b.Log(Info, fmt.Sprintf("Recorded plugin #%d, \"%s\" with ID %s", plugIndex, plugin.Name, plugin.pluginID))
+		b.Log(Info, fmt.Sprintf("Recorded plugin #%d, \"%s\"", plugIndex, plugin.Name))
 		plist = append(plist, plugin)
 		plugIndex++
 	}
 
 	reInitPlugins := false
 	b.lock.Lock()
-	b.plugins = plist
-	b.plugIDmap = pfinder
+	plugins = plist
+	plugIDmap = pfinder
 	if b.Connector != nil {
 		reInitPlugins = true
 	}

@@ -46,7 +46,7 @@ func (r Robot) CheckAdmin() bool {
 func (r Robot) CheckOTP(code string) (bool, BotRetVal) {
 	b := r.robot
 	b.lock.RLock()
-	plugin := b.plugins[b.plugIDmap[r.pluginID]]
+	plugin := plugins[plugIDmap[r.pluginID]]
 	trustedPlugin := plugin.Trusted
 	plugName := plugin.Name
 	b.lock.RUnlock()
@@ -155,7 +155,7 @@ func (r Robot) GetPluginConfig(dptr interface{}) bool {
 	b := r.robot
 	b.lock.RLock()
 	defer b.lock.RUnlock()
-	plugin := b.plugins[b.plugIDmap[r.pluginID]]
+	plugin := plugins[plugIDmap[r.pluginID]]
 	tp := reflect.ValueOf(dptr)
 	if tp.Kind() != reflect.Ptr {
 		return false
@@ -195,7 +195,7 @@ func (r Robot) WaitForReply(regexId string, timeout int) (replyText string, ret 
 	}
 	b := r.robot
 	b.lock.RLock()
-	plugin := b.plugins[b.plugIDmap[r.pluginID]]
+	plugin := plugins[plugIDmap[r.pluginID]]
 	plugName := plugin.Name
 	for _, matcher := range plugin.ReplyMatchers {
 		if matcher.Command == regexId {

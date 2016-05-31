@@ -82,7 +82,7 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 	commandMatched := false
 	var catchAllPlugins []Plugin
 	if isCommand {
-		catchAllPlugins = make([]Plugin, 0, len(b.plugins))
+		catchAllPlugins = make([]Plugin, 0, len(plugins))
 	}
 	// See if this is a reply that was requested
 	matcher := replyMatcher{user, channel}
@@ -105,7 +105,7 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 		}
 	}
 	botLock.Unlock()
-	for _, plugin := range b.plugins {
+	for _, plugin := range plugins {
 		b.Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels", messagetext, plugin.Name, len(plugin.Channels)))
 		ok := b.messageAppliesToPlugin(user, channel, messagetext, plugin)
 		if !ok {
