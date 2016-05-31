@@ -85,7 +85,7 @@ func newBot(cpath, epath string, logger *log.Logger) (*robot, error) {
 		if !ok {
 			b.Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", b.brainProvider))
 		}
-		b.brain = provider(b, b.brainConfig)
+		b.brain = provider(b, logger)
 	}
 	return b, nil
 }

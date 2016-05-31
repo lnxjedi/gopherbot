@@ -17,6 +17,9 @@ type Handler interface {
 	// GetProtocolConfig unmarshals the ProtocolConfig section of gopherbot.json
 	// into a connector-provided struct
 	GetProtocolConfig(interface{}) error
+	// GetBrainConfig unmarshals the BrainConfig section of gopherbot.json
+	// into a struct provided by the brain provider
+	GetBrainConfig(interface{}) error
 	// SetFullName allows the connector to set the robot's full name if it
 	// has access to it.
 	SetFullName(n string)
@@ -39,8 +42,9 @@ type SimpleBrain interface {
 	// if there's a problem storing the datum.
 	Store(key string, blob []byte) error
 	// Retrieve returns a blob of data (probably JSON) given a string key,
-	// and exists=true if the data blob was found.
-	Retrieve(key string) (blob []byte, exists bool)
+	// and exists=true if the data blob was found, or error if the brain
+	// malfunctions.
+	Retrieve(key string) (blob []byte, exists bool, err error)
 }
 
 // Connector is the interface defining methods that should be provided by
@@ -52,17 +56,17 @@ type Connector interface {
 	// supplements protocol data with data from users.json.
 	// The current attributes are:
 	// email, realName, firstName, lastName, phone, sms
-	GetProtocolUserAttribute(user, attr string) (value string, ok bool)
+	GetProtocolUserAttribute(user, attr string) (value string, ret BotRetVal)
 	// JoinChannel joins a channel given it's human-readable name, e.g. "general"
-	JoinChannel(c string)
+	JoinChannel(c string) BotRetVal
 	// SendProtocolChannelMessage sends a message to a channel
-	SendProtocolChannelMessage(channelname, msg string, format MessageFormat)
-	// SendUserChannelMessage directs a message to a user in a channel
-	SendProtocolUserChannelMessage(user, channelname, msg string, format MessageFormat)
+	SendProtocolChannelMessage(channelname, msg string, format MessageFormat) BotRetVal
+	// SendProtocolUserChannelMessage directs a message to a user in a channel
+	SendProtocolUserChannelMessage(user, channelname, msg string, format MessageFormat) BotRetVal
 	// SendProtocolUserMessage sends a direct message to a user if supported.
 	// For protocols not supportint DM, the bot should send a message addressed
 	// to the user in an implementation-specific channel.
-	SendProtocolUserMessage(user, msg string, format MessageFormat)
+	SendProtocolUserMessage(user, msg string, format MessageFormat) BotRetVal
 	// The Run method starts the main loop, and never returns; if it's
 	// called a second time, it just returns.
 	Run()

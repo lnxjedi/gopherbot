@@ -25,18 +25,18 @@ func lists(r bot.Robot, command string, args ...string) {
 	}
 	var lists = make(map[string]itemList)
 	var lock string
-	var err error
+	var ret bot.BotRetVal
 	// First, check out the list
 	switch command {
 	case "show", "send":
 		// read-only cases
-		_, _, err = r.CheckoutDatum(datumName, &lists, false)
+		_, _, ret = r.CheckoutDatum(datumName, &lists, false)
 	default:
 		// all other cases are read-write
-		lock, _, err = r.CheckoutDatum(datumName, &lists, true)
+		lock, _, ret = r.CheckoutDatum(datumName, &lists, true)
 	}
-	if err != nil {
-		r.Log(bot.Error, fmt.Errorf("Loading list: %v", err))
+	if ret != bot.Ok {
+		r.Log(bot.Error, "Couldn't load lists")
 		r.Reply("I had a problem loading the lists, somebody should check my log file")
 		r.Checkin(datumName, lock) // well-behaved plugins using the brain will always check in data when done
 		return
@@ -44,9 +44,9 @@ func lists(r bot.Robot, command string, args ...string) {
 	updated := false
 	defer func() {
 		if updated {
-			err := r.UpdateDatum(datumName, lock, lists)
-			if err != nil {
-				r.Log(bot.Error, fmt.Errorf("Updating list: %v", err))
+			ret := r.UpdateDatum(datumName, lock, lists)
+			if ret != bot.Ok {
+				r.Log(bot.Error, "Coudln't update lists")
 				r.Reply("Crud. I had a problem saving my lists - somebody better check the log")
 			}
 		} else {
@@ -128,11 +128,12 @@ func lists(r bot.Robot, command string, args ...string) {
 		case "show":
 			r.Say(fmt.Sprintf("Here's what I have on the %s list:\n%s", listName, listBuffer.String()))
 		case "send":
-			if err := r.Email(fmt.Sprintf("The %s list", listName), &listBuffer); err != nil {
+			if ret := r.Email(fmt.Sprintf("The %s list", listName), &listBuffer); ret != bot.Ok {
 				r.Say("Sorry, there was an error sending the email - have somebody check the my log file")
 				return
 			}
-			r.Say(fmt.Sprintf("Ok, I sent the %s list to you - look for email from %s", listName, r.GetBotAttribute("email")))
+			botmail, _ := r.GetBotAttribute("email")
+			r.Say(fmt.Sprintf("Ok, I sent the %s list to you - look for email from %s", listName, botmail))
 		}
 	case "add":
 		// Case sensitive input, case insensitve equality checking

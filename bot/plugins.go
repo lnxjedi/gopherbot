@@ -36,7 +36,7 @@ const (
 	plugBuiltin
 )
 
-// Plugin specifies the structure of a plugin configuration - plugins should include an example
+// Plugin specifies the structure of a plugin configuration - plugins should include an example / default config
 type Plugin struct {
 	Name           string          // the name of the plugin, used as a key in to the
 	pluginType     plugType        // plugGo, plugExternal, plugBuiltin - determines how commands are routed
@@ -45,6 +45,7 @@ type Plugin struct {
 	DisallowDirect bool            // Set this true if this plugin can never be accessed via direct message
 	Channels       []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels    bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
+	Trusted        bool            // Administrator must set this true to allow the plugin to check OTP codes (to prevent a bad plugin from trying them all)
 	Users          []string        // If non-empty, list of all the users with access to this plugin
 	Help           []PluginHelp    // All the keyword sets / help texts for this plugin
 	CommandMatches []InputMatcher  // Input matchers for messages that need to be directed to the 'bot

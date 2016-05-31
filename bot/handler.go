@@ -57,10 +57,18 @@ func (b *robot) IncomingMessage(channelName, userName, messageFull string) {
 	b.handleMessage(isCommand, channelName, userName, message)
 }
 
-// GetProtocolConfig unmarshals the connectors configuration data into a provided struct
+// GetProtocolConfig unmarshals the connector's configuration data into a provided struct
 func (b *robot) GetProtocolConfig(v interface{}) error {
 	b.lock.RLock()
 	err := json.Unmarshal(b.protocolConfig, v)
+	b.lock.RUnlock()
+	return err
+}
+
+// GetBrainConfig unmarshals the brain's configuration data into a provided struct
+func (b *robot) GetBrainConfig(v interface{}) error {
+	b.lock.RLock()
+	err := json.Unmarshal(b.brainConfig, v)
 	b.lock.RUnlock()
 	return err
 }

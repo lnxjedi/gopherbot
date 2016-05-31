@@ -16,7 +16,7 @@ import (
 const lockTimeout = 200 * time.Millisecond
 
 // Map of registered brains
-var brains map[string]func(l Logger, conf json.RawMessage) SimpleBrain = make(map[string]func(Logger, json.RawMessage) SimpleBrain)
+var brains map[string]func(Handler, *log.Logger) SimpleBrain = make(map[string]func(Handler, *log.Logger) SimpleBrain)
 
 // Global lock protecting the map of datum locks, individual datam,
 // and datumLock.checkouts.
@@ -41,12 +41,12 @@ var keyRe = regexp.MustCompile(keyRegex)
 
 // checkout returns the []byte from the brain, with a lock that expires
 // after lockTimeout. It returns a lock token, a pointer to the raw []byte
-// data, and true if the key exists.
-func (r *robot) checkout(d string, rw bool) (string, *[]byte, bool, error) {
+// data, true if the key exists, and a BotRetVal.
+func (r *robot) checkout(d string, rw bool) (string, *[]byte, bool, BotRetVal) {
 	if !keyRe.MatchString(d) {
 		err := fmt.Errorf("Invalid key supplied to checkout: %s", d)
 		r.Log(Error, err)
-		return "", nil, false, err
+		return "", nil, false, InvalidDatumKey
 	}
 	var dl *datumLock
 	dataLock.Lock() // wait for access to the global list
@@ -71,7 +71,11 @@ func (r *robot) checkout(d string, rw bool) (string, *[]byte, bool, error) {
 	}
 	dl.Lock() // block until we get the lock for the datum
 	// Retrieve the datum from the brain before starting the timer
-	datum, exists := r.brain.Retrieve(d)
+	datum, exists, err := r.brain.Retrieve(d)
+	if err != nil {
+		dl.Unlock()
+		return "", nil, false, BrainFailed
+	}
 	if rw {
 		// once rw lock is acquired, spin off lock expiration thread
 		go func(lt string, dl *datumLock) {
@@ -99,46 +103,46 @@ func (r *robot) checkout(d string, rw bool) (string, *[]byte, bool, error) {
 		}
 		dataLock.Unlock()
 	}
-	return lt, &datum, exists, nil
+	return lt, &datum, exists, Ok
 }
 
 // update sends updated []byte to the brain while holding the lock, or discards
 // the data and returns an error.
-func (r *robot) update(d, lt string, datum *[]byte) error {
+func (r *robot) update(d, lt string, datum *[]byte) (ret BotRetVal) {
 	dataLock.Lock() // acquire the global lock
 	dl, ok := data[d]
 	if !ok {
 		r.Log(Error, "Update called on non-existent datum: %s", d)
-		return fmt.Errorf("Update called on non-existent datum")
+		return DatumNotFound
 	}
 	ltLock.Lock() // we hope to get this lock before the timeout thread does
-	updated := false
-	var err error
 	if _, ok := lockTokens[lt]; ok {
-		updated = true
-		err = r.brain.Store(d, *datum)
-		dl.Unlock() // unlock after we've updated
+		err := r.brain.Store(d, *datum)
+		dl.Unlock() // unlock after we've updated, successful or not
+		if err != nil {
+			r.Log(Error, fmt.Sprintf("Storing datum %s: %v", d, err))
+			ret = ret | BrainFailed
+		}
 		delete(lockTokens, lt)
 		dl.checkouts--
 		if dl.checkouts == 0 {
 			delete(data, d)
 		}
-	} // when !ok, the dl is already unlocked
+		// when !ok, the lock token is expired and the dl is already unlocked
+	} else {
+		ret = ret | DatumLockExpired
+	}
 	ltLock.Unlock()
 	// Up to now has been 'instant' (no blocking) since the global lock was acquired
 	dataLock.Unlock()
-	if updated {
-		return err
-	} else {
-		return fmt.Errorf("Lock %s expired", lt)
-	}
+	return
 }
 
 // CheckoutDatum gets a datum from the robot's brain and unmarshals it into
 // a struct. If rw is set, the datum is checked out read-write and a non-empty
 // lock token is returned that expires after lockTimeout (250ms). The bool
 // return indicates whether the datum exists.
-func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, err error) {
+func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret BotRetVal) {
 	b := r.robot
 	b.lock.RLock()
 	pluginName := b.plugins[b.plugIDmap[r.pluginID]].Name
@@ -149,25 +153,25 @@ func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken
 
 // checkoutDatum is the robot internal version of CheckoutDatum that uses
 // the provided key as-is.
-func (r *Robot) checkoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, err error) {
+func (r *Robot) checkoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret BotRetVal) {
 	var dbytes *[]byte
-	locktoken, dbytes, exists, err = r.checkout(key, rw)
-	if err != nil {
-		r.Log(Error, fmt.Errorf("Reading key %s from brain:", key, err))
-		return "", false, err
-	}
-	if exists {
-		err = json.Unmarshal(*dbytes, datum)
+	locktoken, dbytes, exists, ret = r.checkout(key, rw)
+	if exists { // exists = true implies no error
+		err := json.Unmarshal(*dbytes, datum)
 		if err != nil {
-			r.Log(Error, fmt.Errorf("Unmarshalling datum %s:", key, err))
-			return "", false, err
+			r.Log(Error, fmt.Errorf("Unmarshalling datum %s: %v", key, err))
+			exists = false
+			ret = ret | DataFormatError
 		}
 	}
-	return locktoken, exists, nil
+	return
 }
 
-// Checkin unlocks a datum without updating it
+// Checkin unlocks a datum without updating it, it always succeeds
 func (r *Robot) Checkin(key, locktoken string) {
+	if locktoken == "" {
+		return
+	}
 	b := r.robot
 	b.lock.RLock()
 	pluginName := b.plugins[b.plugIDmap[r.pluginID]].Name
@@ -178,6 +182,9 @@ func (r *Robot) Checkin(key, locktoken string) {
 
 // checkin is the internal version of Checkin that uses the key as-is
 func (r *Robot) checkin(key, locktoken string) {
+	if locktoken == "" {
+		return
+	}
 	ltLock.Lock()
 	if _, ok := lockTokens[locktoken]; ok { // see if the lock was even held
 		delete(lockTokens, locktoken)
@@ -198,7 +205,7 @@ func (r *Robot) checkin(key, locktoken string) {
 // UpdateDatum tries to update a piece of data in the robot's brain, providing
 // a struct to marshall and a (hopefully good) lock token. If err != nil, the
 // update failed.
-func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) error {
+func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret BotRetVal) {
 	b := r.robot
 	b.lock.RLock()
 	pluginName := b.plugins[b.plugIDmap[r.pluginID]].Name
@@ -208,28 +215,20 @@ func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) error {
 }
 
 // updateDatum is the internal version of UpdateDatum that uses the key as-is
-func (r *Robot) updateDatum(key, locktoken string, datum interface{}) error {
+func (r *Robot) updateDatum(key, locktoken string, datum interface{}) (ret BotRetVal) {
 	dbytes, err := json.Marshal(datum)
 	if err != nil {
-		errmsg := fmt.Errorf("Unmarshalling datum: %v", err)
-		r.Log(Error, errmsg)
-		return errmsg
+		r.Log(Error, fmt.Sprintf("Unmarshalling datum %s: %v", key, err))
+		return DataFormatError
 	}
-	b := r.robot
-	err = b.update(key, locktoken, &dbytes)
-	if err != nil {
-		b.Log(Error, fmt.Errorf("Updating datum %s: %v", key, err))
-	}
-	return err
+	return r.robot.update(key, locktoken, &dbytes)
 }
 
-// RegisterBrain allows brain implementations to register a function with a named
-// brain type that returns an XXXBrain interface (currently only SimpleBrain).
-// When the bot initializes, it will look for a function registered under the configured
-// "Brain" in gopherbot.json, then pass in rawJSON config and get back an interface.
+// RegisterSimpleBrain allows brain implementations to register a function with a named
+// brain type that returns an SimpleBrain interface.
 // This can only be called from a brain provider's init() function(s). Pass in a Logger
-// so the brain can log error messages if needed.
-func RegisterBrain(name string, provider func(Logger, json.RawMessage) SimpleBrain) {
+// so the brain can log it's own error messages if needed.
+func RegisterSimpleBrain(name string, provider func(Handler, *log.Logger) SimpleBrain) {
 	if stopRegistrations {
 		return
 	}

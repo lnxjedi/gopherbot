@@ -1,5 +1,5 @@
 // Package slack uses a slack library to implement the methods
-// required by gobot-chatops and it's plugins.
+// required by gopherbot and it's plugins.
 package slack
 
 import (
@@ -23,7 +23,7 @@ func init() {
 	bot.RegisterConnector("slack", Start)
 }
 
-func Start(gobot bot.Handler, l *log.Logger) bot.Connector {
+func Start(robot bot.Handler, l *log.Logger) bot.Connector {
 	lock.Lock()
 	if started {
 		lock.Unlock()
@@ -34,16 +34,16 @@ func Start(gobot bot.Handler, l *log.Logger) bot.Connector {
 
 	var c Config
 
-	err := gobot.GetProtocolConfig(&c)
+	err := robot.GetProtocolConfig(&c)
 	if c.MaxMessageSplit == 0 {
 		c.MaxMessageSplit = 1
 	}
 	if err != nil {
-		gobot.Log(bot.Fatal, fmt.Errorf("Unable to retrieve protocol configuration: %v", err))
+		robot.Log(bot.Fatal, fmt.Errorf("Unable to retrieve protocol configuration: %v", err))
 	}
 
 	api := slack.New(c.SlackToken)
-	if gobot.GetLogLevel() <= bot.Debug {
+	if robot.GetLogLevel() <= bot.Debug {
 		api.SetDebug(true)
 		slack.SetLogger(l)
 	}
@@ -51,7 +51,7 @@ func Start(gobot bot.Handler, l *log.Logger) bot.Connector {
 	sc := &slackConnector{api: api, conn: api.NewRTM(), maxMessageSplit: c.MaxMessageSplit}
 	go sc.conn.ManageConnection()
 
-	sc.Handler = gobot
+	sc.Handler = robot
 
 Loop:
 	for {
@@ -119,7 +119,7 @@ func (sc *slackConnector) Run() {
 			default:
 
 				// Ignore other events..
-				// gobot.Debug(fmt.Sprintf("Unexpected: %v\n", msg.Data)
+				// robot.Debug(fmt.Sprintf("Unexpected: %v\n", msg.Data)
 			}
 		}
 	}

@@ -11,15 +11,19 @@ import (
 // For the robot, this can be conifigured in gopherbot.conf, Email attribute.
 // For the user, this should be provided by the chat protocol, or in
 // gopherbot.conf. (TODO: not yet implemented)
-func (r *Robot) Email(subject string, messageBody *bytes.Buffer) error {
-	mailFrom := r.GetBotAttribute("email")
-	botName := r.GetBotAttribute("fullName")
-	mailTo := r.GetSenderAttribute("email")
-	if len(mailFrom) == 0 {
-		return fmt.Errorf("Sorry, I don't have an email address to send from!")
+// It returns an error and BotRetVal != 0 if there's a problem.
+func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret BotRetVal) {
+	var mailFrom, botName, mailTo string
+
+	mailFrom, ret = r.GetBotAttribute("email")
+	if ret != Ok {
+		return ret | NoBotEmail
 	}
-	if len(mailTo) == 0 {
-		return fmt.Errorf("Sorry, I wasn't able to look up your email address")
+	// We can live without a full name
+	botName, _ = r.GetBotAttribute("fullName")
+	mailTo, ret = r.GetSenderAttribute("email")
+	if ret != Ok {
+		return ret | NoUserEmail
 	}
 	var messageBuffer bytes.Buffer
 	fmt.Fprintf(&messageBuffer, "From: %s <%s>\r\n", botName, mailFrom)
@@ -30,48 +34,48 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) error {
 	if err != nil {
 		err = fmt.Errorf("Sending email: %v", err)
 		r.Log(Error, err)
-		return err
+		return MailError
 	}
 	if err := c.Mail(mailFrom); err != nil {
 		err = fmt.Errorf("Setting sender to %s: %v", mailFrom, err)
 		r.Log(Error, err)
-		return err
+		return MailError
 	}
 	if err := c.Rcpt(mailTo); err != nil {
 		err = fmt.Errorf("Setting recipient to %s: %v", mailTo, err)
 		r.Log(Error, err)
-		return err
+		return MailError
 	}
 	// Send the email body.
 	wc, err := c.Data()
 	if err != nil {
 		err = fmt.Errorf("Starting message body: %v", err)
 		r.Log(Error, err)
-		return err
+		return MailError
 	}
 	_, err = wc.Write(messageBuffer.Bytes())
 	if err != nil {
 		err = fmt.Errorf("Sending message body: %v", err)
 		r.Log(Error, err)
-		return err
+		return MailError
 	}
 	_, err = wc.Write(messageBody.Bytes())
 	if err != nil {
 		err = fmt.Errorf("Sending message body: %v", err)
 		r.Log(Error, err)
-		return err
+		return MailError
 	}
 	err = wc.Close()
 	if err != nil {
 		err = fmt.Errorf("Closing message body: %v", err)
 		r.Log(Error, err)
-		return err
+		return MailError
 	}
 	err = c.Quit()
 	if err != nil {
 		err = fmt.Errorf("Closing mail connection: %v", err)
 		r.Log(Error, err)
-		return err
+		return MailError
 	}
-	return nil
+	return Ok
 }

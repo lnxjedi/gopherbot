@@ -42,16 +42,16 @@ func launchCode(bot Robot, command string, args ...string) {
 	var userOTP otp.OTPConfig
 	otpKey := "bot:OTP:" + bot.User
 	updated := false
-	lock, exists, err := bot.checkoutDatum(otpKey, &userOTP, true)
-	if err != nil {
+	lock, exists, ret := bot.checkoutDatum(otpKey, &userOTP, true)
+	if ret != Ok {
 		bot.Say("Yikes - something went wrong with my brain, have somebody check my log")
 		return
 	}
 	defer func() {
 		if updated {
-			err := bot.updateDatum(otpKey, lock, &userOTP)
-			if err != nil {
-				bot.Log(Error, fmt.Errorf("Saving OTP config: %v", err))
+			ret := bot.updateDatum(otpKey, lock, &userOTP)
+			if ret != Ok {
+				bot.Log(Error, "Couldn't save OTP config")
 				bot.Reply("Good grief. I'm having trouble remembering your launch codes - have somebody check my log")
 			}
 		} else {
@@ -66,16 +66,6 @@ func launchCode(bot Robot, command string, args ...string) {
 			bot.Reply("I've already sent you the launch codes, contact an administrator if you're having problems")
 			return
 		}
-		user := bot.GetSenderAttribute("email")
-		if len(user) == 0 {
-			bot.Reply("Problem - I couldn't get your email address; check with my administrator")
-			return
-		}
-		issuer := bot.GetBotAttribute("fullName")
-		if len(issuer) == 0 {
-			bot.Reply("Problem - I need to have a full name; check with my administrator")
-			return
-		}
 		otpb := make([]byte, 10)
 		random.Read(otpb)
 		userOTP.Secret = base32.StdEncoding.EncodeToString(otpb)
@@ -83,7 +73,7 @@ func launchCode(bot Robot, command string, args ...string) {
 		userOTP.DisallowReuse = []int{}
 		var codeMail bytes.Buffer
 		fmt.Fprintf(&codeMail, "For your authenticator:\n%s\n", userOTP.Secret)
-		if err := bot.Email("Your launch codes - if you print this email, please chew it up and swallow it", &codeMail); err != nil {
+		if ret := bot.Email("Your launch codes - if you print this email, please chew it up and swallow it", &codeMail); ret != Ok {
 			bot.Reply("There was a problem sending your launch codes, contact an administrator")
 			return
 		}

@@ -43,38 +43,41 @@ func (r Robot) CheckAdmin() bool {
 
 // CheckOTP returns true if the provided string is a valid OTP code for the user.
 // See the builtInlaunchcodes.go plugin.
-func (r Robot) CheckOTP(code string) bool {
+func (r Robot) CheckOTP(code string) (bool, BotRetVal) {
+	b := r.robot
+	b.lock.RLock()
+	plugin := b.plugins[b.plugIDmap[r.pluginID]]
+	trustedPlugin := plugin.Trusted
+	plugName := plugin.Name
+	b.lock.RUnlock()
+	if !trustedPlugin {
+		b.Log(Error, fmt.Sprintf("ALERT: Untrusted plugin \"%s\" called CheckOTP", plugName))
+		return false, UntrustedPlugin
+	}
 	otpKey := "bot:OTP:" + r.User
 	var userOTP otp.OTPConfig
-	updated := false
-	lock, exists, err := r.checkoutDatum(otpKey, &userOTP, true)
-	if err != nil {
-		return false
+	lock, exists, ret := r.checkoutDatum(otpKey, &userOTP, true)
+	if ret != Ok {
+		ret = ret | NoUserOTP
+		r.checkin(otpKey, lock)
+		return false, ret
 	}
-	defer func() {
-		if updated {
-			err := r.updateDatum(otpKey, lock, &userOTP)
-			if err != nil {
-				r.Log(Error, fmt.Errorf("Saving OTP config: %v", err))
-			}
-		} else {
-			// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
-			// in case there's another thread waiting.
-			r.checkin(otpKey, lock)
-		}
-	}()
 	if !exists {
-		return false
+		r.checkin(otpKey, lock)
+		return false, ret
 	}
 	valid, err := userOTP.Authenticate(code)
 	if err != nil {
-		r.Log(Error, fmt.Errorf("Problem authenticating launch code: %v", err))
-		return false
+		r.Log(Error, fmt.Errorf("Problem authenticating launch code for user %s: %v", r.User, err))
+		r.checkin(otpKey, lock)
+		return false, OTPError
 	}
-	if valid {
-		return true
+	ret = r.updateDatum(otpKey, lock, &userOTP)
+	if ret != Ok {
+		r.Log(Error, fmt.Errorf("Problem updating OTP for %s, failing", r.User))
+		return false, ret
 	}
-	return false
+	return valid, Ok
 }
 
 // Fixed is a convenience function for sending a message with fixed width
@@ -109,41 +112,41 @@ func (r Robot) RandomInt(n int) int {
 // GetBotAttribute returns an attribute of the robot or "" if unknown.
 // Current attributes:
 // name, alias, fullName, contact
-func (r Robot) GetBotAttribute(a string) string {
+func (r Robot) GetBotAttribute(a string) (attr string, ret BotRetVal) {
 	b := r.robot
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	switch a {
 	case "name":
-		return b.name
+		attr = b.name
 	case "fullName", "realName":
-		return b.fullName
+		attr = b.fullName
 	case "alias":
-		return string(b.alias)
+		attr = string(b.alias)
 	case "email":
-		return b.email
+		attr = b.email
 	case "contact", "admin", "adminContact":
-		return b.adminContact
+		attr = b.adminContact
+	default:
+		ret = ret | AttributeNotFound
 	}
-	return ""
+	return
 }
 
-// GetUserAttribute returns an attribute of a user or "" if unknown.
+// GetUserAttribute returns an attribute of a user or "" if unknown/error
 // Current attributes:
 // name(handle), fullName, email, firstName, lastName, phone
 // TODO: supplement data with gopherbot.json user's table
-func (r Robot) GetUserAttribute(u, a string) string {
-	attr, _ := r.GetProtocolUserAttribute(u, a)
-	return attr
+func (r Robot) GetUserAttribute(u, a string) (string, BotRetVal) {
+	return r.GetProtocolUserAttribute(u, a)
 }
 
-// GetSenderAttribute returns an attribute of the sending user or "" if unknown.
+// GetSenderAttribute returns an attribute of the sending user or "" if unknown/error
 // Current attributes:
 // name(handle), fullName, email, firstName, lastName, phone
 // TODO: supplement data with gopherbot.json user's table
-func (r Robot) GetSenderAttribute(a string) string {
-	attr, _ := r.GetProtocolUserAttribute(r.User, a)
-	return attr
+func (r Robot) GetSenderAttribute(a string) (string, BotRetVal) {
+	return r.GetProtocolUserAttribute(r.User, a)
 }
 
 // GetPluginConfig will unmarshall the plugin's Config section into
@@ -174,7 +177,7 @@ func (r Robot) GetPluginConfig(dptr interface{}) bool {
 // in the given channel, or if the regex id is wrong. Otherwise, any
 // reply is returned with matched indicating whether the reply matched
 // the regex. If the timeout is reached, timedOut is true and the reply is "".
-func (r Robot) WaitForReply(regexId string, timeout int) (matched, timedOut bool, replyText string, err error) {
+func (r Robot) WaitForReply(regexId string, timeout int) (replyText string, ret BotRetVal) {
 	matcher := replyMatcher{
 		user:    r.User,
 		channel: r.Channel,
@@ -185,10 +188,10 @@ func (r Robot) WaitForReply(regexId string, timeout int) (matched, timedOut bool
 	// See if there's already a continuation in progress for this Robot:user,channel,
 	rep, exists := replies[matcher]
 	if exists {
-		err := fmt.Errorf("A reply is already being waited on for user %s in channel %s", r.User, r.Channel)
-		r.Log(Warn, err)
+		ret = ret | ReplyInProgress | ReplyNotMatched
+		r.Log(Warn, fmt.Errorf("A reply is already being waited on for user %s in channel %s", r.User, r.Channel))
 		botLock.Unlock()
-		return false, false, "", err
+		return "", ret
 	}
 	b := r.robot
 	b.lock.RLock()
@@ -204,10 +207,10 @@ func (r Robot) WaitForReply(regexId string, timeout int) (matched, timedOut bool
 	}
 	b.lock.RUnlock()
 	if rep.re == nil {
-		err := fmt.Errorf("Unable to resolve a reply matcher for plugin %s, regexID %s", plugin.Name, regexId)
-		r.Log(Error, err)
+		r.Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", plugin.Name, regexId))
 		botLock.Unlock()
-		return false, false, "", err
+		ret = ret | MatcherNotFound | ReplyNotMatched
+		return "", ret
 	}
 	rep.replyChannel = make(chan reply)
 	r.Log(Trace, fmt.Sprintf("Adding matcher to replies: %q", matcher))
@@ -219,55 +222,58 @@ func (r Robot) WaitForReply(regexId string, timeout int) (matched, timedOut bool
 	// If it's matched in the meantime, it should get deleted at that point.
 	select {
 	case <-time.After(time.Duration(timeout) * time.Second):
-		err := fmt.Errorf("Plugin \"%s\" timed out waiting for a reply to regex \"%s\"", plugName, regexId)
-		b.Log(Warn, err)
+		b.Log(Warn, fmt.Sprintf("Plugin \"%s\" timed out waiting for a reply to regex \"%s\"", plugName, regexId))
 		botLock.Lock()
 		// reply timed out, free up this matcher for later reply requests
 		delete(replies, matcher)
 		botLock.Unlock()
 		// matched=false, timedOut=true
-		return false, true, "", err
+		ret = ret | TimeoutExpired | ReplyNotMatched
+		return "", ret
 	case replied, _ := <-rep.replyChannel:
 		// Note: the replies[] entry is deleted in handleMessage
-		return replied.matched, false, replied.rep, nil
+		if !replied.matched {
+			ret = ret | ReplyNotMatched
+		}
+		return replied.rep, ret
 	}
 }
 
 // SendChannelMessage lets a plugin easily send a message to an arbitrary
 // channel. Use Robot.Fixed().SencChannelMessage(...) for fixed-width
 // font.
-func (r Robot) SendChannelMessage(channel, msg string) {
-	r.SendProtocolChannelMessage(channel, msg, r.Format)
+func (r Robot) SendChannelMessage(channel, msg string) BotRetVal {
+	return r.SendProtocolChannelMessage(channel, msg, r.Format)
 }
 
 // SendUserChannelMessage lets a plugin easily send a message directed to
 // a specific user in a specific channel without fiddling with the robot
 // object. Use Robot.Fixed().SencChannelMessage(...) for fixed-width
 // font.
-func (r Robot) SendUserChannelMessage(user, channel, msg string) {
-	r.SendProtocolUserChannelMessage(user, channel, msg, r.Format)
+func (r Robot) SendUserChannelMessage(user, channel, msg string) BotRetVal {
+	return r.SendProtocolUserChannelMessage(user, channel, msg, r.Format)
 }
 
 // SendUserMessage lets a plugin easily send a DM to a user. If a DM
 // isn't possible, the connector should message the user in a channel.
-func (r Robot) SendUserMessage(user, msg string) {
-	r.SendProtocolUserMessage(user, msg, r.Format)
+func (r Robot) SendUserMessage(user, msg string) BotRetVal {
+	return r.SendProtocolUserMessage(user, msg, r.Format)
 }
 
 // Reply directs a message to the user
-func (r Robot) Reply(msg string) {
+func (r Robot) Reply(msg string) BotRetVal {
 	if r.Channel == "" {
-		r.SendProtocolUserMessage(r.User, msg, r.Format)
+		return r.SendProtocolUserMessage(r.User, msg, r.Format)
 	} else {
-		r.SendProtocolUserChannelMessage(r.User, r.Channel, msg, r.Format)
+		return r.SendProtocolUserChannelMessage(r.User, r.Channel, msg, r.Format)
 	}
 }
 
 // Say just sends a message to the user or channel
-func (r Robot) Say(msg string) {
+func (r Robot) Say(msg string) BotRetVal {
 	if r.Channel == "" {
-		r.SendProtocolUserMessage(r.User, msg, r.Format)
+		return r.SendProtocolUserMessage(r.User, msg, r.Format)
 	} else {
-		r.SendProtocolChannelMessage(r.Channel, msg, r.Format)
+		return r.SendProtocolChannelMessage(r.Channel, msg, r.Format)
 	}
 }

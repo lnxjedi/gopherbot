@@ -36,6 +36,61 @@ type slackConnector struct {
 	imToUser        map[string]string     // map from IM channel ID to user name
 }
 
+func (s *slackConnector) getUser(u string) (user slack.User, ok bool) {
+	s.RLock()
+	user, ok = s.userInfo[u]
+	s.RUnlock()
+	if !ok {
+		return user, false
+	}
+	return user, ok
+}
+
+func (s *slackConnector) userID(u string) (i string, ok bool) {
+	s.RLock()
+	user, ok := s.userInfo[u]
+	s.RUnlock()
+	if !ok {
+		return "", false
+	}
+	return user.ID, ok
+}
+
+func (s *slackConnector) userName(i string) (u string, ok bool) {
+	s.RLock()
+	u, ok = s.idToUser[i]
+	s.RUnlock()
+	return u, ok
+}
+
+func (s *slackConnector) userIMID(u string) (i string, ok bool) {
+	s.RLock()
+	i, ok = s.userIDToIM[u]
+	s.RUnlock()
+	return i, ok
+}
+
+func (s *slackConnector) chanID(c string) (i string, ok bool) {
+	s.RLock()
+	i, ok = s.channelToID[c]
+	s.RUnlock()
+	return i, ok
+}
+
+func (s *slackConnector) channelName(i string) (c string, ok bool) {
+	s.RLock()
+	c, ok = s.idToChannel[i]
+	s.RUnlock()
+	return c, ok
+}
+
+func (s *slackConnector) imUser(c string) (u string, ok bool) {
+	s.RLock()
+	u, ok = s.imToUser[c]
+	s.RUnlock()
+	return u, ok
+}
+
 func optQuote(msg string, f bot.MessageFormat) string {
 	if f == bot.Fixed {
 		return "```" + msg + "```"
@@ -227,59 +282,4 @@ func (s *slackConnector) updateMaps() {
 	s.imToUser = userNameMap
 	s.Unlock()
 	s.Log(bot.Info, "Users updated")
-}
-
-func (s *slackConnector) getUser(u string) (user slack.User, ok bool) {
-	s.RLock()
-	user, ok = s.userInfo[u]
-	s.RUnlock()
-	if !ok {
-		return user, false
-	}
-	return user, ok
-}
-
-func (s *slackConnector) userID(u string) (i string, ok bool) {
-	s.RLock()
-	user, ok := s.userInfo[u]
-	s.RUnlock()
-	if !ok {
-		return "", false
-	}
-	return user.ID, ok
-}
-
-func (s *slackConnector) userName(i string) (u string, ok bool) {
-	s.RLock()
-	u, ok = s.idToUser[i]
-	s.RUnlock()
-	return u, ok
-}
-
-func (s *slackConnector) userIMID(u string) (i string, ok bool) {
-	s.RLock()
-	i, ok = s.userIDToIM[u]
-	s.RUnlock()
-	return i, ok
-}
-
-func (s *slackConnector) chanID(c string) (i string, ok bool) {
-	s.RLock()
-	i, ok = s.channelToID[c]
-	s.RUnlock()
-	return i, ok
-}
-
-func (s *slackConnector) channelName(i string) (c string, ok bool) {
-	s.RLock()
-	c, ok = s.idToChannel[i]
-	s.RUnlock()
-	return c, ok
-}
-
-func (s *slackConnector) imUser(c string) (u string, ok bool) {
-	s.RLock()
-	u, ok = s.imToUser[c]
-	s.RUnlock()
-	return u, ok
 }

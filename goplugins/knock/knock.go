@@ -37,15 +37,16 @@ func knock(r bot.Robot, command string, args ...string) {
 		r.Pause(1.2)
 		r.Reply("Knock knock")
 		for i := 0; i < 2; i++ {
-			matched, timedOut, _, err := r.WaitForReply("whosthere", 14)
-			if timedOut {
+			_, ret := r.WaitForReply("whosthere", 14)
+			if ret&bot.TimeoutExpired != 0 {
 				r.Reply(r.RandomString(j.Phooey))
 				return
 			}
-			if err != nil {
-				r.Reply("... wait, sorry - my joke algorithm broke!")
+			if ret&bot.ReplyInProgress != 0 {
+				r.Reply("Are you trying to confuse me?")
+				return
 			}
-			if !matched {
+			if ret&bot.ReplyNotMatched != 0 {
 				switch i {
 				case 0:
 					r.Pause(0.5)
@@ -55,6 +56,9 @@ func knock(r bot.Robot, command string, args ...string) {
 					r.Reply(r.RandomString(j.Phooey))
 					return
 				}
+			} else if ret != bot.Ok {
+				r.Reply("Sorry, something broke")
+				return
 			} else {
 				break // matched
 			}
@@ -62,15 +66,16 @@ func knock(r bot.Robot, command string, args ...string) {
 		r.Pause(0.5)
 		r.Say(joke.First)
 		for i := 0; i < 2; i++ {
-			matched, timedOut, reply, err := r.WaitForReply("who", 14)
-			if timedOut {
+			reply, ret := r.WaitForReply("who", 14)
+			if ret&bot.TimeoutExpired != 0 {
 				r.Reply(r.RandomString(j.Phooey))
 				return
 			}
-			if err != nil {
+			if ret&^bot.ReplyNotMatched != 0 { // bit clear operator, test if bit set other than ReplyNotMatched
 				r.Reply("... wait, sorry - my joke algorithm broke!")
+				return
 			}
-			if !matched {
+			if ret&bot.ReplyNotMatched != 0 {
 				switch i {
 				case 0:
 					r.Pause(0.5)

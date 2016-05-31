@@ -1,16 +1,16 @@
 package fileBrain
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/parsley42/gopherbot/bot"
 )
 
 var brainPath string
-var logger bot.Logger
+var robot bot.Handler
 
 type brainConfig struct {
 	BrainDirectory string // path to brain files
@@ -21,24 +21,27 @@ var fb brainConfig
 func (fb *brainConfig) Store(k string, b []byte) error {
 	datumPath := brainPath + "/" + k
 	if err := ioutil.WriteFile(datumPath, b, 0644); err != nil {
-		logger.Log(bot.Error, fmt.Sprintf("Writing datum \"%s\": %v", datumPath, err))
-		return err
+		return fmt.Errorf("Writing datum \"%s\": %v", datumPath, err)
 	}
 	return nil
 }
 
-func (fb *brainConfig) Retrieve(k string) ([]byte, bool) {
+func (fb *brainConfig) Retrieve(k string) (datum []byte, exists bool, err error) {
 	datumPath := brainPath + "/" + k
-	datum, err := ioutil.ReadFile(datumPath)
-	if err != nil {
-		logger.Log(bot.Debug, "Error reading file \"%s\": %v", datumPath, err)
-		return []byte(""), false
+	if _, err := os.Stat(datumPath); err == nil {
+		exists = true
 	}
-	return datum, true
+	datum, err = ioutil.ReadFile(datumPath)
+	if err != nil {
+		err = fmt.Errorf("Error reading file \"%s\": %v", datumPath, err)
+	}
+	return
 }
 
-func provider(l bot.Logger, j json.RawMessage) bot.SimpleBrain {
-	json.Unmarshal(j, &fb)
+// The file brain doesn't need the logger, but other brains might
+func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
+	robot = r
+	robot.GetBrainConfig(&fb)
 	if byte(fb.BrainDirectory[0]) == byte("/"[0]) {
 		brainPath = fb.BrainDirectory
 	} else {
@@ -46,15 +49,14 @@ func provider(l bot.Logger, j json.RawMessage) bot.SimpleBrain {
 	}
 	bd, err := os.Stat(brainPath)
 	if err != nil {
-		l.Log(bot.Fatal, fmt.Sprintf("Checking brain directory \"%s\": %v", err))
+		robot.Log(bot.Fatal, fmt.Sprintf("Checking brain directory \"%s\": %v", err))
 	}
 	if !bd.Mode().IsDir() {
-		l.Log(bot.Fatal, fmt.Sprintf("Checking brain directory: \"%s\" isn't a directory", brainPath))
+		robot.Log(bot.Fatal, fmt.Sprintf("Checking brain directory: \"%s\" isn't a directory", brainPath))
 	}
-	logger = l
 	return &fb
 }
 
 func init() {
-	bot.RegisterBrain("file", provider)
+	bot.RegisterSimpleBrain("file", provider)
 }
