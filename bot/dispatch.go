@@ -5,28 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"regexp"
 )
-
-// a replyWaiter is used when a plugin is waiting for a reply
-type replyWaiter struct {
-	regex        string         // The text of the regular expression
-	re           *regexp.Regexp // The regular expression the reply needs to match
-	replyChannel chan reply     // The channel to send the reply to when it is received
-}
-
-// a reply matcher is used as the key in the replys map
-type replyMatcher struct {
-	user, channel string // Only one reply at a time can be requested for a given user/channel combination
-}
-
-// a reply is sent over the replyWaiter channel when a user replies
-type reply struct {
-	matched bool   // true if the regex matched
-	rep     string // text of the reply if matched=true, else ""
-}
-
-var replies = make(map[replyMatcher]replyWaiter)
 
 // messageAppliesToPlugin checks the user and channel against the plugin's
 // configuration to determine if the message should be evaluated. Used by
@@ -91,7 +70,7 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 		b.Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
 		rep, exists := replies[matcher]
 		if exists {
-			b.Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking message \"%s\" against \"%s\"", user, channel, messagetext, rep.regex))
+			b.Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking message \"%s\" against \"%s\"", user, channel, messagetext, rep.re.String()))
 			commandMatched = true
 			// we got a match - so delete the matcher and send the reply struct
 			delete(replies, matcher)

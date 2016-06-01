@@ -22,9 +22,9 @@ gbPostJSON(){
 }
 EOF
 )
-#	echo "Sending: $JSON" >&2
+	echo "Sending: $JSON" >&2
 	JSONRET=$(echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null)
-#	echo "Got back: $JSONRET" >&2
+	echo "Got back: $JSONRET" >&2
 	echo "$JSONRET"
 	GB_FORMAT="variable"
 }
@@ -33,13 +33,19 @@ gbBotRet() {
 	local JSON="$1"
 	local RETVAL
 	RETVAL=$(echo "$JSON" | jq .BotRetVal)
-	return $RETVAL
+	GB_RETVAL=$RETVAL
+	if [ $RETVAL -eq 0 ]
+	then
+		return 0
+	else
+		return 1
+	fi
 }
 
 gbDecode() {
 	local JSON="$1"
 	local ITEM="$2"
-	local B64DATA="$(echo \"$JSON\" | jq -r .\"$ITEM\")"
+	local B64DATA=$(echo "$JSON" | jq -r .$ITEM)
 	B64DATA=${B64DATA#base64:}
 	echo "$B64DATA" | base64 -d
 }

@@ -16,7 +16,7 @@
 	"ReplyMatchers": [
 		{
 			"Command": "whosthere",
-			"Regex": "(?i:who.s there\\??)"
+			"Regex": "(?i:who.?s there\\??)"
 		},
 		{
 			"Command": "who",
