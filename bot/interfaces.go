@@ -30,6 +30,10 @@ type Handler interface {
 	// to make it's own decision about how much it should log. For slack, this
 	// determines whether the plugin does api logging.
 	GetLogLevel() LogLevel
+	// GetInstallPath returns the installation path of the gopherbot
+	GetInstallPath() string
+	// GetLocalPath returns the path to the local config of the gopherbot
+	GetLocalPath() string
 	// Log provides a standard logging interface with a level as defined in
 	// bot/logging.go
 	Log(l LogLevel, v ...interface{})

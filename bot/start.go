@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	// MakeDaemon from VividCortex - thanks!
 	"github.com/VividCortex/godaemon"
@@ -69,20 +70,25 @@ func Start() {
 
 	// Installdir is where the default config and stock external
 	// plugins are.
-	if execpath, err = godaemon.GetExecutablePath(); err != nil {
-		log.Fatalf("Couldn't get executable path: %v", err)
-	}
-	if execdir, err = filepath.Abs(filepath.Dir(execpath)); err != nil {
-		log.Fatalf("Couldn't determine install path: %v", err)
+	execpath, err = godaemon.GetExecutablePath()
+	if err == nil {
+		execdir, _ = filepath.Abs(filepath.Dir(execpath))
 	}
 	instSearchPath := []string{
 		installDir,
 		os.Getenv("GOPHER_INSTALLDIR"),
 		"/usr/local/share/gopherbot",
 		"/usr/share/gopherbot",
-		execdir,
 	}
+	gosearchpath := os.Getenv("GOPATH")
+	if len(gosearchpath) > 0 {
+		for _, gopath := range strings.Split(gosearchpath, ":") {
+			instSearchPath = append(instSearchPath, gopath+"/src/github.com/parsley42/gopherbot")
+		}
+	}
+	instSearchPath = append(instSearchPath, execdir)
 	for _, spath := range instSearchPath {
+		fmt.Printf("Checking %s\n", spath)
 		if dirExists(spath) {
 			installdir = spath
 			break
@@ -106,7 +112,7 @@ func Start() {
 		}
 	}
 	if len(localdir) == 0 {
-		log.Fatal("Coudln't locate local configuration directory")
+		log.Fatal("Couldn't locate local configuration directory")
 	}
 
 	// Read the config just to extract the LogFile PidFile path
@@ -171,11 +177,8 @@ func Start() {
 	} else { // run in the foreground, log to stderr
 		botLogger = log.New(os.Stderr, "", log.LstdFlags)
 	}
-	botLogger.Println("Starting up")
 
-	// From here on out we're daemonized, unless -f was passed
-	os.Setenv("GOPHER_INSTALLDIR", installdir)
-	os.Setenv("GOPHER_LOCALDIR", localdir)
+	// From here on out we're daemonized if -d was passed
 	// Create the 'bot and load configuration, suppying configdir and installdir.
 	// When loading configuration, gopherbot first loads default configuration
 	// frim installdir/conf/..., then loads from localdir/conf/..., which
@@ -184,6 +187,9 @@ func Start() {
 	if err != nil {
 		botLogger.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
 	}
+	gopherbot.Log(Info, "Starting up with localdir: %s, and installdir: %s", localdir, installdir)
+	os.Setenv("GOPHER_INSTALLDIR", installdir)
+	os.Setenv("GOPHER_LOCALDIR", localdir)
 
 	var conn Connector
 

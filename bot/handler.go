@@ -11,9 +11,24 @@ import (
 // connector to make it's own decision about logging
 func (b *robot) GetLogLevel() LogLevel {
 	b.lock.RLock()
-	l := b.level
-	b.lock.RUnlock()
-	return l
+	defer b.lock.RUnlock()
+	return b.level
+}
+
+// GetInstallPath gets the path to the bot's install dir -
+// the location of default configuration and stock external plugins.
+func (b *robot) GetInstallPath() string {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
+	return b.installPath
+}
+
+// GetLocalPath gets the path to the bot's install dir -
+// the location of default configuration and stock external plugins.
+func (b *robot) GetLocalPath() string {
+	b.lock.RLock()
+	defer b.lock.RUnlock()
+	return b.localPath
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
