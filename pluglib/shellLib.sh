@@ -8,4 +8,4 @@ export GB_CHANNEL GB_USER GB_PLUGID
 shift 3
 # Now $1 is the command
 
-source $GOPHER_INSTALLDIR/util/shellFuncs.sh
+source $GOPHER_INSTALLDIR/pluglib/shellFuncs.sh

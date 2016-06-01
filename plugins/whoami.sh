@@ -2,7 +2,7 @@
 
 # whoami.sh - shell plugin example that retrieves user attributes
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
-source $GOPHER_INSTALLDIR/util/shellLib.sh
+source $GOPHER_INSTALLDIR/pluglib/shellLib.sh
 
 if [ "$1" != "whoami" ]
 then

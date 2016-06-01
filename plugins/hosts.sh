@@ -2,7 +2,7 @@
 
 # echo.sh - less trivial example shell plugin for gopherbot
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
-source $GOPHER_INSTALLDIR/util/shellLib.sh
+source $GOPHER_INSTALLDIR/pluglib/shellLib.sh
 
 # Ignore any command but "hosts"
 if [ "$1" != "hosts" ]

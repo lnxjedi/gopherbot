@@ -9,7 +9,7 @@ gb_json_encode(){
 gbPostJSON(){
 	local GB_FUNCNAME=$1
 	local GB_FUNCARGS="$2"
-	local JSON
+	local JSON JSONRET
 	GB_FORMAT=${GB_FORMAT:-variable}
 	JSON=$(cat <<EOF
 {
@@ -22,7 +22,26 @@ gbPostJSON(){
 }
 EOF
 )
-	echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null
+#	echo "Sending: $JSON" >&2
+	JSONRET=$(echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null)
+#	echo "Got back: $JSONRET" >&2
+	echo "$JSONRET"
+	GB_FORMAT="variable"
+}
+
+gbBotRet() {
+	local JSON="$1"
+	local RETVAL
+	RETVAL=$(echo "$JSON" | jq .BotRetVal)
+	return $RETVAL
+}
+
+gbDecode() {
+	local JSON="$1"
+	local ITEM="$2"
+	local B64DATA="$(echo \"$JSON\" | jq -r .\"$ITEM\")"
+	B64DATA=${B64DATA#base64:}
+	echo "$B64DATA" | base64 -d
 }
 
 GetBotAttribute(){
@@ -35,7 +54,9 @@ GetBotAttribute(){
 }
 EOF
 )
-	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	gbDecode "$GB_RET" Attribute
+	gbBotRet "$GB_RET"
 }
 
 GetSenderAttribute(){
@@ -48,7 +69,9 @@ GetSenderAttribute(){
 }
 EOF
 )
-	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	gbDecode "$GB_RET" Attribute
+	gbBotRet "$GB_RET"
 }
 
 GetUserAttribute(){
@@ -63,7 +86,9 @@ GetUserAttribute(){
 }
 EOF
 )
-	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	gbDecode "$GB_RET" Attribute
+	gbBotRet "$GB_RET"
 }
 
 WaitForReply(){
@@ -71,21 +96,21 @@ WaitForReply(){
 	local GB_FUNCNAME="WaitForReply"
 	local REGEX="$1"
 	local TIMEOUT="${2:-14}"
-	local NEEDCMD="${3:-false}"
 	GB_FUNCARGS=$(cat <<EOF
 {
 	"RegExId": "$REGEX",
-	"Timeout": $TIMEOUT,
-	"NeedCommand": $NEEDCMD
+	"Timeout": $TIMEOUT
 }
 EOF
 )
-	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	gbDecode "$GB_RET" Reply
+	gbBotRet "$GB_RET"
 }
 
 SendUserMessage(){
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
-	local GB_FUNCARGS GB_RETVAL
+	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="SendUserMessage"
 	local SUM_USER=$1
 	shift
@@ -99,13 +124,13 @@ SendUserMessage(){
 }
 EOF
 )
-	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
-	GB_RETVAL=$?; GB_FORMAT=variable; return $GB_RETVAL
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	gbBotRet "$GB_RET"
 }
 
 SendUserChannelMessage(){
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
-	local GB_FUNCARGS GB_RETVAL
+	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="SendUserChannelMessage"
 	local SUCM_USER=$1
 	local SUCM_CHANNEL=$2
@@ -121,13 +146,13 @@ SendUserChannelMessage(){
 }
 EOF
 )
-	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
-	GB_RETVAL=$?; GB_FORMAT=variable; return $GB_RETVAL
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	gbBotRet "$GB_RET"
 }
 
 SendChannelMessage(){
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
-	local GB_FUNCARGS GB_RETVAL
+	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="SendChannelMessage"
 	local SCM_CHANNEL=$1
 	shift
@@ -141,13 +166,12 @@ SendChannelMessage(){
 }
 EOF
 )
-	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
-	GB_RETVAL=$?; GB_FORMAT=variable; return $GB_RETVAL
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	gbBotRet "$GB_RET"
 }
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins
 Say(){
-	local GB_RETVAL
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
 	if [ -n "$GB_CHANNEL" ]
 	then
@@ -155,11 +179,9 @@ Say(){
 	else
 		SendUserMessage "$GB_USER" "$*"
 	fi
-	GB_RETVAL=$?; GB_FORMAT=variable; return $GB_RETVAL
 }
 
 Reply(){
-	local GB_RETVAL
 	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
 	if [ -n "$GB_CHANNEL" ]
 	then
@@ -167,5 +189,4 @@ Reply(){
 	else
 		SendUserMessage "$GB_USER" "$*"
 	fi
-	GB_RETVAL=$?; GB_FORMAT=variable; return $GB_RETVAL
 }
