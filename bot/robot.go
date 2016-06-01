@@ -58,9 +58,8 @@ func (r Robot) CheckOTP(code string) (bool, BotRetVal) {
 	var userOTP otp.OTPConfig
 	lock, exists, ret := r.checkoutDatum(otpKey, &userOTP, true)
 	if ret != Ok {
-		ret = ret | NoUserOTP
 		r.checkin(otpKey, lock)
-		return false, ret
+		return false, NoUserOTP
 	}
 	if !exists {
 		r.checkin(otpKey, lock)
@@ -128,7 +127,7 @@ func (r Robot) GetBotAttribute(a string) (attr string, ret BotRetVal) {
 	case "contact", "admin", "adminContact":
 		attr = b.adminContact
 	default:
-		ret = ret | AttributeNotFound
+		ret = AttributeNotFound
 	}
 	return
 }

@@ -82,7 +82,7 @@ func (r Robot) WaitForReply(regexId string, timeout int) (replyText string, ret 
 	// See if there's already a continuation in progress for this Robot:user,channel,
 	rep, exists := replies[matcher]
 	if exists {
-		ret = ret | ReplyInProgress | ReplyNotMatched
+		ret = ReplyInProgress
 		r.Log(Warn, fmt.Errorf("A reply is already being waited on for user %s in channel %s", r.User, r.Channel))
 		botLock.Unlock()
 		return "", ret
@@ -105,7 +105,7 @@ func (r Robot) WaitForReply(regexId string, timeout int) (replyText string, ret 
 	if rep.re == nil {
 		r.Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", plugin.Name, regexId))
 		botLock.Unlock()
-		ret = ret | MatcherNotFound | ReplyNotMatched
+		ret = MatcherNotFound
 		return "", ret
 	}
 	rep.replyChannel = make(chan reply)
@@ -124,12 +124,12 @@ func (r Robot) WaitForReply(regexId string, timeout int) (replyText string, ret 
 		delete(replies, matcher)
 		botLock.Unlock()
 		// matched=false, timedOut=true
-		ret = ret | TimeoutExpired | ReplyNotMatched
+		ret = TimeoutExpired
 		return "", ret
 	case replied, _ := <-rep.replyChannel:
 		// Note: the replies[] entry is deleted in handleMessage
 		if !replied.matched {
-			ret = ret | ReplyNotMatched
+			ret = ReplyNotMatched
 		}
 		return replied.rep, ret
 	}

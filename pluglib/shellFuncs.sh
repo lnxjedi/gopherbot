@@ -33,13 +33,7 @@ gbBotRet() {
 	local JSON="$1"
 	local RETVAL
 	RETVAL=$(echo "$JSON" | jq .BotRetVal)
-	GB_RETVAL=$RETVAL
-	if [ $RETVAL -eq 0 ]
-	then
-		return 0
-	else
-		return 1
-	fi
+	return $RETVAL
 }
 
 gbDecode() {

@@ -4,14 +4,14 @@ package bot
 type BotRetVal uint64
 
 const (
-	Ok BotRetVal = 0 // success
+	Ok BotRetVal = iota // success
 
 	// Connector issues
-	UserNotFound      = 1 << iota // obvious
-	ChannelNotFound               // obvious
-	AttributeNotFound             // Looking up user/robot attributes like email, name, etc.
-	FailedUserDM                  // Not able to send an direct message (DM) to a given user
-	FailedChannelJoin             // Not able to join a channel; e.g. slack doesn't allow bots to join
+	UserNotFound      // obvious
+	ChannelNotFound   // obvious
+	AttributeNotFound // Looking up user/robot attributes like email, name, etc.
+	FailedUserDM      // Not able to send an direct message (DM) to a given user
+	FailedChannelJoin // Not able to join a channel; e.g. slack doesn't allow bots to join
 
 	// Brain Maladies
 	DatumNotFound    // Datum name not found in the global table when update called

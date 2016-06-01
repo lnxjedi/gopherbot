@@ -121,7 +121,7 @@ func (r *robot) update(d, lt string, datum *[]byte) (ret BotRetVal) {
 		dl.Unlock() // unlock after we've updated, successful or not
 		if err != nil {
 			r.Log(Error, fmt.Sprintf("Storing datum %s: %v", d, err))
-			ret = ret | BrainFailed
+			ret = BrainFailed
 		}
 		delete(lockTokens, lt)
 		dl.checkouts--
@@ -130,7 +130,7 @@ func (r *robot) update(d, lt string, datum *[]byte) (ret BotRetVal) {
 		}
 		// when !ok, the lock token is expired and the dl is already unlocked
 	} else {
-		ret = ret | DatumLockExpired
+		ret = DatumLockExpired
 	}
 	ltLock.Unlock()
 	// Up to now has been 'instant' (no blocking) since the global lock was acquired
@@ -161,7 +161,7 @@ func (r *Robot) checkoutDatum(key string, datum interface{}, rw bool) (locktoken
 		if err != nil {
 			r.Log(Error, fmt.Errorf("Unmarshalling datum %s: %v", key, err))
 			exists = false
-			ret = ret | DataFormatError
+			ret = DataFormatError
 		}
 	}
 	return

@@ -38,15 +38,15 @@ func knock(r bot.Robot, command string, args ...string) {
 		r.Reply("Knock knock")
 		for i := 0; i < 2; i++ {
 			_, ret := r.WaitForReply("whosthere", 14)
-			if ret&bot.TimeoutExpired != 0 {
+			if ret == bot.TimeoutExpired {
 				r.Reply(r.RandomString(j.Phooey))
 				return
 			}
-			if ret&bot.ReplyInProgress != 0 {
+			if ret == bot.ReplyInProgress {
 				r.Reply("Are you trying to confuse me?")
 				return
 			}
-			if ret&bot.ReplyNotMatched != 0 {
+			if ret == bot.ReplyNotMatched {
 				switch i {
 				case 0:
 					r.Pause(0.5)
@@ -67,15 +67,15 @@ func knock(r bot.Robot, command string, args ...string) {
 		r.Say(joke.First)
 		for i := 0; i < 2; i++ {
 			reply, ret := r.WaitForReply("who", 14)
-			if ret&bot.TimeoutExpired != 0 {
+			if ret == bot.TimeoutExpired {
 				r.Reply(r.RandomString(j.Phooey))
 				return
 			}
-			if ret&^bot.ReplyNotMatched != 0 { // bit clear operator, test if bit set other than ReplyNotMatched
+			if ret != bot.Ok && ret != bot.ReplyNotMatched { // bit clear operator, test if bit set other than ReplyNotMatched
 				r.Reply("... wait, sorry - my joke algorithm broke!")
 				return
 			}
-			if ret&bot.ReplyNotMatched != 0 {
+			if ret == bot.ReplyNotMatched {
 				switch i {
 				case 0:
 					r.Pause(0.5)

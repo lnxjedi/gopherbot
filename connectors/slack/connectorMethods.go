@@ -60,10 +60,9 @@ func (s *slackConnector) SendProtocolUserChannelMessage(u, ch, msg string, f bot
 	chanID, ok := s.chanID(ch)
 	if !ok {
 		s.Log(bot.Error, "Channel ID not found for:", ch)
-		ret = ret | bot.ChannelNotFound
-	}
-	if _, ok := s.userID(u); !ok {
-		ret = ret | bot.UserNotFound
+		ret = bot.ChannelNotFound
+	} else if _, ok := s.userID(u); !ok {
+		ret = bot.UserNotFound
 	}
 	if ret != bot.Ok {
 		return
@@ -79,7 +78,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f bot.Mes
 	userID, ok := s.userID(u)
 	if !ok {
 		s.Log(bot.Error, "No user ID found for user:", u)
-		ret = ret | bot.UserNotFound
+		ret = bot.UserNotFound
 	}
 	var userIMchan string
 	var err error
@@ -89,7 +88,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f bot.Mes
 		_, _, userIMchan, err = s.conn.OpenIMChannel(userID)
 		if err != nil {
 			s.Log(bot.Error, "Unable to open an IM channel to user:", u, "ID:", userID)
-			ret = ret | bot.FailedUserDM
+			ret = bot.FailedUserDM
 		}
 	}
 	if ret != bot.Ok {

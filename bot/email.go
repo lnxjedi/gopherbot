@@ -17,13 +17,13 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret BotRetVal)
 
 	mailFrom, ret = r.GetBotAttribute("email")
 	if ret != Ok {
-		return ret | NoBotEmail
+		return NoBotEmail
 	}
 	// We can live without a full name
 	botName, _ = r.GetBotAttribute("fullName")
 	mailTo, ret = r.GetSenderAttribute("email")
 	if ret != Ok {
-		return ret | NoUserEmail
+		return NoUserEmail
 	}
 	var messageBuffer bytes.Buffer
 	fmt.Fprintf(&messageBuffer, "From: %s <%s>\r\n", botName, mailFrom)
