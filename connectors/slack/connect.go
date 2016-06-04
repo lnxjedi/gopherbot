@@ -7,8 +7,8 @@ import (
 	"log"
 	"sync"
 
+	"github.com/nlopes/slack"
 	"github.com/parsley42/gopherbot/bot"
-	"github.com/parsley42/slack"
 )
 
 type Config struct {

@@ -1,8 +1,7 @@
-commit 67642ac6f9144f6610279e37e7be9af13f1cd668
-Merge: e007731 c078365
-Author: Damian Gryski <dmg@pobox.com>
-Date:   Tue Nov 10 09:37:49 2015 +0100
+commit 96977cbd42e27be71f9f731db6634123de7e861a
+Author: Damian Gryski <dgryski@gmail.com>
+Date:   Thu Jun 2 09:13:24 2016 +0200
 
-    Merge pull request #4 from kisom/kyle/timefix
+    Merge pull request #5 from jpillora/patch-1
     
-    Make UTC time selectable
+    add link to godoc
