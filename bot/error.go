@@ -1,7 +1,7 @@
 package bot
 
 // BotRetVal is a bit field for returning error conditions, or 0 for Ok
-type BotRetVal uint64
+type BotRetVal int
 
 const (
 	Ok BotRetVal = iota // success
