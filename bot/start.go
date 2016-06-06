@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/go-yaml/yaml"
 	// MakeDaemon from VividCortex - thanks!
 	"github.com/VividCortex/godaemon"
 )
@@ -117,12 +117,12 @@ func Start() {
 
 	// Read the config just to extract the LogFile PidFile path
 	var cf []byte
-	if cf, err = ioutil.ReadFile(localdir + "/conf/gopherbot.json"); err != nil {
-		log.Fatalf("Couldn't read conf/gopherbot.json in local configuration directory: %s\n", localdir)
+	if cf, err = ioutil.ReadFile(localdir + "/conf/gopherbot.yaml"); err != nil {
+		log.Fatalf("Couldn't read conf/gopherbot.yaml in local configuration directory: %s\n", localdir)
 	}
 	var b BotInfo
-	if err := json.Unmarshal(cf, &b); err != nil {
-		log.Fatalf("Error unmarshalling \"%s\": %v", localdir+"/conf/gopherbot.json", err)
+	if err := yaml.Unmarshal(cf, &b); err != nil {
+		log.Fatalf("Error unmarshalling \"%s\": %v", localdir+"/conf/gopherbot.yaml", err)
 	}
 
 	var botLogger *log.Logger

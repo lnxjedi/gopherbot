@@ -1,8 +1,10 @@
 package bot
 
 import (
-	"encoding/json"
 	"fmt"
+	"strings"
+
+	"github.com/go-yaml/yaml"
 )
 
 /* Handle incoming messages and other callbacks from the connector. */
@@ -40,7 +42,7 @@ func (b *robot) IncomingMessage(channelName, userName, messageFull string) {
 
 	b.lock.RLock()
 	for _, user := range b.ignoreUsers {
-		if userName == user {
+		if strings.EqualFold(userName, user) {
 			b.Log(Debug, "Ignoring user", userName)
 			b.lock.RUnlock()
 			return
@@ -75,7 +77,7 @@ func (b *robot) IncomingMessage(channelName, userName, messageFull string) {
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct
 func (b *robot) GetProtocolConfig(v interface{}) error {
 	b.lock.RLock()
-	err := json.Unmarshal(protocolConfig, v)
+	err := yaml.Unmarshal(protocolConfig, v)
 	b.lock.RUnlock()
 	return err
 }
@@ -83,7 +85,7 @@ func (b *robot) GetProtocolConfig(v interface{}) error {
 // GetBrainConfig unmarshals the brain's configuration data into a provided struct
 func (b *robot) GetBrainConfig(v interface{}) error {
 	b.lock.RLock()
-	err := json.Unmarshal(brainConfig, v)
+	err := yaml.Unmarshal(brainConfig, v)
 	b.lock.RUnlock()
 	return err
 }
@@ -104,6 +106,16 @@ func (b *robot) SetName(n string) {
 	b.Log(Debug, "Setting name to: "+n)
 	b.lock.Lock()
 	b.name = n
+	ignoring := false
+	for _, name := range b.ignoreUsers {
+		if strings.EqualFold(n, name) {
+			ignoring = true
+			break
+		}
+	}
+	if !ignoring {
+		b.ignoreUsers = append(b.ignoreUsers, strings.ToLower(n))
+	}
 	b.lock.Unlock()
 	b.updateRegexes()
 }

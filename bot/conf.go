@@ -1,32 +1,35 @@
 package bot
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"unicode/utf8"
+
+	"github.com/go-yaml/yaml"
 )
 
 /* conf.go - methods and types for reading and storing json configuration */
 
+var protocolConfig, brainConfig []byte
+
 // botconf specifies 'bot configuration, and is read from $GOPHER_LOCALDIR/botconf.json
-type botconf struct {
-	AdminContact    string          // Contact info for whomever administers the robot
-	Email           string          // From: address when the robot wants to send an email
-	Protocol        string          // Name of the connector protocol to use, e.g. "slack"
-	ProtocolConfig  json.RawMessage // Protocol-specific configuration
-	Brain           string          // Type of Brain to use
-	BrainConfig     json.RawMessage // Brain-specific configuration
-	Name            string          // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
-	DefaultChannels []string        // Channels where plugins are active by default, e.g. [ "general", "random" ]
-	IgnoreUsers     []string        // Users the 'bot never talks to - like other bots
-	JoinChannels    []string        // Channels the 'bot should join when it logs in (not supported by all protocols)
-	ExternalPlugins []string        // List of non-Go plugins to load from $GOPHER_LOCALDIR/plugins/<pluginName>.json
-	AdminUsers      []string        // List of users who can access administrative commands
-	Alias           string          // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
-	LocalPort       string          // Port number for listening on localhost, for CLI plugins
-	LogLevel        string          // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
+type Botconf struct {
+	AdminContact    string        // Contact info for whomever administers the robot
+	Email           string        // From: address when the robot wants to send an email
+	Protocol        string        // Name of the connector protocol to use, e.g. "slack"
+	ProtocolConfig  yaml.MapSlice // Protocol-specific configuration, type for unmarshalling arbitrary config
+	Brain           string        // Type of Brain to use
+	BrainConfig     yaml.MapSlice // Brain-specific configuration, type for unmarshalling arbitrary config
+	Name            string        // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
+	DefaultChannels []string      // Channels where plugins are active by default, e.g. [ "general", "random" ]
+	IgnoreUsers     []string      // Users the 'bot never talks to - like other bots
+	JoinChannels    []string      // Channels the 'bot should join when it logs in (not supported by all protocols)
+	ExternalPlugins []string      // List of non-Go plugins to load from $GOPHER_LOCALDIR/plugins/<pluginName>.json
+	AdminUsers      []string      // List of users who can access administrative commands
+	Alias           string        // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
+	LocalPort       string        // Port number for listening on localhost, for CLI plugins
+	LogLevel        string        // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
 // getConfigFile loads a configuration file first from installPath, then
@@ -35,50 +38,41 @@ func (b *robot) getConfigFile(filename string, c interface{}) error {
 	var (
 		cf  []byte
 		err error
-		ok  bool
 	)
-	ok = false
-
-	cf, err = ioutil.ReadFile(b.installPath + "/conf/" + filename)
-	if err != nil {
-		b.Log(Warn, fmt.Errorf("Loading stock configuration for \"%s\": %v", filename, err))
-	} else {
-		if err := json.Unmarshal(cf, c); err != nil {
-			b.Log(Error, fmt.Errorf("Unmarshalling JSON for \"%s\": %v", filename, err))
-		} else {
-			ok = true
-		}
-	}
 
 	cf, err = ioutil.ReadFile(b.localPath + "/conf/" + filename)
 	if err != nil {
-		b.Log(Debug, fmt.Errorf("Loading custom configuration for \"%s\": %v", filename, err))
+		b.Log(Debug, fmt.Errorf("Reading custom configuration for \"%s\": %v", filename, err))
 	} else {
-		if err := json.Unmarshal(cf, c); err != nil {
-			b.Log(Error, fmt.Errorf("Unmarshalling JSON for plugin %s: %v", filename, err))
+		if err := yaml.Unmarshal(cf, c); err != nil {
+			b.Log(Error, fmt.Errorf("Unmarshalling custom \"%s\": %v", filename, err))
 		} else {
-			ok = true
+			return nil
 		}
 	}
 
-	if !ok {
-		return fmt.Errorf("No stock or local configuration found for %s", filename)
-	}
-	return nil
+	return fmt.Errorf("No local configuration found for %s", filename)
 }
 
 // loadConfig loads the 'bot's json configuration files. An error on first load
 // results in log.fatal, but later Loads just log the error.
 func (b *robot) loadConfig() error {
 	var (
-		config   botconf
+		config   Botconf
 		loglevel LogLevel
 	)
 
-	err := b.getConfigFile("gopherbot.json", &config)
-	if err != nil {
-		return err
+	// Load default config from const defaultConfig, then overlay
+	// with yaml from <localdir>/conf/gopherbot.yaml
+	if err := yaml.Unmarshal([]byte(defaultConfig), &config); err != nil {
+		return fmt.Errorf("Unmarshalling robot default config: %v", err)
 	}
+	/*	if err := b.getConfigFile("gopherbot.yaml", &config); err != nil {
+			return fmt.Errorf("Loading configuration file: %v", err)
+	}*/
+	full, _ := yaml.Marshal(config)
+	fmt.Printf("Full:\n%s\n", string(full))
+	os.Exit(0)
 
 	switch config.LogLevel {
 	case "trace":
@@ -120,14 +114,26 @@ func (b *robot) loadConfig() error {
 	if config.Brain != "" {
 		b.brainProvider = config.Brain
 	}
-	if config.BrainConfig != nil {
-		brainConfig = config.BrainConfig
-	}
 
 	if config.Protocol != "" {
 		b.protocol = config.Protocol
 	} else {
 		return fmt.Errorf("Protocol not specified in gopherbot.json")
+	}
+
+	// Re-marshal brainConfig and protocolConfig
+	var err error
+	if config.BrainConfig != nil {
+		brainConfig, err = yaml.Marshal(config.BrainConfig)
+		if err != nil {
+			b.Log(Error, "Marshalling brainConfig: %v", err)
+		}
+	}
+	if config.ProtocolConfig != nil {
+		protocolConfig, err = yaml.Marshal(config.ProtocolConfig)
+		if err != nil {
+			b.Log(Error, "Marshalling protocolConfig: %v", err)
+		}
 	}
 
 	if config.AdminUsers != nil {
@@ -144,9 +150,6 @@ func (b *robot) loadConfig() error {
 	}
 	if config.JoinChannels != nil {
 		b.joinChannels = config.JoinChannels
-	}
-	if config.ProtocolConfig != nil {
-		protocolConfig = config.ProtocolConfig
 	}
 
 	// loadPluginConfig does it's own locking

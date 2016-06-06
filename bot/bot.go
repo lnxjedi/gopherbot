@@ -6,7 +6,6 @@ package bot
    handler.go has the methods for callbacks from the connector, */
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -17,7 +16,6 @@ import (
 
 var botLock sync.RWMutex
 var random *rand.Rand
-var protocolConfig, brainConfig json.RawMessage
 
 var connectors map[string]func(Handler, *log.Logger) Connector = make(map[string]func(Handler, *log.Logger) Connector)
 
