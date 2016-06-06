@@ -1,0 +1,12 @@
+name: Bill
+size: large
+age: 15
+conf:
+  job: Janitor
+  pets:
+  - name: Jim
+    breed: Koala
+  - name: Frank
+    breed: Bear
+role: Worker bee
+matcher: (?i:[\w-. ]+)
