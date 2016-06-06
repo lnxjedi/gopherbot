@@ -88,7 +88,6 @@ func Start() {
 	}
 	instSearchPath = append(instSearchPath, execdir)
 	for _, spath := range instSearchPath {
-		fmt.Printf("Checking %s\n", spath)
 		if dirExists(spath) {
 			installdir = spath
 			break

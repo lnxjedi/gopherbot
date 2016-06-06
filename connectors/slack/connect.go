@@ -11,7 +11,6 @@ import (
 	"github.com/parsley42/gopherbot/bot"
 )
 
-// go-yaml assumes lowercase keys, so we need to use struct tags for camel case
 type config struct {
 	SlackToken      string // the 'bot token for connecting to Slack
 	MaxMessageSplit int    // the maximum # of ~4000 byte messages to split a large message into

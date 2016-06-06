@@ -3,7 +3,7 @@ package bot
 const helpConfig = `
 AllChannels: true
 CommandMatches:
-- Command: help,
+- Command: help
   Regex: '(?i:help ?([\d\w]+)?)'
 `
 

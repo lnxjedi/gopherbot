@@ -10,7 +10,7 @@ import (
 // messageAppliesToPlugin checks the user and channel against the plugin's
 // configuration to determine if the message should be evaluated. Used by
 // both handleMessage and the help builtin.
-func (b *robot) messageAppliesToPlugin(user, channel, message string, plugin Plugin) bool {
+func (b *robot) messageAppliesToPlugin(user, channel string, plugin Plugin) bool {
 	directMsg := false
 	if len(channel) == 0 {
 		directMsg = true
@@ -85,8 +85,8 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 	}
 	botLock.Unlock()
 	for _, plugin := range plugins {
-		b.Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels", messagetext, plugin.Name, len(plugin.Channels)))
-		ok := b.messageAppliesToPlugin(user, channel, messagetext, plugin)
+		b.Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels (allchannels: %t)", messagetext, plugin.Name, len(plugin.Channels), plugin.AllChannels))
+		ok := b.messageAppliesToPlugin(user, channel, plugin)
 		if !ok {
 			b.Log(Trace, fmt.Sprintf("Plugin %s ignoring message in channel %s, doesn't meet criteria", plugin.Name, channel))
 			continue
@@ -119,7 +119,7 @@ func (b *robot) handleMessage(isCommand bool, channel, user, messagetext string)
 
 // callPlugin (normally called with go ...) sends a command to a plugin.
 func (b *robot) callPlugin(bot Robot, plugin Plugin, command string, args ...string) {
-	b.Log(Debug, fmt.Sprintf("Dispatching command %s to plugin %s", command, plugin.Name))
+	b.Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\"", command, plugin.Name))
 	bot.pluginID = plugin.pluginID
 	switch plugin.pluginType {
 	case plugBuiltin, plugGo:

@@ -122,7 +122,7 @@ func help(bot Robot, command string, args ...string) {
 		for _, plugin := range plugins {
 			b.Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.Name, term))
 			if !hasTerm { // if you ask for help without a term, you just get help for whatever commands are available to you
-				if b.messageAppliesToPlugin(bot.User, bot.Channel, command, plugin) {
+				if b.messageAppliesToPlugin(bot.User, bot.Channel, plugin) {
 					for _, phelp := range plugin.Help {
 						for _, helptext := range phelp.Helptext {
 							helpOutput += helptext + string('\n')

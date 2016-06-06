@@ -78,7 +78,6 @@ func (b *robot) loadConfig() error {
 
 	// Load default config from const defaultConfig, then overlay
 	// with yaml from <localdir>/conf/gopherbot.yaml
-	fmt.Printf("Unmarshalling:\n%s\n", defaultConfig)
 	if err := yaml.Unmarshal([]byte(defaultConfig), &config); err != nil {
 		return fmt.Errorf("Unmarshalling robot default config: %v", err)
 	}

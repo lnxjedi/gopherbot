@@ -179,8 +179,6 @@ PlugHandlerLoop:
 			i++
 		}
 	}
-	b.Log(Trace, fmt.Sprintf("pnames: %q", pnames))
-	b.Log(Trace, fmt.Sprintf("ptypes: %q", ptypes))
 	plist := make([]Plugin, 0, nump)
 
 	// Because some plugins may be disabled, pnames and plugins won't necessarily sync
