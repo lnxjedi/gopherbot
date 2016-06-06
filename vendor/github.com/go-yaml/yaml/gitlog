@@ -1,0 +1,7 @@
+commit a83829b6f1293c91addabc89d0571c246397bbf4
+Author: Gustavo Niemeyer <gustavo@niemeyer.net>
+Date:   Tue Mar 1 17:40:22 2016 -0300
+
+    Merge pull request #152 from mwhudson/go16-compat
+    
+    Fix anonymous field handling for Go 1.6.
