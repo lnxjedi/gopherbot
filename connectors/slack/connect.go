@@ -11,9 +11,10 @@ import (
 	"github.com/parsley42/gopherbot/bot"
 )
 
-type Config struct {
-	SlackToken      string // the 'bot token for connecting to Slack
-	MaxMessageSplit int    // the maximum # of ~4000 byte messages to split a large message into
+// go-yaml assumes lowercase keys, so we need to use struct tags for camel case
+type config struct {
+	SlackToken      string `yaml:"SlackToken"`      // the 'bot token for connecting to Slack
+	MaxMessageSplit int    `yaml:"MaxMessageSplit"` // the maximum # of ~4000 byte messages to split a large message into
 }
 
 var lock sync.Mutex // package var lock
@@ -32,7 +33,7 @@ func Start(robot bot.Handler, l *log.Logger) bot.Connector {
 	started = true
 	lock.Unlock()
 
-	var c Config
+	var c config
 
 	err := robot.GetProtocolConfig(&c)
 	if c.MaxMessageSplit == 0 {

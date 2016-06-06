@@ -12,8 +12,9 @@ import (
 var brainPath string
 var robot bot.Handler
 
+// go-yaml assumes lowercase keys, so we need to use a struct tag for camel case
 type brainConfig struct {
-	BrainDirectory string // path to brain files
+	BrainDirectory string `yaml:"BrainDirectory"` // path to brain files
 }
 
 var fb brainConfig

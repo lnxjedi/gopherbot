@@ -14,22 +14,22 @@ import (
 var protocolConfig, brainConfig []byte
 
 // botconf specifies 'bot configuration, and is read from $GOPHER_LOCALDIR/botconf.json
-type Botconf struct {
-	AdminContact    string        // Contact info for whomever administers the robot
-	Email           string        // From: address when the robot wants to send an email
-	Protocol        string        // Name of the connector protocol to use, e.g. "slack"
-	ProtocolConfig  yaml.MapSlice // Protocol-specific configuration, type for unmarshalling arbitrary config
-	Brain           string        // Type of Brain to use
-	BrainConfig     yaml.MapSlice // Brain-specific configuration, type for unmarshalling arbitrary config
-	Name            string        // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
-	DefaultChannels []string      // Channels where plugins are active by default, e.g. [ "general", "random" ]
-	IgnoreUsers     []string      // Users the 'bot never talks to - like other bots
-	JoinChannels    []string      // Channels the 'bot should join when it logs in (not supported by all protocols)
-	ExternalPlugins []string      // List of non-Go plugins to load from $GOPHER_LOCALDIR/plugins/<pluginName>.json
-	AdminUsers      []string      // List of users who can access administrative commands
-	Alias           string        // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
-	LocalPort       string        // Port number for listening on localhost, for CLI plugins
-	LogLevel        string        // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
+type botconf struct {
+	AdminContact    string        `yaml:"AdminContact"`    // Contact info for whomever administers the robot
+	Email           string        `yaml:"Email"`           // From: address when the robot wants to send an email
+	Protocol        string        `yaml:"Protocol"`        // Name of the connector protocol to use, e.g. "slack"
+	ProtocolConfig  yaml.MapSlice `yaml:"ProtocolConfig"`  // Protocol-specific configuration, type for unmarshalling arbitrary config
+	Brain           string        `yaml:"Brain"`           // Type of Brain to use
+	BrainConfig     yaml.MapSlice `yaml:"BrainConfig"`     // Brain-specific configuration, type for unmarshalling arbitrary config
+	Name            string        `yaml:"Name"`            // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
+	DefaultChannels []string      `yaml:"DefaultChannels"` // Channels where plugins are active by default, e.g. [ "general", "random" ]
+	IgnoreUsers     []string      `yaml:"IgnoreUsers"`     // Users the 'bot never talks to - like other bots
+	JoinChannels    []string      `yaml:"JoinChannels"`    // Channels the 'bot should join when it logs in (not supported by all protocols)
+	ExternalPlugins []string      `yaml:"ExternalPlugins"` // List of non-Go plugins to load from $GOPHER_LOCALDIR/plugins/<pluginName>.json
+	AdminUsers      []string      `yaml:"AdminUsers"`      // List of users who can access administrative commands
+	Alias           string        `yaml:"Alias"`           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
+	LocalPort       string        `yaml:"LocalPort"`       // Port number for listening on localhost, for CLI plugins
+	LogLevel        string        `yaml:"LogLevel"`        // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
 // getConfigFile loads a configuration file first from installPath, then
@@ -58,12 +58,13 @@ func (b *robot) getConfigFile(filename string, c interface{}) error {
 // results in log.fatal, but later Loads just log the error.
 func (b *robot) loadConfig() error {
 	var (
-		config   Botconf
+		config   botconf
 		loglevel LogLevel
 	)
 
 	// Load default config from const defaultConfig, then overlay
 	// with yaml from <localdir>/conf/gopherbot.yaml
+	fmt.Printf("Unmarshalling:\n%s\n", defaultConfig)
 	if err := yaml.Unmarshal([]byte(defaultConfig), &config); err != nil {
 		return fmt.Errorf("Unmarshalling robot default config: %v", err)
 	}
