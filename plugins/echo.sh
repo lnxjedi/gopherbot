@@ -6,7 +6,10 @@
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
 source $GOPHER_INSTALLDIR/pluglib/shellLib.sh
 
-case "$1" in
+command=$1
+shift
+
+case "$command" in
 # NOTE: only "configure" should print anything to stdout
 	"configure")
 		cat <<"EOF"

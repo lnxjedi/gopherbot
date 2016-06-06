@@ -178,17 +178,17 @@ func Start() {
 	}
 
 	// From here on out we're daemonized if -d was passed
-	// Create the 'bot and load configuration, suppying configdir and installdir.
+	// Create the 'bot and load configuration, supplying configdir and installdir.
 	// When loading configuration, gopherbot first loads default configuration
-	// frim installdir/conf/..., then loads from localdir/conf/..., which
+	// from internal config, then loads from localdir/conf/..., which
 	// overrides defaults.
+	os.Setenv("GOPHER_INSTALLDIR", installdir)
+	os.Setenv("GOPHER_LOCALDIR", localdir)
 	gopherbot, err := newBot(localdir, installdir, botLogger)
 	if err != nil {
 		botLogger.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
 	}
 	gopherbot.Log(Info, fmt.Sprintf("Starting up with localdir: %s, and installdir: %s", localdir, installdir))
-	os.Setenv("GOPHER_INSTALLDIR", installdir)
-	os.Setenv("GOPHER_LOCALDIR", localdir)
 
 	var conn Connector
 

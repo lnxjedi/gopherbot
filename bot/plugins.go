@@ -211,11 +211,14 @@ PlugLoop:
 					b.Log(Debug, "Using local external plugin:", fullPath)
 				}
 			}
-			b.Log(Trace, fmt.Sprintf("Calling \"%s\" with command \"configure\" for default configuration: %q", fullPath))
 			// cmd := exec.Command(fullPath, channel, user, matcher.Command, matches[0][1:]...)
 			cfg, err := exec.Command(fullPath, "", "", "", "configure").Output()
 			if err != nil {
-				b.Log(Error, fmt.Errorf("Problem retrieving default configuration for external plugin \"%s\", skipping: %v", fullPath, err))
+				if exitErr, ok := err.(*exec.ExitError); ok {
+					b.Log(Error, fmt.Errorf("Problem retrieving default configuration for external plugin \"%s\", skipping: \"%v\", output: %s", fullPath, err, exitErr.Stderr))
+				} else {
+					b.Log(Error, fmt.Errorf("Problem retrieving default configuration for external plugin \"%s\", skipping: \"%v\"", fullPath, err))
+				}
 				continue
 			}
 			if err := yaml.Unmarshal(cfg, &plugin); err != nil {
