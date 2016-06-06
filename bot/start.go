@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/go-yaml/yaml"
+	"github.com/parsley42/yaml"
 	// MakeDaemon from VividCortex - thanks!
 	"github.com/VividCortex/godaemon"
 )

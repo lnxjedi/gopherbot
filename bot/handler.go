@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-yaml/yaml"
+	"github.com/parsley42/yaml"
 )
 
 /* Handle incoming messages and other callbacks from the connector. */

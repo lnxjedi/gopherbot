@@ -6,35 +6,43 @@ import (
 	"os"
 	"unicode/utf8"
 
-	"github.com/go-yaml/yaml"
+	"github.com/parsley42/yaml"
 )
 
 /* conf.go - methods and types for reading and storing json configuration */
 
 var protocolConfig, brainConfig []byte
 
-// botconf specifies 'bot configuration, and is read from $GOPHER_LOCALDIR/botconf.json
-type botconf struct {
-	AdminContact    string        `yaml:"AdminContact"`    // Contact info for whomever administers the robot
-	Email           string        `yaml:"Email"`           // From: address when the robot wants to send an email
-	Protocol        string        `yaml:"Protocol"`        // Name of the connector protocol to use, e.g. "slack"
-	ProtocolConfig  yaml.MapSlice `yaml:"ProtocolConfig"`  // Protocol-specific configuration, type for unmarshalling arbitrary config
-	Brain           string        `yaml:"Brain"`           // Type of Brain to use
-	BrainConfig     yaml.MapSlice `yaml:"BrainConfig"`     // Brain-specific configuration, type for unmarshalling arbitrary config
-	Name            string        `yaml:"Name"`            // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
-	DefaultChannels []string      `yaml:"DefaultChannels"` // Channels where plugins are active by default, e.g. [ "general", "random" ]
-	IgnoreUsers     []string      `yaml:"IgnoreUsers"`     // Users the 'bot never talks to - like other bots
-	JoinChannels    []string      `yaml:"JoinChannels"`    // Channels the 'bot should join when it logs in (not supported by all protocols)
-	ExternalPlugins []string      `yaml:"ExternalPlugins"` // List of non-Go plugins to load from $GOPHER_LOCALDIR/plugins/<pluginName>.json
-	AdminUsers      []string      `yaml:"AdminUsers"`      // List of users who can access administrative commands
-	Alias           string        `yaml:"Alias"`           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
-	LocalPort       string        `yaml:"LocalPort"`       // Port number for listening on localhost, for CLI plugins
-	LogLevel        string        `yaml:"LogLevel"`        // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
+type externalPlugin struct {
+	Name, Path string // List of names and paths for external plugins; relative paths are searched first in installdir, then localdir
 }
 
-// getConfigFile loads a configuration file first from installPath, then
-// from localPath, allowing local config to override stock config
-func (b *robot) getConfigFile(filename string, c interface{}) error {
+// botconf specifies 'bot configuration, and is read from $GOPHER_LOCALDIR/botconf.json
+type botconf struct {
+	AdminContact    string           // Contact info for whomever administers the robot
+	Email           string           // From: address when the robot wants to send an email
+	Protocol        string           // Name of the connector protocol to use, e.g. "slack"
+	ProtocolConfig  yaml.MapSlice    // Protocol-specific configuration, type for unmarshalling arbitrary config
+	Brain           string           // Type of Brain to use
+	BrainConfig     yaml.MapSlice    // Brain-specific configuration, type for unmarshalling arbitrary config
+	Name            string           // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
+	DefaultChannels []string         // Channels where plugins are active by default, e.g. [ "general", "random" ]
+	IgnoreUsers     []string         // Users the 'bot never talks to - like other bots
+	JoinChannels    []string         // Channels the 'bot should join when it logs in (not supported by all protocols)
+	ExternalPlugins []externalPlugin // List of non-Go plugins to load
+	AdminUsers      []string         // List of users who can access administrative commands
+	Alias           string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
+	LocalPort       string           // Port number for listening on localhost, for CLI plugins
+	LogLevel        string           // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
+}
+
+func init() {
+	yaml.SetPreserveFieldCase(true)
+}
+
+// getConfigFile loads a config file from localPath. Required indicates whether
+// to return an error if the file isn't found.
+func (b *robot) getConfigFile(filename string, required bool, c interface{}) error {
 	var (
 		cf  []byte
 		err error
@@ -42,16 +50,22 @@ func (b *robot) getConfigFile(filename string, c interface{}) error {
 
 	cf, err = ioutil.ReadFile(b.localPath + "/conf/" + filename)
 	if err != nil {
-		b.Log(Debug, fmt.Errorf("Reading custom configuration for \"%s\": %v", filename, err))
+		err = fmt.Errorf("Reading custom configuration for \"%s\": %v", filename, err)
+		b.Log(Debug, err)
+		if !required {
+			return nil
+		} else {
+			return err
+		}
 	} else {
 		if err := yaml.Unmarshal(cf, c); err != nil {
-			b.Log(Error, fmt.Errorf("Unmarshalling custom \"%s\": %v", filename, err))
+			err = fmt.Errorf("Unmarshalling custom \"%s\": %v", filename, err)
+			b.Log(Error, err)
+			return err // If a badly-formatted config is loaded, we always return an error
 		} else {
 			return nil
 		}
 	}
-
-	return fmt.Errorf("No local configuration found for %s", filename)
 }
 
 // loadConfig loads the 'bot's json configuration files. An error on first load
@@ -68,12 +82,9 @@ func (b *robot) loadConfig() error {
 	if err := yaml.Unmarshal([]byte(defaultConfig), &config); err != nil {
 		return fmt.Errorf("Unmarshalling robot default config: %v", err)
 	}
-	/*	if err := b.getConfigFile("gopherbot.yaml", &config); err != nil {
-			return fmt.Errorf("Loading configuration file: %v", err)
-	}*/
-	full, _ := yaml.Marshal(config)
-	fmt.Printf("Full:\n%s\n", string(full))
-	os.Exit(0)
+	if err := b.getConfigFile("gopherbot.yaml", true, &config); err != nil {
+		return fmt.Errorf("Loading configuration file: %v", err)
+	}
 
 	switch config.LogLevel {
 	case "trace":

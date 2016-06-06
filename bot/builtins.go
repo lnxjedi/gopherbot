@@ -18,19 +18,19 @@ const tooLong = 7
 const qrsize = 400
 
 // If this list doesn't match what's registered below,
-// you're gonna have a bad time
+// you're gonna have a bad time.
 var builtIns = []string{
 	"builtInhelp",
 	"builtInadmin",
-	"builtIndump",
+	//	"builtIndump",
 	"builtInlaunchcodes",
 }
 
 func init() {
-	RegisterPlugin("builtIndump", PluginHandler{Handler: dump})
-	RegisterPlugin("builtInhelp", PluginHandler{Handler: help})
-	RegisterPlugin("builtInadmin", PluginHandler{Handler: admin})
-	RegisterPlugin("builtInlaunchcodes", PluginHandler{Handler: launchCode})
+	//	RegisterPlugin("builtIndump", PluginHandler{Handler: dump})
+	RegisterPlugin("builtInhelp", PluginHandler{DefaultConfig: helpConfig, Handler: help})
+	RegisterPlugin("builtInadmin", PluginHandler{DefaultConfig: adminConfig, Handler: admin})
+	RegisterPlugin("builtInlaunchcodes", PluginHandler{DefaultConfig: launchCodesConfig, Handler: launchCode})
 }
 
 /* builtin plugins, like help */
@@ -171,7 +171,7 @@ func help(bot Robot, command string, args ...string) {
 	}
 }
 
-func dump(bot Robot, command string, args ...string) {
+/* func dump(bot Robot, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
@@ -199,7 +199,7 @@ func dump(bot Robot, command string, args ...string) {
 			bot.Say("Didn't find a plugin named " + args[0])
 		}
 	}
-}
+} */
 
 var byebye = []string{
 	"Sayonara!",

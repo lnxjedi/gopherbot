@@ -126,23 +126,23 @@ func (b *robot) callPlugin(bot Robot, plugin Plugin, command string, args ...str
 		pluginHandlers[plugin.Name].Handler(bot, command, args...)
 	case plugExternal:
 		var fullPath string // full path to the executable
-		if len(plugin.PluginPath) == 0 {
-			b.Log(Error, "PluginPath empty for external plugin:", plugin.Name)
+		if len(plugin.pluginPath) == 0 {
+			b.Log(Error, "pluginPath empty for external plugin:", plugin.Name)
 		}
-		if byte(plugin.PluginPath[0]) == byte("/"[0]) {
-			fullPath = plugin.PluginPath
+		if byte(plugin.pluginPath[0]) == byte("/"[0]) {
+			fullPath = plugin.pluginPath
 		} else {
-			_, err := os.Stat(b.localPath + "/" + plugin.PluginPath)
+			_, err := os.Stat(b.localPath + "/" + plugin.pluginPath)
 			if err != nil {
-				_, err := os.Stat(b.installPath + "/" + plugin.PluginPath)
+				_, err := os.Stat(b.installPath + "/" + plugin.pluginPath)
 				if err != nil {
 					b.Log(Error, fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.Name, err))
 					return
 				}
-				fullPath = b.installPath + "/" + plugin.PluginPath
+				fullPath = b.installPath + "/" + plugin.pluginPath
 				b.Log(Debug, "Using stock external plugin:", fullPath)
 			} else {
-				fullPath = b.localPath + "/" + plugin.PluginPath
+				fullPath = b.localPath + "/" + plugin.pluginPath
 				b.Log(Debug, "Using local external plugin:", fullPath)
 			}
 		}

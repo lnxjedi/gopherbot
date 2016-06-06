@@ -1,12 +1,15 @@
 package bot
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"reflect"
 	"regexp"
 	"sync"
+
+	"github.com/parsley42/yaml"
 )
 
 // PluginNames can be letters, numbers & underscores only, mainly so
@@ -40,31 +43,34 @@ const (
 
 // Plugin specifies the structure of a plugin configuration - plugins should include an example / default config
 type Plugin struct {
-	Name           string          // the name of the plugin, used as a key in to the
-	pluginType     plugType        // plugGo, plugExternal, plugBuiltin - determines how commands are routed
-	PluginPath     string          // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=shell only
-	Disabled       bool            // Set true to disable the plugin
-	DisallowDirect bool            // Set this true if this plugin can never be accessed via direct message
-	Channels       []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
-	AllChannels    bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	Trusted        bool            // Administrator must set this true to allow the plugin to check OTP codes (to prevent a bad plugin from trying them all)
-	Users          []string        // If non-empty, list of all the users with access to this plugin
-	Help           []PluginHelp    // All the keyword sets / help texts for this plugin
-	CommandMatches []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
-	ReplyMatchers  []InputMatcher  // Input matchers for replies to questions, only match after a RequestContinuation
-	MessageMatches []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
-	CatchAll       bool            // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
-	Config         json.RawMessage // Plugin Configuration, raw JSON that can be sent to a script plugin
-	config         interface{}     // A pointer to a struct of type configType filled in with JSON-unmarshalled data from plugin.json Config, or an empty struct{} if no config needed
-	pluginID       string          // 32-char random ID for identifying plugins in callbacks
-	lock           sync.Mutex      // For use with the robot's Brain
+	Name           string         // the name of the plugin, used as a key in to the
+	pluginType     plugType       // plugGo, plugExternal, plugBuiltin - determines how commands are routed
+	pluginPath     string         // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=plugExternal only
+	Disabled       bool           // Set true to disable the plugin
+	DisallowDirect bool           // Set this true if this plugin can never be accessed via direct message
+	Channels       []string       // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
+	AllChannels    bool           // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
+	Trusted        bool           // Administrator must set this true to allow the plugin to check OTP codes (to prevent a bad plugin from trying them all)
+	Users          []string       // If non-empty, list of all the users with access to this plugin
+	Help           []PluginHelp   // All the keyword sets / help texts for this plugin
+	CommandMatches []InputMatcher // Input matchers for messages that need to be directed to the 'bot
+	ReplyMatchers  []InputMatcher // Input matchers for replies to questions, only match after a RequestContinuation
+	MessageMatches []InputMatcher // Input matchers for messages the 'bot hears even when it's not being spoken to
+	CatchAll       bool           // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
+	Config         yaml.MapSlice  // Arbitrary Plugin configuration, will be marshaled into 'config' for later retrieval with GetPluginConfig()
+	config         interface{}    // A pointer to an empty struct that the bot can Unmarshal custom configuration into
+	pluginID       string         // 32-char random ID for identifying plugins in callbacks
+	lock           sync.Mutex     // For use with the robot's Brain
 }
 
-// type PluginV1 is the struct a plugin registers for Gopherbot plugin API
-// Version 1; (there may never actually be a V2+)
+/* type PluginHandler is the struct a plugin registers for the Gopherbot plugin
+API.
+*/
 type PluginHandler struct {
-	Config  interface{} // A pointer to an empty config struct for deserializing JSON into
-	Handler func(bot Robot, command string, args ...string)
+	DefaultConfig string /* A yaml-formatted multiline string defining the default Plugin configuration. It should be liberally commented for use in generating
+	local/custom configuration for the plugin. If a Config: section is defined, it should match the structure of the optional Config interface{} */
+	Handler func(bot Robot, command string, args ...string) // The callback function called by the robot whenever a Command is matched
+	Config  interface{}                                     // An optional empty struct defining custom configuration for the plugin
 }
 
 // pluginHandlers maps from plugin names to PluginV1 (later interface{} with a type selector, maybe)
@@ -89,7 +95,7 @@ func (b *robot) initializePlugins() {
 	}
 }
 
-// RegisterPlugin allows plugins to register a handler function in a func init().
+// RegisterPlugin allows plugins to register a PluginHandler in a func init().
 // When the bot initializes, it will call each plugin's handler with a command
 // "init", empty channel, the bot's username, and no arguments, so the plugin
 // can store this information for, e.g., scheduled jobs.
@@ -104,11 +110,10 @@ func RegisterPlugin(name string, plug PluginHandler) {
 }
 
 // loadPluginConfig() loads the configuration for all the plugins from
-// $GOPHER_LOCALDIR/plugins/<pluginname>.json (excepting builtins), assigns
-// a pluginID, and stores the resulting array in b.plugins. Bad plugins
-// are skipped and logged.
+// $GOPHER_LOCALDIR/plugins/<pluginname>.yaml, assigns a pluginID, and
+// stores the resulting array in b.plugins. Bad plugins are skipped and logged.
 // Plugin configuration is initially loaded into temporary data structures,
-// then stored in the robot under the global bot lock.
+// then stored in the bot package under the global bot lock.
 func (b *robot) loadPluginConfig() {
 	i := 0
 
@@ -119,8 +124,9 @@ func (b *robot) loadPluginConfig() {
 	nump := len(pluginHandlers) + len(b.externalPlugins)
 	pnames := make([]string, nump)
 	ptypes := make([]plugType, nump)
-	pfinder := make(map[string]int) // keep a map of pluginIDs to identify plugins during a callback
-	pset := make(map[string]bool)   // track plugin names
+	eppaths := make(map[string]string) // Paths to external plugins
+	pfinder := make(map[string]int)    // keep a map of pluginIDs to identify plugins during a callback
+	pset := make(map[string]bool)      // track plugin names
 
 	// builtins come first so indexes match, see loop below
 	// Note this doesn't need to be under RLock, but it needs to precede
@@ -133,17 +139,18 @@ func (b *robot) loadPluginConfig() {
 	}
 
 	for _, plug := range b.externalPlugins {
-		if !pNameRe.MatchString(plug) {
+		if !pNameRe.MatchString(plug.Name) {
 			b.Log(Error, "Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping")
 			continue
 		}
-		pnames[i] = plug
-		if pset[plug] {
+		pnames[i] = plug.Name
+		if pset[plug.Name] {
 			b.Log(Error, "External plugin name duplicates builtIn, skipping:", plug)
 			continue
 		}
-		pset[plug] = true
+		pset[plug.Name] = true
 		ptypes[i] = plugExternal
+		eppaths[plug.Name] = plug.Path
 		i++
 	}
 	// copy the list of default channels
@@ -183,16 +190,56 @@ PlugLoop:
 	for i, plug := range pnames {
 		var plugin Plugin
 		b.Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", plugIndex, plug, ptypes[i]))
-		// getConfigFile loads stock config, then overlays with local
-		err := b.getConfigFile("plugins/"+plug+".json", &plugin)
-		if err != nil {
-			b.Log(Error, fmt.Errorf("Unable to load configuration for plugin \"%s\": %v", plug, err))
+
+		plugin.pluginType = ptypes[i]
+		if plugin.pluginType == plugExternal {
+			// External plugins spit their default config to stdout when called with command="configure"
+			plugin.pluginPath = eppaths[plug]
+			var fullPath string
+			if byte(plugin.pluginPath[0]) == byte("/"[0]) {
+				fullPath = plugin.pluginPath
+			} else {
+				_, err := os.Stat(b.localPath + "/" + plugin.pluginPath)
+				if err != nil {
+					_, err := os.Stat(b.installPath + "/" + plugin.pluginPath)
+					if err != nil {
+						b.Log(Error, fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.Name, err))
+						return
+					}
+					fullPath = b.installPath + "/" + plugin.pluginPath
+					b.Log(Debug, "Using stock external plugin:", fullPath)
+				} else {
+					fullPath = b.localPath + "/" + plugin.pluginPath
+					b.Log(Debug, "Using local external plugin:", fullPath)
+				}
+			}
+			b.Log(Trace, fmt.Sprintf("Calling \"%s\" with command \"configure\" for default configuration: %q", fullPath))
+			// cmd := exec.Command(fullPath, channel, user, matcher.Command, matches[0][1:]...)
+			cfg, err := exec.Command(fullPath, "", "", "", "configure").Output()
+			if err != nil {
+				b.Log(Error, fmt.Errorf("Problem retrieving default configuration for external plugin \"%s\", skipping: %v", fullPath, err))
+				continue
+			}
+			if err := yaml.Unmarshal(cfg, &plugin); err != nil {
+				b.Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
+				continue
+			}
+		} else {
+			if err := yaml.Unmarshal([]byte(pluginHandlers[plug].DefaultConfig), &plugin); err != nil {
+				b.Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
+				continue
+			}
+		}
+		// Force settings that can't be part of default config
+		plugin.Trusted = false
+		// getConfigFile overlays the default config with local config
+		if err := b.getConfigFile("plugins/"+plug+".yaml", false, &plugin); err != nil {
+			b.Log(Error, fmt.Errorf("Problem with local configuration for plugin \"%s\", skipping: %v", plug, err))
 			continue
 		}
 		if plugin.Disabled {
 			continue
 		}
-		plugin.pluginType = ptypes[i]
 		b.Log(Info, "Loaded configuration for plugin", plug)
 		// Use bot default plugin channels if none defined, unless AllChannels requested. Admin can override.
 		if len(plugin.Channels) == 0 && len(pchan) > 0 && !plugin.AllChannels {
@@ -233,10 +280,15 @@ PlugLoop:
 		// Copy the pointer to the empty config struct / empty struct (when no config)
 		pt := reflect.ValueOf(pluginHandlers[plug].Config)
 		if pt.Kind() == reflect.Ptr {
-			// reflect magic: create a pointer to a new empty config struct for the plugin
-			plugin.config = reflect.New(reflect.Indirect(pt).Type()).Interface()
-			if err := json.Unmarshal(plugin.Config, plugin.config); err != nil {
-				b.Log(Error, fmt.Sprintf("Error unmarshalling plugin config json to config: %v", err))
+			if plugin.Config != nil {
+				// reflect magic: create a pointer to a new empty config struct for the plugin
+				plugin.config = reflect.New(reflect.Indirect(pt).Type()).Interface()
+				cust, _ := yaml.Marshal(plugin.Config)
+				if err := yaml.Unmarshal(cust, plugin.config); err != nil {
+					b.Log(Error, fmt.Sprintf("Error unmarshalling plugin config json to config: %v", err))
+				}
+			} else {
+				b.Log(Debug, "Plugin \"%s\" has custom config, but no local custom config provided", plug)
 			}
 		} else {
 			b.Log(Debug, "config interface isn't a pointer, skipping unmarshal for plugin:", plug)
