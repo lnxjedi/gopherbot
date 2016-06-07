@@ -28,7 +28,10 @@ type Robot struct {
 /* robot.go defines some convenience functions on struct Robot to
    simplify use by plugins. */
 
-// CheckAdmin returns true if the user is a configured administrator of the robot.
+// CheckAdmin returns true if the user is a configured administrator of the
+// robot. Should be used sparingly, when a single plugin has multiple commands,
+// some which require admin. Otherwise the plugin should just configure
+// RequireAdmin: true
 func (r Robot) CheckAdmin() bool {
 	b := r.robot
 	b.lock.RLock()
@@ -41,8 +44,9 @@ func (r Robot) CheckAdmin() bool {
 	return false
 }
 
-// CheckOTP returns true if the provided string is a valid OTP code for the user.
-// See the builtInlaunchcodes.go plugin.
+// CheckOTP returns true if the provided string is a valid OTP code for the
+// user. See the builtInlaunchcodes.go plugin. Note that a plugin must be
+// configured by the admin as Trusted to be able to use this function.
 func (r Robot) CheckOTP(code string) (bool, BotRetVal) {
 	b := r.robot
 	b.lock.RLock()

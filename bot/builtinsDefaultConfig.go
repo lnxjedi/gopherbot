@@ -35,3 +35,22 @@ CommandMatches:
 - Command: "check"
   Regex: '(?i:check (?:launch )?codes? ([\d]{6}))'
 `
+
+const dumpConfig = `
+DirectOnly: true
+RequireAdmin: true
+Help:
+- Keywords: [ "dump", "plugin" ]
+  Helptext: [ "(bot), dump plugin <plugname> - dump the current configuration for the plugin" ]
+- Keywords: [ "list", "plugin", "plugins" ]
+  Helptext: [ "(bot), list plugins" ]
+- Keywords: [ "dump", "robot" ]
+  Helptext: [ "(bot), dump robot - dump the current configuration for the robot" ]
+CommandMatches:
+- Command: "plugin"
+  Regex: '(?i:dump plugin ([\d\w]+))'
+- Command: "list"
+  Regex: '(?i:list plugins?)'
+- Command: "robot"
+  Regex: "dump robot"
+`

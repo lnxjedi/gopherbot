@@ -15,6 +15,23 @@ func (b *robot) messageAppliesToPlugin(user, channel string, plugin Plugin) bool
 	if len(channel) == 0 {
 		directMsg = true
 	}
+	if !directMsg && plugin.DirectOnly {
+		return false
+	}
+	if plugin.RequireAdmin {
+		isAdmin := false
+		b.lock.RLock()
+		for _, adminUser := range b.adminUsers {
+			if user == adminUser {
+				isAdmin = true
+				break
+			}
+		}
+		b.lock.RUnlock()
+		if !isAdmin {
+			return false
+		}
+	}
 	if len(plugin.Users) > 0 {
 		userOk := false
 		for _, allowedUser := range plugin.Users {

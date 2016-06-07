@@ -43,7 +43,8 @@ func Start(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 
 	api := slack.New(c.SlackToken)
-	if robot.GetLogLevel() <= bot.Debug {
+	// This spits out a lot of extra stuff, so we only enable it when tracing
+	if robot.GetLogLevel() == bot.Trace {
 		api.SetDebug(true)
 		slack.SetLogger(l)
 	}

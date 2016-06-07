@@ -48,16 +48,18 @@ type Plugin struct {
 	pluginPath     string         // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=plugExternal only
 	Disabled       bool           // Set true to disable the plugin
 	DisallowDirect bool           // Set this true if this plugin can never be accessed via direct message
+	DirectOnly     bool           // Set this true if this plugin ONLY accepts direct messages
 	Channels       []string       // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels    bool           // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
 	Trusted        bool           // Administrator must set this true to allow the plugin to check OTP codes (to prevent a bad plugin from trying them all)
+	RequireAdmin   bool           // Set to only allow administrators to access a plugin
 	Users          []string       // If non-empty, list of all the users with access to this plugin
 	Help           []PluginHelp   // All the keyword sets / help texts for this plugin
 	CommandMatches []InputMatcher // Input matchers for messages that need to be directed to the 'bot
 	ReplyMatchers  []InputMatcher // Input matchers for replies to questions, only match after a RequestContinuation
 	MessageMatches []InputMatcher // Input matchers for messages the 'bot hears even when it's not being spoken to
 	CatchAll       bool           // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
-	Config         yaml.MapSlice  // Arbitrary Plugin configuration, will be marshaled into 'config' for later retrieval with GetPluginConfig()
+	Config         yaml.MapSlice  // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetPluginConfig()
 	config         interface{}    // A pointer to an empty struct that the bot can Unmarshal custom configuration into
 	pluginID       string         // 32-char random ID for identifying plugins in callbacks
 	lock           sync.Mutex     // For use with the robot's Brain
@@ -239,6 +241,7 @@ PlugLoop:
 			continue
 		}
 		if plugin.Disabled {
+			b.Log(Info, fmt.Sprintf("Plugin \"%s\" is disabled, skipping", plug))
 			continue
 		}
 		b.Log(Info, "Loaded configuration for plugin", plug)
@@ -246,7 +249,7 @@ PlugLoop:
 		if len(plugin.Channels) == 0 && len(pchan) > 0 && !plugin.AllChannels {
 			plugin.Channels = pchan
 		}
-		b.Log(Trace, fmt.Sprintf("Plugin %s will be active in channels %q", plug, plugin.Channels))
+		b.Log(Info, fmt.Sprintf("Plugin \"%s\" will be active in channels %q; all channels: %t", plug, plugin.Channels, plugin.AllChannels))
 		// Compile the regex's
 		for i, _ := range plugin.CommandMatches {
 			command := &plugin.CommandMatches[i]

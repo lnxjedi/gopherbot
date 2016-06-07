@@ -12,6 +12,15 @@ var (
 	botName string
 )
 
+// Default plugin configuration for help
+const defaultConfig = `
+MessageMatches:
+- Command: help
+  Regex: '^(?i:help)$'
+AllChannels: true
+CatchAll: true
+`
+
 // Define the handler function
 func help(bot bot.Robot, command string, args ...string) {
 	if command == "help" { // user just typed 'help' - the robot should introduce itself
@@ -41,5 +50,5 @@ func help(bot bot.Robot, command string, args ...string) {
 }
 
 func init() {
-	bot.RegisterPlugin("help", bot.PluginHandler{Handler: help})
+	bot.RegisterPlugin("help", bot.PluginHandler{DefaultConfig: defaultConfig, Handler: help})
 }

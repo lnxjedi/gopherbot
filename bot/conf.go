@@ -40,6 +40,8 @@ func init() {
 	yaml.SetPreserveFieldCase(true)
 }
 
+var config botconf
+
 // getConfigFile loads a config file from localPath. Required indicates whether
 // to return an error if the file isn't found.
 func (b *robot) getConfigFile(filename string, required bool, c interface{}) error {
@@ -71,21 +73,19 @@ func (b *robot) getConfigFile(filename string, required bool, c interface{}) err
 // loadConfig loads the 'bot's json configuration files. An error on first load
 // results in log.fatal, but later Loads just log the error.
 func (b *robot) loadConfig() error {
-	var (
-		config   botconf
-		loglevel LogLevel
-	)
+	var loglevel LogLevel
+	var newconfig botconf
 
 	// Load default config from const defaultConfig, then overlay
 	// with yaml from <localdir>/conf/gopherbot.yaml
-	if err := yaml.Unmarshal([]byte(defaultConfig), &config); err != nil {
-		return fmt.Errorf("Unmarshalling robot default config: %v", err)
+	if err := yaml.Unmarshal([]byte(defaultConfig), &newconfig); err != nil {
+		return fmt.Errorf("Unmarshalling robot default newconfig: %v", err)
 	}
-	if err := b.getConfigFile("gopherbot.yaml", true, &config); err != nil {
-		return fmt.Errorf("Loading configuration file: %v", err)
+	if err := b.getConfigFile("gopherbot.yaml", true, &newconfig); err != nil {
+		return fmt.Errorf("Loading newconfiguration file: %v", err)
 	}
 
-	switch config.LogLevel {
+	switch newconfig.LogLevel {
 	case "trace":
 		loglevel = Trace
 	case "debug":
@@ -101,70 +101,75 @@ func (b *robot) loadConfig() error {
 
 	b.lock.Lock()
 
-	if config.AdminContact != "" {
-		b.adminContact = config.AdminContact
+	if newconfig.AdminContact != "" {
+		b.adminContact = newconfig.AdminContact
 	}
-	if config.Email != "" {
-		b.email = config.Email
+	if newconfig.Email != "" {
+		b.email = newconfig.Email
 	}
-	if config.Alias != "" {
-		alias, _ := utf8.DecodeRuneInString(config.Alias)
+	if newconfig.Alias != "" {
+		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		b.alias = alias
 	}
-	if config.LocalPort != "" {
-		b.port = "127.0.0.1:" + config.LocalPort
+	if newconfig.LocalPort != "" {
+		b.port = "127.0.0.1:" + newconfig.LocalPort
 		err := os.Setenv("GOPHER_HTTP_POST", "http://"+b.port)
 		if err != nil {
 			b.Log(Error, fmt.Errorf("Error exporting GOPHER_HTTP_PORT: ", err))
 		}
 	}
-	if config.Name != "" {
-		b.name = config.Name
+	if newconfig.Name != "" {
+		b.name = newconfig.Name
 	}
 
-	if config.Brain != "" {
-		b.brainProvider = config.Brain
+	if newconfig.Brain != "" {
+		b.brainProvider = newconfig.Brain
 	}
 
-	if config.Protocol != "" {
-		b.protocol = config.Protocol
+	if newconfig.Protocol != "" {
+		b.protocol = newconfig.Protocol
 	} else {
 		return fmt.Errorf("Protocol not specified in gopherbot.json")
 	}
 
 	// Re-marshal brainConfig and protocolConfig
 	var err error
-	if config.BrainConfig != nil {
-		brainConfig, err = yaml.Marshal(config.BrainConfig)
+	if newconfig.BrainConfig != nil {
+		brainConfig, err = yaml.Marshal(newconfig.BrainConfig)
 		if err != nil {
 			b.Log(Error, "Marshalling brainConfig: %v", err)
 		}
 	}
-	if config.ProtocolConfig != nil {
-		protocolConfig, err = yaml.Marshal(config.ProtocolConfig)
+	if newconfig.ProtocolConfig != nil {
+		protocolConfig, err = yaml.Marshal(newconfig.ProtocolConfig)
 		if err != nil {
 			b.Log(Error, "Marshalling protocolConfig: %v", err)
 		}
 	}
 
-	if config.AdminUsers != nil {
-		b.adminUsers = config.AdminUsers
+	if newconfig.AdminUsers != nil {
+		b.adminUsers = newconfig.AdminUsers
 	}
-	if config.DefaultChannels != nil {
-		b.plugChannels = config.DefaultChannels
+	if newconfig.DefaultChannels != nil {
+		b.plugChannels = newconfig.DefaultChannels
 	}
-	if config.ExternalPlugins != nil {
-		b.externalPlugins = config.ExternalPlugins
+	if newconfig.ExternalPlugins != nil {
+		b.externalPlugins = newconfig.ExternalPlugins
 	}
-	if config.IgnoreUsers != nil {
-		b.ignoreUsers = config.IgnoreUsers
+	if newconfig.IgnoreUsers != nil {
+		b.ignoreUsers = newconfig.IgnoreUsers
 	}
-	if config.JoinChannels != nil {
-		b.joinChannels = config.JoinChannels
+	if newconfig.JoinChannels != nil {
+		b.joinChannels = newconfig.JoinChannels
 	}
 
 	// loadPluginConfig does it's own locking
 	b.lock.Unlock()
+
+	botLock.Lock()
+	config = newconfig
+	botLock.Unlock()
+
 	b.loadPluginConfig()
 
 	return nil

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	otp "github.com/dgryski/dgoogauth"
+	"github.com/parsley42/yaml"
 )
 
 // if help is more than tooLong lines long, send a private message
@@ -22,12 +23,12 @@ const qrsize = 400
 var builtIns = []string{
 	"builtInhelp",
 	"builtInadmin",
-	//	"builtIndump",
+	"builtIndump",
 	"builtInlaunchcodes",
 }
 
 func init() {
-	//	RegisterPlugin("builtIndump", PluginHandler{Handler: dump})
+	RegisterPlugin("builtIndump", PluginHandler{DefaultConfig: dumpConfig, Handler: dump})
 	RegisterPlugin("builtInhelp", PluginHandler{DefaultConfig: helpConfig, Handler: help})
 	RegisterPlugin("builtInadmin", PluginHandler{DefaultConfig: adminConfig, Handler: admin})
 	RegisterPlugin("builtInlaunchcodes", PluginHandler{DefaultConfig: launchCodesConfig, Handler: launchCode})
@@ -135,12 +136,17 @@ func help(bot Robot, command string, args ...string) {
 					for _, keyword := range phelp.Keywords {
 						if term == keyword {
 							chantext := ""
-							for _, pchan := range plugin.Channels {
-								if bot.Channel != pchan {
-									if len(chantext) == 0 {
-										chantext += " (channels: " + pchan
-									} else {
-										chantext += ", " + pchan
+							if plugin.DirectOnly {
+								// Look: the right paren gets added below
+								chantext = " (direct message only"
+							} else {
+								for _, pchan := range plugin.Channels {
+									if bot.Channel != pchan {
+										if len(chantext) == 0 {
+											chantext += " (channels: " + pchan
+										} else {
+											chantext += ", " + pchan
+										}
 									}
 								}
 							}
@@ -171,35 +177,38 @@ func help(bot Robot, command string, args ...string) {
 	}
 }
 
-/* func dump(bot Robot, command string, args ...string) {
+func dump(bot Robot, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
 	// Get access to the underlying struct
 	b := bot.robot
-	if !bot.CheckAdmin() {
-		bot.Reply("Sorry, only an admin user can request that")
-		return
-	}
+	b.lock.RLock()
+	defer b.lock.RUnlock()
 	switch command {
 	case "robot":
-		bot.Fixed().Say(fmt.Sprintf("%+v", bot))
+		c, _ := yaml.Marshal(config)
+		bot.Fixed().Say(fmt.Sprintf("Here's how I've been configured, irrespective of interactive changes:\n%s", c))
 	case "plugin":
-		b.lock.RLock()
-		defer b.lock.RUnlock()
 		found := false
 		for _, plugin := range plugins {
 			if args[0] == plugin.Name {
 				found = true
-				bot.Fixed().Say(fmt.Sprintf("%+v", plugin))
-				bot.Log(Info, fmt.Sprintf("Dump of plugin %s:\n%+v", args[0], plugin))
+				c, _ := yaml.Marshal(plugin)
+				bot.Fixed().Say(fmt.Sprintf("%s", c))
 			}
 		}
 		if !found {
 			bot.Say("Didn't find a plugin named " + args[0])
 		}
+	case "list":
+		plist := make([]string, 0, len(plugins))
+		for _, plugin := range plugins {
+			plist = append(plist, plugin.Name)
+		}
+		bot.Say(fmt.Sprintf("Here are the plugins I have configured:\n%s", strings.Join(plist, ", ")))
 	}
-} */
+}
 
 var byebye = []string{
 	"Sayonara!",
@@ -227,7 +236,7 @@ func admin(bot Robot, command string, args ...string) {
 			return
 		}
 		bot.Reply("Configuration reloaded successfully")
-		b.Log(Info, "Configuration successfully reloaded after a request from:", bot.User)
+		b.Log(Info, "Configuration successfully reloaded by a request from:", bot.User)
 	case "quit":
 		// Get all important locks to make sure nothing is being changed - then exit
 		botLock.Lock()
