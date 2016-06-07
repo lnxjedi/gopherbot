@@ -108,7 +108,8 @@ func knock(r bot.Robot, command string, args ...string) {
 
 func init() {
 	bot.RegisterPlugin("knock", bot.PluginHandler{
-		&JokeConfig{},
+		defaultConfig,
 		knock,
+		&JokeConfig{},
 	})
 }

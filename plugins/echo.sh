@@ -2,17 +2,16 @@
 
 # echo.sh - trivial shell plugin example for Gopherbot
 
-# Boilerplate
+# START Boilerplate
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
 source $GOPHER_INSTALLDIR/pluglib/shellLib.sh
 
 command=$1
 shift
+# END Boilerplate
 
-case "$command" in
-# NOTE: only "configure" should print anything to stdout
-	"configure")
-		cat <<"EOF"
+configure(){
+	cat <<"EOF"
 Channels: [ "botdev" ]
 Help:
 - Keywords: [ "echo" ]
@@ -21,6 +20,12 @@ CommandMatches:
 - Command: "echo"
   Regex: '(?i:echo ([.;!\d\w-, ]+))'
 EOF
+}
+
+case "$command" in
+# NOTE: only "configure" should print anything to stdout
+	"configure")
+		configure
 		;;
 	"echo")
 		Reply "$*"
