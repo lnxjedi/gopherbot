@@ -4,6 +4,18 @@
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
 source $GOPHER_INSTALLDIR/pluglib/shellLib.sh
 
+configure(){
+	cat <<"EOF"
+Help:
+- Keywords: [ "hosts", "lookup", "dig", "nslookup" ]
+  Helptext:
+  - "(bot), dig <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
+  - "(bot), hosts <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
+CommandMatches:
+- Command: hosts
+  Regex: '(?:(?i)hosts?|lookup|dig|nslookup) ([\w-. ]+)'
+EOF
+}
 # Ignore any command but "hosts"
 if [ "$1" != "hosts" ]
 then
@@ -17,8 +29,7 @@ do
 	ERROR=false
 	if echo "$LOOKUP" | grep -qP "[a-zA-Z]+"
 	then
-		HOSTNAME=${LOOKUP##*\|}
-		HOSTNAME=${HOSTNAME%\>}
+		HOSTNAME=$LOOKUP
 		IPADDR=$(host $HOSTNAME | grep 'has address') || ERROR=true
 		IPADDR=${IPADDR##* }
 		[ "$ERROR" = "true" ] && IPADDR="(not found)"
