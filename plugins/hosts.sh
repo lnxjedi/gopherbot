@@ -16,7 +16,7 @@ Help:
   - "(bot), hosts <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
 CommandMatches:
 - Command: hosts
-  Regex: '(?:(?i)hosts?|lookup|dig|nslookup) ([\w-. ]+)'
+  Regex: '(?i:hosts?|lookup|dig|nslookup) ([\w-. ]+)'
 EOF
 }
 
@@ -49,6 +49,6 @@ case $command in
 		configure
 		;;
 	"hosts")
-		hosts
+		hosts $*
 		;;
 esac

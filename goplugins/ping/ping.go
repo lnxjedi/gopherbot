@@ -6,7 +6,7 @@ import (
 )
 
 const defaultConfig = `
-# These are used to see if the robot is alive, so should answer in every channel",
+# These are used to see if the robot is alive, so should answer in every channel
 AllChannels: true
 Help:
 - Keywords: [ "ping", "beep" ]
@@ -47,31 +47,38 @@ type config struct {
 }
 
 // Define the handler function
-func ping(bot bot.Robot, command string, args ...string) {
+func ping(r bot.Robot, command string, args ...string) {
+	var cfg *config
 	// The plugin can handle multiple different commands
 	switch command {
 	// This isn't really necessary
 	case "init":
 		// ignore
 	case "rules":
-		bot.Say(rules)
+		r.Say(rules)
 	case "hello":
-		bot.Reply("Howdy. Try 'help' if you want me to do something cool.")
+		r.Reply("Howdy. Try 'help' if you want me to do something cool.")
 	case "ping":
-		bot.Fixed().Reply("PONG")
+		r.Fixed().Reply("PONG")
 	case "thanks":
-		cfg := config{}
-		bot.GetPluginConfig(&cfg)
-		bot.Reply(bot.RandomString(cfg.Welcome))
-	case "beep":
-		if bot.Channel == "" {
-			bot.Say("Eh, talking to yourself?")
+		if ret := r.GetPluginConfig(&cfg); ret == bot.Ok {
+			r.Reply(r.RandomString(cfg.Welcome))
 		} else {
-			bot.Say("Did anybody else hear something go \"beep\" ?")
+			r.Reply("I'm speechless. Please have somebody check my log file.")
+		}
+	case "beep":
+		if r.Channel == "" {
+			r.Say("Eh, talking to yourself?")
+		} else {
+			r.Say("Did anybody else hear something go \"beep\" ?")
 		}
 	}
 }
 
 func init() {
-	bot.RegisterPlugin("ping", bot.PluginHandler{DefaultConfig: defaultConfig, Handler: ping})
+	bot.RegisterPlugin("ping", bot.PluginHandler{
+		DefaultConfig: defaultConfig,
+		Handler:       ping,
+		Config:        &config{},
+	})
 }

@@ -23,7 +23,7 @@ func knock(r bot.Robot, command string, args ...string) {
 	case "init":
 		// Ignore, this plugin has no start-up
 	case "knock":
-		if ok := r.GetPluginConfig(&j); !ok {
+		if ret := r.GetPluginConfig(&j); ret != bot.Ok {
 			r.Reply("Sorry, I couldn't find my joke book")
 		}
 		if len(j.Jokes) == 0 {

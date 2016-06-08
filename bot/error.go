@@ -20,6 +20,10 @@ const (
 	BrainFailed      // An error condition prevented the brain from storing/retrieving; redis down, file write failed, etc.
 	InvalidDatumKey  // Key name didn't match the regex for valid key names
 
+	// GetPluginConfig
+	InvalidDblPtr    // GetPluginConfig wasn't called with a double-pointer to a config struct
+	InvalidCfgStruct // The struct type in GetPluginConfig doesn't match the struct registered for the plugin
+
 	// OTP
 	UntrustedPlugin // A plugin called CheckOTP without having Trusted: true configured
 	NoUserOTP       // OTP config for the user wasn't found

@@ -33,6 +33,7 @@ gbPostJSON(){
 EOF
 )
 	JSONRET=$(echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null)
+	echo "$JSONRET"
 	GB_FORMAT="variable"
 }
 

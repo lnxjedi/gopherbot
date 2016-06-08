@@ -23,8 +23,8 @@ type MemeConfig struct {
 
 func memegen(r bot.Robot, command string, args ...string) {
 	var m *MemeConfig
-	ok := r.GetPluginConfig(&m) // make m point to a valid, thread-safe MemeConfig
-	if !ok || m.Password == "" {
+	ret := r.GetPluginConfig(&m) // make m point to a valid, thread-safe MemeConfig
+	if ret != bot.Ok || m.Password == "" {
 		if command != "init" {
 			r.Reply("I couldn't remember my password for the meme generator")
 		}

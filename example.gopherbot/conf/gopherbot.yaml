@@ -1,0 +1,17 @@
+# The administrator of this robot, can be retrieved in plugins with GetBotAttribute("admin")
+AdminContact: "Joe Devops, <joe@supercooldomain.com>"
+# If a plugin doesn't specify otherwise it will be active in these channels; default all channels
+DefaultChannels: [ "general", "random" ]
+# Users the bot should never listen to
+IgnoreUsers: [ "otherbot", "slackbot" ]
+# Note: Bot users in Slack can't join channels
+JoinChannels: [ "random", "general" ]
+# List of users that can issue admin commands like reload, quit
+AdminUsers: []
+# One-character alias the bot can be called by
+Alias: ";"
+# Protocol configuration
+Protocol: slack
+ProtocolConfig:
+  SlackToken: "<your_token_here>"
+  MaxMessageSplit: 2

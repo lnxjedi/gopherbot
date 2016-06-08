@@ -1,9 +1,0 @@
-{
-	"AllChannels": true,
-	"CommandMatches": [
-		{
-			"Command": "help",
-			"Regex": "help ?([\\d\\w]+)?"
-		}
-	]
-}

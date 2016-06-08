@@ -186,9 +186,30 @@ func dump(bot Robot, command string, args ...string) {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	switch command {
+	case "robotdefault":
+		bot.Fixed().Say(fmt.Sprintf("Here's my default configuration:\n%s", defaultConfig))
 	case "robot":
 		c, _ := yaml.Marshal(config)
 		bot.Fixed().Say(fmt.Sprintf("Here's how I've been configured, irrespective of interactive changes:\n%s", c))
+	case "plugdefault":
+		if plug, ok := pluginHandlers[args[0]]; ok {
+			bot.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], plug.DefaultConfig))
+		} else { // look for an external plugin
+			found := false
+			for _, plugin := range plugins {
+				if args[0] == plugin.Name && plugin.pluginType == plugExternal {
+					found = true
+					if cfg, err := b.getExtDefCfg(plugin); err == nil {
+						bot.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], *cfg))
+					} else {
+						bot.Say("I had a problem looking that up - somebody should check my logs")
+					}
+				}
+			}
+			if !found {
+				bot.Say("Didn't find a plugin named " + args[0])
+			}
+		}
 	case "plugin":
 		found := false
 		for _, plugin := range plugins {

@@ -152,26 +152,58 @@ func (r Robot) GetSenderAttribute(a string) (string, BotRetVal) {
 	return r.GetProtocolUserAttribute(r.User, a)
 }
 
-// GetPluginConfig will unmarshall the plugin's Config section into
-// a provided struct.
-func (r Robot) GetPluginConfig(dptr interface{}) bool {
+/* GetPluginConfig sets a struct pointer to point to a config struct populated
+from configuration when plugins were loaded. To use, a plugin should define
+a struct for it's configuration data, e.g.:
+
+	type pConf struct {
+		Username, Password string
+	}
+
+In conf/plugins/<pluginname>.yaml, you would add a Config: stanza, e.g.:
+
+	Config:
+	  Username: foo
+	  Password: bar
+
+When registering the plugin, you pass a pointer to an empty config template, which the
+robot will use to populate a struct when configuration is loaded:
+
+	func init() {
+		bot.RegisterPlugin("memes", bot.PluginHandler{
+			DefaultConfig: defaultConfig, // yaml string providing default configuration
+			Handler:       plugfunc, // callback function
+			Config:        &pConf{}, // pointer to empty config struct
+		})
+	}
+
+Then, to get a current copy of configuration when the plugin runs, define a struct pointer
+and call GetPluginConfig with a double-pointer:
+
+	var c *pConf
+	r.GetPluginConfig(&c)
+
+... And voila! *pConf is populated with the contents from the configured Config: stanza
+*/
+func (r Robot) GetPluginConfig(dptr interface{}) BotRetVal {
 	b := r.robot
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	plugin := plugins[plugIDmap[r.pluginID]]
 	tp := reflect.ValueOf(dptr)
 	if tp.Kind() != reflect.Ptr {
-		return false
+		b.Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but didn't pass a double-pointer to a struct", plugin.Name))
+		return InvalidDblPtr
 	}
 	p := reflect.Indirect(tp)
 	if p.Kind() != reflect.Ptr {
-		return false
+		return InvalidDblPtr
 	}
 	if p.Type() != reflect.ValueOf(plugin.config).Type() {
-		return false
+		return InvalidCfgStruct
 	}
 	p.Set(reflect.ValueOf(plugin.config))
-	return true
+	return Ok
 }
 
 // SendChannelMessage lets a plugin easily send a message to an arbitrary
