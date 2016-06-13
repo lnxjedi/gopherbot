@@ -18,50 +18,55 @@ type JSONFunction struct {
 	FuncArgs json.RawMessage
 }
 
-type Attr struct {
+type attribute struct {
 	Attribute string
 }
 
-type UserAttr struct {
+type userattr struct {
 	User      string
 	Attribute string
 }
 
-type ChannelMessage struct {
+type logmessage struct {
+	Level   string
+	Message string
+}
+
+type channelmessage struct {
 	Channel string
 	Message string
 	Format  string
 }
 
-type UserMessage struct {
+type usermessage struct {
 	User    string
 	Message string
 	Format  string
 }
 
-type UserChannelMessage struct {
+type userchannelmessage struct {
 	User    string
 	Channel string
 	Message string
 	Format  string
 }
 
-type ReplyRequest struct {
+type replyrequest struct {
 	RegExId string
 	Timeout int
 }
 
 // Types for returning values
-type AttrResponse struct {
+type attrresponse struct {
 	Attribute string
 	BotRetVal int
 }
 
-type BotRetValResponse struct {
+type botretvalresponse struct {
 	BotRetVal int
 }
 
-type WaitReplyResponse struct {
+type waitreplyresponse struct {
 	Reply     string
 	BotRetVal int
 }
@@ -141,7 +146,7 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	)
 	switch f.FuncName {
 	case "GetSenderAttribute", "GetBotAttribute":
-		var a Attr
+		var a attribute
 		if !b.getArgs(rw, &f.FuncArgs, &a) {
 			return
 		}
@@ -150,50 +155,59 @@ func (b *robot) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		} else {
 			attr, ret = bot.GetSenderAttribute(a.Attribute)
 		}
-		b.sendReturn(rw, &AttrResponse{encode(attr), int(ret)})
+		b.sendReturn(rw, &attrresponse{encode(attr), int(ret)})
 		return
 	case "GetUserAttribute":
-		var ua UserAttr
+		var ua userattr
 		if !b.getArgs(rw, &f.FuncArgs, &ua) {
 			return
 		}
 		attr, ret = bot.GetUserAttribute(ua.User, ua.Attribute)
-		b.sendReturn(rw, &AttrResponse{encode(attr), int(ret)})
+		b.sendReturn(rw, &attrresponse{encode(attr), int(ret)})
+		return
+	case "LogMessage":
+		var lm logmessage
+		if !b.getArgs(rw, &f.FuncArgs, &lm) {
+			return
+		}
+		l := b.logStrToLevel(lm.Level)
+		b.Log(l, lm.Message)
+		b.sendReturn(rw, &botretvalresponse{int(Ok)})
 		return
 	case "SendChannelMessage":
-		var cm ChannelMessage
+		var cm channelmessage
 		if !b.getArgs(rw, &f.FuncArgs, &cm) {
 			return
 		}
-		b.sendReturn(rw, &BotRetValResponse{
+		b.sendReturn(rw, &botretvalresponse{
 			int(bot.SendChannelMessage(cm.Channel, b.decode(cm.Message))),
 		})
 		return
 	case "SendUserChannelMessage":
-		var ucm UserChannelMessage
+		var ucm userchannelmessage
 		if !b.getArgs(rw, &f.FuncArgs, &ucm) {
 			return
 		}
-		b.sendReturn(rw, &BotRetValResponse{
+		b.sendReturn(rw, &botretvalresponse{
 			int(bot.SendUserChannelMessage(ucm.User, ucm.Channel, b.decode(ucm.Message))),
 		})
 		return
 	case "SendUserMessage":
-		var um UserMessage
+		var um usermessage
 		if !b.getArgs(rw, &f.FuncArgs, &um) {
 			return
 		}
-		b.sendReturn(rw, &BotRetValResponse{
+		b.sendReturn(rw, &botretvalresponse{
 			int(bot.SendUserMessage(um.User, b.decode(um.Message))),
 		})
 		return
 	case "WaitForReply":
-		var rr ReplyRequest
+		var rr replyrequest
 		if !b.getArgs(rw, &f.FuncArgs, &rr) {
 			return
 		}
 		reply, ret = bot.WaitForReply(rr.RegExId, rr.Timeout)
-		b.sendReturn(rw, &WaitReplyResponse{encode(reply), int(ret)})
+		b.sendReturn(rw, &waitreplyresponse{encode(reply), int(ret)})
 		return
 	// NOTE: "Say" and "Reply" are implemented in shellLib.sh or other scripting library
 	default:

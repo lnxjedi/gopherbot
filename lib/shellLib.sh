@@ -99,6 +99,22 @@ EOF
 	gbBotRet "$GB_RET"
 }
 
+Log(){
+	local GB_FUNCARGS
+	local GB_FUNCNAME="LogMessage"
+	local GLM_LEVEL="$1"
+	local GLM_MESSAGE="$2"
+	GB_FUNCARGS=$(cat <<EOF
+{
+	"Level": "$GLM_LEVEL",
+	"Message": "$GLM_MESSAGE"
+}
+EOF
+)
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	gbBotRet "$GB_RET"
+}
+
 WaitForReply(){
 	local GB_FUNCARGS
 	local GB_FUNCNAME="WaitForReply"
