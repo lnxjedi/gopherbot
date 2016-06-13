@@ -70,6 +70,21 @@ func (b *robot) getConfigFile(filename string, required bool, c interface{}) err
 	}
 }
 
+func (b *robot) logStrToLevel(l string) LogLevel {
+	switch l {
+	case "trace":
+		return Trace
+	case "debug":
+		return Debug
+	case "info":
+		return Info
+	case "warn":
+		return Warn
+	default:
+		return Error
+	}
+}
+
 // loadConfig loads the 'bot's json configuration files. An error on first load
 // results in log.fatal, but later Loads just log the error.
 func (b *robot) loadConfig() error {
@@ -85,18 +100,7 @@ func (b *robot) loadConfig() error {
 		return fmt.Errorf("Loading newconfiguration file: %v", err)
 	}
 
-	switch newconfig.LogLevel {
-	case "trace":
-		loglevel = Trace
-	case "debug":
-		loglevel = Debug
-	case "info":
-		loglevel = Info
-	case "warn":
-		loglevel = Warn
-	default:
-		loglevel = Error
-	}
+	loglevel = b.logStrToLevel(newconfig.LogLevel)
 	b.setLogLevel(loglevel)
 
 	b.lock.Lock()
