@@ -1,5 +1,5 @@
-// Package slack uses a slack library to implement the methods
-// required by gopherbot and it's plugins.
+// Package slack uses Norberto Lopes' slack library to implement the bot.Connector
+// interface.
 package slack
 
 import (

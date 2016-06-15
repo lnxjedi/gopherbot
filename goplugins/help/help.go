@@ -1,5 +1,6 @@
-// help spits out a helpful message when a user just types "help" in
-// a channel. Advanced users will probably write their own.
+// The help plugin spits out a helpful message when a user just types "help" in
+// a channel, and also responds when the user addresses the robot but no plugin
+// matched. Advanced users will probably disable this one and write their own.
 package help
 
 import (

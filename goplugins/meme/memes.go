@@ -1,3 +1,6 @@
+// The memes plugin is an example of how you can use the robot for fun things
+// like generating Internet meme images. TODO: It could really use a re-write to
+// make memes configurable instead of hard-coded.
 package memes
 
 import (

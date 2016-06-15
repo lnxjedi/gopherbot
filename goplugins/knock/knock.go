@@ -1,3 +1,5 @@
+// The knock plugin is a simple demonstrator plugin for using Gopherbot's
+// WaitForReply function to tell knock-knock jokes.
 package knock
 
 import (

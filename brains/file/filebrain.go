@@ -1,3 +1,5 @@
+// Package fileBrain is a simple file-based implementation of the bot.SimpleBrain
+// interface, which gives the robot a place to store it's memories.
 package fileBrain
 
 import (

@@ -1,4 +1,5 @@
-// ping implements the most trivial of Go plugins
+// The lists plugin is a small demonstrator plugin showing how you
+// can use the robot's brain to remember things - like lists of items.
 package lists
 
 import (

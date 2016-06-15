@@ -1,4 +1,5 @@
-// ping implements the most trivial of Go plugins
+// The ping plugin is a simple plugin showing one way plugins can use
+// supplied configuration data from a plugin's yaml config file.
 package ping
 
 import (
@@ -24,6 +25,7 @@ CommandMatches:
   Regex: "(?i:(?:hi|hello)[.!]?)"
 - Command: "beep"
   Regex: "beep"
+# These can be overridden by adding a Config: section to conf/plugins/ping.yaml
 Config:
   Welcome:
   - "You're welcome!"
