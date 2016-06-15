@@ -1,0 +1,18 @@
+#!/usr/bin/ruby
+
+require ENV["GOPHER_INSTALLDIR"] + '/lib/rubylib'
+
+bot = Robot.new()
+
+
+#puts ("Hello, #{bot.GetSenderAttribute("FirstName")}!")
+puts ("User is: #{bot.user}")
+username = bot.GetSenderAttribute("FirstName")
+puts ("First name is #{username}")
+:puts ("Return value was: #{username.ret}")
+if username.ret == Robot::Ok
+	puts "It's ok"
+else
+	puts "Crap!"
+end
+puts ("Command is: #{ARGV[0]}")
