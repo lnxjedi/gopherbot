@@ -70,6 +70,7 @@ class Robot
 			"FuncArgs" => args
 		}
 		print JSON.pretty_generate(func)
+		print func.to_json
 	end
 
 	private :callBotFunc
