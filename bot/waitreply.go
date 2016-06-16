@@ -71,7 +71,7 @@ IPAddr
 SimpleString - letters, numbers, spaces, dots, dashes, underscores, and commas
 YesNo
 */
-func (r Robot) WaitForReply(regexId string, timeout int) (replyText string, ret BotRetVal) {
+func (r *Robot) WaitForReply(regexId string, timeout int) (replyText string, ret BotRetVal) {
 	matcher := replyMatcher{
 		user:    r.User,
 		channel: r.Channel,
