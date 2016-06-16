@@ -101,10 +101,10 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	}
 	botLock.Unlock()
 	for _, plugin := range plugins {
-		Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels (allchannels: %t)", messagetext, plugin.Name, len(plugin.Channels), plugin.AllChannels))
+		Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels (allchannels: %t)", messagetext, plugin.name, len(plugin.Channels), plugin.AllChannels))
 		ok := messageAppliesToPlugin(user, channel, plugin)
 		if !ok {
-			Log(Trace, fmt.Sprintf("Plugin %s ignoring message in channel %s, doesn't meet criteria", plugin.Name, channel))
+			Log(Trace, fmt.Sprintf("Plugin %s ignoring message in channel %s, doesn't meet criteria", plugin.name, channel))
 			continue
 		}
 		var matchers []InputMatcher
@@ -135,15 +135,15 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 
 // callPlugin (normally called with go ...) sends a command to a plugin.
 func callPlugin(bot *Robot, plugin Plugin, command string, args ...string) {
-	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\"", command, plugin.Name))
+	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\"", command, plugin.name))
 	bot.pluginID = plugin.pluginID
 	switch plugin.pluginType {
 	case plugBuiltin, plugGo:
-		pluginHandlers[plugin.Name].Handler(bot, command, args...)
+		pluginHandlers[plugin.name].Handler(bot, command, args...)
 	case plugExternal:
 		var fullPath string // full path to the executable
 		if len(plugin.pluginPath) == 0 {
-			Log(Error, "pluginPath empty for external plugin:", plugin.Name)
+			Log(Error, "pluginPath empty for external plugin:", plugin.name)
 		}
 		if byte(plugin.pluginPath[0]) == byte("/"[0]) {
 			fullPath = plugin.pluginPath
@@ -152,7 +152,7 @@ func callPlugin(bot *Robot, plugin Plugin, command string, args ...string) {
 			if err != nil {
 				_, err := os.Stat(b.installPath + "/" + plugin.pluginPath)
 				if err != nil {
-					Log(Error, fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.Name, err))
+					Log(Error, fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.name, err))
 					return
 				}
 				fullPath = b.installPath + "/" + plugin.pluginPath

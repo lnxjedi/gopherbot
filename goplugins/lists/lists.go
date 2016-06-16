@@ -133,7 +133,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 				r.Say("Sorry, there was an error sending the email - have somebody check the my log file")
 				return
 			}
-			botmail, _ := r.GetBotAttribute("email")
+			botmail := r.GetBotAttribute("email").String()
 			r.Say(fmt.Sprintf("Ok, I sent the %s list to you - look for email from %s", listName, botmail))
 		}
 	case "add":

@@ -43,7 +43,7 @@ const (
 
 // Plugin specifies the structure of a plugin configuration - plugins should include an example / default config
 type Plugin struct {
-	Name           string         // the name of the plugin, used as a key in to the
+	name           string         // the name of the plugin, used as a key in to the
 	pluginType     plugType       // plugGo, plugExternal, plugBuiltin - determines how commands are routed
 	pluginPath     string         // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=plugExternal only
 	Disabled       bool           // Set true to disable the plugin
@@ -91,7 +91,7 @@ func initializePlugins() {
 		Format:  Variable,
 	}
 	for _, plugin := range plugins {
-		Log(Info, "Initializing plugin:", plugin.Name)
+		Log(Info, "Initializing plugin:", plugin.name)
 		go callPlugin(bot, plugin, "init")
 	}
 }
@@ -119,7 +119,7 @@ func getExtDefCfg(plugin Plugin) (*[]byte, error) {
 		if err != nil {
 			_, err := os.Stat(b.installPath + "/" + plugin.pluginPath)
 			if err != nil {
-				err = fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.Name, err)
+				err = fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.name, err)
 				return nil, err
 			}
 			fullPath = b.installPath + "/" + plugin.pluginPath
@@ -289,7 +289,7 @@ PlugLoop:
 			}
 			message.re = re
 		}
-		plugin.Name = plug
+		plugin.name = plug
 		// Copy the pointer to the empty config struct / empty struct (when no config)
 		pt := reflect.ValueOf(pluginHandlers[plug].Config)
 		if pt.Kind() == reflect.Ptr {
@@ -312,7 +312,7 @@ PlugLoop:
 		plugin.pluginID = fmt.Sprintf("%x", p)
 		pfinder[plugin.pluginID] = plugIndex
 		// Store this plugin's config in the temporary list
-		Log(Info, fmt.Sprintf("Recorded plugin #%d, \"%s\"", plugIndex, plugin.Name))
+		Log(Info, fmt.Sprintf("Recorded plugin #%d, \"%s\"", plugIndex, plugin.name))
 		plist = append(plist, plugin)
 		plugIndex++
 	}

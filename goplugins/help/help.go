@@ -25,9 +25,9 @@ CatchAll: true
 // Define the handler function
 func help(bot *bot.Robot, command string, args ...string) {
 	if command == "help" { // user just typed 'help' - the robot should introduce itself
-		botName, _ := bot.GetBotAttribute("name")
-		botContact, _ := bot.GetBotAttribute("contact")
-		botAlias, _ := bot.GetBotAttribute("alias")
+		botName := bot.GetBotAttribute("name").String()
+		botContact := bot.GetBotAttribute("contact").String()
+		botAlias := bot.GetBotAttribute("alias").String()
 		reply := "Hi, I'm "
 		reply += strings.Title(botName) + ", a staff robot. I see you've asked for help.\n\n"
 		reply += "I've been programmed to perform a variety of tasks for your team, and will respond to messages that match specific patterns. " +

@@ -49,7 +49,7 @@ func (r *Robot) CheckOTP(code string) (bool, BotRetVal) {
 	b.lock.RLock()
 	plugin := plugins[plugIDmap[r.pluginID]]
 	trustedPlugin := plugin.Trusted
-	plugName := plugin.Name
+	plugName := plugin.name
 	b.lock.RUnlock()
 	if !trustedPlugin {
 		Log(Error, fmt.Sprintf("ALERT: Untrusted plugin \"%s\" called CheckOTP", plugName))
@@ -112,9 +112,11 @@ func (r *Robot) RandomInt(n int) int {
 // GetBotAttribute returns an attribute of the robot or "" if unknown.
 // Current attributes:
 // name, alias, fullName, contact
-func (r *Robot) GetBotAttribute(a string) (attr string, ret BotRetVal) {
+func (r *Robot) GetBotAttribute(a string) *BotAttrRet {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
+	ret := Ok
+	var attr string
 	switch a {
 	case "name":
 		attr = b.name
@@ -129,23 +131,29 @@ func (r *Robot) GetBotAttribute(a string) (attr string, ret BotRetVal) {
 	default:
 		ret = AttributeNotFound
 	}
-	return
+	return &BotAttrRet{attr, ret}
 }
 
-// GetUserAttribute returns an attribute of a user or "" if unknown/error
+// GetUserAttribute returns a BotAttrRet with
+// - The string Attribute of a user, or "" if unknown/error
+// - A BotRetVal which is one of Ok, UserNotFound, AttributeNotFound
 // Current attributes:
 // name(handle), fullName, email, firstName, lastName, phone
 // TODO: supplement data with gopherbot.json user's table
-func (r *Robot) GetUserAttribute(u, a string) (string, BotRetVal) {
-	return b.GetProtocolUserAttribute(u, a)
+func (r *Robot) GetUserAttribute(u, a string) *BotAttrRet {
+	attr, ret := b.GetProtocolUserAttribute(u, a)
+	return &BotAttrRet{attr, ret}
 }
 
-// GetSenderAttribute returns an attribute of the sending user or "" if unknown/error
+// GetSenderAttribute returns a BotAttrRet with
+// - The string Attribute of the sender, or "" if unknown/error
+// - A BotRetVal which is one of Ok, UserNotFound, AttributeNotFound
 // Current attributes:
 // name(handle), fullName, email, firstName, lastName, phone
 // TODO: supplement data with gopherbot.json user's table
-func (r *Robot) GetSenderAttribute(a string) (string, BotRetVal) {
-	return b.GetProtocolUserAttribute(r.User, a)
+func (r *Robot) GetSenderAttribute(a string) *BotAttrRet {
+	attr, ret := b.GetProtocolUserAttribute(r.User, a)
+	return &BotAttrRet{attr, ret}
 }
 
 /*
@@ -189,7 +197,7 @@ func (r *Robot) GetPluginConfig(dptr interface{}) BotRetVal {
 	plugin := plugins[plugIDmap[r.pluginID]]
 	tp := reflect.ValueOf(dptr)
 	if tp.Kind() != reflect.Ptr {
-		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but didn't pass a double-pointer to a struct", plugin.Name))
+		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but didn't pass a double-pointer to a struct", plugin.name))
 		return InvalidDblPtr
 	}
 	p := reflect.Indirect(tp)

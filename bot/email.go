@@ -15,16 +15,23 @@ import (
 func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret BotRetVal) {
 	var mailFrom, botName, mailTo string
 
-	mailFrom, ret = r.GetBotAttribute("email")
+	mailAttr := r.GetBotAttribute("email")
 	if ret != Ok {
 		return NoBotEmail
 	}
+	mailFrom = mailAttr.Attribute
 	// We can live without a full name
-	botName, _ = r.GetBotAttribute("fullName")
-	mailTo, ret = r.GetSenderAttribute("email")
-	if ret != Ok {
+	botAttr := r.GetBotAttribute("fullName")
+	if botAttr.BotRetVal != Ok {
+		botName = "Gopherbot"
+	} else {
+		botName = botAttr.Attribute
+	}
+	mailAttr = r.GetSenderAttribute("email")
+	if mailAttr.BotRetVal != Ok {
 		return NoUserEmail
 	}
+	mailTo = mailAttr.Attribute
 	var messageBuffer bytes.Buffer
 	fmt.Fprintf(&messageBuffer, "From: %s <%s>\r\n", botName, mailFrom)
 	fmt.Fprintf(&messageBuffer, "Subject: %s\r\n\r\n", subject)

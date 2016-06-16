@@ -40,3 +40,32 @@ const (
 	NoBotEmail  // Couldn't look up the robot's email address
 	MailError   // There was an error sending email
 )
+
+func (ret BotRetVal) String() string {
+	errMsg := []string{
+		"Ok",
+		"User not found",
+		"Channel not found",
+		"Attribute not found",
+		"Failed sending direct message to user",
+		"Failed to join the channel",
+		"Datum not found in robot's brain",
+		"Datum lock expired before update",
+		"Problem unmarshalling JSON/Yaml",
+		"Brain storage failed",
+		"Invalid string given for datum key",
+		"Argument to GetPluginConfig wasn't a double pointer to a struct",
+		"Mismatch between struct registered in RegisterPlugin and struct passed to GetPluginConfig",
+		"Plugin requested OTP but not configured by administrator as Trusted",
+		"User OTP configuration not found",
+		"Unspecified error in checking OTP",
+		"The user's reply didn't match the requested regex",
+		"The user didn't respond within the given timeout",
+		"The user is already engaged in an interactive command with the robot in the same channel",
+		"The matcher key supplied in WaitForReply doesn't correspond to a configured regex",
+		"User email attribute not available",
+		"Robot email attribute not available",
+		"Unspecified error sending email",
+	}
+	return errMsg[int(ret)]
+}

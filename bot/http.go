@@ -57,11 +57,19 @@ type replyrequest struct {
 }
 
 // Types for returning values
-type attrresponse struct {
+
+// BotAttrRet implements Stringer so it can be interpolated with fmt if
+// the plugin author is ok with ignoring the BotRetVal.
+type BotAttrRet struct {
 	Attribute string
-	BotRetVal int
+	BotRetVal
 }
 
+func (bar *BotAttrRet) String() string {
+	return bar.Attribute
+}
+
+// These are only for json marshalling
 type botretvalresponse struct {
 	BotRetVal int
 }
@@ -141,8 +149,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		attr, reply string
-		ret         BotRetVal
+		attr  *BotAttrRet
+		reply string
+		ret   BotRetVal
 	)
 	switch f.FuncName {
 	case "GetSenderAttribute", "GetBotAttribute":
@@ -151,19 +160,21 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if f.FuncName == "GetBotAttribute" {
-			attr, ret = bot.GetBotAttribute(a.Attribute)
+			attr = bot.GetBotAttribute(a.Attribute)
 		} else {
-			attr, ret = bot.GetSenderAttribute(a.Attribute)
+			attr = bot.GetSenderAttribute(a.Attribute)
 		}
-		sendReturn(rw, &attrresponse{encode(attr), int(ret)})
+		attr.Attribute = encode(attr.Attribute)
+		sendReturn(rw, attr)
 		return
 	case "GetUserAttribute":
 		var ua userattr
 		if !getArgs(rw, &f.FuncArgs, &ua) {
 			return
 		}
-		attr, ret = bot.GetUserAttribute(ua.User, ua.Attribute)
-		sendReturn(rw, &attrresponse{encode(attr), int(ret)})
+		attr = bot.GetUserAttribute(ua.User, ua.Attribute)
+		attr.Attribute = encode(attr.Attribute)
+		sendReturn(rw, attr)
 		return
 	case "LogMessage":
 		var lm logmessage

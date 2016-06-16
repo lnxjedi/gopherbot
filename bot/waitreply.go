@@ -89,7 +89,7 @@ func (r *Robot) WaitForReply(regexId string, timeout int) (replyText string, ret
 	}
 	b.lock.RLock()
 	plugin := plugins[plugIDmap[r.pluginID]]
-	plugName := plugin.Name
+	plugName := plugin.name
 	if stockRepliesRe.MatchString(regexId) {
 		rep.re = stockReplies[regexId]
 	} else {
@@ -102,7 +102,7 @@ func (r *Robot) WaitForReply(regexId string, timeout int) (replyText string, ret
 	}
 	b.lock.RUnlock()
 	if rep.re == nil {
-		r.Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", plugin.Name, regexId))
+		r.Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", plugin.name, regexId))
 		botLock.Unlock()
 		ret = MatcherNotFound
 		return "", ret

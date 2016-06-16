@@ -119,7 +119,7 @@ func help(bot *Robot, command string, args ...string) {
 		}
 
 		for _, plugin := range plugins {
-			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.Name, term))
+			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
 			if !hasTerm { // if you ask for help without a term, you just get help for whatever commands are available to you
 				if messageAppliesToPlugin(bot.User, bot.Channel, plugin) {
 					for _, phelp := range plugin.Help {
@@ -193,7 +193,7 @@ func dump(bot *Robot, command string, args ...string) {
 		} else { // look for an external plugin
 			found := false
 			for _, plugin := range plugins {
-				if args[0] == plugin.Name && plugin.pluginType == plugExternal {
+				if args[0] == plugin.name && plugin.pluginType == plugExternal {
 					found = true
 					if cfg, err := getExtDefCfg(plugin); err == nil {
 						bot.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], *cfg))
@@ -209,7 +209,7 @@ func dump(bot *Robot, command string, args ...string) {
 	case "plugin":
 		found := false
 		for _, plugin := range plugins {
-			if args[0] == plugin.Name {
+			if args[0] == plugin.name {
 				found = true
 				c, _ := yaml.Marshal(plugin)
 				bot.Fixed().Say(fmt.Sprintf("%s", c))
@@ -221,7 +221,7 @@ func dump(bot *Robot, command string, args ...string) {
 	case "list":
 		plist := make([]string, 0, len(plugins))
 		for _, plugin := range plugins {
-			plist = append(plist, plugin.Name)
+			plist = append(plist, plugin.name)
 		}
 		bot.Say(fmt.Sprintf("Here are the plugins I have configured:\n%s", strings.Join(plist, ", ")))
 	}

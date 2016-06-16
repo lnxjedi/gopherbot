@@ -192,7 +192,7 @@ func updateDatum(key, locktoken string, datum interface{}) (ret BotRetVal) {
 // return indicates whether the datum exists.
 func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret BotRetVal) {
 	b.lock.RLock()
-	pluginName := plugins[plugIDmap[r.pluginID]].Name
+	pluginName := plugins[plugIDmap[r.pluginID]].name
 	b.lock.RUnlock()
 	key = pluginName + ":" + key
 	return checkoutDatum(key, datum, rw)
@@ -204,7 +204,7 @@ func (r *Robot) Checkin(key, locktoken string) {
 		return
 	}
 	b.lock.RLock()
-	pluginName := plugins[plugIDmap[r.pluginID]].Name
+	pluginName := plugins[plugIDmap[r.pluginID]].name
 	b.lock.RUnlock()
 	key = pluginName + ":" + key
 	checkin(key, locktoken)
@@ -215,7 +215,7 @@ func (r *Robot) Checkin(key, locktoken string) {
 // update failed.
 func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret BotRetVal) {
 	b.lock.RLock()
-	pluginName := plugins[plugIDmap[r.pluginID]].Name
+	pluginName := plugins[plugIDmap[r.pluginID]].name
 	b.lock.RUnlock()
 	key = pluginName + ":" + key
 	return updateDatum(key, locktoken, datum)
