@@ -38,6 +38,19 @@ type channelmessage struct {
 	Format  string
 }
 
+// Something to be remembered
+type memory struct {
+	Key   string
+	Token string
+	Datum json.RawMessage
+}
+
+// Something to be recalled
+type recollection struct {
+	Key string
+	RW  bool
+}
+
 type usermessage struct {
 	User    string
 	Message string
@@ -71,6 +84,13 @@ func (bar *BotAttrRet) String() string {
 
 // These are only for json marshalling
 type botretvalresponse struct {
+	BotRetVal int
+}
+
+type checkoutresponse struct {
+	LockToken string
+	Exists    bool
+	Datum     interface{}
 	BotRetVal int
 }
 
@@ -154,6 +174,37 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		ret   BotRetVal
 	)
 	switch f.FuncName {
+	case "CheckoutDatum":
+		var r recollection
+		if !getArgs(rw, &f.FuncArgs, &r) {
+			return
+		}
+		var datum interface{}
+		l, e, brv := bot.CheckoutDatum(r.Key, &datum, r.RW)
+		sendReturn(rw, checkoutresponse{
+			LockToken: l,
+			Exists:    e,
+			Datum:     datum,
+			BotRetVal: int(brv),
+		})
+		return
+	case "GetPluginConfig":
+		b.lock.RLock()
+		defer b.lock.RUnlock()
+		plugin := plugins[plugIDmap[bot.pluginID]]
+		cfg := make(map[string]interface{})
+		for i, item := range plugin.Config {
+			if key, ok := item.Key.(string); ok {
+				cfg[key] = item.Value
+			} else {
+				Log(Error, "Couldn't convert yaml.MapSlice to map[string]interface{}, item #%d is type %T, not string", i, item.Key)
+				// type handler is a convenient empty struct
+				sendReturn(rw, handler{})
+				return
+			}
+		}
+		sendReturn(rw, cfg)
+		return
 	case "GetSenderAttribute", "GetBotAttribute":
 		var a attribute
 		if !getArgs(rw, &f.FuncArgs, &a) {

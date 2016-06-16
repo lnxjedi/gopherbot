@@ -32,12 +32,16 @@ func (fb *brainConfig) Retrieve(k string) (datum []byte, exists bool, err error)
 	datumPath := brainPath + "/" + k
 	if _, err := os.Stat(datumPath); err == nil {
 		exists = true
+		datum, err = ioutil.ReadFile(datumPath)
+		if err != nil {
+			err = fmt.Errorf("Error reading file \"%s\": %v", datumPath, err)
+			robot.Log(bot.Error, err)
+		}
+		return datum, true, err
+	} else { // Memory doesn't exist yet
+		robot.Log(bot.Info, fmt.Sprintf("Retrieve called on non-existing key \"%s\"", k))
+		return datum, false, nil
 	}
-	datum, err = ioutil.ReadFile(datumPath)
-	if err != nil {
-		err = fmt.Errorf("Error reading file \"%s\": %v", datumPath, err)
-	}
-	return
 }
 
 // The file brain doesn't need the logger, but other brains might

@@ -37,7 +37,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 		lock, _, ret = r.CheckoutDatum(datumName, &lists, true)
 	}
 	if ret != bot.Ok {
-		r.Log(bot.Error, "Couldn't load lists")
+		r.Log(bot.Error, fmt.Sprintf("Couldn't load lists: %s", ret))
 		r.Reply("I had a problem loading the lists, somebody should check my log file")
 		r.Checkin(datumName, lock) // well-behaved plugins using the brain will always check in data when done
 		return
@@ -172,5 +172,8 @@ func lists(r *bot.Robot, command string, args ...string) {
 }
 
 func init() {
-	bot.RegisterPlugin("lists", bot.PluginHandler{Handler: lists})
+	bot.RegisterPlugin("lists", bot.PluginHandler{
+		DefaultConfig: defaultConfig,
+		Handler:       lists,
+	})
 }

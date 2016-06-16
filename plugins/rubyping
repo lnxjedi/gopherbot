@@ -17,16 +17,28 @@ defaultConfig = <<'DEFCONFIG'
 Channels: [ "botdev", "random" ]
 Help:
 - Keywords: [ "ruby" ]
-  Helptext: [ "(bot), ruby( me!) - prove that ruby plugins work" ]
+  Helptext: [ "(bot), ruby (me!) - prove that ruby plugins work" ]
+- Keywords: [ "listen" ]
+  Helptext: [ "(bot), listen (to me!) - ask a question" ]
+- Keywords: [ "remember" ]
+  Helptext: [ "(bot), remember <anything> - prove the robot has a brain(tm)" ]
+- Keywords: [ "recall" ]
+  Helptext: [ "(bot), recall (it doesn't matter what you put here) - prove the robot has a brain(tm)" ]
 CommandMatches:
 - Regex: (?i:ruby( me)?!?)
   Command: ruby
+- Regex: (?:listen( to me)?!?)
+  Command: listen
+- Regex: (?:remember ([-\w .,!?]+))
+  Command: remember
+- Regex: (?:recall ?.*)
+  Command: recall
 Config:
   Replies:
   - "Consider yourself rubied"
   - "Waaaaaait a second... what do you mean by that?"
-  - "Ok, I will, but not right now - I'll wait 'til you're least expecting it..."
-  - "Crap, all out of rubies - here's an emerald"
+  - "I'll ruby you, but not right now - I'll wait 'til you're least expecting it..."
+  - "Crap, sorry - all out of rubies"
 DEFCONFIG
 
 command = ARGV[0]
@@ -36,5 +48,17 @@ when "configure"
 	puts defaultConfig
 	exit
 when "ruby"
-	bot.Say("You've been rubied, #{bot.GetSenderAttribute("firstName")}")
+	bot.Say("Sure, #{bot.GetSenderAttribute("firstName")}!")
+	sleep 1.5
+	bot.Say(bot.RandomString(bot.GetPluginConfig()["Replies"]))
+when "listen"
+	bot.Say("Ok, what do you want to tell me?")
+	rep = bot.WaitForReply("SimpleString")
+	if rep.ret == Robot::Ok
+		bot.Say("I hear what you're saying - '#{rep}'")
+	else
+		bot.Say("I'm sorry, I'm not sure what you're trying to tell me")
+	end
+when "remember"
+	bot.Say("Here's what I remember: #{bot.CheckoutDatum("memory", false)}")
 end

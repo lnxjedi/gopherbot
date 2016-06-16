@@ -23,6 +23,19 @@ class GBAttribute
 	end
 end
 
+class GBReply
+	def initialize(reply, ret)
+		@reply = reply
+		@ret = ret
+	end
+	
+	attr_reader :reply, :ret
+
+	def to_s
+		@reply
+	end
+end
+
 class Robot
 	Ok = 0
 	UserNotFound = 1
@@ -53,9 +66,25 @@ class Robot
 		@user = ARGV[1]
 		@plugin_id = ARGV[2]
 		ARGV.shift(3)
+		@prng = Random.new
 	end
 
 	attr_reader :user, :channel
+
+	def RandomString(sarr)
+		return sarr[@prng.rand(sarr.size)]
+	end
+
+	def CheckoutDatum(key, rw)
+		args = { "Key" => key, "RW" => rw }
+		ret = callBotFunc("CheckoutDatum", args)
+		return ret
+	end
+
+	def GetPluginConfig()
+		ret = callBotFunc("GetPluginConfig", {})
+		return ret
+	end
 
 	def GetSenderAttribute(attr)
 		args = { "Attribute" => attr }
@@ -109,13 +138,24 @@ class Robot
 		end
 	end
 
+	def WaitForReply(re, timeout=30)
+		args = { "RegExId" => re, "Timeout" => timeout }
+		ret = callBotFunc("WaitForReply", args)
+		return GBReply.new(decode(ret["Reply"]), ret["BotRetVal"])
+	end
+
 	def decode(str)
 		if str.start_with?("base64:")
-			return Base64.decode64(str.split(':')[1])
+			if bstr = str.split(':')[1]
+				return Base64.decode64(bstr)
+			else
+				return ""
+			end
 		else
 			return str
 		end
 	end
+	private :decode
 
 	def callBotFunc(funcname, args, format="variable")
 		func = {
@@ -136,6 +176,5 @@ class Robot
 		STDERR.puts "Got back:\n#{body}"
 		return JSON.parse(res.body())
 	end
-
 	private :callBotFunc
 end

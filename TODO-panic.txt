@@ -1,0 +1,16 @@
+2016/06/16 15:48:04 Trace: [Calling "/home/parse/.gopherbot/plugins/test" with args: ["" "bender" "178e21cef3d862456505fbf2eee0302e" "init"]]
+panic: reflect: call of reflect.Value.Type on zero Value
+
+goroutine 94 [running]:
+panic(0x6fd200, 0xc4203ce080)
+	/usr/local/go/src/runtime/panic.go:500 +0x1a1
+reflect.Value.Type(0x0, 0x0, 0x0, 0x0, 0x0)
+	/usr/local/go/src/reflect/value.go:1670 +0x225
+github.com/parsley42/gopherbot/bot.(*Robot).GetPluginConfig(0xc420436840, 0x6d5540, 0xc420480010, 0x0)
+	/home/parse/golang/src/github.com/parsley42/gopherbot/bot/robot.go:207 +0x35e
+github.com/parsley42/gopherbot/goplugins/meme.memegen(0xc420436840, 0x75bae9, 0x4, 0x0, 0x0, 0x0)
+	/home/parse/golang/src/github.com/parsley42/gopherbot/goplugins/meme/memes.go:29 +0x64
+github.com/parsley42/gopherbot/bot.callPlugin(0xc420436840, 0x75be6e, 0x5, 0x0, 0x0, 0x0, 0x0, 0xc4202b6de0, 0x2, 0x2, ...)
+	/home/parse/golang/src/github.com/parsley42/gopherbot/bot/dispatch.go:142 +0x307
+created by github.com/parsley42/gopherbot/bot.initializePlugins
+	/home/parse/golang/src/github.com/parsley42/gopherbot/bot/plugins.go:95 +0x305
