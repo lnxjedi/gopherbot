@@ -20,6 +20,7 @@ gbPostJSON(){
 	local GB_FUNCNAME=$1
 	local GB_FUNCARGS="$2"
 	local JSON JSONRET
+	#local GB_DEBUG="true"
 	GB_FORMAT=${GB_FORMAT:-variable}
 	JSON=$(cat <<EOF
 {
@@ -32,7 +33,17 @@ gbPostJSON(){
 }
 EOF
 )
+	if [ "$GB_DEBUG" = "true" ]
+	then
+		echo "Sending:" >&2
+		echo "$JSON" >&2
+	fi
 	JSONRET=$(echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null)
+	if [ "$GB_DEBUG" = "true" ]
+	then
+		echo "Got back:" >&2
+		echo "$JSONRET" >&2
+	fi
 	echo "$JSONRET"
 	GB_FORMAT="variable"
 }

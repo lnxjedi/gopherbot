@@ -1,5 +1,7 @@
-require 'json'
 require 'base64'
+require 'json'
+require 'net/http'
+require 'uri'
 
 # Make base64 a little more accessible
 class String
@@ -56,21 +58,83 @@ class Robot
 	attr_reader :user, :channel
 
 	def GetSenderAttribute(attr)
-		args = { "Attribute" => "base64:" + attr.to_base64 }
-		callBotFunc("GetSenderAttribute", args)
-		return GBAttribute.new("David", Robot::Ok)
+		args = { "Attribute" => attr }
+		ret = callBotFunc("GetSenderAttribute", args)
+		return GBAttribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
 	end
 
-	def callBotFunc(funcname, args)
+	def GetUserAttribute(user, attr)
+		args = { "User" => user, "Attribute" => attr }
+		ret = callBotFunc("GetSenderAttribute", args)
+		return GBAttribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
+	end
+
+	def GetBotAttribute(attr)
+		args = { "Attribute" => attr }
+		ret = callBotFunc("GetSenderAttribute", args)
+		return GBAttribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
+	end
+
+	def SendChannelMessage(channel, message, format="variable")
+		args = { "Channel" => channel, "Message" => "base64:" + message.to_base64, "Format" => format }
+		ret = callBotFunc("SendChannelMessage", args, format)
+		return ret["BotRetVal"]
+	end
+
+	def SendUserMessage(user, message, format="variable")
+		args = { "User" => user, "Message" => "base64:" + message.to_base64, "Format" => format }
+		ret = callBotFunc("SendUserMessage", args, format)
+		return ret["BotRetVal"]
+	end
+
+	def SendUserChannelMessage(user, channel, message, format="variable")
+		args = { "User" => user, "Channel" => channel, "Message" => "base64:" + message.to_base64, "Format" => format }
+		ret = callBotFunc("SendChannelMessage", args, format)
+		return ret["BotRetVal"]
+	end
+
+	def Say(message, format="variable")
+		if @channel.empty?
+			return SendUserMessage(@user, message, format)
+		else
+			return SendChannelMessage(@channel, message, format)
+		end
+	end
+	
+	def Reply(message, format="variable")
+		if @channel.empty?
+			return SendUserMessage(@user, message, format)
+		else
+			return SendUserChannelMessage(@user, @channel, message, format)
+		end
+	end
+
+	def decode(str)
+		if str.start_with?("base64:")
+			return Base64.decode64(str.split(':')[1])
+		else
+			return str
+		end
+	end
+
+	def callBotFunc(funcname, args, format="variable")
 		func = {
 			"FuncName" => funcname,
 			"User" => @user,
 			"Channel" => @channel,
+			"Format" => format,
 			"PluginID" => @plugin_id,
 			"FuncArgs" => args
 		}
-		print JSON.pretty_generate(func)
-		print func.to_json
+		uri = URI.parse(ENV["GOPHER_HTTP_POST"] + "/json")
+		http = Net::HTTP.new(uri.host, uri.port)
+		req = Net::HTTP::Post.new(uri, initheader = {'Content-Type' =>'application/json'})
+		req.body = func.to_json
+		STDERR.puts "Sending:\n#{req.body}"
+		res = http.request(req)
+		body = res.body()
+		STDERR.puts "Got back:\n#{body}"
+		return JSON.parse(res.body())
 	end
 
 	private :callBotFunc

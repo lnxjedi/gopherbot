@@ -27,6 +27,8 @@ ExternalPlugins:
   Path: plugins/echo.sh
 - Name: whoami
   Path: plugins/whoami.sh
+- Name: rubyping
+  Path: plugins/rubyping
 #
 # You'll need to override this in the local conf/gopherbot.yaml and replace <your_token_here>.
 # MaxMessageSplit specifies the maximum number of messages to break a message into when it's too long (>4000 char)
