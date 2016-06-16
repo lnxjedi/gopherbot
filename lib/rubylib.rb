@@ -36,6 +36,12 @@ class GBReply
 	end
 end
 
+=begin
+class GBMemory
+	def initialize()
+end
+=end
+
 class Robot
 	Ok = 0
 	UserNotFound = 1
