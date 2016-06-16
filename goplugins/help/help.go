@@ -23,7 +23,7 @@ CatchAll: true
 `
 
 // Define the handler function
-func help(bot bot.Robot, command string, args ...string) {
+func help(bot *bot.Robot, command string, args ...string) {
 	if command == "help" { // user just typed 'help' - the robot should introduce itself
 		botName, _ := bot.GetBotAttribute("name")
 		botContact, _ := bot.GetBotAttribute("contact")

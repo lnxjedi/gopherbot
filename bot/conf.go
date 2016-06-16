@@ -44,7 +44,7 @@ var config botconf
 
 // getConfigFile loads a config file from localPath. Required indicates whether
 // to return an error if the file isn't found.
-func (b *robot) getConfigFile(filename string, required bool, c interface{}) error {
+func getConfigFile(filename string, required bool, c interface{}) error {
 	var (
 		cf  []byte
 		err error
@@ -53,7 +53,7 @@ func (b *robot) getConfigFile(filename string, required bool, c interface{}) err
 	cf, err = ioutil.ReadFile(b.localPath + "/conf/" + filename)
 	if err != nil {
 		err = fmt.Errorf("Reading custom configuration for \"%s\": %v", filename, err)
-		b.Log(Debug, err)
+		Log(Debug, err)
 		if !required {
 			return nil
 		} else {
@@ -62,7 +62,7 @@ func (b *robot) getConfigFile(filename string, required bool, c interface{}) err
 	} else {
 		if err := yaml.Unmarshal(cf, c); err != nil {
 			err = fmt.Errorf("Unmarshalling custom \"%s\": %v", filename, err)
-			b.Log(Error, err)
+			Log(Error, err)
 			return err // If a badly-formatted config is loaded, we always return an error
 		} else {
 			return nil
@@ -70,7 +70,7 @@ func (b *robot) getConfigFile(filename string, required bool, c interface{}) err
 	}
 }
 
-func (b *robot) logStrToLevel(l string) LogLevel {
+func logStrToLevel(l string) LogLevel {
 	switch l {
 	case "trace":
 		return Trace
@@ -87,7 +87,7 @@ func (b *robot) logStrToLevel(l string) LogLevel {
 
 // loadConfig loads the 'bot's json configuration files. An error on first load
 // results in log.fatal, but later Loads just log the error.
-func (b *robot) loadConfig() error {
+func loadConfig() error {
 	var loglevel LogLevel
 	var newconfig botconf
 
@@ -96,12 +96,12 @@ func (b *robot) loadConfig() error {
 	if err := yaml.Unmarshal([]byte(defaultConfig), &newconfig); err != nil {
 		return fmt.Errorf("Unmarshalling robot default newconfig: %v", err)
 	}
-	if err := b.getConfigFile("gopherbot.yaml", true, &newconfig); err != nil {
+	if err := getConfigFile("gopherbot.yaml", true, &newconfig); err != nil {
 		return fmt.Errorf("Loading newconfiguration file: %v", err)
 	}
 
-	loglevel = b.logStrToLevel(newconfig.LogLevel)
-	b.setLogLevel(loglevel)
+	loglevel = logStrToLevel(newconfig.LogLevel)
+	setLogLevel(loglevel)
 
 	b.lock.Lock()
 
@@ -119,7 +119,7 @@ func (b *robot) loadConfig() error {
 		b.port = "127.0.0.1:" + newconfig.LocalPort
 		err := os.Setenv("GOPHER_HTTP_POST", "http://"+b.port)
 		if err != nil {
-			b.Log(Error, fmt.Errorf("Error exporting GOPHER_HTTP_PORT: ", err))
+			Log(Error, fmt.Errorf("Error exporting GOPHER_HTTP_PORT: ", err))
 		}
 	}
 	if newconfig.Name != "" {
@@ -141,13 +141,13 @@ func (b *robot) loadConfig() error {
 	if newconfig.BrainConfig != nil {
 		brainConfig, err = yaml.Marshal(newconfig.BrainConfig)
 		if err != nil {
-			b.Log(Error, "Marshalling brainConfig: %v", err)
+			Log(Error, "Marshalling brainConfig: %v", err)
 		}
 	}
 	if newconfig.ProtocolConfig != nil {
 		protocolConfig, err = yaml.Marshal(newconfig.ProtocolConfig)
 		if err != nil {
-			b.Log(Error, "Marshalling protocolConfig: %v", err)
+			Log(Error, "Marshalling protocolConfig: %v", err)
 		}
 	}
 
@@ -174,7 +174,7 @@ func (b *robot) loadConfig() error {
 	config = newconfig
 	botLock.Unlock()
 
-	b.loadPluginConfig()
+	loadPluginConfig()
 
 	return nil
 }

@@ -119,8 +119,8 @@ func Start() {
 	if cf, err = ioutil.ReadFile(localdir + "/conf/gopherbot.yaml"); err != nil {
 		log.Fatalf("Couldn't read conf/gopherbot.yaml in local configuration directory: %s\n", localdir)
 	}
-	var b BotInfo
-	if err := yaml.Unmarshal(cf, &b); err != nil {
+	var bi BotInfo
+	if err := yaml.Unmarshal(cf, &bi); err != nil {
 		log.Fatalf("Error unmarshalling \"%s\": %v", localdir+"/conf/gopherbot.yaml", err)
 	}
 
@@ -134,8 +134,8 @@ func Start() {
 			)
 			if len(logFile) != 0 {
 				lp = logFile
-			} else if len(b.LogFile) != 0 {
-				lp = b.LogFile
+			} else if len(bi.LogFile) != 0 {
+				lp = bi.LogFile
 			} else {
 				lp = "/tmp/gopherbot.log"
 			}
@@ -159,8 +159,8 @@ func Start() {
 		var pf string
 		if len(pidFile) != 0 {
 			pf = pidFile
-		} else if len(b.PidFile) != 0 {
-			pf = b.PidFile
+		} else if len(bi.PidFile) != 0 {
+			pf = bi.PidFile
 		}
 		if len(pf) != 0 {
 			f, err := os.Create(pf)
@@ -184,22 +184,25 @@ func Start() {
 	// overrides defaults.
 	os.Setenv("GOPHER_INSTALLDIR", installdir)
 	os.Setenv("GOPHER_LOCALDIR", localdir)
-	gopherbot, err := newBot(localdir, installdir, botLogger)
+	err = newBot(localdir, installdir, botLogger)
 	if err != nil {
 		botLogger.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
 	}
-	gopherbot.Log(Info, fmt.Sprintf("Starting up with localdir: %s, and installdir: %s", localdir, installdir))
+	Log(Info, fmt.Sprintf("Starting up with localdir: %s, and installdir: %s", localdir, installdir))
 
 	var conn Connector
 
-	connectionStarter, ok := connectors[gopherbot.protocol]
+	connectionStarter, ok := connectors[b.protocol]
 	if !ok {
-		botLogger.Fatal("No connector registered with name:", gopherbot.protocol)
+		botLogger.Fatal("No connector registered with name:", b.protocol)
 	}
-	conn = connectionStarter(gopherbot, botLogger)
+
+	// handler{} is just a placeholder struct for implementing the Handler interface
+	h := handler{}
+	conn = connectionStarter(h, botLogger)
 
 	// Initialize the robot with a valid connector
-	gopherbot.init(conn)
+	botInit(conn)
 
 	// Start the connector's main loop
 	conn.Run()

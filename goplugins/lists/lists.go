@@ -19,7 +19,7 @@ const datumName = "listmap"
 type itemList []string
 
 // Define the handler function
-func lists(r bot.Robot, command string, args ...string) {
+func lists(r *bot.Robot, command string, args ...string) {
 	// Create an empty map to unmarshal into
 	if command == "init" { // ignore init
 		return

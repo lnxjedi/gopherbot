@@ -19,7 +19,7 @@ type JokeConfig struct {
 	Phooey   []string // Ways the robot complains if the user doesn't respond correctly
 }
 
-func knock(r bot.Robot, command string, args ...string) {
+func knock(r *bot.Robot, command string, args ...string) {
 	var j *JokeConfig // get access to a copy of the plugin's config
 	switch command {
 	case "init":

@@ -15,7 +15,7 @@ const (
 
 // Log logs messages whenever the connector log level is
 // less than the given level
-func (b *robot) Log(l LogLevel, v ...interface{}) {
+func Log(l LogLevel, v ...interface{}) {
 	if l >= b.level {
 		var prefix string
 		switch l {
@@ -41,7 +41,7 @@ func (b *robot) Log(l LogLevel, v ...interface{}) {
 }
 
 // SetLogLevel updates the connector log level
-func (b *robot) setLogLevel(l LogLevel) {
+func setLogLevel(l LogLevel) {
 	b.lock.Lock()
 	b.level = l
 	b.lock.Unlock()

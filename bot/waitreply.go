@@ -87,7 +87,6 @@ func (r Robot) WaitForReply(regexId string, timeout int) (replyText string, ret 
 		botLock.Unlock()
 		return "", ret
 	}
-	b := r.robot
 	b.lock.RLock()
 	plugin := plugins[plugIDmap[r.pluginID]]
 	plugName := plugin.Name
@@ -118,7 +117,7 @@ func (r Robot) WaitForReply(regexId string, timeout int) (replyText string, ret 
 	// If it's matched in the meantime, it should get deleted at that point.
 	select {
 	case <-time.After(time.Duration(timeout) * time.Second):
-		b.Log(Warn, fmt.Sprintf("Plugin \"%s\" timed out waiting for a reply to regex \"%s\"", plugName, regexId))
+		Log(Warn, fmt.Sprintf("Plugin \"%s\" timed out waiting for a reply to regex \"%s\"", plugName, regexId))
 		botLock.Lock()
 		// reply timed out, free up this matcher for later reply requests
 		delete(replies, matcher)

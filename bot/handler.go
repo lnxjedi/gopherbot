@@ -7,11 +7,14 @@ import (
 	"github.com/parsley42/yaml"
 )
 
+// an empty object type for passing a Handler to the connector.
+type handler struct{}
+
 /* Handle incoming messages and other callbacks from the connector. */
 
 // GetLogLevel returns the bot's current loglevel, mainly for the
 // connector to make it's own decision about logging
-func (b *robot) GetLogLevel() LogLevel {
+func (h handler) GetLogLevel() LogLevel {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	return b.level
@@ -19,7 +22,7 @@ func (b *robot) GetLogLevel() LogLevel {
 
 // GetInstallPath gets the path to the bot's install dir -
 // the location of default configuration and stock external plugins.
-func (b *robot) GetInstallPath() string {
+func (h handler) GetInstallPath() string {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	return b.installPath
@@ -27,14 +30,14 @@ func (b *robot) GetInstallPath() string {
 
 // GetLocalPath gets the path to the bot's install dir -
 // the location of default configuration and stock external plugins.
-func (b *robot) GetLocalPath() string {
+func (h handler) GetLocalPath() string {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	return b.localPath
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
-func (b *robot) IncomingMessage(channelName, userName, messageFull string) {
+func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 	// When command == true, the message was directed at the bot
 	isCommand := false
 	logChannel := channelName
@@ -43,7 +46,7 @@ func (b *robot) IncomingMessage(channelName, userName, messageFull string) {
 	b.lock.RLock()
 	for _, user := range b.ignoreUsers {
 		if strings.EqualFold(userName, user) {
-			b.Log(Debug, "Ignoring user", userName)
+			Log(Debug, "Ignoring user", userName)
 			b.lock.RUnlock()
 			return
 		}
@@ -70,12 +73,12 @@ func (b *robot) IncomingMessage(channelName, userName, messageFull string) {
 		isCommand = true
 		logChannel = "(direct message)"
 	}
-	b.Log(Trace, fmt.Sprintf("Command \"%s\" in channel \"%s\"", message, logChannel))
-	b.handleMessage(isCommand, channelName, userName, message)
+	Log(Trace, fmt.Sprintf("Command \"%s\" in channel \"%s\"", message, logChannel))
+	handleMessage(isCommand, channelName, userName, message)
 }
 
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct
-func (b *robot) GetProtocolConfig(v interface{}) error {
+func (h handler) GetProtocolConfig(v interface{}) error {
 	b.lock.RLock()
 	err := yaml.Unmarshal(protocolConfig, v)
 	b.lock.RUnlock()
@@ -83,27 +86,32 @@ func (b *robot) GetProtocolConfig(v interface{}) error {
 }
 
 // GetBrainConfig unmarshals the brain's configuration data into a provided struct
-func (b *robot) GetBrainConfig(v interface{}) error {
+func (h handler) GetBrainConfig(v interface{}) error {
 	b.lock.RLock()
 	err := yaml.Unmarshal(brainConfig, v)
 	b.lock.RUnlock()
 	return err
 }
 
+// Log logs a message to the robot's log file (or stderr)
+func (h handler) Log(l LogLevel, v ...interface{}) {
+	Log(l, v...)
+}
+
 // Connectors that support it can call SetFullName; otherwise it can
 // be configured in gobot.conf.
-func (b *robot) SetFullName(n string) {
-	b.Log(Debug, "Setting full name to: "+n)
+func (h handler) SetFullName(n string) {
+	Log(Debug, "Setting full name to: "+n)
 	b.lock.Lock()
 	b.fullName = n
 	b.lock.Unlock()
-	b.updateRegexes()
+	updateRegexes()
 }
 
 // Connectors that support it can call SetName; otherwise it should
 // be configured in gobot.conf.
-func (b *robot) SetName(n string) {
-	b.Log(Debug, "Setting name to: "+n)
+func (h handler) SetName(n string) {
+	Log(Debug, "Setting name to: "+n)
 	b.lock.Lock()
 	b.name = n
 	ignoring := false
@@ -117,5 +125,5 @@ func (b *robot) SetName(n string) {
 		b.ignoreUsers = append(b.ignoreUsers, strings.ToLower(n))
 	}
 	b.lock.Unlock()
-	b.updateRegexes()
+	updateRegexes()
 }

@@ -24,7 +24,7 @@ type MemeConfig struct {
 	Password string
 }
 
-func memegen(r bot.Robot, command string, args ...string) {
+func memegen(r *bot.Robot, command string, args ...string) {
 	var m *MemeConfig
 	ret := r.GetPluginConfig(&m) // make m point to a valid, thread-safe MemeConfig
 	if ret != bot.Ok || m.Password == "" {
@@ -53,7 +53,7 @@ func memegen(r bot.Robot, command string, args ...string) {
 	}
 }
 
-func sendMeme(m *MemeConfig, r bot.Robot, templateId, topText, bottomText string) {
+func sendMeme(m *MemeConfig, r *bot.Robot, templateId, topText, bottomText string) {
 	url, err := createMeme(m, templateId, topText, bottomText)
 	if err == nil {
 		r.Say(url)

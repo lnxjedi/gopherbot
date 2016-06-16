@@ -71,8 +71,8 @@ API.
 type PluginHandler struct {
 	DefaultConfig string /* A yaml-formatted multiline string defining the default Plugin configuration. It should be liberally commented for use in generating
 	local/custom configuration for the plugin. If a Config: section is defined, it should match the structure of the optional Config interface{} */
-	Handler func(bot Robot, command string, args ...string) // The callback function called by the robot whenever a Command is matched
-	Config  interface{}                                     // An optional empty struct defining custom configuration for the plugin
+	Handler func(bot *Robot, command string, args ...string) // The callback function called by the robot whenever a Command is matched
+	Config  interface{}                                      // An optional empty struct defining custom configuration for the plugin
 }
 
 // pluginHandlers maps from plugin names to PluginV1 (later interface{} with a type selector, maybe)
@@ -82,18 +82,17 @@ var pluginHandlers map[string]PluginHandler = make(map[string]PluginHandler)
 var stopRegistrations bool = false
 
 // initialize sends the "init" command to every plugin
-func (b *robot) initializePlugins() {
+func initializePlugins() {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
-	bot := Robot{
+	bot := &Robot{
 		User:    b.name,
 		Channel: "",
 		Format:  Variable,
-		robot:   b,
 	}
 	for _, plugin := range plugins {
-		b.Log(Info, "Initializing plugin:", plugin.Name)
-		go b.callPlugin(bot, plugin, "init")
+		Log(Info, "Initializing plugin:", plugin.Name)
+		go callPlugin(bot, plugin, "init")
 	}
 }
 
@@ -111,7 +110,7 @@ func RegisterPlugin(name string, plug PluginHandler) {
 	pluginHandlers[name] = plug
 }
 
-func (b *robot) getExtDefCfg(plugin Plugin) (*[]byte, error) {
+func getExtDefCfg(plugin Plugin) (*[]byte, error) {
 	var fullPath string
 	if byte(plugin.pluginPath[0]) == byte("/"[0]) {
 		fullPath = plugin.pluginPath
@@ -124,10 +123,10 @@ func (b *robot) getExtDefCfg(plugin Plugin) (*[]byte, error) {
 				return nil, err
 			}
 			fullPath = b.installPath + "/" + plugin.pluginPath
-			b.Log(Debug, "Using stock external plugin:", fullPath)
+			Log(Debug, "Using stock external plugin:", fullPath)
 		} else {
 			fullPath = b.localPath + "/" + plugin.pluginPath
-			b.Log(Debug, "Using local external plugin:", fullPath)
+			Log(Debug, "Using local external plugin:", fullPath)
 		}
 	}
 	// cmd := exec.Command(fullPath, channel, user, matcher.Command, matches[0][1:]...)
@@ -149,7 +148,7 @@ func (b *robot) getExtDefCfg(plugin Plugin) (*[]byte, error) {
 // stores the resulting array in b.plugins. Bad plugins are skipped and logged.
 // Plugin configuration is initially loaded into temporary data structures,
 // then stored in the bot package under the global bot lock.
-func (b *robot) loadPluginConfig() {
+func loadPluginConfig() {
 	i := 0
 
 	// Copy some data from the bot under lock
@@ -175,12 +174,12 @@ func (b *robot) loadPluginConfig() {
 
 	for _, plug := range b.externalPlugins {
 		if !pNameRe.MatchString(plug.Name) {
-			b.Log(Error, "Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping")
+			Log(Error, "Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping")
 			continue
 		}
 		pnames[i] = plug.Name
 		if pset[plug.Name] {
-			b.Log(Error, "External plugin name duplicates builtIn, skipping:", plug)
+			Log(Error, "External plugin name duplicates builtIn, skipping:", plug)
 			continue
 		}
 		pset[plug.Name] = true
@@ -196,7 +195,7 @@ func (b *robot) loadPluginConfig() {
 PlugHandlerLoop:
 	for plug, _ := range pluginHandlers {
 		if !pNameRe.MatchString(plug) {
-			b.Log(Error, "Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping")
+			Log(Error, "Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping")
 			continue
 		}
 		if pset[plug] { // have to check builtIns, already loaded
@@ -207,7 +206,7 @@ PlugHandlerLoop:
 			}
 			// Since external plugins can change on reload, just log an error if
 			// we get a duplicate plugin name.
-			b.Log(Error, "Plugin name duplicates external, skipping:", plug)
+			Log(Error, "Plugin name duplicates external, skipping:", plug)
 		} else {
 			pnames[i] = plug
 			ptypes[i] = plugGo
@@ -222,50 +221,50 @@ PlugHandlerLoop:
 PlugLoop:
 	for i, plug := range pnames {
 		var plugin Plugin
-		b.Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", plugIndex, plug, ptypes[i]))
+		Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", plugIndex, plug, ptypes[i]))
 
 		plugin.pluginType = ptypes[i]
 		if plugin.pluginType == plugExternal {
 			// External plugins spit their default config to stdout when called with command="configure"
 			plugin.pluginPath = eppaths[plug]
-			cfg, err := b.getExtDefCfg(plugin)
+			cfg, err := getExtDefCfg(plugin)
 			if err != nil {
-				b.Log(Error, err)
+				Log(Error, err)
 				continue
 			}
 			if err := yaml.Unmarshal(*cfg, &plugin); err != nil {
-				b.Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
+				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
 				continue
 			}
 		} else {
 			if err := yaml.Unmarshal([]byte(pluginHandlers[plug].DefaultConfig), &plugin); err != nil {
-				b.Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
+				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
 				continue
 			}
 		}
 		// Force settings that can't be part of default config
 		plugin.Trusted = false
 		// getConfigFile overlays the default config with local config
-		if err := b.getConfigFile("plugins/"+plug+".yaml", false, &plugin); err != nil {
-			b.Log(Error, fmt.Errorf("Problem with local configuration for plugin \"%s\", skipping: %v", plug, err))
+		if err := getConfigFile("plugins/"+plug+".yaml", false, &plugin); err != nil {
+			Log(Error, fmt.Errorf("Problem with local configuration for plugin \"%s\", skipping: %v", plug, err))
 			continue
 		}
 		if plugin.Disabled {
-			b.Log(Info, fmt.Sprintf("Plugin \"%s\" is disabled, skipping", plug))
+			Log(Info, fmt.Sprintf("Plugin \"%s\" is disabled, skipping", plug))
 			continue
 		}
-		b.Log(Info, "Loaded configuration for plugin", plug)
+		Log(Info, "Loaded configuration for plugin", plug)
 		// Use bot default plugin channels if none defined, unless AllChannels requested. Admin can override.
 		if len(plugin.Channels) == 0 && len(pchan) > 0 && !plugin.AllChannels {
 			plugin.Channels = pchan
 		}
-		b.Log(Info, fmt.Sprintf("Plugin \"%s\" will be active in channels %q; all channels: %t", plug, plugin.Channels, plugin.AllChannels))
+		Log(Info, fmt.Sprintf("Plugin \"%s\" will be active in channels %q; all channels: %t", plug, plugin.Channels, plugin.AllChannels))
 		// Compile the regex's
 		for i, _ := range plugin.CommandMatches {
 			command := &plugin.CommandMatches[i]
 			re, err := regexp.Compile(`^\s*` + command.Regex + `\s*$`)
 			if err != nil {
-				b.Log(Error, fmt.Errorf("Skipping %s, couldn't compile command regular expression \"%s\": %v", plug, command.Regex, err))
+				Log(Error, fmt.Errorf("Skipping %s, couldn't compile command regular expression \"%s\": %v", plug, command.Regex, err))
 				continue PlugLoop
 			}
 			command.re = re
@@ -274,7 +273,7 @@ PlugLoop:
 			reply := &plugin.ReplyMatchers[i]
 			re, err := regexp.Compile(`^\s*` + reply.Regex + `\s*$`)
 			if err != nil {
-				b.Log(Error, fmt.Errorf("Skipping %s, couldn't compile reply regular expression \"%s\": %v", plug, reply.Regex, err))
+				Log(Error, fmt.Errorf("Skipping %s, couldn't compile reply regular expression \"%s\": %v", plug, reply.Regex, err))
 				continue PlugLoop
 			}
 			reply.re = re
@@ -285,7 +284,7 @@ PlugLoop:
 			message := &plugin.MessageMatches[i]
 			re, err := regexp.Compile(message.Regex)
 			if err != nil {
-				b.Log(Error, fmt.Errorf("Skipping %s, couldn't compile message regular expression \"%s\": %v", plug, message.Regex, err))
+				Log(Error, fmt.Errorf("Skipping %s, couldn't compile message regular expression \"%s\": %v", plug, message.Regex, err))
 				continue PlugLoop
 			}
 			message.re = re
@@ -299,13 +298,13 @@ PlugLoop:
 				plugin.config = reflect.New(reflect.Indirect(pt).Type()).Interface()
 				cust, _ := yaml.Marshal(plugin.Config)
 				if err := yaml.Unmarshal(cust, plugin.config); err != nil {
-					b.Log(Error, fmt.Sprintf("Error unmarshalling plugin config json to config: %v", err))
+					Log(Error, fmt.Sprintf("Error unmarshalling plugin config json to config: %v", err))
 				}
 			} else {
-				b.Log(Debug, "Plugin \"%s\" has custom config, but no local custom config provided", plug)
+				Log(Debug, "Plugin \"%s\" has custom config, but no local custom config provided", plug)
 			}
 		} else {
-			b.Log(Debug, "config interface isn't a pointer, skipping unmarshal for plugin:", plug)
+			Log(Debug, "config interface isn't a pointer, skipping unmarshal for plugin:", plug)
 		}
 		// Generate the random id
 		p := make([]byte, 16)
@@ -313,7 +312,7 @@ PlugLoop:
 		plugin.pluginID = fmt.Sprintf("%x", p)
 		pfinder[plugin.pluginID] = plugIndex
 		// Store this plugin's config in the temporary list
-		b.Log(Info, fmt.Sprintf("Recorded plugin #%d, \"%s\"", plugIndex, plugin.Name))
+		Log(Info, fmt.Sprintf("Recorded plugin #%d, \"%s\"", plugIndex, plugin.Name))
 		plist = append(plist, plugin)
 		plugIndex++
 	}
@@ -327,6 +326,6 @@ PlugLoop:
 	}
 	b.lock.Unlock()
 	if reInitPlugins {
-		b.initializePlugins()
+		initializePlugins()
 	}
 }

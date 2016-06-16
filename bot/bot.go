@@ -56,37 +56,40 @@ type robot struct {
 	logger          *log.Logger      // Where to log to
 }
 
+var b *robot
+
 // newBot instantiates the one and only instance of a Gobot, and loads
 // configuration.
-func newBot(cpath, epath string, logger *log.Logger) (*robot, error) {
+func newBot(cpath, epath string, logger *log.Logger) error {
 	botLock.Lock()
 	// Prevent plugin registration after program init
 	stopRegistrations = true
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	b := &robot{}
+	b = &robot{}
 	botLock.Unlock()
 
 	b.localPath = cpath
 	b.installPath = epath
 	b.logger = logger
 
-	if err := b.loadConfig(); err != nil {
-		return nil, err
+	if err := loadConfig(); err != nil {
+		return nil
 	}
 	if len(b.brainProvider) > 0 {
 		provider, ok := brains[b.brainProvider]
 		if !ok {
-			b.Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", b.brainProvider))
+			Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", b.brainProvider))
 		}
-		b.brain = provider(b, logger)
+		h := handler{}
+		b.brain = provider(h, logger)
 	}
-	return b, nil
+	return nil
 }
 
 // Init is called after the bot is connected.
-func (b *robot) init(c Connector) {
+func botInit(c Connector) {
 	b.lock.Lock()
 	if b.Connector != nil {
 		b.lock.Unlock()
@@ -94,7 +97,7 @@ func (b *robot) init(c Connector) {
 	}
 	b.Connector = c
 	b.lock.Unlock()
-	go b.listenHttpJSON()
+	go listenHttpJSON()
 	var cl []string
 	b.lock.RLock()
 	cl = append(cl, b.joinChannels...)
@@ -102,5 +105,5 @@ func (b *robot) init(c Connector) {
 	for _, channel := range cl {
 		b.JoinChannel(channel)
 	}
-	b.initializePlugins()
+	initializePlugins()
 }

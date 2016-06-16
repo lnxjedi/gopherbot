@@ -49,7 +49,7 @@ type config struct {
 }
 
 // Define the handler function
-func ping(r bot.Robot, command string, args ...string) {
+func ping(r *bot.Robot, command string, args ...string) {
 	var cfg *config
 	// The plugin can handle multiple different commands
 	switch command {

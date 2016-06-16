@@ -36,29 +36,29 @@ func init() {
 
 /* builtin plugins, like help */
 
-func launchCode(bot Robot, command string, args ...string) {
+func launchCode(bot *Robot, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
 	var userOTP otp.OTPConfig
 	otpKey := "bot:OTP:" + bot.User
 	updated := false
-	lock, exists, ret := bot.checkoutDatum(otpKey, &userOTP, true)
+	lock, exists, ret := checkoutDatum(otpKey, &userOTP, true)
 	if ret != Ok {
 		bot.Say("Yikes - something went wrong with my brain, have somebody check my log")
 		return
 	}
 	defer func() {
 		if updated {
-			ret := bot.updateDatum(otpKey, lock, &userOTP)
+			ret := updateDatum(otpKey, lock, &userOTP)
 			if ret != Ok {
-				bot.Log(Error, "Couldn't save OTP config")
+				Log(Error, "Couldn't save OTP config")
 				bot.Reply("Good grief. I'm having trouble remembering your launch codes - have somebody check my log")
 			}
 		} else {
 			// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
 			// in case there's another thread waiting.
-			bot.checkin(otpKey, lock)
+			checkin(otpKey, lock)
 		}
 	}()
 	switch command {
@@ -87,7 +87,7 @@ func launchCode(bot Robot, command string, args ...string) {
 		}
 		valid, err := userOTP.Authenticate(args[0])
 		if err != nil {
-			bot.Log(Error, fmt.Errorf("Problem authenticating launch code: %v", err))
+			Log(Error, fmt.Errorf("Problem authenticating launch code: %v", err))
 			bot.Reply("There was an error authenticating your launch code, have an adminstrator check the log")
 			return
 		}
@@ -101,12 +101,10 @@ func launchCode(bot Robot, command string, args ...string) {
 	}
 }
 
-func help(bot Robot, command string, args ...string) {
+func help(bot *Robot, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
-	// Get access to the underlying struct
-	b := bot.robot
 	if command == "help" {
 		b.lock.RLock()
 		defer b.lock.RUnlock()
@@ -117,13 +115,13 @@ func help(bot Robot, command string, args ...string) {
 		if len(args) == 1 && len(args[0]) > 0 {
 			hasTerm = true
 			term = args[0]
-			b.Log(Trace, "Help requested for term", term)
+			Log(Trace, "Help requested for term", term)
 		}
 
 		for _, plugin := range plugins {
-			b.Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.Name, term))
+			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.Name, term))
 			if !hasTerm { // if you ask for help without a term, you just get help for whatever commands are available to you
-				if b.messageAppliesToPlugin(bot.User, bot.Channel, plugin) {
+				if messageAppliesToPlugin(bot.User, bot.Channel, plugin) {
 					for _, phelp := range plugin.Help {
 						for _, helptext := range phelp.Helptext {
 							helpOutput += helptext + string('\n')
@@ -177,12 +175,10 @@ func help(bot Robot, command string, args ...string) {
 	}
 }
 
-func dump(bot Robot, command string, args ...string) {
+func dump(bot *Robot, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
-	// Get access to the underlying struct
-	b := bot.robot
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	switch command {
@@ -199,7 +195,7 @@ func dump(bot Robot, command string, args ...string) {
 			for _, plugin := range plugins {
 				if args[0] == plugin.Name && plugin.pluginType == plugExternal {
 					found = true
-					if cfg, err := b.getExtDefCfg(plugin); err == nil {
+					if cfg, err := getExtDefCfg(plugin); err == nil {
 						bot.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], *cfg))
 					} else {
 						bot.Say("I had a problem looking that up - somebody should check my logs")
@@ -238,33 +234,31 @@ var byebye = []string{
 	"Later gator!",
 }
 
-func admin(bot Robot, command string, args ...string) {
+func admin(bot *Robot, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
-	// Get access to the underlying struct
-	b := bot.robot
 	if !bot.CheckAdmin() {
 		bot.Reply("Sorry, only an admin user can request that")
 		return
 	}
 	switch command {
 	case "reload":
-		err := b.loadConfig()
+		err := loadConfig()
 		if err != nil {
 			bot.Reply("Error encountered during reload, check the logs")
-			b.Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))
+			Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))
 			return
 		}
 		bot.Reply("Configuration reloaded successfully")
-		b.Log(Info, "Configuration successfully reloaded by a request from:", bot.User)
+		Log(Info, "Configuration successfully reloaded by a request from:", bot.User)
 	case "quit":
 		// Get all important locks to make sure nothing is being changed - then exit
 		botLock.Lock()
 		b.lock.Lock()
 		dataLock.Lock()
 		bot.Say(bot.RandomString(byebye))
-		bot.Log(Info, "Exiting on administrator command")
+		Log(Info, "Exiting on administrator command")
 		// How long does it _actually_ take for the message to go out?
 		time.Sleep(time.Second)
 		os.Exit(0)
