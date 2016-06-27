@@ -213,7 +213,7 @@ Say(){
 	then
 		SendChannelMessage $FARG "$GB_CHANNEL" "$*"
 	else
-		SendUserMessage "$GB_USER" "$*"
+		SendUserMessage $FARG "$GB_USER" "$*"
 	fi
 }
 
@@ -224,6 +224,6 @@ Reply(){
 	then
 		SendUserChannelMessage $FARG "$GB_USER" "$GB_CHANNEL" "$*"
 	else
-		SendUserMessage "$GB_USER" "$*"
+		SendUserMessage $FARG "$GB_USER" "$*"
 	fi
 }
