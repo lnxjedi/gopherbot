@@ -144,7 +144,7 @@ EOF
 }
 
 SendUserMessage(){
-	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	if [ "$1" = "-f" ]; then GB_FORMAT=fixed; shift; else GB_FORMAT=variable; fi
 	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="SendUserMessage"
 	local SUM_USER=$1
@@ -164,7 +164,7 @@ EOF
 }
 
 SendUserChannelMessage(){
-	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	if [ "$1" = "-f" ]; then GB_FORMAT=fixed; shift; else GB_FORMAT=variable; fi
 	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="SendUserChannelMessage"
 	local SUCM_USER=$1
@@ -186,7 +186,7 @@ EOF
 }
 
 SendChannelMessage(){
-	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	if [ "$1" = "-f" ]; then GB_FORMAT=fixed; shift; else GB_FORMAT=variable; fi
 	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="SendChannelMessage"
 	local SCM_CHANNEL=$1
@@ -207,20 +207,22 @@ EOF
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins
 Say(){
-	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	local FARG
+	[ "$1" = "-f" ] && { FARG="-f"; shift; }
 	if [ -n "$GB_CHANNEL" ]
 	then
-		SendChannelMessage "$GB_CHANNEL" "$*"
+		SendChannelMessage $FARG "$GB_CHANNEL" "$*"
 	else
 		SendUserMessage "$GB_USER" "$*"
 	fi
 }
 
 Reply(){
-	[ "$1" = "-f" ] && { GB_FORMAT=fixed; shift; }
+	local FARG
+	[ "$1" = "-f" ] && { FARG="-f"; shift; }
 	if [ -n "$GB_CHANNEL" ]
 	then
-		SendUserChannelMessage "$GB_USER" "$GB_CHANNEL" "$*"
+		SendUserChannelMessage $FARG "$GB_USER" "$GB_CHANNEL" "$*"
 	else
 		SendUserMessage "$GB_USER" "$*"
 	fi
