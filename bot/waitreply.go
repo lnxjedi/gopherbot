@@ -64,12 +64,12 @@ TimeoutExpired - the user didn't respond within the timeout window given
 Plugin authors can define regex's for regexId's in the plugin's JSON config,
 with the restriction that the regexId must start with a lowercase letter.
 A pre-definied regex from the following list can also be used:
-Email
-Domain - an alpha-numeric domain name
-OTP - a 6-digit one-time password code
-IPAddr
-SimpleString - letters, numbers, spaces, dots, dashes, underscores, and commas
-YesNo
+	Email
+	Domain - an alpha-numeric domain name
+	OTP - a 6-digit one-time password code
+	IPAddr
+	SimpleString - letters, numbers, spaces, dots, dashes, underscores, and commas
+	YesNo
 */
 func (r *Robot) WaitForReply(regexId string, timeout int) (replyText string, ret BotRetVal) {
 	matcher := replyMatcher{
