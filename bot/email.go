@@ -37,7 +37,7 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret BotRetVal)
 	fmt.Fprintf(&messageBuffer, "Subject: %s\r\n\r\n", subject)
 	// Connect to the remote SMTP server.
 	// TODO: make email configurable for authenticated, see Go source for SendMail
-	c, err := smtp.Dial("127.0.0.1:25")
+	c, err := smtp.Dial(b.mailserver)
 	if err != nil {
 		err = fmt.Errorf("Sending email: %v", err)
 		r.Log(Error, err)
