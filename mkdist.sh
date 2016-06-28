@@ -21,4 +21,4 @@ OUTFILE=$1/gopherbot-$GOPHERBOT_VERSION-$GOOS.zip
 rm -f $OUTFILE
 
 echo "Creating $OUTFILE"
-zip -r $OUTFILE gopherbot LICENSE README.md conf/ plugins/ util/ example.gopherbot/ --exclude *.swp
+zip -r $OUTFILE gopherbot LICENSE README.md plugins/ lib/ example.gopherbot/ --exclude *.swp
