@@ -20,19 +20,23 @@ Help:
   Helptext: [ "(bot), ruby (me!) - prove that ruby plugins work" ]
 - Keywords: [ "listen" ]
   Helptext: [ "(bot), listen (to me!) - ask a question" ]
-- Keywords: [ "remember" ]
+- Keywords: [ "remember", "memory" ]
   Helptext: [ "(bot), remember <anything> - prove the robot has a brain(tm)" ]
-- Keywords: [ "recall" ]
-  Helptext: [ "(bot), recall (it doesn't matter what you put here) - prove the robot has a brain(tm)" ]
+- Keywords: [ "recall", "memory" ]
+  Helptext: [ "(bot), recall - prove the robot has a brain(tm)" ]
+- Keywords: [ "forget", "memory" ]
+  Helptext: [ "(bot), forget <#> - ask the robot to forget one of it's remembered 'facts'" ]
 CommandMatches:
 - Regex: (?i:ruby( me)?!?)
   Command: ruby
-- Regex: (?:listen( to me)?!?)
+- Regex: (?i:listen( to me)?!?)
   Command: listen
-- Regex: (?:remember ([-\w .,!?]+))
+- Regex: (?i:remember ([-\w .,!?]+))
   Command: remember
-- Regex: (?:recall ?.*)
+- Regex: (?i:(?:recall|memories))
   Command: recall
+- Regex: (?i:forget ([\d]{1,2}))
+  Command: forget
 Config:
   Replies:
   - "Consider yourself rubied"
@@ -41,7 +45,7 @@ Config:
   - "Crap, sorry - all out of rubies"
 DEFCONFIG
 
-command = ARGV[0]
+command = ARGV.shift()
 
 case command
 when "configure"
@@ -60,5 +64,36 @@ when "listen"
 		bot.Say("I'm sorry, I'm not sure what you're trying to tell me")
 	end
 when "remember"
-	bot.Say("Here's what I remember: #{bot.CheckoutDatum("memory", false)}")
+	thing = ARGV[0]
+	bot.Say("Ok, I'll remember \"#{thing}\"")
+	memory = bot.CheckoutDatum("memory", true)
+	if memory.exists
+		memory.datum.push(thing)
+	else
+		memory.datum = [ thing ]
+	end
+	ret = bot.UpdateDatum(memory)
+	if ret != Robot::Ok
+		bot.Say("Dang it, having problems with my memory")
+	end
+when "recall"
+	reply = "Here's what I remember:\n"
+	memory = bot.CheckoutDatum("memory", false)
+	memory.datum.each_index { |i|
+		index = i + 1
+		reply += index.to_s + ": " + memory.datum[i] + "\n"
+	}
+	bot.CheckinDatum(memory)
+	bot.Say(reply)
+when "forget"
+	i = ARGV[0].to_i - 1
+	memory = bot.CheckoutDatum("memory", true)
+	memories = memory.datum
+	if i > 0 && memories[i]
+		bot.Say("Ok, I'll forget \"#{memories[i]}\"")
+		memories.delete_at(i)
+		bot.UpdateDatum(memory)
+	else
+		bot.Say("Gosh, I guess I never remembered that in the first place!")
+	end
 end

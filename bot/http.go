@@ -188,6 +188,27 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			BotRetVal: int(brv),
 		})
 		return
+	case "CheckinDatum":
+		var m memory
+		if !getArgs(rw, &f.FuncArgs, &m) {
+			return
+		}
+		bot.CheckinDatum(m.Key, m.Token)
+		sendReturn(rw, &botretvalresponse{int(Ok)})
+		return
+	case "UpdateDatum":
+		b.lock.RLock()
+		pluginName := plugins[plugIDmap[bot.pluginID]].name
+		b.lock.RUnlock()
+		var m memory
+		if !getArgs(rw, &f.FuncArgs, &m) {
+			return
+		}
+		// Since we're getting raw JSON (=[]byte), we call update directly.
+		// See brain.go
+		ret := update(pluginName+":"+m.Key, m.Token, (*[]byte)(&m.Datum))
+		sendReturn(rw, &botretvalresponse{int(ret)})
+		return
 	case "GetPluginConfig":
 		b.lock.RLock()
 		defer b.lock.RUnlock()
@@ -273,6 +294,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	// NOTE: "Say" and "Reply" are implemented in shellLib.sh or other scripting library
 	default:
+		Log(Error, fmt.Sprintf("Bad function name: %s", f.FuncName))
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}

@@ -10,7 +10,7 @@ class String
 	end
 end
 
-class GBAttribute
+class Attribute
 	def initialize(attr, ret)
 		@attr = attr
 		@ret = ret
@@ -23,7 +23,7 @@ class GBAttribute
 	end
 end
 
-class GBReply
+class Reply
 	def initialize(reply, ret)
 		@reply = reply
 		@ret = ret
@@ -36,11 +36,18 @@ class GBReply
 	end
 end
 
-=begin
-class GBMemory
-	def initialize()
+class Memory
+	def initialize(key, lt, exists, datum, ret)
+		@key = key
+		@lock_token = lt
+		@exists = exists
+		@datum = datum
+		@ret = ret
+	end
+
+	attr_reader :key, :lock_token, :exists, :ret
+	attr :datum, true
 end
-=end
 
 class Robot
 	Ok = 0
@@ -81,10 +88,26 @@ class Robot
 		return sarr[@prng.rand(sarr.size)]
 	end
 
+	def RandomInt(i)
+		return @prng.rand(i)
+	end
+
 	def CheckoutDatum(key, rw)
 		args = { "Key" => key, "RW" => rw }
 		ret = callBotFunc("CheckoutDatum", args)
-		return ret
+		return Memory.new(key, ret["LockToken"], ret["Exists"], ret["Datum"], ret["BotRetVal"])
+	end
+
+	def CheckinDatum(m)
+		args = { "Key" => m.key, "Token" => m.lock_token }
+		callBotFunc("CheckinDatum", args)
+		return 0
+	end
+
+	def UpdateDatum(m)
+		args = { "Key" => m.key, "Token" => m.lock_token, "Datum" => m.datum }
+		ret = callBotFunc("UpdateDatum", args)
+		return ret["BotRetVal"]
 	end
 
 	def GetPluginConfig()
@@ -180,7 +203,7 @@ class Robot
 		res = http.request(req)
 		body = res.body()
 		STDERR.puts "Got back:\n#{body}"
-		return JSON.parse(res.body())
+		return JSON.load(res.body())
 	end
 	private :callBotFunc
 end
