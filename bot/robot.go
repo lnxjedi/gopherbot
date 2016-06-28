@@ -59,17 +59,17 @@ func (r *Robot) CheckOTP(code string) (bool, BotRetVal) {
 	var userOTP otp.OTPConfig
 	lock, exists, ret := checkoutDatum(otpKey, &userOTP, true)
 	if ret != Ok {
-		checkin(otpKey, lock)
+		checkinDatum(otpKey, lock)
 		return false, NoUserOTP
 	}
 	if !exists {
-		checkin(otpKey, lock)
+		checkinDatum(otpKey, lock)
 		return false, ret
 	}
 	valid, err := userOTP.Authenticate(code)
 	if err != nil {
 		Log(Error, fmt.Errorf("Problem authenticating launch code for user %s: %v", r.User, err))
-		checkin(otpKey, lock)
+		checkinDatum(otpKey, lock)
 		return false, OTPError
 	}
 	ret = updateDatum(otpKey, lock, &userOTP)

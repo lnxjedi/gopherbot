@@ -39,7 +39,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 	if ret != bot.Ok {
 		r.Log(bot.Error, fmt.Sprintf("Couldn't load lists: %s", ret))
 		r.Reply("I had a problem loading the lists, somebody should check my log file")
-		r.Checkin(datumName, lock) // well-behaved plugins using the brain will always check in data when done
+		r.CheckinDatum(datumName, lock) // well-behaved plugins using the brain will always check in data when done
 		return
 	}
 	updated := false
@@ -53,7 +53,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 		} else {
 			// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
 			// in case there's another thread waiting.
-			r.Checkin(datumName, lock)
+			r.CheckinDatum(datumName, lock)
 		}
 	}()
 	switch command {

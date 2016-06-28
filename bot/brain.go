@@ -154,8 +154,8 @@ func checkoutDatum(key string, datum interface{}, rw bool) (locktoken string, ex
 	return
 }
 
-// checkin is the internal version of Checkin that uses the key as-is
-func checkin(key, locktoken string) {
+// checkinDatum is the internal version of CheckinDatum that uses the key as-is
+func checkinDatum(key, locktoken string) {
 	if locktoken == "" {
 		return
 	}
@@ -198,8 +198,8 @@ func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken
 	return checkoutDatum(key, datum, rw)
 }
 
-// Checkin unlocks a datum without updating it, it always succeeds
-func (r *Robot) Checkin(key, locktoken string) {
+// CheckinDatum unlocks a datum without updating it, it always succeeds
+func (r *Robot) CheckinDatum(key, locktoken string) {
 	if locktoken == "" {
 		return
 	}
@@ -207,7 +207,7 @@ func (r *Robot) Checkin(key, locktoken string) {
 	pluginName := plugins[plugIDmap[r.pluginID]].name
 	b.lock.RUnlock()
 	key = pluginName + ":" + key
-	checkin(key, locktoken)
+	checkinDatum(key, locktoken)
 }
 
 // UpdateDatum tries to update a piece of data in the robot's brain, providing

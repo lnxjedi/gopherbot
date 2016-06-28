@@ -56,9 +56,9 @@ func launchCode(bot *Robot, command string, args ...string) {
 				bot.Reply("Good grief. I'm having trouble remembering your launch codes - have somebody check my log")
 			}
 		} else {
-			// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
+			// Well-behaved plugins will always do a CheckinDatum when the datum hasn't been updated,
 			// in case there's another thread waiting.
-			checkin(otpKey, lock)
+			checkinDatum(otpKey, lock)
 		}
 	}()
 	switch command {
