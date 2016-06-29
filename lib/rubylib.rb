@@ -152,6 +152,12 @@ class Robot
 		return GBAttribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
 	end
 
+	def Log(level, message)
+		args = { "Level" => level, "Message" => message }
+		callBotFunc("Log", args)
+		return 0
+	end
+
 	def SendChannelMessage(channel, message, format="variable")
 		args = { "Channel" => channel, "Message" => "base64:" + message.to_base64, "Format" => format }
 		ret = callBotFunc("SendChannelMessage", args, format)
@@ -176,6 +182,10 @@ class Robot
 		else
 			return SendChannelMessage(@channel, message, format)
 		end
+	end
+
+	def Pause(seconds)
+		sleep seconds
 	end
 	
 	def Reply(message, format="variable")

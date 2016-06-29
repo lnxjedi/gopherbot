@@ -143,7 +143,7 @@ EOF
 
 Log(){
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="LogMessage"
+	local GB_FUNCNAME="Log"
 	local GLM_LEVEL="$1"
 	local GLM_MESSAGE="$2"
 	GB_FUNCARGS=$(cat <<EOF

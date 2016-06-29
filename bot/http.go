@@ -276,7 +276,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		attr.Attribute = encode(attr.Attribute)
 		sendReturn(rw, attr)
 		return
-	case "LogMessage":
+	case "Log":
 		var lm logmessage
 		if !getArgs(rw, &f.FuncArgs, &lm) {
 			return

@@ -101,7 +101,8 @@ when "forget"
 		bot.Say("Gosh, I guess I never remembered that in the first place!")
 	end
 when "check"
-	if bot.CheckAdmin()
+	isAdmin = bot.CheckAdmin()
+	if isAdmin
 		bot.Say("Ok, it looks like you're an administrator")
 	else
 		bot.Say("Well, you're not an administrator")
@@ -123,4 +124,5 @@ when "check"
 	else
 		bot.Say("Eh, that doesn't look like a launch code")
 	end
+	bot.Log("info", "Checked out #{bot.user}, admin: #{isAdmin.to_s}, valid code: #{ret.valid.to_s}")
 end
