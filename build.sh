@@ -2,5 +2,5 @@
 # build.sh
 
 eval `go env`
-echo "Building for $GOOS"
-go build -i -race
+echo "Building race-detecting gopherbot for $GOOS"
+go install -race
