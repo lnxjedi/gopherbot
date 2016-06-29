@@ -26,6 +26,8 @@ Help:
   Helptext: [ "(bot), recall - prove the robot has a brain(tm)" ]
 - Keywords: [ "forget", "memory" ]
   Helptext: [ "(bot), forget <#> - ask the robot to forget one of it's remembered 'facts'" ]
+- Keywords: [ "check" ]
+  Helptext: [ "(bot), check me - get the bot to check you out" ]
 CommandMatches:
 - Regex: (?i:ruby( me)?!?)
   Command: ruby
@@ -37,6 +39,8 @@ CommandMatches:
   Command: recall
 - Regex: (?i:forget ([\d]{1,2}))
   Command: forget
+- Regex: (?i:check me)
+  Command: check
 Config:
   Replies:
   - "Consider yourself rubied"
@@ -95,5 +99,28 @@ when "forget"
 		bot.UpdateDatum(memory)
 	else
 		bot.Say("Gosh, I guess I never remembered that in the first place!")
+	end
+when "check"
+	if bot.CheckAdmin()
+		bot.Say("Ok, it looks like you're an administrator")
+	else
+		bot.Say("Well, you're not an administrator")
+	end
+	bot.Pause(1)
+	bot.Say("Give me a launch code")
+	otp = bot.WaitForReply("OTP")
+	if otp.ret == Robot::Ok
+		ret = bot.CheckOTP(otp.to_s)
+		if ret.valid
+			bot.Say("The code looks good, mac!")
+		else
+			if ret.ret != Robot::Ok
+				bot.Say("There was a problem checking your code")
+			else
+				bot.Say("Bad code, homie, I'm calling the cops")
+			end
+		end
+	else
+		bot.Say("Eh, that doesn't look like a launch code")
 	end
 end

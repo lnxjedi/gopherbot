@@ -22,6 +22,10 @@ type attribute struct {
 	Attribute string
 }
 
+type otpcheck struct {
+	Code string
+}
+
 type userattr struct {
 	User      string
 	Attribute string
@@ -83,6 +87,15 @@ func (bar *BotAttrRet) String() string {
 }
 
 // These are only for json marshalling
+type boolresponse struct {
+	Boolean bool
+}
+
+type boolretresponse struct {
+	Boolean   bool
+	BotRetVal int
+}
+
 type botretvalresponse struct {
 	BotRetVal int
 }
@@ -174,6 +187,21 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		ret   BotRetVal
 	)
 	switch f.FuncName {
+	case "CheckAdmin":
+		bret := bot.CheckAdmin()
+		sendReturn(rw, boolresponse{Boolean: bret})
+		return
+	case "CheckOTP":
+		var c otpcheck
+		if !getArgs(rw, &f.FuncArgs, &c) {
+			return
+		}
+		valid, brv := bot.CheckOTP(c.Code)
+		sendReturn(rw, boolretresponse{
+			Boolean:   valid,
+			BotRetVal: int(brv),
+		})
+		return
 	case "CheckoutDatum":
 		var r recollection
 		if !getArgs(rw, &f.FuncArgs, &r) {

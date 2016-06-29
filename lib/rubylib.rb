@@ -49,6 +49,15 @@ class Memory
 	attr :datum, true
 end
 
+class OTPRet
+	def initialize(valid, ret)
+		@valid = valid
+		@ret= ret
+	end
+
+	attr_reader :valid, :ret
+end
+
 class Robot
 	Ok = 0
 	UserNotFound = 1
@@ -90,6 +99,16 @@ class Robot
 
 	def RandomInt(i)
 		return @prng.rand(i)
+	end
+
+	def CheckAdmin()
+		return callBotFunc("CheckAdmin", {})["Boolean"]
+	end
+
+	def CheckOTP(code)
+		args = { "Code" => code }
+		ret = callBotFunc("CheckOTP", args)
+		return OTPRet.new(ret["Boolean"], ret["BotRetVal"])
 	end
 
 	def CheckoutDatum(key, rw)
@@ -170,7 +189,7 @@ class Robot
 	def WaitForReply(re, timeout=30)
 		args = { "RegExId" => re, "Timeout" => timeout }
 		ret = callBotFunc("WaitForReply", args)
-		return GBReply.new(decode(ret["Reply"]), ret["BotRetVal"])
+		return Reply.new(decode(ret["Reply"]), ret["BotRetVal"])
 	end
 
 	def decode(str)
@@ -199,10 +218,10 @@ class Robot
 		http = Net::HTTP.new(uri.host, uri.port)
 		req = Net::HTTP::Post.new(uri, initheader = {'Content-Type' =>'application/json'})
 		req.body = func.to_json
-		STDERR.puts "Sending:\n#{req.body}"
+#		STDERR.puts "Sending:\n#{req.body}"
 		res = http.request(req)
 		body = res.body()
-		STDERR.puts "Got back:\n#{body}"
+#		STDERR.puts "Got back:\n#{body}"
 		return JSON.load(res.body())
 	end
 	private :callBotFunc

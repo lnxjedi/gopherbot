@@ -63,8 +63,39 @@ gbDecode() {
 	echo "$B64DATA" | base64 -d
 }
 
+CheckAdmin(){
+	local GB_FUNCARGS="{}"
+	local GB_FUNCNAME="CheckAdmin"
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
+	echo "$RETVAL"
+	if [ "$RETVAL" -eq "true" ]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
+CheckOTP() {
+	local GB_FUNCARGS GB_RET BOOL RETVAL
+	local GB_FUNCNAME="CheckOTP"
+	local CODE="$1"
+	GB_FUNCARGS=$(cat <<EOF
+{
+	"Code": "$CODE"
+}
+EOF
+)
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	BOOL=$(echo "$GB_RET" | jq .Boolean)
+	RETVAL=$(echo "$GB_RET" | jq .BotRetVal)
+	echo "$BOOL"
+	return $RETVAL
+}
+
 GetBotAttribute(){
-	local GB_FUNCARGS
+	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="GetBotAttribute"
 	local ATTR="$1"
 	GB_FUNCARGS=$(cat <<EOF
@@ -94,7 +125,7 @@ EOF
 }
 
 GetUserAttribute(){
-	local GB_FUNCARGS
+	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="GetUserAttribute"
 	local GUA_USER="$1"
 	local ATTR="$2"
@@ -111,7 +142,7 @@ EOF
 }
 
 Log(){
-	local GB_FUNCARGS
+	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="LogMessage"
 	local GLM_LEVEL="$1"
 	local GLM_MESSAGE="$2"
@@ -127,7 +158,7 @@ EOF
 }
 
 WaitForReply(){
-	local GB_FUNCARGS
+	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="WaitForReply"
 	local REGEX="$1"
 	local TIMEOUT="${2:-14}"
