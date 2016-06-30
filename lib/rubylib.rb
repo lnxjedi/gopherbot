@@ -137,19 +137,19 @@ class Robot
 	def GetSenderAttribute(attr)
 		args = { "Attribute" => attr }
 		ret = callBotFunc("GetSenderAttribute", args)
-		return GBAttribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
+		return Attribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
 	end
 
 	def GetUserAttribute(user, attr)
 		args = { "User" => user, "Attribute" => attr }
 		ret = callBotFunc("GetSenderAttribute", args)
-		return GBAttribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
+		return Attribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
 	end
 
 	def GetBotAttribute(attr)
 		args = { "Attribute" => attr }
 		ret = callBotFunc("GetSenderAttribute", args)
-		return GBAttribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
+		return Attribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
 	end
 
 	def Log(level, message)

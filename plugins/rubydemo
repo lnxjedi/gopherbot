@@ -81,14 +81,18 @@ when "remember"
 		bot.Say("Dang it, having problems with my memory")
 	end
 when "recall"
-	reply = "Here's what I remember:\n"
 	memory = bot.CheckoutDatum("memory", false)
-	memory.datum.each_index { |i|
-		index = i + 1
-		reply += index.to_s + ": " + memory.datum[i] + "\n"
-	}
-	bot.CheckinDatum(memory)
-	bot.Say(reply)
+	if memory.exists
+		reply = "Here's what I remember:\n"
+		memory.datum.each_index { |i|
+			index = i + 1
+			reply += index.to_s + ": " + memory.datum[i] + "\n"
+		}
+		bot.CheckinDatum(memory)
+		bot.Say(reply)
+	else
+		bot.Say("I'm a blank slate - I don't remember anything!")
+	end
 when "forget"
 	i = ARGV[0].to_i - 1
 	memory = bot.CheckoutDatum("memory", true)
