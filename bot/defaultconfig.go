@@ -20,15 +20,15 @@ LocalPort: 8880
 # One of trace, debug, info, warn, error
 LogLevel: info
 # List of external plugins to configure; generally scripts using a gopherbot script lib
-ExternalPlugins:
-- Name: hosts
-  Path: plugins/hosts.sh
-- Name: echo
-  Path: plugins/echo.sh
-- Name: whoami
-  Path: plugins/whoami.sh
-- Name: rubyping
-  Path: plugins/rubyping
+#ExternalPlugins:
+#- Name: hosts
+#  Path: plugins/hosts.sh
+#- Name: echo
+#  Path: plugins/echo.sh
+#- Name: whoami
+#  Path: plugins/whoami.sh
+#- Name: rubydemo
+#  Path: plugins/rubydemo
 #
 # You'll need to override this in the local conf/gopherbot.yaml and replace <your_token_here>.
 # MaxMessageSplit specifies the maximum number of messages to break a message into when it's too long (>4000 char)
