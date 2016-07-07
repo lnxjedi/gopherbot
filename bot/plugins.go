@@ -51,7 +51,6 @@ type Plugin struct {
 	DirectOnly     bool           // Set this true if this plugin ONLY accepts direct messages
 	Channels       []string       // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels    bool           // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	Trusted        bool           // Administrator must set this true to allow the plugin to check OTP codes (to prevent a bad plugin from trying them all)
 	RequireAdmin   bool           // Set to only allow administrators to access a plugin
 	Users          []string       // If non-empty, list of all the users with access to this plugin
 	Help           []PluginHelp   // All the keyword sets / help texts for this plugin
@@ -242,8 +241,6 @@ PlugLoop:
 				continue
 			}
 		}
-		// Force settings that can't be part of default config
-		plugin.Trusted = false
 		// getConfigFile overlays the default config with local config
 		if err := getConfigFile("plugins/"+plug+".yaml", false, &plugin); err != nil {
 			Log(Error, fmt.Errorf("Problem with local configuration for plugin \"%s\", skipping: %v", plug, err))

@@ -25,7 +25,6 @@ const (
 	InvalidCfgStruct // The struct type in GetPluginConfig doesn't match the struct registered for the plugin
 
 	// OTP
-	UntrustedPlugin // A plugin called CheckOTP without having Trusted: true configured
 	NoUserOTP       // OTP config for the user wasn't found
 	OTPError        // Error value returned while checking OTP
 
@@ -56,7 +55,6 @@ func (ret BotRetVal) String() string {
 		"Invalid string given for datum key",
 		"Argument to GetPluginConfig wasn't a double pointer to a struct",
 		"Mismatch between struct registered in RegisterPlugin and struct passed to GetPluginConfig",
-		"Plugin requested OTP but not configured by administrator as Trusted",
 		"User OTP configuration not found",
 		"Unspecified error in checking OTP",
 		"The user's reply didn't match the requested regex",

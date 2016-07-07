@@ -72,16 +72,15 @@ class Robot
 	InvalidDatumKey = 10
 	InvalidDblPtr = 11
 	InvalidCfgStruct = 12
-	UntrustedPlugin = 13
-	NoUserOTP = 14
-	OTPError = 15
-	ReplyNotMatched = 16
-	TimeoutExpired = 17
-	ReplyInProgress = 18
-	MatcherNotFound = 19
-	NoUserEmail = 20
-	NoBotEmail = 21
-	MailError = 22
+	NoUserOTP = 13
+	OTPError = 14
+	ReplyNotMatched = 15
+	TimeoutExpired = 16
+	ReplyInProgress = 17
+	MatcherNotFound = 18
+	NoUserEmail = 19
+	NoBotEmail = 20
+	MailError = 21
 
 	def initialize()
 		@channel = ARGV[0]

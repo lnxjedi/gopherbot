@@ -43,18 +43,8 @@ func (r *Robot) CheckAdmin() bool {
 }
 
 // CheckOTP returns true if the provided string is a valid OTP code for the
-// user. See the builtInlaunchcodes.go plugin. Note that a plugin must be
-// configured by the admin as Trusted to be able to use this function.
+// user. See the builtInlaunchcodes.go plugin.
 func (r *Robot) CheckOTP(code string) (bool, BotRetVal) {
-	b.lock.RLock()
-	plugin := plugins[plugIDmap[r.pluginID]]
-	trustedPlugin := plugin.Trusted
-	plugName := plugin.name
-	b.lock.RUnlock()
-	if !trustedPlugin {
-		Log(Error, fmt.Sprintf("ALERT: Untrusted plugin \"%s\" called CheckOTP", plugName))
-		return false, UntrustedPlugin
-	}
 	otpKey := "bot:OTP:" + r.User
 	var userOTP otp.OTPConfig
 	lock, exists, ret := checkoutDatum(otpKey, &userOTP, true)
