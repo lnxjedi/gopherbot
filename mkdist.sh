@@ -2,7 +2,7 @@
 
 # mkdist.sh - create a distributable .zip file
 
-GOPHERBOT_VERSION=0.8
+. VERSION
 
 usage(){
 	cat <<EOF
@@ -16,7 +16,8 @@ EOF
 [ $# -eq 0 ] && usage
 
 eval `go env`
-./build.sh
+echo "Building gopherbot for $GOOS"
+go build
 OUTFILE=$1/gopherbot-$GOPHERBOT_VERSION-$GOOS.zip
 rm -f $OUTFILE
 
