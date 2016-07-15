@@ -18,7 +18,7 @@ EOF
 eval `go env`
 echo "Building gopherbot for $GOOS"
 go build
-OUTFILE=$1/gopherbot-$GOPHERBOT_VERSION-$GOOS.zip
+OUTFILE=$1/gopherbot-$GOPHERBOT_VERSION-$GOOS-$GOARCH.zip
 rm -f $OUTFILE
 
 echo "Creating $OUTFILE"
