@@ -84,14 +84,14 @@ var stopRegistrations bool = false
 func initializePlugins() {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
-	bot := &Robot{
+/*	bot := &Robot{
 		User:    b.name,
 		Channel: "",
 		Format:  Variable,
-	}
+	} */
 	for _, plugin := range plugins {
-		Log(Info, "Initializing plugin:", plugin.name)
-		go callPlugin(bot, plugin, "init")
+		Log(Info, "WORKAROUND: not initializing plugin:", plugin.name)
+		//go callPlugin(bot, plugin, "init")
 	}
 }
 
@@ -318,6 +318,8 @@ PlugLoop:
 	b.lock.Lock()
 	plugins = plist
 	plugIDmap = pfinder
+	// loadPluginConfig is called in newBot, before the connector has started;
+	// don't init plugins in that case.
 	if b.Connector != nil {
 		reInitPlugins = true
 	}
