@@ -1,0 +1,69 @@
+---
+# NOTE: Configured items replace the default config; if you override e.g.
+# Help, you need to copy all of the original help config and edit/replace
+# as you like.
+#
+# Compiled-in go plugins can be disabled
+Disabled: false
+# When set, direct messages won't match this plugin. Useful for
+# plugins that can only be used in a given channel for auditing/transparency.
+DisallowDirect: true
+# On the other hand, some plugins may need sensitive information that should
+# only be available in a direct message.
+DirectOnly: false
+# For robots with many plugins, it's useful to have some that are only
+# available in certain channels. Maybe the bug search plugin is only available
+# in the #bugfixing channel
+Channels: [ "aws", "golang" ]
+# Some plugins, like 'ping', are nice to have in all channels
+AllChannels: false
+# Most plugins that are limited to certain users will have an explicit list
+# of allowed users, but a plugin can also be configured for Administrators
+# only. Gopherbot may eventually get a more granular permissions system
+# if needed, but for now none is planned.
+RequireAdmin: false
+# To limit access to a plugin to specific users, list there usernames
+Users: [ "alice", "bob", "carol" ]
+# When help <keyword> is requested, the robot will spit out the items in
+# Helptext. By convention, commands that must be directed at the robot
+# start with "(bot),"
+Help:
+- Keywords: [ "open", "pod" ]
+  Helptext:
+  - (bot), open the pod bay doors
+# Command matches can be matched when the user addresses the robot directly,
+# either in a direct message, or by giving it's name or alias. The Regex
+# is a Go regular expression, easily developed by using the tool at:
+# https://regex-golang.appspot.com/assets/html/index.html
+CommandMatches:
+- Regex: '(?i:(?:search|find)(?: metadata)? ([.\w-]+))'
+  Command: search
+- Regex: '(?i:open the pod bay doors)'
+  Command: open
+# If a plugin wants to specify custom matchers for the WaitForReply API
+# call, they can be specified here. In this case, the "Command" is just
+# a tag identifying the specific matcher in the call; it should be all
+# lower-case to avoid conflict with built-in reply matchers
+ReplyMatchers:
+- Regex: '\(\d\d\d\)\d\d\d-\d\d\d\d'
+  Command: phone
+# Message matches should be used sparingly, and are mostly useful for
+# joke plugins; e.g. responding with a Chuck Norris anecdote whenever
+# you mention his name. These will match against every message the robot
+# hears (subject to user, channel and other restrictions).
+MessageMatches:
+- Regex: '(?i:.*Chuck Norris.*)'
+  Command: chuck
+# CatchAll plugins are called when someone speaks directly to the robot, but
+# no command is matched. Mainly used by the builtin help plugin.
+CatchAll: false
+# For plugins that require custom configuration (such as credentials for the
+# memes plugin), that information can be supplied here. The top-level
+# structure should be a hash/map, similar to this file
+Config:
+  Username: foo
+  Password: bar
+  CatchPhrases:
+  - "Hasta la vista, baby"
+  - "Go ahead, make my day"
+  - "I'll buy THAT for a dollar!"

@@ -1,3 +1,5 @@
+# Required configuration for the 'memes' plugin to work; get a username and
+# password from imgflip.com
 Channels: [ "random", "general" ]
 Disabled: false
 Config:
