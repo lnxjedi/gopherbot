@@ -1,5 +1,28 @@
 #!/bin/bash
 # shellLib.sh - bash plugins should source this with 'source $GOPHER_INSTALLDIR/util/shellLib.sh'
+GBRET_
+GBRET_Ok=0
+GBRET_UserNotFound=1
+GBRET_ChannelNotFound=2
+GBRET_AttributeNotFound=3
+GBRET_FailedUserDM=4
+GBRET_FailedChannelJoin=5
+GBRET_DatumNotFound=6
+GBRET_DatumLockExpired=7
+GBRET_DataFormatError=8
+GBRET_BrainFailed=9
+GBRET_InvalidDatumKey=10
+GBRET_InvalidDblPtr=11
+GBRET_InvalidCfgStruct=12
+GBRET_NoUserOTP=13
+GBRET_OTPError=14
+GBRET_ReplyNotMatched=15
+GBRET_TimeoutExpired=16
+GBRET_ReplyInProgress=17
+GBRET_MatcherNotFound=18
+GBRET_NoUserEmail=19
+GBRET_NoBotEmail=20
+GBRET_MailError=21
 
 GB_CHANNEL=$1
 GB_USER=$2
