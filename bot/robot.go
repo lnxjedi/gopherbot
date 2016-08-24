@@ -185,6 +185,10 @@ func (r *Robot) GetPluginConfig(dptr interface{}) BotRetVal {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	plugin := plugins[plugIDmap[r.pluginID]]
+	if plugin.config == nil {
+		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but no config was found.", plugin.name))
+		return NoConfigFound
+	}
 	tp := reflect.ValueOf(dptr)
 	if tp.Kind() != reflect.Ptr {
 		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but didn't pass a double-pointer to a struct", plugin.name))
@@ -192,9 +196,11 @@ func (r *Robot) GetPluginConfig(dptr interface{}) BotRetVal {
 	}
 	p := reflect.Indirect(tp)
 	if p.Kind() != reflect.Ptr {
+		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but didn't pass a double-pointer to a struct", plugin.name))
 		return InvalidDblPtr
 	}
 	if p.Type() != reflect.ValueOf(plugin.config).Type() {
+		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig with an invalid double-pointer", plugin.name))
 		return InvalidCfgStruct
 	}
 	p.Set(reflect.ValueOf(plugin.config))

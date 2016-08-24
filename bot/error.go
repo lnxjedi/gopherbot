@@ -23,6 +23,7 @@ const (
 	// GetPluginConfig
 	InvalidDblPtr    // GetPluginConfig wasn't called with a double-pointer to a config struct
 	InvalidCfgStruct // The struct type in GetPluginConfig doesn't match the struct registered for the plugin
+	NoConfigFound    // The plugin doesn't have any config data
 
 	// OTP
 	NoUserOTP       // OTP config for the user wasn't found
@@ -55,6 +56,7 @@ func (ret BotRetVal) String() string {
 		"Invalid string given for datum key",
 		"Argument to GetPluginConfig wasn't a double pointer to a struct",
 		"Mismatch between struct registered in RegisterPlugin and struct passed to GetPluginConfig",
+		"Plugin configuration didn't have a Config section",
 		"User OTP configuration not found",
 		"Unspecified error in checking OTP",
 		"The user's reply didn't match the requested regex",

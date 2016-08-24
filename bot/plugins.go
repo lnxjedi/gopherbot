@@ -84,14 +84,14 @@ var stopRegistrations bool = false
 func initializePlugins() {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
-/*	bot := &Robot{
+	bot := &Robot{
 		User:    b.name,
 		Channel: "",
 		Format:  Variable,
-	} */
+	}
 	for _, plugin := range plugins {
-		Log(Info, "WORKAROUND: not initializing plugin:", plugin.name)
-		//go callPlugin(bot, plugin, "init")
+		Log(Info, "Initializing plugin:", plugin.name)
+		go callPlugin(bot, plugin, "init")
 	}
 }
 
