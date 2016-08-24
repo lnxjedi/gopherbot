@@ -6,7 +6,7 @@ import (
 	"os"
 	"unicode/utf8"
 
-	"github.com/parsley42/yaml"
+	"github.com/uva-its/yaml"
 )
 
 /* conf.go - methods and types for reading and storing json configuration */

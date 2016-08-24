@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/parsley42/yaml"
+	"github.com/uva-its/yaml"
 )
 
 // PluginNames can be letters, numbers & underscores only, mainly so

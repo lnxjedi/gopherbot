@@ -3,7 +3,7 @@ package slack
 import (
 	"time"
 
-	"github.com/parsley42/gopherbot/bot"
+	"github.com/uva-its/gopherbot/bot"
 )
 
 // How long to delay between sending bits of a chopped up message

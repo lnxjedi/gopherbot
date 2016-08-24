@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/parsley42/yaml"
+	"github.com/uva-its/yaml"
 )
 
 // an empty object type for passing a Handler to the connector.

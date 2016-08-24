@@ -4,7 +4,7 @@
 package help
 
 import (
-	"github.com/parsley42/gopherbot/bot"
+	"github.com/uva-its/gopherbot/bot"
 	"strings"
 )
 

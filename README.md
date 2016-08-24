@@ -19,9 +19,9 @@ Gopherbot is running in production in my environment. Currently lacking:
 ## Getting Gopherbot
 ### Binary releases
 Pre-compiled archives for Linux and Mac OS are available for download directly from github:
-https://github.com/parsley42/gopherbot/releases
+https://github.com/uva-its/gopherbot/releases
 ### Installing from source
-If you have a Go environment set up on your machine, you can can just `go get github.com/parsley42/gopherbot`
+If you have a Go environment set up on your machine, you can can just `go get github.com/uva-its/gopherbot`
 
 ## Quick Start
 1. Once you have a binary, obtain a 'bot token from https://yourteam.slack.com/services/new/bot
@@ -60,7 +60,7 @@ When Gopherbot starts, it first looks for it's install directory, containing at 
 * The location specified in the `$GOPHER_INSTALLDIR` environment variable, if set
 * `/usr/local/share/gopherbot`
 * `/usr/share/gopherbot`
-* `$GOPATH/src/github.com/parsley42/gopherbot`, normally used when installing from source
+* `$GOPATH/src/github.com/uva-its/gopherbot`, normally used when installing from source
 * The directory where the gopherbot executable resides; this is normally used when running straight from the .zip archive
 
 You can copy `lib/` and `plugins/` to one of the directories listed above (mainly for packaging/deployment), but for development and testing you can run gopherbot from the expanded archive directory and it'll look for it's install files there.
@@ -81,7 +81,7 @@ The 'bot administrator can override default plugin configuration by putting a ne
 See `example.gopherbot/conf/plugins/example.yaml` for a full example of a plugin configuration file.
 
 ## Writing your own plugins
-The Go plugin API is fairly well documented here: http://godoc.org/github.com/parsley42/gopherbot/bot#Robot
+The Go plugin API is fairly well documented here: http://godoc.org/github.com/uva-its/gopherbot/bot#Robot
 
 The Bash and Ruby APIs aren't documented so well, however:
 * Gopherbot includes several bash plugin examples and a fairly comprehensive `rubydemo` example

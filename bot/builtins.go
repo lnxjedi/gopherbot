@@ -9,7 +9,7 @@ import (
 	"time"
 
 	otp "github.com/dgryski/dgoogauth"
-	"github.com/parsley42/yaml"
+	"github.com/uva-its/yaml"
 )
 
 // if help is more than tooLong lines long, send a private message

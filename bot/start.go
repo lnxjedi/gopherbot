@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/parsley42/yaml"
+	"github.com/uva-its/yaml"
 	// MakeDaemon from VividCortex - thanks!
 	"github.com/VividCortex/godaemon"
 )
@@ -83,7 +83,7 @@ func Start() {
 	gosearchpath := os.Getenv("GOPATH")
 	if len(gosearchpath) > 0 {
 		for _, gopath := range strings.Split(gosearchpath, ":") {
-			instSearchPath = append(instSearchPath, gopath+"/src/github.com/parsley42/gopherbot")
+			instSearchPath = append(instSearchPath, gopath+"/src/github.com/uva-its/gopherbot")
 		}
 	}
 	instSearchPath = append(instSearchPath, execdir)

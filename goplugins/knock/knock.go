@@ -5,7 +5,7 @@ package knock
 import (
 	"strings"
 
-	"github.com/parsley42/gopherbot/bot"
+	"github.com/uva-its/gopherbot/bot"
 )
 
 type Joke struct {

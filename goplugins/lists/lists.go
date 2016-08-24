@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/parsley42/gopherbot/bot"
+	"github.com/uva-its/gopherbot/bot"
 )
 
 const maxlists = 7
