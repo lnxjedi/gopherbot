@@ -53,17 +53,17 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 	}
 	b.lock.RUnlock()
 	if b.preRegex != nil {
-		matches := b.preRegex.FindAllStringSubmatch(messageFull, 2)
-		if matches != nil && len(matches[0]) == 3 {
+		matches := b.preRegex.FindAllStringSubmatch(messageFull, -1)
+		if matches != nil && len(matches[0]) == 2 {
 			isCommand = true
-			message = matches[0][2]
+			message = matches[0][1]
 		}
 	}
 	if !isCommand && b.postRegex != nil {
-		matches := b.postRegex.FindAllStringSubmatch(messageFull, 2)
-		if matches != nil && len(matches[0]) == 4 {
+		matches := b.postRegex.FindAllStringSubmatch(messageFull, -1)
+		if matches != nil && len(matches[0]) == 3 {
 			isCommand = true
-			message = matches[0][1] + matches[0][3]
+			message = matches[0][1] + matches[0][2]
 		}
 	}
 	if !isCommand {
