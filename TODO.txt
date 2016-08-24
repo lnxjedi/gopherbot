@@ -1,1 +1,4 @@
 - Don't assign new plugin IDs when reloading
+- I don't feel like telling a joke right now. My cat just died.
+- BUG: in #botdev, help joke doesn't list botdev in active channels (even if it is) - the plugin still answers, though
+- Re-compile regexes if alias changes during reload; be careful about bot locking
