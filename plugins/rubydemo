@@ -60,10 +60,11 @@ when "ruby"
 	sleep 1.5
 	bot.Say(bot.RandomString(bot.GetPluginConfig()["Replies"]))
 when "listen"
-	bot.Say("Ok, what do you want to tell me?")
-	rep = bot.WaitForReply("SimpleString")
+	dbot = bot.Direct()
+	dbot.Say("Ok, what do you want to tell me?")
+	rep = dbot.WaitForReply("SimpleString")
 	if rep.ret == Robot::Ok
-		bot.Say("I hear what you're saying - '#{rep}'")
+		dbot.Say("I hear what you're saying - '#{rep}'")
 	else
 		bot.Say("I'm sorry, I'm not sure what you're trying to tell me")
 	end

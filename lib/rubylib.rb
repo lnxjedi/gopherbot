@@ -58,7 +58,7 @@ class OTPRet
 	attr_reader :valid, :ret
 end
 
-class Robot
+class BaseBot
 	Ok = 0
 	UserNotFound = 1
 	ChannelNotFound = 2
@@ -83,15 +83,10 @@ class Robot
 	NoBotEmail = 21
 	MailError = 22
 
-	def initialize()
-		@channel = ARGV[0]
-		@user = ARGV[1]
-		@plugin_id = ARGV[2]
-		ARGV.shift(3)
-		@prng = Random.new
-	end
-
 	attr_reader :user, :channel
+
+	def Direct()
+	end
 
 	def RandomString(sarr)
 		return sarr[@prng.rand(sarr.size)]
@@ -232,7 +227,34 @@ class Robot
 		res = http.request(req)
 		body = res.body()
 #		STDERR.puts "Got back:\n#{body}"
-		return JSON.load(res.body())
+		return JSON.load(body)
 	end
 	private :callBotFunc
 end
+
+class Robot < BaseBot
+
+	def initialize()
+		@channel = ARGV[0]
+		@user = ARGV[1]
+		@plugin_id = ARGV[2]
+		ARGV.shift(3)
+		@prng = Random.new
+	end
+
+	def Direct()
+		DirectBot.new(@user, @plugin_id, @prng)
+	end
+end
+
+class DirectBot < BaseBot
+
+	def initialize(user, plugin_id, prng)
+		@channel = ""
+		@user = user
+		@plugin_id = plugin_id
+		@prng = prng
+	end
+
+end
+

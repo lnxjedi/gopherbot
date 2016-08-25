@@ -74,8 +74,17 @@ func (r *Robot) CheckOTP(code string) (bool, BotRetVal) {
 // font. e.g. r.Reply(xxx) replies in variable width font, but
 // r.Fixed().Reply(xxx) replies in a fixed-width font.
 func (r *Robot) Fixed() *Robot {
-	r.Format = Fixed
-	return r
+	nr := *r
+	nr.Format = Fixed
+	return &nr
+}
+
+// Direct is a convenience function for initiating a DM conversation with a
+// user. Created initially so a plugin could prompt for a password in a DM.
+func (r *Robot) Direct() *Robot {
+	nr := *r
+	nr.Channel = ""
+	return &nr
 }
 
 // Pause is a convenience function to pause some fractional number of seconds.
