@@ -5,6 +5,7 @@ import (
 	"encoding/base32"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 )
 
 // if help is more than tooLong lines long, send a private message
-const tooLong = 7
+const tooLong = 14
 
 // Size of QR code
 const qrsize = 400
@@ -27,11 +28,16 @@ var builtIns = []string{
 	"builtInlaunchcodes",
 }
 
+// To make help output more readable
+var helpRe *regexp.Regexp
+
 func init() {
 	RegisterPlugin("builtIndump", PluginHandler{DefaultConfig: dumpConfig, Handler: dump})
 	RegisterPlugin("builtInhelp", PluginHandler{DefaultConfig: helpConfig, Handler: help})
 	RegisterPlugin("builtInadmin", PluginHandler{DefaultConfig: adminConfig, Handler: admin})
 	RegisterPlugin("builtInlaunchcodes", PluginHandler{DefaultConfig: launchCodesConfig, Handler: launchCode})
+
+	helpRe = regexp.MustCompile(`\(bot\)`)
 }
 
 /* builtin plugins, like help */
@@ -115,6 +121,10 @@ func help(bot *Robot, command string, args ...string) {
 		if len(args) == 1 && len(args[0]) > 0 {
 			hasTerm = true
 			term = args[0]
+			if term == "help" {
+				Log(Trace, "Help requested for help, returning")
+				return
+			}
 			Log(Trace, "Help requested for term", term)
 		}
 
@@ -124,7 +134,12 @@ func help(bot *Robot, command string, args ...string) {
 				if messageAppliesToPlugin(bot.User, bot.Channel, plugin) {
 					for _, phelp := range plugin.Help {
 						for _, helptext := range phelp.Helptext {
-							helpOutput += helptext + string('\n')
+							if phelp.Keywords[0] == "*" {
+								// * signifies help that should be prepended
+								helpOutput = helpRe.ReplaceAllString(helptext, b.name) + string('\n') + helpOutput
+							} else {
+								helpOutput += helpRe.ReplaceAllString(helptext, b.name) + string('\n')
+							}
 							helpLines++
 						}
 					}
@@ -139,12 +154,10 @@ func help(bot *Robot, command string, args ...string) {
 								chantext = " (direct message only"
 							} else {
 								for _, pchan := range plugin.Channels {
-									if bot.Channel != pchan {
-										if len(chantext) == 0 {
-											chantext += " (channels: " + pchan
-										} else {
-											chantext += ", " + pchan
-										}
+									if len(chantext) == 0 {
+										chantext += " (channels: " + pchan
+									} else {
+										chantext += ", " + pchan
 									}
 								}
 							}
@@ -165,8 +178,12 @@ func help(bot *Robot, command string, args ...string) {
 			bot.Say("Sorry, bub - I got nothin' for ya'")
 		case helpLines > tooLong:
 			if len(bot.Channel) > 0 {
-				bot.Reply("(the help for this channel was pretty long, so I sent you a private message)")
-				helpOutput = "Help for channel: " + bot.Channel + "\n" + helpOutput
+				bot.Reply("(the help output was pretty long, so I sent you a private message)")
+				if hasTerm {
+					helpOutput = "Help for term: " + term + "\n" + helpOutput
+				} else {
+					helpOutput = "Help for commands available in channel: " + bot.Channel + "\n" + helpOutput
+				}
 			}
 			bot.SendUserMessage(bot.User, strings.TrimRight(helpOutput, "\n"))
 		default:
