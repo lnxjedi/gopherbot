@@ -77,6 +77,7 @@ func Start() {
 	instSearchPath := []string{
 		installDir,
 		os.Getenv("GOPHER_INSTALLDIR"),
+		"/opt/gopherbot",
 		"/usr/local/share/gopherbot",
 		"/usr/share/gopherbot",
 	}
