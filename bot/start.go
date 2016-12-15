@@ -24,6 +24,7 @@ func dirExists(path string) bool {
 	if len(path) == 0 {
 		return false
 	}
+	log.Printf("Checking %s\n", path)
 	ds, err := os.Stat(path)
 	if err != nil {
 		return false
@@ -89,10 +90,14 @@ func Start() {
 	}
 	instSearchPath = append(instSearchPath, execdir)
 	for _, spath := range instSearchPath {
-		if dirExists(spath) {
+		if len(spath) > 0 && dirExists(spath + "/lib") {
 			installdir = spath
 			break
 		}
+	}
+	if len(installdir) == 0 {
+		log.Println("Install directory not found, exiting")
+		os.Exit(0)
 	}
 
 	// Localdir is where all user-supplied configuration and
@@ -106,13 +111,14 @@ func Start() {
 		"/etc/gopherbot",
 	}
 	for _, spath := range confSearchPath {
-		if dirExists(spath) {
+		if len(spath) > 0 && dirExists(spath) {
 			localdir = spath
 			break
 		}
 	}
 	if len(localdir) == 0 {
-		log.Fatal("Couldn't locate local configuration directory")
+		log.Println("Couldn't locate local configuration directory, exiting")
+		os.Exit(0)
 	}
 
 	// Read the config just to extract the LogFile PidFile path
