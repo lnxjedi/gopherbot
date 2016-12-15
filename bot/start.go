@@ -24,7 +24,6 @@ func dirExists(path string) bool {
 	if len(path) == 0 {
 		return false
 	}
-	log.Printf("Checking %s\n", path)
 	ds, err := os.Stat(path)
 	if err != nil {
 		return false
@@ -63,6 +62,10 @@ func Start() {
 	pusage := "path to robot's pid file"
 	flag.StringVar(&pidFile, "pid", "", pusage)
 	flag.StringVar(&pidFile, "p", "", pusage+" (shorthand)")
+	var plainlog bool
+	plusage := "omit timestamps from the log"
+	flag.BoolVar(&plainlog, "plainlog", false, plusage)
+	flag.BoolVar(&plainlog, "P", false, plusage+" (shorthand)")
 	var daemonize bool
 	fusage := "run the robot as a background process"
 	flag.BoolVar(&daemonize, "daemonize", false, fusage)
@@ -159,7 +162,11 @@ func Start() {
 		})
 		// Don't double-timestamp if another package is using the default logger
 		log.SetFlags(0)
-		botLogger = log.New(f, "", log.LstdFlags)
+		if plainlog {
+			botLogger = log.New(f, "", 0)
+		} else {
+			botLogger = log.New(f, "", log.LstdFlags)
+		}
 		if err != nil {
 			botLogger.Fatalf("Problem daemonizing: %v", err)
 		}
@@ -181,7 +188,11 @@ func Start() {
 			}
 		}
 	} else { // run in the foreground, log to stderr
-		botLogger = log.New(os.Stderr, "", log.LstdFlags)
+		if plainlog {
+			botLogger = log.New(os.Stderr, "", 0)
+		} else {
+			botLogger = log.New(os.Stderr, "", log.LstdFlags)
+		}
 	}
 
 	// From here on out we're daemonized if -d was passed
