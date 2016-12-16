@@ -14,9 +14,12 @@ Help:
   Helptext:
   - "(bot), dig <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
   - "(bot), hosts <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
+  - "(bot), hostname - report the $HOSTNAME where the bot is running"
 CommandMatches:
 - Command: hosts
   Regex: '(?i:hosts?|lookup|dig|nslookup) ([\w-. ]+)'
+- Command: hostname
+  Regex: '(?i:hostname)'
 EOF
 }
 
@@ -50,5 +53,8 @@ case $command in
 		;;
 	"hosts")
 		hosts $*
+		;;
+	"hostname")
+		Reply "I'm running on $HOSTNAME"
 		;;
 esac
