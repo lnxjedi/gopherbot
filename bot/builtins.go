@@ -134,7 +134,7 @@ func help(bot *Robot, command string, args ...string) {
 				if messageAppliesToPlugin(bot.User, bot.Channel, plugin) {
 					for _, phelp := range plugin.Help {
 						for _, helptext := range phelp.Helptext {
-							if phelp.Keywords[0] == "*" {
+							if len(phelp.Keywords) > 0 && phelp.Keywords[0] == "*" {
 								// * signifies help that should be prepended
 								helpOutput = helpRe.ReplaceAllString(helptext, b.name) + string('\n') + helpOutput
 							} else {
