@@ -171,21 +171,31 @@ func loadPluginConfig() {
 		i++
 	}
 
-	for _, plug := range b.externalPlugins {
+	for index, plug := range b.externalPlugins {
+		if len(plug.Name) == 0 || len(plug.Path) == 0 {
+			Log(Error, fmt.Sprintf("Skipping external plugin #%d with zero-length Name or Path", index + 1))
+			nump--
+			continue
+		}
 		if !pNameRe.MatchString(plug.Name) {
-			Log(Error, "Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping")
+			Log(Error, fmt.Sprintf("Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping", plug.Name, pNameRe.String()))
+			nump--
+			continue
+		}
+		if pset[plug.Name] {
+			Log(Error, fmt.Sprintf("External plugin #%s, \"%s\" duplicates builtIn, skipping", index, plug.Name))
+			nump--
 			continue
 		}
 		pnames[i] = plug.Name
-		if pset[plug.Name] {
-			Log(Error, "External plugin name duplicates builtIn, skipping:", plug)
-			continue
-		}
 		pset[plug.Name] = true
 		ptypes[i] = plugExternal
 		eppaths[plug.Name] = plug.Path
 		i++
 	}
+	// shrink slices when plugins were skipped
+	pnames = pnames[0:nump]
+	ptypes = ptypes[0:nump]
 	// copy the list of default channels
 	pchan := make([]string, 0, len(b.plugChannels))
 	pchan = append(pchan, b.plugChannels...)
@@ -195,6 +205,7 @@ PlugHandlerLoop:
 	for plug, _ := range pluginHandlers {
 		if !pNameRe.MatchString(plug) {
 			Log(Error, "Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping")
+			nump--
 			continue
 		}
 		if pset[plug] { // have to check builtIns, already loaded
@@ -212,6 +223,9 @@ PlugHandlerLoop:
 			i++
 		}
 	}
+	// shrink slices when plugins were skipped
+	pnames = pnames[0:nump]
+	ptypes = ptypes[0:nump]
 	plist := make([]Plugin, 0, nump)
 
 	// Because some plugins may be disabled, pnames and plugins won't necessarily sync
