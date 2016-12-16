@@ -53,7 +53,7 @@ Config:
   - "Hrm... ok, this is one of my favorites..."
   - "I'll see if I can think of one..."
   - "Another robot told me this one, tell me if you think it's funny"
-  - "I found lame joke on the Internet - but it's kinda funny when a robot tells it"
+  - "I found this lame joke on the Internet ... but it's kinda funny when a robot tells it!"
   - "I'll ask Watson(tm) if he knows any good ones and get back to you in a jiffy..."
   - "Hang on while I Google that for you (just kidding ;-)"
   - "Sure - Siri told me this one, but I think it's kind of dumb"
