@@ -22,18 +22,13 @@ func updateRegexes() {
 	b.lock.RLock()
 	alias := b.alias
 	b.lock.RUnlock()
-	if b.alias == 0 {
-		return
-	}
-	if ! strings.ContainsRune(string(aliases + escape_aliases), alias) {
-		Log(Warn, "Invalid alias specified, ignoring. Must be one of: %s%s", escape_aliases, aliases)
-		return
-	}
 	preString := `^(?i:`
-	if strings.ContainsRune(string(escape_aliases), alias) {
-		preString += `\` + string(alias) + "|"
-	} else {
-		preString += string(alias) + "|"
+	if b.alias != 0 {
+		if strings.ContainsRune(string(escape_aliases), alias) {
+			preString += `\` + string(alias) + "|"
+		} else {
+			preString += string(alias) + "|"
+		}
 	}
 	preString += `@?` + b.name + `[:,]{0,1}\s*)(.+)$`
 	re, err := regexp.Compile(preString)

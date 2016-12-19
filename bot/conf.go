@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/uva-its/yaml"
@@ -91,6 +92,7 @@ func logStrToLevel(l string) LogLevel {
 func loadConfig() error {
 	var loglevel LogLevel
 	var newconfig botconf
+	pluginsOk := true
 
 	// Load default config from const defaultConfig, then overlay
 	// with yaml from <localdir>/conf/gopherbot.yaml
@@ -117,7 +119,11 @@ func loadConfig() error {
 	}
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
-		b.alias = alias
+		if ! strings.ContainsRune(string(aliases + escape_aliases), alias) {
+			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escape_aliases, aliases)
+		} else {
+			b.alias = alias
+		}
 	}
 	if newconfig.LocalPort != "" {
 		b.port = "127.0.0.1:" + newconfig.LocalPort
@@ -162,7 +168,15 @@ func loadConfig() error {
 		b.plugChannels = newconfig.DefaultChannels
 	}
 	if newconfig.ExternalPlugins != nil {
-		b.externalPlugins = newconfig.ExternalPlugins
+		for _,ep := range newconfig.ExternalPlugins {
+			if len(ep.Name) == 0 || len(ep.Path) == 0 {
+				pluginsOk = false
+				Log(Error, fmt.Sprintf("Reading external plugins, zero-length Name or Path for plugin #%d, not reloading plugins"))
+			}
+		}
+		if pluginsOk {
+			b.externalPlugins = newconfig.ExternalPlugins
+		}
 	}
 	if newconfig.IgnoreUsers != nil {
 		b.ignoreUsers = newconfig.IgnoreUsers
@@ -178,7 +192,12 @@ func loadConfig() error {
 	config = newconfig
 	botLock.Unlock()
 
-	loadPluginConfig()
+	updateRegexes()
+	if pluginsOk {
+		loadPluginConfig()
+	} else {
+		return fmt.Errorf("Error reading external plugin config")
+	}
 
 	return nil
 }
