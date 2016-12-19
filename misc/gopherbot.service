@@ -1,0 +1,17 @@
+[Unit]
+Description=Gopherbot DevOps Chatbot
+Documentation=https://godoc.org/github.com/uva-its/gopherbot
+After=syslog.target
+After=network.target
+
+[Service]
+Type=simple
+User=robot
+Group=robot
+WorkingDirectory=/opt/gopherbot
+ExecStart=/opt/gopherbot/gopherbot -plainlog
+Restart=on-failure
+Environment=USER=robot HOME=/opt/robot
+
+[Install]
+WantedBy=multi-user.target
