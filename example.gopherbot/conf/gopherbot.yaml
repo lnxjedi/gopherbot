@@ -15,7 +15,8 @@ DefaultChannels: [ "general", "random" ]
 #  ... etc.
 # List of users that can issue admin commands like reload, quit
 AdminUsers: [ "bofh" ]
-# One-character alias the bot can be called by
+# One-character alias the bot can be called by, one of: *+|^$?\[]{}&!;:=-%#@~<>/
+# Note: Some won't work with Slack: "&" (maybe others, not all tested)
 Alias: ";"
 # Protocol configuration - required
 Protocol: slack
