@@ -1,5 +1,5 @@
 # Gopherbot
-A chatops-oriented chatbot written in Go, inspired by Hubot.
+A chatops-oriented chat bot written in Go, inspired by Hubot.
 
 ## Features
 * A thread-safe brain with consistency guarantees
