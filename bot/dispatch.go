@@ -10,7 +10,7 @@ import (
 // messageAppliesToPlugin checks the user and channel against the plugin's
 // configuration to determine if the message should be evaluated. Used by
 // both handleMessage and the help builtin.
-func messageAppliesToPlugin(user, channel string, plugin Plugin) bool {
+func messageAppliesToPlugin(user, channel string, plugin *Plugin) bool {
 	directMsg := false
 	if len(channel) == 0 {
 		directMsg = true
@@ -75,9 +75,9 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", user, messagetext))
 	}
 	commandMatched := false
-	var catchAllPlugins []Plugin
+	var catchAllPlugins []*Plugin
 	if isCommand {
-		catchAllPlugins = make([]Plugin, 0, len(plugins))
+		catchAllPlugins = make([]*Plugin, 0, len(plugins))
 	}
 	// See if this is a reply that was requested
 	matcher := replyMatcher{user, channel}
@@ -134,8 +134,8 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 }
 
 // callPlugin (normally called with go ...) sends a command to a plugin.
-func callPlugin(bot *Robot, plugin Plugin, command string, args ...string) {
-	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\"", command, plugin.name))
+func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
+	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\" with arguments \"%#v\"", command, plugin.name, args))
 	bot.pluginID = plugin.pluginID
 	switch plugin.pluginType {
 	case plugBuiltin, plugGo:

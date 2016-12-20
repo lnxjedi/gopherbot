@@ -18,7 +18,7 @@ import (
 const pNameRegex = `[\w]+`
 
 var pNameRe = regexp.MustCompile(pNameRegex)
-var plugins []Plugin
+var plugins []*Plugin
 var plugIDmap map[string]int
 
 // PluginHelp specifies keywords and help text for the 'bot help system
@@ -27,7 +27,7 @@ type PluginHelp struct {
 	Helptext []string // help string to give for the keywords, conventionally starting with (bot) for commands or (hear) when the bot needn't be addressed directly
 }
 
-// InputMatchers specify the command or message to match and what to pass to the plugin
+// InputMatcher specifies the command or message to match and what to pass to the plugin
 type InputMatcher struct {
 	Regex   string         // The regular expression string to match - bot adds ^\w* & \w*$
 	Command string         // The name of the command to pass to the plugin with it's arguments
@@ -65,9 +65,7 @@ type Plugin struct {
 	lock           sync.Mutex      // For use with the robot's Brain
 }
 
-/* type PluginHandler is the struct a plugin registers for the Gopherbot plugin
-API.
-*/
+// PluginHandler is the struct a plugin registers for the Gopherbot plugin API.
 type PluginHandler struct {
 	DefaultConfig string /* A yaml-formatted multiline string defining the default Plugin configuration. It should be liberally commented for use in generating
 	local/custom configuration for the plugin. If a Config: section is defined, it should match the structure of the optional Config interface{} */
@@ -76,10 +74,10 @@ type PluginHandler struct {
 }
 
 // pluginHandlers maps from plugin names to PluginV1 (later interface{} with a type selector, maybe)
-var pluginHandlers map[string]PluginHandler = make(map[string]PluginHandler)
+var pluginHandlers = make(map[string]PluginHandler)
 
 // stopRegistrations is set "true" when the bot is created to prevent registration outside of init functions
-var stopRegistrations bool = false
+var stopRegistrations = false
 
 // initialize sends the "init" command to every plugin
 func initializePlugins() {
@@ -110,7 +108,7 @@ func RegisterPlugin(name string, plug PluginHandler) {
 	pluginHandlers[name] = plug
 }
 
-func getExtDefCfg(plugin Plugin) (*[]byte, error) {
+func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 	var fullPath string
 	if byte(plugin.pluginPath[0]) == byte("/"[0]) {
 		fullPath = plugin.pluginPath
@@ -138,9 +136,8 @@ func getExtDefCfg(plugin Plugin) (*[]byte, error) {
 			err = fmt.Errorf("Problem retrieving default configuration for external plugin \"%s\", skipping: \"%v\"", fullPath, err)
 		}
 		return nil, err
-	} else {
-		return &cfg, nil
 	}
+	return &cfg, nil
 }
 
 // loadPluginConfig() loads the configuration for all the plugins from
@@ -184,7 +181,7 @@ func loadPluginConfig() {
 			continue
 		}
 		if pset[plug.Name] {
-			Log(Error, fmt.Sprintf("External plugin #%s, \"%s\" duplicates builtIn, skipping", index, plug.Name))
+			Log(Error, fmt.Sprintf("External plugin #%d, \"%s\" duplicates builtIn, skipping", index, plug.Name))
 			nump--
 			continue
 		}
@@ -203,9 +200,9 @@ func loadPluginConfig() {
 	b.lock.RUnlock() // we're done with bot data 'til the end
 
 PlugHandlerLoop:
-	for plug, _ := range pluginHandlers {
+	for plug := range pluginHandlers {
 		if !pNameRe.MatchString(plug) {
-			Log(Error, "Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping")
+			Log(Error, fmt.Sprintf("Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping", plug, pNameRe.String()))
 			nump--
 			continue
 		}
@@ -227,7 +224,7 @@ PlugHandlerLoop:
 	// shrink slices when plugins were skipped
 	pnames = pnames[0:nump]
 	ptypes = ptypes[0:nump]
-	plist := make([]Plugin, 0, nump)
+	plist := make([]*Plugin, 0, nump)
 
 	// Because some plugins may be disabled, pnames and plugins won't necessarily sync
 	plugIndex := 0
@@ -241,7 +238,7 @@ PlugLoop:
 		if plugin.pluginType == plugExternal {
 			// External plugins spit their default config to stdout when called with command="configure"
 			plugin.pluginPath = eppaths[plug]
-			cfg, err := getExtDefCfg(plugin)
+			cfg, err := getExtDefCfg(&plugin)
 			if err != nil {
 				Log(Error, err)
 				continue
@@ -272,7 +269,7 @@ PlugLoop:
 		}
 		Log(Info, fmt.Sprintf("Plugin \"%s\" will be active in channels %q; all channels: %t", plug, plugin.Channels, plugin.AllChannels))
 		// Compile the regex's
-		for i, _ := range plugin.CommandMatches {
+		for i := range plugin.CommandMatches {
 			command := &plugin.CommandMatches[i]
 			re, err := regexp.Compile(`^\s*` + command.Regex + `\s*$`)
 			if err != nil {
@@ -281,7 +278,7 @@ PlugLoop:
 			}
 			command.re = re
 		}
-		for i, _ := range plugin.ReplyMatchers {
+		for i := range plugin.ReplyMatchers {
 			reply := &plugin.ReplyMatchers[i]
 			re, err := regexp.Compile(`^\s*` + reply.Regex + `\s*$`)
 			if err != nil {
@@ -290,7 +287,7 @@ PlugLoop:
 			}
 			reply.re = re
 		}
-		for i, _ := range plugin.MessageMatches {
+		for i := range plugin.MessageMatches {
 			// Note that full message regexes don't get the beginning and end anchors added - the individual plugin
 			// will need to do this if necessary.
 			message := &plugin.MessageMatches[i]
@@ -312,7 +309,7 @@ PlugLoop:
 					Log(Error, fmt.Sprintf("Error unmarshalling plugin config json to config: %v", err))
 				}
 			} else {
-				Log(Debug, "Plugin \"%s\" has custom config, but no local custom config provided", plug)
+				Log(Debug, fmt.Sprintf("Plugin \"%s\" has custom config, but no local custom config provided", plug))
 			}
 		} else {
 			Log(Debug, "config interface isn't a pointer, skipping unmarshal for plugin:", plug)
@@ -324,7 +321,7 @@ PlugLoop:
 		pfinder[plugin.pluginID] = plugIndex
 		// Store this plugin's config in the temporary list
 		Log(Info, fmt.Sprintf("Recorded plugin #%d, \"%s\"", plugIndex, plugin.name))
-		plist = append(plist, plugin)
+		plist = append(plist, &plugin)
 		plugIndex++
 	}
 
