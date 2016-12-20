@@ -28,7 +28,7 @@ class Reply
 		@reply = reply
 		@ret = ret
 	end
-	
+
 	attr_reader :reply, :ret
 
 	def to_s
@@ -167,7 +167,7 @@ class BaseBot
 
 	def SendUserChannelMessage(user, channel, message, format="variable")
 		args = { "User" => user, "Channel" => channel, "Message" => "base64:" + message.to_base64, "Format" => format }
-		ret = callBotFunc("SendChannelMessage", args, format)
+		ret = callBotFunc("SendUserChannelMessage", args, format)
 		return ret["BotRetVal"]
 	end
 
@@ -182,7 +182,7 @@ class BaseBot
 	def Pause(seconds)
 		sleep seconds
 	end
-	
+
 	def Reply(message, format="variable")
 		if @channel.empty?
 			return SendUserMessage(@user, message, format)
@@ -257,4 +257,3 @@ class DirectBot < BaseBot
 	end
 
 end
-
