@@ -1,7 +1,0 @@
-commit 3d9f6e0b234fe7d17448b345b2e14ac05814a758
-Author: Fernando <efepapa@users.noreply.github.com>
-Date:   Thu Sep 10 18:22:27 2015 -0300
-
-    Merge pull request #23 from VividCortex/nop-windows
-    
-    No-op windows support, providing GetExecutablePath utility func

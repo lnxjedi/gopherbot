@@ -1,7 +1,0 @@
-commit 67c6939dd382a85ccbbe2f2e133fd245fe424098
-Author: Norberto Lopes <nlopes.ml@gmail.com>
-Date:   Tue May 31 10:35:27 2016 +0100
-
-    Merge pull request #75 from parsley42/master
-    
-    Let slack use an external logger

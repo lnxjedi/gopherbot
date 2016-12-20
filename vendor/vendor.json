@@ -1,0 +1,43 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "NgAwvzxaLWkvJ9V9PVA+MvG/Rq8=",
+			"path": "github.com/VividCortex/godaemon",
+			"revision": "3d9f6e0b234fe7d17448b345b2e14ac05814a758",
+			"revisionTime": "2015-09-10T21:22:27Z"
+		},
+		{
+			"checksumSHA1": "hrU+s554j35P7xT3W/wdyLUej2k=",
+			"path": "github.com/dgryski/dgoogauth",
+			"revision": "96977cbd42e27be71f9f731db6634123de7e861a",
+			"revisionTime": "2016-06-02T07:13:24Z"
+		},
+		{
+			"checksumSHA1": "muGVyM8mY3/gcap6kr4Ib3F5Xn4=",
+			"path": "github.com/ghodss/yaml",
+			"revision": "04f313413ffd65ce25f2541bfd2b2ceec5c0908c",
+			"revisionTime": "2016-12-07T00:33:20Z"
+		},
+		{
+			"checksumSHA1": "Tv59jlJDdTKNL5jrQhxt47AAAAE=",
+			"path": "github.com/nlopes/slack",
+			"revision": "e595e9d8590a04ff76407e4e7d1791d25b095c66",
+			"revisionTime": "2016-10-30T18:15:39Z"
+		},
+		{
+			"checksumSHA1": "7EZyXN0EmZLgGxZxK01IJua4c8o=",
+			"path": "golang.org/x/net/websocket",
+			"revision": "45e771701b814666a7eb299e6c7a57d0b1799e91",
+			"revisionTime": "2016-12-15T19:42:18Z"
+		},
+		{
+			"checksumSHA1": "12GqsW8PiRPnezDDy0v4brZrndM=",
+			"path": "gopkg.in/yaml.v2",
+			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
+			"revisionTime": "2016-09-28T15:37:09Z"
+		}
+	],
+	"rootPath": "github.com/uva-its/gopherbot"
+}
