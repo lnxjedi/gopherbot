@@ -241,18 +241,12 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		b.lock.RLock()
 		defer b.lock.RUnlock()
 		plugin := plugins[plugIDmap[bot.pluginID]]
-		cfg := make(map[string]interface{})
-		for i, item := range plugin.Config {
-			if key, ok := item.Key.(string); ok {
-				cfg[key] = item.Value
-			} else {
-				Log(Error, "Couldn't convert yaml.MapSlice to map[string]interface{}, item #%d is type %T, not string", i, item.Key)
-				// type handler is a convenient empty struct
-				sendReturn(rw, handler{})
-				return
-			}
+		if plugin.Config == nil {
+			Log(Error, fmt.Sprintf("GetPluginConfig called by external plugin \"%s\", but no config found.", plugin.name))
+			sendReturn(rw, handler{})
+			return
 		}
-		sendReturn(rw, cfg)
+		sendReturn(rw, plugin.Config)
 		return
 	case "GetSenderAttribute", "GetBotAttribute":
 		var a attribute

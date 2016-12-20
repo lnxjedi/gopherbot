@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/uva-its/yaml"
+	"github.com/ghodss/yaml"
 	// MakeDaemon from VividCortex - thanks!
 	"github.com/VividCortex/godaemon"
 )
@@ -93,7 +93,7 @@ func Start() {
 	}
 	instSearchPath = append(instSearchPath, execdir)
 	for _, spath := range instSearchPath {
-		if len(spath) > 0 && dirExists(spath + "/lib") {
+		if len(spath) > 0 && dirExists(spath+"/lib") {
 			installdir = spath
 			break
 		}

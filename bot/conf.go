@@ -1,32 +1,33 @@
 package bot
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/uva-its/yaml"
+	"github.com/ghodss/yaml"
 )
 
 /* conf.go - methods and types for reading and storing json configuration */
 
-var protocolConfig, brainConfig []byte
+var protocolConfig, brainConfig json.RawMessage
 
 type externalPlugin struct {
 	Name, Path string // List of names and paths for external plugins; relative paths are searched first in installdir, then localdir
 }
 
-// botconf specifies 'bot configuration, and is read from $GOPHER_LOCALDIR/botconf.json
+// botconf specifies 'bot configuration, and is read from $GOPHER_LOCALDIR/conf/gopherbot.yaml
 type botconf struct {
 	AdminContact    string           // Contact info for whomever administers the robot
 	Email           string           // From: address when the robot wants to send an email
 	MailServer      string           // host:port to contact when sending mail, defaults to 127.0.0.1:25
 	Protocol        string           // Name of the connector protocol to use, e.g. "slack"
-	ProtocolConfig  yaml.MapSlice    // Protocol-specific configuration, type for unmarshalling arbitrary config
+	ProtocolConfig  json.RawMessage  // Protocol-specific configuration, type for unmarshalling arbitrary config
 	Brain           string           // Type of Brain to use
-	BrainConfig     yaml.MapSlice    // Brain-specific configuration, type for unmarshalling arbitrary config
+	BrainConfig     json.RawMessage  // Brain-specific configuration, type for unmarshalling arbitrary config
 	Name            string           // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
 	DefaultChannels []string         // Channels where plugins are active by default, e.g. [ "general", "random" ]
 	IgnoreUsers     []string         // Users the 'bot never talks to - like other bots
@@ -36,10 +37,6 @@ type botconf struct {
 	Alias           string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
 	LocalPort       string           // Port number for listening on localhost, for CLI plugins
 	LogLevel        string           // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
-}
-
-func init() {
-	yaml.SetPreserveFieldCase(true)
 }
 
 var config botconf
@@ -119,7 +116,7 @@ func loadConfig() error {
 	}
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
-		if ! strings.ContainsRune(string(aliases + escape_aliases), alias) {
+		if !strings.ContainsRune(string(aliases+escape_aliases), alias) {
 			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escape_aliases, aliases)
 		} else {
 			b.alias = alias
@@ -146,19 +143,11 @@ func loadConfig() error {
 		return fmt.Errorf("Protocol not specified in gopherbot.json")
 	}
 
-	// Re-marshal brainConfig and protocolConfig
-	var err error
 	if newconfig.BrainConfig != nil {
-		brainConfig, err = yaml.Marshal(newconfig.BrainConfig)
-		if err != nil {
-			Log(Error, "Marshalling brainConfig: %v", err)
-		}
+		brainConfig = newconfig.BrainConfig
 	}
 	if newconfig.ProtocolConfig != nil {
-		protocolConfig, err = yaml.Marshal(newconfig.ProtocolConfig)
-		if err != nil {
-			Log(Error, "Marshalling protocolConfig: %v", err)
-		}
+		protocolConfig = newconfig.ProtocolConfig
 	}
 
 	if newconfig.AdminUsers != nil {
@@ -168,7 +157,7 @@ func loadConfig() error {
 		b.plugChannels = newconfig.DefaultChannels
 	}
 	if newconfig.ExternalPlugins != nil {
-		for _,ep := range newconfig.ExternalPlugins {
+		for _, ep := range newconfig.ExternalPlugins {
 			if len(ep.Name) == 0 || len(ep.Path) == 0 {
 				pluginsOk = false
 				Log(Error, fmt.Sprintf("Reading external plugins, zero-length Name or Path for plugin #%d, not reloading plugins"))

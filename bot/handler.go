@@ -1,10 +1,9 @@
 package bot
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
-
-	"github.com/uva-its/yaml"
 )
 
 // an empty object type for passing a Handler to the connector.
@@ -80,7 +79,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct
 func (h handler) GetProtocolConfig(v interface{}) error {
 	b.lock.RLock()
-	err := yaml.Unmarshal(protocolConfig, v)
+	err := json.Unmarshal(protocolConfig, v)
 	b.lock.RUnlock()
 	return err
 }
@@ -88,7 +87,7 @@ func (h handler) GetProtocolConfig(v interface{}) error {
 // GetBrainConfig unmarshals the brain's configuration data into a provided struct
 func (h handler) GetBrainConfig(v interface{}) error {
 	b.lock.RLock()
-	err := yaml.Unmarshal(brainConfig, v)
+	err := json.Unmarshal(brainConfig, v)
 	b.lock.RUnlock()
 	return err
 }
