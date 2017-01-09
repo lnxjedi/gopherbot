@@ -108,7 +108,7 @@ func Start() {
 	home := os.Getenv("HOME")
 	confSearchPath := []string{
 		configDir,
-		os.Getenv("GOPHER_LOCALDIR"),
+		os.Getenv("GOPHER_CONFIGDIR"),
 		home + "/.gopherbot",
 		"/usr/local/etc/gopherbot",
 		"/etc/gopherbot",
@@ -201,7 +201,7 @@ func Start() {
 	// from internal config, then loads from localdir/conf/..., which
 	// overrides defaults.
 	os.Setenv("GOPHER_INSTALLDIR", installdir)
-	os.Setenv("GOPHER_LOCALDIR", localdir)
+	os.Setenv("GOPHER_CONFIGDIR", localdir)
 	err = newBot(localdir, installdir, botLogger)
 	if err != nil {
 		botLogger.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))

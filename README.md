@@ -65,10 +65,10 @@ When Gopherbot starts, it first looks for it's install directory, containing at 
 
 You can copy `lib/` and `plugins/` to one of the directories listed above (mainly for packaging/deployment), but for development and testing you can run gopherbot from the expanded archive directory and it'll look for it's install files there.
 
-### Localdir
+### Local configuration directory
 Gopherbot also looks for a local configuration directory, which must contain at least `conf/`, and optionally `plugins/` for your own plugins. You can copy the `example.gopherbot/` directory to one of the following locations that Gopherbot searches for local configuration:
 * A config dir passed with the `-c` flag
-* The location specified in the `$GOPHER_LOCALDIR` environment variable, if set
+* The location specified in the `$GOPHER_CONFIGDIR` environment variable, if set
 * `$HOME/.gopherbot`
 * `/usr/local/etc/gopherbot`
 * `/etc/gopherbot`

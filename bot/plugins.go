@@ -141,7 +141,7 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 }
 
 // loadPluginConfig() loads the configuration for all the plugins from
-// $GOPHER_LOCALDIR/plugins/<pluginname>.yaml, assigns a pluginID, and
+// $GOPHER_CONFIGDIR/plugins/<pluginname>.yaml, assigns a pluginID, and
 // stores the resulting array in b.plugins. Bad plugins are skipped and logged.
 // Plugin configuration is initially loaded into temporary data structures,
 // then stored in the bot package under the global bot lock.

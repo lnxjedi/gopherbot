@@ -19,7 +19,7 @@ type externalPlugin struct {
 	Name, Path string // List of names and paths for external plugins; relative paths are searched first in installdir, then localdir
 }
 
-// botconf specifies 'bot configuration, and is read from $GOPHER_LOCALDIR/conf/gopherbot.yaml
+// botconf specifies 'bot configuration, and is read from $GOPHER_CONFIGDIR/conf/gopherbot.yaml
 type botconf struct {
 	AdminContact    string           // Contact info for whomever administers the robot
 	Email           string           // From: address when the robot wants to send an email
@@ -126,7 +126,7 @@ func loadConfig() error {
 		b.port = "127.0.0.1:" + newconfig.LocalPort
 		err := os.Setenv("GOPHER_HTTP_POST", "http://"+b.port)
 		if err != nil {
-			Log(Error, fmt.Errorf("Error exporting GOPHER_HTTP_PORT: ", err))
+			Log(Error, fmt.Errorf("Error exporting GOPHER_HTTP_PORT: %q", err))
 		}
 	}
 	if newconfig.Name != "" {
@@ -157,10 +157,10 @@ func loadConfig() error {
 		b.plugChannels = newconfig.DefaultChannels
 	}
 	if newconfig.ExternalPlugins != nil {
-		for _, ep := range newconfig.ExternalPlugins {
+		for i, ep := range newconfig.ExternalPlugins {
 			if len(ep.Name) == 0 || len(ep.Path) == 0 {
 				pluginsOk = false
-				Log(Error, fmt.Sprintf("Reading external plugins, zero-length Name or Path for plugin #%d, not reloading plugins"))
+				Log(Error, fmt.Errorf("Reading external plugins, zero-length Name or Path for plugin #%d, not reloading plugins", i))
 			}
 		}
 		if pluginsOk {
