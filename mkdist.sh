@@ -6,19 +6,17 @@
 
 usage(){
 	cat <<EOF
-Usage: mkdist.sh <destdir>
+Usage: mkdist.sh
 
 Generate distributable .zip files for the current platform.
 EOF
 	exit 0
 }
 
-[ $# -eq 0 ] && usage
-
 eval `go env`
 echo "Building gopherbot for $GOOS"
 go build
-OUTFILE=$1/gopherbot-$GOPHERBOT_VERSION-$GOOS-$GOARCH.zip
+OUTFILE=./gopherbot-$GOPHERBOT_VERSION-$GOOS-$GOARCH.zip
 rm -f $OUTFILE
 
 echo "Creating $OUTFILE"
