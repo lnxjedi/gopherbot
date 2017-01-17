@@ -70,7 +70,7 @@ func getConfigFile(filename string, required bool, c interface{}) error {
 }
 
 func logStrToLevel(l string) LogLevel {
-	switch l {
+	switch strings.ToLower(l) {
 	case "trace":
 		return Trace
 	case "debug":
