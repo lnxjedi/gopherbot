@@ -154,24 +154,28 @@ class BaseBot
 	end
 
 	def SendChannelMessage(channel, message, format="variable")
+		format = format.to_s if format.class == Symbol
 		args = { "Channel" => channel, "Message" => "base64:" + message.to_base64, "Format" => format }
 		ret = callBotFunc("SendChannelMessage", args, format)
 		return ret["BotRetVal"]
 	end
 
 	def SendUserMessage(user, message, format="variable")
+		format = format.to_s if format.class == Symbol
 		args = { "User" => user, "Message" => "base64:" + message.to_base64, "Format" => format }
 		ret = callBotFunc("SendUserMessage", args, format)
 		return ret["BotRetVal"]
 	end
 
 	def SendUserChannelMessage(user, channel, message, format="variable")
+		format = format.to_s if format.class == Symbol
 		args = { "User" => user, "Channel" => channel, "Message" => "base64:" + message.to_base64, "Format" => format }
 		ret = callBotFunc("SendUserChannelMessage", args, format)
 		return ret["BotRetVal"]
 	end
 
 	def Say(message, format="variable")
+		format = format.to_s if format.class == Symbol
 		if @channel.empty?
 			return SendUserMessage(@user, message, format)
 		else
@@ -184,6 +188,7 @@ class BaseBot
 	end
 
 	def Reply(message, format="variable")
+		format = format.to_s if format.class == Symbol
 		if @channel.empty?
 			return SendUserMessage(@user, message, format)
 		else
