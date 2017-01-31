@@ -4,8 +4,10 @@
 package help
 
 import (
-	"github.com/uva-its/gopherbot/bot"
+	"fmt"
 	"strings"
+
+	"github.com/uva-its/gopherbot/bot"
 )
 
 var (
@@ -30,8 +32,8 @@ CatchAll: true
 
 // Define the handler function
 func help(bot *bot.Robot, command string, args ...string) {
+	botName := bot.GetBotAttribute("name").String()
 	if command == "help" { // user just typed 'help' - the robot should introduce itself
-		botName := bot.GetBotAttribute("name").String()
 		botContact := bot.GetBotAttribute("contact").String()
 		botAlias := bot.GetBotAttribute("alias").String()
 		reply := "Hi, I'm "
@@ -55,7 +57,7 @@ func help(bot *bot.Robot, command string, args ...string) {
 		}
 		bot.SendUserMessage(bot.User, reply)
 	} else if command == "catchall" {
-		bot.Reply("Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'help <keyword>'")
+		bot.Reply(fmt.Sprintf("Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try '%s, help <keyword>'", botName))
 	}
 }
 
