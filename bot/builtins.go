@@ -5,7 +5,6 @@ import (
 	"encoding/base32"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -28,16 +27,11 @@ var builtIns = []string{
 	"builtInlaunchcodes",
 }
 
-// To make help output more readable
-var helpRe *regexp.Regexp
-
 func init() {
 	RegisterPlugin("builtIndump", PluginHandler{DefaultConfig: dumpConfig, Handler: dump})
 	RegisterPlugin("builtInhelp", PluginHandler{DefaultConfig: helpConfig, Handler: help})
 	RegisterPlugin("builtInadmin", PluginHandler{DefaultConfig: adminConfig, Handler: admin})
 	RegisterPlugin("builtInlaunchcodes", PluginHandler{DefaultConfig: launchCodesConfig, Handler: launchCode})
-
-	helpRe = regexp.MustCompile(`\(bot\)`)
 }
 
 /* builtin plugins, like help */
@@ -116,6 +110,7 @@ func help(bot *Robot, command string, args ...string) {
 		defer b.lock.RUnlock()
 
 		var term, helpOutput string
+		botSub := `(bot)`
 		hasTerm := false
 		helpLines := 0
 		if len(args) == 1 && len(args[0]) > 0 {
@@ -136,9 +131,9 @@ func help(bot *Robot, command string, args ...string) {
 						for _, helptext := range phelp.Helptext {
 							if len(phelp.Keywords) > 0 && phelp.Keywords[0] == "*" {
 								// * signifies help that should be prepended
-								helpOutput = helpRe.ReplaceAllString(helptext, b.name) + string('\n') + helpOutput
+								helpOutput = strings.Replace(helptext, botSub, b.name, -1) + string('\n') + helpOutput
 							} else {
-								helpOutput += helpRe.ReplaceAllString(helptext, b.name) + string('\n')
+								helpOutput += strings.Replace(helptext, botSub, b.name, -1) + string('\n')
 							}
 							helpLines++
 						}
@@ -165,7 +160,7 @@ func help(bot *Robot, command string, args ...string) {
 								chantext += ")"
 							}
 							for _, helptext := range phelp.Helptext {
-								helpOutput += helptext + chantext + string('\n')
+								helpOutput += strings.Replace(helptext, botSub, b.name, -1) + chantext + string('\n')
 								helpLines++
 							}
 						}
