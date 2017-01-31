@@ -180,6 +180,10 @@ func help(bot *Robot, command string, args ...string) {
 				if !hasTerm {
 					helpOutput = "Command(s) available in channel: " + bot.Channel + "\n" + helpOutput
 				}
+			} else {
+				if !hasTerm {
+					helpOutput = "Command(s) available:" + "\n" + helpOutput
+				}
 			}
 			bot.SendUserMessage(bot.User, strings.TrimRight(helpOutput, "\n"))
 		default:
