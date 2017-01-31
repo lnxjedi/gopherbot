@@ -174,25 +174,30 @@ func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
 		stderr, err := cmd.StderrPipe()
 		if err != nil {
 			Log(Error, fmt.Errorf("Creating stderr pipe for external command \"%s\": %v", fullPath, err))
+			bot.Reply(fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name))
 			return
 		}
-		if err := cmd.Start(); err != nil {
+		if err = cmd.Start(); err != nil {
 			Log(Error, fmt.Errorf("Starting command \"%s\": %v", fullPath, err))
+			bot.Reply(fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name))
 			return
 		}
 		defer func() {
-			if err := cmd.Wait(); err != nil {
+			if err = cmd.Wait(); err != nil {
 				Log(Error, fmt.Errorf("Waiting on external command \"%s\": %v", fullPath, err))
+				bot.Reply(fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name))
 			}
 		}()
 		stdErrBytes, err := ioutil.ReadAll(stderr)
 		if err != nil {
 			Log(Error, fmt.Errorf("Reading from stderr for external command \"%s\": %v", fullPath, err))
+			bot.Reply(fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name))
 			return
 		}
 		stdErrString := string(stdErrBytes)
 		if len(stdErrString) > 0 {
 			Log(Warn, fmt.Errorf("Output from stderr of external command \"%s\": %s", fullPath, stdErrString))
+			bot.Reply(fmt.Sprintf("There was error output while calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name))
 		}
 	}
 }
