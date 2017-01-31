@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"reflect"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/ghodss/yaml"
@@ -271,7 +272,7 @@ PlugLoop:
 		// Compile the regex's
 		for i := range plugin.CommandMatches {
 			command := &plugin.CommandMatches[i]
-			re, err := regexp.Compile(`^\s*` + command.Regex + `\s*$`)
+			re, err := regexp.Compile(`^\s*` + strings.Replace(command.Regex, " ", `\s+`, -1) + `\s*$`)
 			if err != nil {
 				Log(Error, fmt.Errorf("Skipping %s, couldn't compile command regular expression \"%s\": %v", plug, command.Regex, err))
 				continue PlugLoop
@@ -280,7 +281,7 @@ PlugLoop:
 		}
 		for i := range plugin.ReplyMatchers {
 			reply := &plugin.ReplyMatchers[i]
-			re, err := regexp.Compile(`^\s*` + reply.Regex + `\s*$`)
+			re, err := regexp.Compile(`^\s*` + strings.Replace(reply.Regex, " ", `\s+`, -1) + `\s*$`)
 			if err != nil {
 				Log(Error, fmt.Errorf("Skipping %s, couldn't compile reply regular expression \"%s\": %v", plug, reply.Regex, err))
 				continue PlugLoop
@@ -291,7 +292,7 @@ PlugLoop:
 			// Note that full message regexes don't get the beginning and end anchors added - the individual plugin
 			// will need to do this if necessary.
 			message := &plugin.MessageMatches[i]
-			re, err := regexp.Compile(message.Regex)
+			re, err := regexp.Compile(strings.Replace(message.Regex, " ", `\s+`, -1))
 			if err != nil {
 				Log(Error, fmt.Errorf("Skipping %s, couldn't compile message regular expression \"%s\": %v", plug, message.Regex, err))
 				continue PlugLoop
