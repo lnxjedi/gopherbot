@@ -168,16 +168,17 @@ func help(bot *Robot, command string, args ...string) {
 				}
 			}
 		}
+		if hasTerm {
+			helpOutput = "Command(s) matching keyword: " + term + "\n" + helpOutput
+		}
 		switch {
 		case helpLines == 0:
 			bot.Say("Sorry, bub - I got nothin' for ya'")
 		case helpLines > tooLong:
 			if len(bot.Channel) > 0 {
 				bot.Reply("(the help output was pretty long, so I sent you a private message)")
-				if hasTerm {
-					helpOutput = "Help for term: " + term + "\n" + helpOutput
-				} else {
-					helpOutput = "Help for commands available in channel: " + bot.Channel + "\n" + helpOutput
+				if !hasTerm {
+					helpOutput = "Command(s) available in channel: " + bot.Channel + "\n" + helpOutput
 				}
 			}
 			bot.SendUserMessage(bot.User, strings.TrimRight(helpOutput, "\n"))
