@@ -187,6 +187,9 @@ func help(bot *Robot, command string, args ...string) {
 			}
 			bot.SendUserMessage(bot.User, strings.TrimRight(helpOutput, "\n"))
 		default:
+			if !hasTerm {
+				helpOutput = "Command(s) available:" + "\n" + helpOutput
+			}
 			bot.Say(strings.TrimRight(helpOutput, "\n"))
 		}
 	}
