@@ -197,7 +197,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 			return
 		}
 		s.IncomingMessage("", directUserName, text)
-	case "C":
+	case "C", "G":
 		channelName, ok := s.channelName(chanID)
 		if !ok {
 			s.Log(bot.Warn, "Coudln't find channel name for ID", chanID)
@@ -219,6 +219,7 @@ func (s *slackConnector) updateMaps() {
 		userlist   []slack.User
 		userIMlist []slack.IM
 		chanlist   []slack.Channel
+		grouplist  []slack.Group
 	)
 
 	for tries := uint(0); time.Now().Before(deadline); tries++ {
@@ -265,12 +266,26 @@ func (s *slackConnector) updateMaps() {
 	if err != nil {
 		s.Log(bot.Fatal, fmt.Sprintf("Protocol timeout updating channels: %v\n", err))
 	}
+	for tries := uint(0); time.Now().Before(deadline); tries++ {
+		grouplist, err = s.api.GetGroups(true)
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		s.Log(bot.Fatal, fmt.Sprintf("Protocol timeout updating groups: %v\n", err))
+	}
 	chanMap := make(map[string]string)
 	chanIDMap := make(map[string]string)
 	for _, channel := range chanlist {
-		s.Log(bot.Trace, "Mapping channel name", channel.Name, "to", channel.ID)
+		s.Log(bot.Trace, "Mapping channel name", channel.Name, "to channel", channel.ID)
 		chanMap[channel.Name] = channel.ID
 		chanIDMap[channel.ID] = channel.Name
+	}
+	for _, group := range grouplist {
+		s.Log(bot.Trace, "Mapping channel name", group.Name, "to group", group.ID)
+		chanMap[group.Name] = group.ID
+		chanIDMap[group.ID] = group.Name
 	}
 
 	s.Lock()
