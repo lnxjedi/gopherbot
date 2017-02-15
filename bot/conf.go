@@ -41,31 +41,47 @@ type botconf struct {
 
 var config botconf
 
-// getConfigFile loads a config file from localPath. Required indicates whether
-// to return an error if the file isn't found.
+// getConfigFile loads a config file first from installPath, then from localPath.
+// The goal is to support prod/dev environments where authentication info is set
+// in <installPath>/conf/gopherbot.yaml, but everything else (plugins & config)
+// is configured under <localPath>.
+
+// Required indicates whether to return an error if neither file is found.
 func getConfigFile(filename string, required bool, c interface{}) error {
 	var (
 		cf  []byte
 		err error
 	)
 
+	loaded := false
+
+	cf, err = ioutil.ReadFile(b.installPath + "/conf/" + filename)
+	if err == nil {
+		if err = yaml.Unmarshal(cf, c); err != nil {
+			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
+			Log(Error, err)
+			return err
+		} else {
+			loaded = true
+		}
+	}
 	cf, err = ioutil.ReadFile(b.localPath + "/conf/" + filename)
 	if err != nil {
-		err = fmt.Errorf("Reading custom configuration for \"%s\": %v", filename, err)
+		err = fmt.Errorf("Reading local configuration for \"%s\": %v", filename, err)
 		Log(Debug, err)
-		if !required {
-			return nil
-		} else {
-			return err
-		}
 	} else {
-		if err := yaml.Unmarshal(cf, c); err != nil {
-			err = fmt.Errorf("Unmarshalling custom \"%s\": %v", filename, err)
+		if err = yaml.Unmarshal(cf, c); err != nil {
+			err = fmt.Errorf("Unmarshalling local \"%s\": %v", filename, err)
 			Log(Error, err)
 			return err // If a badly-formatted config is loaded, we always return an error
 		} else {
-			return nil
+			loaded = true
 		}
+	}
+	if required && !loaded {
+		return err
+	} else {
+		return nil
 	}
 }
 
@@ -84,8 +100,7 @@ func logStrToLevel(l string) LogLevel {
 	}
 }
 
-// loadConfig loads the 'bot's json configuration files. An error on first load
-// results in log.fatal, but later Loads just log the error.
+// loadConfig loads the 'bot's json configuration files.
 func loadConfig() error {
 	var loglevel LogLevel
 	var newconfig botconf
