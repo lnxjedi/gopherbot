@@ -67,9 +67,6 @@ func (s *slackConnector) userIMID(u string) (i string, ok bool) {
 	s.RLock()
 	i, ok = s.userIDToIM[u]
 	s.RUnlock()
-	if !ok {
-
-	}
 	return i, ok
 }
 

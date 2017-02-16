@@ -101,7 +101,7 @@ func (sc *slackConnector) Run() {
 			switch ev := msg.Data.(type) {
 			case *slack.HelloEvent:
 				// Ignore hello
-			case *slack.ChannelArchiveEvent, *slack.ChannelCreatedEvent, *slack.ChannelDeletedEvent, *slack.ChannelRenameEvent, *slack.TeamJoinEvent, *slack.GroupJoinedEvent:
+			case *slack.ChannelArchiveEvent, *slack.ChannelCreatedEvent, *slack.ChannelDeletedEvent, *slack.ChannelRenameEvent, *slack.TeamJoinEvent, *slack.GroupJoinedEvent, *slack.UserChangeEvent:
 				sc.updateMaps()
 
 			case *slack.MessageEvent:
