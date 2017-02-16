@@ -87,21 +87,6 @@ func getConfigFile(filename string, required bool, c interface{}) error {
 	}
 }
 
-func logStrToLevel(l string) LogLevel {
-	switch strings.ToLower(l) {
-	case "trace":
-		return Trace
-	case "debug":
-		return Debug
-	case "info":
-		return Info
-	case "warn":
-		return Warn
-	default:
-		return Error
-	}
-}
-
 // loadConfig loads the 'bot's json configuration files.
 func loadConfig() error {
 	var loglevel LogLevel

@@ -58,3 +58,18 @@ CommandMatches:
 - Command: "robot"
   Regex: "dump robot"
 `
+
+const logConfig = `
+DirectOnly: true
+RequireAdmin: true
+Help:
+- Keywords: [ "log", "logs", "level" ]
+  Helptext: [ "(bot), set log level to <trace|debug|info|warning|error> - adjust the logging verbosity" ]
+- Keywords: [ "show", "log", "logs" ]
+  Helptext: [ "(bot), show log (page X) - display the last or Xth previous page of log output" ]
+CommandMatches:
+- Command: "level"
+  Regex: '(?i:set log ?level(?: to)? (trace|debug|info|warning|error))'
+- Command: "show"
+  Regex: '(?i:show logs?(?: page (\d+))?)'
+`

@@ -5,6 +5,7 @@ import (
 	"encoding/base32"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,6 +26,7 @@ var builtIns = []string{
 	"builtInadmin",
 	"builtIndump",
 	"builtInlaunchcodes",
+	"builtInlogging",
 }
 
 func init() {
@@ -32,6 +34,7 @@ func init() {
 	RegisterPlugin("builtInhelp", PluginHandler{DefaultConfig: helpConfig, Handler: help})
 	RegisterPlugin("builtInadmin", PluginHandler{DefaultConfig: adminConfig, Handler: admin})
 	RegisterPlugin("builtInlaunchcodes", PluginHandler{DefaultConfig: launchCodesConfig, Handler: launchCode})
+	RegisterPlugin("builtInlogging", PluginHandler{DefaultConfig: logConfig, Handler: logging})
 }
 
 /* builtin plugins, like help */
@@ -252,6 +255,27 @@ var byebye = []string{
 	"Adios",
 	"Hasta la vista!",
 	"Later gator!",
+}
+
+func logging(bot *Robot, command string, args ...string) {
+	switch command {
+	case "init":
+		return
+	case "level":
+		setLogLevel(logStrToLevel(args[0]))
+		bot.Say(fmt.Sprintf("I've adjusted the log level to %s", args[0]))
+		Log(Info, fmt.Sprintf("User %s changed logging level to %s", bot.User, args[0]))
+	case "show":
+		page := 0
+		if len(args) == 1 {
+			page, _ = strconv.Atoi(args[0])
+		}
+		lines, wrap := logPage(page)
+		if wrap {
+			bot.Say("(warning: value too large for pages, wrapped past beginning of log)")
+		}
+		bot.Fixed().Say(strings.Join(lines, ""))
+	}
 }
 
 func admin(bot *Robot, command string, args ...string) {
