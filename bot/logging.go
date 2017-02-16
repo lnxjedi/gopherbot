@@ -47,25 +47,29 @@ func logStrToLevel(l string) LogLevel {
 	}
 }
 
+func logLevelToStr(l LogLevel) string {
+	switch l {
+	case Trace:
+		return "Trace"
+	case Debug:
+		return "Debug"
+	case Info:
+		return "Info"
+	case Warn:
+		return "Warning"
+	case Error:
+		return "Error"
+	case Fatal:
+		return "Fatal"
+	}
+	return "" // make the compiler happy
+}
+
 // Log logs messages whenever the connector log level is
 // less than the given level
 func Log(l LogLevel, v ...interface{}) {
 	if l >= b.level {
-		var prefix string
-		switch l {
-		case Trace:
-			prefix = "Trace:"
-		case Debug:
-			prefix = "Debug:"
-		case Info:
-			prefix = "Info:"
-		case Warn:
-			prefix = "Warning:"
-		case Error:
-			prefix = "Error:"
-		case Fatal:
-			prefix = "Fatal:"
-		}
+		prefix := logLevelToStr(l) + ":"
 		p := []interface{}{prefix}
 		var msg string
 		if len(v) == 1 {

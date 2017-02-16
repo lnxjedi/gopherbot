@@ -275,6 +275,11 @@ func logging(bot *Robot, command string, args ...string) {
 			bot.Say("(warning: value too large for pages, wrapped past beginning of log)")
 		}
 		bot.Fixed().Say(strings.Join(lines, ""))
+	case "showlevel":
+		b.lock.Lock()
+		l := b.level
+		b.lock.Unlock()
+		bot.Say(fmt.Sprintf("My current logging level is: %s", logLevelToStr(l)))
 	}
 }
 
