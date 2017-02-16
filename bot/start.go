@@ -130,7 +130,7 @@ func Start() {
 		log.Fatalf("Couldn't read conf/gopherbot.yaml in local configuration directory: %s\n", localdir)
 	}
 	var bi BotInfo
-	if err := yaml.Unmarshal(cf, &bi); err != nil {
+	if err = yaml.Unmarshal(cf, &bi); err != nil {
 		log.Fatalf("Error unmarshalling \"%s\": %v", localdir+"/conf/gopherbot.yaml", err)
 	}
 
@@ -138,10 +138,7 @@ func Start() {
 	if daemonize {
 		var f *os.File
 		if godaemon.Stage() == godaemon.StageParent {
-			var (
-				lp  string
-				err error
-			)
+			var lp string
 			if len(logFile) != 0 {
 				lp = logFile
 			} else if len(bi.LogFile) != 0 {
@@ -155,7 +152,7 @@ func Start() {
 			}
 			log.Printf("Backgrounding and logging to: %s\n", lp)
 		}
-		_, _, err := godaemon.MakeDaemon(&godaemon.DaemonAttr{
+		_, _, err = godaemon.MakeDaemon(&godaemon.DaemonAttr{
 			Files:         []**os.File{&f},
 			ProgramName:   "gopherbot",
 			CaptureOutput: false,
@@ -177,7 +174,7 @@ func Start() {
 			pf = bi.PidFile
 		}
 		if len(pf) != 0 {
-			f, err := os.Create(pf)
+			f, err = os.Create(pf)
 			if err != nil {
 				botLogger.Printf("Couldn't create pid file: %v", err)
 			} else {

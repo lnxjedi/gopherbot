@@ -62,6 +62,7 @@ func getConfigFile(filename string, required bool, c interface{}) error {
 			Log(Error, err)
 			return err
 		} else {
+			Log(Debug, fmt.Sprintf("Loaded installed conf/%s", filename))
 			loaded = true
 		}
 	}
@@ -75,6 +76,7 @@ func getConfigFile(filename string, required bool, c interface{}) error {
 			Log(Error, err)
 			return err // If a badly-formatted config is loaded, we always return an error
 		} else {
+			Log(Debug, fmt.Sprintf("Loaded configured conf/%s", filename))
 			loaded = true
 		}
 	}

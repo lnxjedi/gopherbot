@@ -1,5 +1,7 @@
 package bot
 
+import "fmt"
+
 // LogLevel for determining when to output a log entry
 type LogLevel int
 
@@ -32,10 +34,19 @@ func Log(l LogLevel, v ...interface{}) {
 		case Fatal:
 			prefix = "Fatal:"
 		}
-		if l == Fatal {
-			b.logger.Fatalln(prefix, v)
+		p := []interface{}{prefix}
+		var msg string
+		if len(v) == 1 {
+			msg = fmt.Sprintln(prefix, v[0])
 		} else {
-			b.logger.Println(prefix, v)
+			v = append(p, v...)
+			msg = fmt.Sprintln(v...)
+		}
+
+		if l == Fatal {
+			b.logger.Fatal(msg)
+		} else {
+			b.logger.Print(msg)
 		}
 	}
 }
