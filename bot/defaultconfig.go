@@ -37,6 +37,14 @@ LogLevel: info
 #  SlackToken: "<your_token_here>"
 #  MaxMessageSplit: 2
 #
+# The robot's email address (used in From:)
+#Email: robbie@robot.com
+# Configuration for sending out email
+#MailConfig:
+#  Mailhost: <somehost:port>
+#  Authtype: <plain|none>
+#  User: <authuser>
+#  Password: <password>
 # Specify the mechanism for storing the robots memories
 Brain: file
 BrainConfig:

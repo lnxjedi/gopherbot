@@ -26,7 +26,7 @@ const launchCodesConfig = `
 AllChannels: true
 Help:
 - Keywords: [ "send", "launch", "codes" ]
-  Helptext: [ "(bot), send launch codes - one-time send of URL for configuring Google Authenticator, for 2FA commands" ]
+  Helptext: [ "(bot), send launch codes - one-time send of Google Authenticator string token, for use with TOTP elevation" ]
 - Keywords: [ "check", "launch", "codes", "code" ]
   Helptext: [ "(bot), check launch code <code> - verify launch codes operation without launching any missiles" ]
 CommandMatches:

@@ -23,7 +23,7 @@ type externalPlugin struct {
 type botconf struct {
 	AdminContact    string           // Contact info for whomever administers the robot
 	Email           string           // From: address when the robot wants to send an email
-	MailServer      string           // host:port to contact when sending mail, defaults to 127.0.0.1:25
+	MailConfig      botMailer        // configuration for sending email
 	Protocol        string           // Name of the connector protocol to use, e.g. "slack"
 	ProtocolConfig  json.RawMessage  // Protocol-specific configuration, type for unmarshalling arbitrary config
 	Brain           string           // Type of Brain to use
@@ -113,9 +113,7 @@ func loadConfig() error {
 	if newconfig.Email != "" {
 		b.email = newconfig.Email
 	}
-	if newconfig.MailServer != "" {
-		b.mailserver = newconfig.MailServer
-	}
+	b.mailConf = newconfig.MailConfig
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		if !strings.ContainsRune(string(aliases+escape_aliases), alias) {

@@ -53,10 +53,10 @@ func launchCode(bot *Robot, command string, args ...string) {
 	}
 	defer func() {
 		if updated {
-			ret := updateDatum(otpKey, lock, &userOTP)
+			ret = updateDatum(otpKey, lock, &userOTP)
 			if ret != Ok {
 				Log(Error, "Couldn't save OTP config")
-				bot.Reply("Good grief. I'm having trouble remembering your launch codes - have somebody check my log")
+				bot.Reply("Good grief, I'm having trouble remembering your launch codes - have somebody check my log")
 			}
 		} else {
 			// Well-behaved plugins will always do a CheckinDatum when the datum hasn't been updated,
@@ -77,10 +77,14 @@ func launchCode(bot *Robot, command string, args ...string) {
 		userOTP.DisallowReuse = []int{}
 		var codeMail bytes.Buffer
 		fmt.Fprintf(&codeMail, "For your authenticator:\n%s\n", userOTP.Secret)
-		if ret := bot.Email("Your launch codes - if you print this email, please chew it up and swallow it", &codeMail); ret != Ok {
+		// Sending email takes longer than the timeout, so we check it in and check
+		// out again after.
+		checkinDatum(otpKey, lock)
+		if ret = bot.Email("Your launch codes - if you print this email, please chew it up and swallow it", &codeMail); ret != Ok {
 			bot.Reply("There was a problem sending your launch codes, contact an administrator")
 			return
 		}
+		lock, _, ret = checkoutDatum(otpKey, &userOTP, true)
 		updated = true
 		bot.Reply("I've emailed your launch codes - please delete it promptly")
 	case "check":

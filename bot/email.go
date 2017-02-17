@@ -4,7 +4,17 @@ import (
 	"bytes"
 	"fmt"
 	"net/smtp"
+	"strings"
+
+	"github.com/jordan-wright/email"
 )
+
+type botMailer struct {
+	Mailhost string // host(:port) to send email through
+	Authtype string // none, plain
+	User     string // optional username for authenticated email
+	Password string // optional password for authenticated email
+}
 
 // Email provides a simple interface for sending the user an email from the
 // robot.. It relies on both the robot and the user having an email address.
@@ -32,55 +42,37 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret BotRetVal)
 		return NoUserEmail
 	}
 	mailTo = mailAttr.Attribute
-	var messageBuffer bytes.Buffer
-	fmt.Fprintf(&messageBuffer, "From: %s <%s>\r\n", botName, mailFrom)
-	fmt.Fprintf(&messageBuffer, "Subject: %s\r\n\r\n", subject)
-	// Connect to the remote SMTP server.
-	// TODO: make email configurable for authenticated, see Go source for SendMail
-	c, err := smtp.Dial(b.mailserver)
+
+	e := email.NewEmail()
+	from := fmt.Sprintf("%s <%s>", botName, mailFrom)
+	e.From = from
+	e.To = []string{mailTo}
+	e.Subject = subject
+	e.Text = messageBody.Bytes()
+
+	var a smtp.Auth
+	if b.mailConf.Authtype == "plain" {
+		host := strings.Split(b.mailConf.Mailhost, ":")[0]
+		a = smtp.PlainAuth("", b.mailConf.User, b.mailConf.Password, host)
+		r.Log(Debug, fmt.Sprintf("Sending authenticated email to \"%s\" from \"%s\" via \"%s\" with user: %s, password: %s and host: %s",
+			mailTo,
+			from,
+			b.mailConf.Mailhost,
+			b.mailConf.User,
+			b.mailConf.Password,
+			host,
+		))
+	} else {
+		r.Log(Debug, fmt.Sprintf("Sending unauthenticated email to \"%s\" from \"%s\" via \"%s\"",
+			mailTo,
+			from,
+			b.mailConf.Mailhost,
+		))
+	}
+
+	err := e.Send(b.mailConf.Mailhost, a)
 	if err != nil {
 		err = fmt.Errorf("Sending email: %v", err)
-		r.Log(Error, err)
-		return MailError
-	}
-	if err := c.Mail(mailFrom); err != nil {
-		err = fmt.Errorf("Setting sender to %s: %v", mailFrom, err)
-		r.Log(Error, err)
-		return MailError
-	}
-	if err := c.Rcpt(mailTo); err != nil {
-		err = fmt.Errorf("Setting recipient to %s: %v", mailTo, err)
-		r.Log(Error, err)
-		return MailError
-	}
-	// Send the email body.
-	wc, err := c.Data()
-	if err != nil {
-		err = fmt.Errorf("Starting message body: %v", err)
-		r.Log(Error, err)
-		return MailError
-	}
-	_, err = wc.Write(messageBuffer.Bytes())
-	if err != nil {
-		err = fmt.Errorf("Sending message body: %v", err)
-		r.Log(Error, err)
-		return MailError
-	}
-	_, err = wc.Write(messageBody.Bytes())
-	if err != nil {
-		err = fmt.Errorf("Sending message body: %v", err)
-		r.Log(Error, err)
-		return MailError
-	}
-	err = wc.Close()
-	if err != nil {
-		err = fmt.Errorf("Closing message body: %v", err)
-		r.Log(Error, err)
-		return MailError
-	}
-	err = c.Quit()
-	if err != nil {
-		err = fmt.Errorf("Closing mail connection: %v", err)
 		r.Log(Error, err)
 		return MailError
 	}

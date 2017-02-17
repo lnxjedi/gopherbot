@@ -82,7 +82,7 @@ func checkout(d string, rw bool) (string, *[]byte, bool, BotRetVal) {
 			time.Sleep(lockTimeout)
 			ltLock.Lock()
 			if _, ok := lockTokens[lt]; ok {
-				Log(Error, "Lock token %s expired, releasing lock", lt)
+				Log(Error, fmt.Sprintf("Lock token %s expired, releasing lock", lt))
 				delete(lockTokens, lt)
 				dataLock.Lock()
 				dl.Unlock()
@@ -112,7 +112,7 @@ func update(d, lt string, datum *[]byte) (ret BotRetVal) {
 	dataLock.Lock() // acquire the global lock
 	dl, ok := data[d]
 	if !ok {
-		Log(Error, "Update called on non-existent datum: %s", d)
+		Log(Error, fmt.Sprintf("Update called on non-existent datum: %s", d))
 		return DatumNotFound
 	}
 	ltLock.Lock() // we hope to get this lock before the timeout thread does

@@ -21,6 +21,12 @@
 			"revisionTime": "2016-12-07T00:33:20Z"
 		},
 		{
+			"checksumSHA1": "Fs9Xiy7Ilfyd68NRfn6j88etvgI=",
+			"path": "github.com/jordan-wright/email",
+			"revision": "fd703108daeb23d77c124d12978e9b6c4f28f034",
+			"revisionTime": "2016-04-03T17:25:29Z"
+		},
+		{
 			"checksumSHA1": "Tv59jlJDdTKNL5jrQhxt47AAAAE=",
 			"path": "github.com/nlopes/slack",
 			"revision": "e595e9d8590a04ff76407e4e7d1791d25b095c66",
