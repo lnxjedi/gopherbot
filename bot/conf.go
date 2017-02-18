@@ -61,10 +61,9 @@ func getConfigFile(filename string, required bool, c interface{}) error {
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
 			Log(Error, err)
 			return err
-		} else {
-			Log(Debug, fmt.Sprintf("Loaded installed conf/%s", filename))
-			loaded = true
 		}
+		Log(Debug, fmt.Sprintf("Loaded installed conf/%s", filename))
+		loaded = true
 	}
 	cf, err = ioutil.ReadFile(b.localPath + "/conf/" + filename)
 	if err != nil {
@@ -75,16 +74,14 @@ func getConfigFile(filename string, required bool, c interface{}) error {
 			err = fmt.Errorf("Unmarshalling local \"%s\": %v", filename, err)
 			Log(Error, err)
 			return err // If a badly-formatted config is loaded, we always return an error
-		} else {
-			Log(Debug, fmt.Sprintf("Loaded configured conf/%s", filename))
-			loaded = true
 		}
+		Log(Debug, fmt.Sprintf("Loaded configured conf/%s", filename))
+		loaded = true
 	}
 	if required && !loaded {
 		return err
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // loadConfig loads the 'bot's json configuration files.
@@ -118,9 +115,7 @@ func loadConfig() error {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		if !strings.ContainsRune(string(aliases+escape_aliases), alias) {
 			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escape_aliases, aliases)
-		} else {
-			b.alias = alias
-		}
+		b.alias = alias
 	}
 	if newconfig.LocalPort != "" {
 		b.port = "127.0.0.1:" + newconfig.LocalPort

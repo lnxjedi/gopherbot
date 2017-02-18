@@ -284,6 +284,10 @@ func logging(bot *Robot, command string, args ...string) {
 		l := b.level
 		b.lock.Unlock()
 		bot.Say(fmt.Sprintf("My current logging level is: %s", logLevelToStr(l)))
+	case "setlines":
+		l, _ := strconv.Atoi(args[0])
+		set := setLogPageLines(l)
+		bot.Say(fmt.Sprintf("Lines per page of log output set to: %d", set))
 	}
 }
 

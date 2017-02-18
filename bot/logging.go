@@ -20,12 +20,13 @@ const (
 	Fatal
 )
 
-const buffLines = 300
-const pageLines = 20
-const buffpages = buffLines / pageLines
+// Should be ample for the internal circular log
+const buffLines = 500
 
 var logBuffer []string
-var logLine int = 0
+var logLine int
+var pageLines = 20
+var buffpages = buffLines / pageLines
 var logLock sync.Mutex
 
 func init() {
@@ -83,9 +84,9 @@ func Log(l LogLevel, v ...interface{}) {
 			b.logger.Fatal(msg)
 		} else {
 			b.logger.Print(msg)
-			ts_msg := fmt.Sprintf("%s %s", time.Now().Format("Jan 2 15:04:05"), msg)
+			tsMsg := fmt.Sprintf("%s %s", time.Now().Format("Jan 2 15:04:05"), msg)
 			logLock.Lock()
-			logBuffer[logLine] = ts_msg
+			logBuffer[logLine] = tsMsg
 			logLine = (logLine + 1) % (buffLines - 1)
 			logLock.Unlock()
 		}
@@ -96,12 +97,12 @@ func Log(l LogLevel, v ...interface{}) {
 // it returns the most recent page, for p>0 it goes back
 func logPage(p int) ([]string, bool) {
 	wrapped := false
+	logLock.Lock()
 	page := p % buffpages
 	if page != p {
 		wrapped = true
 	}
 	pageSlice := make([]string, pageLines)
-	logLock.Lock()
 	start := (logLine + buffLines - ((page + 1) * pageLines))
 	start = start - (start/buffLines)*buffLines
 	if start+pageLines > buffLines {
@@ -114,7 +115,20 @@ func logPage(p int) ([]string, bool) {
 	return pageSlice, wrapped
 }
 
-// SetLogLevel updates the connector log level
+// setLogPageLines updates the number of lines per page of log output
+func setLogPageLines(l int) int {
+	lines := l
+	if l > 100 {
+		lines = 100
+	}
+	logLock.Lock()
+	pageLines = lines
+	buffpages = buffLines / pageLines
+	logLock.Unlock()
+	return lines
+}
+
+// setLogLevel updates the connector log level
 func setLogLevel(l LogLevel) {
 	b.lock.Lock()
 	b.level = l

@@ -69,6 +69,8 @@ Help:
   Helptext: [ "(bot), show log (page X) - display the last or Xth previous page of log output" ]
 - Keywords: [ "show", "log", "logs", "level" ]
   Helptext: [ "(bot), show log level - show the current logging level" ]
+- Keywords: [ "log", "page", "lines" ]
+  Helptext: [ "(bot), set log lines to <number> - set the number of lines returned by show log"]
 CommandMatches:
 - Command: "level"
   Regex: '(?i:set log ?level(?: to)? (trace|debug|info|warning|error))'
@@ -76,4 +78,6 @@ CommandMatches:
   Regex: '(?i:show logs?(?: page (\d+))?)'
 - Command: "showlevel"
   Regex: '(?i:show (?:log ?)?level)'
+- Command: "setlines"
+  Regex: '(?i:set log ?lines(?: to)? (\d+))'
 `
