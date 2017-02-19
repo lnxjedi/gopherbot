@@ -26,7 +26,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 	}
 	var lists = make(map[string]itemList)
 	var lock string
-	var ret bot.BotRetVal
+	var ret bot.RetVal
 	// First, check out the list
 	switch command {
 	case "show", "send":

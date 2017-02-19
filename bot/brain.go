@@ -16,7 +16,7 @@ import (
 const lockTimeout = 200 * time.Millisecond
 
 // Map of registered brains
-var brains map[string]func(Handler, *log.Logger) SimpleBrain = make(map[string]func(Handler, *log.Logger) SimpleBrain)
+var brains = make(map[string]func(Handler, *log.Logger) SimpleBrain)
 
 // Global lock protecting the map of datum locks, individual datam,
 // and datumLock.checkouts.
@@ -29,11 +29,11 @@ type datumLock struct {
 }
 
 // A global map of all synchronized items - we'll add the "glist"
-var data map[string]*datumLock = make(map[string]*datumLock)
+var data = make(map[string]*datumLock)
 
 // The lock is good as long a the token exists; token gets deleted
 // on expiration.
-var lockTokens map[string]bool = make(map[string]bool)
+var lockTokens = make(map[string]bool)
 var ltLock sync.Mutex
 
 const keyRegex = `[\w:]+` // keys can ony be word chars + separator (:)
@@ -42,7 +42,7 @@ var keyRe = regexp.MustCompile(keyRegex)
 // checkout returns the []byte from the brain, with a lock that expires
 // after lockTimeout. It returns a lock token, a pointer to the raw []byte
 // data, true if the key exists, and a BotRetVal.
-func checkout(d string, rw bool) (string, *[]byte, bool, BotRetVal) {
+func checkout(d string, rw bool) (string, *[]byte, bool, RetVal) {
 	if !keyRe.MatchString(d) {
 		err := fmt.Errorf("Invalid key supplied to checkout: %s", d)
 		Log(Error, err)
@@ -108,7 +108,7 @@ func checkout(d string, rw bool) (string, *[]byte, bool, BotRetVal) {
 
 // update sends updated []byte to the brain while holding the lock, or discards
 // the data and returns an error.
-func update(d, lt string, datum *[]byte) (ret BotRetVal) {
+func update(d, lt string, datum *[]byte) (ret RetVal) {
 	dataLock.Lock() // acquire the global lock
 	dl, ok := data[d]
 	if !ok {
@@ -140,7 +140,7 @@ func update(d, lt string, datum *[]byte) (ret BotRetVal) {
 
 // checkoutDatum is the robot internal version of CheckoutDatum that uses
 // the provided key as-is.
-func checkoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret BotRetVal) {
+func checkoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal) {
 	var dbytes *[]byte
 	locktoken, dbytes, exists, ret = checkout(key, rw)
 	if exists { // exists = true implies no error
@@ -177,7 +177,7 @@ func checkinDatum(key, locktoken string) {
 }
 
 // updateDatum is the internal version of UpdateDatum that uses the key as-is
-func updateDatum(key, locktoken string, datum interface{}) (ret BotRetVal) {
+func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 	dbytes, err := json.Marshal(datum)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Unmarshalling datum %s: %v", key, err))
@@ -190,7 +190,7 @@ func updateDatum(key, locktoken string, datum interface{}) (ret BotRetVal) {
 // a struct. If rw is set, the datum is checked out read-write and a non-empty
 // lock token is returned that expires after lockTimeout (250ms). The bool
 // return indicates whether the datum exists.
-func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret BotRetVal) {
+func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal) {
 	b.lock.RLock()
 	pluginName := plugins[plugIDmap[r.pluginID]].name
 	b.lock.RUnlock()
@@ -213,7 +213,7 @@ func (r *Robot) CheckinDatum(key, locktoken string) {
 // UpdateDatum tries to update a piece of data in the robot's brain, providing
 // a struct to marshall and a (hopefully good) lock token. If err != nil, the
 // update failed.
-func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret BotRetVal) {
+func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 	b.lock.RLock()
 	pluginName := plugins[plugIDmap[r.pluginID]].name
 	b.lock.RUnlock()

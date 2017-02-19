@@ -13,7 +13,7 @@ import (
 
 /* conf.go - methods and types for reading and storing json configuration */
 
-var protocolConfig, brainConfig json.RawMessage
+var protocolConfig, brainConfig, elevateConfig json.RawMessage
 
 type externalPlugin struct {
 	Name, Path string // List of names and paths for external plugins; relative paths are searched first in installdir, then localdir
@@ -28,6 +28,8 @@ type botconf struct {
 	ProtocolConfig  json.RawMessage  // Protocol-specific configuration, type for unmarshalling arbitrary config
 	Brain           string           // Type of Brain to use
 	BrainConfig     json.RawMessage  // Brain-specific configuration, type for unmarshalling arbitrary config
+	ElevateMethod   string           // Type of elevator to use (SlackTOTP)
+	ElevateConfig   json.RawMessage  // ElevateMethod-specific configuration, type for unmarshalling arbitrary config
 	Name            string           // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
 	DefaultChannels []string         // Channels where plugins are active by default, e.g. [ "general", "random" ]
 	IgnoreUsers     []string         // Users the 'bot never talks to - like other bots
@@ -115,6 +117,7 @@ func loadConfig() error {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		if !strings.ContainsRune(string(aliases+escape_aliases), alias) {
 			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escape_aliases, aliases)
+		}
 		b.alias = alias
 	}
 	if newconfig.LocalPort != "" {
@@ -128,18 +131,24 @@ func loadConfig() error {
 		b.name = newconfig.Name
 	}
 
+	if newconfig.ElevateMethod != "" {
+		b.elevatorProvider = newconfig.ElevateMethod
+	}
+	if newconfig.ElevateConfig != nil {
+		elevateConfig = newconfig.ElevateConfig
+	}
+
 	if newconfig.Brain != "" {
 		b.brainProvider = newconfig.Brain
+	}
+	if newconfig.BrainConfig != nil {
+		brainConfig = newconfig.BrainConfig
 	}
 
 	if newconfig.Protocol != "" {
 		b.protocol = newconfig.Protocol
 	} else {
 		return fmt.Errorf("Protocol not specified in gopherbot.json")
-	}
-
-	if newconfig.BrainConfig != nil {
-		brainConfig = newconfig.BrainConfig
 	}
 	if newconfig.ProtocolConfig != nil {
 		protocolConfig = newconfig.ProtocolConfig

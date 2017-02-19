@@ -30,7 +30,7 @@ type stockReply struct {
 	repRegex string
 }
 
-var stockRepliesRegex string = `^[A-Z]`
+var stockRepliesRegex = `^[A-Z]`
 var stockRepliesRe *regexp.Regexp
 
 var stockReplies = make(map[string]*regexp.Regexp)
@@ -71,7 +71,7 @@ A pre-definied regex from the following list can also be used:
 	SimpleString - letters, numbers, spaces, dots, dashes, underscores, and commas
 	YesNo
 */
-func (r *Robot) WaitForReply(regexId string, timeout int) (replyText string, ret BotRetVal) {
+func (r *Robot) WaitForReply(regexID string, timeout int) (replyText string, ret RetVal) {
 	matcher := replyMatcher{
 		user:    r.User,
 		channel: r.Channel,
@@ -90,11 +90,11 @@ func (r *Robot) WaitForReply(regexId string, timeout int) (replyText string, ret
 	b.lock.RLock()
 	plugin := plugins[plugIDmap[r.pluginID]]
 	plugName := plugin.name
-	if stockRepliesRe.MatchString(regexId) {
-		rep.re = stockReplies[regexId]
+	if stockRepliesRe.MatchString(regexID) {
+		rep.re = stockReplies[regexID]
 	} else {
 		for _, matcher := range plugin.ReplyMatchers {
-			if matcher.Command == regexId {
+			if matcher.Command == regexID {
 				rep.re = matcher.re
 				break
 			}
@@ -102,7 +102,7 @@ func (r *Robot) WaitForReply(regexId string, timeout int) (replyText string, ret
 	}
 	b.lock.RUnlock()
 	if rep.re == nil {
-		r.Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", plugin.name, regexId))
+		r.Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", plugin.name, regexID))
 		botLock.Unlock()
 		ret = MatcherNotFound
 		return "", ret
@@ -117,7 +117,7 @@ func (r *Robot) WaitForReply(regexId string, timeout int) (replyText string, ret
 	// If it's matched in the meantime, it should get deleted at that point.
 	select {
 	case <-time.After(time.Duration(timeout) * time.Second):
-		Log(Warn, fmt.Sprintf("Plugin \"%s\" timed out waiting for a reply to regex \"%s\"", plugName, regexId))
+		Log(Warn, fmt.Sprintf("Plugin \"%s\" timed out waiting for a reply to regex \"%s\" in channel: %s", plugName, regexID, r.Channel))
 		botLock.Lock()
 		// reply timed out, free up this matcher for later reply requests
 		delete(replies, matcher)

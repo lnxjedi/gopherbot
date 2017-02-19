@@ -92,6 +92,14 @@ func (h handler) GetBrainConfig(v interface{}) error {
 	return err
 }
 
+// GetElevateConfig unmarshals the brain's configuration data into a provided struct
+func (h handler) GetElevateConfig(v interface{}) error {
+	b.lock.RLock()
+	err := json.Unmarshal(elevateConfig, v)
+	b.lock.RUnlock()
+	return err
+}
+
 // Log logs a message to the robot's log file (or stderr)
 func (h handler) Log(l LogLevel, v ...interface{}) {
 	Log(l, v...)

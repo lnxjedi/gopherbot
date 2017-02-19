@@ -121,7 +121,37 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 			matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
 			if matches != nil {
 				commandMatched = true
-				go callPlugin(bot, plugin, matcher.Command, matches[0][1:]...)
+				privilegesOk := true
+				if len(plugin.ElevatedCmds) > 0 {
+					for _, i := range plugin.ElevatedCmds {
+						if matcher.Command == i {
+							if b.elevator != nil {
+								privilegesOk = b.elevator(bot, false)
+							} else {
+								privilegesOk = false
+								Log(Error, "Encountered elevated command and no elevation method configured")
+							}
+						}
+					}
+				}
+				if len(plugin.ElevateImmediateCmds) > 0 {
+					for _, i := range plugin.ElevateImmediateCmds {
+						if matcher.Command == i {
+							if b.elevator != nil {
+								privilegesOk = b.elevator(bot, true)
+							} else {
+								privilegesOk = false
+								Log(Error, "Encountered elevated command and no elevation method configured")
+							}
+						}
+					}
+				}
+				if privilegesOk {
+					go callPlugin(bot, plugin, matcher.Command, matches[0][1:]...)
+				} else {
+					Log(Error, fmt.Sprintf("Elevation failed for command \"%s\", plugin %s", matcher.Command, plugin.name))
+					bot.Say(fmt.Sprintf("Sorry, the \"%s\" command requires elevated privileges", matcher.Command))
+				}
 			}
 		}
 	}

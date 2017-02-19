@@ -20,6 +20,9 @@ type Handler interface {
 	// GetBrainConfig unmarshals the BrainConfig section of gopherbot.json
 	// into a struct provided by the brain provider
 	GetBrainConfig(interface{}) error
+	// GetElevateConfig unmarshals the ElevateConfig section of gopherbot.json
+	// into a struct provided by the elevate provider
+	GetElevateConfig(interface{}) error
 	// SetFullName allows the connector to set the robot's full name if it
 	// has access to it.
 	SetFullName(n string)
@@ -51,6 +54,12 @@ type SimpleBrain interface {
 	Retrieve(key string) (blob []byte, exists bool, err error)
 }
 
+// Elevate is a configurable plugin function for elevating privileges.
+// It take a Robot and bool indicating whether to always check regardless
+// of any timeouts in effect.
+// It returns a bool indicating success or failure.
+type Elevate func(r *Robot, alwayscheck bool) bool
+
 // Connector is the interface defining methods that should be provided by
 // the connector for use by plugins/robot.
 type Connector interface {
@@ -59,18 +68,18 @@ type Connector interface {
 	// information. Plugins should normally call GetUserAttribute, which
 	// supplements protocol data with data from users.json.
 	// The current attributes are:
-	// email, realName, firstName, lastName, phone, sms
-	GetProtocolUserAttribute(user, attr string) (value string, ret BotRetVal)
+	// email, realName, firstName, lastName, phone, sms, connections
+	GetProtocolUserAttribute(user, attr string) (value string, ret RetVal)
 	// JoinChannel joins a channel given it's human-readable name, e.g. "general"
-	JoinChannel(c string) BotRetVal
+	JoinChannel(c string) RetVal
 	// SendProtocolChannelMessage sends a message to a channel
-	SendProtocolChannelMessage(channelname, msg string, format MessageFormat) BotRetVal
+	SendProtocolChannelMessage(channelname, msg string, format MessageFormat) RetVal
 	// SendProtocolUserChannelMessage directs a message to a user in a channel
-	SendProtocolUserChannelMessage(user, channelname, msg string, format MessageFormat) BotRetVal
+	SendProtocolUserChannelMessage(user, channelname, msg string, format MessageFormat) RetVal
 	// SendProtocolUserMessage sends a direct message to a user if supported.
 	// For protocols not supportint DM, the bot should send a message addressed
 	// to the user in an implementation-specific channel.
-	SendProtocolUserMessage(user, msg string, format MessageFormat) BotRetVal
+	SendProtocolUserMessage(user, msg string, format MessageFormat) RetVal
 	// The Run method starts the main loop, and never returns; if it's
 	// called a second time, it just returns.
 	Run()

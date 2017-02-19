@@ -22,7 +22,7 @@ type botMailer struct {
 // For the user, this should be provided by the chat protocol, or in
 // gopherbot.conf. (TODO: not yet implemented)
 // It returns an error and BotRetVal != 0 if there's a problem.
-func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret BotRetVal) {
+func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret RetVal) {
 	var mailFrom, botName, mailTo string
 
 	mailAttr := r.GetBotAttribute("email")
@@ -32,13 +32,13 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret BotRetVal)
 	mailFrom = mailAttr.Attribute
 	// We can live without a full name
 	botAttr := r.GetBotAttribute("fullName")
-	if botAttr.BotRetVal != Ok {
+	if botAttr.RetVal != Ok {
 		botName = "Gopherbot"
 	} else {
 		botName = botAttr.Attribute
 	}
 	mailAttr = r.GetSenderAttribute("email")
-	if mailAttr.BotRetVal != Ok {
+	if mailAttr.RetVal != Ok {
 		return NoUserEmail
 	}
 	mailTo = mailAttr.Attribute

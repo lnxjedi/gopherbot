@@ -69,7 +69,12 @@ func logLevelToStr(l LogLevel) string {
 // Log logs messages whenever the connector log level is
 // less than the given level
 func Log(l LogLevel, v ...interface{}) {
-	if l >= b.level {
+
+	b.lock.RLock()
+	currlevel := b.level
+	b.lock.RUnlock()
+
+	if l >= currlevel {
 		prefix := logLevelToStr(l) + ":"
 		p := []interface{}{prefix}
 		var msg string

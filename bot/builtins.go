@@ -92,14 +92,12 @@ func launchCode(bot *Robot, command string, args ...string) {
 			bot.Reply("It doesn't appear you've been issued any launch codes, try 'send launch codes'")
 			return
 		}
-		valid, err := userOTP.Authenticate(args[0])
-		if err != nil {
-			Log(Error, fmt.Errorf("Problem authenticating launch code: %v", err))
+		valid, ret := bot.CheckOTP(args[0])
+		if ret != Ok {
+			Log(Error, "Technical problem authenticating launch code")
 			bot.Reply("There was an error authenticating your launch code, have an adminstrator check the log")
 			return
 		}
-		// Whether valid or not, the otp lib may update the struct
-		updated = true
 		if valid {
 			bot.Reply("The launch code was valid")
 		} else {

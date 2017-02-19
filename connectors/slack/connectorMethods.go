@@ -11,7 +11,7 @@ const msgDelay = 200 * time.Millisecond
 
 // GetUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
-func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.BotRetVal) {
+func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {
 	user, ok := s.getUser(u)
 	if !ok {
 		return "", bot.UserNotFound
@@ -27,7 +27,7 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 		return user.Profile.LastName, bot.Ok
 	case "phone":
 		return user.Profile.Phone, bot.Ok
-	// that's all the attributes slack knows about
+	// that's all the attributes we can currently get from slack
 	default:
 		return "", bot.AttributeNotFound
 	}
@@ -44,7 +44,7 @@ func (s *slackConnector) sendMessages(msgs []string, chanID string) {
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (s *slackConnector) SendProtocolChannelMessage(ch string, msg string, f bot.MessageFormat) (ret bot.BotRetVal) {
+func (s *slackConnector) SendProtocolChannelMessage(ch string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
 	chanID, ok := s.chanID(ch)
 	if !ok {
 		s.Log(bot.Error, "Channel ID not found for:", ch)
@@ -56,7 +56,7 @@ func (s *slackConnector) SendProtocolChannelMessage(ch string, msg string, f bot
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (s *slackConnector) SendProtocolUserChannelMessage(u, ch, msg string, f bot.MessageFormat) (ret bot.BotRetVal) {
+func (s *slackConnector) SendProtocolUserChannelMessage(u, ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
 	chanID, ok := s.chanID(ch)
 	if !ok {
 		s.Log(bot.Error, "Channel ID not found for:", ch)
@@ -74,7 +74,7 @@ func (s *slackConnector) SendProtocolUserChannelMessage(u, ch, msg string, f bot
 }
 
 // SendProtocolUserMessage sends a direct message to a user
-func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f bot.MessageFormat) (ret bot.BotRetVal) {
+func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
 	userID, ok := s.userID(u)
 	if !ok {
 		s.Log(bot.Error, "No user ID found for user:", u)
@@ -100,7 +100,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f bot.Mes
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"
-func (s *slackConnector) JoinChannel(c string) (ret bot.BotRetVal) {
+func (s *slackConnector) JoinChannel(c string) (ret bot.RetVal) {
 	chanID, ok := s.chanID(c)
 	if !ok {
 		s.Log(bot.Error, "Channel ID not found for:", c)

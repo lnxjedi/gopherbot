@@ -8,12 +8,15 @@ import (
 	otp "github.com/dgryski/dgoogauth"
 )
 
+// MessageFormat indicates how the connector should display the content of
+// the message. One of Variable, Fixed or Raw (To Be Implemented)
 type MessageFormat int
 
 // Outgoing message format, Variable or Fixed
 const (
 	Variable MessageFormat = iota // variable font width
 	Fixed
+	Raw
 )
 
 // Robot is passed to the plugin to enable convenience functions Say and Reply
@@ -44,7 +47,7 @@ func (r *Robot) CheckAdmin() bool {
 
 // CheckOTP returns true if the provided string is a valid OTP code for the
 // user. See the builtInlaunchcodes.go plugin.
-func (r *Robot) CheckOTP(code string) (bool, BotRetVal) {
+func (r *Robot) CheckOTP(code string) (bool, RetVal) {
 	otpKey := "bot:OTP:" + r.User
 	var userOTP otp.OTPConfig
 	lock, exists, ret := checkoutDatum(otpKey, &userOTP, true)
@@ -190,7 +193,7 @@ and call GetPluginConfig with a double-pointer:
 
 ... And voila! *pConf is populated with the contents from the configured Config: stanza
 */
-func (r *Robot) GetPluginConfig(dptr interface{}) BotRetVal {
+func (r *Robot) GetPluginConfig(dptr interface{}) RetVal {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	plugin := plugins[plugIDmap[r.pluginID]]
@@ -225,7 +228,7 @@ func (r *Robot) Log(l LogLevel, v ...interface{}) {
 // SendChannelMessage lets a plugin easily send a message to an arbitrary
 // channel. Use Robot.Fixed().SencChannelMessage(...) for fixed-width
 // font.
-func (r *Robot) SendChannelMessage(channel, msg string) BotRetVal {
+func (r *Robot) SendChannelMessage(channel, msg string) RetVal {
 	return b.SendProtocolChannelMessage(channel, msg, r.Format)
 }
 
@@ -233,30 +236,28 @@ func (r *Robot) SendChannelMessage(channel, msg string) BotRetVal {
 // a specific user in a specific channel without fiddling with the robot
 // object. Use Robot.Fixed().SencChannelMessage(...) for fixed-width
 // font.
-func (r *Robot) SendUserChannelMessage(user, channel, msg string) BotRetVal {
+func (r *Robot) SendUserChannelMessage(user, channel, msg string) RetVal {
 	return b.SendProtocolUserChannelMessage(user, channel, msg, r.Format)
 }
 
 // SendUserMessage lets a plugin easily send a DM to a user. If a DM
 // isn't possible, the connector should message the user in a channel.
-func (r *Robot) SendUserMessage(user, msg string) BotRetVal {
+func (r *Robot) SendUserMessage(user, msg string) RetVal {
 	return b.SendProtocolUserMessage(user, msg, r.Format)
 }
 
 // Reply directs a message to the user
-func (r *Robot) Reply(msg string) BotRetVal {
+func (r *Robot) Reply(msg string) RetVal {
 	if r.Channel == "" {
 		return b.SendProtocolUserMessage(r.User, msg, r.Format)
-	} else {
-		return b.SendProtocolUserChannelMessage(r.User, r.Channel, msg, r.Format)
 	}
+	return b.SendProtocolUserChannelMessage(r.User, r.Channel, msg, r.Format)
 }
 
 // Say just sends a message to the user or channel
-func (r *Robot) Say(msg string) BotRetVal {
+func (r *Robot) Say(msg string) RetVal {
 	if r.Channel == "" {
 		return b.SendProtocolUserMessage(r.User, msg, r.Format)
-	} else {
-		return b.SendProtocolChannelMessage(r.Channel, msg, r.Format)
 	}
+	return b.SendProtocolChannelMessage(r.Channel, msg, r.Format)
 }

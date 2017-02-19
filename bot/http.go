@@ -79,7 +79,7 @@ type replyrequest struct {
 // the plugin author is ok with ignoring the BotRetVal.
 type BotAttrRet struct {
 	Attribute string
-	BotRetVal
+	RetVal
 }
 
 func (bar *BotAttrRet) String() string {
@@ -184,7 +184,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	var (
 		attr  *BotAttrRet
 		reply string
-		ret   BotRetVal
+		ret   RetVal
 	)
 	switch f.FuncName {
 	case "CheckAdmin":

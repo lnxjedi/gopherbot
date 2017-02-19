@@ -17,8 +17,10 @@ import (
 var botLock sync.RWMutex
 var random *rand.Rand
 
-var connectors map[string]func(Handler, *log.Logger) Connector = make(map[string]func(Handler, *log.Logger) Connector)
+var connectors = make(map[string]func(Handler, *log.Logger) Connector)
 
+// RegisterConnector should be called in an init function to register a type
+// of connector. Currently only Slack is implemented.
 func RegisterConnector(name string, connstarter func(Handler, *log.Logger) Connector) {
 	if stopRegistrations {
 		return
@@ -32,29 +34,31 @@ func RegisterConnector(name string, connstarter func(Handler, *log.Logger) Conne
 // robot holds all the interal data relevant to the Bot. Most of it is populated
 // by loadConfig, other stuff is populated by the connector.
 type robot struct {
-	Connector                        // Connector interface, implemented by each specific protocol
-	localPath       string           // Directory for local files overriding default config
-	installPath     string           // Path to the bot's installation directory
-	level           LogLevel         // Log level for bot methods
-	adminUsers      []string         // List of users with access to administrative commands
-	alias           rune             // single-char alias for addressing the bot
-	name            string           // e.g. "Gort"
-	fullName        string           // e.g. "Robbie Robot"
-	adminContact    string           // who to contact for problems with the robot.
-	email           string           // the from: when the robot sends email
-	mailConf        botMailer        // configuration to use when sending email
-	ignoreUsers     []string         // list of users to never listen to, like other bots
-	preRegex        *regexp.Regexp   // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
-	postRegex       *regexp.Regexp   // regex for matching, e.g. "open the pod bay doors, hal"
-	joinChannels    []string         // list of channels to join
-	plugChannels    []string         // list of channels where plugins are active by default
-	lock            sync.RWMutex     // for safe updating of bot data structures
-	protocol        string           // Name of the protocol, e.g. "slack"
-	brainProvider   string           // Type of Brain provider to use
-	brain           SimpleBrain      // Interface for robot to Store and Retrieve data
-	externalPlugins []externalPlugin // List of external plugins to load
-	port            string           // Localhost port to listen on
-	logger          *log.Logger      // Where to log to
+	Connector                         // Connector interface, implemented by each specific protocol
+	localPath        string           // Directory for local files overriding default config
+	installPath      string           // Path to the bot's installation directory
+	level            LogLevel         // Log level for bot methods
+	adminUsers       []string         // List of users with access to administrative commands
+	alias            rune             // single-char alias for addressing the bot
+	name             string           // e.g. "Gort"
+	fullName         string           // e.g. "Robbie Robot"
+	adminContact     string           // who to contact for problems with the robot.
+	email            string           // the from: when the robot sends email
+	mailConf         botMailer        // configuration to use when sending email
+	ignoreUsers      []string         // list of users to never listen to, like other bots
+	preRegex         *regexp.Regexp   // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
+	postRegex        *regexp.Regexp   // regex for matching, e.g. "open the pod bay doors, hal"
+	joinChannels     []string         // list of channels to join
+	plugChannels     []string         // list of channels where plugins are active by default
+	lock             sync.RWMutex     // for safe updating of bot data structures
+	protocol         string           // Name of the protocol, e.g. "slack"
+	brainProvider    string           // Type of Brain provider to use
+	brain            SimpleBrain      // Interface for robot to Store and Retrieve data
+	elevatorProvider string           // Type of elevator to use
+	elevator         Elevate          // Function to call for a user to elevate privileges
+	externalPlugins  []externalPlugin // List of external plugins to load
+	port             string           // Localhost port to listen on
+	logger           *log.Logger      // Where to log to
 }
 
 var b *robot
@@ -75,16 +79,24 @@ func newBot(cpath, epath string, logger *log.Logger) error {
 	b.installPath = epath
 	b.logger = logger
 
+	handle := handler{}
 	if err := loadConfig(); err != nil {
 		return nil
 	}
-	if len(b.brainProvider) > 0 {
-		provider, ok := brains[b.brainProvider]
-		if !ok {
-			Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", b.brainProvider))
+	if len(b.elevatorProvider) > 0 {
+		if eprovider, ok := elevators[b.elevatorProvider]; !ok {
+			Log(Fatal, "No elevator registered for configured ElevateMethod:", b.elevatorProvider)
+		} else {
+			b.elevator = eprovider(handle)
 		}
-		h := handler{}
-		b.brain = provider(h, logger)
+	}
+
+	if len(b.brainProvider) > 0 {
+		if bprovider, ok := brains[b.brainProvider]; !ok {
+			Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", b.brainProvider))
+		} else {
+			b.brain = bprovider(handle, logger)
+		}
 	}
 	return nil
 }

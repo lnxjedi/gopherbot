@@ -1,17 +1,23 @@
 package bot
 
-// BotRetVal is a bit field for returning error conditions, or 0 for Ok
-type BotRetVal int
+// RetVal is a bit field for returning error conditions, or 0 for Ok
+type RetVal int
 
 const (
-	Ok BotRetVal = iota // success
+	// Ok indicates a successful result
+	Ok RetVal = iota // success
 
 	// Connector issues
-	UserNotFound      // obvious
-	ChannelNotFound   // obvious
-	AttributeNotFound // Looking up user/robot attributes like email, name, etc.
-	FailedUserDM      // Not able to send an direct message (DM) to a given user
-	FailedChannelJoin // Not able to join a channel; e.g. slack doesn't allow bots to join
+	// UserNotFound indicates a failed lookup
+	UserNotFound
+	// ChannelNotFound indicates a failed lookup
+	ChannelNotFound
+	// AttributeNotFound looking up user/robot attributes like email, name, etc.
+	AttributeNotFound
+	// FailedUserDm indicated the bot was not able to send an direct message (DM) to a given user
+	FailedUserDM
+	// FailedChannelJoin indicates the robot couldn't join a channel; e.g. slack doesn't allow bots to join
+	FailedChannelJoin
 
 	// Brain Maladies
 	DatumNotFound    // Datum name not found in the global table when update called
@@ -26,8 +32,8 @@ const (
 	NoConfigFound    // The plugin doesn't have any config data
 
 	// OTP
-	NoUserOTP       // OTP config for the user wasn't found
-	OTPError        // Error value returned while checking OTP
+	NoUserOTP // OTP config for the user wasn't found
+	OTPError  // Error value returned while checking OTP
 
 	// WaitForReply
 	ReplyNotMatched // The user reply didn't match the pattern waited for
@@ -41,7 +47,7 @@ const (
 	MailError   // There was an error sending email
 )
 
-func (ret BotRetVal) String() string {
+func (ret RetVal) String() string {
 	errMsg := []string{
 		"Ok",
 		"User not found",
