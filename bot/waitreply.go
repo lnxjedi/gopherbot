@@ -89,7 +89,6 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (replyText string, ret
 	}
 	b.lock.RLock()
 	plugin := plugins[plugIDmap[r.pluginID]]
-	plugName := plugin.name
 	if stockRepliesRe.MatchString(regexID) {
 		rep.re = stockReplies[regexID]
 	} else {
@@ -117,7 +116,58 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (replyText string, ret
 	// If it's matched in the meantime, it should get deleted at that point.
 	select {
 	case <-time.After(time.Duration(timeout) * time.Second):
-		Log(Warn, fmt.Sprintf("Plugin \"%s\" timed out waiting for a reply to regex \"%s\" in channel: %s", plugName, regexID, r.Channel))
+		Log(Warn, fmt.Sprintf("Timed out waiting for a reply to regex \"%s\" in channel: %s", regexID, r.Channel))
+		botLock.Lock()
+		// reply timed out, free up this matcher for later reply requests
+		delete(replies, matcher)
+		botLock.Unlock()
+		// matched=false, timedOut=true
+		ret = TimeoutExpired
+		return "", ret
+	case replied, _ := <-rep.replyChannel:
+		// Note: the replies[] entry is deleted in handleMessage
+		if !replied.matched {
+			ret = ReplyNotMatched
+		}
+		return replied.rep, ret
+	}
+}
+
+func (r *Robot) WaitForReplyRegex(regex string, timeout int) (replyText string, ret RetVal) {
+	matcher := replyMatcher{
+		user:    r.User,
+		channel: r.Channel,
+	}
+	// We don't immediately defer an unlock because this function blocks on the
+	// reply channel - so we need to Unlock() at every error return point.
+	botLock.Lock()
+	// See if there's already a continuation in progress for this Robot:user,channel,
+	rep, exists := replies[matcher]
+	if exists {
+		ret = ReplyInProgress
+		r.Log(Warn, fmt.Errorf("A reply is already being waited on for user %s in channel %s", r.User, r.Channel))
+		botLock.Unlock()
+		return "", ret
+	}
+	re, err := regexp.Compile(regex)
+	if err != nil {
+		r.Log(Error, fmt.Sprintf("Unable to compile regex \"%s\" in WaitForReplyRegex", regex))
+		botLock.Unlock()
+		ret = MatcherNotFound
+		return "", ret
+	}
+	rep.re = re
+	rep.replyChannel = make(chan reply)
+	r.Log(Trace, fmt.Sprintf("Adding matcher to replies: %q", matcher))
+	replies[matcher] = rep
+	// Now that we've added the reply to the map, unlock the bot so we can block
+	// on the channel for a reply.
+	botLock.Unlock()
+	// Start a goroutine to delete the reply request if it still exists after a minute.
+	// If it's matched in the meantime, it should get deleted at that point.
+	select {
+	case <-time.After(time.Duration(timeout) * time.Second):
+		Log(Warn, fmt.Sprintf("Timed out waiting for a reply to custom regex \"%s\" in channel: %s", regex, r.Channel))
 		botLock.Lock()
 		// reply timed out, free up this matcher for later reply requests
 		delete(replies, matcher)

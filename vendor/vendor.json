@@ -15,6 +15,18 @@
 			"revisionTime": "2016-06-02T07:13:24Z"
 		},
 		{
+			"checksumSHA1": "+6+ZxVI93N9z2Aq31/ThJP8BolQ=",
+			"path": "github.com/duosecurity/duo_api_golang",
+			"revision": "2b2d787eb38e28ce4fd906321d717af19fad26a6",
+			"revisionTime": "2016-06-27T13:04:34Z"
+		},
+		{
+			"checksumSHA1": "XpARPTJEqfXzFF+3tYxmiZ+9o28=",
+			"path": "github.com/duosecurity/duo_api_golang/authapi",
+			"revision": "2b2d787eb38e28ce4fd906321d717af19fad26a6",
+			"revisionTime": "2016-06-27T13:04:34Z"
+		},
+		{
 			"checksumSHA1": "muGVyM8mY3/gcap6kr4Ib3F5Xn4=",
 			"path": "github.com/ghodss/yaml",
 			"revision": "04f313413ffd65ce25f2541bfd2b2ceec5c0908c",

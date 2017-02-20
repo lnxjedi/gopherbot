@@ -13,6 +13,7 @@ import (
 
 	// If re-compiling, you can comment out unused elevator implementations.
 	// Select the elevator to use and provide configuration in conf/gopherbot.yaml
+	_ "github.com/uva-its/gopherbot/elevators/duo"
 	_ "github.com/uva-its/gopherbot/elevators/totp"
 
 	// If re-compiling, you can select the plugins you want. Otherwise you can disable
