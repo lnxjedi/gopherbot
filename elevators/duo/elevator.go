@@ -48,6 +48,7 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 	var msg []string
 	var ret bot.RetVal
 	var rep string
+	var factor string
 
 	if len(res.Response.Devices) > 1 {
 		if immediate {
@@ -94,6 +95,7 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 		}
 	}
 	if len(res.Response.Devices[devnum].Capabilities) == 1 || (autoProvided && len(res.Response.Devices[devnum].Capabilities) == 2) {
+		factor = res.Response.Devices[devnum].Capabilities[0]
 		ret = bot.Ok
 	} else {
 		if !prompted {
@@ -113,7 +115,7 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 		}
 		r.Direct().Say(fmt.Sprintf("Duo methods available for your device:\n%s", strings.Join(msg, "\n")))
 		r.Direct().Say("Which method # do you want to use?")
-		rep, ret := r.Direct().WaitForReplyRegex(`\d`, 10)
+		rep, ret = r.Direct().WaitForReplyRegex(`\d`, 10)
 		if ret != bot.Ok {
 			r.Direct().Say("Try again? I need a single-digit method #")
 			rep, ret = r.Direct().WaitForReplyRegex(`\d`, 10)
@@ -122,6 +124,17 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 		if method < 0 || method >= len(res.Response.Devices[devnum].Capabilities) {
 			r.Direct().Say("Invalid method number")
 			return false
+		}
+		factor = res.Response.Devices[devnum].Capabilities[method]
+		if factor == "sms" {
+			_, _ = auth.Auth(factor,
+				authapi.AuthUsername(user),
+				authapi.AuthDevice(res.Response.Devices[devnum].Device),
+			)
+			factor = "passcode"
+		}
+		if factor == "mobile_otp" {
+			factor = "passcode"
 		}
 	}
 	if ret == bot.Ok {
@@ -134,7 +147,6 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 		}
 		var authres *authapi.AuthResult
 		var err error
-		factor := res.Response.Devices[devnum].Capabilities[method]
 		switch factor {
 		case "push":
 			authres, err = auth.Auth(factor,
@@ -143,12 +155,27 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 				authapi.AuthDisplayUsername(user),
 				authapi.AuthType(botname),
 			)
+		case "passcode":
+			r.Direct().Say("Ok, please enter a passcode to use")
+			rep, ret = r.Direct().WaitForReplyRegex(`\d+`, 20)
+			if ret != bot.Ok {
+				r.Direct().Say("Try again? I need a short string of numbers")
+				rep, ret = r.Direct().WaitForReplyRegex(`\d+`, 20)
+			}
+			if ret != bot.Ok {
+				return false
+			}
+			authres, err = auth.Auth(factor,
+				authapi.AuthUsername(user),
+				authapi.AuthPasscode(rep),
+			)
 		default:
 			authres, err = auth.Auth(factor,
 				authapi.AuthUsername(user),
 				authapi.AuthDevice(res.Response.Devices[devnum].Device),
 			)
 		}
+		r.Log(bot.Debug, fmt.Sprintf("Auth response from duo: %v", authres))
 		if err != nil {
 			r.Log(bot.Error, fmt.Sprintf("Error during Duo auth for user %s (%s): %s", user, r.User, err))
 			r.Direct().Say("Sorry, there was an error while, trying to authenticate you - ask an admin to check the log")
