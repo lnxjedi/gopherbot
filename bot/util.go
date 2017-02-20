@@ -2,12 +2,24 @@ package bot
 
 import (
 	"fmt"
+	"os"
 	"regexp"
+	"runtime/debug"
 	"strings"
+	"time"
 )
 
 const escape_aliases = `*+|^$?\[]{}`
 const aliases = `&!;:=-%#@~<>/`
+
+func checkPanic(bot *Robot, s string) {
+	if r := recover(); r != nil {
+		Log(Error, fmt.Sprintf("PANIC from \"%s\": %s\nStack trace:%s", s, r, debug.Stack()))
+		bot.Reply(fmt.Sprintf("OUCH! It looks like you found a bug - please ask an admin to check the log and give them this string: \"%s\"", s))
+		time.Sleep(2 * time.Second)
+		os.Exit(1)
+	}
+}
 
 func setFormat(format string) MessageFormat {
 	switch format {

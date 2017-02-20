@@ -71,6 +71,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		Channel: channel,
 		Format:  Variable,
 	}
+	defer checkPanic(bot, messagetext)
 	if len(channel) == 0 {
 		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", user, messagetext))
 	}
@@ -165,6 +166,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 
 // callPlugin (normally called with go ...) sends a command to a plugin.
 func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
+	defer checkPanic(bot, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", plugin.name, command, args))
 	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\" with arguments \"%#v\"", command, plugin.name, args))
 	bot.pluginID = plugin.pluginID
 	switch plugin.pluginType {
