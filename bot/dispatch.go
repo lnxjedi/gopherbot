@@ -87,7 +87,6 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
 		rep, exists := replies[matcher]
 		if exists {
-			Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking message \"%s\" against \"%s\"", user, channel, messagetext, rep.re.String()))
 			commandMatched = true
 			// we got a match - so delete the matcher and send the reply struct
 			delete(replies, matcher)
@@ -95,6 +94,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 			if rep.re.MatchString(messagetext) {
 				matched = true
 			}
+			Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", user, channel, messagetext, rep.re.String(), matched))
 			rep.replyChannel <- reply{matched, messagetext}
 		} else {
 			Log(Trace, "No matching replyWaiter")
