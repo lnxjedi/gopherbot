@@ -42,12 +42,6 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 	if r.Channel != "" {
 		dm = " - I'll message you directly"
 	}
-	if immediate {
-		r.Say("This command requires immediate elevation" + dm)
-	} else {
-		r.Say("This command requires elevation" + dm)
-	}
-	r.Pause(1)
 
 	prompted := false
 	var devnum, method int
@@ -56,6 +50,14 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 	var rep string
 
 	if len(res.Response.Devices) > 1 {
+		if immediate {
+			r.Say("This command requires immediate elevation" + dm)
+		} else {
+			r.Say("This command requires elevation" + dm)
+		}
+		r.Pause(1)
+		prompted = true
+
 		msg = make([]string, 10)
 		for d, dev := range res.Response.Devices {
 			if d == 10 {
@@ -94,7 +96,14 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 	if len(res.Response.Devices[devnum].Capabilities) == 1 || (autoProvided && len(res.Response.Devices[devnum].Capabilities) == 2) {
 		ret = bot.Ok
 	} else {
-		prompted = true
+		if !prompted {
+			if immediate {
+				r.Say("This command requires immediate elevation" + dm)
+			} else {
+				r.Say("This command requires elevation" + dm)
+			}
+			r.Pause(1)
+		}
 		msg = make([]string, 10)
 		for m, method := range res.Response.Devices[devnum].Capabilities {
 			if m == 10 {
@@ -114,9 +123,6 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			r.Direct().Say("Invalid method number")
 			return false
 		}
-	}
-	if !prompted {
-		r.Direct().Say("(no prompting required for your Duo device)")
 	}
 	if ret == bot.Ok {
 		nameattr := r.GetBotAttribute("name")
