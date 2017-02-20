@@ -20,10 +20,10 @@ const defaultConfig = `
 Help:
 - Keywords: [ "*" ]
   Helptext: [ "(bot), help help - give general help on the help system and using the robot" ]
-CommandMatches:
+CommandMatchers:
 - Command: help
   Regex: '^(?i:help help)'
-MessageMatches:
+MessageMatchers:
 - Command: help
   Regex: '^(?i:help)$'
 AllChannels: true

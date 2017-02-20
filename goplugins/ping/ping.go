@@ -14,7 +14,7 @@ Help:
   Helptext: [ "(bot), ping - see if the bot is alive", "(bot), beep - see if the bot can hear you" ]
 - Keywords: [ "rules" ]
   Helptext: [ "(bot), what are the rules? - Be sure the robot knows how to conduct his/herself." ]
-CommandMatches:
+CommandMatchers:
 - Command: "ping"
   Regex: "ping"
 - Command: "thanks"

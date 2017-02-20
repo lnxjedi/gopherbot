@@ -110,12 +110,12 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		}
 		var matchers []InputMatcher
 		if isCommand {
-			matchers = plugin.CommandMatches
+			matchers = plugin.CommandMatchers
 			if plugin.CatchAll {
 				catchAllPlugins = append(catchAllPlugins, plugin)
 			}
 		} else {
-			matchers = plugin.MessageMatches
+			matchers = plugin.MessageMatchers
 		}
 		for _, matcher := range matchers {
 			Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", messagetext, matcher.Regex))
@@ -123,8 +123,8 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 			if matches != nil {
 				commandMatched = true
 				privilegesOk := true
-				if len(plugin.ElevatedCmds) > 0 {
-					for _, i := range plugin.ElevatedCmds {
+				if len(plugin.ElevatedCommands) > 0 {
+					for _, i := range plugin.ElevatedCommands {
 						if matcher.Command == i {
 							if b.elevator != nil {
 								privilegesOk = b.elevator(bot, false)
@@ -135,8 +135,8 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 						}
 					}
 				}
-				if len(plugin.ElevateImmediateCmds) > 0 {
-					for _, i := range plugin.ElevateImmediateCmds {
+				if len(plugin.ElevateImmediateCommands) > 0 {
+					for _, i := range plugin.ElevateImmediateCommands {
 						if matcher.Command == i {
 							if b.elevator != nil {
 								privilegesOk = b.elevator(bot, true)

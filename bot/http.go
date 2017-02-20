@@ -76,7 +76,7 @@ type replyrequest struct {
 // Types for returning values
 
 // BotAttrRet implements Stringer so it can be interpolated with fmt if
-// the plugin author is ok with ignoring the BotRetVal.
+// the plugin author is ok with ignoring the RetVal.
 type BotAttrRet struct {
 	Attribute string
 	RetVal
@@ -93,23 +93,23 @@ type boolresponse struct {
 
 type boolretresponse struct {
 	Boolean   bool
-	BotRetVal int
+	RetVal int
 }
 
 type botretvalresponse struct {
-	BotRetVal int
+	RetVal int
 }
 
 type checkoutresponse struct {
 	LockToken string
 	Exists    bool
 	Datum     interface{}
-	BotRetVal int
+	RetVal int
 }
 
 type waitreplyresponse struct {
 	Reply     string
-	BotRetVal int
+	RetVal int
 }
 
 func listenHttpJSON() {
@@ -199,7 +199,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		valid, brv := bot.CheckOTP(c.Code)
 		sendReturn(rw, boolretresponse{
 			Boolean:   valid,
-			BotRetVal: int(brv),
+			RetVal: int(brv),
 		})
 		return
 	case "CheckoutDatum":
@@ -213,7 +213,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			LockToken: l,
 			Exists:    e,
 			Datum:     datum,
-			BotRetVal: int(brv),
+			RetVal: int(brv),
 		})
 		return
 	case "CheckinDatum":

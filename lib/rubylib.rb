@@ -103,13 +103,13 @@ class BaseBot
 	def CheckOTP(code)
 		args = { "Code" => code }
 		ret = callBotFunc("CheckOTP", args)
-		return OTPRet.new(ret["Boolean"], ret["BotRetVal"])
+		return OTPRet.new(ret["Boolean"], ret["RetVal"])
 	end
 
 	def CheckoutDatum(key, rw)
 		args = { "Key" => key, "RW" => rw }
 		ret = callBotFunc("CheckoutDatum", args)
-		return Memory.new(key, ret["LockToken"], ret["Exists"], ret["Datum"], ret["BotRetVal"])
+		return Memory.new(key, ret["LockToken"], ret["Exists"], ret["Datum"], ret["RetVal"])
 	end
 
 	def CheckinDatum(m)
@@ -121,7 +121,7 @@ class BaseBot
 	def UpdateDatum(m)
 		args = { "Key" => m.key, "Token" => m.lock_token, "Datum" => m.datum }
 		ret = callBotFunc("UpdateDatum", args)
-		return ret["BotRetVal"]
+		return ret["RetVal"]
 	end
 
 	def GetPluginConfig()
@@ -132,19 +132,19 @@ class BaseBot
 	def GetSenderAttribute(attr)
 		args = { "Attribute" => attr }
 		ret = callBotFunc("GetSenderAttribute", args)
-		return Attribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
+		return Attribute.new(decode(ret["Attribute"]), ret["RetVal"])
 	end
 
 	def GetUserAttribute(user, attr)
 		args = { "User" => user, "Attribute" => attr }
 		ret = callBotFunc("GetSenderAttribute", args)
-		return Attribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
+		return Attribute.new(decode(ret["Attribute"]), ret["RetVal"])
 	end
 
 	def GetBotAttribute(attr)
 		args = { "Attribute" => attr }
 		ret = callBotFunc("GetSenderAttribute", args)
-		return Attribute.new(decode(ret["Attribute"]), ret["BotRetVal"])
+		return Attribute.new(decode(ret["Attribute"]), ret["RetVal"])
 	end
 
 	def Log(level, message)
@@ -157,21 +157,21 @@ class BaseBot
 		format = format.to_s if format.class == Symbol
 		args = { "Channel" => channel, "Message" => "base64:" + message.to_base64, "Format" => format }
 		ret = callBotFunc("SendChannelMessage", args, format)
-		return ret["BotRetVal"]
+		return ret["RetVal"]
 	end
 
 	def SendUserMessage(user, message, format="variable")
 		format = format.to_s if format.class == Symbol
 		args = { "User" => user, "Message" => "base64:" + message.to_base64, "Format" => format }
 		ret = callBotFunc("SendUserMessage", args, format)
-		return ret["BotRetVal"]
+		return ret["RetVal"]
 	end
 
 	def SendUserChannelMessage(user, channel, message, format="variable")
 		format = format.to_s if format.class == Symbol
 		args = { "User" => user, "Channel" => channel, "Message" => "base64:" + message.to_base64, "Format" => format }
 		ret = callBotFunc("SendUserChannelMessage", args, format)
-		return ret["BotRetVal"]
+		return ret["RetVal"]
 	end
 
 	def Say(message, format="variable")
@@ -199,7 +199,7 @@ class BaseBot
 	def WaitForReply(re, timeout=30)
 		args = { "RegExId" => re, "Timeout" => timeout }
 		ret = callBotFunc("WaitForReply", args)
-		return Reply.new(decode(ret["Reply"]), ret["BotRetVal"])
+		return Reply.new(decode(ret["Reply"]), ret["RetVal"])
 	end
 
 	def decode(str)

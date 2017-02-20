@@ -74,7 +74,7 @@ EOF
 gbBotRet() {
 	local JSON="$1"
 	local RETVAL
-	RETVAL=$(echo "$JSON" | jq .BotRetVal)
+	RETVAL=$(echo "$JSON" | jq .RetVal)
 	return $RETVAL
 }
 
@@ -112,7 +112,7 @@ EOF
 )
 	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
 	BOOL=$(echo "$GB_RET" | jq .Boolean)
-	RETVAL=$(echo "$GB_RET" | jq .BotRetVal)
+	RETVAL=$(echo "$GB_RET" | jq .RetVal)
 	echo "$BOOL"
 	return $RETVAL
 }

@@ -7,44 +7,67 @@ const (
 	// Ok indicates a successful result
 	Ok RetVal = iota // success
 
-	// Connector issues
-	// UserNotFound indicates a failed lookup
+	/* Connector issues */
+
+	// UserNotFound - failed lookup
 	UserNotFound
-	// ChannelNotFound indicates a failed lookup
+	// ChannelNotFound - failed lookup
 	ChannelNotFound
-	// AttributeNotFound looking up user/robot attributes like email, name, etc.
+	// AttributeNotFound - failed looking up user/robot attributes like email, name, etc.
 	AttributeNotFound
-	// FailedUserDm indicated the bot was not able to send an direct message (DM) to a given user
+	// FailedUserDM - the bot was not able to send an direct message (DM) to a given user
 	FailedUserDM
-	// FailedChannelJoin indicates the robot couldn't join a channel; e.g. slack doesn't allow bots to join
+	// FailedChannelJoin - the robot couldn't join a channel; e.g. slack doesn't allow bots to join
 	FailedChannelJoin
 
-	// Brain Maladies
-	DatumNotFound    // Datum name not found in the global table when update called
-	DatumLockExpired // A datum was checked out for too long, and the lock expired
-	DataFormatError  // Problem unmarshalling JSON
-	BrainFailed      // An error condition prevented the brain from storing/retrieving; redis down, file write failed, etc.
-	InvalidDatumKey  // Key name didn't match the regex for valid key names
+	/* Brain Maladies */
 
-	// GetPluginConfig
-	InvalidDblPtr    // GetPluginConfig wasn't called with a double-pointer to a config struct
-	InvalidCfgStruct // The struct type in GetPluginConfig doesn't match the struct registered for the plugin
-	NoConfigFound    // The plugin doesn't have any config data
+	// DatumNotFound - name not found in the global table when update called
+	DatumNotFound
+	// DatumLockExpired - A datum was checked out for too long, and the lock expired
+	DatumLockExpired
+	// DataFormatError - Problem unmarshalling JSON
+	DataFormatError
+	// BrainFailed - An error condition prevented the brain from storing/retrieving; redis down, file write failed, etc.
+	BrainFailed
+	// InvalidDatumKey - Key name didn't match the regex for valid key names
+	InvalidDatumKey
 
-	// OTP
-	NoUserOTP // OTP config for the user wasn't found
-	OTPError  // Error value returned while checking OTP
+	/* GetPluginConfig */
 
-	// WaitForReply
-	ReplyNotMatched // The user reply didn't match the pattern waited for
-	TimeoutExpired  // The user didn't reply within the given timeout
-	ReplyInProgress // The robot is already waiting for a reply from the user in a given channel
-	MatcherNotFound // There was no matcher configured with the given string
+	// InvalidDblPtr - GetPluginConfig wasn't called with a double-pointer to a config struct
+	InvalidDblPtr
+	// InvalidCfgStruct - The struct type in GetPluginConfig doesn't match the struct registered for the plugin
+	InvalidCfgStruct
+	// NoConfigFound - The plugin doesn't have any config data
+	NoConfigFound
 
-	// Email
-	NoUserEmail // Couldn't look up the user's email address
-	NoBotEmail  // Couldn't look up the robot's email address
-	MailError   // There was an error sending email
+	/* OTP */
+
+	// NoUserOTP - OTP config for the user wasn't found
+	NoUserOTP
+	// OTPError - error value returned while checking OTP
+	OTPError
+
+	/* WaitForReply */
+
+	// ReplyNotMatched - The user reply didn't match the pattern waited for
+	ReplyNotMatched
+	// TimeoutExpired - The user didn't reply within the given timeout
+	TimeoutExpired
+	// ReplyInProgress - The robot is already waiting for a reply from the user in a given channel
+	ReplyInProgress
+	// MatcherNotFound - There was no matcher configured with the given string, or the regex didn't compile
+	MatcherNotFound
+
+	/* Email */
+
+	// NoUserEmail - Couldn't look up the user's email address
+	NoUserEmail
+	// NoBotEmail - Couldn't look up the robot's email address
+	NoBotEmail
+	// MailError - There was an error sending email
+	MailError
 )
 
 func (ret RetVal) String() string {
@@ -68,7 +91,7 @@ func (ret RetVal) String() string {
 		"The user's reply didn't match the requested regex",
 		"The user didn't respond within the given timeout",
 		"The user is already engaged in an interactive command with the robot in the same channel",
-		"The matcher key supplied in WaitForReply doesn't correspond to a configured regex",
+		"The matcher key supplied in WaitForReply doesn't correspond to a configured regex, or a provided regex didn't compile",
 		"User email attribute not available",
 		"Robot email attribute not available",
 		"Unspecified error sending email",

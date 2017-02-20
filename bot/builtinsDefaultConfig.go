@@ -2,7 +2,7 @@ package bot
 
 const helpConfig = `
 AllChannels: true
-CommandMatches:
+CommandMatchers:
 - Command: help
   Regex: '(?i:help ?([\d\w]+)?)'
 `
@@ -15,7 +15,7 @@ Help:
   Helptext: [ "(bot), reload - have the robot reload configuration files" ]
 - Keywords: [ "quit" ]
   Helptext: [ "(bot), quit - request a graceful shutdown" ]
-CommandMatches:
+CommandMatchers:
 - Command: reload
   Regex: '(?i:reload)'
 - Command: quit
@@ -29,7 +29,7 @@ Help:
   Helptext: [ "(bot), send launch codes - one-time send of Google Authenticator string token, for use with TOTP elevation" ]
 - Keywords: [ "check", "launch", "codes", "code" ]
   Helptext: [ "(bot), check launch code <code> - verify launch codes operation without launching any missiles" ]
-CommandMatches:
+CommandMatchers:
 - Command: "send"
   Regex: '(?i:send (?:launch )?codes?)'
 - Command: "check"
@@ -46,7 +46,7 @@ Help:
   Helptext: [ "(bot), list plugins" ]
 - Keywords: [ "dump", "robot" ]
   Helptext: [ "(bot), dump (default) robot - dump the current configuration for the robot" ]
-CommandMatches:
+CommandMatchers:
 - Command: "list"
   Regex: '(?i:list plugins?)'
 - Command: "plugdefault"
@@ -71,7 +71,7 @@ Help:
   Helptext: [ "(bot), show log level - show the current logging level" ]
 - Keywords: [ "log", "page", "lines" ]
   Helptext: [ "(bot), set log lines to <number> - set the number of lines returned by show log"]
-CommandMatches:
+CommandMatchers:
 - Command: "level"
   Regex: '(?i:set log ?level(?: to)? (trace|debug|info|warning|error))'
 - Command: "show"

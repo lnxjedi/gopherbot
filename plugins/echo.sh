@@ -16,7 +16,7 @@ Channels: [ "botdev" ]
 Help:
 - Keywords: [ "echo" ]
   Helptext: [ "(bot), echo <simple text> - trivially repeat a phrase" ]
-CommandMatches:
+CommandMatchers:
 - Command: "echo"
   Regex: '(?i:echo ([.;!\d\w-, ]+))'
 EOF

@@ -32,6 +32,7 @@ type PluginHelp struct {
 type InputMatcher struct {
 	Regex   string         // The regular expression string to match - bot adds ^\w* & \w*$
 	Command string         // The name of the command to pass to the plugin with it's arguments
+	Label   string         // ReplyMatchers use "Label" instead of "Command"
 	re      *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
@@ -45,27 +46,27 @@ const (
 
 // Plugin specifies the structure of a plugin configuration - plugins should include an example / default config
 type Plugin struct {
-	name                 string          // the name of the plugin, used as a key in to the
-	pluginType           plugType        // plugGo, plugExternal, plugBuiltin - determines how commands are routed
-	pluginPath           string          // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=plugExternal only
-	Disabled             bool            // Set true to disable the plugin
-	DisallowDirect       bool            // Set this true if this plugin can never be accessed via direct message
-	DirectOnly           bool            // Set this true if this plugin ONLY accepts direct messages
-	Channels             []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
-	AllChannels          bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	RequireAdmin         bool            // Set to only allow administrators to access a plugin
-	ElevatedCmds         []string        // Commands that require elevation, usually via 2fa
-	ElevateImmediateCmds []string        // Commands that always require elevation promting, regardless of timeouts
-	Users                []string        // If non-empty, list of all the users with access to this plugin
-	Help                 []PluginHelp    // All the keyword sets / help texts for this plugin
-	CommandMatches       []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
-	ReplyMatchers        []InputMatcher  // Input matchers for replies to questions, only match after a RequestContinuation
-	MessageMatches       []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
-	CatchAll             bool            // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
-	Config               json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetPluginConfig()
-	config               interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
-	pluginID             string          // 32-char random ID for identifying plugins in callbacks
-	lock                 sync.Mutex      // For use with the robot's Brain
+	name                     string          // the name of the plugin, used as a key in to the
+	pluginType               plugType        // plugGo, plugExternal, plugBuiltin - determines how commands are routed
+	pluginPath               string          // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=plugExternal only
+	Disabled                 bool            // Set true to disable the plugin
+	DisallowDirect           bool            // Set this true if this plugin can never be accessed via direct message
+	DirectOnly               bool            // Set this true if this plugin ONLY accepts direct messages
+	Channels                 []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
+	AllChannels              bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
+	RequireAdmin             bool            // Set to only allow administrators to access a plugin
+	ElevatedCommands         []string        // Commands that require elevation, usually via 2fa
+	ElevateImmediateCommands []string        // Commands that always require elevation promting, regardless of timeouts
+	Users                    []string        // If non-empty, list of all the users with access to this plugin
+	Help                     []PluginHelp    // All the keyword sets / help texts for this plugin
+	CommandMatchers          []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
+	ReplyMatchers            []InputMatcher  // Input matchers for replies to questions, only match after a RequestContinuation
+	MessageMatchers          []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
+	CatchAll                 bool            // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
+	Config                   json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetPluginConfig()
+	config                   interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
+	pluginID                 string          // 32-char random ID for identifying plugins in callbacks
+	lock                     sync.Mutex      // For use with the robot's Brain
 }
 
 // PluginHandler is the struct a plugin registers for the Gopherbot plugin API.
@@ -272,8 +273,8 @@ PlugLoop:
 		}
 		Log(Info, fmt.Sprintf("Plugin \"%s\" will be active in channels %q; all channels: %t", plug, plugin.Channels, plugin.AllChannels))
 		// Compile the regex's
-		for i := range plugin.CommandMatches {
-			command := &plugin.CommandMatches[i]
+		for i := range plugin.CommandMatchers {
+			command := &plugin.CommandMatchers[i]
 			regex := strings.Replace(command.Regex, " ?", `\s*`, -1)
 			regex = strings.Replace(regex, " ", `\s+`, -1)
 			re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
@@ -294,10 +295,10 @@ PlugLoop:
 			}
 			reply.re = re
 		}
-		for i := range plugin.MessageMatches {
+		for i := range plugin.MessageMatchers {
 			// Note that full message regexes don't get the beginning and end anchors added - the individual plugin
 			// will need to do this if necessary.
-			message := &plugin.MessageMatches[i]
+			message := &plugin.MessageMatchers[i]
 			regex := strings.Replace(message.Regex, " ?", `\s*`, -1)
 			regex = strings.Replace(regex, " ", `\s+`, -1)
 			re, err := regexp.Compile(regex)
@@ -307,17 +308,17 @@ PlugLoop:
 			}
 			message.re = re
 		}
-		if len(plugin.ElevatedCmds) > 0 {
-			for _, i := range plugin.ElevatedCmds {
+		if len(plugin.ElevatedCommands) > 0 {
+			for _, i := range plugin.ElevatedCommands {
 				cmdfound := false
-				for _, j := range plugin.CommandMatches {
+				for _, j := range plugin.CommandMatchers {
 					if i == j.Command {
 						cmdfound = true
 						break
 					}
 				}
 				if !cmdfound {
-					for _, j := range plugin.MessageMatches {
+					for _, j := range plugin.MessageMatchers {
 						if i == j.Command {
 							cmdfound = true
 							break
@@ -325,7 +326,7 @@ PlugLoop:
 					}
 				}
 				if !cmdfound {
-					Log(Error, fmt.Errorf("Skipping %s, elevated command %s didn't match a command from CommandMatches or MessageMatches", plug, i))
+					Log(Error, fmt.Errorf("Skipping %s, elevated command %s didn't match a command from CommandMatchers or MessageMatchers", plug, i))
 					continue PlugLoop
 				}
 			}

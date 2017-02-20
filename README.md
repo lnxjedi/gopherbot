@@ -3,9 +3,9 @@ A chatops-oriented chat bot written in Go, inspired by Hubot.
 
 ## Features
 * A thread-safe brain with consistency guarantees
-* TOTP support for security-sensitive commands
+* Elevated privilege support for security-sensitive commands
 * Highly-configurable plugins that can be constrained by channels, users, etc.
-* Support for plugins written in Go, Ruby and Bash
+* Support for external script plugins written in Go, Ruby and Bash
 * localhost http/json interface for creating plugin APIs for other languages
 * WaitForReply API for easily creating interactive plugins without complex session/state logic
 * Includes many sample plugins, including knock-knock jokes!
@@ -76,7 +76,7 @@ Gopherbot also looks for a local configuration directory, which must contain at 
 You'll need to edit the example config and at least set a correct SlackToken (obtainable from https://yourteam.slack.com/services/new/bot), but you should probably add your username to AdminUsers to enable e.g. the `reload` command.
 
 ### Configuring plugins
-The 'bot administrator can override default plugin configuration by putting a new `<pluginname>.yaml` file in conf/plugins subdirectory of the local config dir. Top-level settings in this file will override the default configuration for a plugin. Note that if you override **Help**, **CommandMatches** or any other multi-part section, you should probably start by copying the entire section from the default config, as your settings will override the entire section.
+The 'bot administrator can override default plugin configuration by putting a new `<pluginname>.yaml` file in conf/plugins subdirectory of the local config dir. Top-level settings in this file will override the default configuration for a plugin. Note that if you override **Help**, **CommandMatchers** or any other multi-part section, you should probably start by copying the entire section from the default config, as your settings will override the entire section.
 
 See `example.gopherbot/conf/plugins/example.yaml` for a full example of a plugin configuration file.
 

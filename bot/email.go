@@ -21,7 +21,7 @@ type botMailer struct {
 // For the robot, this can be conifigured in gopherbot.conf, Email attribute.
 // For the user, this should be provided by the chat protocol, or in
 // gopherbot.conf. (TODO: not yet implemented)
-// It returns an error and BotRetVal != 0 if there's a problem.
+// It returns an error and RetVal != 0 if there's a problem.
 func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret RetVal) {
 	var mailFrom, botName, mailTo string
 

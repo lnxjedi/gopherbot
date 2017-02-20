@@ -41,7 +41,7 @@ var keyRe = regexp.MustCompile(keyRegex)
 
 // checkout returns the []byte from the brain, with a lock that expires
 // after lockTimeout. It returns a lock token, a pointer to the raw []byte
-// data, true if the key exists, and a BotRetVal.
+// data, true if the key exists, and a RetVal.
 func checkout(d string, rw bool) (string, *[]byte, bool, RetVal) {
 	if !keyRe.MatchString(d) {
 		err := fmt.Errorf("Invalid key supplied to checkout: %s", d)

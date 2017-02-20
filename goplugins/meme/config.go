@@ -15,7 +15,7 @@ Help:
 - Keywords: [ "meme", "prepare" ]
   Helptext: [ "(bot), you <did something>, prepare to die - Let Inigo threaten your friends" ]
 
-CommandMatches:
+CommandMatchers:
 - Command: gosh
   Regex: '(?mi:([\w\n’'' ]+), gosh!)'
 - Command: prettymuch

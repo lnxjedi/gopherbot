@@ -15,7 +15,7 @@ Help:
   - "(bot), dig <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
   - "(bot), hosts <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
   - "(bot), hostname - report the $HOSTNAME where the bot is running"
-CommandMatches:
+CommandMatchers:
 - Command: hosts
   Regex: '(?i:hosts?|lookup|dig|nslookup) ([\w-. ]+)'
 - Command: hostname

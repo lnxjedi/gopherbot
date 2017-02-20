@@ -13,7 +13,7 @@ configure(){
 Help:
 - Keywords: [ "whoami" ]
   Helptext: [ "(bot), whoami - get the bot to tell you a little about yourself" ]
-CommandMatches:
+CommandMatchers:
 - Command: "whoami"
   Regex: '(?i:whoami)'
 EOF

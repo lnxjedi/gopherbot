@@ -28,7 +28,7 @@ Help:
   Helptext: [ "(bot), forget <#> - ask the robot to forget one of it's remembered 'facts'" ]
 - Keywords: [ "check" ]
   Helptext: [ "(bot), check me - get the bot to check you out" ]
-CommandMatches:
+CommandMatchers:
 - Regex: (?i:ruby( me)?!?)
   Command: ruby
 - Regex: (?i:listen( to me)?!?)

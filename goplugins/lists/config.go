@@ -17,7 +17,7 @@ Help:
   Helptext: [ "(bot), send me the <type> list - send a copy of the list by email" ]
 - Keywords: [ "list", "lists", "show", "view" ]
   Helptext: [ "(bot), show the <type> list - show the contents of a list" ]
-CommandMatches:
+CommandMatchers:
 - Command: 'add'
   Regex: '(?i:add ([\w\d- ]+) to the ([\w]+) list)'
 - Command: 'list'

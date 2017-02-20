@@ -52,25 +52,24 @@ func init() {
 	}
 }
 
-/* WaitForReply lets a plugin temporarily register a regex for a reply
-expected to an multi-step command when the robot needs more info. It
-returns whatever text the user replied with, together with a BotRetVal
-which may have the following flags set:
-ReplyInProgress - couldn't wait for a reply, already one in progress
-ReplyNotMatched - didn't successfully match for any reason
-MatcherNotFound - the regexId didn't correspond to a valid regex
-TimeoutExpired - the user didn't respond within the timeout window given
-
-Plugin authors can define regex's for regexId's in the plugin's JSON config,
-with the restriction that the regexId must start with a lowercase letter.
-A pre-definied regex from the following list can also be used:
-	Email
-	Domain - an alpha-numeric domain name
-	OTP - a 6-digit one-time password code
-	IPAddr
-	SimpleString - letters, numbers, spaces, dots, dashes, underscores, and commas
-	YesNo
-*/
+// WaitForReply lets a plugin temporarily register a regex for a reply
+// expected to an multi-step command when the robot needs more info. It
+// returns whatever text the user replied with, together with a RetVal
+// which may have the following flags set:
+//	ReplyInProgress - couldn't wait for a reply, already one in progress
+//	ReplyNotMatched - didn't successfully match for any reason
+//	MatcherNotFound - the regexId didn't correspond to a valid regex
+//	TimeoutExpired - the user didn't respond within the timeout window given
+//
+// Plugin authors can define regex's for regexId's in the plugin's JSON config,
+// with the restriction that the regexId must start with a lowercase letter.
+// A pre-definied regex from the following list can also be used:
+// 	Email
+//	Domain - an alpha-numeric domain name
+//	OTP - a 6-digit one-time password code
+//	IPAddr
+//	SimpleString - letters, numbers, spaces, dots, dashes, underscores, and commas
+//	YesNo
 func (r *Robot) WaitForReply(regexID string, timeout int) (replyText string, ret RetVal) {
 	matcher := replyMatcher{
 		user:    r.User,
@@ -96,6 +95,8 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (replyText string, ret
 			if matcher.Command == regexID {
 				rep.re = matcher.re
 				break
+			} else if matcher.Label == regexID {
+				rep.re = matcher.re
 			}
 		}
 	}
@@ -133,6 +134,9 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (replyText string, ret
 	}
 }
 
+// WaitForReplyRegex is identical to WaitForReply except that the first argument is
+// the regex to compile and use. If the regex doesn't compile an error will be
+// logged and ("", MatcherNotFound) will be returned.
 func (r *Robot) WaitForReplyRegex(regex string, timeout int) (replyText string, ret RetVal) {
 	matcher := replyMatcher{
 		user:    r.User,

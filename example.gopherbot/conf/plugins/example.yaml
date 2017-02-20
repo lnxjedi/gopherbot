@@ -35,7 +35,7 @@ Help:
 # either in a direct message, or by giving it's name or alias. The Regex
 # is a Go regular expression, easily developed by using the tool at:
 # https://regex-golang.appspot.com/assets/html/index.html
-CommandMatches:
+CommandMatchers:
 - Regex: '(?i:(?:search|find)(?: metadata)? ([.\w-]+))'
   Command: search
 - Regex: '(?i:open the pod bay doors)'
@@ -51,7 +51,7 @@ ReplyMatchers:
 # joke plugins; e.g. responding with a Chuck Norris anecdote whenever
 # you mention his name. These will match against every message the robot
 # hears (subject to user, channel and other restrictions).
-MessageMatches:
+MessageMatchers:
 - Regex: '(?i:.*Chuck Norris.*)'
   Command: chuck
 # CatchAll plugins are called when someone speaks directly to the robot, but

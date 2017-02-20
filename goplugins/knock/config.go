@@ -4,7 +4,7 @@ const defaultConfig = `
 Help:
 - Keywords: [ "knock", "joke" ]
   Helptext: [ "(bot), tell me a (knock-knock) joke" ]
-CommandMatches:
+CommandMatchers:
 - Command: knock
   Regex: '(?i:tell me a(?:nother)?(?: knock[- ]knock)? joke)'
 ReplyMatchers:
