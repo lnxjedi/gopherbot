@@ -8,9 +8,9 @@ CommandMatchers:
 - Command: knock
   Regex: '(?i:tell me a(?:nother)?(?: knock[- ]knock)? joke)'
 ReplyMatchers:
-- Command: whosthere
+- Label: whosthere
   Regex: '(?i:who.?s there\??)'
-- Command: who
+- Label: who
   Regex: '(?i:[\w ]+ who\??)'
 Config:
   Jokes:

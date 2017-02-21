@@ -1,4 +1,4 @@
-// The knock plugin is a simple demonstrator plugin for using Gopherbot's
+// Package knock implements a simple demonstrator plugin for using Gopherbot's
 // WaitForReply function to tell knock-knock jokes.
 package knock
 
@@ -8,11 +8,13 @@ import (
 	"github.com/uva-its/gopherbot/bot"
 )
 
+// Joke holds a knock-knock joke
 type Joke struct {
 	First  string
 	Second string
 }
 
+// JokeConfig holds the config for all the jokes the robot knows
 type JokeConfig struct {
 	Jokes    []Joke   // The actual jokes, first and second parts
 	Openings []string // Stuff the robot says before starting the joke
@@ -92,16 +94,15 @@ func knock(r *bot.Robot, command string, args ...string) {
 				if strings.HasPrefix(strings.ToLower(reply), strings.ToLower(joke.First)) {
 					r.Say(joke.Second)
 					return
-				} else {
-					switch i {
-					case 1:
-						r.Pause(0.5)
-						r.Reply("(Uh, didn't you mean to say \"" + joke.First + " who?\")")
-					case 2:
-						r.Pause(0.5)
-						r.Reply(r.RandomString(j.Phooey))
-						return
-					}
+				}
+				switch i {
+				case 1:
+					r.Pause(0.5)
+					r.Reply("(Uh, didn't you mean to say \"" + joke.First + " who?\")")
+				case 2:
+					r.Pause(0.5)
+					r.Reply(r.RandomString(j.Phooey))
+					return
 				}
 			}
 		}
@@ -110,8 +111,8 @@ func knock(r *bot.Robot, command string, args ...string) {
 
 func init() {
 	bot.RegisterPlugin("knock", bot.PluginHandler{
-		defaultConfig,
-		knock,
-		&JokeConfig{},
+		DefaultConfig: defaultConfig,
+		Handler:       knock,
+		Config:        &JokeConfig{},
 	})
 }

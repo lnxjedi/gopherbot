@@ -92,10 +92,10 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (replyText string, ret
 		rep.re = stockReplies[regexID]
 	} else {
 		for _, matcher := range plugin.ReplyMatchers {
-			if matcher.Command == regexID {
+			if matcher.Label == regexID {
 				rep.re = matcher.re
 				break
-			} else if matcher.Label == regexID {
+			} else if matcher.Command == regexID {
 				rep.re = matcher.re
 			}
 		}
