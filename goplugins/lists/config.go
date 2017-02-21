@@ -19,7 +19,7 @@ Help:
   Helptext: [ "(bot), show the <type> list - show the contents of a list" ]
 CommandMatchers:
 - Command: 'add'
-  Regex: '(?i:add ([\w\d- ]+) to the ([\w]+) list)'
+  Regex: '(?i:add ([\w\d- ]+) to the ([\w-_]+) list)'
 - Command: 'list'
   Regex: '(?i:list lists)'
 - Command: 'remove'
