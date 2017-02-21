@@ -3,7 +3,7 @@ A chatops-oriented chat bot written in Go, inspired by Hubot.
 
 ## Features
 * A thread-safe brain with consistency guarantees
-* Elevated privilege support for security-sensitive commands
+* [Elevated privilege](doc/Elevation.md) support for security-sensitive commands
 * Highly-configurable plugins that can be constrained by channels, users, etc.
 * Support for external script plugins written in Go, Ruby and Bash
 * localhost http/json interface for creating plugin APIs for other languages
