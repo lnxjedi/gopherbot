@@ -60,7 +60,8 @@ func lists(r *bot.Robot, command string, args ...string) {
 	case "remove":
 		item := args[0]
 		listName := strings.ToLower(args[1])
-		list, ok := lists[listName]
+		listKey := r.Channel + "~" + listName
+		list, ok := lists[listKey]
 		if !ok {
 			r.Say(fmt.Sprintf("I don't have a list named %s", listName))
 			return
@@ -71,7 +72,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 			if citem == strings.ToLower(li) {
 				list[i] = list[len(list)-1]
 				list = list[:len(list)-1]
-				lists[listName] = list
+				lists[listKey] = list
 				r.Say(fmt.Sprintf("Ok, I removed %s from the %s list", item, listName))
 				updated = true
 				found = true
@@ -82,34 +83,41 @@ func lists(r *bot.Robot, command string, args ...string) {
 			return
 		}
 	case "empty", "delete":
-		listName := args[0]
-		_, ok := lists[listName]
+		listName := strings.ToLower(args[0])
+		listKey := r.Channel + "~" + listName
+		_, ok := lists[listKey]
 		if !ok {
 			r.Say(fmt.Sprintf("I don't have a list named %s", listName))
 			return
 		}
 		updated = true
 		if command == "empty" {
-			lists[listName] = []string{}
+			lists[listKey] = []string{}
 			r.Say("Emptied")
 		} else {
 			delete(lists, listName)
 			r.Say("Deleted")
 		}
 	case "list":
-		if len(lists) == 0 {
-			r.Say("I don't have any lists")
-			return
-		}
+		var found int
 		var listsBuffer bytes.Buffer
 		for l, _ := range lists {
-			fmt.Fprintf(&listsBuffer, "%s\n", l)
+			lchan := strings.Split(l, "~")[0]
+			if lchan == r.Channel {
+				found++
+				fmt.Fprintf(&listsBuffer, "%s\n", strings.Split(l, "~")[1])
+			}
 		}
-		r.Say(fmt.Sprintf("Here are the lists I have:\n%s", listsBuffer.String()))
+		if found == 0 {
+			r.Say("I don't have any lists for this channel")
+			return
+		}
+		r.Say(fmt.Sprintf("Here are the lists I have for this channel:\n%s", listsBuffer.String()))
 	case "show", "send":
-		listName := args[0]
+		listName := strings.ToLower(args[0])
+		listKey := r.Channel + "~" + listName
 		var listBuffer bytes.Buffer
-		list, ok := lists[listName]
+		list, ok := lists[listKey]
 		if !ok {
 			r.Say(fmt.Sprintf("I don't have a list named %s", listName))
 			return
@@ -140,6 +148,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 		// Case sensitive input, case insensitve equality checking
 		item := args[0]
 		listName := strings.ToLower(args[1])
+		listKey := r.Channel + "~" + listName
 		if len(item) > maxitemlen {
 			r.Say(fmt.Sprintf("Sorry, that item is too big - the longest I'll take is %d", maxitemlen))
 			return
@@ -148,13 +157,13 @@ func lists(r *bot.Robot, command string, args ...string) {
 			r.Say(fmt.Sprintf("Sorry, that list name is too big - the longest I'll take is %d", maxlistnamelen))
 			return
 		}
-		list, ok := lists[listName]
+		list, ok := lists[listKey]
 		if !ok {
 			if len(lists) >= maxlists {
 				r.Say(fmt.Sprintf("Sorry, can't create \"%s\", there are too many lists already", listName))
 				return
 			}
-			lists[listName] = []string{item}
+			lists[listKey] = []string{item}
 		} else {
 			citem := strings.ToLower(item)
 			for _, li := range list {
@@ -163,8 +172,8 @@ func lists(r *bot.Robot, command string, args ...string) {
 					return
 				}
 			}
-			list := append(list, item)
-			lists[listName] = list
+			list = append(list, item)
+			lists[listKey] = list
 		}
 		r.Say(fmt.Sprintf("Ok, I added %s to the %s list", item, listName))
 		updated = true
