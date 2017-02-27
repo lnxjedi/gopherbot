@@ -19,7 +19,9 @@ CommandMatchers:
 - Command: reload
   Regex: '(?i:reload)'
 - Command: quit
-  Regex: '(?:quit|exit)'
+  Regex: '(?i:quit|exit)'
+- Command: info
+  Regex: '(?i:info|tell me about yourself)'
 `
 
 const launchCodesConfig = `

@@ -9,6 +9,8 @@ Type=simple
 User=robot
 Group=robot
 WorkingDirectory=/opt/gopherbot
+# Need HOSTNAME for Gopherbot to tell you where it's running
+Environment=HOSTNAME=%H
 ExecStart=/opt/gopherbot/gopherbot -plainlog
 Restart=on-failure
 Environment=USER=robot HOME=/opt/robot

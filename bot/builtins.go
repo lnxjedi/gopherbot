@@ -298,6 +298,25 @@ func admin(bot *Robot, command string, args ...string) {
 		return
 	}
 	switch command {
+	case "info":
+		b.lock.RLock()
+		admins := strings.Join(b.adminUsers, ", ")
+		b.lock.RUnlock()
+		if bot.CheckAdmin() {
+			host := os.Getenv("HOSTNAME")
+			msg := make([]string, 8)
+			msg[0] = "Here's some information about my running environment:"
+			msg[1] = fmt.Sprintf("The hostname for the server I'm running on is: %s", host)
+			b.lock.RLock()
+			msg[2] = fmt.Sprintf("My install directory is: %s", b.installPath)
+			msg[3] = fmt.Sprintf("My local configuration directory is: %s", b.localPath)
+			b.lock.RUnlock()
+			msg[4] = fmt.Sprintf("My software version is: Gopherbot %s", Version)
+			msg[5] = fmt.Sprintf("The administrators for this robot are: %s", admins)
+			bot.Say(strings.Join(msg, "\n"))
+		} else {
+			bot.Say(fmt.Sprintf("The administrators for this robot are: %s", admins))
+		}
 	case "reload":
 		err := loadConfig()
 		if err != nil {

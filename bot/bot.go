@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+var Version = "0.9.0-dev"
+
 var botLock sync.RWMutex
 var random *rand.Rand
 

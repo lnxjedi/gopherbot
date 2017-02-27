@@ -13,10 +13,16 @@ EOF
 	exit 0
 }
 
+VERSTRING=$(grep "var Version" bot/bot.go)
+VERSTRING=${VERSTRING#var }
+VERSTRING=${VERSTRING// /}
+# Set Version
+eval $VERSTRING
+
 eval `go env`
 echo "Building gopherbot for $GOOS"
 go build
-OUTFILE=./gopherbot-$GOPHERBOT_VERSION-$GOOS-$GOARCH.zip
+OUTFILE=./gopherbot-$Version-$GOOS-$GOARCH.zip
 rm -f $OUTFILE
 
 echo "Creating $OUTFILE"
