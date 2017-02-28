@@ -15,6 +15,8 @@ Help:
   Helptext: [ "(bot), reload - have the robot reload configuration files" ]
 - Keywords: [ "quit" ]
   Helptext: [ "(bot), quit - request a graceful shutdown" ]
+- Keywords: [ "info", "information", "robot", "admin", "administrators" ]
+  Helptext: [ "(bot), info | tell me about yourself - provide useful information for admins, or a list of admins" ]
 CommandMatchers:
 - Command: reload
   Regex: '(?i:reload)'
