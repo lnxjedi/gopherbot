@@ -117,7 +117,8 @@ func help(bot *Robot, command string, args ...string) {
 		var term, helpOutput string
 		botSub := `(bot)`
 		hasTerm := false
-		helpLines := 0
+		lineSeparator := "\n\n"
+
 		if len(args) == 1 && len(args[0]) > 0 {
 			hasTerm = true
 			term = args[0]
@@ -128,6 +129,7 @@ func help(bot *Robot, command string, args ...string) {
 			Log(Trace, "Help requested for term", term)
 		}
 
+		var helpLines, prepend []string
 		for _, plugin := range plugins {
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
 			if !hasTerm { // if you ask for help without a term, you just get help for whatever commands are available to you
@@ -136,11 +138,11 @@ func help(bot *Robot, command string, args ...string) {
 						for _, helptext := range phelp.Helptext {
 							if len(phelp.Keywords) > 0 && phelp.Keywords[0] == "*" {
 								// * signifies help that should be prepended
-								helpOutput = strings.Replace(helptext, botSub, b.name, -1) + string('\n') + helpOutput
+								prepend = []string{strings.Replace(helptext, botSub, b.name, -1)}
+								helpLines = append(prepend, helpLines...)
 							} else {
-								helpOutput += strings.Replace(helptext, botSub, b.name, -1) + string('\n')
+								helpLines = append(helpLines, strings.Replace(helptext, botSub, b.name, -1))
 							}
-							helpLines++
 						}
 					}
 				}
@@ -165,8 +167,7 @@ func help(bot *Robot, command string, args ...string) {
 								chantext += ")"
 							}
 							for _, helptext := range phelp.Helptext {
-								helpOutput += strings.Replace(helptext, botSub, b.name, -1) + chantext + string('\n')
-								helpLines++
+								helpLines = append(helpLines, strings.Replace(helptext, botSub, b.name, -1)+chantext)
 							}
 						}
 					}
@@ -174,28 +175,28 @@ func help(bot *Robot, command string, args ...string) {
 			}
 		}
 		if hasTerm {
-			helpOutput = "Command(s) matching keyword: " + term + "\n" + helpOutput
+			helpOutput = "Command(s) matching keyword: " + term + "\n" + strings.Join(helpLines, lineSeparator)
 		}
 		switch {
-		case helpLines == 0:
+		case len(helpLines) == 0:
 			bot.Say("Sorry, bub - I got nothin' for ya'")
-		case helpLines > tooLong:
+		case len(helpLines) > tooLong:
 			if len(bot.Channel) > 0 {
 				bot.Reply("(the help output was pretty long, so I sent you a private message)")
 				if !hasTerm {
-					helpOutput = "Command(s) available in channel: " + bot.Channel + "\n" + helpOutput
+					helpOutput = "Command(s) available in channel: " + bot.Channel + "\n" + strings.Join(helpLines, lineSeparator)
 				}
 			} else {
 				if !hasTerm {
-					helpOutput = "Command(s) available:" + "\n" + helpOutput
+					helpOutput = "Command(s) available:" + "\n" + strings.Join(helpLines, lineSeparator)
 				}
 			}
-			bot.SendUserMessage(bot.User, strings.TrimRight(helpOutput, "\n"))
+			bot.SendUserMessage(bot.User, helpOutput)
 		default:
 			if !hasTerm {
-				helpOutput = "Command(s) available:" + "\n" + helpOutput
+				helpOutput = "Command(s) available:" + "\n" + strings.Join(helpLines, lineSeparator)
 			}
-			bot.Say(strings.TrimRight(helpOutput, "\n"))
+			bot.Say(helpOutput)
 		}
 	}
 }
