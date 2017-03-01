@@ -92,9 +92,16 @@ func initializePlugins() {
 		Channel: "",
 		Format:  Variable,
 	}
-	for _, plugin := range plugins {
-		Log(Info, "Initializing plugin:", plugin.name)
-		go callPlugin(bot, plugin, "init")
+	shutdownMutex.Lock()
+	if !shuttingDown {
+		shutdownMutex.Unlock()
+		for _, plugin := range plugins {
+			Log(Info, "Initializing plugin:", plugin.name)
+			plugRunningWaitGroup.Add(1)
+			go callPlugin(bot, plugin, "init")
+		}
+	} else {
+		shutdownMutex.Unlock()
 	}
 }
 

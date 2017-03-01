@@ -14,7 +14,9 @@ Help:
 - Keywords: [ "reload" ]
   Helptext: [ "(bot), reload - have the robot reload configuration files" ]
 - Keywords: [ "quit" ]
-  Helptext: [ "(bot), quit - request a graceful shutdown" ]
+  Helptext: [ "(bot), quit - request a graceful shutdown, waiting for all plugins to finish" ]
+- Keywords: [ "abort" ]
+  Helptext: [ "(bot), abort - request an immediate shutdown without waiting for plugins to finish" ]
 - Keywords: [ "info", "information", "robot", "admin", "administrators" ]
   Helptext: [ "(bot), info | tell me about yourself - provide useful information for admins, or a list of admins" ]
 CommandMatchers:
@@ -22,6 +24,8 @@ CommandMatchers:
   Regex: '(?i:reload)'
 - Command: quit
   Regex: '(?i:quit|exit)'
+- Command: abort
+  Regex: '(?i:abort)'
 - Command: info
   Regex: '(?i:info|tell me about yourself)'
 `

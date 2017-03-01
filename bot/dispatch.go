@@ -5,7 +5,16 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"sync"
 )
+
+var plugRunningCounter int
+var shuttingDown = false
+
+// the shutdownMutex protects both the plugRunningCounter and the shuttingDown
+// flag
+var shutdownMutex sync.Mutex
+var plugRunningWaitGroup sync.WaitGroup
 
 // messageAppliesToPlugin checks the user and channel against the plugin's
 // configuration to determine if the message should be evaluated. Used by
@@ -148,7 +157,16 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 					}
 				}
 				if privilegesOk {
-					go callPlugin(bot, plugin, matcher.Command, matches[0][1:]...)
+					shutdownMutex.Lock()
+					if shuttingDown {
+						bot.Say("Sorry, I'm shutting down and can't start any new tasks")
+						shutdownMutex.Unlock()
+					} else {
+						plugRunningCounter++
+						shutdownMutex.Unlock()
+						plugRunningWaitGroup.Add(1)
+						go callPlugin(bot, plugin, matcher.Command, matches[0][1:]...)
+					}
 				} else {
 					Log(Error, fmt.Sprintf("Elevation failed for command \"%s\", plugin %s", matcher.Command, plugin.name))
 					bot.Say(fmt.Sprintf("Sorry, the \"%s\" command requires elevated privileges", matcher.Command))
@@ -157,8 +175,16 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		}
 	}
 	if isCommand && !commandMatched { // the robot was spoken too, but nothing matched - call catchAlls
-		for _, plugin := range catchAllPlugins {
-			go callPlugin(bot, plugin, "catchall", messagetext)
+		shutdownMutex.Lock()
+		if !shuttingDown {
+			shutdownMutex.Unlock()
+			for _, plugin := range catchAllPlugins {
+				plugRunningWaitGroup.Add(1)
+				go callPlugin(bot, plugin, "catchall", messagetext)
+			}
+		} else {
+			// If the robot is shutting down, just ignore catch-all plugins
+			shutdownMutex.Unlock()
 		}
 	}
 	b.lock.RUnlock()
@@ -166,6 +192,12 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 
 // callPlugin (normally called with go ...) sends a command to a plugin.
 func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
+	defer func() {
+		shutdownMutex.Lock()
+		plugRunningCounter--
+		shutdownMutex.Unlock()
+		plugRunningWaitGroup.Done()
+	}()
 	defer checkPanic(bot, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", plugin.name, command, args))
 	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\" with arguments \"%#v\"", command, plugin.name, args))
 	bot.pluginID = plugin.pluginID
