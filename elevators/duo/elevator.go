@@ -88,11 +88,17 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 		}
 	}
 	autoProvided := false
-	for _, method := range res.Response.Devices[devnum].Capabilities {
-		if method == "auto" {
-			autoProvided = true
-			break
+	if len(res.Response.Devices) > 0 {
+		for _, method := range res.Response.Devices[devnum].Capabilities {
+			if method == "auto" {
+				autoProvided = true
+				break
+			}
 		}
+	} else {
+		r.Log(bot.Error, fmt.Sprintf("No devices returned for Duo user %s; auth response: %v", user, res))
+		r.Direct().Say("There's a problem with your duo account, ask an admin to check the log")
+		return false
 	}
 	if len(res.Response.Devices[devnum].Capabilities) == 1 || (autoProvided && len(res.Response.Devices[devnum].Capabilities) == 2) {
 		factor = res.Response.Devices[devnum].Capabilities[0]
@@ -212,6 +218,7 @@ func elevate(r *bot.Robot, immediate bool) bool {
 		return false
 	}
 	res, err := auth.Preauth(authapi.PreauthUsername(duouser))
+	r.Log(bot.Debug, fmt.Sprintf("Preauth response for duo user %s: %v", duouser, res))
 	if err != nil {
 		r.Log(bot.Error, fmt.Sprintf("Duo preauthentication error for Duo user %s (%s): %s", duouser, r.User, err))
 		r.Say("This command requires elevation, but there was an error during preauth")
