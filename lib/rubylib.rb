@@ -202,6 +202,12 @@ class BaseBot
 		return Reply.new(decode(ret["Reply"]), ret["RetVal"])
 	end
 
+	def WaitForReplyRegex(re, timeout=30)
+		args = { "RegEx" => re, "Timeout" => timeout }
+		ret = callBotFunc("WaitForReplyRegex", args)
+		return Reply.new(decode(ret["Reply"]), ret["RetVal"])
+	end
+
 	def decode(str)
 		if str.start_with?("base64:")
 			if bstr = str.split(':')[1]

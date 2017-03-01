@@ -197,6 +197,23 @@ EOF
 	gbBotRet "$GB_RET"
 }
 
+WaitForReplyRegex(){
+	local GB_FUNCARGS GB_RET
+	local GB_FUNCNAME="WaitForReplyRegex"
+	local REGEX="$1"
+	local TIMEOUT="${2:-14}"
+	GB_FUNCARGS=$(cat <<EOF
+{
+	"RegEx": "$REGEX",
+	"Timeout": $TIMEOUT
+}
+EOF
+)
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	gbDecode "$GB_RET" Reply
+	gbBotRet "$GB_RET"
+}
+
 SendUserMessage(){
 	if [ "$1" = "-f" ]; then GB_FORMAT=fixed; shift; else GB_FORMAT=variable; fi
 	local GB_FUNCARGS GB_RET

@@ -73,6 +73,11 @@ type replyrequest struct {
 	Timeout int
 }
 
+type regexreplyrequest struct {
+	RegEx   string
+	Timeout int
+}
+
 // Types for returning values
 
 // BotAttrRet implements Stringer so it can be interpolated with fmt if
@@ -92,8 +97,8 @@ type boolresponse struct {
 }
 
 type boolretresponse struct {
-	Boolean   bool
-	RetVal int
+	Boolean bool
+	RetVal  int
 }
 
 type botretvalresponse struct {
@@ -104,11 +109,11 @@ type checkoutresponse struct {
 	LockToken string
 	Exists    bool
 	Datum     interface{}
-	RetVal int
+	RetVal    int
 }
 
 type waitreplyresponse struct {
-	Reply     string
+	Reply  string
 	RetVal int
 }
 
@@ -198,8 +203,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 		valid, brv := bot.CheckOTP(c.Code)
 		sendReturn(rw, boolretresponse{
-			Boolean:   valid,
-			RetVal: int(brv),
+			Boolean: valid,
+			RetVal:  int(brv),
 		})
 		return
 	case "CheckoutDatum":
@@ -213,7 +218,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			LockToken: l,
 			Exists:    e,
 			Datum:     datum,
-			RetVal: int(brv),
+			RetVal:    int(brv),
 		})
 		return
 	case "CheckinDatum":
@@ -234,7 +239,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 		// Since we're getting raw JSON (=[]byte), we call update directly.
 		// See brain.go
-		ret := update(pluginName+":"+m.Key, m.Token, (*[]byte)(&m.Datum))
+		ret = update(pluginName+":"+m.Key, m.Token, (*[]byte)(&m.Datum))
 		sendReturn(rw, &botretvalresponse{int(ret)})
 		return
 	case "GetPluginConfig":
@@ -312,6 +317,14 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 		reply, ret = bot.WaitForReply(rr.RegExId, rr.Timeout)
+		sendReturn(rw, &waitreplyresponse{encode(reply), int(ret)})
+		return
+	case "WaitForReplyRegex":
+		var rr regexreplyrequest
+		if !getArgs(rw, &f.FuncArgs, &rr) {
+			return
+		}
+		reply, ret = bot.WaitForReplyRegex(rr.RegEx, rr.Timeout)
 		sendReturn(rw, &waitreplyresponse{encode(reply), int(ret)})
 		return
 	// NOTE: "Say" and "Reply" are implemented in shellLib.sh or other scripting library
