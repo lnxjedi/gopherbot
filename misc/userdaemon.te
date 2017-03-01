@@ -1,0 +1,24 @@
+# Allow systemd to run a daemon as a user, for cases
+# where gopherbot runs as a real/normal user
+# To use:
+# Compile to module with:
+# $ checkmodule -M -m -o userdaemon.mod userdaemon.te
+# Create the package with:
+# $ semodule_package -o userdaemon.pp -m userdaemon.mod
+# As root, load the package with:
+# # semodule -i userdaemon.pp
+
+module userdaemon 1.0;
+
+require {
+	type init_t;
+	type user_home_t;
+	type http_port_t;
+	class tcp_socket { name_connect };
+	class file { execute execute_no_trans open read };
+}
+
+#============= init_t ==============
+allow init_t user_home_t:file execute_no_trans;
+allow init_t user_home_t:file { execute open read };
+allow init_t http_port_t:tcp_socket name_connect;

@@ -157,12 +157,15 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 					}
 				}
 				if privilegesOk {
+					abort := false
+					if plugin.name == "builtInadmin" && matcher.Command == "abort" {
+						abort = true
+					}
 					shutdownMutex.Lock()
-					if shuttingDown {
+					if shuttingDown && !abort {
 						bot.Say("Sorry, I'm shutting down and can't start any new tasks")
 						shutdownMutex.Unlock()
 					} else {
-						plugRunningCounter++
 						shutdownMutex.Unlock()
 						plugRunningWaitGroup.Add(1)
 						go callPlugin(bot, plugin, matcher.Command, matches[0][1:]...)
@@ -192,6 +195,9 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 
 // callPlugin (normally called with go ...) sends a command to a plugin.
 func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
+	shutdownMutex.Lock()
+	plugRunningCounter++
+	shutdownMutex.Unlock()
 	defer func() {
 		shutdownMutex.Lock()
 		plugRunningCounter--

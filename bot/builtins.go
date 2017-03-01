@@ -327,17 +327,17 @@ func admin(bot *Robot, command string, args ...string) {
 		bot.Reply("Configuration reloaded successfully")
 		Log(Info, "Configuration successfully reloaded by a request from:", bot.User)
 	case "abort":
-		// Get all important locks to make sure nothing is being changed - then exit
-		botLock.Lock()
-		b.lock.Lock()
-		dataLock.Lock()
 		bot.Say("Aaarrrggghhh!!! Goodbye, cruel world!")
+		// Get the dataLock to make sure the brain is in a consistent state
+		dataLock.Lock()
 		Log(Info, "Exiting on administrator command")
 		// How long does it _actually_ take for the message to go out?
 		time.Sleep(time.Second)
 		os.Exit(0)
 	case "quit":
+		plugRunningWaitGroup.Done()
 		shutdownMutex.Lock()
+		plugRunningCounter--
 		shuttingDown = true
 		if plugRunningCounter > 0 {
 			runningCount := plugRunningCounter
@@ -348,11 +348,9 @@ func admin(bot *Robot, command string, args ...string) {
 		}
 		// Wait for all plugins to stop running
 		plugRunningWaitGroup.Wait()
-		// Get all important locks to make sure nothing is being changed - then exit
-		botLock.Lock()
-		b.lock.Lock()
-		dataLock.Lock()
 		bot.Reply(bot.RandomString(byebye))
+		// Get the dataLock to make sure the brain is in a consistent state
+		dataLock.Lock()
 		Log(Info, "Exiting on administrator command")
 		// How long does it _actually_ take for the message to go out?
 		time.Sleep(time.Second)

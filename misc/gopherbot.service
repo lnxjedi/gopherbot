@@ -1,3 +1,4 @@
+# sample systemd unit file for Gopherbot
 [Unit]
 Description=Gopherbot DevOps Chatbot
 Documentation=https://godoc.org/github.com/uva-its/gopherbot
@@ -14,6 +15,10 @@ Environment=HOSTNAME=%H
 ExecStart=/opt/gopherbot/gopherbot -plainlog
 Restart=on-failure
 Environment=USER=robot HOME=/opt/robot
+KillMode=process
+# Give the robot plenty of time to finish plugins currently executing;
+# no new plugins will start after SIGTERM is caught.
+TimeoutStopSec=600
 
 [Install]
 WantedBy=multi-user.target
