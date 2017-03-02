@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 func init() {
@@ -26,8 +25,6 @@ func init() {
 		// Get the dataLock to make sure the brain is in a consistent state
 		dataLock.Lock()
 		Log(Info, fmt.Sprintf("Exiting on signal: %s", sig))
-		// How long does it _actually_ take for the message to go out?
-		time.Sleep(time.Second)
 		os.Exit(0)
 	}()
 }
