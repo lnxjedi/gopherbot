@@ -13,13 +13,8 @@ import (
 func init() {
 	sigs := make(chan os.Signal, 1)
 
-	// `signal.Notify` registers the given channel to
-	// receive notifications of the specified signals.
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	// This goroutine executes a blocking receive for
-	// signals. When it gets one it'll print it out
-	// and then notify the program that it can finish.
 	go func() {
 		sig := <-sigs
 		shutdownMutex.Lock()
