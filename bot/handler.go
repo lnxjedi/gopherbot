@@ -14,9 +14,7 @@ type handler struct{}
 // GetLogLevel returns the bot's current loglevel, mainly for the
 // connector to make it's own decision about logging
 func (h handler) GetLogLevel() LogLevel {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-	return b.level
+	return getLogLevel()
 }
 
 // GetInstallPath gets the path to the bot's install dir -

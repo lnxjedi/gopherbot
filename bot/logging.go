@@ -20,6 +20,8 @@ const (
 	Fatal
 )
 
+var logLevel LogLevel // current log level
+
 // Should be ample for the internal circular log
 const buffLines = 500
 
@@ -70,9 +72,9 @@ func logLevelToStr(l LogLevel) string {
 // less than the given level
 func Log(l LogLevel, v ...interface{}) {
 
-	b.lock.RLock()
-	currlevel := b.level
-	b.lock.RUnlock()
+	logLock.Lock()
+	currlevel := logLevel
+	logLock.Unlock()
 
 	if l >= currlevel {
 		prefix := logLevelToStr(l) + ":"
@@ -135,7 +137,14 @@ func setLogPageLines(l int) int {
 
 // setLogLevel updates the connector log level
 func setLogLevel(l LogLevel) {
-	b.lock.Lock()
-	b.level = l
-	b.lock.Unlock()
+	logLock.Lock()
+	logLevel = l
+	logLock.Unlock()
+}
+
+func getLogLevel() LogLevel {
+	logLock.Lock()
+	l := logLevel
+	logLock.Unlock()
+	return l
 }

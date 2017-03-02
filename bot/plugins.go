@@ -21,10 +21,11 @@ const pNameRegex = `[\w]+`
 var pNameRe = regexp.MustCompile(pNameRegex)
 var plugins []*Plugin
 var plugIDmap map[string]int
+
 var plugNameIDmap = make(map[string]string)
 
 // for protecting access to the plugNameIDmap
-var plugLoadLock sync.Mutex
+var plugMapLock sync.Mutex
 
 // PluginHelp specifies keywords and help text for the 'bot help system
 type PluginHelp struct {
@@ -214,10 +215,6 @@ func loadPluginConfig() {
 	pchan = append(pchan, b.plugChannels...)
 	b.lock.RUnlock() // we're done with bot data 'til the end
 
-	// hold this lock during reload to synchronize access to plugNameIDmap
-	plugLoadLock.Lock()
-	defer plugLoadLock.Unlock()
-
 PlugHandlerLoop:
 	for plug := range pluginHandlers {
 		if !pNameRe.MatchString(plug) {
@@ -362,6 +359,7 @@ PlugLoop:
 		} else {
 			Log(Debug, "config interface isn't a pointer, skipping unmarshal for plugin:", plug)
 		}
+		plugMapLock.Lock()
 		if plugID, ok := plugNameIDmap[plug]; ok {
 			plugin.pluginID = plugID
 		} else {
@@ -369,7 +367,9 @@ PlugLoop:
 			p := make([]byte, 16)
 			random.Read(p)
 			plugin.pluginID = fmt.Sprintf("%x", p)
+			plugNameIDmap[plugin.name] = plugin.pluginID
 		}
+		plugMapLock.Unlock()
 		Log(Trace, fmt.Sprintf("Mapped plugin %s to ID %s", plugin.name, plugin.pluginID))
 		pfinder[plugin.pluginID] = plugIndex
 		// Store this plugin's config in the temporary list

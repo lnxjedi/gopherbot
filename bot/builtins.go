@@ -284,9 +284,7 @@ func logging(bot *Robot, command string, args ...string) {
 		}
 		bot.Fixed().Say(strings.Join(lines, ""))
 	case "showlevel":
-		b.lock.Lock()
-		l := b.level
-		b.lock.Unlock()
+		l := getLogLevel()
 		bot.Say(fmt.Sprintf("My current logging level is: %s", logLevelToStr(l)))
 	case "setlines":
 		l, _ := strconv.Atoi(args[0])

@@ -39,7 +39,6 @@ type robot struct {
 	Connector                         // Connector interface, implemented by each specific protocol
 	localPath        string           // Directory for local files overriding default config
 	installPath      string           // Path to the bot's installation directory
-	level            LogLevel         // Log level for bot methods
 	adminUsers       []string         // List of users with access to administrative commands
 	alias            rune             // single-char alias for addressing the bot
 	name             string           // e.g. "Gort"
