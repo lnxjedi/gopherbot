@@ -213,8 +213,6 @@ func dump(bot *Robot, command string, args ...string) {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	switch command {
-	case "robotdefault":
-		bot.Fixed().Say(fmt.Sprintf("Here's my default configuration:\n%s", defaultConfig))
 	case "robot":
 		c, _ := yaml.Marshal(config)
 		bot.Fixed().Say(fmt.Sprintf("Here's how I've been configured, irrespective of interactive changes:\n%s", c))

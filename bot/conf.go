@@ -92,11 +92,6 @@ func loadConfig() error {
 	var newconfig botconf
 	pluginsOk := true
 
-	// Load default config from const defaultConfig, then overlay
-	// with yaml from <localdir>/conf/gopherbot.yaml
-	if err := yaml.Unmarshal([]byte(defaultConfig), &newconfig); err != nil {
-		return fmt.Errorf("Unmarshalling robot default newconfig: %v", err)
-	}
 	if err := getConfigFile("gopherbot.yaml", true, &newconfig); err != nil {
 		return fmt.Errorf("Loading newconfiguration file: %v", err)
 	}

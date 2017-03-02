@@ -53,14 +53,12 @@ Help:
 - Keywords: [ "list", "plugin", "plugins" ]
   Helptext: [ "(bot), list plugins" ]
 - Keywords: [ "dump", "robot" ]
-  Helptext: [ "(bot), dump (default) robot - dump the current configuration for the robot" ]
+  Helptext: [ "(bot), dump robot - dump the current configuration for the robot" ]
 CommandMatchers:
 - Command: "list"
   Regex: '(?i:list plugins?)'
 - Command: "plugdefault"
   Regex: '(?i:dump plugin default ([\d\w]+))'
-- Command: "robotdefault"
-  Regex: "dump default robot"
 - Command: "plugin"
   Regex: '(?i:dump plugin ([\d\w]+))'
 - Command: "robot"
