@@ -24,6 +24,7 @@ Gopherbot is running in production in my environment. Currently lacking:
 * Brain implementations other than simple local files (e.g. redis)
 
 ## Documentation
+* [Design Philosophy](doc/Design)
 * [Downloading and Installing](doc/Install)
 * [Advanced Installation and Configuration](doc/Configure)
 * [Goperbot Plugins](doc/Plugins)
@@ -31,4 +32,5 @@ Gopherbot is running in production in my environment. Currently lacking:
 * [Go Plugin API](doc/GoPlugins)
 * [Ruby Plugin API](doc/RubyPlugins)
 * [Bash Plugin API](doc/BashPlugins)
+* [Security Considerations](doc/Security)
 * [Configuring Elevation](doc/Elevation)
