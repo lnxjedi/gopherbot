@@ -20,7 +20,7 @@ type replyMatcher struct {
 // a reply is sent over the replyWaiter channel when a user replies
 type reply struct {
 	matched bool   // true if the regex matched
-	rep     string // text of the reply if matched=true, else ""
+	rep     string // text of the reply
 }
 
 var replies = make(map[replyMatcher]replyWaiter)
@@ -41,7 +41,7 @@ var stockReplyList = []stockReply{
 	{"OTP", `\d{6}`},
 	//	{ "IPaddr", `[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}` }
 	{"IPaddr", `(?:(?:0|1[0-9]{0,2}|2[0-9]?|2[0-4][0-9]|25[0-5]|[3-9][0-9]?)\.){3}(?:0|1[0-9]{0,2}|2[0-9]?|2[0-4][0-9]|25[0-5]|[3-9][0-9]?)`},
-	{"SimpleString", `[\w -.,]+`},
+	{"SimpleString", `[-\w .,_'"?!]+`},
 	{"YesNo", `(?i:yes|no|Y|N)`},
 }
 
@@ -53,10 +53,13 @@ func init() {
 }
 
 // WaitForReply lets a plugin temporarily register a regex for a reply
-// expected to an multi-step command when the robot needs more info. It
-// returns whatever text the user replied with, together with a RetVal
-// which may have the following flags set:
+// expected to an multi-step command when the robot needs more info. If
+// the regular expression matches, it returns the matched text and
+// RetVal = Ok.
+// If the regular expression doesn't match, it returns an empty string
+// with one of the following RetVals:
 //	ReplyInProgress - couldn't wait for a reply, already one in progress
+//  UseDefaultValue - user supplied a single "=", meaning "use the default value"
 //	ReplyNotMatched - didn't successfully match for any reason
 //	MatcherNotFound - the regexId didn't correspond to a valid regex
 //	TimeoutExpired - the user didn't respond within the timeout window given
@@ -68,9 +71,10 @@ func init() {
 //	Domain - an alpha-numeric domain name
 //	OTP - a 6-digit one-time password code
 //	IPAddr
-//	SimpleString - letters, numbers, spaces, dots, dashes, underscores, and commas
+//	SimpleString - Characters commonly found in most english sentences, doesn't
+//    include special characters like @, {, etc.
 //	YesNo
-func (r *Robot) WaitForReply(regexID string, timeout int) (replyText string, ret RetVal) {
+func (r *Robot) WaitForReply(regexID string, timeout int) (string, RetVal) {
 	matcher := replyMatcher{
 		user:    r.User,
 		channel: r.Channel,
@@ -81,10 +85,9 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (replyText string, ret
 	// See if there's already a continuation in progress for this Robot:user,channel,
 	rep, exists := replies[matcher]
 	if exists {
-		ret = ReplyInProgress
 		r.Log(Warn, fmt.Errorf("A reply is already being waited on for user %s in channel %s", r.User, r.Channel))
 		botLock.Unlock()
-		return "", ret
+		return "", ReplyInProgress
 	}
 	b.lock.RLock()
 	plugin := plugins[plugIDmap[r.pluginID]]
@@ -104,8 +107,7 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (replyText string, ret
 	if rep.re == nil {
 		r.Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", plugin.name, regexID))
 		botLock.Unlock()
-		ret = MatcherNotFound
-		return "", ret
+		return "", MatcherNotFound
 	}
 	rep.replyChannel = make(chan reply)
 	r.Log(Trace, fmt.Sprintf("Adding matcher to replies: %q", matcher))
@@ -123,21 +125,25 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (replyText string, ret
 		delete(replies, matcher)
 		botLock.Unlock()
 		// matched=false, timedOut=true
-		ret = TimeoutExpired
-		return "", ret
+		return "", TimeoutExpired
 	case replied, _ := <-rep.replyChannel:
 		// Note: the replies[] entry is deleted in handleMessage
 		if !replied.matched {
-			ret = ReplyNotMatched
+			if replied.rep == "=" {
+				return "", UseDefaultValue
+			} else {
+				return "", ReplyNotMatched
+			}
+		} else {
+			return replied.rep, Ok
 		}
-		return replied.rep, ret
 	}
 }
 
 // WaitForReplyRegex is identical to WaitForReply except that the first argument is
 // the regex to compile and use. If the regex doesn't compile an error will be
 // logged and ("", MatcherNotFound) will be returned.
-func (r *Robot) WaitForReplyRegex(regex string, timeout int) (replyText string, ret RetVal) {
+func (r *Robot) WaitForReplyRegex(regex string, timeout int) (string, RetVal) {
 	matcher := replyMatcher{
 		user:    r.User,
 		channel: r.Channel,
@@ -148,17 +154,15 @@ func (r *Robot) WaitForReplyRegex(regex string, timeout int) (replyText string, 
 	// See if there's already a continuation in progress for this Robot:user,channel,
 	rep, exists := replies[matcher]
 	if exists {
-		ret = ReplyInProgress
 		r.Log(Warn, fmt.Errorf("A reply is already being waited on for user %s in channel %s", r.User, r.Channel))
 		botLock.Unlock()
-		return "", ret
+		return "", ReplyInProgress
 	}
 	re, err := regexp.Compile(regex)
 	if err != nil {
 		r.Log(Error, fmt.Sprintf("Unable to compile regex \"%s\" in WaitForReplyRegex", regex))
 		botLock.Unlock()
-		ret = MatcherNotFound
-		return "", ret
+		return "", MatcherNotFound
 	}
 	rep.re = re
 	rep.replyChannel = make(chan reply)
@@ -177,13 +181,17 @@ func (r *Robot) WaitForReplyRegex(regex string, timeout int) (replyText string, 
 		delete(replies, matcher)
 		botLock.Unlock()
 		// matched=false, timedOut=true
-		ret = TimeoutExpired
-		return "", ret
+		return "", TimeoutExpired
 	case replied, _ := <-rep.replyChannel:
 		// Note: the replies[] entry is deleted in handleMessage
 		if !replied.matched {
-			ret = ReplyNotMatched
+			if replied.rep == "=" {
+				return "", UseDefaultValue
+			} else {
+				return "", ReplyNotMatched
+			}
+		} else {
+			return replied.rep, Ok
 		}
-		return replied.rep, ret
 	}
 }

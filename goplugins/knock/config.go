@@ -9,7 +9,7 @@ CommandMatchers:
   Regex: '(?i:tell me a(?:nother)?(?: knock[- ]knock)? joke)'
 ReplyMatchers:
 - Label: whosthere
-  Regex: '(?i:who.?s there\??)'
+  Regex: '(?i:who.?s there\??|who is there\??)'
 - Label: who
   Regex: '(?i:[\w ]+ who\??)'
 Config:
@@ -24,6 +24,7 @@ Config:
   - { First: "Police", Second: "Police let me in, it's cold out here!" }
   - { First: "Isabel", Second: "Isabel working, or should I keep knocking?" }
   - { First: "Etch", Second: "Bless you!" }
+  - { First: "Interrupting Cow", Second: "*cough*" }
   - { First: "Claire", Second: "Claire the way, I'm coming in!" }
   - { First: "Radio", Second: "Radio not, here I come!" }
   - { First: "Howard", Second: "Howard I know?" }

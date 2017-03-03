@@ -53,6 +53,8 @@ const (
 
 	// ReplyNotMatched - The user reply didn't match the pattern waited for
 	ReplyNotMatched
+	// UseDefaultValue - The user replied with a single '=', meaning use a default value
+	UseDefaultValue
 	// TimeoutExpired - The user didn't reply within the given timeout
 	TimeoutExpired
 	// ReplyInProgress - The robot is already waiting for a reply from the user in a given channel

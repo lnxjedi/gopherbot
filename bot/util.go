@@ -10,7 +10,7 @@ import (
 )
 
 const escape_aliases = `*+|^$?\[]{}`
-const aliases = `&!;:=-%#@~<>/`
+const aliases = `&!;:-%#@~<>/`
 
 func checkPanic(bot *Robot, s string) {
 	if r := recover(); r != nil {

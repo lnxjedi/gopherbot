@@ -41,7 +41,7 @@ func knock(r *bot.Robot, command string, args ...string) {
 		r.Pause(1.2)
 		r.Reply("Knock knock")
 		for i := 0; i < 2; i++ {
-			_, ret := r.WaitForReply("whosthere", 14)
+			_, ret := r.WaitForReply("whosthere", 28)
 			if ret == bot.TimeoutExpired {
 				r.Reply(r.RandomString(j.Phooey))
 				return
@@ -60,6 +60,10 @@ func knock(r *bot.Robot, command string, args ...string) {
 					r.Reply(r.RandomString(j.Phooey))
 					return
 				}
+			} else if ret == bot.UseDefaultValue {
+				r.Reply("Sheesh, are you kidding me? Ok, I'll assume you meant 'Who's there?'...")
+				r.Pause(1)
+				break
 			} else if ret != bot.Ok {
 				r.Reply("Sorry, something broke")
 				return
@@ -69,17 +73,28 @@ func knock(r *bot.Robot, command string, args ...string) {
 		}
 		r.Pause(0.5)
 		r.Say(joke.First)
+		if joke.First == "Interrupting Cow" {
+			go func() {
+				r.Pause(3.5)
+				r.Reply("MOOOOOOOO!!!")
+			}()
+			return
+		}
 		for i := 0; i < 2; i++ {
-			reply, ret := r.WaitForReply("who", 14)
+			reply, ret := r.WaitForReply("who", 28)
 			if ret == bot.TimeoutExpired {
 				r.Reply(r.RandomString(j.Phooey))
 				return
 			}
-			if ret != bot.Ok && ret != bot.ReplyNotMatched { // bit clear operator, test if bit set other than ReplyNotMatched
-				r.Reply("... wait, sorry - my joke algorithm broke!")
-				return
-			}
-			if ret == bot.ReplyNotMatched {
+			if ret == bot.UseDefaultValue {
+				switch i {
+				case 0:
+					r.Reply("Ohhhhh no... you're going to have to spell it out, lazy bones!")
+				case 1:
+					r.Reply(r.RandomString(j.Phooey))
+					return
+				}
+			} else if ret == bot.ReplyNotMatched {
 				switch i {
 				case 0:
 					r.Pause(0.5)
@@ -89,7 +104,7 @@ func knock(r *bot.Robot, command string, args ...string) {
 					r.Reply(r.RandomString(j.Phooey))
 					return
 				}
-			} else {
+			} else if ret == bot.Ok {
 				// Did the user reply correctly with <j.First> who?
 				if strings.HasPrefix(strings.ToLower(reply), strings.ToLower(joke.First)) {
 					r.Say(joke.Second)
@@ -104,6 +119,9 @@ func knock(r *bot.Robot, command string, args ...string) {
 					r.Reply(r.RandomString(j.Phooey))
 					return
 				}
+			} else {
+				r.Reply("... wait, sorry - my joke algorithm broke!")
+				return
 			}
 		}
 	}

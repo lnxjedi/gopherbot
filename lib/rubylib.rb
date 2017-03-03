@@ -76,12 +76,13 @@ class BaseBot
 	NoUserOTP = 14
 	OTPError = 15
 	ReplyNotMatched = 16
-	TimeoutExpired = 17
-	ReplyInProgress = 18
-	MatcherNotFound = 19
-	NoUserEmail = 20
-	NoBotEmail = 21
-	MailError = 22
+	UseDefaultValue = 17
+	TimeoutExpired = 18
+	ReplyInProgress = 19
+	MatcherNotFound = 20
+	NoUserEmail = 21
+	NoBotEmail = 22
+	MailError = 23
 
 	attr_reader :user, :channel
 

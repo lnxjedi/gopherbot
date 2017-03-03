@@ -36,8 +36,6 @@
 # One-character alias the bot can be called by. Note: not all single characters
 # are supported. If your robot doesn't respond to e.g. ";ping", try changing
 # the Alias to something other than ";". Popular alternatives: ":", "!", "*".
-# Avoid using "=", as this is being considered for future use with
-# WaitForReply* functions (to mean: use the default value)
 #Alias: ";"
 
 # Port to listen on for http/JSON api calls, for external plugins
