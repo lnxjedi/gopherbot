@@ -29,7 +29,7 @@ CommandMatchers:
 - Command: 'delete'
   Regex: '(?i:delete the ([\w-_]+) list)'
 - Command: 'show'
-  Regex: '(?i:show the ([\w-_]+) list)'
+  Regex: '(?i:show (?:the )?([\w-_]+) list)'
 - Command: 'send'
   Regex: '(?i:(?:send me|email) the ([\w-_]+) list)'
 `
