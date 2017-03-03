@@ -66,7 +66,7 @@ when "listen"
 	if rep.ret == Robot::Ok
 		dbot.Say("I hear what you're saying - '#{rep}'")
 	else
-		bot.Say("I'm sorry, I'm not sure what you're trying to tell me")
+		bot.Say("I'm sorry, I'm not sure what you're trying to tell me - did you put funny characters in your reply?")
 	end
 when "remember"
 	thing = ARGV[0]
