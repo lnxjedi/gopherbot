@@ -48,6 +48,10 @@ func checkout(d string, rw bool) (string, *[]byte, bool, RetVal) {
 		Log(Error, err)
 		return "", nil, false, InvalidDatumKey
 	}
+	if b.brain == nil {
+		Log(Error, "Brain function called with no brain configured")
+		return "", nil, false, BrainFailed
+	}
 	var dl *datumLock
 	dataLock.Lock() // wait for access to the global list
 	dl, ok := data[d]
@@ -109,6 +113,10 @@ func checkout(d string, rw bool) (string, *[]byte, bool, RetVal) {
 // update sends updated []byte to the brain while holding the lock, or discards
 // the data and returns an error.
 func update(d, lt string, datum *[]byte) (ret RetVal) {
+	if b.brain == nil {
+		Log(Error, "Brain function called with no brain configured")
+		return BrainFailed
+	}
 	dataLock.Lock() // acquire the global lock
 	dl, ok := data[d]
 	if !ok {
