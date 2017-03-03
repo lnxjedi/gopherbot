@@ -121,6 +121,8 @@ func loadConfig() error {
 		if err != nil {
 			Log(Error, fmt.Errorf("Error exporting GOPHER_HTTP_PORT: %q", err))
 		}
+	} else {
+		Log(Error, "LocalPort not defined, not exporting GOPHER_HTTP_POST and external plugins will be broken")
 	}
 	if newconfig.Name != "" {
 		b.name = newconfig.Name
