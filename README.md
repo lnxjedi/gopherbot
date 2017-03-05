@@ -1,5 +1,5 @@
 # Gopherbot
-## A.K.A SUDO for the Enterprise
+## A.K.A. SUDO for the Enterprise
 Gopherbot is:
 * A chatops-oriented chat bot originally inspired by Hubot
 * A simple remote script execution agent accessible via Slack(*)
