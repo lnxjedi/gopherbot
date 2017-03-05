@@ -8,7 +8,7 @@ bot = Robot.new()
 
 =begin
 The defaultConfig is a multi-line YAML formatted document that specifies
-this plugins default configuration for Gopherbot. It may include any of the
+this plugin's default configuration for Gopherbot. It may include any of the
 fields in https://godoc.org/github.com/uva-its/gopherbot/bot#Plugin, as
 well as arbitrary YAML for config data that a bot admin might want to
 override.
