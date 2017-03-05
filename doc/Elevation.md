@@ -6,7 +6,7 @@ to provide sudo-like elevated privileges that drop after a configurable time out
 
 # Elevators
 The elevator plugin to use is selected in the bot's conf/gopherbot.yaml. Commented examples for each
-elevation type are shown below.
+elevation type are shown below. **_real work_**
 
 ## TOTP
 ... info here

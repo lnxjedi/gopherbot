@@ -1,1 +1,1 @@
-Welcome to the gopherbot wiki!
+See the root [README](../../gopherbot/blob/master/README.md)
