@@ -12,7 +12,7 @@ shift
 
 configure(){
 	cat <<"EOF"
-Channels: [ "botdev" ]
+Channels: [ "random" ]
 Help:
 - Keywords: [ "echo" ]
   Helptext: [ "(bot), echo <simple text> - trivially repeat a phrase" ]

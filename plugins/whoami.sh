@@ -9,7 +9,6 @@ shift
 
 configure(){
 	cat <<"EOF"
-#Channels: [ "botdev" ]
 Help:
 - Keywords: [ "whoami" ]
   Helptext: [ "(bot), whoami - get the bot to tell you a little about yourself" ]

@@ -14,7 +14,7 @@ well as arbitrary YAML for config data that a bot admin might want to
 override.
 =end
 defaultConfig = <<'DEFCONFIG'
-Channels: [ "botdev", "random" ]
+Channels: [ "random" ]
 Help:
 - Keywords: [ "ruby" ]
   Helptext: [ "(bot), ruby (me!) - prove that ruby plugins work" ]

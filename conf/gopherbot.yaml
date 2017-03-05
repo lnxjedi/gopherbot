@@ -31,7 +31,7 @@
 
 # List of users that can issue admin commands like reload, quit. Should be
 # a list of user handles / nicks.
-#AdminUsers: []
+#AdminUsers: [ "bill", "frank" ]
 
 # One-character alias the bot can be called by. Note: not all single characters
 # are supported. If your robot doesn't respond to e.g. ";ping", try changing
