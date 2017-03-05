@@ -1,21 +1,30 @@
 # Gopherbot
-Gopherbot is a chatops-oriented chat bot written in Go, inspired by Hubot. The goal is for
-Gopherbot to support enough programming languages and security features to be useful for
+## A.K.A SUDO for the Enterprise
+Gopherbot is:
+* A chatops-oriented chat bot originally inspired by Hubot
+* A simple remote script execution agent accessible via Slack(*)
+* An easy means of delegating complex functionality to a user base without writing yet another web application
+
+ (*) with a modular interface for writing other protocol connectors in Go
+
+The goal is for Gopherbot to support enough scriptng languages and security features to make chat bots useful for
 doing **_real work_**. A sample of work Gopherbot is already doing:
-* Building, backing up, starting and stopping instances in the AWS cloud
+* Building, backing up, restoring, starting and stopping instances in the AWS cloud
 * Disabling / reenabling user web directories when requested by security engineers
 * Adding users and updating passwords on servers using Ansible
 
 ## Features
-* [Elevated privilege](doc/Elevation.md) support for security-sensitive commands
-* Highly-configurable plugins that can be constrained by channels, users, etc.
-* A thread-safe brain with consistency guarantees
-* Support for Go plugins and external script plugins written in Ruby and Bash
+* Simple scripting of command plugins in Ruby or Bash (with a Python library forthcoming)
+ * [Sample Ruby Plugin](plugins/rubydemo)
+ * [Sample Bash Plugin](plugins/bashdemo)
+* Configurable [elevated privilege](doc/Elevation.md) support for security-sensitive commands
 * Localhost http/json interface for creating plugin APIs for other languages
+* Highly-configurable plugins that can be constrained by channels, users, etc.
+* A thread-safe brain for storing state
 * Configurable [logging](doc/Logging)
-* A supply of [built-in](doc/Builtins) plugins and commands for viewing logs, reloading configuration, and more 
+* A supply of [built-in](doc/Builtins) plugins and commands for viewing the log, reloading configuration, and more 
 * WaitForReply* methods for easily creating interactive plugins without complex session/state logic
-* Includes many sample plugins, including knock-knock jokes!
+* Many sample plugins, including knock-knock jokes!
 
 ## Development Status
 Gopherbot is running in production in my environment. Currently lacking:
@@ -24,8 +33,8 @@ Gopherbot is running in production in my environment. Currently lacking:
 * Brain implementations other than simple local files (e.g. redis)
 
 ## Documentation
-* [Design Philosophy](doc/Design.md)
 * [Downloading and Installing](doc/Install.md)
+* [Design Philosophy](doc/Design.md)
 * [Advanced Installation and Configuration](doc/Configure.md)
 * [Goperbot Plugins](doc/Plugins.md)
 * [Built-in Plugins](doc/Builtins.md)
