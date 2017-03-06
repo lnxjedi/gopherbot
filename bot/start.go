@@ -16,7 +16,7 @@ import (
 
 var started bool
 
-type BotInfo struct {
+type botInfo struct {
 	LogFile, PidFile string // Locations for the bots log file and pid file
 }
 
@@ -34,6 +34,7 @@ func dirExists(path string) bool {
 	return false
 }
 
+// Start gets the robot going
 func Start() {
 	botLock.Lock()
 	if started {
@@ -73,14 +74,15 @@ func Start() {
 	flag.Parse()
 
 	// Installdir is where the default config and stock external
-	// plugins are.
+	// plugins are. Search some likely locations in case installDir
+	// wasn't passed on the command line, or Gopherbot isn't installed
+	// in one of the usual system locations.
 	execpath, err = godaemon.GetExecutablePath()
 	if err == nil {
 		execdir, _ = filepath.Abs(filepath.Dir(execpath))
 	}
 	instSearchPath := []string{
 		installDir,
-		os.Getenv("GOPHER_INSTALLDIR"),
 		"/opt/gopherbot",
 		"/usr/local/share/gopherbot",
 		"/usr/share/gopherbot",
@@ -90,6 +92,10 @@ func Start() {
 		for _, gopath := range strings.Split(gosearchpath, ":") {
 			instSearchPath = append(instSearchPath, gopath+"/src/github.com/uva-its/gopherbot")
 		}
+	}
+	home := os.Getenv("HOME")
+	if len(home) > 0 {
+		instSearchPath = append(instSearchPath, home+"/go/src/github.com/uva-its/gopherbot")
 	}
 	instSearchPath = append(instSearchPath, execdir)
 	for _, spath := range instSearchPath {
@@ -105,13 +111,13 @@ func Start() {
 
 	// Localdir is where all user-supplied configuration and
 	// external plugins are.
-	home := os.Getenv("HOME")
 	confSearchPath := []string{
 		configDir,
-		os.Getenv("GOPHER_CONFIGDIR"),
-		home + "/.gopherbot",
 		"/usr/local/etc/gopherbot",
 		"/etc/gopherbot",
+	}
+	if len(home) > 0 {
+		confSearchPath = append(confSearchPath, home+"/.gopherbot")
 	}
 	for _, spath := range confSearchPath {
 		if len(spath) > 0 && dirExists(spath) {
@@ -129,7 +135,7 @@ func Start() {
 	if cf, err = ioutil.ReadFile(localdir + "/conf/gopherbot.yaml"); err != nil {
 		log.Fatalf("Couldn't read conf/gopherbot.yaml in local configuration directory: %s\n", localdir)
 	}
-	var bi BotInfo
+	var bi botInfo
 	if err = yaml.Unmarshal(cf, &bi); err != nil {
 		log.Fatalf("Error unmarshalling \"%s\": %v", localdir+"/conf/gopherbot.yaml", err)
 	}
