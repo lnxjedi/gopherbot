@@ -13,6 +13,8 @@ doing **_real work_**. Examples of work Gopherbot is already doing:
 * Disabling / reenabling user web directories when requested by security engineers
 * Adding users and updating passwords on servers using Ansible
 
+See [Design Philosophy](doc/Design.md)
+
 ## Features
 * Simple scripting of command plugins in Ruby or Bash (with a Python library forthcoming)
  * [Sample Ruby Plugin](plugins/rubydemo)
@@ -21,7 +23,7 @@ doing **_real work_**. Examples of work Gopherbot is already doing:
 * Localhost http/json interface for creating plugin APIs for other languages
 * Highly-configurable plugins that can be constrained by channels, users, etc.
 * A thread-safe brain for storing state
-* Configurable [logging](doc/Logging)
+* Configurable [logging](doc/Builtins#log)
 * A supply of [built-in](doc/Builtins) plugins and commands for viewing the log, reloading configuration, and more 
 * WaitForReply* methods for easily creating interactive plugins without complex session/state logic
 * Many sample plugins, including knock-knock jokes!
