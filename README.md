@@ -23,8 +23,8 @@ See [Design Philosophy](doc/Design.md)
 * Localhost http/json interface for creating plugin APIs for other languages
 * Highly-configurable plugins that can be constrained by channels, users, etc.
 * A thread-safe brain for storing state
-* Configurable [logging](doc/Builtins#log)
-* A supply of [built-in](doc/Builtins) plugins and commands for viewing the log, reloading configuration, and more 
+* Configurable [logging](doc/Builtins.md#log)
+* A supply of [built-in](doc/Builtins.md) plugins and commands for viewing the log, reloading configuration, and more 
 * WaitForReply* methods for easily creating interactive plugins without complex session/state logic
 * Many sample plugins, including knock-knock jokes!
 
