@@ -7,9 +7,9 @@ Gopherbot is:
 
  (*) with a modular interface for writing other protocol connectors in Go
 
-The goal is for Gopherbot to support enough scriptng languages and security features to make chat bots useful for
+The goal is for Gopherbot to support enough scripting languages and security features to make chat bots useful for
 doing **_real work_**. Examples of work Gopherbot is already doing:
-* Building, backing up, restoring, starting and stopping instances in the AWS cloud
+* Building, backing up, restoring, stopping and starting instances in the AWS cloud
 * Disabling / reenabling user web directories when requested by security engineers
 * Adding users and updating passwords on servers using Ansible
 
