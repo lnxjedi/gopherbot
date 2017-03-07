@@ -37,7 +37,7 @@ Gopherbot is running in production in my environment. Currently lacking:
 ## Documentation
 * [Downloading and Installing](doc/Install.md)
 * [Design Philosophy](doc/Design.md)
-* [Advanced Installation and Configuration](doc/Configure.md)
+* [Advanced Configuration](doc/Configure.md)
 * [Gopherbot Plugins](doc/Plugins.md)
 * [Built-in Plugins](doc/Builtins.md)
 * [Go Plugin API](doc/GoPlugins.md)
