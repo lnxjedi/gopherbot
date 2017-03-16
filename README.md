@@ -16,16 +16,21 @@ doing **_real work_**. Examples of work Gopherbot is already doing:
 See [Design Philosophy](doc/Design.md)
 
 ## Features
-* Simple scripting of command plugins in Ruby or Bash (with a Python library forthcoming)
- * [Sample Ruby Plugin](plugins/rubydemo)
- * [Sample Bash Plugin](plugins/bashdemo)
+* Simple command plugins with the following features:
+  * Most plugins can be distributed as a single text file
+  * Commands can be written in Ruby or Bash (with a Python library coming in 2017, sooner if I get a PR)
+  * Plugins use blocking APIs vs registering callback functions, for easy scripting with a low learning curve
+  * Plugin API includes WaitForReply* methods for simple question & answer flows
+  * Flexible configuration can be easily overridden by the 'bot administrator
+  * Configuration can limit plugins to certain channels and/or users
+  * [Sample Ruby Plugin](plugins/rubydemo)
+  * [Sample Bash Plugin](plugins/bashdemo)
 * Configurable [elevated privilege](doc/Elevation.md) support for security-sensitive commands
 * Localhost http/json interface for creating plugin APIs for other languages
 * Highly-configurable plugins that can be constrained by channels, users, etc.
 * A thread-safe brain for storing state
 * Configurable [logging](doc/Builtins.md#log)
 * A supply of [built-in](doc/Builtins.md) plugins and commands for viewing the log, reloading configuration, and more 
-* WaitForReply* methods for easily creating interactive plugins without complex session/state logic
 * Many sample plugins, including knock-knock jokes!
 
 ## Development Status
