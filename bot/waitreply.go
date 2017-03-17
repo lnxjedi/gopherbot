@@ -20,8 +20,9 @@ type replyMatcher struct {
 
 // a reply is sent over the replyWaiter channel when a user replies
 type reply struct {
-	matched bool   // true if the regex matched
-	rep     string // text of the reply
+	matched     bool   // true if the regex matched
+	interrupted bool   // true if the user issued another command
+	rep         string // text of the reply
 }
 
 var replies = make(map[replyMatcher]replyWaiter)
@@ -60,7 +61,7 @@ func init() {
 // RetVal = Ok.
 // If the regular expression doesn't match, it returns an empty string
 // with one of the following RetVals:
-//	ReplyInProgress - couldn't wait for a reply, already one in progress
+//	ConversationInterrupted - the user issued a new command that ran
 //  UseDefaultValue - user supplied a single "=", meaning "use the default value"
 //	ReplyNotMatched - didn't successfully match for any reason
 //	MatcherNotFound - the regexId didn't correspond to a valid regex
@@ -86,10 +87,8 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (string, RetVal) {
 	replyLock.Lock()
 	// See if there's already a continuation in progress for this Robot:user,channel,
 	rep, exists := replies[matcher]
-	if exists {
-		r.Log(Warn, fmt.Errorf("A reply is already being waited on for user %s in channel %s", r.User, r.Channel))
-		replyLock.Unlock()
-		return "", ReplyInProgress
+	if exists { // this should never happen, and should eventually be removed
+		panic(fmt.Sprintf("stale replyWaiter found for user %s in channel %s", r.User, r.Channel))
 	}
 	b.lock.RLock()
 	plugin := plugins[plugIDmap[r.pluginID]]
@@ -108,15 +107,13 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (string, RetVal) {
 	b.lock.RUnlock()
 	if rep.re == nil {
 		r.Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", plugin.name, regexID))
-		botLock.Unlock()
+		replyLock.Unlock()
 		return "", MatcherNotFound
 	}
 	rep.replyChannel = make(chan reply)
 	r.Log(Trace, fmt.Sprintf("Adding matcher to replies: %q", matcher))
 	replies[matcher] = rep
-	// Now that we've added the reply to the map, unlock the bot so we can block
-	// on the channel for a reply.
-	botLock.Unlock()
+	replyLock.Unlock()
 	// Start a goroutine to delete the reply request if it still exists after a minute.
 	// If it's matched in the meantime, it should get deleted at that point.
 	select {
@@ -129,6 +126,9 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (string, RetVal) {
 		// matched=false, timedOut=true
 		return "", TimeoutExpired
 	case replied := <-rep.replyChannel:
+		if replied.interrupted {
+			return "", ConversationInterrupted
+		}
 		// Note: the replies[] entry is deleted in handleMessage
 		if !replied.matched {
 			if replied.rep == "=" {
@@ -155,15 +155,13 @@ func (r *Robot) WaitForReplyRegex(regex string, timeout int) (string, RetVal) {
 	replyLock.Lock()
 	// See if there's already a continuation in progress for this Robot:user,channel,
 	rep, exists := replies[matcher]
-	if exists {
-		r.Log(Warn, fmt.Errorf("A reply is already being waited on for user %s in channel %s", r.User, r.Channel))
-		replyLock.Unlock()
-		return "", ReplyInProgress
+	if exists { // this should never happen, and should eventually be removed
+		panic(fmt.Sprintf("stale replyWaiter found for user %s in channel %s", r.User, r.Channel))
 	}
 	re, err := regexp.Compile(regex)
 	if err != nil {
 		r.Log(Error, fmt.Sprintf("Unable to compile regex \"%s\" in WaitForReplyRegex", regex))
-		botLock.Unlock()
+		replyLock.Unlock()
 		return "", MatcherNotFound
 	}
 	rep.re = re
@@ -185,6 +183,9 @@ func (r *Robot) WaitForReplyRegex(regex string, timeout int) (string, RetVal) {
 		// matched=false, timedOut=true
 		return "", TimeoutExpired
 	case replied, _ := <-rep.replyChannel:
+		if replied.interrupted {
+			return "", ConversationInterrupted
+		}
 		// Note: the replies[] entry is deleted in handleMessage
 		if !replied.matched {
 			if replied.rep == "=" {

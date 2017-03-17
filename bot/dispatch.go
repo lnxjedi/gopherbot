@@ -69,56 +69,22 @@ func messageAppliesToPlugin(user, channel string, plugin *Plugin) bool {
 	return false
 }
 
-// handleMessage checks the message against plugin commands and full-message matches,
-// then dispatches it to all applicable handlers in a separate go routine. If the robot
-// was addressed directly but nothing matched, any registered CatchAll plugins are called.
-// There Should Be Only One
-func handleMessage(isCommand bool, channel, user, messagetext string) {
-	b.lock.RLock()
-	bot := &Robot{
-		User:    user,
-		Channel: channel,
-		Format:  Variable,
-	}
-	defer checkPanic(bot, messagetext)
-	if len(channel) == 0 {
-		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", user, messagetext))
-	}
-	commandMatched := false
-	var catchAllPlugins []*Plugin
-	if isCommand {
-		catchAllPlugins = make([]*Plugin, 0, len(plugins))
-	}
-	// See if this is a reply that was requested
-	matcher := replyMatcher{user, channel}
-	replyLock.Lock()
-	if len(replies) > 0 {
-		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
-		rep, exists := replies[matcher]
-		if exists {
-			commandMatched = true
-			// we got a match - so delete the matcher and send the reply struct
-			delete(replies, matcher)
-			matched := false
-			if rep.re.MatchString(messagetext) {
-				matched = true
-			}
-			Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", user, channel, messagetext, rep.re.String(), matched))
-			rep.replyChannel <- reply{matched, messagetext}
-		} else {
-			Log(Trace, "No matching replyWaiter")
-		}
-	}
-	replyLock.Unlock()
+// checkPluginMatchers checks either command matchers (for messages directed at
+// the robot), or message matchers (for ambient commands that need not be
+// directed at the robot), and calls the plugin if it matches. Note: this
+// function is called under a read lock on the 'b' struct.
+func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string, catchAllPlugins []*Plugin) (commandMatched bool) {
+	// un-needed, but more clear
+	commandMatched = false
 	for _, plugin := range plugins {
 		Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels (allchannels: %t)", messagetext, plugin.name, len(plugin.Channels), plugin.AllChannels))
-		ok := messageAppliesToPlugin(user, channel, plugin)
+		ok := messageAppliesToPlugin(bot.User, bot.Channel, plugin)
 		if !ok {
-			Log(Trace, fmt.Sprintf("Plugin %s ignoring message in channel %s, doesn't meet criteria", plugin.name, channel))
+			Log(Trace, fmt.Sprintf("Plugin %s ignoring message in channel %s, doesn't meet criteria", plugin.name, bot.Channel))
 			continue
 		}
 		var matchers []InputMatcher
-		if isCommand {
+		if checkCommands {
 			matchers = plugin.CommandMatchers
 			if plugin.CatchAll {
 				catchAllPlugins = append(catchAllPlugins, plugin)
@@ -176,6 +142,69 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 				}
 			}
 		}
+	}
+	return commandMatched
+}
+
+// handleMessage checks the message against plugin commands and full-message matches,
+// then dispatches it to all applicable handlers in a separate go routine. If the robot
+// was addressed directly but nothing matched, any registered CatchAll plugins are called.
+// There Should Be Only One
+func handleMessage(isCommand bool, channel, user, messagetext string) {
+	b.lock.RLock()
+	bot := &Robot{
+		User:    user,
+		Channel: channel,
+		Format:  Variable,
+	}
+	defer checkPanic(bot, messagetext)
+	if len(channel) == 0 {
+		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", user, messagetext))
+	}
+	commandMatched := false
+	waitingForReply := false
+	var catchAllPlugins []*Plugin
+	if isCommand {
+		catchAllPlugins = make([]*Plugin, 0, len(plugins))
+		// See if a command matches (and runs)
+		commandMatched = checkPluginMatchers(true, bot, messagetext, catchAllPlugins)
+	}
+	// See if the robot was waiting on a reply
+	matcher := replyMatcher{user, channel}
+	replyLock.Lock()
+	if len(replies) > 0 {
+		var rep replyWaiter
+		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
+		rep, waitingForReply = replies[matcher]
+		if waitingForReply {
+			// we got a match - so delete the matcher and send the reply struct
+			delete(replies, matcher)
+			if commandMatched {
+				rep.replyChannel <- reply{false, true, ""}
+				Log(Debug, fmt.Sprintf("User \"%s\" issued a new command while the robot was waiting for a reply in channel \"%s\"", user, channel))
+			} else {
+				// if the robot was waiting on a reply, we don't want to check for
+				// ambient message matches - the plugin will handle it.
+				commandMatched = true
+				matched := false
+				if rep.re.MatchString(messagetext) {
+					matched = true
+				}
+				Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", user, channel, messagetext, rep.re.String(), matched))
+				rep.replyChannel <- reply{matched, false, messagetext}
+			}
+		} else {
+			Log(Trace, "No matching replyWaiter")
+		}
+	}
+	replyLock.Unlock()
+	// Direct commands were checked above; if a direct command didn't match,
+	// and a there wasn't a reply being waited on, then we check ambient
+	// MessageMatchers if it wasn't a direct command. Note that ambient
+	// commands never match in a DM.
+	if !commandMatched && !waitingForReply && !isCommand {
+		// check for ambient message matches
+		commandMatched = checkPluginMatchers(false, bot, messagetext, nil)
 	}
 	if isCommand && !commandMatched { // the robot was spoken too, but nothing matched - call catchAlls
 		shutdownMutex.Lock()
