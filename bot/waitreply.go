@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"regexp"
+	"sync"
 	"time"
 )
 
@@ -24,6 +25,7 @@ type reply struct {
 }
 
 var replies = make(map[replyMatcher]replyWaiter)
+var replyLock sync.Mutex
 
 type stockReply struct {
 	repTag   string
@@ -81,12 +83,12 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (string, RetVal) {
 	}
 	// We don't immediately defer an unlock because this function blocks on the
 	// reply channel - so we need to Unlock() at every error return point.
-	botLock.Lock()
+	replyLock.Lock()
 	// See if there's already a continuation in progress for this Robot:user,channel,
 	rep, exists := replies[matcher]
 	if exists {
 		r.Log(Warn, fmt.Errorf("A reply is already being waited on for user %s in channel %s", r.User, r.Channel))
-		botLock.Unlock()
+		replyLock.Unlock()
 		return "", ReplyInProgress
 	}
 	b.lock.RLock()
@@ -120,13 +122,13 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (string, RetVal) {
 	select {
 	case <-time.After(time.Duration(timeout) * time.Second):
 		Log(Warn, fmt.Sprintf("Timed out waiting for a reply to regex \"%s\" in channel: %s", regexID, r.Channel))
-		botLock.Lock()
+		replyLock.Lock()
 		// reply timed out, free up this matcher for later reply requests
 		delete(replies, matcher)
-		botLock.Unlock()
+		replyLock.Unlock()
 		// matched=false, timedOut=true
 		return "", TimeoutExpired
-	case replied, _ := <-rep.replyChannel:
+	case replied := <-rep.replyChannel:
 		// Note: the replies[] entry is deleted in handleMessage
 		if !replied.matched {
 			if replied.rep == "=" {
@@ -150,12 +152,12 @@ func (r *Robot) WaitForReplyRegex(regex string, timeout int) (string, RetVal) {
 	}
 	// We don't immediately defer an unlock because this function blocks on the
 	// reply channel - so we need to Unlock() at every error return point.
-	botLock.Lock()
+	replyLock.Lock()
 	// See if there's already a continuation in progress for this Robot:user,channel,
 	rep, exists := replies[matcher]
 	if exists {
 		r.Log(Warn, fmt.Errorf("A reply is already being waited on for user %s in channel %s", r.User, r.Channel))
-		botLock.Unlock()
+		replyLock.Unlock()
 		return "", ReplyInProgress
 	}
 	re, err := regexp.Compile(regex)
@@ -170,16 +172,16 @@ func (r *Robot) WaitForReplyRegex(regex string, timeout int) (string, RetVal) {
 	replies[matcher] = rep
 	// Now that we've added the reply to the map, unlock the bot so we can block
 	// on the channel for a reply.
-	botLock.Unlock()
+	replyLock.Unlock()
 	// Start a goroutine to delete the reply request if it still exists after a minute.
 	// If it's matched in the meantime, it should get deleted at that point.
 	select {
 	case <-time.After(time.Duration(timeout) * time.Second):
 		Log(Warn, fmt.Sprintf("Timed out waiting for a reply to custom regex \"%s\" in channel: %s", regex, r.Channel))
-		botLock.Lock()
+		replyLock.Lock()
 		// reply timed out, free up this matcher for later reply requests
 		delete(replies, matcher)
-		botLock.Unlock()
+		replyLock.Unlock()
 		// matched=false, timedOut=true
 		return "", TimeoutExpired
 	case replied, _ := <-rep.replyChannel:

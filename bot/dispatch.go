@@ -91,7 +91,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	}
 	// See if this is a reply that was requested
 	matcher := replyMatcher{user, channel}
-	botLock.Lock()
+	replyLock.Lock()
 	if len(replies) > 0 {
 		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
 		rep, exists := replies[matcher]
@@ -109,7 +109,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 			Log(Trace, "No matching replyWaiter")
 		}
 	}
-	botLock.Unlock()
+	replyLock.Unlock()
 	for _, plugin := range plugins {
 		Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels (allchannels: %t)", messagetext, plugin.name, len(plugin.Channels), plugin.AllChannels))
 		ok := messageAppliesToPlugin(user, channel, plugin)
