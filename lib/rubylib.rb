@@ -78,7 +78,7 @@ class BaseBot
 	ReplyNotMatched = 16
 	UseDefaultValue = 17
 	TimeoutExpired = 18
-	ReplyInProgress = 19
+	Interrupted = 19
 	MatcherNotFound = 20
 	NoUserEmail = 21
 	NoBotEmail = 22

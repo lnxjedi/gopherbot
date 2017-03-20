@@ -42,7 +42,7 @@ func knock(r *bot.Robot, command string, args ...string) {
 		r.Reply("Knock knock")
 		for i := 0; i < 2; i++ {
 			_, ret := r.WaitForReply("whosthere", 28)
-			if ret == bot.ConversationInterrupted {
+			if ret == bot.Interrupted {
 				r.Reply("Ok, I guess you don't like knock-knock jokes!")
 				return
 			}
@@ -82,7 +82,7 @@ func knock(r *bot.Robot, command string, args ...string) {
 		}
 		for i := 0; i < 2; i++ {
 			reply, ret := r.WaitForReply("who", 28)
-			if ret == bot.ConversationInterrupted {
+			if ret == bot.Interrupted {
 				r.Reply("Oooo, you're going to leave the joke unfinished? What about CLOSURE?!?")
 				return
 			}

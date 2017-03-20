@@ -61,7 +61,7 @@ func init() {
 // RetVal = Ok.
 // If the regular expression doesn't match, it returns an empty string
 // with one of the following RetVals:
-//	ConversationInterrupted - the user issued a new command that ran
+//	Interrupted - the user issued a new command that ran
 //  UseDefaultValue - user supplied a single "=", meaning "use the default value"
 //	ReplyNotMatched - didn't successfully match for any reason
 //	MatcherNotFound - the regexId didn't correspond to a valid regex
@@ -127,7 +127,7 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (string, RetVal) {
 		return "", TimeoutExpired
 	case replied := <-rep.replyChannel:
 		if replied.interrupted {
-			return "", ConversationInterrupted
+			return "", Interrupted
 		}
 		// Note: the replies[] entry is deleted in handleMessage
 		if !replied.matched {
@@ -184,7 +184,7 @@ func (r *Robot) WaitForReplyRegex(regex string, timeout int) (string, RetVal) {
 		return "", TimeoutExpired
 	case replied, _ := <-rep.replyChannel:
 		if replied.interrupted {
-			return "", ConversationInterrupted
+			return "", Interrupted
 		}
 		// Note: the replies[] entry is deleted in handleMessage
 		if !replied.matched {
