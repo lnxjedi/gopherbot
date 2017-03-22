@@ -2,8 +2,6 @@
 
 # mkdist.sh - create a distributable .zip file
 
-. VERSION
-
 usage(){
 	cat <<EOF
 Usage: mkdist.sh
