@@ -1,3 +1,5 @@
+// +build darwin dragonfly freebsd linux netbsd openbsd
+
 package bot
 
 import (
@@ -15,9 +17,14 @@ import (
 )
 
 var started bool
+var hostName string
 
 type botInfo struct {
 	LogFile, PidFile string // Locations for the bots log file and pid file
+}
+
+func init() {
+	hostName = os.Getenv("HOSTNAME")
 }
 
 func dirExists(path string) bool {

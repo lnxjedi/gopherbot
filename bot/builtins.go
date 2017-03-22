@@ -305,10 +305,9 @@ func admin(bot *Robot, command string, args ...string) {
 		admins := strings.Join(b.adminUsers, ", ")
 		b.lock.RUnlock()
 		if bot.CheckAdmin() {
-			host := os.Getenv("HOSTNAME")
 			msg := make([]string, 8)
 			msg[0] = "Here's some information about my running environment:"
-			msg[1] = fmt.Sprintf("The hostname for the server I'm running on is: %s", host)
+			msg[1] = fmt.Sprintf("The hostname for the server I'm running on is: %s", hostName)
 			b.lock.RLock()
 			msg[2] = fmt.Sprintf("My install directory is: %s", b.installPath)
 			msg[3] = fmt.Sprintf("My local configuration directory is: %s", b.localPath)

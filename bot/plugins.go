@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
-	"os/exec"
 	"reflect"
 	"regexp"
 	"strings"
@@ -122,38 +120,6 @@ func RegisterPlugin(name string, plug PluginHandler) {
 		log.Fatal("Attempted registration of duplicate plugin name:", name)
 	}
 	pluginHandlers[name] = plug
-}
-
-func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
-	var fullPath string
-	if byte(plugin.pluginPath[0]) == byte("/"[0]) {
-		fullPath = plugin.pluginPath
-	} else {
-		_, err := os.Stat(b.localPath + "/" + plugin.pluginPath)
-		if err != nil {
-			_, err := os.Stat(b.installPath + "/" + plugin.pluginPath)
-			if err != nil {
-				err = fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.name, err)
-				return nil, err
-			}
-			fullPath = b.installPath + "/" + plugin.pluginPath
-			Log(Debug, "Using stock external plugin:", fullPath)
-		} else {
-			fullPath = b.localPath + "/" + plugin.pluginPath
-			Log(Debug, "Using local external plugin:", fullPath)
-		}
-	}
-	// cmd := exec.Command(fullPath, channel, user, matcher.Command, matches[0][1:]...)
-	cfg, err := exec.Command(fullPath, "", "", "", "configure").Output()
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			err = fmt.Errorf("Problem retrieving default configuration for external plugin \"%s\", skipping: \"%v\", output: %s", fullPath, err, exitErr.Stderr)
-		} else {
-			err = fmt.Errorf("Problem retrieving default configuration for external plugin \"%s\", skipping: \"%v\"", fullPath, err)
-		}
-		return nil, err
-	}
-	return &cfg, nil
 }
 
 // loadPluginConfig() loads the configuration for all the plugins from

@@ -1,4 +1,5 @@
 .*
 !.gitignore
 gopherbot
+gopherbot.exe
 gopherbot*zip
