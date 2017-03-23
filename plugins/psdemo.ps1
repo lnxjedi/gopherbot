@@ -1,8 +1,13 @@
 #!powershell.exe
+# NOTE: Gopherbot script plugins on Windows need to know what
+# interpreter to use. If it's not in the path, use the full
+# path to the interpreter, e.g.:
 #!C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
-# NOTE: Gopherbot script plugins on Windows need the full
-# path to the interpreter
 
+# For troubleshooting the escaping of args to PowerShell
+#write-error "arg dump"
+#$Args | write-error
+#write-error "end dump"
 # boilerplate
 Import-Module "$Env:GOPHER_INSTALLDIR\lib\Robot.psm1"
 $channel, $user, $plugID, $Args = $Args
@@ -32,7 +37,9 @@ switch ($command)
   }
   "echo"
   {
-    Write-Error "Got: $Args[0]"    
+    # NOTE!!! In PowerShell, an array of strings with only one value is just a string
+    $heard = $Args
+    $bot.Say("You said: $heard")
   }
   "multi"
   {

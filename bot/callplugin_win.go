@@ -17,6 +17,8 @@ func fixInterpreterArgs(interpreter string, args []string) []string {
 	if strings.HasSuffix(interpreter, "powershell.exe") {
 		for i, _ := range args {
 			args[i] = strings.Replace(args[i], " ", "` ", -1)
+			args[i] = strings.Replace(args[i], ",", "`,", -1)
+			args[i] = strings.Replace(args[i], ";", "`;", -1)
 			if args[i] == "" {
 				args[i] = "\"\""
 			}
@@ -80,7 +82,6 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 	externalArgs = fixInterpreterArgs(interpreter, externalArgs)
 	Log(Debug, fmt.Sprintf("Calling \"%s\" with interpreter \"%s\" and args: %q", fullPath, interpreter, externalArgs))
 	cfg, err := exec.Command(interpreter, externalArgs...).Output()
-	Log(Debug, fmt.Sprintf("Got:\n%s\n", cfg))
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			err = fmt.Errorf("Problem retrieving default configuration for external plugin \"%s\", skipping: \"%v\", output: %s", fullPath, err, exitErr.Stderr)
