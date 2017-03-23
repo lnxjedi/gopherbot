@@ -9,8 +9,9 @@
 #$Args | write-error
 #write-error "end dump"
 # boilerplate
+[String[]]$cmdArgs = $Args
 Import-Module "$Env:GOPHER_INSTALLDIR\lib\Robot.psm1"
-$channel, $user, $plugID, $Args = $Args
+$channel, $user, $plugID, $cmdArgs = $cmdArgs
 $bot = Get-Robot $channel $user $plugID
 # end boilerplate
 
@@ -26,7 +27,7 @@ CommandMatchers:
   Regex: '(?i:multi ([.;!\d\w-,]+) ([.;!\d\w-, ]+))'
 '@
 
-$command, $Args = $Args
+$command, $cmdArgs = $cmdArgs
 
 switch ($command)
 {
@@ -38,13 +39,13 @@ switch ($command)
   "echo"
   {
     # NOTE!!! In PowerShell, an array of strings with only one value is just a string
-    $heard = $Args
+    $heard = $cmdArgs[0]
     $bot.Say("You said: $heard")
   }
   "multi"
   {
     Write-Error "Got:"
-    Write-Error $Args[0]
-    Write-Error $Args[1]
+    Write-Error $cmdArgs[0]
+    Write-Error $cmdArgs[1]
   }
 }
