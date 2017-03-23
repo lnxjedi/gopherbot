@@ -11,6 +11,20 @@ import (
 	"strings"
 )
 
+// Windows argument parsing is all over the map; try to fix it here
+// Currently powershell only
+func fixInterpreterArgs(interpreter string, args []string) []string {
+	if strings.HasSuffix(interpreter, "powershell.exe") {
+		for i, _ := range args {
+			args[i] = strings.Replace(args[i], " ", "` ", -1)
+			if args[i] == "" {
+				args[i] = "\"\""
+			}
+		}
+	}
+	return args
+}
+
 // emulate Unix script convention by calling external scripts with
 // an interpreter.
 func getInterpreter(scriptPath string) (string, error) {
@@ -62,7 +76,11 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 		err = fmt.Errorf("looking up interpreter for %s: %s", fullPath, err)
 		return nil, err
 	}
-	cfg, err := exec.Command(interpreter, fullPath, "", "", "", "configure").Output()
+	externalArgs := []string{fullPath, "", "", "", "configure"}
+	externalArgs = fixInterpreterArgs(interpreter, externalArgs)
+	Log(Debug, fmt.Sprintf("Calling \"%s\" with interpreter \"%s\" and args: %q", fullPath, interpreter, externalArgs))
+	cfg, err := exec.Command(interpreter, externalArgs...).Output()
+	Log(Debug, fmt.Sprintf("Got:\n%s\n", cfg))
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			err = fmt.Errorf("Problem retrieving default configuration for external plugin \"%s\", skipping: \"%v\", output: %s", fullPath, err, exitErr.Stderr)
@@ -123,7 +141,8 @@ func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
 		externalArgs = append(externalArgs, fullPath)
 		externalArgs = append(externalArgs, bot.Channel, bot.User, plugin.pluginID, command)
 		externalArgs = append(externalArgs, args...)
-		Log(Debug, fmt.Sprintf("Calling \"%s\" with interpreter %s and args: %q", fullPath, interpreter, externalArgs))
+		externalArgs = fixInterpreterArgs(interpreter, externalArgs)
+		Log(Debug, fmt.Sprintf("Calling \"%s\" with interpreter \"%s\" and args: %q", fullPath, interpreter, externalArgs))
 		cmd := exec.Command(interpreter, externalArgs...)
 		// close stdout on the external plugin...
 		cmd.Stdout = nil
