@@ -70,7 +70,7 @@ func messageAppliesToPlugin(user, channel string, plugin *Plugin) bool {
 // the robot), or message matchers (for ambient commands that need not be
 // directed at the robot), and calls the plugin if it matches. Note: this
 // function is called under a read lock on the 'b' struct.
-func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string, catchAllPlugins []*Plugin) (commandMatched bool) {
+func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (commandMatched bool) {
 	// un-needed, but more clear
 	commandMatched = false
 	for _, plugin := range plugins {
@@ -83,9 +83,6 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string, cat
 		var matchers []InputMatcher
 		if checkCommands {
 			matchers = plugin.CommandMatchers
-			if plugin.CatchAll {
-				catchAllPlugins = append(catchAllPlugins, plugin)
-			}
 		} else {
 			matchers = plugin.MessageMatchers
 		}
@@ -163,8 +160,13 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	var catchAllPlugins []*Plugin
 	if isCommand {
 		catchAllPlugins = make([]*Plugin, 0, len(plugins))
+		for _, plugin := range plugins {
+			if plugin.CatchAll {
+				catchAllPlugins = append(catchAllPlugins, plugin)
+			}
+		}
 		// See if a command matches (and runs)
-		commandMatched = checkPluginMatchers(true, bot, messagetext, catchAllPlugins)
+		commandMatched = checkPluginMatchers(true, bot, messagetext)
 	}
 	// See if the robot was waiting on a reply
 	matcher := replyMatcher{user, channel}
@@ -201,12 +203,13 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	// commands never match in a DM.
 	if !commandMatched && !waitingForReply && !isCommand {
 		// check for ambient message matches
-		commandMatched = checkPluginMatchers(false, bot, messagetext, nil)
+		commandMatched = checkPluginMatchers(false, bot, messagetext)
 	}
 	if isCommand && !commandMatched { // the robot was spoken too, but nothing matched - call catchAlls
 		shutdownMutex.Lock()
 		if !shuttingDown {
 			shutdownMutex.Unlock()
+			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", messagetext))
 			for _, plugin := range catchAllPlugins {
 				plugRunningWaitGroup.Add(1)
 				go callPlugin(bot, plugin, "catchall", messagetext)
