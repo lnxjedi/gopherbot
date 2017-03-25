@@ -40,6 +40,7 @@ switch ($command)
   }
   "echo"
   {
+    $bot.Log("Debug", "echo requested")
     # NOTE!!! In PowerShell, an array of strings with only one value is just a string
     $heard = $cmdArgs[0]
     $bot.Say("You said: $heard")

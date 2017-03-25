@@ -355,6 +355,6 @@ func admin(bot *Robot, command string, args ...string) {
 		Log(Info, "Exiting on administrator command")
 		// How long does it _actually_ take for the message to go out?
 		time.Sleep(time.Second)
-		os.Exit(0)
+		close(finish)
 	}
 }

@@ -11,10 +11,15 @@ import (
 	"strings"
 
 	"github.com/kardianos/osext"
+	"golang.org/x/sys/windows/svc"
 )
 
 var started bool
+var isIntSess bool
 var hostName string
+var conn Connector
+var botLogger *log.Logger
+var finish = make(chan struct{})
 
 func init() {
 	hostName = os.Getenv("COMPUTERNAME")
@@ -45,8 +50,13 @@ func Start() {
 	botLock.Unlock()
 
 	const svcName = "gopherbot"
-	var execpath, execdir, installdir, localdir string
 	var err error
+	isIntSess, err = svc.IsAnInteractiveSession()
+	if err != nil {
+		log.Fatalf("failed to determine if we are running in an interactive session: %v", err)
+	}
+
+	var execpath, execdir, installdir, localdir string
 
 	// Process command-line flags
 	var configDir string
@@ -57,15 +67,61 @@ func Start() {
 	iusage := "path to the local install directory containing default/stock configuration"
 	flag.StringVar(&installDir, "install", "", iusage)
 	flag.StringVar(&installDir, "i", "", iusage+" (shorthand)")
-	var pidFile string
-	pusage := "path to robot's pid file"
-	flag.StringVar(&pidFile, "pid", "", pusage)
-	flag.StringVar(&pidFile, "p", "", pusage+" (shorthand)")
-	var plainlog bool
-	plusage := "omit timestamps from the log"
-	flag.BoolVar(&plainlog, "plainlog", false, plusage)
-	flag.BoolVar(&plainlog, "P", false, plusage+" (shorthand)")
+	var logFile string
+	lusage := "path to robot's log file"
+	flag.StringVar(&logFile, "log", "", lusage)
+	flag.StringVar(&logFile, "l", "", lusage+" (shorthand)")
+	var winCommand string
+	if isIntSess {
+		wusage := "manage Windows service, one of: install, remove, start, stop"
+		flag.StringVar(&winCommand, "winsvc", "", wusage)
+		flag.StringVar(&winCommand, "w", "", wusage+" (shorthand)")
+	}
 	flag.Parse()
+
+	if winCommand != "" {
+		switch winCommand {
+		case "install":
+			var args []string
+			if configDir != "" {
+				args = append(args, "-c", configDir)
+			}
+			if installDir != "" {
+				args = append(args, "-i", installDir)
+			}
+			err = installService(svcName, "Gopherbot ChatOps chat bot", args)
+		case "remove":
+			err = removeService(svcName)
+		case "start":
+			err = startService(svcName)
+		case "stop":
+			err = controlService(svcName, svc.Stop, svc.Stopped)
+		case "pause":
+			err = controlService(svcName, svc.Pause, svc.Paused)
+		case "continue":
+			err = controlService(svcName, svc.Continue, svc.Running)
+		default:
+			log.Fatalf("invalid command %s", winCommand)
+		}
+		if err != nil {
+			log.Fatalf("failed to %s %s: %v", winCommand, svcName, err)
+		}
+		return
+	}
+
+	if isIntSess {
+		botLogger = log.New(os.Stdout, "", log.LstdFlags)
+	} else {
+		if logFile == "" {
+			logFile = "C:/Windows/Temp/gopherbot-startup.log"
+		}
+		f, err := os.Create(logFile)
+		if err != nil {
+			log.Fatal("Unable to open log file")
+		}
+		botLogger = log.New(f, "", log.LstdFlags)
+	}
+	botLogger.Println("Starting up ...")
 
 	// Installdir is where the default config and stock external
 	// plugins are. Search some likely locations in case installDir
@@ -98,7 +154,7 @@ func Start() {
 		}
 	}
 	if len(installdir) == 0 {
-		log.Println("Install directory not found, exiting")
+		botLogger.Println("Install directory not found, exiting")
 		os.Exit(0)
 	}
 
@@ -118,17 +174,10 @@ func Start() {
 		}
 	}
 	if len(localdir) == 0 {
-		log.Println("Couldn't locate local configuration directory, exiting")
+		botLogger.Println("Couldn't locate local configuration directory, exiting")
 		os.Exit(0)
 	}
 
-	var botLogger *log.Logger
-	// later this will check for interactive running vs. running as a service
-	if true {
-		botLogger = log.New(os.Stdout, "", log.LstdFlags)
-	} else {
-		botLogger.SetOutput(ioutil.Discard)
-	}
 	// Create the 'bot and load configuration, supplying configdir and installdir.
 	// When loading configuration, gopherbot first loads default configuration
 	// from internal config, then loads from localdir/conf/..., which
@@ -139,9 +188,7 @@ func Start() {
 	if err != nil {
 		botLogger.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
 	}
-	Log(Info, fmt.Sprintf("Starting up with localdir: %s, and installdir: %s", localdir, installdir))
-
-	var conn Connector
+	botLogger.Printf("Starting up with localdir: %s, and installdir: %s\n", localdir, installdir)
 
 	connectionStarter, ok := connectors[b.protocol]
 	if !ok {
@@ -150,11 +197,17 @@ func Start() {
 
 	// handler{} is just a placeholder struct for implementing the Handler interface
 	h := handler{}
-	conn = connectionStarter(h, botLogger)
+	conn = connectionStarter(h, log.New(ioutil.Discard, "", 0))
 
 	// Initialize the robot with a valid connector
 	botInit(conn)
 
-	// Start the connector's main loop
-	conn.Run()
+	//	b.logger.SetOutput(ioutil.Discard)
+	if isIntSess {
+		// Start the connector's main loop for interactive sessions
+		conn.Run(finish)
+	} else {
+		// Started as a Windows Service
+		runService(svcName)
+	}
 }

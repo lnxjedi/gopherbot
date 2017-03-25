@@ -7,6 +7,7 @@ import (
 
 var plugRunningCounter int
 var shuttingDown = false
+var paused = false // For Windows service pause support
 
 // the shutdownMutex protects both the plugRunningCounter and the shuttingDown
 // flag
@@ -124,6 +125,9 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 					shutdownMutex.Lock()
 					if shuttingDown && !abort {
 						bot.Say("Sorry, I'm shutting down and can't start any new tasks")
+						shutdownMutex.Unlock()
+					} else if paused && !abort {
+						bot.Say("Sorry, I've been paused and can't start any new tasks")
 						shutdownMutex.Unlock()
 					} else {
 						shutdownMutex.Unlock()

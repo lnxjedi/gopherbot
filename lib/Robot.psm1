@@ -120,11 +120,17 @@ class Robot
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs, [String] $format="variable")
     {
         $fc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $format, $this.PluginID, $funcArgs) | ConvertTo-Json
-        #Write-Error "Sending: $fc"
+        if ($fname -ne "Log") { $this.Log("Debug", "DEBUG - Sending: $fc") }
         $r = Invoke-WebRequest -URI "$Env:GOPHER_HTTP_POST/json" -Method Post -Body $fc
         $c = $r.Content
-        #Write-Error "Got back: $c"
+        if ($fname -ne "Log") { $this.Log("Debug", "DEBUG - Got back: $c") }
         return $r.Content | ConvertFrom-Json
+    }
+
+    Log([String] $level, [String] $message)
+    {
+        $funcArgs = [PSCustomObject]@{ Level=$level; Message=$message }
+        $this.Call("Log", $funcArgs, "variable")
     }
 
     [BotRet] SendChannelMessage([String] $channel, [String] $msg, [String] $format="variable")

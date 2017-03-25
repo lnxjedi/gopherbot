@@ -101,8 +101,10 @@ func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
 	defer func() {
 		shutdownMutex.Lock()
 		plugRunningCounter--
+		if plugRunningCounter >= 0 {
+			plugRunningWaitGroup.Done()
+		}
 		shutdownMutex.Unlock()
-		plugRunningWaitGroup.Done()
 	}()
 	defer checkPanic(bot, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", plugin.name, command, args))
 	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\" with arguments \"%#v\"", command, plugin.name, args))

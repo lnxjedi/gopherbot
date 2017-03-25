@@ -66,10 +66,6 @@ func Start() {
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
 	flag.StringVar(&logFile, "l", "", lusage+" (shorthand)")
-	var pidFile string
-	pusage := "path to robot's pid file"
-	flag.StringVar(&pidFile, "pid", "", pusage)
-	flag.StringVar(&pidFile, "p", "", pusage+" (shorthand)")
 	var plainlog bool
 	plusage := "omit timestamps from the log"
 	flag.BoolVar(&plainlog, "plainlog", false, plusage)

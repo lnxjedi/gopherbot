@@ -46,8 +46,8 @@ func Start(robot bot.Handler, l *log.Logger) bot.Connector {
 	// This spits out a lot of extra stuff, so we only enable it when tracing
 	if robot.GetLogLevel() == bot.Trace {
 		api.SetDebug(true)
-		slack.SetLogger(l)
 	}
+	slack.SetLogger(l)
 
 	sc := &slackConnector{api: api, conn: api.NewRTM(), maxMessageSplit: c.MaxMessageSplit}
 	go sc.conn.ManageConnection()
@@ -85,7 +85,7 @@ Loop:
 	return bot.Connector(sc)
 }
 
-func (sc *slackConnector) Run() {
+func (sc *slackConnector) Run(stop chan struct{}) {
 	sc.Lock()
 	// This should never happen, just a bit of defensive coding
 	if sc.running {
@@ -94,8 +94,12 @@ func (sc *slackConnector) Run() {
 	}
 	sc.running = true
 	sc.Unlock()
+loop:
 	for {
 		select {
+		case <-stop:
+			sc.Log(bot.Debug, "Received stop in connector")
+			break loop
 		case msg := <-sc.conn.IncomingEvents:
 			sc.Log(bot.Debug, "Event Received: ")
 			switch ev := msg.Data.(type) {

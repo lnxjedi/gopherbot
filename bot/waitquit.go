@@ -25,6 +25,6 @@ func init() {
 		// Get the dataLock to make sure the brain is in a consistent state
 		dataLock.Lock()
 		Log(Info, fmt.Sprintf("Exiting on signal: %s", sig))
-		os.Exit(0)
+		close(finish)
 	}()
 }

@@ -12,7 +12,7 @@ go build
 
 $fileName = "gopherbot-" + $version + "-windows-amd64.zip"
 
-$list = "gopherbot.exe", "LICENSE", "README.md", ".\brain", ".\conf", ".\doc", ".\example.gopherbot", ".\lib", ".\misc", ".\plugins" 
+$list = "gopherbot.exe", "LICENSE", "README.md", ".\brain", ".\conf", ".\doc", ".\example.gopherbot", ".\lib", ".\licenses", ".\misc", ".\plugins" 
 
 Write-Output "Creating archive $filename"
 Compress-Archive -path $list -DestinationPath $fileName -force

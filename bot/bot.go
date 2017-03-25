@@ -82,7 +82,7 @@ func newBot(cpath, epath string, logger *log.Logger) error {
 
 	handle := handler{}
 	if err := loadConfig(); err != nil {
-		return nil
+		return err
 	}
 	if len(b.elevatorProvider) > 0 {
 		if eprovider, ok := elevators[b.elevatorProvider]; !ok {
