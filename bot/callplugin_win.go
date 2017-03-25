@@ -78,7 +78,7 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 		err = fmt.Errorf("looking up interpreter for %s: %s", fullPath, err)
 		return nil, err
 	}
-	externalArgs := []string{fullPath, "", "", "", "configure"}
+	externalArgs := []string{fullPath, "configure"}
 	externalArgs = fixInterpreterArgs(interpreter, externalArgs)
 	Log(Debug, fmt.Sprintf("Calling \"%s\" with interpreter \"%s\" and args: %q", fullPath, interpreter, externalArgs))
 	cfg, err := exec.Command(interpreter, externalArgs...).Output()
@@ -140,11 +140,16 @@ func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
 		}
 		externalArgs := make([]string, 0, 5+len(args))
 		externalArgs = append(externalArgs, fullPath)
-		externalArgs = append(externalArgs, bot.Channel, bot.User, plugin.pluginID, command)
+		externalArgs = append(externalArgs, command)
 		externalArgs = append(externalArgs, args...)
 		externalArgs = fixInterpreterArgs(interpreter, externalArgs)
 		Log(Debug, fmt.Sprintf("Calling \"%s\" with interpreter \"%s\" and args: %q", fullPath, interpreter, externalArgs))
 		cmd := exec.Command(interpreter, externalArgs...)
+		cmd.Env = append(os.Environ(), []string{
+			fmt.Sprintf("GOPHER_CHANNEL=%s", bot.Channel),
+			fmt.Sprintf("GOPHER_USER=%s", bot.User),
+			fmt.Sprintf("GOPHER_PLUGIN_ID=%s", plugin.pluginID),
+		}...)
 		// close stdout on the external plugin...
 		cmd.Stdout = nil
 		// but hold on to stderr in case we need to log an error

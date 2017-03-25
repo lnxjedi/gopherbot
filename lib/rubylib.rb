@@ -247,10 +247,9 @@ end
 class Robot < BaseBot
 
 	def initialize()
-		@channel = ARGV[0]
-		@user = ARGV[1]
-		@plugin_id = ARGV[2]
-		ARGV.shift(3)
+		@channel = ENV["GOPHER_CHANNEL"]
+		@user = ENV["GOPHER_USER"]
+		@plugin_id = ENV["GOPHER_PLUGIN_ID"]
 		@prng = Random.new
 	end
 

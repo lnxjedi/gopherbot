@@ -10,16 +10,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/kardianos/osext"
 )
 
 var started bool
 var hostName string
-
-type botInfo struct {
-	LogFile, PidFile string // Locations for the bots log file and pid file
-}
 
 func init() {
 	hostName = os.Getenv("COMPUTERNAME")
@@ -48,6 +43,8 @@ func Start() {
 	}
 	started = true
 	botLock.Unlock()
+
+	const svcName = "gopherbot"
 	var execpath, execdir, installdir, localdir string
 	var err error
 
@@ -60,10 +57,6 @@ func Start() {
 	iusage := "path to the local install directory containing default/stock configuration"
 	flag.StringVar(&installDir, "install", "", iusage)
 	flag.StringVar(&installDir, "i", "", iusage+" (shorthand)")
-	var logFile string
-	lusage := "path to robot's log file"
-	flag.StringVar(&logFile, "log", "", lusage)
-	flag.StringVar(&logFile, "l", "", lusage+" (shorthand)")
 	var pidFile string
 	pusage := "path to robot's pid file"
 	flag.StringVar(&pidFile, "pid", "", pusage)
@@ -129,23 +122,13 @@ func Start() {
 		os.Exit(0)
 	}
 
-	// Read the config just to extract the LogFile PidFile path
-	var cf []byte
-	if cf, err = ioutil.ReadFile(localdir + "/conf/gopherbot.yaml"); err != nil {
-		log.Fatalf("Couldn't read conf/gopherbot.yaml in local configuration directory: %s\n", localdir)
-	}
-	var bi botInfo
-	if err = yaml.Unmarshal(cf, &bi); err != nil {
-		log.Fatalf("Error unmarshalling \"%s\": %v", localdir+"/conf/gopherbot.yaml", err)
-	}
-
 	var botLogger *log.Logger
-	if plainlog {
-		botLogger = log.New(os.Stderr, "", 0)
+	// later this will check for interactive running vs. running as a service
+	if true {
+		botLogger = log.New(os.Stdout, "", log.LstdFlags)
 	} else {
-		botLogger = log.New(os.Stderr, "", log.LstdFlags)
+		botLogger.SetOutput(ioutil.Discard)
 	}
-
 	// Create the 'bot and load configuration, supplying configdir and installdir.
 	// When loading configuration, gopherbot first loads default configuration
 	// from internal config, then loads from localdir/conf/..., which

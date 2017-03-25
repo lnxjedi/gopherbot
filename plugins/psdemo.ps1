@@ -9,10 +9,11 @@
 #$Args | write-error
 #write-error "end dump"
 # boilerplate
+# Stylistic, can be omitted; $cmdArgs is always a String[],
+# but $Args turns into a String when you shift off the 2nd item
 [String[]]$cmdArgs = $Args
 Import-Module "$Env:GOPHER_INSTALLDIR\lib\Robot.psm1"
-$channel, $user, $plugID, $cmdArgs = $cmdArgs
-$bot = Get-Robot $channel $user $plugID
+$bot = Get-Robot
 # end boilerplate
 
 $config = @'
@@ -27,6 +28,7 @@ CommandMatchers:
   Regex: '(?i:multi ([.;!\d\w-,]+) ([.;!\d\w-, ]+))'
 '@
 
+# the equivalent of 'shift' for PowerShell
 $command, $cmdArgs = $cmdArgs
 
 switch ($command)
@@ -44,8 +46,7 @@ switch ($command)
   }
   "multi"
   {
-    Write-Error "Got:"
-    Write-Error $cmdArgs[0]
-    Write-Error $cmdArgs[1]
+    $h1, $h2 = $cmdArgs
+    $bot.Say("You said $h1 and $h2")
   }
 }

@@ -107,9 +107,9 @@ class Robot
     # Constructor
     Robot([String] $Channel, [String] $User, [String] $PluginID)
     {
-        $this.Channel = $Channel
-        $this.User = $User
-        $this.PluginID = $PluginID
+        $this.Channel = $Env:GOPHER_CHANNEL
+        $this.User = $Env:GOPHER_USER
+        $this.PluginID = $Env:GOPHER_PLUGIN_ID
     }
 
     [Robot] Direct()

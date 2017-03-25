@@ -25,13 +25,6 @@ GBRET_NoUserEmail=21
 GBRET_NoBotEmail=22
 GBRET_MailError=23
 
-GB_CHANNEL=$1
-GB_USER=$2
-GB_PLUGID=$3
-export GB_CHANNEL GB_USER GB_PLUGID
-shift 3
-# Now $1 is the command
-
 gb_json_encode(){
 	local MESSAGE
 	MESSAGE=$(echo "$@" | base64)
@@ -49,10 +42,10 @@ gbPostJSON(){
 	JSON=$(cat <<EOF
 {
 	"FuncName": "$GB_FUNCNAME",
-	"User": "$GB_USER",
-	"Channel": "$GB_CHANNEL",
+	"User": "$GOPHER_USER",
+	"Channel": "$GOPHER_CHANNEL",
 	"Format": "$GB_FORMAT",
-	"PluginID": "$GB_PLUGID",
+	"PluginID": "$GOPHER_PLUGIN_ID",
 	"FuncArgs": $GB_FUNCARGS
 }
 EOF
@@ -281,21 +274,21 @@ EOF
 Say(){
 	local FARG
 	[ "$1" = "-f" ] && { FARG="-f"; shift; }
-	if [ -n "$GB_CHANNEL" ]
+	if [ -n "$GOPHER_CHANNEL" ]
 	then
-		SendChannelMessage $FARG "$GB_CHANNEL" "$*"
+		SendChannelMessage $FARG "$GOPHER_CHANNEL" "$*"
 	else
-		SendUserMessage $FARG "$GB_USER" "$*"
+		SendUserMessage $FARG "$GOPHER_USER" "$*"
 	fi
 }
 
 Reply(){
 	local FARG
 	[ "$1" = "-f" ] && { FARG="-f"; shift; }
-	if [ -n "$GB_CHANNEL" ]
+	if [ -n "$GOPHER_CHANNEL" ]
 	then
-		SendUserChannelMessage $FARG "$GB_USER" "$GB_CHANNEL" "$*"
+		SendUserChannelMessage $FARG "$GOPHER_USER" "$GOPHER_CHANNEL" "$*"
 	else
-		SendUserMessage $FARG "$GB_USER" "$*"
+		SendUserMessage $FARG "$GOPHER_USER" "$*"
 	fi
 }
