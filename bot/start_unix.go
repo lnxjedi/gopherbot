@@ -18,6 +18,7 @@ import (
 
 var started bool
 var hostName string
+var finish = make(chan struct{})
 
 type botInfo struct {
 	LogFile, PidFile string // Locations for the bots log file and pid file
@@ -176,23 +177,6 @@ func Start() {
 		if err != nil {
 			botLogger.Fatalf("Problem daemonizing: %v", err)
 		}
-		var pf string
-		if len(pidFile) != 0 {
-			pf = pidFile
-		} else if len(bi.PidFile) != 0 {
-			pf = bi.PidFile
-		}
-		if len(pf) != 0 {
-			f, err = os.Create(pf)
-			if err != nil {
-				botLogger.Printf("Couldn't create pid file: %v", err)
-			} else {
-				pid := os.Getpid()
-				fmt.Fprintf(f, "%d", pid)
-				botLogger.Printf("Wrote pid (%d) to: %s\n", pid, pf)
-				f.Close()
-			}
-		}
 	} else { // run in the foreground, log to stderr
 		if plainlog {
 			botLogger = log.New(os.Stderr, "", 0)
@@ -229,5 +213,5 @@ func Start() {
 	botInit(conn)
 
 	// Start the connector's main loop
-	conn.Run()
+	conn.Run(finish)
 }

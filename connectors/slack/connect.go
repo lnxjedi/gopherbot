@@ -113,10 +113,10 @@ loop:
 				go sc.processMessage(ev)
 
 			case *slack.PresenceChangeEvent:
-				sc.Log(bot.Debug, fmt.Sprintf("Presence Change: %v\n", ev))
+				sc.Log(bot.Debug, fmt.Sprintf("Presence Change: %v", ev))
 
 			case *slack.LatencyReport:
-				sc.Log(bot.Debug, fmt.Sprintf("Current latency: %v\n", ev.Value))
+				sc.Log(bot.Debug, fmt.Sprintf("Current latency: %v", ev.Value))
 
 			case *slack.RTMError:
 				sc.Log(bot.Debug, fmt.Sprintf("Error: %s\n", ev.Error()))

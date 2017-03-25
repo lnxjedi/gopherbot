@@ -150,7 +150,7 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []stri
 // processMessage examines incoming messages, removes extra slack cruft, and
 // routes them to the appropriate bot method.
 func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
-	s.Log(bot.Trace, fmt.Sprintf("Message received: %v\n", msg))
+	s.Log(bot.Trace, fmt.Sprintf("Message received: %v", msg))
 
 	reAddedLinks := regexp.MustCompile(`<https?://[\w-.]+\|([\w-.]+)>`) // match a slack-inserted link
 	reLinks := regexp.MustCompile(`<(https?://[.\w-:/?=~]+)>`)          // match a link where slack added <>
