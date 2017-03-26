@@ -26,58 +26,64 @@ Enum BotRet
 	MailError = 23
 }
 
-function enc64([String] $msg)
-{
+function enc64([String] $msg) {
+    [OutputType([String])]
     $b  = [System.Text.Encoding]::UTF8.GetBytes($msg)
     $enc = [System.Convert]::ToBase64String($b)
     return "base64:$enc"
 }
 
-function dec64([String] $msg)
-{
-    $b  = [System.Convert]::FromBase64String($msg.Split(":")[1])
-    return [System.Text.Encoding]::UTF8.GetString($b)
+function dec64([String] $msg) {
+    [OutputType([String])]
+    [String[]] $parts = $msg.Split(":")
+    if ($parts[0] -eq "base64") {
+        $b  = [System.Convert]::FromBase64String($parts[1])
+        return [System.Text.Encoding]::UTF8.GetString($b)
+    } else {
+        return $msg
+    }
 }
 
-class Attribute
-{
+class Attribute {
     # Properties
     [String] $Attr
     [BotRet] $Ret
 
-    Attribute([String] $Attr, [BotRet] $Ret)
-    {
+    Attribute([String] $Attr, [BotRet] $Ret) {
         $this.Attr = $Attr
         $this.Ret = $Ret
     }
-}
 
-class Reply
-{
-    [String] $Reply
-    [BotRet] $Ret
-
-    Attribute([String] $rep, [BotRet] $ret)
-    {
-        $this.Reply = $rep
-        $this.Ret = $ret
+    [String] ToString() {
+        return $this.Attr
     }
 }
 
-class OTPRet 
-{
+class Reply {
+    [String] $Reply
+    [BotRet] $Ret
+
+    Attribute([String] $rep, [BotRet] $ret) {
+        $this.Reply = $rep
+        $this.Ret = $ret
+    }
+
+    [String] ToString() {
+        return $this.Reply
+    }
+}
+
+class OTPRet {
     [Bool] $Valid
     [BotRet] $Ret
 
-    OTPRet([Bool] $v, [BotRet] $r)
-    {
+    OTPRet([Bool] $v, [BotRet] $r) {
         $this.Valid = $v
         $this.Ret = $r
     }
 }
 
-class BotFuncCall
-{
+class BotFuncCall {
     [String] $FuncName
     [String] $User
     [String] $Channel
@@ -85,8 +91,7 @@ class BotFuncCall
     [String] $PluginID
     [PSCustomObject] $FuncArgs
 
-    BotFuncCall([String] $fn, [String] $u, [String] $c, [String] $fmt, [String] $p, [PSCustomObject] $funcArgs )
-    {
+    BotFuncCall([String] $fn, [String] $u, [String] $c, [String] $fmt, [String] $p, [PSCustomObject] $funcArgs ) {
         $this.FuncName = $fn
         $this.User = $u
         $this.Channel = $c
@@ -105,20 +110,17 @@ class Robot
     hidden [String] $PluginID
 
     # Constructor
-    Robot([String] $Channel, [String] $User, [String] $PluginID)
-    {
+    Robot([String] $Channel, [String] $User, [String] $PluginID) {
         $this.Channel = $Env:GOPHER_CHANNEL
         $this.User = $Env:GOPHER_USER
         $this.PluginID = $Env:GOPHER_PLUGIN_ID
     }
 
-    [Robot] Direct()
-    {
+    [Robot] Direct() {
         return [Robot]::new("", $this.User, $this.PluginID)
     }
 
-    [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs, [String] $format="variable")
-    {
+    [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs, [String] $format) {
         $fc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $format, $this.PluginID, $funcArgs) | ConvertTo-Json
         if ($fname -ne "Log") { $this.Log("Debug", "DEBUG - Sending: $fc") }
         $r = Invoke-WebRequest -URI "$Env:GOPHER_HTTP_POST/json" -Method Post -Body $fc
@@ -127,57 +129,107 @@ class Robot
         return $r.Content | ConvertFrom-Json
     }
 
-    Log([String] $level, [String] $message)
-    {
-        $funcArgs = [PSCustomObject]@{ Level=$level; Message=$message }
-        $this.Call("Log", $funcArgs, "variable")
+    [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs) {
+        return $this.Call($fname, $funcArgs, "variable")
     }
 
-    [BotRet] SendChannelMessage([String] $channel, [String] $msg, [String] $format="variable")
-    {
+    [Attribute] GetSenderAttribute([String] $attr) {
+        $funcArgs = [PSCustomObject]@{ Attribute=$attr }
+        $ret = $this.Call("GetSenderAttribute", $funcArgs)
+        $a = dec64($ret.Attribute)
+        return [Attribute]::new($a, $ret.RetVal -As [BotRet])
+    }
+
+    [Attribute] GetUserAttribute([String] $user, [String] $attr) {
+        $funcArgs = [PSCustomObject]@{ User=$user; Attribute=$attr }
+        $ret = $this.Call("GetUserAttribute", $funcArgs)
+        $a = dec64($ret.Attribute)
+        return [Attribute]::new($a, $ret.RetVal -As [BotRet])
+    }
+
+    [Attribute] GetBotAttribute([String] $attr) {
+        $funcArgs = [PSCustomObject]@{ Attribute=$attr }
+        $ret = $this.Call("GetBotAttribute", $funcArgs)
+        $a = dec64($ret.Attribute)
+        return [Attribute]::new($a, $ret.RetVal -As [BotRet])
+    }
+
+    [Reply] WaitForReply([String] $regexid, [Int] $timeout) {
+        $funcArgs = [PSCustomObject]@{ RegExId=$regexid; Timeout=$timeout }
+        $ret = $this.Call("WaitForReply", $funcArgs)
+        $rep = dec64($ret.Reply)
+        return [Reply]::new($rep, $ret.Ret -As [BotRet])
+    }
+
+    [Reply] WaitForReply([String] $regexid) {
+        return $this.WaitForReply($regexid, 30)
+    }
+
+    [Reply] WaitForReplyRegex([String] $goregex, [Int] $timeout) {
+        $funcArgs = [PSCustomObject]@{ RegEx=$goregex; Timeout=$timeout }
+        $ret = $this.Call("WaitForReply", $funcArgs)
+        $rep = dec64($ret.Reply)
+        return [Reply]::new($rep, $ret.Ret -As [BotRet])
+    }
+
+    [Reply] WaitForReplyRegex([String] $goregex) {
+        return $this.WaitForReplyRegex($goregex, 30)
+    }
+
+    Log([String] $level, [String] $message) {
+        $funcArgs = [PSCustomObject]@{ Level=$level; Message=$message }
+        $this.Call("Log", $funcArgs)
+    }
+
+    [BotRet] SendChannelMessage([String] $channel, [String] $msg, [String] $format="variable") {
         $funcArgs = [PSCustomObject]@{ Channel=$channel; Message=enc64($msg) }
         return $this.Call("SendChannelMessage", $funcArgs, $format).RetVal -As [BotRet]
     }
 
-    [BotRet] SendUserMessage([String] $user, [String] $msg, [String] $format="variable")
-    {
-        $funcArgs = [PSCustomObject]@{ User=$user; Message=enc64($msg) }
-        return $this.Call("SendUserChannelMessage", $funcArgs, $format).RetVal -As [BotRet]
+    [BotRet] SendChannelMessage([String] $channel, [String] $msg) {
+        return $this.SendChannelMessage($channel, $msg, "variable")
     }
 
-    [BotRet] SendUserChannelMessage([String] $user, [String] $channel, [String] $msg, [String] $format="variable")
-    {
+    [BotRet] SendUserMessage([String] $user, [String] $msg, [String] $format="variable") {
+        $funcArgs = [PSCustomObject]@{ User=$user; Message=enc64($msg) }
+        return $this.Call("SendUserMessage", $funcArgs, $format).RetVal -As [BotRet]
+    }
+
+    [BotRet] SendUserMessage([String] $user, [String] $msg) {
+        return $this.SendUserMessage($user, $msg, "variable")
+    }
+
+    [BotRet] SendUserChannelMessage([String] $user, [String] $channel, [String] $msg, [String] $format="variable") {
         $funcArgs = [PSCustomObject]@{ User=$user; Channel=$channel; Message=enc64($msg) }
         return $this.Call("SendUserChannelMessage", $funcArgs, $format).RetVal -As [BotRet]
     }
 
-    [BotRet] Say([String] $msg, [String] $format)
-    {
-        if ($this.Channel -eq "")
-        {
+    [BotRet] SendUserChannelMessage([String] $user, [String] $channel, [String] $msg) {
+        return $this.SendUserChannelMessage($user, $channel, $msg, "variable")
+    }
+
+    [BotRet] Say([String] $msg, [String] $format) {
+        if ($this.Channel -eq ""){
             return $this.SendUserMessage($this.User, $msg, $format)
-        }
-        else
-        {
+        } else {
             return $this.SendChannelMessage($this.Channel, $msg, $format)
         }
     }
 
-    [BotRet] Say([String] $msg)
-    {
+    [BotRet] Say([String] $msg) {
         return $this.Say($msg, "variable")
     }
 
-    [BotRet] Reply([String] $msg, [String] $format = "variable")
-    {
-        if ($this.Channel -eq "")
-        {
+    [BotRet] Reply([String] $msg, [String] $format = "variable") {
+        if ($this.Channel -eq "") {
             return $this.SendUserMessage($this.User, $msg, $format)
-        }
-        else
-        {
+        } else {
             return $this.SendUserChannelMessage($this.User, $this.Channel, $msg, $format)
         }
+    }
+
+    [BotRet] Reply([String] $msg) {
+        return $this.Reply($msg, "variable")
     }
 }
 
