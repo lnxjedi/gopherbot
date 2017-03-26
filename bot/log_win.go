@@ -33,7 +33,7 @@ func Log(l LogLevel, v ...interface{}) {
 		b.logger.Print(msg)
 		if eventLog != nil {
 			switch l {
-			case Debug, Info:
+			case Info:
 				eventLog.Info(1, msg)
 			case Warn:
 				eventLog.Warning(1, msg)

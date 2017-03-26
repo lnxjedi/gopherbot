@@ -202,11 +202,12 @@ func Start() {
 	// Initialize the robot with a valid connector
 	botInit(conn)
 
-	//	b.logger.SetOutput(ioutil.Discard)
 	if isIntSess {
 		// Start the connector's main loop for interactive sessions
 		conn.Run(finish)
 	} else {
+		// Stop logging to startup log when running as a service
+		b.logger.SetOutput(ioutil.Discard)
 		// Started as a Windows Service
 		runService(svcName)
 	}
