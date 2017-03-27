@@ -60,6 +60,22 @@ class Attribute {
     }
 }
 
+class Memory {
+    [String] $Key
+    hidden [String] $LockToken
+    [Bool] $Exists
+    [PSCustomObject] $Datum
+    [BotRet] $Ret
+
+    Memory([String] $key, [PSCustomObject] $obj) {
+        $this.Key = $key
+        $this.LockToken = $obj.LockToken
+        $this.Exists = $obj.Exists
+        $this.Datum = $obj.Datum
+        $this.Ret = $obj.RetVal
+    }
+}
+
 class Reply {
     [String] $Reply
     [BotRet] $Ret
@@ -132,6 +148,24 @@ class Robot
 
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs) {
         return $this.Call($fname, $funcArgs, "variable")
+    }
+
+    [PSCustomObject] CheckoutDatum([String] $key, [Bool] $rw) {
+        $funcArgs = [PSCustomObject]@{ Key=$key; RW=$rw }
+        $ret = $this.Call("CheckoutDatum", $funcArgs)
+        $mem = [Memory]::new($key, $ret)
+        return $mem
+    }
+
+    CheckinDatum([Memory] $mem){
+        $funcArgs = [PSCustomObject]@{ Key=$mem.Key; Token=$mem.LockToken }
+        $this.Call("CheckinDatum", $funcArgs)
+    }
+
+    [BotRet] UpdateDatum([Memory] $mem){
+        $funcArgs = [PSCustomObject]@{ Key=$mem.Key; Token=$mem.LockToken; Datum=$mem.Datum }
+        $ret = $this.Call("UpdateDatum", $funcArgs)
+        return $ret.RetVal -As [BotRet]
     }
 
     [Attribute] GetSenderAttribute([String] $attr) {

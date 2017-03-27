@@ -59,6 +59,34 @@ switch ($command)
     Write-Output $config
     exit
   }
+  "remember" {
+    [String] $thing = $cmdArgs[0]
+    $bot.Say("Ok, I'll remember '$thing'")
+    $memory = $bot.CheckoutDatum("memory", $TRUE)
+    if ($memory.exists) {
+      $memory.Datum += $thing
+    } else {
+      [String[]] $memory.Datum = @( $thing )
+    }
+    $ret = $bot.UpdateDatum($memory)
+    if ($ret -ne "Ok") {
+      $bot.Say("I'm having a hard time remembering things")
+    }
+  }
+  "recall" {
+    $memory = $bot.CheckoutDatum("memory", $FALSE)
+    if ($memory.exists) {
+      [String[]] $memories = @("Here's what I remember:")
+      for ($i=0; $i -lt $memory.Datum.length(); $i++){
+        $memories += [String]($i + 1) + ": " + $memories[$i]
+      }
+      $bot.CheckinDatum($memory)
+      $recollection = [String]::Join("\n", $memories)
+      $bot.Say($memories)
+    } else {
+      $bot.Say("Gosh, I don't remember ANYTHING!")
+    }
+  }
   "echo" {
     $bot.Log("Debug", "echo requested")
     # NOTE!!! In PowerShell, an array of strings with only one value is just a string
