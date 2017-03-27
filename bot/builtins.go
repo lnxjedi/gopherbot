@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base32"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -329,12 +328,7 @@ func admin(bot *Robot, command string, args ...string) {
 		Log(Info, "Configuration successfully reloaded by a request from:", bot.User)
 	case "abort":
 		bot.Say("Aaarrrggghhh!!! Goodbye, cruel world!")
-		// Get the dataLock to make sure the brain is in a consistent state
-		dataLock.Lock()
-		Log(Info, "Exiting on administrator command")
-		// How long does it _actually_ take for the message to go out?
-		time.Sleep(time.Second)
-		os.Exit(0)
+		panic("Abort command issued")
 	case "quit":
 		plugRunningWaitGroup.Done()
 		shutdownMutex.Lock()
