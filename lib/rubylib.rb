@@ -197,13 +197,13 @@ class BaseBot
 		end
 	end
 
-	def WaitForReply(re, timeout=30)
+	def WaitForReply(re, timeout=60)
 		args = { "RegExId" => re, "Timeout" => timeout }
 		ret = callBotFunc("WaitForReply", args)
 		return Reply.new(decode(ret["Reply"]), ret["RetVal"])
 	end
 
-	def WaitForReplyRegex(re, timeout=30)
+	def WaitForReplyRegex(re, timeout=60)
 		args = { "RegEx" => re, "Timeout" => timeout }
 		ret = callBotFunc("WaitForReplyRegex", args)
 		return Reply.new(decode(ret["Reply"]), ret["RetVal"])

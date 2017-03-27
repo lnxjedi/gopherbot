@@ -73,10 +73,10 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 		}
 		r.Direct().Say(fmt.Sprintf("Duo devices:\n%s", strings.Join(msg, "\n")))
 		r.Direct().Say("Which device # do you want to use?")
-		rep, ret = r.Direct().WaitForReplyRegex(`\d`, 10)
+		rep, ret = r.Direct().WaitForReplyRegex(`\d`, 30)
 		if ret != bot.Ok {
 			r.Direct().Say("Try again? I need a single-digit device #")
-			rep, ret = r.Direct().WaitForReplyRegex(`\d`, 10)
+			rep, ret = r.Direct().WaitForReplyRegex(`\d`, 30)
 		}
 		if ret != bot.Ok {
 			return false
@@ -121,10 +121,10 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 		}
 		r.Direct().Say(fmt.Sprintf("Duo methods available for your device:\n%s", strings.Join(msg, "\n")))
 		r.Direct().Say("Which method # do you want to use?")
-		rep, ret = r.Direct().WaitForReplyRegex(`\d`, 10)
+		rep, ret = r.Direct().WaitForReplyRegex(`\d`, 30)
 		if ret != bot.Ok {
 			r.Direct().Say("Try again? I need a single-digit method #")
-			rep, ret = r.Direct().WaitForReplyRegex(`\d`, 10)
+			rep, ret = r.Direct().WaitForReplyRegex(`\d`, 30)
 		}
 		method, _ = strconv.Atoi(rep)
 		if method < 0 || method >= len(res.Response.Devices[devnum].Capabilities) {
@@ -163,10 +163,10 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			)
 		case "passcode":
 			r.Direct().Say("Ok, please enter a passcode to use")
-			rep, ret = r.Direct().WaitForReplyRegex(`\d+`, 20)
+			rep, ret = r.Direct().WaitForReplyRegex(`\d+`, 60)
 			if ret != bot.Ok {
 				r.Direct().Say("Try again? I need a short string of numbers")
-				rep, ret = r.Direct().WaitForReplyRegex(`\d+`, 20)
+				rep, ret = r.Direct().WaitForReplyRegex(`\d+`, 60)
 			}
 			if ret != bot.Ok {
 				return false

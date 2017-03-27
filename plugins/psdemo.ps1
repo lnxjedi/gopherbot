@@ -67,6 +67,8 @@ switch ($command)
   }
   "listen" {
     $dbot = $bot.Direct()
+    $dbj = $dbot | ConvertTo-Json
+    $bot.Log("Debug", $dbj)
     $dbot.Say("Ok, what do you want to tell me?")
     $rep = $dbot.WaitForReply("SimpleString")
     if ($rep.Ret -eq "Ok") {

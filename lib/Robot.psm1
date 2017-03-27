@@ -49,9 +49,10 @@ class Attribute {
     [String] $Attr
     [BotRet] $Ret
 
-    Attribute([String] $Attr, [BotRet] $Ret) {
-        $this.Attr = $Attr
-        $this.Ret = $Ret
+    Attribute([PSCustomObject] $obj) {
+        $a = dec64($obj.Attribute)
+        $this.Attr = $a
+        $this.Ret = $obj.RetVal -As [BotRet]
     }
 
     [String] ToString() {
@@ -63,9 +64,9 @@ class Reply {
     [String] $Reply
     [BotRet] $Ret
 
-    Attribute([String] $rep, [BotRet] $ret) {
+    Reply([String] $rep, [Int] $ret) {
         $this.Reply = $rep
-        $this.Ret = $ret
+        $this.Ret = $ret -As [BotRet]
     }
 
     [String] ToString() {
@@ -110,10 +111,10 @@ class Robot
     hidden [String] $PluginID
 
     # Constructor
-    Robot([String] $Channel, [String] $User, [String] $PluginID) {
-        $this.Channel = $Env:GOPHER_CHANNEL
-        $this.User = $Env:GOPHER_USER
-        $this.PluginID = $Env:GOPHER_PLUGIN_ID
+    Robot([String] $channel, [String] $user, [String] $pluginid) {
+        $this.Channel = $channel
+        $this.User = $user
+        $this.PluginID = $pluginid
     }
 
     [Robot] Direct() {
@@ -136,22 +137,19 @@ class Robot
     [Attribute] GetSenderAttribute([String] $attr) {
         $funcArgs = [PSCustomObject]@{ Attribute=$attr }
         $ret = $this.Call("GetSenderAttribute", $funcArgs)
-        $a = dec64($ret.Attribute)
-        return [Attribute]::new($a, $ret.RetVal -As [BotRet])
+        return [Attribute]::new($ret)
     }
 
     [Attribute] GetUserAttribute([String] $user, [String] $attr) {
         $funcArgs = [PSCustomObject]@{ User=$user; Attribute=$attr }
         $ret = $this.Call("GetUserAttribute", $funcArgs)
-        $a = dec64($ret.Attribute)
-        return [Attribute]::new($a, $ret.RetVal -As [BotRet])
+        return [Attribute]::new($ret)
     }
 
     [Attribute] GetBotAttribute([String] $attr) {
         $funcArgs = [PSCustomObject]@{ Attribute=$attr }
         $ret = $this.Call("GetBotAttribute", $funcArgs)
-        $a = dec64($ret.Attribute)
-        return [Attribute]::new($a, $ret.RetVal -As [BotRet])
+        return [Attribute]::new($ret)
     }
 
     [Reply] WaitForReply([String] $regexid, [Int] $timeout) {
@@ -162,7 +160,7 @@ class Robot
     }
 
     [Reply] WaitForReply([String] $regexid) {
-        return $this.WaitForReply($regexid, 30)
+        return $this.WaitForReply($regexid, 60)
     }
 
     [Reply] WaitForReplyRegex([String] $goregex, [Int] $timeout) {
@@ -173,7 +171,7 @@ class Robot
     }
 
     [Reply] WaitForReplyRegex([String] $goregex) {
-        return $this.WaitForReplyRegex($goregex, 30)
+        return $this.WaitForReplyRegex($goregex, 60)
     }
 
     Log([String] $level, [String] $message) {
@@ -233,8 +231,8 @@ class Robot
     }
 }
 
-function Get-Robot([String] $Channel, [String] $User, [String] $PluginID) {
-    return [Robot]::new($Channel, $User, $PluginID)
+function Get-Robot() {
+    return [Robot]::new($Env:GOPHER_CHANNEL, $Env:GOPHER_USER, $Env:GOPHER_PLUGIN_ID)
 }
 
 export-modulemember -function Get-Robot
