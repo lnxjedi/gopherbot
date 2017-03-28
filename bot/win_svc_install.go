@@ -30,7 +30,8 @@ func exePath() (string, error) {
 	}
 	if filepath.Ext(p) == "" {
 		p += ".exe"
-		fi, err := os.Stat(p)
+		var fi os.FileInfo
+		fi, err = os.Stat(p)
 		if err == nil {
 			if !fi.Mode().IsDir() {
 				return p, nil

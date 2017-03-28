@@ -115,7 +115,8 @@ func Start() {
 		if logFile == "" {
 			logFile = "C:/Windows/Temp/gopherbot-startup.log"
 		}
-		f, err := os.Create(logFile)
+		var f os.File
+		f, err = os.Create(logFile)
 		if err != nil {
 			log.Fatal("Unable to open log file")
 		}
