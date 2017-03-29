@@ -311,7 +311,7 @@ func admin(bot *Robot, command string, args ...string) {
 			msg[2] = fmt.Sprintf("My install directory is: %s", b.installPath)
 			msg[3] = fmt.Sprintf("My local configuration directory is: %s", b.localPath)
 			b.lock.RUnlock()
-			msg[4] = fmt.Sprintf("My software version is: Gopherbot %s", Version)
+			msg[4] = fmt.Sprintf("My software version is: Gopherbot %s, commit: %s", Version, commit)
 			msg[5] = fmt.Sprintf("The administrators for this robot are: %s", admins)
 			bot.Say(strings.Join(msg, "\n"))
 		} else {

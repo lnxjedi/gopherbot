@@ -14,6 +14,15 @@ EOF
 VERSTRING=$(grep "var Version" bot/bot.go)
 VERSTRING=${VERSTRING#var }
 VERSTRING=${VERSTRING// /}
+COMMIT=$(git log -1 | grep commit | cut -f 2 -d' ')
+cat >bot/commit.go <<EOF
+package bot
+
+func init(){
+	commit="$COMMIT"
+}
+EOF
+
 # Set Version
 eval $VERSTRING
 

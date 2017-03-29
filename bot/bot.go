@@ -15,6 +15,7 @@ import (
 )
 
 var Version = "0.9.0-dev"
+var commit = "(manual build)"
 
 var botLock sync.RWMutex
 var random *rand.Rand
