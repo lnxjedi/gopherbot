@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # mkdist.sh - create a distributable .zip file
 
@@ -10,6 +10,13 @@ Generate distributable .zip files for the current platform.
 EOF
 	exit 0
 }
+
+git status | grep -q "nothing to commit, working tree clean"
+if [ $? -ne 0 ]
+then
+	echo "Your working tree isn't clean, aborting build"
+	exit 1
+fi
 
 VERSTRING=$(grep "var Version" bot/bot.go)
 VERSTRING=${VERSTRING#var }
