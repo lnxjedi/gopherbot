@@ -22,6 +22,8 @@ func init(){
 }
 "@
 
+$gofile > bot/commit.go
+
 Write-Output "Building for Windows 64bit"
 go build
 
