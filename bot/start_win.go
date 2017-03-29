@@ -203,6 +203,8 @@ func Start() {
 	// Initialize the robot with a valid connector
 	botInit(conn)
 
+	// Start the brain loop
+	go runBrain()
 	if isIntSess {
 		// Start the connector's main loop for interactive sessions
 		conn.Run(finish)

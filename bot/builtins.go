@@ -344,8 +344,8 @@ func admin(bot *Robot, command string, args ...string) {
 		// Wait for all plugins to stop running
 		plugRunningWaitGroup.Wait()
 		bot.Reply(bot.RandomString(byebye))
-		// Get the dataLock to make sure the brain is in a consistent state
-		dataLock.Lock()
+		// Stop the brain after it finishes any current task
+		brainChanEvents <- brainOp{quit, nil}
 		Log(Info, "Exiting on administrator command")
 		// How long does it _actually_ take for the message to go out?
 		time.Sleep(time.Second)

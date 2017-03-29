@@ -63,8 +63,8 @@ loop:
 	}
 	// Wait for all plugins to stop running
 	plugRunningWaitGroup.Wait()
-	// Get the dataLock to make sure the brain is in a consistent state
-	dataLock.Lock()
+	// Stop the brain after it finishes any current task
+	brainChanEvents <- brainOp{quit, nil}
 	Log(Info, "Exiting on administrator command")
 	time.Sleep(time.Second)
 	close(finish)
