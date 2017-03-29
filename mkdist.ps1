@@ -1,7 +1,7 @@
 # creates a .zip file with the file structure to run UVa-ITS-gopherbot
 
 [String]$clean = git status | select-string -pattern "nothing to commit, working tree clean"
-if ( $clean -eq "" ) {
+if ( ! $clean -contains "clean" ) {
   write-output "Your working tree isn't clean, aborting build"
   exit 1
 }
@@ -12,20 +12,23 @@ $Start = $version.IndexOf('"')
 $end = $version.LastIndexOf('"')
 
 $version = $version.Substring($start + 1, $end - $start - 1)
+
 [String]$commit = git log -1 | select-string -pattern "commit "
 $commit = $commit.split(" ")[1]
+
 $gofile = @"
 package bot
 
 func init(){
-	commit="$commit"
+  commit="$commit"
 }
 "@
 
-$gofile > bot/commit.go
+$gofile | Out-File -FilePath "bot/commit.go" -Encoding utf8
 
 Write-Output "Building for Windows 64bit"
 go build
+Remove-Item "bot/commit.go"
 
 $fileName = "gopherbot-" + $version + "-windows-amd64.zip"
 

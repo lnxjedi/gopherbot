@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+// Version is the current version of Gopherbot
 var Version = "0.9.0-dev"
 var commit = "(manual build)"
 
