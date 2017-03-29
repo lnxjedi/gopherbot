@@ -212,6 +212,8 @@ func Start() {
 	// Initialize the robot with a valid connector
 	botInit(conn)
 
+	// Start the brain loop
+	go runBrain()
 	// Start the connector's main loop
 	conn.Run(finish)
 }

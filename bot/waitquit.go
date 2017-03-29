@@ -22,8 +22,8 @@ func init() {
 		Log(Info, fmt.Sprintf("Received signal: %s, shutting down gracefully", sig))
 		// Wait for all plugins to stop running
 		plugRunningWaitGroup.Wait()
-		// Get the dataLock to make sure the brain is in a consistent state
-		dataLock.Lock()
+		// Stop the brain after it finishes any current task
+		brainChanEvents <- brainOp{quit, nil}
 		Log(Info, fmt.Sprintf("Exiting on signal: %s", sig))
 		close(finish)
 	}()

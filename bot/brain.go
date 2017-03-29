@@ -222,6 +222,7 @@ loop:
 	brLock.Lock()
 	brainRunning = false
 	brLock.Unlock()
+	Log(Debug, "brain loop finished")
 }
 
 const keyRegex = `[\w:]+` // keys can ony be word chars + separator (:)
