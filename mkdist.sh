@@ -36,6 +36,7 @@ eval $VERSTRING
 eval `go env`
 echo "Building gopherbot for $GOOS"
 go build
+rm -f bot/commit.go
 OUTFILE=./gopherbot-$Version-$GOOS-$GOARCH.zip
 rm -f $OUTFILE
 
