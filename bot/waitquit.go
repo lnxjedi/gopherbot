@@ -23,7 +23,7 @@ func init() {
 		// Wait for all plugins to stop running
 		plugRunningWaitGroup.Wait()
 		// Stop the brain after it finishes any current task
-		brainChanEvents <- brainOp{quit, nil}
+		brainQuit()
 		Log(Info, fmt.Sprintf("Exiting on signal: %s", sig))
 		close(finish)
 	}()

@@ -51,6 +51,10 @@ type checkOutReply struct {
 	retval RetVal
 }
 
+type quitRequest struct {
+	reply chan struct{}
+}
+
 type memState int
 
 const (
@@ -125,13 +129,11 @@ func storeDatum(key string, datum *[]byte) (ret RetVal) {
 	return Ok
 }
 
-var brainRunning bool
 var brLock sync.RWMutex
 
 // runBrain is the select loop that serializes access to brain
 // functions and insures consistency.
 func runBrain() {
-	brainRunning = true
 	// map key to status
 	memories := make(map[string]*memstatus)
 	processMemories := time.Tick(memCycle)
@@ -178,7 +180,10 @@ loop:
 				}
 			case checkInBytes:
 				ci := evt.opData.(checkInRequest)
-				m := memories[ci.key]
+				m, ok := memories[ci.key]
+				if !ok {
+					break
+				}
 				// memory expired and somebody else owns it
 				if ci.token != m.token {
 					break
@@ -190,7 +195,11 @@ loop:
 				delete(memories, ci.key)
 			case updateBytes:
 				ur := evt.opData.(updateRequest)
-				m := memories[ur.key]
+				m, ok := memories[ur.key]
+				if !ok {
+					ur.reply <- DatumNotFound
+					break
+				}
 				if ur.token != m.token {
 					ur.reply <- DatumLockExpired
 					break
@@ -202,6 +211,8 @@ loop:
 				}
 				delete(memories, ur.key)
 			case quit:
+				qr := evt.opData.(quitRequest)
+				qr.reply <- struct{}{}
 				break loop
 			}
 		case <-processMemories:
@@ -219,10 +230,13 @@ loop:
 			}
 		}
 	}
-	brLock.Lock()
-	brainRunning = false
-	brLock.Unlock()
-	Log(Debug, "brain loop finished")
+}
+
+func brainQuit() {
+	reply := make(chan struct{})
+	brainChanEvents <- brainOp{quit, quitRequest{reply}}
+	Log(Debug, "Brain exiting on quit")
+	<-reply
 }
 
 const keyRegex = `[\w:]+` // keys can ony be word chars + separator (:)
@@ -240,6 +254,8 @@ func checkout(d string, rw bool) (string, *[]byte, bool, RetVal) {
 	cr := checkOutRequest{d, rw, reply}
 	brainChanEvents <- brainOp{checkOutBytes, cr}
 	r := <-reply
+	Log(Trace, fmt.Sprintf("Brain datum checkout for %s, rw: %t - token: %s, exists: %t, ret: %d",
+		d, rw, r.token, r.exists, r.retval))
 	return r.token, r.bytes, r.exists, r.retval
 }
 
@@ -251,6 +267,7 @@ func update(d, lt string, datum *[]byte) (ret RetVal) {
 	}
 	reply := make(chan RetVal)
 	ur := updateRequest{d, lt, datum, reply}
+	Log(Trace, fmt.Sprintf("Updating datum %s, token: %s", d, lt))
 	brainChanEvents <- brainOp{updateBytes, ur}
 	return <-reply
 }
@@ -260,6 +277,7 @@ func checkinDatum(key, locktoken string) {
 	if locktoken == "" {
 		return
 	}
+	Log(Trace, fmt.Sprintf("Checking in datum %s, token: %s", key, locktoken))
 	ci := checkInRequest{key, locktoken}
 	brainChanEvents <- brainOp{checkInBytes, ci}
 }
