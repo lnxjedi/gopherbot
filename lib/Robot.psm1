@@ -1,29 +1,29 @@
 Enum BotRet
 {
     Ok = 0
-	UserNotFound = 1
-	ChannelNotFound = 2
-	AttributeNotFound = 3
-	FailedUserDM = 4
-	FailedChannelJoin = 5
-	DatumNotFound = 6
-	DatumLockExpired = 7
-	DataFormatError = 8
-	BrainFailed = 9
-	InvalidDatumKey = 10
-	InvalidDblPtr = 11
-	InvalidCfgStruct = 12
-	NoConfigFound = 13
-	TechnicalProblem = 14
-	GeneralError = 15
-	ReplyNotMatched = 16
-	UseDefaultValue = 17
-	TimeoutExpired = 18
-	Interrupted = 19
-	MatcherNotFound = 20
-	NoUserEmail = 21
-	NoBotEmail = 22
-	MailError = 23
+    UserNotFound = 1
+    ChannelNotFound = 2
+    AttributeNotFound = 3
+    FailedUserDM = 4
+    FailedChannelJoin = 5
+    DatumNotFound = 6
+    DatumLockExpired = 7
+    DataFormatError = 8
+    BrainFailed = 9
+    InvalidDatumKey = 10
+    InvalidDblPtr = 11
+    InvalidCfgStruct = 12
+    NoConfigFound = 13
+    TechnicalProblem = 14
+    GeneralError = 15
+    ReplyNotMatched = 16
+    UseDefaultValue = 17
+    TimeoutExpired = 18
+    Interrupted = 19
+    MatcherNotFound = 20
+    NoUserEmail = 21
+    NoBotEmail = 22
+    MailError = 23
 }
 
 function enc64([String] $msg) {
@@ -60,22 +60,6 @@ class Attribute {
     }
 }
 
-class Memory {
-    [String] $Key
-    hidden [String] $LockToken
-    [Bool] $Exists
-    [PSCustomObject] $Datum
-    [BotRet] $Ret
-
-    Memory([String] $key, [PSCustomObject] $obj) {
-        $this.Key = $key
-        $this.LockToken = $obj.LockToken
-        $this.Exists = $obj.Exists
-        $this.Datum = $obj.Datum
-        $this.Ret = $obj.RetVal
-    }
-}
-
 class Reply {
     [String] $Reply
     [BotRet] $Ret
@@ -87,16 +71,6 @@ class Reply {
 
     [String] ToString() {
         return $this.Reply
-    }
-}
-
-class OTPRet {
-    [Bool] $Valid
-    [BotRet] $Ret
-
-    OTPRet([Bool] $v, [BotRet] $r) {
-        $this.Valid = $v
-        $this.Ret = $r
     }
 }
 
@@ -115,7 +89,6 @@ class BotFuncCall {
         $this.Format = $fmt
         $this.PluginID = $p
         $this.FuncArgs = $funcArgs
-        $aj = $funcArgs | ConvertTo-Json
     }
 }
 
@@ -137,13 +110,45 @@ class Robot
         return [Robot]::new("", $this.User, $this.PluginID)
     }
 
+    Pause([single] $seconds) {
+        Start-Sleep $seconds
+    }
+
+    [bool] CheckAdmin() {
+        return $this.Call("CheckAdmin", $null, $format).RetVal -As [bool]
+    }
+
+    [bool] Elevate([bool] $immediate) {
+        $funcArgs = [PSCustomObject]@{ Immediate=$immediate }
+        return $this.Call("Elevate", $funcArgs) -As [bool]
+    }
+
+    [bool] Elevate() {
+        return $this.Elevate($FALSE)
+    }
+
+    [int] RandomInt([int] $i) {
+        return Get-Random -Maximum $i
+    }
+
+    [string] RandomString([String[]] $sarr) {
+        $l = $sarr.Count
+        $i = Get-Random -Maximum $l
+        return $sarr[$i]
+    }
+
+    [PSCustomObject] GetPluginConfig() {
+        return $this.Call("GetPluginConfig", $null)
+    }
+
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs, [String] $format) {
-        $fc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $format, $this.PluginID, $funcArgs) | ConvertTo-Json
+        $bfc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $format, $this.PluginID, $funcArgs)
+        $fc = ConvertTo-Json $bfc
         if ($fname -ne "Log") { $this.Log("Debug", "DEBUG - Sending: $fc") }
         $r = Invoke-WebRequest -URI "$Env:GOPHER_HTTP_POST/json" -Method Post -Body $fc
         $c = $r.Content
         if ($fname -ne "Log") { $this.Log("Debug", "DEBUG - Got back: $c") }
-        return $r.Content | ConvertFrom-Json
+        return ConvertFrom-Json $c
     }
 
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs) {
@@ -153,16 +158,16 @@ class Robot
     [PSCustomObject] CheckoutDatum([String] $key, [Bool] $rw) {
         $funcArgs = [PSCustomObject]@{ Key=$key; RW=$rw }
         $ret = $this.Call("CheckoutDatum", $funcArgs)
-        $mem = [Memory]::new($key, $ret)
-        return $mem
+        $ret | Add-Member -NotePropertyName Key -NotePropertyValue $key
+        return $ret
     }
 
-    CheckinDatum([Memory] $mem){
+    CheckinDatum([PSCustomObject] $mem){
         $funcArgs = [PSCustomObject]@{ Key=$mem.Key; Token=$mem.LockToken }
         $this.Call("CheckinDatum", $funcArgs)
     }
 
-    [BotRet] UpdateDatum([Memory] $mem){
+    [BotRet] UpdateDatum([PSCustomObject] $mem){
         $funcArgs = [PSCustomObject]@{ Key=$mem.Key; Token=$mem.LockToken; Datum=$mem.Datum }
         $ret = $this.Call("UpdateDatum", $funcArgs)
         return $ret.RetVal -As [BotRet]

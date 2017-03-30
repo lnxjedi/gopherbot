@@ -65,11 +65,15 @@ switch ($command)
     [String] $thing = $cmdArgs[0]
     $bot.Say("Ok, I'll remember '$thing'")
     $memory = $bot.CheckoutDatum("memory", $TRUE)
+    $mjson = convertto-json $memory
+    $bot.Log("Debug", "mjson before: $mjson")
     if ($memory.exists) {
       $memory.Datum += $thing
     } else {
       [String[]] $memory.Datum = @( $thing )
     }
+    $mjson = convertto-json $memory
+    $bot.Log("Debug", "mjson after: $mjson")
     $ret = $bot.UpdateDatum($memory)
     if ($ret -ne "Ok") {
       $bot.Say("I'm having a hard time remembering things")
@@ -79,14 +83,28 @@ switch ($command)
     $memory = $bot.CheckoutDatum("memory", $FALSE)
     if ($memory.exists) {
       [String[]] $memories = @("Here's what I remember:")
-      for ($i=0; $i -lt $memory.Datum.length(); $i++){
-        $memories += [String]($i + 1) + ": " + $memories[$i]
+      for ($i=0; $i -lt $memory.Datum.count; $i++){
+        $memories += [String]($i + 1) + ": " + $memory.Datum[$i]
       }
       $bot.CheckinDatum($memory)
-      $recollection = [String]::Join("\n", $memories)
-      $bot.Say($memories)
+      $recollection = [String]::Join("`n", $memories)
+      $bot.Say($recollection)
     } else {
       $bot.Say("Gosh, I don't remember ANYTHING!")
+    }
+  }
+  "forget" {
+    $i = [int]$cmdArgs[0] - 1
+    $memory = $bot.CheckoutDatum("memory", $TRUE)
+    [System.Collections.ArrayList]$memories = $memory.Datum
+    if ($memories[$i] -ne $null) {
+      $m = $memories[$i]
+      $bot.Say("Ok, I'll forget $m")
+      $memories.RemoveRange($i,$i)
+      $memory.Datum = $memories
+      $bot.UpdateDatum($memory)
+    } else {
+      $bot.Say("Gosh, I don't think I ever knew that!")
     }
   }
   "echo" {
