@@ -70,7 +70,7 @@ LogLevel: info
 # The robot's email address (used in From:)
 #Email: robbie@robot.com
 # Configuration for sending out email. For Authtype: none, User and Password
-# can be left out.
+# can be left out. Note that sending email will fail if Email isn't set.
 #MailConfig:
 #  Mailhost: <somehost:port>
 #  Authtype: <plain|none>

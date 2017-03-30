@@ -14,8 +14,8 @@ Enum BotRet
 	InvalidDblPtr = 11
 	InvalidCfgStruct = 12
 	NoConfigFound = 13
-	NoUserOTP = 14
-	OTPError = 15
+	TechnicalProblem = 14
+	GeneralError = 15
 	ReplyNotMatched = 16
 	UseDefaultValue = 17
 	TimeoutExpired = 18

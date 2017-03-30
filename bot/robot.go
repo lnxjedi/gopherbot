@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"time"
-
-	otp "github.com/dgryski/dgoogauth"
 )
 
 // MessageFormat indicates how the connector should display the content of
@@ -45,32 +43,16 @@ func (r *Robot) CheckAdmin() bool {
 	return false
 }
 
-// CheckOTP returns true if the provided string is a valid OTP code for the
-// user. See the builtInlaunchcodes.go plugin.
-func (r *Robot) CheckOTP(code string) (bool, RetVal) {
-	otpKey := "bot:OTP:" + r.User
-	var userOTP otp.OTPConfig
-	lock, exists, ret := checkoutDatum(otpKey, &userOTP, true)
-	if ret != Ok {
-		checkinDatum(otpKey, lock)
-		return false, NoUserOTP
-	}
-	if !exists {
-		checkinDatum(otpKey, lock)
-		return false, ret
-	}
-	valid, err := userOTP.Authenticate(code)
-	if err != nil {
-		Log(Error, fmt.Errorf("Problem authenticating launch code for user %s: %v", r.User, err))
-		checkinDatum(otpKey, lock)
-		return false, OTPError
-	}
-	ret = updateDatum(otpKey, lock, &userOTP)
-	if ret != Ok {
-		Log(Error, fmt.Errorf("Problem updating OTP for %s, failing", r.User))
-		return false, ret
-	}
-	return valid, Ok
+// Elevate lets a plugin request elevation on the fly. When immediate = true,
+// the elevator should always prompt for 2fa; otherwise a configured timeout
+// should apply.
+func (r *Robot) Elevate(immediate bool) bool {
+	b.lock.RLock()
+	e := b.elevator
+	p := b.elevatorProvider
+	b.lock.RUnlock()
+	r.pluginID = "elevator-" + p
+	return e(r, immediate)
 }
 
 // Fixed is a convenience function for sending a message with fixed width

@@ -14,8 +14,8 @@ GBRET_InvalidDatumKey=10
 GBRET_InvalidDblPtr=11
 GBRET_InvalidCfgStruct=12
 GBRET_NoConfigFound=13
-GBRET_NoUserOTP=14
-GBRET_OTPError=15
+GBRET_TechnicalProblem=14
+GBRET_GeneralError=15
 GBRET_ReplyNotMatched=16
 GBRET_UseDefaultValue=17
 GBRET_TimeoutExpired=18
@@ -94,21 +94,28 @@ CheckAdmin(){
 	fi
 }
 
-CheckOTP() {
-	local GB_FUNCARGS GB_RET BOOL RETVAL
-	local GB_FUNCNAME="CheckOTP"
-	local CODE="$1"
-	GB_FUNCARGS=$(cat <<EOF
+Elevate(){
+	IMMEDIATE="false"
+	if [ -n "$1" ]
+	then
+		IMMEDIATE = $1
+	fi
+	local GB_FUNCARGS=$(cat <<EOF
 {
-	"Code": "$CODE"
+	"Immediate": "$IMMEDIATE"
 }
 EOF
 )
+	local GB_FUNCNAME="Elevate"
 	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
-	BOOL=$(echo "$GB_RET" | jq .Boolean)
-	RETVAL=$(echo "$GB_RET" | jq .RetVal)
-	echo "$BOOL"
-	return $RETVAL
+	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
+	echo "$RETVAL"
+	if [ "$RETVAL" -eq "true" ]
+	then
+		return 0
+	else
+		return 1
+	fi
 }
 
 GetBotAttribute(){

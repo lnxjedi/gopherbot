@@ -22,8 +22,8 @@ type attribute struct {
 	Attribute string
 }
 
-type otpcheck struct {
-	Code string
+type elevate struct {
+	Immediate bool
 }
 
 type userattr struct {
@@ -196,16 +196,13 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		bret := bot.CheckAdmin()
 		sendReturn(rw, boolresponse{Boolean: bret})
 		return
-	case "CheckOTP":
-		var c otpcheck
-		if !getArgs(rw, &f.FuncArgs, &c) {
+	case "Elevate":
+		var e elevate
+		if !getArgs(rw, &f.FuncArgs, &e) {
 			return
 		}
-		valid, brv := bot.CheckOTP(c.Code)
-		sendReturn(rw, boolretresponse{
-			Boolean: valid,
-			RetVal:  int(brv),
-		})
+		success := bot.Elevate(e.Immediate)
+		sendReturn(rw, boolresponse{Boolean: success})
 		return
 	case "CheckoutDatum":
 		var r recollection

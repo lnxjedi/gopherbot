@@ -43,7 +43,7 @@ func launchCode(bot *Robot, command string, args ...string) {
 		return // ignore init
 	}
 	var userOTP otp.OTPConfig
-	otpKey := "bot:OTP:" + bot.User
+	otpKey := "elevator-totp:" + bot.User
 	updated := false
 	lock, exists, ret := checkoutDatum(otpKey, &userOTP, true)
 	if ret != Ok {
@@ -86,22 +86,6 @@ func launchCode(bot *Robot, command string, args ...string) {
 		lock, _, ret = checkoutDatum(otpKey, &userOTP, true)
 		updated = true
 		bot.Reply("I've emailed your launch codes - please delete it promptly")
-	case "check":
-		if !exists {
-			bot.Reply("It doesn't appear you've been issued any launch codes, try 'send launch codes'")
-			return
-		}
-		valid, ret := bot.CheckOTP(args[0])
-		if ret != Ok {
-			Log(Error, "Technical problem authenticating launch code")
-			bot.Reply("There was an error authenticating your launch code, have an adminstrator check the log")
-			return
-		}
-		if valid {
-			bot.Reply("The launch code was valid")
-		} else {
-			bot.Reply("You supplied an invalid launch code, and I've contacted POTUS and the NSA")
-		}
 	}
 }
 
@@ -345,7 +329,7 @@ func admin(bot *Robot, command string, args ...string) {
 		plugRunningWaitGroup.Wait()
 		bot.Reply(bot.RandomString(byebye))
 		// Stop the brain after it finishes any current task
-		brainChanEvents <- brainOp{quit, nil}
+		brainQuit()
 		Log(Info, "Exiting on administrator command")
 		// How long does it _actually_ take for the message to go out?
 		time.Sleep(time.Second)

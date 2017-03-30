@@ -97,7 +97,15 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 					for _, i := range plugin.ElevatedCommands {
 						if matcher.Command == i {
 							if b.elevator != nil {
-								privilegesOk = b.elevator(bot, false)
+								// elevators have their own pluginID & name, for brain access
+								pbot := &Robot{
+									User:    bot.User,
+									Channel: bot.Channel,
+									Format:  Variable,
+									// NOTE: checkPluginMatchers is called under b.lock.RLock()
+									pluginID: "elevator-" + b.elevatorProvider,
+								}
+								privilegesOk = b.elevator(pbot, false)
 							} else {
 								privilegesOk = false
 								Log(Error, "Encountered elevated command and no elevation method configured")
@@ -109,7 +117,15 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 					for _, i := range plugin.ElevateImmediateCommands {
 						if matcher.Command == i {
 							if b.elevator != nil {
-								privilegesOk = b.elevator(bot, true)
+								// elevators have their own pluginID & name, for brain access
+								pbot := &Robot{
+									User:    bot.User,
+									Channel: bot.Channel,
+									Format:  Variable,
+									// NOTE: checkPluginMatchers is called under b.lock.RLock()
+									pluginID: "elevator-" + b.elevatorProvider,
+								}
+								privilegesOk = b.elevator(pbot, true)
 							} else {
 								privilegesOk = false
 								Log(Error, "Encountered elevated command and no elevation method configured")

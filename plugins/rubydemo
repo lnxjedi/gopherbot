@@ -113,21 +113,12 @@ when "check"
 		bot.Say("Well, you're not an administrator")
 	end
 	bot.Pause(1)
-	bot.Say("Give me a launch code")
-	otp = bot.WaitForReply("OTP")
-	if otp.ret == Robot::Ok
-		ret = bot.CheckOTP(otp.to_s)
-		if ret.valid
-			bot.Say("The code looks good, mac!")
-		else
-			if ret.ret != Robot::Ok
-				bot.Say("There was a problem checking your code")
-			else
-				bot.Say("Bad code, homie, I'm calling the cops")
-			end
-		end
+	bot.Say("Now I'll request elevation...")
+	success = bot.Elevate(true)
+	if success
+		bot.Say("Everything looks good, mac!")
 	else
-		bot.Say("Eh, that doesn't look like a launch code")
+		bot.Say("You failed to elevate, homie, I'm calling the cops!")
 	end
-	bot.Log("info", "Checked out #{bot.user}, admin: #{isAdmin.to_s}, valid code: #{ret.valid.to_s}")
+	bot.Log("info", "Checked out #{bot.user}, admin: #{isAdmin.to_s}, elavate check: #{success.to_s}")
 end

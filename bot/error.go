@@ -22,7 +22,7 @@ const (
 
 	/* Brain Maladies */
 
-	// DatumNotFound - name not found in the global table when update called
+	// DatumNotFound - key not found in the global hash when update called
 	DatumNotFound
 	// DatumLockExpired - A datum was checked out for too long, and the lock expired
 	DatumLockExpired
@@ -42,12 +42,12 @@ const (
 	// NoConfigFound - The plugin doesn't have any config data
 	NoConfigFound
 
-	/* OTP */
+	/* Elevator */
+	// TechnicalProblem - There was a problem with the elevator (e.g. service unreachable)
+	TechnicalProblem
 
-	// NoUserOTP - OTP config for the user wasn't found
-	NoUserOTP
-	// OTPError - error value returned while checking OTP
-	OTPError
+	// GeneralError - Only indicates an error occurred, vs. e.g. failure
+	GeneralError
 
 	/* WaitForReply */
 

@@ -35,13 +35,9 @@ AllChannels: true
 Help:
 - Keywords: [ "send", "launch", "codes" ]
   Helptext: [ "(bot), send launch codes - one-time send of Google Authenticator string token, for use with TOTP elevation" ]
-- Keywords: [ "check", "launch", "codes", "code" ]
-  Helptext: [ "(bot), check launch code <code> - verify launch codes operation without launching any missiles" ]
 CommandMatchers:
 - Command: "send"
   Regex: '(?i:send (?:launch )?codes?)'
-- Command: "check"
-  Regex: '(?i:check (?:launch )?codes? ([\d]{6}))'
 `
 
 const dumpConfig = `

@@ -49,15 +49,6 @@ class Memory
 	attr :datum, true
 end
 
-class OTPRet
-	def initialize(valid, ret)
-		@valid = valid
-		@ret= ret
-	end
-
-	attr_reader :valid, :ret
-end
-
 class BaseBot
 	Ok = 0
 	UserNotFound = 1
@@ -73,8 +64,8 @@ class BaseBot
 	InvalidDblPtr = 11
 	InvalidCfgStruct = 12
 	NoConfigFound = 13
-	NoUserOTP = 14
-	OTPError = 15
+	TechnicalProblem = 14
+	GeneralError = 15
 	ReplyNotMatched = 16
 	UseDefaultValue = 17
 	TimeoutExpired = 18
@@ -101,10 +92,8 @@ class BaseBot
 		return callBotFunc("CheckAdmin", {})["Boolean"]
 	end
 
-	def CheckOTP(code)
-		args = { "Code" => code }
-		ret = callBotFunc("CheckOTP", args)
-		return OTPRet.new(ret["Boolean"], ret["RetVal"])
+	def Elevate(immediate=false)
+		return callBotFunc("Elevate", { "Immediate" => immediate })["Boolean"]
 	end
 
 	def CheckoutDatum(key, rw)
