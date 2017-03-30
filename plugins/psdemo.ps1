@@ -48,6 +48,8 @@ CommandMatchers:
   Command: forget
 - Regex: (?i:check me)
   Command: check
+- Regex: (?i:crash)
+  Command: crash
 '@
 
 # the equivalent of 'shift' for PowerShell
@@ -108,5 +110,11 @@ switch ($command)
   "power" {
     $firstName = $bot.GetSenderAttribute("firstName")
     $bot.Say("Sure, $firstName - You've got THE POWAH!!")
+  }
+  # TODO: remove later, for troubleshooting Windows hangs
+  "crash" {
+    $bot.Say("Cool! Here we go...")
+    write-error "crashing"
+    exit 1
   }
 }

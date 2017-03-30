@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/kardianos/osext"
 	"golang.org/x/sys/windows/svc"
@@ -206,6 +207,17 @@ func Start() {
 	// Start the brain loop
 	go runBrain()
 	if isIntSess {
+		go func() {
+			for {
+				// TODO: remove later. There have been instances
+				// where the robot appears to hang on Windows, and
+				// this logging loop is intended to run without
+				// channels or mutexes, to see if it's a deadlock
+				// or something deeper.
+				time.Sleep(30 * time.Second)
+				botLogger.Println("-- MARK --")
+			}
+		}()
 		// Start the connector's main loop for interactive sessions
 		conn.Run(finish)
 	} else {
