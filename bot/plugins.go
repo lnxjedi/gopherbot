@@ -21,8 +21,9 @@ var plugins []*Plugin
 var plugIDmap map[string]int
 
 var plugNameIDmap = make(map[string]string)
+var plugIDNameMap = make(map[string]string)
 
-// for protecting access to the plugNameIDmap
+// for protecting access to the plugNameIDmap & plugIDNameMap
 var plugMapLock sync.Mutex
 
 // PluginHelp specifies keywords and help text for the 'bot help system
@@ -334,6 +335,7 @@ PlugLoop:
 			random.Read(p)
 			plugin.pluginID = fmt.Sprintf("%x", p)
 			plugNameIDmap[plugin.name] = plugin.pluginID
+			plugIDNameMap[plugin.pluginID] = plugin.name
 		}
 		plugMapLock.Unlock()
 		Log(Trace, fmt.Sprintf("Mapped plugin %s to ID %s", plugin.name, plugin.pluginID))

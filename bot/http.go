@@ -230,9 +230,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		sendReturn(rw, &botretvalresponse{int(Ok)})
 		return
 	case "UpdateDatum":
-		b.lock.RLock()
-		pluginName := plugins[plugIDmap[bot.pluginID]].name
-		b.lock.RUnlock()
+		plugMapLock.Lock()
+		pluginName := plugIDNameMap[bot.pluginID]
+		plugMapLock.Unlock()
 		var m memory
 		if !getArgs(rw, &f.FuncArgs, &m) {
 			return
