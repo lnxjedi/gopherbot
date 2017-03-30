@@ -26,7 +26,8 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret RetVal) {
 	var mailFrom, botName, mailTo string
 
 	mailAttr := r.GetBotAttribute("email")
-	if ret != Ok {
+	if mailAttr.RetVal != Ok || mailAttr.Attribute == "" {
+		r.Log(Error, "Email send requested but robot has no Email set in config")
 		return NoBotEmail
 	}
 	mailFrom = mailAttr.Attribute
