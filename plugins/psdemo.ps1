@@ -159,7 +159,8 @@ switch ($command)
   "netinfo" {
     $ni = ipconfig.exe
     $ni = [String]::Join("`n", $ni)
-    $bot.Say("Here you go:`n$ni")
+    $bot.Say("Here you go:")
+    $bot.Say("$ni", "fixed")
   }
   # TODO: remove later, for troubleshooting Windows hangs
   "crash" {
