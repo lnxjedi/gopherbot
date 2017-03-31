@@ -55,6 +55,8 @@ LogLevel: info
 #  Path: plugins/echo.sh
 #- Name: whoami
 #  Path: plugins/whoami.sh
+#- Name: psdemo
+#  Path: plugins/psdemo.ps1
 #- Name: rubydemo
 #  Path: plugins/rubydemo
 
