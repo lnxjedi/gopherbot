@@ -51,6 +51,9 @@ func (r *Robot) Elevate(immediate bool) bool {
 	e := b.elevator
 	p := b.elevatorProvider
 	b.lock.RUnlock()
+	if e == nil {
+		return false
+	}
 	r.pluginID = "elevator-" + p
 	return e(r, immediate)
 }
