@@ -145,7 +145,7 @@ class Robot
         $bfc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $format, $this.PluginID, $funcArgs)
         $fc = ConvertTo-Json $bfc
         if ($fname -ne "Log") { $this.Log("Debug", "DEBUG - Sending: $fc") }
-        $r = Invoke-WebRequest -URI "$Env:GOPHER_HTTP_POST/json" -Method Post -Body $fc
+        $r = Invoke-WebRequest -URI "$Env:GOPHER_HTTP_POST/json" -Method Post -UseBasicParsing -Body $fc
         $c = $r.Content
         if ($fname -ne "Log") { $this.Log("Debug", "DEBUG - Got back: $c") }
         return ConvertFrom-Json $c
