@@ -1,7 +1,7 @@
 # Gopherbot
 ## A.K.A. SUDO for the Enterprise
 Gopherbot is:
-* A chatops-oriented chat bot originally inspired by Hubot
+* A chat bot designed for ChatOps originally inspired by Hubot
 * A simple remote script execution agent accessible via Slack(*)
 * An easy means of delegating complex functionality to a user base without writing yet another web application
 
@@ -16,6 +16,7 @@ doing **_real work_**. Examples of work Gopherbot is already doing:
 See [Design Philosophy](doc/Design.md)
 
 ## Features
+* Multi-platform with builds for Linux, Windows and Mac
 * Simple command plugins with the following features:
   * Most plugins can be distributed as a single text file
   * Commands can be written in Ruby or Bash (with a Python library coming in 2017, sooner if I get a PR)
@@ -35,7 +36,7 @@ See [Design Philosophy](doc/Design.md)
 
 ## Development Status
 Gopherbot is running in production in my environment. Currently lacking:
-* Comprehensive documentation for Bash and Ruby plugin APIs
+* Comprehensive plugin documentation
 * Connectors for protocols other than Slack
 * Brain implementations other than simple local files (e.g. redis)
 
