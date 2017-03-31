@@ -33,6 +33,8 @@ Help:
   Helptext: [ "(bot), forget <#> - ask the robot to forget one of it's remembered 'facts'" ]
 - Keywords: [ "check" ]
   Helptext: [ "(bot), check me - get the bot to check you out" ]
+- Keywords: [ "network", "host", "ip" ]
+  Helptext: [ "(bot), netinfo" ]
 CommandMatchers:
 - Command: "echo"
   Regex: '(?i:echo ([.;!\d\w-, ]+))'
@@ -44,12 +46,20 @@ CommandMatchers:
   Command: remember
 - Regex: (?i:(?:recall|memories))
   Command: recall
-- Regex: (?i:forget ([\d]{1,2}))
+- Regex: '(?i:forget #?([\d]{1,2}))'
   Command: forget
 - Regex: (?i:check me)
   Command: check
+- Regex: (?i:netinfo)
+  Command: netinfo
 - Regex: (?i:crash)
   Command: crash
+Config:
+  Replies:
+  - "You've got THE POWAH!!"
+  - "Ah, dang it - looks like the power is unplugged"
+  - "By the power of Greyskull...  nah, I just can't do it"
+  - "Sorry, you'll need to change my batteries first"
 '@
 
 # the equivalent of 'shift' for PowerShell
@@ -125,9 +135,31 @@ switch ($command)
       $dbot.Say("I had a problem hearing you - funny characters?")
     }
   }
+  "check" {
+    if ( $bot.CheckAdmin() ) {
+      $bot.Say("It looks like you're an admin, sweet!")
+    } else {
+      $bot.Say("Hrmph - well, you're not an administrator")
+    }
+    $bot.Pause(1)
+    $bot.Say("Now I'll request elevation...")
+    if ( $bot.Elevate($TRUE) ) {
+      $bot.Say("Everything checks out, you're free to go")
+    } else {
+      $bot.Say("Huh - looks like you can't do any REAL work...")
+    }
+  }
   "power" {
     $firstName = $bot.GetSenderAttribute("firstName")
-    $bot.Say("Sure, $firstName - You've got THE POWAH!!")
+    $bot.Say("Sure, $firstName, hang on and I'll see what I can do")
+    $bot.Pause(1.5)
+    $cfg = $bot.GetPluginConfig()
+    $bot.Say($bot.RandomString($cfg.Replies))
+  }
+  "netinfo" {
+    $ni = ipconfig.exe
+    $ni = [String]::Join("`n", $ni)
+    $bot.Say("Here you go:`n$ni")
   }
   # TODO: remove later, for troubleshooting Windows hangs
   "crash" {

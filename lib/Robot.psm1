@@ -115,12 +115,12 @@ class Robot
     }
 
     [bool] CheckAdmin() {
-        return $this.Call("CheckAdmin", $null, $format).RetVal -As [bool]
+        return $this.Call("CheckAdmin", $null).Boolean -As [bool]
     }
 
     [bool] Elevate([bool] $immediate) {
         $funcArgs = [PSCustomObject]@{ Immediate=$immediate }
-        return $this.Call("Elevate", $funcArgs) -As [bool]
+        return $this.Call("Elevate", $funcArgs).Boolean -As [bool]
     }
 
     [bool] Elevate() {
