@@ -44,4 +44,4 @@ Gopherbot is running in production in my environment. Currently lacking:
 * [Quick Start - Linux and Mac](doc/Quick-Start-Linux-Mac.md)
 * [Installing on Linux](doc/Linux-Install.md)
 * [Design Philosophy](doc/Design.md)
-* [Configuration](doc/Configure.md)
+* [Configuration](doc/Configuration.md)
