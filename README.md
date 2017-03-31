@@ -31,7 +31,7 @@ See [Design Philosophy](doc/Design.md)
 * Highly-configurable plugins that can be constrained by channels, users, etc.
 * A thread-safe brain for storing state
 * Configurable [logging](doc/Builtins.md#log)
-* A supply of [built-in](doc/Builtins.md) plugins and commands for viewing the log, reloading configuration, and more 
+* A supply of [built-in](doc/Builtins.md) plugins and commands for viewing the log, reloading configuration, and more
 * Many sample plugins, including knock-knock jokes!
 
 ## Development Status
@@ -41,13 +41,14 @@ Gopherbot is running in production in my environment. Currently lacking:
 * Brain implementations other than simple local files (e.g. redis)
 
 ## Documentation
-* [Downloading and Installing](doc/Install.md)
+* [Quick Start - Linux and Mac](doc/Quick-Start-Linux-Mac.md)
+* [Installing on Linux](doc/Linux-Install.md)
 * [Design Philosophy](doc/Design.md)
-* [Advanced Configuration](doc/Configure.md)
-* [Gopherbot Plugins](doc/Plugins.md)
-* [Built-in Plugins](doc/Builtins.md)
-* [Go Plugin API](doc/GoPlugins.md)
-* [Ruby Plugin API](doc/RubyPlugins.md)
-* [Bash Plugin API](doc/BashPlugins.md)
-* [Security Considerations](doc/Security.md)
-* [Configuring Elevation](doc/Elevation.md)
+* [Configuration](doc/Configure.md)
+[//]:* [Gopherbot Plugins](doc/Plugins.md)
+[//]:* [Built-in Plugins](doc/Builtins.md)
+[//]:* [Go Plugin API](doc/GoPlugins.md)
+[//]:* [Ruby Plugin API](doc/RubyPlugins.md)
+[//]:* [Bash Plugin API](doc/BashPlugins.md)
+[//]:* [Security Considerations](doc/Security.md)
+[//]:* [Configuring Elevation](doc/Elevation.md)
