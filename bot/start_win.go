@@ -135,8 +135,8 @@ func Start() {
 	}
 	instSearchPath := []string{
 		installDir,
-		`C:/Program Files`,
-		`C:/Program Files (x86)`,
+		`C:/Program Files/Gopherbot`,
+		`C:/Program Files (x86)/Gopherbot`,
 	}
 	gosearchpath := os.Getenv("GOPATH")
 	if len(gosearchpath) > 0 {
