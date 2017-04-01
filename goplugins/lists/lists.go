@@ -1,4 +1,4 @@
-// The lists plugin is a small demonstrator plugin showing how you
+// Package lists implements a lists demonstrator plugin showing how you
 // can use the robot's brain to remember things - like lists of items.
 package lists
 
@@ -101,7 +101,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 	case "list":
 		var found int
 		var listsBuffer bytes.Buffer
-		for l, _ := range lists {
+		for l := range lists {
 			lchan := strings.Split(l, "~")[0]
 			if lchan == r.Channel {
 				found++
@@ -144,6 +144,19 @@ func lists(r *bot.Robot, command string, args ...string) {
 			botmail := r.GetBotAttribute("email").String()
 			r.Say(fmt.Sprintf("Ok, I sent the %s list to you - look for email from %s", listName, botmail))
 		}
+	case "pick":
+		listName := strings.ToLower(args[0])
+		listKey := r.Channel + "~" + listName
+		list, ok := lists[listKey]
+		if !ok {
+			r.Say(fmt.Sprintf("I don't have a list named %s", listName))
+			return
+		}
+		if len(list) == 0 {
+			r.Say(fmt.Sprintf("The %s list is empty", listName))
+			return
+		}
+		r.Say(fmt.Sprintf("Here you go: %s", r.RandomString(list)))
 	case "add":
 		// Case sensitive input, case insensitve equality checking
 		item := args[0]
