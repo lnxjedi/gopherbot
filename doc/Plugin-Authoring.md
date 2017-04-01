@@ -1,9 +1,30 @@
-### Configuring plugins
-The 'bot administrator can override default plugin configuration by putting a new `<pluginname>.yaml` file in conf/plugins subdirectory of the local config dir. Top-level settings in this file will override the default configuration for a plugin. Note that if you override **Help**, **CommandMatchers** or any other multi-part section, you should probably start by copying the entire section from the default config, as your settings will override the entire section.
+**NOTE: Unfinished**
 
-See `example.gopherbot/conf/plugins/example.yaml` for a full example of a plugin configuration file.
+This article deals mainly with writing plugins in one of the scripting languages supported by Gopherbot,
+the most popular means for writing new command plugins. For writing native compiled-in plugins in Go, see
+`gopherbot/main.go` and the sample plugins in `goplugins/`. API documentation for Robot methods is available
+at:
 
-## Writing your own plugins
+https://godoc.org/github.com/uva-its/gopherbot/bot#Robot
+
+Note that the script plugin API sits on top of the native Go API, so that document is also of use for scripting plugin authors.
+
+# Configuring Plugins
+Plugin configuration is fully documented in the [configuration](Configuration.md) article, and you should
+read that document before starting to write your own plugins.
+
+# Getting Started
+The best way for a new plugin author to get started is to:
+* Disable the demo plugin for your chosen scripting language (if enabled) in `<config dir>/conf/gopherbot.yaml`
+* Copy the demo plugin to `<config dir>/plugins/<newname>(.extension)`
+* Enable your new plugin in `gopherbot.yaml` and give it a descriptive `Name`
+
+# Calling Conventions
+
+** reserved commands **
+# Boilerplate Code
+
+# The Plugin API
 The Go plugin API is fairly well documented here: http://godoc.org/github.com/uva-its/gopherbot/bot#Robot
 
 The Bash and Ruby APIs aren't documented so well, however:
