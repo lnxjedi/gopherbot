@@ -19,15 +19,14 @@ See [Design Philosophy](doc/Design.md)
 * Multi-platform with builds for Linux, Windows and Mac
 * Simple command plugins with the following features:
   * Most plugins can be distributed as a single text file
-  * Commands can be written in Ruby or Bash (with a Python library coming in 2017, sooner if I get a PR)
+  * Commands can be written in Ruby, Bash and PowerShell (with a Python library coming in 2017, sooner if I get a PR)
   * Plugins use blocking APIs vs registering callback functions, for easy scripting with a low learning curve
   * Plugin API includes WaitForReply* methods for simple question & answer flows
   * Flexible configuration can be easily overridden by the 'bot administrator
   * Configuration can limit plugins to certain channels and/or users
-  * [Sample Ruby Plugin](plugins/rubydemo)
-  * [Sample Bash Plugin](plugins/bashdemo)
+  * Sample plugins: [Ruby](plugins/rubydemo), [Bash](plugins/bash), [PowerShell](plugins/psdemo.ps1)
 * Configurable [elevated privilege](doc/Elevation.md) support for security-sensitive commands
-* Localhost http/json interface for creating plugin APIs for other languages
+* Localhost http/json interface for creating plugin APIs for other languages (example: [Ruby library](lib/rubylib.rb)
 * Highly-configurable plugins that can be constrained by channels, users, etc.
 * A thread-safe brain for storing state
 * Configurable [logging](doc/Builtins.md#log)
@@ -42,6 +41,8 @@ Gopherbot is running in production in my environment. Currently lacking:
 
 ## Documentation
 * [Quick Start - Linux and Mac](doc/Quick-Start-Linux-Mac.md)
+* [Quick Start - Windows](doc/Quick-Start-Windows.md)
 * [Installing on Linux](doc/Linux-Install.md)
+* [Installing on Windows](doc/Windows-Install.md)
 * [Design Philosophy](doc/Design.md)
 * [Configuration](doc/Configuration.md)
