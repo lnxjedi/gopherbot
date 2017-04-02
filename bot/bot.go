@@ -113,7 +113,7 @@ func botInit(c Connector) {
 	}
 	b.Connector = c
 	b.lock.Unlock()
-	go listenHttpJSON()
+	go listenHTTPJSON()
 	var cl []string
 	b.lock.RLock()
 	cl = append(cl, b.joinChannels...)

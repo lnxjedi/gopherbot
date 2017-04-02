@@ -2,8 +2,11 @@ package bot
 
 import (
 	"fmt"
+	"regexp"
 	"sync"
 )
+
+var itRegex = regexp.MustCompile(`\bit\b`)
 
 var plugRunningCounter int
 var shuttingDown = false
@@ -163,7 +166,7 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 // handleMessage checks the message against plugin commands and full-message matches,
 // then dispatches it to all applicable handlers in a separate go routine. If the robot
 // was addressed directly but nothing matched, any registered CatchAll plugins are called.
-// There Should Be Only One
+// There Should Be Only One (catchall, in theory (?))
 func handleMessage(isCommand bool, channel, user, messagetext string) {
 	b.lock.RLock()
 	bot := &Robot{
@@ -178,7 +181,20 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	commandMatched := false
 	waitingForReply := false
 	var catchAllPlugins []*Plugin
-	if isCommand {
+	// If the user mentions "it", consider this a command and see if a command
+	// matches; note that "it" will never be checked against ambient matches.
+	// (n.b. nobody EVER refers to Chuck Norris as "it")
+	if itRegex.MatchString(messagetext) {
+		context := memoryContext{"it", user, channel}
+		shortLock.Lock()
+		memory, exists := shortTermMemories[context]
+		shortLock.Unlock()
+		if exists {
+			checkItText := itRegex.ReplaceAllString(messagetext, memory.memory)
+			commandMatched = checkPluginMatchers(true, bot, checkItText)
+		}
+	}
+	if !commandMatched && isCommand {
 		catchAllPlugins = make([]*Plugin, 0, len(plugins))
 		for _, plugin := range plugins {
 			if plugin.CatchAll {

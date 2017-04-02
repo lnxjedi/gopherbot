@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-type JSONFunction struct {
+type jsonFunction struct {
 	FuncName string
 	User     string
 	Channel  string
@@ -39,17 +39,26 @@ type logmessage struct {
 type channelmessage struct {
 	Channel string
 	Message string
-	Format  string
 }
 
-// Something to be remembered
+// Something to be placed in short-term memory
+type shorttermmemory struct {
+	Key, Value string
+}
+
+// Something to be recalled from short-term memory
+type shorttermrecollection struct {
+	Key string
+}
+
+// Something to be remembered in long term memory
 type memory struct {
 	Key   string
 	Token string
 	Datum json.RawMessage
 }
 
-// Something to be recalled
+// Something to be recalled from long term memory
 type recollection struct {
 	Key string
 	RW  bool
@@ -58,18 +67,16 @@ type recollection struct {
 type usermessage struct {
 	User    string
 	Message string
-	Format  string
 }
 
 type userchannelmessage struct {
 	User    string
 	Channel string
 	Message string
-	Format  string
 }
 
 type replyrequest struct {
-	RegExId string
+	RegexID string
 	Timeout int
 }
 
@@ -80,20 +87,24 @@ type regexreplyrequest struct {
 
 // Types for returning values
 
-// BotAttrRet implements Stringer so it can be interpolated with fmt if
+// AttrRet implements Stringer so it can be interpolated with fmt if
 // the plugin author is ok with ignoring the RetVal.
-type BotAttrRet struct {
+type AttrRet struct {
 	Attribute string
 	RetVal
 }
 
-func (bar *BotAttrRet) String() string {
+func (bar *AttrRet) String() string {
 	return bar.Attribute
 }
 
 // These are only for json marshalling
 type boolresponse struct {
 	Boolean bool
+}
+
+type stringresponse struct {
+	StrVal string
 }
 
 type boolretresponse struct {
@@ -117,7 +128,7 @@ type waitreplyresponse struct {
 	RetVal int
 }
 
-func listenHttpJSON() {
+func listenHTTPJSON() {
 	if len(b.port) > 0 {
 		h := handler{}
 		http.Handle("/json", h)
@@ -135,9 +146,8 @@ func decode(msg string) string {
 			return msg
 		}
 		return string(decoded)
-	} else {
-		return msg
 	}
+	return msg
 }
 
 func encode(arg string) string {
@@ -170,7 +180,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var f JSONFunction
+	var f jsonFunction
 	err = json.Unmarshal(data, &f)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
@@ -187,7 +197,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		attr  *BotAttrRet
+		attr  *AttrRet
 		reply string
 		ret   RetVal
 	)
@@ -239,6 +249,20 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		ret = update(pluginName+":"+m.Key, m.Token, (*[]byte)(&m.Datum))
 		sendReturn(rw, &botretvalresponse{int(ret)})
 		return
+	case "Remember":
+		var m shorttermmemory
+		if !getArgs(rw, &f.FuncArgs, &m) {
+			return
+		}
+		bot.Remember(m.Key, m.Value)
+		sendReturn(rw, &botretvalresponse{int(Ok)})
+	case "Recall":
+		var m shorttermrecollection
+		if !getArgs(rw, &f.FuncArgs, &m) {
+			return
+		}
+		s := bot.Recall(m.Key)
+		sendReturn(rw, &stringresponse{s})
 	case "GetPluginConfig":
 		b.lock.RLock()
 		defer b.lock.RUnlock()
@@ -313,7 +337,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if !getArgs(rw, &f.FuncArgs, &rr) {
 			return
 		}
-		reply, ret = bot.WaitForReply(rr.RegExId, rr.Timeout)
+		reply, ret = bot.WaitForReply(rr.RegexID, rr.Timeout)
 		sendReturn(rw, &waitreplyresponse{encode(reply), int(ret)})
 		return
 	case "WaitForReplyRegex":

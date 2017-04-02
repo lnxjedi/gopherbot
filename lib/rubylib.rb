@@ -114,6 +114,21 @@ class BaseBot
 		return ret["RetVal"]
 	end
 
+	def Remember(k, v)
+		args = { "Key" => k, "Value", v }
+		ret = callBotFunc("Remember", args)
+		return ret["RetVal"]
+	end
+
+	def RememberIt(v)
+		return Remember("it", v)
+	end
+
+	def Recall(k)
+		args = { "Key" => k }
+		return callBotFunc("Recall", args).StrVal
+	end
+
 	def GetPluginConfig()
 		ret = callBotFunc("GetPluginConfig", {})
 		return ret
@@ -187,7 +202,7 @@ class BaseBot
 	end
 
 	def WaitForReply(re, timeout=60)
-		args = { "RegExId" => re, "Timeout" => timeout }
+		args = { "RegexID" => re, "Timeout" => timeout }
 		ret = callBotFunc("WaitForReply", args)
 		return Reply.new(decode(ret["Reply"]), ret["RetVal"])
 	end

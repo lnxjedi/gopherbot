@@ -173,6 +173,22 @@ class Robot
         return $ret.RetVal -As [BotRet]
     }
 
+    [BotRet] Remember([String] $key, [String] $value){
+        $funcArgs = [PSCustomObject]@{ Key=$key; Value=$value }
+        $ret = $this.Call("Remember", $funcArgs)
+        return $ret.RetVal -As [BotRet]
+    }
+
+    [BotRet] RememberIt([String] $value){
+        return $this.Remember("it", $value)
+    }
+
+    [String] Recall([String] $key){
+        $funcArgs = [PSCustomObject]@{ Key=$key }
+        $ret = $this.Call("Recall", $funcArgs)
+        return $ret.StrVal
+    }
+
     [Attribute] GetSenderAttribute([String] $attr) {
         $funcArgs = [PSCustomObject]@{ Attribute=$attr }
         $ret = $this.Call("GetSenderAttribute", $funcArgs)
@@ -192,7 +208,7 @@ class Robot
     }
 
     [Reply] WaitForReply([String] $regexid, [Int] $timeout) {
-        $funcArgs = [PSCustomObject]@{ RegExId=$regexid; Timeout=$timeout }
+        $funcArgs = [PSCustomObject]@{ RegexID=$regexid; Timeout=$timeout }
         $ret = $this.Call("WaitForReply", $funcArgs)
         $rep = dec64($ret.Reply)
         return [Reply]::new($rep, $ret.Ret -As [BotRet])

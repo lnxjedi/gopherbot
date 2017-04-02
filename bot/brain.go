@@ -12,6 +12,21 @@ import (
 // Map of registered brains
 var brains = make(map[string]func(Handler, *log.Logger) SimpleBrain)
 
+// short-term memories, mostly what "it" is
+type shortTermMemory struct {
+	memory  string
+	learned time.Time
+}
+
+type memoryContext struct {
+	key, user, channel string
+}
+
+var shortTermMemories = make(map[memoryContext]shortTermMemory)
+var shortLock sync.Mutex
+
+const shortTermDuration = 7 * time.Minute
+
 type brainOpType int
 
 const (
@@ -113,7 +128,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 	return token, &db, exists, Ok
 }
 
-func storeDatum(key string, datum *[]byte) (ret RetVal) {
+func storeDatum(key string, datum *[]byte) RetVal {
 	b.lock.RLock()
 	brain := b.brain
 	b.lock.RUnlock()
@@ -124,7 +139,7 @@ func storeDatum(key string, datum *[]byte) (ret RetVal) {
 	err := b.brain.Store(key, *datum)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Storing datum %s: %v", key, err))
-		ret = BrainFailed
+		return BrainFailed
 	}
 	return Ok
 }
@@ -216,6 +231,14 @@ loop:
 				break loop
 			}
 		case <-processMemories:
+			now := time.Now()
+			shortLock.Lock()
+			for k, v := range shortTermMemories {
+				if now.Sub(v.learned) > shortTermDuration {
+					delete(shortTermMemories, k)
+				}
+			}
+			shortLock.Unlock()
 			for _, m := range memories {
 				switch m.state {
 				case newMemory:
@@ -341,6 +364,37 @@ func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVa
 	plugMapLock.Unlock()
 	key = pluginName + ":" + key
 	return updateDatum(key, locktoken, datum)
+}
+
+// Remember adds a short-term memory (with no backing store) to the robot's
+// brain. This is used for resolving the meaning of "it", but can be used by
+// plugins to remember other contextual facts. Since memories are indexed by
+// user and channel, but not plugin, these facts can be referenced between
+// plugins. This functionality is considered EXPERIMENTAL.
+func (r *Robot) Remember(key, value string) {
+	learned := time.Now()
+	memory := shortTermMemory{value, learned}
+	context := memoryContext{key, r.User, r.Channel}
+	shortLock.Lock()
+	shortTermMemories[context] = memory
+	shortLock.Unlock()
+}
+
+// RememberIt is a convenience function for storing the value of "it"
+func (r *Robot) RememberIt(it string) {
+	r.Remember("it", it)
+}
+
+// Recall recalls a short term memory, or the empty string if it doesn't exist
+func (r *Robot) Recall(key string) string {
+	context := memoryContext{key, r.User, r.Channel}
+	shortLock.Lock()
+	memory, ok := shortTermMemories[context]
+	shortLock.Unlock()
+	if !ok {
+		return ""
+	}
+	return memory.memory
 }
 
 // RegisterSimpleBrain allows brain implementations to register a function with a named

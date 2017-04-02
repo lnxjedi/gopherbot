@@ -94,6 +94,50 @@ CheckAdmin(){
 	fi
 }
 
+Remember(){
+	if [ -z "$1" -o -z "$2" ]
+	then
+		return 1
+	fi
+	local GB_FUNCNAME="Remember"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Key": "$1",
+	"Value": "$2"
+}
+EOF
+)
+	$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	return 0
+}
+
+RememberIt(){
+	if [ -z "$1" ]
+	then
+		return 1
+	fi
+	Remember("it", "$1")
+	return 0
+}
+
+Recall(){
+	if [ -z "$1" ]
+	then
+		return 1
+	fi
+	local GB_FUNCNAME="Recall"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Key": "$1"
+}
+EOF
+)
+	local GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	local RETVAL=$(echo "$GB_RET" | jq .StrVal)
+	echo "$RETVAL"
+	return 0
+}
+
 Elevate(){
 	IMMEDIATE="false"
 	if [ -n "$1" ]
@@ -188,7 +232,7 @@ WaitForReply(){
 	local TIMEOUT="${2:-14}"
 	GB_FUNCARGS=$(cat <<EOF
 {
-	"RegExId": "$REGEX",
+	"RegexID": "$REGEX",
 	"Timeout": $TIMEOUT
 }
 EOF

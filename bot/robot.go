@@ -99,7 +99,7 @@ func (r *Robot) RandomInt(n int) int {
 // GetBotAttribute returns an attribute of the robot or "" if unknown.
 // Current attributes:
 // name, alias, fullName, contact
-func (r *Robot) GetBotAttribute(a string) *BotAttrRet {
+func (r *Robot) GetBotAttribute(a string) *AttrRet {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 	ret := Ok
@@ -118,29 +118,29 @@ func (r *Robot) GetBotAttribute(a string) *BotAttrRet {
 	default:
 		ret = AttributeNotFound
 	}
-	return &BotAttrRet{attr, ret}
+	return &AttrRet{attr, ret}
 }
 
-// GetUserAttribute returns a BotAttrRet with
+// GetUserAttribute returns a AttrRet with
 // - The string Attribute of a user, or "" if unknown/error
 // - A RetVal which is one of Ok, UserNotFound, AttributeNotFound
 // Current attributes:
 // name(handle), fullName, email, firstName, lastName, phone
 // TODO: supplement data with gopherbot.json user's table
-func (r *Robot) GetUserAttribute(u, a string) *BotAttrRet {
+func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
 	attr, ret := b.GetProtocolUserAttribute(u, a)
-	return &BotAttrRet{attr, ret}
+	return &AttrRet{attr, ret}
 }
 
-// GetSenderAttribute returns a BotAttrRet with
+// GetSenderAttribute returns a AttrRet with
 // - The string Attribute of the sender, or "" if unknown/error
 // - A RetVal which is one of Ok, UserNotFound, AttributeNotFound
 // Current attributes:
 // name(handle), fullName, email, firstName, lastName, phone
 // TODO: supplement data with gopherbot.json user's table
-func (r *Robot) GetSenderAttribute(a string) *BotAttrRet {
+func (r *Robot) GetSenderAttribute(a string) *AttrRet {
 	attr, ret := b.GetProtocolUserAttribute(r.User, a)
-	return &BotAttrRet{attr, ret}
+	return &AttrRet{attr, ret}
 }
 
 /*
