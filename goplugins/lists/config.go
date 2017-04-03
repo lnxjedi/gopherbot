@@ -32,18 +32,25 @@ CommandMatchers:
   Regex: '(?i:help with lists?)'
 - Command: 'add'
   Regex: '(?i:add ([\w\d- ]+) to (?:the )?([\w-_]+) list)'
+  Nouns: [ "item", "list" ]
 - Command: 'list'
   Regex: '(?i:list lists)'
 - Command: 'remove'
   Regex: '(?i:(?:remove|delete) ([\w\d- ]+) from (?:the )?([\w-_]+) list)'
+  Nouns: [ "item", "list" ]
 - Command: 'empty'
   Regex: '(?i:empty (?:the )?([\w-_]+) list)'
+  Nouns: [ "list" ]
 - Command: 'delete'
   Regex: '(?i:delete (?:the )?([\w-_]+) list)'
+  Nouns: [ "list" ]
 - Command: 'show'
   Regex: '(?i:show (?:the )?([\w-_]+) list)'
+  Nouns: [ "list" ]
 - Command: 'pick'
   Regex: '(?i:(?:pick )?(?:an? )?random (?:item )?(?:from )?(?:the )?([\w-_]+)(?: list)?)'
+  Nouns: [ "list" ]
 - Command: 'send'
   Regex: '(?i:(?:send me|email) (?:the )?([\w-_]+) list)'
+  Nouns: [ "list" ]
 `

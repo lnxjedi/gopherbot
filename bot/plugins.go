@@ -37,6 +37,7 @@ type InputMatcher struct {
 	Regex   string         // The regular expression string to match - bot adds ^\w* & \w*$
 	Command string         // The name of the command to pass to the plugin with it's arguments
 	Label   string         // ReplyMatchers use "Label" instead of "Command"
+	Nouns   []string       // label the nouns corresponding to capture groups, for supporting "it"
 	re      *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
