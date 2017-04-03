@@ -111,15 +111,6 @@ EOF
 	return 0
 }
 
-RememberIt(){
-	if [ -z "$1" ]
-	then
-		return 1
-	fi
-	Remember("it", "$1")
-	return 0
-}
-
 Recall(){
 	if [ -z "$1" ]
 	then

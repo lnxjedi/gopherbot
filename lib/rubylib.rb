@@ -115,13 +115,9 @@ class BaseBot
 	end
 
 	def Remember(k, v)
-		args = { "Key" => k, "Value", v }
+		args = { "Key" => k, "Value" => v }
 		ret = callBotFunc("Remember", args)
 		return ret["RetVal"]
-	end
-
-	def RememberIt(v)
-		return Remember("it", v)
 	end
 
 	def Recall(k)

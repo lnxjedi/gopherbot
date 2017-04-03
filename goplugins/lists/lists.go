@@ -76,7 +76,6 @@ func lists(r *bot.Robot, command string, args ...string) {
 				list = list[:len(list)-1]
 				lists[listKey] = list
 				r.Say(fmt.Sprintf("Ok, I removed %s from the %s list", item, listName))
-				r.RememberIt(listName + " list")
 				updated = true
 				found = true
 			}
@@ -147,7 +146,6 @@ func lists(r *bot.Robot, command string, args ...string) {
 			botmail := r.GetBotAttribute("email").String()
 			r.Say(fmt.Sprintf("Ok, I sent the %s list to you - look for email from %s", listName, botmail))
 		}
-		r.RememberIt(listName + " list")
 	case "pick":
 		listName := strings.ToLower(args[0])
 		listKey := r.Channel + "~" + listName
@@ -162,7 +160,6 @@ func lists(r *bot.Robot, command string, args ...string) {
 		}
 		item := r.RandomString(list)
 		r.Say(fmt.Sprintf("Here you go: %s", item))
-		r.RememberIt(item)
 	case "add":
 		// Case sensitive input, case insensitve equality checking
 		item := args[0]
@@ -195,7 +192,6 @@ func lists(r *bot.Robot, command string, args ...string) {
 			lists[listKey] = list
 		}
 		r.Say(fmt.Sprintf("Ok, I added %s to the %s list", item, listName))
-		r.RememberIt(listName + " list")
 		updated = true
 	}
 }

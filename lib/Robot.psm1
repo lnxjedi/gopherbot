@@ -179,10 +179,6 @@ class Robot
         return $ret.RetVal -As [BotRet]
     }
 
-    [BotRet] RememberIt([String] $value){
-        return $this.Remember("it", $value)
-    }
-
     [String] Recall([String] $key){
         $funcArgs = [PSCustomObject]@{ Key=$key }
         $ret = $this.Call("Recall", $funcArgs)

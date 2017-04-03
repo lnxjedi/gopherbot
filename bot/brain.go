@@ -367,10 +367,10 @@ func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVa
 }
 
 // Remember adds a short-term memory (with no backing store) to the robot's
-// brain. This is used for resolving the meaning of "it", but can be used by
-// plugins to remember other contextual facts. Since memories are indexed by
-// user and channel, but not plugin, these facts can be referenced between
-// plugins. This functionality is considered EXPERIMENTAL.
+// brain. This is used internally for resolving the meaning of "it", but can
+// be used by plugins to remember other contextual facts. Since memories are
+// indexed by user and channel, but not plugin, these facts can be referenced
+// between plugins. This functionality is considered EXPERIMENTAL.
 func (r *Robot) Remember(key, value string) {
 	learned := time.Now()
 	memory := shortTermMemory{value, learned}
@@ -378,11 +378,6 @@ func (r *Robot) Remember(key, value string) {
 	shortLock.Lock()
 	shortTermMemories[context] = memory
 	shortLock.Unlock()
-}
-
-// RememberIt is a convenience function for storing the value of "it"
-func (r *Robot) RememberIt(it string) {
-	r.Remember("it", it)
 }
 
 // Recall recalls a short term memory, or the empty string if it doesn't exist
