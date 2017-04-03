@@ -115,7 +115,8 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 									shortTermMemories[c] = s
 								} else {
 									bot.Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about", nounLabel))
-									return commandMatched
+									shortLock.Unlock()
+									return true
 								}
 							} else {
 								s := shortTermMemory{cmdArgs[i], ts}
