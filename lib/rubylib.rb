@@ -120,6 +120,10 @@ class BaseBot
 		return ret["RetVal"]
 	end
 
+	def RememberNoun(n, v)
+		return Remember("noun:"+n, v)
+	end
+
 	def Recall(k)
 		args = { "Key" => k }
 		return callBotFunc("Recall", args).StrVal

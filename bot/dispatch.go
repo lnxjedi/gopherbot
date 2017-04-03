@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 var plugRunningCounter int
@@ -90,7 +91,42 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 		for _, matcher := range matchers {
 			Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", messagetext, matcher.Regex))
 			matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
+			var matched bool
+			var cmdArgs []string
 			if matches != nil {
+				matched = true
+				cmdArgs = matches[0][1:]
+				if len(matcher.Nouns) > 0 {
+					// Resolve & store "it" with short-term memories
+					ts := time.Now()
+					shortLock.Lock()
+					for i, nounLabel := range matcher.Nouns {
+						if nounLabel != "" {
+							key := "noun:" + nounLabel
+							c := memoryContext{key, bot.User, bot.Channel}
+							if cmdArgs[i] == "it" {
+								s, ok := shortTermMemories[c]
+								if ok {
+									cmdArgs[i] = s.memory
+									// TODO: it would probably be best to substitute the value
+									// from "it" back in to the original message and re-check for
+									// a match. Failing a match, matched should be set to false.
+									s.learned = ts
+									shortTermMemories[c] = s
+								} else {
+									bot.Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about", nounLabel))
+									return commandMatched
+								}
+							} else {
+								s := shortTermMemory{cmdArgs[i], ts}
+								shortTermMemories[c] = s
+							}
+						}
+					}
+					shortLock.Unlock()
+				}
+			}
+			if matched {
 				commandMatched = true
 				privilegesOk := true
 				if len(plugin.ElevatedCommands) > 0 {
@@ -148,7 +184,7 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 					} else {
 						shutdownMutex.Unlock()
 						plugRunningWaitGroup.Add(1)
-						go callPlugin(bot, plugin, matcher.Command, matches[0][1:]...)
+						go callPlugin(bot, plugin, matcher.Command, cmdArgs...)
 					}
 				} else {
 					Log(Error, fmt.Sprintf("Elevation failed for command \"%s\", plugin %s", matcher.Command, plugin.name))

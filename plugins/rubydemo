@@ -35,6 +35,7 @@ CommandMatchers:
   Command: listen
 - Regex: (?i:remember ([-\w .,!?]+))
   Command: remember
+  Nouns: [ "item" ]
 - Regex: (?i:(?:recall|memories))
   Command: recall
 - Regex: (?i:forget ([\d]{1,2}))

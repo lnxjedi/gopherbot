@@ -111,6 +111,15 @@ EOF
 	return 0
 }
 
+RememberNoun(){
+	if [ -z "$1" -o -z "$2" ]
+	then
+		return 1
+	fi
+	Remember("noun:$1", "$2")
+	return 0
+}
+
 Recall(){
 	if [ -z "$1" ]
 	then
