@@ -247,7 +247,6 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 			commandMatched = checkPluginMatchers(true, bot, messagetext)
 		}
 	}
-
 	if !commandMatched && isCommand {
 		catchAllPlugins = make([]*Plugin, 0, len(plugins))
 		for _, plugin := range plugins {
