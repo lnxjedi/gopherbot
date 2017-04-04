@@ -222,17 +222,31 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	lastMsgContext := memoryContext{"lastMsg", user, channel}
 	var last shortTermMemory
 	var ok bool
+	// See if the robot got a blank message, indicating that the last message
+	// was meant for it (if it was in the keepListeningDuration)
+	if isCommand && messagetext == "" {
+		commandMatched = true
+		matched := false
+		shortLock.Lock()
+		last, ok = shortTermMemories[lastMsgContext]
+		shortLock.Unlock()
+		if ts.Sub(last.timestamp) < keepListeningDuration {
+			matched = checkPluginMatchers(true, bot, last.memory)
+		}
+		if !matched {
+			bot.Say("Yes?")
+		}
+	}
 	shortLock.Lock()
 	last, ok = shortTermMemories[lastCmdContext]
 	shortLock.Unlock()
-	if ok {
+	if ok && !commandMatched {
 		// If the robot has been spoken to recently, it will keep listening
 		// for commands for a short duration
 		if ts.Sub(last.timestamp) < keepListeningDuration {
 			commandMatched = checkPluginMatchers(true, bot, messagetext)
 		}
 	}
-
 	if !commandMatched && isCommand {
 		// Even if the command doesn't match, remember the robot was spoken to
 		last = shortTermMemory{messagetext, ts}
