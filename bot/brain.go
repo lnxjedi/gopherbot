@@ -380,12 +380,12 @@ func (r *Robot) Remember(key, value string) {
 	shortLock.Unlock()
 }
 
-// RememberNoun is a convenience function that stores a noun in short term
-// memories. e.g. RememberNoun("server", "web1.my.dom") means that next time
-// the user uses "it" in the context of a "server", the robot will substitute
-// "web1.my.dom".
-func (r *Robot) RememberNoun(noun, value string) {
-	r.Remember("noun:"+noun, value)
+// RememberContext is a convenience function that stores a context reference in
+// short term memories. e.g. RememberContext("server", "web1.my.dom") means that
+// next time the user uses "it" in the context of a "server", the robot will
+// substitute "web1.my.dom".
+func (r *Robot) RememberContext(context, value string) {
+	r.Remember("context:"+context, value)
 }
 
 // Recall recalls a short term memory, or the empty string if it doesn't exist

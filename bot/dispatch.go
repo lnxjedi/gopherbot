@@ -96,15 +96,15 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 			if matches != nil {
 				matched = true
 				cmdArgs = matches[0][1:]
-				if len(matcher.Nouns) > 0 {
+				if len(matcher.Contexts) > 0 {
 					// Resolve & store "it" with short-term memories
 					ts := time.Now()
 					shortLock.Lock()
-					for i, nounLabel := range matcher.Nouns {
-						if nounLabel != "" {
-							key := "noun:" + nounLabel
+					for i, contextLabel := range matcher.Contexts {
+						if contextLabel != "" {
+							key := "context:" + contextLabel
 							c := memoryContext{key, bot.User, bot.Channel}
-							if cmdArgs[i] == "it" {
+							if len(cmdArgs) > i && (cmdArgs[i] == "it" || cmdArgs[i] == "") {
 								s, ok := shortTermMemories[c]
 								if ok {
 									cmdArgs[i] = s.memory
@@ -114,7 +114,7 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 									s.learned = ts
 									shortTermMemories[c] = s
 								} else {
-									bot.Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about", nounLabel))
+									bot.Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about", contextLabel))
 									shortLock.Unlock()
 									return true
 								}

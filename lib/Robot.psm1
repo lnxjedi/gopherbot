@@ -179,8 +179,8 @@ class Robot
         return $ret.RetVal -As [BotRet]
     }
 
-    [BotRet] RememberNoun([String] $noun, [String] $value){
-        return $this.Remember("noun:"+$noun, $value)
+    [BotRet] RememberContext([String] $context, [String] $value){
+        return $this.Remember("context:"+$context, $value)
     }
 
     [String] Recall([String] $key){

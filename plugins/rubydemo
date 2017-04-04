@@ -33,9 +33,9 @@ CommandMatchers:
   Command: ruby
 - Regex: (?i:listen( to me)?!?)
   Command: listen
-- Regex: (?i:remember ([-\w .,!?]+))
+- Regex: (?i:remember ([-\w .,!?:\/]+))
   Command: remember
-  Nouns: [ "item" ]
+  Contexts: [ "item" ]
 - Regex: (?i:(?:recall|memories))
   Command: recall
 - Regex: (?i:forget ([\d]{1,2}))

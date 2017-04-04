@@ -120,8 +120,8 @@ class BaseBot
 		return ret["RetVal"]
 	end
 
-	def RememberNoun(n, v)
-		return Remember("noun:"+n, v)
+	def RememberContext(c, v)
+		return Remember("context:"+c, v)
 	end
 
 	def Recall(k)
