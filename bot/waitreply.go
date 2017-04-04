@@ -26,6 +26,8 @@ type reply struct {
 }
 
 var replies = make(map[replyMatcher]replyWaiter)
+
+// synchronize access to the replies hash
 var replyLock sync.Mutex
 
 type stockReply struct {

@@ -222,38 +222,9 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	lastMsgContext := memoryContext{"lastMsg", user, channel}
 	var last shortTermMemory
 	var ok bool
-	// First, see if the robot was waiting on a reply
-	matcher := replyMatcher{user, channel}
-	replyLock.Lock()
-	if !isCommand && len(replies) > 0 {
-		var rep replyWaiter
-		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
-		rep, waitingForReply = replies[matcher]
-		if waitingForReply {
-			// we got a match - so delete the matcher and send the reply struct
-			delete(replies, matcher)
-			if commandMatched {
-				rep.replyChannel <- reply{false, true, ""}
-				Log(Debug, fmt.Sprintf("User \"%s\" issued a new command while the robot was waiting for a reply in channel \"%s\"", user, channel))
-			} else {
-				// if the robot was waiting on a reply, we don't want to check for
-				// ambient message matches - the plugin will handle it.
-				commandMatched = true
-				matched := false
-				if rep.re.MatchString(messagetext) {
-					matched = true
-				}
-				Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", user, channel, messagetext, rep.re.String(), matched))
-				rep.replyChannel <- reply{matched, false, messagetext}
-			}
-		} else {
-			Log(Trace, "No matching replyWaiter")
-		}
-	}
-	replyLock.Unlock()
 	// See if the robot got a blank message, indicating that the last message
 	// was meant for it (if it was in the keepListeningDuration)
-	if isCommand && !commandMatched && messagetext == "" {
+	if isCommand && messagetext == "" {
 		commandMatched = true
 		matched := false
 		shortLock.Lock()
@@ -286,6 +257,35 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		}
 		// See if a command matches (and runs)
 		commandMatched = checkPluginMatchers(true, bot, messagetext)
+	}
+	matcher := replyMatcher{user, channel}
+	replyLock.Lock()
+	if len(replies) > 0 {
+		var rep replyWaiter
+		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
+		rep, waitingForReply = replies[matcher]
+		if waitingForReply {
+			// we got a match - so delete the matcher and send the reply struct
+			delete(replies, matcher)
+			replyLock.Unlock()
+			if commandMatched {
+				rep.replyChannel <- reply{false, true, ""}
+				Log(Debug, fmt.Sprintf("User \"%s\" issued a new command while the robot was waiting for a reply in channel \"%s\"", user, channel))
+			} else {
+				// if the robot was waiting on a reply, we don't want to check for
+				// ambient message matches - the plugin will handle it.
+				commandMatched = true
+				matched := false
+				if rep.re.MatchString(messagetext) {
+					matched = true
+				}
+				Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", user, channel, messagetext, rep.re.String(), matched))
+				rep.replyChannel <- reply{matched, false, messagetext}
+			}
+		} else {
+			replyLock.Unlock()
+			Log(Trace, "No matching replyWaiter")
+		}
 	}
 	// Direct commands were checked above; if a direct command didn't match,
 	// and a there wasn't a reply being waited on, then we check ambient
