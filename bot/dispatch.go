@@ -219,42 +219,13 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	var catchAllPlugins []*Plugin
 	ts := time.Now()
 	lastCmdContext := memoryContext{"lastCmd", user, channel}
-	shortLock.Lock()
-	last, ok := shortTermMemories[lastCmdContext]
-	shortLock.Unlock()
-	if ok {
-		// If the robot has been spoken to recently, it will keep listening
-		// for commands for a short duration
-		if ts.Sub(last.timestamp) < keepListeningDuration {
-			commandMatched = checkPluginMatchers(true, bot, messagetext)
-		}
-		if commandMatched {
-			last = shortTermMemory{messagetext, ts}
-			shortLock.Lock()
-			shortTermMemories[lastCmdContext] = last
-			shortLock.Unlock()
-		}
-	}
-
-	if !commandMatched && isCommand {
-		// Even if the command doesn't match, remember the robot was spoken to
-		last = shortTermMemory{messagetext, ts}
-		shortLock.Lock()
-		shortTermMemories[lastCmdContext] = last
-		shortLock.Unlock()
-		catchAllPlugins = make([]*Plugin, 0, len(plugins))
-		for _, plugin := range plugins {
-			if plugin.CatchAll {
-				catchAllPlugins = append(catchAllPlugins, plugin)
-			}
-		}
-		// See if a command matches (and runs)
-		commandMatched = checkPluginMatchers(true, bot, messagetext)
-	}
-	// See if the robot was waiting on a reply
+	lastMsgContext := memoryContext{"lastMsg", user, channel}
+	var last shortTermMemory
+	var ok bool
+	// First, see if the robot was waiting on a reply
 	matcher := replyMatcher{user, channel}
 	replyLock.Lock()
-	if len(replies) > 0 {
+	if !isCommand && len(replies) > 0 {
 		var rep replyWaiter
 		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
 		rep, waitingForReply = replies[matcher]
@@ -280,6 +251,42 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		}
 	}
 	replyLock.Unlock()
+	// See if the robot got a blank message, indicating that the last message
+	// was meant for it (if it was in the keepListeningDuration)
+	if isCommand && !commandMatched && messagetext == "" {
+		commandMatched = true
+		matched := false
+		shortLock.Lock()
+		last, ok = shortTermMemories[lastMsgContext]
+		shortLock.Unlock()
+		if ts.Sub(last.timestamp) < keepListeningDuration {
+			matched = checkPluginMatchers(true, bot, last.memory)
+		}
+		if !matched {
+			bot.Say("Yes?")
+		}
+	}
+	shortLock.Lock()
+	last, ok = shortTermMemories[lastCmdContext]
+	shortLock.Unlock()
+	if ok && !commandMatched {
+		// If the robot has been spoken to recently, it will keep listening
+		// for commands for a short duration
+		if ts.Sub(last.timestamp) < keepListeningDuration {
+			commandMatched = checkPluginMatchers(true, bot, messagetext)
+		}
+	}
+
+	if !commandMatched && isCommand {
+		catchAllPlugins = make([]*Plugin, 0, len(plugins))
+		for _, plugin := range plugins {
+			if plugin.CatchAll {
+				catchAllPlugins = append(catchAllPlugins, plugin)
+			}
+		}
+		// See if a command matches (and runs)
+		commandMatched = checkPluginMatchers(true, bot, messagetext)
+	}
 	// Direct commands were checked above; if a direct command didn't match,
 	// and a there wasn't a reply being waited on, then we check ambient
 	// MessageMatchers if it wasn't a direct command. Note that ambient
@@ -303,4 +310,15 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		}
 	}
 	b.lock.RUnlock()
+	last = shortTermMemory{messagetext, ts}
+	if commandMatched || isCommand {
+		shortLock.Lock()
+		shortTermMemories[lastCmdContext] = last
+		delete(shortTermMemories, lastMsgContext)
+		shortLock.Unlock()
+	} else {
+		shortLock.Lock()
+		shortTermMemories[lastMsgContext] = last
+		shortLock.Unlock()
+	}
 }

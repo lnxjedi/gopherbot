@@ -42,7 +42,7 @@ func updateRegexes() {
 			preString += string(alias) + "|"
 		}
 	}
-	preString += `@?` + b.name + `[:,]{0,1}\s*)(.+)$`
+	preString += `@?` + b.name + `[:,]{0,1}\b\s*)(.*)$`
 	re, err := regexp.Compile(preString)
 	if err == nil {
 		Log(Debug, "Setting preString regex to", preString)
