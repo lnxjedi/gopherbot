@@ -248,6 +248,11 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		}
 	}
 	if !commandMatched && isCommand {
+		// Even if the command doesn't match, remember the robot was spoken to
+		last = shortTermMemory{messagetext, ts}
+		shortLock.Lock()
+		shortTermMemories[lastCmdContext] = last
+		shortLock.Unlock()
 		catchAllPlugins = make([]*Plugin, 0, len(plugins))
 		for _, plugin := range plugins {
 			if plugin.CatchAll {
@@ -257,6 +262,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		// See if a command matches (and runs)
 		commandMatched = checkPluginMatchers(true, bot, messagetext)
 	}
+	// See if the robot was waiting on a reply
 	matcher := replyMatcher{user, channel}
 	replyLock.Lock()
 	if len(replies) > 0 {
@@ -266,7 +272,6 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		if waitingForReply {
 			// we got a match - so delete the matcher and send the reply struct
 			delete(replies, matcher)
-			replyLock.Unlock()
 			if commandMatched {
 				rep.replyChannel <- reply{false, true, ""}
 				Log(Debug, fmt.Sprintf("User \"%s\" issued a new command while the robot was waiting for a reply in channel \"%s\"", user, channel))
@@ -282,10 +287,10 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 				rep.replyChannel <- reply{matched, false, messagetext}
 			}
 		} else {
-			replyLock.Unlock()
 			Log(Trace, "No matching replyWaiter")
 		}
 	}
+	replyLock.Unlock()
 	// Direct commands were checked above; if a direct command didn't match,
 	// and a there wasn't a reply being waited on, then we check ambient
 	// MessageMatchers if it wasn't a direct command. Note that ambient
