@@ -14,8 +14,8 @@ var brains = make(map[string]func(Handler, *log.Logger) SimpleBrain)
 
 // short-term memories, mostly what "it" is
 type shortTermMemory struct {
-	memory  string
-	learned time.Time
+	memory    string
+	timestamp time.Time
 }
 
 type memoryContext struct {
@@ -234,7 +234,7 @@ loop:
 			now := time.Now()
 			shortLock.Lock()
 			for k, v := range shortTermMemories {
-				if now.Sub(v.learned) > shortTermDuration {
+				if now.Sub(v.timestamp) > shortTermDuration {
 					delete(shortTermMemories, k)
 				}
 			}
@@ -372,8 +372,8 @@ func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVa
 // indexed by user and channel, but not plugin, these facts can be referenced
 // between plugins. This functionality is considered EXPERIMENTAL.
 func (r *Robot) Remember(key, value string) {
-	learned := time.Now()
-	memory := shortTermMemory{value, learned}
+	timestamp := time.Now()
+	memory := shortTermMemory{value, timestamp}
 	context := memoryContext{key, r.User, r.Channel}
 	shortLock.Lock()
 	shortTermMemories[context] = memory

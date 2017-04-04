@@ -15,6 +15,8 @@ var paused = false // For Windows service pause support
 var shutdownMutex sync.Mutex
 var plugRunningWaitGroup sync.WaitGroup
 
+const keepListeningDuration = 77 * time.Second
+
 // messageAppliesToPlugin checks the user and channel against the plugin's
 // configuration to determine if the message should be evaluated. Used by
 // both handleMessage and the help builtin.
@@ -111,7 +113,7 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 									// TODO: it would probably be best to substitute the value
 									// from "it" back in to the original message and re-check for
 									// a match. Failing a match, matched should be set to false.
-									s.learned = ts
+									s.timestamp = ts
 									shortTermMemories[c] = s
 								} else {
 									bot.Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about", contextLabel))
@@ -215,7 +217,31 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	commandMatched := false
 	waitingForReply := false
 	var catchAllPlugins []*Plugin
-	if isCommand {
+	ts := time.Now()
+	lastCmdContext := memoryContext{"lastCmd", user, channel}
+	shortLock.Lock()
+	last, ok := shortTermMemories[lastCmdContext]
+	shortLock.Unlock()
+	if ok {
+		// If the robot has been spoken to recently, it will keep listening
+		// for commands for a short duration
+		if ts.Sub(last.timestamp) < keepListeningDuration {
+			commandMatched = checkPluginMatchers(true, bot, messagetext)
+		}
+		if commandMatched {
+			last = shortTermMemory{messagetext, ts}
+			shortLock.Lock()
+			shortTermMemories[lastCmdContext] = last
+			shortLock.Unlock()
+		}
+	}
+
+	if !commandMatched && isCommand {
+		// Even if the command doesn't match, remember the robot was spoken to
+		last = shortTermMemory{messagetext, ts}
+		shortLock.Lock()
+		shortTermMemories[lastCmdContext] = last
+		shortLock.Unlock()
 		catchAllPlugins = make([]*Plugin, 0, len(plugins))
 		for _, plugin := range plugins {
 			if plugin.CatchAll {
