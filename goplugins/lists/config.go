@@ -39,7 +39,7 @@ CommandMatchers:
   Regex: '(?i:(?:remove|delete) ([-\w .,!?:\/]+) from (?:the )?(?:([\w-_]+) )?list)'
   Contexts: [ "item", "list" ]
 - Command: 'empty'
-  Regex: '(?i:empty (?:the )?(?:([\w-_]+) )?list)'
+  Regex: '(?i:(?:empty|clear) (?:the )?(?:([\w-_]+) )?list)'
   Contexts: [ "list" ]
 - Command: 'delete'
   Regex: '(?i:delete (?:the )?(?:([\w-_]+) )?list)'
