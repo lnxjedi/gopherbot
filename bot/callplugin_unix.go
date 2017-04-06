@@ -54,7 +54,9 @@ func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
 		}
 		shutdownMutex.Unlock()
 	}()
-	defer checkPanic(bot, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", plugin.name, command, args))
+	if !(plugin.name == "builtInadmin" && command == "abort") {
+		defer checkPanic(bot, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", plugin.name, command, args))
+	}
 	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\" with arguments \"%#v\"", command, plugin.name, args))
 	bot.pluginID = plugin.pluginID
 	switch plugin.pluginType {

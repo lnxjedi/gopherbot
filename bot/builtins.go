@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/base32"
 	"fmt"
+	"log"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -311,7 +313,9 @@ func admin(bot *Robot, command string, args ...string) {
 		bot.Reply("Configuration reloaded successfully")
 		Log(Info, "Configuration successfully reloaded by a request from:", bot.User)
 	case "abort":
-		bot.Say("Aaarrrggghhh!!! Goodbye, cruel world!")
+		buf := make([]byte, 32768)
+		runtime.Stack(buf, true)
+		log.Printf("%s", buf)
 		panic("Abort command issued")
 	case "quit":
 		plugRunningWaitGroup.Done()
