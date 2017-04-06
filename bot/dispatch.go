@@ -264,33 +264,30 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	}
 	// See if the robot was waiting on a reply
 	matcher := replyMatcher{user, channel}
-	replyLock.Lock()
-	if len(replies) > 0 {
-		var rep replyWaiter
-		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
-		rep, waitingForReply = replies[matcher]
-		if waitingForReply {
-			// we got a match - so delete the matcher and send the reply struct
-			delete(replies, matcher)
-			if commandMatched {
-				rep.replyChannel <- reply{false, true, ""}
-				Log(Debug, fmt.Sprintf("User \"%s\" issued a new command while the robot was waiting for a reply in channel \"%s\"", user, channel))
-			} else {
-				// if the robot was waiting on a reply, we don't want to check for
-				// ambient message matches - the plugin will handle it.
-				commandMatched = true
-				matched := false
-				if rep.re.MatchString(messagetext) {
-					matched = true
-				}
-				Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", user, channel, messagetext, rep.re.String(), matched))
-				rep.replyChannel <- reply{matched, false, messagetext}
-			}
+	Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
+	replies.Lock()
+	rep, waitingForReply := replies.m[matcher]
+	if !waitingForReply {
+		replies.Unlock()
+		Log(Trace, "No matching replyWaiter")
+	} else {
+		delete(replies.m, matcher)
+		replies.Unlock()
+		if commandMatched {
+			rep.replyChannel <- reply{false, true, ""}
+			Log(Debug, fmt.Sprintf("User \"%s\" issued a new command while the robot was waiting for a reply in channel \"%s\"", user, channel))
 		} else {
-			Log(Trace, "No matching replyWaiter")
+			// if the robot was waiting on a reply, we don't want to check for
+			// ambient message matches - the plugin will handle it.
+			commandMatched = true
+			matched := false
+			if rep.re.MatchString(messagetext) {
+				matched = true
+			}
+			Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", user, channel, messagetext, rep.re.String(), matched))
+			rep.replyChannel <- reply{matched, false, messagetext}
 		}
 	}
-	replyLock.Unlock()
 	// Direct commands were checked above; if a direct command didn't match,
 	// and a there wasn't a reply being waited on, then we check ambient
 	// MessageMatchers if it wasn't a direct command. Note that ambient
