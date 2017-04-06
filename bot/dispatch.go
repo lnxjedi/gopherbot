@@ -30,14 +30,14 @@ func messageAppliesToPlugin(user, channel string, plugin *Plugin) bool {
 	}
 	if plugin.RequireAdmin {
 		isAdmin := false
-		b.lock.RLock()
-		for _, adminUser := range b.adminUsers {
+		robot.RLock()
+		for _, adminUser := range robot.adminUsers {
 			if user == adminUser {
 				isAdmin = true
 				break
 			}
 		}
-		b.lock.RUnlock()
+		robot.RUnlock()
 		if !isAdmin {
 			return false
 		}
@@ -135,16 +135,16 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 				if len(plugin.ElevatedCommands) > 0 {
 					for _, i := range plugin.ElevatedCommands {
 						if matcher.Command == i {
-							if b.elevator != nil {
+							if robot.elevator != nil {
 								// elevators have their own pluginID & name, for brain access
 								pbot := &Robot{
 									User:    bot.User,
 									Channel: bot.Channel,
 									Format:  Variable,
 									// NOTE: checkPluginMatchers is called under b.lock.RLock()
-									pluginID: "elevator-" + b.elevatorProvider,
+									pluginID: "elevator-" + robot.elevatorProvider,
 								}
-								privilegesOk = b.elevator(pbot, false)
+								privilegesOk = robot.elevator(pbot, false)
 							} else {
 								privilegesOk = false
 								Log(Error, "Encountered elevated command and no elevation method configured")
@@ -155,16 +155,16 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 				if len(plugin.ElevateImmediateCommands) > 0 {
 					for _, i := range plugin.ElevateImmediateCommands {
 						if matcher.Command == i {
-							if b.elevator != nil {
+							if robot.elevator != nil {
 								// elevators have their own pluginID & name, for brain access
 								pbot := &Robot{
 									User:    bot.User,
 									Channel: bot.Channel,
 									Format:  Variable,
 									// NOTE: checkPluginMatchers is called under b.lock.RLock()
-									pluginID: "elevator-" + b.elevatorProvider,
+									pluginID: "elevator-" + robot.elevatorProvider,
 								}
-								privilegesOk = b.elevator(pbot, true)
+								privilegesOk = robot.elevator(pbot, true)
 							} else {
 								privilegesOk = false
 								Log(Error, "Encountered elevated command and no elevation method configured")
@@ -204,7 +204,7 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 // was addressed directly but nothing matched, any registered CatchAll plugins are called.
 // There Should Be Only One (catchall, in theory (?))
 func handleMessage(isCommand bool, channel, user, messagetext string) {
-	b.lock.RLock()
+	robot.RLock()
 	bot := &Robot{
 		User:    user,
 		Channel: channel,
@@ -310,7 +310,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 			shutdownMutex.Unlock()
 		}
 	}
-	b.lock.RUnlock()
+	robot.RUnlock()
 	last = shortTermMemory{messagetext, ts}
 	if commandMatched || isCommand {
 		shortLock.Lock()

@@ -105,9 +105,9 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 		Log(Error, err)
 		return "", nil, false, InvalidDatumKey
 	}
-	b.lock.RLock()
-	brain := b.brain
-	b.lock.RUnlock()
+	robot.RLock()
+	brain := robot.brain
+	robot.RUnlock()
 	if brain == nil {
 		Log(Error, "Brain function called with no brain configured")
 		return "", nil, false, BrainFailed
@@ -121,7 +121,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 	}
 	var err error
 	var db []byte
-	db, exists, err = b.brain.Retrieve(dkey)
+	db, exists, err = robot.brain.Retrieve(dkey)
 	if err != nil {
 		return "", nil, false, BrainFailed
 	}
@@ -129,14 +129,14 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 }
 
 func storeDatum(key string, datum *[]byte) RetVal {
-	b.lock.RLock()
-	brain := b.brain
-	b.lock.RUnlock()
+	robot.RLock()
+	brain := robot.brain
+	robot.RUnlock()
 	if brain == nil {
 		Log(Error, "Brain function called with no brain configured")
 		return BrainFailed
 	}
-	err := b.brain.Store(key, *datum)
+	err := robot.brain.Store(key, *datum)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Storing datum %s: %v", key, err))
 		return BrainFailed

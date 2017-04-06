@@ -33,9 +33,9 @@ type Robot struct {
 // some which require admin. Otherwise the plugin should just configure
 // RequireAdmin: true
 func (r *Robot) CheckAdmin() bool {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-	for _, adminUser := range b.adminUsers {
+	robot.RLock()
+	defer robot.RUnlock()
+	for _, adminUser := range robot.adminUsers {
 		if r.User == adminUser {
 			return true
 		}
@@ -47,10 +47,10 @@ func (r *Robot) CheckAdmin() bool {
 // the elevator should always prompt for 2fa; otherwise a configured timeout
 // should apply.
 func (r *Robot) Elevate(immediate bool) bool {
-	b.lock.RLock()
-	e := b.elevator
-	p := b.elevatorProvider
-	b.lock.RUnlock()
+	robot.RLock()
+	e := robot.elevator
+	p := robot.elevatorProvider
+	robot.RUnlock()
 	if e == nil {
 		return false
 	}
@@ -100,21 +100,21 @@ func (r *Robot) RandomInt(n int) int {
 // Current attributes:
 // name, alias, fullName, contact
 func (r *Robot) GetBotAttribute(a string) *AttrRet {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
+	robot.RLock()
+	defer robot.RUnlock()
 	ret := Ok
 	var attr string
 	switch a {
 	case "name":
-		attr = b.name
+		attr = robot.name
 	case "fullName", "realName":
-		attr = b.fullName
+		attr = robot.fullName
 	case "alias":
-		attr = string(b.alias)
+		attr = string(robot.alias)
 	case "email":
-		attr = b.email
+		attr = robot.email
 	case "contact", "admin", "adminContact":
-		attr = b.adminContact
+		attr = robot.adminContact
 	default:
 		ret = AttributeNotFound
 	}
@@ -128,7 +128,7 @@ func (r *Robot) GetBotAttribute(a string) *AttrRet {
 // name(handle), fullName, email, firstName, lastName, phone
 // TODO: supplement data with gopherbot.json user's table
 func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
-	attr, ret := b.GetProtocolUserAttribute(u, a)
+	attr, ret := robot.GetProtocolUserAttribute(u, a)
 	return &AttrRet{attr, ret}
 }
 
@@ -139,7 +139,7 @@ func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
 // name(handle), fullName, email, firstName, lastName, phone
 // TODO: supplement data with gopherbot.json user's table
 func (r *Robot) GetSenderAttribute(a string) *AttrRet {
-	attr, ret := b.GetProtocolUserAttribute(r.User, a)
+	attr, ret := robot.GetProtocolUserAttribute(r.User, a)
 	return &AttrRet{attr, ret}
 }
 
@@ -179,8 +179,8 @@ and call GetPluginConfig with a double-pointer:
 ... And voila! *pConf is populated with the contents from the configured Config: stanza
 */
 func (r *Robot) GetPluginConfig(dptr interface{}) RetVal {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
+	robot.RLock()
+	defer robot.RUnlock()
 	plugin := plugins[plugIDmap[r.pluginID]]
 	if plugin.config == nil {
 		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but no config was found.", plugin.name))
@@ -214,7 +214,7 @@ func (r *Robot) Log(l LogLevel, v ...interface{}) {
 // channel. Use Robot.Fixed().SencChannelMessage(...) for fixed-width
 // font.
 func (r *Robot) SendChannelMessage(channel, msg string) RetVal {
-	return b.SendProtocolChannelMessage(channel, msg, r.Format)
+	return robot.SendProtocolChannelMessage(channel, msg, r.Format)
 }
 
 // SendUserChannelMessage lets a plugin easily send a message directed to
@@ -222,27 +222,27 @@ func (r *Robot) SendChannelMessage(channel, msg string) RetVal {
 // object. Use Robot.Fixed().SencChannelMessage(...) for fixed-width
 // font.
 func (r *Robot) SendUserChannelMessage(user, channel, msg string) RetVal {
-	return b.SendProtocolUserChannelMessage(user, channel, msg, r.Format)
+	return robot.SendProtocolUserChannelMessage(user, channel, msg, r.Format)
 }
 
 // SendUserMessage lets a plugin easily send a DM to a user. If a DM
 // isn't possible, the connector should message the user in a channel.
 func (r *Robot) SendUserMessage(user, msg string) RetVal {
-	return b.SendProtocolUserMessage(user, msg, r.Format)
+	return robot.SendProtocolUserMessage(user, msg, r.Format)
 }
 
 // Reply directs a message to the user
 func (r *Robot) Reply(msg string) RetVal {
 	if r.Channel == "" {
-		return b.SendProtocolUserMessage(r.User, msg, r.Format)
+		return robot.SendProtocolUserMessage(r.User, msg, r.Format)
 	}
-	return b.SendProtocolUserChannelMessage(r.User, r.Channel, msg, r.Format)
+	return robot.SendProtocolUserChannelMessage(r.User, r.Channel, msg, r.Format)
 }
 
 // Say just sends a message to the user or channel
 func (r *Robot) Say(msg string) RetVal {
 	if r.Channel == "" {
-		return b.SendProtocolUserMessage(r.User, msg, r.Format)
+		return robot.SendProtocolUserMessage(r.User, msg, r.Format)
 	}
-	return b.SendProtocolChannelMessage(r.Channel, msg, r.Format)
+	return robot.SendProtocolChannelMessage(r.Channel, msg, r.Format)
 }

@@ -20,17 +20,17 @@ func (h handler) GetLogLevel() LogLevel {
 // GetInstallPath gets the path to the bot's install dir -
 // the location of default configuration and stock external plugins.
 func (h handler) GetInstallPath() string {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-	return b.installPath
+	robot.RLock()
+	defer robot.RUnlock()
+	return robot.installPath
 }
 
 // GetLocalPath gets the path to the bot's install dir -
 // the location of default configuration and stock external plugins.
 func (h handler) GetLocalPath() string {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
-	return b.localPath
+	robot.RLock()
+	defer robot.RUnlock()
+	return robot.localPath
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
@@ -40,24 +40,24 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 	logChannel := channelName
 	var message string
 
-	b.lock.RLock()
-	for _, user := range b.ignoreUsers {
+	robot.RLock()
+	for _, user := range robot.ignoreUsers {
 		if strings.EqualFold(userName, user) {
 			Log(Debug, "Ignoring user", userName)
-			b.lock.RUnlock()
+			robot.RUnlock()
 			return
 		}
 	}
-	b.lock.RUnlock()
-	if b.preRegex != nil {
-		matches := b.preRegex.FindAllStringSubmatch(messageFull, -1)
+	robot.RUnlock()
+	if robot.preRegex != nil {
+		matches := robot.preRegex.FindAllStringSubmatch(messageFull, -1)
 		if matches != nil && len(matches[0]) == 2 {
 			isCommand = true
 			message = matches[0][1]
 		}
 	}
-	if !isCommand && b.postRegex != nil {
-		matches := b.postRegex.FindAllStringSubmatch(messageFull, -1)
+	if !isCommand && robot.postRegex != nil {
+		matches := robot.postRegex.FindAllStringSubmatch(messageFull, -1)
 		if matches != nil && len(matches[0]) == 3 {
 			isCommand = true
 			message = matches[0][1] + matches[0][2]
@@ -76,25 +76,25 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct
 func (h handler) GetProtocolConfig(v interface{}) error {
-	b.lock.RLock()
+	robot.RLock()
 	err := json.Unmarshal(protocolConfig, v)
-	b.lock.RUnlock()
+	robot.RUnlock()
 	return err
 }
 
 // GetBrainConfig unmarshals the brain's configuration data into a provided struct
 func (h handler) GetBrainConfig(v interface{}) error {
-	b.lock.RLock()
+	robot.RLock()
 	err := json.Unmarshal(brainConfig, v)
-	b.lock.RUnlock()
+	robot.RUnlock()
 	return err
 }
 
 // GetElevateConfig unmarshals the brain's configuration data into a provided struct
 func (h handler) GetElevateConfig(v interface{}) error {
-	b.lock.RLock()
+	robot.RLock()
 	err := json.Unmarshal(elevateConfig, v)
-	b.lock.RUnlock()
+	robot.RUnlock()
 	return err
 }
 
@@ -107,9 +107,9 @@ func (h handler) Log(l LogLevel, v ...interface{}) {
 // be configured in gobot.conf.
 func (h handler) SetFullName(n string) {
 	Log(Debug, "Setting full name to: "+n)
-	b.lock.Lock()
-	b.fullName = n
-	b.lock.Unlock()
+	robot.Lock()
+	robot.fullName = n
+	robot.Unlock()
 	updateRegexes()
 }
 
@@ -117,18 +117,18 @@ func (h handler) SetFullName(n string) {
 // be configured in gobot.conf.
 func (h handler) SetName(n string) {
 	Log(Debug, "Setting name to: "+n)
-	b.lock.Lock()
-	b.name = n
+	robot.Lock()
+	robot.name = n
 	ignoring := false
-	for _, name := range b.ignoreUsers {
+	for _, name := range robot.ignoreUsers {
 		if strings.EqualFold(n, name) {
 			ignoring = true
 			break
 		}
 	}
 	if !ignoring {
-		b.ignoreUsers = append(b.ignoreUsers, strings.ToLower(n))
+		robot.ignoreUsers = append(robot.ignoreUsers, strings.ToLower(n))
 	}
-	b.lock.Unlock()
+	robot.Unlock()
 	updateRegexes()
 }

@@ -52,26 +52,26 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret RetVal) {
 	e.Text = messageBody.Bytes()
 
 	var a smtp.Auth
-	if b.mailConf.Authtype == "plain" {
-		host := strings.Split(b.mailConf.Mailhost, ":")[0]
-		a = smtp.PlainAuth("", b.mailConf.User, b.mailConf.Password, host)
+	if robot.mailConf.Authtype == "plain" {
+		host := strings.Split(robot.mailConf.Mailhost, ":")[0]
+		a = smtp.PlainAuth("", robot.mailConf.User, robot.mailConf.Password, host)
 		r.Log(Debug, fmt.Sprintf("Sending authenticated email to \"%s\" from \"%s\" via \"%s\" with user: %s, password: %s and host: %s",
 			mailTo,
 			from,
-			b.mailConf.Mailhost,
-			b.mailConf.User,
-			b.mailConf.Password,
+			robot.mailConf.Mailhost,
+			robot.mailConf.User,
+			robot.mailConf.Password,
 			host,
 		))
 	} else {
 		r.Log(Debug, fmt.Sprintf("Sending unauthenticated email to \"%s\" from \"%s\" via \"%s\"",
 			mailTo,
 			from,
-			b.mailConf.Mailhost,
+			robot.mailConf.Mailhost,
 		))
 	}
 
-	err := e.Send(b.mailConf.Mailhost, a)
+	err := e.Send(robot.mailConf.Mailhost, a)
 	if err != nil {
 		err = fmt.Errorf("Sending email: %v", err)
 		r.Log(Error, err)

@@ -129,10 +129,10 @@ type waitreplyresponse struct {
 }
 
 func listenHTTPJSON() {
-	if len(b.port) > 0 {
+	if len(robot.port) > 0 {
 		h := handler{}
 		http.Handle("/json", h)
-		Log(Fatal, http.ListenAndServe(b.port, nil))
+		Log(Fatal, http.ListenAndServe(robot.port, nil))
 	}
 }
 
@@ -264,8 +264,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		s := bot.Recall(m.Key)
 		sendReturn(rw, &stringresponse{s})
 	case "GetPluginConfig":
-		b.lock.RLock()
-		defer b.lock.RUnlock()
+		robot.RLock()
+		defer robot.RUnlock()
 		plugin := plugins[plugIDmap[bot.pluginID]]
 		if plugin.Config == nil {
 			Log(Error, fmt.Sprintf("GetPluginConfig called by external plugin \"%s\", but no config found.", plugin.name))

@@ -31,34 +31,34 @@ func setFormat(format string) MessageFormat {
 }
 
 func updateRegexes() {
-	b.lock.RLock()
-	alias := b.alias
-	b.lock.RUnlock()
+	robot.RLock()
+	alias := robot.alias
+	robot.RUnlock()
 	preString := `^(?i:`
-	if b.alias != 0 {
+	if robot.alias != 0 {
 		if strings.ContainsRune(string(escape_aliases), alias) {
 			preString += `\` + string(alias) + "|"
 		} else {
 			preString += string(alias) + "|"
 		}
 	}
-	preString += `@?` + b.name + `[:,]{0,1}\s*)(.*)$`
+	preString += `@?` + robot.name + `[:,]{0,1}\s*)(.*)$`
 	re, err := regexp.Compile(preString)
 	if err == nil {
 		Log(Debug, "Setting preString regex to", preString)
-		b.lock.Lock()
-		b.preRegex = re
-		b.lock.Unlock()
+		robot.Lock()
+		robot.preRegex = re
+		robot.Unlock()
 	} else {
 		Log(Error, fmt.Sprintf("Error compiling robot name regex: %s", preString))
 	}
-	postString := `^([^,@]+),?\s*(?i:@?` + b.name + `)([.?!])?$`
+	postString := `^([^,@]+),?\s*(?i:@?` + robot.name + `)([.?!])?$`
 	re, err = regexp.Compile(postString)
 	if err == nil {
 		Log(Debug, "Setting postString regex to", postString)
-		b.lock.Lock()
-		b.postRegex = re
-		b.lock.Unlock()
+		robot.Lock()
+		robot.postRegex = re
+		robot.Unlock()
 	} else {
 		Log(Error, fmt.Sprintf("Error compiling robot name regex: %s", postString))
 	}

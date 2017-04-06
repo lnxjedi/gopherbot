@@ -57,7 +57,7 @@ func getConfigFile(filename string, required bool, c interface{}) error {
 
 	loaded := false
 
-	cf, err = ioutil.ReadFile(b.installPath + "/conf/" + filename)
+	cf, err = ioutil.ReadFile(robot.installPath + "/conf/" + filename)
 	if err == nil {
 		if err = yaml.Unmarshal(cf, c); err != nil {
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
@@ -67,7 +67,7 @@ func getConfigFile(filename string, required bool, c interface{}) error {
 		Log(Debug, fmt.Sprintf("Loaded installed conf/%s", filename))
 		loaded = true
 	}
-	cf, err = ioutil.ReadFile(b.localPath + "/conf/" + filename)
+	cf, err = ioutil.ReadFile(robot.localPath + "/conf/" + filename)
 	if err != nil {
 		err = fmt.Errorf("Reading local configuration for \"%s\": %v", filename, err)
 		Log(Debug, err)
@@ -99,25 +99,25 @@ func loadConfig() error {
 	loglevel = logStrToLevel(newconfig.LogLevel)
 	setLogLevel(loglevel)
 
-	b.lock.Lock()
+	robot.Lock()
 
 	if newconfig.AdminContact != "" {
-		b.adminContact = newconfig.AdminContact
+		robot.adminContact = newconfig.AdminContact
 	}
 	if newconfig.Email != "" {
-		b.email = newconfig.Email
+		robot.email = newconfig.Email
 	}
-	b.mailConf = newconfig.MailConfig
+	robot.mailConf = newconfig.MailConfig
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		if !strings.ContainsRune(string(aliases+escape_aliases), alias) {
 			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escape_aliases, aliases)
 		}
-		b.alias = alias
+		robot.alias = alias
 	}
 	if newconfig.LocalPort != "" {
-		b.port = "127.0.0.1:" + newconfig.LocalPort
-		err := os.Setenv("GOPHER_HTTP_POST", "http://"+b.port)
+		robot.port = "127.0.0.1:" + newconfig.LocalPort
+		err := os.Setenv("GOPHER_HTTP_POST", "http://"+robot.port)
 		if err != nil {
 			Log(Error, fmt.Errorf("Error exporting GOPHER_HTTP_PORT: %q", err))
 		}
@@ -125,25 +125,25 @@ func loadConfig() error {
 		Log(Error, "LocalPort not defined, not exporting GOPHER_HTTP_POST and external plugins will be broken")
 	}
 	if newconfig.Name != "" {
-		b.name = newconfig.Name
+		robot.name = newconfig.Name
 	}
 
 	if newconfig.ElevateMethod != "" {
-		b.elevatorProvider = newconfig.ElevateMethod
+		robot.elevatorProvider = newconfig.ElevateMethod
 	}
 	if newconfig.ElevateConfig != nil {
 		elevateConfig = newconfig.ElevateConfig
 	}
 
 	if newconfig.Brain != "" {
-		b.brainProvider = newconfig.Brain
+		robot.brainProvider = newconfig.Brain
 	}
 	if newconfig.BrainConfig != nil {
 		brainConfig = newconfig.BrainConfig
 	}
 
 	if newconfig.Protocol != "" {
-		b.protocol = newconfig.Protocol
+		robot.protocol = newconfig.Protocol
 	} else {
 		return fmt.Errorf("Protocol not specified in gopherbot.json")
 	}
@@ -152,10 +152,10 @@ func loadConfig() error {
 	}
 
 	if newconfig.AdminUsers != nil {
-		b.adminUsers = newconfig.AdminUsers
+		robot.adminUsers = newconfig.AdminUsers
 	}
 	if newconfig.DefaultChannels != nil {
-		b.plugChannels = newconfig.DefaultChannels
+		robot.plugChannels = newconfig.DefaultChannels
 	}
 	if newconfig.ExternalPlugins != nil {
 		for i, ep := range newconfig.ExternalPlugins {
@@ -165,22 +165,22 @@ func loadConfig() error {
 			}
 		}
 		if pluginsOk {
-			b.externalPlugins = newconfig.ExternalPlugins
+			robot.externalPlugins = newconfig.ExternalPlugins
 		}
 	}
 	if newconfig.IgnoreUsers != nil {
-		b.ignoreUsers = newconfig.IgnoreUsers
+		robot.ignoreUsers = newconfig.IgnoreUsers
 	}
 	if newconfig.JoinChannels != nil {
-		b.joinChannels = newconfig.JoinChannels
+		robot.joinChannels = newconfig.JoinChannels
 	}
 
 	// loadPluginConfig does it's own locking
-	b.lock.Unlock()
+	robot.Unlock()
 
-	botLock.Lock()
+	globalLock.Lock()
 	config = newconfig
-	botLock.Unlock()
+	globalLock.Unlock()
 
 	updateRegexes()
 	if pluginsOk {

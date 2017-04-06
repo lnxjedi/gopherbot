@@ -89,10 +89,10 @@ var stopRegistrations = false
 
 // initialize sends the "init" command to every plugin
 func initializePlugins() {
-	b.lock.RLock()
-	defer b.lock.RUnlock()
+	robot.RLock()
+	defer robot.RUnlock()
 	bot := &Robot{
-		User:    b.name,
+		User:    robot.name,
 		Channel: "",
 		Format:  Variable,
 	}
@@ -132,10 +132,10 @@ func loadPluginConfig() {
 	i := 0
 
 	// Copy some data from the bot under lock
-	b.lock.RLock()
+	robot.RLock()
 	// Get a list of all plugins from the package pluginHandlers var and
 	// the list of external plugins
-	nump := len(pluginHandlers) + len(b.externalPlugins)
+	nump := len(pluginHandlers) + len(robot.externalPlugins)
 	pnames := make([]string, nump)
 	ptypes := make([]plugType, nump)
 	eppaths := make(map[string]string) // Paths to external plugins
@@ -152,7 +152,7 @@ func loadPluginConfig() {
 		i++
 	}
 
-	for index, plug := range b.externalPlugins {
+	for index, plug := range robot.externalPlugins {
 		if len(plug.Name) == 0 || len(plug.Path) == 0 {
 			Log(Error, fmt.Sprintf("Skipping external plugin #%d with zero-length Name or Path", index+1))
 			nump--
@@ -178,9 +178,9 @@ func loadPluginConfig() {
 	pnames = pnames[0:nump]
 	ptypes = ptypes[0:nump]
 	// copy the list of default channels
-	pchan := make([]string, 0, len(b.plugChannels))
-	pchan = append(pchan, b.plugChannels...)
-	b.lock.RUnlock() // we're done with bot data 'til the end
+	pchan := make([]string, 0, len(robot.plugChannels))
+	pchan = append(pchan, robot.plugChannels...)
+	robot.RUnlock() // we're done with bot data 'til the end
 
 PlugHandlerLoop:
 	for plug := range pluginHandlers {
@@ -347,15 +347,15 @@ PlugLoop:
 	}
 
 	reInitPlugins := false
-	b.lock.Lock()
+	robot.Lock()
 	plugins = plist
 	plugIDmap = pfinder
 	// loadPluginConfig is called in newBot, before the connector has started;
 	// don't init plugins in that case.
-	if b.Connector != nil {
+	if robot.Connector != nil {
 		reInitPlugins = true
 	}
-	b.lock.Unlock()
+	robot.Unlock()
 	if reInitPlugins {
 		initializePlugins()
 	}

@@ -96,8 +96,8 @@ func help(bot *Robot, command string, args ...string) {
 		return // ignore init
 	}
 	if command == "help" {
-		b.lock.RLock()
-		defer b.lock.RUnlock()
+		robot.RLock()
+		defer robot.RUnlock()
 
 		var term, helpOutput string
 		botSub := `(bot)`
@@ -128,10 +128,10 @@ func help(bot *Robot, command string, args ...string) {
 									newSize += len(helpLines)
 								}
 								prepend := make([]string, 1, newSize)
-								prepend[0] = strings.Replace(helptext, botSub, b.name, -1)
+								prepend[0] = strings.Replace(helptext, botSub, robot.name, -1)
 								helpLines = append(prepend, helpLines...)
 							} else {
-								helpLines = append(helpLines, strings.Replace(helptext, botSub, b.name, -1))
+								helpLines = append(helpLines, strings.Replace(helptext, botSub, robot.name, -1))
 							}
 						}
 					}
@@ -157,7 +157,7 @@ func help(bot *Robot, command string, args ...string) {
 								chantext += ")"
 							}
 							for _, helptext := range phelp.Helptext {
-								helpLines = append(helpLines, strings.Replace(helptext, botSub, b.name, -1)+chantext)
+								helpLines = append(helpLines, strings.Replace(helptext, botSub, robot.name, -1)+chantext)
 							}
 						}
 					}
@@ -195,8 +195,8 @@ func dump(bot *Robot, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
-	b.lock.RLock()
-	defer b.lock.RUnlock()
+	robot.RLock()
+	defer robot.RUnlock()
 	switch command {
 	case "robot":
 		c, _ := yaml.Marshal(config)
@@ -286,17 +286,17 @@ func admin(bot *Robot, command string, args ...string) {
 	}
 	switch command {
 	case "info":
-		b.lock.RLock()
-		admins := strings.Join(b.adminUsers, ", ")
-		b.lock.RUnlock()
+		robot.RLock()
+		admins := strings.Join(robot.adminUsers, ", ")
+		robot.RUnlock()
 		if bot.CheckAdmin() {
 			msg := make([]string, 8)
 			msg[0] = "Here's some information about my running environment:"
 			msg[1] = fmt.Sprintf("The hostname for the server I'm running on is: %s", hostName)
-			b.lock.RLock()
-			msg[2] = fmt.Sprintf("My install directory is: %s", b.installPath)
-			msg[3] = fmt.Sprintf("My local configuration directory is: %s", b.localPath)
-			b.lock.RUnlock()
+			robot.RLock()
+			msg[2] = fmt.Sprintf("My install directory is: %s", robot.installPath)
+			msg[3] = fmt.Sprintf("My local configuration directory is: %s", robot.localPath)
+			robot.RUnlock()
 			msg[4] = fmt.Sprintf("My software version is: Gopherbot %s, commit: %s", Version, commit)
 			msg[5] = fmt.Sprintf("The administrators for this robot are: %s", admins)
 			bot.Say(strings.Join(msg, "\n"))

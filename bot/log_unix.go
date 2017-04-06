@@ -27,9 +27,9 @@ func Log(l LogLevel, v ...interface{}) {
 		}
 
 		if l == Fatal {
-			b.logger.Fatal(msg)
+			robot.logger.Fatal(msg)
 		} else {
-			b.logger.Print(msg)
+			robot.logger.Print(msg)
 			tsMsg := fmt.Sprintf("%s %s", time.Now().Format("Jan 2 15:04:05"), msg)
 			logLock.Lock()
 			logBuffer[logLine] = tsMsg

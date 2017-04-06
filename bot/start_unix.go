@@ -44,13 +44,13 @@ func dirExists(path string) bool {
 
 // Start gets the robot going
 func Start() {
-	botLock.Lock()
+	globalLock.Lock()
 	if started {
-		botLock.Unlock()
+		globalLock.Unlock()
 		return
 	}
 	started = true
-	botLock.Unlock()
+	globalLock.Unlock()
 	var execpath, execdir, installdir, localdir string
 	var err error
 
@@ -200,9 +200,9 @@ func Start() {
 
 	var conn Connector
 
-	connectionStarter, ok := connectors[b.protocol]
+	connectionStarter, ok := connectors[robot.protocol]
 	if !ok {
-		botLogger.Fatal("No connector registered with name:", b.protocol)
+		botLogger.Fatal("No connector registered with name:", robot.protocol)
 	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface

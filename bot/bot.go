@@ -16,9 +16,12 @@ import (
 
 // Version is the current version of Gopherbot
 var Version = "0.9.0-dev"
+
+// mkdist.* creates a temporary commit.go that sets commit to the current
+// git commit in an init() function
 var commit = "(manual build)"
 
-var botLock sync.RWMutex
+var globalLock sync.RWMutex
 var random *rand.Rand
 
 var connectors = make(map[string]func(Handler, *log.Logger) Connector)
@@ -37,7 +40,7 @@ func RegisterConnector(name string, connstarter func(Handler, *log.Logger) Conne
 
 // robot holds all the interal data relevant to the Bot. Most of it is populated
 // by loadConfig, other stuff is populated by the connector.
-type robot struct {
+var robot struct {
 	Connector                         // Connector interface, implemented by each specific protocol
 	localPath        string           // Directory for local files overriding default config
 	installPath      string           // Path to the bot's installation directory
@@ -53,7 +56,7 @@ type robot struct {
 	postRegex        *regexp.Regexp   // regex for matching, e.g. "open the pod bay doors, hal"
 	joinChannels     []string         // list of channels to join
 	plugChannels     []string         // list of channels where plugins are active by default
-	lock             sync.RWMutex     // for safe updating of bot data structures
+	sync.RWMutex                      // for safe updating of bot data structures
 	protocol         string           // Name of the protocol, e.g. "slack"
 	brainProvider    string           // Type of Brain provider to use
 	brain            SimpleBrain      // Interface for robot to Store and Retrieve data
@@ -64,41 +67,40 @@ type robot struct {
 	logger           *log.Logger      // Where to log to
 }
 
-var b *robot
+//var robot *robotcfg
 
 // newBot instantiates the one and only instance of a Gobot, and loads
 // configuration.
 func newBot(cpath, epath string, logger *log.Logger) error {
-	botLock.Lock()
+	globalLock.Lock()
 	// Prevent plugin registration after program init
 	stopRegistrations = true
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	b = &robot{}
-	botLock.Unlock()
+	globalLock.Unlock()
 
-	b.localPath = cpath
-	b.installPath = epath
-	b.logger = logger
+	robot.localPath = cpath
+	robot.installPath = epath
+	robot.logger = logger
 
 	handle := handler{}
 	if err := loadConfig(); err != nil {
 		return err
 	}
-	if len(b.elevatorProvider) > 0 {
-		if eprovider, ok := elevators[b.elevatorProvider]; !ok {
-			Log(Fatal, "No elevator registered for configured ElevateMethod:", b.elevatorProvider)
+	if len(robot.elevatorProvider) > 0 {
+		if eprovider, ok := elevators[robot.elevatorProvider]; !ok {
+			Log(Fatal, "No elevator registered for configured ElevateMethod:", robot.elevatorProvider)
 		} else {
-			b.elevator = eprovider(handle)
+			robot.elevator = eprovider(handle)
 		}
 	}
 
-	if len(b.brainProvider) > 0 {
-		if bprovider, ok := brains[b.brainProvider]; !ok {
-			Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", b.brainProvider))
+	if len(robot.brainProvider) > 0 {
+		if bprovider, ok := brains[robot.brainProvider]; !ok {
+			Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", robot.brainProvider))
 		} else {
-			b.brain = bprovider(handle, logger)
+			robot.brain = bprovider(handle, logger)
 		}
 	}
 	return nil
@@ -106,20 +108,20 @@ func newBot(cpath, epath string, logger *log.Logger) error {
 
 // Init is called after the bot is connected.
 func botInit(c Connector) {
-	b.lock.Lock()
-	if b.Connector != nil {
-		b.lock.Unlock()
+	robot.Lock()
+	if robot.Connector != nil {
+		robot.Unlock()
 		return
 	}
-	b.Connector = c
-	b.lock.Unlock()
+	robot.Connector = c
+	robot.Unlock()
 	go listenHTTPJSON()
 	var cl []string
-	b.lock.RLock()
-	cl = append(cl, b.joinChannels...)
-	b.lock.RUnlock()
+	robot.RLock()
+	cl = append(cl, robot.joinChannels...)
+	robot.RUnlock()
 	for _, channel := range cl {
-		b.JoinChannel(channel)
+		robot.JoinChannel(channel)
 	}
 	initializePlugins()
 }
