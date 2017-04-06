@@ -71,7 +71,6 @@ type Plugin struct {
 	Config                   json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetPluginConfig()
 	config                   interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
 	pluginID                 string          // 32-char random ID for identifying plugins in callbacks
-	lock                     sync.Mutex      // For use with the robot's Brain
 }
 
 // PluginHandler is the struct a plugin registers for the Gopherbot plugin API.
