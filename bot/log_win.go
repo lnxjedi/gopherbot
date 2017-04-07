@@ -30,7 +30,7 @@ func Log(l LogLevel, v ...interface{}) {
 			msg = fmt.Sprintln(v...)
 		}
 
-		b.logger.Print(msg)
+		robot.logger.Print(msg)
 		if eventLog != nil {
 			switch l {
 			case Info:

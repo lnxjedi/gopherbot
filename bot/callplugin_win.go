@@ -59,17 +59,17 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 	if byte(plugin.pluginPath[0]) == byte("/"[0]) {
 		fullPath = plugin.pluginPath
 	} else {
-		_, err := os.Stat(b.localPath + "/" + plugin.pluginPath)
+		_, err := os.Stat(robot.localPath + "/" + plugin.pluginPath)
 		if err != nil {
-			_, err := os.Stat(b.installPath + "/" + plugin.pluginPath)
+			_, err := os.Stat(robot.installPath + "/" + plugin.pluginPath)
 			if err != nil {
 				err = fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.name, err)
 				return nil, err
 			}
-			fullPath = b.installPath + "/" + plugin.pluginPath
+			fullPath = robot.installPath + "/" + plugin.pluginPath
 			Log(Debug, "Using stock external plugin:", fullPath)
 		} else {
-			fullPath = b.localPath + "/" + plugin.pluginPath
+			fullPath = robot.localPath + "/" + plugin.pluginPath
 			Log(Debug, "Using local external plugin:", fullPath)
 		}
 	}
@@ -122,17 +122,17 @@ func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
 		if byte(plugin.pluginPath[0]) == byte("/"[0]) {
 			fullPath = plugin.pluginPath
 		} else {
-			_, err := os.Stat(b.localPath + "/" + plugin.pluginPath)
+			_, err := os.Stat(robot.localPath + "/" + plugin.pluginPath)
 			if err != nil {
-				_, err := os.Stat(b.installPath + "/" + plugin.pluginPath)
+				_, err := os.Stat(robot.installPath + "/" + plugin.pluginPath)
 				if err != nil {
 					Log(Error, fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.name, err))
 					return
 				}
-				fullPath = b.installPath + "/" + plugin.pluginPath
+				fullPath = robot.installPath + "/" + plugin.pluginPath
 				Log(Debug, "Using stock external plugin:", fullPath)
 			} else {
-				fullPath = b.localPath + "/" + plugin.pluginPath
+				fullPath = robot.localPath + "/" + plugin.pluginPath
 				Log(Debug, "Using local external plugin:", fullPath)
 			}
 		}

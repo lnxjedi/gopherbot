@@ -42,13 +42,13 @@ func dirExists(path string) bool {
 
 // Start gets the robot going
 func Start() {
-	botLock.Lock()
+	globalLock.Lock()
 	if started {
-		botLock.Unlock()
+		globalLock.Unlock()
 		return
 	}
 	started = true
-	botLock.Unlock()
+	globalLock.Unlock()
 
 	const svcName = "gopherbot"
 	var err error
@@ -192,9 +192,9 @@ func Start() {
 	}
 	botLogger.Printf("Starting up with localdir: %s, and installdir: %s\n", localdir, installdir)
 
-	connectionStarter, ok := connectors[b.protocol]
+	connectionStarter, ok := connectors[robot.protocol]
 	if !ok {
-		botLogger.Fatal("No connector registered with name:", b.protocol)
+		botLogger.Fatal("No connector registered with name:", robot.protocol)
 	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface
@@ -222,7 +222,7 @@ func Start() {
 		conn.Run(finish)
 	} else {
 		// Stop logging to startup log when running as a service
-		b.logger.SetOutput(ioutil.Discard)
+		robot.logger.SetOutput(ioutil.Discard)
 		// Started as a Windows Service
 		runService(svcName)
 	}
