@@ -2,9 +2,14 @@ package bot
 
 const helpConfig = `
 AllChannels: true
+Help:
+- Keywords: [ "info", "information", "robot", "admin", "administrators" ]
+  Helptext: [ "(bot), info | tell me about yourself - provide useful information for admins, or a list of admins" ]
 CommandMatchers:
 - Command: help
   Regex: '(?i:help ?([\d\w]+)?)'
+- Command: info
+  Regex: '(?i:info|tell me about yourself|about|information)'
 `
 
 const adminConfig = `
@@ -18,8 +23,6 @@ Help:
   Helptext: [ "(bot), quit - request a graceful shutdown, waiting for all plugins to finish" ]
 - Keywords: [ "abort" ]
   Helptext: [ "(bot), abort - request an immediate shutdown without waiting for plugins to finish" ]
-- Keywords: [ "info", "information", "robot", "admin", "administrators" ]
-  Helptext: [ "(bot), info | tell me about yourself - provide useful information for admins, or a list of admins" ]
 CommandMatchers:
 - Command: reload
   Regex: '(?i:reload)'
@@ -27,8 +30,6 @@ CommandMatchers:
   Regex: '(?i:quit|exit)'
 - Command: abort
   Regex: '(?i:abort)'
-- Command: info
-  Regex: '(?i:info|tell me about yourself)'
 `
 
 const launchCodesConfig = `

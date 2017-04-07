@@ -95,6 +95,25 @@ func help(bot *Robot, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
+	if command == "info" {
+		robot.RLock()
+		admins := strings.Join(robot.adminUsers, ", ")
+		alias := robot.alias
+		robot.RUnlock()
+		msg := make([]string, 0, 7)
+		msg = append(msg, "Here's some information about my running environment:")
+		msg = append(msg, fmt.Sprintf("The hostname for the server I'm running on is: %s", hostName))
+		if bot.CheckAdmin() {
+			msg = append(msg, fmt.Sprintf("My install directory is: %s", robot.installPath))
+			msg = append(msg, fmt.Sprintf("My local configuration directory is: %s", robot.localPath))
+		}
+		msg = append(msg, fmt.Sprintf("My software version is: Gopherbot %s, commit: %s", Version, commit))
+		if alias != 0 {
+			msg = append(msg, fmt.Sprintf("My alias is: %s", string(alias)))
+		}
+		msg = append(msg, fmt.Sprintf("The administrators for this robot are: %s", admins))
+		bot.Say(strings.Join(msg, "\n"))
+	}
 	if command == "help" {
 		robot.RLock()
 		defer robot.RUnlock()
@@ -285,24 +304,6 @@ func admin(bot *Robot, command string, args ...string) {
 		return
 	}
 	switch command {
-	case "info":
-		robot.RLock()
-		admins := strings.Join(robot.adminUsers, ", ")
-		robot.RUnlock()
-		if bot.CheckAdmin() {
-			msg := make([]string, 8)
-			msg[0] = "Here's some information about my running environment:"
-			msg[1] = fmt.Sprintf("The hostname for the server I'm running on is: %s", hostName)
-			robot.RLock()
-			msg[2] = fmt.Sprintf("My install directory is: %s", robot.installPath)
-			msg[3] = fmt.Sprintf("My local configuration directory is: %s", robot.localPath)
-			robot.RUnlock()
-			msg[4] = fmt.Sprintf("My software version is: Gopherbot %s, commit: %s", Version, commit)
-			msg[5] = fmt.Sprintf("The administrators for this robot are: %s", admins)
-			bot.Say(strings.Join(msg, "\n"))
-		} else {
-			bot.Say(fmt.Sprintf("The administrators for this robot are: %s", admins))
-		}
 	case "reload":
 		err := loadConfig()
 		if err != nil {

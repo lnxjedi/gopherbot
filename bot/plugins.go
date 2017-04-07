@@ -214,11 +214,11 @@ PlugHandlerLoop:
 	// Because some plugins may be disabled, pnames and plugins won't necessarily sync
 	plugIndex := 0
 
-	var plugin Plugin
+	var plugin *Plugin
 
 PlugLoop:
 	for i, plug := range pnames {
-		plugin = Plugin{}
+		plugin = &Plugin{}
 		plugin.AllowDirect = defaultAllowDirect
 		Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", plugIndex, plug, ptypes[i]))
 
@@ -226,23 +226,23 @@ PlugLoop:
 		if plugin.pluginType == plugExternal {
 			// External plugins spit their default config to stdout when called with command="configure"
 			plugin.pluginPath = eppaths[plug]
-			cfg, err := getExtDefCfg(&plugin)
+			cfg, err := getExtDefCfg(plugin)
 			if err != nil {
 				Log(Error, err)
 				continue
 			}
-			if err := yaml.Unmarshal(*cfg, &plugin); err != nil {
+			if err := yaml.Unmarshal(*cfg, plugin); err != nil {
 				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
 				continue
 			}
 		} else {
-			if err := yaml.Unmarshal([]byte(pluginHandlers[plug].DefaultConfig), &plugin); err != nil {
+			if err := yaml.Unmarshal([]byte(pluginHandlers[plug].DefaultConfig), plugin); err != nil {
 				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
 				continue
 			}
 		}
 		// getConfigFile overlays the default config with local config
-		if err := getConfigFile("plugins/"+plug+".yaml", false, &plugin); err != nil {
+		if err := getConfigFile("plugins/"+plug+".yaml", false, plugin); err != nil {
 			Log(Error, fmt.Errorf("Problem with local configuration for plugin \"%s\", skipping: %v", plug, err))
 			continue
 		}
@@ -347,7 +347,7 @@ PlugLoop:
 		pfinder[plugin.pluginID] = plugIndex
 		// Store this plugin's config in the temporary list
 		Log(Info, fmt.Sprintf("Recorded plugin #%d, \"%s\"", plugIndex, plugin.name))
-		plist = append(plist, &plugin)
+		plist = append(plist, plugin)
 		plugIndex++
 	}
 
