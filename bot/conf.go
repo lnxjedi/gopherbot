@@ -21,24 +21,25 @@ type externalPlugin struct {
 
 // botconf specifies 'bot configuration, and is read from $GOPHER_CONFIGDIR/conf/gopherbot.yaml
 type botconf struct {
-	AdminContact    string           // Contact info for whomever administers the robot
-	Email           string           // From: address when the robot wants to send an email
-	MailConfig      botMailer        // configuration for sending email
-	Protocol        string           // Name of the connector protocol to use, e.g. "slack"
-	ProtocolConfig  json.RawMessage  // Protocol-specific configuration, type for unmarshalling arbitrary config
-	Brain           string           // Type of Brain to use
-	BrainConfig     json.RawMessage  // Brain-specific configuration, type for unmarshalling arbitrary config
-	ElevateMethod   string           // Type of elevator to use (SlackTOTP)
-	ElevateConfig   json.RawMessage  // ElevateMethod-specific configuration, type for unmarshalling arbitrary config
-	Name            string           // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
-	DefaultChannels []string         // Channels where plugins are active by default, e.g. [ "general", "random" ]
-	IgnoreUsers     []string         // Users the 'bot never talks to - like other bots
-	JoinChannels    []string         // Channels the 'bot should join when it logs in (not supported by all protocols)
-	ExternalPlugins []externalPlugin // List of non-Go plugins to load
-	AdminUsers      []string         // List of users who can access administrative commands
-	Alias           string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
-	LocalPort       string           // Port number for listening on localhost, for CLI plugins
-	LogLevel        string           // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
+	AdminContact       string           // Contact info for whomever administers the robot
+	Email              string           // From: address when the robot wants to send an email
+	MailConfig         botMailer        // configuration for sending email
+	Protocol           string           // Name of the connector protocol to use, e.g. "slack"
+	ProtocolConfig     json.RawMessage  // Protocol-specific configuration, type for unmarshalling arbitrary config
+	Brain              string           // Type of Brain to use
+	BrainConfig        json.RawMessage  // Brain-specific configuration, type for unmarshalling arbitrary config
+	ElevateMethod      string           // Type of elevator to use (SlackTOTP)
+	ElevateConfig      json.RawMessage  // ElevateMethod-specific configuration, type for unmarshalling arbitrary config
+	Name               string           // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
+	DefaultAllowDirect bool             // Whether plugins are available in a DM by default
+	DefaultChannels    []string         // Channels where plugins are active by default, e.g. [ "general", "random" ]
+	IgnoreUsers        []string         // Users the 'bot never talks to - like other bots
+	JoinChannels       []string         // Channels the 'bot should join when it logs in (not supported by all protocols)
+	ExternalPlugins    []externalPlugin // List of non-Go plugins to load
+	AdminUsers         []string         // List of users who can access administrative commands
+	Alias              string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
+	LocalPort          string           // Port number for listening on localhost, for CLI plugins
+	LogLevel           string           // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
 var config botconf
@@ -101,6 +102,7 @@ func loadConfig() error {
 
 	robot.Lock()
 
+	robot.defaultAllowDirect = newconfig.DefaultAllowDirect // defaults to false
 	if newconfig.AdminContact != "" {
 		robot.adminContact = newconfig.AdminContact
 	}

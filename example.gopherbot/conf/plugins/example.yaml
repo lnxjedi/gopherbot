@@ -5,9 +5,9 @@
 #
 # Compiled-in go plugins can be disabled
 Disabled: false
-# When set, direct messages won't match this plugin. Useful for
-# plugins that can only be used in a given channel for auditing/transparency.
-DisallowDirect: true
+# When true, this plugin can be activated by direct message. Normally
+# plugins can only be used in a given channel for auditing/transparency.
+AllowDirect: true
 # On the other hand, some plugins may need sensitive information that should
 # only be available in a direct message.
 DirectOnly: false

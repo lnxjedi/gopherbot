@@ -13,13 +13,13 @@ Table of Contents
       * [Connection Protocol](#connection-protocol)
       * [Brain](#brain)
       * [AdminUsers, IgnoreUsers, and Elevation](#adminusers-ignoreusers-and-elevation)
-      * [DefaultChannels and JoinChannels](#defaultchannels-and-joinchannels)
+      * [DefaultAllowDirect, DefaultChannels and JoinChannels](#defaultallowdirect-defaultchannels-and-joinchannels)
       * [ExternalPlugins](#externalplugins)
       * [LocalPort and LogLevel](#localport-and-loglevel)
   * [Plugin Configuration](#plugin-configuration)
     * [Plugin Configuration Directives](#plugin-configuration-directives)
       * [Disabled](#disabled)
-      * [DisallowDirect, DirectOnly, Channels and AllChannels](#disallowdirect-directonly-channels-and-allchannels)
+      * [AllowDirect, DirectOnly, Channels and AllChannels](#allowdirect-directonly-channels-and-allchannels)
       * [CatchAll](#catchall)
       * [Users, RequireAdmin](#users-requireadmin)
       * [ElevatedCommands and ElevateImmediateCommands](#elevatedcommands-and-elevateimmediatecommands)
@@ -93,14 +93,13 @@ reloading and terminating the robot. The robot will never respond to users liste
 Individual commands can be configured to require elevation, normally requiring the user to provide some variety of MFA token before completing the command. More information on
 elevation is in [Configuring Elevation](Elevation.md).
 
-### DefaultChannels and JoinChannels
+### DefaultAllowDirect, DefaultChannels and JoinChannels
 ```yaml
+DefaultAllowDirect: true
 DefaultChannels: [ 'general', 'random' ]
 JoinChannels: [ 'security', 'infrastructure', 'lunch' ]
 ```
-DefaultChannels specify which channels a plugin will be active in if the plugin doesn't explicitly list it's
-channels. JoinChannels specify the channels the robot will try to join when logging in (though this isn't
-supported in the Slack connector).
+DefaultAllowDirect sets a robot-wide default value for AllowDirect, indicating whether a plugin's commands are accessible via direct message. DefaultChannels specify which channels a plugin will be active in if the plugin doesn't explicitly list it's channels. JoinChannels specify the channels the robot will try to join when logging in (though this isn't supported in the Slack connector).
 
 ### ExternalPlugins
 ```yaml
@@ -140,10 +139,10 @@ Disabled: true
 ```
 Useful for disabling compiled-in Go plugins.
 
-### DisallowDirect, DirectOnly, Channels and AllChannels
+### AllowDirect, DirectOnly, Channels and AllChannels
 ```yaml
-DisallowDirect: false # default
-DirectOnly: true      # default: false
+AllowDirect: false  # default
+DirectOnly: true    # default: false
 ```
 ```yaml
 Channels:
@@ -153,10 +152,7 @@ Channels:
 ```yaml
 AllChannels: true
 ```
-DisallowDirect and DirectOnly determine the availability of a given plugin by direct messaging the robot
-(private chat). To specify the channels a plugin is available in, you can list the channels explicitly or
-set `AllChannels` to true. If neither is specified, the plugin falls back to the robot's configured
-`DefaultChannels`.
+AllowDirect indicates whether the plugin's functionality is available via direct message; if not set, the plugin inherits the DefaultAllowDirect value from the robot. DirectOnly indicates the plugin is ONLY available by direct message (private chat). To specify the channels a plugin is available in, you can list the channels explicitly or set `AllChannels` to true. If neither is specified, the plugin falls back to the robot's configured `DefaultChannels`.
 
 ### CatchAll
 ```yaml

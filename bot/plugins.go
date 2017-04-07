@@ -55,7 +55,7 @@ type Plugin struct {
 	pluginType               plugType        // plugGo, plugExternal, plugBuiltin - determines how commands are routed
 	pluginPath               string          // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=plugExternal only
 	Disabled                 bool            // Set true to disable the plugin
-	DisallowDirect           bool            // Set this true if this plugin can never be accessed via direct message
+	AllowDirect              bool            // Set this true if this plugin can be accessed via direct message
 	DirectOnly               bool            // Set this true if this plugin ONLY accepts direct messages
 	Channels                 []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels              bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
@@ -142,6 +142,8 @@ func loadPluginConfig() {
 	pfinder := make(map[string]int)    // keep a map of pluginIDs to identify plugins during a callback
 	pset := make(map[string]bool)      // track plugin names
 
+	defaultAllowDirect := robot.defaultAllowDirect
+
 	// builtins come first so indexes match, see loop below
 	// Note this doesn't need to be under RLock, but it needs to precede
 	// external plugins. This should be fast enough that it doesn't matter.
@@ -212,9 +214,12 @@ PlugHandlerLoop:
 	// Because some plugins may be disabled, pnames and plugins won't necessarily sync
 	plugIndex := 0
 
+	var plugin Plugin
+
 PlugLoop:
 	for i, plug := range pnames {
-		var plugin Plugin
+		plugin = Plugin{}
+		plugin.AllowDirect = defaultAllowDirect
 		Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", plugIndex, plug, ptypes[i]))
 
 		plugin.pluginType = ptypes[i]
