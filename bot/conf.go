@@ -147,7 +147,7 @@ func loadConfig() error {
 	if newconfig.Protocol != "" {
 		robot.protocol = newconfig.Protocol
 	} else {
-		return fmt.Errorf("Protocol not specified in gopherbot.json")
+		return fmt.Errorf("Protocol not specified in gopherbot.yaml")
 	}
 	if newconfig.ProtocolConfig != nil {
 		protocolConfig = newconfig.ProtocolConfig
