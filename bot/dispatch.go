@@ -61,7 +61,7 @@ func messageAppliesToPlugin(user, channel string, plugin *Plugin) bool {
 			return false
 		}
 	}
-	if directMsg && plugin.AllowDirect {
+	if directMsg && (plugin.AllowDirect || plugin.DirectOnly) {
 		return true
 	}
 	if len(plugin.Channels) > 0 {

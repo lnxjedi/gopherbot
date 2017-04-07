@@ -9,6 +9,7 @@ CommandMatchers:
 
 const adminConfig = `
 AllChannels: true
+AllowDirect: true
 RequireAdmin: true
 Help:
 - Keywords: [ "reload" ]
