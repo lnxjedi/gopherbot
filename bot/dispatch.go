@@ -6,14 +6,22 @@ import (
 	"time"
 )
 
-var plugRunningCounter int
-var shuttingDown = false
-var paused = false // For Windows service pause support
+var pluginsRunning struct {
+	count int
+	sync.WaitGroup
+	paused       bool
+	shuttingDown bool
+	sync.Mutex
+}
 
-// the shutdownMutex protects both the plugRunningCounter and the shuttingDown
+// var pluginsRunning.count int
+// var pluginsRunning.shuttingDown = false
+// var paused = false // For Windows service pause support
+
+// the shutdownMutex protects both the pluginsRunning.count and the pluginsRunning.shuttingDown
 // flag
-var shutdownMutex sync.Mutex
-var plugRunningWaitGroup sync.WaitGroup
+// var shutdownMutex sync.Mutex
+// var plugRunningWaitGroup sync.WaitGroup
 
 const keepListeningDuration = 77 * time.Second
 
@@ -177,16 +185,16 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 					if plugin.name == "builtInadmin" && matcher.Command == "abort" {
 						abort = true
 					}
-					shutdownMutex.Lock()
-					if shuttingDown && !abort {
+					pluginsRunning.Lock()
+					if pluginsRunning.shuttingDown && !abort {
 						bot.Say("Sorry, I'm shutting down and can't start any new tasks")
-						shutdownMutex.Unlock()
-					} else if paused && !abort {
+						pluginsRunning.Unlock()
+					} else if pluginsRunning.paused && !abort {
 						bot.Say("Sorry, I've been paused and can't start any new tasks")
-						shutdownMutex.Unlock()
+						pluginsRunning.Unlock()
 					} else {
-						shutdownMutex.Unlock()
-						plugRunningWaitGroup.Add(1)
+						pluginsRunning.Unlock()
+						pluginsRunning.Add(1)
 						go callPlugin(bot, plugin, matcher.Command, cmdArgs...)
 					}
 				} else {
@@ -297,17 +305,17 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		commandMatched = checkPluginMatchers(false, bot, messagetext)
 	}
 	if isCommand && !commandMatched { // the robot was spoken too, but nothing matched - call catchAlls
-		shutdownMutex.Lock()
-		if !shuttingDown {
-			shutdownMutex.Unlock()
+		pluginsRunning.Lock()
+		if !pluginsRunning.shuttingDown {
+			pluginsRunning.Unlock()
 			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", messagetext))
 			for _, plugin := range catchAllPlugins {
-				plugRunningWaitGroup.Add(1)
+				pluginsRunning.Add(1)
 				go callPlugin(bot, plugin, "catchall", messagetext)
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins
-			shutdownMutex.Unlock()
+			pluginsRunning.Unlock()
 		}
 	}
 	robot.RUnlock()

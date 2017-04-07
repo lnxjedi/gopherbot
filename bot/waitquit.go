@@ -16,12 +16,12 @@ func init() {
 
 	go func() {
 		sig := <-sigs
-		shutdownMutex.Lock()
-		shuttingDown = true
-		shutdownMutex.Unlock()
+		pluginsRunning.Lock()
+		pluginsRunning.shuttingDown = true
+		pluginsRunning.Unlock()
 		Log(Info, fmt.Sprintf("Received signal: %s, shutting down gracefully", sig))
 		// Wait for all plugins to stop running
-		plugRunningWaitGroup.Wait()
+		pluginsRunning.Wait()
 		// Stop the brain after it finishes any current task
 		brainQuit()
 		Log(Info, fmt.Sprintf("Exiting on signal: %s", sig))

@@ -318,19 +318,19 @@ func admin(bot *Robot, command string, args ...string) {
 		log.Printf("%s", buf)
 		panic("Abort command issued")
 	case "quit":
-		plugRunningWaitGroup.Done()
-		shutdownMutex.Lock()
-		plugRunningCounter--
-		shuttingDown = true
-		if plugRunningCounter > 0 {
-			runningCount := plugRunningCounter
-			shutdownMutex.Unlock()
+		pluginsRunning.Done()
+		pluginsRunning.Lock()
+		pluginsRunning.count--
+		pluginsRunning.shuttingDown = true
+		if pluginsRunning.count > 0 {
+			runningCount := pluginsRunning.count
+			pluginsRunning.Unlock()
 			bot.Say(fmt.Sprintf("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount))
 		} else {
-			shutdownMutex.Unlock()
+			pluginsRunning.Unlock()
 		}
 		// Wait for all plugins to stop running
-		plugRunningWaitGroup.Wait()
+		pluginsRunning.Wait()
 		bot.Reply(bot.RandomString(byebye))
 		// Stop the brain after it finishes any current task
 		brainQuit()

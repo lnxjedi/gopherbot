@@ -95,16 +95,16 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 
 // callPlugin (normally called with go ...) sends a command to a plugin.
 func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
-	shutdownMutex.Lock()
-	plugRunningCounter++
-	shutdownMutex.Unlock()
+	pluginsRunning.Lock()
+	pluginsRunning.count++
+	pluginsRunning.Unlock()
 	defer func() {
-		shutdownMutex.Lock()
-		plugRunningCounter--
-		if plugRunningCounter >= 0 {
-			plugRunningWaitGroup.Done()
+		pluginsRunning.Lock()
+		pluginsRunning.count--
+		if pluginsRunning.count >= 0 {
+			pluginsRunning.Done()
 		}
-		shutdownMutex.Unlock()
+		pluginsRunning.Unlock()
 	}()
 	if !(plugin.name == "builtInadmin" && command == "abort") {
 		defer checkPanic(bot, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", plugin.name, command, args))

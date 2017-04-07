@@ -37,14 +37,14 @@ loop:
 			case svc.Stop, svc.Shutdown:
 				break loop
 			case svc.Pause:
-				shutdownMutex.Lock()
-				paused = true
-				shutdownMutex.Unlock()
+				pluginsRunning.Lock()
+				pluginsRunning.paused = true
+				pluginsRunning.Unlock()
 				changes <- svc.Status{State: svc.Paused, Accepts: cmdsAccepted}
 			case svc.Continue:
-				shutdownMutex.Lock()
-				paused = false
-				shutdownMutex.Unlock()
+				pluginsRunning.Lock()
+				pluginsRunning.paused = false
+				pluginsRunning.Unlock()
 				changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 			default:
 				eventLog.Error(1, fmt.Sprintf("unexpected control request #%d", c))
@@ -52,17 +52,17 @@ loop:
 		}
 	}
 	changes <- svc.Status{State: svc.StopPending}
-	shutdownMutex.Lock()
-	shuttingDown = true
-	if plugRunningCounter > 0 {
-		runningCount := plugRunningCounter
-		shutdownMutex.Unlock()
+	pluginsRunning.Lock()
+	pluginsRunning.shuttingDown = true
+	if pluginsRunning.count > 0 {
+		runningCount := pluginsRunning.count
+		pluginsRunning.Unlock()
 		eventLog.Warning(1, fmt.Sprintf("Stop/shutdown requested with %d plugins running; waiting for all plugins to finish", runningCount))
 	} else {
-		shutdownMutex.Unlock()
+		pluginsRunning.Unlock()
 	}
 	// Wait for all plugins to stop running
-	plugRunningWaitGroup.Wait()
+	pluginsRunning.Wait()
 	// Stop the brain after it finishes any current task
 	brainQuit()
 	Log(Info, "Exiting on administrator command")
