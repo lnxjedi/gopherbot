@@ -56,7 +56,7 @@ var stockReplyList = []stockReply{
 func init() {
 	stockRepliesRe = regexp.MustCompile(stockRepliesRegex)
 	for _, sr := range stockReplyList {
-		stockReplies[sr.repTag] = regexp.MustCompile(sr.repRegex)
+		stockReplies[sr.repTag] = regexp.MustCompile(`^\s*` + sr.repRegex + `\s*$`)
 	}
 }
 
