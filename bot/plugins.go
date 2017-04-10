@@ -227,7 +227,7 @@ PlugHandlerLoop:
 
 PlugLoop:
 	for i, plug := range pnames {
-		plugin = &Plugin{}
+		plugin = new(Plugin)
 		plugin.AllowDirect = defaultAllowDirect
 		Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", plugIndex, plug, ptypes[i]))
 
