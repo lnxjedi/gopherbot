@@ -14,9 +14,8 @@ import (
 
 // PluginNames can be letters, numbers & underscores only, mainly so
 // brain functions can use ':' as a separator.
-const pNameRegex = `[\w]+`
+var pNameRe = regexp.MustCompile(`[\w]+`)
 
-var pNameRe = regexp.MustCompile(pNameRegex)
 var plugins []*Plugin
 var plugIDmap map[string]int
 
@@ -107,6 +106,16 @@ func initializePlugins() {
 	} else {
 		pluginsRunning.Unlock()
 	}
+}
+
+// Update passed-in regex so that a space can match a variable # of spaces
+func massageRegexp(r string) string {
+	replaceSpaceRe := regexp.MustCompile(`\[([^]]*) ([^]]*)\]`)
+	regex := replaceSpaceRe.ReplaceAllString(r, `[$1\x20$2]`)
+	regex = strings.Replace(regex, " ?", `\s*`, -1)
+	regex = strings.Replace(regex, " ", `\s+`, -1)
+	Log(Trace, fmt.Sprintf("Updated regex \"%s\" => \"%s\"", r, regex))
+	return regex
 }
 
 // RegisterPlugin allows plugins to register a PluginHandler in a func init().
@@ -259,8 +268,7 @@ PlugLoop:
 		// Compile the regex's
 		for i := range plugin.CommandMatchers {
 			command := &plugin.CommandMatchers[i]
-			regex := strings.Replace(command.Regex, " ?", `\s*`, -1)
-			regex = strings.Replace(regex, " ", `\s+`, -1)
+			regex := massageRegexp(command.Regex)
 			re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
 			if err != nil {
 				Log(Error, fmt.Errorf("Skipping %s, couldn't compile command regular expression \"%s\": %v", plug, regex, err))
@@ -270,8 +278,7 @@ PlugLoop:
 		}
 		for i := range plugin.ReplyMatchers {
 			reply := &plugin.ReplyMatchers[i]
-			regex := strings.Replace(reply.Regex, " ?", `\s*`, -1)
-			regex = strings.Replace(regex, " ", `\s+`, -1)
+			regex := massageRegexp(reply.Regex)
 			re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
 			if err != nil {
 				Log(Error, fmt.Errorf("Skipping %s, couldn't compile reply regular expression \"%s\": %v", plug, regex, err))
@@ -283,8 +290,7 @@ PlugLoop:
 			// Note that full message regexes don't get the beginning and end anchors added - the individual plugin
 			// will need to do this if necessary.
 			message := &plugin.MessageMatchers[i]
-			regex := strings.Replace(message.Regex, " ?", `\s*`, -1)
-			regex = strings.Replace(regex, " ", `\s+`, -1)
+			regex := massageRegexp(message.Regex)
 			re, err := regexp.Compile(regex)
 			if err != nil {
 				Log(Error, fmt.Errorf("Skipping %s, couldn't compile message regular expression \"%s\": %v", plug, regex, err))
