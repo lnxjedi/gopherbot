@@ -22,8 +22,13 @@ type memoryContext struct {
 	key, user, channel string
 }
 
-var shortTermMemories = make(map[memoryContext]shortTermMemory)
-var shortLock sync.Mutex
+var shortTermMemories = struct {
+	m map[memoryContext]shortTermMemory
+	sync.Mutex
+}{
+	make(map[memoryContext]shortTermMemory),
+	sync.Mutex{},
+}
 
 const shortTermDuration = 7 * time.Minute
 
@@ -232,13 +237,13 @@ loop:
 			}
 		case <-processMemories:
 			now := time.Now()
-			shortLock.Lock()
-			for k, v := range shortTermMemories {
+			shortTermMemories.Lock()
+			for k, v := range shortTermMemories.m {
 				if now.Sub(v.timestamp) > shortTermDuration {
-					delete(shortTermMemories, k)
+					delete(shortTermMemories.m, k)
 				}
 			}
-			shortLock.Unlock()
+			shortTermMemories.Unlock()
 			for _, m := range memories {
 				switch m.state {
 				case newMemory:
@@ -375,9 +380,9 @@ func (r *Robot) Remember(key, value string) {
 	timestamp := time.Now()
 	memory := shortTermMemory{value, timestamp}
 	context := memoryContext{key, r.User, r.Channel}
-	shortLock.Lock()
-	shortTermMemories[context] = memory
-	shortLock.Unlock()
+	shortTermMemories.Lock()
+	shortTermMemories.m[context] = memory
+	shortTermMemories.Unlock()
 }
 
 // RememberContext is a convenience function that stores a context reference in
@@ -391,9 +396,9 @@ func (r *Robot) RememberContext(context, value string) {
 // Recall recalls a short term memory, or the empty string if it doesn't exist
 func (r *Robot) Recall(key string) string {
 	context := memoryContext{key, r.User, r.Channel}
-	shortLock.Lock()
-	memory, ok := shortTermMemories[context]
-	shortLock.Unlock()
+	shortTermMemories.Lock()
+	memory, ok := shortTermMemories.m[context]
+	shortTermMemories.Unlock()
 	if !ok {
 		return ""
 	}

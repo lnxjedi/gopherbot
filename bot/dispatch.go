@@ -109,32 +109,32 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 				if len(matcher.Contexts) > 0 {
 					// Resolve & store "it" with short-term memories
 					ts := time.Now()
-					shortLock.Lock()
+					shortTermMemories.Lock()
 					for i, contextLabel := range matcher.Contexts {
 						if contextLabel != "" {
 							key := "context:" + contextLabel
 							c := memoryContext{key, bot.User, bot.Channel}
 							if len(cmdArgs) > i && (cmdArgs[i] == "it" || cmdArgs[i] == "") {
-								s, ok := shortTermMemories[c]
+								s, ok := shortTermMemories.m[c]
 								if ok {
 									cmdArgs[i] = s.memory
 									// TODO: it would probably be best to substitute the value
 									// from "it" back in to the original message and re-check for
 									// a match. Failing a match, matched should be set to false.
 									s.timestamp = ts
-									shortTermMemories[c] = s
+									shortTermMemories.m[c] = s
 								} else {
 									bot.Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about", contextLabel))
-									shortLock.Unlock()
+									shortTermMemories.Unlock()
 									return true
 								}
 							} else {
 								s := shortTermMemory{cmdArgs[i], ts}
-								shortTermMemories[c] = s
+								shortTermMemories.m[c] = s
 							}
 						}
 					}
-					shortLock.Unlock()
+					shortTermMemories.Unlock()
 				}
 			}
 			if matched {
@@ -233,21 +233,20 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	// See if the robot got a blank message, indicating that the last message
 	// was meant for it (if it was in the keepListeningDuration)
 	if isCommand && messagetext == "" {
-		commandMatched = true
-		matched := false
-		shortLock.Lock()
-		last, ok = shortTermMemories[lastMsgContext]
-		shortLock.Unlock()
-		if ts.Sub(last.timestamp) < keepListeningDuration {
-			matched = checkPluginMatchers(true, bot, last.memory)
-		}
-		if !matched {
+		shortTermMemories.Lock()
+		last, ok = shortTermMemories.m[lastMsgContext]
+		shortTermMemories.Unlock()
+		if ok && ts.Sub(last.timestamp) < keepListeningDuration {
+			messagetext = last.memory
+			commandMatched = checkPluginMatchers(true, bot, messagetext)
+		} else {
+			commandMatched = true
 			bot.Say("Yes?")
 		}
 	}
-	shortLock.Lock()
-	last, ok = shortTermMemories[lastCmdContext]
-	shortLock.Unlock()
+	shortTermMemories.Lock()
+	last, ok = shortTermMemories.m[lastCmdContext]
+	shortTermMemories.Unlock()
 	if ok && !commandMatched {
 		// If the robot has been spoken to recently, it will keep listening
 		// for commands for a short duration
@@ -258,9 +257,9 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	if !commandMatched && isCommand {
 		// Even if the command doesn't match, remember the robot was spoken to
 		last = shortTermMemory{messagetext, ts}
-		shortLock.Lock()
-		shortTermMemories[lastCmdContext] = last
-		shortLock.Unlock()
+		shortTermMemories.Lock()
+		shortTermMemories.m[lastCmdContext] = last
+		shortTermMemories.Unlock()
 		catchAllPlugins = make([]*Plugin, 0, len(plugins))
 		for _, plugin := range plugins {
 			if plugin.CatchAll {
@@ -321,13 +320,13 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	robot.RUnlock()
 	last = shortTermMemory{messagetext, ts}
 	if commandMatched || isCommand {
-		shortLock.Lock()
-		shortTermMemories[lastCmdContext] = last
-		delete(shortTermMemories, lastMsgContext)
-		shortLock.Unlock()
+		shortTermMemories.Lock()
+		shortTermMemories.m[lastCmdContext] = last
+		delete(shortTermMemories.m, lastMsgContext)
+		shortTermMemories.Unlock()
 	} else {
-		shortLock.Lock()
-		shortTermMemories[lastMsgContext] = last
-		shortLock.Unlock()
+		shortTermMemories.Lock()
+		shortTermMemories.m[lastMsgContext] = last
+		shortTermMemories.Unlock()
 	}
 }
