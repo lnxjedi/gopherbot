@@ -17,20 +17,18 @@ See [Design Philosophy](doc/Design.md)
 
 ## Features
 * Multi-platform with builds for Linux, Windows and Mac
-* Simple command plugins with the following features:
+* Multi-lingual with support for command plugins in Ruby, Python, PowerShell and Bash:
   * Most plugins can be distributed as a single text file
-  * Commands can be written in Ruby, Bash and PowerShell (with a Python library coming in 2017, sooner if I get a PR)
   * Plugins use blocking APIs vs registering callback functions, for easy scripting with a low learning curve
   * Plugin API includes WaitForReply* methods for simple question & answer flows
   * Flexible configuration can be easily overridden by the 'bot administrator
   * Configuration can limit plugins to certain channels and/or users
-  * Sample plugins: [Ruby](plugins/rubydemo), [Bash](plugins/bash), [PowerShell](plugins/psdemo.ps1)
+  * Sample plugins: [Ruby](plugins/rubydemo), [Python](plugins/pythondemo.py), [Bash](plugins/bashdemo), [PowerShell](plugins/psdemo.ps1)
 * Configurable [elevated privilege](doc/Elevation.md) support for security-sensitive commands
-* Localhost http/json interface for creating plugin APIs for other languages (example: [Ruby library](lib/rubylib.rb)
-* Highly-configurable plugins that can be constrained by channels, users, etc.
+* Localhost http/json interface for creating plugin APIs for other languages
 * A thread-safe brain for storing state
-* Configurable [logging](doc/Builtins.md#log)
-* A supply of [built-in](doc/Builtins.md) plugins and commands for viewing the log, reloading configuration, and more
+* Configurable logging
+* A supply of plugins and commands for viewing the log, reloading configuration, and more
 * Many sample plugins, including knock-knock jokes!
 
 ## Development Status
