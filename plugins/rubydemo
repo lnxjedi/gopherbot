@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 
 # boilerplate
-require ENV["GOPHER_INSTALLDIR"] + '/lib/rubylib'
+require ENV["GOPHER_INSTALLDIR"] + '/lib/gopherbot_v1'
 
 bot = Robot.new()
 # /boilerplate
@@ -99,11 +99,12 @@ when "forget"
 	i = ARGV[0].to_i - 1
 	memory = bot.CheckoutDatum("memory", true)
 	memories = memory.datum
-	if i > 0 && memories[i]
+	if i >= 0 && memories[i]
 		bot.Say("Ok, I'll forget \"#{memories[i]}\"")
 		memories.delete_at(i)
 		bot.UpdateDatum(memory)
 	else
+    bot.CheckinDatum(memory)
 		bot.Say("Gosh, I guess I never remembered that in the first place!")
 	end
 when "check"

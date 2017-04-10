@@ -12,7 +12,7 @@
 # Stylistic, can be omitted; $cmdArgs is always a String[],
 # but $Args turns into a String when you shift off the 2nd item
 [String[]]$cmdArgs = $Args
-Import-Module "$Env:GOPHER_INSTALLDIR\lib\Robot.psm1"
+Import-Module "$Env:GOPHER_INSTALLDIR\lib\gopherbot_v1.psm1"
 $bot = Get-Robot
 # end boilerplate
 

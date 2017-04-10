@@ -116,7 +116,7 @@ RememberContext(){
 	then
 		return 1
 	fi
-	Remember("context:$1", "$2")
+	Remember "context:$1" "$2"
 	return 0
 }
 
