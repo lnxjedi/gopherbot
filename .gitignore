@@ -4,4 +4,4 @@ gopherbot
 gopherbot.exe
 gopherbot*zip
 bot/commit.go
-lib/gopherbot.pyc
+lib/gopherbot_*.pyc
