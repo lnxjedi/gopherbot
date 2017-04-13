@@ -1,13 +1,60 @@
-// +build darwin dragonfly freebsd linux netbsd openbsd
-
 package bot
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
+	"strings"
 )
+
+// Windows argument parsing is all over the map; try to fix it here
+// Currently powershell only
+func fixInterpreterArgs(interpreter string, args []string) []string {
+	ire := regexp.MustCompile(`.*[\/\\](.*)`)
+	interp := ire.FindStringSubmatch(interpreter)[1]
+	switch interp {
+	case "powershell", "powershell.exe":
+		for i, _ := range args {
+			args[i] = strings.Replace(args[i], " ", "` ", -1)
+			args[i] = strings.Replace(args[i], ",", "`,", -1)
+			args[i] = strings.Replace(args[i], ";", "`;", -1)
+			if args[i] == "" {
+				args[i] = "\"\""
+			}
+		}
+	}
+	return args
+}
+
+// emulate Unix script convention by calling external scripts with
+// an interpreter.
+func getInterpreter(scriptPath string) (string, error) {
+	script, err := os.Open(scriptPath)
+	if err != nil {
+		err = fmt.Errorf("opening file: %s", err)
+		Log(Error, fmt.Sprintf("Problem getting interpreter for %s: %s", scriptPath, err))
+		return "", err
+	}
+	r := bufio.NewReader(script)
+	iline, err := r.ReadString('\n')
+	if err != nil {
+		err = fmt.Errorf("reading first line: %s", err)
+		Log(Error, fmt.Sprintf("Problem getting interpreter for %s: %s", scriptPath, err))
+		return "", err
+	}
+	if !strings.HasPrefix(iline, "#!") {
+		err := fmt.Errorf("Problem getting interpreter for %s; first line doesn't start with \"#!\"", scriptPath)
+		Log(Error, err)
+		return "", err
+	}
+	iline = strings.TrimRight(iline, "\n\r")
+	interpreter := strings.TrimPrefix(iline, "#!")
+	Log(Debug, fmt.Sprintf("Detected interpreter for %s: %s", scriptPath, interpreter))
+	return interpreter, nil
+}
 
 func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 	var fullPath string
@@ -28,8 +75,21 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 			Log(Debug, "Using local external plugin:", fullPath)
 		}
 	}
-	// cmd := exec.Command(fullPath, channel, user, matcher.Command, matches[0][1:]...)
-	cfg, err := exec.Command(fullPath, "configure").Output()
+	var cfg []byte
+	var err error
+	if unixPlugins {
+		Log(Debug, fmt.Sprintf("Calling \"%s\" with arg: configure", fullPath))
+		cfg, err = exec.Command(fullPath, "configure").Output()
+	} else {
+		var interpreter string
+		interpreter, err = getInterpreter(fullPath)
+		if err != nil {
+			err = fmt.Errorf("looking up interpreter for %s: %s", fullPath, err)
+			return nil, err
+		}
+		Log(Debug, fmt.Sprintf("Calling \"%s\" with interpreter \"%s\" and arg: configure", fullPath, interpreter))
+		cfg, err = exec.Command(interpreter, fullPath, "configure").Output()
+	}
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			err = fmt.Errorf("Problem retrieving default configuration for external plugin \"%s\", skipping: \"%v\", output: %s", fullPath, err, exitErr.Stderr)
@@ -84,12 +144,27 @@ func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
 				Log(Debug, "Using local external plugin:", fullPath)
 			}
 		}
-		externalArgs := make([]string, 0, 4+len(args))
+		interpreter, err := getInterpreter(fullPath)
+		if err != nil {
+			err = fmt.Errorf("looking up interpreter for %s: %s", fullPath, err)
+			Log(Error, fmt.Sprintf("Unable to call external plugin %s, no interpreter found: %s", fullPath, err))
+			return
+		}
+		externalArgs := make([]string, 0, 5+len(args))
+		// on Windows, we exec the interpreter with the script as first arg
+		if !unixPlugins {
+			externalArgs = append(externalArgs, fullPath)
+		}
 		externalArgs = append(externalArgs, command)
 		externalArgs = append(externalArgs, args...)
-		Log(Debug, fmt.Sprintf("Calling \"%s\" with args: %q", fullPath, externalArgs))
-		// cmd := exec.Command(fullPath, channel, user, matcher.Command, matches[0][1:]...)
-		cmd := exec.Command(fullPath, externalArgs...)
+		externalArgs = fixInterpreterArgs(interpreter, externalArgs)
+		Log(Debug, fmt.Sprintf("Calling \"%s\" with interpreter \"%s\" and args: %q", fullPath, interpreter, externalArgs))
+		var cmd *exec.Cmd
+		if unixPlugins {
+			cmd = exec.Command(fullPath, externalArgs...)
+		} else {
+			cmd = exec.Command(interpreter, externalArgs...)
+		}
 		cmd.Env = append(os.Environ(), []string{
 			fmt.Sprintf("GOPHER_CHANNEL=%s", bot.Channel),
 			fmt.Sprintf("GOPHER_USER=%s", bot.User),

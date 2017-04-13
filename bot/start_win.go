@@ -15,6 +15,8 @@ import (
 	"golang.org/x/sys/windows/svc"
 )
 
+var unixPlugins bool = false
+
 var started bool
 var isIntSess bool
 var hostName string

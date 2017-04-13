@@ -16,6 +16,8 @@ import (
 	"github.com/VividCortex/godaemon"
 )
 
+var unixPlugins bool = true
+
 var started bool
 var hostName string
 var finish = make(chan struct{})
