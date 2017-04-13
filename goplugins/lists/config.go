@@ -1,10 +1,11 @@
 package lists
 
-const listHelp = `The list plugin allows you to manage simple lists of items, such as a TODO
-list, lunch-spots, etc. List items can be no longer than 42 characters, and
-list names can contain letters, numbers, dashes and underscores - but no
-spaces. Note that lists is context aware, and will remember the list or item
-being discussed.`
+const listHelp = `The list plugin allows you to manage simple lists of items,
+such as a TODO list, lunch spots, etc. List items can be no longer than 42
+characters, and list names no longer than 21. When referring to list names,
+spaces will be replaced with dashes, so "meeting items" and "meeting-items" both
+refer to the "meeting-items" list. Note that lists is context aware, and will
+remember the list or item being discussed.`
 
 const defaultConfig = `
 # For keeping simple shared lists of things
@@ -31,26 +32,26 @@ CommandMatchers:
 - Command: 'help'
   Regex: '(?i:help with lists?)'
 - Command: 'add'
-  Regex: '(?i:add ([-\w .,!?:\/]+) to (?:the )?(?:([\w-_]+) )?list)'
+  Regex: '(?i:add ([-\w .,!?:\/]+) to (?:the )?(?:([\w-_ ]+) )?list)'
   Contexts: [ "item", "list" ]
 - Command: 'list'
   Regex: '(?i:list lists)'
 - Command: 'remove'
-  Regex: '(?i:(?:remove|delete) ([-\w .,!?:\/]+) from (?:the )?(?:([\w-_]+) )?list)'
+  Regex: '(?i:(?:remove|delete) ([-\w .,!?:\/]+) from (?:the )?(?:([\w-_ ]+) )?list)'
   Contexts: [ "item", "list" ]
 - Command: 'empty'
-  Regex: '(?i:(?:empty|clear) (?:the )?(?:([\w-_]+) )?list)'
+  Regex: '(?i:(?:empty|clear) (?:the )?(?:([\w-_ ]+) )?list)'
   Contexts: [ "list" ]
 - Command: 'delete'
-  Regex: '(?i:delete (?:the )?(?:([\w-_]+) )?list)'
+  Regex: '(?i:delete (?:the )?(?:([\w-_ ]+) )?list)'
   Contexts: [ "list" ]
 - Command: 'show'
-  Regex: '(?i:show (?:the )?(?:([\w-_]+) )?list)'
+  Regex: '(?i:show (?:the )?(?:([\w-_ ]+) )?list)'
   Contexts: [ "list" ]
 - Command: 'pick'
-  Regex: '(?i:(?:pick )?(?:an? )?random (?:item )?(?:from )?(?:the )?(?:([\w-_]+) )?(?:list)?)'
+  Regex: '(?i:(?:pick )?(?:an? )?random (?:item )?(?:from )?(?:the )?(?:([\w-_ ]+) )?(?:list)?)'
   Contexts: [ "list" ]
 - Command: 'send'
-  Regex: '(?i:(?:send me|email) (?:the )?(?:([\w-_]+) )?list)'
+  Regex: '(?i:(?:send me|email) (?:the )?(?:([\w-_ ]+) )?list)'
   Contexts: [ "list" ]
 `
