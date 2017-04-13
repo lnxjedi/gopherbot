@@ -13,9 +13,15 @@ import (
 // Windows argument parsing is all over the map; try to fix it here
 // Currently powershell only
 func fixInterpreterArgs(interpreter string, args []string) []string {
-	ire := regexp.MustCompile(`.*[\/\\](.*)`)
-	interp := ire.FindStringSubmatch(interpreter)[1]
-	switch interp {
+	ire := regexp.MustCompile(`.*[\/\\!](.*)`)
+	var i string
+	imatch := ire.FindStringSubmatch(interpreter)
+	if len(imatch) == 0 {
+		i = interpreter
+	} else {
+		i = imatch[1]
+	}
+	switch i {
 	case "powershell", "powershell.exe":
 		for i, _ := range args {
 			args[i] = strings.Replace(args[i], " ", "` ", -1)
@@ -87,8 +93,9 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 			err = fmt.Errorf("looking up interpreter for %s: %s", fullPath, err)
 			return nil, err
 		}
-		Log(Debug, fmt.Sprintf("Calling \"%s\" with interpreter \"%s\" and arg: configure", fullPath, interpreter))
-		cfg, err = exec.Command(interpreter, fullPath, "configure").Output()
+		args := fixInterpreterArgs(interpreter, []string{fullPath, "configure"})
+		Log(Debug, fmt.Sprintf("Calling \"%s\" with args: %q", interpreter, args))
+		cfg, err = exec.Command(interpreter, args...).Output()
 	}
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
