@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -83,10 +84,7 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 	}
 	var cfg []byte
 	var err error
-	if unixPlugins {
-		Log(Debug, fmt.Sprintf("Calling \"%s\" with arg: configure", fullPath))
-		cfg, err = exec.Command(fullPath, "configure").Output()
-	} else {
+	if runtime.GOOS == "windows" {
 		var interpreter string
 		interpreter, err = getInterpreter(fullPath)
 		if err != nil {
@@ -96,6 +94,9 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 		args := fixInterpreterArgs(interpreter, []string{fullPath, "configure"})
 		Log(Debug, fmt.Sprintf("Calling \"%s\" with args: %q", interpreter, args))
 		cfg, err = exec.Command(interpreter, args...).Output()
+	} else {
+		Log(Debug, fmt.Sprintf("Calling \"%s\" with arg: configure", fullPath))
+		cfg, err = exec.Command(fullPath, "configure").Output()
 	}
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -159,7 +160,7 @@ func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
 		}
 		externalArgs := make([]string, 0, 5+len(args))
 		// on Windows, we exec the interpreter with the script as first arg
-		if !unixPlugins {
+		if runtime.GOOS == "windows" {
 			externalArgs = append(externalArgs, fullPath)
 		}
 		externalArgs = append(externalArgs, command)
@@ -167,10 +168,10 @@ func callPlugin(bot *Robot, plugin *Plugin, command string, args ...string) {
 		externalArgs = fixInterpreterArgs(interpreter, externalArgs)
 		Log(Debug, fmt.Sprintf("Calling \"%s\" with interpreter \"%s\" and args: %q", fullPath, interpreter, externalArgs))
 		var cmd *exec.Cmd
-		if unixPlugins {
-			cmd = exec.Command(fullPath, externalArgs...)
-		} else {
+		if runtime.GOOS == "windows" {
 			cmd = exec.Command(interpreter, externalArgs...)
+		} else {
+			cmd = exec.Command(fullPath, externalArgs...)
 		}
 		cmd.Env = append(os.Environ(), []string{
 			fmt.Sprintf("GOPHER_CHANNEL=%s", bot.Channel),
