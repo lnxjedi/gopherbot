@@ -134,6 +134,9 @@ func help(bot *Robot, command string, args ...string) {
 		}
 
 		helpLines := make([]string, 0, tooLong)
+		pluginlist.RLock()
+		plugins := pluginlist.p
+		pluginlist.RUnlock()
 		for _, plugin := range plugins {
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
 			if !hasTerm { // if you ask for help without a term, you just get help for whatever commands are available to you
@@ -214,6 +217,9 @@ func dump(bot *Robot, command string, args ...string) {
 	if command == "init" {
 		return // ignore init
 	}
+	pluginlist.RLock()
+	plugins := pluginlist.p
+	pluginlist.RUnlock()
 	robot.RLock()
 	defer robot.RUnlock()
 	switch command {

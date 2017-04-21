@@ -16,7 +16,14 @@ import (
 // brain functions can use ':' as a separator.
 var pNameRe = regexp.MustCompile(`[\w]+`)
 
-var plugins []*Plugin
+var pluginlist = struct {
+	p []*Plugin
+	sync.RWMutex
+}{
+	make([]*Plugin, 0),
+	sync.RWMutex{},
+}
+var plugLock sync.RWMutex
 var plugIDmap map[string]int
 
 var plugNameIDmap = make(map[string]string)
@@ -88,8 +95,9 @@ var stopRegistrations = false
 
 // initialize sends the "init" command to every plugin
 func initializePlugins() {
-	robot.RLock()
-	defer robot.RUnlock()
+	pluginlist.RLock()
+	plugins := pluginlist.p
+	pluginlist.RUnlock()
 	bot := &Robot{
 		User:    robot.name,
 		Channel: "",
@@ -359,7 +367,9 @@ PlugLoop:
 
 	reInitPlugins := false
 	robot.Lock()
-	plugins = plist
+	pluginlist.Lock()
+	pluginlist.p = plist
+	pluginlist.Unlock()
 	plugIDmap = pfinder
 	// loadPluginConfig is called in newBot, before the connector has started;
 	// don't init plugins in that case.

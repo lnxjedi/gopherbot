@@ -181,7 +181,9 @@ and call GetPluginConfig with a double-pointer:
 func (r *Robot) GetPluginConfig(dptr interface{}) RetVal {
 	robot.RLock()
 	defer robot.RUnlock()
-	plugin := plugins[plugIDmap[r.pluginID]]
+	pluginlist.RLock()
+	plugin := pluginlist.p[plugIDmap[r.pluginID]]
+	pluginlist.RUnlock()
 	if plugin.config == nil {
 		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but no config was found.", plugin.name))
 		return NoConfigFound

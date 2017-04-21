@@ -1,0 +1,12 @@
+2017-04-21 David Parsley <parsley@linuxjedi.org>
+
+  * The list of Users for a plugin can now contain globbing patterns
+
+  * All libraries now use a 'gopherbot_vX.foo' name format, in preparation
+  for future versions of plugin libraries
+
+  * Add support for hearing app/bot users in Slack connector. Note that apps
+  aren't guaranteed to have unique names, so the User value sent is
+  "bot:<non-unique name>:<unique bot ID>"; e.g. "bot:AWS notifier:BFOOBARBAZ";
+  this can be matched with a User of 'bot:*', or 'bot:AWS notifier:*', or
+  'bot:AWS notifier:BFOOBARBAZ'

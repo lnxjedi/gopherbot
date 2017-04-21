@@ -266,7 +266,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	case "GetPluginConfig":
 		robot.RLock()
 		defer robot.RUnlock()
-		plugin := plugins[plugIDmap[bot.pluginID]]
+		pluginlist.RLock()
+		plugin := pluginlist.p[plugIDmap[bot.pluginID]]
+		pluginlist.RUnlock()
 		if plugin.Config == nil {
 			Log(Error, fmt.Sprintf("GetPluginConfig called by external plugin \"%s\", but no config found.", plugin.name))
 			sendReturn(rw, handler{})

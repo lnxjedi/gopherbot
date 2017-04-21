@@ -88,9 +88,9 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (string, RetVal) {
 		channel: r.Channel,
 	}
 	var rep replyWaiter
-	robot.RLock()
-	plugin := plugins[plugIDmap[r.pluginID]]
-	robot.RUnlock()
+	pluginlist.RLock()
+	plugin := pluginlist.p[plugIDmap[r.pluginID]]
+	pluginlist.RUnlock()
 	if stockRepliesRe.MatchString(regexID) {
 		rep.re = stockReplies[regexID]
 	} else {

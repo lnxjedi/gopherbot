@@ -158,10 +158,18 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 
 	// Remove auto-links - chatbots don't want those
 	text := msg.Msg.Text
+	if text == "" { // some bot messages don't have any text, so check for a fallback
+		text = msg.Attachments[0].Fallback
+	}
 	text = reAddedLinks.ReplaceAllString(text, "$1")
 	text = reLinks.ReplaceAllString(text, "$1")
 	chanID := msg.Msg.Channel
 	userID := msg.Msg.User
+	if userID == "" {
+		if msg.Msg.BotID != "" {
+			userID = msg.Msg.BotID
+		}
+	}
 
 	userName, ok := s.userName(userID)
 	if !ok {
@@ -237,6 +245,12 @@ func (s *slackConnector) updateMaps() {
 		s.Log(bot.Trace, "Mapping user name", user.Name, "to", user.ID)
 		userMap[user.Name] = user
 		userIDMap[user.ID] = user.Name
+	}
+	for botID, botName := range bots {
+		s.Log(bot.Trace, "Mapping bot ID", botID, "to name:", botName)
+		// note that we don't map the name to anything, since you can't (currently?)
+		// speak to a bot/app
+		userIDMap[botID] = botName
 	}
 
 	for tries := uint(0); time.Now().Before(deadline); tries++ {

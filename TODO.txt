@@ -1,4 +1,3 @@
-- Don't assign new plugin IDs when reloading
+- Look up new Bot IDs on the fly if a new bot ID is seen; need to add locking of the bots[] map
 - I don't feel like telling a joke right now. My cat just died.
-- BUG: in #botdev, help joke doesn't list botdev in active channels (even if it is) - the plugin still answers, though
 - Re-compile regexes if alias changes during reload; be careful about bot locking

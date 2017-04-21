@@ -113,6 +113,7 @@ func loadConfig() error {
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		if !strings.ContainsRune(string(aliases+escape_aliases), alias) {
+			robot.Unlock()
 			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escape_aliases, aliases)
 		}
 		robot.alias = alias
@@ -147,6 +148,7 @@ func loadConfig() error {
 	if newconfig.Protocol != "" {
 		robot.protocol = newconfig.Protocol
 	} else {
+		robot.Unlock()
 		return fmt.Errorf("Protocol not specified in gopherbot.yaml")
 	}
 	if newconfig.ProtocolConfig != nil {

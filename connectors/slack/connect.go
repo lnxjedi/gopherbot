@@ -18,6 +18,10 @@ type config struct {
 
 var lock sync.Mutex // package var lock
 var started bool    // set when connector is started
+// Map of bot IDs to unique names; note that for Slack, we have
+// to store the botID in the name since bots aren't guaranteed to have
+// unique names.
+var bots = make(map[string]string)
 
 func init() {
 	bot.RegisterConnector("slack", Start)
@@ -69,6 +73,13 @@ Loop:
 				sc.Log(bot.Debug, "Set bot name to", sc.botName)
 				sc.botID = ev.Info.User.ID
 				sc.Log(bot.Trace, "Set bot ID to", sc.botID)
+				for _, b := range ev.Info.Bots {
+					if b.Deleted {
+						continue
+					}
+					name := fmt.Sprintf("bot:%s:%s", b.Name, b.ID)
+					bots[b.ID] = name
+				}
 				break Loop
 
 			case *slack.InvalidAuthEvent:

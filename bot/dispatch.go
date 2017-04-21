@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -53,7 +54,8 @@ func messageAppliesToPlugin(user, channel string, plugin *Plugin) bool {
 	if len(plugin.Users) > 0 {
 		userOk := false
 		for _, allowedUser := range plugin.Users {
-			if user == allowedUser {
+			match, err := filepath.Match(allowedUser, user)
+			if match && err == nil {
 				userOk = true
 			}
 		}
@@ -85,6 +87,9 @@ func messageAppliesToPlugin(user, channel string, plugin *Plugin) bool {
 func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (commandMatched bool) {
 	// un-needed, but more clear
 	commandMatched = false
+	pluginlist.RLock()
+	plugins := pluginlist.p
+	pluginlist.RUnlock()
 	for _, plugin := range plugins {
 		Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels (allchannels: %t)", messagetext, plugin.name, len(plugin.Channels), plugin.AllChannels))
 		ok := messageAppliesToPlugin(bot.User, bot.Channel, plugin)
@@ -212,13 +217,15 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 // was addressed directly but nothing matched, any registered CatchAll plugins are called.
 // There Should Be Only One (catchall, in theory (?))
 func handleMessage(isCommand bool, channel, user, messagetext string) {
-	robot.RLock()
 	bot := &Robot{
 		User:    user,
 		Channel: channel,
 		Format:  Variable,
 	}
 	defer checkPanic(bot, messagetext)
+	pluginlist.RLock()
+	plugins := pluginlist.p
+	pluginlist.RUnlock()
 	if len(channel) == 0 {
 		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", user, messagetext))
 	}
@@ -317,7 +324,6 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 			pluginsRunning.Unlock()
 		}
 	}
-	robot.RUnlock()
 	last = shortTermMemory{messagetext, ts}
 	if commandMatched || isCommand {
 		shortTermMemories.Lock()
