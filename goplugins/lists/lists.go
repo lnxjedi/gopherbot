@@ -85,7 +85,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 			return
 		}
 	case "empty", "delete":
-		listName := strings.Replace(strings.ToLower(args[1]), " ", "-", -1)
+		listName := strings.Replace(strings.ToLower(args[0]), " ", "-", -1)
 		listKey := r.Channel + "~" + listName
 		_, ok := lists[listKey]
 		if !ok {
@@ -116,7 +116,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 		}
 		r.Say(fmt.Sprintf("Here are the lists I have for this channel:\n%s", listsBuffer.String()))
 	case "show", "send":
-		listName := strings.Replace(strings.ToLower(args[1]), " ", "-", -1)
+		listName := strings.Replace(strings.ToLower(args[0]), " ", "-", -1)
 		listKey := r.Channel + "~" + listName
 		var listBuffer bytes.Buffer
 		list, ok := lists[listKey]
@@ -147,7 +147,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 			r.Say(fmt.Sprintf("Ok, I sent the %s list to you - look for email from %s", listName, botmail))
 		}
 	case "pick":
-		listName := strings.Replace(strings.ToLower(args[1]), " ", "-", -1)
+		listName := strings.Replace(strings.ToLower(args[0]), " ", "-", -1)
 		listKey := r.Channel + "~" + listName
 		list, ok := lists[listKey]
 		if !ok {
