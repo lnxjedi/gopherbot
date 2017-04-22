@@ -27,6 +27,7 @@ func init() {
 	bot.RegisterConnector("slack", Start)
 }
 
+// Start starts the connector
 func Start(robot bot.Handler, l *log.Logger) bot.Connector {
 	lock.Lock()
 	if started {

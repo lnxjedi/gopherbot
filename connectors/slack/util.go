@@ -158,7 +158,8 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 
 	// Remove auto-links - chatbots don't want those
 	text := msg.Msg.Text
-	if text == "" { // some bot messages don't have any text, so check for a fallback
+	// some bot messages don't have any text, so check for a fallback
+	if text == "" && len(msg.Attachments) > 0 {
 		text = msg.Attachments[0].Fallback
 	}
 	text = reAddedLinks.ReplaceAllString(text, "$1")
@@ -182,7 +183,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		for _, mention := range mentions {
 			mset[mention] = true
 		}
-		for mention, _ := range mset {
+		for mention := range mset {
 			mID := mention[2:11]
 			replace, ok := s.userName(mID)
 			if !ok {
