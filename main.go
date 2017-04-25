@@ -23,6 +23,9 @@ import (
 	_ "github.com/uva-its/gopherbot/goplugins/lists"
 	_ "github.com/uva-its/gopherbot/goplugins/meme"
 	_ "github.com/uva-its/gopherbot/goplugins/ping"
+
+	// Enable profiling
+	_ "net/http/pprof"
 )
 
 func main() {
