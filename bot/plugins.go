@@ -98,15 +98,15 @@ func initializePlugins() {
 	pluginlist.RLock()
 	plugins := pluginlist.p
 	pluginlist.RUnlock()
-	bot := &Robot{
-		User:    robot.name,
-		Channel: "",
-		Format:  Variable,
-	}
 	pluginsRunning.Lock()
 	if !pluginsRunning.shuttingDown {
 		pluginsRunning.Unlock()
 		for _, plugin := range plugins {
+			bot := &Robot{
+				User:    robot.name,
+				Channel: "",
+				Format:  Variable,
+			}
 			Log(Info, "Initializing plugin:", plugin.name)
 			pluginsRunning.Add(1)
 			go callPlugin(bot, plugin, "init")

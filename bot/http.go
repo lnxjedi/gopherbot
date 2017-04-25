@@ -129,10 +129,13 @@ type waitreplyresponse struct {
 }
 
 func listenHTTPJSON() {
-	if len(robot.port) > 0 {
+	robot.RLock()
+	port := robot.port
+	robot.RUnlock()
+	if len(port) > 0 {
 		h := handler{}
 		http.Handle("/json", h)
-		Log(Fatal, http.ListenAndServe(robot.port, nil))
+		Log(Fatal, http.ListenAndServe(port, nil))
 	}
 }
 
