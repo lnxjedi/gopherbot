@@ -163,14 +163,14 @@ argument.
 
 ### Users, RequireAdmin
 ```yaml
-Users: [ 'alicek', 'bobc' ]
+Users: [ 'alicek', 'bobc', 'bot:ServerWatch:*' ]
 ```
 ```yaml
 RequireAdmin: true  # default: false
 ```
 Users and RequireAdmin can be used to restrict a given plugin to a given list of users, or only bot
 administrators. If a given plugin isn't allowed for a given user, the robot will behave as if the plugin
-doesn't exist for that user, and won't provide help text.
+doesn't exist for that user, and won't provide help text. Note that `Users` can take globbing characters, mainly useful for matching messages from another bot or integration.
 
 ### ElevatedCommands and ElevateImmediateCommands
 ```yaml
@@ -206,6 +206,9 @@ CommandMatchers:
   Regex: '(?i:hosts?|lookup|dig|nslookup) ([\w-. ]+)'
 - Command: hostname
   Regex: '(?i:hostname)'
+- Command: stopserver
+  Regex: '(?i:stop server(?: ([\w-.]+))?'
+  Contexts: [ "server" ]
 MessageMatchers:
 - Command: chuck
   Regex: '(?i:Chuck Norris)'
@@ -219,6 +222,12 @@ are checked against all messages seen in the channels for which the plugin is ac
 a **Chuck Norris** type plugin. Whenever a command or message is matched, the external plugin is called with the
 first argument being the given `Command`, and subsequent arguments corresponding to matching groups in the
 regular expression.
+
+(EXPERIMENTAL) "Contexts" tells the robot what kind of thing a capture group corresponds to. When the robot
+sees that e.g. a capture group corresponds to the context "server", it stores that in short-term memory (~7
+minutes). Then, if the user doesn't supply a corresponding capture group in a subsequent command, or supplies "it", the robot will check it's short term memory to see if it knows which "server" you're talking about. Short
+term memories are per-user/channel combination, but not per plugin; so if two plugins specify `Contexts` of, say, `server` and `deployment`, the short term memory of which server or deployment being referred to is available to both. If the memory doesn't exist or has expired from short-term memory, the robot will simply
+reply that it doesn't know what "server" or "deployment" you're talking about.
 
 `ReplyMatchers` are used whenever the plugin uses the `WaitForReply` method for interactive plugins like the
 built-in knock-knock joke plugin; the first argument to `WaitForReply` specifies the label of the regex to wait
