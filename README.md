@@ -44,3 +44,4 @@ Gopherbot is running in production in my environment. Currently lacking:
 * [Installing on Windows](doc/Windows-Install.md)
 * [Design Philosophy](doc/Design.md)
 * [Configuration](doc/Configuration.md)
+* [Plugin Author's Guide](doc/Plugin-Author's-Guide.md)
