@@ -20,6 +20,7 @@ import (
 	// them in conf/plugins/<plugin>.json with "Disabled": true
 	_ "github.com/uva-its/gopherbot/goplugins/help"
 	_ "github.com/uva-its/gopherbot/goplugins/knock"
+	_ "github.com/uva-its/gopherbot/goplugins/links"
 	_ "github.com/uva-its/gopherbot/goplugins/lists"
 	_ "github.com/uva-its/gopherbot/goplugins/meme"
 	_ "github.com/uva-its/gopherbot/goplugins/ping"

@@ -3,35 +3,34 @@ package links
 const defaultConfig = `
 Help:
 - Keywords: [ "link", "links", "add" ]
-  Helptext: [ "(bot), link <words> to <http://...> - save a link for the given words" ]
-- Keywords: [ "link", "links", "find" ]
-  Helptext: [ "(bot), find <keyword> - look up links for the given keyword" ]
+  Helptext: [ "(bot), link <word/phrase> to <http://...> - save a link for the given word/phrase only" ]
+- Keywords: [ "link", "links", "save", "add" ]
+  Helptext: [ "(bot), save link <http://...> - save a link and prompt for keywords / phrases"]
+- Keywords: [ "link", "links", "find", "lookup" ]
+  Helptext: [ "(bot), (find|lookup) <keyword/phrase> - look up links for the given keyword/phrase" ]
 - Keywords: [ "link", "links", "remove" ]
   Helptext: [ "(bot), remove <http://...> - remove a link" ]
+- Keywords: [ "link", "links", "search", "find" ]
+  Helptext: [ "(bot), search links for <word>"]
 CommandMatchers:
-- Command: 'help'
-  Regex: '(?i:help with links?)'
+#- Command: 'help'
+#  Regex: '(?i:help with links?)'
 - Command: 'add'
-  Regex: '(?i:add ([-\w .,!?:\/]+) to (?:the )?(?:([\w-_ ]+) )?link)'
-  Contexts: [ "item", "link" ]
-- Command: 'link'
-  Regex: '(?i:link links)'
+  Regex: '(?i:link ([-\w \'']+) to ((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
+- Command: 'save'
+  Regex: '(?i:save (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
 - Command: 'remove'
-  Regex: '(?i:(?:remove|delete) ([-\w .,!?:\/]+) from (?:the )?(?:([\w-_ ]+) )?link)'
-  Contexts: [ "item", "link" ]
-- Command: 'empty'
-  Regex: '(?i:(?:empty|clear) (?:the )?(?:([\w-_ ]+) )?link)'
+  Regex: '(?i:(?:remove|delete) (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
+- Command: 'remove'
+  Regex: '(?:(?:remove|delete) (it))'
   Contexts: [ "link" ]
-- Command: 'delete'
-  Regex: '(?i:delete (?:the )?(?:([\w-_ ]+) )?link)'
-  Contexts: [ "link" ]
-- Command: 'show'
-  Regex: '(?i:show (?:the )?(?:([\w-_ ]+) )?link)'
-  Contexts: [ "link" ]
-- Command: 'pick'
-  Regex: '(?i:(?:pick )?(?:an? )?random (?:item )?(?:from )?(?:the )?(?:([\w-_ ]+) )?(?:link)?)'
-  Contexts: [ "link" ]
-- Command: 'send'
-  Regex: '(?i:(?:send me|email) (?:the )?(?:([\w-_ ]+) )?link)'
-  Contexts: [ "link" ]
+- Command: 'find'
+  Regex: '(?i:(?:find|look ?up) ([-\w \'']+))'
+- Command: 'search'
+  Regex: '(?i:search links for ([-\w\'']+))'
+ReplyMatchers:
+- Regex: '([-\w ,\'']+)'
+  Label: "lookup"
+Config:
+  Scope: global # or "channel"
 `
