@@ -230,7 +230,6 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", user, messagetext))
 	}
 	commandMatched := false
-	waitingForReply := false
 	var catchAllPlugins []*Plugin
 	ts := time.Now()
 	lastCmdContext := memoryContext{"lastCmd", user, channel}
