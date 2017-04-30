@@ -118,32 +118,35 @@ func (r *Robot) WaitForReply(regexID string, timeout int) (string, RetVal) {
 	replies.m[matcher] = rep
 	replies.Unlock()
 	r.Log(Trace, fmt.Sprintf("Adding matcher to replies: %q", matcher))
-	// Start a goroutine to delete the reply request if it still exists after a minute.
-	// If it's matched in the meantime, it should get deleted at that point.
+	var replied reply
 	select {
 	case <-time.After(time.Duration(timeout) * time.Second):
 		Log(Warn, fmt.Sprintf("Timed out waiting for a reply to regex \"%s\" in channel: %s", regexID, r.Channel))
 		replies.Lock()
-		// reply timed out, free up this matcher for later reply requests
-		delete(replies.m, matcher)
-		replies.Unlock()
+		_, found := replies.m[matcher]
+		if found {
+			// reply timed out, free up this matcher for later reply requests
+			delete(replies.m, matcher)
+			replies.Unlock()
+		} else { // race: we got a reply at the timeout deadline
+			replies.Unlock()
+			replied = <-rep.replyChannel
+		}
 		// matched=false, timedOut=true
 		return "", TimeoutExpired
-	case replied := <-rep.replyChannel:
-		if replied.interrupted {
-			return "", Interrupted
-		}
-		// Note: the replies.m[] entry is deleted in handleMessage
-		if !replied.matched {
-			if replied.rep == "=" {
-				return "", UseDefaultValue
-			} else {
-				return "", ReplyNotMatched
-			}
-		} else {
-			return replied.rep, Ok
-		}
+	case replied = <-rep.replyChannel:
 	}
+	if replied.interrupted {
+		return "", Interrupted
+	}
+	// Note: the replies.m[] entry is deleted in handleMessage
+	if !replied.matched {
+		if replied.rep == "=" {
+			return "", UseDefaultValue
+		}
+		return "", ReplyNotMatched
+	}
+	return replied.rep, Ok
 }
 
 // WaitForReplyRegex is identical to WaitForReply except that the first argument is
@@ -172,30 +175,33 @@ func (r *Robot) WaitForReplyRegex(regex string, timeout int) (string, RetVal) {
 	replies.m[matcher] = rep
 	replies.Unlock()
 	r.Log(Trace, fmt.Sprintf("Added matcher to replies: %q", matcher))
-	// Start a goroutine to delete the reply request if it still exists after a minute.
-	// If it's matched in the meantime, it should get deleted at that point.
+	var replied reply
 	select {
 	case <-time.After(time.Duration(timeout) * time.Second):
 		Log(Warn, fmt.Sprintf("Timed out waiting for a reply to custom regex \"%s\" in channel: %s", regex, r.Channel))
 		replies.Lock()
-		// reply timed out, free up this matcher for later reply requests
-		delete(replies.m, matcher)
-		replies.Unlock()
+		_, found := replies.m[matcher]
+		if found {
+			// reply timed out, free up this matcher for later reply requests
+			delete(replies.m, matcher)
+			replies.Unlock()
+		} else { // race: we got a reply at the timeout deadline, dispatch got the lock first
+			replies.Unlock()
+			replied = <-rep.replyChannel
+		}
 		// matched=false, timedOut=true
 		return "", TimeoutExpired
-	case replied, _ := <-rep.replyChannel:
-		if replied.interrupted {
-			return "", Interrupted
-		}
-		// Note: the replies.m[] entry is deleted in handleMessage
-		if !replied.matched {
-			if replied.rep == "=" {
-				return "", UseDefaultValue
-			} else {
-				return "", ReplyNotMatched
-			}
-		} else {
-			return replied.rep, Ok
-		}
+	case replied = <-rep.replyChannel:
 	}
+	if replied.interrupted {
+		return "", Interrupted
+	}
+	// Note: the replies.m[] entry is deleted in handleMessage
+	if !replied.matched {
+		if replied.rep == "=" {
+			return "", UseDefaultValue
+		}
+		return "", ReplyNotMatched
+	}
+	return replied.rep, Ok
 }
