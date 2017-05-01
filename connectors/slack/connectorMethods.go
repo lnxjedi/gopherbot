@@ -6,7 +6,8 @@ import (
 	"github.com/uva-its/gopherbot/bot"
 )
 
-// How long to delay between sending bits of a chopped up message
+// Message send delay; slack has problems with scrolling if messages fly out
+// too fast.
 const msgDelay = 200 * time.Millisecond
 
 // GetUserAttribute returns a string attribute or nil if slack doesn't
@@ -36,6 +37,7 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 func (s *slackConnector) sendMessages(msgs []string, chanID string) {
 	l := len(msgs)
 	for i, msg := range msgs {
+		time.Sleep(msgDelay)
 		s.conn.SendMessage(s.conn.NewOutgoingMessage(msg, chanID))
 		if i != (l - 1) {
 			time.Sleep(msgDelay)
