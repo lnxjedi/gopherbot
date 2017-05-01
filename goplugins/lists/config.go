@@ -1,15 +1,12 @@
 package lists
 
-const listHelp = `The list plugin allows you to manage simple lists of items,
-such as a TODO list, lunch spots, etc. Lists are per-channel, so e.g. different
-channels can have different TODO lists. List items can be no longer than 42
-characters, and list names no longer than 21. When referring to list names,
-spaces will be replaced with dashes, so "meeting items" and "meeting-items" both
-refer to the "meeting-items" list. Note that lists is context aware, and will
-remember the list or item being discussed; so e.g. you can follow 'add milk
+const listHelp = `The list plugin allows you to manage simple lists of items, such as a todo
+list, lunch spots, etc. Lists default to per-channel scope, but can be
+configured with global scope. Note that 'lists' is a context aware plugin, and
+will remember the list or item being discussed; so e.g. you can follow 'add milk
 to the grocery list' with 'add hamburgers to the list' and the robot will
-know you mean the grocery list. (also, 'add it to the dinner list' would add
-hamburgers to the dinner list)`
+know you mean the grocery list; also, 'add it to the dinner list' would add
+hamburgers to the dinner list. List names are always lower cased by the robot.`
 
 const defaultConfig = `
 # For keeping simple shared lists of things
@@ -36,26 +33,28 @@ CommandMatchers:
 - Command: 'help'
   Regex: '(?i:help with lists?)'
 - Command: 'add'
-  Regex: '(?i:add ([-\w .,!?:\/]+) to (?:the )?(?:([\w-_ ]+) )?list)'
+  Regex: '(?i:add ([-\w .,!?:\/]+) to (?:the )?(?:([~\w-'' ]+) )?list)'
   Contexts: [ "item", "list" ]
 - Command: 'list'
   Regex: '(?i:list lists)'
 - Command: 'remove'
-  Regex: '(?i:(?:remove|delete) ([-\w .,!?:\/]+) from (?:the )?(?:([\w-_ ]+) )?list)'
+  Regex: '(?i:(?:remove|delete) ([-\w .,!?:\/]+) from (?:the )?(?:([~\w-'' ]+) )?list)'
   Contexts: [ "item", "list" ]
 - Command: 'empty'
-  Regex: '(?i:(?:empty|clear) (?:the )?(?:([\w-_ ]+) )?list)'
+  Regex: '(?i:(?:empty|clear) (?:the )?(?:([~\w-'' ]+) )?list)'
   Contexts: [ "list" ]
 - Command: 'delete'
-  Regex: '(?i:delete (?:the )?(?:([\w-_ ]+) )?list)'
+  Regex: '(?i:delete (?:the )?(?:([~\w-'' ]+) )?list)'
   Contexts: [ "list" ]
 - Command: 'show'
-  Regex: '(?i:show (?:the )?(?:([\w-_ ]+) )?list)'
+  Regex: '(?i:show (?:the )?(?:([~\w-'' ]+) )?list)'
   Contexts: [ "list" ]
 - Command: 'pick'
-  Regex: '(?i:(?:pick )?(?:an? )?random (?:item )?(?:from )?(?:the )?(?:([\w-_ ]+) )?(?:list)?)'
+  Regex: '(?i:(?:pick )?(?:an? )?random (?:item )?(?:from )?(?:the )?([~\w-'' ]+)?(?: list)?)'
   Contexts: [ "list" ]
 - Command: 'send'
-  Regex: '(?i:(?:send me|email) (?:the )?(?:([\w-_ ]+) )?list)'
+  Regex: '(?i:(?:send me|email) (?:the )?(?:([~\w-'' ]+) )?list)'
   Contexts: [ "list" ]
+Config:
+  Scope: channel # or "global"
 `

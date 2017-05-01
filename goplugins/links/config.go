@@ -3,34 +3,47 @@ package links
 const defaultConfig = `
 Help:
 - Keywords: [ "link", "links", "add" ]
-  Helptext: [ "(bot), link <word/phrase> to <http://...> - save a link for the given word/phrase only" ]
+  Helptext: [ "(bot), link <word/phrase> to <http://...> - save a link with a single word/phrase key" ]
 - Keywords: [ "link", "links", "save", "add" ]
-  Helptext: [ "(bot), save link <http://...> - save a link and prompt for keywords / phrases"]
-- Keywords: [ "link", "links", "find", "lookup" ]
-  Helptext: [ "(bot), (find|lookup) <keyword/phrase> - look up links for the given keyword/phrase" ]
+  Helptext: [ "(bot), save link <http://...> - save a link and prompt for multiple word/phrase keys"]
+- Keywords: [ "link", "links", "find", "lookup", "search" ]
+  Helptext:
+  - "(bot), (find|lookup) <keyword/phrase> - find links with keys containing a keyword or phrase"
+  - "(bot), look <keyword/phrase> up"
 - Keywords: [ "link", "links", "remove" ]
   Helptext: [ "(bot), remove <http://...> - remove a link" ]
-- Keywords: [ "link", "links", "search", "find" ]
-  Helptext: [ "(bot), search links for <word>"]
+- Keywords: [ "link", "links" ]
+  Helptext: [ "(bot), help with links - give a description of the links plugin" ]
 CommandMatchers:
-#- Command: 'help'
-#  Regex: '(?i:help with links?)'
+- Command: 'help'
+  Regex: '(?i:help with links?)'
 - Command: 'add'
   Regex: '(?i:link ([-\w \'']+) to ((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
+  Contexts: [ "item", "link" ]
 - Command: 'save'
   Regex: '(?i:save (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
+  Contexts: [ "link" ]
 - Command: 'remove'
   Regex: '(?i:(?:remove|delete) (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
+  Contexts: [ "link" ]
 - Command: 'remove'
   Regex: '(?:(?:remove|delete) (it))'
   Contexts: [ "link" ]
 - Command: 'find'
   Regex: '(?i:(?:find|look ?up) ([-\w \'']+))'
-- Command: 'search'
-  Regex: '(?i:search links for ([-\w\'']+))'
+  Contexts: [ "item" ]
+- Command: 'find'
+  Regex: '(?i:look ([-\w \'']+) up)'
+  Contexts: [ "item" ]
 ReplyMatchers:
 - Regex: '([-\w ,\'']+)'
   Label: "lookup"
 Config:
   Scope: global # or "channel"
 `
+
+const longHelp = `The links plugin stores URLs and associates them with one or more keys that can
+be words or phrases. The 'link' command stores a single lookup key, and the
+'save' command will prompt the user to enter multiple keys. The lookup command
+will return all links that have a key containing the provided word or phrase,
+case insensitive. Links can be deleted with the 'remove' command.`

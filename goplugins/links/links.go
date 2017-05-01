@@ -25,7 +25,8 @@ func links(r *bot.Robot, command string, args ...string) {
 		return
 	}
 	var links = make(map[string][]string)
-	var scope *config
+	var lock string
+	scope := &config{}
 
 	datumKey := datumName // default global
 	ret := r.GetPluginConfig(&scope)
@@ -35,9 +36,11 @@ func links(r *bot.Robot, command string, args ...string) {
 		}
 	}
 
-	var lock string
 	updated := false
 	switch command {
+	case "help":
+		r.Say(longHelp)
+		return
 	case "find": // read-only case(s)
 		_, _, ret = r.CheckoutDatum(datumKey, &links, false)
 	default:
@@ -65,23 +68,22 @@ func links(r *bot.Robot, command string, args ...string) {
 	}
 	switch command {
 	case "remove":
-		lookup := args[0]
-		_, ok := links[lookup]
+		link := args[0]
+		_, ok := links[link]
 		if !ok {
-			r.Say(fmt.Sprintf("I don't have the link %s", lookup))
+			r.Say(fmt.Sprintf("I don't have the link %s", link))
 			return
 		}
-		delete(links, lookup)
-		r.Say(fmt.Sprintf("Ok, I removed the link %s", lookup))
+		delete(links, link)
+		r.Say(fmt.Sprintf("Ok, I removed the link %s", link))
 		updated = true
 	case "add", "save":
 		lookups := make([]string, 0, 5)
 		var link string
 		if command == "add" {
 			link = args[1]
-			lookupList := strings.ToLower(args[0])
 			lookups = []string{
-				spaces.ReplaceAllString(lookupList, ` `),
+				spaces.ReplaceAllString(args[0], ` `),
 			}
 		} else {
 			link = args[0]
@@ -92,7 +94,7 @@ func links(r *bot.Robot, command string, args ...string) {
 					if strings.ToLower(rep) == "done" {
 						break
 					}
-					lookup := strings.ToLower(spaces.ReplaceAllString(rep, ` `))
+					lookup := spaces.ReplaceAllString(rep, ` `)
 					lookups = append(lookups, lookup)
 					r.Say(fmt.Sprintf("Added \"%s\", type \"done\" if you're finished", lookup))
 				} else {
@@ -107,28 +109,21 @@ func links(r *bot.Robot, command string, args ...string) {
 		} else {
 			r.Say("Not adding link with no lookups")
 		}
-	case "find", "search":
+	case "find":
 		lookup := strings.ToLower(spaces.ReplaceAllString(args[0], ` `))
 		linkList := make([]string, 0, 5)
+		linkList = append(linkList, fmt.Sprintf("Here's what I have for \"%s\":", args[0]))
 		for link, lookups := range links {
 		loop:
 			for _, key := range lookups {
-				if command == "find" {
-					if key == lookup {
-						linkList = append(linkList, link)
-						break loop
-					}
-				} else {
-					if strings.Contains(key, lookup) {
-						linkList = append(linkList, link)
-						break loop
-					}
+				if strings.Contains(strings.ToLower(key), lookup) {
+					linkList = append(linkList, key+": "+link)
+					break loop
 				}
 			}
 		}
-		if len(linkList) > 0 {
+		if len(linkList) > 1 {
 			r.Say(strings.Join(linkList, "\n"))
-			r.Say(fmt.Sprintf("That's what I found for \"%s\"", lookup))
 			if len(linkList) == 1 {
 				r.RememberContext("link", linkList[0])
 			}

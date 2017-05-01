@@ -5,18 +5,25 @@ package lists
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/uva-its/gopherbot/bot"
 )
 
-const maxlists = 14
-const maxitems = 42
-const maxitemlen = 42
-const maxlistnamelen = 21
 const datumName = "listmap"
 
+var spaces = regexp.MustCompile(`\s+`)
+
 type itemList []string
+
+type config struct {
+	Scope string
+}
+
+func name(arg string) string {
+	return strings.ToLower(spaces.ReplaceAllString(arg, " "))
+}
 
 // Define the handler function
 func lists(r *bot.Robot, command string, args ...string) {
@@ -27,43 +34,53 @@ func lists(r *bot.Robot, command string, args ...string) {
 	var lists = make(map[string]itemList)
 	var lock string
 	var ret bot.RetVal
+	scope := &config{}
+
+	datumKey := datumName // default global
+	ret = r.GetPluginConfig(&scope)
+	if ret == bot.Ok {
+		if strings.ToLower(scope.Scope) == "channel" {
+			datumKey = r.Channel + ":" + datumName
+		}
+	}
+
+	updated := false
 	// First, check out the list
 	switch command {
-	case "show", "send":
+	case "help":
+		r.Say(listHelp)
+		return
+	case "show", "send", "pick", "list":
 		// read-only cases
-		_, _, ret = r.CheckoutDatum(datumName, &lists, false)
+		_, _, ret = r.CheckoutDatum(datumKey, &lists, false)
 	default:
 		// all other cases are read-write
-		lock, _, ret = r.CheckoutDatum(datumName, &lists, true)
+		lock, _, ret = r.CheckoutDatum(datumKey, &lists, true)
+		defer func() {
+			if updated {
+				mret := r.UpdateDatum(datumKey, lock, lists)
+				if mret != bot.Ok {
+					r.Log(bot.Error, "Coudln't update lists")
+					r.Reply("Crud. I had a problem saving my lists - somebody better check the log")
+				}
+			} else {
+				// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
+				// in case there's another thread waiting.
+				r.CheckinDatum(datumKey, lock)
+			}
+		}()
 	}
 	if ret != bot.Ok {
 		r.Log(bot.Error, fmt.Sprintf("Couldn't load lists: %s", ret))
 		r.Reply("I had a problem loading the lists, somebody should check my log file")
-		r.CheckinDatum(datumName, lock) // well-behaved plugins using the brain will always check in data when done
+		r.CheckinDatum(datumKey, lock) // well-behaved plugins using the brain will always check in data when done
 		return
 	}
-	updated := false
-	defer func() {
-		if updated {
-			ret := r.UpdateDatum(datumName, lock, lists)
-			if ret != bot.Ok {
-				r.Log(bot.Error, "Coudln't update lists")
-				r.Reply("Crud. I had a problem saving my lists - somebody better check the log")
-			}
-		} else {
-			// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
-			// in case there's another thread waiting.
-			r.CheckinDatum(datumName, lock)
-		}
-	}()
 	switch command {
-	case "help":
-		r.Say(listHelp)
 	case "remove":
 		item := args[0]
-		listName := strings.Replace(strings.ToLower(args[1]), " ", "-", -1)
-		listKey := r.Channel + "~" + listName
-		list, ok := lists[listKey]
+		listName := name(args[1])
+		list, ok := lists[listName]
 		if !ok {
 			r.Say(fmt.Sprintf("I don't have a list named %s", listName))
 			return
@@ -74,7 +91,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 			if citem == strings.ToLower(li) {
 				list[i] = list[len(list)-1]
 				list = list[:len(list)-1]
-				lists[listKey] = list
+				lists[listName] = list
 				r.Say(fmt.Sprintf("Ok, I removed %s from the %s list", item, listName))
 				updated = true
 				found = true
@@ -85,41 +102,42 @@ func lists(r *bot.Robot, command string, args ...string) {
 			return
 		}
 	case "empty", "delete":
-		listName := strings.Replace(strings.ToLower(args[0]), " ", "-", -1)
-		listKey := r.Channel + "~" + listName
-		_, ok := lists[listKey]
+		listName := name(args[0])
+		_, ok := lists[listName]
 		if !ok {
 			r.Say(fmt.Sprintf("I don't have a list named %s", listName))
 			return
 		}
 		updated = true
 		if command == "empty" {
-			lists[listKey] = []string{}
+			lists[listName] = []string{}
 			r.Say("Emptied")
 		} else {
 			delete(lists, listName)
 			r.Say("Deleted")
 		}
 	case "list":
-		var found int
-		var listsBuffer bytes.Buffer
+		listlist := make([]string, 0, 10)
 		for l := range lists {
-			lchan := strings.Split(l, "~")[0]
-			if lchan == r.Channel {
-				found++
-				fmt.Fprintf(&listsBuffer, "%s\n", strings.Split(l, "~")[1])
-			}
+			listlist = append(listlist, l)
 		}
-		if found == 0 {
-			r.Say("I don't have any lists for this channel")
+		if len(listlist) == 0 {
+			if scope.Scope == "channel" {
+				r.Say("I don't have any lists for this channel")
+			} else {
+				r.Say("I don't have any lists")
+			}
 			return
 		}
-		r.Say(fmt.Sprintf("Here are the lists I have for this channel:\n%s", listsBuffer.String()))
+		if scope.Scope == "channel" {
+			r.Say(fmt.Sprintf("Here are the lists I have for this channel:\n%s", strings.Join(listlist, "\n")))
+		} else {
+			r.Say(fmt.Sprintf("Here are the lists I know about:\n%s", strings.Join(listlist, "\n")))
+		}
 	case "show", "send":
-		listName := strings.Replace(strings.ToLower(args[0]), " ", "-", -1)
-		listKey := r.Channel + "~" + listName
+		listName := name(args[0])
 		var listBuffer bytes.Buffer
-		list, ok := lists[listKey]
+		list, ok := lists[listName]
 		if !ok {
 			r.Say(fmt.Sprintf("I don't have a list named %s", listName))
 			return
@@ -147,9 +165,8 @@ func lists(r *bot.Robot, command string, args ...string) {
 			r.Say(fmt.Sprintf("Ok, I sent the %s list to you - look for email from %s", listName, botmail))
 		}
 	case "pick":
-		listName := strings.Replace(strings.ToLower(args[0]), " ", "-", -1)
-		listKey := r.Channel + "~" + listName
-		list, ok := lists[listKey]
+		listName := name(args[0])
+		list, ok := lists[listName]
 		if !ok {
 			r.Say(fmt.Sprintf("I don't have a list named %s", listName))
 			return
@@ -160,26 +177,14 @@ func lists(r *bot.Robot, command string, args ...string) {
 		}
 		item := r.RandomString(list)
 		r.Say(fmt.Sprintf("Here you go: %s", item))
+		r.RememberContext("item", item)
 	case "add":
 		// Case sensitive input, case insensitve equality checking
 		item := args[0]
-		listName := strings.Replace(strings.ToLower(args[1]), " ", "-", -1)
-		listKey := r.Channel + "~" + listName
-		if len(item) > maxitemlen {
-			r.Say(fmt.Sprintf("Sorry, that item is too big - the longest I'll take is %d", maxitemlen))
-			return
-		}
-		if len(listName) > maxlistnamelen {
-			r.Say(fmt.Sprintf("Sorry, that list name is too big - the longest I'll take is %d", maxlistnamelen))
-			return
-		}
-		list, ok := lists[listKey]
+		listName := name(args[1])
+		list, ok := lists[listName]
 		if !ok {
-			if len(lists) >= maxlists {
-				r.Say(fmt.Sprintf("Sorry, can't create \"%s\", there are too many lists already", listName))
-				return
-			}
-			lists[listKey] = []string{item}
+			lists[listName] = []string{item}
 		} else {
 			citem := strings.ToLower(item)
 			for _, li := range list {
@@ -189,7 +194,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 				}
 			}
 			list = append(list, item)
-			lists[listKey] = list
+			lists[listName] = list
 		}
 		r.Say(fmt.Sprintf("Ok, I added %s to the %s list", item, listName))
 		updated = true
