@@ -10,3 +10,7 @@
   "bot:<non-unique name>:<unique bot ID>"; e.g. "bot:AWS notifier:BFOOBARBAZ";
   this can be matched with a User of 'bot:*', or 'bot:AWS notifier:*', or
   'bot:AWS notifier:BFOOBARBAZ'
+
+2017-05-01 David Parsley <parsley@linuxjedi.org>
+
+  * Add links plugin, fix and improve lists plugin
