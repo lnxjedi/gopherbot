@@ -14,11 +14,16 @@ Help:
   Helptext: [ "(bot), remove <http://...> - remove a link" ]
 - Keywords: [ "link", "links" ]
   Helptext: [ "(bot), help with links - give a description of the links plugin" ]
+- Keywords: [ "link", "links", "list", "show" ]
+  Helptext: [ "(bot), (list|show) links - list all the links the robot knows" ]
 CommandMatchers:
 - Command: 'help'
   Regex: '(?i:help with links?)'
 - Command: 'add'
   Regex: '(?i:link ([-\w \'']+) to ((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
+  Contexts: [ "item", "link" ]
+- Command: 'add'
+  Regex: '(?i:link ([-\w \'']+) to (it))'
   Contexts: [ "item", "link" ]
 - Command: 'save'
   Regex: '(?i:save (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
@@ -26,12 +31,11 @@ CommandMatchers:
 - Command: 'remove'
   Regex: '(?i:(?:remove|delete) (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
   Contexts: [ "link" ]
-- Command: 'remove'
-  Regex: '(?:(?:remove|delete) (it))'
-  Contexts: [ "link" ]
 - Command: 'find'
   Regex: '(?i:(?:find|look ?up) ([-\w \'']+))'
   Contexts: [ "item" ]
+- Command: 'list'
+  Regex: '(?i:(?:show|list) links)'
 - Command: 'find'
   Regex: '(?i:look ([-\w \'']+) up)'
   Contexts: [ "item" ]
