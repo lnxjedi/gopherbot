@@ -14,3 +14,5 @@
 2017-05-01 David Parsley <parsley@linuxjedi.org>
 
   * Add links plugin, fix and improve lists plugin
+
+  * Fixed scrolling in Slack by adding 200ms pause in outgoing messages
