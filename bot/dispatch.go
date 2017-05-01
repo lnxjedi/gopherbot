@@ -129,7 +129,7 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 									s.timestamp = ts
 									shortTermMemories.m[c] = s
 								} else {
-									bot.Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about", contextLabel))
+									bot.Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel))
 									shortTermMemories.Unlock()
 									return true
 								}
