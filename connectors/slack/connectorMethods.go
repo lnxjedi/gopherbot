@@ -35,13 +35,14 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 func (s *slackConnector) sendMessages(msgs []string, chanID string) {
-	l := len(msgs)
 	for i, msg := range msgs {
+		if i == 0 {
+			time.Sleep(msgDelay / 2)
+			s.conn.SendMessage(s.conn.NewTypingMessage(chanID))
+			time.Sleep(2 * msgDelay)
+		}
 		time.Sleep(msgDelay)
 		s.conn.SendMessage(s.conn.NewOutgoingMessage(msg, chanID))
-		if i != (l - 1) {
-			time.Sleep(msgDelay)
-		}
 	}
 }
 
