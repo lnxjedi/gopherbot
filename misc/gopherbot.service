@@ -14,7 +14,7 @@ WorkingDirectory=/opt/gopherbot
 Environment=HOSTNAME=%H
 ExecStart=/opt/gopherbot/gopherbot -plainlog
 Restart=on-failure
-Environment=USER=robot HOME=/opt/robot
+Environment=USER=robot HOME=/opt/robot HOSTNAME=%H
 KillMode=process
 # Give the robot plenty of time to finish plugins currently executing;
 # no new plugins will start after SIGTERM is caught.
