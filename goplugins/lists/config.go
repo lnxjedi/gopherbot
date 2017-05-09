@@ -50,7 +50,7 @@ CommandMatchers:
   Regex: '(?i:show (?:the )?(?:([~\w-'' ]+) )?list)'
   Contexts: [ "list" ]
 - Command: 'pick'
-  Regex: '(?i:(?:pick )?(?:an? )?random (?:item )?(?:from )?(?:the )?([~\w-'' ]+)?(?: list)?)'
+  Regex: '(?i:(?:pick )(?:an? )?random (?:item )?(?:from )(?:the )?([~\w-'' ]+)?(?: list))'
   Contexts: [ "list" ]
 - Command: 'send'
   Regex: '(?i:(?:send me|email) (?:the )?(?:([~\w-'' ]+) )?list)'
