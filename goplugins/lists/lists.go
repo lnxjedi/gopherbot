@@ -26,7 +26,7 @@ func name(arg string) string {
 }
 
 // Define the handler function
-func lists(r *bot.Robot, command string, args ...string) {
+func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
 	// Create an empty map to unmarshal into
 	if command == "init" { // ignore init
 		return
@@ -38,6 +38,7 @@ func lists(r *bot.Robot, command string, args ...string) {
 
 	datumKey := datumName // default global
 	ret = r.GetPluginConfig(&scope)
+	r.Log(bot.Debug, fmt.Sprintf("Retrieved lists config: %v", scope))
 	if ret == bot.Ok {
 		if strings.ToLower(scope.Scope) == "channel" {
 			datumKey = r.Channel + ":" + datumName
@@ -199,11 +200,13 @@ func lists(r *bot.Robot, command string, args ...string) {
 		r.Say(fmt.Sprintf("Ok, I added %s to the %s list", item, listName))
 		updated = true
 	}
+	return
 }
 
 func init() {
 	bot.RegisterPlugin("lists", bot.PluginHandler{
 		DefaultConfig: defaultConfig,
 		Handler:       lists,
+		Config:        &config{},
 	})
 }

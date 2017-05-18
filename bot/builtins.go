@@ -40,9 +40,9 @@ func init() {
 
 /* builtin plugins, like help */
 
-func launchCode(bot *Robot, command string, args ...string) {
+func launchCode(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	if command == "init" {
-		return // ignore init
+		return Success // ignore init
 	}
 	var userOTP otp.OTPConfig
 	otpKey := "elevator-totp:" + bot.User
@@ -89,9 +89,10 @@ func launchCode(bot *Robot, command string, args ...string) {
 		updated = true
 		bot.Reply("I've emailed your launch codes - please delete it promptly")
 	}
+	return
 }
 
-func help(bot *Robot, command string, args ...string) {
+func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
@@ -211,9 +212,10 @@ func help(bot *Robot, command string, args ...string) {
 			bot.Say(helpOutput)
 		}
 	}
+	return
 }
 
-func dump(bot *Robot, command string, args ...string) {
+func dump(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
@@ -264,6 +266,7 @@ func dump(bot *Robot, command string, args ...string) {
 		}
 		bot.Say(fmt.Sprintf("Here are the plugins I have configured:\n%s", strings.Join(plist, ", ")))
 	}
+	return
 }
 
 var byebye = []string{
@@ -273,7 +276,7 @@ var byebye = []string{
 	"Later gator!",
 }
 
-func logging(bot *Robot, command string, args ...string) {
+func logging(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	switch command {
 	case "init":
 		return
@@ -299,9 +302,10 @@ func logging(bot *Robot, command string, args ...string) {
 		set := setLogPageLines(l)
 		bot.Say(fmt.Sprintf("Lines per page of log output set to: %d", set))
 	}
+	return
 }
 
-func admin(bot *Robot, command string, args ...string) {
+func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
@@ -346,4 +350,5 @@ func admin(bot *Robot, command string, args ...string) {
 		time.Sleep(time.Second)
 		close(finish)
 	}
+	return
 }

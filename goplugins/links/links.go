@@ -20,7 +20,7 @@ type config struct {
 }
 
 // Define the handler function
-func links(r *bot.Robot, command string, args ...string) {
+func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
 	// Create an empty map to unmarshal into
 	if command == "init" { // ignore init
 		return
@@ -178,11 +178,13 @@ func links(r *bot.Robot, command string, args ...string) {
 			r.Say(fmt.Sprintf("Sorry, I don't have any links for \"%s\"", lookup))
 		}
 	}
+	return
 }
 
 func init() {
 	bot.RegisterPlugin("links", bot.PluginHandler{
 		DefaultConfig: defaultConfig,
 		Handler:       links,
+		Config:        &config{},
 	})
 }

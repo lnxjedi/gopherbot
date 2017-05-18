@@ -69,6 +69,10 @@ type Plugin struct {
 	ElevatedCommands         []string        // Commands that require elevation, usually via 2fa
 	ElevateImmediateCommands []string        // Commands that always require elevation promting, regardless of timeouts
 	Users                    []string        // If non-empty, list of all the users with access to this plugin
+	Plugins                  []string        // list of plugins allowed to call this one
+	AllPlugins               bool            // authorizing plugins should probably set this to allow being called by all others
+	Authorizer               string          // a plugin to call for authorizing users, should handle groups, etc.
+	AuthRequire              string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
 	Help                     []PluginHelp    // All the keyword sets / help texts for this plugin
 	CommandMatchers          []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
 	ReplyMatchers            []InputMatcher  // Input matchers for replies to questions, only match after a RequestContinuation
@@ -83,8 +87,8 @@ type Plugin struct {
 type PluginHandler struct {
 	DefaultConfig string /* A yaml-formatted multiline string defining the default Plugin configuration. It should be liberally commented for use in generating
 	local/custom configuration for the plugin. If a Config: section is defined, it should match the structure of the optional Config interface{} */
-	Handler func(bot *Robot, command string, args ...string) // The callback function called by the robot whenever a Command is matched
-	Config  interface{}                                      // An optional empty struct defining custom configuration for the plugin
+	Handler func(bot *Robot, command string, args ...string) PlugRetVal // The callback function called by the robot whenever a Command is matched
+	Config  interface{}                                                 // An optional empty struct defining custom configuration for the plugin
 }
 
 // pluginHandlers maps from plugin names to PluginV1 (later interface{} with a type selector, maybe)
@@ -109,7 +113,7 @@ func initializePlugins() {
 			}
 			Log(Info, "Initializing plugin:", plugin.name)
 			pluginsRunning.Add(1)
-			go callPlugin(bot, plugin, "init")
+			go callPlugin(bot, plugin, false, "init")
 		}
 	} else {
 		pluginsRunning.Unlock()

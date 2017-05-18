@@ -24,6 +24,7 @@ Enum BotRet
     NoUserEmail = 21
     NoBotEmail = 22
     MailError = 23
+    InvalidPluginID = 24
 }
 
 function enc64([String] $msg) {

@@ -200,7 +200,7 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 					} else {
 						pluginsRunning.Unlock()
 						pluginsRunning.Add(1)
-						go callPlugin(bot, plugin, matcher.Command, cmdArgs...)
+						go callPlugin(bot, plugin, true, matcher.Command, cmdArgs...)
 					}
 				} else {
 					Log(Error, fmt.Sprintf("Elevation failed for command \"%s\", plugin %s", matcher.Command, plugin.name))
@@ -300,7 +300,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", messagetext))
 			for _, plugin := range catchAllPlugins {
 				pluginsRunning.Add(1)
-				go callPlugin(bot, plugin, "catchall", messagetext)
+				go callPlugin(bot, plugin, true, "catchall", messagetext)
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins
