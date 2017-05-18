@@ -111,18 +111,21 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 }
 
 // callPlugin (normally called with go ...) sends a command to a plugin.
-func callPlugin(bot *Robot, plugin *Plugin, interactive bool, command string, args ...string) (retval PlugRetVal) {
-	pluginsRunning.Lock()
-	pluginsRunning.count++
-	pluginsRunning.Unlock()
-	defer func() {
+func callPlugin(bot *Robot, plugin *Plugin, background bool, interactive bool, command string, args ...string) (retval PlugRetVal) {
+	if background {
+		pluginsRunning.Add(1)
 		pluginsRunning.Lock()
-		pluginsRunning.count--
-		if pluginsRunning.count >= 0 {
-			pluginsRunning.Done()
-		}
+		pluginsRunning.count++
 		pluginsRunning.Unlock()
-	}()
+		defer func() {
+			pluginsRunning.Lock()
+			pluginsRunning.count--
+			if pluginsRunning.count >= 0 {
+				pluginsRunning.Done()
+			}
+			pluginsRunning.Unlock()
+		}()
+	}
 	var errString string
 	defer func() {
 		if interactive && errString != "" {
@@ -141,7 +144,7 @@ func callPlugin(bot *Robot, plugin *Plugin, interactive bool, command string, ar
 		var fullPath string // full path to the executable
 		if len(plugin.pluginPath) == 0 {
 			Log(Error, "pluginPath empty for external plugin:", plugin.name)
-			errString = "There was a problem calling the external plugin"
+			errString = "There was a problem calling an external plugin"
 			return MechanismFail
 		}
 		if byte(plugin.pluginPath[0]) == byte("/"[0]) {
@@ -152,7 +155,7 @@ func callPlugin(bot *Robot, plugin *Plugin, interactive bool, command string, ar
 				_, err := os.Stat(robot.installPath + "/" + plugin.pluginPath)
 				if err != nil {
 					Log(Error, fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.name, err))
-					errString = "There was a problem calling the external plugin"
+					errString = "There was a problem calling an external plugin"
 					return MechanismFail
 				}
 				fullPath = robot.installPath + "/" + plugin.pluginPath
@@ -166,7 +169,7 @@ func callPlugin(bot *Robot, plugin *Plugin, interactive bool, command string, ar
 		if err != nil {
 			err = fmt.Errorf("looking up interpreter for %s: %s", fullPath, err)
 			Log(Error, fmt.Sprintf("Unable to call external plugin %s, no interpreter found: %s", fullPath, err))
-			errString = "There was a problem calling the external plugin"
+			errString = "There was a problem calling an external plugin"
 			return MechanismFail
 		}
 		externalArgs := make([]string, 0, 5+len(args))

@@ -112,8 +112,7 @@ func initializePlugins() {
 				Format:  Variable,
 			}
 			Log(Info, "Initializing plugin:", plugin.name)
-			pluginsRunning.Add(1)
-			go callPlugin(bot, plugin, false, "init")
+			go callPlugin(bot, plugin, false, false, "init")
 		}
 	} else {
 		pluginsRunning.Unlock()

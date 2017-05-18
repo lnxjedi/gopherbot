@@ -141,7 +141,7 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		for _, plugin := range plugins {
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
 			if !hasTerm { // if you ask for help without a term, you just get help for whatever commands are available to you
-				if messageAppliesToPlugin(bot.User, bot.Channel, plugin) {
+				if pluginAvailable(bot.User, bot.Channel, plugin) {
 					for _, phelp := range plugin.Help {
 						for _, helptext := range phelp.Helptext {
 							if len(phelp.Keywords) > 0 && phelp.Keywords[0] == "*" {
@@ -327,6 +327,7 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)
 		log.Printf("%s", buf)
+		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
 	case "quit":
 		pluginsRunning.Done()

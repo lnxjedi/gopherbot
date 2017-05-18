@@ -26,10 +26,10 @@ var pluginsRunning struct {
 
 const keepListeningDuration = 77 * time.Second
 
-// messageAppliesToPlugin checks the user and channel against the plugin's
+// pluginAvailable checks the user and channel against the plugin's
 // configuration to determine if the message should be evaluated. Used by
 // both handleMessage and the help builtin.
-func messageAppliesToPlugin(user, channel string, plugin *Plugin) bool {
+func pluginAvailable(user, channel string, plugin *Plugin) bool {
 	directMsg := false
 	if len(channel) == 0 {
 		directMsg = true
@@ -94,10 +94,10 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 	var matchedMatcher InputMatcher
 	var cmdArgs []string
 	for _, plugin := range plugins {
-		Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels (allchannels: %t)", messagetext, plugin.name, len(plugin.Channels), plugin.AllChannels))
-		ok := messageAppliesToPlugin(bot.User, bot.Channel, plugin)
+		Log(Trace, fmt.Sprintf("Checking availability of plugin \"%s\" in channel \"%s\" for user \"%s\", active in %d channels (allchannels: %t)", plugin.name, bot.User, bot.Channel, len(plugin.Channels), plugin.AllChannels))
+		ok := pluginAvailable(bot.User, bot.Channel, plugin)
 		if !ok {
-			Log(Trace, fmt.Sprintf("Plugin %s ignoring message in channel %s, doesn't meet criteria", plugin.name, bot.Channel))
+			Log(Trace, fmt.Sprintf("Plugin \"%s\" not available for user \"%s\" in channel \"%s\", doesn't meet criteria", plugin.name, bot.User, bot.Channel))
 			continue
 		}
 		var matchers []InputMatcher
@@ -112,6 +112,7 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 			var matched bool
 			if matches != nil {
 				matched = true
+				Log(Trace, fmt.Sprintf("Message \"%s\" matches command \"%s\"", messagetext, matcher.Command))
 				cmdArgs = matches[0][1:]
 				if len(matcher.Contexts) > 0 {
 					// Resolve & store "it" with short-term memories
@@ -175,8 +176,54 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 			pluginsRunning.Unlock()
 			return
 		}
-		//authorizationOk := false
-
+		pluginsRunning.Unlock()
+		if plugin.Authorizer != "" {
+			authorized := false
+			for _, authPlug := range plugins {
+				if plugin.Authorizer == authPlug.name {
+					plugAllowed := false
+					if authPlug.AllPlugins {
+						plugAllowed = true
+					} else if len(authPlug.Plugins) > 0 {
+						for _, allowed := range authPlug.Plugins {
+							if plugin.name == allowed {
+								plugAllowed = true
+								break
+							}
+						}
+					}
+					if plugAllowed {
+						if !pluginAvailable(bot.User, bot.Channel, authPlug) {
+							Log(Error, fmt.Sprintf("Auth plugin \"%s\" not available while authenticating user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, bot.User, matcher.Command, plugin.name, bot.Channel, plugin.AuthRequire))
+							bot.Say("Sorry, I'm unable to authorize you for that command in this channel")
+							return
+						}
+						authRet := callPlugin(bot, authPlug, false, false, "authorize", plugin.name, matcher.Command, "", plugin.AuthRequire)
+						if authRet == Success {
+							authorized = true
+							break
+						}
+						if authRet == Fail {
+							Log(Warn, fmt.Sprintf("Authorization failed by authorizer \"%s\" for user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, bot.User, matcher.Command, plugin.name, bot.Channel, plugin.AuthRequire))
+							bot.Say("Sorry, you're not authorized for that command in this channel")
+							return
+						}
+						Log(Error, fmt.Sprintf("Auth plugin \"%s\" mechanism failure while authenticating user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, bot.User, matcher.Command, plugin.name, bot.Channel, plugin.AuthRequire))
+						bot.Say("Sorry, I'm unable to perform authorization for that command in this channel")
+						return
+					} else {
+						Log(Error, fmt.Sprintf("Auth plugin \"%s\" not available to plugin \"%s\" while authenticating user \"%s\" calling command \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, plugin.name, bot.User, matcher.Command, bot.Channel, plugin.AuthRequire))
+						bot.Say("Sorry, I'm unable to authorize you for that command in this channel")
+						return
+					}
+				}
+			}
+			if !authorized {
+				Log(Error, fmt.Sprintf("Auth plugin \"%s\" not found while authenticating user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", plugin.Authorizer, bot.User, matcher.Command, plugin.name, bot.Channel, plugin.AuthRequire))
+				bot.Say("Sorry, I'm unable to perform authorization for that command in this channel")
+				return
+			}
+		}
 		elevationOk := true
 		if len(plugin.ElevatedCommands) > 0 {
 			for _, i := range plugin.ElevatedCommands {
@@ -219,9 +266,7 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 			}
 		}
 		if elevationOk {
-			pluginsRunning.Unlock()
-			pluginsRunning.Add(1)
-			go callPlugin(bot, plugin, true, matcher.Command, cmdArgs...)
+			go callPlugin(bot, plugin, true, true, matcher.Command, cmdArgs...)
 		} else {
 			Log(Error, fmt.Sprintf("Elevation failed for command \"%s\", plugin %s", matcher.Command, plugin.name))
 			bot.Say(fmt.Sprintf("Sorry, the \"%s\" command requires elevated privileges", matcher.Command))
@@ -317,8 +362,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 			pluginsRunning.Unlock()
 			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", messagetext))
 			for _, plugin := range catchAllPlugins {
-				pluginsRunning.Add(1)
-				go callPlugin(bot, plugin, true, "catchall", messagetext)
+				go callPlugin(bot, plugin, true, true, "catchall", messagetext)
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins
