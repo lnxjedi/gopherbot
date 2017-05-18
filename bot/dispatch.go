@@ -90,6 +90,9 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 	pluginlist.RLock()
 	plugins := pluginlist.p
 	pluginlist.RUnlock()
+	var runPlugin *Plugin
+	var matchedMatcher InputMatcher
+	var cmdArgs []string
 	for _, plugin := range plugins {
 		Log(Trace, fmt.Sprintf("Checking message \"%s\" against plugin %s, active in %d channels (allchannels: %t)", messagetext, plugin.name, len(plugin.Channels), plugin.AllChannels))
 		ok := messageAppliesToPlugin(bot.User, bot.Channel, plugin)
@@ -107,7 +110,6 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 			Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", messagetext, matcher.Regex))
 			matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
 			var matched bool
-			var cmdArgs []string
 			if matches != nil {
 				matched = true
 				cmdArgs = matches[0][1:]
@@ -143,73 +145,89 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 				}
 			}
 			if matched {
-				commandMatched = true
-				privilegesOk := true
-				if len(plugin.ElevatedCommands) > 0 {
-					for _, i := range plugin.ElevatedCommands {
-						if matcher.Command == i {
-							if robot.elevator != nil {
-								// elevators have their own pluginID & name, for brain access
-								pbot := &Robot{
-									User:    bot.User,
-									Channel: bot.Channel,
-									Format:  Variable,
-									// NOTE: checkPluginMatchers is called under b.lock.RLock()
-									pluginID: "elevator-" + robot.elevatorProvider,
-								}
-								privilegesOk = robot.elevator(pbot, false)
-							} else {
-								privilegesOk = false
-								Log(Error, "Encountered elevated command and no elevation method configured")
-							}
-						}
-					}
-				}
-				if len(plugin.ElevateImmediateCommands) > 0 {
-					for _, i := range plugin.ElevateImmediateCommands {
-						if matcher.Command == i {
-							if robot.elevator != nil {
-								// elevators have their own pluginID & name, for brain access
-								pbot := &Robot{
-									User:    bot.User,
-									Channel: bot.Channel,
-									Format:  Variable,
-									// NOTE: checkPluginMatchers is called under b.lock.RLock()
-									pluginID: "elevator-" + robot.elevatorProvider,
-								}
-								privilegesOk = robot.elevator(pbot, true)
-							} else {
-								privilegesOk = false
-								Log(Error, "Encountered elevated command and no elevation method configured")
-							}
-						}
-					}
-				}
-				if privilegesOk {
-					abort := false
-					if plugin.name == "builtInadmin" && matcher.Command == "abort" {
-						abort = true
-					}
-					pluginsRunning.Lock()
-					if pluginsRunning.shuttingDown && !abort {
-						bot.Say("Sorry, I'm shutting down and can't start any new tasks")
-						pluginsRunning.Unlock()
-					} else if pluginsRunning.paused && !abort {
-						bot.Say("Sorry, I've been paused and can't start any new tasks")
-						pluginsRunning.Unlock()
-					} else {
-						pluginsRunning.Unlock()
-						pluginsRunning.Add(1)
-						go callPlugin(bot, plugin, true, matcher.Command, cmdArgs...)
-					}
+				if commandMatched {
+					Log(Error, fmt.Sprintf("Message \"%s\" matched multiple plugins: %s and %s", messagetext, runPlugin.name, plugin.name))
+					bot.Say("Yikes! Your command matched multiple plugins, so I'm not doing ANYTHING")
+					return
 				} else {
-					Log(Error, fmt.Sprintf("Elevation failed for command \"%s\", plugin %s", matcher.Command, plugin.name))
-					bot.Say(fmt.Sprintf("Sorry, the \"%s\" command requires elevated privileges", matcher.Command))
+					commandMatched = true
+					runPlugin = plugin
+					matchedMatcher = matcher
+					break
+				}
+			}
+		} // end of matcher checking
+	} // end of plugin checking
+	if commandMatched {
+		plugin := runPlugin
+		matcher := matchedMatcher
+		abort := false
+		if plugin.name == "builtInadmin" && matcher.Command == "abort" {
+			abort = true
+		}
+		pluginsRunning.Lock()
+		if pluginsRunning.shuttingDown && !abort {
+			bot.Say("Sorry, I'm shutting down and can't start any new tasks")
+			pluginsRunning.Unlock()
+			return
+		} else if pluginsRunning.paused && !abort {
+			bot.Say("Sorry, I've been paused and can't start any new tasks")
+			pluginsRunning.Unlock()
+			return
+		}
+		//authorizationOk := false
+
+		elevationOk := true
+		if len(plugin.ElevatedCommands) > 0 {
+			for _, i := range plugin.ElevatedCommands {
+				if matcher.Command == i {
+					if robot.elevator != nil {
+						// elevators have their own pluginID & name, for brain access
+						pbot := &Robot{
+							User:    bot.User,
+							Channel: bot.Channel,
+							Format:  Variable,
+							// NOTE: checkPluginMatchers is called under b.lock.RLock()
+							pluginID: "elevator-" + robot.elevatorProvider,
+						}
+						elevationOk = robot.elevator(pbot, false)
+					} else {
+						elevationOk = false
+						Log(Error, "Encountered elevated command and no elevation method configured")
+					}
 				}
 			}
 		}
+		if len(plugin.ElevateImmediateCommands) > 0 {
+			for _, i := range plugin.ElevateImmediateCommands {
+				if matcher.Command == i {
+					if robot.elevator != nil {
+						// elevators have their own pluginID & name, for brain access
+						pbot := &Robot{
+							User:    bot.User,
+							Channel: bot.Channel,
+							Format:  Variable,
+							// NOTE: checkPluginMatchers is called under b.lock.RLock()
+							pluginID: "elevator-" + robot.elevatorProvider,
+						}
+						elevationOk = robot.elevator(pbot, true)
+					} else {
+						elevationOk = false
+						Log(Error, "Encountered elevated command and no elevation method configured")
+					}
+				}
+			}
+		}
+		if elevationOk {
+			pluginsRunning.Unlock()
+			pluginsRunning.Add(1)
+			go callPlugin(bot, plugin, true, matcher.Command, cmdArgs...)
+		} else {
+			Log(Error, fmt.Sprintf("Elevation failed for command \"%s\", plugin %s", matcher.Command, plugin.name))
+			bot.Say(fmt.Sprintf("Sorry, the \"%s\" command requires elevated privileges", matcher.Command))
+		}
 	}
-	return commandMatched
+	return
 }
 
 // handleMessage checks the message against plugin commands and full-message matches,
