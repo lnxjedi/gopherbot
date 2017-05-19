@@ -12,7 +12,11 @@ Table of Contents
 
   * [Default Configuration](#default-configuration)
   * [Calling Convention](#calling-convention)
-    * [Reserved Commands](#reserved-commands)
+  * [Plugin Types and Calling Events](#plugin-types-and-calling-events)
+    * [Command Plugins](#command-plugins)
+    * [Authorization Plugins](#authorization-plugins)
+    * [Elevation Plugins](#elevation-plugins)
+    * [Other Reserved Commands](#other-reserved-commands)
   * [Getting Started](#getting-started)
     * [Starting from a Sample Plugin](#starting-from-a-sample-plugin)
     * [Using Boilerplate Code](#using-boilerplate-code)
@@ -28,7 +32,20 @@ Plugin configuration is fully documented in the [configuration](Configuration.md
 On start-up and during a reload, the robot will run each external script plugin with an argument of `configure`. The plugin should respond by writing the plugin default configuration to standard out and exiting with exit code 0. When responding to `configure`, the plugin shouldn't initialize a robot object or make any API calls, as `configure` is called without setting robot environment variables.
 
 # Calling Convention
-The plugin's configuration specifies `CommandMatchers` and `MessageMatchers` that associate regular expressions with plugin commands:
+The robot calls external plugins by creating a goroutine and exec'ing the external script with a set of environment variables. The external script uses the appropriate library for the scripting language to create a robot object from the environment. The script then examines it's command-line arguments to determine the type of action to take (normally a command followed by arguments to the command), and uses the library to make JSON-over-http calls for executing and returning results from methods. Depending on how the plugin is used, different kinds of events can cause external plugins to be called with a variety of commands and arguments. The most common means of calling an external plugin is for one of it's commands to be matched, or by matching a pattern in an ambient message (one not specifically directed to the robot).
+
+# Plugin Types and Calling Events
+
+There are (currently) three different kinds of external plugin:
+ * Command / Message Plugins - these are called by the robot in respond to messages the user sends
+ * Authorization Plugins - these plugins encapsulate the logic for authorizing specific users to use specific commands, and are called by the robot during authorization processing
+ * Elevation Plugins - these plugins perform some variety of multi-factor authentication for higher assurance of user identity, and are called by the robot during elevation processing
+
+In addition, external plugins can call each other using the CallPlugin(plugin, command, args...) method, subject to the target plugin's `TrustedPlugins` and `TrustAllPlugins` settings.
+
+## Command Plugins
+
+A command plugin's configuration specifies `CommandMatchers` and `MessageMatchers` that associate regular expressions with plugin commands:
 ```yaml
 MessageMatchers:
 - Command: help
@@ -38,11 +55,35 @@ CommandMatchers:
   Command: remember
   Contexts: [ "item" ]
 ```
-Whenever a `CommandMatcher` regex matches a command given to the robot, or a `MessageMatcher` matches an ambient message, the robot spawns a child process with a set of environment variables, and executes the plugin script with the first argument being the matched `Command`, and subsequent arguments corresponding to the regex capture groups (which may in some cases be an empty string). During script execution, plugins use a language-specific API to interact with the robot and the user. Normally this means instantiating the Robot object which script libraries construct from environment variables, and then calling methods on it.
+Whenever a `CommandMatcher` regex matches a command given to the robot, or a `MessageMatcher` matches an ambient message, the robot calls the plugin script with the first argument being the matched `Command`, and subsequent arguments corresponding to the regex capture groups (which may in some cases be an empty string). Command plugins should normally exit with status 0 (bot.Succeed), or non-zero for unusual error conditions that may require an administrator to investigate. The robot will notify the user whenever a command plugin exits non-zero, or when it emits output to STDERR.
 
-## Reserved Commands
+## Authorization Plugins
+To separate command logic from user authorization logic, Gopherbot supports the concept of an **authorization plugin**. The main `gopherbot.yaml` can define a specific plugin as the `DefaultAuthorizer`, and individual plugins can be configured to override this value by specifying their own `Authorizer` plugin. If a plugin lists any commands in it's `AuthorizedCommands` config item, or specifies `AuthorizeAllCommands: true`, then the robot will call the authorizer plugin with a command of `authorize`, followed by four arguments:
+ * The name of the plugin for which authorization is being requested
+ * The plugin command being called
+ * The name of the calling plugin, if called via CallPlugin(...)
+ * The optional value of `AuthRequire`, which may be interpreted as a group or role
+
+Based on these values and the `User` and `Channel` values from the robot, the authorization plugin should evaluate whether a user/plugin is authorized for the given command and exit with one of:
+ * bot.Succeed (0) - authorized
+ * bot.Fail (1) - not authorized
+ * bot.MechanismFail (2) - a technical issue prevented the robot from determining authorization
+
+Additionally, authorization plugins should provide feedback to the user on `Fail` or `MechanismFail` so they can have the issue addressed, e.g. "Authorization failed: user not a member of group 'foo'"
+
+## Elevation Plugins
+Elevation plugins provide the means to request additional authentication from the user for commands where higher assurance of identity is desired. The main `gopherbot.yaml` can specify an elevation plugin as the `DefaultElevator`, which can be overridden by a given plugin specifying an `Elevator`. When the plugin lists commands as `ElevatedCommands` or `ElevateImmediateCommands`, the robot will call the appropriate elevator plugin with a command of `elevate` and a first argument of `true` or `false` for `immediate`. The elevator plugin should interpret `immediate == true` to mean MFA is required every time; when `immediate != true`, successful elevation may persist for a configured timeout period.
+
+Based on the result of the elevation determination, the plugin should have an exit status one of:
+ * bot.Succeed (0) - elevation succeeded
+ * bot.Fail (1) - elevation failed
+ * bot.MechanismFail (2) - a technical issue prevented the robot from processing the elevation request
+
+Additionally, the elevation plugin should provide feedback to the user when elevation isn't successful to indicate the nature of the failure.
+
+## Other Reserved Commands
 In addition to the `configure` command, which instructs a plugin to dump it's default configuration to standard out, the following commands are reserved:
-* `init` - During startup and reload, the robot will call external plugins with an argument of `init`. Since all environment variables for the robot are set at that point, it would be possible to e.g. save a robot data structure that could be loaded and used in a cron job.
+* `init` - During startup and reload, the robot will call external plugins with a command argument of `init`. Since all environment variables for the robot are set at that point, it would be possible to e.g. save a robot data structure that could be loaded and used in a cron job.
 * `event` - This command is reserved for future use with e.g. user presence change & channel join/leave events
 
 # Getting Started

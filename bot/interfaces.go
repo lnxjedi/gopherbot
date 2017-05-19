@@ -54,12 +54,6 @@ type SimpleBrain interface {
 	Retrieve(key string) (blob []byte, exists bool, err error)
 }
 
-// Elevate is a configurable plugin function for elevating privileges.
-// It take a Robot and bool indicating whether to always check regardless
-// of any timeouts in effect.
-// It returns a bool indicating success or failure.
-type Elevate func(r *Robot, alwayscheck bool) bool
-
 // Connector is the interface defining methods that should be provided by
 // the connector for use by plugins/robot.
 type Connector interface {

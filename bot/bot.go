@@ -61,8 +61,8 @@ var robot struct {
 	protocol           string           // Name of the protocol, e.g. "slack"
 	brainProvider      string           // Type of Brain provider to use
 	brain              SimpleBrain      // Interface for robot to Store and Retrieve data
-	elevatorProvider   string           // Type of elevator to use
-	elevator           Elevate          // Function to call for a user to elevate privileges
+	defaultElevator    string           // Plugin name for performing elevation
+	defaultAuthorizer  string           // Plugin name for performing authorization
 	externalPlugins    []externalPlugin // List of external plugins to load
 	port               string           // Localhost port to listen on
 	logger             *log.Logger      // Where to log to
@@ -88,13 +88,6 @@ func newBot(cpath, epath string, logger *log.Logger) error {
 	handle := handler{}
 	if err := loadConfig(); err != nil {
 		return err
-	}
-	if len(robot.elevatorProvider) > 0 {
-		if eprovider, ok := elevators[robot.elevatorProvider]; !ok {
-			Log(Fatal, "No elevator registered for configured ElevateMethod:", robot.elevatorProvider)
-		} else {
-			robot.elevator = eprovider(handle)
-		}
 	}
 
 	if len(robot.brainProvider) > 0 {

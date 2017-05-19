@@ -1,6 +1,9 @@
 2017-05-18 David Parsley <parsley@linuxjedi.org>
 
-  * Go plugins now return an integer
+  * Go plugins now return an PlugRetVal (integer), required
+
+  * Added new type of plugin: Authorizer, for performing authorization
+    decisions, using plugin return values
 
 2017-05-01 David Parsley <parsley@linuxjedi.org>
 

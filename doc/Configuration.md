@@ -22,6 +22,8 @@ Table of Contents
       * [AllowDirect, DirectOnly, Channels and AllChannels](#allowdirect-directonly-channels-and-allchannels)
       * [CatchAll](#catchall)
       * [Users, RequireAdmin](#users-requireadmin)
+      * [Authorizer and AuthGroup](#authorizer-and-authgroup)
+      * [Plugins and AllPlugins](#plugins-and-allplugins)
       * [ElevatedCommands and ElevateImmediateCommands](#elevatedcommands-and-elevateimmediatecommands)
       * [Help](#help)
       * [CommandMatchers, ReplyMatchers, and MessageMatchers](#commandmatchers-replymatchers-and-messagematchers)
@@ -168,9 +170,31 @@ Users: [ 'alicek', 'bobc', 'bot:ServerWatch:*' ]
 ```yaml
 RequireAdmin: true  # default: false
 ```
-Users and RequireAdmin can be used to restrict a given plugin to a given list of users, or only bot
+`Users` and `RequireAdmin` can be used to restrict a given plugin to a given list of users, or only bot
 administrators. If a given plugin isn't allowed for a given user, the robot will behave as if the plugin
 doesn't exist for that user, and won't provide help text. Note that `Users` can take globbing characters, mainly useful for matching messages from another bot or integration.
+
+### Authorizer and AuthGroup
+
+(unimplemented)
+```yaml
+Authorizer: ldapcheck
+AuthGroup: serveradmins
+```
+`Authorizer` lets a plugin call another plugin to perform an authorization check. Note that if authorization fails, the user is notified and the target plugin is never called. The optional `AuthGroup` allows the target plugin to specify a group name the user should be authorized against.
+
+### Plugins and AllPlugins
+
+(unimplemented)
+```yaml
+Plugins:
+- ec2-manager
+```
+```yaml
+AllPlugins: true  # default: false
+```
+`Plugins` and `AllPlugins` determine which plugins are allowed to use the CallPlugin() method to call this
+plugin. Note that for an `Authorizer` plugin to be used, the authorizer needs to allow each plugin that has the authorizer configured.
 
 ### ElevatedCommands and ElevateImmediateCommands
 ```yaml

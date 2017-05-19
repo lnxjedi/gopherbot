@@ -9,7 +9,6 @@ import (
 	"github.com/uva-its/gopherbot/bot"
 )
 
-var botHandler bot.Handler
 var timeoutLock sync.RWMutex
 var lastElevate map[string]time.Time
 

@@ -66,13 +66,16 @@ type Plugin struct {
 	Channels                 []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels              bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
 	RequireAdmin             bool            // Set to only allow administrators to access a plugin
+	Elevator                 string          // Use an elevator other than the DefaultElevator
 	ElevatedCommands         []string        // Commands that require elevation, usually via 2fa
 	ElevateImmediateCommands []string        // Commands that always require elevation promting, regardless of timeouts
 	Users                    []string        // If non-empty, list of all the users with access to this plugin
-	Plugins                  []string        // list of plugins allowed to call this one
-	AllPlugins               bool            // authorizing plugins should probably set this to allow being called by all others
+	TrustedPlugins           []string        // list of plugins allowed to call this one
+	TrustAllPlugins          bool            // authorizing plugins should probably set this to allow being called by all others
 	Authorizer               string          // a plugin to call for authorizing users, should handle groups, etc.
 	AuthRequire              string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
+	AuthorizedCommands       string          // Which commands to authorize
+	AuthorizeAllCommands     bool            // when ALL commands need to be authorized
 	Help                     []PluginHelp    // All the keyword sets / help texts for this plugin
 	CommandMatchers          []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
 	ReplyMatchers            []InputMatcher  // Input matchers for replies to questions, only match after a RequestContinuation

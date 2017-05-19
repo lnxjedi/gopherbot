@@ -28,8 +28,8 @@ type botconf struct {
 	ProtocolConfig     json.RawMessage  // Protocol-specific configuration, type for unmarshalling arbitrary config
 	Brain              string           // Type of Brain to use
 	BrainConfig        json.RawMessage  // Brain-specific configuration, type for unmarshalling arbitrary config
-	ElevateMethod      string           // Type of elevator to use (SlackTOTP)
-	ElevateConfig      json.RawMessage  // ElevateMethod-specific configuration, type for unmarshalling arbitrary config
+	DefaultElevator    string           // Elevator plugin to use by default for ElevatedCommands and ElevateImmediateCommands
+	DefaultAuthorizer  string           // Authorizer plugin to use by default for AuthorizedCommands, or when AuthorizeAllCommands = true
 	Name               string           // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
 	DefaultAllowDirect bool             // Whether plugins are available in a DM by default
 	DefaultChannels    []string         // Channels where plugins are active by default, e.g. [ "general", "random" ]
@@ -131,11 +131,12 @@ func loadConfig() error {
 		robot.name = newconfig.Name
 	}
 
-	if newconfig.ElevateMethod != "" {
-		robot.elevatorProvider = newconfig.ElevateMethod
+	if newconfig.DefaultElevator != "" {
+		robot.defaultElevator = newconfig.DefaultElevator
 	}
-	if newconfig.ElevateConfig != nil {
-		elevateConfig = newconfig.ElevateConfig
+
+	if newconfig.DefaultAuthorizer != "" {
+		robot.defaultAuthorizer = newconfig.DefaultAuthorizer
 	}
 
 	if newconfig.Brain != "" {

@@ -182,10 +182,10 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 			for _, authPlug := range plugins {
 				if plugin.Authorizer == authPlug.name {
 					plugAllowed := false
-					if authPlug.AllPlugins {
+					if authPlug.TrustAllPlugins {
 						plugAllowed = true
-					} else if len(authPlug.Plugins) > 0 {
-						for _, allowed := range authPlug.Plugins {
+					} else if len(authPlug.TrustedPlugins) > 0 {
+						for _, allowed := range authPlug.TrustedPlugins {
 							if plugin.name == allowed {
 								plugAllowed = true
 								break

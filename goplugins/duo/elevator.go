@@ -12,7 +12,6 @@ import (
 	"github.com/uva-its/gopherbot/bot"
 )
 
-var botHandler bot.Handler
 var timeoutLock sync.RWMutex
 var lastElevate map[string]time.Time
 var auth *authapi.AuthApi
@@ -37,7 +36,7 @@ type config struct {
 
 var cfg config
 
-func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResult) bool {
+func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResult) (retval bot.PlugRetVal) {
 	dm := ""
 	if r.Channel != "" {
 		dm = " - I'll message you directly"
@@ -197,7 +196,23 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 	return false
 }
 
-func elevate(r *bot.Robot, immediate bool) bool {
+func elevate(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
+	if command != "elevate" {
+		return
+	}
+	immediate := false
+	switch args[0] {
+	case "true", "True", "t", "T", "Yes", "yes", "Y":
+		immediate = true
+	}
+	cfg := &config{}
+	r.GetPluginConfig(&cfg)
+	if cfg.TimeoutType == "absolute" {
+		cfg.tt = absolute
+	}
+	cfg.tf64 = float64(cfg.TimeoutSeconds)
+	duo := duoapi.NewDuoApi(cfg.DuoIKey, cfg.DuoSKey, cfg.DuoHost, "Gopherbot", duoapi.SetTimeout(10*time.Second))
+	auth = authapi.NewAuthApi(*duo)
 	var duouser string
 
 	switch cfg.DuoUserString {
@@ -211,23 +226,24 @@ func elevate(r *bot.Robot, immediate bool) bool {
 		duouser = strings.Split(email, "@")[0]
 	default:
 		r.Log(bot.Error, "No DuoUserString configured for Duo elevator plugin")
+		return bot.MechanismFail
 	}
 	if len(duouser) == 0 {
 		r.Log(bot.Error, fmt.Sprintf("Couldn't extract a Duo user name for %s with DuoUserString: %s", r.User, cfg.DuoUserString))
 		r.Say("This command requires elevation and I couldn't determine your Duo username, sorry")
-		return false
+		return bot.MechanismFail
 	}
 	res, err := auth.Preauth(authapi.PreauthUsername(duouser))
 	r.Log(bot.Debug, fmt.Sprintf("Preauth response for duo user %s: %v", duouser, res))
 	if err != nil {
 		r.Log(bot.Error, fmt.Sprintf("Duo preauthentication error for Duo user %s (%s): %s", duouser, r.User, err))
 		r.Say("This command requires elevation, but there was an error during preauth")
-		return false
+		return bot.MechanismFail
 	}
 	if res.Response.Result == "deny" {
 		r.Log(bot.Error, fmt.Sprintf("Received \"deny\" during Duo preauth for Duo user %s (%s)", duouser, r.User))
 		r.Say("This command requires elevation, but I received a \"deny\" response during preauth")
-		return false
+		return bot.Fail
 	}
 
 	allowed := false
@@ -261,19 +277,11 @@ func elevate(r *bot.Robot, immediate bool) bool {
 	return allowed
 }
 
-func provider(r bot.Handler) bot.Elevate {
-	botHandler = r
-	botHandler.GetElevateConfig(&cfg)
-	if cfg.TimeoutType == "absolute" {
-		cfg.tt = absolute
-	}
-	cfg.tf64 = float64(cfg.TimeoutSeconds)
-	duo := duoapi.NewDuoApi(cfg.DuoIKey, cfg.DuoSKey, cfg.DuoHost, "Gopherbot", duoapi.SetTimeout(10*time.Second))
-	auth = authapi.NewAuthApi(*duo)
-	return elevate
-}
-
 func init() {
-	bot.RegisterElevator("duo", provider)
+	bot.RegisterPlugin("duo", bot.PluginHandler{
+		DefaultConfig: defaultConfig,
+		Handler:       elevate,
+		Config:        &config{},
+	})
 	lastElevate = make(map[string]time.Time)
 }
