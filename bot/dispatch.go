@@ -80,11 +80,11 @@ func pluginAvailable(user, channel string, plugin *Plugin) bool {
 	return false
 }
 
-// checkPluginMatchers checks either command matchers (for messages directed at
+// checkPluginMatchersAndRun checks either command matchers (for messages directed at
 // the robot), or message matchers (for ambient commands that need not be
 // directed at the robot), and calls the plugin if it matches. Note: this
 // function is called under a read lock on the 'b' struct.
-func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (commandMatched bool) {
+func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext string) (commandMatched bool) {
 	// un-needed, but more clear
 	commandMatched = false
 	pluginlist.RLock()
@@ -177,100 +177,26 @@ func checkPluginMatchers(checkCommands bool, bot *Robot, messagetext string) (co
 			return
 		}
 		pluginsRunning.Unlock()
-		if plugin.Authorizer != "" {
-			authorized := false
-			for _, authPlug := range plugins {
-				if plugin.Authorizer == authPlug.name {
-					plugAllowed := false
-					if authPlug.TrustAllPlugins {
-						plugAllowed = true
-					} else if len(authPlug.TrustedPlugins) > 0 {
-						for _, allowed := range authPlug.TrustedPlugins {
-							if plugin.name == allowed {
-								plugAllowed = true
-								break
-							}
-						}
-					}
-					if plugAllowed {
-						if !pluginAvailable(bot.User, bot.Channel, authPlug) {
-							Log(Error, fmt.Sprintf("Auth plugin \"%s\" not available while authenticating user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, bot.User, matcher.Command, plugin.name, bot.Channel, plugin.AuthRequire))
-							bot.Say("Sorry, I'm unable to authorize you for that command in this channel")
-							return
-						}
-						authRet := callPlugin(bot, authPlug, false, false, "authorize", plugin.name, matcher.Command, "", plugin.AuthRequire)
-						if authRet == Success {
-							authorized = true
-							break
-						}
-						if authRet == Fail {
-							Log(Warn, fmt.Sprintf("Authorization failed by authorizer \"%s\" for user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, bot.User, matcher.Command, plugin.name, bot.Channel, plugin.AuthRequire))
-							bot.Say("Sorry, you're not authorized for that command in this channel")
-							return
-						}
-						Log(Error, fmt.Sprintf("Auth plugin \"%s\" mechanism failure while authenticating user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, bot.User, matcher.Command, plugin.name, bot.Channel, plugin.AuthRequire))
-						bot.Say("Sorry, I'm unable to perform authorization for that command in this channel")
-						return
-					} else {
-						Log(Error, fmt.Sprintf("Auth plugin \"%s\" not available to plugin \"%s\" while authenticating user \"%s\" calling command \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, plugin.name, bot.User, matcher.Command, bot.Channel, plugin.AuthRequire))
-						bot.Say("Sorry, I'm unable to authorize you for that command in this channel")
-						return
-					}
-				}
-			}
-			if !authorized {
-				Log(Error, fmt.Sprintf("Auth plugin \"%s\" not found while authenticating user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", plugin.Authorizer, bot.User, matcher.Command, plugin.name, bot.Channel, plugin.AuthRequire))
-				bot.Say("Sorry, I'm unable to perform authorization for that command in this channel")
-				return
-			}
-		}
-		elevationOk := true
-		if len(plugin.ElevatedCommands) > 0 {
-			for _, i := range plugin.ElevatedCommands {
-				if matcher.Command == i {
-					if robot.elevator != nil {
-						// elevators have their own pluginID & name, for brain access
-						pbot := &Robot{
-							User:    bot.User,
-							Channel: bot.Channel,
-							Format:  Variable,
-							// NOTE: checkPluginMatchers is called under b.lock.RLock()
-							pluginID: "elevator-" + robot.elevatorProvider,
-						}
-						elevationOk = robot.elevator(pbot, false)
-					} else {
-						elevationOk = false
-						Log(Error, "Encountered elevated command and no elevation method configured")
-					}
-				}
-			}
-		}
-		if len(plugin.ElevateImmediateCommands) > 0 {
-			for _, i := range plugin.ElevateImmediateCommands {
-				if matcher.Command == i {
-					if robot.elevator != nil {
-						// elevators have their own pluginID & name, for brain access
-						pbot := &Robot{
-							User:    bot.User,
-							Channel: bot.Channel,
-							Format:  Variable,
-							// NOTE: checkPluginMatchers is called under b.lock.RLock()
-							pluginID: "elevator-" + robot.elevatorProvider,
-						}
-						elevationOk = robot.elevator(pbot, true)
-					} else {
-						elevationOk = false
-						Log(Error, "Encountered elevated command and no elevation method configured")
-					}
-				}
-			}
-		}
-		if elevationOk {
-			go callPlugin(bot, plugin, true, true, matcher.Command, cmdArgs...)
+		// Check to see if user issued a new command when a reply was being
+		// waited on
+		replyMatcher := replyMatcher{bot.User, bot.Channel}
+		replies.Lock()
+		rep, waitingForReply := replies.m[replyMatcher]
+		if waitingForReply {
+			delete(replies.m, replyMatcher)
+			replies.Unlock()
+			rep.replyChannel <- reply{false, true, ""}
+			Log(Debug, fmt.Sprintf("User \"%s\" matched a new command/message while the robot was waiting for a reply in channel \"%s\"", bot.User, bot.Channel))
 		} else {
-			Log(Error, fmt.Sprintf("Elevation failed for command \"%s\", plugin %s", matcher.Command, plugin.name))
-			bot.Say(fmt.Sprintf("Sorry, the \"%s\" command requires elevated privileges", matcher.Command))
+			replies.Unlock()
 		}
+		if bot.checkAuthorization(plugins, plugin, matcher.Command) != Success {
+			return
+		}
+		if bot.checkElevation(plugins, plugin, matcher.Command) != Success {
+			return
+		}
+		go callPlugin(bot, plugin, true, true, matcher.Command, cmdArgs...)
 	}
 	return
 }
@@ -306,7 +232,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		shortTermMemories.Unlock()
 		if ok && ts.Sub(last.timestamp) < keepListeningDuration {
 			messagetext = last.memory
-			commandMatched = checkPluginMatchers(true, bot, messagetext)
+			commandMatched = checkPluginMatchersAndRun(true, bot, messagetext)
 		} else {
 			commandMatched = true
 			bot.Say("Yes?")
@@ -320,32 +246,36 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 			}
 		}
 		// See if a command matches (and runs)
-		commandMatched = checkPluginMatchers(true, bot, messagetext)
+		commandMatched = checkPluginMatchersAndRun(true, bot, messagetext)
 	}
 	// See if the robot was waiting on a reply
-	matcher := replyMatcher{user, channel}
-	Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
-	replies.Lock()
-	rep, waitingForReply := replies.m[matcher]
-	if !waitingForReply {
-		replies.Unlock()
-		Log(Trace, "No matching replyWaiter")
-	} else {
-		delete(replies.m, matcher)
-		replies.Unlock()
-		if commandMatched {
-			rep.replyChannel <- reply{false, true, ""}
-			Log(Debug, fmt.Sprintf("User \"%s\" issued a new command while the robot was waiting for a reply in channel \"%s\"", user, channel))
+	var rep replyWaiter
+	waitingForReply := false
+	if !commandMatched {
+		matcher := replyMatcher{user, channel}
+		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
+		replies.Lock()
+		rep, waitingForReply = replies.m[matcher]
+		if !waitingForReply {
+			replies.Unlock()
+			Log(Trace, "No matching replyWaiter")
 		} else {
-			// if the robot was waiting on a reply, we don't want to check for
-			// ambient message matches - the plugin will handle it.
-			commandMatched = true
-			matched := false
-			if rep.re.MatchString(messagetext) {
-				matched = true
+			delete(replies.m, matcher)
+			replies.Unlock()
+			if commandMatched {
+				rep.replyChannel <- reply{false, true, ""}
+				Log(Debug, fmt.Sprintf("User \"%s\" issued a new command while the robot was waiting for a reply in channel \"%s\"", user, channel))
+			} else {
+				// if the robot was waiting on a reply, we don't want to check for
+				// ambient message matches - the plugin will handle it.
+				commandMatched = true
+				matched := false
+				if rep.re.MatchString(messagetext) {
+					matched = true
+				}
+				Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", user, channel, messagetext, rep.re.String(), matched))
+				rep.replyChannel <- reply{matched, false, messagetext}
 			}
-			Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", user, channel, messagetext, rep.re.String(), matched))
-			rep.replyChannel <- reply{matched, false, messagetext}
 		}
 	}
 	// Direct commands were checked above; if a direct command didn't match,
@@ -354,7 +284,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	// commands never match in a DM.
 	if !commandMatched && !waitingForReply && !isCommand {
 		// check for ambient message matches
-		commandMatched = checkPluginMatchers(false, bot, messagetext)
+		commandMatched = checkPluginMatchersAndRun(false, bot, messagetext)
 	}
 	if isCommand && !commandMatched { // the robot was spoken too, but nothing matched - call catchAlls
 		pluginsRunning.Lock()

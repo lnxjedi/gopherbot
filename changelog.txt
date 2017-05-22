@@ -1,9 +1,13 @@
 2017-05-18 David Parsley <parsley@linuxjedi.org>
 
-  * Go plugins now return an PlugRetVal (integer), required
+  * [Breaking] Go plugins now return an PlugRetVal (integer), required
 
   * Added new type of plugin: Authorizer, for performing authorization
     decisions, using plugin return values
+
+  * [Breaking] Elevators are now normal plugins, and configured with normal
+    plugin "Config:" stanza. See Configuration.md for information on configuring
+    elevators.
 
 2017-05-01 David Parsley <parsley@linuxjedi.org>
 

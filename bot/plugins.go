@@ -74,7 +74,7 @@ type Plugin struct {
 	TrustAllPlugins          bool            // authorizing plugins should probably set this to allow being called by all others
 	Authorizer               string          // a plugin to call for authorizing users, should handle groups, etc.
 	AuthRequire              string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
-	AuthorizedCommands       string          // Which commands to authorize
+	AuthorizedCommands       []string        // Which commands to authorize
 	AuthorizeAllCommands     bool            // when ALL commands need to be authorized
 	Help                     []PluginHelp    // All the keyword sets / help texts for this plugin
 	CommandMatchers          []InputMatcher  // Input matchers for messages that need to be directed to the 'bot

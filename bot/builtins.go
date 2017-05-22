@@ -1,8 +1,6 @@
 package bot
 
 import (
-	"bytes"
-	"encoding/base32"
 	"fmt"
 	"log"
 	"runtime"
@@ -10,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	otp "github.com/dgryski/dgoogauth"
 	"github.com/ghodss/yaml"
 )
 
@@ -26,7 +23,6 @@ var builtIns = []string{
 	"builtInhelp",
 	"builtInadmin",
 	"builtIndump",
-	"builtInlaunchcodes",
 	"builtInlogging",
 }
 
@@ -34,63 +30,10 @@ func init() {
 	RegisterPlugin("builtIndump", PluginHandler{DefaultConfig: dumpConfig, Handler: dump})
 	RegisterPlugin("builtInhelp", PluginHandler{DefaultConfig: helpConfig, Handler: help})
 	RegisterPlugin("builtInadmin", PluginHandler{DefaultConfig: adminConfig, Handler: admin})
-	RegisterPlugin("builtInlaunchcodes", PluginHandler{DefaultConfig: launchCodesConfig, Handler: launchCode})
 	RegisterPlugin("builtInlogging", PluginHandler{DefaultConfig: logConfig, Handler: logging})
 }
 
 /* builtin plugins, like help */
-
-func launchCode(bot *Robot, command string, args ...string) (retval PlugRetVal) {
-	if command == "init" {
-		return Success // ignore init
-	}
-	var userOTP otp.OTPConfig
-	otpKey := "elevator-totp:" + bot.User
-	updated := false
-	lock, exists, ret := checkoutDatum(otpKey, &userOTP, true)
-	if ret != Ok {
-		bot.Say("Yikes - something went wrong with my brain, have somebody check my log")
-		return
-	}
-	defer func() {
-		if updated {
-			ret = updateDatum(otpKey, lock, &userOTP)
-			if ret != Ok {
-				Log(Error, "Couldn't save OTP config")
-				bot.Reply("Good grief, I'm having trouble remembering your launch codes - have somebody check my log")
-			}
-		} else {
-			// Well-behaved plugins will always do a CheckinDatum when the datum hasn't been updated,
-			// in case there's another thread waiting.
-			checkinDatum(otpKey, lock)
-		}
-	}()
-	switch command {
-	case "send":
-		if exists {
-			bot.Reply("I've already sent you the launch codes, contact an administrator if you're having problems")
-			return
-		}
-		otpb := make([]byte, 10)
-		random.Read(otpb)
-		userOTP.Secret = base32.StdEncoding.EncodeToString(otpb)
-		userOTP.WindowSize = 2
-		userOTP.DisallowReuse = []int{}
-		var codeMail bytes.Buffer
-		fmt.Fprintf(&codeMail, "For your authenticator:\n%s\n", userOTP.Secret)
-		// Sending email takes longer than the timeout, so we check it in and check
-		// out again after.
-		checkinDatum(otpKey, lock)
-		if ret = bot.Email("Your launch codes - if you print this email, please chew it up and swallow it", &codeMail); ret != Ok {
-			bot.Reply("There was a problem sending your launch codes, contact an administrator")
-			return
-		}
-		lock, _, ret = checkoutDatum(otpKey, &userOTP, true)
-		updated = true
-		bot.Reply("I've emailed your launch codes - please delete it promptly")
-	}
-	return
-}
 
 func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	if command == "init" {

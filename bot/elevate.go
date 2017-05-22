@@ -1,28 +1,106 @@
 package bot
 
+import "fmt"
+
+const technicalElevError = "Sorry, elevation failed due to a problem with the elevation service"
+const configElevError = "Sorry, elevation failed due to a configuration error"
+
 // Elevator plugins provide an elevate method for checking if the user
 // can run a privileged command.
 
-import (
-	"fmt"
-	"log"
-)
+func (bot *Robot) elevate(plugins []*Plugin, plugin *Plugin, immediate bool) (retval PlugRetVal) {
+	robot.RLock()
+	defaultElevator := robot.defaultElevator
+	robot.RUnlock()
+	if plugin.Elevator == "" && defaultElevator == "" {
+		Log(Error, fmt.Sprintf("Plugin \"%s\" requires elevation, but no elevator configured", plugin.name))
+		bot.Say(configElevError)
+		return ConfigurationFail
+	}
+	elevator := defaultElevator
+	if plugin.Elevator != "" {
+		elevator = plugin.Elevator
+	}
+	for _, ePlug := range plugins {
+		if elevator == ePlug.name {
+			plugAllowed := false
+			if ePlug.TrustAllPlugins {
+				plugAllowed = true
+			} else if len(ePlug.TrustedPlugins) > 0 {
+				for _, allowed := range ePlug.TrustedPlugins {
+					if plugin.name == allowed {
+						plugAllowed = true
+						break
+					}
+				}
+			}
+			if plugAllowed {
+				if !pluginAvailable(bot.User, bot.Channel, ePlug) {
+					Log(Error, fmt.Sprintf("Elevation plugin \"%s\" not available while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
+					bot.Say(configElevError)
+					return ConfigurationFail
+				}
+				immedString := "true"
+				if !immediate {
+					immedString = "false"
+				}
+				elevRet := callPlugin(bot, ePlug, false, false, "elevate", immedString)
+				if elevRet == Success {
+					return Success
+				}
+				if elevRet == Fail {
+					Log(Warn, fmt.Sprintf("Elevation failed by elevator \"%s\", user \"%s\", plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
+					bot.Say("Sorry, this command requires elevation")
+					return Fail
+				}
+				Log(Error, fmt.Sprintf("Elevator plugin \"%s\" mechanism failure while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
+				bot.Say(technicalElevError)
+				return MechanismFail
+			} else {
+				Log(Error, fmt.Sprintf("Elevator plugin \"%s\" not available to plugin \"%s\" while elevating user \"%s\" in channel \"%s\"", ePlug.name, plugin.name, bot.User, bot.Channel))
+				bot.Say(configElevError)
+				return ConfigurationFail
+			}
+		}
+	}
+	Log(Error, fmt.Sprintf("Elevator plugin \"%s\" not found while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", plugin.Elevator, bot.User, plugin.name, bot.Channel))
+	bot.Say(technicalElevError)
+	return ConfigurationFail
+}
 
-// map of registered elevate methods
-var elevators = make(map[string]func(Handler) Elevate)
-
-// RegisterElevator allows elevate methods to register themselves.
-func RegisterElevator(name string, provider func(Handler) Elevate) {
-	if stopRegistrations {
+// Check for a configured Elevator and check elevation
+func (bot *Robot) checkElevation(plugins []*Plugin, plugin *Plugin, command string) (retval PlugRetVal) {
+	immediate := false
+	elevationRequired := false
+	if len(plugin.ElevateImmediateCommands) > 0 {
+		for _, i := range plugin.ElevateImmediateCommands {
+			if command == i {
+				elevationRequired = true
+				immediate = true
+				break
+			}
+		}
+	}
+	if !elevationRequired && len(plugin.ElevatedCommands) > 0 {
+		for _, i := range plugin.ElevatedCommands {
+			if command == i {
+				elevationRequired = true
+				break
+			}
+		}
+	}
+	if !elevationRequired {
+		if plugin.Elevator != "" {
+			Log(Error, fmt.Sprintf("Plugin \"%s\" configured an elevator, but has no commands requiring elevation", plugin.name))
+			bot.Say(configElevError)
+			return ConfigurationFail
+		}
 		return
 	}
-	if elevators[name] != nil {
-		log.Fatal("Attempted registration of duplicate elevator name:", name)
+	retval = bot.elevate(plugins, plugin, immediate)
+	if retval == Success {
+		return
 	}
-	elevators[name] = provider
-	// Give the elevator a name that's illegal for normal plugins, so
-	// it can use the brain without possibility of a normal plugin using
-	// the same namespace in the brain.
-	plugName := fmt.Sprintf("elevator-%s", name)
-	plugIDNameMap[plugName] = plugName
+	Log(Error, fmt.Sprintf("Elevation failed for plugin \"%s\", command: \"%s\"", plugin.name, command))
+	return
 }

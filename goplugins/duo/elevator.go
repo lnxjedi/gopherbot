@@ -1,4 +1,4 @@
-package totp
+package duo
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 )
 
 var timeoutLock sync.RWMutex
-var lastElevate map[string]time.Time
+var lastElevate = make(map[string]time.Time)
 var auth *authapi.AuthApi
 
 type timeoutType int
@@ -36,6 +36,8 @@ type config struct {
 
 var cfg config
 
+const memoryKey = "duoOpts"
+
 func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResult) (retval bot.PlugRetVal) {
 	dm := ""
 	if r.Channel != "" {
@@ -43,13 +45,23 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 	}
 
 	prompted := false
-	var devnum, method int
+	// values too big to be valid
+	devnum := 1024
+	method := 1024
 	var msg []string
 	var ret bot.RetVal
 	var rep string
 	var factor string
+	var err error
 
-	if len(res.Response.Devices) > 1 {
+	rememberedOpts := r.Recall(memoryKey)
+	if rememberedOpts != "" {
+		v := strings.Split(rememberedOpts, ",")
+		devnum, _ = strconv.Atoi(v[0])
+		method, _ = strconv.Atoi(v[1])
+	}
+
+	if len(res.Response.Devices) > 1 && devnum >= len(res.Response.Devices) {
 		if immediate {
 			r.Say("This command requires immediate elevation" + dm)
 		} else {
@@ -78,12 +90,14 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			rep, ret = r.Direct().WaitForReplyRegex(`\d`, 30)
 		}
 		if ret != bot.Ok {
-			return false
+			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo elevation prompt", r.User))
+			return bot.Fail
 		}
 		devnum, _ = strconv.Atoi(rep)
 		if devnum < 0 || devnum >= len(res.Response.Devices) {
 			r.Direct().Say("Invalid device number")
-			return false
+			r.Log(bot.Error, fmt.Sprintf("Invalid duo device # response from user \"%s\"", r.User))
+			return bot.Fail
 		}
 	}
 	autoProvided := false
@@ -97,12 +111,12 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 	} else {
 		r.Log(bot.Error, fmt.Sprintf("No devices returned for Duo user %s; auth response: %v", user, res))
 		r.Direct().Say("There's a problem with your duo account, ask an admin to check the log")
-		return false
+		return bot.MechanismFail
 	}
 	if len(res.Response.Devices[devnum].Capabilities) == 1 || (autoProvided && len(res.Response.Devices[devnum].Capabilities) == 2) {
 		factor = res.Response.Devices[devnum].Capabilities[0]
 		ret = bot.Ok
-	} else {
+	} else if method >= len(res.Response.Devices[devnum].Capabilities) {
 		if !prompted {
 			if immediate {
 				r.Say("This command requires immediate elevation" + dm)
@@ -110,6 +124,7 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 				r.Say("This command requires elevation" + dm)
 			}
 			r.Pause(1)
+			prompted = true
 		}
 		msg = make([]string, 10)
 		for m, method := range res.Response.Devices[devnum].Capabilities {
@@ -125,11 +140,18 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			r.Direct().Say("Try again? I need a single-digit method #")
 			rep, ret = r.Direct().WaitForReplyRegex(`\d`, 30)
 		}
+		if ret != bot.Ok {
+			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo elevation prompt", r.User))
+			return bot.Fail
+		}
 		method, _ = strconv.Atoi(rep)
 		if method < 0 || method >= len(res.Response.Devices[devnum].Capabilities) {
 			r.Direct().Say("Invalid method number")
-			return false
+			r.Log(bot.Error, fmt.Sprintf("Invalid duo method # response from user \"%s\"", r.User))
+			return bot.Fail
 		}
+	}
+	if factor == "" {
 		factor = res.Response.Devices[devnum].Capabilities[method]
 		if factor == "sms" {
 			_, _ = auth.Auth(factor,
@@ -142,58 +164,65 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			factor = "passcode"
 		}
 	}
-	if ret == bot.Ok {
-		nameattr := r.GetBotAttribute("name")
-		botname := nameattr.Attribute
-		if botname == "" {
-			botname = "Gopherbot"
-		} else {
-			botname += " - Gopherbot"
-		}
-		var authres *authapi.AuthResult
-		var err error
-		switch factor {
-		case "push":
-			authres, err = auth.Auth(factor,
-				authapi.AuthUsername(user),
-				authapi.AuthDevice(res.Response.Devices[devnum].Device),
-				authapi.AuthDisplayUsername(user),
-				authapi.AuthType(botname),
-			)
-		case "passcode":
-			r.Direct().Say("Ok, please enter a passcode to use")
-			rep, ret = r.Direct().WaitForReplyRegex(`\d+`, 60)
-			if ret != bot.Ok {
-				r.Direct().Say("Try again? I need a short string of numbers")
-				rep, ret = r.Direct().WaitForReplyRegex(`\d+`, 60)
-			}
-			if ret != bot.Ok {
-				return false
-			}
-			authres, err = auth.Auth(factor,
-				authapi.AuthUsername(user),
-				authapi.AuthPasscode(rep),
-			)
-		default:
-			authres, err = auth.Auth(factor,
-				authapi.AuthUsername(user),
-				authapi.AuthDevice(res.Response.Devices[devnum].Device),
-			)
-		}
-		r.Log(bot.Debug, fmt.Sprintf("Auth response from duo: %v", authres))
-		if err != nil {
-			r.Log(bot.Error, fmt.Sprintf("Error during Duo auth for user %s (%s): %s", user, r.User, err))
-			r.Direct().Say("Sorry, there was an error while, trying to authenticate you - ask an admin to check the log")
-			return false
-		}
-		if authres.Response.Result != "allow" {
-			r.Log(bot.Error, fmt.Sprintf("Duo auth failed for user %s (%s) - result: %s, status: %s, message: %s", user, r.User, authres.Response.Result, authres.Response.Status, authres.Response.Status_Msg))
-			r.Direct().Say("Duo authentication failed")
-			return false
-		}
-		return true
+	nameattr := r.GetBotAttribute("name")
+	botname := nameattr.Attribute
+	if botname == "" {
+		botname = "Gopherbot"
+	} else {
+		botname += " - Gopherbot"
 	}
-	return false
+	var authres *authapi.AuthResult
+	r.Log(bot.Debug, fmt.Sprintf("Attempting duo auth for device %v, factor %s", res.Response.Devices[devnum].Device, factor))
+	switch factor {
+	case "push":
+		authres, err = auth.Auth(factor,
+			authapi.AuthUsername(user),
+			authapi.AuthDevice(res.Response.Devices[devnum].Device),
+			authapi.AuthDisplayUsername(user),
+			authapi.AuthType(botname),
+		)
+	case "passcode":
+		if !prompted {
+			if immediate {
+				r.Say("This command requires immediate elevation" + dm)
+			} else {
+				r.Say("This command requires elevation" + dm)
+			}
+			r.Pause(1)
+		}
+		r.Direct().Say("Please enter a passcode to use")
+		rep, ret = r.Direct().WaitForReplyRegex(`\d+`, 60)
+		if ret != bot.Ok {
+			r.Direct().Say("Try again? I need a short string of numbers")
+			rep, ret = r.Direct().WaitForReplyRegex(`\d+`, 60)
+		}
+		if ret != bot.Ok {
+			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo elevation prompt", r.User))
+			return bot.Fail
+		}
+		authres, err = auth.Auth(factor,
+			authapi.AuthUsername(user),
+			authapi.AuthPasscode(rep),
+		)
+	default:
+		authres, err = auth.Auth(factor,
+			authapi.AuthUsername(user),
+			authapi.AuthDevice(res.Response.Devices[devnum].Device),
+		)
+	}
+	r.Log(bot.Debug, fmt.Sprintf("Auth response from duo: %v", authres))
+	if err != nil {
+		r.Log(bot.Error, fmt.Sprintf("Error during Duo auth for user %s (%s): %s", user, r.User, err))
+		r.Say("Sorry, there was an error while trying to authenticate you - ask an admin to check the log")
+		return bot.MechanismFail
+	}
+	if authres.Response.Result != "allow" {
+		r.Log(bot.Error, fmt.Sprintf("Duo auth failed for user %s (%s) - result: %s, status: %s, message: %s", user, r.User, authres.Response.Result, authres.Response.Status, authres.Response.Status_Msg))
+		r.Say("Duo authentication failed")
+		return bot.Fail
+	}
+	r.Remember(memoryKey, fmt.Sprintf("%d,%d", devnum, method))
+	return bot.Success
 }
 
 func elevate(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
@@ -226,56 +255,68 @@ func elevate(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVa
 		duouser = strings.Split(email, "@")[0]
 	default:
 		r.Log(bot.Error, "No DuoUserString configured for Duo elevator plugin")
-		return bot.MechanismFail
+		return bot.ConfigurationFail
 	}
 	if len(duouser) == 0 {
 		r.Log(bot.Error, fmt.Sprintf("Couldn't extract a Duo user name for %s with DuoUserString: %s", r.User, cfg.DuoUserString))
-		r.Say("This command requires elevation and I couldn't determine your Duo username, sorry")
 		return bot.MechanismFail
 	}
 	res, err := auth.Preauth(authapi.PreauthUsername(duouser))
 	r.Log(bot.Debug, fmt.Sprintf("Preauth response for duo user %s: %v", duouser, res))
 	if err != nil {
 		r.Log(bot.Error, fmt.Sprintf("Duo preauthentication error for Duo user %s (%s): %s", duouser, r.User, err))
-		r.Say("This command requires elevation, but there was an error during preauth")
 		return bot.MechanismFail
 	}
 	if res.Response.Result == "deny" {
 		r.Log(bot.Error, fmt.Sprintf("Received \"deny\" during Duo preauth for Duo user %s (%s)", duouser, r.User))
-		r.Say("This command requires elevation, but I received a \"deny\" response during preauth")
 		return bot.Fail
 	}
 
-	allowed := false
 	now := time.Now().UTC()
+	ask := false
 	if immediate {
-		allowed = authduo(r, immediate, duouser, res)
+		retval = authduo(r, immediate, duouser, res)
 	} else {
 		timeoutLock.RLock()
 		le, ok := lastElevate[r.User]
 		timeoutLock.RUnlock()
-		ask := false
 		if ok {
 			diff := now.Sub(le)
 			if diff.Seconds() > cfg.tf64 {
 				ask = true
 			} else {
-				allowed = true
+				retval = bot.Success
 			}
 		} else {
 			ask = true
 		}
 		if ask {
-			allowed = authduo(r, immediate, duouser, res)
+			retval = authduo(r, immediate, duouser, res)
 		}
 	}
-	if allowed && cfg.tt == idle {
+	if retval == bot.Success && cfg.tt == idle {
+		timeoutLock.Lock()
+		lastElevate[r.User] = now
+		timeoutLock.Unlock()
+	} else if retval == bot.Success && ask && cfg.tt == absolute {
 		timeoutLock.Lock()
 		lastElevate[r.User] = now
 		timeoutLock.Unlock()
 	}
-	return allowed
+	return
 }
+
+const defaultConfig = `
+TrustAllPlugins: true
+AllChannels: true
+Config:
+  TimeoutSeconds: 7200
+  TimeoutType: idle # or absolute
+#  DuoIKey: <YourIKey>
+#  DuoSKey: <YourSKey>
+#  DuoHost: <YourDuoHost>
+  DuoUserString: emailUser
+`
 
 func init() {
 	bot.RegisterPlugin("duo", bot.PluginHandler{
@@ -283,5 +324,4 @@ func init() {
 		Handler:       elevate,
 		Config:        &config{},
 	})
-	lastElevate = make(map[string]time.Time)
 }

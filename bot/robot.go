@@ -45,17 +45,18 @@ func (r *Robot) CheckAdmin() bool {
 
 // Elevate lets a plugin request elevation on the fly. When immediate = true,
 // the elevator should always prompt for 2fa; otherwise a configured timeout
-// should apply.
+// should apply. Note that this can have unexpected side effects if the
+// target of CallPlugin(...) calls Elevate.
 func (r *Robot) Elevate(immediate bool) bool {
-	robot.RLock()
-	e := robot.elevator
-	p := robot.elevatorProvider
-	robot.RUnlock()
-	if e == nil {
-		return false
+	pluginlist.RLock()
+	plugins := pluginlist.p
+	plugin := pluginlist.p[plugIDmap[r.pluginID]]
+	pluginlist.RUnlock()
+	retval := r.elevate(plugins, plugin, immediate)
+	if retval == Success {
+		return true
 	}
-	r.pluginID = "elevator-" + p
-	return e(r, immediate)
+	return false
 }
 
 // Fixed is a convenience function for sending a message with fixed width

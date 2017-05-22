@@ -1,7 +1,10 @@
 package totp
 
 import (
+	"bytes"
+	"encoding/base32"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -10,7 +13,8 @@ import (
 )
 
 var timeoutLock sync.RWMutex
-var lastElevate map[string]time.Time
+var lastElevate = make(map[string]time.Time)
+var random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 type timeoutType int
 
@@ -53,7 +57,7 @@ func checkOTP(r *bot.Robot, code string) (bool, bot.RetVal) {
 	return valid, bot.Ok
 }
 
-func getcode(r *bot.Robot, immediate bool) bool {
+func getcode(r *bot.Robot, immediate bool) (retval bot.PlugRetVal) {
 	dm := ""
 	if r.Channel != "" {
 		dm = " - I'll message you directly"
@@ -74,56 +78,129 @@ func getcode(r *bot.Robot, immediate bool) bool {
 		ok, ret := checkOTP(r, rep)
 		if ret != bot.Ok {
 			r.Direct().Say("There were technical issues validating your code, ask an administrator to check the log")
-			return false
+			return bot.MechanismFail
 		}
-		return ok
-	}
-	return false
-}
-
-func elevate(r *bot.Robot, immediate bool) bool {
-	allowed := false
-	now := time.Now().UTC()
-	if immediate {
-		allowed = getcode(r, immediate)
-	} else {
-		timeoutLock.RLock()
-		le, ok := lastElevate[r.User]
-		timeoutLock.RUnlock()
-		ask := false
 		if ok {
-			diff := now.Sub(le)
-			if diff.Seconds() > cfg.tf64 {
-				ask = true
-			} else {
-				allowed = true
-			}
-		} else {
-			ask = true
+			return bot.Success
 		}
-		if ask {
-			allowed = getcode(r, immediate)
-		}
+		r.Direct().Say("Invalid code")
+		return bot.Fail
 	}
-	if allowed && cfg.tt == idle {
-		timeoutLock.Lock()
-		lastElevate[r.User] = now
-		timeoutLock.Unlock()
-	}
-	return allowed
+	r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to TOTP token prompt", r.User))
+	return bot.Fail
 }
 
-func provider(r bot.Handler) bot.Elevate {
-	botHandler = r
-	botHandler.GetElevateConfig(&cfg)
-	if cfg.TimeoutType == "absolute" {
-		cfg.tt = absolute
+func elevate(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
+	switch command {
+	case "send":
+		var userOTP otp.OTPConfig
+		updated := false
+		lock, exists, ret := r.CheckoutDatum(r.User, &userOTP, true)
+		if ret != bot.Ok {
+			r.Say("Yikes! - Something went wrong with my brain, have an admin check my log")
+			return
+		}
+		defer func() {
+			if updated {
+				ret = r.UpdateDatum(r.User, lock, &userOTP)
+				if ret != bot.Ok {
+					r.Log(bot.Error, "Couldn't save OTP config")
+					r.Reply("Good grief, I'm having trouble remembering your launch codes - have somebody check my log")
+				}
+			} else {
+				// Well-behaved plugins will always do a CheckinDatum when the datum hasn't been updated,
+				// in case there's another thread waiting.
+				r.CheckinDatum(r.User, lock)
+			}
+		}()
+		if exists {
+			r.Reply("I've already sent you the launch codes, contact an administrator if you're having problems")
+			return
+		}
+		otpb := make([]byte, 10)
+		random.Read(otpb)
+		userOTP.Secret = base32.StdEncoding.EncodeToString(otpb)
+		userOTP.WindowSize = 2
+		userOTP.DisallowReuse = []int{}
+		var codeMail bytes.Buffer
+		fmt.Fprintf(&codeMail, "For your authenticator:\n%s\n", userOTP.Secret)
+		// Sending email takes longer than the timeout, so we check it in and check
+		// out again after.
+		r.CheckinDatum(r.User, lock)
+		if ret = r.Email("Your launch codes - if you print this email, please chew it up and swallow it", &codeMail); ret != bot.Ok {
+			r.Reply("There was a problem sending your launch codes, contact an administrator")
+			return
+		}
+		lock, _, ret = r.CheckoutDatum(r.User, &userOTP, true)
+		updated = true
+		r.Reply("I've emailed your launch codes - please delete it promptly")
+		return
+	case "elevate":
+		immediate := false
+		switch args[0] {
+		case "true", "True", "t", "T", "Yes", "yes", "Y":
+			immediate = true
+		}
+		cfg := &config{}
+		r.GetPluginConfig(&cfg)
+		if cfg.TimeoutType == "absolute" {
+			cfg.tt = absolute
+		}
+		cfg.tf64 = float64(cfg.TimeoutSeconds)
+		now := time.Now().UTC()
+		ask := false
+		if immediate {
+			retval = getcode(r, immediate)
+		} else {
+			timeoutLock.RLock()
+			le, ok := lastElevate[r.User]
+			timeoutLock.RUnlock()
+			if ok {
+				diff := now.Sub(le)
+				if diff.Seconds() > cfg.tf64 {
+					ask = true
+				} else {
+					retval = bot.Success
+				}
+			} else {
+				ask = true
+			}
+			if ask {
+				retval = getcode(r, immediate)
+			}
+		}
+		if retval == bot.Success && cfg.tt == idle {
+			timeoutLock.Lock()
+			lastElevate[r.User] = now
+			timeoutLock.Unlock()
+		} else if retval == bot.Success && ask && cfg.tt == absolute {
+			timeoutLock.Lock()
+			lastElevate[r.User] = now
+			timeoutLock.Unlock()
+		}
+		return
 	}
-	cfg.tf64 = float64(cfg.TimeoutSeconds)
-	return elevate
+	return
 }
+
+const defaultConfig = `
+TrustAllPlugins: true
+AllChannels: true
+Config:
+  TimeoutSeconds: 7200
+  TimeoutType: idle # or absolute
+Help:
+- Keywords: [ "send", "launch", "codes" ]
+  Helptext: [ "(bot), send launch codes - one-time send of Google Authenticator string token, for use with TOTP elevation" ]
+CommandMatchers:
+- Command: "send"
+  Regex: '(?i:send (?:launch )?codes?)'
+`
 
 func init() {
-	bot.RegisterElevator("totp", provider)
-	lastElevate = make(map[string]time.Time)
+	bot.RegisterPlugin("totp", bot.PluginHandler{
+		DefaultConfig: defaultConfig,
+		Handler:       elevate,
+		Config:        &config{},
+	})
 }

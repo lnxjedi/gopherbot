@@ -13,6 +13,8 @@ const (
 	Fail
 	// MechanismFailed indicates authorization or elevation couldn't be determined due to a technical issue that should be logged
 	MechanismFail
+	// ConfigurationFail indicates authorization or elevation failed due to misconfiguration
+	ConfigurationFail
 )
 
 const (

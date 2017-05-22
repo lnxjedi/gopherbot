@@ -32,16 +32,6 @@ CommandMatchers:
   Regex: '(?i:abort)'
 `
 
-const launchCodesConfig = `
-AllChannels: true
-Help:
-- Keywords: [ "send", "launch", "codes" ]
-  Helptext: [ "(bot), send launch codes - one-time send of Google Authenticator string token, for use with TOTP elevation" ]
-CommandMatchers:
-- Command: "send"
-  Regex: '(?i:send (?:launch )?codes?)'
-`
-
 const dumpConfig = `
 DirectOnly: true
 RequireAdmin: true

@@ -11,13 +11,14 @@ import (
 	// Select the brain to use and provide configuration in conf/gopherbot.yaml
 	_ "github.com/uva-its/gopherbot/brains/file"
 
-	// If re-compiling, you can comment out unused elevator implementations.
-	// Select the elevator to use and provide configuration in conf/gopherbot.yaml
-	_ "github.com/uva-its/gopherbot/elevators/duo"
-	_ "github.com/uva-its/gopherbot/elevators/totp"
+	// If re-compiling, you can comment out unused elevator implementations,
+	// otherwise you can disable them in conf/plugins/<plugin>.json with
+	// "Disabled: true"
+	_ "github.com/uva-its/gopherbot/goplugins/duo"
+	_ "github.com/uva-its/gopherbot/goplugins/totp"
 
 	// If re-compiling, you can select the plugins you want. Otherwise you can disable
-	// them in conf/plugins/<plugin>.json with "Disabled": true
+	// them in conf/plugins/<plugin>.json with "Disabled: true"
 	_ "github.com/uva-its/gopherbot/goplugins/help"
 	_ "github.com/uva-its/gopherbot/goplugins/knock"
 	_ "github.com/uva-its/gopherbot/goplugins/links"
