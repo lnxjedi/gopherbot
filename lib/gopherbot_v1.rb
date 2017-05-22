@@ -74,6 +74,7 @@ class BaseBot
 	NoUserEmail = 21
 	NoBotEmail = 22
 	MailError = 23
+	InvalidPluginID = 24
 
 	attr_reader :user, :channel
 

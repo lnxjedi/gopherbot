@@ -24,6 +24,7 @@ GBRET_MatcherNotFound=20
 GBRET_NoUserEmail=21
 GBRET_NoBotEmail=22
 GBRET_MailError=23
+GBRET_InvalidPluginID=24
 
 gb_json_encode(){
 	local MESSAGE

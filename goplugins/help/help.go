@@ -31,7 +31,7 @@ CatchAll: true
 `
 
 // Define the handler function
-func help(bot *bot.Robot, command string, args ...string) {
+func help(bot *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
 	botName := bot.GetBotAttribute("name").String()
 	if command == "help" { // user just typed 'help' - the robot should introduce itself
 		botContact := bot.GetBotAttribute("contact").String()
@@ -59,6 +59,7 @@ func help(bot *bot.Robot, command string, args ...string) {
 	} else if command == "catchall" {
 		bot.Reply(fmt.Sprintf("Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try '%s, help <keyword>'", botName))
 	}
+	return
 }
 
 func init() {

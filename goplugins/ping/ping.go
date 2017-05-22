@@ -49,7 +49,7 @@ type config struct {
 }
 
 // Define the handler function
-func ping(r *bot.Robot, command string, args ...string) {
+func ping(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
 	var cfg *config
 	// The plugin can handle multiple different commands
 	switch command {
@@ -75,6 +75,7 @@ func ping(r *bot.Robot, command string, args ...string) {
 			r.Say("Did anybody else hear something go \"beep\" ?")
 		}
 	}
+	return
 }
 
 func init() {

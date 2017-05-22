@@ -1,3 +1,7 @@
+2017-05-18 David Parsley <parsley@linuxjedi.org>
+
+  * Go plugins now return an integer
+
 2017-05-01 David Parsley <parsley@linuxjedi.org>
 
   * Add links plugin, fix and improve lists plugin

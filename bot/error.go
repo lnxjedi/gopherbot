@@ -1,7 +1,19 @@
 package bot
 
-// RetVal is a bit field for returning error conditions, or 0 for Ok
+// RetVal is a integer type for returning error conditions from bot methods, or 0 for Ok
 type RetVal int
+
+// PlugRetVal is an integer type for return values from plugins, mainly for elevation & authorization
+type PlugRetVal int
+
+const (
+	// Success indicates successful authorization or elevation
+	Success PlugRetVal = iota
+	// Fail indicates requested authorization or elevation failed
+	Fail
+	// MechanismFailed indicates authorization or elevation couldn't be determined due to a technical issue that should be logged
+	MechanismFail
+)
 
 const (
 	// Ok indicates a successful result
@@ -70,6 +82,9 @@ const (
 	NoBotEmail
 	// MailError - There was an error sending email
 	MailError
+
+	// InvalidPluginID - The external plugin made a function call with an invalid plugin ID
+	InvalidPluginID
 )
 
 func (ret RetVal) String() string {

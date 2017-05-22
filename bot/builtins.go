@@ -40,9 +40,9 @@ func init() {
 
 /* builtin plugins, like help */
 
-func launchCode(bot *Robot, command string, args ...string) {
+func launchCode(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	if command == "init" {
-		return // ignore init
+		return Success // ignore init
 	}
 	var userOTP otp.OTPConfig
 	otpKey := "elevator-totp:" + bot.User
@@ -89,9 +89,10 @@ func launchCode(bot *Robot, command string, args ...string) {
 		updated = true
 		bot.Reply("I've emailed your launch codes - please delete it promptly")
 	}
+	return
 }
 
-func help(bot *Robot, command string, args ...string) {
+func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
@@ -140,7 +141,7 @@ func help(bot *Robot, command string, args ...string) {
 		for _, plugin := range plugins {
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
 			if !hasTerm { // if you ask for help without a term, you just get help for whatever commands are available to you
-				if messageAppliesToPlugin(bot.User, bot.Channel, plugin) {
+				if pluginAvailable(bot.User, bot.Channel, plugin) {
 					for _, phelp := range plugin.Help {
 						for _, helptext := range phelp.Helptext {
 							if len(phelp.Keywords) > 0 && phelp.Keywords[0] == "*" {
@@ -211,9 +212,10 @@ func help(bot *Robot, command string, args ...string) {
 			bot.Say(helpOutput)
 		}
 	}
+	return
 }
 
-func dump(bot *Robot, command string, args ...string) {
+func dump(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
@@ -264,6 +266,7 @@ func dump(bot *Robot, command string, args ...string) {
 		}
 		bot.Say(fmt.Sprintf("Here are the plugins I have configured:\n%s", strings.Join(plist, ", ")))
 	}
+	return
 }
 
 var byebye = []string{
@@ -273,7 +276,7 @@ var byebye = []string{
 	"Later gator!",
 }
 
-func logging(bot *Robot, command string, args ...string) {
+func logging(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	switch command {
 	case "init":
 		return
@@ -299,9 +302,10 @@ func logging(bot *Robot, command string, args ...string) {
 		set := setLogPageLines(l)
 		bot.Say(fmt.Sprintf("Lines per page of log output set to: %d", set))
 	}
+	return
 }
 
-func admin(bot *Robot, command string, args ...string) {
+func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
@@ -323,6 +327,7 @@ func admin(bot *Robot, command string, args ...string) {
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)
 		log.Printf("%s", buf)
+		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
 	case "quit":
 		pluginsRunning.Done()
@@ -346,4 +351,5 @@ func admin(bot *Robot, command string, args ...string) {
 		time.Sleep(time.Second)
 		close(finish)
 	}
+	return
 }

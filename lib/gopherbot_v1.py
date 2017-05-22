@@ -70,6 +70,7 @@ class Robot:
     NoUserEmail = 21
     NoBotEmail = 22
     MailError = 23
+    InvalidPluginID = 24
 
     def __init__(self):
         random.seed()

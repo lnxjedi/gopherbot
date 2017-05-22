@@ -11,7 +11,7 @@ EOF
 	exit 0
 }
 
-git status | grep -q "nothing to commit, working tree clean"
+git status | grep -qE "nothing to commit, working directory|tree clean"
 if [ $? -ne 0 ]
 then
 	echo "Your working tree isn't clean, aborting build"
