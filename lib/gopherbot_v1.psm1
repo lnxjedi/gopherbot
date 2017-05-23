@@ -15,7 +15,7 @@ Enum BotRet
     InvalidCfgStruct = 12
     NoConfigFound = 13
     TechnicalProblem = 14
-    GeneralError = 15
+    RetryPrompt = 15
     ReplyNotMatched = 16
     UseDefaultValue = 17
     TimeoutExpired = 18
@@ -208,26 +208,26 @@ class Robot
         return [Attribute]::new($ret)
     }
 
-    [Reply] WaitForReply([String] $regexid, [Int] $timeout) {
-        $funcArgs = [PSCustomObject]@{ RegexID=$regexid; Timeout=$timeout }
-        $ret = $this.Call("WaitForReply", $funcArgs)
+    [Reply] PromptForReply([String] $regexid, [String] $prompt) {
+        return promptInternal($FALSE, $regexid, $prompt)
+    }
+
+    [Reply] PromptUserForReply([String] $regexid, [String] $prompt) {
+        return promptInternal($TRUE, $regexid, $prompt)
+    }
+
+    [Reply] promptInternal([bool] $direct, [String] $regexid, [String] $prompt) {
+        $funcArgs = [PSCustomObject]@{ Direct=$direct; RegexID=$regexid; Prompt=$prompt }
+        For ($i=0; $i -le 3; $i++) {
+            $ret = $this.Call("PromptInternal", $funcArgs)
+            if ($ret -eq "RetryPrompt" ){ continue }
+            return [Reply]::new($rep, $ret.Ret -As [BotRet])
+        }
         $rep = dec64($ret.Reply)
+        if ($ret -eq "RetryPrompt" ) {
+            return [Reply]::new($rep, [BotRet]("Interrupted"))
+        }
         return [Reply]::new($rep, $ret.Ret -As [BotRet])
-    }
-
-    [Reply] WaitForReply([String] $regexid) {
-        return $this.WaitForReply($regexid, 60)
-    }
-
-    [Reply] WaitForReplyRegex([String] $goregex, [Int] $timeout) {
-        $funcArgs = [PSCustomObject]@{ RegEx=$goregex; Timeout=$timeout }
-        $ret = $this.Call("WaitForReply", $funcArgs)
-        $rep = dec64($ret.Reply)
-        return [Reply]::new($rep, $ret.Ret -As [BotRet])
-    }
-
-    [Reply] WaitForReplyRegex([String] $goregex) {
-        return $this.WaitForReplyRegex($goregex, 60)
     }
 
     Log([String] $level, [String] $message) {

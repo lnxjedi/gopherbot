@@ -105,16 +105,16 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		} else {
 			r.CheckinDatum(datumKey, lock)
 			link = args[0]
-			r.Say("Ok, what keywords or phrases do you want to attach to the link? (\"done\" when finished)")
+			prompt := "Ok, what keywords or phrases do you want to attach to the link? (\"done\" when finished)"
 			for {
-				rep, ret := r.WaitForReply("lookup", 60)
+				rep, ret := r.PromptForReply("lookup", prompt)
 				if ret == bot.Ok {
 					if strings.ToLower(rep) == "done" {
 						break
 					}
 					lookup := spaces.ReplaceAllString(rep, ` `)
 					lookups = append(lookups, lookup)
-					r.Say(fmt.Sprintf("Added \"%s\", type \"done\" if you're finished", lookup))
+					prompt = fmt.Sprintf("Added \"%s\", type \"done\" if you're finished", lookup)
 				} else {
 					break
 				}

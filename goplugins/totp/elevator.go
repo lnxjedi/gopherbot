@@ -37,7 +37,7 @@ func checkOTP(r *bot.Robot, code string) (bool, bot.RetVal) {
 	lock, exists, ret := r.CheckoutDatum(r.User, &userOTP, true)
 	if ret != bot.Ok {
 		r.CheckinDatum(r.User, lock)
-		return false, bot.GeneralError
+		return false, bot.TechnicalProblem
 	}
 	if !exists {
 		r.CheckinDatum(r.User, lock)
@@ -68,11 +68,9 @@ func getcode(r *bot.Robot, immediate bool) (retval bot.PlugRetVal) {
 		r.Say("This command requires elevation" + dm)
 	}
 	r.Pause(1)
-	r.Direct().Say("Please provide your totp launch code")
-	rep, ret := r.Direct().WaitForReply("OTP", 30)
+	rep, ret := r.Direct().PromptForReply("OTP", "Please provide your totp launch code")
 	if ret != bot.Ok {
-		r.Direct().Say("Try again? I need a 6-digit launch code")
-		rep, ret = r.Direct().WaitForReply("OTP", 30)
+		rep, ret = r.Direct().PromptForReply("OTP", "Try again? I need a 6-digit launch code")
 	}
 	if ret == bot.Ok {
 		ok, ret := checkOTP(r, rep)

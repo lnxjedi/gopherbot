@@ -181,12 +181,18 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 		// waited on
 		replyMatcher := replyMatcher{bot.User, bot.Channel}
 		replies.Lock()
-		rep, waitingForReply := replies.m[replyMatcher]
+		waiters, waitingForReply := replies.m[replyMatcher]
 		if waitingForReply {
 			delete(replies.m, replyMatcher)
 			replies.Unlock()
-			rep.replyChannel <- reply{false, true, ""}
-			Log(Debug, fmt.Sprintf("User \"%s\" matched a new command/message while the robot was waiting for a reply in channel \"%s\"", bot.User, bot.Channel))
+			for i, rep := range waiters {
+				if i == 0 {
+					rep.replyChannel <- reply{false, replyInterrupted, ""}
+				} else {
+					rep.replyChannel <- reply{false, retryPrompt, ""}
+				}
+			}
+			Log(Debug, fmt.Sprintf("User \"%s\" matched a new command while the robot was waiting for a reply in channel \"%s\"", bot.User, bot.Channel))
 		} else {
 			replies.Unlock()
 		}
@@ -249,32 +255,31 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		commandMatched = checkPluginMatchersAndRun(true, bot, messagetext)
 	}
 	// See if the robot was waiting on a reply
-	var rep replyWaiter
+	var waiters []replyWaiter
 	waitingForReply := false
 	if !commandMatched {
 		matcher := replyMatcher{user, channel}
 		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
 		replies.Lock()
-		rep, waitingForReply = replies.m[matcher]
+		waiters, waitingForReply = replies.m[matcher]
 		if !waitingForReply {
 			replies.Unlock()
-			Log(Trace, "No matching replyWaiter")
+			// Log(Trace, "No matching replyWaiter")
 		} else {
 			delete(replies.m, matcher)
 			replies.Unlock()
-			if commandMatched {
-				rep.replyChannel <- reply{false, true, ""}
-				Log(Debug, fmt.Sprintf("User \"%s\" issued a new command while the robot was waiting for a reply in channel \"%s\"", user, channel))
-			} else {
-				// if the robot was waiting on a reply, we don't want to check for
-				// ambient message matches - the plugin will handle it.
-				commandMatched = true
-				matched := false
-				if rep.re.MatchString(messagetext) {
-					matched = true
+			// if the robot was waiting on a reply, we don't want to check for
+			// ambient message matches - the plugin will handle it.
+			commandMatched = true
+			for i, rep := range waiters {
+				if i == 0 {
+					matched := rep.re.MatchString(messagetext)
+					Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", user, channel, messagetext, rep.re.String(), matched))
+					rep.replyChannel <- reply{matched, replied, messagetext}
+				} else {
+					Log(Debug, "Sending retry to next reply waiter")
+					rep.replyChannel <- reply{false, retryPrompt, ""}
 				}
-				Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", user, channel, messagetext, rep.re.String(), matched))
-				rep.replyChannel <- reply{matched, false, messagetext}
 			}
 		}
 	}

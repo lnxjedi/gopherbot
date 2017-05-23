@@ -57,8 +57,7 @@ if command == "python":
 
 if command == "listen":
     dbot = bot.Direct()
-    dbot.Say("Ok, what do you want to tell me?")
-    rep = dbot.WaitForReply("SimpleString")
+    rep = dbot.PromptForReply("SimpleString", "Ok, what do you want to tell me?")
     if rep.ret == Robot.Ok:
         dbot.Say("I hear what you're saying - \"%s\"" % rep)
     else:

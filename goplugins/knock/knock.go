@@ -39,9 +39,8 @@ func knock(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		r.Pause(0.5)
 		r.Say(r.RandomString(j.Openings))
 		r.Pause(1.2)
-		r.Reply("Knock knock")
 		for i := 0; i < 2; i++ {
-			_, ret := r.WaitForReply("whosthere", 28)
+			_, ret := r.PromptUserForReply("whosthere", "Knock knock")
 			if ret == bot.Interrupted {
 				r.Reply("Ok, I guess you don't like knock-knock jokes!")
 				return
@@ -72,7 +71,6 @@ func knock(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 			}
 		}
 		r.Pause(0.5)
-		r.Say(joke.First)
 		if joke.First == "Interrupting Cow" {
 			go func() {
 				r.Pause(3.5)
@@ -81,7 +79,7 @@ func knock(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 			return
 		}
 		for i := 0; i < 2; i++ {
-			reply, ret := r.WaitForReply("who", 28)
+			reply, ret := r.PromptForReply("who", joke.First)
 			if ret == bot.Interrupted {
 				r.Reply("Oooo, you're going to leave the joke unfinished? What about CLOSURE?!?")
 				return

@@ -61,7 +61,7 @@ class Robot:
     InvalidCfgStruct = 12
     NoConfigFound = 13
     TechnicalProblem = 14
-    GeneralError = 15
+    RetryPrompt = 15
     ReplyNotMatched = 16
     UseDefaultValue = 17
     TimeoutExpired = 18
@@ -135,13 +135,21 @@ class Robot:
         ret = self.Call("GetBotAttribute", { "Attribute": attr })
         return Attribute(ret)
 
-    def WaitForReply(self, regex_id, timeout=60):
-        ret = self.Call("WaitForReply", { "RegexID": regex_id, "Timeout": timeout })
-        return Reply(ret)
+    def PromptForReply(self, regex_id, prompt):
+        return self.promptInternal(False, regex_id, prompt)
 
-    def WaitForReplyRegex(self, regex, timeout=60):
-        ret = self.Call("WaitForReplyRegex", { "RegEx": regex, "Timeout": timeout })
-        return Reply(ret)
+    def PromptUserForReply(self, regex_id, prompt):
+        return self.promptInternal(True, regex_id, prompt)
+
+    def promptInternal(self, direct, regex_id, prompt):
+        for i in range(0, 3):
+            rep = self.Call("PromptInternal", { "Direct": direct, "RegexID": regex_id, "Prompt": prompt })
+            if rep.RetVal == RetryPrompt:
+                continue
+            return rep
+        if rep.RetVal == RetryPrompt:
+            rep.RetVal = Interrupted
+        return rep
 
     def SendChannelMessage(self, channel, message, format="variable"):
         ret = self.Call("SendChannelMessage", { "Channel": channel,

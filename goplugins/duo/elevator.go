@@ -83,11 +83,9 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			}
 		}
 		r.Direct().Say(fmt.Sprintf("Duo devices:\n%s", strings.Join(msg, "\n")))
-		r.Direct().Say("Which device # do you want to use?")
-		rep, ret = r.Direct().WaitForReplyRegex(`\d`, 30)
+		rep, ret = r.Direct().PromptForReply("singleDigit", "Which device # do you want to use?")
 		if ret != bot.Ok {
-			r.Direct().Say("Try again? I need a single-digit device #")
-			rep, ret = r.Direct().WaitForReplyRegex(`\d`, 30)
+			rep, ret = r.Direct().PromptForReply("singleDigit", "Try again? I need a single-digit device #")
 		}
 		if ret != bot.Ok {
 			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo elevation prompt", r.User))
@@ -134,11 +132,9 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			msg[m] = fmt.Sprintf("Method %d: %s", m, method)
 		}
 		r.Direct().Say(fmt.Sprintf("Duo methods available for your device:\n%s", strings.Join(msg, "\n")))
-		r.Direct().Say("Which method # do you want to use?")
-		rep, ret = r.Direct().WaitForReplyRegex(`\d`, 30)
+		rep, ret = r.Direct().PromptForReply("singleDigit", "Which method # do you want to use?")
 		if ret != bot.Ok {
-			r.Direct().Say("Try again? I need a single-digit method #")
-			rep, ret = r.Direct().WaitForReplyRegex(`\d`, 30)
+			rep, ret = r.Direct().PromptForReply("singleDigit", "Try again? I need a single-digit method #")
 		}
 		if ret != bot.Ok {
 			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo elevation prompt", r.User))
@@ -190,11 +186,9 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			}
 			r.Pause(1)
 		}
-		r.Direct().Say("Please enter a passcode to use")
-		rep, ret = r.Direct().WaitForReplyRegex(`\d+`, 60)
+		rep, ret = r.Direct().PromptForReply("multiDigit", "Please enter a passcode to use")
 		if ret != bot.Ok {
-			r.Direct().Say("Try again? I need a short string of numbers")
-			rep, ret = r.Direct().WaitForReplyRegex(`\d+`, 60)
+			rep, ret = r.Direct().PromptForReply("multiDigit", "Try again? I need a short string of numbers")
 		}
 		if ret != bot.Ok {
 			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo elevation prompt", r.User))
@@ -309,6 +303,11 @@ func elevate(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVa
 const defaultConfig = `
 TrustAllPlugins: true
 AllChannels: true
+ReplyMatchers:
+- Label: singleDigit
+  Regex: '\d'
+- Label: multiDigit
+  Regex: '\d+'
 Config:
   TimeoutSeconds: 7200
   TimeoutType: idle # or absolute

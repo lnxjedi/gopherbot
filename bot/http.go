@@ -77,12 +77,8 @@ type userchannelmessage struct {
 
 type replyrequest struct {
 	RegexID string
-	Timeout int
-}
-
-type regexreplyrequest struct {
-	RegEx   string
-	Timeout int
+	Prompt  string
+	Direct  bool // directed to the user?
 }
 
 // Types for returning values
@@ -123,7 +119,7 @@ type checkoutresponse struct {
 	RetVal    int
 }
 
-type waitreplyresponse struct {
+type replyresponse struct {
 	Reply  string
 	RetVal int
 }
@@ -337,23 +333,16 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			int(bot.SendUserMessage(um.User, decode(um.Message))),
 		})
 		return
-	case "WaitForReply":
+	case "PromptInternal":
 		var rr replyrequest
 		if !getArgs(rw, &f.FuncArgs, &rr) {
 			return
 		}
-		reply, ret = bot.WaitForReply(rr.RegexID, rr.Timeout)
-		sendReturn(rw, &waitreplyresponse{encode(reply), int(ret)})
+		reply, ret = bot.promptInternal(rr.Direct, rr.RegexID, rr.Prompt)
+		sendReturn(rw, &replyresponse{encode(reply), int(ret)})
 		return
-	case "WaitForReplyRegex":
-		var rr regexreplyrequest
-		if !getArgs(rw, &f.FuncArgs, &rr) {
-			return
-		}
-		reply, ret = bot.WaitForReplyRegex(rr.RegEx, rr.Timeout)
-		sendReturn(rw, &waitreplyresponse{encode(reply), int(ret)})
-		return
-	// NOTE: "Say" and "Reply" are implemented in shellLib.sh or other scripting library
+	// NOTE: "Say", "Reply", PromptForReply and PromptUserForReply are implemented
+	// in the scripting libraries
 	default:
 		Log(Error, fmt.Sprintf("Bad function name: %s", f.FuncName))
 		rw.WriteHeader(http.StatusBadRequest)

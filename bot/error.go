@@ -60,18 +60,17 @@ const (
 	// TechnicalProblem - There was a problem with the elevator (e.g. service unreachable)
 	TechnicalProblem
 
-	// GeneralError - Only indicates an error occurred, vs. e.g. failure
-	GeneralError
+	/* Prompt(User)ForReply */
 
-	/* WaitForReply */
-
+	// RetryPrompt - There was already a prompt in progress for the user/channel
+	RetryPrompt
 	// ReplyNotMatched - The user reply didn't match the pattern waited for
 	ReplyNotMatched
 	// UseDefaultValue - The user replied with a single '=', meaning use a default value
 	UseDefaultValue
 	// TimeoutExpired - The user didn't reply within the given timeout
 	TimeoutExpired
-	// Interrupted - The user issued another command instead of replying
+	// Interrupted - The user issued another command instead of replying, or replied with '-' (cancel)
 	Interrupted
 	// MatcherNotFound - There was no matcher configured with the given string, or the regex didn't compile
 	MatcherNotFound

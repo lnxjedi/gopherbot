@@ -127,8 +127,7 @@ switch ($command)
     $dbot = $bot.Direct()
     $dbj = $dbot | ConvertTo-Json
     $bot.Log("Debug", $dbj)
-    $dbot.Say("Ok, what do you want to tell me?")
-    $rep = $dbot.WaitForReply("SimpleString")
+    $rep = $dbot.PromptForReply("SimpleString", "Ok, what do you want to tell me?")
     if ($rep.Ret -eq "Ok") {
       $dbot.Say("I heard you alright, you said: $rep")
     } else {
