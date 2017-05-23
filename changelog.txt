@@ -24,6 +24,8 @@
     plugin "Config:" stanza. See Configuration.md for information on configuring
     elevators.
 
+=== Released 0.9.0 ===
+
 2017-05-01 David Parsley <parsley@linuxjedi.org>
 
   * Add links plugin, fix and improve lists plugin
