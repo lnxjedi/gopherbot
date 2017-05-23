@@ -1,6 +1,21 @@
-2017-05-18 David Parsley <parsley@linuxjedi.org>
+2017-05-23 David Parsley <parsley@linuxjedi.org>
+  * [Breaking] Fix WaitForReply - replace with Prompt(User)ForReply
 
-  * [Breaking] Go plugins now return an PlugRetVal (integer), required
+    The old WaitForReply* methods had a fatal flaw - they couldn't deal
+    with multiple simultaneous plugins doing WaitForReply at the same
+    time. If you asked the robot to tell you a joke twice in quick
+    succession, it would crash. After giving this lots of thought, I
+    made the difficult decision to replace WaitForReply* with
+    PromptForReply and PromptUserForReply.
+
+    Now, The first plugin to call Prompt*ForReply will have it's
+    prompt sent and reply returned; any other Prompt*ForReply won't
+    have their prompts displayed, and will get RetryPrompt returned.
+    The library will automatically retry three times, and will
+    return Interrupted after 3 RetryPrompt - so plugins shouldn't
+    check for that value.
+
+  * [Breaking] Go plugins now return a PlugRetVal (integer), required
 
   * Added new type of plugin: Authorizer, for performing authorization
     decisions, using plugin return values
