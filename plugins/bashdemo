@@ -37,8 +37,7 @@ case "$command" in
 		Reply "$*"
 		;;
 	"hear")
-		Say "Well ok then, what do you want to tell me?"
-		REPLY=$(WaitForReply "SimpleString" 30)
+		REPLY=$(PromptForReply "SimpleString" "Well ok then, what do you want to tell me?")
 		if [ $? -ne 0 ]
 		then
 			Reply "Eh, sorry bub, I'm having trouble hearing you - try typing faster?"

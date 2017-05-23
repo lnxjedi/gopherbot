@@ -202,16 +202,26 @@ class BaseBot
 		end
 	end
 
-	def WaitForReply(re, timeout=60)
-		args = { "RegexID" => re, "Timeout" => timeout }
-		ret = callBotFunc("WaitForReply", args)
-		return Reply.new(decode(ret["Reply"]), ret["RetVal"])
+	def promptInternal(direct, regex_id, prompt)
+		args = { "Direct" => direct, "RegexID" => regex_id, "Prompt" => prompt }
+		for i in 1..3
+			ret = callBotFunc("PromptInternal", args)
+			next if ret["RetVal"] == RetryPrompt
+			return Reply.new(decode(ret["Reply"]), ret["RetVal"])
+		end
+		if ret == RetryPrompt
+			return Reply.new(decode(ret["Reply"]), Interrupted)
+		else
+			return Reply.new(decode(ret["Reply"]), ret["RetVal"])
+		end
 	end
 
-	def WaitForReplyRegex(re, timeout=60)
-		args = { "RegEx" => re, "Timeout" => timeout }
-		ret = callBotFunc("WaitForReplyRegex", args)
-		return Reply.new(decode(ret["Reply"]), ret["RetVal"])
+	def PromptForReply(regex_id, prompt)
+		return promptInternal(false, regex_id, prompt)
+	end
+
+	def PromptUserForReply(regex_id, prompt)
+		return promptInternal(true, regex_id, prompt)
 	end
 
 	def decode(str)

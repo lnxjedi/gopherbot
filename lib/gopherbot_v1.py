@@ -144,12 +144,12 @@ class Robot:
     def promptInternal(self, direct, regex_id, prompt):
         for i in range(0, 3):
             rep = self.Call("PromptInternal", { "Direct": direct, "RegexID": regex_id, "Prompt": prompt })
-            if rep.RetVal == RetryPrompt:
+            if rep["RetVal"] == self.RetryPrompt:
                 continue
-            return rep
-        if rep.RetVal == RetryPrompt:
-            rep.RetVal = Interrupted
-        return rep
+            return Reply(rep)
+        if rep["RetVal"] == self.RetryPrompt:
+            rep["RetVal"] = self.Interrupted
+        return Reply(rep)
 
     def SendChannelMessage(self, channel, message, format="variable"):
         ret = self.Call("SendChannelMessage", { "Channel": channel,

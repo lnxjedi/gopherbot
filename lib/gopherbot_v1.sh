@@ -38,7 +38,7 @@ gbPostJSON(){
 	local GB_FUNCNAME=$1
 	local GB_FUNCARGS="$2"
 	local JSON JSONRET
-	#local GB_DEBUG="true"
+	# local GB_DEBUG="true"
 	GB_FORMAT=${GB_FORMAT:-variable}
 	JSON=$(cat <<EOF
 {
@@ -226,15 +226,17 @@ EOF
 	gbBotRet "$GB_RET"
 }
 
-WaitForReply(){
+promptInternal(){
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="WaitForReply"
-	local REGEX="$1"
-	local TIMEOUT="${2:-14}"
+	local GB_FUNCNAME="PromptInternal"
+	local DIRECT="$1"
+	local REGEX="$2"
+	local PROMPT="$3"
 	GB_FUNCARGS=$(cat <<EOF
 {
+	"Direct": $DIRECT,
 	"RegexID": "$REGEX",
-	"Timeout": $TIMEOUT
+	"Prompt": "$PROMPT"
 }
 EOF
 )
@@ -243,21 +245,12 @@ EOF
 	gbBotRet "$GB_RET"
 }
 
-WaitForReplyRegex(){
-	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="WaitForReplyRegex"
-	local REGEX="$1"
-	local TIMEOUT="${2:-14}"
-	GB_FUNCARGS=$(cat <<EOF
-{
-	"RegEx": "$REGEX",
-	"Timeout": $TIMEOUT
+PromptForReply(){
+	promptInternal "false" "$@"
 }
-EOF
-)
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
-	gbDecode "$GB_RET" Reply
-	gbBotRet "$GB_RET"
+
+PromptUserForReply(){
+	promptInternal "true" "$@"
 }
 
 SendUserMessage(){
