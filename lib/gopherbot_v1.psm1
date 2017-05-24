@@ -209,25 +209,27 @@ class Robot
     }
 
     [Reply] PromptForReply([String] $regexid, [String] $prompt) {
-        return promptInternal($FALSE, $regexid, $prompt)
+        return $this.promptInternal($FALSE, $regexid, $prompt)
     }
 
     [Reply] PromptUserForReply([String] $regexid, [String] $prompt) {
-        return promptInternal($TRUE, $regexid, $prompt)
+        return $this.promptInternal($TRUE, $regexid, $prompt)
     }
 
     [Reply] promptInternal([bool] $direct, [String] $regexid, [String] $prompt) {
         $funcArgs = [PSCustomObject]@{ Direct=$direct; RegexID=$regexid; Prompt=$prompt }
+        $ret = $null
         For ($i=0; $i -le 3; $i++) {
             $ret = $this.Call("PromptInternal", $funcArgs)
-            if ($ret -eq "RetryPrompt" ){ continue }
+            if ([int]$ret.RetVal -eq "RetryPrompt" ){ continue }
+            $rep = dec64($ret.Reply)
             return [Reply]::new($rep, $ret.Ret -As [BotRet])
         }
         $rep = dec64($ret.Reply)
         if ($ret -eq "RetryPrompt" ) {
             return [Reply]::new($rep, [BotRet]("Interrupted"))
         }
-        return [Reply]::new($rep, $ret.Ret -As [BotRet])
+        return [Reply]::new($rep.Reply, $ret.RetVal -As [BotRet])
     }
 
     Log([String] $level, [String] $message) {
