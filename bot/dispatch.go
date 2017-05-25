@@ -150,12 +150,11 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 					Log(Error, fmt.Sprintf("Message \"%s\" matched multiple plugins: %s and %s", messagetext, runPlugin.name, plugin.name))
 					bot.Say("Yikes! Your command matched multiple plugins, so I'm not doing ANYTHING")
 					return
-				} else {
-					commandMatched = true
-					runPlugin = plugin
-					matchedMatcher = matcher
-					break
 				}
+				commandMatched = true
+				runPlugin = plugin
+				matchedMatcher = matcher
+				break
 			}
 		} // end of matcher checking
 	} // end of plugin checking
@@ -196,7 +195,7 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 		} else {
 			replies.Unlock()
 		}
-		if bot.checkAuthorization(plugins, plugin, matcher.Command) != Success {
+		if bot.checkAuthorization(plugins, plugin, matcher.Command, cmdArgs...) != Success {
 			return
 		}
 		if bot.checkElevation(plugins, plugin, matcher.Command) != Success {
