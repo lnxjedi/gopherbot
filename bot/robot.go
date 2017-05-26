@@ -48,10 +48,10 @@ func (r *Robot) CheckAdmin() bool {
 // should apply. Note that this can have unexpected side effects if the
 // target of CallPlugin(...) calls Elevate.
 func (r *Robot) Elevate(immediate bool) bool {
-	pluginlist.RLock()
-	plugins := pluginlist.p
-	plugin := pluginlist.p[plugIDmap[r.pluginID]]
-	pluginlist.RUnlock()
+	currentPlugins.RLock()
+	plugins := currentPlugins.p
+	plugin := plugins[currentPlugins.idMap[r.pluginID]]
+	currentPlugins.RUnlock()
 	retval := r.elevate(plugins, plugin, immediate)
 	if retval == Success {
 		return true
@@ -180,11 +180,7 @@ and call GetPluginConfig with a double-pointer:
 ... And voila! *pConf is populated with the contents from the configured Config: stanza
 */
 func (r *Robot) GetPluginConfig(dptr interface{}) RetVal {
-	robot.RLock()
-	defer robot.RUnlock()
-	pluginlist.RLock()
-	plugin := pluginlist.p[plugIDmap[r.pluginID]]
-	pluginlist.RUnlock()
+	plugin := currentPlugins.getPluginByID(r.pluginID)
 	if plugin.config == nil {
 		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but no config was found.", plugin.name))
 		return NoConfigFound

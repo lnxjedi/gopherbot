@@ -37,6 +37,36 @@ func fixInterpreterArgs(interpreter string, args []string) []string {
 	return args
 }
 
+func getPluginPath(plugin *Plugin) (string, error) {
+	if len(plugin.pluginPath) == 0 {
+		err := fmt.Errorf("pluginPath empty for external plugin: %s", plugin.name)
+		Log(Error, err)
+		return "", err
+	}
+	var fullPath string
+	robot.RLock()
+	defer robot.RUnlock()
+	if byte(plugin.pluginPath[0]) == byte("/"[0]) {
+		fullPath = plugin.pluginPath
+	} else {
+		_, err := os.Stat(robot.localPath + "/" + plugin.pluginPath)
+		if err != nil {
+			_, err := os.Stat(robot.installPath + "/" + plugin.pluginPath)
+			if err != nil {
+				err = fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.name, err)
+				Log(Error, err)
+				return "", err
+			}
+			fullPath = robot.installPath + "/" + plugin.pluginPath
+			Log(Debug, "Using stock external plugin:", fullPath)
+		} else {
+			fullPath = robot.localPath + "/" + plugin.pluginPath
+			Log(Debug, "Using local external plugin:", fullPath)
+		}
+	}
+	return fullPath, nil
+}
+
 // emulate Unix script convention by calling external scripts with
 // an interpreter.
 func getInterpreter(scriptPath string) (string, error) {
@@ -66,25 +96,11 @@ func getInterpreter(scriptPath string) (string, error) {
 
 func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 	var fullPath string
-	if byte(plugin.pluginPath[0]) == byte("/"[0]) {
-		fullPath = plugin.pluginPath
-	} else {
-		_, err := os.Stat(robot.localPath + "/" + plugin.pluginPath)
-		if err != nil {
-			_, err := os.Stat(robot.installPath + "/" + plugin.pluginPath)
-			if err != nil {
-				err = fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.name, err)
-				return nil, err
-			}
-			fullPath = robot.installPath + "/" + plugin.pluginPath
-			Log(Debug, "Using stock external plugin:", fullPath)
-		} else {
-			fullPath = robot.localPath + "/" + plugin.pluginPath
-			Log(Debug, "Using local external plugin:", fullPath)
-		}
+	var err error
+	if fullPath, err = getPluginPath(plugin); err != nil {
+		return nil, err
 	}
 	var cfg []byte
-	var err error
 	if runtime.GOOS == "windows" {
 		var interpreter string
 		interpreter, err = getInterpreter(fullPath)
@@ -142,28 +158,10 @@ func callPlugin(bot *Robot, plugin *Plugin, background bool, interactive bool, c
 		return pluginHandlers[plugin.name].Handler(bot, command, args...)
 	case plugExternal:
 		var fullPath string // full path to the executable
-		if len(plugin.pluginPath) == 0 {
-			Log(Error, "pluginPath empty for external plugin:", plugin.name)
-			errString = "There was a problem calling an external plugin"
+		var err error
+		fullPath, err = getPluginPath(plugin)
+		if err != nil {
 			return MechanismFail
-		}
-		if byte(plugin.pluginPath[0]) == byte("/"[0]) {
-			fullPath = plugin.pluginPath
-		} else {
-			_, err := os.Stat(robot.localPath + "/" + plugin.pluginPath)
-			if err != nil {
-				_, err := os.Stat(robot.installPath + "/" + plugin.pluginPath)
-				if err != nil {
-					Log(Error, fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.name, err))
-					errString = "There was a problem calling an external plugin"
-					return MechanismFail
-				}
-				fullPath = robot.installPath + "/" + plugin.pluginPath
-				Log(Debug, "Using stock external plugin:", fullPath)
-			} else {
-				fullPath = robot.localPath + "/" + plugin.pluginPath
-				Log(Debug, "Using local external plugin:", fullPath)
-			}
 		}
 		interpreter, err := getInterpreter(fullPath)
 		if err != nil {

@@ -58,7 +58,7 @@ func (bot *Robot) checkAuthorization(plugins []*Plugin, plugin *Plugin, command 
 					bot.Say(configAuthError)
 					return ConfigurationFail
 				}
-				args = append([]string{plugin.name, "", plugin.AuthRequire, command}, args...)
+				args = append([]string{plugin.name, plugin.AuthRequire, command}, args...)
 				authRet := callPlugin(bot, authPlug, false, false, "authorize", args...)
 				if authRet == Success {
 					return Success

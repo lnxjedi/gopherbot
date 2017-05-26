@@ -18,6 +18,8 @@ type jsonFunction struct {
 	FuncArgs json.RawMessage
 }
 
+// Types for FuncArgs
+
 type attribute struct {
 	Attribute string
 }
@@ -39,6 +41,10 @@ type logmessage struct {
 type channelmessage struct {
 	Channel string
 	Message string
+}
+
+type plugincall struct {
+	PluginName string
 }
 
 // Something to be placed in short-term memory
@@ -119,6 +125,11 @@ type checkoutresponse struct {
 	RetVal    int
 }
 
+type callpluginresponse struct {
+	PluginPath string
+	PluginID   string
+}
+
 type replyresponse struct {
 	Reply  string
 	RetVal int
@@ -187,6 +198,19 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if f.PluginID == "" {
+		rw.WriteHeader(http.StatusBadRequest)
+		Log(Error, fmt.Sprintf("JSON function \"%s\" called with empty PluginID; args: %v", f.FuncName, f.FuncArgs))
+		return
+	}
+
+	plugin := currentPlugins.getPluginByID(f.PluginID)
+	if plugin == nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		Log(Error, fmt.Sprintf("JSON function \"%s\" called with invalid PluginID \"%s\"; args: %v", f.FuncName, f.PluginID, f.FuncArgs))
+		return
+	}
+
 	// Generate a synthetic Robot for access to it's methods
 	bot := Robot{
 		User:     f.User,
@@ -236,18 +260,23 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		sendReturn(rw, &botretvalresponse{int(Ok)})
 		return
 	case "UpdateDatum":
-		plugMapLock.Lock()
-		pluginName := plugIDNameMap[bot.pluginID]
-		plugMapLock.Unlock()
 		var m memory
 		if !getArgs(rw, &f.FuncArgs, &m) {
 			return
 		}
 		// Since we're getting raw JSON (=[]byte), we call update directly.
 		// See brain.go
-		ret = update(pluginName+":"+m.Key, m.Token, (*[]byte)(&m.Datum))
+		ret = update(plugin.name+":"+m.Key, m.Token, (*[]byte)(&m.Datum))
 		sendReturn(rw, &botretvalresponse{int(ret)})
 		return
+		/*	TODO: FINISH ME
+			case "CallPlugin":
+				var p plugincall
+				if !getArgs(rw, &f.FuncArgs, &p) {
+					return
+				}
+				calledPlugin := currentPlugins.getPluginByName(p.PluginName)
+				sendReturn(rw, ret) */
 	case "Remember":
 		var m shorttermmemory
 		if !getArgs(rw, &f.FuncArgs, &m) {
@@ -263,11 +292,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		s := bot.Recall(m.Key)
 		sendReturn(rw, &stringresponse{s})
 	case "GetPluginConfig":
-		robot.RLock()
-		defer robot.RUnlock()
-		pluginlist.RLock()
-		plugin := pluginlist.p[plugIDmap[bot.pluginID]]
-		pluginlist.RUnlock()
 		if plugin.Config == nil {
 			Log(Error, fmt.Sprintf("GetPluginConfig called by external plugin \"%s\", but no config found.", plugin.name))
 			sendReturn(rw, handler{})

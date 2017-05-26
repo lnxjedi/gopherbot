@@ -16,21 +16,42 @@ import (
 // brain functions can use ':' as a separator.
 var pNameRe = regexp.MustCompile(`[\w]+`)
 
-var pluginlist = struct {
-	p []*Plugin
-	sync.RWMutex
+// Global persistent map of plugin name to unique ID
+var plugNameIDmap = struct {
+	m map[string]string
+	sync.Mutex
 }{
-	make([]*Plugin, 0),
+	make(map[string]string),
+	sync.Mutex{},
+}
+
+type pluginList struct {
+	p       []*Plugin
+	nameMap map[string]int
+	idMap   map[string]int
+	sync.RWMutex
+}
+
+var currentPlugins = &pluginList{
+	[]*Plugin{},
+	nil,
+	nil,
 	sync.RWMutex{},
 }
-var plugLock sync.RWMutex
-var plugIDmap map[string]int
 
-var plugNameIDmap = make(map[string]string)
-var plugIDNameMap = make(map[string]string)
+func (pl *pluginList) getPluginByName(name string) *Plugin {
+	pl.RLock()
+	plugin := pl.p[pl.nameMap[name]]
+	pl.RUnlock()
+	return plugin
+}
 
-// for protecting access to the plugNameIDmap & plugIDNameMap
-var plugMapLock sync.Mutex
+func (pl *pluginList) getPluginByID(id string) *Plugin {
+	pl.RLock()
+	plugin := pl.p[pl.idMap[id]]
+	pl.RUnlock()
+	return plugin
+}
 
 // PluginHelp specifies keywords and help text for the 'bot help system
 type PluginHelp struct {
@@ -102,9 +123,9 @@ var stopRegistrations = false
 
 // initialize sends the "init" command to every plugin
 func initializePlugins() {
-	pluginlist.RLock()
-	plugins := pluginlist.p
-	pluginlist.RUnlock()
+	currentPlugins.RLock()
+	plugins := currentPlugins.p
+	currentPlugins.RUnlock()
 	pluginsRunning.Lock()
 	if !pluginsRunning.shuttingDown {
 		pluginsRunning.Unlock()
@@ -162,8 +183,9 @@ func loadPluginConfig() {
 	pnames := make([]string, nump)
 	ptypes := make([]plugType, nump)
 	eppaths := make(map[string]string) // Paths to external plugins
-	pfinder := make(map[string]int)    // keep a map of pluginIDs to identify plugins during a callback
-	pset := make(map[string]bool)      // track plugin names
+	plugIndexByID := make(map[string]int)
+	plugIndexByName := make(map[string]int)
+	pset := make(map[string]bool) // track plugin names
 
 	defaultAllowDirect := robot.defaultAllowDirect
 
@@ -351,20 +373,20 @@ PlugLoop:
 		} else {
 			Log(Debug, "config interface isn't a pointer, skipping unmarshal for plugin:", plug)
 		}
-		plugMapLock.Lock()
-		if plugID, ok := plugNameIDmap[plug]; ok {
+		plugNameIDmap.Lock()
+		if plugID, ok := plugNameIDmap.m[plug]; ok {
 			plugin.pluginID = plugID
 		} else {
 			// Generate a random id
 			p := make([]byte, 16)
 			random.Read(p)
 			plugin.pluginID = fmt.Sprintf("%x", p)
-			plugNameIDmap[plugin.name] = plugin.pluginID
-			plugIDNameMap[plugin.pluginID] = plugin.name
+			plugNameIDmap.m[plugin.name] = plugin.pluginID
 		}
-		plugMapLock.Unlock()
+		plugNameIDmap.Unlock()
+		plugIndexByID[plugin.pluginID] = plugIndex
+		plugIndexByName[plugin.name] = plugIndex
 		Log(Trace, fmt.Sprintf("Mapped plugin %s to ID %s", plugin.name, plugin.pluginID))
-		pfinder[plugin.pluginID] = plugIndex
 		// Store this plugin's config in the temporary list
 		Log(Info, fmt.Sprintf("Recorded plugin #%d, \"%s\"", plugIndex, plugin.name))
 		plist = append(plist, plugin)
@@ -372,13 +394,14 @@ PlugLoop:
 	}
 
 	reInitPlugins := false
-	robot.Lock()
-	pluginlist.Lock()
-	pluginlist.p = plist
-	pluginlist.Unlock()
-	plugIDmap = pfinder
+	currentPlugins.Lock()
+	currentPlugins.p = plist
+	currentPlugins.idMap = plugIndexByID
+	currentPlugins.nameMap = plugIndexByName
+	currentPlugins.Unlock()
 	// loadPluginConfig is called in newBot, before the connector has started;
 	// don't init plugins in that case.
+	robot.Lock()
 	if robot.Connector != nil {
 		reInitPlugins = true
 	}

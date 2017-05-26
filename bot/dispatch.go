@@ -87,9 +87,9 @@ func pluginAvailable(user, channel string, plugin *Plugin) bool {
 func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext string) (commandMatched bool) {
 	// un-needed, but more clear
 	commandMatched = false
-	pluginlist.RLock()
-	plugins := pluginlist.p
-	pluginlist.RUnlock()
+	currentPlugins.RLock()
+	plugins := currentPlugins.p
+	currentPlugins.RUnlock()
 	var runPlugin *Plugin
 	var matchedMatcher InputMatcher
 	var cmdArgs []string
@@ -217,9 +217,9 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		Format:  Variable,
 	}
 	defer checkPanic(bot, messagetext)
-	pluginlist.RLock()
-	plugins := pluginlist.p
-	pluginlist.RUnlock()
+	currentPlugins.RLock()
+	plugins := currentPlugins.p
+	currentPlugins.RUnlock()
 	if len(channel) == 0 {
 		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", user, messagetext))
 	}

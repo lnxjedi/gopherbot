@@ -133,9 +133,7 @@ func (r *Robot) promptInternal(promptUser bool, regexID string, prompt string) (
 		channel: r.Channel,
 	}
 	var rep replyWaiter
-	pluginlist.RLock()
-	plugin := pluginlist.p[plugIDmap[r.pluginID]]
-	pluginlist.RUnlock()
+	plugin := currentPlugins.getPluginByID(r.pluginID)
 	if stockRepliesRe.MatchString(regexID) {
 		rep.re = stockReplies[regexID]
 	} else {

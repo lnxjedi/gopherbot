@@ -341,10 +341,8 @@ func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 // lock token is returned that expires after lockTimeout (250ms). The bool
 // return indicates whether the datum exists.
 func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal) {
-	plugMapLock.Lock()
-	pluginName := plugIDNameMap[r.pluginID]
-	plugMapLock.Unlock()
-	key = pluginName + ":" + key
+	plugin := currentPlugins.getPluginByID(r.pluginID)
+	key = plugin.name + ":" + key
 	return checkoutDatum(key, datum, rw)
 }
 
@@ -353,10 +351,8 @@ func (r *Robot) CheckinDatum(key, locktoken string) {
 	if locktoken == "" {
 		return
 	}
-	plugMapLock.Lock()
-	pluginName := plugIDNameMap[r.pluginID]
-	plugMapLock.Unlock()
-	key = pluginName + ":" + key
+	plugin := currentPlugins.getPluginByID(r.pluginID)
+	key = plugin.name + ":" + key
 	checkinDatum(key, locktoken)
 }
 
@@ -364,10 +360,8 @@ func (r *Robot) CheckinDatum(key, locktoken string) {
 // a struct to marshall and a (hopefully good) lock token. If err != nil, the
 // update failed.
 func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
-	plugMapLock.Lock()
-	pluginName := plugIDNameMap[r.pluginID]
-	plugMapLock.Unlock()
-	key = pluginName + ":" + key
+	plugin := currentPlugins.getPluginByID(r.pluginID)
+	key = plugin.name + ":" + key
 	return updateDatum(key, locktoken, datum)
 }
 
