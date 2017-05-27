@@ -7,11 +7,15 @@ type RetVal int
 type PlugRetVal int
 
 const (
+	// Normal exit is for non-auth/non-elevating plugins; since this is the
+	// default exit value, we don't use it to indicate successful authentication
+	// or elevation.
+	Normal PlugRetVal = iota
 	// Success indicates successful authorization or elevation
-	Success PlugRetVal = iota
+	Success
 	// Fail indicates requested authorization or elevation failed
 	Fail
-	// MechanismFailed indicates authorization or elevation couldn't be determined due to a technical issue that should be logged
+	// MechanismFail indicates authorization or elevation couldn't be determined due to a technical issue that should be logged
 	MechanismFail
 	// ConfigurationFail indicates authorization or elevation failed due to misconfiguration
 	ConfigurationFail
@@ -55,10 +59,6 @@ const (
 	InvalidCfgStruct
 	// NoConfigFound - The plugin doesn't have any config data
 	NoConfigFound
-
-	/* Elevator */
-	// TechnicalProblem - There was a problem with the elevator (e.g. service unreachable)
-	TechnicalProblem
 
 	/* Prompt(User)ForReply */
 
