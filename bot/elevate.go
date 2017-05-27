@@ -23,44 +23,27 @@ func (bot *Robot) elevate(plugins []*Plugin, plugin *Plugin, immediate bool) (re
 	}
 	for _, ePlug := range plugins {
 		if elevator == ePlug.name {
-			plugAllowed := false
-			if ePlug.TrustAllPlugins {
-				plugAllowed = true
-			} else if len(ePlug.TrustedPlugins) > 0 {
-				for _, allowed := range ePlug.TrustedPlugins {
-					if plugin.name == allowed {
-						plugAllowed = true
-						break
-					}
-				}
-			}
-			if plugAllowed {
-				if !pluginAvailable(bot.User, bot.Channel, ePlug) {
-					Log(Error, fmt.Sprintf("Elevation plugin \"%s\" not available while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
-					bot.Say(configElevError)
-					return ConfigurationFail
-				}
-				immedString := "true"
-				if !immediate {
-					immedString = "false"
-				}
-				elevRet := callPlugin(bot, ePlug, false, false, "elevate", immedString)
-				if elevRet == Success {
-					return Success
-				}
-				if elevRet == Fail {
-					Log(Warn, fmt.Sprintf("Elevation failed by elevator \"%s\", user \"%s\", plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
-					bot.Say("Sorry, this command requires elevation")
-					return Fail
-				}
-				Log(Error, fmt.Sprintf("Elevator plugin \"%s\" mechanism failure while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
-				bot.Say(technicalElevError)
-				return MechanismFail
-			} else {
-				Log(Error, fmt.Sprintf("Elevator plugin \"%s\" not available to plugin \"%s\" while elevating user \"%s\" in channel \"%s\"", ePlug.name, plugin.name, bot.User, bot.Channel))
+			if !pluginAvailable(bot.User, bot.Channel, ePlug) {
+				Log(Error, fmt.Sprintf("Elevation plugin \"%s\" not available while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
 				bot.Say(configElevError)
 				return ConfigurationFail
 			}
+			immedString := "true"
+			if !immediate {
+				immedString = "false"
+			}
+			elevRet := callPlugin(bot, ePlug, false, false, "elevate", immedString)
+			if elevRet == Success {
+				return Success
+			}
+			if elevRet == Fail {
+				Log(Warn, fmt.Sprintf("Elevation failed by elevator \"%s\", user \"%s\", plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
+				bot.Say("Sorry, this command requires elevation")
+				return Fail
+			}
+			Log(Error, fmt.Sprintf("Elevator plugin \"%s\" mechanism failure while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
+			bot.Say(technicalElevError)
+			return MechanismFail
 		}
 	}
 	Log(Error, fmt.Sprintf("Elevator plugin \"%s\" not found while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", plugin.Elevator, bot.User, plugin.name, bot.Channel))
