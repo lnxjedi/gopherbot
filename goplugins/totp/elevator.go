@@ -32,29 +32,29 @@ type config struct {
 
 var cfg config
 
-func checkOTP(r *bot.Robot, code string) (bool, bot.RetVal) {
+func checkOTP(r *bot.Robot, code string) (bool, bot.PlugRetVal) {
 	var userOTP otp.OTPConfig
 	lock, exists, ret := r.CheckoutDatum(r.User, &userOTP, true)
 	if ret != bot.Ok {
 		r.CheckinDatum(r.User, lock)
-		return false, bot.TechnicalProblem
+		return false, bot.MechanismFail
 	}
 	if !exists {
 		r.CheckinDatum(r.User, lock)
-		return false, ret
+		return false, bot.MechanismFail
 	}
 	valid, err := userOTP.Authenticate(code)
 	if err != nil {
 		r.Log(bot.Error, fmt.Errorf("Problem authenticating launch code for user %s: %v", r.User, err))
 		r.CheckinDatum(r.User, lock)
-		return false, bot.TechnicalProblem
+		return false, bot.MechanismFail
 	}
 	ret = r.UpdateDatum(r.User, lock, &userOTP)
 	if ret != bot.Ok {
 		r.Log(bot.Error, fmt.Errorf("Problem updating OTP for %s, failing", r.User))
-		return false, ret
+		return false, bot.MechanismFail
 	}
-	return valid, bot.Ok
+	return valid, bot.Success
 }
 
 func getcode(r *bot.Robot, immediate bool) (retval bot.PlugRetVal) {
@@ -74,7 +74,7 @@ func getcode(r *bot.Robot, immediate bool) (retval bot.PlugRetVal) {
 	}
 	if ret == bot.Ok {
 		ok, ret := checkOTP(r, rep)
-		if ret != bot.Ok {
+		if ret != bot.Success {
 			r.Direct().Say("There were technical issues validating your code, ask an administrator to check the log")
 			return bot.MechanismFail
 		}
