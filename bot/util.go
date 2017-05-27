@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const escape_aliases = `*+|^$?\[]{}`
+const escapeAliases = `*+|^$?\[]{}`
 const aliases = `&!;:-%#@~<>/`
 
 func checkPanic(bot *Robot, s string) {
@@ -36,7 +36,7 @@ func updateRegexes() {
 	robot.RUnlock()
 	preString := `^(?i:`
 	if robot.alias != 0 {
-		if strings.ContainsRune(string(escape_aliases), alias) {
+		if strings.ContainsRune(string(escapeAliases), alias) {
 			preString += `\` + string(alias) + "|"
 		} else {
 			preString += string(alias) + "|"

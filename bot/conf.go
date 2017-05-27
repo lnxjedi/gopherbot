@@ -112,9 +112,9 @@ func loadConfig() error {
 	robot.mailConf = newconfig.MailConfig
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
-		if !strings.ContainsRune(string(aliases+escape_aliases), alias) {
+		if !strings.ContainsRune(string(aliases+escapeAliases), alias) {
 			robot.Unlock()
-			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escape_aliases, aliases)
+			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escapeAliases, aliases)
 		}
 		robot.alias = alias
 	}
