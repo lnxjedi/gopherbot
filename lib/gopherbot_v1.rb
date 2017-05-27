@@ -64,17 +64,16 @@ class BaseBot
 	InvalidDblPtr = 11
 	InvalidCfgStruct = 12
 	NoConfigFound = 13
-	TechnicalProblem = 14
-	RetryPrompt = 15
-	ReplyNotMatched = 16
-	UseDefaultValue = 17
-	TimeoutExpired = 18
-	Interrupted = 19
-	MatcherNotFound = 20
-	NoUserEmail = 21
-	NoBotEmail = 22
-	MailError = 23
-	InvalidPluginID = 24
+	RetryPrompt = 14
+	ReplyNotMatched = 15
+	UseDefaultValue = 16
+	TimeoutExpired = 17
+	Interrupted = 18
+	MatcherNotFound = 19
+	NoUserEmail = 20
+	NoBotEmail = 21
+	MailError = 22
+	InvalidPluginID = 23
 
 	attr_reader :user, :channel
 

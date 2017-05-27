@@ -14,17 +14,16 @@ GBRET_InvalidDatumKey=10
 GBRET_InvalidDblPtr=11
 GBRET_InvalidCfgStruct=12
 GBRET_NoConfigFound=13
-GBRET_TechnicalProblem=14
-GBRET_RetryPrompt=15
-GBRET_ReplyNotMatched=16
-GBRET_UseDefaultValue=17
-GBRET_TimeoutExpired=18
-GBRET_Interrupted=19
-GBRET_MatcherNotFound=20
-GBRET_NoUserEmail=21
-GBRET_NoBotEmail=22
-GBRET_MailError=23
-GBRET_InvalidPluginID=24
+GBRET_RetryPrompt=14
+GBRET_ReplyNotMatched=15
+GBRET_UseDefaultValue=16
+GBRET_TimeoutExpired=17
+GBRET_Interrupted=18
+GBRET_MatcherNotFound=19
+GBRET_NoUserEmail=20
+GBRET_NoBotEmail=21
+GBRET_MailError=22
+GBRET_InvalidPluginID=23
 
 gb_json_encode(){
 	local MESSAGE
