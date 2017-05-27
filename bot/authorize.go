@@ -14,7 +14,7 @@ func (bot *Robot) checkAuthorization(plugins []*Plugin, plugin *Plugin, command 
 			bot.Say(configAuthError)
 			return ConfigurationFail
 		}
-		return
+		return Success
 	} else if !plugin.AuthorizeAllCommands {
 		authRequired := false
 		for _, i := range plugin.AuthorizedCommands {
@@ -24,7 +24,7 @@ func (bot *Robot) checkAuthorization(plugins []*Plugin, plugin *Plugin, command 
 			}
 		}
 		if !authRequired {
-			return
+			return Success
 		}
 	}
 	robot.RLock()

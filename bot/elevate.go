@@ -83,7 +83,7 @@ func (bot *Robot) checkElevation(plugins []*Plugin, plugin *Plugin, command stri
 			bot.Say(configElevError)
 			return ConfigurationFail
 		}
-		return ConfigurationFail
+		return Success
 	}
 	retval = bot.elevate(plugins, plugin, immediate)
 	if retval == Success {
