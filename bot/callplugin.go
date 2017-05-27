@@ -25,7 +25,7 @@ func fixInterpreterArgs(interpreter string, args []string) []string {
 	}
 	switch i {
 	case "powershell", "powershell.exe":
-		for i, _ := range args {
+		for i := range args {
 			args[i] = strings.Replace(args[i], " ", "` ", -1)
 			args[i] = strings.Replace(args[i], ",", "`,", -1)
 			args[i] = strings.Replace(args[i], ";", "`;", -1)

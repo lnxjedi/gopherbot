@@ -193,13 +193,12 @@ func (r *Robot) promptInternal(promptUser bool, regexID string, prompt string) (
 			}
 			// matched=false, timedOut=true
 			return "", TimeoutExpired
-		} else {
-			// race: we got a reply at the timeout deadline, and lost the race
-			// to delete the entry, so we read the reply as if the timeout hadn't
-			// expired.
-			replies.Unlock()
-			replied = <-rep.replyChannel
 		}
+		// race: we got a reply at the timeout deadline, and lost the race
+		// to delete the entry, so we read the reply as if the timeout hadn't
+		// expired.
+		replies.Unlock()
+		replied = <-rep.replyChannel
 	case replied = <-rep.replyChannel:
 	}
 	if replied.disposition == replyInterrupted {
