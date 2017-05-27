@@ -2,7 +2,7 @@ package bot
 
 import "fmt"
 
-const technicalAuthError = "Sorry, authorization failed due to a problem with the authorization service"
+const technicalAuthError = "Sorry, authorization failed due to a problem with the authorization plugin"
 const configAuthError = "Sorry, authorization failed due to a configuration error"
 
 // Check for a configured Authorizer and check authorization
@@ -56,7 +56,17 @@ func (bot *Robot) checkAuthorization(plugins []*Plugin, plugin *Plugin, command 
 				bot.Say("Sorry, you're not authorized for that command in this channel")
 				return Fail
 			}
-			Log(Error, fmt.Sprintf("Auth plugin \"%s\" mechanism failure while authenticating user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, bot.User, command, plugin.name, bot.Channel, plugin.AuthRequire))
+			if authRet == MechanismFail {
+				Log(Error, fmt.Sprintf("Auth plugin \"%s\" mechanism failure while authenticating user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, bot.User, command, plugin.name, bot.Channel, plugin.AuthRequire))
+				bot.Say(technicalAuthError)
+				return MechanismFail
+			}
+			if authRet == Normal {
+				Log(Error, fmt.Sprintf("Auth plugin \"%s\" returned 'Normal' (0) instead of 'Success' (1), failing auth in \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, bot.User, command, plugin.name, bot.Channel, plugin.AuthRequire))
+				bot.Say(technicalAuthError)
+				return MechanismFail
+			}
+			Log(Error, fmt.Sprintf("Auth plugin \"%s\" exit code %d, failing auth while authenticating user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, authRet, bot.User, command, plugin.name, bot.Channel, plugin.AuthRequire))
 			bot.Say(technicalAuthError)
 			return MechanismFail
 		}

@@ -41,7 +41,12 @@ func (bot *Robot) elevate(plugins []*Plugin, plugin *Plugin, immediate bool) (re
 				bot.Say("Sorry, this command requires elevation")
 				return Fail
 			}
-			Log(Error, fmt.Sprintf("Elevator plugin \"%s\" mechanism failure while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
+			if elevRet == MechanismFail {
+				Log(Error, fmt.Sprintf("Elevator plugin \"%s\" mechanism failure while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
+				bot.Say(technicalElevError)
+				return MechanismFail
+			}
+			Log(Error, fmt.Sprintf("Elevator plugin \"%s\" exit code %d while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, retval, bot.User, plugin.name, bot.Channel))
 			bot.Say(technicalElevError)
 			return MechanismFail
 		}
@@ -78,12 +83,12 @@ func (bot *Robot) checkElevation(plugins []*Plugin, plugin *Plugin, command stri
 			bot.Say(configElevError)
 			return ConfigurationFail
 		}
-		return
+		return ConfigurationFail
 	}
 	retval = bot.elevate(plugins, plugin, immediate)
 	if retval == Success {
-		return
+		return Success
 	}
 	Log(Error, fmt.Sprintf("Elevation failed for plugin \"%s\", command: \"%s\"", plugin.name, command))
-	return
+	return Fail
 }
