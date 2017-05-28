@@ -54,7 +54,7 @@ func (pl *pluginList) getPluginByName(name string) *Plugin {
 
 func (pl *pluginList) getPluginByID(id string) *Plugin {
 	pl.RLock()
-	pi, ok := pl.nameMap[id]
+	pi, ok := pl.idMap[id]
 	if !ok {
 		Log(Error, fmt.Sprintf("Plugin \"%s\" not found calling getPluginByID", id))
 		pl.RUnlock()

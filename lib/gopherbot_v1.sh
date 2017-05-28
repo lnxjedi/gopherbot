@@ -46,7 +46,7 @@ gbPostJSON(){
 	local GB_FUNCNAME=$1
 	local GB_FUNCARGS="$2"
 	local JSON JSONRET
-	# local GB_DEBUG="true"
+	local GB_DEBUG="true"
 	GB_FORMAT=${GB_FORMAT:-variable}
 	JSON=$(cat <<EOF
 {
@@ -101,6 +101,22 @@ CheckAdmin(){
 	else
 		return 1
 	fi
+}
+
+CallPlugin(){
+	local GB_FUNCNAME="CallPlugin"
+	local GB_FUNCARGS="{ \"PluginName\": \"$1\" }"
+	shift
+	local GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	local PLUGRETVAL=$(echo "$GB_RET" | jq .PlugRetVal)
+	if [ "$PLUGRETVAL" -ne "$PLUGRET_Success" ]
+	then
+		return $PLUGRETVAL
+	fi
+	local PLUGPATH=$(echo "$GB_RET" | jq .PluginPath)
+	local PLUGID=$(echo "$GB_RET" | jq .PluginID)
+	#GOPHER_PLUGIN_ID=$PLUGID $PLUGPATH "$@"
+	GOPHER_PLUGIN_ID=$PLUGID /usr/local/etc/gopherbot/plugins/rubydemo "$@"
 }
 
 Remember(){

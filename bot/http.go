@@ -126,8 +126,10 @@ type checkoutresponse struct {
 }
 
 type callpluginresponse struct {
-	PluginPath string
-	PluginID   string
+	InterpreterPath string
+	PluginPath      string
+	PluginID        string
+	PlugRetVal      int
 }
 
 type replyresponse struct {
@@ -210,6 +212,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		Log(Error, fmt.Sprintf("JSON function \"%s\" called with invalid PluginID \"%s\"; args: %v", f.FuncName, f.PluginID, f.FuncArgs))
 		return
 	}
+	Log(Trace, fmt.Sprintf("Plugin \"%s\" calling function \"%s\" in channel \"%s\" for user \"%s\"", plugin.name, f.FuncName, f.Channel, f.User))
 
 	// Generate a synthetic Robot for access to it's methods
 	bot := Robot{
@@ -269,14 +272,46 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		ret = update(plugin.name+":"+m.Key, m.Token, (*[]byte)(&m.Datum))
 		sendReturn(rw, &botretvalresponse{int(ret)})
 		return
-		/*	TODO: FINISH ME
-			case "CallPlugin":
-				var p plugincall
-				if !getArgs(rw, &f.FuncArgs, &p) {
-					return
+	case "CallPlugin":
+		var p plugincall
+		if !getArgs(rw, &f.FuncArgs, &p) {
+			return
+		}
+		calledPlugin := currentPlugins.getPluginByName(p.PluginName)
+		if calledPlugin == nil {
+			sendReturn(rw, &callpluginresponse{"", "", "", int(ConfigurationError)})
+			return
+		}
+		plugAllowed := false
+		if calledPlugin.TrustAllPlugins {
+			plugAllowed = true
+		} else if len(calledPlugin.TrustedPlugins) > 0 {
+			for _, allowed := range calledPlugin.TrustedPlugins {
+				if plugin.name == allowed {
+					plugAllowed = true
+					break
 				}
-				calledPlugin := currentPlugins.getPluginByName(p.PluginName)
-				sendReturn(rw, ret) */
+			}
+		}
+		if plugAllowed {
+			plugPath, err := getPluginPath(calledPlugin)
+			if err != nil {
+				Log(Error, fmt.Sprintf("Configuration error calling plugin \"%s\" from \"%s\": %s", calledPlugin.name, plugin.name, err))
+				sendReturn(rw, &callpluginresponse{"", "", "", int(ConfigurationError)})
+				return
+			}
+			interpreterPath, ierr := getInterpreter(plugPath)
+			if ierr != nil {
+				Log(Error, fmt.Sprintf("Couldn't get interpreter while calling plugin \"%s\" from \"%s\": %s", calledPlugin.name, plugin.name, err))
+				sendReturn(rw, &callpluginresponse{"", "", "", int(MechanismFail)})
+				return
+			}
+			sendReturn(rw, &callpluginresponse{interpreterPath, plugPath, calledPlugin.pluginID, int(Success)})
+		} else {
+			Log(Error, fmt.Sprintf("Unable to call plugin \"%s\" from \"%s\": untrusted", calledPlugin.name, plugin.name))
+			sendReturn(rw, &callpluginresponse{"", "", "", int(UntrustedPlugin)})
+			return
+		}
 	case "Remember":
 		var m shorttermmemory
 		if !getArgs(rw, &f.FuncArgs, &m) {
