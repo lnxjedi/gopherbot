@@ -4,7 +4,6 @@ a system administrator who may be deploying plugins written by a third party or 
 Table of Contents
 =================
 
-  * [Table of Contents](#table-of-contents)
   * [Configuration Directories and Configuration File Precedence](#configuration-directories-and-configuration-file-precedence)
   * [Primary Configuration File \- gopherbot\.yaml](#primary-configuration-file---gopherbotyaml)
     * [Configuration Directives](#configuration-directives)
@@ -12,7 +11,8 @@ Table of Contents
       * [Email and MailConfig](#email-and-mailconfig)
       * [Connection Protocol](#connection-protocol)
       * [Brain](#brain)
-      * [AdminUsers, IgnoreUsers, and Elevation](#adminusers-ignoreusers-and-elevation)
+      * [AdminUsers and IgnoreUsers](#adminusers-and-ignoreusers)
+      * [DefaultAuthorizer and DefaultElevator](#defaultauthorizer-and-defaultelevator)
       * [DefaultAllowDirect, DefaultChannels and JoinChannels](#defaultallowdirect-defaultchannels-and-joinchannels)
       * [ExternalPlugins](#externalplugins)
       * [LocalPort and LogLevel](#localport-and-loglevel)
@@ -22,9 +22,9 @@ Table of Contents
       * [AllowDirect, DirectOnly, Channels and AllChannels](#allowdirect-directonly-channels-and-allchannels)
       * [CatchAll](#catchall)
       * [Users, RequireAdmin](#users-requireadmin)
-      * [Authorizer and AuthGroup](#authorizer-and-authgroup)
-      * [Plugins and AllPlugins](#plugins-and-allplugins)
-      * [ElevatedCommands and ElevateImmediateCommands](#elevatedcommands-and-elevateimmediatecommands)
+      * [AuthorizedCommands, AuthorizeAllCommands, Authorizer and AuthRequire](#authorizedcommands-authorizeallcommands-authorizer-and-authrequire)
+      * [TrustedPlugins and TrustAllPlugins](#trustedplugins-and-trustallplugins)
+      * [Elevator, ElevatedCommands and ElevateImmediateCommands](#elevator-elevatedcommands-and-elevateimmediatecommands)
       * [Help](#help)
       * [CommandMatchers, ReplyMatchers, and MessageMatchers](#commandmatchers-replymatchers-and-messagematchers)
       * [Config](#config)
@@ -35,21 +35,24 @@ Gopherbot's configuration file loading is designed around installation where cre
 plugins to load would be defined in `/usr/local/etc/gopherbot/conf/gopherbot.yaml`. On Windows, the install directory would normally be `C:\Program Files\Gopherbot`, and the configuration directory would be in `C:\Windows\gopherbot`.
 
 # Primary Configuration File - gopherbot.yaml
+
 The robot's core configuration is obtained by simply loading `conf/gopherbot.yaml` from the **install directory** first, then the **local config directory**, overwriting top-level items in the process.
 
 ## Configuration Directives
 Note that some of this information is also available in the comments of the distributed `conf/gopherbot.yaml`.
 
 ### AdminContact, Name and Alias
+
 ```yaml
 AdminContact: Joe Admin, <sysadmin@my.org>
 Name: Robbie Robot
 Alias: ";"
 ```
-Admin contact and Name are informational only, provided to users who ask for help. Note that you needn't specify `Name` for Slack - the robot will automatically obtain the name configured for the integration. The
+`AdminContact` and `Name` are informational only, provided to users who ask for help. Note that you needn't specify `Name` for Slack - the robot will automatically obtain the name configured for the integration. The
 alias can be used as shorthand for the robot's handle when addressing commands to the robot in a channel.
 
 ### Email and MailConfig
+
 ```yaml
 Email: Robbie.Robot@my.org
 MailConfig:
@@ -58,9 +61,10 @@ MailConfig:
   User: robot
   Password: itsasecret
 ```
-Email is informational, but required for the robot to be able to send email.
+Both `Email` and `MailConfig` are required for the robot to be able to send email.
 
 ### Connection Protocol
+
 ```yaml
 Protocol: slack
 ProtocolConfig:
@@ -72,6 +76,7 @@ Slack maximum message length), the slack connector will automatically break the 
 messages; MaxMessageSplit determines the maximum number to split a message into before truncating.
 
 ### Brain
+
 ```yaml
 Brain: file
 BrainConfig:
@@ -80,22 +85,26 @@ BrainConfig:
 Gopherbot ships with a simple file-based brain, with pluggable support for creating e.g. a redis based brain.
 The BrainDirectory can be given as an absolute path or as a sub-directory of the local config directory.
 
-### AdminUsers, IgnoreUsers, and Elevation
+### AdminUsers and IgnoreUsers
+
 ```yaml
 AdminUsers: [ 'alicek', 'bobj' ]
 IgnoreUsers: [ 'danl', 'otherbot' ]
-ElevateMethod: topt
-ElevateConfig:
-  TimeoutSeconds: 3600
-  TimeoutType: idle
+
 ```
 Users listed as admins have access to builtin administrative commands for viewing logs, changing log level,
 reloading and terminating the robot. The robot will never respond to users listed in IgnoreUsers.
 
-Individual commands can be configured to require elevation, normally requiring the user to provide some variety of MFA token before completing the command. More information on
-elevation is in [Configuring Elevation](Elevation.md).
+### DefaultAuthorizer and DefaultElevator
+
+```yaml
+DefaultAuthorizer: ldapauth
+DefaultElevator: totp
+```
+Individual plugins may be configured to require command authorization or elevation (described below). In the absence of specific values for `Authorizer` and `Elevator`, plugins will use the defaults specified here to authorize or request elevation for specific commands. See the [Security Overview](Security-Overview.md) for a complete description of authorization and elevation, and the [Plugin Author's Guide](Plugin-Author's-Guide.md) for information on writing Authorization and Elevation plugins.
 
 ### DefaultAllowDirect, DefaultChannels and JoinChannels
+
 ```yaml
 DefaultAllowDirect: true
 DefaultChannels: [ 'general', 'random' ]
@@ -104,6 +113,7 @@ JoinChannels: [ 'security', 'infrastructure', 'lunch' ]
 DefaultAllowDirect sets a robot-wide default value for AllowDirect, indicating whether a plugin's commands are accessible via direct message. DefaultChannels specify which channels a plugin will be active in if the plugin doesn't explicitly list it's channels. JoinChannels specify the channels the robot will try to join when logging in (though this isn't supported in the Slack connector).
 
 ### ExternalPlugins
+
 ```yaml
 ExternalPlugins:
 - Name: rubydemo
@@ -112,39 +122,42 @@ ExternalPlugins:
   Path: plugins/psdemo.ps1
 ```
 Most Gopherbot command plugins ship as single script files for any of several scripting languages. Installing
-a new plugin only entails copying the plugin to an appropriate plugin directory (e.g. `<config dir>/plugins/`) and
-listing the plugin in the robot's `ExternalPlugins`.
+a new plugin only entails copying the plugin to an appropriate plugin directory (e.g. `<config dir>/plugins/`) and listing the plugin in the robot's `ExternalPlugins`, followed by a `reload` command.
 
 ### LocalPort and LogLevel
+
 ```yaml
 LocalPort: 8880
 LogLevel: info
 ```
 Gopherbot command plugins communicate with the gopherbot process via JSON over http on a localhost port. The
-port to use is configured with LocalPort. LogLevel specifies the initial logging level for the robot, one of `error`, `warn`, `info`, `debug`, or `trace`. The log level can also be adjusted on the fly by an administrator. Note that on Windows, debug and trace logging is only available in immediate mode during plugin development.
+port to use is configured with `LocalPort`. `LogLevel` specifies the initial logging level for the robot, one of `error`, `warn`, `info`, `debug`, or `trace`. The log level can also be adjusted on the fly by an administrator. Note that on Windows, debug and trace logging is only available in immediate mode during plugin development.
 
 # Plugin Configuration
-Gopherbot plugins are highly configurable with respect to which users can access a plugin, and in which channels. This can be very useful in large environments with many robots running many plugins, if only to keep
-the 'help' output to a minimum. Additionally, help text and command routing is configured in yaml, allowing
-the user to e.g. provide synonyms for existing commands.
+
+Gopherbot plugins are highly configurable with respect to visibility of plugins for various users and channels. In addition to providing a level of security, this can be very useful in large environments with many robots running many plugins, if only to keep the 'help' output to a minimum. The administrator can also configure Authorization and Elevation to further restrict sensitive commands. Additionally, help text and command routing is configured in yaml, allowing the administrator to e.g. provide synonyms for existing commands.
 
 Plugins are configured by reading yaml from **three** locations, with top-level items from each successive read
 overwriting the previous:
 1. The default configuration is obtained from the plugin itself during plugin load, by calling the plugin with `configure` as the first argument
 2. Configuration is then loaded from `<install dir>/conf/plugins/<pluginname>.yaml`; this is where you might configure e.g. credentials required for a given plugin
-3. Finally configuration is loaded from `<config dir>/conf/plugins/<pluginname>.yaml`; this is where you would likely configure a plugin's channels and security-related configuration (allowed users, etc.)
+3. Finally configuration is loaded from `<config dir>/conf/plugins/<pluginname>.yaml`; this is where you would likely configure a plugin's channels and security-related configuration (allowed users, authorization, etc.)
 
 ## Plugin Configuration Directives
+
 ### Disabled
+
 ```yaml
 Disabled: true
 ```
 Useful for disabling compiled-in Go plugins.
 
-### AllowDirect, DirectOnly, Channels and AllChannels
+### AllowDirect, DenyDirect, DirectOnly, Channels and AllChannels
+
 ```yaml
 AllowDirect: false  # default
-DirectOnly: true    # default: false
+DenyDirect: true    # default false
+DirectOnly: true    # default false
 ```
 ```yaml
 Channels:
@@ -154,14 +167,14 @@ Channels:
 ```yaml
 AllChannels: true
 ```
-AllowDirect indicates whether the plugin's functionality is available via direct message; if not set, the plugin inherits the DefaultAllowDirect value from the robot. DirectOnly indicates the plugin is ONLY available by direct message (private chat). To specify the channels a plugin is available in, you can list the channels explicitly or set `AllChannels` to true. If neither is specified, the plugin falls back to the robot's configured `DefaultChannels`.
+`AllowDirect` and `DenyDirect` interact with the global value of `DefaultAllowDirect` to determine if a plugin is available via direct message. Plugin-level directives override the global setting, and `DenyDirect` overrides `AllowDirect` (if both are mistakenly set). DirectOnly indicates the plugin is ONLY available by direct message (private chat). To specify the channels a plugin is available in, you can list the channels explicitly or set `AllChannels` to true. If neither is specified, the plugin falls back to the robot's configured `DefaultChannels`.
 
 ### CatchAll
+
 ```yaml
 CatchAll: true  # default: false
 ```
-If a plugin specifies `CatchAll`, it will be called with a command of `catchall`, and the message text as an
-argument.
+If a plugin specifies `CatchAll`, and the robot receives a command that doesn't match a plugin, catchall plugins will be called with a command of `catchall`, and the message text as an argument. If configuring a catchall plugin, you should probably set `CatchAll: false` for the included `help` plugin.
 
 ### Users, RequireAdmin
 ```yaml
@@ -170,47 +183,47 @@ Users: [ 'alicek', 'bobc', 'bot:ServerWatch:*' ]
 ```yaml
 RequireAdmin: true  # default: false
 ```
-`Users` and `RequireAdmin` can be used to restrict a given plugin to a given list of users, or only bot
-administrators. If a given plugin isn't allowed for a given user, the robot will behave as if the plugin
-doesn't exist for that user, and won't provide help text. Note that `Users` can take globbing characters, mainly useful for matching messages from another bot or integration.
+`Users` and `RequireAdmin` provide a simple mechanism to restrict visibility of a given plugin to a given list of users, or only bot administrators. If a given plugin isn't allowed for a given user, the robot will behave as if the plugin doesn't exist for that user, and won't provide help text. Note that `Users` can take globbing characters, mainly useful for matching messages from another bot or integration.
 
-### Authorizer and AuthGroup
+### AuthorizedCommands, AuthorizeAllCommands, Authorizer and AuthRequire
 
-(unimplemented)
 ```yaml
-Authorizer: ldapcheck
-AuthGroup: serveradmins
+Authorizer: ldapcheck      # overrides the global DefaultAuthorizer if specified
+AuthRequire: serveradmins    # not required for using authorization
+AuthorizeAllCommands: true
+# - or -
+AuthorizedCommands:
+- createserver
+- destroyserver
 ```
-`Authorizer` lets a plugin call another plugin to perform an authorization check. Note that if authorization fails, the user is notified and the target plugin is never called. The optional `AuthGroup` allows the target plugin to specify a group name the user should be authorized against.
+Authorization support lets a plugin delegate command authorization determinations to another plugin, which may be shared among a family of related plugins. Note that if authorization fails, the user is notified and the target plugin is never called. The optional `AuthRequire` allows the target plugin to specify a group or role name the user should be authorized against. See the [Plugin Author's Guide](Plugin-Author's-Guide.md) for a full description of Authorizer plugins.
 
-### Plugins and AllPlugins
+### TrustedPlugins and TrustAllPlugins
 
-(unimplemented)
 ```yaml
-Plugins:
+TrustedPlugins:
 - ec2-manager
+# - or -
+TrustAllPlugins: true  # default: false
 ```
-```yaml
-AllPlugins: true  # default: false
-```
-`Plugins` and `AllPlugins` determine which plugins are allowed to use the CallPlugin() method to call this
-plugin. Note that for an `Authorizer` plugin to be used, the authorizer needs to allow each plugin that has the authorizer configured.
+`TrustedPlugins` and `TrustAllPlugins` determine which plugins are allowed to use the `CallPlugin(...)` method to call this plugin, or use this plugin for authorization or elevation. When called via `CallPlugin`, there is no authorization or elevation check performed for the target; rather, the target _trusts_ that the calling plugin configured appropriate authorization and/or elevation.
 
-### ElevatedCommands and ElevateImmediateCommands
+### Elevator, ElevatedCommands and ElevateImmediateCommands
+
 ```yaml
+Elevator: duo # overrides the global DefaultElevator if specified
 ElevatedCommands: [ "startserver", "alias" ]
 ElevateImmediateCommands:
 - terminate
 - destroyvolume
 - disablesite
 ```
-The Elevate* directives specify that certain commands in a plugin require additional verification to run.
-Gopherbot ships with two plugins for this functionality, with Google Authenticator style TOTP being the most
-common. ElevatedCommands are subject to a timeout during which additional verification won't be required;
+The Elevate* directives specify that certain commands in a plugin require additional identity verification to run. Gopherbot ships with two plugins for this functionality, with Google Authenticator style TOTP being the most common. ElevatedCommands are subject to a timeout during which additional verification won't be required;
 ElevateImmediate commands always prompt for additional verification. Additionally, individual commands can use
-the `Elevate(bool: immediate)` method to require elevation based on conditional logic in the command.
+the `Elevate(bool: immediate)` method to require elevation based on conditional logic in the command, or for all commands in the unusual case of requiring elevation for all commands in a plugin.
 
 ### Help
+
 ```yaml
 Help:
 - Keywords: [ "hosts", "lookup", "dig", "nslookup" ]
@@ -224,6 +237,7 @@ Note that if you wish to configure additional help, you'll need to copy the enti
 plugin's default configuration to the appropriate `<pluginname>.yaml` file.
 
 ### CommandMatchers, ReplyMatchers, and MessageMatchers
+
 ```yaml
 CommandMatchers:
 - Command: hosts
@@ -261,6 +275,7 @@ Note that for each of these, the robot internally modifies the regex to be insen
 frequently a problem when users were cutting and pasting arguments to robot commands.
 
 ### Config
+
 ```yaml
 Config:
   Replies:

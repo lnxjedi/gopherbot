@@ -55,36 +55,40 @@ CommandMatchers:
   Command: remember
   Contexts: [ "item" ]
 ```
-Whenever a `CommandMatcher` regex matches a command given to the robot, or a `MessageMatcher` matches an ambient message, the robot calls the plugin script with the first argument being the matched `Command`, and subsequent arguments corresponding to the regex capture groups (which may in some cases be an empty string). Command plugins should normally exit with status 0 (bot.Succeed), or non-zero for unusual error conditions that may require an administrator to investigate. The robot will notify the user whenever a command plugin exits non-zero, or when it emits output to STDERR.
+Whenever a `CommandMatcher` regex matches a command given to the robot, or a `MessageMatcher` matches an ambient message, the robot calls the plugin script with the first argument being the matched `Command`, and subsequent arguments corresponding to the regex capture groups (which may in some cases be an empty string). Command plugins should normally exit with status 0 (bot.Normal), or non-zero for unusual error conditions that may require an administrator to investigate. The robot will notify the user whenever a command plugin exits non-zero, or when it emits output to STDERR.
 
 ## Authorization Plugins
-To separate command logic from user authorization logic, Gopherbot supports the concept of an **authorization plugin**. The main `gopherbot.yaml` can define a specific plugin as the `DefaultAuthorizer`, and individual plugins can be configured to override this value by specifying their own `Authorizer` plugin. If a plugin lists any commands in it's `AuthorizedCommands` config item, or specifies `AuthorizeAllCommands: true`, then the robot will call the authorizer plugin with a command of `authorize`, followed by four arguments:
+To separate command logic from user authorization logic, Gopherbot supports the concept of an **authorization plugin**. The main `gopherbot.yaml` can define a specific plugin as the `DefaultAuthorizer`, and individual plugins can be configured to override this value by specifying their own `Authorizer` plugin. If a plugin lists any commands in it's `AuthorizedCommands` config item, or specifies `AuthorizeAllCommands: true`, then the robot will call the authorizer plugin with a command of `authorize`, followed by the following arguments:
  * The name of the plugin for which authorization is being requested
- * The plugin command being called
- * The name of the calling plugin, if called via CallPlugin(...)
  * The optional value of `AuthRequire`, which may be interpreted as a group or role
+ * The plugin command being called followed by any arguments passed to the command
 
 Based on these values and the `User` and `Channel` values from the robot, the authorization plugin should evaluate whether a user/plugin is authorized for the given command and exit with one of:
- * bot.Succeed (0) - authorized
- * bot.Fail (1) - not authorized
- * bot.MechanismFail (2) - a technical issue prevented the robot from determining authorization
+ * bot.Succeed (1) - authorized
+ * bot.Fail (2) - not authorized
+ * bot.MechanismFail (3) - a technical issue prevented the robot from determining authorization
 
-Additionally, authorization plugins should provide feedback to the user on `Fail` or `MechanismFail` so they can have the issue addressed, e.g. "Authorization failed: user not a member of group 'foo'"
+Note that exiting with `bot.Normal` (0) or other values will result in an error and failed authentication.
+
+Additionally, authorization plugins may provide extra feedback to the user on `Fail` or `MechanismFail` so they can have the issue addressed, e.g. "Authorization failed: user not a member of group 'foo'". In some cases, however, authorization plugins may not have a full Gopherbot API library; they could be written in C, and thus not be able to interact with the user.
 
 ## Elevation Plugins
 Elevation plugins provide the means to request additional authentication from the user for commands where higher assurance of identity is desired. The main `gopherbot.yaml` can specify an elevation plugin as the `DefaultElevator`, which can be overridden by a given plugin specifying an `Elevator`. When the plugin lists commands as `ElevatedCommands` or `ElevateImmediateCommands`, the robot will call the appropriate elevator plugin with a command of `elevate` and a first argument of `true` or `false` for `immediate`. The elevator plugin should interpret `immediate == true` to mean MFA is required every time; when `immediate != true`, successful elevation may persist for a configured timeout period.
 
 Based on the result of the elevation determination, the plugin should have an exit status one of:
- * bot.Succeed (0) - elevation succeeded
- * bot.Fail (1) - elevation failed
- * bot.MechanismFail (2) - a technical issue prevented the robot from processing the elevation request
+ * bot.Succeed (1) - elevation succeeded
+ * bot.Fail (2) - elevation failed
+ * bot.MechanismFail (3) - a technical issue prevented the robot from processing the elevation request
 
-Additionally, the elevation plugin should provide feedback to the user when elevation isn't successful to indicate the nature of the failure.
+Note that exiting with `bot.Normal` (0) or other value will result in an error being logged and elevation failing.
+
+Additionally, the elevation plugin may provide extra feedback to the user when elevation isn't successful to indicate the nature of the failure.
 
 ## Other Reserved Commands
 In addition to the `configure` command, which instructs a plugin to dump it's default configuration to standard out, the following commands are reserved:
 * `init` - During startup and reload, the robot will call external plugins with a command argument of `init`. Since all environment variables for the robot are set at that point, it would be possible to e.g. save a robot data structure that could be loaded and used in a cron job.
 * `event` - This command is reserved for future use with e.g. user presence change & channel join/leave events
+* `catchall` - Plugins with `CatchAll: true` will be called for commands directed at the robot that don't match a command plugin. Normally these are handled by the compiled-in `help` plugin, but administrators could override that setting and provide their own plugin with `CatchAll: true`. Note that having multiple such plugins is probably a bad idea.
 
 # Getting Started
 ## Starting from a Sample Plugin
