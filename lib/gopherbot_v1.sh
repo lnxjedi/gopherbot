@@ -1,5 +1,6 @@
 #!/bin/bash
 # shellLib.sh - bash plugins should source this with 'source $GOPHER_INSTALLDIR/util/shellLib.sh'
+# Return values for robot method calls
 GBRET_Ok=0
 GBRET_UserNotFound=1
 GBRET_ChannelNotFound=2
@@ -24,6 +25,14 @@ GBRET_NoUserEmail=20
 GBRET_NoBotEmail=21
 GBRET_MailError=22
 GBRET_InvalidPluginID=23
+GBRET_UntrustedPlugin=24
+
+# Plugin return values / exit codes, return values from CallPlugin
+PLUGRET_Normal=0
+PLUGRET_Success=1
+PLUGRET_Fail=2
+PLUGRET_MechanismFail=3
+PLUGRET_ConfigurationError=4
 
 gb_json_encode(){
 	local MESSAGE

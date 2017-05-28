@@ -15,7 +15,7 @@ func (bot *Robot) elevate(plugins []*Plugin, plugin *Plugin, immediate bool) (re
 	if plugin.Elevator == "" && defaultElevator == "" {
 		Log(Error, fmt.Sprintf("Plugin \"%s\" requires elevation, but no elevator configured", plugin.name))
 		bot.Say(configElevError)
-		return ConfigurationFail
+		return ConfigurationError
 	}
 	elevator := defaultElevator
 	if plugin.Elevator != "" {
@@ -26,7 +26,7 @@ func (bot *Robot) elevate(plugins []*Plugin, plugin *Plugin, immediate bool) (re
 			if !pluginAvailable(bot.User, bot.Channel, ePlug) {
 				Log(Error, fmt.Sprintf("Elevation plugin \"%s\" not available while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
 				bot.Say(configElevError)
-				return ConfigurationFail
+				return ConfigurationError
 			}
 			immedString := "true"
 			if !immediate {
@@ -53,7 +53,7 @@ func (bot *Robot) elevate(plugins []*Plugin, plugin *Plugin, immediate bool) (re
 	}
 	Log(Error, fmt.Sprintf("Elevator plugin \"%s\" not found while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", plugin.Elevator, bot.User, plugin.name, bot.Channel))
 	bot.Say(technicalElevError)
-	return ConfigurationFail
+	return ConfigurationError
 }
 
 // Check for a configured Elevator and check elevation
@@ -81,7 +81,7 @@ func (bot *Robot) checkElevation(plugins []*Plugin, plugin *Plugin, command stri
 		if plugin.Elevator != "" {
 			Log(Error, fmt.Sprintf("Plugin \"%s\" configured an elevator, but has no commands requiring elevation", plugin.name))
 			bot.Say(configElevError)
-			return ConfigurationFail
+			return ConfigurationError
 		}
 		return Success
 	}

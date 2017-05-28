@@ -50,6 +50,7 @@ class Memory
 end
 
 class BaseBot
+	# Return values for robot method calls
 	Ok = 0
 	UserNotFound = 1
 	ChannelNotFound = 2
@@ -74,6 +75,14 @@ class BaseBot
 	NoBotEmail = 21
 	MailError = 22
 	InvalidPluginID = 23
+	UntrustedPlugin = 24
+
+	# Plugin return values / exit codes, return values from CallPlugin
+	Normal = 0
+	Success = 1
+	Fail = 2
+	MechanismFail = 3
+	ConfigurationError = 4
 
 	attr_reader :user, :channel
 

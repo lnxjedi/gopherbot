@@ -1,3 +1,4 @@
+# Return values for robot method calls
 Enum BotRet
 {
     Ok = 0
@@ -23,7 +24,16 @@ Enum BotRet
     NoUserEmail = 20
     NoBotEmail = 21
     MailError = 22
-    InvalidPluginID = 23
+}
+
+# Plugin return values / exit codes, return values from CallPlugin
+Enum PlugRet
+{
+    Normal = 0
+    Success = 1
+    Fail = 2
+    MechanismFail = 3
+    ConfigurationError = 4
 }
 
 function enc64([String] $msg) {

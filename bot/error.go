@@ -17,8 +17,10 @@ const (
 	Fail
 	// MechanismFail indicates authorization or elevation couldn't be determined due to a technical issue that should be logged
 	MechanismFail
-	// ConfigurationFail indicates authorization or elevation failed due to misconfiguration
-	ConfigurationFail
+	// ConfigurationError indicates authorization or elevation failed due to misconfiguration
+	ConfigurationError
+	// UntrustedPlugin indicates a plugin was called by an untrusted plugin
+	UntrustedPlugin
 )
 
 const (
@@ -83,9 +85,6 @@ const (
 	NoBotEmail
 	// MailError - There was an error sending email
 	MailError
-
-	// InvalidPluginID - The external plugin made a function call with an invalid plugin ID
-	InvalidPluginID
 )
 
 func (ret RetVal) String() string {

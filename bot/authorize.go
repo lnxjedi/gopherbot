@@ -12,7 +12,7 @@ func (bot *Robot) checkAuthorization(plugins []*Plugin, plugin *Plugin, command 
 		if plugin.Authorizer != "" {
 			Log(Error, fmt.Sprintf("Plugin \"%s\" configured an authorizer, but has no commands requiring authorization", plugin.name))
 			bot.Say(configAuthError)
-			return ConfigurationFail
+			return ConfigurationError
 		}
 		return Success
 	} else if !plugin.AuthorizeAllCommands {
@@ -33,7 +33,7 @@ func (bot *Robot) checkAuthorization(plugins []*Plugin, plugin *Plugin, command 
 	if plugin.Authorizer == "" && defaultAuthorizer == "" {
 		Log(Error, fmt.Sprintf("Plugin \"%s\" requires authorization for command \"%s\", but no authorizer configured", plugin.name, command))
 		bot.Say(configAuthError)
-		return ConfigurationFail
+		return ConfigurationError
 	}
 	authorizer := defaultAuthorizer
 	if plugin.Authorizer != "" {
@@ -44,7 +44,7 @@ func (bot *Robot) checkAuthorization(plugins []*Plugin, plugin *Plugin, command 
 			if !pluginAvailable(bot.User, bot.Channel, authPlug) {
 				Log(Error, fmt.Sprintf("Auth plugin \"%s\" not available while authenticating user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, bot.User, command, plugin.name, bot.Channel, plugin.AuthRequire))
 				bot.Say(configAuthError)
-				return ConfigurationFail
+				return ConfigurationError
 			}
 			args = append([]string{plugin.name, plugin.AuthRequire, command}, args...)
 			authRet := callPlugin(bot, authPlug, false, false, "authorize", args...)
@@ -73,5 +73,5 @@ func (bot *Robot) checkAuthorization(plugins []*Plugin, plugin *Plugin, command 
 	}
 	Log(Error, fmt.Sprintf("Auth plugin \"%s\" not found while authenticating user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", plugin.Authorizer, bot.User, command, plugin.name, bot.Channel, plugin.AuthRequire))
 	bot.Say(technicalAuthError)
-	return ConfigurationFail
+	return ConfigurationError
 }

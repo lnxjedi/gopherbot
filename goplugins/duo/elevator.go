@@ -249,7 +249,7 @@ func elevate(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVa
 		duouser = strings.Split(email, "@")[0]
 	default:
 		r.Log(bot.Error, "No DuoUserString configured for Duo elevator plugin")
-		return bot.ConfigurationFail
+		return bot.ConfigurationError
 	}
 	if len(duouser) == 0 {
 		r.Log(bot.Error, fmt.Sprintf("Couldn't extract a Duo user name for %s with DuoUserString: %s", r.User, cfg.DuoUserString))
