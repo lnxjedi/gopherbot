@@ -41,14 +41,26 @@ var currentPlugins = &pluginList{
 
 func (pl *pluginList) getPluginByName(name string) *Plugin {
 	pl.RLock()
-	plugin := pl.p[pl.nameMap[name]]
+	pi, ok := pl.nameMap[name]
+	if !ok {
+		Log(Error, fmt.Sprintf("Plugin \"%s\" not found calling getPluginByName", name))
+		pl.RUnlock()
+		return nil
+	}
+	plugin := pl.p[pi]
 	pl.RUnlock()
 	return plugin
 }
 
 func (pl *pluginList) getPluginByID(id string) *Plugin {
 	pl.RLock()
-	plugin := pl.p[pl.idMap[id]]
+	pi, ok := pl.nameMap[id]
+	if !ok {
+		Log(Error, fmt.Sprintf("Plugin \"%s\" not found calling getPluginByID", id))
+		pl.RUnlock()
+		return nil
+	}
+	plugin := pl.p[pi]
 	pl.RUnlock()
 	return plugin
 }
