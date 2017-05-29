@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # echo.sh - trivial shell plugin example for Gopherbot
 
@@ -12,13 +12,20 @@ shift
 
 configure(){
 	cat <<"EOF"
-Channels: [ "random" ]
+---
+TrustedPlugins:
+- rubydemo
+- pythondemo
 Help:
 - Keywords: [ "echo" ]
   Helptext: [ "(bot), echo <simple text> - trivially repeat a phrase" ]
+- Keywords: [ "recollect" ]
+  Helptext: [ "(bot), recollect - call out to the rubydemo recall command" ]
 CommandMatchers:
 - Command: "echo"
   Regex: '(?i:echo ([.;!\d\w-, ]+))'
+- Command: "recollect"
+  Regex: '(?i:recollect)'
 EOF
 }
 
@@ -29,5 +36,8 @@ case "$command" in
 		;;
 	"echo")
 		Reply "$*"
+		;;
+	"recollect")
+		CallPlugin rubydemo recall
 		;;
 esac

@@ -8,8 +8,10 @@ from gopherbot_v1 import Robot
 bot = Robot()
 
 default_config = '''
-Channels: [ "random", "botdev" ]
+---
 Help:
+- Keywords: [ "bashecho", "bash", "echo" ]
+  Helptext: [ "(bot), bashecho <simple text> - call the bash echo plugin to echo a phrase" ]
 - Keywords: [ "python" ]
   Helptext: [ "(bot), python (me!) - prove that python plugins work" ]
 - Keywords: [ "listen" ]
@@ -23,6 +25,8 @@ Help:
 - Keywords: [ "check" ]
   Helptext: [ "(bot), check me - get the bot to check you out" ]
 CommandMatchers:
+- Regex: '(?i:bashecho ([.;!\d\w-, ]+))'
+  Command: bashecho
 - Regex: (?i:python( me)?!?)
   Command: python
 - Regex: (?i:listen( to me)?!?)
@@ -54,6 +58,9 @@ if command == "python":
     bot.Say("Sure, %s, gimme a sec to look for it..." % bot.GetSenderAttribute("firstName"))
     bot.Pause(1.5)
     bot.Say(bot.RandomString(bot.GetPluginConfig()["Replies"]))
+
+if command == "bashecho":
+    bot.CallPlugin("echo", "echo", sys.argv.pop(0))
 
 if command == "listen":
     dbot = bot.Direct()
