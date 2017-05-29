@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import subprocess
 import sys
 import time
 import urllib2
@@ -109,6 +110,14 @@ class Robot:
 
     def Elevate(self, immediate=False):
         return self.Call("Elevate", { "Immediate": immediate })["Boolean"]
+
+    def CallPlugin(self, plugName, *plugArgs):
+        ret = self.Call("CallPlugin", { "PluginName": plugName })
+        if ret["PlugRetVal"] != self.Success:
+            self.Reply("There was a problem calling the external plugin \"%s\"" % plugName)
+            return ret["PlugRetVal"]
+        plugenv = { "GOPHER_PLUGIN_ID": ret["PluginID"], "GOPHER_CHANNEL": self.channel, "GOPHER_USER": self.user, "GOPHER_INSTALLDIR": os.getenv("GOPHER_INSTALLDIR"), "GOPHER_HTTP_POST": os.getenv("GOPHER_HTTP_POST") }
+        subprocess.call( [ ret["PluginPath"] ] + list(plugArgs), env=plugenv )
 
     def Pause(self, s):
         time.sleep(s)

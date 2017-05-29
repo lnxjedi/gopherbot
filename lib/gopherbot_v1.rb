@@ -105,6 +105,17 @@ class BaseBot
 		return callBotFunc("Elevate", { "Immediate" => immediate })["Boolean"]
 	end
 
+	def CallPlugin(plugName, *plugargs)
+		args = { "PluginName" => plugName }
+		ret = callBotFunc("CallPlugin", args)
+		if ret["PlugRetVal"] != Success
+			Reply("There was a problem calling the external plugin #{plugName}")
+			return ret["PlugRetVal"]
+		end
+		system({ 'GOPHER_PLUGIN_ID' => ret["PluginID"] }, ret["PluginPath"], *plugargs)
+		return $?.exitstatus
+	end
+
 	def CheckoutDatum(key, rw)
 		args = { "Key" => key, "RW" => rw }
 		ret = callBotFunc("CheckoutDatum", args)

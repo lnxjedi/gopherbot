@@ -209,7 +209,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	plugin := currentPlugins.getPluginByID(f.PluginID)
 	if plugin == nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		Log(Error, fmt.Sprintf("JSON function \"%s\" called with invalid PluginID \"%s\"; args: %v", f.FuncName, f.PluginID, f.FuncArgs))
+		Log(Error, fmt.Sprintf("JSON function \"%s\" called with invalid PluginID \"%s\"; args: %s", f.FuncName, f.PluginID, f.FuncArgs))
 		return
 	}
 	Log(Trace, fmt.Sprintf("Plugin \"%s\" calling function \"%s\" in channel \"%s\" for user \"%s\"", plugin.name, f.FuncName, f.Channel, f.User))
@@ -306,6 +306,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 				sendReturn(rw, &callpluginresponse{"", "", "", int(MechanismFail)})
 				return
 			}
+			Log(Debug, fmt.Sprintf("External plugin \"%s\" calling external plugin \"%s\"", plugin.name, calledPlugin.name))
 			sendReturn(rw, &callpluginresponse{interpreterPath, plugPath, calledPlugin.pluginID, int(Success)})
 		} else {
 			Log(Error, fmt.Sprintf("Unable to call plugin \"%s\" from \"%s\": untrusted", calledPlugin.name, plugin.name))
