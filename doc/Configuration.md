@@ -206,7 +206,7 @@ TrustedPlugins:
 # - or -
 TrustAllPlugins: true  # default: false
 ```
-`TrustedPlugins` and `TrustAllPlugins` determine which plugins are allowed to use the `CallPlugin(...)` method to call this plugin, or use this plugin for authorization or elevation. When called via `CallPlugin`, there is no authorization or elevation check performed for the target; rather, the target _trusts_ that the calling plugin configured appropriate authorization and/or elevation.
+`TrustedPlugins` and `TrustAllPlugins` determine which plugins are allowed to use the `CallPlugin(...)` method to call this plugin. When called via `CallPlugin`, there is no authorization or elevation check performed for the target; rather, the target _trusts_ that the calling plugin configured appropriate authorization and/or elevation.
 
 ### Elevator, ElevatedCommands and ElevateImmediateCommands
 
