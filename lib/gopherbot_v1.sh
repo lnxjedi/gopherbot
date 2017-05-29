@@ -112,7 +112,6 @@ CallPlugin(){
 	local PLUGRETVAL=$(echo "$GB_RET" | jq .PlugRetVal)
 	if [ "$PLUGRETVAL" -ne "$PLUGRET_Success" ]
 	then
-		Reply "There was a problem calling the external plugin $PLUGNAME"
 		return $PLUGRETVAL
 	fi
 	local PLUGPATH=$(echo "$GB_RET" | jq -r .PluginPath)

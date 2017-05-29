@@ -60,7 +60,9 @@ if command == "python":
     bot.Say(bot.RandomString(bot.GetPluginConfig()["Replies"]))
 
 if command == "bashecho":
-    bot.CallPlugin("echo", "echo", sys.argv.pop(0))
+    status = bot.CallPlugin("echo", "echo", sys.argv.pop(0))
+    if status != Robot.Normal:
+        bot.Say("Uh-oh, there was a problem calling the echo plugin, status: %d" % status)
 
 if command == "listen":
     dbot = bot.Direct()

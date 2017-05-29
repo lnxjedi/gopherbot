@@ -63,7 +63,10 @@ when "configure"
 	puts defaultConfig
 	exit
 when "bashecho"
-	bot.CallPlugin("echo", "echo", ARGV[0])
+	status = bot.CallPlugin("echo", "echo", ARGV[0])
+  if status != Robot::Normal
+    bot.Say("Sorry, there was a problem calling the echo plugin, status: #{status}")
+  end
 when "ruby"
 	bot.Say("Sure, #{bot.GetSenderAttribute("firstName")}!")
 	sleep 1.5

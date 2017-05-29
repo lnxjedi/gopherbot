@@ -109,7 +109,6 @@ class BaseBot
 		args = { "PluginName" => plugName }
 		ret = callBotFunc("CallPlugin", args)
 		if ret["PlugRetVal"] != Success
-			Reply("There was a problem calling the external plugin #{plugName}")
 			return ret["PlugRetVal"]
 		end
 		system({ 'GOPHER_PLUGIN_ID' => ret["PluginID"] }, ret["PluginPath"], *plugargs)

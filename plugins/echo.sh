@@ -39,5 +39,10 @@ case "$command" in
 		;;
 	"recollect")
 		CallPlugin rubydemo recall
+		STATUS=$?
+		if [ "$STATUS" -ne "$PLUGRET_Normal" ]
+		then
+			Say "Dang, there was a problem calling the rubydemo recall command: $STATUS"
+		fi
 		;;
 esac
