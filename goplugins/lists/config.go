@@ -26,7 +26,9 @@ Help:
 - Keywords: [ "list", "lists", "email", "send" ]
   Helptext: [ "(bot), send me the <type> list - send a copy of the list by email" ]
 - Keywords: [ "list", "lists", "show", "view" ]
-  Helptext: [ "(bot), show the <type> list - show the contents of a list" ]
+  Helptext:
+  - "(bot), show the <type> list - show the contents of a list"
+  - "(bot), (show) list <type> - show the contents of a list"
 - Keywords: [ "pick", "random", "lists", "list" ]
   Helptext: [ "(bot), pick a random item from the <type> list"]
 CommandMatchers:
@@ -48,6 +50,9 @@ CommandMatchers:
   Contexts: [ "list" ]
 - Command: 'show'
   Regex: '(?i:show (?:the )?(?:([~\w-'' ]+) )?list)'
+  Contexts: [ "list" ]
+- Command: 'show'
+  Regex: '(?i:(?:show )?list ([~\w-'' ]+))'
   Contexts: [ "list" ]
 - Command: 'pick'
   Regex: '(?i:(?:pick )(?:an? )?random (?:item )?(?:from )(?:the )?([~\w-'' ]+)?(?: list))'
