@@ -218,15 +218,19 @@ class Robot
     }
 
     [Reply] PromptForReply([String] $regexid, [String] $prompt) {
-        return $this.promptInternal($FALSE, $regexid, $prompt)
+        return $this.promptInternal($regexid, $this.User, $this.Channel, $prompt)
     }
 
-    [Reply] PromptUserForReply([String] $regexid, [String] $prompt) {
-        return $this.promptInternal($TRUE, $regexid, $prompt)
+    [Reply] PromptUserForReply([String] $regexid, [String] $user, [String] $prompt) {
+        return $this.promptInternal($regexid, $user, "", $prompt)
     }
 
-    [Reply] promptInternal([bool] $direct, [String] $regexid, [String] $prompt) {
-        $funcArgs = [PSCustomObject]@{ Direct=$direct; RegexID=$regexid; Prompt=$prompt }
+    [Reply] PromptUserChannelForReply([String] $regexid, [String] $user, [String] $channel, [String] $prompt) {
+        return $this.promptInternal($regexid, $user, $channel, $prompt)
+    }
+
+    [Reply] promptInternal([String] $regexid, [String] $user, [String] $channel, [String] $prompt) {
+        $funcArgs = [PSCustomObject]@{ RegexID=$regexid; User=$user, Channel=$channel, Prompt=$prompt }
         $ret = $null
         For ($i=0; $i -le 3; $i++) {
             $ret = $this.Call("PromptInternal", $funcArgs)

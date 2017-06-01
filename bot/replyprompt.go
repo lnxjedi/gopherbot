@@ -70,10 +70,10 @@ func init() {
 	}
 }
 
-// PromptForReply lets a plugin send a prompt string and temporarily register a
-// regex for a reply expected to an multi-step command when the robot needs
-// more info. If the regular expression matches, it returns the matched text and
-// RetVal = Ok.
+// PromptForReply lets a plugin direct a prompt string to a user and temporarily
+// register a regex for a reply expected to a multi-step command when the robot
+// needs more info. If the regular expression matches, it returns the matched
+// text and RetVal = Ok.
 // If the regular expression doesn't match, it returns an empty string
 // with one of the following RetVals:
 //	Interrupted - the user issued a new command that ran or canceled with '-'
@@ -96,7 +96,7 @@ func (r *Robot) PromptForReply(regexID string, prompt string) (string, RetVal) {
 	var rep string
 	var ret RetVal
 	for i := 0; i < 3; i++ {
-		rep, ret = r.promptInternal(false, regexID, prompt)
+		rep, ret = r.promptInternal(regexID, r.User, r.Channel, prompt)
 		if ret == RetryPrompt {
 			continue
 		}
@@ -108,13 +108,31 @@ func (r *Robot) PromptForReply(regexID string, prompt string) (string, RetVal) {
 	return rep, ret
 }
 
-// PromptUserForReply is identical to PromptForReply, but directs the message
-// to the user.
-func (r *Robot) PromptUserForReply(regexID string, prompt string) (string, RetVal) {
+// PromptUserForReply is identical to PromptForReply, but prompts a specific
+// user with a DM.
+func (r *Robot) PromptUserForReply(regexID string, user string, prompt string) (string, RetVal) {
 	var rep string
 	var ret RetVal
 	for i := 0; i < 3; i++ {
-		rep, ret = r.promptInternal(true, regexID, prompt)
+		rep, ret = r.promptInternal(regexID, user, "", prompt)
+		if ret == RetryPrompt {
+			continue
+		}
+		return rep, ret
+	}
+	if ret == RetryPrompt {
+		return rep, Interrupted
+	}
+	return rep, ret
+}
+
+// PromptUserChannelForReply is identical to PromptForReply, but prompts a
+// specific user in a given channel.
+func (r *Robot) PromptUserChannelForReply(regexID string, user string, channel string, prompt string) (string, RetVal) {
+	var rep string
+	var ret RetVal
+	for i := 0; i < 3; i++ {
+		rep, ret = r.promptInternal(regexID, user, "", prompt)
 		if ret == RetryPrompt {
 			continue
 		}
@@ -127,10 +145,10 @@ func (r *Robot) PromptUserForReply(regexID string, prompt string) (string, RetVa
 }
 
 // promptInternal can return 'RetryPrompt'
-func (r *Robot) promptInternal(promptUser bool, regexID string, prompt string) (string, RetVal) {
+func (r *Robot) promptInternal(regexID string, user string, channel string, prompt string) (string, RetVal) {
 	matcher := replyMatcher{
-		user:    r.User,
-		channel: r.Channel,
+		user:    user,
+		channel: channel,
 	}
 	var rep replyWaiter
 	plugin := currentPlugins.getPluginByID(r.pluginID)
@@ -167,10 +185,10 @@ func (r *Robot) promptInternal(promptUser bool, regexID string, prompt string) (
 		waiters[0] = rep
 		replies.m[matcher] = waiters
 		replies.Unlock()
-		if promptUser {
-			r.Reply(prompt)
+		if channel == "" {
+			robot.SendProtocolUserMessage(user, prompt, r.Format)
 		} else {
-			r.Say(prompt)
+			robot.SendProtocolUserChannelMessage(user, channel, prompt, r.Format)
 		}
 	}
 	var replied reply

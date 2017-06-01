@@ -40,7 +40,7 @@ func knock(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		r.Say(r.RandomString(j.Openings))
 		r.Pause(1.2)
 		for i := 0; i < 2; i++ {
-			_, ret := r.PromptUserForReply("whosthere", "Knock knock")
+			_, ret := r.PromptForReply("whosthere", "Knock knock")
 			if ret == bot.Interrupted {
 				r.Reply("Ok, I guess you don't like knock-knock jokes!")
 				return

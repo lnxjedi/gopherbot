@@ -83,8 +83,9 @@ type userchannelmessage struct {
 
 type replyrequest struct {
 	RegexID string
+	User    string
+	Channel string
 	Prompt  string
-	Direct  bool // directed to the user?
 }
 
 // Types for returning values
@@ -398,7 +399,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if !getArgs(rw, &f.FuncArgs, &rr) {
 			return
 		}
-		reply, ret = bot.promptInternal(rr.Direct, rr.RegexID, rr.Prompt)
+		reply, ret = bot.promptInternal(rr.RegexID, rr.User, rr.Channel, rr.Prompt)
 		sendReturn(rw, &replyresponse{encode(reply), int(ret)})
 		return
 	// NOTE: "Say", "Reply", PromptForReply and PromptUserForReply are implemented
