@@ -96,6 +96,7 @@ type Plugin struct {
 	Disabled                 bool            // Set true to disable the plugin
 	AllowDirect              bool            // Set this true if this plugin can be accessed via direct message
 	DirectOnly               bool            // Set this true if this plugin ONLY accepts direct messages
+	DenyDirect               bool            // Set true to override global DefaultAllowDirect = true
 	Channels                 []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels              bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
 	RequireAdmin             bool            // Set to only allow administrators to access a plugin

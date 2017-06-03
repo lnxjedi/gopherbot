@@ -37,6 +37,13 @@ func pluginAvailable(user, channel string, plugin *Plugin) bool {
 	if !directMsg && plugin.DirectOnly {
 		return false
 	}
+	if directMsg && plugin.DenyDirect {
+		return false
+	}
+	if plugin.DirectOnly && plugin.DenyDirect {
+		Log(Error, fmt.Sprintf("Plugin %s has conflicting DirectOnly and DenyDirect both true", plugin.name))
+		return false
+	}
 	if plugin.RequireAdmin {
 		isAdmin := false
 		robot.RLock()
