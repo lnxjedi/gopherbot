@@ -105,7 +105,6 @@ type Plugin struct {
 	ElevateImmediateCommands []string        // Commands that always require elevation promting, regardless of timeouts
 	Users                    []string        // If non-empty, list of all the users with access to this plugin
 	TrustedPlugins           []string        // list of plugins allowed to call this one
-	TrustAllPlugins          bool            // authorizing plugins should probably set this to allow being called by all others
 	Authorizer               string          // a plugin to call for authorizing users, should handle groups, etc.
 	AuthRequire              string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
 	AuthorizedCommands       []string        // Which commands to authorize
@@ -277,6 +276,7 @@ PlugHandlerLoop:
 PlugLoop:
 	for i, plug := range pnames {
 		plugin = new(Plugin)
+		pcfgload := make(map[string]json.RawMessage)
 		plugin.AllowDirect = defaultAllowDirect
 		Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", plugIndex, plug, ptypes[i]))
 
@@ -289,24 +289,109 @@ PlugLoop:
 				Log(Error, err)
 				continue
 			}
-			if err := yaml.Unmarshal(*cfg, plugin); err != nil {
+			if err := yaml.Unmarshal(*cfg, &pcfgload); err != nil {
 				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
 				continue
 			}
 		} else {
-			if err := yaml.Unmarshal([]byte(pluginHandlers[plug].DefaultConfig), plugin); err != nil {
+			if err := yaml.Unmarshal([]byte(pluginHandlers[plug].DefaultConfig), &pcfgload); err != nil {
 				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
 				continue
 			}
 		}
 		// getConfigFile overlays the default config with local config
-		if err := getConfigFile("plugins/"+plug+".yaml", false, plugin); err != nil {
+		if err := getConfigFile("plugins/"+plug+".yaml", false, &pcfgload); err != nil {
 			Log(Error, fmt.Errorf("Problem with local configuration for plugin \"%s\", skipping: %v", plug, err))
 			continue
 		}
-		if plugin.Disabled {
-			Log(Info, fmt.Sprintf("Plugin \"%s\" is disabled, skipping", plug))
-			continue
+		if disjson, ok := pcfgload["Disabled"]; ok {
+			disabled := false
+			if err := json.Unmarshal(disjson, &disabled); err != nil {
+				Log(Error, fmt.Errorf("Problem reading value for \"Disabled\" in plugin \"%s\", skipping: %v", plug, err))
+				continue
+			}
+			if disabled {
+				Log(Info, fmt.Sprintf("Plugin \"%s\" is disabled, skipping", plug))
+				continue
+			}
+		}
+		for key, value := range pcfgload {
+			var strval string
+			var boolval bool
+			var sarrval []string
+			var hval []PluginHelp
+			var mval []InputMatcher
+			var val interface{}
+			skip := false
+			switch key {
+			case "Elevator", "Authorizer", "AuthRequire":
+				val = &strval
+			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll":
+				val = &boolval
+			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "TrustedPlugins", "AuthorizedCommands":
+				val = &sarrval
+			case "Help":
+				val = &hval
+			case "CommandMatchers", "ReplyMatchers", "MessageMatchers":
+				val = &mval
+			case "Config":
+				skip = true
+			default:
+				err := fmt.Errorf("Invalid configuration key for plugin \"%s\": %s - skipping", plug, key)
+				Log(Error, err)
+				continue PlugLoop
+			}
+			if !skip {
+				if err := json.Unmarshal(value, val); err != nil {
+					err = fmt.Errorf("Skipping plugin \"%s\" - error unmarshalling value \"%s\": %v", plug, key, err)
+					Log(Error, err)
+					continue PlugLoop
+				}
+			}
+			switch key {
+			case "AllowDirect":
+				plugin.AllowDirect = *(val.(*bool))
+			case "DirectOnly":
+				plugin.DirectOnly = *(val.(*bool))
+			case "DenyDirect":
+				plugin.DenyDirect = *(val.(*bool))
+			case "Channels":
+				plugin.Channels = *(val.(*[]string))
+			case "AllChannels":
+				plugin.AllChannels = *(val.(*bool))
+			case "RequireAdmin":
+				plugin.RequireAdmin = *(val.(*bool))
+			case "Elevator":
+				plugin.Elevator = *(val.(*string))
+			case "ElevatedCommands":
+				plugin.ElevatedCommands = *(val.(*[]string))
+			case "ElevateImmediateCommands":
+				plugin.ElevateImmediateCommands = *(val.(*[]string))
+			case "Users":
+				plugin.Users = *(val.(*[]string))
+			case "TrustedPlugins":
+				plugin.TrustedPlugins = *(val.(*[]string))
+			case "Authorizer":
+				plugin.Authorizer = *(val.(*string))
+			case "AuthRequire":
+				plugin.AuthRequire = *(val.(*string))
+			case "AuthorizedCommands":
+				plugin.AuthorizedCommands = *(val.(*[]string))
+			case "AuthorizeAllCommands":
+				plugin.AuthorizeAllCommands = *(val.(*bool))
+			case "Help":
+				plugin.Help = *(val.(*[]PluginHelp))
+			case "CommandMatchers":
+				plugin.CommandMatchers = *(val.(*[]InputMatcher))
+			case "ReplyMatchers":
+				plugin.ReplyMatchers = *(val.(*[]InputMatcher))
+			case "MessageMatchers":
+				plugin.MessageMatchers = *(val.(*[]InputMatcher))
+			case "CatchAll":
+				plugin.CatchAll = *(val.(*bool))
+			case "Config":
+				plugin.Config = value
+			}
 		}
 		Log(Info, "Loaded configuration for plugin", plug)
 		// Use bot default plugin channels if none defined, unless AllChannels requested. Admin can override.

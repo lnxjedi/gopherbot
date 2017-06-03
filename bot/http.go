@@ -284,9 +284,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 		plugAllowed := false
-		if calledPlugin.TrustAllPlugins {
-			plugAllowed = true
-		} else if len(calledPlugin.TrustedPlugins) > 0 {
+		if len(calledPlugin.TrustedPlugins) > 0 {
 			for _, allowed := range calledPlugin.TrustedPlugins {
 				if plugin.name == allowed {
 					plugAllowed = true
