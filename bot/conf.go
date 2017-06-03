@@ -38,11 +38,11 @@ type botconf struct {
 	ExternalPlugins    []externalPlugin // List of non-Go plugins to load
 	AdminUsers         []string         // List of users who can access administrative commands
 	Alias              string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
-	LocalPort          string           // Port number for listening on localhost, for CLI plugins
+	LocalPort          int              // Port number for listening on localhost, for CLI plugins
 	LogLevel           string           // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
-var config botconf
+var config *botconf
 
 // getConfigFile loads a config file first from installPath, then from localPath.
 // The goal is to support prod/dev environments where authentication info is set
@@ -90,11 +90,90 @@ func getConfigFile(filename string, required bool, c interface{}) error {
 // loadConfig loads the 'bot's json configuration files.
 func loadConfig() error {
 	var loglevel LogLevel
-	var newconfig botconf
+	newconfig := &botconf{}
+	configload := make(map[string]json.RawMessage)
 	pluginsOk := true
 
-	if err := getConfigFile("gopherbot.yaml", true, &newconfig); err != nil {
-		return fmt.Errorf("Loading newconfiguration file: %v", err)
+	if err := getConfigFile("gopherbot.yaml", true, &configload); err != nil {
+		return fmt.Errorf("Loading configuration file: %v", err)
+	}
+
+	for key, value := range configload {
+		var strval string
+		var sarrval []string
+		var epval []externalPlugin
+		var mailval botMailer
+		var boolval bool
+		var intval int
+		var val interface{}
+		skip := false
+		switch key {
+		case "AdminContact", "Email", "Protocol", "Brain", "DefaultElevator", "DefaultAuthorizer", "Name", "Alias", "LogLevel":
+			val = &strval
+		case "DefaultAllowDirect":
+			val = &boolval
+		case "LocalPort":
+			val = &intval
+		case "ExternalPlugins":
+			val = &epval
+		case "DefaultChannels", "IgnoreUsers", "JoinChannels", "AdminUsers":
+			val = &sarrval
+		case "MailConfig":
+			val = &mailval
+		case "ProtocolConfig", "BrainConfig":
+			skip = true
+		default:
+			err := fmt.Errorf("Invalid configuration key in gopherbot.yaml: %s", key)
+			Log(Error, err)
+			return err
+		}
+		if !skip {
+			if err := json.Unmarshal(value, val); err != nil {
+				err = fmt.Errorf("Unmarshalling bot config value \"%s\": %v", key, err)
+				Log(Error, err)
+				return err
+			}
+		}
+		switch key {
+		case "AdminContact":
+			newconfig.AdminContact = *(val.(*string))
+		case "Email":
+			newconfig.Email = *(val.(*string))
+		case "MailConfig":
+			newconfig.MailConfig = *(val.(*botMailer))
+		case "Protocol":
+			newconfig.Protocol = *(val.(*string))
+		case "ProtocolConfig":
+			newconfig.ProtocolConfig = value
+		case "Brain":
+			newconfig.Brain = *(val.(*string))
+		case "BrainConfig":
+			newconfig.BrainConfig = value
+		case "DefaultElevator":
+			newconfig.DefaultElevator = *(val.(*string))
+		case "DefaultAuthorizer":
+			newconfig.DefaultAuthorizer = *(val.(*string))
+		case "Name":
+			newconfig.Name = *(val.(*string))
+		case "DefaultAllowDirect":
+			newconfig.DefaultAllowDirect = *(val.(*bool))
+		case "DefaultChannels":
+			newconfig.DefaultChannels = *(val.(*[]string))
+		case "IgnoreUsers":
+			newconfig.IgnoreUsers = *(val.(*[]string))
+		case "JoinChannels":
+			newconfig.JoinChannels = *(val.(*[]string))
+		case "ExternalPlugins":
+			newconfig.ExternalPlugins = *(val.(*[]externalPlugin))
+		case "AdminUsers":
+			newconfig.AdminUsers = *(val.(*[]string))
+		case "Alias":
+			newconfig.Alias = *(val.(*string))
+		case "LocalPort":
+			newconfig.LocalPort = *(val.(*int))
+		case "LogLevel":
+			newconfig.LogLevel = *(val.(*string))
+		}
 	}
 
 	loglevel = logStrToLevel(newconfig.LogLevel)
@@ -118,8 +197,8 @@ func loadConfig() error {
 		}
 		robot.alias = alias
 	}
-	if newconfig.LocalPort != "" {
-		robot.port = "127.0.0.1:" + newconfig.LocalPort
+	if newconfig.LocalPort != 0 {
+		robot.port = fmt.Sprintf("127.0.0.1:%d", newconfig.LocalPort)
 		err := os.Setenv("GOPHER_HTTP_POST", "http://"+robot.port)
 		if err != nil {
 			Log(Error, fmt.Errorf("Error exporting GOPHER_HTTP_PORT: %q", err))
