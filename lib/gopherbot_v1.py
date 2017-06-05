@@ -153,14 +153,14 @@ class Robot:
         return Attribute(ret)
 
     def PromptForReply(self, regex_id, prompt):
-        return self.promptInternal(False, regex_id, prompt)
+        return self.PromptUserChannelForReply(regex_id, self.user, self.channel, prompt)
 
-    def PromptUserForReply(self, regex_id, prompt):
-        return self.promptInternal(True, regex_id, prompt)
+    def PromptUserForReply(self, regex_id, user, prompt):
+        return self.PromptUserChannelForReply(regex_id, user, "", prompt)
 
-    def promptInternal(self, direct, regex_id, prompt):
+    def PromptUserChannelForReply(self, regex_id, user, channel, prompt):
         for i in range(0, 3):
-            rep = self.Call("PromptInternal", { "Direct": direct, "RegexID": regex_id, "Prompt": prompt })
+            rep = self.Call("PromptUserChannelForReply", { "RegexID": regex_id, "User": user, "Channel": channel, Prompt": prompt })
             if rep["RetVal"] == self.RetryPrompt:
                 continue
             return Reply(rep)

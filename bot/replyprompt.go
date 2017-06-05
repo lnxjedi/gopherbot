@@ -132,7 +132,7 @@ func (r *Robot) PromptUserChannelForReply(regexID string, user string, channel s
 	var rep string
 	var ret RetVal
 	for i := 0; i < 3; i++ {
-		rep, ret = r.promptInternal(regexID, user, "", prompt)
+		rep, ret = r.promptInternal(regexID, user, channel, prompt)
 		if ret == RetryPrompt {
 			continue
 		}

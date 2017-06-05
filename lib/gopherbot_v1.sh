@@ -250,23 +250,35 @@ EOF
 	gbBotRet "$GB_RET"
 }
 
-promptInternal(){
+PromptUserChannelForReply(){
 	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="PromptInternal"
-	local DIRECT="$1"
-	local REGEX="$2"
-	local PROMPT="$3"
+	local REGEX="$1"
+	local PUSER="$2"
+	local PCHANNEL="$3"
+	local PROMPT="$4"
 	GB_FUNCARGS=$(cat <<EOF
 {
-	"Direct": $DIRECT,
 	"RegexID": "$REGEX",
+	"User": "$PUSER",
+	"Channel": "$PCHANNEL",
 	"Prompt": "$PROMPT"
 }
 EOF
 )
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
-	gbDecode "$GB_RET" Reply
-	gbBotRet "$GB_RET"
+	local RETVAL
+	for TRY in 0 1 2
+	do
+		GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+		gbBotRet "$GB_RET"
+		RETVAL=$?
+		if [ $RETVAL -eq $GBRET_RetryPrompt ]
+		then
+			continue
+		fi
+		gbDecode "$GB_RET" Reply
+		return $RETVAL
+	done
 }
 
 PromptForReply(){

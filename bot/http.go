@@ -392,7 +392,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			int(bot.SendUserMessage(um.User, decode(um.Message))),
 		})
 		return
-	case "PromptInternal":
+	case "PromptUserChannelForReply":
 		var rr replyrequest
 		if !getArgs(rw, &f.FuncArgs, &rr) {
 			return

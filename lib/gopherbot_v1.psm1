@@ -218,22 +218,18 @@ class Robot
     }
 
     [Reply] PromptForReply([String] $regexid, [String] $prompt) {
-        return $this.promptInternal($regexid, $this.User, $this.Channel, $prompt)
+        return $this.PromptUserChannelForReply($regexid, $this.User, $this.Channel, $prompt)
     }
 
     [Reply] PromptUserForReply([String] $regexid, [String] $user, [String] $prompt) {
-        return $this.promptInternal($regexid, $user, "", $prompt)
+        return $this.PromptUserChannelForReply($regexid, $user, "", $prompt)
     }
 
     [Reply] PromptUserChannelForReply([String] $regexid, [String] $user, [String] $channel, [String] $prompt) {
-        return $this.promptInternal($regexid, $user, $channel, $prompt)
-    }
-
-    [Reply] promptInternal([String] $regexid, [String] $user, [String] $channel, [String] $prompt) {
         $funcArgs = [PSCustomObject]@{ RegexID=$regexid; User=$user, Channel=$channel, Prompt=$prompt }
         $ret = $null
         For ($i=0; $i -le 3; $i++) {
-            $ret = $this.Call("PromptInternal", $funcArgs)
+            $ret = $this.Call("PromptUserChannelForReply", $funcArgs)
             if ([int]$ret.RetVal -eq "RetryPrompt" ){ continue }
             $rep = dec64($ret.Reply)
             return [Reply]::new($rep, $ret.Ret -As [BotRet])

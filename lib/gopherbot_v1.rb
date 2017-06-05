@@ -220,10 +220,18 @@ class BaseBot
 		end
 	end
 
-	def promptInternal(direct, regex_id, prompt)
-		args = { "Direct" => direct, "RegexID" => regex_id, "Prompt" => prompt }
+	def PromptForReply(regex_id, prompt)
+		return PromptUserChannelForReply(regex_id, @user, @channel, prompt)
+	end
+
+	def PromptUserForReply(regex_id, prompt)
+		return PromptUserChannelForReply(regex_id, user, "", prompt)
+	end
+
+	def PromptUserChannelForReply(regex_id, user, channel, prompt)
+		args = { "RegexID" => regex_id, "User" => user, "Channel" => channel, "Prompt" => prompt }
 		for i in 1..3
-			ret = callBotFunc("PromptInternal", args)
+			ret = callBotFunc("PromptUserChannelForReply", args)
 			next if ret["RetVal"] == RetryPrompt
 			return Reply.new(decode(ret["Reply"]), ret["RetVal"])
 		end
@@ -232,14 +240,6 @@ class BaseBot
 		else
 			return Reply.new(decode(ret["Reply"]), ret["RetVal"])
 		end
-	end
-
-	def PromptForReply(regex_id, prompt)
-		return promptInternal(false, regex_id, prompt)
-	end
-
-	def PromptUserForReply(regex_id, prompt)
-		return promptInternal(true, regex_id, prompt)
 	end
 
 	def decode(str)
