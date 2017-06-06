@@ -86,7 +86,7 @@ Brain: file
 BrainConfig:
   BrainDirectory: brain
 
-# Use Google Authenticator TOTP for elevated commands. To use:
+# Use Google Authenticator TOTP by default for elevated commands. To use:
 # - Ask the robot to 'send launch codes', and it will send you (one time)
 #   a string for configuring your Google Authencticator app, and store it's
 #   own copy in the robot's brain. You can verify it works with the
@@ -95,8 +95,5 @@ BrainConfig:
 #   add the elevated command(s) to the plugin's ElevatedCommands list, or to
 #   ElevateImmediateCommands for commands that require elevation every time
 #   regardless of timeout.
-# TimeoutType is one of "absolute" or "idle"
-#ElevateMethod: totp
-#ElevateConfig:
-#  TimeoutSeconds: 7200
-#  TimeoutType: idle
+# - Configure the elevator by overriding the config for the plugin
+DefaultElevator: totp
