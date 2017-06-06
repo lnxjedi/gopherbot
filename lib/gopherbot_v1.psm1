@@ -165,6 +165,24 @@ class Robot
         return $this.Call($fname, $funcArgs, "variable")
     }
 
+    [PlugRet] CallPlugin([String] $plugName, [String[]]$plugArgs) {
+        $funcArgs = [PSCustomObject]@{ PluginName=$plugName }
+        $ret = $this.Call("CallPlugin", $funcArgs)
+        if ([PlugRet]$ret.PlugRetVal -ne "Success") {
+            return $ret.PlugRetVal
+        }
+        if ( $ret.InterpreterPath -match "powershell" ) {
+            $plugPath = $ret.PluginPath -replace ' ','` '
+        } else {
+            $plugPath = $ret.PluginPath
+        }
+        $plugArgs = [Array]$plugPath + $plugArgs
+        $Env:GOPHER_PLUGIN_ID = $ret.PluginID
+        $proc = Start-Process -FilePath $ret.InterpreterPath -ArgumentList $plugArgs -NoNewWindow -PassThru -Wait
+        $Env:GOPHER_PLUGIN_ID = $this.PluginID
+        return $proc.ExitCode
+    }
+
     [PSCustomObject] CheckoutDatum([String] $key, [Bool] $rw) {
         $funcArgs = [PSCustomObject]@{ Key=$key; RW=$rw }
         $ret = $this.Call("CheckoutDatum", $funcArgs)
@@ -226,7 +244,7 @@ class Robot
     }
 
     [Reply] PromptUserChannelForReply([String] $regexid, [String] $user, [String] $channel, [String] $prompt) {
-        $funcArgs = [PSCustomObject]@{ RegexID=$regexid; User=$user, Channel=$channel, Prompt=$prompt }
+        $funcArgs = [PSCustomObject]@{ RegexID=$regexid; User=$user; Channel=$channel; Prompt=$prompt }
         $ret = $null
         For ($i=0; $i -le 3; $i++) {
             $ret = $this.Call("PromptUserChannelForReply", $funcArgs)

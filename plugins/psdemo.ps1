@@ -17,7 +17,8 @@ $bot = Get-Robot
 # end boilerplate
 
 $config = @'
-Channels: [ "random" ]
+TrustedPlugins:
+- powercall
 Help:
 - Keywords: [ "echo" ]
   Helptext: [ "(bot), echo <simple text> - trivially repeat a phrase" ]
