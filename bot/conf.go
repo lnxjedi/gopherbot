@@ -50,36 +50,56 @@ var config *botconf
 // is configured under <localPath>.
 
 // Required indicates whether to return an error if neither file is found.
-func getConfigFile(filename string, required bool, c interface{}) error {
+func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMessage) error {
 	var (
 		cf  []byte
 		err error
 	)
 
 	loaded := false
+	var loader map[string]json.RawMessage
+	var path string
 
-	cf, err = ioutil.ReadFile(robot.installPath + "/conf/" + filename)
+	loader = make(map[string]json.RawMessage)
+	path = robot.installPath + "/conf/" + filename
+	cf, err = ioutil.ReadFile(path)
 	if err == nil {
-		if err = yaml.Unmarshal(cf, c); err != nil {
+		if err = yaml.Unmarshal(cf, &loader); err != nil {
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
 			Log(Error, err)
 			return err
 		}
-		Log(Debug, fmt.Sprintf("Loaded installed conf/%s", filename))
-		loaded = true
+		if len(loader) == 0 {
+			Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
+		} else {
+			for key, value := range loader {
+				jsonMap[key] = value
+			}
+			Log(Debug, fmt.Sprintf("Loaded installed conf/%s", filename))
+			loaded = true
+		}
 	}
-	cf, err = ioutil.ReadFile(robot.localPath + "/conf/" + filename)
+	loader = make(map[string]json.RawMessage)
+	path = robot.localPath + "/conf/" + filename
+	cf, err = ioutil.ReadFile(path)
 	if err != nil {
 		err = fmt.Errorf("Reading local configuration for \"%s\": %v", filename, err)
 		Log(Debug, err)
 	} else {
-		if err = yaml.Unmarshal(cf, c); err != nil {
+		if err = yaml.Unmarshal(cf, &loader); err != nil {
 			err = fmt.Errorf("Unmarshalling local \"%s\": %v", filename, err)
 			Log(Error, err)
 			return err // If a badly-formatted config is loaded, we always return an error
 		}
-		Log(Debug, fmt.Sprintf("Loaded configured conf/%s", filename))
-		loaded = true
+		if len(loader) == 0 {
+			Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
+		} else {
+			for key, value := range loader {
+				jsonMap[key] = value
+			}
+			Log(Debug, fmt.Sprintf("Loaded configured conf/%s", filename))
+			loaded = true
+		}
 	}
 	if required && !loaded {
 		return err
@@ -94,7 +114,7 @@ func loadConfig() error {
 	configload := make(map[string]json.RawMessage)
 	pluginsOk := true
 
-	if err := getConfigFile("gopherbot.yaml", true, &configload); err != nil {
+	if err := getConfigFile("gopherbot.yaml", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
 	}
 

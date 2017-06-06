@@ -300,7 +300,7 @@ PlugLoop:
 			}
 		}
 		// getConfigFile overlays the default config with local config
-		if err := getConfigFile("plugins/"+plug+".yaml", false, &pcfgload); err != nil {
+		if err := getConfigFile("plugins/"+plug+".yaml", false, pcfgload); err != nil {
 			Log(Error, fmt.Errorf("Problem with local configuration for plugin \"%s\", skipping: %v", plug, err))
 			continue
 		}
