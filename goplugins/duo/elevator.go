@@ -301,7 +301,6 @@ func elevate(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVa
 }
 
 const defaultConfig = `
-TrustAllPlugins: true
 AllChannels: true
 ReplyMatchers:
 - Label: singleDigit
