@@ -17,13 +17,13 @@ TrustedPlugins:
 - rubydemo
 - pythondemo
 Help:
-- Keywords: [ "echo" ]
-  Helptext: [ "(bot), echo <simple text> - trivially repeat a phrase" ]
+- Keywords: [ "repeat" ]
+  Helptext: [ "(bot), repeat (me) - prompt for and trivially repeat a phrase" ]
 - Keywords: [ "recollect" ]
   Helptext: [ "(bot), recollect - call out to the rubydemo recall command" ]
 CommandMatchers:
-- Command: "echo"
-  Regex: '(?i:echo ([.;!\d\w-, ]+))'
+- Command: "repeat"
+  Regex: '(?i:repeat( me)?)'
 - Command: "recollect"
   Regex: '(?i:recollect)'
 EOF
@@ -34,8 +34,15 @@ case "$command" in
 	"configure")
 		configure
 		;;
-	"echo")
-		Reply "$*"
+	"repeat")
+		REPEAT=$(PromptForReply SimpleString "What do you want me to repeat?")
+		RETVAL=$?
+		if [ $RETVAL -ne $GBRET_Ok ]
+		then
+			Reply "Sorry, I had a problem getting your reply: $RETVAL"
+		else
+			Reply "$REPEAT"
+		fi
 		;;
 	"recollect")
 		CallPlugin rubydemo recall

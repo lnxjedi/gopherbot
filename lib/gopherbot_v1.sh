@@ -252,7 +252,7 @@ EOF
 
 PromptUserChannelForReply(){
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="PromptInternal"
+	local GB_FUNCNAME="PromptUserChannelForReply"
 	local REGEX="$1"
 	local PUSER="$2"
 	local PCHANNEL="$3"
@@ -279,14 +279,27 @@ EOF
 		gbDecode "$GB_RET" Reply
 		return $RETVAL
 	done
+	gbBotRet "$GB_RET"
+	RETVAL=$?
+	if [ $RETVAL -eq $GBRET_RetryPrompt ]
+	then
+		return $GBRET_Interrupted
+	else
+		return $RETVAL
+	fi
 }
 
 PromptForReply(){
-	promptInternal "false" "$@"
+	local REGEX=$1
+	shift
+	PromptUserChannelForReply "$REGEX" "$GOPHER_USER" "$GOPHER_CHANNEL" "$@"
 }
 
 PromptUserForReply(){
-	promptInternal "true" "$@"
+	local REGEX=$1
+	local PUSER=$2
+	shift 2
+	PromptUserChannelForReply "$REGEX" "$PUSER" "" "$@"
 }
 
 SendUserMessage(){
