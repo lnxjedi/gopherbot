@@ -26,7 +26,9 @@ import (
 	_ "github.com/uva-its/gopherbot/goplugins/meme"
 	_ "github.com/uva-its/gopherbot/goplugins/ping"
 
-	// Enable profiling
+	// Enable profiling. You can shrink the binary by removing this, but if the
+	// robot ever stops responding for any reason, it's handy for getting a
+	// dump of all goroutines.
 	_ "net/http/pprof"
 )
 
