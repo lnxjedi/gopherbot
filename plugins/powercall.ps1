@@ -35,7 +35,10 @@ switch ($command)
     exit
   }
   "power" {
-    $bot.Say("Ok, I'm summoning THE POWER !!!")
-    $bot.CallPlugin("psdemo", @("power"))
+    $bot.Say("Ok, I'll give the psdemo plugin a kick...")
+    $status = $bot.CallPlugin("psdemo", @("power"))
+    if ( $status -ne "Normal" ) {
+      $bot.Reply("Hrm, I don't think psdemo did it's job!")
+    }
   }
 }

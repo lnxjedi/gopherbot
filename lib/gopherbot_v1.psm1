@@ -169,7 +169,7 @@ class Robot
         $funcArgs = [PSCustomObject]@{ PluginName=$plugName }
         $ret = $this.Call("CallPlugin", $funcArgs)
         if ([PlugRet]$ret.PlugRetVal -ne "Success") {
-            return $ret.PlugRetVal
+            return [PlugRet]$ret.PlugRetVal
         }
         if ( $ret.InterpreterPath -match "powershell" ) {
             $plugPath = $ret.PluginPath -replace ' ','` '
@@ -180,7 +180,7 @@ class Robot
         $Env:GOPHER_PLUGIN_ID = $ret.PluginID
         $proc = Start-Process -FilePath $ret.InterpreterPath -ArgumentList $plugArgs -NoNewWindow -PassThru -Wait
         $Env:GOPHER_PLUGIN_ID = $this.PluginID
-        return $proc.ExitCode
+        return [PlugRet]$proc.ExitCode
     }
 
     [PSCustomObject] CheckoutDatum([String] $key, [Bool] $rw) {
