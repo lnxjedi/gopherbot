@@ -74,8 +74,10 @@ func init() {
 // register a regex for a reply expected to a multi-step command when the robot
 // needs more info. If the regular expression matches, it returns the matched
 // text and RetVal = Ok.
-// If the regular expression doesn't match, it returns an empty string
+// If there's an error getting the reply, it returns an empty string
 // with one of the following RetVals:
+//  UserNotFound
+//  ChannelNotFound
 //	Interrupted - the user issued a new command that ran or canceled with '-'
 //  UseDefaultValue - user supplied a single "=", meaning "use the default value"
 //	ReplyNotMatched - didn't successfully match for any reason
@@ -181,15 +183,20 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		replies.Unlock()
 	} else {
 		r.Log(Debug, fmt.Sprintf("Prompting for \"%s \" and creating reply waiters list and prompting for matcher: %q", prompt, matcher))
+		var ret RetVal
+		if channel == "" {
+			ret = robot.SendProtocolUserMessage(user, prompt, r.Format)
+		} else {
+			ret = robot.SendProtocolUserChannelMessage(user, channel, prompt, r.Format)
+		}
+		if ret != Ok {
+			replies.Unlock()
+			return "", ret
+		}
 		waiters = make([]replyWaiter, 1, 2)
 		waiters[0] = rep
 		replies.m[matcher] = waiters
 		replies.Unlock()
-		if channel == "" {
-			robot.SendProtocolUserMessage(user, prompt, r.Format)
-		} else {
-			robot.SendProtocolUserChannelMessage(user, channel, prompt, r.Format)
-		}
 	}
 	var replied reply
 	select {
