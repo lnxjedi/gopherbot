@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -119,7 +120,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 	}
 	if rw { // checked out read/write, generate a lock token
 		ltb := make([]byte, 8)
-		random.Read(ltb)
+		rand.Read(ltb)
 		token = fmt.Sprintf("%x", ltb)
 	} else {
 		token = ""

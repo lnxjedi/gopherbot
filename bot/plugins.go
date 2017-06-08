@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -477,7 +478,7 @@ PlugLoop:
 		} else {
 			// Generate a random id
 			p := make([]byte, 16)
-			random.Read(p)
+			rand.Read(p)
 			plugin.pluginID = fmt.Sprintf("%x", p)
 			plugNameIDmap.m[plugin.name] = plugin.pluginID
 		}
