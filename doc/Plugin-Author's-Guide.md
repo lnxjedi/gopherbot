@@ -1,3 +1,8 @@
+Gopherbot's functionality can be easily extended by writing plugins in one of several different languages. A single plugin can provide:
+ * One or more new commands the robot will understand
+ * Elevation logic for providing extra assurance of user identity
+ * Authorization logic for determining a user's rights to issue various commands
+
 This article deals mainly with writing plugins in one of the scripting languages supported by Gopherbot,
 the most popular means for writing new command plugins. For writing native compiled-in plugins in Go, see
 `gopherbot/main.go` and the sample plugins in `goplugins/`. API documentation for Robot methods is available
@@ -5,7 +10,7 @@ at:
 
 https://godoc.org/github.com/uva-its/gopherbot/bot#Robot
 
-Note that the script plugin API is implemented on top of the native Go API, so that document may also be of use for scripting plugin authors.
+Note that the script plugin API is implemented on top of the native Go API, so that document may also be of use for scripting plugin authors. The file `bot/http.go`, and the scripting libraries in `lib/` will illuminate the mapping from the script APIs to the native Go API.
 
 Table of Contents
 =================
@@ -41,7 +46,7 @@ There are (currently) three different kinds of external plugin:
  * Authorization Plugins - these plugins encapsulate the logic for authorizing specific users to use specific commands, and are called by the robot during authorization processing
  * Elevation Plugins - these plugins perform some variety of multi-factor authentication for higher assurance of user identity, and are called by the robot during elevation processing
 
-In addition, external plugins can call each other using the CallPlugin(plugin, command, args...) method, subject to the target plugin's `TrustedPlugins` and `TrustAllPlugins` settings.
+In addition, external plugins can call each other using the CallPlugin(plugin, command, args...) method, subject to the target plugin's `TrustedPlugins` setting.
 
 ## Command Plugins
 

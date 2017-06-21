@@ -3,12 +3,13 @@ The `Get*Attribute(...)` family of methods can be used to get basic chat service
 
 ## User Attributes
 The available attributes for a user / sender:
- * name(handle)
+ * name (handle)
  * fullName
  * email
  * firstName
  * lastName
  * phone
+ * internalID (protocol internal representatation)
 
 ## Bot Attributes
 The available attributes for the bot:

@@ -19,11 +19,11 @@ Table of Contents
   * [Plugin Configuration](#plugin-configuration)
     * [Plugin Configuration Directives](#plugin-configuration-directives)
       * [Disabled](#disabled)
-      * [AllowDirect, DirectOnly, Channels and AllChannels](#allowdirect-directonly-channels-and-allchannels)
+      * [AllowDirect, DenyDirect, DirectOnly, Channels and AllChannels](#allowdirect-denydirect-directonly-channels-and-allchannels)
       * [CatchAll](#catchall)
       * [Users, RequireAdmin](#users-requireadmin)
       * [AuthorizedCommands, AuthorizeAllCommands, Authorizer and AuthRequire](#authorizedcommands-authorizeallcommands-authorizer-and-authrequire)
-      * [TrustedPlugins and TrustAllPlugins](#trustedplugins-and-trustallplugins)
+      * [TrustedPlugins](#trustedplugins)
       * [Elevator, ElevatedCommands and ElevateImmediateCommands](#elevator-elevatedcommands-and-elevateimmediatecommands)
       * [Help](#help)
       * [CommandMatchers, ReplyMatchers, and MessageMatchers](#commandmatchers-replymatchers-and-messagematchers)
@@ -156,7 +156,7 @@ Useful for disabling compiled-in Go plugins.
 
 ```yaml
 AllowDirect: false  # default
-DenyDirect: true    # default false
+DenyDirect: true    # default false, used when global DefaultAllowDirect = true
 DirectOnly: true    # default false
 ```
 ```yaml
@@ -198,15 +198,14 @@ AuthorizedCommands:
 ```
 Authorization support lets a plugin delegate command authorization determinations to another plugin, which may be shared among a family of related plugins. Note that if authorization fails, the user is notified and the target plugin is never called. The optional `AuthRequire` allows the target plugin to specify a group or role name the user should be authorized against. See the [Plugin Author's Guide](Plugin-Author's-Guide.md) for a full description of Authorizer plugins.
 
-### TrustedPlugins and TrustAllPlugins
+### TrustedPlugins
 
 ```yaml
 TrustedPlugins:
-- ec2-manager
-# - or -
-TrustAllPlugins: true  # default: false
+- server-manager
+- dns-manager
 ```
-`TrustedPlugins` and `TrustAllPlugins` determine which plugins are allowed to use the `CallPlugin(...)` method to call this plugin. When called via `CallPlugin`, there is no authorization or elevation check performed for the target; rather, the target _trusts_ that the calling plugin configured appropriate authorization and/or elevation.
+`TrustedPlugins` determines which plugins are allowed to use the `CallPlugin(...)` method to call this plugin. When called via `CallPlugin`, there is no authorization or elevation check performed for the target; rather, the target _trusts_ that the calling plugin configured appropriate authorization and/or elevation.
 
 ### Elevator, ElevatedCommands and ElevateImmediateCommands
 
