@@ -126,7 +126,7 @@ func (r *Robot) GetBotAttribute(a string) *AttrRet {
 // - The string Attribute of a user, or "" if unknown/error
 // - A RetVal which is one of Ok, UserNotFound, AttributeNotFound
 // Current attributes:
-// name(handle), fullName, email, firstName, lastName, phone
+// name(handle), fullName, email, firstName, lastName, phone, internalID
 // TODO: supplement data with gopherbot.json user's table
 func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
 	attr, ret := robot.GetProtocolUserAttribute(u, a)
@@ -137,7 +137,7 @@ func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
 // - The string Attribute of the sender, or "" if unknown/error
 // - A RetVal which is one of Ok, UserNotFound, AttributeNotFound
 // Current attributes:
-// name(handle), fullName, email, firstName, lastName, phone
+// name(handle), fullName, email, firstName, lastName, phone, internalID
 // TODO: supplement data with gopherbot.json user's table
 func (r *Robot) GetSenderAttribute(a string) *AttrRet {
 	attr, ret := robot.GetProtocolUserAttribute(r.User, a)
