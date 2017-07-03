@@ -82,23 +82,24 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		plugins := currentPlugins.p
 		currentPlugins.RUnlock()
 		for _, plugin := range plugins {
+			if !pluginAvailable(bot.User, bot.Channel, plugin) {
+				continue
+			}
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
 			if !hasTerm { // if you ask for help without a term, you just get help for whatever commands are available to you
-				if pluginAvailable(bot.User, bot.Channel, plugin) {
-					for _, phelp := range plugin.Help {
-						for _, helptext := range phelp.Helptext {
-							if len(phelp.Keywords) > 0 && phelp.Keywords[0] == "*" {
-								// * signifies help that should be prepended
-								newSize := tooLong
-								if len(helpLines) > newSize {
-									newSize += len(helpLines)
-								}
-								prepend := make([]string, 1, newSize)
-								prepend[0] = strings.Replace(helptext, botSub, robot.name, -1)
-								helpLines = append(prepend, helpLines...)
-							} else {
-								helpLines = append(helpLines, strings.Replace(helptext, botSub, robot.name, -1))
+				for _, phelp := range plugin.Help {
+					for _, helptext := range phelp.Helptext {
+						if len(phelp.Keywords) > 0 && phelp.Keywords[0] == "*" {
+							// * signifies help that should be prepended
+							newSize := tooLong
+							if len(helpLines) > newSize {
+								newSize += len(helpLines)
 							}
+							prepend := make([]string, 1, newSize)
+							prepend[0] = strings.Replace(helptext, botSub, robot.name, -1)
+							helpLines = append(prepend, helpLines...)
+						} else {
+							helpLines = append(helpLines, strings.Replace(helptext, botSub, robot.name, -1))
 						}
 					}
 				}
