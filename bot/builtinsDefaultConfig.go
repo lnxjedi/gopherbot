@@ -46,9 +46,9 @@ CommandMatchers:
 - Command: "list"
   Regex: '(?i:list plugins?)'
 - Command: "plugdefault"
-  Regex: '(?i:dump plugin default ([\d\w]+))'
+  Regex: '(?i:dump plugin default ([\d\w-.]+))'
 - Command: "plugin"
-  Regex: '(?i:dump plugin ([\d\w]+))'
+  Regex: '(?i:dump plugin ([\d\w-.]+))'
 - Command: "robot"
   Regex: "dump robot"
 `
