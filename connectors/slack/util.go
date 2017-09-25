@@ -150,25 +150,34 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []stri
 // processMessage examines incoming messages, removes extra slack cruft, and
 // routes them to the appropriate bot method.
 func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
-	s.Log(bot.Trace, fmt.Sprintf("Message received: %v", msg))
+	s.Log(bot.Trace, fmt.Sprintf("Message received: %v", msg.Msg))
 
 	reAddedLinks := regexp.MustCompile(`<https?://[\w-.]+\|([\w-.]+)>`) // match a slack-inserted link
 	reLinks := regexp.MustCompile(`<(https?://[.\w-:/?=~]+)>`)          // match a link where slack added <>
 	reUser := regexp.MustCompile(`<@U[A-Z0-9]{8}>`)                     // match a @user mention
 
-	// Remove auto-links - chatbots don't want those
-	text := msg.Msg.Text
+	// Channel is always part of the root message; if subtype is
+	// message_changed, text and user are part of the submessage
+	chanID := msg.Channel
+	var message slack.Msg
+	if msg.Msg.SubType == "message_changed" {
+		message = *msg.SubMessage
+		s.Log(bot.Trace, fmt.Sprintf("SubMessage received: %v", message))
+	} else {
+		message = msg.Msg
+	}
+	text := message.Text
 	// some bot messages don't have any text, so check for a fallback
 	if text == "" && len(msg.Attachments) > 0 {
 		text = msg.Attachments[0].Fallback
 	}
+	// Remove auto-links - chatbots don't want those
 	text = reAddedLinks.ReplaceAllString(text, "$1")
 	text = reLinks.ReplaceAllString(text, "$1")
-	chanID := msg.Msg.Channel
-	userID := msg.Msg.User
+	userID := message.User
 	if userID == "" {
-		if msg.Msg.BotID != "" {
-			userID = msg.Msg.BotID
+		if message.BotID != "" {
+			userID = message.BotID
 		}
 	}
 
