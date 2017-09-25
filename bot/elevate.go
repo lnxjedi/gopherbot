@@ -78,11 +78,6 @@ func (bot *Robot) checkElevation(plugins []*Plugin, plugin *Plugin, command stri
 		}
 	}
 	if !elevationRequired {
-		if plugin.Elevator != "" {
-			Log(Error, fmt.Sprintf("Plugin \"%s\" configured an elevator, but has no commands requiring elevation", plugin.name))
-			bot.Say(configElevError)
-			return ConfigurationError
-		}
 		return Success
 	}
 	retval = bot.elevate(plugins, plugin, immediate)
