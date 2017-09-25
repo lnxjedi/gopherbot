@@ -1,14 +1,15 @@
 package slack
 
 import (
+	"context"
 	"errors"
 	"net/url"
 	"strconv"
 )
 
 const (
-	DEFAULT_LOGINS_COUNT   = 100
-	DEFAULT_LOGINS_PAGE    = 1
+	DEFAULT_LOGINS_COUNT = 100
+	DEFAULT_LOGINS_PAGE  = 1
 )
 
 type TeamResponse struct {
@@ -26,10 +27,9 @@ type TeamInfo struct {
 
 type LoginResponse struct {
 	Logins []Login `json:"logins"`
-	Paging         `json:"paging"`
+	Paging `json:"paging"`
 	SlackResponse
 }
-
 
 type Login struct {
 	UserID    string `json:"user_id"`
@@ -44,10 +44,19 @@ type Login struct {
 	Region    string `json:"region"`
 }
 
+type BillableInfoResponse struct {
+	BillableInfo map[string]BillingActive `json:"billable_info"`
+	SlackResponse
+}
+
+type BillingActive struct {
+	BillingActive bool `json:"billing_active"`
+}
+
 // AccessLogParameters contains all the parameters necessary (including the optional ones) for a GetAccessLogs() request
 type AccessLogParameters struct {
-	Count         int
-	Page          int
+	Count int
+	Page  int
 }
 
 // NewAccessLogParameters provides an instance of AccessLogParameters with all the sane default values set
@@ -58,10 +67,9 @@ func NewAccessLogParameters() AccessLogParameters {
 	}
 }
 
-
-func teamRequest(path string, values url.Values, debug bool) (*TeamResponse, error) {
+func teamRequest(ctx context.Context, path string, values url.Values, debug bool) (*TeamResponse, error) {
 	response := &TeamResponse{}
-	err := post(path, values, response, debug)
+	err := post(ctx, path, values, response, debug)
 	if err != nil {
 		return nil, err
 	}
@@ -73,9 +81,23 @@ func teamRequest(path string, values url.Values, debug bool) (*TeamResponse, err
 	return response, nil
 }
 
-func accessLogsRequest(path string, values url.Values, debug bool) (*LoginResponse, error) {
+func billableInfoRequest(ctx context.Context, path string, values url.Values, debug bool) (map[string]BillingActive, error) {
+	response := &BillableInfoResponse{}
+	err := post(ctx, path, values, response, debug)
+	if err != nil {
+		return nil, err
+	}
+
+	if !response.Ok {
+		return nil, errors.New(response.Error)
+	}
+
+	return response.BillableInfo, nil
+}
+
+func accessLogsRequest(ctx context.Context, path string, values url.Values, debug bool) (*LoginResponse, error) {
 	response := &LoginResponse{}
-	err := post(path, values, response, debug)
+	err := post(ctx, path, values, response, debug)
 	if err != nil {
 		return nil, err
 	}
@@ -84,15 +106,19 @@ func accessLogsRequest(path string, values url.Values, debug bool) (*LoginRespon
 	}
 	return response, nil
 }
-
 
 // GetTeamInfo gets the Team Information of the user
 func (api *Client) GetTeamInfo() (*TeamInfo, error) {
+	return api.GetTeamInfoContext(context.Background())
+}
+
+// GetTeamInfoContext gets the Team Information of the user with a custom context
+func (api *Client) GetTeamInfoContext(ctx context.Context) (*TeamInfo, error) {
 	values := url.Values{
 		"token": {api.config.token},
 	}
 
-	response, err := teamRequest("team.info", values, api.debug)
+	response, err := teamRequest(ctx, "team.info", values, api.debug)
 	if err != nil {
 		return nil, err
 	}
@@ -101,6 +127,11 @@ func (api *Client) GetTeamInfo() (*TeamInfo, error) {
 
 // GetAccessLogs retrieves a page of logins according to the parameters given
 func (api *Client) GetAccessLogs(params AccessLogParameters) ([]Login, *Paging, error) {
+	return api.GetAccessLogsContext(context.Background(), params)
+}
+
+// GetAccessLogsContext retrieves a page of logins according to the parameters given with a custom context
+func (api *Client) GetAccessLogsContext(ctx context.Context, params AccessLogParameters) ([]Login, *Paging, error) {
 	values := url.Values{
 		"token": {api.config.token},
 	}
@@ -110,10 +141,36 @@ func (api *Client) GetAccessLogs(params AccessLogParameters) ([]Login, *Paging, 
 	if params.Page != DEFAULT_LOGINS_PAGE {
 		values.Add("page", strconv.Itoa(params.Page))
 	}
-	response, err := accessLogsRequest("team.accessLogs", values, api.debug)
+	response, err := accessLogsRequest(ctx, "team.accessLogs", values, api.debug)
 	if err != nil {
 		return nil, nil, err
 	}
 	return response.Logins, &response.Paging, nil
 }
 
+func (api *Client) GetBillableInfo(user string) (map[string]BillingActive, error) {
+	return api.GetBillableInfoContext(context.Background(), user)
+}
+
+func (api *Client) GetBillableInfoContext(ctx context.Context, user string) (map[string]BillingActive, error) {
+	values := url.Values{
+		"token": {api.config.token},
+		"user":  {user},
+	}
+
+	return billableInfoRequest(ctx, "team.billableInfo", values, api.debug)
+}
+
+// GetBillableInfoForTeam returns the billing_active status of all users on the team.
+func (api *Client) GetBillableInfoForTeam() (map[string]BillingActive, error) {
+	return api.GetBillableInfoForTeamContext(context.Background())
+}
+
+// GetBillableInfoForTeamContext returns the billing_active status of all users on the team with a custom context
+func (api *Client) GetBillableInfoForTeamContext(ctx context.Context) (map[string]BillingActive, error) {
+	values := url.Values{
+		"token": {api.config.token},
+	}
+
+	return billableInfoRequest(ctx, "team.billableInfo", values, api.debug)
+}
