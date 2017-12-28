@@ -18,12 +18,9 @@
 # [[override]]
 #  name = "github.com/x/y"
 #  version = "2.4.0"
-
 [[constraint]]
   branch = "master"
   name = "github.com/nlopes/slack"
-  source = "github.com/pasali/slack"
-
 
 [[constraint]]
   branch = "master"

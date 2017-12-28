@@ -82,8 +82,7 @@
   branch = "master"
   name = "github.com/nlopes/slack"
   packages = ["."]
-  revision = "13318540ee816fd71608a5b3252f3fd68bc8283b"
-  source = "github.com/pasali/slack"
+  revision = "ccf0351050c69b08f9c48f3e876f4cd5564463e8"
 
 [[projects]]
   name = "golang.org/x/net"
@@ -123,6 +122,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b7424e109d87b615dd6ee65a067a15433db900772c3a80c3a3e43c72e493a8a1"
+  inputs-digest = "dad9b70cad1baf915b9fbfa055a94f551a21bc720fc15a699ffae3a23b0be450"
   solver-name = "gps-cdcl"
   solver-version = 1
