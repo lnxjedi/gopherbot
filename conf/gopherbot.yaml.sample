@@ -1,9 +1,10 @@
-# This is the default configuration for Gopherbot. For a "standard" install:
-# - This file should be modified in the install directory to include a Slack
-#   token, email credentials, and any other credential or other information
-#   specific to this instance of the robot. This would normally be done by
-#   a configuration managment tool such as Ansible or Puppet, using information
-#   specific to the server instance (e.g. dev / prod servers).
+# This is a sample configuration file for Gopherbot. For a "standard" install:
+# - This file should be copied to gopherbot.yaml in the install directory, and
+#   modified to include a Slack token, email credentials, and any other
+#   credential or other information specific to this instance of the robot.
+#   This would normally be done by a configuration managment tool such as
+#   Ansible or Puppet, using information specific to the server instance (e.g.
+#   dev / prod servers).
 # - A copy of this file should be placed in
 #   <local config dir>/conf/gopherbot.yaml, specifying plugin names and paths,
 #   and any configuration such as AdminUsers, AdminContact, etc. that is
@@ -12,7 +13,7 @@
 #   be stored in a git repository.
 #
 # Note that the above are just guidelines and not hard-and-fast rules, but
-# should give you and idea of how Gopherbot was designed, and why.
+# should give you an idea of how Gopherbot was designed, and why.
 
 # The administrator of this robot, can be retrieved in plugins with
 # GetBotAttribute("admin")

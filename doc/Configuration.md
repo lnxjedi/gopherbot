@@ -1,5 +1,4 @@
-Gopherbot is designed to be highly and flexibly configured, putting a lot of functionality in the hands of
-a system administrator who may be deploying plugins written by a third party or someone else in the organization.
+Gopherbot is designed to be highly and flexibly configured, putting a lot of functionality in the hands of a system administrator who may be deploying plugins written by a third party or someone else in the organization.
 
 Table of Contents
 =================
@@ -31,8 +30,7 @@ Table of Contents
 
 # Configuration Directories and Configuration File Precedence
 
-Gopherbot's configuration file loading is designed around installation where credentials and other per-robot variables are configured in the **install directory**, and plugins, additional libraries, and common configuration reside in a **local config directory**, which is likely a git repository. A standard Linux install with a configuration management tool would unzip the archive in `/opt/gopherbot` and set e.g. the Slack Token in `/opt/gopherbot/conf/gopherbot.yaml`. Local configuration might be in `/usr/local/etc/gopherbot`, and external
-plugins to load would be defined in `/usr/local/etc/gopherbot/conf/gopherbot.yaml`. On Windows, the install directory would normally be `C:\Program Files\Gopherbot`, and the configuration directory would be in `C:\Windows\gopherbot`.
+Gopherbot's configuration file loading is designed around installation where credentials and other per-robot variables are configured in the **install directory**, and plugins, additional libraries, and common configuration reside in a **local config directory**, which is likely a git repository. A standard Linux install with a configuration management tool would unzip the archive in `/opt/gopherbot` and set e.g. the Slack Token in `/opt/gopherbot/conf/gopherbot.yaml`. Local configuration might be in `/usr/local/etc/gopherbot`, and external plugins to load would be defined in `/usr/local/etc/gopherbot/conf/gopherbot.yaml`. On Windows, the install directory would normally be `C:\Program Files\Gopherbot`, and the configuration directory would be in `C:\Windows\gopherbot`.
 
 # Primary Configuration File - gopherbot.yaml
 
@@ -137,10 +135,9 @@ port to use is configured with `LocalPort`. `LogLevel` specifies the initial log
 
 Gopherbot plugins are highly configurable with respect to visibility of plugins for various users and channels. In addition to providing a level of security, this can be very useful in large environments with many robots running many plugins, if only to keep the 'help' output to a minimum. The administrator can also configure Authorization and Elevation to further restrict sensitive commands. Additionally, help text and command routing is configured in yaml, allowing the administrator to e.g. provide synonyms for existing commands.
 
-Plugins are configured by reading yaml from **three** locations, with top-level items from each successive read
-overwriting the previous:
-1. The default configuration is obtained from the plugin itself during plugin load, by calling the plugin with `configure` as the first argument
-2. Configuration is then loaded from `<install dir>/conf/plugins/<pluginname>.yaml`; this is where you might configure e.g. credentials required for a given plugin
+Plugins are configured by reading yaml from **three** locations, with top-level items from each successive read overriding the previous:
+1. The default configuration is obtained from the plugin itself during plugin load, by calling the plugin with `configure` as the first argument; the robot looks for the plugin in the **local config directory** first, then the **install directory**, getting the default configuration from the first found only.
+2. Configuration is then loaded from `<install dir>/conf/plugins/<pluginname>.yaml`; this is where you might configure e.g. credentials required for a given plugin.
 3. Finally configuration is loaded from `<config dir>/conf/plugins/<pluginname>.yaml`; this is where you would likely configure a plugin's channels and security-related configuration (allowed users, authorization, etc.)
 
 ## Plugin Configuration Directives

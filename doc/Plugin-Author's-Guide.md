@@ -3,10 +3,7 @@ Gopherbot's functionality can be easily extended by writing plugins in one of se
  * Elevation logic for providing extra assurance of user identity
  * Authorization logic for determining a user's rights to issue various commands
 
-This article deals mainly with writing plugins in one of the scripting languages supported by Gopherbot,
-the most popular means for writing new command plugins. For writing native compiled-in plugins in Go, see
-`gopherbot/main.go` and the sample plugins in `goplugins/`. API documentation for Robot methods is available
-at:
+This article deals mainly with writing plugins in one of the scripting languages supported by Gopherbot, the most popular means for writing new command plugins. For writing native compiled-in plugins in Go, see `gopherbot/main.go` and the sample plugins in `goplugins/`. API documentation for Robot methods is available at:
 
 https://godoc.org/github.com/uva-its/gopherbot/bot#Robot
 
@@ -15,6 +12,7 @@ Note that the script plugin API is implemented on top of the native Go API, so t
 Table of Contents
 =================
 
+  * [Plugin Loading and Precedence](#plugin-loading-and-precedence)
   * [Default Configuration](#default-configuration)
   * [Calling Convention](#calling-convention)
   * [Plugin Types and Calling Events](#plugin-types-and-calling-events)
@@ -30,6 +28,9 @@ Table of Contents
       * [Python Boilerplate](#python-boilerplate)
       * [Ruby Boilerplate](#ruby-boilerplate)
   * [The Plugin API](#the-plugin-api)
+
+# Plugin Loading and Precedence
+Gopherbot ships with a number of external script plugins in the `install` directory. These can be overridden by placing a plugin with the same filename in the local configuration directory.
 
 # Default Configuration
 Plugin configuration is fully documented in the [configuration](Configuration.md) article; you should be familiar with that document before beginning to write your own plugins.
