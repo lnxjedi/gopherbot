@@ -6,7 +6,7 @@ These instructions can be used to quickly set up a development environment for G
 1. Create `$HOME/.gopherbot` for configuration files
 2. Copy the `brain/` and `conf/` directories from `$HOME/gopherbot` (install directory) to `$HOME/.gopherbot` (config directory), and rename `conf/gopherbot.yaml.sample` to `conf/gopherbot.yaml`
 1. Obtain a 'bot token from https://\<your-team\>.slack.com/services/new/bot
-2. Edit `$HOME/.gopherbot/conf/gopherbot.yaml`, uncommenting and updating at least the AdminUsers, DefaultChannels and Protocol configuration
+2. Edit `$HOME/gopherbot/conf/gopherbot.yaml`, uncommenting and updating at least the AdminUsers, DefaultChannels and Protocol configuration
 3. Run `$HOME/gopherbot/gopherbot`
 4. Once the 'bot is connected, invite your 'bot to `#general`, then type `help` and the 'bot will introduce itself
 
