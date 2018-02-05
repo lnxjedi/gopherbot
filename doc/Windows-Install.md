@@ -9,10 +9,11 @@ If you have a Go environment set up on your machine, you can can `go get github.
 
 # Production Installation of Gopherbot as a Windows Service
 
-1. Create a `C:\Program Files\Gopherbot` install directory, and unzip the gopherbot-*.zip archive there
-2. Create a `C:\Windows\gopherbot` config directory, copy the `conf` and `brain` directories there from the install directory, and rename `conf/gopherbot.yaml.sample` to `conf/gopherbot.yaml`
+1. Create a `C:\Program Files\Gopherbot` install directory, and unzip the gopherbot-\*.zip archive there
+2. Create a `C:\Windows\gopherbot` config directory, copy the `conf` and `brain` directories there from the install directory
+3. Rename `C:\Program Files\Gopherbot\conf\gopherbot.yaml.sample` to `gopherbot.yaml`
 3. If you haven't already, get a Slack token for your robot from https://\<your-team\>.slack.com/services/new/bot
-5. Open an editor as local administrator and edit `C:\Windows\gopherbot\conf\gopherbot.yaml`, uncommenting and/or modifying:
+5. Open an editor as local administrator and edit `C:\Program Files\Gopherbot\conf\gopherbot.yaml`, uncommenting and/or modifying:
   * `AdminContact`
   * `DefaultChannels`
   * `AdminUsers`
