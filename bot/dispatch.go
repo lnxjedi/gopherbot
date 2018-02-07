@@ -101,12 +101,13 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 	var matchedMatcher InputMatcher
 	var cmdArgs []string
 	for _, plugin := range plugins {
-		Log(Trace, fmt.Sprintf("Checking availability of plugin \"%s\" in channel \"%s\" for user \"%s\", active in %d channels (allchannels: %t)", plugin.name, bot.User, bot.Channel, len(plugin.Channels), plugin.AllChannels))
+		Log(Trace, fmt.Sprintf("Checking availability of plugin \"%s\" in channel \"%s\" for user \"%s\", active in %d channels (allchannels: %t)", plugin.name, bot.Channel, bot.User, len(plugin.Channels), plugin.AllChannels))
 		ok := pluginAvailable(bot.User, bot.Channel, plugin)
 		if !ok {
 			Log(Trace, fmt.Sprintf("Plugin \"%s\" not available for user \"%s\" in channel \"%s\", doesn't meet criteria", plugin.name, bot.User, bot.Channel))
 			continue
 		}
+		Log(Trace, fmt.Sprintf("Plugin \"%s\" is active, will check for matches", plugin.name))
 		var matchers []InputMatcher
 		if checkCommands {
 			matchers = plugin.CommandMatchers
