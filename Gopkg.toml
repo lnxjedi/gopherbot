@@ -21,6 +21,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/nlopes/slack"
+  source = "github.com/uva-its/slack"
 
 [[constraint]]
   branch = "master"

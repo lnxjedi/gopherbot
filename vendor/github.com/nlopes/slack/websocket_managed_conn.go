@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"reflect"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"golang.org/x/net/websocket"
 )
 
 // ManageConnection can be called on a Slack RTM instance returned by the
@@ -143,9 +142,7 @@ func (rtm *RTM) startRTMAndDial(useRTMStart bool) (*Info, *websocket.Conn, error
 
 	rtm.Debugf("Dialing to websocket on url %s", url)
 	// Only use HTTPS for connections to prevent MITM attacks on the connection.
-	upgradeHeader := http.Header{}
-	upgradeHeader.Add("Origin", "https://api.slack.com")
-	conn, _, err := websocket.DefaultDialer.Dial(url, upgradeHeader)
+	conn, err := websocketProxyDial(url, "https://api.slack.com")
 	if err != nil {
 		rtm.Debugf("Failed to dial to the websocket: %s", err)
 		return nil, nil, err
@@ -230,7 +227,7 @@ func (rtm *RTM) sendWithDeadline(msg interface{}) error {
 	if err := rtm.conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
 		return err
 	}
-	if err := rtm.conn.WriteJSON(msg); err != nil {
+	if err := websocket.JSON.Send(rtm.conn, msg); err != nil {
 		return err
 	}
 	// remove write deadline
@@ -285,7 +282,7 @@ func (rtm *RTM) ping() error {
 // This will block until a frame is available from the websocket.
 func (rtm *RTM) receiveIncomingEvent() {
 	event := json.RawMessage{}
-	err := rtm.conn.ReadJSON(&event)
+	err := websocket.JSON.Receive(rtm.conn, &event)
 	if err == io.EOF {
 		// EOF's don't seem to signify a failed connection so instead we ignore
 		// them here and detect a failed connection upon attempting to send a

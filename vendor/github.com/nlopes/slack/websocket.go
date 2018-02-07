@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"golang.org/x/net/websocket"
 )
 
 const (
