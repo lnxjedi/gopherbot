@@ -185,11 +185,11 @@ func Start() {
 	// overrides defaults.
 	os.Setenv("GOPHER_INSTALLDIR", installdir)
 	os.Setenv("GOPHER_CONFIGDIR", localdir)
+	botLogger.Printf("Starting up with local config dir: %s, and install dir: %s\n", localdir, installdir)
 	err = newBot(localdir, installdir, botLogger)
 	if err != nil {
 		botLogger.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
 	}
-	botLogger.Printf("Starting up with localdir: %s, and installdir: %s\n", localdir, installdir)
 
 	connectionStarter, ok := connectors[robot.protocol]
 	if !ok {
