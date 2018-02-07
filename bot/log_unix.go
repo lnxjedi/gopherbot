@@ -15,7 +15,7 @@ func Log(l LogLevel, v ...interface{}) {
 	currlevel := logLevel
 	logLock.Unlock()
 
-	if l >= currlevel {
+	if l >= currlevel || l == Audit {
 		prefix := logLevelToStr(l) + ":"
 		p := []interface{}{prefix}
 		var msg string

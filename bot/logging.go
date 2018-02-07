@@ -13,6 +13,7 @@ const (
 	Trace LogLevel = iota
 	Debug
 	Info
+	Audit // For plugins to emit auditable events
 	Warn
 	Error
 	Fatal
@@ -41,6 +42,8 @@ func logStrToLevel(l string) LogLevel {
 		return Debug
 	case "info":
 		return Info
+	case "audit":
+		return Audit
 	case "warn":
 		return Warn
 	default:
@@ -56,6 +59,8 @@ func logLevelToStr(l LogLevel) string {
 		return "Debug"
 	case Info:
 		return "Info"
+	case Audit:
+		return "Audit"
 	case Warn:
 		return "Warning"
 	case Error:
