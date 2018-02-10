@@ -6,6 +6,7 @@ env:
 - TRAVIS_TAG: v1.0.0-snapshot
 deploy:
   provider: releases
+  prerelease: true
   api_key: $GH_OAUTH_TOKEN
   file_glob: true
   file: gopherbot-*.zip

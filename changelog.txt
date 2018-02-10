@@ -1,3 +1,7 @@
+=== 1.0.0-snapshot ===
+2018-02-10 David Parsley <parsley@linuxjedi.org>
+  * Started using Travis CI, deploying snapshot releases
+
 2017-05-23 David Parsley <parsley@linuxjedi.org>
   * [Breaking] Fix WaitForReply - replace with Prompt(User)ForReply
 
