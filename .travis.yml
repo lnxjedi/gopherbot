@@ -1,0 +1,13 @@
+language: go
+go:
+- 1.9.x
+script: mkdist.sh
+deploy:
+  provider: releases
+  api_key: $GH_OAUTH_TOKEN
+  file_glob: true
+  file: gopherbot-*.zip
+  skip_cleanup: true
+  overwrite: true
+  on:
+    tags: true

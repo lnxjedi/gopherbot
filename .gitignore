@@ -1,8 +1,7 @@
-.*
-!.gitignore
 gopherbot
 gopherbot.exe
 gopherbot*zip
 bot/commit.go
 lib/gopherbot_*.pyc
 conf/gopherbot.yaml
+.c9
