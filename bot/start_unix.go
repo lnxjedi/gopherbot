@@ -97,6 +97,7 @@ func Start() {
 	}
 	home := os.Getenv("HOME")
 	if len(home) > 0 {
+		instSearchPath = append(instSearchPath, home+"/gopherbot")
 		instSearchPath = append(instSearchPath, home+"/go/src/github.com/uva-its/gopherbot")
 	}
 	instSearchPath = append(instSearchPath, execdir)
