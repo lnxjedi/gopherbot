@@ -11,5 +11,3 @@ deploy:
   file: gopherbot-*.zip
   skip_cleanup: true
   overwrite: true
-  on:
-    branch: master
