@@ -2,8 +2,9 @@ language: go
 go:
 - 1.9.x
 script: ./mkdist.sh
-env:
-- TRAVIS_TAG: v1.0.0-snapshot
+before_deploy:
+- git tag -d v1.0.0-snapshot
+- git tag v1.0.0-snapshot
 deploy:
   provider: releases
   prerelease: true
