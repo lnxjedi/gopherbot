@@ -2,8 +2,8 @@ language: go
 go:
 - 1.9.x
 script: ./mkdist.sh
-before_deploy:
-- git tag "v1.0.0-snapshot"
+env:
+- TRAVIS_TAG: v1.0.0-snapshot
 deploy:
   provider: releases
   api_key: $GH_OAUTH_TOKEN
@@ -11,3 +11,4 @@ deploy:
   file: gopherbot-*.zip
   skip_cleanup: true
   overwrite: true
+  tags: true
