@@ -34,12 +34,21 @@ EOF
 eval $VERSTRING
 
 eval `go env`
-echo "Building gopherbot for $GOOS"
-go build
-GOOS=windows GOARCH=amd64 go build -o gopherbot.exe
-rm -f bot/commit.go
-OUTFILE=./gopherbot-$Version-$GOARCH.zip
-rm -f $OUTFILE
+for BUILDOS in linux darwin windows
+do
+	echo "Building gopherbot for $BUILDOS"
+	OUTFILE=./gopherbot-$Version-$BUILDOS-$GOARCH.zip
+	rm -f $OUTFILE
+	if [ "$BUILDOS" = "windows" ]
+	then
+		GOOS=$BUILDOS go build -o gopherbot.exe 
+		echo "Creating $OUTFILE"
+		zip -r $OUTFILE gopherbot.exe LICENSE README.md brain/ conf/ doc/ example.gopherbot/ lib/ licenses/ misc/ plugins/ --exclude *.swp doc/.git/\*\* doc/.git/
+	else
+		GOOS=$BUILDOS go build
+		echo "Creating $OUTFILE"
+		zip -r $OUTFILE gopherbot LICENSE README.md brain/ conf/ doc/ example.gopherbot/ lib/ licenses/ misc/ plugins/ --exclude *.swp doc/.git/\*\* doc/.git/
+	fi
 
-echo "Creating $OUTFILE"
-zip -r $OUTFILE gopherbot gopherbot.exe LICENSE README.md brain/ conf/ doc/ example.gopherbot/ lib/ licenses/ misc/ plugins/ --exclude *.swp doc/.git/\*\* doc/.git/
+done
+rm -f bot/commit.go
