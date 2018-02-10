@@ -12,8 +12,6 @@ import (
 	"strings"
 
 	"github.com/ghodss/yaml"
-	// MakeDaemon from VividCortex - thanks!
-	"github.com/VividCortex/godaemon"
 )
 
 var started bool
@@ -51,7 +49,7 @@ func Start() {
 	}
 	started = true
 	globalLock.Unlock()
-	var execpath, execdir, installdir, localdir string
+	var execdir, installdir, localdir string
 	var err error
 
 	// Process command-line flags
@@ -71,19 +69,19 @@ func Start() {
 	plusage := "omit timestamps from the log"
 	flag.BoolVar(&plainlog, "plainlog", false, plusage)
 	flag.BoolVar(&plainlog, "P", false, plusage+" (shorthand)")
-	var daemonize bool
-	fusage := "run the robot as a background process"
-	flag.BoolVar(&daemonize, "daemonize", false, fusage)
-	flag.BoolVar(&daemonize, "d", false, fusage+" (shorthand)")
 	flag.Parse()
 
 	// Installdir is where the default config and stock external
 	// plugins are. Search some likely locations in case installDir
 	// wasn't passed on the command line, or Gopherbot isn't installed
 	// in one of the usual system locations.
-	execpath, err = godaemon.GetExecutablePath()
-	if err == nil {
-		execdir, _ = filepath.Abs(filepath.Dir(execpath))
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	execdir, err = filepath.Abs(filepath.Dir(ex))
+	if err != nil {
+		panic(err)
 	}
 	instSearchPath := []string{
 		installDir,
@@ -145,47 +143,12 @@ func Start() {
 	}
 
 	var botLogger *log.Logger
-	if daemonize {
-		var f *os.File
-		if godaemon.Stage() == godaemon.StageParent {
-			var lp string
-			if len(logFile) != 0 {
-				lp = logFile
-			} else if len(bi.LogFile) != 0 {
-				lp = bi.LogFile
-			} else {
-				lp = "/tmp/gopherbot.log"
-			}
-			f, err = os.Create(lp)
-			if err != nil {
-				log.Fatalf("Couldn't create log file: %v", err)
-			}
-			log.Printf("Backgrounding and logging to: %s\n", lp)
-		}
-		_, _, err = godaemon.MakeDaemon(&godaemon.DaemonAttr{
-			Files:         []**os.File{&f},
-			ProgramName:   "gopherbot",
-			CaptureOutput: false,
-		})
-		// Don't double-timestamp if another package is using the default logger
-		log.SetFlags(0)
-		if plainlog {
-			botLogger = log.New(f, "", 0)
-		} else {
-			botLogger = log.New(f, "", log.LstdFlags)
-		}
-		if err != nil {
-			botLogger.Fatalf("Problem daemonizing: %v", err)
-		}
-	} else { // run in the foreground, log to stderr
-		if plainlog {
-			botLogger = log.New(os.Stderr, "", 0)
-		} else {
-			botLogger = log.New(os.Stderr, "", log.LstdFlags)
-		}
+	if plainlog {
+		botLogger = log.New(os.Stderr, "", 0)
+	} else {
+		botLogger = log.New(os.Stderr, "", log.LstdFlags)
 	}
 
-	// From here on out we're daemonized if -d was passed
 	// Create the 'bot and load configuration, supplying configdir and installdir.
 	// When loading configuration, gopherbot first loads default configuration
 	// from internal config, then loads from localdir/conf/..., which

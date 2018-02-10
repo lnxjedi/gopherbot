@@ -18,14 +18,13 @@
 # [[override]]
 #  name = "github.com/x/y"
 #  version = "2.4.0"
+[prune]
+  unused-packages = true
+
 [[constraint]]
   branch = "master"
   name = "github.com/nlopes/slack"
   source = "github.com/uva-its/slack"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/VividCortex/godaemon"
 
 [[constraint]]
   branch = "master"

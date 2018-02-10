@@ -36,9 +36,10 @@ eval $VERSTRING
 eval `go env`
 echo "Building gopherbot for $GOOS"
 go build
+GOOS=windows GOARCH=amd64 go build -o gopherbot.exe
 rm -f bot/commit.go
-OUTFILE=./gopherbot-$Version-$GOOS-$GOARCH.zip
+OUTFILE=./gopherbot-$Version-$GOARCH.zip
 rm -f $OUTFILE
 
 echo "Creating $OUTFILE"
-zip -r $OUTFILE gopherbot LICENSE README.md brain/ conf/ doc/ example.gopherbot/ lib/ licenses/ misc/ plugins/ --exclude *.swp doc/.git/\*\* doc/.git/
+zip -r $OUTFILE gopherbot gopherbot.exe LICENSE README.md brain/ conf/ doc/ example.gopherbot/ lib/ licenses/ misc/ plugins/ --exclude *.swp doc/.git/\*\* doc/.git/
