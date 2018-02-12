@@ -22,6 +22,7 @@ var (
 type MemeConfig struct {
 	Username string
 	Password string
+	Memes    map[string]string
 }
 
 func memegen(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
@@ -35,33 +36,16 @@ func memegen(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVa
 	switch command {
 	case "init":
 		// ignore
-	case "simply":
-		sendMeme(m, r, "61579", "ONE DOES NOT SIMPLY", args[0])
-
-	case "prepare":
-		sendMeme(m, r, "47779539", "You "+args[0], "PREPARE TO DIE")
-
-	case "prettymuch":
-		sendMeme(m, r, "8070362", args[0]+" pretty much", "the "+args[1]+" ever "+args[2])
-
-	case "gosh":
-		sendMeme(m, r, "18304105", args[0], "Gosh!")
-
-	case "skills":
-		sendMeme(m, r, "20509936", args[0]+" "+args[1], args[2])
-
+	default:
+		url, err := createMeme(m, command, args[0], args[1])
+		if err == nil {
+			r.Say(url)
+		} else {
+			r.Reply("Sorry, something went wrong. Check the logs?")
+			r.Log(bot.Error, fmt.Errorf("Generating a meme: %v", err))
+		}
 	}
 	return
-}
-
-func sendMeme(m *MemeConfig, r *bot.Robot, templateId, topText, bottomText string) {
-	url, err := createMeme(m, templateId, topText, bottomText)
-	if err == nil {
-		r.Say(url)
-	} else {
-		r.Reply("Sorry, something went wrong. Check the logs?")
-		r.Log(bot.Error, fmt.Errorf("Generating a meme: %v", err))
-	}
 }
 
 // Compose imgflip meme - thanks to Adam Georgeson for this function
