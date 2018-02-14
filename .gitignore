@@ -6,4 +6,5 @@ lib/gopherbot_*.pyc
 gopherbot.yaml
 duo.yaml
 totp.yaml
+.publish
 .c9
