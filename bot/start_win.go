@@ -8,9 +8,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strings"
+	"path/filepath"
 
-	"github.com/kardianos/osext"
 	"golang.org/x/sys/windows/svc"
 )
 
@@ -56,17 +55,13 @@ func Start() {
 		log.Fatalf("failed to determine if we are running in an interactive session: %v", err)
 	}
 
-	var execpath, execdir, installdir, localdir string
+	var installdir, localdir string
 
 	// Process command-line flags
 	var configDir string
 	cusage := "path to the local configuration directory"
 	flag.StringVar(&configDir, "config", "", cusage)
 	flag.StringVar(&configDir, "c", "", cusage+" (shorthand)")
-	var installDir string
-	iusage := "path to the local install directory containing default/stock configuration"
-	flag.StringVar(&installDir, "install", "", iusage)
-	flag.StringVar(&installDir, "i", "", iusage+" (shorthand)")
 	var logFile string
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -85,9 +80,6 @@ func Start() {
 			var args []string
 			if configDir != "" {
 				args = append(args, "-c", configDir)
-			}
-			if installDir != "" {
-				args = append(args, "-i", installDir)
 			}
 			err = installService(svcName, "Gopherbot ChatOps chat bot", args)
 		case "remove":
@@ -128,36 +120,13 @@ func Start() {
 	// plugins are. Search some likely locations in case installDir
 	// wasn't passed on the command line, or Gopherbot isn't installed
 	// in one of the usual system locations.
-	execpath, err = osext.ExecutableFolder()
-	if err == nil {
-		execdir = execpath
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
 	}
-	instSearchPath := []string{
-		installDir,
-		`C:/Program Files/Gopherbot`,
-		`C:/Program Files (x86)/Gopherbot`,
-	}
-	gosearchpath := os.Getenv("GOPATH")
-	if len(gosearchpath) > 0 {
-		for _, gopath := range strings.Split(gosearchpath, ":") {
-			instSearchPath = append(instSearchPath, gopath+"/src/github.com/uva-its/gopherbot")
-		}
-	}
-	home := os.Getenv("USERPROFILE")
-	if len(home) > 0 {
-		instSearchPath = append(instSearchPath, home+"/gopherbot")
-		instSearchPath = append(instSearchPath, home+"/go/src/github.com/uva-its/gopherbot")
-	}
-	instSearchPath = append(instSearchPath, execdir)
-	for _, spath := range instSearchPath {
-		if len(spath) > 0 && dirExists(spath+"/lib") {
-			installdir = spath
-			break
-		}
-	}
-	if len(installdir) == 0 {
-		botLogger.Println("Install directory not found, exiting")
-		os.Exit(0)
+	installdir, err = filepath.Abs(filepath.Dir(ex))
+	if err != nil {
+		panic(err)
 	}
 
 	// Localdir is where all user-supplied configuration and
@@ -166,6 +135,7 @@ func Start() {
 		configDir,
 		`C:/Windows/gopherbot`,
 	}
+	home := os.Getenv("USERPROFILE")
 	if len(home) > 0 {
 		confSearchPath = append(confSearchPath, home+"/.gopherbot")
 	}

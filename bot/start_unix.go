@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/ghodss/yaml"
 )
@@ -49,7 +48,7 @@ func Start() {
 	}
 	started = true
 	globalLock.Unlock()
-	var execdir, installdir, localdir string
+	var installdir, localdir string
 	var err error
 
 	// Process command-line flags
@@ -57,10 +56,6 @@ func Start() {
 	cusage := "path to the local configuration directory"
 	flag.StringVar(&configDir, "config", "", cusage)
 	flag.StringVar(&configDir, "c", "", cusage+" (shorthand)")
-	var installDir string
-	iusage := "path to the local install directory containing default/stock configuration"
-	flag.StringVar(&installDir, "install", "", iusage)
-	flag.StringVar(&installDir, "i", "", iusage+" (shorthand)")
 	var logFile string
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -79,37 +74,9 @@ func Start() {
 	if err != nil {
 		panic(err)
 	}
-	execdir, err = filepath.Abs(filepath.Dir(ex))
+	installdir, err = filepath.Abs(filepath.Dir(ex))
 	if err != nil {
 		panic(err)
-	}
-	instSearchPath := []string{
-		installDir,
-		"/opt/gopherbot",
-		"/usr/local/share/gopherbot",
-		"/usr/share/gopherbot",
-	}
-	gosearchpath := os.Getenv("GOPATH")
-	if len(gosearchpath) > 0 {
-		for _, gopath := range strings.Split(gosearchpath, ":") {
-			instSearchPath = append(instSearchPath, gopath+"/src/github.com/uva-its/gopherbot")
-		}
-	}
-	home := os.Getenv("HOME")
-	if len(home) > 0 {
-		instSearchPath = append(instSearchPath, home+"/gopherbot")
-		instSearchPath = append(instSearchPath, home+"/go/src/github.com/uva-its/gopherbot")
-	}
-	instSearchPath = append(instSearchPath, execdir)
-	for _, spath := range instSearchPath {
-		if len(spath) > 0 && dirExists(spath+"/lib") {
-			installdir = spath
-			break
-		}
-	}
-	if len(installdir) == 0 {
-		log.Println("Install directory not found, exiting")
-		os.Exit(0)
 	}
 
 	// Localdir is where all user-supplied configuration and
@@ -119,6 +86,7 @@ func Start() {
 		"/usr/local/etc/gopherbot",
 		"/etc/gopherbot",
 	}
+	home := os.Getenv("HOME")
 	if len(home) > 0 {
 		confSearchPath = append(confSearchPath, home+"/.gopherbot")
 	}
