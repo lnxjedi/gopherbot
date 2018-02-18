@@ -45,6 +45,7 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 	}
 
 	prompted := false
+	remembered := false
 	// values too big to be valid
 	devnum := 1024
 	method := 1024
@@ -59,9 +60,12 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 		v := strings.Split(rememberedOpts, ",")
 		devnum, _ = strconv.Atoi(v[0])
 		method, _ = strconv.Atoi(v[1])
+		remembered = true
 	}
 
-	if len(res.Response.Devices) > 1 && devnum >= len(res.Response.Devices) {
+	if len(res.Response.Devices) == 1 {
+		devnum = 0
+	} else if len(res.Response.Devices) > 1 && devnum >= len(res.Response.Devices) {
 		if immediate {
 			r.Say("This command requires immediate elevation" + dm)
 		} else {
@@ -145,6 +149,17 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			r.Direct().Say("Invalid method number")
 			r.Log(bot.Error, fmt.Sprintf("Invalid duo method # response from user \"%s\"", r.User))
 			return bot.Fail
+		}
+	} else {
+		if method >= len(res.Response.Devices[devnum].Capabilities) {
+			method = 0
+		}
+	}
+	if remembered && !prompted {
+		if immediate {
+			r.Say("This command requires immediate elevation - using the last device and method selected")
+		} else {
+			r.Say("This command requires elevation - using the last device and method selected")
 		}
 	}
 	if factor == "" {
