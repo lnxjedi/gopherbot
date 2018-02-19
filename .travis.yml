@@ -1,6 +1,6 @@
 language: go
 go:
-- 1.10.x
+- "1.10"
 script: ./mkdist.sh
 before_deploy:
 - git tag -d v1.0.0-snapshot
