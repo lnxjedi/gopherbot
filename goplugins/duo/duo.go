@@ -353,10 +353,14 @@ func configure(r *bot.Robot, user string, res *authapi.PreauthResult) (retval bo
 	}
 	duoDefConfig.method = method
 
-	tok, _, ret := r.CheckoutDatum(datumName, &duoDefs, true)
+	tok, exists, ret := r.CheckoutDatum(datumName, &duoDefs, true)
 	if ret == bot.Ok {
+		if !exists {
+			duoDefs = make(map[string]duoDefault)
+		}
 		duoDefs[r.User] = duoDefConfig
 		r.UpdateDatum(datumName, tok, duoDefs)
+		r.Reply("Your duo default configuration has been set")
 		return bot.Normal
 	}
 	r.Log(bot.Error, fmt.Sprintf("Error storing user duo config: %d"), ret)
@@ -368,9 +372,11 @@ func duocommands(r *bot.Robot, command string, args ...string) (retval bot.PlugR
 		return
 	}
 	immediate := false
-	switch args[0] {
-	case "true", "True", "t", "T", "Yes", "yes", "Y":
-		immediate = true
+	if len(args) > 0 {
+		switch args[0] {
+		case "true", "True", "t", "T", "Yes", "yes", "Y":
+			immediate = true
+		}
 	}
 	cfg := &config{}
 	r.GetPluginConfig(&cfg)
@@ -451,7 +457,7 @@ const defaultConfig = `
 AllChannels: true
 Help:
 - Keywords: [ "duo" ]
-  Helptext: "(bot), configure duo - remember a duo device and method to always use"
+  Helptext: [ "(bot), configure duo - remember a duo device and method to always use" ]
 ReplyMatchers:
 - Label: singleDigit
   Regex: '\d'
