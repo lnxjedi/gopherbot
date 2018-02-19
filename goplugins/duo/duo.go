@@ -34,9 +34,16 @@ type config struct {
 	DuoUserString  string // DuoUserType - one of handle, email, emailUser
 }
 
+type duoDefault struct {
+	device, method int
+}
+
+type duoDefMap map[string]duoDefault
+
 var cfg config
 
 const memoryKey = "duoOpts"
+const datumName = "duoOpts"
 
 func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResult) (retval bot.PlugRetVal) {
 	dm := ""
@@ -52,15 +59,31 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 	var msg []string
 	var ret bot.RetVal
 	var rep string
-	var factor string
+	var factor, memtype string
 	var err error
 
-	rememberedOpts := r.Recall(memoryKey)
-	if rememberedOpts != "" {
-		v := strings.Split(rememberedOpts, ",")
-		devnum, _ = strconv.Atoi(v[0])
-		method, _ = strconv.Atoi(v[1])
-		remembered = true
+	var duoDefs duoDefMap
+
+	_, exists, ret := r.CheckoutDatum(datumName, &duoDefs, false)
+	if ret == bot.Ok && exists {
+		duoDefConfig, ok := duoDefs[r.User]
+		if ok {
+			devnum = duoDefConfig.device
+			method = duoDefConfig.method
+			remembered = true
+			memtype = "configured"
+		}
+	}
+
+	if !remembered {
+		rememberedOpts := r.Recall(memoryKey)
+		if rememberedOpts != "" {
+			v := strings.Split(rememberedOpts, ",")
+			devnum, _ = strconv.Atoi(v[0])
+			method, _ = strconv.Atoi(v[1])
+			remembered = true
+			memtype = "selected"
+		}
 	}
 
 	if len(res.Response.Devices) == 1 {
@@ -155,11 +178,19 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			method = 0
 		}
 	}
-	if remembered && !prompted {
-		if immediate {
-			r.Say("This command requires immediate elevation - using the last device and method selected")
+	if !prompted {
+		if remembered {
+			if immediate {
+				r.Say(fmt.Sprintf("This command requires immediate elevation - using the last device and method %s", memtype))
+			} else {
+				r.Say(fmt.Sprintf("This command requires elevation - using the last device and method %s", memtype))
+			}
 		} else {
-			r.Say("This command requires elevation - using the last device and method selected")
+			if immediate {
+				r.Say("This command requires immediate elevation - requesting additional authentication")
+			} else {
+				r.Say("This command requires elevation - requesting additional authentication")
+			}
 		}
 	}
 	if factor == "" {
@@ -234,14 +265,118 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 	return bot.Success
 }
 
-func elevate(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
-	if command != "elevate" {
+func configure(r *bot.Robot, user string, res *authapi.PreauthResult) (retval bot.PlugRetVal) {
+	if r.Channel != "" {
+		r.Say("Ok, I'll message your directly to get your default configuration")
+	}
+
+	var duoDefConfig duoDefault
+	var duoDefs duoDefMap
+	var devnum, method int
+	var msg []string
+	var ret bot.RetVal
+	var rep string
+	prompted := false
+
+	if len(res.Response.Devices) == 1 {
+		duoDefConfig.device = 0
+	} else if len(res.Response.Devices) > 1 {
+		msg = make([]string, 10)
+		for d, dev := range res.Response.Devices {
+			if d == 10 {
+				break
+			}
+			switch dev.Type {
+			case "phone":
+				msg[d] = fmt.Sprintf("Device %d: %s - %s", d, dev.Type, dev.Number)
+			case "token":
+				msg[d] = fmt.Sprintf("Device %d: %s (%s)", d, dev.Type, dev.Name)
+			}
+		}
+		r.Direct().Say(fmt.Sprintf("Duo devices:\n%s", strings.Join(msg, "\n")))
+		rep, ret = r.Direct().PromptForReply("singleDigit", "Which device # do you want to use?")
+		if ret != bot.Ok {
+			rep, ret = r.Direct().PromptForReply("singleDigit", "Try again? I need a single-digit device #")
+		}
+		if ret != bot.Ok {
+			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo configure prompt", r.User))
+			return bot.Fail
+		}
+		devnum, _ = strconv.Atoi(rep)
+		if devnum < 0 || devnum >= len(res.Response.Devices) {
+			r.Direct().Say("Invalid device number")
+			r.Log(bot.Error, fmt.Sprintf("Invalid duo device # response from user \"%s\"", r.User))
+			return bot.Fail
+		}
+		duoDefConfig.device = devnum
+		prompted = true
+	} else {
+		r.Log(bot.Error, fmt.Sprintf("No devices returned for Duo user %s; auth response: %v", user, res))
+		r.Direct().Say("There's a problem with your duo account, ask an admin to check the log")
+		return bot.MechanismFail
+	}
+	autoProvided := false
+	for _, method := range res.Response.Devices[devnum].Capabilities {
+		if method == "auto" {
+			autoProvided = true
+			break
+		}
+	}
+	if !(len(res.Response.Devices[devnum].Capabilities) == 1 || (autoProvided && len(res.Response.Devices[devnum].Capabilities) == 2)) {
+		msg = make([]string, 10)
+		for m, method := range res.Response.Devices[devnum].Capabilities {
+			if m == 10 {
+				break
+			}
+			msg[m] = fmt.Sprintf("Method %d: %s", m, method)
+		}
+		r.Direct().Say(fmt.Sprintf("Duo methods available for your device:\n%s", strings.Join(msg, "\n")))
+		rep, ret = r.Direct().PromptForReply("singleDigit", "Which method # do you want to use?")
+		if ret != bot.Ok {
+			rep, ret = r.Direct().PromptForReply("singleDigit", "Try again? I need a single-digit method #")
+		}
+		if ret != bot.Ok {
+			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo configure prompt", r.User))
+			return bot.Fail
+		}
+		method, _ = strconv.Atoi(rep)
+		if method < 0 || method >= len(res.Response.Devices[devnum].Capabilities) {
+			r.Direct().Say("Invalid method number")
+			r.Log(bot.Error, fmt.Sprintf("Invalid duo method # response from user \"%s\"", r.User))
+			return bot.Fail
+		}
+		prompted = true
+	}
+	if !prompted {
+		r.Say("Only one device and method available, not storing")
+		return bot.Normal
+	}
+	duoDefConfig.method = method
+
+	tok, exists, ret := r.CheckoutDatum(datumName, &duoDefs, true)
+	if ret == bot.Ok {
+		if !exists {
+			duoDefs = make(map[string]duoDefault)
+		}
+		duoDefs[r.User] = duoDefConfig
+		r.UpdateDatum(datumName, tok, duoDefs)
+		r.Reply("Your duo default configuration has been set")
+		return bot.Normal
+	}
+	r.Log(bot.Error, fmt.Sprintf("Error storing user duo config: %d"), ret)
+	return bot.Fail
+}
+
+func duocommands(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
+	if command != "elevate" && command != "duoconf" {
 		return
 	}
 	immediate := false
-	switch args[0] {
-	case "true", "True", "t", "T", "Yes", "yes", "Y":
-		immediate = true
+	if len(args) > 0 {
+		switch args[0] {
+		case "true", "True", "t", "T", "Yes", "yes", "Y":
+			immediate = true
+		}
 	}
 	cfg := &config{}
 	r.GetPluginConfig(&cfg)
@@ -280,6 +415,9 @@ func elevate(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVa
 		r.Log(bot.Error, fmt.Sprintf("Received \"deny\" during Duo preauth for Duo user %s (%s)", duouser, r.User))
 		return bot.Fail
 	}
+	if command == "duoconf" {
+		return configure(r, duouser, res)
+	}
 
 	now := time.Now().UTC()
 	ask := false
@@ -317,11 +455,17 @@ func elevate(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVa
 
 const defaultConfig = `
 AllChannels: true
+Help:
+- Keywords: [ "duo" ]
+  Helptext: [ "(bot), configure duo - remember a duo device and method to always use" ]
 ReplyMatchers:
 - Label: singleDigit
   Regex: '\d'
 - Label: multiDigit
   Regex: '\d+'
+CommandMatchers:
+- Command: duoconf
+  Regex: (?i:config(?:ure)? duo)
 Config:
   TimeoutSeconds: 7200
   TimeoutType: idle # or absolute
@@ -334,7 +478,7 @@ Config:
 func init() {
 	bot.RegisterPlugin("duo", bot.PluginHandler{
 		DefaultConfig: defaultConfig,
-		Handler:       elevate,
+		Handler:       duocommands,
 		Config:        &config{},
 	})
 }

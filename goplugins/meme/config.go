@@ -19,7 +19,7 @@ Help:
 - Keywords: [ "meme", "brace" ]
   Helptext: [ "(bot), brace yourselves, <something> - Boromir warns your" ]
 - Keywords: [ "meme" ]
-  Helptest: [ "(bot), Y U no <something> - express your angst" ]
+  Helptext: [ "(bot), Y U no <something> - express your angst" ]
 
 CommandMatchers:
 - Command: "18304105"
