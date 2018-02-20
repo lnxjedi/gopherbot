@@ -8,7 +8,7 @@ import (
 
 // Message send delay; slack has problems with scrolling if messages fly out
 // too fast.
-const msgDelay = 200 * time.Millisecond
+const defaultMsgDelay = 200 * time.Millisecond
 
 // GetUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
@@ -37,6 +37,12 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 func (s *slackConnector) sendMessages(msgs []string, chanID string) {
+	var msgDelay time.Duration
+	if len(msgs) > 1 {
+		msgDelay = 2 * defaultMsgDelay
+	} else {
+		msgDelay = defaultMsgDelay
+	}
 	for i, msg := range msgs {
 		if i == 0 {
 			time.Sleep(msgDelay / 2)
