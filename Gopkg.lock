@@ -32,11 +32,10 @@
   revision = "fd703108daeb23d77c124d12978e9b6c4f28f034"
 
 [[projects]]
-  branch = "gorilla-panic"
   name = "github.com/nlopes/slack"
   packages = ["."]
-  revision = "b7ba59f434a2902d704101676d03cf740aea0f57"
-  source = "github.com/jdanlewis/slack"
+  revision = "8ab4d0b364ef1e9af5d102531da20d5ec902b6c4"
+  version = "v0.2.0"
 
 [[projects]]
   branch = "master"
@@ -58,6 +57,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fc74d8787843939c6a8d7feb163658b7034389b877906269ae4a15e8654e4392"
+  inputs-digest = "4a82b818e7fbda520f34ef64748af02698b8ba3cac50b70873c75ae8a4b86b3d"
   solver-name = "gps-cdcl"
   solver-version = 1
