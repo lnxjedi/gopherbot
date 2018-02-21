@@ -8,8 +8,8 @@ import (
 
 // Message send delay; slack has problems with scrolling if messages fly out
 // too fast.
-const msgDelay = 200 * time.Millisecond
-const longMsgDelay = time.Second
+const typingDelay = 200 * time.Millisecond
+const msgDelay = time.Second
 
 // GetUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
@@ -37,17 +37,29 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 	}
 }
 
+type sendMessage struct {
+	message, channel string
+}
+
+var messages = make(chan *sendMessage)
+
+func (s *slackConnector) startSendLoop() {
+	for {
+		send := <-messages
+		time.Sleep(typingDelay / 2)
+		s.conn.SendMessage(s.conn.NewTypingMessage(send.channel))
+		time.Sleep(2 * typingDelay)
+		s.conn.SendMessage(s.conn.NewOutgoingMessage(send.message, send.channel))
+		time.Sleep(msgDelay)
+	}
+}
+
 func (s *slackConnector) sendMessages(msgs []string, chanID string) {
-	var msgDelay time.Duration
 	for _, msg := range msgs {
-		time.Sleep(msgDelay / 2)
-		s.conn.SendMessage(s.conn.NewTypingMessage(chanID))
-		if len(msgs) > 1 {
-			time.Sleep(longMsgDelay)
-		} else {
-			time.Sleep(msgDelay)
+		messages <- &sendMessage{
+			message: msg,
+			channel: chanID,
 		}
-		s.conn.SendMessage(s.conn.NewOutgoingMessage(msg, chanID))
 	}
 }
 

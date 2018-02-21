@@ -93,6 +93,7 @@ Loop:
 	sc.botFullName = sc.userInfo[sc.botName].RealName
 	sc.SetFullName(sc.botFullName)
 	sc.Log(bot.Debug, "Set bot full name to", sc.botFullName)
+	go sc.startSendLoop()
 
 	return bot.Connector(sc)
 }
