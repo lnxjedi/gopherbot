@@ -32,10 +32,10 @@
   revision = "fd703108daeb23d77c124d12978e9b6c4f28f034"
 
 [[projects]]
+  branch = "master"
   name = "github.com/nlopes/slack"
   packages = ["."]
-  revision = "8ab4d0b364ef1e9af5d102531da20d5ec902b6c4"
-  version = "v0.2.0"
+  revision = "78829515103398e1b2c962e533c21756bbf101eb"
 
 [[projects]]
   branch = "master"

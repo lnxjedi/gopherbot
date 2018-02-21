@@ -21,11 +21,6 @@
 [prune]
   unused-packages = true
 
-# [[constraint]]
-#   branch = "gorilla-panic"
-#   name = "github.com/nlopes/slack"
-#   source = "github.com/jdanlewis/slack"
-
 [[constraint]]
   branch = "master"
   name = "github.com/nlopes/slack"
