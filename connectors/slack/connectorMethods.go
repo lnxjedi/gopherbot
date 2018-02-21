@@ -1,6 +1,7 @@
 package slack
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/uva-its/gopherbot/bot"
@@ -9,7 +10,7 @@ import (
 // Message send delay; slack has problems with scrolling if messages fly out
 // too fast.
 const typingDelay = 200 * time.Millisecond
-const msgDelay = time.Second
+const msgDelay = 1 * time.Second
 
 // GetUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
@@ -46,6 +47,7 @@ var messages = make(chan *sendMessage)
 func (s *slackConnector) startSendLoop() {
 	for {
 		send := <-messages
+		s.Log(bot.Debug, fmt.Sprintf("Bot message in send loop for channel %s, size: %d", send.channel, len(send.message)))
 		time.Sleep(typingDelay / 2)
 		s.conn.SendMessage(s.conn.NewTypingMessage(send.channel))
 		time.Sleep(2 * typingDelay)

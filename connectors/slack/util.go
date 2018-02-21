@@ -101,7 +101,7 @@ func optQuote(msg string, f bot.MessageFormat) string {
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // takes care of formatting, and segments the message if needed.
 func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []string {
-	maxSize := slack.MaxMessageTextLength
+	maxSize := slack.MaxMessageTextLength - 128 // pad for typing message: TODO: big enough?
 	if f == bot.Fixed {
 		maxSize -= 6
 	}

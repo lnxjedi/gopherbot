@@ -114,7 +114,7 @@ loop:
 			sc.Log(bot.Debug, "Received stop in connector")
 			break loop
 		case msg := <-sc.conn.IncomingEvents:
-			sc.Log(bot.Debug, "Event Received: ")
+			sc.Log(bot.Trace, fmt.Sprintf("Event Received (msg, data, type): %v; %v; %T", msg, msg.Data, msg.Data))
 			switch ev := msg.Data.(type) {
 			case *slack.HelloEvent:
 				// Ignore hello
