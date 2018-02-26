@@ -12,6 +12,13 @@ import (
 const typingDelay = 200 * time.Millisecond
 const msgDelay = 1 * time.Second
 
+// Bursting constants; we allow the robot to send a maximum of `burstMessages`
+// in a `burstWindow` window; above the burst limit we slow messages down to
+// 1 / sec.
+const burstMessages = 14            // maximum burst
+const burstWindow = 4 * time.Second // window in which to allow the burst
+const coolDown = 21 * time.Second   // cooldown time after bursting
+
 // GetUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
 func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {
@@ -45,14 +52,36 @@ type sendMessage struct {
 var messages = make(chan *sendMessage)
 
 func (s *slackConnector) startSendLoop() {
+	// See bursting constants above.
+	var burstTime time.Time
+	mtimes := make([]time.Time, burstMessages)
+	current := 0 // index of the current message send time
 	for {
 		send := <-messages
-		s.Log(bot.Debug, fmt.Sprintf("Bot message in send loop for channel %s, size: %d", send.channel, len(send.message)))
-		time.Sleep(typingDelay / 2)
+		msgTime := time.Now()
+		mtimes[current] = msgTime
+		windowStartMsg := current + 1
+		if windowStartMsg == (burstMessages - 1) {
+			windowStartMsg = 0
+		}
+		current += 1
+		if current == (burstMessages - 1) {
+			current = 0
+		}
+		s.Log(bot.Trace, fmt.Sprintf("Bot message in send loop for channel %s, size: %d", send.channel, len(send.message)))
 		s.conn.SendMessage(s.conn.NewTypingMessage(send.channel))
-		time.Sleep(2 * typingDelay)
+		time.Sleep(typingDelay)
 		s.conn.SendMessage(s.conn.NewOutgoingMessage(send.message, send.channel))
-		time.Sleep(msgDelay)
+		timeSinceBurst := msgTime.Sub(burstTime)
+		if msgTime.Sub(mtimes[windowStartMsg]) < burstWindow || timeSinceBurst < coolDown {
+			if timeSinceBurst > coolDown {
+				burstTime = msgTime
+			}
+			s.Log(bot.Debug, fmt.Sprintf("Burst limit exceeded, delaying next message by %v", msgDelay))
+			// if we've sent `burstMessages` messages in less than the `burstWindow`
+			// window, delay the next message by `msgDelay`.
+			time.Sleep(msgDelay)
+		}
 	}
 }
 
