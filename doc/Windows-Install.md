@@ -3,7 +3,7 @@
 ## Installation Notes
 
 ### Install and Config Directories
-Gopherbot combines configuration data from two directories; the `install` directory (normally `C:\Program Files\Gopherbot`), and the `config` directory (normally `C:\ProgramData\gopherbot`). Configuration in the `install` directory should be specific to a given robot / environment (e.g. *dev* and *prod*), and normally contains e.g. credentials. The contents of the `config` directory would normally be kept in a git repository, and would contain common configuration as well as locally developed script plugins. See [Configuration](Configuration.md).
+Gopherbot combines configuration data from two directories; the `install` directory (normally `C:\Program Files\Gopherbot`), and the `config` directory (normally `C:\ProgramData\Gopherbot`). Configuration in the `install` directory should be specific to a given robot / environment (e.g. *dev* and *prod*), and normally contains e.g. credentials. The contents of the `config` directory would normally be kept in a git repository, and would contain common configuration as well as locally developed script plugins. See [Configuration](Configuration.md).
 
 ### Windows Security
 Depending on the security settings of your Windows host, you may need to unblock or otherwise allow execution of `gopherbot.exe` and/or the PowerShell library and plugins. A full discussion of Windows security features and correct configuration is outside the scope of this document. Note, however, that the PowerShell library and sample plugins have been signed with a code-signing certificate.
@@ -18,11 +18,11 @@ If you have a Go environment set up on your machine, you can can `go get github.
 # Production Installation of Gopherbot as a Windows Service
 
 1. Create a `C:\Program Files\Gopherbot` install directory, and unzip the **gopherbot-\*.zip** archive there
-1. Create a `C:\ProgramData\gopherbot` config directory, copy the `conf` and `brain` directories there from the install directory
-1. Rename `C:\Program Files\Gopherbot\conf\gopherbot.yaml.sample` to `gopherbot.yaml`, and similar with `C:\ProgramData\gopherbot\conf\gopherbot.yaml.sample`
+1. Create a `C:\ProgramData\Gopherbot` config directory, copy the `conf` and `brain` directories there from the install directory
+1. Rename `C:\Program Files\Gopherbot\conf\gopherbot.yaml.sample` to `gopherbot.yaml`, and similar with `C:\ProgramData\Gopherbot\conf\gopherbot.yaml.sample`
 1. If you haven't already, get a Slack token for your robot from `https://\<your-workspace\>.slack.com/services/new/bot`
 1. Open an editor as local administrator and edit `C:\Program Files\Gopherbot\conf\gopherbot.yaml`, uncommenting and modifying `Protocol` and `ProtocolConfig`
-1. Edit `C:\ProgramData\gopherbot\conf\gopherbot.yaml` and uncomment and/or modify:
+1. Edit `C:\ProgramData\Gopherbot\conf\gopherbot.yaml` and uncomment and/or modify:
   * `AdminContact`
   * `DefaultChannels`
   * `AdminUsers`

@@ -133,8 +133,7 @@ func Start() {
 	// external plugins are.
 	confSearchPath := []string{
 		configDir,
-		`C:/ProgramData/gopherbot`,
-		`C:/Windows/gopherbot`,
+		`C:/ProgramData/Gopherbot`,
 	}
 	home := os.Getenv("USERPROFILE")
 	if len(home) > 0 {
