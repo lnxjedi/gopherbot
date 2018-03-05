@@ -15,6 +15,7 @@ Table of Contents
   * [Plugin Loading and Precedence](#plugin-loading-and-precedence)
   * [Default Configuration](#default-configuration)
   * [Calling Convention](#calling-convention)
+  * [Environment Variables](#environment-variables)	
   * [Plugin Types and Calling Events](#plugin-types-and-calling-events)
     * [Command Plugins](#command-plugins)
     * [Authorization Plugins](#authorization-plugins)
@@ -39,6 +40,15 @@ On start-up and during a reload, the robot will run each external script plugin 
 
 # Calling Convention
 The robot calls external plugins by creating a goroutine and exec'ing the external script with a set of environment variables. The external script uses the appropriate library for the scripting language to create a robot object from the environment. The script then examines it's command-line arguments to determine the type of action to take (normally a command followed by arguments to the command), and uses the library to make JSON-over-http calls for executing and returning results from methods. Depending on how the plugin is used, different kinds of events can cause external plugins to be called with a variety of commands and arguments. The most common means of calling an external plugin is for one of it's commands to be matched, or by matching a pattern in an ambient message (one not specifically directed to the robot).
+
+# Environment Variables
+Gopherbot sets two primary environment variables of use to the plugin developer:
+  * GOPHER\_CONFIGDIR - the directory where Gopherbot looks for it's configuration
+  * GOPHER\_INSTALLDIR - the directory where the Gopherbot executable resides
+  
+In addition, the following two environment variables are set for every script plugin:
+  * GOPHER\_USER - the username of the user who spoke to the robot
+  * GOPHER\_CHANNEL - the channel the user spoke in (empty string indicates a direct message)
 
 # Plugin Types and Calling Events
 
