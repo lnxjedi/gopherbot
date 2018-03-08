@@ -160,7 +160,7 @@ class Robot:
 
     def PromptUserChannelForReply(self, regex_id, user, channel, prompt):
         for i in range(0, 3):
-            rep = self.Call("PromptUserChannelForReply", { "RegexID": regex_id, "User": user, "Channel": channel, Prompt": prompt })
+            rep = self.Call("PromptUserChannelForReply", { "RegexID": regex_id, "User": user, "Channel": channel, "Prompt": prompt })
             if rep["RetVal"] == self.RetryPrompt:
                 continue
             return Reply(rep)
