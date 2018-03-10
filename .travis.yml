@@ -1,10 +1,10 @@
 language: go
 go:
-- "1.10"
+- "1.10.x"
 script: ./mkdist.sh
 before_deploy:
-- git tag -d v1.0.0-snapshot
-- git tag v1.0.0-snapshot
+- git tag -d v1.0.0-$TRAVIS_BRANCH || :
+- git tag v1.0.0-$TRAVIS_BRANCH
 deploy:
   provider: releases
   prerelease: true
