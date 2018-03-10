@@ -1,6 +1,7 @@
 # Gopherbot
 
 [![Build Status](https://travis-ci.org/lnxjedi/gopherbot.svg?branch=master)](https://travis-ci.org/lnxjedi/gopherbot)
+[![GoDoc](https://godoc.org/github.com/lnxjedi/gopherbot/bot?status.png)](https://godoc.org/github.com/lnxjedi/gopherbot/bot)
 
 ## A.K.A. SUDO for the Enterprise
 Gopherbot is:
