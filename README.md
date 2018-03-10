@@ -1,6 +1,6 @@
 # Gopherbot
 
-[![Build Status](https://travis-ci.org/uva-its/gopherbot.svg?branch=master)](https://travis-ci.org/uva-its/gopherbot)
+[![Build Status](https://travis-ci.org/lnxjedi/gopherbot.svg?branch=master)](https://travis-ci.org/lnxjedi/gopherbot)
 
 ## A.K.A. SUDO for the Enterprise
 Gopherbot is:

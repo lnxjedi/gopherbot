@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/uva-its/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/bot"
 )
 
 var (

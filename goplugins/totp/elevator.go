@@ -9,7 +9,7 @@ import (
 	"time"
 
 	otp "github.com/dgryski/dgoogauth"
-	"github.com/uva-its/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/bot"
 )
 
 var timeoutLock sync.RWMutex

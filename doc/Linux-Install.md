@@ -2,10 +2,10 @@
 
 ## Binary releases
 Pre-compiled archives for Linux and Mac OS are available for download directly from github:
-https://github.com/uva-its/gopherbot/releases
+https://github.com/lnxjedi/gopherbot/releases
 
 ## Installing from source
-If you have a Go environment set up on your machine, you can can `go get github.com/uva-its/gopherbot`. To create an install archive run `./mkdist.sh` in `$GOPATH/src/github.com/uva-its/gopherbot`.
+If you have a Go environment set up on your machine, you can can `go get github.com/lnxjedi/gopherbot`. To create an install archive run `./mkdist.sh` in `$GOPATH/src/github.com/lnxjedi/gopherbot`.
 
 # Production Installation of Gopherbot with systemd
 

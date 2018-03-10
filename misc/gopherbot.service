@@ -1,7 +1,7 @@
 # sample systemd unit file for Gopherbot
 [Unit]
 Description=Gopherbot DevOps Chatbot
-Documentation=https://godoc.org/github.com/uva-its/gopherbot
+Documentation=https://godoc.org/github.com/lnxjedi/gopherbot
 After=syslog.target
 After=network.target
 

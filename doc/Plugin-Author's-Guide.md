@@ -5,7 +5,7 @@ Gopherbot's functionality can be easily extended by writing plugins in one of se
 
 This article deals mainly with writing plugins in one of the scripting languages supported by Gopherbot, the most popular means for writing new command plugins. For writing native compiled-in plugins in Go, see `gopherbot/main.go` and the sample plugins in `goplugins/`. API documentation for Robot methods is available at:
 
-https://godoc.org/github.com/uva-its/gopherbot/bot#Robot
+https://godoc.org/github.com/lnxjedi/gopherbot/bot#Robot
 
 Note that the script plugin API is implemented on top of the native Go API, so that document may also be of use for scripting plugin authors. The file `bot/http.go`, and the scripting libraries in `lib/` will illuminate the mapping from the script APIs to the native Go API.
 

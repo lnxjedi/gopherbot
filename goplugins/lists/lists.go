@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/uva-its/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/bot"
 )
 
 const datumName = "listmap"

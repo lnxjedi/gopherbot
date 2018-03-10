@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/nlopes/slack"
-	"github.com/uva-its/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/bot"
 )
 
 type config struct {

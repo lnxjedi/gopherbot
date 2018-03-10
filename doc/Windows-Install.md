@@ -10,10 +10,10 @@ Depending on the security settings of your Windows host, you may need to unblock
 
 ## Binary releases
 Pre-compiled archives for Windows are available for download directly from github:
-https://github.com/uva-its/gopherbot/releases
+https://github.com/lnxjedi/gopherbot/releases
 
 ## Installing from source
-If you have a Go environment set up on your machine, you can can `go get github.com/uva-its/gopherbot` and create a `.zip` archive. See the `mkdist.sh` script for a listing of what should be in the archive.
+If you have a Go environment set up on your machine, you can can `go get github.com/lnxjedi/gopherbot` and create a `.zip` archive. See the `mkdist.sh` script for a listing of what should be in the archive.
 
 # Production Installation of Gopherbot as a Windows Service
 
