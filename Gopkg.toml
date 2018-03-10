@@ -22,8 +22,9 @@
   unused-packages = true
 
 [[constraint]]
-  branch = "master"
+  branch = "errhandling"
   name = "github.com/nlopes/slack"
+  source = "github.com/lnxjedi/slack"
 
 [[constraint]]
   branch = "master"
