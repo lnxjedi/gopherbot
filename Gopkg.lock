@@ -35,7 +35,7 @@
   branch = "errhandling"
   name = "github.com/nlopes/slack"
   packages = ["."]
-  revision = "3da3a7368586fe8075a9186640d83fb29ab434c1"
+  revision = "1e7e06ffa0b9d2c41b14e97316b19e3247fe424a"
   source = "github.com/lnxjedi/slack"
 
 [[projects]]
