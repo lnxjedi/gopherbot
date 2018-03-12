@@ -42,7 +42,7 @@ eval `go env`
 for BUILDOS in linux darwin windows
 do
 	echo "Building gopherbot for $BUILDOS"
-	OUTFILE=./gopherbot-$Version-$BUILDOS-$GOARCH.zip
+	OUTFILE=./gopherbot-$BUILDOS-$GOARCH.zip
 	rm -f $OUTFILE
 	if [ "$BUILDOS" = "windows" ]
 	then
