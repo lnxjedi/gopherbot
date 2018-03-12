@@ -8,6 +8,7 @@ VERSTRING=${VERSTRING// /}
 eval $VERSTRING
 eval `go env`
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
+COMMIT=$(git rev-parse HEAD)
 if [ $BRANCH = "master" ]
 then
     TAG=$Version
@@ -16,6 +17,7 @@ else
     TAG="$BRANCH-snapshot"
     RELEASE=$TAG
     PRERELEASE="--prerelease"
+    REPLACE="--replace"
 fi
 
-github-release $RELEASE *zip --github-repository lnxjedi/gopherbot --tag $TAG --replace $PRERELEASE
+github-release $RELEASE *zip --github-repository lnxjedi/gopherbot --tag $TAG --commit $COMMIT $PRERELEASE $REPLACE
