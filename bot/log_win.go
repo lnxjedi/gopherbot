@@ -33,7 +33,7 @@ func Log(l LogLevel, v ...interface{}) {
 		robot.logger.Print(msg)
 		if eventLog != nil {
 			switch l {
-			case Info:
+			case Info, Audit:
 				eventLog.Info(1, msg)
 			case Warn:
 				eventLog.Warning(1, msg)
