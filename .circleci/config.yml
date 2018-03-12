@@ -13,5 +13,13 @@ jobs:
       - checkout
 
       # specify any bash command here prefixed with `run: `
+
+      # Get the github publishing tool
+      - run: go get github.com/lnxjedi/github-release
       - run: go get -v -t -d ./...
-      - run: go get github.com/buildkite/github-release
+
+      # Build
+      - run: ./mkdist.sh
+
+      # Publish
+      - run: ./publish.sh
