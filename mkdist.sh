@@ -32,6 +32,11 @@ EOF
 
 # Set Version
 eval $VERSTRING
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$BRANCH" != "master" ]
+then
+	Version="$BRANCH"
+fi
 
 eval `go env`
 for BUILDOS in linux darwin windows
