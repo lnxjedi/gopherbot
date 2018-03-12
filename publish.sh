@@ -8,7 +8,6 @@ VERSTRING=${VERSTRING#var }
 VERSTRING=${VERSTRING// /}
 eval $VERSTRING
 eval `go env`
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
-SRCFILE=gopherbot-$Version-$GOOS-$GOARCH.zip
-echo "Publishing $SRCFILE to $PREFIX/gopherbot/$Version/gopherbot.zip"
-aws s3 cp $SRCFILE $PREFIX/gopherbot/$Version/gopherbot.zip
+github-release circleci *zip --prerelease --github-repository lnxjedi/gopherbot --tag "circleci"
