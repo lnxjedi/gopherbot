@@ -12,7 +12,12 @@ COMMIT=$(git rev-parse HEAD)
 if [ $BRANCH = "master" ]
 then
     TAG=$Version
-    RELEASE="$Version-stable"
+    RELEASE=$Version
+    if [[ $RELEASE = *-snapshot ]]
+    then
+        PRERELEASE="--prerelease"
+        REPLACE="--replace"
+    fi
 else
     TAG="$BRANCH-snapshot"
     RELEASE=$TAG
