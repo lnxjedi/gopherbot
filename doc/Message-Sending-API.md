@@ -25,12 +25,12 @@ For the "fixed" and "variable" formats, Gopherbot processes each outgoing messag
 ## Bash
 ```bash
 # Note that bash isn't object-oriented
-Say("I'm sending a message to Bob in #general")
-SendUserChannelMessage("bob", "general", "Hi, Bob!")
+Say "I'm sending a message to Bob in #general" 
+SendUserChannelMessage "bob" "general" "Hi, Bob!"
 RETVAL = $?
 if [ $RETVAL -ne $GBRET_Ok ]
 then
-  Log("Error", "Unable to message Bob in #general - return code $RETVAL")
+  Log "Error" "Unable to message Bob in #general - return code $RETVAL"
 fi
 ```
 
