@@ -2,13 +2,22 @@
 
 # publish.sh - copy the install archive to a distribution point
 
-. .publish
 VERSTRING=$(grep "var Version" bot/bot.go)
 VERSTRING=${VERSTRING#var }
 VERSTRING=${VERSTRING// /}
 eval $VERSTRING
 eval `go env`
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+COMMIT=$(git rev-parse HEAD)
+if [ $BRANCH = "master" ]
+then
+    TAG=$Version
+    RELEASE="$Version-stable"
+else
+    TAG="$BRANCH-snapshot"
+    RELEASE=$TAG
+    PRERELEASE="--prerelease"
+    REPLACE="--replace"
+fi
 
-SRCFILE=gopherbot-$Version-$GOOS-$GOARCH.zip
-echo "Publishing $SRCFILE to $PREFIX/gopherbot/$Version/gopherbot.zip"
-aws s3 cp $SRCFILE $PREFIX/gopherbot/$Version/gopherbot.zip
+github-release $RELEASE *zip --github-repository lnxjedi/gopherbot --tag $TAG --commit $COMMIT $PRERELEASE $REPLACE
