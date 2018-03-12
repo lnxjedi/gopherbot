@@ -1,6 +1,6 @@
 # Gopherbot
 
-[![CircleCI](https://circleci.com/gh/lnxjedi/gopherbot.svg?style=svg)](https://circleci.com/gh/lnxjedi/gopherbot)
+[![CircleCI](https://circleci.com/gh/lnxjedi/gopherbot.svg?style=shield)](https://circleci.com/gh/lnxjedi/gopherbot)
 [![GoDoc](https://godoc.org/github.com/lnxjedi/gopherbot/bot?status.png)](https://godoc.org/github.com/lnxjedi/gopherbot/bot)
 
 ## A.K.A. SUDO for the Enterprise
