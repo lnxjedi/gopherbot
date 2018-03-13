@@ -24,11 +24,11 @@ See [Design Philosophy](doc/Design.md)
 * Multi-lingual with support for command plugins in Ruby, Python, PowerShell and Bash:
   * Most plugins can be distributed as a single text file
   * Plugins use blocking APIs vs registering callback functions, for easy scripting with a low learning curve
-  * Plugin API includes WaitForReply* methods for simple question & answer flows
+  * Plugin API includes Prompt\*ForReply methods for simple question & answer flows
   * Flexible configuration can be easily overridden by the 'bot administrator
   * Configuration can limit plugins to certain channels and/or users
   * Sample plugins: [Ruby](plugins/rubydemo), [Python](plugins/pythondemo.py), [Bash](plugins/bashdemo), [PowerShell](plugins/psdemo.ps1)
-* Configurable [elevated privilege](doc/Elevation.md) support for security-sensitive commands
+* Configurable [elevated privilege](doc/Security-Overview.md#elevation) support for security-sensitive commands
 * Localhost http/json interface for creating plugin APIs for other languages
 * A thread-safe brain for storing state
 * Configurable logging
