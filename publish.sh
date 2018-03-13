@@ -11,7 +11,6 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD)
 COMMIT=$(git rev-parse HEAD)
 if [ $BRANCH = "master" ]
 then
-    TAG=$Version
     RELEASE=$Version
     if [[ $RELEASE = *-snapshot ]]
     then
@@ -19,10 +18,9 @@ then
         UPDATE="--update"
     fi
 else
-    TAG="$BRANCH-snapshot"
-    RELEASE=$TAG
+    RELEASE="$BRANCH-snapshot"
     PRERELEASE="--prerelease"
     UPDATE="--update"
 fi
 
-github-release $RELEASE *zip --github-repository lnxjedi/gopherbot --tag $TAG --commit $COMMIT $PRERELEASE $UPDATE
+github-release $RELEASE *zip --github-repository lnxjedi/gopherbot --commit $COMMIT --target $BRANCH $PRERELEASE $UPDATE
