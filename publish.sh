@@ -16,13 +16,13 @@ then
     if [[ $RELEASE = *-snapshot ]]
     then
         PRERELEASE="--prerelease"
-        REPLACE="--replace"
+        UPDATE="--update"
     fi
 else
     TAG="$BRANCH-snapshot"
     RELEASE=$TAG
     PRERELEASE="--prerelease"
-    REPLACE="--replace"
+    UPDATE="--update"
 fi
 
-github-release $RELEASE *zip --github-repository lnxjedi/gopherbot --tag $TAG --commit $COMMIT $PRERELEASE $REPLACE
+github-release $RELEASE *zip --github-repository lnxjedi/gopherbot --tag $TAG --commit $COMMIT $PRERELEASE $UPDATE
