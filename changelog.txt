@@ -1,6 +1,7 @@
 === 1.0.0-snapshot ===
 2018-03-11 David Parsley <parsley@linuxjedi.org>
   * Switch to CircleCI after Travis broke
+  * Added missing methods in script libraries
 
 2018-02-28 David Parsley <parsley@linuxjedi.org>
   * Windows config dir search path is now only 'C:\ProgramData\Gopherbot'
