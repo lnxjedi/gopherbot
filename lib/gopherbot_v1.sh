@@ -145,6 +145,10 @@ RememberContext(){
 	return 0
 }
 
+Pause(){
+	sleep $1
+}
+
 Recall(){
 	if [ -z "$1" ]
 	then
