@@ -225,4 +225,4 @@ Gopherbot has a rich set of methods (functions) for interacting with the robot /
 * [Long-term Memory Methods](Long-term-Memory-API.md) - for storing long-term memories (like a TODO list, or user preference)
 * [Short-term Memory Methods](Short-term-Memory-API.md) - for storing short-term memories like conversation context that are stored in memory and expire after a period of time
 * [Security and Elevation Methods](Security-API.md) - for making determinations on privileged commands
-* [Utility Methods](Utility-API.md) - a collection of miscellaneous useful functions, like Pause()
+* [Utility Methods](Utility-API.md) - a collection of miscellaneous useful functions, like Pause() and Log()

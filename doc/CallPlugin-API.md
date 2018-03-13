@@ -17,7 +17,7 @@ then
 fi
 ```
 
-## Powershell
+## PowerShell
 ```powershell
 $status = $bot.CallPlugin("psdemo", @("power"))
 if ( $status -ne "Normal" ) {

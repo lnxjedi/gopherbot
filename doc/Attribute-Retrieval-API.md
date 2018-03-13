@@ -33,7 +33,7 @@ else
 fi
 ```
 
-## Powershell
+## PowerShell
 ```powershell
 $attr = $bot.GetBotAttribute("email")
 if ( $attr.Ret -eq "Ok" ) {

@@ -6,7 +6,7 @@ Table of Contents
   * [Message Formatting](#message-formatting)
   * [Code Examples](#code-examples)
     * [Bash](#bash)
-    * [Powershell](#powershell)
+    * [PowerShell](#powershell)
     * [Python](#python)
     * [Ruby](#ruby)
 
@@ -34,7 +34,7 @@ then
 fi
 ```
 
-## Powershell
+## PowerShell
 ```powershell
 $bot.Say("I'm sending a message to Bob in #general")
 $retval = $bot.SendUserChannelMessage("bob", "general", "Hi, Bob!")
