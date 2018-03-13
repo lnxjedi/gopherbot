@@ -30,21 +30,26 @@ func Log(l LogLevel, v ...interface{}) {
 			msg = fmt.Sprintln(v...)
 		}
 
-		robot.logger.Print(msg)
-		if eventLog != nil {
-			switch l {
-			case Info, Audit:
-				eventLog.Info(1, msg)
-			case Warn:
-				eventLog.Warning(1, msg)
-			case Error:
-				eventLog.Error(1, msg)
+		if l == Fatal {
+			eventLog.Error(1, "Fatal error: "+msg)
+			robot.logger.Fatal(msg)
+		} else {
+			robot.logger.Print(msg)
+			if eventLog != nil {
+				switch l {
+				case Info, Audit:
+					eventLog.Info(1, msg)
+				case Warn:
+					eventLog.Warning(1, msg)
+				case Error:
+					eventLog.Error(1, msg)
+				}
 			}
+			tsMsg := fmt.Sprintf("%s %s", time.Now().Format("Jan 2 15:04:05"), msg)
+			logLock.Lock()
+			logBuffer[logLine] = tsMsg
+			logLine = (logLine + 1) % (buffLines - 1)
+			logLock.Unlock()
 		}
-		tsMsg := fmt.Sprintf("%s %s", time.Now().Format("Jan 2 15:04:05"), msg)
-		logLock.Lock()
-		logBuffer[logLine] = tsMsg
-		logLine = (logLine + 1) % (buffLines - 1)
-		logLock.Unlock()
 	}
 }

@@ -132,6 +132,9 @@ class Robot:
         ret = self.Call("CheckoutDatum", { "Key": key, "RW": rw })
         return Memory(key, ret)
 
+    def Log(self, level, msg):
+        self.Call("Log", { "Level": level, "Message": msg })
+
     def CheckinDatum(self, m):
         self.Call("CheckinDatum", { "Key": m.key, "Token": m.lock_token })
 
