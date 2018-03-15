@@ -267,7 +267,7 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 
 func configure(r *bot.Robot, user string, res *authapi.PreauthResult) (retval bot.PlugRetVal) {
 	if r.Channel != "" {
-		r.Say("Ok, I'll message your directly to get your default configuration")
+		r.Say("Ok, I'll message you directly to get your default configuration")
 	}
 
 	var duoDefConfig duoDefault
