@@ -40,11 +40,12 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	var c config
 
 	err := robot.GetProtocolConfig(&c)
-	if c.MaxMessageSplit == 0 {
-		c.MaxMessageSplit = 1
-	}
 	if err != nil {
 		robot.Log(bot.Fatal, fmt.Errorf("Unable to retrieve protocol configuration: %v", err))
+	}
+
+	if c.MaxMessageSplit == 0 {
+		c.MaxMessageSplit = 1
 	}
 
 	api := slack.New(c.SlackToken)
