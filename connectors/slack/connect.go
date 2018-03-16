@@ -7,8 +7,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/nlopes/slack"
 	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/nlopes/slack"
 )
 
 type config struct {
@@ -24,11 +24,11 @@ var started bool    // set when connector is started
 var bots = make(map[string]string)
 
 func init() {
-	bot.RegisterConnector("slack", Start)
+	bot.RegisterConnector("slack", Initialize)
 }
 
-// Start starts the connector
-func Start(robot bot.Handler, l *log.Logger) bot.Connector {
+// Initialize starts the connection, sets up and returns the connector object
+func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	lock.Lock()
 	if started {
 		lock.Unlock()
@@ -71,7 +71,7 @@ Loop:
 				sc.Log(bot.Debug, "Connection counter:", ev.ConnectionCount)
 				sc.botName = ev.Info.User.Name
 				sc.SetName(sc.botName)
-				sc.Log(bot.Debug, "Set bot name to", sc.botName)
+				sc.Log(bot.Info, "Set bot name to", sc.botName)
 				sc.botID = ev.Info.User.ID
 				sc.Log(bot.Trace, "Set bot ID to", sc.botID)
 				for _, b := range ev.Info.Bots {
