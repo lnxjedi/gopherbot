@@ -7,6 +7,29 @@ import (
 	"time"
 )
 
+/* Technical notes on the waiter implementation
+ - or -
+Why retryPrompt is sent to all waiters, instead of just the head of a queue
+
+After spending a good deal of one morning re-writing waiters as a proper queue,
+I realized the problem with that implementation. Each script plugin is
+posting JSON to a port and waiting for a reply, and most script libraries will
+timeout waiting after no more than a minute (which is why the replyTimeout is
+45 seconds). If we queue up all waiters, and the user doesn't reply to the first
+waiter (or second), then the second waiter in the queue might not get a reply
+for a 90 seconds - by which time the script would crash. To be certain that
+every waiting plugin gets some kind of return value within 60 seconds, we just
+send retryPrompt to all waiters, and let them race to be first.
+
+Realize this isn't as bad as it might seem; the list of waiters is per
+user/channel combination, so this kind of thing only happens if a single user
+is absolutely going crazy with firing off interactive commands in a single
+channel.
+
+The moral of the story: don't bother implementing a queue for reply waiters,
+and think hard before doing things any differently.
+*/
+
 const replyTimeout = 45 * time.Second
 
 type replyDisposition int
