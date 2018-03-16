@@ -220,7 +220,7 @@ end
 Gopherbot has a rich set of methods (functions) for interacting with the robot / user. Here we break down the API into sets of related functions:
 * [Message Sending Methods](Message-Sending-API.md) - for sending messages to the users
 * [Attribute Retrieval Methods](Attribute-Retrieval-API.md) - for retrieving names, email addresses, etc.
-* [Response Request Methods](Reponse-Request-API.md) - for getting replies from the user
+* [Response Request Methods](Response-Request-API.md) - for getting replies from the user
 * [CallPlugin Method](CallPlugin-API.md) - for one plugin to trigger another
 * [Long-term Memory Methods](Long-term-Memory-API.md) - for storing long-term memories (like a TODO list, or user preference)
 * [Short-term Memory Methods](Short-term-Memory-API.md) - for storing short-term memories like conversation context that are stored in memory and expire after a period of time
