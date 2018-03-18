@@ -112,11 +112,20 @@ func Start() {
 	}
 
 	var botLogger *log.Logger
+	logFlags := 0
 	if plainlog {
-		botLogger = log.New(os.Stderr, "", 0)
-	} else {
-		botLogger = log.New(os.Stderr, "", log.LstdFlags)
+		logFlags = log.LstdFlags
 	}
+	logOut := os.Stderr
+	if logFile != "" {
+		lf, err := os.Create(logFile)
+		if err != nil {
+			log.Fatalf("Error creating log file: (%T %v)", err, err)
+		}
+		logOut = lf
+	}
+	botLogger = log.New(logOut, "", logFlags)
+	botLogger.Println("Initialized logging ...")
 
 	// Create the 'bot and load configuration, supplying configdir and installdir.
 	// When loading configuration, gopherbot first loads default configuration

@@ -17,7 +17,6 @@ var started bool
 var isIntSess bool
 var hostName string
 var conn Connector
-var botLogger *log.Logger
 var finish = make(chan struct{})
 
 func init() {
@@ -101,20 +100,24 @@ func Start() {
 		return
 	}
 
-	if isIntSess {
-		botLogger = log.New(os.Stdout, "", log.LstdFlags)
-	} else {
-		if logFile == "" {
-			logFile = "C:/Windows/Temp/gopherbot-startup.log"
-		}
-		var f *os.File
-		f, err = os.Create(logFile)
-		if err != nil {
-			log.Fatal("Unable to open log file")
-		}
-		botLogger = log.New(f, "", log.LstdFlags)
+	var botLogger *log.Logger
+	logFlags := 0
+	if plainlog {
+		logFlags = log.LstdFlags
 	}
-	botLogger.Println("Starting up ...")
+	logOut := os.Stdout
+	if isIntSess && logFile == "" {
+		logFile = "C:/Windows/Temp/gopherbot-startup.log"
+	}
+	if logFile != "" {
+		lf, err := os.Create(logFile)
+		if err != nil {
+			log.Fatalf("Error creating log file: (%T %v)", err, err)
+		}
+		logOut = lf
+	}
+	botLogger = log.New(logOut, "", logFlags)
+	botLogger.Println("Initialized logging ...")
 
 	// Installdir is where the default config and stock external
 	// plugins are. Search some likely locations in case installDir
