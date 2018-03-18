@@ -1,2 +1,4 @@
 - Look up new Bot IDs on the fly if a new bot ID is seen; need to add locking of the bots[] map
 - Re-compile regexes if alias changes during reload; be careful about bot locking
+- Move slack send loop into anon func in Run
+- Fix slack user attribute == user
