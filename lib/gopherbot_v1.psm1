@@ -36,32 +36,13 @@ Enum PlugRet
     ConfigurationError = 4
 }
 
-function enc64([String] $msg) {
-    [OutputType([String])]
-    $b  = [System.Text.Encoding]::UTF8.GetBytes($msg)
-    $enc = [System.Convert]::ToBase64String($b)
-    return "base64:$enc"
-}
-
-function dec64([String] $msg) {
-    [OutputType([String])]
-    [String[]] $parts = $msg.Split(":")
-    if ($parts[0] -eq "base64") {
-        $b  = [System.Convert]::FromBase64String($parts[1])
-        return [System.Text.Encoding]::UTF8.GetString($b)
-    } else {
-        return $msg
-    }
-}
-
 class Attribute {
     # Properties
     [String] $Attr
     [BotRet] $Ret
 
     Attribute([PSCustomObject] $obj) {
-        $a = dec64($obj.Attribute)
-        $this.Attr = $a
+        $this.Attr = $obj.Attribute
         $this.Ret = $obj.RetVal -As [BotRet]
     }
 
@@ -249,10 +230,10 @@ class Robot
         For ($i=0; $i -le 3; $i++) {
             $ret = $this.Call("PromptUserChannelForReply", $funcArgs)
             if ([int]$ret.RetVal -eq "RetryPrompt" ){ continue }
-            $rep = dec64($ret.Reply)
+            $rep = $ret.Reply
             return [Reply]::new($rep, $ret.Ret -As [BotRet])
         }
-        $rep = dec64($ret.Reply)
+        $rep = $ret.Reply
         if ($ret -eq "RetryPrompt" ) {
             return [Reply]::new($rep, [BotRet]("Interrupted"))
         }
@@ -265,7 +246,7 @@ class Robot
     }
 
     [BotRet] SendChannelMessage([String] $channel, [String] $msg, [String] $format="variable") {
-        $funcArgs = [PSCustomObject]@{ Channel=$channel; Message=enc64($msg) }
+        $funcArgs = [PSCustomObject]@{ Channel=$channel; Message=$msg }
         return $this.Call("SendChannelMessage", $funcArgs, $format).RetVal -As [BotRet]
     }
 
@@ -274,7 +255,7 @@ class Robot
     }
 
     [BotRet] SendUserMessage([String] $user, [String] $msg, [String] $format="variable") {
-        $funcArgs = [PSCustomObject]@{ User=$user; Message=enc64($msg) }
+        $funcArgs = [PSCustomObject]@{ User=$user; Message=$msg }
         return $this.Call("SendUserMessage", $funcArgs, $format).RetVal -As [BotRet]
     }
 
@@ -283,7 +264,7 @@ class Robot
     }
 
     [BotRet] SendUserChannelMessage([String] $user, [String] $channel, [String] $msg, [String] $format="variable") {
-        $funcArgs = [PSCustomObject]@{ User=$user; Channel=$channel; Message=enc64($msg) }
+        $funcArgs = [PSCustomObject]@{ User=$user; Channel=$channel; Message=$msg }
         return $this.Call("SendUserChannelMessage", $funcArgs, $format).RetVal -As [BotRet]
     }
 
