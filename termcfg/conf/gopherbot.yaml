@@ -121,9 +121,7 @@ ProtocolConfig:
 # Specify the mechanism for storing the robots memories. Currently only a
 # simple file-based brain is available. Be sure that
 # <local config dir>/brain is writable by the user the robot runs as.
-Brain: file
-BrainConfig:
-  BrainDirectory: brain
+Brain: mem
 
 # Use Google Authenticator TOTP by default for elevated commands. To use:
 # - Ask the robot to 'send launch codes', and it will send you (one time)

@@ -11,6 +11,7 @@ import (
 	// If re-compiling, you can comment out unused brain implementations.
 	// Select the brain to use and provide configuration in conf/gopherbot.yaml
 	_ "github.com/lnxjedi/gopherbot/brains/file"
+	_ "github.com/lnxjedi/gopherbot/brains/mem"
 
 	// If re-compiling, you can comment out unused elevator implementations,
 	// otherwise you can disable them in conf/plugins/<plugin>.json with
