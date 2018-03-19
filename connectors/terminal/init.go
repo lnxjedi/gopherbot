@@ -48,8 +48,15 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	if err != nil {
 		robot.Log(bot.Fatal, fmt.Errorf("Unable to retrieve protocol configuration: %v", err))
 	}
+	found := false
 	for i, u := range c.Users {
 		userMap[u.Name] = i
+		if c.StartUser == u.Name {
+			found = true
+		}
+	}
+	if !found {
+		robot.Log(bot.Fatal, "Start user \"%s\" not listed in Users array")
 	}
 
 	tc := &termConnector{
