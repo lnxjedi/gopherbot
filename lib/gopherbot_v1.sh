@@ -127,7 +127,7 @@ Remember(){
 	local GB_FUNCARGS=$(cat <<EOF
 {
 	"Key": "$1",
-	"Value": "$R_MEMORY"
+	"Value": "$R_MEMORY",
 	"Base64" : "true"
 }
 EOF
@@ -246,7 +246,7 @@ Log(){
 	GB_FUNCARGS=$(cat <<EOF
 {
 	"Level": "$GLM_LEVEL",
-	"Message": "$GLM_MESSAGE"
+	"Message": "$GLM_MESSAGE",
 	"Base64" : "true"
 }
 EOF
@@ -267,7 +267,7 @@ PromptUserChannelForReply(){
 	"RegexID": "$REGEX",
 	"User": "$PUSER",
 	"Channel": "$PCHANNEL",
-	"Prompt": "$PROMPT"
+	"Prompt": "$PROMPT",
 	"Base64" : "true"
 }
 EOF
@@ -320,7 +320,7 @@ SendUserMessage(){
 	GB_FUNCARGS=$(cat <<EOF
 {
 	"User": "$SUM_USER",
-	"Message": "$MESSAGE"
+	"Message": "$MESSAGE",
 	"Base64" : "true"
 }
 EOF
@@ -343,7 +343,7 @@ SendUserChannelMessage(){
 {
 	"User": "$SUCM_USER",
 	"Channel": "$SUCM_CHANNEL",
-	"Message": "$MESSAGE"
+	"Message": "$MESSAGE",
 	"Base64" : "true"
 }
 EOF
@@ -364,7 +364,7 @@ SendChannelMessage(){
 	GB_FUNCARGS=$(cat <<EOF
 {
 	"Channel": "$SCM_CHANNEL",
-	"Message": "$MESSAGE"
+	"Message": "$MESSAGE",
 	"Base64" : "true"
 }
 EOF
