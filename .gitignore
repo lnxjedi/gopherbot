@@ -4,6 +4,7 @@ gopherbot*zip
 bot/commit.go
 lib/gopherbot_*.pyc
 gopherbot.yaml
+!termcfg/conf/gopherbot.yaml
 duo.yaml
 totp.yaml
 .publish

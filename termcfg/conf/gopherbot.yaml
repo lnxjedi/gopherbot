@@ -1,0 +1,141 @@
+# This is a sample configuration file for Gopherbot. For a "standard" install:
+# - This file should be copied to gopherbot.yaml in the install directory, and
+#   modified to include a Slack token, email credentials, and any other
+#   credential or other information specific to this instance of the robot.
+#   This would normally be done by a configuration managment tool such as
+#   Ansible or Puppet, using information specific to the server instance (e.g.
+#   dev / prod servers).
+# - A copy of this file should be placed in
+#   <local config dir>/conf/gopherbot.yaml, specifying plugin names and paths,
+#   and any configuration such as AdminUsers, AdminContact, etc. that is
+#   common to dev / prod robot instances. Together with locally-developed
+#   plugins in the plugins/ directory, the local config directory would normally
+#   be stored in a git repository.
+#
+# Note that the above are just guidelines and not hard-and-fast rules, but
+# should give you an idea of how Gopherbot was designed, and why.
+
+# The administrator of this robot, can be retrieved in plugins with
+# GetBotAttribute("admin")
+AdminContact: "David Parsley, <parsley@linuxjedi.org>"
+
+# If a plugin doesn't specify otherwise it will be active in these channels;
+# defaults to all channels
+DefaultChannels: [ "general", "random" ]
+
+# Users the bot should never listen to
+#IgnoreUsers: [ "otherbot", "slackbot" ]
+
+# Note: Bot users in Slack can't join channels; this is put here for use with
+# future connectors supporting it.
+JoinChannels: [ "random", "general", "bottest" ]
+
+# List of users that can issue admin commands like reload, quit. Should be
+# a list of user handles / nicks.
+AdminUsers: [ "alice" ]
+
+# One-character alias the bot can be called by. Note: not all single characters
+# are supported. If your robot doesn't respond to e.g. ";ping", try changing
+# the Alias to something other than ";". Popular alternatives: ":", "!", "*".
+Alias: ";"
+
+# Port to listen on for http/JSON api calls, for external plugins
+LocalPort: 8888
+
+# Initial log level, one of trace, debug, info, warn, error. See 'help log'
+# for help on changing the log level and viewing contents of the log.
+LogLevel: trace
+
+# List of external plugins to configure; generally scripts using a gopherbot
+# script library. The robot will look for plugins in the installation directory
+# first, then the local config directory.
+ExternalPlugins:
+- Name: bashdemo
+  Path: plugins/bashdemo
+- Name: pythondemo
+  Path: plugins/pythondemo.py
+- Name: rubydemo
+  Path: plugins/rubydemo
+
+# Specification of which connection protocol (currently only Slack supported)
+# and any associated configuration.
+# MaxMessageSplit specifies the maximum number of messages to break a message
+# into when it's too long (>4000 char)
+Protocol: term
+ProtocolConfig:
+  StartChannel: general
+  StartUser: alice
+  BotName: floyd
+  BotFullName: Floyd Gopherbot
+  Users:
+  - Name: "alice"
+    Email: "alice@example.com"
+    InternalID: "u0001"
+    FullName: "Alice User"
+    FirstName: "Alice"
+    LastName: "User"
+    Phone: "(555)765-0001"
+  - Name: "bob"
+    Email: "bob@example.com"
+    InternalID: "u0002"
+    FullName: "Bob User"
+    FirstName: "Robert"
+    LastName: "User"
+    Phone: "(555)765-0002"
+  - Name: "Carol"
+    Email: "@example.com"
+    InternalID: "u0003"
+    FullName: "Carol User"
+    FirstName: "Carol"
+    LastName: "User"
+    Phone: "(555)765-0003"
+  - Name: "David"
+    Email: "david@example.com"
+    InternalID: "u0004"
+    FullName: "David User"
+    FirstName: "David"
+    LastName: "User"
+    Phone: "(555)765-0004"
+  - Name: "Erin"
+    Email: "erin@example.com"
+    InternalID: "u0005"
+    FullName: "Erin User"
+    FirstName: "Erin"
+    LastName: "User"
+    Phone: "(555)765-0005"
+  # - Name: ""
+  #   Email: "@example.com"
+  #   InternalID: "u0001"
+  #   FullName: " User"
+  #   FirstName: ""
+  #   LastName: "User"
+  #   Phone: "(555)765-0001"
+
+# The robot's email address (used in From:)
+#Email: robbie@robot.com
+# Configuration for sending out email. For Authtype: none, User and Password
+# can be left out. Note that sending email will fail if Email isn't set.
+#MailConfig:
+#  Mailhost: <somehost:port>
+#  Authtype: <plain|none>
+#  User: <authuser>
+#  Password: <password>
+
+# Specify the mechanism for storing the robots memories. Currently only a
+# simple file-based brain is available. Be sure that
+# <local config dir>/brain is writable by the user the robot runs as.
+Brain: file
+BrainConfig:
+  BrainDirectory: brain
+
+# Use Google Authenticator TOTP by default for elevated commands. To use:
+# - Ask the robot to 'send launch codes', and it will send you (one time)
+#   a string for configuring your Google Authencticator app, and store it's
+#   own copy in the robot's brain. You can verify it works with the
+#   'check launch code <code>' command.
+# - To require a token to be provided before running a given plugin command,
+#   add the elevated command(s) to the plugin's ElevatedCommands list, or to
+#   ElevateImmediateCommands for commands that require elevation every time
+#   regardless of timeout.
+# - Configure the elevator by overriding the config for the plugin
+DefaultElevator: totp
