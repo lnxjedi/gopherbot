@@ -31,7 +31,9 @@ func Log(l LogLevel, v ...interface{}) {
 		}
 
 		if l == Fatal {
-			eventLog.Error(1, "Fatal error: "+msg)
+			if eventLog != nil {
+				eventLog.Error(1, "Fatal error: "+msg)
+			}
 			robot.logger.Fatal(msg)
 		} else {
 			robot.logger.Print(msg)
