@@ -128,7 +128,7 @@ Remember(){
 {
 	"Key": "$1",
 	"Value": "$R_MEMORY",
-	"Base64" : "true"
+	"Base64" : true
 }
 EOF
 )
@@ -247,7 +247,7 @@ Log(){
 {
 	"Level": "$GLM_LEVEL",
 	"Message": "$GLM_MESSAGE",
-	"Base64" : "true"
+	"Base64" : true
 }
 EOF
 )
@@ -268,7 +268,7 @@ PromptUserChannelForReply(){
 	"User": "$PUSER",
 	"Channel": "$PCHANNEL",
 	"Prompt": "$PROMPT",
-	"Base64" : "true"
+	"Base64" : true
 }
 EOF
 )
@@ -321,7 +321,7 @@ SendUserMessage(){
 {
 	"User": "$SUM_USER",
 	"Message": "$MESSAGE",
-	"Base64" : "true"
+	"Base64" : true
 }
 EOF
 )
@@ -344,7 +344,7 @@ SendUserChannelMessage(){
 	"User": "$SUCM_USER",
 	"Channel": "$SUCM_CHANNEL",
 	"Message": "$MESSAGE",
-	"Base64" : "true"
+	"Base64" : true
 }
 EOF
 )
@@ -365,7 +365,7 @@ SendChannelMessage(){
 {
 	"Channel": "$SCM_CHANNEL",
 	"Message": "$MESSAGE",
-	"Base64" : "true"
+	"Base64" : true
 }
 EOF
 )
