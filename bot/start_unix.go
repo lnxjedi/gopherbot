@@ -124,6 +124,7 @@ func Start() {
 		}
 		logOut = lf
 	}
+	log.SetOutput(logOut)
 	botLogger = log.New(logOut, "", logFlags)
 	botLogger.Println("Initialized logging ...")
 

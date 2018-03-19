@@ -101,10 +101,6 @@ func Start() {
 	}
 
 	var botLogger *log.Logger
-	logFlags := 0
-	if plainlog {
-		logFlags = log.LstdFlags
-	}
 	logOut := os.Stdout
 	if isIntSess && logFile == "" {
 		logFile = "C:/Windows/Temp/gopherbot-startup.log"
@@ -116,7 +112,8 @@ func Start() {
 		}
 		logOut = lf
 	}
-	botLogger = log.New(logOut, "", logFlags)
+	log.SetOutput(logOut)
+	botLogger = log.New(logOut, "", log.LstdFlags)
 	botLogger.Println("Initialized logging ...")
 
 	// Installdir is where the default config and stock external
