@@ -57,10 +57,7 @@ ExternalPlugins:
 - Name: rubydemo
   Path: plugins/rubydemo
 
-# Specification of which connection protocol (currently only Slack supported)
-# and any associated configuration.
-# MaxMessageSplit specifies the maximum number of messages to break a message
-# into when it's too long (>4000 char)
+# Configuration for the "term" connector, for local dev and testing.
 Protocol: term
 ProtocolConfig:
   StartChannel: general
