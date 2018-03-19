@@ -19,7 +19,11 @@ jobs:
       - run: go get -v -t -d ./...
 
       # Build
-      - run: ./mkdist.sh
+      - run:
+          name: Build platform-specific zip archives
+          command: ./mkdist.sh
 
       # Publish
-      - deploy: ./publish.sh
+      - deploy:
+          name: Publish archives to Github
+          command: ./publish.sh
