@@ -34,10 +34,10 @@ PLUGRET_Fail=2
 PLUGRET_MechanismFail=3
 PLUGRET_ConfigurationError=4
 
-gb_json_encode(){
+base64_encode(){
 	local MESSAGE
 	MESSAGE=$(echo "$@" | base64)
-	MESSAGE=$(echo "base64:$MESSAGE")
+	MESSAGE=$(echo "$MESSAGE")
 	echo "$MESSAGE"
 }
 
@@ -81,12 +81,10 @@ gbBotRet() {
 	return $RETVAL
 }
 
-gbDecode() {
+gbExtract() {
 	local JSON="$1"
 	local ITEM="$2"
-	local B64DATA=$(echo "$JSON" | jq -r .$ITEM)
-	B64DATA=${B64DATA#base64:}
-	echo "$B64DATA" | base64 -d
+	echo "$JSON" | jq -r .$ITEM
 }
 
 CheckAdmin(){
@@ -125,10 +123,12 @@ Remember(){
 		return 1
 	fi
 	local GB_FUNCNAME="Remember"
+	local R_MEMORY=$(base64_encode "$2")
 	local GB_FUNCARGS=$(cat <<EOF
 {
 	"Key": "$1",
-	"Value": "$2"
+	"Value": "$R_MEMORY"
+	"Base64" : "true"
 }
 EOF
 )
@@ -202,7 +202,7 @@ GetBotAttribute(){
 EOF
 )
 	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
-	gbDecode "$GB_RET" Attribute
+	gbExtract "$GB_RET" Attribute
 	gbBotRet "$GB_RET"
 }
 
@@ -217,7 +217,7 @@ GetSenderAttribute(){
 EOF
 )
 	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
-	gbDecode "$GB_RET" Attribute
+	gbExtract "$GB_RET" Attribute
 	gbBotRet "$GB_RET"
 }
 
@@ -234,7 +234,7 @@ GetUserAttribute(){
 EOF
 )
 	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
-	gbDecode "$GB_RET" Attribute
+	gbExtract "$GB_RET" Attribute
 	gbBotRet "$GB_RET"
 }
 
@@ -242,11 +242,12 @@ Log(){
 	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="Log"
 	local GLM_LEVEL="$1"
-	local GLM_MESSAGE="$2"
+	local GLM_MESSAGE=$(base64_encode "$2")
 	GB_FUNCARGS=$(cat <<EOF
 {
 	"Level": "$GLM_LEVEL",
 	"Message": "$GLM_MESSAGE"
+	"Base64" : "true"
 }
 EOF
 )
@@ -260,13 +261,14 @@ PromptUserChannelForReply(){
 	local REGEX="$1"
 	local PUSER="$2"
 	local PCHANNEL="$3"
-	local PROMPT="$4"
+	local PROMPT=$(base64_encode "$4")
 	GB_FUNCARGS=$(cat <<EOF
 {
 	"RegexID": "$REGEX",
 	"User": "$PUSER",
 	"Channel": "$PCHANNEL",
 	"Prompt": "$PROMPT"
+	"Base64" : "true"
 }
 EOF
 )
@@ -280,7 +282,7 @@ EOF
 		then
 			continue
 		fi
-		gbDecode "$GB_RET" Reply
+		gbExtract "$GB_RET" Reply
 		return $RETVAL
 	done
 	gbBotRet "$GB_RET"
@@ -296,14 +298,14 @@ EOF
 PromptForReply(){
 	local REGEX=$1
 	shift
-	PromptUserChannelForReply "$REGEX" "$GOPHER_USER" "$GOPHER_CHANNEL" "$@"
+	PromptUserChannelForReply "$REGEX" "$GOPHER_USER" "$GOPHER_CHANNEL" "$*"
 }
 
 PromptUserForReply(){
 	local REGEX=$1
 	local PUSER=$2
 	shift 2
-	PromptUserChannelForReply "$REGEX" "$PUSER" "" "$@"
+	PromptUserChannelForReply "$REGEX" "$PUSER" "" "$*"
 }
 
 SendUserMessage(){
@@ -313,12 +315,13 @@ SendUserMessage(){
 	local SUM_USER=$1
 	shift
 	MESSAGE="$*"
-	MESSAGE=$(gb_json_encode "$MESSAGE")
+	MESSAGE=$(base64_encode "$MESSAGE")
 
 	GB_FUNCARGS=$(cat <<EOF
 {
 	"User": "$SUM_USER",
 	"Message": "$MESSAGE"
+	"Base64" : "true"
 }
 EOF
 )
@@ -334,13 +337,14 @@ SendUserChannelMessage(){
 	local SUCM_CHANNEL=$2
 	shift 2
 	MESSAGE="$*"
-	MESSAGE=$(gb_json_encode "$MESSAGE")
+	MESSAGE=$(base64_encode "$MESSAGE")
 
 	GB_FUNCARGS=$(cat <<EOF
 {
 	"User": "$SUCM_USER",
 	"Channel": "$SUCM_CHANNEL",
 	"Message": "$MESSAGE"
+	"Base64" : "true"
 }
 EOF
 )
@@ -355,12 +359,13 @@ SendChannelMessage(){
 	local SCM_CHANNEL=$1
 	shift
 	MESSAGE="$*"
-	MESSAGE=$(gb_json_encode "$MESSAGE")
+	MESSAGE=$(base64_encode "$MESSAGE")
 
 	GB_FUNCARGS=$(cat <<EOF
 {
 	"Channel": "$SCM_CHANNEL",
 	"Message": "$MESSAGE"
+	"Base64" : "true"
 }
 EOF
 )
