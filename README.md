@@ -27,7 +27,7 @@ Gopherbot is stable in production in my environment. Currently lacking:
 * Brain implementations other than simple local files (e.g. redis)
 
 ### Contributing
-Check out [Github's own documentation](https://help.github.com/articles/fork-a-repo/) on forking and creating pull requests. It's fun! Everybody is doing it!
+Check out [Github's documentation](https://help.github.com/articles/fork-a-repo/) on forking and creating pull requests. It's fun! Everybody is doing it!
 
 ## Documentation
 * [Quick Start - Linux and Mac](doc/Quick-Start-Linux-Mac.md)
