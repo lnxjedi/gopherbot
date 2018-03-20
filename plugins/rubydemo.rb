@@ -42,7 +42,7 @@ CommandMatchers:
 - Regex: (?i:remember ([-\w .,!?:\/]+))
   Command: remember
   Contexts: [ "item" ]
-- Regex: (?i:(?:recall|memories))
+- Regex: (?i:recall ?([\d]+)?)
   Command: recall
 - Regex: (?i:forget ([\d]{1,2}))
   Command: forget
@@ -60,77 +60,88 @@ command = ARGV.shift()
 
 case command
 when "configure"
-	puts defaultConfig
-	exit
+  puts defaultConfig
+  exit
 when "bashecho"
-	status = bot.CallPlugin("echo", "echo", ARGV[0])
+  status = bot.CallPlugin("echo", "echo", ARGV[0])
   if status != Robot::Normal
     bot.Say("Sorry, there was a problem calling the echo plugin, status: #{status}")
   end
 when "ruby"
-	bot.Say("Sure, #{bot.GetSenderAttribute("firstName")}!")
-	sleep 1.5
-	bot.Say(bot.RandomString(bot.GetPluginConfig()["Replies"]))
+  bot.Say("Sure, #{bot.GetSenderAttribute("firstName")}!")
+  sleep 1.5
+  bot.Say(bot.RandomString(bot.GetPluginConfig()["Replies"]))
 when "listen"
-	dbot = bot.Direct()
-	rep = dbot.PromptForReply("SimpleString", "Ok, what do you want to tell me?")
-	if rep.ret == Robot::Ok
-		dbot.Say("I hear what you're saying - '#{rep}'")
-	else
-		bot.Say("I'm sorry, I'm not sure what you're trying to tell me - did you put funny characters in your reply?")
-	end
+  dbot = bot.Direct()
+  rep = dbot.PromptForReply("SimpleString", "Ok, what do you want to tell me?")
+  if rep.ret == Robot::Ok
+    dbot.Say("I hear what you're saying - '#{rep}'")
+  else
+    bot.Say("I'm sorry, I'm not sure what you're trying to tell me - did you put funny characters in your reply?")
+  end
 when "remember"
-	thing = ARGV[0]
-	bot.Say("Ok, I'll remember \"#{thing}\"")
-	memory = bot.CheckoutDatum("memory", true)
-	if memory.exists
-		memory.datum.push(thing)
-	else
-		memory.datum = [ thing ]
-	end
-	ret = bot.UpdateDatum(memory)
-	if ret != Robot::Ok
-		bot.Say("Dang it, having problems with my memory")
-	end
+  thing = ARGV[0]
+  bot.Say("Ok, I'll remember \"#{thing}\"")
+  memory = bot.CheckoutDatum("memory", true)
+  if memory.exists
+    memory.datum.push(thing)
+  else
+    memory.datum = [ thing ]
+  end
+  ret = bot.UpdateDatum(memory)
+  if ret != Robot::Ok
+    bot.Say("Dang it, having problems with my memory")
+  end
 when "recall"
-	memory = bot.CheckoutDatum("memory", false)
-	if memory.exists
-		reply = "Here's what I remember:\n"
-		memory.datum.each_index { |i|
-			index = i + 1
-			reply += index.to_s + ": " + memory.datum[i] + "\n"
-		}
-		bot.CheckinDatum(memory)
-		bot.Say(reply)
-	else
-		bot.Say("I'm a blank slate - I don't remember anything!")
-	end
+  memory = bot.CheckoutDatum("memory", false)
+  if memory.exists
+    if ARGV[0].length > 0
+      mnum = ARGV[0].to_i - 1
+      if mnum < 0
+        bot.Say("I can't make out what you want me to remember")
+      elsif mnum >= memory.datum.length()
+        bot.Say("I don't remember that many things!")
+      else
+        bot.Say(memory.datum[mnum])
+      end
+    else
+      reply = "Here's what I remember:\n"
+      memory.datum.each_index { |i|
+        index = i + 1
+        reply += index.to_s + ": " + memory.datum[i] + "\n"
+      }
+      bot.CheckinDatum(memory)
+      bot.Say(reply)
+    end
+  else
+    bot.Say("Sorry - I don't remember anything!")
+  end
 when "forget"
-	i = ARGV[0].to_i - 1
-	memory = bot.CheckoutDatum("memory", true)
-	memories = memory.datum
-	if i >= 0 && memories[i]
-		bot.Say("Ok, I'll forget \"#{memories[i]}\"")
-		memories.delete_at(i)
-		bot.UpdateDatum(memory)
-	else
+  i = ARGV[0].to_i - 1
+  memory = bot.CheckoutDatum("memory", true)
+  memories = memory.datum
+  if i >= 0 && memories[i]
+    bot.Say("Ok, I'll forget \"#{memories[i]}\"")
+    memories.delete_at(i)
+    bot.UpdateDatum(memory)
+  else
     bot.CheckinDatum(memory)
-		bot.Say("Gosh, I guess I never remembered that in the first place!")
-	end
+    bot.Say("Gosh, I guess I never remembered that in the first place!")
+  end
 when "check"
-	isAdmin = bot.CheckAdmin()
-	if isAdmin
-		bot.Say("Ok, it looks like you're an administrator")
-	else
-		bot.Say("Well, you're not an administrator")
-	end
-	bot.Pause(1)
-	bot.Say("Now I'll request elevation...")
-	success = bot.Elevate(true)
-	if success
-		bot.Say("Everything looks good, mac!")
-	else
-		bot.Say("You failed to elevate, homie, I'm calling the cops!")
-	end
-	bot.Log("info", "Checked out #{bot.user}, admin: #{isAdmin.to_s}, elavate check: #{success.to_s}")
+  isAdmin = bot.CheckAdmin()
+  if isAdmin
+    bot.Say("Ok, it looks like you're an administrator")
+  else
+    bot.Say("Well, you're not an administrator")
+  end
+  bot.Pause(1)
+  bot.Say("Now I'll request elevation...")
+  success = bot.Elevate(true)
+  if success
+    bot.Say("Everything looks good, mac!")
+  else
+    bot.Say("You failed to elevate, homie, I'm calling the cops!")
+  end
+  bot.Log("info", "Checked out #{bot.user}, admin: #{isAdmin.to_s}, elavate check: #{success.to_s}")
 end
