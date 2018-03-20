@@ -26,24 +26,23 @@ require 'json'
 #ExternalPlugins:
 #- Name: weather
 #  Path: plugins/weather.rb
-# 3) Put your required configuration in conf/plugins/weather.yaml:
+# 3) Put your configuration in conf/plugins/weather.yaml:
 #Config:
 #  APIKey: <your openweathermap key>
 #  TemperatureUnits: imperial # or 'metric'
-#  Country: 'us' # or other ISO 3166 country code
+#  DefaultCountry: 'us' # or other ISO 3166 country code
 
 # load the Gopherbot ruby library and instantiate the bot
 require ENV["GOPHER_INSTALLDIR"] + '/lib/gopherbot_v1'
 bot = Robot.new()
 
 defaultConfig = <<'DEFCONFIG'
----
 Help:
 - Keywords: [ "weather" ]
-  Helptext: [ "(bot), weather in <city or zip code> - fetch the weather from OpenWeatherMap" ]
+  Helptext: [ "(bot), weather in <city(,country) or zip code> - fetch the weather from OpenWeatherMap" ]
 CommandMatchers:
 - Command: weather
-  Regex: '(?i:weather (?:in|for) ([\w .]+))'
+  Regex: '(?i:weather (?:in|for) (.+))'
 DEFCONFIG
 
 command = ARGV.shift()
@@ -53,9 +52,10 @@ when "configure"
 	puts defaultConfig
 	exit
 when "weather"
-    location = ARGV.shift()
     c = bot.GetPluginConfig()
-    uri = URI("http://api.openweathermap.org/data/2.5/weather?q=#{location},#{c["Country"]}&units=#{c["TemperatureUnits"]}&APPID=#{c["APIKey"]}")
+    location = ARGV.shift()
+    location += ",#{c["DefaultCountry"]}" unless location.include?(',')
+    uri = URI("http://api.openweathermap.org/data/2.5/weather?q=#{location}&units=#{c["TemperatureUnits"]}&APPID=#{c["APIKey"]}")
     d = JSON::parse(Net::HTTP.get(uri))
     if d["message"]
         bot.Say("Sorry: \"#{d["message"]}\", maybe try the zip code?")
