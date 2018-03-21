@@ -10,7 +10,7 @@ Enterprise Slack(\*) ChatOps bot for Linux and Windows, supporting plugins in Py
 (*) with a modular interface for writing other protocol connectors in Go
 
 A few of Gopherbot's features:
-* Built-in support for elevated commands requiring MFA (ala 'sudo')
+* Built-in support for [elevated commands](doc/Security-Overview.md#elevation) requiring MFA (ala 'sudo')
 * A prompting API for interactive plugins
 * Comprehensive set of administrative commands
 * Simple single-file script plugins
@@ -68,7 +68,7 @@ when "weather"
 end
 ```
 
-The goal is for Gopherbot to support multiple scripting languages with built-in security features, to make ChatOps functions easy to write for most systems and DevOps engineers.
+The goal is for Gopherbot to support multiple scripting languages with built-in security features, to make secure ChatOps functions easy to write for most Systems and DevOps engineers.
 
 Examples of work Gopherbot is already doing:
 * Building, backing up, restoring, stopping and starting instances in the AWS cloud
