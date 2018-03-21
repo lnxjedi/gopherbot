@@ -1,62 +1,64 @@
-# This is a sample configuration file for Gopherbot.
-# For a quick-n-dirty install:
+## This is a sample configuration file for Gopherbot.
+## For a quick-n-dirty install:
 
-# 1. Obtain a 'bot token from https://<your-team>.slack.com/services/new/bot
-# 2. Copy this file to 'gopherbot.yaml' and edit, adding your slack token
-# 3. Run the bot with './gopherbot' (or './gopherbot.exe' on Windows)
+## 1. Obtain a 'bot token from https://<your-team>.slack.com/services/new/bot
+## 2. Copy this file to 'gopherbot.yaml' and edit, adding your slack token
+## 3. Run the bot with './gopherbot' (or './gopherbot.exe' on Windows)
 
-# For a "standard" install:
-# - This file should be copied to gopherbot.yaml in the install directory, and
-#   modified to include a Slack token, email credentials, and any other
-#   credential or other information specific to this instance of the robot.
-#   This would normally be done by a configuration managment tool such as
-#   Ansible or Puppet, using information specific to the server instance (e.g.
-#   dev / prod servers).
-# - A copy of this file should be placed in
-#   <local config dir>/conf/gopherbot.yaml, specifying plugin names and paths,
-#   and any configuration such as AdminUsers, AdminContact, etc. that is
-#   common to dev / prod robot instances. Together with locally-developed
-#   plugins in the plugins/ directory, the local config directory would normally
-#   be stored in a git repository.
-#
-# Note that the above are just guidelines and not hard-and-fast rules, but
-# should give you an idea of how Gopherbot was designed, and why.
+## For a "standard" install:
+## - This file should be copied to gopherbot.yaml in the install directory, and
+##   modified to include a Slack token, email credentials, and any other
+##   credential or other information specific to this instance of the robot.
+##   This would normally be done by a configuration managment tool such as
+##   Ansible or Puppet, using information specific to the server instance (e.g.
+##   dev / prod servers).
+## - A copy of this file should be placed in
+##   <local config dir>/conf/gopherbot.yaml, specifying plugin names and paths,
+##   and any configuration such as AdminUsers, AdminContact, etc. that is
+##   common to dev / prod robot instances. Together with locally-developed
+##   plugins in the plugins/ directory, the local config directory would normally
+##   be stored in a git repository.
 
-# The administrator of this robot, can be retrieved in plugins with
-# GetBotAttribute("admin")
+## Note that the above are just guidelines and not hard-and-fast rules, but
+## should give you an idea of how Gopherbot was designed, and why.
+
+## The administrator of this robot, can be retrieved in plugins with
+## GetBotAttribute("admin")
 #AdminContact: "Joe Devops, <joe@supercooldomain.com>"
 
-# If a plugin doesn't specify otherwise it will be active in these channels;
-# defaults to all channels
+## If a plugin doesn't specify otherwise it will be active in these channels;
+## defaults to no channels.
 #DefaultChannels: [ "general", "random" ]
 
-# Users the bot should never listen to
+## Users the bot should never listen to
 #IgnoreUsers: [ "otherbot", "slackbot" ]
 
-# Note: Bot users in Slack can't join channels; this is put here for use with
-# future connectors supporting it.
+## Note: Bot users in Slack can't join channels; this is put here for use with
+## connectors that support it, such as the 'terminal' connector.
 #JoinChannels: [ "random", "general" ]
 
-# List of users that can issue admin commands like reload, quit. Should be
-# a list of user handles / nicks.
+## List of users that can issue admin commands like reload, quit. Should be
+## a list of user handles / nicks.
 #AdminUsers: [ "bill", "frank" ]
 
-# One-character alias the bot can be called by. Note: not all single characters
-# are supported. If your robot doesn't respond to e.g. ";ping", try changing
-# the Alias to something other than ";". Popular alternatives: ":", "!", "*".
+## One-character alias the bot can be called by. Note: not all single characters
+## are supported. If your robot doesn't respond to e.g. ";ping", try changing
+## the Alias to something other than ";". Popular alternatives: ":", "!", "*".
 #Alias: ";"
 
-# Port to listen on for http/JSON api calls, for external plugins
+## Port to listen on for http/JSON api calls, for external plugins
 LocalPort: 8880
 
-# Initial log level, one of trace, debug, info, warn, error. See 'help log'
-# for help on changing the log level and viewing contents of the log.
+## Initial log level, one of trace, debug, info, warn, error. See 'help log'
+## for help on changing the log level and viewing contents of the log.
 LogLevel: info
 
-# List of external plugins to configure; generally scripts using a gopherbot
-# script library. The robot will look for plugins in the installation directory
-# first, then the local config directory.
+## List of external plugins to enable; generally scripts using a gopherbot
+## script library. The robot will look for plugins in the local config directory
+## first (if it exists), then the installation directory.
 #ExternalPlugins:
+#- Name: weather
+#  Path: plugins/weather.rb
 #- Name: hosts
 #  Path: plugins/hosts.sh
 #- Name: echo
@@ -66,42 +68,46 @@ LogLevel: info
 #- Name: psdemo
 #  Path: plugins/psdemo.ps1
 #- Name: rubydemo
-#  Path: plugins/rubydemo
+#  Path: plugins/rubydemo.rb
+#- Name: pythondemo
+#  Path: plugins/pythondemo.py
 
-# Specification of which connection protocol (currently only Slack supported)
-# and any associated configuration.
-# MaxMessageSplit specifies the maximum number of messages to break a message
-# into when it's too long (>4000 char)
+## Specification of which connection protocol ('slack' or 'term'; see 'termcfg/')
+## and any associated configuration.
+## MaxMessageSplit specifies the maximum number of messages to break a message
+## into when it's too long (>4000 char)
 #Protocol: slack
 #ProtocolConfig:
 #  SlackToken: "<your_token_here>"
 #  MaxMessageSplit: 2
 
-# The robot's email address (used in From:)
+## The robot's email address (used in From:)
 #Email: robbie@robot.com
-# Configuration for sending out email. For Authtype: none, User and Password
-# can be left out. Note that sending email will fail if Email isn't set.
+## Configuration for sending out email. For Authtype: none, User and Password
+## can be left out. Note that sending email will fail if Email isn't set.
 #MailConfig:
 #  Mailhost: <somehost:port>
 #  Authtype: <plain|none>
 #  User: <authuser>
 #  Password: <password>
 
-# Specify the mechanism for storing the robots memories. Currently only a
-# simple file-based brain is available. Be sure that
-# <local config dir>/brain is writable by the user the robot runs as.
+## Specify the mechanism for storing the robots memories. Currently only a
+## simple file-based brain is available for long-term memories. Be sure that
+## '/brain' in the local config or install dir is writable by the user the robot
+## runs as.
 Brain: file
 BrainConfig:
   BrainDirectory: brain
 
-# Use Google Authenticator TOTP by default for elevated commands. To use:
-# - Ask the robot to 'send launch codes', and it will send you (one time)
-#   a string for configuring your Google Authencticator app, and store it's
-#   own copy in the robot's brain. You can verify it works with the
-#   'check launch code <code>' command.
-# - To require a token to be provided before running a given plugin command,
-#   add the elevated command(s) to the plugin's ElevatedCommands list, or to
-#   ElevateImmediateCommands for commands that require elevation every time
-#   regardless of timeout.
-# - Configure the elevator by overriding the config for the plugin
+## Use Google Authenticator TOTP by default for elevated commands. To use:
+## - Ask the robot to 'send launch codes', and it will send you (one time)
+##   a string for configuring your Google Authencticator app, and store it's
+##   own copy in the robot's brain. You can verify it works with the
+##   'check launch code <code>' command.
+## - To require a token to be provided before running a given plugin command,
+##   add the elevated command(s) to the plugin's ElevatedCommands list, or to
+##   ElevateImmediateCommands for commands that require elevation every time
+##   regardless of timeout.
+## - Configure the elevator by overriding the config for the plugin in
+##   'conf/plugins/totp.yaml'
 DefaultElevator: totp

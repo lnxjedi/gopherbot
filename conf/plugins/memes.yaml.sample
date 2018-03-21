@@ -1,7 +1,11 @@
-# Required configuration for the 'memes' plugin to work; get a username and
-# password from imgflip.com
+## Required configuration for the 'memes' plugin to work; get a username and
+## password from imgflip.com.
+## To enable:
+## * Copy this file to 'memes.yaml'
+## * Add your imgflip.com username and password
+## * Restart the robot or issue a 'reload' command
 Channels: [ "random", "general" ]
 Disabled: false
 Config:
-  Username: "your_user_name"
-  Password: "your_password"
+  Username: <your_imgflip_user_name>
+  Password: <your_imgflip_password>
