@@ -95,9 +95,9 @@ func Start() {
 	}
 
 	var botLogger *log.Logger
-	logFlags := 0
+	logFlags := log.LstdFlags
 	if plainlog {
-		logFlags = log.LstdFlags
+		logFlags = 0
 	}
 	logOut := os.Stderr
 	if logFile != "" {
