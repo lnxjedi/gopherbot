@@ -29,10 +29,10 @@ GBRET_UntrustedPlugin=24
 
 # Plugin return values / exit codes, return values from CallPlugin
 PLUGRET_Normal=0
-PLUGRET_Success=1
-PLUGRET_Fail=2
-PLUGRET_MechanismFail=3
-PLUGRET_ConfigurationError=4
+PLUGRET_Fail=1
+PLUGRET_MechanismFail=2
+PLUGRET_ConfigurationError=3
+PLUGRET_Success=7
 
 base64_encode(){
 	local MESSAGE

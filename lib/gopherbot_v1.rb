@@ -71,10 +71,10 @@ class BaseBot
 
 	# Plugin return values / exit codes, return values from CallPlugin
 	Normal = 0
-	Success = 1
-	Fail = 2
-	MechanismFail = 3
-	ConfigurationError = 4
+	Fail = 1
+	MechanismFail = 2
+	ConfigurationError = 3
+	Success = 7
 
 	attr_reader :user, :channel
 

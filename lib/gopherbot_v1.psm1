@@ -30,10 +30,10 @@ Enum BotRet
 Enum PlugRet
 {
     Normal = 0
-    Success = 1
-    Fail = 2
-    MechanismFail = 3
-    ConfigurationError = 4
+    Fail = 1
+    MechanismFail = 2
+    ConfigurationError = 3
+    Success = 7
 }
 
 class Attribute {

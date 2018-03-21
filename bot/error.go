@@ -11,8 +11,6 @@ const (
 	// default exit value, we don't use it to indicate successful authentication
 	// or elevation.
 	Normal PlugRetVal = iota
-	// Success indicates successful authorization or elevation
-	Success
 	// Fail indicates requested authorization or elevation failed
 	Fail
 	// MechanismFail indicates authorization or elevation couldn't be determined due to a technical issue that should be logged
@@ -21,6 +19,10 @@ const (
 	ConfigurationError
 	// UntrustedPlugin indicates a plugin was called by an untrusted plugin
 	UntrustedPlugin
+	// Success indicates successful authorization or elevation; using '7' (three bits set)
+	// reduces the likelihood of an authorization plugin mistakenly exiting with a success
+	// value
+	Success = 7
 )
 
 const (
