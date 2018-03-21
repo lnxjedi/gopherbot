@@ -48,23 +48,32 @@ func getPluginPath(plugin *Plugin) (string, error) {
 	defer robot.RUnlock()
 	if byte(plugin.pluginPath[0]) == byte("/"[0]) {
 		fullPath = plugin.pluginPath
-	} else {
+		_, err := os.Stat(fullPath)
+		if err == nil {
+			Log(Debug, "Using fully specified path to plugin:", fullPath)
+			return fullPath, nil
+		}
+		err = fmt.Errorf("Invalid path for external plugin: %s (%v)", fullPath, err)
+		Log(Error, err)
+		return "", err
+	}
+	if len(robot.localPath) > 0 {
 		_, err := os.Stat(robot.localPath + "/" + plugin.pluginPath)
-		if err != nil {
-			_, err := os.Stat(robot.installPath + "/" + plugin.pluginPath)
-			if err != nil {
-				err = fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.name, err)
-				Log(Error, err)
-				return "", err
-			}
-			fullPath = robot.installPath + "/" + plugin.pluginPath
-			Log(Debug, "Using stock external plugin:", fullPath)
-		} else {
+		if err == nil {
 			fullPath = robot.localPath + "/" + plugin.pluginPath
 			Log(Debug, "Using local external plugin:", fullPath)
+			return fullPath, nil
 		}
 	}
-	return fullPath, nil
+	_, err := os.Stat(robot.installPath + "/" + plugin.pluginPath)
+	if err == nil {
+		fullPath = robot.installPath + "/" + plugin.pluginPath
+		Log(Debug, "Using stock external plugin:", fullPath)
+		return fullPath, nil
+	}
+	err = fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.name, err)
+	Log(Error, err)
+	return "", err
 }
 
 // emulate Unix script convention by calling external scripts with

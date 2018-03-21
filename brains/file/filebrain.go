@@ -51,7 +51,7 @@ func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
 	if byte(fb.BrainDirectory[0]) == byte("/"[0]) {
 		brainPath = fb.BrainDirectory
 	} else {
-		brainPath = robot.GetLocalPath() + "/" + fb.BrainDirectory
+		brainPath = robot.GetConfigPath() + "/" + fb.BrainDirectory
 	}
 	bd, err := os.Stat(brainPath)
 	if err != nil {

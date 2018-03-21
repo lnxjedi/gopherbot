@@ -25,12 +25,16 @@ func (h handler) GetInstallPath() string {
 	return robot.installPath
 }
 
-// GetLocalPath gets the path to the bot's install dir -
-// the location of default configuration and stock external plugins.
-func (h handler) GetLocalPath() string {
+// GetConfigPath gets the path to the bot's (supposedly writable) configuration
+// directory. This is the local config path if specified, otherwise the install
+// directory.
+func (h handler) GetConfigPath() string {
 	robot.RLock()
 	defer robot.RUnlock()
-	return robot.localPath
+	if len(robot.localPath) > 0 {
+		return robot.localPath
+	}
+	return robot.installPath
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.

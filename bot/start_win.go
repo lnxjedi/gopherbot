@@ -146,8 +146,7 @@ func Start() {
 		}
 	}
 	if len(localdir) == 0 {
-		botLogger.Println("Couldn't locate local configuration directory, exiting")
-		os.Exit(0)
+		botLogger.Println("Couldn't locate local configuration directory, using installed configuration")
 	}
 
 	// Create the 'bot and load configuration, supplying configdir and installdir.
@@ -155,8 +154,12 @@ func Start() {
 	// from internal config, then loads from localdir/conf/..., which
 	// overrides defaults.
 	os.Setenv("GOPHER_INSTALLDIR", installdir)
-	os.Setenv("GOPHER_CONFIGDIR", localdir)
-	botLogger.Printf("Starting up with local config dir: %s, and install dir: %s\n", localdir, installdir)
+	lp := "(none)"
+	if len(localdir) > 0 {
+		os.Setenv("GOPHER_CONFIGDIR", localdir)
+		lp = localdir
+	}
+	botLogger.Printf("Starting up with local config dir: %s, and install dir: %s\n", lp, installdir)
 	err = newBot(localdir, installdir, botLogger)
 	if err != nil {
 		botLogger.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))

@@ -44,10 +44,8 @@ type botconf struct {
 
 var config *botconf
 
-// getConfigFile loads a config file first from installPath, then from localPath.
-// The goal is to support prod/dev environments where authentication info is set
-// in <installPath>/conf/gopherbot.yaml, but everything else (plugins & config)
-// is configured under <localPath>.
+// getConfigFile loads a config file first from installPath, then from localPath
+// if set.
 
 // Required indicates whether to return an error if neither file is found.
 func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMessage) error {
@@ -79,26 +77,28 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 			loaded = true
 		}
 	}
-	loader = make(map[string]json.RawMessage)
-	path = robot.localPath + "/conf/" + filename
-	cf, err = ioutil.ReadFile(path)
-	if err != nil {
-		err = fmt.Errorf("Reading local configuration for \"%s\": %v", filename, err)
-		Log(Debug, err)
-	} else {
-		if err = yaml.Unmarshal(cf, &loader); err != nil {
-			err = fmt.Errorf("Unmarshalling local \"%s\": %v", filename, err)
-			Log(Error, err)
-			return err // If a badly-formatted config is loaded, we always return an error
-		}
-		if len(loader) == 0 {
-			Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
+	if len(robot.localPath) > 0 {
+		loader = make(map[string]json.RawMessage)
+		path = robot.localPath + "/conf/" + filename
+		cf, err = ioutil.ReadFile(path)
+		if err != nil {
+			err = fmt.Errorf("Reading local configuration for \"%s\": %v", filename, err)
+			Log(Debug, err)
 		} else {
-			for key, value := range loader {
-				jsonMap[key] = value
+			if err = yaml.Unmarshal(cf, &loader); err != nil {
+				err = fmt.Errorf("Unmarshalling local \"%s\": %v", filename, err)
+				Log(Error, err)
+				return err // If a badly-formatted config is loaded, we always return an error
 			}
-			Log(Debug, fmt.Sprintf("Loaded configured conf/%s", filename))
-			loaded = true
+			if len(loader) == 0 {
+				Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
+			} else {
+				for key, value := range loader {
+					jsonMap[key] = value
+				}
+				Log(Debug, fmt.Sprintf("Loaded configured conf/%s", filename))
+				loaded = true
+			}
 		}
 	}
 	if required && !loaded {

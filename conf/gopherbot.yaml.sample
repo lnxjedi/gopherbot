@@ -1,4 +1,11 @@
-# This is a sample configuration file for Gopherbot. For a "standard" install:
+# This is a sample configuration file for Gopherbot.
+# For a quick-n-dirty install:
+
+# 1. Obtain a 'bot token from https://<your-team>.slack.com/services/new/bot
+# 2. Copy this file to 'gopherbot.yaml' and edit, adding your slack token
+# 3. Run the bot with './gopherbot' (or './gopherbot.exe' on Windows)
+
+# For a "standard" install:
 # - This file should be copied to gopherbot.yaml in the install directory, and
 #   modified to include a Slack token, email credentials, and any other
 #   credential or other information specific to this instance of the robot.
