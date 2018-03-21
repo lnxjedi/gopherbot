@@ -43,7 +43,8 @@
 
 ## One-character alias the bot can be called by. Note: not all single characters
 ## are supported. If your robot doesn't respond to e.g. ";ping", try changing
-## the Alias to something other than ";". Popular alternatives: ":", "!", "*".
+## the Alias to something other than ";". Popular alternatives: ":", "!", "*";
+## the complete list: "*+^$?\[]{}&!;:-%#@~<>/"
 #Alias: ";"
 
 ## Port to listen on for http/JSON api calls, for external plugins

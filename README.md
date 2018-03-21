@@ -10,9 +10,10 @@ Enterprise Slack(\*) ChatOps bot for Linux and Windows, supporting plugins in Py
 (*) with a modular interface for writing other protocol connectors in Go
 
 A few of Gopherbot's features:
-* Built-in support for requiring MFA for select commands (ala 'sudo')
+* Built-in support for elevated commands requiring MFA (ala 'sudo')
 * A prompting API for interactive plugins
-* Simple API for plugins in multiple scripting languages
+* Comprehensive set of administrative commands
+* Simple single-file script plugins
 
 ## Sample Plugin with the Ruby API
 ```ruby
@@ -84,10 +85,7 @@ Gopherbot is stable in production in my environment. Currently lacking:
 Check out [Github's documentation](https://help.github.com/articles/fork-a-repo/) on forking and creating pull requests.
 
 ## Documentation
-* [Quick Start - Linux and Mac](doc/Quick-Start-Linux-Mac.md)
-* [Quick Start - Windows](doc/Quick-Start-Windows.md)
-* [Installing on Linux](doc/Linux-Install.md)
-* [Installing on Windows](doc/Windows-Install.md)
-* [Design Philosophy](doc/Design.md)
-* [Configuration](doc/Configuration.md)
-* [Plugin Author's Guide](doc/Plugin-Author's-Guide.md)
+
+To try out **Gopherbot** for yourself, see [the Quick Start Guide](doc/Quick-Start.md)
+
+Also see the full [Documentation Index](doc/README.md)

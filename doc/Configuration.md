@@ -1,4 +1,4 @@
-Gopherbot is designed to be highly and flexibly configured, putting a lot of functionality in the hands of a system administrator who may be deploying plugins written by a third party or someone else in the organization.
+Gopherbot is designed to be highly and flexibly configured, putting a lot of functionality in the hands of a Systems/DevOps engineer who may be deploying plugins written by a third party or someone else in the organization.
 
 Table of Contents
 =================
@@ -30,14 +30,24 @@ Table of Contents
 
 # Configuration Directories and Configuration File Precedence
 
-Gopherbot's configuration file loading is designed around installation where credentials and other per-robot variables are configured in the **install directory**, and plugins, additional libraries, and common configuration reside in a **local config directory**, which is likely a git repository. A standard Linux install with a configuration management tool would unzip the archive in `/opt/gopherbot` and set e.g. the Slack Token in `/opt/gopherbot/conf/gopherbot.yaml`. Local configuration might be in `/usr/local/etc/gopherbot`, and external plugins to load would be defined in `/usr/local/etc/gopherbot/conf/gopherbot.yaml`. On Windows, the install directory would normally be `C:\Program Files\Gopherbot`, and the configuration directory would be in `C:\Windows\gopherbot`.
+Gopherbot's configuration file loading is designed for automated deployments with most configuration stored in a git repository.
+
+Credentials and other per-robot variables would normally be configured in the **install
+directory**, and plugins, additional libraries, and common configuration would reside in an
+optional **local config directory**, which is likely a git repository. A standard Linux
+install with a configuration management tool would unzip the archive in `/opt/gopherbot` and
+set e.g. the Slack Token in `/opt/gopherbot/conf/gopherbot.yaml`. Local configuration might
+be in `/usr/local/etc/gopherbot`, and external plugins to load would be defined in
+`/usr/local/etc/gopherbot/conf/gopherbot.yaml`. On Windows, the install directory would
+normally be `C:\Program Files\Gopherbot`, and the configuration directory would be in
+`C:\ProgramData\gopherbot`.
 
 # Primary Configuration File - gopherbot.yaml
 
-The robot's core configuration is obtained by simply loading `conf/gopherbot.yaml` from the **install directory** first, then the **local config directory**, overwriting top-level items in the process.
+The robot's core configuration is obtained by simply loading `conf/gopherbot.yaml` from the **install directory** first, then the **local config directory** (if set), overwriting top-level items in the process.
 
 ## Configuration Directives
-Note that some of this information is also available in the comments of the distributed `conf/gopherbot.yaml`.
+Note that some of this information is also available in the comments of the distributed `conf/gopherbot.yaml.sample`.
 
 ### AdminContact, Name and Alias
 
@@ -47,7 +57,7 @@ Name: Robbie Robot
 Alias: ";"
 ```
 `AdminContact` and `Name` are informational only, provided to users who ask for help. Note that you needn't specify `Name` for Slack - the robot will automatically obtain the name configured for the integration. The
-alias can be used as shorthand for the robot's handle when addressing commands to the robot in a channel.
+alias can be used as shorthand for the robot's handle when addressing commands to the robot in a channel, and can be any of the following: `*+^$?\[]{}&!;:-%#@~<>/`
 
 ### Email and MailConfig
 
@@ -63,13 +73,15 @@ Both `Email` and `MailConfig` are required for the robot to be able to send emai
 
 ### Connection Protocol
 
+Currently there are connector plugins for Slack and the terminal (for plugin development, see the `termcfg/` directory).
+
 ```yaml
 Protocol: slack
 ProtocolConfig:
   SlackToken: "xoxb-forgetitmackimnotputtingmytokenhere"
   MaxMessageSplit: 2
 ```
-Currently the only connector plugin is for Slack. Whenever a plugin sends a very long message (longer than the
+Whenever a plugin sends a very long message (longer than the
 Slack maximum message length), the slack connector will automatically break the message up into shorter
 messages; MaxMessageSplit determines the maximum number to split a message into before truncating.
 
@@ -88,7 +100,6 @@ The BrainDirectory can be given as an absolute path or as a sub-directory of the
 ```yaml
 AdminUsers: [ 'alicek', 'bobj' ]
 IgnoreUsers: [ 'danl', 'otherbot' ]
-
 ```
 Users listed as admins have access to builtin administrative commands for viewing logs, changing log level,
 reloading and terminating the robot. The robot will never respond to users listed in IgnoreUsers.
@@ -133,12 +144,12 @@ port to use is configured with `LocalPort`. `LogLevel` specifies the initial log
 
 # Plugin Configuration
 
-Gopherbot plugins are highly configurable with respect to visibility of plugins for various users and channels. In addition to providing a level of security, this can be very useful in large environments with many robots running many plugins, if only to keep the 'help' output to a minimum. The administrator can also configure Authorization and Elevation to further restrict sensitive commands. Additionally, help text and command routing is configured in yaml, allowing the administrator to e.g. provide synonyms for existing commands.
+Gopherbot plugins are highly configurable with respect to visibility of plugins for various users and channels. In addition to providing a level of security, this can be very useful in large environments with many robots running many plugins, if only to keep the 'help' output to a minimum. The administrator can also configure **Authorization** and **Elevation** to further restrict sensitive commands. Additionally, help text and command routing is configured in yaml, allowing the administrator to e.g. provide synonyms for existing commands.
 
 Plugins are configured by reading yaml from **three** locations, with top-level items from each successive read overriding the previous:
-1. The default configuration is obtained from the plugin itself during plugin load, by calling the plugin with `configure` as the first argument; the robot looks for the plugin in the **local config directory** first, then the **install directory**, getting the default configuration from the first found only.
+1. The default configuration is obtained from the plugin itself during plugin load, by calling the plugin with `configure` as the first argument; the robot looks for the plugin in the **local config directory** first (if present), then the **install directory**, getting the default configuration from the first found only.
 2. Configuration is then loaded from `<install dir>/conf/plugins/<pluginname>.yaml`; this is where you might configure e.g. credentials required for a given plugin.
-3. Finally configuration is loaded from `<config dir>/conf/plugins/<pluginname>.yaml`; this is where you would likely configure a plugin's channels and security-related configuration (allowed users, authorization, etc.)
+3. Finally, if a configuration directory is supplied, configuration is loaded from `<config dir>/conf/plugins/<pluginname>.yaml`; this is where you would likely configure a plugin's channels and security-related configuration (allowed users, authorization, etc.)
 
 ## Plugin Configuration Directives
 
@@ -214,8 +225,8 @@ ElevateImmediateCommands:
 - destroyvolume
 - disablesite
 ```
-The Elevate* directives specify that certain commands in a plugin require additional identity verification to run. Gopherbot ships with two plugins for this functionality, with Google Authenticator style TOTP being the most common. ElevatedCommands are subject to a timeout during which additional verification won't be required;
-ElevateImmediate commands always prompt for additional verification. Additionally, individual commands can use
+The `Elevate*` directives specify that certain commands in a plugin require additional identity verification to run. Gopherbot ships with two plugins for this functionality, with Google Authenticator style TOTP being the most common. `ElevatedCommands` are subject to a timeout during which additional verification won't be required;
+`ElevateImmediate` commands always prompt for additional verification. Additionally, individual commands can use
 the `Elevate(bool: immediate)` method to require elevation based on conditional logic in the command, or for all commands in the unusual case of requiring elevation for all commands in a plugin.
 
 ### Help
@@ -257,7 +268,7 @@ a **Chuck Norris** type plugin. Whenever a command or message is matched, the ex
 first argument being the given `Command`, and subsequent arguments corresponding to matching groups in the
 regular expression.
 
-(EXPERIMENTAL) "Contexts" tells the robot what kind of thing a capture group corresponds to. When the robot
+(*EXPERIMENTAL*) "Contexts" tells the robot what kind of thing a capture group corresponds to. When the robot
 sees that e.g. a capture group corresponds to the context "server", it stores that in short-term memory (~7
 minutes). Then, if the user doesn't supply a corresponding capture group in a subsequent command, or supplies "it", the robot will check it's short term memory to see if it knows which "server" you're talking about. Short
 term memories are per-user/channel combination, but not per plugin; so if two plugins specify `Contexts` of, say, `server` and `deployment`, the short term memory of which server or deployment being referred to is available to both. If the memory doesn't exist or has expired from short-term memory, the robot will simply
@@ -281,6 +292,6 @@ Config:
   - "Crap, sorry - all out of rubies"
 ```
 The `Config` directive provides a section of free-form yaml that the plugin can access via the `GetPluginConfig`
-method. Examples of this can be seen in the included `plugins/rubydemo`, `plugins/psdemo.ps1`, and `goplugins/knock/*`. This allows, for instance, configuring additional knock-knock jokes without modifying or
+method. Examples of this can be seen in the included `plugins/rubydemo.rb`, `plugins/weather.rb`, `plugins/psdemo.ps1`, and `goplugins/knock/*`. This allows, for instance, configuring additional knock-knock jokes without modifying or
 recompiling the plugin, subject to the caveat that modifying the configuration means copying the entire
 `Config:` section to `conf/plugins/<plugginname>.yaml`.
