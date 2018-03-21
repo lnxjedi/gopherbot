@@ -34,6 +34,9 @@ case "$command" in
 	"configure")
 		configure
 		;;
+	"echo")
+		Say "$1"
+		;;
 	"repeat")
 		REPEAT=$(PromptForReply SimpleString "What do you want me to repeat?")
 		RETVAL=$?
