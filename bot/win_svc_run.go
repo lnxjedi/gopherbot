@@ -8,6 +8,7 @@ package bot
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"golang.org/x/sys/windows/svc"
@@ -75,7 +76,7 @@ func runService(name string) {
 	var err error
 	eventLog, err = eventlog.Open(name)
 	if err != nil {
-		botLogger.Println("Failed to open eventlog")
+		log.Println("Failed to open eventlog")
 		return
 	}
 	defer eventLog.Close()

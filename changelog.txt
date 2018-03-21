@@ -2,6 +2,9 @@
 2018-03-18 David Parsley <parsley@linuxjedi.org>
   * Add terminal connector for local bot operation, testing and development
 
+2018-03-21 David Parsley <parsley@linuxjedi.org>
+  * Make local config directory optional, for quicker quick starts
+
 === 1.0.0-snapshot ===
 2018-03-11 David Parsley <parsley@linuxjedi.org>
   * Switch to CircleCI after Travis broke

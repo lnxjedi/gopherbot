@@ -10,21 +10,19 @@ const defaultConfig = `
 # These are used to see if the robot is alive, so should answer in every channel
 AllChannels: true
 Help:
-- Keywords: [ "ping", "beep" ]
-  Helptext: [ "(bot), ping - see if the bot is alive", "(bot), beep - see if the bot can hear you" ]
+- Keywords: [ "ping" ]
+  Helptext: [ "(bot), ping - see if the bot is alive" ]
 - Keywords: [ "rules" ]
   Helptext: [ "(bot), what are the rules? - Be sure the robot knows how to conduct his/herself." ]
 CommandMatchers:
 - Command: "ping"
-  Regex: "ping"
+  Regex: "(?:ping)"
 - Command: "thanks"
   Regex: "(?i:thanks?( you)?!?)"
 - Command: "rules"
   Regex: "(?i:(?:what are )?the rules\\??)"
 - Command: "hello"
-  Regex: "(?i:(?:hi|hello)[.!]?)"
-- Command: "beep"
-  Regex: "beep"
+  Regex: "(?i:(?:hi|hello|howdy)[.!]?)"
 # These can be overridden by adding a Config: section to conf/plugins/ping.yaml
 Config:
   Welcome:
@@ -59,7 +57,7 @@ func ping(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) 
 	case "rules":
 		r.Say(rules)
 	case "hello":
-		r.Reply("Howdy. Try 'help' if you want me to do something cool.")
+		r.Reply("Howdy. Try 'help' if you want usage information.")
 	case "ping":
 		r.Fixed().Reply("PONG")
 	case "thanks":

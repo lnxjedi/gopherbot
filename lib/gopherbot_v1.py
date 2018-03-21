@@ -5,22 +5,11 @@ import subprocess
 import sys
 import time
 import urllib2
-from base64 import b64encode, b64decode
-
-def enc64(s):
-    return "base64:%s" % b64encode(s)
-
-def dec64(s):
-    f = s.split(":")
-    if f[0] == "base64":
-        return b64decode(f[1])
-    else:
-        return s
 
 class Attribute:
     "A Gopherbot Attribute return object"
     def __init__(self, ret):
-        self.attr = dec64(ret["Attribute"])
+        self.attr = ret["Attribute"]
         self.ret = ret["RetVal"]
 
     def __str__(self):
@@ -29,7 +18,7 @@ class Attribute:
 class Reply:
     "A Gopherbot Reply return object"
     def __init__(self, ret):
-        self.reply = dec64(ret["Reply"])
+        self.reply = ret["Reply"]
         self.ret = ret["RetVal"]
 
     def __str__(self):
@@ -38,7 +27,7 @@ class Reply:
 class Memory:
     "A Gopherbot long-term memory object"
     def __init__(self, key, ret):
-        self.key = key
+        self.key = key()
         self.lock_token = ret["LockToken"]
         self.exists = ret["Exists"]
         self.datum = ret["Datum"]
@@ -76,10 +65,10 @@ class Robot:
 
     # Plugin return values / exit codes, return values from CallPlugin
     Normal = 0
-    Success = 1
-    Fail = 2
-    MechanismFail = 3
-    ConfigurationError = 4
+    Fail = 1
+    MechanismFail = 2
+    ConfigurationError = 3
+    Success = 7
 
     def __init__(self):
         random.seed()
@@ -173,17 +162,17 @@ class Robot:
 
     def SendChannelMessage(self, channel, message, format="variable"):
         ret = self.Call("SendChannelMessage", { "Channel": channel,
-        "Message": enc64(message) })
+        "Message": message })
         return ret["RetVal"]
 
     def SendUserMessage(self, user, message, format="variable"):
         ret = self.Call("SendUserMessage", { "User": user,
-        "Message": enc64(message) })
+        "Message": message })
         return ret["RetVal"]
 
     def SendUserChannelMessage(self, user, channel, message, format="variable"):
         ret = self.Call("SendUserChannelMessage", { "User": user,
-        "Channel": channel, "Message": enc64(message) })
+        "Channel": channel, "Message": message })
         return ret["RetVal"]
 
     def Say(self, message, format="variable"):

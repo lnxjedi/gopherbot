@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const escapeAliases = `*+|^$?\[]{}`
+const escapeAliases = `*+^$?\[]{}`
 const aliases = `&!;:-%#@~<>/`
 
 func checkPanic(bot *Robot, s string) {

@@ -92,6 +92,7 @@ func (tc *termConnector) Run(stop chan struct{}) {
 
 			input, _ := reader.ReadString('\n')
 			input = strings.Replace(input, "\n", "", -1)
+			input = strings.Replace(input, "\r", "", -1) // should be harmless for Unix
 			tc.heard <- input
 		}
 	}(tc)
@@ -149,13 +150,23 @@ loop:
 					}
 					tc.Unlock()
 				case 'U', 'u':
+					exists := false
 					newuser := input[2:]
 					tc.Lock()
 					if newuser == "" {
 						fmt.Println("Invalid 0-length user")
 					} else {
-						tc.currentUser = newuser
-						fmt.Printf("Changed current user to: %s\n", newuser)
+						for _, u := range tc.users {
+							if u.Name == newuser {
+								exists = true
+							}
+						}
+						if exists {
+							tc.currentUser = newuser
+							fmt.Printf("Changed current user to: %s\n", newuser)
+						} else {
+							fmt.Println("Invalid user.")
+						}
 					}
 					tc.Unlock()
 				default:

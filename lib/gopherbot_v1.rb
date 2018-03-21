@@ -1,14 +1,6 @@
-require 'base64'
 require 'json'
 require 'net/http'
 require 'uri'
-
-# Make base64 a little more accessible
-class String
-	def to_base64
-		Base64.encode64(self).chomp
-	end
-end
 
 class Attribute
 	def initialize(attr, ret)
@@ -79,10 +71,10 @@ class BaseBot
 
 	# Plugin return values / exit codes, return values from CallPlugin
 	Normal = 0
-	Success = 1
-	Fail = 2
-	MechanismFail = 3
-	ConfigurationError = 4
+	Fail = 1
+	MechanismFail = 2
+	ConfigurationError = 3
+	Success = 7
 
 	attr_reader :user, :channel
 
@@ -156,19 +148,19 @@ class BaseBot
 	def GetSenderAttribute(attr)
 		args = { "Attribute" => attr }
 		ret = callBotFunc("GetSenderAttribute", args)
-		return Attribute.new(decode(ret["Attribute"]), ret["RetVal"])
+		return Attribute.new(ret["Attribute"], ret["RetVal"])
 	end
 
 	def GetUserAttribute(user, attr)
 		args = { "User" => user, "Attribute" => attr }
 		ret = callBotFunc("GetSenderAttribute", args)
-		return Attribute.new(decode(ret["Attribute"]), ret["RetVal"])
+		return Attribute.new(ret["Attribute"], ret["RetVal"])
 	end
 
 	def GetBotAttribute(attr)
 		args = { "Attribute" => attr }
 		ret = callBotFunc("GetSenderAttribute", args)
-		return Attribute.new(decode(ret["Attribute"]), ret["RetVal"])
+		return Attribute.new(ret["Attribute"], ret["RetVal"])
 	end
 
 	def Log(level, message)
@@ -179,21 +171,21 @@ class BaseBot
 
 	def SendChannelMessage(channel, message, format="variable")
 		format = format.to_s if format.class == Symbol
-		args = { "Channel" => channel, "Message" => "base64:" + message.to_base64 }
+		args = { "Channel" => channel, "Message" => message }
 		ret = callBotFunc("SendChannelMessage", args, format)
 		return ret["RetVal"]
 	end
 
 	def SendUserMessage(user, message, format="variable")
 		format = format.to_s if format.class == Symbol
-		args = { "User" => user, "Message" => "base64:" + message.to_base64 }
+		args = { "User" => user, "Message" => message }
 		ret = callBotFunc("SendUserMessage", args, format)
 		return ret["RetVal"]
 	end
 
 	def SendUserChannelMessage(user, channel, message, format="variable")
 		format = format.to_s if format.class == Symbol
-		args = { "User" => user, "Channel" => channel, "Message" => "base64:" + message.to_base64 }
+		args = { "User" => user, "Channel" => channel, "Message" => message }
 		ret = callBotFunc("SendUserChannelMessage", args, format)
 		return ret["RetVal"]
 	end
@@ -233,27 +225,14 @@ class BaseBot
 		for i in 1..3
 			ret = callBotFunc("PromptUserChannelForReply", args)
 			next if ret["RetVal"] == RetryPrompt
-			return Reply.new(decode(ret["Reply"]), ret["RetVal"])
+			return Reply.new(ret["Reply"], ret["RetVal"])
 		end
 		if ret == RetryPrompt
-			return Reply.new(decode(ret["Reply"]), Interrupted)
+			return Reply.new(ret["Reply"], Interrupted)
 		else
-			return Reply.new(decode(ret["Reply"]), ret["RetVal"])
+			return Reply.new(ret["Reply"], ret["RetVal"])
 		end
 	end
-
-	def decode(str)
-		if str.start_with?("base64:")
-			if bstr = str.split(':')[1]
-				return Base64.decode64(bstr)
-			else
-				return ""
-			end
-		else
-			return str
-		end
-	end
-	private :decode
 
 	def callBotFunc(funcname, args, format="variable")
 		func = {

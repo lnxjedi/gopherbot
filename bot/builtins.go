@@ -49,7 +49,11 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		msg = append(msg, fmt.Sprintf("The hostname for the server I'm running on is: %s", hostName))
 		if bot.CheckAdmin() {
 			msg = append(msg, fmt.Sprintf("My install directory is: %s", robot.installPath))
-			msg = append(msg, fmt.Sprintf("My local configuration directory is: %s", robot.localPath))
+			lp := "(none)"
+			if len(robot.localPath) > 0 {
+				lp = robot.localPath
+			}
+			msg = append(msg, fmt.Sprintf("My local configuration directory is: %s", lp))
 		}
 		msg = append(msg, fmt.Sprintf("My software version is: Gopherbot %s, commit: %s", Version, commit))
 		if alias != 0 {

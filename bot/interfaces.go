@@ -35,8 +35,8 @@ type Handler interface {
 	GetLogLevel() LogLevel
 	// GetInstallPath returns the installation path of the gopherbot
 	GetInstallPath() string
-	// GetLocalPath returns the path to the local config of the gopherbot
-	GetLocalPath() string
+	// GetConfigPath returns the path to the local config of the gopherbot
+	GetConfigPath() string
 	// Log provides a standard logging interface with a level as defined in
 	// bot/logging.go
 	Log(l LogLevel, v ...interface{})

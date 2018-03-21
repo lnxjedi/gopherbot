@@ -19,7 +19,7 @@ The available attributes for the bot:
  * contact / admin / adminContact
  * email
 
-Note: most of these are configured in gopherbot.yaml
+Note: the values for most of these are configured in `conf/gopherbot.yaml`
 
 # Code Examples
 ## Bash
@@ -27,9 +27,9 @@ Note: most of these are configured in gopherbot.yaml
 USEREMAIL=$(GetSenderAttribute email)
 if [ $? -ne $GBRET_Ok ]
 then
-  Say("I was unable to look up your email address")
+  Say "I was unable to look up your email address"
 else
-  Say("Your email address is $USEREMAIL")
+  Say "Your email address is $USEREMAIL"
 fi
 ```
 
@@ -57,6 +57,7 @@ else:
 
 ## Ruby
 ```ruby
+# In some cases you might forego error checking
 bot.Say("You can send email to #{bot.GetBotAttribute("email")}")
 botNameAttr = bot.GetBotAttribute("fullName")
 if botNameAttr.ret == Robot::Ok

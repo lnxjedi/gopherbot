@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 )
 
 type jsonFunction struct {
@@ -36,11 +35,13 @@ type userattr struct {
 type logmessage struct {
 	Level   string
 	Message string
+	Base64  bool
 }
 
 type channelmessage struct {
 	Channel string
 	Message string
+	Base64  bool
 }
 
 type plugincall struct {
@@ -50,6 +51,7 @@ type plugincall struct {
 // Something to be placed in short-term memory
 type shorttermmemory struct {
 	Key, Value string
+	Base64     bool
 }
 
 // Something to be recalled from short-term memory
@@ -73,12 +75,14 @@ type recollection struct {
 type usermessage struct {
 	User    string
 	Message string
+	Base64  bool
 }
 
 type userchannelmessage struct {
 	User    string
 	Channel string
 	Message string
+	Base64  bool
 }
 
 type replyrequest struct {
@@ -86,6 +90,7 @@ type replyrequest struct {
 	User    string
 	Channel string
 	Prompt  string
+	Base64  bool
 }
 
 // Types for returning values
@@ -149,22 +154,14 @@ func listenHTTPJSON() {
 	}
 }
 
-// decode looks for a base64: prefix, then removes it and tries to decode the message
+// decode decodes a base64 string, primarily for the bash library
 func decode(msg string) string {
-	if strings.HasPrefix(msg, "base64:") {
-		msg = strings.TrimPrefix(msg, "base64:")
-		decoded, err := base64.StdEncoding.DecodeString(msg)
-		if err != nil {
-			Log(Error, fmt.Errorf("Unable to decode base64 message %s: %v", msg, err))
-			return msg
-		}
-		return string(decoded)
+	decoded, err := base64.StdEncoding.DecodeString(msg)
+	if err != nil {
+		Log(Error, fmt.Errorf("Unable to decode base64 message %s: %v", msg, err))
+		return msg
 	}
-	return msg
-}
-
-func encode(arg string) string {
-	return "base64:" + base64.StdEncoding.EncodeToString([]byte(arg))
+	return string(decoded)
 }
 
 func getArgs(rw http.ResponseWriter, jsonargs *json.RawMessage, args interface{}) bool {
@@ -317,6 +314,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if !getArgs(rw, &f.FuncArgs, &m) {
 			return
 		}
+		if m.Base64 {
+			m.Value = decode(m.Value)
+		}
 		bot.Remember(m.Key, m.Value)
 		sendReturn(rw, &botretvalresponse{int(Ok)})
 	case "Recall":
@@ -344,7 +344,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		} else {
 			attr = bot.GetSenderAttribute(a.Attribute)
 		}
-		attr.Attribute = encode(attr.Attribute)
 		sendReturn(rw, attr)
 		return
 	case "GetUserAttribute":
@@ -353,7 +352,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 		attr = bot.GetUserAttribute(ua.User, ua.Attribute)
-		attr.Attribute = encode(attr.Attribute)
 		sendReturn(rw, attr)
 		return
 	case "Log":
@@ -362,6 +360,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 		l := logStrToLevel(lm.Level)
+		if lm.Base64 {
+			lm.Message = decode(lm.Message)
+		}
 		Log(l, lm.Message)
 		sendReturn(rw, &botretvalresponse{int(Ok)})
 		return
@@ -370,8 +371,11 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if !getArgs(rw, &f.FuncArgs, &cm) {
 			return
 		}
+		if cm.Base64 {
+			cm.Message = decode(cm.Message)
+		}
 		sendReturn(rw, &botretvalresponse{
-			int(bot.SendChannelMessage(cm.Channel, decode(cm.Message))),
+			int(bot.SendChannelMessage(cm.Channel, cm.Message)),
 		})
 		return
 	case "SendUserChannelMessage":
@@ -379,8 +383,11 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if !getArgs(rw, &f.FuncArgs, &ucm) {
 			return
 		}
+		if ucm.Base64 {
+			ucm.Message = decode(ucm.Message)
+		}
 		sendReturn(rw, &botretvalresponse{
-			int(bot.SendUserChannelMessage(ucm.User, ucm.Channel, decode(ucm.Message))),
+			int(bot.SendUserChannelMessage(ucm.User, ucm.Channel, ucm.Message)),
 		})
 		return
 	case "SendUserMessage":
@@ -388,8 +395,11 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if !getArgs(rw, &f.FuncArgs, &um) {
 			return
 		}
+		if um.Base64 {
+			um.Message = decode(um.Message)
+		}
 		sendReturn(rw, &botretvalresponse{
-			int(bot.SendUserMessage(um.User, decode(um.Message))),
+			int(bot.SendUserMessage(um.User, um.Message)),
 		})
 		return
 	case "PromptUserChannelForReply":
@@ -397,8 +407,11 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if !getArgs(rw, &f.FuncArgs, &rr) {
 			return
 		}
+		if rr.Base64 {
+			rr.Prompt = decode(rr.Prompt)
+		}
 		reply, ret = bot.promptInternal(rr.RegexID, rr.User, rr.Channel, rr.Prompt)
-		sendReturn(rw, &replyresponse{encode(reply), int(ret)})
+		sendReturn(rw, &replyresponse{reply, int(ret)})
 		return
 	// NOTE: "Say", "Reply", PromptForReply and PromptUserForReply are implemented
 	// in the scripting libraries

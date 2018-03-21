@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # mkdist.sh - create a distributable .zip file
 
@@ -11,12 +11,7 @@ EOF
 	exit 0
 }
 
-git status | grep -qE "nothing to commit, working directory|tree clean"
-if [ $? -ne 0 ]
-then
-	echo "Your working tree isn't clean, aborting build"
-	exit 1
-fi
+git status | grep -qE "nothing to commit, working directory|tree clean" || { echo "Your working directory isn't clean, aborting build"; exit 1; }
 
 VERSTRING=$(grep "var Version" bot/bot.go)
 VERSTRING=${VERSTRING#var }
