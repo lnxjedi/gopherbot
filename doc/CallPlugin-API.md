@@ -1,5 +1,5 @@
 # Calling Other Plugins
-To make plugin code more modular and reusable, Gopherbot supports the ability for one external plugin to call another via the `CallPlugin(...)` method. `CallPlugin` returns a `PlugRetVal`, just as `Authorizer` and `Elevator` plugins. In practice, plugins will generally exit with a `Normal` (0) for success, or != `Normal` to indicate some kind of failure. (Note that `Authorizer` and `Elevator` plugins need to exit with status `Success` (1) to indicate success)
+To make plugin code more modular and reusable, Gopherbot supports the ability for external plugins to call one another via the `CallPlugin(...)` method. `CallPlugin` returns a `PlugRetVal`, just as `Authorizer` and `Elevator` plugins. In practice, plugins will generally exit with a `Normal` (0) for success, or != `Normal` to indicate some kind of failure. (Note that `Authorizer` and `Elevator` plugins need to exit with status `Success` (1) to indicate success)
 
 The arguments to `CallPlugin` are:
  * The name of the plugin to call
