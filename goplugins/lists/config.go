@@ -1,8 +1,8 @@
 package lists
 
 const listHelp = `The list plugin allows you to manage simple lists of items, such as a todo
-list, lunch spots, etc. Lists default to per-channel scope, but can be
-configured with global scope. Note that 'lists' is a context aware plugin, and
+list, lunch spots, etc. Lists default to global scope, but can be
+configured with per-channel scope. Note that 'lists' is a context aware plugin, and
 will remember the list or item being discussed; so e.g. you can follow 'add milk
 to the grocery list' with 'add hamburgers to the list' and the robot will
 know you mean the grocery list; also, 'add it to the dinner list' would add
@@ -26,9 +26,7 @@ Help:
 - Keywords: [ "list", "lists", "email", "send" ]
   Helptext: [ "(bot), send me the <type> list - send a copy of the list by email" ]
 - Keywords: [ "list", "lists", "show", "view" ]
-  Helptext:
-  - "(bot), show the <type> list - show the contents of a list"
-  - "(bot), (show) list <type> - show the contents of a list"
+  Helptext: [ "(bot), show the <type> list - show the contents of a list" ]
 - Keywords: [ "pick", "random", "lists", "list" ]
   Helptext: [ "(bot), pick a random item from the <type> list"]
 CommandMatchers:
@@ -51,9 +49,6 @@ CommandMatchers:
 - Command: 'show'
   Regex: '(?i:show (?:the )?(?:([~\w-'' ]+) )?list)'
   Contexts: [ "list" ]
-- Command: 'show'
-  Regex: '(?i:(?:show )?list ([~\w-'' ]+))'
-  Contexts: [ "list" ]
 - Command: 'pick'
   Regex: '(?i:(?:pick )(?:an? )?random (?:item )?(?:from )(?:the )?([~\w-'' ]+)?(?: list))'
   Contexts: [ "list" ]
@@ -61,5 +56,5 @@ CommandMatchers:
   Regex: '(?i:(?:send me|email) (?:the )?(?:([~\w-'' ]+) )?list)'
   Contexts: [ "list" ]
 Config:
-  Scope: channel # or "global"
+  Scope: global # or "channel" if lists aren't shared globally
 `
