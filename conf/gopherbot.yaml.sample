@@ -111,4 +111,4 @@ BrainConfig:
 ##   regardless of timeout.
 ## - Configure the elevator by overriding the config for the plugin in
 ##   'conf/plugins/totp.yaml'
-DefaultElevator: totp
+#DefaultElevator: totp
