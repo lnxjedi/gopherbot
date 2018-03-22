@@ -4,6 +4,7 @@ Table of Contents
 =================
 
   * [Configuration Directories and Configuration File Precedence](#configuration-directories-and-configuration-file-precedence)
+    * [Specifying Local Config](#specifying-local-config)
   * [Primary Configuration File \- gopherbot\.yaml](#primary-configuration-file---gopherbotyaml)
     * [Configuration Directives](#configuration-directives)
       * [AdminContact, Name and Alias](#admincontact-name-and-alias)
@@ -41,6 +42,19 @@ be in `/usr/local/etc/gopherbot`, and external plugins to load would be defined 
 `/usr/local/etc/gopherbot/conf/gopherbot.yaml`. On Windows, the install directory would
 normally be `C:\Program Files\Gopherbot`, and the configuration directory would be in
 `C:\ProgramData\gopherbot`.
+
+## Specifying Local Config
+
+On startup, **Gopherbot** will search for a local configuration directory in the following order:
+* A directory specified on the command line with `-c <dir>` or `--config <dir>`
+* A platform-specific search path:
+   * Linux/MacOS:
+      * `/usr/local/etc/gopherbot`
+      * `/etc/gopherbot`
+      * `$HOME/.gopherbot`
+   * Windows:
+      * `C:\ProgramData\Gopherbot`
+      * `%USERPROFILE%\.gopherbot` (`$env:USERPROFILE`)
 
 # Primary Configuration File - gopherbot.yaml
 
