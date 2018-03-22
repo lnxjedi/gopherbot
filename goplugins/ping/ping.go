@@ -16,7 +16,7 @@ Help:
   Helptext: [ "(bot), what are the rules? - Be sure the robot knows how to conduct his/herself." ]
 CommandMatchers:
 - Command: "ping"
-  Regex: "(?:ping)"
+  Regex: "(?i:ping)"
 - Command: "thanks"
   Regex: "(?i:thanks?( you)?!?)"
 - Command: "rules"
@@ -65,12 +65,6 @@ func ping(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) 
 			r.Reply(r.RandomString(cfg.Welcome))
 		} else {
 			r.Reply("I'm speechless. Please have somebody check my log file.")
-		}
-	case "beep":
-		if r.Channel == "" {
-			r.Say("Eh, talking to yourself?")
-		} else {
-			r.Say("Did anybody else hear something go \"beep\" ?")
 		}
 	}
 	return
