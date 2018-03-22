@@ -54,7 +54,7 @@ On startup, **Gopherbot** will search for a local configuration directory in the
       * `$HOME/.gopherbot`
    * Windows:
       * `C:\ProgramData\Gopherbot`
-      * `%USERPROFILE%\.gopherbot` (`$env:USERPROFILE`)
+      * `%USERPROFILE%\.gopherbot` (`$env:USERPROFILE\.gopherbot`)
 
 # Primary Configuration File - gopherbot.yaml
 
