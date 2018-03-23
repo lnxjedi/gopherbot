@@ -86,6 +86,8 @@ Check out [Github's documentation](https://help.github.com/articles/fork-a-repo/
 
 ## Documentation
 
+***NOTE: This is the documentation for Gopherbot v1.1. For older versions, see the documentation included in the distribution archive.***
+
 To try out **Gopherbot** for yourself, see [the Quick Start Guide](doc/Quick-Start.md)
 
 Also see the full [Documentation Index](doc/README.md)
