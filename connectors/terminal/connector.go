@@ -201,8 +201,7 @@ var messages = make(chan *sendMessage)
 func (tc *termConnector) sendMessage(ch, msg string) (ret bot.RetVal) {
 	found := false
 	tc.RLock()
-	if ch == "" {
-		ch = "(direct message)"
+	if strings.HasPrefix(ch, "(dm:") {
 		found = true
 	} else {
 		for _, channel := range tc.channels {

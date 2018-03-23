@@ -87,7 +87,7 @@ Both `Email` and `MailConfig` are required for the robot to be able to send emai
 
 ### Connection Protocol
 
-Currently there are connector plugins for Slack and the terminal (for plugin development, see the `termcfg/` directory).
+Currently there are connector plugins for Slack and the terminal (for plugin development, see the `testcfg/` directory).
 
 ```yaml
 Protocol: slack

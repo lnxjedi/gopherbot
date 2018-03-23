@@ -1,4 +1,4 @@
-package terminal
+package test
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 // Global persistent map of user name to user index
 var userMap = make(map[string]int)
 
-type termUser struct {
+type testUser struct {
 	Name                                        string // username / handle
 	InternalID                                  string // connector internal identifier
 	Email, FullName, FirstName, LastName, Phone string
@@ -22,7 +22,7 @@ type config struct {
 	StartUser    string // the initial userid
 	BotName      string // the short name used for addressing the robot
 	BotFullName  string // the full name of the bot
-	Users        []termUser
+	Users        []testUser
 }
 
 var lock sync.Mutex // package var lock
@@ -59,7 +59,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		robot.Log(bot.Fatal, "Start user \"%s\" not listed in Users array")
 	}
 
-	tc := &termConnector{
+	tc := &testConnector{
 		currentChannel: c.StartChannel,
 		currentUser:    c.StartUser,
 		channels:       make([]string, 0),
@@ -69,7 +69,6 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		botID:          "deadbeef",
 		users:          c.Users,
 		heard:          make(chan string),
-		speaking:       make(chan struct{}),
 	}
 
 	tc.Handler = robot

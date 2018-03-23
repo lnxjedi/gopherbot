@@ -57,8 +57,8 @@ ExternalPlugins:
 - Name: rubydemo
   Path: plugins/rubydemo
 
-# Configuration for the "term" connector, for local dev and testing.
-Protocol: term
+# Configuration for the "test" connector, for the terminal or test connector.
+Protocol: test
 ProtocolConfig:
   StartChannel: general
   StartUser: alice
