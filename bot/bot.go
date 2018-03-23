@@ -70,7 +70,7 @@ var robot struct {
 
 //var robot *robotcfg
 
-// newBot instantiates the one and only instance of a Gobot, and loads
+// newBot instantiates the one and only instance of a robot, and loads
 // configuration.
 func newBot(cpath, epath string, logger *log.Logger) error {
 	globalLock.Lock()
