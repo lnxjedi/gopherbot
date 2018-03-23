@@ -278,6 +278,10 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
 	case "quit":
+		robot.RLock()
+		proto := robot.protocol
+		robot.RUnlock()
+
 		pluginsRunning.Done()
 		pluginsRunning.Lock()
 		pluginsRunning.count--
@@ -295,8 +299,10 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		// Stop the brain after it finishes any current task
 		brainQuit()
 		Log(Info, "Exiting on administrator command")
-		// How long does it _actually_ take for the message to go out?
-		time.Sleep(time.Second)
+		if proto != "test" {
+			// How long does it _actually_ take for the message to go out?
+			time.Sleep(time.Second)
+		}
 		close(finish)
 	}
 	return
