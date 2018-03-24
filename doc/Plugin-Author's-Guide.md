@@ -103,7 +103,7 @@ Additionally, the elevation plugin may provide extra feedback to the user when e
 
 ## Other Reserved Commands
 In addition to the `configure` command, which instructs a plugin to dump it's default configuration to standard out, the following commands are reserved:
-* `init` - During startup and reload, the robot will call external plugins with a command argument of `init`. Since all environment variables for the robot are set at that point, it would be possible to e.g. save a robot data structure that could be loaded and used in a cron job.
+* `init` - After starting the connector and on reload, the robot will call external plugins with a command argument of `init`. Since all environment variables for the robot are set at that point, it would be possible to e.g. save a robot data structure that could be loaded and used in a cron job.
 * `event` - This command is reserved for future use with e.g. user presence change & channel join/leave events
 * `catchall` - Plugins with `CatchAll: true` will be called for commands directed at the robot that don't match a command plugin. Normally these are handled by the compiled-in `help` plugin, but administrators could override that setting and provide their own plugin with `CatchAll: true`. Note that having multiple such plugins is probably a bad idea.
 
