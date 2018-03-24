@@ -3,60 +3,40 @@
 package test
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"strings"
 	"sync"
+	"testing"
 
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
-// testConnector holds all the relevant data about a connection
-type testConnector struct {
+// TestConnector holds all the relevant data about a connection
+type TestConnector struct {
 	currentChannel string      // The current channel for the user
 	currentUser    string      // The current userid
 	channels       []string    // the channels the robot is in
-	running        bool        // set on call to Run
 	botName        string      // human-readable name of bot
 	botFullName    string      // human-readble full name of the bot
 	botID          string      // slack internal bot ID
 	users          []testUser  // configured users
-	heard          chan string // when the user speaks
+	Listener       chan string // input channel for test functions to send messages from a user
+	Speaking       chan string // output channel for test functions to get messages from the bot
+	Test           *testing.T  // for the connector to log
 	bot.Handler                // bot API for connectors
 	sync.RWMutex               // shared mutex for locking connector data structures
 }
 
-func (tc *testConnector) Run(stop chan struct{}) {
-	tc.Lock()
-	// This should never happen, just a bit of defensive coding
-	if tc.running {
-		tc.Unlock()
-		return
-	}
-	tc.running = true
-	tc.Unlock()
-
-	// listen loop
-	go func(tc *testConnector) {
-		for {
-			reader := bufio.NewReader(os.Stdin)
-
-			input, _ := reader.ReadString('\n')
-			input = strings.Replace(input, "\n", "", -1)
-			input = strings.Replace(input, "\r", "", -1) // should be harmless for Unix
-			tc.heard <- input
-		}
-	}(tc)
+func (tc *TestConnector) Run(stop chan struct{}) {
 
 loop:
 	for {
 
 		select {
 		case <-stop:
-			tc.Log(bot.Debug, "Received stop in connector")
+			tc.Test.Log(bot.Debug, "Received stop in connector")
 			break loop
-		case input := <-tc.heard:
+		case input := <-tc.Listener:
 			if len(input) == 0 {
 				continue
 			}
@@ -80,9 +60,9 @@ loop:
 						}
 						if exists {
 							tc.currentChannel = newchan
-							tc.Log(bot.Info, fmt.Sprintf("Changed current channel to: %s", newchan))
+							tc.Test.Log(bot.Info, fmt.Sprintf("Changed current channel to: %s", newchan))
 						} else {
-							tc.Log(bot.Fatal, "Invalid channel.")
+							tc.Test.Log(bot.Fatal, "Invalid channel.")
 						}
 					}
 					tc.Unlock()
@@ -91,7 +71,7 @@ loop:
 					newuser := input[2:]
 					tc.Lock()
 					if newuser == "" {
-						tc.Log(bot.Fatal, "Invalid 0-length user")
+						tc.Test.Log(bot.Fatal, "Invalid 0-length user")
 					} else {
 						for _, u := range tc.users {
 							if u.Name == newuser {
@@ -100,14 +80,14 @@ loop:
 						}
 						if exists {
 							tc.currentUser = newuser
-							tc.Log(bot.Info, fmt.Sprintf("Changed current user to: %s", newuser))
+							tc.Test.Log(bot.Info, fmt.Sprintf("Changed current user to: %s", newuser))
 						} else {
-							tc.Log(bot.Fatal, "Invalid user.")
+							tc.Test.Log(bot.Fatal, "Invalid user.")
 						}
 					}
 					tc.Unlock()
 				default:
-					tc.Log(bot.Fatal, "Invalid connector command")
+					tc.Test.Log(bot.Fatal, "Invalid connector command")
 				}
 			} else {
 				tc.RLock()
@@ -119,7 +99,7 @@ loop:
 }
 
 // Public 'bot methods all call sendMessage to send a message to a user/channel
-func (tc *testConnector) sendMessage(ch, msg string) (ret bot.RetVal) {
+func (tc *TestConnector) sendMessage(ch, msg string) (ret bot.RetVal) {
 	found := false
 	tc.RLock()
 	if strings.HasPrefix(ch, "(dm:") {
@@ -134,9 +114,9 @@ func (tc *testConnector) sendMessage(ch, msg string) (ret bot.RetVal) {
 	}
 	tc.RUnlock()
 	if !found {
-		tc.Log(bot.Error, "Channel not found:", ch)
+		tc.Test.Log(bot.Error, "Channel not found:", ch)
 		return bot.ChannelNotFound
 	}
-	fmt.Printf("%s: %s\n", ch, msg)
+	tc.Speaking <- fmt.Sprintf("%s: %s\n", ch, msg)
 	return bot.Ok
 }

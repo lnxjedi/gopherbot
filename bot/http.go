@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync"
 )
 
 type jsonFunction struct {
@@ -143,14 +144,24 @@ type replyresponse struct {
 	RetVal int
 }
 
+var botHttpListener struct {
+	listening bool
+	sync.Mutex
+}
+
 func listenHTTPJSON() {
-	robot.RLock()
-	port := robot.port
-	robot.RUnlock()
-	if len(port) > 0 {
-		h := handler{}
-		http.Handle("/json", h)
-		Log(Fatal, http.ListenAndServe(port, nil))
+	botHttpListener.Lock()
+	defer botHttpListener.Unlock()
+	if !botHttpListener.listening {
+		botHttpListener.listening = true
+		robot.RLock()
+		port := robot.port
+		robot.RUnlock()
+		if len(port) > 0 {
+			h := handler{}
+			http.Handle("/json", h)
+			Log(Fatal, http.ListenAndServe(port, nil))
+		}
 	}
 }
 

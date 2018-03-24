@@ -26,7 +26,6 @@ type config struct {
 }
 
 var lock sync.Mutex // package var lock
-var started bool    // set when connector is started
 
 func init() {
 	bot.RegisterConnector("test", Initialize)
@@ -34,14 +33,6 @@ func init() {
 
 // Initialize sets up the connector and returns a connector object
 func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
-	lock.Lock()
-	if started {
-		lock.Unlock()
-		return nil
-	}
-	started = true
-	lock.Unlock()
-
 	var c config
 
 	err := robot.GetProtocolConfig(&c)
@@ -59,16 +50,16 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		robot.Log(bot.Fatal, "Start user \"%s\" not listed in Users array")
 	}
 
-	tc := &testConnector{
+	tc := &TestConnector{
 		currentChannel: c.StartChannel,
 		currentUser:    c.StartUser,
 		channels:       make([]string, 0),
-		running:        false,
 		botName:        c.BotName,
 		botFullName:    c.BotFullName,
 		botID:          "deadbeef",
 		users:          c.Users,
-		heard:          make(chan string),
+		Listener:       make(chan string),
+		Speaking:       make(chan string),
 	}
 
 	tc.Handler = robot
