@@ -41,7 +41,7 @@ const burstMessages = 14            // maximum burst
 const burstWindow = 4 * time.Second // window in which to allow the burst
 const coolDown = 21 * time.Second   // cooldown time after bursting
 
-func (tc *termConnector) Run(stop chan struct{}) {
+func (tc *termConnector) Run(stop <-chan struct{}) {
 	tc.Lock()
 	// This should never happen, just a bit of defensive coding
 	if tc.running {

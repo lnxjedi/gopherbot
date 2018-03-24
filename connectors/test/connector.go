@@ -27,7 +27,7 @@ type TestConnector struct {
 	sync.RWMutex               // shared mutex for locking connector data structures
 }
 
-func (tc *TestConnector) Run(stop chan struct{}) {
+func (tc *TestConnector) Run(stop <-chan struct{}) {
 
 loop:
 	for {

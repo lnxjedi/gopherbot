@@ -21,8 +21,8 @@ func (m *myservice) Execute(args []string, r <-chan svc.ChangeRequest, changes c
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown | svc.AcceptPauseAndContinue
 	changes <- svc.Status{State: svc.StartPending}
 
-	// Start the connector's main loop in a goroutine
-	go conn.Run(finish)
+	// Start the robot
+	stopped := run()
 	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 
 loop:
@@ -36,39 +36,40 @@ loop:
 				time.Sleep(100 * time.Millisecond)
 				changes <- c.CurrentStatus
 			case svc.Stop, svc.Shutdown:
-				break loop
+				Log(Info, "Shutting down on Windows service stop / shutdown")
+				robot.Lock()
+				if robot.shuttingDown {
+					robot.Unlock()
+					eventLog.Warning(1, "Received Windows service stop / shutdown while shutdown in progress")
+				} else {
+					robot.shuttingDown = true
+					if robot.pluginsRunning > 0 {
+						runningCount := robot.pluginsRunning
+						robot.Unlock()
+						eventLog.Warning(1, fmt.Sprintf("Stop/shutdown requested with %d plugins running; waiting for all plugins to finish", runningCount))
+					} else {
+						robot.Unlock()
+					}
+					stop()
+				}
 			case svc.Pause:
-				pluginsRunning.Lock()
-				pluginsRunning.paused = true
-				pluginsRunning.Unlock()
+				robot.Lock()
+				robot.paused = true
+				robot.Unlock()
 				changes <- svc.Status{State: svc.Paused, Accepts: cmdsAccepted}
 			case svc.Continue:
-				pluginsRunning.Lock()
-				pluginsRunning.paused = false
-				pluginsRunning.Unlock()
+				robot.Lock()
+				robot.paused = false
+				robot.Unlock()
 				changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 			default:
 				eventLog.Error(1, fmt.Sprintf("unexpected control request #%d", c))
 			}
+		case <-stopped:
+			break loop
 		}
 	}
 	changes <- svc.Status{State: svc.StopPending}
-	pluginsRunning.Lock()
-	pluginsRunning.shuttingDown = true
-	if pluginsRunning.count > 0 {
-		runningCount := pluginsRunning.count
-		pluginsRunning.Unlock()
-		eventLog.Warning(1, fmt.Sprintf("Stop/shutdown requested with %d plugins running; waiting for all plugins to finish", runningCount))
-	} else {
-		pluginsRunning.Unlock()
-	}
-	// Wait for all plugins to stop running
-	pluginsRunning.Wait()
-	// Stop the brain after it finishes any current task
-	brainQuit()
-	Log(Info, "Exiting on administrator command")
-	time.Sleep(time.Second)
-	close(finish)
 	return
 }
 

@@ -76,5 +76,5 @@ type Connector interface {
 	SendProtocolUserMessage(user, msg string, format MessageFormat) RetVal
 	// The Run method starts the main loop, and never returns; if it's
 	// called a second time, it just returns.
-	Run(stopchannel chan struct{})
+	Run(stopchannel <-chan struct{})
 }

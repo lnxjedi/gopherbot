@@ -150,18 +150,13 @@ var botHttpListener struct {
 }
 
 func listenHTTPJSON() {
-	botHttpListener.Lock()
-	defer botHttpListener.Unlock()
-	if !botHttpListener.listening {
-		botHttpListener.listening = true
-		robot.RLock()
-		port := robot.port
-		robot.RUnlock()
-		if len(port) > 0 {
-			h := handler{}
-			http.Handle("/json", h)
-			Log(Fatal, http.ListenAndServe(port, nil))
-		}
+	robot.RLock()
+	port := robot.port
+	robot.RUnlock()
+	if len(port) > 0 {
+		h := handler{}
+		http.Handle("/json", h)
+		Log(Fatal, http.ListenAndServe(port, nil))
 	}
 }
 

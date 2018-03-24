@@ -16,7 +16,6 @@ import (
 var started bool
 var isIntSess bool
 var hostName string
-var conn Connector
 var finish = make(chan struct{})
 
 func init() {
@@ -160,28 +159,23 @@ func Start() {
 		lp = localdir
 	}
 	botLogger.Printf("Starting up with local config dir: %s, and install dir: %s\n", lp, installdir)
-	err = newBot(localdir, installdir, botLogger)
-	if err != nil {
-		botLogger.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
-	}
+	initBot(localdir, installdir, botLogger)
 
-	connectionStarter, ok := connectors[robot.protocol]
+	initializeConnector, ok := connectors[robot.protocol]
 	if !ok {
 		botLogger.Fatal("No connector registered with name:", robot.protocol)
 	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface
 	h := handler{}
-	conn = connectionStarter(h, log.New(ioutil.Discard, "", 0))
+	conn := initializeConnector(h, log.New(ioutil.Discard, "", 0))
+	setConnector(conn)
 
-	// Initialize the robot with a valid connector
-	botInit(conn)
-
-	// Start the brain loop
-	go runBrain()
 	if isIntSess {
 		// Start the connector's main loop for interactive sessions
-		conn.Run(finish)
+		stopped := run()
+		// ... and wait for the robot to stop
+		<-stopped
 	} else {
 		// Stop logging to startup log when running as a service
 		robot.logger.SetOutput(ioutil.Discard)

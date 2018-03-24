@@ -4,7 +4,6 @@ package bot
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -125,27 +124,24 @@ func Start() {
 		lp = localdir
 	}
 	botLogger.Printf("Starting up with local config dir: %s, and install dir: %s\n", lp, installdir)
-	err = newBot(localdir, installdir, botLogger)
-	if err != nil {
-		botLogger.Fatal(fmt.Errorf("Error loading initial configuration: %v", err))
-	}
 
-	var conn Connector
+	initBot(localdir, installdir, botLogger)
 
-	connectionStarter, ok := connectors[robot.protocol]
+	initializeConnector, ok := connectors[robot.protocol]
 	if !ok {
-		botLogger.Fatal("No connector registered with name:", robot.protocol)
+		botLogger.Fatalf("No connector registered with name: %s", robot.protocol)
 	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface
 	h := handler{}
-	conn = connectionStarter(h, botLogger)
+	conn := initializeConnector(h, botLogger)
 
-	// Initialize the robot with a valid connector
-	botInit(conn)
+	// NOTE: we use setConnector instead of passing the connector to run()
+	// because of the way Windows services run. See 'start_win.go'.
+	setConnector(conn)
 
-	// Start the brain loop
-	go runBrain()
-	// Start the connector's main loop
-	conn.Run(finish)
+	// Start the robot
+	stopped := run()
+	// ... and wait for the robot to stop
+	<-stopped
 }
