@@ -41,7 +41,7 @@ const burstMessages = 14            // maximum burst
 const burstWindow = 4 * time.Second // window in which to allow the burst
 const coolDown = 21 * time.Second   // cooldown time after bursting
 
-func (tc *termConnector) Run(stop chan struct{}) {
+func (tc *termConnector) Run(stop <-chan struct{}) {
 	tc.Lock()
 	// This should never happen, just a bit of defensive coding
 	if tc.running {
@@ -201,8 +201,7 @@ var messages = make(chan *sendMessage)
 func (tc *termConnector) sendMessage(ch, msg string) (ret bot.RetVal) {
 	found := false
 	tc.RLock()
-	if ch == "" {
-		ch = "(direct message)"
+	if strings.HasPrefix(ch, "(dm:") {
 		found = true
 	} else {
 		for _, channel := range tc.channels {

@@ -200,6 +200,23 @@ func loadConfig() error {
 	setLogLevel(loglevel)
 
 	robot.Lock()
+	if newconfig.Alias != "" {
+		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
+		if !strings.ContainsRune(string(aliases+escapeAliases), alias) {
+			robot.Unlock()
+			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escapeAliases, aliases)
+		}
+		robot.alias = alias
+	}
+	if newconfig.Protocol != "" {
+		robot.protocol = newconfig.Protocol
+	} else {
+		robot.Unlock()
+		return fmt.Errorf("Protocol not specified in gopherbot.yaml")
+	}
+	if newconfig.ProtocolConfig != nil {
+		protocolConfig = newconfig.ProtocolConfig
+	}
 
 	robot.defaultAllowDirect = newconfig.DefaultAllowDirect // defaults to false
 	if newconfig.AdminContact != "" {
@@ -209,14 +226,6 @@ func loadConfig() error {
 		robot.email = newconfig.Email
 	}
 	robot.mailConf = newconfig.MailConfig
-	if newconfig.Alias != "" {
-		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
-		if !strings.ContainsRune(string(aliases+escapeAliases), alias) {
-			robot.Unlock()
-			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escapeAliases, aliases)
-		}
-		robot.alias = alias
-	}
 	if newconfig.LocalPort != 0 {
 		robot.port = fmt.Sprintf("127.0.0.1:%d", newconfig.LocalPort)
 		err := os.Setenv("GOPHER_HTTP_POST", "http://"+robot.port)
@@ -243,16 +252,6 @@ func loadConfig() error {
 	}
 	if newconfig.BrainConfig != nil {
 		brainConfig = newconfig.BrainConfig
-	}
-
-	if newconfig.Protocol != "" {
-		robot.protocol = newconfig.Protocol
-	} else {
-		robot.Unlock()
-		return fmt.Errorf("Protocol not specified in gopherbot.yaml")
-	}
-	if newconfig.ProtocolConfig != nil {
-		protocolConfig = newconfig.ProtocolConfig
 	}
 
 	if newconfig.AdminUsers != nil {

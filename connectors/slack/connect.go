@@ -99,7 +99,7 @@ Loop:
 	return bot.Connector(sc)
 }
 
-func (sc *slackConnector) Run(stop chan struct{}) {
+func (sc *slackConnector) Run(stop <-chan struct{}) {
 	sc.Lock()
 	// This should never happen, just a bit of defensive coding
 	if sc.running {

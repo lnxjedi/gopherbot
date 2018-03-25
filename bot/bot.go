@@ -9,8 +9,11 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
+	"os/signal"
 	"regexp"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -66,13 +69,17 @@ var robot struct {
 	externalPlugins    []externalPlugin // List of external plugins to load
 	port               string           // Localhost port to listen on
 	logger             *log.Logger      // Where to log to
+	stop               chan struct{}    // stop channel for stopping the connector
+	done               chan struct{}    // channel closed when robot finishes shutting down
+	shuttingDown       bool             // to prevent new plugins from starting
+	pluginsRunning     int              // a count of how many plugins are currently running
+	paused             bool             // it's a Windows thing
+	sync.WaitGroup                      // for keeping track of running plugins
 }
 
-//var robot *robotcfg
-
-// newBot instantiates the one and only instance of a Gobot, and loads
+// initBot sets up the global robot and loads
 // configuration.
-func newBot(cpath, epath string, logger *log.Logger) error {
+func initBot(cpath, epath string, logger *log.Logger) {
 	globalLock.Lock()
 	// Prevent plugin registration after program init
 	stopRegistrations = true
@@ -81,35 +88,55 @@ func newBot(cpath, epath string, logger *log.Logger) error {
 
 	globalLock.Unlock()
 
+	robot.Lock()
 	robot.localPath = cpath
 	robot.installPath = epath
 	robot.logger = logger
+	robot.stop = make(chan struct{})
+	robot.done = make(chan struct{})
+	robot.shuttingDown = false
+	robot.Unlock()
 
 	handle := handler{}
 	if err := loadConfig(); err != nil {
-		return err
+		Log(Fatal, fmt.Sprintf("Error loading initial configuration: %v", err))
 	}
 
 	if len(robot.brainProvider) > 0 {
 		if bprovider, ok := brains[robot.brainProvider]; !ok {
 			Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", robot.brainProvider))
 		} else {
+			robot.Lock()
 			robot.brain = bprovider(handle, logger)
+			robot.Unlock()
 		}
 	}
-	return nil
 }
 
-// Init is called after the bot is connected.
-func botInit(c Connector) {
+// set connector sets the connector, which should already be initialized
+func setConnector(c Connector) {
 	robot.Lock()
-	if robot.Connector != nil {
-		robot.Unlock()
-		return
-	}
 	robot.Connector = c
 	robot.Unlock()
-	go listenHTTPJSON()
+}
+
+// run starts all the loops and returns a channel that closes when the robot
+// shuts down. It should return after the connector loop has started and
+// plugins are initialized.
+func run() <-chan struct{} {
+	robot.RLock()
+	port := robot.port
+	robot.RUnlock()
+	if len(port) > 0 {
+		// Only start the HttpListener once, runs for life of process
+		botHttpListener.Lock()
+		if !botHttpListener.listening {
+			botHttpListener.listening = true
+			go listenHTTPJSON()
+		}
+		botHttpListener.Unlock()
+	}
+
 	var cl []string
 	robot.RLock()
 	cl = append(cl, robot.joinChannels...)
@@ -117,5 +144,63 @@ func botInit(c Connector) {
 	for _, channel := range cl {
 		robot.JoinChannel(channel)
 	}
+
+	// Start the brain loop
+	go runBrain()
+
+	// signal handler
+	go func() {
+		robot.RLock()
+		done := robot.done
+		robot.RUnlock()
+		sigs := make(chan os.Signal, 1)
+
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	loop:
+		for {
+			select {
+			case sig := <-sigs:
+				robot.Lock()
+				if robot.shuttingDown {
+					Log(Warn, "Received SIGINT/SIGTERM while shutdown in progress")
+					robot.Unlock()
+				} else {
+					robot.shuttingDown = true
+					robot.Unlock()
+					signal.Stop(sigs)
+					Log(Info, fmt.Sprintf("Exiting on signal: %s", sig))
+					stop()
+				}
+			case <-done:
+				break loop
+			}
+		}
+	}()
+
+	// connector loop
+	robot.RLock()
+	go func(conn Connector, stop <-chan struct{}, done chan<- struct{}) {
+		conn.Run(stop)
+		close(done)
+	}(robot.Connector, robot.stop, robot.done)
+	robot.RUnlock()
+
 	initializePlugins()
+	robot.RLock()
+	defer robot.RUnlock()
+	return robot.done
+}
+
+// stop is called whenever the robot needs to shut down gracefully. All callers
+// should lock the bot and check the value of robot.shuttingDown; see
+// builtins.go and win_svc_run.go
+func stop() {
+	robot.RLock()
+	Log(Debug, fmt.Sprintf("stop called with %d plugins running", robot.pluginsRunning))
+	stop := robot.stop
+	robot.RUnlock()
+	robot.Wait()
+	brainQuit()
+	close(stop)
 }

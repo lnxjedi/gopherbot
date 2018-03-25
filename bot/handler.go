@@ -123,6 +123,7 @@ func (h handler) SetName(n string) {
 	Log(Debug, "Setting name to: "+n)
 	robot.Lock()
 	robot.name = n
+	// Make sure the robot ignores messages from it's own name
 	ignoring := false
 	for _, name := range robot.ignoreUsers {
 		if strings.EqualFold(n, name) {

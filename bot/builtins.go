@@ -64,7 +64,8 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	}
 	if command == "help" {
 		robot.RLock()
-		defer robot.RUnlock()
+		botname := robot.name
+		robot.RUnlock()
 
 		var term, helpOutput string
 		botSub := `(bot)`
@@ -100,10 +101,10 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 								newSize += len(helpLines)
 							}
 							prepend := make([]string, 1, newSize)
-							prepend[0] = strings.Replace(helptext, botSub, robot.name, -1)
+							prepend[0] = strings.Replace(helptext, botSub, botname, -1)
 							helpLines = append(prepend, helpLines...)
 						} else {
-							helpLines = append(helpLines, strings.Replace(helptext, botSub, robot.name, -1))
+							helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1))
 						}
 					}
 				}
@@ -128,7 +129,7 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 								chantext += ")"
 							}
 							for _, helptext := range phelp.Helptext {
-								helpLines = append(helpLines, strings.Replace(helptext, botSub, robot.name, -1)+chantext)
+								helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1)+chantext)
 							}
 						}
 					}
@@ -170,11 +171,11 @@ func dump(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	currentPlugins.RLock()
 	plugins := currentPlugins.p
 	currentPlugins.RUnlock()
-	robot.RLock()
-	defer robot.RUnlock()
 	switch command {
 	case "robot":
+		robot.RLock()
 		c, _ := yaml.Marshal(config)
+		robot.RUnlock()
 		bot.Fixed().Say(fmt.Sprintf("Here's how I've been configured, irrespective of interactive changes:\n%s", c))
 	case "plugdefault":
 		if plug, ok := pluginHandlers[args[0]]; ok {
@@ -278,26 +279,31 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
 	case "quit":
-		pluginsRunning.Done()
-		pluginsRunning.Lock()
-		pluginsRunning.count--
-		pluginsRunning.shuttingDown = true
-		if pluginsRunning.count > 0 {
-			runningCount := pluginsRunning.count
-			pluginsRunning.Unlock()
-			bot.Say(fmt.Sprintf("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount))
-		} else {
-			pluginsRunning.Unlock()
+		robot.Lock()
+		if robot.shuttingDown {
+			robot.Unlock()
+			Log(Warn, "Received administrator `quit` while shutdown in progress")
+			return
 		}
-		// Wait for all plugins to stop running
-		pluginsRunning.Wait()
-		bot.Reply(bot.RandomString(byebye))
-		// Stop the brain after it finishes any current task
-		brainQuit()
-		Log(Info, "Exiting on administrator command")
-		// How long does it _actually_ take for the message to go out?
-		time.Sleep(time.Second)
-		close(finish)
+		robot.shuttingDown = true
+		proto := robot.protocol
+		// NOTE: THIS plugin is definitely running, but will end soon!
+		if robot.pluginsRunning > 1 {
+			runningCount := robot.pluginsRunning - 1
+			robot.Unlock()
+			if proto != "test" {
+				bot.Say(fmt.Sprintf("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount))
+			}
+		} else {
+			robot.Unlock()
+			if proto != "test" {
+				bot.Reply(bot.RandomString(byebye))
+				// How long does it _actually_ take for the message to go out?
+				time.Sleep(time.Second)
+			}
+		}
+		Log(Info, "Exiting on administrator 'quit' command")
+		go stop()
 	}
 	return
 }

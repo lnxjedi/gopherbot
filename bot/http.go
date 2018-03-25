@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync"
 )
 
 type jsonFunction struct {
@@ -141,6 +142,11 @@ type callpluginresponse struct {
 type replyresponse struct {
 	Reply  string
 	RetVal int
+}
+
+var botHttpListener struct {
+	listening bool
+	sync.Mutex
 }
 
 func listenHTTPJSON() {
