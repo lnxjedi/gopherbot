@@ -35,18 +35,32 @@ func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string,
 
 // SendProtocolChannelMessage sends a message to a channel
 func (tc *TestConnector) SendProtocolChannelMessage(ch string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	return tc.sendMessage(ch, msg)
+	msg := &TestMessage{
+		User:    "",
+		Channel: ch,
+		Message: msg,
+	}
+	return tc.sendMessage(msg)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
 func (tc *TestConnector) SendProtocolUserChannelMessage(u, ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	msg = "@" + u + " " + msg
-	return tc.sendMessage(ch, msg)
+	msg := &TestMessage{
+		User:    u,
+		Channel: ch,
+		Message: msg,
+	}
+	return tc.sendMessage(msg)
 }
 
 // SendProtocolUserMessage sends a direct message to a user
 func (tc *TestConnector) SendProtocolUserMessage(u string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	return tc.sendMessage(fmt.Sprintf("(dm:%s)", u), msg)
+	msg := &TestMessage{
+		User:    u,
+		Channel: "",
+		Message: msg,
+	}
+	return tc.sendMessage(msg)
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"

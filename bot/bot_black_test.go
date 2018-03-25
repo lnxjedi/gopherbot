@@ -20,16 +20,25 @@ import (
 	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
 )
 
-func setup(t *testing.T) (<-chan struct{}, *testc.TestConnector) {
-	done, tconn := StartTest("cfg/test", t)
+// Cast of Users
+const alice = "alice"
+const bob = "bob"
+const carol = "carol"
+const david = "david"
+const erin = "erin"
+
+// ... and the Channels the play in
+const general = "general"
+const random = "random"
+const bottest = "bottest"
+
+func setup(cfgdir string, t *testing.T) (<-chan struct{}, *testc.TestConnector) {
+	done, tconn := StartTest(cfgdir, t)
 	testConnector := tconn.(*testc.TestConnector)
-	testConnector.Test = t
+	testConnector.SetTest(t)
 
 	return done, testConnector
 }
-
-// TODO: fix teardown - the background goroutine is draining ALL messages,
-// and not letting the previous connetion finish
 
 func teardown(done <-chan struct{}, testConnector *testc.TestConnector) {
 	// Alice is a bot admin who can order the bot to quit in #general
@@ -41,41 +50,13 @@ func teardown(done <-chan struct{}, testConnector *testc.TestConnector) {
 	<-done
 }
 
-func send(t *testing.T, conn *testc.TestConnector, msg string) {
-	t.Logf("Sending to robot: %s", msg)
-	conn.Listener <- msg
-}
-
 func TestPing(t *testing.T) {
-	done, conn := setup(t)
+	done, conn := setup("cfg/test", t)
 	fmt.Printf("Starting test ping with connector: %p and listener: %v\n", conn, conn.Listener)
 
-	var reply string
-
-	send(t, conn, ";ping")
-	reply = <-conn.Speaking
-	t.Logf("Reply from robot: %s", reply)
-
-	send(t, conn, ";ping")
-	reply = <-conn.Speaking
-	t.Logf("Reply from robot: %s", reply)
-
-	teardown(done, conn)
-}
-
-func TestPing2(t *testing.T) {
-	done, conn := setup(t)
-	fmt.Printf("Starting test ping with connector: %p and listener: %v\n", conn, conn.Listener)
-
-	var reply string
-
-	send(t, conn, ";ping")
-	reply = <-conn.Speaking
-	t.Logf("Reply from robot: %s", reply)
-
-	send(t, conn, ";ping")
-	reply = <-conn.Speaking
-	t.Logf("Reply from robot: %s", reply)
+	conn.SendBotMessage(&TestMessage{alice, general, "ping"})
+	reply = conn.GetBotMessage()
+	t.Logf("Reply from robot: %v", reply)
 
 	teardown(done, conn)
 }
