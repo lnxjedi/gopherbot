@@ -7,7 +7,6 @@ Setup for "clear box" testing of bot internals is in bot/bot_test.go
 */
 
 import (
-	"fmt"
 	_ "net/http/pprof"
 	"testing"
 
@@ -40,11 +39,9 @@ func setup(cfgdir string, t *testing.T) (<-chan struct{}, *testc.TestConnector) 
 	return done, testConnector
 }
 
-func teardown(done <-chan struct{}, testConnector *testc.TestConnector) {
+func teardown(done <-chan struct{}, conn *testc.TestConnector) {
 	// Alice is a bot admin who can order the bot to quit in #general
-	testConnector.Listener <- "|ualice"
-	testConnector.Listener <- "|cgeneral"
-	testConnector.Listener <- ";quit"
+	conn.SendBotMessage(&testc.TestMessage{alice, general, ";quit"})
 
 	// Now we wait for the connection to finish
 	<-done
@@ -52,11 +49,24 @@ func teardown(done <-chan struct{}, testConnector *testc.TestConnector) {
 
 func TestPing(t *testing.T) {
 	done, conn := setup("cfg/test", t)
-	fmt.Printf("Starting test ping with connector: %p and listener: %v\n", conn, conn.Listener)
 
-	conn.SendBotMessage(&TestMessage{alice, general, "ping"})
-	reply = conn.GetBotMessage()
-	t.Logf("Reply from robot: %v", reply)
+	conn.SendBotMessage(&testc.TestMessage{alice, general, ";ping"})
+	reply := conn.GetBotMessage()
+	if reply.Message != "PONG" {
+		t.Errorf("Wrong reply: %s", reply.Message)
+	}
+
+	teardown(done, conn)
+}
+
+func TestPing2(t *testing.T) {
+	done, conn := setup("cfg/test", t)
+
+	conn.SendBotMessage(&testc.TestMessage{alice, general, ";ping"})
+	reply := conn.GetBotMessage()
+	if reply.Message != "PONG" {
+		t.Errorf("Wrong reply: %s", reply.Message)
+	}
 
 	teardown(done, conn)
 }

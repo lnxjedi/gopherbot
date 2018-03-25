@@ -45,8 +45,8 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		botFullName: c.BotFullName,
 		botID:       "deadbeef", // yes - hex in a string
 		users:       c.Users,
-		Listener:    make(chan string),
-		Speaking:    make(chan string),
+		listener:    make(chan *TestMessage),
+		speaking:    make(chan *TestMessage),
 	}
 
 	tc.Handler = robot

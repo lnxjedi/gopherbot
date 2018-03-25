@@ -1,8 +1,6 @@
 package test
 
 import (
-	"fmt"
-
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
@@ -34,31 +32,31 @@ func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (tc *TestConnector) SendProtocolChannelMessage(ch string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
+func (tc *TestConnector) SendProtocolChannelMessage(ch string, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
 	msg := &TestMessage{
 		User:    "",
 		Channel: ch,
-		Message: msg,
+		Message: mesg,
 	}
 	return tc.sendMessage(msg)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (tc *TestConnector) SendProtocolUserChannelMessage(u, ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
+func (tc *TestConnector) SendProtocolUserChannelMessage(u, ch, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
 	msg := &TestMessage{
 		User:    u,
 		Channel: ch,
-		Message: msg,
+		Message: mesg,
 	}
 	return tc.sendMessage(msg)
 }
 
 // SendProtocolUserMessage sends a direct message to a user
-func (tc *TestConnector) SendProtocolUserMessage(u string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
+func (tc *TestConnector) SendProtocolUserMessage(u string, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
 	msg := &TestMessage{
 		User:    u,
 		Channel: "",
-		Message: msg,
+		Message: mesg,
 	}
 	return tc.sendMessage(msg)
 }

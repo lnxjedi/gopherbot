@@ -291,7 +291,9 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		if robot.pluginsRunning > 1 {
 			runningCount := robot.pluginsRunning - 1
 			robot.Unlock()
-			bot.Say(fmt.Sprintf("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount))
+			if proto != "test" {
+				bot.Say(fmt.Sprintf("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount))
+			}
 		} else {
 			robot.Unlock()
 			if proto != "test" {

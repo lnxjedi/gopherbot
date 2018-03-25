@@ -25,11 +25,11 @@ func (tc *TestConnector) SendBotMessage(msg *TestMessage) {
 			}
 		}
 		if !exists {
-			tc.test.Failf("Invalid channel: %s", msg.Channel)
+			tc.test.Errorf("Invalid channel: %s", msg.Channel)
 		}
 	}
 	if msg.User == "" {
-		tc.test.Failf("Invalid 0-length user")
+		tc.test.Errorf("Invalid 0-length user")
 	} else {
 		exists := false
 		for _, u := range tc.users {
@@ -38,24 +38,26 @@ func (tc *TestConnector) SendBotMessage(msg *TestMessage) {
 			}
 		}
 		if !exists {
-			tc.test.Failf("Invalid user: %s", msg.User)
+			tc.test.Errorf("Invalid user: %s", msg.User)
 		}
 	}
 	tc.RUnlock()
 	select {
-	case tc.Listening <- msg:
-	case time.After(200 * time.Millisecond):
-		tc.test.Failf("Timed out sending; user: \"%s\", channel: \"%s\", message: \"%s\"", msg.User, msg.Channel, msg.Message)
+	case tc.listener <- msg:
+		tc.test.Logf("Message sent to robot: %v", msg)
+	case <-time.After(200 * time.Millisecond):
+		tc.test.Errorf("Timed out sending; user: \"%s\", channel: \"%s\", message: \"%s\"", msg.User, msg.Channel, msg.Message)
 	}
 }
 
 // GetBotMessage, for tests to get replies
 func (tc *TestConnector) GetBotMessage() *TestMessage {
 	select {
-	case incoming := <-tc.Speaking:
+	case incoming := <-tc.speaking:
+		tc.test.Logf("Reply received from robot: %v", incoming)
 		return incoming
-	case time.After(2 * time.Second):
-		tc.test.Failf("Timed out waiting for reply in GetBotMessage")
+	case <-time.After(2 * time.Second):
+		tc.test.Errorf("Timed out waiting for reply in GetBotMessage")
 		return nil
 	}
 }
