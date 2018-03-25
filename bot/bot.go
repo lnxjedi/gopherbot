@@ -116,10 +116,6 @@ func initBot(cpath, epath string, logger *log.Logger) {
 // set connector sets the connector, which should already be initialized
 func setConnector(c Connector) {
 	robot.Lock()
-	if robot.Connector != nil {
-		robot.Unlock()
-		return
-	}
 	robot.Connector = c
 	robot.Unlock()
 }
@@ -200,9 +196,11 @@ func run() <-chan struct{} {
 // should lock the bot and check the value of robot.shuttingDown; see
 // builtins.go and win_svc_run.go
 func stop() {
+	robot.RLock()
+	Log(Debug, fmt.Sprintf("stop called with %d plugins running", robot.pluginsRunning))
+	stop := robot.stop
+	robot.RUnlock()
 	robot.Wait()
 	brainQuit()
-	robot.RLock()
-	close(robot.stop)
-	robot.RUnlock()
+	close(stop)
 }

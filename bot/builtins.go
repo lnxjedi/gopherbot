@@ -279,9 +279,7 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
 	case "quit":
-		robot.Done()
 		robot.Lock()
-		robot.pluginsRunning--
 		if robot.shuttingDown {
 			robot.Unlock()
 			Log(Warn, "Received administrator `quit` while shutdown in progress")
@@ -302,7 +300,7 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			}
 		}
 		Log(Info, "Exiting on administrator 'quit' command")
-		stop()
+		go stop()
 	}
 	return
 }

@@ -14,7 +14,7 @@ import (
 )
 
 // Start a robot for testing, and return the exit / robot stopped channel
-func StartTest(t *testing.T) <-chan struct{} {
+func StartTest(t *testing.T) (<-chan struct{}, Connector) {
 	wd, _ := os.Getwd()
 	installdir := filepath.Dir(wd)
 	localdir := filepath.Join(installdir, "testcfg")
@@ -45,5 +45,5 @@ func StartTest(t *testing.T) <-chan struct{} {
 	setConnector(conn)
 
 	stopped := run()
-	return stopped
+	return stopped, conn
 }
