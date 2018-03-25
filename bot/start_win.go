@@ -4,7 +4,6 @@ package bot
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
