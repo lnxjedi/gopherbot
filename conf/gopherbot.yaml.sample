@@ -73,8 +73,8 @@ LogLevel: info
 #- Name: pythondemo
 #  Path: plugins/pythondemo.py
 
-## Specification of which connection protocol ('slack' or 'term'; see 'testcfg/')
-## and any associated configuration.
+## Specification of which connection protocol ('slack', 'term', or 'test';
+## see 'cfg/') and any associated configuration.
 ## MaxMessageSplit specifies the maximum number of messages to break a message
 ## into when it's too long (>4000 char)
 #Protocol: slack
