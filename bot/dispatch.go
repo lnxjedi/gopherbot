@@ -191,6 +191,7 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 		if bot.checkElevation(plugins, plugin, matcher.Command) != Success {
 			return
 		}
+		emit(PluginRan) // for testing, otherwise noop
 		go callPlugin(bot, plugin, true, true, matcher.Command, cmdArgs...)
 	}
 	return
@@ -285,6 +286,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		if !robot.shuttingDown {
 			robot.RUnlock()
 			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", messagetext))
+			emit(CatchAllsRan) // for testing, otherwise noop
 			for _, plugin := range catchAllPlugins {
 				go callPlugin(bot, plugin, true, true, "catchall", messagetext)
 			}

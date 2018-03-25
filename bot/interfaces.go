@@ -74,7 +74,6 @@ type Connector interface {
 	// For protocols not supportint DM, the bot should send a message addressed
 	// to the user in an implementation-specific channel.
 	SendProtocolUserMessage(user, msg string, format MessageFormat) RetVal
-	// The Run method starts the main loop, and never returns; if it's
-	// called a second time, it just returns.
+	// The Run method starts the main loop and takes a channel for stopping it.
 	Run(stopchannel <-chan struct{})
 }

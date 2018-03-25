@@ -48,6 +48,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 	for _, user := range robot.ignoreUsers {
 		if strings.EqualFold(userName, user) {
 			Log(Debug, "Ignoring user", userName)
+			emit(IgnoredUser)
 			robot.RUnlock()
 			return
 		}
