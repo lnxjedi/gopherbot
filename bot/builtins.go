@@ -287,8 +287,9 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		}
 		robot.shuttingDown = true
 		proto := robot.protocol
-		if robot.pluginsRunning > 0 {
-			runningCount := robot.pluginsRunning
+		// NOTE: THIS plugin is definitely running, but will end soon!
+		if robot.pluginsRunning > 1 {
+			runningCount := robot.pluginsRunning - 1
 			robot.Unlock()
 			bot.Say(fmt.Sprintf("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount))
 		} else {
@@ -296,7 +297,7 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			if proto != "test" {
 				bot.Reply(bot.RandomString(byebye))
 				// How long does it _actually_ take for the message to go out?
-				time.Sleep(200 * time.Millisecond)
+				time.Sleep(time.Second)
 			}
 		}
 		Log(Info, "Exiting on administrator 'quit' command")

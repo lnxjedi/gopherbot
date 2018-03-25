@@ -21,7 +21,7 @@ import (
 )
 
 func setup(t *testing.T) (<-chan struct{}, *testc.TestConnector) {
-	done, tconn := StartTest(t)
+	done, tconn := StartTest("cfg/test", t)
 	testConnector := tconn.(*testc.TestConnector)
 	testConnector.Test = t
 

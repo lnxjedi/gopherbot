@@ -58,7 +58,7 @@ ExternalPlugins:
   Path: plugins/rubydemo
 
 # Configuration for the "test" connector, for the terminal or test connector.
-Protocol: test
+Protocol: term
 ProtocolConfig:
   StartChannel: general
   StartUser: alice

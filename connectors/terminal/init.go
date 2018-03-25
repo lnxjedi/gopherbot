@@ -29,7 +29,7 @@ var lock sync.Mutex // package var lock
 var started bool    // set when connector is started
 
 func init() {
-	bot.RegisterConnector("test", Initialize)
+	bot.RegisterConnector("term", Initialize)
 }
 
 // Initialize sets up the connector and returns a connector object
@@ -66,7 +66,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		running:        false,
 		botName:        c.BotName,
 		botFullName:    c.BotFullName,
-		botID:          "deadbeef",
+		botID:          "deadbeef", // yes - hex in a string
 		users:          c.Users,
 		heard:          make(chan string),
 		speaking:       make(chan struct{}),
