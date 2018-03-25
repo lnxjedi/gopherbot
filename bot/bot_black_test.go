@@ -55,6 +55,8 @@ func TestPing(t *testing.T) {
 	if reply.Message != "PONG" {
 		t.Errorf("Wrong reply: %s", reply.Message)
 	}
+	ev := GetEvents()
+	t.Logf("Got events: %v", ev)
 
 	teardown(done, conn)
 }
