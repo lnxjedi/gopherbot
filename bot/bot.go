@@ -95,7 +95,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	robot.logger = logger
 	robot.stop = make(chan struct{})
 	robot.done = make(chan struct{})
-	robot.events = make(chan Event, 7) // probably never be more than 4
+	robot.events = make(chan Event, 8)
 	robot.shuttingDown = false
 	robot.Unlock()
 
@@ -108,8 +108,9 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		if bprovider, ok := brains[robot.brainProvider]; !ok {
 			Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", robot.brainProvider))
 		} else {
+			brain := bprovider(handle, logger)
 			robot.Lock()
-			robot.brain = bprovider(handle, logger)
+			robot.brain = brain
 			robot.Unlock()
 		}
 	}
