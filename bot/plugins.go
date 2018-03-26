@@ -139,9 +139,9 @@ func initializePlugins() {
 	currentPlugins.RLock()
 	plugins := currentPlugins.p
 	currentPlugins.RUnlock()
-	pluginsRunning.Lock()
-	if !pluginsRunning.shuttingDown {
-		pluginsRunning.Unlock()
+	robot.Lock()
+	if !robot.shuttingDown {
+		robot.Unlock()
 		for _, plugin := range plugins {
 			bot := &Robot{
 				User:    robot.name,
@@ -152,7 +152,7 @@ func initializePlugins() {
 			go callPlugin(bot, plugin, false, false, "init")
 		}
 	} else {
-		pluginsRunning.Unlock()
+		robot.Unlock()
 	}
 }
 
@@ -498,7 +498,7 @@ PlugLoop:
 	currentPlugins.idMap = plugIndexByID
 	currentPlugins.nameMap = plugIndexByName
 	currentPlugins.Unlock()
-	// loadPluginConfig is called in newBot, before the connector has started;
+	// loadPluginConfig is called in initBot, before the connector has started;
 	// don't init plugins in that case.
 	robot.Lock()
 	if robot.Connector != nil {

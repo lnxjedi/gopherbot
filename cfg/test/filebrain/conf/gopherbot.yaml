@@ -44,7 +44,7 @@ LocalPort: 8888
 
 # Initial log level, one of trace, debug, info, warn, error. See 'help log'
 # for help on changing the log level and viewing contents of the log.
-LogLevel: trace
+LogLevel: debug
 
 # List of external plugins to configure; generally scripts using a gopherbot
 # script library. The robot will look for plugins in the installation directory
@@ -57,13 +57,11 @@ ExternalPlugins:
 - Name: rubydemo
   Path: plugins/rubydemo
 
-# Configuration for the "term" connector, for local dev and testing.
-Protocol: term
+# Configuration for the "test" connector, for the terminal or test connector.
+Protocol: test
 ProtocolConfig:
-  StartChannel: general
-  StartUser: alice
-  BotName: floyd
-  BotFullName: Floyd Gopherbot
+  BotName: bender
+  BotFullName: Bender Rodriguez
   Users:
   - Name: "alice"
     Email: "alice@example.com"
@@ -121,7 +119,9 @@ ProtocolConfig:
 # Specify the mechanism for storing the robots memories. Currently only a
 # simple file-based brain is available. Be sure that
 # <local config dir>/brain is writable by the user the robot runs as.
-Brain: mem
+Brain: file
+BrainConfig:
+  BrainDirectory: brain
 
 # Use Google Authenticator TOTP by default for elevated commands. To use:
 # - Ask the robot to 'send launch codes', and it will send you (one time)

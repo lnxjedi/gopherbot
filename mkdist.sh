@@ -43,11 +43,11 @@ do
 	then
 		GOOS=$BUILDOS go build -o gopherbot.exe 
 		echo "Creating $OUTFILE"
-		zip -r $OUTFILE gopherbot.exe LICENSE README.md brain/ conf/ doc/ termcfg/ lib/ licenses/ misc/ plugins/ --exclude *.swp
+		zip -r $OUTFILE gopherbot.exe LICENSE README.md brain/ conf/ doc/ cfg/ lib/ licenses/ misc/ plugins/ --exclude *.swp
 	else
 		GOOS=$BUILDOS go build
 		echo "Creating $OUTFILE"
-		zip -r $OUTFILE gopherbot LICENSE README.md brain/ conf/ doc/ termcfg/ lib/ licenses/ misc/ plugins/ --exclude *.swp
+		zip -r $OUTFILE gopherbot LICENSE README.md brain/ conf/ doc/ cfg/ lib/ licenses/ misc/ plugins/ --exclude *.swp
 	fi
 
 done

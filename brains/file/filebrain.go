@@ -55,7 +55,7 @@ func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
 	}
 	bd, err := os.Stat(brainPath)
 	if err != nil {
-		robot.Log(bot.Fatal, fmt.Sprintf("Checking brain directory \"%s\": %v", err))
+		robot.Log(bot.Fatal, fmt.Sprintf("Checking brain directory \"%s\": %v", brainPath, err))
 	}
 	if !bd.Mode().IsDir() {
 		robot.Log(bot.Fatal, fmt.Sprintf("Checking brain directory: \"%s\" isn't a directory", brainPath))

@@ -6,31 +6,24 @@ package memBrain
 import (
 	"fmt"
 	"log"
-	"sync"
 
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
 var robot bot.Handler
 
-// Note on locking: shouldn't be needed. The API grants RW access via lock token
-// to a single plugin at a time.
+// NOTE: brains shouldn't need to do their own locking. See bot/brain.go
 type memBrain struct {
 	memories map[string][]byte
-	sync.Mutex
 }
 
 func (mb *memBrain) Store(k string, b []byte) error {
-	mb.Lock()
 	mb.memories[k] = b
-	mb.Unlock()
 	return nil
 }
 
 func (mb *memBrain) Retrieve(k string) ([]byte, bool, error) {
-	mb.Lock()
 	datum, exists := mb.memories[k]
-	mb.Unlock()
 	if exists {
 		return datum, true, nil
 	} else { // Memory doesn't exist yet

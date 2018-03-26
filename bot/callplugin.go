@@ -45,7 +45,9 @@ func getPluginPath(plugin *Plugin) (string, error) {
 	}
 	var fullPath string
 	robot.RLock()
-	defer robot.RUnlock()
+	localPath := robot.localPath
+	installPath := robot.installPath
+	robot.RUnlock()
 	if byte(plugin.pluginPath[0]) == byte("/"[0]) {
 		fullPath = plugin.pluginPath
 		_, err := os.Stat(fullPath)
@@ -57,17 +59,17 @@ func getPluginPath(plugin *Plugin) (string, error) {
 		Log(Error, err)
 		return "", err
 	}
-	if len(robot.localPath) > 0 {
-		_, err := os.Stat(robot.localPath + "/" + plugin.pluginPath)
+	if len(localPath) > 0 {
+		_, err := os.Stat(localPath + "/" + plugin.pluginPath)
 		if err == nil {
-			fullPath = robot.localPath + "/" + plugin.pluginPath
+			fullPath = localPath + "/" + plugin.pluginPath
 			Log(Debug, "Using local external plugin:", fullPath)
 			return fullPath, nil
 		}
 	}
-	_, err := os.Stat(robot.installPath + "/" + plugin.pluginPath)
+	_, err := os.Stat(installPath + "/" + plugin.pluginPath)
 	if err == nil {
-		fullPath = robot.installPath + "/" + plugin.pluginPath
+		fullPath = installPath + "/" + plugin.pluginPath
 		Log(Debug, "Using stock external plugin:", fullPath)
 		return fullPath, nil
 	}
@@ -138,17 +140,18 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 // callPlugin (normally called with go ...) sends a command to a plugin.
 func callPlugin(bot *Robot, plugin *Plugin, background bool, interactive bool, command string, args ...string) (retval PlugRetVal) {
 	if background {
-		pluginsRunning.Add(1)
-		pluginsRunning.Lock()
-		pluginsRunning.count++
-		pluginsRunning.Unlock()
+		robot.Add(1)
+		robot.Lock()
+		robot.pluginsRunning++
+		robot.Unlock()
 		defer func() {
-			pluginsRunning.Lock()
-			pluginsRunning.count--
-			if pluginsRunning.count >= 0 {
-				pluginsRunning.Done()
+			robot.Lock()
+			robot.pluginsRunning--
+			// TODO: this check shouldn't be necessary; remove and test
+			if robot.pluginsRunning >= 0 {
+				robot.Done()
 			}
-			pluginsRunning.Unlock()
+			robot.Unlock()
 		}()
 	}
 	var errString string

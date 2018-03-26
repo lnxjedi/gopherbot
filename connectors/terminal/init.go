@@ -66,7 +66,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		running:        false,
 		botName:        c.BotName,
 		botFullName:    c.BotFullName,
-		botID:          "deadbeef",
+		botID:          "deadbeef", // yes - hex in a string
 		users:          c.Users,
 		heard:          make(chan string),
 		speaking:       make(chan struct{}),

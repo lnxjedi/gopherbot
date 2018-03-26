@@ -363,7 +363,7 @@ func configure(r *bot.Robot, user string, res *authapi.PreauthResult) (retval bo
 		r.Reply("Your duo default configuration has been set")
 		return bot.Normal
 	}
-	r.Log(bot.Error, fmt.Sprintf("Error storing user duo config: %d"), ret)
+	r.Log(bot.Error, fmt.Sprintf("Error storing user duo config: %d", ret))
 	return bot.Fail
 }
 

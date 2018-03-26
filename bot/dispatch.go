@@ -3,26 +3,8 @@ package bot
 import (
 	"fmt"
 	"path/filepath"
-	"sync"
 	"time"
 )
-
-var pluginsRunning struct {
-	count int
-	sync.WaitGroup
-	paused       bool
-	shuttingDown bool
-	sync.Mutex
-}
-
-// var pluginsRunning.count int
-// var pluginsRunning.shuttingDown = false
-// var paused = false // For Windows service pause support
-
-// the shutdownMutex protects both the pluginsRunning.count and the pluginsRunning.shuttingDown
-// flag
-// var shutdownMutex sync.Mutex
-// var plugRunningWaitGroup sync.WaitGroup
 
 const keepListeningDuration = 77 * time.Second
 
@@ -173,17 +155,17 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 		if plugin.name == "builtInadmin" && matcher.Command == "abort" {
 			abort = true
 		}
-		pluginsRunning.Lock()
-		if pluginsRunning.shuttingDown && !abort {
+		robot.RLock()
+		if robot.shuttingDown && !abort {
 			bot.Say("Sorry, I'm shutting down and can't start any new tasks")
-			pluginsRunning.Unlock()
+			robot.RUnlock()
 			return
-		} else if pluginsRunning.paused && !abort {
+		} else if robot.paused && !abort {
 			bot.Say("Sorry, I've been paused and can't start any new tasks")
-			pluginsRunning.Unlock()
+			robot.RUnlock()
 			return
 		}
-		pluginsRunning.Unlock()
+		robot.RUnlock()
 		// Check to see if user issued a new command when a reply was being
 		// waited on
 		replyMatcher := replyMatcher{bot.User, bot.Channel}
@@ -209,6 +191,7 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 		if bot.checkElevation(plugins, plugin, matcher.Command) != Success {
 			return
 		}
+		emit(PluginRan) // for testing, otherwise noop
 		go callPlugin(bot, plugin, true, true, matcher.Command, cmdArgs...)
 	}
 	return
@@ -299,16 +282,17 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 		commandMatched = checkPluginMatchersAndRun(false, bot, messagetext)
 	}
 	if isCommand && !commandMatched { // the robot was spoken too, but nothing matched - call catchAlls
-		pluginsRunning.Lock()
-		if !pluginsRunning.shuttingDown {
-			pluginsRunning.Unlock()
+		robot.RLock()
+		if !robot.shuttingDown {
+			robot.RUnlock()
 			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", messagetext))
+			emit(CatchAllsRan) // for testing, otherwise noop
 			for _, plugin := range catchAllPlugins {
 				go callPlugin(bot, plugin, true, true, "catchall", messagetext)
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins
-			pluginsRunning.Unlock()
+			robot.RUnlock()
 		}
 	}
 	if commandMatched || isCommand {

@@ -1,14 +1,12 @@
-package terminal
+package test
 
 import (
-	"fmt"
-
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
 // GetUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
-func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {
+func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {
 	i, exists := userMap[u]
 	if !exists {
 		return "", bot.UserNotFound
@@ -34,23 +32,37 @@ func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (tc *termConnector) SendProtocolChannelMessage(ch string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	return tc.sendMessage(ch, msg)
+func (tc *TestConnector) SendProtocolChannelMessage(ch string, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
+	msg := &TestMessage{
+		User:    "",
+		Channel: ch,
+		Message: mesg,
+	}
+	return tc.sendMessage(msg)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (tc *termConnector) SendProtocolUserChannelMessage(u, ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	msg = "@" + u + " " + msg
-	return tc.sendMessage(ch, msg)
+func (tc *TestConnector) SendProtocolUserChannelMessage(u, ch, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
+	msg := &TestMessage{
+		User:    u,
+		Channel: ch,
+		Message: mesg,
+	}
+	return tc.sendMessage(msg)
 }
 
 // SendProtocolUserMessage sends a direct message to a user
-func (tc *termConnector) SendProtocolUserMessage(u string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	return tc.sendMessage(fmt.Sprintf("(dm:%s)", u), msg)
+func (tc *TestConnector) SendProtocolUserMessage(u string, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
+	msg := &TestMessage{
+		User:    u,
+		Channel: "",
+		Message: mesg,
+	}
+	return tc.sendMessage(msg)
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"
-func (tc *termConnector) JoinChannel(c string) (ret bot.RetVal) {
+func (tc *TestConnector) JoinChannel(c string) (ret bot.RetVal) {
 	if c == "" {
 		return bot.Ok
 	}
