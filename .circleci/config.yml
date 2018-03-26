@@ -24,13 +24,13 @@ jobs:
       - run:
           name: Run Integration Tests
           command: |
-            go test -v --tags 'test integration' -cover -race -coverprofile coverage.out -coverpkg ./... ./bot || :
-            cat bot/test.log
+            go test -v --tags 'test integration' -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
+          # cat bot/test.log # if testing fails, uncomment and add '|| :' above
 
       # Publish coverage
-      # - run:
-      #     name: Publish Coverage Results
-      #     command: goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+      - run:
+          name: Publish Coverage Results
+          command: goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
       # Build
       - run:
