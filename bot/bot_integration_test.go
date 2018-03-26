@@ -22,6 +22,12 @@ import (
 	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
 )
 
+type testItem struct {
+	user, channel, message string
+	replies                []testc.TestMessage // note: TestMessage.Message -> regex
+	events                 []Event
+}
+
 // Cast of Users
 const alice = "alice"
 const bob = "bob"
@@ -48,6 +54,29 @@ func teardown(done <-chan struct{}, conn *testc.TestConnector) {
 
 	// Now we wait for the connection to finish
 	<-done
+}
+
+func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
+	for _, test := range tests {
+		conn.SendBotMessage(&testc.TestMessage{test.user, test.channel, test.message})
+		for _, want := range test.replies {
+			got := conn.GetBotMessage() // TODO: match message based on regex for want
+			if got.User != want.User || got.Channel != want.Channel || got.Message != want.Message {
+				t.Errorf("FAILED: want u:%s, c:%s, m:%s; got u:%s,c:%s,m:%s", want.User, want.Channel, want.Message, got.User, got.Channel, got.Message)
+			}
+		}
+	}
+}
+
+func TestBotName(t *testing.T) {
+	done, conn := setup("cfg/test/membrain", "test.log", t)
+
+	tests := []testItem{
+		{alice, general, ";ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}},
+	}
+	testcases(t, conn, tests)
+
+	teardown(done, conn)
 }
 
 func TestPing(t *testing.T) {
