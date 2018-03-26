@@ -27,7 +27,7 @@ class Reply:
 class Memory:
     "A Gopherbot long-term memory object"
     def __init__(self, key, ret):
-        self.key = key()
+        self.key = key
         self.lock_token = ret["LockToken"]
         self.exists = ret["Exists"]
         self.datum = ret["Datum"]
