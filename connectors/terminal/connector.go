@@ -107,6 +107,14 @@ loop:
 	// Main loop and prompting
 	for {
 		if !speaking && !prompted {
+			ev := bot.GetEvents()
+			if len(*ev) > 0 {
+				evs := make([]string, len(*ev))
+				for i, e := range *ev {
+					evs[i] = e.String()
+				}
+				fmt.Printf("Events gathered: %s\n", strings.Join(evs, ", "))
+			}
 			tc.RLock()
 			fmt.Printf("c:%s/u:%s -> ", tc.currentChannel, tc.currentUser)
 			tc.RUnlock()
@@ -122,6 +130,8 @@ loop:
 			if len(input) == 0 {
 				continue
 			}
+			speaking = true // well, we PREDICT the bot will speak soon
+			lastSpoke = time.Now()
 			if input[0] == '|' {
 				if len(input) == 1 {
 					continue

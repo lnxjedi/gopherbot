@@ -139,6 +139,7 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 				if commandMatched {
 					Log(Error, fmt.Sprintf("Message \"%s\" matched multiple plugins: %s and %s", messagetext, runPlugin.name, plugin.name))
 					bot.Say("Yikes! Your command matched multiple plugins, so I'm not doing ANYTHING")
+					emit(MultipleMatchesNoAction)
 					return
 				}
 				commandMatched = true
@@ -191,7 +192,12 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 		if bot.checkElevation(plugins, plugin, matcher.Command) != Success {
 			return
 		}
-		emit(PluginRan) // for testing, otherwise noop
+		if checkCommands {
+			emit(CommandPluginRan) // for testing, otherwise noop
+		} else {
+			// An "ambient" message matched - not specifically directed at the robot
+			emit(AmbientPluginRan) // for testing, otherwise noop
+		}
 		go callPlugin(bot, plugin, true, true, matcher.Command, cmdArgs...)
 	}
 	return
@@ -212,6 +218,7 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	plugins := currentPlugins.p
 	currentPlugins.RUnlock()
 	if len(channel) == 0 {
+		emit(BotDirectMessage)
 		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", user, messagetext))
 	}
 	commandMatched := false

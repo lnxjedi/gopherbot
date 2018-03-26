@@ -95,7 +95,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	robot.logger = logger
 	robot.stop = make(chan struct{})
 	robot.done = make(chan struct{})
-	robot.events = make(chan Event, 8)
+	robot.events = make(chan Event, 16)
 	robot.shuttingDown = false
 	robot.Unlock()
 

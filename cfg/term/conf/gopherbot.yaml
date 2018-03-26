@@ -51,11 +51,11 @@ LogLevel: debug
 # first, then the local config directory.
 ExternalPlugins:
 - Name: bashdemo
-  Path: plugins/bashdemo
+  Path: plugins/bashdemo.sh
 - Name: pythondemo
   Path: plugins/pythondemo.py
 - Name: rubydemo
-  Path: plugins/rubydemo
+  Path: plugins/rubydemo.rb
 
 # Configuration for the "test" connector, for the terminal or test connector.
 Protocol: term

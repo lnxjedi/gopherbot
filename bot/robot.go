@@ -37,9 +37,11 @@ func (r *Robot) CheckAdmin() bool {
 	defer robot.RUnlock()
 	for _, adminUser := range robot.adminUsers {
 		if r.User == adminUser {
+			emit(AdminCheckPassed)
 			return true
 		}
 	}
+	emit(AdminCheckFailed)
 	return false
 }
 

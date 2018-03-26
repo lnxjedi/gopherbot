@@ -2,7 +2,7 @@ This configuration directory can be used for development and testing with a bot
 named **Floyd** using the `terminal` connector, e.g.:
 
 ```
-[./gopherbot]$ go build
+[./gopherbot]$ go build -tags test
 [./gopherbot]$ ./gopherbot -l /tmp/bot.log -c cfg/term/
 Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
 c:general/u:alice -> floyd, info
