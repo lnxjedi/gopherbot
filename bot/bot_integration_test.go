@@ -1,9 +1,11 @@
+// +build integration
+
 package bot_test
 
 /*
-bot_test.go - setup and initialization of "black box" plugin testing.
+bot_integration_test.go - setup and initialization of "black box" integration testing.
 
-Setup for "clear box" testing of bot internals is in bot/bot_test.go
+Setup for "clear box" testing of bot internals is in bot_test.go
 */
 
 import (
@@ -11,6 +13,7 @@ import (
 	"testing"
 
 	. "github.com/lnxjedi/gopherbot/bot"
+	_ "github.com/lnxjedi/gopherbot/brains/file"
 	_ "github.com/lnxjedi/gopherbot/brains/mem"
 	testc "github.com/lnxjedi/gopherbot/connectors/test"
 	_ "github.com/lnxjedi/gopherbot/goplugins/help"
@@ -31,8 +34,8 @@ const general = "general"
 const random = "random"
 const bottest = "bottest"
 
-func setup(cfgdir string, t *testing.T) (<-chan struct{}, *testc.TestConnector) {
-	done, tconn := StartTest(cfgdir, t)
+func setup(cfgdir, logfile string, t *testing.T) (<-chan struct{}, *testc.TestConnector) {
+	done, tconn := StartTest(cfgdir, logfile, t)
 	testConnector := tconn.(*testc.TestConnector)
 	testConnector.SetTest(t)
 
@@ -48,12 +51,12 @@ func teardown(done <-chan struct{}, conn *testc.TestConnector) {
 }
 
 func TestPing(t *testing.T) {
-	done, conn := setup("cfg/test", t)
+	done, conn := setup("cfg/test/membrain", "", t)
 
 	conn.SendBotMessage(&testc.TestMessage{alice, general, ";ping"})
 	reply := conn.GetBotMessage()
 	if reply.Message != "PONG" {
-		t.Errorf("Wrong reply: %s", reply.Message)
+		t.Errorf("FAILED - Wrong reply: %s", reply.Message)
 	}
 	ev := GetEvents()
 	t.Logf("Got events: %v", ev)
@@ -61,14 +64,16 @@ func TestPing(t *testing.T) {
 	teardown(done, conn)
 }
 
-func TestPing2(t *testing.T) {
-	done, conn := setup("cfg/test", t)
+func TestReload(t *testing.T) {
+	done, conn := setup("cfg/test/filebrain", "", t)
 
-	conn.SendBotMessage(&testc.TestMessage{alice, general, ";ping"})
+	conn.SendBotMessage(&testc.TestMessage{alice, general, ";reload"})
 	reply := conn.GetBotMessage()
-	if reply.Message != "PONG" {
-		t.Errorf("Wrong reply: %s", reply.Message)
+	if reply.Message != "Configuration reloaded successfully" {
+		t.Errorf("FAILED - Wrong reply: %s", reply.Message)
 	}
+	ev := GetEvents()
+	t.Logf("Got events: %v", ev)
 
 	teardown(done, conn)
 }

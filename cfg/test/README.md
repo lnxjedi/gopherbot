@@ -1,2 +1,2 @@
-This configuration directory is for use with the `test` connector for
-automated integration testing. See `bot/bot_black_test.go`.
+These configuration directories are for use with the `test` connector for
+automated testing. See `bot/*_test.go`.

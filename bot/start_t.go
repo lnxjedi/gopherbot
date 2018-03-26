@@ -6,7 +6,7 @@ testing.
 */
 
 import (
-	// 	"io/ioutil"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,7 +14,7 @@ import (
 )
 
 // Start a robot for testing, and return the exit / robot stopped channel
-func StartTest(cfgdir string, t *testing.T) (<-chan struct{}, Connector) {
+func StartTest(cfgdir, logfile string, t *testing.T) (<-chan struct{}, Connector) {
 	wd, _ := os.Getwd()
 	installdir := filepath.Dir(wd)
 	localdir := filepath.Join(installdir, cfgdir)
@@ -22,12 +22,16 @@ func StartTest(cfgdir string, t *testing.T) (<-chan struct{}, Connector) {
 	os.Setenv("GOPHER_CONFIGDIR", localdir)
 	t.Logf("Initializing test bot with installdir: \"%s\" and localdir: \"%s\"", installdir, localdir)
 
-	// 	botLogger := log.New(ioutil.Discard, "", 0)
-	lf, err := os.Create("/tmp/bot.log")
-	if err != nil {
-		log.Fatalf("Error creating log file: (%T %v)", err, err)
+	var botLogger *log.Logger
+	if len(logfile) == 0 {
+		botLogger = log.New(ioutil.Discard, "", 0)
+	} else {
+		lf, err := os.Create("/tmp/bot.log")
+		if err != nil {
+			log.Fatalf("Error creating log file: (%T %v)", err, err)
+		}
+		botLogger = log.New(lf, "", log.LstdFlags)
 	}
-	botLogger := log.New(lf, "", log.LstdFlags)
 
 	initBot(localdir, installdir, botLogger)
 

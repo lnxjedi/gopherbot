@@ -16,7 +16,19 @@ jobs:
 
       # Get the github publishing tool
       - run: go get github.com/lnxjedi/github-release
+      # Coverage tool
+      - run: go get github.com/mattn/goveralls
       - run: go get -v -t -d ./...
+
+      # Test
+      - run:
+          name: Run Integration Tests
+          command: go test -v --tags 'test integration' -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
+
+      # Publish coverage
+      - run:
+          name: Publish Coverage Results
+          command: goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
       # Build
       - run:

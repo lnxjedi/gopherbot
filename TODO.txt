@@ -9,3 +9,5 @@ For testing:
  - When auth/elevate fails
  - When a command doesn't match anything (wrong user / channel or typo)
 - Create comprehensive test loop / table tests
+- Add Inject() method ala GetEvents - see emit_test.go; use for
+  connecting to slack and immediately quitting

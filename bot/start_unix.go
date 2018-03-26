@@ -9,13 +9,7 @@ import (
 	"path/filepath"
 )
 
-var started bool
 var hostName string
-var finish = make(chan struct{})
-
-type botInfo struct {
-	LogFile, PidFile string // Locations for the bots log file and pid file
-}
 
 func init() {
 	hostName = os.Getenv("HOSTNAME")
@@ -37,13 +31,6 @@ func dirExists(path string) bool {
 
 // Start gets the robot going
 func Start() {
-	globalLock.Lock()
-	if started {
-		globalLock.Unlock()
-		return
-	}
-	started = true
-	globalLock.Unlock()
 	var installdir, localdir string
 	var err error
 
