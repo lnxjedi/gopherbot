@@ -51,7 +51,7 @@ func teardown(done <-chan struct{}, conn *testc.TestConnector) {
 }
 
 func TestPing(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "", t)
+	done, conn := setup("cfg/test/membrain", "test.log", t)
 
 	conn.SendBotMessage(&testc.TestMessage{alice, general, ";ping"})
 	reply := conn.GetBotMessage()
@@ -65,7 +65,7 @@ func TestPing(t *testing.T) {
 }
 
 func TestReload(t *testing.T) {
-	done, conn := setup("cfg/test/filebrain", "", t)
+	done, conn := setup("cfg/test/filebrain", "test.log", t)
 
 	conn.SendBotMessage(&testc.TestMessage{alice, general, ";reload"})
 	reply := conn.GetBotMessage()

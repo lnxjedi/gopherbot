@@ -1,3 +1,5 @@
+coverage.out
+bot/test.log
 gopherbot
 gopherbot.exe
 gopherbot*zip

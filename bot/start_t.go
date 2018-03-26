@@ -26,7 +26,7 @@ func StartTest(cfgdir, logfile string, t *testing.T) (<-chan struct{}, Connector
 	if len(logfile) == 0 {
 		botLogger = log.New(ioutil.Discard, "", 0)
 	} else {
-		lf, err := os.Create("/tmp/bot.log")
+		lf, err := os.Create(logfile)
 		if err != nil {
 			log.Fatalf("Error creating log file: (%T %v)", err, err)
 		}
