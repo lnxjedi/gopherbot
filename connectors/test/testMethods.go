@@ -1,6 +1,7 @@
 package test
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -51,13 +52,16 @@ func (tc *TestConnector) SendBotMessage(msg *TestMessage) {
 }
 
 // GetBotMessage, for tests to get replies
-func (tc *TestConnector) GetBotMessage() *TestMessage {
+func (tc *TestConnector) GetBotMessage() (*TestMessage, error) {
 	select {
 	case incoming := <-tc.speaking:
-		tc.test.Logf("Reply received from robot: %v", incoming)
-		return incoming
+		message := incoming.Message
+		if len(incoming.Message) > 16 {
+			message = incoming.Message[0:16] + " ..."
+		}
+		tc.test.Logf("Reply received from robot: u:%s, c:%s, m:%s", incoming.User, incoming.Channel, message)
+		return incoming, nil
 	case <-time.After(2 * time.Second):
-		tc.test.Errorf("Timed out waiting for reply in GetBotMessage")
-		return nil
+		return nil, errors.New("Timeout waiting for reply from robot")
 	}
 }

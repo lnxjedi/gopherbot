@@ -35,7 +35,7 @@ func updateRegexes() {
 	name := robot.name
 	alias := robot.alias
 	robot.RUnlock()
-	pre, post, errpre, errpost := updateRegexesWrapped(name, alias)
+	pre, post, bare, errpre, errpost, errbare := updateRegexesWrapped(name, alias)
 	if errpre != nil {
 		Log(Error, fmt.Sprintf("Error compiling pre regex: %s", errpre))
 	}
@@ -48,16 +48,23 @@ func updateRegexes() {
 	if post != nil {
 		Log(Debug, fmt.Sprintf("Setting post regex to: %s", post))
 	}
+	if errbare != nil {
+		Log(Error, fmt.Sprintf("Error compiling bare regex: %s", errbare))
+	}
+	if bare != nil {
+		Log(Debug, fmt.Sprintf("Setting bare regex to: %s", bare))
+	}
 	robot.Lock()
 	robot.preRegex = pre
 	robot.postRegex = post
+	robot.bareRegex = bare
 	robot.Unlock()
 }
 
 // TODO: write unit test. The regexes produced shouldn't be checked, but rather
 // whether given strings do or don't match them. Note: this code is partially
 // tested in TestBotName
-func updateRegexesWrapped(name string, alias rune) (pre, post *regexp.Regexp, errpre, errpost error) {
+func updateRegexesWrapped(name string, alias rune) (pre, post, bare *regexp.Regexp, errpre, errpost, errbare error) {
 	pre = nil
 	post = nil
 	if alias == 0 && len(name) == 0 {
@@ -80,6 +87,8 @@ func updateRegexesWrapped(name string, alias rune) (pre, post *regexp.Regexp, er
 	if len(name) > 0 {
 		postString := `^([^,@]+),?\s+(?i:@?` + name + `)([.?!])?$`
 		post, errpost = regexp.Compile(postString)
+		bareString := `^@?` + name + `$`
+		bare, errbare = regexp.Compile(bareString)
 	}
 	return
 }

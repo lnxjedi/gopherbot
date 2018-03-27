@@ -54,19 +54,27 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 			return
 		}
 	}
+	preRegex := robot.preRegex
+	postRegex := robot.postRegex
+	bareRegex := robot.bareRegex
 	robot.RUnlock()
-	if robot.preRegex != nil {
-		matches := robot.preRegex.FindAllStringSubmatch(messageFull, -1)
+	if preRegex != nil {
+		matches := preRegex.FindAllStringSubmatch(messageFull, -1)
 		if matches != nil && len(matches[0]) == 2 {
 			isCommand = true
 			message = matches[0][1]
 		}
 	}
-	if !isCommand && robot.postRegex != nil {
-		matches := robot.postRegex.FindAllStringSubmatch(messageFull, -1)
+	if !isCommand && postRegex != nil {
+		matches := postRegex.FindAllStringSubmatch(messageFull, -1)
 		if matches != nil && len(matches[0]) == 3 {
 			isCommand = true
 			message = matches[0][1] + matches[0][2]
+		}
+	}
+	if !isCommand {
+		if bareRegex.MatchString(messageFull) {
+			isCommand = true
 		}
 	}
 	if !isCommand {

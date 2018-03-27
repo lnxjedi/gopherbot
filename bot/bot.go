@@ -57,6 +57,7 @@ var robot struct {
 	ignoreUsers        []string         // list of users to never listen to, like other bots
 	preRegex           *regexp.Regexp   // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
 	postRegex          *regexp.Regexp   // regex for matching, e.g. "open the pod bay doors, hal"
+	bareRegex          *regexp.Regexp   // regex for matching the robot's bare name, if you forgot it in the previous command
 	joinChannels       []string         // list of channels to join
 	defaultAllowDirect bool             // whether plugins are available in DM by default
 	plugChannels       []string         // list of channels where plugins are active by default
