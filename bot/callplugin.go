@@ -167,12 +167,17 @@ func callPlugin(bot *Robot, plugin *Plugin, background bool, interactive bool, c
 	bot.pluginID = plugin.pluginID
 	switch plugin.pluginType {
 	case plugBuiltin, plugGo:
+		if command != "init" {
+			emit(GoPluginRan)
+		}
+		Log(Debug, fmt.Sprintf("Call go plugin: \"%s\" with args: %q", plugin.name, args))
 		return pluginHandlers[plugin.name].Handler(bot, command, args...)
 	case plugExternal:
 		var fullPath string // full path to the executable
 		var err error
 		fullPath, err = getPluginPath(plugin)
 		if err != nil {
+			emit(ScriptPluginBadPath)
 			return MechanismFail
 		}
 		interpreter, err := getInterpreter(fullPath)
@@ -180,6 +185,7 @@ func callPlugin(bot *Robot, plugin *Plugin, background bool, interactive bool, c
 			err = fmt.Errorf("looking up interpreter for %s: %s", fullPath, err)
 			Log(Error, fmt.Sprintf("Unable to call external plugin %s, no interpreter found: %s", fullPath, err))
 			errString = "There was a problem calling an external plugin"
+			emit(ScriptPluginBadInterpreter)
 			return MechanismFail
 		}
 		externalArgs := make([]string, 0, 5+len(args))
@@ -216,6 +222,9 @@ func callPlugin(bot *Robot, plugin *Plugin, background bool, interactive bool, c
 			errString = fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name)
 			return MechanismFail
 		}
+		if command != "init" {
+			emit(ScriptPluginRan)
+		}
 		var stdErrBytes []byte
 		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
 			Log(Error, fmt.Errorf("Reading from stderr for external command \"%s\": %v", fullPath, err))
@@ -226,14 +235,23 @@ func callPlugin(bot *Robot, plugin *Plugin, background bool, interactive bool, c
 		if len(stdErrString) > 0 {
 			Log(Warn, fmt.Errorf("Output from stderr of external command \"%s\": %s", fullPath, stdErrString))
 			errString = fmt.Sprintf("There was error output while calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name)
+			emit(ScriptPluginStderrOutput)
 		}
 		if err = cmd.Wait(); err != nil {
-			Log(Error, fmt.Errorf("Waiting on external command \"%s\": %v", fullPath, err))
-			errString = fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name)
+			retval = Fail
+			success := false
 			if exitstatus, ok := err.(*exec.ExitError); ok {
 				if status, ok := exitstatus.Sys().(syscall.WaitStatus); ok {
 					retval = PlugRetVal(status.ExitStatus())
+					if retval == Success {
+						success = true
+					}
 				}
+			}
+			if !success {
+				Log(Error, fmt.Errorf("Waiting on external command \"%s\": %v", fullPath, err))
+				errString = fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name)
+				emit(ScriptPluginErrExit)
 			}
 		}
 	}

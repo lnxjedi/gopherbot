@@ -39,6 +39,7 @@ func (h handler) GetConfigPath() string {
 
 // ChannelMessage accepts an incoming channel message from the connector.
 func (h handler) IncomingMessage(channelName, userName, messageFull string) {
+	Log(Trace, fmt.Sprintf("Incoming message \"%s\" in channel \"%s\"", messageFull, channelName))
 	// When command == true, the message was directed at the bot
 	isCommand := false
 	logChannel := channelName
@@ -53,19 +54,27 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 			return
 		}
 	}
+	preRegex := robot.preRegex
+	postRegex := robot.postRegex
+	bareRegex := robot.bareRegex
 	robot.RUnlock()
-	if robot.preRegex != nil {
-		matches := robot.preRegex.FindAllStringSubmatch(messageFull, -1)
+	if preRegex != nil {
+		matches := preRegex.FindAllStringSubmatch(messageFull, -1)
 		if matches != nil && len(matches[0]) == 2 {
 			isCommand = true
 			message = matches[0][1]
 		}
 	}
-	if !isCommand && robot.postRegex != nil {
-		matches := robot.postRegex.FindAllStringSubmatch(messageFull, -1)
+	if !isCommand && postRegex != nil {
+		matches := postRegex.FindAllStringSubmatch(messageFull, -1)
 		if matches != nil && len(matches[0]) == 3 {
 			isCommand = true
 			message = matches[0][1] + matches[0][2]
+		}
+	}
+	if !isCommand {
+		if bareRegex.MatchString(messageFull) {
+			isCommand = true
 		}
 	}
 	if !isCommand {
@@ -109,13 +118,12 @@ func (h handler) Log(l LogLevel, v ...interface{}) {
 }
 
 // Connectors that support it can call SetFullName; otherwise it can
-// be configured in gobot.conf.
+// be configured in gopherbot.yaml.
 func (h handler) SetFullName(n string) {
 	Log(Debug, "Setting full name to: "+n)
 	robot.Lock()
 	robot.fullName = n
 	robot.Unlock()
-	updateRegexes()
 }
 
 // Connectors that support it can call SetName; otherwise it should

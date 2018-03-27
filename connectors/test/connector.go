@@ -83,7 +83,6 @@ func (tc *TestConnector) sendMessage(msg *TestMessage) (ret bot.RetVal) {
 	select {
 	case tc.speaking <- msg:
 	case <-time.After(200 * time.Millisecond):
-		tc.test.Errorf("Timed out waiting for GetBotMessage, user: \"%s\", channel: \"%s\", message: \"%s\"", msg.User, msg.Channel, msg.Message)
 		return bot.TimeoutExpired
 	}
 

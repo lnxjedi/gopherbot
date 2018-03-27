@@ -1,4 +1,7 @@
-// +build !test
+// +build test
+
+// Used for building test/devel bot with terminal connector and emitter
+// framework.
 
 package main
 
@@ -7,7 +10,7 @@ import (
 
 	// If re-compiling Gopherbot, you can comment out unused connectors.
 	// Select the connector and provide configuration in conf/gopherbot.yaml
-	_ "github.com/lnxjedi/gopherbot/connectors/slack"
+	_ "github.com/lnxjedi/gopherbot/connectors/terminal"
 
 	// If re-compiling, you can comment out unused brain implementations.
 	// Select the brain to use and provide configuration in conf/gopherbot.yaml

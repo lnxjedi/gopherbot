@@ -15,21 +15,29 @@ jobs:
       # specify any bash command here prefixed with `run: `
 
       # Get the github publishing tool
-      - run: go get github.com/lnxjedi/github-release
+      - run:
+          name: Install release tool
+          command: go get github.com/lnxjedi/github-release
       # Coverage tool
-      - run: go get github.com/mattn/goveralls
+      - run:
+          name: Install coverage tool
+          command: go get github.com/mattn/goveralls
+      # Dependencies for integration tests
+      - run:
+          name: Install dependencies for integration tests
+          command: sudo apt-get update && sudo apt-get install -y ruby python
       - run: go get -v -t -d ./...
 
       # Test
       - run:
-          name: Run Integration Tests
+          name: Run integration tests
           command: |
             go test -v --tags 'test integration' -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
           # cat bot/test.log # if testing fails, uncomment and add '|| :' above
 
       # Publish coverage
       - run:
-          name: Publish Coverage Results
+          name: Publish coverage results
           command: goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
       # Build

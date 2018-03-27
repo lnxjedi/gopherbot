@@ -114,7 +114,7 @@ configuration in the `cfg/term/` directory. You'll want to copy the directory an
 it for your own use (mainly configuring the plugins you're developing), but it can be used
 by using the `-c <configdir>` option:
 ```
-[./gopherbot]$ go build
+[./gopherbot]$ go build -tags test
 [./gopherbot]$ ./gopherbot -l /tmp/bot.log -c cfg/term/
 Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
 c:general/u:alice -> floyd, info

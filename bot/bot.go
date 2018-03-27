@@ -57,6 +57,7 @@ var robot struct {
 	ignoreUsers        []string         // list of users to never listen to, like other bots
 	preRegex           *regexp.Regexp   // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
 	postRegex          *regexp.Regexp   // regex for matching, e.g. "open the pod bay doors, hal"
+	bareRegex          *regexp.Regexp   // regex for matching the robot's bare name, if you forgot it in the previous command
 	joinChannels       []string         // list of channels to join
 	defaultAllowDirect bool             // whether plugins are available in DM by default
 	plugChannels       []string         // list of channels where plugins are active by default
@@ -95,7 +96,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	robot.logger = logger
 	robot.stop = make(chan struct{})
 	robot.done = make(chan struct{})
-	robot.events = make(chan Event, 8)
+	robot.events = make(chan Event, 16)
 	robot.shuttingDown = false
 	robot.Unlock()
 
