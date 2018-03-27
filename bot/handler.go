@@ -39,6 +39,7 @@ func (h handler) GetConfigPath() string {
 
 // ChannelMessage accepts an incoming channel message from the connector.
 func (h handler) IncomingMessage(channelName, userName, messageFull string) {
+	Log(Trace, fmt.Sprintf("Incoming message \"%s\" in channel \"%s\"", messageFull, channelName))
 	// When command == true, the message was directed at the bot
 	isCommand := false
 	logChannel := channelName
@@ -109,13 +110,12 @@ func (h handler) Log(l LogLevel, v ...interface{}) {
 }
 
 // Connectors that support it can call SetFullName; otherwise it can
-// be configured in gobot.conf.
+// be configured in gopherbot.yaml.
 func (h handler) SetFullName(n string) {
 	Log(Debug, "Setting full name to: "+n)
 	robot.Lock()
 	robot.fullName = n
 	robot.Unlock()
-	updateRegexes()
 }
 
 // Connectors that support it can call SetName; otherwise it should
