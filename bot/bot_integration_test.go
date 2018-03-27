@@ -60,7 +60,7 @@ func teardown(t *testing.T, done <-chan struct{}, conn *testc.TestConnector) {
 
 	// Now we wait for the connection to finish
 	<-done
-	
+
 	evOk := true
 	ev := GetEvents()
 	want := []Event{CommandPluginRan, GoPluginRan, AdminCheckPassed}
@@ -95,10 +95,10 @@ func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
 			} else {
 				got, err := conn.GetBotMessage()
 				if err != nil {
-					t.Errorf("FAILED timeout waiting for reply from robot; want: \"%s\"", want.Message )
+					t.Errorf("FAILED timeout waiting for reply from robot; want: \"%s\"", want.Message)
 				} else {
 					if !re.MatchString(got.Message) {
-						t.Errorf("FAILED message regex match; want: \"%s\", got: \"%s\"", want.Message, got.Message)				
+						t.Errorf("FAILED message regex match; want: \"%s\", got: \"%s\"", want.Message, got.Message)
 					} else {
 						if got.User != want.User || got.Channel != want.Channel {
 							t.Errorf("FAILED user/channel match; want u:%s, c:%s; got u:%s,c:%s", want.User, want.Channel, got.User, got.Channel)
@@ -164,18 +164,6 @@ func TestReload(t *testing.T) {
 	teardown(t, done, conn)
 }
 
-func TestMemory(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "test.log", t)
-
-	tests := []testItem{
-		{alice, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
-		{bob, random, "recall 1, Bender", []testc.TestMessage{{null, random, "Ferris Bueller"}}, []Event{CommandPluginRan, ScriptPluginRan}},
-	}
-	testcases(t, conn, tests)
-
-	teardown(t, done, conn)
-}
-
 func TestPrompting(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "test.log", t)
 
@@ -194,9 +182,28 @@ func TestBuiltins(t *testing.T) {
 	tests := []testItem{
 		{alice, general, ";help info", []testc.TestMessage{{null, general, "bender,.*admins"}}, []Event{CommandPluginRan, GoPluginRan}},
 		{alice, random, ";help ruby", []testc.TestMessage{{null, random, `(?m:Command.*\n.*random\))`}}, []Event{CommandPluginRan, GoPluginRan}},
-		{alice, general, ";help", []testc.TestMessage{{alice, general, `\(the help.*private message\)`},{alice, null, "bender,.*"}}, []Event{CommandPluginRan, GoPluginRan}},
-		{alice, general, "help", []testc.TestMessage{{alice, general, "I've sent.*myself"},{alice, null, "Hi,.*"}}, []Event{AmbientPluginRan, GoPluginRan}},
+		{alice, general, ";help", []testc.TestMessage{{alice, general, `\(the help.*private message\)`}, {alice, null, "bender,.*"}}, []Event{CommandPluginRan, GoPluginRan}},
+		{alice, general, "help", []testc.TestMessage{{alice, general, "I've sent.*myself"}, {alice, null, "Hi,.*"}}, []Event{AmbientPluginRan, GoPluginRan}},
 		{alice, null, "dump robot", []testc.TestMessage{{alice, null, "Here's how I've been configured.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+		{alice, null, "dump plugin echo", []testc.TestMessage{{alice, null, "AllChannels.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+		{alice, null, "dump plugin default echo", []testc.TestMessage{{alice, null, "Here's.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+		{alice, null, "dump plugin rubydemo", []testc.TestMessage{{alice, null, "AllChannels.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+		{alice, null, "dump plugin default rubydemo", []testc.TestMessage{{alice, null, "Here's.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+		{alice, null, "dump plugin junk", []testc.TestMessage{{alice, null, "Didn't find .* junk"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
+func TestMemory(t *testing.T) {
+	done, conn := setup("cfg/test/membrain", "test.log", t)
+
+	tests := []testItem{
+		{carol, random, ";remember slowly The Alamo", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{alice, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "Ok, .*"}, {null, random, "committed to memory"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{bob, random, "recall 1, Bender", []testc.TestMessage{{null, random, "Ferris Bueller"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{david, random, "forget 1, Bender", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 	}
 	testcases(t, conn, tests)
 
