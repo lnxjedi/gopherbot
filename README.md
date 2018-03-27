@@ -1,7 +1,7 @@
 # Gopherbot
 
 [![CircleCI](https://circleci.com/gh/lnxjedi/gopherbot.svg?style=shield)](https://circleci.com/gh/lnxjedi/gopherbot)
-[![Coverage Status](https://coveralls.io/repos/github/lnxjedi/gopherbot/badge.svg?branch=master)](https://coveralls.io/github/lnxjedi/gopherbot?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/lnxjedi/gopherbot/badge.svg?branch=master&service=github)](https://coveralls.io/github/lnxjedi/gopherbot?branch=master)
 [![GoDoc](https://godoc.org/github.com/lnxjedi/gopherbot/bot?status.png)](https://godoc.org/github.com/lnxjedi/gopherbot/bot)
 
 Enterprise Slack(\*) ChatOps bot for Linux and Windows, supporting plugins in Python, Ruby, Bash and PowerShell
