@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # bashdemo - plugin that exercises the bash plugin API, but doesn't do
 # anything useful.
@@ -13,17 +13,24 @@ shift
 
 configure(){
 	cat <<"EOF"
-Channels: [ "general", "random" ]
 Help:
 - Keywords: [ "echo" ]
   Helptext: [ "(bot), echo <simple text> - trivially repeat a phrase" ]
 - Keywords: [ "hear" ]
   Helptext: [ "(bot), hear me out - let the robot prove it's really listening" ]
+- Keywords: [ "store", "remember" ]
+  Helptext: [ "(bot), store <something> is <something> - store a fact in short-term memory" ]
+- Keywords: [ "remember", "recall" ]
+  Helptext: [ "(bot), what is <something> - recall a fact / context from short-term memory" ]
 CommandMatchers:
 - Regex: '(?i:echo ([.;!\d\w-, ]+))'
   Command: "echo"
 - Regex: '(?i:hear me out)'
   Command: "hear"
+- Regex: '(?i:store ([-\w :\/]+) is ([-\w .,!?:\/]+))'
+  Command: "store"
+- Regex: '(?i:what is ([-\w :\/]+)\??)'
+  Command: "recall"
 EOF
 }
 # TODO: Finish regex/command above
@@ -45,4 +52,16 @@ case "$command" in
 			Reply "Ok, I hear you saying \"$REPLY\" - feel better?"
 		fi
 		;;
+	"store")
+		Remember "$1" "$2"
+		Say "I'll remember \"$1\" is \"$2\" - but eventually I'll forget!"
+		;;
+	"recall")
+		MEMORY=$(Recall "$1")
+		if [ $? -ne 0 ]
+		then
+			Reply "Gosh, I have no idea - I'm so forgetful!"
+		else
+			Say "$1 is $MEMORY"
+		fi
 esac

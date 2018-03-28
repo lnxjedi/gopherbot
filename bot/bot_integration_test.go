@@ -144,6 +144,7 @@ func TestBotName(t *testing.T) {
 		{alice, general, "@bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}},
 		{alice, general, "ping @bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}},
 		{alice, general, "ping;", []testc.TestMessage{}, []Event{}},
+		{bob, general, "bender: echo hello world", []testc.TestMessage{{bob, general, "hello world"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 		// When you forget to address the robot, you can say it's name
 		{alice, general, "ping", []testc.TestMessage{}, []Event{}},
 		{alice, general, "bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}},
@@ -170,6 +171,8 @@ func TestPrompting(t *testing.T) {
 	tests := []testItem{
 		{carol, general, "Bender, listen to me", []testc.TestMessage{{carol, null, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 		{carol, null, "You're pretty cool", []testc.TestMessage{{carol, null, "I hear .*cool\""}}, []Event{BotDirectMessage}},
+		{bob, general, "hear me out, Bender", []testc.TestMessage{{bob, general, "Well ok then.*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{bob, general, "I like kittens", []testc.TestMessage{{bob, general, "Ok, I hear you saying \"I like kittens\".*"}}, []Event{}},
 	}
 	testcases(t, conn, tests)
 
@@ -199,11 +202,34 @@ func TestBuiltins(t *testing.T) {
 func TestMemory(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "test.log", t)
 
+	/* Note on ordering:
+
+	Be careful with the plugins you're testing, and be sure that the robot
+	completes all actions before replying. Consider for instance:
+
+		Say "I'll remember \"$1\" is \"$2\" - but eventually I'll forget!"
+		Remember "$1" "$2"
+
+	This order of events means the test may well complete (because it got the
+	reply) before actually remembering the fact. The next test, recalling the
+	fact, could then fail because it tries to recall the fact before it's
+	actually been stored in the previous test.
+
+	I know this because it took me a couple of hours to figure out why my
+	test was failing. */
+
 	tests := []testItem{
 		{carol, random, ";remember slowly The Alamo", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 		{alice, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "Ok, .*"}, {null, random, "committed to memory"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 		{bob, random, "recall 1, Bender", []testc.TestMessage{{null, random, "Ferris Bueller"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{carol, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "That's already one of my fondest memories"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 		{david, random, "forget 1, Bender", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		// Short-term memories are contextual to a user in a channel
+		{david, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, general, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{david, general, ";store Ferris Bueller is a Righteous Dude", []testc.TestMessage{{null, general, "I'll remember .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{david, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{null, general, "Ferris Bueller is a Righteous Dude"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{carol, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{carol, general, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{david, random, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, random, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 	}
 	testcases(t, conn, tests)
 

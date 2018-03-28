@@ -44,7 +44,8 @@ LocalPort: 8889
 
 # Initial log level, one of trace, debug, info, warn, error. See 'help log'
 # for help on changing the log level and viewing contents of the log.
-LogLevel: debug
+#LogLevel: debug
+LogLevel: trace
 
 # List of external plugins to configure; generally scripts using a gopherbot
 # script library. The robot will look for plugins in the installation directory

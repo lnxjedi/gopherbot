@@ -21,11 +21,11 @@ type config struct {
 
 // Define the handler function
 func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
-	// Create an empty map to unmarshal into
 	if command == "init" { // ignore init
 		return
 	}
-	links := make(map[string][]string)
+	// Create an empty map to unmarshal into
+	links := make(map[string]string)
 	var lock string
 	scope := &config{}
 
@@ -81,8 +81,8 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 	case "list":
 		linkslist := make([]string, 0, 7)
 		linkslist = append(linkslist, "Here are the links I know about:")
-		for link, keys := range links {
-			linkslist = append(linkslist, link+": "+strings.Join(keys, ", "))
+		for link, lookup := range links {
+			linkslist = append(linkslist, link+": "+lookup)
 		}
 		if len(linkslist) > 1 {
 			if len(linkslist) > maxLinkLen {
@@ -95,78 +95,54 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 			r.Say("I haven't stored any links yet")
 		}
 	case "add", "save":
-		lookups := make([]string, 0, 5)
-		var link string
+		var link, lookup string
 		if command == "add" {
 			link = args[1]
-			lookups = []string{
-				spaces.ReplaceAllString(args[0], ` `),
-			}
+			lookup = spaces.ReplaceAllString(args[0], ` `)
 		} else {
 			r.CheckinDatum(datumKey, lock)
 			link = args[0]
-			prompt := "Ok, what keywords or phrases do you want to attach to the link? (\"done\" when finished)"
-			for {
-				rep, ret := r.PromptForReply("lookup", prompt)
-				if ret == bot.Ok {
-					if strings.ToLower(rep) == "done" {
-						break
-					}
-					lookup := spaces.ReplaceAllString(rep, ` `)
-					lookups = append(lookups, lookup)
-					prompt = fmt.Sprintf("Added \"%s\", type \"done\" if you're finished", lookup)
-				} else {
-					break
-				}
-			}
-			if len(lookups) > 0 {
+			prompt := "Ok, what keywords or phrase do you want to attach to the link?"
+			rep, ret := r.PromptForReply("lookup", prompt)
+			if ret == bot.Ok {
+				lookup = spaces.ReplaceAllString(rep, ` `)
 				lock, _, _ = r.CheckoutDatum(datumKey, &links, true)
+			} else {
+				r.Reply("Sorry, I didn't get your keywords / phrase")
 			}
 		}
-		if len(lookups) > 0 {
-			keys, exists := links[link]
+		if len(lookup) > 0 {
+			lookup, exists := links[link]
 			if exists {
-				for _, i := range lookups {
-					newkey := true
-					lk := strings.ToLower(i)
-					for _, j := range keys {
-						if lk == strings.ToLower(j) {
-							newkey = false
-							break
-						}
-					}
-					if newkey {
+				r.Say(fmt.Sprintf("I've already associated that link with: %s", lookup))
+				rep, ret := r.PromptForReply("YesNo", "Do you want me to replace it?")
+				if ret == bot.Ok {
+					switch strings.ToLower(rep) {
+					case "n", "no":
+						r.Say("Ok, I'll keep the old one")
+					default:
+						links[link] = lookup
 						updated = true
-						keys = append(keys, i)
+						r.Say("Ok, I'll replace the old one")
 					}
-				}
-				if updated {
-					links[link] = keys
-					r.Say("Ok, updated keys for existing link")
 				} else {
-					r.Say("No new keys given for existing link")
+					r.Reply("Sorry, I didn't get an answer I understand")
 				}
 			} else {
-				links[link] = lookups
+				links[link] = lookup
 				r.Say("Ok, link added")
 				updated = true
 			}
-		} else {
-			r.Say("Not adding link with no lookups")
 		}
 	case "find":
-		lookup := strings.ToLower(spaces.ReplaceAllString(args[0], ` `))
+		find := strings.ToLower(spaces.ReplaceAllString(args[0], ` `))
 		linkList := make([]string, 0, 5)
 		linkList = append(linkList, fmt.Sprintf("Here's what I have for \"%s\":", args[0]))
 		var last string
-		for link, lookups := range links {
-		loop:
-			for _, key := range lookups {
-				if strings.Contains(strings.ToLower(key), lookup) {
-					linkList = append(linkList, key+": "+link)
-					last = link
-					break loop
-				}
+		for link, lookup := range links {
+			if strings.Contains(strings.ToLower(lookup), find) {
+				linkList = append(linkList, link+": "+lookup)
+				last = link
 			}
 		}
 		if len(linkList) > 1 {
@@ -175,7 +151,7 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 				r.RememberContext("link", last)
 			}
 		} else {
-			r.Say(fmt.Sprintf("Sorry, I don't have any links for \"%s\"", lookup))
+			r.Say(fmt.Sprintf("Sorry, I don't have any links for \"%s\"", args[0]))
 		}
 	}
 	return
