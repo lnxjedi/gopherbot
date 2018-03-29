@@ -57,7 +57,8 @@ type shorttermmemory struct {
 
 // Something to be recalled from short-term memory
 type shorttermrecollection struct {
-	Key string
+	Key    string
+	Base64 bool
 }
 
 // Something to be remembered in long term memory
@@ -321,6 +322,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if m.Base64 {
+			m.Key = decode(m.Key)
 			m.Value = decode(m.Value)
 		}
 		bot.Remember(m.Key, m.Value)
@@ -329,6 +331,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		var m shorttermrecollection
 		if !getArgs(rw, &f.FuncArgs, &m) {
 			return
+		}
+		if m.Base64 {
+			m.Key = decode(m.Key)
 		}
 		s := bot.Recall(m.Key)
 		sendReturn(rw, &stringresponse{s})

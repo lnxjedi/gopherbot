@@ -20,10 +20,10 @@ CommandMatchers:
 - Command: 'help'
   Regex: '(?i:help with links?)'
 - Command: 'add'
-  Regex: '(?i:link ([-\w \'']+) to ((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
+  Regex: '(?i:link ([-\w ,''!."+=?&@#()/]+) to ((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
   Contexts: [ "item", "link" ]
 - Command: 'add'
-  Regex: '(?i:link ([-\w \'']+) to (it))'
+  Regex: '(?i:link ([-\w ,''!."+=?&@#()/]+) to (it))'
   Contexts: [ "item", "link" ]
 - Command: 'save'
   Regex: '(?i:save (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
@@ -32,22 +32,22 @@ CommandMatchers:
   Regex: '(?i:(?:remove|delete) (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
   Contexts: [ "link" ]
 - Command: 'find'
-  Regex: '(?i:(?:find|look ?up) ([-\w \'']+))'
+  Regex: '(?i:(?:find|look ?up) ([-\w ,''!."+=?&@#()/]+))'
   Contexts: [ "item" ]
 - Command: 'list'
   Regex: '(?i:(?:show|list) links)'
 - Command: 'find'
-  Regex: '(?i:look ([-\w \'']+) up)'
+  Regex: '(?i:look ([-\w ,''!."+=?&@#()/]+) up)'
   Contexts: [ "item" ]
 ReplyMatchers:
-- Regex: '([-\w ,\'']+)'
+- Regex: '([-\w ,''!."+=?&@#()/]+)'
   Label: "lookup"
 Config:
   Scope: global # or "channel"
 `
 
-const longHelp = `The links plugin stores URLs and associates them with one or more keys that can
-be words or phrases. The 'link' command stores a single lookup key, and the
-'save' command will prompt the user to enter multiple keys. The lookup command
-will return all links that have a key containing the provided word or phrase,
+const longHelp = `The links plugin stores URLs and associates them with a text key that can
+be words or phrases. The 'link' command stores a link and key in one command, and the
+'save' command will prompt the user to enter the key. The lookup command
+will return all links whose key contains the provided word or phrase,
 case insensitive. Links can be deleted with the 'remove' command.`

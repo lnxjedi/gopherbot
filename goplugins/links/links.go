@@ -21,11 +21,11 @@ type config struct {
 
 // Define the handler function
 func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
-	// Create an empty map to unmarshal into
 	if command == "init" { // ignore init
 		return
 	}
-	links := make(map[string][]string)
+	// Create an empty map to unmarshal into
+	links := make(map[string]string)
 	var lock string
 	scope := &config{}
 
@@ -48,13 +48,7 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		// all other cases are read-write
 		lock, _, ret = r.CheckoutDatum(datumKey, &links, true)
 		defer func() {
-			if updated {
-				mret := r.UpdateDatum(datumKey, lock, links)
-				if mret != bot.Ok {
-					r.Log(bot.Error, "Couldn't update links", mret)
-					r.Reply("Crud. I had a problem saving the links - you can try again or ask an administrator to check the log")
-				}
-			} else {
+			if !updated {
 				// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
 				// in case there's another thread waiting.
 				r.CheckinDatum(datumKey, lock)
@@ -68,21 +62,30 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		return
 	}
 	switch command {
-	case "remove":
-		link := args[0]
-		_, ok := links[link]
-		if !ok {
-			r.Say(fmt.Sprintf("I don't have the link %s", link))
-			return
+	case "find":
+		find := strings.ToLower(spaces.ReplaceAllString(args[0], ` `))
+		linkList := make([]string, 0, 5)
+		linkList = append(linkList, fmt.Sprintf("Here's what I have for \"%s\":", args[0]))
+		var last string
+		for link, lookup := range links {
+			if strings.Contains(strings.ToLower(lookup), find) {
+				linkList = append(linkList, link+": "+lookup)
+				last = link
+			}
 		}
-		delete(links, link)
-		r.Say(fmt.Sprintf("Ok, I removed the link %s", link))
-		updated = true
+		if len(linkList) > 1 {
+			r.Say(strings.Join(linkList, "\n"))
+			if len(linkList) == 2 {
+				r.RememberContext("link", last)
+			}
+		} else {
+			r.Say(fmt.Sprintf("Sorry, I don't have any links for \"%s\"", args[0]))
+		}
 	case "list":
 		linkslist := make([]string, 0, 7)
 		linkslist = append(linkslist, "Here are the links I know about:")
-		for link, keys := range links {
-			linkslist = append(linkslist, link+": "+strings.Join(keys, ", "))
+		for link, lookup := range links {
+			linkslist = append(linkslist, link+": "+lookup)
 		}
 		if len(linkslist) > 1 {
 			if len(linkslist) > maxLinkLen {
@@ -95,88 +98,71 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 			r.Say("I haven't stored any links yet")
 		}
 	case "add", "save":
-		lookups := make([]string, 0, 5)
-		var link string
+		var link, lookup string
+		var prompted, replace bool
 		if command == "add" {
 			link = args[1]
-			lookups = []string{
-				spaces.ReplaceAllString(args[0], ` `),
-			}
+			lookup = spaces.ReplaceAllString(args[0], ` `)
 		} else {
-			r.CheckinDatum(datumKey, lock)
 			link = args[0]
-			prompt := "Ok, what keywords or phrases do you want to attach to the link? (\"done\" when finished)"
-			for {
-				rep, ret := r.PromptForReply("lookup", prompt)
-				if ret == bot.Ok {
-					if strings.ToLower(rep) == "done" {
-						break
-					}
-					lookup := spaces.ReplaceAllString(rep, ` `)
-					lookups = append(lookups, lookup)
-					prompt = fmt.Sprintf("Added \"%s\", type \"done\" if you're finished", lookup)
-				} else {
-					break
-				}
-			}
-			if len(lookups) > 0 {
-				lock, _, _ = r.CheckoutDatum(datumKey, &links, true)
-			}
 		}
-		if len(lookups) > 0 {
-			keys, exists := links[link]
-			if exists {
-				for _, i := range lookups {
-					newkey := true
-					lk := strings.ToLower(i)
-					for _, j := range keys {
-						if lk == strings.ToLower(j) {
-							newkey = false
-							break
-						}
-					}
-					if newkey {
-						updated = true
-						keys = append(keys, i)
-					}
-				}
-				if updated {
-					links[link] = keys
-					r.Say("Ok, updated keys for existing link")
-				} else {
-					r.Say("No new keys given for existing link")
+		current, exists := links[link]
+		if exists {
+			prompted = true
+			r.CheckinDatum(datumKey, lock)
+			r.Say(fmt.Sprintf("I already have that link associated with: %s", current))
+			rep, ret := r.PromptForReply("YesNo", "Do you want me to replace it?")
+			if ret == bot.Ok {
+				switch strings.ToLower(rep) {
+				case "n", "no":
+					r.Say("Ok, I'll keep the old one")
+					return
+				default:
+					r.Say("Ok, I'll replace the old one")
+					replace = true
 				}
 			} else {
-				links[link] = lookups
-				r.Say("Ok, link added")
-				updated = true
-			}
-		} else {
-			r.Say("Not adding link with no lookups")
-		}
-	case "find":
-		lookup := strings.ToLower(spaces.ReplaceAllString(args[0], ` `))
-		linkList := make([]string, 0, 5)
-		linkList = append(linkList, fmt.Sprintf("Here's what I have for \"%s\":", args[0]))
-		var last string
-		for link, lookups := range links {
-		loop:
-			for _, key := range lookups {
-				if strings.Contains(strings.ToLower(key), lookup) {
-					linkList = append(linkList, key+": "+link)
-					last = link
-					break loop
-				}
+				r.Reply("Sorry, I didn't get an answer I understand")
+				return
 			}
 		}
-		if len(linkList) > 1 {
-			r.Say(strings.Join(linkList, "\n"))
-			if len(linkList) == 2 {
-				r.RememberContext("link", last)
+		if len(lookup) == 0 {
+			prompted = true
+			r.CheckinDatum(datumKey, lock)
+			prompt := "What keywords or phrase do you want to attach to the link?"
+			rep, ret := r.PromptForReply("lookup", prompt)
+			if ret == bot.Ok {
+				lookup = spaces.ReplaceAllString(rep, ` `)
+			} else {
+				r.Reply("Sorry, I didn't get your keywords / phrase")
+				return
 			}
-		} else {
-			r.Say(fmt.Sprintf("Sorry, I don't have any links for \"%s\"", lookup))
 		}
+		if prompted {
+			lock, _, _ = r.CheckoutDatum(datumKey, &links, true)
+		}
+		if _, exists := links[link]; exists && !replace {
+			r.Reply("Incredible - somebody JUST saved that link! You'll have to try again.")
+			return
+		}
+		links[link] = lookup
+		mret := r.UpdateDatum(datumKey, lock, links)
+		if mret != bot.Ok {
+			r.Log(bot.Error, "Couldn't update links", mret)
+			r.Reply("Crud. I had a problem saving the links - you can try again or ask an administrator to check the log")
+			return
+		}
+		r.Say("Link added")
+	case "remove":
+		link := args[0]
+		_, ok := links[link]
+		if !ok {
+			r.Say(fmt.Sprintf("I don't have the link %s", link))
+			return
+		}
+		delete(links, link)
+		r.Say(fmt.Sprintf("Ok, I removed the link %s", link))
+		updated = true
 	}
 	return
 }

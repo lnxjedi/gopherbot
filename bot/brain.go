@@ -375,6 +375,7 @@ func (r *Robot) Remember(key, value string) {
 	timestamp := time.Now()
 	memory := shortTermMemory{value, timestamp}
 	context := memoryContext{key, r.User, r.Channel}
+	Log(Trace, fmt.Sprintf("SHORTMEM: Storing short-term memory \"%s\" -> \"%s\"", key, value))
 	shortTermMemories.Lock()
 	shortTermMemories.m[context] = memory
 	shortTermMemories.Unlock()
@@ -394,6 +395,7 @@ func (r *Robot) Recall(key string) string {
 	shortTermMemories.Lock()
 	memory, ok := shortTermMemories.m[context]
 	shortTermMemories.Unlock()
+	Log(Trace, fmt.Sprintf("SHORTMEM: Recalling short-term memory \"%s\" -> \"%s\"", key, memory.memory))
 	if !ok {
 		return ""
 	}

@@ -1,0 +1,4 @@
+---
+TrustedPlugins:
+- pythondemo
+# but NOT rubydemo

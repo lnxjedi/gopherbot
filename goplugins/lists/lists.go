@@ -177,8 +177,8 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 			return
 		}
 		item := r.RandomString(list)
-		r.Say(fmt.Sprintf("Here you go: %s", item))
 		r.RememberContext("item", item)
+		r.Say(fmt.Sprintf("Here you go: %s", item))
 	case "add":
 		// Case sensitive input, case insensitve equality checking
 		item := args[0]

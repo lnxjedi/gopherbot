@@ -60,7 +60,7 @@ func teardown(t *testing.T, done <-chan struct{}, conn *testc.TestConnector) {
 
 	// Now we wait for the connection to finish
 	<-done
-	
+
 	evOk := true
 	ev := GetEvents()
 	want := []Event{CommandPluginRan, GoPluginRan, AdminCheckPassed}
@@ -95,10 +95,10 @@ func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
 			} else {
 				got, err := conn.GetBotMessage()
 				if err != nil {
-					t.Errorf("FAILED timeout waiting for reply from robot; want: \"%s\"", want.Message )
+					t.Errorf("FAILED timeout waiting for reply from robot; want: \"%s\"", want.Message)
 				} else {
 					if !re.MatchString(got.Message) {
-						t.Errorf("FAILED message regex match; want: \"%s\", got: \"%s\"", want.Message, got.Message)				
+						t.Errorf("FAILED message regex match; want: \"%s\", got: \"%s\"", want.Message, got.Message)
 					} else {
 						if got.User != want.User || got.Channel != want.Channel {
 							t.Errorf("FAILED user/channel match; want u:%s, c:%s; got u:%s,c:%s", want.User, want.Channel, got.User, got.Channel)
@@ -144,6 +144,7 @@ func TestBotName(t *testing.T) {
 		{alice, general, "@bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}},
 		{alice, general, "ping @bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}},
 		{alice, general, "ping;", []testc.TestMessage{}, []Event{}},
+		{bob, general, "bender: echo hello world", []testc.TestMessage{{bob, general, "hello world"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 		// When you forget to address the robot, you can say it's name
 		{alice, general, "ping", []testc.TestMessage{}, []Event{}},
 		{alice, general, "bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}},
@@ -164,12 +165,66 @@ func TestReload(t *testing.T) {
 	teardown(t, done, conn)
 }
 
-func TestMemory(t *testing.T) {
+func TestBuiltins(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "test.log", t)
 
 	tests := []testItem{
-		{alice, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{alice, general, ";help info", []testc.TestMessage{{null, general, "bender,.*admins"}}, []Event{CommandPluginRan, GoPluginRan}},
+		{alice, random, ";help ruby", []testc.TestMessage{{null, random, `(?m:Command.*\n.*random\))`}}, []Event{CommandPluginRan, GoPluginRan}},
+		{alice, general, ";help", []testc.TestMessage{{alice, general, `\(the help.*private message\)`}, {alice, null, "bender,.*"}}, []Event{CommandPluginRan, GoPluginRan}},
+		{alice, general, "help", []testc.TestMessage{{alice, general, "I've sent.*myself"}, {alice, null, "Hi,.*"}}, []Event{AmbientPluginRan, GoPluginRan}},
+		{alice, null, "dump robot", []testc.TestMessage{{alice, null, "Here's how I've been configured.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+		{alice, null, "dump plugin echo", []testc.TestMessage{{alice, null, "AllChannels.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+		{alice, null, "dump plugin default echo", []testc.TestMessage{{alice, null, "Here's.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+		{alice, null, "dump plugin rubydemo", []testc.TestMessage{{alice, null, "AllChannels.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+		{alice, null, "dump plugin default rubydemo", []testc.TestMessage{{alice, null, "Here's.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+		{alice, null, "dump plugin junk", []testc.TestMessage{{alice, null, "Didn't find .* junk"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
+func TestMemory(t *testing.T) {
+	done, conn := setup("cfg/test/membrain", "test.log", t)
+
+	/* Note on ordering:
+
+	Be careful with the plugins you're testing, and be sure that the robot
+	completes all actions before replying. Consider for instance:
+
+		Say "I'll remember \"$1\" is \"$2\" - but eventually I'll forget!"
+		Remember "$1" "$2"
+
+	This order of events means the test may well complete (because it got the
+	reply) before actually remembering the fact. The next test, recalling the
+	fact, could then fail because it tries to recall the fact before it's
+	actually been stored in the previous test.
+
+	I know this because it took me a couple of hours to figure out why my
+	test was failing. */
+
+	tests := []testItem{
+		{carol, random, ";remember slowly The Alamo", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{alice, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "Ok, .*"}, {null, random, "committed to memory"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 		{bob, random, "recall 1, Bender", []testc.TestMessage{{null, random, "Ferris Bueller"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{carol, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "That's already one of my fondest memories"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{david, random, "forget 1, Bender", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		// Short-term memories are contextual to a user in a channel
+		{david, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, general, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{david, general, ";store Ferris Bueller is a Righteous Dude", []testc.TestMessage{{null, general, "I'll remember .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{david, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{null, general, "Ferris Bueller is a Righteous Dude"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{carol, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{carol, general, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{david, random, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, random, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{bob, general, "Bender, link news for nerds to https://slashdot.org", []testc.TestMessage{{null, general, "Link added"}}, []Event{CommandPluginRan, GoPluginRan}},
+		{bob, general, ";save https://slashdot.org", []testc.TestMessage{{null, general, "I already have that link"}, {bob, general, "Do you want .*"}}, []Event{CommandPluginRan, GoPluginRan}},
+		{bob, general, "yes", []testc.TestMessage{{null, general, "Ok, I'll replace the old one"}, {bob, general, "What keywords or phrase .*"}}, []Event{}},
+		{bob, general, "News for Nerds, Stuff that Matters!", []testc.TestMessage{{null, general, "Link added"}}, []Event{}},
+		{carol, general, "Bender, look up nerds", []testc.TestMessage{{null, general, `(?s:Here's what I have .*Nerds.*)`}}, []Event{CommandPluginRan, GoPluginRan}},
+		{alice, general, ";link tuna casserole to https://www.allrecipes.com/recipe/17219/best-tuna-casserole/", []testc.TestMessage{{null, general, `Link added`}}, []Event{CommandPluginRan, GoPluginRan}},
+		{alice, general, ";add it to the dinner meals list", []testc.TestMessage{{null, general, `Ok, .*`}}, []Event{CommandPluginRan, GoPluginRan}},
+		{alice, general, "Bender, look it up", []testc.TestMessage{{null, general, `(?s:Here's what I have .*best.*)`}}, []Event{CommandPluginRan, GoPluginRan}},
+		{alice, general, "add hamburgers to the list, bender", []testc.TestMessage{{null, general, `Ok, I added hamburgers to the dinner meals list`}}, []Event{CommandPluginRan, GoPluginRan}},
 	}
 	testcases(t, conn, tests)
 
@@ -182,21 +237,14 @@ func TestPrompting(t *testing.T) {
 	tests := []testItem{
 		{carol, general, "Bender, listen to me", []testc.TestMessage{{carol, null, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 		{carol, null, "You're pretty cool", []testc.TestMessage{{carol, null, "I hear .*cool\""}}, []Event{BotDirectMessage}},
-	}
-	testcases(t, conn, tests)
-
-	teardown(t, done, conn)
-}
-
-func TestBuiltins(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "test.log", t)
-
-	tests := []testItem{
-		{alice, general, ";help info", []testc.TestMessage{{null, general, "bender,.*admins"}}, []Event{CommandPluginRan, GoPluginRan}},
-		{alice, random, ";help ruby", []testc.TestMessage{{null, random, `(?m:Command.*\n.*random\))`}}, []Event{CommandPluginRan, GoPluginRan}},
-		{alice, general, ";help", []testc.TestMessage{{alice, general, `\(the help.*private message\)`},{alice, null, "bender,.*"}}, []Event{CommandPluginRan, GoPluginRan}},
-		{alice, general, "help", []testc.TestMessage{{alice, general, "I've sent.*myself"},{alice, null, "Hi,.*"}}, []Event{AmbientPluginRan, GoPluginRan}},
-		{alice, null, "dump robot", []testc.TestMessage{{alice, null, "Here's how I've been configured.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}},
+		{bob, general, "hear me out, Bender", []testc.TestMessage{{bob, general, "Well ok then.*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{bob, general, "I like kittens", []testc.TestMessage{{bob, general, "Ok, I hear you saying \"I like kittens\".*"}}, []Event{}},
+		// wait ask waits a second before prompting; in 2 seconds it'll message the test to answer the second question first
+		{david, general, ";waitask", []testc.TestMessage{}, []Event{}},
+		// ask now asks a question right away, but we don't reply until the command above tells us to - by which time the first command has prompted, but now has to wait
+		{david, general, ";asknow", []testc.TestMessage{{david, general, `Do you like puppies\?`}, {null, general, `ok - answer puppies`}}, []Event{CommandPluginRan, ScriptPluginRan, CommandPluginRan, ScriptPluginRan}},
+		{david, general, "yes", []testc.TestMessage{{david, general, `Do you like kittens\?`}, {null, general, `I like puppies too!`}}, []Event{}},
+		{david, general, "yes", []testc.TestMessage{{null, general, `I like kittens too!`}}, []Event{}},
 	}
 	testcases(t, conn, tests)
 

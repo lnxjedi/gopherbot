@@ -36,9 +36,9 @@ PLUGRET_Success=7
 
 base64_encode(){
 	local MESSAGE
-	MESSAGE=$(echo "$@" | base64)
-	MESSAGE=$(echo "$MESSAGE")
-	echo "$MESSAGE"
+	MESSAGE=$(echo -n "$@" | base64)
+	MESSAGE=$(echo -n "$MESSAGE")
+	echo -n "$MESSAGE"
 }
 
 # Create the full JSON string and post it
@@ -123,16 +123,17 @@ Remember(){
 		return 1
 	fi
 	local GB_FUNCNAME="Remember"
+	local R_KEY=$(base64_encode "$1")
 	local R_MEMORY=$(base64_encode "$2")
 	local GB_FUNCARGS=$(cat <<EOF
 {
-	"Key": "$1",
+	"Key": "$R_KEY",
 	"Value": "$R_MEMORY",
 	"Base64" : true
 }
 EOF
 )
-	$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
 	return 0
 }
 
@@ -154,17 +155,24 @@ Recall(){
 	then
 		return 1
 	fi
+	local R_KEY=$(base64_encode "$1")
 	local GB_FUNCNAME="Recall"
 	local GB_FUNCARGS=$(cat <<EOF
 {
-	"Key": "$1"
+	"Key": "$R_KEY",
+	"Base64": true
 }
 EOF
 )
 	local GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
-	local RETVAL=$(echo "$GB_RET" | jq .StrVal)
-	echo "$RETVAL"
-	return 0
+	local RETVAL=$(echo "$GB_RET" | jq -r .StrVal)
+	echo -n "$RETVAL"
+	if [ -z "$RETVAL" ]
+	then
+		return 1
+	else
+		return 0
+	fi
 }
 
 Elevate(){

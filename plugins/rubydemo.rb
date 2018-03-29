@@ -39,9 +39,9 @@ CommandMatchers:
   Command: ruby
 - Regex: (?i:listen( to me)?!?)
   Command: listen
-- Regex: (?i:remember ([-\w .,!?:\/]+))
+- Regex: '(?i:remember(?: (slowly))? ([-\w .,!?:\/]+))'
   Command: remember
-  Contexts: [ "item" ]
+  Contexts: [ "", "item" ]
 - Regex: (?i:recall ?([\d]+)?)
   Command: recall
 - Regex: (?i:forget ([\d]{1,2}))
@@ -80,17 +80,38 @@ when "listen"
     bot.Say("I'm sorry, I'm not sure what you're trying to tell me - did you put funny characters in your reply?")
   end
 when "remember"
-  thing = ARGV[0]
-  bot.Say("Ok, I'll remember \"#{thing}\"")
+  speed = ARGV[0]
+  thing = ARGV[1]
   memory = bot.CheckoutDatum("memory", true)
+  remembered = false
   if memory.exists
-    memory.datum.push(thing)
+    if memory.datum.include?(thing)
+      bot.Say("That's already one of my fondest memories")
+      bot.CheckinDatum(memory)
+    else
+      remembered =true
+      memory.datum.push(thing)
+    end
   else
+    remembered = true
     memory.datum = [ thing ]
   end
-  ret = bot.UpdateDatum(memory)
-  if ret != Robot::Ok
-    bot.Say("Dang it, having problems with my memory")
+  if remembered
+    if speed == "slowly"
+      bot.Say("Ok, I'll remember \"#{thing}\" ... but sloooowly")
+    else
+      bot.Say("Ok, I'll remember \"#{thing}\"")
+    end
+    if speed == "slowly"
+      bot.Pause(4)
+    end
+    ret = bot.UpdateDatum(memory)
+    if speed != "slowly" && ret == Robot::Ok
+      bot.Say("committed to memory")
+    end
+    if ret != Robot::Ok && speed != "slowly"
+      bot.Say("Dang it, having problems with my memory")
+    end
   end
 when "recall"
   memory = bot.CheckoutDatum("memory", false)
@@ -102,6 +123,7 @@ when "recall"
       elsif mnum >= memory.datum.length()
         bot.Say("I don't remember that many things!")
       else
+        bot.CheckinDatum(memory)
         bot.Say(memory.datum[mnum])
       end
     else
@@ -120,7 +142,7 @@ when "forget"
   i = ARGV[0].to_i - 1
   memory = bot.CheckoutDatum("memory", true)
   memories = memory.datum
-  if i >= 0 && memories[i]
+  if i >= 0 && memories.class == Array && memories[i]
     bot.Say("Ok, I'll forget \"#{memories[i]}\"")
     memories.delete_at(i)
     bot.UpdateDatum(memory)

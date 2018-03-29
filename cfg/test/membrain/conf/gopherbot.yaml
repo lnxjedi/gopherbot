@@ -44,7 +44,8 @@ LocalPort: 8889
 
 # Initial log level, one of trace, debug, info, warn, error. See 'help log'
 # for help on changing the log level and viewing contents of the log.
-LogLevel: debug
+#LogLevel: debug
+LogLevel: trace
 
 # List of external plugins to configure; generally scripts using a gopherbot
 # script library. The robot will look for plugins in the installation directory
@@ -56,6 +57,10 @@ ExternalPlugins:
   Path: plugins/pythondemo.py
 - Name: rubydemo
   Path: plugins/rubydemo.rb
+- Name: echo
+  Path: plugins/echo.sh
+- Name: test
+  Path: plugins/test.sh
 
 # Configuration for the "test" connector, for the terminal or test connector.
 Protocol: test

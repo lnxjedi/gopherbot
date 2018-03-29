@@ -9,7 +9,13 @@ For testing:
  - When auth/elevate fails
  - When a command doesn't match anything (wrong user / channel or typo)
 - Create comprehensive test loop / table tests
-- Add SendBotMessage() and GetBotMessage() methods for Slack in a conditional compilation connector_testing.go ala GetEvents - see emit_testing.go; use for
+- Add SendBotMessage() and GetBotMessage() methods for Slack in a conditional
+  compilation connector_testing.go ala GetEvents - see emit_testing.go; use for
   connecting to slack and immediately quitting
 - Documentation for events, emit, development and testing - Developing.md
 - Unit tests for updateRegexes
+- Auth & elevator should trust using plugins (or trust all)
+- Stop hard-coding 'it' for contexts; 'server:it:the server' instead of
+  'server', (context followed by generics that match); e.g. "reboot server",
+  "reboot the server", "reboot it" would all check the "server" short-term
+  memory to get e.g. "webtest1.example.com"
