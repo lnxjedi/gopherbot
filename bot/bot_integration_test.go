@@ -165,20 +165,6 @@ func TestReload(t *testing.T) {
 	teardown(t, done, conn)
 }
 
-func TestPrompting(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "test.log", t)
-
-	tests := []testItem{
-		{carol, general, "Bender, listen to me", []testc.TestMessage{{carol, null, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
-		{carol, null, "You're pretty cool", []testc.TestMessage{{carol, null, "I hear .*cool\""}}, []Event{BotDirectMessage}},
-		{bob, general, "hear me out, Bender", []testc.TestMessage{{bob, general, "Well ok then.*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
-		{bob, general, "I like kittens", []testc.TestMessage{{bob, general, "Ok, I hear you saying \"I like kittens\".*"}}, []Event{}},
-	}
-	testcases(t, conn, tests)
-
-	teardown(t, done, conn)
-}
-
 func TestBuiltins(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "test.log", t)
 
@@ -230,6 +216,35 @@ func TestMemory(t *testing.T) {
 		{david, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{null, general, "Ferris Bueller is a Righteous Dude"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 		{carol, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{carol, general, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 		{david, random, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, random, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{bob, general, "Bender, link news for nerds to https://slashdot.org", []testc.TestMessage{{null, general, "Link added"}}, []Event{CommandPluginRan, GoPluginRan}},
+		{bob, general, ";save https://slashdot.org", []testc.TestMessage{{null, general, "I already have that link"}, {bob, general, "Do you want .*"}}, []Event{CommandPluginRan, GoPluginRan}},
+		{bob, general, "yes", []testc.TestMessage{{null, general, "Ok, I'll replace the old one"}, {bob, general, "What keywords or phrase .*"}}, []Event{}},
+		{bob, general, "News for Nerds, Stuff that Matters!", []testc.TestMessage{{null, general, "Link added"}}, []Event{}},
+		{carol, general, "Bender, look up nerds", []testc.TestMessage{{null, general, `(?s:Here's what I have .*Nerds.*)`}}, []Event{CommandPluginRan, GoPluginRan}},
+		{alice, general, ";link tuna casserole to https://www.allrecipes.com/recipe/17219/best-tuna-casserole/", []testc.TestMessage{{null, general, `Link added`}}, []Event{CommandPluginRan, GoPluginRan}},
+		{alice, general, ";add it to the dinner meals list", []testc.TestMessage{{null, general, `Ok, .*`}}, []Event{CommandPluginRan, GoPluginRan}},
+		{alice, general, "Bender, look it up", []testc.TestMessage{{null, general, `(?s:Here's what I have .*best.*)`}}, []Event{CommandPluginRan, GoPluginRan}},
+		{alice, general, "add hamburgers to the list, bender", []testc.TestMessage{{null, general, `Ok, I added hamburgers to the dinner meals list`}}, []Event{CommandPluginRan, GoPluginRan}},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
+func TestPrompting(t *testing.T) {
+	done, conn := setup("cfg/test/membrain", "test.log", t)
+
+	tests := []testItem{
+		{carol, general, "Bender, listen to me", []testc.TestMessage{{carol, null, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{carol, null, "You're pretty cool", []testc.TestMessage{{carol, null, "I hear .*cool\""}}, []Event{BotDirectMessage}},
+		{bob, general, "hear me out, Bender", []testc.TestMessage{{bob, general, "Well ok then.*"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{bob, general, "I like kittens", []testc.TestMessage{{bob, general, "Ok, I hear you saying \"I like kittens\".*"}}, []Event{}},
+		// wait ask waits a second before prompting; in 2 seconds it'll message the test to answer the second question first
+		{david, general, ";waitask", []testc.TestMessage{}, []Event{}},
+		// ask now asks a question right away, but we don't reply until the command above tells us to - by which time the first command has prompted, but now has to wait
+		{david, general, ";asknow", []testc.TestMessage{{david, general, `Do you like puppies\?`}, {null, general, `ok - answer puppies`}}, []Event{CommandPluginRan, ScriptPluginRan, CommandPluginRan, ScriptPluginRan}},
+		{david, general, "yes", []testc.TestMessage{{david, general, `Do you like kittens\?`}, {null, general, `I like puppies too!`}}, []Event{}},
+		{david, general, "yes", []testc.TestMessage{{null, general, `I like kittens too!`}}, []Event{}},
 	}
 	testcases(t, conn, tests)
 

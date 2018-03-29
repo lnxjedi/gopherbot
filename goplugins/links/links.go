@@ -48,13 +48,7 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		// all other cases are read-write
 		lock, _, ret = r.CheckoutDatum(datumKey, &links, true)
 		defer func() {
-			if updated {
-				mret := r.UpdateDatum(datumKey, lock, links)
-				if mret != bot.Ok {
-					r.Log(bot.Error, "Couldn't update links", mret)
-					r.Reply("Crud. I had a problem saving the links - you can try again or ask an administrator to check the log")
-				}
-			} else {
+			if !updated {
 				// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
 				// in case there's another thread waiting.
 				r.CheckinDatum(datumKey, lock)
@@ -68,72 +62,6 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		return
 	}
 	switch command {
-	case "remove":
-		link := args[0]
-		_, ok := links[link]
-		if !ok {
-			r.Say(fmt.Sprintf("I don't have the link %s", link))
-			return
-		}
-		delete(links, link)
-		r.Say(fmt.Sprintf("Ok, I removed the link %s", link))
-		updated = true
-	case "list":
-		linkslist := make([]string, 0, 7)
-		linkslist = append(linkslist, "Here are the links I know about:")
-		for link, lookup := range links {
-			linkslist = append(linkslist, link+": "+lookup)
-		}
-		if len(linkslist) > 1 {
-			if len(linkslist) > maxLinkLen {
-				r.Say("I know a LOT of links - so I sent you a direct message")
-				r.Direct().Say(strings.Join(linkslist, "\n"))
-			} else {
-				r.Say(strings.Join(linkslist, "\n"))
-			}
-		} else {
-			r.Say("I haven't stored any links yet")
-		}
-	case "add", "save":
-		var link, lookup string
-		if command == "add" {
-			link = args[1]
-			lookup = spaces.ReplaceAllString(args[0], ` `)
-		} else {
-			r.CheckinDatum(datumKey, lock)
-			link = args[0]
-			prompt := "Ok, what keywords or phrase do you want to attach to the link?"
-			rep, ret := r.PromptForReply("lookup", prompt)
-			if ret == bot.Ok {
-				lookup = spaces.ReplaceAllString(rep, ` `)
-				lock, _, _ = r.CheckoutDatum(datumKey, &links, true)
-			} else {
-				r.Reply("Sorry, I didn't get your keywords / phrase")
-			}
-		}
-		if len(lookup) > 0 {
-			lookup, exists := links[link]
-			if exists {
-				r.Say(fmt.Sprintf("I've already associated that link with: %s", lookup))
-				rep, ret := r.PromptForReply("YesNo", "Do you want me to replace it?")
-				if ret == bot.Ok {
-					switch strings.ToLower(rep) {
-					case "n", "no":
-						r.Say("Ok, I'll keep the old one")
-					default:
-						links[link] = lookup
-						updated = true
-						r.Say("Ok, I'll replace the old one")
-					}
-				} else {
-					r.Reply("Sorry, I didn't get an answer I understand")
-				}
-			} else {
-				links[link] = lookup
-				r.Say("Ok, link added")
-				updated = true
-			}
-		}
 	case "find":
 		find := strings.ToLower(spaces.ReplaceAllString(args[0], ` `))
 		linkList := make([]string, 0, 5)
@@ -153,6 +81,88 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		} else {
 			r.Say(fmt.Sprintf("Sorry, I don't have any links for \"%s\"", args[0]))
 		}
+	case "list":
+		linkslist := make([]string, 0, 7)
+		linkslist = append(linkslist, "Here are the links I know about:")
+		for link, lookup := range links {
+			linkslist = append(linkslist, link+": "+lookup)
+		}
+		if len(linkslist) > 1 {
+			if len(linkslist) > maxLinkLen {
+				r.Say("I know a LOT of links - so I sent you a direct message")
+				r.Direct().Say(strings.Join(linkslist, "\n"))
+			} else {
+				r.Say(strings.Join(linkslist, "\n"))
+			}
+		} else {
+			r.Say("I haven't stored any links yet")
+		}
+	case "add", "save":
+		var link, lookup string
+		var prompted, replace bool
+		if command == "add" {
+			link = args[1]
+			lookup = spaces.ReplaceAllString(args[0], ` `)
+		} else {
+			link = args[0]
+		}
+		current, exists := links[link]
+		if exists {
+			prompted = true
+			r.CheckinDatum(datumKey, lock)
+			r.Say(fmt.Sprintf("I already have that link associated with: %s", current))
+			rep, ret := r.PromptForReply("YesNo", "Do you want me to replace it?")
+			if ret == bot.Ok {
+				switch strings.ToLower(rep) {
+				case "n", "no":
+					r.Say("Ok, I'll keep the old one")
+					return
+				default:
+					r.Say("Ok, I'll replace the old one")
+					replace = true
+				}
+			} else {
+				r.Reply("Sorry, I didn't get an answer I understand")
+				return
+			}
+		}
+		if len(lookup) == 0 {
+			prompted = true
+			r.CheckinDatum(datumKey, lock)
+			prompt := "What keywords or phrase do you want to attach to the link?"
+			rep, ret := r.PromptForReply("lookup", prompt)
+			if ret == bot.Ok {
+				lookup = spaces.ReplaceAllString(rep, ` `)
+			} else {
+				r.Reply("Sorry, I didn't get your keywords / phrase")
+				return
+			}
+		}
+		if prompted {
+			lock, _, _ = r.CheckoutDatum(datumKey, &links, true)
+		}
+		if _, exists := links[link]; exists && !replace {
+			r.Reply("Incredible - somebody JUST saved that link! You'll have to try again.")
+			return
+		}
+		links[link] = lookup
+		mret := r.UpdateDatum(datumKey, lock, links)
+		if mret != bot.Ok {
+			r.Log(bot.Error, "Couldn't update links", mret)
+			r.Reply("Crud. I had a problem saving the links - you can try again or ask an administrator to check the log")
+			return
+		}
+		r.Say("Link added")
+	case "remove":
+		link := args[0]
+		_, ok := links[link]
+		if !ok {
+			r.Say(fmt.Sprintf("I don't have the link %s", link))
+			return
+		}
+		delete(links, link)
+		r.Say(fmt.Sprintf("Ok, I removed the link %s", link))
+		updated = true
 	}
 	return
 }

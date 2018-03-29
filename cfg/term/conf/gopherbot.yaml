@@ -58,6 +58,8 @@ ExternalPlugins:
   Path: plugins/rubydemo.rb
 - Name: echo
   Path: plugins/echo.sh
+- Name: test
+  Path: plugins/test.sh
 
 # Configuration for the "test" connector, for the terminal or test connector.
 Protocol: term

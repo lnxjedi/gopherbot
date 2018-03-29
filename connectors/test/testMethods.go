@@ -61,7 +61,7 @@ func (tc *TestConnector) GetBotMessage() (*TestMessage, error) {
 		}
 		tc.test.Logf("Reply received from robot: u:%s, c:%s, m:%s", incoming.User, incoming.Channel, message)
 		return incoming, nil
-	case <-time.After(2 * time.Second):
+	case <-time.After(4 * time.Second):
 		return nil, errors.New("Timeout waiting for reply from robot")
 	}
 }
