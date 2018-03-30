@@ -144,7 +144,7 @@ func TestBotName(t *testing.T) {
 		{alice, general, "@bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}},
 		{alice, general, "ping @bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}},
 		{alice, general, "ping;", []testc.TestMessage{}, []Event{}},
-		{bob, general, "bender: echo hello world", []testc.TestMessage{{bob, general, "hello world"}}, []Event{CommandPluginRan, ScriptPluginRan}},
+		{bob, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandPluginRan, ScriptPluginRan}},
 		// When you forget to address the robot, you can say it's name
 		{alice, general, "ping", []testc.TestMessage{}, []Event{}},
 		{alice, general, "bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}},

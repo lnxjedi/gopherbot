@@ -14,8 +14,6 @@ shift
 configure(){
 	cat <<"EOF"
 Help:
-- Keywords: [ "echo" ]
-  Helptext: [ "(bot), echo <simple text> - trivially repeat a phrase" ]
 - Keywords: [ "hear" ]
   Helptext: [ "(bot), hear me out - let the robot prove it's really listening" ]
 - Keywords: [ "store", "remember" ]
@@ -23,8 +21,6 @@ Help:
 - Keywords: [ "remember", "recall" ]
   Helptext: [ "(bot), what is <something> - recall a fact / context from short-term memory" ]
 CommandMatchers:
-- Regex: '(?i:echo ([.;!\d\w-, ]+))'
-  Command: "echo"
 - Regex: '(?i:hear me out)'
   Command: "hear"
 - Regex: '(?i:store ([-\w :\/]+) is ([-\w .,!?:\/]+))'
@@ -39,9 +35,6 @@ case "$command" in
 # NOTE: only "configure" should print anything to stdout
 	"configure")
 		configure
-		;;
-	"echo")
-		Reply "$*"
 		;;
 	"hear")
 		REPLY=$(PromptForReply "SimpleString" "Well ok then, what do you want to tell me?")
