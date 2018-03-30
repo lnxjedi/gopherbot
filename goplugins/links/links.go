@@ -152,6 +152,7 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 			r.Reply("Crud. I had a problem saving the links - you can try again or ask an administrator to check the log")
 			return
 		}
+		updated = true
 		r.Say("Link added")
 	case "remove":
 		link := args[0]
@@ -161,6 +162,12 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 			return
 		}
 		delete(links, link)
+		mret := r.UpdateDatum(datumKey, lock, links)
+		if mret != bot.Ok {
+			r.Log(bot.Error, "Couldn't update links", mret)
+			r.Reply("Crud. I had a problem saving the links - you can try again or ask an administrator to check the log")
+			return
+		}
 		r.Say(fmt.Sprintf("Ok, I removed the link %s", link))
 		updated = true
 	}

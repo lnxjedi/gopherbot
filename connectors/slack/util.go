@@ -36,6 +36,24 @@ type slackConnector struct {
 	imToUser        map[string]string     // map from IM channel ID to user name
 }
 
+type userlast struct {
+	user, channel string
+}
+
+var lastmsgtime = struct {
+	m map[userlast]time.Time
+	sync.Mutex
+}{
+	make(map[userlast]time.Time),
+	sync.Mutex{},
+}
+
+// If we get back an edited message from a user in a channel within the
+// ignorewindow ... well, we ignore it. The problem is, the Slack service will
+// on occasion edit a user message, and the robot was seeing this as the user
+// sending the same command twice in short order.
+const ignorewindow = 2 * time.Second
+
 func (s *slackConnector) getUser(u string) (user slack.User, ok bool) {
 	s.RLock()
 	user, ok = s.userInfo[u]
@@ -159,12 +177,38 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	// Channel is always part of the root message; if subtype is
 	// message_changed, text and user are part of the submessage
 	chanID := msg.Channel
+	var userID string
+	timestamp := time.Now()
 	var message slack.Msg
 	if msg.Msg.SubType == "message_changed" {
 		message = *msg.SubMessage
-		s.Log(bot.Trace, fmt.Sprintf("SubMessage received: %v", message))
+		userID = message.User
+		if userID == "" {
+			if message.BotID != "" {
+				userID = message.BotID
+			}
+		}
+		lastlookup := userlast{userID, chanID}
+		lastmsgtime.Lock()
+		msgtime, exists := lastmsgtime.m[lastlookup]
+		lastmsgtime.Unlock()
+		if exists && timestamp.Sub(msgtime) < ignorewindow {
+			s.Log(bot.Debug, fmt.Sprintf("Ignoring edited message \"%s\" arriving within the ignorewindow: %v", msg.SubMessage.Text, ignorewindow))
+			return
+		}
+		s.Log(bot.Debug, fmt.Sprintf("SubMessage (edited message) received: %v", message))
 	} else {
 		message = msg.Msg
+		userID = message.User
+		if userID == "" {
+			if message.BotID != "" {
+				userID = message.BotID
+			}
+		}
+		lastlookup := userlast{userID, chanID}
+		lastmsgtime.Lock()
+		lastmsgtime.m[lastlookup] = timestamp
+		lastmsgtime.Unlock()
 	}
 	text := message.Text
 	// some bot messages don't have any text, so check for a fallback
@@ -174,12 +218,6 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	// Remove auto-links - chatbots don't want those
 	text = reAddedLinks.ReplaceAllString(text, "$1")
 	text = reLinks.ReplaceAllString(text, "$1")
-	userID := message.User
-	if userID == "" {
-		if message.BotID != "" {
-			userID = message.BotID
-		}
-	}
 
 	userName, ok := s.userName(userID)
 	if !ok {

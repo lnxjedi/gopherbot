@@ -21,11 +21,15 @@ Help:
   Helptext: [ "(bot), repeat (me) - prompt for and trivially repeat a phrase" ]
 - Keywords: [ "recollect" ]
   Helptext: [ "(bot), recollect - call out to the rubydemo recall command" ]
+- Keywords: [ "echo" ]
+  Helptext: [ "(bot), echo <something> - tell the bot to say <something>" ]
 CommandMatchers:
 - Command: "repeat"
   Regex: '(?i:repeat( me)?)'
 - Command: "recollect"
   Regex: '(?i:recollect)'
+- Command: "echo"
+  Regex: '(?i:echo (.*))'
 EOF
 }
 
