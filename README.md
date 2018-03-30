@@ -84,7 +84,7 @@ Gopherbot is stable in production in my environment. Currently lacking:
 
 ### Contributing
 Check out [Github's documentation](https://help.github.com/articles/fork-a-repo/) on forking and creating pull requests. Feel free to shoot me an email
-for an invite to [the LinuxJedi Slack team](linuxjedi.slack.com).
+for an invite to [the LinuxJedi Slack team](https://linuxjedi.slack.com).
 
 ## Documentation
 
