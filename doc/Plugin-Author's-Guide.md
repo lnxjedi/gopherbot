@@ -166,6 +166,7 @@ case "$COMMAND" in
 		configure
 		;;
 ...
+esac
 ```
 **NOTE:** Bash doesn't have an object-oriented API
 
@@ -244,11 +245,9 @@ end
 # The Plugin API
 
 Gopherbot has a rich set of methods (functions) for interacting with the robot / user. Here we break down the API into sets of related functions:
-* [Message Sending Methods](Message-Sending-API.md) - for sending messages to the users
-* [Attribute Retrieval Methods](Attribute-Retrieval-API.md) - for retrieving names, email addresses, etc.
-* [Response Request Methods](Response-Request-API.md) - for getting replies from the user
-* [CallPlugin Method](CallPlugin-API.md) - for one plugin to trigger another
-* [Long-term Memory Methods](Long-term-Memory-API.md) - for storing long-term memories (like a TODO list, or user preference)
-* [Short-term Memory Methods](Short-term-Memory-API.md) - for storing short-term memories like conversation context that are stored in memory and expire after a period of time
-* [Security and Elevation Methods](Security-API.md) - for making determinations on privileged commands
+* [Attribute Lookup Methods](Attribute-Retrieval-API.md) - for retrieving names, email addresses, etc.
+* [Calling other Plugins](CallPlugin-API.md) - for one plugin to trigger another
+* [Sending Messages and Replies](Message-Sending-API.md) - for sending messages to the users
+* [Prompting for Input](Response-Request-API.md) - for getting replies from the user
+* [Brain Methods and Memories](Brain-API.md) - for storing and retrieving long- and short-term memories
 * [Utility Methods](Utility-API.md) - a collection of miscellaneous useful functions, like Pause() and Log()

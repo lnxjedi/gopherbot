@@ -167,12 +167,6 @@ EOF
 	local GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
 	local RETVAL=$(echo "$GB_RET" | jq -r .StrVal)
 	echo -n "$RETVAL"
-	if [ -z "$RETVAL" ]
-	then
-		return 1
-	else
-		return 0
-	fi
 }
 
 Elevate(){
