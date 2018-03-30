@@ -51,7 +51,7 @@ case "$command" in
 		;;
 	"recall")
 		MEMORY=$(Recall "$1")
-		if [ $? -ne 0 ]
+		if [ -z "$MEMORY" ]
 		then
 			Reply "Gosh, I have no idea - I'm so forgetful!"
 		else

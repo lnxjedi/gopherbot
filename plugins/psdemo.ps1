@@ -76,15 +76,11 @@ switch ($command)
     [String] $thing = $cmdArgs[0]
     $bot.Say("Ok, I'll remember '$thing'")
     $memory = $bot.CheckoutDatum("memory", $TRUE)
-    $mjson = convertto-json $memory
-    $bot.Log("Debug", "mjson before: $mjson")
     if ($memory.exists) {
       $memory.Datum += $thing
     } else {
       [String[]] $memory.Datum = @( $thing )
     }
-    $mjson = convertto-json $memory
-    $bot.Log("Debug", "mjson after: $mjson")
     $ret = $bot.UpdateDatum($memory)
     if ($ret -ne "Ok") {
       $bot.Say("I'm having a hard time remembering things")

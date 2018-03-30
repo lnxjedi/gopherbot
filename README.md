@@ -83,12 +83,13 @@ Gopherbot is stable in production in my environment. Currently lacking:
 * Brain implementations other than simple local files (e.g. redis)
 
 ### Contributing
-Check out [Github's documentation](https://help.github.com/articles/fork-a-repo/) on forking and creating pull requests.
+Check out [Github's documentation](https://help.github.com/articles/fork-a-repo/) on forking and creating pull requests. Feel free to shoot me an email
+for an invite to [the LinuxJedi Slack team](linuxjedi.slack.com).
 
 ## Documentation
 
 ***NOTE: This is the documentation for Gopherbot v1.1. For older versions, see the documentation included in the distribution archive.***
 
-To try out **Gopherbot** for yourself, see [the Quick Start Guide](doc/Quick-Start.md)
+To try out **Gopherbot** for yourself and write your first plugin, see [the Quick Start Guide](doc/Quick-Start.md)
 
 Also see the full [Documentation Index](doc/README.md)

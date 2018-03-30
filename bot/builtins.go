@@ -49,7 +49,7 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		msg = append(msg, fmt.Sprintf("The hostname for the server I'm running on is: %s", hostName))
 		if bot.CheckAdmin() {
 			msg = append(msg, fmt.Sprintf("My install directory is: %s", robot.installPath))
-			lp := "(none)"
+			lp := "(not set)"
 			if len(robot.localPath) > 0 {
 				lp = robot.localPath
 			}

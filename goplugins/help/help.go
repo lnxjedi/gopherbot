@@ -19,13 +19,15 @@ var (
 const defaultConfig = `
 Help:
 - Keywords: [ "*" ]
-  Helptext: [ "(bot), help help - give general help on the help system and using the robot" ]
+  Helptext: [ "(bot), help with robot - give general help on the help system and using the robot" ]
 CommandMatchers:
 - Command: help
-  Regex: '^(?i:help help)'
+  Regex: '(?i:help with (?:help|robot))'
 MessageMatchers:
 - Command: help
   Regex: '^(?i:help)$'
+- Command: help
+  Regex: '^(?i:help with (?:help|robot))$'
 AllChannels: true
 CatchAll: true
 `
@@ -38,15 +40,15 @@ func help(bot *bot.Robot, command string, args ...string) (retval bot.PlugRetVal
 		botAlias := bot.GetBotAttribute("alias").String()
 		reply := "Hi, I'm "
 		reply += strings.Title(botName) + ", a staff robot. I see you've asked for help.\n\n"
-		reply += "I've been programmed to perform a variety of tasks for your team, and will respond to messages that match specific patterns. " +
-			"For instance, you can activate my built-in help function by sending me a message that matches \"help (keyword)\".\n\n" +
-			"You can address messages to me by sending a direct message, or by speaking to me in a channel, like this: \"" + botName + ", help (keyword)\". For instance:\n`"
-		reply += botName + ", help ping`\nor:\n`help ping, " + botName + "`\nwould give you help on my ping command.\n"
+		reply += "I've been programmed to perform a variety of tasks for your team, and will respond when you send me commands that match specific patterns. " +
+			"For instance, you can activate my built-in help function by sending a message like this:\n\n"
+		reply += botName + ", help ping\nor:\nhelp ping, " + botName + "\n\n... which would give you help on my ping command.\n\n"
 		if len(botAlias) > 0 {
-			reply += "To save a little typing, you can also address messages to me by prefixing it with my alias ( " + botAlias + " ), like this:\n`" + botAlias + "help ping`\n\n"
+			reply += "To save a little typing, you can also address messages to me by prefixing it with my alias ( " + botAlias + " ), like this:\n\n" + botAlias + "help ping\n\n"
 		}
-		reply += "When help text has (something) in parentheses, that term or phrase is optional. If <something> is in angle brackets, it's required. With the help function, if you don't supply a keyword you will get help for every command available to you in the current channel, which may differ between channels depending on each channel's purpose. If you use a keyword, you will get help for every command with a matching keyword, along with the channels where it can be used. If the help text is too long, I'll send you a direct message so the channels don't fill up with help output.\n"
-		reply += "Additionally, some messages (like a bare 'help') will trigger commands as well, and help may or may not be available for those.\n\nFinally, if there's anything else you'd like to see me do, please contact my administrator"
+		reply += "When the help text for a command has (something) in parentheses, that term or phrase is optional. If <something> is in angle brackets, it's required. With the help function, if you don't supply a keyword you will get help for every command available to you in the current channel, which may differ between channels depending on each channel's purpose. If you use a keyword, you will get help for every command with a matching keyword, along with the channels where it can be used. If the help text is too long, I'll send you a direct message so the channels don't fill up with help output.\n\n"
+		reply += "Also, from time to I may ask you a question, prompting for additional information - these messages will mention you by name if not in a private conversation. You only need to type your reply - if you address me by name (or alias), I'll consider it a new command and send an error to the plugin requesting input. Additionally, there are two special replies I understand: \"=\" means 'use the default value', whatever that might be; \"-\" means 'cancel', returning an error value to the plugin.\n\n"
+		reply += "For basic information about me, you can use my \"info\" command. Finally, if there's anything else you'd like to see me do, please contact my administrator"
 		if len(botContact) > 0 {
 			reply += ", " + botContact + "."
 		} else {
