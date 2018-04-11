@@ -27,7 +27,7 @@ var shortTermMemories = struct {
 	m map[memoryContext]shortTermMemory
 	sync.Mutex
 }{
-	make(map[memoryContext]shortTermMemory),
+	nil,
 	sync.Mutex{},
 }
 
@@ -155,6 +155,9 @@ var brLock sync.RWMutex
 // runBrain is the select loop that serializes access to brain
 // functions and insures consistency.
 func runBrain() {
+	shortTermMemories.Lock()
+	shortTermMemories.m = make(map[memoryContext]shortTermMemory)
+	shortTermMemories.Unlock()
 	// map key to status
 	memories := make(map[string]*memstatus)
 	processMemories := time.Tick(memCycle)
