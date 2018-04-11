@@ -176,6 +176,20 @@ func TestReload(t *testing.T) {
 	teardown(t, done, conn)
 }
 
+func TestVisibility(t *testing.T) {
+	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+
+	tests := []testItem{
+		{alice, general, "help ruby, bender", []testc.TestMessage{{null, general, `bender, ruby .*random\)`}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		{alice, general, "ruby me, bender", []testc.TestMessage{{alice, general, "Sorry, that didn't match.*"}}, []Event{CatchAllsRan, GoPluginRan}, 0},
+		{bob, general, ";ping", []testc.TestMessage{{bob, general, "Sorry, that didn't match.*"}}, []Event{CatchAllsRan, GoPluginRan}, 0},
+		{bob, general, ";reload", []testc.TestMessage{{bob, general, "Sorry, that didn't match.*"}}, []Event{CatchAllsRan, GoPluginRan}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
 func TestBuiltins(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "/tmp/bottestbuiltins.log", t)
 
