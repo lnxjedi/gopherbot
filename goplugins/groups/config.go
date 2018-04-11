@@ -1,59 +1,52 @@
-package memgroups
+package groups
 
-const memGroupHelp = `The memgroups plugin allows you to configure groups and
- group members who are able to add and remove members from groups that are
- stored in the robot's memory. Configured group members are always considered
- members of the group. If the memgroups plugin is configured with 'Static: true',
- configured members are considered normal members and cannot dynamically add and
- remove members.`
+const groupHelp = `The groups plugin allows you to configure groups, members, and
+ group administrators who are able to add and remove members that are
+ stored in the robot's memory. For authorization purposes, any user configured
+ as a member or administrator, or stored as a member in the robot's long-term
+ memory, is considered a member.`
 
 const defaultConfig = `
-# For keeping simple shared lists of things
+# For keeping simple shared groups of things
 Help:
-- Keywords: [ "list", "lists" ]
-  Helptext: [ "(bot), help with lists - give general help for using lists"]
-- Keywords: [ "list", "lists", "add" ]
-  Helptext: [ "(bot), add <item> to the <type> list - add something to a list" ]
-- Keywords: [ "list", "lists", "remove" ]
-  Helptext: [ "(bot), remove <item> from the <type> list - remove something from a list" ]
-- Keywords: [ "list", "lists", "empty" ]
-  Helptext: [ "(bot), empty the <type> list - remove all items from a list" ]
-- Keywords: [ "list", "lists", "delete" ]
-  Helptext: [ "(bot), delete the <type> list - remove the list altogether" ]
-- Keywords: [ "list", "lists" ]
-  Helptext: [ "(bot), list lists - give a list of all the lists the robot knows about" ]
-- Keywords: [ "list", "lists", "email", "send" ]
-  Helptext: [ "(bot), send me the <type> list - send a copy of the list by email" ]
-- Keywords: [ "list", "lists", "show", "view" ]
-  Helptext: [ "(bot), show the <type> list - show the contents of a list" ]
-- Keywords: [ "pick", "random", "lists", "list" ]
-  Helptext: [ "(bot), pick a random item from the <type> list"]
+- Keywords: [ "group", "groups" ]
+  Helptext: [ "(bot), help with groups - give general help for using groups"]
+- Keywords: [ "group", "groups", "add" ]
+  Helptext: [ "(bot), add <user> to the <groupname> group - add a user to a group" ]
+- Keywords: [ "group", "groups", "remove" ]
+  Helptext: [ "(bot), remove <user> from the <groupname> group - remove a user from a group" ]
+- Keywords: [ "group", "groups", "empty" ]
+  Helptext: [ "(bot), empty the <groupname> group - remove all dynamic users from a group" ]
+- Keywords: [ "list", "group", "groups" ]
+  Helptext: [ "(bot), list groups - give a list of all the groups the robot knows about (bot administrators only)" ]
+- Keywords: [ "group", "groups", "show", "view" ]
+  Helptext: [ "(bot), show the <groupname> group - show the members of a group" ]
 CommandMatchers:
 - Command: 'help'
-  Regex: '(?i:help with lists?)'
+  Regex: '(?i:help with groups?)'
 - Command: 'add'
-  Regex: '(?i:add ([-\w .,!?:\/]+) to (?:the )?(?:([~\w-'' ]+) )?list)'
-  Contexts: [ "item", "list" ]
+  Regex: '(?i:add ([\w-.:]+) to (?:the )?(?:([~\w-'' ]+) )?group)'
+  Contexts: [ "user", "group" ]
 - Command: 'list'
-  Regex: '(?i:list lists)'
+  Regex: '(?i:group groups)'
 - Command: 'remove'
-  Regex: '(?i:(?:remove|delete) ([-\w .,!?:\/]+) from (?:the )?(?:([~\w-'' ]+) )?list)'
-  Contexts: [ "item", "list" ]
+  Regex: '(?i:(?:remove|delete) ([\w-.:]+) from (?:the )?(?:([~\w-'' ]+) )?group)'
+  Contexts: [ "user", "group" ]
 - Command: 'empty'
-  Regex: '(?i:(?:empty|clear) (?:the )?(?:([~\w-'' ]+) )?list)'
-  Contexts: [ "list" ]
+  Regex: '(?i:(?:empty|clear) (?:the )?(?:([~\w-'' ]+) )?group)'
+  Contexts: [ "group" ]
 - Command: 'delete'
-  Regex: '(?i:delete (?:the )?(?:([~\w-'' ]+) )?list)'
-  Contexts: [ "list" ]
+  Regex: '(?i:delete (?:the )?(?:([~\w-'' ]+) )?group)'
+  Contexts: [ "group" ]
 - Command: 'show'
-  Regex: '(?i:show (?:the )?(?:([~\w-'' ]+) )?list)'
-  Contexts: [ "list" ]
+  Regex: '(?i:show (?:the )?(?:([~\w-'' ]+) )?group)'
+  Contexts: [ "group" ]
 - Command: 'pick'
-  Regex: '(?i:(?:pick )(?:an? )?random (?:item )?(?:from )(?:the )?([~\w-'' ]+)?(?: list))'
-  Contexts: [ "list" ]
+  Regex: '(?i:(?:pick )(?:an? )?random (?:user )?(?:from )(?:the )?([~\w-'' ]+)?(?: group))'
+  Contexts: [ "group" ]
 - Command: 'send'
-  Regex: '(?i:(?:send me|email) (?:the )?(?:([~\w-'' ]+) )?list)'
-  Contexts: [ "list" ]
+  Regex: '(?i:(?:send me|email) (?:the )?(?:([~\w-'' ]+) )?group)'
+  Contexts: [ "group" ]
 Config:
-  Scope: global # or "channel" if lists aren't shared globally
+  Scope: global # or "channel" if groups aren't shared globally
 `
