@@ -21,6 +21,10 @@ type config struct {
 	Scope string
 }
 
+func name(arg string) string {
+	return strings.ToLower(spaces.ReplaceAllString(arg, " "))
+}
+
 // Define the handler function
 func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
 	// Create an empty map to unmarshal into
@@ -45,7 +49,7 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 	// First, check out the list
 	switch command {
 	case "help":
-		r.Say(strings.Replace(listHelp, "\n", "", -1))
+		r.Say(listHelp)
 		return
 	case "show", "send", "pick", "list":
 		// read-only cases
@@ -54,7 +58,13 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		// all other cases are read-write
 		lock, _, ret = r.CheckoutDatum(datumKey, &lists, true)
 		defer func() {
-			if !updated {
+			if updated {
+				mret := r.UpdateDatum(datumKey, lock, lists)
+				if mret != bot.Ok {
+					r.Log(bot.Error, "Coudln't update lists")
+					r.Reply("Crud. I had a problem saving my lists - somebody better check the log")
+				}
+			} else {
 				// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
 				// in case there's another thread waiting.
 				r.CheckinDatum(datumKey, lock)
@@ -70,10 +80,10 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 	switch command {
 	case "remove":
 		item := args[0]
-		listName := strings.ToLower((args[1]))
+		listName := name(args[1])
 		list, ok := lists[listName]
 		if !ok {
-			r.Say(fmt.Sprintf("I don't have a list named %s", args[1]))
+			r.Say(fmt.Sprintf("I don't have a list named %s", listName))
 			return
 		}
 		citem := strings.ToLower(item)
@@ -84,15 +94,8 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 				list = list[:len(list)-1]
 				lists[listName] = list
 				r.Say(fmt.Sprintf("Ok, I removed %s from the %s list", item, listName))
+				updated = true
 				found = true
-				mret := r.UpdateDatum(datumKey, lock, lists)
-				if mret != bot.Ok {
-					r.Log(bot.Error, fmt.Sprintf("Couldn't update lists: %s", mret))
-					r.Reply("Crud. I had a problem saving my lists - somebody better check the log")
-				} else {
-					updated = true
-				}
-				break
 			}
 		}
 		if !found {
@@ -100,25 +103,19 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 			return
 		}
 	case "empty", "delete":
-		listName := strings.ToLower(args[0])
+		listName := name(args[0])
 		_, ok := lists[listName]
 		if !ok {
-			r.Say(fmt.Sprintf("I don't have a list named %s", args[0]))
+			r.Say(fmt.Sprintf("I don't have a list named %s", listName))
 			return
 		}
+		updated = true
 		if command == "empty" {
 			lists[listName] = []string{}
 			r.Say("Emptied")
 		} else {
 			delete(lists, listName)
 			r.Say("Deleted")
-		}
-		mret := r.UpdateDatum(datumKey, lock, lists)
-		if mret != bot.Ok {
-			r.Log(bot.Error, fmt.Sprintf("Couldn't update lists: %s", mret))
-			r.Reply("Crud. I had a problem saving my lists - somebody better check the log")
-		} else {
-			updated = true
 		}
 	case "list":
 		listlist := make([]string, 0, 10)
@@ -139,15 +136,15 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 			r.Say(fmt.Sprintf("Here are the lists I know about:\n%s", strings.Join(listlist, "\n")))
 		}
 	case "show", "send":
-		listName := strings.ToLower(args[0])
+		listName := name(args[0])
 		var listBuffer bytes.Buffer
 		list, ok := lists[listName]
 		if !ok {
-			r.Say(fmt.Sprintf("I don't have a list named %s", args[0]))
+			r.Say(fmt.Sprintf("I don't have a list named %s", listName))
 			return
 		}
 		if len(list) == 0 {
-			r.Say(fmt.Sprintf("The %s list is empty", args[0]))
+			r.Say(fmt.Sprintf("The %s list is empty", listName))
 			return
 		}
 		lineEnd := "\n"
@@ -159,17 +156,17 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		}
 		switch command {
 		case "show":
-			r.Say(fmt.Sprintf("Here's what I have on the %s list:\n%s", listName, strings.Trim(listBuffer.String(), "\n")))
+			r.Say(fmt.Sprintf("Here's what I have on the %s list:\n%s", listName, listBuffer.String()))
 		case "send":
-			if ret := r.Email(fmt.Sprintf("The %s list", args[0]), &listBuffer); ret != bot.Ok {
+			if ret := r.Email(fmt.Sprintf("The %s list", listName), &listBuffer); ret != bot.Ok {
 				r.Say("Sorry, there was an error sending the email - have somebody check the my log file")
 				return
 			}
 			botmail := r.GetBotAttribute("email").String()
-			r.Say(fmt.Sprintf("Ok, I sent the %s list to you - look for email from %s", args[0], botmail))
+			r.Say(fmt.Sprintf("Ok, I sent the %s list to you - look for email from %s", listName, botmail))
 		}
 	case "pick":
-		listName := strings.ToLower(args[0])
+		listName := name(args[0])
 		list, ok := lists[listName]
 		if !ok {
 			r.Say(fmt.Sprintf("I don't have a list named %s", listName))
@@ -180,78 +177,28 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 			return
 		}
 		item := r.RandomString(list)
-		r.RememberContext("item", item)
 		r.Say(fmt.Sprintf("Here you go: %s", item))
+		r.RememberContext("item", item)
 	case "add":
 		// Case sensitive input, case insensitve equality checking
 		item := args[0]
-		listName := strings.ToLower(args[1])
+		listName := name(args[1])
 		list, ok := lists[listName]
 		if !ok {
-			r.CheckinDatum(datumKey, lock)
-			rep, ret := r.PromptForReply("YesNo", fmt.Sprintf("I don't have a \"%s\" list, do you want to create it?", args[1]))
-			if ret == bot.Ok {
-				switch strings.ToLower(rep) {
-				case "n", "no":
-					r.Say("Item not added")
-					return
-				default:
-					lock, _, ret = r.CheckoutDatum(datumKey, &lists, true)
-					// Need to make sure the list wasn't created while waiting for an answer
-					list, ok := lists[listName]
-					if !ok {
-						lists[listName] = []string{item}
-						mret := r.UpdateDatum(datumKey, lock, lists)
-						if mret != bot.Ok {
-							r.Log(bot.Error, fmt.Sprintf("Couldn't update lists: %s", mret))
-							r.Reply("Crud. I had a problem saving my lists - somebody better check the log")
-						} else {
-							r.Say(fmt.Sprintf("Ok, I created a new %s list and added %s to it", args[1], item))
-							updated = true
-						}
-					} else { // wow, it WAS created while waiting
-						citem := strings.ToLower(item)
-						for _, li := range list {
-							if citem == strings.ToLower(li) {
-								r.Say(fmt.Sprintf("Somebody already created the %s list and added %s to it", args[1], item))
-								return
-							}
-						}
-						list = append(list, item)
-						lists[listName] = list
-						mret := r.UpdateDatum(datumKey, lock, lists)
-						if mret != bot.Ok {
-							r.Log(bot.Error, fmt.Sprintf("Couldn't update lists: %s", mret))
-							r.Reply("Crud. I had a problem saving my lists - somebody better check the log")
-						} else {
-							updated = true
-						}
-						r.Say(fmt.Sprintf("Ok, I added %s to the new %s list", item, args[1]))
-					}
-				}
-			} else {
-				r.Reply("Sorry, I didn't get an answer I understand")
-				return
-			}
+			lists[listName] = []string{item}
 		} else {
 			citem := strings.ToLower(item)
 			for _, li := range list {
 				if citem == strings.ToLower(li) {
-					r.Say(fmt.Sprintf("%s is already on the %s list", item, args[1]))
+					r.Say(fmt.Sprintf("%s is already on the %s list", item, listName))
 					return
 				}
 			}
 			list = append(list, item)
 			lists[listName] = list
-			mret := r.UpdateDatum(datumKey, lock, lists)
-			if mret != bot.Ok {
-				r.Log(bot.Error, fmt.Sprintf("Couldn't update lists: %s", mret))
-				r.Reply("Crud. I had a problem saving my lists - somebody better check the log")
-			} else {
-				updated = true
-			}
-			r.Say(fmt.Sprintf("Ok, I added %s to the %s list", item, args[1]))
 		}
+		r.Say(fmt.Sprintf("Ok, I added %s to the %s list", item, listName))
+		updated = true
 	}
 	return
 }
