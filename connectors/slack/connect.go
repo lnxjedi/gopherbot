@@ -72,7 +72,7 @@ Loop:
 				sc.Log(bot.Debug, "Connection counter:", ev.ConnectionCount)
 				sc.botName = ev.Info.User.Name
 				sc.SetName(sc.botName)
-				sc.Log(bot.Info, "Set bot name to", sc.botName)
+				sc.Log(bot.Info, "Slack setting bot name to", sc.botName)
 				sc.botID = ev.Info.User.ID
 				sc.Log(bot.Trace, "Set bot ID to", sc.botID)
 				for _, b := range ev.Info.Bots {
