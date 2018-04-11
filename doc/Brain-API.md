@@ -95,7 +95,6 @@ Using the `terminal` connector, you can see the `remember` function in action:
 ```
 c:general/u:alice -> floyd, remember the answer is 42
 general: Ok, I'll remember "the answer is 42"
-Events gathered: CommandPluginRan, ScriptPluginRan
 c:general/u:alice -> |ubob
 Changed current user to: bob
 c:general/u:bob -> floyd, recall
@@ -103,7 +102,6 @@ general: Here's everything I can remember:
 #1: the Alamo
 #2: Ferris Bueller
 #3: the answer is 42
-Events gathered: CommandPluginRan, ScriptPluginRan
 ```
 
 From the transcript you can see that `alice` added the item to the list, which
@@ -116,24 +114,20 @@ Short term memories are simple key -> string values stored for each user / chann
 after a time. The best example of this uses the built-in `links` and `lists` plugins, shown in this example
 using the `terminal` plugin:
 ```
-$ ./gopherbot -l /tmp/bot.log -c cfg/term/                                                                                                                                                             
+[gopherbot]$ ./gopherbot -l /tmp/bot.log -c cfg/term/
 Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
 c:general/u:alice -> link tuna casserole to https://www.allrecipes.com/recipe/17219/best-tuna-casserole/, floyd
 general: Link added
-Events gathered: CommandPluginRan, GoPluginRan
 c:general/u:alice -> add it to the dinner meals list
 c:general/u:alice -> floyd
 general: Ok, I added tuna casserole to the dinner meals list
-Events gathered: CommandPluginRan, GoPluginRan
 c:general/u:alice -> floyd
 general: Yes?
 c:general/u:bob -> floyd, pick a random item from the dinner meals list
 general: Here you go: tuna casserole
-Events gathered: CommandPluginRan, GoPluginRan
 c:general/u:bob -> look it up, floyd
 general: Here's what I have for "tuna casserole":
 https://www.allrecipes.com/recipe/17219/best-tuna-casserole/: tuna casserole
-Events gathered: CommandPluginRan, GoPluginRan
 ```
 
 Here, the robot is using short-term memories several times. When I forgot to address my command to the robot, the command
@@ -202,23 +196,20 @@ Here you can see the robot's short term memories of Ferris Bueller in action (us
 the `bashdemo.sh` plugin):
 
 ```
+[gopherbot]$ ./gopherbot -l /tmp/bot.log -c cfg/term/
+Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
 c:general/u:bob -> floyd, what is Ferris Bueller
 general: @bob Gosh, I have no idea - I'm so forgetful!
-Events gathered: CommandPluginRan, ScriptPluginRan
 c:general/u:bob -> floyd, store Ferris Bueller is a Righteous Dude
 general: I'll remember "Ferris Bueller" is "a Righteous Dude" - but eventually I'll forget!
-Events gathered: CommandPluginRan, ScriptPluginRan
 c:general/u:bob -> floyd, what is Ferris Bueller
 general: Ferris Bueller is a Righteous Dude
-Events gathered: CommandPluginRan, ScriptPluginRan
 c:general/u:bob -> |ualice
 Changed current user to: alice
 c:general/u:alice -> floyd, what is Ferris Bueller
 general: @alice Gosh, I have no idea - I'm so forgetful!
-Events gathered: CommandPluginRan, ScriptPluginRan
 c:general/u:alice -> |ubob
 Changed current user to: bob
 c:general/u:bob -> floyd, what is Ferris Bueller
 general: Ferris Bueller is a Righteous Dude
-Events gathered: CommandPluginRan, ScriptPluginRan
 ```
