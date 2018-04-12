@@ -1,0 +1,21 @@
+---
+# Generally no real point in configuring both administrators and users;
+# administrators can add and remove users dynamically. If a user is listed here
+# or stored in memory, they get access.
+Disabled: false
+Config:
+  Groups:
+    Helpdesk:
+      Administrators:
+      - carol
+      Users:
+      - bob
+    SysAdmins:
+      Users:
+      - david
+    NetAdmins:
+      Administrators:
+      - erin
+    Peons:
+      Administrators:
+      - carol
