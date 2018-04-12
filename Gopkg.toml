@@ -21,10 +21,10 @@
 [prune]
   unused-packages = true
 
+# NOTE: Only until the next release includes the bugfix
 [[constraint]]
-  branch = "errhandling"
   name = "github.com/nlopes/slack"
-  source = "github.com/lnxjedi/slack"
+  revision = "921a31ba7374bbc3623a5327e1f965628d1d6108"
 
 [[constraint]]
   branch = "master"
