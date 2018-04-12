@@ -3,26 +3,37 @@ package main
 import (
 	"github.com/lnxjedi/gopherbot/bot"
 
-	// If re-compiling Gopherbot, you can comment out unused connectors.
-	// Select the connector and provide configuration in conf/gopherbot.yaml
+	// NOTE: If compiling gopherbot yourself, you can comment out or remove
+	// most of the import lines below to shrink the binary or remove unwanted
+	// or unneeded funcationality. You'll need at least one connector for your
+	// bot to be useful, however.
+
+	// *** Included connectors
+
 	_ "github.com/lnxjedi/gopherbot/connectors/slack"
 	// NOTE: if you build with '-tags test', the terminal connector will also
 	// show emitted events.
 	_ "github.com/lnxjedi/gopherbot/connectors/terminal"
 
-	// If re-compiling, you can comment out unused brain implementations.
-	// Select the brain to use and provide configuration in conf/gopherbot.yaml
+	// *** Included brain implementations
+
 	_ "github.com/lnxjedi/gopherbot/brains/file"
 	_ "github.com/lnxjedi/gopherbot/brains/mem"
 
-	// If re-compiling, you can comment out unused elevator implementations,
-	// otherwise you can disable them in conf/plugins/<plugin>.json with
-	// "Disabled: true"
+	// Many included plugins already have 'Disabled: true', but you can also
+	// disable by adding that line to conf/plugins/<plugname>.yaml
+
+	// *** Included Elevator plugins
+
 	_ "github.com/lnxjedi/gopherbot/goplugins/duo"
 	_ "github.com/lnxjedi/gopherbot/goplugins/totp"
 
-	// If re-compiling, you can select the plugins you want. Otherwise you can disable
-	// them in conf/plugins/<plugin>.json with "Disabled: true"
+	// *** Included Authorizer plugins
+
+	_ "github.com/lnxjedi/gopherbot/goplugins/groups"
+
+	// *** Included Go plugins, of varying quality
+
 	_ "github.com/lnxjedi/gopherbot/goplugins/help"
 	_ "github.com/lnxjedi/gopherbot/goplugins/knock"
 	_ "github.com/lnxjedi/gopherbot/goplugins/links"
