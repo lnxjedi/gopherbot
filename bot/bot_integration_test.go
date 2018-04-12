@@ -24,6 +24,7 @@ import (
 	_ "github.com/lnxjedi/gopherbot/brains/file"
 	_ "github.com/lnxjedi/gopherbot/brains/mem"
 	testc "github.com/lnxjedi/gopherbot/connectors/test"
+	_ "github.com/lnxjedi/gopherbot/goplugins/groups"
 	_ "github.com/lnxjedi/gopherbot/goplugins/help"
 	_ "github.com/lnxjedi/gopherbot/goplugins/links"
 	_ "github.com/lnxjedi/gopherbot/goplugins/lists"
@@ -194,6 +195,11 @@ func TestBuiltins(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "/tmp/bottestbuiltins.log", t)
 
 	tests := []testItem{
+		{alice, general, ";help log", []testc.TestMessage{{null, general, "direct message only"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, ";set log lines to 3", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 3"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, ";set log lines to 0", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 1"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, ";show log", []testc.TestMessage{{alice, null, ".*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, ";show log page 1", []testc.TestMessage{{alice, null, ".*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
 		{alice, general, ";help info", []testc.TestMessage{{null, general, "bender,.*admins"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
 		{alice, random, ";help ruby", []testc.TestMessage{{null, random, `(?m:Command.*\n.*random\))`}}, []Event{CommandPluginRan, GoPluginRan}, 0},
 		{alice, general, ";help", []testc.TestMessage{{alice, general, `\(the help.*private message\)`}, {alice, null, "bender,.*"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
@@ -224,6 +230,18 @@ func TestPrompting(t *testing.T) {
 		{david, general, ";asknow", []testc.TestMessage{{david, general, `Do you like puppies\?`}, {null, general, `ok - answer puppies`}}, []Event{CommandPluginRan, ScriptPluginRan, CommandPluginRan, ScriptPluginRan}, 0},
 		{david, general, "yes", []testc.TestMessage{{david, general, `Do you like kittens\?`}, {null, general, `I like puppies too!`}}, []Event{}, 0},
 		{david, general, "yes", []testc.TestMessage{{null, general, `I like kittens too!`}}, []Event{}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
+func TestCalling(t *testing.T) {
+	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+
+	tests := []testItem{
+		{alice, general, ";bashecho foo bar baz", []testc.TestMessage{{null, general, "foo bar baz"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
+		{alice, random, ";bashecho foo bar baz", []testc.TestMessage{{null, random, "Sorry, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 
