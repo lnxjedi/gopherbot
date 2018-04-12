@@ -24,6 +24,7 @@ func TestGroupAuth(t *testing.T) {
 		{david, general, ";remember Forest Gump", []testc.TestMessage{{null, general, "Sorry, you're not authorized for .*"}}, []Event{GoPluginRan, AdminCheckFailed, AuthRanFail}, 0},
 		{carol, general, ";remember Forest Gump", []testc.TestMessage{{null, general, "Ok, I'll remember .*"}}, []Event{GoPluginRan, AdminCheckFailed, AuthRanSuccess, CommandPluginRan, ScriptPluginRan}, 0},
 		{carol, general, ";add david to the Helpdesk group", []testc.TestMessage{{null, general, "Ok, I added david to the Helpdesk group"}}, []Event{CommandPluginRan, GoPluginRan, AdminCheckFailed}, 0},
+		{alice, general, ";remove bob from the Helpdesk group", []testc.TestMessage{{null, general, "bob isn't a dynamic member of the Helpdesk group"}}, []Event{CommandPluginRan, GoPluginRan, AdminCheckPassed}, 0},
 		{david, general, ";remember Jenny", []testc.TestMessage{{null, general, "Ok, I'll remember .*"}}, []Event{GoPluginRan, AdminCheckFailed, AuthRanSuccess, CommandPluginRan, ScriptPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
