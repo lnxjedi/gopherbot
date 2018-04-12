@@ -83,13 +83,13 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 				list[i] = list[len(list)-1]
 				list = list[:len(list)-1]
 				lists[listName] = list
-				r.Say(fmt.Sprintf("Ok, I removed %s from the %s list", item, listName))
 				found = true
 				mret := r.UpdateDatum(datumKey, lock, lists)
 				if mret != bot.Ok {
 					r.Log(bot.Error, fmt.Sprintf("Couldn't update lists: %s", mret))
 					r.Reply("Crud. I had a problem saving my lists - somebody better check the log")
 				} else {
+					r.Say(fmt.Sprintf("Ok, I removed %s from the %s list", item, listName))
 					updated = true
 				}
 				break
@@ -101,6 +101,7 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		}
 	case "empty", "delete":
 		listName := strings.ToLower(args[0])
+		var msg string
 		_, ok := lists[listName]
 		if !ok {
 			r.Say(fmt.Sprintf("I don't have a list named %s", args[0]))
@@ -108,16 +109,17 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		}
 		if command == "empty" {
 			lists[listName] = []string{}
-			r.Say("Emptied")
+			msg = "Emptied"
 		} else {
 			delete(lists, listName)
-			r.Say("Deleted")
+			msg = "Deleted"
 		}
 		mret := r.UpdateDatum(datumKey, lock, lists)
 		if mret != bot.Ok {
 			r.Log(bot.Error, fmt.Sprintf("Couldn't update lists: %s", mret))
 			r.Reply("Crud. I had a problem saving my lists - somebody better check the log")
 		} else {
+			r.Say(msg)
 			updated = true
 		}
 	case "list":
