@@ -101,6 +101,7 @@ type Plugin struct {
 	Channels                 []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels              bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
 	RequireAdmin             bool            // Set to only allow administrators to access a plugin
+	AdminCommands            []string        // A list of commands only a bot admin can use
 	Elevator                 string          // Use an elevator other than the DefaultElevator
 	ElevatedCommands         []string        // Commands that require elevation, usually via 2fa
 	ElevateImmediateCommands []string        // Commands that always require elevation promting, regardless of timeouts
@@ -329,7 +330,7 @@ PlugLoop:
 				val = &strval
 			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll":
 				val = &boolval
-			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "TrustedPlugins", "AuthorizedCommands":
+			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "TrustedPlugins", "AuthorizedCommands", "AdminCommands":
 				val = &sarrval
 			case "Help":
 				val = &hval
@@ -362,6 +363,8 @@ PlugLoop:
 				plugin.AllChannels = *(val.(*bool))
 			case "RequireAdmin":
 				plugin.RequireAdmin = *(val.(*bool))
+			case "AdminCommands":
+				plugin.AdminCommands = *(val.(*[]string))
 			case "Elevator":
 				plugin.Elevator = *(val.(*string))
 			case "ElevatedCommands":

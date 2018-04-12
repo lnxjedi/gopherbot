@@ -100,7 +100,7 @@ func Start() {
 
 	var botLogger *log.Logger
 	logOut := os.Stdout
-	if isIntSess && logFile == "" {
+	if !isIntSess && logFile == "" {
 		logFile = "C:/Windows/Temp/gopherbot-startup.log"
 	}
 	if logFile != "" {

@@ -11,15 +11,15 @@ const keepListeningDuration = 77 * time.Second
 // pluginAvailable checks the user and channel against the plugin's
 // configuration to determine if the message should be evaluated. Used by
 // both handleMessage and the help builtin.
-func pluginAvailable(user, channel string, plugin *Plugin) bool {
+func pluginAvailable(user, channel string, plugin *Plugin, ignoreChannelRestrictions bool) bool {
 	directMsg := false
 	if len(channel) == 0 {
 		directMsg = true
 	}
-	if !directMsg && plugin.DirectOnly {
+	if !directMsg && plugin.DirectOnly && !ignoreChannelRestrictions {
 		return false
 	}
-	if directMsg && plugin.DenyDirect {
+	if directMsg && plugin.DenyDirect && !ignoreChannelRestrictions {
 		return false
 	}
 	if plugin.DirectOnly && plugin.DenyDirect {
@@ -66,6 +66,9 @@ func pluginAvailable(user, channel string, plugin *Plugin) bool {
 			return true
 		}
 	}
+	if ignoreChannelRestrictions {
+		return true
+	}
 	return false
 }
 
@@ -84,7 +87,7 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 	var cmdArgs []string
 	for _, plugin := range plugins {
 		Log(Trace, fmt.Sprintf("Checking availability of plugin \"%s\" in channel \"%s\" for user \"%s\", active in %d channels (allchannels: %t)", plugin.name, bot.Channel, bot.User, len(plugin.Channels), plugin.AllChannels))
-		ok := pluginAvailable(bot.User, bot.Channel, plugin)
+		ok := pluginAvailable(bot.User, bot.Channel, plugin, false)
 		if !ok {
 			Log(Trace, fmt.Sprintf("Plugin \"%s\" not available for user \"%s\" in channel \"%s\", doesn't meet criteria", plugin.name, bot.User, bot.Channel))
 			continue
@@ -185,6 +188,22 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 			Log(Debug, fmt.Sprintf("User \"%s\" matched a new command while the robot was waiting for a reply in channel \"%s\"", bot.User, bot.Channel))
 		} else {
 			replies.Unlock()
+		}
+		// NOTE: if RequireAdmin is true, the user can't access the plugin at all if not an admin
+		if len(plugin.AdminCommands) > 0 {
+			adminRequired := false
+			for _, i := range plugin.AdminCommands {
+				if matcher.Command == i {
+					adminRequired = true
+					break
+				}
+			}
+			if adminRequired {
+				if !bot.CheckAdmin() {
+					bot.Say("Sorry, that command is only available to bot administrators")
+					return
+				}
+			}
 		}
 		if bot.checkAuthorization(plugins, plugin, matcher.Command, cmdArgs...) != Success {
 			return

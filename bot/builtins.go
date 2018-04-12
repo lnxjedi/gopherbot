@@ -14,6 +14,9 @@ import (
 // if help is more than tooLong lines long, send a private message
 const tooLong = 14
 
+// Cut off for listing channels after help text
+const tooManyChannels = 4
+
 // Size of QR code
 const qrsize = 400
 
@@ -87,7 +90,7 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		plugins := currentPlugins.p
 		currentPlugins.RUnlock()
 		for _, plugin := range plugins {
-			if !pluginAvailable(bot.User, bot.Channel, plugin) {
+			if !pluginAvailable(bot.User, bot.Channel, plugin, true) {
 				continue
 			}
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
@@ -117,11 +120,15 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 								// Look: the right paren gets added below
 								chantext = " (direct message only"
 							} else {
-								for _, pchan := range plugin.Channels {
-									if len(chantext) == 0 {
-										chantext += " (channels: " + pchan
-									} else {
-										chantext += ", " + pchan
+								if len(plugin.Channels) > tooManyChannels {
+									chantext += "(channels: (many) "
+								} else {
+									for _, pchan := range plugin.Channels {
+										if len(chantext) == 0 {
+											chantext += " (channels: " + pchan
+										} else {
+											chantext += ", " + pchan
+										}
 									}
 								}
 							}

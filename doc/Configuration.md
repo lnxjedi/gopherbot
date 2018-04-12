@@ -21,7 +21,7 @@ Table of Contents
       * [Disabled](#disabled)
       * [AllowDirect, DenyDirect, DirectOnly, Channels and AllChannels](#allowdirect-denydirect-directonly-channels-and-allchannels)
       * [CatchAll](#catchall)
-      * [Users, RequireAdmin](#users-requireadmin)
+      * [Users, RequireAdmin, AdminCommands](#users-requireadmin-admincommands)
       * [AuthorizedCommands, AuthorizeAllCommands, Authorizer and AuthRequire](#authorizedcommands-authorizeallcommands-authorizer-and-authrequire)
       * [TrustedPlugins](#trustedplugins)
       * [Elevator, ElevatedCommands and ElevateImmediateCommands](#elevator-elevatedcommands-and-elevateimmediatecommands)
@@ -200,14 +200,20 @@ CatchAll: true  # default: false
 ```
 If a plugin specifies `CatchAll`, and the robot receives a command that doesn't match a plugin, catchall plugins will be called with a command of `catchall`, and the message text as an argument. If configuring a catchall plugin, you should probably set `CatchAll: false` for the included `help` plugin.
 
-### Users, RequireAdmin
+### Users, RequireAdmin, AdminCommands
 ```yaml
 Users: [ 'alicek', 'bobc', 'bot:ServerWatch:*' ]
 ```
 ```yaml
 RequireAdmin: true  # default: false
 ```
+```yaml
+AdminCommands:
+- list
+```
 `Users` and `RequireAdmin` provide a simple mechanism to restrict visibility of a given plugin to a given list of users, or only bot administrators. If a given plugin isn't allowed for a given user, the robot will behave as if the plugin doesn't exist for that user, and won't provide help text. Note that `Users` can take globbing characters, mainly useful for matching messages from another bot or integration.
+
+`AdminCommands` restricts certain commands to bot administrators only. The help for the command will still be visible, so the text should probably include e.g. `(bot administrators only)`.
 
 ### AuthorizedCommands, AuthorizeAllCommands, Authorizer and AuthRequire
 

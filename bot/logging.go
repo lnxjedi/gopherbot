@@ -99,6 +99,9 @@ func setLogPageLines(l int) int {
 	if l > 100 {
 		lines = 100
 	}
+	if l == 0 {
+		lines = 1
+	}
 	logLock.Lock()
 	pageLines = lines
 	buffpages = buffLines / pageLines

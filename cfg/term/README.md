@@ -2,8 +2,8 @@ This configuration directory can be used for development and testing with a bot
 named **Floyd** using the `terminal` connector, e.g.:
 
 ```
-[./gopherbot]$ go build -tags test
-[./gopherbot]$ ./gopherbot -l /tmp/bot.log -c cfg/term/
+[gopherbot]$ go build -tags test
+[gopherbot]$ ./gopherbot -l /tmp/bot.log -c cfg/term/
 Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
 c:general/u:alice -> floyd, info
 c:general/u:alice -> 
@@ -17,5 +17,19 @@ The administrators for this robot are: alice
 c:general/u:alice -> ;quit
 c:general/u:alice -> 
 general: @alice Sayonara!
-[./gopherbot]$
+[gopherbot]$
+```
+
+**NOTE:** If you build gopherbot with `-tags test`, the terminal connector will
+also show events emitted:
+
+```
+[gopherbot]$ go build -tags test
+[gopherbot]$ ./gopherbot -l /tmp/bot.log -c cfg/term/
+Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
+c:general/u:alice -> ;ping
+general: @alice PONG
+Events gathered: CommandPluginRan, GoPluginRan
+c:general/u:alice -> ;quit
+general: @alice Later gator!
 ```

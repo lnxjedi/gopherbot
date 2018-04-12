@@ -15,12 +15,12 @@ Table of Contents
   * [Plugin Loading and Precedence](#plugin-loading-and-precedence)
   * [Default Configuration](#default-configuration)
   * [Calling Convention](#calling-convention)
-  * [Environment Variables](#environment-variables)	
+    * [Environment Variables](#environment-variables)
+    * [Reserved Commands](#reserved-commands)
   * [Plugin Types and Calling Events](#plugin-types-and-calling-events)
     * [Command Plugins](#command-plugins)
     * [Authorization Plugins](#authorization-plugins)
     * [Elevation Plugins](#elevation-plugins)
-    * [Other Reserved Commands](#other-reserved-commands)
   * [Using the Terminal Connector](#using-the-terminal-connector)
   * [Getting Started](#getting-started)
     * [Starting from a Sample Plugin](#starting-from-a-sample-plugin)
@@ -42,7 +42,11 @@ On start-up and during a reload, the robot will run each external script plugin 
 # Calling Convention
 The robot calls external plugins by creating a goroutine and exec'ing the external script with a set of environment variables. The external script uses the appropriate library for the scripting language to create a robot object from the environment. The script then examines it's command-line arguments to determine the type of action to take (normally a command followed by arguments to the command), and uses the library to make JSON-over-http calls for executing and returning results from methods. Depending on how the plugin is used, different kinds of events can cause external plugins to be called with a variety of commands and arguments. The most common means of calling an external plugin is for one of it's commands to be matched, or by matching a pattern in an ambient message (one not specifically directed to the robot).
 
-# Environment Variables
+There are two sources of information for an external plugin being called:
+  * Environment Variables - these should generally only be referenced by the scripting library
+  * Command Line Arguments - these should be used by the plugin to determine what to do
+
+## Environment Variables
 Gopherbot sets two primary environment variables of use to the plugin developer:
   * GOPHER\_CONFIGDIR - the directory where Gopherbot looks for it's configuration
   * GOPHER\_INSTALLDIR - the directory where the Gopherbot executable resides
@@ -50,6 +54,15 @@ Gopherbot sets two primary environment variables of use to the plugin developer:
 In addition, the following two environment variables are set for every script plugin:
   * GOPHER\_USER - the username of the user who spoke to the robot
   * GOPHER\_CHANNEL - the channel the user spoke in (empty string indicates a direct message)
+
+## Reserved Commands
+The first argument to a plugin script is the **command**. In addition to the `configure` command, which instructs a plugin to dump it's default configuration to standard out, the following commands are reserved:
+* `init` - After starting the connector and on reload, the robot will call external plugins with a command argument of `init`. Since all environment variables for the robot are set at that point, it would be possible to e.g. save a robot data structure that could be loaded and used in a cron job.
+* `authorize` - The plugin should check authorization for the user and return `Success` or `Fail`
+* `elevate` - The plugin should perform additional authentication for the user and return `Success` or `Fail`
+* `event` - This command is reserved for future use with e.g. user presence change & channel join/leave events
+* `catchall` - Plugins with `CatchAll: true` will be called for commands directed at the robot that don't match a command plugin. Normally these are handled by the compiled-in `help` plugin, but administrators could override that setting and provide their own plugin with `CatchAll: true`. Note that having multiple such plugins is probably a bad idea.
+
 
 # Plugin Types and Calling Events
 
@@ -101,12 +114,6 @@ Note that exiting with `bot.Normal` (0) or other value will result in an error b
 
 Additionally, the elevation plugin may provide extra feedback to the user when elevation isn't successful to indicate the nature of the failure.
 
-## Other Reserved Commands
-In addition to the `configure` command, which instructs a plugin to dump it's default configuration to standard out, the following commands are reserved:
-* `init` - After starting the connector and on reload, the robot will call external plugins with a command argument of `init`. Since all environment variables for the robot are set at that point, it would be possible to e.g. save a robot data structure that could be loaded and used in a cron job.
-* `event` - This command is reserved for future use with e.g. user presence change & channel join/leave events
-* `catchall` - Plugins with `CatchAll: true` will be called for commands directed at the robot that don't match a command plugin. Normally these are handled by the compiled-in `help` plugin, but administrators could override that setting and provide their own plugin with `CatchAll: true`. Note that having multiple such plugins is probably a bad idea.
-
 # Using the Terminal Connector
 Interacting with your bot in a chat app might not always be convenient or fast; to simplify
 testing and plugin development, **Gopherbot** includes a terminal connector, with a sample
@@ -114,22 +121,19 @@ configuration in the `cfg/term/` directory. You'll want to copy the directory an
 it for your own use (mainly configuring the plugins you're developing), but it can be used
 by using the `-c <configdir>` option:
 ```
-[./gopherbot]$ go build -tags test
-[./gopherbot]$ ./gopherbot -l /tmp/bot.log -c cfg/term/
+[gopherbot]$ ./gopherbot -l /tmp/bot.log -c cfg/term/
 Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
-c:general/u:alice -> floyd, info
-c:general/u:alice -> 
-general: Here's some information about my running environment:
-The hostname for the server I'm running on is: bot.example.org
-My install directory is: /home/username/go/src/github.com/lnxjedi/gopherbot
-My local configuration directory is: cfg/term/
-My software version is: Gopherbot v1.0.1-snapshot, commit: (manual build)
-My alias is: ;
-The administrators for this robot are: alice
-c:general/u:alice -> ;quit
-c:general/u:alice -> 
-general: @alice Sayonara!
-[./gopherbot]$
+c:general/u:alice -> |ubob
+Changed current user to: bob
+c:general/u:bob -> ;ping
+general: @bob PONG
+c:general/u:bob -> |ualice
+Changed current user to: alice
+c:general/u:alice -> |crandom
+Changed current channel to: random
+c:random/u:alice -> ;quit
+random: @alice Adios
+[gopherbot]$
 ```
 
 # Getting Started

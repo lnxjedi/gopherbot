@@ -1,12 +1,13 @@
 package lists
 
-const listHelp = `The list plugin allows you to manage simple lists of items, such as a todo
-list, lunch spots, etc. Lists default to global scope, but can be
-configured with per-channel scope. Note that 'lists' is a context aware plugin, and
-will remember the list or item being discussed; so e.g. you can follow 'add milk
-to the grocery list' with 'add hamburgers to the list' and the robot will
-know you mean the grocery list; also, 'add it to the dinner list' would add
-hamburgers to the dinner list. List names are always lower cased by the robot.`
+const listHelp = `The list plugin allows you to manage simple lists of items,
+ such as a todo list, lunch spots, etc. Lists default to global scope, but can be
+ configured with per-channel scope. Note that 'lists' is a context aware plugin, and
+ will remember the list or item being discussed; so e.g. you can follow 'add milk
+ to the grocery list' with 'add hamburgers to the list' and the robot will
+ know you mean the grocery list; also, 'add it to the dinner list' would add
+ hamburgers to the dinner list. List names are always lowercased, but items are
+ stored with case preserved and compared in a case-insensitive manner.`
 
 const defaultConfig = `
 # For keeping simple shared lists of things
