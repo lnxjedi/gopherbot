@@ -1,9 +1,8 @@
 // Package groups implements a groups demonstrator plugin showing how you
-// can use the robot's brain to remember things - like groups of items.
+// can use the robot's brain to remember things - like groups of users.
 package groups
 
 import (
-	"bytes"
 	"fmt"
 	"regexp"
 	"strings"
@@ -11,246 +10,236 @@ import (
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
-const datumName = "groupmap"
+const datumName = "group"
+
+type groupSpec struct {
+	Administrators, Users []string // used with map[string]groupSpec
+}
+
+type config struct {
+	Groups map[string]groupSpec
+}
 
 var spaces = regexp.MustCompile(`\s+`)
 
-type itemGroup []string
-
-type config struct {
-	Scope string
+func addnew(list []string, item string) ([]string, bool) {
+	add := true
+	for _, listitem := range list {
+		if listitem == item {
+			add = false
+			break
+		}
+	}
+	if add {
+		list = append(list, item)
+	}
+	return list, add
 }
 
 // Define the handler function
 func groups(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
-	// Create an empty map to unmarshal into
 	if command == "init" { // ignore init
 		return
 	}
-	var groups = make(map[string]itemGroup)
-	var lock string
+	var cfgspec, memspec groupSpec
+	var lock, group string
 	var ret bot.RetVal
-	scope := &config{}
 
-	datumKey := datumName // default global
-	ret = r.GetPluginConfig(&scope)
-	r.Log(bot.Debug, fmt.Sprintf("Retrieved groups config: %v", scope))
-	if ret == bot.Ok {
-		if strings.ToLower(scope.Scope) == "channel" {
-			datumKey = r.Channel + ":" + datumName
-		}
+	groupCfg := &config{}
+
+	ret = r.GetPluginConfig(&groupCfg)
+	if ret != bot.Ok {
+		r.Log(bot.Error, "Error loading groups config: %s")
+		return bot.Fail
 	}
 
 	updated := false
-	// First, check out the group
+
+	// Get the group name from arguments
+	switch command {
+	case "add", "remove", "authorize":
+		group = args[1]
+	case "empty", "show":
+		group = args[0]
+	}
+
+	if len(group) > 0 {
+		var ok bool
+		// Validate the group
+		cfgspec, ok = groupCfg.Groups[group]
+		if !ok {
+			if command != "authorize" {
+				r.Say(fmt.Sprintf("I don't have a \"%s\" group configured", group))
+				return
+			}
+			r.Log(bot.Warn, fmt.Sprintf("Groups plugin called for non-configured group: %s", group))
+			return bot.ConfigurationError
+		}
+	}
+
+	if command == "authorize" && len(group) == 0 {
+		r.Log(bot.Error, fmt.Sprintf("Groups plugin requires a group name for authorization; plugin \"%s\" must set 'AuthRequire'", args[0]))
+		return bot.ConfigurationError
+	}
+
+	botAdmin := r.CheckAdmin()
+
+	// First, check out the group map and verify admins
 	switch command {
 	case "help":
 		r.Say(strings.Replace(groupHelp, "\n", "", -1))
 		return
-	case "show", "send", "pick", "group":
+	case "show", "authorize":
 		// read-only cases
-		_, _, ret = r.CheckoutDatum(datumKey, &groups, false)
-	default:
-		// all other cases are read-write
-		lock, _, ret = r.CheckoutDatum(datumKey, &groups, true)
+		_, _, ret = r.CheckoutDatum(group, &memspec, false)
+	case "add", "remove", "empty":
+		// read-write cases, require admin privileges
+		isAdmin := botAdmin
+		if !isAdmin {
+			if len(cfgspec.Administrators) == 0 {
+				r.Log(bot.Error, fmt.Sprintf("No administrators configured for group: %s", group))
+			} else {
+				for _, adminUser := range cfgspec.Administrators {
+					if r.User == adminUser {
+						isAdmin = true
+						break
+					}
+				}
+			}
+		}
+		if !isAdmin {
+			r.Say("Sorry, only a group administrator can do that")
+			return
+		}
+		lock, _, ret = r.CheckoutDatum(group, &memspec, true)
 		defer func() {
 			if !updated {
 				// Well-behaved plugins will always do a Checkin when the datum hasn't been updated,
 				// in case there's another thread waiting.
-				r.CheckinDatum(datumKey, lock)
+				r.CheckinDatum(group, lock)
 			}
 		}()
 	}
 	if ret != bot.Ok {
-		r.Log(bot.Error, fmt.Sprintf("Couldn't load groups: %s", ret))
-		r.Reply("I had a problem loading the groups, somebody should check my log file")
-		r.CheckinDatum(datumKey, lock) // well-behaved plugins using the brain will always check in data when done
+		r.Log(bot.Error, fmt.Sprintf("Couldn't load groupspec: %s", ret))
+		r.Reply("I had a problem loading the group, somebody should check my log file")
+		r.CheckinDatum(group, lock) // well-behaved plugins using the brain will always check in data when done
 		return
 	}
+
+	// Now actually DO something
 	switch command {
 	case "remove":
-		item := args[0]
-		groupName := strings.ToLower((args[1]))
-		group, ok := groups[groupName]
-		if !ok {
-			r.Say(fmt.Sprintf("I don't have a group named %s", args[1]))
+		user := args[0]
+		if len(memspec.Users) == 0 {
+			r.Say(fmt.Sprintf("There are no dynamic users in the \"%s\" group", group))
 			return
 		}
-		citem := strings.ToLower(item)
 		found := false
-		for i, li := range group {
-			if citem == strings.ToLower(li) {
-				group[i] = group[len(group)-1]
-				group = group[:len(group)-1]
-				groups[groupName] = group
-				r.Say(fmt.Sprintf("Ok, I removed %s from the %s group", item, groupName))
+		for i, li := range memspec.Users {
+			if user == li {
+				memspec.Users[i] = memspec.Users[len(memspec.Users)-1]
+				memspec.Users = memspec.Users[:len(memspec.Users)-1]
 				found = true
-				mret := r.UpdateDatum(datumKey, lock, groups)
+				mret := r.UpdateDatum(group, lock, &memspec)
 				if mret != bot.Ok {
 					r.Log(bot.Error, fmt.Sprintf("Couldn't update groups: %s", mret))
 					r.Reply("Crud. I had a problem saving my groups - somebody better check the log")
 				} else {
+					r.Say(fmt.Sprintf("Ok, I removed %s from the %s group", user, group))
 					updated = true
 				}
 				break
 			}
 		}
 		if !found {
-			r.Say(fmt.Sprintf("I didn't see %s on the %s group", item, groupName))
+			r.Say(fmt.Sprintf("%s isn't a dynamic member of the %s group (but may be a configured user)", user, group))
 			return
 		}
-	case "empty", "delete":
-		groupName := strings.ToLower(args[0])
-		_, ok := groups[groupName]
-		if !ok {
-			r.Say(fmt.Sprintf("I don't have a group named %s", args[0]))
-			return
-		}
-		if command == "empty" {
-			groups[groupName] = []string{}
-			r.Say("Emptied")
-		} else {
-			delete(groups, groupName)
-			r.Say("Deleted")
-		}
-		mret := r.UpdateDatum(datumKey, lock, groups)
+	case "empty":
+		memspec.Users = []string{}
+		mret := r.UpdateDatum(group, lock, &memspec)
 		if mret != bot.Ok {
 			r.Log(bot.Error, fmt.Sprintf("Couldn't update groups: %s", mret))
-			r.Reply("Crud. I had a problem saving my groups - somebody better check the log")
+			r.Reply("Crud. I had a problem saving the group - somebody better check the log")
 		} else {
+			r.Say("Emptied")
 			updated = true
 		}
-	case "group":
-		groupgroup := make([]string, 0, 10)
-		for l := range groups {
-			groupgroup = append(groupgroup, l)
-		}
-		if len(groupgroup) == 0 {
-			if scope.Scope == "channel" {
-				r.Say("I don't have any groups for this channel")
-			} else {
-				r.Say("I don't have any groups")
-			}
-			return
-		}
-		if scope.Scope == "channel" {
-			r.Say(fmt.Sprintf("Here are the groups I have for this channel:\n%s", strings.Join(groupgroup, "\n")))
-		} else {
-			r.Say(fmt.Sprintf("Here are the groups I know about:\n%s", strings.Join(groupgroup, "\n")))
-		}
-	case "show", "send":
-		groupName := strings.ToLower(args[0])
-		var groupBuffer bytes.Buffer
-		group, ok := groups[groupName]
-		if !ok {
-			r.Say(fmt.Sprintf("I don't have a group named %s", args[0]))
-			return
-		}
-		if len(group) == 0 {
-			r.Say(fmt.Sprintf("The %s group is empty", args[0]))
-			return
-		}
-		lineEnd := "\n"
-		if command == "send" {
-			lineEnd = "\r\n"
-		}
-		for _, li := range group {
-			fmt.Fprintf(&groupBuffer, "%s%s", li, lineEnd)
-		}
-		switch command {
-		case "show":
-			r.Say(fmt.Sprintf("Here's what I have on the %s group:\n%s", groupName, strings.Trim(groupBuffer.String(), "\n")))
-		case "send":
-			if ret := r.Email(fmt.Sprintf("The %s group", args[0]), &groupBuffer); ret != bot.Ok {
-				r.Say("Sorry, there was an error sending the email - have somebody check the my log file")
-				return
-			}
-			botmail := r.GetBotAttribute("email").String()
-			r.Say(fmt.Sprintf("Ok, I sent the %s group to you - look for email from %s", args[0], botmail))
-		}
-	case "pick":
-		groupName := strings.ToLower(args[0])
-		group, ok := groups[groupName]
-		if !ok {
-			r.Say(fmt.Sprintf("I don't have a group named %s", groupName))
-			return
-		}
-		if len(group) == 0 {
-			r.Say(fmt.Sprintf("The %s group is empty", groupName))
-			return
-		}
-		item := r.RandomString(group)
-		r.RememberContext("item", item)
-		r.Say(fmt.Sprintf("Here you go: %s", item))
-	case "add":
-		// Case sensitive input, case insensitve equality checking
-		item := args[0]
-		groupName := strings.ToLower(args[1])
-		group, ok := groups[groupName]
-		if !ok {
-			r.CheckinDatum(datumKey, lock)
-			rep, ret := r.PromptForReply("YesNo", fmt.Sprintf("I don't have a \"%s\" group, do you want to create it?", args[1]))
-			if ret == bot.Ok {
-				switch strings.ToLower(rep) {
-				case "n", "no":
-					r.Say("Item not added")
-					return
-				default:
-					lock, _, ret = r.CheckoutDatum(datumKey, &groups, true)
-					// Need to make sure the group wasn't created while waiting for an answer
-					group, ok := groups[groupName]
-					if !ok {
-						groups[groupName] = []string{item}
-						mret := r.UpdateDatum(datumKey, lock, groups)
-						if mret != bot.Ok {
-							r.Log(bot.Error, fmt.Sprintf("Couldn't update groups: %s", mret))
-							r.Reply("Crud. I had a problem saving my groups - somebody better check the log")
-						} else {
-							r.Say(fmt.Sprintf("Ok, I created a new %s group and added %s to it", args[1], item))
-							updated = true
-						}
-					} else { // wow, it WAS created while waiting
-						citem := strings.ToLower(item)
-						for _, li := range group {
-							if citem == strings.ToLower(li) {
-								r.Say(fmt.Sprintf("Somebody already created the %s group and added %s to it", args[1], item))
-								return
-							}
-						}
-						group = append(group, item)
-						groups[groupName] = group
-						mret := r.UpdateDatum(datumKey, lock, groups)
-						if mret != bot.Ok {
-							r.Log(bot.Error, fmt.Sprintf("Couldn't update groups: %s", mret))
-							r.Reply("Crud. I had a problem saving my groups - somebody better check the log")
-						} else {
-							updated = true
-						}
-						r.Say(fmt.Sprintf("Ok, I added %s to the new %s group", item, args[1]))
+	case "list":
+		groups := make([]string, 0, 10)
+		for name, cfgspec := range groupCfg.Groups {
+			add := botAdmin
+			if !add {
+				for _, adminUser := range cfgspec.Administrators {
+					if r.User == adminUser {
+						add = true
+						break
 					}
 				}
-			} else {
-				r.Reply("Sorry, I didn't get an answer I understand")
-				return
 			}
-		} else {
-			citem := strings.ToLower(item)
-			for _, li := range group {
-				if citem == strings.ToLower(li) {
-					r.Say(fmt.Sprintf("%s is already on the %s group", item, args[1]))
-					return
-				}
+			if add {
+				groups = append(groups, name)
 			}
-			group = append(group, item)
-			groups[groupName] = group
-			mret := r.UpdateDatum(datumKey, lock, groups)
+		}
+		if len(groups) == 0 {
+			r.Say("You're not the administrator of any groups")
+			return
+		}
+		r.Say(fmt.Sprintf("Here are the groups you're an administrator for:\n%s", strings.Join(groups, "\n")))
+	case "show":
+		members := make([]string, 0, 10)
+		for _, user := range cfgspec.Administrators {
+			members, _ = addnew(members, user)
+		}
+		for _, user := range cfgspec.Users {
+			members, _ = addnew(members, user)
+		}
+		for _, user := range memspec.Users {
+			members, _ = addnew(members, user)
+		}
+		if len(members) == 0 {
+			r.Say(fmt.Sprintf("The %s group has no members", group))
+			return
+		}
+		r.Say(fmt.Sprintf("The %s group has the following members:\n%s", group, strings.Join(members, "\n")))
+	case "authorize":
+		isMember := false
+		for _, member := range cfgspec.Administrators {
+			if r.User == member {
+				isMember = true
+			}
+		}
+		for _, member := range cfgspec.Users {
+			if r.User == member {
+				isMember = true
+			}
+		}
+		for _, member := range memspec.Users {
+			if r.User == member {
+				isMember = true
+			}
+		}
+		if isMember {
+			return bot.Success
+		}
+		return bot.Fail
+	case "add":
+		// Case sensitive input, case insensitve equality checking
+		user := args[0]
+		var added bool
+		memspec.Users, added = addnew(memspec.Users, user)
+		if added {
+			mret := r.UpdateDatum(group, lock, &memspec)
 			if mret != bot.Ok {
 				r.Log(bot.Error, fmt.Sprintf("Couldn't update groups: %s", mret))
 				r.Reply("Crud. I had a problem saving my groups - somebody better check the log")
 			} else {
 				updated = true
 			}
-			r.Say(fmt.Sprintf("Ok, I added %s to the %s group", item, args[1]))
+			r.Say(fmt.Sprintf("Ok, I added %s to the %s group", user, group))
+		} else {
+			r.Say(fmt.Sprintf("User %s is already in the %s group", user, group))
 		}
 	}
 	return
