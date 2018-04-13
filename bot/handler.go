@@ -49,6 +49,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 	for _, user := range robot.ignoreUsers {
 		if strings.EqualFold(userName, user) {
 			Log(Debug, "Ignoring user", userName)
+			debug(userName, "", "robot is configured to ignore this user", true)
 			emit(IgnoredUser)
 			robot.RUnlock()
 			return
@@ -85,6 +86,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 		logChannel = "(direct message)"
 	}
 	Log(Trace, fmt.Sprintf("Command \"%s\" in channel \"%s\"", message, logChannel))
+	debug(userName, "", fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)
 	handleMessage(isCommand, channelName, userName, message)
 }
 

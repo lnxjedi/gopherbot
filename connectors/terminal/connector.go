@@ -80,7 +80,7 @@ loop:
 					tc.Lock()
 					if newchan == "" {
 						tc.currentChannel = ""
-						tc.reader.Write([]byte("Changed current channel to: direct message"))
+						tc.reader.Write([]byte("Changed current channel to: direct message\n"))
 						tc.reader.SetPrompt(fmt.Sprintf("c:(direct)/u:%s -> ", tc.currentUser))
 					} else {
 						for _, ch := range tc.channels {

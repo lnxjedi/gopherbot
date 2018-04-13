@@ -11,7 +11,14 @@ const keepListeningDuration = 77 * time.Second
 // pluginAvailable checks the user and channel against the plugin's
 // configuration to determine if the message should be evaluated. Used by
 // both handleMessage and the help builtin.
-func pluginAvailable(user, channel string, plugin *Plugin, ignoreChannelRestrictions bool) bool {
+func pluginAvailable(user, channel string, plugin *Plugin, ignoreChannelRestrictions bool) (available bool) {
+	defer func() {
+		if available {
+			debug(user, plugin.pluginID, "plugin is visible", false)
+		} else {
+			debug(user, plugin.pluginID, "plugin is NOT visible", false)
+		}
+	}()
 	directMsg := false
 	if len(channel) == 0 {
 		directMsg = true

@@ -285,6 +285,30 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		log.Printf("%s", buf)
 		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
+	case "debug":
+		plugNameIDmap.Lock()
+		p, found := plugNameIDmap.m[args[0]]
+		plugNameIDmap.Unlock()
+		if !found {
+			bot.Say("I don't have any plugins with that name configured")
+			return
+		}
+		verbose := false
+		if len(args) == 2 && args[1] == "verbose" {
+			verbose = true
+		}
+		bot.Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", args[0], p, verbose))
+		plugDebug.Lock()
+		plugDebug.p[bot.User] = p
+		plugDebug.v[bot.User] = verbose
+		plugDebug.Unlock()
+		bot.Say(fmt.Sprintf("Debugging enabled for %s", args[0]))
+	case "stop":
+		plugDebug.Lock()
+		delete(plugDebug.p, bot.User)
+		delete(plugDebug.v, bot.User)
+		plugDebug.Unlock()
+		bot.Say("Debugging disabled")
 	case "quit":
 		robot.Lock()
 		if robot.shuttingDown {
