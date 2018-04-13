@@ -4,8 +4,7 @@
 [[projects]]
   name = "github.com/chzyer/readline"
   packages = ["."]
-  revision = "62c6fe6193755f722b8b8788aa7357be55a50ff1"
-  version = "v1.4"
+  revision = "f6d7a1f6fbf35bbf9beb80dc63c56a29dcfb759f"
 
 [[projects]]
   name = "github.com/dgryski/dgoogauth"
@@ -46,6 +45,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = [
+    "unix",
     "windows",
     "windows/registry",
     "windows/svc",
@@ -62,6 +62,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "43d79d1422039b5b7055da1ef8beb5174c9c57e9f0218247a31d64a696b9d002"
+  inputs-digest = "5fcc685a6e528590b7656333cfa8d41d8c0764fcba7d67b1bd41d04c67819143"
   solver-name = "gps-cdcl"
   solver-version = 1
