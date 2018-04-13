@@ -3,8 +3,11 @@ package terminal
 import (
 	"fmt"
 	"log"
+	"os"
+	"path"
 	"sync"
 
+	"github.com/chzyer/readline"
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
@@ -70,6 +73,26 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		robot.Log(bot.Fatal, fmt.Sprintf("Start channel \"%s\" not listed in Channels array", c.StartChannel))
 	}
 
+	var histfile string
+	home := os.Getenv("HOME")
+	if len(home) == 0 {
+		home = os.Getenv("USERPROFILE")
+	}
+	if len(home) > 0 {
+		histfile = path.Join(home, ".gopherbot_history")
+	}
+
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:            fmt.Sprintf("c:%s/u:%s -> ", c.StartChannel, c.StartUser),
+		HistoryFile:       histfile,
+		HistorySearchFold: true,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	l.SetOutput(rl.Stdout())
+
 	tc := &termConnector{
 		currentChannel: c.StartChannel,
 		currentUser:    c.StartUser,
@@ -80,7 +103,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		botID:          "deadbeef", // yes - hex in a string
 		users:          c.Users,
 		heard:          make(chan string),
-		speaking:       make(chan struct{}),
+		reader:         rl,
 	}
 
 	tc.Handler = robot

@@ -44,7 +44,9 @@ LocalPort: 8888
 
 # Initial log level, one of trace, debug, info, warn, error. See 'help log'
 # for help on changing the log level and viewing contents of the log.
-LogLevel: debug
+# If you make logging any more verbose, you'll probably want to log to a file
+# using '-l <file>'.
+LogLevel: warn
 
 # List of external plugins to configure; generally scripts using a gopherbot
 # script library. The robot will look for plugins in the installation directory

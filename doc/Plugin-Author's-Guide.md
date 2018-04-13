@@ -117,11 +117,15 @@ Additionally, the elevation plugin may provide extra feedback to the user when e
 # Using the Terminal Connector
 Interacting with your bot in a chat app might not always be convenient or fast; to simplify
 testing and plugin development, **Gopherbot** includes a terminal connector, with a sample
-configuration in the `cfg/term/` directory. You'll want to copy the directory and modify
+configuration in the `cfg/term/` directory. You'll probably want to copy the directory and modify
 it for your own use (mainly configuring the plugins you're developing), but it can be used
 by using the `-c <configdir>` option:
 ```
-[gopherbot]$ ./gopherbot -l /tmp/bot.log -c cfg/term/
+[gopherbot]$ ./gopherbot -c cfg/term/
+2018/04/13 18:07:52 Initialized logging ...
+2018/04/13 18:07:52 Starting up with local config dir: cfg/term/, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
+2018/04/13 18:07:52 Debug: Loaded installed conf/gopherbot.yaml
+2018/04/13 18:07:52 Debug: Loaded configured conf/gopherbot.yaml
 Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
 c:general/u:alice -> |ubob
 Changed current user to: bob
