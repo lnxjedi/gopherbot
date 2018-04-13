@@ -17,11 +17,11 @@ type TestMessage struct {
 
 // TestConnector holds all the relevant data about a connection
 type TestConnector struct {
-	channels     []string          // the channels the robot is in
 	botName      string            // human-readable name of bot
 	botFullName  string            // human-readble full name of the bot
 	botID        string            // slack internal bot ID
 	users        []testUser        // configured users
+	channels     []string          // the channels the robot is in
 	listener     chan *TestMessage // input channel for test functions to send messages from a user
 	speaking     chan *TestMessage // output channel for test functions to get messages from the bot
 	test         *testing.T        // for the connector to log

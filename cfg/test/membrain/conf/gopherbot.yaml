@@ -28,7 +28,7 @@ DefaultChannels: [ "general", "random" ]
 
 # Note: Bot users in Slack can't join channels; this is put here for use with
 # future connectors supporting it.
-JoinChannels: [ "random", "general", "bottest" ]
+JoinChannels: [ ]
 
 # List of users that can issue admin commands like reload, quit. Should be
 # a list of user handles / nicks.
@@ -66,6 +66,10 @@ Protocol: test
 ProtocolConfig:
   BotName: bender
   BotFullName: Bender Rodriguez
+  Channels:
+  - random
+  - general
+  - bottest
   Users:
   - Name: "alice"
     Email: "alice@example.com"
