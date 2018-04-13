@@ -20,4 +20,4 @@ For testing:
   "reboot the server", "reboot it" would all check the "server" short-term
   memory to get e.g. "webtest1.example.com"
 - Add more sample transcripts to documentation using the terminal connector
-- Why is visibility checked twice for ping? (debug plugin ping)
+- Why is visibility checked twice for ping? (debug plugin ping, help ping)
