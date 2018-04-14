@@ -14,6 +14,9 @@ func Log(l LogLevel, v ...interface{}) {
 	logLock.Lock()
 	currlevel := logLevel
 	logLock.Unlock()
+	robot.RLock()
+	logger := robot.logger
+	robot.RUnlock()
 
 	if l >= currlevel || l == Audit {
 		prefix := logLevelToStr(l) + ":"
@@ -27,9 +30,9 @@ func Log(l LogLevel, v ...interface{}) {
 		}
 
 		if l == Fatal {
-			robot.logger.Fatal(msg)
+			logger.Fatal(msg)
 		} else {
-			robot.logger.Print(msg)
+			logger.Print(msg)
 			tsMsg := fmt.Sprintf("%s %s", time.Now().Format("Jan 2 15:04:05"), msg)
 			logLock.Lock()
 			logBuffer[logLine] = tsMsg

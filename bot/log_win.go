@@ -18,6 +18,9 @@ func Log(l LogLevel, v ...interface{}) {
 	logLock.Lock()
 	currlevel := logLevel
 	logLock.Unlock()
+	robot.RLock()
+	logger := robot.logger
+	robot.RUnlock()
 
 	if l >= currlevel || l == Audit {
 		prefix := logLevelToStr(l) + ":"
@@ -34,9 +37,9 @@ func Log(l LogLevel, v ...interface{}) {
 			if eventLog != nil {
 				eventLog.Error(1, "Fatal error: "+msg)
 			}
-			robot.logger.Fatal(msg)
+			logger.Fatal(msg)
 		} else {
-			robot.logger.Print(msg)
+			logger.Print(msg)
 			if eventLog != nil {
 				switch l {
 				case Info, Audit:

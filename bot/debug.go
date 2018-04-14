@@ -34,7 +34,10 @@ func (r *Robot) debug(pluginID, msg string, everyMsg bool) {
 	plugDebug.RLock()
 	up, ok := plugDebug.p[r.User]
 	plugDebug.RUnlock()
-	if (ok && pluginID == up.pluginID) || (everyMsg && up.verbose) {
+	if !ok {
+		return
+	}
+	if (pluginID == up.pluginID) || (everyMsg && up.verbose) {
 		ts := time.Now().Format("2006/01/02 03:04:05")
 		r.SendUserMessage(r.User, fmt.Sprintf("%s DEBUG %s: %s", ts, up.name, msg))
 	}
