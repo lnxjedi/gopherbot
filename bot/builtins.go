@@ -271,7 +271,7 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	}
 	switch command {
 	case "reload":
-		err := loadConfig()
+		err := bot.loadConfig()
 		if err != nil {
 			bot.Reply("Error encountered during reload, check the logs")
 			Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))
@@ -298,15 +298,24 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			verbose = true
 		}
 		bot.Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", args[0], p, verbose))
+		pd := &debuggingPlug{
+			pluginID: p,
+			name:     args[0],
+			verbose:  verbose,
+		}
 		plugDebug.Lock()
-		plugDebug.p[bot.User] = p
-		plugDebug.v[bot.User] = verbose
+		plugDebug.p[bot.User] = pd
 		plugDebug.Unlock()
+		err := bot.loadConfig()
+		if err != nil {
+			bot.Reply("Error during reload, check the logs")
+			Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))
+			return
+		}
 		bot.Say(fmt.Sprintf("Debugging enabled for %s", args[0]))
 	case "stop":
 		plugDebug.Lock()
 		delete(plugDebug.p, bot.User)
-		delete(plugDebug.v, bot.User)
 		plugDebug.Unlock()
 		bot.Say("Debugging disabled")
 	case "quit":

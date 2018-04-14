@@ -48,7 +48,7 @@ var config *botconf
 // if set.
 
 // Required indicates whether to return an error if neither file is found.
-func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMessage) error {
+func (r *Robot) getConfigFile(filename, pluginID string, required bool, jsonMap map[string]json.RawMessage) error {
 	var (
 		cf  []byte
 		err error
@@ -108,13 +108,13 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 }
 
 // loadConfig loads the 'bot's json configuration files.
-func loadConfig() error {
+func (r *Robot) loadConfig() error {
 	var loglevel LogLevel
 	newconfig := &botconf{}
 	configload := make(map[string]json.RawMessage)
 	pluginsOk := true
 
-	if err := getConfigFile("gopherbot.yaml", true, configload); err != nil {
+	if err := r.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
 	}
 
@@ -287,7 +287,7 @@ func loadConfig() error {
 
 	updateRegexes()
 	if pluginsOk {
-		loadPluginConfig()
+		r.loadPluginConfig()
 	} else {
 		return fmt.Errorf("Error reading external plugin config")
 	}
