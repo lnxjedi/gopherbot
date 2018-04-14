@@ -29,6 +29,11 @@ import (
 	_ "github.com/lnxjedi/gopherbot/goplugins/links"
 	_ "github.com/lnxjedi/gopherbot/goplugins/lists"
 	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
+
+	// Enable profiling. You can shrink the binary by removing this, but if the
+	// robot ever stops responding for any reason, it's handy for getting a
+	// dump of all goroutines.
+	_ "net/http/pprof"
 )
 
 type testItem struct {
@@ -158,7 +163,7 @@ func TestBotName(t *testing.T) {
 		{alice, general, "ping;", []testc.TestMessage{}, []Event{}, 0},
 		{bob, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
 		// When you forget to address the robot, you can say it's name
-		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 0},
+		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 200},
 		{alice, general, "bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)

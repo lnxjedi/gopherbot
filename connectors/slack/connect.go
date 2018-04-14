@@ -55,7 +55,12 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 	slack.SetLogger(l)
 
-	sc := &slackConnector{api: api, conn: api.NewRTM(), maxMessageSplit: c.MaxMessageSplit}
+	sc := &slackConnector{
+		api:             api,
+		conn:            api.NewRTM(),
+		maxMessageSplit: c.MaxMessageSplit,
+		name:            "slack",
+	}
 	go sc.conn.ManageConnection()
 
 	sc.Handler = robot

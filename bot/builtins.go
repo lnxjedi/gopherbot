@@ -90,7 +90,7 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		plugins := currentPlugins.p
 		currentPlugins.RUnlock()
 		for _, plugin := range plugins {
-			if !pluginAvailable(bot.User, bot.Channel, plugin, true) {
+			if !bot.pluginAvailable(plugin, true) {
 				continue
 			}
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))

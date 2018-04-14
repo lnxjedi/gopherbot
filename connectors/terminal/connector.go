@@ -124,7 +124,7 @@ loop:
 				}
 			} else {
 				tc.RLock()
-				tc.IncomingMessage(tc.currentChannel, tc.currentUser, input)
+				tc.IncomingMessage(tc.currentChannel, tc.currentUser, input, "terminal", bot.Terminal, struct{}{})
 				tc.RUnlock()
 			}
 		}

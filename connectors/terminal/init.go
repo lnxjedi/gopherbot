@@ -25,6 +25,7 @@ type config struct {
 	StartUser    string // the initial userid
 	BotName      string // the short name used for addressing the robot
 	BotFullName  string // the full name of the bot
+	LogFile      bool   // true if logging to a file; won't call SetOutput
 	Users        []termUser
 	Channels     []string
 }
@@ -91,7 +92,9 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		panic(err)
 	}
 
-	l.SetOutput(rl.Stdout())
+	if !c.LogFile {
+		l.SetOutput(rl.Stdout())
+	}
 
 	tc := &termConnector{
 		currentChannel: c.StartChannel,

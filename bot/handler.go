@@ -38,7 +38,7 @@ func (h handler) GetConfigPath() string {
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
-func (h handler) IncomingMessage(channelName, userName, messageFull string) {
+func (h handler) IncomingMessage(channelName, userName, messageFull, connector string, proto Protocol, raw interface{}) {
 	Log(Trace, fmt.Sprintf("Incoming message \"%s\" in channel \"%s\"", messageFull, channelName))
 	// When command == true, the message was directed at the bot
 	isCommand := false
@@ -49,7 +49,8 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 	for _, user := range robot.ignoreUsers {
 		if strings.EqualFold(userName, user) {
 			Log(Debug, "Ignoring user", userName)
-			debug(userName, "", "robot is configured to ignore this user", true)
+			bot := &Robot{User: userName}
+			bot.debug("", "robot is configured to ignore this user", true)
 			emit(IgnoredUser)
 			robot.RUnlock()
 			return
@@ -81,13 +82,27 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 	if !isCommand {
 		message = messageFull
 	}
+
 	if len(channelName) == 0 { // true for direct messages
 		isCommand = true
 		logChannel = "(direct message)"
 	}
+
+	// Create the Robot and a goroutine to process the message, which may
+	// eventually run a plugin.
+	bot := &Robot{
+		User:      userName,
+		Channel:   channelName,
+		Connector: connector,
+		Protocol:  proto,
+		RawMsg:    raw,
+		Format:    Variable,
+		isCommand: isCommand,
+		msg:       message,
+	}
 	Log(Trace, fmt.Sprintf("Command \"%s\" in channel \"%s\"", message, logChannel))
-	debug(userName, "", fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)
-	handleMessage(isCommand, channelName, userName, message)
+	bot.debug("", fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)
+	go bot.handleMessage()
 }
 
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct

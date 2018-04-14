@@ -26,6 +26,7 @@ type slackConnector struct {
 	botName         string                // human-readable name of bot
 	botFullName     string                // human-readble full name of the bot
 	botID           string                // slack internal bot ID
+	name            string                // name for this connector
 	bot.Handler                           // bot API for connectors
 	sync.RWMutex                          // shared mutex for locking connector data structures
 	channelToID     map[string]string     // map from channel names to channel IDs
@@ -240,6 +241,9 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 			text = strings.Replace(text, mention, "@"+replace, -1)
 		}
 	}
+	s.RLock()
+	connector := s.name
+	s.RUnlock()
 	switch chanID[:1] {
 	case "D":
 		directUserName, ok := s.imUser(chanID)
@@ -249,18 +253,18 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		}
 		if !ok {
 			s.Log(bot.Warn, "Couldn't find user name for IM", chanID)
-			s.IncomingMessage("", chanID, text)
+			s.IncomingMessage("", chanID, text, connector, bot.Slack, msg)
 			return
 		}
-		s.IncomingMessage("", directUserName, text)
+		s.IncomingMessage("", directUserName, text, connector, bot.Slack, msg)
 	case "C", "G":
 		channelName, ok := s.channelName(chanID)
 		if !ok {
 			s.Log(bot.Warn, "Coudln't find channel name for ID", chanID)
-			s.IncomingMessage(chanID, userName, text)
+			s.IncomingMessage(chanID, userName, text, connector, bot.Slack, msg)
 			return
 		}
-		s.IncomingMessage(channelName, userName, text)
+		s.IncomingMessage(channelName, userName, text, connector, bot.Slack, msg)
 	}
 }
 

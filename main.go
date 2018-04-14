@@ -41,9 +41,17 @@ import (
 	_ "github.com/lnxjedi/gopherbot/goplugins/meme"
 	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
 
-	// Enable profiling. You can shrink the binary by removing this, but if the
-	// robot ever stops responding for any reason, it's handy for getting a
-	// dump of all goroutines.
+	/* Enable profiling. You can shrink the binary by removing this, but if the
+	   robot ever stops responding for any reason, it's handy for getting a
+	   dump of all goroutines. Example usage:
+
+	   $ go tool pprof http://localhost:8888/debug/pprof/goroutine
+	   ...
+	   Entering interactive mode (type "help" for commands, "o" for options)
+	   (pprof) list lnxjedi
+	   Total: 11
+	   ROUTINE ======================== github.com/lnxjedi/gopherbot/bot...
+	*/
 	_ "net/http/pprof"
 )
 

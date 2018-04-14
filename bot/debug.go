@@ -21,12 +21,11 @@ var plugDebug = struct {
 	sync.RWMutex{},
 }
 
-func debug(user, pluginID, msg string, everyMsg bool) {
+func (r *Robot) debug(pluginID, msg string, everyMsg bool) {
 	plugDebug.RLock()
-	up, ok := plugDebug.p[user]
-	verbose, _ := plugDebug.v[user]
+	up, ok := plugDebug.p[r.User]
+	verbose, _ := plugDebug.v[r.User]
 	plugDebug.RUnlock()
-	r := &Robot{user, "", Variable, pluginID}
 	if (ok && pluginID == up) || (everyMsg && verbose) {
 		ts := time.Now().Format("2006/01/02 03:04:05")
 		r.SendUserMessage(r.User, fmt.Sprintf("%s DEBUG: %s", ts, msg))
