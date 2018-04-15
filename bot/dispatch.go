@@ -14,7 +14,7 @@ const keepListeningDuration = 77 * time.Second
 func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem bool) (available bool) {
 	defer func() {
 		if !available {
-			r.debug(plugin.pluginID, "plugin is NOT visible", false)
+			r.debug(plugin.pluginID, "plugin is NOT visible; try 'help dump' to view plugin settings", false)
 		}
 	}()
 	directMsg := false
