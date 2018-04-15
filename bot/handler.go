@@ -17,6 +17,12 @@ func (h handler) GetLogLevel() LogLevel {
 	return getLogLevel()
 }
 
+// GetLogToFile indicates to the terminal connector whether logging output is
+// to a file, to prevent readline from redirecting log output.
+func (h handler) GetLogToFile() bool {
+	return logToFile
+}
+
 // GetInstallPath gets the path to the bot's install dir -
 // the location of default configuration and stock external plugins.
 func (h handler) GetInstallPath() string {

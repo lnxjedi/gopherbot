@@ -36,6 +36,9 @@ type Handler interface {
 	// to make it's own decision about how much it should log. For slack, this
 	// determines whether the plugin does api logging.
 	GetLogLevel() LogLevel
+	// GetLogToFile is for the terminal connector to determine if logging is
+	// going to a file, to prevent readline from redirecting log output.
+	GetLogToFile() bool
 	// GetInstallPath returns the installation path of the gopherbot
 	GetInstallPath() string
 	// GetConfigPath returns the path to the local config of the gopherbot

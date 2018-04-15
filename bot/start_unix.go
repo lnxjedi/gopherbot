@@ -91,6 +91,7 @@ func Start() {
 		if err != nil {
 			log.Fatalf("Error creating log file: (%T %v)", err, err)
 		}
+		logToFile = true // defined in logging.go
 		logOut = lf
 	}
 	log.SetOutput(logOut)
