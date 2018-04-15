@@ -46,7 +46,7 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 		}
 	}(tc)
 
-	fmt.Println("Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user")
+	tc.reader.Write([]byte("Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user\n"))
 
 loop:
 	// Main loop and prompting
@@ -94,7 +94,7 @@ loop:
 							tc.currentChannel = newchan
 							tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentUser, tc.currentChannel))
 						} else {
-							fmt.Println("Invalid channel.")
+							tc.reader.Write([]byte("Invalid channel."))
 						}
 					}
 					tc.Unlock()
@@ -103,7 +103,7 @@ loop:
 					newuser := input[2:]
 					tc.Lock()
 					if newuser == "" {
-						fmt.Println("Invalid 0-length user")
+						tc.reader.Write([]byte("Invalid 0-length user"))
 					} else {
 						for _, u := range tc.users {
 							if u.Name == newuser {
@@ -115,7 +115,7 @@ loop:
 							tc.reader.Write([]byte(fmt.Sprintf("Changed current user to: %s\n", newuser)))
 							tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentUser, tc.currentChannel))
 						} else {
-							fmt.Println("Invalid user.")
+							tc.reader.Write([]byte("Invalid user."))
 						}
 					}
 					tc.Unlock()
