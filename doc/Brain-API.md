@@ -114,8 +114,6 @@ Short term memories are simple key -> string values stored for each user / chann
 after a time. The best example of this uses the built-in `links` and `lists` plugins, shown in this example
 using the `terminal` plugin:
 ```
-[gopherbot]$ ./gopherbot -l /tmp/bot.log -c cfg/term/
-Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
 c:general/u:alice -> link tuna casserole to https://www.allrecipes.com/recipe/17219/best-tuna-casserole/, floyd
 general: Link added
 c:general/u:alice -> add it to the dinner meals list
@@ -196,8 +194,6 @@ Here you can see the robot's short term memories of Ferris Bueller in action (us
 the `bashdemo.sh` plugin):
 
 ```
-[gopherbot]$ ./gopherbot -l /tmp/bot.log -c cfg/term/
-Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
 c:general/u:bob -> floyd, what is Ferris Bueller
 general: @bob Gosh, I have no idea - I'm so forgetful!
 c:general/u:bob -> floyd, store Ferris Bueller is a Righteous Dude

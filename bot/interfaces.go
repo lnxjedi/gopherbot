@@ -12,8 +12,11 @@ type Logger interface {
 type Handler interface {
 	// IncomingMessage is called by the connector for all messages the bot
 	// can hear. The channelName and userName should be human-readable,
-	// not internal representations. If channelName is blank, it's a direct message
-	IncomingMessage(channelName, userName, message string)
+	// not internal representations. If channelName is blank, it's a direct message.
+	// 'connector' is the string name for this connector, and proto is the bot.Protocol
+	// identifier. 'raw' is the raw incoming struct from the connector; using
+	// the value from Protocol, a plugin can interpret the contents of 'raw'.
+	IncomingMessage(channelName, userName, message, connector string, proto Protocol, raw interface{})
 	// GetProtocolConfig unmarshals the ProtocolConfig section of gopherbot.json
 	// into a connector-provided struct
 	GetProtocolConfig(interface{}) error
@@ -33,6 +36,9 @@ type Handler interface {
 	// to make it's own decision about how much it should log. For slack, this
 	// determines whether the plugin does api logging.
 	GetLogLevel() LogLevel
+	// GetLogToFile is for the terminal connector to determine if logging is
+	// going to a file, to prevent readline from redirecting log output.
+	GetLogToFile() bool
 	// GetInstallPath returns the installation path of the gopherbot
 	GetInstallPath() string
 	// GetConfigPath returns the path to the local config of the gopherbot

@@ -25,6 +25,12 @@
 [[constraint]]
   name = "github.com/nlopes/slack"
   revision = "921a31ba7374bbc3623a5327e1f965628d1d6108"
+  
+# NOTE: The current release is pretty old, and doesn't
+# include some important bugfixes
+[[constraint]]
+  name = "github.com/chzyer/readline"
+  revision = "f6d7a1f6fbf35bbf9beb80dc63c56a29dcfb759f"
 
 [[constraint]]
   branch = "master"

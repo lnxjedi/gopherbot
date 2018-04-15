@@ -11,15 +11,20 @@ const keepListeningDuration = 77 * time.Second
 // pluginAvailable checks the user and channel against the plugin's
 // configuration to determine if the message should be evaluated. Used by
 // both handleMessage and the help builtin.
-func pluginAvailable(user, channel string, plugin *Plugin, ignoreChannelRestrictions bool) bool {
+func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem bool) (available bool) {
+	defer func() {
+		if !available {
+			r.debug(plugin.pluginID, "plugin is NOT visible; try 'help dump' to view plugin settings", false)
+		}
+	}()
 	directMsg := false
-	if len(channel) == 0 {
+	if len(r.Channel) == 0 {
 		directMsg = true
 	}
-	if !directMsg && plugin.DirectOnly && !ignoreChannelRestrictions {
+	if !directMsg && plugin.DirectOnly && !helpSystem {
 		return false
 	}
-	if directMsg && plugin.DenyDirect && !ignoreChannelRestrictions {
+	if directMsg && plugin.DenyDirect && !helpSystem {
 		return false
 	}
 	if plugin.DirectOnly && plugin.DenyDirect {
@@ -30,7 +35,7 @@ func pluginAvailable(user, channel string, plugin *Plugin, ignoreChannelRestrict
 		isAdmin := false
 		robot.RLock()
 		for _, adminUser := range robot.adminUsers {
-			if user == adminUser {
+			if r.User == adminUser {
 				isAdmin = true
 				break
 			}
@@ -43,7 +48,7 @@ func pluginAvailable(user, channel string, plugin *Plugin, ignoreChannelRestrict
 	if len(plugin.Users) > 0 {
 		userOk := false
 		for _, allowedUser := range plugin.Users {
-			match, err := filepath.Match(allowedUser, user)
+			match, err := filepath.Match(allowedUser, r.User)
 			if match && err == nil {
 				userOk = true
 			}
@@ -57,7 +62,7 @@ func pluginAvailable(user, channel string, plugin *Plugin, ignoreChannelRestrict
 	}
 	if len(plugin.Channels) > 0 {
 		for _, pchannel := range plugin.Channels {
-			if pchannel == channel {
+			if pchannel == r.Channel {
 				return true
 			}
 		}
@@ -66,7 +71,7 @@ func pluginAvailable(user, channel string, plugin *Plugin, ignoreChannelRestrict
 			return true
 		}
 	}
-	if ignoreChannelRestrictions {
+	if helpSystem {
 		return true
 	}
 	return false
@@ -76,7 +81,7 @@ func pluginAvailable(user, channel string, plugin *Plugin, ignoreChannelRestrict
 // the robot), or message matchers (for ambient commands that need not be
 // directed at the robot), and calls the plugin if it matches. Note: this
 // function is called under a read lock on the 'b' struct.
-func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext string) (commandMatched bool) {
+func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched bool) {
 	// un-needed, but more clear
 	commandMatched = false
 	currentPlugins.RLock()
@@ -87,25 +92,34 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 	var cmdArgs []string
 	for _, plugin := range plugins {
 		Log(Trace, fmt.Sprintf("Checking availability of plugin \"%s\" in channel \"%s\" for user \"%s\", active in %d channels (allchannels: %t)", plugin.name, bot.Channel, bot.User, len(plugin.Channels), plugin.AllChannels))
-		ok := pluginAvailable(bot.User, bot.Channel, plugin, false)
+		ok := bot.pluginAvailable(plugin, false)
 		if !ok {
 			Log(Trace, fmt.Sprintf("Plugin \"%s\" not available for user \"%s\" in channel \"%s\", doesn't meet criteria", plugin.name, bot.User, bot.Channel))
 			continue
 		}
 		Log(Trace, fmt.Sprintf("Plugin \"%s\" is active, will check for matches", plugin.name))
 		var matchers []InputMatcher
+		var ctype string
 		if checkCommands {
 			matchers = plugin.CommandMatchers
+			ctype = "command"
 		} else {
 			matchers = plugin.MessageMatchers
+			ctype = "message"
+		}
+		if len(matchers) > 0 {
+			bot.debug(plugin.pluginID, fmt.Sprintf("Checking %d %s matchers against message: \"%s\"", len(matchers), ctype, bot.msg), false)
+		} else {
+			bot.debug(plugin.pluginID, fmt.Sprintf("Plugin has no %s matchers, skipping", ctype), false)
 		}
 		for _, matcher := range matchers {
-			Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", messagetext, matcher.Regex))
-			matches := matcher.re.FindAllStringSubmatch(messagetext, -1)
+			Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", bot.msg, matcher.Regex))
+			matches := matcher.re.FindAllStringSubmatch(bot.msg, -1)
 			var matched bool
 			if matches != nil {
+				bot.debug(plugin.pluginID, fmt.Sprintf("Matched regex '%s', command: %s", matcher.Regex, matcher.Command), false)
 				matched = true
-				Log(Trace, fmt.Sprintf("Message \"%s\" matches command \"%s\"", messagetext, matcher.Command))
+				Log(Trace, fmt.Sprintf("Message \"%s\" matches command \"%s\"", bot.msg, matcher.Command))
 				cmdArgs = matches[0][1:]
 				if len(matcher.Contexts) > 0 {
 					// Resolve & store "it" with short-term memories
@@ -137,10 +151,12 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 					}
 					shortTermMemories.Unlock()
 				}
+			} else {
+				bot.debug(plugin.pluginID, fmt.Sprintf("Not matched: %s", matcher.Regex), false)
 			}
 			if matched {
 				if commandMatched {
-					Log(Error, fmt.Sprintf("Message \"%s\" matched multiple plugins: %s and %s", messagetext, runPlugin.name, plugin.name))
+					Log(Error, fmt.Sprintf("Message \"%s\" matched multiple plugins: %s and %s", bot.msg, runPlugin.name, plugin.name))
 					bot.Say("Yikes! Your command matched multiple plugins, so I'm not doing ANYTHING")
 					emit(MultipleMatchesNoAction)
 					return
@@ -217,50 +233,50 @@ func checkPluginMatchersAndRun(checkCommands bool, bot *Robot, messagetext strin
 			// An "ambient" message matched - not specifically directed at the robot
 			emit(AmbientPluginRan) // for testing, otherwise noop
 		}
-		go callPlugin(bot, plugin, true, true, matcher.Command, cmdArgs...)
+		bot.debug(plugin.pluginID, fmt.Sprintf("Running plugin with command '%s' and arguments: %v", matcher.Command, cmdArgs), false)
+		ret := callPlugin(bot, plugin, true, true, matcher.Command, cmdArgs...)
+		bot.debug(plugin.pluginID, fmt.Sprintf("Plugin finished with return value: %s", ret), false)
 	}
 	return
 }
 
-// handleMessage checks the message against plugin commands and full-message matches,
-// then dispatches it to all applicable handlers in a separate go routine. If the robot
-// was addressed directly but nothing matched, any registered CatchAll plugins are called.
-// There Should Be Only One (catchall, in theory (?))
-func handleMessage(isCommand bool, channel, user, messagetext string) {
-	bot := &Robot{
-		User:    user,
-		Channel: channel,
-		Format:  Variable,
-	}
-	defer checkPanic(bot, messagetext)
+// handleMessage checks the message against plugin commands and full-message
+// matches, then dispatches it to the applicable plugin. If the robot was
+// addressed directly but nothing matched, any registered CatchAll plugins are
+// called. There Should Be Only One (terminal plugin called).
+func (bot *Robot) handleMessage() {
+	defer checkPanic(bot, bot.msg)
+
+	// Get the plugins active for this message; could change while this message
+	// is being handled.
 	currentPlugins.RLock()
 	plugins := currentPlugins.p
 	currentPlugins.RUnlock()
-	if len(channel) == 0 {
+	if len(bot.Channel) == 0 {
 		emit(BotDirectMessage)
-		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", user, messagetext))
+		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", bot.User, bot.msg))
 	}
 	commandMatched := false
 	var catchAllPlugins []*Plugin
 	ts := time.Now()
-	lastMsgContext := memoryContext{"lastMsg", user, channel}
+	lastMsgContext := memoryContext{"lastMsg", bot.User, bot.Channel}
 	var last shortTermMemory
 	var ok bool
 	// See if the robot got a blank message, indicating that the last message
 	// was meant for it (if it was in the keepListeningDuration)
-	if isCommand && messagetext == "" {
+	if bot.isCommand && bot.msg == "" {
 		shortTermMemories.Lock()
 		last, ok = shortTermMemories.m[lastMsgContext]
 		shortTermMemories.Unlock()
 		if ok && ts.Sub(last.timestamp) < keepListeningDuration {
-			messagetext = last.memory
-			commandMatched = checkPluginMatchersAndRun(true, bot, messagetext)
+			bot.msg = last.memory
+			commandMatched = bot.checkPluginMatchersAndRun(true)
 		} else {
 			commandMatched = true
 			bot.Say("Yes?")
 		}
 	}
-	if !commandMatched && isCommand {
+	if !commandMatched && bot.isCommand {
 		catchAllPlugins = make([]*Plugin, 0, len(plugins))
 		for _, plugin := range plugins {
 			if plugin.CatchAll {
@@ -268,13 +284,13 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 			}
 		}
 		// See if a command matches (and runs)
-		commandMatched = checkPluginMatchersAndRun(true, bot, messagetext)
+		commandMatched = bot.checkPluginMatchersAndRun(true)
 	}
 	// See if the robot was waiting on a reply
 	var waiters []replyWaiter
 	waitingForReply := false
 	if !commandMatched {
-		matcher := replyMatcher{user, channel}
+		matcher := replyMatcher{bot.User, bot.Channel}
 		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
 		replies.Lock()
 		waiters, waitingForReply = replies.m[matcher]
@@ -289,9 +305,9 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 			commandMatched = true
 			for i, rep := range waiters {
 				if i == 0 {
-					matched := rep.re.MatchString(messagetext)
-					Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", user, channel, messagetext, rep.re.String(), matched))
-					rep.replyChannel <- reply{matched, replied, messagetext}
+					matched := rep.re.MatchString(bot.msg)
+					Log(Debug, fmt.Sprintf("Found replyWaiter for user \"%s\" in channel \"%s\", checking if message \"%s\" matches \"%s\": %t", bot.User, bot.Channel, bot.msg, rep.re.String(), matched))
+					rep.replyChannel <- reply{matched, replied, bot.msg}
 				} else {
 					Log(Debug, "Sending retry to next reply waiter")
 					rep.replyChannel <- reply{false, retryPrompt, ""}
@@ -303,30 +319,34 @@ func handleMessage(isCommand bool, channel, user, messagetext string) {
 	// and a there wasn't a reply being waited on, then we check ambient
 	// MessageMatchers if it wasn't a direct command. Note that ambient
 	// commands never match in a DM.
-	if !commandMatched && !waitingForReply && !isCommand {
+	if !commandMatched && !waitingForReply && !bot.isCommand {
 		// check for ambient message matches
-		commandMatched = checkPluginMatchersAndRun(false, bot, messagetext)
+		commandMatched = bot.checkPluginMatchersAndRun(false)
 	}
-	if isCommand && !commandMatched { // the robot was spoken too, but nothing matched - call catchAlls
+	if bot.isCommand && !commandMatched { // the robot was spoken too, but nothing matched - call catchAlls
 		robot.RLock()
 		if !robot.shuttingDown {
 			robot.RUnlock()
-			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", messagetext))
+			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", bot.msg))
 			emit(CatchAllsRan) // for testing, otherwise noop
-			for _, plugin := range catchAllPlugins {
-				go callPlugin(bot, plugin, true, true, "catchall", messagetext)
+			if len(catchAllPlugins) > 1 {
+				bot.Log(Error, "More than one catch all registered, none will be called")
+			} else {
+				for _, plugin := range catchAllPlugins {
+					callPlugin(bot, plugin, true, true, "catchall", bot.msg)
+				}
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins
 			robot.RUnlock()
 		}
 	}
-	if commandMatched || isCommand {
+	if commandMatched || bot.isCommand {
 		shortTermMemories.Lock()
 		delete(shortTermMemories.m, lastMsgContext)
 		shortTermMemories.Unlock()
 	} else {
-		last = shortTermMemory{messagetext, ts}
+		last = shortTermMemory{bot.msg, ts}
 		shortTermMemories.Lock()
 		shortTermMemories.m[lastMsgContext] = last
 		shortTermMemories.Unlock()

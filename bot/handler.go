@@ -17,6 +17,12 @@ func (h handler) GetLogLevel() LogLevel {
 	return getLogLevel()
 }
 
+// GetLogToFile indicates to the terminal connector whether logging output is
+// to a file, to prevent readline from redirecting log output.
+func (h handler) GetLogToFile() bool {
+	return logToFile
+}
+
 // GetInstallPath gets the path to the bot's install dir -
 // the location of default configuration and stock external plugins.
 func (h handler) GetInstallPath() string {
@@ -31,14 +37,14 @@ func (h handler) GetInstallPath() string {
 func (h handler) GetConfigPath() string {
 	robot.RLock()
 	defer robot.RUnlock()
-	if len(robot.localPath) > 0 {
-		return robot.localPath
+	if len(robot.configPath) > 0 {
+		return robot.configPath
 	}
 	return robot.installPath
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
-func (h handler) IncomingMessage(channelName, userName, messageFull string) {
+func (h handler) IncomingMessage(channelName, userName, messageFull, connector string, proto Protocol, raw interface{}) {
 	Log(Trace, fmt.Sprintf("Incoming message \"%s\" in channel \"%s\"", messageFull, channelName))
 	// When command == true, the message was directed at the bot
 	isCommand := false
@@ -49,6 +55,8 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 	for _, user := range robot.ignoreUsers {
 		if strings.EqualFold(userName, user) {
 			Log(Debug, "Ignoring user", userName)
+			bot := &Robot{User: userName}
+			bot.debug("", "robot is configured to ignore this user", true)
 			emit(IgnoredUser)
 			robot.RUnlock()
 			return
@@ -80,12 +88,27 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string) {
 	if !isCommand {
 		message = messageFull
 	}
+
 	if len(channelName) == 0 { // true for direct messages
 		isCommand = true
 		logChannel = "(direct message)"
 	}
+
+	// Create the Robot and a goroutine to process the message, which may
+	// eventually run a plugin.
+	bot := &Robot{
+		User:      userName,
+		Channel:   channelName,
+		Connector: connector,
+		Protocol:  proto,
+		RawMsg:    raw,
+		Format:    Variable,
+		isCommand: isCommand,
+		msg:       message,
+	}
 	Log(Trace, fmt.Sprintf("Command \"%s\" in channel \"%s\"", message, logChannel))
-	handleMessage(isCommand, channelName, userName, message)
+	bot.debug("", fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)
+	go bot.handleMessage()
 }
 
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct

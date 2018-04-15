@@ -53,8 +53,8 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		if bot.CheckAdmin() {
 			msg = append(msg, fmt.Sprintf("My install directory is: %s", robot.installPath))
 			lp := "(not set)"
-			if len(robot.localPath) > 0 {
-				lp = robot.localPath
+			if len(robot.configPath) > 0 {
+				lp = robot.configPath
 			}
 			msg = append(msg, fmt.Sprintf("My local configuration directory is: %s", lp))
 		}
@@ -90,7 +90,7 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		plugins := currentPlugins.p
 		currentPlugins.RUnlock()
 		for _, plugin := range plugins {
-			if !pluginAvailable(bot.User, bot.Channel, plugin, true) {
+			if !bot.pluginAvailable(plugin, true) {
 				continue
 			}
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
@@ -271,7 +271,7 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	}
 	switch command {
 	case "reload":
-		err := loadConfig()
+		err := bot.loadConfig()
 		if err != nil {
 			bot.Reply("Error encountered during reload, check the logs")
 			Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))
@@ -285,6 +285,39 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		log.Printf("%s", buf)
 		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
+	case "debug":
+		plugNameIDmap.Lock()
+		p, found := plugNameIDmap.m[args[0]]
+		plugNameIDmap.Unlock()
+		if !found {
+			bot.Say("I don't have any plugins with that name configured")
+			return
+		}
+		verbose := false
+		if len(args) == 2 && args[1] == "verbose" {
+			verbose = true
+		}
+		bot.Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", args[0], p, verbose))
+		pd := &debuggingPlug{
+			pluginID: p,
+			name:     args[0],
+			verbose:  verbose,
+		}
+		plugDebug.Lock()
+		plugDebug.p[bot.User] = pd
+		plugDebug.Unlock()
+		err := bot.loadConfig()
+		if err != nil {
+			bot.Reply("Error during reload, check the logs")
+			Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))
+			return
+		}
+		bot.Say(fmt.Sprintf("Debugging enabled for %s", args[0]))
+	case "stop":
+		plugDebug.Lock()
+		delete(plugDebug.p, bot.User)
+		plugDebug.Unlock()
+		bot.Say("Debugging disabled")
 	case "quit":
 		robot.Lock()
 		if robot.shuttingDown {

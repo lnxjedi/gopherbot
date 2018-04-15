@@ -23,6 +23,10 @@ Help:
   Helptext: [ "(bot), quit - request a graceful shutdown, waiting for all plugins to finish" ]
 - Keywords: [ "abort" ]
   Helptext: [ "(bot), abort - request an immediate shutdown without waiting for plugins to finish" ]
+- Keywords: [ "debug" ]
+  Helptext: [ "(bot), debug plugin <pluginname> - turn on debugging for the named plugin" ]
+- Keywords: [ "debug" ]
+  Helptext: [ "(bot), stop debugging - turn off debugging" ]
 CommandMatchers:
 - Command: reload
   Regex: '(?i:reload)'
@@ -30,6 +34,10 @@ CommandMatchers:
   Regex: '(?i:quit|exit)'
 - Command: abort
   Regex: '(?i:abort)'
+- Command: "debug"
+  Regex: '(?i:debug plugin ([\d\w-.]+)(?: (verbose))?)'
+- Command: "stop"
+  Regex: '(?i:stop debugging)'
 `
 
 const dumpConfig = `
@@ -67,7 +75,7 @@ Help:
   Helptext: [ "(bot), set log lines to <number> - set the number of lines returned by show log"]
 CommandMatchers:
 - Command: "level"
-  Regex: '(?i:set log ?level(?: to)? (trace|debug|info|warning|error))'
+  Regex: '(?i:set log ?level(?: to)? (trace|debug|info|warn|error))'
 - Command: "show"
   Regex: '(?i:show logs?(?: page (\d+))?)'
 - Command: "showlevel"

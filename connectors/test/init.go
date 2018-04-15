@@ -20,6 +20,7 @@ type config struct {
 	BotName     string // the short name used for addressing the robot
 	BotFullName string // the full name of the bot
 	Users       []testUser
+	Channels    []string
 }
 
 func init() {
@@ -40,11 +41,11 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 
 	tc := &TestConnector{
-		channels:    make([]string, 0),
 		botName:     c.BotName,
 		botFullName: c.BotFullName,
 		botID:       "deadbeef", // yes - hex in a string
 		users:       c.Users,
+		channels:    c.Channels,
 		listener:    make(chan *TestMessage),
 		speaking:    make(chan *TestMessage),
 	}

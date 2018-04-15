@@ -3,6 +3,8 @@ package bot
 // RetVal is a integer type for returning error conditions from bot methods, or 0 for Ok
 type RetVal int
 
+//go:generate stringer -type=PlugRetVal
+
 // PlugRetVal is an integer type for return values from plugins, mainly for elevation & authorization
 type PlugRetVal int
 

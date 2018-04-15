@@ -44,31 +44,39 @@ type botconf struct {
 
 var config *botconf
 
-// getConfigFile loads a config file first from installPath, then from localPath
+// getConfigFile loads a config file first from installPath, then from configPath
 // if set.
 
 // Required indicates whether to return an error if neither file is found.
-func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMessage) error {
+func (r *Robot) getConfigFile(filename, pluginID string, required bool, jsonMap map[string]json.RawMessage) error {
 	var (
-		cf  []byte
-		err error
+		cf           []byte
+		err, realerr error
 	)
 
 	loaded := false
 	var loader map[string]json.RawMessage
 	var path string
+	robot.RLock()
+	installPath := robot.installPath
+	configPath := robot.configPath
+	robot.RUnlock()
 
 	loader = make(map[string]json.RawMessage)
-	path = robot.installPath + "/conf/" + filename
+	path = installPath + "/conf/" + filename
 	cf, err = ioutil.ReadFile(path)
 	if err == nil {
+		r.debug(pluginID, fmt.Sprintf("Loaded configuration from installPath (%s), size: %d", path, len(cf)), false)
 		if err = yaml.Unmarshal(cf, &loader); err != nil {
+			r.debug(pluginID, fmt.Sprintf("Error unmarshalling %s: %v", path, err), false)
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
 			Log(Error, err)
 			return err
 		}
 		if len(loader) == 0 {
-			Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
+			msg := fmt.Sprintf("Empty config hash loading %s", path)
+			r.debug(pluginID, msg, false)
+			Log(Error, msg)
 		} else {
 			for key, value := range loader {
 				jsonMap[key] = value
@@ -76,22 +84,26 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 			Log(Debug, fmt.Sprintf("Loaded installed conf/%s", filename))
 			loaded = true
 		}
+	} else {
+		r.debug(pluginID, fmt.Sprintf("No configuration loaded from installPath (%s): %v", path, err), false)
+		realerr = err
 	}
-	if len(robot.localPath) > 0 {
+	if len(configPath) > 0 {
 		loader = make(map[string]json.RawMessage)
-		path = robot.localPath + "/conf/" + filename
+		path = configPath + "/conf/" + filename
 		cf, err = ioutil.ReadFile(path)
-		if err != nil {
-			err = fmt.Errorf("Reading local configuration for \"%s\": %v", filename, err)
-			Log(Debug, err)
-		} else {
+		if err == nil {
+			r.debug(pluginID, fmt.Sprintf("Loaded configuration from configPath (%s), size: %d", path, len(cf)), false)
 			if err = yaml.Unmarshal(cf, &loader); err != nil {
+				r.debug(pluginID, fmt.Sprintf("Error unmarshalling %s: %v", path, err), false)
 				err = fmt.Errorf("Unmarshalling local \"%s\": %v", filename, err)
 				Log(Error, err)
 				return err // If a badly-formatted config is loaded, we always return an error
 			}
 			if len(loader) == 0 {
-				Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
+				msg := fmt.Sprintf("Empty config hash loading %s", path)
+				r.debug(pluginID, msg, false)
+				Log(Error, msg)
 			} else {
 				for key, value := range loader {
 					jsonMap[key] = value
@@ -99,22 +111,25 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 				Log(Debug, fmt.Sprintf("Loaded configured conf/%s", filename))
 				loaded = true
 			}
+		} else {
+			r.debug(pluginID, fmt.Sprintf("No configuration loaded from configPath (%s): %v", path, err), false)
+			realerr = err
 		}
 	}
 	if required && !loaded {
-		return err
+		return realerr
 	}
 	return nil
 }
 
 // loadConfig loads the 'bot's json configuration files.
-func loadConfig() error {
+func (r *Robot) loadConfig() error {
 	var loglevel LogLevel
 	newconfig := &botconf{}
 	configload := make(map[string]json.RawMessage)
 	pluginsOk := true
 
-	if err := getConfigFile("gopherbot.yaml", true, configload); err != nil {
+	if err := r.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
 	}
 
@@ -287,7 +302,7 @@ func loadConfig() error {
 
 	updateRegexes()
 	if pluginsOk {
-		loadPluginConfig()
+		r.loadPluginConfig()
 	} else {
 		return fmt.Errorf("Error reading external plugin config")
 	}

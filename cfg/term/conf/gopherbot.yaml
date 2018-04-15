@@ -28,7 +28,7 @@ DefaultChannels: [ "general", "random" ]
 
 # Note: Bot users in Slack can't join channels; this is put here for use with
 # future connectors supporting it.
-JoinChannels: [ "random", "general", "bottest" ]
+#JoinChannels: [ ]
 
 # List of users that can issue admin commands like reload, quit. Should be
 # a list of user handles / nicks.
@@ -44,7 +44,9 @@ LocalPort: 8888
 
 # Initial log level, one of trace, debug, info, warn, error. See 'help log'
 # for help on changing the log level and viewing contents of the log.
-LogLevel: debug
+# If you make logging any more verbose, you'll probably want to log to a file
+# using '-l <file>'.
+LogLevel: warn
 
 # List of external plugins to configure; generally scripts using a gopherbot
 # script library. The robot will look for plugins in the installation directory
@@ -61,13 +63,16 @@ ExternalPlugins:
 - Name: test
   Path: plugins/test.sh
 
-# Configuration for the "test" connector, for the terminal or test connector.
 Protocol: term
 ProtocolConfig:
   StartChannel: general
   StartUser: alice
   BotName: floyd
   BotFullName: Floyd Gopherbot
+  Channels:
+  - random
+  - general
+  - bottest
   Users:
   - Name: "alice"
     Email: "alice@example.com"

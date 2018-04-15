@@ -3,8 +3,11 @@ package terminal
 import (
 	"fmt"
 	"log"
+	"os"
+	"path"
 	"sync"
 
+	"github.com/chzyer/readline"
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
@@ -23,6 +26,7 @@ type config struct {
 	BotName      string // the short name used for addressing the robot
 	BotFullName  string // the full name of the bot
 	Users        []termUser
+	Channels     []string
 }
 
 var lock sync.Mutex // package var lock
@@ -56,20 +60,52 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		}
 	}
 	if !found {
-		robot.Log(bot.Fatal, "Start user \"%s\" not listed in Users array")
+		robot.Log(bot.Fatal, fmt.Sprintf("Start user \"%s\" not listed in Users array", c.StartUser))
+	}
+
+	found = false
+	for _, ch := range c.Channels {
+		if c.StartChannel == ch {
+			found = true
+		}
+	}
+	if !found {
+		robot.Log(bot.Fatal, fmt.Sprintf("Start channel \"%s\" not listed in Channels array", c.StartChannel))
+	}
+
+	var histfile string
+	home := os.Getenv("HOME")
+	if len(home) == 0 {
+		home = os.Getenv("USERPROFILE")
+	}
+	if len(home) > 0 {
+		histfile = path.Join(home, ".gopherbot_history")
+	}
+
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:            fmt.Sprintf("c:%s/u:%s -> ", c.StartChannel, c.StartUser),
+		HistoryFile:       histfile,
+		HistorySearchFold: true,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	if !robot.GetLogToFile() {
+		l.SetOutput(rl.Stdout())
 	}
 
 	tc := &termConnector{
 		currentChannel: c.StartChannel,
 		currentUser:    c.StartUser,
-		channels:       make([]string, 0),
+		channels:       c.Channels,
 		running:        false,
 		botName:        c.BotName,
 		botFullName:    c.BotFullName,
 		botID:          "deadbeef", // yes - hex in a string
 		users:          c.Users,
 		heard:          make(chan string),
-		speaking:       make(chan struct{}),
+		reader:         rl,
 	}
 
 	tc.Handler = robot

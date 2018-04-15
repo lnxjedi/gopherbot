@@ -20,3 +20,4 @@ For testing:
   "reboot the server", "reboot it" would all check the "server" short-term
   memory to get e.g. "webtest1.example.com"
 - Add more sample transcripts to documentation using the terminal connector
+- The 'catchall' plugin should be in gopherbot.yaml (There Can Be Only One)

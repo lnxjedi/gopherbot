@@ -186,7 +186,7 @@ func RegisterPlugin(name string, plug PluginHandler) {
 // stores the resulting array in b.plugins. Bad plugins are skipped and logged.
 // Plugin configuration is initially loaded into temporary data structures,
 // then stored in the bot package under the global bot lock.
-func loadPluginConfig() {
+func (r *Robot) loadPluginConfig() {
 	i := 0
 
 	// Copy some data from the bot under lock
@@ -277,6 +277,10 @@ PlugHandlerLoop:
 
 PlugLoop:
 	for i, plug := range pnames {
+		plugNameIDmap.Lock()
+		plugID, _ := plugNameIDmap.m[plug]
+		plugNameIDmap.Unlock()
+
 		plugin = new(Plugin)
 		pcfgload := make(map[string]json.RawMessage)
 		plugin.AllowDirect = defaultAllowDirect
@@ -291,18 +295,25 @@ PlugLoop:
 				Log(Error, err)
 				continue
 			}
+			if len(*cfg) > 0 {
+				r.debug(plugID, fmt.Sprintf("Loaded default config from the plugin, size: %d", len(*cfg)), false)
+			} else {
+				r.debug(plugID, "Unable to obtain default config from plugin, command 'configure' returned no content", false)
+			}
 			if err := yaml.Unmarshal(*cfg, &pcfgload); err != nil {
+				r.debug(plugID, fmt.Sprintf("Error unmarshalling default configuration: %v", err), false)
 				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
 				continue
 			}
 		} else {
 			if err := yaml.Unmarshal([]byte(pluginHandlers[plug].DefaultConfig), &pcfgload); err != nil {
+				r.debug(plugID, fmt.Sprintf("Error unmarshalling default configuration: %v", err), false)
 				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
 				continue
 			}
 		}
 		// getConfigFile overlays the default config with local config
-		if err := getConfigFile("plugins/"+plug+".yaml", false, pcfgload); err != nil {
+		if err := r.getConfigFile("plugins/"+plug+".yaml", plugID, false, pcfgload); err != nil {
 			Log(Error, fmt.Errorf("Problem with local configuration for plugin \"%s\", skipping: %v", plug, err))
 			continue
 		}
@@ -475,17 +486,17 @@ PlugLoop:
 		} else {
 			Log(Debug, "config interface isn't a pointer, skipping unmarshal for plugin:", plug)
 		}
-		plugNameIDmap.Lock()
-		if plugID, ok := plugNameIDmap.m[plug]; ok {
+		if plugID != "" {
 			plugin.pluginID = plugID
 		} else {
+			plugNameIDmap.Lock()
 			// Generate a random id
 			p := make([]byte, 16)
 			rand.Read(p)
 			plugin.pluginID = fmt.Sprintf("%x", p)
 			plugNameIDmap.m[plugin.name] = plugin.pluginID
+			plugNameIDmap.Unlock()
 		}
-		plugNameIDmap.Unlock()
 		plugIndexByID[plugin.pluginID] = plugIndex
 		plugIndexByName[plugin.name] = plugIndex
 		Log(Trace, fmt.Sprintf("Mapped plugin %s to ID %s", plugin.name, plugin.pluginID))

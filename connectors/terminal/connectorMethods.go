@@ -50,21 +50,7 @@ func (tc *termConnector) SendProtocolUserMessage(u string, msg string, f bot.Mes
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"
+// Only useful for connectors that require it, a noop otherwise
 func (tc *termConnector) JoinChannel(c string) (ret bot.RetVal) {
-	if c == "" {
-		return bot.Ok
-	}
-	found := false
-	tc.Lock()
-	for _, channel := range tc.channels {
-		if channel == c {
-			found = true
-			break
-		}
-	}
-	if !found {
-		tc.channels = append(tc.channels, c)
-	}
-	tc.Unlock()
 	return bot.Ok
 }

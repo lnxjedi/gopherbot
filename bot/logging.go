@@ -20,6 +20,7 @@ const (
 )
 
 var logLevel LogLevel // current log level
+var logToFile bool    // is logging to a file?
 
 // Should be ample for the internal circular log
 const buffLines = 500
