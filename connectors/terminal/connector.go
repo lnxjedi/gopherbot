@@ -94,7 +94,7 @@ loop:
 							tc.currentChannel = newchan
 							tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentUser, tc.currentChannel))
 						} else {
-							tc.reader.Write([]byte("Invalid channel."))
+							tc.reader.Write([]byte("Invalid channel\n"))
 						}
 					}
 					tc.Unlock()
@@ -103,7 +103,7 @@ loop:
 					newuser := input[2:]
 					tc.Lock()
 					if newuser == "" {
-						tc.reader.Write([]byte("Invalid 0-length user"))
+						tc.reader.Write([]byte("Invalid 0-length user\n"))
 					} else {
 						for _, u := range tc.users {
 							if u.Name == newuser {
@@ -115,12 +115,12 @@ loop:
 							tc.reader.Write([]byte(fmt.Sprintf("Changed current user to: %s\n", newuser)))
 							tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentUser, tc.currentChannel))
 						} else {
-							tc.reader.Write([]byte("Invalid user."))
+							tc.reader.Write([]byte("Invalid user\n"))
 						}
 					}
 					tc.Unlock()
 				default:
-					tc.reader.Write([]byte("Invalid terminal connector command"))
+					tc.reader.Write([]byte("Invalid terminal connector command\n"))
 				}
 			} else {
 				tc.RLock()
