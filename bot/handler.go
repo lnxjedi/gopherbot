@@ -37,8 +37,8 @@ func (h handler) GetInstallPath() string {
 func (h handler) GetConfigPath() string {
 	robot.RLock()
 	defer robot.RUnlock()
-	if len(robot.localPath) > 0 {
-		return robot.localPath
+	if len(robot.configPath) > 0 {
+		return robot.configPath
 	}
 	return robot.installPath
 }

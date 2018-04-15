@@ -53,8 +53,8 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		if bot.CheckAdmin() {
 			msg = append(msg, fmt.Sprintf("My install directory is: %s", robot.installPath))
 			lp := "(not set)"
-			if len(robot.localPath) > 0 {
-				lp = robot.localPath
+			if len(robot.configPath) > 0 {
+				lp = robot.configPath
 			}
 			msg = append(msg, fmt.Sprintf("My local configuration directory is: %s", lp))
 		}

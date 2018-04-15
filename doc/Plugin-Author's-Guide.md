@@ -22,6 +22,7 @@ Table of Contents
     * [Authorization Plugins](#authorization-plugins)
     * [Elevation Plugins](#elevation-plugins)
   * [Using the Terminal Connector](#using-the-terminal-connector)
+    * [Using the Plugin Debugger](#plugin-debugging)
   * [Getting Started](#getting-started)
     * [Starting from a Sample Plugin](#starting-from-a-sample-plugin)
     * [Using Boilerplate Code](#using-boilerplate-code)
@@ -116,7 +117,8 @@ Additionally, the elevation plugin may provide extra feedback to the user when e
 
 # Using the Terminal Connector
 Interacting with your bot in a chat app might not always be convenient or fast; to simplify
-testing and plugin development, **Gopherbot** includes a terminal connector, with a sample
+testing and plugin development, **Gopherbot** includes a terminal connector that emulates
+a chat service with multiple users and channels, with a sample
 configuration in the `cfg/term/` directory. You'll probably want to copy the directory and modify
 it for your own use (mainly configuring the plugins you're developing), but it can be used
 by using the `-c <configdir>` option:
@@ -138,6 +140,54 @@ Changed current channel to: random
 c:random/u:alice -> ;quit
 random: @alice Adios
 [gopherbot]$
+```
+
+## Plugin Debugging
+**Gopherbot** has a builtin command for plugin debugging that will send information about
+a plugin in direct messages. You can see plugin debugging in action here with
+the terminal connector:
+```
+[gopherbot]$ ./gopherbot
+2018/04/15 19:45:04 Initialized logging ...
+2018/04/15 19:45:04 Starting up with local config dir: /home/parse/.gopherbot, and install dir: /home/parse/go/src/github.com/lnxjedi/gopherbot
+2018/04/15 19:45:04 Debug: Loaded installed conf/gopherbot.yaml
+2018/04/15 19:45:04 Debug: Loaded configured conf/gopherbot.yaml
+Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
+c:general/u:parse -> ;ruby me!
+general: @parse Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help <keyword>'
+c:random/u:parse -> ;help debug
+random: Command(s) matching keyword: debug
+floyd, debug plugin <pluginname> - turn on debugging for the named plugin
+
+floyd, stop debugging - turn off debugging
+c:general/u:parse -> ;debug plugin rubydemo
+(dm:parse): 2018/04/15 07:45:18 DEBUG rubydemo: Loaded default config from the plugin, size: 1417
+(dm:parse): 2018/04/15 07:45:18 DEBUG rubydemo: No configuration loaded from installPath (/home/parse/go/src/github.com/lnxjedi/gopherbot/conf/plugins/rubydemo.yaml): open /home/parse/go/src/github.com/lnxjedi/gopherbot/conf/plugins/rubydemo.yaml: no such file or directory
+(dm:parse): 2018/04/15 07:45:18 DEBUG rubydemo: Loaded configuration from configPath (/home/parse/.gopherbot/conf/plugins/rubydemo.yaml), size: 22
+general: Debugging enabled for rubydemo
+c:general/u:parse -> ;ruby me!
+(dm:parse): 2018/04/15 07:45:25 DEBUG rubydemo: plugin is NOT visible
+general: @parse Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help <keyword>'
+c:general/u:parse -> |crandom
+Changed current channel to: random
+c:random/u:parse -> ;ruby me!
+(dm:parse): 2018/04/15 07:46:34 DEBUG rubydemo: Checking 7 command matchers against message: "ruby me!"
+(dm:parse): 2018/04/15 07:46:34 DEBUG rubydemo: Not matched: (?i:bashecho ([.;!\d\w-, ]+))
+(dm:parse): 2018/04/15 07:46:34 DEBUG rubydemo: Matched regex '(?i:ruby( me)?!?)', command: ruby
+(dm:parse): 2018/04/15 07:46:34 DEBUG rubydemo: Running plugin with command 'ruby' and arguments: [ me]
+random: Sure, David!
+random: Waaaaaait a second... what do you mean by that?
+(dm:parse): 2018/04/15 07:46:35 DEBUG rubydemo: Plugin finished with return value: Normal
+c:random/u:parse -> ;stop debugging
+(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Checking 7 command matchers against message: "stop debugging"
+(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:bashecho ([.;!\d\w-, ]+))
+(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:ruby( me)?!?)
+(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:listen( to me)?!?)
+(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:remember(?: (slowly))? ([-\w .,!?:\/]+))
+(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:recall ?([\d]+)?)
+(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:forget ([\d]{1,2}))
+(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:check me)
+random: Debugging disabled
 ```
 
 # Getting Started

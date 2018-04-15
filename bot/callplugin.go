@@ -45,7 +45,7 @@ func getPluginPath(plugin *Plugin) (string, error) {
 	}
 	var fullPath string
 	robot.RLock()
-	localPath := robot.localPath
+	configPath := robot.configPath
 	installPath := robot.installPath
 	robot.RUnlock()
 	if byte(plugin.pluginPath[0]) == byte("/"[0]) {
@@ -59,10 +59,10 @@ func getPluginPath(plugin *Plugin) (string, error) {
 		Log(Error, err)
 		return "", err
 	}
-	if len(localPath) > 0 {
-		_, err := os.Stat(localPath + "/" + plugin.pluginPath)
+	if len(configPath) > 0 {
+		_, err := os.Stat(configPath + "/" + plugin.pluginPath)
 		if err == nil {
-			fullPath = localPath + "/" + plugin.pluginPath
+			fullPath = configPath + "/" + plugin.pluginPath
 			Log(Debug, "Using local external plugin:", fullPath)
 			return fullPath, nil
 		}

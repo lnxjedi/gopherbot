@@ -2,7 +2,8 @@ package bot
 
 /* debug.go - Provide support for plugin debugging. Admin users can use the
 'debug' built-in to debug a plugin and get verbose messages sent to them as
-a private message detailing everything going on with a plugin.
+a private message detailing everything going on with a plugin. Works well with
+the 'terminal' connector.
 */
 
 import (

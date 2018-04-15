@@ -92,7 +92,7 @@ loop:
 						if exists {
 							tc.reader.Write([]byte(fmt.Sprintf("Changed current channel to: %s\n", newchan)))
 							tc.currentChannel = newchan
-							tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentUser, tc.currentChannel))
+							tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentChannel, tc.currentUser))
 						} else {
 							tc.reader.Write([]byte("Invalid channel\n"))
 						}

@@ -11,11 +11,9 @@ const keepListeningDuration = 77 * time.Second
 // pluginAvailable checks the user and channel against the plugin's
 // configuration to determine if the message should be evaluated. Used by
 // both handleMessage and the help builtin.
-func (r *Robot) pluginAvailable(plugin *Plugin, ignoreChannelRestrictions bool) (available bool) {
+func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem bool) (available bool) {
 	defer func() {
-		if available {
-			r.debug(plugin.pluginID, "plugin is visible", false)
-		} else {
+		if !available {
 			r.debug(plugin.pluginID, "plugin is NOT visible", false)
 		}
 	}()
@@ -23,10 +21,10 @@ func (r *Robot) pluginAvailable(plugin *Plugin, ignoreChannelRestrictions bool) 
 	if len(r.Channel) == 0 {
 		directMsg = true
 	}
-	if !directMsg && plugin.DirectOnly && !ignoreChannelRestrictions {
+	if !directMsg && plugin.DirectOnly && !helpSystem {
 		return false
 	}
-	if directMsg && plugin.DenyDirect && !ignoreChannelRestrictions {
+	if directMsg && plugin.DenyDirect && !helpSystem {
 		return false
 	}
 	if plugin.DirectOnly && plugin.DenyDirect {
@@ -73,7 +71,7 @@ func (r *Robot) pluginAvailable(plugin *Plugin, ignoreChannelRestrictions bool) 
 			return true
 		}
 	}
-	if ignoreChannelRestrictions {
+	if helpSystem {
 		return true
 	}
 	return false
@@ -101,16 +99,25 @@ func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched 
 		}
 		Log(Trace, fmt.Sprintf("Plugin \"%s\" is active, will check for matches", plugin.name))
 		var matchers []InputMatcher
+		var ctype string
 		if checkCommands {
 			matchers = plugin.CommandMatchers
+			ctype = "command"
 		} else {
 			matchers = plugin.MessageMatchers
+			ctype = "message"
+		}
+		if len(matchers) > 0 {
+			bot.debug(plugin.pluginID, fmt.Sprintf("Checking %d %s matchers against message: \"%s\"", len(matchers), ctype, bot.msg), false)
+		} else {
+			bot.debug(plugin.pluginID, fmt.Sprintf("Plugin has no %s matchers, skipping", ctype), false)
 		}
 		for _, matcher := range matchers {
 			Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", bot.msg, matcher.Regex))
 			matches := matcher.re.FindAllStringSubmatch(bot.msg, -1)
 			var matched bool
 			if matches != nil {
+				bot.debug(plugin.pluginID, fmt.Sprintf("Matched regex '%s', command: %s", matcher.Regex, matcher.Command), false)
 				matched = true
 				Log(Trace, fmt.Sprintf("Message \"%s\" matches command \"%s\"", bot.msg, matcher.Command))
 				cmdArgs = matches[0][1:]
@@ -144,6 +151,8 @@ func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched 
 					}
 					shortTermMemories.Unlock()
 				}
+			} else {
+				bot.debug(plugin.pluginID, fmt.Sprintf("Not matched: %s", matcher.Regex), false)
 			}
 			if matched {
 				if commandMatched {
@@ -224,7 +233,9 @@ func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched 
 			// An "ambient" message matched - not specifically directed at the robot
 			emit(AmbientPluginRan) // for testing, otherwise noop
 		}
-		callPlugin(bot, plugin, true, true, matcher.Command, cmdArgs...)
+		bot.debug(plugin.pluginID, fmt.Sprintf("Running plugin with command '%s' and arguments: %v", matcher.Command, cmdArgs), false)
+		ret := callPlugin(bot, plugin, true, true, matcher.Command, cmdArgs...)
+		bot.debug(plugin.pluginID, fmt.Sprintf("Plugin finished with return value: %s", ret), false)
 	}
 	return
 }

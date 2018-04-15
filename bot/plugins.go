@@ -295,7 +295,11 @@ PlugLoop:
 				Log(Error, err)
 				continue
 			}
-			r.debug(plugID, fmt.Sprintf("Ran plugin with 'configure'; default config size: %d", len(*cfg)), false)
+			if len(*cfg) > 0 {
+				r.debug(plugID, fmt.Sprintf("Loaded default config from the plugin, size: %d", len(*cfg)), false)
+			} else {
+				r.debug(plugID, "Unable to obtain default config from plugin, command 'configure' returned no content", false)
+			}
 			if err := yaml.Unmarshal(*cfg, &pcfgload); err != nil {
 				r.debug(plugID, fmt.Sprintf("Error unmarshalling default configuration: %v", err), false)
 				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
