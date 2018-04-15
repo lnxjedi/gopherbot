@@ -16,7 +16,7 @@ import (
 var protocolConfig, brainConfig, elevateConfig json.RawMessage
 
 type externalPlugin struct {
-	Name, Path string // List of names and paths for external plugins; relative paths are searched first in installdir, then localdir
+	Name, Path string // List of names and paths for external plugins; relative paths are searched first in installpath, then configpath
 }
 
 // botconf specifies 'bot configuration, and is read from $GOPHER_CONFIGDIR/conf/gopherbot.yaml

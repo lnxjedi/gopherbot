@@ -31,14 +31,14 @@ func dirExists(path string) bool {
 
 // Start gets the robot going
 func Start() {
-	var installdir, localdir string
+	var installpath, configpath string
 	var err error
 
 	// Process command-line flags
-	var configDir string
+	var configPath string
 	cusage := "path to the local configuration directory"
-	flag.StringVar(&configDir, "config", "", cusage)
-	flag.StringVar(&configDir, "c", "", cusage+" (shorthand)")
+	flag.StringVar(&configPath, "config", "", cusage)
+	flag.StringVar(&configPath, "c", "", cusage+" (shorthand)")
 	var logFile string
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -49,23 +49,21 @@ func Start() {
 	flag.BoolVar(&plainlog, "P", false, plusage+" (shorthand)")
 	flag.Parse()
 
-	// Installdir is where the default config and stock external
-	// plugins are. Search some likely locations in case installDir
-	// wasn't passed on the command line, or Gopherbot isn't installed
-	// in one of the usual system locations.
+	// Installpath is where the default config and stock external
+	// plugins are.
 	ex, err := os.Executable()
 	if err != nil {
 		panic(err)
 	}
-	installdir, err = filepath.Abs(filepath.Dir(ex))
+	installpath, err = filepath.Abs(filepath.Dir(ex))
 	if err != nil {
 		panic(err)
 	}
 
-	// Localdir is where all user-supplied configuration and
+	// Configdir is where all user-supplied configuration and
 	// external plugins are.
 	confSearchPath := []string{
-		configDir,
+		configPath,
 		"/usr/local/etc/gopherbot",
 		"/etc/gopherbot",
 	}
@@ -75,7 +73,7 @@ func Start() {
 	}
 	for _, spath := range confSearchPath {
 		if len(spath) > 0 && dirExists(spath) {
-			localdir = spath
+			configpath = spath
 			break
 		}
 	}
@@ -97,23 +95,23 @@ func Start() {
 	log.SetOutput(logOut)
 	botLogger = log.New(logOut, "", logFlags)
 	botLogger.Println("Initialized logging ...")
-	if len(localdir) == 0 {
+	if len(configpath) == 0 {
 		botLogger.Println("Couldn't locate local configuration directory, using installed configuration")
 	}
 
-	// Create the 'bot and load configuration, supplying configdir and installdir.
+	// Create the 'bot and load configuration, supplying configpath and installpath.
 	// When loading configuration, gopherbot first loads default configuration
-	// from internal config, then loads from localdir/conf/..., which
+	// from internal config, then loads from configpath/conf/..., which
 	// overrides defaults.
-	os.Setenv("GOPHER_INSTALLDIR", installdir)
+	os.Setenv("GOPHER_INSTALLDIR", installpath)
 	lp := "(none)"
-	if len(localdir) > 0 {
-		os.Setenv("GOPHER_CONFIGDIR", localdir)
-		lp = localdir
+	if len(configpath) > 0 {
+		os.Setenv("GOPHER_CONFIGDIR", configpath)
+		lp = configpath
 	}
-	botLogger.Printf("Starting up with local config dir: %s, and install dir: %s\n", lp, installdir)
+	botLogger.Printf("Starting up with local config dir: %s, and install dir: %s\n", lp, installpath)
 
-	initBot(localdir, installdir, botLogger)
+	initBot(configpath, installpath, botLogger)
 
 	initializeConnector, ok := connectors[robot.protocol]
 	if !ok {

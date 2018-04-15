@@ -121,7 +121,7 @@ testing and plugin development, **Gopherbot** includes a terminal connector that
 a chat service with multiple users and channels, with a sample
 configuration in the `cfg/term/` directory. You'll probably want to copy the directory and modify
 it for your own use (mainly configuring the plugins you're developing), but it can be used
-by using the `-c <configdir>` option:
+by using the `-c <configpath>` option:
 ```
 [gopherbot]$ ./gopherbot -c cfg/term/
 2018/04/13 18:07:52 Initialized logging ...

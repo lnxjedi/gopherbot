@@ -16,11 +16,11 @@ import (
 // Start a robot for testing, and return the exit / robot stopped channel
 func StartTest(cfgdir, logfile string, t *testing.T) (<-chan struct{}, Connector) {
 	wd, _ := os.Getwd()
-	installdir := filepath.Dir(wd)
-	localdir := filepath.Join(installdir, cfgdir)
-	os.Setenv("GOPHER_INSTALLDIR", installdir)
-	os.Setenv("GOPHER_CONFIGDIR", localdir)
-	t.Logf("Initializing test bot with installdir: \"%s\" and localdir: \"%s\"", installdir, localdir)
+	installpath := filepath.Dir(wd)
+	configpath := filepath.Join(installpath, cfgdir)
+	os.Setenv("GOPHER_INSTALLDIR", installpath)
+	os.Setenv("GOPHER_CONFIGDIR", configpath)
+	t.Logf("Initializing test bot with installpath: \"%s\" and configpath: \"%s\"", installpath, configpath)
 
 	var botLogger *log.Logger
 	if len(logfile) == 0 {
@@ -33,7 +33,7 @@ func StartTest(cfgdir, logfile string, t *testing.T) (<-chan struct{}, Connector
 		botLogger = log.New(lf, "", log.LstdFlags)
 	}
 
-	initBot(localdir, installdir, botLogger)
+	initBot(configpath, installpath, botLogger)
 
 	initializeConnector, ok := connectors[robot.protocol]
 	if !ok {
