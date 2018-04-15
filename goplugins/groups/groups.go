@@ -146,6 +146,7 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal
 					r.Log(bot.Error, fmt.Sprintf("Couldn't update groups: %s", mret))
 					r.Reply("Crud. I had a problem saving my groups - somebody better check the log")
 				} else {
+					r.Log(bot.Audit, fmt.Sprintf("User %s removed user %s from group %s", r.User, user, group))
 					r.Say(fmt.Sprintf("Ok, I removed %s from the %s group", user, group))
 					updated = true
 				}
@@ -163,6 +164,7 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal
 			r.Log(bot.Error, fmt.Sprintf("Couldn't update groups: %s", mret))
 			r.Reply("Crud. I had a problem saving the group - somebody better check the log")
 		} else {
+			r.Log(bot.Audit, fmt.Sprintf("User %s removed all users from group %s", r.User, group))
 			r.Say("Emptied")
 			updated = true
 		}
@@ -237,6 +239,7 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal
 			} else {
 				updated = true
 			}
+			r.Log(bot.Audit, fmt.Sprintf("User %s added user %s to group %s", r.User, user, group))
 			r.Say(fmt.Sprintf("Ok, I added %s to the %s group", user, group))
 		} else {
 			r.Say(fmt.Sprintf("User %s is already in the %s group", user, group))
