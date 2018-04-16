@@ -301,10 +301,12 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		pd := &debuggingPlug{
 			pluginID: p,
 			name:     args[0],
+			user:     bot.User,
 			verbose:  verbose,
 		}
 		plugDebug.Lock()
-		plugDebug.p[bot.User] = pd
+		plugDebug.p[p] = pd
+		plugDebug.u[bot.User] = pd
 		plugDebug.Unlock()
 		err := bot.loadConfig()
 		if err != nil {
@@ -315,7 +317,11 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		bot.Say(fmt.Sprintf("Debugging enabled for %s", args[0]))
 	case "stop":
 		plugDebug.Lock()
-		delete(plugDebug.p, bot.User)
+		pd, ok := plugDebug.u[bot.User]
+		if ok {
+			delete(plugDebug.p, pd.pluginID)
+			delete(plugDebug.u, bot.User)
+		}
 		plugDebug.Unlock()
 		bot.Say("Debugging disabled")
 	case "quit":

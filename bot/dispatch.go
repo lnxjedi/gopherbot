@@ -22,13 +22,16 @@ func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem bool) (available bool
 		directMsg = true
 	}
 	if !directMsg && plugin.DirectOnly && !helpSystem {
+		r.debug(plugin.pluginID, "plugin is NOT visible; only available by direct message: DirectOnly is TRUE", false)
 		return false
 	}
-	if directMsg && plugin.DenyDirect && !helpSystem {
+	if directMsg && !plugin.AllowDirect && !helpSystem {
+		r.debug(plugin.pluginID, "plugin is NOT visible; not available by direct message: AllowDirect is FALSE", false)
 		return false
 	}
-	if plugin.DirectOnly && plugin.DenyDirect {
-		Log(Error, fmt.Sprintf("Plugin %s has conflicting DirectOnly and DenyDirect both true", plugin.name))
+	if plugin.DirectOnly && !plugin.AllowDirect {
+		Log(Error, fmt.Sprintf("Plugin %s has conflicting DirectOnly = true and AllowDirect = false", plugin.name))
+		r.debug(plugin.pluginID, "plugin is NOT visible; conflicting DirectOnly = true and AllowDirect = false", false)
 		return false
 	}
 	if plugin.RequireAdmin {
@@ -42,6 +45,7 @@ func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem bool) (available bool
 		}
 		robot.RUnlock()
 		if !isAdmin {
+			r.debug(plugin.pluginID, "plugin is NOT visible; RequireAdmin is TRUE and user isn't an Admin", false)
 			return false
 		}
 	}

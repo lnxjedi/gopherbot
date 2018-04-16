@@ -44,7 +44,7 @@ func (pl *pluginList) getPluginByName(name string) *Plugin {
 	pl.RLock()
 	pi, ok := pl.nameMap[name]
 	if !ok {
-		Log(Error, fmt.Sprintf("Plugin \"%s\" not found calling getPluginByName", name))
+		Log(Error, fmt.Sprintf("Plugin '%s' not found calling getPluginByName", name))
 		pl.RUnlock()
 		return nil
 	}
@@ -57,7 +57,7 @@ func (pl *pluginList) getPluginByID(id string) *Plugin {
 	pl.RLock()
 	pi, ok := pl.idMap[id]
 	if !ok {
-		Log(Error, fmt.Sprintf("Plugin \"%s\" not found calling getPluginByID", id))
+		Log(Error, fmt.Sprintf("Plugin '%s' not found calling getPluginByID", id))
 		pl.RUnlock()
 		return nil
 	}
@@ -97,7 +97,6 @@ type Plugin struct {
 	Disabled                 bool            // Set true to disable the plugin
 	AllowDirect              bool            // Set this true if this plugin can be accessed via direct message
 	DirectOnly               bool            // Set this true if this plugin ONLY accepts direct messages
-	DenyDirect               bool            // Set true to override global DefaultAllowDirect = true
 	Channels                 []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels              bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
 	RequireAdmin             bool            // Set to only allow administrators to access a plugin
@@ -163,7 +162,7 @@ func massageRegexp(r string) string {
 	regex := replaceSpaceRe.ReplaceAllString(r, `[$1\x20$2]`)
 	regex = strings.Replace(regex, " ?", `\s*`, -1)
 	regex = strings.Replace(regex, " ", `\s+`, -1)
-	Log(Trace, fmt.Sprintf("Updated regex \"%s\" => \"%s\"", r, regex))
+	Log(Trace, fmt.Sprintf("Updated regex '%s' => '%s'", r, regex))
 	return regex
 }
 
@@ -202,6 +201,7 @@ func (r *Robot) loadPluginConfig() {
 	pset := make(map[string]bool) // track plugin names
 
 	defaultAllowDirect := robot.defaultAllowDirect
+	denyDirect := false
 
 	// builtins come first so indexes match, see loop below
 	// Note this doesn't need to be under RLock, but it needs to precede
@@ -220,12 +220,12 @@ func (r *Robot) loadPluginConfig() {
 			continue
 		}
 		if !pNameRe.MatchString(plug.Name) {
-			Log(Error, fmt.Sprintf("Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping", plug.Name, pNameRe.String()))
+			Log(Error, fmt.Sprintf("Plugin name '%s' doesn't match plugin name regex '%s', skipping", plug.Name, pNameRe.String()))
 			nump--
 			continue
 		}
 		if pset[plug.Name] {
-			Log(Error, fmt.Sprintf("External plugin #%d, \"%s\" duplicates builtIn, skipping", index, plug.Name))
+			Log(Error, fmt.Sprintf("External plugin #%d, '%s' duplicates builtIn, skipping", index, plug.Name))
 			nump--
 			continue
 		}
@@ -246,7 +246,7 @@ func (r *Robot) loadPluginConfig() {
 PlugHandlerLoop:
 	for plug := range pluginHandlers {
 		if !pNameRe.MatchString(plug) {
-			Log(Error, fmt.Sprintf("Plugin name \"%s\" doesn't match plugin name regex \"%s\", skipping", plug, pNameRe.String()))
+			Log(Error, fmt.Sprintf("Plugin name '%s' doesn't match plugin name regex '%s', skipping", plug, pNameRe.String()))
 			nump--
 			continue
 		}
@@ -283,7 +283,6 @@ PlugLoop:
 
 		plugin = new(Plugin)
 		pcfgload := make(map[string]json.RawMessage)
-		plugin.AllowDirect = defaultAllowDirect
 		Log(Trace, fmt.Sprintf("Loading plugin #%d - %s, type %d", plugIndex, plug, ptypes[i]))
 
 		plugin.pluginType = ptypes[i]
@@ -302,35 +301,40 @@ PlugLoop:
 			}
 			if err := yaml.Unmarshal(*cfg, &pcfgload); err != nil {
 				r.debug(plugID, fmt.Sprintf("Error unmarshalling default configuration: %v", err), false)
-				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
+				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', skipping: %v", plug, err))
 				continue
 			}
 		} else {
 			if err := yaml.Unmarshal([]byte(pluginHandlers[plug].DefaultConfig), &pcfgload); err != nil {
 				r.debug(plugID, fmt.Sprintf("Error unmarshalling default configuration: %v", err), false)
-				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for \"%s\", skipping: %v", plug, err))
+				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', skipping: %v", plug, err))
 				continue
 			}
 		}
 		// getConfigFile overlays the default config with local config
 		if err := r.getConfigFile("plugins/"+plug+".yaml", plugID, false, pcfgload); err != nil {
-			Log(Error, fmt.Errorf("Problem with local configuration for plugin \"%s\", skipping: %v", plug, err))
+			Log(Error, fmt.Errorf("Problem with local configuration for plugin '%s', skipping: %v", plug, err))
 			continue
 		}
 		if disjson, ok := pcfgload["Disabled"]; ok {
 			disabled := false
 			if err := json.Unmarshal(disjson, &disabled); err != nil {
-				Log(Error, fmt.Errorf("Problem reading value for \"Disabled\" in plugin \"%s\", skipping: %v", plug, err))
+				Log(Error, fmt.Errorf("Problem reading value for 'Disabled' in plugin '%s', skipping: %v", plug, err))
 				continue
 			}
 			if disabled {
-				Log(Info, fmt.Sprintf("Plugin \"%s\" is disabled, skipping", plug))
+				Log(Info, fmt.Sprintf("Plugin '%s' is disabled, skipping", plug))
 				continue
 			}
 		}
+		// Boolean false values can be explicitly false, or default to false
+		// when not specified. In some cases that matters.
+		explicitAllChannels := false
+		explicitAllowDirect := false
+		explicitDenyDirect := false
 		for key, value := range pcfgload {
 			var strval string
-			var boolval bool
+			var boolval *bool
 			var sarrval []string
 			var hval []PluginHelp
 			var mval []InputMatcher
@@ -350,30 +354,59 @@ PlugLoop:
 			case "Config":
 				skip = true
 			default:
-				err := fmt.Errorf("Invalid configuration key for plugin \"%s\": %s - skipping", plug, key)
+				err := fmt.Errorf("Invalid configuration key for plugin '%s': %s - skipping", plug, key)
 				Log(Error, err)
 				continue PlugLoop
 			}
 			if !skip {
 				if err := json.Unmarshal(value, val); err != nil {
-					err = fmt.Errorf("Skipping plugin \"%s\" - error unmarshalling value \"%s\": %v", plug, key, err)
+					err = fmt.Errorf("Skipping plugin '%s' - error unmarshalling value '%s': %v", plug, key, err)
 					Log(Error, err)
 					continue PlugLoop
 				}
 			}
 			switch key {
 			case "AllowDirect":
-				plugin.AllowDirect = *(val.(*bool))
+				bptr := *(val.(**bool))
+				if bptr == nil {
+					plugin.AllowDirect = defaultAllowDirect
+				} else { // always honor explicit values, default when not specified is above
+					explicitAllowDirect = true
+					plugin.AllowDirect = *bptr
+				}
 			case "DirectOnly":
-				plugin.DirectOnly = *(val.(*bool))
+				bptr := *(val.(**bool))
+				if bptr == nil {
+					plugin.DirectOnly = false
+				} else {
+					plugin.DirectOnly = *bptr
+				}
 			case "DenyDirect":
-				plugin.DenyDirect = *(val.(*bool))
+				bptr := *(val.(**bool))
+				if bptr == nil {
+					denyDirect = false
+				} else {
+					r.Log(Warn, "Plugin '%s' uses deprecated 'DenyDirect'; use 'AllowDirect' instead")
+					explicitDenyDirect = true
+					denyDirect = *bptr
+				}
 			case "Channels":
 				plugin.Channels = *(val.(*[]string))
 			case "AllChannels":
-				plugin.AllChannels = *(val.(*bool))
+				bptr := *(val.(**bool))
+				if bptr == nil {
+					plugin.AllChannels = false
+				} else {
+					explicitAllChannels = true
+					plugin.AllChannels = *bptr
+				}
 			case "RequireAdmin":
-				plugin.RequireAdmin = *(val.(*bool))
+				bptr := *(val.(**bool))
+				if bptr == nil {
+					plugin.RequireAdmin = false
+				} else {
+					plugin.RequireAdmin = *bptr
+				}
 			case "AdminCommands":
 				plugin.AdminCommands = *(val.(*[]string))
 			case "Elevator":
@@ -393,7 +426,12 @@ PlugLoop:
 			case "AuthorizedCommands":
 				plugin.AuthorizedCommands = *(val.(*[]string))
 			case "AuthorizeAllCommands":
-				plugin.AuthorizeAllCommands = *(val.(*bool))
+				bptr := *(val.(**bool))
+				if bptr == nil {
+					plugin.AuthorizeAllCommands = false
+				} else {
+					plugin.AuthorizeAllCommands = *bptr
+				}
 			case "Help":
 				plugin.Help = *(val.(*[]PluginHelp))
 			case "CommandMatchers":
@@ -403,24 +441,53 @@ PlugLoop:
 			case "MessageMatchers":
 				plugin.MessageMatchers = *(val.(*[]InputMatcher))
 			case "CatchAll":
-				plugin.CatchAll = *(val.(*bool))
+				bptr := *(val.(**bool))
+				if bptr == nil {
+					plugin.CatchAll = false
+				} else {
+					plugin.CatchAll = *bptr
+				}
 			case "Config":
 				plugin.Config = value
 			}
 		}
-		Log(Info, "Loaded configuration for plugin", plug)
 		// Use bot default plugin channels if none defined, unless AllChannels requested. Admin can override.
-		if len(plugin.Channels) == 0 && len(pchan) > 0 && !plugin.AllChannels {
-			plugin.Channels = pchan
+		if len(plugin.Channels) == 0 {
+			if len(pchan) > 0 {
+				if !plugin.AllChannels { // AllChannels = true is always explicit
+					plugin.Channels = pchan
+				}
+			} else { // no default channels specified
+				if !explicitAllChannels { // if AllChannels wasn't explicitly configured, and no default channels, default to AllChannels = true
+					plugin.AllChannels = true
+				}
+			}
 		}
-		Log(Info, fmt.Sprintf("Plugin \"%s\" will be active in channels %q; all channels: %t", plug, plugin.Channels, plugin.AllChannels))
+		if explicitAllowDirect && explicitDenyDirect && (plugin.AllowDirect == denyDirect) {
+			Log(Error, "Plugin '%s' has conflicting values for AllowDirect and deprecated DenyDirect, skipping", plug)
+			continue
+		}
+		if explicitDenyDirect && !explicitAllowDirect {
+			plugin.AllowDirect = !denyDirect
+		}
+		if len(plugin.Channels) > 0 {
+			Log(Info, fmt.Sprintf("Plugin '%s' will be active in channels %q", plug, plugin.Channels))
+		} else {
+			if !plugin.AllowDirect {
+				Log(Error, fmt.Sprintf("Plugin '%s' not visible in any channels or by direct message, skipping", plug))
+				r.debug(plugID, "ERROR: Plugin not visible in any channels or by direct message", false)
+				continue
+			}
+			Log(Info, fmt.Sprintf("Plugin '%s' has no channel restrictions configured; all channels: %t", plug, plugin.AllChannels))
+		}
+		Log(Info, "Loaded configuration for plugin", plug)
 		// Compile the regex's
 		for i := range plugin.CommandMatchers {
 			command := &plugin.CommandMatchers[i]
 			regex := massageRegexp(command.Regex)
 			re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
 			if err != nil {
-				Log(Error, fmt.Errorf("Skipping %s, couldn't compile command regular expression \"%s\": %v", plug, regex, err))
+				Log(Error, fmt.Errorf("Skipping %s, couldn't compile command regular expression '%s': %v", plug, regex, err))
 				continue PlugLoop
 			}
 			command.re = re
@@ -430,7 +497,7 @@ PlugLoop:
 			regex := massageRegexp(reply.Regex)
 			re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
 			if err != nil {
-				Log(Error, fmt.Errorf("Skipping %s, couldn't compile reply regular expression \"%s\": %v", plug, regex, err))
+				Log(Error, fmt.Errorf("Skipping %s, couldn't compile reply regular expression '%s': %v", plug, regex, err))
 				continue PlugLoop
 			}
 			reply.re = re
@@ -442,7 +509,7 @@ PlugLoop:
 			regex := massageRegexp(message.Regex)
 			re, err := regexp.Compile(regex)
 			if err != nil {
-				Log(Error, fmt.Errorf("Skipping %s, couldn't compile message regular expression \"%s\": %v", plug, regex, err))
+				Log(Error, fmt.Errorf("Skipping %s, couldn't compile message regular expression '%s': %v", plug, regex, err))
 				continue PlugLoop
 			}
 			message.re = re
@@ -481,7 +548,7 @@ PlugLoop:
 					Log(Error, fmt.Sprintf("Error unmarshalling plugin config json to config: %v", err))
 				}
 			} else {
-				Log(Debug, fmt.Sprintf("Plugin \"%s\" has custom config, but no local custom config provided", plug))
+				Log(Debug, fmt.Sprintf("Plugin '%s' has custom config, but no local custom config provided", plug))
 			}
 		} else {
 			Log(Debug, "config interface isn't a pointer, skipping unmarshal for plugin:", plug)
@@ -501,7 +568,7 @@ PlugLoop:
 		plugIndexByName[plugin.name] = plugIndex
 		Log(Trace, fmt.Sprintf("Mapped plugin %s to ID %s", plugin.name, plugin.pluginID))
 		// Store this plugin's config in the temporary list
-		Log(Info, fmt.Sprintf("Recorded plugin #%d, \"%s\"", plugIndex, plugin.name))
+		Log(Info, fmt.Sprintf("Recorded plugin #%d, '%s'", plugIndex, plugin.name))
 		plist = append(plist, plugin)
 		plugIndex++
 	}

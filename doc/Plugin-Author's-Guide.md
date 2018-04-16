@@ -22,7 +22,7 @@ Table of Contents
     * [Authorization Plugins](#authorization-plugins)
     * [Elevation Plugins](#elevation-plugins)
   * [Using the Terminal Connector](#using-the-terminal-connector)
-    * [Using the Plugin Debugger](#plugin-debugging)
+  * [Plugin Debugging](#plugin-debugging)
   * [Getting Started](#getting-started)
     * [Starting from a Sample Plugin](#starting-from-a-sample-plugin)
     * [Using Boilerplate Code](#using-boilerplate-code)
@@ -142,9 +142,20 @@ random: @alice Adios
 [gopherbot]$
 ```
 
-## Plugin Debugging
-**Gopherbot** has a builtin command for plugin debugging that will send information about
-a plugin in direct messages. You can see plugin debugging in action here with
+# Plugin Debugging
+
+The most common problem a plugin author has is that they send their robot a message, but
+nothing happens or the robot just says `Sorry, that didn't match any commands I know, ...`.
+This can be due to a number of issues:
+* The plugin didn't load because of configuration problems
+* The robot isn't in the channel, and doesn't hear the message
+* The plugin isn't visible because of channel, user, or other restrictions
+* The user message doesn't match a regex for the plugin
+* The plugin runs, but does nothing
+
+**Gopherbot** has a builtin command for plugin debugging that can help quickly pinpoint
+most of these problems. Turning on plugin debugging will initiate a reload, then send debugging
+information about a plugin in direct messages. If `verbose` is enabled, You can see plugin debugging in action here with
 the terminal connector:
 ```
 [gopherbot]$ ./gopherbot

@@ -138,7 +138,7 @@ func (r *Robot) loadConfig() error {
 		var sarrval []string
 		var epval []externalPlugin
 		var mailval botMailer
-		var boolval bool
+		var boolval *bool
 		var intval int
 		var val interface{}
 		skip := false
@@ -191,7 +191,12 @@ func (r *Robot) loadConfig() error {
 		case "Name":
 			newconfig.Name = *(val.(*string))
 		case "DefaultAllowDirect":
-			newconfig.DefaultAllowDirect = *(val.(*bool))
+			bptr := *(val.(**bool))
+			if bptr == nil {
+				newconfig.DefaultAllowDirect = false
+			} else {
+				newconfig.DefaultAllowDirect = *bptr
+			}
 		case "DefaultChannels":
 			newconfig.DefaultChannels = *(val.(*[]string))
 		case "IgnoreUsers":
