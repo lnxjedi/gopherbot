@@ -330,7 +330,7 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			return
 		}
 		verbose := false
-		if len(args) == 2 && args[1] == "verbose" {
+		if len(args[1]) > 0 {
 			verbose = true
 		}
 		bot.Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", pname, plugin.pluginID, verbose))
@@ -350,7 +350,7 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))
 			return
 		}
-		bot.Say(fmt.Sprintf("Debugging enabled for %s", args[0]))
+		bot.Say(fmt.Sprintf("Debugging enabled for %s (verbose: %v)", args[0], verbose))
 	case "stop":
 		plugDebug.Lock()
 		pd, ok := plugDebug.u[bot.User]

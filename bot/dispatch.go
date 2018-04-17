@@ -91,7 +91,7 @@ func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem, verboseOnly bool) (a
 	if helpSystem {
 		return true
 	}
-	r.debug(plugin.pluginID, fmt.Sprintf(nvmsg+"; channel '%s' is not on the list of allowed channels: ", r.Channel, strings.Join(plugin.Channels, ", ")), verboseOnly)
+	r.debug(plugin.pluginID, fmt.Sprintf(nvmsg+"; channel '%s' is not on the list of allowed channels: %s", r.Channel, strings.Join(plugin.Channels, ", ")), verboseOnly)
 	return false
 }
 
