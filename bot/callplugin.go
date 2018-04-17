@@ -166,7 +166,7 @@ func callPlugin(bot *Robot, plugin *Plugin, background bool, interactive bool, c
 	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\" with arguments \"%#v\"", command, plugin.name, args))
 	bot.pluginID = plugin.pluginID
 	switch plugin.pluginType {
-	case plugBuiltin, plugGo:
+	case plugGo:
 		if command != "init" {
 			emit(GoPluginRan)
 		}

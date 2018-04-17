@@ -90,14 +90,12 @@ type plugType int
 const (
 	plugGo plugType = iota
 	plugExternal
-	plugBuiltin
-	disabled // for external plugin name collisions
 )
 
 // Plugin specifies the structure of a plugin configuration - plugins should include an example / default config
 type Plugin struct {
 	name                     string          // the name of the plugin, used as a key in to the
-	pluginType               plugType        // plugGo, plugExternal, plugBuiltin - determines how commands are routed
+	pluginType               plugType        // plugGo, plugExternal - determines how commands are routed
 	pluginPath               string          // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=plugExternal only
 	Disabled                 bool            // Set true to disable the plugin
 	reason                   string          // why the plugin is disabled
@@ -213,9 +211,6 @@ func getPlugID(plug string) string {
 // Plugin configuration is initially loaded into temporary data structures,
 // then stored in the bot package under the global bot lock.
 func (r *Robot) loadPluginConfig() {
-	// pnames := make([]string, 0, 14)
-	// ptypes := make([]plugType, 0, 14)
-	// eppaths := make(map[string]string) // Paths to external plugins
 	plugIndexByID := make(map[string]int)
 	plugIndexByName := make(map[string]int)
 	plist := make([]*Plugin, 0, 14)
@@ -231,14 +226,6 @@ func (r *Robot) loadPluginConfig() {
 	robot.RUnlock() // we're done with bot data 'til the end
 
 	i := 0
-	// // builtins come first so indexes match, see loop below
-	// for _, plugname := range builtIns {
-	// 	plugin := &Plugin{name: plugname, pluginType: plugBuiltin, pluginID: getPlugID(plugname)}
-	// 	plist = append(plist, plugin)
-	// 	plugIndexByID[plugin.pluginID] = i
-	// 	plugIndexByName[plugin.name] = i
-	// 	i++
-	// }
 
 	for plugname := range pluginHandlers {
 		plugin := &Plugin{name: plugname, pluginType: plugGo, pluginID: getPlugID(plugname)}
