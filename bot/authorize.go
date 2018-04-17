@@ -42,7 +42,7 @@ func (bot *Robot) checkAuthorization(plugins []*Plugin, plugin *Plugin, command 
 	}
 	for _, authPlug := range plugins {
 		if authorizer == authPlug.name {
-			if !bot.pluginAvailable(authPlug, false) {
+			if !bot.pluginAvailable(authPlug, false, true) {
 				Log(Audit, fmt.Sprintf("Auth plugin \"%s\" not available while authenticating user \"%s\" calling command \"%s\" for plugin \"%s\" in channel \"%s\"; AuthRequire: \"%s\"", authPlug.name, bot.User, command, plugin.name, bot.Channel, plugin.AuthRequire))
 				bot.Say(configAuthError)
 				emit(AuthNoRunPlugNotAvailable)

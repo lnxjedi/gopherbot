@@ -89,8 +89,10 @@ func (h handler) IncomingMessage(channelName, userName, messageFull, connector s
 		message = messageFull
 	}
 
+	directMsg := false
 	if len(channelName) == 0 { // true for direct messages
 		isCommand = true
+		directMsg = true
 		logChannel = "(direct message)"
 	}
 
@@ -104,6 +106,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull, connector s
 		RawMsg:    raw,
 		Format:    Variable,
 		isCommand: isCommand,
+		directMsg: directMsg,
 		msg:       message,
 	}
 	Log(Trace, fmt.Sprintf("Command \"%s\" in channel \"%s\"", message, logChannel))

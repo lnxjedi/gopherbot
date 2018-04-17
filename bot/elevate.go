@@ -24,7 +24,7 @@ func (bot *Robot) elevate(plugins []*Plugin, plugin *Plugin, immediate bool) (re
 	}
 	for _, ePlug := range plugins {
 		if elevator == ePlug.name {
-			if !bot.pluginAvailable(ePlug, false) {
+			if !bot.pluginAvailable(ePlug, false, true) {
 				Log(Audit, fmt.Sprintf("Elevation plugin \"%s\" not available while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
 				bot.Say(configElevError)
 				emit(ElevNoRunNotAvailable)

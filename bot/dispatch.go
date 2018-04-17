@@ -10,28 +10,39 @@ const keepListeningDuration = 77 * time.Second
 
 // pluginAvailable checks the user and channel against the plugin's
 // configuration to determine if the message should be evaluated. Used by
-// both handleMessage and the help builtin.
-func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem bool) (available bool) {
-	defer func() {
-		if !available {
-			r.debug(plugin.pluginID, "plugin is NOT visible; try 'help dump' to view plugin settings", false)
-		}
-	}()
-	directMsg := false
-	if len(r.Channel) == 0 {
-		directMsg = true
+// both handleMessage and the help builtin. verboseOnly is set when availability
+// is being checked for ambient messages or auth/elevation plugins, to indicate
+// debugging verboseness.
+func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem, verboseOnly bool) (available bool) {
+	nvmsg := "plugin is NOT visible to user " + r.User + " in channel "
+	vmsg := "plugin is visible to user " + r.User + " in channel "
+	if r.directMsg {
+		nvmsg += "(direct message)"
+		vmsg += "(direct message)"
+	} else {
+		nvmsg += r.Channel
+		vmsg += r.Channel
 	}
-	if !directMsg && plugin.DirectOnly && !helpSystem {
-		r.debug(plugin.pluginID, "plugin is NOT visible; only available by direct message: DirectOnly is TRUE", false)
+	defer func(vmsg string) {
+		if available {
+			r.debug(plugin.pluginID, vmsg, verboseOnly)
+		}
+	}(vmsg)
+	if plugin.Disabled {
+		r.debug(plugin.pluginID, nvmsg+"; plugin is disabled, possibly due to configuration error", verboseOnly)
 		return false
 	}
-	if directMsg && !plugin.AllowDirect && !helpSystem {
-		r.debug(plugin.pluginID, "plugin is NOT visible; not available by direct message: AllowDirect is FALSE", false)
+	if !r.directMsg && plugin.DirectOnly && !helpSystem {
+		r.debug(plugin.pluginID, nvmsg+"; only available by direct message: DirectOnly is TRUE", verboseOnly)
+		return false
+	}
+	if r.directMsg && !plugin.AllowDirect && !helpSystem {
+		r.debug(plugin.pluginID, nvmsg+"; not available by direct message: AllowDirect is FALSE", verboseOnly)
 		return false
 	}
 	if plugin.DirectOnly && !plugin.AllowDirect {
 		Log(Error, fmt.Sprintf("Plugin %s has conflicting DirectOnly = true and AllowDirect = false", plugin.name))
-		r.debug(plugin.pluginID, "plugin is NOT visible; conflicting DirectOnly = true and AllowDirect = false", false)
+		r.debug(plugin.pluginID, nvmsg+"; conflicting DirectOnly = true and AllowDirect = false", verboseOnly)
 		return false
 	}
 	if plugin.RequireAdmin {
@@ -45,7 +56,7 @@ func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem bool) (available bool
 		}
 		robot.RUnlock()
 		if !isAdmin {
-			r.debug(plugin.pluginID, "plugin is NOT visible; RequireAdmin is TRUE and user isn't an Admin", false)
+			r.debug(plugin.pluginID, nvmsg+"; RequireAdmin is TRUE and user isn't an Admin", verboseOnly)
 			return false
 		}
 	}
@@ -58,10 +69,11 @@ func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem bool) (available bool
 			}
 		}
 		if !userOk {
+			r.debug(plugin.pluginID, nvmsg+"; user is not on the list of allowed users", verboseOnly)
 			return false
 		}
 	}
-	if directMsg && (plugin.AllowDirect || plugin.DirectOnly) {
+	if r.directMsg && (plugin.AllowDirect || plugin.DirectOnly) {
 		return true
 	}
 	if len(plugin.Channels) > 0 {
@@ -78,6 +90,7 @@ func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem bool) (available bool
 	if helpSystem {
 		return true
 	}
+	r.debug(plugin.pluginID, nvmsg+"; channel is not on the list of allowed channels", verboseOnly)
 	return false
 }
 
@@ -88,6 +101,8 @@ func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem bool) (available bool
 func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched bool) {
 	// un-needed, but more clear
 	commandMatched = false
+	// If we're checking messages, debugging messages require that the user requested verboseness
+	verboseOnly = !checkCommands
 	currentPlugins.RLock()
 	plugins := currentPlugins.p
 	currentPlugins.RUnlock()
@@ -95,8 +110,19 @@ func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched 
 	var matchedMatcher InputMatcher
 	var cmdArgs []string
 	for _, plugin := range plugins {
+		if checkCommands {
+			if len(plugin.CommandMatchers) == 0 {
+				bot.debug(plugin.pluginID, fmt.Sprintf("Plugin has no command matchers, skipping command check"), false)
+				return false
+			}
+		} else {
+			if len(plugin.MessageMatchers) == 0 {
+				bot.debug(plugin.pluginID, fmt.Sprintf("Plugin has no message matchers, skipping message check"), true)
+				return false
+			}
+		}
 		Log(Trace, fmt.Sprintf("Checking availability of plugin \"%s\" in channel \"%s\" for user \"%s\", active in %d channels (allchannels: %t)", plugin.name, bot.Channel, bot.User, len(plugin.Channels), plugin.AllChannels))
-		ok := bot.pluginAvailable(plugin, false)
+		ok := bot.pluginAvailable(plugin, false, verboseOnly)
 		if !ok {
 			Log(Trace, fmt.Sprintf("Plugin \"%s\" not available for user \"%s\" in channel \"%s\", doesn't meet criteria", plugin.name, bot.User, bot.Channel))
 			continue
@@ -112,16 +138,14 @@ func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched 
 			ctype = "message"
 		}
 		if len(matchers) > 0 {
-			bot.debug(plugin.pluginID, fmt.Sprintf("Checking %d %s matchers against message: \"%s\"", len(matchers), ctype, bot.msg), false)
-		} else {
-			bot.debug(plugin.pluginID, fmt.Sprintf("Plugin has no %s matchers, skipping", ctype), false)
+			bot.debug(plugin.pluginID, fmt.Sprintf("Checking %d %s matchers against message: \"%s\"", len(matchers), ctype, bot.msg), verboseOnly)
 		}
 		for _, matcher := range matchers {
 			Log(Trace, fmt.Sprintf("Checking \"%s\" against \"%s\"", bot.msg, matcher.Regex))
 			matches := matcher.re.FindAllStringSubmatch(bot.msg, -1)
 			var matched bool
 			if matches != nil {
-				bot.debug(plugin.pluginID, fmt.Sprintf("Matched regex '%s', command: %s", matcher.Regex, matcher.Command), false)
+				bot.debug(plugin.pluginID, fmt.Sprintf("Matched %s regex '%s', command: %s", ctype, matcher.Regex, matcher.Command), false)
 				matched = true
 				Log(Trace, fmt.Sprintf("Message \"%s\" matches command \"%s\"", bot.msg, matcher.Command))
 				cmdArgs = matches[0][1:]
@@ -156,7 +180,7 @@ func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched 
 					shortTermMemories.Unlock()
 				}
 			} else {
-				bot.debug(plugin.pluginID, fmt.Sprintf("Not matched: %s", matcher.Regex), false)
+				bot.debug(plugin.pluginID, fmt.Sprintf("Not matched: %s", matcher.Regex), verboseOnly)
 			}
 			if matched {
 				if commandMatched {

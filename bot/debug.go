@@ -27,13 +27,13 @@ var plugDebug = struct {
 	sync.RWMutex{},
 }
 
-// If the debug statement specifies verbose, then the user will only get the
+// If the debug statement requests verboseonly, then the user will only get the
 // message if verbose debugging was requested.
-func (r *Robot) debug(pluginID, msg string, verbose bool) {
+func (r *Robot) debug(pluginID, msg string, verboseonly bool) {
 	if len(pluginID) == 0 && len(r.User) == 0 {
 		return
 	}
-	if len(pluginID) == 0 && !verbose {
+	if len(pluginID) == 0 && !verboseonly {
 		return
 	}
 	plugDebug.RLock()
@@ -53,8 +53,11 @@ func (r *Robot) debug(pluginID, msg string, verbose bool) {
 		targetUser = upd.user
 		plugName = upd.name
 	} else {
+		if len(pluginID) > 0 && ppd.pluginID != pluginID {
+			return // should only be true for help requests, or authorization / elevation plugin actions
+		}
 		// If we look up by plugin, users don't need to match if verbose is true
-		if ppd.user != r.User && !(verbose && ppd.verbose) {
+		if ppd.user != r.User && !(verboseonly && ppd.verbose) {
 			return
 		}
 		// We know the plugin, and if users don't match it's verbose

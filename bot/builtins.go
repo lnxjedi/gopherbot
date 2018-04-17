@@ -29,11 +29,12 @@ var builtIns = []string{
 	"builtInlogging",
 }
 
-func init() {
-	RegisterPlugin("builtIndump", PluginHandler{DefaultConfig: dumpConfig, Handler: dump})
-	RegisterPlugin("builtInhelp", PluginHandler{DefaultConfig: helpConfig, Handler: help})
-	RegisterPlugin("builtInadmin", PluginHandler{DefaultConfig: adminConfig, Handler: admin})
-	RegisterPlugin("builtInlogging", PluginHandler{DefaultConfig: logConfig, Handler: logging})
+// See plugins.go for RegisterPlugin, used by 3rd-party Go plugins
+var plugHandlers = map[string]PluginHandler{
+	"builtIndump":    PluginHandler{DefaultConfig: dumpConfig, Handler: dump},
+	"builtInhelp":    PluginHandler{DefaultConfig: helpConfig, Handler: help},
+	"builtInadmin":   PluginHandler{DefaultConfig: adminConfig, Handler: admin},
+	"builtInlogging": PluginHandler{DefaultConfig: logConfig, Handler: logging},
 }
 
 /* builtin plugins, like help */
@@ -90,7 +91,7 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		plugins := currentPlugins.p
 		currentPlugins.RUnlock()
 		for _, plugin := range plugins {
-			if !bot.pluginAvailable(plugin, true) {
+			if !bot.pluginAvailable(plugin, true, true) {
 				continue
 			}
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
@@ -218,7 +219,11 @@ func dump(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	case "list":
 		plist := make([]string, 0, len(plugins))
 		for _, plugin := range plugins {
-			plist = append(plist, plugin.name)
+			ptext := plugin.name
+			if plugin.Disabled {
+				ptext += " (disabled)"
+			}
+			plist = append(plist, ptext)
 		}
 		bot.Say(fmt.Sprintf("Here are the plugins I have configured:\n%s", strings.Join(plist, ", ")))
 	}
