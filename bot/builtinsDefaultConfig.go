@@ -47,12 +47,12 @@ Help:
 - Keywords: [ "dump", "plugin" ]
   Helptext: [ "(bot), dump plugin (default) <plugname> - dump the current or default configuration for the plugin" ]
 - Keywords: [ "list", "plugin", "plugins" ]
-  Helptext: [ "(bot), list plugins" ]
+  Helptext: [ "(bot), list (disabled) plugins - list all known plugins, or list disabled plugins with the reason disabled" ]
 - Keywords: [ "dump", "robot" ]
   Helptext: [ "(bot), dump robot - dump the current configuration for the robot" ]
 CommandMatchers:
 - Command: "list"
-  Regex: '(?i:list plugins?)'
+  Regex: '(?i:list( disabled)? plugins?)'
 - Command: "plugdefault"
   Regex: '(?i:dump plugin default ([\d\w-.]+))'
 - Command: "plugin"

@@ -65,5 +65,7 @@ func (r *Robot) debug(pluginID, msg string, verboseonly bool) {
 		plugName = ppd.name
 	}
 	ts := time.Now().Format("2006/01/02 03:04:05")
-	r.SendUserMessage(targetUser, fmt.Sprintf("%s DEBUG %s: %s", ts, plugName, msg))
+	debugLog := fmt.Sprintf("%s DEBUG %s: %s", ts, plugName, msg)
+	r.SendUserMessage(targetUser, debugLog)
+	// r.Log(Debug, debugLog)
 }

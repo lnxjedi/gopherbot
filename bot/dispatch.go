@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -90,7 +91,7 @@ func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem, verboseOnly bool) (a
 	if helpSystem {
 		return true
 	}
-	r.debug(plugin.pluginID, nvmsg+"; channel is not on the list of allowed channels", verboseOnly)
+	r.debug(plugin.pluginID, fmt.Sprintf(nvmsg+"; channel '%s' is not on the list of allowed channels: ", r.Channel, strings.Join(plugin.Channels, ", ")), verboseOnly)
 	return false
 }
 
@@ -102,7 +103,7 @@ func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched 
 	// un-needed, but more clear
 	commandMatched = false
 	// If we're checking messages, debugging messages require that the user requested verboseness
-	verboseOnly = !checkCommands
+	verboseOnly := !checkCommands
 	currentPlugins.RLock()
 	plugins := currentPlugins.p
 	currentPlugins.RUnlock()
@@ -113,12 +114,12 @@ func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched 
 		if checkCommands {
 			if len(plugin.CommandMatchers) == 0 {
 				bot.debug(plugin.pluginID, fmt.Sprintf("Plugin has no command matchers, skipping command check"), false)
-				return false
+				continue
 			}
 		} else {
 			if len(plugin.MessageMatchers) == 0 {
 				bot.debug(plugin.pluginID, fmt.Sprintf("Plugin has no message matchers, skipping message check"), true)
-				return false
+				continue
 			}
 		}
 		Log(Trace, fmt.Sprintf("Checking availability of plugin \"%s\" in channel \"%s\" for user \"%s\", active in %d channels (allchannels: %t)", plugin.name, bot.Channel, bot.User, len(plugin.Channels), plugin.AllChannels))

@@ -22,19 +22,18 @@ const qrsize = 400
 
 // If this list doesn't match what's registered below,
 // you're gonna have a bad time.
-var builtIns = []string{
-	"builtInhelp",
-	"builtInadmin",
-	"builtIndump",
-	"builtInlogging",
-}
+// var builtIns = []string{
+// 	"builtInhelp",
+// 	"builtInadmin",
+// 	"builtIndump",
+// 	"builtInlogging",
+// }
 
-// See plugins.go for RegisterPlugin, used by 3rd-party Go plugins
-var plugHandlers = map[string]PluginHandler{
-	"builtIndump":    PluginHandler{DefaultConfig: dumpConfig, Handler: dump},
-	"builtInhelp":    PluginHandler{DefaultConfig: helpConfig, Handler: help},
-	"builtInadmin":   PluginHandler{DefaultConfig: adminConfig, Handler: admin},
-	"builtInlogging": PluginHandler{DefaultConfig: logConfig, Handler: logging},
+func init() {
+	RegisterPlugin("builtIndump", PluginHandler{DefaultConfig: dumpConfig, Handler: dump})
+	RegisterPlugin("builtInhelp", PluginHandler{DefaultConfig: helpConfig, Handler: help})
+	RegisterPlugin("builtInadmin", PluginHandler{DefaultConfig: adminConfig, Handler: admin})
+	RegisterPlugin("builtInlogging", PluginHandler{DefaultConfig: logConfig, Handler: logging})
 }
 
 /* builtin plugins, like help */
@@ -217,15 +216,34 @@ func dump(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			bot.Say("Didn't find a plugin named " + args[0])
 		}
 	case "list":
+		joiner := ", "
+		message := "Here are the plugins I have configured:\n%s"
+		wantDisabled := false
+		if len(args[0]) > 0 {
+			wantDisabled = true
+			joiner = "\n"
+			message = "Here's a list of all disabled plugins:\n%s"
+		}
 		plist := make([]string, 0, len(plugins))
 		for _, plugin := range plugins {
 			ptext := plugin.name
-			if plugin.Disabled {
-				ptext += " (disabled)"
+			if wantDisabled {
+				if plugin.Disabled {
+					ptext += "; reason: " + plugin.reason
+					plist = append(plist, ptext)
+				}
+			} else {
+				if plugin.Disabled {
+					ptext += " (disabled)"
+				}
+				plist = append(plist, ptext)
 			}
-			plist = append(plist, ptext)
 		}
-		bot.Say(fmt.Sprintf("Here are the plugins I have configured:\n%s", strings.Join(plist, ", ")))
+		if len(plist) > 0 {
+			bot.Say(fmt.Sprintf(message, strings.Join(plist, joiner)))
+		} else { // note because of builtin plugins, plist is ALWAYS > 0 if disabled wasn't specified
+			bot.Say("There are no disabled plugins")
+		}
 	}
 	return
 }
@@ -291,26 +309,39 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
 	case "debug":
-		plugNameIDmap.Lock()
-		p, found := plugNameIDmap.m[args[0]]
-		plugNameIDmap.Unlock()
+		pname := args[0]
+		if !pNameRe.MatchString(pname) {
+			bot.Say(fmt.Sprintf("Invalid plugin name '%s', doesn't match regexp: '%s' (plugin can't load)", pname, pNameRe.String()))
+			return
+		}
+		var plugin *Plugin
+		currentPlugins.RLock()
+		i, found := currentPlugins.nameMap[pname]
+		if found {
+			plugin = currentPlugins.p[i]
+		}
+		currentPlugins.RUnlock()
 		if !found {
 			bot.Say("I don't have any plugins with that name configured")
+			return
+		}
+		if plugin.Disabled {
+			bot.Say(fmt.Sprintf("That plugin is disabled; reason: %s", plugin.reason))
 			return
 		}
 		verbose := false
 		if len(args) == 2 && args[1] == "verbose" {
 			verbose = true
 		}
-		bot.Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", args[0], p, verbose))
+		bot.Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", pname, plugin.pluginID, verbose))
 		pd := &debuggingPlug{
-			pluginID: p,
-			name:     args[0],
+			pluginID: plugin.pluginID,
+			name:     pname,
 			user:     bot.User,
 			verbose:  verbose,
 		}
 		plugDebug.Lock()
-		plugDebug.p[p] = pd
+		plugDebug.p[plugin.pluginID] = pd
 		plugDebug.u[bot.User] = pd
 		plugDebug.Unlock()
 		err := bot.loadConfig()
