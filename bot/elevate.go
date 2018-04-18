@@ -13,7 +13,7 @@ func (bot *Robot) elevate(plugins []*Plugin, plugin *Plugin, immediate bool) (re
 	defaultElevator := robot.defaultElevator
 	robot.RUnlock()
 	if plugin.Elevator == "" && defaultElevator == "" {
-		Log(Audit, fmt.Sprintf("Plugin \"%s\" requires elevation, but no elevator configured", plugin.name))
+		Log(Audit, fmt.Sprintf("Plugin '%s' requires elevation, but no elevator configured", plugin.name))
 		bot.Say(configElevError)
 		emit(ElevNoRunMisconfigured)
 		return ConfigurationError
@@ -30,34 +30,34 @@ func (bot *Robot) elevate(plugins []*Plugin, plugin *Plugin, immediate bool) (re
 		}
 		elevRet := callPlugin(bot, ePlug, false, false, "elevate", immedString)
 		if elevRet == Success {
-			Log(Audit, fmt.Sprintf("Elevation succeeded by elevator \"%s\", user \"%s\", plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
+			Log(Audit, fmt.Sprintf("Elevation succeeded by elevator '%s', user '%s', plugin '%s' in channel '%s'", ePlug.name, bot.User, plugin.name, bot.Channel))
 			emit(ElevRanSuccess)
 			return Success
 		}
 		if elevRet == Fail {
-			Log(Audit, fmt.Sprintf("Elevation FAILED by elevator \"%s\", user \"%s\", plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
+			Log(Audit, fmt.Sprintf("Elevation FAILED by elevator '%s', user '%s', plugin '%s' in channel '%s'", ePlug.name, bot.User, plugin.name, bot.Channel))
 			bot.Say("Sorry, this command requires elevation")
 			emit(ElevRanFail)
 			return Fail
 		}
 		if elevRet == MechanismFail {
-			Log(Audit, fmt.Sprintf("Elevator plugin \"%s\" mechanism failure while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
+			Log(Audit, fmt.Sprintf("Elevator plugin '%s' mechanism failure while elevating user '%s' for plugin '%s' in channel '%s'", ePlug.name, bot.User, plugin.name, bot.Channel))
 			bot.Say(technicalElevError)
 			emit(ElevRanMechanismFailed)
 			return MechanismFail
 		}
 		if elevRet == Normal {
-			Log(Audit, fmt.Sprintf("Elevator plugin \"%s\" returned 'Normal' (0) instead of 'Success' (1), failing elevation in \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, bot.User, plugin.name, bot.Channel))
+			Log(Audit, fmt.Sprintf("Elevator plugin '%s' returned 'Normal' (0) instead of 'Success' (1), failing elevation in '%s' for plugin '%s' in channel '%s'", ePlug.name, bot.User, plugin.name, bot.Channel))
 			bot.Say(technicalElevError)
 			emit(ElevRanFailNormal)
 			return MechanismFail
 		}
-		Log(Audit, fmt.Sprintf("Elevator plugin \"%s\" exit code %d while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", ePlug.name, retval, bot.User, plugin.name, bot.Channel))
+		Log(Audit, fmt.Sprintf("Elevator plugin '%s' exit code %d while elevating user '%s' for plugin '%s' in channel '%s'", ePlug.name, retval, bot.User, plugin.name, bot.Channel))
 		bot.Say(technicalElevError)
 		emit(ElevRanFailOther)
 		return MechanismFail
 	}
-	Log(Audit, fmt.Sprintf("Elevator plugin \"%s\" not found while elevating user \"%s\" for plugin \"%s\" in channel \"%s\"", plugin.Elevator, bot.User, plugin.name, bot.Channel))
+	Log(Audit, fmt.Sprintf("Elevator plugin '%s' not found while elevating user '%s' for plugin '%s' in channel '%s'", plugin.Elevator, bot.User, plugin.name, bot.Channel))
 	bot.Say(technicalElevError)
 	emit(ElevNoRunNotFound)
 	return ConfigurationError
@@ -91,6 +91,6 @@ func (bot *Robot) checkElevation(plugins []*Plugin, plugin *Plugin, command stri
 	if retval == Success {
 		return Success
 	}
-	Log(Error, fmt.Sprintf("Elevation failed for plugin \"%s\", command: \"%s\"", plugin.name, command))
+	Log(Error, fmt.Sprintf("Elevation failed for plugin '%s', command: '%s'", plugin.name, command))
 	return Fail
 }

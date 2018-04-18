@@ -137,8 +137,14 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 	return &cfg, nil
 }
 
-// callPlugin (normally called with go ...) sends a command to a plugin.
+// callPlugin does the real work of running a plugin with a command and arguments.
 func callPlugin(bot *Robot, plugin *Plugin, background bool, interactive bool, command string, args ...string) (retval PlugRetVal) {
+	if plugin.Disabled {
+		msg := fmt.Sprintf("Call plugin failed on disabled plugin %s; reason: %s", plugin.name, plugin.reason)
+		bot.Log(Error, msg)
+		bot.debug(bot.pluginID, msg, false)
+		return ConfigurationError
+	}
 	if background {
 		robot.Add(1)
 		robot.Lock()
