@@ -342,7 +342,7 @@ PlugLoop:
 
 		for key, value := range pcfgload {
 			var strval string
-			var boolval *bool
+			var boolval bool
 			var sarrval []string
 			var hval []PluginHelp
 			var mval []InputMatcher
@@ -383,46 +383,20 @@ PlugLoop:
 
 			switch key {
 			case "AllowDirect":
-				bptr := *(val.(**bool))
-				if bptr == nil {
-					plugin.AllowDirect = defaultAllowDirect
-				} else { // always honor explicit values, default when not specified given above
-					explicitAllowDirect = true
-					plugin.AllowDirect = *bptr
-				}
+				plugin.AllowDirect = *(val.(*bool))
+				explicitAllowDirect = true
 			case "DirectOnly":
-				bptr := *(val.(**bool))
-				if bptr == nil {
-					plugin.DirectOnly = false
-				} else {
-					plugin.DirectOnly = *bptr
-				}
+				plugin.DirectOnly = *(val.(*bool))
 			case "DenyDirect":
-				bptr := *(val.(**bool))
-				if bptr == nil {
-					denyDirect = false
-				} else {
-					r.Log(Warn, "Plugin '%s' uses deprecated 'DenyDirect'; use 'AllowDirect' instead")
-					explicitDenyDirect = true
-					denyDirect = *bptr
-				}
+				denyDirect = *(val.(*bool))
+				explicitDenyDirect = true
 			case "Channels":
 				plugin.Channels = *(val.(*[]string))
 			case "AllChannels":
-				bptr := *(val.(**bool))
-				if bptr == nil {
-					plugin.AllChannels = false
-				} else {
-					explicitAllChannels = true
-					plugin.AllChannels = *bptr
-				}
+				plugin.AllChannels = *(val.(*bool))
+				explicitAllChannels = true
 			case "RequireAdmin":
-				bptr := *(val.(**bool))
-				if bptr == nil {
-					plugin.RequireAdmin = false
-				} else {
-					plugin.RequireAdmin = *bptr
-				}
+				plugin.RequireAdmin = *(val.(*bool))
 			case "AdminCommands":
 				plugin.AdminCommands = *(val.(*[]string))
 			case "Elevator":
@@ -442,12 +416,7 @@ PlugLoop:
 			case "AuthorizedCommands":
 				plugin.AuthorizedCommands = *(val.(*[]string))
 			case "AuthorizeAllCommands":
-				bptr := *(val.(**bool))
-				if bptr == nil {
-					plugin.AuthorizeAllCommands = false
-				} else {
-					plugin.AuthorizeAllCommands = *bptr
-				}
+				plugin.AuthorizeAllCommands = *(val.(*bool))
 			case "Help":
 				plugin.Help = *(val.(*[]PluginHelp))
 			case "CommandMatchers":
@@ -457,12 +426,7 @@ PlugLoop:
 			case "MessageMatchers":
 				plugin.MessageMatchers = *(val.(*[]InputMatcher))
 			case "CatchAll":
-				bptr := *(val.(**bool))
-				if bptr == nil {
-					plugin.CatchAll = false
-				} else {
-					plugin.CatchAll = *bptr
-				}
+				plugin.CatchAll = *(val.(*bool))
 			case "Config":
 				plugin.Config = value
 			}
@@ -498,7 +462,13 @@ PlugLoop:
 		}
 
 		if explicitDenyDirect && !explicitAllowDirect {
+			Log(Debug, "Deprecated DenyDirect specified without AllowDirect; setting AllowDirect = !DenyDirect")
 			plugin.AllowDirect = !denyDirect
+			explicitAllowDirect = true
+		}
+		
+		if !explicitAllowDirect {
+			plugin.AllowDirect = defaultAllowDirect
 		}
 
 		// Use bot default plugin channels if none defined, unless AllChannels requested.

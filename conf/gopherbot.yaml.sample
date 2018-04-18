@@ -30,6 +30,10 @@
 ## defaults to no channels.
 #DefaultChannels: [ "general", "random" ]
 
+## Whether plugins are available by direct message by default if not specified;
+## defaults to true.
+#DefaultAllowDirect: true
+
 ## Users the bot should never listen to
 #IgnoreUsers: [ "otherbot", "slackbot" ]
 

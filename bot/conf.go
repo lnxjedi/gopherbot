@@ -126,13 +126,14 @@ func (r *Robot) loadConfig() error {
 	if err := r.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
 	}
+	explicitDefaultAllowDirect := false
 
 	for key, value := range configload {
 		var strval string
 		var sarrval []string
 		var epval []externalPlugin
 		var mailval botMailer
-		var boolval *bool
+		var boolval bool
 		var intval int
 		var val interface{}
 		skip := false
@@ -185,12 +186,8 @@ func (r *Robot) loadConfig() error {
 		case "Name":
 			newconfig.Name = *(val.(*string))
 		case "DefaultAllowDirect":
-			bptr := *(val.(**bool))
-			if bptr == nil {
-				newconfig.DefaultAllowDirect = false
-			} else {
-				newconfig.DefaultAllowDirect = *bptr
-			}
+			newconfig.DefaultAllowDirect = *(val.(*bool))
+			explicitDefaultAllowDirect = true
 		case "DefaultChannels":
 			newconfig.DefaultChannels = *(val.(*[]string))
 		case "IgnoreUsers":
@@ -232,10 +229,16 @@ func (r *Robot) loadConfig() error {
 		protocolConfig = newconfig.ProtocolConfig
 	}
 
-	robot.defaultAllowDirect = newconfig.DefaultAllowDirect // defaults to false
+	if explicitDefaultAllowDirect {
+		robot.defaultAllowDirect = newconfig.DefaultAllowDirect
+	} else {
+		robot.defaultAllowDirect = true // rare case of defaulting to true
+	}
+
 	if newconfig.AdminContact != "" {
 		robot.adminContact = newconfig.AdminContact
 	}
+
 	if newconfig.Email != "" {
 		robot.email = newconfig.Email
 	}

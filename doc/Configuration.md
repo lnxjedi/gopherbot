@@ -19,7 +19,7 @@ Table of Contents
   * [Plugin Configuration](#plugin-configuration)
     * [Plugin Configuration Directives](#plugin-configuration-directives)
       * [Disabled](#disabled)
-      * [AllowDirect, DenyDirect, DirectOnly, Channels and AllChannels](#allowdirect-denydirect-directonly-channels-and-allchannels)
+      * [AllowDirect, DirectOnly, Channels and AllChannels](#allowdirect-directonly-channels-and-allchannels)
       * [CatchAll](#catchall)
       * [Users, RequireAdmin, AdminCommands](#users-requireadmin-admincommands)
       * [AuthorizedCommands, AuthorizeAllCommands, Authorizer and AuthRequire](#authorizedcommands-authorizeallcommands-authorizer-and-authrequire)
@@ -131,11 +131,11 @@ Individual plugins may be configured to require command authorization or elevati
 ### DefaultAllowDirect, DefaultChannels and JoinChannels
 
 ```yaml
-DefaultAllowDirect: true
+DefaultAllowDirect: true # default
 DefaultChannels: [ 'general', 'random' ]
 JoinChannels: [ 'security', 'infrastructure', 'lunch' ]
 ```
-DefaultAllowDirect sets a robot-wide default value for AllowDirect, indicating whether a plugin's commands are accessible via direct message. DefaultChannels specify which channels a plugin will be active in if the plugin doesn't explicitly list it's channels. JoinChannels specify the channels the robot will try to join when logging in (though this isn't supported in the Slack connector).
+DefaultAllowDirect sets a robot-wide default value for AllowDirect, indicating whether a plugin's commands are accessible via direct message; `true` if not otherwise specified. DefaultChannels specify which channels a plugin will be active in if the plugin doesn't explicitly list it's channels. JoinChannels specify the channels the robot will try to join when logging in (though this isn't supported in the Slack connector).
 
 ### ExternalPlugins
 
@@ -176,11 +176,10 @@ Disabled: true
 ```
 Useful for disabling compiled-in Go plugins.
 
-### AllowDirect, DenyDirect, DirectOnly, Channels and AllChannels
+### AllowDirect, DirectOnly, Channels and AllChannels
 
 ```yaml
-AllowDirect: false  # default
-DenyDirect: true    # default false, used when global DefaultAllowDirect = true
+AllowDirect: false  # only needed for overriding global DefaultAllowDirect
 DirectOnly: true    # default false
 ```
 ```yaml
@@ -191,7 +190,7 @@ Channels:
 ```yaml
 AllChannels: true
 ```
-`AllowDirect` and `DenyDirect` interact with the global value of `DefaultAllowDirect` to determine if a plugin is available via direct message. Plugin-level directives override the global setting, and `DenyDirect` overrides `AllowDirect` (if both are mistakenly set). DirectOnly indicates the plugin is ONLY available by direct message (private chat). To specify the channels a plugin is available in, you can list the channels explicitly or set `AllChannels` to true. If neither is specified, the plugin falls back to the robot's configured `DefaultChannels`.
+`AllowDirect` determines if a plugin is available via direct message, and is only needed to override the global value for `DefaultAllowDirect`. DirectOnly indicates the plugin is ONLY available by direct message (private chat), normally for security-sensitive commands. To specify the channels a plugin is available in, you can list the channels explicitly or set `AllChannels` to true. If neither is specified, the plugin falls back to the robot's configured `DefaultChannels`.
 
 ### CatchAll
 

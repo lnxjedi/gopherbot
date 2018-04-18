@@ -24,7 +24,7 @@ Help:
 - Keywords: [ "abort" ]
   Helptext: [ "(bot), abort - request an immediate shutdown without waiting for plugins to finish" ]
 - Keywords: [ "debug" ]
-  Helptext: [ "(bot), debug plugin <pluginname> - turn on debugging for the named plugin" ]
+  Helptext: [ "(bot), debug plugin <pluginname> (verbose) - turn on debugging for the named plugin, optionally verbose" ]
 - Keywords: [ "debug" ]
   Helptext: [ "(bot), stop debugging - turn off debugging" ]
 CommandMatchers:

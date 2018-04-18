@@ -153,6 +153,10 @@ func TestBotName(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
+		{alice, null, "ping, bender", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, ";ping", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, "bender ping", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, "ping", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
 		{alice, general, "ping, bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
 		{alice, general, ";ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
 		{alice, general, "bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
