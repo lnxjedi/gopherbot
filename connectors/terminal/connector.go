@@ -80,8 +80,8 @@ loop:
 					tc.Lock()
 					if newchan == "" {
 						tc.currentChannel = ""
-						tc.reader.Write([]byte("Changed current channel to: direct message\n"))
 						tc.reader.SetPrompt(fmt.Sprintf("c:(direct)/u:%s -> ", tc.currentUser))
+						tc.reader.Write([]byte("Changed current channel to: direct message\n"))
 					} else {
 						for _, ch := range tc.channels {
 							if ch == newchan {
@@ -90,9 +90,9 @@ loop:
 							}
 						}
 						if exists {
-							tc.reader.Write([]byte(fmt.Sprintf("Changed current channel to: %s\n", newchan)))
 							tc.currentChannel = newchan
 							tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentChannel, tc.currentUser))
+							tc.reader.Write([]byte(fmt.Sprintf("Changed current channel to: %s\n", newchan)))
 						} else {
 							tc.reader.Write([]byte("Invalid channel\n"))
 						}
@@ -112,8 +112,8 @@ loop:
 						}
 						if exists {
 							tc.currentUser = newuser
-							tc.reader.Write([]byte(fmt.Sprintf("Changed current user to: %s\n", newuser)))
 							tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentUser, tc.currentChannel))
+							tc.reader.Write([]byte(fmt.Sprintf("Changed current user to: %s\n", newuser)))
 						} else {
 							tc.reader.Write([]byte("Invalid user\n"))
 						}
