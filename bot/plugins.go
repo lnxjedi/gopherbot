@@ -298,7 +298,7 @@ PlugLoop:
 		} else {
 			if err := yaml.Unmarshal([]byte(pluginHandlers[plugin.name].DefaultConfig), &pcfgload); err != nil {
 				msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
-				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', skipping: %v", plugin.name, err))
+				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", plugin.name, err))
 				r.debug(plugin.pluginID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
