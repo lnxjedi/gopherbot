@@ -9,7 +9,7 @@ If you have a Go environment set up on your machine, you can can `go get github.
 
 # Production Installation of Gopherbot with systemd
 
-Note that strictly speaking, the local configuration directory is optional, but recommended for separating credentials from code in a production deployment.
+Note that strictly speaking, the configuration directory is optional, but recommended for separating credentials from code in a production deployment.
 
 As `root`:
 

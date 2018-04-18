@@ -13,10 +13,10 @@
 ##   Ansible or Puppet, using information specific to the server instance (e.g.
 ##   dev / prod servers).
 ## - A copy of this file should be placed in
-##   <local config dir>/conf/gopherbot.yaml, specifying plugin names and paths,
+##   <config dir>/conf/gopherbot.yaml, specifying plugin names and paths,
 ##   and any configuration such as AdminUsers, AdminContact, etc. that is
 ##   common to dev / prod robot instances. Together with locally-developed
-##   plugins in the plugins/ directory, the local config directory would normally
+##   plugins in the plugins/ directory, the config directory would normally
 ##   be stored in a git repository.
 
 ## Note that the above are just guidelines and not hard-and-fast rules, but
@@ -59,7 +59,7 @@ LocalPort: 8880
 LogLevel: info
 
 ## List of external plugins to enable; generally scripts using a gopherbot
-## script library. The robot will look for plugins in the local config directory
+## script library. The robot will look for plugins in the config directory
 ## first (if it exists), then the installation directory.
 #ExternalPlugins:
 #- Name: weather
@@ -147,7 +147,7 @@ LogLevel: info
 
 ## Specify the mechanism for storing the robots memories. Currently only a
 ## simple file-based brain is available for long-term memories. Be sure that
-## '/brain' in the local config or install dir is writable by the user the robot
+## '/brain' in the config or install dir is writable by the user the robot
 ## runs as.
 Brain: file
 BrainConfig:

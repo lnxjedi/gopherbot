@@ -56,7 +56,7 @@ func Start() {
 
 	// Process command-line flags
 	var configPath string
-	cusage := "path to the local configuration directory"
+	cusage := "path to the optional configuration directory"
 	flag.StringVar(&configPath, "config", "", cusage)
 	flag.StringVar(&configPath, "c", "", cusage+" (shorthand)")
 	var logFile string
@@ -143,7 +143,7 @@ func Start() {
 		}
 	}
 	if len(configpath) == 0 {
-		botLogger.Println("Couldn't locate local configuration directory, using installed configuration")
+		botLogger.Println("Couldn't locate configuration directory, using installed configuration")
 	}
 
 	// Create the 'bot and load configuration, supplying configpath and installpath.
@@ -156,7 +156,7 @@ func Start() {
 		os.Setenv("GOPHER_CONFIGDIR", configpath)
 		lp = configpath
 	}
-	botLogger.Printf("Starting up with local config dir: %s, and install dir: %s\n", lp, installpath)
+	botLogger.Printf("Starting up with config dir: %s, and install dir: %s\n", lp, installpath)
 	initBot(configpath, installpath, botLogger)
 
 	initializeConnector, ok := connectors[robot.protocol]

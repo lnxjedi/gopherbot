@@ -35,7 +35,7 @@ Table of Contents
   * [The Plugin API](#the-plugin-api)
 
 # Plugin Loading and Precedence
-Gopherbot ships with a number of external script plugins in the `install` directory. These can be overridden by placing a plugin with the same filename in the local configuration directory.
+Gopherbot ships with a number of external script plugins in the `install` directory. These can be overridden by placing a plugin with the same filename in the optional configuration directory.
 
 # Default Configuration
 Plugin configuration is fully documented in the [configuration](Configuration.md) article; you should be familiar with that document before beginning to write your own plugins.
@@ -127,7 +127,7 @@ by using the `-c <configpath>` option:
 ```
 [gopherbot]$ ./gopherbot -c cfg/term/
 2018/04/13 18:07:52 Initialized logging ...
-2018/04/13 18:07:52 Starting up with local config dir: cfg/term/, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
+2018/04/13 18:07:52 Starting up with config dir: cfg/term/, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
 2018/04/13 18:07:52 Debug: Loaded installed conf/gopherbot.yaml
 2018/04/13 18:07:52 Debug: Loaded configured conf/gopherbot.yaml
 Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
@@ -168,7 +168,7 @@ You can see an example of plugin debugging here with the terminal connector:
 ```
 [gopherbot]$ ./gopherbot
 2018/04/18 15:43:01 Initialized logging ...
-2018/04/18 15:43:01 Starting up with local config dir: /home/user/.gopherbot, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
+2018/04/18 15:43:01 Starting up with config dir: /home/user/.gopherbot, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
 2018/04/18 15:43:01 Debug: Loaded installed conf/gopherbot.yaml
 2018/04/18 15:43:01 Debug: Loaded configured conf/gopherbot.yaml
 Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user

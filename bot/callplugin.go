@@ -63,7 +63,7 @@ func getPluginPath(plugin *Plugin) (string, error) {
 		_, err := os.Stat(configPath + "/" + plugin.pluginPath)
 		if err == nil {
 			fullPath = configPath + "/" + plugin.pluginPath
-			Log(Debug, "Using local external plugin:", fullPath)
+			Log(Debug, "Using external plugin from configPath:", fullPath)
 			return fullPath, nil
 		}
 	}

@@ -127,7 +127,7 @@ type Plugin struct {
 // PluginHandler is the struct a plugin registers for the Gopherbot plugin API.
 type PluginHandler struct {
 	DefaultConfig string /* A yaml-formatted multiline string defining the default Plugin configuration. It should be liberally commented for use in generating
-	local/custom configuration for the plugin. If a Config: section is defined, it should match the structure of the optional Config interface{} */
+	custom configuration for the plugin. If a Config: section is defined, it should match the structure of the optional Config interface{} */
 	Handler func(bot *Robot, command string, args ...string) PlugRetVal // The callback function called by the robot whenever a Command is matched
 	Config  interface{}                                                 // An optional empty struct defining custom configuration for the plugin
 }

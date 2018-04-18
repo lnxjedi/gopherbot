@@ -4,7 +4,7 @@ Table of Contents
 =================
 
   * [Configuration Directories and Configuration File Precedence](#configuration-directories-and-configuration-file-precedence)
-    * [Specifying Local Config](#specifying-local-config)
+    * [Specifying Config](#specifying-config)
   * [Primary Configuration File \- gopherbot\.yaml](#primary-configuration-file---gopherbotyaml)
     * [Configuration Directives](#configuration-directives)
       * [AdminContact, Name and Alias](#admincontact-name-and-alias)
@@ -35,17 +35,17 @@ Gopherbot's configuration file loading is designed for automated deployments wit
 
 Credentials and other per-robot variables would normally be configured in the **install
 directory**, and plugins, additional libraries, and common configuration would reside in an
-optional **local config directory**, which is likely a git repository. A standard Linux
+optional **config directory**, which is likely a git repository. A standard Linux
 install with a configuration management tool would unzip the archive in `/opt/gopherbot` and
-set e.g. the Slack Token in `/opt/gopherbot/conf/gopherbot.yaml`. Local configuration might
+set e.g. the Slack Token in `/opt/gopherbot/conf/gopherbot.yaml`. Configuration might
 be in `/usr/local/etc/gopherbot`, and external plugins to load would be defined in
 `/usr/local/etc/gopherbot/conf/gopherbot.yaml`. On Windows, the install directory would
 normally be `C:\Program Files\Gopherbot`, and the configuration directory would be in
-`C:\ProgramData\gopherbot`.
+`C:\ProgramData\Gopherbot`.
 
-## Specifying Local Config
+## Specifying Config
 
-On startup, **Gopherbot** will search for a local configuration directory in the following order:
+On startup, **Gopherbot** will search for a configuration directory in the following order:
 * A directory specified on the command line with `-c <dir>` or `--config <dir>`
 * A platform-specific search path:
    * Linux/MacOS:
@@ -58,7 +58,7 @@ On startup, **Gopherbot** will search for a local configuration directory in the
 
 # Primary Configuration File - gopherbot.yaml
 
-The robot's core configuration is obtained by simply loading `conf/gopherbot.yaml` from the **install directory** first, then the **local config directory** (if set), overwriting top-level items in the process.
+The robot's core configuration is obtained by simply loading `conf/gopherbot.yaml` from the **install directory** first, then the **config directory** (if set), overwriting top-level items in the process.
 
 ## Configuration Directives
 Note that some of this information is also available in the comments of the distributed `conf/gopherbot.yaml.sample`.
@@ -109,7 +109,8 @@ BrainConfig:
   BrainDirectory: brain
 ```
 Gopherbot ships with a simple file-based brain, with pluggable support for creating e.g. a redis based brain.
-The BrainDirectory can be given as an absolute path or as a sub-directory of the local config directory.
+The BrainDirectory can be given as an absolute path or as a sub-directory of the config directory (or install
+directory if no config directory is set).
 
 ### AdminUsers and IgnoreUsers
 
@@ -163,7 +164,7 @@ port to use is configured with `LocalPort`. `LogLevel` specifies the initial log
 Gopherbot plugins are highly configurable with respect to visibility of plugins for various users and channels. In addition to providing a level of security, this can be very useful in large environments with many robots running many plugins, if only to keep the 'help' output to a minimum. The administrator can also configure **Authorization** and **Elevation** to further restrict sensitive commands. Additionally, help text and command routing is configured in yaml, allowing the administrator to e.g. provide synonyms for existing commands.
 
 Plugins are configured by reading yaml from **three** locations, with top-level items from each successive read overriding the previous:
-1. The default configuration is obtained from the plugin itself during plugin load, by calling the plugin with `configure` as the first argument; the robot looks for the plugin in the **local config directory** first (if present), then the **install directory**, getting the default configuration from the first found only.
+1. The default configuration is obtained from the plugin itself during plugin load, by calling the plugin with `configure` as the first argument; the robot looks for the plugin in the **config directory** first (if present), then the **install directory**, getting the default configuration from the first found only.
 2. Configuration is then loaded from `<install dir>/conf/plugins/<pluginname>.yaml`; this is where you might configure e.g. credentials required for a given plugin.
 3. Finally, if a configuration directory is supplied, configuration is loaded from `<config dir>/conf/plugins/<pluginname>.yaml`; this is where you would likely configure a plugin's channels and security-related configuration (allowed users, authorization, etc.)
 

@@ -41,7 +41,7 @@ type Handler interface {
 	GetLogToFile() bool
 	// GetInstallPath returns the installation path of the gopherbot
 	GetInstallPath() string
-	// GetConfigPath returns the path to the local config of the gopherbot
+	// GetConfigPath returns the path to the config directory if set
 	GetConfigPath() string
 	// Log provides a standard logging interface with a level as defined in
 	// bot/logging.go

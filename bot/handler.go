@@ -32,7 +32,7 @@ func (h handler) GetInstallPath() string {
 }
 
 // GetConfigPath gets the path to the bot's (supposedly writable) configuration
-// directory. This is the local config path if specified, otherwise the install
+// directory. This is the config path if specified, otherwise the install
 // directory.
 func (h handler) GetConfigPath() string {
 	robot.RLock()
