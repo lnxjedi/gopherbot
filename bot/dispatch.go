@@ -41,11 +41,6 @@ func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem, verboseOnly bool) (a
 		r.debug(plugin.pluginID, nvmsg+"; not available by direct message: AllowDirect is FALSE", verboseOnly)
 		return false
 	}
-	if plugin.DirectOnly && !plugin.AllowDirect {
-		Log(Error, fmt.Sprintf("Plugin %s has conflicting DirectOnly = true and AllowDirect = false", plugin.name))
-		r.debug(plugin.pluginID, nvmsg+"; conflicting DirectOnly = true and AllowDirect = false", verboseOnly)
-		return false
-	}
 	if plugin.RequireAdmin {
 		isAdmin := false
 		robot.RLock()
