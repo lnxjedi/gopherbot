@@ -314,14 +314,8 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			bot.Say(fmt.Sprintf("Invalid plugin name '%s', doesn't match regexp: '%s' (plugin can't load)", pname, pNameRe.String()))
 			return
 		}
-		var plugin *Plugin
-		currentPlugins.RLock()
-		i, found := currentPlugins.nameMap[pname]
-		if found {
-			plugin = currentPlugins.p[i]
-		}
-		currentPlugins.RUnlock()
-		if !found {
+		plugin := currentPlugins.getPluginByName(pname)
+		if plugin == nil {
 			bot.Say("I don't have any plugins with that name configured")
 			return
 		}
