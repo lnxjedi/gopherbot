@@ -16,6 +16,8 @@ ExternalPlugins:
   Path: plugins/echo.sh
 - Name: test
   Path: plugins/test.sh
+- Name: hello
+  Path: plugins/hello.sh
 
 Protocol: term
 ProtocolConfig:

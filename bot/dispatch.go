@@ -341,13 +341,12 @@ func (bot *Robot) handleMessage() {
 	}
 	// Direct commands were checked above; if a direct command didn't match,
 	// and a there wasn't a reply being waited on, then we check ambient
-	// MessageMatchers if it wasn't a direct command. Note that ambient
-	// commands never match in a DM.
-	if !commandMatched && !waitingForReply && !bot.isCommand {
+	// MessageMatchers if it wasn't a direct command (or if it was a DM).
+	if !commandMatched && !waitingForReply && (!bot.isCommand || bot.directMsg) {
 		// check for ambient message matches
 		commandMatched = bot.checkPluginMatchersAndRun(false)
 	}
-	if bot.isCommand && !commandMatched { // the robot was spoken too, but nothing matched - call catchAlls
+	if bot.isCommand && !commandMatched { // the robot was spoken to, but nothing matched - call catchAlls
 		robot.RLock()
 		if !robot.shuttingDown {
 			robot.RUnlock()

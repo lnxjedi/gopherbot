@@ -186,6 +186,18 @@ func TestReload(t *testing.T) {
 	teardown(t, done, conn)
 }
 
+func TestMessageMatch(t *testing.T) {
+	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+
+	tests := []testItem{
+		{alice, general, "hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientPluginRan, ScriptPluginRan}, 0},
+		{alice, null, "hello robot", []testc.TestMessage{{alice, null, "Hello, World!"}}, []Event{BotDirectMessage, AmbientPluginRan, ScriptPluginRan}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
 func TestVisibility(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
 
