@@ -22,7 +22,9 @@ Table of Contents
     * [Authorization Plugins](#authorization-plugins)
     * [Elevation Plugins](#elevation-plugins)
   * [Using the Terminal Connector](#using-the-terminal-connector)
-    * [Using the Plugin Debugger](#plugin-debugging)
+  * [Plugin Debugging](#plugin-debugging)
+    * [Debug Plugin Command](#debug-plugin-command)
+    * [Dump Plugin Command](#dump-plugin-command)
   * [Getting Started](#getting-started)
     * [Starting from a Sample Plugin](#starting-from-a-sample-plugin)
     * [Using Boilerplate Code](#using-boilerplate-code)
@@ -142,52 +144,94 @@ random: @alice Adios
 [gopherbot]$
 ```
 
-## Plugin Debugging
-**Gopherbot** has a builtin command for plugin debugging that will send information about
-a plugin in direct messages. You can see plugin debugging in action here with
-the terminal connector:
+# Plugin Debugging
+
+The most common problem for plugin authors is the robot does nothing after sending it a message,
+or the robot just says `Sorry, that didn't match any commands I know, ...`.
+
+This can be due to a number of issues:
+* The plugin didn't load because of various configuration problems
+* The robot isn't in the channel, and doesn't hear the message
+* The plugin isn't visible because of channel, user, or other restrictions
+* The user message doesn't match a regex for the plugin
+* The plugin runs, but does nothing
+
+To track down these issues easily, **Gopherbot** has the builtin commands `debug plugin` and
+`dump plugin`.
+
+## Debug Plugin Command
+**Gopherbot** has a builtin command for plugin debugging that can help quickly pinpoint
+most problems. Turning on plugin debugging will initiate a reload, then send debugging
+information about a plugin in direct messages. If `verbose` is enabled, you will get debugging
+information for every message you send, or every command sent to the robot by another user.
+You can see an example of plugin debugging here with the terminal connector:
 ```
 [gopherbot]$ ./gopherbot
-2018/04/15 19:45:04 Initialized logging ...
-2018/04/15 19:45:04 Starting up with local config dir: /home/parse/.gopherbot, and install dir: /home/parse/go/src/github.com/lnxjedi/gopherbot
-2018/04/15 19:45:04 Debug: Loaded installed conf/gopherbot.yaml
-2018/04/15 19:45:04 Debug: Loaded configured conf/gopherbot.yaml
+2018/04/18 15:43:01 Initialized logging ...
+2018/04/18 15:43:01 Starting up with local config dir: /home/user/.gopherbot, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
+2018/04/18 15:43:01 Debug: Loaded installed conf/gopherbot.yaml
+2018/04/18 15:43:01 Debug: Loaded configured conf/gopherbot.yaml
 Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
-c:general/u:parse -> ;ruby me!
-general: @parse Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help <keyword>'
-c:random/u:parse -> ;help debug
-random: Command(s) matching keyword: debug
-floyd, debug plugin <pluginname> - turn on debugging for the named plugin
+c:general/u:alice -> ;ruby me!
+general: @alice Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help <keyword>'
+c:general/u:alice -> ;help debug
+general: Command(s) matching keyword: debug
+floyd, debug plugin <pluginname> (verbose) - turn on debugging for the named plugin, optionally verbose
 
 floyd, stop debugging - turn off debugging
-c:general/u:parse -> ;debug plugin rubydemo
-(dm:parse): 2018/04/15 07:45:18 DEBUG rubydemo: Loaded default config from the plugin, size: 1417
-(dm:parse): 2018/04/15 07:45:18 DEBUG rubydemo: No configuration loaded from installPath (/home/parse/go/src/github.com/lnxjedi/gopherbot/conf/plugins/rubydemo.yaml): open /home/parse/go/src/github.com/lnxjedi/gopherbot/conf/plugins/rubydemo.yaml: no such file or directory
-(dm:parse): 2018/04/15 07:45:18 DEBUG rubydemo: Loaded configuration from configPath (/home/parse/.gopherbot/conf/plugins/rubydemo.yaml), size: 22
-general: Debugging enabled for rubydemo
-c:general/u:parse -> ;ruby me!
-(dm:parse): 2018/04/15 07:45:25 DEBUG rubydemo: plugin is NOT visible
-general: @parse Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help <keyword>'
-c:general/u:parse -> |crandom
+c:general/u:alice -> ;debug plugin rubydemo
+(dm:alice): 2018/04/18 03:43:12 DEBUG rubydemo: Loaded default config from the plugin, size: 1417
+(dm:alice): 2018/04/18 03:43:12 DEBUG rubydemo: No configuration loaded from installPath (/home/alice/go/src/github.com/lnxjedi/gopherbot/conf/plugins/rubydemo.yaml): open /home/alice/go/src/github.com/lnxjedi/gopherbot/conf/plugins/rubydemo.yaml: no such file or directory
+(dm:alice): 2018/04/18 03:43:12 DEBUG rubydemo: Loaded configuration from configPath (/home/alice/.gopherbot/conf/plugins/rubydemo.yaml), size: 22
+(dm:alice): 2018/04/18 03:43:12 DEBUG rubydemo: Plugin 'rubydemo' will be active in channels ["random"]
+general: Debugging enabled for rubydemo (verbose: false)
+c:general/u:alice -> ;ruby me!
+(dm:alice): 2018/04/18 03:43:15 DEBUG rubydemo: plugin is NOT visible to user alice in channel general; channel 'general' is not on the list of allowed channels: random
+general: @alice Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help <keyword>'
+c:general/u:alice -> |crandom
 Changed current channel to: random
-c:random/u:parse -> ;ruby me!
-(dm:parse): 2018/04/15 07:46:34 DEBUG rubydemo: Checking 7 command matchers against message: "ruby me!"
-(dm:parse): 2018/04/15 07:46:34 DEBUG rubydemo: Not matched: (?i:bashecho ([.;!\d\w-, ]+))
-(dm:parse): 2018/04/15 07:46:34 DEBUG rubydemo: Matched regex '(?i:ruby( me)?!?)', command: ruby
-(dm:parse): 2018/04/15 07:46:34 DEBUG rubydemo: Running plugin with command 'ruby' and arguments: [ me]
-random: Sure, David!
-random: Waaaaaait a second... what do you mean by that?
-(dm:parse): 2018/04/15 07:46:35 DEBUG rubydemo: Plugin finished with return value: Normal
-c:random/u:parse -> ;stop debugging
-(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Checking 7 command matchers against message: "stop debugging"
-(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:bashecho ([.;!\d\w-, ]+))
-(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:ruby( me)?!?)
-(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:listen( to me)?!?)
-(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:remember(?: (slowly))? ([-\w .,!?:\/]+))
-(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:recall ?([\d]+)?)
-(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:forget ([\d]{1,2}))
-(dm:parse): 2018/04/15 07:47:02 DEBUG rubydemo: Not matched: (?i:check me)
-random: Debugging disabled
+c:random/u:alice -> ;ruby me to the max!
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: plugin is visible to user alice in channel random
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Checking 7 command matchers against message: "ruby me to the max!"
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:bashecho ([.;!\d\w-, ]+))
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:ruby( me)?!?)
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:listen( to me)?!?)
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:remember(?: (slowly))? ([-\w .,!?:\/]+))
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:recall ?([\d]+)?)
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:forget ([\d]{1,2}))
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:check me)
+random: @alice Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help <keyword>'
+c:random/u:alice -> ;ruby me!
+(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: plugin is visible to user alice in channel random
+(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Checking 7 command matchers against message: "ruby me!"
+(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Not matched: (?i:bashecho ([.;!\d\w-, ]+))
+(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Matched command regex '(?i:ruby( me)?!?)', command: ruby
+(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Running plugin with command 'ruby' and arguments: [ me]
+random: Sure, Alice!
+random: I'll ruby you, but not right now - I'll wait 'til you're least expecting it...
+(dm:alice): 2018/04/18 03:43:51 DEBUG rubydemo: Plugin finished with return value: Normal
+```
+
+## Dump Plugin Command
+To view a plugin's default or final configuration, you can use the `dump plugin` command:
+```
+c:general/u:alice -> ;help dump
+general: Command(s) matching keyword: dump
+floyd, dump plugin (default) <plugname> - dump the current or default configuration for the plugin (direct message only)
+
+floyd, dump robot - dump the current configuration for the robot (direct message only)
+c:general/u:alice -> |c
+Changed current channel to: direct message
+c:(direct)/u:alice -> dump plugin rubydemo
+(dm:alice): AdminCommands: null
+AllChannels: false
+AllowDirect: true
+AuthRequire: ""
+AuthorizeAllCommands: false
+AuthorizedCommands: null
+Authorizer: ""
+CatchAll: false
+... (MUCH more)
 ```
 
 # Getting Started

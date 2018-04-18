@@ -15,10 +15,6 @@ import (
 
 var protocolConfig, brainConfig, elevateConfig json.RawMessage
 
-type externalPlugin struct {
-	Name, Path string // List of names and paths for external plugins; relative paths are searched first in installpath, then configpath
-}
-
 // botconf specifies 'bot configuration, and is read from $GOPHER_CONFIGDIR/conf/gopherbot.yaml
 type botconf struct {
 	AdminContact       string           // Contact info for whomever administers the robot
@@ -68,7 +64,6 @@ func (r *Robot) getConfigFile(filename, pluginID string, required bool, jsonMap 
 	if err == nil {
 		r.debug(pluginID, fmt.Sprintf("Loaded configuration from installPath (%s), size: %d", path, len(cf)), false)
 		if err = yaml.Unmarshal(cf, &loader); err != nil {
-			r.debug(pluginID, fmt.Sprintf("Error unmarshalling %s: %v", path, err), false)
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
 			Log(Error, err)
 			return err
@@ -95,8 +90,7 @@ func (r *Robot) getConfigFile(filename, pluginID string, required bool, jsonMap 
 		if err == nil {
 			r.debug(pluginID, fmt.Sprintf("Loaded configuration from configPath (%s), size: %d", path, len(cf)), false)
 			if err = yaml.Unmarshal(cf, &loader); err != nil {
-				r.debug(pluginID, fmt.Sprintf("Error unmarshalling %s: %v", path, err), false)
-				err = fmt.Errorf("Unmarshalling local \"%s\": %v", filename, err)
+				err = fmt.Errorf("Unmarshalling configured \"%s\": %v", filename, err)
 				Log(Error, err)
 				return err // If a badly-formatted config is loaded, we always return an error
 			}
@@ -132,6 +126,7 @@ func (r *Robot) loadConfig() error {
 	if err := r.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
 	}
+	explicitDefaultAllowDirect := false
 
 	for key, value := range configload {
 		var strval string
@@ -192,6 +187,7 @@ func (r *Robot) loadConfig() error {
 			newconfig.Name = *(val.(*string))
 		case "DefaultAllowDirect":
 			newconfig.DefaultAllowDirect = *(val.(*bool))
+			explicitDefaultAllowDirect = true
 		case "DefaultChannels":
 			newconfig.DefaultChannels = *(val.(*[]string))
 		case "IgnoreUsers":
@@ -233,10 +229,16 @@ func (r *Robot) loadConfig() error {
 		protocolConfig = newconfig.ProtocolConfig
 	}
 
-	robot.defaultAllowDirect = newconfig.DefaultAllowDirect // defaults to false
+	if explicitDefaultAllowDirect {
+		robot.defaultAllowDirect = newconfig.DefaultAllowDirect
+	} else {
+		robot.defaultAllowDirect = true // rare case of defaulting to true
+	}
+
 	if newconfig.AdminContact != "" {
 		robot.adminContact = newconfig.AdminContact
 	}
+
 	if newconfig.Email != "" {
 		robot.email = newconfig.Email
 	}
