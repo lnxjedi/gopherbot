@@ -19,6 +19,8 @@ ExternalPlugins:
   Path: plugins/test.sh
 - Name: hello
   Path: plugins/hello.sh
+- Name: hello2
+  Path: plugins/hello2.sh
 
 Protocol: test
 ProtocolConfig:

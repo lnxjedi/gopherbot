@@ -8,6 +8,9 @@ bot_integration_test.go - setup and initialization of "black box" integration te
 Run integration tests with:
 $ go test -v --tags 'test integration' -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
 
+Run specific tests with e.g.:
+$ go test -run MessageMatch -v --tags 'test integration' -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
+
 Generate coverage statistics report with:
 $ go tool cover -html=coverage.out -o coverage.html
 
@@ -191,7 +194,14 @@ func TestMessageMatch(t *testing.T) {
 
 	tests := []testItem{
 		{alice, general, "hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientPluginRan, ScriptPluginRan}, 0},
+		{alice, general, ";hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientPluginRan, ScriptPluginRan}, 0},
 		{alice, null, "hello robot", []testc.TestMessage{{alice, null, "Hello, World!"}}, []Event{BotDirectMessage, AmbientPluginRan, ScriptPluginRan}, 0},
+		{alice, null, "bender, hello robot", []testc.TestMessage{{alice, null, "Hello, World!"}}, []Event{BotDirectMessage, AmbientPluginRan, ScriptPluginRan}, 0},
+		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 100},
+		{alice, general, ";hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientPluginRan, ScriptPluginRan}, 100},
+		{alice, general, "bender", []testc.TestMessage{{null, general, `Yes\?`}}, []Event{}, 0},
+		{alice, random, "hello robot", []testc.TestMessage{{null, random, "Hello, World!"}}, []Event{AmbientPluginRan, ScriptPluginRan}, 100},
+		{alice, random, ";hello robot", []testc.TestMessage{{null, random, "I'm here"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 
@@ -213,7 +223,7 @@ func TestVisibility(t *testing.T) {
 }
 
 func TestBuiltins(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottestbuiltins.log", t)
+	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		{alice, general, ";help log", []testc.TestMessage{{null, general, "direct message only"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
@@ -238,7 +248,7 @@ func TestBuiltins(t *testing.T) {
 }
 
 func TestPrompting(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottestprompt.log", t)
+	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		{carol, general, "Bender, listen to me", []testc.TestMessage{{carol, null, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},

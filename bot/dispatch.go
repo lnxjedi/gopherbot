@@ -320,7 +320,6 @@ func (bot *Robot) handleMessage() {
 		waiters, waitingForReply = replies.m[matcher]
 		if !waitingForReply {
 			replies.Unlock()
-			// Log(Trace, "No matching replyWaiter")
 		} else {
 			delete(replies.m, matcher)
 			replies.Unlock()
@@ -341,8 +340,8 @@ func (bot *Robot) handleMessage() {
 	}
 	// Direct commands were checked above; if a direct command didn't match,
 	// and a there wasn't a reply being waited on, then we check ambient
-	// MessageMatchers if it wasn't a direct command (or if it was a DM).
-	if !commandMatched && !waitingForReply && (!bot.isCommand || bot.directMsg) {
+	// MessageMatchers.
+	if !commandMatched {
 		// check for ambient message matches
 		commandMatched = bot.checkPluginMatchersAndRun(false)
 	}
