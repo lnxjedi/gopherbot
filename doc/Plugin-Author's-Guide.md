@@ -156,8 +156,8 @@ This can be due to a number of issues:
 * The user message doesn't match a regex for the plugin
 * The plugin runs, but does nothing
 
-To track down these issues easily, **Gopherbot** has the builtin commands `debug plugin` and
-`dump plugin`.
+To track down these issues easily, **Gopherbot** has the builtin administrator commands `debug plugin` and `dump plugin`. Make sure your username / handle is listed in the
+`AdminUsers` list in `gopherbot.yaml` for your development environment.
 
 ## Debug Plugin Command
 **Gopherbot** has a builtin command for plugin debugging that can help quickly pinpoint
