@@ -178,6 +178,51 @@ func TestBotName(t *testing.T) {
 	teardown(t, done, conn)
 }
 
+func TestBotNoName(t *testing.T) {
+	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+
+	tests := []testItem{
+		{alice, null, ";ping", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, "ping", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, general, ";ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		{alice, general, "ping;", []testc.TestMessage{}, []Event{}, 0},
+		{bob, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
+		// When you forget to address the robot, you can say it's name
+		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 200},
+		{alice, general, ";", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 100},
+		{alice, general, "hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientPluginRan, ScriptPluginRan}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
+func TestBotNoAlias(t *testing.T) {
+	done, conn := setup("cfg/test/membrain-noalias", "/tmp/bottest.log", t)
+
+	tests := []testItem{
+		{alice, null, "ping, bender", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, "bender ping", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, "ping", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, general, "ping, bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		{alice, general, "bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		{alice, general, "ping bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		{alice, general, "bender, ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		{alice, general, "@bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		{alice, general, "ping @bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		{bob, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
+		// When you forget to address the robot, you can say it's name
+		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 200},
+		{alice, general, "bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 100},
+		{alice, general, "hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientPluginRan, ScriptPluginRan}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
 func TestReload(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
 
