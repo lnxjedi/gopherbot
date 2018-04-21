@@ -72,7 +72,6 @@ var robot struct {
 	logger             *log.Logger      // Where to log to
 	stop               chan struct{}    // stop channel for stopping the connector
 	done               chan struct{}    // channel closed when robot finishes shutting down
-	events             chan Event       // buffered channel for message disposition events used by integration testing
 	shuttingDown       bool             // to prevent new plugins from starting
 	pluginsRunning     int              // a count of how many plugins are currently running
 	paused             bool             // it's a Windows thing
@@ -96,7 +95,6 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	robot.logger = logger
 	robot.stop = make(chan struct{})
 	robot.done = make(chan struct{})
-	robot.events = make(chan Event, 16)
 	robot.shuttingDown = false
 	robot.Unlock()
 

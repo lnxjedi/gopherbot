@@ -314,6 +314,8 @@ func TestPrompting(t *testing.T) {
 	teardown(t, done, conn)
 }
 
+// pythondemo is active in general, rubydemo in random; pythondemo is trusted by
+// echo.sh, rubydemo is not.
 func TestCalling(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
 
