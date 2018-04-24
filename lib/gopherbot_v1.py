@@ -75,6 +75,7 @@ class Robot:
         self.channel = os.getenv("GOPHER_CHANNEL")
         self.user = os.getenv("GOPHER_USER")
         self.plugin_id = os.getenv("GOPHER_PLUGIN_ID")
+        self.protocol = os.getenv("GOPHER_PROTOCOL")
 
     def Direct(self):
         "Get a direct messaging instance of the robot"
@@ -83,7 +84,8 @@ class Robot:
     def Call(self, func_name, func_args, format="variable"):
         func_call = { "FuncName": func_name, "User": self.user,
                     "Channel": self.channel, "Format": format,
-                    "PluginID": self.plugin_id, "FuncArgs": func_args }
+                    "Protocol": self.protocol, "PluginID": self.plugin_id,
+                    "FuncArgs": func_args }
         func_json = json.dumps(func_call)
         req = urllib2.Request(url="%s/json" % os.getenv("GOPHER_HTTP_POST"),
             data=func_json)
@@ -192,4 +194,5 @@ class DirectBot(Robot):
     def __init__(self):
         self.channel = ""
         self.user = os.getenv("GOPHER_USER")
+        self.protocol = os.getenv("GOPHER_PROTOCOL")
         self.plugin_id = os.getenv("GOPHER_PLUGIN_ID")

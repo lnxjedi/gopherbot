@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/lnxjedi/gopherbot/bot"
+	// "github.com/nlopes/slack"
 )
 
 // Message send delay; slack has problems with scrolling if messages fly out
@@ -47,6 +48,7 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 
 type sendMessage struct {
 	message, channel string
+	format           bot.MessageFormat
 }
 
 var messages = make(chan *sendMessage)
@@ -72,6 +74,28 @@ func (s *slackConnector) startSendLoop() {
 		s.conn.SendMessage(s.conn.NewTypingMessage(send.channel))
 		time.Sleep(typingDelay)
 		s.conn.SendMessage(s.conn.NewOutgoingMessage(send.message, send.channel))
+		/* NOTE: The commented out code below doesn't work. Long story:
+
+		To implement a proper 'Variable' format that preserves _, * and `, I tried
+		disabling markdown. However, messages came through as a generic 'bot', not
+		the bot user with an icon and name. When I set as_user (AsUser) 'true', it
+		forced Markdown to 'true' regardless of passing explicit 'false'. In the end,
+		I resorted to a solution found on stackoverflow, and for format == Variable
+		I 'escape' _, *, ` by surrounding them with a "\x00" (null) char.
+		*/
+		// time.Sleep(typingDelay) // the minimum time between message sends
+		// params := slack.PostMessageParameters{
+		// 	AsUser:      true,
+		// 	UnfurlMedia: true,
+		// 	Markdown:    false,
+		// }
+		// if send.format == bot.Raw {
+		// 	params.Markdown = true
+		// }
+		// _, _, err := s.api.PostMessage(send.channel, send.message, params)
+		// if err != nil {
+		// 	s.Log(bot.Error, fmt.Sprintf("Error sending message '%s': %v", send.message, err))
+		// }
 		timeSinceBurst := msgTime.Sub(burstTime)
 		if msgTime.Sub(mtimes[windowStartMsg]) < burstWindow || timeSinceBurst < coolDown {
 			if timeSinceBurst > coolDown {
@@ -85,11 +109,12 @@ func (s *slackConnector) startSendLoop() {
 	}
 }
 
-func (s *slackConnector) sendMessages(msgs []string, chanID string) {
+func (s *slackConnector) sendMessages(msgs []string, chanID string, f bot.MessageFormat) {
 	for _, msg := range msgs {
 		messages <- &sendMessage{
 			message: msg,
 			channel: chanID,
+			format:  f,
 		}
 	}
 }
@@ -102,7 +127,7 @@ func (s *slackConnector) SendProtocolChannelMessage(ch string, msg string, f bot
 		return bot.ChannelNotFound
 	}
 	msgs := s.slackifyMessage(msg, f)
-	s.sendMessages(msgs, chanID)
+	s.sendMessages(msgs, chanID, f)
 	return
 }
 
@@ -120,7 +145,7 @@ func (s *slackConnector) SendProtocolUserChannelMessage(u, ch, msg string, f bot
 	}
 	msg = "@" + u + ": " + msg
 	msgs := s.slackifyMessage(msg, f)
-	s.sendMessages(msgs, chanID)
+	s.sendMessages(msgs, chanID, f)
 	return
 }
 
@@ -146,7 +171,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f bot.Mes
 		return
 	}
 	msgs := s.slackifyMessage(msg, f)
-	s.sendMessages(msgs, userIMchan)
+	s.sendMessages(msgs, userIMchan, f)
 	return bot.Ok
 }
 

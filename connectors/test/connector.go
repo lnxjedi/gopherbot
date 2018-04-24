@@ -39,7 +39,7 @@ loop:
 			tc.test.Log("Received stop in connector")
 			break loop
 		case msg := <-tc.listener:
-			tc.IncomingMessage(msg.Channel, msg.User, msg.Message, "test", bot.Test, msg)
+			tc.IncomingMessage(msg.Channel, msg.User, msg.Message, bot.Test, msg)
 		}
 	}
 }

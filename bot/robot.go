@@ -21,10 +21,14 @@ const (
 type Protocol int
 
 const (
-	Slack = iota
+	Slack Protocol = iota
 	Terminal
 	Test
 )
+
+//go:generate stringer -type=Protocol
+
+// Generate String method with: go generate ./bot/
 
 // For each incoming message, a Robot is created in a separate goroutine that
 // persists for the life of the message, until finally a plugin runs
@@ -32,7 +36,6 @@ const (
 type Robot struct {
 	User      string        // The user who sent the message; this can be modified for replying to an arbitrary user
 	Channel   string        // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	Connector string        // for future use; currently text name of protocol
 	Protocol  Protocol      // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
 	RawMsg    interface{}   // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
 	Format    MessageFormat // The outgoing message format, one of Fixed or Variable
@@ -135,6 +138,8 @@ func (r *Robot) GetBotAttribute(a string) *AttrRet {
 		attr = robot.email
 	case "contact", "admin", "adminContact":
 		attr = robot.adminContact
+	case "protocol":
+		attr = r.Protocol.String()
 	default:
 		ret = AttributeNotFound
 	}

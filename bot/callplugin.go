@@ -213,6 +213,7 @@ func callPlugin(bot *Robot, plugin *Plugin, background bool, interactive bool, c
 			fmt.Sprintf("GOPHER_CHANNEL=%s", bot.Channel),
 			fmt.Sprintf("GOPHER_USER=%s", bot.User),
 			fmt.Sprintf("GOPHER_PLUGIN_ID=%s", plugin.pluginID),
+			fmt.Sprintf("GOPHER_PROTOCOL=%s", bot.Protocol),
 		}...)
 		// close stdout on the external plugin...
 		cmd.Stdout = nil

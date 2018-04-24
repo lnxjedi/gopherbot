@@ -70,13 +70,15 @@ class BotFuncCall {
     [String] $User
     [String] $Channel
     [String] $Format
+    [String] $Protocol
     [String] $PluginID
     [PSCustomObject] $FuncArgs
 
-    BotFuncCall([String] $fn, [String] $u, [String] $c, [String] $fmt, [String] $p, [PSCustomObject] $funcArgs ) {
+    BotFuncCall([String] $fn, [String] $u, [String] $c, [String] $pr, [String] $fmt, [String] $p, [PSCustomObject] $funcArgs ) {
         $this.FuncName = $fn
         $this.User = $u
         $this.Channel = $c
+        $this.Procotol = $pr
         $this.Format = $fmt
         $this.PluginID = $p
         $this.FuncArgs = $funcArgs
@@ -88,12 +90,14 @@ class Robot
     # Properties
     [String] $Channel
     [String] $User
+    [String] $Protocol
     hidden [String] $PluginID
 
     # Constructor
-    Robot([String] $channel, [String] $user, [String] $pluginid) {
+    Robot([String] $channel, [String] $user, [String] $proto, [String] $pluginid) {
         $this.Channel = $channel
         $this.User = $user
+        $this.Protocol = $proto
         $this.PluginID = $pluginid
     }
 
@@ -133,7 +137,7 @@ class Robot
     }
 
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs, [String] $format) {
-        $bfc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $format, $this.PluginID, $funcArgs)
+        $bfc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $this.Procotol, $format, $this.PluginID, $funcArgs)
         $fc = ConvertTo-Json $bfc
         # if ($fname -ne "Log") { $this.Log("Debug", "DEBUG - Sending: $fc") }
         $r = Invoke-WebRequest -URI "$Env:GOPHER_HTTP_POST/json" -Method Post -UseBasicParsing -Body $fc
@@ -298,7 +302,7 @@ class Robot
 }
 
 function Get-Robot() {
-    return [Robot]::new($Env:GOPHER_CHANNEL, $Env:GOPHER_USER, $Env:GOPHER_PLUGIN_ID)
+    return [Robot]::new($Env:GOPHER_CHANNEL, $Env:GOPHER_USER, $Env:GOPHER_PROTOCOL, $Env:GOPHER_PLUGIN_ID)
 }
 
 export-modulemember -function Get-Robot

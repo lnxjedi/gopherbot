@@ -23,10 +23,23 @@ func checkPanic(bot *Robot, s string) {
 
 func setFormat(format string) MessageFormat {
 	switch format {
-	case "fixed":
+	case "fixed", "Fixed":
 		return Fixed
+	case "raw", "Raw":
+		return Raw
 	default:
 		return Variable
+	}
+}
+
+func setProtocol(proto string) Protocol {
+	switch proto {
+	case "slack", "Slack":
+		return Slack
+	case "term", "Term", "terminal", "Terminal":
+		return Terminal
+	default:
+		return Test
 	}
 }
 

@@ -239,6 +239,7 @@ class BaseBot
 			"FuncName" => funcname,
 			"User" => @user,
 			"Channel" => @channel,
+			"Protocol" => @protocol,
 			"Format" => format,
 			"PluginID" => @plugin_id,
 			"FuncArgs" => args
@@ -262,6 +263,7 @@ class Robot < BaseBot
 		@channel = ENV["GOPHER_CHANNEL"]
 		@user = ENV["GOPHER_USER"]
 		@plugin_id = ENV["GOPHER_PLUGIN_ID"]
+		@protocol = ENV["GOPHER_PROTOCOL"]
 		@prng = Random.new
 	end
 

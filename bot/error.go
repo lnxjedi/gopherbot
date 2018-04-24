@@ -5,6 +5,8 @@ type RetVal int
 
 //go:generate stringer -type=PlugRetVal
 
+// Generate String method with: go generate ./bot/
+
 // PlugRetVal is an integer type for return values from plugins, mainly for elevation & authorization
 type PlugRetVal int
 
