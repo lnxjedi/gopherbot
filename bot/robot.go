@@ -81,13 +81,19 @@ func (r *Robot) Elevate(immediate bool) bool {
 	return false
 }
 
-// Fixed is a convenience function for sending a message with fixed width
-// font. e.g. r.Reply(xxx) replies in variable width font, but
-// r.Fixed().Reply(xxx) replies in a fixed-width font.
+// Fixed is a deprecated convenience function for sending a message with fixed width
+// font.
 func (r *Robot) Fixed() *Robot {
 	nr := *r
 	nr.Format = Fixed
 	return &nr
+}
+
+// MessageFormat returns a robot object with the given format, most likely for a
+// plugin that will mostly use e.g. Variable format.
+func (r *Robot) MessageFormat(f MessageFormat) *Robot {
+	r.Format = f
+	return r
 }
 
 // Direct is a convenience function for initiating a DM conversation with a
@@ -234,7 +240,7 @@ func (r *Robot) Log(l LogLevel, v ...interface{}) {
 }
 
 // SendChannelMessage lets a plugin easily send a message to an arbitrary
-// channel. Use Robot.Fixed().SencChannelMessage(...) for fixed-width
+// channel. Use Robot.Fixed().SendChannelMessage(...) for fixed-width
 // font.
 func (r *Robot) SendChannelMessage(channel, msg string) RetVal {
 	return robot.SendProtocolChannelMessage(channel, msg, r.Format)
