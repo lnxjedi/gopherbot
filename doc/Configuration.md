@@ -284,9 +284,10 @@ ReplyMatchers:
   Regex: '\(\d\d\d\)\d\d\d-\d\d\d\d'
 ```
 The `*Matchers` directives specify Go language regular expressions for matching messages. `CommandMatchers` are
-checked whenever a user directs a message to the robot directly, using it's handle or alias. `MessageMatchers`
+checked whenever a user directs a message to the robot directly, using it's handle or alias; start- and end-of-line anchors
+(`^` & `$`) are automatically added, and should not be in the regex. `MessageMatchers` are not automatically anchored, and
 are checked against all messages seen in the channels for which the plugin is active; this is useful for e.g.
-a **Chuck Norris** type plugin. Whenever a command or message is matched, the external plugin is called with the
+a **Chuck Norris** type plugin, where any mention of The Great One should generate a response. Whenever a command or message is matched, the external plugin is called with the
 first argument being the given `Command`, and subsequent arguments corresponding to matching groups in the
 regular expression.
 
