@@ -17,25 +17,26 @@ var protocolConfig, brainConfig, elevateConfig json.RawMessage
 
 // botconf specifies 'bot configuration, and is read from $GOPHER_CONFIGDIR/conf/gopherbot.yaml
 type botconf struct {
-	AdminContact       string           // Contact info for whomever administers the robot
-	Email              string           // From: address when the robot wants to send an email
-	MailConfig         botMailer        // configuration for sending email
-	Protocol           string           // Name of the connector protocol to use, e.g. "slack"
-	ProtocolConfig     json.RawMessage  // Protocol-specific configuration, type for unmarshalling arbitrary config
-	Brain              string           // Type of Brain to use
-	BrainConfig        json.RawMessage  // Brain-specific configuration, type for unmarshalling arbitrary config
-	DefaultElevator    string           // Elevator plugin to use by default for ElevatedCommands and ElevateImmediateCommands
-	DefaultAuthorizer  string           // Authorizer plugin to use by default for AuthorizedCommands, or when AuthorizeAllCommands = true
-	Name               string           // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
-	DefaultAllowDirect bool             // Whether plugins are available in a DM by default
-	DefaultChannels    []string         // Channels where plugins are active by default, e.g. [ "general", "random" ]
-	IgnoreUsers        []string         // Users the 'bot never talks to - like other bots
-	JoinChannels       []string         // Channels the 'bot should join when it logs in (not supported by all protocols)
-	ExternalPlugins    []externalPlugin // List of non-Go plugins to load
-	AdminUsers         []string         // List of users who can access administrative commands
-	Alias              string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
-	LocalPort          int              // Port number for listening on localhost, for CLI plugins
-	LogLevel           string           // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
+	AdminContact         string           // Contact info for whomever administers the robot
+	Email                string           // From: address when the robot wants to send an email
+	MailConfig           botMailer        // configuration for sending email
+	Protocol             string           // Name of the connector protocol to use, e.g. "slack"
+	ProtocolConfig       json.RawMessage  // Protocol-specific configuration, type for unmarshalling arbitrary config
+	Brain                string           // Type of Brain to use
+	BrainConfig          json.RawMessage  // Brain-specific configuration, type for unmarshalling arbitrary config
+	DefaultElevator      string           // Elevator plugin to use by default for ElevatedCommands and ElevateImmediateCommands
+	DefaultAuthorizer    string           // Authorizer plugin to use by default for AuthorizedCommands, or when AuthorizeAllCommands = true
+	DefaultMessageFormat string           // How the robot should format outgoing messages unless told otherwise; default: Raw
+	Name                 string           // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
+	DefaultAllowDirect   bool             // Whether plugins are available in a DM by default
+	DefaultChannels      []string         // Channels where plugins are active by default, e.g. [ "general", "random" ]
+	IgnoreUsers          []string         // Users the 'bot never talks to - like other bots
+	JoinChannels         []string         // Channels the 'bot should join when it logs in (not supported by all protocols)
+	ExternalPlugins      []externalPlugin // List of non-Go plugins to load
+	AdminUsers           []string         // List of users who can access administrative commands
+	Alias                string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
+	LocalPort            int              // Port number for listening on localhost, for CLI plugins
+	LogLevel             string           // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
 var config *botconf
@@ -138,7 +139,7 @@ func (r *Robot) loadConfig() error {
 		var val interface{}
 		skip := false
 		switch key {
-		case "AdminContact", "Email", "Protocol", "Brain", "DefaultElevator", "DefaultAuthorizer", "Name", "Alias", "LogLevel":
+		case "AdminContact", "Email", "Protocol", "Brain", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel":
 			val = &strval
 		case "DefaultAllowDirect":
 			val = &boolval
@@ -183,6 +184,8 @@ func (r *Robot) loadConfig() error {
 			newconfig.DefaultElevator = *(val.(*string))
 		case "DefaultAuthorizer":
 			newconfig.DefaultAuthorizer = *(val.(*string))
+		case "DefaultMessageFormat":
+			newconfig.DefaultMessageFormat = *(val.(*string))
 		case "Name":
 			newconfig.Name = *(val.(*string))
 		case "DefaultAllowDirect":
@@ -225,6 +228,13 @@ func (r *Robot) loadConfig() error {
 		robot.Unlock()
 		return fmt.Errorf("Protocol not specified in gopherbot.yaml")
 	}
+
+	if len(newconfig.DefaultMessageFormat) == 0 {
+		robot.defaultMessageFormat = Raw
+	} else {
+		robot.defaultMessageFormat = setFormat(newconfig.DefaultMessageFormat)
+	}
+
 	if newconfig.ProtocolConfig != nil {
 		protocolConfig = newconfig.ProtocolConfig
 	}

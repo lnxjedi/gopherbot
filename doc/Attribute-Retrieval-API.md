@@ -18,6 +18,7 @@ The available attributes for the bot:
  * fullName / realName
  * contact / admin / adminContact
  * email
+ * protocol (e.g. "slack")
 
 Note: the values for most of these are configured in `conf/gopherbot.yaml`
 

@@ -224,9 +224,15 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	bot := Robot{
 		User:     f.User,
 		Channel:  f.Channel,
-		Format:   setFormat(f.Format),
 		Protocol: setProtocol(f.Protocol),
 		pluginID: f.PluginID,
+	}
+	if len(f.Format) > 0 {
+		bot.Format = setFormat(f.Format)
+	} else {
+		robot.RLock()
+		bot.Format = robot.defaultMessageFormat
+		robot.RUnlock()
 	}
 
 	var (

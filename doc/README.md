@@ -10,7 +10,7 @@
 * [Plugin Author's Guide](Plugin-Author's-Guide.md)
 
 ### Plugin API Reference
-* [Attribute Lookup Methods](Attribute-Retrieval.md)
+* [Attribute Lookup Methods](Attribute-Retrieval-API.md)
 * [Calling other Plugins](CallPlugin-API.md)
 * [Sending Messages and Replies](Message-Sending-API.md)
 * [Prompting for Input](Response-Request-API.md)

@@ -25,10 +25,10 @@ func setFormat(format string) MessageFormat {
 	switch format {
 	case "fixed", "Fixed":
 		return Fixed
-	case "raw", "Raw":
-		return Raw
-	default:
+	case "variable", "Variable":
 		return Variable
+	default:
+		return Raw
 	}
 }
 

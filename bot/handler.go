@@ -103,7 +103,6 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, prot
 		Channel:   channelName,
 		Protocol:  proto,
 		RawMsg:    raw,
-		Format:    Variable,
 		isCommand: isCommand,
 		directMsg: directMsg,
 		msg:       message,

@@ -209,6 +209,8 @@ func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched 
 			robot.RUnlock()
 			return
 		}
+		// lazy about setting this, only if a plugin is going to run
+		bot.Format = robot.defaultMessageFormat
 		robot.RUnlock()
 		// Check to see if user issued a new command when a reply was being
 		// waited on

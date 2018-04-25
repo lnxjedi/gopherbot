@@ -94,15 +94,20 @@ class Robot
     hidden [String] $PluginID
 
     # Constructor
-    Robot([String] $channel, [String] $user, [String] $proto, [String] $pluginid) {
+    Robot([String] $channel, [String] $user, [String] $proto, [String] $format, [String] $pluginid) {
         $this.Channel = $channel
         $this.User = $user
         $this.Protocol = $proto
+        $this.Format = $format
         $this.PluginID = $pluginid
     }
 
     [Robot] Direct() {
-        return [Robot]::new("", $this.User, $this.PluginID)
+        return [Robot]::new("", $this.User, $this.Protocol, $this.Format, $this.PluginID)
+    }
+
+    [Robot] MessageFormat([String] $format) {
+        return [Robot]::new($this.Channel, $this.User, $this.Protocol, $format, $this.PluginID)
     }
 
     Pause([single] $seconds) {
@@ -137,6 +142,9 @@ class Robot
     }
 
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs, [String] $format) {
+        if ($format.Length -eq 0) {
+            $format = $this.Format
+        }
         $bfc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $this.Procotol, $format, $this.PluginID, $funcArgs)
         $fc = ConvertTo-Json $bfc
         # if ($fname -ne "Log") { $this.Log("Debug", "DEBUG - Sending: $fc") }
@@ -147,7 +155,7 @@ class Robot
     }
 
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs) {
-        return $this.Call($fname, $funcArgs, "variable")
+        return $this.Call($fname, $funcArgs, "")
     }
 
     [PlugRet] CallPlugin([String] $plugName, [String[]]$plugArgs) {
@@ -249,31 +257,31 @@ class Robot
         $this.Call("Log", $funcArgs)
     }
 
-    [BotRet] SendChannelMessage([String] $channel, [String] $msg, [String] $format="variable") {
+    [BotRet] SendChannelMessage([String] $channel, [String] $msg, [String] $format) {
         $funcArgs = [PSCustomObject]@{ Channel=$channel; Message=$msg }
         return $this.Call("SendChannelMessage", $funcArgs, $format).RetVal -As [BotRet]
     }
 
     [BotRet] SendChannelMessage([String] $channel, [String] $msg) {
-        return $this.SendChannelMessage($channel, $msg, "variable")
+        return $this.SendChannelMessage($channel, $msg, "")
     }
 
-    [BotRet] SendUserMessage([String] $user, [String] $msg, [String] $format="variable") {
+    [BotRet] SendUserMessage([String] $user, [String] $msg, [String] $format) {
         $funcArgs = [PSCustomObject]@{ User=$user; Message=$msg }
         return $this.Call("SendUserMessage", $funcArgs, $format).RetVal -As [BotRet]
     }
 
     [BotRet] SendUserMessage([String] $user, [String] $msg) {
-        return $this.SendUserMessage($user, $msg, "variable")
+        return $this.SendUserMessage($user, $msg, "")
     }
 
-    [BotRet] SendUserChannelMessage([String] $user, [String] $channel, [String] $msg, [String] $format="variable") {
+    [BotRet] SendUserChannelMessage([String] $user, [String] $channel, [String] $msg, [String] $format) {
         $funcArgs = [PSCustomObject]@{ User=$user; Channel=$channel; Message=$msg }
         return $this.Call("SendUserChannelMessage", $funcArgs, $format).RetVal -As [BotRet]
     }
 
     [BotRet] SendUserChannelMessage([String] $user, [String] $channel, [String] $msg) {
-        return $this.SendUserChannelMessage($user, $channel, $msg, "variable")
+        return $this.SendUserChannelMessage($user, $channel, $msg, "")
     }
 
     [BotRet] Say([String] $msg, [String] $format) {
@@ -285,10 +293,10 @@ class Robot
     }
 
     [BotRet] Say([String] $msg) {
-        return $this.Say($msg, "variable")
+        return $this.Say($msg, "")
     }
 
-    [BotRet] Reply([String] $msg, [String] $format = "variable") {
+    [BotRet] Reply([String] $msg, [String] $format) {
         if ($this.Channel -eq "") {
             return $this.SendUserMessage($this.User, $msg, $format)
         } else {
@@ -297,12 +305,12 @@ class Robot
     }
 
     [BotRet] Reply([String] $msg) {
-        return $this.Reply($msg, "variable")
+        return $this.Reply($msg, "")
     }
 }
 
 function Get-Robot() {
-    return [Robot]::new($Env:GOPHER_CHANNEL, $Env:GOPHER_USER, $Env:GOPHER_PROTOCOL, $Env:GOPHER_PLUGIN_ID)
+    return [Robot]::new($Env:GOPHER_CHANNEL, $Env:GOPHER_USER, $Env:GOPHER_PROTOCOL, "", $Env:GOPHER_PLUGIN_ID)
 }
 
 export-modulemember -function Get-Robot

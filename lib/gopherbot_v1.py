@@ -75,13 +75,20 @@ class Robot:
         self.channel = os.getenv("GOPHER_CHANNEL")
         self.user = os.getenv("GOPHER_USER")
         self.plugin_id = os.getenv("GOPHER_PLUGIN_ID")
+        self.format = ""
         self.protocol = os.getenv("GOPHER_PROTOCOL")
 
     def Direct(self):
         "Get a direct messaging instance of the robot"
-        return DirectBot()
+        return DirectBot(self)
 
-    def Call(self, func_name, func_args, format="variable"):
+    def MessageFormat(self, format):
+        "Get a bot with a non-default message format"
+        return FormattedBot(self, format)
+
+    def Call(self, func_name, func_args, format=""):
+        if len(format) == 0:
+            format = self.format
         func_call = { "FuncName": func_name, "User": self.user,
                     "Channel": self.channel, "Format": format,
                     "Protocol": self.protocol, "PluginID": self.plugin_id,
@@ -162,28 +169,28 @@ class Robot:
             rep["RetVal"] = self.Interrupted
         return Reply(rep)
 
-    def SendChannelMessage(self, channel, message, format="variable"):
+    def SendChannelMessage(self, channel, message, format=""):
         ret = self.Call("SendChannelMessage", { "Channel": channel,
         "Message": message })
         return ret["RetVal"]
 
-    def SendUserMessage(self, user, message, format="variable"):
+    def SendUserMessage(self, user, message, format=""):
         ret = self.Call("SendUserMessage", { "User": user,
         "Message": message })
         return ret["RetVal"]
 
-    def SendUserChannelMessage(self, user, channel, message, format="variable"):
+    def SendUserChannelMessage(self, user, channel, message, format=""):
         ret = self.Call("SendUserChannelMessage", { "User": user,
         "Channel": channel, "Message": message })
         return ret["RetVal"]
 
-    def Say(self, message, format="variable"):
+    def Say(self, message, format=""):
         if self.channel == '':
             return self.SendUserMessage(self.user, message, format)
         else:
             return self.SendChannelMessage(self.channel, message, format)
 
-    def Reply(self, message, format="variable"):
+    def Reply(self, message, format=""):
         if self.channel == '':
             return self.SendUserMessage(self.user, message, format)
         else:
@@ -191,8 +198,18 @@ class Robot:
 
 class DirectBot(Robot):
     "Instantiate a robot for direct messaging with the user"
-    def __init__(self):
+    def __init__(self, bot):
         self.channel = ""
-        self.user = os.getenv("GOPHER_USER")
-        self.protocol = os.getenv("GOPHER_PROTOCOL")
-        self.plugin_id = os.getenv("GOPHER_PLUGIN_ID")
+        self.user = bot.user
+        self.protocol = bot.protocol
+        self.format = bot.format
+        self.plugin_id = bot.plugin_id
+
+class FormattedBot(Robot):
+    "Instantiate a robot with a non-default message format"
+    def __init__(self, bot, format):
+        self.channel = bot.channel
+        self.user = bot.user
+        self.protocol = bot.protocol
+        self.format = format
+        self.plugin_id = bot.plugin_id

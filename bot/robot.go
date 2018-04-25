@@ -7,14 +7,14 @@ import (
 )
 
 // MessageFormat indicates how the connector should display the content of
-// the message. One of Variable, Fixed or Raw (To Be Implemented)
+// the message. One of Variable, Fixed or Raw
 type MessageFormat int
 
 // Outgoing message format, Variable or Fixed
 const (
-	Variable MessageFormat = iota // variable font width
+	Raw MessageFormat = iota // protocol native, zero value -> default if not specified
 	Fixed
-	Raw
+	Variable
 )
 
 // Connector protocols

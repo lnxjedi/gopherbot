@@ -77,6 +77,13 @@ LogLevel: info
 #- Name: pythondemo
 #  Path: plugins/pythondemo.py
 
+# If the plugin doesn't specify an outgoing message format, what's the default?
+# This will be 'Raw' (unmodified, subject to protocol-specific formatting) if
+# not set. 'Variable' will escape special characters like #, @, _, `, etc. so
+# those characters can appear in replies. 'Fixed' will send everything in a
+# fixed-width font.
+#DefaultMessageFormat: Variable # 'Raw' if not specified
+
 # Specification of which connection protocol ('slack', 'term', or 'test';
 # see 'cfg/') and any associated configuration.
 # MaxMessageSplit specifies the maximum number of messages to break a message

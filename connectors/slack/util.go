@@ -128,10 +128,13 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []stri
 	sbytes = bytes.Replace(sbytes, []byte("&"), []byte("&amp;"), -1)
 	sbytes = bytes.Replace(sbytes, []byte("<"), []byte("&lt;"), -1)
 	sbytes = bytes.Replace(sbytes, []byte(">"), []byte("&gt;"), -1)
+	// 'escape' special chars
 	if f == bot.Variable {
 		sbytes = bytes.Replace(sbytes, []byte("`"), []byte("\x00`\x00"), -1)
 		sbytes = bytes.Replace(sbytes, []byte("*"), []byte("\x00*\x00"), -1)
 		sbytes = bytes.Replace(sbytes, []byte("_"), []byte("\x00_\x00"), -1)
+		sbytes = bytes.Replace(sbytes, []byte("@"), []byte("\x00@\x00"), -1)
+		sbytes = bytes.Replace(sbytes, []byte("#"), []byte("\x00#\x00"), -1)
 	}
 
 	mentionRe := regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
