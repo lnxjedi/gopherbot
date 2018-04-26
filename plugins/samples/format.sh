@@ -15,6 +15,12 @@ Help:
 CommandMatchers:
 - Regex: '(?i:format world)'
   Command: "format"
+- Regex: '(?i:format fixed)'
+  Command: "fixed"
+- Regex: '(?i:format variable)'
+  Command: "variable"
+- Regex: '(?i:format raw)'
+  Command: "raw"
 EOF
 }
 
@@ -22,18 +28,27 @@ case "$COMMAND" in
   "configure")
     configure
     ;;
-  "hello")
+  "format")
     # Change default format
     MessageFormat Variable
     PROTO=$(GetBotAttribute protocol)
     Say "Hello, $PROTO World!"
     # Use default format
-    Say '_italics_ <one> *bold* `code` @parsley'
+    Say '_Italics_ <One> *Bold* `Code` @parsley'
     # Raw
-    Say -r '_italics_ <one> *bold* `code` @parsley'
+    Say -r '_Italics_ <One> *Bold* `Code` @parsley'
     # Variable
-    Say -v '_italics_ <one> *bold* `code` @parsley'
+    Say -v '_Italics_ <One> *Bold* `Code` @parsley'
     # Fixed
-    Say -f '_italics_ <one> *bold* `code` @parsley'
+    Say -f '_Italics_ <One> *Bold* `Code` @parsley'
+    ;;
+  "fixed")
+    Say -f '_Italics_ <One> *Bold* `Code` @parsley'
+    ;;
+  "variable")
+    Say -v '_Italics_ <One> *Bold* `Code` @parsley'
+    ;;
+  "raw")
+    Say -r '_Italics_ <One> *Bold* `Code` @parsley'
     ;;
 esac

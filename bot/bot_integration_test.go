@@ -280,11 +280,13 @@ func TestBuiltins(t *testing.T) {
 		{alice, random, ";help ruby", []testc.TestMessage{{null, random, `(?m:Command.*\n.*random\))`}}, []Event{CommandPluginRan, GoPluginRan}, 0},
 		{alice, general, ";help", []testc.TestMessage{{alice, general, `\(the help.*private message\)`}, {alice, null, "bender,.*"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
 		{alice, general, "help", []testc.TestMessage{{alice, general, "I've sent.*myself"}, {alice, null, "Hi,.*"}}, []Event{AmbientPluginRan, GoPluginRan}, 0},
-		{alice, null, "dump robot", []testc.TestMessage{{alice, null, "Here's how I've been configured.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
-		{alice, null, "dump plugin echo", []testc.TestMessage{{alice, null, "AllChannels.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
-		{alice, null, "dump plugin default echo", []testc.TestMessage{{alice, null, "Here's.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
-		{alice, null, "dump plugin rubydemo", []testc.TestMessage{{alice, null, "AllChannels.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
-		{alice, null, "dump plugin default rubydemo", []testc.TestMessage{{alice, null, "Here's.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, general, ";whoami", []testc.TestMessage{{null, general, "your user name is 'alice', test internal id 'u0001'"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		// NOTE: Dumps are all format = Fixed, which for the test connector is ALL CAPS
+		{alice, null, "dump robot", []testc.TestMessage{{alice, null, "HERE'S HOW I'VE BEEN CONFIGURED.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, "dump plugin echo", []testc.TestMessage{{alice, null, "ALLCHANNELS.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, "dump plugin default echo", []testc.TestMessage{{alice, null, "HERE'S.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, "dump plugin rubydemo", []testc.TestMessage{{alice, null, "ALLCHANNELS.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
+		{alice, null, "dump plugin default rubydemo", []testc.TestMessage{{alice, null, "HERE'S.*"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
 		{alice, null, "dump plugin junk", []testc.TestMessage{{alice, null, "Didn't find .* junk"}}, []Event{BotDirectMessage, CommandPluginRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
@@ -318,6 +320,19 @@ func TestCalling(t *testing.T) {
 	tests := []testItem{
 		{alice, general, ";bashecho foo bar baz", []testc.TestMessage{{null, general, "foo bar baz"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
 		{alice, random, ";bashecho foo bar baz", []testc.TestMessage{{null, random, "Sorry, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
+func TestFormatting(t *testing.T) {
+	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+
+	tests := []testItem{
+		{alice, general, ";format fixed", []testc.TestMessage{{null, general, "_ITALICS_ <ONE> \\*BOLD\\* `CODE` @PARSLEY"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
+		{alice, general, ";format variable", []testc.TestMessage{{null, general, "_italics_ <one> \\*bold\\* `code` @parsley"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
+		{alice, general, ";format raw", []testc.TestMessage{{null, general, "_Italics_ <One> \\*Bold\\* `Code` @parsley"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 

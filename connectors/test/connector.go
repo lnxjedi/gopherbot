@@ -3,6 +3,7 @@
 package test
 
 import (
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -10,7 +11,7 @@ import (
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
-// TestMessage is for sending/receiving messages
+// TestMessage is for sending messages to the robot
 type TestMessage struct {
 	User, Channel, Message string
 }
@@ -45,7 +46,7 @@ loop:
 }
 
 // Public 'bot methods all call sendMessage to send a message to a user/channel
-func (tc *TestConnector) sendMessage(msg *TestMessage) (ret bot.RetVal) {
+func (tc *TestConnector) sendMessage(msg *BotMessage) (ret bot.RetVal) {
 	if msg.Channel == "" && msg.User == "" {
 		tc.test.Errorf("Invalid empty user and channel")
 		return bot.ChannelNotFound
@@ -80,8 +81,20 @@ func (tc *TestConnector) sendMessage(msg *TestMessage) (ret bot.RetVal) {
 			return bot.UserNotFound
 		}
 	}
+	spoken := &TestMessage{
+		User:    msg.User,
+		Channel: msg.Channel,
+	}
+	switch msg.Format {
+	case bot.Fixed:
+		spoken.Message = strings.ToUpper(msg.Message)
+	case bot.Variable:
+		spoken.Message = strings.ToLower(msg.Message)
+	case bot.Raw:
+		spoken.Message = msg.Message
+	}
 	select {
-	case tc.speaking <- msg:
+	case tc.speaking <- spoken:
 	case <-time.After(200 * time.Millisecond):
 		return bot.TimeoutExpired
 	}

@@ -161,6 +161,7 @@ func (r *Robot) GetBotAttribute(a string) *AttrRet {
 // name(handle), fullName, email, firstName, lastName, phone, internalID
 // TODO: supplement data with gopherbot.json user's table
 func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
+	a = strings.ToLower(a)
 	attr, ret := robot.GetProtocolUserAttribute(u, a)
 	return &AttrRet{attr, ret}
 }
@@ -172,8 +173,14 @@ func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
 // name(handle), fullName, email, firstName, lastName, phone, internalID
 // TODO: supplement data with gopherbot.json user's table
 func (r *Robot) GetSenderAttribute(a string) *AttrRet {
-	attr, ret := robot.GetProtocolUserAttribute(r.User, a)
-	return &AttrRet{attr, ret}
+	a = strings.ToLower(a)
+	switch a {
+	case "name", "username", "handle", "user", "user name":
+		return &AttrRet{r.User, Ok}
+	default:
+		attr, ret := robot.GetProtocolUserAttribute(r.User, a)
+		return &AttrRet{attr, ret}
+	}
 }
 
 /*

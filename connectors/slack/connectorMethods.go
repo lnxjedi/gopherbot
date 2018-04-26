@@ -30,13 +30,13 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 	switch attr {
 	case "email":
 		return user.Profile.Email, bot.Ok
-	case "internalID":
+	case "internalid":
 		return user.ID, bot.Ok
-	case "realName", "fullName":
+	case "realname", "fullname", "real name", "full name":
 		return user.RealName, bot.Ok
-	case "firstName":
+	case "firstname", "first name":
 		return user.Profile.FirstName, bot.Ok
-	case "lastName":
+	case "lastname", "last name":
 		return user.Profile.LastName, bot.Ok
 	case "phone":
 		return user.Profile.Phone, bot.Ok

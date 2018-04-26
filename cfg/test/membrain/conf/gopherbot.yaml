@@ -21,6 +21,8 @@ ExternalPlugins:
   Path: plugins/samples/hello.sh
 - Name: hello2
   Path: plugins/samples/hello2.sh
+- Name: format
+  Path: plugins/samples/format.sh
 
 Protocol: test
 ProtocolConfig:

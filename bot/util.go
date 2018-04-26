@@ -37,10 +37,11 @@ func (r *Robot) setFormat(format string) MessageFormat {
 }
 
 func setProtocol(proto string) Protocol {
+	proto = strings.ToLower(proto)
 	switch proto {
-	case "slack", "Slack":
+	case "slack":
 		return Slack
-	case "term", "Term", "terminal", "Terminal":
+	case "term", "terminal":
 		return Terminal
 	default:
 		return Test
