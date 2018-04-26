@@ -78,7 +78,7 @@ class BotFuncCall {
         $this.FuncName = $fn
         $this.User = $u
         $this.Channel = $c
-        $this.Procotol = $pr
+        $this.Protocol = $pr
         $this.Format = $fmt
         $this.PluginID = $p
         $this.FuncArgs = $funcArgs
@@ -91,6 +91,7 @@ class Robot
     [String] $Channel
     [String] $User
     [String] $Protocol
+    [String] $Format
     hidden [String] $PluginID
 
     # Constructor
@@ -143,9 +144,11 @@ class Robot
 
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs, [String] $format) {
         if ($format.Length -eq 0) {
-            $format = $this.Format
+            $fmt = $this.Format
+        } else {
+            $fmt = $format
         }
-        $bfc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $this.Procotol, $format, $this.PluginID, $funcArgs)
+        $bfc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $this.Protocol, $fmt, $this.PluginID, $funcArgs)
         $fc = ConvertTo-Json $bfc
         # if ($fname -ne "Log") { $this.Log("Debug", "DEBUG - Sending: $fc") }
         $r = Invoke-WebRequest -URI "$Env:GOPHER_HTTP_POST/json" -Method Post -UseBasicParsing -Body $fc
@@ -317,8 +320,8 @@ export-modulemember -function Get-Robot
 # SIG # Begin signature block
 # MIIOWAYJKoZIhvcNAQcCoIIOSTCCDkUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCpGOoT4NqXN4cy+AQ1JSS2B0
-# yeyggguPMIIFnDCCBISgAwIBAgIRAMRd9vOBG/0xAqGjaazZxhowDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZipUCC657JnxeIVMVE6Td184
+# 99aggguPMIIFnDCCBISgAwIBAgIRAMRd9vOBG/0xAqGjaazZxhowDQYJKoZIhvcN
 # AQELBQAwfDELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAk1JMRIwEAYDVQQHEwlBbm4g
 # QXJib3IxEjAQBgNVBAoTCUludGVybmV0MjERMA8GA1UECxMISW5Db21tb24xJTAj
 # BgNVBAMTHEluQ29tbW9uIFJTQSBDb2RlIFNpZ25pbmcgQ0EwHhcNMTgwMjE2MDAw
@@ -385,11 +388,11 @@ export-modulemember -function Get-Robot
 # VQQDExxJbkNvbW1vbiBSU0EgQ29kZSBTaWduaW5nIENBAhEAxF3284Eb/TECoaNp
 # rNnGGjAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkq
 # hkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGC
-# NwIBFTAjBgkqhkiG9w0BCQQxFgQUUX0F0lDbGJqeypg7w3tdZMthWF0wDQYJKoZI
-# hvcNAQEBBQAEggEAsD1KZAr1Fd8RPftrqBB4lCYB7Ac58QqICZwnMJqyvCZ4mOao
-# oeEqte0hOVN43rNCB32YFyHucArmE5DtD+4rpGGmf2cAc2CzO+B/iIVvPM4PIXur
-# 7qA355FObLEQMb8gdksR/ZbxlaSBWn1EnO4hMN37Mkw08oQGN1mLqeEFJfY/sURD
-# cBA26PSzp3KSvHt7IjS1ChzDvlRi6bm7C5I0DTxp0Rac6eFVLDg4eJy5/6WS6CMR
-# lfhQHlJD4VzP1A76QlsfIxJwCSbgCdtH3aSH3VuutzXMAFacipsUhpAU9dUWqhbN
-# eXSUvgDp+B/h+kOkUhL+uwxwrDlh5of+kkKAkQ==
+# NwIBFTAjBgkqhkiG9w0BCQQxFgQUqIarfhjNWXTpyVQCuEtYPRM+1x8wDQYJKoZI
+# hvcNAQEBBQAEggEAEzkedXaiI8UJpOdLZQJpmsaeeLXHrSULt/2GXK8u65V48TXu
+# UMz4yfHFY+Bg3WOE+IObmoJvhteJuT5TqK2SNKdARtLdvyCxZebbMiOrbUrPLaSi
+# pEsVZt4SKHMbbR3IDQlLAb5F/QrnLE6yq/27aCgxjcGkn3MGD7iMWueS1J6tIQf+
+# VTAufhmwCVGCnCHaiZnakF+hpqnGJqjg3E+B0RODX/XqXOzPPJkMfLjXErSfG6iJ
+# vL9khAG4Y5UOwhK9RCd7L6ihP+aMD1VzxVWLfpc8Kxb2qg0r5aYSzLTQtb44Olul
+# XAQWpH/4wOxjKKWU5RNw9Fox8g/DvvM4kFVN5w==
 # SIG # End signature block

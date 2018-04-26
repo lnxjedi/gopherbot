@@ -31,7 +31,7 @@ const (
 
 // Generate String method with: go generate ./bot/
 
-// For each incoming message, a Robot is created in a separate goroutine that
+// Robot is created for each incoming message, in a separate goroutine that
 // persists for the life of the message, until finally a plugin runs
 // (or doesn't).
 type Robot struct {
