@@ -35,7 +35,7 @@ CommandMatchers:
 - Command: abort
   Regex: '(?i:abort)'
 - Command: "debug"
-  Regex: '(?i:debug plugin ([\d\w-.]+)(?: (verbose))?)'
+  Regex: '(?i:debug (?:plugin )?([\d\w-.]+)(?: (verbose))?)'
 - Command: "stop"
   Regex: '(?i:stop debugging)'
 `

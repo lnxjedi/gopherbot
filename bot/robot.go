@@ -3,36 +3,40 @@ package bot
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 )
 
 // MessageFormat indicates how the connector should display the content of
-// the message. One of Variable, Fixed or Raw (To Be Implemented)
+// the message. One of Variable, Fixed or Raw
 type MessageFormat int
 
 // Outgoing message format, Variable or Fixed
 const (
-	Variable MessageFormat = iota // variable font width
+	Raw MessageFormat = iota // protocol native, zero value -> default if not specified
 	Fixed
-	Raw
+	Variable
 )
 
 // Connector protocols
 type Protocol int
 
 const (
-	Slack = iota
+	Slack Protocol = iota
 	Terminal
 	Test
 )
 
-// For each incoming message, a Robot is created in a separate goroutine that
+//go:generate stringer -type=Protocol
+
+// Generate String method with: go generate ./bot/
+
+// Robot is created for each incoming message, in a separate goroutine that
 // persists for the life of the message, until finally a plugin runs
 // (or doesn't).
 type Robot struct {
 	User      string        // The user who sent the message; this can be modified for replying to an arbitrary user
 	Channel   string        // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	Connector string        // for future use; currently text name of protocol
 	Protocol  Protocol      // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
 	RawMsg    interface{}   // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
 	Format    MessageFormat // The outgoing message format, one of Fixed or Variable
@@ -78,13 +82,19 @@ func (r *Robot) Elevate(immediate bool) bool {
 	return false
 }
 
-// Fixed is a convenience function for sending a message with fixed width
-// font. e.g. r.Reply(xxx) replies in variable width font, but
-// r.Fixed().Reply(xxx) replies in a fixed-width font.
+// Fixed is a deprecated convenience function for sending a message with fixed width
+// font.
 func (r *Robot) Fixed() *Robot {
 	nr := *r
 	nr.Format = Fixed
 	return &nr
+}
+
+// MessageFormat returns a robot object with the given format, most likely for a
+// plugin that will mostly use e.g. Variable format.
+func (r *Robot) MessageFormat(f MessageFormat) *Robot {
+	r.Format = f
+	return r
 }
 
 // Direct is a convenience function for initiating a DM conversation with a
@@ -120,6 +130,7 @@ func (r *Robot) RandomInt(n int) int {
 // Current attributes:
 // name, alias, fullName, contact
 func (r *Robot) GetBotAttribute(a string) *AttrRet {
+	a = strings.ToLower(a)
 	robot.RLock()
 	defer robot.RUnlock()
 	ret := Ok
@@ -127,14 +138,16 @@ func (r *Robot) GetBotAttribute(a string) *AttrRet {
 	switch a {
 	case "name":
 		attr = robot.name
-	case "fullName", "realName":
+	case "fullname", "realname":
 		attr = robot.fullName
 	case "alias":
 		attr = string(robot.alias)
 	case "email":
 		attr = robot.email
-	case "contact", "admin", "adminContact":
+	case "contact", "admin", "admincontact":
 		attr = robot.adminContact
+	case "protocol":
+		attr = r.Protocol.String()
 	default:
 		ret = AttributeNotFound
 	}
@@ -148,6 +161,7 @@ func (r *Robot) GetBotAttribute(a string) *AttrRet {
 // name(handle), fullName, email, firstName, lastName, phone, internalID
 // TODO: supplement data with gopherbot.json user's table
 func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
+	a = strings.ToLower(a)
 	attr, ret := robot.GetProtocolUserAttribute(u, a)
 	return &AttrRet{attr, ret}
 }
@@ -159,8 +173,14 @@ func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
 // name(handle), fullName, email, firstName, lastName, phone, internalID
 // TODO: supplement data with gopherbot.json user's table
 func (r *Robot) GetSenderAttribute(a string) *AttrRet {
-	attr, ret := robot.GetProtocolUserAttribute(r.User, a)
-	return &AttrRet{attr, ret}
+	a = strings.ToLower(a)
+	switch a {
+	case "name", "username", "handle", "user", "user name":
+		return &AttrRet{r.User, Ok}
+	default:
+		attr, ret := robot.GetProtocolUserAttribute(r.User, a)
+		return &AttrRet{attr, ret}
+	}
 }
 
 /*
@@ -229,7 +249,7 @@ func (r *Robot) Log(l LogLevel, v ...interface{}) {
 }
 
 // SendChannelMessage lets a plugin easily send a message to an arbitrary
-// channel. Use Robot.Fixed().SencChannelMessage(...) for fixed-width
+// channel. Use Robot.Fixed().SendChannelMessage(...) for fixed-width
 // font.
 func (r *Robot) SendChannelMessage(channel, msg string) RetVal {
 	return robot.SendProtocolChannelMessage(channel, msg, r.Format)

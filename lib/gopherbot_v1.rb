@@ -153,13 +153,13 @@ class BaseBot
 
 	def GetUserAttribute(user, attr)
 		args = { "User" => user, "Attribute" => attr }
-		ret = callBotFunc("GetSenderAttribute", args)
+		ret = callBotFunc("GetUserAttribute", args)
 		return Attribute.new(ret["Attribute"], ret["RetVal"])
 	end
 
 	def GetBotAttribute(attr)
 		args = { "Attribute" => attr }
-		ret = callBotFunc("GetSenderAttribute", args)
+		ret = callBotFunc("GetBotAttribute", args)
 		return Attribute.new(ret["Attribute"], ret["RetVal"])
 	end
 
@@ -169,28 +169,28 @@ class BaseBot
 		return 0
 	end
 
-	def SendChannelMessage(channel, message, format="variable")
+	def SendChannelMessage(channel, message, format="")
 		format = format.to_s if format.class == Symbol
 		args = { "Channel" => channel, "Message" => message }
 		ret = callBotFunc("SendChannelMessage", args, format)
 		return ret["RetVal"]
 	end
 
-	def SendUserMessage(user, message, format="variable")
+	def SendUserMessage(user, message, format="")
 		format = format.to_s if format.class == Symbol
 		args = { "User" => user, "Message" => message }
 		ret = callBotFunc("SendUserMessage", args, format)
 		return ret["RetVal"]
 	end
 
-	def SendUserChannelMessage(user, channel, message, format="variable")
+	def SendUserChannelMessage(user, channel, message, format="")
 		format = format.to_s if format.class == Symbol
 		args = { "User" => user, "Channel" => channel, "Message" => message }
 		ret = callBotFunc("SendUserChannelMessage", args, format)
 		return ret["RetVal"]
 	end
 
-	def Say(message, format="variable")
+	def Say(message, format="")
 		format = format.to_s if format.class == Symbol
 		if @channel.empty?
 			return SendUserMessage(@user, message, format)
@@ -203,7 +203,7 @@ class BaseBot
 		sleep seconds
 	end
 
-	def Reply(message, format="variable")
+	def Reply(message, format="")
 		format = format.to_s if format.class == Symbol
 		if @channel.empty?
 			return SendUserMessage(@user, message, format)
@@ -234,11 +234,15 @@ class BaseBot
 		end
 	end
 
-	def callBotFunc(funcname, args, format="variable")
+	def callBotFunc(funcname, args, format="")
+		if format.size == 0
+			format = @format
+		end
 		func = {
 			"FuncName" => funcname,
 			"User" => @user,
 			"Channel" => @channel,
+			"Protocol" => @protocol,
 			"Format" => format,
 			"PluginID" => @plugin_id,
 			"FuncArgs" => args
@@ -262,20 +266,41 @@ class Robot < BaseBot
 		@channel = ENV["GOPHER_CHANNEL"]
 		@user = ENV["GOPHER_USER"]
 		@plugin_id = ENV["GOPHER_PLUGIN_ID"]
+		@protocol = ENV["GOPHER_PROTOCOL"]
+		@format = ""
 		@prng = Random.new
 	end
 
 	def Direct()
-		DirectBot.new(@user, @plugin_id, @prng)
+		DirectBot.new(@user, @plugin_id, @protocol, @format, @prng)
+	end
+
+	def MessageFormat(format)
+		FormattedBot.new(@user, @channel, @plugin_id, @protocol, format, @prng)
 	end
 end
 
 class DirectBot < BaseBot
 
-	def initialize(user, plugin_id, prng)
+	def initialize(user, plugin_id, protocol, format, prng)
 		@channel = ""
 		@user = user
 		@plugin_id = plugin_id
+		@protocol = protocol
+		@format = format
+		@prng = prng
+	end
+
+end
+
+class FormattedBot < BaseBot
+
+	def initialize(user, channel, plugin_id, protocol, format, prng)
+		@channel = channel
+		@user = user
+		@plugin_id = plugin_id
+		@protocol = protocol
+		@format = format
 		@prng = prng
 	end
 

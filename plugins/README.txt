@@ -1,5 +1,7 @@
-This directory has some example external plugins. To activate a plugin
+This directory has a few useful example script plugins. To activate a plugin
 in this directory, it must be listed in the robot's "ExternalPlugins"
-configuration item. Note that most of the script plugins that ship with
-gopherbot aren't that useful (though most of the Go plugins are). The notable
-exception is the weather plugin, weather.rb, which requires configuration.
+configuration item, and in some cases require extra configuration in
+conf/plugins/<foo>.yaml
+
+The 'samples' directory are mostly used by the testing framework, but are also
+useful for code examples.

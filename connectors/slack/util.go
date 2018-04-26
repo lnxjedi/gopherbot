@@ -117,6 +117,8 @@ func optQuote(msg string, f bot.MessageFormat) string {
 	return msg
 }
 
+const escapePad = "\f"
+
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // takes care of formatting, and segments the message if needed.
 func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []string {
@@ -128,6 +130,14 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []stri
 	sbytes = bytes.Replace(sbytes, []byte("&"), []byte("&amp;"), -1)
 	sbytes = bytes.Replace(sbytes, []byte("<"), []byte("&lt;"), -1)
 	sbytes = bytes.Replace(sbytes, []byte(">"), []byte("&gt;"), -1)
+	// 'escape' special chars
+	if f == bot.Variable {
+		for _, padChar := range []string{"`", "*", "_", "@", "#"} {
+			padBytes := []byte(padChar)
+			paddedBytes := []byte(escapePad + padChar + escapePad)
+			sbytes = bytes.Replace(sbytes, padBytes, paddedBytes, -1)
+		}
+	}
 
 	mentionRe := regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
 	sbytes = mentionRe.ReplaceAllFunc(sbytes, func(bytes []byte) []byte {
@@ -241,9 +251,6 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 			text = strings.Replace(text, mention, "@"+replace, -1)
 		}
 	}
-	s.RLock()
-	connector := s.name
-	s.RUnlock()
 	switch chanID[:1] {
 	case "D":
 		directUserName, ok := s.imUser(chanID)
@@ -253,18 +260,18 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		}
 		if !ok {
 			s.Log(bot.Warn, "Couldn't find user name for IM", chanID)
-			s.IncomingMessage("", chanID, text, connector, bot.Slack, msg)
+			s.IncomingMessage("", chanID, text, bot.Slack, msg)
 			return
 		}
-		s.IncomingMessage("", directUserName, text, connector, bot.Slack, msg)
+		s.IncomingMessage("", directUserName, text, bot.Slack, msg)
 	case "C", "G":
 		channelName, ok := s.channelName(chanID)
 		if !ok {
 			s.Log(bot.Warn, "Coudln't find channel name for ID", chanID)
-			s.IncomingMessage(chanID, userName, text, connector, bot.Slack, msg)
+			s.IncomingMessage(chanID, userName, text, bot.Slack, msg)
 			return
 		}
-		s.IncomingMessage(channelName, userName, text, connector, bot.Slack, msg)
+		s.IncomingMessage(channelName, userName, text, bot.Slack, msg)
 	}
 }
 

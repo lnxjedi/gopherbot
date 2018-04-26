@@ -21,12 +21,30 @@ func checkPanic(bot *Robot, s string) {
 	}
 }
 
-func setFormat(format string) MessageFormat {
+func (r *Robot) setFormat(format string) MessageFormat {
+	format = strings.ToLower(format)
 	switch format {
 	case "fixed":
 		return Fixed
-	default:
+	case "variable":
 		return Variable
+	case "raw":
+		return Raw
+	default:
+		r.Log(Error, fmt.Sprintf("Unknown message format '%s', defaulting to 'raw'", format))
+		return Raw
+	}
+}
+
+func setProtocol(proto string) Protocol {
+	proto = strings.ToLower(proto)
+	switch proto {
+	case "slack":
+		return Slack
+	case "term", "terminal":
+		return Terminal
+	default:
+		return Test
 	}
 }
 

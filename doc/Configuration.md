@@ -10,6 +10,7 @@ Table of Contents
       * [AdminContact, Name and Alias](#admincontact-name-and-alias)
       * [Email and MailConfig](#email-and-mailconfig)
       * [Connection Protocol](#connection-protocol)
+      * [DefaultMessageFormat](#defaultmessageformat)
       * [Brain](#brain)
       * [AdminUsers and IgnoreUsers](#adminusers-and-ignoreusers)
       * [DefaultAuthorizer and DefaultElevator](#defaultauthorizer-and-defaultelevator)
@@ -100,6 +101,18 @@ ProtocolConfig:
 Whenever a plugin sends a very long message (longer than the
 Slack maximum message length), the slack connector will automatically break the message up into shorter
 messages; MaxMessageSplit determines the maximum number to split a message into before truncating.
+
+### DefaultMessageFormat
+
+```yaml
+DefaultMessageFormat: Variable # default: Raw
+```
+
+The `DefaultMessageFormat` determines how the robot will format it's messages to the users when formatting
+isn't explicit. The default value of `Raw` means send the message unmodified to the chat service; this will
+result in protocol-specific formatting. For instance, slack will display `_italics_` as "_italics_" without displaying the
+underscores. Setting `DefaultMessageFormat: Variable` would instead display "\_italics\_". This setting is mainly useful
+for plugins written to work across multiple chat platforms.
 
 ### Brain
 

@@ -70,13 +70,15 @@ class BotFuncCall {
     [String] $User
     [String] $Channel
     [String] $Format
+    [String] $Protocol
     [String] $PluginID
     [PSCustomObject] $FuncArgs
 
-    BotFuncCall([String] $fn, [String] $u, [String] $c, [String] $fmt, [String] $p, [PSCustomObject] $funcArgs ) {
+    BotFuncCall([String] $fn, [String] $u, [String] $c, [String] $pr, [String] $fmt, [String] $p, [PSCustomObject] $funcArgs ) {
         $this.FuncName = $fn
         $this.User = $u
         $this.Channel = $c
+        $this.Protocol = $pr
         $this.Format = $fmt
         $this.PluginID = $p
         $this.FuncArgs = $funcArgs
@@ -88,17 +90,25 @@ class Robot
     # Properties
     [String] $Channel
     [String] $User
+    [String] $Protocol
+    [String] $Format
     hidden [String] $PluginID
 
     # Constructor
-    Robot([String] $channel, [String] $user, [String] $pluginid) {
+    Robot([String] $channel, [String] $user, [String] $proto, [String] $format, [String] $pluginid) {
         $this.Channel = $channel
         $this.User = $user
+        $this.Protocol = $proto
+        $this.Format = $format
         $this.PluginID = $pluginid
     }
 
     [Robot] Direct() {
-        return [Robot]::new("", $this.User, $this.PluginID)
+        return [Robot]::new("", $this.User, $this.Protocol, $this.Format, $this.PluginID)
+    }
+
+    [Robot] MessageFormat([String] $format) {
+        return [Robot]::new($this.Channel, $this.User, $this.Protocol, $format, $this.PluginID)
     }
 
     Pause([single] $seconds) {
@@ -133,7 +143,12 @@ class Robot
     }
 
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs, [String] $format) {
-        $bfc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $format, $this.PluginID, $funcArgs)
+        if ($format.Length -eq 0) {
+            $fmt = $this.Format
+        } else {
+            $fmt = $format
+        }
+        $bfc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $this.Protocol, $fmt, $this.PluginID, $funcArgs)
         $fc = ConvertTo-Json $bfc
         # if ($fname -ne "Log") { $this.Log("Debug", "DEBUG - Sending: $fc") }
         $r = Invoke-WebRequest -URI "$Env:GOPHER_HTTP_POST/json" -Method Post -UseBasicParsing -Body $fc
@@ -143,7 +158,7 @@ class Robot
     }
 
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs) {
-        return $this.Call($fname, $funcArgs, "variable")
+        return $this.Call($fname, $funcArgs, "")
     }
 
     [PlugRet] CallPlugin([String] $plugName, [String[]]$plugArgs) {
@@ -245,31 +260,31 @@ class Robot
         $this.Call("Log", $funcArgs)
     }
 
-    [BotRet] SendChannelMessage([String] $channel, [String] $msg, [String] $format="variable") {
+    [BotRet] SendChannelMessage([String] $channel, [String] $msg, [String] $format) {
         $funcArgs = [PSCustomObject]@{ Channel=$channel; Message=$msg }
         return $this.Call("SendChannelMessage", $funcArgs, $format).RetVal -As [BotRet]
     }
 
     [BotRet] SendChannelMessage([String] $channel, [String] $msg) {
-        return $this.SendChannelMessage($channel, $msg, "variable")
+        return $this.SendChannelMessage($channel, $msg, "")
     }
 
-    [BotRet] SendUserMessage([String] $user, [String] $msg, [String] $format="variable") {
+    [BotRet] SendUserMessage([String] $user, [String] $msg, [String] $format) {
         $funcArgs = [PSCustomObject]@{ User=$user; Message=$msg }
         return $this.Call("SendUserMessage", $funcArgs, $format).RetVal -As [BotRet]
     }
 
     [BotRet] SendUserMessage([String] $user, [String] $msg) {
-        return $this.SendUserMessage($user, $msg, "variable")
+        return $this.SendUserMessage($user, $msg, "")
     }
 
-    [BotRet] SendUserChannelMessage([String] $user, [String] $channel, [String] $msg, [String] $format="variable") {
+    [BotRet] SendUserChannelMessage([String] $user, [String] $channel, [String] $msg, [String] $format) {
         $funcArgs = [PSCustomObject]@{ User=$user; Channel=$channel; Message=$msg }
         return $this.Call("SendUserChannelMessage", $funcArgs, $format).RetVal -As [BotRet]
     }
 
     [BotRet] SendUserChannelMessage([String] $user, [String] $channel, [String] $msg) {
-        return $this.SendUserChannelMessage($user, $channel, $msg, "variable")
+        return $this.SendUserChannelMessage($user, $channel, $msg, "")
     }
 
     [BotRet] Say([String] $msg, [String] $format) {
@@ -281,10 +296,10 @@ class Robot
     }
 
     [BotRet] Say([String] $msg) {
-        return $this.Say($msg, "variable")
+        return $this.Say($msg, "")
     }
 
-    [BotRet] Reply([String] $msg, [String] $format = "variable") {
+    [BotRet] Reply([String] $msg, [String] $format) {
         if ($this.Channel -eq "") {
             return $this.SendUserMessage($this.User, $msg, $format)
         } else {
@@ -293,20 +308,20 @@ class Robot
     }
 
     [BotRet] Reply([String] $msg) {
-        return $this.Reply($msg, "variable")
+        return $this.Reply($msg, "")
     }
 }
 
 function Get-Robot() {
-    return [Robot]::new($Env:GOPHER_CHANNEL, $Env:GOPHER_USER, $Env:GOPHER_PLUGIN_ID)
+    return [Robot]::new($Env:GOPHER_CHANNEL, $Env:GOPHER_USER, $Env:GOPHER_PROTOCOL, "", $Env:GOPHER_PLUGIN_ID)
 }
 
 export-modulemember -function Get-Robot
 # SIG # Begin signature block
 # MIIOWAYJKoZIhvcNAQcCoIIOSTCCDkUCAQExCzAJBgUrDgMCGgUAMGkGCisGAQQB
 # gjcCAQSgWzBZMDQGCisGAQQBgjcCAR4wJgIDAQAABBAfzDtgWUsITrck0sYpfvNR
-# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUCpGOoT4NqXN4cy+AQ1JSS2B0
-# yeyggguPMIIFnDCCBISgAwIBAgIRAMRd9vOBG/0xAqGjaazZxhowDQYJKoZIhvcN
+# AgEAAgEAAgEAAgEAAgEAMCEwCQYFKw4DAhoFAAQUZipUCC657JnxeIVMVE6Td184
+# 99aggguPMIIFnDCCBISgAwIBAgIRAMRd9vOBG/0xAqGjaazZxhowDQYJKoZIhvcN
 # AQELBQAwfDELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAk1JMRIwEAYDVQQHEwlBbm4g
 # QXJib3IxEjAQBgNVBAoTCUludGVybmV0MjERMA8GA1UECxMISW5Db21tb24xJTAj
 # BgNVBAMTHEluQ29tbW9uIFJTQSBDb2RlIFNpZ25pbmcgQ0EwHhcNMTgwMjE2MDAw
@@ -373,11 +388,11 @@ export-modulemember -function Get-Robot
 # VQQDExxJbkNvbW1vbiBSU0EgQ29kZSBTaWduaW5nIENBAhEAxF3284Eb/TECoaNp
 # rNnGGjAJBgUrDgMCGgUAoHgwGAYKKwYBBAGCNwIBDDEKMAigAoAAoQKAADAZBgkq
 # hkiG9w0BCQMxDAYKKwYBBAGCNwIBBDAcBgorBgEEAYI3AgELMQ4wDAYKKwYBBAGC
-# NwIBFTAjBgkqhkiG9w0BCQQxFgQUUX0F0lDbGJqeypg7w3tdZMthWF0wDQYJKoZI
-# hvcNAQEBBQAEggEAsD1KZAr1Fd8RPftrqBB4lCYB7Ac58QqICZwnMJqyvCZ4mOao
-# oeEqte0hOVN43rNCB32YFyHucArmE5DtD+4rpGGmf2cAc2CzO+B/iIVvPM4PIXur
-# 7qA355FObLEQMb8gdksR/ZbxlaSBWn1EnO4hMN37Mkw08oQGN1mLqeEFJfY/sURD
-# cBA26PSzp3KSvHt7IjS1ChzDvlRi6bm7C5I0DTxp0Rac6eFVLDg4eJy5/6WS6CMR
-# lfhQHlJD4VzP1A76QlsfIxJwCSbgCdtH3aSH3VuutzXMAFacipsUhpAU9dUWqhbN
-# eXSUvgDp+B/h+kOkUhL+uwxwrDlh5of+kkKAkQ==
+# NwIBFTAjBgkqhkiG9w0BCQQxFgQUqIarfhjNWXTpyVQCuEtYPRM+1x8wDQYJKoZI
+# hvcNAQEBBQAEggEAEzkedXaiI8UJpOdLZQJpmsaeeLXHrSULt/2GXK8u65V48TXu
+# UMz4yfHFY+Bg3WOE+IObmoJvhteJuT5TqK2SNKdARtLdvyCxZebbMiOrbUrPLaSi
+# pEsVZt4SKHMbbR3IDQlLAb5F/QrnLE6yq/27aCgxjcGkn3MGD7iMWueS1J6tIQf+
+# VTAufhmwCVGCnCHaiZnakF+hpqnGJqjg3E+B0RODX/XqXOzPPJkMfLjXErSfG6iJ
+# vL9khAG4Y5UOwhK9RCd7L6ihP+aMD1VzxVWLfpc8Kxb2qg0r5aYSzLTQtb44Olul
+# XAQWpH/4wOxjKKWU5RNw9Fox8g/DvvM4kFVN5w==
 # SIG # End signature block

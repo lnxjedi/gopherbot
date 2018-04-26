@@ -13,10 +13,10 @@ type Handler interface {
 	// IncomingMessage is called by the connector for all messages the bot
 	// can hear. The channelName and userName should be human-readable,
 	// not internal representations. If channelName is blank, it's a direct message.
-	// 'connector' is the string name for this connector, and proto is the bot.Protocol
-	// identifier. 'raw' is the raw incoming struct from the connector; using
-	// the value from Protocol, a plugin can interpret the contents of 'raw'.
-	IncomingMessage(channelName, userName, message, connector string, proto Protocol, raw interface{})
+	// Protocol is the bot.Protocol, and 'raw' is the raw incoming struct from
+	// the connector; using the value from Protocol, a plugin can interpret the
+	// contents of 'raw'.
+	IncomingMessage(channelName, userName, message string, proto Protocol, raw interface{})
 	// GetProtocolConfig unmarshals the ProtocolConfig section of gopherbot.json
 	// into a connector-provided struct
 	GetProtocolConfig(interface{}) error

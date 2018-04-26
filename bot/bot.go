@@ -44,39 +44,40 @@ func RegisterConnector(name string, connstarter func(Handler, *log.Logger) Conne
 // robot holds all the interal data relevant to the Bot. Most of it is populated
 // by loadConfig, other stuff is populated by the connector.
 var robot struct {
-	Connector                           // Connector interface, implemented by each specific protocol
-	configPath         string           // Directory for configuration files overriding defaults / installed
-	installPath        string           // Path to the bot's installation directory
-	adminUsers         []string         // List of users with access to administrative commands
-	alias              rune             // single-char alias for addressing the bot
-	name               string           // e.g. "Gort"
-	fullName           string           // e.g. "Robbie Robot"
-	adminContact       string           // who to contact for problems with the robot.
-	email              string           // the from: when the robot sends email
-	mailConf           botMailer        // configuration to use when sending email
-	ignoreUsers        []string         // list of users to never listen to, like other bots
-	preRegex           *regexp.Regexp   // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
-	postRegex          *regexp.Regexp   // regex for matching, e.g. "open the pod bay doors, hal"
-	bareRegex          *regexp.Regexp   // regex for matching the robot's bare name, if you forgot it in the previous command
-	joinChannels       []string         // list of channels to join
-	defaultAllowDirect bool             // whether plugins are available in DM by default
-	plugChannels       []string         // list of channels where plugins are active by default
-	sync.RWMutex                        // for safe updating of bot data structures
-	protocol           string           // Name of the protocol, e.g. "slack"
-	brainProvider      string           // Type of Brain provider to use
-	brain              SimpleBrain      // Interface for robot to Store and Retrieve data
-	defaultElevator    string           // Plugin name for performing elevation
-	defaultAuthorizer  string           // Plugin name for performing authorization
-	externalPlugins    []externalPlugin // List of external plugins to load
-	port               string           // Localhost port to listen on
-	logger             *log.Logger      // Where to log to
-	stop               chan struct{}    // stop channel for stopping the connector
-	done               chan struct{}    // channel closed when robot finishes shutting down
-	events             chan Event       // buffered channel for message disposition events used by integration testing
-	shuttingDown       bool             // to prevent new plugins from starting
-	pluginsRunning     int              // a count of how many plugins are currently running
-	paused             bool             // it's a Windows thing
-	sync.WaitGroup                      // for keeping track of running plugins
+	Connector                             // Connector interface, implemented by each specific protocol
+	configPath           string           // Directory for configuration files overriding defaults / installed
+	installPath          string           // Path to the bot's installation directory
+	adminUsers           []string         // List of users with access to administrative commands
+	alias                rune             // single-char alias for addressing the bot
+	name                 string           // e.g. "Gort"
+	fullName             string           // e.g. "Robbie Robot"
+	adminContact         string           // who to contact for problems with the robot.
+	email                string           // the from: when the robot sends email
+	mailConf             botMailer        // configuration to use when sending email
+	ignoreUsers          []string         // list of users to never listen to, like other bots
+	preRegex             *regexp.Regexp   // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
+	postRegex            *regexp.Regexp   // regex for matching, e.g. "open the pod bay doors, hal"
+	bareRegex            *regexp.Regexp   // regex for matching the robot's bare name, if you forgot it in the previous command
+	joinChannels         []string         // list of channels to join
+	defaultAllowDirect   bool             // whether plugins are available in DM by default
+	defaultMessageFormat MessageFormat    // Raw unless set to Variable or Fixed
+	plugChannels         []string         // list of channels where plugins are active by default
+	sync.RWMutex                          // for safe updating of bot data structures
+	protocol             string           // Name of the protocol, e.g. "slack"
+	brainProvider        string           // Type of Brain provider to use
+	brain                SimpleBrain      // Interface for robot to Store and Retrieve data
+	defaultElevator      string           // Plugin name for performing elevation
+	defaultAuthorizer    string           // Plugin name for performing authorization
+	externalPlugins      []externalPlugin // List of external plugins to load
+	port                 string           // Localhost port to listen on
+	logger               *log.Logger      // Where to log to
+	stop                 chan struct{}    // stop channel for stopping the connector
+	done                 chan struct{}    // channel closed when robot finishes shutting down
+	events               chan Event       // buffered channel for message disposition events used by integration testing
+	shuttingDown         bool             // to prevent new plugins from starting
+	pluginsRunning       int              // a count of how many plugins are currently running
+	paused               bool             // it's a Windows thing
+	sync.WaitGroup                        // for keeping track of running plugins
 }
 
 // initBot sets up the global robot and loads

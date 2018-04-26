@@ -89,6 +89,10 @@ func (r *Robot) debug(pluginID, msg string, verboseonly bool) {
 	}
 	ts := time.Now().Format("2006/01/02 03:04:05")
 	debugLog := fmt.Sprintf("%s DEBUG %s: %s", ts, plugName, msg)
+	// Since Format isn't set right away, we always debug with the configured default
+	robot.RLock()
+	r.Format = robot.defaultMessageFormat
+	robot.RUnlock()
 	r.SendUserMessage(targetUser, debugLog)
 	// r.Log(Debug, debugLog)
 }

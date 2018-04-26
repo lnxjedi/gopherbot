@@ -17,13 +17,13 @@ func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string,
 	switch attr {
 	case "email":
 		return user.Email, bot.Ok
-	case "internalID":
+	case "internalid":
 		return user.InternalID, bot.Ok
-	case "realName", "fullName":
+	case "realname", "fullname", "real name", "full name":
 		return user.FullName, bot.Ok
-	case "firstName":
+	case "firstname", "first name":
 		return user.FirstName, bot.Ok
-	case "lastName":
+	case "lastname", "last name":
 		return user.LastName, bot.Ok
 	case "phone":
 		return user.Phone, bot.Ok
@@ -35,18 +35,18 @@ func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string,
 
 // SendProtocolChannelMessage sends a message to a channel
 func (tc *termConnector) SendProtocolChannelMessage(ch string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	return tc.sendMessage(ch, msg)
+	return tc.sendMessage(ch, msg, f)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
 func (tc *termConnector) SendProtocolUserChannelMessage(u, ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
 	msg = "@" + u + " " + msg
-	return tc.sendMessage(ch, msg)
+	return tc.sendMessage(ch, msg, f)
 }
 
 // SendProtocolUserMessage sends a direct message to a user
 func (tc *termConnector) SendProtocolUserMessage(u string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	return tc.sendMessage(fmt.Sprintf("(dm:%s)", u), msg)
+	return tc.sendMessage(fmt.Sprintf("(dm:%s)", u), msg, f)
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"

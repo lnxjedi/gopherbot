@@ -3,6 +3,8 @@
 package ping
 
 import (
+	"fmt"
+
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
@@ -14,6 +16,8 @@ Help:
   Helptext: [ "(bot), ping - see if the bot is alive" ]
 - Keywords: [ "rules" ]
   Helptext: [ "(bot), what are the rules? - Be sure the robot knows how to conduct his/herself." ]
+- Keywords: [ "whoami", "user", "identity", "handle", "username" ]
+  Helptext: [ "(bot), whoami - Get the robot to tell you a little bit about yourself." ]
 CommandMatchers:
 - Command: "ping"
   Regex: "(?i:ping)"
@@ -21,6 +25,8 @@ CommandMatchers:
   Regex: "(?i:thanks?( you)?!?)"
 - Command: "rules"
   Regex: "(?i:(?:what are )?the rules\\??)"
+- Command: "whoami"
+  Regex: "(?i:whoami)"
 - Command: "hello"
   Regex: "(?i:(?:hi|hello|howdy)[.!]?)"
 # These can be overridden by adding a Config: section to conf/plugins/ping.yaml
@@ -60,6 +66,11 @@ func ping(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) 
 		r.Reply("Howdy. Try 'help' if you want usage information.")
 	case "ping":
 		r.Fixed().Reply("PONG")
+	case "whoami":
+		u := r.GetSenderAttribute("name")
+		p := r.GetBotAttribute("protocol")
+		i := r.GetSenderAttribute("internalid")
+		r.MessageFormat(bot.Variable).Say(fmt.Sprintf("Your user name is '%s', %s internal ID '%s'", u, p, i))
 	case "thanks":
 		if ret := r.GetPluginConfig(&cfg); ret == bot.Ok {
 			r.Reply(r.RandomString(cfg.Welcome))

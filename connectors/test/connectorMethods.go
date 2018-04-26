@@ -4,6 +4,12 @@ import (
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
+// BotMessage is for receiving messages from the robot
+type BotMessage struct {
+	User, Channel, Message string
+	Format                 bot.MessageFormat
+}
+
 // GetUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
 func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {
@@ -15,13 +21,13 @@ func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string,
 	switch attr {
 	case "email":
 		return user.Email, bot.Ok
-	case "internalID":
+	case "internalid":
 		return user.InternalID, bot.Ok
-	case "realName", "fullName":
+	case "realname", "fullname", "real name", "full name":
 		return user.FullName, bot.Ok
-	case "firstName":
+	case "firstname", "first name":
 		return user.FirstName, bot.Ok
-	case "lastName":
+	case "lastname", "last name":
 		return user.LastName, bot.Ok
 	case "phone":
 		return user.Phone, bot.Ok
@@ -33,30 +39,33 @@ func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string,
 
 // SendProtocolChannelMessage sends a message to a channel
 func (tc *TestConnector) SendProtocolChannelMessage(ch string, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
-	msg := &TestMessage{
+	msg := &BotMessage{
 		User:    "",
 		Channel: ch,
 		Message: mesg,
+		Format:  f,
 	}
 	return tc.sendMessage(msg)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
 func (tc *TestConnector) SendProtocolUserChannelMessage(u, ch, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
-	msg := &TestMessage{
+	msg := &BotMessage{
 		User:    u,
 		Channel: ch,
 		Message: mesg,
+		Format:  f,
 	}
 	return tc.sendMessage(msg)
 }
 
 // SendProtocolUserMessage sends a direct message to a user
 func (tc *TestConnector) SendProtocolUserMessage(u string, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
-	msg := &TestMessage{
+	msg := &BotMessage{
 		User:    u,
 		Channel: "",
 		Message: mesg,
+		Format:  f,
 	}
 	return tc.sendMessage(msg)
 }

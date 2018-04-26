@@ -45,15 +45,16 @@ base64_encode(){
 gbPostJSON(){
 	local GB_FUNCNAME=$1
 	local GB_FUNCARGS="$2"
+	local FORMAT=${3:-$GB_FORMAT}
 	local JSON JSONRET
 	#local GB_DEBUG="true"
-	GB_FORMAT=${GB_FORMAT:-variable}
 	JSON=$(cat <<EOF
 {
 	"FuncName": "$GB_FUNCNAME",
 	"User": "$GOPHER_USER",
 	"Channel": "$GOPHER_CHANNEL",
-	"Format": "$GB_FORMAT",
+	"Format": "$FORMAT",
+	"Protocol": "$GOPHER_PROTOCOL",
 	"PluginID": "$GOPHER_PLUGIN_ID",
 	"FuncArgs": $GB_FUNCARGS
 }
@@ -71,7 +72,6 @@ EOF
 		echo "$JSONRET" >&2
 	fi
 	echo "$JSONRET"
-	GB_FORMAT="variable"
 }
 
 gbBotRet() {
@@ -258,6 +258,8 @@ EOF
 }
 
 PromptUserChannelForReply(){
+	local FORMAT
+	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi
 	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="PromptUserChannelForReply"
 	local REGEX="$1"
@@ -277,7 +279,7 @@ EOF
 	local RETVAL
 	for TRY in 0 1 2
 	do
-		GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+		GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
 		gbBotRet "$GB_RET"
 		RETVAL=$?
 		if [ $RETVAL -eq $GBRET_RetryPrompt ]
@@ -298,20 +300,46 @@ EOF
 }
 
 PromptForReply(){
+	local FORMAT
+	if [[ $1 = -? ]]; then FORMAT=$1; shift; fi
 	local REGEX=$1
 	shift
-	PromptUserChannelForReply "$REGEX" "$GOPHER_USER" "$GOPHER_CHANNEL" "$*"
+	PromptUserChannelForReply $FORMAT "$REGEX" "$GOPHER_USER" "$GOPHER_CHANNEL" "$*"
 }
 
 PromptUserForReply(){
+	local FORMAT
+	if [[ $1 = -? ]]; then FORMAT=$1; shift; fi
 	local REGEX=$1
 	local PUSER=$2
 	shift 2
 	PromptUserChannelForReply "$REGEX" "$PUSER" "" "$*"
 }
 
+MessageFormat(){
+	if [ -n "$1" ]
+	then
+		export GB_FORMAT="$1"
+	fi
+}
+
+getFormat(){
+	case "$1" in
+	"-f")
+		echo "Fixed"
+		;;
+	"-r")
+		echo "Raw"
+		;;
+	"-v")
+		echo "Variable"
+		;;
+	esac
+}
+
 SendUserMessage(){
-	if [ "$1" = "-f" ]; then GB_FORMAT=fixed; shift; else GB_FORMAT=variable; fi
+	local FORMAT
+	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi
 	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="SendUserMessage"
 	local SUM_USER=$1
@@ -327,12 +355,13 @@ SendUserMessage(){
 }
 EOF
 )
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
 	gbBotRet "$GB_RET"
 }
 
 SendUserChannelMessage(){
-	if [ "$1" = "-f" ]; then GB_FORMAT=fixed; shift; else GB_FORMAT=variable; fi
+	local FORMAT
+	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi
 	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="SendUserChannelMessage"
 	local SUCM_USER=$1
@@ -350,12 +379,13 @@ SendUserChannelMessage(){
 }
 EOF
 )
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
 	gbBotRet "$GB_RET"
 }
 
 SendChannelMessage(){
-	if [ "$1" = "-f" ]; then GB_FORMAT=fixed; shift; else GB_FORMAT=variable; fi
+	local FORMAT
+	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi
 	local GB_FUNCARGS GB_RET
 	local GB_FUNCNAME="SendChannelMessage"
 	local SCM_CHANNEL=$1
@@ -371,14 +401,14 @@ SendChannelMessage(){
 }
 EOF
 )
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
 	gbBotRet "$GB_RET"
 }
 
 # Convenience functions so that copies of this logic don't wind up in a bunch of plugins
 Say(){
 	local FARG
-	[ "$1" = "-f" ] && { FARG="-f"; shift; }
+	[[ $1 == -? ]] && { FARG=$1; shift; }
 	if [ -n "$GOPHER_CHANNEL" ]
 	then
 		SendChannelMessage $FARG "$GOPHER_CHANNEL" "$*"
@@ -389,7 +419,7 @@ Say(){
 
 Reply(){
 	local FARG
-	[ "$1" = "-f" ] && { FARG="-f"; shift; }
+	[[ $1 == -? ]] && { FARG=$1; shift; }
 	if [ -n "$GOPHER_CHANNEL" ]
 	then
 		SendUserChannelMessage $FARG "$GOPHER_USER" "$GOPHER_CHANNEL" "$*"

@@ -44,7 +44,7 @@ func (h handler) GetConfigPath() string {
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
-func (h handler) IncomingMessage(channelName, userName, messageFull, connector string, proto Protocol, raw interface{}) {
+func (h handler) IncomingMessage(channelName, userName, messageFull string, proto Protocol, raw interface{}) {
 	Log(Trace, fmt.Sprintf("Incoming message \"%s\" in channel \"%s\"", messageFull, channelName))
 	// When command == true, the message was directed at the bot
 	isCommand := false
@@ -101,10 +101,8 @@ func (h handler) IncomingMessage(channelName, userName, messageFull, connector s
 	bot := &Robot{
 		User:      userName,
 		Channel:   channelName,
-		Connector: connector,
 		Protocol:  proto,
 		RawMsg:    raw,
-		Format:    Variable,
 		isCommand: isCommand,
 		directMsg: directMsg,
 		msg:       message,
