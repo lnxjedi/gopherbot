@@ -64,6 +64,8 @@ LogLevel: info
 #ExternalPlugins:
 #- Name: weather
 #  Path: plugins/weather.rb
+#- Name: chuck
+#  Path: plugins/chuck.rb
 #- Name: hosts
 #  Path: plugins/hosts.sh
 #- Name: echo
