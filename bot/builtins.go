@@ -320,7 +320,7 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			return
 		}
 		if plugin.Disabled {
-			bot.Say(fmt.Sprintf("That plugin is disabled; reason: %s", plugin.reason))
+			bot.Say(fmt.Sprintf("That plugin is disabled, fix and reload; reason: %s", plugin.reason))
 			return
 		}
 		verbose := false
@@ -338,12 +338,6 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		plugDebug.p[plugin.pluginID] = pd
 		plugDebug.u[bot.User] = pd
 		plugDebug.Unlock()
-		err := bot.loadConfig()
-		if err != nil {
-			bot.Reply("Error during reload, check the logs")
-			Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))
-			return
-		}
 		bot.Say(fmt.Sprintf("Debugging enabled for %s (verbose: %v)", args[0], verbose))
 	case "stop":
 		plugDebug.Lock()

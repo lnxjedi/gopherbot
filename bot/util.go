@@ -21,13 +21,17 @@ func checkPanic(bot *Robot, s string) {
 	}
 }
 
-func setFormat(format string) MessageFormat {
+func (r *Robot) setFormat(format string) MessageFormat {
+	format = strings.ToLower(format)
 	switch format {
-	case "fixed", "Fixed":
+	case "fixed":
 		return Fixed
-	case "variable", "Variable":
+	case "variable":
 		return Variable
+	case "raw":
+		return Raw
 	default:
+		r.Log(Error, fmt.Sprintf("Unknown message format '%s', defaulting to 'raw'", format))
 		return Raw
 	}
 }

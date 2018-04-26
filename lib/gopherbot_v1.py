@@ -153,15 +153,15 @@ class Robot:
         ret = self.Call("GetBotAttribute", { "Attribute": attr })
         return Attribute(ret)
 
-    def PromptForReply(self, regex_id, prompt):
-        return self.PromptUserChannelForReply(regex_id, self.user, self.channel, prompt)
+    def PromptForReply(self, regex_id, prompt, format=""):
+        return self.PromptUserChannelForReply(regex_id, self.user, self.channel, prompt, format)
 
-    def PromptUserForReply(self, regex_id, user, prompt):
-        return self.PromptUserChannelForReply(regex_id, user, "", prompt)
+    def PromptUserForReply(self, regex_id, user, prompt, format=""):
+        return self.PromptUserChannelForReply(regex_id, user, "", prompt, format)
 
-    def PromptUserChannelForReply(self, regex_id, user, channel, prompt):
+    def PromptUserChannelForReply(self, regex_id, user, channel, prompt, format=""):
         for i in range(0, 3):
-            rep = self.Call("PromptUserChannelForReply", { "RegexID": regex_id, "User": user, "Channel": channel, "Prompt": prompt })
+            rep = self.Call("PromptUserChannelForReply", { "RegexID": regex_id, "User": user, "Channel": channel, "Prompt": prompt }, format)
             if rep["RetVal"] == self.RetryPrompt:
                 continue
             return Reply(rep)
@@ -171,17 +171,17 @@ class Robot:
 
     def SendChannelMessage(self, channel, message, format=""):
         ret = self.Call("SendChannelMessage", { "Channel": channel,
-        "Message": message })
+        "Message": message }, format)
         return ret["RetVal"]
 
     def SendUserMessage(self, user, message, format=""):
         ret = self.Call("SendUserMessage", { "User": user,
-        "Message": message })
+        "Message": message }, format)
         return ret["RetVal"]
 
     def SendUserChannelMessage(self, user, channel, message, format=""):
         ret = self.Call("SendUserChannelMessage", { "User": user,
-        "Channel": channel, "Message": message })
+        "Channel": channel, "Message": message }, format)
         return ret["RetVal"]
 
     def Say(self, message, format=""):

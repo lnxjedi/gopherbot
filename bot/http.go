@@ -228,7 +228,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		pluginID: f.PluginID,
 	}
 	if len(f.Format) > 0 {
-		bot.Format = setFormat(f.Format)
+		bot.Format = bot.setFormat(f.Format)
 	} else {
 		robot.RLock()
 		bot.Format = robot.defaultMessageFormat

@@ -153,13 +153,13 @@ class BaseBot
 
 	def GetUserAttribute(user, attr)
 		args = { "User" => user, "Attribute" => attr }
-		ret = callBotFunc("GetSenderAttribute", args)
+		ret = callBotFunc("GetUserAttribute", args)
 		return Attribute.new(ret["Attribute"], ret["RetVal"])
 	end
 
 	def GetBotAttribute(attr)
 		args = { "Attribute" => attr }
-		ret = callBotFunc("GetSenderAttribute", args)
+		ret = callBotFunc("GetBotAttribute", args)
 		return Attribute.new(ret["Attribute"], ret["RetVal"])
 	end
 
@@ -296,7 +296,7 @@ end
 class FormattedBot < BaseBot
 
 	def initialize(user, channel, plugin_id, protocol, format, prng)
-		@channel = ""
+		@channel = channel
 		@user = user
 		@plugin_id = plugin_id
 		@protocol = protocol

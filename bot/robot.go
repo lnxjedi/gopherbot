@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -129,6 +130,7 @@ func (r *Robot) RandomInt(n int) int {
 // Current attributes:
 // name, alias, fullName, contact
 func (r *Robot) GetBotAttribute(a string) *AttrRet {
+	a = strings.ToLower(a)
 	robot.RLock()
 	defer robot.RUnlock()
 	ret := Ok
@@ -136,13 +138,13 @@ func (r *Robot) GetBotAttribute(a string) *AttrRet {
 	switch a {
 	case "name":
 		attr = robot.name
-	case "fullName", "realName":
+	case "fullname", "realname":
 		attr = robot.fullName
 	case "alias":
 		attr = string(robot.alias)
 	case "email":
 		attr = robot.email
-	case "contact", "admin", "adminContact":
+	case "contact", "admin", "admincontact":
 		attr = robot.adminContact
 	case "protocol":
 		attr = r.Protocol.String()

@@ -117,6 +117,8 @@ func optQuote(msg string, f bot.MessageFormat) string {
 	return msg
 }
 
+const escapePad = "\f"
+
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // takes care of formatting, and segments the message if needed.
 func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []string {
@@ -130,11 +132,11 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []stri
 	sbytes = bytes.Replace(sbytes, []byte(">"), []byte("&gt;"), -1)
 	// 'escape' special chars
 	if f == bot.Variable {
-		sbytes = bytes.Replace(sbytes, []byte("`"), []byte("\x00`\x00"), -1)
-		sbytes = bytes.Replace(sbytes, []byte("*"), []byte("\x00*\x00"), -1)
-		sbytes = bytes.Replace(sbytes, []byte("_"), []byte("\x00_\x00"), -1)
-		sbytes = bytes.Replace(sbytes, []byte("@"), []byte("\x00@\x00"), -1)
-		sbytes = bytes.Replace(sbytes, []byte("#"), []byte("\x00#\x00"), -1)
+		for _, padChar := range []string{"`", "*", "_", "@", "#"} {
+			padBytes := []byte(padChar)
+			paddedBytes := []byte(escapePad + padChar + escapePad)
+			sbytes = bytes.Replace(sbytes, padBytes, paddedBytes, -1)
+		}
 	}
 
 	mentionRe := regexp.MustCompile(`@[0-9a-z]{1,21}\b`)

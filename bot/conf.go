@@ -232,7 +232,7 @@ func (r *Robot) loadConfig() error {
 	if len(newconfig.DefaultMessageFormat) == 0 {
 		robot.defaultMessageFormat = Raw
 	} else {
-		robot.defaultMessageFormat = setFormat(newconfig.DefaultMessageFormat)
+		robot.defaultMessageFormat = r.setFormat(newconfig.DefaultMessageFormat)
 	}
 
 	if newconfig.ProtocolConfig != nil {
