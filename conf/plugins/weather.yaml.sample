@@ -5,5 +5,5 @@
 ## * Restart the robot or issue a 'reload' command
 Config:
   APIKey: <your_openweathermap_api_key>
-  TemperatureUnits: imperial
+  TemperatureUnits: imperial # for Fahrenheit; 'metric' for Celcius
   DefaultCountry: us

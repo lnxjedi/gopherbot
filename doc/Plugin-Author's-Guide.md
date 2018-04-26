@@ -180,10 +180,6 @@ floyd, debug plugin <pluginname> (verbose) - turn on debugging for the named plu
 
 floyd, stop debugging - turn off debugging
 c:general/u:alice -> ;debug plugin rubydemo
-(dm:alice): 2018/04/18 03:43:12 DEBUG rubydemo: Loaded default config from the plugin, size: 1417
-(dm:alice): 2018/04/18 03:43:12 DEBUG rubydemo: No configuration loaded from installPath (/home/alice/go/src/github.com/lnxjedi/gopherbot/conf/plugins/rubydemo.yaml): open /home/alice/go/src/github.com/lnxjedi/gopherbot/conf/plugins/rubydemo.yaml: no such file or directory
-(dm:alice): 2018/04/18 03:43:12 DEBUG rubydemo: Loaded configuration from configPath (/home/alice/.gopherbot/conf/plugins/rubydemo.yaml), size: 22
-(dm:alice): 2018/04/18 03:43:12 DEBUG rubydemo: Plugin 'rubydemo' will be active in channels ["random"]
 general: Debugging enabled for rubydemo (verbose: false)
 c:general/u:alice -> ;ruby me!
 (dm:alice): 2018/04/18 03:43:15 DEBUG rubydemo: plugin is NOT visible to user alice in channel general; channel 'general' is not on the list of allowed channels: random
@@ -211,6 +207,12 @@ random: Sure, Alice!
 random: I'll ruby you, but not right now - I'll wait 'til you're least expecting it...
 (dm:alice): 2018/04/18 03:43:51 DEBUG rubydemo: Plugin finished with return value: Normal
 ```
+**NOTE:** If your plugin is disabled with a mysterious `File not found` error, be sure you've got the
+appropriate scripting language installed. If the first line in your plugin is e.g.:
+```
+#!/usr/bin/ruby
+```
+... you'll get `File not found` if `/usr/bin/ruby` isn't present on the system.
 
 ## Dump Plugin Command
 To view a plugin's default or final configuration, you can use the `dump plugin` command:
