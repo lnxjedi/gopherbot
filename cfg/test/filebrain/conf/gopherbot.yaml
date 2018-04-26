@@ -8,13 +8,13 @@ LocalPort: 8889
 LogLevel: debug
 ExternalPlugins:
 - Name: bashdemo
-  Path: plugins/bashdemo.sh
+  Path: plugins/samples/bashdemo.sh
 - Name: pythondemo
-  Path: plugins/pythondemo.py
+  Path: plugins/samples/pythondemo.py
 - Name: rubydemo
-  Path: plugins/rubydemo.rb
+  Path: plugins/samples/rubydemo.rb
 - Name: echo
-  Path: plugins/echo.sh
+  Path: plugins/samples/echo.sh
 
 Protocol: test
 ProtocolConfig:

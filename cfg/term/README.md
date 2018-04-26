@@ -4,23 +4,24 @@ named **Floyd** using the `terminal` connector, e.g.:
 ```
 [gopherbot]$ go build -tags test
 [gopherbot]$ ./gopherbot -c cfg/term/
-2018/04/13 18:07:52 Initialized logging ...
-2018/04/13 18:07:52 Starting up with config dir: cfg/term/, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
-2018/04/13 18:07:52 Debug: Loaded installed conf/gopherbot.yaml
-2018/04/13 18:07:52 Debug: Loaded configured conf/gopherbot.yaml
+2018/04/26 14:03:50 Initialized logging ...
+2018/04/26 14:03:50 Starting up with config dir: cfg/term/, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
+2018/04/26 14:03:50 Debug: Loaded installed conf/gopherbot.yaml
+2018/04/26 14:03:50 Debug: Loaded configured conf/gopherbot.yaml
 Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
 c:general/u:alice -> floyd, info
-c:general/u:alice -> 
 general: Here's some information about my running environment:
-The hostname for the server I'm running on is: bot.example.org
-My install directory is: /home/username/go/src/github.com/lnxjedi/gopherbot
+The hostname for the server I'm running on is: coolbot.linuxjedi.org
+My install directory is: /home/user/go/src/github.com/lnxjedi/gopherbot
 My configuration directory is: cfg/term/
-My software version is: Gopherbot v1.0.1-snapshot, commit: (manual build)
+My software version is: Gopherbot v1.1.0-snapshot, commit: (manual build)
 My alias is: ;
 The administrators for this robot are: alice
-c:general/u:alice -> ;quit
 c:general/u:alice -> 
-general: @alice Sayonara!
+Events gathered: CommandPluginRan, GoPluginRan, AdminCheckPassed
+c:general/u:alice -> ;quit
+general: @alice Hasta la vista!
+c:general/u:alice -> Exiting (press enter)
 [gopherbot]$
 ```
 

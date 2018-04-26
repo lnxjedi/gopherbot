@@ -62,6 +62,7 @@ LogLevel: info
 ## script library. The robot will look for plugins in the config directory
 ## first (if it exists), then the installation directory.
 #ExternalPlugins:
+## Useful and/or entertaining plugins
 #- Name: weather
 #  Path: plugins/weather.rb
 #- Name: chuck
@@ -69,15 +70,17 @@ LogLevel: info
 #- Name: hosts
 #  Path: plugins/hosts.sh
 #- Name: echo
-#  Path: plugins/echo.sh
+## Samples that exercise portions of the API, but server little other purpose.
+## Note: there are more than those listed below.
+#  Path: plugins/samples/echo.sh
 #- Name: whoami
-#  Path: plugins/whoami.sh
+#  Path: plugins/samples/whoami.sh
 #- Name: psdemo
-#  Path: plugins/psdemo.ps1
+#  Path: plugins/samples/psdemo.ps1
 #- Name: rubydemo
-#  Path: plugins/rubydemo.rb
+#  Path: plugins/samples/rubydemo.rb
 #- Name: pythondemo
-#  Path: plugins/pythondemo.py
+#  Path: plugins/samples/pythondemo.py
 
 # If the plugin doesn't specify an outgoing message format, what's the default?
 # This will be 'Raw' (unmodified, subject to protocol-specific formatting) if
@@ -85,6 +88,10 @@ LogLevel: info
 # those characters can appear in replies. 'Fixed' will send everything in a
 # fixed-width font.
 #DefaultMessageFormat: Variable # 'Raw' if not specified
+
+# PROTOCOL SELECTION
+# Uncomment one of the stanzas below to select the 'bot 'Protocol'
+# and related 'ProtocolConfig' configuration data.
 
 # Specification of which connection protocol ('slack', 'term', or 'test';
 # see 'cfg/') and any associated configuration.
