@@ -72,16 +72,12 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 
 		var term, helpOutput string
 		botSub := `(bot)`
-		hasTerm := false
+		hasKeyword := false
 		lineSeparator := "\n\n"
 
 		if len(args) == 1 && len(args[0]) > 0 {
-			hasTerm = true
+			hasKeyword = true
 			term = args[0]
-			if term == "help" {
-				Log(Trace, "Help requested for help, returning")
-				return
-			}
 			Log(Trace, "Help requested for term", term)
 		}
 
@@ -90,11 +86,13 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		plugins := currentPlugins.p
 		currentPlugins.RUnlock()
 		for _, plugin := range plugins {
-			if !bot.pluginAvailable(plugin, true, true) {
+			// If a keyword was supplied, give help for all matching commands with channels;
+			// without a keyword, show help for all commands available in the channel.
+			if !bot.pluginAvailable(plugin, hasKeyword, true) {
 				continue
 			}
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
-			if !hasTerm { // if you ask for help without a term, you just get help for whatever commands are available to you
+			if !hasKeyword { // if you ask for help without a term, you just get help for whatever commands are available to you
 				for _, phelp := range plugin.Help {
 					for _, helptext := range phelp.Helptext {
 						if len(phelp.Keywords) > 0 && phelp.Keywords[0] == "*" {
@@ -143,27 +141,28 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 				}
 			}
 		}
-		if hasTerm {
+		if hasKeyword {
 			helpOutput = "Command(s) matching keyword: " + term + "\n" + strings.Join(helpLines, lineSeparator)
 		}
 		switch {
 		case len(helpLines) == 0:
-			bot.Say("Sorry, bub - I got nothin' for ya'")
+			// Unless builtins are disabled or reconfigured, 'ping' is available in all channels
+			bot.Say("Sorry, I didn't find any commands matching your keyword")
 		case len(helpLines) > tooLong:
 			if len(bot.Channel) > 0 {
 				bot.Reply("(the help output was pretty long, so I sent you a private message)")
-				if !hasTerm {
+				if !hasKeyword {
 					helpOutput = "Command(s) available in channel: " + bot.Channel + "\n" + strings.Join(helpLines, lineSeparator)
 				}
 			} else {
-				if !hasTerm {
-					helpOutput = "Command(s) available:" + "\n" + strings.Join(helpLines, lineSeparator)
+				if !hasKeyword {
+					helpOutput = "Command(s) available in this channel:\n" + strings.Join(helpLines, lineSeparator)
 				}
 			}
 			bot.SendUserMessage(bot.User, helpOutput)
 		default:
-			if !hasTerm {
-				helpOutput = "Command(s) available:" + "\n" + strings.Join(helpLines, lineSeparator)
+			if !hasKeyword {
+				helpOutput = "Command(s) available in this channel:\n" + strings.Join(helpLines, lineSeparator)
 			}
 			bot.Say(helpOutput)
 		}

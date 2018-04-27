@@ -32,6 +32,7 @@ ProtocolConfig:
   - random
   - general
   - bottest
+  - deadzone
   Users:
   - Name: "alice"
     Email: "alice@example.com"

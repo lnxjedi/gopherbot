@@ -146,6 +146,9 @@ func initializePlugins() {
 	if !robot.shuttingDown {
 		robot.Unlock()
 		for _, plugin := range plugins {
+			if plugin.Disabled {
+				continue
+			}
 			bot := &Robot{
 				User:    robot.name,
 				Channel: "",
@@ -466,7 +469,7 @@ PlugLoop:
 			plugin.AllowDirect = !denyDirect
 			explicitAllowDirect = true
 		}
-		
+
 		if !explicitAllowDirect {
 			plugin.AllowDirect = defaultAllowDirect
 		}
@@ -634,7 +637,7 @@ PlugLoop:
 				}
 			}
 		}
-		Log(Info, fmt.Sprintf("Configured plugin #%d, '%s'", i, plugin.name))
+		Log(Debug, fmt.Sprintf("Configured plugin #%d, '%s'", i, plugin.name))
 	}
 	// End of configuration loading. All invalid plugins are disabled.
 

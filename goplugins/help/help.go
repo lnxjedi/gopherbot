@@ -18,7 +18,7 @@ var (
 // Default plugin configuration for help
 const defaultConfig = `
 Help:
-- Keywords: [ "*" ]
+- Keywords: [ "*", "help" ]
   Helptext: [ "(bot), help with robot - give general help on the help system and using the robot" ]
 CommandMatchers:
 - Command: help

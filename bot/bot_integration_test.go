@@ -62,6 +62,7 @@ const null = ""
 const general = "general"
 const random = "random"
 const bottest = "bottest"
+const deadzone = "deadzone"
 
 func setup(cfgdir, logfile string, t *testing.T) (<-chan struct{}, *testc.TestConnector) {
 	done, tconn := StartTest(cfgdir, logfile, t)
@@ -73,14 +74,14 @@ func setup(cfgdir, logfile string, t *testing.T) (<-chan struct{}, *testc.TestCo
 
 func teardown(t *testing.T, done <-chan struct{}, conn *testc.TestConnector) {
 	// Alice is a bot admin who can order the bot to quit in #general
-	conn.SendBotMessage(&testc.TestMessage{alice, general, ";quit"})
+	conn.SendBotMessage(&testc.TestMessage{alice, null, ";quit"})
 
 	// Now we wait for the connection to finish
 	<-done
 
 	evOk := true
 	ev := GetEvents()
-	want := []Event{CommandPluginRan, GoPluginRan, AdminCheckPassed}
+	want := []Event{BotDirectMessage, CommandPluginRan, GoPluginRan, AdminCheckPassed}
 	if len(*ev) != len(want) {
 		evOk = false
 	} else {
@@ -337,6 +338,19 @@ func TestFormatting(t *testing.T) {
 		{alice, general, ";format fixed", []testc.TestMessage{{null, general, "_ITALICS_ <ONE> \\*BOLD\\* `CODE` @PARSLEY"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
 		{alice, general, ";format variable", []testc.TestMessage{{null, general, "_italics_ <one> \\*bold\\* `code` @parsley"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
 		{alice, general, ";format raw", []testc.TestMessage{{null, general, "_Italics_ <One> \\*Bold\\* `Code` @parsley"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
+func TestHelp(t *testing.T) {
+	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+
+	tests := []testItem{
+		// Took a while to get the regex right - exactly 12 lines of output (11 + [^\n]*)
+		{alice, deadzone, ";help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){11}[^\n]*$)`}}, []Event{CommandPluginRan, GoPluginRan}, 0},
+		{alice, deadzone, ";help help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){3}[^\n]*$)`}}, []Event{CommandPluginRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 
