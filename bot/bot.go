@@ -18,7 +18,7 @@ import (
 )
 
 // Version is the current version of Gopherbot
-var Version = "v1.1.0-snapshot"
+var Version = "v1.1.0"
 
 // mkdist.* creates a temporary commit.go that sets commit to the current
 // git commit in an init() function
