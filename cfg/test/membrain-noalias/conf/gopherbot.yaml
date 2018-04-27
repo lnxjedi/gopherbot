@@ -5,7 +5,7 @@ JoinChannels: [ ]
 AdminUsers: [ "alice" ]
 # Alias: ""
 LocalPort: 8889
-LogLevel: debug
+LogLevel: trace
 ExternalPlugins:
 - Name: bashdemo
   Path: plugins/samples/bashdemo.sh
