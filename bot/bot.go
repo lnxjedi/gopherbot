@@ -70,7 +70,6 @@ var robot struct {
 	defaultAuthorizer    string           // Plugin name for performing authorization
 	externalPlugins      []externalPlugin // List of external plugins to load
 	port                 string           // Localhost port to listen on
-	logger               *log.Logger      // Where to log to
 	stop                 chan struct{}    // stop channel for stopping the connector
 	done                 chan struct{}    // channel closed when robot finishes shutting down
 	shuttingDown         bool             // to prevent new plugins from starting
@@ -90,10 +89,13 @@ func initBot(cpath, epath string, logger *log.Logger) {
 
 	globalLock.Unlock()
 
+	botLogger.Lock()
+	botLogger.l = logger
+	botLogger.Unlock()
+
 	robot.Lock()
 	robot.configPath = cpath
 	robot.installPath = epath
-	robot.logger = logger
 	robot.stop = make(chan struct{})
 	robot.done = make(chan struct{})
 	robot.shuttingDown = false
@@ -201,9 +203,10 @@ func run() <-chan struct{} {
 // builtins.go and win_svc_run.go
 func stop() {
 	robot.RLock()
-	Log(Debug, fmt.Sprintf("stop called with %d plugins running", robot.pluginsRunning))
+	pr := robot.pluginsRunning
 	stop := robot.stop
 	robot.RUnlock()
+	Log(Debug, fmt.Sprintf("stop called with %d plugins running", pr))
 	robot.Wait()
 	brainQuit()
 	close(stop)

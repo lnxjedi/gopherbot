@@ -176,7 +176,7 @@ func Start() {
 		<-stopped
 	} else {
 		// Stop logging to startup log when running as a service
-		robot.logger.SetOutput(ioutil.Discard)
+		botLogger.l.SetOutput(ioutil.Discard)
 		// Started as a Windows Service
 		runService(svcName)
 	}

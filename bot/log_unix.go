@@ -11,12 +11,10 @@ import (
 // less than the given level
 func Log(l LogLevel, v ...interface{}) {
 
-	logLock.Lock()
-	currlevel := logLevel
-	logLock.Unlock()
-	robot.RLock()
-	logger := robot.logger
-	robot.RUnlock()
+	botLogger.Lock()
+	currlevel := botLogger.level
+	logger := botLogger.l
+	botLogger.Unlock()
 
 	if l >= currlevel || l == Audit {
 		prefix := logLevelToStr(l) + ":"
@@ -34,10 +32,10 @@ func Log(l LogLevel, v ...interface{}) {
 		} else {
 			logger.Print(msg)
 			tsMsg := fmt.Sprintf("%s %s", time.Now().Format("Jan 2 15:04:05"), msg)
-			logLock.Lock()
-			logBuffer[logLine] = tsMsg
-			logLine = (logLine + 1) % (buffLines - 1)
-			logLock.Unlock()
+			botLogger.Lock()
+			botLogger.buffer[botLogger.buffLine] = tsMsg
+			botLogger.buffLine = (botLogger.buffLine + 1) % (buffLines - 1)
+			botLogger.Unlock()
 		}
 	}
 }

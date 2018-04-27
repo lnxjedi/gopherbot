@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"log"
 	"strings"
 	"sync"
 )
@@ -19,20 +20,28 @@ const (
 	Fatal
 )
 
-var logLevel LogLevel // current log level
-var logToFile bool    // is logging to a file?
+var logToFile bool // is logging to a file?
 
 // Should be ample for the internal circular log
 const buffLines = 500
+const maxLines = 50 // maximum lines to send in a message
 
-var logBuffer []string
-var logLine int
-var pageLines = 20
-var buffpages = buffLines / pageLines
-var logLock sync.Mutex
-
-func init() {
-	logBuffer = make([]string, buffLines)
+var botLogger = struct {
+	l         *log.Logger
+	level     LogLevel
+	buffer    []string
+	buffLine  int
+	pageLines int
+	buffPages int
+	sync.Mutex
+}{
+	nil,
+	Trace,
+	make([]string, buffLines),
+	0,
+	20,
+	buffLines / 20,
+	sync.Mutex{},
 }
 
 func logStrToLevel(l string) LogLevel {
@@ -68,58 +77,59 @@ func logLevelToStr(l LogLevel) string {
 		return "Error"
 	case Fatal:
 		return "Fatal"
+	default:
+		return ""
 	}
-	return "" // make the compiler happy
 }
 
 // logPage returns a slice of log strings of length pageLines. If p = 0,
 // it returns the most recent page, for p>0 it goes back
 func logPage(p int) ([]string, bool) {
 	wrapped := false
-	logLock.Lock()
-	page := p % buffpages
+	botLogger.Lock()
+	page := p % botLogger.buffPages
 	if page != p {
 		wrapped = true
 	}
-	pageSlice := make([]string, pageLines)
-	start := (logLine + buffLines - ((page + 1) * pageLines))
+	pageSlice := make([]string, botLogger.pageLines)
+	start := (botLogger.buffLine + buffLines - ((page + 1) * botLogger.pageLines))
 	start = start - (start/buffLines)*buffLines
-	if start+pageLines > buffLines {
-		copy(pageSlice, logBuffer[start:buffLines])
-		copy(pageSlice[buffLines-start:], logBuffer[0:])
+	if start+botLogger.pageLines > buffLines {
+		copy(pageSlice, botLogger.buffer[start:buffLines])
+		copy(pageSlice[buffLines-start:], botLogger.buffer[0:])
 	} else {
-		copy(pageSlice, logBuffer[start:start+pageLines])
+		copy(pageSlice, botLogger.buffer[start:start+botLogger.pageLines])
 	}
-	logLock.Unlock()
+	botLogger.Unlock()
 	return pageSlice, wrapped
 }
 
 // setLogPageLines updates the number of lines per page of log output
 func setLogPageLines(l int) int {
 	lines := l
-	if l > 100 {
-		lines = 100
+	if l > maxLines {
+		lines = maxLines
 	}
 	if l == 0 {
 		lines = 1
 	}
-	logLock.Lock()
-	pageLines = lines
-	buffpages = buffLines / pageLines
-	logLock.Unlock()
+	botLogger.Lock()
+	botLogger.pageLines = lines
+	botLogger.buffPages = buffLines / botLogger.pageLines
+	botLogger.Unlock()
 	return lines
 }
 
 // setLogLevel updates the connector log level
 func setLogLevel(l LogLevel) {
-	logLock.Lock()
-	logLevel = l
-	logLock.Unlock()
+	botLogger.Lock()
+	botLogger.level = l
+	botLogger.Unlock()
 }
 
 func getLogLevel() LogLevel {
-	logLock.Lock()
-	l := logLevel
-	logLock.Unlock()
+	botLogger.Lock()
+	l := botLogger.level
+	botLogger.Unlock()
 	return l
 }
