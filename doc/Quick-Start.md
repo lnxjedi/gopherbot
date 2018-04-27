@@ -6,7 +6,7 @@ If you're unfamiliar with YAML, you might want to search for a quick reference. 
 know is the blank space at the beginning of lines must be spaces, not tabs, and that alignment is important. For most of the
 sample files distributed with Gopherbot, removing the single `#` to uncomment lines will give you valid YAML.
 
-1. Download the latest **Gopherbot** for your platform at https://github.com/lnxjedi/gopherbot/releases/tag/v1.1.0
+1. Download the latest **Gopherbot** for your platform at https://github.com/lnxjedi/gopherbot/releases/latest
 2. Unzip the install archive to e.g. `<home directory>/gopherbot`
 1. Copy `conf/gopherbot.yaml.sample` to `conf/gopherbot.yaml`
 1. Obtain a 'bot token from https://\<your-team\>.slack.com/services/new/bot

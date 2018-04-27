@@ -6,7 +6,7 @@
 
 Enterprise Slack(\*) ChatOps bot for Linux and Windows, supporting plugins in Python, Ruby, Bash and PowerShell
 
-Download the current release for your platform from: https://github.com/lnxjedi/gopherbot/releases/tag/v1.1.0
+Download the current release for your platform from: https://github.com/lnxjedi/gopherbot/releases/latest
 
 ![](https://raw.githubusercontent.com/wiki/lnxjedi/gopherbot/botdemo.gif)
 
