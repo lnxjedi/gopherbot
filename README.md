@@ -8,6 +8,8 @@ Enterprise Slack(\*) ChatOps bot for Linux and Windows, supporting plugins in Py
 
 Download the current release for your platform from: https://github.com/lnxjedi/gopherbot/releases/latest
 
+To try out **Gopherbot** for yourself and write your first plugin, see [the Quick Start Guide](doc/Quick-Start.md)
+
 ![](https://raw.githubusercontent.com/wiki/lnxjedi/gopherbot/botdemo.gif)
 
 (*) with a modular interface for writing other protocol connectors in Go
@@ -91,7 +93,5 @@ for an invite to [the LinuxJedi Slack team](https://linuxjedi.slack.com).
 ## Documentation
 
 ***NOTE: This is the documentation for Gopherbot v1.1. For older versions, see the documentation included in the distribution archive.***
-
-To try out **Gopherbot** for yourself and write your first plugin, see [the Quick Start Guide](doc/Quick-Start.md)
 
 Also see the full [Documentation Index](doc/README.md)
