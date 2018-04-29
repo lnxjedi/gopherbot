@@ -7,5 +7,5 @@
 Channels: [ "random", "general" ]
 Disabled: false
 Config:
-  Username: <your_imgflip_user_name>
-  Password: <your_imgflip_password>
+  Username: "" # or set in IMGFLIP_USER environment variable (leave blank here)
+  Password: "" # ... or IMGFLIP_PASSWORD

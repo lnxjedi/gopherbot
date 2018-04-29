@@ -99,7 +99,7 @@ LogLevel: info
 # into when it's too long (>4000 char)
 #Protocol: slack
 #ProtocolConfig:
-#  SlackToken: "<your_token_here>"
+#  SlackToken: "" # Paste token here or set in SLACK_TOKEN environment var
 #  MaxMessageSplit: 2
 #
 

@@ -2,6 +2,7 @@ package duo
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -384,6 +385,20 @@ func duocommands(r *bot.Robot, command string, args ...string) (retval bot.PlugR
 		cfg.tt = absolute
 	}
 	cfg.tf64 = float64(cfg.TimeoutSeconds)
+	if len(cfg.DuoIKey) == 0 {
+		cfg.DuoIKey = os.Getenv("DUO_IKEY")
+	}
+	if len(cfg.DuoSKey) == 0 {
+		cfg.DuoSKey = os.Getenv("DUO_SKEY")
+	}
+	if len(cfg.DuoHost) == 0 {
+		cfg.DuoHost = os.Getenv("DUO_HOST")
+	}
+	for _, s := range []string{cfg.DuoIKey, cfg.DuoSKey, cfg.DuoHost} {
+		if len(s) == 0 {
+			r.Log(bot.Error, "Missing Duo IKey, SKey or Host; not configured or in Environment")
+		}
+	}
 	duo := duoapi.NewDuoApi(cfg.DuoIKey, cfg.DuoSKey, cfg.DuoHost, "Gopherbot", duoapi.SetTimeout(10*time.Second))
 	auth = authapi.NewAuthApi(*duo)
 	var duouser string
@@ -469,9 +484,9 @@ CommandMatchers:
 Config:
   TimeoutSeconds: 7200
   TimeoutType: idle # or absolute
-#  DuoIKey: <YourIKey>
-#  DuoSKey: <YourSKey>
-#  DuoHost: <YourDuoHost>
+#  DuoIKey: <YourIKey> # ... or set in DUO_IKEY
+#  DuoSKey: <YourSKey> # ... or set in DUO_SKEY
+#  DuoHost: <YourDuoHost> # ... or set in DUO_HOST
   DuoUserString: emailUser
 `
 

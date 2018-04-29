@@ -5,6 +5,7 @@ package slack
 import (
 	"fmt"
 	"log"
+	"os"
 	"sync"
 
 	"github.com/lnxjedi/gopherbot/bot"
@@ -38,6 +39,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	lock.Unlock()
 
 	var c config
+	var tok string
 
 	err := robot.GetProtocolConfig(&c)
 	if err != nil {
@@ -48,7 +50,17 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		c.MaxMessageSplit = 1
 	}
 
-	api := slack.New(c.SlackToken)
+	if len(c.SlackToken) == 0 {
+		tok = os.Getenv("SLACK_TOKEN")
+		if len(tok) == 0 {
+			robot.Log(bot.Fatal, "No slack token found in config or env var 'SLACK_TOKEN'")
+		}
+	} else {
+		robot.Log(bot.Debug, "Using SLACK_TOKEN environment variable")
+		tok = c.SlackToken
+	}
+
+	api := slack.New(tok)
 	// This spits out a lot of extra stuff, so we only enable it when tracing
 	if robot.GetLogLevel() == bot.Trace {
 		api.SetDebug(true)

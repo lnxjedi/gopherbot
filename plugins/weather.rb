@@ -10,7 +10,7 @@ require 'json'
 #  Path: plugins/weather.rb
 # 3) Put your configuration in conf/plugins/weather.yaml:
 #Config:
-#  APIKey: <your openweathermap key>
+#  APIKey: "" or set in OWM_APIKEY environment var (leave blank here)
 #  TemperatureUnits: imperial # or 'metric'
 #  DefaultCountry: 'us' # or other ISO 3166 country code
 
@@ -35,6 +35,7 @@ when "configure"
 	exit
 when "weather"
     c = bot.GetPluginConfig()
+    c["APIKey"] = ENV["OWM_APIKEY"] if c["APIKey"].size == 0
     location = ARGV.shift()
     location += ",#{c["DefaultCountry"]}" unless location.include?(',')
     uri = URI("http://api.openweathermap.org/data/2.5/weather?q=#{location}&units=#{c["TemperatureUnits"]}&APPID=#{c["APIKey"]}")
