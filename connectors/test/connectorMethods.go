@@ -10,7 +10,7 @@ type BotMessage struct {
 	Format                 bot.MessageFormat
 }
 
-func (tc *terminalConnector) MessageHeard(u, c string) {
+func (tc *TestConnector) MessageHeard(u, c string) {
 	return
 }
 
