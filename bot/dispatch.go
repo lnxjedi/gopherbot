@@ -193,6 +193,7 @@ func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched 
 		} // end of matcher checking
 	} // end of plugin checking
 	if commandMatched {
+		bot.messageHeard()
 		plugin := runPlugin
 		matcher := matchedMatcher
 		abort := false

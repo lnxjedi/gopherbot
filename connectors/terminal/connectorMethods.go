@@ -6,6 +6,10 @@ import (
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
+func (tc *termConnector) MessageHeard(u, c string) {
+	return
+}
+
 // GetUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
 func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {

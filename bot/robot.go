@@ -166,6 +166,11 @@ func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
 	return &AttrRet{attr, ret}
 }
 
+// messageHeard sends a typing notification
+func (r *Robot) messageHeard() {
+	robot.MessageHeard(r.User, r.Channel)
+}
+
 // GetSenderAttribute returns a AttrRet with
 // - The string Attribute of the sender, or "" if unknown/error
 // - A RetVal which is one of Ok, UserNotFound, AttributeNotFound

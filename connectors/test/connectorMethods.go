@@ -10,6 +10,10 @@ type BotMessage struct {
 	Format                 bot.MessageFormat
 }
 
+func (tc *terminalConnector) MessageHeard(u, c string) {
+	return
+}
+
 // GetUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
 func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/lnxjedi/gopherbot/bot"
-	// "github.com/nlopes/slack"
+	"github.com/nlopes/slack"
 )
 
 // Message send delay; slack has problems with scrolling if messages fly out
@@ -53,6 +53,37 @@ type sendMessage struct {
 
 var messages = make(chan *sendMessage)
 
+// Send a typing notifier letting the user know the message has been heard by
+// the robot.
+func (s *slackConnector) MessageHeard(user, channel string) {
+	var userID, chanID string
+	var ok bool
+	var err error
+	if len(channel) > 0 {
+		chanID, ok = s.chanID(channel)
+		if !ok {
+			s.Log(bot.Error, "Channel ID not found for:", channel)
+			return
+		}
+	} else {
+		userID, ok = s.userID(user)
+		if !ok {
+			s.Log(bot.Error, "No user ID found for user:", user)
+			return
+		}
+		chanID, ok = s.userIMID(userID)
+		if !ok {
+			s.Log(bot.Warn, "No IM channel found for user:", user, "ID:", userID, "trying to open IM")
+			_, _, chanID, err = s.conn.OpenIMChannel(userID)
+			if err != nil {
+				s.Log(bot.Error, "Unable to open an IM channel to user:", user, "ID:", userID)
+				return
+			}
+		}
+	}
+	s.conn.SendMessage(s.conn.NewTypingMessage(chanID))
+}
+
 func (s *slackConnector) startSendLoop() {
 	// See bursting constants above.
 	var burstTime time.Time
@@ -71,31 +102,29 @@ func (s *slackConnector) startSendLoop() {
 			current = 0
 		}
 		s.Log(bot.Trace, fmt.Sprintf("Bot message in send loop for channel %s, size: %d", send.channel, len(send.message)))
-		s.conn.SendMessage(s.conn.NewTypingMessage(send.channel))
+		// s.conn.SendMessage(s.conn.NewTypingMessage(send.channel))
 		time.Sleep(typingDelay)
-		s.conn.SendMessage(s.conn.NewOutgoingMessage(send.message, send.channel))
-		/* NOTE: The commented out code below doesn't work. Long story:
-
-		To implement a proper 'Variable' format that preserves _, * and `, I tried
-		disabling markdown. However, messages came through as a generic 'bot', not
-		the bot user with an icon and name. When I set as_user (AsUser) 'true', it
-		forced Markdown to 'true' regardless of passing explicit 'false'. In the end,
-		I resorted to a solution found on stackoverflow, and for format == Variable
-		I 'escape' _, *, ` by surrounding them with a "\x00" (null) char.
-		*/
-		// time.Sleep(typingDelay) // the minimum time between message sends
-		// params := slack.PostMessageParameters{
-		// 	AsUser:      true,
-		// 	UnfurlMedia: true,
-		// 	Markdown:    false,
-		// }
-		// if send.format == bot.Raw {
-		// 	params.Markdown = true
-		// }
-		// _, _, err := s.api.PostMessage(send.channel, send.message, params)
-		// if err != nil {
-		// 	s.Log(bot.Error, fmt.Sprintf("Error sending message '%s': %v", send.message, err))
-		// }
+		params := slack.PostMessageParameters{
+			AsUser:      true,
+			UnfurlMedia: true,
+		}
+		sent := false
+		for p := range []int{1, 2, 4} {
+			_, _, err := s.api.PostMessage(send.channel, send.message, params)
+			if err != nil && p == 1 {
+				s.Log(bot.Warn, fmt.Sprintf("Error sending message '%s' initiating backoff: %v", send.message, err))
+			}
+			if err != nil {
+				time.Sleep(time.Second * time.Duration(p))
+			} else {
+				sent = true
+				break
+			}
+		}
+		if !sent {
+			s.Log(bot.Error, fmt.Sprintf("Failed sending message '%s' to channel '%s' after 3 tries, attempting fallback to RTM", send.message, send.channel))
+			s.conn.SendMessage(s.conn.NewOutgoingMessage(send.message, send.channel))
+		}
 		timeSinceBurst := msgTime.Sub(burstTime)
 		if msgTime.Sub(mtimes[windowStartMsg]) < burstWindow || timeSinceBurst < coolDown {
 			if timeSinceBurst > coolDown {

@@ -70,6 +70,10 @@ type Connector interface {
 	// The current attributes are:
 	// email, realName, firstName, lastName, phone, sms, connections
 	GetProtocolUserAttribute(user, attr string) (value string, ret RetVal)
+	// MessageHeard tells the connector that the user should be notified that
+	// the message has been heard and is being responded to. The connector
+	// can then e.g. send a typing notifier.
+	MessageHeard(user, channel string)
 	// JoinChannel joins a channel given it's human-readable name, e.g. "general"
 	JoinChannel(c string) RetVal
 	// SendProtocolChannelMessage sends a message to a channel

@@ -39,6 +39,7 @@ case "$command" in
 		configure
 		;;
 	"echo")
+		Pause 1 # because the robot knows how to "type"
 		Say "$1"
 		;;
 	"repeat")
