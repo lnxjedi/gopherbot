@@ -56,6 +56,11 @@ import (
 	_ "net/http/pprof"
 )
 
+var versionInfo = bot.VersionInfo{
+	Version: "v1.1.2-snapshot",
+	Commit:  "(manual build)",
+}
+
 func main() {
-	bot.Start()
+	bot.Start(versionInfo)
 }

@@ -65,7 +65,8 @@ const bottest = "bottest"
 const deadzone = "deadzone"
 
 func setup(cfgdir, logfile string, t *testing.T) (<-chan struct{}, *testc.TestConnector) {
-	done, tconn := StartTest(cfgdir, logfile, t)
+	testVer := VersionInfo{"test", "(unknown)"}
+	done, tconn := StartTest(testVer, cfgdir, logfile, t)
 	testConnector := tconn.(*testc.TestConnector)
 	testConnector.SetTest(t)
 
@@ -74,7 +75,7 @@ func setup(cfgdir, logfile string, t *testing.T) (<-chan struct{}, *testc.TestCo
 
 func teardown(t *testing.T, done <-chan struct{}, conn *testc.TestConnector) {
 	// Alice is a bot admin who can order the bot to quit in #general
-	conn.SendBotMessage(&testc.TestMessage{alice, null, ";quit"})
+	conn.SendBotMessage(&testc.TestMessage{alice, null, "quit"})
 
 	// Now we wait for the connection to finish
 	<-done

@@ -30,7 +30,9 @@ func dirExists(path string) bool {
 }
 
 // Start gets the robot going
-func Start() {
+func Start(v VersionInfo) {
+	botVersion = v
+
 	var installpath, configpath string
 	var err error
 

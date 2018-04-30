@@ -17,12 +17,11 @@ import (
 	"time"
 )
 
-// Version is the current version of Gopherbot
-var Version = "v1.1.1"
+type VersionInfo struct {
+	Version, Commit string
+}
 
-// mkdist.* creates a temporary commit.go that sets commit to the current
-// git commit in an init() function
-var commit = "(manual build)"
+var botVersion VersionInfo
 
 var globalLock sync.RWMutex
 var random *rand.Rand
