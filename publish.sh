@@ -9,7 +9,7 @@ VERSION=${VERSION%\",}
 eval `go env`
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 COMMIT=$(git rev-parse HEAD)
-if [ $BRANCH = "master" ] || [[ "$BRANCH" = "*-release" ]]
+if [ $BRANCH = "master" ] || [[ $BRANCH = *-release ]]
 then
     RELEASE=$VERSION
     if [[ $RELEASE = *-snapshot ]]
