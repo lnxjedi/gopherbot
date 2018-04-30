@@ -57,7 +57,7 @@ import (
 )
 
 var versionInfo = bot.VersionInfo{
-	Version: "v1.1.2-snapshot",
+	Version: "v1.1.2",
 	Commit:  "(manual build)",
 }
 
