@@ -87,12 +87,15 @@ Examples of work Gopherbot is already doing:
 ## Development Status
 Gopherbot is stable in production in my environment. Currently lacking:
 * Comprehensive plugin API documentation
-* Connectors for protocols other than Slack (and the trivial terminal/console connector)
-* Brain implementations other than simple local files (e.g. redis)
+* Comprehensive tests
 
 ### Contributing
 Check out [Github's documentation](https://help.github.com/articles/fork-a-repo/) on forking and creating pull requests. Feel free to shoot me an email
 for an invite to [the LinuxJedi Slack team](https://linuxjedi.slack.com).
+
+### Upcoming Development Items
+* `Job` support with scheduling and simple workflows / pipelines
+* Plugins / scripts to simplify running plugins on remote systems
 
 ## Documentation
 
