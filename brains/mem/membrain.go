@@ -14,15 +14,15 @@ var robot bot.Handler
 
 // NOTE: brains shouldn't need to do their own locking. See bot/brain.go
 type memBrain struct {
-	memories map[string][]byte
+	memories map[string]*[]byte
 }
 
-func (mb *memBrain) Store(k string, b []byte) error {
+func (mb *memBrain) Store(k string, b *[]byte) error {
 	mb.memories[k] = b
 	return nil
 }
 
-func (mb *memBrain) Retrieve(k string) ([]byte, bool, error) {
+func (mb *memBrain) Retrieve(k string) (*[]byte, bool, error) {
 	datum, exists := mb.memories[k]
 	if exists {
 		return datum, true, nil
@@ -37,7 +37,7 @@ func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
 	robot = r
 
 	mb := &memBrain{
-		memories: make(map[string][]byte),
+		memories: make(map[string]*[]byte),
 	}
 	return mb
 }

@@ -169,6 +169,17 @@ Brain: file
 BrainConfig:
   BrainDirectory: brain
 
+## A persistent brain using AWS DynamoDB. 
+## See doc/Configuration.md for information on setting up this brain. 
+# Brain: dynamo
+# BrainConfig:
+#   TableName: MyBot
+#   Region: "us-east-1"
+#   # You can leave these blank and set AWS_ACCESS_KEY_ID
+#   # and AWS_SECRET_ACCESS_KEY in environment variables
+#   AccessKeyID: ""
+#   SecretAccessKey: ""
+
 ## Use Google Authenticator TOTP by default for elevated commands. To use:
 ## - Ask the robot to 'send launch codes', and it will send you (one time)
 ##   a string for configuring your Google Authencticator app, and store it's

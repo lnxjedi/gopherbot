@@ -116,14 +116,57 @@ for plugins written to work across multiple chat platforms.
 
 ### Brain
 
+**Gopherbot** supports a simple brain for storing long-term memories as JSON blobs
+that are serialized/de-serialized in to simple data structures.
+
+#### File Brain
+
 ```yaml
 Brain: file
 BrainConfig:
   BrainDirectory: brain
 ```
-Gopherbot ships with a simple file-based brain, with pluggable support for creating e.g. a redis based brain.
+The file brain stores the robots memories in files in the local filesystem.
 The BrainDirectory can be given as an absolute path or as a sub-directory of the config directory (or install
 directory if no config directory is set).
+
+#### DynamoDB Brain
+
+```yaml
+Brain: dynamo
+BrainConfig:
+  TableName: MyBot
+  Region: "us-east-1"
+  # You can leave these blank and set AWS_ACCESS_KEY_ID
+  # and AWS_SECRET_ACCESS_KEY in environment variables
+  AccessKeyID: ""
+  SecretAccessKey: ""
+```
+The DynamoDB brain provides durable long-term storage in the AWS cloud. You'll
+need to create a table and API credentials for accessing the table. If `AccessKeyID`
+and `SecretAccessKey` aren't provided, the AWS Go library will use standard means
+of obtaining credentials.
+
+The table needs a Primary Key `Memory`, type `String`.
+
+The minimum policy required for your robot to use e.g. the `MyBot` table is:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowBot",
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:PutItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem"
+            ],
+            "Resource": "arn:aws:dynamodb:*:*:table/MyBot"
+        }
+    ]
+}
+```
 
 ### AdminUsers and IgnoreUsers
 
