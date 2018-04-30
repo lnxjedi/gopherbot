@@ -20,27 +20,27 @@ type brainConfig struct {
 
 var fb brainConfig
 
-func (fb *brainConfig) Store(k string, b []byte) error {
+func (fb *brainConfig) Store(k string, b *[]byte) error {
 	datumPath := brainPath + "/" + k
-	if err := ioutil.WriteFile(datumPath, b, 0644); err != nil {
+	if err := ioutil.WriteFile(datumPath, *b, 0644); err != nil {
 		return fmt.Errorf("Writing datum \"%s\": %v", datumPath, err)
 	}
 	return nil
 }
 
-func (fb *brainConfig) Retrieve(k string) (datum []byte, exists bool, err error) {
+func (fb *brainConfig) Retrieve(k string) (*[]byte, bool, error) {
 	datumPath := brainPath + "/" + k
 	if _, err := os.Stat(datumPath); err == nil {
-		exists = true
-		datum, err = ioutil.ReadFile(datumPath)
+		datum, err := ioutil.ReadFile(datumPath)
 		if err != nil {
 			err = fmt.Errorf("Error reading file \"%s\": %v", datumPath, err)
 			robot.Log(bot.Error, err)
+			return nil, false, err
 		}
-		return datum, true, err
+		return &datum, true, nil
 	} else { // Memory doesn't exist yet
 		robot.Log(bot.Info, fmt.Sprintf("Retrieve called on non-existing key \"%s\"", k))
-		return datum, false, nil
+		return nil, false, nil
 	}
 }
 

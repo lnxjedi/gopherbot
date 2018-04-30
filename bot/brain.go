@@ -126,12 +126,12 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 		token = ""
 	}
 	var err error
-	var db []byte
+	var db *[]byte
 	db, exists, err = robot.brain.Retrieve(dkey)
 	if err != nil {
 		return "", nil, false, BrainFailed
 	}
-	return token, &db, exists, Ok
+	return token, db, exists, Ok
 }
 
 func storeDatum(key string, datum *[]byte) RetVal {
@@ -142,7 +142,7 @@ func storeDatum(key string, datum *[]byte) RetVal {
 		Log(Error, "Brain function called with no brain configured")
 		return BrainFailed
 	}
-	err := robot.brain.Store(key, *datum)
+	err := robot.brain.Store(key, datum)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Storing datum %s: %v", key, err))
 		return BrainFailed
