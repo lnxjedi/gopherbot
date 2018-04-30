@@ -58,7 +58,7 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			}
 			msg = append(msg, fmt.Sprintf("My configuration directory is: %s", lp))
 		}
-		msg = append(msg, fmt.Sprintf("My software version is: Gopherbot %s, commit: %s", Version, commit))
+		msg = append(msg, fmt.Sprintf("My software version is: Gopherbot %s, commit: %s", botVersion.Version, botVersion.Commit))
 		if alias != 0 {
 			msg = append(msg, fmt.Sprintf("My alias is: %s", string(alias)))
 		}

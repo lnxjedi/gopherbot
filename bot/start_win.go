@@ -36,7 +36,7 @@ func dirExists(path string) bool {
 }
 
 // Start gets the robot going
-func Start() {
+func Start(v VersionInfo) {
 	globalLock.Lock()
 	if started {
 		globalLock.Unlock()
@@ -44,6 +44,8 @@ func Start() {
 	}
 	started = true
 	globalLock.Unlock()
+
+	botVersion = v
 
 	const svcName = "gopherbot"
 	var err error

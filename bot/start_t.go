@@ -14,7 +14,8 @@ import (
 )
 
 // Start a robot for testing, and return the exit / robot stopped channel
-func StartTest(cfgdir, logfile string, t *testing.T) (<-chan struct{}, Connector) {
+func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (<-chan struct{}, Connector) {
+	botVersion = v
 	wd, _ := os.Getwd()
 	installpath := filepath.Dir(wd)
 	configpath := filepath.Join(installpath, cfgdir)

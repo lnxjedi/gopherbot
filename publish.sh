@@ -2,16 +2,16 @@
 
 # publish.sh - copy the install archive to a distribution point
 
-VERSTRING=$(grep "var Version" bot/bot.go)
-VERSTRING=${VERSTRING#var }
-VERSTRING=${VERSTRING// /}
-eval $VERSTRING
+VERSION=$(grep "Version:" main.go)
+VERSION=${VERSION#*Version: \"}
+VERSION=${VERSION%\",}
+
 eval `go env`
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 COMMIT=$(git rev-parse HEAD)
-if [ $BRANCH = "master" ]
+if [ $BRANCH = "master" ] || [[ $BRANCH = *-release ]]
 then
-    RELEASE=$Version
+    RELEASE=$VERSION
     if [[ $RELEASE = *-snapshot ]]
     then
         PRERELEASE="--prerelease"

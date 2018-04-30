@@ -4,37 +4,32 @@
 
 usage(){
 	cat <<EOF
-Usage: mkdist.sh
+Usage: mkdist.sh (linux|darwin|windows)
 
-Generate distributable .zip files for the current platform.
+Generate distributable .zip files for the given platform, or all platforms if
+no argument given.
 EOF
 	exit 0
 }
 
-git status | grep -qE "nothing to commit, working directory|tree clean" || { echo "Your working directory isn't clean, aborting build"; exit 1; }
+if [ "$1" = "-h" -o "$1" = "--help" ]
+then
+	usage
+fi
 
-VERSTRING=$(grep "var Version" bot/bot.go)
-VERSTRING=${VERSTRING#var }
-VERSTRING=${VERSTRING// /}
-COMMIT=$(git log -1 | grep commit | cut -f 2 -d' ')
-cat >bot/commit.go <<EOF
-package bot
+git status | grep -qE "nothing to commit, working directory|tree clean" || { echo "Your working directory isn't clean, aborting build"; exit 1; }
+COMMIT=$(git rev-parse HEAD)
+cat >commit.go <<EOF
+package main
 
 func init(){
-	commit="$COMMIT"
+	versionInfo.Commit = "$COMMIT"
 }
 EOF
 
-# Set Version
-eval $VERSTRING
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [ "$BRANCH" != "master" ]
-then
-	Version="$BRANCH"
-fi
-
 eval `go env`
-for BUILDOS in linux darwin windows
+PLATFORMS=${1:-linux darwin windows}
+for BUILDOS in $PLATFORMS
 do
 	echo "Building gopherbot for $BUILDOS"
 	OUTFILE=./gopherbot-$BUILDOS-$GOARCH.zip
@@ -43,12 +38,12 @@ do
 	then
 		GOOS=$BUILDOS go build -o gopherbot.exe 
 		echo "Creating $OUTFILE"
-		zip -r $OUTFILE gopherbot.exe LICENSE README.md brain/ conf/ doc/ cfg/ lib/ licenses/ misc/ plugins/ --exclude *.swp
+		zip -r $OUTFILE gopherbot.exe LICENSE README.md brain/ conf/ doc/ cfg/ lib/ licenses/ misc/ plugins/ --exclude *.swp --exclude conf/*.yaml --exclude conf/*/*.yaml
 	else
 		GOOS=$BUILDOS go build
 		echo "Creating $OUTFILE"
-		zip -r $OUTFILE gopherbot LICENSE README.md brain/ conf/ doc/ cfg/ lib/ licenses/ misc/ plugins/ --exclude *.swp
+		zip -r $OUTFILE gopherbot LICENSE README.md brain/ conf/ doc/ cfg/ lib/ licenses/ misc/ plugins/ --exclude *.swp --exclude conf/*.yaml --exclude conf/*/*.yaml
 	fi
 
 done
-rm -f bot/commit.go
+rm -f commit.go
