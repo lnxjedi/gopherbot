@@ -10,10 +10,10 @@ Type=simple
 User=robot
 Group=robot
 WorkingDirectory=/opt/gopherbot
-# Need HOSTNAME for Gopherbot to tell you where it's running
-Environment=HOSTNAME=%H
 ExecStart=/opt/gopherbot/gopherbot -plainlog
 Restart=on-failure
+# Need HOSTNAME for Gopherbot to tell you where it's running; a bad value
+# for HOME will cause problems.
 Environment=USER=robot HOME=/opt/robot HOSTNAME=%H
 KillMode=process
 # Give the robot plenty of time to finish plugins currently executing;
