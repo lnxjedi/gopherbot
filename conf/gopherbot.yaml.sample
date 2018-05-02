@@ -58,6 +58,33 @@ LocalPort: 8880
 ## for help on changing the log level and viewing contents of the log.
 LogLevel: info
 
+## If a job doesn't specify otherwise, these are the defaults for StatusChannel
+## and channels where jobs can be run
+# DefaultJobChannel: jobs
+## Where jobs can be run
+# DefaultJobChannels:
+# - ljdev
+# - jobs
+## Job names and paths to the script. NOTE: no reason why multiple jobs
+## can't have the same path. Job config in conf/jobs/<job>.yaml can differ.
+# Jobs:
+## Configuration is loaded from conf/jobs/<foo>.yaml e.g. hello.yaml
+# - hello
+# - goodbye
+# - hellojob
+## Timezone for scheduled jobs
+# TimeZone: "America/New_York"
+## Job scheduling with github.com/robfig/cron
+# ScheduledJobs:
+# - Job: hello
+#   Schedule: "@every 2m" # see: https://godoc.org/github.com/robfig/cron
+#   Parameters: # an array of strings; up to the job to parse numbers & bools
+#   - "hello"
+# - Job: hello
+#   Schedule: "0 */5 * * * *"
+#   Parameters:
+#   - "fail"
+
 ## List of external plugins to enable; generally scripts using a gopherbot
 ## script library. The robot will look for plugins in the config directory
 ## first (if it exists), then the installation directory.
