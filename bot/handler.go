@@ -107,7 +107,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, prot
 		directMsg: directMsg,
 		msg:       message,
 	}
-	Log(Trace, fmt.Sprintf("Message '%s' in channel '%s'", message, logChannel))
+	Log(Debug, fmt.Sprintf("Message '%s' from user '%s' in channel '%s'; isCommand: %t", message, userName, logChannel, isCommand))
 	bot.debug("", fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)
 	go bot.handleMessage()
 }
