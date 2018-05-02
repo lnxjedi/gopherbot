@@ -14,7 +14,7 @@ const keepListeningDuration = 77 * time.Second
 // both handleMessage and the help builtin. verboseOnly is set when availability
 // is being checked for ambient messages or auth/elevation plugins, to indicate
 // debugging verboseness.
-func (r *Robot) pluginAvailable(plugin *Plugin, helpSystem, verboseOnly bool) (available bool) {
+func (r *Robot) pluginAvailable(plugin *botPlugin, helpSystem, verboseOnly bool) (available bool) {
 	nvmsg := "plugin is NOT visible to user " + r.User + " in channel "
 	vmsg := "plugin is visible to user " + r.User + " in channel "
 	if r.directMsg {
@@ -102,7 +102,7 @@ func (bot *Robot) checkPluginMatchersAndRun(checkCommands bool) (commandMatched 
 	currentPlugins.RLock()
 	plugins := currentPlugins.p
 	currentPlugins.RUnlock()
-	var runPlugin *Plugin
+	var runPlugin *botPlugin
 	var matchedMatcher InputMatcher
 	var cmdArgs []string
 	for _, plugin := range plugins {
@@ -284,7 +284,7 @@ func (bot *Robot) handleMessage() {
 		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", bot.User, bot.msg))
 	}
 	commandMatched := false
-	var catchAllPlugins []*Plugin
+	var catchAllPlugins []*botPlugin
 	ts := time.Now()
 	lastMsgContext := memoryContext{"lastMsg", bot.User, bot.Channel}
 	var last shortTermMemory
@@ -304,7 +304,7 @@ func (bot *Robot) handleMessage() {
 		}
 	}
 	if !commandMatched && bot.isCommand {
-		catchAllPlugins = make([]*Plugin, 0, len(plugins))
+		catchAllPlugins = make([]*botPlugin, 0, len(plugins))
 		for _, plugin := range plugins {
 			if plugin.CatchAll {
 				catchAllPlugins = append(catchAllPlugins, plugin)

@@ -173,9 +173,9 @@ class Robot
             $plugPath = $ret.PluginPath
         }
         $plugArgs = [Array]$plugPath + $plugArgs
-        $Env:GOPHER_PLUGIN_ID = $ret.PluginID
+        $Env:GOPHER_CALLER_ID = $ret.PluginID
         $proc = Start-Process -FilePath $ret.InterpreterPath -ArgumentList $plugArgs -NoNewWindow -PassThru -Wait
-        $Env:GOPHER_PLUGIN_ID = $this.PluginID
+        $Env:GOPHER_CALLER_ID = $this.PluginID
         return [PlugRet]$proc.ExitCode
     }
 
@@ -313,7 +313,7 @@ class Robot
 }
 
 function Get-Robot() {
-    return [Robot]::new($Env:GOPHER_CHANNEL, $Env:GOPHER_USER, $Env:GOPHER_PROTOCOL, "", $Env:GOPHER_PLUGIN_ID)
+    return [Robot]::new($Env:GOPHER_CHANNEL, $Env:GOPHER_USER, $Env:GOPHER_PROTOCOL, "", $Env:GOPHER_CALLER_ID)
 }
 
 export-modulemember -function Get-Robot

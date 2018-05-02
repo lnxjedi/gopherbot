@@ -74,7 +74,7 @@ class Robot:
         random.seed()
         self.channel = os.getenv("GOPHER_CHANNEL")
         self.user = os.getenv("GOPHER_USER")
-        self.plugin_id = os.getenv("GOPHER_PLUGIN_ID")
+        self.plugin_id = os.getenv("GOPHER_CALLER_ID")
         self.format = ""
         self.protocol = os.getenv("GOPHER_PROTOCOL")
 
@@ -113,7 +113,7 @@ class Robot:
         ret = self.Call("CallPlugin", { "PluginName": plugName })
         if ret["PlugRetVal"] != self.Success:
             return ret["PlugRetVal"]
-        plugenv = { "GOPHER_PLUGIN_ID": ret["PluginID"], "GOPHER_CHANNEL": self.channel, "GOPHER_USER": self.user, "GOPHER_INSTALLDIR": os.getenv("GOPHER_INSTALLDIR"), "GOPHER_HTTP_POST": os.getenv("GOPHER_HTTP_POST") }
+        plugenv = { "GOPHER_CALLER_ID": ret["PluginID"], "GOPHER_CHANNEL": self.channel, "GOPHER_USER": self.user, "GOPHER_INSTALLDIR": os.getenv("GOPHER_INSTALLDIR"), "GOPHER_HTTP_POST": os.getenv("GOPHER_HTTP_POST") }
         status = subprocess.call( [ ret["PluginPath"] ] + list(plugArgs), env=plugenv )
         return status
 

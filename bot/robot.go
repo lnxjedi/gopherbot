@@ -40,7 +40,7 @@ type Robot struct {
 	Protocol  Protocol      // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
 	RawMsg    interface{}   // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
 	Format    MessageFormat // The outgoing message format, one of Fixed or Variable
-	pluginID  string        // Pass the ID in for later identificaton of the plugin
+	callerID  string        // Pass the ID in for later identificaton of the calling plugin/job
 	isCommand bool          // Was the message directed at the robot, dm or by mention
 	directMsg bool          // if the message was sent by DM
 	msg       string        // the message text sent

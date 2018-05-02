@@ -55,7 +55,7 @@ gbPostJSON(){
 	"Channel": "$GOPHER_CHANNEL",
 	"Format": "$FORMAT",
 	"Protocol": "$GOPHER_PROTOCOL",
-	"PluginID": "$GOPHER_PLUGIN_ID",
+	"PluginID": "$GOPHER_CALLER_ID",
 	"FuncArgs": $GB_FUNCARGS
 }
 EOF
@@ -114,7 +114,7 @@ CallPlugin(){
 	fi
 	local PLUGPATH=$(echo "$GB_RET" | jq -r .PluginPath)
 	local PLUGID=$(echo "$GB_RET" | jq -r .PluginID)
-	GOPHER_PLUGIN_ID=$PLUGID $PLUGPATH "$@"
+	GOPHER_CALLER_ID=$PLUGID $PLUGPATH "$@"
 }
 
 Remember(){

@@ -37,7 +37,7 @@ func fixInterpreterArgs(interpreter string, args []string) []string {
 	return args
 }
 
-func getPluginPath(plugin *Plugin) (string, error) {
+func getPluginPath(plugin *botPlugin) (string, error) {
 	if len(plugin.pluginPath) == 0 {
 		err := fmt.Errorf("pluginPath empty for external plugin: %s", plugin.name)
 		Log(Error, err)
@@ -105,7 +105,7 @@ func getInterpreter(scriptPath string) (string, error) {
 	return interpreter, nil
 }
 
-func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
+func getExtDefCfg(plugin *botPlugin) (*[]byte, error) {
 	var fullPath string
 	var err error
 	if fullPath, err = getPluginPath(plugin); err != nil {
@@ -138,7 +138,7 @@ func getExtDefCfg(plugin *Plugin) (*[]byte, error) {
 }
 
 // callPlugin does the real work of running a plugin with a command and arguments.
-func callPlugin(bot *Robot, plugin *Plugin, background bool, interactive bool, command string, args ...string) (retval PlugRetVal) {
+func callPlugin(bot *Robot, plugin *botPlugin, background bool, interactive bool, command string, args ...string) (retval PlugRetVal) {
 	// This should only happen in the rare case that a configured authorizer or elevator is disabled
 	if plugin.Disabled {
 		msg := fmt.Sprintf("Call plugin failed on disabled plugin %s; reason: %s", plugin.name, plugin.reason)
@@ -213,7 +213,7 @@ func callPlugin(bot *Robot, plugin *Plugin, background bool, interactive bool, c
 		cmd.Env = append(os.Environ(), []string{
 			fmt.Sprintf("GOPHER_CHANNEL=%s", bot.Channel),
 			fmt.Sprintf("GOPHER_USER=%s", bot.User),
-			fmt.Sprintf("GOPHER_PLUGIN_ID=%s", plugin.pluginID),
+			fmt.Sprintf("GOPHER_CALLER_ID=%s", plugin.pluginID),
 			fmt.Sprintf("GOPHER_PROTOCOL=%s", bot.Protocol),
 		}...)
 		// close stdout on the external plugin...

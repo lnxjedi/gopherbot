@@ -15,7 +15,7 @@ type jsonFunction struct {
 	Channel  string
 	Format   string
 	Protocol string
-	PluginID string
+	CallerID string
 	FuncArgs json.RawMessage
 }
 
@@ -225,7 +225,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		User:     f.User,
 		Channel:  f.Channel,
 		Protocol: setProtocol(f.Protocol),
-		pluginID: f.PluginID,
+		callerID: f.CallerID,
 	}
 	if len(f.Format) > 0 {
 		bot.Format = bot.setFormat(f.Format)

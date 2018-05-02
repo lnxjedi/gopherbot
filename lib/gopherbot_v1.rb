@@ -103,7 +103,7 @@ class BaseBot
 		if ret["PlugRetVal"] != Success
 			return ret["PlugRetVal"]
 		end
-		system({ 'GOPHER_PLUGIN_ID' => ret["PluginID"] }, ret["PluginPath"], *plugargs)
+		system({ 'GOPHER_CALLER_ID' => ret["PluginID"] }, ret["PluginPath"], *plugargs)
 		return $?.exitstatus
 	end
 
@@ -265,7 +265,7 @@ class Robot < BaseBot
 	def initialize()
 		@channel = ENV["GOPHER_CHANNEL"]
 		@user = ENV["GOPHER_USER"]
-		@plugin_id = ENV["GOPHER_PLUGIN_ID"]
+		@plugin_id = ENV["GOPHER_CALLER_ID"]
 		@protocol = ENV["GOPHER_PROTOCOL"]
 		@format = ""
 		@prng = Random.new

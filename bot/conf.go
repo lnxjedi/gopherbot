@@ -32,6 +32,11 @@ type botconf struct {
 	DefaultChannels      []string         // Channels where plugins are active by default, e.g. [ "general", "random" ]
 	IgnoreUsers          []string         // Users the 'bot never talks to - like other bots
 	JoinChannels         []string         // Channels the 'bot should join when it logs in (not supported by all protocols)
+	DefaultJobChannel    string           // Where job status is posted by default
+	DefaultJobChannels   []string         // Where users can issue the 'run job <foo>' command
+	TimeZone             string           // For evaluating the hour in a job schedule
+	Jobs                 []string         // names of all available jobs; config in conf/jobs/<jobname.yaml>
+	ScheduledJobs        []scheduledJob   // see jobs.go
 	ExternalPlugins      []externalPlugin // List of non-Go plugins to load
 	AdminUsers           []string         // List of users who can access administrative commands
 	Alias                string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'

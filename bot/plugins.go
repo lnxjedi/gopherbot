@@ -27,7 +27,7 @@ var plugNameIDmap = struct {
 }
 
 type pluginList struct {
-	p       []*Plugin
+	p       []*botPlugin
 	nameMap map[string]int
 	idMap   map[string]int
 	sync.RWMutex
@@ -38,13 +38,13 @@ type externalPlugin struct {
 }
 
 var currentPlugins = &pluginList{
-	[]*Plugin{},
+	[]*botPlugin{},
 	nil,
 	nil,
 	sync.RWMutex{},
 }
 
-func (pl *pluginList) getPluginByName(name string) *Plugin {
+func (pl *pluginList) getPluginByName(name string) *botPlugin {
 	pl.RLock()
 	pi, ok := pl.nameMap[name]
 	if !ok {
@@ -57,7 +57,7 @@ func (pl *pluginList) getPluginByName(name string) *Plugin {
 	return plugin
 }
 
-func (pl *pluginList) getPluginByID(id string) *Plugin {
+func (pl *pluginList) getPluginByID(id string) *botPlugin {
 	pl.RLock()
 	pi, ok := pl.idMap[id]
 	if !ok {
@@ -93,10 +93,11 @@ const (
 )
 
 // Plugin specifies the structure of a plugin configuration - plugins should include an example / default config
-type Plugin struct {
+type botPlugin struct {
 	name                     string          // the name of the plugin, used as a key in to the
 	pluginType               plugType        // plugGo, plugExternal - determines how commands are routed
 	pluginPath               string          // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=plugExternal only
+	NameSpace                string          // plugins/jobs with same namespace share long-term memories; defaults to the 'name'
 	Disabled                 bool            // Set true to disable the plugin
 	reason                   string          // why the plugin is disabled
 	AllowDirect              bool            // Set this true if this plugin can be accessed via direct message
@@ -216,7 +217,7 @@ func getPlugID(plug string) string {
 func (r *Robot) loadPluginConfig() {
 	plugIndexByID := make(map[string]int)
 	plugIndexByName := make(map[string]int)
-	plist := make([]*Plugin, 0, 14)
+	plist := make([]*botPlugin, 0, 14)
 
 	// Copy some data from the bot under read lock, including external plugins
 	robot.RLock()
@@ -231,7 +232,7 @@ func (r *Robot) loadPluginConfig() {
 	i := 0
 
 	for plugname := range pluginHandlers {
-		plugin := &Plugin{name: plugname, pluginType: plugGo, pluginID: getPlugID(plugname)}
+		plugin := &botPlugin{name: plugname, pluginType: plugGo, pluginID: getPlugID(plugname)}
 		plist = append(plist, plugin)
 		plugIndexByID[plugin.pluginID] = i
 		plugIndexByName[plugin.name] = i
@@ -249,7 +250,7 @@ func (r *Robot) loadPluginConfig() {
 			r.debug(plist[dup].pluginID, msg, false)
 			continue
 		}
-		plugin := &Plugin{name: plug.Name, pluginPath: plug.Path, pluginType: plugExternal, pluginID: getPlugID(plug.Name)}
+		plugin := &botPlugin{name: plug.Name, pluginPath: plug.Path, pluginType: plugExternal, pluginID: getPlugID(plug.Name)}
 		plist = append(plist, plugin)
 		plugIndexByID[plugin.pluginID] = i
 		plugIndexByName[plugin.name] = i

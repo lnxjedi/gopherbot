@@ -8,7 +8,7 @@ const configElevError = "Sorry, elevation failed due to a configuration error"
 // Elevator plugins provide an elevate method for checking if the user
 // can run a privileged command.
 
-func (bot *Robot) elevate(plugins []*Plugin, plugin *Plugin, immediate bool) (retval PlugRetVal) {
+func (bot *Robot) elevate(plugins []*botPlugin, plugin *botPlugin, immediate bool) (retval PlugRetVal) {
 	robot.RLock()
 	defaultElevator := robot.defaultElevator
 	robot.RUnlock()
@@ -64,7 +64,7 @@ func (bot *Robot) elevate(plugins []*Plugin, plugin *Plugin, immediate bool) (re
 }
 
 // Check for a configured Elevator and check elevation
-func (bot *Robot) checkElevation(plugins []*Plugin, plugin *Plugin, command string) (retval PlugRetVal) {
+func (bot *Robot) checkElevation(plugins []*botPlugin, plugin *botPlugin, command string) (retval PlugRetVal) {
 	immediate := false
 	elevationRequired := false
 	if len(plugin.ElevateImmediateCommands) > 0 {
