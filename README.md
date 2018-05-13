@@ -85,17 +85,13 @@ Examples of work Gopherbot is already doing:
 * Adding users and updating passwords on servers using Ansible
 
 ## Development Status
-Gopherbot is stable in production in my environment. Currently lacking:
-* Comprehensive plugin API documentation
-* Comprehensive tests
+Gopherbot 1.x is stable and running in production in several environments.
+
+Development has started for Gopherbot 2.x, which adds features for scheduled jobs and pipelines. See the [development notes](DevNotes.md).
 
 ### Contributing
 Check out [Github's documentation](https://help.github.com/articles/fork-a-repo/) on forking and creating pull requests. Feel free to shoot me an email
 for an invite to [the LinuxJedi Slack team](https://linuxjedi.slack.com).
-
-### Upcoming Development Items
-* `Job` support with scheduling and simple workflows / pipelines
-* Plugins / scripts to simplify running plugins on remote systems
 
 ## Documentation
 

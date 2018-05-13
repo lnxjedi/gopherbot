@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/ghodss/yaml"
@@ -35,9 +36,9 @@ type botconf struct {
 	DefaultJobChannel    string           // Where job status is posted by default
 	DefaultJobChannels   []string         // Where users can issue the 'run job <foo>' command
 	TimeZone             string           // For evaluating the hour in a job schedule
-	Jobs                 []string         // names of all available jobs; config in conf/jobs/<jobname.yaml>
+	Jobs                 []externalScript // list of available jobs; config in conf/jobs/<jobname.yaml>
 	ScheduledJobs        []scheduledJob   // see jobs.go
-	ExternalPlugins      []externalPlugin // List of non-Go plugins to load
+	ExternalPlugins      []externalScript // List of non-Go plugins to load
 	AdminUsers           []string         // List of users who can access administrative commands
 	Alias                string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
 	LocalPort            int              // Port number for listening on localhost, for CLI plugins
@@ -50,7 +51,7 @@ var config *botconf
 // if set.
 
 // Required indicates whether to return an error if neither file is found.
-func (r *Robot) getConfigFile(filename, pluginID string, required bool, jsonMap map[string]json.RawMessage) error {
+func (r *Robot) getConfigFile(filename, callerID string, required bool, jsonMap map[string]json.RawMessage) error {
 	var (
 		cf           []byte
 		err, realerr error
@@ -68,7 +69,7 @@ func (r *Robot) getConfigFile(filename, pluginID string, required bool, jsonMap 
 	path = installPath + "/conf/" + filename
 	cf, err = ioutil.ReadFile(path)
 	if err == nil {
-		r.debug(pluginID, fmt.Sprintf("Loaded configuration from installPath (%s), size: %d", path, len(cf)), false)
+		r.debug(callerID, fmt.Sprintf("Loaded configuration from installPath (%s), size: %d", path, len(cf)), false)
 		if err = yaml.Unmarshal(cf, &loader); err != nil {
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
 			Log(Error, err)
@@ -76,7 +77,7 @@ func (r *Robot) getConfigFile(filename, pluginID string, required bool, jsonMap 
 		}
 		if len(loader) == 0 {
 			msg := fmt.Sprintf("Empty config hash loading %s", path)
-			r.debug(pluginID, msg, false)
+			r.debug(callerID, msg, false)
 			Log(Error, msg)
 		} else {
 			for key, value := range loader {
@@ -86,7 +87,7 @@ func (r *Robot) getConfigFile(filename, pluginID string, required bool, jsonMap 
 			loaded = true
 		}
 	} else {
-		r.debug(pluginID, fmt.Sprintf("No configuration loaded from installPath (%s): %v", path, err), false)
+		r.debug(callerID, fmt.Sprintf("No configuration loaded from installPath (%s): %v", path, err), false)
 		realerr = err
 	}
 	if len(configPath) > 0 {
@@ -94,7 +95,7 @@ func (r *Robot) getConfigFile(filename, pluginID string, required bool, jsonMap 
 		path = configPath + "/conf/" + filename
 		cf, err = ioutil.ReadFile(path)
 		if err == nil {
-			r.debug(pluginID, fmt.Sprintf("Loaded configuration from configPath (%s), size: %d", path, len(cf)), false)
+			r.debug(callerID, fmt.Sprintf("Loaded configuration from configPath (%s), size: %d", path, len(cf)), false)
 			if err = yaml.Unmarshal(cf, &loader); err != nil {
 				err = fmt.Errorf("Unmarshalling configured \"%s\": %v", filename, err)
 				Log(Error, err)
@@ -102,7 +103,7 @@ func (r *Robot) getConfigFile(filename, pluginID string, required bool, jsonMap 
 			}
 			if len(loader) == 0 {
 				msg := fmt.Sprintf("Empty config hash loading %s", path)
-				r.debug(pluginID, msg, false)
+				r.debug(callerID, msg, false)
 				Log(Error, msg)
 			} else {
 				for key, value := range loader {
@@ -112,7 +113,7 @@ func (r *Robot) getConfigFile(filename, pluginID string, required bool, jsonMap 
 				loaded = true
 			}
 		} else {
-			r.debug(pluginID, fmt.Sprintf("No configuration loaded from configPath (%s): %v", path, err), false)
+			r.debug(callerID, fmt.Sprintf("No configuration loaded from configPath (%s): %v", path, err), false)
 			realerr = err
 		}
 	}
@@ -137,14 +138,15 @@ func (r *Robot) loadConfig() error {
 	for key, value := range configload {
 		var strval string
 		var sarrval []string
-		var epval []externalPlugin
+		var epval, jval []externalScript
+		var sjval []scheduledJob
 		var mailval botMailer
 		var boolval bool
 		var intval int
 		var val interface{}
 		skip := false
 		switch key {
-		case "AdminContact", "Email", "Protocol", "Brain", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel":
+		case "AdminContact", "Email", "Protocol", "Brain", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
 			val = &strval
 		case "DefaultAllowDirect":
 			val = &boolval
@@ -152,7 +154,11 @@ func (r *Robot) loadConfig() error {
 			val = &intval
 		case "ExternalPlugins":
 			val = &epval
-		case "DefaultChannels", "IgnoreUsers", "JoinChannels", "AdminUsers":
+		case "Jobs":
+			val = &jval
+		case "ScheduledJobs":
+			val = &sjval
+		case "DefaultChannels", "DefaultJobChannels", "IgnoreUsers", "JoinChannels", "AdminUsers":
 			val = &sarrval
 		case "MailConfig":
 			val = &mailval
@@ -198,12 +204,18 @@ func (r *Robot) loadConfig() error {
 			explicitDefaultAllowDirect = true
 		case "DefaultChannels":
 			newconfig.DefaultChannels = *(val.(*[]string))
+		case "DefaultJobChannels":
+			newconfig.DefaultJobChannels = *(val.(*[]string))
 		case "IgnoreUsers":
 			newconfig.IgnoreUsers = *(val.(*[]string))
 		case "JoinChannels":
 			newconfig.JoinChannels = *(val.(*[]string))
 		case "ExternalPlugins":
-			newconfig.ExternalPlugins = *(val.(*[]externalPlugin))
+			newconfig.ExternalPlugins = *(val.(*[]externalScript))
+		case "Jobs":
+			newconfig.Jobs = *(val.(*[]externalScript))
+		case "ScheduledJobs":
+			newconfig.ScheduledJobs = *(val.(*[]scheduledJob))
 		case "AdminUsers":
 			newconfig.AdminUsers = *(val.(*[]string))
 		case "Alias":
@@ -212,6 +224,8 @@ func (r *Robot) loadConfig() error {
 			newconfig.LocalPort = *(val.(*int))
 		case "LogLevel":
 			newconfig.LogLevel = *(val.(*string))
+		case "TimeZone":
+			newconfig.TimeZone = *(val.(*string))
 		}
 	}
 
@@ -252,6 +266,16 @@ func (r *Robot) loadConfig() error {
 
 	if newconfig.AdminContact != "" {
 		robot.adminContact = newconfig.AdminContact
+	}
+
+	if newconfig.TimeZone != "" {
+		tz, err := time.LoadLocation(newconfig.TimeZone)
+		if err != nil {
+			robot.timeZone = tz
+		} else {
+			Log(Error, fmt.Errorf("Parsing time zone '%s', using local time; error: %q", newconfig.TimeZone, err))
+			robot.timeZone = nil
+		}
 	}
 
 	if newconfig.Email != "" {

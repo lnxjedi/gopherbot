@@ -60,7 +60,7 @@ class Robot:
     NoUserEmail = 20
     NoBotEmail = 21
     MailError = 22
-    InvalidPluginID = 23
+    InvalidCallerID = 23
     UntrustedPlugin = 24
 
     # Plugin return values / exit codes, return values from CallPlugin
@@ -91,7 +91,7 @@ class Robot:
             format = self.format
         func_call = { "FuncName": func_name, "User": self.user,
                     "Channel": self.channel, "Format": format,
-                    "Protocol": self.protocol, "PluginID": self.plugin_id,
+                    "Protocol": self.protocol, "CallerID": self.plugin_id,
                     "FuncArgs": func_args }
         func_json = json.dumps(func_call)
         req = urllib2.Request(url="%s/json" % os.getenv("GOPHER_HTTP_POST"),
@@ -113,7 +113,7 @@ class Robot:
         ret = self.Call("CallPlugin", { "PluginName": plugName })
         if ret["PlugRetVal"] != self.Success:
             return ret["PlugRetVal"]
-        plugenv = { "GOPHER_CALLER_ID": ret["PluginID"], "GOPHER_CHANNEL": self.channel, "GOPHER_USER": self.user, "GOPHER_INSTALLDIR": os.getenv("GOPHER_INSTALLDIR"), "GOPHER_HTTP_POST": os.getenv("GOPHER_HTTP_POST") }
+        plugenv = { "GOPHER_CALLER_ID": ret["CallerID"], "GOPHER_CHANNEL": self.channel, "GOPHER_USER": self.user, "GOPHER_INSTALLDIR": os.getenv("GOPHER_INSTALLDIR"), "GOPHER_HTTP_POST": os.getenv("GOPHER_HTTP_POST") }
         status = subprocess.call( [ ret["PluginPath"] ] + list(plugArgs), env=plugenv )
         return status
 

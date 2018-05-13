@@ -13,12 +13,12 @@ import (
 )
 
 type debuggingPlug struct {
-	pluginID, name, user string // the ID and name of the plugin being debugged, user requesting
+	callerID, name, user string // the ID and name of the plugin being debugged, user requesting
 	verbose              bool   // do we want feedback for every message the user types?
 }
 
 var plugDebug = struct {
-	p map[string]*debuggingPlug // map of pluginID to the debuggingPlug struct
+	p map[string]*debuggingPlug // map of callerID to the debuggingPlug struct
 	u map[string]*debuggingPlug // map of user to the debuggingPlug struct
 	sync.RWMutex
 }{
@@ -29,15 +29,15 @@ var plugDebug = struct {
 
 // If the debug statement requests verboseonly, then the user will only get the
 // message if verbose debugging was requested.
-func (r *Robot) debug(pluginID, msg string, verboseonly bool) {
-	if len(pluginID) == 0 && len(r.User) == 0 {
+func (r *Robot) debug(callerID, msg string, verboseonly bool) {
+	if len(callerID) == 0 && len(r.User) == 0 {
 		return
 	}
-	if len(pluginID) == 0 && !verboseonly {
+	if len(callerID) == 0 && !verboseonly {
 		return
 	}
 	plugDebug.RLock()
-	ppd, _ := plugDebug.p[pluginID]
+	ppd, _ := plugDebug.p[callerID]
 	upd, _ := plugDebug.u[r.User]
 	plugDebug.RUnlock()
 	var targetUser, plugName string
@@ -55,7 +55,7 @@ func (r *Robot) debug(pluginID, msg string, verboseonly bool) {
 			return
 		}
 		// We never care about a plugin that's not being debugged
-		if len(pluginID) > 0 {
+		if len(callerID) > 0 {
 			return
 		}
 		// User has spoken but the plugin wasn't determined yet
@@ -79,7 +79,7 @@ func (r *Robot) debug(pluginID, msg string, verboseonly bool) {
 				return
 			}
 		}
-		if len(pluginID) > 0 && ppd.pluginID != pluginID {
+		if len(callerID) > 0 && ppd.callerID != callerID {
 			// should only be true when checking availability for help requests, authorization, or elevation plugins
 			return
 		}

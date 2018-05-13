@@ -176,7 +176,7 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		channel: channel,
 	}
 	var rep replyWaiter
-	plugin := currentPlugins.getPluginByID(r.pluginID)
+	plugin := currentPlugins.getPluginByID(r.callerID)
 	if stockRepliesRe.MatchString(regexID) {
 		rep.re = stockReplies[regexID]
 	} else {

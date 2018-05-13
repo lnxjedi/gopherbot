@@ -143,7 +143,7 @@ func callPlugin(bot *Robot, plugin *botPlugin, background bool, interactive bool
 	if plugin.Disabled {
 		msg := fmt.Sprintf("Call plugin failed on disabled plugin %s; reason: %s", plugin.name, plugin.reason)
 		bot.Log(Error, msg)
-		bot.debug(bot.pluginID, msg, false)
+		bot.debug(bot.callerID, msg, false)
 		return ConfigurationError
 	}
 	if background {
@@ -171,7 +171,7 @@ func callPlugin(bot *Robot, plugin *botPlugin, background bool, interactive bool
 		defer checkPanic(bot, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", plugin.name, command, args))
 	}
 	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\" with arguments \"%#v\"", command, plugin.name, args))
-	bot.pluginID = plugin.pluginID
+	bot.callerID = plugin.callerID
 	switch plugin.pluginType {
 	case plugGo:
 		if command != "init" {
@@ -213,7 +213,7 @@ func callPlugin(bot *Robot, plugin *botPlugin, background bool, interactive bool
 		cmd.Env = append(os.Environ(), []string{
 			fmt.Sprintf("GOPHER_CHANNEL=%s", bot.Channel),
 			fmt.Sprintf("GOPHER_USER=%s", bot.User),
-			fmt.Sprintf("GOPHER_CALLER_ID=%s", plugin.pluginID),
+			fmt.Sprintf("GOPHER_CALLER_ID=%s", plugin.callerID),
 			fmt.Sprintf("GOPHER_PROTOCOL=%s", bot.Protocol),
 		}...)
 		// close stdout on the external plugin...

@@ -24,7 +24,7 @@ GBRET_MatcherNotFound=19
 GBRET_NoUserEmail=20
 GBRET_NoBotEmail=21
 GBRET_MailError=22
-GBRET_InvalidPluginID=23
+GBRET_InvalidCallerID=23
 GBRET_UntrustedPlugin=24
 
 # Plugin return values / exit codes, return values from CallPlugin
@@ -55,7 +55,7 @@ gbPostJSON(){
 	"Channel": "$GOPHER_CHANNEL",
 	"Format": "$FORMAT",
 	"Protocol": "$GOPHER_PROTOCOL",
-	"PluginID": "$GOPHER_CALLER_ID",
+	"CallerID": "$GOPHER_CALLER_ID",
 	"FuncArgs": $GB_FUNCARGS
 }
 EOF
@@ -113,7 +113,7 @@ CallPlugin(){
 		return $PLUGRETVAL
 	fi
 	local PLUGPATH=$(echo "$GB_RET" | jq -r .PluginPath)
-	local PLUGID=$(echo "$GB_RET" | jq -r .PluginID)
+	local PLUGID=$(echo "$GB_RET" | jq -r .CallerID)
 	GOPHER_CALLER_ID=$PLUGID $PLUGPATH "$@"
 }
 

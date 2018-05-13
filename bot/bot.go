@@ -67,10 +67,11 @@ var robot struct {
 	brain                SimpleBrain      // Interface for robot to Store and Retrieve data
 	defaultElevator      string           // Plugin name for performing elevation
 	defaultAuthorizer    string           // Plugin name for performing authorization
-	externalPlugins      []externalPlugin // List of external plugins to load
+	externalPlugins      []externalScript // List of external plugins to load
 	port                 string           // Localhost port to listen on
 	stop                 chan struct{}    // stop channel for stopping the connector
 	done                 chan struct{}    // channel closed when robot finishes shutting down
+	timeZone             *time.Location   // for forcing the TimeZone, Unix only
 	shuttingDown         bool             // to prevent new plugins from starting
 	pluginsRunning       int              // a count of how many plugins are currently running
 	paused               bool             // it's a Windows thing
