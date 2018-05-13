@@ -146,7 +146,7 @@ func (r *Robot) loadConfig() error {
 		var val interface{}
 		skip := false
 		switch key {
-		case "AdminContact", "Email", "Protocol", "Brain", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
+		case "AdminContact", "Email", "Protocol", "Brain", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
 			val = &strval
 		case "DefaultAllowDirect":
 			val = &boolval
@@ -191,6 +191,8 @@ func (r *Robot) loadConfig() error {
 			newconfig.Brain = *(val.(*string))
 		case "BrainConfig":
 			newconfig.BrainConfig = value
+		case "DefaultJobChannel":
+			newconfig.DefaultJobChannel = *(val.(*string))
 		case "DefaultElevator":
 			newconfig.DefaultElevator = *(val.(*string))
 		case "DefaultAuthorizer":
@@ -293,6 +295,10 @@ func (r *Robot) loadConfig() error {
 	}
 	if newconfig.Name != "" {
 		robot.name = newconfig.Name
+	}
+
+	if newconfig.DefaultJobChannel != "" {
+		robot.defaultJobChannel = newconfig.DefaultJobChannel
 	}
 
 	if newconfig.DefaultElevator != "" {

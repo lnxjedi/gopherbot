@@ -24,7 +24,10 @@ Jobs and Plugins can set a NextJob|Plugin, and if the job/plugin exits 0, the Ne
 ### How Things Work
 
 * Everything the robot does will be a pipeline
-* Builtins will be augmented with commands for listing all current pipelines running, which can possibly be canceled (killed).
+* Builtins will be augmented with commands for listing all current pipelines running, which can possibly be canceled (killed). Certain builtins will be allowed to run even when the robot is shutting down:
+  * Builtins that run almost instantly
+  * Builtins that read internal data but don't start new pipelines
+  * Builtins that report on running pipelines or allow aborting or killing/cancelling pipelines
 * The `Robot` object, created at the start of a pipeline, will take on a more important role of carrying state through the pipeline; in addition to other struct data items, it will get a `runID` incrementing integer for each job/plugin
 * When a pipeline starts a pointer to the Robot will be stored in a global table of running pipelines
 * Pipelines can be started by:
@@ -90,13 +93,21 @@ message only, to set environment vars that will be attached to the Robot when th
 pipeline starts. The `global` scope will be set for all jobs & plugins, otherwise scope is a NameSpace.
 * Plugins and Jobs can use a SetSessionParameter method that sets an environment variable in the current plugin, and in the Robot object for future jobs/plugins in the pipeline
 
+## 2.0 Goals
+* Job scheduling
+* Pipelines
+* Remote plugin execution over ssh
 
-2.0 Goals:
-- Job scheduling
-- Pipelines
-- Remote plugin execution over ssh
+## Questions
 
-- Plugin debugging verbose - emit messages for user message matching(?)
+Can a plugin schedule a job? E.g. for the time tracking plugin; it could be written to run in the background, or it could schedule a job that checks back with the user periodically.
+
+Are all commands checked before all message matchers? Multiple matching commands should do nothing, but what about multiple message matchers? Probably, all matching message matchers should run. If a command matches, message matchers probably should not be checked, as that might cause "side effects".
+
+## TODO Items
+
+- Remove the rest of CallPlugin bits
+- Plugin debugging verbose - emit messages for user message matching(?); when the user requesting debugging sets verbose, message match checks should trigger debug messages as well if the plugin being debugged has message matchers
 - Look up new Bot IDs on the fly if a new bot ID is seen; need to add locking of the bots[] map
 - Move slack send loop into anon func in Run
 - Consider: Use globalLock for protocolConfig, brainConfig, elevateConfig

@@ -6,15 +6,15 @@ import (
 	"sync"
 )
 
-// stuff needed to run a job
-type jobSpec struct {
-	Job        string   // name of the job being scheduled
-	Parameters []string // parameters for the scheduled job
-}
-
 // Job parameters are provided to jobs as environment variables
 type jobParameter struct {
 	Name, Value string
+}
+
+// stuff needed to run a job
+type jobSpec struct {
+	Job        string         // name of the job being scheduled
+	Parameters []jobParameter // parameters for the scheduled job
 }
 
 // items in gopherbot.yaml

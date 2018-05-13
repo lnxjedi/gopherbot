@@ -61,7 +61,6 @@ var robot struct {
 	defaultAllowDirect   bool             // whether plugins are available in DM by default
 	defaultMessageFormat MessageFormat    // Raw unless set to Variable or Fixed
 	plugChannels         []string         // list of channels where plugins are active by default
-	sync.RWMutex                          // for safe updating of bot data structures
 	protocol             string           // Name of the protocol, e.g. "slack"
 	brainProvider        string           // Type of Brain provider to use
 	brain                SimpleBrain      // Interface for robot to Store and Retrieve data
@@ -72,10 +71,12 @@ var robot struct {
 	stop                 chan struct{}    // stop channel for stopping the connector
 	done                 chan struct{}    // channel closed when robot finishes shutting down
 	timeZone             *time.Location   // for forcing the TimeZone, Unix only
+	defaultJobChannel    string           // where job statuses will post if not otherwise specified
 	shuttingDown         bool             // to prevent new plugins from starting
 	pluginsRunning       int              // a count of how many plugins are currently running
 	paused               bool             // it's a Windows thing
 	sync.WaitGroup                        // for keeping track of running plugins
+	sync.RWMutex                          // for safe updating of bot data structures
 }
 
 // initBot sets up the global robot and loads
