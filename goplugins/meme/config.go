@@ -3,9 +3,13 @@ package memes
 const defaultConfig = `
 # You can delete everything up to Config: below
 # To edit the memes or add your own, copy all of the help and command matchers
-# to your own local config.
+# to your own local config. See: https://api.imgflip.com/
 Disabled: true
 Help:
+- Keywords: [ "meme", "picard", "omg" ]
+  Helptext: [ "(bot), picard omg <something>(/<something>) - Picard facepalm" ]
+- Keywords: [ "meme", "picard", "wth", "wtf" ]
+  Helptext: [ "(bot), picard wth <something>(/<something>) - Picard WTH" ]
 - Keywords: [ "meme", "gosh" ]
   Helptext: [ "(bot), <something>, gosh! - Let Napoleon Dynamite express your indignation" ]
 - Keywords: [ "meme", "best", "worst" ]
@@ -22,6 +26,10 @@ Help:
   Helptext: [ "(bot), Y U no <something> - express your angst" ]
 
 CommandMatchers:
+- Command: "1509839"
+  Regex: '(?i:picard omg ([^/]+)(?:/([^/]+))?)'
+- Command: "245898"
+  Regex: '(?i:picard wt[hf] ([^/]+)(?:/([^/]+))?)'
 - Command: "18304105"
   Regex: '(?i:([\w’'' ]+,) (gosh!))'
 - Command: "8070362"

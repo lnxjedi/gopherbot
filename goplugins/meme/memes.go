@@ -1,6 +1,5 @@
 // The memes plugin is an example of how you can use the robot for fun things
-// like generating Internet meme images. TODO: It could really use a re-write to
-// make memes configurable instead of hard-coded.
+// like generating Internet meme images.
 package memes
 
 import (
@@ -43,7 +42,15 @@ func memegen(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVa
 	case "init":
 		// ignore
 	default:
-		url, err := createMeme(m, command, args[0], args[1])
+		var top, bottom string
+		if len(args[1]) > 0 {
+			top = args[0]
+			bottom = args[1]
+		} else {
+			top = ""
+			bottom = args[0]
+		}
+		url, err := createMeme(m, command, top, bottom)
 		if err == nil {
 			r.Say(url)
 		} else {
