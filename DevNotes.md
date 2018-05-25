@@ -93,6 +93,24 @@ message only, to set environment vars that will be attached to the Robot when th
 pipeline starts. The `global` scope will be set for all jobs & plugins, otherwise scope is a NameSpace.
 * Plugins and Jobs can use a SetSessionParameter method that sets an environment variable in the current plugin, and in the Robot object for future jobs/plugins in the pipeline
 
+#### Requirements
+
+Jobs can be normal scripts in ANY scripting language, and need not import or
+use the bot library. Jobs don't get called with "configure" and "init" the way
+a plugin does.
+
+#### Triggers
+
+Plugins are triggered when a user issues a command or sends a message matching
+a plugins CommandMatchers or MessageMatchers. Jobs can be triggered in one of
+three ways:
+* Configuring a `ScheduledJob` in `gopherbot.yaml`
+* A user using the `run job ...` builtin command
+* Another bot or integration triggers the job by matching one of the job's
+  `Triggers`
+
+#### Configuration
+
 ## 2.0 Goals
 * Job scheduling
 * Pipelines
