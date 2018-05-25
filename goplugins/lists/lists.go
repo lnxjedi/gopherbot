@@ -191,7 +191,7 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 		list, ok := lists[listName]
 		if !ok {
 			r.CheckinDatum(datumKey, lock)
-			rep, ret := r.PromptForReply("YesNo", fmt.Sprintf("I don't have a \"%s\" list, do you want to create it?", args[1]))
+			rep, ret := r.PromptForReply("YesNo", fmt.Sprintf("I don't have a '%s' list, do you want to create it?", args[1]))
 			if ret == bot.Ok {
 				switch strings.ToLower(rep) {
 				case "n", "no":

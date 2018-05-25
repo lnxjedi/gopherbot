@@ -34,27 +34,27 @@ CommandMatchers:
 - Command: 'help'
   Regex: '(?i:help with lists?)'
 - Command: 'add'
-  Regex: '(?i:add ([-\w .,!?:\/]+) to (?:the )?(?:([~\w-'' ]+) )?list)'
+  Regex: '(?i:add ([-\w .,!?:\/''’"]+) to (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "item", "list" ]
 - Command: 'list'
   Regex: '(?i:list lists)'
 - Command: 'remove'
-  Regex: '(?i:(?:remove|delete) ([-\w .,!?:\/]+) from (?:the )?(?:([~\w-'' ]+) )?list)'
+  Regex: '(?i:(?:remove|delete) ([-\w .,!?:\/''’"]+) from (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "item", "list" ]
 - Command: 'empty'
-  Regex: '(?i:(?:empty|clear) (?:the )?(?:([~\w-'' ]+) )?list)'
+  Regex: '(?i:(?:empty|clear) (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "list" ]
 - Command: 'delete'
-  Regex: '(?i:delete (?:the )?(?:([~\w-'' ]+) )?list)'
+  Regex: '(?i:delete (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "list" ]
 - Command: 'show'
-  Regex: '(?i:show (?:the )?(?:([~\w-'' ]+) )?list)'
+  Regex: '(?i:show (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "list" ]
 - Command: 'pick'
-  Regex: '(?i:(?:pick )(?:an? )?random (?:item )?(?:from )(?:the )?([~\w-'' ]+)?(?: list))'
+  Regex: '(?i:(?:pick )(?:an? )?random (?:item )?(?:from )(?:the )?([-\w .,!?:\/''’"]+)?(?: list))'
   Contexts: [ "list" ]
 - Command: 'send'
-  Regex: '(?i:(?:send me|email) (?:the )?(?:([~\w-'' ]+) )?list)'
+  Regex: '(?i:(?:send me|email) (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "list" ]
 Config:
   Scope: global # or "channel" if lists aren't shared globally
