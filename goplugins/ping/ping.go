@@ -70,7 +70,14 @@ func ping(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) 
 		u := r.GetSenderAttribute("name")
 		p := r.GetBotAttribute("protocol")
 		i := r.GetSenderAttribute("internalid")
-		r.MessageFormat(bot.Variable).Say(fmt.Sprintf("Your user name is '%s', %s internal ID '%s'", u, p, i))
+		e := r.GetSenderAttribute("email")
+		var msg string
+		if e.RetVal == bot.Ok {
+			msg = fmt.Sprintf("Your user name is '%s', %s internal ID '%s', email address: %s", u, p, i, e)
+		} else {
+			msg = fmt.Sprintf("Your user name is '%s', %s internal ID '%s'", u, p, i)
+		}
+		r.MessageFormat(bot.Variable).Say(msg)
 	case "thanks":
 		if ret := r.GetPluginConfig(&cfg); ret == bot.Ok {
 			r.Reply(r.RandomString(cfg.Welcome))
