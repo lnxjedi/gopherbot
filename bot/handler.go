@@ -128,10 +128,10 @@ func (h handler) GetBrainConfig(v interface{}) error {
 	return err
 }
 
-// GetElevateConfig unmarshals the brain's configuration data into a provided struct
-func (h handler) GetElevateConfig(v interface{}) error {
+// GetHistoryConfig unmarshals the history provider's configuration data into a provided struct
+func (h handler) GetHistoryConfig(v interface{}) error {
 	robot.RLock()
-	err := json.Unmarshal(elevateConfig, v)
+	err := json.Unmarshal(historyConfig, v)
 	robot.RUnlock()
 	return err
 }

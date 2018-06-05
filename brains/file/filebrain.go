@@ -60,6 +60,7 @@ func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
 	if !bd.Mode().IsDir() {
 		robot.Log(bot.Fatal, fmt.Sprintf("Checking brain directory: \"%s\" isn't a directory", brainPath))
 	}
+	robot.Log(bot.Info, fmt.Sprintf("Initialized file-backed brain with memories directory: '%s'", brainPath))
 	return &fb
 }
 

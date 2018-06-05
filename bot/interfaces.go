@@ -17,15 +17,15 @@ type Handler interface {
 	// the connector; using the value from Protocol, a plugin can interpret the
 	// contents of 'raw'.
 	IncomingMessage(channelName, userName, message string, proto Protocol, raw interface{})
-	// GetProtocolConfig unmarshals the ProtocolConfig section of gopherbot.json
+	// GetProtocolConfig unmarshals the ProtocolConfig section of gopherbot.yaml
 	// into a connector-provided struct
 	GetProtocolConfig(interface{}) error
-	// GetBrainConfig unmarshals the BrainConfig section of gopherbot.json
+	// GetBrainConfig unmarshals the BrainConfig section of gopherbot.yaml
 	// into a struct provided by the brain provider
 	GetBrainConfig(interface{}) error
-	// GetElevateConfig unmarshals the ElevateConfig section of gopherbot.json
-	// into a struct provided by the elevate provider
-	GetElevateConfig(interface{}) error
+	// GetHistoryConfig unmarshals the HistoryConfig section of gopherbot.yaml
+	// into a struct provided by the brain provider
+	GetHistoryConfig(interface{}) error
 	// SetFullName allows the connector to set the robot's full name if it
 	// has access to it.
 	SetFullName(n string)

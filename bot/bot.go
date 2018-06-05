@@ -64,6 +64,8 @@ var robot struct {
 	protocol             string           // Name of the protocol, e.g. "slack"
 	brainProvider        string           // Type of Brain provider to use
 	brain                SimpleBrain      // Interface for robot to Store and Retrieve data
+	historyProvider      string           // Name of the history provider to use
+	history              HistoryProvider  // Provider for storing and retrieving job / plugin histories
 	defaultElevator      string           // Plugin name for performing elevation
 	defaultAuthorizer    string           // Plugin name for performing authorization
 	externalPlugins      []externalScript // List of external plugins to load
@@ -115,6 +117,16 @@ func initBot(cpath, epath string, logger *log.Logger) {
 			brain := bprovider(handle, logger)
 			robot.Lock()
 			robot.brain = brain
+			robot.Unlock()
+		}
+	}
+	if len(robot.historyProvider) > 0 {
+		if hprovider, ok := historyProviders[robot.historyProvider]; !ok {
+			Log(Fatal, fmt.Sprintf("No provider registered for history type: \"%s\"", robot.historyProvider))
+		} else {
+			hp := hprovider(handle)
+			robot.Lock()
+			robot.history = hp
 			robot.Unlock()
 		}
 	}

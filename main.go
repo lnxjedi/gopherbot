@@ -21,6 +21,9 @@ import (
 	_ "github.com/lnxjedi/gopherbot/brains/file"
 	_ "github.com/lnxjedi/gopherbot/brains/mem"
 
+	// *** Included history implementations
+	_ "github.com/lnxjedi/gopherbot/history/file"
+
 	// Many included plugins already have 'Disabled: true', but you can also
 	// disable by adding that line to conf/plugins/<plugname>.yaml
 

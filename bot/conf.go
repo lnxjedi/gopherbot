@@ -14,7 +14,7 @@ import (
 
 /* conf.go - methods and types for reading and storing json configuration */
 
-var protocolConfig, brainConfig, elevateConfig json.RawMessage
+var protocolConfig, brainConfig, historyConfig json.RawMessage
 
 // botconf specifies 'bot configuration, and is read from $GOPHER_CONFIGDIR/conf/gopherbot.yaml
 type botconf struct {
@@ -25,6 +25,8 @@ type botconf struct {
 	ProtocolConfig       json.RawMessage  // Protocol-specific configuration, type for unmarshalling arbitrary config
 	Brain                string           // Type of Brain to use
 	BrainConfig          json.RawMessage  // Brain-specific configuration, type for unmarshalling arbitrary config
+	HistoryProvider      string           // Name of provider to use for storing and retrieving job/plugin histories
+	HistoryConfig        json.RawMessage  // History provider specific configuration
 	DefaultElevator      string           // Elevator plugin to use by default for ElevatedCommands and ElevateImmediateCommands
 	DefaultAuthorizer    string           // Authorizer plugin to use by default for AuthorizedCommands, or when AuthorizeAllCommands = true
 	DefaultMessageFormat string           // How the robot should format outgoing messages unless told otherwise; default: Raw
@@ -146,7 +148,7 @@ func (r *Robot) loadConfig() error {
 		var val interface{}
 		skip := false
 		switch key {
-		case "AdminContact", "Email", "Protocol", "Brain", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
+		case "AdminContact", "Email", "Protocol", "Brain", "HistoryProvider", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
 			val = &strval
 		case "DefaultAllowDirect":
 			val = &boolval
@@ -162,7 +164,7 @@ func (r *Robot) loadConfig() error {
 			val = &sarrval
 		case "MailConfig":
 			val = &mailval
-		case "ProtocolConfig", "BrainConfig":
+		case "ProtocolConfig", "BrainConfig", "HistoryConfig":
 			skip = true
 		default:
 			err := fmt.Errorf("Invalid configuration key in gopherbot.yaml: %s", key)
@@ -190,6 +192,10 @@ func (r *Robot) loadConfig() error {
 		case "Brain":
 			newconfig.Brain = *(val.(*string))
 		case "BrainConfig":
+			newconfig.BrainConfig = value
+		case "HistoryProvider":
+			newconfig.HistoryProvider = *(val.(*string))
+		case "HistoryConfig":
 			newconfig.BrainConfig = value
 		case "DefaultJobChannel":
 			newconfig.DefaultJobChannel = *(val.(*string))
@@ -314,6 +320,13 @@ func (r *Robot) loadConfig() error {
 	}
 	if newconfig.BrainConfig != nil {
 		brainConfig = newconfig.BrainConfig
+	}
+
+	if newconfig.HistoryProvider != "" {
+		robot.historyProvider = newconfig.HistoryProvider
+	}
+	if newconfig.HistoryConfig != nil {
+		historyConfig = newconfig.HistoryConfig
 	}
 
 	if newconfig.AdminUsers != nil {
