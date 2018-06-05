@@ -66,7 +66,7 @@ class BaseBot
 	NoUserEmail = 20
 	NoBotEmail = 21
 	MailError = 22
-	InvalidPluginID = 23
+	InvalidCallerID = 23
 	UntrustedPlugin = 24
 
 	# Plugin return values / exit codes, return values from CallPlugin
@@ -103,7 +103,7 @@ class BaseBot
 		if ret["PlugRetVal"] != Success
 			return ret["PlugRetVal"]
 		end
-		system({ 'GOPHER_PLUGIN_ID' => ret["PluginID"] }, ret["PluginPath"], *plugargs)
+		system({ 'GOPHER_CALLER_ID' => ret["CallerID"] }, ret["PluginPath"], *plugargs)
 		return $?.exitstatus
 	end
 
@@ -244,7 +244,7 @@ class BaseBot
 			"Channel" => @channel,
 			"Protocol" => @protocol,
 			"Format" => format,
-			"PluginID" => @plugin_id,
+			"CallerID" => @plugin_id,
 			"FuncArgs" => args
 		}
 		uri = URI.parse(ENV["GOPHER_HTTP_POST"] + "/json")
@@ -265,7 +265,7 @@ class Robot < BaseBot
 	def initialize()
 		@channel = ENV["GOPHER_CHANNEL"]
 		@user = ENV["GOPHER_USER"]
-		@plugin_id = ENV["GOPHER_PLUGIN_ID"]
+		@plugin_id = ENV["GOPHER_CALLER_ID"]
 		@protocol = ENV["GOPHER_PROTOCOL"]
 		@format = ""
 		@prng = Random.new

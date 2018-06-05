@@ -318,20 +318,6 @@ func TestPrompting(t *testing.T) {
 	teardown(t, done, conn)
 }
 
-// pythondemo is active in general, rubydemo in random; pythondemo is trusted by
-// echo.sh, rubydemo is not.
-func TestCalling(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
-
-	tests := []testItem{
-		{alice, general, ";bashecho foo bar baz", []testc.TestMessage{{null, general, "foo bar baz"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
-		{alice, random, ";bashecho foo bar baz", []testc.TestMessage{{null, random, "Sorry, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
-	}
-	testcases(t, conn, tests)
-
-	teardown(t, done, conn)
-}
-
 func TestFormatting(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
 

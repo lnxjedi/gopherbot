@@ -35,15 +35,37 @@ const (
 // persists for the life of the message, until finally a plugin runs
 // (or doesn't).
 type Robot struct {
-	User      string        // The user who sent the message; this can be modified for replying to an arbitrary user
-	Channel   string        // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	Protocol  Protocol      // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
-	RawMsg    interface{}   // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
-	Format    MessageFormat // The outgoing message format, one of Fixed or Variable
-	pluginID  string        // Pass the ID in for later identificaton of the plugin
-	isCommand bool          // Was the message directed at the robot, dm or by mention
-	directMsg bool          // if the message was sent by DM
-	msg       string        // the message text sent
+	User           string            // The user who sent the message; this can be modified for replying to an arbitrary user
+	Channel        string            // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	Protocol       Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
+	RawMsg         interface{}       // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
+	Format         MessageFormat     // The outgoing message format, one of Fixed or Variable
+	callerID       string            // Pass the ID in for later identificaton of the calling plugin/job
+	isCommand      bool              // Was the message directed at the robot, dm or by mention
+	directMsg      bool              // if the message was sent by DM
+	msg            string            // the message text sent
+	bypassSecurity bool              // set for scheduled jobs, where user security restrictions don't apply
+	elevated       bool              // set when required elevation succeeds
+	environment    map[string]string // environment vars set for each job/plugin in the pipeline
+	// NextJob, NextPlugin // TODO: create & use these data structures
+}
+
+type callerType int
+
+const (
+	plugin callerType = iota
+	job
+)
+
+// a botCaller can be a plugin or a job, both capable of calling Robot methods
+type botCaller struct {
+	name          string         // name of job or plugin; unique by type, but job & plugin can share
+	NameSpace     string         // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
+	callerType    callerType     // plugin or job
+	callerID      string         // 32-char random ID for identifying plugins/jobs in Robot method calls
+	ReplyMatchers []InputMatcher // store this here for prompt*reply methods
+	Disabled      bool
+	reason        string // why this job/plugin is disabled
 }
 
 /* robot.go defines some convenience functions on struct Robot to
@@ -73,7 +95,7 @@ func (r *Robot) CheckAdmin() bool {
 func (r *Robot) Elevate(immediate bool) bool {
 	currentPlugins.RLock()
 	plugins := currentPlugins.p
-	plugin := plugins[currentPlugins.idMap[r.pluginID]]
+	plugin := plugins[currentPlugins.idMap[r.callerID]]
 	currentPlugins.RUnlock()
 	retval := r.elevate(plugins, plugin, immediate)
 	if retval == Success {
@@ -224,7 +246,7 @@ and call GetPluginConfig with a double-pointer:
 ... And voila! *pConf is populated with the contents from the configured Config: stanza
 */
 func (r *Robot) GetPluginConfig(dptr interface{}) RetVal {
-	plugin := currentPlugins.getPluginByID(r.pluginID)
+	plugin := currentPlugins.getPluginByID(r.callerID)
 	if plugin.config == nil {
 		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but no config was found.", plugin.name))
 		return NoConfigFound

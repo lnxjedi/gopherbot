@@ -71,7 +71,7 @@ class BotFuncCall {
     [String] $Channel
     [String] $Format
     [String] $Protocol
-    [String] $PluginID
+    [String] $CallerID
     [PSCustomObject] $FuncArgs
 
     BotFuncCall([String] $fn, [String] $u, [String] $c, [String] $pr, [String] $fmt, [String] $p, [PSCustomObject] $funcArgs ) {
@@ -80,7 +80,7 @@ class BotFuncCall {
         $this.Channel = $c
         $this.Protocol = $pr
         $this.Format = $fmt
-        $this.PluginID = $p
+        $this.CallerID = $p
         $this.FuncArgs = $funcArgs
     }
 }
@@ -92,7 +92,7 @@ class Robot
     [String] $User
     [String] $Protocol
     [String] $Format
-    hidden [String] $PluginID
+    hidden [String] $CallerID
 
     # Constructor
     Robot([String] $channel, [String] $user, [String] $proto, [String] $format, [String] $pluginid) {
@@ -100,15 +100,15 @@ class Robot
         $this.User = $user
         $this.Protocol = $proto
         $this.Format = $format
-        $this.PluginID = $pluginid
+        $this.CallerID = $pluginid
     }
 
     [Robot] Direct() {
-        return [Robot]::new("", $this.User, $this.Protocol, $this.Format, $this.PluginID)
+        return [Robot]::new("", $this.User, $this.Protocol, $this.Format, $this.CallerID)
     }
 
     [Robot] MessageFormat([String] $format) {
-        return [Robot]::new($this.Channel, $this.User, $this.Protocol, $format, $this.PluginID)
+        return [Robot]::new($this.Channel, $this.User, $this.Protocol, $format, $this.CallerID)
     }
 
     Pause([single] $seconds) {
@@ -148,7 +148,7 @@ class Robot
         } else {
             $fmt = $format
         }
-        $bfc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $this.Protocol, $fmt, $this.PluginID, $funcArgs)
+        $bfc = [BotFuncCall]::new($fname, $this.User, $this.Channel, $this.Protocol, $fmt, $this.CallerID, $funcArgs)
         $fc = ConvertTo-Json $bfc
         # if ($fname -ne "Log") { $this.Log("Debug", "DEBUG - Sending: $fc") }
         $r = Invoke-WebRequest -URI "$Env:GOPHER_HTTP_POST/json" -Method Post -UseBasicParsing -Body $fc
@@ -173,9 +173,9 @@ class Robot
             $plugPath = $ret.PluginPath
         }
         $plugArgs = [Array]$plugPath + $plugArgs
-        $Env:GOPHER_PLUGIN_ID = $ret.PluginID
+        $Env:GOPHER_CALLER_ID = $ret.CallerID
         $proc = Start-Process -FilePath $ret.InterpreterPath -ArgumentList $plugArgs -NoNewWindow -PassThru -Wait
-        $Env:GOPHER_PLUGIN_ID = $this.PluginID
+        $Env:GOPHER_CALLER_ID = $this.CallerID
         return [PlugRet]$proc.ExitCode
     }
 
@@ -313,7 +313,7 @@ class Robot
 }
 
 function Get-Robot() {
-    return [Robot]::new($Env:GOPHER_CHANNEL, $Env:GOPHER_USER, $Env:GOPHER_PROTOCOL, "", $Env:GOPHER_PLUGIN_ID)
+    return [Robot]::new($Env:GOPHER_CHANNEL, $Env:GOPHER_USER, $Env:GOPHER_PROTOCOL, "", $Env:GOPHER_CALLER_ID)
 }
 
 export-modulemember -function Get-Robot

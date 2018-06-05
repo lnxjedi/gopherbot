@@ -6,7 +6,7 @@ const technicalAuthError = "Sorry, authorization failed due to a problem with th
 const configAuthError = "Sorry, authorization failed due to a configuration error"
 
 // Check for a configured Authorizer and check authorization
-func (bot *Robot) checkAuthorization(plugins []*Plugin, plugin *Plugin, command string, args ...string) (retval PlugRetVal) {
+func (bot *Robot) checkAuthorization(plugins []*botPlugin, plugin *botPlugin, command string, args ...string) (retval PlugRetVal) {
 	if !(plugin.AuthorizeAllCommands || len(plugin.AuthorizedCommands) > 0) {
 		// This plugin requires no authorization
 		if plugin.Authorizer != "" {

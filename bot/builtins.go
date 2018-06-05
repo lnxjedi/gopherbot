@@ -326,15 +326,15 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		if len(args[1]) > 0 {
 			verbose = true
 		}
-		bot.Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", pname, plugin.pluginID, verbose))
+		bot.Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", pname, plugin.callerID, verbose))
 		pd := &debuggingPlug{
-			pluginID: plugin.pluginID,
+			callerID: plugin.callerID,
 			name:     pname,
 			user:     bot.User,
 			verbose:  verbose,
 		}
 		plugDebug.Lock()
-		plugDebug.p[plugin.pluginID] = pd
+		plugDebug.p[plugin.callerID] = pd
 		plugDebug.u[bot.User] = pd
 		plugDebug.Unlock()
 		bot.Say(fmt.Sprintf("Debugging enabled for %s (verbose: %v)", args[0], verbose))
@@ -342,7 +342,7 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		plugDebug.Lock()
 		pd, ok := plugDebug.u[bot.User]
 		if ok {
-			delete(plugDebug.p, pd.pluginID)
+			delete(plugDebug.p, pd.callerID)
 			delete(plugDebug.u, bot.User)
 		}
 		plugDebug.Unlock()

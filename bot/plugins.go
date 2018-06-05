@@ -27,24 +27,24 @@ var plugNameIDmap = struct {
 }
 
 type pluginList struct {
-	p       []*Plugin
+	p       []*botPlugin
 	nameMap map[string]int
 	idMap   map[string]int
 	sync.RWMutex
 }
 
-type externalPlugin struct {
+type externalScript struct {
 	Name, Path string // List of names and paths for external plugins; relative paths are searched first in installpath, then configpath
 }
 
 var currentPlugins = &pluginList{
-	[]*Plugin{},
+	[]*botPlugin{},
 	nil,
 	nil,
 	sync.RWMutex{},
 }
 
-func (pl *pluginList) getPluginByName(name string) *Plugin {
+func (pl *pluginList) getPluginByName(name string) *botPlugin {
 	pl.RLock()
 	pi, ok := pl.nameMap[name]
 	if !ok {
@@ -57,7 +57,7 @@ func (pl *pluginList) getPluginByName(name string) *Plugin {
 	return plugin
 }
 
-func (pl *pluginList) getPluginByID(id string) *Plugin {
+func (pl *pluginList) getPluginByID(id string) *botPlugin {
 	pl.RLock()
 	pi, ok := pl.idMap[id]
 	if !ok {
@@ -93,12 +93,9 @@ const (
 )
 
 // Plugin specifies the structure of a plugin configuration - plugins should include an example / default config
-type Plugin struct {
-	name                     string          // the name of the plugin, used as a key in to the
+type botPlugin struct {
 	pluginType               plugType        // plugGo, plugExternal - determines how commands are routed
 	pluginPath               string          // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=plugExternal only
-	Disabled                 bool            // Set true to disable the plugin
-	reason                   string          // why the plugin is disabled
 	AllowDirect              bool            // Set this true if this plugin can be accessed via direct message
 	DirectOnly               bool            // Set this true if this plugin ONLY accepts direct messages
 	Channels                 []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
@@ -109,19 +106,17 @@ type Plugin struct {
 	ElevatedCommands         []string        // Commands that require elevation, usually via 2fa
 	ElevateImmediateCommands []string        // Commands that always require elevation promting, regardless of timeouts
 	Users                    []string        // If non-empty, list of all the users with access to this plugin
-	TrustedPlugins           []string        // list of plugins allowed to call this one
 	Authorizer               string          // a plugin to call for authorizing users, should handle groups, etc.
 	AuthRequire              string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
 	AuthorizedCommands       []string        // Which commands to authorize
 	AuthorizeAllCommands     bool            // when ALL commands need to be authorized
 	Help                     []PluginHelp    // All the keyword sets / help texts for this plugin
 	CommandMatchers          []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
-	ReplyMatchers            []InputMatcher  // Input matchers for replies to questions, only match after a RequestContinuation
 	MessageMatchers          []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
 	CatchAll                 bool            // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
 	Config                   json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetPluginConfig()
 	config                   interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
-	pluginID                 string          // 32-char random ID for identifying plugins in callbacks
+	botCaller
 }
 
 // PluginHandler is the struct a plugin registers for the Gopherbot plugin API.
@@ -209,14 +204,14 @@ func getPlugID(plug string) string {
 }
 
 // loadPluginConfig() loads the configuration for all the plugins from
-// /plugins/<pluginname>.yaml, assigns a pluginID, and
+// /plugins/<pluginname>.yaml, assigns a callerID, and
 // stores the resulting array in b.plugins. Bad plugins are skipped and logged.
 // Plugin configuration is initially loaded into temporary data structures,
 // then stored in the bot package under the global bot lock.
 func (r *Robot) loadPluginConfig() {
 	plugIndexByID := make(map[string]int)
 	plugIndexByName := make(map[string]int)
-	plist := make([]*Plugin, 0, 14)
+	plist := make([]*botPlugin, 0, 14)
 
 	// Copy some data from the bot under read lock, including external plugins
 	robot.RLock()
@@ -224,16 +219,22 @@ func (r *Robot) loadPluginConfig() {
 	// copy the list of default channels
 	pchan := make([]string, 0, len(robot.plugChannels))
 	pchan = append(pchan, robot.plugChannels...)
-	externalPlugins := make([]externalPlugin, 0, len(robot.externalPlugins))
+	externalPlugins := make([]externalScript, 0, len(robot.externalPlugins))
 	externalPlugins = append(externalPlugins, robot.externalPlugins...)
 	robot.RUnlock() // we're done with bot data 'til the end
 
 	i := 0
 
 	for plugname := range pluginHandlers {
-		plugin := &Plugin{name: plugname, pluginType: plugGo, pluginID: getPlugID(plugname)}
+		plugin := &botPlugin{
+			pluginType: plugGo,
+			botCaller: botCaller {
+				name: plugname,
+				callerID: getPlugID(plugname),
+			},
+		}
 		plist = append(plist, plugin)
-		plugIndexByID[plugin.pluginID] = i
+		plugIndexByID[plugin.callerID] = i
 		plugIndexByName[plugin.name] = i
 		i++
 	}
@@ -246,18 +247,25 @@ func (r *Robot) loadPluginConfig() {
 		if dup, ok := plugIndexByName[plug.Name]; ok {
 			msg := fmt.Sprintf("External plugin index: #%d, name: '%s' duplicates name of builtIn or Go plugin, skipping", index, plug.Name)
 			Log(Error, msg)
-			r.debug(plist[dup].pluginID, msg, false)
+			r.debug(plist[dup].callerID, msg, false)
 			continue
 		}
-		plugin := &Plugin{name: plug.Name, pluginPath: plug.Path, pluginType: plugExternal, pluginID: getPlugID(plug.Name)}
+		plugin := &botPlugin{
+			pluginPath: plug.Path,
+			pluginType: plugExternal,
+			botCaller: botCaller{
+				name: plug.Name,
+				callerID: getPlugID(plug.Name),
+			},
+		}
 		plist = append(plist, plugin)
-		plugIndexByID[plugin.pluginID] = i
+		plugIndexByID[plugin.callerID] = i
 		plugIndexByName[plugin.name] = i
 		i++
 		if len(plug.Path) == 0 {
 			msg := fmt.Sprintf("Plugin '%s' has zero-length path, disabling", plug.Name)
 			Log(Error, msg)
-			r.debug(plugin.pluginID, msg, false)
+			r.debug(plugin.callerID, msg, false)
 			plugin.Disabled = true
 			plugin.reason = msg
 		}
@@ -280,20 +288,20 @@ PlugLoop:
 			if err != nil {
 				msg := fmt.Sprintf("Error getting default configuration for external plugin, disabling: %v", err)
 				Log(Error, msg)
-				r.debug(plugin.pluginID, msg, false)
+				r.debug(plugin.callerID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue
 			}
 			if len(*cfg) > 0 {
-				r.debug(plugin.pluginID, fmt.Sprintf("Loaded default config from the plugin, size: %d", len(*cfg)), false)
+				r.debug(plugin.callerID, fmt.Sprintf("Loaded default config from the plugin, size: %d", len(*cfg)), false)
 			} else {
-				r.debug(plugin.pluginID, "Unable to obtain default config from plugin, command 'configure' returned no content", false)
+				r.debug(plugin.callerID, "Unable to obtain default config from plugin, command 'configure' returned no content", false)
 			}
 			if err := yaml.Unmarshal(*cfg, &pcfgload); err != nil {
 				msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
 				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", plugin.name, err))
-				r.debug(plugin.pluginID, msg, false)
+				r.debug(plugin.callerID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue
@@ -302,17 +310,17 @@ PlugLoop:
 			if err := yaml.Unmarshal([]byte(pluginHandlers[plugin.name].DefaultConfig), &pcfgload); err != nil {
 				msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
 				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", plugin.name, err))
-				r.debug(plugin.pluginID, msg, false)
+				r.debug(plugin.callerID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue
 			}
 		}
 		// getConfigFile overlays the default config with configuration from the install path, then config path
-		if err := r.getConfigFile("plugins/"+plugin.name+".yaml", plugin.pluginID, false, pcfgload); err != nil {
+		if err := r.getConfigFile("plugins/"+plugin.name+".yaml", plugin.callerID, false, pcfgload); err != nil {
 			msg := fmt.Sprintf("Problem loading configuration file(s) for plugin '%s', disabling: %v", plugin.name, err)
 			Log(Error, msg)
-			r.debug(plugin.pluginID, msg, false)
+			r.debug(plugin.callerID, msg, false)
 			plugin.Disabled = true
 			plugin.reason = msg
 			continue
@@ -322,7 +330,7 @@ PlugLoop:
 			if err := json.Unmarshal(disjson, &disabled); err != nil {
 				msg := fmt.Sprintf("Problem unmarshalling value for 'Disabled' in plugin '%s', disabling: %v", plugin.name, err)
 				Log(Error, msg)
-				r.debug(plugin.pluginID, msg, false)
+				r.debug(plugin.callerID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue
@@ -330,7 +338,7 @@ PlugLoop:
 			if disabled {
 				msg := fmt.Sprintf("Plugin '%s' is disabled by configuration", plugin.name)
 				Log(Info, msg)
-				r.debug(plugin.pluginID, msg, false)
+				r.debug(plugin.callerID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue
@@ -367,7 +375,7 @@ PlugLoop:
 			default:
 				msg := fmt.Sprintf("Invalid configuration key for plugin '%s': %s - disabling", plugin.name, key)
 				Log(Error, msg)
-				r.debug(plugin.pluginID, msg, false)
+				r.debug(plugin.callerID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue PlugLoop
@@ -377,7 +385,7 @@ PlugLoop:
 				if err := json.Unmarshal(value, val); err != nil {
 					msg := fmt.Sprintf("Disabling plugin '%s' - error unmarshalling value '%s': %v", plugin.name, key, err)
 					Log(Error, msg)
-					r.debug(plugin.pluginID, msg, false)
+					r.debug(plugin.callerID, msg, false)
 					plugin.Disabled = true
 					plugin.reason = msg
 					continue PlugLoop
@@ -410,8 +418,6 @@ PlugLoop:
 				plugin.ElevateImmediateCommands = *(val.(*[]string))
 			case "Users":
 				plugin.Users = *(val.(*[]string))
-			case "TrustedPlugins":
-				plugin.TrustedPlugins = *(val.(*[]string))
 			case "Authorizer":
 				plugin.Authorizer = *(val.(*string))
 			case "AuthRequire":
@@ -443,7 +449,7 @@ PlugLoop:
 				if !plugin.AllowDirect {
 					msg := fmt.Sprintf("Plugin '%s' has conflicting values for AllowDirect (false) and DirectOnly (true), disabling", plugin.name)
 					Log(Error, msg)
-					r.debug(plugin.pluginID, msg, false)
+					r.debug(plugin.callerID, msg, false)
 					plugin.Disabled = true
 					plugin.reason = msg
 					continue
@@ -458,7 +464,7 @@ PlugLoop:
 		if explicitAllowDirect && explicitDenyDirect && (plugin.AllowDirect == denyDirect) {
 			msg := fmt.Sprintf("Plugin '%s' has conflicting values for AllowDirect and deprecated DenyDirect, disabling", plugin.name)
 			Log(Error, msg)
-			r.debug(plugin.pluginID, msg, false)
+			r.debug(plugin.callerID, msg, false)
 			plugin.Disabled = true
 			plugin.reason = msg
 			continue
@@ -493,19 +499,19 @@ PlugLoop:
 		if len(plugin.Channels) > 0 {
 			msg := fmt.Sprintf("Plugin '%s' will be active in channels %q", plugin.name, plugin.Channels)
 			Log(Info, msg)
-			r.debug(plugin.pluginID, msg, false)
+			r.debug(plugin.callerID, msg, false)
 		} else {
 			if !(plugin.AllowDirect || plugin.AllChannels) {
 				msg := fmt.Sprintf("Plugin '%s' not visible in any channels or by direct message, disabling", plugin.name)
 				Log(Error, msg)
-				r.debug(plugin.pluginID, msg, false)
+				r.debug(plugin.callerID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue
 			} else {
 				msg := fmt.Sprintf("Plugin '%s' has no channel restrictions configured; all channels: %t", plugin.name, plugin.AllChannels)
 				Log(Info, msg)
-				r.debug(plugin.pluginID, msg, false)
+				r.debug(plugin.callerID, msg, false)
 			}
 		}
 
@@ -517,7 +523,7 @@ PlugLoop:
 			if err != nil {
 				msg := fmt.Sprintf("Disabling %s, couldn't compile command regular expression '%s': %v", plugin.name, regex, err)
 				Log(Error, msg)
-				r.debug(plugin.pluginID, msg, false)
+				r.debug(plugin.callerID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue PlugLoop
@@ -532,7 +538,7 @@ PlugLoop:
 			if err != nil {
 				msg := fmt.Sprintf("Skipping %s, couldn't compile reply regular expression '%s': %v", plugin.name, regex, err)
 				Log(Error, msg)
-				r.debug(plugin.pluginID, msg, false)
+				r.debug(plugin.callerID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue PlugLoop
@@ -549,7 +555,7 @@ PlugLoop:
 			if err != nil {
 				msg := fmt.Sprintf("Skipping %s, couldn't compile message regular expression '%s': %v", plugin.name, regex, err)
 				Log(Error, msg)
-				r.debug(plugin.pluginID, msg, false)
+				r.debug(plugin.callerID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue PlugLoop
@@ -590,7 +596,7 @@ PlugLoop:
 					if !cmdfound {
 						msg := fmt.Sprintf("Disabling %s, %s command %s didn't match a command from CommandMatchers or MessageMatchers", plugin.name, cmd.ctype, i)
 						Log(Error, msg)
-						r.debug(plugin.pluginID, msg, false)
+						r.debug(plugin.callerID, msg, false)
 						plugin.Disabled = true
 						plugin.reason = msg
 						continue PlugLoop
@@ -614,7 +620,7 @@ PlugLoop:
 					if err := json.Unmarshal(plugin.Config, plugin.config); err != nil {
 						msg := fmt.Sprintf("Error unmarshalling plugin config json to config, disabling: %v", err)
 						Log(Error, msg)
-						r.debug(plugin.pluginID, msg, false)
+						r.debug(plugin.callerID, msg, false)
 						plugin.Disabled = true
 						plugin.reason = msg
 						continue
@@ -623,13 +629,13 @@ PlugLoop:
 					// Providing custom config not required (should it be?)
 					msg := fmt.Sprintf("Plugin '%s' has custom config, but none is configured", plugin.name)
 					Log(Warn, msg)
-					r.debug(plugin.pluginID, msg, false)
+					r.debug(plugin.callerID, msg, false)
 				}
 			} else {
 				if plugin.Config != nil {
 					msg := fmt.Sprintf("Custom configuration data provided for Go plugin '%s', but no config struct was registered; disabling", plugin.name)
 					Log(Error, msg)
-					r.debug(plugin.pluginID, msg, false)
+					r.debug(plugin.callerID, msg, false)
 					plugin.Disabled = true
 					plugin.reason = msg
 				} else {

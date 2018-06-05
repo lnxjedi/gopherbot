@@ -15,7 +15,7 @@ type jsonFunction struct {
 	Channel  string
 	Format   string
 	Protocol string
-	PluginID string
+	CallerID string
 	FuncArgs json.RawMessage
 }
 
@@ -137,7 +137,7 @@ type checkoutresponse struct {
 type callpluginresponse struct {
 	InterpreterPath string
 	PluginPath      string
-	PluginID        string
+	CallerID        string
 	PlugRetVal      int
 }
 
@@ -206,16 +206,16 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if f.PluginID == "" {
+	if f.CallerID == "" {
 		rw.WriteHeader(http.StatusBadRequest)
-		Log(Error, fmt.Sprintf("JSON function \"%s\" called with empty PluginID; args: %v", f.FuncName, f.FuncArgs))
+		Log(Error, fmt.Sprintf("JSON function \"%s\" called with empty CallerID; args: %v", f.FuncName, f.FuncArgs))
 		return
 	}
 
-	plugin := currentPlugins.getPluginByID(f.PluginID)
+	plugin := currentPlugins.getPluginByID(f.CallerID)
 	if plugin == nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		Log(Error, fmt.Sprintf("JSON function \"%s\" called with invalid PluginID \"%s\"; args: %s", f.FuncName, f.PluginID, f.FuncArgs))
+		Log(Error, fmt.Sprintf("JSON function \"%s\" called with invalid CallerID \"%s\"; args: %s", f.FuncName, f.CallerID, f.FuncArgs))
 		return
 	}
 	Log(Trace, fmt.Sprintf("Plugin \"%s\" calling function \"%s\" in channel \"%s\" for user \"%s\"", plugin.name, f.FuncName, f.Channel, f.User))
@@ -225,7 +225,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		User:     f.User,
 		Channel:  f.Channel,
 		Protocol: setProtocol(f.Protocol),
-		pluginID: f.PluginID,
+		callerID: f.CallerID,
 	}
 	if len(f.Format) > 0 {
 		bot.Format = bot.setFormat(f.Format)
@@ -295,35 +295,20 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			sendReturn(rw, &callpluginresponse{"", "", "", int(ConfigurationError)})
 			return
 		}
-		plugAllowed := false
-		if len(calledPlugin.TrustedPlugins) > 0 {
-			for _, allowed := range calledPlugin.TrustedPlugins {
-				if plugin.name == allowed {
-					plugAllowed = true
-					break
-				}
-			}
-		}
-		if plugAllowed {
-			plugPath, err := getPluginPath(calledPlugin)
-			if err != nil {
-				Log(Error, fmt.Sprintf("Configuration error calling plugin \"%s\" from \"%s\": %s", calledPlugin.name, plugin.name, err))
-				sendReturn(rw, &callpluginresponse{"", "", "", int(ConfigurationError)})
-				return
-			}
-			interpreterPath, ierr := getInterpreter(plugPath)
-			if ierr != nil {
-				Log(Error, fmt.Sprintf("Couldn't get interpreter while calling plugin \"%s\" from \"%s\": %s", calledPlugin.name, plugin.name, err))
-				sendReturn(rw, &callpluginresponse{"", "", "", int(MechanismFail)})
-				return
-			}
-			Log(Debug, fmt.Sprintf("External plugin \"%s\" calling external plugin \"%s\"", plugin.name, calledPlugin.name))
-			sendReturn(rw, &callpluginresponse{interpreterPath, plugPath, calledPlugin.pluginID, int(Success)})
-		} else {
-			Log(Error, fmt.Sprintf("Unable to call plugin \"%s\" from \"%s\": untrusted", calledPlugin.name, plugin.name))
-			sendReturn(rw, &callpluginresponse{"", "", "", int(UntrustedPlugin)})
+		plugPath, err := getPluginPath(calledPlugin)
+		if err != nil {
+			Log(Error, fmt.Sprintf("Configuration error calling plugin \"%s\" from \"%s\": %s", calledPlugin.name, plugin.name, err))
+			sendReturn(rw, &callpluginresponse{"", "", "", int(ConfigurationError)})
 			return
 		}
+		interpreterPath, ierr := getInterpreter(plugPath)
+		if ierr != nil {
+			Log(Error, fmt.Sprintf("Couldn't get interpreter while calling plugin \"%s\" from \"%s\": %s", calledPlugin.name, plugin.name, err))
+			sendReturn(rw, &callpluginresponse{"", "", "", int(MechanismFail)})
+			return
+		}
+		Log(Debug, fmt.Sprintf("External plugin \"%s\" calling external plugin \"%s\"", plugin.name, calledPlugin.name))
+		sendReturn(rw, &callpluginresponse{interpreterPath, plugPath, calledPlugin.callerID, int(Success)})
 	case "Remember":
 		var m shorttermmemory
 		if !getArgs(rw, &f.FuncArgs, &m) {
