@@ -15,7 +15,7 @@ Table of Contents
       * [AdminUsers and IgnoreUsers](#adminusers-and-ignoreusers)
       * [DefaultAuthorizer and DefaultElevator](#defaultauthorizer-and-defaultelevator)
       * [DefaultAllowDirect, DefaultChannels and JoinChannels](#defaultallowdirect-defaultchannels-and-joinchannels)
-      * [ExternalPlugins](#externalplugins)
+      * [ExternalScripts](#externalscripts)
       * [LocalPort and LogLevel](#localport-and-loglevel)
   * [Plugin Configuration](#plugin-configuration)
     * [Plugin Configuration Directives](#plugin-configuration-directives)
@@ -193,17 +193,17 @@ JoinChannels: [ 'security', 'infrastructure', 'lunch' ]
 ```
 DefaultAllowDirect sets a robot-wide default value for AllowDirect, indicating whether a plugin's commands are accessible via direct message; `true` if not otherwise specified. DefaultChannels specify which channels a plugin will be active in if the plugin doesn't explicitly list it's channels. JoinChannels specify the channels the robot will try to join when logging in (though this isn't supported in the Slack connector).
 
-### ExternalPlugins
+### ExternalScripts
 
 ```yaml
-ExternalPlugins:
+ExternalScripts:
 - Name: rubydemo
   Path: plugins/rubydemo
 - Name: psdemo
   Path: plugins/psdemo.ps1
 ```
 Most Gopherbot command plugins ship as single script files for any of several scripting languages. Installing
-a new plugin only entails copying the plugin to an appropriate plugin directory (e.g. `<config dir>/plugins/`) and listing the plugin in the robot's `ExternalPlugins`, followed by a `reload` command.
+a new plugin only entails copying the plugin to an appropriate plugin directory (e.g. `<config dir>/plugins/`) and listing the plugin in the robot's `ExternalScripts`, followed by a `reload` command.
 
 ### LocalPort and LogLevel
 

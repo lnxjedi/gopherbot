@@ -33,7 +33,7 @@ require 'json'
 # To install:
 # 1) Copy this file to plugins/weather.rb
 # 2) Enable in gopherbot.yaml like so:
-#ExternalPlugins:
+#ExternalScripts:
 #- Name: weather
 #  Path: plugins/weather.rb
 # 3) Put your configuration in conf/plugins/weather.yaml:

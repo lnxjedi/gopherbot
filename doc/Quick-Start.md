@@ -27,9 +27,9 @@ Once your 'bot is up and running, open a private chat and verify it responds to 
 * `show log page 1`
 
 ### Optional - Enable other Plugins
-* Enable other external plugins by adding them to `ExternalPlugins` in `gopherbot.yaml`, e.g.:
+* Enable other external plugins by adding them to `ExternalScripts` in `gopherbot.yaml`, e.g.:
 ```yaml
-ExternalPlugins:
+ExternalScripts:
 - Name: chuck
   Path: plugins/chuck.rb
 ```
@@ -79,7 +79,7 @@ esac
 * Save the file and mark it executable
 * Edit `conf/gopherbot.yaml` and add your plugin to the list of external plugins:
 ```yaml
-ExternalPlugins:
+ExternalScripts:
 - Name: hello
   Path: plugins/hello.sh
 ```

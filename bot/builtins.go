@@ -309,8 +309,8 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		panic("Abort command issued")
 	case "debug":
 		pname := args[0]
-		if !pNameRe.MatchString(pname) {
-			bot.Say(fmt.Sprintf("Invalid plugin name '%s', doesn't match regexp: '%s' (plugin can't load)", pname, pNameRe.String()))
+		if !taskNameRe.MatchString(pname) {
+			bot.Say(fmt.Sprintf("Invalid plugin name '%s', doesn't match regexp: '%s' (plugin can't load)", pname, taskNameRe.String()))
 			return
 		}
 		plugin := currentPlugins.getPluginByName(pname)

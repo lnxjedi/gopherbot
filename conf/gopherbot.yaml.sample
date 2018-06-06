@@ -88,7 +88,7 @@ LogLevel: info
 ## List of external plugins to enable; generally scripts using a gopherbot
 ## script library. The robot will look for plugins in the config directory
 ## first (if it exists), then the installation directory.
-#ExternalPlugins:
+#ExternalScripts:
 ## Useful and/or entertaining plugins
 #- Name: weather
 #  Path: plugins/weather.rb

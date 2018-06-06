@@ -5,7 +5,7 @@ AdminUsers: [ "alice" ]
 Alias: ";"
 LocalPort: 8888
 LogLevel: warn
-ExternalPlugins:
+ExternalScripts:
 - Name: bashdemo
   Path: plugins/samples/bashdemo.sh
 - Name: pythondemo

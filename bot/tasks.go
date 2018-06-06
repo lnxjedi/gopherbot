@@ -22,10 +22,10 @@ const (
 
 // Struct for ScheduledTasks and AddTask
 type taskSpec struct {
-	Name       string         // name of the job being scheduled
-	Type       callerType     // job or plugin?
-	Arguments  []string       // job will bitch if
-	Parameters []jobParameter // environment vars for the job / plugin
+	Name       string      // name of the job or plugin
+	Type       callerType  // job or plugin?
+	Arguments  []string    // job will bitch if len > 0
+	Parameters []parameter // environment vars for the job / plugin
 }
 
 // a botCaller can be a plugin or a job, both capable of calling Robot methods
@@ -66,7 +66,6 @@ type botJob struct {
 	HistoryFiles       int      // how many history files to keep
 	Channels           []string // Channels where users can run this job
 	Users              []string // Users who can manually trigger this job with 'run job <foo>'
-	NextJob            jobSpec  // job and params to run if this job exits 0; rudimentary pipeline support
 	botCaller
 }
 

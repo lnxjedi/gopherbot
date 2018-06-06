@@ -6,7 +6,7 @@ AdminUsers: [ "alice" ]
 # Alias: ""
 LocalPort: 8889
 LogLevel: trace
-ExternalPlugins:
+ExternalScripts:
 - Name: bashdemo
   Path: plugins/samples/bashdemo.sh
 - Name: pythondemo

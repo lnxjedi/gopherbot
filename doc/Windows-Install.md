@@ -30,7 +30,7 @@ If you have a Go environment set up on your machine, you can can `go get github.
 
 **NOTE: Individual administrators may choose to configure different items in different locations**
 
-7. Optionally uncomment `ExternalPlugins` and the stanza for `psdemo.ps1` to enable the sample PowerShell plugin
+7. Optionally uncomment `ExternalScripts` and the stanza for `psdemo.ps1` to enable the sample PowerShell plugin
 1. Open a command prompt or powershell window as administrator
 1. Change directories to the install directory: `cd C:\Program Files\Gopherbot`
 1. Install Gopherbot as a service: `.\gopherbot.exe -w install`

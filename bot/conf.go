@@ -39,8 +39,8 @@ type botconf struct {
 	DefaultJobChannels   []string         // Where users can issue the 'run job <foo>' command
 	TimeZone             string           // For evaluating the hour in a job schedule
 	Jobs                 []externalScript // list of available jobs; config in conf/jobs/<jobname.yaml>
-	ScheduledJobs        []scheduledJob   // see jobs.go
-	ExternalPlugins      []externalScript // List of non-Go plugins to load
+	ScheduledTasks       []scheduledTask  // see tasks.go
+	ExternalScripts      []externalScript // List of non-Go plugins to load
 	AdminUsers           []string         // List of users who can access administrative commands
 	Alias                string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
 	LocalPort            int              // Port number for listening on localhost, for CLI plugins
@@ -141,7 +141,7 @@ func (r *Robot) loadConfig() error {
 		var strval string
 		var sarrval []string
 		var epval, jval []externalScript
-		var sjval []scheduledJob
+		var stval []scheduledTask
 		var mailval botMailer
 		var boolval bool
 		var intval int
@@ -154,12 +154,12 @@ func (r *Robot) loadConfig() error {
 			val = &boolval
 		case "LocalPort":
 			val = &intval
-		case "ExternalPlugins":
+		case "ExternalScripts":
 			val = &epval
 		case "Jobs":
 			val = &jval
 		case "ScheduledJobs":
-			val = &sjval
+			val = &stval
 		case "DefaultChannels", "DefaultJobChannels", "IgnoreUsers", "JoinChannels", "AdminUsers":
 			val = &sarrval
 		case "MailConfig":
@@ -218,12 +218,12 @@ func (r *Robot) loadConfig() error {
 			newconfig.IgnoreUsers = *(val.(*[]string))
 		case "JoinChannels":
 			newconfig.JoinChannels = *(val.(*[]string))
-		case "ExternalPlugins":
-			newconfig.ExternalPlugins = *(val.(*[]externalScript))
+		case "ExternalScripts":
+			newconfig.ExternalScripts = *(val.(*[]externalScript))
 		case "Jobs":
 			newconfig.Jobs = *(val.(*[]externalScript))
 		case "ScheduledJobs":
-			newconfig.ScheduledJobs = *(val.(*[]scheduledJob))
+			newconfig.ScheduledTasks = *(val.(*[]scheduledTask))
 		case "AdminUsers":
 			newconfig.AdminUsers = *(val.(*[]string))
 		case "Alias":
@@ -335,15 +335,15 @@ func (r *Robot) loadConfig() error {
 	if newconfig.DefaultChannels != nil {
 		robot.plugChannels = newconfig.DefaultChannels
 	}
-	if newconfig.ExternalPlugins != nil {
-		for i, ep := range newconfig.ExternalPlugins {
+	if newconfig.ExternalScripts != nil {
+		for i, ep := range newconfig.ExternalScripts {
 			if len(ep.Name) == 0 || len(ep.Path) == 0 {
 				pluginsOk = false
 				Log(Error, fmt.Errorf("Reading external plugins, zero-length Name or Path for plugin #%d, not reloading plugins", i))
 			}
 		}
 		if pluginsOk {
-			robot.externalPlugins = newconfig.ExternalPlugins
+			robot.externalPlugins = newconfig.ExternalScripts
 		}
 	}
 	if newconfig.IgnoreUsers != nil {
