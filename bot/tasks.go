@@ -13,9 +13,62 @@ import (
 	"github.com/ghodss/yaml"
 )
 
+type callerType int
+
+const (
+	plugin callerType = iota
+	job
+)
+
+// Struct for ScheduledTasks and AddTask
+type taskSpec struct {
+	Name       string         // name of the job being scheduled
+	Type       callerType     // job or plugin?
+	Arguments  []string       // job will bitch if
+	Parameters []jobParameter // environment vars for the job / plugin
+}
+
+// a botCaller can be a plugin or a job, both capable of calling Robot methods
+type botCaller struct {
+	name          string         // name of job or plugin; unique by type, but job & plugin can share
+	NameSpace     string         // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
+	MaxHistories  int            // how many runs of this job/plugin to keep history for
+	callerType    callerType     // plugin or job
+	callerID      string         // 32-char random ID for identifying plugins/jobs in Robot method calls
+	ReplyMatchers []InputMatcher // store this here for prompt*reply methods
+	Disabled      bool
+	reason        string // why this job/plugin is disabled
+}
+
 // PluginNames can be letters, numbers & underscores only, mainly so
 // brain functions can use ':' as a separator.
-var pNameRe = regexp.MustCompile(`[\w]+`)
+var taskNameRe = regexp.MustCompile(`[\w]+`)
+
+// parameters are provided to jobs and plugins as environment variables
+type parameter struct {
+	Name, Value string
+}
+
+// items in gopherbot.yaml
+type scheduledTask struct {
+	Schedule string // timespec for https://godoc.org/github.com/robfig/cron
+	taskSpec
+}
+
+// stuff read in conf/jobs/<job>.yaml
+type botJob struct {
+	jobPath            string   // path to executable, normally jobs/<job>.sh (or rb, py, etc.)
+	Channel            string   // where job status updates are posted
+	Notify             string   // user to notify on failure; job runs with this User
+	SuccessStatus      bool     // whether to send "job ran ok" message to Channel
+	NotifySuccess      bool     // whether to notify the Notify user on sucess
+	RequiredParameters []string // required in schedule, prompted to user for interactive
+	HistoryFiles       int      // how many history files to keep
+	Channels           []string // Channels where users can run this job
+	Users              []string // Users who can manually trigger this job with 'run job <foo>'
+	NextJob            jobSpec  // job and params to run if this job exits 0; rudimentary pipeline support
+	botCaller
+}
 
 // Global persistent map of plugin name to unique ID
 var plugNameIDmap = struct {
@@ -34,7 +87,8 @@ type pluginList struct {
 }
 
 type externalScript struct {
-	Name, Path string // List of names and paths for external plugins; relative paths are searched first in installpath, then configpath
+	// List of names, paths and types for external plugins and jobs; relative paths are searched first in installpath, then configpath
+	Name, Path, Type string
 }
 
 var currentPlugins = &pluginList{
@@ -177,8 +231,8 @@ func RegisterPlugin(name string, plug PluginHandler) {
 	if stopRegistrations {
 		return
 	}
-	if !pNameRe.MatchString(name) {
-		log.Fatalf("Plugin name '%s' doesn't match plugin name regex '%s'", name, pNameRe.String())
+	if !taskNameRe.MatchString(name) {
+		log.Fatalf("Plugin name '%s' doesn't match plugin name regex '%s'", name, taskNameRe.String())
 	}
 	if _, exists := pluginHandlers[name]; exists {
 		log.Fatalf("Attempted plugin name registration duplicates builtIn or other Go plugin: %s", name)
@@ -240,8 +294,12 @@ func (r *Robot) loadPluginConfig() {
 	}
 
 	for index, plug := range externalPlugins {
-		if !pNameRe.MatchString(plug.Name) {
-			Log(Error, fmt.Sprintf("Plugin name: '%s', index: %d doesn't match plugin name regex '%s', skipping", plug.Name, index+1, pNameRe.String()))
+		if !taskNameRe.MatchString(plug.Name) {
+			Log(Error, fmt.Sprintf("Plugin name: '%s', index: %d doesn't match plugin name regex '%s', skipping", plug.Name, index+1, taskNameRe.String()))
+			continue
+		}
+		if plug.Name == "bot" {
+			Log(Error, "Illegal plugin name: bot - skipping")
 			continue
 		}
 		if dup, ok := plugIndexByName[plug.Name]; ok {

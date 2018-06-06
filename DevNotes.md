@@ -73,7 +73,7 @@ Documentation on elevation and authorization should be clarified:
 
 #### How Things Work
 
-##### Scheduled Jobs
+##### Scheduled Jobs / Plugins
 
 Scheduled jobs configured in `gopherbot.yaml` should never trigger elevation or authorization checks. A `bypassSecurity` bool in the created Robot object should indicate this.
 
@@ -130,16 +130,14 @@ Are all commands checked before all message matchers? Multiple matching commands
 
 ## TODO Items
 
-- Remove the rest of CallPlugin bits
 - Plugin debugging verbose - emit messages for user message matching(?); when the user requesting debugging sets verbose, message match checks should trigger debug messages as well if the plugin being debugged has message matchers
-- Look up new Bot IDs on the fly if a new bot ID is seen; need to add locking of the bots[] map
+- Slack connector: look up new Bot IDs on the fly if a new bot ID is seen; need to add locking of the bots[] map
 - Move slack send loop into anon func in Run
 - Consider: Use globalLock for protocolConfig, brainConfig, elevateConfig
 - Add SendBotMessage() and GetBotMessage() methods for Slack in a conditional
   compilation connector_testing.go ala GetEvents - see emit_testing.go; use for
   connecting to slack and immediately quitting
 - Documentation for events, emit, development and testing - Developing.md
-- Unit tests for updateRegexes
 - Stop hard-coding 'it' for contexts; 'server:it:the server' instead of
   'server', (context followed by generics that match); e.g. "reboot server",
   "reboot the server", "reboot it" would all check the "server" short-term

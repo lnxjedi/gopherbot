@@ -47,26 +47,6 @@ type Robot struct {
 	bypassSecurity bool              // set for scheduled jobs, where user security restrictions don't apply
 	elevated       bool              // set when required elevation succeeds
 	environment    map[string]string // environment vars set for each job/plugin in the pipeline
-	// NextJob, NextPlugin // TODO: create & use these data structures
-}
-
-type callerType int
-
-const (
-	plugin callerType = iota
-	job
-)
-
-// a botCaller can be a plugin or a job, both capable of calling Robot methods
-type botCaller struct {
-	name          string         // name of job or plugin; unique by type, but job & plugin can share
-	NameSpace     string         // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
-	MaxHistories  int            // how many runs of this job/plugin to keep history for
-	callerType    callerType     // plugin or job
-	callerID      string         // 32-char random ID for identifying plugins/jobs in Robot method calls
-	ReplyMatchers []InputMatcher // store this here for prompt*reply methods
-	Disabled      bool
-	reason        string // why this job/plugin is disabled
 }
 
 /* robot.go defines some convenience functions on struct Robot to
