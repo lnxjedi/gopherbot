@@ -32,6 +32,7 @@ import (
 	_ "github.com/lnxjedi/gopherbot/goplugins/links"
 	_ "github.com/lnxjedi/gopherbot/goplugins/lists"
 	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
+	_ "github.com/lnxjedi/gopherbot/history/file"
 
 	// Enable profiling. You can shrink the binary by removing this, but if the
 	// robot ever stops responding for any reason, it's handy for getting a

@@ -4,9 +4,9 @@ package bot
 
 import "strconv"
 
-const _PlugRetVal_name = "NormalFailMechanismFailConfigurationErrorUntrustedPlugin"
+const _PlugRetVal_name = "NormalFailMechanismFailConfigurationError"
 
-var _PlugRetVal_index = [...]uint8{0, 6, 10, 23, 41, 56}
+var _PlugRetVal_index = [...]uint8{0, 6, 10, 23, 41}
 
 func (i PlugRetVal) String() string {
 	if i < 0 || i >= PlugRetVal(len(_PlugRetVal_index)-1) {

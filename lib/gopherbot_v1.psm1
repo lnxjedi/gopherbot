@@ -26,7 +26,7 @@ Enum BotRet
     MailError = 22
 }
 
-# Plugin return values / exit codes, return values from CallPlugin
+# Plugin return values / exit codes
 Enum PlugRet
 {
     Normal = 0
@@ -159,24 +159,6 @@ class Robot
 
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs) {
         return $this.Call($fname, $funcArgs, "")
-    }
-
-    [PlugRet] CallPlugin([String] $plugName, [String[]]$plugArgs) {
-        $funcArgs = [PSCustomObject]@{ PluginName=$plugName }
-        $ret = $this.Call("CallPlugin", $funcArgs)
-        if ([PlugRet]$ret.PlugRetVal -ne "Success") {
-            return [PlugRet]$ret.PlugRetVal
-        }
-        if ( $ret.InterpreterPath -match "powershell" ) {
-            $plugPath = $ret.PluginPath -replace ' ','` '
-        } else {
-            $plugPath = $ret.PluginPath
-        }
-        $plugArgs = [Array]$plugPath + $plugArgs
-        $Env:GOPHER_CALLER_ID = $ret.CallerID
-        $proc = Start-Process -FilePath $ret.InterpreterPath -ArgumentList $plugArgs -NoNewWindow -PassThru -Wait
-        $Env:GOPHER_CALLER_ID = $this.CallerID
-        return [PlugRet]$proc.ExitCode
     }
 
     [PSCustomObject] CheckoutDatum([String] $key, [Bool] $rw) {

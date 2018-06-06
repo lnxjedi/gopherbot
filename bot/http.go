@@ -134,13 +134,6 @@ type checkoutresponse struct {
 	RetVal    int
 }
 
-type callpluginresponse struct {
-	InterpreterPath string
-	PluginPath      string
-	CallerID        string
-	PlugRetVal      int
-}
-
 type replyresponse struct {
 	Reply  string
 	RetVal int
@@ -285,30 +278,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		ret = update(plugin.name+":"+m.Key, m.Token, (*[]byte)(&m.Datum))
 		sendReturn(rw, &botretvalresponse{int(ret)})
 		return
-	case "CallPlugin":
-		var p plugincall
-		if !getArgs(rw, &f.FuncArgs, &p) {
-			return
-		}
-		calledPlugin := currentPlugins.getPluginByName(p.PluginName)
-		if calledPlugin == nil {
-			sendReturn(rw, &callpluginresponse{"", "", "", int(ConfigurationError)})
-			return
-		}
-		plugPath, err := getPluginPath(calledPlugin)
-		if err != nil {
-			Log(Error, fmt.Sprintf("Configuration error calling plugin \"%s\" from \"%s\": %s", calledPlugin.name, plugin.name, err))
-			sendReturn(rw, &callpluginresponse{"", "", "", int(ConfigurationError)})
-			return
-		}
-		interpreterPath, ierr := getInterpreter(plugPath)
-		if ierr != nil {
-			Log(Error, fmt.Sprintf("Couldn't get interpreter while calling plugin \"%s\" from \"%s\": %s", calledPlugin.name, plugin.name, err))
-			sendReturn(rw, &callpluginresponse{"", "", "", int(MechanismFail)})
-			return
-		}
-		Log(Debug, fmt.Sprintf("External plugin \"%s\" calling external plugin \"%s\"", plugin.name, calledPlugin.name))
-		sendReturn(rw, &callpluginresponse{interpreterPath, plugPath, calledPlugin.callerID, int(Success)})
 	case "Remember":
 		var m shorttermmemory
 		if !getArgs(rw, &f.FuncArgs, &m) {

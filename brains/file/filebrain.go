@@ -48,6 +48,9 @@ func (fb *brainConfig) Retrieve(k string) (*[]byte, bool, error) {
 func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
 	robot = r
 	robot.GetBrainConfig(&fb)
+	if len(fb.BrainDirectory) == 0 {
+		robot.Log(bot.Fatal, "BrainConfig missing value for BrainDirectory required by 'file' brain")
+	}
 	if byte(fb.BrainDirectory[0]) == byte("/"[0]) {
 		brainPath = fb.BrainDirectory
 	} else {

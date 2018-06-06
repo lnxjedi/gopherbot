@@ -61,9 +61,8 @@ class Robot:
     NoBotEmail = 21
     MailError = 22
     InvalidCallerID = 23
-    UntrustedPlugin = 24
 
-    # Plugin return values / exit codes, return values from CallPlugin
+    # Plugin return values / exit codes
     Normal = 0
     Fail = 1
     MechanismFail = 2
@@ -108,14 +107,6 @@ class Robot:
 
     def Elevate(self, immediate=False):
         return self.Call("Elevate", { "Immediate": immediate })["Boolean"]
-
-    def CallPlugin(self, plugName, *plugArgs):
-        ret = self.Call("CallPlugin", { "PluginName": plugName })
-        if ret["PlugRetVal"] != self.Success:
-            return ret["PlugRetVal"]
-        plugenv = { "GOPHER_CALLER_ID": ret["CallerID"], "GOPHER_CHANNEL": self.channel, "GOPHER_USER": self.user, "GOPHER_INSTALLDIR": os.getenv("GOPHER_INSTALLDIR"), "GOPHER_HTTP_POST": os.getenv("GOPHER_HTTP_POST") }
-        status = subprocess.call( [ ret["PluginPath"] ] + list(plugArgs), env=plugenv )
-        return status
 
     def Pause(self, s):
         time.sleep(s)

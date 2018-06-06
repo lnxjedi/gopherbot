@@ -61,6 +61,7 @@ const (
 type botCaller struct {
 	name          string         // name of job or plugin; unique by type, but job & plugin can share
 	NameSpace     string         // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
+	MaxHistories  int            // how many runs of this job/plugin to keep history for
 	callerType    callerType     // plugin or job
 	callerID      string         // 32-char random ID for identifying plugins/jobs in Robot method calls
 	ReplyMatchers []InputMatcher // store this here for prompt*reply methods
@@ -90,8 +91,7 @@ func (r *Robot) CheckAdmin() bool {
 
 // Elevate lets a plugin request elevation on the fly. When immediate = true,
 // the elevator should always prompt for 2fa; otherwise a configured timeout
-// should apply. Note that this can have unexpected side effects if the
-// target of CallPlugin(...) calls Elevate.
+// should apply.
 func (r *Robot) Elevate(immediate bool) bool {
 	currentPlugins.RLock()
 	plugins := currentPlugins.p

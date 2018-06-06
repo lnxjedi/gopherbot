@@ -24,7 +24,6 @@ Table of Contents
       * [CatchAll](#catchall)
       * [Users, RequireAdmin, AdminCommands](#users-requireadmin-admincommands)
       * [AuthorizedCommands, AuthorizeAllCommands, Authorizer and AuthRequire](#authorizedcommands-authorizeallcommands-authorizer-and-authrequire)
-      * [TrustedPlugins](#trustedplugins)
       * [Elevator, ElevatedCommands and ElevateImmediateCommands](#elevator-elevatedcommands-and-elevateimmediatecommands)
       * [Help](#help)
       * [CommandMatchers, ReplyMatchers, and MessageMatchers](#commandmatchers-replymatchers-and-messagematchers)
@@ -283,15 +282,6 @@ AuthorizedCommands:
 - destroyserver
 ```
 Authorization support lets a plugin delegate command authorization determinations to another plugin, which may be shared among a family of related plugins. Note that if authorization fails, the user is notified and the target plugin is never called. The optional `AuthRequire` allows the target plugin to specify a group or role name the user should be authorized against. See the [Plugin Author's Guide](Plugin-Author's-Guide.md) for a full description of Authorizer plugins.
-
-### TrustedPlugins
-
-```yaml
-TrustedPlugins:
-- server-manager
-- dns-manager
-```
-`TrustedPlugins` determines which plugins are allowed to use the `CallPlugin(...)` method to call this plugin. When called via `CallPlugin`, there is no authorization or elevation check performed for the target; rather, the target _trusts_ that the calling plugin configured appropriate authorization and/or elevation.
 
 ### Elevator, ElevatedCommands and ElevateImmediateCommands
 

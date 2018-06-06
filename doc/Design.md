@@ -42,19 +42,12 @@ shift
 configure(){
 	cat <<"EOF"
 ---
-TrustedPlugins:
-- rubydemo
-- pythondemo
 Help:
 - Keywords: [ "repeat" ]
   Helptext: [ "(bot), repeat (me) - prompt for and trivially repeat a phrase" ]
-- Keywords: [ "recollect" ]
-  Helptext: [ "(bot), recollect - call out to the rubydemo recall command" ]
 CommandMatchers:
 - Command: "repeat"
   Regex: '(?i:repeat( me)?)'
-- Command: "recollect"
-  Regex: '(?i:recollect)'
 EOF
 }
 
@@ -62,9 +55,6 @@ case "$command" in
 # NOTE: only "configure" should print anything to stdout
 	"configure")
 		configure
-		;;
-	"echo")
-		Say "$1"
 		;;
 	"repeat")
 		REPEAT=$(PromptForReply SimpleString "What do you want me to repeat?")
@@ -74,14 +64,6 @@ case "$command" in
 			Reply "Sorry, I had a problem getting your reply: $RETVAL"
 		else
 			Reply "$REPEAT"
-		fi
-		;;
-	"recollect")
-		CallPlugin rubydemo recall
-		STATUS=$?
-		if [ "$STATUS" -ne "$PLUGRET_Normal" ]
-		then
-			Say "Dang, there was a problem calling the rubydemo recall command: $STATUS"
 		fi
 		;;
 esac

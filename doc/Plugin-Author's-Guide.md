@@ -74,8 +74,6 @@ There are (currently) three different kinds of external plugin:
  * Authorization Plugins - these plugins encapsulate the logic for authorizing specific users to use specific commands, and are called by the robot during authorization processing
  * Elevation Plugins - these plugins perform some variety of multi-factor authentication for higher assurance of user identity, and are called by the robot during elevation processing
 
-In addition, external plugins can call each other using the CallPlugin(plugin, command, args...) method, subject to the target plugin's `TrustedPlugins` setting.
-
 ## Command Plugins
 
 A command plugin's configuration specifies `CommandMatchers` and `MessageMatchers` that associate regular expressions with plugin commands:
@@ -350,7 +348,6 @@ end
 
 Gopherbot has a rich set of methods (functions) for interacting with the robot / user. Here we break down the API into sets of related functions:
 * [Attribute Lookup Methods](Attribute-Retrieval-API.md) - for retrieving names, email addresses, etc.
-* [Calling other Plugins](CallPlugin-API.md) - for one plugin to trigger another
 * [Sending Messages and Replies](Message-Sending-API.md) - for sending messages to the users
 * [Prompting for Input](Response-Request-API.md) - for getting replies from the user
 * [Brain Methods and Memories](Brain-API.md) - for storing and retrieving long- and short-term memories

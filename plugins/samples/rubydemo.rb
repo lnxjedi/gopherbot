@@ -15,11 +15,7 @@ override.
 =end
 defaultConfig = <<'DEFCONFIG'
 ---
-TrustedPlugins:
-- echo
 Help:
-- Keywords: [ "bashecho", "bash", "echo" ]
-  Helptext: [ "(bot), bashecho <simple text> - call the bash echo plugin to echo a phrase" ]
 - Keywords: [ "ruby" ]
   Helptext: [ "(bot), ruby (me!) - prove that ruby plugins work" ]
 - Keywords: [ "listen" ]
@@ -33,8 +29,6 @@ Help:
 - Keywords: [ "check" ]
   Helptext: [ "(bot), check me - get the bot to check you out" ]
 CommandMatchers:
-- Regex: '(?i:bashecho ([.;!\d\w-, ]+))'
-  Command: bashecho
 - Regex: (?i:ruby( me)?!?)
   Command: ruby
 - Regex: (?i:listen( to me)?!?)
@@ -62,11 +56,6 @@ case command
 when "configure"
   puts defaultConfig
   exit
-when "bashecho"
-  status = bot.CallPlugin("echo", "echo", ARGV[0])
-  if status != Robot::Normal
-    bot.Say("Sorry, there was a problem calling the echo plugin, status: #{status}")
-  end
 when "ruby"
   bot.Say("Sure, #{bot.GetSenderAttribute("firstName")}!")
   sleep 1.5

@@ -21,8 +21,6 @@ const (
 	MechanismFail
 	// ConfigurationError indicates authorization or elevation failed due to misconfiguration
 	ConfigurationError
-	// UntrustedPlugin indicates a plugin was called by an untrusted plugin
-	UntrustedPlugin
 	// Success indicates successful authorization or elevation; using '7' (three bits set)
 	// reduces the likelihood of an authorization plugin mistakenly exiting with a success
 	// value

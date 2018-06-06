@@ -25,9 +25,8 @@ GBRET_NoUserEmail=20
 GBRET_NoBotEmail=21
 GBRET_MailError=22
 GBRET_InvalidCallerID=23
-GBRET_UntrustedPlugin=24
 
-# Plugin return values / exit codes, return values from CallPlugin
+# Plugin return values / exit codes
 PLUGRET_Normal=0
 PLUGRET_Fail=1
 PLUGRET_MechanismFail=2
@@ -99,22 +98,6 @@ CheckAdmin(){
 	else
 		return 1
 	fi
-}
-
-CallPlugin(){
-	local GB_FUNCNAME="CallPlugin"
-	local PLUGNAME=$1
-	shift
-	local GB_FUNCARGS="{ \"PluginName\": \"$PLUGNAME\" }"
-	local GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
-	local PLUGRETVAL=$(echo "$GB_RET" | jq .PlugRetVal)
-	if [ "$PLUGRETVAL" -ne "$PLUGRET_Success" ]
-	then
-		return $PLUGRETVAL
-	fi
-	local PLUGPATH=$(echo "$GB_RET" | jq -r .PluginPath)
-	local PLUGID=$(echo "$GB_RET" | jq -r .CallerID)
-	GOPHER_CALLER_ID=$PLUGID $PLUGPATH "$@"
 }
 
 Remember(){

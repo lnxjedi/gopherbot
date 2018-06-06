@@ -11,7 +11,6 @@
 
 ### Plugin API Reference
 * [Attribute Lookup Methods](Attribute-Retrieval-API.md)
-* [Calling other Plugins](CallPlugin-API.md)
 * [Sending Messages and Replies](Message-Sending-API.md)
 * [Prompting for Input](Response-Request-API.md)
 * [Brain Methods and Memories](Brain-API.md)

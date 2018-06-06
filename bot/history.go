@@ -18,14 +18,17 @@ import (
 type HistoryLogger interface {
 	// Log a line of output; bot should prefix with STDOUT or STDERR
 	Log(line string)
+	// Start a new log section with a given name and descriptive info
+	Section(name, info string)
 	// Close a log file and store
 	Close()
 }
 
 // HistoryProvider is responsible for storing and retrieving job histories
 type HistoryProvider interface {
-	// NewHistory provides a HistoryLogger for the given tag / index
-	NewHistory(tag string, index, maxHistories int) HistoryLogger
+	// NewHistory provides a HistoryLogger for the given tag / index, and
+	// cleans up logs older than maxHistories.
+	NewHistory(tag string, index, maxHistories int) (HistoryLogger, error)
 }
 
 // Map of registered history providers

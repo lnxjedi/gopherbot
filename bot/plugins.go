@@ -150,7 +150,7 @@ func initializePlugins() {
 				Format:  Variable,
 			}
 			Log(Info, "Initializing plugin:", plugin.name)
-			go callPlugin(bot, plugin, false, false, "init")
+			callPlugin(bot, plugin, false, false, "init")
 		}
 	} else {
 		robot.Unlock()
@@ -228,8 +228,8 @@ func (r *Robot) loadPluginConfig() {
 	for plugname := range pluginHandlers {
 		plugin := &botPlugin{
 			pluginType: plugGo,
-			botCaller: botCaller {
-				name: plugname,
+			botCaller: botCaller{
+				name:     plugname,
 				callerID: getPlugID(plugname),
 			},
 		}
@@ -254,7 +254,7 @@ func (r *Robot) loadPluginConfig() {
 			pluginPath: plug.Path,
 			pluginType: plugExternal,
 			botCaller: botCaller{
-				name: plug.Name,
+				name:     plug.Name,
 				callerID: getPlugID(plug.Name),
 			},
 		}
@@ -364,7 +364,7 @@ PlugLoop:
 				val = &strval
 			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll":
 				val = &boolval
-			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "TrustedPlugins", "AuthorizedCommands", "AdminCommands":
+			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands":
 				val = &sarrval
 			case "Help":
 				val = &hval

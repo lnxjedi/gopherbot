@@ -196,7 +196,7 @@ func (r *Robot) loadConfig() error {
 		case "HistoryProvider":
 			newconfig.HistoryProvider = *(val.(*string))
 		case "HistoryConfig":
-			newconfig.BrainConfig = value
+			newconfig.HistoryConfig = value
 		case "DefaultJobChannel":
 			newconfig.DefaultJobChannel = *(val.(*string))
 		case "DefaultElevator":

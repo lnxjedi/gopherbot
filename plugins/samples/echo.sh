@@ -13,21 +13,14 @@ shift
 configure(){
 	cat <<"EOF"
 ---
-TrustedPlugins:
-- rubydemo
-- pythondemo
 Help:
 - Keywords: [ "repeat" ]
   Helptext: [ "(bot), repeat (me) - prompt for and trivially repeat a phrase" ]
-- Keywords: [ "recollect" ]
-  Helptext: [ "(bot), recollect - call out to the rubydemo recall command" ]
 - Keywords: [ "echo" ]
   Helptext: [ "(bot), echo <something> - tell the bot to say <something>" ]
 CommandMatchers:
 - Command: "repeat"
   Regex: '(?i:repeat( me)?)'
-- Command: "recollect"
-  Regex: '(?i:recollect)'
 - Command: "echo"
   Regex: '(?i:echo (.*))'
 EOF
@@ -50,14 +43,6 @@ case "$command" in
 			Reply "Sorry, I had a problem getting your reply: $RETVAL"
 		else
 			Reply "$REPEAT"
-		fi
-		;;
-	"recollect")
-		CallPlugin rubydemo recall
-		STATUS=$?
-		if [ "$STATUS" -ne "$PLUGRET_Normal" ]
-		then
-			Say "Dang, there was a problem calling the rubydemo recall command: $STATUS"
 		fi
 		;;
 esac

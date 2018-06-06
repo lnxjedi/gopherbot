@@ -67,9 +67,8 @@ class BaseBot
 	NoBotEmail = 21
 	MailError = 22
 	InvalidCallerID = 23
-	UntrustedPlugin = 24
 
-	# Plugin return values / exit codes, return values from CallPlugin
+	# Plugin return values / exit codes
 	Normal = 0
 	Fail = 1
 	MechanismFail = 2
@@ -95,16 +94,6 @@ class BaseBot
 
 	def Elevate(immediate=false)
 		return callBotFunc("Elevate", { "Immediate" => immediate })["Boolean"]
-	end
-
-	def CallPlugin(plugName, *plugargs)
-		args = { "PluginName" => plugName }
-		ret = callBotFunc("CallPlugin", args)
-		if ret["PlugRetVal"] != Success
-			return ret["PlugRetVal"]
-		end
-		system({ 'GOPHER_CALLER_ID' => ret["CallerID"] }, ret["PluginPath"], *plugargs)
-		return $?.exitstatus
 	end
 
 	def CheckoutDatum(key, rw)

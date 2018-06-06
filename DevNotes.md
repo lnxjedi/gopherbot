@@ -19,11 +19,16 @@ Jobs or plugins that don't explicitly set `NameSpace` will default to NameSpace=
 
 ## Pipelines
 
-Jobs and Plugins can set a NextJob|Plugin, and if the job/plugin exits 0, the Next* item will be run.
+Jobs and Plugins can queue up additional jobs/tasks with AddTask(...), and if the job/plugin exits 0, the next task in the list will be run, subject to security checks.
+
+## Histories
+
+Whenever a new pipeline starts, if the initiating job/plugin has MaxHistories > 0, a history file will be recorded, tagged with the name of the job/plugin.
 
 ### How Things Work
 
-* Everything the robot does will be a pipeline
+* Everything the robot does will be a pipeline; most times it will just be a single job or plugin run
+* Every item in the pipeline will be a job or plugin defined in `gopherbot.yaml`
 * Builtins will be augmented with commands for listing all current pipelines running, which can possibly be canceled (killed). Certain builtins will be allowed to run even when the robot is shutting down:
   * Builtins that run almost instantly
   * Builtins that read internal data but don't start new pipelines
@@ -33,19 +38,20 @@ Jobs and Plugins can set a NextJob|Plugin, and if the job/plugin exits 0, the Ne
 * Pipelines can be started by:
   * A message or command matching a plugin
   * A scheduled job running
-  * A job being triggered manually with the `run job...` builtin
-* A plugin can have a NextPlugin (with arguments), or a NextJob (with parameters), but not both
-* A job can only have a NextJob => Interactive to non-interactive is a one-way trasition
+  * A job being triggered manually with the `run job...` builtin (subject to security checks)
 * The Robot object will carry a pointer to the current plugins and jobs
-* In addition to the pluginID hash, there will be a new hash (maybe part of the same struct) that tracks the runID, a monotonically incrementing int that starts with a random int and is OK with rollovers
+* In addition to the pluginID hash, there will be runID, a monotonically incrementing int that starts with a random int and is OK with rollovers
+  * runIDs will be initilized and stored in RAM only
   * The Robot will carry a copy of the runID
   * The runID will be passed to plugins and returned in method calls to identify the Robot struct
   * A global hash indexed by pluginID and runID will be set before the first job/plugin in a pipeline is run
   * The global hash will be used to get the Robot object for the pipeline in http method calls
   * The Robot needs a mutex to protect it, since admin commands can read from the Robot while a pipeline is running
+* The Robot will also get a historyIndex:
+  * The historyIndex is only needed when the 
 * If the job/plugin configures a Next*, it will be set in the Robot
 * SetNextJob|Plugin(...) can change the Next*
-  * SetNext* will replace CallPlugin
+  * AddTask(...) will replace CallPlugin
 
 ### Security
 
@@ -143,3 +149,4 @@ Are all commands checked before all message matchers? Multiple matching commands
 - Consider: should configuration loading record all explicit values, with
   intentional defaults when nothing configured explicitly? (probably yes,
   instead of always using the zero-values of the type)
+- Re-sign psdemo and powershell lib (needs to be done on Windows)
