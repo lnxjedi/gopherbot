@@ -205,7 +205,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	plugin := currentPlugins.getPluginByID(f.CallerID)
+	plugin := currentTasks.getTaskByID(f.CallerID)
 	if plugin == nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		Log(Error, fmt.Sprintf("JSON function \"%s\" called with invalid CallerID \"%s\"; args: %s", f.FuncName, f.CallerID, f.FuncArgs))

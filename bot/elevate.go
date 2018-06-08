@@ -22,13 +22,13 @@ func (bot *Robot) elevate(plugins []*botPlugin, plugin *botPlugin, immediate boo
 	if plugin.Elevator != "" {
 		elevator = plugin.Elevator
 	}
-	ePlug := currentPlugins.getPluginByName(elevator)
+	ePlug := currentTasks.getTaskByName(elevator)
 	if ePlug != nil {
 		immedString := "true"
 		if !immediate {
 			immedString = "false"
 		}
-		elevRet := callPlugin(bot, ePlug, false, false, "elevate", immedString)
+		elevRet := callTask(bot, ePlug, false, false, "elevate", immedString)
 		if elevRet == Success {
 			Log(Audit, fmt.Sprintf("Elevation succeeded by elevator '%s', user '%s', plugin '%s' in channel '%s'", ePlug.name, bot.User, plugin.name, bot.Channel))
 			emit(ElevRanSuccess)

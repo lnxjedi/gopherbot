@@ -68,7 +68,7 @@ var robot struct {
 	history              HistoryProvider  // Provider for storing and retrieving job / plugin histories
 	defaultElevator      string           // Plugin name for performing elevation
 	defaultAuthorizer    string           // Plugin name for performing authorization
-	externalPlugins      []externalScript // List of external plugins to load
+	externalScripts      []externalScript // List of external plugins to load
 	port                 string           // Localhost port to listen on
 	stop                 chan struct{}    // stop channel for stopping the connector
 	done                 chan struct{}    // channel closed when robot finishes shutting down

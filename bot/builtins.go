@@ -82,9 +82,9 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		}
 
 		helpLines := make([]string, 0, tooLong)
-		currentPlugins.RLock()
-		plugins := currentPlugins.p
-		currentPlugins.RUnlock()
+		currentTasks.RLock()
+		plugins := currentTasks.p
+		currentTasks.RUnlock()
 		for _, plugin := range plugins {
 			// If a keyword was supplied, give help for all matching commands with channels;
 			// without a keyword, show help for all commands available in the channel.
@@ -174,9 +174,9 @@ func dump(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
-	currentPlugins.RLock()
-	plugins := currentPlugins.p
-	currentPlugins.RUnlock()
+	currentTasks.RLock()
+	plugins := currentTasks.p
+	currentTasks.RUnlock()
 	switch command {
 	case "robot":
 		robot.RLock()
@@ -313,7 +313,7 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			bot.Say(fmt.Sprintf("Invalid plugin name '%s', doesn't match regexp: '%s' (plugin can't load)", pname, taskNameRe.String()))
 			return
 		}
-		plugin := currentPlugins.getPluginByName(pname)
+		plugin := currentTasks.getTaskByName(pname)
 		if plugin == nil {
 			bot.Say("I don't have any plugins with that name configured")
 			return
@@ -326,15 +326,15 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		if len(args[1]) > 0 {
 			verbose = true
 		}
-		bot.Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", pname, plugin.callerID, verbose))
+		bot.Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", pname, plugin.taskID, verbose))
 		pd := &debuggingPlug{
-			callerID: plugin.callerID,
+			callerID: plugin.taskID,
 			name:     pname,
 			user:     bot.User,
 			verbose:  verbose,
 		}
 		plugDebug.Lock()
-		plugDebug.p[plugin.callerID] = pd
+		plugDebug.p[plugin.taskID] = pd
 		plugDebug.u[bot.User] = pd
 		plugDebug.Unlock()
 		bot.Say(fmt.Sprintf("Debugging enabled for %s (verbose: %v)", args[0], verbose))

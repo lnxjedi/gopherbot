@@ -343,7 +343,7 @@ func (r *Robot) loadConfig() error {
 			}
 		}
 		if pluginsOk {
-			robot.externalPlugins = newconfig.ExternalScripts
+			robot.externalScripts = newconfig.ExternalScripts
 		}
 	}
 	if newconfig.IgnoreUsers != nil {
@@ -353,7 +353,7 @@ func (r *Robot) loadConfig() error {
 		robot.joinChannels = newconfig.JoinChannels
 	}
 
-	// loadPluginConfig does it's own locking
+	// loadTaskConfig does it's own locking
 	robot.Unlock()
 
 	globalLock.Lock()
@@ -362,7 +362,7 @@ func (r *Robot) loadConfig() error {
 
 	updateRegexes()
 	if pluginsOk {
-		r.loadPluginConfig()
+		r.loadTaskConfig()
 	} else {
 		return fmt.Errorf("Error reading external plugin config")
 	}

@@ -40,10 +40,10 @@ func (bot *Robot) checkAuthorization(plugins []*botPlugin, plugin *botPlugin, co
 	if plugin.Authorizer != "" {
 		authorizer = plugin.Authorizer
 	}
-	authPlug := currentPlugins.getPluginByName(authorizer)
+	authPlug := currentTasks.getTaskByName(authorizer)
 	if authPlug != nil {
 		args = append([]string{plugin.name, plugin.AuthRequire, command}, args...)
-		authRet := callPlugin(bot, authPlug, false, false, "authorize", args...)
+		authRet := callTask(bot, authPlug, false, false, "authorize", args...)
 		if authRet == Success {
 			Log(Audit, fmt.Sprintf("Authorization succeeded by authorizer '%s' for user '%s' calling command '%s' for plugin '%s' in channel '%s'; AuthRequire: '%s'", authPlug.name, bot.User, command, plugin.name, bot.Channel, plugin.AuthRequire))
 			emit(AuthRanSuccess)

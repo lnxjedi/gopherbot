@@ -13,29 +13,33 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-type callerType int
-
-const (
-	plugin callerType = iota
-	job
-)
-
-// Struct for ScheduledTasks and AddTask
+// Struct for ScheduledTasks (gopherbot.yaml) and AddTask (robot method)
 type taskSpec struct {
 	Name       string      // name of the job or plugin
-	Type       callerType  // job or plugin?
-	Arguments  []string    // job will bitch if len > 0
-	Parameters []parameter // environment vars for the job / plugin
+	Arguments  []string    // for plugins only
+	Parameters []parameter // environment vars for jobs and plugins
 }
 
-// a botCaller can be a plugin or a job, both capable of calling Robot methods
-type botCaller struct {
-	name          string         // name of job or plugin; unique by type, but job & plugin can share
-	NameSpace     string         // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
-	MaxHistories  int            // how many runs of this job/plugin to keep history for
-	callerType    callerType     // plugin or job
-	callerID      string         // 32-char random ID for identifying plugins/jobs in Robot method calls
-	ReplyMatchers []InputMatcher // store this here for prompt*reply methods
+// a botTask can be a plugin or a job, both capable of calling Robot methods
+type botTask struct {
+	name          string          // name of job or plugin; unique by type, but job & plugin can share
+	scriptPath    string          // Path to the external executable for jobs or Plugtype=plugExternal only
+	NameSpace     string          // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
+	MaxHistories  int             // how many runs of this job/plugin to keep history for
+	AllowDirect   bool            // Set this true if this plugin can be accessed via direct message
+	DirectOnly    bool            // Set this true if this plugin ONLY accepts direct messages
+	Channels      []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
+	AllChannels   bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
+	RequireAdmin  bool            // Set to only allow administrators to access a plugin
+	Users         []string        // If non-empty, list of all the users with access to this plugin
+	Elevator      string          // Use an elevator other than the DefaultElevator
+	Authorizer    string          // a plugin to call for authorizing users, should handle groups, etc.
+	AuthRequire   string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
+	taskID        string          // 32-char random ID for identifying plugins/jobs in Robot method calls
+	ReplyMatchers []InputMatcher  // store this here for prompt*reply methods
+	Triggers      []InputMatcher  // user/regex that triggers a job, e.g. a git-activated webhook or integration
+	Config        json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetPluginConfig()
+	config        interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
 	Disabled      bool
 	reason        string // why this job/plugin is disabled
 }
@@ -57,20 +61,16 @@ type scheduledTask struct {
 
 // stuff read in conf/jobs/<job>.yaml
 type botJob struct {
-	jobPath            string   // path to executable, normally jobs/<job>.sh (or rb, py, etc.)
 	Channel            string   // where job status updates are posted
-	Notify             string   // user to notify on failure; job runs with this User
+	Notify             string   // user to notify on failure; job runs with this User for Replies
 	SuccessStatus      bool     // whether to send "job ran ok" message to Channel
-	NotifySuccess      bool     // whether to notify the Notify user on sucess
+	NotifySuccess      bool     // whether to notify the Notify user on success
 	RequiredParameters []string // required in schedule, prompted to user for interactive
-	HistoryFiles       int      // how many history files to keep
-	Channels           []string // Channels where users can run this job
-	Users              []string // Users who can manually trigger this job with 'run job <foo>'
-	botCaller
+	botTask
 }
 
 // Global persistent map of plugin name to unique ID
-var plugNameIDmap = struct {
+var taskNameIDmap = struct {
 	m map[string]string
 	sync.Mutex
 }{
@@ -78,8 +78,8 @@ var plugNameIDmap = struct {
 	sync.Mutex{},
 }
 
-type pluginList struct {
-	p       []*botPlugin
+type taskList struct {
+	t       []interface{}
 	nameMap map[string]int
 	idMap   map[string]int
 	sync.RWMutex
@@ -90,37 +90,37 @@ type externalScript struct {
 	Name, Path, Type string
 }
 
-var currentPlugins = &pluginList{
-	[]*botPlugin{},
+var currentTasks = &taskList{
+	make([]interface{}, 0),
 	nil,
 	nil,
 	sync.RWMutex{},
 }
 
-func (pl *pluginList) getPluginByName(name string) *botPlugin {
-	pl.RLock()
-	pi, ok := pl.nameMap[name]
+func (tl *taskList) getTaskByName(name string) interface{} {
+	tl.RLock()
+	ti, ok := tl.nameMap[name]
 	if !ok {
-		Log(Error, fmt.Sprintf("Plugin '%s' not found calling getPluginByName", name))
-		pl.RUnlock()
+		Log(Error, fmt.Sprintf("Task '%s' not found calling getTaskByName", name))
+		tl.RUnlock()
 		return nil
 	}
-	plugin := pl.p[pi]
-	pl.RUnlock()
-	return plugin
+	task := tl.t[ti]
+	tl.RUnlock()
+	return task
 }
 
-func (pl *pluginList) getPluginByID(id string) *botPlugin {
-	pl.RLock()
-	pi, ok := pl.idMap[id]
+func (tl *taskList) getTaskByID(id string) interface{} {
+	tl.RLock()
+	ti, ok := tl.idMap[id]
 	if !ok {
-		Log(Error, fmt.Sprintf("Plugin '%s' not found calling getPluginByID", id))
-		pl.RUnlock()
+		Log(Error, fmt.Sprintf("Task '%s' not found calling getTaskByID", id))
+		tl.RUnlock()
 		return nil
 	}
-	plugin := pl.p[pi]
-	pl.RUnlock()
-	return plugin
+	task := tl.t[ti]
+	tl.RUnlock()
+	return task
 }
 
 // PluginHelp specifies keywords and help text for the 'bot help system
@@ -129,13 +129,15 @@ type PluginHelp struct {
 	Helptext []string // help string to give for the keywords, conventionally starting with (bot) for commands or (hear) when the bot needn't be addressed directly
 }
 
-// InputMatcher specifies the command or message to match and what to pass to the plugin
+// InputMatcher specifies the command or message to match for a plugin, or user and message to trigger a job
 type InputMatcher struct {
-	Regex    string         // The regular expression string to match - bot adds ^\w* & \w*$
-	Command  string         // The name of the command to pass to the plugin with it's arguments
-	Label    string         // ReplyMatchers use "Label" instead of "Command"
-	Contexts []string       // label the contexts corresponding to capture groups, for supporting "it" & optional args
-	re       *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
+	Regex      string         // The regular expression string to match - bot adds ^\w* & \w*$
+	Command    string         // The name of the command to pass to the plugin with it's arguments
+	Label      string         // ReplyMatchers use "Label" instead of "Command"
+	Contexts   []string       // label the contexts corresponding to capture groups, for supporting "it" & optional args
+	User       string         // jobs only; user that can trigger this job, normally git-activated webhook or integration
+	Parameters []string       // jobs only; names of parameters (environment vars) where regex matches are stored, in order of capture groups
+	re         *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
 type plugType int
@@ -147,29 +149,17 @@ const (
 
 // Plugin specifies the structure of a plugin configuration - plugins should include an example / default config
 type botPlugin struct {
-	pluginType               plugType        // plugGo, plugExternal - determines how commands are routed
-	pluginPath               string          // Path to the external executable that expects <channel> <user> <command> <arg> <arg> from regex matches - for Plugtype=plugExternal only
-	AllowDirect              bool            // Set this true if this plugin can be accessed via direct message
-	DirectOnly               bool            // Set this true if this plugin ONLY accepts direct messages
-	Channels                 []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
-	AllChannels              bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	RequireAdmin             bool            // Set to only allow administrators to access a plugin
-	AdminCommands            []string        // A list of commands only a bot admin can use
-	Elevator                 string          // Use an elevator other than the DefaultElevator
-	ElevatedCommands         []string        // Commands that require elevation, usually via 2fa
-	ElevateImmediateCommands []string        // Commands that always require elevation promting, regardless of timeouts
-	Users                    []string        // If non-empty, list of all the users with access to this plugin
-	Authorizer               string          // a plugin to call for authorizing users, should handle groups, etc.
-	AuthRequire              string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
-	AuthorizedCommands       []string        // Which commands to authorize
-	AuthorizeAllCommands     bool            // when ALL commands need to be authorized
-	Help                     []PluginHelp    // All the keyword sets / help texts for this plugin
-	CommandMatchers          []InputMatcher  // Input matchers for messages that need to be directed to the 'bot
-	MessageMatchers          []InputMatcher  // Input matchers for messages the 'bot hears even when it's not being spoken to
-	CatchAll                 bool            // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
-	Config                   json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetPluginConfig()
-	config                   interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
-	botCaller
+	pluginType               plugType       // plugGo, plugExternal - determines how commands are routed
+	AdminCommands            []string       // A list of commands only a bot admin can use
+	ElevatedCommands         []string       // Commands that require elevation, usually via 2fa
+	ElevateImmediateCommands []string       // Commands that always require elevation promting, regardless of timeouts
+	AuthorizedCommands       []string       // Which commands to authorize
+	AuthorizeAllCommands     bool           // when ALL commands need to be authorized
+	Help                     []PluginHelp   // All the keyword sets / help texts for this plugin
+	CommandMatchers          []InputMatcher // Input matchers for messages that need to be directed to the 'bot
+	MessageMatchers          []InputMatcher // Input matchers for messages the 'bot hears even when it's not being spoken to
+	CatchAll                 bool           // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
+	botTask
 }
 
 // PluginHandler is the struct a plugin registers for the Gopherbot plugin API.
@@ -187,14 +177,21 @@ var stopRegistrations = false
 
 // initialize sends the "init" command to every plugin
 func initializePlugins() {
-	currentPlugins.RLock()
-	plugins := currentPlugins.p
-	currentPlugins.RUnlock()
+	currentTasks.RLock()
+	tasks := currentTasks.t
+	currentTasks.RUnlock()
 	robot.Lock()
 	if !robot.shuttingDown {
 		robot.Unlock()
-		for _, plugin := range plugins {
-			if plugin.Disabled {
+		for _, task := range tasks {
+			var p *botPlugin
+			switch t := task.(type) {
+			case *botPlugin:
+				p = t
+			case *botJob:
+				continue
+			}
+			if p.Disabled {
 				continue
 			}
 			bot := &Robot{
@@ -202,8 +199,8 @@ func initializePlugins() {
 				Channel: "",
 				Format:  Variable,
 			}
-			Log(Info, "Initializing plugin:", plugin.name)
-			callPlugin(bot, plugin, false, false, "init")
+			Log(Info, "Initializing plugin:", p.name)
+			callTask(bot, p, false, false, "init")
 		}
 	} else {
 		robot.Unlock()
@@ -221,7 +218,7 @@ func massageRegexp(r string) string {
 	return regex
 }
 
-// RegisterPlugin allows plugins to register a PluginHandler in a func init().
+// RegisterPlugin allows Go plugins to register a PluginHandler in a func init().
 // When the bot initializes, it will call each plugin's handler with a command
 // "init", empty channel, the bot's username, and no arguments, so the plugin
 // can store this information for, e.g., scheduled jobs.
@@ -239,41 +236,41 @@ func RegisterPlugin(name string, plug PluginHandler) {
 	pluginHandlers[name] = plug
 }
 
-func getPlugID(plug string) string {
-	plugNameIDmap.Lock()
-	plugID, ok := plugNameIDmap.m[plug]
+func getTaskID(plug string) string {
+	taskNameIDmap.Lock()
+	taskID, ok := taskNameIDmap.m[plug]
 	if ok {
-		plugNameIDmap.Unlock()
-		return plugID
+		taskNameIDmap.Unlock()
+		return taskID
 	} else {
 		// Generate a random id
 		p := make([]byte, 16)
 		rand.Read(p)
 		plugID = fmt.Sprintf("%x", p)
-		plugNameIDmap.m[plug] = plugID
-		plugNameIDmap.Unlock()
-		return plugID
+		taskNameIDmap.m[plug] = taskID
+		taskNameIDmap.Unlock()
+		return taskID
 	}
 }
 
-// loadPluginConfig() loads the configuration for all the plugins from
-// /plugins/<pluginname>.yaml, assigns a callerID, and
-// stores the resulting array in b.plugins. Bad plugins are skipped and logged.
-// Plugin configuration is initially loaded into temporary data structures,
+// loadTaskConfig() loads the configuration for all the jobs/plugins from
+// /jobs/<jobname>.yaml or /plugins/<pluginname>.yaml, assigns a taskID, and
+// stores the resulting array in b.tasks. Bad tasks are skipped and logged.
+// Task configuration is initially loaded into temporary data structures,
 // then stored in the bot package under the global bot lock.
-func (r *Robot) loadPluginConfig() {
-	plugIndexByID := make(map[string]int)
-	plugIndexByName := make(map[string]int)
-	plist := make([]*botPlugin, 0, 14)
+func (r *Robot) loadTaskConfig() {
+	taskIndexByID := make(map[string]int)
+	taskIndexByName := make(map[string]int)
+	tlist := make([]interface{}, 0, 14)
 
 	// Copy some data from the bot under read lock, including external plugins
 	robot.RLock()
 	defaultAllowDirect := robot.defaultAllowDirect
-	// copy the list of default channels
+	// copy the list of default channels (for plugins only)
 	pchan := make([]string, 0, len(robot.plugChannels))
 	pchan = append(pchan, robot.plugChannels...)
-	externalPlugins := make([]externalScript, 0, len(robot.externalPlugins))
-	externalPlugins = append(externalPlugins, robot.externalPlugins...)
+	externalScripts := make([]externalScript, 0, len(robot.externalScripts))
+	externalScripts = append(externalScripts, robot.externalScripts...)
 	robot.RUnlock() // we're done with bot data 'til the end
 
 	i := 0
@@ -281,51 +278,64 @@ func (r *Robot) loadPluginConfig() {
 	for plugname := range pluginHandlers {
 		plugin := &botPlugin{
 			pluginType: plugGo,
-			botCaller: botCaller{
-				name:     plugname,
-				callerID: getPlugID(plugname),
+			botTask: botTask{
+				name:   plugname,
+				taskID: getTaskID(plugname),
 			},
 		}
-		plist = append(plist, plugin)
-		plugIndexByID[plugin.callerID] = i
-		plugIndexByName[plugin.name] = i
+		tlist = append(plist, plugin)
+		taskIndexByID[plugin.taskID] = i
+		taskIndexByName[plugin.name] = i
 		i++
 	}
 
-	for index, plug := range externalPlugins {
-		if !taskNameRe.MatchString(plug.Name) {
-			Log(Error, fmt.Sprintf("Plugin name: '%s', index: %d doesn't match plugin name regex '%s', skipping", plug.Name, index+1, taskNameRe.String()))
+	for index, script := range externalScripts {
+		if !taskNameRe.MatchString(script.Name) {
+			Log(Error, fmt.Sprintf("Task name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, taskNameRe.String()))
 			continue
 		}
-		if plug.Name == "bot" {
-			Log(Error, "Illegal plugin name: bot - skipping")
+		if script.Name == "bot" {
+			Log(Error, "Illegal task name: bot - skipping")
 			continue
 		}
-		if dup, ok := plugIndexByName[plug.Name]; ok {
-			msg := fmt.Sprintf("External plugin index: #%d, name: '%s' duplicates name of builtIn or Go plugin, skipping", index, plug.Name)
+### CONTINUE HERE
+		if dup, ok := taskIndexByName[script.Name]; ok {
+			msg := fmt.Sprintf("External script index: #%d, name: '%s' duplicates name of builtIn or Go plugin, skipping", index, script.Name)
 			Log(Error, msg)
-			r.debug(plist[dup].callerID, msg, false)
+			r.debug(tlist[dup].taskID, msg, false)
 			continue
 		}
-		plugin := &botPlugin{
-			pluginPath: plug.Path,
-			pluginType: plugExternal,
-			botCaller: botCaller{
-				name:     plug.Name,
-				callerID: getPlugID(plug.Name),
-			},
+		t := botTask{
+			name:       plug.Name,
+			taskID:     getTaskID(plug.Name),
+			scriptPath: plug.Path,
 		}
-		plist = append(plist, plugin)
-		plugIndexByID[plugin.callerID] = i
-		plugIndexByName[plugin.name] = i
+		if len(task.Path) == 0 {
+			msg := fmt.Sprintf("Task '%s' has zero-length path, disabling", task.Name)
+			Log(Error, msg)
+			r.debug(task.taskID, msg, false)
+			t.Disabled = true
+			t.reason = msg
+		}
+		switch task.Type {
+		case "job", "Job":
+			j := &botJob{
+				botTask: task,
+			}
+			tlist = append(tlist, j)
+		case "plugin", "Plugin":
+			p := &botPlugin{
+				pluginType: plugExternal,
+				botTask:    task,
+			}
+			plist = append(tlist, j)
+		default:
+			Log(Error, fmt.Sprintf("Task '%s' has unknown type '%s', should be one of job|plugin", task.Name, task.Type))
+			continue
+		}
+		taskIndexByID[task.taskID] = i
+		taskIndexByName[task.name] = i
 		i++
-		if len(plug.Path) == 0 {
-			msg := fmt.Sprintf("Plugin '%s' has zero-length path, disabling", plug.Name)
-			Log(Error, msg)
-			r.debug(plugin.callerID, msg, false)
-			plugin.Disabled = true
-			plugin.reason = msg
-		}
 	}
 
 	// Load configuration for all valid plugins. Note that this is all being loaded
@@ -345,20 +355,20 @@ PlugLoop:
 			if err != nil {
 				msg := fmt.Sprintf("Error getting default configuration for external plugin, disabling: %v", err)
 				Log(Error, msg)
-				r.debug(plugin.callerID, msg, false)
+				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue
 			}
 			if len(*cfg) > 0 {
-				r.debug(plugin.callerID, fmt.Sprintf("Loaded default config from the plugin, size: %d", len(*cfg)), false)
+				r.debug(plugin.taskID, fmt.Sprintf("Loaded default config from the plugin, size: %d", len(*cfg)), false)
 			} else {
-				r.debug(plugin.callerID, "Unable to obtain default config from plugin, command 'configure' returned no content", false)
+				r.debug(plugin.taskID, "Unable to obtain default config from plugin, command 'configure' returned no content", false)
 			}
 			if err := yaml.Unmarshal(*cfg, &pcfgload); err != nil {
 				msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
 				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", plugin.name, err))
-				r.debug(plugin.callerID, msg, false)
+				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue
@@ -367,17 +377,17 @@ PlugLoop:
 			if err := yaml.Unmarshal([]byte(pluginHandlers[plugin.name].DefaultConfig), &pcfgload); err != nil {
 				msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
 				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", plugin.name, err))
-				r.debug(plugin.callerID, msg, false)
+				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue
 			}
 		}
 		// getConfigFile overlays the default config with configuration from the install path, then config path
-		if err := r.getConfigFile("plugins/"+plugin.name+".yaml", plugin.callerID, false, pcfgload); err != nil {
+		if err := r.getConfigFile("plugins/"+plugin.name+".yaml", plugin.taskID, false, pcfgload); err != nil {
 			msg := fmt.Sprintf("Problem loading configuration file(s) for plugin '%s', disabling: %v", plugin.name, err)
 			Log(Error, msg)
-			r.debug(plugin.callerID, msg, false)
+			r.debug(plugin.taskID, msg, false)
 			plugin.Disabled = true
 			plugin.reason = msg
 			continue
@@ -387,7 +397,7 @@ PlugLoop:
 			if err := json.Unmarshal(disjson, &disabled); err != nil {
 				msg := fmt.Sprintf("Problem unmarshalling value for 'Disabled' in plugin '%s', disabling: %v", plugin.name, err)
 				Log(Error, msg)
-				r.debug(plugin.callerID, msg, false)
+				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue
@@ -395,7 +405,7 @@ PlugLoop:
 			if disabled {
 				msg := fmt.Sprintf("Plugin '%s' is disabled by configuration", plugin.name)
 				Log(Info, msg)
-				r.debug(plugin.callerID, msg, false)
+				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue
@@ -432,7 +442,7 @@ PlugLoop:
 			default:
 				msg := fmt.Sprintf("Invalid configuration key for plugin '%s': %s - disabling", plugin.name, key)
 				Log(Error, msg)
-				r.debug(plugin.callerID, msg, false)
+				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue PlugLoop
@@ -442,7 +452,7 @@ PlugLoop:
 				if err := json.Unmarshal(value, val); err != nil {
 					msg := fmt.Sprintf("Disabling plugin '%s' - error unmarshalling value '%s': %v", plugin.name, key, err)
 					Log(Error, msg)
-					r.debug(plugin.callerID, msg, false)
+					r.debug(plugin.taskID, msg, false)
 					plugin.Disabled = true
 					plugin.reason = msg
 					continue PlugLoop
@@ -506,7 +516,7 @@ PlugLoop:
 				if !plugin.AllowDirect {
 					msg := fmt.Sprintf("Plugin '%s' has conflicting values for AllowDirect (false) and DirectOnly (true), disabling", plugin.name)
 					Log(Error, msg)
-					r.debug(plugin.callerID, msg, false)
+					r.debug(plugin.taskID, msg, false)
 					plugin.Disabled = true
 					plugin.reason = msg
 					continue
@@ -521,7 +531,7 @@ PlugLoop:
 		if explicitAllowDirect && explicitDenyDirect && (plugin.AllowDirect == denyDirect) {
 			msg := fmt.Sprintf("Plugin '%s' has conflicting values for AllowDirect and deprecated DenyDirect, disabling", plugin.name)
 			Log(Error, msg)
-			r.debug(plugin.callerID, msg, false)
+			r.debug(plugin.taskID, msg, false)
 			plugin.Disabled = true
 			plugin.reason = msg
 			continue
@@ -556,19 +566,19 @@ PlugLoop:
 		if len(plugin.Channels) > 0 {
 			msg := fmt.Sprintf("Plugin '%s' will be active in channels %q", plugin.name, plugin.Channels)
 			Log(Info, msg)
-			r.debug(plugin.callerID, msg, false)
+			r.debug(plugin.taskID, msg, false)
 		} else {
 			if !(plugin.AllowDirect || plugin.AllChannels) {
 				msg := fmt.Sprintf("Plugin '%s' not visible in any channels or by direct message, disabling", plugin.name)
 				Log(Error, msg)
-				r.debug(plugin.callerID, msg, false)
+				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue
 			} else {
 				msg := fmt.Sprintf("Plugin '%s' has no channel restrictions configured; all channels: %t", plugin.name, plugin.AllChannels)
 				Log(Info, msg)
-				r.debug(plugin.callerID, msg, false)
+				r.debug(plugin.taskID, msg, false)
 			}
 		}
 
@@ -580,7 +590,7 @@ PlugLoop:
 			if err != nil {
 				msg := fmt.Sprintf("Disabling %s, couldn't compile command regular expression '%s': %v", plugin.name, regex, err)
 				Log(Error, msg)
-				r.debug(plugin.callerID, msg, false)
+				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue PlugLoop
@@ -595,7 +605,7 @@ PlugLoop:
 			if err != nil {
 				msg := fmt.Sprintf("Skipping %s, couldn't compile reply regular expression '%s': %v", plugin.name, regex, err)
 				Log(Error, msg)
-				r.debug(plugin.callerID, msg, false)
+				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue PlugLoop
@@ -612,7 +622,7 @@ PlugLoop:
 			if err != nil {
 				msg := fmt.Sprintf("Skipping %s, couldn't compile message regular expression '%s': %v", plugin.name, regex, err)
 				Log(Error, msg)
-				r.debug(plugin.callerID, msg, false)
+				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
 				continue PlugLoop
@@ -653,7 +663,7 @@ PlugLoop:
 					if !cmdfound {
 						msg := fmt.Sprintf("Disabling %s, %s command %s didn't match a command from CommandMatchers or MessageMatchers", plugin.name, cmd.ctype, i)
 						Log(Error, msg)
-						r.debug(plugin.callerID, msg, false)
+						r.debug(plugin.taskID, msg, false)
 						plugin.Disabled = true
 						plugin.reason = msg
 						continue PlugLoop
@@ -677,7 +687,7 @@ PlugLoop:
 					if err := json.Unmarshal(plugin.Config, plugin.config); err != nil {
 						msg := fmt.Sprintf("Error unmarshalling plugin config json to config, disabling: %v", err)
 						Log(Error, msg)
-						r.debug(plugin.callerID, msg, false)
+						r.debug(plugin.taskID, msg, false)
 						plugin.Disabled = true
 						plugin.reason = msg
 						continue
@@ -686,13 +696,13 @@ PlugLoop:
 					// Providing custom config not required (should it be?)
 					msg := fmt.Sprintf("Plugin '%s' has custom config, but none is configured", plugin.name)
 					Log(Warn, msg)
-					r.debug(plugin.callerID, msg, false)
+					r.debug(plugin.taskID, msg, false)
 				}
 			} else {
 				if plugin.Config != nil {
 					msg := fmt.Sprintf("Custom configuration data provided for Go plugin '%s', but no config struct was registered; disabling", plugin.name)
 					Log(Error, msg)
-					r.debug(plugin.callerID, msg, false)
+					r.debug(plugin.taskID, msg, false)
 					plugin.Disabled = true
 					plugin.reason = msg
 				} else {
@@ -705,12 +715,12 @@ PlugLoop:
 	// End of configuration loading. All invalid plugins are disabled.
 
 	reInitPlugins := false
-	currentPlugins.Lock()
-	currentPlugins.p = plist
-	currentPlugins.idMap = plugIndexByID
-	currentPlugins.nameMap = plugIndexByName
-	currentPlugins.Unlock()
-	// loadPluginConfig is called in initBot, before the connector has started;
+	currentTasks.Lock()
+	currentTasks.p = plist
+	currentTasks.idMap = taskIndexByID
+	currentTasks.nameMap = taskIndexByName
+	currentTasks.Unlock()
+	// loadTaskConfig is called in initBot, before the connector has started;
 	// don't init plugins in that case.
 	robot.RLock()
 	if robot.Connector != nil {

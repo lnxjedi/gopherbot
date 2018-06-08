@@ -38,7 +38,7 @@ func fixInterpreterArgs(interpreter string, args []string) []string {
 }
 
 func getPluginPath(plugin *botPlugin) (string, error) {
-	if len(plugin.pluginPath) == 0 {
+	if len(plugin.scriptPath) == 0 {
 		err := fmt.Errorf("pluginPath empty for external plugin: %s", plugin.name)
 		Log(Error, err)
 		return "", err
@@ -48,8 +48,8 @@ func getPluginPath(plugin *botPlugin) (string, error) {
 	configPath := robot.configPath
 	installPath := robot.installPath
 	robot.RUnlock()
-	if byte(plugin.pluginPath[0]) == byte("/"[0]) {
-		fullPath = plugin.pluginPath
+	if byte(plugin.scriptPath[0]) == byte("/"[0]) {
+		fullPath = plugin.scriptPath
 		_, err := os.Stat(fullPath)
 		if err == nil {
 			Log(Debug, "Using fully specified path to plugin:", fullPath)
@@ -60,16 +60,16 @@ func getPluginPath(plugin *botPlugin) (string, error) {
 		return "", err
 	}
 	if len(configPath) > 0 {
-		_, err := os.Stat(configPath + "/" + plugin.pluginPath)
+		_, err := os.Stat(configPath + "/" + plugin.scriptPath)
 		if err == nil {
-			fullPath = configPath + "/" + plugin.pluginPath
+			fullPath = configPath + "/" + plugin.scriptPath
 			Log(Debug, "Using external plugin from configPath:", fullPath)
 			return fullPath, nil
 		}
 	}
-	_, err := os.Stat(installPath + "/" + plugin.pluginPath)
+	_, err := os.Stat(installPath + "/" + plugin.scriptPath)
 	if err == nil {
-		fullPath = installPath + "/" + plugin.pluginPath
+		fullPath = installPath + "/" + plugin.scriptPath
 		Log(Debug, "Using stock external plugin:", fullPath)
 		return fullPath, nil
 	}
@@ -137,11 +137,11 @@ func getExtDefCfg(plugin *botPlugin) (*[]byte, error) {
 	return &cfg, nil
 }
 
-// callPlugin does the real work of running a plugin with a command and arguments.
-func callPlugin(bot *Robot, plugin *botPlugin, background bool, interactive bool, command string, args ...string) (retval PlugRetVal) {
+// callTask does the real work of running a plugin with a command and arguments.
+func callTask(bot *Robot, task interface{}, background bool, interactive bool, command string, args ...string) (retval PlugRetVal) {
 	// This should only happen in the rare case that a configured authorizer or elevator is disabled
-	if plugin.Disabled {
-		msg := fmt.Sprintf("Call plugin failed on disabled plugin %s; reason: %s", plugin.name, plugin.reason)
+	if task.Disabled {
+		msg := fmt.Sprintf("Call plugin failed on disabled plugin %s; reason: %s", task.name, task.reason)
 		bot.Log(Error, msg)
 		bot.debug(bot.callerID, msg, false)
 		return ConfigurationError
@@ -167,12 +167,15 @@ func callPlugin(bot *Robot, plugin *botPlugin, background bool, interactive bool
 			bot.Reply(errString)
 		}
 	}()
-	if !(plugin.name == "builtInadmin" && command == "abort") {
-		defer checkPanic(bot, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", plugin.name, command, args))
+	if !(task.name == "builtInadmin" && command == "abort") {
+		defer checkPanic(bot, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
 	}
-	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\" with arguments \"%#v\"", command, plugin.name, args))
-	bot.callerID = plugin.callerID
-	switch plugin.pluginType {
+	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\" with arguments \"%#v\"", command, task.name, args))
+	bot.callerID = task.taskID
+	if task.taskType == plugin {
+
+	}
+	switch task.pluginType {
 	case plugGo:
 		if command != "init" {
 			emit(GoPluginRan)
@@ -213,7 +216,7 @@ func callPlugin(bot *Robot, plugin *botPlugin, background bool, interactive bool
 		cmd.Env = append(os.Environ(), []string{
 			fmt.Sprintf("GOPHER_CHANNEL=%s", bot.Channel),
 			fmt.Sprintf("GOPHER_USER=%s", bot.User),
-			fmt.Sprintf("GOPHER_CALLER_ID=%s", plugin.callerID),
+			fmt.Sprintf("GOPHER_CALLER_ID=%s", plugin.taskID),
 			fmt.Sprintf("GOPHER_PROTOCOL=%s", bot.Protocol),
 		}...)
 		// close stdout on the external plugin...

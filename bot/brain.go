@@ -357,7 +357,7 @@ func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 // lock token is returned that expires after lockTimeout (250ms). The bool
 // return indicates whether the datum exists.
 func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal) {
-	plugin := currentPlugins.getPluginByID(r.callerID)
+	plugin := currentTasks.getTaskByID(r.callerID)
 	key = plugin.name + ":" + key
 	return checkoutDatum(key, datum, rw)
 }
@@ -367,7 +367,7 @@ func (r *Robot) CheckinDatum(key, locktoken string) {
 	if locktoken == "" {
 		return
 	}
-	plugin := currentPlugins.getPluginByID(r.callerID)
+	plugin := currentTasks.getTaskByID(r.callerID)
 	key = plugin.name + ":" + key
 	checkinDatum(key, locktoken)
 }
@@ -376,7 +376,7 @@ func (r *Robot) CheckinDatum(key, locktoken string) {
 // a struct to marshall and a (hopefully good) lock token. If err != nil, the
 // update failed.
 func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
-	plugin := currentPlugins.getPluginByID(r.callerID)
+	plugin := currentTasks.getTaskByID(r.callerID)
 	key = plugin.name + ":" + key
 	return updateDatum(key, locktoken, datum)
 }

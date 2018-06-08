@@ -73,10 +73,10 @@ func (r *Robot) CheckAdmin() bool {
 // the elevator should always prompt for 2fa; otherwise a configured timeout
 // should apply.
 func (r *Robot) Elevate(immediate bool) bool {
-	currentPlugins.RLock()
-	plugins := currentPlugins.p
-	plugin := plugins[currentPlugins.idMap[r.callerID]]
-	currentPlugins.RUnlock()
+	currentTasks.RLock()
+	plugins := currentTasks.p
+	plugin := plugins[currentTasks.idMap[r.callerID]]
+	currentTasks.RUnlock()
 	retval := r.elevate(plugins, plugin, immediate)
 	if retval == Success {
 		return true
@@ -226,7 +226,7 @@ and call GetPluginConfig with a double-pointer:
 ... And voila! *pConf is populated with the contents from the configured Config: stanza
 */
 func (r *Robot) GetPluginConfig(dptr interface{}) RetVal {
-	plugin := currentPlugins.getPluginByID(r.callerID)
+	plugin := currentTasks.getTaskByID(r.callerID)
 	if plugin.config == nil {
 		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but no config was found.", plugin.name))
 		return NoConfigFound
