@@ -20,54 +20,9 @@ type taskSpec struct {
 	Parameters []parameter // environment vars for jobs and plugins
 }
 
-// a botTask can be a plugin or a job, both capable of calling Robot methods
-type botTask struct {
-	name          string          // name of job or plugin; unique by type, but job & plugin can share
-	scriptPath    string          // Path to the external executable for jobs or Plugtype=plugExternal only
-	NameSpace     string          // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
-	MaxHistories  int             // how many runs of this job/plugin to keep history for
-	AllowDirect   bool            // Set this true if this plugin can be accessed via direct message
-	DirectOnly    bool            // Set this true if this plugin ONLY accepts direct messages
-	Channels      []string        // Channels where the plugin is active - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
-	AllChannels   bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	RequireAdmin  bool            // Set to only allow administrators to access a plugin
-	Users         []string        // If non-empty, list of all the users with access to this plugin
-	Elevator      string          // Use an elevator other than the DefaultElevator
-	Authorizer    string          // a plugin to call for authorizing users, should handle groups, etc.
-	AuthRequire   string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
-	taskID        string          // 32-char random ID for identifying plugins/jobs in Robot method calls
-	ReplyMatchers []InputMatcher  // store this here for prompt*reply methods
-	Triggers      []InputMatcher  // user/regex that triggers a job, e.g. a git-activated webhook or integration
-	Config        json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetPluginConfig()
-	config        interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
-	Disabled      bool
-	reason        string // why this job/plugin is disabled
-}
-
 // PluginNames can be letters, numbers & underscores only, mainly so
 // brain functions can use ':' as a separator.
 var taskNameRe = regexp.MustCompile(`[\w]+`)
-
-// parameters are provided to jobs and plugins as environment variables
-type parameter struct {
-	Name, Value string
-}
-
-// items in gopherbot.yaml
-type scheduledTask struct {
-	Schedule string // timespec for https://godoc.org/github.com/robfig/cron
-	taskSpec
-}
-
-// stuff read in conf/jobs/<job>.yaml
-type botJob struct {
-	Channel            string   // where job status updates are posted
-	Notify             string   // user to notify on failure; job runs with this User for Replies
-	SuccessStatus      bool     // whether to send "job ran ok" message to Channel
-	NotifySuccess      bool     // whether to notify the Notify user on success
-	RequiredParameters []string // required in schedule, prompted to user for interactive
-	botTask
-}
 
 // Global persistent map of plugin name to unique ID
 var taskNameIDmap = struct {
@@ -123,6 +78,33 @@ func (tl *taskList) getTaskByID(id string) interface{} {
 	return task
 }
 
+func getPlugin(t interface{}) *botPlugin {
+	p, ok := t.(botPlugin)
+	if ok {
+		return p
+	}
+	return nil
+}
+
+func getJob(t interface{}) *botJob {
+	j, ok := t.(botJob)
+	if ok {
+		return j
+	}
+	return nil
+}
+
+// parameters are provided to jobs and plugins as environment variables
+type parameter struct {
+	Name, Value string
+}
+
+// items in gopherbot.yaml
+type scheduledTask struct {
+	Schedule string // timespec for https://godoc.org/github.com/robfig/cron
+	taskSpec
+}
+
 // PluginHelp specifies keywords and help text for the 'bot help system
 type PluginHelp struct {
 	Keywords []string // match words for 'help XXX'
@@ -147,6 +129,39 @@ const (
 	plugExternal
 )
 
+// a botTask can be a plugin or a job, both capable of calling Robot methods
+type botTask struct {
+	name          string          // name of job or plugin; unique by type, but job & plugin can share
+	scriptPath    string          // Path to the external executable for jobs or Plugtype=plugExternal only
+	NameSpace     string          // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
+	MaxHistories  int             // how many runs of this job/plugin to keep history for
+	AllowDirect   bool            // Set this true if this plugin can be accessed via direct message
+	DirectOnly    bool            // Set this true if this plugin ONLY accepts direct messages
+	Channels      []string        // Channels where the task is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
+	AllChannels   bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
+	RequireAdmin  bool            // Set to only allow administrators to access a plugin
+	Users         []string        // If non-empty, list of all the users with access to this plugin
+	Elevator      string          // Use an elevator other than the DefaultElevator
+	Authorizer    string          // a plugin to call for authorizing users, should handle groups, etc.
+	AuthRequire   string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
+	taskID        string          // 32-char random ID for identifying plugins/jobs in Robot method calls
+	ReplyMatchers []InputMatcher  // store this here for prompt*reply methods
+	Config        json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetPluginConfig()
+	config        interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
+	Disabled      bool
+	reason        string // why this job/plugin is disabled
+}
+
+// stuff read in conf/jobs/<job>.yaml
+type botJob struct {
+	Channel            string         // where job status updates are posted
+	Notify             string         // user to notify on failure; job runs with this User for Replies
+	Verbose            bool           // whether to send verbose "job started/ended" messages
+	Triggers           []InputMatcher // user/regex that triggers a job, e.g. a git-activated webhook or integration
+	RequiredParameters []string       // required in schedule, prompted to user for interactive
+	*botTask
+}
+
 // Plugin specifies the structure of a plugin configuration - plugins should include an example / default config
 type botPlugin struct {
 	pluginType               plugType       // plugGo, plugExternal - determines how commands are routed
@@ -159,7 +174,7 @@ type botPlugin struct {
 	CommandMatchers          []InputMatcher // Input matchers for messages that need to be directed to the 'bot
 	MessageMatchers          []InputMatcher // Input matchers for messages the 'bot hears even when it's not being spoken to
 	CatchAll                 bool           // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
-	botTask
+	*botTask
 }
 
 // PluginHandler is the struct a plugin registers for the Gopherbot plugin API.
@@ -242,15 +257,14 @@ func getTaskID(plug string) string {
 	if ok {
 		taskNameIDmap.Unlock()
 		return taskID
-	} else {
-		// Generate a random id
-		p := make([]byte, 16)
-		rand.Read(p)
-		plugID = fmt.Sprintf("%x", p)
-		taskNameIDmap.m[plug] = taskID
-		taskNameIDmap.Unlock()
-		return taskID
 	}
+	// Generate a random id
+	p := make([]byte, 16)
+	rand.Read(p)
+	plugID = fmt.Sprintf("%x", p)
+	taskNameIDmap.m[plug] = taskID
+	taskNameIDmap.Unlock()
+	return taskID
 }
 
 // loadTaskConfig() loads the configuration for all the jobs/plugins from
@@ -298,17 +312,16 @@ func (r *Robot) loadTaskConfig() {
 			Log(Error, "Illegal task name: bot - skipping")
 			continue
 		}
-### CONTINUE HERE
 		if dup, ok := taskIndexByName[script.Name]; ok {
 			msg := fmt.Sprintf("External script index: #%d, name: '%s' duplicates name of builtIn or Go plugin, skipping", index, script.Name)
 			Log(Error, msg)
 			r.debug(tlist[dup].taskID, msg, false)
 			continue
 		}
-		t := botTask{
-			name:       plug.Name,
-			taskID:     getTaskID(plug.Name),
-			scriptPath: plug.Path,
+		t := &botTask{
+			name:       script.Name,
+			taskID:     getTaskID(script.Name),
+			scriptPath: script.Path,
 		}
 		if len(task.Path) == 0 {
 			msg := fmt.Sprintf("Task '%s' has zero-length path, disabling", task.Name)
@@ -341,55 +354,75 @@ func (r *Robot) loadTaskConfig() {
 	// Load configuration for all valid plugins. Note that this is all being loaded
 	// in to non-shared data structures that will replace current configuration
 	// under lock at the end.
-PlugLoop:
-	for i, plugin := range plist {
-		if plugin.Disabled {
+LoadLoop:
+	for i, j := range tlist {
+		var plugin *botPlugin
+		var job *botJob
+		var task *botTask
+		var isPlugin bool
+		switch t := j.(type) {
+		case *botPlugin:
+			isPlugin = true
+			plug = t
+			task = t.botTask
+		case *botJob:
+			job = t
+			task = t.botTask
+		}
+
+		if task.Disabled {
 			continue
 		}
-		pcfgload := make(map[string]json.RawMessage)
-		Log(Debug, fmt.Sprintf("Loading configuration for plugin #%d - %s, type %d", i, plugin.name, plugin.pluginType))
+		tcfgload := make(map[string]json.RawMessage)
+		Log(Debug, fmt.Sprintf("Loading configuration for task #%d - %s, type %d", i, plugin.name, plugin.pluginType))
 
-		if plugin.pluginType == plugExternal {
-			// External plugins spit their default config to stdout when called with command="configure"
-			cfg, err := getExtDefCfg(plugin)
-			if err != nil {
-				msg := fmt.Sprintf("Error getting default configuration for external plugin, disabling: %v", err)
-				Log(Error, msg)
-				r.debug(plugin.taskID, msg, false)
-				plugin.Disabled = true
-				plugin.reason = msg
-				continue
-			}
-			if len(*cfg) > 0 {
-				r.debug(plugin.taskID, fmt.Sprintf("Loaded default config from the plugin, size: %d", len(*cfg)), false)
+		if isPlugin {
+			if plugin.pluginType == plugExternal {
+				// External plugins spit their default config to stdout when called with command="configure"
+				cfg, err := getExtDefCfg(plugin)
+				if err != nil {
+					msg := fmt.Sprintf("Error getting default configuration for external plugin, disabling: %v", err)
+					Log(Error, msg)
+					r.debug(plugin.taskID, msg, false)
+					plugin.Disabled = true
+					plugin.reason = msg
+					continue
+				}
+				if len(*cfg) > 0 {
+					r.debug(plugin.taskID, fmt.Sprintf("Loaded default config from the plugin, size: %d", len(*cfg)), false)
+				} else {
+					r.debug(plugin.taskID, "Unable to obtain default config from plugin, command 'configure' returned no content", false)
+				}
+				if err := yaml.Unmarshal(*cfg, &tcfgload); err != nil {
+					msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
+					Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", plugin.name, err))
+					r.debug(plugin.taskID, msg, false)
+					plugin.Disabled = true
+					plugin.reason = msg
+					continue
+				}
 			} else {
-				r.debug(plugin.taskID, "Unable to obtain default config from plugin, command 'configure' returned no content", false)
-			}
-			if err := yaml.Unmarshal(*cfg, &pcfgload); err != nil {
-				msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
-				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", plugin.name, err))
-				r.debug(plugin.taskID, msg, false)
-				plugin.Disabled = true
-				plugin.reason = msg
-				continue
-			}
-		} else {
-			if err := yaml.Unmarshal([]byte(pluginHandlers[plugin.name].DefaultConfig), &pcfgload); err != nil {
-				msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
-				Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", plugin.name, err))
-				r.debug(plugin.taskID, msg, false)
-				plugin.Disabled = true
-				plugin.reason = msg
-				continue
+				if err := yaml.Unmarshal([]byte(pluginHandlers[plugin.name].DefaultConfig), &pcfgload); err != nil {
+					msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
+					Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", plugin.name, err))
+					r.debug(plugin.taskID, msg, false)
+					plugin.Disabled = true
+					plugin.reason = msg
+					continue
+				}
 			}
 		}
 		// getConfigFile overlays the default config with configuration from the install path, then config path
-		if err := r.getConfigFile("plugins/"+plugin.name+".yaml", plugin.taskID, false, pcfgload); err != nil {
-			msg := fmt.Sprintf("Problem loading configuration file(s) for plugin '%s', disabling: %v", plugin.name, err)
+		cpath := "jobs/"
+		if isPlugin {
+			cpath = "plugins/"
+		}
+		if err := r.getConfigFile(cpath+task.name+".yaml", task.taskID, false, tcfgload); err != nil {
+			msg := fmt.Sprintf("Problem loading configuration file(s) for task '%s', disabling: %v", task.name, err)
 			Log(Error, msg)
-			r.debug(plugin.taskID, msg, false)
-			plugin.Disabled = true
-			plugin.reason = msg
+			r.debug(task.taskID, msg, false)
+			task.Disabled = true
+			task.reason = msg
 			continue
 		}
 		if disjson, ok := pcfgload["Disabled"]; ok {
@@ -418,8 +451,9 @@ PlugLoop:
 		explicitDenyDirect := false
 		denyDirect := false
 
-		for key, value := range pcfgload {
+		for key, value := range tcfgload {
 			var strval string
+			var intval int
 			var boolval bool
 			var sarrval []string
 			var hval []PluginHelp
@@ -427,25 +461,27 @@ PlugLoop:
 			var val interface{}
 			skip := false
 			switch key {
-			case "Elevator", "Authorizer", "AuthRequire":
+			case "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "Notify":
 				val = &strval
-			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll":
+			case "MaxHistories":
+				val = &intval
+			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "Verbose":
 				val = &boolval
-			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands":
+			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands", "RequiredParameters":
 				val = &sarrval
 			case "Help":
 				val = &hval
-			case "CommandMatchers", "ReplyMatchers", "MessageMatchers":
+			case "CommandMatchers", "ReplyMatchers", "MessageMatchers", "Triggers":
 				val = &mval
 			case "Config":
 				skip = true
 			default:
-				msg := fmt.Sprintf("Invalid configuration key for plugin '%s': %s - disabling", plugin.name, key)
+				msg := fmt.Sprintf("Invalid configuration key for task '%s': %s - disabling", plugin.name, key)
 				Log(Error, msg)
 				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
-				continue PlugLoop
+				continue LoadLoop
 			}
 
 			if !skip {
@@ -455,62 +491,145 @@ PlugLoop:
 					r.debug(plugin.taskID, msg, false)
 					plugin.Disabled = true
 					plugin.reason = msg
-					continue PlugLoop
+					continue LoadLoop
 				}
 			}
 
+			mismatch := false
 			switch key {
 			case "AllowDirect":
-				plugin.AllowDirect = *(val.(*bool))
+				task.AllowDirect = *(val.(*bool))
 				explicitAllowDirect = true
 			case "DirectOnly":
-				plugin.DirectOnly = *(val.(*bool))
+				task.DirectOnly = *(val.(*bool))
 			case "DenyDirect":
 				denyDirect = *(val.(*bool))
 				explicitDenyDirect = true
 			case "Channels":
-				plugin.Channels = *(val.(*[]string))
+				task.Channels = *(val.(*[]string))
 			case "AllChannels":
-				plugin.AllChannels = *(val.(*bool))
+				task.AllChannels = *(val.(*bool))
 				explicitAllChannels = true
 			case "RequireAdmin":
-				plugin.RequireAdmin = *(val.(*bool))
+				task.RequireAdmin = *(val.(*bool))
 			case "AdminCommands":
-				plugin.AdminCommands = *(val.(*[]string))
+				if isPlugin {
+					plugin.AdminCommands = *(val.(*[]string))
+				} else {
+					mismatch = true
+				}
 			case "Elevator":
-				plugin.Elevator = *(val.(*string))
+				task.Elevator = *(val.(*string))
 			case "ElevatedCommands":
-				plugin.ElevatedCommands = *(val.(*[]string))
+				if isPlugin {
+					plugin.ElevatedCommands = *(val.(*[]string))
+				} else {
+					mismatch = true
+				}
 			case "ElevateImmediateCommands":
-				plugin.ElevateImmediateCommands = *(val.(*[]string))
+				if isPlugin {
+					plugin.ElevateImmediateCommands = *(val.(*[]string))
+				} else {
+					mismatch = true
+				}
 			case "Users":
-				plugin.Users = *(val.(*[]string))
+				task.Users = *(val.(*[]string))
 			case "Authorizer":
-				plugin.Authorizer = *(val.(*string))
+				task.Authorizer = *(val.(*string))
 			case "AuthRequire":
-				plugin.AuthRequire = *(val.(*string))
+				task.AuthRequire = *(val.(*string))
 			case "AuthorizedCommands":
-				plugin.AuthorizedCommands = *(val.(*[]string))
+				if isPlugin {
+					plugin.AuthorizedCommands = *(val.(*[]string))
+				} else {
+					mismatch = true
+				}
 			case "AuthorizeAllCommands":
-				plugin.AuthorizeAllCommands = *(val.(*bool))
+				if isPlugin {
+					plugin.AuthorizeAllCommands = *(val.(*bool))
+				} else {
+					mismatch = true
+				}
 			case "Help":
-				plugin.Help = *(val.(*[]PluginHelp))
+				if isPlugin {
+					plugin.Help = *(val.(*[]PluginHelp))
+				} else {
+					mismatch = true
+				}
 			case "CommandMatchers":
-				plugin.CommandMatchers = *(val.(*[]InputMatcher))
+				if isPlugin {
+					plugin.CommandMatchers = *(val.(*[]InputMatcher))
+				} else {
+					mismatch = true
+				}
 			case "ReplyMatchers":
-				plugin.ReplyMatchers = *(val.(*[]InputMatcher))
+				if isPlugin {
+					plugin.ReplyMatchers = *(val.(*[]InputMatcher))
+				} else {
+					mismatch = true
+				}
 			case "MessageMatchers":
-				plugin.MessageMatchers = *(val.(*[]InputMatcher))
+				if isPlugin {
+					plugin.MessageMatchers = *(val.(*[]InputMatcher))
+				} else {
+					mismatch = true
+				}
 			case "CatchAll":
-				plugin.CatchAll = *(val.(*bool))
+				if isPlugin {
+					plugin.CatchAll = *(val.(*bool))
+				} else {
+					mismatch = true
+				}
+			case "Channel":
+				if isPlugin {
+					mismatch = true
+				} else {
+					job.Channel = *(val.(*string))
+				}
+			case "Notify":
+				if isPlugin {
+					mismatch = true
+				} else {
+					job.Notify = *(val.(*string))
+				}
+			case "Verbose":
+				if isPlugin {
+					mismatch = true
+				} else {
+					job.Verbose = *(val.(*bool))
+				}
+			case "Triggers":
+				if isPlugin {
+					mismatch = true
+				} else {
+					job.Triggers = *(val.(*[]InputMatcher))
+				}
+			case "RequiredParameters":
+				if isPlugin {
+					mismatch = true
+				} else {
+					job.RequiredParameters = *(val.(*[]string))
+				}
 			case "Config":
-				plugin.Config = value
+				task.Config = value
+			}
+			if mismatch {
+				if isPlugin {
+					msg := fmt.Sprintf("Disabling plugin '%s' - invalid configuration key: %s", task.name, key)
+					r.debug(plugin.taskID, msg, false)
+				} else {
+					msg := fmt.Sprintf("Disabling job '%s' - invalid configuration key: %s", task.name, key)
+				}
+				Log(Error, msg)
+				task.Disabled = true
+				task.reason = msg
+				continue LoadLoop
 			}
 		}
 		// End of reading configuration keys
 
 		// Start sanity checking of configuration
-
+		// TODO: START HERE
 		if plugin.DirectOnly {
 			if explicitAllowDirect {
 				if !plugin.AllowDirect {
@@ -593,7 +712,7 @@ PlugLoop:
 				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
-				continue PlugLoop
+				continue LoadLoop
 			} else {
 				command.re = re
 			}
@@ -608,7 +727,7 @@ PlugLoop:
 				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
-				continue PlugLoop
+				continue LoadLoop
 			} else {
 				reply.re = re
 			}
@@ -625,7 +744,7 @@ PlugLoop:
 				r.debug(plugin.taskID, msg, false)
 				plugin.Disabled = true
 				plugin.reason = msg
-				continue PlugLoop
+				continue LoadLoop
 			} else {
 				message.re = re
 			}
@@ -666,7 +785,7 @@ PlugLoop:
 						r.debug(plugin.taskID, msg, false)
 						plugin.Disabled = true
 						plugin.reason = msg
-						continue PlugLoop
+						continue LoadLoop
 					}
 				}
 			}
