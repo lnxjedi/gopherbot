@@ -53,7 +53,7 @@ type config struct {
 }
 
 // Define the handler function
-func ping(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
+func ping(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
 	var cfg *config
 	// The plugin can handle multiple different commands
 	switch command {
@@ -79,7 +79,7 @@ func ping(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) 
 		}
 		r.MessageFormat(bot.Variable).Say(msg)
 	case "thanks":
-		if ret := r.GetPluginConfig(&cfg); ret == bot.Ok {
+		if ret := r.GetTaskConfig(&cfg); ret == bot.Ok {
 			r.Reply(r.RandomString(cfg.Welcome))
 		} else {
 			r.Reply("I'm speechless. Please have somebody check my log file.")

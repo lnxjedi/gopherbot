@@ -147,7 +147,7 @@ switch ($command)
     $firstName = $bot.GetSenderAttribute("firstName")
     $bot.Say("Sure, $firstName, hang on and I'll see what I can do")
     $bot.Pause(1.5)
-    $cfg = $bot.GetPluginConfig()
+    $cfg = $bot.GetTaskConfig()
     $bot.Say($bot.RandomString($cfg.Replies))
   }
   "netinfo" {

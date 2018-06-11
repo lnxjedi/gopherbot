@@ -129,8 +129,8 @@ class BaseBot
 		return callBotFunc("Recall", args).StrVal
 	end
 
-	def GetPluginConfig()
-		ret = callBotFunc("GetPluginConfig", {})
+	def GetTaskConfig()
+		ret = callBotFunc("GetTaskConfig", {})
 		return ret
 	end
 

@@ -24,9 +24,9 @@ type MemeConfig struct {
 	Password string
 }
 
-func memegen(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
+func memegen(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
 	var m *MemeConfig
-	r.GetPluginConfig(&m) // make m point to a valid, thread-safe MemeConfig
+	r.GetTaskConfig(&m) // make m point to a valid, thread-safe MemeConfig
 	if len(m.Username) == 0 {
 		m.Username = os.Getenv("IMGFLIP_USER")
 	}

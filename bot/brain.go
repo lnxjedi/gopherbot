@@ -356,28 +356,31 @@ func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 // a struct. If rw is set, the datum is checked out read-write and a non-empty
 // lock token is returned that expires after lockTimeout (250ms). The bool
 // return indicates whether the datum exists.
+// TODO: use namespace if available
 func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal) {
-	plugin := currentTasks.getTaskByID(r.callerID)
-	key = plugin.name + ":" + key
+	task, _, _ := r.tasks.getTaskByID(r.callerID)
+	key = task.name + ":" + key
 	return checkoutDatum(key, datum, rw)
 }
 
 // CheckinDatum unlocks a datum without updating it, it always succeeds
+// TODO: use namespace if available
 func (r *Robot) CheckinDatum(key, locktoken string) {
 	if locktoken == "" {
 		return
 	}
-	plugin := currentTasks.getTaskByID(r.callerID)
-	key = plugin.name + ":" + key
+	task, _, _ := r.tasks.getTaskByID(r.callerID)
+	key = task.name + ":" + key
 	checkinDatum(key, locktoken)
 }
 
 // UpdateDatum tries to update a piece of data in the robot's brain, providing
 // a struct to marshall and a (hopefully good) lock token. If err != nil, the
 // update failed.
+// TODO: use namespace if available
 func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
-	plugin := currentTasks.getTaskByID(r.callerID)
-	key = plugin.name + ":" + key
+	task, _, _ := r.tasks.getTaskByID(r.callerID)
+	key = task.name + ":" + key
 	return updateDatum(key, locktoken, datum)
 }
 

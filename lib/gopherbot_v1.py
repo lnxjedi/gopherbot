@@ -114,8 +114,8 @@ class Robot:
     def RandomString(self, sa):
         return sa[random.randint(0, (len(sa)-1))]
 
-    def GetPluginConfig(self):
-        return self.Call("GetPluginConfig", {})
+    def GetTaskConfig(self):
+        return self.Call("GetTaskConfig", {})
 
     def CheckoutDatum(self, key, rw):
         ret = self.Call("CheckoutDatum", { "Key": key, "RW": rw })

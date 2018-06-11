@@ -20,7 +20,7 @@ type config struct {
 }
 
 // Define the handler function
-func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
+func links(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
 	if command == "init" { // ignore init
 		return
 	}
@@ -30,7 +30,7 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 	scope := &config{}
 
 	datumKey := datumNameDefault // default global
-	ret := r.GetPluginConfig(&scope)
+	ret := r.GetTaskConfig(&scope)
 	if ret == bot.Ok {
 		if strings.ToLower(scope.Scope) == "channel" {
 			datumKey = r.Channel + ":" + datumNameDefault

@@ -8,66 +8,69 @@ const configElevError = "Sorry, elevation failed due to a configuration error"
 // Elevator plugins provide an elevate method for checking if the user
 // can run a privileged command.
 
-func (bot *Robot) elevate(plugins []*botPlugin, plugin *botPlugin, immediate bool) (retval PlugRetVal) {
+func (bot *Robot) elevate(task *botTask, immediate bool) (retval TaskRetVal) {
+	// TODO: set
 	robot.RLock()
 	defaultElevator := robot.defaultElevator
 	robot.RUnlock()
-	if plugin.Elevator == "" && defaultElevator == "" {
-		Log(Audit, fmt.Sprintf("Plugin '%s' requires elevation, but no elevator configured", plugin.name))
+	if task.Elevator == "" && defaultElevator == "" {
+		Log(Audit, fmt.Sprintf("Task '%s' requires elevation, but no elevator configured", task.name))
 		bot.Say(configElevError)
 		emit(ElevNoRunMisconfigured)
 		return ConfigurationError
 	}
 	elevator := defaultElevator
-	if plugin.Elevator != "" {
-		elevator = plugin.Elevator
+	if task.Elevator != "" {
+		elevator = task.Elevator
 	}
-	ePlug := currentTasks.getTaskByName(elevator)
+	_, ePlug, _ := currentTasks.getTaskByName(elevator)
 	if ePlug != nil {
 		immedString := "true"
 		if !immediate {
 			immedString = "false"
 		}
-		elevRet := callTask(bot, ePlug, false, false, "elevate", immedString)
+		elevRet := bot.callTask(ePlug.botTask, false, false, "elevate", immedString)
 		if elevRet == Success {
-			Log(Audit, fmt.Sprintf("Elevation succeeded by elevator '%s', user '%s', plugin '%s' in channel '%s'", ePlug.name, bot.User, plugin.name, bot.Channel))
+			Log(Audit, fmt.Sprintf("Elevation succeeded by elevator '%s', user '%s', task '%s' in channel '%s'", ePlug.name, bot.User, task.name, bot.Channel))
 			emit(ElevRanSuccess)
 			return Success
 		}
 		if elevRet == Fail {
-			Log(Audit, fmt.Sprintf("Elevation FAILED by elevator '%s', user '%s', plugin '%s' in channel '%s'", ePlug.name, bot.User, plugin.name, bot.Channel))
+			Log(Audit, fmt.Sprintf("Elevation FAILED by elevator '%s', user '%s', task '%s' in channel '%s'", ePlug.name, bot.User, task.name, bot.Channel))
 			bot.Say("Sorry, this command requires elevation")
 			emit(ElevRanFail)
 			return Fail
 		}
 		if elevRet == MechanismFail {
-			Log(Audit, fmt.Sprintf("Elevator plugin '%s' mechanism failure while elevating user '%s' for plugin '%s' in channel '%s'", ePlug.name, bot.User, plugin.name, bot.Channel))
+			Log(Audit, fmt.Sprintf("Elevator plugin '%s' mechanism failure while elevating user '%s' for task '%s' in channel '%s'", ePlug.name, bot.User, task.name, bot.Channel))
 			bot.Say(technicalElevError)
 			emit(ElevRanMechanismFailed)
 			return MechanismFail
 		}
 		if elevRet == Normal {
-			Log(Audit, fmt.Sprintf("Elevator plugin '%s' returned 'Normal' (0) instead of 'Success' (1), failing elevation in '%s' for plugin '%s' in channel '%s'", ePlug.name, bot.User, plugin.name, bot.Channel))
+			Log(Audit, fmt.Sprintf("Elevator plugin '%s' returned 'Normal' (0) instead of 'Success' (1), failing elevation in '%s' for task '%s' in channel '%s'", ePlug.name, bot.User, task.name, bot.Channel))
 			bot.Say(technicalElevError)
 			emit(ElevRanFailNormal)
 			return MechanismFail
 		}
-		Log(Audit, fmt.Sprintf("Elevator plugin '%s' exit code %d while elevating user '%s' for plugin '%s' in channel '%s'", ePlug.name, retval, bot.User, plugin.name, bot.Channel))
+		Log(Audit, fmt.Sprintf("Elevator plugin '%s' exit code %d while elevating user '%s' for task '%s' in channel '%s'", ePlug.name, retval, bot.User, task.name, bot.Channel))
 		bot.Say(technicalElevError)
 		emit(ElevRanFailOther)
 		return MechanismFail
 	}
-	Log(Audit, fmt.Sprintf("Elevator plugin '%s' not found while elevating user '%s' for plugin '%s' in channel '%s'", plugin.Elevator, bot.User, plugin.name, bot.Channel))
+	Log(Audit, fmt.Sprintf("Elevator plugin '%s' not found while elevating user '%s' for task '%s' in channel '%s'", task.Elevator, bot.User, task.name, bot.Channel))
 	bot.Say(technicalElevError)
 	emit(ElevNoRunNotFound)
 	return ConfigurationError
 }
 
 // Check for a configured Elevator and check elevation
-func (bot *Robot) checkElevation(plugins []*botPlugin, plugin *botPlugin, command string) (retval PlugRetVal) {
+func (bot *Robot) checkElevation(t interface{}, command string) (retval TaskRetVal) {
+	task, plugin, _ := getTask(t)
+	isPlugin := plugin != nil
 	immediate := false
 	elevationRequired := false
-	if len(plugin.ElevateImmediateCommands) > 0 {
+	if isPlugin && len(plugin.ElevateImmediateCommands) > 0 {
 		for _, i := range plugin.ElevateImmediateCommands {
 			if command == i {
 				elevationRequired = true
@@ -76,7 +79,7 @@ func (bot *Robot) checkElevation(plugins []*botPlugin, plugin *botPlugin, comman
 			}
 		}
 	}
-	if !elevationRequired && len(plugin.ElevatedCommands) > 0 {
+	if isPlugin && !elevationRequired && len(plugin.ElevatedCommands) > 0 {
 		for _, i := range plugin.ElevatedCommands {
 			if command == i {
 				elevationRequired = true
@@ -84,13 +87,18 @@ func (bot *Robot) checkElevation(plugins []*botPlugin, plugin *botPlugin, comman
 			}
 		}
 	}
+	if !isPlugin {
+		if len(task.Elevator) > 0 {
+			elevationRequired = true
+		}
+	}
 	if !elevationRequired {
 		return Success
 	}
-	retval = bot.elevate(plugins, plugin, immediate)
+	retval = bot.elevate(task, immediate)
 	if retval == Success {
 		return Success
 	}
-	Log(Error, fmt.Sprintf("Elevation failed for plugin '%s', command: '%s'", plugin.name, command))
+	Log(Error, fmt.Sprintf("Elevation failed for task '%s', command: '%s'", task.name, command))
 	return Fail
 }

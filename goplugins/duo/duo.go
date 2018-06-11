@@ -46,7 +46,7 @@ var cfg config
 const memoryKey = "duoOpts"
 const datumName = "duoOpts"
 
-func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResult) (retval bot.PlugRetVal) {
+func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResult) (retval bot.TaskRetVal) {
 	dm := ""
 	if r.Channel != "" {
 		dm = " - I'll message you directly"
@@ -266,7 +266,7 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 	return bot.Success
 }
 
-func configure(r *bot.Robot, user string, res *authapi.PreauthResult) (retval bot.PlugRetVal) {
+func configure(r *bot.Robot, user string, res *authapi.PreauthResult) (retval bot.TaskRetVal) {
 	if r.Channel != "" {
 		r.Say("Ok, I'll message you directly to get your default configuration")
 	}
@@ -368,7 +368,7 @@ func configure(r *bot.Robot, user string, res *authapi.PreauthResult) (retval bo
 	return bot.Fail
 }
 
-func duocommands(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
+func duocommands(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
 	if command != "elevate" && command != "duoconf" {
 		return
 	}
@@ -380,7 +380,7 @@ func duocommands(r *bot.Robot, command string, args ...string) (retval bot.PlugR
 		}
 	}
 	cfg := &config{}
-	r.GetPluginConfig(&cfg)
+	r.GetTaskConfig(&cfg)
 	if cfg.TimeoutType == "absolute" {
 		cfg.tt = absolute
 	}

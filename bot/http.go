@@ -201,17 +201,18 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	if f.CallerID == "" {
 		rw.WriteHeader(http.StatusBadRequest)
-		Log(Error, fmt.Sprintf("JSON function \"%s\" called with empty CallerID; args: %v", f.FuncName, f.FuncArgs))
+		Log(Error, fmt.Sprintf("JSON function '%s' called with empty CallerID; args: %v", f.FuncName, f.FuncArgs))
 		return
 	}
 
-	plugin := currentTasks.getTaskByID(f.CallerID)
-	if plugin == nil {
+	// TODO: This should do a lookup from a global hash of running plugins
+	task, _, _ := currentTasks.getTaskByID(f.CallerID)
+	if task == nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		Log(Error, fmt.Sprintf("JSON function \"%s\" called with invalid CallerID \"%s\"; args: %s", f.FuncName, f.CallerID, f.FuncArgs))
+		Log(Error, fmt.Sprintf("JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs))
 		return
 	}
-	Log(Trace, fmt.Sprintf("Plugin \"%s\" calling function \"%s\" in channel \"%s\" for user \"%s\"", plugin.name, f.FuncName, f.Channel, f.User))
+	Log(Trace, fmt.Sprintf("Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User))
 
 	// Generate a synthetic Robot for access to it's methods
 	bot := Robot{
@@ -275,7 +276,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 		// Since we're getting raw JSON (=[]byte), we call update directly.
 		// See brain.go
-		ret = update(plugin.name+":"+m.Key, m.Token, (*[]byte)(&m.Datum))
+		// TODO: Use the namespace from the Robot here
+		ret = update(task.name+":"+m.Key, m.Token, (*[]byte)(&m.Datum))
 		sendReturn(rw, &botretvalresponse{int(ret)})
 		return
 	case "Remember":
@@ -299,13 +301,13 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 		s := bot.Recall(m.Key)
 		sendReturn(rw, &stringresponse{s})
-	case "GetPluginConfig":
-		if plugin.Config == nil {
-			Log(Error, fmt.Sprintf("GetPluginConfig called by external plugin \"%s\", but no config found.", plugin.name))
+	case "GetTaskConfig":
+		if task.Config == nil {
+			Log(Error, fmt.Sprintf("GetTaskConfig called by external script '%s', but no config found.", task.name))
 			sendReturn(rw, handler{})
 			return
 		}
-		sendReturn(rw, plugin.Config)
+		sendReturn(rw, task.Config)
 		return
 	case "GetSenderAttribute", "GetBotAttribute":
 		var a attribute

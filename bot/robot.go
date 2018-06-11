@@ -40,6 +40,7 @@ type Robot struct {
 	Protocol       Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
 	RawMsg         interface{}       // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
 	Format         MessageFormat     // The outgoing message format, one of Fixed or Variable
+	tasks          taskList          // Pointers to current task configuration at start of pipeline
 	callerID       string            // Pass the ID in for later identificaton of the calling plugin/job
 	isCommand      bool              // Was the message directed at the robot, dm or by mention
 	directMsg      bool              // if the message was sent by DM
@@ -192,7 +193,7 @@ func (r *Robot) GetSenderAttribute(a string) *AttrRet {
 
 /*
 
-GetPluginConfig sets a struct pointer to point to a config struct populated
+GetTaskConfig sets a struct pointer to point to a config struct populated
 from configuration when plugins were loaded. To use, a plugin should define
 a struct for it's configuration data, e.g.:
 
@@ -218,31 +219,31 @@ robot will use to populate a struct when configuration is loaded:
 	}
 
 Then, to get a current copy of configuration when the plugin runs, define a struct pointer
-and call GetPluginConfig with a double-pointer:
+and call GetTaskConfig with a double-pointer:
 
 	var c *pConf
-	r.GetPluginConfig(&c)
+	r.GetTaskConfig(&c)
 
 ... And voila! *pConf is populated with the contents from the configured Config: stanza
 */
-func (r *Robot) GetPluginConfig(dptr interface{}) RetVal {
+func (r *Robot) GetTaskConfig(dptr interface{}) RetVal {
 	plugin := currentTasks.getTaskByID(r.callerID)
 	if plugin.config == nil {
-		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but no config was found.", plugin.name))
+		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetTaskConfig, but no config was found.", plugin.name))
 		return NoConfigFound
 	}
 	tp := reflect.ValueOf(dptr)
 	if tp.Kind() != reflect.Ptr {
-		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but didn't pass a double-pointer to a struct", plugin.name))
+		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", plugin.name))
 		return InvalidDblPtr
 	}
 	p := reflect.Indirect(tp)
 	if p.Kind() != reflect.Ptr {
-		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig, but didn't pass a double-pointer to a struct", plugin.name))
+		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", plugin.name))
 		return InvalidDblPtr
 	}
 	if p.Type() != reflect.ValueOf(plugin.config).Type() {
-		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetPluginConfig with an invalid double-pointer", plugin.name))
+		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetTaskConfig with an invalid double-pointer", plugin.name))
 		return InvalidCfgStruct
 	}
 	p.Set(reflect.ValueOf(plugin.config))

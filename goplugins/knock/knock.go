@@ -21,13 +21,13 @@ type JokeConfig struct {
 	Phooey   []string // Ways the robot complains if the user doesn't respond correctly
 }
 
-func knock(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
+func knock(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
 	var j *JokeConfig // get access to a copy of the plugin's config
 	switch command {
 	case "init":
 		// Ignore, this plugin has no start-up
 	case "knock":
-		if ret := r.GetPluginConfig(&j); ret != bot.Ok {
+		if ret := r.GetTaskConfig(&j); ret != bot.Ok {
 			r.Reply("Sorry, I couldn't find my joke book")
 		}
 		if len(j.Jokes) == 0 {

@@ -3,18 +3,18 @@ package bot
 // RetVal is a integer type for returning error conditions from bot methods, or 0 for Ok
 type RetVal int
 
-//go:generate stringer -type=PlugRetVal
+//go:generate stringer -type=TaskRetVal
 
 // Generate String method with: go generate ./bot/
 
-// PlugRetVal is an integer type for return values from plugins, mainly for elevation & authorization
-type PlugRetVal int
+// TaskRetVal is an integer type for return values from plugins, mainly for elevation & authorization
+type TaskRetVal int
 
 const (
 	// Normal exit is for non-auth/non-elevating plugins; since this is the
 	// default exit value, we don't use it to indicate successful authentication
 	// or elevation.
-	Normal PlugRetVal = iota
+	Normal TaskRetVal = iota
 	// Fail indicates requested authorization or elevation failed
 	Fail
 	// MechanismFail indicates authorization or elevation couldn't be determined due to a technical issue that should be logged
@@ -57,11 +57,11 @@ const (
 	// InvalidDatumKey - Key name didn't match the regex for valid key names
 	InvalidDatumKey
 
-	/* GetPluginConfig */
+	/* GetTaskConfig */
 
-	// InvalidDblPtr - GetPluginConfig wasn't called with a double-pointer to a config struct
+	// InvalidDblPtr - GetTaskConfig wasn't called with a double-pointer to a config struct
 	InvalidDblPtr
-	// InvalidCfgStruct - The struct type in GetPluginConfig doesn't match the struct registered for the plugin
+	// InvalidCfgStruct - The struct type in GetTaskConfig doesn't match the struct registered for the plugin
 	InvalidCfgStruct
 	// NoConfigFound - The plugin doesn't have any config data
 	NoConfigFound
@@ -104,8 +104,8 @@ func (ret RetVal) String() string {
 		"Problem unmarshalling JSON/Yaml",
 		"Brain storage failed",
 		"Invalid string given for datum key",
-		"Argument to GetPluginConfig wasn't a double pointer to a struct",
-		"Mismatch between struct registered in RegisterPlugin and struct passed to GetPluginConfig",
+		"Argument to GetTaskConfig wasn't a double pointer to a struct",
+		"Mismatch between struct registered in RegisterPlugin and struct passed to GetTaskConfig",
 		"Plugin configuration didn't have a Config section",
 		"User OTP configuration not found",
 		"Unspecified error in checking OTP",

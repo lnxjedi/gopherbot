@@ -38,7 +38,7 @@ func init() {
 
 /* builtin plugins, like help */
 
-func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
+func help(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
@@ -82,13 +82,14 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		}
 
 		helpLines := make([]string, 0, tooLong)
-		currentTasks.RLock()
-		plugins := currentTasks.p
-		currentTasks.RUnlock()
-		for _, plugin := range plugins {
+		for _, t := range *bot.tasks.t {
+			task, plugin, _ := getTask(t)
+			if plugin == nil {
+				continue
+			}
 			// If a keyword was supplied, give help for all matching commands with channels;
 			// without a keyword, show help for all commands available in the channel.
-			if !bot.pluginAvailable(plugin, hasKeyword, true) {
+			if !bot.taskAvailable(task, hasKeyword, true) {
 				continue
 			}
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
@@ -170,13 +171,10 @@ func help(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	return
 }
 
-func dump(bot *Robot, command string, args ...string) (retval PlugRetVal) {
+func dump(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
-	currentTasks.RLock()
-	plugins := currentTasks.p
-	currentTasks.RUnlock()
 	switch command {
 	case "robot":
 		robot.RLock()
@@ -188,13 +186,20 @@ func dump(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			bot.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], plug.DefaultConfig))
 		} else { // look for an external plugin
 			found := false
-			for _, plugin := range plugins {
-				if args[0] == plugin.name && plugin.pluginType == plugExternal {
-					found = true
-					if cfg, err := getExtDefCfg(plugin); err == nil {
-						bot.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], *cfg))
-					} else {
-						bot.Say("I had a problem looking that up - somebody should check my logs")
+			for _, t := range *bot.tasks.t {
+				task, plugin, _ := getTask(t)
+				if args[0] == task.name {
+					if plugin == nil {
+						bot.Say("No default configuration available for task type 'job'")
+						return
+					}
+					if plugin.pluginType == plugExternal {
+						found = true
+						if cfg, err := getExtDefCfg(plugin.botTask); err == nil {
+							bot.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], *cfg))
+						} else {
+							bot.Say("I had a problem looking that up - somebody should check my logs")
+						}
 					}
 				}
 			}
@@ -204,8 +209,13 @@ func dump(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 		}
 	case "plugin":
 		found := false
-		for _, plugin := range plugins {
-			if args[0] == plugin.name {
+		for _, t := range *bot.tasks.t {
+			task, plugin, _ := getTask(t)
+			if args[0] == task.name {
+				if plugin == nil {
+					bot.Say(fmt.Sprintf("Task '%s' is a job, not a plugin", task.name))
+					return
+				}
 				found = true
 				c, _ := yaml.Marshal(plugin)
 				bot.Fixed().Say(fmt.Sprintf("%s", c))
@@ -223,9 +233,13 @@ func dump(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			joiner = "\n"
 			message = "Here's a list of all disabled plugins:\n%s"
 		}
-		plist := make([]string, 0, len(plugins))
-		for _, plugin := range plugins {
-			ptext := plugin.name
+		plist := make([]string, 0, len(*bot.tasks.t))
+		for _, t := range *bot.tasks.t {
+			task, plugin, _ := getTask(t)
+			if plugin == nil {
+				continue
+			}
+			ptext := task.name
 			if wantDisabled {
 				if plugin.Disabled {
 					ptext += "; reason: " + plugin.reason
@@ -254,7 +268,7 @@ var byebye = []string{
 	"Later gator!",
 }
 
-func logging(bot *Robot, command string, args ...string) (retval PlugRetVal) {
+func logging(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 	switch command {
 	case "init":
 		return
@@ -283,7 +297,7 @@ func logging(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 	return
 }
 
-func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
+func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
@@ -313,7 +327,7 @@ func admin(bot *Robot, command string, args ...string) (retval PlugRetVal) {
 			bot.Say(fmt.Sprintf("Invalid plugin name '%s', doesn't match regexp: '%s' (plugin can't load)", pname, taskNameRe.String()))
 			return
 		}
-		plugin := currentTasks.getTaskByName(pname)
+		task, plugin, _ := bot.tasks.getTaskByName(pname)
 		if plugin == nil {
 			bot.Say("I don't have any plugins with that name configured")
 			return

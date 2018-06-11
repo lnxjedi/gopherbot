@@ -53,7 +53,7 @@ if command == "configure":
 if command == "python":
     bot.Say("Sure, %s, gimme a sec to look for it..." % bot.GetSenderAttribute("firstName"))
     bot.Pause(1.5)
-    bot.Say(bot.RandomString(bot.GetPluginConfig()["Replies"]))
+    bot.Say(bot.RandomString(bot.GetTaskConfig()["Replies"]))
 
 if command == "listen":
     dbot = bot.Direct()

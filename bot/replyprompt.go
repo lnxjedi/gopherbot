@@ -176,11 +176,12 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		channel: channel,
 	}
 	var rep replyWaiter
-	plugin := currentTasks.getTaskByID(r.callerID)
+	// TODO: look up Robot from global hash
+	task, _, _ := currentTasks.getTaskByID(r.callerID)
 	if stockRepliesRe.MatchString(regexID) {
 		rep.re = stockReplies[regexID]
 	} else {
-		for _, matcher := range plugin.ReplyMatchers {
+		for _, matcher := range task.ReplyMatchers {
 			if matcher.Label == regexID {
 				rep.re = matcher.re
 				break
@@ -190,7 +191,7 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		}
 	}
 	if rep.re == nil {
-		r.Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", plugin.name, regexID))
+		r.Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", task.name, regexID))
 		return "", MatcherNotFound
 	}
 	rep.replyChannel = make(chan reply)

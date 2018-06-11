@@ -59,7 +59,7 @@ when "configure"
 when "ruby"
   bot.Say("Sure, #{bot.GetSenderAttribute("firstName")}!")
   sleep 1.5
-  bot.Say(bot.RandomString(bot.GetPluginConfig()["Replies"]))
+  bot.Say(bot.RandomString(bot.GetTaskConfig()["Replies"]))
 when "listen"
   dbot = bot.Direct()
   rep = dbot.PromptForReply("SimpleString", "Ok, what do you want to tell me?")

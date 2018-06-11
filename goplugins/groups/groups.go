@@ -37,7 +37,7 @@ func addnew(list []string, item string) ([]string, bool) {
 }
 
 // Define the handler function
-func groups(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
+func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
 	if command == "init" { // ignore init
 		return
 	}
@@ -47,7 +47,7 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal
 
 	groupCfg := &config{}
 
-	ret = r.GetPluginConfig(&groupCfg)
+	ret = r.GetTaskConfig(&groupCfg)
 	if ret != bot.Ok {
 		r.Log(bot.Error, "Error loading groups config: %s")
 		return bot.Fail

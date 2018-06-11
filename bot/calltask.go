@@ -37,9 +37,9 @@ func fixInterpreterArgs(interpreter string, args []string) []string {
 	return args
 }
 
-func getPluginPath(plugin *botPlugin) (string, error) {
-	if len(plugin.scriptPath) == 0 {
-		err := fmt.Errorf("pluginPath empty for external plugin: %s", plugin.name)
+func getTaskPath(task *botTask) (string, error) {
+	if len(task.scriptPath) == 0 {
+		err := fmt.Errorf("Path empty for external task: %s", task.name)
 		Log(Error, err)
 		return "", err
 	}
@@ -48,8 +48,8 @@ func getPluginPath(plugin *botPlugin) (string, error) {
 	configPath := robot.configPath
 	installPath := robot.installPath
 	robot.RUnlock()
-	if byte(plugin.scriptPath[0]) == byte("/"[0]) {
-		fullPath = plugin.scriptPath
+	if byte(task.scriptPath[0]) == byte("/"[0]) {
+		fullPath = task.scriptPath
 		_, err := os.Stat(fullPath)
 		if err == nil {
 			Log(Debug, "Using fully specified path to plugin:", fullPath)
@@ -60,20 +60,20 @@ func getPluginPath(plugin *botPlugin) (string, error) {
 		return "", err
 	}
 	if len(configPath) > 0 {
-		_, err := os.Stat(configPath + "/" + plugin.scriptPath)
+		_, err := os.Stat(configPath + "/" + task.scriptPath)
 		if err == nil {
-			fullPath = configPath + "/" + plugin.scriptPath
+			fullPath = configPath + "/" + task.scriptPath
 			Log(Debug, "Using external plugin from configPath:", fullPath)
 			return fullPath, nil
 		}
 	}
-	_, err := os.Stat(installPath + "/" + plugin.scriptPath)
+	_, err := os.Stat(installPath + "/" + task.scriptPath)
 	if err == nil {
-		fullPath = installPath + "/" + plugin.scriptPath
+		fullPath = installPath + "/" + task.scriptPath
 		Log(Debug, "Using stock external plugin:", fullPath)
 		return fullPath, nil
 	}
-	err = fmt.Errorf("Couldn't locate external plugin %s: %v", plugin.name, err)
+	err = fmt.Errorf("Couldn't locate external plugin %s: %v", task.name, err)
 	Log(Error, err)
 	return "", err
 }
@@ -105,10 +105,10 @@ func getInterpreter(scriptPath string) (string, error) {
 	return interpreter, nil
 }
 
-func getExtDefCfg(plugin *botPlugin) (*[]byte, error) {
+func getExtDefCfg(task *botTask) (*[]byte, error) {
 	var fullPath string
 	var err error
-	if fullPath, err = getPluginPath(plugin); err != nil {
+	if fullPath, err = getTaskPath(task); err != nil {
 		return nil, err
 	}
 	var cfg []byte
@@ -137,11 +137,13 @@ func getExtDefCfg(plugin *botPlugin) (*[]byte, error) {
 	return &cfg, nil
 }
 
-// callTask does the real work of running a plugin with a command and arguments.
-func callTask(bot *Robot, task interface{}, background bool, interactive bool, command string, args ...string) (retval PlugRetVal) {
+// callTask does the real work of running a job or plugin with a command and arguments.
+func (bot *Robot) callTask(t interface{}, background bool, interactive bool, command string, args ...string) (retval TaskRetVal) {
+	task, plugin, _ := getTask(t)
+	isPlugin := plugin != nil
 	// This should only happen in the rare case that a configured authorizer or elevator is disabled
 	if task.Disabled {
-		msg := fmt.Sprintf("Call plugin failed on disabled plugin %s; reason: %s", task.name, task.reason)
+		msg := fmt.Sprintf("callTask failed on disabled task %s; reason: %s", task.name, task.reason)
 		bot.Log(Error, msg)
 		bot.debug(bot.callerID, msg, false)
 		return ConfigurationError
@@ -172,98 +174,93 @@ func callTask(bot *Robot, task interface{}, background bool, interactive bool, c
 	}
 	Log(Debug, fmt.Sprintf("Dispatching command \"%s\" to plugin \"%s\" with arguments \"%#v\"", command, task.name, args))
 	bot.callerID = task.taskID
-	if task.taskType == plugin {
-
-	}
-	switch task.pluginType {
-	case plugGo:
+	if isPlugin && plugin.pluginType == plugGo {
 		if command != "init" {
 			emit(GoPluginRan)
 		}
-		Log(Debug, fmt.Sprintf("Call go plugin: \"%s\" with args: %q", plugin.name, args))
-		return pluginHandlers[plugin.name].Handler(bot, command, args...)
-	case plugExternal:
-		var fullPath string // full path to the executable
-		var err error
-		fullPath, err = getPluginPath(plugin)
-		if err != nil {
-			emit(ScriptPluginBadPath)
-			return MechanismFail
-		}
-		interpreter, err := getInterpreter(fullPath)
-		if err != nil {
-			err = fmt.Errorf("looking up interpreter for %s: %s", fullPath, err)
-			Log(Error, fmt.Sprintf("Unable to call external plugin %s, no interpreter found: %s", fullPath, err))
-			errString = "There was a problem calling an external plugin"
-			emit(ScriptPluginBadInterpreter)
-			return MechanismFail
-		}
-		externalArgs := make([]string, 0, 5+len(args))
-		// on Windows, we exec the interpreter with the script as first arg
-		if runtime.GOOS == "windows" {
-			externalArgs = append(externalArgs, fullPath)
-		}
-		externalArgs = append(externalArgs, command)
-		externalArgs = append(externalArgs, args...)
-		externalArgs = fixInterpreterArgs(interpreter, externalArgs)
-		Log(Debug, fmt.Sprintf("Calling \"%s\" with interpreter \"%s\" and args: %q", fullPath, interpreter, externalArgs))
-		var cmd *exec.Cmd
-		if runtime.GOOS == "windows" {
-			cmd = exec.Command(interpreter, externalArgs...)
-		} else {
-			cmd = exec.Command(fullPath, externalArgs...)
-		}
-		cmd.Env = append(os.Environ(), []string{
-			fmt.Sprintf("GOPHER_CHANNEL=%s", bot.Channel),
-			fmt.Sprintf("GOPHER_USER=%s", bot.User),
-			fmt.Sprintf("GOPHER_CALLER_ID=%s", plugin.taskID),
-			fmt.Sprintf("GOPHER_PROTOCOL=%s", bot.Protocol),
-		}...)
-		// close stdout on the external plugin...
-		cmd.Stdout = nil
-		// but hold on to stderr in case we need to log an error
-		stderr, err := cmd.StderrPipe()
-		if err != nil {
-			Log(Error, fmt.Errorf("Creating stderr pipe for external command \"%s\": %v", fullPath, err))
-			errString = fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name)
-			return MechanismFail
-		}
-		if err = cmd.Start(); err != nil {
-			Log(Error, fmt.Errorf("Starting command \"%s\": %v", fullPath, err))
-			errString = fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name)
-			return MechanismFail
-		}
-		if command != "init" {
-			emit(ScriptPluginRan)
-		}
-		var stdErrBytes []byte
-		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
-			Log(Error, fmt.Errorf("Reading from stderr for external command \"%s\": %v", fullPath, err))
-			errString = fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name)
-			return MechanismFail
-		}
-		stdErrString := string(stdErrBytes)
-		if len(stdErrString) > 0 {
-			Log(Warn, fmt.Errorf("Output from stderr of external command \"%s\": %s", fullPath, stdErrString))
-			errString = fmt.Sprintf("There was error output while calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name)
-			emit(ScriptPluginStderrOutput)
-		}
-		if err = cmd.Wait(); err != nil {
-			retval = Fail
-			success := false
-			if exitstatus, ok := err.(*exec.ExitError); ok {
-				if status, ok := exitstatus.Sys().(syscall.WaitStatus); ok {
-					retval = PlugRetVal(status.ExitStatus())
-					if retval == Success {
-						success = true
-					}
+		Log(Debug, fmt.Sprintf("Call go plugin: \"%s\" with args: %q", task.name, args))
+		return pluginHandlers[task.name].Handler(bot, command, args...)
+	}
+	var fullPath string // full path to the executable
+	var err error
+	fullPath, err = getTaskPath(task)
+	if err != nil {
+		emit(ScriptPluginBadPath)
+		return MechanismFail
+	}
+	interpreter, err := getInterpreter(fullPath)
+	if err != nil {
+		err = fmt.Errorf("looking up interpreter for %s: %s", fullPath, err)
+		Log(Error, fmt.Sprintf("Unable to call external plugin %s, no interpreter found: %s", fullPath, err))
+		errString = "There was a problem calling an external plugin"
+		emit(ScriptPluginBadInterpreter)
+		return MechanismFail
+	}
+	externalArgs := make([]string, 0, 5+len(args))
+	// on Windows, we exec the interpreter with the script as first arg
+	if runtime.GOOS == "windows" {
+		externalArgs = append(externalArgs, fullPath)
+	}
+	externalArgs = append(externalArgs, command)
+	externalArgs = append(externalArgs, args...)
+	externalArgs = fixInterpreterArgs(interpreter, externalArgs)
+	Log(Debug, fmt.Sprintf("Calling \"%s\" with interpreter \"%s\" and args: %q", fullPath, interpreter, externalArgs))
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command(interpreter, externalArgs...)
+	} else {
+		cmd = exec.Command(fullPath, externalArgs...)
+	}
+	cmd.Env = append(os.Environ(), []string{
+		fmt.Sprintf("GOPHER_CHANNEL=%s", bot.Channel),
+		fmt.Sprintf("GOPHER_USER=%s", bot.User),
+		fmt.Sprintf("GOPHER_CALLER_ID=%s", task.taskID),
+		fmt.Sprintf("GOPHER_PROTOCOL=%s", bot.Protocol),
+	}...)
+	// close stdout on the external plugin...
+	cmd.Stdout = nil
+	// but hold on to stderr in case we need to log an error
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		Log(Error, fmt.Errorf("Creating stderr pipe for external command \"%s\": %v", fullPath, err))
+		errString = fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", task.name)
+		return MechanismFail
+	}
+	if err = cmd.Start(); err != nil {
+		Log(Error, fmt.Errorf("Starting command \"%s\": %v", fullPath, err))
+		errString = fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", task.name)
+		return MechanismFail
+	}
+	if command != "init" {
+		emit(ScriptPluginRan)
+	}
+	var stdErrBytes []byte
+	if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
+		Log(Error, fmt.Errorf("Reading from stderr for external command \"%s\": %v", fullPath, err))
+		errString = fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", task.name)
+		return MechanismFail
+	}
+	stdErrString := string(stdErrBytes)
+	if len(stdErrString) > 0 {
+		Log(Warn, fmt.Errorf("Output from stderr of external command \"%s\": %s", fullPath, stdErrString))
+		errString = fmt.Sprintf("There was error output while calling external plugin \"%s\", you might want to ask an administrator to check the logs", task.name)
+		emit(ScriptPluginStderrOutput)
+	}
+	if err = cmd.Wait(); err != nil {
+		retval = Fail
+		success := false
+		if exitstatus, ok := err.(*exec.ExitError); ok {
+			if status, ok := exitstatus.Sys().(syscall.WaitStatus); ok {
+				retval = TaskRetVal(status.ExitStatus())
+				if retval == Success {
+					success = true
 				}
 			}
-			if !success {
-				Log(Error, fmt.Errorf("Waiting on external command \"%s\": %v", fullPath, err))
-				errString = fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", plugin.name)
-				emit(ScriptPluginErrExit)
-			}
+		}
+		if !success {
+			Log(Error, fmt.Errorf("Waiting on external command \"%s\": %v", fullPath, err))
+			errString = fmt.Sprintf("There were errors calling external plugin \"%s\", you might want to ask an administrator to check the logs", task.name)
+			emit(ScriptPluginErrExit)
 		}
 	}
 	return retval

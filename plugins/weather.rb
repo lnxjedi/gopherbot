@@ -34,7 +34,7 @@ when "configure"
 	puts defaultConfig
 	exit
 when "weather"
-    c = bot.GetPluginConfig()
+    c = bot.GetTaskConfig()
     c["APIKey"] = ENV["OWM_APIKEY"] if c["APIKey"].size == 0
     location = ARGV.shift()
     location += ",#{c["DefaultCountry"]}" unless location.include?(',')

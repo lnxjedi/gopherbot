@@ -22,7 +22,7 @@ type config struct {
 }
 
 // Define the handler function
-func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
+func lists(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
 	// Create an empty map to unmarshal into
 	if command == "init" { // ignore init
 		return
@@ -33,7 +33,7 @@ func lists(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal)
 	scope := &config{}
 
 	datumKey := datumName // default global
-	ret = r.GetPluginConfig(&scope)
+	ret = r.GetTaskConfig(&scope)
 	r.Log(bot.Debug, fmt.Sprintf("Retrieved lists config: %v", scope))
 	if ret == bot.Ok {
 		if strings.ToLower(scope.Scope) == "channel" {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 )
 
 // an empty object type for passing a Handler to the connector.
@@ -96,6 +97,16 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, prot
 		logChannel = "(direct message)"
 	}
 
+	currentTasks.RLock()
+	tasks := taskList{
+		currentTasks.t,
+		currentTasks.nameMap,
+		currentTasks.idMap,
+		sync.RWMutex{},
+	}
+	currentTasks.RUnlock()
+
+	// TODO: Rename Robot; BotContext?
 	// Create the Robot and a goroutine to process the message, which may
 	// eventually run a plugin.
 	bot := &Robot{
@@ -103,6 +114,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, prot
 		Channel:   channelName,
 		Protocol:  proto,
 		RawMsg:    raw,
+		tasks:     tasks,
 		isCommand: isCommand,
 		directMsg: directMsg,
 		msg:       message,

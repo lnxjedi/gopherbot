@@ -33,7 +33,7 @@ CatchAll: true
 `
 
 // Define the handler function
-func help(bot *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
+func help(bot *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
 	botName := bot.GetBotAttribute("name").String()
 	if command == "help" { // user just typed 'help' - the robot should introduce itself
 		botContact := bot.GetBotAttribute("contact").String()

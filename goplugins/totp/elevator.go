@@ -32,7 +32,7 @@ type config struct {
 
 var cfg config
 
-func checkOTP(r *bot.Robot, code string) (bool, bot.PlugRetVal) {
+func checkOTP(r *bot.Robot, code string) (bool, bot.TaskRetVal) {
 	var userOTP otp.OTPConfig
 	lock, exists, ret := r.CheckoutDatum(r.User, &userOTP, true)
 	if ret != bot.Ok {
@@ -57,7 +57,7 @@ func checkOTP(r *bot.Robot, code string) (bool, bot.PlugRetVal) {
 	return valid, bot.Success
 }
 
-func getcode(r *bot.Robot, immediate bool) (retval bot.PlugRetVal) {
+func getcode(r *bot.Robot, immediate bool) (retval bot.TaskRetVal) {
 	dm := ""
 	if r.Channel != "" {
 		dm = " - I'll message you directly"
@@ -88,7 +88,7 @@ func getcode(r *bot.Robot, immediate bool) (retval bot.PlugRetVal) {
 	return bot.Fail
 }
 
-func elevate(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVal) {
+func elevate(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
 	switch command {
 	case "send":
 		var userOTP otp.OTPConfig
@@ -140,7 +140,7 @@ func elevate(r *bot.Robot, command string, args ...string) (retval bot.PlugRetVa
 			immediate = true
 		}
 		cfg := &config{}
-		r.GetPluginConfig(&cfg)
+		r.GetTaskConfig(&cfg)
 		if cfg.TimeoutType == "absolute" {
 			cfg.tt = absolute
 		}

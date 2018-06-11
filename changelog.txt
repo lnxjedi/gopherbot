@@ -33,7 +33,7 @@
     return Interrupted after 3 RetryPrompt - so plugins shouldn't
     check for that value.
 
-  * [Breaking] Go plugins now return a PlugRetVal (integer), required
+  * [Breaking] Go plugins now return a TaskRetVal (integer), required
 
   * Added new type of plugin: Authorizer, for performing authorization
     decisions, using plugin return values

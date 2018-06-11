@@ -138,8 +138,8 @@ class Robot
         return $sarr[$i]
     }
 
-    [PSCustomObject] GetPluginConfig() {
-        return $this.Call("GetPluginConfig", $null)
+    [PSCustomObject] GetTaskConfig() {
+        return $this.Call("GetTaskConfig", $null)
     }
 
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs, [String] $format) {

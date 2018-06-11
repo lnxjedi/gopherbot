@@ -360,7 +360,7 @@ Config:
   - "I'll ruby you, but not right now - I'll wait 'til you're least expecting it..."
   - "Crap, sorry - all out of rubies"
 ```
-The `Config` directive provides a section of free-form yaml that the plugin can access via the `GetPluginConfig`
+The `Config` directive provides a section of free-form yaml that the plugin can access via the `GetTaskConfig`
 method. Examples of this can be seen in the included `plugins/rubydemo.rb`, `plugins/weather.rb`, `plugins/psdemo.ps1`, and `goplugins/knock/*`. This allows, for instance, configuring additional knock-knock jokes without modifying or
 recompiling the plugin, subject to the caveat that modifying the configuration means copying the entire
 `Config:` section to `conf/plugins/<plugginname>.yaml`.
