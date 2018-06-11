@@ -14,6 +14,26 @@ import (
 	"syscall"
 )
 
+// Global robot run number (incrementing int)
+var botRunID = struct {
+	idx int
+	sync.Mutex
+}{
+	rand.Int(),
+	sync.Mutex{},
+}
+
+// When a new Robot starts running a pipeline, give it a unique index
+func getBotID() int {
+	botRunID.Lock()
+	defer botRunID.Unlock()
+	botRunID.idx++
+	if botRunID.idx == 0 {
+		botRunID.idx = 1
+	}
+	return botRunID.idx
+}
+
 // Global persistent map of task run numbers (incrementing int)
 var taskRunIDs = struct {
 	m map[string]int
@@ -26,7 +46,7 @@ var taskRunIDs = struct {
 // getRunID uses taskRunIDs to track unique runs of each plugin, so httpd.go
 // can get a pointer back to the original Robot that initiated a particular
 // script.
-func getCallerID(string taskID) string {
+func getCallerID(taskID string) string {
 	taskRunIDs.Lock()
 	runNumber, ok := taskRunIDs.m[taskID]
 	if ok {
@@ -40,9 +60,10 @@ func getCallerID(string taskID) string {
 	return taskID + strconv.Itoa(runNumber)
 }
 
-// Global persistent map of Robots running, for Robot lookups in http.go
+// Global persistent maps of Robots running, for Robot lookups in http.go
 var activeRobots = struct {
 	m map[string]*Robot
+	i map[int]*Robot
 	sync.Mutex
 }{
 	make(map[string]*Robot),

@@ -209,11 +209,13 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	activeRobots.RLock()
 	bot, ok := activeRobots.m[f.CallerID]
 	activeRobots.RUnlock()
-	task, _, _ := currentTasks.getTaskByID(f.CallerID)
-	if task == nil {
+	if !ok {
 		rw.WriteHeader(http.StatusBadRequest)
 		Log(Error, fmt.Sprintf("JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs))
 		return
+	}
+	task, _, _ := currentTasks.getTaskByID(f.CallerID)
+	if task == nil {
 	}
 	Log(Trace, fmt.Sprintf("Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User))
 
