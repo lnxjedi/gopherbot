@@ -41,7 +41,7 @@ const (
 	GoPluginRan
 	ScriptPluginBadPath
 	ScriptPluginBadInterpreter
-	ScriptPluginRan
+	ScriptTaskRan
 	ScriptPluginStderrOutput
 	ScriptPluginErrExit
 )

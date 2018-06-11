@@ -31,17 +31,17 @@ func TestMemory(t *testing.T) {
 	test was failing. */
 
 	tests := []testItem{
-		{carol, random, ";remember slowly The Alamo", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
-		{alice, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "Ok, .*"}, {null, random, "committed to memory"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
-		{bob, random, "recall 1, Bender", []testc.TestMessage{{null, random, "Ferris Bueller"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
-		{carol, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "That's already one of my fondest memories"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
-		{david, random, "forget 1, Bender", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
+		{carol, random, ";remember slowly The Alamo", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandPluginRan, ScriptTaskRan}, 0},
+		{alice, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "Ok, .*"}, {null, random, "committed to memory"}}, []Event{CommandPluginRan, ScriptTaskRan}, 0},
+		{bob, random, "recall 1, Bender", []testc.TestMessage{{null, random, "Ferris Bueller"}}, []Event{CommandPluginRan, ScriptTaskRan}, 0},
+		{carol, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "That's already one of my fondest memories"}}, []Event{CommandPluginRan, ScriptTaskRan}, 0},
+		{david, random, "forget 1, Bender", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandPluginRan, ScriptTaskRan}, 0},
 		// Short-term memories are contextual to a user in a channel
-		{david, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, general, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
-		{david, general, ";store Ferris Bueller is a Righteous Dude", []testc.TestMessage{{null, general, "I'll remember .*"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
-		{david, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{null, general, "Ferris Bueller is a Righteous Dude"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
-		{carol, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{carol, general, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
-		{david, random, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, random, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptPluginRan}, 0},
+		{david, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, general, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptTaskRan}, 0},
+		{david, general, ";store Ferris Bueller is a Righteous Dude", []testc.TestMessage{{null, general, "I'll remember .*"}}, []Event{CommandPluginRan, ScriptTaskRan}, 0},
+		{david, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{null, general, "Ferris Bueller is a Righteous Dude"}}, []Event{CommandPluginRan, ScriptTaskRan}, 0},
+		{carol, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{carol, general, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptTaskRan}, 0},
+		{david, random, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, random, "Gosh, I have no idea .*"}}, []Event{CommandPluginRan, ScriptTaskRan}, 0},
 		{bob, general, "Bender, link news for nerds to https://slashdot.org", []testc.TestMessage{{null, general, "Link added"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
 		{bob, general, ";save https://slashdot.org", []testc.TestMessage{{null, general, "I already have that link"}, {bob, general, "Do you want .*"}}, []Event{CommandPluginRan, GoPluginRan}, 0},
 		{bob, general, "yes", []testc.TestMessage{{null, general, "Ok, I'll replace the old one"}, {bob, general, "What keywords or phrase .*"}}, []Event{}, 0},

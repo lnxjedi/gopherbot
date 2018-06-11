@@ -9,8 +9,6 @@ import (
 
 const keepListeningDuration = 77 * time.Second
 
-func (bot *Robot) startPipeline()
-
 // checkTaskMatchersAndRun checks either command matchers (for messages directed at
 // the robot), or message matchers (for ambient commands that need not be
 // directed at the robot), and calls the plugin if it matches. Note: this
@@ -162,6 +160,10 @@ func (bot *Robot) checkTaskMatchersAndRun(matcherType int) (messageMatched bool)
 		} else {
 			replies.Unlock()
 		}
+
+		// NOTE / TODO: These security checks should be moved to the loop in
+		// runPipeline, and we should return True regardless of the outcome of
+		// security checks.
 		// NOTE: if RequireAdmin is true, the user can't access the plugin at all if not an admin
 		if isPlugin && len(plugin.AdminCommands) > 0 {
 			adminRequired := false
@@ -191,7 +193,7 @@ func (bot *Robot) checkTaskMatchersAndRun(matcherType int) (messageMatched bool)
 			emit(AmbientPluginRan) // for testing, otherwise noop
 		}
 		bot.debug(task.taskID, fmt.Sprintf("Running plugin with command '%s' and arguments: %v", matcher.Command, cmdArgs), false)
-		ret := bot.callTask(runTask, true, true, matcher.Command, cmdArgs...)
+		ret := bot.runPipeline(runTask, matcher.Command, cmdArgs...)
 		bot.debug(task.taskID, fmt.Sprintf("Plugin finished with return value: %s", ret), false)
 	}
 	return
@@ -289,7 +291,7 @@ func (bot *Robot) handleMessage() {
 			if len(catchAllPlugins) > 1 {
 				bot.Log(Error, "More than one catch all registered, none will be called")
 			} else {
-				bot.callTask(catchAllPlugins[0], true, true, "catchall", bot.msg)
+				bot.runPipeline(catchAllPlugins[0], "catchall", bot.msg)
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins
