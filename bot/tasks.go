@@ -206,15 +206,12 @@ func initializePlugins() {
 	robot.Lock()
 	if !robot.shuttingDown {
 		robot.Unlock()
-		for _, task := range tasks {
-			var p *botPlugin
-			switch t := task.(type) {
-			case *botPlugin:
-				p = t
-			case *botJob:
+		for _, t := range tasks {
+			task, plugin, _ := getTask(t)
+			if plugin == nil {
 				continue
 			}
-			if p.Disabled {
+			if task.Disabled {
 				continue
 			}
 			bot := &Robot{
@@ -222,8 +219,8 @@ func initializePlugins() {
 				Channel: "",
 				Format:  Variable,
 			}
-			Log(Info, "Initializing plugin:", p.name)
-			callTask(bot, p, false, false, "init")
+			Log(Info, "Initializing plugin:", task.name)
+			bot.callTask("init")
 		}
 	} else {
 		robot.Unlock()

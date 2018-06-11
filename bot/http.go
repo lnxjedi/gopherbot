@@ -206,6 +206,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: This should do a lookup from a global hash of running plugins
+	activeRobots.RLock()
+	bot, ok := activeRobots.m[f.CallerID]
+	activeRobots.RUnlock()
 	task, _, _ := currentTasks.getTaskByID(f.CallerID)
 	if task == nil {
 		rw.WriteHeader(http.StatusBadRequest)

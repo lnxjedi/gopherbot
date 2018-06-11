@@ -160,41 +160,7 @@ func (bot *Robot) checkTaskMatchersAndRun(matcherType int) (messageMatched bool)
 		} else {
 			replies.Unlock()
 		}
-
-		// NOTE / TODO: These security checks should be moved to the loop in
-		// runPipeline, and we should return True regardless of the outcome of
-		// security checks.
-		// NOTE: if RequireAdmin is true, the user can't access the plugin at all if not an admin
-		if isPlugin && len(plugin.AdminCommands) > 0 {
-			adminRequired := false
-			for _, i := range plugin.AdminCommands {
-				if matcher.Command == i {
-					adminRequired = true
-					break
-				}
-			}
-			if adminRequired {
-				if !bot.CheckAdmin() {
-					bot.Say("Sorry, that command is only available to bot administrators")
-					return
-				}
-			}
-		}
-		if bot.checkAuthorization(runTask, matcher.Command, cmdArgs...) != Success {
-			return
-		}
-		if bot.checkElevation(runTask, matcher.Command) != Success {
-			return
-		}
-		switch matcherType {
-		case plugCommands:
-			emit(CommandPluginRan) // for testing, otherwise noop
-		case plugMessages:
-			emit(AmbientPluginRan) // for testing, otherwise noop
-		}
-		bot.debug(task.taskID, fmt.Sprintf("Running plugin with command '%s' and arguments: %v", matcher.Command, cmdArgs), false)
-		ret := bot.runPipeline(runTask, matcher.Command, cmdArgs...)
-		bot.debug(task.taskID, fmt.Sprintf("Plugin finished with return value: %s", ret), false)
+		bot.runPipeline(runTask, true, matcher.Command, cmdArgs...)
 	}
 	return
 }
@@ -279,6 +245,7 @@ func (bot *Robot) handleMessage() {
 		robot.RLock()
 		if !robot.shuttingDown {
 			robot.RUnlock()
+			bot.messageHeard()
 			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", bot.msg))
 			emit(CatchAllsRan) // for testing, otherwise noop
 			// TODO: should we allow more than 1 catchall?
@@ -291,7 +258,9 @@ func (bot *Robot) handleMessage() {
 			if len(catchAllPlugins) > 1 {
 				bot.Log(Error, "More than one catch all registered, none will be called")
 			} else {
-				bot.runPipeline(catchAllPlugins[0], "catchall", bot.msg)
+				// Note: if the catchall plugin has configured security, it
+				// should still apply.
+				bot.runPipeline(catchAllPlugins[0], true, "catchall", bot.msg)
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins

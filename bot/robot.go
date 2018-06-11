@@ -41,7 +41,8 @@ type Robot struct {
 	RawMsg         interface{}       // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
 	Format         MessageFormat     // The outgoing message format, one of Fixed or Variable
 	tasks          taskList          // Pointers to current task configuration at start of pipeline
-	callerID       string            // Pass the ID in for later identificaton of the calling plugin/job
+	currentTask    interface{}       // pointer to currently executing task
+	callerID       string            // taskID + run number
 	isCommand      bool              // Was the message directed at the robot, dm or by mention
 	directMsg      bool              // if the message was sent by DM
 	msg            string            // the message text sent

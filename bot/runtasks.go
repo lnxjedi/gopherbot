@@ -4,20 +4,58 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"regexp"
 	"runtime"
 	"strings"
+	"strconv"
 	"syscall"
 )
 
+// Global persistent map of task run numbers (incrementing int)
+var taskRunIDs = struct {
+	m map[string]int
+	sync.Mutex
+}{
+	make(map[string]int),
+	sync.Mutex{},
+}
+
+// getRunID uses taskRunIDs to track unique runs of each plugin, so httpd.go
+// can get a pointer back to the original Robot that initiated a particular
+// script.
+func getCallerID(string taskID) string {
+	taskRunIDs.Lock()
+	runNumber, ok := taskRunIDs.m[taskID]
+	if ok {
+		runNumber ++
+		taskRunIDs.m[taskID] = runNumber
+	} else {
+		runNumber = rand.int()
+		taskRunIDs.m[taskID] = runNumber
+	}
+	taskRunIDs.Unlock()
+	return taskID + strconv.Itoa(runNumber)
+}
+
+// Global persistent map of Robots running, for Robot lookups in http.go
+var activeRobots = struct {
+	m map[string]*Robot
+	sync.Mutex
+}{
+	make(map[string]*Robot),
+	sync.Mutex{},
+}
+
 // runPipeline is triggered by user commands, job triggers, and scheduled tasks.
-// Called from dispatch: checkTaskMatchersAndRun or scheduledTask
-func (bot *Robot) runPipeline(t interface{}, command string, args ...string) {
-	// TODO: Move security checks here; note: once security checks are tried,
-	// we should count as true for checkTaskMatchersAndRun
-	
+// Called from dispatch: checkTaskMatchersAndRun or scheduledTask. interactive
+// indicates whether a pipeline started from a user command - plugin match or
+// run job command.
+func (bot *Robot) runPipeline(t interface{}, interactive bool, command string, args ...string) {
+	task, plugin, _ := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
+
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	robot.Add(1)
 	robot.Lock()
@@ -32,26 +70,69 @@ func (bot *Robot) runPipeline(t interface{}, command string, args ...string) {
 		}
 		robot.Unlock()
 	}()
+	// TODO: set a Namespace value in the Robot
 	// add initial callerID:run# to global table with pointer to Robot
+	bot.callerID = getCallerID(task.taskID)
+	activeRobots.Lock()
+	activeRobots.m[bot.callerID] = bot
+	activeRobots.Unlock()
+	var errString string
+	var ret TaskRetVal
 	for {
-		// ... run the current task
+		// NOTE: if RequireAdmin is true, the user can't access the plugin at all if not an admin
+		if isPlugin && len(plugin.AdminCommands) > 0 {
+			adminRequired := false
+			for _, i := range plugin.AdminCommands {
+				if matcher.Command == i {
+					adminRequired = true
+					break
+				}
+			}
+			if adminRequired {
+				if !bot.CheckAdmin() {
+					bot.Say("Sorry, that command is only available to bot administrators")
+					return
+				}
+			}
+		}
+		if bot.checkAuthorization(runTask, matcher.Command, cmdArgs...) != Success {
+			return
+		}
+		if bot.checkElevation(runTask, matcher.Command) != Success {
+			return
+		}
+		switch matcherType {
+		case plugCommands:
+			emit(CommandPluginRan) // for testing, otherwise noop
+		case plugMessages:
+			emit(AmbientPluginRan) // for testing, otherwise noop
+		}
+		bot.debug(task.taskID, fmt.Sprintf("Running plugin with command '%s' and arguments: %v", matcher.Command, cmdArgs), false)
+		errString, ret = bot.callTask(t, command, args...)
+		//ret := bot.runPipeline(runTask, matcher.Command, cmdArgs...)
+		bot.debug(task.taskID, fmt.Sprintf("Plugin finished with return value: %s", ret), false)
 
-		// while holding global table lock, remove old callerID:run# and
-		// add callerID:run# for next task in the pipeline
+		if ret != Ok {
+			if interactive && errString != "" {
+				bot.Reply(errString)
+			}
+			break
+		}
+		// TODO: later, look for more tasks added to the Robot by addTask
+		break
+		// while holding the activeRobots lock, remove old callerID:run# and
+		// add callerID:run# for next task in the pipeline; update bot.currentTask
 	}
 	// defer func() {
 	// 	if interactive && errString != "" {
 	// 		bot.Reply(errString)
 	// 	}
 	// }()
-	// NOTE: runPipeline is called from checkTaskMatchersAndRun - so we have to
-	// return true if any plugins ran, so that handleMessage won't continue
-	// looking for something to run.
-	return true
 }
 
 // callTask does the real work of running a job or plugin with a command and arguments.
 func (bot *Robot) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
+	bot.currentTask = t
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	// This should only happen in the rare case that a configured authorizer or elevator is disabled
@@ -65,7 +146,6 @@ func (bot *Robot) callTask(t interface{}, command string, args ...string) (errSt
 		defer checkPanic(bot, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
 	}
 	Log(Debug, fmt.Sprintf("Dispatching command '%s' to plugin '%s' with arguments '%#v'", command, task.name, args))
-	bot.callerID = task.taskID
 	if isPlugin && plugin.pluginType == plugGo {
 		if command != "init" {
 			emit(GoPluginRan)
@@ -86,7 +166,7 @@ func (bot *Robot) callTask(t interface{}, command string, args ...string) (errSt
 		Log(Error, fmt.Sprintf("Unable to call external plugin %s, no interpreter found: %s", fullPath, err))
 		errString = "There was a problem calling an external plugin"
 		emit(ScriptPluginBadInterpreter)
-		return MechanismFail
+		return errString, MechanismFail
 	}
 	externalArgs := make([]string, 0, 5+len(args))
 	// on Windows, we exec the interpreter with the script as first arg
@@ -135,7 +215,7 @@ func (bot *Robot) callTask(t interface{}, command string, args ...string) (errSt
 	stdErrString := string(stdErrBytes)
 	if len(stdErrString) > 0 {
 		Log(Warn, fmt.Errorf("Output from stderr of external command '%s': %s", fullPath, stdErrString))
-		errString = fmt.Sprintf("There was error output while calling external plugin '%s', you might want to ask an administrator to check the logs", task.name)
+		errString = fmt.Sprintf("There was error output while calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 		emit(ScriptPluginStderrOutput)
 	}
 	if err = cmd.Wait(); err != nil {
