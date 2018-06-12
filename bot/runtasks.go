@@ -4,13 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/exec"
 	"regexp"
 	"runtime"
 	"strings"
-	"strconv"
 	"syscall"
 )
 
@@ -18,10 +16,11 @@ import (
 // Called from dispatch: checkTaskMatchersAndRun or scheduledTask. interactive
 // indicates whether a pipeline started from a user command - plugin match or
 // run job command.
-func (bot *botContext) runPipeline(t interface{}, interactive bool, command string, args ...string) {
+func (bot *botContext) runPipeline(t interface{}, interactive bool, matcher *InputMatcher, args ...string) {
 	task, plugin, _ := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
-
+	isPlugin := plugin != nil
 	bot.registerActive()
+	r := bot.makeRobot()
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	robot.Add(1)
 	robot.Lock()
@@ -36,12 +35,6 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, command stri
 		}
 		robot.Unlock()
 	}()
-	// TODO: set a Namespace value in the Robot
-	// add initial callerID:run# to global table with pointer to Robot
-	bot.callerID = getCallerID(task.taskID)
-	activeRobots.Lock()
-	activeRobots.m[bot.callerID] = bot
-	activeRobots.Unlock()
 	var errString string
 	var ret TaskRetVal
 	for {
@@ -55,35 +48,35 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, command stri
 				}
 			}
 			if adminRequired {
-				if !bot.CheckAdmin() {
-					bot.Say("Sorry, that command is only available to bot administrators")
+				if !r.CheckAdmin() {
+					r.Say("Sorry, that command is only available to bot administrators")
 					ret = Fail
 					break
 				}
 			}
 		}
-		if bot.checkAuthorization(runTask, matcher.Command, cmdArgs...) != Success {
+		if bot.checkAuthorization(task, matcher.Command, args...) != Success {
 			ret = Fail
 			break
 		}
-		if bot.checkElevation(runTask, matcher.Command) != Success {
+		if bot.checkElevation(task, matcher.Command) != Success {
 			ret = Fail
 			break
 		}
-		switch matcherType {
+		switch matcher.matcherType {
 		case plugCommands:
 			emit(CommandPluginRan) // for testing, otherwise noop
 		case plugMessages:
 			emit(AmbientPluginRan) // for testing, otherwise noop
 		}
-		bot.debug(task.taskID, fmt.Sprintf("Running plugin with command '%s' and arguments: %v", matcher.Command, cmdArgs), false)
-		errString, ret = bot.callTask(t, command, args...)
+		bot.debug(fmt.Sprintf("Running plugin with command '%s' and arguments: %v", matcher.Command, args), false)
+		errString, ret = bot.callTask(t, matcher.Command, args...)
 		//ret := bot.runPipeline(runTask, matcher.Command, cmdArgs...)
-		bot.debug(task.taskID, fmt.Sprintf("Plugin finished with return value: %s", ret), false)
+		bot.debug(fmt.Sprintf("Plugin finished with return value: %s", ret), false)
 
-		if ret != Ok {
+		if ret != Normal {
 			if interactive && errString != "" {
-				bot.Reply(errString)
+				r.Reply(errString)
 			}
 			break
 		}
@@ -103,17 +96,18 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, command stri
 // callTask does the real work of running a job or plugin with a command and arguments.
 func (bot *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
 	bot.currentTask = t
+	r := bot.makeRobot()
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	// This should only happen in the rare case that a configured authorizer or elevator is disabled
 	if task.Disabled {
 		msg := fmt.Sprintf("callTask failed on disabled task %s; reason: %s", task.name, task.reason)
-		bot.Log(Error, msg)
-		bot.debug(bot.currentTask.taskID, msg, false)
-		return ConfigurationError
+		Log(Error, msg)
+		bot.debug(msg, false)
+		return msg, ConfigurationError
 	}
 	if !(task.name == "builtInadmin" && command == "abort") {
-		defer checkPanic(bot, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
+		defer checkPanic(r, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
 	}
 	Log(Debug, fmt.Sprintf("Dispatching command '%s' to plugin '%s' with arguments '%#v'", command, task.name, args))
 	if isPlugin && plugin.pluginType == plugGo {
@@ -121,14 +115,14 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 			emit(GoPluginRan)
 		}
 		Log(Debug, fmt.Sprintf("Call go plugin: '%s' with args: %q", task.name, args))
-		return pluginHandlers[task.name].Handler(bot, command, args...)
+		return "", pluginHandlers[task.name].Handler(r, command, args...)
 	}
 	var fullPath string // full path to the executable
 	var err error
 	fullPath, err = getTaskPath(task)
 	if err != nil {
 		emit(ScriptPluginBadPath)
-		return MechanismFail
+		return fmt.Sprintf("Error getting path for %s: %v", task.name, err), MechanismFail
 	}
 	interpreter, err := getInterpreter(fullPath)
 	if err != nil {

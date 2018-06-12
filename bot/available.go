@@ -2,6 +2,8 @@ package bot
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
 )
 
 // taskAvailable checks the user and channel against the task's
@@ -9,7 +11,7 @@ import (
 // both handleMessage and the help builtin. verboseOnly is set when availability
 // is being checked for ambient messages or auth/elevation plugins, to indicate
 // debugging verboseness.
-func (r *Robot) taskAvailable(task *botTask, helpSystem, verboseOnly bool) (available bool) {
+func (r *botContext) taskAvailable(task *botTask, helpSystem, verboseOnly bool) (available bool) {
 	nvmsg := "task is NOT visible to user " + r.User + " in channel "
 	vmsg := "task is visible to user " + r.User + " in channel "
 	if r.directMsg {
@@ -21,19 +23,19 @@ func (r *Robot) taskAvailable(task *botTask, helpSystem, verboseOnly bool) (avai
 	}
 	defer func(vmsg string) {
 		if available {
-			r.debug(task.taskID, vmsg, verboseOnly)
+			r.debug(vmsg, verboseOnly)
 		}
 	}(vmsg)
 	if task.Disabled {
-		r.debug(task.taskID, nvmsg+"; task is disabled, possibly due to configuration error", verboseOnly)
+		r.debug(nvmsg+"; task is disabled, possibly due to configuration error", verboseOnly)
 		return false
 	}
 	if !r.directMsg && task.DirectOnly && !helpSystem {
-		r.debug(task.taskID, nvmsg+"; only available by direct message: DirectOnly is TRUE", verboseOnly)
+		r.debug(nvmsg+"; only available by direct message: DirectOnly is TRUE", verboseOnly)
 		return false
 	}
 	if r.directMsg && !task.AllowDirect && !helpSystem {
-		r.debug(task.taskID, nvmsg+"; not available by direct message: AllowDirect is FALSE", verboseOnly)
+		r.debug(nvmsg+"; not available by direct message: AllowDirect is FALSE", verboseOnly)
 		return false
 	}
 	if task.RequireAdmin {
@@ -47,7 +49,7 @@ func (r *Robot) taskAvailable(task *botTask, helpSystem, verboseOnly bool) (avai
 		}
 		robot.RUnlock()
 		if !isAdmin {
-			r.debug(task.taskID, nvmsg+"; RequireAdmin is TRUE and user isn't an Admin", verboseOnly)
+			r.debug(nvmsg+"; RequireAdmin is TRUE and user isn't an Admin", verboseOnly)
 			return false
 		}
 	}
@@ -60,7 +62,7 @@ func (r *Robot) taskAvailable(task *botTask, helpSystem, verboseOnly bool) (avai
 			}
 		}
 		if !userOk {
-			r.debug(task.taskID, nvmsg+"; user is not on the list of allowed users", verboseOnly)
+			r.debug(nvmsg+"; user is not on the list of allowed users", verboseOnly)
 			return false
 		}
 	}
@@ -81,6 +83,6 @@ func (r *Robot) taskAvailable(task *botTask, helpSystem, verboseOnly bool) (avai
 	if helpSystem {
 		return true
 	}
-	r.debug(task.taskID, fmt.Sprintf(nvmsg+"; channel '%s' is not on the list of allowed channels: %s", r.Channel, strings.Join(task.Channels, ", ")), verboseOnly)
+	r.debug(fmt.Sprintf(nvmsg+"; channel '%s' is not on the list of allowed channels: %s", r.Channel, strings.Join(task.Channels, ", ")), verboseOnly)
 	return false
 }

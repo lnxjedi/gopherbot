@@ -33,9 +33,9 @@ var taskNameIDmap = struct {
 }
 
 type taskList struct {
-	t       *[]interface{}
-	nameMap *map[string]int
-	idMap   *map[string]int
+	t       []interface{}
+	nameMap map[string]int
+	idMap   map[string]int
 	sync.RWMutex
 }
 
@@ -88,7 +88,7 @@ func (tl *taskList) getTaskByID(id string) (*botTask, *botPlugin, *botJob) {
 }
 
 func getPlugin(t interface{}) *botPlugin {
-	p, ok := t.(botPlugin)
+	p, ok := t.(*botPlugin)
 	if ok {
 		return p
 	}
@@ -96,7 +96,7 @@ func getPlugin(t interface{}) *botPlugin {
 }
 
 func getJob(t interface{}) *botJob {
-	j, ok := t.(botJob)
+	j, ok := t.(*botJob)
 	if ok {
 		return j
 	}
@@ -120,15 +120,25 @@ type PluginHelp struct {
 	Helptext []string // help string to give for the keywords, conventionally starting with (bot) for commands or (hear) when the bot needn't be addressed directly
 }
 
+type matcherType int
+
+const (
+	plugCommands matcherType = iota
+	plugMessages
+	jobTriggers
+	runJob
+)
+
 // InputMatcher specifies the command or message to match for a plugin, or user and message to trigger a job
 type InputMatcher struct {
-	Regex      string         // The regular expression string to match - bot adds ^\w* & \w*$
-	Command    string         // The name of the command to pass to the plugin with it's arguments
-	Label      string         // ReplyMatchers use "Label" instead of "Command"
-	Contexts   []string       // label the contexts corresponding to capture groups, for supporting "it" & optional args
-	User       string         // jobs only; user that can trigger this job, normally git-activated webhook or integration
-	Parameters []string       // jobs only; names of parameters (environment vars) where regex matches are stored, in order of capture groups
-	re         *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
+	Regex       string         // The regular expression string to match - bot adds ^\w* & \w*$
+	Command     string         // The name of the command to pass to the plugin with it's arguments
+	Label       string         // ReplyMatchers use "Label" instead of "Command"
+	Contexts    []string       // label the contexts corresponding to capture groups, for supporting "it" & optional args
+	User        string         // jobs only; user that can trigger this job, normally git-activated webhook or integration
+	Parameters  []string       // jobs only; names of parameters (environment vars) where regex matches are stored, in order of capture groups
+	re          *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
+	matcherType matcherType    // What kind of message matched
 }
 
 type plugType int
@@ -273,7 +283,7 @@ func getTaskID(plug string) string {
 	// Generate a random id
 	p := make([]byte, 16)
 	rand.Read(p)
-	plugID = fmt.Sprintf("%x", p)
+	taskID = fmt.Sprintf("%x", p)
 	taskNameIDmap.m[plug] = taskID
 	taskNameIDmap.Unlock()
 	return taskID

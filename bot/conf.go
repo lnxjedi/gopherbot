@@ -53,7 +53,7 @@ var config *botconf
 // if set.
 
 // Required indicates whether to return an error if neither file is found.
-func (r *Robot) getConfigFile(filename, callerID string, required bool, jsonMap map[string]json.RawMessage) error {
+func (r *botContext) getConfigFile(filename, callerID string, required bool, jsonMap map[string]json.RawMessage) error {
 	var (
 		cf           []byte
 		err, realerr error
@@ -71,7 +71,7 @@ func (r *Robot) getConfigFile(filename, callerID string, required bool, jsonMap 
 	path = installPath + "/conf/" + filename
 	cf, err = ioutil.ReadFile(path)
 	if err == nil {
-		r.debug(callerID, fmt.Sprintf("Loaded configuration from installPath (%s), size: %d", path, len(cf)), false)
+		r.debug(fmt.Sprintf("Loaded configuration from installPath (%s), size: %d", path, len(cf)), false)
 		if err = yaml.Unmarshal(cf, &loader); err != nil {
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
 			Log(Error, err)
@@ -79,7 +79,7 @@ func (r *Robot) getConfigFile(filename, callerID string, required bool, jsonMap 
 		}
 		if len(loader) == 0 {
 			msg := fmt.Sprintf("Empty config hash loading %s", path)
-			r.debug(callerID, msg, false)
+			r.debug(msg, false)
 			Log(Error, msg)
 		} else {
 			for key, value := range loader {
@@ -89,7 +89,7 @@ func (r *Robot) getConfigFile(filename, callerID string, required bool, jsonMap 
 			loaded = true
 		}
 	} else {
-		r.debug(callerID, fmt.Sprintf("No configuration loaded from installPath (%s): %v", path, err), false)
+		r.debug(fmt.Sprintf("No configuration loaded from installPath (%s): %v", path, err), false)
 		realerr = err
 	}
 	if len(configPath) > 0 {
@@ -97,7 +97,7 @@ func (r *Robot) getConfigFile(filename, callerID string, required bool, jsonMap 
 		path = configPath + "/conf/" + filename
 		cf, err = ioutil.ReadFile(path)
 		if err == nil {
-			r.debug(callerID, fmt.Sprintf("Loaded configuration from configPath (%s), size: %d", path, len(cf)), false)
+			r.debug(fmt.Sprintf("Loaded configuration from configPath (%s), size: %d", path, len(cf)), false)
 			if err = yaml.Unmarshal(cf, &loader); err != nil {
 				err = fmt.Errorf("Unmarshalling configured \"%s\": %v", filename, err)
 				Log(Error, err)
@@ -105,7 +105,7 @@ func (r *Robot) getConfigFile(filename, callerID string, required bool, jsonMap 
 			}
 			if len(loader) == 0 {
 				msg := fmt.Sprintf("Empty config hash loading %s", path)
-				r.debug(callerID, msg, false)
+				r.debug(msg, false)
 				Log(Error, msg)
 			} else {
 				for key, value := range loader {
@@ -115,7 +115,7 @@ func (r *Robot) getConfigFile(filename, callerID string, required bool, jsonMap 
 				loaded = true
 			}
 		} else {
-			r.debug(callerID, fmt.Sprintf("No configuration loaded from configPath (%s): %v", path, err), false)
+			r.debug(fmt.Sprintf("No configuration loaded from configPath (%s): %v", path, err), false)
 			realerr = err
 		}
 	}
@@ -126,7 +126,7 @@ func (r *Robot) getConfigFile(filename, callerID string, required bool, jsonMap 
 }
 
 // loadConfig loads the 'bot's json configuration files.
-func (r *Robot) loadConfig() error {
+func (r *botContext) loadConfig() error {
 	var loglevel LogLevel
 	newconfig := &botconf{}
 	configload := make(map[string]json.RawMessage)
@@ -259,7 +259,7 @@ func (r *Robot) loadConfig() error {
 	if len(newconfig.DefaultMessageFormat) == 0 {
 		robot.defaultMessageFormat = Raw
 	} else {
-		robot.defaultMessageFormat = r.setFormat(newconfig.DefaultMessageFormat)
+		robot.defaultMessageFormat = r.makeRobot().setFormat(newconfig.DefaultMessageFormat)
 	}
 
 	if newconfig.ProtocolConfig != nil {

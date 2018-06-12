@@ -205,15 +205,29 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bot := getRobot(f.CallerID)
-	if bot == nil {
+	// Look up the botContext
+	c := getBotContextStr(f.CallerID)
+	if c == nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		Log(Error, fmt.Sprintf("JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs))
 		return
 	}
-	task, _, _ := currentTasks.getTaskByID(f.CallerID)
-	if task == nil {
+	// Generate a synthetic Robot for access to it's methods
+	bot := Robot{
+		User:     f.User,
+		Channel:  f.Channel,
+		Protocol: setProtocol(f.Protocol),
+		RawMsg:   c.RawMsg,
+		id:       c.id,
 	}
+	if len(f.Format) > 0 {
+		bot.Format = bot.setFormat(f.Format)
+	} else {
+		robot.RLock()
+		bot.Format = robot.defaultMessageFormat
+		robot.RUnlock()
+	}
+	task, _, _ := getTask(c.currentTask)
 	Log(Trace, fmt.Sprintf("Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User))
 
 	if len(f.Format) > 0 {

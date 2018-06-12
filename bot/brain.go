@@ -109,12 +109,12 @@ var brainChanEvents = make(chan brainOp)
 const memCycle = time.Second
 
 func replyToWaiter(m *memstatus) {
-	cr := m.waiters[0]
+	creq := m.waiters[0]
 	m.waiters = m.waiters[1:]
-	lt, d, e, r := getDatum(cr.key, true)
+	lt, d, e, r := getDatum(creq.key, true)
 	m.state = newMemory
 	m.token = lt
-	cr.reply <- checkOutReply{lt, d, e, r}
+	creq.reply <- checkOutReply{lt, d, e, r}
 }
 
 func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists bool, ret RetVal) {
@@ -179,40 +179,40 @@ loop:
 		case evt := <-brainChanEvents:
 			switch evt.opType {
 			case checkOutBytes:
-				cr := evt.opData.(checkOutRequest)
-				memStat, exists := memories[cr.key]
+				creq := evt.opData.(checkOutRequest)
+				memStat, exists := memories[creq.key]
 				if !exists {
-					lt, d, e, r := getDatum(cr.key, cr.rw)
+					lt, d, e, r := getDatum(creq.key, creq.rw)
 					if r != Ok {
-						cr.reply <- checkOutReply{lt, d, e, r}
+						creq.reply <- checkOutReply{lt, d, e, r}
 						break
 					}
-					if cr.rw {
+					if creq.rw {
 						m := &memstatus{
 							newMemory,
 							lt,
 							make([]checkOutRequest, 0, 2),
 						}
-						memories[cr.key] = m
+						memories[creq.key] = m
 					}
-					cr.reply <- checkOutReply{lt, d, e, r}
+					creq.reply <- checkOutReply{lt, d, e, r}
 					break
 				}
-				if !cr.rw {
-					lt, d, e, r := getDatum(cr.key, cr.rw)
-					cr.reply <- checkOutReply{lt, d, e, r}
+				if !creq.rw {
+					lt, d, e, r := getDatum(creq.key, creq.rw)
+					creq.reply <- checkOutReply{lt, d, e, r}
 					break
 				} // read-write request below
 				// if state is available, there are no waiters
 				if memStat.state == available {
-					lt, d, e, r := getDatum(cr.key, cr.rw)
+					lt, d, e, r := getDatum(creq.key, creq.rw)
 					memStat.state = newMemory
 					memStat.token = lt // this memory has a new owner now
-					memories[cr.key] = memStat
-					cr.reply <- checkOutReply{lt, d, e, r}
+					memories[creq.key] = memStat
+					creq.reply <- checkOutReply{lt, d, e, r}
 				} else {
-					memStat.waiters = append(memStat.waiters, cr)
-					memories[cr.key] = memStat
+					memStat.waiters = append(memStat.waiters, creq)
+					memories[creq.key] = memStat
 				}
 			case checkInBytes:
 				ci := evt.opData.(checkInRequest)
@@ -295,12 +295,12 @@ func checkout(d string, rw bool) (string, *[]byte, bool, RetVal) {
 		return "", nil, false, InvalidDatumKey
 	}
 	reply := make(chan checkOutReply)
-	cr := checkOutRequest{d, rw, reply}
-	brainChanEvents <- brainOp{checkOutBytes, cr}
-	r := <-reply
+	creq := checkOutRequest{d, rw, reply}
+	brainChanEvents <- brainOp{checkOutBytes, creq}
+	rep := <-reply
 	Log(Trace, fmt.Sprintf("Brain datum checkout for %s, rw: %t - token: %s, exists: %t, ret: %d",
-		d, rw, r.token, r.exists, r.retval))
-	return r.token, r.bytes, r.exists, r.retval
+		d, rw, rep.token, rep.exists, rep.retval))
+	return rep.token, rep.bytes, rep.exists, rep.retval
 }
 
 // update sends updated []byte to the brain while holding the lock, or discards
@@ -358,7 +358,8 @@ func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 // return indicates whether the datum exists.
 // TODO: use namespace if available
 func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal) {
-	task, _, _ := r.tasks.getTaskByID(r.currentTask.taskID)
+	c := r.getContext()
+	task, _, _ := getTask(c.currentTask)
 	key = task.name + ":" + key
 	return checkoutDatum(key, datum, rw)
 }
@@ -366,10 +367,11 @@ func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken
 // CheckinDatum unlocks a datum without updating it, it always succeeds
 // TODO: use namespace if available
 func (r *Robot) CheckinDatum(key, locktoken string) {
+	c := r.getContext()
 	if locktoken == "" {
 		return
 	}
-	task, _, _ := r.tasks.getTaskByID(r.currentTask.taskID)
+	task, _, _ := getTask(c.currentTask)
 	key = task.name + ":" + key
 	checkinDatum(key, locktoken)
 }
@@ -379,7 +381,8 @@ func (r *Robot) CheckinDatum(key, locktoken string) {
 // update failed.
 // TODO: use namespace if available
 func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
-	task, _, _ := r.tasks.getTaskByID(r.currentTask.taskID)
+	c := r.getContext()
+	task, _, _ := getTask(c.currentTask)
 	key = task.name + ":" + key
 	return updateDatum(key, locktoken, datum)
 }

@@ -82,14 +82,15 @@ func help(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 		}
 
 		helpLines := make([]string, 0, tooLong)
-		for _, t := range *bot.tasks.t {
+		c := bot.getContext()
+		for _, t := range c.tasks.t {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
 				continue
 			}
 			// If a keyword was supplied, give help for all matching commands with channels;
 			// without a keyword, show help for all commands available in the channel.
-			if !bot.taskAvailable(task, hasKeyword, true) {
+			if !bot.getContext().taskAvailable(task, hasKeyword, true) {
 				continue
 			}
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
@@ -186,7 +187,8 @@ func dump(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 			bot.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], plug.DefaultConfig))
 		} else { // look for an external plugin
 			found := false
-			for _, t := range *bot.tasks.t {
+			c := bot.getContext()
+			for _, t := range c.tasks.t {
 				task, plugin, _ := getTask(t)
 				if args[0] == task.name {
 					if plugin == nil {
@@ -209,7 +211,8 @@ func dump(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 		}
 	case "plugin":
 		found := false
-		for _, t := range *bot.tasks.t {
+		c := bot.getContext()
+		for _, t := range c.tasks.t {
 			task, plugin, _ := getTask(t)
 			if args[0] == task.name {
 				if plugin == nil {
@@ -233,8 +236,9 @@ func dump(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 			joiner = "\n"
 			message = "Here's a list of all disabled plugins:\n%s"
 		}
-		plist := make([]string, 0, len(*bot.tasks.t))
-		for _, t := range *bot.tasks.t {
+		c := bot.getContext()
+		plist := make([]string, 0, len(c.tasks.t))
+		for _, t := range c.tasks.t {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
 				continue
@@ -307,7 +311,7 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 	}
 	switch command {
 	case "reload":
-		err := bot.loadConfig()
+		err := bot.getContext().loadConfig()
 		if err != nil {
 			bot.Reply("Error encountered during reload, check the logs")
 			Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))
@@ -327,7 +331,8 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 			bot.Say(fmt.Sprintf("Invalid plugin name '%s', doesn't match regexp: '%s' (plugin can't load)", pname, taskNameRe.String()))
 			return
 		}
-		task, plugin, _ := bot.tasks.getTaskByName(pname)
+		c := bot.getContext()
+		_, plugin, _ := c.tasks.getTaskByName(pname)
 		if plugin == nil {
 			bot.Say("I don't have any plugins with that name configured")
 			return
@@ -342,10 +347,10 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 		}
 		Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", pname, plugin.taskID, verbose))
 		pd := &debuggingPlug{
-			callerID: plugin.taskID,
-			name:     pname,
-			user:     bot.User,
-			verbose:  verbose,
+			taskID:  plugin.taskID,
+			name:    pname,
+			user:    bot.User,
+			verbose: verbose,
 		}
 		plugDebug.Lock()
 		plugDebug.p[plugin.taskID] = pd
@@ -356,7 +361,7 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 		plugDebug.Lock()
 		pd, ok := plugDebug.u[bot.User]
 		if ok {
-			delete(plugDebug.p, pd.callerID)
+			delete(plugDebug.p, pd.taskID)
 			delete(plugDebug.u, bot.User)
 		}
 		plugDebug.Unlock()

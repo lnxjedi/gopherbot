@@ -1,9 +1,9 @@
 package bot
 
 import (
-	"fmt"
-	"rand"
+	"math/rand"
 	"strconv"
+	"sync"
 )
 
 /* robot.go - internal methods on the Robot object */
@@ -19,21 +19,31 @@ var botRunID = struct {
 
 // Global persistent maps of Robots running, for Robot lookups in http.go
 var activeRobots = struct {
-	i map[int]*Robot
-	sync.Mutex
+	i map[int]*botContext
+	sync.RWMutex
 }{
-	make(map[int]*Robot),
-	sync.Mutex{},
+	make(map[int]*botContext),
+	sync.RWMutex{},
 }
 
-// getRobot is used to look up a robot in httpd.go, so we do the string
-// conversion here. Note that 0 is never a valid bot id, and this will return
-// nil for any failures.
-func getRobot(id string) *botContext {
+// getBotContextStr is used to look up a botContext in httpd.go, so we do the
+// string conversion here. Note that 0 is never a valid bot id, and this will
+// return nil for any failures.
+func getBotContextStr(id string) *botContext {
 	idx, _ := strconv.Atoi(id)
 	activeRobots.RLock()
 	bot, _ := activeRobots.i[idx]
 	activeRobots.RUnlock()
+	return bot
+}
+
+// getBotContextInt is used to look up a botContext from a Robot in when needed.
+// Note that 0 is never a valid bot id, and this will return nil in that case.
+func getBotContextInt(idx int) *botContext {
+	activeRobots.RLock()
+	bot, _ := activeRobots.i[idx]
+	activeRobots.RUnlock()
+	return bot
 }
 
 // Assign a bot run number and register it in the global hash of running
@@ -56,6 +66,21 @@ func (bot *botContext) deregister() {
 	activeRobots.Lock()
 	delete(activeRobots.i, bot.id)
 	activeRobots.Unlock()
+}
+
+// makeRobot returns
+func (bot *botContext) makeRobot() *Robot {
+	robot.RLock()
+	format := robot.defaultMessageFormat
+	robot.RUnlock()
+	return &Robot{
+		User:     bot.User,
+		Channel:  bot.Channel,
+		Protocol: bot.Protocol,
+		RawMsg:   bot.RawMsg,
+		Format:   format,
+		id:       bot.id,
+	}
 }
 
 // botContext is created for each incoming message, in a separate goroutine that

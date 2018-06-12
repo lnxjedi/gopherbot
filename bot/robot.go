@@ -45,6 +45,11 @@ type Robot struct {
 /* robot_methods.go defines some convenience functions on struct Robot to
    simplify use by plugins. */
 
+// getContext returns the botContext for a given Robot
+func (r *Robot) getContext() *botContext {
+	return getBotContextInt(r.id)
+}
+
 // CheckAdmin returns true if the user is a configured administrator of the
 // robot. Should be used sparingly, when a single plugin has multiple commands,
 // some which require admin. Otherwise the plugin should just configure
@@ -66,11 +71,9 @@ func (r *Robot) CheckAdmin() bool {
 // the elevator should always prompt for 2fa; otherwise a configured timeout
 // should apply.
 func (r *Robot) Elevate(immediate bool) bool {
-	currentTasks.RLock()
-	plugins := currentTasks.p
-	plugin := plugins[currentTasks.idMap[r.callerID]]
-	currentTasks.RUnlock()
-	retval := r.elevate(plugins, plugin, immediate)
+	c := r.getContext()
+	task, _, _ := getTask(c.currentTask)
+	retval := c.elevate(task, immediate)
 	if retval == Success {
 		return true
 	}
@@ -219,26 +222,27 @@ and call GetTaskConfig with a double-pointer:
 ... And voila! *pConf is populated with the contents from the configured Config: stanza
 */
 func (r *Robot) GetTaskConfig(dptr interface{}) RetVal {
-	plugin := currentTasks.getTaskByID(r.callerID)
-	if plugin.config == nil {
-		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetTaskConfig, but no config was found.", plugin.name))
+	c := r.getContext()
+	task, _, _ := getTask(c.currentTask)
+	if task.config == nil {
+		Log(Debug, fmt.Sprintf("Task \"%s\" called GetTaskConfig, but no config was found.", task.name))
 		return NoConfigFound
 	}
 	tp := reflect.ValueOf(dptr)
 	if tp.Kind() != reflect.Ptr {
-		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", plugin.name))
+		Log(Debug, fmt.Sprintf("Task \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", task.name))
 		return InvalidDblPtr
 	}
 	p := reflect.Indirect(tp)
 	if p.Kind() != reflect.Ptr {
-		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", plugin.name))
+		Log(Debug, fmt.Sprintf("Task \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", task.name))
 		return InvalidDblPtr
 	}
-	if p.Type() != reflect.ValueOf(plugin.config).Type() {
-		Log(Debug, fmt.Sprintf("Plugin \"%s\" called GetTaskConfig with an invalid double-pointer", plugin.name))
+	if p.Type() != reflect.ValueOf(task.config).Type() {
+		Log(Debug, fmt.Sprintf("Task \"%s\" called GetTaskConfig with an invalid double-pointer", task.name))
 		return InvalidCfgStruct
 	}
-	p.Set(reflect.ValueOf(plugin.config))
+	p.Set(reflect.ValueOf(task.config))
 	return Ok
 }
 

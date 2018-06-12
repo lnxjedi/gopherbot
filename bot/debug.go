@@ -34,7 +34,8 @@ func (r *botContext) debug(msg string, verboseonly bool) {
 	if r.currentTask == nil {
 		taskID = ""
 	} else {
-		taskID := r.currentTask.taskID
+		task, _, _ := getTask(r.currentTask)
+		taskID = task.taskID
 	}
 	if len(taskID) == 0 && len(r.User) == 0 {
 		return
@@ -96,9 +97,10 @@ func (r *botContext) debug(msg string, verboseonly bool) {
 	ts := time.Now().Format("2006/01/02 03:04:05")
 	debugLog := fmt.Sprintf("%s DEBUG %s: %s", ts, plugName, msg)
 	// Since Format isn't set right away, we always debug with the configured default
+	bot := r.makeRobot()
 	robot.RLock()
-	r.Format = robot.defaultMessageFormat
+	bot.Format = robot.defaultMessageFormat
 	robot.RUnlock()
-	r.SendUserMessage(targetUser, debugLog)
+	bot.SendUserMessage(targetUser, debugLog)
 	// Log(Debug, debugLog)
 }
