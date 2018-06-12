@@ -12,9 +12,11 @@ import (
 
 // Struct for ScheduledTasks (gopherbot.yaml) and AddTask (robot method)
 type taskSpec struct {
-	Name       string      // name of the job or plugin
-	Arguments  []string    // for plugins only
-	Parameters []parameter // environment vars for jobs and plugins
+	Name      string   // name of the job or plugin
+	Arguments []string // for plugins only
+	// environment vars for jobs and plugins, unused in AddTask, which should
+	// make calls to SetParameter()
+	Parameters []parameter
 }
 
 // PluginNames can be letters, numbers & underscores only, mainly so

@@ -31,65 +31,7 @@ const (
 
 // Generate String method with: go generate ./bot/
 
-// Global robot run number (incrementing int)
-var botRunID = struct {
-	idx int
-	sync.Mutex
-}{
-	rand.Int(),
-	sync.Mutex{},
-}
-
-// When a new Robot starts running a pipeline, give it a unique index
-func getBotID() int {
-
-}
-
-// Global persistent maps of Robots running, for Robot lookups in http.go
-var activeRobots = struct {
-	i map[int]*Robot
-	sync.Mutex
-}{
-	make(map[int]*Robot),
-	sync.Mutex{},
-}
-
-// Assign a bot run number and register it in the global hash of running
-// robots.
-func (bot *Robot) registerActive() {
-	botRunID.Lock()
-	botRunID.idx++
-	if botRunID.idx == 0 {
-		botRunID.idx = 1
-	}
-	bot.id = botRunID.idx
-	botRunID.Unlock()
-	activeRobots.Lock()
-	activeRobots.i[bot.id] = bot
-	activeRobots.Unlock()
-}
-
-// Robot is created for each incoming message, in a separate goroutine that
-// persists for the life of the message, until finally a plugin runs
-// (or doesn't).
-type Robot struct {
-	User           string            // The user who sent the message; this can be modified for replying to an arbitrary user
-	Channel        string            // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	Protocol       Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
-	RawMsg         interface{}       // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
-	Format         MessageFormat     // The outgoing message format, one of Raw, Fixed, or Variable
-	id             int               // incrementing index of Robot threads
-	tasks          taskList          // Pointers to current task configuration at start of pipeline
-	currentTask    interface{}       // pointer to currently executing task
-	isCommand      bool              // Was the message directed at the robot, dm or by mention
-	directMsg      bool              // if the message was sent by DM
-	msg            string            // the message text sent
-	bypassSecurity bool              // set for scheduled jobs, where user security restrictions don't apply
-	elevated       bool              // set when required elevation succeeds
-	environment    map[string]string // environment vars set for each job/plugin in the pipeline
-}
-
-/* robot.go defines some convenience functions on struct Robot to
+/* robot_methods.go defines some convenience functions on struct Robot to
    simplify use by plugins. */
 
 // CheckAdmin returns true if the user is a configured administrator of the

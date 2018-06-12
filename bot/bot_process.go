@@ -105,10 +105,12 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	robot.Unlock()
 
 	handle := handler{}
-	bot := &Robot{id: getBotID()}
+	bot := &Robot{}
+	bot.registerActive()
 	if err := bot.loadConfig(); err != nil {
 		Log(Fatal, fmt.Sprintf("Error loading initial configuration: %v", err))
 	}
+	bot.deregister()
 
 	if len(robot.brainProvider) > 0 {
 		if bprovider, ok := brains[robot.brainProvider]; !ok {

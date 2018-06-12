@@ -20,8 +20,8 @@ import (
 // run job command.
 func (bot *Robot) runPipeline(t interface{}, interactive bool, command string, args ...string) {
 	task, plugin, _ := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
-	bot.id = getBotID()
 
+	bot.registerActive()
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	robot.Add(1)
 	robot.Lock()
@@ -57,15 +57,18 @@ func (bot *Robot) runPipeline(t interface{}, interactive bool, command string, a
 			if adminRequired {
 				if !bot.CheckAdmin() {
 					bot.Say("Sorry, that command is only available to bot administrators")
-					return
+					ret = Fail
+					break
 				}
 			}
 		}
 		if bot.checkAuthorization(runTask, matcher.Command, cmdArgs...) != Success {
-			return
+			ret = Fail
+			break
 		}
 		if bot.checkElevation(runTask, matcher.Command) != Success {
-			return
+			ret = Fail
+			break
 		}
 		switch matcherType {
 		case plugCommands:
@@ -89,6 +92,7 @@ func (bot *Robot) runPipeline(t interface{}, interactive bool, command string, a
 		// while holding the activeRobots lock, remove old callerID:run# and
 		// add callerID:run# for next task in the pipeline; update bot.currentTask
 	}
+	bot.deregister()
 	// defer func() {
 	// 	if interactive && errString != "" {
 	// 		bot.Reply(errString)
@@ -152,7 +156,7 @@ func (bot *Robot) callTask(t interface{}, command string, args ...string) (errSt
 	cmd.Env = append(os.Environ(), []string{
 		fmt.Sprintf("GOPHER_CHANNEL=%s", bot.Channel),
 		fmt.Sprintf("GOPHER_USER=%s", bot.User),
-		fmt.Sprintf("GOPHER_CALLER_ID=%s", task.taskID),
+		fmt.Sprintf("GOPHER_CALLER_ID=%s", fmt.Sprintf("%d", bot.id)),
 		fmt.Sprintf("GOPHER_PROTOCOL=%s", bot.Protocol),
 	}...)
 	// close stdout on the external plugin...

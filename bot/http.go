@@ -205,11 +205,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: This should do a lookup from a global hash of running plugins
-	activeRobots.RLock()
-	bot, ok := activeRobots.m[f.CallerID]
-	activeRobots.RUnlock()
-	if !ok {
+	bot := getRobot(f.CallerID)
+	if bot == nil {
 		rw.WriteHeader(http.StatusBadRequest)
 		Log(Error, fmt.Sprintf("JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs))
 		return
@@ -219,13 +216,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 	Log(Trace, fmt.Sprintf("Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User))
 
-	// Generate a synthetic Robot for access to it's methods
-	bot := Robot{
-		User:     f.User,
-		Channel:  f.Channel,
-		Protocol: setProtocol(f.Protocol),
-		callerID: f.CallerID,
-	}
 	if len(f.Format) > 0 {
 		bot.Format = bot.setFormat(f.Format)
 	} else {
