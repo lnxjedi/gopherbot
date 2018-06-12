@@ -27,6 +27,17 @@ const (
 	Test
 )
 
+// Robot is passed to each task as it runs, initialized from the botContext.
+// Tasks can copy and modify the Robot without affecting the botContext.
+type Robot struct {
+	User     string        // The user who sent the message; this can be modified for replying to an arbitrary user
+	Channel  string        // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	Protocol Protocol      // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
+	RawMsg   interface{}   // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
+	Format   MessageFormat // The outgoing message format, one of Raw, Fixed, or Variable
+	id       int           // For looking up the botContext
+}
+
 //go:generate stringer -type=Protocol
 
 // Generate String method with: go generate ./bot/

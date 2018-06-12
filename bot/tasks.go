@@ -154,7 +154,7 @@ type botTask struct {
 	Elevator      string          // Use an elevator other than the DefaultElevator
 	Authorizer    string          // a plugin to call for authorizing users, should handle groups, etc.
 	AuthRequire   string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
-	taskID        string          // 32-char random ID for identifying plugins/jobs in Robot method calls
+	taskID        string          // 32-char random ID for identifying plugins/jobs
 	ReplyMatchers []InputMatcher  // store this here for prompt*reply methods
 	Config        json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
 	config        interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
@@ -203,12 +203,21 @@ var stopRegistrations = false
 // initialize sends the "init" command to every plugin
 func initializePlugins() {
 	currentTasks.RLock()
-	tasks := currentTasks.t
+	tasks := taskList{
+		currentTasks.t,
+		currentTasks.nameMap,
+		currentTasks.idMap,
+		sync.RWMutex{},
+	}
 	currentTasks.RUnlock()
+	bot := &botContext{
+		tasks: tasks,
+	}
+	bot.registerActive()
 	robot.Lock()
 	if !robot.shuttingDown {
 		robot.Unlock()
-		for _, t := range tasks {
+		for _, t := range tasks.t {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
 				continue
@@ -216,17 +225,13 @@ func initializePlugins() {
 			if task.Disabled {
 				continue
 			}
-			bot := &Robot{
-				User:    robot.name,
-				Channel: "",
-				Format:  Variable,
-			}
 			Log(Info, "Initializing plugin:", task.name)
-			bot.callTask("init")
+			bot.callTask(t, "init")
 		}
 	} else {
 		robot.Unlock()
 	}
+	bot.deregister()
 }
 
 // Update passed-in regex so that a space can match a variable # of spaces,

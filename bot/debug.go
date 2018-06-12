@@ -29,11 +29,13 @@ var plugDebug = struct {
 
 // If the debug statement requests verboseonly, then the user will only get the
 // message if verbose debugging was requested.
-func (r *Robot) debug(msg string, verboseonly bool) {
+func (r *botContext) debug(msg string, verboseonly bool) {
+	var taskID string
 	if r.currentTask == nil {
-		return
+		taskID = ""
+	} else {
+		taskID := r.currentTask.taskID
 	}
-	taskID := r.currentTask.taskID
 	if len(taskID) == 0 && len(r.User) == 0 {
 		return
 	}
@@ -68,7 +70,7 @@ func (r *Robot) debug(msg string, verboseonly bool) {
 	} else {
 		// Cases where the given plugin is being debugged, but not necessarily
 		// by the user that triggered the debug statement.
-		// r.Log(Trace, fmt.Sprintf("REMOVE: name: %s, user: %s, verboseonly: %v", ppd.name, r.User, verboseonly))
+		// Log(Trace, fmt.Sprintf("REMOVE: name: %s, user: %s, verboseonly: %v", ppd.name, r.User, verboseonly))
 
 		if verboseonly && !ppd.verbose {
 			return
@@ -98,5 +100,5 @@ func (r *Robot) debug(msg string, verboseonly bool) {
 	r.Format = robot.defaultMessageFormat
 	robot.RUnlock()
 	r.SendUserMessage(targetUser, debugLog)
-	// r.Log(Debug, debugLog)
+	// Log(Debug, debugLog)
 }

@@ -27,7 +27,7 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret RetVal) {
 
 	mailAttr := r.GetBotAttribute("email")
 	if mailAttr.RetVal != Ok || mailAttr.Attribute == "" {
-		r.Log(Error, "Email send requested but robot has no Email set in config")
+		Log(Error, "Email send requested but robot has no Email set in config")
 		return NoBotEmail
 	}
 	mailFrom = mailAttr.Attribute
@@ -55,7 +55,7 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret RetVal) {
 	if robot.mailConf.Authtype == "plain" {
 		host := strings.Split(robot.mailConf.Mailhost, ":")[0]
 		a = smtp.PlainAuth("", robot.mailConf.User, robot.mailConf.Password, host)
-		r.Log(Debug, fmt.Sprintf("Sending authenticated email to \"%s\" from \"%s\" via \"%s\" with user: %s, password: %s and host: %s",
+		Log(Debug, fmt.Sprintf("Sending authenticated email to \"%s\" from \"%s\" via \"%s\" with user: %s, password: %s and host: %s",
 			mailTo,
 			from,
 			robot.mailConf.Mailhost,
@@ -64,7 +64,7 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret RetVal) {
 			host,
 		))
 	} else {
-		r.Log(Debug, fmt.Sprintf("Sending unauthenticated email to \"%s\" from \"%s\" via \"%s\"",
+		Log(Debug, fmt.Sprintf("Sending unauthenticated email to \"%s\" from \"%s\" via \"%s\"",
 			mailTo,
 			from,
 			robot.mailConf.Mailhost,
@@ -74,7 +74,7 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret RetVal) {
 	err := e.Send(robot.mailConf.Mailhost, a)
 	if err != nil {
 		err = fmt.Errorf("Sending email: %v", err)
-		r.Log(Error, err)
+		Log(Error, err)
 		return MailError
 	}
 	return Ok

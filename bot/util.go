@@ -31,7 +31,7 @@ func (r *Robot) setFormat(format string) MessageFormat {
 	case "raw":
 		return Raw
 	default:
-		r.Log(Error, fmt.Sprintf("Unknown message format '%s', defaulting to 'raw'", format))
+		Log(Error, fmt.Sprintf("Unknown message format '%s', defaulting to 'raw'", format))
 		return Raw
 	}
 }

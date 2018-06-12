@@ -56,7 +56,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, prot
 	for _, user := range robot.ignoreUsers {
 		if strings.EqualFold(userName, user) {
 			Log(Debug, "Ignoring user", userName)
-			bot := &Robot{User: userName}
+			bot := &botContext{User: userName}
 			bot.debug("", "robot is configured to ignore this user", true)
 			emit(IgnoredUser)
 			robot.RUnlock()
@@ -106,10 +106,9 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, prot
 	}
 	currentTasks.RUnlock()
 
-	// TODO: Rename Robot; BotContext?
-	// Create the Robot and a goroutine to process the message, which may
-	// eventually run a plugin.
-	bot := &Robot{
+	// Create the botContext and a goroutine to process the message and carry state,
+	// which may eventually run a pipeline.
+	bot := &botContext{
 		User:      userName,
 		Channel:   channelName,
 		Protocol:  proto,

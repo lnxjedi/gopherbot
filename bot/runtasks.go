@@ -18,7 +18,7 @@ import (
 // Called from dispatch: checkTaskMatchersAndRun or scheduledTask. interactive
 // indicates whether a pipeline started from a user command - plugin match or
 // run job command.
-func (bot *Robot) runPipeline(t interface{}, interactive bool, command string, args ...string) {
+func (bot *botContext) runPipeline(t interface{}, interactive bool, command string, args ...string) {
 	task, plugin, _ := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
 
 	bot.registerActive()
@@ -101,7 +101,7 @@ func (bot *Robot) runPipeline(t interface{}, interactive bool, command string, a
 }
 
 // callTask does the real work of running a job or plugin with a command and arguments.
-func (bot *Robot) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
+func (bot *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
 	bot.currentTask = t
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil

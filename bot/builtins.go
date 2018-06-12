@@ -340,7 +340,7 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 		if len(args[1]) > 0 {
 			verbose = true
 		}
-		bot.Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", pname, plugin.taskID, verbose))
+		Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", pname, plugin.taskID, verbose))
 		pd := &debuggingPlug{
 			callerID: plugin.taskID,
 			name:     pname,

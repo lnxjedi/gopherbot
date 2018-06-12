@@ -191,7 +191,7 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		}
 	}
 	if rep.re == nil {
-		r.Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", task.name, regexID))
+		Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", task.name, regexID))
 		return "", MatcherNotFound
 	}
 	rep.replyChannel = make(chan reply)
@@ -201,12 +201,12 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 	// and if so append to the list of waiters.
 	waiters, exists := replies.m[matcher]
 	if exists {
-		r.Log(Debug, fmt.Sprintf("Delaying prompt \"%s\" and appending to the list of waiters for matcher: %q", prompt, matcher))
+		Log(Debug, fmt.Sprintf("Delaying prompt \"%s\" and appending to the list of waiters for matcher: %q", prompt, matcher))
 		waiters = append(waiters, rep)
 		replies.m[matcher] = waiters
 		replies.Unlock()
 	} else {
-		r.Log(Debug, fmt.Sprintf("Prompting for \"%s \" and creating reply waiters list and prompting for matcher: %q", prompt, matcher))
+		Log(Debug, fmt.Sprintf("Prompting for \"%s \" and creating reply waiters list and prompting for matcher: %q", prompt, matcher))
 		var ret RetVal
 		if channel == "" {
 			ret = robot.SendProtocolUserMessage(user, prompt, r.Format)

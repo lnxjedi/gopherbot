@@ -29,7 +29,7 @@ var activeRobots = struct {
 // getRobot is used to look up a robot in httpd.go, so we do the string
 // conversion here. Note that 0 is never a valid bot id, and this will return
 // nil for any failures.
-func getRobot(id string) *Robot {
+func getRobot(id string) *botContext {
 	idx, _ := strconv.Atoi(id)
 	activeRobots.RLock()
 	bot, _ := activeRobots.i[idx]
@@ -38,7 +38,7 @@ func getRobot(id string) *Robot {
 
 // Assign a bot run number and register it in the global hash of running
 // robots. Should be called before running plugins
-func (bot *Robot) registerActive() {
+func (bot *botContext) registerActive() {
 	botRunID.Lock()
 	botRunID.idx++
 	if botRunID.idx == 0 {
@@ -52,22 +52,21 @@ func (bot *Robot) registerActive() {
 }
 
 // deregister must be called for all registered Robots to prevent a memory leak.
-func (bot *Robot) deregister() {
+func (bot *botContext) deregister() {
 	activeRobots.Lock()
 	delete(activeRobots.i, bot.id)
 	activeRobots.Unlock()
 }
 
-// Robot is created for each incoming message, in a separate goroutine that
+// botContext is created for each incoming message, in a separate goroutine that
 // persists for the life of the message, until finally a plugin runs
 // (or doesn't). It could also be called Context, or PipelineState; but for
 // use by plugins, it's best left as Robot.
-type Robot struct {
+type botContext struct {
 	User           string            // The user who sent the message; this can be modified for replying to an arbitrary user
 	Channel        string            // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
 	Protocol       Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
 	RawMsg         interface{}       // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
-	Format         MessageFormat     // The outgoing message format, one of Raw, Fixed, or Variable
 	id             int               // incrementing index of Robot threads
 	tasks          taskList          // Pointers to current task configuration at start of pipeline
 	currentTask    interface{}       // pointer to currently executing task

@@ -13,7 +13,7 @@ const keepListeningDuration = 77 * time.Second
 // the robot), or message matchers (for ambient commands that need not be
 // directed at the robot), and calls the plugin if it matches. Note: this
 // function is called under a read lock on the 'b' struct.
-func (bot *Robot) checkTaskMatchersAndRun(matcherType int) (messageMatched bool) {
+func (bot *botContext) checkTaskMatchersAndRun(matcherType int) (messageMatched bool) {
 	// un-needed, but more clear
 	messageMatched = false
 	// If we're checking messages, debugging messages require that the user requested verboseness
@@ -176,7 +176,7 @@ const (
 // matches, then dispatches it to the applicable plugin. If the robot was
 // addressed directly but nothing matched, any registered CatchAll plugins are
 // called. There Should Be Only One (terminal plugin called).
-func (bot *Robot) handleMessage() {
+func (bot *botContext) handleMessage() {
 	defer checkPanic(bot, bot.msg)
 
 	if len(bot.Channel) == 0 {
@@ -256,7 +256,7 @@ func (bot *Robot) handleMessage() {
 				}
 			}
 			if len(catchAllPlugins) > 1 {
-				bot.Log(Error, "More than one catch all registered, none will be called")
+				Log(Error, "More than one catch all registered, none will be called")
 			} else {
 				// Note: if the catchall plugin has configured security, it
 				// should still apply.
