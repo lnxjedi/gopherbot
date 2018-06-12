@@ -14,68 +14,13 @@ import (
 	"syscall"
 )
 
-// Global robot run number (incrementing int)
-var botRunID = struct {
-	idx int
-	sync.Mutex
-}{
-	rand.Int(),
-	sync.Mutex{},
-}
-
-// When a new Robot starts running a pipeline, give it a unique index
-func getBotID() int {
-	botRunID.Lock()
-	defer botRunID.Unlock()
-	botRunID.idx++
-	if botRunID.idx == 0 {
-		botRunID.idx = 1
-	}
-	return botRunID.idx
-}
-
-// Global persistent map of task run numbers (incrementing int)
-var taskRunIDs = struct {
-	m map[string]int
-	sync.Mutex
-}{
-	make(map[string]int),
-	sync.Mutex{},
-}
-
-// getRunID uses taskRunIDs to track unique runs of each plugin, so httpd.go
-// can get a pointer back to the original Robot that initiated a particular
-// script.
-func getCallerID(taskID string) string {
-	taskRunIDs.Lock()
-	runNumber, ok := taskRunIDs.m[taskID]
-	if ok {
-		runNumber ++
-		taskRunIDs.m[taskID] = runNumber
-	} else {
-		runNumber = rand.int()
-		taskRunIDs.m[taskID] = runNumber
-	}
-	taskRunIDs.Unlock()
-	return taskID + strconv.Itoa(runNumber)
-}
-
-// Global persistent maps of Robots running, for Robot lookups in http.go
-var activeRobots = struct {
-	m map[string]*Robot
-	i map[int]*Robot
-	sync.Mutex
-}{
-	make(map[string]*Robot),
-	sync.Mutex{},
-}
-
 // runPipeline is triggered by user commands, job triggers, and scheduled tasks.
 // Called from dispatch: checkTaskMatchersAndRun or scheduledTask. interactive
 // indicates whether a pipeline started from a user command - plugin match or
 // run job command.
 func (bot *Robot) runPipeline(t interface{}, interactive bool, command string, args ...string) {
 	task, plugin, _ := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
+	bot.id = getBotID()
 
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	robot.Add(1)
@@ -160,7 +105,7 @@ func (bot *Robot) callTask(t interface{}, command string, args ...string) (errSt
 	if task.Disabled {
 		msg := fmt.Sprintf("callTask failed on disabled task %s; reason: %s", task.name, task.reason)
 		bot.Log(Error, msg)
-		bot.debug(bot.callerID, msg, false)
+		bot.debug(bot.currentTask.taskID, msg, false)
 		return ConfigurationError
 	}
 	if !(task.name == "builtInadmin" && command == "abort") {

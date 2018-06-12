@@ -358,7 +358,7 @@ func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 // return indicates whether the datum exists.
 // TODO: use namespace if available
 func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal) {
-	task, _, _ := r.tasks.getTaskByID(r.callerID)
+	task, _, _ := r.tasks.getTaskByID(r.currentTask.taskID)
 	key = task.name + ":" + key
 	return checkoutDatum(key, datum, rw)
 }
@@ -369,7 +369,7 @@ func (r *Robot) CheckinDatum(key, locktoken string) {
 	if locktoken == "" {
 		return
 	}
-	task, _, _ := r.tasks.getTaskByID(r.callerID)
+	task, _, _ := r.tasks.getTaskByID(r.currentTask.taskID)
 	key = task.name + ":" + key
 	checkinDatum(key, locktoken)
 }
@@ -379,7 +379,7 @@ func (r *Robot) CheckinDatum(key, locktoken string) {
 // update failed.
 // TODO: use namespace if available
 func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
-	task, _, _ := r.tasks.getTaskByID(r.callerID)
+	task, _, _ := r.tasks.getTaskByID(r.currentTask.taskID)
 	key = task.name + ":" + key
 	return updateDatum(key, locktoken, datum)
 }

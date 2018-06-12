@@ -105,7 +105,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	robot.Unlock()
 
 	handle := handler{}
-	bot := &Robot{}
+	bot := &Robot{id: getBotID()}
 	if err := bot.loadConfig(); err != nil {
 		Log(Fatal, fmt.Sprintf("Error loading initial configuration: %v", err))
 	}
