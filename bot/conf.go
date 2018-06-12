@@ -240,6 +240,7 @@ func (r *botContext) loadConfig() error {
 	loglevel = logStrToLevel(newconfig.LogLevel)
 	setLogLevel(loglevel)
 
+	bot := r.makeRobot()
 	robot.Lock()
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
@@ -259,7 +260,7 @@ func (r *botContext) loadConfig() error {
 	if len(newconfig.DefaultMessageFormat) == 0 {
 		robot.defaultMessageFormat = Raw
 	} else {
-		robot.defaultMessageFormat = r.makeRobot().setFormat(newconfig.DefaultMessageFormat)
+		robot.defaultMessageFormat = bot.setFormat(newconfig.DefaultMessageFormat)
 	}
 
 	if newconfig.ProtocolConfig != nil {

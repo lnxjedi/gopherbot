@@ -250,7 +250,7 @@ func (bot *botContext) handleMessage() {
 				// should still apply.
 				matcher := InputMatcher{
 					Command:     "catchall",
-					matcherType: plugCommands,
+					matcherType: catchAll,
 				}
 				bot.runPipeline(catchAllPlugins[0], true, &matcher, bot.msg)
 			}

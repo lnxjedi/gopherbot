@@ -125,6 +125,7 @@ type matcherType int
 const (
 	plugCommands matcherType = iota
 	plugMessages
+	catchAll
 	jobTriggers
 	runJob
 )

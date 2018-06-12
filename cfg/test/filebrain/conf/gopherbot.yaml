@@ -5,16 +5,20 @@ JoinChannels: [ ]
 AdminUsers: [ "alice" ]
 Alias: ";"
 LocalPort: 8889
-LogLevel: trace
+LogLevel: debug
 ExternalScripts:
 - Name: bashdemo
   Path: plugins/samples/bashdemo.sh
+  Type: plugin
 - Name: pythondemo
   Path: plugins/samples/pythondemo.py
+  Type: plugin
 - Name: rubydemo
   Path: plugins/samples/rubydemo.rb
+  Type: plugin
 - Name: echo
   Path: plugins/samples/echo.sh
+  Type: plugin
 
 Protocol: test
 ProtocolConfig:

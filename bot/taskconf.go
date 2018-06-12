@@ -426,34 +426,54 @@ LoadLoop:
 		}
 
 		// Compile the regex's
-		for i := range plugin.CommandMatchers {
-			command := &plugin.CommandMatchers[i]
-			regex := massageRegexp(command.Regex)
-			re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
-			if err != nil {
-				msg := fmt.Sprintf("Disabling %s, couldn't compile command regular expression '%s': %v", task.name, regex, err)
-				Log(Error, msg)
-				r.debug(msg, false)
-				task.Disabled = true
-				task.reason = msg
-				continue LoadLoop
-			} else {
-				command.re = re
+		if isPlugin {
+			for i := range plugin.CommandMatchers {
+				command := &plugin.CommandMatchers[i]
+				regex := massageRegexp(command.Regex)
+				re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
+				if err != nil {
+					msg := fmt.Sprintf("Disabling %s, couldn't compile command regular expression '%s': %v", task.name, regex, err)
+					Log(Error, msg)
+					r.debug(msg, false)
+					task.Disabled = true
+					task.reason = msg
+					continue LoadLoop
+				} else {
+					command.re = re
+				}
 			}
-		}
-		for i := range job.Triggers {
-			trigger := &job.Triggers[i]
-			regex := massageRegexp(trigger.Regex)
-			re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
-			if err != nil {
-				msg := fmt.Sprintf("Disabling %s, couldn't compile trigger regular expression '%s': %v", task.name, regex, err)
-				Log(Error, msg)
-				r.debug(msg, false)
-				task.Disabled = true
-				task.reason = msg
-				continue LoadLoop
-			} else {
-				trigger.re = re
+			for i := range plugin.MessageMatchers {
+				// Note that full message regexes don't get the beginning and end anchors added - the individual plugin
+				// will need to do this if necessary.
+				message := &plugin.MessageMatchers[i]
+				regex := massageRegexp(message.Regex)
+				re, err := regexp.Compile(regex)
+				if err != nil {
+					msg := fmt.Sprintf("Skipping %s, couldn't compile message regular expression '%s': %v", task.name, regex, err)
+					Log(Error, msg)
+					r.debug(msg, false)
+					task.Disabled = true
+					task.reason = msg
+					continue LoadLoop
+				} else {
+					message.re = re
+				}
+			}
+		} else {
+			for i := range job.Triggers {
+				trigger := &job.Triggers[i]
+				regex := massageRegexp(trigger.Regex)
+				re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
+				if err != nil {
+					msg := fmt.Sprintf("Disabling %s, couldn't compile trigger regular expression '%s': %v", task.name, regex, err)
+					Log(Error, msg)
+					r.debug(msg, false)
+					task.Disabled = true
+					task.reason = msg
+					continue LoadLoop
+				} else {
+					trigger.re = re
+				}
 			}
 		}
 		for i := range task.ReplyMatchers {
@@ -469,23 +489,6 @@ LoadLoop:
 				continue LoadLoop
 			} else {
 				reply.re = re
-			}
-		}
-		for i := range plugin.MessageMatchers {
-			// Note that full message regexes don't get the beginning and end anchors added - the individual plugin
-			// will need to do this if necessary.
-			message := &plugin.MessageMatchers[i]
-			regex := massageRegexp(message.Regex)
-			re, err := regexp.Compile(regex)
-			if err != nil {
-				msg := fmt.Sprintf("Skipping %s, couldn't compile message regular expression '%s': %v", task.name, regex, err)
-				Log(Error, msg)
-				r.debug(msg, false)
-				task.Disabled = true
-				task.reason = msg
-				continue LoadLoop
-			} else {
-				message.re = re
 			}
 		}
 

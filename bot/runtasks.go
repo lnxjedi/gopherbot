@@ -17,7 +17,7 @@ import (
 // indicates whether a pipeline started from a user command - plugin match or
 // run job command.
 func (bot *botContext) runPipeline(t interface{}, interactive bool, matcher *InputMatcher, args ...string) {
-	task, plugin, _ := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
+	_, plugin, _ := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
 	isPlugin := plugin != nil
 	bot.registerActive()
 	r := bot.makeRobot()
@@ -55,11 +55,11 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, matcher *Inp
 				}
 			}
 		}
-		if bot.checkAuthorization(task, matcher.Command, args...) != Success {
+		if bot.checkAuthorization(t, matcher.Command, args...) != Success {
 			ret = Fail
 			break
 		}
-		if bot.checkElevation(task, matcher.Command) != Success {
+		if bot.checkElevation(t, matcher.Command) != Success {
 			ret = Fail
 			break
 		}
