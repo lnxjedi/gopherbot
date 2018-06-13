@@ -10,15 +10,6 @@ import (
 	"sync"
 )
 
-// Struct for ScheduledTasks (gopherbot.yaml) and AddTask (robot method)
-type taskSpec struct {
-	Name      string   // name of the job or plugin
-	Arguments []string // for plugins only
-	// environment vars for jobs and plugins, unused in AddTask, which should
-	// make calls to SetParameter()
-	Parameters []parameter
-}
-
 // PluginNames can be letters, numbers & underscores only, mainly so
 // brain functions can use ':' as a separator.
 var taskNameRe = regexp.MustCompile(`[\w]+`)
@@ -39,11 +30,6 @@ type taskList struct {
 	sync.RWMutex
 }
 
-type externalScript struct {
-	// List of names, paths and types for external plugins and jobs; relative paths are searched first in installpath, then configpath
-	Name, Path, Type string
-}
-
 var currentTasks = &taskList{
 	nil,
 	nil,
@@ -61,30 +47,30 @@ func getTask(t interface{}) (*botTask, *botPlugin, *botJob) {
 	}
 }
 
-func (tl *taskList) getTaskByName(name string) (*botTask, *botPlugin, *botJob) {
+func (tl *taskList) getTaskByName(name string) interface{} {
 	tl.RLock()
 	ti, ok := tl.nameMap[name]
 	if !ok {
 		Log(Error, fmt.Sprintf("Task '%s' not found calling getTaskByName", name))
 		tl.RUnlock()
-		return nil, nil, nil
+		return nil
 	}
 	task := tl.t[ti]
 	tl.RUnlock()
-	return getTask(task)
+	return task
 }
 
-func (tl *taskList) getTaskByID(id string) (*botTask, *botPlugin, *botJob) {
+func (tl *taskList) getTaskByID(id string) interface{} {
 	tl.RLock()
 	ti, ok := tl.idMap[id]
 	if !ok {
 		Log(Error, fmt.Sprintf("Task '%s' not found calling getTaskByID", id))
 		tl.RUnlock()
-		return nil, nil, nil
+		return nil
 	}
 	task := tl.t[ti]
 	tl.RUnlock()
-	return getTask(task)
+	return task
 }
 
 func getPlugin(t interface{}) *botPlugin {
@@ -103,9 +89,23 @@ func getJob(t interface{}) *botJob {
 	return nil
 }
 
+// Struct for ScheduledTasks (gopherbot.yaml) and AddTask (robot method)
+type taskSpec struct {
+	Name      string   // name of the job or plugin
+	Arguments []string // for plugins only
+	// environment vars for jobs and plugins, unused in AddTask, which should
+	// make calls to SetParameter()
+	Parameters []parameter
+}
+
 // parameters are provided to jobs and plugins as environment variables
 type parameter struct {
 	Name, Value string
+}
+
+type externalScript struct {
+	// List of names, paths and types for external plugins and jobs; relative paths are searched first in installpath, then configpath
+	Name, Path, Type string
 }
 
 // items in gopherbot.yaml
@@ -155,11 +155,13 @@ type botTask struct {
 	scriptPath    string          // Path to the external executable for jobs or Plugtype=plugExternal only
 	NameSpace     string          // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
 	Description   string          // description of job or plugin
-	MaxHistories  int             // how many runs of this job/plugin to keep history for
+	HistoryLogs   int             // how many runs of this job/plugin to keep history for
 	AllowDirect   bool            // Set this true if this plugin can be accessed via direct message
 	DirectOnly    bool            // Set this true if this plugin ONLY accepts direct messages
 	Channels      []string        // Channels where the task is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels   bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
+	Channel       string          // for scheduled tasks, where updates are posted and bot actions happen
+	User          string          // for scheduled tasks, task runs as this user, also for notifies
 	RequireAdmin  bool            // Set to only allow administrators to access a plugin
 	Users         []string        // If non-empty, list of all the users with access to this plugin
 	Elevator      string          // Use an elevator other than the DefaultElevator
@@ -175,8 +177,6 @@ type botTask struct {
 
 // stuff read in conf/jobs/<job>.yaml
 type botJob struct {
-	Channel            string         // where job status updates are posted
-	Notify             string         // user to notify on failure; job runs with this User for Replies
 	Verbose            bool           // whether to send verbose "job started/ended" messages
 	Triggers           []InputMatcher // user/regex that triggers a job, e.g. a git-activated webhook or integration
 	RequiredParameters []string       // required in schedule, prompted to user for interactive

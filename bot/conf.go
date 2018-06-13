@@ -158,7 +158,7 @@ func (r *botContext) loadConfig() error {
 			val = &epval
 		case "Jobs":
 			val = &jval
-		case "ScheduledJobs":
+		case "ScheduledTasks":
 			val = &stval
 		case "DefaultChannels", "DefaultJobChannels", "IgnoreUsers", "JoinChannels", "AdminUsers":
 			val = &sarrval
@@ -222,7 +222,7 @@ func (r *botContext) loadConfig() error {
 			newconfig.ExternalScripts = *(val.(*[]externalScript))
 		case "Jobs":
 			newconfig.Jobs = *(val.(*[]externalScript))
-		case "ScheduledJobs":
+		case "ScheduledTasks":
 			newconfig.ScheduledTasks = *(val.(*[]scheduledTask))
 		case "AdminUsers":
 			newconfig.AdminUsers = *(val.(*[]string))
@@ -336,6 +336,9 @@ func (r *botContext) loadConfig() error {
 	if newconfig.DefaultChannels != nil {
 		robot.plugChannels = newconfig.DefaultChannels
 	}
+	if newconfig.DefaultJobChannels != nil {
+		robot.jobChannels = newconfig.DefaultJobChannels
+	}
 	if newconfig.ExternalScripts != nil {
 		for i, ep := range newconfig.ExternalScripts {
 			if len(ep.Name) == 0 || len(ep.Path) == 0 {
@@ -346,6 +349,9 @@ func (r *botContext) loadConfig() error {
 		if pluginsOk {
 			robot.externalScripts = newconfig.ExternalScripts
 		}
+	}
+	if newconfig.ScheduledTasks != nil {
+		robot.scheduledTasks = newconfig.ScheduledTasks
 	}
 	if newconfig.IgnoreUsers != nil {
 		robot.ignoreUsers = newconfig.IgnoreUsers
@@ -367,6 +373,7 @@ func (r *botContext) loadConfig() error {
 	} else {
 		return fmt.Errorf("Error reading external plugin config")
 	}
+	scheduleTasks()
 
 	return nil
 }

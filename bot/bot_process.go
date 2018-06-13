@@ -60,7 +60,8 @@ var robot struct {
 	joinChannels         []string         // list of channels to join
 	defaultAllowDirect   bool             // whether plugins are available in DM by default
 	defaultMessageFormat MessageFormat    // Raw unless set to Variable or Fixed
-	plugChannels         []string         // list of channels where plugins are active by default
+	plugChannels         []string         // list of channels where plugins are available by default
+	jobChannels          []string         // list of channels where jobs are available to run by default
 	protocol             string           // Name of the protocol, e.g. "slack"
 	brainProvider        string           // Type of Brain provider to use
 	brain                SimpleBrain      // Interface for robot to Store and Retrieve data
@@ -69,6 +70,7 @@ var robot struct {
 	defaultElevator      string           // Plugin name for performing elevation
 	defaultAuthorizer    string           // Plugin name for performing authorization
 	externalScripts      []externalScript // List of external plugins to load
+	scheduledTasks       []scheduledTask  // List of scheduled tasks
 	port                 string           // Localhost port to listen on
 	stop                 chan struct{}    // stop channel for stopping the connector
 	done                 chan struct{}    // channel closed when robot finishes shutting down

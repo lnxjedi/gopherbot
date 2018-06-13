@@ -23,7 +23,7 @@ func (bot *botContext) elevate(task *botTask, immediate bool) (retval TaskRetVal
 	if task.Elevator != "" {
 		elevator = task.Elevator
 	}
-	_, ePlug, _ := currentTasks.getTaskByName(elevator)
+	_, ePlug, _ := getTask(bot.tasks.getTaskByName(elevator))
 	if ePlug != nil {
 		immedString := "true"
 		if !immediate {

@@ -147,12 +147,25 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	} else {
 		cmd = exec.Command(fullPath, externalArgs...)
 	}
-	cmd.Env = append(os.Environ(), []string{
-		fmt.Sprintf("GOPHER_CHANNEL=%s", bot.Channel),
-		fmt.Sprintf("GOPHER_USER=%s", bot.User),
-		fmt.Sprintf("GOPHER_CALLER_ID=%s", fmt.Sprintf("%d", bot.id)),
-		fmt.Sprintf("GOPHER_PROTOCOL=%s", bot.Protocol),
-	}...)
+	envhash := make(map[string]string)
+	for _, e := range os.Environ() {
+		sa := strings.SplitN(e, "=", 2)
+		envhash[sa[0]] = sa[1]
+	}
+	if len(bot.environment) > 0 {
+		for k, v := range bot.environment {
+			envhash[k] = v
+		}
+	}
+	envhash["GOPHER_CHANNEL"] = bot.Channel
+	envhash["GOPHER_USER"] = bot.User
+	envhash["GOPHER_CALLER_ID"] = fmt.Sprintf("%d", bot.id)
+	envhash["GOPHER_PROTOCOL"] = string(bot.Protocol)
+	env := make([]string, 0, len(envhash))
+	for k, v := range envhash {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+	cmd.Env = env
 	// close stdout on the external plugin...
 	cmd.Stdout = nil
 	// but hold on to stderr in case we need to log an error

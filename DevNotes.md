@@ -23,7 +23,7 @@ Jobs and Plugins can queue up additional jobs/tasks with AddTask(...), and if th
 
 ## Histories
 
-Whenever a new pipeline starts, if the initiating job/plugin has MaxHistories > 0, a history file will be recorded, tagged with the name of the job/plugin.
+Whenever a new pipeline starts, if the initiating job/plugin has HistoryLogs > 0, a history file will be recorded, tagged with the name of the job/plugin.
 
 ### How Things Work
 

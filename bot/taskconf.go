@@ -23,10 +23,10 @@ func (r *botContext) loadTaskConfig() {
 	robot.RLock()
 	defaultAllowDirect := robot.defaultAllowDirect
 	// copy the list of default channels (for plugins only)
-	tchan := make([]string, 0, len(robot.plugChannels))
-	tchan = append(tchan, robot.plugChannels...)
-	externalScripts := make([]externalScript, 0, len(robot.externalScripts))
-	externalScripts = append(externalScripts, robot.externalScripts...)
+	pchan := robot.plugChannels
+	jchan := robot.jobChannels
+	jdefchan := robot.defaultJobChannel
+	externalScripts := robot.externalScripts
 	robot.RUnlock() // we're done with bot data 'til the end
 
 	i := 0
@@ -116,7 +116,11 @@ LoadLoop:
 			continue
 		}
 		tcfgload := make(map[string]json.RawMessage)
-		Log(Debug, fmt.Sprintf("Loading configuration for task #%d - %s, type %d", i, task.name, plugin.pluginType))
+		if isPlugin {
+			Log(Info, fmt.Sprintf("Loading configuration for plugin '%s', type %d", task.name, plugin.pluginType))
+		} else {
+			Log(Info, fmt.Sprintf("Loading configuration for job '%s'", task.name))
+		}
 
 		if isPlugin {
 			if plugin.pluginType == plugExternal {
@@ -201,9 +205,9 @@ LoadLoop:
 			var val interface{}
 			skip := false
 			switch key {
-			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "Notify":
+			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "User":
 				val = &strval
-			case "MaxHistories":
+			case "HistoryLogs":
 				val = &intval
 			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "Verbose":
 				val = &boolval
@@ -273,10 +277,16 @@ LoadLoop:
 				}
 			case "Users":
 				task.Users = *(val.(*[]string))
+			case "HistoryLogs":
+				task.HistoryLogs = *(val.(*int))
 			case "Authorizer":
 				task.Authorizer = *(val.(*string))
 			case "AuthRequire":
 				task.AuthRequire = *(val.(*string))
+			case "Channel":
+				task.Channel = *(val.(*string))
+			case "User":
+				task.User = *(val.(*string))
 			case "AuthorizedCommands":
 				if isPlugin {
 					plugin.AuthorizedCommands = *(val.(*[]string))
@@ -318,18 +328,6 @@ LoadLoop:
 					plugin.CatchAll = *(val.(*bool))
 				} else {
 					mismatch = true
-				}
-			case "Channel":
-				if isPlugin {
-					mismatch = true
-				} else {
-					job.Channel = *(val.(*string))
-				}
-			case "Notify":
-				if isPlugin {
-					mismatch = true
-				} else {
-					job.Notify = *(val.(*string))
 				}
 			case "Verbose":
 				if isPlugin {
@@ -390,8 +388,14 @@ LoadLoop:
 			task.AllowDirect = defaultAllowDirect
 		}
 
-		// Use bot default plugin channels if none defined, unless AllChannels requested.
+		// Use bot default plugin/job channels if none defined, unless AllChannels requested.
 		if len(task.Channels) == 0 {
+			var tchan []string
+			if isPlugin {
+				tchan = pchan
+			} else {
+				tchan = jchan
+			}
 			if len(tchan) > 0 {
 				if !task.AllChannels { // AllChannels = true is always explicit
 					task.Channels = tchan
@@ -494,84 +498,91 @@ LoadLoop:
 
 		// Make sure all security-related command lists resolve to actual
 		// commands to guard against typos.
-		cmdlist := []struct {
-			ctype string
-			clist []string
-		}{
-			{"elevated", plugin.ElevatedCommands},
-			{"elevate immediate", plugin.ElevateImmediateCommands},
-			{"authorized", plugin.AuthorizedCommands},
-			{"admin", plugin.AdminCommands},
-		}
-		for _, cmd := range cmdlist {
-			if len(cmd.clist) > 0 {
-				for _, i := range cmd.clist {
-					cmdfound := false
-					for _, j := range plugin.CommandMatchers {
-						if i == j.Command {
-							cmdfound = true
-							break
-						}
-					}
-					if !cmdfound {
-						for _, j := range plugin.MessageMatchers {
+		if isPlugin {
+			cmdlist := []struct {
+				ctype string
+				clist []string
+			}{
+				{"elevated", plugin.ElevatedCommands},
+				{"elevate immediate", plugin.ElevateImmediateCommands},
+				{"authorized", plugin.AuthorizedCommands},
+				{"admin", plugin.AdminCommands},
+			}
+			for _, cmd := range cmdlist {
+				if len(cmd.clist) > 0 {
+					for _, i := range cmd.clist {
+						cmdfound := false
+						for _, j := range plugin.CommandMatchers {
 							if i == j.Command {
 								cmdfound = true
 								break
 							}
 						}
+						if !cmdfound {
+							for _, j := range plugin.MessageMatchers {
+								if i == j.Command {
+									cmdfound = true
+									break
+								}
+							}
+						}
+						if !cmdfound {
+							msg := fmt.Sprintf("Disabling %s, %s command %s didn't match a command from CommandMatchers or MessageMatchers", task.name, cmd.ctype, i)
+							Log(Error, msg)
+							r.debug(msg, false)
+							task.Disabled = true
+							task.reason = msg
+							continue LoadLoop
+						}
 					}
-					if !cmdfound {
-						msg := fmt.Sprintf("Disabling %s, %s command %s didn't match a command from CommandMatchers or MessageMatchers", task.name, cmd.ctype, i)
+				}
+			}
+			// For Go plugins, use the provided empty config struct to go ahead
+			// and unmarshall Config. The GetTaskConfig call just sets a pointer
+			// without unmshalling again.
+			if plugin.pluginType == plugGo {
+				// Copy the pointer to the empty config struct / empty struct (when no config)
+				// pluginHandlers[name].Config is an empty struct for unmarshalling provided
+				// in RegisterPlugin.
+				pt := reflect.ValueOf(pluginHandlers[task.name].Config)
+				if pt.Kind() == reflect.Ptr {
+					if task.Config != nil {
+						// reflect magic: create a pointer to a new empty config struct for the plugin
+						task.config = reflect.New(reflect.Indirect(pt).Type()).Interface()
+						if err := json.Unmarshal(task.Config, task.config); err != nil {
+							msg := fmt.Sprintf("Error unmarshalling plugin config json to config, disabling: %v", err)
+							Log(Error, msg)
+							r.debug(msg, false)
+							task.Disabled = true
+							task.reason = msg
+							continue
+						}
+					} else {
+						// Providing custom config not required (should it be?)
+						msg := fmt.Sprintf("Plugin '%s' has custom config, but none is configured", task.name)
+						Log(Warn, msg)
+						r.debug(msg, false)
+					}
+				} else {
+					if task.Config != nil {
+						msg := fmt.Sprintf("Custom configuration data provided for Go plugin '%s', but no config struct was registered; disabling", task.name)
 						Log(Error, msg)
 						r.debug(msg, false)
 						task.Disabled = true
 						task.reason = msg
-						continue LoadLoop
+					} else {
+						Log(Debug, fmt.Sprintf("Config interface isn't a pointer, skipping unmarshal for Go plugin '%s'", task.name))
 					}
 				}
+			}
+		} else {
+			// Sanity checking and defaulting for jobs
+			if len(job.Channel) == 0 {
+				job.Channel = jdefchan
 			}
 		}
 
-		// For Go plugins, use the provided empty config struct to go ahead
-		// and unmarshall Config. The GetTaskConfig call just sets a pointer
-		// without unmshalling again.
-		if plugin.pluginType == plugGo {
-			// Copy the pointer to the empty config struct / empty struct (when no config)
-			// pluginHandlers[name].Config is an empty struct for unmarshalling provided
-			// in RegisterPlugin.
-			pt := reflect.ValueOf(pluginHandlers[task.name].Config)
-			if pt.Kind() == reflect.Ptr {
-				if task.Config != nil {
-					// reflect magic: create a pointer to a new empty config struct for the plugin
-					task.config = reflect.New(reflect.Indirect(pt).Type()).Interface()
-					if err := json.Unmarshal(task.Config, task.config); err != nil {
-						msg := fmt.Sprintf("Error unmarshalling plugin config json to config, disabling: %v", err)
-						Log(Error, msg)
-						r.debug(msg, false)
-						task.Disabled = true
-						task.reason = msg
-						continue
-					}
-				} else {
-					// Providing custom config not required (should it be?)
-					msg := fmt.Sprintf("Plugin '%s' has custom config, but none is configured", task.name)
-					Log(Warn, msg)
-					r.debug(msg, false)
-				}
-			} else {
-				if task.Config != nil {
-					msg := fmt.Sprintf("Custom configuration data provided for Go plugin '%s', but no config struct was registered; disabling", task.name)
-					Log(Error, msg)
-					r.debug(msg, false)
-					task.Disabled = true
-					task.reason = msg
-				} else {
-					Log(Debug, fmt.Sprintf("Config interface isn't a pointer, skipping unmarshal for Go plugin '%s'", task.name))
-				}
-			}
-		}
-		Log(Debug, fmt.Sprintf("Configured plugin #%d, '%s'", i, task.name))
+		Log(Debug, fmt.Sprintf("Configured task '%s'", i, task.name))
 	}
 	// End of configuration loading. All invalid tasks are disabled.
 

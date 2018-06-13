@@ -332,7 +332,7 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 			return
 		}
 		c := bot.getContext()
-		_, plugin, _ := c.tasks.getTaskByName(pname)
+		_, plugin, _ := getTask(c.tasks.getTaskByName(pname))
 		if plugin == nil {
 			bot.Say("I don't have any plugins with that name configured")
 			return
