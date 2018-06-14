@@ -10,7 +10,7 @@ require 'json'
 #  Path: plugins/weather.rb
 # 3) Put your configuration in conf/plugins/weather.yaml:
 #Config:
-#  APIKey: "" or set in OWM_APIKEY environment var (leave blank here)
+#  APIKey: "<yourkey>" # or leave blank and use admin command "store parameter weather OWM_APIKEY=<yourkey>"
 #  TemperatureUnits: imperial # or 'metric'
 #  DefaultCountry: 'us' # or other ISO 3166 country code
 
