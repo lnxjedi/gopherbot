@@ -43,6 +43,8 @@ var shortTermMemories = struct {
 	sync.Mutex{},
 }
 
+const paramPrefix = "bot:parameters:"
+
 const shortTermDuration = 7 * time.Minute
 
 type brainOpType int
@@ -352,38 +354,41 @@ func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 	return update(key, locktoken, &dbytes)
 }
 
+// StoreParameter stores parameters for a given namespace in long-term memory.
+func (r *Robot) StoreParameter(namespace, key, value string) RetVal {
+	env := make(map[string]string)
+	mem := paramPrefix + namespace
+	tok, _, _ := checkoutDatum(mem, &env, true)
+	env[key] = value
+	return updateDatum(mem, tok, env)
+}
+
 // CheckoutDatum gets a datum from the robot's brain and unmarshals it into
 // a struct. If rw is set, the datum is checked out read-write and a non-empty
 // lock token is returned that expires after lockTimeout (250ms). The bool
 // return indicates whether the datum exists.
-// TODO: use namespace if available
 func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal) {
 	c := r.getContext()
-	task, _, _ := getTask(c.currentTask)
-	key = task.name + ":" + key
+	key = c.NameSpace + ":" + key
 	return checkoutDatum(key, datum, rw)
 }
 
 // CheckinDatum unlocks a datum without updating it, it always succeeds
-// TODO: use namespace if available
 func (r *Robot) CheckinDatum(key, locktoken string) {
-	c := r.getContext()
 	if locktoken == "" {
 		return
 	}
-	task, _, _ := getTask(c.currentTask)
-	key = task.name + ":" + key
+	c := r.getContext()
+	key = c.NameSpace + ":" + key
 	checkinDatum(key, locktoken)
 }
 
 // UpdateDatum tries to update a piece of data in the robot's brain, providing
 // a struct to marshall and a (hopefully good) lock token. If err != nil, the
 // update failed.
-// TODO: use namespace if available
 func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 	c := r.getContext()
-	task, _, _ := getTask(c.currentTask)
-	key = task.name + ":" + key
+	key = c.NameSpace + ":" + key
 	return updateDatum(key, locktoken, datum)
 }
 

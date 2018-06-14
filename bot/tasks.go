@@ -12,7 +12,7 @@ import (
 
 // PluginNames can be letters, numbers & underscores only, mainly so
 // brain functions can use ':' as a separator.
-var taskNameRe = regexp.MustCompile(`[\w]+`)
+var identifierRe = regexp.MustCompile(`[\w-]+`)
 
 // Global persistent map of plugin name to unique ID
 var taskNameIDmap = struct {
@@ -266,8 +266,8 @@ func RegisterPlugin(name string, plug PluginHandler) {
 	if stopRegistrations {
 		return
 	}
-	if !taskNameRe.MatchString(name) {
-		log.Fatalf("Plugin name '%s' doesn't match plugin name regex '%s'", name, taskNameRe.String())
+	if !identifierRe.MatchString(name) {
+		log.Fatalf("Plugin name '%s' doesn't match plugin name regex '%s'", name, identifierRe.String())
 	}
 	if _, exists := pluginHandlers[name]; exists {
 		log.Fatalf("Attempted plugin name registration duplicates builtIn or other Go plugin: %s", name)

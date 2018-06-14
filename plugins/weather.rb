@@ -35,7 +35,7 @@ when "configure"
 	exit
 when "weather"
     c = bot.GetTaskConfig()
-    c["APIKey"] = ENV["OWM_APIKEY"] if c["APIKey"].size == 0
+    c["APIKey"] = ENV["OWM_APIKEY"] if c["APIKey"] == nil || c["APIKey"].size == 0
     location = ARGV.shift()
     location += ",#{c["DefaultCountry"]}" unless location.include?(',')
     uri = URI("http://api.openweathermap.org/data/2.5/weather?q=#{location}&units=#{c["TemperatureUnits"]}&APPID=#{c["APIKey"]}")

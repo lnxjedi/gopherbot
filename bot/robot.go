@@ -67,6 +67,33 @@ func (r *Robot) CheckAdmin() bool {
 	return false
 }
 
+// SetParameter sets a parameter for the current pipeline, useful only for
+// passing parameters (as environment variables) to tasks later in the pipeline.
+// StoreParameter is for long-term parameter storage (e.g. credentials).
+func (r *Robot) SetParameter(name, value string) bool {
+	if !identifierRe.MatchString(name) {
+		return false
+	}
+	c := r.getContext()
+	c.environment[name] = value
+	return true
+}
+
+// GetParameter retrieves the value of a parameter for a namespace. Only useful
+// for Go plugins; external scripts have all parameters for the NameSpace stored
+// as environment variables. Note that runtasks.go populates the environment
+// with Stored paramters, too. So GetParameter is useful for both short-term
+// parameters in a pipeline, and for getting long-term parameters such as
+// credentials.
+func (r *Robot) GetParameter(key string) string {
+	c := r.getContext()
+	value, ok := c.environment[key]
+	if ok {
+		return value
+	}
+	return ""
+}
+
 // Elevate lets a plugin request elevation on the fly. When immediate = true,
 // the elevator should always prompt for 2fa; otherwise a configured timeout
 // should apply.

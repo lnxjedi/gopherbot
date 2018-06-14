@@ -319,6 +319,16 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 		}
 		bot.Reply("Configuration reloaded successfully")
 		Log(Info, "Configuration successfully reloaded by a request from:", bot.User)
+	case "store":
+		ns := args[0]
+		key := args[1]
+		value := args[2]
+		ret := bot.StoreParameter(ns, key, value)
+		if ret == Ok {
+			bot.Say("Stored")
+		} else {
+			bot.Say(fmt.Sprintf("Problem storing value: %s", ret))
+		}
 	case "abort":
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)
@@ -327,8 +337,8 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 		panic("Abort command issued")
 	case "debug":
 		pname := args[0]
-		if !taskNameRe.MatchString(pname) {
-			bot.Say(fmt.Sprintf("Invalid plugin name '%s', doesn't match regexp: '%s' (plugin can't load)", pname, taskNameRe.String()))
+		if !identifierRe.MatchString(pname) {
+			bot.Say(fmt.Sprintf("Invalid plugin name '%s', doesn't match regexp: '%s' (plugin can't load)", pname, identifierRe.String()))
 			return
 		}
 		c := bot.getContext()

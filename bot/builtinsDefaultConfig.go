@@ -29,9 +29,13 @@ Help:
   Helptext: [ "(bot), debug plugin <pluginname> (verbose) - turn on debugging for the named plugin, optionally verbose" ]
 - Keywords: [ "debug" ]
   Helptext: [ "(bot), stop debugging - turn off debugging" ]
+- Keywords: [ "store", "parameter", "environment" ]
+  Helptext: [ "(bot), store parameter <namespace> <var>=<value> - store parameter for <namespace> in brain"]
 CommandMatchers:
 - Command: reload
   Regex: '(?i:reload)'
+- Command: store
+  Regex: '(?i:store parameter ([\w]+) ([\w-]+)=(.*))'
 - Command: quit
   Regex: '(?i:quit|exit)'
 - Command: abort

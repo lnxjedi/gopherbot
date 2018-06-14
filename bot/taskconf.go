@@ -46,8 +46,8 @@ func (r *botContext) loadTaskConfig() {
 	}
 
 	for index, script := range externalScripts {
-		if !taskNameRe.MatchString(script.Name) {
-			Log(Error, fmt.Sprintf("Task name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, taskNameRe.String()))
+		if !identifierRe.MatchString(script.Name) {
+			Log(Error, fmt.Sprintf("Task name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, identifierRe.String()))
 			continue
 		}
 		if script.Name == "bot" {
@@ -261,6 +261,12 @@ LoadLoop:
 				}
 			case "Description":
 				task.Description = *(val.(*string))
+			case "NameSpace":
+				task.NameSpace = *(val.(*string))
+				if !identifierRe.MatchString(task.NameSpace) {
+					Log(Error, fmt.Sprintf("Task '%s' has invalid NameSpace '%s'; doesn't match regex '%s', ignoring", task.name, task.NameSpace, identifierRe.String()))
+					task.NameSpace = ""
+				}
 			case "Elevator":
 				task.Elevator = *(val.(*string))
 			case "ElevatedCommands":
@@ -382,6 +388,9 @@ LoadLoop:
 				task.AllowDirect = true
 				explicitAllowDirect = true
 			}
+		}
+		if len(task.NameSpace) == 0 {
+			task.NameSpace = task.name
 		}
 
 		if !explicitAllowDirect {

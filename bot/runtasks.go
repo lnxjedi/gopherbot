@@ -25,10 +25,23 @@ var envPassThrough = []string{
 // indicates whether a pipeline started from a user command - plugin match or
 // run job command.
 func (bot *botContext) runPipeline(t interface{}, interactive bool, matcher *InputMatcher, args ...string) {
-	_, plugin, _ := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
+	task, plugin, _ := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
 	isPlugin := plugin != nil
 	bot.registerActive()
+	// Populate the environment; retrievable as environment variables for
+	// scripts, or using GetParameter(...) in Go plugins.
+	for _, p := range envPassThrough {
+		bot.environment[p] = os.Getenv(p)
+	}
+	storedEnv := make(map[string]string)
+	_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
+	if exists {
+		for key, value := range storedEnv {
+			bot.environment[key] = value
+		}
+	}
 	r := bot.makeRobot()
+	// TODO: initialize history and pass to callTask
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	robot.Add(1)
 	robot.Lock()
@@ -114,6 +127,10 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		bot.debug(msg, false)
 		return msg, ConfigurationError
 	}
+	// Initialize a NameSpace that persists for the life of the pipeline.
+	if len(bot.NameSpace) == 0 {
+		bot.NameSpace = task.NameSpace
+	}
 	if !(task.name == "builtInadmin" && command == "abort") {
 		defer checkPanic(r, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
 	}
@@ -156,9 +173,6 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		cmd = exec.Command(fullPath, externalArgs...)
 	}
 	envhash := make(map[string]string)
-	for _, p := range envPassThrough {
-		envhash[p] = os.Getenv(p)
-	}
 	if len(bot.environment) > 0 {
 		for k, v := range bot.environment {
 			envhash[k] = v
