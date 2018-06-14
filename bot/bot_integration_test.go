@@ -25,7 +25,6 @@ import (
 
 	. "github.com/lnxjedi/gopherbot/bot"
 	_ "github.com/lnxjedi/gopherbot/brains/file"
-	_ "github.com/lnxjedi/gopherbot/brains/mem"
 	testc "github.com/lnxjedi/gopherbot/connectors/test"
 	_ "github.com/lnxjedi/gopherbot/goplugins/groups"
 	_ "github.com/lnxjedi/gopherbot/goplugins/help"

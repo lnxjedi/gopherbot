@@ -1,16 +1,13 @@
-// Package memBrain is a trivial memory-based implementation of the bot.SimpleBrain
+// membrain is a trivial memory-based implementation of the bot.SimpleBrain
 // interface, which gives the robot a place to store it's memories. Memories
-// are lost when the robot stops, so this is mainly only useful for testing.
-package memBrain
+// are lost when the robot stops, so this is mainly only useful for testing;
+// however, if no other brain is configured, membrain is used as the default.
+package bot
 
 import (
 	"fmt"
 	"log"
-
-	"github.com/lnxjedi/gopherbot/bot"
 )
-
-var robot bot.Handler
 
 // NOTE: brains shouldn't need to do their own locking. See bot/brain.go
 type memBrain struct {
@@ -27,15 +24,13 @@ func (mb *memBrain) Retrieve(k string) (*[]byte, bool, error) {
 	if exists {
 		return datum, true, nil
 	} else { // Memory doesn't exist yet
-		robot.Log(bot.Info, fmt.Sprintf("Retrieve called on non-existing key \"%s\"", k))
+		Log(Info, fmt.Sprintf("Retrieve called on non-existing key \"%s\"", k))
 		return datum, false, nil
 	}
 }
 
 // The file brain doesn't need the logger, but other brains might
-func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
-	robot = r
-
+func provider(r Handler, _ *log.Logger) SimpleBrain {
 	mb := &memBrain{
 		memories: make(map[string]*[]byte),
 	}
@@ -43,5 +38,5 @@ func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
 }
 
 func init() {
-	bot.RegisterSimpleBrain("mem", provider)
+	RegisterSimpleBrain("mem", provider)
 }

@@ -126,6 +126,12 @@ func initBot(cpath, epath string, logger *log.Logger) {
 			robot.brain = brain
 			robot.Unlock()
 		}
+	} else {
+		bprovider, _ := brains["mem"]
+		robot.Lock()
+		robot.brain = bprovider(handle, logger)
+		robot.Unlock()
+		Log(Error, "No brain configured, falling back to default 'mem' brain - no memories will persist")
 	}
 	if len(robot.historyProvider) > 0 {
 		if hprovider, ok := historyProviders[robot.historyProvider]; !ok {

@@ -19,7 +19,6 @@ import (
 
 	_ "github.com/lnxjedi/gopherbot/brains/dynamodb"
 	_ "github.com/lnxjedi/gopherbot/brains/file"
-	_ "github.com/lnxjedi/gopherbot/brains/mem"
 
 	// *** Included history implementations
 	_ "github.com/lnxjedi/gopherbot/history/file"
