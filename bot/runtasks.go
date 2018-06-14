@@ -166,14 +166,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	}
 	envhash["GOPHER_CHANNEL"] = bot.Channel
 	envhash["GOPHER_USER"] = bot.User
-	envhash["GOPHER_CALLER_ID"] = fmt.Sprintf("%d", bot.id)
 	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", bot.Protocol)
-	envhash["GOPHER_INSTALLDIR"] = installPath
-	if len(configPath) > 0 {
-		envhash["GOPHER_CONFIGDIR"] = configPath
-	} else {
-		envhash["GOPHER_CONFIGDIR"] = installPath
-	}
 	env := make([]string, 0, len(envhash))
 	for k, v := range envhash {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
@@ -325,6 +318,7 @@ func getExtDefCfg(task *botTask) (*[]byte, error) {
 		return nil, err
 	}
 	var cfg []byte
+	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		var interpreter string
 		interpreter, err = getInterpreter(fullPath)
@@ -334,11 +328,14 @@ func getExtDefCfg(task *botTask) (*[]byte, error) {
 		}
 		args := fixInterpreterArgs(interpreter, []string{fullPath, "configure"})
 		Log(Debug, fmt.Sprintf("Calling '%s' with args: %q", interpreter, args))
-		cfg, err = exec.Command(interpreter, args...).Output()
+		cmd = exec.Command(interpreter, args...)
 	} else {
 		Log(Debug, fmt.Sprintf("Calling '%s' with arg: configure", fullPath))
-		cfg, err = exec.Command(fullPath, "configure").Output()
+		//cfg, err = exec.Command(fullPath, "configure").Output()
+		cmd = exec.Command(fullPath, "configure")
 	}
+	cmd.Env = []string{fmt.Sprintf("GOPHER_INSTALLDIR=%s", installPath)}
+	cfg, err = cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			err = fmt.Errorf("Problem retrieving default configuration for external plugin '%s', skipping: '%v', output: %s", fullPath, err, exitErr.Stderr)

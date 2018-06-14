@@ -345,7 +345,7 @@ func (r *botContext) loadConfig() error {
 		st := make([]scheduledTask, 0, len(newconfig.ScheduledTasks))
 		for _, s := range newconfig.ScheduledTasks {
 			if len(s.Name) == 0 || len(s.Schedule) == 0 {
-				Log(Error, fmt.Sprintf("Zero-length Name (%s) or Schedule (%s) in ScheduledTask, skipping"))
+				Log(Error, fmt.Sprintf("Zero-length Name (%s) or Schedule (%s) in ScheduledTask, skipping", s.Name, s.Schedule))
 			} else {
 				st = append(st, s)
 			}

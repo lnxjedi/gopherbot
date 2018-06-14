@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -60,6 +61,13 @@ func (c *botContext) registerActive() {
 		botRunID.idx = 1
 	}
 	c.id = botRunID.idx
+	c.environment["GOPHER_INSTALLDIR"] = installPath
+	if len(configPath) > 0 {
+		c.environment["GOPHER_CONFIGDIR"] = configPath
+	} else {
+		c.environment["GOPHER_CONFIGDIR"] = installPath
+	}
+	c.environment["GOPHER_CALLER_ID"] = fmt.Sprintf("%d", c.id)
 	botRunID.Unlock()
 	activeRobots.Lock()
 	activeRobots.i[c.id] = c

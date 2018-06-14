@@ -97,7 +97,7 @@ func (r *botContext) loadTaskConfig() {
 	// in to non-shared data structures that will replace current configuration
 	// under lock at the end.
 LoadLoop:
-	for i, j := range tlist {
+	for _, j := range tlist {
 		var plugin *botPlugin
 		var job *botJob
 		var task *botTask
@@ -582,7 +582,7 @@ LoadLoop:
 			}
 		}
 
-		Log(Debug, fmt.Sprintf("Configured task '%s'", i, task.name))
+		Log(Debug, fmt.Sprintf("Configured task '%s'", task.name))
 	}
 	// End of configuration loading. All invalid tasks are disabled.
 
