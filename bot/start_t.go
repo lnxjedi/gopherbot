@@ -19,8 +19,6 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (<-chan stru
 	wd, _ := os.Getwd()
 	installpath := filepath.Dir(wd)
 	configpath := filepath.Join(installpath, cfgdir)
-	os.Setenv("GOPHER_INSTALLDIR", installpath)
-	os.Setenv("GOPHER_CONFIGDIR", configpath)
 	t.Logf("Initializing test bot with installpath: \"%s\" and configpath: \"%s\"", installpath, configpath)
 
 	var botLogger *log.Logger

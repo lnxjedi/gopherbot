@@ -222,7 +222,8 @@ func initializePlugins() {
 	}
 	currentTasks.RUnlock()
 	bot := &botContext{
-		tasks: tasks,
+		environment: make(map[string]string),
+		tasks:       tasks,
 	}
 	bot.registerActive()
 	robot.Lock()

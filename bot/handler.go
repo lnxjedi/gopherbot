@@ -27,25 +27,21 @@ func (h handler) GetLogToFile() bool {
 // GetInstallPath gets the path to the bot's install dir -
 // the location of default configuration and stock external plugins.
 func (h handler) GetInstallPath() string {
-	robot.RLock()
-	defer robot.RUnlock()
-	return robot.installPath
+	return installPath
 }
 
 // GetConfigPath gets the path to the bot's (supposedly writable) configuration
 // directory. This is the config path if specified, otherwise the install
 // directory.
 func (h handler) GetConfigPath() string {
-	robot.RLock()
-	defer robot.RUnlock()
-	if len(robot.configPath) > 0 {
-		return robot.configPath
+	if len(configPath) > 0 {
+		return configPath
 	}
-	return robot.installPath
+	return installPath
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
-func (h handler) IncomingMessage(channelName, userName, messageFull string, proto Protocol, raw interface{}) {
+func (h handler) IncomingMessage(channelName, userName, messageFull string, raw interface{}) {
 	Log(Trace, fmt.Sprintf("Incoming message '%s' in channel '%s'", messageFull, channelName))
 	// When command == true, the message was directed at the bot
 	isCommand := false
@@ -111,7 +107,6 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, prot
 	bot := &botContext{
 		User:        userName,
 		Channel:     channelName,
-		Protocol:    proto,
 		RawMsg:      raw,
 		tasks:       tasks,
 		isCommand:   isCommand,

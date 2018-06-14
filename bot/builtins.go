@@ -51,10 +51,10 @@ func help(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 		msg = append(msg, "Here's some information about my running environment:")
 		msg = append(msg, fmt.Sprintf("The hostname for the server I'm running on is: %s", hostName))
 		if bot.CheckAdmin() {
-			msg = append(msg, fmt.Sprintf("My install directory is: %s", robot.installPath))
+			msg = append(msg, fmt.Sprintf("My install directory is: %s", installPath))
 			lp := "(not set)"
-			if len(robot.configPath) > 0 {
-				lp = robot.configPath
+			if len(configPath) > 0 {
+				lp = configPath
 			}
 			msg = append(msg, fmt.Sprintf("My configuration directory is: %s", lp))
 		}
@@ -93,7 +93,7 @@ func help(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 			if !bot.getContext().taskAvailable(task, hasKeyword, true) {
 				continue
 			}
-			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", plugin.name, term))
+			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", task.name, term))
 			if !hasKeyword { // if you ask for help without a term, you just get help for whatever commands are available to you
 				for _, phelp := range plugin.Help {
 					for _, helptext := range phelp.Helptext {
@@ -116,14 +116,14 @@ func help(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 					for _, keyword := range phelp.Keywords {
 						if term == keyword {
 							chantext := ""
-							if plugin.DirectOnly {
+							if task.DirectOnly {
 								// Look: the right paren gets added below
 								chantext = " (direct message only"
 							} else {
-								if len(plugin.Channels) > tooManyChannels {
+								if len(task.Channels) > tooManyChannels {
 									chantext += "(channels: (many) "
 								} else {
-									for _, pchan := range plugin.Channels {
+									for _, pchan := range task.Channels {
 										if len(chantext) == 0 {
 											chantext += " (channels: " + pchan
 										} else {
@@ -245,12 +245,12 @@ func dump(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 			}
 			ptext := task.name
 			if wantDisabled {
-				if plugin.Disabled {
-					ptext += "; reason: " + plugin.reason
+				if task.Disabled {
+					ptext += "; reason: " + task.reason
 					plist = append(plist, ptext)
 				}
 			} else {
-				if plugin.Disabled {
+				if task.Disabled {
 					ptext += " (disabled)"
 				}
 				plist = append(plist, ptext)
@@ -332,28 +332,28 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 			return
 		}
 		c := bot.getContext()
-		_, plugin, _ := getTask(c.tasks.getTaskByName(pname))
+		task, plugin, _ := getTask(c.tasks.getTaskByName(pname))
 		if plugin == nil {
 			bot.Say("I don't have any plugins with that name configured")
 			return
 		}
-		if plugin.Disabled {
-			bot.Say(fmt.Sprintf("That plugin is disabled, fix and reload; reason: %s", plugin.reason))
+		if task.Disabled {
+			bot.Say(fmt.Sprintf("That plugin is disabled, fix and reload; reason: %s", task.reason))
 			return
 		}
 		verbose := false
 		if len(args[1]) > 0 {
 			verbose = true
 		}
-		Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", pname, plugin.taskID, verbose))
+		Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", pname, task.taskID, verbose))
 		pd := &debuggingPlug{
-			taskID:  plugin.taskID,
+			taskID:  task.taskID,
 			name:    pname,
 			user:    bot.User,
 			verbose: verbose,
 		}
 		plugDebug.Lock()
-		plugDebug.p[plugin.taskID] = pd
+		plugDebug.p[task.taskID] = pd
 		plugDebug.u[bot.User] = pd
 		plugDebug.Unlock()
 		bot.Say(fmt.Sprintf("Debugging enabled for %s (verbose: %v)", args[0], verbose))

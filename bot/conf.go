@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -62,10 +61,6 @@ func (r *botContext) getConfigFile(filename, callerID string, required bool, jso
 	loaded := false
 	var loader map[string]json.RawMessage
 	var path string
-	robot.RLock()
-	installPath := robot.installPath
-	configPath := robot.configPath
-	robot.RUnlock()
 
 	loader = make(map[string]json.RawMessage)
 	path = installPath + "/conf/" + filename
@@ -293,10 +288,6 @@ func (r *botContext) loadConfig() error {
 	robot.mailConf = newconfig.MailConfig
 	if newconfig.LocalPort != 0 {
 		robot.port = fmt.Sprintf("127.0.0.1:%d", newconfig.LocalPort)
-		err := os.Setenv("GOPHER_HTTP_POST", "http://"+robot.port)
-		if err != nil {
-			Log(Error, fmt.Errorf("Error exporting GOPHER_HTTP_PORT: %q", err))
-		}
 	} else {
 		Log(Error, "LocalPort not defined, not exporting GOPHER_HTTP_POST and external plugins will be broken")
 	}
@@ -351,7 +342,15 @@ func (r *botContext) loadConfig() error {
 		}
 	}
 	if newconfig.ScheduledTasks != nil {
-		robot.scheduledTasks = newconfig.ScheduledTasks
+		st := make([]scheduledTask, 0, len(newconfig.ScheduledTasks))
+		for _, s := range newconfig.ScheduledTasks {
+			if len(s.Name) == 0 || len(s.Schedule) == 0 {
+				Log(Error, fmt.Sprintf("Zero-length Name (%s) or Schedule (%s) in ScheduledTask, skipping"))
+			} else {
+				st = append(st, s)
+			}
+		}
+		robot.scheduledTasks = st
 	}
 	if newconfig.IgnoreUsers != nil {
 		robot.ignoreUsers = newconfig.IgnoreUsers

@@ -31,6 +31,12 @@ func (bot *botContext) checkAuthorization(t interface{}, command string, args ..
 				return Success
 			}
 		}
+	} else {
+		// Jobs don't have commands; only check authorization if an Authorizer
+		// is explicitly set.
+		if len(task.Authorizer) == 0 {
+			return Success
+		}
 	}
 	robot.RLock()
 	defaultAuthorizer := robot.defaultAuthorizer
@@ -42,8 +48,8 @@ func (bot *botContext) checkAuthorization(t interface{}, command string, args ..
 		return ConfigurationError
 	}
 	authorizer := defaultAuthorizer
-	if plugin.Authorizer != "" {
-		authorizer = plugin.Authorizer
+	if task.Authorizer != "" {
+		authorizer = task.Authorizer
 	}
 	_, authPlug, _ := getTask(bot.tasks.getTaskByName(authorizer))
 	if authPlug != nil {

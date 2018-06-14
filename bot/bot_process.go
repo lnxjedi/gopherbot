@@ -21,6 +21,9 @@ type VersionInfo struct {
 	Version, Commit string
 }
 
+// configPath is optional, installPath is where gopherbot(.exe) is
+var configPath, installPath string
+
 var botVersion VersionInfo
 
 var globalLock sync.RWMutex
@@ -44,8 +47,6 @@ func RegisterConnector(name string, connstarter func(Handler, *log.Logger) Conne
 // by loadConfig, other stuff is populated by the connector.
 var robot struct {
 	Connector                             // Connector interface, implemented by each specific protocol
-	configPath           string           // Directory for configuration files overriding defaults / installed
-	installPath          string           // Path to the bot's installation directory
 	adminUsers           []string         // List of users with access to administrative commands
 	alias                rune             // single-char alias for addressing the bot
 	name                 string           // e.g. "Gort"
@@ -98,16 +99,18 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	botLogger.l = logger
 	botLogger.Unlock()
 
+	configPath = cpath
+	installPath = epath
 	robot.Lock()
-	robot.configPath = cpath
-	robot.installPath = epath
 	robot.stop = make(chan struct{})
 	robot.done = make(chan struct{})
 	robot.shuttingDown = false
 	robot.Unlock()
 
 	handle := handler{}
-	bot := &botContext{}
+	bot := &botContext{
+		environment: make(map[string]string),
+	}
 	bot.registerActive()
 	if err := bot.loadConfig(); err != nil {
 		Log(Fatal, fmt.Sprintf("Error loading initial configuration: %v", err))

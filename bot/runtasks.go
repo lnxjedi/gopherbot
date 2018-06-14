@@ -12,6 +12,14 @@ import (
 	"syscall"
 )
 
+var envPassThrough = []string{
+	"HOME",
+	"HOSTNAME",
+	"LANG",
+	"PATH",
+	"USER",
+}
+
 // runPipeline is triggered by user commands, job triggers, and scheduled tasks.
 // Called from dispatch: checkTaskMatchersAndRun or scheduledTask. interactive
 // indicates whether a pipeline started from a user command - plugin match or
@@ -148,9 +156,8 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		cmd = exec.Command(fullPath, externalArgs...)
 	}
 	envhash := make(map[string]string)
-	for _, e := range os.Environ() {
-		sa := strings.SplitN(e, "=", 2)
-		envhash[sa[0]] = sa[1]
+	for _, p := range envPassThrough {
+		envhash[p] = os.Getenv(p)
 	}
 	if len(bot.environment) > 0 {
 		for k, v := range bot.environment {
@@ -160,12 +167,19 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	envhash["GOPHER_CHANNEL"] = bot.Channel
 	envhash["GOPHER_USER"] = bot.User
 	envhash["GOPHER_CALLER_ID"] = fmt.Sprintf("%d", bot.id)
-	envhash["GOPHER_PROTOCOL"] = string(bot.Protocol)
+	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", bot.Protocol)
+	envhash["GOPHER_INSTALLDIR"] = installPath
+	if len(configPath) > 0 {
+		envhash["GOPHER_CONFIGDIR"] = configPath
+	} else {
+		envhash["GOPHER_CONFIGDIR"] = installPath
+	}
 	env := make([]string, 0, len(envhash))
 	for k, v := range envhash {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 	cmd.Env = env
+	Log(Debug, fmt.Sprintf("DEBUG: using env: '%s'", strings.Join(cmd.Env, "', '")))
 	// close stdout on the external plugin...
 	cmd.Stdout = nil
 	// but hold on to stderr in case we need to log an error
@@ -247,10 +261,6 @@ func getTaskPath(task *botTask) (string, error) {
 		return "", err
 	}
 	var fullPath string
-	robot.RLock()
-	configPath := robot.configPath
-	installPath := robot.installPath
-	robot.RUnlock()
 	if byte(task.scriptPath[0]) == byte("/"[0]) {
 		fullPath = task.scriptPath
 		_, err := os.Stat(fullPath)

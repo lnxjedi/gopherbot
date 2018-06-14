@@ -105,10 +105,8 @@ func Start(v VersionInfo) {
 	// When loading configuration, gopherbot first loads default configuration
 	// from internal config, then loads from configpath/conf/..., which
 	// overrides defaults.
-	os.Setenv("GOPHER_INSTALLDIR", installpath)
 	lp := "(none)"
 	if len(configpath) > 0 {
-		os.Setenv("GOPHER_CONFIGDIR", configpath)
 		lp = configpath
 	}
 	botLogger.Printf("Starting up with config dir: %s, and install dir: %s\n", lp, installpath)

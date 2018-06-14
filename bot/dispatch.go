@@ -26,7 +26,7 @@ func (bot *botContext) checkTaskMatchersAndRun(matcherType matcherType) (message
 	var cmdArgs []string
 	for _, t := range bot.tasks.t {
 		task, plugin, _ := getTask(t)
-		Log(Trace, fmt.Sprintf("Checking availability of task '%s' in channel '%s' for user '%s', active in %d channels (allchannels: %t)", plugin.name, bot.Channel, bot.User, len(plugin.Channels), plugin.AllChannels))
+		Log(Trace, fmt.Sprintf("Checking availability of task '%s' in channel '%s' for user '%s', active in %d channels (allchannels: %t)", task.name, bot.Channel, bot.User, len(task.Channels), task.AllChannels))
 		ok := bot.taskAvailable(task, false, verboseOnly)
 		if !ok {
 			Log(Trace, fmt.Sprintf("Task '%s' not available for user '%s' in channel '%s', doesn't meet criteria", task.name, bot.User, bot.Channel))
@@ -56,7 +56,7 @@ func (bot *botContext) checkTaskMatchersAndRun(matcherType matcherType) (message
 			matchers = plugin.MessageMatchers
 			ctype = "message"
 		}
-		Log(Trace, fmt.Sprintf("Plugin '%s' is active, will check for matches", plugin.name))
+		Log(Trace, fmt.Sprintf("Task '%s' is active, will check for matches", task.name))
 		bot.debug(fmt.Sprintf("Checking %d %s matchers against message: '%s'", len(matchers), ctype, bot.msg), verboseOnly)
 		for _, matcher := range matchers {
 			Log(Trace, fmt.Sprintf("Checking '%s' against '%s'", bot.msg, matcher.Regex))

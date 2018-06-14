@@ -48,38 +48,40 @@ func getBotContextInt(idx int) *botContext {
 
 // Assign a bot run number and register it in the global hash of running
 // robots. Should be called before running plugins
-func (bot *botContext) registerActive() {
+func (c *botContext) registerActive() {
+	robot.RLock()
+	c.Protocol = setProtocol(robot.protocol)
+	c.Format = robot.defaultMessageFormat
+	c.environment["GOPHER_HTTP_POST"] = "http://" + robot.port
+	robot.RUnlock()
 	botRunID.Lock()
 	botRunID.idx++
 	if botRunID.idx == 0 {
 		botRunID.idx = 1
 	}
-	bot.id = botRunID.idx
+	c.id = botRunID.idx
 	botRunID.Unlock()
 	activeRobots.Lock()
-	activeRobots.i[bot.id] = bot
+	activeRobots.i[c.id] = c
 	activeRobots.Unlock()
 }
 
 // deregister must be called for all registered Robots to prevent a memory leak.
-func (bot *botContext) deregister() {
+func (c *botContext) deregister() {
 	activeRobots.Lock()
-	delete(activeRobots.i, bot.id)
+	delete(activeRobots.i, c.id)
 	activeRobots.Unlock()
 }
 
 // makeRobot returns
-func (bot *botContext) makeRobot() *Robot {
-	robot.RLock()
-	format := robot.defaultMessageFormat
-	robot.RUnlock()
+func (c *botContext) makeRobot() *Robot {
 	return &Robot{
-		User:     bot.User,
-		Channel:  bot.Channel,
-		Protocol: bot.Protocol,
-		RawMsg:   bot.RawMsg,
-		Format:   format,
-		id:       bot.id,
+		User:     c.User,
+		Channel:  c.Channel,
+		Format:   c.Format,
+		Protocol: c.Protocol,
+		RawMsg:   c.RawMsg,
+		id:       c.id,
 	}
 }
 
@@ -92,6 +94,7 @@ type botContext struct {
 	Channel        string            // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
 	Protocol       Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
 	RawMsg         interface{}       // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
+	Format         MessageFormat     // robot's default message format
 	id             int               // incrementing index of Robot threads
 	tasks          taskList          // Pointers to current task configuration at start of pipeline
 	currentTask    interface{}       // pointer to currently executing task

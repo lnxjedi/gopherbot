@@ -20,7 +20,7 @@ func scheduleTasks() {
 	scheduled := robot.scheduledTasks
 	robot.RUnlock()
 	for _, st := range scheduled {
-		Log(Debug, fmt.Sprintf("Scheduling job '%s' with schedule: %s", st.taskSpec.Name, st.Schedule))
+		Log(Info, fmt.Sprintf("Scheduling job '%s' with schedule: %s", st.taskSpec.Name, st.Schedule))
 		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(st.taskSpec) })
 	}
 	taskRunner.Start()
@@ -36,9 +36,6 @@ func runScheduledTask(ts taskSpec) {
 		sync.RWMutex{},
 	}
 	currentTasks.RUnlock()
-	robot.RLock()
-	proto := setProtocol(robot.protocol)
-	robot.RUnlock()
 	t := tasks.getTaskByName(ts.Name)
 	if t == nil {
 		Log(Error, "Task not found when running scheduled task: %s", ts.Name)
@@ -51,7 +48,6 @@ func runScheduledTask(ts taskSpec) {
 	bot := &botContext{
 		User:        task.User,
 		Channel:     task.Channel,
-		Protocol:    proto,
 		tasks:       tasks,
 		isCommand:   isPlugin,
 		directMsg:   false,
