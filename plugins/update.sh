@@ -35,5 +35,7 @@ case "$COMMAND" in
         RES=$(cd $GOPHER_CONFIGDIR; git pull 2>&1)
         Say "Operation completed with result:"
         Say -f "$RES"
+        Say "Initiating a reload..."
+        AddTask builtInadmin reload
         ;;
 esac

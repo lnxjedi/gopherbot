@@ -152,6 +152,53 @@ EOF
 	echo -n "$RETVAL"
 }
 
+SetParameter() {
+	local NAME="$1"
+	local VALUE="$2"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Name": "$NAME",
+	"Value": "$VALUE"
+}
+EOF
+)
+	local GB_FUNCNAME="SetParameter"
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
+	echo "$RETVAL"
+	if [ "$RETVAL" -eq "true" ]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
+AddTask(){
+	local JSTR
+	local TNAME="$1"
+	shift
+	for ARG in "$@"
+	do
+		echo "ARG is $ARG"
+		JSTR="$JSTR \"$ARG\""
+	done
+	if [ -n "$JSTR" ]
+	then
+		JSTR=$(echo ${JSTR//\" \"/\", \"})
+	fi
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Name": "$TNAME",
+	"CmdArgs": [ $JSTR ]
+}
+EOF
+)
+	local GB_FUNCNAME="AddTask"
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	gbBotRet "$GB_RET"
+}
+
 Elevate(){
 	IMMEDIATE="false"
 	if [ -n "$1" ]
