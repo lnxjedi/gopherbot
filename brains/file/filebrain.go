@@ -39,7 +39,6 @@ func (fb *brainConfig) Retrieve(k string) (*[]byte, bool, error) {
 		}
 		return &datum, true, nil
 	} else { // Memory doesn't exist yet
-		robot.Log(bot.Info, fmt.Sprintf("Retrieve called on non-existing key \"%s\"", k))
 		return nil, false, nil
 	}
 }

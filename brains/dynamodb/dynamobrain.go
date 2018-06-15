@@ -113,7 +113,6 @@ func (db *brainConfig) Retrieve(k string) (datum *[]byte, exists bool, err error
 	}
 
 	if m.Memory == "" {
-		robot.Log(bot.Info, fmt.Sprintf("Retrieve called on non-existing key \"%s\"", k))
 		return nil, false, nil
 	}
 
