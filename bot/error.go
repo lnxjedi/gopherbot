@@ -5,6 +5,8 @@ type RetVal int
 
 //go:generate stringer -type=TaskRetVal
 
+//go:generate stringer -type=RetVal
+
 // Generate String method with: go generate ./bot/
 
 // TaskRetVal is an integer type for return values from plugins, mainly for elevation & authorization
@@ -89,33 +91,9 @@ const (
 	NoBotEmail
 	// MailError - There was an error sending email
 	MailError
-)
 
-func (ret RetVal) String() string {
-	errMsg := []string{
-		"Ok",
-		"User not found",
-		"Channel not found",
-		"Attribute not found",
-		"Failed sending direct message to user",
-		"Failed to join the channel",
-		"Datum not found in robot's brain",
-		"Datum lock expired before update",
-		"Problem unmarshalling JSON/Yaml",
-		"Brain storage failed",
-		"Invalid string given for datum key",
-		"Argument to GetTaskConfig wasn't a double pointer to a struct",
-		"Mismatch between struct registered in RegisterPlugin and struct passed to GetTaskConfig",
-		"Plugin configuration didn't have a Config section",
-		"User OTP configuration not found",
-		"Unspecified error in checking OTP",
-		"The user's reply didn't match the requested regex",
-		"The user didn't respond within the given timeout",
-		"The user is already engaged in an interactive command with the robot in the same channel",
-		"The matcher key supplied in WaitForReply doesn't correspond to a configured regex, or a provided regex didn't compile",
-		"User email attribute not available",
-		"Robot email attribute not available",
-		"Unspecified error sending email",
-	}
-	return errMsg[int(ret)]
-}
+	/* AddTask */
+	TaskNotFound
+	// MissingArguments - AddTask requires a command and args for a plugin
+	MissingArguments
+)

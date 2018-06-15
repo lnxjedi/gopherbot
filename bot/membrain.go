@@ -5,7 +5,6 @@
 package bot
 
 import (
-	"fmt"
 	"log"
 )
 
@@ -24,7 +23,6 @@ func (mb *memBrain) Retrieve(k string) (*[]byte, bool, error) {
 	if exists {
 		return datum, true, nil
 	} else { // Memory doesn't exist yet
-		Log(Info, fmt.Sprintf("Retrieve called on non-existing key \"%s\"", k))
 		return datum, false, nil
 	}
 }

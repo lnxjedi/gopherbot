@@ -321,9 +321,19 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 		Log(Info, "Configuration successfully reloaded by a request from:", bot.User)
 	case "store":
 		ns := args[0]
+		c := bot.getContext()
+		_, exists := c.tasks.nameSpaces[ns]
+		if !exists {
+			bot.Say("I don't have that namespace configured")
+			return
+		}
 		key := args[1]
 		value := args[2]
-		ret := bot.StoreParameter(ns, key, value)
+		env := make(map[string]string)
+		mem := paramPrefix + ns
+		tok, _, _ := checkoutDatum(mem, &env, true)
+		env[key] = value
+		ret := updateDatum(mem, tok, env)
 		if ret == Ok {
 			bot.Say("Stored")
 		} else {

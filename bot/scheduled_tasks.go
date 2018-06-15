@@ -33,15 +33,21 @@ func runScheduledTask(ts taskSpec) {
 		currentTasks.t,
 		currentTasks.nameMap,
 		currentTasks.idMap,
+		currentTasks.nameSpaces,
 		sync.RWMutex{},
 	}
 	currentTasks.RUnlock()
 	t := tasks.getTaskByName(ts.Name)
 	if t == nil {
-		Log(Error, "Task not found when running scheduled task: %s", ts.Name)
+		Log(Error, fmt.Sprintf("Task not found when running scheduled task: %s", ts.Name))
+		return
 	}
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
+	if isPlugin && len(ts.Command) == 0 {
+		Log(Error, fmt.Sprintf("Empty 'Command' when running scheduled task '%s' of type plugin", ts.Name))
+		return
+	}
 
 	// Create the botContext to carry state through the pipeline.
 	// runPipeline will take care of registerActive()
@@ -53,17 +59,17 @@ func runScheduledTask(ts taskSpec) {
 		directMsg:   false,
 		environment: make(map[string]string),
 	}
-	m := &InputMatcher{
-		Command: "run",
-	}
+	var command string
 	args := make([]string, 0, 0)
 	if isPlugin {
+		command = ts.Command
 		args = append(args, ts.Arguments...)
 	} else {
+		command = "run"
 		for _, p := range ts.Parameters {
 			bot.environment[p.Name] = p.Value
 		}
 	}
 	Log(Debug, fmt.Sprintf("Starting scheduled task: %s", task.name))
-	bot.runPipeline(t, false, m, args...)
+	bot.runPipeline(t, false, scheduled, command, args...)
 }

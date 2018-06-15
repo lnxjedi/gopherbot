@@ -11,14 +11,14 @@ const keepListeningDuration = 77 * time.Second
 // the robot), or message matchers (for ambient commands that need not be
 // directed at the robot), and calls the plugin if it matches. Note: this
 // function is called under a read lock on the 'b' struct.
-func (bot *botContext) checkTaskMatchersAndRun(matcherType matcherType) (messageMatched bool) {
+func (bot *botContext) checkTaskMatchersAndRun(pipelineType pipelineType) (messageMatched bool) {
 	r := bot.makeRobot()
 	// un-needed, but more clear
 	messageMatched = false
 	// If we're checking messages, debugging messages require that the user requested verboseness
 	//verboseOnly := !checkCommands
 	verboseOnly := false
-	if matcherType == plugMessages || matcherType == jobTriggers {
+	if pipelineType == plugMessage || pipelineType == jobTrigger {
 		verboseOnly = true
 	}
 	var runTask interface{}
@@ -34,8 +34,8 @@ func (bot *botContext) checkTaskMatchersAndRun(matcherType matcherType) (message
 		}
 		var matchers []InputMatcher
 		var ctype string
-		switch matcherType {
-		case plugCommands:
+		switch pipelineType {
+		case plugCommand:
 			if plugin == nil {
 				continue
 			}
@@ -45,7 +45,7 @@ func (bot *botContext) checkTaskMatchersAndRun(matcherType matcherType) (message
 			}
 			matchers = plugin.CommandMatchers
 			ctype = "command"
-		case plugMessages:
+		case plugMessage:
 			if plugin == nil {
 				continue
 			}
@@ -153,8 +153,7 @@ func (bot *botContext) checkTaskMatchersAndRun(matcherType matcherType) (message
 		} else {
 			replies.Unlock()
 		}
-		matcher.matcherType = matcherType
-		bot.runPipeline(runTask, true, &matcher, cmdArgs...)
+		bot.runPipeline(runTask, true, pipelineType, matcher.Command, cmdArgs...)
 	}
 	return
 }
@@ -184,7 +183,7 @@ func (bot *botContext) handleMessage() {
 		shortTermMemories.Unlock()
 		if ok && ts.Sub(last.timestamp) < keepListeningDuration {
 			bot.msg = last.memory
-			messageMatched = bot.checkTaskMatchersAndRun(plugCommands)
+			messageMatched = bot.checkTaskMatchersAndRun(plugCommand)
 		} else {
 			messageMatched = true
 			r.Say("Yes?")
@@ -192,7 +191,7 @@ func (bot *botContext) handleMessage() {
 	}
 	if !messageMatched && bot.isCommand {
 		// See if a command matches (and runs)
-		messageMatched = bot.checkTaskMatchersAndRun(plugCommands)
+		messageMatched = bot.checkTaskMatchersAndRun(plugCommand)
 	}
 	// See if the robot was waiting on a reply
 	var waiters []replyWaiter
@@ -227,7 +226,7 @@ func (bot *botContext) handleMessage() {
 	// MessageMatchers.
 	if !messageMatched {
 		// check for ambient message matches
-		messageMatched = bot.checkTaskMatchersAndRun(plugMessages)
+		messageMatched = bot.checkTaskMatchersAndRun(plugMessage)
 	}
 	if bot.isCommand && !messageMatched { // the robot was spoken to, but nothing matched - call catchAlls
 		robot.RLock()
@@ -248,11 +247,7 @@ func (bot *botContext) handleMessage() {
 			} else {
 				// Note: if the catchall plugin has configured security, it
 				// should still apply.
-				matcher := InputMatcher{
-					Command:     "catchall",
-					matcherType: catchAll,
-				}
-				bot.runPipeline(catchAllPlugins[0], true, &matcher, bot.msg)
+				bot.runPipeline(catchAllPlugins[0], true, catchAll, "catchall", bot.msg)
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins

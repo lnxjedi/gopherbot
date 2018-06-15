@@ -79,6 +79,44 @@ func (r *Robot) SetParameter(name, value string) bool {
 	return true
 }
 
+// AddTask puts another task (job or plugin) in the queue for the pipeline. Unlike other
+// CI/CD tools, gopherbot pipelines are code generated, not configured; it is,
+// however, trivial to write code that reads an arbitrary configuration file
+// and uses AddTask to generate a pipeline. When the task is a plugin, cmdargs
+// should be a command followed by arguments. For jobs, only the name is
+// required; parameters should be specified in calls to SetParameter.
+func (r *Robot) AddTask(name string, cmdargs ...string) RetVal {
+	c := r.getContext()
+	t := c.tasks.getTaskByName(name)
+	if t == nil {
+		return TaskNotFound
+	}
+	_, plugin, _ := getTask(t)
+	isPlugin := plugin != nil
+	var command string
+	var args []string
+	if isPlugin {
+		if len(cmdargs) == 0 {
+			return MissingArguments
+		}
+		if len(cmdargs[0]) == 0 {
+			return MissingArguments
+		}
+		command, args = cmdargs[0], cmdargs[1:]
+	} else {
+		command = "run"
+		args = []string{}
+	}
+	ts := taskSpec{
+		Name:      name,
+		Command:   command,
+		Arguments: args,
+		task:      t,
+	}
+	c.nextTasks = append(c.nextTasks, ts)
+	return Ok
+}
+
 // GetParameter retrieves the value of a parameter for a namespace. Only useful
 // for Go plugins; external scripts have all parameters for the NameSpace stored
 // as environment variables. Note that runtasks.go populates the environment

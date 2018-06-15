@@ -98,6 +98,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 		currentTasks.t,
 		currentTasks.nameMap,
 		currentTasks.idMap,
+		currentTasks.nameSpaces,
 		sync.RWMutex{},
 	}
 	currentTasks.RUnlock()

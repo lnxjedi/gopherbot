@@ -17,6 +17,7 @@ import (
 func (r *botContext) loadTaskConfig() {
 	taskIndexByID := make(map[string]int)
 	taskIndexByName := make(map[string]int)
+	nameSpaceSet := make(map[string]struct{})
 	tlist := make([]interface{}, 0, 14)
 
 	// Copy some data from the bot under read lock, including external plugins
@@ -267,6 +268,10 @@ LoadLoop:
 					Log(Error, fmt.Sprintf("Task '%s' has invalid NameSpace '%s'; doesn't match regex '%s', ignoring", task.name, task.NameSpace, identifierRe.String()))
 					task.NameSpace = ""
 				}
+				if task.NameSpace == "bot" {
+					Log(Error, fmt.Sprintf("Task '%s' has illegal NameSpace 'bot', ignoring", task.name))
+					task.NameSpace = ""
+				}
 			case "Elevator":
 				task.Elevator = *(val.(*string))
 			case "ElevatedCommands":
@@ -392,6 +397,7 @@ LoadLoop:
 		if len(task.NameSpace) == 0 {
 			task.NameSpace = task.name
 		}
+		nameSpaceSet[task.NameSpace] = struct{}{}
 
 		if !explicitAllowDirect {
 			task.AllowDirect = defaultAllowDirect
@@ -600,6 +606,7 @@ LoadLoop:
 	currentTasks.t = tlist
 	currentTasks.idMap = taskIndexByID
 	currentTasks.nameMap = taskIndexByName
+	currentTasks.nameSpaces = nameSpaceSet
 	currentTasks.Unlock()
 	// loadTaskConfig is called in initBot, before the connector has started;
 	// don't init plugins in that case.

@@ -24,13 +24,15 @@ var taskNameIDmap = struct {
 }
 
 type taskList struct {
-	t       []interface{}
-	nameMap map[string]int
-	idMap   map[string]int
+	t          []interface{}
+	nameMap    map[string]int
+	idMap      map[string]int
+	nameSpaces map[string]struct{}
 	sync.RWMutex
 }
 
 var currentTasks = &taskList{
+	nil,
 	nil,
 	nil,
 	nil,
@@ -92,10 +94,12 @@ func getJob(t interface{}) *botJob {
 // Struct for ScheduledTasks (gopherbot.yaml) and AddTask (robot method)
 type taskSpec struct {
 	Name      string   // name of the job or plugin
+	Command   string   // plugins only
 	Arguments []string // for plugins only
 	// environment vars for jobs and plugins, unused in AddTask, which should
 	// make calls to SetParameter()
 	Parameters []parameter
+	task       interface{} // populated in AddTask
 }
 
 // parameters are provided to jobs and plugins as environment variables
@@ -120,26 +124,27 @@ type PluginHelp struct {
 	Helptext []string // help string to give for the keywords, conventionally starting with (bot) for commands or (hear) when the bot needn't be addressed directly
 }
 
-type matcherType int
+// Indicates what started the pipeline
+type pipelineType int
 
 const (
-	plugCommands matcherType = iota
-	plugMessages
+	plugCommand pipelineType = iota
+	plugMessage
 	catchAll
-	jobTriggers
+	jobTrigger
+	scheduled
 	runJob
 )
 
 // InputMatcher specifies the command or message to match for a plugin, or user and message to trigger a job
 type InputMatcher struct {
-	Regex       string         // The regular expression string to match - bot adds ^\w* & \w*$
-	Command     string         // The name of the command to pass to the plugin with it's arguments
-	Label       string         // ReplyMatchers use "Label" instead of "Command"
-	Contexts    []string       // label the contexts corresponding to capture groups, for supporting "it" & optional args
-	User        string         // jobs only; user that can trigger this job, normally git-activated webhook or integration
-	Parameters  []string       // jobs only; names of parameters (environment vars) where regex matches are stored, in order of capture groups
-	re          *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
-	matcherType matcherType    // What kind of message matched
+	Regex      string         // The regular expression string to match - bot adds ^\w* & \w*$
+	Command    string         // The name of the command to pass to the plugin with it's arguments
+	Label      string         // ReplyMatchers use "Label" instead of "Command"
+	Contexts   []string       // label the contexts corresponding to capture groups, for supporting "it" & optional args
+	User       string         // jobs only; user that can trigger this job, normally git-activated webhook or integration
+	Parameters []string       // jobs only; names of parameters (environment vars) where regex matches are stored, in order of capture groups
+	re         *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
 type plugType int
@@ -218,6 +223,7 @@ func initializePlugins() {
 		currentTasks.t,
 		currentTasks.nameMap,
 		currentTasks.idMap,
+		currentTasks.nameSpaces,
 		sync.RWMutex{},
 	}
 	currentTasks.RUnlock()

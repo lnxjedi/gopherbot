@@ -24,7 +24,7 @@ var envPassThrough = []string{
 // Called from dispatch: checkTaskMatchersAndRun or scheduledTask. interactive
 // indicates whether a pipeline started from a user command - plugin match or
 // run job command.
-func (bot *botContext) runPipeline(t interface{}, interactive bool, matcher *InputMatcher, args ...string) {
+func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipelineType, command string, args ...string) {
 	task, plugin, _ := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
 	isPlugin := plugin != nil
 	bot.registerActive()
@@ -63,7 +63,7 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, matcher *Inp
 		if isPlugin && len(plugin.AdminCommands) > 0 {
 			adminRequired := false
 			for _, i := range plugin.AdminCommands {
-				if matcher.Command == i {
+				if command == i {
 					adminRequired = true
 					break
 				}
@@ -76,24 +76,37 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, matcher *Inp
 				}
 			}
 		}
-		if bot.checkAuthorization(t, matcher.Command, args...) != Success {
+		if bot.checkAuthorization(t, command, args...) != Success {
 			ret = Fail
 			break
 		}
-		if bot.checkElevation(t, matcher.Command) != Success {
-			ret = Fail
-			break
+		if !bot.elevated {
+			eret, required := bot.checkElevation(t, command)
+			if eret != Success {
+				ret = Fail
+				break
+			}
+			if required {
+				bot.elevated = true
+			}
 		}
-		switch matcher.matcherType {
-		case plugCommands:
-			emit(CommandPluginRan) // for testing, otherwise noop
-		case plugMessages:
-			emit(AmbientPluginRan) // for testing, otherwise noop
+		switch ptype {
+		case plugCommand:
+			emit(CommandTaskRan) // for testing, otherwise noop
+		case plugMessage:
+			emit(AmbientTaskRan)
+		case catchAll:
+			emit(CatchAllTaskRan)
+		case jobTrigger:
+			emit(TriggeredTaskRan)
+		case scheduled:
+			emit(ScheduledTaskRan)
+		case runJob:
+			emit(RunJobTaskRan)
 		}
-		bot.debug(fmt.Sprintf("Running plugin with command '%s' and arguments: %v", matcher.Command, args), false)
-		errString, ret = bot.callTask(t, matcher.Command, args...)
-		//ret := bot.runPipeline(runTask, matcher.Command, cmdArgs...)
-		bot.debug(fmt.Sprintf("Plugin finished with return value: %s", ret), false)
+		bot.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
+		errString, ret = bot.callTask(t, command, args...)
+		bot.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
 
 		if ret != Normal {
 			if interactive && errString != "" {
@@ -102,16 +115,26 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, matcher *Inp
 			break
 		}
 		// TODO: later, look for more tasks added to the Robot by addTask
-		break
-		// while holding the activeRobots lock, remove old callerID:run# and
-		// add callerID:run# for next task in the pipeline; update bot.currentTask
+		// set isPlugin, command and args
+		if len(bot.nextTasks) > 0 {
+			var ts taskSpec
+			ts, bot.nextTasks = bot.nextTasks[0], bot.nextTasks[1:]
+			_, plugin, _ := getTask(ts.task)
+			isPlugin = plugin != nil
+			if isPlugin {
+				command = ts.Command
+				args = ts.Arguments
+			} else {
+				command = "run"
+				args = []string{}
+			}
+			t = ts.task
+		} else {
+			break
+		}
 	}
+	// TODO: post job notifications if Failed or Verbose
 	bot.deregister()
-	// defer func() {
-	// 	if interactive && errString != "" {
-	// 		bot.Reply(errString)
-	// 	}
-	// }()
 }
 
 // callTask does the real work of running a job or plugin with a command and arguments.

@@ -35,9 +35,13 @@ const (
 	ElevRanFailNormal
 	ElevRanFailOther
 	ElevNoRunNotFound
-	CommandPluginRan
-	AmbientPluginRan
+	CommandTaskRan
+	AmbientTaskRan
 	CatchAllsRan
+	CatchAllTaskRan
+	TriggeredTaskRan
+	ScheduledTaskRan
+	RunJobTaskRan
 	GoPluginRan
 	ScriptPluginBadPath
 	ScriptPluginBadInterpreter

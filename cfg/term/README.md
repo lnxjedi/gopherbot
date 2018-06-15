@@ -18,7 +18,7 @@ My software version is: Gopherbot v1.1.0-snapshot, commit: (manual build)
 My alias is: ;
 The administrators for this robot are: alice
 c:general/u:alice -> 
-Events gathered: CommandPluginRan, GoPluginRan, AdminCheckPassed
+Events gathered: CommandTaskRan, GoPluginRan, AdminCheckPassed
 c:general/u:alice -> ;quit
 general: @alice Hasta la vista!
 c:general/u:alice -> Exiting (press enter)
@@ -39,7 +39,7 @@ Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' t
 c:general/u:alice -> ;ping
 general: @alice PONG
 c:general/u:alice ->
-Events gathered: CommandPluginRan, GoPluginRan
+Events gathered: CommandTaskRan, GoPluginRan
 c:general/u:alice -> ;quit
 general: @alice Later gator!
 ```

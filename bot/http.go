@@ -46,8 +46,13 @@ type channelmessage struct {
 	Base64  bool
 }
 
-type plugincall struct {
-	PluginName string
+type addtaskcall struct {
+	Name    string
+	CmdArgs []string
+}
+
+type paramcall struct {
+	Name, Value string
 }
 
 // Something to be placed in short-term memory
@@ -248,6 +253,21 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		bret := bot.CheckAdmin()
 		sendReturn(rw, boolresponse{Boolean: bret})
 		return
+	case "AddTask":
+		var ts addtaskcall
+		if !getArgs(rw, &f.FuncArgs, &ts) {
+			return
+		}
+		ret := bot.AddTask(ts.Name, ts.CmdArgs...)
+		sendReturn(rw, &botretvalresponse{int(ret)})
+		return
+	case "SetParameter":
+		var param paramcall
+		if !getArgs(rw, &f.FuncArgs, &param) {
+			return
+		}
+		success := bot.SetParameter(param.Name, param.Value)
+		sendReturn(rw, boolresponse{Boolean: success})
 	case "Elevate":
 		var e elevate
 		if !getArgs(rw, &f.FuncArgs, &e) {

@@ -354,15 +354,6 @@ func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 	return update(key, locktoken, &dbytes)
 }
 
-// StoreParameter stores parameters for a given namespace in long-term memory.
-func (r *Robot) StoreParameter(namespace, key, value string) RetVal {
-	env := make(map[string]string)
-	mem := paramPrefix + namespace
-	tok, _, _ := checkoutDatum(mem, &env, true)
-	env[key] = value
-	return updateDatum(mem, tok, env)
-}
-
 // CheckoutDatum gets a datum from the robot's brain and unmarshals it into
 // a struct. If rw is set, the datum is checked out read-write and a non-empty
 // lock token is returned that expires after lockTimeout (250ms). The bool

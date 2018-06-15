@@ -55,6 +55,7 @@ func (c *botContext) registerActive() {
 	c.Format = robot.defaultMessageFormat
 	c.environment["GOPHER_HTTP_POST"] = "http://" + robot.port
 	robot.RUnlock()
+	c.nextTasks = make([]taskSpec, 0)
 	botRunID.Lock()
 	botRunID.idx++
 	if botRunID.idx == 0 {
@@ -113,4 +114,5 @@ type botContext struct {
 	bypassSecurity bool              // set for scheduled jobs, where user security restrictions don't apply
 	elevated       bool              // set when required elevation succeeds
 	environment    map[string]string // environment vars set for each job/plugin in the pipeline
+	nextTasks      []taskSpec        // tasks in the pipeline
 }

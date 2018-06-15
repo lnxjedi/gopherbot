@@ -65,7 +65,7 @@ func (bot *botContext) elevate(task *botTask, immediate bool) (retval TaskRetVal
 }
 
 // Check for a configured Elevator and check elevation
-func (bot *botContext) checkElevation(t interface{}, command string) (retval TaskRetVal) {
+func (bot *botContext) checkElevation(t interface{}, command string) (retval TaskRetVal, required bool) {
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	immediate := false
@@ -93,12 +93,12 @@ func (bot *botContext) checkElevation(t interface{}, command string) (retval Tas
 		}
 	}
 	if !elevationRequired {
-		return Success
+		return Success, false
 	}
 	retval = bot.elevate(task, immediate)
 	if retval == Success {
-		return Success
+		return Success, true
 	}
 	Log(Error, fmt.Sprintf("Elevation failed for task '%s', command: '%s'", task.name, command))
-	return Fail
+	return Fail, true
 }
