@@ -306,7 +306,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		// Since we're getting raw JSON (=[]byte), we call update directly.
 		// See brain.go
 		// TODO: Use the namespace from the Robot here
-		ret = update(task.name+":"+m.Key, m.Token, (*[]byte)(&m.Datum))
+		ret = update(c.NameSpace+":"+m.Key, m.Token, (*[]byte)(&m.Datum))
 		sendReturn(rw, &botretvalresponse{int(ret)})
 		return
 	case "Remember":

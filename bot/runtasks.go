@@ -27,6 +27,9 @@ var envPassThrough = []string{
 func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipelineType, command string, args ...string) {
 	task, plugin, _ := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
 	isPlugin := plugin != nil
+	// NameSpace for the pipeline
+	NameSpace := task.NameSpace
+	// keepHistory := task.HistoryLogs > 0
 	bot.registerActive()
 	// Populate the environment; retrievable as environment variables for
 	// scripts, or using GetParameter(...) in Go plugins.
@@ -104,8 +107,12 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 		case runJob:
 			emit(RunJobTaskRan)
 		}
+		// (re-)Set the NameSpace for the pipeline task; may have been modified
+		// by authorizer or elevator
+		bot.NameSpace = NameSpace
+		Log(Trace, fmt.Sprintf("runPipeline setting namespace for bot %d to %s", bot.id, task.NameSpace))
 		bot.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
-		errString, ret = bot.callTask(t, command, args...)
+		errString, ret = bot.callTask(t, false, command, args...)
 		bot.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
 
 		if ret != Normal {
@@ -138,7 +145,7 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 }
 
 // callTask does the real work of running a job or plugin with a command and arguments.
-func (bot *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
+func (bot *botContext) callTask(t interface{}, setNameSpace bool, command string, args ...string) (errString string, retval TaskRetVal) {
 	bot.currentTask = t
 	r := bot.makeRobot()
 	task, plugin, _ := getTask(t)
@@ -150,8 +157,9 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		bot.debug(msg, false)
 		return msg, ConfigurationError
 	}
-	// Initialize a NameSpace that persists for the life of the pipeline.
-	if len(bot.NameSpace) == 0 {
+	// Set NameSpace if none set, for authorizers and elevators
+	if setNameSpace {
+		Log(Trace, fmt.Sprintf("callTask setting namespace for bot %d to %s", bot.id, task.NameSpace))
 		bot.NameSpace = task.NameSpace
 	}
 	if !(task.name == "builtInadmin" && command == "abort") {
@@ -209,7 +217,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 	cmd.Env = env
-	Log(Debug, fmt.Sprintf("DEBUG: using env: '%s'", strings.Join(cmd.Env, "', '")))
+	Log(Debug, fmt.Sprintf("Running '%s' using env: '%s'", fullPath, strings.Join(cmd.Env, "', '")))
 	// close stdout on the external plugin...
 	cmd.Stdout = nil
 	// but hold on to stderr in case we need to log an error

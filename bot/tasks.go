@@ -244,7 +244,7 @@ func initializePlugins() {
 				continue
 			}
 			Log(Info, "Initializing plugin:", task.name)
-			bot.callTask(t, "init")
+			bot.callTask(t, true, "init")
 		}
 	} else {
 		robot.Unlock()

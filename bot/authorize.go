@@ -54,7 +54,7 @@ func (bot *botContext) checkAuthorization(t interface{}, command string, args ..
 	_, authPlug, _ := getTask(bot.tasks.getTaskByName(authorizer))
 	if authPlug != nil {
 		args = append([]string{task.name, task.AuthRequire, command}, args...)
-		_, authRet := bot.callTask(authPlug, "authorize", args...)
+		_, authRet := bot.callTask(authPlug, true, "authorize", args...)
 		if authRet == Success {
 			Log(Audit, fmt.Sprintf("Authorization succeeded by authorizer '%s' for user '%s' calling command '%s' for task '%s' in channel '%s'; AuthRequire: '%s'", authPlug.name, bot.User, command, task.name, bot.Channel, task.AuthRequire))
 			emit(AuthRanSuccess)
