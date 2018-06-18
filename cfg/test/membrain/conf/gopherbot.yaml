@@ -33,9 +33,12 @@ ExternalScripts:
   Type: plugin
 
 Protocol: test
+#Protocol: term
 ProtocolConfig:
   BotName: bender
   BotFullName: Bender Rodriguez
+  StartChannel: "general" # for term connector
+  StartUser: "alice" # for term connector
   Channels:
   - random
   - general
