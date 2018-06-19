@@ -11,7 +11,18 @@ package bot
 
 import (
 	"log"
+	"time"
 )
+
+type historyLog struct {
+	logIndex   int
+	createTime time.Time
+}
+
+type taskHistory struct {
+	nextIndex int
+	histories []historyLog
+}
 
 // HistoryLogger is provided by a HistoryProvider for each job / plugin run
 // where it's requested
