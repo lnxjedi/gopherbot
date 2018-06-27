@@ -43,6 +43,13 @@ var shortTermMemories = struct {
 	sync.Mutex{},
 }
 
+// For aes brain encryption
+var cryptBrain = struct {
+	key         []byte
+	isEncrypted bool
+	sync.Mutex
+}
+
 const paramPrefix = "bot:parameters:"
 
 const shortTermDuration = 7 * time.Minute
