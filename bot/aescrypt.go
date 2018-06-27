@@ -34,9 +34,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"errors"
-	"fmt"
 	"io"
-	"log"
 )
 
 func encrypt(plaintext []byte, key []byte) ([]byte, error) {

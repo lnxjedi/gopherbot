@@ -38,17 +38,20 @@ type memoryContext struct {
 var shortTermMemories = struct {
 	m map[memoryContext]shortTermMemory
 	sync.Mutex
-}{
-	nil,
-	sync.Mutex{},
-}
+}{}
 
 // For aes brain encryption
 var cryptBrain = struct {
 	key         []byte
 	isEncrypted bool
 	sync.Mutex
-}
+}{}
+
+// The "real" key to en-/de-crypt memories;
+// the user-supplied key unlocks this, allowing
+// the user to re-key if they change how the key
+// is supplied.
+const botBrainKey = "bot:botBrainKey"
 
 const paramPrefix = "bot:parameters:"
 
