@@ -154,7 +154,7 @@ const (
 	plugExternal
 )
 
-// a botTask can be a plugin or a job, both capable of calling Robot methods
+// a botTask can be a plugin or a job, both capable of calling Robot methods.
 type botTask struct {
 	name          string          // name of job or plugin; unique by type, but job & plugin can share
 	scriptPath    string          // Path to the external executable for jobs or Plugtype=plugExternal only
@@ -163,10 +163,10 @@ type botTask struct {
 	HistoryLogs   int             // how many runs of this job/plugin to keep history for
 	AllowDirect   bool            // Set this true if this plugin can be accessed via direct message
 	DirectOnly    bool            // Set this true if this plugin ONLY accepts direct messages
-	Channels      []string        // Channels where the task is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
+	Channel       string          // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
+	Channels      []string        // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels   bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	Channel       string          // for scheduled tasks, where updates are posted and bot actions happen
-	User          string          // for scheduled tasks, task runs as this user, also for notifies
+	User          string          // for scheduled tasks (jobs or plugins), task runs as this user, also for notifies
 	RequireAdmin  bool            // Set to only allow administrators to access a plugin
 	Users         []string        // If non-empty, list of all the users with access to this plugin
 	Elevator      string          // Use an elevator other than the DefaultElevator

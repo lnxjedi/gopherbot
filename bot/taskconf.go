@@ -247,8 +247,16 @@ LoadLoop:
 				explicitAllowDirect = true
 			case "DirectOnly":
 				task.DirectOnly = *(val.(*bool))
+			// plugins can be scheduled, so Channel applies to both
+			case "Channel":
+				task.Channel = *(val.(*string))
+			// Channels are only used for plugin visibility
 			case "Channels":
-				task.Channels = *(val.(*[]string))
+				if isPlugin {
+					task.Channels = *(val.(*[]string))
+				} else {
+					mismatch = true
+				}
 			case "AllChannels":
 				task.AllChannels = *(val.(*bool))
 				explicitAllChannels = true
@@ -294,8 +302,6 @@ LoadLoop:
 				task.Authorizer = *(val.(*string))
 			case "AuthRequire":
 				task.AuthRequire = *(val.(*string))
-			case "Channel":
-				task.Channel = *(val.(*string))
 			case "User":
 				task.User = *(val.(*string))
 			case "AuthorizedCommands":
