@@ -79,18 +79,20 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 				}
 			}
 		}
-		if bot.checkAuthorization(t, command, args...) != Success {
-			ret = Fail
-			break
-		}
-		if !bot.elevated {
-			eret, required := bot.checkElevation(t, command)
-			if eret != Success {
+		if !bot.bypassSecurityChecks {
+			if bot.checkAuthorization(t, command, args...) != Success {
 				ret = Fail
 				break
 			}
-			if required {
-				bot.elevated = true
+			if !bot.elevated {
+				eret, required := bot.checkElevation(t, command)
+				if eret != Success {
+					ret = Fail
+					break
+				}
+				if required {
+					bot.elevated = true
+				}
 			}
 		}
 		switch ptype {
