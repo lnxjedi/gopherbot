@@ -2,6 +2,24 @@
 
 `DevNotes.md` - TODO items and design notes for future development.
 
+## Encrypted Brain
+The new EncryptedBrain type will take and return a struct instead:
+ Magic: int = 0xDeadBeef - for validating the data structure
+ Memory: []byte - encrypted contents of the memory
+
+* File & Dynamo brains will get new functions and register a provider for an EncryptedBrain
+* When Convert is True, the retrieve function will read, validate, then encrypt & store if memory was unencrypted before returning
+* Add admin command 'convert <key>' to forces the robot to read the memory and re-store
+* Robot should take a new EncryptedBrain parameter, exclusive with Brain
+* BrainKey is optional, can be specified at runtime
+* The BrainKey should unlock the 'real' key, for later re-keying if desired, e.g. if the admin switches from a configured key to a runtime-supplied key
+
+### Datum Processing
+Datum are protected by serializing all access to memories through a select loop. It should be reviewed / rewritten:
+* Replace "seen" with a timestamp
+* Guarantee 2 seconds exclusive access
+* Lower the brain cycle to 0.1s, guaranteeing 2.0-2.1s access to a memory
+
 ## Plugins and Jobs
 
 ### Augmentations
