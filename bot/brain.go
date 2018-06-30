@@ -47,6 +47,8 @@ var cryptBrain = struct {
 	sync.Mutex
 }{}
 
+// Definitions of bot keys and prefixes
+
 // The "real" key to en-/de-crypt memories;
 // the user-supplied key unlocks this, allowing
 // the user to re-key if they change how the key
@@ -54,6 +56,8 @@ var cryptBrain = struct {
 const botBrainKey = "bot:botBrainKey"
 
 const paramPrefix = "bot:parameters:"
+
+const histPrefix = "bot:histories:"
 
 const shortTermDuration = 7 * time.Minute
 

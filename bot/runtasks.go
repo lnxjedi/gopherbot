@@ -3,6 +3,7 @@ package bot
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -10,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 )
 
 var envPassThrough = []string{
@@ -29,7 +31,63 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 	isPlugin := plugin != nil
 	// NameSpace for the pipeline
 	NameSpace := task.NameSpace
+	bot.pipeName = task.name
+	bot.pipeDesc = task.Description
 	// keepHistory := task.HistoryLogs > 0
+	// TODO: initialize history
+	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
+	robot.Add(1)
+	robot.Lock()
+	robot.pluginsRunning++
+	history := robot.history
+	tz := robot.timeZone
+	robot.Unlock()
+	defer func() {
+		robot.Lock()
+		robot.pluginsRunning--
+		// TODO: this check shouldn't be necessary; remove and test
+		if robot.pluginsRunning >= 0 {
+			robot.Done()
+		}
+		robot.Unlock()
+	}()
+	if task.HistoryLogs > 0 {
+		var th taskHistory
+		key := histPrefix + bot.pipeName
+		tok, _, ret := checkoutDatum(key, &th, true)
+		if ret != Ok {
+			Log(Error, fmt.Sprintf("Error checking out '%s', no history will be recorded for '%s'"), key, bot.pipeName)
+		} else {
+			var start time.Time
+			if tz != nil {
+				start = time.Now().In(tz)
+			} else {
+				start = time.Now()
+			}
+			hist := historyLog{
+				logIndex:   th.nextIndex,
+				createTime: start,
+			}
+			th.histories = append(th.histories, hist)
+			l := len(th.histories)
+			if l > task.HistoryLogs {
+				th.histories = th.histories[l-task.HistoryLogs:]
+			}
+			ret := updateDatum(key, tok, th)
+			if ret != Ok {
+				Log(Error, fmt.Sprintf("Error updating '%s', no history will be recorded for '%s'"), key, bot.pipeName)
+			} else {
+				pipeHistory, err := history.NewHistory(bot.pipeName, hist.logIndex, task.HistoryLogs)
+				if err != nil {
+					Log(Error, fmt.Sprintf("Error starting history for '%', no history will be recorded: %v", bot.pipeName, err))
+				} else {
+					bot.logger = pipeHistory
+				}
+			}
+		}
+	}
+	// Once Active, we need to use the Mutex for access to some fields; see
+	// botcontext/type botContext
 	bot.registerActive()
 	// Populate the environment; retrievable as environment variables for
 	// scripts, or using GetParameter(...) in Go plugins.
@@ -44,21 +102,6 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 		}
 	}
 	r := bot.makeRobot()
-	// TODO: initialize history and pass to callTask
-	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
-	robot.Add(1)
-	robot.Lock()
-	robot.pluginsRunning++
-	robot.Unlock()
-	defer func() {
-		robot.Lock()
-		robot.pluginsRunning--
-		// TODO: this check shouldn't be necessary; remove and test
-		if robot.pluginsRunning >= 0 {
-			robot.Done()
-		}
-		robot.Unlock()
-	}()
 	var errString string
 	var ret TaskRetVal
 	for {
@@ -144,6 +187,9 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 	}
 	// TODO: post job notifications if Failed or Verbose
 	bot.deregister()
+	if bot.logger != nil {
+		bot.logger.Close()
+	}
 }
 
 // callTask does the real work of running a job or plugin with a command and arguments.
@@ -159,6 +205,16 @@ func (bot *botContext) callTask(t interface{}, setNameSpace bool, command string
 		bot.debug(msg, false)
 		return msg, ConfigurationError
 	}
+	if bot.logger != nil {
+		var desc string
+		if len(task.Description) > 0 {
+			desc = fmt.Sprintf("Starting task: %s", task.Description)
+		} else {
+			desc = "Starting task"
+		}
+		bot.logger.Section(task.name, desc)
+	}
+
 	// Set NameSpace if none set, for authorizers and elevators
 	if setNameSpace {
 		Log(Trace, fmt.Sprintf("callTask setting namespace for bot %d to %s", bot.id, task.NameSpace))
@@ -205,6 +261,11 @@ func (bot *botContext) callTask(t interface{}, setNameSpace bool, command string
 	} else {
 		cmd = exec.Command(fullPath, externalArgs...)
 	}
+	bot.Lock()
+	bot.taskName = task.name
+	bot.taskDesc = task.Description
+	bot.osCmd = cmd
+	bot.Unlock()
 	envhash := make(map[string]string)
 	if len(bot.environment) > 0 {
 		for k, v := range bot.environment {
@@ -220,14 +281,24 @@ func (bot *botContext) callTask(t interface{}, setNameSpace bool, command string
 	}
 	cmd.Env = env
 	Log(Debug, fmt.Sprintf("Running '%s' using env: '%s'", fullPath, strings.Join(cmd.Env, "', '")))
-	// close stdout on the external plugin...
-	cmd.Stdout = nil
-	// but hold on to stderr in case we need to log an error
-	stderr, err := cmd.StderrPipe()
+	var stderr, stdout io.ReadCloser
+	// hold on to stderr in case we need to log an error
+	stderr, err = cmd.StderrPipe()
 	if err != nil {
 		Log(Error, fmt.Errorf("Creating stderr pipe for external command '%s': %v", fullPath, err))
 		errString = fmt.Sprintf("There were errors calling external plugin '%s', you might want to ask an administrator to check the logs", task.name)
 		return errString, MechanismFail
+	}
+	if bot.logger == nil {
+		// close stdout on the external plugin...
+		cmd.Stdout = nil
+	} else {
+		stdout, err = cmd.StdoutPipe()
+		if err != nil {
+			Log(Error, fmt.Errorf("Creating stdout pipe for external command '%s': %v", fullPath, err))
+			errString = fmt.Sprintf("There were errors calling external plugin '%s', you might want to ask an administrator to check the logs", task.name)
+			return errString, MechanismFail
+		}
 	}
 	if err = cmd.Start(); err != nil {
 		Log(Error, fmt.Errorf("Starting command '%s': %v", fullPath, err))
@@ -237,17 +308,47 @@ func (bot *botContext) callTask(t interface{}, setNameSpace bool, command string
 	if command != "init" {
 		emit(ScriptTaskRan)
 	}
-	var stdErrBytes []byte
-	if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
-		Log(Error, fmt.Errorf("Reading from stderr for external command '%s': %v", fullPath, err))
-		errString = fmt.Sprintf("There were errors calling external plugin '%s', you might want to ask an administrator to check the logs", task.name)
-		return errString, MechanismFail
-	}
-	stdErrString := string(stdErrBytes)
-	if len(stdErrString) > 0 {
-		Log(Warn, fmt.Errorf("Output from stderr of external command '%s': %s", fullPath, stdErrString))
-		errString = fmt.Sprintf("There was error output while calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-		emit(ScriptPluginStderrOutput)
+	if bot.logger == nil {
+		var stdErrBytes []byte
+		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
+			Log(Error, fmt.Errorf("Reading from stderr for external command '%s': %v", fullPath, err))
+			errString = fmt.Sprintf("There were errors calling external plugin '%s', you might want to ask an administrator to check the logs", task.name)
+			return errString, MechanismFail
+		}
+		stdErrString := string(stdErrBytes)
+		if len(stdErrString) > 0 {
+			Log(Warn, fmt.Errorf("Output from stderr of external command '%s': %s", fullPath, stdErrString))
+			errString = fmt.Sprintf("There was error output while calling external task '%s', you might want to ask an administrator to check the logs", task.name)
+			emit(ScriptPluginStderrOutput)
+		}
+	} else {
+		closed := make(chan struct{})
+		go func() {
+			scanner := bufio.NewScanner(stdout)
+			for scanner.Scan() {
+				line := scanner.Text()
+				bot.logger.Log("OUT " + line)
+			}
+			closed <- struct{}{}
+		}()
+		go func() {
+			scanner := bufio.NewScanner(stderr)
+			for scanner.Scan() {
+				line := scanner.Text()
+				bot.logger.Log("ERR " + line)
+			}
+			closed <- struct{}{}
+		}()
+		halfClosed := false
+		for {
+			select {
+			case <-closed:
+				if halfClosed {
+					break
+				}
+				halfClosed = true
+			}
+		}
 	}
 	if err = cmd.Wait(); err != nil {
 		retval = Fail

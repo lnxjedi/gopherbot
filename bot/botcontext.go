@@ -108,7 +108,6 @@ type botContext struct {
 	NameSpace            string            // memory namespace for this pipeline
 	id                   int               // incrementing index of Robot threads
 	tasks                taskList          // Pointers to current task configuration at start of pipeline
-	currentTask          interface{}       // pointer to currently executing task
 	isCommand            bool              // Was the message directed at the robot, dm or by mention
 	directMsg            bool              // if the message was sent by DM
 	msg                  string            // the message text sent
@@ -117,8 +116,10 @@ type botContext struct {
 	environment          map[string]string // environment vars set for each job/plugin in the pipeline
 	nextTasks            []taskSpec        // tasks in the pipeline
 	logger               HistoryLogger     // where to send stdout / stderr
+	pipeName, pipeDesc   string            // name and description of task that started pipeline
+	currentTask          interface{}       // pointer to currently executing task
 	sync.Mutex                             // Protects access to the items below
-	pipeName, taskName   string            // task that started pipe / current task
-	pipeDesc, taskDesc   string            // task Description for same
+	taskName             string            // name of current task
+	taskDesc             string            // description for same
 	osCmd                *exec.Cmd         // running Command, for aborting a pipeline
 }

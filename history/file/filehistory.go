@@ -51,8 +51,8 @@ var fhc historyConfig
 // logs.
 func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (bot.HistoryLogger, error) {
 	dirPath := path.Join(fhc.Directory, tag)
-	filePath := path.Join(dirPath, fmt.Sprintf("%d", index))
-	if err := os.Mkdir(dirPath, 0755); err != nil {
+	filePath := path.Join(dirPath, fmt.Sprintf("%s-%d.log", tag, index))
+	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return nil, fmt.Errorf("Error creating history directory '%s': %v", dirPath, err)
 	}
 	if file, err := os.Create(filePath); err != nil {
