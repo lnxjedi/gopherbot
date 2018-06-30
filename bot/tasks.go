@@ -109,7 +109,7 @@ type parameter struct {
 
 type externalScript struct {
 	// List of names, paths and types for external plugins and jobs; relative paths are searched first in installpath, then configpath
-	Name, Path, Type string
+	Name, Path string
 }
 
 // items in gopherbot.yaml

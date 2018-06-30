@@ -22,6 +22,9 @@ Datum are protected by serializing all access to memories through a select loop.
 
 ## Plugins and Jobs
 
+### TODO
+* Support for Go jobs
+
 ### Augmentations
 Plugins and jobs share a common botCaller struct. Both can have a defined NameSpace,
 which determines sharing of long-term memories and environment variables (parameters).

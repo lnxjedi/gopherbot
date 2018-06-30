@@ -35,11 +35,10 @@ type botconf struct {
 	IgnoreUsers          []string         // Users the 'bot never talks to - like other bots
 	JoinChannels         []string         // Channels the 'bot should join when it logs in (not supported by all protocols)
 	DefaultJobChannel    string           // Where job status is posted by default
-	DefaultJobChannels   []string         // Where users can issue the 'run job <foo>' command
 	TimeZone             string           // For evaluating the hour in a job schedule
-	Jobs                 []externalScript // list of available jobs; config in conf/jobs/<jobname.yaml>
+	ExternalJobs         []externalScript // list of available jobs; config in conf/jobs/<jobname>.yaml
 	ScheduledTasks       []scheduledTask  // see tasks.go
-	ExternalScripts      []externalScript // List of non-Go plugins to load
+	ExternalPlugins      []externalScript // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
 	AdminUsers           []string         // List of users who can access administrative commands
 	Alias                string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
 	LocalPort            int              // Port number for listening on localhost, for CLI plugins
@@ -149,13 +148,15 @@ func (r *botContext) loadConfig() error {
 			val = &boolval
 		case "LocalPort":
 			val = &intval
-		case "ExternalScripts":
+		case "ExternalPlugins":
+			val = &epval
+		case "ExternalJobs":
 			val = &epval
 		case "Jobs":
 			val = &jval
 		case "ScheduledTasks":
 			val = &stval
-		case "DefaultChannels", "DefaultJobChannels", "IgnoreUsers", "JoinChannels", "AdminUsers":
+		case "DefaultChannels", "IgnoreUsers", "JoinChannels", "AdminUsers":
 			val = &sarrval
 		case "MailConfig":
 			val = &mailval
@@ -207,16 +208,14 @@ func (r *botContext) loadConfig() error {
 			explicitDefaultAllowDirect = true
 		case "DefaultChannels":
 			newconfig.DefaultChannels = *(val.(*[]string))
-		case "DefaultJobChannels":
-			newconfig.DefaultJobChannels = *(val.(*[]string))
 		case "IgnoreUsers":
 			newconfig.IgnoreUsers = *(val.(*[]string))
 		case "JoinChannels":
 			newconfig.JoinChannels = *(val.(*[]string))
-		case "ExternalScripts":
-			newconfig.ExternalScripts = *(val.(*[]externalScript))
-		case "Jobs":
-			newconfig.Jobs = *(val.(*[]externalScript))
+		case "ExternalPlugins":
+			newconfig.ExternalPlugins = *(val.(*[]externalScript))
+		case "ExternalJobs":
+			newconfig.ExternalJobs = *(val.(*[]externalScript))
 		case "ScheduledTasks":
 			newconfig.ScheduledTasks = *(val.(*[]scheduledTask))
 		case "AdminUsers":
@@ -274,10 +273,11 @@ func (r *botContext) loadConfig() error {
 
 	if newconfig.TimeZone != "" {
 		tz, err := time.LoadLocation(newconfig.TimeZone)
-		if err != nil {
+		if err == nil {
+			Log(Info, fmt.Sprintf("Set timezone: %s", tz))
 			robot.timeZone = tz
 		} else {
-			Log(Error, fmt.Errorf("Parsing time zone '%s', using local time; error: %q", newconfig.TimeZone, err))
+			Log(Error, fmt.Errorf("Parsing time zone '%s', using local time; error: %v", newconfig.TimeZone, err))
 			robot.timeZone = nil
 		}
 	}
@@ -327,18 +327,26 @@ func (r *botContext) loadConfig() error {
 	if newconfig.DefaultChannels != nil {
 		robot.plugChannels = newconfig.DefaultChannels
 	}
-	if newconfig.DefaultJobChannels != nil {
-		robot.jobChannels = newconfig.DefaultJobChannels
-	}
-	if newconfig.ExternalScripts != nil {
-		for i, ep := range newconfig.ExternalScripts {
-			if len(ep.Name) == 0 || len(ep.Path) == 0 {
+	if newconfig.ExternalPlugins != nil {
+		for i, ep := range newconfig.ExternalPlugins {
+			if len(ep.Name) == 0 {
 				pluginsOk = false
-				Log(Error, fmt.Errorf("Reading external plugins, zero-length Name or Path for plugin #%d, not reloading plugins", i))
+				Log(Error, fmt.Errorf("Reading external plugins, zero-length Name for plugin #%d, not reloading plugins", i))
 			}
 		}
 		if pluginsOk {
-			robot.externalScripts = newconfig.ExternalScripts
+			robot.externalPlugins = newconfig.ExternalPlugins
+		}
+	}
+	if newconfig.ExternalJobs != nil {
+		for i, ep := range newconfig.ExternalJobs {
+			if len(ep.Name) == 0 {
+				pluginsOk = false
+				Log(Error, fmt.Errorf("Reading external jobs, zero-length Name for job #%d, not reloading jobs", i))
+			}
+		}
+		if pluginsOk {
+			robot.externalJobs = newconfig.ExternalJobs
 		}
 	}
 	if newconfig.ScheduledTasks != nil {

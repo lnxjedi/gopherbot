@@ -15,19 +15,17 @@ func scheduleTasks() {
 	if taskRunner != nil {
 		taskRunner.Stop()
 	}
-	taskRunner = cron.New()
 	robot.RLock()
 	scheduled := robot.scheduledTasks
+	tz := robot.timeZone
 	robot.RUnlock()
-	for _, st := range scheduled {
-		Log(Info, fmt.Sprintf("Scheduling job '%s' with schedule: %s", st.taskSpec.Name, st.Schedule))
-		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(st.taskSpec) })
+	if tz != nil {
+		Log(Info, fmt.Sprintf("Scheduling tasks in TimeZone: %s", tz))
+		taskRunner = cron.NewWithLocation(tz)
+	} else {
+		Log(Info, "Scheduling tasks in system default timezone")
+		taskRunner = cron.New()
 	}
-	taskRunner.Start()
-	schedMutex.Unlock()
-}
-
-func runScheduledTask(ts taskSpec) {
 	currentTasks.RLock()
 	tasks := taskList{
 		currentTasks.t,
@@ -37,11 +35,25 @@ func runScheduledTask(ts taskSpec) {
 		sync.RWMutex{},
 	}
 	currentTasks.RUnlock()
-	t := tasks.getTaskByName(ts.Name)
-	if t == nil {
-		Log(Error, fmt.Sprintf("Task not found when running scheduled task: %s", ts.Name))
-		return
+	for _, st := range scheduled {
+		t := tasks.getTaskByName(st.Name)
+		if t == nil {
+			Log(Error, fmt.Sprintf("Task not found when scheduling task: %s", st.Name))
+			continue
+		}
+		task, _, _ := getTask(t)
+		if task.Disabled {
+			Log(Error, fmt.Sprintf("Not scheduling disabled task '%s'; reason: %s", st.Name, task.reason))
+			continue
+		}
+		Log(Info, fmt.Sprintf("Scheduling job '%s' with schedule: %s", st.Name, st.Schedule))
+		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, st.taskSpec, tasks) })
 	}
+	taskRunner.Start()
+	schedMutex.Unlock()
+}
+
+func runScheduledTask(t interface{}, ts taskSpec, tasks taskList) {
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	if isPlugin && len(ts.Command) == 0 {

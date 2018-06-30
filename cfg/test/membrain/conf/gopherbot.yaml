@@ -6,31 +6,23 @@ AdminUsers: [ "alice" ]
 Alias: ";"
 LocalPort: 8889
 LogLevel: debug
-ExternalScripts:
+ExternalPlugins:
 - Name: bashdemo
   Path: plugins/samples/bashdemo.sh
-  Type: plugin
 - Name: pythondemo
   Path: plugins/samples/pythondemo.py
-  Type: plugin
 - Name: rubydemo
   Path: plugins/samples/rubydemo.rb
-  Type: plugin
 - Name: echo
   Path: plugins/samples/echo.sh
-  Type: plugin
 - Name: test
   Path: plugins/samples/test.sh
-  Type: plugin
 - Name: hello
   Path: plugins/samples/hello.sh
-  Type: plugin
 - Name: hello2
   Path: plugins/samples/hello2.sh
-  Type: plugin
 - Name: format
   Path: plugins/samples/format.sh
-  Type: plugin
 
 Protocol: test
 #Protocol: term

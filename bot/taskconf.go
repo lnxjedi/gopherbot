@@ -25,9 +25,9 @@ func (r *botContext) loadTaskConfig() {
 	defaultAllowDirect := robot.defaultAllowDirect
 	// copy the list of default channels (for plugins only)
 	pchan := robot.plugChannels
-	jchan := robot.jobChannels
 	jdefchan := robot.defaultJobChannel
-	externalScripts := robot.externalScripts
+	externalPlugins := robot.externalPlugins
+	externalJobs := robot.externalJobs
 	robot.RUnlock() // we're done with bot data 'til the end
 
 	i := 0
@@ -46,9 +46,10 @@ func (r *botContext) loadTaskConfig() {
 		i++
 	}
 
-	for index, script := range externalScripts {
+	// Initial load of plugins
+	for index, script := range externalPlugins {
 		if !identifierRe.MatchString(script.Name) {
-			Log(Error, fmt.Sprintf("Task name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, identifierRe.String()))
+			Log(Error, fmt.Sprintf("Plugin name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, identifierRe.String()))
 			continue
 		}
 		if script.Name == "bot" {
@@ -56,7 +57,7 @@ func (r *botContext) loadTaskConfig() {
 			continue
 		}
 		if _, ok := taskIndexByName[script.Name]; ok {
-			msg := fmt.Sprintf("External script index: #%d, name: '%s' duplicates name of builtIn or Go plugin, skipping", index, script.Name)
+			msg := fmt.Sprintf("External plugin index: #%d, name: '%s' duplicates name of builtIn or Go plugin, skipping", index, script.Name)
 			Log(Error, msg)
 			r.debug(msg, false)
 			continue
@@ -73,28 +74,54 @@ func (r *botContext) loadTaskConfig() {
 			task.Disabled = true
 			task.reason = msg
 		}
-		switch script.Type {
-		case "job", "Job":
-			j := &botJob{
-				botTask: task,
-			}
-			tlist = append(tlist, j)
-		case "plugin", "Plugin":
-			p := &botPlugin{
-				pluginType: plugExternal,
-				botTask:    task,
-			}
-			tlist = append(tlist, p)
-		default:
-			Log(Error, fmt.Sprintf("Task '%s' has unknown type '%s', should be one of job|plugin", task.name, script.Type))
-			continue
+		p := &botPlugin{
+			pluginType: plugExternal,
+			botTask:    task,
 		}
+		tlist = append(tlist, p)
 		taskIndexByID[task.taskID] = i
 		taskIndexByName[task.name] = i
 		i++
 	}
 
-	// Load configuration for all valid plugins. Note that this is all being loaded
+	// Initial load of jobs
+	for index, script := range externalJobs {
+		if !identifierRe.MatchString(script.Name) {
+			Log(Error, fmt.Sprintf("Job name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, identifierRe.String()))
+			continue
+		}
+		if script.Name == "bot" {
+			Log(Error, "Illegal task name: bot - skipping")
+			continue
+		}
+		if _, ok := taskIndexByName[script.Name]; ok {
+			msg := fmt.Sprintf("External job index: #%d, name: '%s' duplicates name of builtIn or Go plugin, skipping", index, script.Name)
+			Log(Error, msg)
+			r.debug(msg, false)
+			continue
+		}
+		task := &botTask{
+			name:       script.Name,
+			taskID:     getTaskID(script.Name),
+			scriptPath: script.Path,
+		}
+		if len(task.scriptPath) == 0 {
+			msg := fmt.Sprintf("Task '%s' has zero-length path, disabling", task.name)
+			Log(Error, msg)
+			r.debug(msg, false)
+			task.Disabled = true
+			task.reason = msg
+		}
+		j := &botJob{
+			botTask: task,
+		}
+		tlist = append(tlist, j)
+		taskIndexByID[task.taskID] = i
+		taskIndexByName[task.name] = i
+		i++
+	}
+
+	// Load configuration for all valid tasks. Note that this is all being loaded
 	// in to non-shared data structures that will replace current configuration
 	// under lock at the end.
 LoadLoop:
@@ -409,26 +436,26 @@ LoadLoop:
 			task.AllowDirect = defaultAllowDirect
 		}
 
-		// Use bot default plugin/job channels if none defined, unless AllChannels requested.
-		if len(task.Channels) == 0 {
-			var tchan []string
-			if isPlugin {
-				tchan = pchan
-			} else {
-				tchan = jchan
-			}
-			if len(tchan) > 0 {
-				if !task.AllChannels { // AllChannels = true is always explicit
-					task.Channels = tchan
-				}
-			} else { // no default channels specified
-				if !explicitAllChannels { // if AllChannels wasn't explicitly configured, and no default channels, default to AllChannels = true
-					task.AllChannels = true
-				}
-			}
+		// Sanity checking / default for channel / channels
+		if len(task.Channel) == 0 {
+			task.Channel = jdefchan
 		}
-		// Note: you can't combine the channel length checking logic, the above
-		// can change it.
+		if isPlugin {
+			// Use bot default plugin channels if none defined, unless AllChannels requested.
+			if len(task.Channels) == 0 {
+				if len(pchan) > 0 {
+					if !task.AllChannels { // AllChannels = true is always explicit
+						task.Channels = pchan
+					}
+				} else { // no default channels specified
+					if !explicitAllChannels { // if AllChannels wasn't explicitly configured, and no default channels, default to AllChannels = true
+						task.AllChannels = true
+					}
+				}
+			}
+		} else {
+			task.Channels = []string{task.Channel}
+		}
 
 		// Considering possible default channels, is the plugin visible anywhere?
 		if len(task.Channels) > 0 {
@@ -595,11 +622,6 @@ LoadLoop:
 						Log(Debug, fmt.Sprintf("Config interface isn't a pointer, skipping unmarshal for Go plugin '%s'", task.name))
 					}
 				}
-			}
-		} else {
-			// Sanity checking and defaulting for jobs
-			if len(job.Channel) == 0 {
-				job.Channel = jdefchan
 			}
 		}
 
