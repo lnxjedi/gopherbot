@@ -65,7 +65,7 @@ func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (bot.H
 		}
 		if index-maxHistories >= 0 {
 			for i := index - maxHistories; i >= 0; i-- {
-				rmPath := path.Join(dirPath, fmt.Sprintf("%d", i))
+				rmPath := path.Join(dirPath, fmt.Sprintf("%s-%d.log", tag, i))
 				_, err := os.Stat(rmPath)
 				if err != nil {
 					break

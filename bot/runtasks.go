@@ -56,7 +56,7 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 		key := histPrefix + bot.pipeName
 		tok, _, ret := checkoutDatum(key, &th, true)
 		if ret != Ok {
-			Log(Error, fmt.Sprintf("Error checking out '%s', no history will be recorded for '%s'"), key, bot.pipeName)
+			Log(Error, fmt.Sprintf("Error checking out '%s', no history will be recorded for '%s'", key, bot.pipeName))
 		} else {
 			var start time.Time
 			if tz != nil {
@@ -76,11 +76,11 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 			}
 			ret := updateDatum(key, tok, th)
 			if ret != Ok {
-				Log(Error, fmt.Sprintf("Error updating '%s', no history will be recorded for '%s'"), key, bot.pipeName)
+				Log(Error, fmt.Sprintf("Error updating '%s', no history will be recorded for '%s'", key, bot.pipeName))
 			} else {
 				pipeHistory, err := history.NewHistory(bot.pipeName, hist.LogIndex, task.HistoryLogs)
 				if err != nil {
-					Log(Error, fmt.Sprintf("Error starting history for '%', no history will be recorded: %v", bot.pipeName, err))
+					Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", bot.pipeName, err))
 				} else {
 					bot.logger = pipeHistory
 				}
