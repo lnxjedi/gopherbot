@@ -65,19 +65,20 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 				start = time.Now()
 			}
 			hist := historyLog{
-				logIndex:   th.nextIndex,
-				createTime: start,
+				LogIndex:   th.NextIndex,
+				CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
 			}
-			th.histories = append(th.histories, hist)
-			l := len(th.histories)
+			th.NextIndex++
+			th.Histories = append(th.Histories, hist)
+			l := len(th.Histories)
 			if l > task.HistoryLogs {
-				th.histories = th.histories[l-task.HistoryLogs:]
+				th.Histories = th.Histories[l-task.HistoryLogs:]
 			}
 			ret := updateDatum(key, tok, th)
 			if ret != Ok {
 				Log(Error, fmt.Sprintf("Error updating '%s', no history will be recorded for '%s'"), key, bot.pipeName)
 			} else {
-				pipeHistory, err := history.NewHistory(bot.pipeName, hist.logIndex, task.HistoryLogs)
+				pipeHistory, err := history.NewHistory(bot.pipeName, hist.LogIndex, task.HistoryLogs)
 				if err != nil {
 					Log(Error, fmt.Sprintf("Error starting history for '%', no history will be recorded: %v", bot.pipeName, err))
 				} else {
@@ -188,6 +189,7 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 	// TODO: post job notifications if Failed or Verbose
 	bot.deregister()
 	if bot.logger != nil {
+		bot.logger.Section("done", "pipeline has completed")
 		bot.logger.Close()
 	}
 }
@@ -340,11 +342,12 @@ func (bot *botContext) callTask(t interface{}, setNameSpace bool, command string
 			closed <- struct{}{}
 		}()
 		halfClosed := false
+	closeLoop:
 		for {
 			select {
 			case <-closed:
 				if halfClosed {
-					break
+					break closeLoop
 				}
 				halfClosed = true
 			}

@@ -367,7 +367,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if lm.Base64 {
 			lm.Message = decode(lm.Message)
 		}
-		Log(l, lm.Message)
+		bot.Log(l, lm.Message)
 		sendReturn(rw, &botretvalresponse{int(Ok)})
 		return
 	case "SendChannelMessage":

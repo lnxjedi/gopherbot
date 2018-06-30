@@ -362,7 +362,7 @@ func checkoutDatum(key string, datum interface{}, rw bool) (locktoken string, ex
 func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 	dbytes, err := json.Marshal(datum)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Unmarshalling datum %s: %v", key, err))
+		Log(Error, fmt.Sprintf("Marshalling datum %s: %v", key, err))
 		return DataFormatError
 	}
 	return update(key, locktoken, &dbytes)
