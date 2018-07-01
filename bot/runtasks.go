@@ -27,8 +27,9 @@ var envPassThrough = []string{
 // indicates whether a pipeline started from a user command - plugin match or
 // run job command.
 func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipelineType, command string, args ...string) {
-	task, plugin, _ := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
+	task, plugin, job := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
 	isPlugin := plugin != nil
+	verbose := (!isPlugin && job.Verbose) || ptype == runJob
 	// NameSpace for the pipeline
 	NameSpace := task.NameSpace
 	bot.pipeName = task.name
@@ -51,12 +52,17 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 		}
 		robot.Unlock()
 	}()
-	if task.HistoryLogs > 0 {
+	var runIndex int
+	if task.HistoryLogs > 0 || !isPlugin {
 		var th taskHistory
+		rememberRuns := task.HistoryLogs
+		if rememberRuns == 0 {
+			rememberRuns = 1
+		}
 		key := histPrefix + bot.pipeName
 		tok, _, ret := checkoutDatum(key, &th, true)
 		if ret != Ok {
-			Log(Error, fmt.Sprintf("Error checking out '%s', no history will be recorded for '%s'", key, bot.pipeName))
+			Log(Error, fmt.Sprintf("Error checking out '%s', no history will be remembered for '%s'", key, bot.pipeName))
 		} else {
 			var start time.Time
 			if tz != nil {
@@ -64,25 +70,28 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 			} else {
 				start = time.Now()
 			}
+			runIndex = th.NextIndex
 			hist := historyLog{
-				LogIndex:   th.NextIndex,
+				LogIndex:   runIndex,
 				CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
 			}
 			th.NextIndex++
 			th.Histories = append(th.Histories, hist)
 			l := len(th.Histories)
-			if l > task.HistoryLogs {
-				th.Histories = th.Histories[l-task.HistoryLogs:]
+			if l > rememberRuns {
+				th.Histories = th.Histories[l-rememberRuns:]
 			}
 			ret := updateDatum(key, tok, th)
 			if ret != Ok {
-				Log(Error, fmt.Sprintf("Error updating '%s', no history will be recorded for '%s'", key, bot.pipeName))
+				Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, bot.pipeName))
 			} else {
-				pipeHistory, err := history.NewHistory(bot.pipeName, hist.LogIndex, task.HistoryLogs)
-				if err != nil {
-					Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", bot.pipeName, err))
-				} else {
-					bot.logger = pipeHistory
+				if task.HistoryLogs > 0 {
+					pipeHistory, err := history.NewHistory(bot.pipeName, hist.LogIndex, task.HistoryLogs)
+					if err != nil {
+						Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", bot.pipeName, err))
+					} else {
+						bot.logger = pipeHistory
+					}
 				}
 			}
 		}
@@ -105,6 +114,9 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 	r := bot.makeRobot()
 	var errString string
 	var ret TaskRetVal
+	if verbose {
+		r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, runIndex))
+	}
 	for {
 		// NOTE: if RequireAdmin is true, the user can't access the plugin at all if not an admin
 		if isPlugin && len(plugin.AdminCommands) > 0 {
@@ -191,6 +203,13 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 	if bot.logger != nil {
 		bot.logger.Section("done", "pipeline has completed")
 		bot.logger.Close()
+	}
+	if ret == Normal && verbose {
+		r.Say(fmt.Sprintf("Finished job '%s', run %d", bot.pipeName, runIndex))
+	}
+	if ret != Normal {
+		task, _, _ := getTask(t)
+		r.Reply(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'", bot.pipeName, runIndex, task.name))
 	}
 }
 
