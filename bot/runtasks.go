@@ -29,7 +29,8 @@ var envPassThrough = []string{
 func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipelineType, command string, args ...string) {
 	task, plugin, job := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
 	isPlugin := plugin != nil
-	verbose := (!isPlugin && job.Verbose) || ptype == runJob
+	isJob := !isPlugin
+	verbose := (isJob && job.Verbose) || ptype == runJob
 	// NameSpace for the pipeline
 	NameSpace := task.NameSpace
 	bot.pipeName = task.name
@@ -53,7 +54,7 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 		robot.Unlock()
 	}()
 	var runIndex int
-	if task.HistoryLogs > 0 || !isPlugin {
+	if task.HistoryLogs > 0 || isJob {
 		var th taskHistory
 		rememberRuns := task.HistoryLogs
 		if rememberRuns == 0 {
@@ -207,7 +208,7 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 	if ret == Normal && verbose {
 		r.Say(fmt.Sprintf("Finished job '%s', run %d", bot.pipeName, runIndex))
 	}
-	if ret != Normal {
+	if ret != Normal && isJob {
 		task, _, _ := getTask(t)
 		r.Reply(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'", bot.pipeName, runIndex, task.name))
 	}
