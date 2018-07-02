@@ -40,11 +40,14 @@ var shortTermMemories = struct {
 	sync.Mutex
 }{}
 
+// Set on start-up
+var encryptBrain bool
+
 // For aes brain encryption
 var cryptBrain = struct {
 	key         []byte
-	isEncrypted bool
-	sync.Mutex
+	initialized bool
+	sync.RWMutex
 }{}
 
 // Definitions of bot keys and prefixes
@@ -53,7 +56,7 @@ var cryptBrain = struct {
 // the user-supplied key unlocks this, allowing
 // the user to re-key if they change how the key
 // is supplied.
-const botBrainKey = "bot:botBrainKey"
+const botBrainKey = "bot:brainKey"
 
 const paramPrefix = "bot:parameters:"
 

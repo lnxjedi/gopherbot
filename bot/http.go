@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sync"
 )
 
 type jsonFunction struct {
@@ -142,22 +141,6 @@ type checkoutresponse struct {
 type replyresponse struct {
 	Reply  string
 	RetVal int
-}
-
-var botHttpListener struct {
-	listening bool
-	sync.Mutex
-}
-
-func listenHTTPJSON() {
-	robot.RLock()
-	port := robot.port
-	robot.RUnlock()
-	if len(port) > 0 {
-		h := handler{}
-		http.Handle("/json", h)
-		Log(Fatal, http.ListenAndServe(port, nil))
-	}
 }
 
 // decode decodes a base64 string, primarily for the bash library

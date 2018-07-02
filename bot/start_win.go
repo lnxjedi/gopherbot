@@ -8,11 +8,13 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"golang.org/x/sys/windows/svc"
 )
 
 var started bool
+var startLock sync.Mutex
 var isIntSess bool
 var hostName string
 var finish = make(chan struct{})
@@ -35,15 +37,15 @@ func dirExists(path string) bool {
 	return false
 }
 
-// Start gets the robot going
+// Start gets the robot going; Windows can send this at any time, thus the lock (* AFAIK)
 func Start(v VersionInfo) {
-	globalLock.Lock()
+	startLock.Lock()
 	if started {
-		globalLock.Unlock()
+		startLock.Unlock()
 		return
 	}
 	started = true
-	globalLock.Unlock()
+	startLock.Unlock()
 
 	botVersion = v
 

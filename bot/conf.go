@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -24,6 +25,7 @@ type botconf struct {
 	ProtocolConfig       json.RawMessage  // Protocol-specific configuration, type for unmarshalling arbitrary config
 	Brain                string           // Type of Brain to use
 	BrainConfig          json.RawMessage  // Brain-specific configuration, type for unmarshalling arbitrary config
+	EncryptBrain         bool             // Whether the brain should be encrypted
 	HistoryProvider      string           // Name of provider to use for storing and retrieving job/plugin histories
 	HistoryConfig        json.RawMessage  // History provider specific configuration
 	DefaultElevator      string           // Elevator plugin to use by default for ElevatedCommands and ElevateImmediateCommands
@@ -45,6 +47,8 @@ type botconf struct {
 	LogLevel             string           // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
+// Protects the bot config
+var confLock sync.RWMutex
 var config *botconf
 
 // getConfigFile loads a config file first from installPath, then from configPath
@@ -120,7 +124,7 @@ func (r *botContext) getConfigFile(filename, callerID string, required bool, jso
 }
 
 // loadConfig loads the 'bot's json configuration files.
-func (r *botContext) loadConfig() error {
+func (r *botContext) loadConfig(preConnect bool) error {
 	var loglevel LogLevel
 	newconfig := &botconf{}
 	configload := make(map[string]json.RawMessage)
@@ -144,7 +148,7 @@ func (r *botContext) loadConfig() error {
 		switch key {
 		case "AdminContact", "Email", "Protocol", "Brain", "HistoryProvider", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
 			val = &strval
-		case "DefaultAllowDirect":
+		case "DefaultAllowDirect", "EncryptBrain":
 			val = &boolval
 		case "LocalPort":
 			val = &intval
@@ -370,12 +374,12 @@ func (r *botContext) loadConfig() error {
 	// loadTaskConfig does it's own locking
 	robot.Unlock()
 
-	globalLock.Lock()
+	confLock.Lock()
 	config = newconfig
-	globalLock.Unlock()
+	confLock.Unlock()
 
 	updateRegexes()
-	if pluginsOk {
+	if pluginsOk && !preConnect {
 		r.loadTaskConfig()
 	} else {
 		return fmt.Errorf("Error reading external plugin config")

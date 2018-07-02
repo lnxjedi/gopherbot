@@ -311,7 +311,7 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 	}
 	switch command {
 	case "reload":
-		err := bot.getContext().loadConfig()
+		err := bot.getContext().loadConfig(false)
 		if err != nil {
 			bot.Reply("Error encountered during reload, check the logs")
 			Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", bot.User, err))

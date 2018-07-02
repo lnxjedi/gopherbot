@@ -2,17 +2,31 @@
 
 `DevNotes.md` - TODO items and design notes for future development.
 
-## Encrypted Brain
-The new EncryptedBrain type will take and return a struct instead:
- Magic: int = 0xDeadBeef - for validating the data structure
- Memory: []byte - encrypted contents of the memory
+## Robot Configuration
+To simplify locking:
+* Some of the content of gopherbot.yaml should only be processed when the robot first starts, e.g. the brain, connector, listening port, logger
+* Start-up items should be stored globally and readable without a lock
+* These start-up items should be processed during initbot
+* Items that can change on reload should be stored in a config struct similar to plugins and jobs; when the botContext is registered, it should get a copy of this struct that doesn't change for the life of the context, just like the task list
+* Items that are processed to binary representations (e.g. string to loglevel) should be stored in non-public struct members; e.g. LogLevel(string) and logLevel(int)
 
-* File & Dynamo brains will get new functions and register a provider for an EncryptedBrain
-* When Convert is True, the retrieve function will read, validate, then encrypt & store if memory was unencrypted before returning
+### TODO
+* Add a *botConf member to the Robot
+* Use confLock.RLock() in registerActive() to obtain a copy of config
+* Modify bot methods to query config items from the config (e.g. in logging) without locks
+
+## Encrypted Brain
+When the robot starts with an encrypted brain, it'll look for a provided key to
+decrypt the "bot:brainKey" memory to retrieve the actual key used to en-/de-crypt memories.
+* If brainKey doesn't exist, it will be randomly generated and encrytped with the provided key
+* If it exists but can't be decrypted, encryptBrain will be true but cryptBrain.initialized will be false
+* Low-level brain functions can check the encryptBrain bool w/o locking
+* cryptBrain is protected by an RWLock so an admin can later provide a key for unlocking the brainKey
+* When encryptBrain is true and cryptBrain.initialized is true, a failure to decrypt a memory should be interpreted as an unencrypted memory that gets encrypted and stored, then returned
 * Add admin command 'convert <key>' to forces the robot to read the memory and re-store
-* Robot should take a new EncryptedBrain parameter, exclusive with Brain
-* BrainKey is optional, can be specified at runtime
-* The BrainKey should unlock the 'real' key, for later re-keying if desired, e.g. if the admin switches from a configured key to a runtime-supplied key
+* Robot should take a new EncryptBrain bool parameter
+* BrainKey is optional, can be specified at start or runtime
+* The BrainKey should unlock the 'real' brainKey, for later re-keying if desired, e.g. if the admin switches from a configured key to a runtime-supplied key
 
 ### Datum Processing
 Datum are protected by serializing all access to memories through a select loop. It should be reviewed / rewritten:

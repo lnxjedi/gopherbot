@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"os/signal"
 	"regexp"
@@ -26,7 +27,6 @@ var configPath, installPath string
 
 var botVersion VersionInfo
 
-var globalLock sync.RWMutex
 var random *rand.Rand
 
 var connectors = make(map[string]func(Handler, *log.Logger) Connector)
@@ -87,50 +87,36 @@ var robot struct {
 // initBot sets up the global robot and loads
 // configuration.
 func initBot(cpath, epath string, logger *log.Logger) {
-	globalLock.Lock()
-	// Prevent plugin registration after program init
 	stopRegistrations = true
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	globalLock.Unlock()
-
-	botLogger.Lock()
 	botLogger.l = logger
-	botLogger.Unlock()
 
 	configPath = cpath
 	installPath = epath
-	robot.Lock()
 	robot.stop = make(chan struct{})
 	robot.done = make(chan struct{})
 	robot.shuttingDown = false
-	robot.Unlock()
 
 	handle := handler{}
 	bot := &botContext{
 		environment: make(map[string]string),
 	}
-	bot.registerActive()
-	if err := bot.loadConfig(); err != nil {
+	if err := bot.loadConfig(true); err != nil {
 		Log(Fatal, fmt.Sprintf("Error loading initial configuration: %v", err))
 	}
-	bot.deregister()
 
 	if len(robot.brainProvider) > 0 {
 		if bprovider, ok := brains[robot.brainProvider]; !ok {
 			Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", robot.brainProvider))
 		} else {
 			brain := bprovider(handle, logger)
-			robot.Lock()
 			robot.brain = brain
-			robot.Unlock()
 		}
 	} else {
 		bprovider, _ := brains["mem"]
-		robot.Lock()
 		robot.brain = bprovider(handle, logger)
-		robot.Unlock()
 		Log(Error, "No brain configured, falling back to default 'mem' brain - no memories will persist")
 	}
 	if len(robot.historyProvider) > 0 {
@@ -138,11 +124,14 @@ func initBot(cpath, epath string, logger *log.Logger) {
 			Log(Fatal, fmt.Sprintf("No provider registered for history type: \"%s\"", robot.historyProvider))
 		} else {
 			hp := hprovider(handle)
-			robot.Lock()
 			robot.history = hp
-			robot.Unlock()
 		}
 	}
+	go func() {
+		h := handler{}
+		http.Handle("/json", h)
+		Log(Fatal, http.ListenAndServe(robot.port, nil))
+	}()
 }
 
 // set connector sets the connector, which should already be initialized
@@ -156,18 +145,12 @@ func setConnector(c Connector) {
 // shuts down. It should return after the connector loop has started and
 // plugins are initialized.
 func run() <-chan struct{} {
-	robot.RLock()
-	port := robot.port
-	robot.RUnlock()
-	if len(port) > 0 {
-		// Only start the HttpListener once, runs for life of process
-		botHttpListener.Lock()
-		if !botHttpListener.listening {
-			botHttpListener.listening = true
-			go listenHTTPJSON()
-		}
-		botHttpListener.Unlock()
+	bot := &botContext{
+		environment: make(map[string]string),
 	}
+	bot.registerActive()
+	bot.loadConfig(false)
+	bot.deregister()
 
 	var cl []string
 	robot.RLock()
