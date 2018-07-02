@@ -239,7 +239,9 @@ func (r *botContext) loadConfig(preConnect bool) error {
 	setLogLevel(loglevel)
 
 	bot := r.makeRobot()
-	robot.Lock()
+	if !preConnect {
+		robot.Lock()
+	}
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		if !strings.ContainsRune(string(aliases+escapeAliases), alias) {
@@ -248,21 +250,11 @@ func (r *botContext) loadConfig(preConnect bool) error {
 		}
 		robot.alias = alias
 	}
-	if newconfig.Protocol != "" {
-		robot.protocol = newconfig.Protocol
-	} else {
-		robot.Unlock()
-		return fmt.Errorf("Protocol not specified in gopherbot.yaml")
-	}
 
 	if len(newconfig.DefaultMessageFormat) == 0 {
 		robot.defaultMessageFormat = Raw
 	} else {
 		robot.defaultMessageFormat = bot.setFormat(newconfig.DefaultMessageFormat)
-	}
-
-	if newconfig.ProtocolConfig != nil {
-		protocolConfig = newconfig.ProtocolConfig
 	}
 
 	if explicitDefaultAllowDirect {
@@ -290,11 +282,7 @@ func (r *botContext) loadConfig(preConnect bool) error {
 		robot.email = newconfig.Email
 	}
 	robot.mailConf = newconfig.MailConfig
-	if newconfig.LocalPort != 0 {
-		robot.port = fmt.Sprintf("127.0.0.1:%d", newconfig.LocalPort)
-	} else {
-		Log(Error, "LocalPort not defined, not exporting GOPHER_HTTP_POST and external plugins will be broken")
-	}
+
 	if newconfig.Name != "" {
 		robot.name = newconfig.Name
 	}
@@ -309,20 +297,6 @@ func (r *botContext) loadConfig(preConnect bool) error {
 
 	if newconfig.DefaultAuthorizer != "" {
 		robot.defaultAuthorizer = newconfig.DefaultAuthorizer
-	}
-
-	if newconfig.Brain != "" {
-		robot.brainProvider = newconfig.Brain
-	}
-	if newconfig.BrainConfig != nil {
-		brainConfig = newconfig.BrainConfig
-	}
-
-	if newconfig.HistoryProvider != "" {
-		robot.historyProvider = newconfig.HistoryProvider
-	}
-	if newconfig.HistoryConfig != nil {
-		historyConfig = newconfig.HistoryConfig
 	}
 
 	if newconfig.AdminUsers != nil {
@@ -371,8 +345,37 @@ func (r *botContext) loadConfig(preConnect bool) error {
 		robot.joinChannels = newconfig.JoinChannels
 	}
 
-	// loadTaskConfig does it's own locking
-	robot.Unlock()
+	// Items only read at start-up, before multi-threaded
+	if preConnect {
+		if newconfig.Protocol != "" {
+			robot.protocol = newconfig.Protocol
+		} else {
+			return fmt.Errorf("Protocol not specified in gopherbot.yaml")
+		}
+		if newconfig.ProtocolConfig != nil {
+			protocolConfig = newconfig.ProtocolConfig
+		}
+		if newconfig.Brain != "" {
+			robot.brainProvider = newconfig.Brain
+		}
+		if newconfig.BrainConfig != nil {
+			brainConfig = newconfig.BrainConfig
+		}
+		if newconfig.LocalPort != 0 {
+			robot.port = fmt.Sprintf("127.0.0.1:%d", newconfig.LocalPort)
+		} else {
+			Log(Error, "LocalPort not defined, not exporting GOPHER_HTTP_POST and external tasks will be broken")
+		}
+		if newconfig.HistoryProvider != "" {
+			robot.historyProvider = newconfig.HistoryProvider
+		}
+		if newconfig.HistoryConfig != nil {
+			historyConfig = newconfig.HistoryConfig
+		}
+	} else {
+		// loadTaskConfig does it's own locking
+		robot.Unlock()
+	}
 
 	confLock.Lock()
 	config = newconfig
@@ -381,7 +384,7 @@ func (r *botContext) loadConfig(preConnect bool) error {
 	updateRegexes()
 	if pluginsOk && !preConnect {
 		r.loadTaskConfig()
-	} else {
+	} else if !pluginsOk {
 		return fmt.Errorf("Error reading external plugin config")
 	}
 	scheduleTasks()

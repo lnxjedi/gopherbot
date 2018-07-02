@@ -84,6 +84,8 @@ var robot struct {
 	sync.RWMutex                          // for safe updating of bot data structures
 }
 
+var listening bool // for tests where initBot runs multiple times
+
 // initBot sets up the global robot and loads
 // configuration.
 func initBot(cpath, epath string, logger *log.Logger) {
@@ -127,11 +129,14 @@ func initBot(cpath, epath string, logger *log.Logger) {
 			robot.history = hp
 		}
 	}
-	go func() {
-		h := handler{}
-		http.Handle("/json", h)
-		Log(Fatal, http.ListenAndServe(robot.port, nil))
-	}()
+	if !listening {
+		listening = true
+		go func() {
+			h := handler{}
+			http.Handle("/json", h)
+			Log(Fatal, http.ListenAndServe(robot.port, nil))
+		}()
+	}
 }
 
 // set connector sets the connector, which should already be initialized
