@@ -185,7 +185,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 			decrypted, err = decrypt(*db, key)
 			if err != nil {
 				// If the brain is already initialized, assume we got an unencrypted datum and store it before returning
-				Log(Warn, fmt.Sprintf("Decryption failed for '%s', assuming unencrypted and converting to encrypted"))
+				Log(Warn, fmt.Sprintf("Decryption failed for '%s', assuming unencrypted and converting to encrypted", dkey))
 				storeDatum(dkey, db)
 			} else {
 				db = &decrypted
