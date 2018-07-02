@@ -26,6 +26,7 @@ type botconf struct {
 	Brain                string           // Type of Brain to use
 	BrainConfig          json.RawMessage  // Brain-specific configuration, type for unmarshalling arbitrary config
 	EncryptBrain         bool             // Whether the brain should be encrypted
+	BrainKey             string           // used to decrypt the brainKey
 	HistoryProvider      string           // Name of provider to use for storing and retrieving job/plugin histories
 	HistoryConfig        json.RawMessage  // History provider specific configuration
 	DefaultElevator      string           // Elevator plugin to use by default for ElevatedCommands and ElevateImmediateCommands
@@ -146,7 +147,7 @@ func (r *botContext) loadConfig(preConnect bool) error {
 		var val interface{}
 		skip := false
 		switch key {
-		case "AdminContact", "Email", "Protocol", "Brain", "HistoryProvider", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
+		case "AdminContact", "Email", "Protocol", "Brain", "BrainKey", "HistoryProvider", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
 			val = &strval
 		case "DefaultAllowDirect", "EncryptBrain":
 			val = &boolval
@@ -355,6 +356,12 @@ func (r *botContext) loadConfig(preConnect bool) error {
 		if newconfig.ProtocolConfig != nil {
 			protocolConfig = newconfig.ProtocolConfig
 		}
+		if newconfig.EncryptBrain {
+			encryptBrain = true
+		}
+		if newconfig.BrainKey != "" {
+			robot.brainKey = newconfig.BrainKey
+		}
 		if newconfig.Brain != "" {
 			robot.brainProvider = newconfig.Brain
 		}
@@ -373,6 +380,8 @@ func (r *botContext) loadConfig(preConnect bool) error {
 			historyConfig = newconfig.HistoryConfig
 		}
 	} else {
+		// We should never dump the brain key
+		newconfig.BrainKey = "XXXXXX"
 		// loadTaskConfig does it's own locking
 		robot.Unlock()
 	}

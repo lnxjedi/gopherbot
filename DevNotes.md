@@ -34,6 +34,10 @@ Datum are protected by serializing all access to memories through a select loop.
 * Guarantee 2 seconds exclusive access
 * Lower the brain cycle to 0.1s, guaranteeing 2.0-2.1s access to a memory
 
+### TODO
+* Write initializeEncryption and reKey functions
+* Write 'decrypt brain <foo>' and 'rekey brain <foo>' admin commands
+
 ## Plugins and Jobs
 
 ### TODO

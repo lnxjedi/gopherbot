@@ -65,6 +65,7 @@ var robot struct {
 	protocol             string           // Name of the protocol, e.g. "slack"
 	brainProvider        string           // Type of Brain provider to use
 	brain                SimpleBrain      // Interface for robot to Store and Retrieve data
+	brainKey             string           // Configured brain key
 	historyProvider      string           // Name of the history provider to use
 	history              HistoryProvider  // Provider for storing and retrieving job / plugin histories
 	defaultElevator      string           // Plugin name for performing elevation
@@ -120,6 +121,17 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		bprovider, _ := brains["mem"]
 		robot.brain = bprovider(handle, logger)
 		Log(Error, "No brain configured, falling back to default 'mem' brain - no memories will persist")
+	}
+	if encryptBrain {
+		if len(robot.brainKey) > 0 {
+			if initializeEncryption(robot.brainKey) {
+				Log(Info, "Successfully initialized brain encryption")
+			} else {
+				Log(Error, "Failed to initialize brain encryption with configured BrainKey")
+			}
+		} else {
+			Log(Info, "Brain encryption specified but no key configured; use 'decrypt brain <key>' to initialize the encrypted brain")
+		}
 	}
 	if len(robot.historyProvider) > 0 {
 		if hprovider, ok := historyProviders[robot.historyProvider]; !ok {

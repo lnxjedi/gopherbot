@@ -45,7 +45,7 @@ var encryptBrain bool
 
 // For aes brain encryption
 var cryptBrain = struct {
-	key         []byte
+	key         []byte // the 'real' key for en-/de-crypting memories
 	initialized bool
 	sync.RWMutex
 }{}
@@ -136,15 +136,29 @@ func replyToWaiter(m *memstatus) {
 	creq.reply <- checkOutReply{lt, d, e, r}
 }
 
+// When EncryptBrain is true, the brain needs to be initialized
+func initializeEncryption(key string) bool {
+	return true
+}
+
+// Most likely used when switching from configured to interactively-provided
+// brainKey
+func reKey(newkey string) bool {
+	// NOTE: this function should temporarily set initialized = false
+	return true
+}
+
+// getDatum retrieves a blob of bytes from the brain provider and optionally
+// decrypts it
 func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists bool, ret RetVal) {
+	var decrypted []byte
+
 	if !keyRe.MatchString(dkey) {
 		err := fmt.Errorf("Invalid key supplied to checkout: %s", dkey)
 		Log(Error, err)
 		return "", nil, false, InvalidDatumKey
 	}
-	robot.RLock()
 	brain := robot.brain
-	robot.RUnlock()
 	if brain == nil {
 		Log(Error, "Brain function called with no brain configured")
 		return "", nil, false, BrainFailed
@@ -162,20 +176,69 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 	if err != nil {
 		return "", nil, false, BrainFailed
 	}
+	if encryptBrain {
+		cryptBrain.RLock()
+		initialized := cryptBrain.initialized
+		key := cryptBrain.key
+		cryptBrain.RUnlock()
+		if initialized {
+			decrypted, err = decrypt(*db, key)
+			if err != nil {
+				// If the brain is already initialized, assume we got an unencrypted datum and store it before returning
+				Log(Warn, fmt.Sprintf("Decryption failed for '%s', assuming unencrypted and converting to encrypted"))
+				storeDatum(dkey, db)
+			} else {
+				db = &decrypted
+			}
+		} else {
+			// If the brain isn't initialized, we'll still try to decrypt the 'real' brain key
+			if dkey == botBrainKey {
+				decrypted, err = decrypt(*db, key)
+				if err != nil {
+					Log(Error, fmt.Sprintf("Failed to decrypt the brain key, bad key provided?: %v", err))
+					return "", nil, exists, BrainFailed
+				} else {
+					db = &decrypted
+				}
+			} else {
+				Log(Warn, fmt.Sprintf("Retrieve called on uninitialized brain for '%s'", dkey))
+				return "", nil, exists, BrainFailed
+			}
+		}
+	}
 	return token, db, exists, Ok
 }
 
-func storeDatum(key string, datum *[]byte) RetVal {
-	robot.RLock()
+// storeDatum takes a blob of bytes and optionally encrypts it before sending it
+// to the brain provider
+func storeDatum(dkey string, datum *[]byte) RetVal {
 	brain := robot.brain
-	robot.RUnlock()
 	if brain == nil {
 		Log(Error, "Brain function called with no brain configured")
 		return BrainFailed
 	}
-	err := robot.brain.Store(key, datum)
+	if encryptBrain {
+		cryptBrain.RLock()
+		initialized := cryptBrain.initialized
+		key := cryptBrain.key
+		cryptBrain.RUnlock()
+		if !initialized {
+			// When re-keying, we store the 'real' key while uninitialized with a new key
+			if dkey != botBrainKey {
+				Log(Error, "storeDatum called for '%s' with encryptBrain true, but brain not initialized", key)
+				return BrainFailed
+			}
+		}
+		encrypted, err := encrypt(*datum, key)
+		if err != nil {
+			Log(Error, "Failed encrypting '%s': %v", dkey, err)
+			return BrainFailed
+		}
+		datum = &encrypted
+	}
+	err := robot.brain.Store(dkey, datum)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Storing datum %s: %v", key, err))
+		Log(Error, fmt.Sprintf("Storing datum %s: %v", dkey, err))
 		return BrainFailed
 	}
 	return Ok
