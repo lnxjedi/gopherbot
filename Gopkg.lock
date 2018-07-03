@@ -2,6 +2,15 @@
 
 
 [[projects]]
+  name = "github.com/awnumar/memguard"
+  packages = [
+    ".",
+    "memcall"
+  ]
+  revision = "f431f51ecd92dc926a5084ac3e9c89080ec7edf4"
+  version = "v0.15.0"
+
+[[projects]]
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -115,6 +124,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "239b9c4356455f7b073700d6f66cda8d446dde44945fcbe0f1d89ae26c798642"
+  inputs-digest = "8d6e74b1466a3dab23755fda50c76cc83dd7bc4f1c311067e221dda042628a56"
   solver-name = "gps-cdcl"
   solver-version = 1
