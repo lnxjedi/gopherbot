@@ -10,6 +10,8 @@ Help:
   Helptext: [ "(bot), picard omg <something>(/<something>) - Picard facepalm" ]
 - Keywords: [ "meme", "picard", "wth", "wtf" ]
   Helptext: [ "(bot), picard wth <something>(/<something>) - Picard WTH" ]
+- Keywords: [ "meme", "roy", "phone" ]
+  Helptext: [ "(bot), roy phone <something>(/<something>) - Roy provides phone support" ]
 - Keywords: [ "meme", "gosh" ]
   Helptext: [ "(bot), <something>, gosh! - Let Napoleon Dynamite express your indignation" ]
 - Keywords: [ "meme", "best", "worst" ]
@@ -30,6 +32,8 @@ CommandMatchers:
   Regex: '(?i:picard omg ([^/]+)(?:/([^/]+))?)'
 - Command: "245898"
   Regex: '(?i:picard wt[hf] ([^/]+)(?:/([^/]+))?)'
+- Command: "29106534"
+  Regex: '(?i:roy phone ([^/]+)(?:/([^/]+))?)'
 - Command: "18304105"
   Regex: '(?i:([\w’'' ]+,) (gosh!))'
 - Command: "8070362"
