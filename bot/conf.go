@@ -394,13 +394,16 @@ func (r *botContext) loadConfig(preConnect bool) error {
 	config = newconfig
 	confLock.Unlock()
 
-	updateRegexes()
 	if pluginsOk && !preConnect {
 		r.loadTaskConfig()
 	} else if !pluginsOk {
 		return fmt.Errorf("Error reading external plugin config")
 	}
-	scheduleTasks()
+
+	if !preConnect {
+		updateRegexes()
+		scheduleTasks()
+	}
 
 	return nil
 }

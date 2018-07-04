@@ -14,7 +14,7 @@ CommandMatchers:
   Regex: '(?i:info|tell me about yourself|about|information)'
 `
 
-const brainConfig = `
+const encbrainConfig = `
 DirectOnly: true
 RequireAdmin: true
 Help:
