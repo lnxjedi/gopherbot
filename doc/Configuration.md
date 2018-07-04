@@ -118,6 +118,8 @@ for plugins written to work across multiple chat platforms.
 **Gopherbot** supports a simple brain for storing long-term memories as JSON blobs
 that are serialized/de-serialized in to simple data structures.
 
+#### Brain Encryption
+
 #### File Brain
 
 ```yaml

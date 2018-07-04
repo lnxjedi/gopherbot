@@ -130,7 +130,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 				Log(Error, "Failed to initialize brain encryption with configured BrainKey")
 			}
 		} else {
-			Log(Info, "Brain encryption specified but no key configured; use 'decrypt brain <key>' to initialize the encrypted brain")
+			Log(Warn, "Brain encryption specified but no key configured; use 'initialize brain <key>' to initialize the encrypted brain")
 		}
 	}
 	if len(robot.historyProvider) > 0 {

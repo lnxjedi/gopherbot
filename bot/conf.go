@@ -192,6 +192,8 @@ func (r *botContext) loadConfig(preConnect bool) error {
 			newconfig.ProtocolConfig = value
 		case "Brain":
 			newconfig.Brain = *(val.(*string))
+		case "BrainKey":
+			newconfig.BrainKey = *(val.(*string))
 		case "BrainConfig":
 			newconfig.BrainConfig = value
 		case "HistoryProvider":
@@ -217,6 +219,8 @@ func (r *botContext) loadConfig(preConnect bool) error {
 			newconfig.IgnoreUsers = *(val.(*[]string))
 		case "JoinChannels":
 			newconfig.JoinChannels = *(val.(*[]string))
+		case "EncryptBrain":
+			newconfig.EncryptBrain = *(val.(*bool))
 		case "ExternalPlugins":
 			newconfig.ExternalPlugins = *(val.(*[]externalScript))
 		case "ExternalJobs":

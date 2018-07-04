@@ -143,6 +143,11 @@ func replyToWaiter(m *memstatus) {
 // NOTE: All locking is done with the cryptBrain mutex, bypassing
 // the brain loop.
 func initializeEncryption(key string) bool {
+	kbytes := []byte(key)
+	if len(kbytes) < 32 {
+		Log(Error, "Failed to initialize brain, provided brain key < 32 bytes")
+		return false
+	}
 	cryptBrain.Lock()
 	if cryptBrain.initialized || cryptBrain.initializing {
 		i := cryptBrain.initializing
@@ -150,7 +155,8 @@ func initializeEncryption(key string) bool {
 		return i
 	}
 	var err error
-	cryptBrain.protected, err = memguard.NewImmutableFromBytes([]byte(key))
+	cryptBrain.protected, err = memguard.NewImmutableFromBytes(kbytes[0:32])
+	memguard.WipeBytes(kbytes)
 	if err != nil {
 		cryptBrain.Unlock()
 		Log(Error, fmt.Sprintf("Error creating protected memory region for key: %v", err))
@@ -257,12 +263,12 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 		if initializing {
 			if dkey != botBrainKey {
 				Log(Warn, fmt.Sprintf("Retrieve called on uninitialized brain for '%s'", dkey))
-				return "", nil, exists, BrainFailed
+				return "", nil, false, BrainFailed
 			}
 			decrypted, err = decrypt(*db, key)
 			if err != nil {
 				Log(Error, fmt.Sprintf("Failed to decrypt the brain key, bad key provided?: %v", err))
-				return "", nil, exists, BrainFailed
+				return "", nil, false, BrainFailed
 			} else {
 				db = &decrypted
 				return token, db, true, Ok
@@ -280,7 +286,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 			return token, db, true, Ok
 		} else {
 			Log(Warn, fmt.Sprintf("Retrieve called on uninitialized brain for '%s'", dkey))
-			return "", nil, exists, BrainFailed
+			return "", nil, false, BrainFailed
 		}
 	}
 	return token, db, true, Ok
@@ -309,7 +315,7 @@ func storeDatum(dkey string, datum *[]byte) RetVal {
 		}
 		encrypted, err := encrypt(*datum, key)
 		if err != nil {
-			Log(Error, "Failed encrypting '%s': %v", dkey, err)
+			Log(Error, fmt.Sprintf("Failed encrypting '%s': %v", dkey, err))
 			return BrainFailed
 		}
 		datum = &encrypted

@@ -14,6 +14,17 @@ CommandMatchers:
   Regex: '(?i:info|tell me about yourself|about|information)'
 `
 
+const brainConfig = `
+DirectOnly: true
+RequireAdmin: true
+Help:
+- Keywords: [ "initialize", "key", "brain" ]
+  Helptext: [ "(bot), initialize brain <key> - by direct message only; provide brain encryption key" ]
+CommandMatchers:
+- Command: initialize
+  Regex: '(?i:initialize brain (.*))'
+`
+
 const adminConfig = `
 AllChannels: true
 AllowDirect: true
