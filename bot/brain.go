@@ -262,7 +262,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 		cryptBrain.RUnlock()
 		if initializing {
 			if dkey != botBrainKey {
-				Log(Warn, fmt.Sprintf("Retrieve called on uninitialized brain for '%s'", dkey))
+				Log(Warn, fmt.Sprintf("Retrieve called with uninitialized brain for '%s'", dkey))
 				return "", nil, false, BrainFailed
 			}
 			decrypted, err = decrypt(*db, key)

@@ -34,6 +34,7 @@ func init() {
 	RegisterPlugin("builtInhelp", PluginHandler{DefaultConfig: helpConfig, Handler: help})
 	RegisterPlugin("builtInadmin", PluginHandler{DefaultConfig: adminConfig, Handler: admin})
 	RegisterPlugin("builtInlogging", PluginHandler{DefaultConfig: logConfig, Handler: logging})
+	RegisterPlugin("builtInbrain", PluginHandler{DefaultConfig: encbrainConfig, Handler: encbrain})
 }
 
 /* builtin plugins, like help */
@@ -260,6 +261,23 @@ func dump(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 			bot.Say(fmt.Sprintf(message, strings.Join(plist, joiner)))
 		} else { // note because of builtin plugins, plist is ALWAYS > 0 if disabled wasn't specified
 			bot.Say("There are no disabled plugins")
+		}
+	}
+	return
+}
+
+func encbrain(bot *Robot, command string, args ...string) (retval TaskRetVal) {
+	switch command {
+	case "init":
+		return
+	case "initialize":
+		success := initializeEncryption(args[0])
+		if success {
+			bot.Log(Info, fmt.Sprintf("Brain successfully initialized by user '%s'", bot.User))
+			bot.Say("Brain successfully initialized - you should delete your message if possible")
+		} else {
+			bot.Log(Error, fmt.Sprintf("User '%s' failed to initialize brain", bot.User))
+			bot.Say("Failed to initialize brain - check your passphrase?")
 		}
 	}
 	return
