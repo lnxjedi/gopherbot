@@ -119,6 +119,13 @@ for plugins written to work across multiple chat platforms.
 that are serialized/de-serialized in to simple data structures.
 
 #### Brain Encryption
+For CI/CD applications where the brain may be used for storing secrets, **Gopherbot** can use AES-GCM for encrypting and decrypting memories sent to the storage engine.
+```yaml
+EncryptBrain: true
+BrainKey: ThisNeedsToBeAStringLongerThan32bytesForItToWork # optional
+```
+
+**Gopherbot** uses the provided key as a temporary key to decrypt the 'real' key which is randomly generated. The most secure method of providing the key is with the built-in administrator command `initialize brain <key>`.
 
 #### File Brain
 
