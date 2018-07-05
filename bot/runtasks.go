@@ -113,6 +113,7 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 		}
 	}
 	storedEnv := make(map[string]string)
+	// Global environment for pipeline from first task
 	_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
 	if exists {
 		for key, value := range storedEnv {
@@ -123,6 +124,7 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 			}
 		}
 	}
+	bot.pipeStarting = true
 	for _, p := range envPassThrough {
 		_, exists := bot.environment[p]
 		if !exists {
@@ -189,7 +191,7 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 			emit(RunJobTaskRan)
 		}
 		// (re-)Set the NameSpace for the pipeline task; may have been modified
-		// by authorizer or elevator
+		// by authorizer or elevator; TODO: remove in favor of PrivateNameSpace
 		bot.NameSpace = NameSpace
 		Log(Trace, fmt.Sprintf("runPipeline setting namespace for bot %d to %s", bot.id, task.NameSpace))
 		bot.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
@@ -221,7 +223,6 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 			break
 		}
 	}
-	// TODO: post job notifications if Failed or Verbose
 	bot.deregister()
 	if bot.logger != nil {
 		bot.logger.Section("done", "pipeline has completed")
@@ -316,6 +317,26 @@ func (bot *botContext) callTask(t interface{}, setNameSpace bool, command string
 			envhash[k] = v
 		}
 	}
+
+	// Pull stored env vars specific to this task and supply to this task only.
+	// No effect if already defined. Useful mainly for specific tasks to have
+	// secrets passed in but not handed to everything in the pipeline.
+	if !bot.pipeStarting {
+		storedEnv := make(map[string]string)
+		_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
+		if exists {
+			for key, value := range storedEnv {
+				// Dynamically provided and configured parameters take precedence over stored parameters
+				_, exists := envhash[key]
+				if !exists {
+					envhash[key] = value
+				}
+			}
+		}
+	} else {
+		bot.pipeStarting = false
+	}
+
 	envhash["GOPHER_CHANNEL"] = bot.Channel
 	envhash["GOPHER_USER"] = bot.User
 	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", bot.Protocol)

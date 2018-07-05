@@ -114,6 +114,7 @@ type botContext struct {
 	bypassSecurityChecks bool              // set for scheduled jobs, where user security restrictions don't apply
 	elevated             bool              // set when required elevation succeeds
 	environment          map[string]string // environment vars set for each job/plugin in the pipeline
+	pipeStarting         bool              // to prevent re-loading environment of first task in pipeline
 	nextTasks            []taskSpec        // tasks in the pipeline
 	logger               HistoryLogger     // where to send stdout / stderr
 	pipeName, pipeDesc   string            // name and description of task that started pipeline
