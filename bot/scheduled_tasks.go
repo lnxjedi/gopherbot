@@ -73,10 +73,8 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList) {
 		environment:          make(map[string]string),
 	}
 	var command string
-	args := make([]string, 0, 0)
 	if isPlugin {
 		command = ts.Command
-		args = append(args, ts.Arguments...)
 	} else {
 		command = "run"
 		for _, p := range ts.Parameters {
@@ -84,5 +82,5 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList) {
 		}
 	}
 	Log(Debug, fmt.Sprintf("Starting scheduled task: %s", task.name))
-	bot.runPipeline(t, false, scheduled, command, args...)
+	bot.runPipeline(t, false, scheduled, command, ts.Arguments...)
 }

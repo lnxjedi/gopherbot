@@ -97,21 +97,43 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 			}
 		}
 	}
-	// Once Active, we need to use the Mutex for access to some fields; see
-	// botcontext/type botContext
-	bot.registerActive()
-	// Populate the environment; retrievable as environment variables for
+
+	// Set up the environment for the pipeline, in order of precedence high-low.
+	// Done in reverse order with existence checking because the context may
+	// already have dynamically provided environment vars, which are highest
+	// precedence. Environment vars are retrievable as environment variables for
 	// scripts, or using GetParameter(...) in Go plugins.
-	for _, p := range envPassThrough {
-		bot.environment[p] = os.Getenv(p)
+	if isJob {
+		for _, p := range job.Parameters {
+			// Dynamically provided parameters take precedence over configured parameters
+			_, exists := bot.environment[p.Name]
+			if !exists {
+				bot.environment[p.Name] = p.Value
+			}
+		}
 	}
 	storedEnv := make(map[string]string)
 	_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
 	if exists {
 		for key, value := range storedEnv {
-			bot.environment[key] = value
+			// Dynamically provided and configured parameters take precedence over stored parameters
+			_, exists := bot.environment[key]
+			if !exists {
+				bot.environment[key] = value
+			}
 		}
 	}
+	for _, p := range envPassThrough {
+		_, exists := bot.environment[p]
+		if !exists {
+			// Note that we even pass through empty vars - any harm?
+			bot.environment[p] = os.Getenv(p)
+		}
+	}
+
+	// Once Active, we need to use the Mutex for access to some fields; see
+	// botcontext/type botContext
+	bot.registerActive()
 	r := bot.makeRobot()
 	var errString string
 	var ret TaskRetVal
@@ -246,7 +268,7 @@ func (bot *botContext) callTask(t interface{}, setNameSpace bool, command string
 		defer checkPanic(r, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
 	}
 	Log(Debug, fmt.Sprintf("Dispatching command '%s' to plugin '%s' with arguments '%#v'", command, task.name, args))
-	if isPlugin && plugin.pluginType == plugGo {
+	if isPlugin && plugin.taskType == taskGo {
 		if command != "init" {
 			emit(GoPluginRan)
 		}
@@ -298,11 +320,17 @@ func (bot *botContext) callTask(t interface{}, setNameSpace bool, command string
 	envhash["GOPHER_USER"] = bot.User
 	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", bot.Protocol)
 	env := make([]string, 0, len(envhash))
+	keys := make([]string, 0, len(envhash))
 	for k, v := range envhash {
+		if len(k) == 0 {
+			Log(Error, fmt.Sprintf("Empty Name value while populating environment for '%s', skipping", task.name))
+			continue
+		}
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
+		keys = append(keys, k)
 	}
 	cmd.Env = env
-	Log(Debug, fmt.Sprintf("Running '%s' using env: '%s'", fullPath, strings.Join(cmd.Env, "', '")))
+	Log(Debug, fmt.Sprintf("Running '%s' with environment vars: '%s'", fullPath, strings.Join(keys, "', '")))
 	var stderr, stdout io.ReadCloser
 	// hold on to stderr in case we need to log an error
 	stderr, err = cmd.StderrPipe()
@@ -419,14 +447,14 @@ func fixInterpreterArgs(interpreter string, args []string) []string {
 }
 
 func getTaskPath(task *botTask) (string, error) {
-	if len(task.scriptPath) == 0 {
+	if len(task.Path) == 0 {
 		err := fmt.Errorf("Path empty for external task: %s", task.name)
 		Log(Error, err)
 		return "", err
 	}
 	var fullPath string
-	if byte(task.scriptPath[0]) == byte("/"[0]) {
-		fullPath = task.scriptPath
+	if byte(task.Path[0]) == byte("/"[0]) {
+		fullPath = task.Path
 		_, err := os.Stat(fullPath)
 		if err == nil {
 			Log(Debug, "Using fully specified path to plugin:", fullPath)
@@ -437,16 +465,16 @@ func getTaskPath(task *botTask) (string, error) {
 		return "", err
 	}
 	if len(configPath) > 0 {
-		_, err := os.Stat(configPath + "/" + task.scriptPath)
+		_, err := os.Stat(configPath + "/" + task.Path)
 		if err == nil {
-			fullPath = configPath + "/" + task.scriptPath
+			fullPath = configPath + "/" + task.Path
 			Log(Debug, "Using external plugin from configPath:", fullPath)
 			return fullPath, nil
 		}
 	}
-	_, err := os.Stat(installPath + "/" + task.scriptPath)
+	_, err := os.Stat(installPath + "/" + task.Path)
 	if err == nil {
-		fullPath = installPath + "/" + task.scriptPath
+		fullPath = installPath + "/" + task.Path
 		Log(Debug, "Using stock external plugin:", fullPath)
 		return fullPath, nil
 	}

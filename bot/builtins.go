@@ -196,7 +196,7 @@ func dump(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 						bot.Say("No default configuration available for task type 'job'")
 						return
 					}
-					if plugin.pluginType == plugExternal {
+					if plugin.taskType == taskExternal {
 						found = true
 						if cfg, err := getExtDefCfg(plugin.botTask); err == nil {
 							bot.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], *cfg))

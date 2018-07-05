@@ -39,9 +39,9 @@ type botconf struct {
 	JoinChannels         []string         // Channels the 'bot should join when it logs in (not supported by all protocols)
 	DefaultJobChannel    string           // Where job status is posted by default
 	TimeZone             string           // For evaluating the hour in a job schedule
-	ExternalJobs         []externalScript // list of available jobs; config in conf/jobs/<jobname>.yaml
+	ExternalJobs         []externalJob    // list of available jobs; config in conf/jobs/<jobname>.yaml
 	ScheduledTasks       []scheduledTask  // see tasks.go
-	ExternalPlugins      []externalScript // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
+	ExternalPlugins      []externalPlugin // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
 	AdminUsers           []string         // List of users who can access administrative commands
 	Alias                string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
 	LocalPort            int              // Port number for listening on localhost, for CLI plugins
@@ -139,7 +139,8 @@ func (r *botContext) loadConfig(preConnect bool) error {
 	for key, value := range configload {
 		var strval string
 		var sarrval []string
-		var epval, jval []externalScript
+		var epval []externalPlugin
+		var jval []externalJob
 		var stval []scheduledTask
 		var mailval botMailer
 		var boolval bool
@@ -156,7 +157,7 @@ func (r *botContext) loadConfig(preConnect bool) error {
 		case "ExternalPlugins":
 			val = &epval
 		case "ExternalJobs":
-			val = &epval
+			val = &jval
 		case "Jobs":
 			val = &jval
 		case "ScheduledTasks":
@@ -222,9 +223,9 @@ func (r *botContext) loadConfig(preConnect bool) error {
 		case "EncryptBrain":
 			newconfig.EncryptBrain = *(val.(*bool))
 		case "ExternalPlugins":
-			newconfig.ExternalPlugins = *(val.(*[]externalScript))
+			newconfig.ExternalPlugins = *(val.(*[]externalPlugin))
 		case "ExternalJobs":
-			newconfig.ExternalJobs = *(val.(*[]externalScript))
+			newconfig.ExternalJobs = *(val.(*[]externalJob))
 		case "ScheduledTasks":
 			newconfig.ScheduledTasks = *(val.(*[]scheduledTask))
 		case "AdminUsers":

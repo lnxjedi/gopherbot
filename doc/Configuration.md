@@ -17,8 +17,9 @@ Table of Contents
       * [DefaultAllowDirect, DefaultChannels and JoinChannels](#defaultallowdirect-defaultchannels-and-joinchannels)
       * [ExternalScripts](#externalscripts)
       * [LocalPort and LogLevel](#localport-and-loglevel)
-  * [Plugin Configuration](#plugin-configuration)
-    * [Plugin Configuration Directives](#plugin-configuration-directives)
+  * [Task Configuration](#task-configuration)
+    * [Plugins and Jobs](#plugins-and-jobs)
+    * [Task Configuration Directives](#plugin-configuration-directives)
       * [Disabled](#disabled)
       * [AllowDirect, DirectOnly, Channels and AllChannels](#allowdirect-directonly-channels-and-allchannels)
       * [CatchAll](#catchall)
@@ -221,19 +222,23 @@ a new plugin only entails copying the plugin to an appropriate plugin directory 
 LocalPort: 8880
 LogLevel: info
 ```
-Gopherbot command plugins communicate with the gopherbot process via JSON over http on a localhost port. The
+Gopherbot external scripts communicate with the gopherbot process via JSON over http on a localhost port. The
 port to use is configured with `LocalPort`. `LogLevel` specifies the initial logging level for the robot, one of `error`, `warn`, `info`, `debug`, or `trace`. The log level can also be adjusted on the fly by an administrator. Note that on Windows, debug and trace logging is only available in immediate mode during plugin development.
 
-# Plugin Configuration
+# Task Configuration
 
-Gopherbot plugins are highly configurable with respect to visibility of plugins for various users and channels. In addition to providing a level of security, this can be very useful in large environments with many robots running many plugins, if only to keep the 'help' output to a minimum. The administrator can also configure **Authorization** and **Elevation** to further restrict sensitive commands. Additionally, help text and command routing is configured in yaml, allowing the administrator to e.g. provide synonyms for existing commands.
+Gopherbot tasks (jobs and plugins) are highly configurable with respect to visibility in channels, security, and input arguments and parameters.
 
-Plugins are configured by reading yaml from **three** locations, with top-level items from each successive read overriding the previous:
-1. The default configuration is obtained from the plugin itself during plugin load, by calling the plugin with `configure` as the first argument; the robot looks for the plugin in the **config directory** first (if present), then the **install directory**, getting the default configuration from the first found only.
-2. Configuration is then loaded from `<install dir>/conf/plugins/<pluginname>.yaml`; this is where you might configure e.g. credentials required for a given plugin.
-3. Finally, if a configuration directory is supplied, configuration is loaded from `<config dir>/conf/plugins/<pluginname>.yaml`; this is where you would likely configure a plugin's channels and security-related configuration (allowed users, authorization, etc.)
+Task are configured by reading yaml from up to **three** locations, with top-level items from each successive read overriding the previous:
+1. For command plugins, the default configuration is obtained from the plugin itself during plugin load, by calling the plugin with `configure` as the first argument; the robot looks for the plugin in the **config directory** first (if present), then the **install directory**, getting the default configuration from the first found only.
+2. Configuration is then loaded from `<install dir>/conf/<jobs|plugins>/<taskname>.yaml`; this is where you might configure e.g. credentials required for a given task.
+3. Finally, if a configuration directory is supplied, configuration is loaded from `<config dir>/conf/<jobs|plugins>/<taskname>.yaml`; this is where you would likely store non-sensitive configuration directive to be stored in a **git** repository.
 
-## Plugin Configuration Directives
+## Plugins and Jobs
+
+Gopherbot supports two types of tasks; `plugins` and `jobs`.
+
+## Task Configuration Directives
 
 ### Disabled
 

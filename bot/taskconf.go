@@ -34,10 +34,10 @@ func (r *botContext) loadTaskConfig() {
 
 	for plugname := range pluginHandlers {
 		plugin := &botPlugin{
-			pluginType: plugGo,
 			botTask: &botTask{
-				name:   plugname,
-				taskID: getTaskID(plugname),
+				name:     plugname,
+				taskType: taskGo,
+				taskID:   getTaskID(plugname),
 			},
 		}
 		tlist = append(tlist, plugin)
@@ -63,20 +63,13 @@ func (r *botContext) loadTaskConfig() {
 			continue
 		}
 		task := &botTask{
-			name:       script.Name,
-			taskID:     getTaskID(script.Name),
-			scriptPath: script.Path,
-		}
-		if len(task.scriptPath) == 0 {
-			msg := fmt.Sprintf("Task '%s' has zero-length path, disabling", task.name)
-			Log(Error, msg)
-			r.debug(msg, false)
-			task.Disabled = true
-			task.reason = msg
+			name:     script.Name,
+			taskType: taskExternal,
+			taskID:   getTaskID(script.Name),
+			Path:     script.Path,
 		}
 		p := &botPlugin{
-			pluginType: plugExternal,
-			botTask:    task,
+			botTask: task,
 		}
 		tlist = append(tlist, p)
 		taskIndexByID[task.taskID] = i
@@ -101,16 +94,10 @@ func (r *botContext) loadTaskConfig() {
 			continue
 		}
 		task := &botTask{
-			name:       script.Name,
-			taskID:     getTaskID(script.Name),
-			scriptPath: script.Path,
-		}
-		if len(task.scriptPath) == 0 {
-			msg := fmt.Sprintf("Task '%s' has zero-length path, disabling", task.name)
-			Log(Error, msg)
-			r.debug(msg, false)
-			task.Disabled = true
-			task.reason = msg
+			name:        script.Name,
+			taskType:    taskExternal,
+			taskID:      getTaskID(script.Name),
+			Description: script.Description,
 		}
 		j := &botJob{
 			botTask: task,
@@ -145,13 +132,13 @@ LoadLoop:
 		}
 		tcfgload := make(map[string]json.RawMessage)
 		if isPlugin {
-			Log(Info, fmt.Sprintf("Loading configuration for plugin '%s', type %d", task.name, plugin.pluginType))
+			Log(Info, fmt.Sprintf("Loading configuration for plugin '%s', type %d", task.name, plugin.taskType))
 		} else {
 			Log(Info, fmt.Sprintf("Loading configuration for job '%s'", task.name))
 		}
 
 		if isPlugin {
-			if plugin.pluginType == plugExternal {
+			if plugin.taskType == taskExternal {
 				// External plugins spit their default config to stdout when called with command="configure"
 				cfg, err := getExtDefCfg(task)
 				if err != nil {
@@ -230,14 +217,17 @@ LoadLoop:
 			var sarrval []string
 			var hval []PluginHelp
 			var mval []InputMatcher
+			var pval []parameter
 			var val interface{}
 			skip := false
 			switch key {
-			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "User":
+			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "User", "Path":
 				val = &strval
+			case "Parameters":
+				val = &pval
 			case "HistoryLogs":
 				val = &intval
-			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "Verbose":
+			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "PrivateNameSpace", "Verbose":
 				val = &boolval
 			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands", "RequiredParameters":
 				val = &sarrval
@@ -296,7 +286,13 @@ LoadLoop:
 					mismatch = true
 				}
 			case "Description":
-				task.Description = *(val.(*string))
+				if isPlugin {
+					task.Description = *(val.(*string))
+				} else {
+					if len(task.Description) == 0 {
+						task.Description = *(val.(*string))
+					}
+				}
 			case "NameSpace":
 				task.NameSpace = *(val.(*string))
 				if !identifierRe.MatchString(task.NameSpace) {
@@ -307,6 +303,8 @@ LoadLoop:
 					Log(Error, fmt.Sprintf("Task '%s' has illegal NameSpace 'bot', ignoring", task.name))
 					task.NameSpace = ""
 				}
+			case "PrivateNameSpace":
+				task.PrivateNameSpace = *(val.(*bool))
 			case "Elevator":
 				task.Elevator = *(val.(*string))
 			case "ElevatedCommands":
@@ -385,6 +383,18 @@ LoadLoop:
 				} else {
 					job.Triggers = *(val.(*[]InputMatcher))
 				}
+			case "Parameters":
+				if isPlugin {
+					mismatch = true
+				} else {
+					job.Parameters = *(val.(*[]parameter))
+				}
+			case "Path":
+				if isPlugin {
+					mismatch = true
+				} else {
+					task.Path = *(val.(*string))
+				}
 			case "RequiredParameters":
 				if isPlugin {
 					mismatch = true
@@ -411,6 +421,13 @@ LoadLoop:
 		// End of reading configuration keys
 
 		// Start sanity checking of configuration
+		if len(task.Path) == 0 && task.taskType == taskExternal {
+			msg := fmt.Sprintf("Task '%s' has zero-length path, disabling", task.name)
+			Log(Error, msg)
+			r.debug(msg, false)
+			task.Disabled = true
+			task.reason = msg
+		}
 		if task.DirectOnly {
 			if explicitAllowDirect {
 				if !task.AllowDirect {
@@ -588,7 +605,7 @@ LoadLoop:
 			// For Go plugins, use the provided empty config struct to go ahead
 			// and unmarshall Config. The GetTaskConfig call just sets a pointer
 			// without unmshalling again.
-			if plugin.pluginType == plugGo {
+			if plugin.taskType == taskGo {
 				// Copy the pointer to the empty config struct / empty struct (when no config)
 				// pluginHandlers[name].Config is an empty struct for unmarshalling provided
 				// in RegisterPlugin.
