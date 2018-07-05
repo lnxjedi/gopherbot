@@ -1,4 +1,5 @@
-![Gophers+bot by Renee French, cropped, cc3.0](https://raw.githubusercontent.com/wiki/lnxjedi/gopherbot/gopherbot.PNG)
++<p align="center"><img src="/Logo Gopher.png" alt="Server" height="230px"></p>
+
 
 [Gophers + Robot by Renee French (cropped) licensed under Creative Commons License 3.0](https://creativecommons.org/licenses/by/3.0/)
 
