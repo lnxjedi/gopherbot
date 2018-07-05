@@ -31,12 +31,9 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 	isPlugin := plugin != nil
 	isJob := !isPlugin
 	verbose := (isJob && job.Verbose) || ptype == runJob
-	// NameSpace for the pipeline
-	NameSpace := task.NameSpace
 	bot.pipeName = task.name
 	bot.pipeDesc = task.Description
-	// keepHistory := task.HistoryLogs > 0
-	// TODO: initialize history
+	bot.NameSpace = task.NameSpace
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	robot.Add(1)
 	robot.Lock()
@@ -190,12 +187,8 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 		case runJob:
 			emit(RunJobTaskRan)
 		}
-		// (re-)Set the NameSpace for the pipeline task; may have been modified
-		// by authorizer or elevator; TODO: remove in favor of PrivateNameSpace
-		bot.NameSpace = NameSpace
-		Log(Trace, fmt.Sprintf("runPipeline setting namespace for bot %d to %s", bot.id, task.NameSpace))
 		bot.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
-		errString, ret = bot.callTask(t, false, command, args...)
+		errString, ret = bot.callTask(t, command, args...)
 		bot.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
 
 		if ret != Normal {
@@ -204,8 +197,6 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 			}
 			break
 		}
-		// TODO: later, look for more tasks added to the Robot by addTask
-		// set isPlugin, command and args
 		if len(bot.nextTasks) > 0 {
 			var ts taskSpec
 			ts, bot.nextTasks = bot.nextTasks[0], bot.nextTasks[1:]
@@ -238,7 +229,7 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 }
 
 // callTask does the real work of running a job or plugin with a command and arguments.
-func (bot *botContext) callTask(t interface{}, setNameSpace bool, command string, args ...string) (errString string, retval TaskRetVal) {
+func (bot *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
 	bot.currentTask = t
 	r := bot.makeRobot()
 	task, plugin, _ := getTask(t)
@@ -260,11 +251,6 @@ func (bot *botContext) callTask(t interface{}, setNameSpace bool, command string
 		bot.logger.Section(task.name, desc)
 	}
 
-	// Set NameSpace if none set, for authorizers and elevators
-	if setNameSpace {
-		Log(Trace, fmt.Sprintf("callTask setting namespace for bot %d to %s", bot.id, task.NameSpace))
-		bot.NameSpace = task.NameSpace
-	}
 	if !(task.name == "builtInadmin" && command == "abort") {
 		defer checkPanic(r, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
 	}

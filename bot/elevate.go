@@ -29,7 +29,7 @@ func (bot *botContext) elevate(task *botTask, immediate bool) (retval TaskRetVal
 		if !immediate {
 			immedString = "false"
 		}
-		_, elevRet := bot.callTask(ePlug, true, "elevate", immedString)
+		_, elevRet := bot.callTask(ePlug, "elevate", immedString)
 		if elevRet == Success {
 			Log(Audit, fmt.Sprintf("Elevation succeeded by elevator '%s', user '%s', task '%s' in channel '%s'", ePlug.name, bot.User, task.name, bot.Channel))
 			emit(ElevRanSuccess)
