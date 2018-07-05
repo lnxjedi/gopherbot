@@ -14,6 +14,14 @@ $ go test -run MessageMatch -v --tags 'test integration' -cover -race -coverprof
 Generate coverage statistics report with:
 $ go tool cover -html=coverage.out -o coverage.html
 
+Check status of goroutines if tests get hung up
+$ go tool pprof http://localhost:8889/debug/pprof/goroutine
+...
+Entering interactive mode (type "help" for commands, "o" for options)
+(pprof) list lnxjedi
+Total: 11
+ROUTINE ======================== github.com/lnxjedi/gopherbot/bot...
+
 (eventual) Setup for "clear box" testing of bot internals is in bot_test.go
 */
 
@@ -33,9 +41,6 @@ import (
 	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
 	_ "github.com/lnxjedi/gopherbot/history/file"
 
-	// Enable profiling. You can shrink the binary by removing this, but if the
-	// robot ever stops responding for any reason, it's handy for getting a
-	// dump of all goroutines.
 	_ "net/http/pprof"
 )
 
