@@ -95,6 +95,14 @@ class BaseBot
 	def Elevate(immediate=false)
 		return callBotFunc("Elevate", { "Immediate" => immediate })["Boolean"]
 	end
+	
+	def AddTask(name, args)
+		return callBotFunc("AddTask", { "Name" => name, "CmdArgs" => args })
+	end
+	
+	def SetParameter(name, value)
+		return callBotFunc("SetParameter", { "Name" => name, "Value" => value })
+	end
 
 	def CheckoutDatum(key, rw)
 		args = { "Key" => key, "RW" => rw }

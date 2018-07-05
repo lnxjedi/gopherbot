@@ -160,6 +160,17 @@ class Robot
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs) {
         return $this.Call($fname, $funcArgs, "")
     }
+    
+    [PlugRet] AddTask([String] $taskName, [String[]]$taskArgs) {
+        $funcArgs = [PSCustomObject]@{ Name=$taskName, CmdArgs=$taskArgs }
+        $ret = $this.Call("AddTask", $funcArgs)
+        return [PlugRet]$ret.PlugRetVal
+    }
+    
+    [Bool] SetParameter([String] $name, [String] $value){
+        $funcArgs = [PSCustomObject]@{ Name=$name; Value=$value }
+        return $this.Call("SetParameter", $funcArgs).Boolean -As [bool]
+    }
 
     [PSCustomObject] CheckoutDatum([String] $key, [Bool] $rw) {
         $funcArgs = [PSCustomObject]@{ Key=$key; RW=$rw }

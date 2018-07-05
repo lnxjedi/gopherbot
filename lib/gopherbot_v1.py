@@ -121,6 +121,12 @@ class Robot:
         ret = self.Call("CheckoutDatum", { "Key": key, "RW": rw })
         return Memory(key, ret)
 
+    def AddTask(self, name, args)
+        return self.Call("AddTask", { "Name": name, "CmdArgs": args })
+
+    def SetParameter(self, name, value)
+        return self.Call("SetParameter", { "Name": name, "Value": value })
+
     def Log(self, level, msg):
         self.Call("Log", { "Level": level, "Message": msg })
 
