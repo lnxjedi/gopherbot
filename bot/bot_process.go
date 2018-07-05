@@ -162,6 +162,9 @@ func setConnector(c Connector) {
 // shuts down. It should return after the connector loop has started and
 // plugins are initialized.
 func run() <-chan struct{} {
+	// Start the brain loop
+	go runBrain()
+
 	bot := &botContext{
 		environment: make(map[string]string),
 	}
@@ -176,9 +179,6 @@ func run() <-chan struct{} {
 	for _, channel := range cl {
 		robot.JoinChannel(channel)
 	}
-
-	// Start the brain loop
-	go runBrain()
 
 	// signal handler
 	go func() {
