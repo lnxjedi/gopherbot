@@ -258,6 +258,10 @@ LoadLoop:
 			}
 
 			mismatch := false
+			// Defaults
+			if isPlugin {
+				task.PrivateNameSpace = true
+			}
 			switch key {
 			case "AllowDirect":
 				task.AllowDirect = *(val.(*bool))

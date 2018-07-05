@@ -27,6 +27,7 @@ Table of Contents
       * [AuthorizedCommands, AuthorizeAllCommands, Authorizer and AuthRequire](#authorizedcommands-authorizeallcommands-authorizer-and-authrequire)
       * [Elevator, ElevatedCommands and ElevateImmediateCommands](#elevator-elevatedcommands-and-elevateimmediatecommands)
       * [Help](#help)
+      * [NameSpace and PrivateNameSpace](#namespace-and-privatenamespace)
       * [CommandMatchers, ReplyMatchers, and MessageMatchers](#commandmatchers-replymatchers-and-messagematchers)
       * [Config](#config)
 
@@ -325,6 +326,15 @@ replaced by the robot's handle.
 
 Note that if you wish to configure additional help, you'll need to copy the entire `Help` section from the
 plugin's default configuration to the appropriate `<pluginname>.yaml` file.
+
+### NameSpace and PrivateNameSpace
+Gopherbot's memories are stored in individual namespaces to prevent collisions between separate jobs / plugins. In some cases, it is desired for multiple jobs / plugins to share memories. In this case, individual tasks can be configured with the same `NameSpace`. By default, when a pipeline is running, all jobs in the pipeline will use the same `NameSpace`, determined by the
+first task in the pipeline; plugins by default use their configured namespace. To override the default behavior, set `PrivateNameSpace` to `true` for jobs, or `false` for plugins.
+
+```yaml
+NameSpace: builds
+PrivateNameSpace: false # default for jobs; plugins default to true
+```
 
 ### CommandMatchers, ReplyMatchers, and MessageMatchers
 
