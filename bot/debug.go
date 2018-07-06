@@ -12,29 +12,33 @@ import (
 	"time"
 )
 
-type debuggingPlug struct {
+type debuggingTask struct {
 	taskID, name, user string // the ID and name of the plugin being debugged, user requesting
 	verbose            bool   // do we want feedback for every message the user types?
 }
 
-var plugDebug = struct {
-	p map[string]*debuggingPlug // map of taskID to the debuggingPlug struct
-	u map[string]*debuggingPlug // map of user to the debuggingPlug struct
+var taskDebug = struct {
+	p map[string]*debuggingTask // map of taskID to the debuggingTask struct
+	u map[string]*debuggingTask // map of user to the debuggingTask struct
 	sync.RWMutex
 }{
-	make(map[string]*debuggingPlug),
-	make(map[string]*debuggingPlug),
+	make(map[string]*debuggingTask),
+	make(map[string]*debuggingTask),
 	sync.RWMutex{},
+}
+
+func (r *botContext) debug(msg string, verboseonly bool) {
+	r.debugTask(r.currentTask, msg, verboseonly)
 }
 
 // If the debug statement requests verboseonly, then the user will only get the
 // message if verbose debugging was requested.
-func (r *botContext) debug(msg string, verboseonly bool) {
+func (r *botContext) debugTask(t interface{}, msg string, verboseonly bool) {
 	var taskID string
-	if r.currentTask == nil {
+	if t == nil {
 		taskID = ""
 	} else {
-		task, _, _ := getTask(r.currentTask)
+		task, _, _ := getTask(t)
 		taskID = task.taskID
 	}
 	if len(taskID) == 0 && len(r.User) == 0 {
@@ -43,10 +47,10 @@ func (r *botContext) debug(msg string, verboseonly bool) {
 	if len(taskID) == 0 && !verboseonly {
 		return
 	}
-	plugDebug.RLock()
-	ppd, _ := plugDebug.p[taskID]
-	upd, _ := plugDebug.u[r.User]
-	plugDebug.RUnlock()
+	taskDebug.RLock()
+	ppd, _ := taskDebug.p[taskID]
+	upd, _ := taskDebug.u[r.User]
+	taskDebug.RUnlock()
 	var targetUser, plugName string
 	if ppd == nil {
 		if upd == nil {

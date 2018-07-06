@@ -364,45 +364,41 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
 	case "debug":
-		pname := args[0]
-		if !identifierRe.MatchString(pname) {
-			bot.Say(fmt.Sprintf("Invalid plugin name '%s', doesn't match regexp: '%s' (plugin can't load)", pname, identifierRe.String()))
+		tname := args[0]
+		if !identifierRe.MatchString(tname) {
+			bot.Say(fmt.Sprintf("Invalid task name '%s', doesn't match regexp: '%s' (task can't load)", tname, identifierRe.String()))
 			return
 		}
 		c := bot.getContext()
-		task, plugin, _ := getTask(c.tasks.getTaskByName(pname))
-		if plugin == nil {
-			bot.Say("I don't have any plugins with that name configured")
-			return
-		}
+		task, _, _ := getTask(c.tasks.getTaskByName(tname))
 		if task.Disabled {
-			bot.Say(fmt.Sprintf("That plugin is disabled, fix and reload; reason: %s", task.reason))
+			bot.Say(fmt.Sprintf("That task is disabled, fix and reload; reason: %s", task.reason))
 			return
 		}
 		verbose := false
 		if len(args[1]) > 0 {
 			verbose = true
 		}
-		Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", pname, task.taskID, verbose))
-		pd := &debuggingPlug{
+		Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", tname, task.taskID, verbose))
+		pd := &debuggingTask{
 			taskID:  task.taskID,
-			name:    pname,
+			name:    tname,
 			user:    bot.User,
 			verbose: verbose,
 		}
-		plugDebug.Lock()
-		plugDebug.p[task.taskID] = pd
-		plugDebug.u[bot.User] = pd
-		plugDebug.Unlock()
+		taskDebug.Lock()
+		taskDebug.p[task.taskID] = pd
+		taskDebug.u[bot.User] = pd
+		taskDebug.Unlock()
 		bot.Say(fmt.Sprintf("Debugging enabled for %s (verbose: %v)", args[0], verbose))
 	case "stop":
-		plugDebug.Lock()
-		pd, ok := plugDebug.u[bot.User]
+		taskDebug.Lock()
+		pd, ok := taskDebug.u[bot.User]
 		if ok {
-			delete(plugDebug.p, pd.taskID)
-			delete(plugDebug.u, bot.User)
+			delete(taskDebug.p, pd.taskID)
+			delete(taskDebug.u, bot.User)
 		}
-		plugDebug.Unlock()
+		taskDebug.Unlock()
 		bot.Say("Debugging disabled")
 	case "quit":
 		robot.Lock()

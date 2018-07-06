@@ -37,7 +37,7 @@ Help:
 - Keywords: [ "abort" ]
   Helptext: [ "(bot), abort - request an immediate shutdown without waiting for plugins to finish" ]
 - Keywords: [ "debug" ]
-  Helptext: [ "(bot), debug plugin <pluginname> (verbose) - turn on debugging for the named plugin, optionally verbose" ]
+  Helptext: [ "(bot), debug task <pluginname> (verbose) - turn on debugging for the named task, optionally verbose" ]
 - Keywords: [ "debug" ]
   Helptext: [ "(bot), stop debugging - turn off debugging" ]
 - Keywords: [ "store", "parameter", "environment" ]
@@ -52,7 +52,7 @@ CommandMatchers:
 - Command: abort
   Regex: '(?i:abort)'
 - Command: "debug"
-  Regex: '(?i:debug (?:plugin )?([\d\w-.]+)(?: (verbose))?)'
+  Regex: '(?i:debug (?:task )?([\d\w-.]+)(?: (verbose))?)'
 - Command: "stop"
   Regex: '(?i:stop debugging)'
 `
