@@ -12,7 +12,7 @@ import (
 )
 
 func TestMemory(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottestmemory.log", t)
+	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
 
 	/* Note on ordering:
 

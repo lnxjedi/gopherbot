@@ -12,7 +12,7 @@ import (
 )
 
 func TestLists(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottestlists.log", t)
+	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
 
 	/* Note on ordering:
 
