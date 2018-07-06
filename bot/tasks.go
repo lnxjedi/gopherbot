@@ -12,7 +12,9 @@ import (
 
 // PluginNames can be letters, numbers & underscores only, mainly so
 // brain functions can use ':' as a separator.
-var identifierRe = regexp.MustCompile(`[\w-]+`)
+const identifierRegex = `[\w-]+`
+
+var identifierRe = regexp.MustCompile(identifierRegex)
 
 // Global persistent map of plugin name to unique ID
 var taskNameIDmap = struct {
@@ -138,10 +140,10 @@ const (
 	catchAll
 	jobTrigger
 	scheduled
-	runJob
+	jobCmd
 )
 
-// InputMatcher specifies the command or message to match for a plugin, or user and message to trigger a job
+// InputMatcher specifies the command or message to match for a plugin
 type InputMatcher struct {
 	Regex      string         // The regular expression string to match - bot adds ^\w* & \w*$
 	Command    string         // The name of the command to pass to the plugin with it's arguments
@@ -149,6 +151,15 @@ type InputMatcher struct {
 	Contexts   []string       // label the contexts corresponding to capture groups, for supporting "it" & optional args
 	User       string         // jobs only; user that can trigger this job, normally git-activated webhook or integration
 	Parameters []string       // jobs only; names of parameters (environment vars) where regex matches are stored, in order of capture groups
+	re         *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
+}
+
+// InputMatcher specifies the command or message to match for a plugin, or user and message to trigger a job
+type JobTrigger struct {
+	Regex      string         // The regular expression string to match - bot adds ^\w* & \w*$
+	User       string         // required user to trigger this job, normally git-activated webhook or integration
+	Channel    string         // required channel for the trigger
+	Parameters []string       // names of parameters (environment vars) where regex matches are stored, in order of capture groups
 	re         *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
@@ -173,7 +184,7 @@ type botTask struct {
 	Channel          string          // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
 	Channels         []string        // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels      bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	User             string          // for scheduled tasks (jobs or plugins), task runs as this user, also for notifies
+	User             string          // for scheduled tasks (jobs or plugins), triggered jobs; task runs as this user, also for notifies
 	RequireAdmin     bool            // Set to only allow administrators to access a plugin
 	Users            []string        // If non-empty, list of all the users with access to this plugin
 	Elevator         string          // Use an elevator other than the DefaultElevator
@@ -189,10 +200,10 @@ type botTask struct {
 
 // stuff read in conf/jobs/<job>.yaml
 type botJob struct {
-	Verbose            bool           // whether to send verbose "job started/ended" messages
-	Triggers           []InputMatcher // user/regex that triggers a job, e.g. a git-activated webhook or integration
-	Parameters         []parameter    // Fixed parameters for a given job; many jobs will use the same script with differing parameters
-	RequiredParameters []string       // required in schedule, prompted to user for interactive
+	Verbose            bool         // whether to send verbose "job started/ended" messages
+	Triggers           []JobTrigger // user/regex that triggers a job, e.g. a git-activated webhook or integration
+	Parameters         []parameter  // Fixed parameters for a given job; many jobs will use the same script with differing parameters
+	RequiredParameters []string     // required in schedule, prompted to user for interactive
 	*botTask
 }
 

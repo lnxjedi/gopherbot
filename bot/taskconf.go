@@ -217,6 +217,7 @@ LoadLoop:
 			var sarrval []string
 			var hval []PluginHelp
 			var mval []InputMatcher
+			var tval []JobTrigger
 			var pval []parameter
 			var val interface{}
 			skip := false
@@ -233,8 +234,10 @@ LoadLoop:
 				val = &sarrval
 			case "Help":
 				val = &hval
-			case "CommandMatchers", "ReplyMatchers", "MessageMatchers", "Triggers":
+			case "CommandMatchers", "ReplyMatchers", "MessageMatchers":
 				val = &mval
+			case "Triggers":
+				val = &tval
 			case "Config":
 				skip = true
 			default:
@@ -385,7 +388,7 @@ LoadLoop:
 				if isPlugin {
 					mismatch = true
 				} else {
-					job.Triggers = *(val.(*[]InputMatcher))
+					job.Triggers = *(val.(*[]JobTrigger))
 				}
 			case "Parameters":
 				if isPlugin {
@@ -474,8 +477,6 @@ LoadLoop:
 					}
 				}
 			}
-		} else {
-			task.Channels = []string{task.Channel}
 		}
 
 		// Considering possible default channels, is the plugin visible anywhere?
@@ -505,7 +506,7 @@ LoadLoop:
 				regex := massageRegexp(command.Regex)
 				re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
 				if err != nil {
-					msg := fmt.Sprintf("Disabling %s, couldn't compile command regular expression '%s': %v", task.name, regex, err)
+					msg := fmt.Sprintf("Disabling '%s', couldn't compile command regular expression '%s': %v", task.name, regex, err)
 					Log(Error, msg)
 					r.debug(msg, false)
 					task.Disabled = true
@@ -522,7 +523,7 @@ LoadLoop:
 				regex := massageRegexp(message.Regex)
 				re, err := regexp.Compile(regex)
 				if err != nil {
-					msg := fmt.Sprintf("Skipping %s, couldn't compile message regular expression '%s': %v", task.name, regex, err)
+					msg := fmt.Sprintf("Disabling '%s', couldn't compile message regular expression '%s': %v", task.name, regex, err)
 					Log(Error, msg)
 					r.debug(msg, false)
 					task.Disabled = true
@@ -535,10 +536,18 @@ LoadLoop:
 		} else {
 			for i := range job.Triggers {
 				trigger := &job.Triggers[i]
+				if len(trigger.User) == 0 || len(trigger.Channel) == 0 {
+					msg := fmt.Sprintf("Disabling '%s', zero-length User or Channel for trigger #%d", task.name, i+1)
+					Log(Error, msg)
+					r.debug(msg, false)
+					task.Disabled = true
+					task.reason = msg
+					continue LoadLoop
+				}
 				regex := massageRegexp(trigger.Regex)
 				re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
 				if err != nil {
-					msg := fmt.Sprintf("Disabling %s, couldn't compile trigger regular expression '%s': %v", task.name, regex, err)
+					msg := fmt.Sprintf("Disabling '%s', couldn't compile trigger regular expression '%s': %v", task.name, regex, err)
 					Log(Error, msg)
 					r.debug(msg, false)
 					task.Disabled = true

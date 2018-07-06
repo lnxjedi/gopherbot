@@ -23,14 +23,15 @@ var envPassThrough = []string{
 }
 
 // runPipeline is triggered by user commands, job triggers, and scheduled tasks.
-// Called from dispatch: checkTaskMatchersAndRun or scheduledTask. interactive
+// Called from dispatch: checkPluginMatchersAndRun,
+// jobcommands: checkJobMatchersAndRun or scheduledTask. interactive
 // indicates whether a pipeline started from a user command - plugin match or
 // run job command.
 func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipelineType, command string, args ...string) {
 	task, plugin, job := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
 	isPlugin := plugin != nil
 	isJob := !isPlugin
-	verbose := (isJob && job.Verbose) || ptype == runJob
+	verbose := (isJob && job.Verbose) || ptype == jobCmd
 	bot.pipeName = task.name
 	bot.pipeDesc = task.Description
 	bot.NameSpace = task.NameSpace
@@ -184,8 +185,8 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 			emit(TriggeredTaskRan)
 		case scheduled:
 			emit(ScheduledTaskRan)
-		case runJob:
-			emit(RunJobTaskRan)
+		case jobCmd:
+			emit(JobTaskRan)
 		}
 		bot.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
 		errString, ret = bot.callTask(t, command, args...)

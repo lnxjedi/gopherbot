@@ -7,18 +7,18 @@ import (
 
 const keepListeningDuration = 77 * time.Second
 
-// checkTaskMatchersAndRun checks either command matchers (for messages directed at
+// checkPluginMatchersAndRun checks either command matchers (for messages directed at
 // the robot), or message matchers (for ambient commands that need not be
 // directed at the robot), and calls the plugin if it matches. Note: this
 // function is called under a read lock on the 'b' struct.
-func (bot *botContext) checkTaskMatchersAndRun(pipelineType pipelineType) (messageMatched bool) {
+func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMatched bool) {
 	r := bot.makeRobot()
 	// un-needed, but more clear
 	messageMatched = false
 	// If we're checking messages, debugging messages require that the user requested verboseness
 	//verboseOnly := !checkCommands
 	verboseOnly := false
-	if pipelineType == plugMessage || pipelineType == jobTrigger {
+	if pipelineType == plugMessage {
 		verboseOnly = true
 	}
 	var runTask interface{}
@@ -26,6 +26,15 @@ func (bot *botContext) checkTaskMatchersAndRun(pipelineType pipelineType) (messa
 	var cmdArgs []string
 	for _, t := range bot.tasks.t {
 		task, plugin, _ := getTask(t)
+		if plugin == nil {
+			continue
+		}
+		if task.Disabled {
+			msg := fmt.Sprintf("Skipping disabled task '%s', reason: %s", task.name, task.reason)
+			Log(Trace, msg)
+			bot.debugTask(t, msg, false)
+			continue
+		}
 		Log(Trace, fmt.Sprintf("Checking availability of task '%s' in channel '%s' for user '%s', active in %d channels (allchannels: %t)", task.name, bot.Channel, bot.User, len(task.Channels), task.AllChannels))
 		ok := bot.taskAvailable(task, false, verboseOnly)
 		if !ok {
@@ -40,7 +49,7 @@ func (bot *botContext) checkTaskMatchersAndRun(pipelineType pipelineType) (messa
 				continue
 			}
 			if len(plugin.CommandMatchers) == 0 {
-				bot.debug(fmt.Sprintf("Plugin has no command matchers, skipping command check"), false)
+				bot.debugTask(t, fmt.Sprintf("Plugin has no command matchers, skipping command check"), false)
 				continue
 			}
 			matchers = plugin.CommandMatchers
@@ -50,20 +59,20 @@ func (bot *botContext) checkTaskMatchersAndRun(pipelineType pipelineType) (messa
 				continue
 			}
 			if len(plugin.MessageMatchers) == 0 {
-				bot.debug(fmt.Sprintf("Plugin has no message matchers, skipping message check"), true)
+				bot.debugTask(t, fmt.Sprintf("Plugin has no message matchers, skipping message check"), true)
 				continue
 			}
 			matchers = plugin.MessageMatchers
 			ctype = "message"
 		}
 		Log(Trace, fmt.Sprintf("Task '%s' is active, will check for matches", task.name))
-		bot.debug(fmt.Sprintf("Checking %d %s matchers against message: '%s'", len(matchers), ctype, bot.msg), verboseOnly)
+		bot.debugTask(t, fmt.Sprintf("Checking %d %s matchers against message: '%s'", len(matchers), ctype, bot.msg), verboseOnly)
 		for _, matcher := range matchers {
 			Log(Trace, fmt.Sprintf("Checking '%s' against '%s'", bot.msg, matcher.Regex))
 			matches := matcher.re.FindAllStringSubmatch(bot.msg, -1)
 			matched := false
 			if matches != nil {
-				bot.debug(fmt.Sprintf("Matched %s regex '%s', command: %s", ctype, matcher.Regex, matcher.Command), false)
+				bot.debugTask(t, fmt.Sprintf("Matched %s regex '%s', command: %s", ctype, matcher.Regex, matcher.Command), false)
 				matched = true
 				Log(Trace, fmt.Sprintf("Message '%s' matches command '%s'", bot.msg, matcher.Command))
 				cmdArgs = matches[0][1:]
@@ -98,7 +107,7 @@ func (bot *botContext) checkTaskMatchersAndRun(pipelineType pipelineType) (messa
 					shortTermMemories.Unlock()
 				}
 			} else {
-				bot.debug(fmt.Sprintf("Not matched: %s", matcher.Regex), verboseOnly)
+				bot.debugTask(t, fmt.Sprintf("Not matched: %s", matcher.Regex), verboseOnly)
 			}
 			if matched {
 				if messageMatched {
@@ -183,7 +192,7 @@ func (bot *botContext) handleMessage() {
 		shortTermMemories.Unlock()
 		if ok && ts.Sub(last.timestamp) < keepListeningDuration {
 			bot.msg = last.memory
-			messageMatched = bot.checkTaskMatchersAndRun(plugCommand)
+			messageMatched = bot.checkPluginMatchersAndRun(plugCommand)
 		} else {
 			messageMatched = true
 			r.Say("Yes?")
@@ -191,7 +200,7 @@ func (bot *botContext) handleMessage() {
 	}
 	if !messageMatched && bot.isCommand {
 		// See if a command matches (and runs)
-		messageMatched = bot.checkTaskMatchersAndRun(plugCommand)
+		messageMatched = bot.checkPluginMatchersAndRun(plugCommand)
 	}
 	// See if the robot was waiting on a reply
 	var waiters []replyWaiter
@@ -226,7 +235,11 @@ func (bot *botContext) handleMessage() {
 	// MessageMatchers.
 	if !messageMatched {
 		// check for ambient message matches
-		messageMatched = bot.checkTaskMatchersAndRun(plugMessage)
+		messageMatched = bot.checkPluginMatchersAndRun(plugMessage)
+	}
+	// Check for job commands
+	if !messageMatched {
+		messageMatched = bot.checkJobMatchersAndRun()
 	}
 	if bot.isCommand && !messageMatched { // the robot was spoken to, but nothing matched - call catchAlls
 		robot.RLock()
