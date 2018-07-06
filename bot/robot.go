@@ -222,7 +222,8 @@ func (r *Robot) GetBotAttribute(a string) *AttrRet {
 // - A RetVal which is one of Ok, UserNotFound, AttributeNotFound
 // Current attributes:
 // name(handle), fullName, email, firstName, lastName, phone, internalID
-// TODO: supplement data with gopherbot.json user's table
+// TODO: supplement data with gopherbot.yaml user's table, if an
+// admin wants to supplment whats available from the protocol.
 func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
 	a = strings.ToLower(a)
 	attr, ret := robot.GetProtocolUserAttribute(u, a)
@@ -239,7 +240,7 @@ func (r *Robot) messageHeard() {
 // - A RetVal which is one of Ok, UserNotFound, AttributeNotFound
 // Current attributes:
 // name(handle), fullName, email, firstName, lastName, phone, internalID
-// TODO: supplement data with gopherbot.json user's table
+// TODO: (see above)
 func (r *Robot) GetSenderAttribute(a string) *AttrRet {
 	a = strings.ToLower(a)
 	switch a {

@@ -176,7 +176,6 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		channel: channel,
 	}
 	var rep replyWaiter
-	// TODO: look up Robot from global hash
 	task, _, _ := getTask(r.getContext().currentTask)
 	if stockRepliesRe.MatchString(regexID) {
 		rep.re = stockReplies[regexID]
