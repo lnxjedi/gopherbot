@@ -86,6 +86,7 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 				}
 				messageMatched = true
 				runTask = t
+				bot.Channel = task.Channel
 				break
 			}
 		} // end of triggerer checking
