@@ -4,9 +4,9 @@ package bot
 
 import "strconv"
 
-const _RetVal_name = "OkUserNotFoundChannelNotFoundAttributeNotFoundFailedUserDMFailedChannelJoinDatumNotFoundDatumLockExpiredDataFormatErrorBrainFailedInvalidDatumKeyInvalidDblPtrInvalidCfgStructNoConfigFoundRetryPromptReplyNotMatchedUseDefaultValueTimeoutExpiredInterruptedMatcherNotFoundNoUserEmailNoBotEmailMailErrorTaskNotFound"
+const _RetVal_name = "OkUserNotFoundChannelNotFoundAttributeNotFoundFailedUserDMFailedChannelJoinDatumNotFoundDatumLockExpiredDataFormatErrorBrainFailedInvalidDatumKeyInvalidDblPtrInvalidCfgStructNoConfigFoundRetryPromptReplyNotMatchedUseDefaultValueTimeoutExpiredInterruptedMatcherNotFoundNoUserEmailNoBotEmailMailErrorTaskNotFoundMissingArguments"
 
-var _RetVal_index = [...]uint16{0, 2, 14, 29, 46, 58, 75, 88, 104, 119, 130, 145, 158, 174, 187, 198, 213, 228, 242, 253, 268, 279, 289, 298, 310}
+var _RetVal_index = [...]uint16{0, 2, 14, 29, 46, 58, 75, 88, 104, 119, 130, 145, 158, 174, 187, 198, 213, 228, 242, 253, 268, 279, 289, 298, 310, 326}
 
 func (i RetVal) String() string {
 	if i < 0 || i >= RetVal(len(_RetVal_index)-1) {

@@ -41,7 +41,7 @@ const (
 	CatchAllTaskRan
 	TriggeredTaskRan
 	ScheduledTaskRan
-	RunJobTaskRan
+	JobTaskRan
 	GoPluginRan
 	ScriptPluginBadPath
 	ScriptPluginBadInterpreter
