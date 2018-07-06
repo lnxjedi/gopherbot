@@ -504,7 +504,8 @@ LoadLoop:
 			for i := range plugin.CommandMatchers {
 				command := &plugin.CommandMatchers[i]
 				regex := massageRegexp(command.Regex)
-				re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
+				regex = `^\s*` + regex + `\s*$`
+				re, err := regexp.Compile(regex)
 				if err != nil {
 					msg := fmt.Sprintf("Disabling '%s', couldn't compile command regular expression '%s': %v", task.name, regex, err)
 					Log(Error, msg)
@@ -513,6 +514,8 @@ LoadLoop:
 					task.reason = msg
 					continue LoadLoop
 				} else {
+					// Store the modified regex
+					command.Regex = regex
 					command.re = re
 				}
 			}
@@ -530,6 +533,8 @@ LoadLoop:
 					task.reason = msg
 					continue LoadLoop
 				} else {
+					// Store the modified regex
+					message.Regex = regex
 					message.re = re
 				}
 			}
@@ -544,10 +549,9 @@ LoadLoop:
 					task.reason = msg
 					continue LoadLoop
 				}
-				regex := massageRegexp(trigger.Regex)
-				re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
+				re, err := regexp.Compile(trigger.Regex)
 				if err != nil {
-					msg := fmt.Sprintf("Disabling '%s', couldn't compile trigger regular expression '%s': %v", task.name, regex, err)
+					msg := fmt.Sprintf("Disabling '%s', couldn't compile trigger regular expression '%s': %v", task.name, trigger.Regex, err)
 					Log(Error, msg)
 					r.debug(msg, false)
 					task.Disabled = true
