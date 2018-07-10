@@ -86,7 +86,7 @@ func main() {
 * AddTask(...) will replace CallPlugin
 
 ### TODO
-* Add SetWorkingDirectory(...) bool method
+* Add SetWorkingDirectory(...) bool method, allow relative paths relative to GOPHER_CONFIGDIR
 
 ## Histories
 

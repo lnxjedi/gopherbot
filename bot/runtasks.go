@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -34,8 +35,16 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 	verbose := (isJob && job.Verbose) || ptype == jobCmd
 	bot.pipeName = task.name
 	bot.pipeDesc = task.Description
-	bot.workingDirectory = task.WorkingDirectory
 	bot.nameSpace = task.NameSpace
+	if len(task.WorkingDirectory) > 0 {
+		dir := task.WorkingDirectory
+		if filepath.IsAbs(dir) {
+			bot.workingDirectory = filepath.Clean(dir)
+		} else {
+			h := handler{}
+			bot.workingDirectory = filepath.Join(h.GetConfigPath(), dir)
+		}
+	}
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	robot.Add(1)
 	robot.Lock()
