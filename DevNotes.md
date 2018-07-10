@@ -2,6 +2,92 @@
 
 `DevNotes.md` - TODO items and design notes for future development.
 
+## Pipelines
+
+Jobs and Plugins can queue up additional jobs/tasks with AddTask(...), and if the job/plugin exits 0, the next task in the list will be run, subject to security checks.
+
+### Pipeline algorithm model
+
+When a task in the middle of the pipeline adds tasks, it creates a new pipeline; when a task at the end of the pipeline adds tasks, they're just added to the end
+of the currently running pipeline.
+
+```go
+package main
+
+import (
+	"fmt"
+)
+
+func runPipe(p []int) {
+	fmt.Println("Running pipeline")
+	l := len(p)
+	n := make([]int, 0)
+	for i := 0; i < l; i++ {
+		switch i {
+		case 2:
+			n = append(n, 7, 8)
+		case 4:
+			n = append(n, 10, 11, 12)
+		}
+		t := len(n)
+		fmt.Printf("Task: %d, index %d, added: %d\n", p[i], i, t)
+		if t > 0 {
+			if i == l - 1 {
+				fmt.Println("Appending...")
+				p = append(p, n...)
+				l += t
+			} else {
+				fmt.Println("Running new pipeline...")
+				runPipe(n)
+			}
+			n = []int{}
+		}
+	}
+	fmt.Println("End pipeline")
+}
+
+func main() {
+	t := []int{ 0, 1, 2, 3, 4 }
+	runPipe(t)
+	fmt.Println("Hello, playground")
+}
+```
+
+### How Things Work
+
+* Everything the robot does will be a pipeline; most times it will just be a single job or plugin run
+* Every item in the pipeline will be a job, plugin, or task defined in `gopherbot.yaml`
+* Builtins will be augmented with commands for listing all current pipelines running, which can possibly be canceled (killed). Certain builtins will be allowed to run even when the robot is shutting down:
+  * Builtins that run almost instantly
+  * Builtins that read internal data but don't start new pipelines
+  * Builtins that report on running pipelines or allow aborting or killing/cancelling pipelines
+* The `Robot` object, created at the start of a pipeline, will take on a more important role of carrying state through the pipeline; in addition to other struct data items, it will get a `runID` incrementing integer for each job/plugin
+* When a pipeline starts a pointer to the Robot will be stored in a global table of running pipelines
+* Pipelines can be started by:
+  * A job `Trigger`
+  * A message or command matching a plugin
+  * A scheduled job running
+  * A job being triggered manually with the `run job...` builtin (subject to security checks)
+* New jobs started from Triggers, Scheduled tasks, or `run job ...` will take arguments
+* The Robot object will carry a pointer to the current plugins and jobs
+* In addition to the pluginID hash, there will be runID, a monotonically incrementing int that starts with a random int and is OK with rollovers
+  * runIDs will be initilized and stored in RAM only
+  * The Robot will carry a copy of the runID
+  * The runID will be passed to plugins and returned in method calls to identify the Robot struct
+  * A global hash indexed by pluginID and runID will be set before the first job/plugin in a pipeline is run
+  * The global hash will be used to get the Robot object for the pipeline in http method calls
+  * The Robot needs a mutex to protect it, since admin commands can read from the Robot while a pipeline is running
+* The Robot will also get a historyIndex:
+  * The historyIndex is only needed when the number of histories kept is > 0
+  * It's a monotically increasing int of every run of the pipeline
+* If the job/plugin configures a Next*, it will be set in the Robot
+* SetNextJob|Plugin(...) can change the Next*
+  * AddTask(...) will replace CallPlugin
+
+## Histories
+
+Whenever a new pipeline starts, if the initiating job/plugin has HistoryLogs > 0, a history file will be recorded, tagged with the name of the job/plugin.
+
 ## Robot Configuration
 To simplify locking:
 * Some of the content of gopherbot.yaml should only be processed when the robot first starts, e.g. the brain, connector, listening port, logger
@@ -35,8 +121,8 @@ Datum are protected by serializing all access to memories through a select loop.
 * Lower the brain cycle to 0.1s, guaranteeing 2.0-2.1s access to a memory
 
 ### TODO
-* Write initializeEncryption and reKey functions
-* Write 'decrypt brain <foo>' and 'rekey brain <foo>' admin commands
+* Write reKey function
+* Write 'rekey brain <foo>' admin commands
 
 ## Plugins and Jobs
 
@@ -55,42 +141,6 @@ Long-term memories have always been scoped by plugin name, so when "rubydemo" st
 The `bot` top-level namespace will be an illegal name for a job or plugin.
 
 Jobs or plugins that don't explicitly set `NameSpace` will default to NameSpace==job or plugin name.
-
-## Pipelines
-
-Jobs and Plugins can queue up additional jobs/tasks with AddTask(...), and if the job/plugin exits 0, the next task in the list will be run, subject to security checks.
-
-## Histories
-
-Whenever a new pipeline starts, if the initiating job/plugin has HistoryLogs > 0, a history file will be recorded, tagged with the name of the job/plugin.
-
-### How Things Work
-
-* Everything the robot does will be a pipeline; most times it will just be a single job or plugin run
-* Every item in the pipeline will be a job or plugin defined in `gopherbot.yaml`
-* Builtins will be augmented with commands for listing all current pipelines running, which can possibly be canceled (killed). Certain builtins will be allowed to run even when the robot is shutting down:
-  * Builtins that run almost instantly
-  * Builtins that read internal data but don't start new pipelines
-  * Builtins that report on running pipelines or allow aborting or killing/cancelling pipelines
-* The `Robot` object, created at the start of a pipeline, will take on a more important role of carrying state through the pipeline; in addition to other struct data items, it will get a `runID` incrementing integer for each job/plugin
-* When a pipeline starts a pointer to the Robot will be stored in a global table of running pipelines
-* Pipelines can be started by:
-  * A message or command matching a plugin
-  * A scheduled job running
-  * A job being triggered manually with the `run job...` builtin (subject to security checks)
-* The Robot object will carry a pointer to the current plugins and jobs
-* In addition to the pluginID hash, there will be runID, a monotonically incrementing int that starts with a random int and is OK with rollovers
-  * runIDs will be initilized and stored in RAM only
-  * The Robot will carry a copy of the runID
-  * The runID will be passed to plugins and returned in method calls to identify the Robot struct
-  * A global hash indexed by pluginID and runID will be set before the first job/plugin in a pipeline is run
-  * The global hash will be used to get the Robot object for the pipeline in http method calls
-  * The Robot needs a mutex to protect it, since admin commands can read from the Robot while a pipeline is running
-* The Robot will also get a historyIndex:
-  * The historyIndex is only needed when the 
-* If the job/plugin configures a Next*, it will be set in the Robot
-* SetNextJob|Plugin(...) can change the Next*
-  * AddTask(...) will replace CallPlugin
 
 ### Security
 
