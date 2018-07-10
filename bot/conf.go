@@ -42,6 +42,7 @@ type botconf struct {
 	ExternalJobs         []externalJob    // list of available jobs; config in conf/jobs/<jobname>.yaml
 	ScheduledTasks       []scheduledTask  // see tasks.go
 	ExternalPlugins      []externalPlugin // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
+	ExternalTasks        []externalTask   // List executables that can be added to a pipeline (but can't start one)
 	AdminUsers           []string         // List of users who can access administrative commands
 	Alias                string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
 	LocalPort            int              // Port number for listening on localhost, for CLI plugins
@@ -129,7 +130,7 @@ func (r *botContext) loadConfig(preConnect bool) error {
 	var loglevel LogLevel
 	newconfig := &botconf{}
 	configload := make(map[string]json.RawMessage)
-	pluginsOk := true
+	tasksOk := true
 
 	if err := r.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
@@ -141,6 +142,7 @@ func (r *botContext) loadConfig(preConnect bool) error {
 		var sarrval []string
 		var epval []externalPlugin
 		var jval []externalJob
+		var tval []externalTask
 		var stval []scheduledTask
 		var mailval botMailer
 		var boolval bool
@@ -158,6 +160,8 @@ func (r *botContext) loadConfig(preConnect bool) error {
 			val = &epval
 		case "ExternalJobs":
 			val = &jval
+		case "ExternalTasks":
+			val = &tval
 		case "Jobs":
 			val = &jval
 		case "ScheduledTasks":
@@ -226,6 +230,8 @@ func (r *botContext) loadConfig(preConnect bool) error {
 			newconfig.ExternalPlugins = *(val.(*[]externalPlugin))
 		case "ExternalJobs":
 			newconfig.ExternalJobs = *(val.(*[]externalJob))
+		case "ExternalTasks":
+			newconfig.ExternalTasks = *(val.(*[]externalTask))
 		case "ScheduledTasks":
 			newconfig.ScheduledTasks = *(val.(*[]scheduledTask))
 		case "AdminUsers":
@@ -314,23 +320,34 @@ func (r *botContext) loadConfig(preConnect bool) error {
 	if newconfig.ExternalPlugins != nil {
 		for i, ep := range newconfig.ExternalPlugins {
 			if len(ep.Name) == 0 {
-				pluginsOk = false
+				tasksOk = false
 				Log(Error, fmt.Errorf("Reading external plugins, zero-length Name for plugin #%d, not reloading plugins", i))
 			}
 		}
-		if pluginsOk {
+		if tasksOk {
 			robot.externalPlugins = newconfig.ExternalPlugins
 		}
 	}
 	if newconfig.ExternalJobs != nil {
 		for i, ep := range newconfig.ExternalJobs {
 			if len(ep.Name) == 0 {
-				pluginsOk = false
+				tasksOk = false
 				Log(Error, fmt.Errorf("Reading external jobs, zero-length Name for job #%d, not reloading jobs", i))
 			}
 		}
-		if pluginsOk {
+		if tasksOk {
 			robot.externalJobs = newconfig.ExternalJobs
+		}
+	}
+	if newconfig.ExternalTasks != nil {
+		for i, et := range newconfig.ExternalTasks {
+			if len(et.Name) == 0 || len(et.Path) == 0 {
+				tasksOk = false
+				Log(Error, fmt.Errorf("Reading external tasks, zero-length Name or Path for task #%d, not reloading tasks", i))
+			}
+		}
+		if tasksOk {
+			robot.externalTasks = newconfig.ExternalTasks
 		}
 	}
 	if newconfig.ScheduledTasks != nil {
@@ -395,9 +412,9 @@ func (r *botContext) loadConfig(preConnect bool) error {
 	config = newconfig
 	confLock.Unlock()
 
-	if pluginsOk && !preConnect {
+	if tasksOk && !preConnect {
 		r.loadTaskConfig()
-	} else if !pluginsOk {
+	} else if !tasksOk {
 		return fmt.Errorf("Error reading external plugin config")
 	}
 

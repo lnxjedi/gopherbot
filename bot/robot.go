@@ -105,7 +105,7 @@ func (r *Robot) AddTask(name string, cmdargs ...string) RetVal {
 		command, args = cmdargs[0], cmdargs[1:]
 	} else {
 		command = "run"
-		args = []string{}
+		args = cmdargs
 	}
 	ts := taskSpec{
 		Name:      name,
@@ -120,7 +120,7 @@ func (r *Robot) AddTask(name string, cmdargs ...string) RetVal {
 // GetParameter retrieves the value of a parameter for a namespace. Only useful
 // for Go plugins; external scripts have all parameters for the NameSpace stored
 // as environment variables. Note that runtasks.go populates the environment
-// with Stored paramters, too. So GetParameter is useful for both short-term
+// with Stored parameters, too. So GetParameter is useful for both short-term
 // parameters in a pipeline, and for getting long-term parameters such as
 // credentials.
 func (r *Robot) GetParameter(key string) string {

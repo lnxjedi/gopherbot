@@ -72,6 +72,7 @@ var robot struct {
 	defaultAuthorizer    string           // Plugin name for performing authorization
 	externalPlugins      []externalPlugin // List of external plugins to load
 	externalJobs         []externalJob    // List of external jobs to load
+	externalTasks        []externalTask   // List of external tasks to load
 	scheduledTasks       []scheduledTask  // List of scheduled tasks
 	port                 string           // Localhost port to listen on
 	stop                 chan struct{}    // stop channel for stopping the connector

@@ -85,6 +85,9 @@ func main() {
   * It has a record of the args to the pipeline
 * AddTask(...) will replace CallPlugin
 
+### TODO
+* Add SetWorkingDirectory(...) bool method
+
 ## Histories
 
 Whenever a new pipeline starts, if the initiating job/plugin has HistoryLogs > 0, a history file will be recorded, tagged with the name of the job/plugin.

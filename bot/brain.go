@@ -528,7 +528,7 @@ func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken
 	if task.PrivateNameSpace {
 		key = task.NameSpace + ":" + key
 	} else {
-		key = c.NameSpace + ":" + key
+		key = c.nameSpace + ":" + key
 	}
 	return checkoutDatum(key, datum, rw)
 }
@@ -539,7 +539,7 @@ func (r *Robot) CheckinDatum(key, locktoken string) {
 		return
 	}
 	c := r.getContext()
-	key = c.NameSpace + ":" + key
+	key = c.nameSpace + ":" + key
 	checkinDatum(key, locktoken)
 }
 
@@ -552,7 +552,7 @@ func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVa
 	if task.PrivateNameSpace {
 		key = task.NameSpace + ":" + key
 	} else {
-		key = c.NameSpace + ":" + key
+		key = c.nameSpace + ":" + key
 	}
 	return updateDatum(key, locktoken, datum)
 }

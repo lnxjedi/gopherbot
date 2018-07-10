@@ -175,7 +175,7 @@ func TestBotName(t *testing.T) {
 		{alice, general, "@bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{alice, general, "ping @bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{alice, general, "ping;", []testc.TestMessage{}, []Event{}, 0},
-		{bob, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandTaskRan, ScriptTaskRan}, 0},
+		{bob, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		// When you forget to address the robot, you can say it's name
 		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 200},
 		{alice, general, "bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
@@ -195,12 +195,12 @@ func TestBotNoName(t *testing.T) {
 		{alice, null, "ping", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
 		{alice, general, ";ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{alice, general, "ping;", []testc.TestMessage{}, []Event{}, 0},
-		{bob, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandTaskRan, ScriptTaskRan}, 0},
+		{bob, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		// When you forget to address the robot, you can say it's name
 		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 200},
 		{alice, general, ";", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 100},
-		{alice, general, "hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientTaskRan, ScriptTaskRan}, 0},
+		{alice, general, "hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientTaskRan, ExternalTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
 
@@ -220,12 +220,12 @@ func TestBotNoAlias(t *testing.T) {
 		{alice, general, "bender, ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{alice, general, "@bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{alice, general, "ping @bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{bob, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandTaskRan, ScriptTaskRan}, 0},
+		{bob, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		// When you forget to address the robot, you can say it's name
 		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 200},
 		{alice, general, "bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 100},
-		{alice, general, "hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientTaskRan, ScriptTaskRan}, 0},
+		{alice, general, "hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientTaskRan, ExternalTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
 
@@ -247,15 +247,15 @@ func TestMessageMatch(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{alice, general, "hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientTaskRan, ScriptTaskRan}, 0},
-		{alice, general, ";hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientTaskRan, ScriptTaskRan}, 0},
-		{alice, null, "hello robot", []testc.TestMessage{{alice, null, "Hello, World!"}}, []Event{BotDirectMessage, AmbientTaskRan, ScriptTaskRan}, 0},
-		{alice, null, "bender, hello robot", []testc.TestMessage{{alice, null, "Hello, World!"}}, []Event{BotDirectMessage, AmbientTaskRan, ScriptTaskRan}, 0},
+		{alice, general, "hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientTaskRan, ExternalTaskRan}, 0},
+		{alice, general, ";hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientTaskRan, ExternalTaskRan}, 0},
+		{alice, null, "hello robot", []testc.TestMessage{{alice, null, "Hello, World!"}}, []Event{BotDirectMessage, AmbientTaskRan, ExternalTaskRan}, 0},
+		{alice, null, "bender, hello robot", []testc.TestMessage{{alice, null, "Hello, World!"}}, []Event{BotDirectMessage, AmbientTaskRan, ExternalTaskRan}, 0},
 		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 100},
-		{alice, general, ";hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientTaskRan, ScriptTaskRan}, 100},
+		{alice, general, ";hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientTaskRan, ExternalTaskRan}, 100},
 		{alice, general, "bender", []testc.TestMessage{{null, general, `Yes\?`}}, []Event{}, 0},
-		{alice, random, "hello robot", []testc.TestMessage{{null, random, "Hello, World!"}}, []Event{AmbientTaskRan, ScriptTaskRan}, 100},
-		{alice, random, ";hello robot", []testc.TestMessage{{null, random, "I'm here"}}, []Event{CommandTaskRan, ScriptTaskRan}, 0},
+		{alice, random, "hello robot", []testc.TestMessage{{null, random, "Hello, World!"}}, []Event{AmbientTaskRan, ExternalTaskRan}, 100},
+		{alice, random, ";hello robot", []testc.TestMessage{{null, random, "I'm here"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
 
@@ -307,14 +307,14 @@ func TestPrompting(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{carol, general, "Bender, listen to me", []testc.TestMessage{{carol, null, "Ok, .*"}}, []Event{CommandTaskRan, ScriptTaskRan}, 0},
+		{carol, general, "Bender, listen to me", []testc.TestMessage{{carol, null, "Ok, .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		{carol, null, "You're pretty cool", []testc.TestMessage{{carol, null, "I hear .*cool\""}}, []Event{BotDirectMessage}, 0},
-		{bob, general, "hear me out, Bender", []testc.TestMessage{{bob, general, "Well ok then.*"}}, []Event{CommandTaskRan, ScriptTaskRan}, 0},
+		{bob, general, "hear me out, Bender", []testc.TestMessage{{bob, general, "Well ok then.*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		{bob, general, "I like kittens", []testc.TestMessage{{bob, general, "Ok, I hear you saying \"I like kittens\".*"}}, []Event{}, 0},
 		// wait ask waits a second before prompting; in 2 seconds it'll message the test to answer the second question first
 		{david, general, ";waitask", []testc.TestMessage{}, []Event{}, 200},
 		// ask now asks a question right away, but we don't reply until the command above tells us to - by which time the first command has prompted, but now has to wait
-		{david, general, ";asknow", []testc.TestMessage{{david, general, `Do you like puppies\?`}, {null, general, `ok - answer puppies`}}, []Event{CommandTaskRan, ScriptTaskRan, CommandTaskRan, ScriptTaskRan}, 0},
+		{david, general, ";asknow", []testc.TestMessage{{david, general, `Do you like puppies\?`}, {null, general, `ok - answer puppies`}}, []Event{CommandTaskRan, ExternalTaskRan, CommandTaskRan, ExternalTaskRan}, 0},
 		{david, general, "yes", []testc.TestMessage{{david, general, `Do you like kittens\?`}, {null, general, `I like puppies too!`}}, []Event{}, 0},
 		{david, general, "yes", []testc.TestMessage{{null, general, `I like kittens too!`}}, []Event{}, 0},
 	}
@@ -327,9 +327,9 @@ func TestFormatting(t *testing.T) {
 	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{alice, general, ";format fixed", []testc.TestMessage{{null, general, "_ITALICS_ <ONE> \\*BOLD\\* `CODE` @PARSLEY"}}, []Event{CommandTaskRan, ScriptTaskRan}, 0},
-		{alice, general, ";format variable", []testc.TestMessage{{null, general, "_italics_ <one> \\*bold\\* `code` @parsley"}}, []Event{CommandTaskRan, ScriptTaskRan}, 0},
-		{alice, general, ";format raw", []testc.TestMessage{{null, general, "_Italics_ <One> \\*Bold\\* `Code` @parsley"}}, []Event{CommandTaskRan, ScriptTaskRan}, 0},
+		{alice, general, ";format fixed", []testc.TestMessage{{null, general, "_ITALICS_ <ONE> \\*BOLD\\* `CODE` @PARSLEY"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{alice, general, ";format variable", []testc.TestMessage{{null, general, "_italics_ <one> \\*bold\\* `code` @parsley"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{alice, general, ";format raw", []testc.TestMessage{{null, general, "_Italics_ <One> \\*Bold\\* `Code` @parsley"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
 

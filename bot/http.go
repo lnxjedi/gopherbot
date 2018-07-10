@@ -291,7 +291,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if task.PrivateNameSpace {
 			key = task.NameSpace + ":" + m.Key
 		} else {
-			key = c.NameSpace + ":" + m.Key
+			key = c.nameSpace + ":" + m.Key
 		}
 		// Since we're getting raw JSON (=[]byte), we call update directly.
 		// See brain.go

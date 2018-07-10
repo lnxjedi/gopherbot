@@ -27,6 +27,7 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	// un-needed, but more clear
 	messageMatched = false
 	var runTask interface{}
+	var triggerArgs []string
 	// First, check triggers
 	for _, t := range bot.tasks.t {
 		task, _, job := getTask(t)
@@ -57,23 +58,9 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 			if matches != nil {
 				bot.debugTask(t, fmt.Sprintf("Matched trigger regex '%s'", trigger.Regex), false)
 				Log(Trace, fmt.Sprintf("Message '%s' matches trigger for job '%s'", bot.msg, task.name))
-				triggerParams := matches[0][1:]
-				numParams := len(trigger.Parameters)
-				if numParams > 0 {
-					// Assign match groups to parameters and set matched to true if no error
-					if len(trigger.Parameters) == numParams {
-						for i, v := range trigger.Parameters {
-							bot.environment[v] = triggerParams[i]
-						}
-						matched = true
-					} else {
-						Log(Warn, fmt.Sprintf("Matched trigger regex '%s', but matched groups (%d) doesn't matched number of configured parameters (%d), ignoring", trigger.Regex, len(triggerParams), numParams))
-						continue
-					}
-				} else {
-					matched = true
-					bot.User = task.User
-				}
+				matched = true
+				bot.User = task.User
+				triggerArgs = matches[0][1:]
 			} else {
 				bot.debugTask(t, fmt.Sprintf("Not matched: %s", trigger.Regex), false)
 			}
@@ -106,7 +93,7 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		robot.RUnlock()
 		// Jobs triggers should only match apps / bots, not real users!
 		bot.bypassSecurityChecks = true
-		bot.runPipeline(runTask, false, jobTrigger, "run")
+		bot.runPipeline(runTask, false, jobTrigger, "run", triggerArgs...)
 		return
 	}
 	// Check for built-in job commands

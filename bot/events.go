@@ -43,9 +43,9 @@ const (
 	ScheduledTaskRan
 	JobTaskRan
 	GoPluginRan
-	ScriptPluginBadPath
-	ScriptPluginBadInterpreter
-	ScriptTaskRan
-	ScriptPluginStderrOutput
-	ScriptPluginErrExit
+	ExternalTaskBadPath
+	ExternalTaskBadInterpreter
+	ExternalTaskRan
+	ExternalTaskStderrOutput
+	ExternalTaskErrExit
 )

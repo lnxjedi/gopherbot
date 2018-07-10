@@ -28,6 +28,7 @@ func (r *botContext) loadTaskConfig() {
 	jdefchan := robot.defaultJobChannel
 	externalPlugins := robot.externalPlugins
 	externalJobs := robot.externalJobs
+	externalTasks := robot.externalTasks
 	robot.RUnlock() // we're done with bot data 'til the end
 
 	i := 0
@@ -108,6 +109,35 @@ func (r *botContext) loadTaskConfig() {
 		i++
 	}
 
+	// Load of external tasks
+	for index, script := range externalTasks {
+		if !identifierRe.MatchString(script.Name) {
+			Log(Error, fmt.Sprintf("Task name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, identifierRe.String()))
+			continue
+		}
+		if script.Name == "bot" {
+			Log(Error, "Illegal task name: bot - skipping")
+			continue
+		}
+		if _, ok := taskIndexByName[script.Name]; ok {
+			msg := fmt.Sprintf("External job index: #%d, name: '%s' duplicates name of already loaded task, skipping", index, script.Name)
+			Log(Error, msg)
+			r.debug(msg, false)
+			continue
+		}
+		task := &botTask{
+			name:        script.Name,
+			taskType:    taskExternal,
+			taskID:      getTaskID(script.Name),
+			Description: script.Description,
+			Path:        script.Path,
+		}
+		tlist = append(tlist, task)
+		taskIndexByID[task.taskID] = i
+		taskIndexByName[task.name] = i
+		i++
+	}
+
 	// Load configuration for all valid tasks. Note that this is all being loaded
 	// in to non-shared data structures that will replace current configuration
 	// under lock at the end.
@@ -125,6 +155,9 @@ LoadLoop:
 		case *botJob:
 			job = t
 			task = t.botTask
+		// a bare task with no config to load
+		default:
+			continue
 		}
 
 		if task.Disabled {
@@ -222,7 +255,7 @@ LoadLoop:
 			var val interface{}
 			skip := false
 			switch key {
-			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "User", "Path":
+			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "User", "Path", "WorkingDirectory":
 				val = &strval
 			case "Parameters":
 				val = &pval
@@ -230,11 +263,11 @@ LoadLoop:
 				val = &intval
 			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "PrivateNameSpace", "Verbose":
 				val = &boolval
-			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands", "RequiredParameters":
+			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands":
 				val = &sarrval
 			case "Help":
 				val = &hval
-			case "CommandMatchers", "ReplyMatchers", "MessageMatchers":
+			case "CommandMatchers", "ReplyMatchers", "MessageMatchers", "Arguments":
 				val = &mval
 			case "Triggers":
 				val = &tval
@@ -312,6 +345,8 @@ LoadLoop:
 				}
 			case "PrivateNameSpace":
 				task.PrivateNameSpace = *(val.(*bool))
+			case "WorkingDirectory":
+				task.WorkingDirectory = *(val.(*string))
 			case "Elevator":
 				task.Elevator = *(val.(*string))
 			case "ElevatedCommands":
@@ -372,6 +407,12 @@ LoadLoop:
 				} else {
 					mismatch = true
 				}
+			case "Arguments":
+				if isPlugin {
+					mismatch = true
+				} else {
+					job.Arguments = *(val.(*[]InputMatcher))
+				}
 			case "CatchAll":
 				if isPlugin {
 					plugin.CatchAll = *(val.(*bool))
@@ -401,12 +442,6 @@ LoadLoop:
 					mismatch = true
 				} else {
 					task.Path = *(val.(*string))
-				}
-			case "RequiredParameters":
-				if isPlugin {
-					mismatch = true
-				} else {
-					job.RequiredParameters = *(val.(*[]string))
 				}
 			case "Config":
 				task.Config = value
@@ -559,6 +594,22 @@ LoadLoop:
 					continue LoadLoop
 				} else {
 					trigger.re = re
+				}
+			}
+			for i := range job.Arguments {
+				argument := &job.Arguments[i]
+				regex := `^\s*` + argument.Regex + `\s*$`
+				re, err := regexp.Compile(regex)
+				if err != nil {
+					msg := fmt.Sprintf("Disabling '%s', couldn't compile argument regular expression '%s': %v", task.name, regex, err)
+					Log(Error, msg)
+					r.debug(msg, false)
+					task.Disabled = true
+					task.reason = msg
+					continue LoadLoop
+				} else {
+					argument.Regex = regex
+					argument.re = re
 				}
 			}
 		}

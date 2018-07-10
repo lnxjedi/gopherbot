@@ -180,7 +180,6 @@ AddTask(){
 	shift
 	for ARG in "$@"
 	do
-		echo "ARG is $ARG"
 		JSTR="$JSTR \"$ARG\""
 	done
 	if [ -n "$JSTR" ]

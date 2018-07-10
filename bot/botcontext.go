@@ -105,7 +105,8 @@ type botContext struct {
 	Protocol             Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
 	RawMsg               interface{}       // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
 	Format               MessageFormat     // robot's default message format
-	NameSpace            string            // memory namespace for this pipeline
+	nameSpace            string            // memory namespace for this pipeline
+	workingDirectory     string            // directory where tasks run
 	id                   int               // incrementing index of Robot threads
 	tasks                taskList          // Pointers to current task configuration at start of pipeline
 	isCommand            bool              // Was the message directed at the robot, dm or by mention

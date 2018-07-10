@@ -45,10 +45,12 @@ func getTask(t interface{}) (*botTask, *botPlugin, *botJob) {
 	p, ok := t.(*botPlugin)
 	if ok {
 		return p.botTask, p, nil
-	} else {
-		j := t.(*botJob)
+	}
+	j, ok := t.(*botJob)
+	if ok {
 		return j.botTask, nil, j
 	}
+	return t.(*botTask), nil, nil
 }
 
 func (tl *taskList) getTaskByName(name string) interface{} {
@@ -64,44 +66,12 @@ func (tl *taskList) getTaskByName(name string) interface{} {
 	return task
 }
 
-func (tl *taskList) getTaskByID(id string) interface{} {
-	tl.RLock()
-	ti, ok := tl.idMap[id]
-	if !ok {
-		Log(Error, fmt.Sprintf("Task '%s' not found calling getTaskByID", id))
-		tl.RUnlock()
-		return nil
-	}
-	task := tl.t[ti]
-	tl.RUnlock()
-	return task
-}
-
-func getPlugin(t interface{}) *botPlugin {
-	p, ok := t.(*botPlugin)
-	if ok {
-		return p
-	}
-	return nil
-}
-
-func getJob(t interface{}) *botJob {
-	j, ok := t.(*botJob)
-	if ok {
-		return j
-	}
-	return nil
-}
-
 // Struct for ScheduledTasks (gopherbot.yaml) and AddTask (robot method)
 type taskSpec struct {
 	Name      string // name of the job or plugin
 	Command   string // plugins only
 	Arguments []string
-	// environment vars for jobs and plugins, unused in AddTask, which should
-	// make calls to SetParameter()
-	Parameters []parameter
-	task       interface{} // populated in AddTask
+	task      interface{} // populated in AddTask
 }
 
 // parameters are provided to jobs and plugins as environment variables
@@ -117,6 +87,11 @@ type externalPlugin struct {
 type externalJob struct {
 	// List of names, paths and types for external plugins and jobs; relative paths are searched first in installpath, then configpath
 	Name, Description string
+}
+
+type externalTask struct {
+	// External tasks can only be used with AddTask(...)
+	Name, Path, Description string
 }
 
 // items in gopherbot.yaml
@@ -156,11 +131,11 @@ type InputMatcher struct {
 
 // InputMatcher specifies the command or message to match for a plugin, or user and message to trigger a job
 type JobTrigger struct {
-	Regex      string         // The regular expression string to match - bot adds ^\w* & \w*$
-	User       string         // required user to trigger this job, normally git-activated webhook or integration
-	Channel    string         // required channel for the trigger
-	Parameters []string       // names of parameters (environment vars) where regex matches are stored, in order of capture groups
-	re         *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
+	Regex     string         // The regular expression string to match - bot adds ^\w* & \w*$
+	User      string         // required user to trigger this job, normally git-activated webhook or integration
+	Channel   string         // required channel for the trigger
+	re        *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
+	Arguments []InputMatcher // Used to prompt the user for job arguments
 }
 
 type taskType int
@@ -175,6 +150,7 @@ type botTask struct {
 	name             string          // name of job or plugin; unique by type, but job & plugin can share
 	taskType         taskType        // taskGo or taskExternal
 	Path             string          // Path to the external executable for jobs or Plugtype=taskExternal only
+	WorkingDirectory string          // Directory where a pipeline executes
 	NameSpace        string          // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
 	PrivateNameSpace bool            // when set for tasks, memories will be stored/retrieved from task namespace instead of pipeline
 	Description      string          // description of job or plugin
@@ -200,10 +176,10 @@ type botTask struct {
 
 // stuff read in conf/jobs/<job>.yaml
 type botJob struct {
-	Verbose            bool         // whether to send verbose "job started/ended" messages
-	Triggers           []JobTrigger // user/regex that triggers a job, e.g. a git-activated webhook or integration
-	Parameters         []parameter  // Fixed parameters for a given job; many jobs will use the same script with differing parameters
-	RequiredParameters []string     // required in schedule, prompted to user for interactive
+	Verbose    bool           // whether to send verbose "job started/ended" messages
+	Triggers   []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
+	Arguments  []InputMatcher // list of arguments to prompt the user for
+	Parameters []parameter    // Fixed parameters for a given job; many jobs will use the same script with differing parameters
 	*botTask
 }
 

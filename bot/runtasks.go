@@ -28,13 +28,14 @@ var envPassThrough = []string{
 // indicates whether a pipeline started from a user command - plugin match or
 // run job command.
 func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipelineType, command string, args ...string) {
-	task, plugin, job := getTask(t) // NOTE: later _ will be job; this is where notifies will be sent
+	task, plugin, job := getTask(t)
 	isPlugin := plugin != nil
-	isJob := !isPlugin
+	isJob := job != nil
 	verbose := (isJob && job.Verbose) || ptype == jobCmd
 	bot.pipeName = task.name
 	bot.pipeDesc = task.Description
-	bot.NameSpace = task.NameSpace
+	bot.workingDirectory = task.WorkingDirectory
+	bot.nameSpace = task.NameSpace
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	robot.Add(1)
 	robot.Lock()
@@ -103,11 +104,7 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 	// scripts, or using GetParameter(...) in Go plugins.
 	if isJob {
 		for _, p := range job.Parameters {
-			// Dynamically provided parameters take precedence over configured parameters
-			_, exists := bot.environment[p.Name]
-			if !exists {
-				bot.environment[p.Name] = p.Value
-			}
+			bot.environment[p.Name] = p.Value
 		}
 	}
 	storedEnv := make(map[string]string)
@@ -201,15 +198,8 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 		if len(bot.nextTasks) > 0 {
 			var ts taskSpec
 			ts, bot.nextTasks = bot.nextTasks[0], bot.nextTasks[1:]
-			_, plugin, _ := getTask(ts.task)
-			isPlugin = plugin != nil
-			if isPlugin {
-				command = ts.Command
-				args = ts.Arguments
-			} else {
-				command = "run"
-				args = []string{}
-			}
+			command = ts.Command
+			args = ts.Arguments
 			t = ts.task
 		} else {
 			break
@@ -267,28 +257,39 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	var err error
 	fullPath, err = getTaskPath(task)
 	if err != nil {
-		emit(ScriptPluginBadPath)
+		emit(ExternalTaskBadPath)
 		return fmt.Sprintf("Error getting path for %s: %v", task.name, err), MechanismFail
 	}
+	winInterpreter := false
 	interpreter, err := getInterpreter(fullPath)
 	if err != nil {
-		err = fmt.Errorf("looking up interpreter for %s: %s", fullPath, err)
-		Log(Error, fmt.Sprintf("Unable to call external plugin %s, no interpreter found: %s", fullPath, err))
 		errString = "There was a problem calling an external plugin"
-		emit(ScriptPluginBadInterpreter)
+		emit(ExternalTaskBadInterpreter)
 		return errString, MechanismFail
+	}
+	if len(interpreter) == 0 {
+		interpreter = "(none)"
+	} else {
+		if runtime.GOOS == "windows" {
+			winInterpreter = true
+		}
 	}
 	externalArgs := make([]string, 0, 5+len(args))
 	// on Windows, we exec the interpreter with the script as first arg
-	if runtime.GOOS == "windows" {
+	if winInterpreter {
 		externalArgs = append(externalArgs, fullPath)
 	}
-	externalArgs = append(externalArgs, command)
+	// jobs and tasks don't take a 'command' (it's just 'run', a dummy value)
+	if isPlugin {
+		externalArgs = append(externalArgs, command)
+	}
 	externalArgs = append(externalArgs, args...)
-	externalArgs = fixInterpreterArgs(interpreter, externalArgs)
+	if winInterpreter {
+		externalArgs = fixInterpreterArgs(interpreter, externalArgs)
+	}
 	Log(Debug, fmt.Sprintf("Calling '%s' with interpreter '%s' and args: %q", fullPath, interpreter, externalArgs))
 	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
+	if winInterpreter {
 		cmd = exec.Command(interpreter, externalArgs...)
 	} else {
 		cmd = exec.Command(fullPath, externalArgs...)
@@ -338,6 +339,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		keys = append(keys, k)
 	}
 	cmd.Env = env
+	cmd.Dir = bot.workingDirectory
 	Log(Debug, fmt.Sprintf("Running '%s' with environment vars: '%s'", fullPath, strings.Join(keys, "', '")))
 	var stderr, stdout io.ReadCloser
 	// hold on to stderr in case we need to log an error
@@ -364,7 +366,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		return errString, MechanismFail
 	}
 	if command != "init" {
-		emit(ScriptTaskRan)
+		emit(ExternalTaskRan)
 	}
 	if bot.logger == nil {
 		var stdErrBytes []byte
@@ -377,7 +379,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		if len(stdErrString) > 0 {
 			Log(Warn, fmt.Errorf("Output from stderr of external command '%s': %s", fullPath, stdErrString))
 			errString = fmt.Sprintf("There was error output while calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-			emit(ScriptPluginStderrOutput)
+			emit(ExternalTaskStderrOutput)
 		}
 	} else {
 		closed := make(chan struct{})
@@ -423,7 +425,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		if !success {
 			Log(Error, fmt.Errorf("Waiting on external command '%s': %v", fullPath, err))
 			errString = fmt.Sprintf("There were errors calling external plugin '%s', you might want to ask an administrator to check the logs", task.name)
-			emit(ScriptPluginErrExit)
+			emit(ExternalTaskErrExit)
 		}
 	}
 	return errString, retval
@@ -497,20 +499,20 @@ func getInterpreter(scriptPath string) (string, error) {
 	script, err := os.Open(scriptPath)
 	if err != nil {
 		err = fmt.Errorf("opening file: %s", err)
-		Log(Error, fmt.Sprintf("Problem getting interpreter for %s: %s", scriptPath, err))
+		Log(Error, fmt.Sprintf("Error getting interpreter for %s: %s", scriptPath, err))
 		return "", err
 	}
 	r := bufio.NewReader(script)
 	iline, err := r.ReadString('\n')
 	if err != nil {
 		err = fmt.Errorf("reading first line: %s", err)
-		Log(Error, fmt.Sprintf("Problem getting interpreter for %s: %s", scriptPath, err))
-		return "", err
+		Log(Debug, fmt.Sprintf("Problem getting interpreter for %s - %s", scriptPath, err))
+		return "", nil
 	}
 	if !strings.HasPrefix(iline, "#!") {
-		err := fmt.Errorf("Problem getting interpreter for %s; first line doesn't start with '#!'", scriptPath)
-		Log(Error, err)
-		return "", err
+		err := fmt.Errorf("Interpreter not found for %s; first line doesn't start with '#!'", scriptPath)
+		Log(Debug, err)
+		return "", nil
 	}
 	iline = strings.TrimRight(iline, "\n\r")
 	interpreter := strings.TrimPrefix(iline, "#!")

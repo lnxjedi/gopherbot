@@ -77,9 +77,6 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList) {
 		command = ts.Command
 	} else {
 		command = "run"
-		for _, p := range ts.Parameters {
-			bot.environment[p.Name] = p.Value
-		}
 	}
 	Log(Debug, fmt.Sprintf("Starting scheduled task: %s", task.name))
 	bot.runPipeline(t, false, scheduled, command, ts.Arguments...)
