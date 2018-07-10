@@ -7,6 +7,7 @@
 Jobs and Plugins can queue up additional jobs/tasks with AddTask(...), and if the job/plugin exits 0, the next task in the list will be run, subject to security checks.
 
 ### Pipeline algorithm model
+The current `runPipeline` will be broken up in to `startPipeline` and `runPipeline`.
 
 When a task in the middle of the pipeline adds tasks, it creates a new pipeline; when a task at the end of the pipeline adds tasks, they're just added to the end
 of the currently running pipeline.
@@ -77,12 +78,12 @@ func main() {
   * A global hash indexed by pluginID and runID will be set before the first job/plugin in a pipeline is run
   * The global hash will be used to get the Robot object for the pipeline in http method calls
   * The Robot needs a mutex to protect it, since admin commands can read from the Robot while a pipeline is running
-* The Robot will also get a historyIndex:
+* The Robot will also get a historyIndex array for each job with histories:
   * The historyIndex is only needed when the number of histories kept is > 0
-  * It's a monotically increasing int of every run of the pipeline
-* If the job/plugin configures a Next*, it will be set in the Robot
-* SetNextJob|Plugin(...) can change the Next*
-  * AddTask(...) will replace CallPlugin
+  * It has a monotically increasing int of every run of the pipeline
+  * It has a datestamp
+  * It has a record of the args to the pipeline
+* AddTask(...) will replace CallPlugin
 
 ## Histories
 
@@ -123,6 +124,7 @@ Datum are protected by serializing all access to memories through a select loop.
 ### TODO
 * Write reKey function
 * Write 'rekey brain <foo>' admin commands
+* Update Duo prefs to store all user prefs in a single hash, so data items are larger, to prevent encryption errors when the item being encrypted is smaller than the nonce (12 bytes)
 
 ## Plugins and Jobs
 
