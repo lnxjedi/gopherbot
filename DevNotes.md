@@ -218,19 +218,17 @@ three ways:
 
 ## Questions
 
-Can a plugin schedule a job? E.g. for the time tracking plugin; it could be written to run in the background, or it could schedule a job that checks back with the user periodically.
-
-Are all commands checked before all message matchers? Multiple matching commands should do nothing, but what about multiple message matchers? Probably, all matching message matchers should run. If a command matches, message matchers probably should not be checked, as that might cause "side effects".
+Are all commands checked before all message matchers? Multiple matching commands should do nothing, but what about multiple message matchers? Probably, all matching message matchers should run.
 
 ## TODO Items
 
+This is just a gathering spot for somewhat uncategorized TODO items...
+
 - Plugin debugging verbose - emit messages for user message matching(?); when the user requesting debugging sets verbose, message match checks should trigger debug messages as well if the plugin being debugged has message matchers
+- Plugin debugging channel option - ability to filter by channel if channel set
 - Slack connector: look up new Bot IDs on the fly if a new bot ID is seen; need to add locking of the bots[] map
 - Move slack send loop into anon func in Run
 - Consider: Use globalLock for protocolConfig, brainConfig, elevateConfig
-- Add SendBotMessage() and GetBotMessage() methods for Slack in a conditional
-  compilation connector_testing.go ala GetEvents - see emit_testing.go; use for
-  connecting to slack and immediately quitting
 - Documentation for events, emit, development and testing - Developing.md
 - Stop hard-coding 'it' for contexts; 'server:it:the server' instead of
   'server', (context followed by generics that match); e.g. "reboot server",
