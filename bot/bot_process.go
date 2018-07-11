@@ -99,6 +99,18 @@ func initBot(cpath, epath string, logger *log.Logger) {
 
 	configPath = cpath
 	installPath = epath
+
+	var wd string
+	if len(configPath) > 0 {
+		wd = configPath
+	} else {
+		wd = installPath
+	}
+	err := os.Chdir(wd)
+	if err != nil {
+		Log(Fatal, fmt.Sprintf("Unable to set initial working directory to '%s': %v", wd, err))
+	}
+	Log(Info, fmt.Sprintf("Set initial working directory: %s", wd))
 	robot.stop = make(chan struct{})
 	robot.done = make(chan struct{})
 	robot.shuttingDown = false
