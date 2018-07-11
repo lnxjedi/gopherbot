@@ -61,34 +61,21 @@ LogLevel: info
 ## If a job doesn't specify otherwise, these are the defaults for StatusChannel
 ## and channels where jobs can be run
 # DefaultJobChannel: jobs
-## Where jobs can be run
-# DefaultJobChannels:
-# - ljdev
-# - jobs
-## Job names and paths to the script. NOTE: no reason why multiple jobs
-## can't have the same path. Job config in conf/jobs/<job>.yaml can differ.
-# Jobs:
-## Configuration is loaded from conf/jobs/<foo>.yaml e.g. hello.yaml
-# - hello
-# - goodbye
-# - hellojob
-## Timezone for scheduled jobs
+
+## Timezone for scheduled tasks
 # TimeZone: "America/New_York"
-## Job scheduling with github.com/robfig/cron
-# ScheduledJobs:
+## Task scheduling with github.com/robfig/cron
+# ScheduledTasks:
 # - Job: hello
 #   Schedule: "@every 2m" # see: https://godoc.org/github.com/robfig/cron
-#   Parameters: # an array of strings; up to the job to parse numbers & bools
-#   - "hello"
-# - Job: hello
-#   Schedule: "0 */5 * * * *"
-#   Parameters:
-#   - "fail"
+#   Arguments: # an array of strings; up to the job to parse numbers & bools
+#   - "hello, world"
 
 ## List of external plugins to enable; generally scripts using a gopherbot
 ## script library. The robot will look for plugins in the config directory
 ## first (if it exists), then the installation directory.
-#ExternalScripts:
+
+#ExternalPlugins:
 ## Useful and/or entertaining plugins
 #- Name: weather
 #  Path: plugins/weather.rb
@@ -108,6 +95,30 @@ LogLevel: info
 #  Path: plugins/samples/rubydemo.rb
 #- Name: pythondemo
 #  Path: plugins/samples/pythondemo.py
+
+## ExternalJobs describe configurable jobs the robot knows about. Requires
+## config in conf/jobs/<jobname>.yaml (see sample files in dist)
+
+# ExternalJobs:
+# - Name: ssh-init
+#   Description: "Pipeline job for setting up ssh-agent for the 'bot"
+
+## ExternalTasks enumerate external executables that can be added to pipelines
+## with AddTask <name>
+
+# ExternalTasks:
+# - Name: ansible-playbook
+#   Description: Ansible playbook (ansible-playbook)
+#   Path: /usr/bin/ansible-playbook
+# - Name: ansible
+#   Description: Ansible
+#   Path: /usr/bin/ansible
+# - Name: ssh
+#   Description: Secure shell for remoting in to hosts
+#   Path: /usr/bin/ssh
+# - Name: ssh-agent
+#   Description: ssh agent command for terminating the agent
+#   Path: /usr/bin/ssh-agent
 
 # If the plugin doesn't specify an outgoing message format, what's the default?
 # This will be 'Raw' (unmodified, subject to protocol-specific formatting) if
@@ -179,22 +190,22 @@ LogLevel: info
 #    Phone: "(555)765-0005"
 
 ## The robot's email address (used in From:)
-#Email: robbie@robot.com
+# Email: robbie@robot.com
 ## Configuration for sending out email. For Authtype: none, User and Password
 ## can be left out. Note that sending email will fail if Email isn't set.
-#MailConfig:
-#  Mailhost: <somehost:port>
-#  Authtype: <plain|none>
-#  User: <authuser>
-#  Password: <password>
+# MailConfig:
+#   Mailhost: <somehost:port>
+#   Authtype: <plain|none>
+#   User: <authuser>
+#   Password: <password>
 
 ## Specify the mechanism for storing the robots memories. Currently only a
 ## simple file-based brain is available for long-term memories. Be sure that
 ## '/brain' in the config or install dir is writable by the user the robot
 ## runs as.
-Brain: file
-BrainConfig:
-  BrainDirectory: brain
+# Brain: file
+# BrainConfig:
+#   BrainDirectory: brain
 
 ## A persistent brain using AWS DynamoDB. 
 ## See doc/Configuration.md for information on setting up this brain. 
@@ -218,4 +229,4 @@ BrainConfig:
 ##   regardless of timeout.
 ## - Configure the elevator by overriding the config for the plugin in
 ##   'conf/plugins/totp.yaml'
-#DefaultElevator: totp
+# DefaultElevator: totp

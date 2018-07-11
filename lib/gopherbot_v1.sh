@@ -165,8 +165,7 @@ EOF
 	local GB_FUNCNAME="SetParameter"
 	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
 	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
-	echo "$RETVAL"
-	if [ "$RETVAL" -eq "true" ]
+	if [ "$RETVAL" = "true" ]
 	then
 		return 0
 	else

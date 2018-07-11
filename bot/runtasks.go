@@ -232,8 +232,9 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 func (bot *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
 	bot.currentTask = t
 	r := bot.makeRobot()
-	task, plugin, _ := getTask(t)
+	task, plugin, job := getTask(t)
 	isPlugin := plugin != nil
+	isJob := job != nil
 	// This should only happen in the rare case that a configured authorizer or elevator is disabled
 	if task.Disabled {
 		msg := fmt.Sprintf("callTask failed on disabled task %s; reason: %s", task.name, task.reason)
@@ -315,9 +316,10 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		}
 	}
 
-	// Pull stored env vars specific to this task and supply to this task only.
-	// No effect if already defined. Useful mainly for specific tasks to have
-	// secrets passed in but not handed to everything in the pipeline.
+	// Pull stored and configured env vars specific to this task and supply to
+	// this task only. No effect if already defined. Useful mainly for specific
+	// tasks to have secrets passed in but not handed to everything in the
+	// pipeline.
 	if !bot.pipeStarting {
 		storedEnv := make(map[string]string)
 		_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
@@ -327,6 +329,15 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 				_, exists := envhash[key]
 				if !exists {
 					envhash[key] = value
+				}
+			}
+		}
+		// Configured parameters for a pipeline job don't apply if already set
+		if isJob {
+			for _, p := range job.Parameters {
+				_, exists := envhash[p.Name]
+				if !exists {
+					envhash[p.Name] = p.Value
 				}
 			}
 		}
@@ -505,11 +516,16 @@ func getTaskPath(task *botTask) (string, error) {
 // emulate Unix script convention by calling external scripts with
 // an interpreter.
 func getInterpreter(scriptPath string) (string, error) {
+	if _, err := os.Stat(scriptPath); err != nil {
+		err = fmt.Errorf("file stat: %s", err)
+		Log(Error, fmt.Sprintf("Error getting interpreter for %s: %s", scriptPath, err))
+		return "", err
+	}
 	script, err := os.Open(scriptPath)
 	if err != nil {
 		err = fmt.Errorf("opening file: %s", err)
-		Log(Error, fmt.Sprintf("Error getting interpreter for %s: %s", scriptPath, err))
-		return "", err
+		Log(Warn, fmt.Sprintf("Unable to get interpreter for %s: %s", scriptPath, err))
+		return "", nil
 	}
 	r := bufio.NewReader(script)
 	iline, err := r.ReadString('\n')

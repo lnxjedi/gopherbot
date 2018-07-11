@@ -46,6 +46,11 @@ func scheduleTasks() {
 			Log(Error, fmt.Sprintf("Not scheduling disabled task '%s'; reason: %s", st.Name, task.reason))
 			continue
 		}
+		// NOTE: bare tasks ALWAYS have zero-length User and Channel, and can't be scheduled by design
+		if len(task.User) == 0 || len(task.Channel) == 0 {
+			Log(Error, fmt.Sprintf("Not scheduling task '%s'; zero-length User or Channel", st.Name))
+			continue
+		}
 		Log(Info, fmt.Sprintf("Scheduling job '%s' with schedule: %s", st.Name, st.Schedule))
 		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, st.taskSpec, tasks) })
 	}

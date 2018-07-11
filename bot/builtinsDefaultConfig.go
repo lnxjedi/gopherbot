@@ -46,7 +46,7 @@ CommandMatchers:
 - Command: reload
   Regex: '(?i:reload)'
 - Command: store
-  Regex: '(?i:store parameter ([\w]+) ([\w-]+)=(.*))'
+  Regex: '(?i:store parameter ([\w-]+) ([\w-_.]+)=(.+))'
 - Command: quit
   Regex: '(?i:quit|exit)'
 - Command: abort
