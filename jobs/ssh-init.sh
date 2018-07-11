@@ -13,6 +13,11 @@
 #    ... (do stuff)
 #    AddTask ssh-agent -k
 
+# NOTE:
+# The use of a FIFO and cat <<EOF is to prevent the passphrase from ever
+# being stored in a file or appearing in the process list; otherwise this
+# script might be a lot shorter.
+
 if [ -z "$BOT_SSH_PHRASE" ]
 then
     MESSAGE="BOT_SSH_PHRASE not set, see conf/jobs/ssh-init.yaml"
