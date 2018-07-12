@@ -7,7 +7,6 @@
 Jobs and Plugins can queue up additional jobs/tasks with AddTask(...), and if the job/plugin exits 0, the next task in the list will be run, subject to security checks.
 
 ### Pipeline algorithm model
-The current `runPipeline` will be broken up in to `startPipeline` and `runPipeline`.
 
 When a task in the middle of the pipeline adds tasks, it creates a new pipeline; when a task at the end of the pipeline adds tasks, they're just added to the end
 of the currently running pipeline.
@@ -86,6 +85,7 @@ func main() {
 * AddTask(...) will replace CallPlugin
 
 ### TODO
+* Add Exclusive(string) bool method so jobs can use `if Exclusive(...)` to exit gracefully if an exclusive pipeline is already running (for jobs that would step on themselves if run in parallel)
 * Add SetWorkingDirectory(...) bool method, allow relative paths relative to GOPHER_CONFIGDIR
 * Set loglevel to Debug and clean up redundant log entries in runtasks
 * Audit / update logging & history sections for starting pipelines & sub-pipelines
@@ -226,6 +226,7 @@ Are all commands checked before all message matchers? Multiple matching commands
 
 This is just a gathering spot for somewhat uncategorized TODO items...
 
+- Audit use of 'debug' - most calls should be debugTask? (before bot.currentTask is set)
 - Plugin debugging verbose - emit messages for user message matching(?); when the user requesting debugging sets verbose, message match checks should trigger debug messages as well if the plugin being debugged has message matchers
 - Plugin debugging channel option - ability to filter by channel if channel set
 - Slack connector: look up new Bot IDs on the fly if a new bot ID is seen; need to add locking of the bots[] map

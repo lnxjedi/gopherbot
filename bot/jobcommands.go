@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 )
 
@@ -131,16 +132,30 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	t := bot.tasks.getTaskByName(jobName)
 	if t == nil {
 		bot.makeRobot().Say(fmt.Sprintf("Sorry, I don't have a task named '%s' configured", jobName))
-		return false
+		return
 	}
 	task, _, job := getTask(t)
 	if job == nil {
 		bot.makeRobot().Say(fmt.Sprintf("Sorry, I don't have a job named '%s' configured", jobName))
-		return false
+		return
 	}
 	if bot.Channel != task.Channel {
 		bot.makeRobot().Say(fmt.Sprintf("Sorry, job '%s' isn't available in this channel, try '%s'", jobName, task.Channel))
-		return false
+		return
+	}
+	if len(task.Users) > 0 {
+		userOk := false
+		for _, allowedUser := range task.Users {
+			match, err := filepath.Match(allowedUser, bot.User)
+			if match && err == nil {
+				userOk = true
+			}
+		}
+		if !userOk {
+			bot.makeRobot().Say("Sorry, you're not on the list of allowed users for that job")
+			bot.debugTask(t, "user is not on the list of allowed users", false)
+			return
+		}
 	}
 	switch jobCommand {
 	case jobRun:
