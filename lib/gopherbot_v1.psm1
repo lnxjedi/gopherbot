@@ -167,6 +167,12 @@ class Robot
         return [PlugRet]$ret.PlugRetVal
     }
     
+    [PlugRet] FinalTask([String] $taskName, [String[]]$taskArgs) {
+        $funcArgs = [PSCustomObject]@{ Name=$taskName, CmdArgs=$taskArgs }
+        $ret = $this.Call("FinalTask", $funcArgs)
+        return [PlugRet]$ret.PlugRetVal
+    }
+    
     [Bool] SetParameter([String] $name, [String] $value){
         $funcArgs = [PSCustomObject]@{ Name=$name; Value=$value }
         return $this.Call("SetParameter", $funcArgs).Boolean -As [bool]

@@ -23,14 +23,13 @@ var envPassThrough = []string{
 	"USER",
 }
 
-// runPipeline is triggered by user commands, job triggers, and scheduled tasks.
+// startPipeline is triggered by user commands, job triggers, and scheduled tasks.
 // Called from dispatch: checkPluginMatchersAndRun,
 // jobcommands: checkJobMatchersAndRun or scheduledTask. interactive
 // indicates whether a pipeline started from a user command - plugin match or
 // run job command.
-func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipelineType, command string, args ...string) {
-	task, plugin, job := getTask(t)
-	isPlugin := plugin != nil
+func (bot *botContext) startPipeline(t interface{}, interactive bool, ptype pipelineType, command string, args ...string) {
+	task, _, job := getTask(t)
 	isJob := job != nil
 	verbose := (isJob && job.Verbose) || ptype == jobCmd
 	bot.pipeName = task.name
@@ -146,25 +145,75 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 	if verbose {
 		r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, runIndex))
 	}
-	for {
-		// NOTE: if RequireAdmin is true, the user can't access the plugin at all if not an admin
-		if isPlugin && len(plugin.AdminCommands) > 0 {
-			adminRequired := false
-			for _, i := range plugin.AdminCommands {
-				if command == i {
-					adminRequired = true
-					break
-				}
-			}
-			if adminRequired {
-				if !r.CheckAdmin() {
-					r.Say("Sorry, that command is only available to bot administrators")
-					ret = Fail
-					break
-				}
-			}
+	ts := taskSpec{task.name, command, args, t}
+	bot.nextTasks = []taskSpec{ts}
+	ret, errString = bot.runPipeline(nextT, ptype, true)
+	if ret != Normal {
+		if interactive && errString != "" {
+			r.Reply(errString)
 		}
-		if !bot.bypassSecurityChecks {
+	}
+	bot.deregister()
+	if bot.logger != nil {
+		bot.logger.Section("done", "pipeline has completed")
+		bot.logger.Close()
+	}
+	if ret == Normal && verbose {
+		r.Say(fmt.Sprintf("Finished job '%s', run %d", bot.pipeName, runIndex))
+	}
+	if ret != Normal && isJob {
+		task, _, _ := getTask(t)
+		r.Reply(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'", bot.pipeName, runIndex, task.name))
+	}
+	// Run final (cleanup) tasks
+	if len(bot.finalTasks) > 0 {
+		bot.runPipeline(finalT, ptype, false)
+	}
+}
+
+type pipeSelector int
+
+const (
+	nextT pipeSelector = iota
+	finalT
+)
+
+func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRun bool) (ret TaskRetVal, errString string) {
+	var p []taskSpec
+	eventEmitted := false
+	switch s {
+	case nextT:
+		p = bot.nextTasks
+		bot.nextTasks = []taskSpec{}
+	case finalT:
+		p = bot.finalTasks
+	}
+	l := len(p)
+	for i := 0; i < l; i++ {
+		ts := p[i]
+		command := ts.Command
+		args := ts.Arguments
+		t := ts.task
+		// bypass security checks if flag set, or running final tasks
+		if !bot.bypassSecurityChecks && s != finalT {
+			r := bot.makeRobot()
+			_, plugin, _ := getTask(t)
+			if plugin != nil && len(plugin.AdminCommands) > 0 {
+				adminRequired := false
+				for _, i := range plugin.AdminCommands {
+					if command == i {
+						adminRequired = true
+						break
+					}
+				}
+				if adminRequired {
+					if !r.CheckAdmin() {
+						r.Say("Sorry, that command is only available to bot administrators")
+						ret = Fail
+						break
+					}
+				}
+			}
 			if bot.checkAuthorization(t, command, args...) != Success {
 				ret = Fail
 				break
@@ -180,52 +229,46 @@ func (bot *botContext) runPipeline(t interface{}, interactive bool, ptype pipeli
 				}
 			}
 		}
-		switch ptype {
-		case plugCommand:
-			emit(CommandTaskRan) // for testing, otherwise noop
-		case plugMessage:
-			emit(AmbientTaskRan)
-		case catchAll:
-			emit(CatchAllTaskRan)
-		case jobTrigger:
-			emit(TriggeredTaskRan)
-		case scheduled:
-			emit(ScheduledTaskRan)
-		case jobCmd:
-			emit(JobTaskRan)
+		if initialRun && !eventEmitted {
+			switch ptype {
+			case plugCommand:
+				emit(CommandTaskRan) // for testing, otherwise noop
+			case plugMessage:
+				emit(AmbientTaskRan)
+			case catchAll:
+				emit(CatchAllTaskRan)
+			case jobTrigger:
+				emit(TriggeredTaskRan)
+			case scheduled:
+				emit(ScheduledTaskRan)
+			case jobCmd:
+				emit(JobTaskRan)
+			}
 		}
 		bot.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
 		errString, ret = bot.callTask(t, command, args...)
 		bot.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
-
-		if ret != Normal {
-			if interactive && errString != "" {
-				r.Reply(errString)
+		if s != finalT && ret != Normal {
+			// task in pipeline failed
+			break
+		}
+		if s == nextT {
+			t := len(bot.nextTasks)
+			if t > 0 {
+				if i == l-1 {
+					p = append(p, bot.nextTasks...)
+					l += t
+				} else {
+					ret, errString = bot.runPipeline(nextT, ptype, false)
+				}
+				bot.nextTasks = []taskSpec{}
+				if ret != Normal {
+					break
+				}
 			}
-			break
-		}
-		if len(bot.nextTasks) > 0 {
-			var ts taskSpec
-			ts, bot.nextTasks = bot.nextTasks[0], bot.nextTasks[1:]
-			command = ts.Command
-			args = ts.Arguments
-			t = ts.task
-		} else {
-			break
 		}
 	}
-	bot.deregister()
-	if bot.logger != nil {
-		bot.logger.Section("done", "pipeline has completed")
-		bot.logger.Close()
-	}
-	if ret == Normal && verbose {
-		r.Say(fmt.Sprintf("Finished job '%s', run %d", bot.pipeName, runIndex))
-	}
-	if ret != Normal && isJob {
-		task, _, _ := getTask(t)
-		r.Reply(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'", bot.pipeName, runIndex, task.name))
-	}
+	return
 }
 
 // callTask does the real work of running a job or plugin with a command and arguments.
@@ -255,7 +298,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	if !(task.name == "builtInadmin" && command == "abort") {
 		defer checkPanic(r, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
 	}
-	Log(Debug, fmt.Sprintf("Dispatching command '%s' to plugin '%s' with arguments '%#v'", command, task.name, args))
+	Log(Debug, fmt.Sprintf("Dispatching command '%s' to task '%s' with arguments '%#v'", command, task.name, args))
 	if isPlugin && plugin.taskType == taskGo {
 		if command != "init" {
 			emit(GoPluginRan)

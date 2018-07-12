@@ -57,6 +57,8 @@ EOF
 fi
 
 eval `ssh-agent`
+# Add cleanup task
+FinalTask ssh-agent -k
 
 ssh-add $HOME/.ssh/$SSH_KEY < /dev/null
 

@@ -93,7 +93,7 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		robot.RUnlock()
 		// Jobs triggers should only match apps / bots, not real users!
 		bot.bypassSecurityChecks = true
-		bot.runPipeline(runTask, false, jobTrigger, "run", triggerArgs...)
+		bot.startPipeline(runTask, false, jobTrigger, "run", triggerArgs...)
 		return
 	}
 	// Check for built-in job commands
@@ -145,8 +145,8 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	switch jobCommand {
 	case jobRun:
 		// TODO: prompt for required parameters & add to bot.environment
-		// NOTE: 'run job' uses security checks in runPipeline
-		bot.runPipeline(t, true, jobCmd, "run")
+		// NOTE: 'run job' uses security checks in startPipeline
+		bot.startPipeline(t, true, jobCmd, "run")
 		return
 	case history, showHistory:
 		runTask = bot.tasks.getTaskByName("builtInhistory")
@@ -172,6 +172,6 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 			bot.elevated = true
 		}
 	}
-	bot.runPipeline(runTask, true, jobCmd, command, args...)
+	bot.startPipeline(runTask, true, jobCmd, command, args...)
 	return
 }

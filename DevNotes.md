@@ -87,6 +87,8 @@ func main() {
 
 ### TODO
 * Add SetWorkingDirectory(...) bool method, allow relative paths relative to GOPHER_CONFIGDIR
+* Set loglevel to Debug and clean up redundant log entries in runtasks
+* Audit / update logging & history sections for starting pipelines & sub-pipelines
 
 ## Histories
 

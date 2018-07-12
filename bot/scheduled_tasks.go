@@ -67,7 +67,7 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList) {
 	}
 
 	// Create the botContext to carry state through the pipeline.
-	// runPipeline will take care of registerActive()
+	// startPipeline will take care of registerActive()
 	bot := &botContext{
 		User:                 task.User,
 		Channel:              task.Channel,
@@ -84,5 +84,5 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList) {
 		command = "run"
 	}
 	Log(Debug, fmt.Sprintf("Starting scheduled task: %s", task.name))
-	bot.runPipeline(t, false, scheduled, command, ts.Arguments...)
+	bot.startPipeline(t, false, scheduled, command, ts.Arguments...)
 }

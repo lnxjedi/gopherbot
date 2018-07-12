@@ -69,7 +69,6 @@ func (r *Robot) CheckAdmin() bool {
 
 // SetParameter sets a parameter for the current pipeline, useful only for
 // passing parameters (as environment variables) to tasks later in the pipeline.
-// StoreParameter is for long-term parameter storage (e.g. credentials).
 func (r *Robot) SetParameter(name, value string) bool {
 	if !identifierRe.MatchString(name) {
 		return false
@@ -83,8 +82,8 @@ func (r *Robot) SetParameter(name, value string) bool {
 // CI/CD tools, gopherbot pipelines are code generated, not configured; it is,
 // however, trivial to write code that reads an arbitrary configuration file
 // and uses AddTask to generate a pipeline. When the task is a plugin, cmdargs
-// should be a command followed by arguments. For jobs, only the name is
-// required; parameters should be specified in calls to SetParameter.
+// should be a command followed by arguments. For jobs, cmdargs are just
+// arguments passed to the job.
 func (r *Robot) AddTask(name string, cmdargs ...string) RetVal {
 	c := r.getContext()
 	t := c.tasks.getTaskByName(name)
@@ -114,6 +113,41 @@ func (r *Robot) AddTask(name string, cmdargs ...string) RetVal {
 		task:      t,
 	}
 	c.nextTasks = append(c.nextTasks, ts)
+	return Ok
+}
+
+// FinalTask adds a task that always runs when the pipeline ends. This
+// can be used to ensure that cleanup tasks like terminating a VM or stopping
+// the ssh-agent will run, regardless of whether the pipeline failed.
+func (r *Robot) FinalTask(name string, cmdargs ...string) RetVal {
+	c := r.getContext()
+	t := c.tasks.getTaskByName(name)
+	if t == nil {
+		return TaskNotFound
+	}
+	_, plugin, _ := getTask(t)
+	isPlugin := plugin != nil
+	var command string
+	var args []string
+	if isPlugin {
+		if len(cmdargs) == 0 {
+			return MissingArguments
+		}
+		if len(cmdargs[0]) == 0 {
+			return MissingArguments
+		}
+		command, args = cmdargs[0], cmdargs[1:]
+	} else {
+		command = "run"
+		args = cmdargs
+	}
+	ts := taskSpec{
+		Name:      name,
+		Command:   command,
+		Arguments: args,
+		task:      t,
+	}
+	c.finalTasks = append(c.finalTasks, ts)
 	return Ok
 }
 
