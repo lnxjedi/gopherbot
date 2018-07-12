@@ -13,13 +13,18 @@ import (
 	"testing"
 )
 
+var testInstallPath string
+
+func init() {
+	wd, _ := os.Getwd()
+	testInstallPath = filepath.Dir(wd)
+}
+
 // Start a robot for testing, and return the exit / robot stopped channel
 func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (<-chan struct{}, Connector) {
 	botVersion = v
-	wd, _ := os.Getwd()
-	installpath := filepath.Dir(wd)
-	configpath := filepath.Join(installpath, cfgdir)
-	t.Logf("Initializing test bot with installpath: \"%s\" and configpath: \"%s\"", installpath, configpath)
+	configpath := filepath.Join(testInstallPath, cfgdir)
+	t.Logf("Initializing test bot with installpath: \"%s\" and configpath: \"%s\"", testInstallPath, configpath)
 
 	var botLogger *log.Logger
 	if len(logfile) == 0 {
@@ -32,7 +37,7 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (<-chan stru
 		botLogger = log.New(lf, "", log.LstdFlags)
 	}
 
-	initBot(configpath, installpath, botLogger)
+	initBot(configpath, testInstallPath, botLogger)
 
 	initializeConnector, ok := connectors[robot.protocol]
 	if !ok {
