@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strings"
 	"sync"
 )
 
@@ -246,17 +245,6 @@ func initializePlugins() {
 		robot.Unlock()
 	}
 	bot.deregister()
-}
-
-// Update passed-in regex so that a space can match a variable # of spaces,
-// to prevent cut-n-paste spacing related non-matches.
-func massageRegexp(r string) string {
-	replaceSpaceRe := regexp.MustCompile(`\[([^]]*) ([^]]*)\]`)
-	regex := replaceSpaceRe.ReplaceAllString(r, `[$1\x20$2]`)
-	regex = strings.Replace(regex, " ?", `\s*`, -1)
-	regex = strings.Replace(regex, " ", `\s+`, -1)
-	Log(Trace, fmt.Sprintf("Updated regex '%s' => '%s'", r, regex))
-	return regex
 }
 
 // RegisterPlugin allows Go plugins to register a PluginHandler in a func init().

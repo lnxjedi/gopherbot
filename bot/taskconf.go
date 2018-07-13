@@ -538,8 +538,7 @@ LoadLoop:
 		if isPlugin {
 			for i := range plugin.CommandMatchers {
 				command := &plugin.CommandMatchers[i]
-				regex := massageRegexp(command.Regex)
-				regex = `^\s*` + regex + `\s*$`
+				regex := `^\s*` + command.Regex + `\s*$`
 				re, err := regexp.Compile(regex)
 				if err != nil {
 					msg := fmt.Sprintf("Disabling '%s', couldn't compile command regular expression '%s': %v", task.name, regex, err)
@@ -558,18 +557,15 @@ LoadLoop:
 				// Note that full message regexes don't get the beginning and end anchors added - the individual plugin
 				// will need to do this if necessary.
 				message := &plugin.MessageMatchers[i]
-				regex := massageRegexp(message.Regex)
-				re, err := regexp.Compile(regex)
+				re, err := regexp.Compile(message.Regex)
 				if err != nil {
-					msg := fmt.Sprintf("Disabling '%s', couldn't compile message regular expression '%s': %v", task.name, regex, err)
+					msg := fmt.Sprintf("Disabling '%s', couldn't compile message regular expression '%s': %v", task.name, message.Regex, err)
 					Log(Error, msg)
 					r.debug(msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue LoadLoop
 				} else {
-					// Store the modified regex
-					message.Regex = regex
 					message.re = re
 				}
 			}
@@ -615,10 +611,9 @@ LoadLoop:
 		}
 		for i := range task.ReplyMatchers {
 			reply := &task.ReplyMatchers[i]
-			regex := massageRegexp(reply.Regex)
-			re, err := regexp.Compile(`^\s*` + regex + `\s*$`)
+			re, err := regexp.Compile(`^\s*` + reply.Regex + `\s*$`)
 			if err != nil {
-				msg := fmt.Sprintf("Skipping %s, couldn't compile reply regular expression '%s': %v", task.name, regex, err)
+				msg := fmt.Sprintf("Skipping %s, couldn't compile reply regular expression '%s': %v", task.name, reply.Regex, err)
 				Log(Error, msg)
 				r.debug(msg, false)
 				task.Disabled = true

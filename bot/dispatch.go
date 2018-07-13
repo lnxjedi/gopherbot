@@ -2,11 +2,14 @@ package bot
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
 
 const keepListeningDuration = 77 * time.Second
+
+var spaceRe = regexp.MustCompile(" +")
 
 // checkPluginMatchersAndRun checks either command matchers (for messages directed at
 // the robot), or message matchers (for ambient commands that need not be
@@ -67,15 +70,16 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 			ctype = "message"
 		}
 		Log(Trace, fmt.Sprintf("Task '%s' is active, will check for matches", task.name))
-		bot.debugT(t, fmt.Sprintf("Checking %d %s matchers against message: '%s'", len(matchers), ctype, bot.msg), verboseOnly)
+		cmsg := spaceRe.ReplaceAllString(bot.msg, " ")
+		bot.debugT(t, fmt.Sprintf("Checking %d %s matchers against message: '%s'", len(matchers), ctype, cmsg), verboseOnly)
 		for _, matcher := range matchers {
-			Log(Trace, fmt.Sprintf("Checking '%s' against '%s'", bot.msg, matcher.Regex))
-			matches := matcher.re.FindAllStringSubmatch(bot.msg, -1)
+			Log(Trace, fmt.Sprintf("Checking '%s' against '%s'", cmsg, matcher.Regex))
+			matches := matcher.re.FindAllStringSubmatch(cmsg, -1)
 			matched := false
 			if matches != nil {
 				bot.debugT(t, fmt.Sprintf("Matched %s regex '%s', command: %s", ctype, matcher.Regex, matcher.Command), false)
 				matched = true
-				Log(Trace, fmt.Sprintf("Message '%s' matches command '%s'", bot.msg, matcher.Command))
+				Log(Trace, fmt.Sprintf("Message '%s' matches command '%s'", cmsg, matcher.Command))
 				cmdArgs = matches[0][1:]
 				if len(matcher.Contexts) > 0 {
 					// Resolve & store "it" with short-term memories
@@ -131,7 +135,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 			if matched {
 				if messageMatched {
 					prevTask, _, _ := getTask(runTask)
-					Log(Error, fmt.Sprintf("Message '%s' matched multiple tasks: %s and %s", bot.msg, prevTask.name, task.name))
+					Log(Error, fmt.Sprintf("Message '%s' matched multiple tasks: %s and %s", cmsg, prevTask.name, task.name))
 					r.Say("Yikes! Your command matched multiple plugins, so I'm not doing ANYTHING")
 					emit(MultipleMatchesNoAction)
 					return
@@ -205,7 +209,7 @@ func (bot *botContext) handleMessage() {
 	var ok bool
 	// See if the robot got a blank message, indicating that the last message
 	// was meant for it (if it was in the keepListeningDuration)
-	if bot.isCommand && bot.msg == "" {
+	if bot.isCommand && len(bot.msg) == 0 {
 		shortTermMemories.Lock()
 		last, ok = shortTermMemories.m[lastMsgContext]
 		shortTermMemories.Unlock()
@@ -239,9 +243,10 @@ func (bot *botContext) handleMessage() {
 			messageMatched = true
 			for i, rep := range waiters {
 				if i == 0 {
-					matched := rep.re.MatchString(bot.msg)
-					Log(Debug, fmt.Sprintf("Found replyWaiter for user '%s' in channel '%s', checking if message '%s' matches '%s': %t", bot.User, bot.Channel, bot.msg, rep.re.String(), matched))
-					rep.replyChannel <- reply{matched, replied, bot.msg}
+					cmsg := spaceRe.ReplaceAllString(bot.msg, " ")
+					matched := rep.re.MatchString(cmsg)
+					Log(Debug, fmt.Sprintf("Found replyWaiter for user '%s' in channel '%s', checking if message '%s' matches '%s': %t", bot.User, bot.Channel, cmsg, rep.re.String(), matched))
+					rep.replyChannel <- reply{matched, replied, cmsg}
 				} else {
 					Log(Debug, "Sending retry to next reply waiter")
 					rep.replyChannel <- reply{false, retryPrompt, ""}
@@ -279,7 +284,7 @@ func (bot *botContext) handleMessage() {
 			} else {
 				// Note: if the catchall plugin has configured security, it
 				// should still apply.
-				bot.startPipeline(catchAllPlugins[0], catchAll, "catchall", bot.msg)
+				bot.startPipeline(catchAllPlugins[0], catchAll, "catchall", spaceRe.ReplaceAllString(bot.msg, " "))
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins
