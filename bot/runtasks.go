@@ -161,13 +161,32 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 	}
 	if ret != Normal && isJob {
 		task, _, _ := getTask(t)
-		r.Reply(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'", bot.pipeName, runIndex, task.name))
+		if ret == PipelineAborted {
+			r.Say(fmt.Sprintf("Job aborted, Exclusive lock failed for '%s'", bot.exclusiveTag))
+		} else {
+			r.Reply(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'", bot.pipeName, runIndex, task.name))
+		}
 	}
 	// Run final (cleanup) tasks
 	if len(bot.finalTasks) > 0 {
 		bot.runPipeline(finalT, ptype, false)
 	}
-	// TODO: check the wakeup queue and wake up the first queued task
+	if bot.exclusive {
+		tag := bot.exclusiveTag
+		runQueues.Lock()
+		queue, _ := runQueues.m[tag]
+		// TODO: finish me! take channel off queue, delete entry if len == 0,
+		// wake up the next task then Unlock
+		if len(queue) == 0 {
+			delete(runQueues.m, tag)
+		} else {
+			wakeUpTask := queue[0]
+			queue = queue[1:]
+			// Kiss the Princess
+			wakeUpTask <- struct{}{}
+		}
+		runQueues.Unlock()
+	}
 }
 
 type pipeSelector int
@@ -251,10 +270,40 @@ func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRu
 			// task in pipeline failed
 			break
 		}
-		// TODO: check bot.exclusive bot.QueueTask flag here; if set, store wakeup channel
-		// and select on it, then decrement i and skip the next if statement.
-		// if exclusive set but queuetask not, stop running the pipeline here
-		// and notify that the pipeline aborted / didn't run
+		if bot.abortPipeline {
+			ret = PipelineAborted
+			break
+		}
+		if bot.queueTask {
+			bot.queueTask = false
+			tag := bot.exclusiveTag
+			runQueues.Lock()
+			queue, exists := runQueues.m[tag]
+			if exists {
+				wakeUp := make(chan struct{})
+				queue = append(queue, wakeUp)
+				runQueues.m[tag] = queue
+				runQueues.Unlock()
+				// Now we block until kissed by a Handsome Prince
+				<-wakeUp
+				if bot.abortPipeline {
+					ret = PipelineAborted
+					errString = "Pipeline aborted, exclusive lock failed"
+					break
+				}
+				_, _, job := getTask(t)
+				if (job != nil && job.Verbose) || ptype == jobCmd {
+					bot.makeRobot().Say(fmt.Sprintf("Re-starting queued pipleline '%s'", bot.taskName))
+				}
+				// Decrement the index so this task runs again
+				i--
+				// Clear tasks added in the last run (if any)
+				bot.nextTasks = []taskSpec{}
+			} else {
+				runQueues.m[tag] = []chan struct{}{}
+				runQueues.Unlock()
+			}
+		}
 		if s == nextT {
 			t := len(bot.nextTasks)
 			if t > 0 {
@@ -265,6 +314,13 @@ func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRu
 					ret, errString = bot.runPipeline(nextT, ptype, false)
 				}
 				bot.nextTasks = []taskSpec{}
+				// the case where bot.queueTask is true is handled right after
+				// callTask
+				if bot.abortPipeline {
+					ret = PipelineAborted
+					errString = "Pipeline aborted, exclusive lock failed"
+					break
+				}
 				if ret != Normal {
 					break
 				}

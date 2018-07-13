@@ -4,9 +4,9 @@ package bot
 
 import "strconv"
 
-const _TaskRetVal_name = "NormalFailMechanismFailConfigurationError"
+const _TaskRetVal_name = "NormalFailMechanismFailConfigurationErrorPipelineAborted"
 
-var _TaskRetVal_index = [...]uint8{0, 6, 10, 23, 41}
+var _TaskRetVal_index = [...]uint8{0, 6, 10, 23, 41, 56}
 
 func (i TaskRetVal) String() string {
 	if i < 0 || i >= TaskRetVal(len(_TaskRetVal_index)-1) {
