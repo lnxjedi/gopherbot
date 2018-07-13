@@ -4,7 +4,7 @@
 
 ## Pipelines
 
-Jobs and Plugins can queue up additional jobs/tasks with AddTask(...), and if the job/plugin exits 0, the next task in the list will be run, subject to security checks.
+Jobs and Plugins can queue up additional jobs/tasks with AddTask(...) and FinalTask(...), and if the job/plugin exits 0, the next task in the list will be run, subject to security checks. FinalTask() is for cleanup; all FinalTasks run regardless of the last exit status, and without security checks.
 
 ### Pipeline algorithm model
 
@@ -61,7 +61,7 @@ func main() {
   * Builtins that run almost instantly
   * Builtins that read internal data but don't start new pipelines
   * Builtins that report on running pipelines or allow aborting or killing/cancelling pipelines
-* The `Robot` object, created at the start of a pipeline, will take on a more important role of carrying state through the pipeline; in addition to other struct data items, it will get a `runID` incrementing integer for each job/plugin
+* The `botContext` object, created at the start of a pipeline, will take on a more important role of carrying state through the pipeline; in addition to other struct data items, it will get a `runID` incrementing integer for each job/plugin
 * When a pipeline starts a pointer to the Robot will be stored in a global table of running pipelines
 * Pipelines can be started by:
   * A job `Trigger`
@@ -89,6 +89,7 @@ func main() {
 * Add SetWorkingDirectory(...) bool method, allow relative paths relative to GOPHER_CONFIGDIR
 * Set loglevel to Debug and clean up redundant log entries in runtasks
 * Audit / update logging & history sections for starting pipelines & sub-pipelines
+* Add builtins for listing and terminating running tasks
 
 ## Histories
 
