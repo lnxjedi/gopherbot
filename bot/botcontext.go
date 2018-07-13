@@ -126,4 +126,8 @@ type botContext struct {
 	taskName           string            // name of current task
 	taskDesc           string            // description for same
 	osCmd              *exec.Cmd         // running Command, for aborting a pipeline
+
+	exclusiveTag string // tasks with the same exclusiveTag never run at the same time
+	exclusive    bool   // result of request for exclusive
+	queueTask    bool   // whether to queue up if Exclusive call failed
 }

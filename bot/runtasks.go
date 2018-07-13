@@ -251,8 +251,10 @@ func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRu
 			// task in pipeline failed
 			break
 		}
-		// TODO: check bot.QueueTask flag here; if set, store wakeup channel
-		// and select on it, then decrement i and skip the next if statement
+		// TODO: check bot.exclusive bot.QueueTask flag here; if set, store wakeup channel
+		// and select on it, then decrement i and skip the next if statement.
+		// if exclusive set but queuetask not, stop running the pipeline here
+		// and notify that the pipeline aborted / didn't run
 		if s == nextT {
 			t := len(bot.nextTasks)
 			if t > 0 {
