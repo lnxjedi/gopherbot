@@ -167,6 +167,7 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 	if len(bot.finalTasks) > 0 {
 		bot.runPipeline(finalT, ptype, false)
 	}
+	// TODO: check the wakeup queue and wake up the first queued task
 }
 
 type pipeSelector int
@@ -250,6 +251,8 @@ func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRu
 			// task in pipeline failed
 			break
 		}
+		// TODO: check bot.QueueTask flag here; if set, store wakeup channel
+		// and select on it, then decrement i and skip the next if statement
 		if s == nextT {
 			t := len(bot.nextTasks)
 			if t > 0 {
