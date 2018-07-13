@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -82,25 +83,39 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 					shortTermMemories.Lock()
 					for i, contextLabel := range matcher.Contexts {
 						if contextLabel != "" {
-							key := "context:" + contextLabel
-							c := memoryContext{key, bot.User, bot.Channel}
-							if len(cmdArgs) > i && (cmdArgs[i] == "it" || cmdArgs[i] == "") {
-								s, ok := shortTermMemories.m[c]
-								if ok {
-									cmdArgs[i] = s.memory
-									// TODO: it would probably be best to substitute the value
-									// from "it" back in to the original message and re-check for
-									// a match. Failing a match, matched should be set to false.
-									s.timestamp = ts
-									shortTermMemories.m[c] = s
+							if len(cmdArgs) > i {
+								ctx := strings.Split(contextLabel, ":")
+								contextName := ctx[0]
+								contextMatches := []string{""}
+								contextMatches = append(contextMatches, ctx[1:]...)
+								key := "context:" + contextName
+								c := memoryContext{key, bot.User, bot.Channel}
+								cMatch := false
+								for _, cm := range contextMatches {
+									if cmdArgs[i] == cm {
+										cMatch = true
+									}
+								}
+								if cMatch {
+									s, ok := shortTermMemories.m[c]
+									if ok {
+										cmdArgs[i] = s.memory
+										// TODO: it would probably be best to substitute the value
+										// from "it" back in to the original message and re-check for
+										// a match. Failing a match, matched should be set to false.
+										s.timestamp = ts
+										shortTermMemories.m[c] = s
+									} else {
+										bot.makeRobot().Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel))
+										shortTermMemories.Unlock()
+										return true
+									}
 								} else {
-									bot.makeRobot().Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel))
-									shortTermMemories.Unlock()
-									return true
+									s := shortTermMemory{cmdArgs[i], ts}
+									shortTermMemories.m[c] = s
 								}
 							} else {
-								s := shortTermMemory{cmdArgs[i], ts}
-								shortTermMemories.m[c] = s
+								Log(Error, fmt.Sprintf("Plugin '%s', command '%s', has more contexts than match groups"))
 							}
 						}
 					}
