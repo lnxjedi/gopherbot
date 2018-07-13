@@ -10,6 +10,7 @@ package bot
 */
 
 import (
+	"io"
 	"log"
 )
 
@@ -39,6 +40,8 @@ type HistoryProvider interface {
 	// NewHistory provides a HistoryLogger for the given tag / index, and
 	// cleans up logs older than maxHistories.
 	NewHistory(tag string, index, maxHistories int) (HistoryLogger, error)
+	// GetHistory gets an io.Reader() for a given history log
+	GetHistory(tag string, index int) (io.Reader, error)
 }
 
 // Map of registered history providers

@@ -4,6 +4,7 @@ package fileHistory
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -80,6 +81,13 @@ func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (bot.H
 		}
 		return hf, nil
 	}
+}
+
+// GetHistory returns an io.Reader
+func (fhc *historyConfig) GetHistory(tag string, index int) (io.Reader, error) {
+	dirPath := path.Join(fhc.Directory, tag)
+	filePath := path.Join(dirPath, fmt.Sprintf("%s-%d.log", tag, index))
+	return os.Open(filePath)
 }
 
 // The file brain doesn't need the logger, but other brains might

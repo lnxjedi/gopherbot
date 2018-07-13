@@ -1,8 +1,11 @@
 package bot
 
 import (
+	"bufio"
 	"fmt"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 /*
@@ -13,6 +16,8 @@ Job builtins are special:
 
 */
 
+const histPageSize = 2048 // how much history to display at a time
+
 const builtInHistoryConfig = `
 AllChannels: true
 AllowDirect: false
@@ -20,12 +25,22 @@ Help:
 - Keywords: [ "history", "job" ]
   Helptext: [ "(bot), history <job> - list the histories available for a job" ]
 - Keywords: [ "quit" ]
-  Helptext: [ "(bot), history <job> <run#> - start paging the history text for a job run" ]
+  Helptext: [ "(bot), history <job> #<run#> - start paging the history text for a job run" ]
 CommandMatchers:
 - Command: history
-  Regex: '(?i:history ([\w-]+))'
+  Regex: '(?i:history(?: ([\w-]+))?)'
 - Command: showhistory
-  Regex: '(?i:history ([\w-]+) (\d+))'
+  Regex: '(?i:history (?:([\w-]+) )?#(\d+))'
+MessageMatchers:
+- Command: history
+  Regex: '(?i:^history(?: ([\w-]+))?$)'
+  Contexts: [ "task" ]
+- Command: showhistory
+  Regex: '(?i:^history (?:([\w-]+) )?#(\d+)$)'
+  Contexts: [ "task" ]
+ReplyMatchers:
+- Label: paging
+  Regex: '(?i:(c|n|q))'
 `
 
 func init() {
@@ -37,20 +52,88 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		return
 	}
 
-	// boilerplate availability and security checking for job commands
 	taskName := args[0]
-	t := r.jobAvailable(taskName)
+	// boilerplate availability and security checking for job commands
+	c := r.getContext()
+	t := c.jobAvailable(taskName)
 	if t == nil {
 		return
 	}
-	c := r.getContext()
 	if !c.jobSecurityCheck(t) {
 		return
 	}
 
 	switch command {
 	case "history":
-
+		var th taskHistory
+		key := histPrefix + taskName
+		_, _, ret := checkoutDatum(key, &th, false)
+		if ret != Ok || len(th.Histories) == 0 {
+			r.Say(fmt.Sprintf("No history found for '%s'", taskName))
+			return
+		}
+		hl := make([]string, len(th.Histories)+1)
+		hl = append(hl, fmt.Sprintf("History of job runs for '%s':", taskName))
+		for _, he := range th.Histories {
+			hl = append(hl, fmt.Sprintf("Run #%d - %s", he.LogIndex, he.CreateTime))
+		}
+		r.Say(strings.Join(hl, "\n"))
+	case "showhistory":
+		index, _ := strconv.Atoi(args[1])
+		f, err := robot.history.GetHistory(taskName, index)
+		if err != nil {
+			Log(Error, fmt.Sprintf("Error getting history #%d for task '%s': %v", index, taskName, err))
+			r.Say(fmt.Sprintf("History #%d for '%s' not available", index, taskName))
+			return
+		}
+		var line string
+		scanner := bufio.NewScanner(f)
+		finished := false
+	PageLoop:
+		for {
+			size := 0
+			lines := make([]string, 0, 40)
+			if len(line) > 0 {
+				lines = append(lines, line)
+				size += len(line) + 1
+				line = ""
+			}
+			for size < histPageSize {
+				if scanner.Scan() {
+					line = scanner.Text()
+					size += len(line) + 1
+					if size < histPageSize {
+						lines = append(lines, line)
+						line = ""
+					}
+				} else {
+					finished = true
+					break
+				}
+			}
+			r.Fixed().Say(strings.Join(lines, "\n"))
+			if finished {
+				break
+			}
+			rep, ret := r.PromptForReply("paging", "'c' to continue, 'q' to quit, or 'n' to skip to the next section")
+			if ret != Ok && ret != TimeoutExpired {
+				r.Say("(quitting)")
+				break PageLoop
+			} else {
+			ContinueSwitch:
+				switch rep {
+				case "q", "Q":
+					break PageLoop
+				case "n", "N":
+					for scanner.Scan() {
+						line = scanner.Text()
+						if strings.HasPrefix(line, "***") {
+							break ContinueSwitch
+						}
+					}
+				}
+			}
+		}
 	}
 	return
 }
@@ -88,8 +171,8 @@ func (c *botContext) jobSecurityCheck(t interface{}) bool {
 // jobAvailable does the work of looking up a job and checking whether it's
 // available, and messaging the user if it's not. Only called for interactive
 // job commands like history, run job, etc.
-func (r *Robot) jobAvailable(taskName string) interface{} {
-	c := r.getContext()
+func (c *botContext) jobAvailable(taskName string) interface{} {
+	r := c.makeRobot()
 	t := c.tasks.getTaskByName(taskName)
 	if t == nil {
 		r.Say(fmt.Sprintf("Sorry, I don't have a task named '%s' configured", taskName))
