@@ -35,12 +35,12 @@ CommandMatchers:
   Regex: '(?i:help with lists?)'
 - Command: 'add'
   Regex: '(?i:add ([-\w .,!?:\/''’"]+) to (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
-  Contexts: [ "item", "list" ]
+  Contexts: [ "item:it", "list" ]
 - Command: 'list'
   Regex: '(?i:list lists)'
 - Command: 'remove'
   Regex: '(?i:(?:remove|delete) ([-\w .,!?:\/''’"]+) from (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
-  Contexts: [ "item", "list" ]
+  Contexts: [ "item:it", "list" ]
 - Command: 'empty'
   Regex: '(?i:(?:empty|clear) (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "list" ]

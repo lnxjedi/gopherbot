@@ -21,10 +21,10 @@ CommandMatchers:
   Regex: '(?i:help with links?)'
 - Command: 'add'
   Regex: '(?i:link ([-\w ,''!."+=?&@#()/]+) to ((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
-  Contexts: [ "item", "link" ]
+  Contexts: [ "item:it", "link" ]
 - Command: 'add'
   Regex: '(?i:link ([-\w ,''!."+=?&@#()/]+) to (it))'
-  Contexts: [ "item", "link" ]
+  Contexts: [ "item:it", "link:it" ]
 - Command: 'save'
   Regex: '(?i:save (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
   Contexts: [ "link" ]
@@ -33,12 +33,12 @@ CommandMatchers:
   Contexts: [ "link" ]
 - Command: 'find'
   Regex: '(?i:(?:find|look ?up) ([-\w ,''!."+=?&@#()/]+))'
-  Contexts: [ "item" ]
+  Contexts: [ "item:it" ]
 - Command: 'list'
   Regex: '(?i:(?:show|list) links)'
 - Command: 'find'
   Regex: '(?i:look ([-\w ,''!."+=?&@#()/]+) up)'
-  Contexts: [ "item" ]
+  Contexts: [ "item:it" ]
 ReplyMatchers:
 - Regex: '([-\w ,''!."+=?&@#()/]+)'
   Label: "lookup"
