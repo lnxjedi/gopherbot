@@ -89,11 +89,31 @@ func main() {
 * Add QueueTask() method - when exclusive returns false, a call to QueueTask() will stick the current task in a run queue at the end of the current task:
   * Create a taskDone channel and stick in the global queue for the exclusive tag
   * Block in a select to wait for taskDone (set status to "Queued"?)
-  * At the end of a pipeline, check context Exclusive tag, look up the queue and send on the channel for the next task in the queue, which then re-enters 'Running'
+  * At the end of a pipeline, check context Exclusive tag, look up the queue and send on the channel for the next task in the queue, which then re-enters 'Running' (see algorithm mock-up below)
 * Add SetWorkingDirectory(...) bool method, allow relative paths relative to GOPHER_CONFIGDIR
 * Set loglevel to Debug and clean up redundant log entries in runtasks
 * Audit / update logging & history sections for starting pipelines & sub-pipelines
 * Add builtins for listing and terminating running tasks
+
+Algorithm mock-up for what to do after callTask in runPipeline:
+```go
+package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	requeued := false
+	for i := 0; i < 5; i++ {
+		fmt.Printf("Index is %d\n", i)
+		if i == 0 && !requeued {
+			i--
+			requeued = true
+		}
+	}
+}
+```
 
 ## Histories
 
