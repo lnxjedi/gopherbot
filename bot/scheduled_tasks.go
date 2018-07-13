@@ -69,13 +69,13 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList) {
 	// Create the botContext to carry state through the pipeline.
 	// startPipeline will take care of registerActive()
 	bot := &botContext{
-		User:                 task.User,
-		Channel:              task.Channel,
-		tasks:                tasks,
-		isCommand:            isPlugin,
-		directMsg:            false,
-		bypassSecurityChecks: true, // scheduled jobs don't get authorization / elevation checks
-		environment:          make(map[string]string),
+		User:          task.User,
+		Channel:       task.Channel,
+		tasks:         tasks,
+		isCommand:     isPlugin,
+		directMsg:     false,
+		automaticTask: true, // scheduled jobs don't get authorization / elevation checks
+		environment:   make(map[string]string),
 	}
 	var command string
 	if isPlugin {
@@ -84,5 +84,5 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList) {
 		command = "run"
 	}
 	Log(Debug, fmt.Sprintf("Starting scheduled task: %s", task.name))
-	bot.startPipeline(t, false, scheduled, command, ts.Arguments...)
+	bot.startPipeline(t, scheduled, command, ts.Arguments...)
 }

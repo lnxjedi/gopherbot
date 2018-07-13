@@ -25,10 +25,8 @@ var envPassThrough = []string{
 
 // startPipeline is triggered by user commands, job triggers, and scheduled tasks.
 // Called from dispatch: checkPluginMatchersAndRun,
-// jobcommands: checkJobMatchersAndRun or scheduledTask. interactive
-// indicates whether a pipeline started from a user command - plugin match or
-// run job command.
-func (bot *botContext) startPipeline(t interface{}, interactive bool, ptype pipelineType, command string, args ...string) {
+// jobcommands: checkJobMatchersAndRun or scheduledTask.
+func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command string, args ...string) {
 	task, _, job := getTask(t)
 	isJob := job != nil
 	verbose := (isJob && job.Verbose) || ptype == jobCmd
@@ -149,7 +147,7 @@ func (bot *botContext) startPipeline(t interface{}, interactive bool, ptype pipe
 	bot.nextTasks = []taskSpec{ts}
 	ret, errString = bot.runPipeline(nextT, ptype, true)
 	if ret != Normal {
-		if interactive && errString != "" {
+		if !bot.automaticTask && errString != "" {
 			r.Reply(errString)
 		}
 	}
@@ -195,7 +193,7 @@ func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRu
 		args := ts.Arguments
 		t := ts.task
 		// bypass security checks if flag set, or running final tasks
-		if !bot.bypassSecurityChecks && s != finalT {
+		if !bot.automaticTask && s != finalT {
 			r := bot.makeRobot()
 			_, plugin, _ := getTask(t)
 			if plugin != nil && len(plugin.AdminCommands) > 0 {

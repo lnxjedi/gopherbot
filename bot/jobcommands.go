@@ -80,8 +80,8 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		}
 		robot.RUnlock()
 		// Jobs triggers should only match apps / bots, not real users!
-		bot.bypassSecurityChecks = true
-		bot.startPipeline(runTask, false, jobTrigger, "run", triggerArgs...)
+		bot.automaticTask = true
+		bot.startPipeline(runTask, jobTrigger, "run", triggerArgs...)
 		return
 	}
 	// Check for built-in run job
@@ -94,7 +94,7 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	}
 	t := r.jobAvailable(jobName)
 	if t != nil {
-		bot.startPipeline(t, true, jobCmd, "run")
-	}
+		bot.startPipeline(t, jobCmd, "run")
+	} // jobAvailable sends a message if it's not
 	return
 }

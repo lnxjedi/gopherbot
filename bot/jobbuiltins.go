@@ -59,7 +59,8 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 }
 
 // jobAvailable does the work of looking up a job and checking whether it's
-// available.
+// available, and messaging the user if it's not. Only called for interactive
+// job commands like history, run job, etc.
 func (r *Robot) jobAvailable(taskName string) interface{} {
 	c := r.getContext()
 	t := c.tasks.getTaskByName(taskName)

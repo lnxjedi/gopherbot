@@ -171,7 +171,7 @@ Documentation on elevation and authorization should be clarified:
 
 ##### Scheduled Jobs / Plugins
 
-Scheduled jobs configured in `gopherbot.yaml` should never trigger elevation or authorization checks. A `bypassSecurity` bool in the created Robot object should indicate this.
+Scheduled jobs configured in `gopherbot.yaml` should never trigger elevation or authorization checks. An `automaticTask` bool in the created Robot object should indicate this.
 
 ##### Interactive Jobs
 
