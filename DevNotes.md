@@ -129,7 +129,6 @@ Datum are protected by serializing all access to memories through a select loop.
 ### TODO
 * Write reKey function
 * Write 'rekey brain <foo>' admin commands
-* Update Duo prefs to store all user prefs in a single hash, so data items are larger, to prevent encryption errors when the item being encrypted is smaller than the nonce (12 bytes)
 
 ## Plugins and Jobs
 
@@ -243,3 +242,4 @@ This is just a gathering spot for somewhat uncategorized TODO items...
   intentional defaults when nothing configured explicitly? (probably yes,
   instead of always using the zero-values of the type)
 - Re-sign psdemo and powershell lib (needs to be done on Windows)
+- Stop 'massaging' regexes; instead, collapse multiple spaces in to a single space before checking the message in dispatch
