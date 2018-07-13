@@ -90,6 +90,8 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 								contextMatches = append(contextMatches, ctx[1:]...)
 								key := "context:" + contextName
 								c := memoryContext{key, bot.User, bot.Channel}
+								// Check if the capture group matches the empty string
+								// or one of the generic values (e.g. "it")
 								cMatch := false
 								for _, cm := range contextMatches {
 									if cmdArgs[i] == cm {
@@ -97,6 +99,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 									}
 								}
 								if cMatch {
+									// If a generic matched, try to recall from short-term memory
 									s, ok := shortTermMemories.m[c]
 									if ok {
 										cmdArgs[i] = s.memory
@@ -111,11 +114,12 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 										return true
 									}
 								} else {
+									// Didn't match generic, store the value in short-term context memory
 									s := shortTermMemory{cmdArgs[i], ts}
 									shortTermMemories.m[c] = s
 								}
 							} else {
-								Log(Error, fmt.Sprintf("Plugin '%s', command '%s', has more contexts than match groups"))
+								Log(Error, fmt.Sprintf("Plugin '%s', command '%s', has more contexts than match groups", task.name, matcher.Command))
 							}
 						}
 					}
