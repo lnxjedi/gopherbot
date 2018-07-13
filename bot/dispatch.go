@@ -84,12 +84,12 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 					for i, contextLabel := range matcher.Contexts {
 						if contextLabel != "" {
 							if len(cmdArgs) > i {
-								ctx := strings.Split(contextLabel, ":")
-								contextName := ctx[0]
+								ctxargs := strings.Split(contextLabel, ":")
+								contextName := ctxargs[0]
 								contextMatches := []string{""}
-								contextMatches = append(contextMatches, ctx[1:]...)
+								contextMatches = append(contextMatches, ctxargs[1:]...)
 								key := "context:" + contextName
-								c := memoryContext{key, bot.User, bot.Channel}
+								ctx := memoryContext{key, bot.User, bot.Channel}
 								// Check if the capture group matches the empty string
 								// or one of the generic values (e.g. "it")
 								cMatch := false
@@ -100,14 +100,14 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 								}
 								if cMatch {
 									// If a generic matched, try to recall from short-term memory
-									s, ok := shortTermMemories.m[c]
+									s, ok := shortTermMemories.m[ctx]
 									if ok {
 										cmdArgs[i] = s.memory
 										// TODO: it would probably be best to substitute the value
 										// from "it" back in to the original message and re-check for
 										// a match. Failing a match, matched should be set to false.
 										s.timestamp = ts
-										shortTermMemories.m[c] = s
+										shortTermMemories.m[ctx] = s
 									} else {
 										bot.makeRobot().Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel))
 										shortTermMemories.Unlock()
@@ -116,7 +116,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 								} else {
 									// Didn't match generic, store the value in short-term context memory
 									s := shortTermMemory{cmdArgs[i], ts}
-									shortTermMemories.m[c] = s
+									shortTermMemories.m[ctx] = s
 								}
 							} else {
 								Log(Error, fmt.Sprintf("Plugin '%s', command '%s', has more contexts than match groups", task.name, matcher.Command))
