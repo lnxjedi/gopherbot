@@ -87,7 +87,8 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	}
 	// Check for built-in run job
 	var jobName string
-	matches := runJobRe.FindAllStringSubmatch(bot.msg, -1)
+	cmsg := spaceRe.ReplaceAllString(bot.msg, " ")
+	matches := runJobRe.FindAllStringSubmatch(cmsg, -1)
 	if matches != nil {
 		jobName = matches[0][1]
 	} else {
