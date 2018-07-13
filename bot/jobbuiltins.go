@@ -36,26 +36,53 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	if command == "init" {
 		return
 	}
+
+	// boilerplate availability and security checking for job commands
 	taskName := args[0]
 	t := r.jobAvailable(taskName)
 	if t == nil {
 		return
 	}
 	c := r.getContext()
-	if c.checkAuthorization(t, "run") != Success {
-		r.Say(fmt.Sprintf("Sorry, failed authorization for job '%s'", taskName))
+	if !c.jobSecurityCheck(t) {
 		return
 	}
-	eret, _ := c.checkElevation(t, command)
-	if eret != Success {
-		r.Say("Elevation request failed")
-		return
-	}
+
 	switch command {
 	case "history":
 
 	}
 	return
+}
+
+// jobSecurityCheck performs all security checks - RequireAdmin, Authorization
+// and Elevation - and returns true if passed. It will message the user and
+// return false if a check fails.
+func (c *botContext) jobSecurityCheck(t interface{}) bool {
+	if c.automaticTask {
+		return true
+	}
+	task, _, _ := getTask(t)
+	if task.RequireAdmin {
+		r := c.makeRobot()
+		if !r.CheckAdmin() {
+			r.Say("Sorry, that command is only available to bot administrators")
+			return false
+		}
+	}
+	if c.checkAuthorization(t, "run") != Success {
+		return false
+	}
+	if !c.elevated {
+		eret, required := c.checkElevation(t, "")
+		if eret != Success {
+			return false
+		}
+		if required {
+			c.elevated = true
+		}
+	}
+	return true
 }
 
 // jobAvailable does the work of looking up a job and checking whether it's

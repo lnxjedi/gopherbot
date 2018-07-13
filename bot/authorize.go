@@ -62,7 +62,7 @@ func (bot *botContext) checkAuthorization(t interface{}, command string, args ..
 		}
 		if authRet == Fail {
 			Log(Audit, fmt.Sprintf("Authorization FAILED by authorizer '%s' for user '%s' calling command '%s' for task '%s' in channel '%s'; AuthRequire: '%s'", authPlug.name, bot.User, command, task.name, bot.Channel, task.AuthRequire))
-			r.Say("Sorry, you're not authorized for that command in this channel")
+			r.Say("Sorry, you're not authorized for that command")
 			emit(AuthRanFail)
 			return Fail
 		}
