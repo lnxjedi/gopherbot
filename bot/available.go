@@ -23,19 +23,19 @@ func (r *botContext) taskAvailable(task *botTask, helpSystem, verboseOnly bool) 
 	}
 	defer func(vmsg string) {
 		if available {
-			r.debug(vmsg, verboseOnly)
+			r.debugTask(task, vmsg, verboseOnly)
 		}
 	}(vmsg)
 	if task.Disabled {
-		r.debug(nvmsg+"; task is disabled, possibly due to configuration error", verboseOnly)
+		r.debugTask(task, nvmsg+"; task is disabled, possibly due to configuration error", verboseOnly)
 		return false
 	}
 	if !r.directMsg && task.DirectOnly && !helpSystem {
-		r.debug(nvmsg+"; only available by direct message: DirectOnly is TRUE", verboseOnly)
+		r.debugTask(task, nvmsg+"; only available by direct message: DirectOnly is TRUE", verboseOnly)
 		return false
 	}
 	if r.directMsg && !task.AllowDirect && !helpSystem {
-		r.debug(nvmsg+"; not available by direct message: AllowDirect is FALSE", verboseOnly)
+		r.debugTask(task, nvmsg+"; not available by direct message: AllowDirect is FALSE", verboseOnly)
 		return false
 	}
 	if task.RequireAdmin {
@@ -49,7 +49,7 @@ func (r *botContext) taskAvailable(task *botTask, helpSystem, verboseOnly bool) 
 		}
 		robot.RUnlock()
 		if !isAdmin {
-			r.debug(nvmsg+"; RequireAdmin is TRUE and user isn't an Admin", verboseOnly)
+			r.debugTask(task, nvmsg+"; RequireAdmin is TRUE and user isn't an Admin", verboseOnly)
 			return false
 		}
 	}
@@ -62,7 +62,7 @@ func (r *botContext) taskAvailable(task *botTask, helpSystem, verboseOnly bool) 
 			}
 		}
 		if !userOk {
-			r.debug(nvmsg+"; user is not on the list of allowed users", verboseOnly)
+			r.debugTask(task, nvmsg+"; user is not on the list of allowed users", verboseOnly)
 			return false
 		}
 	}
@@ -83,6 +83,6 @@ func (r *botContext) taskAvailable(task *botTask, helpSystem, verboseOnly bool) 
 	if helpSystem {
 		return true
 	}
-	r.debug(fmt.Sprintf(nvmsg+"; channel '%s' is not on the list of allowed channels: %s", r.Channel, strings.Join(task.Channels, ", ")), verboseOnly)
+	r.debugTask(task, fmt.Sprintf(nvmsg+"; channel '%s' is not on the list of allowed channels: %s", r.Channel, strings.Join(task.Channels, ", ")), verboseOnly)
 	return false
 }

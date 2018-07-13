@@ -10,7 +10,9 @@ import (
 	"sync"
 )
 
-// PluginNames can be letters, numbers & underscores only, mainly so
+// Regex for task/job/plugin/NameSpace names. NOTE: if this changes,
+// command regexes in jobbuiltins.go will need to be changed.
+// Identifiers can be letters, numbers & underscores only, mainly so
 // brain functions can use ':' as a separator.
 const identifierRegex = `[\w-]+`
 

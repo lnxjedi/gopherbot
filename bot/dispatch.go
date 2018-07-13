@@ -32,7 +32,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 		if task.Disabled {
 			msg := fmt.Sprintf("Skipping disabled task '%s', reason: %s", task.name, task.reason)
 			Log(Trace, msg)
-			bot.debugTask(t, msg, false)
+			bot.debugT(t, msg, false)
 			continue
 		}
 		Log(Trace, fmt.Sprintf("Checking availability of task '%s' in channel '%s' for user '%s', active in %d channels (allchannels: %t)", task.name, bot.Channel, bot.User, len(task.Channels), task.AllChannels))
@@ -49,7 +49,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 				continue
 			}
 			if len(plugin.CommandMatchers) == 0 {
-				bot.debugTask(t, fmt.Sprintf("Plugin has no command matchers, skipping command check"), false)
+				bot.debugT(t, fmt.Sprintf("Plugin has no command matchers, skipping command check"), false)
 				continue
 			}
 			matchers = plugin.CommandMatchers
@@ -59,20 +59,20 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 				continue
 			}
 			if len(plugin.MessageMatchers) == 0 {
-				bot.debugTask(t, fmt.Sprintf("Plugin has no message matchers, skipping message check"), true)
+				bot.debugT(t, fmt.Sprintf("Plugin has no message matchers, skipping message check"), true)
 				continue
 			}
 			matchers = plugin.MessageMatchers
 			ctype = "message"
 		}
 		Log(Trace, fmt.Sprintf("Task '%s' is active, will check for matches", task.name))
-		bot.debugTask(t, fmt.Sprintf("Checking %d %s matchers against message: '%s'", len(matchers), ctype, bot.msg), verboseOnly)
+		bot.debugT(t, fmt.Sprintf("Checking %d %s matchers against message: '%s'", len(matchers), ctype, bot.msg), verboseOnly)
 		for _, matcher := range matchers {
 			Log(Trace, fmt.Sprintf("Checking '%s' against '%s'", bot.msg, matcher.Regex))
 			matches := matcher.re.FindAllStringSubmatch(bot.msg, -1)
 			matched := false
 			if matches != nil {
-				bot.debugTask(t, fmt.Sprintf("Matched %s regex '%s', command: %s", ctype, matcher.Regex, matcher.Command), false)
+				bot.debugT(t, fmt.Sprintf("Matched %s regex '%s', command: %s", ctype, matcher.Regex, matcher.Command), false)
 				matched = true
 				Log(Trace, fmt.Sprintf("Message '%s' matches command '%s'", bot.msg, matcher.Command))
 				cmdArgs = matches[0][1:]
@@ -107,7 +107,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 					shortTermMemories.Unlock()
 				}
 			} else {
-				bot.debugTask(t, fmt.Sprintf("Not matched: %s", matcher.Regex), verboseOnly)
+				bot.debugT(t, fmt.Sprintf("Not matched: %s", matcher.Regex), verboseOnly)
 			}
 			if matched {
 				if messageMatched {

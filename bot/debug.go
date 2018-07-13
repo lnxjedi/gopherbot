@@ -28,20 +28,28 @@ var taskDebug = struct {
 }
 
 func (r *botContext) debug(msg string, verboseonly bool) {
-	r.debugTask(r.currentTask, msg, verboseonly)
+	r.debugT(r.currentTask, msg, verboseonly)
 }
 
 // If the debug statement requests verboseonly, then the user will only get the
 // message if verbose debugging was requested.
-func (r *botContext) debugTask(t interface{}, msg string, verboseonly bool) {
-	var taskID string
+func (c *botContext) debugT(t interface{}, msg string, verboseonly bool) {
 	if t == nil {
-		taskID = ""
+		c.debugTask(nil, msg, verboseonly)
 	} else {
 		task, _, _ := getTask(t)
+		c.debugTask(task, msg, verboseonly)
+	}
+}
+
+func (c *botContext) debugTask(task *botTask, msg string, verboseonly bool) {
+	var taskID string
+	if task == nil {
+		taskID = ""
+	} else {
 		taskID = task.taskID
 	}
-	if len(taskID) == 0 && len(r.User) == 0 {
+	if len(taskID) == 0 && len(c.User) == 0 {
 		return
 	}
 	if len(taskID) == 0 && !verboseonly {
@@ -49,7 +57,7 @@ func (r *botContext) debugTask(t interface{}, msg string, verboseonly bool) {
 	}
 	taskDebug.RLock()
 	ppd, _ := taskDebug.p[taskID]
-	upd, _ := taskDebug.u[r.User]
+	upd, _ := taskDebug.u[c.User]
 	taskDebug.RUnlock()
 	var targetUser, plugName string
 	if ppd == nil {
@@ -62,7 +70,7 @@ func (r *botContext) debugTask(t interface{}, msg string, verboseonly bool) {
 			return
 		}
 		// If we can't look up by plugin, and users don't match, we never care
-		if upd.user != r.User {
+		if upd.user != c.User {
 			return
 		}
 		// We never care about a plugin that's not being debugged
@@ -75,12 +83,11 @@ func (r *botContext) debugTask(t interface{}, msg string, verboseonly bool) {
 	} else {
 		// Cases where the given plugin is being debugged, but not necessarily
 		// by the user that triggered the debug statement.
-		// Log(Trace, fmt.Sprintf("REMOVE: name: %s, user: %s, verboseonly: %v", ppd.name, r.User, verboseonly))
 
 		if verboseonly && !ppd.verbose {
 			return
 		}
-		if ppd.user != r.User {
+		if ppd.user != c.User {
 			// If users don't match and verboseonly requested, don't debug
 			if verboseonly {
 				return
@@ -101,10 +108,9 @@ func (r *botContext) debugTask(t interface{}, msg string, verboseonly bool) {
 	ts := time.Now().Format("2006/01/02 03:04:05")
 	debugLog := fmt.Sprintf("%s DEBUG %s: %s", ts, plugName, msg)
 	// Since Format isn't set right away, we always debug with the configured default
-	bot := r.makeRobot()
+	r := c.makeRobot()
 	robot.RLock()
-	bot.Format = robot.defaultMessageFormat
+	r.Format = robot.defaultMessageFormat
 	robot.RUnlock()
-	bot.SendUserMessage(targetUser, debugLog)
-	// Log(Debug, debugLog)
+	r.SendUserMessage(targetUser, debugLog)
 }

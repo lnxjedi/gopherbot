@@ -226,7 +226,7 @@ Are all commands checked before all message matchers? Multiple matching commands
 
 This is just a gathering spot for somewhat uncategorized TODO items...
 
-- Audit use of 'debug' - most calls should be debugTask? (before bot.currentTask is set)
+- Audit use of 'debug' - most calls should be debugT? (before bot.currentTask is set)
 - Plugin debugging verbose - emit messages for user message matching(?); when the user requesting debugging sets verbose, message match checks should trigger debug messages as well if the plugin being debugged has message matchers
 - Plugin debugging channel option - ability to filter by channel if channel set
 - Slack connector: look up new Bot IDs on the fly if a new bot ID is seen; need to add locking of the bots[] map
