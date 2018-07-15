@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"math/rand"
 	"os/exec"
 	"strconv"
 	"sync"
@@ -15,7 +14,7 @@ var botRunID = struct {
 	idx int
 	sync.Mutex
 }{
-	rand.Int(),
+	0,
 	sync.Mutex{},
 }
 

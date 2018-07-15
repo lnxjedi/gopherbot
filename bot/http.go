@@ -79,6 +79,12 @@ type recollection struct {
 	RW  bool
 }
 
+// Request for exclusive execution
+type exclusive struct {
+	Tag       string
+	QueueTask bool
+}
+
 type usermessage struct {
 	User    string
 	Message string
@@ -255,6 +261,13 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 		success := bot.SetParameter(param.Name, param.Value)
+		sendReturn(rw, boolresponse{Boolean: success})
+	case "Exclusive":
+		var e exclusive
+		if !getArgs(rw, &f.FuncArgs, &e) {
+			return
+		}
+		success := bot.Exclusive(e.Tag, e.QueueTask)
 		sendReturn(rw, boolresponse{Boolean: success})
 	case "Elevate":
 		var e elevate

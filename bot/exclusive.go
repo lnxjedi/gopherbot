@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -12,8 +13,8 @@ var runQueues = struct {
 	sync.Mutex{},
 }
 
-// Exclusive lets a pipeline insure the same pipeline isn't running twice
-// in parallel, to prevent jobs from stomping on each other when it's not safe.
+// Exclusive lets a pipeline request exclusive execution, to prevent jobs
+// from stomping on each other when it's not safe.
 // The string argument ("" allowed) is appended to the pipeline namespace
 // to allow for greater granularity; e.g. two builds of different packages
 // could use the same pipeline and run safely together, but if it's the same
@@ -29,17 +30,24 @@ var runQueues = struct {
 // The safest way to use Exclusive is near the beginning of a pipeline.
 func (r *Robot) Exclusive(tag string, queueTask bool) (success bool) {
 	c := r.getContext()
+	if c.exclusive {
+		return true
+	}
 	task, _, _ := getTask(c.currentTask)
+	if len(tag) > 0 {
+		tag = ":" + tag
+	}
 	if task.PrivateNameSpace {
-		tag = task.NameSpace + ":" + tag
+		tag = task.NameSpace + tag
 	} else {
-		tag = c.nameSpace + ":" + tag
+		tag = c.nameSpace + tag
 	}
 	c.exclusiveTag = tag
 	runQueues.Lock()
 	_, exists := runQueues.m[tag]
 	if !exists {
 		// Take the lock
+		Log(Debug, fmt.Sprintf("Exclusive lock immediately acquired in pipeline '%s', bot #%d", c.pipeName, c.id))
 		runQueues.m[tag] = []chan struct{}{}
 		c.exclusive = true
 		success = true
@@ -49,9 +57,10 @@ func (r *Robot) Exclusive(tag string, queueTask bool) (success bool) {
 	runQueues.Unlock()
 	// Update state to indicate what to do after callTask()
 	if queueTask {
-		c.exclusive = true
+		Log(Debug, fmt.Sprintf("Bot #%d requesting queueing", c.id))
 		c.queueTask = true
 	} else {
+		Log(Debug, fmt.Sprintf("Bot #%d requesting abort, exclusive lock failed"))
 		c.abortPipeline = true
 	}
 	return

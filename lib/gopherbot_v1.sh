@@ -221,6 +221,31 @@ EOF
 	gbBotRet "$GB_RET"
 }
 
+Exclusive(){
+	local QUEUE_TASK="false"
+	local TAG="$1"
+	if [ -n "$2" ]
+	then
+		QUEUE_TASK=$2
+	fi
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Tag": "$TAG",
+	"QueueTask": $QUEUE_TASK
+}
+EOF
+)
+	local GB_FUNCNAME="Exclusive"
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
+	if [ "$RETVAL" = "true" ]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
 Elevate(){
 	IMMEDIATE="false"
 	if [ -n "$1" ]
@@ -236,8 +261,7 @@ EOF
 	local GB_FUNCNAME="Elevate"
 	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
 	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
-	echo "$RETVAL"
-	if [ "$RETVAL" -eq "true" ]
+	if [ "$RETVAL" = "true" ]
 	then
 		return 0
 	else

@@ -162,7 +162,7 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 	if ret != Normal && isJob {
 		task, _, _ := getTask(t)
 		if ret == PipelineAborted {
-			r.Say(fmt.Sprintf("Job aborted, Exclusive lock failed for '%s'", bot.exclusiveTag))
+			r.Say(fmt.Sprintf("Job aborted, exclusive lock failed for '%s'", bot.exclusiveTag))
 		} else {
 			r.Reply(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'", bot.pipeName, runIndex, task.name))
 		}
@@ -175,13 +175,15 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 		tag := bot.exclusiveTag
 		runQueues.Lock()
 		queue, _ := runQueues.m[tag]
-		// TODO: finish me! take channel off queue, delete entry if len == 0,
-		// wake up the next task then Unlock
-		if len(queue) == 0 {
+		queueLen := len(queue)
+		if queueLen == 0 {
+			Log(Debug, fmt.Sprintf("Bot #%d finished exclusive task '%s', no waiters in queue, removing", bot.id, bot.exclusiveTag))
 			delete(runQueues.m, tag)
 		} else {
+			Log(Debug, fmt.Sprintf("Bot #%d finished exclusive task '%s', %d waiters in queue, waking next task", bot.id, bot.exclusiveTag, queueLen))
 			wakeUpTask := queue[0]
 			queue = queue[1:]
+			runQueues.m[tag] = queue
 			// Kiss the Princess
 			wakeUpTask <- struct{}{}
 		}
@@ -212,6 +214,8 @@ func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRu
 		command := ts.Command
 		args := ts.Arguments
 		t := ts.task
+		task, _, job := getTask(t)
+		isJob := job != nil
 		// bypass security checks if flag set, or running final tasks
 		if !bot.automaticTask && s != finalT {
 			r := bot.makeRobot()
@@ -270,38 +274,41 @@ func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRu
 			// task in pipeline failed
 			break
 		}
-		if bot.abortPipeline {
-			ret = PipelineAborted
-			break
-		}
-		if bot.queueTask {
-			bot.queueTask = false
-			tag := bot.exclusiveTag
-			runQueues.Lock()
-			queue, exists := runQueues.m[tag]
-			if exists {
-				wakeUp := make(chan struct{})
-				queue = append(queue, wakeUp)
-				runQueues.m[tag] = queue
-				runQueues.Unlock()
-				// Now we block until kissed by a Handsome Prince
-				<-wakeUp
-				if bot.abortPipeline {
-					ret = PipelineAborted
-					errString = "Pipeline aborted, exclusive lock failed"
-					break
+		if !bot.exclusive {
+			if bot.abortPipeline {
+				ret = PipelineAborted
+				break
+			}
+			if bot.queueTask {
+				bot.queueTask = false
+				bot.exclusive = true
+				tag := bot.exclusiveTag
+				runQueues.Lock()
+				queue, exists := runQueues.m[tag]
+				if exists {
+					wakeUp := make(chan struct{})
+					queue = append(queue, wakeUp)
+					runQueues.m[tag] = queue
+					runQueues.Unlock()
+					Log(Debug, fmt.Sprintf("Exclusive task in progress, queueing bot #%d and waiting; queue length: %d", bot.id, len(queue)))
+					if (isJob && job.Verbose) || ptype == jobCmd {
+						bot.makeRobot().Say(fmt.Sprintf("Queueing task '%s' in pipeline '%s'", task.name, bot.pipeName))
+					}
+					// Now we block until kissed by a Handsome Prince
+					<-wakeUp
+					Log(Debug, fmt.Sprintf("Bot #%d in queue waking up and re-starting task '%s'", bot.id, task.name))
+					if (job != nil && job.Verbose) || ptype == jobCmd {
+						bot.makeRobot().Say(fmt.Sprintf("Re-starting queued task '%s' in pipeline '%s'", task.name, bot.pipeName))
+					}
+					// Decrement the index so this task runs again
+					i--
+					// Clear tasks added in the last run (if any)
+					bot.nextTasks = []taskSpec{}
+				} else {
+					Log(Debug, fmt.Sprintf("Exclusive lock acquired in pipeline '%s', bot #%d", bot.pipeName, bot.id))
+					runQueues.m[tag] = []chan struct{}{}
+					runQueues.Unlock()
 				}
-				_, _, job := getTask(t)
-				if (job != nil && job.Verbose) || ptype == jobCmd {
-					bot.makeRobot().Say(fmt.Sprintf("Re-starting queued pipleline '%s'", bot.taskName))
-				}
-				// Decrement the index so this task runs again
-				i--
-				// Clear tasks added in the last run (if any)
-				bot.nextTasks = []taskSpec{}
-			} else {
-				runQueues.m[tag] = []chan struct{}{}
-				runQueues.Unlock()
 			}
 		}
 		if s == nextT {
