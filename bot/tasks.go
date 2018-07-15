@@ -13,7 +13,7 @@ import (
 // command regexes in jobbuiltins.go will need to be changed.
 // Identifiers can be letters, numbers & underscores only, mainly so
 // brain functions can use ':' as a separator.
-const identifierRegex = `[\w-]+`
+const identifierRegex = `[A-Za-z][\w-]*`
 
 var identifierRe = regexp.MustCompile(identifierRegex)
 

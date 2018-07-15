@@ -25,18 +25,18 @@ Help:
 - Keywords: [ "history", "job" ]
   Helptext: [ "(bot), history <job> - list the histories available for a job" ]
 - Keywords: [ "quit" ]
-  Helptext: [ "(bot), history <job> #<run#> - start paging the history text for a job run" ]
+  Helptext: [ "(bot), history (job) <run#> - start paging the history text for a job run" ]
 CommandMatchers:
 - Command: history
-  Regex: '(?i:history(?: ([\w-]+))?)'
+  Regex: '(?i:history(?: ([A-Za-z][\w-]*))?)'
 - Command: showhistory
-  Regex: '(?i:history (?:([\w-]+) )?#(\d+))'
+  Regex: '(?i:history (?:([A-Za-z][\w-]*) )?(\d+))'
 MessageMatchers:
 - Command: history
-  Regex: '(?i:^history(?: ([\w-]+))?$)'
+  Regex: '(?i:^history(?: ([A-Za-z][\w-]*))?$)'
   Contexts: [ "task" ]
 - Command: showhistory
-  Regex: '(?i:^history (?:([\w-]+) )?#(\d+)$)'
+  Regex: '(?i:^history (?:([A-Za-z][\w-]*) )?(\d+)$)'
   Contexts: [ "task" ]
 ReplyMatchers:
 - Label: paging
