@@ -118,6 +118,7 @@ type botContext struct {
 	pipeStarting       bool              // to prevent re-loading environment of first task in pipeline
 	nextTasks          []taskSpec        // tasks in the pipeline
 	finalTasks         []taskSpec        // clean-up tasks that always run when the pipeline ends
+	failTasks          []taskSpec        // clean-up tasks that run when a pipeline fails
 	logger             HistoryLogger     // where to send stdout / stderr
 	pipeName, pipeDesc string            // name and description of task that started pipeline
 	currentTask        interface{}       // pointer to currently executing task

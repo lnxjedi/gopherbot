@@ -104,6 +104,10 @@ class BaseBot
 		return callBotFunc("FinalTask", { "Name" => name, "CmdArgs" => args })
 	end
 	
+	def FailTask(name, args)
+		return callBotFunc("FailTask", { "Name" => name, "CmdArgs" => args })
+	end
+	
 	def SetParameter(name, value)
 		return callBotFunc("SetParameter", { "Name" => name, "Value" => value })
 	end

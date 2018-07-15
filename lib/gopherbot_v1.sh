@@ -221,6 +221,30 @@ EOF
 	gbBotRet "$GB_RET"
 }
 
+FailTask(){
+	local JSTR
+	local TNAME="$1"
+	shift
+	for ARG in "$@"
+	do
+		JSTR="$JSTR \"$ARG\""
+	done
+	if [ -n "$JSTR" ]
+	then
+		JSTR=$(echo ${JSTR//\" \"/\", \"})
+	fi
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Name": "$TNAME",
+	"CmdArgs": [ $JSTR ]
+}
+EOF
+)
+	local GB_FUNCNAME="FailTask"
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	gbBotRet "$GB_RET"
+}
+
 Exclusive(){
 	local QUEUE_TASK="false"
 	local TAG="$1"

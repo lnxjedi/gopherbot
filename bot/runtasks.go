@@ -152,6 +152,10 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 		}
 	}
 	bot.deregister()
+	if bot.logger != nil {
+		bot.logger.Section("done", "pipeline has completed")
+		bot.logger.Close()
+	}
 	if ret == Normal && verbose {
 		r.Say(fmt.Sprintf("Finished job '%s', run %d", bot.pipeName, runIndex))
 	}
@@ -163,13 +167,14 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 			r.Reply(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'", bot.pipeName, runIndex, task.name))
 		}
 	}
-	// Run final (cleanup) tasks
+	// Run final and fail (cleanup) tasks
+	if ret != Normal {
+		if len(bot.failTasks) > 0 {
+			bot.runPipeline(failT, ptype, false)
+		}
+	}
 	if len(bot.finalTasks) > 0 {
 		bot.runPipeline(finalT, ptype, false)
-	}
-	if bot.logger != nil {
-		bot.logger.Section("done", "pipeline has completed")
-		bot.logger.Close()
 	}
 	if bot.exclusive {
 		tag := bot.exclusiveTag
@@ -196,6 +201,7 @@ type pipeSelector int
 const (
 	nextT pipeSelector = iota
 	finalT
+	failT
 )
 
 func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRun bool) (ret TaskRetVal, errString string) {
@@ -207,6 +213,8 @@ func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRu
 		bot.nextTasks = []taskSpec{}
 	case finalT:
 		p = bot.finalTasks
+	case failT:
+		p = bot.failTasks
 	}
 	l := len(p)
 	for i := 0; i < l; i++ {

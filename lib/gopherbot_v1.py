@@ -127,6 +127,9 @@ class Robot:
     def FinalTask(self, name, args):
         return self.Call("FinalTask", { "Name": name, "CmdArgs": args })
 
+    def FailTask(self, name, args):
+        return self.Call("FailTask", { "Name": name, "CmdArgs": args })
+
     def SetParameter(self, name, value):
         return self.Call("SetParameter", { "Name": name, "Value": value })
 

@@ -151,6 +151,40 @@ func (r *Robot) FinalTask(name string, cmdargs ...string) RetVal {
 	return Ok
 }
 
+// FailTask adds a task that runs if the pipeline fails. This can be used to
+// e.g. terminate a VM that shouldn't be left running if the pipeline fails.
+func (r *Robot) FailTask(name string, cmdargs ...string) RetVal {
+	c := r.getContext()
+	t := c.tasks.getTaskByName(name)
+	if t == nil {
+		return TaskNotFound
+	}
+	_, plugin, _ := getTask(t)
+	isPlugin := plugin != nil
+	var command string
+	var args []string
+	if isPlugin {
+		if len(cmdargs) == 0 {
+			return MissingArguments
+		}
+		if len(cmdargs[0]) == 0 {
+			return MissingArguments
+		}
+		command, args = cmdargs[0], cmdargs[1:]
+	} else {
+		command = "run"
+		args = cmdargs
+	}
+	ts := taskSpec{
+		Name:      name,
+		Command:   command,
+		Arguments: args,
+		task:      t,
+	}
+	c.failTasks = append(c.failTasks, ts)
+	return Ok
+}
+
 // GetParameter retrieves the value of a parameter for a namespace. Only useful
 // for Go plugins; external scripts have all parameters for the NameSpace stored
 // as environment variables. Note that runtasks.go populates the environment
