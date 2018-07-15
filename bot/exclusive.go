@@ -60,7 +60,7 @@ func (r *Robot) Exclusive(tag string, queueTask bool) (success bool) {
 		Log(Debug, fmt.Sprintf("Bot #%d requesting queueing", c.id))
 		c.queueTask = true
 	} else {
-		Log(Debug, fmt.Sprintf("Bot #%d requesting abort, exclusive lock failed"))
+		Log(Debug, fmt.Sprintf("Bot #%d requesting abort, exclusive lock failed", c.id))
 		c.abortPipeline = true
 	}
 	return
