@@ -152,10 +152,6 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 		}
 	}
 	bot.deregister()
-	if bot.logger != nil {
-		bot.logger.Section("done", "pipeline has completed")
-		bot.logger.Close()
-	}
 	if ret == Normal && verbose {
 		r.Say(fmt.Sprintf("Finished job '%s', run %d", bot.pipeName, runIndex))
 	}
@@ -170,6 +166,10 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 	// Run final (cleanup) tasks
 	if len(bot.finalTasks) > 0 {
 		bot.runPipeline(finalT, ptype, false)
+	}
+	if bot.logger != nil {
+		bot.logger.Section("done", "pipeline has completed")
+		bot.logger.Close()
 	}
 	if bot.exclusive {
 		tag := bot.exclusiveTag
