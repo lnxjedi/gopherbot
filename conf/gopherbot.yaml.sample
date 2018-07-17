@@ -218,6 +218,11 @@ LogLevel: info
 #   AccessKeyID: ""
 #   SecretAccessKey: ""
 
+## Enable brain encryption; you want to do this especially if your robot
+## knows a lot of secrets/credentials, and you're using a 'file' brain.
+# EncryptBrain: true
+# BrainKey: SomethingAtLeastThirtyTwoCharactersLong
+
 ## Use Google Authenticator TOTP by default for elevated commands. To use:
 ## - Ask the robot to 'send launch codes', and it will send you (one time)
 ##   a string for configuring your Google Authencticator app, and store it's
