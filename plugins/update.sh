@@ -14,7 +14,6 @@ shift
 configure(){
   cat <<"EOF"
 RequireAdmin: true
-Channels: [ 'botadmin' ]
 ElevatedCommands: [ 'update' ]
 AllowDirect: true
 Help:
