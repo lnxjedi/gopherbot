@@ -1,6 +1,6 @@
 ---
-## DM the robot with `store parameter ssh-init BOT_SSH_PHRASE=<bot ssh passphrase>`,
-## otherwise this will fail
+## DM the robot with `store parameter ssh-init BOT_SSH_PHRASE=<bot ssh passphrase>`
+## if the robot has an encrypted private key
 PrivateNameSpace: true
 Path: jobs/ssh-init.sh
 ## Use $HOME/.ssh/$KEYNAME instead of $HOME/.ssh/id_rsa 
