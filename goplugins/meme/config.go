@@ -26,6 +26,10 @@ Help:
   Helptext: [ "(bot), brace yourselves, <something> - Boromir warns your" ]
 - Keywords: [ "meme" ]
   Helptext: [ "(bot), Y U no <something> - express your angst" ]
+- Keywords: [ "meme", "matrix" ]
+  Helptext: [ "(bot), What if I told you <something> - let Morpheus blow their minds" ]
+- Keywords: [ "meme", "matrix" ]
+  Helptext: [ "(bot), morpheus <something>/<something>" ]
 
 CommandMatchers:
 - Command: "1509839"
@@ -48,6 +52,10 @@ CommandMatchers:
   Regex: '(?i:(brace yourselves,?) ([\w''’ !]+))'
 - Command: "61527"
   Regex: '(?i:(y u no) ([\w''’ !?]+))'
+- Command: "33301480"
+  Regex: '(?i:(what if I told you) (.+))'
+- Command: "33301480"
+  Regex: '(?i:morpheus ([^/]+)(?:/([^/]+))?)'  
 # Custom configuration for memes - you need to supply a username and password,
 # and a map of commands to meme ID #.
 Config:
