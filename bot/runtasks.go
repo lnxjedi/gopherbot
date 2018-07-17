@@ -373,12 +373,54 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		defer checkPanic(r, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
 	}
 	Log(Debug, fmt.Sprintf("Dispatching command '%s' to task '%s' with arguments '%#v'", command, task.name, args))
+
+	// Set up the per-task environment
+	envhash := make(map[string]string)
+	if len(bot.environment) > 0 {
+		for k, v := range bot.environment {
+			envhash[k] = v
+		}
+	}
+	// Pull stored and configured env vars specific to this task and supply to
+	// this task only. No effect if already defined. Useful mainly for specific
+	// tasks to have secrets passed in but not handed to everything in the
+	// pipeline.
+	// NOTE: the pipeStarting flag just prevents environment vars from the first
+	// task in the pipeline from being processed twice.
+	if !bot.pipeStarting {
+		storedEnv := make(map[string]string)
+		_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
+		if exists {
+			for key, value := range storedEnv {
+				// Dynamically provided and configured parameters take precedence over stored parameters
+				_, exists := envhash[key]
+				if !exists {
+					envhash[key] = value
+				}
+			}
+		}
+		// Configured parameters for a pipeline job don't apply if already set
+		if isJob {
+			for _, p := range job.Parameters {
+				_, exists := envhash[p.Name]
+				if !exists {
+					envhash[p.Name] = p.Value
+				}
+			}
+		}
+	} else {
+		bot.pipeStarting = false
+	}
+
 	if isPlugin && plugin.taskType == taskGo {
 		if command != "init" {
 			emit(GoPluginRan)
 		}
 		Log(Debug, fmt.Sprintf("Call go plugin: '%s' with args: %q", task.name, args))
-		return "", pluginHandlers[task.name].Handler(r, command, args...)
+		bot.taskenvironment = envhash
+		ret := pluginHandlers[task.name].Handler(r, command, args...)
+		bot.taskenvironment = nil
+		return "", ret
 	}
 	var fullPath string // full path to the executable
 	var err error
@@ -426,41 +468,6 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	bot.taskDesc = task.Description
 	bot.osCmd = cmd
 	bot.Unlock()
-	envhash := make(map[string]string)
-	if len(bot.environment) > 0 {
-		for k, v := range bot.environment {
-			envhash[k] = v
-		}
-	}
-
-	// Pull stored and configured env vars specific to this task and supply to
-	// this task only. No effect if already defined. Useful mainly for specific
-	// tasks to have secrets passed in but not handed to everything in the
-	// pipeline.
-	if !bot.pipeStarting {
-		storedEnv := make(map[string]string)
-		_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
-		if exists {
-			for key, value := range storedEnv {
-				// Dynamically provided and configured parameters take precedence over stored parameters
-				_, exists := envhash[key]
-				if !exists {
-					envhash[key] = value
-				}
-			}
-		}
-		// Configured parameters for a pipeline job don't apply if already set
-		if isJob {
-			for _, p := range job.Parameters {
-				_, exists := envhash[p.Name]
-				if !exists {
-					envhash[p.Name] = p.Value
-				}
-			}
-		}
-	} else {
-		bot.pipeStarting = false
-	}
 
 	envhash["GOPHER_CHANNEL"] = bot.Channel
 	envhash["GOPHER_USER"] = bot.User

@@ -7,5 +7,5 @@
 Channels: [ "random", "general" ]
 Disabled: false
 Config:
-  Username: "" # or set in IMGFLIP_USER environment variable (leave blank here)
-  Password: "" # ... or IMGFLIP_PASSWORD
+  Username: "<yourusername>"
+  Password: "<yourpassword>" # or `store parameter memes PASSWORD=<something>"

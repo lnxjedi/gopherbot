@@ -7,7 +7,7 @@ Config:
   TimeoutSeconds: 7200
 ## When 'idle', the timer resets on every elevated command
   TimeoutType: idle # or absolute
-  DuoIKey: "" # or set in DUO_IKEY environment var (leave blank here)
-  DuoSKey: "" # ... or DUO_SKEY
-  DuoHost: "" # ... or DUO_HOST
+  DuoIKey: "" # or `store parameter duo IKEY=<something>`
+  DuoSKey: "" # or `store parameter duo SKEY=<something>`
+  DuoHost: "" # or `store parameter duo HOST=<something>`
   DuoUserString: emailUser

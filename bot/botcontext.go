@@ -115,6 +115,7 @@ type botContext struct {
 	automaticTask      bool              // set for scheduled & triggers jobs, where user security restrictions don't apply
 	elevated           bool              // set when required elevation succeeds
 	environment        map[string]string // environment vars set for each job/plugin in the pipeline
+	taskenvironment    map[string]string // per-task environment for Go plugins
 	pipeStarting       bool              // to prevent re-loading environment of first task in pipeline
 	nextTasks          []taskSpec        // tasks in the pipeline
 	finalTasks         []taskSpec        // clean-up tasks that always run when the pipeline ends

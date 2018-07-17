@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 
 	"github.com/lnxjedi/gopherbot/bot"
 )
@@ -27,11 +26,8 @@ type MemeConfig struct {
 func memegen(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
 	var m *MemeConfig
 	r.GetTaskConfig(&m) // make m point to a valid, thread-safe MemeConfig
-	if len(m.Username) == 0 {
-		m.Username = os.Getenv("IMGFLIP_USER")
-	}
 	if len(m.Password) == 0 {
-		m.Username = os.Getenv("IMGFLIP_PASSWORD")
+		m.Password = r.GetParameter("PASSWORD")
 	}
 	if len(m.Username) == 0 || len(m.Password) == 0 {
 		if command != "init" {

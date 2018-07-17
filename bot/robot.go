@@ -193,7 +193,7 @@ func (r *Robot) FailTask(name string, cmdargs ...string) RetVal {
 // credentials.
 func (r *Robot) GetParameter(key string) string {
 	c := r.getContext()
-	value, ok := c.environment[key]
+	value, ok := c.taskenvironment[key]
 	if ok {
 		return value
 	}
