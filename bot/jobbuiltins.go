@@ -186,7 +186,7 @@ func (c *botContext) jobAvailable(taskName string, pluginOk bool) interface{} {
 		return nil
 	}
 	if isPlugin {
-		ok := c.taskAvailable(task, false, false)
+		ok := c.pluginAvailable(task, false, false)
 		if ok {
 			return t
 		}

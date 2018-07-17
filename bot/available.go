@@ -6,12 +6,12 @@ import (
 	"strings"
 )
 
-// taskAvailable checks the user and channel against the task's
+// pluginAvailable checks the user and channel against the task's
 // configuration to determine if the task should be available. Used by
 // both handleMessage and the help builtin. verboseOnly is set when availability
 // is being checked for ambient messages or auth/elevation plugins, to indicate
 // debugging verboseness.
-func (r *botContext) taskAvailable(task *botTask, helpSystem, verboseOnly bool) (available bool) {
+func (r *botContext) pluginAvailable(task *botTask, helpSystem, verboseOnly bool) (available bool) {
 	nvmsg := "task is NOT visible to user " + r.User + " in channel "
 	vmsg := "task is visible to user " + r.User + " in channel "
 	if r.directMsg {

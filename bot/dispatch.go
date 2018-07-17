@@ -40,7 +40,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 			continue
 		}
 		Log(Trace, fmt.Sprintf("Checking availability of task '%s' in channel '%s' for user '%s', active in %d channels (allchannels: %t)", task.name, bot.Channel, bot.User, len(task.Channels), task.AllChannels))
-		ok := bot.taskAvailable(task, false, verboseOnly)
+		ok := bot.pluginAvailable(task, false, verboseOnly)
 		if !ok {
 			Log(Trace, fmt.Sprintf("Task '%s' not available for user '%s' in channel '%s', doesn't meet criteria", task.name, bot.User, bot.Channel))
 			continue

@@ -91,7 +91,7 @@ func help(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 			}
 			// If a keyword was supplied, give help for all matching commands with channels;
 			// without a keyword, show help for all commands available in the channel.
-			if !bot.getContext().taskAvailable(task, hasKeyword, true) {
+			if !bot.getContext().pluginAvailable(task, hasKeyword, true) {
 				continue
 			}
 			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", task.name, term))
