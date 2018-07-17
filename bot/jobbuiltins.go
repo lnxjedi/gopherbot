@@ -55,7 +55,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	taskName := args[0]
 	// boilerplate availability and security checking for job commands
 	c := r.getContext()
-	t := c.jobAvailable(taskName)
+	t := c.jobAvailable(taskName, true)
 	if t == nil {
 		return
 	}
@@ -171,16 +171,26 @@ func (c *botContext) jobSecurityCheck(t interface{}) bool {
 // jobAvailable does the work of looking up a job and checking whether it's
 // available, and messaging the user if it's not. Only called for interactive
 // job commands like history, run job, etc.
-func (c *botContext) jobAvailable(taskName string) interface{} {
+func (c *botContext) jobAvailable(taskName string, pluginOk bool) interface{} {
 	r := c.makeRobot()
 	t := c.tasks.getTaskByName(taskName)
 	if t == nil {
 		r.Say(fmt.Sprintf("Sorry, I don't have a task named '%s' configured", taskName))
 		return nil
 	}
-	task, _, job := getTask(t)
-	if job == nil {
+	task, plugin, job := getTask(t)
+	isPlugin := plugin != nil
+	isJob := job != nil
+	if !isJob && (!isPlugin && pluginOk) {
 		r.Say(fmt.Sprintf("Sorry, '%s' isn't a job", taskName))
+		return nil
+	}
+	if isPlugin {
+		ok := c.taskAvailable(task, false, false)
+		if ok {
+			return t
+		}
+		r.Say(fmt.Sprintf("Sorry, '%s' isn't available", taskName))
 		return nil
 	}
 	if r.Channel != task.Channel {

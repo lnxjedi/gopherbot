@@ -94,7 +94,7 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	} else {
 		return
 	}
-	t := bot.jobAvailable(jobName)
+	t := bot.jobAvailable(jobName, false)
 	if t != nil {
 		// remember which job we're talking about
 		ctx := memoryContext{"context:task", bot.User, bot.Channel}
