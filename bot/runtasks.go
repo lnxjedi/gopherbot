@@ -91,12 +91,16 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 			if ret != Ok {
 				Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, bot.pipeName))
 			} else {
-				if task.HistoryLogs > 0 {
+				if task.HistoryLogs > 0 && history != nil {
 					pipeHistory, err := history.NewHistory(bot.pipeName, hist.LogIndex, task.HistoryLogs)
 					if err != nil {
 						Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", bot.pipeName, err))
 					} else {
 						bot.logger = pipeHistory
+					}
+				} else {
+					if history == nil {
+						Log(Warn, "Error starting history, no history provider available")
 					}
 				}
 			}
