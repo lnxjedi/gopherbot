@@ -125,7 +125,6 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 			}
 		}
 	}
-	bot.pipeStarting = true
 	for _, p := range envPassThrough {
 		_, exists := bot.environment[p]
 		if !exists {
@@ -152,10 +151,6 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 		}
 	}
 	bot.deregister()
-	if bot.logger != nil {
-		bot.logger.Section("done", "pipeline has completed")
-		bot.logger.Close()
-	}
 	if ret == Normal && verbose {
 		r.Say(fmt.Sprintf("Finished job '%s', run %d", bot.pipeName, runIndex))
 	}
@@ -175,6 +170,10 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 	}
 	if len(bot.finalTasks) > 0 {
 		bot.runPipeline(finalT, ptype, false)
+	}
+	if bot.logger != nil {
+		bot.logger.Section("done", "pipeline has completed")
+		bot.logger.Close()
 	}
 	if bot.exclusive {
 		tag := bot.exclusiveTag
@@ -385,9 +384,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	// this task only. No effect if already defined. Useful mainly for specific
 	// tasks to have secrets passed in but not handed to everything in the
 	// pipeline.
-	// NOTE: the pipeStarting flag just prevents environment vars from the first
-	// task in the pipeline from being processed twice.
-	if !bot.pipeStarting {
+	if task.name != bot.pipeName { // don't re-add stuff stored in the pipeline already
 		storedEnv := make(map[string]string)
 		_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
 		if exists {
@@ -399,17 +396,15 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 				}
 			}
 		}
-		// Configured parameters for a pipeline job don't apply if already set
-		if isJob {
-			for _, p := range job.Parameters {
-				_, exists := envhash[p.Name]
-				if !exists {
-					envhash[p.Name] = p.Value
-				}
+	}
+	// Configured parameters for a pipeline job don't apply if already set
+	if isJob {
+		for _, p := range job.Parameters {
+			_, exists := envhash[p.Name]
+			if !exists {
+				envhash[p.Name] = p.Value
 			}
 		}
-	} else {
-		bot.pipeStarting = false
 	}
 
 	if isPlugin && plugin.taskType == taskGo {

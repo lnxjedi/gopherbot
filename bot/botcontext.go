@@ -116,7 +116,6 @@ type botContext struct {
 	elevated           bool              // set when required elevation succeeds
 	environment        map[string]string // environment vars set for each job/plugin in the pipeline
 	taskenvironment    map[string]string // per-task environment for Go plugins
-	pipeStarting       bool              // to prevent re-loading environment of first task in pipeline
 	nextTasks          []taskSpec        // tasks in the pipeline
 	finalTasks         []taskSpec        // clean-up tasks that always run when the pipeline ends
 	failTasks          []taskSpec        // clean-up tasks that run when a pipeline fails
