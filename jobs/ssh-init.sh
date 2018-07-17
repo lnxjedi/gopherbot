@@ -30,6 +30,11 @@ fi
 
 SSH_KEY=${KEYNAME:-id_rsa}
 SSH_KEY_PATH="$HOME/.ssh/$SSH_KEY"
+if [ ! -e $SSH_KEY_PATH ]
+then
+    Log "Warn" "No ssh key found in ssh-init, exiting"
+    exit 0
+fi
 
 if grep -q ENCRYPTED $SSH_KEY_PATH
 then

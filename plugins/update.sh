@@ -5,6 +5,8 @@
 # It's up to the bot admin to install an ssh keypair for the
 # bot in the $HOME/.ssh directory that has at least
 # read access to the git repository. (normally a deploy key)
+# NOTE: this plugin requires external tasks for git, ssh, and
+# ssh-agent; see gopherbot.yaml.sample.
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
@@ -16,6 +18,7 @@ configure(){
 RequireAdmin: true
 ElevatedCommands: [ 'update' ]
 AllowDirect: true
+HistoryLogs: 7
 Help:
 - Keywords: [ "config", "configuration", "update" ]
   Helptext: [ "(bot), update configuration - perform a 'git pull' in the configuration directory" ]
@@ -30,11 +33,9 @@ case "$COMMAND" in
 		configure
 		;;
     "update")
-        Say "Ok, I'll issue a git pull..."
-        RES=$(cd $GOPHER_CONFIGDIR; git pull 2>&1)
-        Say "Operation completed with result:"
-        Say -f "$RES"
-        Say "Initiating a reload..."
+        Say "Ok, I'll issue a git pull and reload configuration..."
+        AddTask ssh-init
+        AddTask git pull
         AddTask builtInadmin reload
         ;;
 esac
