@@ -75,15 +75,15 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		hl := make([]string, len(th.Histories)+1)
 		hl = append(hl, fmt.Sprintf("History of job runs for '%s':", taskName))
 		for _, he := range th.Histories {
-			hl = append(hl, fmt.Sprintf("Run #%d - %s", he.LogIndex, he.CreateTime))
+			hl = append(hl, fmt.Sprintf("Run %d - %s", he.LogIndex, he.CreateTime))
 		}
 		r.Say(strings.Join(hl, "\n"))
 	case "showhistory":
 		index, _ := strconv.Atoi(args[1])
 		f, err := robot.history.GetHistory(taskName, index)
 		if err != nil {
-			Log(Error, fmt.Sprintf("Error getting history #%d for task '%s': %v", index, taskName, err))
-			r.Say(fmt.Sprintf("History #%d for '%s' not available", index, taskName))
+			Log(Error, fmt.Sprintf("Error getting history %d for task '%s': %v", index, taskName, err))
+			r.Say(fmt.Sprintf("History %d for '%s' not available", index, taskName))
 			return
 		}
 		var line string
