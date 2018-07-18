@@ -86,6 +86,9 @@ func (r *Robot) SetParameter(name, value string) bool {
 // arguments passed to the job.
 func (r *Robot) AddTask(name string, cmdargs ...string) RetVal {
 	c := r.getContext()
+	if c.stage != primaryTasks {
+		return InvalidStage
+	}
 	t := c.tasks.getTaskByName(name)
 	if t == nil {
 		return TaskNotFound
@@ -121,6 +124,9 @@ func (r *Robot) AddTask(name string, cmdargs ...string) RetVal {
 // the ssh-agent will run, regardless of whether the pipeline failed.
 func (r *Robot) FinalTask(name string, cmdargs ...string) RetVal {
 	c := r.getContext()
+	if c.stage != primaryTasks {
+		return InvalidStage
+	}
 	t := c.tasks.getTaskByName(name)
 	if t == nil {
 		return TaskNotFound
@@ -155,6 +161,9 @@ func (r *Robot) FinalTask(name string, cmdargs ...string) RetVal {
 // e.g. terminate a VM that shouldn't be left running if the pipeline fails.
 func (r *Robot) FailTask(name string, cmdargs ...string) RetVal {
 	c := r.getContext()
+	if c.stage != primaryTasks {
+		return InvalidStage
+	}
 	t := c.tasks.getTaskByName(name)
 	if t == nil {
 		return TaskNotFound

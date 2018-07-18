@@ -24,7 +24,9 @@ GBRET_MatcherNotFound=19
 GBRET_NoUserEmail=20
 GBRET_NoBotEmail=21
 GBRET_MailError=22
-GBRET_InvalidCallerID=23
+GBRET_TaskNotFound=23
+GBRET_MissingArguments=24
+GBRET_InvalidStage=25
 
 # Plugin return values / exit codes
 PLUGRET_Normal=0

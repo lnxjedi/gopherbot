@@ -94,8 +94,10 @@ const (
 	// MailError - There was an error sending email
 	MailError
 
-	/* AddTask */
+	/* AddTask / FinalTask / FailTask */
 	TaskNotFound
 	// MissingArguments - AddTask requires a command and args for a plugin
 	MissingArguments
+	// InvalidStage - tasks can only be added when the robot is running primaryTasks
+	InvalidStage
 )

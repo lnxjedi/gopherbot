@@ -148,7 +148,9 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 	}
 	ts := taskSpec{task.name, command, args, t}
 	bot.nextTasks = []taskSpec{ts}
-	ret, errString = bot.runPipeline(nextT, ptype, true)
+	// redundant but explicit
+	bot.stage = primaryTasks
+	ret, errString = bot.runPipeline(ptype, true)
 	if ret != Normal {
 		if !bot.automaticTask && errString != "" {
 			r.Reply(errString)
@@ -169,11 +171,13 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 	// Run final and fail (cleanup) tasks
 	if ret != Normal {
 		if len(bot.failTasks) > 0 {
-			bot.runPipeline(failT, ptype, false)
+			bot.stage = failTasks
+			bot.runPipeline(ptype, false)
 		}
 	}
 	if len(bot.finalTasks) > 0 {
-		bot.runPipeline(finalT, ptype, false)
+		bot.stage = finalTasks
+		bot.runPipeline(ptype, false)
 	}
 	if bot.logger != nil {
 		bot.logger.Section("done", "pipeline has completed")
@@ -199,24 +203,24 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 	}
 }
 
-type pipeSelector int
+type pipeStage int
 
 const (
-	nextT pipeSelector = iota
-	finalT
-	failT
+	primaryTasks pipeStage = iota
+	finalTasks
+	failTasks
 )
 
-func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRun bool) (ret TaskRetVal, errString string) {
+func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskRetVal, errString string) {
 	var p []taskSpec
 	eventEmitted := false
-	switch s {
-	case nextT:
+	switch bot.stage {
+	case primaryTasks:
 		p = bot.nextTasks
 		bot.nextTasks = []taskSpec{}
-	case finalT:
+	case finalTasks:
 		p = bot.finalTasks
-	case failT:
+	case failTasks:
 		p = bot.failTasks
 	}
 	l := len(p)
@@ -228,7 +232,7 @@ func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRu
 		task, _, job := getTask(t)
 		isJob := job != nil
 		// bypass security checks if flag set, or running final tasks
-		if !bot.automaticTask && s != finalT {
+		if !bot.automaticTask && bot.stage != finalTasks {
 			r := bot.makeRobot()
 			_, plugin, _ := getTask(t)
 			if plugin != nil && len(plugin.AdminCommands) > 0 {
@@ -281,7 +285,7 @@ func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRu
 		bot.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
 		errString, ret = bot.callTask(t, command, args...)
 		bot.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
-		if s != finalT && ret != Normal {
+		if bot.stage != finalTasks && ret != Normal {
 			// task in pipeline failed
 			break
 		}
@@ -322,14 +326,14 @@ func (bot *botContext) runPipeline(s pipeSelector, ptype pipelineType, initialRu
 				}
 			}
 		}
-		if s == nextT {
+		if bot.stage == primaryTasks {
 			t := len(bot.nextTasks)
 			if t > 0 {
 				if i == l-1 {
 					p = append(p, bot.nextTasks...)
 					l += t
 				} else {
-					ret, errString = bot.runPipeline(nextT, ptype, false)
+					ret, errString = bot.runPipeline(ptype, false)
 				}
 				bot.nextTasks = []taskSpec{}
 				// the case where bot.queueTask is true is handled right after

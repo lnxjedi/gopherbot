@@ -60,7 +60,9 @@ class Robot:
     NoUserEmail = 20
     NoBotEmail = 21
     MailError = 22
-    InvalidCallerID = 23
+    TaskNotFound = 23
+    MissingArguments = 24
+    InvalidStage = 25
 
     # Plugin return values / exit codes
     Normal = 0

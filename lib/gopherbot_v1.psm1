@@ -24,6 +24,9 @@ Enum BotRet
     NoUserEmail = 20
     NoBotEmail = 21
     MailError = 22
+    TaskNotFound = 23
+    MissingArguments = 24
+    InvalidStage = 25
 }
 
 # Plugin return values / exit codes
