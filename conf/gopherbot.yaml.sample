@@ -123,6 +123,9 @@ LogLevel: info
 # - Name: git
 #   Description: One SCM to Rule Them All
 #   Path: /usr/bin/git
+- Name: ssh-scan
+  Description: Helper script for adding ssh host keys to known_hosts
+  Path: tasks/ssh-scan.sh
 
 # If the plugin doesn't specify an outgoing message format, what's the default?
 # This will be 'Raw' (unmodified, subject to protocol-specific formatting) if
