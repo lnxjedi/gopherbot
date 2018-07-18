@@ -21,10 +21,10 @@ AllowDirect: true
 HistoryLogs: 7
 Help:
 - Keywords: [ "config", "configuration", "update" ]
-  Helptext: [ "(bot), update configuration - perform a 'git pull' in the configuration directory" ]
+  Helptext: [ "(bot), update (configuration) - perform a 'git pull' in the configuration directory and reload" ]
 CommandMatchers:
 - Command: "update"
-  Regex: '(?i:update config(?:uration)?)'
+  Regex: '(?i:update(?: config(?:uration)?)?)'
 EOF
 }
 
