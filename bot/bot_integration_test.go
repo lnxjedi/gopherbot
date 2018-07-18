@@ -197,7 +197,7 @@ func TestBotNoName(t *testing.T) {
 		{alice, general, "ping;", []testc.TestMessage{}, []Event{}, 0},
 		{bob, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		// When you forget to address the robot, you can say it's name
-		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 200},
+		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 500},
 		{alice, general, ";", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{alice, general, "ping", []testc.TestMessage{}, []Event{}, 100},
 		{alice, general, "hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientTaskRan, ExternalTaskRan}, 0},
