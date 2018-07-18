@@ -91,6 +91,7 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	matches := runJobRe.FindAllStringSubmatch(cmsg, -1)
 	if matches != nil {
 		jobName = matches[0][1]
+		messageMatched = true
 	} else {
 		return
 	}

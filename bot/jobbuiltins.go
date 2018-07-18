@@ -29,8 +29,10 @@ Help:
 CommandMatchers:
 - Command: history
   Regex: '(?i:history(?: ([A-Za-z][\w-]*))?)'
+  Contexts: [ "task" ]
 - Command: showhistory
   Regex: '(?i:history (?:([A-Za-z][\w-]*) )?(\d+))'
+  Contexts: [ "task" ]
 MessageMatchers:
 - Command: history
   Regex: '(?i:^history(?: ([A-Za-z][\w-]*))?$)'
