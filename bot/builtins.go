@@ -336,7 +336,7 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 			return
 		}
 		bot.Reply("Configuration reloaded successfully")
-		Log(Info, "Configuration successfully reloaded by a request from:", bot.User)
+		bot.Log(Info, "Configuration successfully reloaded by a request from:", bot.User)
 	case "store":
 		ns := args[0]
 		c := bot.getContext()
