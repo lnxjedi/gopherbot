@@ -27,27 +27,16 @@ var envPassThrough = []string{
 // Called from dispatch: checkPluginMatchersAndRun,
 // jobcommands: checkJobMatchersAndRun or scheduledTask.
 func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command string, args ...string) {
-	task, _, job := getTask(t)
-	isJob := job != nil
-	verbose := (isJob && job.Verbose) || ptype == jobCmd
+	task, _, _ := getTask(t)
 	bot.pipeName = task.name
 	bot.pipeDesc = task.Description
 	bot.nameSpace = task.NameSpace
-	if len(task.WorkingDirectory) > 0 {
-		dir := task.WorkingDirectory
-		if filepath.IsAbs(dir) {
-			bot.workingDirectory = filepath.Clean(dir)
-		} else {
-			h := handler{}
-			bot.workingDirectory = filepath.Join(h.GetConfigPath(), dir)
-		}
-	}
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	robot.Add(1)
 	robot.Lock()
 	robot.pluginsRunning++
-	history := robot.history
-	tz := robot.timeZone
+	bot.history = robot.history
+	bot.timeZone = robot.timeZone
 	robot.Unlock()
 	defer func() {
 		robot.Lock()
@@ -58,114 +47,20 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 		}
 		robot.Unlock()
 	}()
-	var runIndex int
-	if task.HistoryLogs > 0 || isJob {
-		var th taskHistory
-		rememberRuns := task.HistoryLogs
-		if rememberRuns == 0 {
-			rememberRuns = 1
-		}
-		key := histPrefix + bot.pipeName
-		tok, _, ret := checkoutDatum(key, &th, true)
-		if ret != Ok {
-			Log(Error, fmt.Sprintf("Error checking out '%s', no history will be remembered for '%s'", key, bot.pipeName))
-		} else {
-			var start time.Time
-			if tz != nil {
-				start = time.Now().In(tz)
-			} else {
-				start = time.Now()
-			}
-			runIndex = th.NextIndex
-			hist := historyLog{
-				LogIndex:   runIndex,
-				CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
-			}
-			th.NextIndex++
-			th.Histories = append(th.Histories, hist)
-			l := len(th.Histories)
-			if l > rememberRuns {
-				th.Histories = th.Histories[l-rememberRuns:]
-			}
-			ret := updateDatum(key, tok, th)
-			if ret != Ok {
-				Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, bot.pipeName))
-			} else {
-				if task.HistoryLogs > 0 && history != nil {
-					pipeHistory, err := history.NewHistory(bot.pipeName, hist.LogIndex, task.HistoryLogs)
-					if err != nil {
-						Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", bot.pipeName, err))
-					} else {
-						bot.logger = pipeHistory
-					}
-				} else {
-					if history == nil {
-						Log(Warn, "Error starting history, no history provider available")
-					}
-				}
-			}
-		}
-	}
 
-	// Set up the environment for the pipeline, in order of precedence high-low.
-	// Done in reverse order with existence checking because the context may
-	// already have dynamically provided environment vars, which are highest
-	// precedence. Environment vars are retrievable as environment variables for
-	// scripts, or using GetParameter(...) in Go plugins.
-	if isJob {
-		for _, p := range job.Parameters {
-			bot.environment[p.Name] = p.Value
-		}
-	}
-	storedEnv := make(map[string]string)
-	// Global environment for pipeline from first task
-	_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
-	if exists {
-		for key, value := range storedEnv {
-			// Dynamically provided and configured parameters take precedence over stored parameters
-			_, exists := bot.environment[key]
-			if !exists {
-				bot.environment[key] = value
-			}
-		}
-	}
-	for _, p := range envPassThrough {
-		_, exists := bot.environment[p]
-		if !exists {
-			// Note that we even pass through empty vars - any harm?
-			bot.environment[p] = os.Getenv(p)
-		}
-	}
-
-	// Once Active, we need to use the Mutex for access to some fields; see
-	// botcontext/type botContext
-	bot.registerActive()
-	r := bot.makeRobot()
 	var errString string
 	var ret TaskRetVal
-	if verbose {
-		r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, runIndex))
-	}
 	ts := taskSpec{task.name, command, args, t}
 	bot.nextTasks = []taskSpec{ts}
 	// redundant but explicit
 	bot.stage = primaryTasks
+	// Once Active, we need to use the Mutex for access to some fields; see
+	// botcontext/type botContext
+	bot.registerActive()
 	ret, errString = bot.runPipeline(ptype, true)
 	if ret != Normal {
 		if !bot.automaticTask && errString != "" {
-			r.Reply(errString)
-		}
-	}
-	bot.deregister()
-	if ret == Normal && verbose {
-		r.Say(fmt.Sprintf("Finished job '%s', run %d", bot.pipeName, runIndex))
-	}
-	if ret != Normal && isJob {
-		task, _, _ := getTask(t)
-		if ret == PipelineAborted {
-			r.Say(fmt.Sprintf("Job aborted, exclusive lock failed for '%s'", bot.exclusiveTag))
-		} else {
-			r.Reply(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'", bot.pipeName, runIndex, task.name))
+			bot.makeRobot().Reply(errString)
 		}
 	}
 	// Run final and fail (cleanup) tasks
@@ -183,16 +78,22 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 		bot.logger.Section("done", "pipeline has completed")
 		bot.logger.Close()
 	}
+	bot.deregister()
+	if bot.jobInitialized && (bot.verbose || ret != Normal) {
+		r := bot.makeRobot()
+		r.Channel = bot.jobChannel
+		r.Say(fmt.Sprintf("Finished job '%s', run %d, final task '%s', status: %s", bot.pipeName, bot.runIndex, bot.taskName, ret))
+	}
 	if bot.exclusive {
 		tag := bot.exclusiveTag
 		runQueues.Lock()
 		queue, _ := runQueues.m[tag]
 		queueLen := len(queue)
 		if queueLen == 0 {
-			Log(Debug, fmt.Sprintf("Bot #%d finished exclusive task '%s', no waiters in queue, removing", bot.id, bot.exclusiveTag))
+			Log(Debug, fmt.Sprintf("Bot #%d finished exclusive pipeline '%s', no waiters in queue, removing", bot.id, bot.exclusiveTag))
 			delete(runQueues.m, tag)
 		} else {
-			Log(Debug, fmt.Sprintf("Bot #%d finished exclusive task '%s', %d waiters in queue, waking next task", bot.id, bot.exclusiveTag, queueLen))
+			Log(Debug, fmt.Sprintf("Bot #%d finished exclusive pipeline '%s', %d waiters in queue, waking next task", bot.id, bot.exclusiveTag, queueLen))
 			wakeUpTask := queue[0]
 			queue = queue[1:]
 			runQueues.m[tag] = queue
@@ -282,6 +183,94 @@ func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret Tas
 				emit(JobTaskRan)
 			}
 		}
+		if isJob && bot.logger == nil && job.HistoryLogs > 0 {
+			// We need to start a logger
+			if job.HistoryLogs > 0 || isJob {
+				var th taskHistory
+				rememberRuns := job.HistoryLogs
+				key := histPrefix + task.name
+				tok, _, ret := checkoutDatum(key, &th, true)
+				if ret != Ok {
+					Log(Error, fmt.Sprintf("Error checking out '%s', no history will be remembered for '%s'", key, bot.pipeName))
+				} else {
+					var start time.Time
+					if bot.timeZone != nil {
+						start = time.Now().In(bot.timeZone)
+					} else {
+						start = time.Now()
+					}
+					bot.runIndex = th.NextIndex
+					hist := historyLog{
+						LogIndex:   bot.runIndex,
+						CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
+					}
+					th.NextIndex++
+					th.Histories = append(th.Histories, hist)
+					l := len(th.Histories)
+					if l > rememberRuns {
+						th.Histories = th.Histories[l-rememberRuns:]
+					}
+					ret := updateDatum(key, tok, th)
+					if ret != Ok {
+						Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, bot.pipeName))
+					} else {
+						if job.HistoryLogs > 0 && bot.history != nil {
+							pipeHistory, err := bot.history.NewHistory(bot.pipeName, hist.LogIndex, job.HistoryLogs)
+							if err != nil {
+								Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", bot.pipeName, err))
+							} else {
+								bot.logger = pipeHistory
+							}
+						} else {
+							if bot.history == nil {
+								Log(Warn, "Error starting history, no history provider available")
+							}
+						}
+					}
+				}
+			}
+		}
+		if isJob && !bot.jobInitialized {
+			bot.jobInitialized = true
+			bot.jobChannel = job.Channel
+			bot.Lock()
+			bot.pipeName = task.name
+			bot.pipeDesc = task.Description
+			bot.Unlock()
+			if job.Verbose {
+				r := bot.makeRobot()
+				r.Channel = job.Channel
+				r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, bot.runIndex))
+				bot.verbose = true
+			}
+			for _, p := range job.Parameters {
+				_, exists := bot.environment[p.Name]
+				if !exists {
+					bot.environment[p.Name] = p.Value
+				}
+			}
+			storedEnv := make(map[string]string)
+			// Global environment for pipeline from first task
+			_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
+			if exists {
+				for key, value := range storedEnv {
+					// Dynamically provided and configured parameters take precedence over stored parameters
+					_, exists := bot.environment[key]
+					if !exists {
+						bot.environment[key] = value
+					}
+				}
+			}
+			if len(job.WorkingDirectory) > 0 {
+				dir := job.WorkingDirectory
+				if filepath.IsAbs(dir) {
+					bot.workingDirectory = filepath.Clean(dir)
+				} else {
+					h := handler{}
+					bot.workingDirectory = filepath.Join(h.GetConfigPath(), dir)
+				}
+			}
+		}
 		bot.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
 		errString, ret = bot.callTask(t, command, args...)
 		bot.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
@@ -329,11 +318,74 @@ func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret Tas
 		if bot.stage == primaryTasks {
 			t := len(bot.nextTasks)
 			if t > 0 {
-				if i == l-1 {
+				if i == l-1 && !bot.jobInitialized {
 					p = append(p, bot.nextTasks...)
 					l += t
 				} else {
+					// Save state before running a sub-pipeline
+					// TODO: save & restore job Channel
+					jobInitialized := bot.jobInitialized
+					bot.jobInitialized = false
+					logger := bot.logger
+					verbose := bot.verbose
+					bot.verbose = false
+					environment := bot.environment
+					subenv := make(map[string]string)
+					for n, v := range environment {
+						subenv[n] = v
+					}
+					bot.environment = subenv
+					exclusive := bot.exclusive
+					bot.Lock()
+					pipeName := bot.pipeName
+					pipeDesc := bot.pipeDesc
+					bot.Unlock()
+
 					ret, errString = bot.runPipeline(ptype, false)
+
+					// See if a sub-pipeline requested exclusion; it shouldn't
+					// percolate up
+					if !exclusive && bot.exclusive {
+						tag := bot.exclusiveTag
+						runQueues.Lock()
+						queue, _ := runQueues.m[tag]
+						queueLen := len(queue)
+						if queueLen == 0 {
+							Log(Debug, fmt.Sprintf("Bot #%d finished exclusive pipeline '%s', no waiters in queue, removing", bot.id, bot.exclusiveTag))
+							delete(runQueues.m, tag)
+						} else {
+							Log(Debug, fmt.Sprintf("Bot #%d finished exclusive pipeline '%s', %d waiters in queue, waking next task", bot.id, bot.exclusiveTag, queueLen))
+							wakeUpTask := queue[0]
+							queue = queue[1:]
+							runQueues.m[tag] = queue
+							// Kiss the Princess
+							wakeUpTask <- struct{}{}
+						}
+						runQueues.Unlock()
+						bot.exclusive = false
+					}
+					bot.Lock()
+					subPipeName := bot.pipeName
+					subTaskName := bot.taskName
+					bot.Unlock()
+					if logger == nil && bot.logger != nil {
+						// close the sub-job history
+						bot.logger.Section("done", "pipeline has completed")
+						bot.logger.Close()
+						bot.logger = nil
+					}
+					if bot.jobInitialized && ((!verbose && bot.verbose) || ret != Normal) {
+						r := bot.makeRobot()
+						r.Channel = bot.jobChannel
+						r.Say(fmt.Sprintf("Finished job '%s', run %d, final task '%s', status: %s", subPipeName, bot.runIndex, subTaskName, ret))
+					}
+					bot.Lock()
+					bot.pipeName = pipeName
+					bot.pipeDesc = pipeDesc
+					bot.Unlock()
+					bot.environment = environment
+					bot.verbose = verbose
+					bot.jobInitialized = jobInitialized
 				}
 				bot.nextTasks = []taskSpec{}
 				// the case where bot.queueTask is true is handled right after
@@ -475,6 +527,14 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	envhash["GOPHER_CHANNEL"] = bot.Channel
 	envhash["GOPHER_USER"] = bot.User
 	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", bot.Protocol)
+	// Passed-through environment vars have the lowest priority
+	for _, p := range envPassThrough {
+		_, exists := envhash[p]
+		if !exists {
+			// Note that we even pass through empty vars - any harm?
+			envhash[p] = os.Getenv(p)
+		}
+	}
 	env := make([]string, 0, len(envhash))
 	keys := make([]string, 0, len(envhash))
 	for k, v := range envhash {

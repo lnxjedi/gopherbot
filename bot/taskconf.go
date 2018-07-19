@@ -346,7 +346,11 @@ LoadLoop:
 			case "PrivateNameSpace":
 				task.PrivateNameSpace = *(val.(*bool))
 			case "WorkingDirectory":
-				task.WorkingDirectory = *(val.(*string))
+				if isPlugin {
+					mismatch = true
+				} else {
+					job.WorkingDirectory = *(val.(*string))
+				}
 			case "Elevator":
 				task.Elevator = *(val.(*string))
 			case "ElevatedCommands":
@@ -364,7 +368,11 @@ LoadLoop:
 			case "Users":
 				task.Users = *(val.(*[]string))
 			case "HistoryLogs":
-				task.HistoryLogs = *(val.(*int))
+				if isPlugin {
+					mismatch = true
+				} else {
+					job.HistoryLogs = *(val.(*int))
+				}
 			case "Authorizer":
 				task.Authorizer = *(val.(*string))
 			case "AuthRequire":

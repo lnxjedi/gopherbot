@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
+	"time"
 )
 
 /* robot.go - internal methods on the Robot object */
@@ -100,33 +101,42 @@ func (c *botContext) makeRobot() *Robot {
 // (or doesn't). It could also be called Context, or PipelineState; but for
 // use by plugins, it's best left as Robot.
 type botContext struct {
-	User               string            // The user who sent the message; this can be modified for replying to an arbitrary user
-	Channel            string            // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	Protocol           Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
-	RawMsg             interface{}       // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
-	Format             MessageFormat     // robot's default message format
-	nameSpace          string            // memory namespace for this pipeline
-	workingDirectory   string            // directory where tasks run
-	id                 int               // incrementing index of Robot threads
-	tasks              taskList          // Pointers to current task configuration at start of pipeline
-	isCommand          bool              // Was the message directed at the robot, dm or by mention
-	directMsg          bool              // if the message was sent by DM
-	msg                string            // the message text sent
-	automaticTask      bool              // set for scheduled & triggers jobs, where user security restrictions don't apply
-	elevated           bool              // set when required elevation succeeds
-	environment        map[string]string // environment vars set for each job/plugin in the pipeline
-	taskenvironment    map[string]string // per-task environment for Go plugins
-	stage              pipeStage         // which pipeline is being run; primaryP, finalP, failP
-	nextTasks          []taskSpec        // tasks in the pipeline
-	finalTasks         []taskSpec        // clean-up tasks that always run when the pipeline ends
-	failTasks          []taskSpec        // clean-up tasks that run when a pipeline fails
-	logger             HistoryLogger     // where to send stdout / stderr
-	pipeName, pipeDesc string            // name and description of task that started pipeline
-	currentTask        interface{}       // pointer to currently executing task
-	sync.Mutex                           // Protects access to the items below
-	taskName           string            // name of current task
-	taskDesc           string            // description for same
-	osCmd              *exec.Cmd         // running Command, for aborting a pipeline
+	User             string            // The user who sent the message; this can be modified for replying to an arbitrary user
+	Channel          string            // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	Protocol         Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
+	RawMsg           interface{}       // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
+	Format           MessageFormat     // robot's default message format
+	nameSpace        string            // memory namespace for this pipeline
+	workingDirectory string            // directory where tasks run
+	id               int               // incrementing index of Robot threads
+	tasks            taskList          // Pointers to current task configuration at start of pipeline
+	isCommand        bool              // Was the message directed at the robot, dm or by mention
+	directMsg        bool              // if the message was sent by DM
+	msg              string            // the message text sent
+	automaticTask    bool              // set for scheduled & triggers jobs, where user security restrictions don't apply
+	elevated         bool              // set when required elevation succeeds
+	environment      map[string]string // environment vars set for each job/plugin in the pipeline
+	taskenvironment  map[string]string // per-task environment for Go plugins
+
+	stage          pipeStage  // which pipeline is being run; primaryP, finalP, failP
+	jobInitialized bool       // whether a job has started
+	runIndex       int        // run number of a job
+	jobChannel     string     // channel for reporting job status
+	verbose        bool       // flag if initializing job was verbose
+	nextTasks      []taskSpec // tasks in the pipeline
+	finalTasks     []taskSpec // clean-up tasks that always run when the pipeline ends
+	failTasks      []taskSpec // clean-up tasks that run when a pipeline fails
+
+	history  HistoryProvider // history provider for generating the logger
+	timeZone *time.Location  // for history timestamping
+	logger   HistoryLogger   // where to send stdout / stderr
+
+	sync.Mutex                     // Protects access to the items below
+	pipeName, pipeDesc string      // name and description of task that started pipeline
+	currentTask        interface{} // pointer to currently executing task
+	taskName           string      // name of current task
+	taskDesc           string      // description for same
+	osCmd              *exec.Cmd   // running Command, for aborting a pipeline
 
 	exclusiveTag  string // tasks with the same exclusiveTag never run at the same time
 	exclusive     bool   // indicates task was running exclusively

@@ -151,11 +151,9 @@ type botTask struct {
 	name             string          // name of job or plugin; unique by type, but job & plugin can share
 	taskType         taskType        // taskGo or taskExternal
 	Path             string          // Path to the external executable for jobs or Plugtype=taskExternal only
-	WorkingDirectory string          // Directory where a pipeline executes
 	NameSpace        string          // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
 	PrivateNameSpace bool            // when set for tasks, memories will be stored/retrieved from task namespace instead of pipeline
 	Description      string          // description of job or plugin
-	HistoryLogs      int             // how many runs of this job/plugin to keep history for
 	AllowDirect      bool            // Set this true if this plugin can be accessed via direct message
 	DirectOnly       bool            // Set this true if this plugin ONLY accepts direct messages
 	Channel          string          // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
@@ -177,10 +175,12 @@ type botTask struct {
 
 // stuff read in conf/jobs/<job>.yaml
 type botJob struct {
-	Verbose    bool           // whether to send verbose "job started/ended" messages
-	Triggers   []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
-	Arguments  []InputMatcher // list of arguments to prompt the user for
-	Parameters []parameter    // Fixed parameters for a given job; many jobs will use the same script with differing parameters
+	Verbose          bool           // whether to send verbose "job started/ended" messages
+	WorkingDirectory string         // Directory where a pipeline executes
+	HistoryLogs      int            // how many runs of this job/plugin to keep history for
+	Triggers         []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
+	Arguments        []InputMatcher // list of arguments to prompt the user for
+	Parameters       []parameter    // Fixed parameters for a given job; many jobs will use the same script with differing parameters
 	*botTask
 }
 
