@@ -124,16 +124,16 @@ class Robot:
         return Memory(key, ret)
 
     def AddTask(self, name, args):
-        return self.Call("AddTask", { "Name": name, "CmdArgs": args })
+        return self.Call("AddTask", { "Name": name, "CmdArgs": args })["RetVal"]
 
     def FinalTask(self, name, args):
-        return self.Call("FinalTask", { "Name": name, "CmdArgs": args })
+        return self.Call("FinalTask", { "Name": name, "CmdArgs": args })["RetVal"]
 
     def FailTask(self, name, args):
-        return self.Call("FailTask", { "Name": name, "CmdArgs": args })
+        return self.Call("FailTask", { "Name": name, "CmdArgs": args })["RetVal"]
 
     def SetParameter(self, name, value):
-        return self.Call("SetParameter", { "Name": name, "Value": value })
+        return self.Call("SetParameter", { "Name": name, "Value": value })["Boolean"]
 
     def Log(self, level, msg):
         self.Call("Log", { "Level": level, "Message": msg })

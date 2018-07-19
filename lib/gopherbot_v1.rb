@@ -99,19 +99,19 @@ class BaseBot
 	end
 	
 	def AddTask(name, args)
-		return callBotFunc("AddTask", { "Name" => name, "CmdArgs" => args })
+		return callBotFunc("AddTask", { "Name" => name, "CmdArgs" => args })["RetVal"]
 	end
 	
 	def FinalTask(name, args)
-		return callBotFunc("FinalTask", { "Name" => name, "CmdArgs" => args })
+		return callBotFunc("FinalTask", { "Name" => name, "CmdArgs" => args })["RetVal"]
 	end
 	
 	def FailTask(name, args)
-		return callBotFunc("FailTask", { "Name" => name, "CmdArgs" => args })
+		return callBotFunc("FailTask", { "Name" => name, "CmdArgs" => args })["RetVal"]
 	end
 	
 	def SetParameter(name, value)
-		return callBotFunc("SetParameter", { "Name" => name, "Value" => value })
+		return callBotFunc("SetParameter", { "Name" => name, "Value" => value })["Boolean"]
 	end
 
 	def CheckoutDatum(key, rw)

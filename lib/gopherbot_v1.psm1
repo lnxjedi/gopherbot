@@ -167,19 +167,19 @@ class Robot
     [PlugRet] AddTask([String] $taskName, [String[]]$taskArgs) {
         $funcArgs = [PSCustomObject]@{ Name=$taskName, CmdArgs=$taskArgs }
         $ret = $this.Call("AddTask", $funcArgs)
-        return [PlugRet]$ret.PlugRetVal
+        return $ret.RetVal -As [BotRet]
     }
     
     [PlugRet] FinalTask([String] $taskName, [String[]]$taskArgs) {
         $funcArgs = [PSCustomObject]@{ Name=$taskName, CmdArgs=$taskArgs }
         $ret = $this.Call("FinalTask", $funcArgs)
-        return [PlugRet]$ret.PlugRetVal
+        return $ret.RetVal -As [BotRet]
     }
     
     [PlugRet] FailTask([String] $taskName, [String[]]$taskArgs) {
         $funcArgs = [PSCustomObject]@{ Name=$taskName, CmdArgs=$taskArgs }
         $ret = $this.Call("FailTask", $funcArgs)
-        return [PlugRet]$ret.PlugRetVal
+        return $ret.RetVal -As [BotRet]
     }
     
     [Bool] SetParameter([String] $name, [String] $value){
