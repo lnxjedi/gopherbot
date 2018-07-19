@@ -89,6 +89,7 @@ func main() {
   * Make "update" a job triggered by the update plugin
   * Initialize history on the first job in the initial pipeline that has HistoryLogs > 0
   * Create new botContext for sub-pipelines; if parent context has no history, the child context may start one
+  * Add a `child` member to the context; take the lock when updating it - will be needed later to cancel pipelines
 * Implement "SpawnPipeline" - create a new goroutine / botContext and run startPipeline; allow trigger / plugin to start multiple jobs in parallel whose success or failure doesn't affect the running pipeline
 * Add SetWorkingDirectory(...) bool method, allow relative paths relative to pipeline WorkingDirectory
 * Set loglevel to Debug and clean up redundant log entries in runtasks
