@@ -85,12 +85,12 @@ func main() {
 * AddTask(...) will replace CallPlugin
 
 ### TODO
-* Add Exclusive(string) bool method so jobs can use `if Exclusive(...)` to exit gracefully if an exclusive pipeline is already running (for jobs that would step on themselves if run in parallel)
-* Add QueueTask() method - when exclusive returns false, a call to QueueTask() will stick the current task in a run queue at the end of the current task:
-  * Create a taskDone channel and stick in the global queue for the exclusive tag
-  * Block in a select to wait for taskDone (set status to "Queued"?)
-  * At the end of a pipeline, check context Exclusive tag, look up the queue and send on the channel for the next task in the queue, which then re-enters 'Running' (see algorithm mock-up below)
-* Add SetWorkingDirectory(...) bool method, allow relative paths relative to GOPHER_CONFIGDIR
+* Move HistoryLogs and WorkingDirectory to botJob
+  * Make "update" a job triggered by the update plugin
+  * Initialize history on the first job in the initial pipeline that has HistoryLogs > 0
+  * Create new botContext for sub-pipelines; if parent context has no history, the child context may start one
+* Implement "SpawnPipeline" - create a new goroutine / botContext and run startPipeline; allow trigger / plugin to start multiple jobs in parallel whose success or failure doesn't affect the running pipeline
+* Add SetWorkingDirectory(...) bool method, allow relative paths relative to pipeline WorkingDirectory
 * Set loglevel to Debug and clean up redundant log entries in runtasks
 * Audit / update logging & history sections for starting pipelines & sub-pipelines
 * Add builtins for listing and terminating running tasks

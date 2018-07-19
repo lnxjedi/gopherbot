@@ -116,7 +116,7 @@ const (
 	catchAll
 	jobTrigger
 	scheduled
-	jobCmd
+	jobCmd // i.e. run job xx
 )
 
 // InputMatcher specifies the command or message to match for a plugin
