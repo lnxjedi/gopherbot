@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 )
 
 // an empty object type for passing a Handler to the connector.
@@ -94,22 +93,24 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 	}
 
 	currentTasks.RLock()
-	tasks := taskList{
-		currentTasks.t,
-		currentTasks.nameMap,
-		currentTasks.idMap,
-		currentTasks.nameSpaces,
-		sync.RWMutex{},
-	}
+	t := currentTasks.t
+	nameMap := currentTasks.nameMap
+	idMap := currentTasks.idMap
+	nameSpaces := currentTasks.nameSpaces
 	currentTasks.RUnlock()
 
 	// Create the botContext and a goroutine to process the message and carry state,
 	// which may eventually run a pipeline.
-	bot := &botContext{
-		User:             userName,
-		Channel:          channelName,
-		RawMsg:           raw,
-		tasks:            tasks,
+	c := &botContext{
+		User:    userName,
+		Channel: channelName,
+		RawMsg:  raw,
+		tasks: taskList{
+			t:          t,
+			nameMap:    nameMap,
+			idMap:      idMap,
+			nameSpaces: nameSpaces,
+		},
 		isCommand:        isCommand,
 		directMsg:        directMsg,
 		msg:              message,
@@ -117,8 +118,8 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 		environment:      make(map[string]string),
 	}
 	Log(Debug, fmt.Sprintf("Message '%s' from user '%s' in channel '%s'; isCommand: %t", message, userName, logChannel, isCommand))
-	bot.debug(fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)
-	go bot.handleMessage()
+	c.debug(fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)
+	go c.handleMessage()
 }
 
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct

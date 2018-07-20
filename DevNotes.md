@@ -2,6 +2,33 @@
 
 `DevNotes.md` - TODO items and design notes for future development.
 
+## To be sorted / filtered
+- Replace PrivateNamespace with PrivateMemories (check usage first)
+- Tear out state saving logic in calls to run pipeline...
+- When a task in a pipeline is a job:
+  - If it's the same as the current job, just keep trucking; jobs should do this normally - calling themselves with different arguments at different stages in a pipeline
+  - If it's a different job, create a new botContext and call startPipeline with a parent argument != nil == pointer to current bot
+  - Start with inheriting environment, user, channel, msg, and namespace; can re-visit what's inherited in child jobs later
+- Let registerActive take a parent arg; if non-nil, registerActive will set parent and child members of bots while holding the lock
+- Add WorkSpace top-level item to the robot; the r/w wdirectory where it clones repositories and does stuff; export GOPHER_WORKSPACE in environment
+- Remove WorkDirectory from jobs; jobs should consult environment vars and call SetWorkingDirectory
+- Ansible role should create WorkSpace and put it in the gopherbot.yaml
+- Change Exclusive behavior: instead of just returning true when bot.exclusive, make sure tag matches, and return false if not and log an error; also fail if jobName not set
+- Add to TODO: paging for show log similar to history; same 2k page size, but showing in reverse (e.g. 'p' for previous page, 'q' to quit)
+- Put .gopherci/pipeline.sh in repositories
+- Create gitea-ci job triggered by messages in dev
+  - Clone repository in e.g WorkSpace/ansible/deploy-gopherbot
+  - SetParameter PIPE_STARTED=true
+  - If .gopherci/pipeline.sh exists, run it with no args
+  - pipeline.sh should call and check e.g. Exclusive deploy-gopherbot
+  - pipeline.sh can add self with stages: AddTask $GOPHER_JOBNAME tests
+  - Since PIPE_STARTED is true, it'll just run pipeline.sh with the arg
+- Export GOPHER_JOBNAME
+- Repositories like role-foo should just have pipelines that call several SpawnPipeline "$GOPHER_JOBNAME" ansible deploy-gopherbot
+- Add plugin w/ same memory namespace as github-ci, similar to store parameter:
+build secret <group> <repo> FOO=BAR
+See: https://gist.github.com/shawnsi/b13f6a740bddc670e633
+
 ## Pipelines
 
 Jobs and Plugins can queue up additional jobs/tasks with AddTask(...) and FinalTask(...), and if the job/plugin exits 0, the next task in the list will be run, subject to security checks. FinalTask() is for cleanup; all FinalTasks run regardless of the last exit status, and without security checks.
@@ -167,6 +194,11 @@ which determines sharing of long-term memories and environment variables (parame
 Plugins can now also reference parameters which are set as environment variables. An example might be credentials that an administrator sets with the 'set environment ...' built-in.
 
 #### NameSpaces
+Changes to NameSpaces:
+- Get rid of PrivateNameSpace - no more inheritance
+- Add NameSpace to tasks so they can share with jobs, plugins
+- Exclusive is for jobs only (1 per pipeline), so c.jobName must be set to use it
+
 Long-term memories have always been scoped by plugin name, so when "rubydemo" stores a long-term memory called e.g. `preferences`, internally the key has been set to `rubydemo:preferences`. Now, both plugins and jobs will be able to explicitly set a `NameSpace`, which determines what other jobs/plugins share the long-term memories. Also, environment variables will be scoped by namespace, and organized under a `bot` top-level namespace, e.g. `bot:environment:rubydemo:secretkey`.
 
 The `bot` top-level namespace will be an illegal name for a job or plugin.

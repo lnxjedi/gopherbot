@@ -31,17 +31,18 @@ var runQueues = struct {
 func (r *Robot) Exclusive(tag string, queueTask bool) (success bool) {
 	c := r.getContext()
 	if c.exclusive {
+		// TODO: make sure tag matches, or error! Note that it's legit and normal
+		// to call Exclusive twice with the same tag name.
 		return true
 	}
-	task, _, _ := getTask(c.currentTask)
+	if len(c.jobName) == 0 {
+		r.Log(Error, "Exclusive called on pipeline with no job started")
+		return false
+	}
 	if len(tag) > 0 {
 		tag = ":" + tag
 	}
-	if task.PrivateNameSpace {
-		tag = task.NameSpace + tag
-	} else {
-		tag = c.nameSpace + tag
-	}
+	tag = c.jobName + tag
 	c.exclusiveTag = tag
 	runQueues.Lock()
 	_, exists := runQueues.m[tag]

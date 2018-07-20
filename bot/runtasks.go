@@ -25,18 +25,16 @@ var envPassThrough = []string{
 // startPipeline is triggered by user commands, job triggers, and scheduled tasks.
 // Called from dispatch: checkPluginMatchersAndRun,
 // jobcommands: checkJobMatchersAndRun or scheduledTask.
-func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command string, args ...string) (ret TaskRetVal, errString string) {
+func (c *botContext) startPipeline(t interface{}, ptype pipelineType, command string, args ...string) (ret TaskRetVal, errString string) {
 	task, _, _ := getTask(t)
-	bot.pipeName = task.name
-	bot.pipeDesc = task.Description
-	// TODO: use the parent nameSpace if there's a parent and task.PrivateNameSpace isn't set
-	bot.nameSpace = task.NameSpace
+	c.pipeName = task.name
+	c.pipeDesc = task.Description
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	robot.Add(1)
 	robot.Lock()
 	robot.pluginsRunning++
-	bot.history = robot.history
-	bot.timeZone = robot.timeZone
+	c.history = robot.history
+	c.timeZone = robot.timeZone
 	robot.Unlock()
 	defer func() {
 		robot.Lock()
@@ -49,49 +47,49 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 	}()
 
 	// redundant but explicit
-	bot.stage = primaryTasks
+	c.stage = primaryTasks
 	// Once Active, we need to use the Mutex for access to some fields; see
 	// botcontext/type botContext
-	bot.registerActive()
+	c.registerActive(nil)
 	ts := taskSpec{task.name, command, args, t}
-	bot.nextTasks = []taskSpec{ts}
-	ret, errString = bot.runPipeline(ptype, true)
+	c.nextTasks = []taskSpec{ts}
+	ret, errString = c.runPipeline(ptype, true)
 	if ret != Normal {
-		if !bot.automaticTask && errString != "" {
-			bot.makeRobot().Reply(errString)
+		if !c.automaticTask && errString != "" {
+			c.makeRobot().Reply(errString)
 		}
 	}
 	// Run final and fail (cleanup) tasks
 	if ret != Normal {
-		if len(bot.failTasks) > 0 {
-			bot.stage = failTasks
-			bot.runPipeline(ptype, false)
+		if len(c.failTasks) > 0 {
+			c.stage = failTasks
+			c.runPipeline(ptype, false)
 		}
 	}
-	if len(bot.finalTasks) > 0 {
-		bot.stage = finalTasks
-		bot.runPipeline(ptype, false)
+	if len(c.finalTasks) > 0 {
+		c.stage = finalTasks
+		c.runPipeline(ptype, false)
 	}
-	if bot.logger != nil {
-		bot.logger.Section("done", "pipeline has completed")
-		bot.logger.Close()
+	if c.logger != nil {
+		c.logger.Section("done", "pipeline has completed")
+		c.logger.Close()
 	}
-	bot.deregister()
-	if bot.jobInitialized && (bot.verbose || ret != Normal) {
-		r := bot.makeRobot()
-		r.Channel = bot.jobChannel
-		r.Say(fmt.Sprintf("Finished job '%s', run %d, final task '%s', status: %s", bot.pipeName, bot.runIndex, bot.taskName, ret))
+	c.deregister()
+	if c.jobInitialized && (c.verbose || ret != Normal) {
+		r := c.makeRobot()
+		r.Channel = c.jobChannel
+		r.Say(fmt.Sprintf("Finished job '%s', run %d, final task '%s', status: %s", c.pipeName, c.runIndex, c.taskName, ret))
 	}
-	if bot.exclusive {
-		tag := bot.exclusiveTag
+	if c.exclusive {
+		tag := c.exclusiveTag
 		runQueues.Lock()
 		queue, _ := runQueues.m[tag]
 		queueLen := len(queue)
 		if queueLen == 0 {
-			Log(Debug, fmt.Sprintf("Bot #%d finished exclusive pipeline '%s', no waiters in queue, removing", bot.id, bot.exclusiveTag))
+			Log(Debug, fmt.Sprintf("Bot #%d finished exclusive pipeline '%s', no waiters in queue, removing", c.id, c.exclusiveTag))
 			delete(runQueues.m, tag)
 		} else {
-			Log(Debug, fmt.Sprintf("Bot #%d finished exclusive pipeline '%s', %d waiters in queue, waking next task", bot.id, bot.exclusiveTag, queueLen))
+			Log(Debug, fmt.Sprintf("Bot #%d finished exclusive pipeline '%s', %d waiters in queue, waking next task", c.id, c.exclusiveTag, queueLen))
 			wakeUpTask := queue[0]
 			queue = queue[1:]
 			runQueues.m[tag] = queue
@@ -111,18 +109,17 @@ const (
 	failTasks
 )
 
-func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskRetVal, errString string) {
+func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskRetVal, errString string) {
 	var p []taskSpec
 	eventEmitted := false
-	var jobName string
-	switch bot.stage {
+	switch c.stage {
 	case primaryTasks:
-		p = bot.nextTasks
-		bot.nextTasks = []taskSpec{}
+		p = c.nextTasks
+		c.nextTasks = []taskSpec{}
 	case finalTasks:
-		p = bot.finalTasks
+		p = c.finalTasks
 	case failTasks:
-		p = bot.failTasks
+		p = c.failTasks
 	}
 	l := len(p)
 	Log(Audit, fmt.Sprintf("DEBUG: Entered runPipeline with %d tasks to run", l))
@@ -134,8 +131,8 @@ func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret Tas
 		task, _, job := getTask(t)
 		isJob := job != nil
 		// bypass security checks if flag set, or running final tasks
-		if !bot.automaticTask && bot.stage != finalTasks {
-			r := bot.makeRobot()
+		if !c.automaticTask && c.stage != finalTasks {
+			r := c.makeRobot()
 			_, plugin, _ := getTask(t)
 			if plugin != nil && len(plugin.AdminCommands) > 0 {
 				adminRequired := false
@@ -153,18 +150,18 @@ func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret Tas
 					}
 				}
 			}
-			if bot.checkAuthorization(t, command, args...) != Success {
+			if c.checkAuthorization(t, command, args...) != Success {
 				ret = Fail
 				break
 			}
-			if !bot.elevated {
-				eret, required := bot.checkElevation(t, command)
+			if !c.elevated {
+				eret, required := c.checkElevation(t, command)
 				if eret != Success {
 					ret = Fail
 					break
 				}
 				if required {
-					bot.elevated = true
+					c.elevated = true
 				}
 			}
 		}
@@ -185,24 +182,24 @@ func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret Tas
 			}
 		}
 		newJob := false
-		if isJob && !bot.jobInitialized {
-			bot.jobInitialized = true
-			jobName = task.name
-			bot.jobChannel = job.Channel
-			bot.Lock()
-			bot.pipeName = task.name
-			bot.pipeDesc = task.Description
-			bot.Unlock()
+		if isJob && !c.jobInitialized {
+			c.jobInitialized = true
+			c.jobName = task.name
+			c.jobChannel = job.Channel
+			c.Lock()
+			c.pipeName = task.name
+			c.pipeDesc = task.Description
+			c.Unlock()
 			if job.Verbose {
-				r := bot.makeRobot()
+				r := c.makeRobot()
 				r.Channel = job.Channel
-				r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, bot.runIndex))
-				bot.verbose = true
+				r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, c.runIndex))
+				c.verbose = true
 			}
 			for _, p := range job.Parameters {
-				_, exists := bot.environment[p.Name]
+				_, exists := c.environment[p.Name]
 				if !exists {
-					bot.environment[p.Name] = p.Value
+					c.environment[p.Name] = p.Value
 				}
 			}
 			if job.HistoryLogs > 0 || isJob {
@@ -211,17 +208,17 @@ func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret Tas
 				key := histPrefix + task.name
 				tok, _, ret := checkoutDatum(key, &th, true)
 				if ret != Ok {
-					Log(Error, fmt.Sprintf("Error checking out '%s', no history will be remembered for '%s'", key, bot.pipeName))
+					Log(Error, fmt.Sprintf("Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName))
 				} else {
 					var start time.Time
-					if bot.timeZone != nil {
-						start = time.Now().In(bot.timeZone)
+					if c.timeZone != nil {
+						start = time.Now().In(c.timeZone)
 					} else {
 						start = time.Now()
 					}
-					bot.runIndex = th.NextIndex
+					c.runIndex = th.NextIndex
 					hist := historyLog{
-						LogIndex:   bot.runIndex,
+						LogIndex:   c.runIndex,
 						CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
 					}
 					th.NextIndex++
@@ -232,46 +229,54 @@ func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret Tas
 					}
 					ret := updateDatum(key, tok, th)
 					if ret != Ok {
-						Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, bot.pipeName))
+						Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, c.pipeName))
 					} else {
-						if job.HistoryLogs > 0 && bot.history != nil {
-							pipeHistory, err := bot.history.NewHistory(bot.pipeName, hist.LogIndex, job.HistoryLogs)
+						if job.HistoryLogs > 0 && c.history != nil {
+							pipeHistory, err := c.history.NewHistory(c.pipeName, hist.LogIndex, job.HistoryLogs)
 							if err != nil {
-								Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", bot.pipeName, err))
+								Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", c.pipeName, err))
 							} else {
-								bot.logger = pipeHistory
+								c.logger = pipeHistory
 							}
 						} else {
-							if bot.history == nil {
+							if c.history == nil {
 								Log(Warn, "Error starting history, no history provider available")
 							}
 						}
 					}
 				}
 			}
-		} else if isJob && task.name != jobName {
+		} else if isJob && task.name != c.jobName {
 			newJob = true
 		}
 		if newJob {
+			child := &botContext{
+				User:     c.User,
+				Channel:  c.Channel,
+				Protocol: c.Protocol,
+				RawMsg:   c.RawMsg,
+				Format:   c.Format,
+			}
+			ret, errString = child.startPipeline(t, ptype, command, args...)
 			// TODO: Create new botContext, copy environment & other stuff, then call a new startPipeline with a parent arg
 			newJob = false
 		}
-		bot.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
-		errString, ret = bot.callTask(t, command, args...)
-		bot.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
-		if bot.stage != finalTasks && ret != Normal {
+		c.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
+		errString, ret = c.callTask(t, command, args...)
+		c.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
+		if c.stage != finalTasks && ret != Normal {
 			// task in pipeline failed
 			break
 		}
-		if !bot.exclusive {
-			if bot.abortPipeline {
+		if !c.exclusive {
+			if c.abortPipeline {
 				ret = PipelineAborted
 				break
 			}
-			if bot.queueTask {
-				bot.queueTask = false
-				bot.exclusive = true
-				tag := bot.exclusiveTag
+			if c.queueTask {
+				c.queueTask = false
+				c.exclusive = true
+				tag := c.exclusiveTag
 				runQueues.Lock()
 				queue, exists := runQueues.m[tag]
 				if exists {
@@ -279,40 +284,40 @@ func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret Tas
 					queue = append(queue, wakeUp)
 					runQueues.m[tag] = queue
 					runQueues.Unlock()
-					Log(Debug, fmt.Sprintf("Exclusive task in progress, queueing bot #%d and waiting; queue length: %d", bot.id, len(queue)))
+					Log(Debug, fmt.Sprintf("Exclusive task in progress, queueing bot #%d and waiting; queue length: %d", c.id, len(queue)))
 					if (isJob && job.Verbose) || ptype == jobCmd {
-						bot.makeRobot().Say(fmt.Sprintf("Queueing task '%s' in pipeline '%s'", task.name, bot.pipeName))
+						c.makeRobot().Say(fmt.Sprintf("Queueing task '%s' in pipeline '%s'", task.name, c.pipeName))
 					}
 					// Now we block until kissed by a Handsome Prince
 					<-wakeUp
-					Log(Debug, fmt.Sprintf("Bot #%d in queue waking up and re-starting task '%s'", bot.id, task.name))
+					Log(Debug, fmt.Sprintf("Bot #%d in queue waking up and re-starting task '%s'", c.id, task.name))
 					if (job != nil && job.Verbose) || ptype == jobCmd {
-						bot.makeRobot().Say(fmt.Sprintf("Re-starting queued task '%s' in pipeline '%s'", task.name, bot.pipeName))
+						c.makeRobot().Say(fmt.Sprintf("Re-starting queued task '%s' in pipeline '%s'", task.name, c.pipeName))
 					}
 					// Decrement the index so this task runs again
 					i--
 					// Clear tasks added in the last run (if any)
-					bot.nextTasks = []taskSpec{}
+					c.nextTasks = []taskSpec{}
 				} else {
-					Log(Debug, fmt.Sprintf("Exclusive lock acquired in pipeline '%s', bot #%d", bot.pipeName, bot.id))
+					Log(Debug, fmt.Sprintf("Exclusive lock acquired in pipeline '%s', bot #%d", c.pipeName, c.id))
 					runQueues.m[tag] = []chan struct{}{}
 					runQueues.Unlock()
 				}
 			}
 		}
-		if bot.stage == primaryTasks {
-			t := len(bot.nextTasks)
+		if c.stage == primaryTasks {
+			t := len(c.nextTasks)
 			if t > 0 {
-				if i == l-1 && !bot.jobInitialized {
-					p = append(p, bot.nextTasks...)
+				if i == l-1 && !c.jobInitialized {
+					p = append(p, c.nextTasks...)
 					l += t
 				} else {
-					ret, errString = bot.runPipeline(ptype, false)
+					ret, errString = c.runPipeline(ptype, false)
 				}
-				bot.nextTasks = []taskSpec{}
+				c.nextTasks = []taskSpec{}
 				// the case where bot.queueTask is true is handled right after
 				// callTask
-				if bot.abortPipeline {
+				if c.abortPipeline {
 					ret = PipelineAborted
 					errString = "Pipeline aborted, exclusive lock failed"
 					break
@@ -447,6 +452,8 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	envhash["GOPHER_CHANNEL"] = bot.Channel
 	envhash["GOPHER_USER"] = bot.User
 	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", bot.Protocol)
+	envhash["GOPHER_WORKSPACE"] = robot.workSpace
+	envhash["GOPHER_JOBNAME"] = bot.jobName
 	// Passed-through environment vars have the lowest priority
 	for _, p := range envPassThrough {
 		_, exists := envhash[p]

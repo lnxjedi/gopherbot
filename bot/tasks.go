@@ -226,7 +226,7 @@ func initializePlugins() {
 		workingDirectory: robot.workSpace,
 		tasks:            tasks,
 	}
-	bot.registerActive()
+	bot.registerActive(nil)
 	robot.Lock()
 	if !robot.shuttingDown {
 		robot.Unlock()

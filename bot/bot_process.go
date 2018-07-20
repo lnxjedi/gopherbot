@@ -184,7 +184,7 @@ func run() <-chan struct{} {
 		workingDirectory: robot.workSpace,
 		environment:      make(map[string]string),
 	}
-	bot.registerActive()
+	bot.registerActive(nil)
 	bot.loadConfig(false)
 	bot.deregister()
 

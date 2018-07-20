@@ -50,7 +50,7 @@ func getBotContextInt(idx int) *botContext {
 
 // Assign a bot run number and register it in the global hash of running
 // robots. Should be called before running plugins
-func (c *botContext) registerActive() {
+func (c *botContext) registerActive(parent *botContext) {
 	robot.RLock()
 	c.Protocol = setProtocol(robot.protocol)
 	c.Format = robot.defaultMessageFormat
@@ -73,6 +73,10 @@ func (c *botContext) registerActive() {
 	c.environment["GOPHER_CALLER_ID"] = fmt.Sprintf("%d", c.id)
 	botRunID.Unlock()
 	activeRobots.Lock()
+	if parent != nil {
+		parent.child = c
+		c.parent = parent
+	}
 	activeRobots.i[c.id] = c
 	activeRobots.Unlock()
 }
@@ -106,7 +110,6 @@ type botContext struct {
 	Protocol         Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
 	RawMsg           interface{}       // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
 	Format           MessageFormat     // robot's default message format
-	nameSpace        string            // memory namespace for this pipeline
 	workingDirectory string            // directory where tasks run
 	id               int               // incrementing index of Robot threads
 	tasks            taskList          // Pointers to current task configuration at start of pipeline
@@ -120,6 +123,7 @@ type botContext struct {
 
 	stage          pipeStage  // which pipeline is being run; primaryP, finalP, failP
 	jobInitialized bool       // whether a job has started
+	jobName        string     // name of the running job
 	runIndex       int        // run number of a job
 	jobChannel     string     // channel for reporting job status
 	verbose        bool       // flag if initializing job was verbose
@@ -132,6 +136,7 @@ type botContext struct {
 	logger   HistoryLogger   // where to send stdout / stderr
 
 	sync.Mutex                     // Protects access to the items below
+	parent, child      *botContext // for sub-job contexts
 	pipeName, pipeDesc string      // name and description of task that started pipeline
 	currentTask        interface{} // pointer to currently executing task
 	taskName           string      // name of current task
