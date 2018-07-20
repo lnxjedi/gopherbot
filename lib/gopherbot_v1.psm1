@@ -187,6 +187,11 @@ class Robot
         return $this.Call("SetParameter", $funcArgs).Boolean -As [bool]
     }
 
+    [Bool] SetWorkingDirectory([String] $wdpath){
+        $funcArgs = [PSCustomObject]@{ Path=$wdpath }
+        return $this.Call("SetWorkingDirectory", $funcArgs).Boolean -As [bool]
+    }
+
     [PSCustomObject] CheckoutDatum([String] $key, [Bool] $rw) {
         $funcArgs = [PSCustomObject]@{ Key=$key; RW=$rw }
         $ret = $this.Call("CheckoutDatum", $funcArgs)

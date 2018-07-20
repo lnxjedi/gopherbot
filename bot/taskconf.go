@@ -255,7 +255,7 @@ LoadLoop:
 			var val interface{}
 			skip := false
 			switch key {
-			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "User", "Path", "WorkingDirectory":
+			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "User", "Path":
 				val = &strval
 			case "Parameters":
 				val = &pval
@@ -345,12 +345,6 @@ LoadLoop:
 				}
 			case "PrivateNameSpace":
 				task.PrivateNameSpace = *(val.(*bool))
-			case "WorkingDirectory":
-				if isPlugin {
-					mismatch = true
-				} else {
-					job.WorkingDirectory = *(val.(*string))
-				}
 			case "Elevator":
 				task.Elevator = *(val.(*string))
 			case "ElevatedCommands":

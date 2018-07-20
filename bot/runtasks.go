@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -26,10 +25,11 @@ var envPassThrough = []string{
 // startPipeline is triggered by user commands, job triggers, and scheduled tasks.
 // Called from dispatch: checkPluginMatchersAndRun,
 // jobcommands: checkJobMatchersAndRun or scheduledTask.
-func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command string, args ...string) {
+func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command string, args ...string) (ret TaskRetVal, errString string) {
 	task, _, _ := getTask(t)
 	bot.pipeName = task.name
 	bot.pipeDesc = task.Description
+	// TODO: use the parent nameSpace if there's a parent and task.PrivateNameSpace isn't set
 	bot.nameSpace = task.NameSpace
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	robot.Add(1)
@@ -48,15 +48,13 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 		robot.Unlock()
 	}()
 
-	var errString string
-	var ret TaskRetVal
-	ts := taskSpec{task.name, command, args, t}
-	bot.nextTasks = []taskSpec{ts}
 	// redundant but explicit
 	bot.stage = primaryTasks
 	// Once Active, we need to use the Mutex for access to some fields; see
 	// botcontext/type botContext
 	bot.registerActive()
+	ts := taskSpec{task.name, command, args, t}
+	bot.nextTasks = []taskSpec{ts}
 	ret, errString = bot.runPipeline(ptype, true)
 	if ret != Normal {
 		if !bot.automaticTask && errString != "" {
@@ -102,6 +100,7 @@ func (bot *botContext) startPipeline(t interface{}, ptype pipelineType, command 
 		}
 		runQueues.Unlock()
 	}
+	return
 }
 
 type pipeStage int
@@ -115,6 +114,7 @@ const (
 func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskRetVal, errString string) {
 	var p []taskSpec
 	eventEmitted := false
+	var jobName string
 	switch bot.stage {
 	case primaryTasks:
 		p = bot.nextTasks
@@ -125,6 +125,7 @@ func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret Tas
 		p = bot.failTasks
 	}
 	l := len(p)
+	Log(Audit, fmt.Sprintf("DEBUG: Entered runPipeline with %d tasks to run", l))
 	for i := 0; i < l; i++ {
 		ts := p[i]
 		command := ts.Command
@@ -183,8 +184,27 @@ func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret Tas
 				emit(JobTaskRan)
 			}
 		}
-		if isJob && bot.logger == nil && job.HistoryLogs > 0 {
-			// We need to start a logger
+		newJob := false
+		if isJob && !bot.jobInitialized {
+			bot.jobInitialized = true
+			jobName = task.name
+			bot.jobChannel = job.Channel
+			bot.Lock()
+			bot.pipeName = task.name
+			bot.pipeDesc = task.Description
+			bot.Unlock()
+			if job.Verbose {
+				r := bot.makeRobot()
+				r.Channel = job.Channel
+				r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, bot.runIndex))
+				bot.verbose = true
+			}
+			for _, p := range job.Parameters {
+				_, exists := bot.environment[p.Name]
+				if !exists {
+					bot.environment[p.Name] = p.Value
+				}
+			}
 			if job.HistoryLogs > 0 || isJob {
 				var th taskHistory
 				rememberRuns := job.HistoryLogs
@@ -229,47 +249,12 @@ func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret Tas
 					}
 				}
 			}
+		} else if isJob && task.name != jobName {
+			newJob = true
 		}
-		if isJob && !bot.jobInitialized {
-			bot.jobInitialized = true
-			bot.jobChannel = job.Channel
-			bot.Lock()
-			bot.pipeName = task.name
-			bot.pipeDesc = task.Description
-			bot.Unlock()
-			if job.Verbose {
-				r := bot.makeRobot()
-				r.Channel = job.Channel
-				r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, bot.runIndex))
-				bot.verbose = true
-			}
-			for _, p := range job.Parameters {
-				_, exists := bot.environment[p.Name]
-				if !exists {
-					bot.environment[p.Name] = p.Value
-				}
-			}
-			storedEnv := make(map[string]string)
-			// Global environment for pipeline from first task
-			_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
-			if exists {
-				for key, value := range storedEnv {
-					// Dynamically provided and configured parameters take precedence over stored parameters
-					_, exists := bot.environment[key]
-					if !exists {
-						bot.environment[key] = value
-					}
-				}
-			}
-			if len(job.WorkingDirectory) > 0 {
-				dir := job.WorkingDirectory
-				if filepath.IsAbs(dir) {
-					bot.workingDirectory = filepath.Clean(dir)
-				} else {
-					h := handler{}
-					bot.workingDirectory = filepath.Join(h.GetConfigPath(), dir)
-				}
-			}
+		if newJob {
+			// TODO: Create new botContext, copy environment & other stuff, then call a new startPipeline with a parent arg
+			newJob = false
 		}
 		bot.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
 		errString, ret = bot.callTask(t, command, args...)
@@ -322,70 +307,7 @@ func (bot *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret Tas
 					p = append(p, bot.nextTasks...)
 					l += t
 				} else {
-					// Save state before running a sub-pipeline
-					// TODO: save & restore job Channel
-					jobInitialized := bot.jobInitialized
-					bot.jobInitialized = false
-					logger := bot.logger
-					verbose := bot.verbose
-					bot.verbose = false
-					environment := bot.environment
-					subenv := make(map[string]string)
-					for n, v := range environment {
-						subenv[n] = v
-					}
-					bot.environment = subenv
-					exclusive := bot.exclusive
-					bot.Lock()
-					pipeName := bot.pipeName
-					pipeDesc := bot.pipeDesc
-					bot.Unlock()
-
 					ret, errString = bot.runPipeline(ptype, false)
-
-					// See if a sub-pipeline requested exclusion; it shouldn't
-					// percolate up
-					if !exclusive && bot.exclusive {
-						tag := bot.exclusiveTag
-						runQueues.Lock()
-						queue, _ := runQueues.m[tag]
-						queueLen := len(queue)
-						if queueLen == 0 {
-							Log(Debug, fmt.Sprintf("Bot #%d finished exclusive pipeline '%s', no waiters in queue, removing", bot.id, bot.exclusiveTag))
-							delete(runQueues.m, tag)
-						} else {
-							Log(Debug, fmt.Sprintf("Bot #%d finished exclusive pipeline '%s', %d waiters in queue, waking next task", bot.id, bot.exclusiveTag, queueLen))
-							wakeUpTask := queue[0]
-							queue = queue[1:]
-							runQueues.m[tag] = queue
-							// Kiss the Princess
-							wakeUpTask <- struct{}{}
-						}
-						runQueues.Unlock()
-						bot.exclusive = false
-					}
-					bot.Lock()
-					subPipeName := bot.pipeName
-					subTaskName := bot.taskName
-					bot.Unlock()
-					if logger == nil && bot.logger != nil {
-						// close the sub-job history
-						bot.logger.Section("done", "pipeline has completed")
-						bot.logger.Close()
-						bot.logger = nil
-					}
-					if bot.jobInitialized && ((!verbose && bot.verbose) || ret != Normal) {
-						r := bot.makeRobot()
-						r.Channel = bot.jobChannel
-						r.Say(fmt.Sprintf("Finished job '%s', run %d, final task '%s', status: %s", subPipeName, bot.runIndex, subTaskName, ret))
-					}
-					bot.Lock()
-					bot.pipeName = pipeName
-					bot.pipeDesc = pipeDesc
-					bot.Unlock()
-					bot.environment = environment
-					bot.verbose = verbose
-					bot.jobInitialized = jobInitialized
 				}
 				bot.nextTasks = []taskSpec{}
 				// the case where bot.queueTask is true is handled right after
@@ -444,16 +366,14 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	// this task only. No effect if already defined. Useful mainly for specific
 	// tasks to have secrets passed in but not handed to everything in the
 	// pipeline.
-	if task.name != bot.pipeName { // don't re-add stuff stored in the pipeline already
-		storedEnv := make(map[string]string)
-		_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
-		if exists {
-			for key, value := range storedEnv {
-				// Dynamically provided and configured parameters take precedence over stored parameters
-				_, exists := envhash[key]
-				if !exists {
-					envhash[key] = value
-				}
+	storedEnv := make(map[string]string)
+	_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
+	if exists {
+		for key, value := range storedEnv {
+			// Dynamically provided and configured parameters take precedence over stored parameters
+			_, exists := envhash[key]
+			if !exists {
+				envhash[key] = value
 			}
 		}
 	}

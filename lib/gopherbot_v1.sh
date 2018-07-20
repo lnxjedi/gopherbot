@@ -175,6 +175,26 @@ EOF
 	fi
 }
 
+SetWorkingDirectory() {
+	local WDPATH="$1"
+	local VALUE="$2"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Path": "$WDPATH"
+}
+EOF
+)
+	local GB_FUNCNAME="SetWorkingDirectory"
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
+	if [ "$RETVAL" = "true" ]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
 AddTask(){
 	local JSTR
 	local TNAME="$1"

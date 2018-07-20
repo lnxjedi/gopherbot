@@ -29,6 +29,7 @@ type botconf struct {
 	BrainKey             string           // used to decrypt the brainKey
 	HistoryProvider      string           // Name of provider to use for storing and retrieving job/plugin histories
 	HistoryConfig        json.RawMessage  // History provider specific configuration
+	WorkSpace            string           // Read/Write area the robot uses to do work
 	DefaultElevator      string           // Elevator plugin to use by default for ElevatedCommands and ElevateImmediateCommands
 	DefaultAuthorizer    string           // Authorizer plugin to use by default for AuthorizedCommands, or when AuthorizeAllCommands = true
 	DefaultMessageFormat string           // How the robot should format outgoing messages unless told otherwise; default: Raw
@@ -150,7 +151,7 @@ func (r *botContext) loadConfig(preConnect bool) error {
 		var val interface{}
 		skip := false
 		switch key {
-		case "AdminContact", "Email", "Protocol", "Brain", "BrainKey", "HistoryProvider", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
+		case "AdminContact", "Email", "Protocol", "Brain", "BrainKey", "HistoryProvider", "WorkSpace", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
 			val = &strval
 		case "DefaultAllowDirect", "EncryptBrain":
 			val = &boolval
@@ -205,6 +206,8 @@ func (r *botContext) loadConfig(preConnect bool) error {
 			newconfig.HistoryProvider = *(val.(*string))
 		case "HistoryConfig":
 			newconfig.HistoryConfig = value
+		case "WorkSpace":
+			newconfig.WorkSpace = *(val.(*string))
 		case "DefaultJobChannel":
 			newconfig.DefaultJobChannel = *(val.(*string))
 		case "DefaultElevator":
@@ -378,6 +381,24 @@ func (r *botContext) loadConfig(preConnect bool) error {
 		if newconfig.ProtocolConfig != nil {
 			protocolConfig = newconfig.ProtocolConfig
 		}
+
+		var p string
+		if len(configPath) > 0 {
+			p = configPath
+		} else {
+			p = installPath
+		}
+		if newconfig.WorkSpace != "" {
+			if dirExists(newconfig.WorkSpace) {
+				robot.workSpace = newconfig.WorkSpace
+			} else {
+				Log(Error, fmt.Sprintf("WorkSpace directory '%s' doesn't exist, using '%s'", newconfig.WorkSpace, p))
+			}
+		}
+		if len(robot.workSpace) == 0 {
+			robot.workSpace = p
+		}
+
 		if newconfig.EncryptBrain {
 			encryptBrain = true
 		}

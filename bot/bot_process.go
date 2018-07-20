@@ -68,6 +68,7 @@ var robot struct {
 	brainKey             string           // Configured brain key
 	historyProvider      string           // Name of the history provider to use
 	history              HistoryProvider  // Provider for storing and retrieving job / plugin histories
+	workSpace            string           // Read/Write directory where the robot does work
 	defaultElevator      string           // Plugin name for performing elevation
 	defaultAuthorizer    string           // Plugin name for performing authorization
 	externalPlugins      []externalPlugin // List of external plugins to load
@@ -117,7 +118,8 @@ func initBot(cpath, epath string, logger *log.Logger) {
 
 	handle := handler{}
 	bot := &botContext{
-		environment: make(map[string]string),
+		workingDirectory: robot.workSpace,
+		environment:      make(map[string]string),
 	}
 	if err := bot.loadConfig(true); err != nil {
 		Log(Fatal, fmt.Sprintf("Error loading initial configuration: %v", err))
@@ -179,7 +181,8 @@ func run() <-chan struct{} {
 	go runBrain()
 
 	bot := &botContext{
-		environment: make(map[string]string),
+		workingDirectory: robot.workSpace,
+		environment:      make(map[string]string),
 	}
 	bot.registerActive()
 	bot.loadConfig(false)

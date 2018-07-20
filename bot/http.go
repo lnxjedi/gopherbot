@@ -1,5 +1,9 @@
 package bot
 
+/* http.go translates posted JSON to Robot method calls, then packages
+   and returns the JSON response.
+*/
+
 import (
 	"encoding/base64"
 	"encoding/json"
@@ -52,6 +56,10 @@ type addtaskcall struct {
 
 type paramcall struct {
 	Name, Value string
+}
+
+type wdcall struct {
+	Path string
 }
 
 // Something to be placed in short-term memory
@@ -261,6 +269,13 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 		success := bot.SetParameter(param.Name, param.Value)
+		sendReturn(rw, boolresponse{Boolean: success})
+	case "SetWorkingDirectory":
+		var wd wdcall
+		if !getArgs(rw, &f.FuncArgs, &wd) {
+			return
+		}
+		success := bot.SetWorkingDirectory(wd.Path)
 		sendReturn(rw, boolresponse{Boolean: success})
 	case "Exclusive":
 		var e exclusive

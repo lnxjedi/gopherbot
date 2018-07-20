@@ -250,6 +250,11 @@ Are all commands checked before all message matchers? Multiple matching commands
 
 This is just a gathering spot for somewhat uncategorized TODO items...
 
+- Brain optimization; keep a global seenCache map[string]bool:
+	- if the entry exists, it's been seen and the bool indicates whether the memory exists
+	- if the entry doesn't exist, check the memory and store whether it exists
+	- when storing a memory, always store that the memory exists
+	- best of all, the brain loop should mean no mutex!
 - Audit use of 'debug' - most calls should be debugT? (before bot.currentTask is set)
 - Plugin debugging verbose - emit messages for user message matching(?); when the user requesting debugging sets verbose, message match checks should trigger debug messages as well if the plugin being debugged has message matchers
 - Plugin debugging channel option - ability to filter by channel if channel set

@@ -135,6 +135,9 @@ class Robot:
     def SetParameter(self, name, value):
         return self.Call("SetParameter", { "Name": name, "Value": value })["Boolean"]
 
+    def SetWorkingDirectory(self, path):
+        return self.Call("SetWorkingDirectory", { "Path": path })["Boolean"]
+
     def Log(self, level, msg):
         self.Call("Log", { "Level": level, "Message": msg })
 

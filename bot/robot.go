@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -76,6 +77,26 @@ func (r *Robot) SetParameter(name, value string) bool {
 	c := r.getContext()
 	c.environment[name] = value
 	return true
+}
+
+// SetWorkingDirectory sets the working directory of the pipeline for all scripts
+// executed. The path argument can be absolute or relative; if relative, it is
+// always relative to the robot's WorkSpace.
+func (r *Robot) SetWorkingDirectory(path string) bool {
+	var newPath string
+	if filepath.IsAbs(path) {
+		newPath = path
+	} else {
+		newPath = filepath.Join(robot.workSpace, path)
+	}
+	ok := dirExists(newPath)
+	if ok {
+		c := r.getContext()
+		c.workingDirectory = newPath
+	} else {
+		r.Log(Error, fmt.Sprintf("Invalid path '%s'(%s) in SetWorkingDirectory", path, newPath))
+	}
+	return ok
 }
 
 // AddTask puts another task (job or plugin) in the queue for the pipeline. Unlike other

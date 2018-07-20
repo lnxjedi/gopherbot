@@ -106,14 +106,15 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 	// Create the botContext and a goroutine to process the message and carry state,
 	// which may eventually run a pipeline.
 	bot := &botContext{
-		User:        userName,
-		Channel:     channelName,
-		RawMsg:      raw,
-		tasks:       tasks,
-		isCommand:   isCommand,
-		directMsg:   directMsg,
-		msg:         message,
-		environment: make(map[string]string),
+		User:             userName,
+		Channel:          channelName,
+		RawMsg:           raw,
+		tasks:            tasks,
+		isCommand:        isCommand,
+		directMsg:        directMsg,
+		msg:              message,
+		workingDirectory: robot.workSpace,
+		environment:      make(map[string]string),
 	}
 	Log(Debug, fmt.Sprintf("Message '%s' from user '%s' in channel '%s'; isCommand: %t", message, userName, logChannel, isCommand))
 	bot.debug(fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)
