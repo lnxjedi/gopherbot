@@ -2,6 +2,9 @@
 
 `DevNotes.md` - TODO items and design notes for future development.
 
+## TODO
+- Delete / replace SLACK_TOKEN and GOPHER_BRAIN_KEY after read and used
+
 ## To be sorted / filtered
 - Replace PrivateNamespace with PrivateMemories (check usage first)
 - Tear out state saving logic in calls to run pipeline...
