@@ -220,8 +220,8 @@ LogLevel: info
 # BrainConfig:
 #   TableName: MyBot
 #   Region: "us-east-1"
-#   # You can leave these blank and set AWS_ACCESS_KEY_ID
-#   # and AWS_SECRET_ACCESS_KEY in environment variables
+#   # You can leave these blank and set BRAIN_AWS_ACCESS_KEY_ID
+#   # and BRAIN_AWS_SECRET_ACCESS_KEY in environment variables
 #   AccessKeyID: ""
 #   SecretAccessKey: ""
 

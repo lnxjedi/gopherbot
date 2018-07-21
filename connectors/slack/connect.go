@@ -55,6 +55,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		if len(tok) == 0 {
 			robot.Log(bot.Fatal, "No slack token found in config or env var 'SLACK_TOKEN'")
 		}
+		os.Unsetenv("SLACK_TOKEN")
 		robot.Log(bot.Debug, "Using SLACK_TOKEN environment variable")
 	} else {
 		tok = c.SlackToken
