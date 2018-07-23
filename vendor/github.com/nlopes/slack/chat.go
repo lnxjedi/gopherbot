@@ -23,15 +23,26 @@ const (
 )
 
 type chatResponseFull struct {
-	Channel   string `json:"channel"`
-	Timestamp string `json:"ts"`
-	Text      string `json:"text"`
+	Channel          string `json:"channel"`
+	Timestamp        string `json:"ts"`         //Regualr message timestamp
+	MessageTimeStamp string `json:"message_ts"` //Ephemeral message timestamp
+	Text             string `json:"text"`
 	SlackResponse
+}
+
+// getMessageTimestamp will inspect the `chatResponseFull` to ruturn a timestamp value
+// in `chat.postMessage` its under `ts`
+// in `chat.postEphemeral` its under `message_ts`
+func (c chatResponseFull) getMessageTimestamp() string {
+	if len(c.Timestamp) > 0 {
+		return c.Timestamp
+	}
+	return c.MessageTimeStamp
 }
 
 // PostMessageParameters contains all the parameters necessary (including the optional ones) for a PostMessage() request
 type PostMessageParameters struct {
-	Username        string       `json:"user_name"`
+	Username        string       `json:"username"`
 	AsUser          bool         `json:"as_user"`
 	Parse           string       `json:"parse"`
 	ThreadTimestamp string       `json:"thread_ts"`
@@ -157,7 +168,7 @@ func (api *Client) SendMessageContext(ctx context.Context, channelID string, opt
 		return "", "", "", err
 	}
 
-	return response.Channel, response.Timestamp, response.Text, nil
+	return response.Channel, response.getMessageTimestamp(), response.Text, response.Err()
 }
 
 // ApplyMsgOptions utility function for debugging/testing chat requests.
@@ -331,11 +342,48 @@ func MsgOptionDisableMarkdown() MsgOption {
 	}
 }
 
+// MsgOptionTS sets the thread TS of the message to enable creating or replying to a thread
+func MsgOptionTS(ts string) MsgOption {
+	return func(config *sendConfig) error {
+		config.values.Set("thread_ts", ts)
+		return nil
+	}
+}
+
+// MsgOptionBroadcast sets reply_broadcast to true
+func MsgOptionBroadcast() MsgOption {
+	return func(config *sendConfig) error {
+		config.values.Set("reply_broadcast", "true")
+		return nil
+	}
+}
+
+// this function combines multiple options into a single option.
+func MsgOptionCompose(options ...MsgOption) MsgOption {
+	return func(c *sendConfig) error {
+		for _, opt := range options {
+			if err := opt(c); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+func MsgOptionParse(b bool) MsgOption {
+	return func(c *sendConfig) error {
+		var v string
+		if b { v = "1" } else { v = "0" }
+		c.values.Set("parse", v)
+		return nil
+	}
+}
+
 // MsgOptionPostMessageParameters maintain backwards compatibility.
 func MsgOptionPostMessageParameters(params PostMessageParameters) MsgOption {
 	return func(config *sendConfig) error {
 		if params.Username != DEFAULT_MESSAGE_USERNAME {
-			config.values.Set("username", string(params.Username))
+			config.values.Set("username", params.Username)
 		}
 
 		// chat.postEphemeral support
@@ -347,7 +395,7 @@ func MsgOptionPostMessageParameters(params PostMessageParameters) MsgOption {
 		MsgOptionAsUser(params.AsUser)(config)
 
 		if params.Parse != DEFAULT_MESSAGE_PARSE {
-			config.values.Set("parse", string(params.Parse))
+			config.values.Set("parse", params.Parse)
 		}
 		if params.LinkNames != DEFAULT_MESSAGE_LINK_NAMES {
 			config.values.Set("link_names", "1")
