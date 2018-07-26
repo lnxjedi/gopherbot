@@ -130,6 +130,8 @@ func (r *botContext) loadTaskConfig() {
 			taskType:    taskExternal,
 			taskID:      getTaskID(script.Name),
 			Description: script.Description,
+			Parameters:  script.Parameters,
+			NameSpace:   script.NameSpace,
 			Path:        script.Path,
 		}
 		tlist = append(tlist, task)
@@ -261,7 +263,7 @@ LoadLoop:
 				val = &pval
 			case "HistoryLogs":
 				val = &intval
-			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "PrivateNameSpace", "Verbose":
+			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "Verbose":
 				val = &boolval
 			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands":
 				val = &sarrval
@@ -295,9 +297,6 @@ LoadLoop:
 
 			mismatch := false
 			// Defaults
-			if isPlugin {
-				task.PrivateNameSpace = true
-			}
 			switch key {
 			case "AllowDirect":
 				task.AllowDirect = *(val.(*bool))
@@ -343,8 +342,6 @@ LoadLoop:
 					Log(Error, fmt.Sprintf("Task '%s' has illegal NameSpace 'bot', ignoring", task.name))
 					task.NameSpace = ""
 				}
-			case "PrivateNameSpace":
-				task.PrivateNameSpace = *(val.(*bool))
 			case "Elevator":
 				task.Elevator = *(val.(*string))
 			case "ElevatedCommands":
@@ -437,7 +434,7 @@ LoadLoop:
 				if isPlugin {
 					mismatch = true
 				} else {
-					job.Parameters = *(val.(*[]parameter))
+					task.Parameters = *(val.(*[]parameter))
 				}
 			case "Path":
 				if isPlugin {

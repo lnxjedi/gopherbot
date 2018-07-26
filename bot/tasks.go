@@ -92,7 +92,8 @@ type externalJob struct {
 
 type externalTask struct {
 	// External tasks can only be used with AddTask(...)
-	Name, Path, Description string
+	Name, Path, Description, NameSpace string
+	Parameters                         []parameter
 }
 
 // items in gopherbot.yaml
@@ -148,29 +149,29 @@ const (
 
 // a botTask can be a plugin or a job, both capable of calling Robot methods.
 type botTask struct {
-	name             string          // name of job or plugin; unique by type, but job & plugin can share
-	taskType         taskType        // taskGo or taskExternal
-	Path             string          // Path to the external executable for jobs or Plugtype=taskExternal only
-	NameSpace        string          // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
-	PrivateNameSpace bool            // when set for tasks, memories will be stored/retrieved from task namespace instead of pipeline
-	Description      string          // description of job or plugin
-	AllowDirect      bool            // Set this true if this plugin can be accessed via direct message
-	DirectOnly       bool            // Set this true if this plugin ONLY accepts direct messages
-	Channel          string          // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
-	Channels         []string        // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
-	AllChannels      bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	User             string          // for scheduled tasks (jobs or plugins), triggered jobs; task runs as this user, also for notifies
-	RequireAdmin     bool            // Set to only allow administrators to access a plugin
-	Users            []string        // If non-empty, list of all the users with access to this plugin
-	Elevator         string          // Use an elevator other than the DefaultElevator
-	Authorizer       string          // a plugin to call for authorizing users, should handle groups, etc.
-	AuthRequire      string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
-	taskID           string          // 32-char random ID for identifying plugins/jobs
-	ReplyMatchers    []InputMatcher  // store this here for prompt*reply methods
-	Config           json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
-	config           interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
-	Disabled         bool
-	reason           string // why this job/plugin is disabled
+	name          string          // name of job or plugin; unique by type, but job & plugin can share
+	taskType      taskType        // taskGo or taskExternal
+	Path          string          // Path to the external executable for jobs or Plugtype=taskExternal only
+	NameSpace     string          // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
+	Parameters    []parameter     // Fixed parameters for a given job; many jobs will use the same script with differing parameters
+	Description   string          // description of job or plugin
+	AllowDirect   bool            // Set this true if this plugin can be accessed via direct message
+	DirectOnly    bool            // Set this true if this plugin ONLY accepts direct messages
+	Channel       string          // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
+	Channels      []string        // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
+	AllChannels   bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
+	User          string          // for scheduled tasks (jobs or plugins), triggered jobs; task runs as this user, also for notifies
+	RequireAdmin  bool            // Set to only allow administrators to access a plugin
+	Users         []string        // If non-empty, list of all the users with access to this plugin
+	Elevator      string          // Use an elevator other than the DefaultElevator
+	Authorizer    string          // a plugin to call for authorizing users, should handle groups, etc.
+	AuthRequire   string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
+	taskID        string          // 32-char random ID for identifying plugins/jobs
+	ReplyMatchers []InputMatcher  // store this here for prompt*reply methods
+	Config        json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
+	config        interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
+	Disabled      bool
+	reason        string // why this job/plugin is disabled
 }
 
 // stuff read in conf/jobs/<job>.yaml
@@ -179,7 +180,6 @@ type botJob struct {
 	HistoryLogs int            // how many runs of this job/plugin to keep history for
 	Triggers    []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
 	Arguments   []InputMatcher // list of arguments to prompt the user for
-	Parameters  []parameter    // Fixed parameters for a given job; many jobs will use the same script with differing parameters
 	*botTask
 }
 

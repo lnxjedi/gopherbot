@@ -6,10 +6,8 @@
 - Delete / replace SLACK_TOKEN and GOPHER_BRAIN_KEY after read and used
 
 ## To be sorted / filtered
-- Replace PrivateNamespace with PrivateMemories (check usage first)
-- Tear out state saving logic in calls to run pipeline...
+- Create `run` task for running a command/script in a repository
 - When a task in a pipeline is a job:
-  - If it's the same as the current job, just keep trucking; jobs should do this normally - calling themselves with different arguments at different stages in a pipeline
   - If it's a different job, create a new botContext and call startPipeline with a parent argument != nil == pointer to current bot
   - Start with inheriting environment, user, channel, msg, and namespace; can re-visit what's inherited in child jobs later
 - Let registerActive take a parent arg; if non-nil, registerActive will set parent and child members of bots while holding the lock

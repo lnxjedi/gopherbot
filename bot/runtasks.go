@@ -122,7 +122,6 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 		p = c.failTasks
 	}
 	l := len(p)
-	Log(Audit, fmt.Sprintf("DEBUG: Entered runPipeline with %d tasks to run", l))
 	for i := 0; i < l; i++ {
 		ts := p[i]
 		command := ts.Command
@@ -196,7 +195,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 				r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, c.runIndex))
 				c.verbose = true
 			}
-			for _, p := range job.Parameters {
+			for _, p := range task.Parameters {
 				_, exists := c.environment[p.Name]
 				if !exists {
 					c.environment[p.Name] = p.Value
@@ -335,9 +334,8 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 func (bot *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
 	bot.currentTask = t
 	r := bot.makeRobot()
-	task, plugin, job := getTask(t)
+	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
-	isJob := job != nil
 	// This should only happen in the rare case that a configured authorizer or elevator is disabled
 	if task.Disabled {
 		msg := fmt.Sprintf("callTask failed on disabled task %s; reason: %s", task.name, task.reason)
@@ -382,13 +380,11 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 			}
 		}
 	}
-	// Configured parameters for a pipeline job don't apply if already set
-	if isJob {
-		for _, p := range job.Parameters {
-			_, exists := envhash[p.Name]
-			if !exists {
-				envhash[p.Name] = p.Value
-			}
+	// Configured parameters for a pipeline task don't apply if already set
+	for _, p := range task.Parameters {
+		_, exists := envhash[p.Name]
+		if !exists {
+			envhash[p.Name] = p.Value
 		}
 	}
 
