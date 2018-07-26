@@ -143,6 +143,8 @@ func (r *Robot) AddTask(name string, cmdargs ...string) RetVal {
 // FinalTask adds a task that always runs when the pipeline ends. This
 // can be used to ensure that cleanup tasks like terminating a VM or stopping
 // the ssh-agent will run, regardless of whether the pipeline failed.
+// Note that unlike other tasks, final tasks are run in reverse of the order
+// they're added.
 func (r *Robot) FinalTask(name string, cmdargs ...string) RetVal {
 	c := r.getContext()
 	if c.stage != primaryTasks {
@@ -175,11 +177,14 @@ func (r *Robot) FinalTask(name string, cmdargs ...string) RetVal {
 		task:      t,
 	}
 	c.finalTasks = append(c.finalTasks, ts)
+	// Final tasks are FILO/LIFO (run in reverse order of being added)
+	c.finalTasks = append([]taskSpec{ts}, c.finalTasks...)
 	return Ok
 }
 
 // FailTask adds a task that runs if the pipeline fails. This can be used to
 // e.g. terminate a VM that shouldn't be left running if the pipeline fails.
+// FailTasks run in the order added, and the list should be short.
 func (r *Robot) FailTask(name string, cmdargs ...string) RetVal {
 	c := r.getContext()
 	if c.stage != primaryTasks {
