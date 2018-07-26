@@ -2,9 +2,6 @@
 
 `DevNotes.md` - TODO items and design notes for future development.
 
-## TODO
-- Delete / replace SLACK_TOKEN and GOPHER_BRAIN_KEY after read and used
-
 ## To be sorted / filtered
 - Create `run` task for running a command/script in a repository
 - When a task in a pipeline is a job:
@@ -161,6 +158,7 @@ To simplify locking:
 * Modify bot methods to query config items from the config (e.g. in logging) without locks
 
 ## Encrypted Brain
+TODO: Add this info to documentation
 When the robot starts with an encrypted brain, it'll look for a provided key to
 decrypt the "bot:brainKey" memory to retrieve the actual key used to en-/de-crypt memories.
 * If brainKey doesn't exist, it will be randomly generated and encrytped with the provided key

@@ -133,11 +133,10 @@ type InputMatcher struct {
 
 // InputMatcher specifies the command or message to match for a plugin, or user and message to trigger a job
 type JobTrigger struct {
-	Regex     string         // The regular expression string to match - bot adds ^\w* & \w*$
-	User      string         // required user to trigger this job, normally git-activated webhook or integration
-	Channel   string         // required channel for the trigger
-	re        *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
-	Arguments []InputMatcher // Used to prompt the user for job arguments
+	Regex   string         // The regular expression string to match - bot adds ^\w* & \w*$
+	User    string         // required user to trigger this job, normally git-activated webhook or integration
+	Channel string         // required channel for the trigger
+	re      *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
 type taskType int

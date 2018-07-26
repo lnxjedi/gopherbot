@@ -185,7 +185,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 		} else {
 			replies.Unlock()
 		}
-		bot.startPipeline(runTask, pipelineType, matcher.Command, cmdArgs...)
+		bot.startPipeline(nil, runTask, pipelineType, matcher.Command, cmdArgs...)
 	}
 	return
 }
@@ -284,7 +284,7 @@ func (bot *botContext) handleMessage() {
 			} else {
 				// Note: if the catchall plugin has configured security, it
 				// should still apply.
-				bot.startPipeline(catchAllPlugins[0], catchAll, "catchall", spaceRe.ReplaceAllString(bot.msg, " "))
+				bot.startPipeline(nil, catchAllPlugins[0], catchAll, "catchall", spaceRe.ReplaceAllString(bot.msg, " "))
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins

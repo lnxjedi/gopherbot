@@ -85,5 +85,5 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList) {
 		command = "run"
 	}
 	Log(Debug, fmt.Sprintf("Starting scheduled task: %s", task.name))
-	bot.startPipeline(t, scheduled, command, ts.Arguments...)
+	bot.startPipeline(nil, t, scheduled, command, ts.Arguments...)
 }

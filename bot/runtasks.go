@@ -22,18 +22,19 @@ var envPassThrough = []string{
 	"USER",
 }
 
-// startPipeline is triggered by user commands, job triggers, and scheduled tasks.
+// startPipeline is triggered by plugins, job triggers, scheduled tasks, and child jobs
 // Called from dispatch: checkPluginMatchersAndRun,
-// jobcommands: checkJobMatchersAndRun or scheduledTask.
-func (c *botContext) startPipeline(t interface{}, ptype pipelineType, command string, args ...string) (ret TaskRetVal, errString string) {
-	task, _, _ := getTask(t)
+// jobcommands: checkJobMatchersAndRun or scheduledTask,
+// runPipeline.
+func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipelineType, command string, args ...string) (ret TaskRetVal, errString string) {
+	task, _, job := getTask(t)
+	isJob := job != nil
 	c.pipeName = task.name
 	c.pipeDesc = task.Description
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	robot.Add(1)
 	robot.Lock()
 	robot.pluginsRunning++
-	c.history = robot.history
 	c.timeZone = robot.timeZone
 	robot.Unlock()
 	defer func() {
@@ -45,6 +46,67 @@ func (c *botContext) startPipeline(t interface{}, ptype pipelineType, command st
 		}
 		robot.Unlock()
 	}()
+
+	if isJob {
+		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
+		c.jobName = task.name // Exclusive always uses the jobName, regardless of the task that calls it
+		c.history = robot.history
+		c.workingDirectory = robot.workSpace
+		var th taskHistory
+		rememberRuns := job.HistoryLogs
+		key := histPrefix + c.jobName
+		tok, _, ret := checkoutDatum(key, &th, true)
+		if ret != Ok {
+			Log(Error, fmt.Sprintf("Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName))
+		} else {
+			var start time.Time
+			if c.timeZone != nil {
+				start = time.Now().In(c.timeZone)
+			} else {
+				start = time.Now()
+			}
+			c.runIndex = th.NextIndex
+			hist := historyLog{
+				LogIndex:   c.runIndex,
+				CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
+			}
+			th.NextIndex++
+			th.Histories = append(th.Histories, hist)
+			l := len(th.Histories)
+			if l > rememberRuns {
+				th.Histories = th.Histories[l-rememberRuns:]
+			}
+			ret := updateDatum(key, tok, th)
+			if ret != Ok {
+				Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, c.pipeName))
+			} else {
+				if job.HistoryLogs > 0 && c.history != nil {
+					pipeHistory, err := c.history.NewHistory(c.pipeName, hist.LogIndex, job.HistoryLogs)
+					if err != nil {
+						Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", c.pipeName, err))
+					} else {
+						c.logger = pipeHistory
+					}
+				} else {
+					if c.history == nil {
+						Log(Warn, "Error starting history, no history provider available")
+					}
+				}
+			}
+		}
+		for _, p := range task.Parameters {
+			_, exists := c.environment[p.Name]
+			if !exists {
+				c.environment[p.Name] = p.Value
+			}
+		}
+		if job.Verbose {
+			r := c.makeRobot()
+			r.Channel = job.Channel
+			r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, c.runIndex))
+			c.verbose = true
+		}
+	}
 
 	// redundant but explicit
 	c.stage = primaryTasks
@@ -77,7 +139,7 @@ func (c *botContext) startPipeline(t interface{}, ptype pipelineType, command st
 	c.deregister()
 	if c.jobInitialized && (c.verbose || ret != Normal) {
 		r := c.makeRobot()
-		r.Channel = c.jobChannel
+		r.Channel = job.Channel
 		r.Say(fmt.Sprintf("Finished job '%s', run %d, final task '%s', status: %s", c.pipeName, c.runIndex, c.taskName, ret))
 	}
 	if c.exclusive {
@@ -112,6 +174,7 @@ const (
 func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskRetVal, errString string) {
 	var p []taskSpec
 	eventEmitted := false
+
 	switch c.stage {
 	case primaryTasks:
 		p = c.nextTasks
@@ -121,16 +184,19 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 	case failTasks:
 		p = c.failTasks
 	}
+
 	l := len(p)
 	for i := 0; i < l; i++ {
 		ts := p[i]
 		command := ts.Command
 		args := ts.Arguments
 		t := ts.task
-		task, _, job := getTask(t)
+		task, plugin, job := getTask(t)
 		isJob := job != nil
-		// bypass security checks if flag set, or running final tasks
-		if !c.automaticTask && c.stage != finalTasks {
+		isPlugin := plugin != nil
+
+		// Security checks for jobs & plugins
+		if (isJob || isPlugin) && !c.automaticTask && c.stage != finalTasks {
 			r := c.makeRobot()
 			_, plugin, _ := getTask(t)
 			if plugin != nil && len(plugin.AdminCommands) > 0 {
@@ -164,7 +230,9 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 				}
 			}
 		}
+
 		if initialRun && !eventEmitted {
+			eventEmitted = true
 			switch ptype {
 			case plugCommand:
 				emit(CommandTaskRan) // for testing, otherwise noop
@@ -180,91 +248,26 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 				emit(JobTaskRan)
 			}
 		}
-		newJob := false
-		if isJob && !c.jobInitialized {
-			c.jobInitialized = true
-			c.jobName = task.name
-			c.jobChannel = job.Channel
-			c.Lock()
-			c.pipeName = task.name
-			c.pipeDesc = task.Description
-			c.Unlock()
-			if job.Verbose {
-				r := c.makeRobot()
-				r.Channel = job.Channel
-				r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, c.runIndex))
-				c.verbose = true
-			}
-			for _, p := range task.Parameters {
-				_, exists := c.environment[p.Name]
-				if !exists {
-					c.environment[p.Name] = p.Value
-				}
-			}
-			if job.HistoryLogs > 0 || isJob {
-				var th taskHistory
-				rememberRuns := job.HistoryLogs
-				key := histPrefix + task.name
-				tok, _, ret := checkoutDatum(key, &th, true)
-				if ret != Ok {
-					Log(Error, fmt.Sprintf("Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName))
-				} else {
-					var start time.Time
-					if c.timeZone != nil {
-						start = time.Now().In(c.timeZone)
-					} else {
-						start = time.Now()
-					}
-					c.runIndex = th.NextIndex
-					hist := historyLog{
-						LogIndex:   c.runIndex,
-						CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
-					}
-					th.NextIndex++
-					th.Histories = append(th.Histories, hist)
-					l := len(th.Histories)
-					if l > rememberRuns {
-						th.Histories = th.Histories[l-rememberRuns:]
-					}
-					ret := updateDatum(key, tok, th)
-					if ret != Ok {
-						Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, c.pipeName))
-					} else {
-						if job.HistoryLogs > 0 && c.history != nil {
-							pipeHistory, err := c.history.NewHistory(c.pipeName, hist.LogIndex, job.HistoryLogs)
-							if err != nil {
-								Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", c.pipeName, err))
-							} else {
-								c.logger = pipeHistory
-							}
-						} else {
-							if c.history == nil {
-								Log(Warn, "Error starting history, no history provider available")
-							}
-						}
-					}
-				}
-			}
-		} else if isJob && task.name != c.jobName {
-			newJob = true
-		}
-		if newJob {
+		if isJob && i != 0 {
 			child := &botContext{
-				User:     c.User,
-				Channel:  c.Channel,
-				Protocol: c.Protocol,
-				RawMsg:   c.RawMsg,
-				Format:   c.Format,
+				User:          c.User,
+				Channel:       c.Channel,
+				tasks:         c.tasks,
+				automaticTask: c.automaticTask,
+				elevated:      c.elevated,
+				Protocol:      c.Protocol,
+				RawMsg:        c.RawMsg,
+				Format:        c.Format,
+				environment:   make(map[string]string),
 			}
-			ret, errString = child.startPipeline(t, ptype, command, args...)
-			// TODO: Create new botContext, copy environment & other stuff, then call a new startPipeline with a parent arg
-			newJob = false
+			ret, errString = child.startPipeline(c, t, ptype, command, args...)
+		} else {
+			c.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
+			errString, ret = c.callTask(t, command, args...)
+			c.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
 		}
-		c.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
-		errString, ret = c.callTask(t, command, args...)
-		c.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
 		if c.stage != finalTasks && ret != Normal {
-			// task in pipeline failed
+			// task / job in pipeline failed
 			break
 		}
 		if !c.exclusive {
@@ -307,7 +310,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 		if c.stage == primaryTasks {
 			t := len(c.nextTasks)
 			if t > 0 {
-				if i == l-1 && !c.jobInitialized {
+				if i == l-1 {
 					p = append(p, c.nextTasks...)
 					l += t
 				} else {
@@ -449,7 +452,6 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	envhash["GOPHER_USER"] = bot.User
 	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", bot.Protocol)
 	envhash["GOPHER_WORKSPACE"] = robot.workSpace
-	envhash["GOPHER_JOBNAME"] = bot.jobName
 	// Passed-through environment vars have the lowest priority
 	for _, p := range envPassThrough {
 		_, exists := envhash[p]

@@ -125,7 +125,6 @@ type botContext struct {
 	jobInitialized bool       // whether a job has started
 	jobName        string     // name of the running job
 	runIndex       int        // run number of a job
-	jobChannel     string     // channel for reporting job status
 	verbose        bool       // flag if initializing job was verbose
 	nextTasks      []taskSpec // tasks in the pipeline
 	finalTasks     []taskSpec // clean-up tasks that always run when the pipeline ends
