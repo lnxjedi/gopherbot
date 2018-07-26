@@ -114,6 +114,11 @@ type replyrequest struct {
 	Base64  bool
 }
 
+type extns struct {
+	Extend    string
+	Histories int
+}
+
 // Types for returning values
 
 // AttrRet implements Stringer so it can be interpolated with fmt if
@@ -276,6 +281,13 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 		success := bot.SetWorkingDirectory(wd.Path)
+		sendReturn(rw, boolresponse{Boolean: success})
+	case "ExtendNamespace":
+		var en extns
+		if !getArgs(rw, &f.FuncArgs, &en) {
+			return
+		}
+		success := bot.ExtendNamespace(en.Extend, en.Histories)
 		sendReturn(rw, boolresponse{Boolean: success})
 	case "Exclusive":
 		var e exclusive

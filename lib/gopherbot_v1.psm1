@@ -163,28 +163,33 @@ class Robot
     [PSCustomObject] Call([String] $fname, [PSCustomObject] $funcArgs) {
         return $this.Call($fname, $funcArgs, "")
     }
-    
+
     [PlugRet] AddTask([String] $taskName, [String[]]$taskArgs) {
         $funcArgs = [PSCustomObject]@{ Name=$taskName, CmdArgs=$taskArgs }
         $ret = $this.Call("AddTask", $funcArgs)
         return $ret.RetVal -As [BotRet]
     }
-    
+
     [PlugRet] FinalTask([String] $taskName, [String[]]$taskArgs) {
         $funcArgs = [PSCustomObject]@{ Name=$taskName, CmdArgs=$taskArgs }
         $ret = $this.Call("FinalTask", $funcArgs)
         return $ret.RetVal -As [BotRet]
     }
-    
+
     [PlugRet] FailTask([String] $taskName, [String[]]$taskArgs) {
         $funcArgs = [PSCustomObject]@{ Name=$taskName, CmdArgs=$taskArgs }
         $ret = $this.Call("FailTask", $funcArgs)
         return $ret.RetVal -As [BotRet]
     }
-    
+
     [Bool] SetParameter([String] $name, [String] $value){
         $funcArgs = [PSCustomObject]@{ Name=$name; Value=$value }
         return $this.Call("SetParameter", $funcArgs).Boolean -As [bool]
+    }
+
+    [Bool] ExtendNamespace([String] $ns, [Int] $hist){
+        $funcArgs = [PSCustomObject]@{ Extend=$ns; Histories=$hist }
+        return $this.Call("ExtendNamespace", $funcArgs).Boolean -As [bool]
     }
 
     [Bool] SetWorkingDirectory([String] $wdpath){

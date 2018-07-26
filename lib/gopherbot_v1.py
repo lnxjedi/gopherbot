@@ -135,6 +135,9 @@ class Robot:
     def SetParameter(self, name, value):
         return self.Call("SetParameter", { "Name": name, "Value": value })["Boolean"]
 
+    def ExtendNamespace(self, ns, hist):
+        return self.Call("ExtendNamespace", { "Extend": ns, "Histories": hist })["Boolean"]
+
     def SetWorkingDirectory(self, path):
         return self.Call("SetWorkingDirectory", { "Path": path })["Boolean"]
 

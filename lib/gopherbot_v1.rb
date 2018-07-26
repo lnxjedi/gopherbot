@@ -114,6 +114,10 @@ class BaseBot
 		return callBotFunc("SetParameter", { "Name" => name, "Value" => value })["Boolean"]
 	end
 
+	def ExtendNamespace(ns, hist)
+		return callBotFunc("ExtendNamespace", { "Extend" => ns, "Histories" => hist })["Boolean"]
+	end
+
 	def SetWorkingDirectory(path)
 		return callBotFunc("SetWorkingDirectory", { "Path" => path })["Boolean"]
 	end

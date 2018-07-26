@@ -23,22 +23,22 @@ AllChannels: true
 AllowDirect: false
 Help:
 - Keywords: [ "history", "job" ]
-  Helptext: [ "(bot), history <job> - list the histories available for a job" ]
+  Helptext: [ "(bot), history <job(:namespace)> - list the histories available for a job" ]
 - Keywords: [ "quit" ]
-  Helptext: [ "(bot), history (job) <run#> - start paging the history text for a job run" ]
+  Helptext: [ "(bot), history (job(:namespace) <run#> - start paging the history text for a job run" ]
 CommandMatchers:
 - Command: history
-  Regex: '(?i:history(?: ([A-Za-z][\w-]*))?)'
+  Regex: '(?i:history(?: ([A-Za-z][\w-:]*))?)'
   Contexts: [ "task" ]
 - Command: showhistory
-  Regex: '(?i:history (?:([A-Za-z][\w-]*) )?(\d+))'
+  Regex: '(?i:history (?:([A-Za-z][\w-:]*) )?(\d+))'
   Contexts: [ "task" ]
 MessageMatchers:
 - Command: history
-  Regex: '(?i:^history(?: ([A-Za-z][\w-]*))?$)'
+  Regex: '(?i:^history(?: ([A-Za-z][\w-:]*))?$)'
   Contexts: [ "task" ]
 - Command: showhistory
-  Regex: '(?i:^history (?:([A-Za-z][\w-]*) )?(\d+)$)'
+  Regex: '(?i:^history (?:([A-Za-z][\w-:]*) )?(\d+)$)'
   Contexts: [ "task" ]
 ReplyMatchers:
 - Label: paging
@@ -54,10 +54,11 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		return
 	}
 
-	taskName := args[0]
+	histSpec := args[0]
 	// boilerplate availability and security checking for job commands
 	c := r.getContext()
-	t := c.jobAvailable(taskName, true)
+	jobName := strings.Split(histSpec, ":")[0]
+	t := c.jobAvailable(jobName, true)
 	if t == nil {
 		return
 	}
@@ -68,24 +69,24 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	switch command {
 	case "history":
 		var jh jobHistory
-		key := histPrefix + taskName
+		key := histPrefix + histSpec
 		_, _, ret := checkoutDatum(key, &jh, false)
 		if ret != Ok || len(jh.Histories) == 0 {
-			r.Say(fmt.Sprintf("No history found for '%s'", taskName))
+			r.Say(fmt.Sprintf("No history found for '%s'", histSpec))
 			return
 		}
 		hl := make([]string, len(jh.Histories)+1)
-		hl = append(hl, fmt.Sprintf("History of job runs for '%s':", taskName))
+		hl = append(hl, fmt.Sprintf("History of job runs for '%s':", histSpec))
 		for _, he := range jh.Histories {
 			hl = append(hl, fmt.Sprintf("Run %d - %s", he.LogIndex, he.CreateTime))
 		}
 		r.Say(strings.Join(hl, "\n"))
 	case "showhistory":
 		index, _ := strconv.Atoi(args[1])
-		f, err := robot.history.GetHistory(taskName, index)
+		f, err := robot.history.GetHistory(histSpec, index)
 		if err != nil {
-			Log(Error, fmt.Sprintf("Error getting history %d for task '%s': %v", index, taskName, err))
-			r.Say(fmt.Sprintf("History %d for '%s' not available", index, taskName))
+			Log(Error, fmt.Sprintf("Error getting history %d for task '%s': %v", index, histSpec, err))
+			r.Say(fmt.Sprintf("History %d for '%s' not available", index, histSpec))
 			return
 		}
 		var line string

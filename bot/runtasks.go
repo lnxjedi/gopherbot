@@ -84,7 +84,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 				Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, c.pipeName))
 			} else {
 				if job.HistoryLogs > 0 && c.history != nil {
-					pipeHistory, err := c.history.NewHistory(c.pipeName, hist.LogIndex, job.HistoryLogs)
+					pipeHistory, err := c.history.NewHistory(c.jobName, hist.LogIndex, job.HistoryLogs)
 					if err != nil {
 						Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", c.pipeName, err))
 					} else {
@@ -534,6 +534,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		}
 	} else {
 		closed := make(chan struct{})
+		hl := bot.logger
 		go func() {
 			scanner := bufio.NewScanner(stdout)
 			for scanner.Scan() {
@@ -560,6 +561,9 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 				}
 				halfClosed = true
 			}
+		}
+		if bot.logger != hl {
+			hl.Close()
 		}
 	}
 	if err = cmd.Wait(); err != nil {

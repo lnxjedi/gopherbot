@@ -3,6 +3,7 @@
 `DevNotes.md` - TODO items and design notes for future development.
 
 ## To be sorted / filtered
+- Update jobbuiltins / history to list namespaces
 - Create `run` task for running a command/script in a repository
 - When a task in a pipeline is a job:
   - If it's a different job, create a new botContext and call startPipeline with a parent argument != nil == pointer to current bot
@@ -237,7 +238,7 @@ For jobs triggered interactively, authorization and elevation will be evaluated 
 * Authorization will be checked for the triggering user for each job/plugin in the pipeline; failure at any point will fail the pipeline with an error
 
 #### Elevation
-If a job/plugin requires elevation, the configured elevator for that job/plugin will run, and if Elevation succeeds 
+If a job/plugin requires elevation, the configured elevator for that job/plugin will run, and if Elevation succeeds
 
 ### Differences
 

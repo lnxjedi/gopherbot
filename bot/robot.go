@@ -186,7 +186,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 			Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, c.pipeName))
 		} else {
 			if nh > 0 && c.history != nil {
-				pipeHistory, err := c.history.NewHistory(c.pipeName, hist.LogIndex, nh)
+				pipeHistory, err := c.history.NewHistory(c.pipeName+":"+ext, hist.LogIndex, nh)
 				if err != nil {
 					Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", c.pipeName, err))
 				} else {
@@ -195,6 +195,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 					}
 					c.logger = pipeHistory
 					c.logger.Section("new log", fmt.Sprintf("Extended log created by job '%s'", c.jobName))
+					r.Log(Debug, fmt.Sprintf("Started new history for job '%s' with namespace '%s'", c.jobName, ext))
 				}
 			} else {
 				if c.history == nil {

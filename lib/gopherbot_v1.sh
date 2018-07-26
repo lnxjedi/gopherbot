@@ -175,6 +175,27 @@ EOF
 	fi
 }
 
+ExtendNamespace() {
+	local NS="$1"
+	local HIST="$2"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Extend": "$NS",
+	"Histories": $2
+}
+EOF
+)
+	local GB_FUNCNAME="ExtendNamespace"
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
+	if [ "$RETVAL" = "true" ]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
 SetWorkingDirectory() {
 	local WDPATH="$1"
 	local VALUE="$2"
