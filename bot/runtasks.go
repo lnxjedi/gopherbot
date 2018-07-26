@@ -388,6 +388,10 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	// tasks to have secrets passed in but not handed to everything in the
 	// pipeline.
 	storedEnv := make(map[string]string)
+	spk := paramPrefix + task.NameSpace
+	if len(bot.nsExtension) > 0 {
+		spk += ":" + bot.nsExtension
+	}
 	_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
 	if exists {
 		for key, value := range storedEnv {
