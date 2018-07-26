@@ -116,11 +116,6 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	ts := taskSpec{task.name, command, args, t}
 	c.nextTasks = []taskSpec{ts}
 	ret, errString = c.runPipeline(ptype, true)
-	if ret != Normal {
-		if !c.automaticTask && errString != "" {
-			c.makeRobot().Reply(errString)
-		}
-	}
 	// Run final and fail (cleanup) tasks
 	if ret != Normal {
 		if len(c.failTasks) > 0 {
@@ -137,10 +132,23 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		c.logger.Close()
 	}
 	c.deregister()
-	if c.jobInitialized && (c.verbose || ret != Normal) {
+	if ret != Normal {
+		if !c.automaticTask && errString != "" {
+			c.makeRobot().Reply(errString)
+		}
+	}
+	if isJob && (job.Verbose || ret != Normal) {
 		r := c.makeRobot()
 		r.Channel = job.Channel
-		r.Say(fmt.Sprintf("Finished job '%s', run %d, final task '%s', status: %s", c.pipeName, c.runIndex, c.taskName, ret))
+		if ret == Normal {
+			r.Say(fmt.Sprintf("Finished job '%s', run %d, final task '%s', status: %s", c.pipeName, c.runIndex, c.taskName, ret))
+		} else {
+			var td string
+			if len(c.failedTaskDescription) > 0 {
+				td = " - " + c.failedTaskDescription
+			}
+			r.Reply(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'%s", c.pipeName, c.runIndex, c.failedTaskName, td))
+		}
 	}
 	if c.exclusive {
 		tag := c.exclusiveTag
@@ -265,6 +273,10 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 			c.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
 			errString, ret = c.callTask(t, command, args...)
 			c.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
+			if c.stage != finalTasks && ret != Normal {
+				c.failedTaskName = task.name
+				c.failedTaskDescription = task.Description
+			}
 		}
 		if c.stage != finalTasks && ret != Normal {
 			// task / job in pipeline failed
@@ -478,7 +490,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	stderr, err = cmd.StderrPipe()
 	if err != nil {
 		Log(Error, fmt.Errorf("Creating stderr pipe for external command '%s': %v", fullPath, err))
-		errString = fmt.Sprintf("There were errors calling external plugin '%s', you might want to ask an administrator to check the logs", task.name)
+		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 		return errString, MechanismFail
 	}
 	if bot.logger == nil {
@@ -488,13 +500,13 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		stdout, err = cmd.StdoutPipe()
 		if err != nil {
 			Log(Error, fmt.Errorf("Creating stdout pipe for external command '%s': %v", fullPath, err))
-			errString = fmt.Sprintf("There were errors calling external plugin '%s', you might want to ask an administrator to check the logs", task.name)
+			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			return errString, MechanismFail
 		}
 	}
 	if err = cmd.Start(); err != nil {
 		Log(Error, fmt.Errorf("Starting command '%s': %v", fullPath, err))
-		errString = fmt.Sprintf("There were errors calling external plugin '%s', you might want to ask an administrator to check the logs", task.name)
+		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 		return errString, MechanismFail
 	}
 	if command != "init" {
@@ -504,7 +516,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		var stdErrBytes []byte
 		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
 			Log(Error, fmt.Errorf("Reading from stderr for external command '%s': %v", fullPath, err))
-			errString = fmt.Sprintf("There were errors calling external plugin '%s', you might want to ask an administrator to check the logs", task.name)
+			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			return errString, MechanismFail
 		}
 		stdErrString := string(stdErrBytes)
@@ -556,7 +568,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		}
 		if !success {
 			Log(Error, fmt.Errorf("Waiting on external command '%s': %v", fullPath, err))
-			errString = fmt.Sprintf("There were errors calling external plugin '%s', you might want to ask an administrator to check the logs", task.name)
+			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			emit(ExternalTaskErrExit)
 		}
 	}

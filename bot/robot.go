@@ -176,7 +176,6 @@ func (r *Robot) FinalTask(name string, cmdargs ...string) RetVal {
 		Arguments: args,
 		task:      t,
 	}
-	c.finalTasks = append(c.finalTasks, ts)
 	// Final tasks are FILO/LIFO (run in reverse order of being added)
 	c.finalTasks = append([]taskSpec{ts}, c.finalTasks...)
 	return Ok

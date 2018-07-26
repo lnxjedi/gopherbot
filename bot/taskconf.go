@@ -125,13 +125,17 @@ func (r *botContext) loadTaskConfig() {
 			r.debug(msg, false)
 			continue
 		}
+		nameSpace := script.Name
+		if len(script.NameSpace) > 0 {
+			nameSpace = script.NameSpace
+		}
 		task := &botTask{
 			name:        script.Name,
 			taskType:    taskExternal,
 			taskID:      getTaskID(script.Name),
 			Description: script.Description,
 			Parameters:  script.Parameters,
-			NameSpace:   script.NameSpace,
+			NameSpace:   nameSpace,
 			Path:        script.Path,
 		}
 		tlist = append(tlist, task)
