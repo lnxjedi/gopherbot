@@ -52,10 +52,13 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		c.jobName = task.name // Exclusive always uses the jobName, regardless of the task that calls it
 		c.history = robot.history
 		c.workingDirectory = robot.workSpace
-		var th taskHistory
+		var jh jobHistory
 		rememberRuns := job.HistoryLogs
+		if rememberRuns == 0 {
+			rememberRuns = 1
+		}
 		key := histPrefix + c.jobName
-		tok, _, ret := checkoutDatum(key, &th, true)
+		tok, _, ret := checkoutDatum(key, &jh, true)
 		if ret != Ok {
 			Log(Error, fmt.Sprintf("Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName))
 		} else {
@@ -65,18 +68,18 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			} else {
 				start = time.Now()
 			}
-			c.runIndex = th.NextIndex
+			c.runIndex = jh.NextIndex
 			hist := historyLog{
 				LogIndex:   c.runIndex,
 				CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
 			}
-			th.NextIndex++
-			th.Histories = append(th.Histories, hist)
-			l := len(th.Histories)
+			jh.NextIndex++
+			jh.Histories = append(jh.Histories, hist)
+			l := len(jh.Histories)
 			if l > rememberRuns {
-				th.Histories = th.Histories[l-rememberRuns:]
+				jh.Histories = jh.Histories[l-rememberRuns:]
 			}
-			ret := updateDatum(key, tok, th)
+			ret := updateDatum(key, tok, jh)
 			if ret != Ok {
 				Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, c.pipeName))
 			} else {

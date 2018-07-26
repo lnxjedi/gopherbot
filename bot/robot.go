@@ -99,6 +99,113 @@ func (r *Robot) SetWorkingDirectory(path string) bool {
 	return ok
 }
 
+// ExtendNamespace is for CI/CD applications to support building multiple
+// repositories from a single triggered job. When ExtendNamespace is called,
+// all future long-term memory lookups are prefixed with the extended
+// namespace, and a new history is started for the extended namespace.
+// It is an error to call ExtendNamespace twice in a single job pipeline, or
+// outside of a running job. The histories argument is interpreted as the
+// number of histories to keep for the extended namespace, or -1 to inherit
+// from the parent job.
+func (r *Robot) ExtendNamespace(ext string, histories int) bool {
+	c := r.getContext()
+	if c.stage != primaryTasks {
+		r.Log(Error, "ExtendNamespace called after pipeline end")
+		return false
+	}
+	if len(c.jobName) == 0 {
+		r.Log(Error, "ExtendNamespace called with no job in progress")
+		return false
+	}
+	if len(c.nsExtension) > 0 {
+		r.Log(Error, "ExtendNamespace called after namespace already extended")
+		return false
+	}
+	c.nsExtension = ext
+
+	jk := histPrefix + c.jobName
+	var pjh jobHistory
+	jtok, _, jret := checkoutDatum(jk, &pjh, true)
+	if jret != Ok {
+		r.Log(Error, fmt.Sprintf("Problem checking out '%s', unable to record extended namespace '%s'", jk, ext))
+	} else {
+		xn := make(map[string]bool)
+		for _, v := range pjh.ExtendedNamespaces {
+			xn[v] = true
+		}
+		xn[ext] = true
+		pjh.ExtendedNamespaces = make([]string, len(xn))
+		i := 0
+		for k, _ := range xn {
+			pjh.ExtendedNamespaces[i] = k
+			i++
+		}
+		ret := updateDatum(jk, jtok, pjh)
+		if ret != Ok {
+			r.Log(Error, fmt.Sprintf("Problem updating '%s', unable to record extended namespace '%s'", jk, ext))
+		}
+	}
+
+	var nh int
+	if histories != -1 {
+		nh = histories
+	} else {
+		j := c.tasks.getTaskByName(c.jobName)
+		_, _, job := getTask(j)
+		nh = job.HistoryLogs
+	}
+	var jh jobHistory
+	rememberRuns := nh
+	if rememberRuns == 0 {
+		rememberRuns = 1
+	}
+	key := histPrefix + c.jobName + ":" + ext
+	tok, _, ret := checkoutDatum(key, &jh, true)
+	if ret != Ok {
+		Log(Error, fmt.Sprintf("Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName))
+	} else {
+		var start time.Time
+		if c.timeZone != nil {
+			start = time.Now().In(c.timeZone)
+		} else {
+			start = time.Now()
+		}
+		c.runIndex = jh.NextIndex
+		hist := historyLog{
+			LogIndex:   c.runIndex,
+			CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
+		}
+		jh.NextIndex++
+		jh.Histories = append(jh.Histories, hist)
+		l := len(jh.Histories)
+		if l > rememberRuns {
+			jh.Histories = jh.Histories[l-rememberRuns:]
+		}
+		ret := updateDatum(key, tok, jh)
+		if ret != Ok {
+			Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, c.pipeName))
+		} else {
+			if nh > 0 && c.history != nil {
+				pipeHistory, err := c.history.NewHistory(c.pipeName, hist.LogIndex, nh)
+				if err != nil {
+					Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", c.pipeName, err))
+				} else {
+					if c.logger != nil {
+						c.logger.Section("close log", fmt.Sprintf("Job '%s' extended namespace: '%s'; starting new log on next task", c.jobName, ext))
+					}
+					c.logger = pipeHistory
+					c.logger.Section("new log", fmt.Sprintf("Extended log created by job '%s'", c.jobName))
+				}
+			} else {
+				if c.history == nil {
+					Log(Warn, "Error starting history, no history provider available")
+				}
+			}
+		}
+	}
+	return true
+}
+
 // AddTask puts another task (job or plugin) in the queue for the pipeline. Unlike other
 // CI/CD tools, gopherbot pipelines are code generated, not configured; it is,
 // however, trivial to write code that reads an arbitrary configuration file

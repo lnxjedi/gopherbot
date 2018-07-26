@@ -19,9 +19,10 @@ type historyLog struct {
 	CreateTime string
 }
 
-type taskHistory struct {
-	NextIndex int
-	Histories []historyLog
+type jobHistory struct {
+	NextIndex          int
+	Histories          []historyLog
+	ExtendedNamespaces []string
 }
 
 // HistoryLogger is provided by a HistoryProvider for each job / plugin run

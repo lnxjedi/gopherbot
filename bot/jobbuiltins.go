@@ -67,16 +67,16 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 
 	switch command {
 	case "history":
-		var th taskHistory
+		var jh jobHistory
 		key := histPrefix + taskName
-		_, _, ret := checkoutDatum(key, &th, false)
-		if ret != Ok || len(th.Histories) == 0 {
+		_, _, ret := checkoutDatum(key, &jh, false)
+		if ret != Ok || len(jh.Histories) == 0 {
 			r.Say(fmt.Sprintf("No history found for '%s'", taskName))
 			return
 		}
-		hl := make([]string, len(th.Histories)+1)
+		hl := make([]string, len(jh.Histories)+1)
 		hl = append(hl, fmt.Sprintf("History of job runs for '%s':", taskName))
-		for _, he := range th.Histories {
+		for _, he := range jh.Histories {
 			hl = append(hl, fmt.Sprintf("Run %d - %s", he.LogIndex, he.CreateTime))
 		}
 		r.Say(strings.Join(hl, "\n"))
