@@ -263,7 +263,7 @@ LoadLoop:
 			var val interface{}
 			skip := false
 			switch key {
-			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel":
+			case "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel":
 				val = &strval
 			case "Parameters":
 				val = &pval
@@ -329,14 +329,6 @@ LoadLoop:
 					plugin.AdminCommands = *(val.(*[]string))
 				} else {
 					mismatch = true
-				}
-			case "Description":
-				if isPlugin {
-					task.Description = *(val.(*string))
-				} else {
-					if len(task.Description) == 0 {
-						task.Description = *(val.(*string))
-					}
 				}
 			case "NameSpace":
 				task.NameSpace = *(val.(*string))
