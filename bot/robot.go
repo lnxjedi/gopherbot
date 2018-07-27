@@ -52,10 +52,14 @@ func (r *Robot) getContext() *botContext {
 }
 
 // CheckAdmin returns true if the user is a configured administrator of the
-// robot. Should be used sparingly, when a single plugin has multiple commands,
-// some which require admin. Otherwise the plugin should just configure
-// RequireAdmin: true
+// robot, and true for automatic tasks. Should be used sparingly, when a single
+// plugin has multiple commands, some which require admin. Otherwise the plugin
+// should just configure RequireAdmin: true
 func (r *Robot) CheckAdmin() bool {
+	c := r.getContext()
+	if c.automaticTask {
+		return true
+	}
 	robot.RLock()
 	defer robot.RUnlock()
 	for _, adminUser := range robot.adminUsers {

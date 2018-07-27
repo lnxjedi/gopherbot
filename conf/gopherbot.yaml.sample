@@ -109,6 +109,9 @@ LogLevel: info
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)
 
 # ExternalJobs:
+# - Name: updatecfg
+#   Description: A job that updates the robot's configuration from git
+#   Path: jobs/updatecfg.sh
 
 ## ExternalTasks enumerate external executables that can be added to pipelines
 ## with AddTask <name>. Note the e.g. the update plugin requires ssh,

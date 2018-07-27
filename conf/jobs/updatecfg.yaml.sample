@@ -1,0 +1,5 @@
+---
+RequireAdmin: true
+Channel: general
+AllowDirect: true
+HistoryLogs: 7
