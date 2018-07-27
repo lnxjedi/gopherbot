@@ -10,11 +10,11 @@ require 'json'
 #  Path: plugins/weather.rb
 #  Description: A plugin using OpenWeatherMap to give the weather
 #  Parameters:
-#  - Name: APIKey
-#    Value: "<yourkey>" # or leave blank and use admin command "store parameter weather OWM_APIKEY=<yourkey>"
-#  - Name: TemperatureUnits
+#  - Name: OWM_APIKEY
+#    Value: "<yourkey>" # or omit and use admin command "store parameter weather OWM_APIKEY=<yourkey>"
+#  - Name: TEMP_UNITS
 #    Value: imperial # or 'metric'
-#  - Name: DefaultCountry
+#  - Name: DEFAULT_COUNTRY
 #    Value: 'us' # or other ISO 3166 country code
 
 # load the Gopherbot ruby library and instantiate the bot
@@ -38,8 +38,8 @@ when "configure"
 	exit
 when "weather"
     location = ARGV.shift()
-    location += ",#{ENV["DefaultCountry"]}" unless location.include?(',')
-    uri = URI("http://api.openweathermap.org/data/2.5/weather?q=#{location}&units=#{ENV["TemperatureUnits"]}&APPID=#{ENV["OWM_APIKEY"]}")
+    location += ",#{ENV["DEFAULT_COUNTRY"]}" unless location.include?(',')
+    uri = URI("http://api.openweathermap.org/data/2.5/weather?q=#{location}&units=#{ENV["TEMP_UNITS"]}&APPID=#{ENV["OWM_APIKEY"]}")
     d = JSON::parse(Net::HTTP.get(uri))
     if d["message"]
         bot.Say("Sorry: \"#{d["message"]}\", maybe try the zip code?")

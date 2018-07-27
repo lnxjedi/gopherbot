@@ -80,6 +80,13 @@ LogLevel: info
 #- Name: weather
 #  Path: plugins/weather.rb
 #  Description: A plugin that uses OpenWeatherMap to report the weather
+#  Parameters:
+#  - Name: OWM_APIKEY
+#    Value: "<yourkey>" # or omit and use admin command "store parameter weather OWM_APIKEY=<yourkey>"
+#  - Name: TEMP_UNITS
+#    Value: imperial # or 'metric'
+#  - Name: DEFAULT_COUNTRY
+#    Value: 'us' # or other ISO 3166 country code
 #- Name: chuck
 #  Path: plugins/chuck.rb
 #  Description: A plugin that pipes up whenever The Man's name is mentioned

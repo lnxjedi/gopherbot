@@ -1,9 +1,0 @@
----
-## To enable:
-## * Copy to 'weather.yaml' and put your API key in from openweathermap.org
-## * Uncomment the 'ExternalScripts' entry for 'weather'
-## * Restart the robot or issue a 'reload' command
-Config:
-  APIKey: "" # ... or use admin command "store parameter weather OWM_APIKEY=<yourkey>"
-  TemperatureUnits: imperial # for Fahrenheit; 'metric' for Celcius
-  DefaultCountry: us
