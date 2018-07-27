@@ -26,9 +26,9 @@ func (r *botContext) loadTaskConfig() {
 	// copy the list of default channels (for plugins only)
 	pchan := robot.plugChannels
 	jdefchan := robot.defaultJobChannel
-	externalPlugins := robot.externalPlugins
-	externalJobs := robot.externalJobs
 	externalTasks := robot.externalTasks
+	externalJobs := robot.externalJobs
+	externalPlugins := robot.externalPlugins
 	robot.RUnlock() // we're done with bot data 'til the end
 
 	i := 0
@@ -63,12 +63,18 @@ func (r *botContext) loadTaskConfig() {
 			r.debug(msg, false)
 			continue
 		}
+		nameSpace := script.Name
+		if len(script.NameSpace) > 0 {
+			nameSpace = script.NameSpace
+		}
 		task := &botTask{
 			name:        script.Name,
 			taskType:    taskExternal,
 			taskID:      getTaskID(script.Name),
 			Description: script.Description,
 			Path:        script.Path,
+			Parameters:  script.Parameters,
+			NameSpace:   nameSpace,
 		}
 		p := &botPlugin{
 			botTask: task,
@@ -95,12 +101,18 @@ func (r *botContext) loadTaskConfig() {
 			r.debug(msg, false)
 			continue
 		}
+		nameSpace := script.Name
+		if len(script.NameSpace) > 0 {
+			nameSpace = script.NameSpace
+		}
 		task := &botTask{
 			name:        script.Name,
 			taskType:    taskExternal,
 			taskID:      getTaskID(script.Name),
 			Description: script.Description,
 			Path:        script.Path,
+			Parameters:  script.Parameters,
+			NameSpace:   nameSpace,
 		}
 		j := &botJob{
 			botTask: task,
@@ -259,14 +271,11 @@ LoadLoop:
 			var hval []PluginHelp
 			var mval []InputMatcher
 			var tval []JobTrigger
-			var pval []parameter
 			var val interface{}
 			skip := false
 			switch key {
 			case "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel":
 				val = &strval
-			case "Parameters":
-				val = &pval
 			case "HistoryLogs":
 				val = &intval
 			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "Verbose":
@@ -425,12 +434,6 @@ LoadLoop:
 					mismatch = true
 				} else {
 					job.Triggers = *(val.(*[]JobTrigger))
-				}
-			case "Parameters":
-				if isPlugin {
-					mismatch = true
-				} else {
-					task.Parameters = *(val.(*[]parameter))
 				}
 			case "Config":
 				task.Config = value

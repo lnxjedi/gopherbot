@@ -8,11 +8,14 @@ require 'json'
 #ExternalScripts:
 #- Name: weather
 #  Path: plugins/weather.rb
-# 3) Put your configuration in conf/plugins/weather.yaml:
-#Config:
-#  APIKey: "<yourkey>" # or leave blank and use admin command "store parameter weather OWM_APIKEY=<yourkey>"
-#  TemperatureUnits: imperial # or 'metric'
-#  DefaultCountry: 'us' # or other ISO 3166 country code
+#  Description: A plugin using OpenWeatherMap to give the weather
+#  Parameters:
+#  - Name: APIKey
+#    Value: "<yourkey>" # or leave blank and use admin command "store parameter weather OWM_APIKEY=<yourkey>"
+#  - Name: TemperatureUnits
+#    Value: imperial # or 'metric'
+#  - Name: DefaultCountry
+#    Value: 'us' # or other ISO 3166 country code
 
 # load the Gopherbot ruby library and instantiate the bot
 require ENV["GOPHER_INSTALLDIR"] + '/lib/gopherbot_v1'
@@ -34,11 +37,9 @@ when "configure"
 	puts defaultConfig
 	exit
 when "weather"
-    c = bot.GetTaskConfig()
-    c["APIKey"] = ENV["OWM_APIKEY"] if c["APIKey"] == nil || c["APIKey"].size == 0
     location = ARGV.shift()
-    location += ",#{c["DefaultCountry"]}" unless location.include?(',')
-    uri = URI("http://api.openweathermap.org/data/2.5/weather?q=#{location}&units=#{c["TemperatureUnits"]}&APPID=#{c["APIKey"]}")
+    location += ",#{ENV["DefaultCountry"]}" unless location.include?(',')
+    uri = URI("http://api.openweathermap.org/data/2.5/weather?q=#{location}&units=#{ENV["TemperatureUnits"]}&APPID=#{ENV["OWM_APIKEY"]}")
     d = JSON::parse(Net::HTTP.get(uri))
     if d["message"]
         bot.Say("Sorry: \"#{d["message"]}\", maybe try the zip code?")

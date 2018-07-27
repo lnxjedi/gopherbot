@@ -18,36 +18,36 @@ var protocolConfig, brainConfig, historyConfig json.RawMessage
 
 // botconf specifies 'bot configuration, and is read from $GOPHER_CONFIGDIR/conf/gopherbot.yaml
 type botconf struct {
-	AdminContact         string           // Contact info for whomever administers the robot
-	Email                string           // From: address when the robot wants to send an email
-	MailConfig           botMailer        // configuration for sending email
-	Protocol             string           // Name of the connector protocol to use, e.g. "slack"
-	ProtocolConfig       json.RawMessage  // Protocol-specific configuration, type for unmarshalling arbitrary config
-	Brain                string           // Type of Brain to use
-	BrainConfig          json.RawMessage  // Brain-specific configuration, type for unmarshalling arbitrary config
-	EncryptBrain         bool             // Whether the brain should be encrypted
-	BrainKey             string           // used to decrypt the brainKey
-	HistoryProvider      string           // Name of provider to use for storing and retrieving job/plugin histories
-	HistoryConfig        json.RawMessage  // History provider specific configuration
-	WorkSpace            string           // Read/Write area the robot uses to do work
-	DefaultElevator      string           // Elevator plugin to use by default for ElevatedCommands and ElevateImmediateCommands
-	DefaultAuthorizer    string           // Authorizer plugin to use by default for AuthorizedCommands, or when AuthorizeAllCommands = true
-	DefaultMessageFormat string           // How the robot should format outgoing messages unless told otherwise; default: Raw
-	Name                 string           // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
-	DefaultAllowDirect   bool             // Whether plugins are available in a DM by default
-	DefaultChannels      []string         // Channels where plugins are active by default, e.g. [ "general", "random" ]
-	IgnoreUsers          []string         // Users the 'bot never talks to - like other bots
-	JoinChannels         []string         // Channels the 'bot should join when it logs in (not supported by all protocols)
-	DefaultJobChannel    string           // Where job status is posted by default
-	TimeZone             string           // For evaluating the hour in a job schedule
-	ExternalJobs         []externalJob    // list of available jobs; config in conf/jobs/<jobname>.yaml
-	ScheduledTasks       []scheduledTask  // see tasks.go
-	ExternalPlugins      []externalPlugin // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
-	ExternalTasks        []externalTask   // List executables that can be added to a pipeline (but can't start one)
-	AdminUsers           []string         // List of users who can access administrative commands
-	Alias                string           // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
-	LocalPort            int              // Port number for listening on localhost, for CLI plugins
-	LogLevel             string           // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
+	AdminContact         string          // Contact info for whomever administers the robot
+	Email                string          // From: address when the robot wants to send an email
+	MailConfig           botMailer       // configuration for sending email
+	Protocol             string          // Name of the connector protocol to use, e.g. "slack"
+	ProtocolConfig       json.RawMessage // Protocol-specific configuration, type for unmarshalling arbitrary config
+	Brain                string          // Type of Brain to use
+	BrainConfig          json.RawMessage // Brain-specific configuration, type for unmarshalling arbitrary config
+	EncryptBrain         bool            // Whether the brain should be encrypted
+	BrainKey             string          // used to decrypt the brainKey
+	HistoryProvider      string          // Name of provider to use for storing and retrieving job/plugin histories
+	HistoryConfig        json.RawMessage // History provider specific configuration
+	WorkSpace            string          // Read/Write area the robot uses to do work
+	DefaultElevator      string          // Elevator plugin to use by default for ElevatedCommands and ElevateImmediateCommands
+	DefaultAuthorizer    string          // Authorizer plugin to use by default for AuthorizedCommands, or when AuthorizeAllCommands = true
+	DefaultMessageFormat string          // How the robot should format outgoing messages unless told otherwise; default: Raw
+	Name                 string          // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
+	DefaultAllowDirect   bool            // Whether plugins are available in a DM by default
+	DefaultChannels      []string        // Channels where plugins are active by default, e.g. [ "general", "random" ]
+	IgnoreUsers          []string        // Users the 'bot never talks to - like other bots
+	JoinChannels         []string        // Channels the 'bot should join when it logs in (not supported by all protocols)
+	DefaultJobChannel    string          // Where job status is posted by default
+	TimeZone             string          // For evaluating the hour in a job schedule
+	ExternalJobs         []externalTask  // list of available jobs; config in conf/jobs/<jobname>.yaml
+	ScheduledTasks       []scheduledTask // see tasks.go
+	ExternalPlugins      []externalTask  // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
+	ExternalTasks        []externalTask  // List executables that can be added to a pipeline (but can't start one)
+	AdminUsers           []string        // List of users who can access administrative commands
+	Alias                string          // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
+	LocalPort            int             // Port number for listening on localhost, for CLI plugins
+	LogLevel             string          // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
 // Protects the bot config
@@ -141,8 +141,6 @@ func (r *botContext) loadConfig(preConnect bool) error {
 	for key, value := range configload {
 		var strval string
 		var sarrval []string
-		var epval []externalPlugin
-		var jval []externalJob
 		var tval []externalTask
 		var stval []scheduledTask
 		var mailval botMailer
@@ -157,14 +155,8 @@ func (r *botContext) loadConfig(preConnect bool) error {
 			val = &boolval
 		case "LocalPort":
 			val = &intval
-		case "ExternalPlugins":
-			val = &epval
-		case "ExternalJobs":
-			val = &jval
-		case "ExternalTasks":
+		case "ExternalJobs", "ExternalPlugins", "ExternalTasks":
 			val = &tval
-		case "Jobs":
-			val = &jval
 		case "ScheduledTasks":
 			val = &stval
 		case "DefaultChannels", "IgnoreUsers", "JoinChannels", "AdminUsers":
@@ -230,9 +222,9 @@ func (r *botContext) loadConfig(preConnect bool) error {
 		case "EncryptBrain":
 			newconfig.EncryptBrain = *(val.(*bool))
 		case "ExternalPlugins":
-			newconfig.ExternalPlugins = *(val.(*[]externalPlugin))
+			newconfig.ExternalPlugins = *(val.(*[]externalTask))
 		case "ExternalJobs":
-			newconfig.ExternalJobs = *(val.(*[]externalJob))
+			newconfig.ExternalJobs = *(val.(*[]externalTask))
 		case "ExternalTasks":
 			newconfig.ExternalTasks = *(val.(*[]externalTask))
 		case "ScheduledTasks":

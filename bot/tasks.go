@@ -80,16 +80,8 @@ type parameter struct {
 	Name, Value string
 }
 
-type externalPlugin struct {
-	Name, Path, Description string
-}
-
-type externalJob struct {
-	Name, Path, Description string
-}
-
+// For ExternalPlugins, ExternalJobs and ExternalTasks
 type externalTask struct {
-	// External tasks can only be used with AddTask(...)
 	Name, Path, Description, NameSpace string
 	Parameters                         []parameter
 }

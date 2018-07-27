@@ -4,6 +4,7 @@
 
 ## To be sorted / filtered
 - Update jobbuiltins / history to list namespaces
+- Add WorkSpace to output from `info`
 - Create `run` task for running a command/script in a repository
 - When a task in a pipeline is a job:
   - If it's a different job, create a new botContext and call startPipeline with a parent argument != nil == pointer to current bot
