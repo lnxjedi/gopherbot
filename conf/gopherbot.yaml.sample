@@ -106,6 +106,12 @@ LogLevel: info
 ## ssh-agent, and git
 
 # ExternalTasks:
+# - Name: notify
+#   Description: Send a message to a user in the job channel, generally as a FailTask
+#   Path: tasks/notify.sh
+# - Name: dmnotify
+#   Description: Send a DM to a user, generally as a FailTask
+#   Path: tasks/dmnotify.sh
 # - Name: ssh-init
 #   Description: "Pipeline job for setting up ssh-agent for the 'bot"
 #   Path: tasks/ssh-init
@@ -219,8 +225,8 @@ LogLevel: info
 # BrainConfig:
 #   BrainDirectory: brain
 
-## A persistent brain using AWS DynamoDB. 
-## See doc/Configuration.md for information on setting up this brain. 
+## A persistent brain using AWS DynamoDB.
+## See doc/Configuration.md for information on setting up this brain.
 # Brain: dynamo
 # BrainConfig:
 #   TableName: MyBot

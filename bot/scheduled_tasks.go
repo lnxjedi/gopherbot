@@ -46,9 +46,10 @@ func scheduleTasks() {
 			Log(Error, fmt.Sprintf("Not scheduling disabled task '%s'; reason: %s", st.Name, task.reason))
 			continue
 		}
-		// NOTE: bare tasks ALWAYS have zero-length User and Channel, and can't be scheduled by design
-		if len(task.User) == 0 || len(task.Channel) == 0 {
-			Log(Error, fmt.Sprintf("Not scheduling task '%s'; zero-length User or Channel", st.Name))
+		// NOTE: bare tasks ALWAYS have zero-length Channel, and can't be scheduled by design;
+		// TODO: A task would only need a Channel to be scheduled
+		if len(task.Channel) == 0 {
+			Log(Error, fmt.Sprintf("Not scheduling task '%s'; zero-length Channel", st.Name))
 			continue
 		}
 		Log(Info, fmt.Sprintf("Scheduling job '%s' with schedule: %s", st.Name, st.Schedule))
@@ -69,7 +70,6 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList) {
 	// Create the botContext to carry state through the pipeline.
 	// startPipeline will take care of registerActive()
 	bot := &botContext{
-		User:             task.User,
 		Channel:          task.Channel,
 		tasks:            tasks,
 		isCommand:        isPlugin,

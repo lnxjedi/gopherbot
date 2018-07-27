@@ -48,7 +48,6 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 				bot.debugT(t, fmt.Sprintf("Matched trigger regex '%s'", trigger.Regex), false)
 				Log(Trace, fmt.Sprintf("Message '%s' matches trigger for job '%s'", bot.msg, task.name))
 				matched = true
-				bot.User = task.User
 				triggerArgs = matches[0][1:]
 			} else {
 				bot.debugT(t, fmt.Sprintf("Not matched: %s", trigger.Regex), false)

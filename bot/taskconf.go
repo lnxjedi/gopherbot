@@ -261,7 +261,7 @@ LoadLoop:
 			var val interface{}
 			skip := false
 			switch key {
-			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "User", "Path":
+			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "Path":
 				val = &strval
 			case "Parameters":
 				val = &pval
@@ -372,8 +372,6 @@ LoadLoop:
 				task.Authorizer = *(val.(*string))
 			case "AuthRequire":
 				task.AuthRequire = *(val.(*string))
-			case "User":
-				task.User = *(val.(*string))
 			case "AuthorizedCommands":
 				if isPlugin {
 					plugin.AuthorizedCommands = *(val.(*[]string))

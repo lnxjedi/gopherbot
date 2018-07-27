@@ -255,16 +255,21 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		bret := bot.CheckAdmin()
 		sendReturn(rw, boolresponse{Boolean: bret})
 		return
-	case "AddTask", "FinalTask":
+	case "AddTask", "FinalTask", "FailTask":
 		var ts addtaskcall
 		if !getArgs(rw, &f.FuncArgs, &ts) {
 			return
 		}
 		var ret RetVal
-		if f.FuncName == "AddTask" {
+		switch f.FuncName {
+		case "AddTask":
 			ret = bot.AddTask(ts.Name, ts.CmdArgs...)
-		} else {
+		case "FinalTask":
 			ret = bot.FinalTask(ts.Name, ts.CmdArgs...)
+		case "FailTask":
+			ret = bot.FailTask(ts.Name, ts.CmdArgs...)
+		default:
+			return
 		}
 		sendReturn(rw, &botretvalresponse{int(ret)})
 		return

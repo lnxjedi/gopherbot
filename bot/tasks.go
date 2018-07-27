@@ -159,8 +159,7 @@ type botTask struct {
 	Channel       string          // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
 	Channels      []string        // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels   bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	User          string          // for scheduled tasks (jobs or plugins), triggered jobs; task runs as this user, also for notifies
-	RequireAdmin  bool            // Set to only allow administrators to access a plugin
+	RequireAdmin  bool            // Set to only allow administrators to access a plugin / run job
 	Users         []string        // If non-empty, list of all the users with access to this plugin
 	Elevator      string          // Use an elevator other than the DefaultElevator
 	Authorizer    string          // a plugin to call for authorizing users, should handle groups, etc.
