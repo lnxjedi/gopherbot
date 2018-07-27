@@ -64,10 +64,11 @@ func (r *botContext) loadTaskConfig() {
 			continue
 		}
 		task := &botTask{
-			name:     script.Name,
-			taskType: taskExternal,
-			taskID:   getTaskID(script.Name),
-			Path:     script.Path,
+			name:        script.Name,
+			taskType:    taskExternal,
+			taskID:      getTaskID(script.Name),
+			Description: script.Description,
+			Path:        script.Path,
 		}
 		p := &botPlugin{
 			botTask: task,
@@ -99,6 +100,7 @@ func (r *botContext) loadTaskConfig() {
 			taskType:    taskExternal,
 			taskID:      getTaskID(script.Name),
 			Description: script.Description,
+			Path:        script.Path,
 		}
 		j := &botJob{
 			botTask: task,
@@ -134,9 +136,9 @@ func (r *botContext) loadTaskConfig() {
 			taskType:    taskExternal,
 			taskID:      getTaskID(script.Name),
 			Description: script.Description,
+			Path:        script.Path,
 			Parameters:  script.Parameters,
 			NameSpace:   nameSpace,
-			Path:        script.Path,
 		}
 		tlist = append(tlist, task)
 		taskIndexByID[task.taskID] = i
@@ -261,7 +263,7 @@ LoadLoop:
 			var val interface{}
 			skip := false
 			switch key {
-			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel", "Path":
+			case "Description", "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel":
 				val = &strval
 			case "Parameters":
 				val = &pval
@@ -437,12 +439,6 @@ LoadLoop:
 					mismatch = true
 				} else {
 					task.Parameters = *(val.(*[]parameter))
-				}
-			case "Path":
-				if isPlugin {
-					mismatch = true
-				} else {
-					task.Path = *(val.(*string))
 				}
 			case "Config":
 				task.Config = value

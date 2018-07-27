@@ -81,13 +81,11 @@ type parameter struct {
 }
 
 type externalPlugin struct {
-	// List of names, paths and types for external plugins and jobs; relative paths are searched first in installpath, then configpath
-	Name, Path string
+	Name, Path, Description string
 }
 
 type externalJob struct {
-	// List of names, paths and types for external plugins and jobs; relative paths are searched first in installpath, then configpath
-	Name, Description string
+	Name, Path, Description string
 }
 
 type externalTask struct {
