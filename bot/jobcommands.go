@@ -15,8 +15,18 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	r := bot.makeRobot()
 	// un-needed, but more clear
 	messageMatched = false
-	var runTask interface{}
+	runTasks := []interface{}{}
+	robots := []*botContext{}
+	taskArgs := [][]string{}
 	var triggerArgs []string
+
+	currentTasks.RLock()
+	tlist := currentTasks.t
+	nameMap := currentTasks.nameMap
+	idMap := currentTasks.idMap
+	nameSpaces := currentTasks.nameSpaces
+	currentTasks.RUnlock()
+
 	// First, check triggers
 	for _, t := range bot.tasks.t {
 		task, _, job := getTask(t)
@@ -53,16 +63,24 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 				bot.debugT(t, fmt.Sprintf("Not matched: %s", trigger.Regex), false)
 			}
 			if matched {
-				if messageMatched {
-					prevTask, _, _ := getTask(runTask)
-					Log(Error, fmt.Sprintf("Message '%s' from user '%s' in channel '%s' matched triggers for multiple jobs: '%s' and '%s', ignoring", bot.msg, bot.User, bot.Channel, prevTask.name, task.name))
-					emit(MultipleMatchesNoAction)
-					return
-				}
 				messageMatched = true
-				runTask = t
-				bot.Channel = task.Channel
-				break
+				robots = append(robots, &botContext{
+					User:          bot.User,
+					Channel:       task.Channel,
+					RawMsg:        bot.RawMsg,
+					automaticTask: true,
+					tasks: taskList{
+						t:          tlist,
+						nameMap:    nameMap,
+						idMap:      idMap,
+						nameSpaces: nameSpaces,
+					},
+					msg:              bot.msg,
+					workingDirectory: robot.workSpace,
+					environment:      make(map[string]string),
+				})
+				runTasks = append(runTasks, t)
+				taskArgs = append(taskArgs, triggerArgs)
 			}
 		} // end of triggerer checking
 	} // end of job trigger checking
@@ -70,18 +88,20 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		r.messageHeard()
 		robot.RLock()
 		if robot.shuttingDown {
-			r.Say("Ignoring triggered job: shutting down")
+			r.Say("Ignoring triggered job(s): shutting down")
 			robot.RUnlock()
 			return
 		} else if robot.paused {
-			r.Say("Ignoring triggered job: paused")
+			r.Say("Ignoring triggered job(s): paused")
 			robot.RUnlock()
 			return
 		}
 		robot.RUnlock()
-		// Jobs triggers should only match apps / bots, not real users!
-		bot.automaticTask = true
-		bot.startPipeline(nil, runTask, jobTrigger, "run", triggerArgs...)
+		if len(robots) > 0 {
+			for i, robot := range robots {
+				go robot.startPipeline(nil, runTasks[i], jobTrigger, "run", taskArgs[i]...)
+			}
+		}
 		return
 	}
 	// Check for built-in run job
