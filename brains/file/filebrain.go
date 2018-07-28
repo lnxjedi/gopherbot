@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/lnxjedi/gopherbot/bot"
 )
@@ -21,6 +22,8 @@ type brainConfig struct {
 var fb brainConfig
 
 func (fb *brainConfig) Store(k string, b *[]byte) error {
+	k = strings.Replace(k, `/`, ":", -1)
+	k = strings.Replace(k, `\`, ":", -1)
 	datumPath := brainPath + "/" + k
 	if err := ioutil.WriteFile(datumPath, *b, 0644); err != nil {
 		return fmt.Errorf("Writing datum \"%s\": %v", datumPath, err)
@@ -29,6 +32,8 @@ func (fb *brainConfig) Store(k string, b *[]byte) error {
 }
 
 func (fb *brainConfig) Retrieve(k string) (*[]byte, bool, error) {
+	k = strings.Replace(k, `/`, ":", -1)
+	k = strings.Replace(k, `\`, ":", -1)
 	datumPath := brainPath + "/" + k
 	if _, err := os.Stat(datumPath); err == nil {
 		datum, err := ioutil.ReadFile(datumPath)

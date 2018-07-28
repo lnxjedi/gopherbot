@@ -112,6 +112,10 @@ func (r *Robot) SetWorkingDirectory(path string) bool {
 // number of histories to keep for the extended namespace, or -1 to inherit
 // from the parent job.
 func (r *Robot) ExtendNamespace(ext string, histories int) bool {
+	if strings.ContainsRune(ext, ':') {
+		r.Log(Error, "Invalid namespact extension contains ':'")
+		return false
+	}
 	c := r.getContext()
 	if c.stage != primaryTasks {
 		r.Log(Error, "ExtendNamespace called after pipeline end")

@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/lnxjedi/gopherbot/bot"
 )
@@ -51,6 +52,8 @@ var fhc historyConfig
 // NewHistory initializes and returns a historyFile, as well as cleaning up old
 // logs.
 func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (bot.HistoryLogger, error) {
+	tag = strings.Replace(tag, `\`, ":", -1)
+	tag = strings.Replace(tag, `/`, ":", -1)
 	dirPath := path.Join(fhc.Directory, tag)
 	filePath := path.Join(dirPath, fmt.Sprintf("%s-%d.log", tag, index))
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
@@ -85,6 +88,8 @@ func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (bot.H
 
 // GetHistory returns an io.Reader
 func (fhc *historyConfig) GetHistory(tag string, index int) (io.Reader, error) {
+	tag = strings.Replace(tag, `\`, ":", -1)
+	tag = strings.Replace(tag, `/`, ":", -1)
 	dirPath := path.Join(fhc.Directory, tag)
 	filePath := path.Join(dirPath, fmt.Sprintf("%s-%d.log", tag, index))
 	return os.Open(filePath)

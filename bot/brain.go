@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -309,7 +310,7 @@ func storeDatum(dkey string, datum *[]byte) RetVal {
 		if !initialized {
 			// When re-keying, we store the 'real' key while uninitialized with a new key
 			if !(initializing && dkey == botBrainKey) {
-				Log(Error, "storeDatum called for '%s' with encryptBrain true, but brain not initialized", key)
+				Log(Error, fmt.Sprintf("storeDatum called for '%s' with encryptBrain true, but brain not initialized", key))
 				return BrainFailed
 			}
 		}
@@ -523,6 +524,10 @@ func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 // lock token is returned that expires after lockTimeout (250ms). The bool
 // return indicates whether the datum exists.
 func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal) {
+	if strings.ContainsRune(key, ':') {
+		ret = InvalidDatumKey
+		return
+	}
 	c := r.getContext()
 	task, _, _ := getTask(c.currentTask)
 	if len(c.nsExtension) > 0 {
@@ -536,6 +541,9 @@ func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken
 // CheckinDatum unlocks a datum without updating it, it always succeeds
 func (r *Robot) CheckinDatum(key, locktoken string) {
 	if locktoken == "" {
+		return
+	}
+	if strings.ContainsRune(key, ':') {
 		return
 	}
 	c := r.getContext()
@@ -552,6 +560,9 @@ func (r *Robot) CheckinDatum(key, locktoken string) {
 // a struct to marshall and a (hopefully good) lock token. If err != nil, the
 // update failed.
 func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
+	if strings.ContainsRune(key, ':') {
+		return InvalidDatumKey
+	}
 	c := r.getContext()
 	task, _, _ := getTask(c.currentTask)
 	if len(c.nsExtension) > 0 {
