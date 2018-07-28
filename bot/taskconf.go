@@ -67,6 +67,7 @@ func (r *botContext) loadTaskConfig() {
 		if len(script.NameSpace) > 0 {
 			nameSpace = script.NameSpace
 		}
+		nameSpaceSet[nameSpace] = struct{}{}
 		task := &botTask{
 			name:        script.Name,
 			taskType:    taskExternal,
@@ -105,6 +106,7 @@ func (r *botContext) loadTaskConfig() {
 		if len(script.NameSpace) > 0 {
 			nameSpace = script.NameSpace
 		}
+		nameSpaceSet[nameSpace] = struct{}{}
 		task := &botTask{
 			name:        script.Name,
 			taskType:    taskExternal,
@@ -143,6 +145,7 @@ func (r *botContext) loadTaskConfig() {
 		if len(script.NameSpace) > 0 {
 			nameSpace = script.NameSpace
 		}
+		nameSpaceSet[nameSpace] = struct{}{}
 		task := &botTask{
 			name:        script.Name,
 			taskType:    taskExternal,
@@ -478,10 +481,6 @@ LoadLoop:
 				explicitAllowDirect = true
 			}
 		}
-		if len(task.NameSpace) == 0 {
-			task.NameSpace = task.name
-		}
-		nameSpaceSet[task.NameSpace] = struct{}{}
 
 		if !explicitAllowDirect {
 			task.AllowDirect = defaultAllowDirect
