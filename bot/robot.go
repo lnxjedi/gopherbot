@@ -125,6 +125,10 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 		r.Log(Error, "ExtendNamespace called after namespace already extended")
 		return false
 	}
+	if _, exists := c.repositories[ext]; !exists {
+		r.Log(Error, fmt.Sprintf("Repository '%s' not found in repositories.yaml", ext))
+		return false
+	}
 	c.nsExtension = ext
 
 	jk := histPrefix + c.jobName

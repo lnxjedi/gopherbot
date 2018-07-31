@@ -98,6 +98,9 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 	idMap := currentTasks.idMap
 	nameSpaces := currentTasks.nameSpaces
 	currentTasks.RUnlock()
+	confLock.RLock()
+	repolist := repositories
+	confLock.RUnlock()
 
 	// Create the botContext and a goroutine to process the message and carry state,
 	// which may eventually run a pipeline.
@@ -111,6 +114,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 			idMap:      idMap,
 			nameSpaces: nameSpaces,
 		},
+		repositories:     repolist,
 		isCommand:        isCommand,
 		directMsg:        directMsg,
 		msg:              message,
