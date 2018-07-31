@@ -3,6 +3,7 @@
 `DevNotes.md` - TODO items and design notes for future development.
 
 ## To be sorted / filtered
+- Audit reload cases where something not configured needs to be un-configured, similar to scheduled jobs n->0
 - Update jobbuiltins / history to list namespaces
 - Add WorkSpace to output from `info`
 - Create `run` task for running a command/script in a repository

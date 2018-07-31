@@ -345,17 +345,15 @@ func (r *botContext) loadConfig(preConnect bool) error {
 			robot.externalTasks = newconfig.ExternalTasks
 		}
 	}
-	if newconfig.ScheduledTasks != nil {
-		st := make([]scheduledTask, 0, len(newconfig.ScheduledTasks))
-		for _, s := range newconfig.ScheduledTasks {
-			if len(s.Name) == 0 || len(s.Schedule) == 0 {
-				Log(Error, fmt.Sprintf("Zero-length Name (%s) or Schedule (%s) in ScheduledTask, skipping", s.Name, s.Schedule))
-			} else {
-				st = append(st, s)
-			}
+	st := make([]scheduledTask, 0, len(newconfig.ScheduledTasks))
+	for _, s := range newconfig.ScheduledTasks {
+		if len(s.Name) == 0 || len(s.Schedule) == 0 {
+			Log(Error, fmt.Sprintf("Zero-length Name (%s) or Schedule (%s) in ScheduledTask, skipping", s.Name, s.Schedule))
+		} else {
+			st = append(st, s)
 		}
-		robot.scheduledTasks = st
 	}
+	robot.scheduledTasks = st
 	if newconfig.IgnoreUsers != nil {
 		robot.ignoreUsers = newconfig.IgnoreUsers
 	}
