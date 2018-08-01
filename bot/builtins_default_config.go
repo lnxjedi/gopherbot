@@ -41,12 +41,12 @@ Help:
 - Keywords: [ "debug" ]
   Helptext: [ "(bot), stop debugging - turn off debugging" ]
 - Keywords: [ "store", "parameter", "environment" ]
-  Helptext: [ "(bot), store parameter <namespace> <var>=<value> - store parameter for <namespace> in brain"]
+  Helptext: [ "(bot), store parameter <namespace>(:repository) <var>=<value> - store parameter in brain"]
 CommandMatchers:
 - Command: reload
   Regex: '(?i:reload)'
 - Command: store
-  Regex: '(?i:store parameter ([\w-]+) ([\w-_.]+)=(.+))'
+  Regex: '(?i:store parameter ([\w-]+)(?::([\w-./]+))? ([\w-.]+)=(.+))'
 - Command: quit
   Regex: '(?i:quit|exit)'
 - Command: abort

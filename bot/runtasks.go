@@ -392,6 +392,9 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	if len(bot.nsExtension) > 0 {
 		spk += ":" + bot.nsExtension
 	}
+
+	// Look up stored parameters (mostly secrets) for namespace and extended
+	// namespace, and place in environment if not already there.
 	_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
 	if exists {
 		for key, value := range storedEnv {
@@ -402,6 +405,20 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 			}
 		}
 	}
+	if len(bot.nsExtension) > 0 {
+		storedEnv := make(map[string]string)
+		_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace+":"+bot.nsExtension, &storedEnv, false)
+		if exists {
+			for key, value := range storedEnv {
+				// Dynamically provided and configured parameters take precedence over stored parameters
+				_, exists := envhash[key]
+				if !exists {
+					envhash[key] = value
+				}
+			}
+		}
+	}
+
 	// Configured parameters for a pipeline task don't apply if already set
 	for _, p := range task.Parameters {
 		_, exists := envhash[p.Name]

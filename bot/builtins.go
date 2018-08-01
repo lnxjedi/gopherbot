@@ -345,8 +345,17 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 			bot.Say("I don't have that namespace configured")
 			return
 		}
-		key := args[1]
-		value := args[2]
+		if len(args[1]) > 0 {
+			_, exists := c.repositories[args[1]]
+			if !exists {
+				bot.Say(fmt.Sprintf("I didn't find '%s' in 'conf/repositories.yaml'", args[1]))
+				return
+			} else {
+				ns = ns + ":" + args[1]
+			}
+		}
+		key := args[2]
+		value := args[3]
 		env := make(map[string]string)
 		mem := paramPrefix + ns
 		tok, _, _ := checkoutDatum(mem, &env, true)

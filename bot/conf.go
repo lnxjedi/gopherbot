@@ -50,9 +50,10 @@ type botconf struct {
 	LogLevel             string          // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
-// Protects the bot config
+// Protects the bot config and list of repositories
 var confLock sync.RWMutex
 var config *botconf
+var repositories map[string]struct{}
 
 // getConfigFile loads a config file first from installPath, then from configPath
 // if set.
@@ -136,6 +137,18 @@ func (r *botContext) loadConfig(preConnect bool) error {
 	if err := r.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
 	}
+
+	reporaw := make(map[string]json.RawMessage)
+	r.getConfigFile("repositories.yaml", "", false, reporaw)
+	repolist := make(map[string]struct{})
+	for k, _ := range reporaw {
+		if strings.ContainsRune(k, ':') {
+			Log(Error, fmt.Sprintf("Invalid repository '%s' contains ':', ignoring", k))
+		} else {
+			repolist[k] = struct{}{}
+		}
+	}
+
 	explicitDefaultAllowDirect := false
 
 	for key, value := range configload {
@@ -345,17 +358,15 @@ func (r *botContext) loadConfig(preConnect bool) error {
 			robot.externalTasks = newconfig.ExternalTasks
 		}
 	}
-	if newconfig.ScheduledTasks != nil {
-		st := make([]scheduledTask, 0, len(newconfig.ScheduledTasks))
-		for _, s := range newconfig.ScheduledTasks {
-			if len(s.Name) == 0 || len(s.Schedule) == 0 {
-				Log(Error, fmt.Sprintf("Zero-length Name (%s) or Schedule (%s) in ScheduledTask, skipping", s.Name, s.Schedule))
-			} else {
-				st = append(st, s)
-			}
+	st := make([]scheduledTask, 0, len(newconfig.ScheduledTasks))
+	for _, s := range newconfig.ScheduledTasks {
+		if len(s.Name) == 0 || len(s.Schedule) == 0 {
+			Log(Error, fmt.Sprintf("Zero-length Name (%s) or Schedule (%s) in ScheduledTask, skipping", s.Name, s.Schedule))
+		} else {
+			st = append(st, s)
 		}
-		robot.scheduledTasks = st
 	}
+	robot.scheduledTasks = st
 	if newconfig.IgnoreUsers != nil {
 		robot.ignoreUsers = newconfig.IgnoreUsers
 	}
@@ -423,6 +434,7 @@ func (r *botContext) loadConfig(preConnect bool) error {
 
 	confLock.Lock()
 	config = newconfig
+	repositories = repolist
 	confLock.Unlock()
 
 	if tasksOk && !preConnect {
