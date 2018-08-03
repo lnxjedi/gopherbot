@@ -134,8 +134,9 @@ LogLevel: info
 #   - Name: KEYNAME
 #     Value: otherkey_rsa
 # - Name: ansible-playbook
-#   Description: Ansible playbook (ansible-playbook)
-#   Path: /usr/bin/ansible-playbook
+#   NameSpace: ansible
+#   Description: Ansible playbook (ansible-playbook) runner with vault passphrase helper
+#   Path: tasks/ansible-playbook.sh
 # - Name: ansible
 #   Description: Ansible
 #   Path: /usr/bin/ansible
@@ -145,12 +146,15 @@ LogLevel: info
 # - Name: ssh-agent
 #   Description: ssh agent command for terminating the agent
 #   Path: /usr/bin/ssh-agent
-# - Name: git
-#   Description: One SCM to Rule Them All
-#   Path: /usr/bin/git
 # - Name: ssh-scan
 #   Description: Helper script for adding ssh host keys to known_hosts
 #   Path: tasks/ssh-scan.sh
+# - Name: git
+#   Description: One SCM to Rule Them All
+#   Path: /usr/bin/git
+# - Name: git-sync
+#   Description: Simple script to clone or pull a repository
+#   Path: tasks/git-sync.sh
 
 # If the plugin doesn't specify an outgoing message format, what's the default?
 # This will be 'Raw' (unmodified, subject to protocol-specific formatting) if
