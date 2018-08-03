@@ -35,6 +35,9 @@ func scheduleTasks() {
 		sync.RWMutex{},
 	}
 	currentTasks.RUnlock()
+	confLock.RLock()
+	repolist := repositories
+	confLock.RUnlock()
 	for _, st := range scheduled {
 		t := tasks.getTaskByName(st.Name)
 		if t == nil {
@@ -53,13 +56,13 @@ func scheduleTasks() {
 			continue
 		}
 		Log(Info, fmt.Sprintf("Scheduling job '%s' with schedule: %s", st.Name, st.Schedule))
-		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, st.taskSpec, tasks) })
+		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, st.taskSpec, tasks, repolist) })
 	}
 	taskRunner.Start()
 	schedMutex.Unlock()
 }
 
-func runScheduledTask(t interface{}, ts taskSpec, tasks taskList) {
+func runScheduledTask(t interface{}, ts taskSpec, tasks taskList, repolist map[string]struct{}) {
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	if isPlugin && len(ts.Command) == 0 {
@@ -72,6 +75,7 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList) {
 	bot := &botContext{
 		Channel:          task.Channel,
 		tasks:            tasks,
+		repositories:     repolist,
 		isCommand:        isPlugin,
 		directMsg:        false,
 		automaticTask:    true, // scheduled jobs don't get authorization / elevation checks

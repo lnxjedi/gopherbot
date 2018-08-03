@@ -264,6 +264,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 				User:          c.User,
 				Channel:       c.Channel,
 				tasks:         c.tasks,
+				repositories:  c.repositories,
 				automaticTask: c.automaticTask,
 				elevated:      c.elevated,
 				Protocol:      c.Protocol,

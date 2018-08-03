@@ -26,6 +26,9 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	idMap := currentTasks.idMap
 	nameSpaces := currentTasks.nameSpaces
 	currentTasks.RUnlock()
+	confLock.RLock()
+	repolist := repositories
+	confLock.RUnlock()
 
 	// First, check triggers
 	for _, t := range bot.tasks.t {
@@ -75,6 +78,7 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 						idMap:      idMap,
 						nameSpaces: nameSpaces,
 					},
+					repositories:     repolist,
 					msg:              bot.msg,
 					workingDirectory: robot.workSpace,
 					environment:      make(map[string]string),
