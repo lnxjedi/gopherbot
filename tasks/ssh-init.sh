@@ -38,7 +38,6 @@ fi
 
 if grep -q ENCRYPTED $SSH_KEY_PATH
 then
-    ENCRYPTED=true
     if [ -z "$BOT_SSH_PHRASE" ]
     then
         MESSAGE="BOT_SSH_PHRASE not set, see conf/jobs/ssh-init.yaml"
@@ -46,18 +45,7 @@ then
         echo "$MESSAGE" >&2
         exit 1
     fi
-    STMP=$(mktemp -d -p $HOME ssh-agent-XXXXXXX)
-    cat <<EOF >$STMP/askpass.sh
-#!/bin/bash
-cat $STMP/sfifo
-EOF
-    chmod +x $STMP/askpass.sh
-
-    mkfifo $STMP/sfifo
-    cat <<EOF >$STMP/sfifo &
-$BOT_SSH_PHRASE
-EOF
-    export SSH_ASKPASS=$STMP/askpass.sh
+    export SSH_ASKPASS=$GOPHER_INSTALLDIR/scripts/ssh-askpass.sh
     export DISPLAY=""
 fi
 
@@ -70,10 +58,5 @@ ssh-add $HOME/.ssh/$SSH_KEY < /dev/null
 # Make agent available to other tasks in the pipeline
 SetParameter SSH_AUTH_SOCK $SSH_AUTH_SOCK
 SetParameter SSH_AGENT_PID $SSH_AGENT_PID
-
-if [ -n "$ENCRYPTED" ]
-then
-    rm -rf $STMP
-fi
 
 exit 0

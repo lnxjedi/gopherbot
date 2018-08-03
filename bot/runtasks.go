@@ -407,7 +407,9 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	}
 	if len(bot.nsExtension) > 0 {
 		storedEnv := make(map[string]string)
-		_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace+":"+bot.nsExtension, &storedEnv, false)
+		key := paramPrefix + task.NameSpace + ":" + bot.nsExtension
+		_, exists, _ := checkoutDatum(key, &storedEnv, false)
+		Log(Debug, fmt.Sprintf("Checking for stored parameter '%s', found: %t", key, exists))
 		if exists {
 			for key, value := range storedEnv {
 				// Dynamically provided and configured parameters take precedence over stored parameters

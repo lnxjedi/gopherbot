@@ -133,6 +133,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 		r.Log(Error, fmt.Sprintf("Repository '%s' not found in repositories.yaml", ext))
 		return false
 	}
+	r.Log(Debug, fmt.Sprintf("Extending namespace for job '%s': %s", c.jobName, ext))
 	c.nsExtension = ext
 
 	jk := histPrefix + c.jobName
@@ -228,10 +229,14 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 func (r *Robot) AddTask(name string, cmdargs ...string) RetVal {
 	c := r.getContext()
 	if c.stage != primaryTasks {
+		task, _, _ := getTask(c.currentTask)
+		r.Log(Error, fmt.Sprintf("AddTask called outside of initial pipeline in task '%s'", task.name))
 		return InvalidStage
 	}
 	t := c.tasks.getTaskByName(name)
 	if t == nil {
+		task, _, _ := getTask(c.currentTask)
+		r.Log(Error, fmt.Sprintf("Task '%s' not found in call to AddTask from task '%s'", name, task.name))
 		return TaskNotFound
 	}
 	_, plugin, _ := getTask(t)
