@@ -181,9 +181,9 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []stri
 func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	s.Log(bot.Trace, fmt.Sprintf("Message received: %v", msg.Msg))
 
-	reAddedLinks := regexp.MustCompile(`<https?://[\w-.]+\|([\w-.]+)>`) // match a slack-inserted link
-	reLinks := regexp.MustCompile(`<(https?://[.\w-:/?=~]+)>`)          // match a link where slack added <>
-	reUser := regexp.MustCompile(`<@U[A-Z0-9]{8}>`)                     // match a @user mention
+	reAddedLinks := regexp.MustCompile(`<https?://[\w-./]+\|([\w-./]+)>`) // match a slack-inserted link
+	reLinks := regexp.MustCompile(`<(https?://[.\w-:/?=~]+)>`)            // match a link where slack added <>
+	reUser := regexp.MustCompile(`<@U[A-Z0-9]{8}>`)                       // match a @user mention
 
 	// Channel is always part of the root message; if subtype is
 	// message_changed, text and user are part of the submessage
