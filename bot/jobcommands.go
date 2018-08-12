@@ -89,7 +89,6 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		} // end of triggerer checking
 	} // end of job trigger checking
 	if messageMatched {
-		r.messageHeard()
 		robot.RLock()
 		if robot.shuttingDown {
 			r.Say("Ignoring triggered job(s): shutting down")
@@ -115,6 +114,7 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	if matches != nil {
 		jobName = matches[0][1]
 		messageMatched = true
+		r.messageHeard()
 	} else {
 		return
 	}
