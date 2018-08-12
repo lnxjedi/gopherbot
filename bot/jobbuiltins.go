@@ -45,8 +45,78 @@ ReplyMatchers:
   Regex: '(?i:(c|n|q))'
 `
 
+const builtInJobConfig = `
+AllChannels: true
+AllowDirect: false
+Help:
+- Keywords: [ "jobs" ]
+  Helptext: [ "(bot), list (all) jobs - list the jobs you have access to, optionally in all channels" ]
+CommandMatchers:
+- Command: jobs
+  Regex: '(?i:list (all )?jobs)'
+`
+
 func init() {
 	RegisterPlugin("builtInhistory", PluginHandler{DefaultConfig: builtInHistoryConfig, Handler: jobhistory})
+	RegisterPlugin("builtInJobcmd", PluginHandler{DefaultConfig: builtInJobConfig, Handler: jobcommands})
+}
+
+func jobcommands(r *Robot, command string, args ...string) (retval TaskRetVal) {
+	if command == "init" {
+		return
+	}
+	switch command {
+	case "jobs":
+		var jl []string
+		alljobs := len(args[0]) > 0
+		if alljobs {
+			jl = []string{"Here's a list of all the jobs I know about:"}
+		} else {
+			jl = []string{"Here's a list of jobs for this channel:"}
+		}
+		c := r.getContext()
+		for _, t := range c.tasks.t {
+			task, _, job := getTask(t)
+			if job == nil {
+				continue
+			}
+			if !alljobs && r.Channel != task.Channel {
+				continue
+			}
+			if len(task.Users) > 0 {
+				userOk := false
+				for _, allowedUser := range task.Users {
+					match, err := filepath.Match(allowedUser, r.User)
+					if match && err == nil {
+						userOk = true
+					}
+				}
+				if !userOk {
+					continue
+				}
+			}
+			after := ""
+			if task.Disabled {
+				after = fmt.Sprintf(" (disabled: %s)", task.reason)
+			}
+			if alljobs && r.Channel != task.Channel {
+				jl = append(jl, fmt.Sprintf("%s (channel: %s)%s", task.name, task.Channel, after))
+			} else {
+				jl = append(jl, fmt.Sprintf("%s%s", task.name, after))
+			}
+		}
+		if len(jl) == 1 {
+			if alljobs {
+				r.Say("I dont' have any jobs configured")
+				return
+			} else {
+				r.Say("I don't see any jobs configured for this channel")
+				return
+			}
+		}
+		r.Say(strings.Join(jl, "\n"))
+	}
+	return
 }
 
 func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
