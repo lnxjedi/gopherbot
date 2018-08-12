@@ -341,7 +341,7 @@ func TestHelp(t *testing.T) {
 
 	tests := []testItem{
 		// Took a while to get the regex right - exactly 16 lines of output (15 + [^\n]*)
-		{alice, deadzone, ";help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){15}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{alice, deadzone, ";help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){17}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{alice, deadzone, ";help help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){3}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
