@@ -164,7 +164,7 @@ type botTask struct {
 
 // stuff read in conf/jobs/<job>.yaml
 type botJob struct {
-	Verbose     bool           // whether to send verbose "job started/ended" messages
+	Quiet       bool           // whether to quash "job started/ended" messages
 	HistoryLogs int            // how many runs of this job/plugin to keep history for
 	Triggers    []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
 	Arguments   []InputMatcher // list of arguments to prompt the user for

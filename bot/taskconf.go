@@ -281,7 +281,7 @@ LoadLoop:
 				val = &strval
 			case "HistoryLogs":
 				val = &intval
-			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "Verbose":
+			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "Quiet":
 				val = &boolval
 			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands":
 				val = &sarrval
@@ -426,11 +426,11 @@ LoadLoop:
 				} else {
 					mismatch = true
 				}
-			case "Verbose":
+			case "Quiet":
 				if isPlugin {
 					mismatch = true
 				} else {
-					job.Verbose = *(val.(*bool))
+					job.Quiet = *(val.(*bool))
 				}
 			case "Triggers":
 				if isPlugin {

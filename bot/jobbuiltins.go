@@ -76,25 +76,10 @@ func jobcommands(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		}
 		c := r.getContext()
 		for _, t := range c.tasks.t {
-			task, _, job := getTask(t)
-			if job == nil {
+			if !r.jobVisible(t, alljobs, true) {
 				continue
 			}
-			if !alljobs && r.Channel != task.Channel {
-				continue
-			}
-			if len(task.Users) > 0 {
-				userOk := false
-				for _, allowedUser := range task.Users {
-					match, err := filepath.Match(allowedUser, r.User)
-					if match && err == nil {
-						userOk = true
-					}
-				}
-				if !userOk {
-					continue
-				}
-			}
+			task, _, _ := getTask(t)
 			after := ""
 			if task.Disabled {
 				after = fmt.Sprintf(" (disabled: %s)", task.reason)
@@ -241,9 +226,55 @@ func (c *botContext) jobSecurityCheck(t interface{}) bool {
 	return true
 }
 
+// jobVisible checks whether a user should see a job in a channel, unless
+// ignoreChannelRestrictions is set. Note that changes to logic in jobVisible
+// may need to propagate to jobAvailable, below.
+func (r *Robot) jobVisible(t interface{}, ignoreChannelRestrictions, disabledOk bool) bool {
+	task, _, job := getTask(t)
+	if job == nil {
+		return false
+	}
+	if task.Disabled && !disabledOk {
+		return false
+	}
+	if !ignoreChannelRestrictions && r.Channel != task.Channel {
+		return false
+	}
+	if len(task.Users) > 0 {
+		userOk := false
+		for _, allowedUser := range task.Users {
+			match, err := filepath.Match(allowedUser, r.User)
+			if match && err == nil {
+				userOk = true
+			}
+		}
+		if !userOk {
+			return false
+		}
+	}
+	if task.RequireAdmin {
+		isAdmin := false
+		robot.RLock()
+		admins := robot.adminUsers
+		robot.RUnlock()
+		for _, adminUser := range admins {
+			if r.User == adminUser {
+				isAdmin = true
+				break
+			}
+		}
+		if !isAdmin {
+			return false
+		}
+	}
+	return true
+}
+
 // jobAvailable does the work of looking up a job and checking whether it's
 // available, and messaging the user if it's not. Only called for interactive
-// job commands like history, run job, etc.
+// job commands like history, run job, etc. where the user provides a job name.
+// Note that changes to login in jobAvailable may need to propagate to
+// jobVisible, above.
 func (c *botContext) jobAvailable(taskName string, pluginOk bool) interface{} {
 	r := c.makeRobot()
 	t := c.tasks.getTaskByName(taskName)
@@ -263,13 +294,29 @@ func (c *botContext) jobAvailable(taskName string, pluginOk bool) interface{} {
 		if ok {
 			return t
 		}
-		r.Say(fmt.Sprintf("Sorry, '%s' isn't available", taskName))
+		r.Say(fmt.Sprintf("Sorry, plugin '%s' isn't available", taskName))
 		return nil
 	}
 	if r.Channel != task.Channel {
 		c.debugTask(task, fmt.Sprintf("not available in channel '%s'", task.Channel), false)
 		r.Say(fmt.Sprintf("Sorry, job '%s' isn't available in this channel, try '%s'", taskName, task.Channel))
 		return nil
+	}
+	if task.RequireAdmin {
+		isAdmin := false
+		robot.RLock()
+		admins := robot.adminUsers
+		robot.RUnlock()
+		for _, adminUser := range admins {
+			if r.User == adminUser {
+				isAdmin = true
+				break
+			}
+		}
+		if !isAdmin {
+			r.Say(fmt.Sprintf("Sorry, '%s' is only available to bot administrators", taskName))
+			return nil
+		}
 	}
 	if len(task.Users) > 0 {
 		userOk := false

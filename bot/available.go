@@ -41,13 +41,14 @@ func (r *botContext) pluginAvailable(task *botTask, helpSystem, verboseOnly bool
 	if task.RequireAdmin {
 		isAdmin := false
 		robot.RLock()
-		for _, adminUser := range robot.adminUsers {
+		admins := robot.adminUsers
+		robot.RUnlock()
+		for _, adminUser := range admins {
 			if r.User == adminUser {
 				isAdmin = true
 				break
 			}
 		}
-		robot.RUnlock()
 		if !isAdmin {
 			r.debugTask(task, nvmsg+"; RequireAdmin is TRUE and user isn't an Admin", verboseOnly)
 			return false

@@ -103,7 +103,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 				c.environment[p.Name] = p.Value
 			}
 		}
-		if job.Verbose {
+		if !job.Quiet {
 			r := c.makeRobot()
 			r.Channel = job.Channel
 			r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, c.runIndex))
@@ -140,7 +140,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			c.makeRobot().Reply(errString)
 		}
 	}
-	if isJob && (job.Verbose || ret != Normal) {
+	if isJob && (!job.Quiet || ret != Normal) {
 		r := c.makeRobot()
 		r.Channel = job.Channel
 		if ret == Normal {
@@ -303,13 +303,13 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 					runQueues.m[tag] = queue
 					runQueues.Unlock()
 					Log(Debug, fmt.Sprintf("Exclusive task in progress, queueing bot #%d and waiting; queue length: %d", c.id, len(queue)))
-					if (isJob && job.Verbose) || ptype == jobCmd {
+					if (isJob && !job.Quiet) || ptype == jobCmd {
 						c.makeRobot().Say(fmt.Sprintf("Queueing task '%s' in pipeline '%s'", task.name, c.pipeName))
 					}
 					// Now we block until kissed by a Handsome Prince
 					<-wakeUp
 					Log(Debug, fmt.Sprintf("Bot #%d in queue waking up and re-starting task '%s'", c.id, task.name))
-					if (job != nil && job.Verbose) || ptype == jobCmd {
+					if (job != nil && !job.Quiet) || ptype == jobCmd {
 						c.makeRobot().Say(fmt.Sprintf("Re-starting queued task '%s' in pipeline '%s'", task.name, c.pipeName))
 					}
 					// Decrement the index so this task runs again
