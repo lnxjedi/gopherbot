@@ -386,8 +386,9 @@ func (r *Robot) Fixed() *Robot {
 // MessageFormat returns a robot object with the given format, most likely for a
 // plugin that will mostly use e.g. Variable format.
 func (r *Robot) MessageFormat(f MessageFormat) *Robot {
-	r.Format = f
-	return r
+	nr := *r
+	nr.Format = f
+	return &nr
 }
 
 // Direct is a convenience function for initiating a DM conversation with a

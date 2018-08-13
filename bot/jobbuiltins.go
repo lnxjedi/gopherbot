@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 /*
@@ -23,7 +24,7 @@ AllChannels: true
 AllowDirect: false
 Help:
 - Keywords: [ "history", "job" ]
-  Helptext: [ "(bot), history <job(:namespace)> - list the histories available for a job" ]
+  Helptext: [ "(bot), history <job(:namespace)> - list/view the histories available for a job" ]
 - Keywords: [ "quit" ]
   Helptext: [ "(bot), history (job(:namespace) <run#> - start paging the history text for a job run" ]
 CommandMatchers:
@@ -36,6 +37,8 @@ CommandMatchers:
 ReplyMatchers:
 - Label: paging
   Regex: '(?i:(c|n|q))'
+- Label: selection
+  Regex: '(\d+)'
 `
 
 const builtInJobConfig = `
@@ -113,22 +116,58 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	if !c.jobSecurityCheck(t) {
 		return
 	}
+	vr := r.MessageFormat(Variable)
 
 	switch command {
 	case "history":
 		var jh jobHistory
 		key := histPrefix + histSpec
 		_, _, ret := checkoutDatum(key, &jh, false)
+		if ret == Ok && len(jh.ExtendedNamespaces) > 0 {
+			nsl := make([]string, len(jh.ExtendedNamespaces)+2)
+			nsl = append(nsl, fmt.Sprintf("Namespaces for %s:", histSpec))
+			if len(jh.Histories) > 0 {
+				nsl = append(nsl, "0: (base job)")
+			}
+			for i, ens := range jh.ExtendedNamespaces {
+				nsl = append(nsl, fmt.Sprintf("%d: %s", i+1, ens))
+			}
+			vr.Say(strings.Join(nsl, "\n"))
+			rep, ret := r.PromptForReply("selection", "Which namespace #?")
+			if ret != Ok {
+				r.Say("(quitting history command)")
+				return
+			}
+			if rep != "0" {
+				i, _ := strconv.Atoi(rep)
+				histSpec += ":" + jh.ExtendedNamespaces[i-1]
+				key = histPrefix + histSpec
+				_, _, ret = checkoutDatum(key, &jh, false)
+			}
+		}
 		if ret != Ok || len(jh.Histories) == 0 {
 			r.Say(fmt.Sprintf("No history found for '%s'", histSpec))
 			return
 		}
+		// remember which job we're talking about
+		ctx := memoryContext{"context:task", r.User, r.Channel}
+		s := shortTermMemory{histSpec, time.Now()}
+		shortTermMemories.Lock()
+		shortTermMemories.m[ctx] = s
+		shortTermMemories.Unlock()
+
 		hl := make([]string, len(jh.Histories)+1)
 		hl = append(hl, fmt.Sprintf("History of job runs for '%s':", histSpec))
 		for _, he := range jh.Histories {
 			hl = append(hl, fmt.Sprintf("Run %d - %s", he.LogIndex, he.CreateTime))
 		}
-		r.Say(strings.Join(hl, "\n"))
+		vr.Say(strings.Join(hl, "\n"))
+		rep, ret := r.PromptForReply("selection", "Which run #?")
+		if ret != Ok {
+			r.Say("(quitting history command)")
+			return
+		}
+		return jobhistory(r, "showhistory", histSpec, rep)
 	case "showhistory":
 		index, _ := strconv.Atoi(args[1])
 		f, err := robot.history.GetHistory(histSpec, index)
@@ -174,6 +213,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			ContinueSwitch:
 				switch rep {
 				case "q", "Q":
+					r.Say("(quitting)")
 					break PageLoop
 				case "n", "N":
 					for scanner.Scan() {

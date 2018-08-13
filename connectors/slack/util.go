@@ -132,7 +132,7 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []stri
 	sbytes = bytes.Replace(sbytes, []byte(">"), []byte("&gt;"), -1)
 	// 'escape' special chars
 	if f == bot.Variable {
-		for _, padChar := range []string{"`", "*", "_", "@", "#"} {
+		for _, padChar := range []string{"`", "*", "_", "@", "#", ":"} {
 			padBytes := []byte(padChar)
 			paddedBytes := []byte(escapePad + padChar + escapePad)
 			sbytes = bytes.Replace(sbytes, padBytes, paddedBytes, -1)
