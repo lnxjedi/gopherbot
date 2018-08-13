@@ -152,7 +152,11 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			if len(c.failedTaskDescription) > 0 {
 				td = " - " + c.failedTaskDescription
 			}
-			r.Say(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'%s", c.pipeName, c.runIndex, c.failedTaskName, td))
+			jobName := c.pipeName
+			if len(c.nsExtension) > 0 {
+				jobName += ":" + c.nsExtension
+			}
+			r.Say(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'%s", jobName, c.runIndex, c.failedTaskName, td))
 		}
 	}
 	if c.exclusive {
