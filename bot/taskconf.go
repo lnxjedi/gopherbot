@@ -266,6 +266,8 @@ LoadLoop:
 		explicitAllChannels := false
 		explicitAllowDirect := false
 
+		namespace := ""
+
 		for key, value := range tcfgload {
 			var strval string
 			var intval int
@@ -343,14 +345,22 @@ LoadLoop:
 					mismatch = true
 				}
 			case "NameSpace":
-				task.NameSpace = *(val.(*string))
-				if !identifierRe.MatchString(task.NameSpace) {
-					Log(Error, fmt.Sprintf("Task '%s' has invalid NameSpace '%s'; doesn't match regex '%s', ignoring", task.name, task.NameSpace, identifierRe.String()))
-					task.NameSpace = ""
-				}
-				if task.NameSpace == "bot" {
-					Log(Error, fmt.Sprintf("Task '%s' has illegal NameSpace 'bot', ignoring", task.name))
-					task.NameSpace = ""
+				if len(task.NameSpace) > 0 {
+					msg := fmt.Sprintf("NameSpace declared in '%s.yaml' for external task, disabling", task.name)
+					Log(Error, msg)
+					task.Disabled = true
+					task.reason = msg
+					continue LoadLoop
+				} else {
+					namespace = *(val.(*string))
+					if !identifierRe.MatchString(namespace) {
+						Log(Error, fmt.Sprintf("Task '%s' has invalid NameSpace '%s'; doesn't match regex '%s', ignoring", task.name, task.NameSpace, identifierRe.String()))
+						namespace = ""
+					}
+					if namespace == "bot" {
+						Log(Error, fmt.Sprintf("Task '%s' has illegal NameSpace 'bot', ignoring", task.name))
+						namespace = ""
+					}
 				}
 			case "Elevator":
 				task.Elevator = *(val.(*string))
@@ -464,6 +474,14 @@ LoadLoop:
 			r.debug(msg, false)
 			task.Disabled = true
 			task.reason = msg
+		}
+		// Set namespace for Go plugins
+		if len(task.NameSpace) == 0 {
+			task.NameSpace = task.name
+			if len(namespace) > 0 {
+				task.NameSpace = namespace
+			}
+			nameSpaceSet[task.NameSpace] = struct{}{}
 		}
 		if task.DirectOnly {
 			if explicitAllowDirect {

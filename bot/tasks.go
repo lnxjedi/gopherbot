@@ -247,6 +247,9 @@ func RegisterPlugin(name string, plug PluginHandler) {
 	if !identifierRe.MatchString(name) {
 		log.Fatalf("Plugin name '%s' doesn't match plugin name regex '%s'", name, identifierRe.String())
 	}
+	if name == "bot" {
+		log.Fatalf("Illegal Go plugin name registration for 'bot'")
+	}
 	if _, exists := pluginHandlers[name]; exists {
 		log.Fatalf("Attempted plugin name registration duplicates builtIn or other Go plugin: %s", name)
 	}
