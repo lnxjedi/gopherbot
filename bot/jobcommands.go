@@ -108,26 +108,28 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		return
 	}
 	// Check for built-in run job
-	var jobName string
-	cmsg := spaceRe.ReplaceAllString(bot.msg, " ")
-	matches := runJobRe.FindAllStringSubmatch(cmsg, -1)
-	if matches != nil {
-		jobName = matches[0][1]
-		messageMatched = true
-		r.messageHeard()
-	} else {
-		return
-	}
-	t := bot.jobAvailable(jobName, false)
-	if t != nil {
-		// remember which job we're talking about
-		ctx := memoryContext{"context:task", bot.User, bot.Channel}
-		s := shortTermMemory{jobName, time.Now()}
-		shortTermMemories.Lock()
-		shortTermMemories.m[ctx] = s
-		shortTermMemories.Unlock()
+	if bot.isCommand {
+		var jobName string
+		cmsg := spaceRe.ReplaceAllString(bot.msg, " ")
+		matches := runJobRe.FindAllStringSubmatch(cmsg, -1)
+		if matches != nil {
+			jobName = matches[0][1]
+			messageMatched = true
+			r.messageHeard()
+		} else {
+			return
+		}
+		t := bot.jobAvailable(jobName, false)
+		if t != nil {
+			// remember which job we're talking about
+			ctx := memoryContext{"context:task", bot.User, bot.Channel}
+			s := shortTermMemory{jobName, time.Now()}
+			shortTermMemories.Lock()
+			shortTermMemories.m[ctx] = s
+			shortTermMemories.Unlock()
 
-		bot.startPipeline(nil, t, jobCmd, "run")
-	} // jobAvailable sends a message if it's not
+			bot.startPipeline(nil, t, jobCmd, "run")
+		} // jobAvailable sends a message if it's not
+	}
 	return
 }

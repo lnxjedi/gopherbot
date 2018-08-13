@@ -28,17 +28,10 @@ Help:
   Helptext: [ "(bot), history (job(:namespace) <run#> - start paging the history text for a job run" ]
 CommandMatchers:
 - Command: history
-  Regex: '(?i:history(?: ([A-Za-z][\w-:]*))?)'
+  Regex: '(?i:history(?: ([A-Za-z][\w-:./]*))?)'
   Contexts: [ "task" ]
 - Command: showhistory
-  Regex: '(?i:history (?:([A-Za-z][\w-:]*) )?(\d+))'
-  Contexts: [ "task" ]
-MessageMatchers:
-- Command: history
-  Regex: '(?i:^history(?: ([A-Za-z][\w-:]*))?$)'
-  Contexts: [ "task" ]
-- Command: showhistory
-  Regex: '(?i:^history (?:([A-Za-z][\w-:]*) )?(\d+)$)'
+  Regex: '(?i:history (?:([A-Za-z][\w-:./]*) )?(\d+))'
   Contexts: [ "task" ]
 ReplyMatchers:
 - Label: paging
@@ -174,7 +167,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 				break
 			}
 			rep, ret := r.PromptForReply("paging", "'c' to continue, 'q' to quit, or 'n' to skip to the next section")
-			if ret != Ok && ret != TimeoutExpired {
+			if ret != Ok {
 				r.Say("(quitting)")
 				break PageLoop
 			} else {

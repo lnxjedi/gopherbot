@@ -26,7 +26,7 @@ var envPassThrough = []string{
 // Called from dispatch: checkPluginMatchersAndRun,
 // jobcommands: checkJobMatchersAndRun or scheduledTask,
 // runPipeline.
-func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipelineType, command string, args ...string) (ret TaskRetVal, errString string) {
+func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipelineType, command string, args ...string) (ret TaskRetVal) {
 	task, _, job := getTask(t)
 	isJob := job != nil
 	c.pipeName = task.name
@@ -118,6 +118,8 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	c.registerActive(nil)
 	ts := taskSpec{task.name, command, args, t}
 	c.nextTasks = []taskSpec{ts}
+
+	var errString string
 	ret, errString = c.runPipeline(ptype, true)
 	// Run final and fail (cleanup) tasks
 	if ret != Normal {
@@ -272,7 +274,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 				Format:        c.Format,
 				environment:   make(map[string]string),
 			}
-			ret, errString = child.startPipeline(c, t, ptype, command, args...)
+			ret = child.startPipeline(c, t, ptype, command, args...)
 		} else {
 			c.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
 			errString, ret = c.callTask(t, command, args...)
