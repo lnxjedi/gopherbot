@@ -40,6 +40,7 @@ const (
 	CatchAllsRan
 	CatchAllTaskRan
 	TriggeredTaskRan
+	SpawnedTaskRan
 	ScheduledTaskRan
 	JobTaskRan
 	GoPluginRan

@@ -164,6 +164,12 @@ class Robot
         return $this.Call($fname, $funcArgs, "")
     }
 
+    [PlugRet] SpawnTask([String] $taskName, [String[]]$taskArgs) {
+        $funcArgs = [PSCustomObject]@{ Name=$taskName, CmdArgs=$taskArgs }
+        $ret = $this.Call("SpawnTask", $funcArgs)
+        return $ret.RetVal -As [BotRet]
+    }
+
     [PlugRet] AddTask([String] $taskName, [String[]]$taskArgs) {
         $funcArgs = [PSCustomObject]@{ Name=$taskName, CmdArgs=$taskArgs }
         $ret = $this.Call("AddTask", $funcArgs)

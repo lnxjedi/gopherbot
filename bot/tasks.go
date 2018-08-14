@@ -111,6 +111,7 @@ const (
 	plugMessage
 	catchAll
 	jobTrigger
+	spawnedTask
 	scheduled
 	jobCmd // i.e. run job xx
 )

@@ -29,6 +29,8 @@ var envPassThrough = []string{
 func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipelineType, command string, args ...string) (ret TaskRetVal) {
 	task, _, job := getTask(t)
 	isJob := job != nil
+	ppipeName := c.pipeName
+	ppipeDesc := c.pipeDesc
 	c.pipeName = task.name
 	c.pipeDesc = task.Description
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
@@ -112,6 +114,8 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 				r.Say(fmt.Sprintf("Starting job '%s', run %d - triggered by app '%s' in channel '%s'", task.name, c.runIndex, c.User, iChannel))
 			case jobCmd:
 				r.Say(fmt.Sprintf("Starting job '%s', run %d - requested by user '%s' in channel '%s'", task.name, c.runIndex, c.User, iChannel))
+			case spawnedTask:
+				r.Say(fmt.Sprintf("Starting job '%s', run %d - spawned by pipeline '%s': %s", task.name, c.runIndex, ppipeName, ppipeDesc))
 			case scheduled:
 				r.Say(fmt.Sprintf("Starting scheduled job '%s', run %d", task.name, c.runIndex))
 			default:
@@ -269,6 +273,8 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 				emit(CatchAllTaskRan)
 			case jobTrigger:
 				emit(TriggeredTaskRan)
+			case spawnedTask:
+				emit(SpawnedTaskRan)
 			case scheduled:
 				emit(ScheduledTaskRan)
 			case jobCmd:

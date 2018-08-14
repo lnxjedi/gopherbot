@@ -98,6 +98,10 @@ class BaseBot
 		return callBotFunc("Elevate", { "Immediate" => immediate })["Boolean"]
 	end
 
+	def SpawnTask(name, args)
+		return callBotFunc("SpawnTask", { "Name" => name, "CmdArgs" => args })["RetVal"]
+	end
+
 	def AddTask(name, args)
 		return callBotFunc("AddTask", { "Name" => name, "CmdArgs" => args })["RetVal"]
 	end

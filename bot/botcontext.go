@@ -109,6 +109,8 @@ func (c *botContext) clone() *botContext {
 		User:             c.User,
 		Channel:          c.Channel,
 		RawMsg:           c.RawMsg,
+		pipeName:         c.pipeName,
+		pipeDesc:         c.pipeDesc,
 		tasks:            c.tasks,
 		repositories:     c.repositories,
 		automaticTask:    c.automaticTask,

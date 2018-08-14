@@ -223,6 +223,44 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	return true
 }
 
+// SpawnTask creates a new botContext in a new goroutine to run a
+// plugin/task/job. It's primary use is for CI/CD applications where a single
+// triggered job may want to spawn several jobs when e.g. a dependency for
+// multiple projects is updated.
+func (r *Robot) SpawnTask(name string, cmdargs ...string) RetVal {
+	c := r.getContext()
+	if c.stage != primaryTasks {
+		task, _, _ := getTask(c.currentTask)
+		r.Log(Error, fmt.Sprintf("SpawnTask called outside of initial pipeline in task '%s'", task.name))
+		return InvalidStage
+	}
+	t := c.tasks.getTaskByName(name)
+	if t == nil {
+		task, _, _ := getTask(c.currentTask)
+		r.Log(Error, fmt.Sprintf("Task '%s' not found in call to AddTask from task '%s'", name, task.name))
+		return TaskNotFound
+	}
+	_, plugin, _ := getTask(t)
+	isPlugin := plugin != nil
+	var command string
+	var args []string
+	if isPlugin {
+		if len(cmdargs) == 0 {
+			return MissingArguments
+		}
+		if len(cmdargs[0]) == 0 {
+			return MissingArguments
+		}
+		command, args = cmdargs[0], cmdargs[1:]
+	} else {
+		command = "run"
+		args = cmdargs
+	}
+	sb := c.clone()
+	go sb.startPipeline(nil, t, spawnedTask, command, args...)
+	return Ok
+}
+
 // AddTask puts another task (job or plugin) in the queue for the pipeline. Unlike other
 // CI/CD tools, gopherbot pipelines are code generated, not configured; it is,
 // however, trivial to write code that reads an arbitrary configuration file

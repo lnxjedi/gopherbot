@@ -49,7 +49,7 @@ type channelmessage struct {
 	Base64  bool
 }
 
-type addtaskcall struct {
+type taskcall struct {
 	Name    string
 	CmdArgs []string
 }
@@ -255,8 +255,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		bret := bot.CheckAdmin()
 		sendReturn(rw, boolresponse{Boolean: bret})
 		return
-	case "AddTask", "FinalTask", "FailTask":
-		var ts addtaskcall
+	case "AddTask", "FinalTask", "FailTask", "SpawnTask":
+		var ts taskcall
 		if !getArgs(rw, &f.FuncArgs, &ts) {
 			return
 		}
@@ -268,6 +268,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			ret = bot.FinalTask(ts.Name, ts.CmdArgs...)
 		case "FailTask":
 			ret = bot.FailTask(ts.Name, ts.CmdArgs...)
+		case "SpawnTask":
+			ret = bot.SpawnTask(ts.Name, ts.CmdArgs...)
 		default:
 			return
 		}
