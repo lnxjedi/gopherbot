@@ -20,16 +20,6 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	taskArgs := [][]string{}
 	var triggerArgs []string
 
-	currentTasks.RLock()
-	tlist := currentTasks.t
-	nameMap := currentTasks.nameMap
-	idMap := currentTasks.idMap
-	nameSpaces := currentTasks.nameSpaces
-	currentTasks.RUnlock()
-	confLock.RLock()
-	repolist := repositories
-	confLock.RUnlock()
-
 	// First, check triggers
 	for _, t := range bot.tasks.t {
 		task, _, job := getTask(t)
@@ -67,22 +57,9 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 			}
 			if matched {
 				messageMatched = true
-				robots = append(robots, &botContext{
-					User:          bot.User,
-					Channel:       task.Channel,
-					RawMsg:        bot.RawMsg,
-					automaticTask: true,
-					tasks: taskList{
-						t:          tlist,
-						nameMap:    nameMap,
-						idMap:      idMap,
-						nameSpaces: nameSpaces,
-					},
-					repositories:     repolist,
-					msg:              bot.msg,
-					workingDirectory: robot.workSpace,
-					environment:      make(map[string]string),
-				})
+				newbot := bot.clone()
+				newbot.automaticTask = true
+				robots = append(robots, newbot)
 				runTasks = append(runTasks, t)
 				taskArgs = append(taskArgs, triggerArgs)
 			}

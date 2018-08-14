@@ -88,7 +88,8 @@ func (c *botContext) deregister() {
 	activeRobots.Unlock()
 }
 
-// makeRobot returns
+// makeRobot returns a *Robot for plugins; the id lets Robot methods
+// get a reference back to the original context.
 func (c *botContext) makeRobot() *Robot {
 	return &Robot{
 		User:     c.User,
@@ -97,6 +98,26 @@ func (c *botContext) makeRobot() *Robot {
 		Protocol: c.Protocol,
 		RawMsg:   c.RawMsg,
 		id:       c.id,
+	}
+}
+
+// clone() is a convenience function to clone the current context before
+// starting a new goroutine for startPipeline. Used by e.g. triggered jobs,
+// SpawnTask(), and runPipeline for sub-jobs.
+func (c *botContext) clone() *botContext {
+	return &botContext{
+		User:             c.User,
+		Channel:          c.Channel,
+		RawMsg:           c.RawMsg,
+		tasks:            c.tasks,
+		repositories:     c.repositories,
+		automaticTask:    c.automaticTask,
+		elevated:         c.elevated,
+		Protocol:         c.Protocol,
+		Format:           c.Format,
+		msg:              c.msg,
+		workingDirectory: robot.workSpace,
+		environment:      make(map[string]string),
 	}
 }
 

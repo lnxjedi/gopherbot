@@ -31,16 +31,24 @@ type taskList struct {
 	nameMap    map[string]int
 	idMap      map[string]int
 	nameSpaces map[string]struct{}
-	sync.RWMutex
+	//	sync.RWMutex
 }
 
-var currentTasks = &taskList{
-	nil,
-	nil,
-	nil,
-	nil,
-	sync.RWMutex{},
+var currentTasks = struct {
+	*taskList
+	sync.Mutex
+}{
+	&taskList{},
+	sync.Mutex{},
 }
+
+// var currentTasks = &taskList{
+// 	nil,
+// 	nil,
+// 	nil,
+// 	nil,
+// 	sync.RWMutex{},
+// }
 
 func getTask(t interface{}) (*botTask, *botPlugin, *botJob) {
 	p, ok := t.(*botPlugin)
@@ -55,15 +63,12 @@ func getTask(t interface{}) (*botTask, *botPlugin, *botJob) {
 }
 
 func (tl *taskList) getTaskByName(name string) interface{} {
-	tl.RLock()
 	ti, ok := tl.nameMap[name]
 	if !ok {
 		Log(Error, fmt.Sprintf("Task '%s' not found calling getTaskByName", name))
-		tl.RUnlock()
 		return nil
 	}
 	task := tl.t[ti]
-	tl.RUnlock()
 	return task
 }
 
@@ -200,15 +205,14 @@ var stopRegistrations = false
 
 // initialize sends the "init" command to every plugin
 func initializePlugins() {
-	currentTasks.RLock()
+	currentTasks.Lock()
 	tasks := taskList{
 		currentTasks.t,
 		currentTasks.nameMap,
 		currentTasks.idMap,
 		currentTasks.nameSpaces,
-		sync.RWMutex{},
 	}
-	currentTasks.RUnlock()
+	currentTasks.Unlock()
 	bot := &botContext{
 		environment:      make(map[string]string),
 		workingDirectory: robot.workSpace,

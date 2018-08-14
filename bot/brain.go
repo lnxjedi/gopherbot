@@ -214,7 +214,6 @@ func initializeEncryption(key string) bool {
 		cryptBrain.Unlock()
 		return true
 	}
-	return true
 }
 
 // Most likely used when switching from configured to interactively-provided

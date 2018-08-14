@@ -92,12 +92,12 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 		logChannel = "(direct message)"
 	}
 
-	currentTasks.RLock()
+	currentTasks.Lock()
 	t := currentTasks.t
 	nameMap := currentTasks.nameMap
 	idMap := currentTasks.idMap
 	nameSpaces := currentTasks.nameSpaces
-	currentTasks.RUnlock()
+	currentTasks.Unlock()
 	confLock.RLock()
 	repolist := repositories
 	confLock.RUnlock()

@@ -276,18 +276,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 			}
 		}
 		if isJob && i != 0 {
-			child := &botContext{
-				User:          c.User,
-				Channel:       c.Channel,
-				tasks:         c.tasks,
-				repositories:  c.repositories,
-				automaticTask: c.automaticTask,
-				elevated:      c.elevated,
-				Protocol:      c.Protocol,
-				RawMsg:        c.RawMsg,
-				Format:        c.Format,
-				environment:   make(map[string]string),
-			}
+			child := c.clone()
 			ret = child.startPipeline(c, t, ptype, command, args...)
 		} else {
 			c.debug(fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
