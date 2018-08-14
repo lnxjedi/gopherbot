@@ -163,18 +163,25 @@ LogLevel: info
 # fixed-width font.
 #DefaultMessageFormat: Variable # 'Raw' if not specified
 
-# PROTOCOL SELECTION
-# Uncomment one of the stanzas below to select the 'bot 'Protocol'
-# and related 'ProtocolConfig' configuration data.
+## PROTOCOL SELECTION
+## Uncomment one of the stanzas below to select the 'bot 'Protocol'
+## and related 'ProtocolConfig' configuration data.
 
-# Specification of which connection protocol ('slack', 'term', or 'test';
-# see 'cfg/') and any associated configuration.
-# MaxMessageSplit specifies the maximum number of messages to break a message
-# into when it's too long (>4000 char)
+## Specification of which connection protocol ('slack', 'term', or 'test';
+## see 'cfg/') and any associated configuration.
+## MaxMessageSplit specifies the maximum number of messages to break a message
+## into when it's too long (>4000 char)
+## The BotRoster maps a bot_id (e.g. from a webhook) to a unique username,
+## primarily for triggers.
 #Protocol: slack
 #ProtocolConfig:
 #  SlackToken: "" # Paste token here or set in SLACK_TOKEN environment var
 #  MaxMessageSplit: 2
+#  BotRoster:
+#  - Name: hook1
+#    ID: BC7JEBGAX
+#  - Name: hook2
+#    ID: BAVS35996
 #
 
 # Terminal connector, mostly useful for development.

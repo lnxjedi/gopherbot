@@ -105,8 +105,18 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		}
 		if !job.Quiet {
 			r := c.makeRobot()
+			iChannel := r.Channel
 			r.Channel = job.Channel
-			r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, c.runIndex))
+			switch ptype {
+			case jobTrigger:
+				r.Say(fmt.Sprintf("Starting job '%s', run %d - triggered by app '%s' in channel '%s'", task.name, c.runIndex, c.User, iChannel))
+			case jobCmd:
+				r.Say(fmt.Sprintf("Starting job '%s', run %d - requested by user '%s' in channel '%s'", task.name, c.runIndex, c.User, iChannel))
+			case scheduled:
+				r.Say(fmt.Sprintf("Starting scheduled job '%s', run %d", task.name, c.runIndex))
+			default:
+				r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, c.runIndex))
+			}
 			c.verbose = true
 		}
 	}
