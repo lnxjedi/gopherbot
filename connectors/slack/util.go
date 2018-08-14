@@ -27,15 +27,19 @@ type slackConnector struct {
 	botFullName     string                // human-readble full name of the bot
 	botID           string                // slack internal bot ID
 	name            string                // name for this connector
+	teamID          string                // Slack unique Team ID, for identifying team users
 	bot.Handler                           // bot API for connectors
 	sync.RWMutex                          // shared mutex for locking connector data structures
 	channelToID     map[string]string     // map from channel names to channel IDs
 	idToChannel     map[string]string     // map from channel ID to channel name
-	userInfo        map[string]slack.User // map from user names to slack.User struct
+	userInfo        map[string]slack.User // map from user names to slack.User
 	idToUser        map[string]string     // map from user ID to user name
 	userIDToIM      map[string]string     // map from user ID to IM channel ID
 	imToUser        map[string]string     // map from IM channel ID to user name
 }
+
+var botUserID map[string]string // map of BXXX IDs to username defined in the BotRoster
+var botIDUser map[string]string // map of defined username to BXXX ID
 
 type userlast struct {
 	user, channel string
@@ -55,30 +59,49 @@ var lastmsgtime = struct {
 // sending the same command twice in short order.
 const ignorewindow = 2 * time.Second
 
-func (s *slackConnector) getUser(u string) (user slack.User, ok bool) {
-	s.RLock()
-	user, ok = s.userInfo[u]
-	s.RUnlock()
-	if !ok {
-		return user, false
-	}
-	return user, ok
-}
-
 func (s *slackConnector) userID(u string) (i string, ok bool) {
+	if i, ok = botUserID[u]; ok {
+		return
+	}
 	s.RLock()
 	user, ok := s.userInfo[u]
 	s.RUnlock()
 	if !ok {
+		s.Log(bot.Error, fmt.Sprintf("Failed lookup for user '%s", u))
 		return "", false
 	}
 	return user.ID, ok
 }
 
 func (s *slackConnector) userName(i string) (u string, ok bool) {
+	if strings.HasPrefix(i, "B") {
+		u, ok = botIDUser[i]
+		return
+	}
 	s.RLock()
 	u, ok = s.idToUser[i]
 	s.RUnlock()
+	if !ok {
+		su, err := s.api.GetUserInfo(i)
+		if err == nil {
+			if su.TeamID != s.teamID {
+				s.Log(bot.Warn, fmt.Sprintf("Not returning username for foreign user: %s", i))
+				return "", false
+			}
+			u = su.Name
+			ok = true
+		}
+		if ok {
+			s.Lock()
+			s.idToUser[i] = u
+			s.userInfo[u] = *su
+			s.Unlock()
+		}
+	}
+	if _, ok := botUserID[u]; ok {
+		s.Log(bot.Error, fmt.Sprintf("User '%s', ID '%s' duplicates bot with same username from BotRoster", u, i))
+		return "", false
+	}
 	return u, ok
 }
 
@@ -278,38 +301,42 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 // update maps is called whenever there are any changes
 // to users or channels, so that plugins can use
 // human-readable names for users and channels.
-func (s *slackConnector) updateMaps() {
+func (s *slackConnector) updateMaps(skipUsers bool) {
 	s.Log(bot.Trace, "Updating maps")
 	deadline := time.Now().Add(optimeout)
 	var (
 		err        error
 		userlist   []slack.User
+		userMap    map[string]slack.User
+		userIDMap  map[string]string
 		userIMlist []slack.IM
 		chanlist   []slack.Channel
 		grouplist  []slack.Group
 	)
 
-	for tries := uint(0); time.Now().Before(deadline); tries++ {
-		userlist, err = s.api.GetUsers()
-		if err == nil {
-			break
+	userIDMap = make(map[string]string)
+	if skipUsers {
+		s.RLock()
+		for u, i := range s.idToUser {
+			userIDMap[i] = u
 		}
-	}
-	if err != nil {
-		s.Log(bot.Fatal, fmt.Sprintf("Protocol timeout updating users: %v\n", err))
-	}
-	userMap := make(map[string]slack.User)
-	userIDMap := make(map[string]string)
-	for _, user := range userlist {
-		s.Log(bot.Trace, "Mapping user name", user.Name, "to", user.ID)
-		userMap[user.Name] = user
-		userIDMap[user.ID] = user.Name
-	}
-	for botID, botName := range bots {
-		s.Log(bot.Trace, "Mapping bot ID", botID, "to name:", botName)
-		// note that we don't map the name to anything, since you can't (currently?)
-		// speak to a bot/app
-		userIDMap[botID] = botName
+		s.RUnlock()
+	} else {
+		userMap = make(map[string]slack.User)
+		for tries := uint(0); time.Now().Before(deadline); tries++ {
+			userlist, err = s.api.GetUsers()
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			s.Log(bot.Fatal, fmt.Sprintf("Protocol timeout updating users: %v\n", err))
+		}
+		for _, user := range userlist {
+			s.Log(bot.Trace, "Mapping user name", user.Name, "to", user.ID)
+			userMap[user.Name] = user
+			userIDMap[user.ID] = user.Name
+		}
 	}
 
 	for tries := uint(0); time.Now().Before(deadline); tries++ {
@@ -362,12 +389,18 @@ func (s *slackConnector) updateMaps() {
 	}
 
 	s.Lock()
-	s.userInfo = userMap
-	s.idToUser = userIDMap
+	if !skipUsers {
+		s.userInfo = userMap
+		s.idToUser = userIDMap
+	}
 	s.userIDToIM = userIMMap
 	s.channelToID = chanMap
 	s.idToChannel = chanIDMap
 	s.imToUser = userNameMap
 	s.Unlock()
-	s.Log(bot.Info, "User/Group/Channel maps updated")
+	if skipUsers {
+		s.Log(bot.Info, "Group/Channel maps updated")
+	} else {
+		s.Log(bot.Info, "User/Group/Channel maps updated")
+	}
 }
