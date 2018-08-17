@@ -7,7 +7,7 @@ jobs:
     docker:
       # specify the version
       - image: circleci/golang:1.10.3
-      
+
     working_directory: /go/src/github.com/lnxjedi/gopherbot
     steps:
       - checkout
@@ -36,9 +36,9 @@ jobs:
           # cat bot/test.log # if testing fails, uncomment and add '|| :' above
 
       # Publish coverage
-      - run:
-          name: Publish coverage results
-          command: goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+      # - run:
+      #     name: Publish coverage results
+      #     command: goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
       # Build
       - run:
@@ -46,6 +46,6 @@ jobs:
           command: ./mkdist.sh
 
       # Publish
-      - deploy:
-          name: Publish archives to Github
-          command: ./publish.sh
+      # - deploy:
+      #     name: Publish archives to Github
+      #     command: ./publish.sh
