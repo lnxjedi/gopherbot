@@ -118,13 +118,11 @@ const (
 
 // InputMatcher specifies the command or message to match for a plugin
 type InputMatcher struct {
-	Regex      string         // The regular expression string to match - bot adds ^\w* & \w*$
-	Command    string         // The name of the command to pass to the plugin with it's arguments
-	Label      string         // ReplyMatchers use "Label" instead of "Command"
-	Contexts   []string       // label the contexts corresponding to capture groups, for supporting "it" & optional args
-	User       string         // jobs only; user that can trigger this job, normally git-activated webhook or integration
-	Parameters []string       // jobs only; names of parameters (environment vars) where regex matches are stored, in order of capture groups
-	re         *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
+	Regex    string         // The regular expression string to match - bot adds ^\w* & \w*$
+	Command  string         // The name of the command to pass to the plugin with it's arguments
+	Label    string         // ReplyMatchers use "Label" instead of "Command"
+	Contexts []string       // label the contexts corresponding to capture groups, for supporting "it" & optional args
+	re       *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
 // InputMatcher specifies the command or message to match for a plugin, or user and message to trigger a job

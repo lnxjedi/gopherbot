@@ -176,16 +176,24 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		channel: channel,
 	}
 	var rep replyWaiter
-	task, _, _ := getTask(r.getContext().currentTask)
+	task, _, job := getTask(r.getContext().currentTask)
+	isJob := job != nil
 	if stockRepliesRe.MatchString(regexID) {
 		rep.re = stockReplies[regexID]
 	} else {
-		for _, matcher := range task.ReplyMatchers {
+		var rm []InputMatcher
+		if isJob {
+			rm = job.Arguments
+		} else {
+			rm = task.ReplyMatchers
+		}
+		for _, matcher := range rm {
 			if matcher.Label == regexID {
 				rep.re = matcher.re
 				break
 			} else if matcher.Command == regexID {
 				rep.re = matcher.re
+				break
 			}
 		}
 	}

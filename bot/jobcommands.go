@@ -3,10 +3,11 @@ package bot
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 )
 
-const runJobRegex = `run +job +(` + identifierRegex + `)`
+const runJobRegex = `run +job +(` + identifierRegex + `)(?: (.*))?`
 
 var runJobRe = regexp.MustCompile(`(?i:^\s*` + runJobRegex + `\s*$)`)
 
@@ -98,14 +99,60 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		}
 		t := bot.jobAvailable(jobName, false)
 		if t != nil {
+			var args []string
+			task, _, job := getTask(t)
 			// remember which job we're talking about
 			ctx := memoryContext{"context:task", bot.User, bot.Channel}
 			s := shortTermMemory{jobName, time.Now()}
 			shortTermMemories.Lock()
 			shortTermMemories.m[ctx] = s
 			shortTermMemories.Unlock()
-
-			bot.startPipeline(nil, t, jobCmd, "run")
+			if len(matches[0][2]) > 0 { // arguments supplied with `run job foo bar baz`, check match to arguments
+				args = strings.Split(matches[0][2], " ")
+				if len(args) != len(job.Arguments) {
+					r.Say(fmt.Sprintf("Wrong number or arguments for job '%s', %d configured", jobName, job.Arguments))
+					return
+				}
+				for i, arg := range args {
+					if !job.Arguments[i].re.MatchString(arg) {
+						r.Say(fmt.Sprintf("'%s' doesn't match the pattern for argument '%s'", arg, job.Arguments[i].Label))
+						return
+					}
+				}
+			} else {
+				if len(job.Arguments) > 0 {
+					args = make([]string, len(job.Arguments))
+					bot.currentTask = t
+					bot.pipeName = task.name
+					bot.pipeDesc = task.Description
+					bot.registerActive(nil)
+					r = bot.makeRobot()
+					for i, argspec := range job.Arguments {
+						var t int
+						for t = 1; t < 3; t++ {
+							arg, ret := r.PromptForReply(argspec.Label, fmt.Sprintf("What's the value for '%s'?", argspec.Label))
+							if ret == ReplyNotMatched {
+								r.Say(fmt.Sprintf("That doesn't match the pattern for argument '%s'", argspec.Label))
+							} else {
+								if ret != Ok {
+									r.Say(fmt.Sprintf("(not running job '%s')", jobName))
+									bot.deregister()
+									return
+								}
+								args[i] = arg
+								break
+							}
+						}
+						if t == 3 {
+							r.Say("(giving up)")
+							bot.deregister()
+							return
+						}
+					}
+				}
+			}
+			bot.deregister()
+			bot.startPipeline(nil, t, jobCmd, "run", args...)
 		} // jobAvailable sends a message if it's not
 	}
 	return

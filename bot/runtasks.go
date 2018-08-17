@@ -111,6 +111,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			r.Channel = job.Channel
 			switch ptype {
 			case jobTrigger:
+				c.Channel = job.Channel // send bot output of triggered jobs to job channel
 				r.Say(fmt.Sprintf("Starting job '%s', run %d - triggered by app '%s' in channel '%s'", task.name, c.runIndex, c.User, iChannel))
 			case jobCmd:
 				r.Say(fmt.Sprintf("Starting job '%s', run %d - requested by user '%s' in channel '%s'", task.name, c.runIndex, c.User, iChannel))
