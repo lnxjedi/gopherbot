@@ -4,6 +4,10 @@
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
+PATH=$HOME/go/bin:$PATH:/usr/local/go/bin
+# Add go binaries to PATH for the rest of the pipeline
+SetParameter PATH "$PATH"
+
 # Get dependencies
 AddTask localexec go get -v -t -d ./...
 
