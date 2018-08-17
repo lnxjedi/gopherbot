@@ -15,15 +15,15 @@ As `root`:
 
 1. Create a `robot` system user with home directory `/opt/robot`:
 
-    ```
-    useradd -r -d /opt/robot -m robot
+    ```no-highlight
+    [root@myhost gopherbot]# useradd -r -d /opt/robot -m robot
     ```
 2. Unzip the Gopherbot install archive in `/opt/gopherbot`
 3. Create `/usr/local/etc/gopherbot`, copy the `conf/` and `brain/` directories there
 4. Rename `/opt/gopherbot/conf/gopherbot.yaml.sample` to `gopherbot.yaml`
 5. Give the robot user read/write access to `brain/`:
 
-    ```
+    ```no-highlight
     [root@myhost gopherbot]# cd /opt/gopherbot/
     [root@myhost gopherbot]# mkdir /usr/local/etc/gopherbot
     [root@myhost gopherbot]# cp -a conf/ brain/ /usr/local/etc/gopherbot/
@@ -39,7 +39,7 @@ As `root`:
 8. Copy `/opt/gopherbot/misc/gopherbot.service` to `/etc/systemd/system`
 9. Reload systemd and set Gopherbot to start automatically:
 
-    ```
+    ```no-highlight
     [root@myhost gopherbot]# systemctl daemon-reload
     [root@myhost gopherbot]# systemctl start gopherbot
     [root@myhost gopherbot]# systemctl enable gopherbot

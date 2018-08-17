@@ -48,7 +48,8 @@ Disabled: false
 
 This short example demonstrates a simple "hello world" plugin, written in bash.
 * Open an editor and create `plugins/hello.sh` in your install directory:
-```
+
+```bash
 #!/bin/bash -e
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
