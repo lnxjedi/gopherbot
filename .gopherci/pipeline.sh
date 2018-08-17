@@ -14,7 +14,7 @@ AddTask localexec go test -v --tags 'test integration' -cover -race -coverprofil
 AddTask localexec ./.gopherci/tools.sh
 
 # Publish coverage results
-AddTask goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+AddTask localexec goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
 # Do a full build for all platforms
 AddTask localexec ./mkdist.sh

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# gopherci.py - Dispatcher for commit events
+
 import os
 import sys
 sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
@@ -31,4 +33,4 @@ else:
     bot.Log("Debug", "Ignoring update on '%s', not listed in repositories.yaml" % repository)
     exit()
 
-bot.Say("Found '%s' in 'repositories.yaml', type '%s'" % (repository, repotype))
+bot.SpawnTask(repotype, [ repository, branch ])
