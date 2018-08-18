@@ -36,9 +36,9 @@ jobs:
           # cat bot/test.log # if testing fails, uncomment and add '|| :' above
 
       # Publish coverage
-      # - run:
-      #     name: Publish coverage results
-      #     command: goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+      - run:
+          name: Publish coverage results
+          command: goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
       # Build
       - run:
