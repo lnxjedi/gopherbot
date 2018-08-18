@@ -361,7 +361,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 	return
 }
 
-// callTask does the real work of running a job or plugin with a command and arguments.
+// callTask does the real work of running a job, task or plugin with a command and arguments.
 func (bot *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
 	bot.currentTask = t
 	r := bot.makeRobot()
@@ -375,13 +375,22 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		return msg, ConfigurationError
 	}
 	if bot.logger != nil {
+		var taskinfo string
+		if isPlugin {
+			taskinfo = task.name + " " + command
+		} else {
+			taskinfo = task.name
+		}
+		if len(args) > 0 {
+			taskinfo += " " + strings.Join(args, " ")
+		}
 		var desc string
 		if len(task.Description) > 0 {
 			desc = fmt.Sprintf("Starting task: %s", task.Description)
 		} else {
 			desc = "Starting task"
 		}
-		bot.logger.Section(task.name, desc)
+		bot.logger.Section(taskinfo, desc)
 	}
 
 	if !(task.name == "builtInadmin" && command == "abort") {
