@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# gopherci.py - Dispatcher for commit events
+# gopherci.py - Dispatcher for commit events, spawns the appropriate build job
 
 import os
 import sys
@@ -31,6 +31,10 @@ if repository in repodata:
         exit()
 else:
     bot.Log("Debug", "Ignoring update on '%s', not listed in repositories.yaml" % repository)
+    exit()
+
+if repotype == "none":
+    bot.Log("Debug", "Ignoring update on '%s', repository type is 'none'" % repository)
     exit()
 
 bot.SpawnTask(repotype, [ repository, branch ])
