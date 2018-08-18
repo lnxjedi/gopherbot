@@ -17,6 +17,7 @@ import (
 var historyPath string
 var robot bot.Handler
 
+// TODO: move to bot.historyStdFlags
 const logFlags = log.LstdFlags
 
 type historyConfig struct {
@@ -33,11 +34,12 @@ func (hf *historyFile) Log(line string) {
 	hf.l.Println(line)
 }
 
+// TODO: This belongs in the Robot as a generic method - move
 // Section creates a new named section in the history file, for separating
 // output from jobs/plugins in a pipeline
-func (hf *historyFile) Section(name, info string) {
+func (hf *historyFile) Section(task, desc string) {
 	hf.l.SetFlags(0)
-	hf.l.Println("*** " + name + " - " + info)
+	hf.l.Println("*** " + task + " - " + desc)
 	hf.l.SetFlags(logFlags)
 }
 
@@ -95,7 +97,6 @@ func (fhc *historyConfig) GetHistory(tag string, index int) (io.Reader, error) {
 	return os.Open(filePath)
 }
 
-// The file brain doesn't need the logger, but other brains might
 func provider(r bot.Handler) bot.HistoryProvider {
 	robot = r
 	robot.GetHistoryConfig(&fhc)
