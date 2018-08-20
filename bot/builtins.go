@@ -338,33 +338,77 @@ func admin(bot *Robot, command string, args ...string) (retval TaskRetVal) {
 		bot.Reply("Configuration reloaded successfully")
 		bot.Log(Info, "Configuration successfully reloaded by a request from:", bot.User)
 	case "store":
-		ns := args[0]
-		c := bot.getContext()
-		_, exists := c.tasks.nameSpaces[ns]
-		if !exists {
-			bot.Say("I don't have that namespace configured")
+		if !encryptBrain {
+			bot.Say("Sorry, I can't store secrets if brain encryption isn't configured")
 			return
 		}
-		if len(args[1]) > 0 {
-			_, exists := c.repositories[args[1]]
+		nstype := args[0]
+		nsname := args[1]
+		c := bot.getContext()
+		switch strings.ToLower(nstype) {
+		case "task":
+			_, exists := c.tasks.nameSpaces[nsname]
 			if !exists {
-				bot.Say(fmt.Sprintf("I didn't find '%s' in 'conf/repositories.yaml'", args[1]))
+				bot.Say("I don't have that task namespace configured")
 				return
-			} else {
-				ns = ns + ":" + args[1]
+			}
+		case "repository":
+			_, exists := c.repositories[nsname]
+			if !exists {
+				bot.Say("I don't see that repository listed in repositories.yaml")
+				return
 			}
 		}
-		key := args[2]
-		value := args[3]
-		env := make(map[string]string)
-		mem := paramPrefix + ns
-		tok, _, _ := checkoutDatum(mem, &env, true)
-		env[key] = value
-		ret := updateDatum(mem, tok, env)
+		name := args[2]
+		rawvalue := args[3]
+		var secrets brainParams
+		tok, _, ret := checkoutDatum(paramKey, &secrets, true)
+		if ret != Ok {
+			bot.Log(Error, fmt.Sprintf("Error checking out brainParams: %s", ret))
+			bot.Say("Ugh, I'm not able to store that memory right now, check with an administrator")
+			return
+		}
+		cryptBrain.RLock()
+		initialized := cryptBrain.initialized
+		key := cryptBrain.key
+		cryptBrain.RUnlock()
+		if !initialized {
+			bot.Say("My brain is encrypted but not initialized - please check with an administrator")
+			return
+		}
+		// Technically secrets are double-encypted; this is done so every active
+		// botContext doesn't carry all the unencrypted secrets in memory
+		value, err := encrypt([]byte(rawvalue), key)
+		if err != nil {
+			bot.Log(Error, fmt.Sprintf("Problem encrypting value for '%s' in namespace '%s': %v", name, nsname, err))
+			return
+		}
+		switch strings.ToLower(nstype) {
+		case "task":
+			if secrets.TaskParams == nil {
+				secrets.TaskParams = make(map[string]map[string][]byte)
+			}
+			_, exists := secrets.TaskParams[nsname]
+			if !exists {
+				secrets.TaskParams[nsname] = make(map[string][]byte)
+			}
+			secrets.TaskParams[nsname][name] = value
+		case "repository":
+			if secrets.RepositoryParams == nil {
+				secrets.RepositoryParams = make(map[string]map[string][]byte)
+			}
+			_, exists := secrets.RepositoryParams[nsname]
+			if !exists {
+				secrets.RepositoryParams[nsname] = make(map[string][]byte)
+			}
+			secrets.RepositoryParams[nsname][name] = value
+		}
+		ret = updateDatum(paramKey, tok, secrets)
 		if ret == Ok {
 			bot.Say("Stored")
 		} else {
-			bot.Say(fmt.Sprintf("Problem storing value: %s", ret))
+			bot.Log(Error, fmt.Sprintf("Problem storing parameter: %s", ret))
+			bot.Say("There was a problem storing that parameter, check with an administrator")
 		}
 	case "abort":
 		buf := make([]byte, 32768)

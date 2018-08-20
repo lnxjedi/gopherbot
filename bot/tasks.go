@@ -42,14 +42,6 @@ var currentTasks = struct {
 	sync.Mutex{},
 }
 
-// var currentTasks = &taskList{
-// 	nil,
-// 	nil,
-// 	nil,
-// 	nil,
-// 	sync.RWMutex{},
-// }
-
 func getTask(t interface{}) (*botTask, *botPlugin, *botJob) {
 	p, ok := t.(*botPlugin)
 	if ok {

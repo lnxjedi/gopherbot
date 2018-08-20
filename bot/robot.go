@@ -221,6 +221,15 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 			}
 		}
 	}
+	repository, _ := c.repositories[ext]
+	for _, param := range repository.Parameters {
+		name := param.Name
+		value := param.Value
+		_, exists := c.environment[name]
+		if !exists {
+			c.environment[name] = value
+		}
+	}
 	return true
 }
 

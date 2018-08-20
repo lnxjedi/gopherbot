@@ -50,10 +50,14 @@ type botconf struct {
 	LogLevel             string          // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
+type repository struct {
+	Parameters []parameter // per-repository parameters
+}
+
 // Protects the bot config and list of repositories
 var confLock sync.RWMutex
 var config *botconf
-var repositories map[string]struct{}
+var repositories map[string]repository
 
 // getConfigFile loads a config file first from installPath, then from configPath
 // if set.
@@ -140,12 +144,14 @@ func (r *botContext) loadConfig(preConnect bool) error {
 
 	reporaw := make(map[string]json.RawMessage)
 	r.getConfigFile("repositories.yaml", "", false, reporaw)
-	repolist := make(map[string]struct{})
-	for k, _ := range reporaw {
+	repolist := make(map[string]repository)
+	for k, repojson := range reporaw {
 		if strings.ContainsRune(k, ':') {
 			Log(Error, fmt.Sprintf("Invalid repository '%s' contains ':', ignoring", k))
 		} else {
-			repolist[k] = struct{}{}
+			var repository repository
+			json.Unmarshal(repojson, &repository)
+			repolist[k] = repository
 		}
 	}
 

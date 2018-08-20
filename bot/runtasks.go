@@ -410,35 +410,45 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	// this task only. No effect if already defined. Useful mainly for specific
 	// tasks to have secrets passed in but not handed to everything in the
 	// pipeline.
-	storedEnv := make(map[string]string)
-	spk := paramPrefix + task.NameSpace
-	if len(bot.nsExtension) > 0 {
-		spk += ":" + bot.nsExtension
-	}
-
-	// Look up stored parameters (mostly secrets) for namespace and extended
-	// namespace, and place in environment if not already there.
-	_, exists, _ := checkoutDatum(paramPrefix+task.NameSpace, &storedEnv, false)
-	if exists {
-		for key, value := range storedEnv {
-			// Dynamically provided and configured parameters take precedence over stored parameters
-			_, exists := envhash[key]
-			if !exists {
-				envhash[key] = value
-			}
+	if encryptBrain {
+		var taskEnv, repEnv map[string][]byte
+		var teExists, reExists bool
+		taskEnv, teExists = bot.storedEnv.TaskParams[task.NameSpace]
+		if len(bot.nsExtension) > 0 {
+			repEnv, reExists = bot.storedEnv.RepositoryParams[bot.nsExtension]
 		}
-	}
-	if len(bot.nsExtension) > 0 {
-		storedEnv := make(map[string]string)
-		key := paramPrefix + task.NameSpace + ":" + bot.nsExtension
-		_, exists, _ := checkoutDatum(key, &storedEnv, false)
-		Log(Debug, fmt.Sprintf("Checking for stored parameter '%s', found: %t", key, exists))
-		if exists {
-			for key, value := range storedEnv {
-				// Dynamically provided and configured parameters take precedence over stored parameters
-				_, exists := envhash[key]
-				if !exists {
-					envhash[key] = value
+		if teExists || reExists {
+			cryptBrain.RLock()
+			initialized := cryptBrain.initialized
+			key := cryptBrain.key
+			cryptBrain.RUnlock()
+			if initialized {
+				// Populate environment secrets, most specific (repository) first
+				if reExists {
+					for name, encvalue := range repEnv {
+						_, exists := envhash[name]
+						if !exists {
+							value, err := decrypt(encvalue, key)
+							if err != nil {
+								Log(Error, fmt.Sprintf("Error decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err))
+								break
+							}
+							envhash[name] = string(value)
+						}
+					}
+				}
+				if teExists {
+					for name, encvalue := range taskEnv {
+						_, exists := envhash[name]
+						if !exists {
+							value, err := decrypt(encvalue, key)
+							if err != nil {
+								Log(Error, fmt.Sprintf("Error decrypting '%s' for extended namespace '%s': %v", name, bot.nsExtension, err))
+								break
+							}
+							envhash[name] = string(value)
+						}
+					}
 				}
 			}
 		}
@@ -512,7 +522,6 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	envhash["GOPHER_CHANNEL"] = bot.Channel
 	envhash["GOPHER_USER"] = bot.User
 	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", bot.Protocol)
-	envhash["GOPHER_WORKSPACE"] = robot.workSpace
 	// Passed-through environment vars have the lowest priority
 	for _, p := range envPassThrough {
 		_, exists := envhash[p]
