@@ -35,11 +35,11 @@ if "keep_history" not in repoconf:
 else:
     keep_history = repoconf["keep_history"]
 
-if not bot.Exclusive(repository, false):
+if not bot.Exclusive(repository, False):
     bot.Log("Warn", "Build of '%s' already in progress, exiting" % repository)
     exit()
 
 bot.ExtendNamespace(repository, keep_history)
-bot.AddTask("git-init")
+bot.AddTask("git-init", [])
 bot.AddTask("git-sync", [ clone_url, branch, repository, "true" ])
 bot.AddTask("localexec", [ ".gopherci/pipeline.sh" ])
