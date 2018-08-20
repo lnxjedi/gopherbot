@@ -193,6 +193,11 @@ class Robot
         return $this.Call("SetParameter", $funcArgs).Boolean -As [bool]
     }
 
+    [Bool] Exclusive([String] $tag, [bool] $queue_task){
+        $funcArgs = [PSCustomObject]@{ Tag=$tag; QueueTask=$queue_task }
+        return $this.Call("Exclusive", $funcArgs).Boolean -As [bool]
+    }
+
     [Bool] ExtendNamespace([String] $ns, [Int] $hist){
         $funcArgs = [PSCustomObject]@{ Extend=$ns; Histories=$hist }
         return $this.Call("ExtendNamespace", $funcArgs).Boolean -As [bool]
