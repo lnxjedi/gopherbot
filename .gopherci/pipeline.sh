@@ -8,6 +8,11 @@ PATH=$HOME/go/bin:$PATH:/usr/local/go/bin
 # Add go binaries to PATH for the rest of the pipeline
 SetParameter PATH "$PATH"
 
+if [-n "$NOTIFY_USER"]
+then
+    FailTask notify $NOTIFY_USER "Gopherbot build failed"
+fi
+
 # Get dependencies
 AddTask localexec go get -v -t -d ./...
 
@@ -25,3 +30,9 @@ AddTask localexec ./mkdist.sh
 
 # Publish archives to github
 AddTask localexec ./.gopherci/publish.sh
+
+# Notify of success
+if [ -n "$NOTIFY_USER" ]
+then
+    AddTask notify $NOTIFY_USER "Successfully built and released latest Gopherbot"
+fi
