@@ -4,10 +4,6 @@
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
-PATH=$HOME/go/bin:$PATH:/usr/local/go/bin
-# Add go binaries to PATH for the rest of the pipeline
-SetParameter PATH "$PATH"
-
 if [ -n "$NOTIFY_USER" ]
 then
     FailTask notify $NOTIFY_USER "Gopherbot build failed"
