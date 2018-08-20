@@ -110,7 +110,7 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 			if len(matches[0][2]) > 0 { // arguments supplied with `run job foo bar baz`, check match to arguments
 				args = strings.Split(matches[0][2], " ")
 				if len(args) != len(job.Arguments) {
-					r.Say(fmt.Sprintf("Wrong number or arguments for job '%s', %d configured", jobName, len(job.Arguments)))
+					r.Say(fmt.Sprintf("Wrong number of arguments for job '%s', %d configured but %d given", jobName, len(job.Arguments), len(args)))
 					return
 				}
 				for i, arg := range args {
