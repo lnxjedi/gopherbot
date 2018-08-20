@@ -148,6 +148,7 @@ type botContext struct {
 	stage          pipeStage  // which pipeline is being run; primaryP, finalP, failP
 	jobInitialized bool       // whether a job has started
 	jobName        string     // name of the running job
+	jobChannel     string     // channel where job updates are posted
 	nsExtension    string     // extended namespace
 	runIndex       int        // run number of a job
 	verbose        bool       // flag if initializing job was verbose

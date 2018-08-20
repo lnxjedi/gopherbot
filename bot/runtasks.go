@@ -52,6 +52,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	if isJob {
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
 		c.jobName = task.name // Exclusive always uses the jobName, regardless of the task that calls it
+		c.jobChannel = task.Channel
 		c.history = robot.history
 		c.workingDirectory = robot.workSpace
 		var jh jobHistory
@@ -107,8 +108,8 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		}
 		if !job.Quiet {
 			r := c.makeRobot()
-			iChannel := r.Channel
-			r.Channel = job.Channel
+			iChannel := c.Channel    // channel where job was triggered / run
+			r.Channel = c.jobChannel // channel where job updates are posted
 			switch ptype {
 			case jobTrigger:
 				c.Channel = job.Channel // send bot output of triggered jobs to job channel

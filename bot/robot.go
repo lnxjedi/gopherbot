@@ -210,6 +210,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 					c.logger.Section("new log", fmt.Sprintf("Extended log created by job '%s'", c.jobName))
 					r.Log(Debug, fmt.Sprintf("Started new history for job '%s' with namespace '%s'", c.jobName, ext))
 					if c.verbose {
+						r.Channel = c.jobChannel
 						r.Say(fmt.Sprintf("Job '%s' extended namespace: %s:%s, run %d", c.jobName, c.jobName, ext, c.runIndex))
 					}
 				}
