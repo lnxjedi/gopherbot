@@ -19,22 +19,30 @@ branch = sys.argv.pop(0)
 
 repofile = open("%s/conf/repositories.yaml" % os.getenv("GOPHER_CONFIGDIR"))
 yamldata = repofile.read()
-
 repodata = load(yamldata)
 
-if repository in repodata:
-    repoconf = repodata[repository]
+spawned = False
+
+def spawn(reponame, repoconf, spawntype):
     if "type" in repoconf:
         repotype = repoconf["type"]
+        if repotype == "none":
+            bot.Log("Debug", "Ignoring update on %s repository '%s', type is 'none'" % (spawntype, repository))
+        else:
+            bot.Log("Debug", "gopherci spawning build for %s repository '%s', type '%s'" % (spawntype, repository, repotype))
+            bot.SpawnTask(repotype, [ reponame, branch ])
+            spawned = True
     else:
-        bot.Say("No 'type' specified for %s" % repository)
-        exit()
-else:
-    bot.Log("Debug", "Ignoring update on '%s', not listed in repositories.yaml" % repository)
-    exit()
+        bot.Say("No 'type' specified for %s repository '%s'" % (spawntype, repository))
 
-if repotype == "none":
-    bot.Log("Debug", "Ignoring update on '%s', repository type is 'none'" % repository)
-    exit()
+if repository in repodata:
+    spawn(repository, repodata[repository], "listed")
 
-bot.SpawnTask(repotype, [ repository, branch ])
+for reponame in repodata.keys():
+    if "dependencies" in repodata[reponame]:
+        if repository in repodata[reponame]["dependencies"]:
+            spawned = True
+            spawn(reponame, repodata[reponame], "dependency")
+
+if not spawned:
+    bot.Log("Debug", "Ignoring update on '%s', not a listed repository or dependency" % repository)
