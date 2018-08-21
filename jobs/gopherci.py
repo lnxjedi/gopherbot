@@ -16,6 +16,11 @@ sys.argv.pop(0)
 
 repository = sys.argv.pop(0)
 branch = sys.argv.pop(0)
+if branch.endswith("/"): # illegal end char; assume args swapped
+    repository, branch = branch, repository
+
+if repository.endswith("/"):
+    repository = repository.rstrip("/")
 
 repofile = open("%s/conf/repositories.yaml" % os.getenv("GOPHER_CONFIGDIR"))
 yamldata = repofile.read()
