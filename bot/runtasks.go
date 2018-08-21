@@ -174,7 +174,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			if ret == PipelineAborted {
 				r.Say(fmt.Sprintf("Job '%s', run number %d aborted, job '%s' already in progress", jobName, c.runIndex, c.exclusiveTag))
 			} else {
-				r.Say(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'%s", jobName, c.runIndex, c.failedTaskName, td))
+				r.Say(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'%s, exit code: %s", jobName, c.runIndex, c.failedTaskName, td, ret))
 			}
 		}
 	}
