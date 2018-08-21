@@ -230,6 +230,30 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 			c.environment[name] = value
 		}
 	}
+	// Populate the environment with secrets for this repository. Task secrets
+	// are populated in runtasks.go/callTask
+	if encryptBrain {
+		repEnv, exists := c.storedEnv.RepositoryParams[ext]
+		if exists {
+			cryptBrain.RLock()
+			initialized := cryptBrain.initialized
+			key := cryptBrain.key
+			cryptBrain.RUnlock()
+			if initialized {
+				for name, encvalue := range repEnv {
+					_, exists := c.environment[name]
+					if !exists {
+						value, err := decrypt(encvalue, key)
+						if err != nil {
+							Log(Error, fmt.Sprintf("Error decrypting '%s' for repository '%s': %v", name, ext, err))
+							break
+						}
+						c.environment[name] = string(value)
+					}
+				}
+			}
+		}
+	}
 	return true
 }
 

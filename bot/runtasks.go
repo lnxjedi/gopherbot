@@ -408,45 +408,24 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	// Pull stored and configured env vars specific to this task and supply to
 	// this task only. No effect if already defined. Useful mainly for specific
 	// tasks to have secrets passed in but not handed to everything in the
-	// pipeline.
+	// pipeline. Repository secrets are populated in robot.go/ExtendNamespace
 	if encryptBrain {
-		var taskEnv, repEnv map[string][]byte
-		var teExists, reExists bool
-		taskEnv, teExists = bot.storedEnv.TaskParams[task.NameSpace]
-		if len(bot.nsExtension) > 0 {
-			repEnv, reExists = bot.storedEnv.RepositoryParams[bot.nsExtension]
-		}
-		if teExists || reExists {
+		taskEnv, teExists := bot.storedEnv.TaskParams[task.NameSpace]
+		if teExists {
 			cryptBrain.RLock()
 			initialized := cryptBrain.initialized
 			key := cryptBrain.key
 			cryptBrain.RUnlock()
 			if initialized {
-				// Populate environment secrets, most specific (repository) first
-				if reExists {
-					for name, encvalue := range repEnv {
-						_, exists := envhash[name]
-						if !exists {
-							value, err := decrypt(encvalue, key)
-							if err != nil {
-								Log(Error, fmt.Sprintf("Error decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err))
-								break
-							}
-							envhash[name] = string(value)
+				for name, encvalue := range taskEnv {
+					_, exists := envhash[name]
+					if !exists {
+						value, err := decrypt(encvalue, key)
+						if err != nil {
+							Log(Error, fmt.Sprintf("Error decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err))
+							break
 						}
-					}
-				}
-				if teExists {
-					for name, encvalue := range taskEnv {
-						_, exists := envhash[name]
-						if !exists {
-							value, err := decrypt(encvalue, key)
-							if err != nil {
-								Log(Error, fmt.Sprintf("Error decrypting '%s' for extended namespace '%s': %v", name, bot.nsExtension, err))
-								break
-							}
-							envhash[name] = string(value)
-						}
+						envhash[name] = string(value)
 					}
 				}
 			}
