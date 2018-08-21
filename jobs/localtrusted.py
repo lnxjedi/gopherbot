@@ -3,6 +3,7 @@
 # localtrusted.py - Clone a repository locally and run .gopherci/pipeline.sh
 
 import os
+import re
 import sys
 sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
 from gopherbot_v1 import Robot
@@ -41,5 +42,8 @@ if not bot.Exclusive(repository, False):
 
 bot.ExtendNamespace(repository, keep_history)
 bot.AddTask("git-init", [])
+match = re.match(r".*@(.*):.*", clone_url)
+if match:
+    bot.AddTask("ssh-scan", [ match.group(1) ])
 bot.AddTask("git-sync", [ clone_url, branch, repository, "true" ])
 bot.AddTask("localexec", [ ".gopherci/pipeline.sh" ])
