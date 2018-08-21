@@ -171,7 +171,11 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			if len(c.nsExtension) > 0 {
 				jobName += ":" + c.nsExtension
 			}
-			r.Say(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'%s", jobName, c.runIndex, c.failedTaskName, td))
+			if ret == PipelineAborted {
+				r.Say(fmt.Sprintf("Job '%s', run number %d aborted, job '%s' already in progress", jobName, c.runIndex, c.exclusiveTag))
+			} else {
+				r.Say(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'%s", jobName, c.runIndex, c.failedTaskName, td))
+			}
 		}
 	}
 	if c.exclusive {
@@ -301,6 +305,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 		if !c.exclusive {
 			if c.abortPipeline {
 				ret = PipelineAborted
+				errString = "Pipeline aborted, exclusive lock failed"
 				break
 			}
 			if c.queueTask {
