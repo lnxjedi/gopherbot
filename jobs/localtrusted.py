@@ -41,9 +41,9 @@ if not bot.Exclusive(repository, False):
     exit()
 
 bot.ExtendNamespace(repository, keep_history)
-bot.AddTask("git-init", [])
 match = re.match(r".*@(.*):.*", clone_url)
 if match:
+    bot.AddTask("ssh-init", [])
     bot.AddTask("ssh-scan", [ match.group(1) ])
 bot.AddTask("git-sync", [ clone_url, branch, repository, "true" ])
 bot.AddTask("localexec", [ ".gopherci/pipeline.sh" ])
