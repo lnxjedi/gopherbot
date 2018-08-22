@@ -98,10 +98,13 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 			return
 		}
 		t := bot.jobAvailable(jobName, false)
-		if !bot.jobSecurityCheck(t, "run") {
-			return
-		}
 		if t != nil {
+			bot.currentTask = t
+			bot.registerActive(nil)
+			if !bot.jobSecurityCheck(t, "run") {
+				bot.deregister()
+				return
+			}
 			var args []string
 			task, _, job := getTask(t)
 			// remember which job we're talking about
@@ -114,11 +117,13 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 				args = strings.Split(matches[0][2], " ")
 				if len(args) != len(job.Arguments) {
 					r.Say(fmt.Sprintf("Wrong number of arguments for job '%s', %d configured but %d given", jobName, len(job.Arguments), len(args)))
+					bot.deregister()
 					return
 				}
 				for i, arg := range args {
 					if !job.Arguments[i].re.MatchString(arg) {
 						r.Say(fmt.Sprintf("'%s' doesn't match the pattern for argument '%s'", arg, job.Arguments[i].Label))
+						bot.deregister()
 						return
 					}
 				}
@@ -128,7 +133,6 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 					bot.currentTask = t
 					bot.pipeName = task.name
 					bot.pipeDesc = task.Description
-					bot.registerActive(nil)
 					r = bot.makeRobot()
 					for i, argspec := range job.Arguments {
 						var t int
