@@ -98,6 +98,9 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 			return
 		}
 		t := bot.jobAvailable(jobName, false)
+		if !bot.jobSecurityCheck(t) {
+			return
+		}
 		if t != nil {
 			var args []string
 			task, _, job := getTask(t)

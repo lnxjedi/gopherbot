@@ -236,6 +236,7 @@ func (c *botContext) jobSecurityCheck(t interface{}) bool {
 	if c.automaticTask {
 		return true
 	}
+	ct := c.currentTask
 	task, _, _ := getTask(t)
 	if task.RequireAdmin {
 		r := c.makeRobot()
@@ -256,6 +257,8 @@ func (c *botContext) jobSecurityCheck(t interface{}) bool {
 			c.elevated = true
 		}
 	}
+	// Restore currentTask, potentially modified by checkAuthorization/checkElevation
+	c.currentTask = ct
 	return true
 }
 
