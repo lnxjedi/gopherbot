@@ -113,7 +113,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	if t == nil {
 		return
 	}
-	if !c.jobSecurityCheck(t) {
+	if !c.jobSecurityCheck(t, command) {
 		return
 	}
 	vr := r.MessageFormat(Variable)
@@ -232,7 +232,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 // jobSecurityCheck performs all security checks - RequireAdmin, Authorization
 // and Elevation - and returns true if passed. It will message the user and
 // return false if a check fails.
-func (c *botContext) jobSecurityCheck(t interface{}) bool {
+func (c *botContext) jobSecurityCheck(t interface{}, command string) bool {
 	if c.automaticTask {
 		return true
 	}
@@ -245,11 +245,11 @@ func (c *botContext) jobSecurityCheck(t interface{}) bool {
 			return false
 		}
 	}
-	if c.checkAuthorization(t, "run") != Success {
+	if c.checkAuthorization(t, command) != Success {
 		return false
 	}
 	if !c.elevated {
-		eret, required := c.checkElevation(t, "")
+		eret, required := c.checkElevation(t, command)
 		if eret != Success {
 			return false
 		}

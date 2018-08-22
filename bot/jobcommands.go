@@ -98,7 +98,7 @@ func (bot *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 			return
 		}
 		t := bot.jobAvailable(jobName, false)
-		if !bot.jobSecurityCheck(t) {
+		if !bot.jobSecurityCheck(t, "run") {
 			return
 		}
 		if t != nil {
