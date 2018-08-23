@@ -63,7 +63,7 @@ var repositories map[string]repository
 // if set.
 
 // Required indicates whether to return an error if neither file is found.
-func (r *botContext) getConfigFile(filename, callerID string, required bool, jsonMap map[string]json.RawMessage) error {
+func (c *botContext) getConfigFile(filename, callerID string, required bool, jsonMap map[string]json.RawMessage) error {
 	var (
 		cf           []byte
 		err, realerr error
@@ -77,7 +77,7 @@ func (r *botContext) getConfigFile(filename, callerID string, required bool, jso
 	path = installPath + "/conf/" + filename
 	cf, err = ioutil.ReadFile(path)
 	if err == nil {
-		r.debug(fmt.Sprintf("Loaded configuration from installPath (%s), size: %d", path, len(cf)), false)
+		c.debug(fmt.Sprintf("Loaded configuration from installPath (%s), size: %d", path, len(cf)), false)
 		if err = yaml.Unmarshal(cf, &loader); err != nil {
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
 			Log(Error, err)
@@ -85,7 +85,7 @@ func (r *botContext) getConfigFile(filename, callerID string, required bool, jso
 		}
 		if len(loader) == 0 {
 			msg := fmt.Sprintf("Empty config hash loading %s", path)
-			r.debug(msg, false)
+			c.debug(msg, false)
 			Log(Error, msg)
 		} else {
 			for key, value := range loader {
@@ -95,7 +95,7 @@ func (r *botContext) getConfigFile(filename, callerID string, required bool, jso
 			loaded = true
 		}
 	} else {
-		r.debug(fmt.Sprintf("No configuration loaded from installPath (%s): %v", path, err), false)
+		c.debug(fmt.Sprintf("No configuration loaded from installPath (%s): %v", path, err), false)
 		realerr = err
 	}
 	if len(configPath) > 0 {
@@ -103,7 +103,7 @@ func (r *botContext) getConfigFile(filename, callerID string, required bool, jso
 		path = configPath + "/conf/" + filename
 		cf, err = ioutil.ReadFile(path)
 		if err == nil {
-			r.debug(fmt.Sprintf("Loaded configuration from configPath (%s), size: %d", path, len(cf)), false)
+			c.debug(fmt.Sprintf("Loaded configuration from configPath (%s), size: %d", path, len(cf)), false)
 			if err = yaml.Unmarshal(cf, &loader); err != nil {
 				err = fmt.Errorf("Unmarshalling configured \"%s\": %v", filename, err)
 				Log(Error, err)
@@ -111,7 +111,7 @@ func (r *botContext) getConfigFile(filename, callerID string, required bool, jso
 			}
 			if len(loader) == 0 {
 				msg := fmt.Sprintf("Empty config hash loading %s", path)
-				r.debug(msg, false)
+				c.debug(msg, false)
 				Log(Error, msg)
 			} else {
 				for key, value := range loader {
@@ -121,7 +121,7 @@ func (r *botContext) getConfigFile(filename, callerID string, required bool, jso
 				loaded = true
 			}
 		} else {
-			r.debug(fmt.Sprintf("No configuration loaded from configPath (%s): %v", path, err), false)
+			c.debug(fmt.Sprintf("No configuration loaded from configPath (%s): %v", path, err), false)
 			realerr = err
 		}
 	}
@@ -132,18 +132,18 @@ func (r *botContext) getConfigFile(filename, callerID string, required bool, jso
 }
 
 // loadConfig loads the 'bot's json configuration files.
-func (r *botContext) loadConfig(preConnect bool) error {
+func (c *botContext) loadConfig(preConnect bool) error {
 	var loglevel LogLevel
 	newconfig := &botconf{}
 	configload := make(map[string]json.RawMessage)
 	tasksOk := true
 
-	if err := r.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
+	if err := c.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
 	}
 
 	reporaw := make(map[string]json.RawMessage)
-	r.getConfigFile("repositories.yaml", "", false, reporaw)
+	c.getConfigFile("repositories.yaml", "", false, reporaw)
 	repolist := make(map[string]repository)
 	for k, repojson := range reporaw {
 		if strings.ContainsRune(k, ':') {
@@ -264,7 +264,7 @@ func (r *botContext) loadConfig(preConnect bool) error {
 	loglevel = logStrToLevel(newconfig.LogLevel)
 	setLogLevel(loglevel)
 
-	bot := r.makeRobot()
+	r := c.makeRobot()
 	if !preConnect {
 		robot.Lock()
 	}
@@ -280,7 +280,7 @@ func (r *botContext) loadConfig(preConnect bool) error {
 	if len(newconfig.DefaultMessageFormat) == 0 {
 		robot.defaultMessageFormat = Raw
 	} else {
-		robot.defaultMessageFormat = bot.setFormat(newconfig.DefaultMessageFormat)
+		robot.defaultMessageFormat = r.setFormat(newconfig.DefaultMessageFormat)
 	}
 
 	if explicitDefaultAllowDirect {
@@ -444,7 +444,7 @@ func (r *botContext) loadConfig(preConnect bool) error {
 	confLock.Unlock()
 
 	if tasksOk && !preConnect {
-		r.loadTaskConfig()
+		c.loadTaskConfig()
 	} else if !tasksOk {
 		return fmt.Errorf("Error reading external plugin config")
 	}
