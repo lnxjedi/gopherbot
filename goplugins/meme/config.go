@@ -10,12 +10,16 @@ Help:
   Helptext: [ "(bot), picard omg <something>(/<something>) - Picard facepalm" ]
 - Keywords: [ "meme", "picard", "wth", "wtf" ]
   Helptext: [ "(bot), picard wth <something>(/<something>) - Picard WTH" ]
+- Keywords: [ "meme", "farnsworth", "news" ]
+  Helptext:
+  - "(bot), Good news everyone (<something>) - let Professor Farnsworth deliver the good news"
+  - "(bot), farnsworth <something>/<something> - Professor Farnsworth expounds"
 - Keywords: [ "meme", "roy", "phone" ]
   Helptext: [ "(bot), roy phone <something>(/<something>) - Roy provides phone support" ]
 - Keywords: [ "meme", "gosh" ]
   Helptext: [ "(bot), <something>, gosh! - Let Napoleon Dynamite express your indignation" ]
 - Keywords: [ "meme", "best", "worst" ]
-  Helptext: [ "(bot), this is pretty much the best/worst <something> ever <something> - Napoleon expresses his opinion" ]
+  Helptext: [ "(bot), this is pretty much the best/worst <something> - Napoleon expresses his opinion" ]
 - Keywords: [ "meme", "skill", "skills" ]
   Helptext: [ "(bot), <something> skill(s) with <something> - Hear about Napoleon's incredible skills" ]
 - Keywords: [ "meme", "simply" ]
@@ -38,24 +42,28 @@ CommandMatchers:
   Regex: '(?i:picard wt[hf] ([^/]+)(?:/([^/]+))?)'
 - Command: "29106534"
   Regex: '(?i:roy phone ([^/]+)(?:/([^/]+))?)'
+- Command: "7163250"
+  Regex: '(?i:((?:good|great) news,? (?:everyone|everybody)),? (.+))'
+- Command: "7163250"
+  Regex: '(?i:farnsworth ([^/]+)(?:/([^/]+))?)'
 - Command: "18304105"
-  Regex: '(?i:([\w’'' ]+,) (gosh!))'
+  Regex: '(?i:(.+,?) (gosh!?))'
 - Command: "8070362"
-  Regex: '(?i:([\w''’ ]+ pretty much the) ((?:best|worst) [\w''’]+ ever [\w''’!]+))'
+  Regex: '(?i:(.+ pretty much the) ((?:best|worst) .+))'
 - Command: "20509936"
-  Regex: '(?i:([\w''’ ]+ skills?) ((with|in) [\w''’! ]+))'
+  Regex: '(?i:(.+ skills?) ((?:with|in) .+))'
 - Command: "61579"
-  Regex: '(?i:(one does not simply) ([\w!\n''’ ]+))'
+  Regex: '(?i:(one does not simply) (.+))'
 - Command: "47779539"
-  Regex: '(?i:(you [\w!''’ ]+,?) (prepare to die!?))'
+  Regex: '(?i:(you .+) (prepare to die!?))'
 - Command: "61546"
-  Regex: '(?i:(brace yourselves,?) ([\w''’ !]+))'
+  Regex: '(?i:(brace yourselves,?) (.+))'
 - Command: "61527"
-  Regex: '(?i:(y u no) ([\w''’ !?]+))'
+  Regex: '(?i:(y u no) (.+))'
 - Command: "33301480"
   Regex: '(?i:(what if I told you) (.+))'
 - Command: "33301480"
-  Regex: '(?i:morpheus ([^/]+)(?:/([^/]+))?)'  
+  Regex: '(?i:morpheus ([^/]+)(?:/([^/]+))?)'
 # Custom configuration for memes - you need to supply a username and password,
 # and a map of commands to meme ID #.
 Config:
