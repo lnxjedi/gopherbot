@@ -155,17 +155,17 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 		if task.name == "builtInadmin" && matcher.Command == "abort" {
 			abort = true
 		}
-		robot.RLock()
-		if robot.shuttingDown && !abort {
+		botCfg.RLock()
+		if botCfg.shuttingDown && !abort {
 			r.Say("Sorry, I'm shutting down and can't start any new tasks")
-			robot.RUnlock()
+			botCfg.RUnlock()
 			return
-		} else if robot.paused && !abort {
+		} else if botCfg.paused && !abort {
 			r.Say("Sorry, I've been paused and can't start any new tasks")
-			robot.RUnlock()
+			botCfg.RUnlock()
 			return
 		}
-		robot.RUnlock()
+		botCfg.RUnlock()
 		// Check to see if user issued a new command when a reply was being
 		// waited on
 		replyMatcher := replyMatcher{bot.User, bot.Channel}
@@ -266,9 +266,9 @@ func (bot *botContext) handleMessage() {
 		messageMatched = bot.checkJobMatchersAndRun()
 	}
 	if bot.isCommand && !messageMatched { // the robot was spoken to, but nothing matched - call catchAlls
-		robot.RLock()
-		if !robot.shuttingDown {
-			robot.RUnlock()
+		botCfg.RLock()
+		if !botCfg.shuttingDown {
+			botCfg.RUnlock()
 			r.messageHeard()
 			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", bot.msg))
 			emit(CatchAllsRan) // for testing, otherwise noop
@@ -288,7 +288,7 @@ func (bot *botContext) handleMessage() {
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins
-			robot.RUnlock()
+			botCfg.RUnlock()
 		}
 	}
 	if messageMatched || bot.isCommand {

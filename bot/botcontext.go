@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-/* robot.go - internal methods on the Robot object */
+/* botcontext.go - internal methods on botContexts */
 
 // Global robot run number (incrementing int)
 var botRunID = struct {
@@ -51,11 +51,11 @@ func getBotContextInt(idx int) *botContext {
 // Assign a bot run number and register it in the global hash of running
 // robots. Should be called before running plugins
 func (c *botContext) registerActive(parent *botContext) {
-	robot.RLock()
-	c.Protocol = setProtocol(robot.protocol)
-	c.Format = robot.defaultMessageFormat
-	c.environment["GOPHER_HTTP_POST"] = "http://" + robot.port
-	robot.RUnlock()
+	botCfg.RLock()
+	c.Protocol = setProtocol(botCfg.protocol)
+	c.Format = botCfg.defaultMessageFormat
+	c.environment["GOPHER_HTTP_POST"] = "http://" + botCfg.port
+	botCfg.RUnlock()
 	if encryptBrain {
 		checkoutDatum(paramKey, &c.storedEnv, false)
 		if c.storedEnv.TaskParams == nil {
@@ -73,7 +73,7 @@ func (c *botContext) registerActive(parent *botContext) {
 	} else {
 		c.environment["GOPHER_CONFIGDIR"] = installPath
 	}
-	c.environment["GOPHER_WORKSPACE"] = robot.workSpace
+	c.environment["GOPHER_WORKSPACE"] = botCfg.workSpace
 	botRunID.Lock()
 	botRunID.idx++
 	if botRunID.idx == 0 {
@@ -128,7 +128,7 @@ func (c *botContext) clone() *botContext {
 		Protocol:         c.Protocol,
 		Format:           c.Format,
 		msg:              c.msg,
-		workingDirectory: robot.workSpace,
+		workingDirectory: botCfg.workSpace,
 		environment:      make(map[string]string),
 	}
 }

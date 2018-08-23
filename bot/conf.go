@@ -266,70 +266,70 @@ func (c *botContext) loadConfig(preConnect bool) error {
 
 	r := c.makeRobot()
 	if !preConnect {
-		robot.Lock()
+		botCfg.Lock()
 	}
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		if !strings.ContainsRune(string(aliases+escapeAliases), alias) {
-			robot.Unlock()
+			botCfg.Unlock()
 			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escapeAliases, aliases)
 		}
-		robot.alias = alias
+		botCfg.alias = alias
 	}
 
 	if len(newconfig.DefaultMessageFormat) == 0 {
-		robot.defaultMessageFormat = Raw
+		botCfg.defaultMessageFormat = Raw
 	} else {
-		robot.defaultMessageFormat = r.setFormat(newconfig.DefaultMessageFormat)
+		botCfg.defaultMessageFormat = r.setFormat(newconfig.DefaultMessageFormat)
 	}
 
 	if explicitDefaultAllowDirect {
-		robot.defaultAllowDirect = newconfig.DefaultAllowDirect
+		botCfg.defaultAllowDirect = newconfig.DefaultAllowDirect
 	} else {
-		robot.defaultAllowDirect = true // rare case of defaulting to true
+		botCfg.defaultAllowDirect = true // rare case of defaulting to true
 	}
 
 	if newconfig.AdminContact != "" {
-		robot.adminContact = newconfig.AdminContact
+		botCfg.adminContact = newconfig.AdminContact
 	}
 
 	if newconfig.TimeZone != "" {
 		tz, err := time.LoadLocation(newconfig.TimeZone)
 		if err == nil {
 			Log(Info, fmt.Sprintf("Set timezone: %s", tz))
-			robot.timeZone = tz
+			botCfg.timeZone = tz
 		} else {
 			Log(Error, fmt.Errorf("Parsing time zone '%s', using local time; error: %v", newconfig.TimeZone, err))
-			robot.timeZone = nil
+			botCfg.timeZone = nil
 		}
 	}
 
 	if newconfig.Email != "" {
-		robot.email = newconfig.Email
+		botCfg.email = newconfig.Email
 	}
-	robot.mailConf = newconfig.MailConfig
+	botCfg.mailConf = newconfig.MailConfig
 
 	if newconfig.Name != "" {
-		robot.name = newconfig.Name
+		botCfg.name = newconfig.Name
 	}
 
 	if newconfig.DefaultJobChannel != "" {
-		robot.defaultJobChannel = newconfig.DefaultJobChannel
+		botCfg.defaultJobChannel = newconfig.DefaultJobChannel
 	}
 
 	if newconfig.DefaultElevator != "" {
-		robot.defaultElevator = newconfig.DefaultElevator
+		botCfg.defaultElevator = newconfig.DefaultElevator
 	}
 
 	if newconfig.DefaultAuthorizer != "" {
-		robot.defaultAuthorizer = newconfig.DefaultAuthorizer
+		botCfg.defaultAuthorizer = newconfig.DefaultAuthorizer
 	}
 
 	if newconfig.AdminUsers != nil {
-		robot.adminUsers = newconfig.AdminUsers
+		botCfg.adminUsers = newconfig.AdminUsers
 	}
 	if newconfig.DefaultChannels != nil {
-		robot.plugChannels = newconfig.DefaultChannels
+		botCfg.plugChannels = newconfig.DefaultChannels
 	}
 	if newconfig.ExternalPlugins != nil {
 		for i, ep := range newconfig.ExternalPlugins {
@@ -339,7 +339,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			}
 		}
 		if tasksOk {
-			robot.externalPlugins = newconfig.ExternalPlugins
+			botCfg.externalPlugins = newconfig.ExternalPlugins
 		}
 	}
 	if newconfig.ExternalJobs != nil {
@@ -350,7 +350,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			}
 		}
 		if tasksOk {
-			robot.externalJobs = newconfig.ExternalJobs
+			botCfg.externalJobs = newconfig.ExternalJobs
 		}
 	}
 	if newconfig.ExternalTasks != nil {
@@ -361,7 +361,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			}
 		}
 		if tasksOk {
-			robot.externalTasks = newconfig.ExternalTasks
+			botCfg.externalTasks = newconfig.ExternalTasks
 		}
 	}
 	st := make([]scheduledTask, 0, len(newconfig.ScheduledTasks))
@@ -372,18 +372,18 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			st = append(st, s)
 		}
 	}
-	robot.scheduledTasks = st
+	botCfg.scheduledTasks = st
 	if newconfig.IgnoreUsers != nil {
-		robot.ignoreUsers = newconfig.IgnoreUsers
+		botCfg.ignoreUsers = newconfig.IgnoreUsers
 	}
 	if newconfig.JoinChannels != nil {
-		robot.joinChannels = newconfig.JoinChannels
+		botCfg.joinChannels = newconfig.JoinChannels
 	}
 
 	// Items only read at start-up, before multi-threaded
 	if preConnect {
 		if newconfig.Protocol != "" {
-			robot.protocol = newconfig.Protocol
+			botCfg.protocol = newconfig.Protocol
 		} else {
 			return fmt.Errorf("Protocol not specified in gopherbot.yaml")
 		}
@@ -399,34 +399,34 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		}
 		if newconfig.WorkSpace != "" {
 			if dirExists(newconfig.WorkSpace) {
-				robot.workSpace = newconfig.WorkSpace
+				botCfg.workSpace = newconfig.WorkSpace
 			} else {
 				Log(Error, fmt.Sprintf("WorkSpace directory '%s' doesn't exist, using '%s'", newconfig.WorkSpace, p))
 			}
 		}
-		if len(robot.workSpace) == 0 {
-			robot.workSpace = p
+		if len(botCfg.workSpace) == 0 {
+			botCfg.workSpace = p
 		}
 
 		if newconfig.EncryptBrain {
 			encryptBrain = true
 		}
 		if newconfig.BrainKey != "" {
-			robot.brainKey = newconfig.BrainKey
+			botCfg.brainKey = newconfig.BrainKey
 		}
 		if newconfig.Brain != "" {
-			robot.brainProvider = newconfig.Brain
+			botCfg.brainProvider = newconfig.Brain
 		}
 		if newconfig.BrainConfig != nil {
 			brainConfig = newconfig.BrainConfig
 		}
 		if newconfig.LocalPort != 0 {
-			robot.port = fmt.Sprintf("127.0.0.1:%d", newconfig.LocalPort)
+			botCfg.port = fmt.Sprintf("127.0.0.1:%d", newconfig.LocalPort)
 		} else {
 			Log(Error, "LocalPort not defined, not exporting GOPHER_HTTP_POST and external tasks will be broken")
 		}
 		if newconfig.HistoryProvider != "" {
-			robot.historyProvider = newconfig.HistoryProvider
+			botCfg.historyProvider = newconfig.HistoryProvider
 		}
 		if newconfig.HistoryConfig != nil {
 			historyConfig = newconfig.HistoryConfig
@@ -435,7 +435,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		// We should never dump the brain key
 		newconfig.BrainKey = "XXXXXX"
 		// loadTaskConfig does it's own locking
-		robot.Unlock()
+		botCfg.Unlock()
 	}
 
 	confLock.Lock()

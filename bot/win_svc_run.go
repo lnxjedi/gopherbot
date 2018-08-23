@@ -37,30 +37,30 @@ loop:
 				changes <- c.CurrentStatus
 			case svc.Stop, svc.Shutdown:
 				Log(Info, "Shutting down on Windows service stop / shutdown")
-				robot.Lock()
-				if robot.shuttingDown {
-					robot.Unlock()
+				botCfg.Lock()
+				if botCfg.shuttingDown {
+					botCfg.Unlock()
 					eventLog.Warning(1, "Received Windows service stop / shutdown while shutdown in progress")
 				} else {
-					robot.shuttingDown = true
-					if robot.pluginsRunning > 0 {
-						runningCount := robot.pluginsRunning
-						robot.Unlock()
+					botCfg.shuttingDown = true
+					if botCfg.pluginsRunning > 0 {
+						runningCount := botCfg.pluginsRunning
+						botCfg.Unlock()
 						eventLog.Warning(1, fmt.Sprintf("Stop/shutdown requested with %d plugins running; waiting for all plugins to finish", runningCount))
 					} else {
-						robot.Unlock()
+						botCfg.Unlock()
 					}
 					stop()
 				}
 			case svc.Pause:
-				robot.Lock()
-				robot.paused = true
-				robot.Unlock()
+				botCfg.Lock()
+				botCfg.paused = true
+				botCfg.Unlock()
 				changes <- svc.Status{State: svc.Paused, Accepts: cmdsAccepted}
 			case svc.Continue:
-				robot.Lock()
-				robot.paused = false
-				robot.Unlock()
+				botCfg.Lock()
+				botCfg.paused = false
+				botCfg.Unlock()
 				changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
 			default:
 				eventLog.Error(1, fmt.Sprintf("unexpected control request #%d", c))

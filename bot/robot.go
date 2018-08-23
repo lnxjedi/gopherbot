@@ -60,9 +60,9 @@ func (r *Robot) CheckAdmin() bool {
 	if c.automaticTask {
 		return true
 	}
-	robot.RLock()
-	defer robot.RUnlock()
-	for _, adminUser := range robot.adminUsers {
+	botCfg.RLock()
+	defer botCfg.RUnlock()
+	for _, adminUser := range botCfg.adminUsers {
 		if r.User == adminUser {
 			emit(AdminCheckPassed)
 			return true
@@ -91,7 +91,7 @@ func (r *Robot) SetWorkingDirectory(path string) bool {
 	if filepath.IsAbs(path) {
 		newPath = path
 	} else {
-		newPath = filepath.Join(robot.workSpace, path)
+		newPath = filepath.Join(botCfg.workSpace, path)
 	}
 	ok := dirExists(newPath)
 	if ok {
@@ -497,21 +497,21 @@ func (r *Robot) RandomInt(n int) int {
 // name, alias, fullName, contact
 func (r *Robot) GetBotAttribute(a string) *AttrRet {
 	a = strings.ToLower(a)
-	robot.RLock()
-	defer robot.RUnlock()
+	botCfg.RLock()
+	defer botCfg.RUnlock()
 	ret := Ok
 	var attr string
 	switch a {
 	case "name":
-		attr = robot.name
+		attr = botCfg.name
 	case "fullname", "realname":
-		attr = robot.fullName
+		attr = botCfg.fullName
 	case "alias":
-		attr = string(robot.alias)
+		attr = string(botCfg.alias)
 	case "email":
-		attr = robot.email
+		attr = botCfg.email
 	case "contact", "admin", "admincontact":
-		attr = robot.adminContact
+		attr = botCfg.adminContact
 	case "protocol":
 		attr = r.Protocol.String()
 	default:
@@ -529,13 +529,13 @@ func (r *Robot) GetBotAttribute(a string) *AttrRet {
 // admin wants to supplment whats available from the protocol.
 func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
 	a = strings.ToLower(a)
-	attr, ret := robot.GetProtocolUserAttribute(u, a)
+	attr, ret := botCfg.GetProtocolUserAttribute(u, a)
 	return &AttrRet{attr, ret}
 }
 
 // messageHeard sends a typing notification
 func (r *Robot) messageHeard() {
-	robot.MessageHeard(r.User, r.Channel)
+	botCfg.MessageHeard(r.User, r.Channel)
 }
 
 // GetSenderAttribute returns a AttrRet with
@@ -550,7 +550,7 @@ func (r *Robot) GetSenderAttribute(a string) *AttrRet {
 	case "name", "username", "handle", "user", "user name":
 		return &AttrRet{r.User, Ok}
 	default:
-		attr, ret := robot.GetProtocolUserAttribute(r.User, a)
+		attr, ret := botCfg.GetProtocolUserAttribute(r.User, a)
 		return &AttrRet{attr, ret}
 	}
 }
@@ -629,7 +629,7 @@ func (r *Robot) Log(l LogLevel, v ...interface{}) {
 // channel. Use Robot.Fixed().SendChannelMessage(...) for fixed-width
 // font.
 func (r *Robot) SendChannelMessage(channel, msg string) RetVal {
-	return robot.SendProtocolChannelMessage(channel, msg, r.Format)
+	return botCfg.SendProtocolChannelMessage(channel, msg, r.Format)
 }
 
 // SendUserChannelMessage lets a plugin easily send a message directed to
@@ -637,27 +637,27 @@ func (r *Robot) SendChannelMessage(channel, msg string) RetVal {
 // object. Use Robot.Fixed().SencChannelMessage(...) for fixed-width
 // font.
 func (r *Robot) SendUserChannelMessage(user, channel, msg string) RetVal {
-	return robot.SendProtocolUserChannelMessage(user, channel, msg, r.Format)
+	return botCfg.SendProtocolUserChannelMessage(user, channel, msg, r.Format)
 }
 
 // SendUserMessage lets a plugin easily send a DM to a user. If a DM
 // isn't possible, the connector should message the user in a channel.
 func (r *Robot) SendUserMessage(user, msg string) RetVal {
-	return robot.SendProtocolUserMessage(user, msg, r.Format)
+	return botCfg.SendProtocolUserMessage(user, msg, r.Format)
 }
 
 // Reply directs a message to the user
 func (r *Robot) Reply(msg string) RetVal {
 	if r.Channel == "" {
-		return robot.SendProtocolUserMessage(r.User, msg, r.Format)
+		return botCfg.SendProtocolUserMessage(r.User, msg, r.Format)
 	}
-	return robot.SendProtocolUserChannelMessage(r.User, r.Channel, msg, r.Format)
+	return botCfg.SendProtocolUserChannelMessage(r.User, r.Channel, msg, r.Format)
 }
 
 // Say just sends a message to the user or channel
 func (r *Robot) Say(msg string) RetVal {
 	if r.Channel == "" {
-		return robot.SendProtocolUserMessage(r.User, msg, r.Format)
+		return botCfg.SendProtocolUserMessage(r.User, msg, r.Format)
 	}
-	return robot.SendProtocolChannelMessage(r.Channel, msg, r.Format)
+	return botCfg.SendProtocolChannelMessage(r.Channel, msg, r.Format)
 }

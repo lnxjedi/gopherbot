@@ -161,9 +161,9 @@ func Start(v VersionInfo) {
 	botLogger.Printf("Starting up with config dir: %s, and install dir: %s\n", lp, installpath)
 	initBot(configpath, installpath, botLogger)
 
-	initializeConnector, ok := connectors[robot.protocol]
+	initializeConnector, ok := connectors[botCfg.protocol]
 	if !ok {
-		botLogger.Fatal("No connector registered with name:", robot.protocol)
+		botLogger.Fatal("No connector registered with name:", botCfg.protocol)
 	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface

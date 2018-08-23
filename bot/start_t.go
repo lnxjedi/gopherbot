@@ -39,9 +39,9 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (<-chan stru
 
 	initBot(configpath, testInstallPath, botLogger)
 
-	initializeConnector, ok := connectors[robot.protocol]
+	initializeConnector, ok := connectors[botCfg.protocol]
 	if !ok {
-		botLogger.Fatalf("No connector registered with name: %s", robot.protocol)
+		botLogger.Fatalf("No connector registered with name: %s", botCfg.protocol)
 	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface

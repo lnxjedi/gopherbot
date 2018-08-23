@@ -17,7 +17,7 @@ type botMailer struct {
 }
 
 // Email provides a simple interface for sending the user an email from the
-// robot.. It relies on both the robot and the user having an email address.
+// bot. It relies on both the robot and the user having an email address.
 // For the robot, this can be conifigured in gopherbot.conf, Email attribute.
 // For the user, this should be provided by the chat protocol, or in
 // gopherbot.conf. (TODO: not yet implemented)
@@ -52,26 +52,26 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret RetVal) {
 	e.Text = messageBody.Bytes()
 
 	var a smtp.Auth
-	if robot.mailConf.Authtype == "plain" {
-		host := strings.Split(robot.mailConf.Mailhost, ":")[0]
-		a = smtp.PlainAuth("", robot.mailConf.User, robot.mailConf.Password, host)
+	if botCfg.mailConf.Authtype == "plain" {
+		host := strings.Split(botCfg.mailConf.Mailhost, ":")[0]
+		a = smtp.PlainAuth("", botCfg.mailConf.User, botCfg.mailConf.Password, host)
 		Log(Debug, fmt.Sprintf("Sending authenticated email to \"%s\" from \"%s\" via \"%s\" with user: %s, password: %s and host: %s",
 			mailTo,
 			from,
-			robot.mailConf.Mailhost,
-			robot.mailConf.User,
-			robot.mailConf.Password,
+			botCfg.mailConf.Mailhost,
+			botCfg.mailConf.User,
+			botCfg.mailConf.Password,
 			host,
 		))
 	} else {
 		Log(Debug, fmt.Sprintf("Sending unauthenticated email to \"%s\" from \"%s\" via \"%s\"",
 			mailTo,
 			from,
-			robot.mailConf.Mailhost,
+			botCfg.mailConf.Mailhost,
 		))
 	}
 
-	err := e.Send(robot.mailConf.Mailhost, a)
+	err := e.Send(botCfg.mailConf.Mailhost, a)
 	if err != nil {
 		err = fmt.Errorf("Sending email: %v", err)
 		Log(Error, err)

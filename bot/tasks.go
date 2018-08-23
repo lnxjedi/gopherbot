@@ -206,13 +206,13 @@ func initializePlugins() {
 	currentTasks.Unlock()
 	bot := &botContext{
 		environment:      make(map[string]string),
-		workingDirectory: robot.workSpace,
+		workingDirectory: botCfg.workSpace,
 		tasks:            tasks,
 	}
 	bot.registerActive(nil)
-	robot.Lock()
-	if !robot.shuttingDown {
-		robot.Unlock()
+	botCfg.Lock()
+	if !botCfg.shuttingDown {
+		botCfg.Unlock()
 		for _, t := range tasks.t {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
@@ -225,7 +225,7 @@ func initializePlugins() {
 			bot.callTask(t, "init")
 		}
 	} else {
-		robot.Unlock()
+		botCfg.Unlock()
 	}
 	bot.deregister()
 }

@@ -44,10 +44,10 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		return // ignore init
 	}
 	if command == "info" {
-		robot.RLock()
-		admins := strings.Join(robot.adminUsers, ", ")
-		alias := robot.alias
-		robot.RUnlock()
+		botCfg.RLock()
+		admins := strings.Join(botCfg.adminUsers, ", ")
+		alias := botCfg.alias
+		botCfg.RUnlock()
 		msg := make([]string, 0, 7)
 		msg = append(msg, "Here's some information about my running environment:")
 		msg = append(msg, fmt.Sprintf("The hostname for the server I'm running on is: %s", hostName))
@@ -67,9 +67,9 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		r.Say(strings.Join(msg, "\n"))
 	}
 	if command == "help" {
-		robot.RLock()
-		botname := robot.name
-		robot.RUnlock()
+		botCfg.RLock()
+		botname := botCfg.name
+		botCfg.RUnlock()
 
 		var term, helpOutput string
 		botSub := `(bot)`
@@ -179,9 +179,9 @@ func dump(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	}
 	switch command {
 	case "robot":
-		robot.RLock()
+		botCfg.RLock()
 		c, _ := yaml.Marshal(config)
-		robot.RUnlock()
+		botCfg.RUnlock()
 		r.Fixed().Say(fmt.Sprintf("Here's how I've been configured, irrespective of interactive changes:\n%s", c))
 	case "plugdefault":
 		if plug, ok := pluginHandlers[args[0]]; ok {
@@ -454,23 +454,23 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		taskDebug.Unlock()
 		r.Say("Debugging disabled")
 	case "quit":
-		robot.Lock()
-		if robot.shuttingDown {
-			robot.Unlock()
+		botCfg.Lock()
+		if botCfg.shuttingDown {
+			botCfg.Unlock()
 			Log(Warn, "Received administrator `quit` while shutdown in progress")
 			return
 		}
-		robot.shuttingDown = true
-		proto := robot.protocol
+		botCfg.shuttingDown = true
+		proto := botCfg.protocol
 		// NOTE: THIS plugin is definitely running, but will end soon!
-		if robot.pluginsRunning > 1 {
-			runningCount := robot.pluginsRunning - 1
-			robot.Unlock()
+		if botCfg.pluginsRunning > 1 {
+			runningCount := botCfg.pluginsRunning - 1
+			botCfg.Unlock()
 			if proto != "test" {
 				r.Say(fmt.Sprintf("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount))
 			}
 		} else {
-			robot.Unlock()
+			botCfg.Unlock()
 			if proto != "test" {
 				r.Reply(r.RandomString(byebye))
 				// How long does it _actually_ take for the message to go out?

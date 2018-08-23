@@ -21,15 +21,15 @@ func (r *botContext) loadTaskConfig() {
 	tlist := make([]interface{}, 0, 14)
 
 	// Copy some data from the bot under read lock, including external plugins
-	robot.RLock()
-	defaultAllowDirect := robot.defaultAllowDirect
+	botCfg.RLock()
+	defaultAllowDirect := botCfg.defaultAllowDirect
 	// copy the list of default channels (for plugins only)
-	pchan := robot.plugChannels
-	jdefchan := robot.defaultJobChannel
-	externalTasks := robot.externalTasks
-	externalJobs := robot.externalJobs
-	externalPlugins := robot.externalPlugins
-	robot.RUnlock() // we're done with bot data 'til the end
+	pchan := botCfg.plugChannels
+	jdefchan := botCfg.defaultJobChannel
+	externalTasks := botCfg.externalTasks
+	externalJobs := botCfg.externalJobs
+	externalPlugins := botCfg.externalPlugins
+	botCfg.RUnlock() // we're done with bot data 'til the end
 
 	i := 0
 
@@ -727,11 +727,11 @@ LoadLoop:
 	currentTasks.Unlock()
 	// loadTaskConfig is called in initBot, before the connector has started;
 	// don't init plugins in that case.
-	robot.RLock()
-	if robot.Connector != nil {
+	botCfg.RLock()
+	if botCfg.Connector != nil {
 		reInitPlugins = true
 	}
-	robot.RUnlock()
+	botCfg.RUnlock()
 	if reInitPlugins {
 		initializePlugins()
 	}

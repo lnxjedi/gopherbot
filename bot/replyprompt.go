@@ -216,9 +216,9 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		Log(Debug, fmt.Sprintf("Prompting for \"%s \" and creating reply waiters list and prompting for matcher: %q", prompt, matcher))
 		var ret RetVal
 		if channel == "" {
-			ret = robot.SendProtocolUserMessage(user, prompt, r.Format)
+			ret = botCfg.SendProtocolUserMessage(user, prompt, r.Format)
 		} else {
-			ret = robot.SendProtocolUserChannelMessage(user, channel, prompt, r.Format)
+			ret = botCfg.SendProtocolUserChannelMessage(user, channel, prompt, r.Format)
 		}
 		if ret != Ok {
 			replies.Unlock()

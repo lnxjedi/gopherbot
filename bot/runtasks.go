@@ -34,27 +34,27 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	c.pipeName = task.name
 	c.pipeDesc = task.Description
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
-	robot.Add(1)
-	robot.Lock()
-	robot.pluginsRunning++
-	c.timeZone = robot.timeZone
-	robot.Unlock()
+	botCfg.Add(1)
+	botCfg.Lock()
+	botCfg.pluginsRunning++
+	c.timeZone = botCfg.timeZone
+	botCfg.Unlock()
 	defer func() {
-		robot.Lock()
-		robot.pluginsRunning--
+		botCfg.Lock()
+		botCfg.pluginsRunning--
 		// TODO: this check shouldn't be necessary; remove and test
-		if robot.pluginsRunning >= 0 {
-			robot.Done()
+		if botCfg.pluginsRunning >= 0 {
+			botCfg.Done()
 		}
-		robot.Unlock()
+		botCfg.Unlock()
 	}()
 
 	if isJob {
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
 		c.jobName = task.name // Exclusive always uses the jobName, regardless of the task that calls it
 		c.jobChannel = task.Channel
-		c.history = robot.history
-		c.workingDirectory = robot.workSpace
+		c.history = botCfg.history
+		c.workingDirectory = botCfg.workSpace
 		var jh jobHistory
 		rememberRuns := job.HistoryLogs
 		if rememberRuns == 0 {

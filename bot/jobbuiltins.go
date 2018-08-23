@@ -170,7 +170,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		return jobhistory(r, "showhistory", histSpec, rep)
 	case "showhistory":
 		index, _ := strconv.Atoi(args[1])
-		f, err := robot.history.GetHistory(histSpec, index)
+		f, err := botCfg.history.GetHistory(histSpec, index)
 		if err != nil {
 			Log(Error, fmt.Sprintf("Error getting history %d for task '%s': %v", index, histSpec, err))
 			r.Say(fmt.Sprintf("History %d for '%s' not available", index, histSpec))
@@ -290,9 +290,9 @@ func (r *Robot) jobVisible(t interface{}, ignoreChannelRestrictions, disabledOk 
 	}
 	if task.RequireAdmin {
 		isAdmin := false
-		robot.RLock()
-		admins := robot.adminUsers
-		robot.RUnlock()
+		botCfg.RLock()
+		admins := botCfg.adminUsers
+		botCfg.RUnlock()
 		for _, adminUser := range admins {
 			if r.User == adminUser {
 				isAdmin = true
@@ -340,9 +340,9 @@ func (c *botContext) jobAvailable(taskName string, pluginOk bool) interface{} {
 	}
 	if task.RequireAdmin {
 		isAdmin := false
-		robot.RLock()
-		admins := robot.adminUsers
-		robot.RUnlock()
+		botCfg.RLock()
+		admins := botCfg.adminUsers
+		botCfg.RUnlock()
 		for _, adminUser := range admins {
 			if r.User == adminUser {
 				isAdmin = true

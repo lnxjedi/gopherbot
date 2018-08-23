@@ -38,9 +38,9 @@ func (c *botContext) checkAuthorization(t interface{}, command string, args ...s
 			return Success
 		}
 	}
-	robot.RLock()
-	defaultAuthorizer := robot.defaultAuthorizer
-	robot.RUnlock()
+	botCfg.RLock()
+	defaultAuthorizer := botCfg.defaultAuthorizer
+	botCfg.RUnlock()
 	if isPlugin && task.Authorizer == "" && defaultAuthorizer == "" {
 		Log(Audit, fmt.Sprintf("Plugin '%s' requires authorization for command '%s', but no authorizer configured", task.name, command))
 		r.Say(configAuthError)

@@ -15,10 +15,10 @@ func scheduleTasks() {
 	if taskRunner != nil {
 		taskRunner.Stop()
 	}
-	robot.RLock()
-	scheduled := robot.scheduledTasks
-	tz := robot.timeZone
-	robot.RUnlock()
+	botCfg.RLock()
+	scheduled := botCfg.scheduledTasks
+	tz := botCfg.timeZone
+	botCfg.RUnlock()
 	if tz != nil {
 		Log(Info, fmt.Sprintf("Scheduling tasks in TimeZone: %s", tz))
 		taskRunner = cron.NewWithLocation(tz)
@@ -78,7 +78,7 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList, repolist map[s
 		isCommand:        isPlugin,
 		directMsg:        false,
 		automaticTask:    true, // scheduled jobs don't get authorization / elevation checks
-		workingDirectory: robot.workSpace,
+		workingDirectory: botCfg.workSpace,
 		environment:      make(map[string]string),
 	}
 	var command string

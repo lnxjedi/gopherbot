@@ -48,7 +48,7 @@ type Handler interface {
 }
 
 // Connector is the interface defining methods that should be provided by
-// the connector for use by plugins/robot.
+// the connector for use by plugins/bot
 type Connector interface {
 	// GetProtocolUserAttribute retrieves a piece of information about a user
 	// from the connector protocol, or "",!ok if the connector doesn't have the

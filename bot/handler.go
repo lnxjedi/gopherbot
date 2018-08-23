@@ -47,21 +47,21 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 	logChannel := channelName
 	var message string
 
-	robot.RLock()
-	for _, user := range robot.ignoreUsers {
+	botCfg.RLock()
+	for _, user := range botCfg.ignoreUsers {
 		if strings.EqualFold(userName, user) {
 			Log(Debug, "Ignoring user", userName)
 			bot := &botContext{User: userName}
 			bot.debug("robot is configured to ignore this user", true)
 			emit(IgnoredUser)
-			robot.RUnlock()
+			botCfg.RUnlock()
 			return
 		}
 	}
-	preRegex := robot.preRegex
-	postRegex := robot.postRegex
-	bareRegex := robot.bareRegex
-	robot.RUnlock()
+	preRegex := botCfg.preRegex
+	postRegex := botCfg.postRegex
+	bareRegex := botCfg.bareRegex
+	botCfg.RUnlock()
 	if preRegex != nil {
 		matches := preRegex.FindAllStringSubmatch(messageFull, -1)
 		if matches != nil && len(matches[0]) == 2 {
@@ -118,7 +118,7 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 		isCommand:        isCommand,
 		directMsg:        directMsg,
 		msg:              message,
-		workingDirectory: robot.workSpace,
+		workingDirectory: botCfg.workSpace,
 		environment:      make(map[string]string),
 	}
 	Log(Debug, fmt.Sprintf("Message '%s' from user '%s' in channel '%s'; isCommand: %t", message, userName, logChannel, isCommand))
@@ -128,25 +128,25 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct
 func (h handler) GetProtocolConfig(v interface{}) error {
-	robot.RLock()
+	botCfg.RLock()
 	err := json.Unmarshal(protocolConfig, v)
-	robot.RUnlock()
+	botCfg.RUnlock()
 	return err
 }
 
 // GetBrainConfig unmarshals the brain's configuration data into a provided struct
 func (h handler) GetBrainConfig(v interface{}) error {
-	robot.RLock()
+	botCfg.RLock()
 	err := json.Unmarshal(brainConfig, v)
-	robot.RUnlock()
+	botCfg.RUnlock()
 	return err
 }
 
 // GetHistoryConfig unmarshals the history provider's configuration data into a provided struct
 func (h handler) GetHistoryConfig(v interface{}) error {
-	robot.RLock()
+	botCfg.RLock()
 	err := json.Unmarshal(historyConfig, v)
-	robot.RUnlock()
+	botCfg.RUnlock()
 	return err
 }
 
@@ -159,28 +159,28 @@ func (h handler) Log(l LogLevel, v ...interface{}) {
 // be configured in gopherbot.yaml.
 func (h handler) SetFullName(n string) {
 	Log(Debug, "Setting full name to: "+n)
-	robot.Lock()
-	robot.fullName = n
-	robot.Unlock()
+	botCfg.Lock()
+	botCfg.fullName = n
+	botCfg.Unlock()
 }
 
 // Connectors that support it can call SetName; otherwise it should
 // be configured in gobot.conf.
 func (h handler) SetName(n string) {
 	Log(Debug, "Setting name to: "+n)
-	robot.Lock()
-	robot.name = n
+	botCfg.Lock()
+	botCfg.name = n
 	// Make sure the robot ignores messages from it's own name
 	ignoring := false
-	for _, name := range robot.ignoreUsers {
+	for _, name := range botCfg.ignoreUsers {
 		if strings.EqualFold(n, name) {
 			ignoring = true
 			break
 		}
 	}
 	if !ignoring {
-		robot.ignoreUsers = append(robot.ignoreUsers, strings.ToLower(n))
+		botCfg.ignoreUsers = append(botCfg.ignoreUsers, strings.ToLower(n))
 	}
-	robot.Unlock()
+	botCfg.Unlock()
 	updateRegexes()
 }

@@ -45,13 +45,13 @@ func RegisterConnector(name string, connstarter func(Handler, *log.Logger) Conne
 
 // robot holds all the interal data relevant to the Bot. Most of it is populated
 // by loadConfig, other stuff is populated by the connector.
-var robot struct {
+var botCfg struct {
 	Connector                            // Connector interface, implemented by each specific protocol
 	adminUsers           []string        // List of users with access to administrative commands
 	alias                rune            // single-char alias for addressing the bot
 	name                 string          // e.g. "Gort"
 	fullName             string          // e.g. "Robbie Robot"
-	adminContact         string          // who to contact for problems with the robot.
+	adminContact         string          // who to contact for problems with the bot
 	email                string          // the from: when the robot sends email
 	mailConf             botMailer       // configuration to use when sending email
 	ignoreUsers          []string        // list of users to never listen to, like other bots
@@ -112,29 +112,29 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		Log(Fatal, fmt.Sprintf("Unable to set initial working directory to '%s': %v", wd, err))
 	}
 	Log(Info, fmt.Sprintf("Set initial working directory: %s", wd))
-	robot.stop = make(chan struct{})
-	robot.done = make(chan struct{})
-	robot.shuttingDown = false
+	botCfg.stop = make(chan struct{})
+	botCfg.done = make(chan struct{})
+	botCfg.shuttingDown = false
 
 	handle := handler{}
 	bot := &botContext{
-		workingDirectory: robot.workSpace,
+		workingDirectory: botCfg.workSpace,
 		environment:      make(map[string]string),
 	}
 	if err := bot.loadConfig(true); err != nil {
 		Log(Fatal, fmt.Sprintf("Error loading initial configuration: %v", err))
 	}
 
-	if len(robot.brainProvider) > 0 {
-		if bprovider, ok := brains[robot.brainProvider]; !ok {
-			Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", robot.brainProvider))
+	if len(botCfg.brainProvider) > 0 {
+		if bprovider, ok := brains[botCfg.brainProvider]; !ok {
+			Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", botCfg.brainProvider))
 		} else {
 			brain := bprovider(handle, logger)
-			robot.brain = brain
+			botCfg.brain = brain
 		}
 	} else {
 		bprovider, _ := brains["mem"]
-		robot.brain = bprovider(handle, logger)
+		botCfg.brain = bprovider(handle, logger)
 		Log(Error, "No brain configured, falling back to default 'mem' brain - no memories will persist")
 	}
 	if encryptBrain {
@@ -149,8 +149,8 @@ func initBot(cpath, epath string, logger *log.Logger) {
 			}
 			os.Unsetenv("GOPHER_BRAIN_KEY")
 		}
-		if !initialized && len(robot.brainKey) > 0 {
-			if initializeEncryption(robot.brainKey) {
+		if !initialized && len(botCfg.brainKey) > 0 {
+			if initializeEncryption(botCfg.brainKey) {
 				Log(Info, "Successfully initialized brain encryption from ")
 				initialized = true
 			} else {
@@ -161,12 +161,12 @@ func initBot(cpath, epath string, logger *log.Logger) {
 			Log(Warn, "Brain encryption specified but no key configured; use 'initialize brain <key>' to initialize the encrypted brain")
 		}
 	}
-	if len(robot.historyProvider) > 0 {
-		if hprovider, ok := historyProviders[robot.historyProvider]; !ok {
-			Log(Fatal, fmt.Sprintf("No provider registered for history type: \"%s\"", robot.historyProvider))
+	if len(botCfg.historyProvider) > 0 {
+		if hprovider, ok := historyProviders[botCfg.historyProvider]; !ok {
+			Log(Fatal, fmt.Sprintf("No provider registered for history type: \"%s\"", botCfg.historyProvider))
 		} else {
 			hp := hprovider(handle)
-			robot.history = hp
+			botCfg.history = hp
 		}
 	}
 	if !listening {
@@ -174,16 +174,16 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		go func() {
 			h := handler{}
 			http.Handle("/json", h)
-			Log(Fatal, http.ListenAndServe(robot.port, nil))
+			Log(Fatal, http.ListenAndServe(botCfg.port, nil))
 		}()
 	}
 }
 
 // set connector sets the connector, which should already be initialized
 func setConnector(c Connector) {
-	robot.Lock()
-	robot.Connector = c
-	robot.Unlock()
+	botCfg.Lock()
+	botCfg.Connector = c
+	botCfg.Unlock()
 }
 
 // run starts all the loops and returns a channel that closes when the robot
@@ -194,7 +194,7 @@ func run() <-chan struct{} {
 	go runBrain()
 
 	bot := &botContext{
-		workingDirectory: robot.workSpace,
+		workingDirectory: botCfg.workSpace,
 		environment:      make(map[string]string),
 	}
 	bot.registerActive(nil)
@@ -202,18 +202,18 @@ func run() <-chan struct{} {
 	bot.deregister()
 
 	var cl []string
-	robot.RLock()
-	cl = append(cl, robot.joinChannels...)
-	robot.RUnlock()
+	botCfg.RLock()
+	cl = append(cl, botCfg.joinChannels...)
+	botCfg.RUnlock()
 	for _, channel := range cl {
-		robot.JoinChannel(channel)
+		botCfg.JoinChannel(channel)
 	}
 
 	// signal handler
 	go func() {
-		robot.RLock()
-		done := robot.done
-		robot.RUnlock()
+		botCfg.RLock()
+		done := botCfg.done
+		botCfg.RUnlock()
 		sigs := make(chan os.Signal, 1)
 
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -222,13 +222,13 @@ func run() <-chan struct{} {
 		for {
 			select {
 			case sig := <-sigs:
-				robot.Lock()
-				if robot.shuttingDown {
+				botCfg.Lock()
+				if botCfg.shuttingDown {
 					Log(Warn, "Received SIGINT/SIGTERM while shutdown in progress")
-					robot.Unlock()
+					botCfg.Unlock()
 				} else {
-					robot.shuttingDown = true
-					robot.Unlock()
+					botCfg.shuttingDown = true
+					botCfg.Unlock()
 					signal.Stop(sigs)
 					Log(Info, fmt.Sprintf("Exiting on signal: %s", sig))
 					stop()
@@ -240,29 +240,29 @@ func run() <-chan struct{} {
 	}()
 
 	// connector loop
-	robot.RLock()
+	botCfg.RLock()
 	go func(conn Connector, stop <-chan struct{}, done chan<- struct{}) {
 		conn.Run(stop)
 		close(done)
-	}(robot.Connector, robot.stop, robot.done)
-	robot.RUnlock()
+	}(botCfg.Connector, botCfg.stop, botCfg.done)
+	botCfg.RUnlock()
 
 	initializePlugins()
-	robot.RLock()
-	defer robot.RUnlock()
-	return robot.done
+	botCfg.RLock()
+	defer botCfg.RUnlock()
+	return botCfg.done
 }
 
 // stop is called whenever the robot needs to shut down gracefully. All callers
-// should lock the bot and check the value of robot.shuttingDown; see
+// should lock the bot and check the value of botCfg.shuttingDown; see
 // builtins.go and win_svc_run.go
 func stop() {
-	robot.RLock()
-	pr := robot.pluginsRunning
-	stop := robot.stop
-	robot.RUnlock()
+	botCfg.RLock()
+	pr := botCfg.pluginsRunning
+	stop := botCfg.stop
+	botCfg.RUnlock()
 	Log(Debug, fmt.Sprintf("stop called with %d plugins running", pr))
-	robot.Wait()
+	botCfg.Wait()
 	brainQuit()
 	close(stop)
 }
