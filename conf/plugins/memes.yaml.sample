@@ -8,4 +8,4 @@ Channels: [ "random", "general" ]
 Disabled: false
 Config:
   Username: "<yourusername>"
-  Password: "<yourpassword>" # or `store parameter memes PASSWORD=<something>"
+  Password: "<yourpassword>" # or `store task parameter memes PASSWORD=<something>"

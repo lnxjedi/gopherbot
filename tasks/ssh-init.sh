@@ -7,7 +7,7 @@
 #   Description (or uncomment)
 # - Add job "ssh-init" to ExternalJobs (uncomment from sample) and reload
 # - Set the ssh passphrase with a DM to the robot:
-#   store parameter ssh-init BOT_SSH_PHRASE=<bot ssh passphrase>
+#   store task parameter ssh-init BOT_SSH_PHRASE=<bot ssh passphrase>
 # - Put tasks in a pipeline, e.g.:
 #    AddTask ssh-init
 #    ... (do stuff)

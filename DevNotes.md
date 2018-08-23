@@ -29,9 +29,6 @@
   - Since PIPE_STARTED is true, it'll just run pipeline.sh with the arg
 - Export GOPHER_JOBNAME
 - Repositories like role-foo should just have pipelines that call several SpawnPipeline "$GOPHER_JOBNAME" ansible deploy-gopherbot
-- Add plugin w/ same memory namespace as github-ci, similar to store parameter:
-build secret <group> <repo> FOO=BAR
-See: https://gist.github.com/shawnsi/b13f6a740bddc670e633
 
 ## Pipelines
 

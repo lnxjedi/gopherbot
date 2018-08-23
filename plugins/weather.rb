@@ -11,7 +11,7 @@ require 'json'
 #  Description: A plugin using OpenWeatherMap to give the weather
 #  Parameters:
 #  - Name: OWM_APIKEY
-#    Value: "<yourkey>" # or omit and use admin command "store parameter weather OWM_APIKEY=<yourkey>"
+#    Value: "<yourkey>" # or omit and use admin command "store task parameter weather OWM_APIKEY=<yourkey>"
 #  - Name: TEMP_UNITS
 #    Value: imperial # or 'metric'
 #  - Name: DEFAULT_COUNTRY
