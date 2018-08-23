@@ -350,7 +350,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 					ret, errString = c.runPipeline(ptype, false)
 				}
 				c.nextTasks = []taskSpec{}
-				// the case where bot.queueTask is true is handled right after
+				// the case where c.queueTask is true is handled right after
 				// callTask
 				if c.abortPipeline {
 					ret = PipelineAborted
@@ -367,19 +367,19 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 }
 
 // callTask does the real work of running a job, task or plugin with a command and arguments.
-func (bot *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
-	bot.currentTask = t
-	r := bot.makeRobot()
+func (c *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
+	c.currentTask = t
+	r := c.makeRobot()
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	// This should only happen in the rare case that a configured authorizer or elevator is disabled
 	if task.Disabled {
 		msg := fmt.Sprintf("callTask failed on disabled task %s; reason: %s", task.name, task.reason)
 		Log(Error, msg)
-		bot.debug(msg, false)
+		c.debug(msg, false)
 		return msg, ConfigurationError
 	}
-	if bot.logger != nil {
+	if c.logger != nil {
 		var taskinfo string
 		if isPlugin {
 			taskinfo = task.name + " " + command
@@ -395,7 +395,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		} else {
 			desc = "Starting task"
 		}
-		bot.logger.Section(taskinfo, desc)
+		c.logger.Section(taskinfo, desc)
 	}
 
 	if !(task.name == "builtInadmin" && command == "abort") {
@@ -405,8 +405,8 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 
 	// Set up the per-task environment
 	envhash := make(map[string]string)
-	if len(bot.environment) > 0 {
-		for k, v := range bot.environment {
+	if len(c.environment) > 0 {
+		for k, v := range c.environment {
 			envhash[k] = v
 		}
 	}
@@ -415,7 +415,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	// tasks to have secrets passed in but not handed to everything in the
 	// pipeline. Repository secrets are populated in robot.go/ExtendNamespace
 	if encryptBrain {
-		taskEnv, teExists := bot.storedEnv.TaskParams[task.NameSpace]
+		taskEnv, teExists := c.storedEnv.TaskParams[task.NameSpace]
 		if teExists {
 			cryptBrain.RLock()
 			initialized := cryptBrain.initialized
@@ -450,9 +450,9 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 			emit(GoPluginRan)
 		}
 		Log(Debug, fmt.Sprintf("Call go plugin: '%s' with args: %q", task.name, args))
-		bot.taskenvironment = envhash
+		c.taskenvironment = envhash
 		ret := pluginHandlers[task.name].Handler(r, command, args...)
-		bot.taskenvironment = nil
+		c.taskenvironment = nil
 		return "", ret
 	}
 	var fullPath string // full path to the executable
@@ -496,15 +496,15 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	} else {
 		cmd = exec.Command(fullPath, externalArgs...)
 	}
-	bot.Lock()
-	bot.taskName = task.name
-	bot.taskDesc = task.Description
-	bot.osCmd = cmd
-	bot.Unlock()
+	c.Lock()
+	c.taskName = task.name
+	c.taskDesc = task.Description
+	c.osCmd = cmd
+	c.Unlock()
 
-	envhash["GOPHER_CHANNEL"] = bot.Channel
-	envhash["GOPHER_USER"] = bot.User
-	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", bot.Protocol)
+	envhash["GOPHER_CHANNEL"] = c.Channel
+	envhash["GOPHER_USER"] = c.User
+	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", c.Protocol)
 	// Passed-through environment vars have the lowest priority
 	for _, p := range envPassThrough {
 		_, exists := envhash[p]
@@ -524,7 +524,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		keys = append(keys, k)
 	}
 	cmd.Env = env
-	cmd.Dir = bot.workingDirectory
+	cmd.Dir = c.workingDirectory
 	Log(Debug, fmt.Sprintf("Running '%s' with environment vars: '%s'", fullPath, strings.Join(keys, "', '")))
 	var stderr, stdout io.ReadCloser
 	// hold on to stderr in case we need to log an error
@@ -534,7 +534,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 		return errString, MechanismFail
 	}
-	if bot.logger == nil {
+	if c.logger == nil {
 		// close stdout on the external plugin...
 		cmd.Stdout = nil
 	} else {
@@ -553,7 +553,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 	if command != "init" {
 		emit(ExternalTaskRan)
 	}
-	if bot.logger == nil {
+	if c.logger == nil {
 		var stdErrBytes []byte
 		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
 			Log(Error, fmt.Errorf("Reading from stderr for external command '%s': %v", fullPath, err))
@@ -568,12 +568,12 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 		}
 	} else {
 		closed := make(chan struct{})
-		hl := bot.logger
+		hl := c.logger
 		go func() {
 			scanner := bufio.NewScanner(stdout)
 			for scanner.Scan() {
 				line := scanner.Text()
-				bot.logger.Log("OUT " + line)
+				c.logger.Log("OUT " + line)
 			}
 			closed <- struct{}{}
 		}()
@@ -581,7 +581,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 			scanner := bufio.NewScanner(stderr)
 			for scanner.Scan() {
 				line := scanner.Text()
-				bot.logger.Log("ERR " + line)
+				c.logger.Log("ERR " + line)
 			}
 			closed <- struct{}{}
 		}()
@@ -596,7 +596,7 @@ func (bot *botContext) callTask(t interface{}, command string, args ...string) (
 				halfClosed = true
 			}
 		}
-		if bot.logger != hl {
+		if c.logger != hl {
 			hl.Close()
 		}
 	}

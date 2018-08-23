@@ -191,12 +191,12 @@ func sendReturn(rw http.ResponseWriter, ret interface{}) {
 	rw.Write(d)
 }
 
-func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	data, err := ioutil.ReadAll(r.Body)
+func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	data, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		Log(Fatal, err)
 	}
-	defer r.Body.Close()
+	defer req.Body.Close()
 
 	var f jsonFunction
 	err = json.Unmarshal(data, &f)
@@ -220,7 +220,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Generate a synthetic Robot for access to it's methods
-	bot := Robot{
+	r := Robot{
 		User:     f.User,
 		Channel:  f.Channel,
 		Protocol: setProtocol(f.Protocol),
@@ -228,20 +228,20 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		id:       c.id,
 	}
 	if len(f.Format) > 0 {
-		bot.Format = bot.setFormat(f.Format)
+		r.Format = r.setFormat(f.Format)
 	} else {
 		botCfg.RLock()
-		bot.Format = botCfg.defaultMessageFormat
+		r.Format = botCfg.defaultMessageFormat
 		botCfg.RUnlock()
 	}
 	task, _, _ := getTask(c.currentTask)
 	Log(Trace, fmt.Sprintf("Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User))
 
 	if len(f.Format) > 0 {
-		bot.Format = bot.setFormat(f.Format)
+		r.Format = r.setFormat(f.Format)
 	} else {
 		botCfg.RLock()
-		bot.Format = botCfg.defaultMessageFormat
+		r.Format = botCfg.defaultMessageFormat
 		botCfg.RUnlock()
 	}
 
@@ -252,7 +252,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	)
 	switch f.FuncName {
 	case "CheckAdmin":
-		bret := bot.CheckAdmin()
+		bret := r.CheckAdmin()
 		sendReturn(rw, boolresponse{Boolean: bret})
 		return
 	case "AddTask", "FinalTask", "FailTask", "SpawnTask":
@@ -263,13 +263,13 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		var ret RetVal
 		switch f.FuncName {
 		case "AddTask":
-			ret = bot.AddTask(ts.Name, ts.CmdArgs...)
+			ret = r.AddTask(ts.Name, ts.CmdArgs...)
 		case "FinalTask":
-			ret = bot.FinalTask(ts.Name, ts.CmdArgs...)
+			ret = r.FinalTask(ts.Name, ts.CmdArgs...)
 		case "FailTask":
-			ret = bot.FailTask(ts.Name, ts.CmdArgs...)
+			ret = r.FailTask(ts.Name, ts.CmdArgs...)
 		case "SpawnTask":
-			ret = bot.SpawnTask(ts.Name, ts.CmdArgs...)
+			ret = r.SpawnTask(ts.Name, ts.CmdArgs...)
 		default:
 			return
 		}
@@ -280,44 +280,44 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if !getArgs(rw, &f.FuncArgs, &param) {
 			return
 		}
-		success := bot.SetParameter(param.Name, param.Value)
+		success := r.SetParameter(param.Name, param.Value)
 		sendReturn(rw, boolresponse{Boolean: success})
 	case "SetWorkingDirectory":
 		var wd wdcall
 		if !getArgs(rw, &f.FuncArgs, &wd) {
 			return
 		}
-		success := bot.SetWorkingDirectory(wd.Path)
+		success := r.SetWorkingDirectory(wd.Path)
 		sendReturn(rw, boolresponse{Boolean: success})
 	case "ExtendNamespace":
 		var en extns
 		if !getArgs(rw, &f.FuncArgs, &en) {
 			return
 		}
-		success := bot.ExtendNamespace(en.Extend, en.Histories)
+		success := r.ExtendNamespace(en.Extend, en.Histories)
 		sendReturn(rw, boolresponse{Boolean: success})
 	case "Exclusive":
 		var e exclusive
 		if !getArgs(rw, &f.FuncArgs, &e) {
 			return
 		}
-		success := bot.Exclusive(e.Tag, e.QueueTask)
+		success := r.Exclusive(e.Tag, e.QueueTask)
 		sendReturn(rw, boolresponse{Boolean: success})
 	case "Elevate":
 		var e elevate
 		if !getArgs(rw, &f.FuncArgs, &e) {
 			return
 		}
-		success := bot.Elevate(e.Immediate)
+		success := r.Elevate(e.Immediate)
 		sendReturn(rw, boolresponse{Boolean: success})
 		return
 	case "CheckoutDatum":
-		var r recollection
-		if !getArgs(rw, &f.FuncArgs, &r) {
+		var rec recollection
+		if !getArgs(rw, &f.FuncArgs, &rec) {
 			return
 		}
 		var datum interface{}
-		l, e, brv := bot.CheckoutDatum(r.Key, &datum, r.RW)
+		l, e, brv := r.CheckoutDatum(rec.Key, &datum, rec.RW)
 		sendReturn(rw, checkoutresponse{
 			LockToken: l,
 			Exists:    e,
@@ -330,7 +330,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if !getArgs(rw, &f.FuncArgs, &m) {
 			return
 		}
-		bot.CheckinDatum(m.Key, m.Token)
+		r.CheckinDatum(m.Key, m.Token)
 		sendReturn(rw, &botretvalresponse{int(Ok)})
 		return
 	case "UpdateDatum":
@@ -355,7 +355,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			m.Key = decode(m.Key)
 			m.Value = decode(m.Value)
 		}
-		bot.Remember(m.Key, m.Value)
+		r.Remember(m.Key, m.Value)
 		sendReturn(rw, &botretvalresponse{int(Ok)})
 	case "Recall":
 		var m shorttermrecollection
@@ -365,7 +365,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if m.Base64 {
 			m.Key = decode(m.Key)
 		}
-		s := bot.Recall(m.Key)
+		s := r.Recall(m.Key)
 		sendReturn(rw, &stringresponse{s})
 	case "GetTaskConfig":
 		if task.Config == nil {
@@ -381,9 +381,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if f.FuncName == "GetBotAttribute" {
-			attr = bot.GetBotAttribute(a.Attribute)
+			attr = r.GetBotAttribute(a.Attribute)
 		} else {
-			attr = bot.GetSenderAttribute(a.Attribute)
+			attr = r.GetSenderAttribute(a.Attribute)
 		}
 		sendReturn(rw, attr)
 		return
@@ -392,7 +392,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if !getArgs(rw, &f.FuncArgs, &ua) {
 			return
 		}
-		attr = bot.GetUserAttribute(ua.User, ua.Attribute)
+		attr = r.GetUserAttribute(ua.User, ua.Attribute)
 		sendReturn(rw, attr)
 		return
 	case "Log":
@@ -404,7 +404,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if lm.Base64 {
 			lm.Message = decode(lm.Message)
 		}
-		bot.Log(l, lm.Message)
+		r.Log(l, lm.Message)
 		sendReturn(rw, &botretvalresponse{int(Ok)})
 		return
 	case "SendChannelMessage":
@@ -416,7 +416,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			cm.Message = decode(cm.Message)
 		}
 		sendReturn(rw, &botretvalresponse{
-			int(bot.SendChannelMessage(cm.Channel, cm.Message)),
+			int(r.SendChannelMessage(cm.Channel, cm.Message)),
 		})
 		return
 	case "SendUserChannelMessage":
@@ -428,7 +428,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			ucm.Message = decode(ucm.Message)
 		}
 		sendReturn(rw, &botretvalresponse{
-			int(bot.SendUserChannelMessage(ucm.User, ucm.Channel, ucm.Message)),
+			int(r.SendUserChannelMessage(ucm.User, ucm.Channel, ucm.Message)),
 		})
 		return
 	case "SendUserMessage":
@@ -440,7 +440,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			um.Message = decode(um.Message)
 		}
 		sendReturn(rw, &botretvalresponse{
-			int(bot.SendUserMessage(um.User, um.Message)),
+			int(r.SendUserMessage(um.User, um.Message)),
 		})
 		return
 	case "PromptUserChannelForReply":
@@ -451,7 +451,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		if rr.Base64 {
 			rr.Prompt = decode(rr.Prompt)
 		}
-		reply, ret = bot.promptInternal(rr.RegexID, rr.User, rr.Channel, rr.Prompt)
+		reply, ret = r.promptInternal(rr.RegexID, rr.User, rr.Channel, rr.Prompt)
 		sendReturn(rw, &replyresponse{reply, int(ret)})
 		return
 	// NOTE: "Say", "Reply", PromptForReply and PromptUserForReply are implemented

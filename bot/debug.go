@@ -27,8 +27,8 @@ var taskDebug = struct {
 	sync.RWMutex{},
 }
 
-func (r *botContext) debug(msg string, verboseonly bool) {
-	r.debugT(r.currentTask, msg, verboseonly)
+func (c *botContext) debug(msg string, verboseonly bool) {
+	c.debugT(c.currentTask, msg, verboseonly)
 }
 
 // If the debug statement requests verboseonly, then the user will only get the

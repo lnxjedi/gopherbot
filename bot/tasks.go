@@ -204,12 +204,12 @@ func initializePlugins() {
 		currentTasks.nameSpaces,
 	}
 	currentTasks.Unlock()
-	bot := &botContext{
+	c := &botContext{
 		environment:      make(map[string]string),
 		workingDirectory: botCfg.workSpace,
 		tasks:            tasks,
 	}
-	bot.registerActive(nil)
+	c.registerActive(nil)
 	botCfg.Lock()
 	if !botCfg.shuttingDown {
 		botCfg.Unlock()
@@ -222,12 +222,12 @@ func initializePlugins() {
 				continue
 			}
 			Log(Info, "Initializing plugin:", task.name)
-			bot.callTask(t, "init")
+			c.callTask(t, "init")
 		}
 	} else {
 		botCfg.Unlock()
 	}
-	bot.deregister()
+	c.deregister()
 }
 
 // RegisterPlugin allows Go plugins to register a PluginHandler in a func init().

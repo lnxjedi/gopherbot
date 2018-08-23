@@ -15,8 +15,8 @@ var spaceRe = regexp.MustCompile(" +")
 // the robot), or message matchers (for ambient commands that need not be
 // directed at the robot), and calls the plugin if it matches. Note: this
 // function is called under a read lock on the 'b' struct.
-func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMatched bool) {
-	r := bot.makeRobot()
+func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMatched bool) {
+	r := c.makeRobot()
 	// un-needed, but more clear
 	messageMatched = false
 	// If we're checking messages, debugging messages require that the user requested verboseness
@@ -28,7 +28,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 	var runTask interface{}
 	var matchedMatcher InputMatcher
 	var cmdArgs []string
-	for _, t := range bot.tasks.t {
+	for _, t := range c.tasks.t {
 		task, plugin, _ := getTask(t)
 		if plugin == nil {
 			continue
@@ -36,13 +36,13 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 		if task.Disabled {
 			msg := fmt.Sprintf("Skipping disabled task '%s', reason: %s", task.name, task.reason)
 			Log(Trace, msg)
-			bot.debugT(t, msg, false)
+			c.debugT(t, msg, false)
 			continue
 		}
-		Log(Trace, fmt.Sprintf("Checking availability of task '%s' in channel '%s' for user '%s', active in %d channels (allchannels: %t)", task.name, bot.Channel, bot.User, len(task.Channels), task.AllChannels))
-		ok := bot.pluginAvailable(task, false, verboseOnly)
+		Log(Trace, fmt.Sprintf("Checking availability of task '%s' in channel '%s' for user '%s', active in %d channels (allchannels: %t)", task.name, c.Channel, c.User, len(task.Channels), task.AllChannels))
+		ok := c.pluginAvailable(task, false, verboseOnly)
 		if !ok {
-			Log(Trace, fmt.Sprintf("Task '%s' not available for user '%s' in channel '%s', doesn't meet criteria", task.name, bot.User, bot.Channel))
+			Log(Trace, fmt.Sprintf("Task '%s' not available for user '%s' in channel '%s', doesn't meet criteria", task.name, c.User, c.Channel))
 			continue
 		}
 		var matchers []InputMatcher
@@ -53,7 +53,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 				continue
 			}
 			if len(plugin.CommandMatchers) == 0 {
-				bot.debugT(t, fmt.Sprintf("Plugin has no command matchers, skipping command check"), false)
+				c.debugT(t, fmt.Sprintf("Plugin has no command matchers, skipping command check"), false)
 				continue
 			}
 			matchers = plugin.CommandMatchers
@@ -63,21 +63,21 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 				continue
 			}
 			if len(plugin.MessageMatchers) == 0 {
-				bot.debugT(t, fmt.Sprintf("Plugin has no message matchers, skipping message check"), true)
+				c.debugT(t, fmt.Sprintf("Plugin has no message matchers, skipping message check"), true)
 				continue
 			}
 			matchers = plugin.MessageMatchers
 			ctype = "message"
 		}
 		Log(Trace, fmt.Sprintf("Task '%s' is active, will check for matches", task.name))
-		cmsg := spaceRe.ReplaceAllString(bot.msg, " ")
-		bot.debugT(t, fmt.Sprintf("Checking %d %s matchers against message: '%s'", len(matchers), ctype, cmsg), verboseOnly)
+		cmsg := spaceRe.ReplaceAllString(c.msg, " ")
+		c.debugT(t, fmt.Sprintf("Checking %d %s matchers against message: '%s'", len(matchers), ctype, cmsg), verboseOnly)
 		for _, matcher := range matchers {
 			Log(Trace, fmt.Sprintf("Checking '%s' against '%s'", cmsg, matcher.Regex))
 			matches := matcher.re.FindAllStringSubmatch(cmsg, -1)
 			matched := false
 			if matches != nil {
-				bot.debugT(t, fmt.Sprintf("Matched %s regex '%s', command: %s", ctype, matcher.Regex, matcher.Command), false)
+				c.debugT(t, fmt.Sprintf("Matched %s regex '%s', command: %s", ctype, matcher.Regex, matcher.Command), false)
 				matched = true
 				Log(Trace, fmt.Sprintf("Message '%s' matches command '%s'", cmsg, matcher.Command))
 				cmdArgs = matches[0][1:]
@@ -93,7 +93,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 								contextMatches := []string{""}
 								contextMatches = append(contextMatches, ctxargs[1:]...)
 								key := "context:" + contextName
-								ctx := memoryContext{key, bot.User, bot.Channel}
+								ctx := memoryContext{key, c.User, c.Channel}
 								// Check if the capture group matches the empty string
 								// or one of the generic values (e.g. "it")
 								cMatch := false
@@ -113,7 +113,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 										s.timestamp = ts
 										shortTermMemories.m[ctx] = s
 									} else {
-										bot.makeRobot().Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel))
+										c.makeRobot().Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel))
 										shortTermMemories.Unlock()
 										return true
 									}
@@ -130,7 +130,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 					shortTermMemories.Unlock()
 				}
 			} else {
-				bot.debugT(t, fmt.Sprintf("Not matched: %s", matcher.Regex), verboseOnly)
+				c.debugT(t, fmt.Sprintf("Not matched: %s", matcher.Regex), verboseOnly)
 			}
 			if matched {
 				if messageMatched {
@@ -168,7 +168,7 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 		botCfg.RUnlock()
 		// Check to see if user issued a new command when a reply was being
 		// waited on
-		replyMatcher := replyMatcher{bot.User, bot.Channel}
+		replyMatcher := replyMatcher{c.User, c.Channel}
 		replies.Lock()
 		waiters, waitingForReply := replies.m[replyMatcher]
 		if waitingForReply {
@@ -181,11 +181,11 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 					rep.replyChannel <- reply{false, retryPrompt, ""}
 				}
 			}
-			Log(Debug, fmt.Sprintf("User '%s' matched a new command while the robot was waiting for a reply in channel '%s'", bot.User, bot.Channel))
+			Log(Debug, fmt.Sprintf("User '%s' matched a new command while the robot was waiting for a reply in channel '%s'", c.User, c.Channel))
 		} else {
 			replies.Unlock()
 		}
-		bot.startPipeline(nil, runTask, pipelineType, matcher.Command, cmdArgs...)
+		c.startPipeline(nil, runTask, pipelineType, matcher.Command, cmdArgs...)
 	}
 	return
 }
@@ -194,42 +194,42 @@ func (bot *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (mes
 // matches, then dispatches it to the applicable plugin. If the robot was
 // addressed directly but nothing matched, any registered CatchAll plugins are
 // called. There Should Be Only One (terminal plugin called).
-func (bot *botContext) handleMessage() {
-	r := bot.makeRobot()
-	defer checkPanic(r, bot.msg)
+func (c *botContext) handleMessage() {
+	r := c.makeRobot()
+	defer checkPanic(r, c.msg)
 
-	if len(bot.Channel) == 0 {
+	if len(c.Channel) == 0 {
 		emit(BotDirectMessage)
-		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", bot.User, bot.msg))
+		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", c.User, c.msg))
 	}
 	messageMatched := false
 	ts := time.Now()
-	lastMsgContext := memoryContext{"lastMsg", bot.User, bot.Channel}
+	lastMsgContext := memoryContext{"lastMsg", c.User, c.Channel}
 	var last shortTermMemory
 	var ok bool
 	// See if the robot got a blank message, indicating that the last message
 	// was meant for it (if it was in the keepListeningDuration)
-	if bot.isCommand && len(bot.msg) == 0 {
+	if c.isCommand && len(c.msg) == 0 {
 		shortTermMemories.Lock()
 		last, ok = shortTermMemories.m[lastMsgContext]
 		shortTermMemories.Unlock()
 		if ok && ts.Sub(last.timestamp) < keepListeningDuration {
-			bot.msg = last.memory
-			messageMatched = bot.checkPluginMatchersAndRun(plugCommand)
+			c.msg = last.memory
+			messageMatched = c.checkPluginMatchersAndRun(plugCommand)
 		} else {
 			messageMatched = true
 			r.Say("Yes?")
 		}
 	}
-	if !messageMatched && bot.isCommand {
+	if !messageMatched && c.isCommand {
 		// See if a command matches (and runs)
-		messageMatched = bot.checkPluginMatchersAndRun(plugCommand)
+		messageMatched = c.checkPluginMatchersAndRun(plugCommand)
 	}
 	// See if the robot was waiting on a reply
 	var waiters []replyWaiter
 	waitingForReply := false
 	if !messageMatched {
-		matcher := replyMatcher{bot.User, bot.Channel}
+		matcher := replyMatcher{c.User, c.Channel}
 		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
 		replies.Lock()
 		waiters, waitingForReply = replies.m[matcher]
@@ -243,9 +243,9 @@ func (bot *botContext) handleMessage() {
 			messageMatched = true
 			for i, rep := range waiters {
 				if i == 0 {
-					cmsg := spaceRe.ReplaceAllString(bot.msg, " ")
+					cmsg := spaceRe.ReplaceAllString(c.msg, " ")
 					matched := rep.re.MatchString(cmsg)
-					Log(Debug, fmt.Sprintf("Found replyWaiter for user '%s' in channel '%s', checking if message '%s' matches '%s': %t", bot.User, bot.Channel, cmsg, rep.re.String(), matched))
+					Log(Debug, fmt.Sprintf("Found replyWaiter for user '%s' in channel '%s', checking if message '%s' matches '%s': %t", c.User, c.Channel, cmsg, rep.re.String(), matched))
 					rep.replyChannel <- reply{matched, replied, cmsg}
 				} else {
 					Log(Debug, "Sending retry to next reply waiter")
@@ -259,22 +259,22 @@ func (bot *botContext) handleMessage() {
 	// MessageMatchers.
 	if !messageMatched {
 		// check for ambient message matches
-		messageMatched = bot.checkPluginMatchersAndRun(plugMessage)
+		messageMatched = c.checkPluginMatchersAndRun(plugMessage)
 	}
 	// Check for job commands
 	if !messageMatched {
-		messageMatched = bot.checkJobMatchersAndRun()
+		messageMatched = c.checkJobMatchersAndRun()
 	}
-	if bot.isCommand && !messageMatched { // the robot was spoken to, but nothing matched - call catchAlls
+	if c.isCommand && !messageMatched { // the robot was spoken to, but nothing matched - call catchAlls
 		botCfg.RLock()
 		if !botCfg.shuttingDown {
 			botCfg.RUnlock()
 			r.messageHeard()
-			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", bot.msg))
+			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", c.msg))
 			emit(CatchAllsRan) // for testing, otherwise noop
 			// TODO: should we allow more than 1 catchall?
 			catchAllPlugins := make([]interface{}, 0, 0)
-			for _, t := range bot.tasks.t {
+			for _, t := range c.tasks.t {
 				if plugin, ok := t.(*botPlugin); ok && plugin.CatchAll {
 					catchAllPlugins = append(catchAllPlugins, t)
 				}
@@ -284,19 +284,19 @@ func (bot *botContext) handleMessage() {
 			} else {
 				// Note: if the catchall plugin has configured security, it
 				// should still apply.
-				bot.startPipeline(nil, catchAllPlugins[0], catchAll, "catchall", spaceRe.ReplaceAllString(bot.msg, " "))
+				c.startPipeline(nil, catchAllPlugins[0], catchAll, "catchall", spaceRe.ReplaceAllString(c.msg, " "))
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins
 			botCfg.RUnlock()
 		}
 	}
-	if messageMatched || bot.isCommand {
+	if messageMatched || c.isCommand {
 		shortTermMemories.Lock()
 		delete(shortTermMemories.m, lastMsgContext)
 		shortTermMemories.Unlock()
 	} else {
-		last = shortTermMemory{bot.msg, ts}
+		last = shortTermMemory{c.msg, ts}
 		shortTermMemories.Lock()
 		shortTermMemories.m[lastMsgContext] = last
 		shortTermMemories.Unlock()

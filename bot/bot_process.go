@@ -1,5 +1,4 @@
-// Package bot provides the interfaces for creating a chatops
-// bot.
+// Package bot provides the internal machinery for most of Gopherbot.
 package bot
 
 /* bot.go defines core data structures and public methods for startup.
@@ -117,11 +116,11 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	botCfg.shuttingDown = false
 
 	handle := handler{}
-	bot := &botContext{
+	c := &botContext{
 		workingDirectory: botCfg.workSpace,
 		environment:      make(map[string]string),
 	}
-	if err := bot.loadConfig(true); err != nil {
+	if err := c.loadConfig(true); err != nil {
 		Log(Fatal, fmt.Sprintf("Error loading initial configuration: %v", err))
 	}
 
@@ -193,13 +192,13 @@ func run() <-chan struct{} {
 	// Start the brain loop
 	go runBrain()
 
-	bot := &botContext{
+	c := &botContext{
 		workingDirectory: botCfg.workSpace,
 		environment:      make(map[string]string),
 	}
-	bot.registerActive(nil)
-	bot.loadConfig(false)
-	bot.deregister()
+	c.registerActive(nil)
+	c.loadConfig(false)
+	c.deregister()
 
 	var cl []string
 	botCfg.RLock()

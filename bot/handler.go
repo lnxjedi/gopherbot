@@ -51,8 +51,8 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 	for _, user := range botCfg.ignoreUsers {
 		if strings.EqualFold(userName, user) {
 			Log(Debug, "Ignoring user", userName)
-			bot := &botContext{User: userName}
-			bot.debug("robot is configured to ignore this user", true)
+			c := &botContext{User: userName}
+			c.debug("robot is configured to ignore this user", true)
 			emit(IgnoredUser)
 			botCfg.RUnlock()
 			return
@@ -165,7 +165,7 @@ func (h handler) SetFullName(n string) {
 }
 
 // Connectors that support it can call SetName; otherwise it should
-// be configured in gobot.conf.
+// be configured in gopherbot.yaml.
 func (h handler) SetName(n string) {
 	Log(Debug, "Setting name to: "+n)
 	botCfg.Lock()
