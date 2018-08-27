@@ -36,11 +36,11 @@ do
 	rm -f $OUTFILE
 	if [ "$BUILDOS" = "windows" ]
 	then
-		GOOS=$BUILDOS go build -o gopherbot.exe 
+		GOOS=$BUILDOS go build -mod vendor -o gopherbot.exe
 		echo "Creating $OUTFILE"
 		zip -r $OUTFILE gopherbot.exe LICENSE README.md brain/ conf/ doc/ cfg/ lib/ licenses/ misc/ plugins/ jobs/ tasks/ scripts/ --exclude *.swp --exclude conf/*.yaml --exclude conf/*/*.yaml
 	else
-		GOOS=$BUILDOS go build
+		GOOS=$BUILDOS go build -mod vendor
 		echo "Creating $OUTFILE"
 		zip -r $OUTFILE gopherbot LICENSE README.md brain/ conf/ doc/ cfg/ lib/ licenses/ misc/ plugins/ jobs/ tasks/ scripts/ --exclude *.swp --exclude conf/*.yaml --exclude conf/*/*.yaml
 	fi
