@@ -8,7 +8,7 @@ jobs:
       # specify the version
       - image: "circleci/golang:1.11rc2"
 
-    working_directory: gopherbot
+    working_directory: ~/gopherbot
     steps:
       - checkout
 
