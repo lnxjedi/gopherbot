@@ -1,0 +1,19 @@
+---
+# .gopherci/pipeline.yaml - GopherCI pipeline configuration
+tasks:
+- name: Notify user(s) if any task fails
+  fail_notify:
+    users:
+    - dlp7y
+- name: Run tests
+  repo_exec: go test -v --tags 'test integration' -race ./bot
+- name: Install github deployment tool
+  repo_exec: ./.gopherci/tools.sh
+- name: Build binaries for all platforms
+  repo_exec: ./mkdist.sh
+- name: Publish build artifacts to github
+  repo_exec: ./.gopherci/publish.sh
+- name: Notify on successful completion
+  notify:
+    users:
+    - dlp7y
