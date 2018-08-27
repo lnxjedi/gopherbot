@@ -77,16 +77,13 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 	path = installPath + "/conf/" + filename
 	cf, err = ioutil.ReadFile(path)
 	if err == nil {
-		c.debug(fmt.Sprintf("Loaded configuration from installPath (%s), size: %d", path, len(cf)), false)
 		if err = yaml.Unmarshal(cf, &loader); err != nil {
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
 			Log(Error, err)
 			return err
 		}
 		if len(loader) == 0 {
-			msg := fmt.Sprintf("Empty config hash loading %s", path)
-			c.debug(msg, false)
-			Log(Error, msg)
+			Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
 		} else {
 			for key, value := range loader {
 				jsonMap[key] = value
@@ -95,7 +92,6 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 			loaded = true
 		}
 	} else {
-		c.debug(fmt.Sprintf("No configuration loaded from installPath (%s): %v", path, err), false)
 		realerr = err
 	}
 	if len(configPath) > 0 {
@@ -103,16 +99,13 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 		path = configPath + "/conf/" + filename
 		cf, err = ioutil.ReadFile(path)
 		if err == nil {
-			c.debug(fmt.Sprintf("Loaded configuration from configPath (%s), size: %d", path, len(cf)), false)
 			if err = yaml.Unmarshal(cf, &loader); err != nil {
 				err = fmt.Errorf("Unmarshalling configured \"%s\": %v", filename, err)
 				Log(Error, err)
 				return err // If a badly-formatted config is loaded, we always return an error
 			}
 			if len(loader) == 0 {
-				msg := fmt.Sprintf("Empty config hash loading %s", path)
-				c.debug(msg, false)
-				Log(Error, msg)
+				Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
 			} else {
 				for key, value := range loader {
 					jsonMap[key] = value
@@ -121,7 +114,6 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 				loaded = true
 			}
 		} else {
-			c.debug(fmt.Sprintf("No configuration loaded from configPath (%s): %v", path, err), false)
 			realerr = err
 		}
 	}
