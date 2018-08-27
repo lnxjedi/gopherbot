@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # ssh-init.sh - pipeline job for setting up an ssh-agent for the robot. To
 # use:

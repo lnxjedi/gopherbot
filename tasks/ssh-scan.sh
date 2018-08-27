@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 # Helper task for adding ssh host keys to known_hosts.
 # Usage:
 # - Add to ExternalTasks

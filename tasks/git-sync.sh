@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
