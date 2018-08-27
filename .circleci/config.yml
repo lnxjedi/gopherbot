@@ -6,9 +6,9 @@ jobs:
   build:
     docker:
       # specify the version
-      - image: circleci/golang:1.10.3
+      - image: "circleci/golang:1.11rc2"
 
-    working_directory: /go/src/github.com/lnxjedi/gopherbot
+    working_directory: /gopherbot
     steps:
       - checkout
 
