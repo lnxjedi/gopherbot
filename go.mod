@@ -10,10 +10,10 @@ require (
 	github.com/dgryski/dgoogauth v0.0.0-20160602071324-96977cbd42e2
 	github.com/duosecurity/duo_api_golang v0.0.0-20161007193522-2b2d787eb38e
 	github.com/ghodss/yaml v0.0.0-20161207003320-04f313413ffd
-	github.com/go-ini/ini v1.36.0 // indirect
+	github.com/go-ini/ini v1.38.2 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20180628210949-0892b62f0d9f // indirect
-	github.com/gorilla/websocket v1.2.0 // indirect
-	github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8 // indirect
+	github.com/gorilla/websocket v1.3.0 // indirect
+	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
 	github.com/jordan-wright/email v0.0.0-20160403172529-fd703108daeb
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kr/pretty v0.1.0 // indirect
@@ -31,5 +31,5 @@ require (
 	golang.org/x/text v0.3.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/ini.v1 v1.38.1 // indirect
-	gopkg.in/yaml.v2 v2.0.0-20160928153709-a5b47d31c556 // indirect
+	gopkg.in/yaml.v2 v2.2.1 // indirect
 )
