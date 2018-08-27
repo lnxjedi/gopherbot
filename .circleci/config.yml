@@ -15,9 +15,9 @@ jobs:
       # specify any bash command here prefixed with `run: `
 
       # Get the github publishing tool
-      - run:
-          name: Install release tool
-          command: go get github.com/lnxjedi/github-release
+      # - run:
+      #     name: Install release tool
+      #     command: go get github.com/lnxjedi/github-release
       # Coverage tool
       - run:
           name: Install coverage tool
@@ -40,9 +40,9 @@ jobs:
           command: goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
       # Build
-      - run:
-          name: Build platform-specific zip archives
-          command: ./mkdist.sh
+      # - run:
+      #     name: Build platform-specific zip archives
+      #     command: ./mkdist.sh
 
       # Publish
       # - deploy:
