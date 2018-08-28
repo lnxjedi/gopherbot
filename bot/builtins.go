@@ -122,7 +122,7 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 								chantext = " (direct message only"
 							} else {
 								if len(task.Channels) > tooManyChannels {
-									chantext += "(channels: (many) "
+									chantext += " (channels: (many) "
 								} else {
 									for _, pchan := range task.Channels {
 										if len(chantext) == 0 {
