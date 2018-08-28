@@ -26,6 +26,10 @@ repofile = open("%s/conf/repositories.yaml" % os.getenv("GOPHER_CONFIGDIR"))
 yamldata = repofile.read()
 repodata = load(yamldata)
 
+if not isinstance(repodata, dict):
+    bot.Log("Warn", "GopherCI triggered with invalid 'repositories.yaml', not a python 'dict'")
+    exit(0)
+
 spawned = False
 
 def spawn(reponame, repoconf, spawntype):
