@@ -1,4 +1,6 @@
 ---
+# NOTE: Currently unused data file; pipeline yaml still being considered
+
 # .gopherci/pipeline.yaml - GopherCI pipeline configuration
 tasks:
 - name: Notify user(s) if any task fails
