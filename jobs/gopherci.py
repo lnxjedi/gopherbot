@@ -40,11 +40,11 @@ def spawn(reponame, repoconf, spawntype):
         else:
             bot.Log("Debug", "gopherci spawning build for %s repository '%s', type '%s'" % (spawntype, repository, repotype))
             bot.SpawnTask(repotype, [ reponame, branch ])
-            spawned = True
     else:
         bot.Say("No 'type' specified for %s repository '%s'" % (spawntype, repository))
 
 if repository in repodata:
+    spawned = True
     spawn(repository, repodata[repository], "listed")
 
 for reponame in repodata.keys():
