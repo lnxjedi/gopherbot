@@ -4,6 +4,7 @@ const defaultConfig = `
 # You can delete everything up to Config: below
 # To edit the memes or add your own, copy all of the help and command matchers
 # to your own local config. See: https://api.imgflip.com/
+# For stock memes template ID: https://imgflip.com/memetemplate/<name>
 Disabled: true
 Help:
 - Keywords: [ "meme", "picard", "omg" ]
