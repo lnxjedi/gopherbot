@@ -41,11 +41,19 @@ if not bot.Exclusive(repository, False):
     exit()
 
 bot.ExtendNamespace(repository, keep_history)
-match = re.match(r".*@(.*):.*", clone_url)
+match = re.match(r"ssh://(?:.*@)?([^:/]*)(?::([^/]*)/)?", clone_url)
 if match:
     bot.AddTask("ssh-init", [])
-    bot.AddTask("ssh-scan", [ match.group(1) ])
-bot.AddTask("git-sync", [ clone_url, branch, repository, "true" ])
-bot.AddTask("exec", [ ".gopherci/pipeline.sh" ])
-bot.SetParameter("GOPHERCI_REPOSITORY", repository)
+    if match.group(2):
+        bot.AddTask("ssh-scan", [ "-p", match.group(2), match.group(1) ])
+    else:
+        bot.AddTask("ssh-scan", [ match.group(1) ])
+else:
+    match = re.match(r"(?:.*@)?([^:/]*)", clone_url)
+    if match:
+        bot.AddTask("ssh-init", [])
+        bot.AddTask("ssh-scan", [ match.group(1) ])
+bot.SetParameter("GOPHERCI_REPO", repository)
 bot.SetParameter("GOPHERCI_BRANCH", branch)
+bot.AddTask("git-sync", [ clone_url, branch, repository, "true" ])
+bot.AddTask("localexec", [ ".gopherci/pipeline.sh" ])
