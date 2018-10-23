@@ -12,9 +12,13 @@ do
 done
 SKARGS="${SKARGS# }"
 
+echo "Checking for $1 (extra args: $SKARGS)"
 if grep -Eq "^$1\s|\[$1\]:" $HOME/.ssh/known_hosts
 then
+    echo "$1 already in known_hosts, exiting"
 	exit 0
 fi
 
+echo "Running \"ssh-keyscan $SKARGS $1 2>/dev/null >> $HOME/.ssh/known_hosts\""
+touch $HOME/.ssh/known_hosts # in case it doesn't already exist
 ssh-keyscan $SKARGS $1 2>/dev/null >> $HOME/.ssh/known_hosts
