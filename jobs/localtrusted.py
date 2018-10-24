@@ -56,4 +56,4 @@ else:
 bot.SetParameter("GOPHERCI_REPO", repository)
 bot.SetParameter("GOPHERCI_BRANCH", branch)
 bot.AddTask("git-sync", [ clone_url, branch, repository, "true" ])
-bot.AddTask("localexec", [ ".gopherci/pipeline.sh" ])
+bot.AddTask("exec", [ ".gopherci/pipeline.sh" ])

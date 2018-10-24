@@ -133,6 +133,9 @@ LogLevel: info
 ##  For specifying a key to use other than id_rsa
 #   - Name: KEYNAME
 #     Value: otherkey_rsa
+# - Name: exec
+#   Description: Simple utility for running scripts in a repository
+#   Path: tasks/exec.sh
 # - Name: ansible-playbook
 #   NameSpace: ansible
 #   Description: Ansible playbook (ansible-playbook) runner with vault passphrase helper
