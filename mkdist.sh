@@ -49,6 +49,5 @@ do
 		echo "Creating $OUTFILE"
 		zip -r $OUTFILE gopherbot LICENSE README.md brain/ conf/ doc/ cfg/ lib/ licenses/ misc/ plugins/ jobs/ tasks/ scripts/ --exclude *.swp --exclude conf/*.yaml --exclude conf/*/*.yaml
 	fi
-
 done
 rm -f commit.go
