@@ -1,0 +1,100 @@
+## Port to listen on for http/JSON api calls, for external plugins
+LocalPort: 8880
+
+## Initial log level, one of trace, debug, info, warn, error. See 'help log'
+## for help on changing the log level and viewing contents of the log.
+LogLevel: info
+
+#ExternalPlugins:
+## Useful and/or entertaining plugins
+#- Name: weather
+#  Path: plugins/weather.rb
+#  Description: A plugin that uses OpenWeatherMap to report the weather
+#  Parameters:
+#  - Name: OWM_APIKEY
+#    Value: "<yourkey>" # or omit and use admin command "store task parameter weather OWM_APIKEY=<yourkey>"
+#  - Name: TEMP_UNITS
+#    Value: imperial # or 'metric'
+#  - Name: DEFAULT_COUNTRY
+#    Value: 'us' # or other ISO 3166 country code
+#- Name: chuck
+#  Path: plugins/chuck.rb
+#  Description: A plugin that pipes up whenever The Man's name is mentioned
+#- Name: hosts
+#  Path: plugins/hosts.sh
+#- Name: echo
+## Samples that exercise portions of the API, but server little other purpose.
+## Note: there are more than those listed below.
+#  Path: plugins/samples/echo.sh
+#- Name: whoami
+#  Path: plugins/samples/whoami.sh
+#- Name: psdemo
+#  Path: plugins/samples/psdemo.ps1
+#- Name: rubydemo
+#  Path: plugins/samples/rubydemo.rb
+#- Name: pythondemo
+#  Path: plugins/samples/pythondemo.py
+
+## ExternalJobs describe configurable jobs the robot knows about. Requires
+## config in conf/jobs/<jobname>.yaml (see sample files in dist)
+
+# ExternalJobs:
+# - Name: updatecfg
+#   Description: A job that updates the robot's configuration from git
+#   Path: jobs/updatecfg.sh
+
+## ExternalTasks enumerate external executables that can be added to pipelines
+## with AddTask <name>. Note the e.g. the update plugin requires ssh,
+## ssh-agent, and git. Unlike Plugins and Jobs, ExternalTasks can have
+## NameSpace and Parameters specified, since they don't read external config
+## files.
+
+# ExternalTasks:
+# - Name: notify
+#   Description: Send a message to a user in the job channel, generally as a FailTask
+#   Path: tasks/notify.sh
+# - Name: dmnotify
+#   Description: Send a DM to a user, generally as a FailTask
+#   Path: tasks/dmnotify.sh
+# - Name: ssh-init
+#   Description: "Pipeline job for setting up ssh-agent for the 'bot"
+#   Path: tasks/ssh-init
+#   Parameters:
+##  For specifying a key to use other than id_rsa
+#   - Name: KEYNAME
+#     Value: otherkey_rsa
+# - Name: exec
+#   Description: Simple utility for running scripts in a repository
+#   Path: tasks/exec.sh
+# - Name: ansible-playbook
+#   NameSpace: ansible
+#   Description: Ansible playbook (ansible-playbook) runner with vault passphrase helper
+#   Path: tasks/ansible-playbook.sh
+# - Name: ansible
+#   Description: Ansible
+#   Path: /usr/bin/ansible
+# - Name: ssh
+#   Description: Secure shell for remoting in to hosts
+#   Path: /usr/bin/ssh
+# - Name: ssh-agent
+#   Description: ssh agent command for terminating the agent
+#   Path: /usr/bin/ssh-agent
+# - Name: ssh-scan
+#   Description: Helper script for adding ssh host keys to known_hosts
+#   Path: tasks/ssh-scan.sh
+# - Name: git
+#   Description: One SCM to Rule Them All
+#   Path: /usr/bin/git
+# - Name: git-sync
+#   Description: Simple script to clone or pull a repository
+#   Path: tasks/git-sync.sh
+
+Protocol: slack
+ProtocolConfig:
+  MaxMessageSplit: 2
+
+Brain: file
+BrainConfig:
+  BrainDirectory: /home/robot/brain
+
+EncryptBrain: true

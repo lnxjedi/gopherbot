@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -317,8 +318,14 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		botCfg.defaultAuthorizer = newconfig.DefaultAuthorizer
 	}
 
+	envAdmin := os.Getenv("GOPHER_ADMIN")
 	if newconfig.AdminUsers != nil {
 		botCfg.adminUsers = newconfig.AdminUsers
+	} else {
+		botCfg.adminUsers = []string{}
+	}
+	if len(envAdmin) > 0 {
+		botCfg.adminUsers = append(botCfg.adminUsers, envAdmin)
 	}
 	if newconfig.DefaultChannels != nil {
 		botCfg.plugChannels = newconfig.DefaultChannels

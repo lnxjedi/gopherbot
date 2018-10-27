@@ -71,6 +71,7 @@ func Start(v VersionInfo) {
 	}
 	home := os.Getenv("HOME")
 	if len(home) > 0 {
+		confSearchPath = append(confSearchPath, home+"/conf")
 		confSearchPath = append(confSearchPath, home+"/.gopherbot")
 	}
 	for _, spath := range confSearchPath {
