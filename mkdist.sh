@@ -41,7 +41,7 @@ do
 		zip -r $OUTFILE gopherbot.exe LICENSE README.md brain/ conf/ doc/ cfg/ lib/ licenses/ misc/ plugins/ jobs/ tasks/ scripts/ --exclude *.swp --exclude conf/*.yaml --exclude conf/*/*.yaml
 	elif [ "$BUILDOS" = "linux" ]
 	then
-		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags 'netgo osusergo static_build' -o gopherbot
+		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -tags 'netgo osusergo static_build' -o gopherbot
 		echo "Creating $OUTFILE"
 		zip -r $OUTFILE gopherbot LICENSE README.md brain/ conf/ doc/ cfg/ lib/ licenses/ misc/ plugins/ jobs/ tasks/ scripts/ --exclude *.swp --exclude conf/*.yaml --exclude conf/*/*.yaml
 	else
