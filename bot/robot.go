@@ -93,14 +93,14 @@ func (r *Robot) SetWorkingDirectory(path string) bool {
 	} else {
 		newPath = filepath.Join(botCfg.workSpace, path)
 	}
-	ok := dirExists(newPath)
-	if ok {
+	if respath, ok := checkDirectory(newPath); ok {
 		c := r.getContext()
-		c.workingDirectory = newPath
+		c.workingDirectory = respath
+		return true
 	} else {
 		r.Log(Error, fmt.Sprintf("Invalid path '%s'(%s) in SetWorkingDirectory", path, newPath))
+		return false
 	}
-	return ok
 }
 
 // ExtendNamespace is for CI/CD applications to support building multiple

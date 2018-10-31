@@ -7,20 +7,20 @@ Alias: ";"
 LocalPort: 8889
 LogLevel: debug
 ExternalPlugins:
-- Name: bashdemo
-  Path: plugins/samples/bashdemo.sh
-- Name: pythondemo
-  Path: plugins/samples/pythondemo.py
-- Name: rubydemo
-  Path: plugins/samples/rubydemo.rb
-- Name: echo
-  Path: plugins/samples/echo.sh
-- Name: test
-  Path: plugins/samples/test.sh
-- Name: hello
-  Path: plugins/samples/hello.sh
-- Name: hello2
-  Path: plugins/samples/hello2.sh
+  "bashdemo":
+    Path: plugins/samples/bashdemo.sh
+  "pythondemo":
+    Path: plugins/samples/pythondemo.py
+  "rubydemo":
+    Path: plugins/samples/rubydemo.rb
+  "echo":
+    Path: plugins/samples/echo.sh
+  "test":
+    Path: plugins/samples/test.sh
+  "hello":
+    Path: plugins/samples/hello.sh
+  "hello2":
+    Path: plugins/samples/hello2.sh
 
 Protocol: test
 ProtocolConfig:

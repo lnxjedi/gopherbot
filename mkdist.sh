@@ -1,6 +1,15 @@
 #!/bin/bash -e
-
 # mkdist.sh - create a distributable .zip file
+
+trap_handler()
+{
+    ERRLINE="$1"
+    ERRVAL="$2"
+    echo "line ${ERRLINE} exit status: ${ERRVAL}"
+    rm -f commit.go
+    exit $ERRVAL
+}
+trap 'trap_handler ${LINENO} $?' ERR
 
 usage(){
 	cat <<EOF

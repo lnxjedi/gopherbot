@@ -3,6 +3,8 @@ package bot
 import (
 	"fmt"
 	"os"
+	"path"
+	"path/filepath"
 	"regexp"
 	godebug "runtime/debug"
 	"strings"
@@ -12,6 +14,26 @@ import (
 const escapeAliases = `*+^$?\[]{}`
 const aliases = `&!;:-%#@~<>/`
 
+var hostName, workingDirectory, binDirectory string
+
+func init() {
+	var err error
+	workingDirectory, err = os.Getwd()
+	if err != nil {
+		panic("Unable to get working directory")
+	}
+	// Installpath is where the default config and stock external
+	// plugins are.
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	binDirectory, err = filepath.Abs(filepath.Dir(ex))
+	if err != nil {
+		panic(err)
+	}
+}
+
 func checkPanic(r *Robot, s string) {
 	if rcv := recover(); rcv != nil {
 		Log(Error, fmt.Sprintf("PANIC from '%s': %s\nStack trace:%s", s, rcv, godebug.Stack()))
@@ -19,6 +41,34 @@ func checkPanic(r *Robot, s string) {
 		time.Sleep(2 * time.Second)
 		os.Exit(1)
 	}
+}
+
+func checkDirectory(cpath string) (string, bool) {
+	if len(cpath) == 0 {
+		return "", false
+	}
+	var filePath string
+	if path.IsAbs(cpath) {
+		filePath = path.Clean(cpath)
+	} else {
+		filePath = path.Join(workingDirectory, cpath)
+		if apath, ok := checkDirectory(filePath); ok {
+			return apath, ok
+		}
+		filePath = path.Join(binDirectory, cpath)
+		if apath, ok := checkDirectory(filePath); ok {
+			return apath, ok
+		}
+		return "", false
+	}
+	ds, err := os.Stat(filePath)
+	if err != nil {
+		return "", false
+	}
+	if ds.Mode().IsDir() {
+		return filePath, true
+	}
+	return "", false
 }
 
 func (r *Robot) setFormat(format string) MessageFormat {

@@ -6,27 +6,10 @@ import (
 	"flag"
 	"log"
 	"os"
-	"path/filepath"
 )
-
-var hostName string
 
 func init() {
 	hostName = os.Getenv("HOSTNAME")
-}
-
-func dirExists(path string) bool {
-	if len(path) == 0 {
-		return false
-	}
-	ds, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	if ds.Mode().IsDir() {
-		return true
-	}
-	return false
 }
 
 // Start gets the robot going
@@ -34,7 +17,6 @@ func Start(v VersionInfo) {
 	botVersion = v
 
 	var installpath, configpath string
-	var err error
 
 	// Process command-line flags
 	var configPath string
@@ -51,16 +33,7 @@ func Start(v VersionInfo) {
 	flag.BoolVar(&plainlog, "P", false, plusage+" (shorthand)")
 	flag.Parse()
 
-	// Installpath is where the default config and stock external
-	// plugins are.
-	ex, err := os.Executable()
-	if err != nil {
-		panic(err)
-	}
-	installpath, err = filepath.Abs(filepath.Dir(ex))
-	if err != nil {
-		panic(err)
-	}
+	installpath = binDirectory
 
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
@@ -71,12 +44,12 @@ func Start(v VersionInfo) {
 	}
 	home := os.Getenv("HOME")
 	if len(home) > 0 {
-		confSearchPath = append(confSearchPath, home+"/conf")
+		confSearchPath = append(confSearchPath, home+"/remote")
 		confSearchPath = append(confSearchPath, home+"/.gopherbot")
 	}
 	for _, spath := range confSearchPath {
-		if len(spath) > 0 && dirExists(spath) {
-			configpath = spath
+		if respath, ok := checkDirectory(spath); ok {
+			configpath = respath
 			break
 		}
 	}

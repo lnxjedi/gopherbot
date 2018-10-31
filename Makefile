@@ -10,14 +10,14 @@ gopherbot:
 # persistent volume. You might want to use a different log driver for
 # your environment, e.g. journald.
 prod:
-	docker container run --name gopherbot -d \
+	docker container run --name gopherbot --restart unless-stopped -d \
 	  --mount 'source=gopherbot-home,target=/opt/robot' \
 	  --env-file $(HOME)/gopherbot.env gopherbot:2.0.0
 
 # Example 'dev' container bind mounts the binary and all scripts and
 # libraries from the local repository.
 dev: gopherbot
-	docker container run --name gopherbot -d \
+	docker container run --name gopherbot --restart unless-stopped -d \
 	  --mount 'source=gopherbot-home,target=/opt/robot' \
 	  --mount "type=bind,source=$(PWD)/gopherbot,target=/opt/gopherbot/gopherbot" \
 	  --mount "type=bind,source=$(PWD)/lib,target=/opt/gopherbot/lib" \

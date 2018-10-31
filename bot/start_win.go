@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"sync"
 
 	"golang.org/x/sys/windows/svc"
@@ -16,25 +15,10 @@ import (
 var started bool
 var startLock sync.Mutex
 var isIntSess bool
-var hostName string
 var finish = make(chan struct{})
 
 func init() {
 	hostName = os.Getenv("COMPUTERNAME")
-}
-
-func dirExists(path string) bool {
-	if len(path) == 0 {
-		return false
-	}
-	ds, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	if ds.Mode().IsDir() {
-		return true
-	}
-	return false
 }
 
 // Start gets the robot going; Windows can send this at any time, thus the lock (* AFAIK)
@@ -119,16 +103,7 @@ func Start(v VersionInfo) {
 	botLogger = log.New(logOut, "", log.LstdFlags)
 	botLogger.Println("Initialized logging ...")
 
-	// Installpath is where the default config and stock external
-	// plugins are.
-	ex, err := os.Executable()
-	if err != nil {
-		panic(err)
-	}
-	installpath, err = filepath.Abs(filepath.Dir(ex))
-	if err != nil {
-		panic(err)
-	}
+	installpath = binDirectory
 
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
@@ -141,8 +116,8 @@ func Start(v VersionInfo) {
 		confSearchPath = append(confSearchPath, home+"/.gopherbot")
 	}
 	for _, spath := range confSearchPath {
-		if len(spath) > 0 && dirExists(spath) {
-			configpath = spath
+		if respath, ok := checkDirectory(spath); ok {
+			configpath = respath
 			break
 		}
 	}

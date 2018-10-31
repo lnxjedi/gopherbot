@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -19,36 +20,36 @@ var protocolConfig, brainConfig, historyConfig json.RawMessage
 
 // botconf specifies 'bot configuration, and is read from $GOPHER_CONFIGDIR/conf/gopherbot.yaml
 type botconf struct {
-	AdminContact         string          // Contact info for whomever administers the robot
-	Email                string          // From: address when the robot wants to send an email
-	MailConfig           botMailer       // configuration for sending email
-	Protocol             string          // Name of the connector protocol to use, e.g. "slack"
-	ProtocolConfig       json.RawMessage // Protocol-specific configuration, type for unmarshalling arbitrary config
-	Brain                string          // Type of Brain to use
-	BrainConfig          json.RawMessage // Brain-specific configuration, type for unmarshalling arbitrary config
-	EncryptBrain         bool            // Whether the brain should be encrypted
-	BrainKey             string          // used to decrypt the brainKey
-	HistoryProvider      string          // Name of provider to use for storing and retrieving job/plugin histories
-	HistoryConfig        json.RawMessage // History provider specific configuration
-	WorkSpace            string          // Read/Write area the robot uses to do work
-	DefaultElevator      string          // Elevator plugin to use by default for ElevatedCommands and ElevateImmediateCommands
-	DefaultAuthorizer    string          // Authorizer plugin to use by default for AuthorizedCommands, or when AuthorizeAllCommands = true
-	DefaultMessageFormat string          // How the robot should format outgoing messages unless told otherwise; default: Raw
-	Name                 string          // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
-	DefaultAllowDirect   bool            // Whether plugins are available in a DM by default
-	DefaultChannels      []string        // Channels where plugins are active by default, e.g. [ "general", "random" ]
-	IgnoreUsers          []string        // Users the 'bot never talks to - like other bots
-	JoinChannels         []string        // Channels the 'bot should join when it logs in (not supported by all protocols)
-	DefaultJobChannel    string          // Where job status is posted by default
-	TimeZone             string          // For evaluating the hour in a job schedule
-	ExternalJobs         []externalTask  // list of available jobs; config in conf/jobs/<jobname>.yaml
-	ScheduledTasks       []scheduledTask // see tasks.go
-	ExternalPlugins      []externalTask  // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
-	ExternalTasks        []externalTask  // List executables that can be added to a pipeline (but can't start one)
-	AdminUsers           []string        // List of users who can access administrative commands
-	Alias                string          // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
-	LocalPort            int             // Port number for listening on localhost, for CLI plugins
-	LogLevel             string          // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
+	AdminContact         string                  // Contact info for whomever administers the robot
+	Email                string                  // From: address when the robot wants to send an email
+	MailConfig           botMailer               // configuration for sending email
+	Protocol             string                  // Name of the connector protocol to use, e.g. "slack"
+	ProtocolConfig       json.RawMessage         // Protocol-specific configuration, type for unmarshalling arbitrary config
+	Brain                string                  // Type of Brain to use
+	BrainConfig          json.RawMessage         // Brain-specific configuration, type for unmarshalling arbitrary config
+	EncryptBrain         bool                    // Whether the brain should be encrypted
+	BrainKey             string                  // used to decrypt the brainKey
+	HistoryProvider      string                  // Name of provider to use for storing and retrieving job/plugin histories
+	HistoryConfig        json.RawMessage         // History provider specific configuration
+	WorkSpace            string                  // Read/Write area the robot uses to do work
+	DefaultElevator      string                  // Elevator plugin to use by default for ElevatedCommands and ElevateImmediateCommands
+	DefaultAuthorizer    string                  // Authorizer plugin to use by default for AuthorizedCommands, or when AuthorizeAllCommands = true
+	DefaultMessageFormat string                  // How the robot should format outgoing messages unless told otherwise; default: Raw
+	Name                 string                  // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
+	DefaultAllowDirect   bool                    // Whether plugins are available in a DM by default
+	DefaultChannels      []string                // Channels where plugins are active by default, e.g. [ "general", "random" ]
+	IgnoreUsers          []string                // Users the 'bot never talks to - like other bots
+	JoinChannels         []string                // Channels the 'bot should join when it logs in (not supported by all protocols)
+	DefaultJobChannel    string                  // Where job status is posted by default
+	TimeZone             string                  // For evaluating the hour in a job schedule
+	ExternalJobs         map[string]externalTask // list of available jobs; config in conf/jobs/<jobname>.yaml
+	ExternalPlugins      map[string]externalTask // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
+	ExternalTasks        map[string]externalTask // List executables that can be added to a pipeline (but can't start one)
+	ScheduledTasks       []scheduledTask         // see tasks.go
+	AdminUsers           []string                // List of users who can access administrative commands
+	Alias                string                  // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
+	LocalPort            int                     // Port number for listening on localhost, for CLI plugins
+	LogLevel             string                  // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
 type repository struct {
@@ -59,6 +60,34 @@ type repository struct {
 var confLock sync.RWMutex
 var config *botconf
 var repositories map[string]repository
+
+func mergemap(m, t map[string]interface{}) map[string]interface{} {
+	for k, v := range m {
+		if tv, ok := t[k]; ok {
+			if reflect.TypeOf(v) == reflect.TypeOf(tv) {
+				switch v.(type) {
+				case map[string]interface{}:
+					mv := v.(map[string]interface{})
+					mtv := tv.(map[string]interface{})
+					t[k] = mergemap(mv, mtv)
+				case []interface{}:
+					sv := v.([]interface{})
+					stv := tv.([]interface{})
+					stv = append(stv, sv...)
+					t[k] = stv
+				default:
+					t[k] = v
+				}
+			} else {
+				// mis-matched types, use new value
+				t[k] = v
+			}
+		} else {
+			t[k] = v
+		}
+	}
+	return t
+}
 
 // getConfigFile loads a config file first from installPath, then from configPath
 // if set.
@@ -71,24 +100,22 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 	)
 
 	loaded := false
-	var loader map[string]json.RawMessage
 	var path string
 
-	loader = make(map[string]json.RawMessage)
+	installed := make(map[string]interface{})
+	configured := make(map[string]interface{})
+	var cfg map[string]interface{}
 	path = installPath + "/conf/" + filename
 	cf, err = ioutil.ReadFile(path)
 	if err == nil {
-		if err = yaml.Unmarshal(cf, &loader); err != nil {
+		if err = yaml.Unmarshal(cf, &installed); err != nil {
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
 			Log(Error, err)
 			return err
 		}
-		if len(loader) == 0 {
+		if len(installed) == 0 {
 			Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
 		} else {
-			for key, value := range loader {
-				jsonMap[key] = value
-			}
 			Log(Debug, fmt.Sprintf("Loaded installed conf/%s", filename))
 			loaded = true
 		}
@@ -96,28 +123,29 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 		realerr = err
 	}
 	if len(configPath) > 0 {
-		loader = make(map[string]json.RawMessage)
 		path = configPath + "/conf/" + filename
 		cf, err = ioutil.ReadFile(path)
 		if err == nil {
-			if err = yaml.Unmarshal(cf, &loader); err != nil {
+			if err = yaml.Unmarshal(cf, &configured); err != nil {
 				err = fmt.Errorf("Unmarshalling configured \"%s\": %v", filename, err)
 				Log(Error, err)
 				return err // If a badly-formatted config is loaded, we always return an error
 			}
-			if len(loader) == 0 {
+			if len(configured) == 0 {
 				Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
 			} else {
-				for key, value := range loader {
-					jsonMap[key] = value
-				}
 				Log(Debug, fmt.Sprintf("Loaded configured conf/%s", filename))
 				loaded = true
 			}
 		} else {
 			realerr = err
 		}
+		cfg = mergemap(configured, installed)
+	} else {
+		cfg = installed
 	}
+	jsonData, _ := json.Marshal(cfg)
+	json.Unmarshal(jsonData, &jsonMap)
 	if required && !loaded {
 		return realerr
 	}
@@ -128,6 +156,9 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 func (c *botContext) loadConfig(preConnect bool) error {
 	var loglevel LogLevel
 	newconfig := &botconf{}
+	newconfig.ExternalJobs = make(map[string]externalTask)
+	newconfig.ExternalPlugins = make(map[string]externalTask)
+	newconfig.ExternalTasks = make(map[string]externalTask)
 	configload := make(map[string]json.RawMessage)
 	tasksOk := true
 
@@ -153,7 +184,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	for key, value := range configload {
 		var strval string
 		var sarrval []string
-		var tval []externalTask
+		var tval map[string]externalTask
 		var stval []scheduledTask
 		var mailval botMailer
 		var boolval bool
@@ -234,11 +265,11 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		case "EncryptBrain":
 			newconfig.EncryptBrain = *(val.(*bool))
 		case "ExternalPlugins":
-			newconfig.ExternalPlugins = *(val.(*[]externalTask))
+			newconfig.ExternalPlugins = *(val.(*map[string]externalTask))
 		case "ExternalJobs":
-			newconfig.ExternalJobs = *(val.(*[]externalTask))
+			newconfig.ExternalJobs = *(val.(*map[string]externalTask))
 		case "ExternalTasks":
-			newconfig.ExternalTasks = *(val.(*[]externalTask))
+			newconfig.ExternalTasks = *(val.(*map[string]externalTask))
 		case "ScheduledTasks":
 			newconfig.ScheduledTasks = *(val.(*[]scheduledTask))
 		case "AdminUsers":
@@ -331,37 +362,37 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		botCfg.plugChannels = newconfig.DefaultChannels
 	}
 	if newconfig.ExternalPlugins != nil {
-		for i, ep := range newconfig.ExternalPlugins {
-			if len(ep.Name) == 0 {
-				tasksOk = false
-				Log(Error, fmt.Errorf("Reading external plugins, zero-length Name for plugin #%d, not reloading plugins", i))
-			}
+		ni := len(newconfig.ExternalPlugins)
+		et := make([]externalTask, ni)
+		i := 0
+		for name, task := range newconfig.ExternalPlugins {
+			et[i] = task
+			et[i].Name = name
+			i++
 		}
-		if tasksOk {
-			botCfg.externalPlugins = newconfig.ExternalPlugins
-		}
+		botCfg.externalPlugins = et
 	}
 	if newconfig.ExternalJobs != nil {
-		for i, ep := range newconfig.ExternalJobs {
-			if len(ep.Name) == 0 {
-				tasksOk = false
-				Log(Error, fmt.Errorf("Reading external jobs, zero-length Name for job #%d, not reloading jobs", i))
-			}
+		ni := len(newconfig.ExternalJobs)
+		et := make([]externalTask, ni)
+		i := 0
+		for name, task := range newconfig.ExternalJobs {
+			et[i] = task
+			et[i].Name = name
+			i++
 		}
-		if tasksOk {
-			botCfg.externalJobs = newconfig.ExternalJobs
-		}
+		botCfg.externalJobs = et
 	}
 	if newconfig.ExternalTasks != nil {
-		for i, et := range newconfig.ExternalTasks {
-			if len(et.Name) == 0 || len(et.Path) == 0 {
-				tasksOk = false
-				Log(Error, fmt.Errorf("Reading external tasks, zero-length Name or Path for task #%d, not reloading tasks", i))
-			}
+		ni := len(newconfig.ExternalTasks)
+		et := make([]externalTask, ni)
+		i := 0
+		for name, task := range newconfig.ExternalTasks {
+			et[i] = task
+			et[i].Name = name
+			i++
 		}
-		if tasksOk {
-			botCfg.externalTasks = newconfig.ExternalTasks
-		}
+		botCfg.externalTasks = et
 	}
 	st := make([]scheduledTask, 0, len(newconfig.ScheduledTasks))
 	for _, s := range newconfig.ScheduledTasks {
@@ -397,8 +428,8 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			p = installPath
 		}
 		if newconfig.WorkSpace != "" {
-			if dirExists(newconfig.WorkSpace) {
-				botCfg.workSpace = newconfig.WorkSpace
+			if respath, ok := checkDirectory(newconfig.WorkSpace); ok {
+				botCfg.workSpace = respath
 			} else {
 				Log(Error, fmt.Sprintf("WorkSpace directory '%s' doesn't exist, using '%s'", newconfig.WorkSpace, p))
 			}

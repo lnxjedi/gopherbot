@@ -10,7 +10,7 @@ then
 fi
 
 # Get dependencies
-AddTask exec go get -v -t -d ./...
+AddTask exec go get -v -d ./...
 
 # Run tests
 AddTask exec go test -v --tags 'test integration' -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
