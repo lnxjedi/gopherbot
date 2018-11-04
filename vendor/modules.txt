@@ -1,0 +1,61 @@
+# github.com/aws/aws-sdk-go v1.13.38
+github.com/aws/aws-sdk-go/aws
+github.com/aws/aws-sdk-go/aws/awserr
+github.com/aws/aws-sdk-go/aws/credentials
+github.com/aws/aws-sdk-go/aws/session
+github.com/aws/aws-sdk-go/service/dynamodb
+github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute
+github.com/aws/aws-sdk-go/aws/endpoints
+github.com/aws/aws-sdk-go/internal/sdkio
+github.com/aws/aws-sdk-go/internal/shareddefaults
+github.com/aws/aws-sdk-go/aws/client
+github.com/aws/aws-sdk-go/aws/corehandlers
+github.com/aws/aws-sdk-go/aws/credentials/stscreds
+github.com/aws/aws-sdk-go/aws/defaults
+github.com/aws/aws-sdk-go/aws/request
+github.com/aws/aws-sdk-go/aws/awsutil
+github.com/aws/aws-sdk-go/aws/client/metadata
+github.com/aws/aws-sdk-go/aws/signer/v4
+github.com/aws/aws-sdk-go/private/protocol
+github.com/aws/aws-sdk-go/private/protocol/jsonrpc
+github.com/aws/aws-sdk-go/internal/sdkrand
+github.com/aws/aws-sdk-go/service/sts
+github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds
+github.com/aws/aws-sdk-go/aws/credentials/endpointcreds
+github.com/aws/aws-sdk-go/aws/ec2metadata
+github.com/aws/aws-sdk-go/private/protocol/rest
+github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
+github.com/aws/aws-sdk-go/private/protocol/query
+github.com/aws/aws-sdk-go/private/protocol/query/queryutil
+github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
+# github.com/chzyer/readline v0.0.0-20171208011716-f6d7a1f6fbf3
+github.com/chzyer/readline
+# github.com/dgryski/dgoogauth v0.0.0-20160602071324-96977cbd42e2
+github.com/dgryski/dgoogauth
+# github.com/duosecurity/duo_api_golang v0.0.0-20161007193522-2b2d787eb38e
+github.com/duosecurity/duo_api_golang
+github.com/duosecurity/duo_api_golang/authapi
+# github.com/ghodss/yaml v0.0.0-20161207003320-04f313413ffd
+github.com/ghodss/yaml
+# github.com/go-ini/ini v1.36.0
+github.com/go-ini/ini
+# github.com/gorilla/websocket v1.2.0
+github.com/gorilla/websocket
+# github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8
+github.com/jmespath/go-jmespath
+# github.com/jordan-wright/email v0.0.0-20160403172529-fd703108daeb
+github.com/jordan-wright/email
+# github.com/nlopes/slack v0.4.0
+github.com/nlopes/slack
+github.com/nlopes/slack/slackutilsx
+# github.com/pkg/errors v0.8.0
+github.com/pkg/errors
+# golang.org/x/sys v0.0.0-20171220172423-d818ba11af44
+golang.org/x/sys/windows/svc
+golang.org/x/sys/windows/svc/eventlog
+golang.org/x/sys/windows/svc/mgr
+golang.org/x/sys/windows
+golang.org/x/sys/windows/registry
+golang.org/x/sys/unix
+# gopkg.in/yaml.v2 v2.0.0-20160928153709-a5b47d31c556
+gopkg.in/yaml.v2
