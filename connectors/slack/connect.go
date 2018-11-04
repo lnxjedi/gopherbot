@@ -144,7 +144,12 @@ loop:
 			switch ev := msg.Data.(type) {
 			case *slack.HelloEvent:
 				// Ignore hello
-			case *slack.ChannelArchiveEvent, *slack.ChannelCreatedEvent, *slack.ChannelDeletedEvent, *slack.ChannelRenameEvent:
+			case *slack.ChannelArchiveEvent, *slack.ChannelUnarchiveEvent,
+				*slack.ChannelCreatedEvent, *slack.ChannelDeletedEvent,
+				*slack.ChannelRenameEvent, *slack.GroupArchiveEvent,
+				*slack.GroupUnarchiveEvent, *slack.GroupCreatedEvent,
+				*slack.GroupRenameEvent, *slack.IMCloseEvent,
+				*slack.IMCreatedEvent, *slack.IMOpenEvent:
 				sc.updateChannelMaps("")
 
 			case *slack.MessageEvent:
