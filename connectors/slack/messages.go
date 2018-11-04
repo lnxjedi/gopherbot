@@ -187,11 +187,11 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		}
 		if !ok {
 			s.Log(bot.Warn, "Couldn't find user name for IM", chanID)
-			s.IncomingMessage("", chanID, text, msg)
+			s.IncomingMessage("", chanID, text, bot.Slack, msg)
 			return
 		}
-		s.IncomingMessage("", directUserName, text, msg)
+		s.IncomingMessage("", directUserName, text, bot.Slack, msg)
 	} else {
-		s.IncomingMessage(ci.Name, userName, text, msg)
+		s.IncomingMessage(ci.Name, userName, text, bot.Slack, msg)
 	}
 }
