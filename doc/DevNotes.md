@@ -3,8 +3,8 @@
 `DevNotes.md` - TODO items and design notes for future development.
 
 ## To be sorted / filtered
-- TODO: try converting lists of tasks/jobs/plugins to map[name]struct
-- TODO: Fix extend namespace message, not in job channel
+- TODO: Add Reload() method to connectors, many of which may require additional data
+- DONE: try converting lists of tasks/jobs/plugins to map[name]struct
 - To obtain the `BXXXXXXXX` ID for a webhook, visit the settings page, e.g.: https://myteam.slack.com/services/BC7DLEPA8 <- that's it!
 - Fix history paging; goes to next page if no reply
 - Audit reload cases where something not configured needs to be un-configured, similar to scheduled jobs n->0

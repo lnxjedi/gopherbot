@@ -4,9 +4,7 @@ package slack
 most of the internal methods. */
 
 import (
-	"bytes"
 	"fmt"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -21,101 +19,287 @@ const optimeout = 1 * time.Minute
 type slackConnector struct {
 	api             *slack.Client
 	conn            *slack.RTM
-	maxMessageSplit int                   // The maximum # of ~4000 byte messages to send before truncating
-	running         bool                  // set on call to Run
-	botName         string                // human-readable name of bot
-	botFullName     string                // human-readble full name of the bot
-	botID           string                // slack internal bot ID
-	name            string                // name for this connector
-	teamID          string                // Slack unique Team ID, for identifying team users
-	bot.Handler                           // bot API for connectors
-	sync.RWMutex                          // shared mutex for locking connector data structures
-	channelToID     map[string]string     // map from channel names to channel IDs
-	idToChannel     map[string]string     // map from channel ID to channel name
-	userInfo        map[string]slack.User // map from user names to slack.User
-	idToUser        map[string]string     // map from user ID to user name
-	userIDToIM      map[string]string     // map from user ID to IM channel ID
-	imToUser        map[string]string     // map from IM channel ID to user name
+	maxMessageSplit int                       // The maximum # of ~4000 byte messages to send before truncating
+	running         bool                      // set on call to Run
+	botName         string                    // human-readable name of bot
+	botFullName     string                    // human-readble full name of the bot
+	botID           string                    // slack internal bot ID
+	name            string                    // name for this connector
+	teamID          string                    // Slack unique Team ID, for identifying team users
+	bot.Handler                               // bot API for connectors
+	sync.RWMutex                              // shared mutex for locking connector data structures
+	channelInfo     map[string]*slack.Channel // info about all the channels the robot knows about
+	channelToID     map[string]string         // map from channel names to channel IDs
+	idToChannel     map[string]string         // map from channel ID to channel name
+	userInfo        map[string]*slack.User    // map from user names to slack.User
+	idToUser        map[string]string         // map from user ID to user name
+	userIDToIM      map[string]string         // map from user ID to IM channel ID
+	imToUserID      map[string]string         // map from IM channel ID to user ID
+	botUserID       map[string]string         // map of BXXX IDs to username defined in the BotRoster
+	botIDUser       map[string]string         // map of defined username to BXXX ID
 }
 
-var botUserID map[string]string // map of BXXX IDs to username defined in the BotRoster
-var botIDUser map[string]string // map of defined username to BXXX ID
+func (s *slackConnector) updateUserList(want string) (ret string) {
+	deadline := time.Now().Add(optimeout)
+	var (
+		err      error
+		userlist []slack.User
+	)
 
-type userlast struct {
-	user, channel string
+	userIDMap := make(map[string]string)
+	userMap := make(map[string]*slack.User)
+	for tries := uint(0); time.Now().Before(deadline); tries++ {
+		userlist, err = s.api.GetUsers()
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		s.Log(bot.Error, fmt.Sprintf("Protocol timeout updating users: %v\n", err))
+	}
+	for i, user := range userlist {
+		if user.TeamID == s.teamID {
+			userMap[user.Name] = &userlist[i]
+			userIDMap[user.ID] = user.Name
+		}
+	}
+	w := strings.Split(want, ":")
+	t := w[0]
+	switch t {
+	case "i":
+		u := w[1]
+		if r, ok := userMap[u]; ok {
+			ret = r.ID
+		} else {
+			// Don't update maps on failed lookup, to avoid thrashing
+			// locks on repeated lookups of non-users
+			return ""
+		}
+	case "u":
+		i := w[1]
+		if r, ok := userIDMap[i]; ok {
+			ret = r
+		} else {
+			return "" // see above
+		}
+	}
+	for i, u := range userMap {
+		s.Log(bot.Trace, "Mapping user name", u.Name, "to", i)
+	}
+	s.Lock()
+	s.userInfo = userMap
+	s.idToUser = userIDMap
+	s.Unlock()
+	s.Log(bot.Debug, "User maps updated")
+	return
 }
-
-var lastmsgtime = struct {
-	m map[userlast]time.Time
-	sync.Mutex
-}{
-	make(map[userlast]time.Time),
-	sync.Mutex{},
-}
-
-// If we get back an edited message from a user in a channel within the
-// ignorewindow ... well, we ignore it. The problem is, the Slack service will
-// on occasion edit a user message, and the robot was seeing this as the user
-// sending the same command twice in short order.
-const ignorewindow = 2 * time.Second
 
 func (s *slackConnector) userID(u string) (i string, ok bool) {
-	if i, ok = botUserID[u]; ok {
+	s.RLock()
+	if i, ok = s.botUserID[u]; ok {
+		s.RUnlock()
 		return
 	}
-	s.RLock()
 	user, ok := s.userInfo[u]
 	s.RUnlock()
 	if !ok {
-		s.Log(bot.Error, fmt.Sprintf("Failed lookup for user '%s", u))
+		i := s.updateUserList("i:" + u)
+		if len(i) > 0 {
+			return i, true
+		}
+		s.Log(bot.Error, fmt.Sprintf("Failed ID lookup for user '%s", u))
 		return "", false
 	}
 	return user.ID, ok
 }
 
-func (s *slackConnector) userName(i string) (u string, ok bool) {
+func (s *slackConnector) userName(i string) (user string, found bool) {
+	s.RLock()
 	if strings.HasPrefix(i, "B") {
-		u, ok = botIDUser[i]
+		user, found = s.botIDUser[i]
+		s.RUnlock()
 		return
 	}
-	s.RLock()
-	u, ok = s.idToUser[i]
+	user, found = s.idToUser[i]
 	s.RUnlock()
-	if !ok {
-		su, err := s.api.GetUserInfo(i)
-		if err == nil {
-			if su.TeamID != s.teamID {
-				s.Log(bot.Warn, fmt.Sprintf("Not returning username for foreign user: %s", i))
-				return "", false
-			}
-			u = su.Name
-			ok = true
+	if !found {
+		u := s.updateUserList("u:" + i)
+		if len(u) == 0 {
+			s.Log(bot.Error, fmt.Sprintf("Failed username lookup for ID '%s", i))
+			return "", false
 		}
-		if ok {
-			s.Lock()
-			s.idToUser[i] = u
-			s.userInfo[u] = *su
-			s.Unlock()
-		}
+		user = u
+		found = true
 	}
-	if _, ok := botUserID[u]; ok {
-		s.Log(bot.Error, fmt.Sprintf("User '%s', ID '%s' duplicates bot with same username from BotRoster", u, i))
+	s.RLock()
+	if _, ok := s.botUserID[user]; ok {
+		s.Log(bot.Error, fmt.Sprintf("User '%s', ID '%s' duplicates bot with same username from BotRoster", user, i))
+		s.RUnlock()
 		return "", false
 	}
-	return u, ok
+	s.RUnlock()
+	return
 }
 
-func (s *slackConnector) userIMID(u string) (i string, ok bool) {
+func (s *slackConnector) updateChannelMaps(want string) (ret string) {
+	var (
+		err    error
+		cursor string
+	)
+	limit := 100
+
+	deadline := time.Now().Add(optimeout)
+
+	channelList := make([]slack.Channel, 0)
+pageLoop:
+	for {
+		for tries := uint(0); time.Now().Before(deadline); tries++ {
+			var cl []slack.Channel
+			params := &slack.GetConversationsParameters{
+				Cursor:          cursor,
+				ExcludeArchived: "true",
+				Limit:           limit,
+				Types: []string{
+					"public_channel",
+					"private_channel",
+					"mpim",
+					"im",
+				},
+			}
+			cl, cursor, err = s.api.GetConversations(params)
+			if len(cl) > 0 {
+				channelList = append(channelList, cl...)
+			}
+			if err == nil && len(cursor) == 0 {
+				break pageLoop
+			}
+			if len(cursor) > 0 {
+				deadline = time.Now().Add(optimeout)
+			}
+		}
+		if err != nil {
+			s.Log(bot.Error, fmt.Sprintf("Protocol timeout updating channels: %v\n", err))
+			break
+		}
+	}
+	userIMMap := make(map[string]string)
+	userIMIDMap := make(map[string]string)
+	chanMap := make(map[string]string)
+	chanIDMap := make(map[string]string)
+	chanInfo := make(map[string]*slack.Channel)
+	for i, channel := range channelList {
+		chanInfo[channel.ID] = &channelList[i]
+		if channel.IsIM {
+			userIMMap[channel.User] = channel.ID
+			userIMIDMap[channel.ID] = channel.User
+		} else {
+			chanMap[channel.Name] = channel.ID
+			chanIDMap[channel.ID] = channel.Name
+		}
+	}
+	w := strings.Split(want, ":")
+	t := w[0]
+	switch t {
+	case "di":
+		c := w[1]
+		if r, ok := userIMIDMap[c]; ok {
+			ret = r
+		} else {
+			// Don't update maps on failed lookup, to avoid thrashing
+			// locks on repeated lookups of non-users
+			return ""
+		}
+	case "dc":
+		i := w[1]
+		if r, ok := userIMMap[i]; ok {
+			ret = r
+		} else {
+			return "" // see above
+		}
+	case "ci":
+		c := w[1]
+		if r, ok := chanMap[c]; ok {
+			ret = r
+		} else {
+			return ""
+		}
+	case "cc":
+		i := w[1]
+		if r, ok := chanIDMap[i]; ok {
+			ret = r
+		} else {
+			return ""
+		}
+	}
+	s.Lock()
+	s.channelInfo = chanInfo
+	s.userIDToIM = userIMMap
+	s.imToUserID = userIMIDMap
+	s.channelToID = chanMap
+	s.idToChannel = chanIDMap
+	s.Unlock()
+	s.Log(bot.Debug, "Channel maps updated")
+	return
+}
+
+func (s *slackConnector) getChannelInfo(i string) (c *slack.Channel, ok bool) {
 	s.RLock()
-	i, ok = s.userIDToIM[u]
+	c, ok = s.channelInfo[i]
 	s.RUnlock()
+	if !ok {
+		s.updateChannelMaps("")
+		s.RLock()
+		c, ok = s.channelInfo[i]
+		s.RUnlock()
+		if !ok {
+			s.Log(bot.Error, fmt.Sprintf("Failed lookup of channel info from ID: %s", i))
+			return nil, false
+		}
+	}
+	return c, ok
+}
+
+// Get IM conversation from user ID
+func (s *slackConnector) userIMID(i string) (c string, ok bool) {
+	s.RLock()
+	c, ok = s.userIDToIM[i]
+	s.RUnlock()
+	if !ok {
+		c = s.updateChannelMaps("dc:" + i)
+		if len(i) == 0 {
+			s.Log(bot.Error, fmt.Sprintf("Failed lookup of conversation from user ID: %s", i))
+			return "", false
+		}
+	}
 	return i, ok
+}
+
+// Get user name from conversation
+func (s *slackConnector) imUser(c string) (u string, found bool) {
+	s.RLock()
+	i, ok := s.imToUserID[c]
+	s.RUnlock()
+	if !ok {
+		i = s.updateChannelMaps("di:" + c)
+		if len(i) == 0 {
+			s.Log(bot.Error, fmt.Sprintf("Failed lookup of user ID from IM: %s", c))
+			return "", false
+		}
+	}
+	return s.userName(i)
 }
 
 func (s *slackConnector) chanID(c string) (i string, ok bool) {
 	s.RLock()
 	i, ok = s.channelToID[c]
 	s.RUnlock()
+	if !ok {
+		c = s.updateChannelMaps("ci:" + c)
+		if len(i) == 0 {
+			s.Log(bot.Error, fmt.Sprintf("Failed lookup of channel ID for '%s'", c))
+			return "", false
+		}
+	}
 	return i, ok
 }
 
@@ -123,284 +307,12 @@ func (s *slackConnector) channelName(i string) (c string, ok bool) {
 	s.RLock()
 	c, ok = s.idToChannel[i]
 	s.RUnlock()
-	return c, ok
-}
-
-func (s *slackConnector) imUser(c string) (u string, ok bool) {
-	s.RLock()
-	u, ok = s.imToUser[c]
-	s.RUnlock()
-	return u, ok
-}
-
-func optQuote(msg string, f bot.MessageFormat) string {
-	if f == bot.Fixed {
-		return "```" + msg + "```"
-	}
-	return msg
-}
-
-const escapePad = "\f"
-
-// slackifyMessage replaces @username with the slack-internal representation, handles escaping,
-// takes care of formatting, and segments the message if needed.
-func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []string {
-	maxSize := slack.MaxMessageTextLength - 500 // workaround for large message disconnects
-	if f == bot.Fixed {
-		maxSize -= 6
-	}
-	sbytes := []byte(msg)
-	sbytes = bytes.Replace(sbytes, []byte("&"), []byte("&amp;"), -1)
-	sbytes = bytes.Replace(sbytes, []byte("<"), []byte("&lt;"), -1)
-	sbytes = bytes.Replace(sbytes, []byte(">"), []byte("&gt;"), -1)
-	// 'escape' special chars
-	if f == bot.Variable {
-		for _, padChar := range []string{"`", "*", "_", "@", "#", ":"} {
-			padBytes := []byte(padChar)
-			paddedBytes := []byte(escapePad + padChar + escapePad)
-			sbytes = bytes.Replace(sbytes, padBytes, paddedBytes, -1)
-		}
-	}
-
-	mentionRe := regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
-	sbytes = mentionRe.ReplaceAllFunc(sbytes, func(bytes []byte) []byte {
-		replace, ok := s.userID(string(bytes[1:]))
-		if ok {
-			return []byte("<@" + replace + ">")
-		}
-		return bytes
-	})
-	msgLen := len(sbytes)
-	if msgLen <= maxSize {
-		return []string{optQuote(string(sbytes), f)}
-	}
-	// It's too big, gotta chop it up. We will send at most maxMessageSplit
-	// messages, plus "(message truncated)".
-	msgs := make([]string, 0, s.maxMessageSplit+1)
-	s.Log(bot.Info, fmt.Sprintf("Message too long, segmenting: %d bytes", msgLen))
-	// Chop it up into <=maxSize pieces
-	for len(sbytes) > maxSize && len(msgs) < s.maxMessageSplit {
-		lineEnd := bytes.LastIndexByte(sbytes[:maxSize], byte('\n'))
-		if lineEnd == -1 { // no newline in this chunk
-			msgs = append(msgs, optQuote(string(sbytes[:maxSize]), f))
-			sbytes = sbytes[maxSize:]
-		} else {
-			msgs = append(msgs, optQuote(string(sbytes[:lineEnd]), f))
-			sbytes = sbytes[lineEnd+1:] // skip over the newline
-		}
-	}
-	if len(msgs) == s.maxMessageSplit { // we've maxed out
-		if len(sbytes) > 0 { // if there's anything left, we've truncated
-			msgs = append(msgs, "(message too long, truncated)")
-		}
-	} else { // the last chunk fits
-		msgs = append(msgs, optQuote(string(sbytes), f))
-	}
-	return msgs
-}
-
-// processMessage examines incoming messages, removes extra slack cruft, and
-// routes them to the appropriate bot method.
-func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
-	s.Log(bot.Trace, fmt.Sprintf("Message received: %v", msg.Msg))
-
-	reAddedLinks := regexp.MustCompile(`<https?://[\w-./]+\|([\w-./]+)>`) // match a slack-inserted link
-	reLinks := regexp.MustCompile(`<(https?://[.\w-:/?=~]+)>`)            // match a link where slack added <>
-	reUser := regexp.MustCompile(`<@U[A-Z0-9]{8}>`)                       // match a @user mention
-
-	// Channel is always part of the root message; if subtype is
-	// message_changed, text and user are part of the submessage
-	chanID := msg.Channel
-	var userID string
-	timestamp := time.Now()
-	var message slack.Msg
-	if msg.Msg.SubType == "message_changed" {
-		message = *msg.SubMessage
-		userID = message.User
-		if userID == "" {
-			if message.BotID != "" {
-				userID = message.BotID
-			}
-		}
-		lastlookup := userlast{userID, chanID}
-		lastmsgtime.Lock()
-		msgtime, exists := lastmsgtime.m[lastlookup]
-		lastmsgtime.Unlock()
-		if exists && timestamp.Sub(msgtime) < ignorewindow {
-			s.Log(bot.Debug, fmt.Sprintf("Ignoring edited message \"%s\" arriving within the ignorewindow: %v", msg.SubMessage.Text, ignorewindow))
-			return
-		}
-		s.Log(bot.Debug, fmt.Sprintf("SubMessage (edited message) received: %v", message))
-	} else {
-		message = msg.Msg
-		userID = message.User
-		if userID == "" {
-			if message.BotID != "" {
-				userID = message.BotID
-			}
-		}
-		lastlookup := userlast{userID, chanID}
-		lastmsgtime.Lock()
-		lastmsgtime.m[lastlookup] = timestamp
-		lastmsgtime.Unlock()
-	}
-	text := message.Text
-	// some bot messages don't have any text, so check for a fallback
-	if text == "" && len(msg.Attachments) > 0 {
-		text = msg.Attachments[0].Fallback
-	}
-	// Remove auto-links - chatbots don't want those
-	text = reAddedLinks.ReplaceAllString(text, "$1")
-	text = reLinks.ReplaceAllString(text, "$1")
-
-	userName, ok := s.userName(userID)
 	if !ok {
-		s.Log(bot.Error, "Couldn't find user name for user ID", userID)
-		userName = userID
-	}
-	mentions := reUser.FindAllString(text, -1)
-	if len(mentions) != 0 {
-		mset := make(map[string]bool)
-		for _, mention := range mentions {
-			mset[mention] = true
-		}
-		for mention := range mset {
-			mID := mention[2:11]
-			replace, ok := s.userName(mID)
-			if !ok {
-				s.Log(bot.Warn, "Couldn't find username for mentioned", mID)
-				continue
-			}
-			text = strings.Replace(text, mention, "@"+replace, -1)
+		c = s.updateChannelMaps("cc:" + i)
+		if len(i) == 0 {
+			s.Log(bot.Error, fmt.Sprintf("Failed lookup of channel name from ID: %s", i))
+			return "", false
 		}
 	}
-	switch chanID[:1] {
-	case "D":
-		directUserName, ok := s.imUser(chanID)
-		if directUserName != userName { // sometimes the bot hears his own last message
-			s.Log(bot.Debug, fmt.Sprintf("Direct message user \"%s\" doesn't match sending user \"%s\", ignoring", directUserName, userName))
-			return
-		}
-		if !ok {
-			s.Log(bot.Warn, "Couldn't find user name for IM", chanID)
-			s.IncomingMessage("", chanID, text, msg)
-			return
-		}
-		s.IncomingMessage("", directUserName, text, msg)
-	case "C", "G":
-		channelName, ok := s.channelName(chanID)
-		if !ok {
-			s.Log(bot.Warn, "Coudln't find channel name for ID", chanID)
-			s.IncomingMessage(chanID, userName, text, msg)
-			return
-		}
-		s.IncomingMessage(channelName, userName, text, msg)
-	}
-}
-
-// update maps is called whenever there are any changes
-// to users or channels, so that plugins can use
-// human-readable names for users and channels.
-func (s *slackConnector) updateMaps(skipUsers bool) {
-	s.Log(bot.Trace, "Updating maps")
-	deadline := time.Now().Add(optimeout)
-	var (
-		err        error
-		userlist   []slack.User
-		userMap    map[string]slack.User
-		userIDMap  map[string]string
-		userIMlist []slack.IM
-		chanlist   []slack.Channel
-		grouplist  []slack.Group
-	)
-
-	userIDMap = make(map[string]string)
-	if skipUsers {
-		s.RLock()
-		for u, i := range s.idToUser {
-			userIDMap[i] = u
-		}
-		s.RUnlock()
-	} else {
-		userMap = make(map[string]slack.User)
-		for tries := uint(0); time.Now().Before(deadline); tries++ {
-			userlist, err = s.api.GetUsers()
-			if err == nil {
-				break
-			}
-		}
-		if err != nil {
-			s.Log(bot.Fatal, fmt.Sprintf("Protocol timeout updating users: %v\n", err))
-		}
-		for _, user := range userlist {
-			s.Log(bot.Trace, "Mapping user name", user.Name, "to", user.ID)
-			userMap[user.Name] = user
-			userIDMap[user.ID] = user.Name
-		}
-	}
-
-	for tries := uint(0); time.Now().Before(deadline); tries++ {
-		userIMlist, err = s.api.GetIMChannels()
-		if err == nil {
-			break
-		}
-	}
-	if err != nil {
-		s.Log(bot.Fatal, fmt.Sprintf("Protocol timeout updating IMchannels: %v\n", err))
-	}
-	userIMMap := make(map[string]string)
-	userNameMap := make(map[string]string)
-	for _, userIM := range userIMlist {
-		s.Log(bot.Trace, "Mapping user ID", userIM.User, "to IM channel", userIM.ID)
-		userIMMap[userIM.User] = userIM.ID
-		s.Log(bot.Trace, "Mapping IM channel", userIM.ID, "to user name", userIDMap[userIM.User])
-		userNameMap[userIM.ID] = userIDMap[userIM.User]
-	}
-
-	for tries := uint(0); time.Now().Before(deadline); tries++ {
-		chanlist, err = s.api.GetChannels(true)
-		if err == nil {
-			break
-		}
-	}
-	if err != nil {
-		s.Log(bot.Fatal, fmt.Sprintf("Protocol timeout updating channels: %v\n", err))
-	}
-	for tries := uint(0); time.Now().Before(deadline); tries++ {
-		grouplist, err = s.api.GetGroups(true)
-		if err == nil {
-			break
-		}
-	}
-	if err != nil {
-		s.Log(bot.Fatal, fmt.Sprintf("Protocol timeout updating groups: %v\n", err))
-	}
-	chanMap := make(map[string]string)
-	chanIDMap := make(map[string]string)
-	for _, channel := range chanlist {
-		s.Log(bot.Trace, "Mapping channel name", channel.Name, "to channel", channel.ID)
-		chanMap[channel.Name] = channel.ID
-		chanIDMap[channel.ID] = channel.Name
-	}
-	for _, group := range grouplist {
-		s.Log(bot.Trace, "Mapping channel name", group.Name, "to group", group.ID)
-		chanMap[group.Name] = group.ID
-		chanIDMap[group.ID] = group.Name
-	}
-
-	s.Lock()
-	if !skipUsers {
-		s.userInfo = userMap
-		s.idToUser = userIDMap
-	}
-	s.userIDToIM = userIMMap
-	s.channelToID = chanMap
-	s.idToChannel = chanIDMap
-	s.imToUser = userNameMap
-	s.Unlock()
-	if skipUsers {
-		s.Log(bot.Info, "Group/Channel maps updated")
-	} else {
-		s.Log(bot.Info, "User/Group/Channel maps updated")
-	}
+	return c, ok
 }

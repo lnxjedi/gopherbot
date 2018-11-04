@@ -99,7 +99,7 @@ func (s *slackConnector) startSendLoop() {
 		if windowStartMsg == (burstMessages - 1) {
 			windowStartMsg = 0
 		}
-		current += 1
+		current ++
 		if current == (burstMessages - 1) {
 			current = 0
 		}

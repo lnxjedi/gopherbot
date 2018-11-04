@@ -9,8 +9,8 @@ then
     FailTask notify $NOTIFY_USER "Gopherbot build failed"
 fi
 
-# Get dependencies
-AddTask exec go get -v -d ./...
+# Get dependencies (should all be vendored)
+#AddTask exec go get -v -d ./...
 
 # Run tests
 AddTask exec go test -v --tags 'test integration' -cover -race -coverprofile coverage.out -coverpkg ./... ./bot

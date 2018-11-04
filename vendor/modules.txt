@@ -40,16 +40,19 @@ github.com/duosecurity/duo_api_golang
 github.com/duosecurity/duo_api_golang/authapi
 # github.com/ghodss/yaml v0.0.0-20161207003320-04f313413ffd
 github.com/ghodss/yaml
-# github.com/go-ini/ini v1.36.0
+# github.com/go-ini/ini v1.39.0
 github.com/go-ini/ini
-# github.com/gorilla/websocket v1.2.0
+# github.com/gorilla/websocket v1.4.0
 github.com/gorilla/websocket
-# github.com/jmespath/go-jmespath v0.0.0-20160202185014-0b12d6b521d8
+# github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
 # github.com/jordan-wright/email v0.0.0-20160403172529-fd703108daeb
 github.com/jordan-wright/email
-# github.com/nlopes/slack v0.2.1-0.20180714160318-8ac1139f0b5b
+# github.com/nlopes/slack v0.4.0
 github.com/nlopes/slack
+github.com/nlopes/slack/slackutilsx
+# github.com/pkg/errors v0.8.0
+github.com/pkg/errors
 # github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 github.com/robfig/cron
 # golang.org/x/sys v0.0.0-20171220172423-d818ba11af44
@@ -59,5 +62,5 @@ golang.org/x/sys/windows/svc/mgr
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
 golang.org/x/sys/unix
-# gopkg.in/yaml.v2 v2.0.0-20160928153709-a5b47d31c556
+# gopkg.in/yaml.v2 v2.2.1
 gopkg.in/yaml.v2

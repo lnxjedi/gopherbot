@@ -46,16 +46,6 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	if err != nil {
 		robot.Log(bot.Fatal, fmt.Errorf("Unable to retrieve protocol configuration: %v", err))
 	}
-	botUserID = make(map[string]string)
-	botIDUser = make(map[string]string)
-	for _, b := range c.BotRoster {
-		if len(b.ID) == 0 || len(b.Name) == 0 {
-			robot.Log(bot.Error, "Zero-length Name or ID in BotRoster, skipping")
-			continue
-		}
-		botUserID[b.Name] = b.ID
-		botIDUser[b.ID] = b.Name
-	}
 
 	if c.MaxMessageSplit == 0 {
 		c.MaxMessageSplit = 1
@@ -84,6 +74,16 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		conn:            api.NewRTM(),
 		maxMessageSplit: c.MaxMessageSplit,
 		name:            "slack",
+	}
+	sc.botUserID = make(map[string]string)
+	sc.botIDUser = make(map[string]string)
+	for _, b := range c.BotRoster {
+		if len(b.ID) == 0 || len(b.Name) == 0 {
+			robot.Log(bot.Error, "Zero-length Name or ID in BotRoster, skipping")
+			continue
+		}
+		sc.botUserID[b.Name] = b.ID
+		sc.botIDUser[b.ID] = b.Name
 	}
 	go sc.conn.ManageConnection()
 
@@ -114,7 +114,8 @@ Loop:
 		}
 	}
 
-	sc.updateMaps(false)
+	sc.updateChannelMaps("")
+	sc.updateUserList("")
 	sc.botFullName, _ = sc.GetProtocolUserAttribute(sc.botName, "realname")
 	sc.SetFullName(sc.botFullName)
 	sc.Log(bot.Debug, "Set bot full name to", sc.botFullName)
@@ -144,7 +145,7 @@ loop:
 			case *slack.HelloEvent:
 				// Ignore hello
 			case *slack.ChannelArchiveEvent, *slack.ChannelCreatedEvent, *slack.ChannelDeletedEvent, *slack.ChannelRenameEvent:
-				sc.updateMaps(true)
+				sc.updateChannelMaps("")
 
 			case *slack.MessageEvent:
 				// Message processing is done concurrently
