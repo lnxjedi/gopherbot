@@ -12,17 +12,18 @@ import (
 	"github.com/nlopes/slack"
 )
 
+type botDefinition struct {
+	Name, ID string // e.g. 'mygit', 'BAKDBISDO'
+}
+
 type config struct {
-	SlackToken      string // the 'bot token for connecting to Slack
-	MaxMessageSplit int    // the maximum # of ~4000 byte messages to split a large message into
+	SlackToken      string          // the 'bot token for connecting to Slack
+	MaxMessageSplit int             // the maximum # of ~4000 byte messages to split a large message into
+	BotRoster       []botDefinition // roster mapping BXXX IDs to a defined username
 }
 
 var lock sync.Mutex // package var lock
 var started bool    // set when connector is started
-// Map of bot IDs to unique names; note that for Slack, we have
-// to store the botID in the name since bots aren't guaranteed to have
-// unique names.
-var bots = make(map[string]string)
 
 func init() {
 	bot.RegisterConnector("slack", Initialize)
@@ -55,6 +56,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		if len(tok) == 0 {
 			robot.Log(bot.Fatal, "No slack token found in config or env var 'SLACK_TOKEN'")
 		}
+		os.Unsetenv("SLACK_TOKEN")
 		robot.Log(bot.Debug, "Using SLACK_TOKEN environment variable")
 	} else {
 		tok = c.SlackToken
@@ -72,6 +74,16 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		conn:            api.NewRTM(),
 		maxMessageSplit: c.MaxMessageSplit,
 		name:            "slack",
+	}
+	sc.botUserID = make(map[string]string)
+	sc.botIDUser = make(map[string]string)
+	for _, b := range c.BotRoster {
+		if len(b.ID) == 0 || len(b.Name) == 0 {
+			robot.Log(bot.Error, "Zero-length Name or ID in BotRoster, skipping")
+			continue
+		}
+		sc.botUserID[b.Name] = b.ID
+		sc.botIDUser[b.ID] = b.Name
 	}
 	go sc.conn.ManageConnection()
 
@@ -92,13 +104,8 @@ Loop:
 				sc.Log(bot.Info, "Slack setting bot name to", sc.botName)
 				sc.botID = ev.Info.User.ID
 				sc.Log(bot.Trace, "Set bot ID to", sc.botID)
-				for _, b := range ev.Info.Bots {
-					if b.Deleted {
-						continue
-					}
-					name := fmt.Sprintf("bot:%s:%s", b.Name, b.ID)
-					bots[b.ID] = name
-				}
+				sc.teamID = ev.Info.Team.ID
+				sc.Log(bot.Info, "Set team ID to", sc.teamID)
 				break Loop
 
 			case *slack.InvalidAuthEvent:
@@ -107,8 +114,9 @@ Loop:
 		}
 	}
 
-	sc.updateMaps()
-	sc.botFullName = sc.userInfo[sc.botName].RealName
+	sc.updateChannelMaps("")
+	sc.updateUserList("")
+	sc.botFullName, _ = sc.GetProtocolUserAttribute(sc.botName, "realname")
 	sc.SetFullName(sc.botFullName)
 	sc.Log(bot.Debug, "Set bot full name to", sc.botFullName)
 	go sc.startSendLoop()
@@ -136,8 +144,8 @@ loop:
 			switch ev := msg.Data.(type) {
 			case *slack.HelloEvent:
 				// Ignore hello
-			case *slack.ChannelArchiveEvent, *slack.ChannelCreatedEvent, *slack.ChannelDeletedEvent, *slack.ChannelRenameEvent, *slack.TeamJoinEvent, *slack.GroupJoinedEvent, *slack.UserChangeEvent:
-				sc.updateMaps()
+			case *slack.ChannelArchiveEvent, *slack.ChannelCreatedEvent, *slack.ChannelDeletedEvent, *slack.ChannelRenameEvent:
+				sc.updateChannelMaps("")
 
 			case *slack.MessageEvent:
 				// Message processing is done concurrently

@@ -20,10 +20,12 @@ const burstMessages = 14            // maximum burst
 const burstWindow = 4 * time.Second // window in which to allow the burst
 const coolDown = 21 * time.Second   // cooldown time after bursting
 
-// GetUserAttribute returns a string attribute or nil if slack doesn't
+// GetProtocolUserAttribute returns a string attribute or "" if slack doesn't
 // have that information
 func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {
-	user, ok := s.getUser(u)
+	s.RLock()
+	user, ok := s.userInfo[u]
+	s.RUnlock()
 	if !ok {
 		return "", bot.UserNotFound
 	}
@@ -97,7 +99,7 @@ func (s *slackConnector) startSendLoop() {
 		if windowStartMsg == (burstMessages - 1) {
 			windowStartMsg = 0
 		}
-		current += 1
+		current ++
 		if current == (burstMessages - 1) {
 			current = 0
 		}
