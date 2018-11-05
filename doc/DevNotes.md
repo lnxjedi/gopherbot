@@ -3,6 +3,12 @@
 `DevNotes.md` - TODO items and design notes for future development.
 
 ## To be sorted / filtered
+- TODO: Make sure plugins/tasks/jobs can be disabled in gopherbot.yaml
+- TODO: Add env vars for getting protocol & credentials, brain & credentials
+- TODO: Add all-inclusive conf/gopherbot.yaml + other config in default install, which
+  can be overridden by user config
+- TODO: Update ansible role to stop creating installed gopherbot.yaml, favoring version
+  from install archive
 - TODO: Add Reload() method to connectors, many of which may require additional data
 - DONE: try converting lists of tasks/jobs/plugins to map[name]struct
 - To obtain the `BXXXXXXXX` ID for a webhook, visit the settings page, e.g.: https://myteam.slack.com/services/BC7DLEPA8 <- that's it!
