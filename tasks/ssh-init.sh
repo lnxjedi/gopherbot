@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# ssh-init.sh - pipeline job for setting up an ssh-agent for the robot. To
+# ssh-init.sh - pipeline task for setting up an ssh-agent for the robot. To
 # use:
 # - Copy conf/jobs/ssh-init.yaml.sample to ssh-init.yaml (as-is)
 # - Add "ssh" and "ssh-agent" to ExternalTask list, with Name, Path and
@@ -26,6 +26,12 @@ then
     Log "Error" "$MESSAGE"
     echo "$MESSAGE" >&2
     exit 1
+fi
+
+if [ -n "$SSH_AGENT_PID" ]
+then
+    Log "Debug" "ssh-init exiting; ssh-agent already running"
+    exit 0 # already running
 fi
 
 SSH_KEY=${KEYNAME:-id_rsa}
