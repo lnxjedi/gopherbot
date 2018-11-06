@@ -87,6 +87,6 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList, repolist map[s
 	} else {
 		command = "run"
 	}
-	Log(Debug, fmt.Sprintf("Starting scheduled task: %s", task.name))
+	Log(Info, fmt.Sprintf("Starting scheduled task: %s", task.name))
 	c.startPipeline(nil, t, scheduled, command, ts.Arguments...)
 }
