@@ -1,0 +1,31 @@
+# See conf/gopherbot.yaml.sample
+AdminContact: "Joe User, <user@example.org>"
+DefaultChannels: [ "general", "random" ]
+JoinChannels: [ ]
+AdminUsers: [ "alice" ]
+Alias: ";"
+LocalPort: 8889
+LogLevel: debug
+ExternalPlugins:
+  "bashdemo":
+    Path: plugins/samples/bashdemo.sh
+  "pythondemo":
+    Path: plugins/samples/pythondemo.py
+  "rubydemo":
+    Path: plugins/samples/rubydemo.rb
+  "echo":
+    Path: plugins/samples/echo.sh
+
+Protocol: test
+ProtocolConfig:
+  BotName: bender
+  BotFullName: Bender Rodriguez
+
+WorkSpace: /tmp
+HistoryConfig:
+  Directory: /tmp
+
+Brain: file
+BrainConfig:
+  BrainDirectory: brain
+DefaultElevator: totp

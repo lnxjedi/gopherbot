@@ -5,7 +5,6 @@ package dynamoBrain
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -125,21 +124,8 @@ func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
 	robot.GetBrainConfig(&dynamocfg)
 	var sess *session.Session
 	var err error
-	var AccessKeyID, SecretAccessKey string
-	ak := os.Getenv("BRAIN_AWS_ACCESS_KEY_ID")
-	sak := os.Getenv("BRAIN_AWS_SECRET_ACCESS_KEY")
-	if len(ak) > 0 {
-		AccessKeyID = ak
-		os.Unsetenv("BRAIN_AWS_ACCESS_KEY_ID")
-	} else {
-		AccessKeyID = dynamocfg.AccessKeyID
-	}
-	if len(sak) > 0 {
-		SecretAccessKey = sak
-		os.Unsetenv("BRAIN_AWS_SECRET_ACCESS_KEY")
-	} else {
-		SecretAccessKey = dynamocfg.SecretAccessKey
-	}
+	AccessKeyID := dynamocfg.AccessKeyID
+	SecretAccessKey := dynamocfg.SecretAccessKey
 	// ec2 provided credentials
 	if len(AccessKeyID) == 0 {
 		sess, err = session.NewSession(&aws.Config{

@@ -138,19 +138,9 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	}
 	if encryptBrain {
 		initialized := false
-		ek := os.Getenv("GOPHER_BRAIN_KEY")
-		if len(ek) > 0 {
-			if initializeEncryption(ek) {
-				Log(Info, "Successfully initialized brain encryption from environment variable")
-				initialized = true
-			} else {
-				Log(Error, "Failed to initialize brain encryption with provided environment variable")
-			}
-			os.Unsetenv("GOPHER_BRAIN_KEY")
-		}
-		if !initialized && len(botCfg.brainKey) > 0 {
+		if len(botCfg.brainKey) > 0 {
 			if initializeEncryption(botCfg.brainKey) {
-				Log(Info, "Successfully initialized brain encryption from ")
+				Log(Info, "Successfully initialized brain encryption from configured key")
 				initialized = true
 			} else {
 				Log(Error, "Failed to initialize brain encryption with configured BrainKey")

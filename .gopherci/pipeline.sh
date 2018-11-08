@@ -9,9 +9,6 @@ then
     FailTask notify $NOTIFY_USER "Gopherbot build failed"
 fi
 
-# Get dependencies (should all be vendored)
-#AddTask exec go get -v -d ./...
-
 # Run tests
 AddTask exec go test -v --tags 'test integration' -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
 
@@ -22,7 +19,7 @@ AddTask exec ./.gopherci/tools.sh
 #AddTask exec goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
 # Do a full build for all platforms
-AddTask exec ./mkdist.sh
+AddTask exec ./.gopherci/mkdist.sh
 
 # Publish archives to github
 AddTask exec ./.gopherci/publish.sh

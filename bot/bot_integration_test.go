@@ -26,6 +26,7 @@ ROUTINE ======================== github.com/lnxjedi/gopherbot/bot...
 */
 
 import (
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -44,6 +45,11 @@ import (
 	_ "net/http/pprof"
 )
 
+// Environment setting(s) for expanding installed conf/gopherbot.yaml
+func init() {
+	os.Setenv("GOPHER_PROTOCOL", "test")
+}
+
 type testItem struct {
 	user, channel, message string
 	replies                []testc.TestMessage // note: TestMessage.Message -> regex
@@ -51,7 +57,7 @@ type testItem struct {
 	pause                  int // time in milliseconds to pause after test item
 }
 
-// NOTE: integration tests are closely tied to the configuration in cfg/test/...
+// NOTE: integration tests are closely tied to the configuration in resources/cfg/test/...
 
 // Cast of Users
 const alice = "alice"
@@ -160,7 +166,7 @@ func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
 }
 
 func TestBotName(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		{alice, null, "ping, bender", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
@@ -188,7 +194,7 @@ func TestBotName(t *testing.T) {
 }
 
 func TestBotNoName(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		{alice, null, ";ping", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
@@ -208,7 +214,7 @@ func TestBotNoName(t *testing.T) {
 }
 
 func TestBotNoAlias(t *testing.T) {
-	done, conn := setup("cfg/test/membrain-noalias", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/test/membrain-noalias", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		{alice, null, "ping, bender", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
@@ -233,7 +239,7 @@ func TestBotNoAlias(t *testing.T) {
 }
 
 func TestReload(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		{alice, general, "reload, bender", []testc.TestMessage{{alice, general, "Configuration reloaded successfully"}}, []Event{CommandTaskRan, GoPluginRan, AdminCheckPassed}, 0},
@@ -244,7 +250,7 @@ func TestReload(t *testing.T) {
 }
 
 func TestMessageMatch(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		{alice, general, "hello robot", []testc.TestMessage{{null, general, "Hello, World!"}}, []Event{AmbientTaskRan, ExternalTaskRan}, 0},
@@ -263,7 +269,7 @@ func TestMessageMatch(t *testing.T) {
 }
 
 func TestVisibility(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		{alice, general, "help ruby, bender", []testc.TestMessage{{null, general, `bender, ruby .*random\)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
@@ -277,7 +283,7 @@ func TestVisibility(t *testing.T) {
 }
 
 func TestBuiltins(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		{alice, general, ";help log", []testc.TestMessage{{null, general, "direct message only"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
@@ -304,7 +310,7 @@ func TestBuiltins(t *testing.T) {
 }
 
 func TestPrompting(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		{carol, general, "Bender, listen to me", []testc.TestMessage{{carol, null, "Ok, .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
@@ -324,7 +330,7 @@ func TestPrompting(t *testing.T) {
 }
 
 func TestFormatting(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		{alice, general, ";format fixed", []testc.TestMessage{{null, general, "_ITALICS_ <ONE> \\*BOLD\\* `CODE` @PARSLEY"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
@@ -337,7 +343,7 @@ func TestFormatting(t *testing.T) {
 }
 
 func TestHelp(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		// Took a while to get the regex right - exactly 16 lines of output (15 + [^\n]*)

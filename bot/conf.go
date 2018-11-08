@@ -3,15 +3,10 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
-
-	"github.com/ghodss/yaml"
 )
 
 /* conf.go - methods and types for reading and storing json configuration */
@@ -61,98 +56,7 @@ var confLock sync.RWMutex
 var config *botconf
 var repositories map[string]repository
 
-func mergemap(m, t map[string]interface{}) map[string]interface{} {
-	for k, v := range m {
-		if tv, ok := t[k]; ok {
-			if reflect.TypeOf(v) == reflect.TypeOf(tv) {
-				switch v.(type) {
-				case map[string]interface{}:
-					mv := v.(map[string]interface{})
-					mtv := tv.(map[string]interface{})
-					t[k] = mergemap(mv, mtv)
-				case []interface{}:
-					sv := v.([]interface{})
-					stv := tv.([]interface{})
-					stv = append(stv, sv...)
-					t[k] = stv
-				default:
-					t[k] = v
-				}
-			} else {
-				// mis-matched types, use new value
-				t[k] = v
-			}
-		} else {
-			t[k] = v
-		}
-	}
-	return t
-}
-
-// getConfigFile loads a config file first from installPath, then from configPath
-// if set.
-
-// Required indicates whether to return an error if neither file is found.
-func (c *botContext) getConfigFile(filename, callerID string, required bool, jsonMap map[string]json.RawMessage) error {
-	var (
-		cf           []byte
-		err, realerr error
-	)
-
-	loaded := false
-	var path string
-
-	installed := make(map[string]interface{})
-	configured := make(map[string]interface{})
-	var cfg map[string]interface{}
-	path = installPath + "/conf/" + filename
-	cf, err = ioutil.ReadFile(path)
-	if err == nil {
-		if err = yaml.Unmarshal(cf, &installed); err != nil {
-			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
-			Log(Error, err)
-			return err
-		}
-		if len(installed) == 0 {
-			Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
-		} else {
-			Log(Debug, fmt.Sprintf("Loaded installed conf/%s", filename))
-			loaded = true
-		}
-	} else {
-		realerr = err
-	}
-	if len(configPath) > 0 {
-		path = configPath + "/conf/" + filename
-		cf, err = ioutil.ReadFile(path)
-		if err == nil {
-			if err = yaml.Unmarshal(cf, &configured); err != nil {
-				err = fmt.Errorf("Unmarshalling configured \"%s\": %v", filename, err)
-				Log(Error, err)
-				return err // If a badly-formatted config is loaded, we always return an error
-			}
-			if len(configured) == 0 {
-				Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
-			} else {
-				Log(Debug, fmt.Sprintf("Loaded configured conf/%s", filename))
-				loaded = true
-			}
-		} else {
-			realerr = err
-		}
-		cfg = mergemap(configured, installed)
-	} else {
-		cfg = installed
-	}
-	jsonData, _ := json.Marshal(cfg)
-	json.Unmarshal(jsonData, &jsonMap)
-	if required && !loaded {
-		return realerr
-	}
-	return nil
-}
-
-// loadConfig loads the 'bot's json configuration files.
+// loadConfig loads the 'bot's yaml configuration files.
 func (c *botContext) loadConfig(preConnect bool) error {
 	var loglevel LogLevel
 	newconfig := &botconf{}
@@ -349,14 +253,10 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		botCfg.defaultAuthorizer = newconfig.DefaultAuthorizer
 	}
 
-	envAdmin := os.Getenv("GOPHER_ADMIN")
 	if newconfig.AdminUsers != nil {
 		botCfg.adminUsers = newconfig.AdminUsers
 	} else {
 		botCfg.adminUsers = []string{}
-	}
-	if len(envAdmin) > 0 {
-		botCfg.adminUsers = append(botCfg.adminUsers, envAdmin)
 	}
 	if newconfig.DefaultChannels != nil {
 		botCfg.plugChannels = newconfig.DefaultChannels

@@ -1,0 +1,37 @@
+# See conf/gopherbot.yaml.sample
+AdminContact: "David Parsley, <parsley@linuxjedi.org>"
+DefaultChannels: [ "general", "random" ]
+JoinChannels: [ ]
+AdminUsers: [ "alice" ]
+Alias: ";"
+LocalPort: 8889
+LogLevel: debug
+ExternalPlugins:
+  "bashdemo":
+    Path: plugins/samples/bashdemo.sh
+  "pythondemo":
+    Path: plugins/samples/pythondemo.py
+  "rubydemo":
+    Path: plugins/samples/rubydemo.rb
+  "echo":
+    Path: plugins/samples/echo.sh
+  "test":
+    Path: plugins/samples/test.sh
+  "hello":
+    Path: plugins/samples/hello.sh
+  "hello2":
+    Path: plugins/samples/hello2.sh
+  "format":
+    Path: plugins/samples/format.sh
+
+Protocol: test
+ProtocolConfig:
+  BotName: bender
+  BotFullName: Bender Rodriguez
+
+WorkSpace: /tmp
+HistoryConfig:
+  Directory: /tmp
+
+Brain: mem
+DefaultElevator: totp

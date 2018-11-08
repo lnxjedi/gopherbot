@@ -12,7 +12,7 @@ import (
 )
 
 func TestGroupAuth(t *testing.T) {
-	done, conn := setup("cfg/test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
 		{alice, general, ";list groups", []testc.TestMessage{{null, general, "Here are the groups.*"}}, []Event{CommandTaskRan, GoPluginRan, AdminCheckPassed}, 0},

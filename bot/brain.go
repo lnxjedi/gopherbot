@@ -196,30 +196,29 @@ func initializeEncryption(key string) bool {
 		cryptBrain.initializing = false
 		cryptBrain.Unlock()
 		return true
-	} else {
-		// Securely generate and store a random 'real' key
-		store, err := memguard.NewImmutableRandom(32)
-		if err != nil {
-			Log(Error, fmt.Sprintf("Error generating new random brain key: %v", err))
-			cryptBrain.initializing = false
-			return false
-		}
-		sb := store.Buffer()
-		ret := storeDatum(botBrainKey, &sb)
-		cryptBrain.Lock()
-		if ret != Ok {
-			Log(Error, "Error storing brain key, failed to initialize")
-			cryptBrain.initializing = false
-			cryptBrain.Unlock()
-			return false
-		}
-		cryptBrain.protected = store
-		cryptBrain.key = sb
-		cryptBrain.initialized = true
+	}
+	// Securely generate and store a random 'real' key
+	store, err := memguard.NewImmutableRandom(32)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error generating new random brain key: %v", err))
+		cryptBrain.initializing = false
+		return false
+	}
+	sb := store.Buffer()
+	ret = storeDatum(botBrainKey, &sb)
+	cryptBrain.Lock()
+	if ret != Ok {
+		Log(Error, "Error storing brain key, failed to initialize")
 		cryptBrain.initializing = false
 		cryptBrain.Unlock()
-		return true
+		return false
 	}
+	cryptBrain.protected = store
+	cryptBrain.key = sb
+	cryptBrain.initialized = true
+	cryptBrain.initializing = false
+	cryptBrain.Unlock()
+	return true
 }
 
 // Most likely used when switching from configured to interactively-provided

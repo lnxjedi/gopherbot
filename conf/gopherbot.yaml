@@ -1,0 +1,265 @@
+## This is a the default configuration for gopherbot. Values here can be
+## overridden by values in the custom configuration. Primarily configuration
+## required on initial load is defined here; most configuration, as well as
+## locally defined job/task/plugin scripts, should come from a custom
+## configuration repository.
+
+## Template functions:
+## default:
+##   provide a default value if "" or unset
+## env:
+##   look a value up from the environment
+{{ $home := env "HOME" | default "/home/robot" }}
+
+AdminUsers: [ {{ env "GOPHER_ADMIN" }} ]
+
+## Port to listen on for http/JSON api calls, for external plugins
+LocalPort: {{ env "GOPHER_PORT" | default "8080" }}
+
+## Configure the robot connection protocol
+{{ $proto := env "GOPHER_PROTOCOL" | default "slack" }}
+Protocol: {{ $proto }}
+
+{{ if eq $proto "slack" }}
+ProtocolConfig:
+  MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
+  SlackToken: {{ env "GOPHER_SLACK_TOKEN" }}
+## Custom configuration may include a roster of webhooks
+#   BotRoster:
+#   - Name: hook1
+#     ID: BC7JEBGAX
+#   - Name: hook2
+#     ID: BAVS35996
+
+## Definitions for "test" and "term" connectors
+{{ else }}
+ProtocolConfig:
+  BotName: floyd
+  BotFullName: Floyd Gopherbot
+  Channels:
+  - random
+  - general
+  - bottest
+  - deadzone
+  Users:
+  - Name: "alice"
+    Email: "alice@example.com"
+    InternalID: "u0001"
+    FullName: "Alice User"
+    FirstName: "Alice"
+    LastName: "User"
+    Phone: "(555)765-0001"
+  - Name: "bob"
+    Email: "bob@example.com"
+    InternalID: "u0002"
+    FullName: "Bob User"
+    FirstName: "Robert"
+    LastName: "User"
+    Phone: "(555)765-0002"
+  - Name: "carol"
+    Email: "@example.com"
+    InternalID: "u0003"
+    FullName: "Carol User"
+    FirstName: "Carol"
+    LastName: "User"
+    Phone: "(555)765-0003"
+  - Name: "david"
+    Email: "david@example.com"
+    InternalID: "u0004"
+    FullName: "David User"
+    FirstName: "David"
+    LastName: "User"
+    Phone: "(555)765-0004"
+  - Name: "erin"
+    Email: "erin@example.com"
+    InternalID: "u0005"
+    FullName: "Erin User"
+    FirstName: "Erin"
+    LastName: "User"
+    Phone: "(555)765-0005"
+
+  {{- if eq $proto "test" }}
+  StartChannel: general
+  StartUser: alice
+  {{- end }}
+{{ end }}
+
+## Configure the robot's brain
+{{ $defaultbrain := "file" }}
+
+{{ if eq $proto "test" "term" }}
+  {{- $defaultbrain = "mem" }}
+{{ end }}
+
+{{ $brain := env "GOPHER_BRAIN" | default $defaultbrain }}
+Brain: {{ $brain }}
+
+{{ if eq $brain "file" }}
+BrainConfig:
+  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default (printf "%s/brain" $home) }}
+
+{{ else  if eq $brain "dynamo" }}
+BrainConfig:
+  TableName: {{ env "GOPHER_BRAIN_TABLE" }}
+  Region: {{ env "GOPHER_BRAIN_REGION" | default "us-east-1" }}
+  AccessKeyID: {{ env "GOPHER_BRAIN_KEY_ID" }}
+  SecretAccessKey: {{ env "GOPHER_BRAIN_SECRET_KEY" }}
+
+{{ end }}
+
+{{ $encrypt := false }}
+{{ if or (env "GOPHER_ENCRYPT_BRAIN") (env "GOPHER_BRAIN_KEY") }}
+  {{- $encrypt = true }}
+{{ end }}
+EncryptBrain: {{ $encrypt }}
+
+{{ if eq $encrypt true }}
+BrainKey: {{ env "GOPHER_BRAIN_KEY" }}
+{{ end }}
+## End brain config
+
+## Configure a history provider
+{{ $history := env "GOPHER_HISTORY_PROVIDER" | default "file" }}
+HistoryProvider: {{ $history }}
+
+{{ if eq $history "file" }}
+HistoryConfig:
+  Directory: {{ env "GOPHER_HISTORY_DIR" | default (printf "%s/history" $home) }}
+{{ end }}
+## End history config
+
+WorkSpace: {{ env "GOPHER_WORKSPACE" | default (printf "%s/workspace" $home) }}
+
+## Configure log level; defaults to debug to aid in troubleshooting
+## if custom configuration can't be loaded.
+LogLevel: {{ env "GOPHER_LOGLEVEL" | default "debug" }}
+
+## Later: modify this for other protocols
+{{ $defaultjobchannel := "general" }}
+DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}
+
+## NOTE:
+## External script jobs/tasks/plugins do NOT have direct access to
+## environment variables, but instead get a combination of:
+## - vars explicitly propagated such as $HOME
+## - vars defined in "Parameters" (see below)
+## - vars provided interactively by an administrator with the
+##   'store <"task"|"repository"> parameter <name> <var>=<value>' command;
+##   normally used for secrets kept in an encrypted brain
+##
+## While some environment variables like GOPHER_SLACK_TOKEN or GOPHER_BRAIN_KEY
+## need to come from the environment to allow the robot to start, others may
+## be stored in the brain. The definitions below allow you to go either way,
+## by e.g. setting 'GOPHER_OWM_APIKEY' in the environment, or by instead using
+## 'store task parameter weather OWM_APIKEY=<value>'
+
+ExternalPlugins:
+## Useful and/or entertaining plugins; disable by setting 'Disabled: true' in
+## custom configuration.
+  "weather":
+    Path: plugins/weather.rb
+    Description: A plugin that uses OpenWeatherMap to report the weather
+    Parameters:
+    - Name: OWM_APIKEY
+      Value: {{ env "GOPHER_OWM_APIKEY" }}
+    - Name: TEMP_UNITS
+      Value: {{ env "GOPHER_OWM_UNITS" | default "imperial" }} # or 'metric'
+    - Name: DEFAULT_COUNTRY
+      Value: {{ env "GOPHER_OWM_COUNTRY" | default "us" }} # or other ISO 3166 country code
+  "chuck":
+    Path: plugins/chuck.rb
+    Description: A plugin that pipes up whenever The Man's name is mentioned
+  "update":
+    Description: A plugin that triggers the updatecfg job
+    Path: plugins/update.sh
+
+## ExternalJobs describe configurable jobs the robot knows about. Requires
+## config in conf/jobs/<jobname>.yaml (see sample files in dist)
+
+ExternalJobs:
+  "updatecfg":
+    Description: A job that updates the robot's configuration from git
+    Path: jobs/updatecfg.sh
+
+## ExternalTasks enumerate external executables that can be added to pipelines
+## with AddTask <name>. Note the e.g. the update plugin requires ssh,
+## ssh-agent, and git. Unlike Plugins and Jobs, ExternalTasks can have
+## NameSpace and Parameters specified, since they don't read external config
+## files.
+
+ExternalTasks:
+  "notify":
+    Description: Send a message to a user in the job channel, generally as a FailTask
+    Path: tasks/notify.sh
+  "dmnotify":
+    Description: Send a DM to a user, generally as a FailTask
+    Path: tasks/dmnotify.sh
+  "status":
+    Decription: trivial task that can be used to send status updates
+    Path: tasks/status.sh
+  "ssh-init":
+    Description: "Pipeline job for setting up ssh-agent for the 'bot"
+    Path: tasks/ssh-init.sh
+#   Parameters:
+##  For specifying a key to use other than id_rsa
+#   - Name: KEYNAME
+#     Value: otherkey_rsa
+  "exec":
+    Description: Simple utility for running scripts in a repository
+    Path: tasks/exec.sh
+  "ansible-playbook":
+    NameSpace: ansible
+    Description: Ansible playbook (ansible-playbook) runner with vault passphrase helper
+    Path: tasks/ansible-playbook.sh
+  "ansible":
+    Description: Ansible
+    Path: /usr/bin/ansible
+  "ssh":
+    Description: Secure shell for remoting in to hosts
+    Path: /usr/bin/ssh
+  "ssh-agent":
+    Description: ssh agent command for terminating the agent
+    Path: /usr/bin/ssh-agent
+  "ssh-scan":
+    Description: Helper script for adding ssh host keys to known_hosts
+    Path: tasks/ssh-scan.sh
+  "git":
+    Description: One SCM to Rule Them All
+    Path: /usr/bin/git
+  "git-sync":
+    Description: Simple script to clone or pull a repository
+    Path: tasks/git-sync.sh
+
+## NOTE: Items below are informational only, and should be defined in the
+## custom configuration repository.
+
+## If the plugin doesn't specify an outgoing message format, what's the default?
+## This will be 'Raw' (unmodified, subject to protocol-specific formatting) if
+## not set. 'Variable' will escape special characters like #, @, _, `, etc. so
+## those characters can appear in replies. 'Fixed' will send everything in a
+## fixed-width font.
+#DefaultMessageFormat: Variable # 'Raw' if not specified
+
+## The robot's email address (used in From:)
+#Email: robbie@robot.com
+## Configuration for sending out email. For Authtype: none, User and Password
+## can be left out. Note that sending email will fail if Email isn't set.
+#MailConfig:
+#  Mailhost: <somehost:port>
+#  Authtype: <plain|none>
+#  User: <authuser>
+#  Password: <password>
+
+## Use Google Authenticator TOTP by default for elevated commands. To use:
+## - Ask the robot to 'send launch codes', and it will send you (one time)
+##   a string for configuring your Google Authencticator app, and store it's
+##   own copy in the robot's brain. You can verify it works with the
+##   'check launch code <code>' command.
+## - To require a token to be provided before running a given plugin command,
+##   add the elevated command(s) to the plugin's ElevatedCommands list, or to
+##   ElevateImmediateCommands for commands that require elevation every time
+##   regardless of timeout.
+## - Configure the elevator by overriding the config for the plugin in
+##   'conf/plugins/totp.yaml'
+
+#DefaultElevator: totp

@@ -5,7 +5,6 @@ package slack
 import (
 	"fmt"
 	"log"
-	"os"
 	"sync"
 
 	"github.com/lnxjedi/gopherbot/bot"
@@ -52,12 +51,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 
 	if len(c.SlackToken) == 0 {
-		tok = os.Getenv("SLACK_TOKEN")
-		if len(tok) == 0 {
-			robot.Log(bot.Fatal, "No slack token found in config or env var 'SLACK_TOKEN'")
-		}
-		os.Unsetenv("SLACK_TOKEN")
-		robot.Log(bot.Debug, "Using SLACK_TOKEN environment variable")
+		robot.Log(bot.Fatal, "No slack token found in config")
 	} else {
 		tok = c.SlackToken
 	}
