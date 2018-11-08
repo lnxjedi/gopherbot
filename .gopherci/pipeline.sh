@@ -21,6 +21,14 @@ AddTask exec ./.gopherci/tools.sh
 # Do a full build for all platforms
 AddTask exec ./.gopherci/mkdist.sh
 
+# See who got this message and decide whether to build
+BOT=$(GetBotAttribute name)
+if [ "$BOT" != "floyd" ]
+then
+    Say "Gosh, I wish that *I* could publish"
+    exit 0
+fi
+
 # Publish archives to github
 AddTask exec ./.gopherci/publish.sh
 
