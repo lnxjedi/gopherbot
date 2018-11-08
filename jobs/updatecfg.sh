@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# updatecfg.sh - job to update the robot's configuration and reload, assuming
-# $GOPHER_CONFIGDIR is a git repository. This also assumes use of an SSH
-# deploy key; see ssh-init.
+# updatecfg.sh - job to update or retrieve the robot's configuration and
+# reload. Initializes ssh if ... TODO: rewrite me in python and be smart about ssh-init;
+# see localtrusted.py
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
