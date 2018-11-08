@@ -80,6 +80,7 @@ type parameter struct {
 // For ExternalPlugins, ExternalJobs and ExternalTasks
 type externalTask struct {
 	Name, Path, Description, NameSpace string
+	Disabled                           bool
 	Parameters                         []parameter
 }
 
@@ -117,7 +118,7 @@ type InputMatcher struct {
 	re       *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
-// InputMatcher specifies the command or message to match for a plugin, or user and message to trigger a job
+// JobTrigger specifies a user and message to trigger a job
 type JobTrigger struct {
 	Regex   string         // The regular expression string to match - bot adds ^\w* & \w*$
 	User    string         // required user to trigger this job, normally git-activated webhook or integration

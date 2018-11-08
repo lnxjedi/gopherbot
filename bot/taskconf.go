@@ -76,6 +76,10 @@ func (c *botContext) loadTaskConfig() {
 			Parameters:  script.Parameters,
 			NameSpace:   nameSpace,
 		}
+		if script.Disabled {
+			task.Disabled = true
+			task.reason = "Disabled in installed / custom gopherbot.yaml"
+		}
 		p := &botPlugin{
 			botTask: task,
 		}
@@ -114,6 +118,10 @@ func (c *botContext) loadTaskConfig() {
 			Parameters:  script.Parameters,
 			NameSpace:   nameSpace,
 		}
+		if script.Disabled {
+			task.Disabled = true
+			task.reason = "Disabled in installed / custom gopherbot.yaml"
+		}
 		j := &botJob{
 			botTask: task,
 		}
@@ -150,6 +158,10 @@ func (c *botContext) loadTaskConfig() {
 			Path:        script.Path,
 			Parameters:  script.Parameters,
 			NameSpace:   nameSpace,
+		}
+		if script.Disabled {
+			task.Disabled = true
+			task.reason = "Disabled in installed / custom gopherbot.yaml"
 		}
 		tlist = append(tlist, task)
 		taskIndexByID[task.taskID] = i
