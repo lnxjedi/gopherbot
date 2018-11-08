@@ -1,20 +1,90 @@
-# Gopherbot Development Notes
+# Gopherbot Development Notes - Current
 
-`DevNotes.md` - TODO items and design notes for future development.
+`DevNotes.md` - TODO items and design notes for future developmen
 
-## To be sorted / filtered
-- TODO: Make sure plugins/tasks/jobs can be disabled in gopherbot.yaml
+## 2.0 Goals
+* Job scheduling (DONE)
+* Pipelines (DONE)
+* Remote plugin execution over ssh (ON HOLD)
+* GopherCI for CI/CD (IN PROGRESS)
+
+## Environment Scrubbing
+Gopherbot should make every attempt to prevent credential stealing by any potential rogue code. One ugly 'leak' of sensitive data comes from `/proc/\<pid\>/environ` - once a process starts, the contents of `environ` remain unchanged, even after e.g. `os.Unsetenv(...)`. One way to scrub the environment is to use `syscall.Exec`:
+```go
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"syscall"
+)
+
+func main() {
+	reader := bufio.NewReader(os.Stdin)
+	if len(os.Environ()) > 0 {
+		fmt.Println("Scrubbing the environment, check my PID/environ and press <enter> to start")
+		fmt.Print("-> ")
+		_, _ = reader.ReadString('\n')
+		self, _ := os.Executable()
+		syscall.Exec(self, []string{}, []string{})
+	}
+	os.Setenv("SCRUBBED", "true")
+	fmt.Println("Done. Check PID/environ and press <enter> to finish")
+	fmt.Print("-> ")
+	_, _ = reader.ReadString('\n')
+}
+```
+When the program is run and prints `Done. ...`, `/proc/\<pid\>/environ` is empty. This algorithm is incomplete, though - now NONE of the environment is available to the new process. The 'fix' for this (needs to be written/tested) is for the initial process to spawn a goroutine that re-runs `gopherbot` with the single argument `export`, and keeps an open FD reading from stdout. The main process can then call `syscall.Exec(...)` and read the env from the FD in to potentially a memguard LockedBuffer, where it can be safely dealt with.
+
+## Robot Configuration
+The stuff here needs to be checked / verified. Some may already be done.
+To simplify locking:
+* Some of the content of gopherbot.yaml should only be processed when the robot first starts, e.g. the brain, connector, listening port, logger
+* Start-up items should be stored globally and readable without a lock
+* These start-up items should be processed during initbot
+* Items that can change on reload should be stored in a config struct similar to plugins and jobs; when the botContext is registered, it should get a copy of this struct that doesn't change for the life of the context, just like the task list
+* Items that are processed to binary representations (e.g. string to loglevel) should be stored in non-public struct members; e.g. LogLevel(string) and logLevel(int)
+
+## TODOs:
+- DONE/TEST/DOCUMENT: Make sure plugins/tasks/jobs can be disabled in gopherbot.yaml
 - TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
 - TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
 - TODO: Update ansible role to stop creating installed gopherbot.yaml, favoring version
   from install archive
 - TODO: Add Reload() method to connectors, many of which may require additional data
-- DONE: try converting lists of tasks/jobs/plugins to map[name]struct
+- TODO: Low Priority - Support for Go jobs / tasks (can wait 'til first need)
+- DONE/DOCUMENT: try converting lists of tasks/jobs/plugins to map[name]struct
 - To obtain the `BXXXXXXXX` ID for a webhook, visit the settings page, e.g.: https://myteam.slack.com/services/BC7DLEPA8 <- that's it!
+- TODO: Low Priority - Audit reload cases where something not configured needs to be un-configured, similar to scheduled jobs n->0
+- TODO: Add WorkSpace to output from `info`
+- TODO: paging for show log similar to history; same 2k page size, but showing in reverse (e.g. 'p' for previous page, 'q' to quit)
+- TODO: Low Priority - Brain optimization; keep a global seenCache map[string]bool:
+	- if the entry exists, it's been seen and the bool indicates whether the memory exists
+	- if the entry doesn't exist, check the memory and store whether it exists
+	- when storing a memory, always store that the memory exists
+	- best of all, the brain loop should mean no mutex!
+- TODO/VERIFY: (This may be complete) Audit use of 'debug' - most calls should be debugT? (before bot.currentTask is set)
+- TODO: (LP) Move slack send loop into anon func in Run
+- TODO: Documentation for events, emit, development and testing - Developing.md
+- DONE/DOCUMENT: Stop hard-coding 'it' for contexts; 'server:it:the server' instead of
+  'server', (context followed by generics that match); e.g. "reboot server",
+  "reboot the server", "reboot it" would all check the "server" short-term
+  memory to get e.g. "webtest1.example.com"
+- TODO: This needs more thought - the 'catchall' plugin should be in gopherbot.yaml (There Can Be Only One)
+- TODO/VERIFY: Plugin debugging verbose - emit messages for user message matching(?); when the user requesting debugging sets verbose, message match checks should trigger debug messages as well if the plugin being debugged has message matchers
+- TODO: Re-sign psdemo and powershell lib (needs to be done on Windows)
+
+## Consider
+Stuff to think about:
+- Consider: Use globalLock for protocolConfig, brainConfig, elevateConfig
+- Consider: should configuration loading record all explicit values, with intentional defaults when nothing configured explicitly? (probably yes, instead of always using the zero-values of the type)
+- Are all commands checked before all message matchers? Multiple matching commands should do nothing, but what about multiple message matchers? Probably, all matching message matchers should run.
+
+# Historical/Completed
+(This stuff can be removed later, but is left for now as a reminder of what needs to be documented)
 - Fix history paging; goes to next page if no reply
-- Audit reload cases where something not configured needs to be un-configured, similar to scheduled jobs n->0
 - Update jobbuiltins / history to list namespaces
-- Add WorkSpace to output from `info`
 - Create `run` task for running a command/script in a repository
 - When a task in a pipeline is a job:
   - If it's a different job, create a new botContext and call startPipeline with a parent argument != nil == pointer to current bot
@@ -24,7 +94,6 @@
 - Remove WorkDirectory from jobs; jobs should consult environment vars and call SetWorkingDirectory
 - Ansible role should create WorkSpace and put it in the gopherbot.yaml
 - Change Exclusive behavior: instead of just returning true when bot.exclusive, make sure tag matches, and return false if not and log an error; also fail if jobName not set
-- Add to TODO: paging for show log similar to history; same 2k page size, but showing in reverse (e.g. 'p' for previous page, 'q' to quit)
 - Put .gopherci/pipeline.sh in repositories
 - Create gitea-ci job triggered by messages in dev
   - Clone repository in e.g WorkSpace/ansible/deploy-gopherbot
@@ -35,6 +104,7 @@
   - Since PIPE_STARTED is true, it'll just run pipeline.sh with the arg
 - Export GOPHER_JOBNAME
 - Repositories like role-foo should just have pipelines that call several SpawnPipeline "$GOPHER_JOBNAME" ansible deploy-gopherbot
+- Stop 'massaging' regexes; instead, collapse multiple spaces in to a single space before checking the message in dispatch
 
 ## Pipelines
 
@@ -153,14 +223,6 @@ func main() {
 
 Whenever a new pipeline starts, if the initiating job/plugin has HistoryLogs > 0, a history file will be recorded, tagged with the name of the job/plugin.
 
-## Robot Configuration
-To simplify locking:
-* Some of the content of gopherbot.yaml should only be processed when the robot first starts, e.g. the brain, connector, listening port, logger
-* Start-up items should be stored globally and readable without a lock
-* These start-up items should be processed during initbot
-* Items that can change on reload should be stored in a config struct similar to plugins and jobs; when the botContext is registered, it should get a copy of this struct that doesn't change for the life of the context, just like the task list
-* Items that are processed to binary representations (e.g. string to loglevel) should be stored in non-public struct members; e.g. LogLevel(string) and logLevel(int)
-
 ### TODO
 * Add a *botConf member to the Robot
 * Use confLock.RLock() in registerActive() to obtain a copy of config
@@ -191,9 +253,6 @@ Datum are protected by serializing all access to memories through a select loop.
 * Write 'rekey brain \<foo\>' admin commands
 
 ## Plugins and Jobs
-
-### TODO
-* Support for Go jobs
 
 ### Augmentations
 Plugins and jobs share a common botCaller struct. Both can have a defined NameSpace,
@@ -274,42 +333,3 @@ three ways:
 * A user using the `run job ...` builtin command
 * Another bot or integration triggers the job by matching one of the job's
   `Triggers`
-
-#### Configuration
-
-## 2.0 Goals
-* Job scheduling
-* Pipelines
-* Remote plugin execution over ssh
-
-## Questions
-
-Are all commands checked before all message matchers? Multiple matching commands should do nothing, but what about multiple message matchers? Probably, all matching message matchers should run.
-
-## TODO Items
-
-This is just a gathering spot for somewhat uncategorized TODO items...
-
-- Brain optimization; keep a global seenCache map[string]bool:
-	- if the entry exists, it's been seen and the bool indicates whether the memory exists
-	- if the entry doesn't exist, check the memory and store whether it exists
-	- when storing a memory, always store that the memory exists
-	- best of all, the brain loop should mean no mutex!
-- Audit use of 'debug' - most calls should be debugT? (before bot.currentTask is set)
-- Plugin debugging verbose - emit messages for user message matching(?); when the user requesting debugging sets verbose, message match checks should trigger debug messages as well if the plugin being debugged has message matchers
-- Plugin debugging channel option - ability to filter by channel if channel set
-- Slack connector: look up new Bot IDs on the fly if a new bot ID is seen; need to add locking of the bots[] map
-- Move slack send loop into anon func in Run
-- Consider: Use globalLock for protocolConfig, brainConfig, elevateConfig
-- Documentation for events, emit, development and testing - Developing.md
-- Stop hard-coding 'it' for contexts; 'server:it:the server' instead of
-  'server', (context followed by generics that match); e.g. "reboot server",
-  "reboot the server", "reboot it" would all check the "server" short-term
-  memory to get e.g. "webtest1.example.com"
-- Add more sample transcripts to documentation using the terminal connector
-- The 'catchall' plugin should be in gopherbot.yaml (There Can Be Only One)
-- Consider: should configuration loading record all explicit values, with
-  intentional defaults when nothing configured explicitly? (probably yes,
-  instead of always using the zero-values of the type)
-- Re-sign psdemo and powershell lib (needs to be done on Windows)
-- Stop 'massaging' regexes; instead, collapse multiple spaces in to a single space before checking the message in dispatch

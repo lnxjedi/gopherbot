@@ -157,8 +157,8 @@ ExternalPlugins:
 ## Useful and/or entertaining plugins; disable by setting 'Disabled: true' in
 ## custom configuration.
   "weather":
-    Path: plugins/weather.rb
     Description: A plugin that uses OpenWeatherMap to report the weather
+    Path: plugins/weather.rb
     Parameters:
     - Name: OWM_APIKEY
       Value: {{ env "GOPHER_OWM_APIKEY" }}
@@ -167,8 +167,8 @@ ExternalPlugins:
     - Name: DEFAULT_COUNTRY
       Value: {{ env "GOPHER_OWM_COUNTRY" | default "us" }} # or other ISO 3166 country code
   "chuck":
-    Path: plugins/chuck.rb
     Description: A plugin that pipes up whenever The Man's name is mentioned
+    Path: plugins/chuck.rb
   "update":
     Description: A plugin that triggers the updatecfg job
     Path: plugins/update.sh
@@ -180,7 +180,11 @@ ExternalJobs:
   "updatecfg":
     Description: A job that updates the robot's configuration from git
     Path: jobs/updatecfg.sh
-
+    Parameters:
+    - Name: CUSTOM_REPOSITORY_URL
+      Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
+    - Name: CUSTOM_REPOSITORY_BRANCH
+      Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "master" }}
 ## ExternalTasks enumerate external executables that can be added to pipelines
 ## with AddTask <name>. Note the e.g. the update plugin requires ssh,
 ## ssh-agent, and git. Unlike Plugins and Jobs, ExternalTasks can have

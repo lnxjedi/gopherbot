@@ -2,20 +2,10 @@
 require 'net/http'
 require 'json'
 
-# To install:
-# 1) Copy this file to plugins/weather.rb
-# 2) Enable in gopherbot.yaml like so:
-#ExternalScripts:
-#- Name: weather
-#  Path: plugins/weather.rb
-#  Description: A plugin using OpenWeatherMap to give the weather
-#  Parameters:
-#  - Name: OWM_APIKEY
-#    Value: "<yourkey>" # or omit and use admin command "store task parameter weather OWM_APIKEY=<yourkey>"
-#  - Name: TEMP_UNITS
-#    Value: imperial # or 'metric'
-#  - Name: DEFAULT_COUNTRY
-#    Value: 'us' # or other ISO 3166 country code
+# NOTE: A bot administrator should supply the API key with a DM:
+# `store task parameter weather OWM_APIKEY=xxxx`. Defaults for
+# DEFAULT_COUNTRY and TEMP_UNITS can be overridden in custom
+# conf/plugins/weather.yaml
 
 # load the Gopherbot ruby library and instantiate the bot
 require ENV["GOPHER_INSTALLDIR"] + '/lib/gopherbot_v1'

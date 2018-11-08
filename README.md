@@ -18,11 +18,21 @@ To try out **Gopherbot** for yourself and write your first plugin, see [the Quic
 
 (*) with a modular interface for writing other protocol connectors in Go
 
-A few of Gopherbot's features:
+A few of Gopherbot's features for the upcoming 2.0:
+* API support for pipelines and CI/CD operation (see [gopherci](jobs/gopherci.py))
+* Scheduled job support
+
+Features since 1.x:
 * Built-in support for [elevated commands](doc/Security-Overview.md#elevation) requiring MFA (ala 'sudo')
 * A prompting API for interactive plugins
 * Comprehensive set of administrative commands
 * Simple single-file script plugins
+
+## Documentation
+
+***NOTE: The documentation is currently incomplete and being updated for version 2.x. Documentation for older versions can be found in the `doc/` subdirectory of the distribution archive.***
+
+Other than commented [configuration files](conf/gopherbot.yaml), most documentation is in the [doc/](doc/) folder. Also check the [Documentation Index](doc/README.md).
 
 ## Sample Plugin with the Ruby API
 ```ruby
@@ -30,17 +40,10 @@ A few of Gopherbot's features:
 require 'net/http'
 require 'json'
 
-# To install:
-# 1) Copy this file to plugins/weather.rb
-# 2) Enable in gopherbot.yaml like so:
-#ExternalScripts:
-#- Name: weather
-#  Path: plugins/weather.rb
-# 3) Put your configuration in conf/plugins/weather.yaml:
-#Config:
-#  APIKey: <your openweathermap key>
-#  TemperatureUnits: imperial # or 'metric'
-#  DefaultCountry: 'us' # or other ISO 3166 country code
+# NOTE: A bot administrator should supply the API key with a DM:
+# `store task parameter weather OWM_APIKEY=xxxx`. Defaults for
+# DEFAULT_COUNTRY and TEMP_UNITS can be overridden in custom
+# conf/plugins/weather.yaml
 
 # load the Gopherbot ruby library and instantiate the bot
 require ENV["GOPHER_INSTALLDIR"] + '/lib/gopherbot_v1'
@@ -62,10 +65,9 @@ when "configure"
 	puts defaultConfig
 	exit
 when "weather"
-    c = bot.GetTaskConfig()
     location = ARGV.shift()
-    location += ",#{c["DefaultCountry"]}" unless location.include?(',')
-    uri = URI("http://api.openweathermap.org/data/2.5/weather?q=#{location}&units=#{c["TemperatureUnits"]}&APPID=#{c["APIKey"]}")
+    location += ",#{ENV["DEFAULT_COUNTRY"]}" unless location.include?(',')
+    uri = URI("http://api.openweathermap.org/data/2.5/weather?q=#{location}&units=#{ENV["TEMP_UNITS"]}&APPID=#{ENV["OWM_APIKEY"]}")
     d = JSON::parse(Net::HTTP.get(uri))
     if d["message"]
         bot.Say("Sorry: \"#{d["message"]}\", maybe try the zip code?")
@@ -80,21 +82,17 @@ end
 The goal is for Gopherbot to support multiple scripting languages with built-in security features, to make secure ChatOps functions easy to write for most Systems and DevOps engineers.
 
 Examples of work Gopherbot is already doing:
-* Building, backing up, restoring, stopping and starting instances in the AWS cloud
+* Building and publishing new versions/snapshots of Gopherbot and [Luminos](https://github.com/lnxjedi/luminos)
+* Updating development and production websites as commits are made to dev and merged to master
 * Disabling / reenabling user web directories when requested by security engineers
 * Adding users and updating passwords on servers using Ansible
 
 ## Development Status
-Gopherbot 1.x is stable and running in production in several environments.
+Gopherbot 1.x is stable and running in production in several environments, and probably will not see further point updates.
 
-Development has started for Gopherbot 2.x, which adds features for scheduled jobs and pipelines. See the [development notes](DevNotes.md).
+Most of the work for 2.x is complete, with a release expected in the next 2-4 months.
 
 ### Contributing
-Check out [Github's documentation](https://help.github.com/articles/fork-a-repo/) on forking and creating pull requests. Feel free to shoot me an email
-for an invite to [the LinuxJedi Slack team](https://linuxjedi.slack.com).
+See the [development notes](DevNotes.md) for design notes and stuff still needing to be done. Issues and pull requests welcome!
 
-## Documentation
-
-***NOTE: This is the documentation for Gopherbot v1.1. For older versions, see the documentation included in the distribution archive.***
-
-Also see the full [Documentation Index](doc/README.md)
+For development, testing, and collaboration, feel free to shoot me an email for an invite to [the LinuxJedi Slack team](https://linuxjedi.slack.com).
