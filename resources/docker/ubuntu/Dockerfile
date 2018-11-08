@@ -17,7 +17,9 @@ RUN groupadd -g ${gid} ${groupname} && \
   apt-get -y upgrade && \
   apt-get install -y \
     curl \
+    git \
     jq \
+    openssh-client \
     ruby \
     unzip \
     && \

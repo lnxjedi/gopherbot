@@ -13,9 +13,11 @@ ENV HOME=/home/robot
 
 RUN yum -y update && \
   yum -y install \
+    git \
     jq \
-    unzip \
+    openssh-clients \
     shadow-utils \
+    unzip \
     && \
   amazon-linux-extras install ruby2.4 && \
   groupadd -g ${gid} ${groupname} && \
