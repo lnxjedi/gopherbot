@@ -4,9 +4,8 @@
 
 ## To be sorted / filtered
 - TODO: Make sure plugins/tasks/jobs can be disabled in gopherbot.yaml
-- TODO: Add env vars for getting protocol & credentials, brain & credentials
-- TODO: Add all-inclusive conf/gopherbot.yaml + other config in default install, which
-  can be overridden by user config
+- TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
+- TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
 - TODO: Update ansible role to stop creating installed gopherbot.yaml, favoring version
   from install archive
 - TODO: Add Reload() method to connectors, many of which may require additional data
@@ -176,7 +175,7 @@ decrypt the "bot:brainKey" memory to retrieve the actual key used to en-/de-cryp
 * Low-level brain functions can check the encryptBrain bool w/o locking
 * cryptBrain is protected by an RWLock so an admin can later provide a key for unlocking the brainKey
 * When encryptBrain is true and cryptBrain.initialized is true, a failure to decrypt a memory should be interpreted as an unencrypted memory that gets encrypted and stored, then returned
-* Add admin command 'convert <key>' to forces the robot to read the memory and re-store
+* Add admin command 'convert \<key\>' to forces the robot to read the memory and re-store
 * Robot should take a new EncryptBrain bool parameter
 * BrainKey is optional, can be specified at start or runtime
 * The BrainKey should unlock the 'real' brainKey, for later re-keying if desired, e.g. if the admin switches from a configured key to a runtime-supplied key
@@ -189,7 +188,7 @@ Datum are protected by serializing all access to memories through a select loop.
 
 ### TODO
 * Write reKey function
-* Write 'rekey brain <foo>' admin commands
+* Write 'rekey brain \<foo\>' admin commands
 
 ## Plugins and Jobs
 
@@ -255,7 +254,7 @@ If a job/plugin requires elevation, the configured elevator for that job/plugin 
 
 Plugins, as always, will take arguments starting with a command. Jobs will instead take
 parameters, which get set as environment variables.
-* Administrators can use a built-in 'set environment <scope> var=value' command, direct
+* Administrators can use a built-in 'set environment \<scope\> var=value' command, direct
 message only, to set environment vars that will be attached to the Robot when the
 pipeline starts. The `global` scope will be set for all jobs & plugins, otherwise scope is a NameSpace.
 * Plugins and Jobs can use a SetSessionParameter method that sets an environment variable in the current plugin, and in the Robot object for future jobs/plugins in the pipeline

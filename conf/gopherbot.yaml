@@ -229,6 +229,9 @@ ExternalTasks:
   "git-sync":
     Description: Simple script to clone or pull a repository
     Path: tasks/git-sync.sh
+  "cleanup":
+    Description: Task for removing a repository after a build has completed
+    Path: tasks/cleanup.sh
 
 ## NOTE: Items below are informational only, and should be defined in the
 ## custom configuration repository.

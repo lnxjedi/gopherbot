@@ -19,13 +19,16 @@ cd $REPO_DIR
 
 if [ -e .git ]
 then
-    git pull
+    git fetch
+    git checkout $BRANCH
+    git merge
 else
     git clone $REPO_URL .
+    git checkout $BRANCH
 fi
-git checkout $BRANCH
 
 if [ -n "$SET_WD" ]
 then
     SetWorkingDirectory "$REPO_DIR"
+    SetParameter "GOPHERCI_WORKDIR" "$REPO_DIR"
 fi

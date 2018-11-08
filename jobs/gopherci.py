@@ -1,6 +1,24 @@
 #!/usr/bin/env python
 
-# gopherci.py - Dispatcher for commit events, spawns the appropriate build job
+# gopherci.py - Dispatcher for commit events, spawns the appropriate build job.
+# NOTE: Don't use SetParameter(...) here; build_triggered jobs don't inherit
+# environment.
+
+# Operation:
+# When a repository updates, gopherci is called with the repository
+# name and branch (two arguments).
+# - If the repository is listed in "repositories.yaml" with
+#   type != none, a build task is added.
+# - The the repository is listed as a dependency for another repository whose
+#   type != none, another gopherci task is added with a third argument of "true"
+# When the gopherci job runs with three arguments, each dependendent build
+# is spawned.
+#
+# The result is if the initial build succeeds, all dependent builds will run
+# in parallel with no further interdependencies.
+#
+# NOTE: current gopherci does not cascade dependent builds; if a dependency
+# build is itself a de
 
 import os
 import sys
@@ -10,6 +28,16 @@ from gopherbot_v1 import Robot
 bot = Robot()
 
 from yaml import load
+
+repofile = open("%s/conf/repositories.yaml" % os.getenv("GOPHER_CONFIGDIR"))
+yamldata = repofile.read()
+repodata = load(yamldata)
+
+if not isinstance(repodata, dict):
+    bot.Log("Warn", "GopherCI triggered with invalid 'repositories.yaml', not a python 'dict'")
+    exit(0)
+
+build_triggered = False
 
 # Pop off the executable path
 sys.argv.pop(0)
@@ -22,36 +50,83 @@ if branch.endswith("/"): # illegal end char; assume args swapped
 if repository.endswith("/"):
     repository = repository.rstrip("/")
 
-repofile = open("%s/conf/repositories.yaml" % os.getenv("GOPHER_CONFIGDIR"))
-yamldata = repofile.read()
-repodata = load(yamldata)
+def get_deps(repository, recurse, all_deps = []):
+    deps = []
+    for reponame in repodata.keys():
+        if "dependencies" in repodata[reponame]:
+            if repository in repodata[reponame]["dependencies"]:
+                repoconf = repodata[reponame]
+                if "type" in repoconf:
+                    repotype = repoconf["type"]
+                    if repotype != "none":
+                        if reponame in all_deps:
+                            raise Exception("Found duplicate dependency %s while walking the dependency tree" % reponame)
+                        deps.append(reponame)
+                        all_deps.append(reponame)
+    if recurse:
+        if not deps:
+            return deps
+        for dep in deps:
+            get_deps(dep, True, all_deps)
 
-if not isinstance(repodata, dict):
-    bot.Log("Warn", "GopherCI triggered with invalid 'repositories.yaml', not a python 'dict'")
-    exit(0)
+    return deps
 
-spawned = False
+if len(sys.argv) == 0:
+    # Two args, initial build of modified repository
+    if repository in repodata:
+        repoconf = repodata[repository]
+        if "type" in repoconf:
+            repotype = repoconf["type"]
+            if repotype != "none":
+                build_triggered = True
+                bot.Log("Debug", "Adding primary build for %s / %s to the pipeline" % (repository, branch))
+                bot.AddTask(repotype, [ repository, branch ])
+    try:
+        deps = get_deps(repository, True)
+    except Exception as e:
+        err = "Resolving dependencies for %s / %s: %s" % (repository, branch, e)
+        bot.AddTask("fail", [ err ])
+        exit(0)
+    if deps:
+        build_triggered = True
+        bot.Log("Debug", "Starting builds for everything that depends on %s / %s" % (repository, branch))
+        bot.AddTask("gopherci", [ repository, branch, "true" ])
 
-def spawn(reponame, repoconf, spawntype):
-    if "type" in repoconf:
-        repotype = repoconf["type"]
-        if repotype == "none":
-            bot.Log("Debug", "Ignoring update on %s repository '%s', type is 'none'" % (spawntype, repository))
-        else:
-            bot.Log("Debug", "gopherci spawning build for %s repository '%s', type '%s'" % (spawntype, repository, repotype))
-            bot.SpawnTask(repotype, [ reponame, branch ])
-    else:
-        bot.Say("No 'type' specified for %s repository '%s'" % (spawntype, repository))
+if len(sys.argv) == 1:
+    # build depdencies for a repository
+    build_triggered = True
+    for reponame in repodata.keys():
+        if "dependencies" in repodata[reponame]:
+            if repository in repodata[reponame]["dependencies"]:
+                repoconf = repodata[reponame]
+                if "type" in repoconf:
+                    repotype = repoconf["type"]
+                    if repotype != "none":
+                        if "default_branch" in repoconf:
+                            repobranch = repoconf["default_branch"]
+                        else:
+                            repobranch = "master"
+                        bot.Log("Debug", "Spawning dependency build of %s / %s for primary build of %s / %s" % (reponame, repobranch, repository, branch))
+                        bot.SpawnTask("gopherci", [ reponame, repobranch, repository, branch ])
 
-if repository in repodata:
-    spawned = True
-    spawn(repository, repodata[repository], "listed")
+if len(sys.argv) == 2:
+    # Four args, inital build of dependency
+    # build repo + deps
+    build_triggered = True
+    deprepo = sys.argv.pop(0)
+    depbranch = sys.argv.pop(0)
+    if repository in repodata:
+        repoconf = repodata[repository]
+        if "type" in repoconf:
+            repotype = repoconf["type"]
+            if repotype != "none":
+                build_triggered = True
+                bot.Log("Debug", "Adding primary dependency build for %s / %s to the pipeline, triggered by %s / %s" % (repository, branch, deprepo, depbranch))
+                bot.AddTask(repotype, [ repository, branch, deprepo, depbranch ])
+    deps = get_deps(repository, False)
+    if deps:
+        bot.Log("Debug", "Starting builds for everything that depends on %s / %s (initially triggered by %s / %s" % (repository, branch, deprepo, depbranch))
+        bot.AddTask("gopherci", [ repository, branch, "true" ])
 
-for reponame in repodata.keys():
-    if "dependencies" in repodata[reponame]:
-        if repository in repodata[reponame]["dependencies"]:
-            spawned = True
-            spawn(reponame, repodata[reponame], "dependency")
-
-if not spawned:
-    bot.Log("Debug", "Ignoring update on '%s', not a listed repository or dependency" % repository)
+if not build_triggered:
+    bot.Log("Debug", "Ignoring update on '%s', no builds triggered" % repository)
