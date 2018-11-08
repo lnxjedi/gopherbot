@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# ssh-admin.sh - less trivial example shell plugin for gopherbot
+# ssh-admin.sh - shell plugin for managing the robot's ssh keypair
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
@@ -10,14 +10,11 @@ shift
 configure(){
 	cat <<"EOF"
 Help:
-- Keywords: [ "hosts", "lookup", "dig", "nslookup" ]
-  Helptext:
-  - "(bot), dig <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
-  - "(bot), hosts <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
-  - "(bot), hostname - report the $HOSTNAME where the bot is running"
+- Keywords: [ "ssh", "keygen", "key", "replace" ]
+  Helptext: [ "(bot), generate|replace keypair" ]
 CommandMatchers:
-- Command: hosts
-  Regex: '(?i:hosts?|lookup|dig|nslookup) ([\w-. ]+)'
+- Command: keypair
+  Regex: '(?i:(generate|replace) keypair)'
 - Command: hostname
   Regex: '(?i:hostname)'
 EOF
