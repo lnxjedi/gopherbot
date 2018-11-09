@@ -1,13 +1,8 @@
 coverage.*
-bot/test.log
 gopherbot
 gopherbot.exe
 gopherbot*zip
 bot/commit.go
 lib/gopherbot_*.pyc
-*.yaml
-!gopherbot.yaml
-duo.yaml
-totp.yaml
 .publish
 .c9
