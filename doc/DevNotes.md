@@ -48,6 +48,7 @@ To simplify locking:
 
 ## TODOs:
 - DONE/TEST/DOCUMENT: Make sure plugins/tasks/jobs can be disabled in gopherbot.yaml
+- TODO: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
 - TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
 - TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
 - TODO: Update ansible role to stop creating installed gopherbot.yaml, favoring version
