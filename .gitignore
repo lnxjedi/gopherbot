@@ -6,3 +6,4 @@ bot/commit.go
 lib/gopherbot_*.pyc
 .publish
 .c9
+commit.go
