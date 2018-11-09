@@ -54,8 +54,9 @@ func scheduleTasks() {
 			Log(Error, fmt.Sprintf("Not scheduling task '%s'; zero-length Channel", st.Name))
 			continue
 		}
-		Log(Info, fmt.Sprintf("Scheduling job '%s' with schedule: %s", st.Name, st.Schedule))
-		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, st.taskSpec, tasks, repolist) })
+		ts := st.taskSpec
+		Log(Info, fmt.Sprintf("Scheduling job '%s', args '%v' with schedule: %s", ts.Name, ts.Arguments, st.Schedule))
+		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, ts, tasks, repolist) })
 	}
 	taskRunner.Start()
 	schedMutex.Unlock()
