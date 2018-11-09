@@ -7,7 +7,7 @@ installdir := $(shell dirname $(shell dirname $(PWD)))
 prod:
 	docker container run --name gopherbot --restart unless-stopped -d \
 	  --mount 'source=gopherbot-home,target=/home/robot' \
-	  --env-file $(HOME)/gopherbot.env gopherbot:2.0.0
+	  --env-file $(HOME)/gopherbot.env lnxjedi/gopherbot:amazon
 
 # Example 'dev' container bind mounts the local install dir for running
 # gopherbot in a container.
