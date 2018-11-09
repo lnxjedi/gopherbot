@@ -183,7 +183,7 @@ ExternalPlugins:
 ExternalJobs:
   "updatecfg":
     Description: A job that updates the robot's configuration from git
-    Path: jobs/updatecfg.sh
+    Path: jobs/updatecfg.py
     Parameters:
     - Name: CUSTOM_REPOSITORY_URL
       Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}

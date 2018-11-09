@@ -11,11 +11,10 @@ shift
 configure(){
   cat <<"EOF"
 RequireAdmin: true
-ElevatedCommands: [ 'update' ]
 AllowDirect: true
 Help:
 - Keywords: [ "config", "configuration", "update" ]
-  Helptext: [ "(bot), update (configuration) - perform a 'git pull' in the configuration directory and reload" ]
+  Helptext: [ "(bot), update (configuration) - perform a git clone/pull of custom configuration and reload" ]
 CommandMatchers:
 - Command: "update"
   Regex: '(?i:update(?: config(?:uration)?)?)'
@@ -29,6 +28,5 @@ case "$COMMAND" in
   "update")
     Say "Ok, I'll trigger the 'updatecfg' job to issue a git pull and reload configuration..."
     AddTask updatecfg
-    FailTask notify $GOPHER_USER "Update failed, check history for the 'updatecfg' job"
     ;;
 esac
