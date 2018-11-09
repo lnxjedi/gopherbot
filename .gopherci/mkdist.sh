@@ -48,6 +48,7 @@ do
 		GOOS=$BUILDOS go build -mod vendor -o gopherbot.exe
 		echo "Creating $OUTFILE"
 		zip -r $OUTFILE gopherbot.exe LICENSE README.md brain/ conf/ doc/ cfg/ lib/ licenses/ plugins/ resources/ jobs/ tasks/ scripts/ --exclude *.swp
+	elif [ "$BUILDOS" = "linux" ]
 	then
 		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -a -tags 'netgo osusergo static_build' -o gopherbot
 		echo "Creating $OUTFILE"
