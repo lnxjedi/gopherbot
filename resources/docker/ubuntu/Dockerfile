@@ -20,6 +20,8 @@ RUN groupadd -g ${gid} ${groupname} && \
     git \
     jq \
     openssh-client \
+    python \
+    python-yaml \
     ruby \
     unzip \
     && \

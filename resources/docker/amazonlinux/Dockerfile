@@ -18,6 +18,7 @@ RUN yum -y update && \
     openssh-clients \
     shadow-utils \
     unzip \
+    PyYAML \
     && \
   amazon-linux-extras install ruby2.4 && \
   groupadd -g ${gid} ${groupname} && \

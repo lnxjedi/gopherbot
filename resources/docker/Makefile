@@ -1,21 +1,27 @@
 # Makefile with examples for running gopherbot
 installdir := $(shell dirname $(shell dirname $(PWD)))
 
-# Example 'prod' container; note that the robot home directory is a
+# Example prod container; note that the robot home directory is a
 # persistent volume. You might want to use a different log driver for
 # your environment, e.g. journald.
-prod:
+prod-amazon:
 	docker container run --name gopherbot --restart unless-stopped -d \
 	  --mount 'source=gopherbot-home,target=/home/robot' \
 	  --env-file $(HOME)/gopherbot.env lnxjedi/gopherbot:amazon
 
-# Example 'dev' container bind mounts the local install dir for running
+# Example dev containers bind mounts the local install dir for running
 # gopherbot in a container.
-dev:
+dev-amazon:
 	docker container run --name gopherbot \
 	  --mount 'source=gopherbot-home,target=/home/robot' \
 	  --mount "type=bind,source=$(installdir),target=/opt/gopherbot" \
 	  --env-file $(HOME)/gopherbot-dev.env lnxjedi/gopherbot:amazon
+
+dev-ubuntu:
+	docker container run --name gopherbot \
+	  --mount 'source=gopherbot-home,target=/home/robot' \
+	  --mount "type=bind,source=$(installdir),target=/opt/gopherbot" \
+	  --env-file $(HOME)/gopherbot-dev.env lnxjedi/gopherbot:ubuntu
 
 clean:
 	docker container stop gopherbot || :
