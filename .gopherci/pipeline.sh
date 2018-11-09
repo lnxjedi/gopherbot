@@ -32,6 +32,9 @@ fi
 # Publish archives to github
 AddTask exec ./.gopherci/publish.sh
 
+# Trigger Docker build
+AddTask exec curl -X POST https://cloud.docker.com/$DOCKER_TRIGGER
+
 # Notify of success
 if [ -n "$NOTIFY_USER" ]
 then
