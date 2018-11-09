@@ -22,7 +22,6 @@ RUN yum -y update && \
   amazon-linux-extras install ruby2.4 && \
   groupadd -g ${gid} ${groupname} && \
   useradd -m -u ${uid} -g ${groupname} -d ${HOME} robot && \
-  yum -y remove shadow-utils && \
   yum clean all && \
   curl -L -o gopherbot-linux-amd64.zip https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.zip && \
   unzip gopherbot-linux-amd64.zip && \
