@@ -156,6 +156,13 @@ DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}
 ExternalPlugins:
 ## Useful and/or entertaining plugins; disable by setting 'Disabled: true' in
 ## custom configuration.
+  "update":
+    Description: A plugin that triggers the updatecfg job
+    Path: plugins/update.sh
+  "ssh-admin":
+    Description: Administrative plugin for managing the robot's ssh keypair
+    Path: plugins/ssh-admin.sh
+    NameSpace: ssh-init
   "weather":
     Description: A plugin that uses OpenWeatherMap to report the weather
     Path: plugins/weather.rb
@@ -169,9 +176,6 @@ ExternalPlugins:
   "chuck":
     Description: A plugin that pipes up whenever The Man's name is mentioned
     Path: plugins/chuck.rb
-  "update":
-    Description: A plugin that triggers the updatecfg job
-    Path: plugins/update.sh
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)
@@ -179,7 +183,7 @@ ExternalPlugins:
 ExternalJobs:
   "updatecfg":
     Description: A job that updates the robot's configuration from git
-    Path: jobs/updatecfg.sh
+    Path: jobs/updatecfg.py
     Parameters:
     - Name: CUSTOM_REPOSITORY_URL
       Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}

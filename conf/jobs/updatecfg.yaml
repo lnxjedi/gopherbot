@@ -2,4 +2,5 @@
 RequireAdmin: true
 Channel: general
 AllowDirect: true
+Quiet: true
 HistoryLogs: 7
