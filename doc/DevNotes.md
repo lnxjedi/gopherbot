@@ -48,9 +48,9 @@ To simplify locking:
 
 ## TODOs:
 - DONE/TEST/DOCUMENT: Make sure plugins/tasks/jobs can be disabled in gopherbot.yaml
-History:
-  - TODO: close history at end of main pipe to enable email history failtask/finaltask
-  - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
+- History:
+   - TODO: close history at end of main pipe to enable email history failtask/finaltask
+   - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
 - TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
 - TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
 - TODO: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, etc.
