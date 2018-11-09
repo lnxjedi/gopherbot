@@ -50,6 +50,9 @@ To simplify locking:
 - DONE/TEST/DOCUMENT: Make sure plugins/tasks/jobs can be disabled in gopherbot.yaml
 - TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
 - TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
+- TODO: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, etc.
+- TODO: Create AddJob that checks for job then calls AddTask - more explicit / readable code
+- TODO: Update `whoami` to include channel name / internal ID
 - TODO: Update ansible role to stop creating installed gopherbot.yaml, favoring version
   from install archive
 - TODO: Add Reload() method to connectors, many of which may require additional data
