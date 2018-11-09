@@ -10,48 +10,56 @@ shift
 configure(){
 	cat <<"EOF"
 Help:
-- Keywords: [ "ssh", "keygen", "key", "replace" ]
-  Helptext: [ "(bot), generate|replace keypair" ]
+- Keywords: [ "ssh", "keygen", "key", "replace" "keypair" ]
+  Helptext: [ "(bot), generate|replace keypair - create an ssh keypair for the robot" ]
+- Keywords: [ "ssh" , "pubkey", "public", "key" ]
+  Helptext: [ "(bot), (show) pubkey - dump the robot's public key" ]
 CommandMatchers:
 - Command: keypair
   Regex: '(?i:(generate|replace) keypair)'
-- Command: hostname
-  Regex: '(?i:hostname)'
+- Command: pubkey
+  Regex: '(?i:(show )?pubkey)'
 EOF
 }
 
-hosts() {
-	HOSTSARR=($*)
-	for LOOKUP in "${HOSTSARR[@]}"
-	do
-		ERROR=false
-		if echo "$LOOKUP" | grep -qP "[a-zA-Z]+"
-		then
-			HOSTNAME=$LOOKUP
-			IPADDR=$(host $HOSTNAME | grep 'has address') || ERROR=true
-			IPADDR=${IPADDR##* }
-			[ "$ERROR" = "true" ] && IPADDR="(not found)"
-		else
-			IPADDR=$LOOKUP
-			HOSTNAME=$(host $LOOKUP) || ERROR=true
-			HOSTNAME=${HOSTNAME##* }
-			HOSTNAME=${HOSTNAME%.}
-			[ "$ERROR" = "true" ] && HOSTNAME="(not found)"
-		fi
-		MESSAGE=$(echo -e "${IPADDR}\t${HOSTNAME}\n$MESSAGE")
-	done
+if [ "$command" = "configure" ]
+then
+	configure
+	exit 0
+fi
 
-	Say -f "$MESSAGE"
-}
+if [ -z "$BOT_SSH_PHRASE" ]
+then
+	Say "\$BOT_SSH_PHRASE not set; try 'store parameter ssh-init BOT_SSH_PHRASE=<somethingreallylong>'"
+	exit 0
+fi
 
 case $command in
-	"configure")
-		configure
+	"keypair")
+		ACTION=$1
+		if [ -e $HOME/.ssh/id_rsa ]
+		then
+			if [ "$ACTION" = "replace" ]
+			then
+				rm -f $HOME/.ssh/id_rsa $HOME/.ssh/id_rsa.pub
+			else
+				Say "I've already got an ssh keypair - use 'replace keypair' to replace it"
+				exit 0
+			fi
+		else
+			mkdir -p $HOME/.ssh
+			chmod 600 $HOME/.ssh
+		fi
+		BOT=$(GetBotAttribute name)
+		/usr/bin/ssh-keygen -q -b 4096 -N "$BOT_SSH_PHRASE" -C "$BOT" -f $HOME/.ssh/id_rsa
+		Say "Created"
 		;;
-	"hosts")
-		hosts $*
-		;;
-	"hostname")
-		Reply "I'm running on $HOSTNAME"
+	"pubkey")
+		if [ ! -e $HOME/.ssh/id_rsa.pub ]
+		then
+			Say "I don't seem to have an ssh public key - use 'generate keypair' to create one"
+		else
+			Say -f "$(cat $HOME/.ssh/id_rsa.pub)"
+		fi
 		;;
 esac
