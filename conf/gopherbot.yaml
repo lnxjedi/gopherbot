@@ -124,11 +124,11 @@ HistoryProvider: {{ $history }}
 
 {{ if eq $history "file" }}
 HistoryConfig:
-  Directory: {{ env "GOPHER_HISTORY_DIR" | default (printf "%s/history" $home) }}
+  Directory: {{ env "GOPHER_HISTORY_DIRECTORY" | default (printf "%s/history" $home) }}
 {{ end }}
 ## End history config
 
-WorkSpace: {{ env "GOPHER_WORKSPACE" | default (printf "%s/workspace" $home) }}
+WorkSpace: {{ env "GOPHER_WORKSPACE_DIRECTORY" | default (printf "%s/workspace" $home) }}
 
 ## Configure log level; defaults to debug to aid in troubleshooting
 ## if custom configuration can't be loaded.
