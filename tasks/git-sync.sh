@@ -21,7 +21,7 @@ if [ -e .git ]
 then
     git fetch
     git checkout $BRANCH
-    git merge
+    git pull
 else
     git clone $REPO_URL .
     git checkout $BRANCH
