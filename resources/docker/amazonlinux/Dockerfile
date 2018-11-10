@@ -6,6 +6,7 @@ ARG username=robot
 ARG groupname=robot
 ARG uid=49
 ARG gid=49
+ARG commit=0ac79e4
 
 WORKDIR ${installdir}
 
@@ -24,9 +25,6 @@ RUN yum -y update && \
   groupadd -g ${gid} ${groupname} && \
   useradd -m -u ${uid} -g ${groupname} -d ${HOME} robot && \
   yum clean all && \
-  curl -L -o gopherbot-linux-amd64.zip https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.zip && \
-  unzip gopherbot-linux-amd64.zip && \
-  rm gopherbot-linux-amd64.zip && \
   mkdir -p ${HOME}/conf \
     ${HOME}/brain \
     ${HOME}/workspace \
@@ -38,6 +36,10 @@ RUN yum -y update && \
     ${HOME}/workspace \
     ${HOME}/history \
     ${HOME}/.gopherbot
+
+RUN   curl -L -o gopherbot-linux-amd64.zip https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.zip?commit=${commit} && \
+  unzip gopherbot-linux-amd64.zip && \
+  rm gopherbot-linux-amd64.zip
 
 USER ${username}:${groupname}
 
