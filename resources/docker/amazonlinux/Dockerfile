@@ -6,7 +6,7 @@ ARG username=robot
 ARG groupname=robot
 ARG uid=49
 ARG gid=49
-ARG commit=0ac79e4
+ARG commit=434237b
 
 WORKDIR ${installdir}
 
