@@ -39,10 +39,10 @@ RUN groupadd -g ${gid} ${groupname} && \
     ${HOME}/history \
     ${HOME}/.gopherbot
 
-USER ${username}:${groupname}
-
 RUN   curl -L -o gopherbot-linux-amd64.zip https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.zip?commit=${commit} && \
   unzip gopherbot-linux-amd64.zip && \
   rm gopherbot-linux-amd64.zip
+
+USER ${username}:${groupname}
 
 ENTRYPOINT [ "./gopherbot" , "-plainlog" ]
