@@ -51,5 +51,5 @@ if not clone_url.startswith("http"):
 
 bot.AddTask("git-sync", [ clone_url, clone_branch, os.getenv("GOPHER_CONFIGDIR"), "true" ])
 bot.AddTask("exec", [ ".gopherci/pipeline.sh" ])
-bot.AddTask("status", [ "configuration repository successfully updated" ])
+bot.AddTask("status", [ "Custom configuration repository successfully updated" ])
 bot.AddTask("builtInadmin", [ "reload" ])

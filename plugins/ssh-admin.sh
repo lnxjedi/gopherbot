@@ -10,9 +10,9 @@ shift
 configure(){
 	cat <<"EOF"
 Help:
-- Keywords: [ "ssh", "keygen", "key", "replace" "keypair" ]
+- Keywords: [ "ssh", "keygen", "key", "replace", "keypair" ]
   Helptext: [ "(bot), generate|replace keypair - create an ssh keypair for the robot" ]
-- Keywords: [ "ssh" , "pubkey", "public", "key" ]
+- Keywords: [ "ssh", "pubkey", "public", "key" ]
   Helptext: [ "(bot), (show) pubkey - dump the robot's public key" ]
 CommandMatchers:
 - Command: keypair
@@ -30,7 +30,7 @@ fi
 
 if [ -z "$BOT_SSH_PHRASE" ]
 then
-	Say "\$BOT_SSH_PHRASE not set; try 'store parameter ssh-init BOT_SSH_PHRASE=<somethingreallylong>'"
+	Say "\$BOT_SSH_PHRASE not set; try 'store task parameter ssh-init BOT_SSH_PHRASE=<somethingreallylong>'"
 	exit 0
 fi
 
@@ -48,7 +48,7 @@ case $command in
 			fi
 		else
 			mkdir -p $HOME/.ssh
-			chmod 600 $HOME/.ssh
+			chmod 700 $HOME/.ssh
 		fi
 		BOT=$(GetBotAttribute name)
 		/usr/bin/ssh-keygen -q -b 4096 -N "$BOT_SSH_PHRASE" -C "$BOT" -f $HOME/.ssh/id_rsa
