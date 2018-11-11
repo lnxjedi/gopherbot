@@ -5,5 +5,5 @@
 
 COMMIT=$(git rev-parse --short HEAD)
 
-sed -i "s/ARG commit=.*/ARG commit=$COMMIT/" resources/docker/amazonlinux/Dockerfile
-sed -i "s/ARG commit=.*/ARG commit=$COMMIT/" resources/docker/ubuntu/Dockerfile
+sed -i "s/ARG token=.*/ARG token=$COMMIT/" resources/docker/amazonlinux/Dockerfile
+sed -i "s/ARG token=.*/ARG token=$COMMIT/" resources/docker/ubuntu/Dockerfile
