@@ -2,19 +2,12 @@ package test
 
 import (
 	"errors"
-	"testing"
 	"time"
 )
 
 /* testMethods.go - methods specific to the test connector */
 
-func (tc *TestConnector) SetTest(t *testing.T) {
-	tc.Lock()
-	tc.test = t
-	tc.Unlock()
-}
-
-// SendBotMessage, for tests to send messages to the 'bot
+// SendBotMessage for tests to send messages to the 'bot
 func (tc *TestConnector) SendBotMessage(msg *TestMessage) {
 	tc.RLock()
 	if msg.Channel != "" {
@@ -51,7 +44,7 @@ func (tc *TestConnector) SendBotMessage(msg *TestMessage) {
 	}
 }
 
-// GetBotMessage, for tests to get replies
+// GetBotMessage for tests to get replies
 func (tc *TestConnector) GetBotMessage() (*TestMessage, error) {
 	select {
 	case incoming := <-tc.speaking:

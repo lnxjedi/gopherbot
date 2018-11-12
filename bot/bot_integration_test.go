@@ -77,9 +77,13 @@ const deadzone = "deadzone"
 
 func setup(cfgdir, logfile string, t *testing.T) (<-chan struct{}, *testc.TestConnector) {
 	testVer := VersionInfo{"test", "(unknown)"}
+
+	testc.ExportTest.Lock()
+	testc.ExportTest.Test = t
+	testc.ExportTest.Unlock()
+
 	done, tconn := StartTest(testVer, cfgdir, logfile, t)
 	testConnector := tconn.(*testc.TestConnector)
-	testConnector.SetTest(t)
 
 	return done, testConnector
 }

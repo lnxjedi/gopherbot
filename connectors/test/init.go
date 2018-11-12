@@ -3,12 +3,20 @@ package test
 import (
 	"fmt"
 	"log"
+	"sync"
+	"testing"
 
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
 // Global persistent map of user name to user index
 var userMap = make(map[string]int)
+
+// ExportTest lets bot_integration_test safely supply the *testing.T
+var ExportTest = struct {
+	Test *testing.T
+	sync.Mutex
+}{}
 
 type testUser struct {
 	Name                                        string // username / handle
@@ -40,6 +48,10 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		userMap[u.Name] = i
 	}
 
+	ExportTest.Lock()
+	t := ExportTest.Test
+	ExportTest.Unlock()
+
 	tc := &TestConnector{
 		botName:     c.BotName,
 		botFullName: c.BotFullName,
@@ -48,6 +60,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		channels:    c.Channels,
 		listener:    make(chan *TestMessage),
 		speaking:    make(chan *TestMessage),
+		test:        t,
 	}
 
 	tc.Handler = robot

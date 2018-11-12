@@ -30,6 +30,7 @@ type TestConnector struct {
 	sync.RWMutex                   // shared mutex for locking connector data structures
 }
 
+// Run starts the main loop for the test connector
 func (tc *TestConnector) Run(stop <-chan struct{}) {
 
 loop:
