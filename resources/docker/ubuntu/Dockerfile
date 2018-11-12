@@ -40,7 +40,7 @@ RUN groupadd -g ${gid} ${groupname} && \
     ${HOME}/history \
     ${HOME}/.gopherbot
 
-RUN curl -L -o gopherbot-linux-amd64.zip https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.zip?cache-invalidate=${token} && \
+RUN TOKEN=$token curl -L -o gopherbot-linux-amd64.zip https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.zip && \
   unzip gopherbot-linux-amd64.zip && \
   rm gopherbot-linux-amd64.zip
 
