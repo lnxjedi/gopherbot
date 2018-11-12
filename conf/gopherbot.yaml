@@ -189,6 +189,13 @@ ExternalJobs:
       Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
     - Name: CUSTOM_REPOSITORY_BRANCH
       Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "master" }}
+  "gopherci":
+    Description: A job for dispatching build jobs, triggered by commit notifications
+    Path: jobs/gopherci.py
+  "localtrusted":
+    Description: Build job run by gopherci to just clone a repo locally and run .gopherci/pipeline.sh
+    Path: jobs/localtrusted.py
+
 ## ExternalTasks enumerate external executables that can be added to pipelines
 ## with AddTask <name>. Note the e.g. the update plugin requires ssh,
 ## ssh-agent, and git. Unlike Plugins and Jobs, ExternalTasks can have

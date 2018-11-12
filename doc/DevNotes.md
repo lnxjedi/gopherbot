@@ -51,6 +51,7 @@ To simplify locking:
 - History:
    - TODO: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
    - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
+- TODO: Move *.sample files to new resources/custom - sample remote config repository
 - TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
 - TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
 - TODO: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, etc.
