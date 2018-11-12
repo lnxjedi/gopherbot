@@ -26,6 +26,9 @@ if [ "$command" = "configure" ]
 then
 	configure
 	exit 0
+elif [ "$command" = "init" ]
+then
+	exit 0
 fi
 
 if [ -z "$BOT_SSH_PHRASE" ]
