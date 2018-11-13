@@ -111,6 +111,10 @@ func (r *Robot) SetWorkingDirectory(path string) bool {
 // outside of a running job. The histories argument is interpreted as the
 // number of histories to keep for the extended namespace, or -1 to inherit
 // from the parent job.
+// Arguments:
+// ext (extension) => "<repository>/<branch>", where repository is listed in
+//   repositories.yaml
+// histories => number of histories to keep
 func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	if strings.ContainsRune(ext, ':') {
 		r.Log(Error, "Invalid namespact extension contains ':'")
@@ -129,7 +133,9 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 		r.Log(Error, "ExtendNamespace called after namespace already extended")
 		return false
 	}
-	if _, exists := c.repositories[ext]; !exists {
+	cmp := strings.Split(ext, "/")
+	repo := strings.Join(cmp[0:len(cmp)-1], "/")
+	if _, exists := c.repositories[repo]; !exists {
 		r.Log(Error, fmt.Sprintf("Repository '%s' not found in repositories.yaml", ext))
 		return false
 	}
