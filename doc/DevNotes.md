@@ -47,6 +47,7 @@ To simplify locking:
 * Items that are processed to binary representations (e.g. string to loglevel) should be stored in non-public struct members; e.g. LogLevel(string) and logLevel(int)
 
 ## TODOs:
+- DONE/TEST/DOCUMENT: fix configuration merging to include plugin default config
 - DONE/TEST/DOCUMENT: Make sure plugins/tasks/jobs can be disabled in gopherbot.yaml
 - History:
    - TODO: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask

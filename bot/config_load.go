@@ -12,7 +12,8 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-// merge map merges maps and concatenates slices
+// merge map merges maps and concatenates slices; values in m(erge) override values
+// in t(arget).
 func mergemap(m, t map[string]interface{}) map[string]interface{} {
 	for k, v := range m {
 		if tv, ok := t[k]; ok {
@@ -102,7 +103,7 @@ func defval(d, i string) string {
 
 // getConfigFile loads a config file first from installPath, then from configPath
 // if set. Required indicates whether to return an error if neither file is found.
-func (c *botContext) getConfigFile(filename, callerID string, required bool, jsonMap map[string]json.RawMessage) error {
+func (c *botContext) getConfigFile(filename, callerID string, required bool, jsonMap map[string]json.RawMessage, prev ...map[string]interface{}) error {
 	var (
 		cf           []byte
 		err, realerr error
@@ -115,9 +116,14 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 		"env":     env,
 	}
 
+	var cfg map[string]interface{}
 	installed := make(map[string]interface{})
 	configured := make(map[string]interface{})
-	var cfg map[string]interface{}
+	if len(prev) > 0 {
+		cfg = prev[0]
+	} else {
+		cfg = make(map[string]interface{})
+	}
 	path = installPath + "/conf/" + filename
 	cf, err = ioutil.ReadFile(path)
 	if err == nil {
@@ -139,6 +145,7 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 			Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
 		} else {
 			Log(Debug, fmt.Sprintf("Loaded installed conf/%s", filename))
+			cfg = mergemap(installed, cfg)
 			loaded = true
 		}
 	} else {
@@ -157,14 +164,12 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 				Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
 			} else {
 				Log(Debug, fmt.Sprintf("Loaded configured conf/%s", filename))
+				cfg = mergemap(configured, cfg)
 				loaded = true
 			}
 		} else {
 			realerr = err
 		}
-		cfg = mergemap(configured, installed)
-	} else {
-		cfg = installed
 	}
 	jsonData, _ := json.Marshal(cfg)
 	json.Unmarshal(jsonData, &jsonMap)

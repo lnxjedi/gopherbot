@@ -194,6 +194,7 @@ LoadLoop:
 		if task.Disabled {
 			continue
 		}
+		tcfgdefault := make(map[string]interface{})
 		tcfgload := make(map[string]json.RawMessage)
 		if isPlugin {
 			Log(Info, fmt.Sprintf("Loading configuration for plugin '%s', type %d", task.name, plugin.taskType))
@@ -218,7 +219,7 @@ LoadLoop:
 				} else {
 					c.debugTask(task, "Unable to obtain default config from plugin, command 'configure' returned no content", false)
 				}
-				if err := yaml.Unmarshal(*cfg, &tcfgload); err != nil {
+				if err := yaml.Unmarshal(*cfg, &tcfgdefault); err != nil {
 					msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
 					Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err))
 					c.debugTask(task, msg, false)
@@ -227,7 +228,7 @@ LoadLoop:
 					continue
 				}
 			} else {
-				if err := yaml.Unmarshal([]byte(pluginHandlers[task.name].DefaultConfig), &tcfgload); err != nil {
+				if err := yaml.Unmarshal([]byte(pluginHandlers[task.name].DefaultConfig), &tcfgdefault); err != nil {
 					msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
 					Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err))
 					c.debugTask(task, msg, false)
@@ -242,7 +243,7 @@ LoadLoop:
 		if isPlugin {
 			cpath = "plugins/"
 		}
-		if err := c.getConfigFile(cpath+task.name+".yaml", task.taskID, false, tcfgload); err != nil {
+		if err := c.getConfigFile(cpath+task.name+".yaml", task.taskID, false, tcfgload, tcfgdefault); err != nil {
 			msg := fmt.Sprintf("Problem loading configuration file(s) for task '%s', disabling: %v", task.name, err)
 			Log(Error, msg)
 			c.debugTask(task, msg, false)
