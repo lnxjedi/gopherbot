@@ -46,21 +46,25 @@ To simplify locking:
 * Items that can change on reload should be stored in a config struct similar to plugins and jobs; when the botContext is registered, it should get a copy of this struct that doesn't change for the life of the context, just like the task list
 * Items that are processed to binary representations (e.g. string to loglevel) should be stored in non-public struct members; e.g. LogLevel(string) and logLevel(int)
 
-## TODOs:
-- DONE/TEST/DOCUMENT: fix configuration merging to include plugin default config
-- DONE/TEST/DOCUMENT: Make sure plugins/tasks/jobs can be disabled in gopherbot.yaml
+## Version 2 Release TODOs
+These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs.
 - History:
    - TODO: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
    - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
-- TODO: Move *.sample files to new resources/custom - sample remote config repository
 - TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
-- TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
 - TODO: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, etc.
 - TODO: Create AddJob that checks for job then calls AddTask - more explicit / readable code
-- TODO: Update `whoami` to include channel name / internal ID
-- TODO: Update ansible role to stop creating installed gopherbot.yaml, favoring version
-  from install archive
+- TODO: Rename BotRoster to UserRoster; Slack will eventually deprecate usernames and mapping will need to be explicit
 - TODO: Add Reload() method to connectors, many of which may require additional data
+- TODO: Remove cleanup post-build task in favor of clean pre-task; build repos should be left around between builds, but removed prior to git-sync; problem found with branch names being deleted and later re-used caused failures in git-sync
+
+## TODOs:
+- DONE/TEST/DOCUMENT: fix configuration merging to include plugin default config
+- DONE/TEST/DOCUMENT: Make sure plugins/tasks/jobs can be disabled in gopherbot.yaml
+- TODO: Move *.sample files to new resources/custom - sample remote config repository
+- TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
+- TODO: Update `whoami` to include channel name / internal ID
+- TODO: Evaluate / update Ansible role to simplify use
 - TODO: Low Priority - Support for Go jobs / tasks (can wait 'til first need)
 - DONE/DOCUMENT: try converting lists of tasks/jobs/plugins to map[name]struct
 - To obtain the `BXXXXXXXX` ID for a webhook, visit the settings page, e.g.: https://myteam.slack.com/services/BC7DLEPA8 <- that's it!
@@ -82,6 +86,8 @@ To simplify locking:
 - TODO: This needs more thought - the 'catchall' plugin should be in gopherbot.yaml (There Can Be Only One)
 - TODO/VERIFY: Plugin debugging verbose - emit messages for user message matching(?); when the user requesting debugging sets verbose, message match checks should trigger debug messages as well if the plugin being debugged has message matchers
 - TODO: Re-sign psdemo and powershell lib (needs to be done on Windows)
+- DONE: Update ansible role to stop creating installed gopherbot.yaml, favoring version
+  from install archive
 
 ## Consider
 Stuff to think about:
