@@ -57,6 +57,7 @@ These are the items deemed as required for releasing version 2 because they chan
 - TODO: Rename BotRoster to UserRoster; Slack will eventually deprecate usernames and mapping will need to be explicit
 - TODO: Add Reload() method to connectors, many of which may require additional data
 - TODO: Remove cleanup post-build task in favor of clean pre-task; build repos should be left around between builds, but removed prior to git-sync; problem found with branch names being deleted and later re-used caused failures in git-sync
+- TODO: (if easy) Set job to verbose when manually triggered
 
 ## TODOs:
 - DONE/TEST/DOCUMENT: fix configuration merging to include plugin default config
