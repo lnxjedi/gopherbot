@@ -248,10 +248,10 @@ TODO: Add this info to documentation
 When the robot starts with an encrypted brain, it'll look for a provided key to
 decrypt the "bot:brainKey" memory to retrieve the actual key used to en-/de-crypt memories.
 * If brainKey doesn't exist, it will be randomly generated and encrytped with the provided key
-* If it exists but can't be decrypted, encryptBrain will be true but cryptBrain.initialized will be false
+* If it exists but can't be decrypted, encryptBrain will be true but cryptKey.initialized will be false
 * Low-level brain functions can check the encryptBrain bool w/o locking
-* cryptBrain is protected by an RWLock so an admin can later provide a key for unlocking the brainKey
-* When encryptBrain is true and cryptBrain.initialized is true, a failure to decrypt a memory should be interpreted as an unencrypted memory that gets encrypted and stored, then returned
+* cryptKey is protected by an RWLock so an admin can later provide a key for unlocking the brainKey
+* When encryptBrain is true and cryptKey.initialized is true, a failure to decrypt a memory should be interpreted as an unencrypted memory that gets encrypted and stored, then returned
 * Add admin command 'convert \<key\>' to forces the robot to read the memory and re-store
 * Robot should take a new EncryptBrain bool parameter
 * BrainKey is optional, can be specified at start or runtime

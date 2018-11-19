@@ -115,20 +115,24 @@ result in protocol-specific formatting. For instance, slack will display `_itali
 underscores. Setting `DefaultMessageFormat: Variable` would instead display "\_italics\_". This setting is mainly useful
 for plugins written to work across multiple chat platforms.
 
+### Encryption
+For CI/CD applications where the brain may be used for storing secrets, **Gopherbot** requires an encryption key to use with AES-GCM for encrypting and decrypting memories sent to the storage engine.
+
+**Gopherbot** uses the provided key as a temporary key to decrypt the '*real*' key which is randomly generated and stored in a memory region protected by guard pages (github.com/awnumar/memguard). The most secure method of providing the key is with the built-in administrator command `initialize encryption <key>`, only allowed as a direct message.
+
+*NOTE*: The author holds no security or encryption certifications or credentials, and this functionality is provided with no guarantees against sophisticated attacks. Any security sensitive use for protecting high-value assets should start with a thorough security audit of the code. (PRs welcome) That being said, if the brain is initialized interactively, it should be quite difficult for another process running as root or the robot's UID to obtain the key and decrypt memories.
+
+The key can also be provided in `gopherbot.yaml`, or in the `GOPHER_ENCRYPTION_KEY` environment variable, referenced in the default `gopherbot.yaml`.
+```yaml
+EncryptionKey: ThisNeedsToBeAStringLongerThan32bytesForItToWork # optional
+```
+
 ### Brain
 
 **Gopherbot** supports a simple key-value brain with multiple storage backends for storing long-term memories as JSON blobs that are serialized/de-serialized in to simple data structures.
 
-#### Brain Encryption
-For CI/CD applications where the brain may be used for storing secrets, **Gopherbot** can use AES-GCM for encrypting and decrypting memories sent to the storage engine.
-```yaml
-EncryptBrain: true
-BrainKey: ThisNeedsToBeAStringLongerThan32bytesForItToWork # optional
-```
-
-**Gopherbot** uses the provided key as a temporary key to decrypt the '*real*' key which is randomly generated and stored in a memory region protected by guard pages (github.com/awnumar/memguard). The most secure method of providing the key is with the built-in administrator command `initialize brain <key>`.
-
-*NOTE*: The author holds no security or encryption certifications or credentials, and this functionality is provided with no guarantees against sophisticated attacks. Any security sensitive use for protecting high-value assets should start with a thorough security audit of the code. (PRs welcome) That being said, if the brain is initialized interactively, it should be quite difficult for another process running as root or the robot's UID to obtain the key and decrypt memories.
+#### Full-brain Encryption
+Specifying `EncryptBrain: true` will turn on encryption for **ALL** stored memories, not just stored secrets.
 
 #### File Brain
 

@@ -47,7 +47,7 @@ var shortTermMemories = struct {
 var encryptBrain bool
 
 // For aes brain encryption
-var cryptBrain = struct {
+var cryptKey = struct {
 	protected                 *memguard.LockedBuffer
 	key                       []byte // the 'real' key; slice referring to protect buffer
 	initializing, initialized bool
@@ -66,7 +66,7 @@ type brainParams struct {
 // the user-supplied key unlocks this, allowing
 // the user to re-key if they change how the key
 // is supplied.
-const botBrainKey = "bot:brainKey"
+const botEncryptionKey = "bot:encryptionKey"
 
 const paramKey = "bot:parameters"
 
@@ -147,7 +147,7 @@ func replyToWaiter(m *memstatus) {
 }
 
 // When EncryptBrain is true, the brain needs to be initialized.
-// NOTE: All locking is done with the cryptBrain mutex, bypassing
+// NOTE: All locking is done with the cryptKey mutex, bypassing
 // the brain loop.
 func initializeEncryption(key string) bool {
 	kbytes := []byte(key)
@@ -155,74 +155,74 @@ func initializeEncryption(key string) bool {
 		Log(Error, "Failed to initialize brain, provided brain key < 32 bytes")
 		return false
 	}
-	cryptBrain.Lock()
-	if cryptBrain.initialized || cryptBrain.initializing {
-		i := cryptBrain.initializing
-		cryptBrain.Unlock()
+	cryptKey.Lock()
+	if cryptKey.initialized || cryptKey.initializing {
+		i := cryptKey.initializing
+		cryptKey.Unlock()
 		return i
 	}
 	var err error
-	cryptBrain.protected, err = memguard.NewImmutableFromBytes(kbytes[0:32])
+	cryptKey.protected, err = memguard.NewImmutableFromBytes(kbytes[0:32])
 	memguard.WipeBytes(kbytes)
 	if err != nil {
-		cryptBrain.Unlock()
+		cryptKey.Unlock()
 		Log(Error, fmt.Sprintf("Error creating protected memory region for key: %v", err))
 		return false
 	}
-	cryptBrain.key = cryptBrain.protected.Buffer()
-	cryptBrain.initializing = true
-	cryptBrain.Unlock()
+	cryptKey.key = cryptKey.protected.Buffer()
+	cryptKey.initializing = true
+	cryptKey.Unlock()
 	// retrieve the 'real' key
-	_, rk, exists, ret := getDatum(botBrainKey, true)
+	_, rk, exists, ret := getDatum(botEncryptionKey, true)
 	if ret != Ok {
-		cryptBrain.Lock()
-		cryptBrain.initializing = false
-		cryptBrain.Unlock()
+		cryptKey.Lock()
+		cryptKey.initializing = false
+		cryptKey.Unlock()
 		return false
 	}
 	if exists {
-		cryptBrain.Lock()
-		cryptBrain.protected.Destroy()
-		cryptBrain.protected, err = memguard.NewImmutableFromBytes(*rk)
+		cryptKey.Lock()
+		cryptKey.protected.Destroy()
+		cryptKey.protected, err = memguard.NewImmutableFromBytes(*rk)
 		memguard.WipeBytes(*rk)
 		if err != nil {
-			cryptBrain.initializing = false
-			cryptBrain.Unlock()
+			cryptKey.initializing = false
+			cryptKey.Unlock()
 			Log(Error, "Failed to create temporary brain key from supplied key, initilization failed")
 			return false
 		}
-		cryptBrain.key = cryptBrain.protected.Buffer()
-		cryptBrain.initialized = true
-		cryptBrain.initializing = false
-		cryptBrain.Unlock()
+		cryptKey.key = cryptKey.protected.Buffer()
+		cryptKey.initialized = true
+		cryptKey.initializing = false
+		cryptKey.Unlock()
 		return true
 	}
 	// Securely generate and store a random 'real' key
 	store, err := memguard.NewImmutableRandom(32)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error generating new random brain key: %v", err))
-		cryptBrain.initializing = false
+		cryptKey.initializing = false
 		return false
 	}
 	sb := store.Buffer()
-	ret = storeDatum(botBrainKey, &sb)
-	cryptBrain.Lock()
+	ret = storeDatum(botEncryptionKey, &sb)
+	cryptKey.Lock()
 	if ret != Ok {
 		Log(Error, "Error storing brain key, failed to initialize")
-		cryptBrain.initializing = false
-		cryptBrain.Unlock()
+		cryptKey.initializing = false
+		cryptKey.Unlock()
 		return false
 	}
-	cryptBrain.protected = store
-	cryptBrain.key = sb
-	cryptBrain.initialized = true
-	cryptBrain.initializing = false
-	cryptBrain.Unlock()
+	cryptKey.protected = store
+	cryptKey.key = sb
+	cryptKey.initialized = true
+	cryptKey.initializing = false
+	cryptKey.Unlock()
 	return true
 }
 
 // Most likely used when switching from configured to interactively-provided
-// brainKey
+// encryption key
 func reKey(newkey string) bool {
 	// NOTE: this function should temporarily set initialized = false
 	return true
@@ -260,13 +260,13 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 		return token, nil, false, Ok
 	}
 	if encryptBrain {
-		cryptBrain.RLock()
-		initialized := cryptBrain.initialized
-		initializing := cryptBrain.initializing
-		key := cryptBrain.key
-		cryptBrain.RUnlock()
+		cryptKey.RLock()
+		initialized := cryptKey.initialized
+		initializing := cryptKey.initializing
+		key := cryptKey.key
+		cryptKey.RUnlock()
 		if initializing {
-			if dkey != botBrainKey {
+			if dkey != botEncryptionKey {
 				Log(Warn, fmt.Sprintf("Retrieve called with uninitialized brain for '%s'", dkey))
 				return "", nil, false, BrainFailed
 			}
@@ -274,10 +274,9 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 			if err != nil {
 				Log(Error, fmt.Sprintf("Failed to decrypt the brain key, bad key provided?: %v", err))
 				return "", nil, false, BrainFailed
-			} else {
-				db = &decrypted
-				return token, db, true, Ok
 			}
+			db = &decrypted
+			return token, db, true, Ok
 		}
 		if initialized {
 			decrypted, err = decrypt(*db, key)
@@ -289,10 +288,9 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 				db = &decrypted
 			}
 			return token, db, true, Ok
-		} else {
-			Log(Warn, fmt.Sprintf("Retrieve called on uninitialized brain for '%s'", dkey))
-			return "", nil, false, BrainFailed
 		}
+		Log(Warn, fmt.Sprintf("Retrieve called on uninitialized brain for '%s'", dkey))
+		return "", nil, false, BrainFailed
 	}
 	return token, db, true, Ok
 }
@@ -306,14 +304,14 @@ func storeDatum(dkey string, datum *[]byte) RetVal {
 		return BrainFailed
 	}
 	if encryptBrain {
-		cryptBrain.RLock()
-		initialized := cryptBrain.initialized
-		initializing := cryptBrain.initializing
-		key := cryptBrain.key
-		cryptBrain.RUnlock()
+		cryptKey.RLock()
+		initialized := cryptKey.initialized
+		initializing := cryptKey.initializing
+		key := cryptKey.key
+		cryptKey.RUnlock()
 		if !initialized {
 			// When re-keying, we store the 'real' key while uninitialized with a new key
-			if !(initializing && dkey == botBrainKey) {
+			if !(initializing && dkey == botEncryptionKey) {
 				Log(Error, fmt.Sprintf("storeDatum called for '%s' with encryptBrain true, but brain not initialized", key))
 				return BrainFailed
 			}

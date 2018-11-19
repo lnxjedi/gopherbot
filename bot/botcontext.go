@@ -56,7 +56,10 @@ func (c *botContext) registerActive(parent *botContext) {
 	c.Format = botCfg.defaultMessageFormat
 	c.environment["GOPHER_HTTP_POST"] = "http://" + botCfg.port
 	botCfg.RUnlock()
-	if encryptBrain {
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	cryptKey.RUnlock()
+	if initialized {
 		checkoutDatum(paramKey, &c.storedEnv, false)
 		if c.storedEnv.TaskParams == nil {
 			c.storedEnv.TaskParams = make(map[string]map[string][]byte)

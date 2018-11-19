@@ -64,7 +64,7 @@ var botCfg struct {
 	protocol             string          // Name of the protocol, e.g. "slack"
 	brainProvider        string          // Type of Brain provider to use
 	brain                SimpleBrain     // Interface for robot to Store and Retrieve data
-	brainKey             string          // Configured brain key
+	encryptionKey        string          // Key for encrypting data (unlocks "real" key in brain)
 	historyProvider      string          // Name of the history provider to use
 	history              HistoryProvider // Provider for storing and retrieving job / plugin histories
 	workSpace            string          // Read/Write directory where the robot does work
@@ -136,19 +136,17 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		botCfg.brain = bprovider(handle, logger)
 		Log(Error, "No brain configured, falling back to default 'mem' brain - no memories will persist")
 	}
-	if encryptBrain {
-		initialized := false
-		if len(botCfg.brainKey) > 0 {
-			if initializeEncryption(botCfg.brainKey) {
-				Log(Info, "Successfully initialized brain encryption from configured key")
-				initialized = true
-			} else {
-				Log(Error, "Failed to initialize brain encryption with configured BrainKey")
-			}
+	initialized := false
+	if len(botCfg.encryptionKey) > 0 {
+		if initializeEncryption(botCfg.encryptionKey) {
+			Log(Info, "Successfully initialized encryption from configured key")
+			initialized = true
+		} else {
+			Log(Error, "Failed to initialize brain encryption with configured EncryptionKey")
 		}
-		if !initialized {
-			Log(Warn, "Brain encryption specified but no key configured; use 'initialize brain <key>' to initialize the encrypted brain")
-		}
+	}
+	if encryptBrain && !initialized {
+		Log(Warn, "Brain encryption specified but no key configured; use 'initialize brain <key>' to initialize the encrypted brain")
 	}
 	if len(botCfg.historyProvider) > 0 {
 		if hprovider, ok := historyProviders[botCfg.historyProvider]; !ok {

@@ -107,16 +107,11 @@ BrainConfig:
 
 {{ end }}
 
-{{ $encrypt := false }}
-{{ if or (env "GOPHER_ENCRYPT_BRAIN") (env "GOPHER_BRAIN_KEY") }}
-  {{- $encrypt = true }}
-{{ end }}
-EncryptBrain: {{ $encrypt }}
-
-{{ if eq $encrypt true }}
-BrainKey: {{ env "GOPHER_BRAIN_KEY" }}
-{{ end }}
+EncryptBrain: {{ env "GOPHER_ENCRYPT_BRAIN" | default "false" }}
 ## End brain config
+
+## Key required for secrets, also used for brain encryption
+EncryptionKey: {{ env "GOPHER_ENCRYPTION_KEY" }}
 
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "file" }}

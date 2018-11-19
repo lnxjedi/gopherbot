@@ -414,13 +414,13 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	// this task only. No effect if already defined. Useful mainly for specific
 	// tasks to have secrets passed in but not handed to everything in the
 	// pipeline. Repository secrets are populated in robot.go/ExtendNamespace
-	if encryptBrain {
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	key := cryptKey.key
+	cryptKey.RUnlock()
+	if initialized {
 		taskEnv, teExists := c.storedEnv.TaskParams[task.NameSpace]
 		if teExists {
-			cryptBrain.RLock()
-			initialized := cryptBrain.initialized
-			key := cryptBrain.key
-			cryptBrain.RUnlock()
 			if initialized {
 				for name, encvalue := range taskEnv {
 					_, exists := envhash[name]

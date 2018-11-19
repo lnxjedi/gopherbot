@@ -34,7 +34,7 @@ func init() {
 	RegisterPlugin("builtInhelp", PluginHandler{DefaultConfig: helpConfig, Handler: help})
 	RegisterPlugin("builtInadmin", PluginHandler{DefaultConfig: adminConfig, Handler: admin})
 	RegisterPlugin("builtInlogging", PluginHandler{DefaultConfig: logConfig, Handler: logging})
-	RegisterPlugin("builtInbrain", PluginHandler{DefaultConfig: encbrainConfig, Handler: encbrain})
+	RegisterPlugin("builtInbrain", PluginHandler{DefaultConfig: encryptConfig, Handler: encryptcfg})
 }
 
 /* builtin plugins, like help */
@@ -266,18 +266,18 @@ func dump(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	return
 }
 
-func encbrain(r *Robot, command string, args ...string) (retval TaskRetVal) {
+func encryptcfg(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	switch command {
 	case "init":
 		return
 	case "initialize":
 		success := initializeEncryption(args[0])
 		if success {
-			r.Log(Info, fmt.Sprintf("Brain successfully initialized by user '%s'", r.User))
-			r.Say("Brain successfully initialized - you should delete your message if possible")
+			r.Log(Info, fmt.Sprintf("Encryption successfully initialized by user '%s'", r.User))
+			r.Say("Encryption successfully initialized - you should delete your message if possible")
 		} else {
-			r.Log(Error, fmt.Sprintf("User '%s' failed to initialize brain", r.User))
-			r.Say("Failed to initialize brain - check your passphrase?")
+			r.Log(Error, fmt.Sprintf("User '%s' failed to initialize encryption", r.User))
+			r.Say("Failed to initialize encryption - check your passphrase?")
 		}
 	}
 	return
@@ -338,8 +338,12 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		r.Reply("Configuration reloaded successfully")
 		r.Log(Info, "Configuration successfully reloaded by a request from:", r.User)
 	case "store":
-		if !encryptBrain {
-			r.Say("Sorry, I can't store secrets if brain encryption isn't configured")
+		cryptKey.RLock()
+		initialized := cryptKey.initialized
+		key := cryptKey.key
+		cryptKey.RUnlock()
+		if !initialized {
+			r.Say("Sorry, I can't store secrets - encryption isn't initialized, please check with an administrator")
 			return
 		}
 		nstype := args[0]
@@ -366,14 +370,6 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		if ret != Ok {
 			r.Log(Error, fmt.Sprintf("Error checking out brainParams: %s", ret))
 			r.Say("Ugh, I'm not able to store that memory right now, check with an administrator")
-			return
-		}
-		cryptBrain.RLock()
-		initialized := cryptBrain.initialized
-		key := cryptBrain.key
-		cryptBrain.RUnlock()
-		if !initialized {
-			r.Say("My brain is encrypted but not initialized - please check with an administrator")
 			return
 		}
 		// Technically secrets are double-encypted; this is done so every active

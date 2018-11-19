@@ -23,7 +23,7 @@ type botconf struct {
 	Brain                string                  // Type of Brain to use
 	BrainConfig          json.RawMessage         // Brain-specific configuration, type for unmarshalling arbitrary config
 	EncryptBrain         bool                    // Whether the brain should be encrypted
-	BrainKey             string                  // used to decrypt the brainKey
+	EncryptionKey        string                  // used to decrypt the "real" encryption key
 	HistoryProvider      string                  // Name of provider to use for storing and retrieving job/plugin histories
 	HistoryConfig        json.RawMessage         // History provider specific configuration
 	WorkSpace            string                  // Read/Write area the robot uses to do work
@@ -96,7 +96,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		var val interface{}
 		skip := false
 		switch key {
-		case "AdminContact", "Email", "Protocol", "Brain", "BrainKey", "HistoryProvider", "WorkSpace", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
+		case "AdminContact", "Email", "Protocol", "Brain", "EncryptionKey", "HistoryProvider", "WorkSpace", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
 			val = &strval
 		case "DefaultAllowDirect", "EncryptBrain":
 			val = &boolval
@@ -137,8 +137,8 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			newconfig.ProtocolConfig = value
 		case "Brain":
 			newconfig.Brain = *(val.(*string))
-		case "BrainKey":
-			newconfig.BrainKey = *(val.(*string))
+		case "EncryptionKey":
+			newconfig.EncryptionKey = *(val.(*string))
 		case "BrainConfig":
 			newconfig.BrainConfig = value
 		case "HistoryProvider":
@@ -341,8 +341,8 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		if newconfig.EncryptBrain {
 			encryptBrain = true
 		}
-		if newconfig.BrainKey != "" {
-			botCfg.brainKey = newconfig.BrainKey
+		if newconfig.EncryptionKey != "" {
+			botCfg.encryptionKey = newconfig.EncryptionKey
 		}
 		if newconfig.Brain != "" {
 			botCfg.brainProvider = newconfig.Brain
@@ -363,7 +363,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		}
 	} else {
 		// We should never dump the brain key
-		newconfig.BrainKey = "XXXXXX"
+		newconfig.EncryptionKey = "XXXXXX"
 		// loadTaskConfig does it's own locking
 		botCfg.Unlock()
 	}
