@@ -23,4 +23,4 @@ else
     UPDATE="--update"
 fi
 
-github-release $RELEASE *zip --github-repository lnxjedi/gopherbot --commit $COMMIT --target $BRANCH $PRERELEASE $UPDATE
+github-release $RELEASE *zip *tar.gz --github-repository lnxjedi/gopherbot --commit $COMMIT --target $BRANCH $PRERELEASE $UPDATE

@@ -7,8 +7,6 @@ ARG groupname=robot
 ARG uid=49
 ARG gid=49
 
-ENV token=${SOURCE_COMMIT}
-
 WORKDIR ${installdir}
 
 ENV HOME=/home/robot
@@ -38,8 +36,9 @@ RUN yum -y update && \
     ${HOME}/history \
     ${HOME}/.gopherbot
 
-RUN TOKEN=$token curl -L -o gopherbot-linux-amd64.zip https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.zip && \
-  unzip gopherbot-linux-amd64.zip && \
+ADD https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.zip ${installdir}
+
+RUN unzip gopherbot-linux-amd64.zip && \
   rm gopherbot-linux-amd64.zip
 
 USER ${username}:${groupname}
