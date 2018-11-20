@@ -41,6 +41,10 @@ ADD https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-
 RUN unzip gopherbot-linux-amd64.zip && \
   rm gopherbot-linux-amd64.zip
 
-USER ${username}:${groupname}
+WORKDIR ${installdir}/env
 
-ENTRYPOINT [ "./gopherbot" , "-plainlog" ]
+RUN chmod 770 . && \
+  chown ${username}:${groupname} /opt/gopherbot/gopherbot && \
+  chmod u+s /opt/gopherbot/gopherbot
+
+ENTRYPOINT [ "/opt/gopherbot/gopherbot" , "-plainlog" ]
