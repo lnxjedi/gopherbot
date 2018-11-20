@@ -1,8 +1,9 @@
 # Makefile - just for Docker stuff, really
 
 image:
-	docker image build -t lnxjedi/gopherbot:2.0.0-ubuntu -t lnxjedi/gopherbot:ubuntu .
+	docker image build -t lnxjedi/gopherbot:v2-ubuntu -t lnxjedi/gopherbot:ubuntu -t lnxjedi/gopherbot:latest .
 
 clean:
 	docker image rm lnxjedi/gopherbot:ubuntu || :
-	docker image rm lnxjedi/gopherbot:2.0.0-ubuntu || :
+	docker image rm lnxjedi/gopherbot:v2-ubuntu || :
+	docker image rm lnxjedi/gopherbot:latest || :

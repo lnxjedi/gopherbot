@@ -8,7 +8,31 @@
 * Remote plugin execution over ssh (ON HOLD)
 * GopherCI for CI/CD (IN PROGRESS)
 
-## Environment Scrubbing
+## Protecting Secrets
+
+This section outlines potential means of providing secrets to the robot in a secure manner, such that even malicious external scripts / plugins / jobs would not be able to obtain the Slack token or encryption key.
+
+### SUID robot executable in inaccessible dir
+
+This is the most promising.
+
+Create e.g.:
+* $GOPHER_INSTALLDIR/custom, root:root:500
+* custom/repo, robot:robot:700 - location of robot configuration repository
+* custom/brain, robot:robot:700 - location for robot file brain
+* custom/.env, robot:robot:400 - starting environment
+
+* Docker WORKDIR=$GOPHER_INSTALLDIR/custom
+* systemd WorkingDirectory=$GOPHER_INSTALLDIR/custom
+* /opt/gopherbot/gopherbot runs SUID robot
+
+TODO:
+* Integrate godotenv for loading environment from $cwd/.env
+* Update startup to allow for relative path to repo & brain
+* Put workings in to allow config repo update to happen in the jail
+* Prevent scripts/plugins that are NOT update from setting the working dir relative to cwd
+
+### Environment Scrubbing
 Gopherbot should make every attempt to prevent credential stealing by any potential rogue code. One ugly 'leak' of sensitive data comes from `/proc/\<pid\>/environ` - once a process starts, the contents of `environ` remain unchanged, even after e.g. `os.Unsetenv(...)`. One way to scrub the environment is to use `syscall.Exec`:
 ```go
 package main
