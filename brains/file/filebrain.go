@@ -43,9 +43,9 @@ func (fb *brainConfig) Retrieve(k string) (*[]byte, bool, error) {
 			return nil, false, err
 		}
 		return &datum, true, nil
-	} else { // Memory doesn't exist yet
-		return nil, false, nil
 	}
+	// Memory doesn't exist yet
+	return nil, false, nil
 }
 
 // The file brain doesn't need the logger, but other brains might
@@ -55,11 +55,7 @@ func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
 	if len(fb.BrainDirectory) == 0 {
 		robot.Log(bot.Fatal, "BrainConfig missing value for BrainDirectory required by 'file' brain")
 	}
-	if byte(fb.BrainDirectory[0]) == byte("/"[0]) {
-		brainPath = fb.BrainDirectory
-	} else {
-		brainPath = robot.GetConfigPath() + "/" + fb.BrainDirectory
-	}
+	brainPath = fb.BrainDirectory
 	bd, err := os.Stat(brainPath)
 	if err != nil {
 		robot.Log(bot.Fatal, fmt.Sprintf("Checking brain directory \"%s\": %v", brainPath, err))
