@@ -24,7 +24,6 @@ ExternalPlugins:
   "format":
     Path: plugins/samples/format.sh
 
-Protocol: test
 ProtocolConfig:
   BotName: bender
   BotFullName: Bender Rodriguez

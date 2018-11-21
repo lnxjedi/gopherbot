@@ -14,6 +14,7 @@ require (
 	github.com/gopherjs/gopherjs v0.0.0-20180628210949-0892b62f0d9f // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
+	github.com/joho/godotenv v1.3.0
 	github.com/jordan-wright/email v0.0.0-20160403172529-fd703108daeb
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kr/pretty v0.1.0 // indirect

@@ -16,7 +16,6 @@ ExternalPlugins:
   "echo":
     Path: plugins/samples/echo.sh
 
-Protocol: test
 ProtocolConfig:
   BotName: bender
   BotFullName: Bender Rodriguez

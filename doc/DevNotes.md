@@ -32,6 +32,14 @@ TODO:
 * Put workings in to allow config repo update to happen in the jail
 * Prevent scripts/plugins that are NOT update from setting the working dir relative to cwd
 
+Add to documentation:
+#### Running a robot with the 'term' connector
+In many cases you can develop plugins and test your robot with the simple `terminal` connector. For developing tests, use `make test` to build a binary with Event gathering and display enabled. To run the robot, `cd` to the configuration directory and e.g.:
+```shell
+$ GOPHER_PROTOCOL=term path/to/gopherbot -l /tmp/term.log
+```
+The test suite configuration directories set the protocol and log file in `gopherbot.env`, so with a test configuration directory you can simply use `/path/to/gopherbot`.
+
 ### Environment Scrubbing
 Gopherbot should make every attempt to prevent credential stealing by any potential rogue code. One ugly 'leak' of sensitive data comes from `/proc/\<pid\>/environ` - once a process starts, the contents of `environ` remain unchanged, even after e.g. `os.Unsetenv(...)`. One way to scrub the environment is to use `syscall.Exec`:
 ```go

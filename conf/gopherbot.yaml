@@ -78,7 +78,7 @@ ProtocolConfig:
     LastName: "User"
     Phone: "(555)765-0005"
 
-  {{- if eq $proto "test" }}
+  {{- if or (eq $proto "test") (eq $proto "term") }}
   StartChannel: general
   StartUser: alice
   {{- end }}

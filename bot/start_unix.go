@@ -6,6 +6,8 @@ import (
 	"flag"
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func init() {
@@ -23,6 +25,10 @@ func Start(v VersionInfo) {
 	cusage := "path to the optional configuration directory"
 	flag.StringVar(&configPath, "config", "", cusage)
 	flag.StringVar(&configPath, "c", "", cusage+" (shorthand)")
+	var envPath string
+	epusage := "path to environment file"
+	flag.StringVar(&envPath, "env", "", epusage)
+	flag.StringVar(&envPath, "e", "", epusage+" (shorthand)")
 	var logFile string
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -33,25 +39,11 @@ func Start(v VersionInfo) {
 	flag.BoolVar(&plainlog, "P", false, plusage+" (shorthand)")
 	flag.Parse()
 
-	installpath = binDirectory
-
-	// Configdir is where all user-supplied configuration and
-	// external plugins are.
-	confSearchPath := []string{
-		configPath,
-		"/usr/local/etc/gopherbot",
-		"/etc/gopherbot",
+	environment := "gopherbot.env"
+	if len(envPath) > 0 {
+		environment = envPath
 	}
-	home := os.Getenv("HOME")
-	if len(home) > 0 {
-		confSearchPath = append(confSearchPath, home+"/.gopherbot")
-	}
-	for _, spath := range confSearchPath {
-		if respath, ok := checkDirectory(spath); ok {
-			configpath = respath
-			break
-		}
-	}
+	envErr := godotenv.Load(environment)
 
 	var botLogger *log.Logger
 	logFlags := log.LstdFlags
@@ -59,7 +51,10 @@ func Start(v VersionInfo) {
 		logFlags = 0
 	}
 	logOut := os.Stderr
-	if logFile != "" {
+	if len(logFile) == 0 {
+		logFile = os.Getenv("GOPHER_LOGFILE")
+	}
+	if len(logFile) != 0 {
 		lf, err := os.Create(logFile)
 		if err != nil {
 			log.Fatalf("Error creating log file: (%T %v)", err, err)
@@ -70,6 +65,31 @@ func Start(v VersionInfo) {
 	log.SetOutput(logOut)
 	botLogger = log.New(logOut, "", logFlags)
 	botLogger.Println("Initialized logging ...")
+
+	if envErr != nil {
+		botLogger.Printf("No environment loaded from '%s': %v\n", environment, envErr)
+	} else {
+		botLogger.Printf("Loaded initial environment from: %s\n", environment)
+	}
+
+	installpath = binDirectory
+
+	// Configdir is where all user-supplied configuration and
+	// external plugins are.
+	confSearchPath := []string{
+		configPath,
+		"custom",
+	}
+	for _, spath := range confSearchPath {
+		if respath, ok := checkDirectory(spath); ok {
+			configpath = respath
+			break
+		}
+	}
+	if len(configpath) == 0 {
+		configpath = "."
+	}
+
 	if len(configpath) == 0 {
 		botLogger.Println("Couldn't locate configuration directory, using installed configuration")
 	}
