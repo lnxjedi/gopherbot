@@ -2,7 +2,7 @@
 
 # .PHONY: gopherbot
 
-gopherbot: main.go bot/* brains/* connectors/* goplugins/* history/* vendor/*
+gopherbot: main.go bot/* brains/*/* connectors/*/* goplugins/*/* history/*/*
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -tags 'netgo osusergo static_build' -o gopherbot
 
 test:
