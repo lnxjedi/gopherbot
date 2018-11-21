@@ -95,7 +95,7 @@ func Start(v VersionInfo) {
 	if len(envPath) > 0 {
 		environment = envPath
 	}
-	env_err := godotenv.Load(environment)
+	envErr := godotenv.Load(environment)
 
 	var botLogger *log.Logger
 	logOut := os.Stdout
