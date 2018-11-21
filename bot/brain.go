@@ -234,7 +234,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 	var decrypted []byte
 
 	if !keyRe.MatchString(dkey) {
-		err := fmt.Errorf("Invalid key supplied to checkout: %s", dkey)
+		err := fmt.Errorf("Invalid memory key, ':' disallowed: %s", dkey)
 		Log(Error, err)
 		return "", nil, false, InvalidDatumKey
 	}
@@ -459,7 +459,7 @@ var keyRe = regexp.MustCompile(keyRegex)
 // ownership for a limited time
 func checkout(d string, rw bool) (string, *[]byte, bool, RetVal) {
 	if !keyRe.MatchString(d) {
-		err := fmt.Errorf("Invalid key supplied to checkout: %s", d)
+		err := fmt.Errorf("Invalid memory key, ':' disallowed: %s", d)
 		Log(Error, err)
 		return "", nil, false, InvalidDatumKey
 	}
@@ -528,6 +528,8 @@ func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal) {
 	if strings.ContainsRune(key, ':') {
 		ret = InvalidDatumKey
+		err := fmt.Errorf("Invalid memory key, ':' disallowed: %s", key)
+		Log(Error, err)
 		return
 	}
 	c := r.getContext()
@@ -563,6 +565,8 @@ func (r *Robot) CheckinDatum(key, locktoken string) {
 // update failed.
 func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 	if strings.ContainsRune(key, ':') {
+		err := fmt.Errorf("Invalid memory key, ':' disallowed: %s", key)
+		Log(Error, err)
 		return InvalidDatumKey
 	}
 	c := r.getContext()
