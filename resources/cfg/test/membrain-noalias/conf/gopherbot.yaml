@@ -22,7 +22,6 @@ ExternalPlugins:
   "hello2":
     Path: plugins/samples/hello2.sh
 
-Protocol: test
 ProtocolConfig:
   BotName: bender
   BotFullName: Bender Rodriguez

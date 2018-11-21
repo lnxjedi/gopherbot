@@ -9,6 +9,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/joho/godotenv"
 	"golang.org/x/sys/windows/svc"
 )
 
@@ -47,6 +48,10 @@ func Start(v VersionInfo) {
 	cusage := "path to the optional configuration directory"
 	flag.StringVar(&configPath, "config", "", cusage)
 	flag.StringVar(&configPath, "c", "", cusage+" (shorthand)")
+	var envPath string
+	epusage := "path to environment file"
+	flag.StringVar(&envPath, "env", "", epusage)
+	flag.StringVar(&envPath, "e", "", epusage+" (shorthand)")
 	var logFile string
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -86,12 +91,21 @@ func Start(v VersionInfo) {
 		return
 	}
 
+	environment := "gopherbot.env"
+	if len(envPath) > 0 {
+		environment = envPath
+	}
+	env_err := godotenv.Load(environment)
+
 	var botLogger *log.Logger
 	logOut := os.Stdout
-	if !isIntSess && logFile == "" {
+	if len(logFile) == 0 {
+		logFile = os.Getenv("GOPHER_LOGFILE")
+	}
+	if !isIntSess && len(logFile) == 0 {
 		logFile = "C:/Windows/Temp/gopherbot-startup.log"
 	}
-	if logFile != "" {
+	if len(logFile) != 0 {
 		lf, err := os.Create(logFile)
 		if err != nil {
 			log.Fatalf("Error creating log file: (%T %v)", err, err)
@@ -103,17 +117,19 @@ func Start(v VersionInfo) {
 	botLogger = log.New(logOut, "", log.LstdFlags)
 	botLogger.Println("Initialized logging ...")
 
+	if envErr != nil {
+		botLogger.Printf("No environment loaded from '%s': %v\n", environment, envErr)
+	} else {
+		botLogger.Printf("Loaded initial environment from: %s\n", environment)
+	}
+
 	installpath = binDirectory
 
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
 	confSearchPath := []string{
 		configPath,
-		`C:/ProgramData/Gopherbot`,
-	}
-	home := os.Getenv("USERPROFILE")
-	if len(home) > 0 {
-		confSearchPath = append(confSearchPath, home+"/.gopherbot")
+		"custom",
 	}
 	for _, spath := range confSearchPath {
 		if respath, ok := checkDirectory(spath); ok {
@@ -122,7 +138,7 @@ func Start(v VersionInfo) {
 		}
 	}
 	if len(configpath) == 0 {
-		botLogger.Println("Couldn't locate configuration directory, using installed configuration")
+		configpath = "."
 	}
 
 	// Create the 'bot and load configuration, supplying configpath and installpath.

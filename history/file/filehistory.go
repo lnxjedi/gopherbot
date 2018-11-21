@@ -78,7 +78,7 @@ func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (bot.H
 				}
 				rerr := os.Remove(rmPath)
 				if rerr != nil {
-					robot.Log(bot.Error, fmt.Sprint("Error removing old log file '%s': %v", rmPath, rerr))
+					robot.Log(bot.Error, fmt.Sprintf("Error removing old log file '%s': %v", rmPath, rerr))
 					// assume it's pointless to keep trying to delete files
 					break
 				}
@@ -103,11 +103,7 @@ func provider(r bot.Handler) bot.HistoryProvider {
 	if len(fhc.Directory) == 0 {
 		robot.Log(bot.Fatal, "HistoryConfig missing value for Directory required by 'file' history provider")
 	}
-	if byte(fhc.Directory[0]) == byte("/"[0]) {
-		historyPath = fhc.Directory
-	} else {
-		historyPath = robot.GetConfigPath() + "/" + fhc.Directory
-	}
+	historyPath = fhc.Directory
 	hd, err := os.Stat(historyPath)
 	if err != nil {
 		robot.Log(bot.Fatal, fmt.Sprintf("Checking history directory '%s': %v", historyPath, err))
