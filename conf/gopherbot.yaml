@@ -34,8 +34,8 @@ ProtocolConfig:
 ## Definitions for "test" and "term" connectors
 {{ else }}
 ProtocolConfig:
-  BotName: floyd
-  BotFullName: Floyd Gopherbot
+  BotName: {{ env "GOPHER_BOTNAME" | default "floyd" }}
+  BotFullName: {{ env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot" }}
   Channels:
   - random
   - general
