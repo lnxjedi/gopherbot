@@ -419,7 +419,12 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			return
 		}
 		c := r.getContext()
-		task, _, _ := getTask(c.tasks.getTaskByName(tname))
+		t := c.tasks.getTaskByName(tname)
+		if t == nil {
+			r.Say(fmt.Sprintf("Task '%s' not found", tname))
+			return
+		}
+		task, _, _ := getTask(t)
 		if task.Disabled {
 			r.Say(fmt.Sprintf("That task is disabled, fix and reload; reason: %s", task.reason))
 			return
