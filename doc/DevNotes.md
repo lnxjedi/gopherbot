@@ -27,8 +27,9 @@ Create e.g.:
 * /opt/gopherbot/gopherbot runs SUID robot
 
 TODO:
-* Integrate godotenv for loading environment from $cwd/.env
-* Update startup to allow for relative path to repo & brain
+* Get the robot's $HOME from $GOPHER_HOME if set
+* DONE - Integrate godotenv for loading environment from $cwd/.env & $cwd/gopherbot.env
+* DONE - Update startup to allow for relative path to repo & brain
 * Put workings in to allow config repo update to happen in the jail
 * Prevent scripts/plugins that are NOT update from setting the working dir relative to cwd
 

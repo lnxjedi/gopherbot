@@ -49,9 +49,13 @@ func Start(v VersionInfo) {
 	flag.StringVar(&configPath, "config", "", cusage)
 	flag.StringVar(&configPath, "c", "", cusage+" (shorthand)")
 	var envPath string
-	epusage := "path to environment file"
+	epusage := "path to environment file; defaults to ./custom/gopherbot.env"
 	flag.StringVar(&envPath, "env", "", epusage)
 	flag.StringVar(&envPath, "e", "", epusage+" (shorthand)")
+	var penvPath string
+	pepusage := "path to private environment file; defaults to ./.env"
+	flag.StringVar(&penvPath, "penv", "", pepusage)
+	flag.StringVar(&penvPath, "p", "", pepusage+" (shorthand)")
 	var logFile string
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -91,11 +95,20 @@ func Start(v VersionInfo) {
 		return
 	}
 
-	environment := "gopherbot.env"
+	environment := "custom/gopherbot.env"
 	if len(envPath) > 0 {
 		environment = envPath
 	}
+	private := ".env"
+	if len(penvPath) > 0 {
+		private = penvPath
+	}
+	penvErr := godotenv.Load(private)
 	envErr := godotenv.Load(environment)
+	home := os.Getenv("GOPHER_HOME")
+	if len(home) > 0 {
+		os.Setenv("HOME", home)
+	}
 
 	var botLogger *log.Logger
 	logOut := os.Stdout
@@ -120,7 +133,7 @@ func Start(v VersionInfo) {
 	if envErr != nil {
 		botLogger.Printf("No environment loaded from '%s': %v\n", environment, envErr)
 	} else {
-		botLogger.Printf("Loaded initial environment from: %s\n", environment)
+		botLogger.Printf("Loaded initial environment from: %s, %s\n", private, environment)
 	}
 
 	installpath = binDirectory
