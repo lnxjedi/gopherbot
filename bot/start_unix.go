@@ -22,13 +22,9 @@ func Start(v VersionInfo) {
 
 	// Process command-line flags
 	var configPath string
-	cusage := "path to the optional configuration directory"
+	cusage := "path to the configuration directory"
 	flag.StringVar(&configPath, "config", "", cusage)
 	flag.StringVar(&configPath, "c", "", cusage+" (shorthand)")
-	var envPath string
-	epusage := "path to environment file; defaults to ./custom/gopherbot.env"
-	flag.StringVar(&envPath, "env", "", epusage)
-	flag.StringVar(&envPath, "e", "", epusage+" (shorthand)")
 	var penvPath string
 	pepusage := "path to private environment file; defaults to ./.env"
 	flag.StringVar(&penvPath, "penv", "", pepusage)
@@ -44,19 +40,12 @@ func Start(v VersionInfo) {
 	flag.Parse()
 
 	environment := "custom/gopherbot.env"
-	if len(envPath) > 0 {
-		environment = envPath
-	}
 	private := ".env"
 	if len(penvPath) > 0 {
 		private = penvPath
 	}
-	penvErr := godotenv.Load(private)
-	envErr := godotenv.Load(environment)
-	home := os.Getenv("GOPHER_HOME")
-	if len(home) > 0 {
-		os.Setenv("HOME", home)
-	}
+	envErr := godotenv.Overload(environment)
+	penvErr := godotenv.Overload(private)
 
 	var botLogger *log.Logger
 	logFlags := log.LstdFlags
