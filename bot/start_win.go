@@ -119,6 +119,11 @@ func Start(v VersionInfo) {
 	botLogger = log.New(logOut, "", log.LstdFlags)
 	botLogger.Println("Initialized logging ...")
 
+	if penvErr != nil {
+		botLogger.Printf("No private environment loaded from '%s': %v\n", private, penvErr)
+	} else {
+		botLogger.Printf("Loaded initial private environment from: %s\n", private)
+	}
 	if envErr != nil {
 		botLogger.Printf("No environment loaded from '%s': %v\n", environment, envErr)
 	} else {
