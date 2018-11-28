@@ -60,8 +60,8 @@ var repositories map[string]repository
 
 // loadConfig loads the 'bot's yaml configuration files.
 func (c *botContext) loadConfig(preConnect bool) error {
-	if err := godotenv.Overload("custom/gopherbot.env"); err == nil {
-		Log(Info, "Loaded environment from 'custom/gopherbot.env'")
+	if err := godotenv.Overload("gopherbot.env"); err == nil {
+		Log(Info, "Loaded environment from 'gopherbot.env'")
 	}
 	var loglevel LogLevel
 	newconfig := &botconf{}
@@ -315,6 +315,17 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		botCfg.joinChannels = newconfig.JoinChannels
 	}
 
+	if len(newconfig.WorkSpace) > 0 {
+		if respath, ok := checkDirectory(newconfig.WorkSpace); ok {
+			botCfg.workSpace = respath
+		} else {
+			Log(Error, fmt.Sprintf("WorkSpace directory '%s' doesn't exist, using '%s'", newconfig.WorkSpace, configPath))
+		}
+	}
+	if len(botCfg.workSpace) == 0 {
+		botCfg.workSpace = configPath
+	}
+
 	// Items only read at start-up, before multi-threaded
 	if preConnect {
 		if newconfig.Protocol != "" {
@@ -324,23 +335,6 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		}
 		if newconfig.ProtocolConfig != nil {
 			protocolConfig = newconfig.ProtocolConfig
-		}
-
-		var p string
-		if len(configPath) > 0 {
-			p = configPath
-		} else {
-			p = installPath
-		}
-		if newconfig.WorkSpace != "" {
-			if respath, ok := checkDirectory(newconfig.WorkSpace); ok {
-				botCfg.workSpace = respath
-			} else {
-				Log(Error, fmt.Sprintf("WorkSpace directory '%s' doesn't exist, using '%s'", newconfig.WorkSpace, p))
-			}
-		}
-		if len(botCfg.workSpace) == 0 {
-			botCfg.workSpace = p
 		}
 
 		if newconfig.EncryptBrain {

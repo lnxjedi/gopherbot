@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"sync"
 
 	"github.com/joho/godotenv"
@@ -91,14 +92,6 @@ func Start(v VersionInfo) {
 		return
 	}
 
-	environment := "custom/gopherbot.env"
-	private := ".env"
-	if len(penvPath) > 0 {
-		private = penvPath
-	}
-	envErr := godotenv.Overload(environment)
-	penvErr := godotenv.Overload(private)
-
 	var botLogger *log.Logger
 	logOut := os.Stdout
 	if len(logFile) == 0 {
@@ -119,6 +112,24 @@ func Start(v VersionInfo) {
 	botLogger = log.New(logOut, "", log.LstdFlags)
 	botLogger.Println("Initialized logging ...")
 
+	installpath = binDirectory
+
+	// Configdir is where all user-supplied configuration and
+	// external plugins are.
+	if len(configPath) != 0 {
+		configpath = configPath
+	} else {
+		configpath = "."
+	}
+
+	environment := path.Join(configpath, "gopherbot.env")
+	private := ".env"
+	if len(penvPath) > 0 {
+		private = penvPath
+	}
+	envErr := godotenv.Overload(environment)
+	penvErr := godotenv.Overload(private)
+
 	if penvErr != nil {
 		botLogger.Printf("No private environment loaded from '%s': %v\n", private, penvErr)
 	} else {
@@ -127,25 +138,7 @@ func Start(v VersionInfo) {
 	if envErr != nil {
 		botLogger.Printf("No environment loaded from '%s': %v\n", environment, envErr)
 	} else {
-		botLogger.Printf("Loaded initial environment from: %s, %s\n", private, environment)
-	}
-
-	installpath = binDirectory
-
-	// Configdir is where all user-supplied configuration and
-	// external plugins are.
-	confSearchPath := []string{
-		configPath,
-		"custom",
-	}
-	for _, spath := range confSearchPath {
-		if respath, ok := checkDirectory(spath); ok {
-			configpath = respath
-			break
-		}
-	}
-	if len(configpath) == 0 {
-		configpath = "."
+		botLogger.Printf("Loaded initial environment from: %s\n", environment)
 	}
 
 	// Create the 'bot and load configuration, supplying configpath and installpath.

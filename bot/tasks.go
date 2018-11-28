@@ -206,9 +206,8 @@ func initializePlugins() {
 	}
 	currentTasks.Unlock()
 	c := &botContext{
-		environment:      make(map[string]string),
-		workingDirectory: botCfg.workSpace,
-		tasks:            tasks,
+		environment: make(map[string]string),
+		tasks:       tasks,
 	}
 	c.registerActive(nil)
 	botCfg.Lock()

@@ -55,6 +55,7 @@ func (c *botContext) registerActive(parent *botContext) {
 	c.Protocol = setProtocol(botCfg.protocol)
 	c.Format = botCfg.defaultMessageFormat
 	c.environment["GOPHER_HTTP_POST"] = "http://" + botCfg.port
+	workSpace := botCfg.workSpace
 	botCfg.RUnlock()
 	cryptKey.RLock()
 	initialized := cryptKey.initialized
@@ -76,7 +77,8 @@ func (c *botContext) registerActive(parent *botContext) {
 	} else {
 		c.environment["GOPHER_CONFIGDIR"] = installPath
 	}
-	c.environment["GOPHER_WORKSPACE"] = botCfg.workSpace
+	c.environment["GOPHER_WORKSPACE"] = workSpace
+	c.workingDirectory = workSpace
 	botRunID.Lock()
 	botRunID.idx++
 	if botRunID.idx == 0 {
@@ -131,7 +133,7 @@ func (c *botContext) clone() *botContext {
 		Protocol:         c.Protocol,
 		Format:           c.Format,
 		msg:              c.msg,
-		workingDirectory: botCfg.workSpace,
+		workingDirectory: c.workingDirectory,
 		environment:      make(map[string]string),
 	}
 }

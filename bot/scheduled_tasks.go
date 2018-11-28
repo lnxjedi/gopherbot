@@ -70,6 +70,7 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList, repolist map[s
 		return
 	}
 
+	botCfg.RLock()
 	// Create the botContext to carry state through the pipeline.
 	// startPipeline will take care of registerActive()
 	c := &botContext{
@@ -82,6 +83,7 @@ func runScheduledTask(t interface{}, ts taskSpec, tasks taskList, repolist map[s
 		workingDirectory: botCfg.workSpace,
 		environment:      make(map[string]string),
 	}
+	botCfg.RUnlock()
 	var command string
 	if isPlugin {
 		command = ts.Command

@@ -38,6 +38,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	botCfg.Lock()
 	botCfg.pluginsRunning++
 	c.timeZone = botCfg.timeZone
+	workSpace := botCfg.workSpace
 	botCfg.Unlock()
 	defer func() {
 		botCfg.Lock()
@@ -54,7 +55,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		c.jobName = task.name // Exclusive always uses the jobName, regardless of the task that calls it
 		c.jobChannel = task.Channel
 		c.history = botCfg.history
-		c.workingDirectory = botCfg.workSpace
+		c.workingDirectory = workSpace
 		var jh jobHistory
 		rememberRuns := job.HistoryLogs
 		if rememberRuns == 0 {

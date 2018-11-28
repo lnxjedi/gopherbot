@@ -91,7 +91,9 @@ func (r *Robot) SetWorkingDirectory(path string) bool {
 	if filepath.IsAbs(path) {
 		newPath = path
 	} else {
+		botCfg.RLock()
 		newPath = filepath.Join(botCfg.workSpace, path)
+		botCfg.RUnlock()
 	}
 	if respath, ok := checkDirectory(newPath); ok {
 		c := r.getContext()
