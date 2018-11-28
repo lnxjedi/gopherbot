@@ -37,14 +37,16 @@ then
 	exit 0
 fi
 
+SSH_KEY=${KEYNAME:-robot_rsa}
+
 case $command in
 	"keypair")
 		ACTION=$1
-		if [ -e $HOME/.ssh/id_rsa ]
+		if [ -e $HOME/.ssh/$SSH_KEY ]
 		then
 			if [ "$ACTION" = "replace" ]
 			then
-				rm -f $HOME/.ssh/id_rsa $HOME/.ssh/id_rsa.pub
+				rm -f $HOME/.ssh/$SSH_KEY $HOME/.ssh/$SSH_KEY.pub
 			else
 				Say "I've already got an ssh keypair - use 'replace keypair' to replace it"
 				exit 0
@@ -54,15 +56,15 @@ case $command in
 			chmod 700 $HOME/.ssh
 		fi
 		BOT=$(GetBotAttribute name)
-		/usr/bin/ssh-keygen -q -b 4096 -N "$BOT_SSH_PHRASE" -C "$BOT" -f $HOME/.ssh/id_rsa
+		/usr/bin/ssh-keygen -q -b 4096 -N "$BOT_SSH_PHRASE" -C "$BOT" -f $HOME/.ssh/$SSH_KEY
 		Say "Created"
 		;;
 	"pubkey")
-		if [ ! -e $HOME/.ssh/id_rsa.pub ]
+		if [ ! -e $HOME/.ssh/$SSH_KEY.pub ]
 		then
 			Say "I don't seem to have an ssh public key - use 'generate keypair' to create one"
 		else
-			Say -f "$(cat $HOME/.ssh/id_rsa.pub)"
+			Say -f "$(cat $HOME/.ssh/$SSH_KEY.pub)"
 		fi
 		;;
 esac

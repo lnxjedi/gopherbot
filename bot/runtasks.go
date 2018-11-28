@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path"
 	"regexp"
 	"runtime"
 	"strings"
@@ -456,15 +457,16 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		c.taskenvironment = nil
 		return "", ret
 	}
-	var fullPath string // full path to the executable
+	var taskPath string // full path to the executable
 	var err error
-	fullPath, err = getTaskPath(task)
+	var relpath bool
+	taskPath, relpath, err = getTaskPath(task)
 	if err != nil {
 		emit(ExternalTaskBadPath)
 		return fmt.Sprintf("Error getting path for %s: %v", task.name, err), MechanismFail
 	}
 	winInterpreter := false
-	interpreter, err := getInterpreter(fullPath)
+	interpreter, err := getInterpreter(taskPath, relpath)
 	if err != nil {
 		errString = "There was a problem calling an external plugin"
 		emit(ExternalTaskBadInterpreter)
@@ -480,7 +482,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	externalArgs := make([]string, 0, 5+len(args))
 	// on Windows, we exec the interpreter with the script as first arg
 	if winInterpreter {
-		externalArgs = append(externalArgs, fullPath)
+		externalArgs = append(externalArgs, taskPath)
 	}
 	// jobs and tasks don't take a 'command' (it's just 'run', a dummy value)
 	if isPlugin {
@@ -490,12 +492,12 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	if winInterpreter {
 		externalArgs = fixInterpreterArgs(interpreter, externalArgs)
 	}
-	Log(Debug, fmt.Sprintf("Calling '%s' with interpreter '%s' and args: %q", fullPath, interpreter, externalArgs))
+	Log(Debug, fmt.Sprintf("Calling '%s' with interpreter '%s' and args: %q", taskPath, interpreter, externalArgs))
 	var cmd *exec.Cmd
 	if winInterpreter {
 		cmd = exec.Command(interpreter, externalArgs...)
 	} else {
-		cmd = exec.Command(fullPath, externalArgs...)
+		cmd = exec.Command(taskPath, externalArgs...)
 	}
 	c.Lock()
 	c.taskName = task.name
@@ -525,13 +527,17 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		keys = append(keys, k)
 	}
 	cmd.Env = env
-	cmd.Dir = c.workingDirectory
-	Log(Debug, fmt.Sprintf("Running '%s' with environment vars: '%s'", fullPath, strings.Join(keys, "', '")))
+	if relpath {
+		cmd.Dir = configPath
+	} else {
+		cmd.Dir = c.workingDirectory
+	}
+	Log(Debug, fmt.Sprintf("Running '%s' with environment vars: '%s'", taskPath, strings.Join(keys, "', '")))
 	var stderr, stdout io.ReadCloser
 	// hold on to stderr in case we need to log an error
 	stderr, err = cmd.StderrPipe()
 	if err != nil {
-		Log(Error, fmt.Errorf("Creating stderr pipe for external command '%s': %v", fullPath, err))
+		Log(Error, fmt.Errorf("Creating stderr pipe for external command '%s': %v", taskPath, err))
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 		return errString, MechanismFail
 	}
@@ -541,13 +547,13 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	} else {
 		stdout, err = cmd.StdoutPipe()
 		if err != nil {
-			Log(Error, fmt.Errorf("Creating stdout pipe for external command '%s': %v", fullPath, err))
+			Log(Error, fmt.Errorf("Creating stdout pipe for external command '%s': %v", taskPath, err))
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			return errString, MechanismFail
 		}
 	}
 	if err = cmd.Start(); err != nil {
-		Log(Error, fmt.Errorf("Starting command '%s': %v", fullPath, err))
+		Log(Error, fmt.Errorf("Starting command '%s': %v", taskPath, err))
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 		return errString, MechanismFail
 	}
@@ -557,13 +563,13 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	if c.logger == nil {
 		var stdErrBytes []byte
 		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
-			Log(Error, fmt.Errorf("Reading from stderr for external command '%s': %v", fullPath, err))
+			Log(Error, fmt.Errorf("Reading from stderr for external command '%s': %v", taskPath, err))
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			return errString, MechanismFail
 		}
 		stdErrString := string(stdErrBytes)
 		if len(stdErrString) > 0 {
-			Log(Warn, fmt.Errorf("Output from stderr of external command '%s': %s", fullPath, stdErrString))
+			Log(Warn, fmt.Errorf("Output from stderr of external command '%s': %s", taskPath, stdErrString))
 			errString = fmt.Sprintf("There was error output while calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			emit(ExternalTaskStderrOutput)
 		}
@@ -613,7 +619,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 			}
 		}
 		if !success {
-			Log(Error, fmt.Errorf("Waiting on external command '%s': %v", fullPath, err))
+			Log(Error, fmt.Errorf("Waiting on external command '%s': %v", taskPath, err))
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			emit(ExternalTaskErrExit)
 		}
@@ -646,46 +652,54 @@ func fixInterpreterArgs(interpreter string, args []string) []string {
 	return args
 }
 
-func getTaskPath(task *botTask) (string, error) {
+// getTaskPath searches configPath and installPath and returns a path
+// to the task. If the path is relative, the bool is true
+func getTaskPath(task *botTask) (tpath string, relpath bool, err error) {
 	if len(task.Path) == 0 {
 		err := fmt.Errorf("Path empty for external task: %s", task.name)
 		Log(Error, err)
-		return "", err
+		return "", false, err
 	}
-	var fullPath string
-	if byte(task.Path[0]) == byte("/"[0]) {
-		fullPath = task.Path
-		_, err := os.Stat(fullPath)
+	var taskPath string
+	if path.IsAbs(task.Path) {
+		taskPath = task.Path
+		_, err := os.Stat(taskPath)
 		if err == nil {
-			Log(Debug, "Using fully specified path to plugin:", fullPath)
-			return fullPath, nil
+			Log(Debug, "Using fully specified path to plugin:", taskPath)
+			return taskPath, false, nil
 		}
-		err = fmt.Errorf("Invalid path for external plugin: %s (%v)", fullPath, err)
+		err = fmt.Errorf("Invalid path for external plugin: %s (%v)", taskPath, err)
 		Log(Error, err)
-		return "", err
+		return "", false, err
 	}
 	if len(configPath) > 0 {
-		_, err := os.Stat(configPath + "/" + task.Path)
+		taskPath = path.Join(configPath, task.Path)
+		_, err := os.Stat(taskPath)
 		if err == nil {
-			fullPath = configPath + "/" + task.Path
-			Log(Debug, "Using external plugin from configPath:", fullPath)
-			return fullPath, nil
+			// The one case where relpath is true
+			Log(Debug, "Using external plugin from configPath:", taskPath)
+			return task.Path, true, nil
 		}
 	}
-	_, err := os.Stat(installPath + "/" + task.Path)
-	if err == nil {
-		fullPath = installPath + "/" + task.Path
-		Log(Debug, "Using stock external plugin:", fullPath)
-		return fullPath, nil
+	if _, err := os.Stat(installPath + "/" + task.Path); err == nil {
+		taskPath = installPath + "/" + task.Path
+		Log(Debug, "Using stock external plugin:", taskPath)
+		return taskPath, false, nil
 	}
 	err = fmt.Errorf("Couldn't locate external plugin %s: %v", task.name, err)
 	Log(Error, err)
-	return "", err
+	return "", false, err
 }
 
 // emulate Unix script convention by calling external scripts with
 // an interpreter.
-func getInterpreter(scriptPath string) (string, error) {
+func getInterpreter(spath string, relpath bool) (string, error) {
+	var scriptPath string
+	if relpath {
+		scriptPath = path.Join(configPath, spath)
+	} else {
+		scriptPath = spath
+	}
 	if _, err := os.Stat(scriptPath); err != nil {
 		err = fmt.Errorf("file stat: %s", err)
 		Log(Error, fmt.Sprintf("Error getting interpreter for %s: %s", scriptPath, err))
@@ -716,35 +730,39 @@ func getInterpreter(scriptPath string) (string, error) {
 }
 
 func getExtDefCfg(task *botTask) (*[]byte, error) {
-	var fullPath string
+	var taskPath string
 	var err error
-	if fullPath, err = getTaskPath(task); err != nil {
+	var relpath bool
+	if taskPath, relpath, err = getTaskPath(task); err != nil {
 		return nil, err
 	}
 	var cfg []byte
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		var interpreter string
-		interpreter, err = getInterpreter(fullPath)
+		interpreter, err = getInterpreter(taskPath, relpath)
 		if err != nil {
-			err = fmt.Errorf("looking up interpreter for %s: %s", fullPath, err)
+			err = fmt.Errorf("looking up interpreter for %s: %s", taskPath, err)
 			return nil, err
 		}
-		args := fixInterpreterArgs(interpreter, []string{fullPath, "configure"})
+		args := fixInterpreterArgs(interpreter, []string{taskPath, "configure"})
 		Log(Debug, fmt.Sprintf("Calling '%s' with args: %q", interpreter, args))
 		cmd = exec.Command(interpreter, args...)
 	} else {
-		Log(Debug, fmt.Sprintf("Calling '%s' with arg: configure", fullPath))
-		//cfg, err = exec.Command(fullPath, "configure").Output()
-		cmd = exec.Command(fullPath, "configure")
+		Log(Debug, fmt.Sprintf("Calling '%s' with arg: configure", taskPath))
+		//cfg, err = exec.Command(taskPath, "configure").Output()
+		cmd = exec.Command(taskPath, "configure")
+	}
+	if relpath {
+		cmd.Dir = configPath
 	}
 	cmd.Env = []string{fmt.Sprintf("GOPHER_INSTALLDIR=%s", installPath)}
 	cfg, err = cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
-			err = fmt.Errorf("Problem retrieving default configuration for external plugin '%s', skipping: '%v', output: %s", fullPath, err, exitErr.Stderr)
+			err = fmt.Errorf("Problem retrieving default configuration for external plugin '%s', skipping: '%v', output: %s", taskPath, err, exitErr.Stderr)
 		} else {
-			err = fmt.Errorf("Problem retrieving default configuration for external plugin '%s', skipping: '%v'", fullPath, err)
+			err = fmt.Errorf("Problem retrieving default configuration for external plugin '%s', skipping: '%v'", taskPath, err)
 		}
 		return nil, err
 	}

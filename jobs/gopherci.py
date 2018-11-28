@@ -29,7 +29,7 @@ bot = Robot()
 
 from yaml import load
 
-repofile = open("%s/conf/repositories.yaml" % os.getenv("GOPHER_CONFIGDIR"))
+repofile = open("conf/repositories.yaml")
 yamldata = repofile.read()
 repodata = load(yamldata)
 

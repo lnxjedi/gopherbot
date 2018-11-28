@@ -63,21 +63,25 @@ func Start(v VersionInfo) {
 
 	installpath = binDirectory
 
+	private := ".env"
+	if len(penvPath) > 0 {
+		private = penvPath
+	}
+	penvErr := godotenv.Overload(private)
+	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
+
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
 	if len(configPath) != 0 {
 		configpath = configPath
+	} else if len(envCfgPath) > 0 {
+		configpath = envCfgPath
 	} else {
 		configpath = "."
 	}
 
 	environment := path.Join(configpath, "gopherbot.env")
-	private := ".env"
-	if len(penvPath) > 0 {
-		private = penvPath
-	}
 	envErr := godotenv.Overload(environment)
-	penvErr := godotenv.Overload(private)
 
 	if penvErr != nil {
 		botLogger.Printf("No private environment loaded from '%s': %v\n", private, penvErr)

@@ -99,10 +99,9 @@ func (r *Robot) SetWorkingDirectory(path string) bool {
 		c := r.getContext()
 		c.workingDirectory = respath
 		return true
-	} else {
-		r.Log(Error, fmt.Sprintf("Invalid path '%s'(%s) in SetWorkingDirectory", path, newPath))
-		return false
 	}
+	r.Log(Error, fmt.Sprintf("Invalid path '%s'(%s) in SetWorkingDirectory", path, newPath))
+	return false
 }
 
 // ExtendNamespace is for CI/CD applications to support building multiple

@@ -39,10 +39,6 @@ switch ($command)
   }
   "update" {
     $bot.Say("Ok, I'll issue a git pull...")
-    $pdrive, $ppath = $env:GOPHER_CONFIGDIR.split(":")
-    $env:HOMEDRIVE = "${pdrive}:"
-    $env:HOMEPATH = $ppath
-    Set-Location $env:GOPHER_CONFIGDIR
     $gitpath = $env:ProgramFiles -replace ' ','` '
     $result = Invoke-Expression "$gitpath\Git\bin\git.exe pull" 2>&1 | Out-String
     $bot.Say("Operation completed with result:")

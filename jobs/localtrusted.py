@@ -36,7 +36,7 @@ if len(sys.argv) > 0:
     bot.SetParameter("GOPHERCI_DEPREPO", deprepo)
     bot.SetParameter("GOPHERCI_DEPBRANCH", depbranch)
 
-repofile = open("%s/conf/repositories.yaml" % os.getenv("GOPHER_CONFIGDIR"))
+repofile = open("conf/repositories.yaml")
 yamldata = repofile.read()
 
 repodata = load(yamldata)

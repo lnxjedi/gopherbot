@@ -34,7 +34,7 @@ then
     exit 0 # already running
 fi
 
-SSH_KEY=${KEYNAME:-id_rsa}
+SSH_KEY=${KEYNAME:-robot_rsa}
 SSH_KEY_PATH="$HOME/.ssh/$SSH_KEY"
 if [ ! -e $SSH_KEY_PATH ]
 then

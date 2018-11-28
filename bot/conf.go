@@ -15,7 +15,7 @@ import (
 
 var protocolConfig, brainConfig, historyConfig json.RawMessage
 
-// botconf specifies 'bot configuration, and is read from $GOPHER_CONFIGDIR/conf/gopherbot.yaml
+// botconf specifies 'bot configuration, and is read from conf/gopherbot.yaml
 type botconf struct {
 	AdminContact         string                  // Contact info for whomever administers the robot
 	Email                string                  // From: address when the robot wants to send an email

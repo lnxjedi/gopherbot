@@ -14,14 +14,10 @@ import (
 const escapeAliases = `*+^$?\[]{}`
 const aliases = `&!;:-%#@~<>/`
 
-var hostName, workingDirectory, binDirectory string
+var hostName, binDirectory string
 
 func init() {
 	var err error
-	workingDirectory, err = os.Getwd()
-	if err != nil {
-		panic("Unable to get working directory")
-	}
 	// Installpath is where the default config and stock external
 	// plugins are.
 	ex, err := os.Executable()
@@ -45,21 +41,11 @@ func checkPanic(r *Robot, s string) {
 
 func checkDirectory(cpath string) (string, bool) {
 	if len(cpath) == 0 {
-		return "", false
+		return "", true
 	}
 	var filePath string
 	if path.IsAbs(cpath) {
 		filePath = path.Clean(cpath)
-	} else {
-		filePath = path.Join(workingDirectory, cpath)
-		if apath, ok := checkDirectory(filePath); ok {
-			return apath, ok
-		}
-		filePath = path.Join(binDirectory, cpath)
-		if apath, ok := checkDirectory(filePath); ok {
-			return apath, ok
-		}
-		return "", false
 	}
 	ds, err := os.Stat(filePath)
 	if err != nil {
