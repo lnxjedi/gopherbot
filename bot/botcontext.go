@@ -69,8 +69,8 @@ func (c *botContext) registerActive(parent *botContext) {
 			c.storedEnv.RepositoryParams = make(map[string]map[string][]byte)
 		}
 	}
-	c.nextTasks = make([]taskSpec, 0)
-	c.finalTasks = make([]taskSpec, 0)
+	c.nextTasks = make([]TaskSpec, 0)
+	c.finalTasks = make([]TaskSpec, 0)
 	c.environment["GOPHER_INSTALLDIR"] = installPath
 	c.environment["GOPHER_WORKSPACE"] = workSpace
 	c.workingDirectory = workSpace
@@ -163,9 +163,9 @@ type botContext struct {
 	nsExtension    string     // extended namespace
 	runIndex       int        // run number of a job
 	verbose        bool       // flag if initializing job was verbose
-	nextTasks      []taskSpec // tasks in the pipeline
-	finalTasks     []taskSpec // clean-up tasks that always run when the pipeline ends
-	failTasks      []taskSpec // clean-up tasks that run when a pipeline fails
+	nextTasks      []TaskSpec // tasks in the pipeline
+	finalTasks     []TaskSpec // clean-up tasks that always run when the pipeline ends
+	failTasks      []TaskSpec // clean-up tasks that run when a pipeline fails
 
 	failedTaskName, failedTaskDescription string // set when a task fails
 

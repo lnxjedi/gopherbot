@@ -16,7 +16,7 @@ func scheduleTasks() {
 		taskRunner.Stop()
 	}
 	botCfg.RLock()
-	scheduled := botCfg.scheduledTasks
+	scheduled := botCfg.ScheduledTasks
 	tz := botCfg.timeZone
 	botCfg.RUnlock()
 	if tz != nil {
@@ -54,7 +54,7 @@ func scheduleTasks() {
 			Log(Error, fmt.Sprintf("Not scheduling task '%s'; zero-length Channel", st.Name))
 			continue
 		}
-		ts := st.taskSpec
+		ts := st.TaskSpec
 		Log(Info, fmt.Sprintf("Scheduling job '%s', args '%v' with schedule: %s", ts.Name, ts.Arguments, st.Schedule))
 		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, ts, tasks, repolist) })
 	}
@@ -62,7 +62,7 @@ func scheduleTasks() {
 	schedMutex.Unlock()
 }
 
-func runScheduledTask(t interface{}, ts taskSpec, tasks taskList, repolist map[string]repository) {
+func runScheduledTask(t interface{}, ts TaskSpec, tasks taskList, repolist map[string]repository) {
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	if isPlugin && len(ts.Command) == 0 {

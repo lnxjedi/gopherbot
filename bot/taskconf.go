@@ -34,16 +34,16 @@ func (c *botContext) loadTaskConfig() {
 	i := 0
 
 	for plugname := range pluginHandlers {
-		plugin := &botPlugin{
-			botTask: &botTask{
+		plugin := &BotPlugin{
+			BotTask: &BotTask{
 				name:     plugname,
 				taskType: taskGo,
 				taskID:   getTaskID(plugname),
 			},
 		}
 		tlist = append(tlist, plugin)
-		taskIndexByID[plugin.botTask.taskID] = i
-		taskIndexByName[plugin.botTask.name] = i
+		taskIndexByID[plugin.BotTask.taskID] = i
+		taskIndexByName[plugin.BotTask.name] = i
 		i++
 	}
 
@@ -67,7 +67,7 @@ func (c *botContext) loadTaskConfig() {
 			nameSpace = script.NameSpace
 		}
 		nameSpaceSet[nameSpace] = struct{}{}
-		task := &botTask{
+		task := &BotTask{
 			name:        script.Name,
 			taskType:    taskExternal,
 			taskID:      getTaskID(script.Name),
@@ -80,8 +80,8 @@ func (c *botContext) loadTaskConfig() {
 			task.Disabled = true
 			task.reason = "Disabled in installed / custom gopherbot.yaml"
 		}
-		p := &botPlugin{
-			botTask: task,
+		p := &BotPlugin{
+			BotTask: task,
 		}
 		tlist = append(tlist, p)
 		taskIndexByID[task.taskID] = i
@@ -109,7 +109,7 @@ func (c *botContext) loadTaskConfig() {
 			nameSpace = script.NameSpace
 		}
 		nameSpaceSet[nameSpace] = struct{}{}
-		task := &botTask{
+		task := &BotTask{
 			name:        script.Name,
 			taskType:    taskExternal,
 			taskID:      getTaskID(script.Name),
@@ -122,8 +122,8 @@ func (c *botContext) loadTaskConfig() {
 			task.Disabled = true
 			task.reason = "Disabled in installed / custom gopherbot.yaml"
 		}
-		j := &botJob{
-			botTask: task,
+		j := &BotJob{
+			BotTask: task,
 		}
 		tlist = append(tlist, j)
 		taskIndexByID[task.taskID] = i
@@ -150,7 +150,7 @@ func (c *botContext) loadTaskConfig() {
 			nameSpace = script.NameSpace
 		}
 		nameSpaceSet[nameSpace] = struct{}{}
-		task := &botTask{
+		task := &BotTask{
 			name:        script.Name,
 			taskType:    taskExternal,
 			taskID:      getTaskID(script.Name),
@@ -174,18 +174,18 @@ func (c *botContext) loadTaskConfig() {
 	// under lock at the end.
 LoadLoop:
 	for _, j := range tlist {
-		var plugin *botPlugin
-		var job *botJob
-		var task *botTask
+		var plugin *BotPlugin
+		var job *BotJob
+		var task *BotTask
 		var isPlugin bool
 		switch t := j.(type) {
-		case *botPlugin:
+		case *BotPlugin:
 			isPlugin = true
 			plugin = t
-			task = t.botTask
-		case *botJob:
+			task = t.BotTask
+		case *BotJob:
 			job = t
-			task = t.botTask
+			task = t.BotTask
 		// a bare task with no config to load
 		default:
 			continue

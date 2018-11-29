@@ -25,7 +25,7 @@ var envPassThrough = []string{
 
 // startPipeline is triggered by plugins, job triggers, scheduled tasks, and child jobs
 // Called from dispatch: checkPluginMatchersAndRun,
-// jobcommands: checkJobMatchersAndRun or scheduledTask,
+// jobcommands: checkJobMatchersAndRun or ScheduledTask,
 // runPipeline.
 func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipelineType, command string, args ...string) (ret TaskRetVal) {
 	task, _, job := getTask(t)
@@ -133,8 +133,8 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	// Once Active, we need to use the Mutex for access to some fields; see
 	// botcontext/type botContext
 	c.registerActive(nil)
-	ts := taskSpec{task.name, command, args, t}
-	c.nextTasks = []taskSpec{ts}
+	ts := TaskSpec{task.name, command, args, t}
+	c.nextTasks = []TaskSpec{ts}
 
 	var errString string
 	ret, errString = c.runPipeline(ptype, true)
@@ -210,13 +210,13 @@ const (
 )
 
 func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskRetVal, errString string) {
-	var p []taskSpec
+	var p []TaskSpec
 	eventEmitted := false
 
 	switch c.stage {
 	case primaryTasks:
 		p = c.nextTasks
-		c.nextTasks = []taskSpec{}
+		c.nextTasks = []TaskSpec{}
 	case finalTasks:
 		p = c.finalTasks
 	case failTasks:
@@ -334,7 +334,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 					// Decrement the index so this task runs again
 					i--
 					// Clear tasks added in the last run (if any)
-					c.nextTasks = []taskSpec{}
+					c.nextTasks = []TaskSpec{}
 				} else {
 					Log(Debug, fmt.Sprintf("Exclusive lock acquired in pipeline '%s', bot #%d", c.pipeName, c.id))
 					runQueues.m[tag] = []chan struct{}{}
@@ -351,7 +351,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 				} else {
 					ret, errString = c.runPipeline(ptype, false)
 				}
-				c.nextTasks = []taskSpec{}
+				c.nextTasks = []TaskSpec{}
 				// the case where c.queueTask is true is handled right after
 				// callTask
 				if c.abortPipeline {
@@ -654,7 +654,7 @@ func fixInterpreterArgs(interpreter string, args []string) []string {
 
 // getTaskPath searches configPath and installPath and returns a path
 // to the task. If the path is relative, the bool is true
-func getTaskPath(task *botTask) (tpath string, relpath bool, err error) {
+func getTaskPath(task *BotTask) (tpath string, relpath bool, err error) {
 	if len(task.Path) == 0 {
 		err := fmt.Errorf("Path empty for external task: %s", task.name)
 		Log(Error, err)
@@ -729,7 +729,7 @@ func getInterpreter(spath string, relpath bool) (string, error) {
 	return interpreter, nil
 }
 
-func getExtDefCfg(task *botTask) (*[]byte, error) {
+func getExtDefCfg(task *BotTask) (*[]byte, error) {
 	var taskPath string
 	var err error
 	var relpath bool

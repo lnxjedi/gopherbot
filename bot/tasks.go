@@ -42,16 +42,16 @@ var currentTasks = struct {
 	sync.Mutex{},
 }
 
-func getTask(t interface{}) (*botTask, *botPlugin, *botJob) {
-	p, ok := t.(*botPlugin)
+func getTask(t interface{}) (*BotTask, *BotPlugin, *BotJob) {
+	p, ok := t.(*BotPlugin)
 	if ok {
-		return p.botTask, p, nil
+		return p.BotTask, p, nil
 	}
-	j, ok := t.(*botJob)
+	j, ok := t.(*BotJob)
 	if ok {
-		return j.botTask, nil, j
+		return j.BotTask, nil, j
 	}
-	return t.(*botTask), nil, nil
+	return t.(*BotTask), nil, nil
 }
 
 func (tl *taskList) getTaskByName(name string) interface{} {
@@ -64,30 +64,31 @@ func (tl *taskList) getTaskByName(name string) interface{} {
 	return task
 }
 
-// Struct for ScheduledTasks (gopherbot.yaml) and AddTask (robot method)
-type taskSpec struct {
+// TaskSpec is the structure for ScheduledTasks (gopherbot.yaml) and AddTask (robot method)
+type TaskSpec struct {
 	Name      string // name of the job or plugin
 	Command   string // plugins only
 	Arguments []string
 	task      interface{} // populated in AddTask
 }
 
-// parameters are provided to jobs and plugins as environment variables
-type parameter struct {
+// Parameter items are provided to jobs and plugins as environment variables
+type Parameter struct {
 	Name, Value string
 }
 
-// For ExternalPlugins, ExternalJobs and ExternalTasks
-type externalTask struct {
+// ExternalTask struct for ExternalPlugins, ExternalJobs and ExternalTasks in gopherbot.yaml.
+// Note that this is the only configuration supplied for an ExternalTask.
+type ExternalTask struct {
 	Name, Path, Description, NameSpace string
 	Disabled                           bool
-	Parameters                         []parameter
+	Parameters                         []Parameter
 }
 
-// items in gopherbot.yaml
-type scheduledTask struct {
+// ScheduledTask items defined in gopherbot.yaml, mostly for scheduled jobs
+type ScheduledTask struct {
 	Schedule string // timespec for https://godoc.org/github.com/robfig/cron
-	taskSpec
+	TaskSpec
 }
 
 // PluginHelp specifies keywords and help text for the 'bot help system
@@ -133,13 +134,14 @@ const (
 	taskExternal
 )
 
-// a botTask can be a plugin or a job, both capable of calling Robot methods.
-type botTask struct {
+// BotTask configuration is common to tasks, plugins or jobs. Any task, plugin or job can call bot methods. Note that tasks are only defined
+// in gopherbot.yaml, and no external configuration is read in.
+type BotTask struct {
 	name          string          // name of job or plugin; unique by type, but job & plugin can share
 	taskType      taskType        // taskGo or taskExternal
 	Path          string          // Path to the external executable for jobs or Plugtype=taskExternal only
 	NameSpace     string          // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
-	Parameters    []parameter     // Fixed parameters for a given job; many jobs will use the same script with differing parameters
+	Parameters    []Parameter     // Fixed parameters for a given job; many jobs will use the same script with differing parameters
 	Description   string          // description of job or plugin
 	AllowDirect   bool            // Set this true if this plugin can be accessed via direct message
 	DirectOnly    bool            // Set this true if this plugin ONLY accepts direct messages
@@ -159,17 +161,19 @@ type botTask struct {
 	reason        string // why this job/plugin is disabled
 }
 
-// stuff read in conf/jobs/<job>.yaml
-type botJob struct {
+// BotJob - configuration only applicable to jobs. Read in from conf/jobs/<job>.yaml, which can also include anything from a BotTask.
+type BotJob struct {
 	Quiet       bool           // whether to quash "job started/ended" messages
+	Protected   bool           // Protected jobs run with wd = custom config directory; all other jobs run in workSpace
 	HistoryLogs int            // how many runs of this job/plugin to keep history for
 	Triggers    []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
 	Arguments   []InputMatcher // list of arguments to prompt the user for
-	*botTask
+	*BotTask
 }
 
-// Plugin specifies the structure of a plugin configuration - plugins should include an example / default config
-type botPlugin struct {
+// BotPlugin specifies the structure of a plugin configuration - plugins should include an example / default config. Custom plugin configuration
+// will be loaded from conf/plugins/<plugin>.yaml, which can also include anything from a BotTask.
+type BotPlugin struct {
 	AdminCommands            []string       // A list of commands only a bot admin can use
 	ElevatedCommands         []string       // Commands that require elevation, usually via 2fa
 	ElevateImmediateCommands []string       // Commands that always require elevation promting, regardless of timeouts
@@ -179,7 +183,7 @@ type botPlugin struct {
 	CommandMatchers          []InputMatcher // Input matchers for messages that need to be directed to the 'bot
 	MessageMatchers          []InputMatcher // Input matchers for messages the 'bot hears even when it's not being spoken to
 	CatchAll                 bool           // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
-	*botTask
+	*BotTask
 }
 
 // PluginHandler is the struct a plugin registers for the Gopherbot plugin API.

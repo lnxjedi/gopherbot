@@ -15,8 +15,8 @@ import (
 
 var protocolConfig, brainConfig, historyConfig json.RawMessage
 
-// botconf specifies 'bot configuration, and is read from conf/gopherbot.yaml
-type botconf struct {
+// BotConf defines 'bot configuration, and is read from conf/gopherbot.yaml
+type BotConf struct {
 	AdminContact         string                  // Contact info for whomever administers the robot
 	Email                string                  // From: address when the robot wants to send an email
 	MailConfig           botMailer               // configuration for sending email
@@ -39,10 +39,10 @@ type botconf struct {
 	JoinChannels         []string                // Channels the 'bot should join when it logs in (not supported by all protocols)
 	DefaultJobChannel    string                  // Where job status is posted by default
 	TimeZone             string                  // For evaluating the hour in a job schedule
-	ExternalJobs         map[string]externalTask // list of available jobs; config in conf/jobs/<jobname>.yaml
-	ExternalPlugins      map[string]externalTask // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
-	ExternalTasks        map[string]externalTask // List executables that can be added to a pipeline (but can't start one)
-	ScheduledTasks       []scheduledTask         // see tasks.go
+	ExternalJobs         map[string]ExternalTask // list of available jobs; config in conf/jobs/<jobname>.yaml
+	ExternalPlugins      map[string]ExternalTask // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
+	ExternalTasks        map[string]ExternalTask // List executables that can be added to a pipeline (but can't start one)
+	ScheduledTasks       []ScheduledTask         // see tasks.go
 	AdminUsers           []string                // List of users who can access administrative commands
 	Alias                string                  // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
 	LocalPort            int                     // Port number for listening on localhost, for CLI plugins
@@ -50,12 +50,12 @@ type botconf struct {
 }
 
 type repository struct {
-	Parameters []parameter // per-repository parameters
+	Parameters []Parameter // per-repository parameters
 }
 
 // Protects the bot config and list of repositories
 var confLock sync.RWMutex
-var config *botconf
+var config *BotConf
 var repositories map[string]repository
 
 // loadConfig loads the 'bot's yaml configuration files.
@@ -64,10 +64,10 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		Log(Info, "Loaded environment from 'gopherbot.env'")
 	}
 	var loglevel LogLevel
-	newconfig := &botconf{}
-	newconfig.ExternalJobs = make(map[string]externalTask)
-	newconfig.ExternalPlugins = make(map[string]externalTask)
-	newconfig.ExternalTasks = make(map[string]externalTask)
+	newconfig := &BotConf{}
+	newconfig.ExternalJobs = make(map[string]ExternalTask)
+	newconfig.ExternalPlugins = make(map[string]ExternalTask)
+	newconfig.ExternalTasks = make(map[string]ExternalTask)
 	configload := make(map[string]json.RawMessage)
 	tasksOk := true
 
@@ -93,8 +93,8 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	for key, value := range configload {
 		var strval string
 		var sarrval []string
-		var tval map[string]externalTask
-		var stval []scheduledTask
+		var tval map[string]ExternalTask
+		var stval []ScheduledTask
 		var mailval botMailer
 		var boolval bool
 		var intval int
@@ -174,13 +174,13 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		case "EncryptBrain":
 			newconfig.EncryptBrain = *(val.(*bool))
 		case "ExternalPlugins":
-			newconfig.ExternalPlugins = *(val.(*map[string]externalTask))
+			newconfig.ExternalPlugins = *(val.(*map[string]ExternalTask))
 		case "ExternalJobs":
-			newconfig.ExternalJobs = *(val.(*map[string]externalTask))
+			newconfig.ExternalJobs = *(val.(*map[string]ExternalTask))
 		case "ExternalTasks":
-			newconfig.ExternalTasks = *(val.(*map[string]externalTask))
+			newconfig.ExternalTasks = *(val.(*map[string]ExternalTask))
 		case "ScheduledTasks":
-			newconfig.ScheduledTasks = *(val.(*[]scheduledTask))
+			newconfig.ScheduledTasks = *(val.(*[]ScheduledTask))
 		case "AdminUsers":
 			newconfig.AdminUsers = *(val.(*[]string))
 		case "Alias":
@@ -268,7 +268,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	}
 	if newconfig.ExternalPlugins != nil {
 		ni := len(newconfig.ExternalPlugins)
-		et := make([]externalTask, ni)
+		et := make([]ExternalTask, ni)
 		i := 0
 		for name, task := range newconfig.ExternalPlugins {
 			et[i] = task
@@ -279,7 +279,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	}
 	if newconfig.ExternalJobs != nil {
 		ni := len(newconfig.ExternalJobs)
-		et := make([]externalTask, ni)
+		et := make([]ExternalTask, ni)
 		i := 0
 		for name, task := range newconfig.ExternalJobs {
 			et[i] = task
@@ -290,7 +290,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	}
 	if newconfig.ExternalTasks != nil {
 		ni := len(newconfig.ExternalTasks)
-		et := make([]externalTask, ni)
+		et := make([]ExternalTask, ni)
 		i := 0
 		for name, task := range newconfig.ExternalTasks {
 			et[i] = task
@@ -299,7 +299,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		}
 		botCfg.externalTasks = et
 	}
-	st := make([]scheduledTask, 0, len(newconfig.ScheduledTasks))
+	st := make([]ScheduledTask, 0, len(newconfig.ScheduledTasks))
 	for _, s := range newconfig.ScheduledTasks {
 		if len(s.Name) == 0 || len(s.Schedule) == 0 {
 			Log(Error, fmt.Sprintf("Zero-length Name (%s) or Schedule (%s) in ScheduledTask, skipping", s.Name, s.Schedule))
@@ -307,7 +307,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			st = append(st, s)
 		}
 	}
-	botCfg.scheduledTasks = st
+	botCfg.ScheduledTasks = st
 	if newconfig.IgnoreUsers != nil {
 		botCfg.ignoreUsers = newconfig.IgnoreUsers
 	}

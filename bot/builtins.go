@@ -198,7 +198,7 @@ func dump(r *Robot, command string, args ...string) (retval TaskRetVal) {
 					}
 					if plugin.taskType == taskExternal {
 						found = true
-						if cfg, err := getExtDefCfg(plugin.botTask); err == nil {
+						if cfg, err := getExtDefCfg(plugin.BotTask); err == nil {
 							r.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], *cfg))
 						} else {
 							r.Say("I had a problem looking that up - somebody should check my logs")

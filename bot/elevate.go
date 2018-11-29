@@ -8,7 +8,7 @@ const configElevError = "Sorry, elevation failed due to a configuration error"
 // Elevator plugins provide an elevate method for checking if the user
 // can run a privileged command.
 
-func (c *botContext) elevate(task *botTask, immediate bool) (retval TaskRetVal) {
+func (c *botContext) elevate(task *BotTask, immediate bool) (retval TaskRetVal) {
 	r := c.makeRobot()
 	botCfg.RLock()
 	defaultElevator := botCfg.defaultElevator

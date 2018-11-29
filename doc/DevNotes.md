@@ -240,7 +240,7 @@ func main() {
 * AddTask(...) will replace CallPlugin
 
 ### TODO
-* Move HistoryLogs and WorkingDirectory to botJob
+* Move HistoryLogs and WorkingDirectory to BotJob
   * Make "update" a job triggered by the update plugin
   * Initialize history on the first job in the initial pipeline that has HistoryLogs > 0
   * Create new botContext for sub-pipelines; if parent context has no history, the child context may start one

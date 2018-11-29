@@ -70,10 +70,10 @@ var botCfg struct {
 	workSpace            string          // Read/Write directory where the robot does work
 	defaultElevator      string          // Plugin name for performing elevation
 	defaultAuthorizer    string          // Plugin name for performing authorization
-	externalPlugins      []externalTask  // List of external plugins to load
-	externalJobs         []externalTask  // List of external jobs to load
-	externalTasks        []externalTask  // List of external tasks to load
-	scheduledTasks       []scheduledTask // List of scheduled tasks
+	externalPlugins      []ExternalTask  // List of external plugins to load
+	externalJobs         []ExternalTask  // List of external jobs to load
+	externalTasks        []ExternalTask  // List of external tasks to load
+	ScheduledTasks       []ScheduledTask // List of scheduled tasks
 	port                 string          // Localhost port to listen on
 	stop                 chan struct{}   // stop channel for stopping the connector
 	done                 chan struct{}   // channel closed when robot finishes shutting down

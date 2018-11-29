@@ -11,7 +11,7 @@ import (
 // both handleMessage and the help builtin. verboseOnly is set when availability
 // is being checked for ambient messages or auth/elevation plugins, to indicate
 // debugging verboseness.
-func (c *botContext) pluginAvailable(task *botTask, helpSystem, verboseOnly bool) (available bool) {
+func (c *botContext) pluginAvailable(task *BotTask, helpSystem, verboseOnly bool) (available bool) {
 	nvmsg := "task is NOT visible to user " + c.User + " in channel "
 	vmsg := "task is visible to user " + c.User + " in channel "
 	if c.directMsg {

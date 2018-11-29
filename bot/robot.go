@@ -353,7 +353,7 @@ func (r *Robot) AddTask(name string, cmdargs ...string) RetVal {
 		command = "run"
 		args = cmdargs
 	}
-	ts := taskSpec{
+	ts := TaskSpec{
 		Name:      name,
 		Command:   command,
 		Arguments: args,
@@ -393,14 +393,14 @@ func (r *Robot) FinalTask(name string, cmdargs ...string) RetVal {
 		command = "run"
 		args = cmdargs
 	}
-	ts := taskSpec{
+	ts := TaskSpec{
 		Name:      name,
 		Command:   command,
 		Arguments: args,
 		task:      t,
 	}
 	// Final tasks are FILO/LIFO (run in reverse order of being added)
-	c.finalTasks = append([]taskSpec{ts}, c.finalTasks...)
+	c.finalTasks = append([]TaskSpec{ts}, c.finalTasks...)
 	return Ok
 }
 
@@ -432,7 +432,7 @@ func (r *Robot) FailTask(name string, cmdargs ...string) RetVal {
 		command = "run"
 		args = cmdargs
 	}
-	ts := taskSpec{
+	ts := TaskSpec{
 		Name:      name,
 		Command:   command,
 		Arguments: args,

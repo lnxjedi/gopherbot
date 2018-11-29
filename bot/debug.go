@@ -42,7 +42,7 @@ func (c *botContext) debugT(t interface{}, msg string, verboseonly bool) {
 	}
 }
 
-func (c *botContext) debugTask(task *botTask, msg string, verboseonly bool) {
+func (c *botContext) debugTask(task *BotTask, msg string, verboseonly bool) {
 	var taskID string
 	if task == nil {
 		taskID = ""
