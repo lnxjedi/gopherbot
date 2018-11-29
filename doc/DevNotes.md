@@ -27,7 +27,10 @@ Create e.g.:
 * /opt/gopherbot/gopherbot runs SUID robot
 
 TODO:
-* Load gopherbot.env from configpath, in both start_* and conf.go
+* Add "Protected" flag for jobs that run in configpath instead of workspace
+* When relpath == true and not protected, run tasks by connecting script to stdin and running `<interpreter> /dev/stdin args`, otherwise use usual method
+* Mark `update` job as protected and test
+* DONE - Load gopherbot.env from configpath, in both start_* and conf.go
 * DONE - Integrate godotenv for loading environment from $cwd/.env & $cwd/gopherbot.env
 * DONE - Update startup to allow for relative path to repo & brain
 * Put workings in to allow config repo update to happen in the jail
