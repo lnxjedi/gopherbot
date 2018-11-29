@@ -27,8 +27,9 @@ Create e.g.:
 * /opt/gopherbot/gopherbot runs SUID robot
 
 TODO:
+* Return interpreter args - and use them - in getInterpreter; e.g. `#!/bin/bash -e` should return `/bin/bash`, [ "-e" ]
 * Add "Protected" flag for jobs that run in configpath instead of workspace
-* When relpath == true and not protected, run tasks by connecting script to stdin and running `<interpreter> /dev/stdin args`, otherwise use usual method
+* DONE - When relpath == true, run tasks by connecting script to stdin and running `<interpreter> /dev/stdin args`, otherwise use usual method
 * Mark `update` job as protected and test
 * DONE - Load gopherbot.env from configpath, in both start_* and conf.go
 * DONE - Integrate godotenv for loading environment from $cwd/.env & $cwd/gopherbot.env

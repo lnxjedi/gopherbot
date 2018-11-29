@@ -74,14 +74,13 @@ func runScheduledTask(t interface{}, ts TaskSpec, tasks taskList, repolist map[s
 	// Create the botContext to carry state through the pipeline.
 	// startPipeline will take care of registerActive()
 	c := &botContext{
-		Channel:          task.Channel,
-		tasks:            tasks,
-		repositories:     repolist,
-		isCommand:        isPlugin,
-		directMsg:        false,
-		automaticTask:    true, // scheduled jobs don't get authorization / elevation checks
-		workingDirectory: botCfg.workSpace,
-		environment:      make(map[string]string),
+		Channel:       task.Channel,
+		tasks:         tasks,
+		repositories:  repolist,
+		isCommand:     isPlugin,
+		directMsg:     false,
+		automaticTask: true, // scheduled jobs don't get authorization / elevation checks
+		environment:   make(map[string]string),
 	}
 	botCfg.RUnlock()
 	var command string

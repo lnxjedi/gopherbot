@@ -105,8 +105,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 
 	handle := handler{}
 	c := &botContext{
-		workingDirectory: botCfg.workSpace,
-		environment:      make(map[string]string),
+		environment: make(map[string]string),
 	}
 	if err := c.loadConfig(true); err != nil {
 		Log(Fatal, fmt.Sprintf("Error loading initial configuration: %v", err))
@@ -169,8 +168,7 @@ func run() <-chan struct{} {
 	go runBrain()
 
 	c := &botContext{
-		workingDirectory: botCfg.workSpace,
-		environment:      make(map[string]string),
+		environment: make(map[string]string),
 	}
 	c.registerActive(nil)
 	c.loadConfig(false)

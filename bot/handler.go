@@ -61,7 +61,6 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 	preRegex := botCfg.preRegex
 	postRegex := botCfg.postRegex
 	bareRegex := botCfg.bareRegex
-	workSpace := botCfg.workSpace
 	botCfg.RUnlock()
 	if preRegex != nil {
 		matches := preRegex.FindAllStringSubmatch(messageFull, -1)
@@ -115,12 +114,11 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 			idMap:      idMap,
 			nameSpaces: nameSpaces,
 		},
-		repositories:     repolist,
-		isCommand:        isCommand,
-		directMsg:        directMsg,
-		msg:              message,
-		workingDirectory: workSpace,
-		environment:      make(map[string]string),
+		repositories: repolist,
+		isCommand:    isCommand,
+		directMsg:    directMsg,
+		msg:          message,
+		environment:  make(map[string]string),
 	}
 	Log(Debug, fmt.Sprintf("Message '%s' from user '%s' in channel '%s'; isCommand: %t", message, userName, logChannel, isCommand))
 	c.debug(fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)

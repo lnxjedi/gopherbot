@@ -87,21 +87,31 @@ func (r *Robot) SetParameter(name, value string) bool {
 // executed. The path argument can be absolute or relative; if relative, it is
 // always relative to the robot's WorkSpace.
 func (r *Robot) SetWorkingDirectory(path string) bool {
-	var newPath string
+	c := r.getContext()
 	if filepath.IsAbs(path) {
-		newPath = path
+		_, ok := checkDirectory(path)
+		if ok {
+			c.workingDirectory = path
+		} else {
+			r.Log(Error, fmt.Sprintf("Invalid path '%s' in SetWorkingDirectory", path))
+		}
+		return ok
+	}
+	var checkPath string
+	if c.protected {
+		checkPath = filepath.Join(configPath, path)
 	} else {
 		botCfg.RLock()
-		newPath = filepath.Join(botCfg.workSpace, path)
+		checkPath = filepath.Join(botCfg.workSpace, path)
 		botCfg.RUnlock()
 	}
-	if respath, ok := checkDirectory(newPath); ok {
-		c := r.getContext()
-		c.workingDirectory = respath
-		return true
+	_, ok := checkDirectory(checkPath)
+	if ok {
+		c.workingDirectory = path
+	} else {
+		r.Log(Error, fmt.Sprintf("Invalid path '%s'(%s) in SetWorkingDirectory", path, checkPath))
 	}
-	r.Log(Error, fmt.Sprintf("Invalid path '%s'(%s) in SetWorkingDirectory", path, newPath))
-	return false
+	return ok
 }
 
 // ExtendNamespace is for CI/CD applications to support building multiple

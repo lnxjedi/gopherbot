@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -39,7 +39,6 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	botCfg.Lock()
 	botCfg.pluginsRunning++
 	c.timeZone = botCfg.timeZone
-	workSpace := botCfg.workSpace
 	botCfg.Unlock()
 	defer func() {
 		botCfg.Lock()
@@ -51,12 +50,15 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		botCfg.Unlock()
 	}()
 
+	// A job is always the first task in a pipeline; a new sub-pipeline is created
+	// if a job is added in another pipeline.
 	if isJob {
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
 		c.jobName = task.name // Exclusive always uses the jobName, regardless of the task that calls it
 		c.jobChannel = task.Channel
 		c.history = botCfg.history
-		c.workingDirectory = workSpace
+		c.workingDirectory = ""
+		c.protected = job.Protected
 		var jh jobHistory
 		rememberRuns := job.HistoryLogs
 		if rememberRuns == 0 {
@@ -483,6 +485,11 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	// on Windows, we exec the interpreter with the script as first arg
 	if winInterpreter {
 		externalArgs = append(externalArgs, taskPath)
+	} else if relpath {
+		// When the task path is relative, the script is run from stdin;
+		// this allows the script to be run from a different directory
+		// than configPath.
+		externalArgs = append(externalArgs, "/dev/stdin")
 	}
 	// jobs and tasks don't take a 'command' (it's just 'run', a dummy value)
 	if isPlugin {
@@ -497,7 +504,19 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	if winInterpreter {
 		cmd = exec.Command(interpreter, externalArgs...)
 	} else {
-		cmd = exec.Command(taskPath, externalArgs...)
+		if relpath {
+			// Feed the script to stdin
+			cmd = exec.Command(interpreter, externalArgs...)
+			script, err := os.Open(filepath.Join(configPath, taskPath))
+			if err != nil {
+				errString = fmt.Sprintf("opening task '%s': '%v'", taskPath, err)
+				emit(ExternalTaskBadPath)
+				return errString, MechanismFail
+			}
+			cmd.Stdin = script
+		} else {
+			cmd = exec.Command(taskPath, externalArgs...)
+		}
 	}
 	c.Lock()
 	c.taskName = task.name
@@ -527,12 +546,18 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		keys = append(keys, k)
 	}
 	cmd.Env = env
-	if relpath {
-		cmd.Dir = configPath
-	} else {
+	if filepath.IsAbs(c.workingDirectory) {
 		cmd.Dir = c.workingDirectory
+	} else {
+		if c.protected {
+			cmd.Dir = filepath.Join(configPath, c.workingDirectory)
+		} else {
+			botCfg.RLock()
+			cmd.Dir = filepath.Join(botCfg.workSpace, c.workingDirectory)
+			botCfg.RUnlock()
+		}
 	}
-	Log(Debug, fmt.Sprintf("Running '%s' with environment vars: '%s'", taskPath, strings.Join(keys, "', '")))
+	Log(Debug, fmt.Sprintf("Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '")))
 	var stderr, stdout io.ReadCloser
 	// hold on to stderr in case we need to log an error
 	stderr, err = cmd.StderrPipe()
@@ -640,12 +665,12 @@ func fixInterpreterArgs(interpreter string, args []string) []string {
 	}
 	switch i {
 	case "powershell", "powershell.exe":
-		for i := range args {
-			args[i] = strings.Replace(args[i], " ", "` ", -1)
-			args[i] = strings.Replace(args[i], ",", "`,", -1)
-			args[i] = strings.Replace(args[i], ";", "`;", -1)
-			if args[i] == "" {
-				args[i] = "''"
+		for idx := range args {
+			args[idx] = strings.Replace(args[idx], " ", "` ", -1)
+			args[idx] = strings.Replace(args[idx], ",", "`,", -1)
+			args[idx] = strings.Replace(args[idx], ";", "`;", -1)
+			if args[idx] == "" {
+				args[idx] = "''"
 			}
 		}
 	}
@@ -661,7 +686,7 @@ func getTaskPath(task *BotTask) (tpath string, relpath bool, err error) {
 		return "", false, err
 	}
 	var taskPath string
-	if path.IsAbs(task.Path) {
+	if filepath.IsAbs(task.Path) {
 		taskPath = task.Path
 		_, err := os.Stat(taskPath)
 		if err == nil {
@@ -673,7 +698,7 @@ func getTaskPath(task *BotTask) (tpath string, relpath bool, err error) {
 		return "", false, err
 	}
 	if len(configPath) > 0 {
-		taskPath = path.Join(configPath, task.Path)
+		taskPath = filepath.Join(configPath, task.Path)
 		_, err := os.Stat(taskPath)
 		if err == nil {
 			// The one case where relpath is true
@@ -696,7 +721,7 @@ func getTaskPath(task *BotTask) (tpath string, relpath bool, err error) {
 func getInterpreter(spath string, relpath bool) (string, error) {
 	var scriptPath string
 	if relpath {
-		scriptPath = path.Join(configPath, spath)
+		scriptPath = filepath.Join(configPath, spath)
 	} else {
 		scriptPath = spath
 	}

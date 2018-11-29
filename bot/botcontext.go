@@ -73,7 +73,6 @@ func (c *botContext) registerActive(parent *botContext) {
 	c.finalTasks = make([]TaskSpec, 0)
 	c.environment["GOPHER_INSTALLDIR"] = installPath
 	c.environment["GOPHER_WORKSPACE"] = workSpace
-	c.workingDirectory = workSpace
 	botRunID.Lock()
 	botRunID.idx++
 	if botRunID.idx == 0 {
@@ -128,7 +127,7 @@ func (c *botContext) clone() *botContext {
 		Protocol:         c.Protocol,
 		Format:           c.Format,
 		msg:              c.msg,
-		workingDirectory: c.workingDirectory,
+		workingDirectory: "",
 		environment:      make(map[string]string),
 	}
 }
@@ -143,7 +142,8 @@ type botContext struct {
 	Protocol         Protocol              // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
 	RawMsg           interface{}           // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
 	Format           MessageFormat         // robot's default message format
-	workingDirectory string                // directory where tasks run
+	workingDirectory string                // directory where tasks run relative to cfgdir or workspace
+	protected        bool                  // protected jobs flip this flag, causing tasks in the pipeline to run in cfgdir
 	id               int                   // incrementing index of Robot threads
 	tasks            taskList              // Pointers to current task configuration at start of pipeline
 	repositories     map[string]repository // Set of configured repositories
