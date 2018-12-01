@@ -110,7 +110,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 				c.environment[p.Name] = p.Value
 			}
 		}
-		if !job.Quiet {
+		if !job.Quiet || c.verbose {
 			r := c.makeRobot()
 			iChannel := c.Channel    // channel where job was triggered / run
 			r.Channel = c.jobChannel // channel where job updates are posted

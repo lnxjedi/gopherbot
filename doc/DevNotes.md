@@ -8,6 +8,19 @@
 * Remote plugin execution over ssh (ON HOLD)
 * GopherCI for CI/CD (IN PROGRESS)
 
+## Version 2 Release TODOs
+These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs.
+- TODO: Fix meme password, update conf/plugins/*
+- History:
+   - TODO: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
+   - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
+- TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
+- TODO: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, etc.
+- TODO: Create AddJob that checks for job then calls AddTask - more explicit / readable code
+- TODO: Rename BotRoster to UserRoster in main code; Slack will eventually deprecate usernames and mapping will need to be explicit
+- DONE: Remove cleanup post-build task in favor of clean pre-task; build repos should be left around between builds, but removed prior to git-sync; problem found with branch names being deleted and later re-used caused failures in git-sync
+- DONE/TEST: Set job to verbose when manually triggered
+
 ## Protecting Secrets
 
 This section outlines potential means of providing secrets to the robot in a secure manner, such that even malicious external scripts / plugins / jobs would not be able to obtain the Slack token or encryption key.
@@ -84,19 +97,6 @@ To simplify locking:
 * These start-up items should be processed during initbot
 * Items that can change on reload should be stored in a config struct similar to plugins and jobs; when the botContext is registered, it should get a copy of this struct that doesn't change for the life of the context, just like the task list
 * Items that are processed to binary representations (e.g. string to loglevel) should be stored in non-public struct members; e.g. LogLevel(string) and logLevel(int)
-
-## Version 2 Release TODOs
-These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs.
-- History:
-   - TODO: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
-   - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
-- TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
-- TODO: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, etc.
-- TODO: Create AddJob that checks for job then calls AddTask - more explicit / readable code
-- TODO: Rename BotRoster to UserRoster; Slack will eventually deprecate usernames and mapping will need to be explicit
-- TODO: Add Reload() method to connectors, many of which may require additional data
-- TODO: Remove cleanup post-build task in favor of clean pre-task; build repos should be left around between builds, but removed prior to git-sync; problem found with branch names being deleted and later re-used caused failures in git-sync
-- TODO: (if easy) Set job to verbose when manually triggered
 
 ## TODOs:
 - DONE/TEST/DOCUMENT: fix configuration merging to include plugin default config

@@ -90,10 +90,9 @@ func jobcommands(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			if alljobs {
 				r.Say("I dont' have any jobs configured")
 				return
-			} else {
-				r.Say("I don't see any jobs configured for this channel")
-				return
 			}
+			r.Say("I don't see any jobs configured for this channel")
+			return
 		}
 		r.Say(strings.Join(jl, "\n"))
 	}

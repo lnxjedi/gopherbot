@@ -159,6 +159,7 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 				}
 			}
 			c.deregister()
+			c.verbose = true
 			c.startPipeline(nil, t, jobCmd, "run", args...)
 		} // jobAvailable sends a message if it's not
 	}
