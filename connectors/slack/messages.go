@@ -144,6 +144,10 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		lastmsgtime.m[lastlookup] = timestamp
 		lastmsgtime.Unlock()
 	}
+	if userID == s.botID {
+		s.Log(bot.Debug, "Ignoring message from self")
+		return
+	}
 	text := message.Text
 	// some bot messages don't have any text, so check for a fallback
 	if text == "" && len(msg.Attachments) > 0 {
