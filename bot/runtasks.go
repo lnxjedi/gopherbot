@@ -58,7 +58,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		c.jobChannel = task.Channel
 		c.history = botCfg.history
 		c.workingDirectory = ""
-		c.protected = job.Protected
+		c.protected = task.Protected
 		var jh jobHistory
 		rememberRuns := job.HistoryLogs
 		if rememberRuns == 0 {
@@ -490,8 +490,8 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		// this allows the script to be run from a different directory
 		// than configPath.
 		externalArgs = append(externalArgs, "/dev/stdin")
+		externalArgs = append(iargs, externalArgs...)
 	}
-	externalArgs = append(iargs, externalArgs...)
 	// jobs and tasks don't take a 'command' (it's just 'run', a dummy value)
 	if isPlugin {
 		externalArgs = append(externalArgs, command)
