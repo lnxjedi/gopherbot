@@ -11,6 +11,8 @@
 ## Version 2 Release TODOs
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs.
 - TODO: Fix meme password, update conf/plugins/*
+- TODO: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot
+- TODO: Update the Ansible playbook for protected install / suid gopherbot
 - History:
    - TODO: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
    - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
