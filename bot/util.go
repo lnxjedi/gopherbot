@@ -46,6 +46,8 @@ func checkDirectory(cpath string) (string, bool) {
 	var filePath string
 	if path.IsAbs(cpath) {
 		filePath = path.Clean(cpath)
+	} else {
+		filePath = cpath
 	}
 	ds, err := os.Stat(filePath)
 	if err != nil {
