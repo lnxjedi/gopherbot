@@ -27,15 +27,16 @@ Create e.g.:
 * /opt/gopherbot/gopherbot runs SUID robot
 
 TODO:
-* Return interpreter args - and use them - in getInterpreter; e.g. `#!/bin/bash -e` should return `/bin/bash`, [ "-e" ]
-* Add "Protected" flag for jobs that run in configpath instead of workspace
+* GopherCI needs GetRepoData() to run in WorkSpace
+* DONE - Return interpreter args - and use them - in getInterpreter; e.g. `#!/bin/bash -e` should return `/bin/bash`, [ "-e" ]
+* DONE - Add "Protected" flag for jobs that run in configpath instead of workspace
 * DONE - When relpath == true, run tasks by connecting script to stdin and running `<interpreter> /dev/stdin args`, otherwise use usual method
-* Mark `update` job as protected and test
+* DONE - Mark `update` job as protected and test
 * DONE - Load gopherbot.env from configpath, in both start_* and conf.go
 * DONE - Integrate godotenv for loading environment from $cwd/.env & $cwd/gopherbot.env
 * DONE - Update startup to allow for relative path to repo & brain
-* Put workings in to allow config repo update to happen in the jail
-* Prevent scripts/plugins that are NOT update from setting the working dir relative to cwd
+* DONE - Put workings in to allow config repo update to happen in the jail
+* DONE - Prevent scripts/plugins that are NOT update from setting the working dir relative to cwd
 
 Add to documentation:
 #### Running a robot with the 'term' connector
