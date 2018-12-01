@@ -255,6 +255,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		bret := r.CheckAdmin()
 		sendReturn(rw, boolresponse{Boolean: bret})
 		return
+	case "GetRepoData":
+		sendReturn(rw, r.GetRepoData())
+		return
 	case "AddTask", "FinalTask", "FailTask", "SpawnTask":
 		var ts taskcall
 		if !getArgs(rw, &f.FuncArgs, &ts) {

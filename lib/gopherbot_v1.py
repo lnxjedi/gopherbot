@@ -147,6 +147,9 @@ class Robot:
     def SetWorkingDirectory(self, path):
         return self.Call("SetWorkingDirectory", { "Path": path })["Boolean"]
 
+    def GetRepoData(self):
+        return self.Call("GetRepoData", {})
+
     def Log(self, level, msg):
         self.Call("Log", { "Level": level, "Message": msg })
 

@@ -130,6 +130,10 @@ class BaseBot
 		return callBotFunc("SetWorkingDirectory", { "Path" => path })["Boolean"]
 	end
 
+	def GetRepoData()
+		return callBotFunc("GetRepoData", {})
+	end
+
 	def CheckoutDatum(key, rw)
 		args = { "Key" => key, "RW" => rw }
 		ret = callBotFunc("CheckoutDatum", args)

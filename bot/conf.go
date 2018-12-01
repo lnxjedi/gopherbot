@@ -57,6 +57,7 @@ type repository struct {
 var confLock sync.RWMutex
 var config *BotConf
 var repositories map[string]repository
+var repodata map[string]json.RawMessage
 
 // loadConfig loads the 'bot's yaml configuration files.
 func (c *botContext) loadConfig(preConnect bool) error {
@@ -318,6 +319,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	if len(newconfig.WorkSpace) > 0 {
 		if respath, ok := checkDirectory(newconfig.WorkSpace); ok {
 			botCfg.workSpace = respath
+			Log(Debug, fmt.Sprintf("Setting workspace directory to '%s'", respath))
 		} else {
 			Log(Error, fmt.Sprintf("WorkSpace directory '%s' doesn't exist, using '%s'", newconfig.WorkSpace, configPath))
 		}
@@ -370,6 +372,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	confLock.Lock()
 	config = newconfig
 	repositories = repolist
+	repodata = reporaw
 	confLock.Unlock()
 
 	if tasksOk && !preConnect {

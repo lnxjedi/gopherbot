@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"reflect"
@@ -88,6 +89,10 @@ func (r *Robot) SetParameter(name, value string) bool {
 // always relative to the robot's WorkSpace.
 func (r *Robot) SetWorkingDirectory(path string) bool {
 	c := r.getContext()
+	if path == "." {
+		c.workingDirectory = ""
+		return true
+	}
 	if filepath.IsAbs(path) {
 		_, ok := checkDirectory(path)
 		if ok {
@@ -97,14 +102,15 @@ func (r *Robot) SetWorkingDirectory(path string) bool {
 		}
 		return ok
 	}
-	var checkPath string
+	var prefix, checkPath string
 	if c.protected {
-		checkPath = filepath.Join(configPath, path)
+		prefix = configPath
 	} else {
 		botCfg.RLock()
-		checkPath = filepath.Join(botCfg.workSpace, path)
+		prefix = botCfg.workSpace
 		botCfg.RUnlock()
 	}
+	checkPath = filepath.Join(prefix, path)
 	_, ok := checkDirectory(checkPath)
 	if ok {
 		c.workingDirectory = path
@@ -112,6 +118,15 @@ func (r *Robot) SetWorkingDirectory(path string) bool {
 		r.Log(Error, fmt.Sprintf("Invalid path '%s'(%s) in SetWorkingDirectory", path, checkPath))
 	}
 	return ok
+}
+
+// GetRepoData returns the contents of configPath/conf/repodata.yaml, or an
+// empty map/dict/hash. Mainly for GopherCI, Methods for Python and Ruby will
+// retrieve it.
+func (r *Robot) GetRepoData() map[string]json.RawMessage {
+	confLock.RLock()
+	defer confLock.RUnlock()
+	return repodata
 }
 
 // ExtendNamespace is for CI/CD applications to support building multiple
