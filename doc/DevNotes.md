@@ -27,7 +27,8 @@ Create e.g.:
 * /opt/gopherbot/gopherbot runs SUID robot
 
 TODO:
-* GopherCI needs GetRepoData() to run in WorkSpace
+* Update calling convention in runtasks.go to always use "/dev/stdin"
+* DONE - GopherCI needs GetRepoData() to run in WorkSpace
 * DONE - Return interpreter args - and use them - in getInterpreter; e.g. `#!/bin/bash -e` should return `/bin/bash`, [ "-e" ]
 * DONE - Add "Protected" flag for jobs that run in configpath instead of workspace
 * DONE - When relpath == true, run tasks by connecting script to stdin and running `<interpreter> /dev/stdin args`, otherwise use usual method
