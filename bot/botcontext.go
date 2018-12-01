@@ -167,7 +167,7 @@ type botContext struct {
 	finalTasks     []TaskSpec // clean-up tasks that always run when the pipeline ends
 	failTasks      []TaskSpec // clean-up tasks that run when a pipeline fails
 
-	failedTaskName, failedTaskDescription string // set when a task fails
+	failedTask, failedTaskDescription string // set when a task fails
 
 	history  HistoryProvider // history provider for generating the logger
 	timeZone *time.Location  // for history timestamping

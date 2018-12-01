@@ -178,7 +178,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			if ret == PipelineAborted {
 				r.Say(fmt.Sprintf("Job '%s', run number %d aborted, job '%s' already in progress", jobName, c.runIndex, c.exclusiveTag))
 			} else {
-				r.Say(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'%s, exit code: %s", jobName, c.runIndex, c.failedTaskName, td, ret))
+				r.Say(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'%s, exit code: %s", jobName, c.runIndex, c.failedTask, td, ret))
 			}
 		}
 	}
@@ -298,7 +298,10 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 			errString, ret = c.callTask(t, command, args...)
 			c.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
 			if c.stage != finalTasks && ret != Normal {
-				c.failedTaskName = task.name
+				c.failedTask = task.name
+				if len(args) > 0 {
+					c.failedTask += " " + strings.Join(args, " ")
+				}
 				c.failedTaskDescription = task.Description
 			}
 		}
