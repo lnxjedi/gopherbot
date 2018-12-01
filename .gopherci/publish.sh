@@ -2,9 +2,9 @@
 
 # publish.sh - copy the install archive to a distribution point
 
-VERSION=$(grep "Version:" main.go)
-VERSION=${VERSION#*Version: \"}
-VERSION=${VERSION%\",}
+VERSION=$(grep "Version =" main.go)
+VERSION=${VERSION#*= \"}
+VERSION=${VERSION%\"}
 
 eval `go env`
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
