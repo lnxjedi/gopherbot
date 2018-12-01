@@ -292,7 +292,7 @@ LoadLoop:
 				val = &strval
 			case "HistoryLogs":
 				val = &intval
-			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "Quiet":
+			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "Protected", "AuthorizeAllCommands", "CatchAll", "Quiet":
 				val = &boolval
 			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands":
 				val = &sarrval
@@ -347,6 +347,8 @@ LoadLoop:
 				explicitAllChannels = true
 			case "RequireAdmin":
 				task.RequireAdmin = *(val.(*bool))
+			case "Protected":
+				task.Protected = *(val.(*bool))
 			case "AdminCommands":
 				if isPlugin {
 					plugin.AdminCommands = *(val.(*[]string))

@@ -149,6 +149,7 @@ type BotTask struct {
 	Channels      []string        // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels   bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
 	RequireAdmin  bool            // Set to only allow administrators to access a plugin / run job
+	Protected     bool            // Protected jobs run with wd = custom config directory; all other jobs run in workSpace
 	Users         []string        // If non-empty, list of all the users with access to this plugin
 	Elevator      string          // Use an elevator other than the DefaultElevator
 	Authorizer    string          // a plugin to call for authorizing users, should handle groups, etc.
@@ -164,7 +165,6 @@ type BotTask struct {
 // BotJob - configuration only applicable to jobs. Read in from conf/jobs/<job>.yaml, which can also include anything from a BotTask.
 type BotJob struct {
 	Quiet       bool           // whether to quash "job started/ended" messages
-	Protected   bool           // Protected jobs run with wd = custom config directory; all other jobs run in workSpace
 	HistoryLogs int            // how many runs of this job/plugin to keep history for
 	Triggers    []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
 	Arguments   []InputMatcher // list of arguments to prompt the user for
