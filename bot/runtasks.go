@@ -468,7 +468,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		return fmt.Sprintf("Error getting path for %s: %v", task.name, err), MechanismFail
 	}
 	winInterpreter := false
-	interpreter, err := getInterpreter(taskPath, relpath)
+	interpreter, iargs, err := getInterpreter(taskPath, relpath)
 	if err != nil {
 		errString = "There was a problem calling an external plugin"
 		emit(ExternalTaskBadInterpreter)
@@ -481,7 +481,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 			winInterpreter = true
 		}
 	}
-	externalArgs := make([]string, 0, 5+len(args))
+	var externalArgs []string
 	// on Windows, we exec the interpreter with the script as first arg
 	if winInterpreter {
 		externalArgs = append(externalArgs, taskPath)
@@ -491,6 +491,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		// than configPath.
 		externalArgs = append(externalArgs, "/dev/stdin")
 	}
+	externalArgs = append(iargs, externalArgs...)
 	// jobs and tasks don't take a 'command' (it's just 'run', a dummy value)
 	if isPlugin {
 		externalArgs = append(externalArgs, command)
@@ -718,40 +719,41 @@ func getTaskPath(task *BotTask) (tpath string, relpath bool, err error) {
 
 // emulate Unix script convention by calling external scripts with
 // an interpreter.
-func getInterpreter(spath string, relpath bool) (string, error) {
-	var scriptPath string
+func getInterpreter(spath string, relpath bool) (interpreter string, iargs []string, err error) {
+	var iline, scriptPath string
+	var script *os.File
 	if relpath {
 		scriptPath = filepath.Join(configPath, spath)
 	} else {
 		scriptPath = spath
 	}
-	if _, err := os.Stat(scriptPath); err != nil {
+	if _, err = os.Stat(scriptPath); err != nil {
 		err = fmt.Errorf("file stat: %s", err)
 		Log(Error, fmt.Sprintf("Error getting interpreter for %s: %s", scriptPath, err))
-		return "", err
+		return
 	}
-	script, err := os.Open(scriptPath)
-	if err != nil {
+	if script, err = os.Open(scriptPath); err != nil {
 		err = fmt.Errorf("opening file: %s", err)
 		Log(Warn, fmt.Sprintf("Unable to get interpreter for %s: %s", scriptPath, err))
-		return "", nil
+		return
 	}
 	r := bufio.NewReader(script)
-	iline, err := r.ReadString('\n')
-	if err != nil {
+	if iline, err = r.ReadString('\n'); err != nil {
 		err = fmt.Errorf("reading first line: %s", err)
 		Log(Debug, fmt.Sprintf("Problem getting interpreter for %s - %s", scriptPath, err))
-		return "", nil
+		return
 	}
 	if !strings.HasPrefix(iline, "#!") {
-		err := fmt.Errorf("Interpreter not found for %s; first line doesn't start with '#!'", scriptPath)
+		err = fmt.Errorf("Interpreter not found for %s; first line doesn't start with '#!'", scriptPath)
 		Log(Debug, err)
-		return "", nil
+		return
 	}
 	iline = strings.TrimRight(iline, "\n\r")
-	interpreter := strings.TrimPrefix(iline, "#!")
+	interpPlusArgs := strings.Split(strings.TrimPrefix(iline, "#!"), " ")
+	interpreter = interpPlusArgs[0]
+	iargs = interpPlusArgs[1:]
 	Log(Debug, fmt.Sprintf("Detected interpreter for %s: %s", scriptPath, interpreter))
-	return interpreter, nil
+	return
 }
 
 func getExtDefCfg(task *BotTask) (*[]byte, error) {
@@ -765,12 +767,14 @@ func getExtDefCfg(task *BotTask) (*[]byte, error) {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		var interpreter string
-		interpreter, err = getInterpreter(taskPath, relpath)
+		var iargs []string
+		interpreter, iargs, err = getInterpreter(taskPath, relpath)
 		if err != nil {
 			err = fmt.Errorf("looking up interpreter for %s: %s", taskPath, err)
 			return nil, err
 		}
 		args := fixInterpreterArgs(interpreter, []string{taskPath, "configure"})
+		args = append(iargs, args...)
 		Log(Debug, fmt.Sprintf("Calling '%s' with args: %q", interpreter, args))
 		cmd = exec.Command(interpreter, args...)
 	} else {
