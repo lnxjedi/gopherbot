@@ -27,14 +27,7 @@ then
 fi
 
 git status | grep -qE "nothing to commit, working directory|tree clean" || { echo "Your working directory isn't clean, aborting build"; exit 1; }
-COMMIT=$(git rev-parse HEAD)
-cat >commit.go <<EOF
-package main
-
-func init(){
-	versionInfo.Commit = "$COMMIT"
-}
-EOF
+COMMIT=$(git rev-parse --short HEAD)
 
 eval `go env`
 PLATFORMS=${1:-linux darwin windows}
@@ -45,17 +38,17 @@ do
 	rm -f $OUTFILE
 	if [ "$BUILDOS" = "windows" ]
 	then
-		GOOS=$BUILDOS go build -mod vendor -o gopherbot.exe
+		GOOS=$BUILDOS go build -mod vendor -ldflags "-X main.Commit=$COMMIT" -o gopherbot.exe
 		echo "Creating $OUTFILE"
 		zip -r $OUTFILE gopherbot.exe LICENSE README.md conf/ doc/ lib/ licenses/ plugins/ resources/ jobs/ tasks/ scripts/ --exclude *.swp
 	elif [ "$BUILDOS" = "linux" ]
 	then
-		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -a -tags 'netgo osusergo static_build' -o gopherbot
+		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -ldflags "-X main.Commit=$COMMIT" -a -tags 'netgo osusergo static_build' -o gopherbot
 		echo "Creating $OUTFILE"
 		zip -r $OUTFILE gopherbot LICENSE README.md conf/ doc/ lib/ licenses/ plugins/ resources/ jobs/ tasks/ scripts/ --exclude *.swp
 		tar --exclude *.swp -czf gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot LICENSE README.md conf/ doc/ lib/ licenses/ plugins/ resources/ jobs/ tasks/ scripts/
 	else
-		GOOS=$BUILDOS go build -mod vendor
+		GOOS=$BUILDOS go build -mod vendor -ldflags "-X main.Commit=$COMMIT"
 		echo "Creating $OUTFILE"
 		zip -r $OUTFILE gopherbot LICENSE README.md conf/ doc/ lib/ licenses/ plugins/ resources/ jobs/ tasks/ scripts/ --exclude *.swp
 	fi

@@ -59,7 +59,7 @@ import (
 )
 
 var Version = "v2.0.0-snapshot"
-var Commit = "(manual build)"
+var Commit = "(not set)"
 
 func main() {
 	versionInfo := bot.VersionInfo{
