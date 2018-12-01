@@ -27,11 +27,8 @@ from gopherbot_v1 import Robot
 
 bot = Robot()
 
-from yaml import load
-
-repofile = open("conf/repositories.yaml")
-yamldata = repofile.read()
-repodata = load(yamldata)
+sys.stderr.write("DEBUG: Started\n")
+repodata = bot.GetRepoData()
 
 if not isinstance(repodata, dict):
     bot.Log("Warn", "GopherCI triggered with invalid 'repositories.yaml', not a python 'dict'")
@@ -49,6 +46,8 @@ if branch.endswith("/"): # illegal end char; assume args swapped
 
 if repository.endswith("/"):
     repository = repository.rstrip("/")
+
+sys.stderr.write("DEBUG: repository is %s\n" % repository)
 
 def get_deps(repository, recurse, all_deps = []):
     deps = []

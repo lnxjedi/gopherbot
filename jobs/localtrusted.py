@@ -20,8 +20,6 @@ from gopherbot_v1 import Robot
 
 bot = Robot()
 
-from yaml import load
-
 # Pop off the executable path
 sys.argv.pop(0)
 
@@ -36,10 +34,7 @@ if len(sys.argv) > 0:
     bot.SetParameter("GOPHERCI_DEPREPO", deprepo)
     bot.SetParameter("GOPHERCI_DEPBRANCH", depbranch)
 
-repofile = open("conf/repositories.yaml")
-yamldata = repofile.read()
-
-repodata = load(yamldata)
+repodata = bot.GetRepoData()
 
 if repository in repodata:
     repoconf = repodata[repository]
@@ -60,18 +55,20 @@ if not bot.Exclusive(repobranch, False):
     exit()
 
 bot.ExtendNamespace(repobranch, keep_history)
-match = re.match(r"ssh://(?:.*@)?([^:/]*)(?::([^/]*)/)?", clone_url)
-if match:
-    bot.AddTask("ssh-init", [])
-    if match.group(2):
-        bot.AddTask("ssh-scan", [ "-p", match.group(2), match.group(1) ])
-    else:
-        bot.AddTask("ssh-scan", [ match.group(1) ])
-else:
-    match = re.match(r"(?:.*@)?([^:/]*)", clone_url)
+if not clone_url.startswith("http"):
+    match = re.match(r"ssh://(?:.*@)?([^:/]*)(?::([^/]*)/)?", clone_url)
     if match:
         bot.AddTask("ssh-init", [])
-        bot.AddTask("ssh-scan", [ match.group(1) ])
+        if match.group(2):
+            bot.AddTask("ssh-scan", [ "-p", match.group(2), match.group(1) ])
+        else:
+            bot.AddTask("ssh-scan", [ match.group(1) ])
+    else:
+        match = re.match(r"(?:.*@)?([^:/]*)", clone_url)
+        if match:
+            bot.AddTask("ssh-init", [])
+            bot.AddTask("ssh-scan", [ match.group(1) ])
 bot.AddTask("git-sync", [ clone_url, branch, repobranch, "true" ])
 bot.AddTask("exec", [ ".gopherci/pipeline.sh" ])
+bot.AddTask("setworkdir", [ "." ])
 bot.AddTask("cleanup", [])

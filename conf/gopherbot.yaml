@@ -217,6 +217,9 @@ ExternalTasks:
   "exec":
     Description: Simple utility for running scripts in a repository
     Path: tasks/exec.sh
+  "setworkdir":
+    Description: Update working directory as a step in a pipeline
+    Path: tasks/setworkdir.sh
   "ansible-playbook":
     NameSpace: ansible
     Description: Ansible playbook (ansible-playbook) runner with vault passphrase helper
