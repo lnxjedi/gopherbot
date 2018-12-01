@@ -49,7 +49,7 @@ if not clone_url.startswith("http"):
             bot.AddTask("ssh-init", [])
             bot.AddTask("ssh-scan", [ match.group(1) ])
 
-bot.AddTask("git-sync", [ clone_url, clone_branch, ".", "true" ])
+bot.AddTask("git-sync", [ clone_url, clone_branch, "." ])
 bot.AddTask("exec", [ ".gopherci/pipeline.sh" ])
 bot.AddTask("status", [ "Custom configuration repository successfully updated" ])
 bot.AddTask("builtInadmin", [ "reload" ])
