@@ -101,6 +101,23 @@ func defval(d, i string) string {
 	return i
 }
 
+// expand expands a text template
+func expand(in []byte) (out []byte, err error) {
+	tplFuncs := template.FuncMap{
+		"default": defval,
+		"env":     env,
+	}
+	var outBuff bytes.Buffer
+	tpl, err := template.New("").Funcs(tplFuncs).Parse(string(in))
+	if err != nil {
+		return nil, err
+	}
+	if err := tpl.Execute(&outBuff, nil); err != nil {
+		return nil, err
+	}
+	return outBuff.Bytes(), nil
+}
+
 // getConfigFile loads a config file first from installPath, then from configPath
 // if set. Required indicates whether to return an error if neither file is found.
 func (c *botContext) getConfigFile(filename, callerID string, required bool, jsonMap map[string]json.RawMessage, prev ...map[string]interface{}) error {
@@ -111,15 +128,11 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 
 	loaded := false
 	var path string
-	cfgFuncs := template.FuncMap{
-		"default": defval,
-		"env":     env,
-	}
 
 	var cfg map[string]interface{}
 	installed := make(map[string]interface{})
 	configured := make(map[string]interface{})
-	if len(prev) > 0 {
+	if len(prev) > 0 && prev[0] != nil {
 		cfg = prev[0]
 	} else {
 		cfg = make(map[string]interface{})
@@ -127,15 +140,10 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 	path = installPath + "/conf/" + filename
 	cf, err = ioutil.ReadFile(path)
 	if err == nil {
-		var out bytes.Buffer
-		tpl, err := template.New("").Funcs(cfgFuncs).Parse(string(cf))
-		if err != nil {
-			return err
+		if cf, err = expand(cf); err != nil {
+			err = fmt.Errorf("Expanding '%s': %v", path, err)
+			Log(Error, err)
 		}
-		if err := tpl.Execute(&out, nil); err != nil {
-			return err
-		}
-		cf = out.Bytes()
 		if err = yaml.Unmarshal(cf, &installed); err != nil {
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
 			Log(Error, err)
