@@ -30,6 +30,7 @@ These are the items deemed as required for releasing version 2 because they chan
 ### Wishlist
 These items aren't required for release, but desired soonish
 - TODO: CommandOnlyUsers - to allow bots to talk to each other without matching ambient messages; ref: Great Chuck Norris War of 2018
+- TODO: Decrypt brain utility for removing 2nd level of encryption (secrets still encrypted)
 
 ## Protecting Secrets
 
