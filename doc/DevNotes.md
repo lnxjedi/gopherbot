@@ -11,6 +11,10 @@
 ## Version 2 Release TODOs
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs.
 - TODO: Fix meme password, update conf/plugins/*
+- TODO: Ansible playbook / Dockerfiles: /var/lib/gopherbot/(.env, custom) gopherbot:550:bin:root; custom:700:robot:robot; /opt/gopherbot/gopherbot suid robot
+- TODO: new DM RequireAdmin command: `encrypt foobar` - returns encrypted & base64 encoded secret; can be used in template with `{{ decrypt "base64string" }}`
+- TODO: new DM RequireAdmin command: `store task/repository secret taskname secretname=foobar` + GetSecret("secretname") method; encrypted secrets similar to parameters, but explicitly retrieved and not stored in environment
+- TODO: Make history config update across reload
 - TODO: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot
 - TODO: Update the Ansible playbook for protected install / suid gopherbot
 - History:
@@ -22,6 +26,10 @@ These are the items deemed as required for releasing version 2 because they chan
 - TODO: Rename BotRoster to UserRoster in main code; Slack will eventually deprecate usernames and mapping will need to be explicit
 - DONE: Remove cleanup post-build task in favor of clean pre-task; build repos should be left around between builds, but removed prior to git-sync; problem found with branch names being deleted and later re-used caused failures in git-sync
 - DONE/TEST: Set job to verbose when manually triggered
+
+### Wishlist
+These items aren't required for release, but desired soonish
+- TODO: CommandOnlyUsers - to allow bots to talk to each other without matching ambient messages; ref: Great Chuck Norris War of 2018
 
 ## Protecting Secrets
 
