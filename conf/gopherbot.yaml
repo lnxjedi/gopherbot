@@ -98,7 +98,7 @@ Brain: {{ $brain }}
 BrainConfig:
   BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default (printf "%s/brain" $home) }}
 
-{{ else  if eq $brain "dynamo" }}
+{{ else if eq $brain "dynamo" }}
 BrainConfig:
   TableName: {{ env "GOPHER_BRAIN_TABLE" }}
   Region: {{ env "GOPHER_BRAIN_REGION" | default "us-east-1" }}

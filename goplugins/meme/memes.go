@@ -93,8 +93,7 @@ func createMeme(m *MemeConfig, templateId, topText, bottomText string) (string, 
 
 func init() {
 	bot.RegisterPlugin("memes", bot.PluginHandler{
-		DefaultConfig: defaultConfig,
-		Handler:       memegen,
-		Config:        &MemeConfig{},
+		Handler: memegen,
+		Config:  &MemeConfig{},
 	})
 }

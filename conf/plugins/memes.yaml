@@ -1,11 +1,15 @@
-package memes
-
-const defaultConfig = `
-# You can delete everything up to Config: below
-# To edit the memes or add your own, copy all of the help and command matchers
-# to your own local config. See: https://api.imgflip.com/
+# To add your own memes, create conf/plugins/memes.yaml in the custom
+# configuration repository, with new entries for "Help:" and "CommandMatchers:"
+# following the format shown, where the "Command" is the template ID.
+# See: https://api.imgflip.com/
 # For stock memes template ID: https://imgflip.com/memetemplate/<name>
+# Define GOPHER_MEMES_USER and GOPHER_MEMES_PASSWORD to activate this plugin.
+Config:
+  Username: {{ env "GOPHER_MEMES_USER" }}
+  Password: {{ env "GOPHER_MEMES_PASSWORD" }}
+{{ if not (env "GOPHER_MEMES_PASSWORD") }}
 Disabled: true
+{{ end }}
 Help:
 - Keywords: [ "meme", "picard", "omg" ]
   Helptext: [ "(bot), picard omg <something>(/<something>) - Picard facepalm" ]
@@ -65,9 +69,3 @@ CommandMatchers:
   Regex: '(?i:(what if I told you) (.+))'
 - Command: "33301480"
   Regex: '(?i:morpheus ([^/]+)(?:/([^/]+))?)'
-# Custom configuration for memes - you need to supply a username and password,
-# and a map of commands to meme ID #.
-Config:
-  Username: '<your-imgflip-username>'
-  Password: '<your-password>'
-`
