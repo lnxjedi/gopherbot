@@ -40,13 +40,9 @@ Help:
   Helptext: [ "(bot), debug task <pluginname> (verbose) - turn on debugging for the named task, optionally verbose" ]
 - Keywords: [ "debug" ]
   Helptext: [ "(bot), stop debugging - turn off debugging" ]
-- Keywords: [ "store", "parameter", "environment" ]
-  Helptext: [ "(bot), store <task|repository> parameter <task/repository name> <var>=<value> - store encrypted parameter in brain"]
 CommandMatchers:
 - Command: reload
   Regex: '(?i:reload)'
-- Command: store
-  Regex: '(?i:store (task|repository) parameter ([\w-.\/]+) ([\w-.]+)=(.+))'
 - Command: quit
   Regex: '(?i:quit|exit)'
 - Command: abort
@@ -55,27 +51,6 @@ CommandMatchers:
   Regex: '(?i:debug (?:task )?([\d\w-.]+)(?: (verbose))?)'
 - Command: "stop"
   Regex: '(?i:stop debugging)'
-`
-
-const dumpConfig = `
-DirectOnly: true
-RequireAdmin: true
-Help:
-- Keywords: [ "dump", "plugin" ]
-  Helptext: [ "(bot), dump plugin (default) <plugname> - dump the current or default configuration for the plugin" ]
-- Keywords: [ "list", "plugin", "plugins" ]
-  Helptext: [ "(bot), list (disabled) plugins - list all known plugins, or list disabled plugins with the reason disabled" ]
-- Keywords: [ "dump", "robot" ]
-  Helptext: [ "(bot), dump robot - dump the current configuration for the robot" ]
-CommandMatchers:
-- Command: "list"
-  Regex: '(?i:list( disabled)? plugins?)'
-- Command: "plugdefault"
-  Regex: '(?i:dump plugin default ([\d\w-.]+))'
-- Command: "plugin"
-  Regex: '(?i:dump plugin ([\d\w-.]+))'
-- Command: "robot"
-  Regex: "dump robot"
 `
 
 const logConfig = `

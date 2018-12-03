@@ -30,7 +30,7 @@ const qrsize = 400
 // }
 
 func init() {
-	RegisterPlugin("builtIndump", PluginHandler{DefaultConfig: dumpConfig, Handler: dump})
+	RegisterPlugin("builtin-dmadmin", PluginHandler{Handler: dmadmin})
 	RegisterPlugin("builtInhelp", PluginHandler{DefaultConfig: helpConfig, Handler: help})
 	RegisterPlugin("builtInadmin", PluginHandler{DefaultConfig: adminConfig, Handler: admin})
 	RegisterPlugin("builtInlogging", PluginHandler{DefaultConfig: logConfig, Handler: logging})
@@ -173,17 +173,93 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	return
 }
 
-func dump(r *Robot, command string, args ...string) (retval TaskRetVal) {
+func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
 	switch command {
-	case "robot":
+	case "store":
+		cryptKey.RLock()
+		initialized := cryptKey.initialized
+		key := cryptKey.key
+		cryptKey.RUnlock()
+		if !initialized {
+			r.Say("Sorry, I can't store secrets - encryption isn't initialized, please check with an administrator")
+			return
+		}
+		nstype := args[0]
+		sectype := args[1]
+		nsname := args[2]
+		c := r.getContext()
+		switch strings.ToLower(nstype) {
+		case "task":
+			_, exists := c.tasks.nameSpaces[nsname]
+			if !exists {
+				r.Say("I don't have that task namespace configured")
+				return
+			}
+		case "repository":
+			_, exists := c.repositories[nsname]
+			if !exists {
+				r.Say("I don't see that repository listed in repositories.yaml")
+				return
+			}
+		}
+		name := args[3]
+		rawvalue := args[4]
+		var secrets brainParams
+		var datumkey string
+		if sectype == "secret" {
+			datumkey = secretKey
+		} else {
+			datumkey = paramKey
+		}
+		tok, _, ret := checkoutDatum(datumkey, &secrets, true)
+		if ret != Ok {
+			r.Log(Error, fmt.Sprintf("Error checking out brainParams: %s", ret))
+			r.Say("Ugh, I'm not able to store that memory right now, check with an administrator")
+			return
+		}
+		// Technically secrets are double-encypted; this is done so every active
+		// botContext doesn't carry all the unencrypted secrets in memory
+		value, err := encrypt([]byte(rawvalue), key)
+		if err != nil {
+			r.Log(Error, fmt.Sprintf("Problem encrypting value for '%s' in namespace '%s': %v", name, nsname, err))
+			return
+		}
+		switch strings.ToLower(nstype) {
+		case "task":
+			if secrets.TaskParams == nil {
+				secrets.TaskParams = make(map[string]map[string][]byte)
+			}
+			_, exists := secrets.TaskParams[nsname]
+			if !exists {
+				secrets.TaskParams[nsname] = make(map[string][]byte)
+			}
+			secrets.TaskParams[nsname][name] = value
+		case "repository":
+			if secrets.RepositoryParams == nil {
+				secrets.RepositoryParams = make(map[string]map[string][]byte)
+			}
+			_, exists := secrets.RepositoryParams[nsname]
+			if !exists {
+				secrets.RepositoryParams[nsname] = make(map[string][]byte)
+			}
+			secrets.RepositoryParams[nsname][name] = value
+		}
+		ret = updateDatum(datumkey, tok, secrets)
+		if ret == Ok {
+			r.Say("Stored")
+		} else {
+			r.Log(Error, fmt.Sprintf("Problem storing parameter: %s", ret))
+			r.Say("There was a problem storing that parameter, check with an administrator")
+		}
+	case "dumprobot":
 		botCfg.RLock()
 		c, _ := yaml.Marshal(config)
 		botCfg.RUnlock()
 		r.Fixed().Say(fmt.Sprintf("Here's how I've been configured, irrespective of interactive changes:\n%s", c))
-	case "plugdefault":
+	case "dumpplugdefault":
 		if plug, ok := pluginHandlers[args[0]]; ok {
 			r.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], plug.DefaultConfig))
 		} else { // look for an external plugin
@@ -210,7 +286,7 @@ func dump(r *Robot, command string, args ...string) (retval TaskRetVal) {
 				r.Say("Didn't find a plugin named " + args[0])
 			}
 		}
-	case "plugin":
+	case "dumpplugin":
 		found := false
 		c := r.getContext()
 		for _, t := range c.tasks.t {
@@ -228,7 +304,7 @@ func dump(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		if !found {
 			r.Say("Didn't find a plugin named " + args[0])
 		}
-	case "list":
+	case "listplugins":
 		joiner := ", "
 		message := "Here are the plugins I have configured:\n%s"
 		wantDisabled := false
@@ -337,75 +413,6 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		}
 		r.Reply("Configuration reloaded successfully")
 		r.Log(Info, "Configuration successfully reloaded by a request from:", r.User)
-	case "store":
-		cryptKey.RLock()
-		initialized := cryptKey.initialized
-		key := cryptKey.key
-		cryptKey.RUnlock()
-		if !initialized {
-			r.Say("Sorry, I can't store secrets - encryption isn't initialized, please check with an administrator")
-			return
-		}
-		nstype := args[0]
-		nsname := args[1]
-		c := r.getContext()
-		switch strings.ToLower(nstype) {
-		case "task":
-			_, exists := c.tasks.nameSpaces[nsname]
-			if !exists {
-				r.Say("I don't have that task namespace configured")
-				return
-			}
-		case "repository":
-			_, exists := c.repositories[nsname]
-			if !exists {
-				r.Say("I don't see that repository listed in repositories.yaml")
-				return
-			}
-		}
-		name := args[2]
-		rawvalue := args[3]
-		var secrets brainParams
-		tok, _, ret := checkoutDatum(paramKey, &secrets, true)
-		if ret != Ok {
-			r.Log(Error, fmt.Sprintf("Error checking out brainParams: %s", ret))
-			r.Say("Ugh, I'm not able to store that memory right now, check with an administrator")
-			return
-		}
-		// Technically secrets are double-encypted; this is done so every active
-		// botContext doesn't carry all the unencrypted secrets in memory
-		value, err := encrypt([]byte(rawvalue), key)
-		if err != nil {
-			r.Log(Error, fmt.Sprintf("Problem encrypting value for '%s' in namespace '%s': %v", name, nsname, err))
-			return
-		}
-		switch strings.ToLower(nstype) {
-		case "task":
-			if secrets.TaskParams == nil {
-				secrets.TaskParams = make(map[string]map[string][]byte)
-			}
-			_, exists := secrets.TaskParams[nsname]
-			if !exists {
-				secrets.TaskParams[nsname] = make(map[string][]byte)
-			}
-			secrets.TaskParams[nsname][name] = value
-		case "repository":
-			if secrets.RepositoryParams == nil {
-				secrets.RepositoryParams = make(map[string]map[string][]byte)
-			}
-			_, exists := secrets.RepositoryParams[nsname]
-			if !exists {
-				secrets.RepositoryParams[nsname] = make(map[string][]byte)
-			}
-			secrets.RepositoryParams[nsname][name] = value
-		}
-		ret = updateDatum(paramKey, tok, secrets)
-		if ret == Ok {
-			r.Say("Stored")
-		} else {
-			r.Log(Error, fmt.Sprintf("Problem storing parameter: %s", ret))
-			r.Say("There was a problem storing that parameter, check with an administrator")
-		}
 	case "abort":
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)

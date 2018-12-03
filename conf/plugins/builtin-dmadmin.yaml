@@ -1,0 +1,27 @@
+---
+# builtin-dmadmin plugin configuration - commands only available to bot
+# admins via DM
+DirectOnly: true
+RequireAdmin: true
+Help:
+- Keywords: [ "dump", "plugin" ]
+  Helptext: [ "(bot), dump plugin (default) <plugname> - dump the current or default configuration for the plugin" ]
+- Keywords: [ "list", "plugin", "plugins" ]
+  Helptext: [ "(bot), list (disabled) plugins - list all known plugins, or list disabled plugins with the reason disabled" ]
+- Keywords: [ "dump", "robot" ]
+  Helptext: [ "(bot), dump robot - dump the current configuration for the robot" ]
+- Keywords: [ "store", "parameter", "environment" ]
+  Helptext: [ "(bot), store <task|repository> parameter <task/repository name> <var>=<value> - store encrypted parameter in brain"]
+- Keywords: [ "store", "secret", "credentials" ]
+  Helptext: [ "(bot), store <task|repository> secret <task/repository name> <var>=<value> - store encrypted secret in brain"]
+CommandMatchers:
+- Command: "listplugins"
+  Regex: '(?i:list( disabled)? plugins?)'
+- Command: "dumpplugdefault"
+  Regex: '(?i:dump plugin default ([\d\w-.]+))'
+- Command: "dumpplugin"
+  Regex: '(?i:dump plugin ([\d\w-.]+))'
+- Command: "dumprobot"
+  Regex: "dump robot"
+- Command: store
+  Regex: '(?i:store (task|repository) (parameter|secret) ([\w-.\/]+) ([\w-.]+)=(.+))'

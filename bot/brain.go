@@ -69,6 +69,7 @@ type brainParams struct {
 const botEncryptionKey = "bot:encryptionKey"
 
 const paramKey = "bot:parameters"
+const secretKey = "bot:secrets"
 
 const histPrefix = "bot:histories:"
 
