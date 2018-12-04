@@ -49,7 +49,7 @@ func getBotContextInt(idx int) *botContext {
 }
 
 // Assign a bot run number and register it in the global hash of running
-// robots. Should be called before running plugins
+// robots. Should be called before running plugins.
 func (c *botContext) registerActive(parent *botContext) {
 	botCfg.RLock()
 	c.Protocol = setProtocol(botCfg.protocol)

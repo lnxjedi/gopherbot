@@ -84,6 +84,63 @@ func (r *Robot) SetParameter(name, value string) bool {
 	return true
 }
 
+// GetSecret looks up the value of a secret for the namespace (if the namespace
+// is extended) or current task. On error a zero-length string is returned.
+func (r *Robot) GetSecret(name string) string {
+	var secrets brainParams
+	var secret []byte
+	var exists bool
+	var ret RetVal
+	_, exists, ret = checkoutDatum(secretKey, &secrets, false)
+	if ret != Ok {
+		r.Log(Error, fmt.Sprintf("Error retrieving secrets in GetSecret: %s", ret))
+		return ""
+	}
+	if !exists {
+		r.Log(Warn, fmt.Sprintf("GetSecret called for '%s', but no secrets stored", name))
+		return ""
+	}
+	c := r.getContext()
+	if len(c.nsExtension) > 0 {
+		var nsMap map[string][]byte
+		nsMap, exists = secrets.RepositoryParams[c.nsExtension]
+		if !exists {
+			r.Log(Warn, fmt.Sprintf("Secrets not found for namespace '%s'", c.nsExtension))
+			return ""
+		}
+		if secret, exists = nsMap[name]; !exists {
+			r.Log(Warn, fmt.Sprintf("Secret '%s' not found for namespace '%s'", name, c.nsExtension))
+			return ""
+		}
+	} else {
+		var tMap map[string][]byte
+		tMap, exists = secrets.TaskParams[c.taskName]
+		if !exists {
+			r.Log(Warn, fmt.Sprintf("Secrets not found for task '%s'", c.taskName))
+			return ""
+		}
+		if secret, exists = tMap[name]; !exists {
+			r.Log(Warn, fmt.Sprintf("Secret '%s' not found for namespace '%s'", name, c.taskName))
+			return ""
+		}
+	}
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	key := cryptKey.key
+	cryptKey.RUnlock()
+	if !initialized {
+		r.Log(Warn, "GetSecret called but encryption not initialized")
+		return ""
+	}
+	var value []byte
+	var err error
+	if value, err = decrypt(secret, key); err != nil {
+		r.Log(Error, fmt.Sprintf("Error decrypting secret '%s': %v", name, err))
+		return ""
+	}
+	return string(value)
+}
+
 // SetWorkingDirectory sets the working directory of the pipeline for all scripts
 // executed. The path argument can be absolute or relative; if relative, it is
 // always relative to the robot's WorkSpace.

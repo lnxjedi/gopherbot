@@ -14,7 +14,8 @@ These are the items deemed as required for releasing version 2 because they chan
 - TODO: Fix meme password, update conf/plugins/*
 - TODO: Ansible playbook / Dockerfiles: /var/lib/gopherbot/(.env, custom) gopherbot:550:bin:root; custom:700:robot:robot; /opt/gopherbot/gopherbot suid robot
 - TODO: new DM RequireAdmin command: `encrypt foobar` - returns encrypted & base64 encoded secret; can be used in template with `{{ decrypt "base64string" }}`
-- TODO: new DM RequireAdmin command: `store task/repository secret taskname secretname=foobar` + GetSecret("secretname") method; encrypted secrets similar to parameters, but explicitly retrieved and not stored in environment
+- TODO: Bash/Ruby/Python/http.go GetSecret
+- IN PROGRESS: new DM RequireAdmin command: `store task/repository secret taskname secretname=foobar` + GetSecret("secretname") method; encrypted secrets similar to parameters, but explicitly retrieved and not stored in environment
 - TODO: Make history config update across reload
 - TODO: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot
 - TODO: Update the Ansible playbook for protected install / suid gopherbot
