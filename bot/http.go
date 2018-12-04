@@ -28,6 +28,10 @@ type attribute struct {
 	Attribute string
 }
 
+type secname struct {
+	Secret string
+}
+
 type elevate struct {
 	Immediate bool
 }
@@ -360,6 +364,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		r.Remember(m.Key, m.Value)
 		sendReturn(rw, &botretvalresponse{int(Ok)})
+		return
 	case "Recall":
 		var m shorttermrecollection
 		if !getArgs(rw, &f.FuncArgs, &m) {
@@ -370,6 +375,15 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		s := r.Recall(m.Key)
 		sendReturn(rw, &stringresponse{s})
+		return
+	case "GetSecret":
+		var sarg secname
+		if !getArgs(rw, &f.FuncArgs, &sarg) {
+			return
+		}
+		s := r.GetSecret(sarg.Secret)
+		sendReturn(rw, &stringresponse{s})
+		return
 	case "GetTaskConfig":
 		if task.Config == nil {
 			Log(Error, fmt.Sprintf("GetTaskConfig called by external script '%s', but no config found.", task.name))
