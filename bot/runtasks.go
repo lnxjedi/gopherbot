@@ -56,7 +56,9 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
 		c.jobName = task.name // Exclusive always uses the jobName, regardless of the task that calls it
 		c.jobChannel = task.Channel
+		botCfg.RLock()
 		c.history = botCfg.history
+		botCfg.RUnlock()
 		c.workingDirectory = ""
 		c.protected = task.Protected
 		var jh jobHistory

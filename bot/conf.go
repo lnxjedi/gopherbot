@@ -328,6 +328,13 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		botCfg.workSpace = configPath
 	}
 
+	if newconfig.HistoryProvider != "" {
+		botCfg.historyProvider = newconfig.HistoryProvider
+	}
+	if newconfig.HistoryConfig != nil {
+		historyConfig = newconfig.HistoryConfig
+	}
+
 	// Items only read at start-up, before multi-threaded
 	if preConnect {
 		if newconfig.Protocol != "" {
@@ -356,17 +363,22 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		} else {
 			Log(Error, "LocalPort not defined, not exporting GOPHER_HTTP_POST and external tasks will be broken")
 		}
-		if newconfig.HistoryProvider != "" {
-			botCfg.historyProvider = newconfig.HistoryProvider
-		}
-		if newconfig.HistoryConfig != nil {
-			historyConfig = newconfig.HistoryConfig
-		}
 	} else {
 		// We should never dump the brain key
 		newconfig.EncryptionKey = "XXXXXX"
 		// loadTaskConfig does it's own locking
+		historyConfigured := botCfg.history != nil
 		botCfg.Unlock()
+		if !historyConfigured && len(newconfig.HistoryProvider) > 0 {
+			if hprovider, ok := historyProviders[newconfig.HistoryProvider]; !ok {
+				Log(Fatal, fmt.Sprintf("No provider registered for history type: \"%s\"", botCfg.historyProvider))
+			} else {
+				hp := hprovider(handler{})
+				botCfg.Lock()
+				botCfg.history = hp
+				botCfg.Unlock()
+			}
+		}
 	}
 
 	confLock.Lock()

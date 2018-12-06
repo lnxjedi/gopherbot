@@ -135,14 +135,6 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	if encryptBrain && !initialized {
 		Log(Warn, "Brain encryption specified but no key configured; use 'initialize brain <key>' to initialize the encrypted brain")
 	}
-	if len(botCfg.historyProvider) > 0 {
-		if hprovider, ok := historyProviders[botCfg.historyProvider]; !ok {
-			Log(Fatal, fmt.Sprintf("No provider registered for history type: \"%s\"", botCfg.historyProvider))
-		} else {
-			hp := hprovider(handle)
-			botCfg.history = hp
-		}
-	}
 	if !listening {
 		listening = true
 		go func() {
