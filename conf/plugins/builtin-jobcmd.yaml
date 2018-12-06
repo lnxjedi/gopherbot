@@ -1,0 +1,9 @@
+---
+AllChannels: true
+AllowDirect: false
+Help:
+- Keywords: [ "jobs" ]
+  Helptext: [ "(bot), list (all) jobs - list the jobs you have access to, optionally in all channels" ]
+CommandMatchers:
+- Command: jobs
+  Regex: '(?i:list (all )?jobs)'

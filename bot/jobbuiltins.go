@@ -2,7 +2,10 @@ package bot
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -17,44 +20,12 @@ Job builtins are special:
 
 */
 
-const histPageSize = 2048 // how much history to display at a time
-
-const builtInHistoryConfig = `
-AllChannels: true
-AllowDirect: false
-Help:
-- Keywords: [ "history", "job" ]
-  Helptext: [ "(bot), history <job(:namespace)> - list/view the histories available for a job" ]
-- Keywords: [ "quit" ]
-  Helptext: [ "(bot), history (job(:namespace) <run#> - start paging the history text for a job run" ]
-CommandMatchers:
-- Command: history
-  Regex: '(?i:history(?: ([A-Za-z][\w-:./]*))?)'
-  Contexts: [ "task" ]
-- Command: showhistory
-  Regex: '(?i:history (?:([A-Za-z][\w-:./]*) )?(\d+))'
-  Contexts: [ "task" ]
-ReplyMatchers:
-- Label: paging
-  Regex: '(?i:(c|n|q))'
-- Label: selection
-  Regex: '(\d+)'
-`
-
-const builtInJobConfig = `
-AllChannels: true
-AllowDirect: false
-Help:
-- Keywords: [ "jobs" ]
-  Helptext: [ "(bot), list (all) jobs - list the jobs you have access to, optionally in all channels" ]
-CommandMatchers:
-- Command: jobs
-  Regex: '(?i:list (all )?jobs)'
-`
+const histPageSize = 2048    // how much history to display at a time
+const maxMailBody = 10485760 // 10MB
 
 func init() {
-	RegisterPlugin("builtInhistory", PluginHandler{DefaultConfig: builtInHistoryConfig, Handler: jobhistory})
-	RegisterPlugin("builtInJobcmd", PluginHandler{DefaultConfig: builtInJobConfig, Handler: jobcommands})
+	RegisterPlugin("builtin-history", PluginHandler{Handler: jobhistory})
+	RegisterPlugin("builtin-jobcmd", PluginHandler{Handler: jobcommands})
 }
 
 func jobcommands(r *Robot, command string, args ...string) (retval TaskRetVal) {
@@ -99,12 +70,96 @@ func jobcommands(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	return
 }
 
+func emailhistory(r *Robot, spec string, run int) (retval TaskRetVal) {
+	f, err := botCfg.history.GetHistory(spec, run)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting history %d for task '%s': %v", run, spec, err))
+		r.Say(fmt.Sprintf("History %d for '%s' not available", run, spec))
+		return
+	}
+	lr := io.LimitReader(f, maxMailBody)
+	b, rerr := ioutil.ReadAll(lr)
+	if rerr != nil {
+		r.Log(Error, fmt.Sprintf("reading history #%d for '%s': %v", run, spec, rerr))
+		r.Reply("There was a problem reading the history, check with an administrator")
+		return
+	}
+	body := bytes.NewBuffer(b)
+	if ret := r.Email(fmt.Sprintf("History for '%s', run %d", spec, run), body); ret != Ok {
+		r.Reply("There was a problem emailing your history, contact an administrator")
+	}
+	return
+}
+
+func pagehistory(r *Robot, spec string, run int) (retval TaskRetVal) {
+	f, err := botCfg.history.GetHistory(spec, run)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting history %d for task '%s': %v", run, spec, err))
+		r.Say(fmt.Sprintf("History %d for '%s' not available", run, spec))
+		return
+	}
+	var line string
+	scanner := bufio.NewScanner(f)
+	finished := false
+PageLoop:
+	for {
+		size := 0
+		lines := make([]string, 0, 40)
+		if len(line) > 0 {
+			lines = append(lines, line)
+			size += len(line) + 1
+			line = ""
+		}
+		for size < histPageSize {
+			if scanner.Scan() {
+				line = scanner.Text()
+				size += len(line) + 1
+				if size < histPageSize {
+					lines = append(lines, line)
+					line = ""
+				}
+			} else {
+				finished = true
+				break
+			}
+		}
+		r.Fixed().Say(strings.Join(lines, "\n"))
+		if finished {
+			break
+		}
+		rep, ret := r.PromptForReply("paging", "'c' to continue, 'q' to quit, or 'n' to skip to the next section")
+		if ret != Ok {
+			r.Say("(quitting)")
+			break PageLoop
+		} else {
+		ContinueSwitch:
+			switch rep {
+			case "q", "Q":
+				r.Say("(ok, quitting)")
+				break PageLoop
+			case "n", "N":
+				for scanner.Scan() {
+					line = scanner.Text()
+					if strings.HasPrefix(line, "***") {
+						break ContinueSwitch
+					}
+				}
+			}
+		}
+	}
+	return
+}
+
 func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	if command == "init" {
 		return
 	}
 
-	histSpec := args[0]
+	histType := args[0]
+	latest := args[1]
+	histSpec := args[2]
+	index := args[3]
+
 	// boilerplate availability and security checking for job commands
 	c := r.getContext()
 	jobName := strings.Split(histSpec, ":")[0]
@@ -122,32 +177,39 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		var jh jobHistory
 		key := histPrefix + histSpec
 		_, _, ret := checkoutDatum(key, &jh, false)
-		if ret == Ok && len(jh.ExtendedNamespaces) > 0 {
-			nsl := make([]string, len(jh.ExtendedNamespaces)+2)
-			nsl = append(nsl, fmt.Sprintf("Namespaces for %s:", histSpec))
-			if len(jh.Histories) > 0 {
-				nsl = append(nsl, "0: (base job)")
-			}
-			for i, ens := range jh.ExtendedNamespaces {
-				nsl = append(nsl, fmt.Sprintf("%d: %s", i+1, ens))
-			}
-			vr.Say(strings.Join(nsl, "\n"))
-			rep, ret := r.PromptForReply("selection", "Which namespace #?")
-			if ret != Ok {
-				r.Say("(quitting history command)")
-				return
-			}
-			if rep != "0" {
-				i, _ := strconv.Atoi(rep)
-				histSpec += ":" + jh.ExtendedNamespaces[i-1]
-				key = histPrefix + histSpec
-				_, _, ret = checkoutDatum(key, &jh, false)
-			}
-		}
-		if ret != Ok || len(jh.Histories) == 0 {
+		if ret != Ok {
 			r.Say(fmt.Sprintf("No history found for '%s'", histSpec))
 			return
 		}
+		if len(latest) == 0 && len(index) == 0 {
+			if len(jh.ExtendedNamespaces) > 0 {
+				nsl := make([]string, len(jh.ExtendedNamespaces)+2)
+				nsl = append(nsl, fmt.Sprintf("Namespaces for %s:", histSpec))
+				if len(jh.Histories) > 0 {
+					nsl = append(nsl, "0: (base job)")
+				}
+				for i, ens := range jh.ExtendedNamespaces {
+					nsl = append(nsl, fmt.Sprintf("%d: %s", i+1, ens))
+				}
+				vr.Say(strings.Join(nsl, "\n"))
+				rep, ret := r.PromptForReply("selection", "Which namespace #?")
+				if ret != Ok {
+					r.Say("(quitting history command)")
+					return
+				}
+				if rep != "0" {
+					i, _ := strconv.Atoi(rep)
+					histSpec += ":" + jh.ExtendedNamespaces[i-1]
+					key = histPrefix + histSpec
+					_, _, ret = checkoutDatum(key, &jh, false)
+				}
+			}
+		}
+		if len(jh.Histories) == 0 {
+			r.Say(fmt.Sprintf("No history found for '%s'", histSpec))
+			return
+		}
+
 		// remember which job we're talking about
 		ctx := memoryContext{"context:task", r.User, r.Channel}
 		s := shortTermMemory{histSpec, time.Now()}
@@ -155,74 +217,32 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		shortTermMemories.m[ctx] = s
 		shortTermMemories.Unlock()
 
-		hl := make([]string, len(jh.Histories)+1)
-		hl = append(hl, fmt.Sprintf("History of job runs for '%s':", histSpec))
-		for _, he := range jh.Histories {
-			hl = append(hl, fmt.Sprintf("Run %d - %s", he.LogIndex, he.CreateTime))
-		}
-		vr.Say(strings.Join(hl, "\n"))
-		rep, ret := r.PromptForReply("selection", "Which run #?")
-		if ret != Ok {
-			r.Say("(quitting history command)")
-			return
-		}
-		return jobhistory(r, "showhistory", histSpec, rep)
-	case "showhistory":
-		index, _ := strconv.Atoi(args[1])
-		f, err := botCfg.history.GetHistory(histSpec, index)
-		if err != nil {
-			Log(Error, fmt.Sprintf("Error getting history %d for task '%s': %v", index, histSpec, err))
-			r.Say(fmt.Sprintf("History %d for '%s' not available", index, histSpec))
-			return
-		}
-		var line string
-		scanner := bufio.NewScanner(f)
-		finished := false
-	PageLoop:
-		for {
-			size := 0
-			lines := make([]string, 0, 40)
-			if len(line) > 0 {
-				lines = append(lines, line)
-				size += len(line) + 1
-				line = ""
+		var idx int
+		if len(latest) == 0 && len(index) == 0 {
+			hl := make([]string, len(jh.Histories)+1)
+			hl = append(hl, fmt.Sprintf("History of job runs for '%s':", histSpec))
+			for _, he := range jh.Histories {
+				hl = append(hl, fmt.Sprintf("Run %d - %s", he.LogIndex, he.CreateTime))
 			}
-			for size < histPageSize {
-				if scanner.Scan() {
-					line = scanner.Text()
-					size += len(line) + 1
-					if size < histPageSize {
-						lines = append(lines, line)
-						line = ""
-					}
-				} else {
-					finished = true
-					break
-				}
-			}
-			r.Fixed().Say(strings.Join(lines, "\n"))
-			if finished {
-				break
-			}
-			rep, ret := r.PromptForReply("paging", "'c' to continue, 'q' to quit, or 'n' to skip to the next section")
+			vr.Say(strings.Join(hl, "\n"))
+			rep, ret := r.PromptForReply("selection", "Which run #?")
 			if ret != Ok {
-				r.Say("(quitting)")
-				break PageLoop
-			} else {
-			ContinueSwitch:
-				switch rep {
-				case "q", "Q":
-					r.Say("(quitting)")
-					break PageLoop
-				case "n", "N":
-					for scanner.Scan() {
-						line = scanner.Text()
-						if strings.HasPrefix(line, "***") {
-							break ContinueSwitch
-						}
-					}
-				}
+				r.Say("(quitting history command)")
+				return
 			}
+			idx, _ = strconv.Atoi(rep)
+		} else if len(latest) > 0 {
+			idx = len(jh.Histories) - 1
+		} else {
+			idx, _ = strconv.Atoi(index)
+		}
+		switch histType {
+		case "email":
+			return
+		case "link":
+			return
+		default:
+			return pagehistory(r, histSpec, idx)
 		}
 	}
 	return
