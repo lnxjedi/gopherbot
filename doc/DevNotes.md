@@ -10,6 +10,7 @@
 
 ## Version 2 Release TODOs
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
+- TODO: Update "Starting job ..." to include arguments
 - TODO: Fix meme password, update conf/plugins/*
 - TODO: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot
 - TODO: Update the Ansible playbook for protected install / suid gopherbot
