@@ -9,29 +9,30 @@
 * GopherCI for CI/CD (IN PROGRESS)
 
 ## Version 2 Release TODOs
-These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs.
-- TODO: Update 'Starting job xxxx' message to include arguments; e.g. 'Starting job localtrusted github.com/lnxjedi/gopherbot master'
+These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
 - TODO: Fix meme password, update conf/plugins/*
-- TODO: Ansible playbook / Dockerfiles: /var/lib/gopherbot/(.env, custom) gopherbot:550:bin:root; custom:700:robot:robot; /opt/gopherbot/gopherbot suid robot
-- TODO: new DM RequireAdmin command: `encrypt foobar` - returns encrypted & base64 encoded secret; can be used in template with `{{ decrypt "base64string" }}`
-- TODO: Bash/Ruby/Python GetSecret
-- TODO: Implement Recall for Python / Bash?
-- IN PROGRESS: new DM RequireAdmin command: `store task/repository secret taskname secretname=foobar` + GetSecret("secretname") method; encrypted secrets similar to parameters, but explicitly retrieved and not stored in environment
-- TODO: Make history config update across reload
 - TODO: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot
 - TODO: Update the Ansible playbook for protected install / suid gopherbot
 - History:
-   - TODO: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
+   - TODO: Test email history, implement history links
+   - IN PROGRESS: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
    - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
 - TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
 - TODO: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, etc.
 - TODO: Create AddJob that checks for job then calls AddTask - more explicit / readable code
 - TODO: Rename BotRoster to UserRoster in main code; Slack will eventually deprecate usernames and mapping will need to be explicit
+- DONE: new DM RequireAdmin command: `encrypt foobar` - returns encrypted & base64 encoded secret; can be used in template with `{{ decrypt "base64string" }}`
+- DONE: Bash/Ruby/Python GetSecret
+- DONE: Implement Recall for Python / Bash?
+- DONE: new DM RequireAdmin command: `store task/repository secret taskname secretname=foobar` + GetSecret("secretname") method; encrypted secrets similar to parameters, but explicitly retrieved and not stored in environment
+- DONE: Make history config update across reload
 - DONE: Remove cleanup post-build task in favor of clean pre-task; build repos should be left around between builds, but removed prior to git-sync; problem found with branch names being deleted and later re-used caused failures in git-sync
 - DONE/TEST: Set job to verbose when manually triggered
 
 ### Wishlist
 These items aren't required for release, but desired soonish
+- TODO: Update 'Starting job xxxx' message to include arguments; e.g. 'Starting job localtrusted github.com/lnxjedi/gopherbot master'
+- TODO: Ansible playbook / Dockerfiles: /var/lib/gopherbot/(.env, custom) gopherbot:550:bin:root; custom:700:robot:robot; /opt/gopherbot/gopherbot suid robot
 - TODO: CommandOnlyUsers - to allow bots to talk to each other without matching ambient messages; ref: Great Chuck Norris War of 2018
 - TODO: Decrypt brain utility for removing 2nd level of encryption (secrets still encrypted)
 
