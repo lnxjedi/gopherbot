@@ -2,6 +2,7 @@ package bot
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -101,9 +102,34 @@ func defval(d, i string) string {
 	return i
 }
 
+// decryptTpl takes an base64 encoded string, decodes and decrypts, and returns
+// the value.
+func decryptTpl(encval string) string {
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	key := cryptKey.key
+	cryptKey.RUnlock()
+	if !initialized {
+		Log(Warn, "template called decrypt(Tpl) function but encryption not initialized")
+		return ""
+	}
+	encbytes, err := base64.StdEncoding.DecodeString(encval)
+	if err != nil {
+		Log(Error, "error in template decrypt(Tpl): %v", err)
+		return ""
+	}
+	secret, decerr := decrypt(encbytes, key)
+	if decerr != nil {
+		Log(Error, "error decrypting secret in template decrypt(Tpl): %v", decerr)
+		return ""
+	}
+	return string(secret)
+}
+
 // expand expands a text template
 func expand(in []byte) (out []byte, err error) {
 	tplFuncs := template.FuncMap{
+		"decrypt": decryptTpl,
 		"default": defval,
 		"env":     env,
 	}
@@ -163,6 +189,10 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 		path = configPath + "/conf/" + filename
 		cf, err = ioutil.ReadFile(path)
 		if err == nil {
+			if cf, err = expand(cf); err != nil {
+				err = fmt.Errorf("Expanding '%s': %v", path, err)
+				Log(Error, err)
+			}
 			if err = yaml.Unmarshal(cf, &configured); err != nil {
 				err = fmt.Errorf("Unmarshalling configured \"%s\": %v", filename, err)
 				Log(Error, err)

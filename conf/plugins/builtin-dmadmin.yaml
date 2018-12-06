@@ -14,6 +14,8 @@ Help:
   Helptext: [ "(bot), store <task|repository> parameter <task/repository name> <var>=<value> - store encrypted parameter in brain"]
 - Keywords: [ "store", "secret", "credentials" ]
   Helptext: [ "(bot), store <task|repository> secret <task/repository name> <var>=<value> - store encrypted secret in brain"]
+- Keywords: [ "encrypt", "secret", "credentials" ]
+  Helptext: [ "(bot), encrypt <secret> - get the encrypted and base64-encoded value for <secret>"]
 CommandMatchers:
 - Command: "listplugins"
   Regex: '(?i:list( disabled)? plugins?)'
@@ -25,3 +27,5 @@ CommandMatchers:
   Regex: "dump robot"
 - Command: store
   Regex: '(?i:store (task|repository) (parameter|secret) ([\w-.\/]+) ([\w-.]+)=(.+))'
+- Command: encrypt
+  Regex: '(?i:encrypt (.+))'
