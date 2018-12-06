@@ -154,6 +154,24 @@ EOF
 	echo -n "$RETVAL"
 }
 
+GetSecret(){
+	if [ -z "$1" ]
+	then
+		return 1
+	fi
+	local SECRET="$1"
+	local GB_FUNCNAME="GetSecret"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Secret": "$SECRET"
+}
+EOF
+)
+	local GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	local RETVAL=$(echo "$GB_RET" | jq -r .StrVal)
+	echo -n "$RETVAL"
+}
+
 SetParameter() {
 	local NAME="$1"
 	local VALUE="$2"

@@ -31,9 +31,11 @@ then
 	exit 0
 fi
 
+BOT_SSH_PHRASE=$(GetSecret "BOT_SSH_PHRASE")
+
 if [ -z "$BOT_SSH_PHRASE" ]
 then
-	Say "\$BOT_SSH_PHRASE not set; try 'store task parameter ssh-init BOT_SSH_PHRASE=<somethingreallylong>'"
+	Say "\$BOT_SSH_PHRASE not set; try 'store task secret ssh-init BOT_SSH_PHRASE=<somethingreallylong>'"
 	exit 0
 fi
 

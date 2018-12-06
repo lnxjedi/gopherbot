@@ -105,22 +105,23 @@ func (r *Robot) GetSecret(name string) string {
 		var nsMap map[string][]byte
 		nsMap, exists = secrets.RepositoryParams[c.nsExtension]
 		if !exists {
-			r.Log(Warn, fmt.Sprintf("Secrets not found for namespace '%s'", c.nsExtension))
+			r.Log(Warn, fmt.Sprintf("Secrets not found for extended namespace '%s'", c.nsExtension))
 			return ""
 		}
 		if secret, exists = nsMap[name]; !exists {
-			r.Log(Warn, fmt.Sprintf("Secret '%s' not found for namespace '%s'", name, c.nsExtension))
+			r.Log(Warn, fmt.Sprintf("Secret '%s' not found for extended namespace '%s'", name, c.nsExtension))
 			return ""
 		}
 	} else {
+		task, _, _ := getTask(c.currentTask)
 		var tMap map[string][]byte
-		tMap, exists = secrets.TaskParams[c.taskName]
+		tMap, exists = secrets.TaskParams[task.NameSpace]
 		if !exists {
-			r.Log(Warn, fmt.Sprintf("Secrets not found for task '%s'", c.taskName))
+			r.Log(Warn, fmt.Sprintf("Secrets not found for task/namespace '%s'", task.NameSpace))
 			return ""
 		}
 		if secret, exists = tMap[name]; !exists {
-			r.Log(Warn, fmt.Sprintf("Secret '%s' not found for namespace '%s'", name, c.taskName))
+			r.Log(Warn, fmt.Sprintf("Secret '%s' not found for task/namespace '%s'", name, task.NameSpace))
 			return ""
 		}
 	}

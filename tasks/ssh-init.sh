@@ -42,18 +42,8 @@ then
     exit 0
 fi
 
-if grep -q ENCRYPTED $SSH_KEY_PATH
-then
-    if [ -z "$BOT_SSH_PHRASE" ]
-    then
-        MESSAGE="BOT_SSH_PHRASE not set, see conf/jobs/ssh-init.yaml"
-        Log "Error" "$MESSAGE"
-        echo "$MESSAGE" >&2
-        exit 1
-    fi
-    export SSH_ASKPASS=$GOPHER_INSTALLDIR/scripts/ssh-askpass.sh
-    export DISPLAY=""
-fi
+export SSH_ASKPASS=$GOPHER_INSTALLDIR/scripts/ssh-askpass.sh
+export DISPLAY=""
 
 eval `ssh-agent`
 # Add cleanup task
