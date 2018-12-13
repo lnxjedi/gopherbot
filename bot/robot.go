@@ -201,7 +201,7 @@ func (r *Robot) GetRepoData() map[string]json.RawMessage {
 // histories => number of histories to keep
 func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	if strings.ContainsRune(ext, ':') {
-		r.Log(Error, "Invalid namespact extension contains ':'")
+		r.Log(Error, "Invalid namespace extension contains ':'")
 		return false
 	}
 	c := r.getContext()
@@ -225,6 +225,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	}
 	r.Log(Debug, fmt.Sprintf("Extending namespace for job '%s': %s", c.jobName, ext))
 	c.nsExtension = ext
+	c.environment["GOPHER_NAMESPACE_EXTENDED"] = c.nsExtension
 
 	jk := histPrefix + c.jobName
 	var pjh jobHistory
@@ -239,7 +240,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 		xn[ext] = true
 		pjh.ExtendedNamespaces = make([]string, len(xn))
 		i := 0
-		for k, _ := range xn {
+		for k := range xn {
 			pjh.ExtendedNamespaces[i] = k
 			i++
 		}
@@ -274,6 +275,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 			start = time.Now()
 		}
 		c.runIndex = jh.NextIndex
+		c.environment["GOPHER_RUN_INDEX"] = string(c.runIndex)
 		hist := historyLog{
 			LogIndex:   c.runIndex,
 			CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),

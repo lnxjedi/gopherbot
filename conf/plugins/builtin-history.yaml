@@ -8,7 +8,7 @@ Help:
   Helptext: [ "(bot), history (job(:namespace) <run#> - start paging the history text for a job run" ]
 CommandMatchers:
 - Command: history
-  Regex: '(?i:(?:(email|link) )?(?:(latest|last) )?history(?: ([A-Za-z][\w-:./]*))?(?: (\d+))?)'
+  Regex: '(?i:(?:(e?mail|link) )?(?:(latest|last) )?history(?: ([A-Za-z][\w-:./]*))?(?: (\d+))?)'
   Contexts: [ "", "", "task" ]
 ReplyMatchers:
 - Label: paging

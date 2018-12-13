@@ -78,16 +78,21 @@ func emailhistory(r *Robot, spec string, run int) (retval TaskRetVal) {
 		return
 	}
 	lr := io.LimitReader(f, maxMailBody)
+	body := new(bytes.Buffer)
+	body.Write([]byte("<pre>\n"))
 	b, rerr := ioutil.ReadAll(lr)
 	if rerr != nil {
 		r.Log(Error, fmt.Sprintf("reading history #%d for '%s': %v", run, spec, rerr))
 		r.Reply("There was a problem reading the history, check with an administrator")
 		return
 	}
-	body := bytes.NewBuffer(b)
-	if ret := r.Email(fmt.Sprintf("History for '%s', run %d", spec, run), body); ret != Ok {
+	body.Write(b)
+	body.Write([]byte("\n</pre>"))
+	if ret := r.Email(fmt.Sprintf("History for '%s', run %d", spec, run), body, true); ret != Ok {
 		r.Reply("There was a problem emailing your history, contact an administrator")
+		return
 	}
+	r.Say("Email sent")
 	return
 }
 
@@ -238,7 +243,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		}
 		switch histType {
 		case "email":
-			return
+			return emailhistory(r, histSpec, idx)
 		case "link":
 			return
 		default:

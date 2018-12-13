@@ -258,13 +258,18 @@ ExternalTasks:
 
 ## The robot's email address (used in From:)
 #Email: robbie@robot.com
+
 ## Configuration for sending out email. For Authtype: none, User and Password
-## can be left out. Note that sending email will fail if Email isn't set.
+## can be left out. Note that sending email will fail if Email isn't set. Note
+## for GMail users - for your robot to send email, you'll need to enable less
+## secure apps for the sending account. See:
+## https://support.google.com/accounts/answer/6010255
+
 #MailConfig:
-#  Mailhost: <somehost:port>
-#  Authtype: <plain|none>
-#  User: <authuser>
-#  Password: <password>
+#  Mailhost: smtp.gmail.com:587
+#  Authtype: plain
+#  User: yourbot@your.dom
+#  Password: robotpassword
 
 ## Use Google Authenticator TOTP by default for elevated commands. To use:
 ## - Ask the robot to 'send launch codes', and it will send you (one time)

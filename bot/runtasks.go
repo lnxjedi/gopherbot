@@ -55,6 +55,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	if isJob {
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
 		c.jobName = task.name // Exclusive always uses the jobName, regardless of the task that calls it
+		c.environment["GOPHER_JOB_NAME"] = c.jobName
 		c.jobChannel = task.Channel
 		botCfg.RLock()
 		c.history = botCfg.history
@@ -78,6 +79,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 				start = time.Now()
 			}
 			c.runIndex = jh.NextIndex
+			c.environment["GOPHER_RUN_INDEX"] = string(c.runIndex)
 			hist := historyLog{
 				LogIndex:   c.runIndex,
 				CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
@@ -142,6 +144,11 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 
 	var errString string
 	ret, errString = c.runPipeline(ptype, true)
+	// Close the log so final / fail tasks could potentially send log emails / links
+	if c.logger != nil {
+		c.logger.Section("done", "primary pipeline has completed")
+		c.logger.Close()
+	}
 	// Run final and fail (cleanup) tasks
 	if ret != Normal {
 		if len(c.failTasks) > 0 {
@@ -152,10 +159,6 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	if len(c.finalTasks) > 0 {
 		c.stage = finalTasks
 		c.runPipeline(ptype, false)
-	}
-	if c.logger != nil {
-		c.logger.Section("done", "pipeline has completed")
-		c.logger.Close()
 	}
 	c.deregister()
 	if ret != Normal {
@@ -400,9 +403,9 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		}
 		var desc string
 		if len(task.Description) > 0 {
-			desc = fmt.Sprintf("Starting task: %s", task.Description)
+			desc = fmt.Sprintf("Starting task '%s': %s", task.name, task.Description)
 		} else {
-			desc = "Starting task"
+			desc = fmt.Sprintf("Starting task '%s'", task.name)
 		}
 		c.logger.Section(taskinfo, desc)
 	}

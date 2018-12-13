@@ -10,13 +10,13 @@
 
 ## Version 2 Release TODOs
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
-- TODO: Update "Starting job ..." to include arguments
-- TODO: Fix meme password, update conf/plugins/*
+- DONE: Update "Starting job ..." to include arguments
+- IN PROGRESS: Fix meme password, update conf/plugins/*
 - TODO: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot
 - TODO: Update the Ansible playbook for protected install / suid gopherbot
 - History:
-   - TODO: Test email history, implement history links
-   - IN PROGRESS: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
+   - IN PROGRESS: Test email history, implement history links
+   - DONE: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
    - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
 - TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
 - TODO: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, etc.
