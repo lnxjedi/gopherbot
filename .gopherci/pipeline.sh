@@ -26,7 +26,7 @@ BOT=$(GetBotAttribute name)
 if [ "$BOT" != "floyd" ]
 then
     Say "Gosh, I wish that *I* could publish"
-    FinalTask builtin-history email "" $GOPHER_JOB_NAME:$GOPHER_NAMESPACE_EXTENDED $GOPHER_RUN_INDEX
+    FinalTask builtin-history history email "" $GOPHER_JOB_NAME:$GOPHER_NAMESPACE_EXTENDED $GOPHER_RUN_INDEX
     exit 0
 fi
 
