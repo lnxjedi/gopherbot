@@ -79,7 +79,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 				start = time.Now()
 			}
 			c.runIndex = jh.NextIndex
-			c.environment["GOPHER_RUN_INDEX"] = string(c.runIndex)
+			c.environment["GOPHER_RUN_INDEX"] = fmt.Sprintf("%d", c.runIndex)
 			hist := historyLog{
 				LogIndex:   c.runIndex,
 				CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),

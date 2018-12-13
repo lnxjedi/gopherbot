@@ -275,7 +275,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 			start = time.Now()
 		}
 		c.runIndex = jh.NextIndex
-		c.environment["GOPHER_RUN_INDEX"] = string(c.runIndex)
+		c.environment["GOPHER_RUN_INDEX"] = fmt.Sprintf("%d", c.runIndex)
 		hist := historyLog{
 			LogIndex:   c.runIndex,
 			CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
@@ -456,10 +456,14 @@ func (r *Robot) AddTask(name string, cmdargs ...string) RetVal {
 func (r *Robot) FinalTask(name string, cmdargs ...string) RetVal {
 	c := r.getContext()
 	if c.stage != primaryTasks {
+		task, _, _ := getTask(c.currentTask)
+		r.Log(Error, fmt.Sprintf("FinalTask called outside of initial pipeline in task '%s'", task.name))
 		return InvalidStage
 	}
 	t := c.tasks.getTaskByName(name)
 	if t == nil {
+		task, _, _ := getTask(c.currentTask)
+		r.Log(Error, fmt.Sprintf("Task '%s' not found in call to FinalTask from task '%s'", name, task.name))
 		return TaskNotFound
 	}
 	_, plugin, _ := getTask(t)
@@ -495,10 +499,14 @@ func (r *Robot) FinalTask(name string, cmdargs ...string) RetVal {
 func (r *Robot) FailTask(name string, cmdargs ...string) RetVal {
 	c := r.getContext()
 	if c.stage != primaryTasks {
+		task, _, _ := getTask(c.currentTask)
+		r.Log(Error, fmt.Sprintf("FailTask called outside of initial pipeline in task '%s'", task.name))
 		return InvalidStage
 	}
 	t := c.tasks.getTaskByName(name)
 	if t == nil {
+		task, _, _ := getTask(c.currentTask)
+		r.Log(Error, fmt.Sprintf("Task '%s' not found in call to FinalTask from task '%s'", name, task.name))
 		return TaskNotFound
 	}
 	_, plugin, _ := getTask(t)
@@ -728,7 +736,7 @@ func (r *Robot) GetTaskConfig(dptr interface{}) RetVal {
 func (r *Robot) Log(l LogLevel, v ...interface{}) {
 	c := r.getContext()
 	if c.logger != nil {
-		c.logger.Log("LOG:" + logLevelToStr(l) + " " + fmt.Sprintln(v...))
+		c.logger.Log("LOG " + logLevelToStr(l) + " " + fmt.Sprintln(v...))
 	}
 	Log(l, v...)
 }
