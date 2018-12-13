@@ -22,7 +22,7 @@ type botMailer struct {
 // For the user, this should be provided by the chat protocol, or in
 // gopherbot.conf. (TODO: not yet implemented)
 // It returns an error and RetVal != 0 if there's a problem.
-func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret RetVal) {
+func (r *Robot) Email(subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal) {
 	var mailFrom, botName, mailTo string
 
 	mailAttr := r.GetBotAttribute("email")
@@ -49,18 +49,21 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer) (ret RetVal) {
 	e.From = from
 	e.To = []string{mailTo}
 	e.Subject = subject
-	e.Text = messageBody.Bytes()
+	if len(html) > 0 && html[0] {
+		e.HTML = messageBody.Bytes()
+	} else {
+		e.Text = messageBody.Bytes()
+	}
 
 	var a smtp.Auth
 	if botCfg.mailConf.Authtype == "plain" {
 		host := strings.Split(botCfg.mailConf.Mailhost, ":")[0]
 		a = smtp.PlainAuth("", botCfg.mailConf.User, botCfg.mailConf.Password, host)
-		Log(Debug, fmt.Sprintf("Sending authenticated email to \"%s\" from \"%s\" via \"%s\" with user: %s, password: %s and host: %s",
+		Log(Debug, fmt.Sprintf("Sending authenticated email to \"%s\" from \"%s\" via \"%s\" with user: %s, password: xxxx, and host: %s",
 			mailTo,
 			from,
 			botCfg.mailConf.Mailhost,
 			botCfg.mailConf.User,
-			botCfg.mailConf.Password,
 			host,
 		))
 	} else {

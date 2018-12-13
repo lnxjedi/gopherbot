@@ -48,7 +48,7 @@ github.com/gorilla/websocket
 github.com/jmespath/go-jmespath
 # github.com/joho/godotenv v1.3.0
 github.com/joho/godotenv
-# github.com/jordan-wright/email v0.0.0-20160403172529-fd703108daeb
+# github.com/jordan-wright/email v0.0.0-20181206031209-52b567308cb0
 github.com/jordan-wright/email
 # github.com/nlopes/slack v0.4.0
 github.com/nlopes/slack
