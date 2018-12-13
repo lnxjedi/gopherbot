@@ -10,6 +10,8 @@
 
 ## Version 2 Release TODOs
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
+- TODO: New AddCommand that takes a string "command" argument that's matched against plugins; calling plugins directly is dangerous and can panic the robot when the number of args is wrong
+- TODO: Create AddJob that checks for job then calls AddTask - more explicit / readable code
 - DONE: Update "Starting job ..." to include arguments
 - IN PROGRESS: Fix meme password, update conf/plugins/*
 - TODO: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot
@@ -20,7 +22,6 @@ These are the items deemed as required for releasing version 2 because they chan
    - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
 - TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
 - TODO: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, etc.
-- TODO: Create AddJob that checks for job then calls AddTask - more explicit / readable code
 - TODO: Rename BotRoster to UserRoster in main code; Slack will eventually deprecate usernames and mapping will need to be explicit
 - DONE: new DM RequireAdmin command: `encrypt foobar` - returns encrypted & base64 encoded secret; can be used in template with `{{ decrypt "base64string" }}`
 - DONE: Bash/Ruby/Python GetSecret
