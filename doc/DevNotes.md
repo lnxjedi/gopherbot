@@ -10,8 +10,9 @@
 
 ## Version 2 Release TODOs
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
-- TODO: New AddCommand that takes a string "command" argument that's matched against plugins; calling plugins directly is dangerous and can panic the robot when the number of args is wrong
+- TODO: New Add/Final/FailCommand that take two string args: \<pluginname\> "command string"; matched against plugins; calling plugins directly is dangerous and can panic the robot when the number of args is wrong
 - TODO: Create AddJob that checks for job then calls AddTask - more explicit / readable code
+- TODO: Update use of jobAvailable/Visible to allow commands to run in a pipeline w/o respect to visibility
 - DONE: Update "Starting job ..." to include arguments
 - IN PROGRESS: Fix meme password, update conf/plugins/*
 - TODO: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot
