@@ -95,9 +95,12 @@ const (
 	MailError
 
 	/* AddTask / FinalTask / FailTask */
+	// TaskNotFound - no task with the given name
 	TaskNotFound
 	// MissingArguments - AddTask requires a command and args for a plugin
 	MissingArguments
 	// InvalidStage - tasks can only be added when the robot is running primaryTasks
 	InvalidStage
+	// InvalidTaskType - mismatch of task/plugin/job method with provided name
+	InvalidTaskType
 )

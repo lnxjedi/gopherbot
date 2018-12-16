@@ -112,7 +112,7 @@ func (c *botContext) makeRobot() *Robot {
 
 // clone() is a convenience function to clone the current context before
 // starting a new goroutine for startPipeline. Used by e.g. triggered jobs,
-// SpawnTask(), and runPipeline for sub-jobs.
+// SpawnJob(), and runPipeline for sub-jobs.
 func (c *botContext) clone() *botContext {
 	return &botContext{
 		User:             c.User,

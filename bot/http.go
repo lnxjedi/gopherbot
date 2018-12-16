@@ -262,7 +262,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	case "GetRepoData":
 		sendReturn(rw, r.GetRepoData())
 		return
-	case "AddTask", "FinalTask", "FailTask", "SpawnTask":
+	case "AddTask", "FinalTask", "FailTask", "SpawnJob":
 		var ts taskcall
 		if !getArgs(rw, &f.FuncArgs, &ts) {
 			return
@@ -275,8 +275,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			ret = r.FinalTask(ts.Name, ts.CmdArgs...)
 		case "FailTask":
 			ret = r.FailTask(ts.Name, ts.CmdArgs...)
-		case "SpawnTask":
-			ret = r.SpawnTask(ts.Name, ts.CmdArgs...)
+		case "SpawnJob":
+			ret = r.SpawnJob(ts.Name, ts.CmdArgs...)
 		default:
 			return
 		}

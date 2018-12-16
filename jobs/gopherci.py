@@ -106,7 +106,7 @@ if len(sys.argv) == 1:
                         else:
                             repobranch = "master"
                         bot.Log("Debug", "Spawning dependency build of %s / %s for primary build of %s / %s" % (reponame, repobranch, repository, branch))
-                        bot.SpawnTask("gopherci", [ reponame, repobranch, repository, branch ])
+                        bot.SpawnJob("gopherci", [ reponame, repobranch, repository, branch ])
 
 if len(sys.argv) == 2:
     # Four args, inital build of dependency

@@ -123,8 +123,8 @@ class Robot:
         ret = self.Call("CheckoutDatum", { "Key": key, "RW": rw })
         return Memory(key, ret)
 
-    def SpawnTask(self, name, args):
-        return self.Call("SpawnTask", { "Name": name, "CmdArgs": args })["RetVal"]
+    def SpawnJob(self, name, args):
+        return self.Call("SpawnJob", { "Name": name, "CmdArgs": args })["RetVal"]
 
     def AddTask(self, name, args):
         return self.Call("AddTask", { "Name": name, "CmdArgs": args })["RetVal"]

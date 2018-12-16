@@ -234,7 +234,7 @@ EOF
 	fi
 }
 
-SpawnTask(){
+SpawnJob(){
 	local JSTR
 	local TNAME="$1"
 	shift
@@ -253,7 +253,7 @@ SpawnTask(){
 }
 EOF
 )
-	local GB_FUNCNAME="SpawnTask"
+	local GB_FUNCNAME="SpawnJob"
 	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
 	gbBotRet "$GB_RET"
 }
