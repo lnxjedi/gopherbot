@@ -348,7 +348,12 @@ func (c *botContext) jobAvailable(taskName string) interface{} {
 		r.Say(fmt.Sprintf("Sorry, '%s' isn't a job", taskName))
 		return nil
 	}
-	if r.Channel != task.Channel {
+	if c.automaticTask {
+		return t
+	}
+	// If there's already a job initialized, this is a pipeline task for that
+	// job, and should be available regardless of channel.
+	if !c.jobInitialized && r.Channel != task.Channel {
 		c.debugTask(task, fmt.Sprintf("not available in channel '%s'", task.Channel), false)
 		r.Say(fmt.Sprintf("Sorry, job '%s' isn't available in this channel, try '%s'", taskName, task.Channel))
 		return nil
