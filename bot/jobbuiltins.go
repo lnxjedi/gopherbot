@@ -168,7 +168,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	// boilerplate availability and security checking for job commands
 	c := r.getContext()
 	jobName := strings.Split(histSpec, ":")[0]
-	t := c.jobAvailable(jobName, true)
+	t := c.jobAvailable(jobName)
 	if t == nil {
 		return
 	}
@@ -335,26 +335,17 @@ func (r *Robot) jobVisible(t interface{}, ignoreChannelRestrictions, disabledOk 
 // job commands like history, run job, etc. where the user provides a job name.
 // Note that changes to login in jobAvailable may need to propagate to
 // jobVisible, above.
-func (c *botContext) jobAvailable(taskName string, pluginOk bool) interface{} {
+func (c *botContext) jobAvailable(taskName string) interface{} {
 	r := c.makeRobot()
 	t := c.tasks.getTaskByName(taskName)
 	if t == nil {
 		r.Say(fmt.Sprintf("Sorry, I don't have a task named '%s' configured", taskName))
 		return nil
 	}
-	task, plugin, job := getTask(t)
-	isPlugin := plugin != nil
+	task, _, job := getTask(t)
 	isJob := job != nil
-	if !isJob && (!isPlugin && pluginOk) {
+	if !isJob {
 		r.Say(fmt.Sprintf("Sorry, '%s' isn't a job", taskName))
-		return nil
-	}
-	if isPlugin {
-		ok := c.pluginAvailable(task, false, false)
-		if ok {
-			return t
-		}
-		r.Say(fmt.Sprintf("Sorry, plugin '%s' isn't available", taskName))
 		return nil
 	}
 	if r.Channel != task.Channel {

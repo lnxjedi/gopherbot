@@ -97,7 +97,7 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		} else {
 			return
 		}
-		t := c.jobAvailable(jobName, false)
+		t := c.jobAvailable(jobName)
 		if t != nil {
 			c.currentTask = t
 			c.registerActive(nil)
