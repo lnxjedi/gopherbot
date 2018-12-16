@@ -94,7 +94,8 @@ const (
 	// MailError - There was an error sending email
 	MailError
 
-	/* AddTask / FinalTask / FailTask */
+	/* Pipeline errors */
+
 	// TaskNotFound - no task with the given name
 	TaskNotFound
 	// MissingArguments - AddTask requires a command and args for a plugin
@@ -103,4 +104,8 @@ const (
 	InvalidStage
 	// InvalidTaskType - mismatch of task/plugin/job method with provided name
 	InvalidTaskType
+	// CommandNotMatched - the command string didn't match a command for the plugin
+	CommandNotMatched
+	// TaskDisabled - a method call attempted to add a disabled task to a pipeline
+	TaskDisabled
 )

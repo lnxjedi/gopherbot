@@ -1,0 +1,26 @@
+---
+AllChannels: true
+AllowDirect: true
+RequireAdmin: true
+Help:
+- Keywords: [ "reload" ]
+  Helptext: [ "(bot), reload - have the robot reload configuration files" ]
+- Keywords: [ "quit" ]
+  Helptext: [ "(bot), quit - request a graceful shutdown, waiting for all plugins to finish" ]
+- Keywords: [ "abort" ]
+  Helptext: [ "(bot), abort - request an immediate shutdown without waiting for plugins to finish" ]
+- Keywords: [ "debug" ]
+  Helptext: [ "(bot), debug task <pluginname> (verbose) - turn on debugging for the named task, optionally verbose" ]
+- Keywords: [ "debug" ]
+  Helptext: [ "(bot), stop debugging - turn off debugging" ]
+CommandMatchers:
+- Command: reload
+  Regex: '(?i:reload)'
+- Command: quit
+  Regex: '(?i:quit|exit)'
+- Command: abort
+  Regex: '(?i:abort)'
+- Command: "debug"
+  Regex: '(?i:debug (?:task )?([\d\w-.]+)(?: (verbose))?)'
+- Command: "stop"
+  Regex: '(?i:stop debugging)'

@@ -152,7 +152,7 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 		r.messageHeard()
 		matcher := matchedMatcher
 		abort := false
-		if task.name == "builtInadmin" && matcher.Command == "abort" {
+		if task.name == "builtin-admin" && matcher.Command == "abort" {
 			abort = true
 		}
 		botCfg.RLock()

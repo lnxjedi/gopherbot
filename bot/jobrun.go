@@ -11,7 +11,7 @@ const runJobRegex = `run +job +(` + identifierRegex + `)(?: (.*))?`
 
 var runJobRe = regexp.MustCompile(`(?i:^\s*` + runJobRegex + `\s*$)`)
 
-// checkJobMatchersAndRun handles triggers, 'run job <foo>', 'history <foo>'
+// checkJobMatchersAndRun handles triggers, 'run job <foo>'
 func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	r := c.makeRobot()
 	// un-needed, but more clear

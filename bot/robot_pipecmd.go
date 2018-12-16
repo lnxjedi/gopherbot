@@ -222,12 +222,16 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 	t := c.tasks.getTaskByName(name)
 	if t == nil {
 		task, _, _ := getTask(c.currentTask)
-		r.Log(Error, fmt.Sprintf("Task '%s' not found updating pipeline from task '%s'", name, task.name))
+		r.Log(Error, fmt.Sprintf("task '%s' not found updating pipeline from task '%s'", name, task.name))
 		return TaskNotFound
 	}
-	_, plugin, job := getTask(t)
+	task, plugin, job := getTask(t)
 	isPlugin := plugin != nil
 	isJob := job != nil
+	if task.Disabled {
+		r.Log(Error, fmt.Sprintf("attempt to add disabled task '%s' to pipeline", name))
+		return TaskDisabled
+	}
 	if isPlugin && ptype != typePlugin {
 		r.Log(Error, fmt.Sprintf("adding command to pipeline - not a plugin: %s", name))
 		return InvalidTaskType
@@ -244,12 +248,34 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 	var cmdargs []string
 	if isPlugin {
 		if len(args) == 0 {
+			r.Log(Error, fmt.Sprintf("added plugin '%s' to pipeline with no command", name))
 			return MissingArguments
 		}
 		if len(args[0]) == 0 {
+			r.Log(Error, fmt.Sprintf("added plugin '%s' to pipeline with no command", name))
 			return MissingArguments
 		}
-		command, cmdargs = cmdargs[0], cmdargs[1:]
+		cmsg := args[0]
+		c.debugT(t, fmt.Sprintf("Checking %d command matchers against pipe command: '%s'", len(plugin.CommandMatchers), cmsg), false)
+		matched := false
+		for _, matcher := range plugin.CommandMatchers {
+			Log(Trace, fmt.Sprintf("Checking '%s' against '%s'", cmsg, matcher.Regex))
+			matches := matcher.re.FindAllStringSubmatch(cmsg, -1)
+			if matches != nil {
+				c.debugT(t, fmt.Sprintf("Matched command regex '%s', command: %s", matcher.Regex, matcher.Command), false)
+				matched = true
+				Log(Trace, fmt.Sprintf("pipeline command '%s' matches '%s'", cmsg, matcher.Command))
+				command = matcher.Command
+				cmdargs = matches[0][1:]
+				break
+			} else {
+				c.debugT(t, fmt.Sprintf("Not matched: %s", matcher.Regex), false)
+			}
+		}
+		if !matched {
+			r.Log(Error, fmt.Sprintf("added plugin '%s' to pipeline, but command '%s' didn't match any CommandMatchers", name, cmsg))
+			return CommandNotMatched
+		}
 	} else {
 		command = "run"
 		cmdargs = args
@@ -257,7 +283,7 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 	ts := TaskSpec{
 		Name:      name,
 		Command:   command,
-		Arguments: args,
+		Arguments: cmdargs,
 		task:      t,
 	}
 	switch pflavor {
@@ -293,18 +319,45 @@ func (r *Robot) AddTask(name string, args ...string) RetVal {
 	return r.pipeTask(flavorAdd, typeTask, name, args...)
 }
 
-// FinalTask adds a task that always runs when the pipeline ends. This
-// can be used to ensure that cleanup tasks like terminating a VM or stopping
-// the ssh-agent will run, regardless of whether the pipeline failed.
+// FinalTask adds a task that always runs when the pipeline ends, whether
+// it succeeded or failed. This can be used to ensure that cleanup tasks like
+// terminating a VM or stopping the ssh-agent will run, regardless of whether
+// the pipeline failed.
 // Note that unlike other tasks, final tasks are run in reverse of the order
 // they're added.
 func (r *Robot) FinalTask(name string, args ...string) RetVal {
 	return r.pipeTask(flavorFinal, typeTask, name, args...)
 }
 
-// FailTask adds a task that runs if the pipeline fails. This can be used to
-// e.g. terminate a VM that shouldn't be left running if the pipeline fails.
-// FailTasks run in the order added, and the list should be short.
+// FailTask adds a task that runs only if the pipeline fails. This can be used
+// to e.g. notify a user / channel on failure.
 func (r *Robot) FailTask(name string, args ...string) RetVal {
 	return r.pipeTask(flavorFail, typeTask, name, args...)
+}
+
+// AddJob puts another job in the queue for the pipeline. The added job
+// will run in a new separate context, and when it completes the current
+// pipeline will resume if the job succeeded.
+func (r *Robot) AddJob(name string, args ...string) RetVal {
+	return r.pipeTask(flavorAdd, typeJob, name, args...)
+}
+
+// AddCommand adds a plugin command to the pipeline. The command string
+// argument should match a CommandMatcher for the given plugin.
+func (r *Robot) AddCommand(plugname, command string) RetVal {
+	return r.pipeTask(flavorAdd, typePlugin, command)
+}
+
+// FinalCommand adds a plugin command that always runs when a pipeline
+// ends, for e.g. emailing the job history. The command string
+// argument should match a CommandMatcher for the given plugin.
+func (r *Robot) FinalCommand(plugname, command string) RetVal {
+	return r.pipeTask(flavorFinal, typePlugin, command)
+}
+
+// FailCommand adds a plugin command that runs whenever a pipeline fails,
+// for e.g. emailing the job history. The command string
+// argument should match a CommandMatcher for the given plugin.
+func (r *Robot) FailCommand(plugname, command string) RetVal {
+	return r.pipeTask(flavorFail, typePlugin, command)
 }

@@ -24,18 +24,18 @@ const qrsize = 400
 // If this list doesn't match what's registered below,
 // you're gonna have a bad time.
 // var builtIns = []string{
-// 	"builtInhelp",
-// 	"builtInadmin",
+// 	"builtin-help",
+// 	"builtin-admin",
 // 	"builtIndump",
-// 	"builtInlogging",
+// 	"builtin-logging",
 // }
 
 func init() {
 	RegisterPlugin("builtin-dmadmin", PluginHandler{Handler: dmadmin})
-	RegisterPlugin("builtInhelp", PluginHandler{DefaultConfig: helpConfig, Handler: help})
-	RegisterPlugin("builtInadmin", PluginHandler{DefaultConfig: adminConfig, Handler: admin})
-	RegisterPlugin("builtInlogging", PluginHandler{DefaultConfig: logConfig, Handler: logging})
-	RegisterPlugin("builtInbrain", PluginHandler{DefaultConfig: encryptConfig, Handler: encryptcfg})
+	RegisterPlugin("builtin-help", PluginHandler{Handler: help})
+	RegisterPlugin("builtin-admin", PluginHandler{Handler: admin})
+	RegisterPlugin("builtin-logging", PluginHandler{Handler: logging})
+	RegisterPlugin("builtin-brain", PluginHandler{Handler: encryptcfg})
 }
 
 /* builtin plugins, like help */

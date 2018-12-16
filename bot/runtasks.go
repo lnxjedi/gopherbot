@@ -410,7 +410,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		c.logger.Section(taskinfo, desc)
 	}
 
-	if !(task.name == "builtInadmin" && command == "abort") {
+	if !(task.name == "builtin-admin" && command == "abort") {
 		defer checkPanic(r, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
 	}
 	Log(Debug, fmt.Sprintf("Dispatching command '%s' to task '%s' with arguments '%#v'", command, task.name, args))

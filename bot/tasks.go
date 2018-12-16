@@ -57,7 +57,7 @@ func getTask(t interface{}) (*BotTask, *BotPlugin, *BotJob) {
 func (tl *taskList) getTaskByName(name string) interface{} {
 	ti, ok := tl.nameMap[name]
 	if !ok {
-		Log(Error, fmt.Sprintf("Task '%s' not found calling getTaskByName", name))
+		Log(Error, fmt.Sprintf("task '%s' not found calling getTaskByName", name))
 		return nil
 	}
 	task := tl.t[ti]
@@ -107,7 +107,8 @@ const (
 	jobTrigger
 	spawnedTask
 	scheduled
-	jobCmd // i.e. run job xx
+	jobCmd  // i.e. run job xx
+	pipeAdd // from e.g. AddCommand
 )
 
 // InputMatcher specifies the command or message to match for a plugin

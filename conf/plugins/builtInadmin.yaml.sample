@@ -1,6 +1,0 @@
----
-## To require MFA for the 'reload' and 'quit' commands, configure a default
-## elevator and copy this file to 'builtInadmin.yaml'.
-ElevatedCommands:
-- reload
-- quit
