@@ -42,6 +42,12 @@ then
     exit 0
 fi
 
+if [ -z "$(GetSecret BOT_SSH_PHRASE)" ]
+then
+    Say "I don't know the passphrase for my ssh keypair, aborting"
+    exit 1
+fi
+
 export SSH_ASKPASS=$GOPHER_INSTALLDIR/scripts/ssh-askpass.sh
 export DISPLAY=""
 
