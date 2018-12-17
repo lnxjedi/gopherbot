@@ -364,10 +364,9 @@ func (r *Robot) GetTaskConfig(dptr interface{}) RetVal {
 // is lower than or equal to the robot's current log level
 func (r *Robot) Log(l LogLevel, v ...interface{}) {
 	c := r.getContext()
-	if c.logger != nil {
+	if Log(l, v...) && c.logger != nil {
 		c.logger.Log("LOG " + logLevelToStr(l) + " " + fmt.Sprintln(v...))
 	}
-	Log(l, v...)
 }
 
 // SendChannelMessage lets a plugin easily send a message to an arbitrary
