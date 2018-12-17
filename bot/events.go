@@ -6,7 +6,7 @@ what happened to a particular message. Note that these are only used for the
 'test' and 'terminal' connectors, primarily for development and testing.
 */
 
-//go:generate stringer -type=Event
+//go:generate stringer -type=Event events.go
 
 // Generate String method with: go generate ./bot/
 

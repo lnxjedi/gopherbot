@@ -19,15 +19,6 @@ const (
 	Variable
 )
 
-// Connector protocols
-type Protocol int
-
-const (
-	Slack    Protocol = iota // Slack connector
-	Terminal                 // Terminal connector
-	Test                     // Test connector for automated test suites
-)
-
 // Robot is passed to each task as it runs, initialized from the botContext.
 // Tasks can copy and modify the Robot without affecting the botContext.
 type Robot struct {
@@ -38,10 +29,6 @@ type Robot struct {
 	Format   MessageFormat // The outgoing message format, one of Raw, Fixed, or Variable
 	id       int           // For looking up the botContext
 }
-
-//go:generate stringer -type=Protocol
-
-// Generate String method with: go generate ./bot/
 
 /* robot_methods.go defines some convenience functions on struct Robot to
    simplify use by plugins. */

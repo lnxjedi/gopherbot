@@ -3,9 +3,9 @@ package bot
 // RetVal is a integer type for returning error conditions from bot methods, or 0 for Ok
 type RetVal int
 
-//go:generate stringer -type=TaskRetVal
+//go:generate stringer -type=TaskRetVal error.go
 
-//go:generate stringer -type=RetVal
+//go:generate stringer -type=RetVal error.go
 
 // Generate String method with: go generate ./bot/
 
