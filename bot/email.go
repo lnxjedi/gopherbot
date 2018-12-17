@@ -20,10 +20,32 @@ type botMailer struct {
 // bot. It relies on both the robot and the user having an email address.
 // For the robot, this can be conifigured in gopherbot.conf, Email attribute.
 // For the user, this should be provided by the chat protocol, or in
-// gopherbot.conf. (TODO: not yet implemented)
+// gopherbot.conf.
 // It returns an error and RetVal != 0 if there's a problem.
 func (r *Robot) Email(subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal) {
-	var mailFrom, botName, mailTo string
+	mailAttr := r.GetSenderAttribute("email")
+	if mailAttr.RetVal != Ok {
+		return NoUserEmail
+	}
+	return r.realEmail(subject, mailAttr.Attribute, messageBody, html...)
+}
+
+// EmailUser is a method for sending an email to a specified user. See Email.
+func (r *Robot) EmailUser(user, subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal) {
+	mailAttr := r.GetUserAttribute(user, "email")
+	if mailAttr.RetVal != Ok {
+		return NoUserEmail
+	}
+	return r.realEmail(subject, mailAttr.Attribute, messageBody, html...)
+}
+
+// EmailAddress is a method for sending an email to a specified address. See Email.
+func (r *Robot) EmailAddress(address, subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal) {
+	return r.realEmail(subject, address, messageBody, html...)
+}
+
+func (r *Robot) realEmail(subject, mailTo string, messageBody *bytes.Buffer, html ...bool) (ret RetVal) {
+	var mailFrom, botName string
 
 	mailAttr := r.GetBotAttribute("email")
 	if mailAttr.RetVal != Ok || mailAttr.Attribute == "" {
@@ -38,11 +60,6 @@ func (r *Robot) Email(subject string, messageBody *bytes.Buffer, html ...bool) (
 	} else {
 		botName = botAttr.Attribute
 	}
-	mailAttr = r.GetSenderAttribute("email")
-	if mailAttr.RetVal != Ok {
-		return NoUserEmail
-	}
-	mailTo = mailAttr.Attribute
 
 	e := email.NewEmail()
 	from := fmt.Sprintf("%s <%s>", botName, mailFrom)

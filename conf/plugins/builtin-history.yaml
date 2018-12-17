@@ -3,12 +3,18 @@ AllChannels: true
 AllowDirect: false
 Help:
 - Keywords: [ "history", "job" ]
-  Helptext: [ "(bot), (email|link) (last) history <job(:namespace)> (run#) - get the history for a job" ]
+  Helptext:
+  - "(bot), (email|link) (last) history <job(:namespace)> (run#) - get the history for a job"
+  - "(bot), send (last) history <job(:namespace)> (run#) to user <user>"
+  - "(bot), send (last) history <job(:namespace)> (run#) to somebody@some.domain"
 - Keywords: [ "quit" ]
   Helptext: [ "(bot), history (job(:namespace) <run#> - start paging the history text for a job run" ]
 CommandMatchers:
 - Command: history
   Regex: '(?i:(?:(e?mail|link) )?(?:(latest|last) )?history(?: ([A-Za-z][\w-:./]*))?(?: (\d+))?)'
+  Contexts: [ "", "", "task" ]
+- Command: mailhistory
+  Regex: '(?i:send (?:(latest|last) )?history(?: ([A-Za-z][\w-:./]*))?(?: (\d+))? to (?:(?:user (.*))|([^@]+@[^@]+)))'
   Contexts: [ "", "", "task" ]
 ReplyMatchers:
 - Label: paging

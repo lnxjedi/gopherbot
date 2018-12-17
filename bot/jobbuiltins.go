@@ -70,7 +70,7 @@ func jobcommands(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	return
 }
 
-func emailhistory(r *Robot, spec string, run int) (retval TaskRetVal) {
+func emailhistory(r *Robot, user, address, spec string, run int) (retval TaskRetVal) {
 	f, err := botCfg.history.GetHistory(spec, run)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting history %d for task '%s': %v", run, spec, err))
@@ -88,8 +88,17 @@ func emailhistory(r *Robot, spec string, run int) (retval TaskRetVal) {
 	}
 	body.Write(b)
 	body.Write([]byte("\n</pre>"))
-	if ret := r.Email(fmt.Sprintf("History for '%s', run %d", spec, run), body, true); ret != Ok {
-		r.Reply("There was a problem emailing your history, contact an administrator")
+	subject := fmt.Sprintf("History for '%s', run %d", spec, run)
+	var ret RetVal
+	if len(user) > 0 {
+		ret = r.EmailUser(user, subject, body, true)
+	} else if len(address) > 0 {
+		ret = r.EmailAddress(address, subject, body, true)
+	} else {
+		ret = r.Email(subject, body, true)
+	}
+	if ret != Ok {
+		r.Reply("There was a problem emailing the history log, contact an administrator")
 		return
 	}
 	r.Say("Email sent")
@@ -160,10 +169,22 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		return
 	}
 
-	histType := args[0]
-	latest := args[1]
-	histSpec := args[2]
-	index := args[3]
+	var histType, latest, histSpec, index, user, address string
+
+	switch command {
+	case "history":
+		histType = args[0]
+		latest = args[1]
+		histSpec = args[2]
+		index = args[3]
+	case "mailhistory":
+		histType = "email"
+		latest = args[0]
+		histSpec = args[1]
+		index = args[2]
+		user = args[3]
+		address = args[4]
+	}
 
 	// boilerplate availability and security checking for job commands
 	c := r.getContext()
@@ -178,7 +199,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	vr := r.MessageFormat(Variable)
 
 	switch command {
-	case "history":
+	case "history", "mailhistory":
 		var jh jobHistory
 		key := histPrefix + histSpec
 		_, _, ret := checkoutDatum(key, &jh, false)
@@ -243,7 +264,13 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		}
 		switch histType {
 		case "email":
-			return emailhistory(r, histSpec, idx)
+			if len(user) > 0 {
+				return emailhistory(r, user, "", histSpec, idx)
+			} else if len(address) > 0 {
+				return emailhistory(r, "", address, histSpec, idx)
+			} else {
+				return emailhistory(r, "", "", histSpec, idx)
+			}
 		case "link":
 			return
 		default:
