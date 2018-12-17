@@ -26,7 +26,7 @@ BOT=$(GetBotAttribute name)
 if [ "$BOT" != "floyd" ]
 then
     Say "Gosh, I wish that *I* could publish"
-    FinalCommand builtin-history "send history $GOPHER_JOB_NAME:$GOPHER_NAMESPACE_EXTENDED $GOPHER_RUN_INDEX to user parsley"
+    FailCommand builtin-history "send history $GOPHER_JOB_NAME:$GOPHER_NAMESPACE_EXTENDED $GOPHER_RUN_INDEX to user parsley"
     exit 0
 fi
 
