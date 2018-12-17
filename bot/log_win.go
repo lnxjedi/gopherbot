@@ -13,7 +13,7 @@ var eventLog *eventlog.Log
 
 // Log logs messages whenever the connector log level is
 // less than the given level
-func Log(l LogLevel, v ...interface{}) {
+func Log(l LogLevel, v ...interface{}) bool {
 
 	botLogger.Lock()
 	currlevel := botLogger.level
@@ -54,5 +54,7 @@ func Log(l LogLevel, v ...interface{}) {
 			botLogger.buffLine = (botLogger.buffLine + 1) % (buffLines - 1)
 			botLogger.Unlock()
 		}
+		return true
 	}
+	return false
 }
