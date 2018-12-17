@@ -217,6 +217,9 @@ ExternalTasks:
   "exec":
     Description: Simple utility for running scripts in a repository
     Path: tasks/exec.sh
+  "runpipeline":
+    Description: Detect one of pipeline.sh|py|rb and add to the pipeline
+    Path: tasks/runpipeline.sh
   "setworkdir":
     Description: Update working directory as a step in a pipeline
     Path: tasks/setworkdir.sh
