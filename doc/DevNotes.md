@@ -14,16 +14,21 @@ These are the items deemed as required for releasing version 2 because they chan
 - DONE: Create AddJob that checks for job then calls AddTask - more explicit / readable code
 - DONE: Update use of jobAvailable/Visible to allow commands to run in a pipeline w/o respect to visibility
 - DONE: Update "Starting job ..." to include arguments
+- DONE: runpipeline task after git-sync
 - IN PROGRESS: Fix meme password, update conf/plugins/*
 - TODO: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot
 - TODO: Update the Ansible playbook for protected install / suid gopherbot
 - History:
-   - IN PROGRESS: Test email history, implement history links
+   - DONE: Emailing of history
+   - TODO: implement history links
    - DONE: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
    - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
 - TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
 - TODO: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, and in addition to the raw message, an API object for direct calls to the protocol
 - TODO: Rename BotRoster to UserRoster in main code; Slack will eventually deprecate usernames and mapping will need to be explicit
+   - TODO: Update connector methods to take "user" or "\<userid\>"
+   - TODO: Add 'TriggersOnly' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
+   - TODO: Update `whoami` to include channel name / internal ID
 - DONE: new DM RequireAdmin command: `encrypt foobar` - returns encrypted & base64 encoded secret; can be used in template with `{{ decrypt "base64string" }}`
 - DONE: Bash/Ruby/Python GetSecret
 - DONE: Implement Recall for Python / Bash?
@@ -34,9 +39,10 @@ These are the items deemed as required for releasing version 2 because they chan
 
 ### Wishlist
 These items aren't required for release, but desired soonish
+- TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
 - TODO: Update 'Starting job xxxx' message to include arguments; e.g. 'Starting job localtrusted github.com/lnxjedi/gopherbot master'
 - TODO: Ansible playbook / Dockerfiles: /var/lib/gopherbot/(.env, custom) gopherbot:550:bin:root; custom:700:robot:robot; /opt/gopherbot/gopherbot suid robot
-- TODO: CommandOnlyUsers - to allow bots to talk to each other without matching ambient messages; ref: Great Chuck Norris War of 2018
+- TODO: CommandOnlyUsers - to allow bots to talk to each other without matching ambient messages; 
 - TODO: Decrypt brain utility for removing 2nd level of encryption (secrets still encrypted)
 
 ## Protecting Secrets
@@ -120,8 +126,6 @@ To simplify locking:
 - DONE/TEST/DOCUMENT: fix configuration merging to include plugin default config
 - DONE/TEST/DOCUMENT: Make sure plugins/tasks/jobs can be disabled in gopherbot.yaml
 - TODO: Move *.sample files to new resources/custom - sample remote config repository
-- TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
-- TODO: Update `whoami` to include channel name / internal ID
 - TODO: Evaluate / update Ansible role to simplify use
 - TODO: Low Priority - Support for Go jobs / tasks (can wait 'til first need)
 - DONE/DOCUMENT: try converting lists of tasks/jobs/plugins to map[name]struct
