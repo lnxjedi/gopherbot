@@ -10,7 +10,8 @@
 
 ## Version 2 Release TODOs
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
-- TODO: New Add/Final/FailCommand that take two string args: \<pluginname\> "command string"; matched against plugins; calling plugins directly is dangerous and can panic the robot when the number of args is wrong
+- IN PROGRESS: New Add/Final/FailCommand that take two string args: \<pluginname\> "command string"; matched against plugins; calling plugins directly is dangerous and can panic the robot when the number of args is wrong;
+   - TODO: update http.go w/ new methods, update libs, update gopherci+update
 - TODO: Create AddJob that checks for job then calls AddTask - more explicit / readable code
 - TODO: Update use of jobAvailable/Visible to allow commands to run in a pipeline w/o respect to visibility
 - DONE: Update "Starting job ..." to include arguments
