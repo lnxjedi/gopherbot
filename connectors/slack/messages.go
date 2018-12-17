@@ -107,6 +107,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	reAddedLinks := regexp.MustCompile(`<https?://[\w-./]+\|([\w-./]+)>`) // match a slack-inserted link
 	reLinks := regexp.MustCompile(`<(https?://[.\w-:/?=~]+)>`)            // match a link where slack added <>
 	reUser := regexp.MustCompile(`<@U[A-Z0-9]{8}>`)                       // match a @user mention
+	reMailToLink := regexp.MustCompile(`<mailto:[^|]+\|([\w-./@]+)>`)     // match mailto links
 
 	// Channel is always part of the root message; if subtype is
 	// message_changed, text and user are part of the submessage
@@ -156,6 +157,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	// Remove auto-links - chatbots don't want those
 	text = reAddedLinks.ReplaceAllString(text, "$1")
 	text = reLinks.ReplaceAllString(text, "$1")
+	text = reMailToLink.ReplaceAllString(text, "$1")
 
 	userName, ok := s.userName(userID)
 	if !ok {
