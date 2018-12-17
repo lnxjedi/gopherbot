@@ -79,7 +79,7 @@ if len(sys.argv) == 0:
             if repotype != "none":
                 build_triggered = True
                 bot.Log("Debug", "Adding primary build for %s / %s to the pipeline" % (repository, branch))
-                bot.AddTask(repotype, [ repository, branch ])
+                bot.AddJob(repotype, [ repository, branch ])
     try:
         deps = get_deps(repository, True)
     except Exception as e:
@@ -89,7 +89,7 @@ if len(sys.argv) == 0:
     if deps:
         build_triggered = True
         bot.Log("Debug", "Starting builds for everything that depends on %s / %s" % (repository, branch))
-        bot.AddTask("gopherci", [ repository, branch, "true" ])
+        bot.AddJob("gopherci", [ repository, branch, "true" ])
 
 if len(sys.argv) == 1:
     # build depdencies for a repository
@@ -121,11 +121,11 @@ if len(sys.argv) == 2:
             if repotype != "none":
                 build_triggered = True
                 bot.Log("Debug", "Adding primary dependency build for %s / %s to the pipeline, triggered by %s / %s" % (repository, branch, deprepo, depbranch))
-                bot.AddTask(repotype, [ repository, branch, deprepo, depbranch ])
+                bot.AddJob(repotype, [ repository, branch, deprepo, depbranch ])
     deps = get_deps(repository, False)
     if deps:
         bot.Log("Debug", "Starting builds for everything that depends on %s / %s (initially triggered by %s / %s" % (repository, branch, deprepo, depbranch))
-        bot.AddTask("gopherci", [ repository, branch, "true" ])
+        bot.AddJob("gopherci", [ repository, branch, "true" ])
 
 if not build_triggered:
     bot.Log("Debug", "Ignoring update on '%s', no builds triggered" % repository)

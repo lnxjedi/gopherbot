@@ -58,6 +58,11 @@ type taskcall struct {
 	CmdArgs []string
 }
 
+type cmdcall struct {
+	Plugin  string
+	Command string
+}
+
 type paramcall struct {
 	Name, Value string
 }
@@ -262,13 +267,15 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	case "GetRepoData":
 		sendReturn(rw, r.GetRepoData())
 		return
-	case "AddTask", "FinalTask", "FailTask", "SpawnJob":
+	case "AddTask", "AddJob", "FinalTask", "FailTask", "SpawnJob":
 		var ts taskcall
 		if !getArgs(rw, &f.FuncArgs, &ts) {
 			return
 		}
 		var ret RetVal
 		switch f.FuncName {
+		case "AddJob":
+			ret = r.AddJob(ts.Name, ts.CmdArgs...)
 		case "AddTask":
 			ret = r.AddTask(ts.Name, ts.CmdArgs...)
 		case "FinalTask":
@@ -277,6 +284,24 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			ret = r.FailTask(ts.Name, ts.CmdArgs...)
 		case "SpawnJob":
 			ret = r.SpawnJob(ts.Name, ts.CmdArgs...)
+		default:
+			return
+		}
+		sendReturn(rw, &botretvalresponse{int(ret)})
+		return
+	case "AddCommand", "FinalCommand", "FailCommand":
+		var cc cmdcall
+		if !getArgs(rw, &f.FuncArgs, &cc) {
+			return
+		}
+		var ret RetVal
+		switch f.FuncName {
+		case "AddCommand":
+			ret = r.AddCommand(cc.Plugin, cc.Command)
+		case "FinalCommand":
+			ret = r.FinalCommand(cc.Plugin, cc.Command)
+		case "FailCommand":
+			ret = r.FailCommand(cc.Plugin, cc.Command)
 		default:
 			return
 		}

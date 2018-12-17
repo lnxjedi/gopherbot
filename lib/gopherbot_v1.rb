@@ -102,6 +102,10 @@ class BaseBot
 		return callBotFunc("SpawnJob", { "Name" => name, "CmdArgs" => args })["RetVal"]
 	end
 
+	def AddJob(name, args)
+		return callBotFunc("AddJob", { "Name" => name, "CmdArgs" => args })["RetVal"]
+	end
+
 	def AddTask(name, args)
 		return callBotFunc("AddTask", { "Name" => name, "CmdArgs" => args })["RetVal"]
 	end
@@ -112,6 +116,18 @@ class BaseBot
 
 	def FailTask(name, args)
 		return callBotFunc("FailTask", { "Name" => name, "CmdArgs" => args })["RetVal"]
+	end
+
+	def AddCommand(name, arg)
+		return callBotFunc("AddCommand", { "Plugin" => name, "Command" => arg })["RetVal"]
+	end
+
+	def FinalCommand(name, arg)
+		return callBotFunc("FinalCommand", { "Plugin" => name, "Command" => arg })["RetVal"]
+	end
+
+	def FailCommand(name, arg)
+		return callBotFunc("FailCommand", { "Plugin" => name, "Command" => arg })["RetVal"]
 	end
 
 	def SetParameter(name, value)

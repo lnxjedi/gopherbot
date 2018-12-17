@@ -234,10 +234,11 @@ EOF
 	fi
 }
 
-SpawnJob(){
+_pipeTask(){
 	local JSTR
-	local TNAME="$1"
-	shift
+	local FNAME="$1"
+	local TNAME="$2"
+	shift 2
 	for ARG in "$@"
 	do
 		JSTR="$JSTR \"$ARG\""
@@ -253,81 +254,56 @@ SpawnJob(){
 }
 EOF
 )
-	local GB_FUNCNAME="SpawnJob"
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	GB_RET=$(gbPostJSON $FNAME "$GB_FUNCARGS" $FORMAT)
 	gbBotRet "$GB_RET"
+}
+
+AddJob(){
+	_pipeTask "AddJob" "$@"
 }
 
 AddTask(){
-	local JSTR
-	local TNAME="$1"
-	shift
-	for ARG in "$@"
-	do
-		JSTR="$JSTR \"$ARG\""
-	done
-	if [ -n "$JSTR" ]
-	then
-		JSTR=$(echo ${JSTR//\" \"/\", \"})
-	fi
-	local GB_FUNCARGS=$(cat <<EOF
-{
-	"Name": "$TNAME",
-	"CmdArgs": [ $JSTR ]
-}
-EOF
-)
-	local GB_FUNCNAME="AddTask"
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
-	gbBotRet "$GB_RET"
+	_pipeTask "AddTask" "$@"
 }
 
 FinalTask(){
-	local JSTR
-	local TNAME="$1"
-	shift
-	for ARG in "$@"
-	do
-		JSTR="$JSTR \"$ARG\""
-	done
-	if [ -n "$JSTR" ]
-	then
-		JSTR=$(echo ${JSTR//\" \"/\", \"})
-	fi
-	local GB_FUNCARGS=$(cat <<EOF
-{
-	"Name": "$TNAME",
-	"CmdArgs": [ $JSTR ]
-}
-EOF
-)
-	local GB_FUNCNAME="FinalTask"
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
-	gbBotRet "$GB_RET"
+	_pipeTask "FinalTask" "$@"
 }
 
 FailTask(){
+	_pipeTask "FailTask" "$@"
+}
+
+SpawnJob(){
+	_pipeTask "SpawnJob" "$@"
+}
+
+_cmdTask(){
 	local JSTR
-	local TNAME="$1"
-	shift
-	for ARG in "$@"
-	do
-		JSTR="$JSTR \"$ARG\""
-	done
-	if [ -n "$JSTR" ]
-	then
-		JSTR=$(echo ${JSTR//\" \"/\", \"})
-	fi
+	local FNAME="$1"
+	local TNAME="$2"
+	local PCMD="$3"
 	local GB_FUNCARGS=$(cat <<EOF
 {
-	"Name": "$TNAME",
-	"CmdArgs": [ $JSTR ]
+	"Plugin": "$TNAME",
+	"Command": "$PCMD"
 }
 EOF
 )
-	local GB_FUNCNAME="FailTask"
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	GB_RET=$(gbPostJSON $FNAME "$GB_FUNCARGS" $FORMAT)
 	gbBotRet "$GB_RET"
+}
+
+AddCommand(){
+	_cmdTask "AddCommand" "$@"
+}
+
+FailCommand(){
+	_cmdTask "FailCommand" "$@"
+}
+
+FinalCommand(){
+	_cmdTask "FinalCommand" "$@"
 }
 
 Exclusive(){

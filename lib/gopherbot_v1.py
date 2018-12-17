@@ -126,6 +126,9 @@ class Robot:
     def SpawnJob(self, name, args):
         return self.Call("SpawnJob", { "Name": name, "CmdArgs": args })["RetVal"]
 
+    def AddJob(self, name, args):
+        return self.Call("AddJob", { "Name": name, "CmdArgs": args })["RetVal"]
+
     def AddTask(self, name, args):
         return self.Call("AddTask", { "Name": name, "CmdArgs": args })["RetVal"]
 
@@ -134,6 +137,15 @@ class Robot:
 
     def FailTask(self, name, args):
         return self.Call("FailTask", { "Name": name, "CmdArgs": args })["RetVal"]
+
+    def AddCommand(self, plugin, cmd):
+        return self.Call("AddCommand", { "Plugin": plugin, "Command": cmd })["RetVal"]
+
+    def FinalCommand(self, plugin, cmd):
+        return self.Call("FinalCommand", { "Plugin": plugin, "Command": cmd })["RetVal"]
+
+    def FailCommand(self, plugin, cmd):
+        return self.Call("FailCommand", { "Plugin": plugin, "Command": cmd })["RetVal"]
 
     def SetParameter(self, name, value):
         return self.Call("SetParameter", { "Name": name, "Value": value })["Boolean"]

@@ -345,19 +345,19 @@ func (r *Robot) AddJob(name string, args ...string) RetVal {
 // AddCommand adds a plugin command to the pipeline. The command string
 // argument should match a CommandMatcher for the given plugin.
 func (r *Robot) AddCommand(plugname, command string) RetVal {
-	return r.pipeTask(flavorAdd, typePlugin, command)
+	return r.pipeTask(flavorAdd, typePlugin, plugname, command)
 }
 
 // FinalCommand adds a plugin command that always runs when a pipeline
 // ends, for e.g. emailing the job history. The command string
 // argument should match a CommandMatcher for the given plugin.
 func (r *Robot) FinalCommand(plugname, command string) RetVal {
-	return r.pipeTask(flavorFinal, typePlugin, command)
+	return r.pipeTask(flavorFinal, typePlugin, plugname, command)
 }
 
 // FailCommand adds a plugin command that runs whenever a pipeline fails,
 // for e.g. emailing the job history. The command string
 // argument should match a CommandMatcher for the given plugin.
 func (r *Robot) FailCommand(plugname, command string) RetVal {
-	return r.pipeTask(flavorFail, typePlugin, command)
+	return r.pipeTask(flavorFail, typePlugin, plugname, command)
 }
