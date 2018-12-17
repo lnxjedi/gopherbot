@@ -14,6 +14,24 @@ const (
 	Test
 )
 
+type pipeAddFlavor int
+type pipeAddType int
+
+const (
+	flavorSpawn pipeAddFlavor = iota
+	flavorAdd
+	flavorFinal
+	flavorFail
+)
+
+const (
+	typeTask pipeAddType = iota
+	typePlugin
+	typeJob
+)
+
 //go:generate stringer -type=Protocol constants.go
+//go:generate stringer -type=pipeAddFlavor constants.go
+//go:generate stringer -type=pipeAddType constants.go
 
 // Generate String method with: go generate ./bot/
