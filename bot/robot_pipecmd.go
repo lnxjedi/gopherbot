@@ -194,22 +194,6 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	return true
 }
 
-type pipeAddFlavor int
-type pipeAddType int
-
-const (
-	flavorSpawn pipeAddFlavor = iota
-	flavorAdd
-	flavorFinal
-	flavorFail
-)
-
-const (
-	typeTask pipeAddType = iota
-	typePlugin
-	typeJob
-)
-
 // pipeTask does all the real work of adding tasks to pipelines or spawning
 // new tasks.
 func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, args ...string) RetVal {
@@ -286,6 +270,8 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 		Arguments: cmdargs,
 		task:      t,
 	}
+	argstr := strings.Join(args, " ")
+	r.Log(Debug, fmt.Sprintf("Adding pipeline task %s/%s: %s %s", pflavor, ptype, name, argstr))
 	switch pflavor {
 	case flavorAdd:
 		c.nextTasks = append(c.nextTasks, ts)
