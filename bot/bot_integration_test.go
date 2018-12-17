@@ -350,8 +350,8 @@ func TestHelp(t *testing.T) {
 	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		// Took a while to get the regex right - exactly 16 lines of output (15 + [^\n]*)
-		{alice, deadzone, ";help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){17}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		// Took a while to get the regex right; should be # of help msgs * 2 - 1; e.g. 11 lines -> 21
+		{alice, deadzone, ";help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){21}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{alice, deadzone, ";help help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){3}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
