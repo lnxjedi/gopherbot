@@ -10,9 +10,9 @@
 
 ## Version 2 Release TODOs
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
-- TODO: Push bot name, mapping of usernames to IDs, from engine to connector, letting e.g. Slack resolve userIDs to userNames when configured in a UserRoster
+- DONE: Push bot name, mapping of usernames to IDs, from engine to connector, letting e.g. Slack resolve userIDs to userNames when configured in a UserRoster
 - TODO: Check / fix double plugin init on startup
-- TODO: Replace Say/Reply with connector-specific versions that work even when channel isn't known
+- DONE: Replace Say/Reply with connector-specific versions that work even when channel isn't known
 - DONE: New Add/Final/FailCommand that take two string args: \<pluginname\> "command string"; matched against plugins; calling plugins directly is dangerous and can panic the robot when the number of args is wrong
 - DONE: Create AddJob that checks for job then calls AddTask - more explicit / readable code
 - DONE: Update use of jobAvailable/Visible to allow commands to run in a pipeline w/o respect to visibility
@@ -29,16 +29,16 @@ These are the items deemed as required for releasing version 2 because they chan
    - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
 - TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
 - TODO: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, and in addition to the raw message, an API object for direct calls to the protocol
-- TODO: Rename BotRoster to UserRoster in main code; Slack will eventually deprecate usernames and mapping will need to be explicit
+- In Progress: Rename BotRoster to UserRoster in main code; Slack will eventually deprecate usernames and mapping will need to be explicit
    - DONE: Update Robot methods to provide "\<userid\>" preferably, then "user"
-   - IN PROGRESS: Update connector methods to take "user" or "\<userid\>"; finish terminal, slack
+   - DONE: Update connector methods to take "user" or "\<userid\>"; finish terminal, slack
    - TODO: Update Get*Attribute() to prefer data from user/channel maps
    - DONE: Update conf.go with new UserRoster / ChannelRoster
-   - TODO: Update term/test connectors to properly populate the ConnectorMessage
+   - DONE: Update term/test connectors to properly populate the ConnectorMessage
    - DONE: Update handler.go/IncomingMessage to resolve names from rosters
    - TODO: (maybe later) clean up IncomingMessage / botContext struct to eliminate dupes from the ConnectorMessage
    - TODO: Add 'TriggersOnly' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
-   - TODO: Update `whoami` to include channel name / internal ID
+   - DONE: Update `whoami` to include channel name / internal ID
 - DONE: new DM RequireAdmin command: `encrypt foobar` - returns encrypted & base64 encoded secret; can be used in template with `{{ decrypt "base64string" }}`
 - DONE: Bash/Ruby/Python GetSecret
 - DONE: Implement Recall for Python / Bash?
