@@ -255,7 +255,7 @@ func (r *Robot) GetBotAttribute(a string) *AttrRet {
 		attr = botCfg.botinfo.FullName
 	case "alias":
 		attr = string(botCfg.alias)
-	case "email":
+	case "mail", "email":
 		attr = botCfg.botinfo.Email
 	case "contact", "admin", "admincontact":
 		attr = botCfg.adminContact

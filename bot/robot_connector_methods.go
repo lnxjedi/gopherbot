@@ -13,10 +13,34 @@ func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
 	a = strings.ToLower(a)
 	c := r.getContext()
 	var user string
-	if ui, ok := c.maps.user[u]; ok {
+	var ui *UserInfo
+	var ok bool
+	if ui, ok = c.maps.user[u]; ok {
 		user = "<" + ui.UserID + ">"
 	} else {
 		user = u
+	}
+	if ui != nil {
+		var attr string
+		switch a {
+		case "name", "username", "handle", "user":
+			attr = ui.UserName
+		case "id", "internalid", "protocolid":
+			attr = ui.UserID
+		case "mail", "email":
+			attr = ui.Email
+		case "fullname", "realname":
+			attr = ui.FullName
+		case "firstname", "givenname":
+			attr = ui.FirstName
+		case "lastname", "surname":
+			attr = ui.LastName
+		case "phone":
+			attr = ui.Phone
+		}
+		if len(attr) > 0 {
+			return &AttrRet{attr, Ok}
+		}
 	}
 	attr, ret := botCfg.GetProtocolUserAttribute(user, a)
 	return &AttrRet{attr, ret}
@@ -42,18 +66,40 @@ func (c *botContext) messageHeard() {
 // name(handle), fullName, email, firstName, lastName, phone, internalID
 // TODO: (see above)
 func (r *Robot) GetSenderAttribute(a string) *AttrRet {
+	c := r.getContext()
 	a = strings.ToLower(a)
+	var ui *UserInfo
+	ui, _ = c.maps.user[r.User]
 	switch a {
-	case "name", "username", "handle", "user", "user name":
+	case "name", "username", "handle", "user":
 		return &AttrRet{r.User, Ok}
-	default:
-		user := r.ProtocolUser
-		if len(user) == 0 {
-			user = r.User
-		}
-		attr, ret := botCfg.GetProtocolUserAttribute(user, a)
-		return &AttrRet{attr, ret}
+	case "id", "internalid", "protocolid":
+		return &AttrRet{r.ProtocolUser, Ok}
 	}
+	if ui != nil {
+		var attr string
+		switch a {
+		case "mail", "email":
+			attr = ui.Email
+		case "fullname", "realname":
+			attr = ui.FullName
+		case "firstname", "givenname":
+			attr = ui.FirstName
+		case "lastname", "surname":
+			attr = ui.LastName
+		case "phone":
+			attr = ui.Phone
+		}
+		if len(attr) > 0 {
+			return &AttrRet{attr, Ok}
+		}
+	}
+	user := r.ProtocolUser
+	if len(user) == 0 {
+		user = r.User
+	}
+	attr, ret := botCfg.GetProtocolUserAttribute(user, a)
+	return &AttrRet{attr, ret}
 }
 
 // SendChannelMessage lets a plugin easily send a message to an arbitrary
