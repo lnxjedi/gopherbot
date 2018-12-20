@@ -120,7 +120,8 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 			Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, c.pipeName))
 		} else {
 			if nh > 0 && c.history != nil {
-				pipeHistory, err := c.history.NewHistory(c.pipeName+":"+ext, hist.LogIndex, nh)
+				hspec := c.pipeName + ":" + ext
+				pipeHistory, err := c.history.NewHistory(hspec, hist.LogIndex, nh)
 				if err != nil {
 					Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", c.pipeName, err))
 				} else {
@@ -132,7 +133,11 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 					r.Log(Debug, fmt.Sprintf("Started new history for job '%s' with namespace '%s'", c.jobName, ext))
 					if c.verbose {
 						r.Channel = c.jobChannel
-						r.Say(fmt.Sprintf("Job '%s' extended namespace: %s:%s, run %d", c.jobName, c.jobName, ext, c.runIndex))
+						var link string
+						if url, ok := c.history.GetHistoryURL(hspec, hist.LogIndex); ok {
+							link = fmt.Sprintf(" (link: %s)", url)
+						}
+						r.Say(fmt.Sprintf("Job '%s' extended namespace: %s:%s, run %d%s", c.jobName, c.jobName, ext, c.runIndex, link))
 					}
 				}
 			} else {

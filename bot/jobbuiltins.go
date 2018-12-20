@@ -70,8 +70,8 @@ func jobcommands(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	return
 }
 
-func emailhistory(r *Robot, user, address, spec string, run int) (retval TaskRetVal) {
-	f, err := botCfg.history.GetHistory(spec, run)
+func emailhistory(r *Robot, hp HistoryProvider, user, address, spec string, run int) (retval TaskRetVal) {
+	f, err := hp.GetHistory(spec, run)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting history %d for task '%s': %v", run, spec, err))
 		r.Say(fmt.Sprintf("History %d for '%s' not available", run, spec))
@@ -105,8 +105,8 @@ func emailhistory(r *Robot, user, address, spec string, run int) (retval TaskRet
 	return
 }
 
-func pagehistory(r *Robot, spec string, run int) (retval TaskRetVal) {
-	f, err := botCfg.history.GetHistory(spec, run)
+func pagehistory(r *Robot, hp HistoryProvider, spec string, run int) (retval TaskRetVal) {
+	f, err := hp.GetHistory(spec, run)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting history %d for task '%s': %v", run, spec, err))
 		r.Say(fmt.Sprintf("History %d for '%s' not available", run, spec))
@@ -200,6 +200,14 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 
 	switch command {
 	case "history", "mailhistory":
+		botCfg.RLock()
+		hp := botCfg.history
+		if hp == nil {
+			botCfg.RUnlock()
+			r.Reply("No history provider configured")
+			return
+		}
+		botCfg.RUnlock()
 		var jh jobHistory
 		key := histPrefix + histSpec
 		_, _, ret := checkoutDatum(key, &jh, false)
@@ -265,16 +273,21 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		switch histType {
 		case "email":
 			if len(user) > 0 {
-				return emailhistory(r, user, "", histSpec, idx)
+				return emailhistory(r, hp, user, "", histSpec, idx)
 			} else if len(address) > 0 {
-				return emailhistory(r, "", address, histSpec, idx)
+				return emailhistory(r, hp, "", address, histSpec, idx)
 			} else {
-				return emailhistory(r, "", "", histSpec, idx)
+				return emailhistory(r, hp, "", "", histSpec, idx)
 			}
 		case "link":
+			if link, ok := hp.GetHistoryURL(histSpec, idx); ok {
+				r.Say(fmt.Sprintf("Here you go: %s", link))
+				return
+			}
+			r.Say("No link available")
 			return
 		default:
-			return pagehistory(r, histSpec, idx)
+			return pagehistory(r, hp, histSpec, idx)
 		}
 	}
 	return

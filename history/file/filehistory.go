@@ -21,7 +21,8 @@ var robot bot.Handler
 const logFlags = log.LstdFlags
 
 type historyConfig struct {
-	Directory string `yaml:Directory"` // path to histories
+	Directory string `yaml:"Directory"` // path to histories
+	URLPrefix string `yaml:"URLPrefix"` // Optional URL prefix corresponding to the Directory
 }
 
 type historyFile struct {
@@ -95,6 +96,18 @@ func (fhc *historyConfig) GetHistory(tag string, index int) (io.Reader, error) {
 	dirPath := path.Join(fhc.Directory, tag)
 	filePath := path.Join(dirPath, fmt.Sprintf("%s-%d.log", tag, index))
 	return os.Open(filePath)
+}
+
+// GetHistory returns an io.Reader
+func (fhc *historyConfig) GetHistoryURL(tag string, index int) (string, bool) {
+	if len(fhc.URLPrefix) == 0 {
+		return "", false
+	}
+	tag = strings.Replace(tag, `\`, ":", -1)
+	tag = strings.Replace(tag, `/`, ":", -1)
+	prefix := strings.TrimRight(fhc.URLPrefix, "/")
+	htmlPath := fmt.Sprintf("%s/%s/%s-%d.log", prefix, tag, tag, index)
+	return htmlPath, true
 }
 
 func provider(r bot.Handler) bot.HistoryProvider {

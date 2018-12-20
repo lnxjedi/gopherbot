@@ -118,17 +118,25 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			r := c.makeRobot()
 			iChannel := c.Channel    // channel where job was triggered / run
 			r.Channel = c.jobChannel // channel where job updates are posted
+			taskinfo := task.name
+			if len(args) > 0 {
+				taskinfo += " " + strings.Join(args, " ")
+			}
+			var link string
+			if url, ok := c.history.GetHistoryURL(task.name, c.runIndex); ok {
+				link = fmt.Sprintf(" (link: %s)", url)
+			}
 			switch ptype {
 			case jobTrigger:
-				r.Say(fmt.Sprintf("Starting job '%s', run %d - triggered by app '%s' in channel '%s'", task.name, c.runIndex, c.User, iChannel))
+				r.Say(fmt.Sprintf("Starting job '%s', run %d%s - triggered by app '%s' in channel '%s'", taskinfo, c.runIndex, link, c.User, iChannel))
 			case jobCmd:
-				r.Say(fmt.Sprintf("Starting job '%s', run %d - requested by user '%s' in channel '%s'", task.name, c.runIndex, c.User, iChannel))
+				r.Say(fmt.Sprintf("Starting job '%s', run %d%s - requested by user '%s' in channel '%s'", taskinfo, c.runIndex, link, c.User, iChannel))
 			case spawnedTask:
-				r.Say(fmt.Sprintf("Starting job '%s', run %d - spawned by pipeline '%s': %s", task.name, c.runIndex, ppipeName, ppipeDesc))
+				r.Say(fmt.Sprintf("Starting job '%s', run %d%s - spawned by pipeline '%s': %s", taskinfo, c.runIndex, link, ppipeName, ppipeDesc))
 			case scheduled:
-				r.Say(fmt.Sprintf("Starting scheduled job '%s', run %d", task.name, c.runIndex))
+				r.Say(fmt.Sprintf("Starting scheduled job '%s', run %d%s", taskinfo, c.runIndex, link))
 			default:
-				r.Say(fmt.Sprintf("Starting job '%s', run %d", task.name, c.runIndex))
+				r.Say(fmt.Sprintf("Starting job '%s', run %d%s", taskinfo, c.runIndex, link))
 			}
 			c.verbose = true
 		}

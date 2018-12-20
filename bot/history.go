@@ -43,6 +43,8 @@ type HistoryProvider interface {
 	NewHistory(tag string, index, maxHistories int) (HistoryLogger, error)
 	// GetHistory gets an io.Reader() for a given history log
 	GetHistory(tag string, index int) (io.Reader, error)
+	// GetHistoryURL provides a URL for the history file if there is one
+	GetHistoryURL(tag string, index int) (string, bool)
 }
 
 // Map of registered history providers
