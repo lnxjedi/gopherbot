@@ -66,10 +66,8 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 
 	tc.Handler = robot
-	tc.SetFullName(tc.botFullName)
-	tc.Log(bot.Debug, "Set bot full name to", tc.botFullName)
-	tc.SetName(tc.botName)
-	tc.Log(bot.Info, "Set bot name to", tc.botName)
+	tc.SetID(tc.botID)
+	tc.Log(bot.Info, "Set bot ID to", tc.botID)
 
 	return bot.Connector(tc)
 }

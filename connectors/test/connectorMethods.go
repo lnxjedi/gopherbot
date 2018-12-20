@@ -39,6 +39,11 @@ func (tc *TestConnector) MessageHeard(u, c string) {
 	return
 }
 
+// SetUserMap lets Gopherbot provide a mapping of usernames to user IDs
+func (tc *TestConnector) SetUserMap(map[string]string) {
+	return
+}
+
 // GetProtocolUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
 func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {
