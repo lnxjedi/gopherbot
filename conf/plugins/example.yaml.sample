@@ -1,9 +1,9 @@
 ---
 ## Example plugin configuration file showing most configurable items.
 
-## NOTE: Configured items replace the default config; if you override e.g.
-## Help, you need to copy all of the original help config and edit/replace
-## as you like.
+## NOTE: Configured items merge with the default config, and arrays are
+## appended; to add e.g. Help entries, just create a Help: section with
+## new items to be added.
 
 ## Compiled-in go plugins can be disabled
 Disabled: false
@@ -26,6 +26,9 @@ AllChannels: false
 RequireAdmin: false
 ## To limit access to a plugin to specific users, list there usernames
 Users: [ "alice", "bob", "carol" ]
+## You can require users to be members of a group
+Authorizer: groups
+AuthrRequire: monkeys
 ## When help <keyword> is requested, the robot will spit out the items in
 ## Helptext. By convention, commands that must be directed at the robot
 ## start with "(bot),"

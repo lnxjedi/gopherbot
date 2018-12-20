@@ -1,0 +1,15 @@
+---
+## Default configuration for Duo two-factor authentication. If your organization
+## uses Duo, you can obtain an IKey, SKey and Host for use with the auth api.
+Config:
+## How long elevation lasts
+  TimeoutSeconds: 7200
+## When 'idle', the timer resets on every elevated command
+  TimeoutType: idle # or absolute
+  DuoIKey: {{ env "GOPHER_DUO_IKEY" }} # or `store task parameter duo IKEY=<something>`
+  DuoSKey: {{ env "GOPHER_DUO_SKEY" }} # or `store task parameter duo SKEY=<something>`
+  DuoHost: {{ env "GOPHER_DUO_HOST" }} # or `store task parameter duo HOST=<something>`
+  DuoUserString: emailUser
+{{ if not (env "GOPHER_DUO_HOST") }}
+Disabled: true
+{{ end }}
