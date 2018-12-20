@@ -10,6 +10,9 @@
 
 ## Version 2 Release TODOs
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
+- TODO: Push bot name, mapping of usernames to IDs, from engine to connector, letting e.g. Slack resolve userIDs to userNames when configured in a UserRoster
+- TODO: Check / fix double plugin init on startup
+- TODO: Replace Say/Reply with connector-specific versions that work even when channel isn't known
 - DONE: New Add/Final/FailCommand that take two string args: \<pluginname\> "command string"; matched against plugins; calling plugins directly is dangerous and can panic the robot when the number of args is wrong
 - DONE: Create AddJob that checks for job then calls AddTask - more explicit / readable code
 - DONE: Update use of jobAvailable/Visible to allow commands to run in a pipeline w/o respect to visibility
