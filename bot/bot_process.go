@@ -209,10 +209,6 @@ func run() <-chan struct{} {
 		close(done)
 	}(botCfg.Connector, botCfg.stop, botCfg.done)
 	botCfg.RUnlock()
-
-	initializePlugins()
-	botCfg.RLock()
-	defer botCfg.RUnlock()
 	return botCfg.done
 }
 
