@@ -332,6 +332,7 @@ func (r *Robot) GetTaskConfig(dptr interface{}) RetVal {
 func (r *Robot) Log(l LogLevel, v ...interface{}) {
 	c := r.getContext()
 	if Log(l, v...) && c.logger != nil {
-		c.logger.Log("LOG " + logLevelToStr(l) + " " + fmt.Sprintln(v...))
+		line := "LOG " + logLevelToStr(l) + " " + fmt.Sprintln(v...)
+		c.logger.Log(strings.TrimSpace(line))
 	}
 }
