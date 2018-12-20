@@ -35,7 +35,7 @@ These are the items deemed as required for releasing version 2 because they chan
    - DONE: Update conf.go with new UserRoster / ChannelRoster
    - DONE: Update term/test connectors to properly populate the ConnectorMessage
    - DONE: Update handler.go/IncomingMessage to resolve names from rosters
-   - TODO: Add 'TriggersOnly' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
+   - DONE/TEST: Add 'TriggersOnly' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
    - DONE: Update `whoami` to include channel name / internal ID
 - DONE: new DM RequireAdmin command: `encrypt foobar` - returns encrypted & base64 encoded secret; can be used in template with `{{ decrypt "base64string" }}`
 - DONE: Bash/Ruby/Python GetSecret
