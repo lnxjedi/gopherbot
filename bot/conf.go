@@ -290,6 +290,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		botCfg.botinfo = *newconfig.BotInfo
 		botCfg.botinfo.UserID = botID
 	}
+	botCfg.mailConf = newconfig.MailConfig
 
 	if newconfig.DefaultJobChannel != "" {
 		botCfg.defaultJobChannel = newconfig.DefaultJobChannel
