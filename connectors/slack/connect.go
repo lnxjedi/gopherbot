@@ -16,9 +16,8 @@ type botDefinition struct {
 }
 
 type config struct {
-	SlackToken      string          // the 'bot token for connecting to Slack
-	MaxMessageSplit int             // the maximum # of ~4000 byte messages to split a large message into
-	BotRoster       []botDefinition // roster mapping BXXX IDs to a defined username
+	SlackToken      string // the 'bot token for connecting to Slack
+	MaxMessageSplit int    // the maximum # of ~4000 byte messages to split a large message into
 }
 
 var lock sync.Mutex // package var lock
@@ -69,16 +68,6 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		maxMessageSplit: c.MaxMessageSplit,
 		name:            "slack",
 	}
-	sc.botUserID = make(map[string]string)
-	sc.botIDUser = make(map[string]string)
-	for _, b := range c.BotRoster {
-		if len(b.ID) == 0 || len(b.Name) == 0 {
-			robot.Log(bot.Error, "Zero-length Name or ID in BotRoster, skipping")
-			continue
-		}
-		sc.botUserID[b.Name] = b.ID
-		sc.botIDUser[b.ID] = b.Name
-	}
 	go sc.conn.ManageConnection()
 
 	sc.Handler = robot
@@ -94,9 +83,9 @@ Loop:
 				sc.Log(bot.Debug, fmt.Sprintf("Infos: %T %v\n", ev, *ev.Info.User))
 				sc.Log(bot.Debug, "Connection counter:", ev.ConnectionCount)
 				sc.botName = ev.Info.User.Name
-				sc.SetName(sc.botName)
-				sc.Log(bot.Info, "Slack setting bot name to", sc.botName)
 				sc.botID = ev.Info.User.ID
+				sc.Log(bot.Info, "Slack setting bot internal ID to", sc.botID)
+				sc.SetID(sc.botID)
 				sc.Log(bot.Trace, "Set bot ID to", sc.botID)
 				sc.teamID = ev.Info.Team.ID
 				sc.Log(bot.Info, "Set team ID to", sc.teamID)
@@ -111,8 +100,6 @@ Loop:
 	sc.updateChannelMaps("")
 	sc.updateUserList("")
 	sc.botFullName, _ = sc.GetProtocolUserAttribute(sc.botName, "realname")
-	sc.SetFullName(sc.botFullName)
-	sc.Log(bot.Debug, "Set bot full name to", sc.botFullName)
 	go sc.startSendLoop()
 
 	return bot.Connector(sc)

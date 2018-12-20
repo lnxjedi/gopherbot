@@ -48,10 +48,8 @@ var botCfg struct {
 	Connector                            // Connector interface, implemented by each specific protocol
 	adminUsers           []string        // List of users with access to administrative commands
 	alias                rune            // single-char alias for addressing the bot
-	name                 string          // e.g. "Gort"
-	fullName             string          // e.g. "Robbie Robot"
+	botinfo              UserInfo        // robot's name, ID, email, etc.
 	adminContact         string          // who to contact for problems with the bot
-	email                string          // the from: when the robot sends email
 	mailConf             botMailer       // configuration to use when sending email
 	ignoreUsers          []string        // list of users to never listen to, like other bots
 	preRegex             *regexp.Regexp  // regex for matching prefixed commands, e.g. "Gort, drop your weapon"

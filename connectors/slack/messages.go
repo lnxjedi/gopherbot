@@ -42,9 +42,11 @@ func optQuote(msg string, f bot.MessageFormat) string {
 	return msg
 }
 
+var mentionRe = regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
+
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // takes care of formatting, and segments the message if needed.
-func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []string {
+func (s *slackConnector) slackifyMessage(prefix, msg string, f bot.MessageFormat) []string {
 	maxSize := slack.MaxMessageTextLength - 500 // workaround for large message disconnects
 	if f == bot.Fixed {
 		maxSize -= 6
@@ -62,7 +64,8 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []stri
 		}
 	}
 
-	mentionRe := regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
+	// Eventually, this will only work for users configured in the
+	// UserRoster from gopherbot.yaml
 	sbytes = mentionRe.ReplaceAllFunc(sbytes, func(bytes []byte) []byte {
 		replace, ok := s.userID(string(bytes[1:]))
 		if ok {
@@ -70,6 +73,9 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []stri
 		}
 		return bytes
 	})
+	if len(prefix) > 0 {
+		sbytes = append([]byte(prefix), sbytes...)
+	}
 	msgLen := len(sbytes)
 	if msgLen <= maxSize {
 		return []string{optQuote(string(sbytes), f)}
@@ -99,15 +105,15 @@ func (s *slackConnector) slackifyMessage(msg string, f bot.MessageFormat) []stri
 	return msgs
 }
 
+var reAddedLinks = regexp.MustCompile(`<https?://[\w-./]+\|([\w-./]+)>`) // match a slack-inserted link
+var reLinks = regexp.MustCompile(`<(https?://[.\w-:/?=~]+)>`)            // match a link where slack added <>
+var reUser = regexp.MustCompile(`<@U[A-Z0-9]{8}>`)                       // match a @user mention
+var reMailToLink = regexp.MustCompile(`<mailto:[^|]+\|([\w-./@]+)>`)     // match mailto links
+
 // processMessage examines incoming messages, removes extra slack cruft, and
 // routes them to the appropriate bot method.
 func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	s.Log(bot.Trace, fmt.Sprintf("Message received: %v", msg.Msg))
-
-	reAddedLinks := regexp.MustCompile(`<https?://[\w-./]+\|([\w-./]+)>`) // match a slack-inserted link
-	reLinks := regexp.MustCompile(`<(https?://[.\w-:/?=~]+)>`)            // match a link where slack added <>
-	reUser := regexp.MustCompile(`<@U[A-Z0-9]{8}>`)                       // match a @user mention
-	reMailToLink := regexp.MustCompile(`<mailto:[^|]+\|([\w-./@]+)>`)     // match mailto links
 
 	// Channel is always part of the root message; if subtype is
 	// message_changed, text and user are part of the submessage
@@ -159,11 +165,6 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	text = reLinks.ReplaceAllString(text, "$1")
 	text = reMailToLink.ReplaceAllString(text, "$1")
 
-	userName, ok := s.userName(userID)
-	if !ok {
-		s.Log(bot.Error, "Couldn't find user name for user ID", userID)
-		userName = userID
-	}
 	mentions := reUser.FindAllString(text, -1)
 	if len(mentions) != 0 {
 		mset := make(map[string]bool)
@@ -185,6 +186,21 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		s.Log(bot.Error, "Couldn't find channel info for channel ID", chanID)
 		return
 	}
+	botMsg := &bot.ConnectorMessage{
+		Protocol:      "Slack",
+		UserID:        userID,
+		ChannelID:     chanID,
+		DirectMessage: ci.IsIM,
+		MessageText:   text,
+		MessageObject: msg,
+		Client:        s.api,
+	}
+	userName, ok := s.userName(userID)
+	if !ok {
+		s.Log(bot.Debug, "Couldn't find user name for user ID", userID)
+	} else {
+		botMsg.UserName = userName
+	}
 	if ci.IsIM {
 		directUserName, ok := s.imUser(chanID)
 		if directUserName != userName { // sometimes the bot hears his own last message
@@ -193,11 +209,13 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		}
 		if !ok {
 			s.Log(bot.Warn, "Couldn't find user name for IM", chanID)
-			s.IncomingMessage("", chanID, text, msg)
+			s.IncomingMessage(botMsg)
 			return
 		}
-		s.IncomingMessage("", directUserName, text, msg)
+		botMsg.UserName = directUserName
+		s.IncomingMessage(botMsg)
 	} else {
-		s.IncomingMessage(ci.Name, userName, text, msg)
+		botMsg.ChannelName = ci.Name
+		s.IncomingMessage(botMsg)
 	}
 }

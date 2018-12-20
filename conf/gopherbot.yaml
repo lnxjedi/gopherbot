@@ -24,15 +24,14 @@ Protocol: {{ $proto }}
 ProtocolConfig:
   MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
   SlackToken: {{ env "GOPHER_SLACK_TOKEN" }}
-## Custom configuration may include a roster of webhooks
-#   BotRoster:
-#   - Name: hook1
-#     ID: BC7JEBGAX
-#   - Name: hook2
-#     ID: BAVS35996
 
 ## Definitions for "test" and "term" connectors
 {{ else }}
+BotInfo:
+  UserName: bender
+  FullName: Bender Rodriguez
+  FirstName: Bender
+  LastName: Rodriguez
 ProtocolConfig:
   BotName: {{ env "GOPHER_BOTNAME" | default "floyd" }}
   BotFullName: {{ env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot" }}

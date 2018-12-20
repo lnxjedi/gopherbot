@@ -67,15 +67,17 @@ func ping(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) 
 	case "ping":
 		r.Fixed().Reply("PONG")
 	case "whoami":
-		u := r.GetSenderAttribute("name")
-		p := r.GetBotAttribute("protocol")
-		i := r.GetSenderAttribute("internalid")
+		u := r.User
+		uid := r.ProtocolUser
+		c := r.Channel
+		cid := r.ProtocolChannel
+		p := r.Protocol
 		e := r.GetSenderAttribute("email")
 		var msg string
 		if e.RetVal == bot.Ok {
-			msg = fmt.Sprintf("Your user name is '%s', %s internal ID '%s', email address: %s", u, p, i, e)
+			msg = fmt.Sprintf("You are '%s' user '%s/%s', speaking in channel '%s/%s', email address: %s", p, u, uid, c, cid, e)
 		} else {
-			msg = fmt.Sprintf("Your user name is '%s', %s internal ID '%s'", u, p, i)
+			msg = fmt.Sprintf("You are '%s' user '%s/%s', speaking in channel '%s/%s'", p, u, uid, c, cid)
 		}
 		r.MessageFormat(bot.Variable).Say(msg)
 	case "thanks":

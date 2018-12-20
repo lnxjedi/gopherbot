@@ -12,6 +12,7 @@ import (
 )
 
 // Global persistent map of user name to user index
+var userIDMap = make(map[string]int)
 var userMap = make(map[string]int)
 
 type termUser struct {
@@ -23,8 +24,6 @@ type termUser struct {
 type config struct {
 	StartChannel string // the initial channel
 	StartUser    string // the initial userid
-	BotName      string // the short name used for addressing the robot
-	BotFullName  string // the full name of the bot
 	Users        []termUser
 	Channels     []string
 }
@@ -55,6 +54,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	found := false
 	for i, u := range c.Users {
 		userMap[u.Name] = i
+		userIDMap[u.InternalID] = i
 		if c.StartUser == u.Name {
 			found = true
 		}
@@ -100,8 +100,6 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		currentUser:    c.StartUser,
 		channels:       c.Channels,
 		running:        false,
-		botName:        c.BotName,
-		botFullName:    c.BotFullName,
 		botID:          "deadbeef", // yes - hex in a string
 		users:          c.Users,
 		heard:          make(chan string),
@@ -109,10 +107,6 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 
 	tc.Handler = robot
-	tc.SetFullName(tc.botFullName)
-	tc.Log(bot.Debug, "Set bot full name to", tc.botFullName)
-	tc.SetName(tc.botName)
-	tc.Log(bot.Info, "Set bot name to", tc.botName)
 
 	return bot.Connector(tc)
 }

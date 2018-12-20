@@ -1,7 +1,0 @@
----
-Channels:
-- general
-Authorizer: groups
-AuthRequire: Helpdesk
-AuthorizedCommands:
-- remember

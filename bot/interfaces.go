@@ -11,11 +11,9 @@ type Logger interface {
 // Handler is the interface that defines the callback API for Connectors
 type Handler interface {
 	// IncomingMessage is called by the connector for all messages the bot
-	// can hear. The channelName and userName should be human-readable,
-	// not internal representations. If channelName is blank, it's a direct message.
-	// 'raw' is the raw incoming struct from the connector; tasks are passed
-	// a Protocol value that can be used for interpreting this value.
-	IncomingMessage(channelName, userName, message string, raw interface{})
+	// can hear. See the fields for ConnectorMessage for information about
+	// this object.
+	IncomingMessage(*ConnectorMessage)
 	// GetProtocolConfig unmarshals the ProtocolConfig section of gopherbot.yaml
 	// into a connector-provided struct
 	GetProtocolConfig(interface{}) error
@@ -25,12 +23,8 @@ type Handler interface {
 	// GetHistoryConfig unmarshals the HistoryConfig section of gopherbot.yaml
 	// into a struct provided by the brain provider
 	GetHistoryConfig(interface{}) error
-	// SetFullName allows the connector to set the robot's full name if it
-	// has access to it.
-	SetFullName(n string)
-	// SetName allows the connect to set the robot's name that it should be addressed
-	// by, if it has access to it.
-	SetName(n string)
+	// SetID allows the connector to set the robot's internal ID
+	SetID(id string)
 	// GetLogLevel allows the connector to check the robot's configured log level
 	// to make it's own decision about how much it should log. For slack, this
 	// determines whether the plugin does api logging.
@@ -50,6 +44,11 @@ type Handler interface {
 // Connector is the interface defining methods that should be provided by
 // the connector for use by plugins/bot
 type Connector interface {
+	// SetUserMap provides the connector with a map from usernames to userIDs,
+	// the protocol-internal ID for a user. The connector can use this map
+	// to replace @name mentions in messages, and/or build a map of userIDs
+	// to configured usernames.
+	SetUserMap(map[string]string)
 	// GetProtocolUserAttribute retrieves a piece of information about a user
 	// from the connector protocol, or "",!ok if the connector doesn't have the
 	// information. Plugins should normally call GetUserAttribute, which
@@ -66,7 +65,8 @@ type Connector interface {
 	// SendProtocolChannelMessage sends a message to a channel
 	SendProtocolChannelMessage(channelname, msg string, format MessageFormat) RetVal
 	// SendProtocolUserChannelMessage directs a message to a user in a channel
-	SendProtocolUserChannelMessage(user, channelname, msg string, format MessageFormat) RetVal
+	// This method also supplies what the bot engine believes to be the username.
+	SendProtocolUserChannelMessage(userid, username, channelname, msg string, format MessageFormat) RetVal
 	// SendProtocolUserMessage sends a direct message to a user if supported.
 	// For protocols not supportint DM, the bot should send a message addressed
 	// to the user in an implementation-specific channel.

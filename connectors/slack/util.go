@@ -31,14 +31,18 @@ type slackConnector struct {
 	channelInfo     map[string]*slack.Channel // info about all the channels the robot knows about
 	channelToID     map[string]string         // map from channel names to channel IDs
 	idToChannel     map[string]string         // map from channel ID to channel name
-	userInfo        map[string]*slack.User    // map from user names to slack.User
-	idToUser        map[string]string         // map from user ID to user name
+	userIDInfo      map[string]*slack.User    // map from user ID to slack.User
+	botUserMap      map[string]string         // gopherbot-engine provided mappings of username to userID
+	userMap         map[string]string         // map from user name to user ID
 	userIDToIM      map[string]string         // map from user ID to IM channel ID
 	imToUserID      map[string]string         // map from IM channel ID to user ID
-	botUserID       map[string]string         // map of BXXX IDs to username defined in the BotRoster
-	botIDUser       map[string]string         // map of defined username to BXXX ID
 }
 
+// updateUserList gets an updated list of users from Slack and creates
+// maps from userID to *slack.User and from user name to userID. It can also
+// be called from userID and userName lookup functions; "u:ID" means return
+// the user name for the given ID, "i:user" means return the ID for the given
+// user name.
 func (s *slackConnector) updateUserList(want string) (ret string) {
 	deadline := time.Now().Add(optimeout)
 	var (
@@ -46,9 +50,21 @@ func (s *slackConnector) updateUserList(want string) (ret string) {
 		userlist []slack.User
 	)
 
-	userIDMap := make(map[string]string)
-	userMap := make(map[string]*slack.User)
+	userMap := make(map[string]string)
+	var botUserMap map[string]string
+	s.RLock()
+	if s.botUserMap != nil {
+		botUserMap = s.botUserMap
+	}
+	s.RUnlock()
+	if botUserMap != nil {
+		for name, id := range botUserMap {
+			userMap[name] = id
+		}
+	}
+	userIDInfo := make(map[string]*slack.User)
 	for tries := uint(0); time.Now().Before(deadline); tries++ {
+		// TODO: Check GetUsers - do we need to worry about paging?
 		userlist, err = s.api.GetUsers()
 		if err == nil {
 			break
@@ -59,36 +75,35 @@ func (s *slackConnector) updateUserList(want string) (ret string) {
 	}
 	for i, user := range userlist {
 		if user.TeamID == s.teamID {
-			userMap[user.Name] = &userlist[i]
-			userIDMap[user.ID] = user.Name
+			userIDInfo[user.ID] = &userlist[i]
+			if _, ok := userMap[user.Name]; !ok {
+				userMap[user.Name] = user.ID
+			}
 		}
 	}
 	w := strings.Split(want, ":")
 	t := w[0]
 	switch t {
-	case "i":
+	case "i": // want user ID
 		u := w[1]
 		if r, ok := userMap[u]; ok {
-			ret = r.ID
+			ret = r
+		} else {
+			return "" // see above
+		}
+	case "u": // want user name
+		i := w[1]
+		if r, ok := userIDInfo[i]; ok {
+			ret = r.Name
 		} else {
 			// Don't update maps on failed lookup, to avoid thrashing
 			// locks on repeated lookups of non-users
 			return ""
 		}
-	case "u":
-		i := w[1]
-		if r, ok := userIDMap[i]; ok {
-			ret = r
-		} else {
-			return "" // see above
-		}
-	}
-	for i, u := range userMap {
-		s.Log(bot.Trace, "Mapping user name", u.Name, "to", i)
 	}
 	s.Lock()
-	s.userInfo = userMap
-	s.idToUser = userIDMap
+	s.userIDInfo = userIDInfo
+	s.userMap = userMap
 	s.Unlock()
 	s.Log(bot.Debug, "User maps updated")
 	return
@@ -96,11 +111,7 @@ func (s *slackConnector) updateUserList(want string) (ret string) {
 
 func (s *slackConnector) userID(u string) (i string, ok bool) {
 	s.RLock()
-	if i, ok = s.botUserID[u]; ok {
-		s.RUnlock()
-		return
-	}
-	user, ok := s.userInfo[u]
+	userID, ok := s.userMap[u]
 	s.RUnlock()
 	if !ok {
 		i := s.updateUserList("i:" + u)
@@ -110,17 +121,27 @@ func (s *slackConnector) userID(u string) (i string, ok bool) {
 		s.Log(bot.Error, fmt.Sprintf("Failed ID lookup for user '%s", u))
 		return "", false
 	}
-	return user.ID, ok
+	return userID, ok
 }
 
+// Eventually Slack won't know what usernames are anymore - but
+// this function will still be needed by processMessage to resolve
+// mentions of the robot to @botname, since the connector should
+// always know the robot's name.
 func (s *slackConnector) userName(i string) (user string, found bool) {
 	s.RLock()
+	if i == s.botID {
+		name := s.botName
+		s.RUnlock()
+		return name, true
+	}
 	if strings.HasPrefix(i, "B") {
-		user, found = s.botIDUser[i]
 		s.RUnlock()
 		return
 	}
-	user, found = s.idToUser[i]
+	var ui *slack.User
+	ui, found = s.userIDInfo[i]
+	user = ui.Name
 	s.RUnlock()
 	if !found {
 		u := s.updateUserList("u:" + i)
@@ -131,13 +152,6 @@ func (s *slackConnector) userName(i string) (user string, found bool) {
 		user = u
 		found = true
 	}
-	s.RLock()
-	if _, ok := s.botUserID[user]; ok {
-		s.Log(bot.Error, fmt.Sprintf("User '%s', ID '%s' duplicates bot with same username from BotRoster", user, i))
-		s.RUnlock()
-		return "", false
-	}
-	s.RUnlock()
 	return
 }
 

@@ -93,7 +93,7 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		if matches != nil {
 			jobName = matches[0][1]
 			messageMatched = true
-			r.messageHeard()
+			c.messageHeard()
 		} else {
 			return
 		}
@@ -101,6 +101,7 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		if t != nil {
 			c.currentTask = t
 			c.registerActive(nil)
+			r := c.makeRobot()
 			if !c.jobSecurityCheck(t, "run") {
 				c.deregister()
 				return

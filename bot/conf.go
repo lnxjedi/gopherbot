@@ -18,10 +18,12 @@ var protocolConfig, brainConfig, historyConfig json.RawMessage
 // BotConf defines 'bot configuration, and is read from conf/gopherbot.yaml
 type BotConf struct {
 	AdminContact         string                  // Contact info for whomever administers the robot
-	Email                string                  // From: address when the robot wants to send an email
 	MailConfig           botMailer               // configuration for sending email
 	Protocol             string                  // Name of the connector protocol to use, e.g. "slack"
 	ProtocolConfig       json.RawMessage         // Protocol-specific configuration, type for unmarshalling arbitrary config
+	BotInfo              *UserInfo               // Information about the robot
+	UserRoster           []UserInfo              // List of users and related attributes
+	ChannelRoster        []ChannelInfo           // List of channels mapping names to IDs
 	Brain                string                  // Type of Brain to use
 	BrainConfig          json.RawMessage         // Brain-specific configuration, type for unmarshalling arbitrary config
 	EncryptBrain         bool                    // Whether the brain should be encrypted
@@ -32,7 +34,6 @@ type BotConf struct {
 	DefaultElevator      string                  // Elevator plugin to use by default for ElevatedCommands and ElevateImmediateCommands
 	DefaultAuthorizer    string                  // Authorizer plugin to use by default for AuthorizedCommands, or when AuthorizeAllCommands = true
 	DefaultMessageFormat string                  // How the robot should format outgoing messages unless told otherwise; default: Raw
-	Name                 string                  // Name of the 'bot, specify here if the protocol doesn't supply it (slack does)
 	DefaultAllowDirect   bool                    // Whether plugins are available in a DM by default
 	DefaultChannels      []string                // Channels where plugins are active by default, e.g. [ "general", "random" ]
 	IgnoreUsers          []string                // Users the 'bot never talks to - like other bots
@@ -51,6 +52,42 @@ type BotConf struct {
 
 type repository struct {
 	Parameters []Parameter // per-repository parameters
+}
+
+// UserInfo is listed in the UserRoster of gopherbot.yaml to provide:
+// - Attributes and info that might not be provided by the connector:
+//   - Mapping of protocol internal ID to username
+//   - Additional user attributes such as first / last name, email, etc.
+// - Additional information needed by bot internals
+//   - TriggersOnly flag
+type UserInfo struct {
+	UserName            string // name that refers to the user in bot config files
+	UserID              string // unique/persistent ID given to the user by the connector
+	Email, Phone        string // for Get*Attribute()
+	FullName            string // for Get*Attribute()
+	FirstName, LastName string // for Get*Attribute()
+	TriggersOnly        bool   // these users are only checked against triggers and reply matchers
+}
+
+// ChannelInfo maps channel IDs to channel names when the connector doesn't
+// provide a sensible name for use in configuration files.
+type ChannelInfo struct {
+	ChannelName, ChannelID string // human-readable and protocol-internal channel representations
+}
+
+type userChanMaps struct {
+	userID    map[string]*UserInfo    // Current map of userID to UserInfo struct
+	user      map[string]*UserInfo    // Current map of username to UserInfo struct
+	channelID map[string]*ChannelInfo // Current map of channel ID to ChannelInfo struct
+	channel   map[string]*ChannelInfo // Current map of channel name to ChannelInfo struct
+}
+
+var currentUCMaps = struct {
+	ucmap *userChanMaps // pointer to current struct
+	sync.Mutex
+}{
+	nil,
+	sync.Mutex{},
 }
 
 // Protects the bot config and list of repositories
@@ -94,6 +131,9 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	for key, value := range configload {
 		var strval string
 		var sarrval []string
+		var urval []UserInfo
+		var bival *UserInfo
+		var crval []ChannelInfo
 		var tval map[string]ExternalTask
 		var stval []ScheduledTask
 		var mailval botMailer
@@ -106,6 +146,12 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			val = &strval
 		case "DefaultAllowDirect", "EncryptBrain":
 			val = &boolval
+		case "BotInfo":
+			val = &bival
+		case "UserRoster":
+			val = &urval
+		case "ChannelRoster":
+			val = &crval
 		case "LocalPort":
 			val = &intval
 		case "ExternalJobs", "ExternalPlugins", "ExternalTasks":
@@ -133,8 +179,8 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		switch key {
 		case "AdminContact":
 			newconfig.AdminContact = *(val.(*string))
-		case "Email":
-			newconfig.Email = *(val.(*string))
+		case "BotInfo":
+			newconfig.BotInfo = *(val.(**UserInfo))
 		case "MailConfig":
 			newconfig.MailConfig = *(val.(*botMailer))
 		case "Protocol":
@@ -161,8 +207,10 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			newconfig.DefaultAuthorizer = *(val.(*string))
 		case "DefaultMessageFormat":
 			newconfig.DefaultMessageFormat = *(val.(*string))
-		case "Name":
-			newconfig.Name = *(val.(*string))
+		case "UserRoster":
+			newconfig.UserRoster = *(val.(*[]UserInfo))
+		case "ChannelRoster":
+			newconfig.ChannelRoster = *(val.(*[]ChannelInfo))
 		case "DefaultAllowDirect":
 			newconfig.DefaultAllowDirect = *(val.(*bool))
 			explicitDefaultAllowDirect = true
@@ -198,7 +246,6 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	loglevel = logStrToLevel(newconfig.LogLevel)
 	setLogLevel(loglevel)
 
-	r := c.makeRobot()
 	if !preConnect {
 		botCfg.Lock()
 	}
@@ -214,7 +261,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	if len(newconfig.DefaultMessageFormat) == 0 {
 		botCfg.defaultMessageFormat = Raw
 	} else {
-		botCfg.defaultMessageFormat = r.setFormat(newconfig.DefaultMessageFormat)
+		botCfg.defaultMessageFormat = setFormat(newconfig.DefaultMessageFormat)
 	}
 
 	if explicitDefaultAllowDirect {
@@ -238,13 +285,10 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		}
 	}
 
-	if newconfig.Email != "" {
-		botCfg.email = newconfig.Email
-	}
-	botCfg.mailConf = newconfig.MailConfig
-
-	if newconfig.Name != "" {
-		botCfg.name = newconfig.Name
+	if newconfig.BotInfo != nil {
+		botID := botCfg.botinfo.UserID
+		botCfg.botinfo = *newconfig.BotInfo
+		botCfg.botinfo.UserID = botID
 	}
 
 	if newconfig.DefaultJobChannel != "" {
@@ -316,6 +360,43 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		botCfg.joinChannels = newconfig.JoinChannels
 	}
 
+	ucmaps := userChanMaps{
+		make(map[string]*UserInfo),
+		make(map[string]*UserInfo),
+		make(map[string]*ChannelInfo),
+		make(map[string]*ChannelInfo),
+	}
+	usermap := make(map[string]string)
+	if len(newconfig.UserRoster) > 0 {
+		for i, user := range newconfig.UserRoster {
+			if len(user.UserName) == 0 || len(user.UserID) == 0 {
+				Log(Error, fmt.Sprintf("one of Username/UserID empty (%s/%s), ignoring", user.UserName, user.UserID))
+			} else {
+				u := &newconfig.UserRoster[i]
+				ucmaps.user[u.UserName] = u
+				ucmaps.userID[u.UserID] = u
+				usermap[u.UserName] = u.UserID
+			}
+		}
+		if len(botCfg.botinfo.UserName) > 0 && len(botCfg.botinfo.UserID) > 0 {
+			usermap[botCfg.botinfo.UserName] = botCfg.botinfo.UserID
+		}
+	}
+	if len(newconfig.ChannelRoster) > 0 {
+		for i, ch := range newconfig.ChannelRoster {
+			if len(ch.ChannelName) == 0 || len(ch.ChannelID) == 0 {
+				Log(Error, fmt.Sprintf("one of ChannelName/ChannelID empty (%s/%s), ignoring", ch.ChannelName, ch.ChannelID))
+			} else {
+				c := &newconfig.ChannelRoster[i]
+				ucmaps.channel[c.ChannelName] = c
+				ucmaps.channelID[c.ChannelID] = c
+			}
+		}
+	}
+	currentUCMaps.Lock()
+	currentUCMaps.ucmap = &ucmaps
+	currentUCMaps.Unlock()
+
 	if len(newconfig.WorkSpace) > 0 {
 		if respath, ok := checkDirectory(newconfig.WorkSpace); ok {
 			botCfg.workSpace = respath
@@ -351,6 +432,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		}
 		if newconfig.EncryptionKey != "" {
 			botCfg.encryptionKey = newconfig.EncryptionKey
+			newconfig.EncryptionKey = "XXXXXX" // too short to be valid anyway
 		}
 		if newconfig.Brain != "" {
 			botCfg.brainProvider = newconfig.Brain
@@ -364,6 +446,9 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			Log(Error, "LocalPort not defined, not exporting GOPHER_HTTP_POST and external tasks will be broken")
 		}
 	} else {
+		if len(usermap) > 0 {
+			botCfg.SetUserMap(usermap)
+		}
 		// We should never dump the brain key
 		newconfig.EncryptionKey = "XXXXXX"
 		// loadTaskConfig does it's own locking

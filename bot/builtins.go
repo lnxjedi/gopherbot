@@ -69,7 +69,7 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	}
 	if command == "help" {
 		botCfg.RLock()
-		botname := botCfg.name
+		botname := botCfg.botinfo.UserName
 		botCfg.RUnlock()
 
 		var term, helpOutput string
@@ -153,7 +153,7 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			// Unless builtins are disabled or reconfigured, 'ping' is available in all channels
 			r.Say("Sorry, I didn't find any commands matching your keyword")
 		case len(helpLines) > tooLong:
-			if len(r.Channel) > 0 {
+			if !c.directMsg {
 				r.Reply("(the help output was pretty long, so I sent you a private message)")
 				if !hasKeyword {
 					helpOutput = "Command(s) available in channel: " + r.Channel + "\n" + strings.Join(helpLines, lineSeparator)

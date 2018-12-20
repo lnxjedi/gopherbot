@@ -12,7 +12,7 @@ import (
 )
 
 func TestMemory(t *testing.T) {
-	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/membrain", "/tmp/bottest.log", t)
 
 	/* Note on ordering:
 
@@ -31,27 +31,27 @@ func TestMemory(t *testing.T) {
 	test was failing. */
 
 	tests := []testItem{
-		{carol, random, ";remember slowly The Alamo", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
-		{alice, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "Ok, .*"}, {null, random, "committed to memory"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
-		{bob, random, "recall 1, Bender", []testc.TestMessage{{null, random, "Ferris Bueller"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
-		{carol, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "That's already one of my fondest memories"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
-		{david, random, "forget 1, Bender", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{carolID, random, ";remember slowly The Alamo", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "Ok, .*"}, {null, random, "committed to memory"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{bobID, random, "recall 1, Bender", []testc.TestMessage{{null, random, "Ferris Bueller"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{carolID, random, ";remember Ferris Bueller", []testc.TestMessage{{null, random, "That's already one of my fondest memories"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{davidID, random, "forget 1, Bender", []testc.TestMessage{{null, random, "Ok, .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		// Short-term memories are contextual to a user in a channel
-		{david, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, general, "Gosh, I have no idea .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
-		{david, general, ";store Ferris Bueller is a Righteous Dude", []testc.TestMessage{{null, general, "I'll remember .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
-		{david, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{null, general, "Ferris Bueller is a Righteous Dude"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
-		{carol, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{carol, general, "Gosh, I have no idea .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
-		{david, random, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, random, "Gosh, I have no idea .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
-		{bob, general, "Bender, link news for nerds to https://slashdot.org", []testc.TestMessage{{null, general, "Link added"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{bob, general, ";save https://slashdot.org", []testc.TestMessage{{null, general, "I already have that link"}, {bob, general, "Do you want .*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{bob, general, "yes", []testc.TestMessage{{null, general, "Ok, I'll replace the old one"}, {bob, general, "What keywords or phrase .*"}}, []Event{}, 0},
-		{bob, general, "News for Nerds, Stuff that Matters!", []testc.TestMessage{{null, general, "Link added"}}, []Event{}, 0},
-		{carol, general, "Bender, look up nerds", []testc.TestMessage{{null, general, `(?s:Here's what I have .*Nerds.*)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{alice, general, ";link tuna casserole to https://www.allrecipes.com/recipe/17219/best-tuna-casserole/", []testc.TestMessage{{null, general, `Link added`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{alice, general, ";add it to the dinner meals list", []testc.TestMessage{{alice, general, `I don't have a .*`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{alice, general, "yes", []testc.TestMessage{{null, general, `Ok, .*`}}, []Event{}, 0},
-		{alice, general, "Bender, look it up", []testc.TestMessage{{null, general, `(?s:Here's what I have .*best.*)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{alice, general, "add hamburgers to the list, bender", []testc.TestMessage{{null, general, `Ok, I added hamburgers to the dinner meals list`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{davidID, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, general, "Gosh, I have no idea .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{davidID, general, ";store Ferris Bueller is a Righteous Dude", []testc.TestMessage{{null, general, "I'll remember .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{davidID, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{null, general, "Ferris Bueller is a Righteous Dude"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{carolID, general, "Bender, what is Ferris Bueller?", []testc.TestMessage{{carol, general, "Gosh, I have no idea .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{davidID, random, "Bender, what is Ferris Bueller?", []testc.TestMessage{{david, random, "Gosh, I have no idea .*"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{bobID, general, "Bender, link news for nerds to https://slashdot.org", []testc.TestMessage{{null, general, "Link added"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{bobID, general, ";save https://slashdot.org", []testc.TestMessage{{null, general, "I already have that link"}, {bob, general, "Do you want .*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{bobID, general, "yes", []testc.TestMessage{{null, general, "Ok, I'll replace the old one"}, {bob, general, "What keywords or phrase .*"}}, []Event{}, 0},
+		{bobID, general, "News for Nerds, Stuff that Matters!", []testc.TestMessage{{null, general, "Link added"}}, []Event{}, 0},
+		{carolID, general, "Bender, look up nerds", []testc.TestMessage{{null, general, `(?s:Here's what I have .*Nerds.*)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";link tuna casserole to https://www.allrecipes.com/recipe/17219/best-tuna-casserole/", []testc.TestMessage{{null, general, `Link added`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";add it to the dinner meals list", []testc.TestMessage{{alice, general, `I don't have a .*`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "yes", []testc.TestMessage{{null, general, `Ok, .*`}}, []Event{}, 0},
+		{aliceID, general, "Bender, look it up", []testc.TestMessage{{null, general, `(?s:Here's what I have .*best.*)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "add hamburgers to the list, bender", []testc.TestMessage{{null, general, `Ok, I added hamburgers to the dinner meals list`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 

@@ -22,12 +22,14 @@ const (
 // Robot is passed to each task as it runs, initialized from the botContext.
 // Tasks can copy and modify the Robot without affecting the botContext.
 type Robot struct {
-	User     string        // The user who sent the message; this can be modified for replying to an arbitrary user
-	Channel  string        // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	Protocol Protocol      // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
-	RawMsg   interface{}   // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
-	Format   MessageFormat // The outgoing message format, one of Raw, Fixed, or Variable
-	id       int           // For looking up the botContext
+	User            string            // The user who sent the message; this can be modified for replying to an arbitrary user
+	ProtocolUser    string            // the protocol internal ID of the user
+	Channel         string            // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	ProtocolChannel string            // the protocol internal channel ID
+	Protocol        Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
+	Incoming        *ConnectorMessage // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
+	Format          MessageFormat     // The outgoing message format, one of Raw, Fixed, or Variable
+	id              int               // For looking up the botContext
 }
 
 /* robot_methods.go defines some convenience functions on struct Robot to
@@ -248,13 +250,13 @@ func (r *Robot) GetBotAttribute(a string) *AttrRet {
 	var attr string
 	switch a {
 	case "name":
-		attr = botCfg.name
+		attr = botCfg.botinfo.UserName
 	case "fullname", "realname":
-		attr = botCfg.fullName
+		attr = botCfg.botinfo.FullName
 	case "alias":
 		attr = string(botCfg.alias)
 	case "email":
-		attr = botCfg.email
+		attr = botCfg.botinfo.Email
 	case "contact", "admin", "admincontact":
 		attr = botCfg.adminContact
 	case "protocol":
@@ -263,41 +265,6 @@ func (r *Robot) GetBotAttribute(a string) *AttrRet {
 		ret = AttributeNotFound
 	}
 	return &AttrRet{attr, ret}
-}
-
-// GetUserAttribute returns a AttrRet with
-// - The string Attribute of a user, or "" if unknown/error
-// - A RetVal which is one of Ok, UserNotFound, AttributeNotFound
-// Current attributes:
-// name(handle), fullName, email, firstName, lastName, phone, internalID
-// TODO: supplement data with gopherbot.yaml user's table, if an
-// admin wants to supplment whats available from the protocol.
-func (r *Robot) GetUserAttribute(u, a string) *AttrRet {
-	a = strings.ToLower(a)
-	attr, ret := botCfg.GetProtocolUserAttribute(u, a)
-	return &AttrRet{attr, ret}
-}
-
-// messageHeard sends a typing notification
-func (r *Robot) messageHeard() {
-	botCfg.MessageHeard(r.User, r.Channel)
-}
-
-// GetSenderAttribute returns a AttrRet with
-// - The string Attribute of the sender, or "" if unknown/error
-// - A RetVal which is one of Ok, UserNotFound, AttributeNotFound
-// Current attributes:
-// name(handle), fullName, email, firstName, lastName, phone, internalID
-// TODO: (see above)
-func (r *Robot) GetSenderAttribute(a string) *AttrRet {
-	a = strings.ToLower(a)
-	switch a {
-	case "name", "username", "handle", "user", "user name":
-		return &AttrRet{r.User, Ok}
-	default:
-		attr, ret := botCfg.GetProtocolUserAttribute(r.User, a)
-		return &AttrRet{attr, ret}
-	}
 }
 
 /*
@@ -367,41 +334,4 @@ func (r *Robot) Log(l LogLevel, v ...interface{}) {
 	if Log(l, v...) && c.logger != nil {
 		c.logger.Log("LOG " + logLevelToStr(l) + " " + fmt.Sprintln(v...))
 	}
-}
-
-// SendChannelMessage lets a plugin easily send a message to an arbitrary
-// channel. Use Robot.Fixed().SendChannelMessage(...) for fixed-width
-// font.
-func (r *Robot) SendChannelMessage(channel, msg string) RetVal {
-	return botCfg.SendProtocolChannelMessage(channel, msg, r.Format)
-}
-
-// SendUserChannelMessage lets a plugin easily send a message directed to
-// a specific user in a specific channel without fiddling with the robot
-// object. Use Robot.Fixed().SencChannelMessage(...) for fixed-width
-// font.
-func (r *Robot) SendUserChannelMessage(user, channel, msg string) RetVal {
-	return botCfg.SendProtocolUserChannelMessage(user, channel, msg, r.Format)
-}
-
-// SendUserMessage lets a plugin easily send a DM to a user. If a DM
-// isn't possible, the connector should message the user in a channel.
-func (r *Robot) SendUserMessage(user, msg string) RetVal {
-	return botCfg.SendProtocolUserMessage(user, msg, r.Format)
-}
-
-// Reply directs a message to the user
-func (r *Robot) Reply(msg string) RetVal {
-	if r.Channel == "" {
-		return botCfg.SendProtocolUserMessage(r.User, msg, r.Format)
-	}
-	return botCfg.SendProtocolUserChannelMessage(r.User, r.Channel, msg, r.Format)
-}
-
-// Say just sends a message to the user or channel
-func (r *Robot) Say(msg string) RetVal {
-	if r.Channel == "" {
-		return botCfg.SendProtocolUserMessage(r.User, msg, r.Format)
-	}
-	return botCfg.SendProtocolChannelMessage(r.Channel, msg, r.Format)
 }

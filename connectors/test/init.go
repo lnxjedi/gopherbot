@@ -10,6 +10,7 @@ import (
 )
 
 // Global persistent map of user name to user index
+var userIDMap = make(map[string]int)
 var userMap = make(map[string]int)
 
 // ExportTest lets bot_integration_test safely supply the *testing.T
@@ -45,6 +46,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 
 	for i, u := range c.Users {
+		userIDMap[u.InternalID] = i
 		userMap[u.Name] = i
 	}
 

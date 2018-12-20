@@ -23,13 +23,20 @@ These are the items deemed as required for releasing version 2 because they chan
 - TODO: Update the Ansible playbook for protected install / suid gopherbot
 - History:
    - DONE: Emailing of history
+   - TODO: Fix blank line in history log lines caused by Sprintln(...)
    - TODO: implement history links
    - DONE: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
    - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
 - TODO: Make connectors pass through e.g. User="<U12345>" when lookup fails
 - TODO: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, and in addition to the raw message, an API object for direct calls to the protocol
 - TODO: Rename BotRoster to UserRoster in main code; Slack will eventually deprecate usernames and mapping will need to be explicit
-   - TODO: Update connector methods to take "user" or "\<userid\>"
+   - DONE: Update Robot methods to provide "\<userid\>" preferably, then "user"
+   - IN PROGRESS: Update connector methods to take "user" or "\<userid\>"; finish terminal, slack
+   - TODO: Update Get*Attribute() to prefer data from user/channel maps
+   - DONE: Update conf.go with new UserRoster / ChannelRoster
+   - TODO: Update term/test connectors to properly populate the ConnectorMessage
+   - DONE: Update handler.go/IncomingMessage to resolve names from rosters
+   - TODO: (maybe later) clean up IncomingMessage / botContext struct to eliminate dupes from the ConnectorMessage
    - TODO: Add 'TriggersOnly' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
    - TODO: Update `whoami` to include channel name / internal ID
 - DONE: new DM RequireAdmin command: `encrypt foobar` - returns encrypted & base64 encoded secret; can be used in template with `{{ decrypt "base64string" }}`
@@ -42,6 +49,7 @@ These are the items deemed as required for releasing version 2 because they chan
 
 ### Wishlist
 These items aren't required for release, but desired soonish
+- TODO: Add tests that check behavior of UserRoster / attributes, user w/ no username, etc.
 - TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
 - TODO: Update 'Starting job xxxx' message to include arguments; e.g. 'Starting job localtrusted github.com/lnxjedi/gopherbot master'
 - TODO: Ansible playbook / Dockerfiles: /var/lib/gopherbot/(.env, custom) gopherbot:550:bin:root; custom:700:robot:robot; /opt/gopherbot/gopherbot suid robot

@@ -27,7 +27,7 @@ func (tc *TestConnector) SendBotMessage(msg *TestMessage) {
 	} else {
 		exists := false
 		for _, u := range tc.users {
-			if u.Name == msg.User {
+			if u.InternalID == msg.User {
 				exists = true
 			}
 		}

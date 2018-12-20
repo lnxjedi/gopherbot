@@ -30,6 +30,23 @@ func init() {
 	}
 }
 
+var idRegex = regexp.MustCompile(`^<(.*)>$`)
+
+// ExtractID is a utility function to check a user/channel string against
+// the pattern '<internalID>' and if it matches return the internalID,true;
+// otherwise return the unmodified string,false.
+func ExtractID(u string) (string, bool) {
+	matches := idRegex.FindStringSubmatch(u)
+	if len(matches) > 0 {
+		return matches[1], true
+	}
+	return u, false
+}
+
+func bracket(s string) string {
+	return "<" + s + ">"
+}
+
 func checkPanic(r *Robot, s string) {
 	if rcv := recover(); rcv != nil {
 		Log(Error, fmt.Sprintf("PANIC from '%s': %s\nStack trace:%s", s, rcv, godebug.Stack()))
@@ -59,7 +76,7 @@ func checkDirectory(cpath string) (string, bool) {
 	return "", false
 }
 
-func (r *Robot) setFormat(format string) MessageFormat {
+func setFormat(format string) MessageFormat {
 	format = strings.ToLower(format)
 	switch format {
 	case "fixed":
@@ -88,7 +105,7 @@ func setProtocol(proto string) Protocol {
 
 func updateRegexes() {
 	botCfg.RLock()
-	name := botCfg.name
+	name := botCfg.botinfo.UserName
 	alias := botCfg.alias
 	botCfg.RUnlock()
 	pre, post, bare, errpre, errpost, errbare := updateRegexesWrapped(name, alias)

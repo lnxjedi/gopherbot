@@ -12,7 +12,7 @@ import (
 )
 
 func TestLists(t *testing.T) {
-	done, conn := setup("resources/cfg/test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("resources/cfg/membrain", "/tmp/bottest.log", t)
 
 	/* Note on ordering:
 
@@ -31,21 +31,21 @@ func TestLists(t *testing.T) {
 	test was failing. */
 
 	tests := []testItem{
-		{alice, general, ";list lists", []testc.TestMessage{{null, general, "I don't have any lists"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{alice, general, ";add burgers to the meals list", []testc.TestMessage{{alice, general, "I don't have a .*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{bob, random, ";add burgers to the meals list", []testc.TestMessage{{bob, random, "I don't have a .*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{bob, random, "yes", []testc.TestMessage{{null, random, "Ok, I created a new meals list and added burgers to it"}}, []Event{}, 0},
-		{alice, general, "yes", []testc.TestMessage{{null, general, "Somebody already created the meals list and added burgers to it"}}, []Event{}, 0},
-		{alice, general, ";add eggs to the Breakfast list", []testc.TestMessage{{alice, general, "I don't have .*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{bob, random, ";add bacon to the breakfast list", []testc.TestMessage{{bob, random, "I don't have a .*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{bob, random, "yes", []testc.TestMessage{{null, random, "Ok, I created a new breakfast list and added bacon to it"}}, []Event{}, 0},
-		{alice, general, "yes", []testc.TestMessage{{null, general, "Ok, I added eggs to the new Breakfast list"}}, []Event{}, 0},
-		{alice, general, ";show the meals list", []testc.TestMessage{{null, general, `(?m:Here's what I have.*\nburgers$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{carol, general, ";remove BURGERS from the meals list", []testc.TestMessage{{null, general, "Ok, I removed BURGERS from the meals list"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{carol, general, ";show the list", []testc.TestMessage{{null, general, "The meals list is empty"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{carol, general, ";delete the breakFAST list", []testc.TestMessage{{null, general, "Deleted"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{alice, general, ";list lists", []testc.TestMessage{{null, general, `(?m:Here are the lists I know about:\nmeals)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{alice, general, ";show the MEALS list", []testc.TestMessage{{null, general, "The MEALS list is empty"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";list lists", []testc.TestMessage{{null, general, "I don't have any lists"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";add burgers to the meals list", []testc.TestMessage{{alice, general, "I don't have a .*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{bobID, random, ";add burgers to the meals list", []testc.TestMessage{{bob, random, "I don't have a .*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{bobID, random, "yes", []testc.TestMessage{{null, random, "Ok, I created a new meals list and added burgers to it"}}, []Event{}, 0},
+		{aliceID, general, "yes", []testc.TestMessage{{null, general, "Somebody already created the meals list and added burgers to it"}}, []Event{}, 0},
+		{aliceID, general, ";add eggs to the Breakfast list", []testc.TestMessage{{alice, general, "I don't have .*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{bobID, random, ";add bacon to the breakfast list", []testc.TestMessage{{bob, random, "I don't have a .*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{bobID, random, "yes", []testc.TestMessage{{null, random, "Ok, I created a new breakfast list and added bacon to it"}}, []Event{}, 0},
+		{aliceID, general, "yes", []testc.TestMessage{{null, general, "Ok, I added eggs to the new Breakfast list"}}, []Event{}, 0},
+		{aliceID, general, ";show the meals list", []testc.TestMessage{{null, general, `(?m:Here's what I have.*\nburgers$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{carolID, general, ";remove BURGERS from the meals list", []testc.TestMessage{{null, general, "Ok, I removed BURGERS from the meals list"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{carolID, general, ";show the list", []testc.TestMessage{{null, general, "The meals list is empty"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{carolID, general, ";delete the breakFAST list", []testc.TestMessage{{null, general, "Deleted"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";list lists", []testc.TestMessage{{null, general, `(?m:Here are the lists I know about:\nmeals)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";show the MEALS list", []testc.TestMessage{{null, general, "The MEALS list is empty"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 

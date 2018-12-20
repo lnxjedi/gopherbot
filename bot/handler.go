@@ -39,9 +39,63 @@ func (h handler) GetConfigPath() string {
 	return installPath
 }
 
+// ConnectorMessage is passed in to the robot for every incoming message seen.
+// The *ID fields are required invariant internal representations that the
+// protocol accepts in it's interface methods.
+type ConnectorMessage struct {
+	// Protocol - string name of connector, e.g. "Slack"
+	Protocol string
+	// optional UserName and required internal UserID
+	UserName, UserID string
+	// optional / required channel values
+	ChannelName, ChannelID string
+	// DirectMessage - whether the message should be considered private between user and robot
+	DirectMessage bool
+	// MessageText - sanitized message text, with all protocol-added junk removed
+	MessageText string
+	// MessageObject, Client - interfaces for the raw
+	MessageObject, Client interface{}
+}
+
 // ChannelMessage accepts an incoming channel message from the connector.
-func (h handler) IncomingMessage(channelName, userName, messageFull string, raw interface{}) {
-	Log(Trace, fmt.Sprintf("Incoming message '%s' in channel '%s'", messageFull, channelName))
+//func (h handler) IncomingMessage(channelName, userName, messageFull string, raw interface{}) {
+func (h handler) IncomingMessage(inc *ConnectorMessage) {
+	// Note: zero-len channel name and ID is valid; true of direct messages for some connectors
+	if len(inc.UserName) == 0 && len(inc.UserID) == 0 {
+		Log(Error, "incoming message with no username or user ID")
+		return
+	}
+	currentUCMaps.Lock()
+	maps := currentUCMaps.ucmap
+	currentUCMaps.Unlock()
+	var channelName, userName, ProtocolChannel, ProtocolUser string
+	var triggersOnly bool
+
+	/* Make sure some form of User and Channel are set
+	 */
+	ProtocolChannel = bracket(inc.ChannelID)
+	if !inc.DirectMessage {
+		if cn, ok := maps.channelID[inc.ChannelID]; ok {
+			channelName = cn.ChannelName
+		} else if len(inc.ChannelName) > 0 {
+			channelName = inc.ChannelName
+		} else if len(inc.ChannelID) > 0 {
+			channelName = bracket(inc.ChannelID)
+		}
+	} // ProtocolChannel / channelName should be "" for DM
+	ProtocolUser = bracket(inc.UserID)
+	if un, ok := maps.userID[inc.UserID]; ok {
+		userName = un.UserName
+		triggersOnly = un.TriggersOnly
+	} else if len(inc.UserName) > 0 {
+		userName = inc.UserName
+	} else {
+		userName = bracket(inc.UserID)
+	}
+
+	messageFull := inc.MessageText
+
+	Log(Trace, fmt.Sprintf("Incoming message in channel '%s/%s' from user '%s/%s': %s", channelName, ProtocolChannel, userName, ProtocolUser, messageFull))
 	// When command == true, the message was directed at the bot
 	isCommand := false
 	logChannel := channelName
@@ -85,10 +139,8 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 		message = messageFull
 	}
 
-	directMsg := false
-	if len(channelName) == 0 { // true for direct messages
+	if inc.DirectMessage {
 		isCommand = true
-		directMsg = true
 		logChannel = "(direct message)"
 	}
 
@@ -105,18 +157,22 @@ func (h handler) IncomingMessage(channelName, userName, messageFull string, raw 
 	// Create the botContext and a goroutine to process the message and carry state,
 	// which may eventually run a pipeline.
 	c := &botContext{
-		User:    userName,
-		Channel: channelName,
-		RawMsg:  raw,
+		User:            userName,
+		Channel:         channelName,
+		ProtocolUser:    ProtocolUser,
+		ProtocolChannel: ProtocolChannel,
+		Incoming:        inc,
 		tasks: taskList{
 			t:          t,
 			nameMap:    nameMap,
 			idMap:      idMap,
 			nameSpaces: nameSpaces,
 		},
+		maps:         maps,
+		triggersOnly: triggersOnly,
 		repositories: repolist,
 		isCommand:    isCommand,
-		directMsg:    directMsg,
+		directMsg:    inc.DirectMessage,
 		msg:          message,
 		environment:  make(map[string]string),
 	}
@@ -154,32 +210,9 @@ func (h handler) Log(l LogLevel, v ...interface{}) {
 	Log(l, v...)
 }
 
-// Connectors that support it can call SetFullName; otherwise it can
-// be configured in gopherbot.yaml.
-func (h handler) SetFullName(n string) {
-	Log(Debug, "Setting full name to: "+n)
+// SetID let's the connector set the bot's internal ID
+func (h handler) SetID(id string) {
 	botCfg.Lock()
-	botCfg.fullName = n
+	botCfg.botinfo.UserID = id
 	botCfg.Unlock()
-}
-
-// Connectors that support it can call SetName; otherwise it should
-// be configured in gopherbot.yaml.
-func (h handler) SetName(n string) {
-	Log(Debug, "Setting name to: "+n)
-	botCfg.Lock()
-	botCfg.name = n
-	// Make sure the robot ignores messages from it's own name
-	ignoring := false
-	for _, name := range botCfg.ignoreUsers {
-		if strings.EqualFold(n, name) {
-			ignoring = true
-			break
-		}
-	}
-	if !ignoring {
-		botCfg.ignoreUsers = append(botCfg.ignoreUsers, strings.ToLower(n))
-	}
-	botCfg.Unlock()
-	updateRegexes()
 }

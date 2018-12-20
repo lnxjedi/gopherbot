@@ -35,13 +35,31 @@ func (tc *TestConnector) Run(stop <-chan struct{}) {
 
 loop:
 	for {
-
 		select {
 		case <-stop:
 			tc.test.Log("Received stop in connector")
 			break loop
 		case msg := <-tc.listener:
-			tc.IncomingMessage(msg.Channel, msg.User, msg.Message, msg)
+			var userName, channelID string
+			i, exists := userIDMap[msg.User]
+			if exists {
+				userName = tc.users[i].Name
+			}
+			if len(msg.Channel) > 0 {
+				channelID = "#" + msg.Channel
+			}
+			botMsg := &bot.ConnectorMessage{
+				Protocol:      "Test",
+				UserName:      userName,
+				UserID:        msg.User,
+				ChannelName:   msg.Channel,
+				ChannelID:     channelID,
+				DirectMessage: len(msg.Channel) == 0,
+				MessageText:   msg.Message,
+				MessageObject: msg,
+				Client:        tc,
+			}
+			tc.IncomingMessage(botMsg)
 		}
 	}
 }
@@ -67,7 +85,7 @@ func (tc *TestConnector) sendMessage(msg *BotMessage) (ret bot.RetVal) {
 			return bot.ChannelNotFound
 		}
 	}
-	if msg.User != "" { // direct message
+	if msg.User != "" { // speaking in channel, not talking to user
 		found := false
 		tc.RLock()
 		for _, user := range tc.users {

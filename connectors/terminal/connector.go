@@ -123,8 +123,22 @@ loop:
 					tc.reader.Write([]byte("Invalid terminal connector command\n"))
 				}
 			} else {
+				var channelID string
+				if len(tc.currentChannel) > 0 {
+					channelID = "#" + tc.currentChannel
+				}
+				i := userMap[tc.currentUser]
+				ui := tc.users[i]
+				botMsg := &bot.ConnectorMessage{
+					Protocol:    "Terminal",
+					UserName:    tc.currentUser,
+					UserID:      ui.InternalID,
+					ChannelName: tc.currentChannel,
+					ChannelID:   channelID,
+					MessageText: input,
+				}
 				tc.RLock()
-				tc.IncomingMessage(tc.currentChannel, tc.currentUser, input, struct{}{})
+				tc.IncomingMessage(botMsg)
 				tc.RUnlock()
 			}
 		}

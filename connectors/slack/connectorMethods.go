@@ -23,9 +23,17 @@ const coolDown = 21 * time.Second   // cooldown time after bursting
 // GetProtocolUserAttribute returns a string attribute or "" if slack doesn't
 // have that information
 func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {
-	s.RLock()
-	user, ok := s.userInfo[u]
-	s.RUnlock()
+	var userID string
+	var ok bool
+	var user *slack.User
+	if userID, ok = bot.ExtractID(u); !ok {
+		userID, ok = s.userID(u)
+	}
+	if ok {
+		s.RLock()
+		user, ok = s.userIDInfo[userID]
+		s.RUnlock()	
+	}
 	if !ok {
 		return "", bot.UserNotFound
 	}
@@ -58,32 +66,11 @@ var messages = make(chan *sendMessage)
 // Send a typing notifier letting the user know the message has been heard by
 // the robot.
 func (s *slackConnector) MessageHeard(user, channel string) {
-	var userID, chanID string
+	var chanID string
 	var ok bool
-	var err error
-	if len(channel) > 0 {
-		chanID, ok = s.chanID(channel)
-		if !ok {
-			s.Log(bot.Error, "Channel ID not found for:", channel)
-			return
-		}
-	} else {
-		userID, ok = s.userID(user)
-		if !ok {
-			s.Log(bot.Error, "No user ID found for user:", user)
-			return
-		}
-		chanID, ok = s.userIMID(userID)
-		if !ok {
-			s.Log(bot.Warn, "No IM channel found for user:", user, "ID:", userID, "trying to open IM")
-			_, _, chanID, err = s.conn.OpenIMChannel(userID)
-			if err != nil {
-				s.Log(bot.Error, "Unable to open an IM channel to user:", user, "ID:", userID)
-				return
-			}
-		}
+	if chanID, ok = bot.ExtractID(channel); ok {
+		s.conn.SendMessage(s.conn.NewTypingMessage(chanID))
 	}
-	s.conn.SendMessage(s.conn.NewTypingMessage(chanID))
 }
 
 func (s *slackConnector) startSendLoop() {
@@ -99,7 +86,7 @@ func (s *slackConnector) startSendLoop() {
 		if windowStartMsg == (burstMessages - 1) {
 			windowStartMsg = 0
 		}
-		current ++
+		current++
 		if current == (burstMessages - 1) {
 			current = 0
 		}
@@ -150,39 +137,62 @@ func (s *slackConnector) sendMessages(msgs []string, chanID string, f bot.Messag
 	}
 }
 
+// SetUserMap takes a map of username to userID mappings, built from the UserRoster
+// of gopherbot.yaml
+func (s *slackConnector) SetUserMap(umap map[string]string) {
+	s.Lock()
+	s.botUserMap = umap
+	s.Unlock()
+	s.updateUserList("")
+}
+
 // SendProtocolChannelMessage sends a message to a channel
 func (s *slackConnector) SendProtocolChannelMessage(ch string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	chanID, ok := s.chanID(ch)
+	msgs := s.slackifyMessage("", msg, f)
+	if chanID, ok := bot.ExtractID(ch); ok {
+		s.sendMessages(msgs, chanID, f)
+		return
+	}
+	if chanID, ok := s.chanID(ch); ok {
+		s.sendMessages(msgs, chanID, f)
+		return
+	}
+	s.Log(bot.Error, "Channel ID not found for:", ch)
+	return bot.ChannelNotFound
+}
+
+// SendProtocolChannelMessage sends a message to a channel
+func (s *slackConnector) SendProtocolUserChannelMessage(uid, u, ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
+	var userID, chanID string
+	var ok bool
+	if chanID, ok = bot.ExtractID(ch); !ok {
+		chanID, ok = s.chanID(ch)
+	}
 	if !ok {
 		s.Log(bot.Error, "Channel ID not found for:", ch)
 		return bot.ChannelNotFound
 	}
-	msgs := s.slackifyMessage(msg, f)
-	s.sendMessages(msgs, chanID, f)
-	return
-}
-
-// SendProtocolChannelMessage sends a message to a channel
-func (s *slackConnector) SendProtocolUserChannelMessage(u, ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	chanID, ok := s.chanID(ch)
+	if userID, ok = bot.ExtractID(uid); !ok {
+		userID, ok = s.userID(u)
+	}
 	if !ok {
-		s.Log(bot.Error, "Channel ID not found for:", ch)
-		ret = bot.ChannelNotFound
-	} else if _, ok := s.userID(u); !ok {
-		ret = bot.UserNotFound
+		s.Log(bot.Error, "User ID not found for:", uid)
+		return bot.UserNotFound
 	}
-	if ret != bot.Ok {
-		return
-	}
-	msg = "@" + u + ": " + msg
-	msgs := s.slackifyMessage(msg, f)
+	// This gets converted to <@userID> in slackifyMessage
+	prefix := "<@" + userID + ">: " + msg
+	msgs := s.slackifyMessage(prefix, msg, f)
 	s.sendMessages(msgs, chanID, f)
 	return
 }
 
 // SendProtocolUserMessage sends a direct message to a user
 func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	userID, ok := s.userID(u)
+	var userID string
+	var ok bool
+	if userID, ok = bot.ExtractID(u); !ok {
+		userID, ok = s.userID(u)
+	}
 	if !ok {
 		s.Log(bot.Error, "No user ID found for user:", u)
 		ret = bot.UserNotFound
@@ -201,7 +211,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f bot.Mes
 	if ret != bot.Ok {
 		return
 	}
-	msgs := s.slackifyMessage(msg, f)
+	msgs := s.slackifyMessage("", msg, f)
 	s.sendMessages(msgs, userIMchan, f)
 	return bot.Ok
 }

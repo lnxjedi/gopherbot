@@ -3,9 +3,8 @@ AdminContact: "David Parsley, <parsley@linuxjedi.org>"
 DefaultChannels: [ "general", "random" ]
 JoinChannels: [ ]
 AdminUsers: [ "alice" ]
-# Alias: ""
+Alias: ";"
 LocalPort: 8889
-LogLevel: debug
 ExternalPlugins:
   "bashdemo":
     Path: plugins/samples/bashdemo.sh
@@ -21,6 +20,8 @@ ExternalPlugins:
     Path: plugins/samples/hello.sh
   "hello2":
     Path: plugins/samples/hello2.sh
+  "format":
+    Path: plugins/samples/format.sh
 
 ProtocolConfig:
   BotName: bender

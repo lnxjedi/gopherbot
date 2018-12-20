@@ -1,6 +1,8 @@
 package test
 
 import (
+	"strings"
+
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
@@ -10,18 +12,41 @@ type BotMessage struct {
 	Format                 bot.MessageFormat
 }
 
+func (tc *TestConnector) getUserInfo(u string) (*testUser, bool) {
+	var i int
+	var exists bool
+	if id, ok := bot.ExtractID(u); ok {
+		i, exists = userIDMap[id]
+	} else {
+		i, exists = userMap[u]
+	}
+	if exists {
+		return &tc.users[i], true
+	}
+	return nil, false
+}
+
+func getChannel(c string) string {
+	if ch, ok := bot.ExtractID(c); ok {
+		return strings.TrimPrefix(ch, "#")
+	}
+	return c
+}
+
+// MessageHeard indicates to the user a message was heard;
+// for test/terminal it's a noop.
 func (tc *TestConnector) MessageHeard(u, c string) {
 	return
 }
 
-// GetUserAttribute returns a string attribute or nil if slack doesn't
+// GetProtocolUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
 func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {
-	i, exists := userMap[u]
-	if !exists {
+	var user *testUser
+	var exists bool
+	if user, exists = tc.getUserInfo(u); !exists {
 		return "", bot.UserNotFound
 	}
-	user := tc.users[i]
 	switch attr {
 	case "email":
 		return user.Email, bot.Ok
@@ -43,20 +68,22 @@ func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string,
 
 // SendProtocolChannelMessage sends a message to a channel
 func (tc *TestConnector) SendProtocolChannelMessage(ch string, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
+	channel := getChannel(ch)
 	msg := &BotMessage{
 		User:    "",
-		Channel: ch,
+		Channel: channel,
 		Message: mesg,
 		Format:  f,
 	}
 	return tc.sendMessage(msg)
 }
 
-// SendProtocolChannelMessage sends a message to a channel
-func (tc *TestConnector) SendProtocolUserChannelMessage(u, ch, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
+// SendProtocolUserChannelMessage sends a message to a user in a channel
+func (tc *TestConnector) SendProtocolUserChannelMessage(uid, uname, ch, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
+	channel := getChannel(ch)
 	msg := &BotMessage{
-		User:    u,
-		Channel: ch,
+		User:    uname,
+		Channel: channel,
 		Message: mesg,
 		Format:  f,
 	}
@@ -65,8 +92,13 @@ func (tc *TestConnector) SendProtocolUserChannelMessage(u, ch, mesg string, f bo
 
 // SendProtocolUserMessage sends a direct message to a user
 func (tc *TestConnector) SendProtocolUserMessage(u string, mesg string, f bot.MessageFormat) (ret bot.RetVal) {
+	var user *testUser
+	var exists bool
+	if user, exists = tc.getUserInfo(u); !exists {
+		return bot.UserNotFound
+	}
 	msg := &BotMessage{
-		User:    u,
+		User:    user.Name,
 		Channel: "",
 		Message: mesg,
 		Format:  f,

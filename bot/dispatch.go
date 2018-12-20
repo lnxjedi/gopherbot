@@ -113,7 +113,7 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 										s.timestamp = ts
 										shortTermMemories.m[ctx] = s
 									} else {
-										c.makeRobot().Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel))
+										r.Say(fmt.Sprintf("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel))
 										shortTermMemories.Unlock()
 										return true
 									}
@@ -149,7 +149,7 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 	} // end of plugin checking
 	if messageMatched {
 		task, _, _ := getTask(runTask)
-		r.messageHeard()
+		c.messageHeard()
 		matcher := matchedMatcher
 		abort := false
 		if task.name == "builtin-admin" && matcher.Command == "abort" {
@@ -198,7 +198,7 @@ func (c *botContext) handleMessage() {
 	r := c.makeRobot()
 	defer checkPanic(r, c.msg)
 
-	if len(c.Channel) == 0 {
+	if c.directMsg {
 		emit(BotDirectMessage)
 		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", c.User, c.msg))
 	}
@@ -269,7 +269,7 @@ func (c *botContext) handleMessage() {
 		botCfg.RLock()
 		if !botCfg.shuttingDown {
 			botCfg.RUnlock()
-			r.messageHeard()
+			c.messageHeard()
 			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", c.msg))
 			emit(CatchAllsRan) // for testing, otherwise noop
 			// TODO: should we allow more than 1 catchall?

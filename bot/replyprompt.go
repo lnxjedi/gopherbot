@@ -214,11 +214,18 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		replies.Unlock()
 	} else {
 		Log(Debug, fmt.Sprintf("Prompting for \"%s \" and creating reply waiters list and prompting for matcher: %q", prompt, matcher))
+		c := r.getContext()
+		var puser string
+		if ui, ok := c.maps.user[user]; ok {
+			puser = bracket(ui.UserID)
+		} else {
+			puser = user
+		}
 		var ret RetVal
 		if channel == "" {
-			ret = botCfg.SendProtocolUserMessage(user, prompt, r.Format)
+			ret = botCfg.SendProtocolUserMessage(puser, prompt, r.Format)
 		} else {
-			ret = botCfg.SendProtocolUserChannelMessage(user, channel, prompt, r.Format)
+			ret = botCfg.SendProtocolUserChannelMessage(puser, user, channel, prompt, r.Format)
 		}
 		if ret != Ok {
 			replies.Unlock()

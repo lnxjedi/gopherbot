@@ -2,6 +2,7 @@ package terminal
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/lnxjedi/gopherbot/bot"
 )
@@ -10,14 +11,40 @@ func (tc *termConnector) MessageHeard(u, c string) {
 	return
 }
 
+func (tc *termConnector) getUserInfo(u string) (*termUser, bool) {
+	var i int
+	var exists bool
+	if id, ok := bot.ExtractID(u); ok {
+		i, exists = userIDMap[id]
+	} else {
+		i, exists = userMap[u]
+	}
+	if exists {
+		return &tc.users[i], true
+	}
+	return nil, false
+}
+
+func getChannel(c string) string {
+	if ch, ok := bot.ExtractID(c); ok {
+		return strings.TrimPrefix(ch, "#")
+	}
+	return c
+}
+
+// SetUserMap lets Gopherbot provide a mapping of usernames to user IDs
+func (tc *termConnector) SetUserMap(map[string]string) {
+	return
+}
+
 // GetUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
 func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {
-	i, exists := userMap[u]
-	if !exists {
+	var user *termUser
+	var exists bool
+	if user, exists = tc.getUserInfo(u); !exists {
 		return "", bot.UserNotFound
 	}
-	user := tc.users[i]
 	switch attr {
 	case "email":
 		return user.Email, bot.Ok
@@ -39,18 +66,25 @@ func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string,
 
 // SendProtocolChannelMessage sends a message to a channel
 func (tc *termConnector) SendProtocolChannelMessage(ch string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	return tc.sendMessage(ch, msg, f)
+	channel := getChannel(ch)
+	return tc.sendMessage(channel, msg, f)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (tc *termConnector) SendProtocolUserChannelMessage(u, ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	msg = "@" + u + " " + msg
-	return tc.sendMessage(ch, msg, f)
+func (tc *termConnector) SendProtocolUserChannelMessage(uid, uname, ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
+	channel := getChannel(ch)
+	msg = "@" + uname + " " + msg
+	return tc.sendMessage(channel, msg, f)
 }
 
 // SendProtocolUserMessage sends a direct message to a user
 func (tc *termConnector) SendProtocolUserMessage(u string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	return tc.sendMessage(fmt.Sprintf("(dm:%s)", u), msg, f)
+	var user *termUser
+	var exists bool
+	if user, exists = tc.getUserInfo(u); !exists {
+		return bot.UserNotFound
+	}
+	return tc.sendMessage(fmt.Sprintf("(dm:%s)", user.Name), msg, f)
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"
