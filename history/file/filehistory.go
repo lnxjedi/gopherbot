@@ -58,7 +58,7 @@ func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (bot.H
 	tag = strings.Replace(tag, `\`, ":", -1)
 	tag = strings.Replace(tag, `/`, ":", -1)
 	dirPath := path.Join(fhc.Directory, tag)
-	filePath := path.Join(dirPath, fmt.Sprintf("%s-%d.log", tag, index))
+	filePath := path.Join(dirPath, fmt.Sprintf("run-%d.log", index))
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return nil, fmt.Errorf("Error creating history directory '%s': %v", dirPath, err)
 	}
@@ -72,7 +72,7 @@ func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (bot.H
 		}
 		if index-maxHistories >= 0 {
 			for i := index - maxHistories; i >= 0; i-- {
-				rmPath := path.Join(dirPath, fmt.Sprintf("%s-%d.log", tag, i))
+				rmPath := path.Join(dirPath, fmt.Sprintf("run-%d.log", i))
 				_, err := os.Stat(rmPath)
 				if err != nil {
 					break
@@ -94,11 +94,11 @@ func (fhc *historyConfig) GetHistory(tag string, index int) (io.Reader, error) {
 	tag = strings.Replace(tag, `\`, ":", -1)
 	tag = strings.Replace(tag, `/`, ":", -1)
 	dirPath := path.Join(fhc.Directory, tag)
-	filePath := path.Join(dirPath, fmt.Sprintf("%s-%d.log", tag, index))
+	filePath := path.Join(dirPath, fmt.Sprintf("run-%d.log", index))
 	return os.Open(filePath)
 }
 
-// GetHistory returns an io.Reader
+// GetHistoryURL returns the permanent link to the history
 func (fhc *historyConfig) GetHistoryURL(tag string, index int) (string, bool) {
 	if len(fhc.URLPrefix) == 0 {
 		return "", false
@@ -106,8 +106,13 @@ func (fhc *historyConfig) GetHistoryURL(tag string, index int) (string, bool) {
 	tag = strings.Replace(tag, `\`, ":", -1)
 	tag = strings.Replace(tag, `/`, ":", -1)
 	prefix := strings.TrimRight(fhc.URLPrefix, "/")
-	htmlPath := fmt.Sprintf("%s/%s/%s-%d.log", prefix, tag, tag, index)
+	htmlPath := fmt.Sprintf("%s/%s/run-%d.log", prefix, tag, index)
 	return htmlPath, true
+}
+
+// MakeHistoryURL publishes a history to a URL and returns the URL
+func (fhc *historyConfig) MakeHistoryURL(tag string, index int) (string, bool) {
+	return "", false
 }
 
 func provider(r bot.Handler) bot.HistoryProvider {

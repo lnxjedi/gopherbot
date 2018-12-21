@@ -44,7 +44,9 @@ type HistoryProvider interface {
 	// GetHistory gets an io.Reader() for a given history log
 	GetHistory(tag string, index int) (io.Reader, error)
 	// GetHistoryURL provides a URL for the history file if there is one
-	GetHistoryURL(tag string, index int) (string, bool)
+	GetHistoryURL(tag string, index int) (URL string, exists bool)
+	// MakeHistoryURL publishes a history to a URL and returns the URL
+	MakeHistoryURL(tag string, index int) (URL string, exists bool)
 }
 
 // Map of registered history providers
