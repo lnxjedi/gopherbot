@@ -1,15 +1,12 @@
 FROM amazonlinux:latest
 
 ARG installdir=/opt/gopherbot
+ARG executioncontext=/var/lib/gopherbot
 ARG version=v2.0.0-snapshot
 ARG username=robot
 ARG groupname=robot
 ARG uid=49
 ARG gid=49
-
-WORKDIR ${installdir}
-
-ENV HOME=/home/robot
 
 RUN yum -y update && \
   yum -y install \
@@ -17,34 +14,40 @@ RUN yum -y update && \
     jq \
     openssh-clients \
     shadow-utils \
-    unzip \
-    PyYAML \
-    && \
+    tar \
+    PyYAML && \
   amazon-linux-extras install ruby2.4 && \
-  groupadd -g ${gid} ${groupname} && \
-  useradd -m -u ${uid} -g ${groupname} -d ${HOME} robot && \
   yum clean all && \
-  mkdir -p ${HOME}/conf \
-    ${HOME}/brain \
+  rm -rf /var/cache/yum && \
+  # Common from here down
+  groupadd -g ${gid} ${groupname} && \
+  useradd -m -u ${uid} -g ${groupname} -d ${HOME} ${username}
+
+ENV HOME=/home/${username}
+ENV USER=${username}
+ENV GROUP=${groupname}
+ENV CONTEXT=${executioncontext}
+
+# Invalidate the cache when master changes
+ADD https://api.github.com/repos/lnxjedi/gopherbot/commits/master /commit
+
+RUN mkdir -p ${installdir} && \
+  cd ${installdir} && \
+  curl -L https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.tar.gz | tar xzvf - && \
+  mkdir -p ${executioncontext}/protected/custom \
+    ${executioncontext}/protected/brain \
     ${HOME}/workspace \
-    ${HOME}/history \
-    ${HOME}/.gopherbot \
-    && \
-  chown ${username}:${groupname} ${HOME}/conf \
-    ${HOME}/brain \
+    ${HOME}/history && \
+  chown ${username}:bin /opt/gopherbot/gopherbot && \
+  chmod 4550 /opt/gopherbot/gopherbot && \
+  chown ${username}:${groupname} ${executioncontext}/protected/custom \
+    ${executioncontext}/protected/brain \
     ${HOME}/workspace \
-    ${HOME}/history \
-    ${HOME}/.gopherbot
+    ${HOME}/history && \
+  chmod 550 ${executioncontext} && \
+  chown bin:root ${executioncontext}
 
-ADD https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.zip ${installdir}
-
-RUN unzip gopherbot-linux-amd64.zip && \
-  rm gopherbot-linux-amd64.zip
-
-WORKDIR ${installdir}/env
-
-RUN chmod 770 . && \
-  chown ${username}:${groupname} /opt/gopherbot/gopherbot && \
-  chmod u+s /opt/gopherbot/gopherbot
+WORKDIR ${executioncontext}/protected
+USER bin:bin
 
 ENTRYPOINT [ "/opt/gopherbot/gopherbot" , "-plainlog" ]

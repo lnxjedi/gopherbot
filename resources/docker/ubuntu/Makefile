@@ -1,4 +1,4 @@
-# Makefile - just for Docker stuff, really
+.PHONY: image clean
 
 image:
 	docker image build -t lnxjedi/gopherbot:v2-ubuntu -t lnxjedi/gopherbot:ubuntu -t lnxjedi/gopherbot:latest .
