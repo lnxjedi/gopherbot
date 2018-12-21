@@ -18,11 +18,9 @@ RUN yum -y update && \
     PyYAML && \
   amazon-linux-extras install ruby2.4 && \
   yum clean all && \
-  rm -rf /var/cache/yum && \
-  # Common from here down
-  groupadd -g ${gid} ${groupname} && \
-  useradd -m -u ${uid} -g ${groupname} -d ${HOME} ${username}
+  rm -rf /var/cache/yum
 
+# Common from here down
 ENV HOME=/home/${username}
 ENV USER=${username}
 ENV GROUP=${groupname}
@@ -31,7 +29,9 @@ ENV CONTEXT=${executioncontext}
 # Invalidate the cache when master changes
 ADD https://api.github.com/repos/lnxjedi/gopherbot/commits/master /commit
 
-RUN mkdir -p ${installdir} && \
+RUN groupadd -g ${gid} ${groupname} && \
+  useradd -m -u ${uid} -g ${groupname} -d ${HOME} ${username} && \
+  mkdir -p ${installdir} && \
   cd ${installdir} && \
   curl -L https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.tar.gz | tar xzvf - && \
   mkdir -p ${executioncontext}/protected/custom \
