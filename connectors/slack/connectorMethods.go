@@ -32,7 +32,7 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 	if ok {
 		s.RLock()
 		user, ok = s.userIDInfo[userID]
-		s.RUnlock()	
+		s.RUnlock()
 	}
 	if !ok {
 		return "", bot.UserNotFound
@@ -180,7 +180,7 @@ func (s *slackConnector) SendProtocolUserChannelMessage(uid, u, ch, msg string, 
 		return bot.UserNotFound
 	}
 	// This gets converted to <@userID> in slackifyMessage
-	prefix := "<@" + userID + ">: " + msg
+	prefix := "<@" + userID + ">: "
 	msgs := s.slackifyMessage(prefix, msg, f)
 	s.sendMessages(msgs, chanID, f)
 	return
