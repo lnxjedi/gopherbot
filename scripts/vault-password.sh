@@ -2,10 +2,18 @@
 
 # vault-password.sh - Ansible helper script for supplying a vault passphrase.
 # You'll need to store the passphrase with a DM to the robot:
-# - `store task parameter ansible VAULT_PASSWORD=<your-passphrase>` always use
-#   the same value
-# - `store repository parameter git.server/my-org/my-repo VAULT_PASSWORD=<your-passphrase'
-#   use the value for a given repository only
+# - `store repository secret git.server/my-org/my-repo VAULT_PASSWORD=<your-passphrase'
+#
 # Used in conjunction with tasks/ansible-playbook.sh
+
+source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
+
+VAULT_PASSWORD=$(GetSecret VAULT_PASSWORD)
+if [ -z "$VAULT_PASSWORD" ]
+then
+    Log "Error" "Empty VAULT_PASSWORD in vault-password.sh"
+    echo ""
+    exit 1
+fi
 
 echo "$VAULT_PASSWORD"

@@ -1,6 +1,7 @@
 #!/bin/bash -e
 
 # ssh-admin.sh - shell plugin for managing the robot's ssh keypair
+# see tasks/ssh-init.sh
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
