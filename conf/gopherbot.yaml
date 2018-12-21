@@ -25,6 +25,10 @@ ProtocolConfig:
   MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
   SlackToken: {{ env "GOPHER_SLACK_TOKEN" }}
 
+BotInfo:
+  UserName: {{ env "GOPHER_BOTNAME" }}
+  FullName: {{ env "GOPHER_BOTFULLNAME" }}
+
 ## Definitions for "test" and "term" connectors
 {{ else }}
 BotInfo:
@@ -95,7 +99,7 @@ Brain: {{ $brain }}
 
 {{ if eq $brain "file" }}
 BrainConfig:
-  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default (printf "%s/brain" $home) }}
+  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default "brain" }}
 
 {{ else if eq $brain "dynamo" }}
 BrainConfig:
@@ -186,9 +190,9 @@ ExternalJobs:
   "gopherci":
     Description: A job for dispatching build jobs, triggered by commit notifications
     Path: jobs/gopherci.py
-  "localtrusted":
-    Description: Build job run by gopherci to just clone a repo locally and run .gopherci/pipeline.sh
-    Path: jobs/localtrusted.py
+  "localbuild":
+    Description: Build job run by gopherci to just clone a repo locally and run .gopherci/pipeline.(sh|py|rb)
+    Path: jobs/localbuild.py
 
 ## ExternalTasks enumerate external executables that can be added to pipelines
 ## with AddTask <name>. Note the e.g. the update plugin requires ssh,

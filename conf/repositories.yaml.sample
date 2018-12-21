@@ -5,7 +5,7 @@
 # repositories. Anything defined other than Parameters is used only by
 # the CI/CD application(s).
 # github.com/lnxjedi/gopherbot:
-#   type: localtrusted
+#   type: localbuild
 #   clone_url: https://github.com/lnxjedi/gopherbot.git
 #   keep_history: 14
 #   Parameters:

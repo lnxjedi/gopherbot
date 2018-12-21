@@ -17,7 +17,7 @@ The following environment variables are supplied whenever a job is run:
 * `GOPHER_NAMESPACE_EXTENDED` - the extended namespace, if any
 * `GOPHER_RUN_INDEX` - the run number of the job
 
-In addition, the `localtrusted` GopherCI builder sets the following environment variables that can be used to modify pipelines:
+In addition, the `localbuild` GopherCI builder sets the following environment variables that can be used to modify pipelines:
 * `GOPHERCI_REPO` - the repository being built
 * `GOPHERCI_BRANCH` - the branch being built
 * `GOPHERCI_DEPBUILD` - set to "true" if the build was triggered by a dependency

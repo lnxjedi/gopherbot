@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-# localtrusted.py - Clone a repository locally and run .gopherci/pipeline.sh
+# localbuild.py - Clone a repository locally and run .gopherci/pipeline.sh
 
-# localtrusted is one of possibly several build types for a repository. When
+# localbuild is one of possibly several build types for a repository. When
 # called with two arguments, they are interpreted as the repository and branch
 # of a primary build. When called with four arguments, the first two are the
 # repository and branch to build, and the second two are the repository and
