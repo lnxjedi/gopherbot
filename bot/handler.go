@@ -176,8 +176,12 @@ func (h handler) IncomingMessage(inc *ConnectorMessage) {
 		msg:          message,
 		environment:  make(map[string]string),
 	}
-	Log(Debug, fmt.Sprintf("Message '%s' from user '%s' in channel '%s'; isCommand: %t", message, userName, logChannel, isCommand))
-	c.debug(fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)
+	if c.directMsg {
+		Log(Debug, fmt.Sprintf("Received private message from user '%s'", userName))
+	} else {
+		Log(Debug, fmt.Sprintf("Message '%s' from user '%s' in channel '%s'; isCommand: %t", message, userName, logChannel, isCommand))
+		c.debug(fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)
+	}
 	go c.handleMessage()
 }
 
