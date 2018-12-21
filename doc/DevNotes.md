@@ -10,40 +10,9 @@
 
 ## Version 2 Release TODOs
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
-- DONE: Push bot name, mapping of usernames to IDs, from engine to connector, letting e.g. Slack resolve userIDs to userNames when configured in a UserRoster
-- DONE: Check / fix double plugin init on startup
-- DONE: Replace Say/Reply with connector-specific versions that work even when channel isn't known
-- DONE: New Add/Final/FailCommand that take two string args: \<pluginname\> "command string"; matched against plugins; calling plugins directly is dangerous and can panic the robot when the number of args is wrong
-- DONE: Create AddJob that checks for job then calls AddTask - more explicit / readable code
-- DONE: Update use of jobAvailable/Visible to allow commands to run in a pipeline w/o respect to visibility
-- DONE: Update "Starting job ..." to include arguments
-- DONE: runpipeline task after git-sync
-- DONE: Fix meme password, update conf/plugins/*
-- TODO: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot; move docker key to separate task
 - TODO: Update the Ansible playbook for protected install / suid gopherbot
-- History:
-   - DONE: Emailing of history
-   - DONE: Fix blank line in history log lines caused by Sprintln(...)
-   - DONE: implement history links
-   - DONE: Close job histories after main pipeline; add new task for emailing the job history that can be used in a FinalTask or FailTask
-- DONE: Make User="<U12345>" when lookup fails
-- DONE: Connectors should pass a struct to Incoming Message with resolved and internal user, resolved and internal channel, and in addition to the raw message, an API object for direct calls to the protocol
-- DONE: Rename BotRoster to UserRoster in main code; Slack will eventually deprecate usernames and mapping will need to be explicit
-   - DONE: Update Robot methods to provide "\<userid\>" preferably, then "user"
-   - DONE: Update connector methods to take "user" or "\<userid\>"; finish terminal, slack
-   - DONE: Update Get*Attribute() to prefer data from user/channel maps
-   - DONE: Update conf.go with new UserRoster / ChannelRoster
-   - DONE: Update term/test connectors to properly populate the ConnectorMessage
-   - DONE: Update handler.go/IncomingMessage to resolve names from rosters
-   - DONE/TEST: Add 'TriggersOnly' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
-   - DONE: Update `whoami` to include channel name / internal ID
-- DONE: new DM RequireAdmin command: `encrypt foobar` - returns encrypted & base64 encoded secret; can be used in template with `{{ decrypt "base64string" }}`
-- DONE: Bash/Ruby/Python GetSecret
-- DONE: Implement Recall for Python / Bash?
-- DONE: new DM RequireAdmin command: `store task/repository secret taskname secretname=foobar` + GetSecret("secretname") method; encrypted secrets similar to parameters, but explicitly retrieved and not stored in environment
-- DONE: Make history config update across reload
-- DONE: Remove cleanup post-build task in favor of clean pre-task; build repos should be left around between builds, but removed prior to git-sync; problem found with branch names being deleted and later re-used caused failures in git-sync
-- DONE/TEST: Set job to verbose when manually triggered
+- TODO: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot; move docker key to separate task
+- DONE/TEST: Add 'TriggersOnly' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
 
 ### Wishlist
 These items aren't required for release, but desired soonish
