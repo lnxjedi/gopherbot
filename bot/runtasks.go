@@ -50,6 +50,12 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		botCfg.Unlock()
 	}()
 
+	// redundant but explicit
+	c.stage = primaryTasks
+	// Once Active, we need to use the Mutex for access to some fields; see
+	// botcontext/type botContext
+	c.registerActive(nil)
+
 	// A job is always the first task in a pipeline; a new sub-pipeline is created
 	// if a job is added in another pipeline.
 	if isJob {
@@ -116,8 +122,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		}
 		if !job.Quiet || c.verbose {
 			r := c.makeRobot()
-			iChannel := c.Channel    // channel where job was triggered / run
-			r.Channel = c.jobChannel // channel where job updates are posted
+			iChannel := c.Channel // channel where job was triggered / run
 			taskinfo := task.name
 			if len(args) > 0 {
 				taskinfo += " " + strings.Join(args, " ")
@@ -128,25 +133,20 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			}
 			switch ptype {
 			case jobTrigger:
-				r.Say(fmt.Sprintf("Starting job '%s', run %d%s - triggered by app '%s' in channel '%s'", taskinfo, c.runIndex, link, c.User, iChannel))
+				r.SendChannelMessage(c.jobChannel, fmt.Sprintf("Starting job '%s', run %d%s - triggered by app '%s' in channel '%s'", taskinfo, c.runIndex, link, c.User, iChannel))
 			case jobCmd:
-				r.Say(fmt.Sprintf("Starting job '%s', run %d%s - requested by user '%s' in channel '%s'", taskinfo, c.runIndex, link, c.User, iChannel))
+				r.SendChannelMessage(c.jobChannel, fmt.Sprintf("Starting job '%s', run %d%s - requested by user '%s' in channel '%s'", taskinfo, c.runIndex, link, c.User, iChannel))
 			case spawnedTask:
-				r.Say(fmt.Sprintf("Starting job '%s', run %d%s - spawned by pipeline '%s': %s", taskinfo, c.runIndex, link, ppipeName, ppipeDesc))
+				r.SendChannelMessage(c.jobChannel, fmt.Sprintf("Starting job '%s', run %d%s - spawned by pipeline '%s': %s", taskinfo, c.runIndex, link, ppipeName, ppipeDesc))
 			case scheduled:
-				r.Say(fmt.Sprintf("Starting scheduled job '%s', run %d%s", taskinfo, c.runIndex, link))
+				r.SendChannelMessage(c.jobChannel, fmt.Sprintf("Starting scheduled job '%s', run %d%s", taskinfo, c.runIndex, link))
 			default:
-				r.Say(fmt.Sprintf("Starting job '%s', run %d%s", taskinfo, c.runIndex, link))
+				r.SendChannelMessage(c.jobChannel, fmt.Sprintf("Starting job '%s', run %d%s", taskinfo, c.runIndex, link))
 			}
 			c.verbose = true
 		}
 	}
 
-	// redundant but explicit
-	c.stage = primaryTasks
-	// Once Active, we need to use the Mutex for access to some fields; see
-	// botcontext/type botContext
-	c.registerActive(nil)
 	ts := TaskSpec{task.name, command, args, t}
 	c.nextTasks = []TaskSpec{ts}
 
@@ -168,7 +168,6 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		c.stage = finalTasks
 		c.runPipeline(ptype, false)
 	}
-	c.deregister()
 	if ret != Normal {
 		if !c.automaticTask && errString != "" {
 			c.makeRobot().Reply(errString)
@@ -176,9 +175,8 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	}
 	if isJob && (!job.Quiet || ret != Normal) {
 		r := c.makeRobot()
-		r.Channel = job.Channel
 		if ret == Normal {
-			r.Say(fmt.Sprintf("Finished job '%s', run %d, final task '%s', status: %s", c.pipeName, c.runIndex, c.taskName, ret))
+			r.SendChannelMessage(c.jobChannel, fmt.Sprintf("Finished job '%s', run %d, final task '%s', status: %s", c.pipeName, c.runIndex, c.taskName, ret))
 		} else {
 			var td string
 			if len(c.failedTaskDescription) > 0 {
@@ -189,12 +187,13 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 				jobName += ":" + c.nsExtension
 			}
 			if ret == PipelineAborted {
-				r.Say(fmt.Sprintf("Job '%s', run number %d aborted, job '%s' already in progress", jobName, c.runIndex, c.exclusiveTag))
+				r.SendChannelMessage(c.jobChannel, fmt.Sprintf("Job '%s', run number %d aborted, job '%s' already in progress", jobName, c.runIndex, c.exclusiveTag))
 			} else {
-				r.Say(fmt.Sprintf("Job '%s', run number %d failed in task: '%s'%s, exit code: %s", jobName, c.runIndex, c.failedTask, td, ret))
+				r.SendChannelMessage(c.jobChannel, fmt.Sprintf("Job '%s', run number %d failed in task: '%s'%s, exit code: %s", jobName, c.runIndex, c.failedTask, td, ret))
 			}
 		}
 	}
+	c.deregister()
 	if c.exclusive {
 		tag := c.exclusiveTag
 		runQueues.Lock()
