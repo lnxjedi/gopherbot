@@ -47,11 +47,28 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	if command == "info" {
 		botCfg.RLock()
 		admins := strings.Join(botCfg.adminUsers, ", ")
-		alias := botCfg.alias
+		aliasCh := botCfg.alias
+		name := botCfg.botinfo.UserName
+		if len(name) == 0 {
+			name = "(unknown)"
+		}
+		ID := botCfg.botinfo.UserID
+		if len(ID) == 0 {
+			ID = "(unknown)"
+		}
 		botCfg.RUnlock()
+		var alias string
+		if aliasCh == 0 {
+			alias = "(not set)"
+		} else {
+			alias = string(aliasCh)
+		}
+		channelID, _ := ExtractID(r.ProtocolChannel)
 		msg := make([]string, 0, 7)
-		msg = append(msg, "Here's some information about my running environment:")
+		msg = append(msg, "Here's some information about me and my running environment:")
 		msg = append(msg, fmt.Sprintf("The hostname for the server I'm running on is: %s", hostName))
+		msg = append(msg, fmt.Sprintf("My name is '%s', alias '%s', and my %s internal ID is '%s'", name, alias, r.Protocol, ID))
+		msg = append(msg, fmt.Sprintf("This is channel '%s', %s internal ID: %s", r.Channel, r.Protocol, channelID))
 		if r.CheckAdmin() {
 			msg = append(msg, fmt.Sprintf("My install directory is: %s", installPath))
 			lp := "(not set)"
@@ -61,9 +78,6 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			msg = append(msg, fmt.Sprintf("My configuration directory is: %s", lp))
 		}
 		msg = append(msg, fmt.Sprintf("My software version is: Gopherbot %s, commit: %s", botVersion.Version, botVersion.Commit))
-		if alias != 0 {
-			msg = append(msg, fmt.Sprintf("My alias is: %s", string(alias)))
-		}
 		msg = append(msg, fmt.Sprintf("The administrators for this robot are: %s", admins))
 		r.Say(strings.Join(msg, "\n"))
 	}
