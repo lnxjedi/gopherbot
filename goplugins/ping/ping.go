@@ -1,4 +1,4 @@
-// The ping plugin is a simple plugin showing one way plugins can use
+// Package ping implements a simple plugin showing one way plugins can use
 // supplied configuration data from a plugin's yaml config file.
 package ping
 
@@ -7,40 +7,6 @@ import (
 
 	"github.com/lnxjedi/gopherbot/bot"
 )
-
-const defaultConfig = `
-# These are used to see if the robot is alive, so should answer in every channel
-AllChannels: true
-Help:
-- Keywords: [ "ping" ]
-  Helptext: [ "(bot), ping - see if the bot is alive" ]
-- Keywords: [ "rules" ]
-  Helptext: [ "(bot), what are the rules? - Be sure the robot knows how to conduct his/herself." ]
-- Keywords: [ "whoami", "user", "identity", "handle", "username" ]
-  Helptext: [ "(bot), whoami - Get the robot to tell you a little bit about yourself." ]
-CommandMatchers:
-- Command: "ping"
-  Regex: "(?i:ping)"
-- Command: "thanks"
-  Regex: "(?i:thanks?( you)?!?)"
-- Command: "rules"
-  Regex: "(?i:(?:what are )?the rules\\??)"
-- Command: "whoami"
-  Regex: "(?i:whoami)"
-- Command: "hello"
-  Regex: "(?i:(?:hi|hello|howdy)[.!]?)"
-# These can be overridden by adding a Config: section to conf/plugins/ping.yaml
-Config:
-  Welcome:
-  - "You're welcome!"
-  - "Don't mention it"
-  - "De nada"
-  - "Sure thing"
-  - "No problem!"
-  - "No problemo!"
-  - "Happy to help"
-  - "T'was nothing"
-`
 
 // DO NOT DISABLE THIS PLUGIN! ALL ROBAWTS MUST KNOW THE RULES
 const rules = `0. A robot may not harm humanity, or, by inaction, allow humanity to come to harm.
@@ -92,8 +58,7 @@ func ping(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) 
 
 func init() {
 	bot.RegisterPlugin("ping", bot.PluginHandler{
-		DefaultConfig: defaultConfig,
-		Handler:       ping,
-		Config:        &config{},
+		Handler: ping,
+		Config:  &config{},
 	})
 }

@@ -12,6 +12,14 @@ import (
 
 const datumName = "group"
 
+const groupHelp = `The groups plugin allows you to configure groups, members, and
+ group administrators who are able to add and remove members that are
+ stored in the robot's memory. For authorization purposes, any user configured
+ as a member or administrator, or stored as a member in the robot's long-term
+ memory, is considered a member. Note that bot administrators can also add
+ and remove users from groups, but are not considered members unless explicitly
+ added. 'help groups' will give help for all group related commands.`
+
 type groupSpec struct {
 	Administrators, Users []string // used with map[string]groupSpec
 }
@@ -250,8 +258,7 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 
 func init() {
 	bot.RegisterPlugin("groups", bot.PluginHandler{
-		DefaultConfig: defaultConfig,
-		Handler:       groups,
-		Config:        &config{},
+		Handler: groups,
+		Config:  &config{},
 	})
 }

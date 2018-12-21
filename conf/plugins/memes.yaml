@@ -1,3 +1,4 @@
+---
 # To add your own memes, create conf/plugins/memes.yaml in the custom
 # configuration repository, with new entries for "Help:" and "CommandMatchers:"
 # following the format shown, where the "Command" is the template ID.

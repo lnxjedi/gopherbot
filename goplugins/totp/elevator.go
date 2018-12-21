@@ -181,23 +181,9 @@ func elevate(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVa
 	return
 }
 
-const defaultConfig = `
-AllChannels: true
-Config:
-  TimeoutSeconds: 7200
-  TimeoutType: idle # or absolute
-Help:
-- Keywords: [ "send", "launch", "codes" ]
-  Helptext: [ "(bot), send launch codes - one-time send of Google Authenticator string token, for use with TOTP elevation" ]
-CommandMatchers:
-- Command: "send"
-  Regex: '(?i:send (?:launch )?codes?)'
-`
-
 func init() {
 	bot.RegisterPlugin("totp", bot.PluginHandler{
-		DefaultConfig: defaultConfig,
-		Handler:       elevate,
-		Config:        &config{},
+		Handler: elevate,
+		Config:  &config{},
 	})
 }

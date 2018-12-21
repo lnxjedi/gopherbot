@@ -1,0 +1,14 @@
+---
+Help:
+- Keywords: [ "*", "help" ]
+  Helptext: [ "(bot), help with robot - give general help on the help system and using the robot" ]
+CommandMatchers:
+- Command: help
+  Regex: '(?i:help with (?:help|robot))'
+MessageMatchers:
+- Command: help
+  Regex: '^(?i:help)$'
+- Command: help
+  Regex: '^(?i:help with (?:help|robot))$'
+AllChannels: true
+CatchAll: true

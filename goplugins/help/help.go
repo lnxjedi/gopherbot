@@ -1,4 +1,4 @@
-// The help plugin spits out a helpful message when a user just types "help" in
+// Package help - plugin spits out a helpful message when a user just types "help" in
 // a channel, and also responds when the user addresses the robot but no plugin
 // matched. Advanced users will probably disable this one and write their own.
 package help
@@ -14,23 +14,6 @@ var (
 	gobot   bot.Robot
 	botName string
 )
-
-// Default plugin configuration for help
-const defaultConfig = `
-Help:
-- Keywords: [ "*", "help" ]
-  Helptext: [ "(bot), help with robot - give general help on the help system and using the robot" ]
-CommandMatchers:
-- Command: help
-  Regex: '(?i:help with (?:help|robot))'
-MessageMatchers:
-- Command: help
-  Regex: '^(?i:help)$'
-- Command: help
-  Regex: '^(?i:help with (?:help|robot))$'
-AllChannels: true
-CatchAll: true
-`
 
 // Define the handler function
 func help(bot *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
@@ -65,5 +48,5 @@ func help(bot *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 }
 
 func init() {
-	bot.RegisterPlugin("help", bot.PluginHandler{DefaultConfig: defaultConfig, Handler: help})
+	bot.RegisterPlugin("help", bot.PluginHandler{Handler: help})
 }

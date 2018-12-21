@@ -132,8 +132,7 @@ func knock(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal)
 
 func init() {
 	bot.RegisterPlugin("knock", bot.PluginHandler{
-		DefaultConfig: defaultConfig,
-		Handler:       knock,
-		Config:        &JokeConfig{},
+		Handler: knock,
+		Config:  &JokeConfig{},
 	})
 }

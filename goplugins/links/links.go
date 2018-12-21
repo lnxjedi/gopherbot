@@ -12,6 +12,11 @@ import (
 
 const datumNameDefault = "links"
 const maxLinkLen = 7
+const longHelp = `The links plugin stores URLs and associates them with a text key that can
+be words or phrases. The 'link' command stores a link and key in one command, and the
+'save' command will prompt the user to enter the key. The lookup command
+will return all links whose key contains the provided word or phrase,
+case insensitive. Links can be deleted with the 'remove' command.`
 
 var spaces = regexp.MustCompile(`\s+`)
 
@@ -176,8 +181,7 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal)
 
 func init() {
 	bot.RegisterPlugin("links", bot.PluginHandler{
-		DefaultConfig: defaultConfig,
-		Handler:       links,
-		Config:        &config{},
+		Handler: links,
+		Config:  &config{},
 	})
 }
