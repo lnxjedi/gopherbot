@@ -34,7 +34,7 @@ fi
 AddTask exec ./.gopherci/publish.sh
 
 # Trigger Docker build
-AddTask exec curl -X POST https://cloud.docker.com/$DOCKER_TRIGGER
+AddTask exec ./.gopherci/dockercloud.sh
 
 # Notify of success
 if [ -n "$NOTIFY_USER" ]
