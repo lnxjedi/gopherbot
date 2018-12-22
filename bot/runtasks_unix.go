@@ -245,8 +245,10 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	if err = cmd.Start(); err != nil {
 		Log(Error, fmt.Errorf("Starting command '%s': %v", taskPath, err))
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
+		runtime.UnlockOSThread()
 		return errString, MechanismFail
 	}
+	runtime.UnlockOSThread()
 	if command != "init" {
 		emit(ExternalTaskRan)
 	}
@@ -314,6 +316,5 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 			emit(ExternalTaskErrExit)
 		}
 	}
-	runtime.UnlockOSThread()
 	return errString, retval
 }
