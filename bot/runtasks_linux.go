@@ -1,4 +1,4 @@
-// +build darwin dragonfly netbsd openbsd
+// +build linux freebsd
 
 package bot
 
