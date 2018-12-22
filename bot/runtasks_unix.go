@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 )
@@ -235,6 +236,12 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 			return errString, MechanismFail
 		}
 	}
+	euid := syscall.Geteuid()
+	runtime.LockOSThread()
+	_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(euid), uintptr(euid), uintptr(euid))
+	if errno != 0 {
+		Log(Warn, fmt.Sprintf("setresuid(%d) call failed: %d", euid, errno))
+	}
 	if err = cmd.Start(); err != nil {
 		Log(Error, fmt.Errorf("Starting command '%s': %v", taskPath, err))
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
@@ -307,5 +314,6 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 			emit(ExternalTaskErrExit)
 		}
 	}
+	runtime.UnlockOSThread()
 	return errString, retval
 }
