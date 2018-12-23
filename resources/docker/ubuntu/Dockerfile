@@ -1,13 +1,5 @@
 FROM ubuntu:latest
 
-ARG installdir=/opt/gopherbot
-ARG executioncontext=/var/lib/gopherbot
-ARG version=v2.0.0-snapshot
-ARG username=robot
-ARG groupname=robot
-ARG uid=49
-ARG gid=49
-
 RUN apt-get update && \
   apt-get -y upgrade && \
   apt-get install -y \
@@ -23,6 +15,14 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 # Common from here down
+ARG installdir=/opt/gopherbot
+ARG version=v2.0.0-snapshot
+ARG username=robot
+ARG groupname=robot
+ARG uid=49
+ARG gid=49
+ARG executioncontext=/home/${username}/run
+
 ENV HOME=/home/${username}
 ENV USER=${username}
 ENV GROUP=${groupname}

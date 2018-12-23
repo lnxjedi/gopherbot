@@ -1,13 +1,5 @@
 FROM amazonlinux:latest
 
-ARG installdir=/opt/gopherbot
-ARG executioncontext=/var/lib/gopherbot
-ARG version=v2.0.0-snapshot
-ARG username=robot
-ARG groupname=robot
-ARG uid=49
-ARG gid=49
-
 RUN yum -y update && \
   yum -y install \
     git \
@@ -21,6 +13,14 @@ RUN yum -y update && \
   rm -rf /var/cache/yum
 
 # Common from here down
+ARG installdir=/opt/gopherbot
+ARG version=v2.0.0-snapshot
+ARG username=robot
+ARG groupname=robot
+ARG uid=49
+ARG gid=49
+ARG executioncontext=/home/${username}/run
+
 ENV HOME=/home/${username}
 ENV USER=${username}
 ENV GROUP=${groupname}
