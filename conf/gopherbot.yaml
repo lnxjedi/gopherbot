@@ -116,17 +116,27 @@ EncryptBrain: {{ env "GOPHER_ENCRYPT_BRAIN" | default "false" }}
 ## Key required for secrets, also used for brain encryption
 EncryptionKey: {{ env "GOPHER_ENCRYPTION_KEY" }}
 
+{{ $histdir := env "GOPHER_HISTORY_DIRECTORY" | default (printf "%s/history" $home) }}
+{{ $workdir := env "GOPHER_WORKSPACE_DIRECTORY" | default (printf "%s/workspace" $home) }}
+
+# Dockerized robots default directories; can be overridden
+# in custom config.
+{{ if env "GOPHER_DOCKER" }}
+{{ $histdir = printf "%s/history" $home }}
+{{ $workdir = printf "%s/workspace" $home }}
+{{ end }}
+
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "file" }}
 HistoryProvider: {{ $history }}
 
 {{ if eq $history "file" }}
 HistoryConfig:
-  Directory: {{ env "GOPHER_HISTORY_DIRECTORY" | default (printf "%s/history" $home) }}
+  Directory: {{ $histdir }}
 {{ end }}
 ## End history config
 
-WorkSpace: {{ env "GOPHER_WORKSPACE_DIRECTORY" | default (printf "%s/workspace" $home) }}
+WorkSpace: {{ $workdir }}
 
 ## Configure log level; defaults to debug to aid in troubleshooting
 ## if custom configuration can't be loaded.

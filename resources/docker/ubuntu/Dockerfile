@@ -21,8 +21,9 @@ ARG username=robot
 ARG groupname=robot
 ARG uid=49
 ARG gid=49
-ARG executioncontext=/home/${username}/run
+ARG executioncontext=/home/runcontext
 
+ENV GOPHER_DOCKER=true
 ENV HOME=/home/${username}
 ENV USER=${username}
 ENV GROUP=${groupname}
