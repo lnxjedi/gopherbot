@@ -119,15 +119,18 @@ func provider(r bot.Handler) bot.HistoryProvider {
 	robot = r
 	robot.GetHistoryConfig(&fhc)
 	if len(fhc.Directory) == 0 {
-		robot.Log(bot.Fatal, "HistoryConfig missing value for Directory required by 'file' history provider")
+		robot.Log(bot.Error, "HistoryConfig missing value for Directory required by 'file' history provider")
+		return nil
 	}
 	historyPath = fhc.Directory
 	hd, err := os.Stat(historyPath)
 	if err != nil {
-		robot.Log(bot.Fatal, fmt.Sprintf("Checking history directory '%s': %v", historyPath, err))
+		robot.Log(bot.Error, fmt.Sprintf("Checking history directory '%s': %v", historyPath, err))
+		return nil
 	}
 	if !hd.Mode().IsDir() {
-		robot.Log(bot.Fatal, fmt.Sprintf("Checking history directory: '%s' isn't a directory", historyPath))
+		robot.Log(bot.Error, fmt.Sprintf("Checking history directory: '%s' isn't a directory", historyPath))
+		return nil
 	}
 	robot.Log(bot.Info, fmt.Sprintf("Initialized file history provider with directory: '%s'", historyPath))
 	return &fhc
