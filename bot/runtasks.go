@@ -122,8 +122,10 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 				taskinfo += " " + strings.Join(args, " ")
 			}
 			var link string
-			if url, ok := c.history.GetHistoryURL(task.name, c.runIndex); ok {
-				link = fmt.Sprintf(" (link: %s)", url)
+			if c.history != nil {
+				if url, ok := c.history.GetHistoryURL(task.name, c.runIndex); ok {
+					link = fmt.Sprintf(" (link: %s)", url)
+				}
 			}
 			switch ptype {
 			case jobTrigger:
