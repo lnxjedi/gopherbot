@@ -141,7 +141,7 @@ func updateRegexesWrapped(name string, alias rune) (pre, post, bare *regexp.Rege
 	pre = nil
 	post = nil
 	if alias == 0 && len(name) == 0 {
-		Log(Error, "Robot has no name or alias, and can't be spoken to")
+		Log(Error, "Robot has no name or alias, and will only respond to direct messages")
 		return
 	}
 	preString := `^(?i:`

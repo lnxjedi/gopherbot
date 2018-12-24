@@ -130,7 +130,7 @@ func (h handler) IncomingMessage(inc *ConnectorMessage) {
 			message = matches[0][1] + matches[0][2]
 		}
 	}
-	if !isCommand {
+	if !isCommand && bareRegex != nil {
 		if bareRegex.MatchString(messageFull) {
 			isCommand = true
 		}
