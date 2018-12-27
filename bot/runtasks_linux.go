@@ -15,15 +15,41 @@ import (
 	"syscall"
 )
 
+type getCfgReturn struct {
+	buffptr *[]byte
+	err     error
+}
+
 func getExtDefCfg(task *BotTask) (*[]byte, error) {
+	cc := make(chan getCfgReturn)
+	go getExtDefCfgThread(cc, task)
+	ret := <-cc
+	return ret.buffptr, ret.err
+}
+
+func getExtDefCfgThread(cchan chan<- getCfgReturn, task *BotTask) {
 	var taskPath string
 	var err error
 	var relpath bool
 	if taskPath, relpath, err = getTaskPath(task); err != nil {
-		return nil, err
+		cchan <- getCfgReturn{nil, err}
+		return
 	}
 	var cfg []byte
 	var cmd *exec.Cmd
+
+	uid := syscall.Getuid()
+	euid := syscall.Geteuid()
+	// drop privileges when running external task; this thread will terminate
+	// when this goroutine finishes; see runtime.LockOSThread()
+	if uid != euid {
+		runtime.LockOSThread()
+		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(uid), uintptr(uid), uintptr(uid))
+		if errno != 0 {
+			Log(Warn, fmt.Sprintf("setresuid(%d) call failed: %d", euid, errno))
+		}
+	}
+
 	Log(Debug, fmt.Sprintf("Calling '%s' with arg: configure", taskPath))
 	//cfg, err = exec.Command(taskPath, "configure").Output()
 	cmd = exec.Command(taskPath, "configure")
@@ -38,9 +64,11 @@ func getExtDefCfg(task *BotTask) (*[]byte, error) {
 		} else {
 			err = fmt.Errorf("Problem retrieving default configuration for external plugin '%s', skipping: '%v'", taskPath, err)
 		}
-		return nil, err
+		cchan <- getCfgReturn{nil, err}
+		return
 	}
-	return &cfg, nil
+	cchan <- getCfgReturn{&cfg, nil}
+	return
 }
 
 type taskReturn struct {
@@ -59,8 +87,6 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, command string, args ...string) {
 	var errString string
 	var retval TaskRetVal
-
-	runtime.LockOSThread()
 
 	c.currentTask = t
 	r := c.makeRobot()
@@ -260,11 +286,13 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 			return
 		}
 	}
+
 	uid := syscall.Getuid()
 	euid := syscall.Geteuid()
 	// drop privileges when running external task; this thread will terminate
 	// when this goroutine finishes; see runtime.LockOSThread()
 	if uid != euid {
+		runtime.LockOSThread()
 		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(uid), uintptr(uid), uintptr(uid))
 		if errno != 0 {
 			Log(Warn, fmt.Sprintf("setresuid(%d) call failed: %d", euid, errno))

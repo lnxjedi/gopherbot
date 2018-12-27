@@ -39,8 +39,10 @@ RUN groupadd -g ${gid} ${groupname} && \
     ${HOME}/workspace \
     ${HOME}/brain \
     ${HOME}/history && \
-  chown bin:${groupname} /opt/gopherbot/gopherbot && \
-  chmod 4550 /opt/gopherbot/gopherbot && \
+  chown bin:${groupname} /opt/gopherbot/gopherbot \
+    ${HOME} && \
+  chmod 4450 /opt/gopherbot/gopherbot && \
+  chmod 0570 ${HOME} && \
   chown ${username}:${groupname} ${HOME}/custom \
     ${HOME}/workspace && \
   chown bin:bin ${HOME}/brain \
@@ -48,6 +50,6 @@ RUN groupadd -g ${gid} ${groupname} && \
   chmod 700 ${HOME}/brain
 
 WORKDIR ${HOME}
-USER ${username}:${groupname}
+USER ${USER}:${GROUP}
 
 ENTRYPOINT [ "/opt/gopherbot/gopherbot" , "-plainlog" ]
