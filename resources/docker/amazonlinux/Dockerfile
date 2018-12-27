@@ -19,13 +19,11 @@ ARG username=robot
 ARG groupname=robot
 ARG uid=49
 ARG gid=49
-ARG executioncontext=/home/runcontext
 
 ENV GOPHER_DOCKER=true
 ENV HOME=/home/${username}
 ENV USER=${username}
 ENV GROUP=${groupname}
-ENV CONTEXT=${executioncontext}
 
 # Invalidate the cache when master changes
 ADD https://api.github.com/repos/lnxjedi/gopherbot/commits/master /commit
@@ -35,20 +33,19 @@ RUN groupadd -g ${gid} ${groupname} && \
   mkdir -p ${installdir} && \
   cd ${installdir} && \
   curl -L https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.tar.gz | tar xzvf - && \
-  mkdir -p ${executioncontext}/protected/custom \
-    ${executioncontext}/protected/brain \
+  mkdir -p ${HOME}/custom \
     ${HOME}/workspace \
+    ${HOME}/brain \
     ${HOME}/history && \
-  chown ${username}:bin /opt/gopherbot/gopherbot && \
+  chown bin:${groupname} /opt/gopherbot/gopherbot && \
   chmod 4550 /opt/gopherbot/gopherbot && \
-  chown ${username}:${groupname} ${executioncontext}/protected/custom \
-    ${executioncontext}/protected/brain \
-    ${HOME}/workspace \
+  chown ${username}:${groupname} ${HOME}/custom \
+    ${HOME}/workspace && \
+  chown bin:bin ${HOME}/brain \
     ${HOME}/history && \
-  chmod 550 ${executioncontext} && \
-  chown bin:root ${executioncontext}
+  chmod 700 ${HOME}/brain
 
-WORKDIR ${executioncontext}/protected
-USER bin:bin
+WORKDIR ${HOME}
+USER ${username}:${groupname}
 
 ENTRYPOINT [ "/opt/gopherbot/gopherbot" , "-plainlog" ]
