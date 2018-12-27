@@ -106,7 +106,11 @@ func Start(v VersionInfo) {
 	} else if len(envCfgPath) > 0 {
 		configpath = envCfgPath
 	} else {
-		configpath = "."
+		if respath, ok := checkDirectory("custom"); ok {
+			configpath = respath
+		} else {
+			configpath = "."
+		}
 	}
 
 	environment := path.Join(configpath, "gopherbot.env")
