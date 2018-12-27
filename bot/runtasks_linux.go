@@ -43,8 +43,25 @@ func getExtDefCfg(task *BotTask) (*[]byte, error) {
 	return &cfg, nil
 }
 
-// callTask does the real work of running a job, task or plugin with a command and arguments.
+type taskReturn struct {
+	errString string
+	retval    TaskRetVal
+}
+
+// callTask does the work of running a job, task or plugin with a command and arguments.
 func (c *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
+	rc := make(chan taskReturn)
+	go c.callTaskThread(rc, t, command, args...)
+	ret := <-rc
+	return ret.errString, ret.retval
+}
+
+func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, command string, args ...string) {
+	var errString string
+	var retval TaskRetVal
+
+	runtime.LockOSThread()
+
 	c.currentTask = t
 	r := c.makeRobot()
 	task, plugin, _ := getTask(t)
@@ -54,7 +71,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		msg := fmt.Sprintf("callTask failed on disabled task %s; reason: %s", task.name, task.reason)
 		Log(Error, msg)
 		c.debug(msg, false)
-		return msg, ConfigurationError
+		rchan <- taskReturn{msg, ConfigurationError}
 	}
 	if c.logger != nil {
 		var taskinfo string
@@ -130,7 +147,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		c.taskenvironment = envhash
 		ret := pluginHandlers[task.name].Handler(r, command, args...)
 		c.taskenvironment = nil
-		return "", ret
+		rchan <- taskReturn{"", ret}
 	}
 	var taskPath string // full path to the executable
 	var err error
@@ -138,13 +155,13 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	taskPath, relpath, err = getTaskPath(task)
 	if err != nil {
 		emit(ExternalTaskBadPath)
-		return fmt.Sprintf("Error getting path for %s: %v", task.name, err), MechanismFail
+		rchan <- taskReturn{fmt.Sprintf("Error getting path for %s: %v", task.name, err), MechanismFail}
 	}
 	interpreter, iargs, err := getInterpreter(taskPath, relpath)
 	if err != nil {
 		errString = "There was a problem calling an external plugin"
 		emit(ExternalTaskBadInterpreter)
-		return errString, MechanismFail
+		rchan <- taskReturn{errString, MechanismFail}
 	}
 	if len(interpreter) == 0 {
 		interpreter = "(none)"
@@ -171,7 +188,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		if err != nil {
 			errString = fmt.Sprintf("opening task '%s': '%v'", taskPath, err)
 			emit(ExternalTaskBadPath)
-			return errString, MechanismFail
+			rchan <- taskReturn{errString, MechanismFail}
 		}
 		cmd.Stdin = script
 	} else {
@@ -223,7 +240,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	if err != nil {
 		Log(Error, fmt.Errorf("Creating stderr pipe for external command '%s': %v", taskPath, err))
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-		return errString, MechanismFail
+		rchan <- taskReturn{errString, MechanismFail}
 	}
 	if c.logger == nil {
 		// close stdout on the external plugin...
@@ -233,22 +250,24 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		if err != nil {
 			Log(Error, fmt.Errorf("Creating stdout pipe for external command '%s': %v", taskPath, err))
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-			return errString, MechanismFail
+			rchan <- taskReturn{errString, MechanismFail}
 		}
 	}
+	uid := syscall.Getuid()
 	euid := syscall.Geteuid()
-	runtime.LockOSThread()
-	_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(euid), uintptr(euid), uintptr(euid))
-	if errno != 0 {
-		Log(Warn, fmt.Sprintf("setresuid(%d) call failed: %d", euid, errno))
+	// drop privileges when running external task; this thread will terminate
+	// when this goroutine finishes; see runtime.LockOSThread()
+	if uid != euid {
+		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(uid), uintptr(uid), uintptr(uid))
+		if errno != 0 {
+			Log(Warn, fmt.Sprintf("setresuid(%d) call failed: %d", euid, errno))
+		}
 	}
 	if err = cmd.Start(); err != nil {
 		Log(Error, fmt.Errorf("Starting command '%s': %v", taskPath, err))
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-		runtime.UnlockOSThread()
-		return errString, MechanismFail
+		rchan <- taskReturn{errString, MechanismFail}
 	}
-	runtime.UnlockOSThread()
 	if command != "init" {
 		emit(ExternalTaskRan)
 	}
@@ -257,7 +276,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
 			Log(Error, fmt.Errorf("Reading from stderr for external command '%s': %v", taskPath, err))
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-			return errString, MechanismFail
+			rchan <- taskReturn{errString, MechanismFail}
 		}
 		stdErrString := string(stdErrBytes)
 		if len(stdErrString) > 0 {
@@ -316,5 +335,5 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 			emit(ExternalTaskErrExit)
 		}
 	}
-	return errString, retval
+	rchan <- taskReturn{errString, retval}
 }
