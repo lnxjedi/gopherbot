@@ -6,7 +6,11 @@
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
-BOT_SSH_PHRASE=$(GetSecret BOT_SSH_PHRASE)
+if [ -z "$BOT_SSH_PHRASE" ]
+then
+    BOT_SSH_PHRASE=$(GetSecret BOT_SSH_PHRASE)
+fi
+
 if [ -z "$BOT_SSH_PHRASE" ]
 then
     Log "Error" "Empty BOT_SSH_PHRASE in ssh-askpass"
