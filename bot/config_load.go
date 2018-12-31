@@ -43,52 +43,13 @@ func mergemap(m, t map[string]interface{}) map[string]interface{} {
 	return t
 }
 
-// NOTE: even after calling os.Unsetenv() or os.Setenv(), the original
-// values can be found in /proc/<pid>/environ, removing any benefit.
-// For now, leaving the old code, should probably eventually be removed.
-
-/*
-var envrmcache = struct {
-	env map[string]string
-	*sync.Mutex
-}{
-	env:   make(map[string]string),
-	Mutex: new(sync.Mutex),
-}
-
-// envrm is for the config file template FuncMap. It returns
-// the given environment var if found, then unsets it; best used
-// for security-sensitive values that shouldn't remain in the
-// environment. If required is set, an Error-level log event is
-// generated for empty vars.
-func envrm(envvar string) (val string) {
-	envrmcache.Lock()
-	if cached, ok := envrmcache.env[envvar]; ok {
-		envrmcache.Unlock()
-		val = cached
-	} else {
-		val = os.Getenv(envvar)
-		envrmcache.env[envvar] = val
-		envrmcache.Unlock()
-		err := os.Unsetenv(envvar)
-		if err != nil {
-			Log(Debug, fmt.Sprintf("Error unsetting environment variable '%s': %v", envvar, err))
-		}
-	}
-	if len(val) == 0 {
-		Log(Debug, fmt.Sprintf("Empty environemnt variable returned for '%s' in template expansion", envvar))
-	}
-	return
-}
-*/
-
 // env is for the config file template FuncMap. It returns
 // the given environment var if found. If required is set,
 // an Error-level log event is generated for empty vars.
 func env(envvar string) string {
 	val := os.Getenv(envvar)
 	if len(val) == 0 {
-		Log(Debug, fmt.Sprintf("Empty environemnt variable returned for '%s' in template expansion", envvar))
+		Log(Debug, fmt.Sprintf("Empty environment variable returned for '%s' in template expansion", envvar))
 	}
 	return val
 }
