@@ -6,10 +6,13 @@ package bot_test
 bot_integration_test.go - setup and initialization of "black box" integration testing.
 
 Run integration tests with:
-$ go test -v --tags 'test integration' -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
+$ go test -v --tags 'test integration' ./bot
 
 Run specific tests with e.g.:
-$ go test -run MessageMatch -v --tags 'test integration' -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
+$ go test -run MessageMatch -v --tags 'test integration' ./bot
+
+To run tests with static builds and modules from vendor:
+$ CGO_ENABLED=0 go test -v --tags 'test integration netgo osusergo static_build' -mod vendor ./bot
 
 Generate coverage statistics report with:
 $ go tool cover -html=coverage.out -o coverage.html
@@ -190,7 +193,7 @@ func TestBotName(t *testing.T) {
 		{aliceID, general, "@bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ping @bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ping;", []testc.TestMessage{}, []Event{}, 0},
-		{bobID, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{bobID, general, "bender: echo hello world", []testc.TestMessage{{null, general, "Sure thing: hello world"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		// When you forget to address the robot, you can say it's name
 		{aliceID, general, "ping", []testc.TestMessage{}, []Event{}, 200},
 		{aliceID, general, "bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
