@@ -10,7 +10,7 @@ then
 fi
 
 # Run tests
-AddTask exec go test -v --tags 'test integration' -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
+AddTask exec CGO_ENABLED=0 go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
 
 # Install required tools
 AddTask exec ./.gopherci/tools.sh
