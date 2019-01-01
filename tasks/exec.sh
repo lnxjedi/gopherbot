@@ -5,6 +5,19 @@
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
+for ARG in "$@"
+do
+    if [[ $ARG = *=* ]]
+    then
+        echo "ENV: $ARG"
+        VAR=${ARG%%=*}
+        VALUE=${ARG#*=}
+        export $VAR="$VALUE"
+        echo export $VAR="$VALUE"
+        shift
+    fi
+done
+
 SCRIPT=$1
 shift
 
