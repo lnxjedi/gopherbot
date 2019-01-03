@@ -7,9 +7,14 @@ import (
 	"log"
 	"os"
 	"path"
+	"syscall"
 
 	"github.com/joho/godotenv"
 )
+
+// Information about privilege separation, set in runtasks_linux.go
+var privSep = false
+var privUID, unprivUID int
 
 func init() {
 	hostName = os.Getenv("HOSTNAME")
@@ -107,6 +112,13 @@ func Start(v VersionInfo) {
 		lp = configpath
 	}
 	botLogger.Printf("Starting up with config dir: %s, and install dir: %s\n", lp, installpath)
+	if privSep {
+		uid := syscall.Getuid()
+		euid := syscall.Geteuid()
+		botLogger.Printf("Privilege separation initialized; daemon UID %d, script UID %d; process euid/uid: %d/%d\n", privUID, unprivUID, euid, uid)
+	} else {
+		botLogger.Printf("Privilege separation not in use\n")
+	}
 
 	initBot(configpath, installpath, botLogger)
 

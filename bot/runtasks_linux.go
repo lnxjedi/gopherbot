@@ -15,6 +15,37 @@ import (
 	"syscall"
 )
 
+func privThread() {
+	if privSep {
+		runtime.LockOSThread()
+		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(privUID), uintptr(privUID), uintptr(unprivUID))
+		if errno != 0 {
+			Log(Warn, fmt.Sprintf("privileged setresuid(%d) call failed: %d", unprivUID, errno))
+		}
+	}
+}
+
+func unprivThread() {
+	if privSep {
+		runtime.LockOSThread()
+		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(unprivUID), uintptr(unprivUID), uintptr(unprivUID))
+		if errno != 0 {
+			Log(Warn, fmt.Sprintf("unprivileged setresuid(%d) call failed: %d", unprivUID, errno))
+		}
+	}
+}
+
+func init() {
+	uid := syscall.Getuid()
+	euid := syscall.Geteuid()
+	if uid != euid {
+		privUID = euid
+		unprivUID = uid
+		syscall.Syscall(syscall.SYS_SETRESUID, uintptr(euid), uintptr(euid), uintptr(uid))
+		privSep = true
+	}
+}
+
 type getCfgReturn struct {
 	buffptr *[]byte
 	err     error
@@ -38,19 +69,9 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *BotTask) {
 	var cfg []byte
 	var cmd *exec.Cmd
 
-	runtime.LockOSThread()
-	uid := syscall.Getuid()
-	euid := syscall.Geteuid()
 	// drop privileges when running external task; this thread will terminate
 	// when this goroutine finishes; see runtime.LockOSThread()
-	if uid != euid {
-		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(uid), uintptr(uid), uintptr(uid))
-		if errno != 0 {
-			Log(Warn, fmt.Sprintf("setresuid(%d) call failed: %d", euid, errno))
-		}
-	} else {
-		runtime.UnlockOSThread()
-	}
+	unprivThread()
 
 	Log(Debug, fmt.Sprintf("Calling '%s' with arg: configure", taskPath))
 	//cfg, err = exec.Command(taskPath, "configure").Output()
@@ -289,19 +310,9 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		}
 	}
 
-	runtime.LockOSThread()
-	uid := syscall.Getuid()
-	euid := syscall.Geteuid()
 	// drop privileges when running external task; this thread will terminate
 	// when this goroutine finishes; see runtime.LockOSThread()
-	if uid != euid {
-		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(uid), uintptr(uid), uintptr(uid))
-		if errno != 0 {
-			Log(Warn, fmt.Sprintf("setresuid(%d) call failed: %d", euid, errno))
-		}
-	} else {
-		runtime.UnlockOSThread()
-	}
+	unprivThread()
 
 	if err = cmd.Start(); err != nil {
 		Log(Error, fmt.Errorf("Starting command '%s': %v", taskPath, err))

@@ -16,6 +16,13 @@ import (
 	"syscall"
 )
 
+// no-ops on platforms that don't support priv sep
+func privThread() {
+}
+
+func unprivThread() {
+}
+
 // Windows argument parsing is all over the map; try to fix it here
 // Currently powershell only
 func fixInterpreterArgs(interpreter string, args []string) []string {

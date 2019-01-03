@@ -15,6 +15,13 @@ import (
 	"syscall"
 )
 
+// no-ops on platforms that don't support priv sep
+func privThread() {
+}
+
+func unprivThread() {
+}
+
 func getExtDefCfg(task *BotTask) (*[]byte, error) {
 	var taskPath string
 	var err error
