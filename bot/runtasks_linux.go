@@ -38,16 +38,18 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *BotTask) {
 	var cfg []byte
 	var cmd *exec.Cmd
 
+	runtime.LockOSThread()
 	uid := syscall.Getuid()
 	euid := syscall.Geteuid()
 	// drop privileges when running external task; this thread will terminate
 	// when this goroutine finishes; see runtime.LockOSThread()
 	if uid != euid {
-		runtime.LockOSThread()
 		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(uid), uintptr(uid), uintptr(uid))
 		if errno != 0 {
 			Log(Warn, fmt.Sprintf("setresuid(%d) call failed: %d", euid, errno))
 		}
+	} else {
+		runtime.UnlockOSThread()
 	}
 
 	Log(Debug, fmt.Sprintf("Calling '%s' with arg: configure", taskPath))
@@ -287,17 +289,20 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		}
 	}
 
+	runtime.LockOSThread()
 	uid := syscall.Getuid()
 	euid := syscall.Geteuid()
 	// drop privileges when running external task; this thread will terminate
 	// when this goroutine finishes; see runtime.LockOSThread()
 	if uid != euid {
-		runtime.LockOSThread()
 		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(uid), uintptr(uid), uintptr(uid))
 		if errno != 0 {
 			Log(Warn, fmt.Sprintf("setresuid(%d) call failed: %d", euid, errno))
 		}
+	} else {
+		runtime.UnlockOSThread()
 	}
+
 	if err = cmd.Start(); err != nil {
 		Log(Error, fmt.Errorf("Starting command '%s': %v", taskPath, err))
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
