@@ -110,7 +110,13 @@ BrainConfig:
 
 {{ end }}
 
-EncryptBrain: {{ env "GOPHER_ENCRYPT_BRAIN" | default "false" }}
+# If a brain encryption key isn't provided, the admin can still
+# set GOPHER_ENCRYPT_BRAIN="true" and supply the key interactively
+{{ $default_brain_encrypt := "false" }}
+{{ if env "GOPHER_ENCRYPTION_KEY" }}
+  {{- $default_brain_encrypt = "true" }}
+{{ end }}
+EncryptBrain: {{ env "GOPHER_ENCRYPT_BRAIN" | default $default_brain_encrypt }}
 ## End brain config
 
 ## Key required for secrets, also used for brain encryption
@@ -122,8 +128,8 @@ EncryptionKey: {{ env "GOPHER_ENCRYPTION_KEY" }}
 # Dockerized robots default directories; can be overridden
 # in custom config.
 {{ if env "GOPHER_DOCKER" }}
-{{ $histdir = printf "%s/history" $home }}
-{{ $workdir = printf "%s/workspace" $home }}
+  {{- $histdir = printf "%s/history" $home }}
+  {{- $workdir = printf "%s/workspace" $home }}
 {{ end }}
 
 ## Configure a history provider
