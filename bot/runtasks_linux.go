@@ -15,22 +15,30 @@ import (
 	"syscall"
 )
 
-func privThread() {
+func privThread(reason string) {
 	if privSep {
 		runtime.LockOSThread()
 		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(privUID), uintptr(privUID), uintptr(unprivUID))
 		if errno != 0 {
-			Log(Warn, fmt.Sprintf("privileged setresuid(%d) call failed: %d", unprivUID, errno))
+			uid := syscall.Getuid()
+			euid := syscall.Geteuid()
+			Log(Warn, fmt.Sprintf("privileged setresuid(%d) call failed for '%s': %d; thread euid/uid: %d/%d", unprivUID, reason, errno, euid, uid))
+		} else {
+			tid := syscall.Gettid()
+			Log(Debug, fmt.Sprintf("locking raised privileges for '%s' in thread %d", reason, tid))
 		}
 	}
 }
 
-func unprivThread() {
+func unprivThread(reason string) {
 	if privSep {
 		runtime.LockOSThread()
 		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(unprivUID), uintptr(unprivUID), uintptr(unprivUID))
 		if errno != 0 {
-			Log(Warn, fmt.Sprintf("unprivileged setresuid(%d) call failed: %d", unprivUID, errno))
+			Log(Warn, fmt.Sprintf("unprivileged setresuid(%d) call failed for '%s': %d", unprivUID, reason, errno))
+		} else {
+			tid := syscall.Gettid()
+			Log(Debug, fmt.Sprintf("dropping privileges for '%s' in thread %d", reason, tid))
 		}
 	}
 }
@@ -41,6 +49,7 @@ func init() {
 	if uid != euid {
 		privUID = euid
 		unprivUID = uid
+		runtime.LockOSThread()
 		syscall.Syscall(syscall.SYS_SETRESUID, uintptr(euid), uintptr(euid), uintptr(uid))
 		privSep = true
 	}
@@ -71,7 +80,7 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *BotTask) {
 
 	// drop privileges when running external task; this thread will terminate
 	// when this goroutine finishes; see runtime.LockOSThread()
-	unprivThread()
+	unprivThread(fmt.Sprintf("task %s default configuration", task.name))
 
 	Log(Debug, fmt.Sprintf("Calling '%s' with arg: configure", taskPath))
 	//cfg, err = exec.Command(taskPath, "configure").Output()
@@ -312,7 +321,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 
 	// drop privileges when running external task; this thread will terminate
 	// when this goroutine finishes; see runtime.LockOSThread()
-	unprivThread()
+	unprivThread(fmt.Sprintf("task %s / %s", task.name, command))
 
 	if err = cmd.Start(); err != nil {
 		Log(Error, fmt.Errorf("Starting command '%s': %v", taskPath, err))

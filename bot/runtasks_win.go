@@ -17,10 +17,10 @@ import (
 )
 
 // no-ops on platforms that don't support priv sep
-func privThread() {
+func privThread(reason string) {
 }
 
-func unprivThread() {
+func unprivThread(reason string) {
 }
 
 // Windows argument parsing is all over the map; try to fix it here

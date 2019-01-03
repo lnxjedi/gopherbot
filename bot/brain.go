@@ -337,7 +337,7 @@ var brLock sync.RWMutex
 // runBrain is the select loop that serializes access to brain
 // functions and insures consistency.
 func runBrain() {
-	privThread()
+	privThread("runBrain loop")
 	shortTermMemories.Lock()
 	shortTermMemories.m = make(map[memoryContext]shortTermMemory)
 	shortTermMemories.Unlock()

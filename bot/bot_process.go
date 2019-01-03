@@ -205,6 +205,7 @@ func run() <-chan struct{} {
 	// connector loop
 	botCfg.RLock()
 	go func(conn Connector, stop <-chan struct{}, done chan<- struct{}) {
+		privThread("connector loop")
 		conn.Run(stop)
 		close(done)
 	}(botCfg.Connector, botCfg.stop, botCfg.done)

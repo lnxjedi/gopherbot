@@ -195,7 +195,7 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 // addressed directly but nothing matched, any registered CatchAll plugins are
 // called. There Should Be Only One (terminal plugin called).
 func (c *botContext) handleMessage() {
-	privThread()
+	privThread("incoming message")
 	r := c.makeRobot()
 	defer checkPanic(r, c.msg)
 
