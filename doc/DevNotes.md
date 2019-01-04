@@ -8,11 +8,27 @@
 * Remote plugin execution over ssh (ON HOLD)
 * GopherCI for CI/CD (IN PROGRESS)
 
-## Version 2 Release TODOs
+## Version 2 Stable Release TODOs
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
-- TODO: Update the Ansible playbook for protected install / suid gopherbot
-- TODO: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot; move docker key to separate task
-- DONE/TEST: Add 'TriggersOnly' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
+- DONE: Update the Ansible playbook for protected install / suid gopherbot
+- DONE: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot; move docker key to separate task
+- DONE: Add 'TriggersOnly' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
+
+## Version 2 Final Release TODOs
+- TODO: Add tests for:
+  - Pipelines
+  - Triggers only
+  - Pipeline failures
+  - Users listed in the UserRoster w/ alt names
+  - Test repository configured parameters
+  - Decrypting values encrypted in yaml files
+- TODO: Write documentation for:
+  - Pipelines
+  - Namespaces / extended namespaces
+  - CI/CI
+  - repositories.xml
+  - UserRoster
+  - TriggersOnly & cross-robot triggering
 
 ### Wishlist
 These items aren't required for release, but desired soonish
@@ -29,7 +45,7 @@ These items aren't required for release, but desired soonish
 
 This section outlines potential means of providing secrets to the robot in a secure manner, such that even malicious external scripts / plugins / jobs would not be able to obtain the Slack token or encryption key.
 
-### SUID robot executable in inaccessible dir
+### SUID robot executable
 
 This is the most promising.
 
