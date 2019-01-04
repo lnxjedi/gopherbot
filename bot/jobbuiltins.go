@@ -271,7 +271,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			idx, _ = strconv.Atoi(index)
 		}
 		switch histType {
-		case "email":
+		case "mail", "email":
 			if len(user) > 0 {
 				return emailhistory(r, hp, user, "", histSpec, idx)
 			} else if len(address) > 0 {
