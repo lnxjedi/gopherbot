@@ -1,12 +1,15 @@
-// +build darwin dragonfly freebsd netbsd openbsd
+// +build linux
 
 package bot
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path"
+	"syscall"
+	"unsafe"
 
 	"github.com/joho/godotenv"
 )
@@ -111,15 +114,14 @@ func Start(v VersionInfo) {
 		lp = configpath
 	}
 	botLogger.Printf("Starting up with config dir: %s, and install dir: %s\n", lp, installpath)
-	// NOTE: This should be the only difference between start_unix and start_linux, which has privilege separation
-	// if privSep {
-	// 	var ruid, euid, suid uintptr
-	// 	syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&ruid)), uintptr(unsafe.Pointer(&euid)), uintptr(unsafe.Pointer(&suid)))
-	// 	tid := syscall.Gettid()
-	// 	botLogger.Printf(fmt.Sprintf("Privilege separation initialized; daemon UID %d, script UID %d; thread %d r/e/suid: %d/%d/%d\n", privUID, unprivUID, tid, ruid, euid, suid))
-	// } else {
-	// 	botLogger.Printf("Privilege separation not in use\n")
-	// }
+	if privSep {
+		var ruid, euid, suid uintptr
+		syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&ruid)), uintptr(unsafe.Pointer(&euid)), uintptr(unsafe.Pointer(&suid)))
+		tid := syscall.Gettid()
+		botLogger.Printf(fmt.Sprintf("Privilege separation initialized; daemon UID %d, script UID %d; thread %d r/e/suid: %d/%d/%d\n", privUID, unprivUID, tid, ruid, euid, suid))
+	} else {
+		botLogger.Printf("Privilege separation not in use\n")
+	}
 
 	initBot(configpath, installpath, botLogger)
 
