@@ -228,6 +228,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		Log(Error, fmt.Sprintf("JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs))
 		return
 	}
+	privThread(fmt.Sprintf("http method %s", f.FuncName))
+
 	// Generate a synthetic Robot for access to it's methods
 	r := Robot{
 		User:     f.User,
