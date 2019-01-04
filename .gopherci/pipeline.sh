@@ -9,6 +9,9 @@ then
     FailTask notify $NOTIFY_USER "Gopherbot build failed"
 fi
 
+# Email the job history if it fails
+FailCommand builtin-history "send history $GOPHER_JOB_NAME:$GOPHER_NAMESPACE_EXTENDED $GOPHER_RUN_INDEX to user parsley"
+
 # Run tests
 AddTask exec go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
 
@@ -26,7 +29,6 @@ BOT=$(GetBotAttribute name)
 if [ "$BOT" != "floyd" ]
 then
     Say "Gosh, I wish that *I* could publish"
-    FailCommand builtin-history "send history $GOPHER_JOB_NAME:$GOPHER_NAMESPACE_EXTENDED $GOPHER_RUN_INDEX to user parsley"
     exit 0
 fi
 
