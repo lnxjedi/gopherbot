@@ -266,7 +266,7 @@ func (c *botContext) handleMessage() {
 	if !messageMatched {
 		messageMatched = c.checkJobMatchersAndRun()
 	}
-	if c.isCommand && !messageMatched { // the robot was spoken to, but nothing matched - call catchAlls
+	if c.isCommand && !messageMatched && !c.triggersOnly { // the robot was spoken to, but nothing matched - call catchAlls
 		botCfg.RLock()
 		if !botCfg.shuttingDown {
 			botCfg.RUnlock()
@@ -291,6 +291,9 @@ func (c *botContext) handleMessage() {
 			// If the robot is shutting down, just ignore catch-all plugins
 			botCfg.RUnlock()
 		}
+	}
+	if c.triggersOnly {
+		return
 	}
 	if messageMatched || c.isCommand {
 		shortTermMemories.Lock()
