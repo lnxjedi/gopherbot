@@ -28,7 +28,12 @@ AddTask exec ./.gopherci/mkdist.sh
 BOT=$(GetBotAttribute name)
 if [ "$BOT" != "floyd" ]
 then
-    Say "Gosh, I wish that *I* could publish"
+    if [ -n "$NOTIFY_USER" ]
+    then
+        AddTask notify $NOTIFY_USER "Builds and tests succeeded for Gopherbot"
+    else
+        Say "NOTIFY_USER not set"
+    fi
     exit 0
 fi
 
