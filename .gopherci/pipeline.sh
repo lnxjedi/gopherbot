@@ -9,6 +9,10 @@ then
     FailTask notify $NOTIFY_USER "Gopherbot build failed"
 fi
 
+# Update path for a Go build
+PATH=$PATH:$HOME/go/bin:/usr/local/go/bin
+SetParameter "PATH" "$PATH"
+
 # Email the job history if it fails
 FailCommand builtin-history "send history $GOPHER_JOB_NAME:$GOPHER_NAMESPACE_EXTENDED $GOPHER_RUN_INDEX to user parsley"
 
