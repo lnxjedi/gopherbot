@@ -126,7 +126,10 @@ EncryptionKey: {{ env "GOPHER_ENCRYPTION_KEY" }}
 {{ $workdir := env "GOPHER_WORKSPACE_DIRECTORY" | default (printf "%s/workspace" $home) }}
 
 # Dockerized robots default directories; can be overridden
-# in custom config.
+# in custom config, but not environment variables. This just
+# makes devel easier with a robot that runs locally and in a
+# container with the same '.env' that specifies history and
+# workspace directories for local operation.
 {{ if env "GOPHER_DOCKER" }}
   {{- $histdir = printf "%s/history" $home }}
   {{- $workdir = printf "%s/workspace" $home }}

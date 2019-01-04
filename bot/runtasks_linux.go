@@ -22,10 +22,10 @@ func privThread(reason string) {
 		if errno != 0 {
 			uid := syscall.Getuid()
 			euid := syscall.Geteuid()
-			Log(Warn, fmt.Sprintf("privileged setresuid(%d) call failed for '%s': %d; thread euid/uid: %d/%d", unprivUID, reason, errno, euid, uid))
+			Log(Warn, fmt.Sprintf("Privileged setresuid(%d) call failed for '%s': %d; thread euid/uid: %d/%d", unprivUID, reason, errno, euid, uid))
 		} else {
 			tid := syscall.Gettid()
-			Log(Debug, fmt.Sprintf("locking raised privileges for '%s' in thread %d", reason, tid))
+			Log(Debug, fmt.Sprintf("Locking raised privileges for '%s' in thread %d", reason, tid))
 		}
 	}
 }
@@ -35,10 +35,10 @@ func unprivThread(reason string) {
 		runtime.LockOSThread()
 		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(unprivUID), uintptr(unprivUID), uintptr(unprivUID))
 		if errno != 0 {
-			Log(Warn, fmt.Sprintf("unprivileged setresuid(%d) call failed for '%s': %d", unprivUID, reason, errno))
+			Log(Warn, fmt.Sprintf("Unprivileged setresuid(%d) call failed for '%s': %d", unprivUID, reason, errno))
 		} else {
 			tid := syscall.Gettid()
-			Log(Debug, fmt.Sprintf("dropping privileges for '%s' in thread %d", reason, tid))
+			Log(Debug, fmt.Sprintf("Dropping privileges for '%s' in thread %d", reason, tid))
 		}
 	}
 }

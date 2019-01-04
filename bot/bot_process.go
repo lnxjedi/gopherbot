@@ -131,7 +131,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		}
 	}
 	if encryptBrain && !initialized {
-		Log(Warn, "Brain encryption specified but no key configured; use 'initialize brain <key>' to initialize the encrypted brain")
+		Log(Warn, "Brain encryption specified but not initialized; use 'initialize brain <key>' to initialize the encrypted brain interactively")
 	}
 	if !listening {
 		listening = true

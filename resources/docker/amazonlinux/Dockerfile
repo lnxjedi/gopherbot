@@ -20,6 +20,7 @@ ARG groupname=robot
 ARG uid=49
 ARG gid=49
 
+# The GOPHER_DOCKER var alters defaults in distributed gopherbot.yaml
 ENV GOPHER_DOCKER=true
 ENV HOME=/home/${username}
 ENV USER=${username}

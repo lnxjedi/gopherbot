@@ -179,6 +179,7 @@ func initializeEncryption(key string) bool {
 		cryptKey.Lock()
 		cryptKey.initializing = false
 		cryptKey.Unlock()
+		Log(Error, fmt.Sprintf("Error retrieving botEncryptionKey from brain: %s", ret))
 		return false
 	}
 	if exists {

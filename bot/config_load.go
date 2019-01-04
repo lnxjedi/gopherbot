@@ -71,17 +71,17 @@ func decryptTpl(encval string) string {
 	key := cryptKey.key
 	cryptKey.RUnlock()
 	if !initialized {
-		Log(Warn, "template called decrypt(Tpl) function but encryption not initialized")
+		Log(Warn, "Template called decrypt(Tpl) function but encryption not initialized")
 		return ""
 	}
 	encbytes, err := base64.StdEncoding.DecodeString(encval)
 	if err != nil {
-		Log(Error, "error in template decrypt(Tpl): %v", err)
+		Log(Error, fmt.Sprintf("Unable to base64 decode in template decrypt(Tpl): %v", err))
 		return ""
 	}
 	secret, decerr := decrypt(encbytes, key)
 	if decerr != nil {
-		Log(Error, "error decrypting secret in template decrypt(Tpl): %v", decerr)
+		Log(Error, fmt.Sprintf("Unable to decrypt secret in template decrypt(Tpl): %v", decerr))
 		return ""
 	}
 	return string(secret)
