@@ -42,7 +42,7 @@ then
     exit 0
 fi
 
-if [ -z "$(GetSecret BOT_SSH_PHRASE)" ]
+if [ -z "$BOT_SSH_PHRASE" -a -z "$(GetSecret BOT_SSH_PHRASE)" ]
 then
     Say "I don't know the passphrase for my ssh keypair, aborting"
     exit 1
