@@ -121,6 +121,11 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	var userID string
 	timestamp := time.Now()
 	var message slack.Msg
+	ci, ok := s.getChannelInfo(chanID)
+	if !ok {
+		s.Log(bot.Error, "Couldn't find channel info for channel ID", chanID)
+		return
+	}
 	if msg.Msg.SubType == "message_changed" {
 		message = *msg.SubMessage
 		userID = message.User
@@ -138,18 +143,27 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 			return
 		}
 		s.Log(bot.Debug, fmt.Sprintf("SubMessage (edited message) received: %v", message))
+	} else if msg.Msg.SubType == "message_deleted" {
+		s.Log(bot.Debug, fmt.Sprintf("Ignoring deleted message in channel '%s'", chanID))
+		return
 	} else {
 		message = msg.Msg
 		userID = message.User
-		if userID == "" {
+		if len(userID) == 0 {
 			if message.BotID != "" {
 				userID = message.BotID
+			} else if ci.IsIM {
+				userID, _ = s.imUserID(chanID)
 			}
 		}
 		lastlookup := userlast{userID, chanID}
 		lastmsgtime.Lock()
 		lastmsgtime.m[lastlookup] = timestamp
 		lastmsgtime.Unlock()
+	}
+	if len(userID) == 0 {
+		s.Log(bot.Debug, "Zero-length userID, ignoring message")
+		return
 	}
 	if userID == s.botID {
 		s.Log(bot.Debug, "Ignoring message from self")
@@ -181,11 +195,6 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 			text = strings.Replace(text, mention, "@"+replace, -1)
 		}
 	}
-	ci, ok := s.getChannelInfo(chanID)
-	if !ok {
-		s.Log(bot.Error, "Couldn't find channel info for channel ID", chanID)
-		return
-	}
 	botMsg := &bot.ConnectorMessage{
 		Protocol:      "Slack",
 		UserID:        userID,
@@ -201,21 +210,8 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	} else {
 		botMsg.UserName = userName
 	}
-	if ci.IsIM {
-		directUserName, ok := s.imUser(chanID)
-		if directUserName != userName { // sometimes the bot hears his own last message
-			s.Log(bot.Debug, fmt.Sprintf("Direct message user \"%s\" doesn't match sending user \"%s\", ignoring", directUserName, userName))
-			return
-		}
-		if !ok {
-			s.Log(bot.Warn, "Couldn't find user name for IM", chanID)
-			s.IncomingMessage(botMsg)
-			return
-		}
-		botMsg.UserName = directUserName
-		s.IncomingMessage(botMsg)
-	} else {
+	if !ci.IsIM {
 		botMsg.ChannelName = ci.Name
-		s.IncomingMessage(botMsg)
 	}
+	s.IncomingMessage(botMsg)
 }

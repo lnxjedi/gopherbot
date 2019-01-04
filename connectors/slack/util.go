@@ -141,12 +141,13 @@ func (s *slackConnector) userName(i string) (user string, found bool) {
 	}
 	var ui *slack.User
 	ui, found = s.userIDInfo[i]
-	user = ui.Name
 	s.RUnlock()
-	if !found {
+	if found {
+		user = ui.Name
+	} else {
 		u := s.updateUserList("u:" + i)
 		if len(u) == 0 {
-			s.Log(bot.Error, fmt.Sprintf("Failed username lookup for ID '%s", i))
+			s.Log(bot.Error, fmt.Sprintf("Failed username lookup for ID '%s'", i))
 			return "", false
 		}
 		user = u
@@ -288,19 +289,20 @@ func (s *slackConnector) userIMID(i string) (c string, ok bool) {
 	return i, ok
 }
 
-// Get user name from conversation
-func (s *slackConnector) imUser(c string) (u string, found bool) {
+// Get user ID from IM conversation
+func (s *slackConnector) imUserID(c string) (i string, found bool) {
 	s.RLock()
-	i, ok := s.imToUserID[c]
+	i, found = s.imToUserID[c]
 	s.RUnlock()
-	if !ok {
+	if !found {
 		i = s.updateChannelMaps("di:" + c)
 		if len(i) == 0 {
 			s.Log(bot.Error, fmt.Sprintf("Failed lookup of user ID from IM: %s", c))
 			return "", false
 		}
+		found = true
 	}
-	return s.userName(i)
+	return
 }
 
 func (s *slackConnector) chanID(c string) (i string, ok bool) {
