@@ -48,7 +48,8 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	}
 	cmp := strings.Split(ext, "/")
 	repo := strings.Join(cmp[0:len(cmp)-1], "/")
-	if _, exists := c.repositories[repo]; !exists {
+	repository, exists := c.repositories[repo]
+	if !exists {
 		r.Log(Error, fmt.Sprintf("Repository '%s' not found in repositories.yaml", ext))
 		return false
 	}
@@ -147,7 +148,6 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 			}
 		}
 	}
-	repository, _ := c.repositories[ext]
 	for _, param := range repository.Parameters {
 		name := param.Name
 		value := param.Value
