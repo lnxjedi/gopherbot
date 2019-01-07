@@ -14,7 +14,7 @@
 
 The following environment variables are supplied whenever a job is run:
 * `GOPHER_JOB_NAME` - the name of the running job
-* `GOPHER_NAMESPACE_EXTENDED` - the extended namespace, if any
+* `GOPHER_NAMESPACE_EXTENDED` - the extended namespace (minus the branch), if any
 * `GOPHER_RUN_INDEX` - the run number of the job
 
 In addition, the `localbuild` GopherCI builder sets the following environment variables that can be used to modify pipelines:
