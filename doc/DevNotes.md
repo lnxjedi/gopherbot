@@ -23,6 +23,7 @@ These are the items deemed as required for releasing version 2 because they chan
   - Test repository configured parameters
   - Decrypting values encrypted in yaml files
 - TODO: Write documentation for:
+  - Need for BotInfo to provide the robot with a Name and Email
   - Pipelines
   - Namespaces / extended namespaces
   - CI/CI
