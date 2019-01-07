@@ -221,15 +221,15 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 		r.Log(Error, fmt.Sprintf("attempt to add disabled task '%s' to pipeline", name))
 		return TaskDisabled
 	}
-	if isPlugin && ptype != typePlugin {
+	if ptype == typePlugin && !isPlugin {
 		r.Log(Error, fmt.Sprintf("adding command to pipeline - not a plugin: %s", name))
 		return InvalidTaskType
 	}
-	if isJob && ptype != typeJob {
+	if ptype == typeJob && !isJob {
 		r.Log(Error, fmt.Sprintf("adding job to pipeline - not a job: %s", name))
 		return InvalidTaskType
 	}
-	if !isJob && !isPlugin && ptype != typeTask {
+	if ptype == typeTask && (isJob || isPlugin) {
 		r.Log(Error, fmt.Sprintf("adding task to pipeline - not a task: %s", name))
 		return InvalidTaskType
 	}
