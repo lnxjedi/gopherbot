@@ -48,12 +48,13 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	}
 	cmp := strings.Split(ext, "/")
 	repo := strings.Join(cmp[0:len(cmp)-1], "/")
+	branch := cmp[len(cmp)-1]
 	repository, exists := c.repositories[repo]
 	if !exists {
-		r.Log(Error, fmt.Sprintf("Repository '%s' not found in repositories.yaml", ext))
+		r.Log(Error, fmt.Sprintf("Repository '%s' not found in repositories.yaml (missing branch in call to ExtendNamespace?)", repo))
 		return false
 	}
-	r.Log(Debug, fmt.Sprintf("Extending namespace for job '%s': %s", c.jobName, ext))
+	r.Log(Debug, fmt.Sprintf("Extending namespace for job '%s': %s (branch %s)", c.jobName, repo, branch))
 	c.nsExtension = ext
 	c.environment["GOPHER_NAMESPACE_EXTENDED"] = c.nsExtension
 
@@ -157,12 +158,15 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 		}
 	}
 	// Populate the environment with encrypted parameters for this repository.
-	// Task secrets are populated in runtasks.go/callTask
+	// Task secrets are populated in runtasks.go/callTask. Note that repo+branch
+	// is checked before the repo, so the more specific parameters take
+	// precedence.
 	cryptKey.RLock()
 	initialized := cryptKey.initialized
 	ckey := cryptKey.key
 	cryptKey.RUnlock()
 	if initialized {
+		// check repo/branch (ext) first
 		repEnv, exists := c.storedEnv.RepositoryParams[ext]
 		if exists {
 			if initialized {
@@ -171,7 +175,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 					if !exists {
 						value, err := decrypt(encvalue, ckey)
 						if err != nil {
-							Log(Error, fmt.Sprintf("Error decrypting '%s' for repository '%s': %v", name, ext, err))
+							Log(Error, fmt.Sprintf("Error decrypting '%s' for repository/branch '%s': %v", name, ext, err))
 							break
 						}
 						c.environment[name] = string(value)
@@ -179,6 +183,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 				}
 			}
 		}
+		// ... then check repo
 		repEnv, exists = c.storedEnv.RepositoryParams[repo]
 		if exists {
 			if initialized {
@@ -187,7 +192,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 					if !exists {
 						value, err := decrypt(encvalue, ckey)
 						if err != nil {
-							Log(Error, fmt.Sprintf("Error decrypting '%s' for repository '%s': %v", name, ext, err))
+							Log(Error, fmt.Sprintf("Error decrypting '%s' for repository '%s': %v", name, repo, err))
 							break
 						}
 						c.environment[name] = string(value)

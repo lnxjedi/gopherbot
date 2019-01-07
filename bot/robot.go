@@ -75,6 +75,15 @@ func (r *Robot) SetParameter(name, value string) bool {
 // GetSecret looks up the value of a secret for the namespace (if the namespace
 // is extended) or current task. On error a zero-length string is returned.
 func (r *Robot) GetSecret(name string) string {
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	key := cryptKey.key
+	cryptKey.RUnlock()
+	if !initialized {
+		r.Log(Warn, "GetSecret called but encryption not initialized")
+		return ""
+	}
+
 	var secrets brainParams
 	var secret []byte
 	var exists bool
@@ -91,12 +100,31 @@ func (r *Robot) GetSecret(name string) string {
 	c := r.getContext()
 	if len(c.nsExtension) > 0 {
 		var nsMap map[string][]byte
+		found := false
+		secfound := false
 		nsMap, exists = secrets.RepositoryParams[c.nsExtension]
-		if !exists {
+		if exists {
+			found = true
+			if secret, exists = nsMap[name]; exists {
+				secfound = true
+			}
+		}
+		if !secfound {
+			cmp := strings.Split(c.nsExtension, "/")
+			repo := strings.Join(cmp[0:len(cmp)-1], "/")
+			nsMap, exists = secrets.RepositoryParams[repo]
+			if exists {
+				found = true
+				if secret, exists = nsMap[name]; exists {
+					secfound = true
+				}
+			}
+		}
+		if !found {
 			r.Log(Warn, fmt.Sprintf("Secrets not found for extended namespace '%s'", c.nsExtension))
 			return ""
 		}
-		if secret, exists = nsMap[name]; !exists {
+		if !secfound {
 			r.Log(Warn, fmt.Sprintf("Secret '%s' not found for extended namespace '%s'", name, c.nsExtension))
 			return ""
 		}
@@ -112,14 +140,6 @@ func (r *Robot) GetSecret(name string) string {
 			r.Log(Warn, fmt.Sprintf("Secret '%s' not found for task/namespace '%s'", name, task.NameSpace))
 			return ""
 		}
-	}
-	cryptKey.RLock()
-	initialized := cryptKey.initialized
-	key := cryptKey.key
-	cryptKey.RUnlock()
-	if !initialized {
-		r.Log(Warn, "GetSecret called but encryption not initialized")
-		return ""
 	}
 	var value []byte
 	var err error
