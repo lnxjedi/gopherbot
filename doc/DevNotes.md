@@ -40,6 +40,7 @@ These are the items deemed as required for releasing version 2 because they chan
 
 ### Wishlist
 These items aren't required for release, but desired soonish
+- TODO: Add 'build reponame (branch)' shorthand command with configurable reponame->repo URL mapping
 - TODO: (maybe later) clean up IncomingMessage / botContext struct to eliminate dupes from the ConnectorMessage
 - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
 - TODO: Add tests that check behavior of UserRoster / attributes, user w/ no username, etc.
