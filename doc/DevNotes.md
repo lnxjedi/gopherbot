@@ -19,7 +19,7 @@ These are the items deemed as required for releasing version 2 because they chan
   - DONE?: Squelch arguments in debugging messages when it's a DM - audit
   - Return to drop priv full when thread OS state propagation fixed; issue #29613
 - TODO: Bugs & buglets:
-  - Squelch Replies to 'TriggersOnly' users - use Say "UserName: foo"; slack webhooks can't be @mentioned. Easiest solution - add TriggersOnly flag to Robot that's set in makeRobot and cloned. 
+  - DONE: Squelch Replies to 'TriggersOnly' users - use Say "UserName: foo"; slack webhooks can't be @mentioned. Easiest solution - add TriggersOnly flag to Robot that's set in makeRobot and cloned. 
 - TODO: Add tests for:
   - Pipelines
   - Triggers only

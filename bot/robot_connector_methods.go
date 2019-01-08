@@ -165,6 +165,10 @@ func (r *Robot) Reply(msg string) RetVal {
 	if len(channel) == 0 {
 		channel = r.Channel
 	}
+	c := r.getContext()
+	if c != nil && c.triggersOnly {
+		return botCfg.SendProtocolChannelMessage(r.Channel, r.User+": "+msg, r.Format)
+	}
 	return botCfg.SendProtocolUserChannelMessage(user, r.User, r.Channel, msg, r.Format)
 }
 
