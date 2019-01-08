@@ -117,9 +117,17 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	}
 
 	if !(task.name == "builtin-admin" && command == "abort") {
-		defer checkPanic(r, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
+		if c.directMsg {
+			defer checkPanic(r, fmt.Sprintf("Plugin: %s, command: %s, arguments: (omitted)", task.name, command))
+		} else {
+			defer checkPanic(r, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
+		}
 	}
-	Log(Debug, fmt.Sprintf("Dispatching command '%s' to task '%s' with arguments '%#v'", command, task.name, args))
+	if c.directMsg {
+		Log(Debug, fmt.Sprintf("Dispatching command '%s' to task '%s' with arguments '(omitted for DM)'", command, task.name))
+	} else {
+		Log(Debug, fmt.Sprintf("Dispatching command '%s' to task '%s' with arguments '%#v'", command, task.name, args))
+	}
 
 	// Set up the per-task environment
 	envhash := make(map[string]string)

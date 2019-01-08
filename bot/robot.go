@@ -98,10 +98,11 @@ func (r *Robot) GetSecret(name string) string {
 		return ""
 	}
 	c := r.getContext()
+	task, _, _ := getTask(c.currentTask)
+	secfound := false
 	if len(c.nsExtension) > 0 {
 		var nsMap map[string][]byte
 		found := false
-		secfound := false
 		nsMap, exists = secrets.RepositoryParams[c.nsExtension]
 		if exists {
 			found = true
@@ -121,25 +122,25 @@ func (r *Robot) GetSecret(name string) string {
 			}
 		}
 		if !found {
-			r.Log(Warn, fmt.Sprintf("Secrets not found for extended namespace '%s'", c.nsExtension))
-			return ""
+			r.Log(Debug, fmt.Sprintf("Secrets not found for extended namespace '%s'", c.nsExtension))
+		} else if !secfound {
+			r.Log(Debug, fmt.Sprintf("Secret '%s' not found for extended namespace '%s'", name, c.nsExtension))
 		}
-		if !secfound {
-			r.Log(Warn, fmt.Sprintf("Secret '%s' not found for extended namespace '%s'", name, c.nsExtension))
-			return ""
-		}
-	} else {
-		task, _, _ := getTask(c.currentTask)
+	}
+	// Fall back to task secrets if namespace secret not found
+	if !secfound {
 		var tMap map[string][]byte
 		tMap, exists = secrets.TaskParams[task.NameSpace]
 		if !exists {
-			r.Log(Warn, fmt.Sprintf("Secrets not found for task/namespace '%s'", task.NameSpace))
-			return ""
+			r.Log(Debug, fmt.Sprintf("Secrets not found for task/namespace '%s'", task.NameSpace))
+		} else if secret, exists = tMap[name]; !exists {
+			r.Log(Debug, fmt.Sprintf("Secret '%s' not found for task/namespace '%s'", name, task.NameSpace))
+		} else {
+			secfound = true
 		}
-		if secret, exists = tMap[name]; !exists {
-			r.Log(Warn, fmt.Sprintf("Secret '%s' not found for task/namespace '%s'", name, task.NameSpace))
-			return ""
-		}
+	}
+	if !secfound {
+		r.Log(Warn, fmt.Sprintf("Secret '%s' not found for extended namespace '%s' or task/namespace '%s'", name, c.nsExtension, task.NameSpace))
 	}
 	var value []byte
 	var err error
