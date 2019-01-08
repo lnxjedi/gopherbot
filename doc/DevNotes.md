@@ -15,6 +15,11 @@ These are the items deemed as required for releasing version 2 because they chan
 - DONE: Add 'TriggersOnly' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
 
 ## Version 2 Final Release TODOs
+- TODO: Security:
+  - DONE?: Squelch arguments in debugging messages when it's a DM - audit
+  - Return to drop priv full when thread OS state propagation fixed; issue #29613
+- TODO: Bugs & buglets:
+  - Squelch Replies to 'TriggersOnly' users - use Say "UserName: foo"; slack webhooks can't be @mentioned. Easiest solution - add TriggersOnly flag to Robot that's set in makeRobot and cloned. 
 - TODO: Add tests for:
   - Pipelines
   - Triggers only
@@ -25,7 +30,8 @@ These are the items deemed as required for releasing version 2 because they chan
 - TODO: Write documentation for:
   - Need for BotInfo to provide the robot with a Name and Email
   - Pipelines
-  - Namespaces / extended namespaces
+  - Namespaces / extended namespaces and histories; histories include branch, namespaces don't
+  - store repository parameter can include a branch - TEST; e.g. store repository parameter xxx/master would override value for xxx in branch master
   - CI/CI
   - repositories.xml
   - UserRoster
