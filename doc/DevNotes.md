@@ -28,6 +28,7 @@ These are the items deemed as required for releasing version 2 because they chan
   - Test repository configured parameters
   - Decrypting values encrypted in yaml files
 - TODO: Write documentation for:
+  - Configuration updates: config merging, default config, template funcs like 'decrypt'
   - Need for BotInfo to provide the robot with a Name and Email
   - Pipelines
   - Namespaces / extended namespaces and histories; histories include branch, namespaces don't

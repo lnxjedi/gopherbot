@@ -8,7 +8,7 @@
 #       command 'store task parameter memes PASSWORD=xxx', which the plugin
 #       retrieves with GetParameter("PASSWORD")
 #    b. Get the robot to encrypt the password with a direct message
-#       'encrypt xxx', then use '{{ decrypt "..." }}' for the Password
+#       'encrypt xxx', then use decrypt in the template for the Password
 #
 # To add your own memes, create conf/plugins/memes.yaml in the custom
 # configuration repository, with new entries for "Help:" and "CommandMatchers:"
