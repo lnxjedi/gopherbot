@@ -157,6 +157,7 @@ func (c *botContext) clone() *botContext {
 		ProtocolChannel:  c.ProtocolChannel,
 		Incoming:         c.Incoming,
 		directMsg:        c.directMsg,
+		triggersOnly:     c.triggersOnly,
 		pipeName:         c.pipeName,
 		pipeDesc:         c.pipeDesc,
 		tasks:            c.tasks,
