@@ -19,7 +19,7 @@ Config:
   Username: {{ env "GOPHER_MEMES_USER" }}
   Password: {{ env "GOPHER_MEMES_PASSWORD" }} # or 'store task parameter memes PASSWORD=xxx'
 # This just checks whether either value is defined.
-{{ if not (env "GOPHER_MEMES_USER" | default "GOPHER_MEMES_PASSWORD") }}
+{{ if not (env "GOPHER_MEMES_USER" | default (env "GOPHER_MEMES_PASSWORD")) }}
 Disabled: true
 {{ end }}
 Help:
