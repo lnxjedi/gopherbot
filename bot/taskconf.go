@@ -535,22 +535,33 @@ LoadLoop:
 		}
 
 		// Considering possible default channels, is the plugin visible anywhere?
-		if len(task.Channels) > 0 {
-			msg := fmt.Sprintf("Task '%s' will be available in channels %q", task.name, task.Channels)
-			Log(Info, msg)
-			c.debugTask(task, msg, false)
-		} else {
-			if !(task.AllowDirect || task.AllChannels) {
-				msg := fmt.Sprintf("Task '%s' not visible in any channels or by direct message, disabling", task.name)
-				Log(Error, msg)
-				c.debugTask(task, msg, false)
-				task.Disabled = true
-				task.reason = msg
-				continue
-			} else {
-				msg := fmt.Sprintf("Task '%s' has no channel restrictions configured; all channels: %t", task.name, task.AllChannels)
+		if isPlugin {
+			if len(task.Channels) > 0 {
+				msg := fmt.Sprintf("Plugin '%s' will be available in channels %q", task.name, task.Channels)
 				Log(Info, msg)
 				c.debugTask(task, msg, false)
+			} else {
+				if !(task.AllowDirect || task.AllChannels) {
+					msg := fmt.Sprintf("Plugin '%s' not visible in any channels or by direct message, disabling", task.name)
+					Log(Error, msg)
+					c.debugTask(task, msg, false)
+					task.Disabled = true
+					task.reason = msg
+					continue
+				} else {
+					msg := fmt.Sprintf("Plugin '%s' has no channel restrictions configured; all channels: %t", task.name, task.AllChannels)
+					Log(Info, msg)
+					c.debugTask(task, msg, false)
+				}
+			}
+		} else {
+			if len(task.Channel) == 0 {
+				Log(Error, fmt.Sprintf("Job '%s' has no channel, and no DefaultJobChannel set, disabling", task.name))
+				task.Disabled = true
+				task.reason = "no channel set"
+				continue
+			} else {
+				Log(Info, fmt.Sprintf("Job '%s' will run in channel '%s'", task.name, task.Channel))
 			}
 		}
 
