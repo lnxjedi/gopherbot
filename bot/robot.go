@@ -84,26 +84,31 @@ func (r *Robot) GetSecret(name string) string {
 		return ""
 	}
 
-	var secrets brainParams
 	var secret []byte
 	var exists bool
 	var ret RetVal
-	_, exists, ret = checkoutDatum(secretKey, &secrets, false)
-	if ret != Ok {
-		r.Log(Error, fmt.Sprintf("Error retrieving secrets in GetSecret: %s", ret))
-		return ""
-	}
-	if !exists {
-		r.Log(Warn, fmt.Sprintf("GetSecret called for '%s', but no secrets stored", name))
-		return ""
-	}
+
 	c := r.getContext()
+	if !c.secrets.retrieved {
+		// if it fails, there's little point in multiple lookups in a single
+		// pipeline
+		c.secrets.retrieved = true
+		_, exists, ret = checkoutDatum(secretKey, &c.secrets, false)
+		if ret != Ok {
+			r.Log(Error, fmt.Sprintf("Error retrieving secrets in GetSecret: %s", ret))
+			return ""
+		}
+		if !exists {
+			r.Log(Warn, fmt.Sprintf("GetSecret called for '%s', but no secrets stored", name))
+			return ""
+		}
+	}
 	task, _, _ := getTask(c.currentTask)
 	secfound := false
 	if len(c.nsExtension) > 0 {
 		var nsMap map[string][]byte
 		found := false
-		nsMap, exists = secrets.RepositoryParams[c.nsExtension]
+		nsMap, exists = c.secrets.RepositoryParams[c.nsExtension]
 		if exists {
 			found = true
 			if secret, exists = nsMap[name]; exists {
@@ -113,7 +118,7 @@ func (r *Robot) GetSecret(name string) string {
 		if !secfound {
 			cmp := strings.Split(c.nsExtension, "/")
 			repo := strings.Join(cmp[0:len(cmp)-1], "/")
-			nsMap, exists = secrets.RepositoryParams[repo]
+			nsMap, exists = c.secrets.RepositoryParams[repo]
 			if exists {
 				found = true
 				if secret, exists = nsMap[name]; exists {
@@ -130,7 +135,7 @@ func (r *Robot) GetSecret(name string) string {
 	// Fall back to task secrets if namespace secret not found
 	if !secfound {
 		var tMap map[string][]byte
-		tMap, exists = secrets.TaskParams[task.NameSpace]
+		tMap, exists = c.secrets.TaskParams[task.NameSpace]
 		if !exists {
 			r.Log(Debug, fmt.Sprintf("Secrets not found for task/namespace '%s'", task.NameSpace))
 		} else if secret, exists = tMap[name]; !exists {

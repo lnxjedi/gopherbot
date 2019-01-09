@@ -178,28 +178,28 @@ func (c *botContext) clone() *botContext {
 // (or doesn't). It could also be called Context, or PipelineState; but for
 // use by plugins, it's best left as Robot.
 type botContext struct {
-	User             string                // The user who sent the message; this can be modified for replying to an arbitrary user
-	Channel          string                // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	ProtocolUser     string                // The username or <userid> to be sent in connector methods
-	ProtocolChannel  string                // the channel name or <channelid> where the message originated
-	Protocol         Protocol              // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
-	Incoming         *ConnectorMessage     // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
-	Format           MessageFormat         // robot's default message format
-	workingDirectory string                // directory where tasks run relative to cfgdir or workspace
-	protected        bool                  // protected jobs flip this flag, causing tasks in the pipeline to run in cfgdir
-	id               int                   // incrementing index of Robot threads
-	tasks            taskList              // Pointers to current task configuration at start of pipeline
-	maps             *userChanMaps         // Pointer to current user / channel maps struct
-	repositories     map[string]repository // Set of configured repositories
-	triggersOnly     bool                  // set for users than can only active users or respond to Prompt*Reply
-	isCommand        bool                  // Was the message directed at the robot, dm or by mention
-	directMsg        bool                  // if the message was sent by DM
-	msg              string                // the message text sent
-	automaticTask    bool                  // set for scheduled & triggers jobs, where user security restrictions don't apply
-	elevated         bool                  // set when required elevation succeeds
-	environment      map[string]string     // environment vars set for each job/plugin in the pipeline
-	storedEnv        brainParams           // encrypted secrets
-	taskenvironment  map[string]string     // per-task environment for Go plugins
+	User               string                // The user who sent the message; this can be modified for replying to an arbitrary user
+	Channel            string                // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	ProtocolUser       string                // The username or <userid> to be sent in connector methods
+	ProtocolChannel    string                // the channel name or <channelid> where the message originated
+	Protocol           Protocol              // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
+	Incoming           *ConnectorMessage     // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
+	Format             MessageFormat         // robot's default message format
+	workingDirectory   string                // directory where tasks run relative to cfgdir or workspace
+	protected          bool                  // protected jobs flip this flag, causing tasks in the pipeline to run in cfgdir
+	id                 int                   // incrementing index of Robot threads
+	tasks              taskList              // Pointers to current task configuration at start of pipeline
+	maps               *userChanMaps         // Pointer to current user / channel maps struct
+	repositories       map[string]repository // Set of configured repositories
+	triggersOnly       bool                  // set for users than can only active users or respond to Prompt*Reply
+	isCommand          bool                  // Was the message directed at the robot, dm or by mention
+	directMsg          bool                  // if the message was sent by DM
+	msg                string                // the message text sent
+	automaticTask      bool                  // set for scheduled & triggers jobs, where user security restrictions don't apply
+	elevated           bool                  // set when required elevation succeeds
+	environment        map[string]string     // environment vars set for each job/plugin in the pipeline
+	storedEnv, secrets brainParams           // encrypted parameters and secrets
+	taskenvironment    map[string]string     // per-task environment for Go plugins
 
 	active         bool       // whether this context has been registered as active
 	stage          pipeStage  // which pipeline is being run; primaryP, finalP, failP

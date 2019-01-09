@@ -56,6 +56,7 @@ var cryptKey = struct {
 
 // For stored secrets
 type brainParams struct {
+	retrieved        bool
 	TaskParams       map[string]map[string][]byte
 	RepositoryParams map[string]map[string][]byte
 }

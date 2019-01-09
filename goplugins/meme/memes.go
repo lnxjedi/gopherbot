@@ -27,7 +27,7 @@ func memegen(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVa
 	var m *MemeConfig
 	r.GetTaskConfig(&m) // make m point to a valid, thread-safe MemeConfig
 	if len(m.Password) == 0 {
-		m.Password = r.GetParameter("PASSWORD")
+		m.Password = r.GetSecret("PASSWORD")
 	}
 	if len(m.Username) == 0 || len(m.Password) == 0 {
 		if command != "init" {

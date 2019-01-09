@@ -21,6 +21,7 @@ These are the items deemed as required for releasing version 2 because they chan
 - TODO: Bugs & buglets:
   - DONE: Squelch Replies to 'TriggersOnly' users - use Say "UserName: foo"; slack webhooks can't be @mentioned. Easiest solution - add TriggersOnly flag to Robot that's set in makeRobot and cloned. 
 - TODO: Add tests for:
+  - Parameter precedence (configured params, stored params, SetParameter)
   - Pipelines
   - Triggers only
   - Pipeline failures

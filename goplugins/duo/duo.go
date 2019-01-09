@@ -385,13 +385,13 @@ func duocommands(r *bot.Robot, command string, args ...string) (retval bot.TaskR
 	}
 	cfg.tf64 = float64(cfg.TimeoutSeconds)
 	if len(cfg.DuoIKey) == 0 {
-		cfg.DuoIKey = r.GetParameter("IKEY")
+		cfg.DuoIKey = r.GetSecret("IKEY")
 	}
 	if len(cfg.DuoSKey) == 0 {
-		cfg.DuoSKey = r.GetParameter("SKEY")
+		cfg.DuoSKey = r.GetSecret("SKEY")
 	}
 	if len(cfg.DuoHost) == 0 {
-		cfg.DuoHost = r.GetParameter("HOST")
+		cfg.DuoHost = r.GetSecret("HOST")
 	}
 	for _, s := range []string{cfg.DuoIKey, cfg.DuoSKey, cfg.DuoHost} {
 		if len(s) == 0 {

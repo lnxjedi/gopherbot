@@ -5,8 +5,8 @@
 #    with the connector credentials
 # 2. Create memes.yaml in custom/conf/plugins, supplying the Username and:
 #    a. Store the password in the robot's brain with the direct message
-#       command 'store task parameter memes PASSWORD=xxx', which the plugin
-#       retrieves with GetParameter("PASSWORD")
+#       command 'store task secret memes PASSWORD=xxx', which the plugin
+#       retrieves with GetSecret("PASSWORD")
 #    b. Get the robot to encrypt the password with a direct message
 #       'encrypt xxx', then use decrypt in the template for the Password
 #
