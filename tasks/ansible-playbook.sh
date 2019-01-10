@@ -13,6 +13,13 @@
 # - Gopherbot supplies that value in the environment for the task or repository
 #   namespace, and the 'vault-password.sh' script just echo's that value
 
-export ANSIBLE_VAULT_PASSWORD_FILE=$GOPHER_INSTALLDIR/scripts/vault-password.sh
+source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
+
+if [ -n "$(GetSecret VAULT_PASSWORD)" ]
+then
+    export ANSIBLE_VAULT_PASSWORD_FILE=$GOPHER_INSTALLDIR/scripts/vault-password.sh
+else
+    Log "Warn" "No VAULT_PASSWORD secret found for job ${GOPHER_JOB_NAME:-none} / extended namespace ${GOPHER_NAMESPACE_EXTENDED:-none}"
+fi
 
 exec ansible-playbook "$@"

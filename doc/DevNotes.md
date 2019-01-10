@@ -8,6 +8,9 @@
 * Remote plugin execution over ssh (ON HOLD)
 * GopherCI for CI/CD (IN PROGRESS)
 
+## Version 2 Blocker TODOs
+- TODO: Fix ssh-agent -k from ssh-init; why does it seem to always fail?
+
 ## Version 2 Stable Release TODOs
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
 - DONE: Update the Ansible playbook for protected install / suid gopherbot
