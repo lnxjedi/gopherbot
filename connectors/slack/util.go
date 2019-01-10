@@ -118,7 +118,7 @@ func (s *slackConnector) userID(u string) (i string, ok bool) {
 		if len(i) > 0 {
 			return i, true
 		}
-		s.Log(bot.Error, fmt.Sprintf("Failed ID lookup for user '%s", u))
+		s.Log(bot.Error, fmt.Sprintf("Failed ID lookup for user '%s'", u))
 		return "", false
 	}
 	return userID, ok
