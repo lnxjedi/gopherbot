@@ -4,7 +4,8 @@ source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 if [ $# -lt 3 ]
 then
-    echo "Not enough arguments to git-sync; usage: git-sync <url> <branch> <dir> (true)"
+    echo "Not enough arguments to git-sync; usage: git-sync <url> <branch> <dir> (true)" >&2
+    exit 1
 fi
 
 # git-sync.sh - clone or update a git repository and optionally set the

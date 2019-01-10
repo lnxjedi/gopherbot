@@ -281,6 +281,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	envhash["GOPHER_CHANNEL"] = c.Channel
 	envhash["GOPHER_USER"] = c.User
 	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", c.Protocol)
+	envhash["GOPHER_TASK_NAME"] = c.taskName
 	// Passed-through environment vars have the lowest priority
 	for _, p := range envPassThrough {
 		_, exists := envhash[p]
