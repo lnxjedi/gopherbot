@@ -267,7 +267,7 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 			}
 		}
 		if !matched {
-			r.Log(Error, fmt.Sprintf("added plugin '%s' to pipeline, but command '%s' didn't match any CommandMatchers", name, cmsg))
+			r.Log(Error, fmt.Sprintf("Command '%s' didn't match any CommandMatchers while adding plugin '%s' to pipeline", cmsg, name))
 			return CommandNotMatched
 		}
 	} else {
