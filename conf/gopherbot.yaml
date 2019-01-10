@@ -249,21 +249,9 @@ ExternalTasks:
     NameSpace: ansible
     Description: Ansible playbook (ansible-playbook) runner with vault passphrase helper
     Path: tasks/ansible-playbook.sh
-  "ansible":
-    Description: Ansible
-    Path: /usr/bin/ansible
-  "ssh":
-    Description: Secure shell for remoting in to hosts
-    Path: /usr/bin/ssh
-  "ssh-agent":
-    Description: ssh agent command for terminating the agent
-    Path: /usr/bin/ssh-agent
   "ssh-scan":
     Description: Helper script for adding ssh host keys to known_hosts
     Path: tasks/ssh-scan.sh
-  "git":
-    Description: One SCM to Rule Them All
-    Path: /usr/bin/git
   "git-sync":
     Description: Simple script to clone or pull a repository
     Path: tasks/git-sync.sh

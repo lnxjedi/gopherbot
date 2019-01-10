@@ -52,8 +52,9 @@ export SSH_ASKPASS=$GOPHER_INSTALLDIR/scripts/ssh-askpass.sh
 export DISPLAY=""
 
 eval `ssh-agent`
+
 # Add cleanup task
-FinalTask ssh-agent -k
+FinalTask exec ssh-agent -k
 
 ssh-add $HOME/.ssh/$SSH_KEY < /dev/null
 
