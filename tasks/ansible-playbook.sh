@@ -19,7 +19,7 @@ if [ -n "$(GetSecret VAULT_PASSWORD)" ]
 then
     export ANSIBLE_VAULT_PASSWORD_FILE=$GOPHER_INSTALLDIR/scripts/vault-password.sh
 else
-    Log "Warn" "No VAULT_PASSWORD secret found for job ${GOPHER_JOB_NAME:-none} / extended namespace ${GOPHER_NAMESPACE_EXTENDED:-none}"
+    Log "Warn" "No VAULT_PASSWORD secret found for job ${GOPHER_JOB_NAME:-(none)} / extended namespace ${GOPHER_NAMESPACE_EXTENDED:-(none)}"
 fi
 
 exec ansible-playbook "$@"

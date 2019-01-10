@@ -146,6 +146,7 @@ func (r *Robot) GetSecret(name string) string {
 	}
 	if !secfound {
 		r.Log(Warn, fmt.Sprintf("Secret '%s' not found for extended namespace '%s' or task/namespace '%s'", name, c.nsExtension, task.NameSpace))
+		return ""
 	}
 	var value []byte
 	var err error
