@@ -64,7 +64,7 @@ func (tl *taskList) getTaskByName(name string) interface{} {
 	return task
 }
 
-// TaskSpec is the structure for ScheduledTasks (gopherbot.yaml) and AddTask (robot method)
+// TaskSpec is the structure for ScheduledJobs (gopherbot.yaml) and AddTask (robot method)
 type TaskSpec struct {
 	Name      string // name of the job or plugin
 	Command   string // plugins only

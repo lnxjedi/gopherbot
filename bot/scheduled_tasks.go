@@ -16,7 +16,7 @@ func scheduleTasks() {
 		taskRunner.Stop()
 	}
 	botCfg.RLock()
-	scheduled := botCfg.ScheduledTasks
+	scheduled := botCfg.ScheduledJobs
 	tz := botCfg.timeZone
 	botCfg.RUnlock()
 	if tz != nil {

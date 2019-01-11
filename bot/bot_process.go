@@ -71,7 +71,7 @@ var botCfg struct {
 	externalPlugins      []ExternalTask  // List of external plugins to load
 	externalJobs         []ExternalTask  // List of external jobs to load
 	externalTasks        []ExternalTask  // List of external tasks to load
-	ScheduledTasks       []ScheduledTask // List of scheduled tasks
+	ScheduledJobs        []ScheduledTask // List of scheduled tasks
 	port                 string          // Localhost port to listen on
 	stop                 chan struct{}   // stop channel for stopping the connector
 	done                 chan struct{}   // channel closed when robot finishes shutting down

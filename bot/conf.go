@@ -43,7 +43,7 @@ type BotConf struct {
 	ExternalJobs         map[string]ExternalTask // list of available jobs; config in conf/jobs/<jobname>.yaml
 	ExternalPlugins      map[string]ExternalTask // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
 	ExternalTasks        map[string]ExternalTask // List executables that can be added to a pipeline (but can't start one)
-	ScheduledTasks       []ScheduledTask         // see tasks.go
+	ScheduledJobs        []ScheduledTask         // see tasks.go
 	AdminUsers           []string                // List of users who can access administrative commands
 	Alias                string                  // One-character alias for commands directed at the 'bot, e.g. ';open the pod bay doors'
 	LocalPort            int                     // Port number for listening on localhost, for CLI plugins
@@ -156,7 +156,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			val = &intval
 		case "ExternalJobs", "ExternalPlugins", "ExternalTasks":
 			val = &tval
-		case "ScheduledTasks":
+		case "ScheduledJobs":
 			val = &stval
 		case "DefaultChannels", "IgnoreUsers", "JoinChannels", "AdminUsers":
 			val = &sarrval
@@ -228,8 +228,8 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			newconfig.ExternalJobs = *(val.(*map[string]ExternalTask))
 		case "ExternalTasks":
 			newconfig.ExternalTasks = *(val.(*map[string]ExternalTask))
-		case "ScheduledTasks":
-			newconfig.ScheduledTasks = *(val.(*[]ScheduledTask))
+		case "ScheduledJobs":
+			newconfig.ScheduledJobs = *(val.(*[]ScheduledTask))
 		case "AdminUsers":
 			newconfig.AdminUsers = *(val.(*[]string))
 		case "Alias":
@@ -345,15 +345,15 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		}
 		botCfg.externalTasks = et
 	}
-	st := make([]ScheduledTask, 0, len(newconfig.ScheduledTasks))
-	for _, s := range newconfig.ScheduledTasks {
+	st := make([]ScheduledTask, 0, len(newconfig.ScheduledJobs))
+	for _, s := range newconfig.ScheduledJobs {
 		if len(s.Name) == 0 || len(s.Schedule) == 0 {
 			Log(Error, fmt.Sprintf("Zero-length Name (%s) or Schedule (%s) in ScheduledTask, skipping", s.Name, s.Schedule))
 		} else {
 			st = append(st, s)
 		}
 	}
-	botCfg.ScheduledTasks = st
+	botCfg.ScheduledJobs = st
 	if newconfig.IgnoreUsers != nil {
 		botCfg.ignoreUsers = newconfig.IgnoreUsers
 	}

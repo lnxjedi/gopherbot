@@ -8,31 +8,73 @@
 [![Coverage Status](https://coveralls.io/repos/github/lnxjedi/gopherbot/badge.svg?branch=master&service=github)](https://coveralls.io/github/lnxjedi/gopherbot?branch=master)
 [![GoDoc](https://godoc.org/github.com/lnxjedi/gopherbot/bot?status.png)](https://godoc.org/github.com/lnxjedi/gopherbot/bot)
 
-Enterprise Slack(\*) ChatOps bot for Linux and Windows, supporting plugins in Python, Ruby, Bash and PowerShell
+Enterprise Slack(\*) DevOps / ChatOps / CI/CD bot for Linux, supporting plugins in Python, Ruby, and Bash
+
+Slogans under consideration:
+* **The Co-worker that Never Sleeps**
+* **The Swiss-Army Chainsaw for DevOps**
 
 Download the current release for your platform from: https://github.com/lnxjedi/gopherbot/releases/latest
-
-To try out **Gopherbot** for yourself and write your first plugin, see [the Quick Start Guide](doc/Quick-Start.md)
 
 ![](https://raw.githubusercontent.com/wiki/lnxjedi/gopherbot/botdemo.gif)
 
 (*) with a modular interface for writing other protocol connectors in Go
 
-A few of Gopherbot's features for the upcoming 2.0:
+## Gopherbot Version 2.0
+
+Documentation and tests for version 2 are not yet finished, but configuration and API interfaces have settled to the point that a 2.0 release for early adaters was warranted. Though it is stable and running in production for me, 2.0 is mostly for current users that are willing to do some digging around until documentation is finished and it's had more time to ripen.  There is a small (but non-zero) chance that there could be more breaking changes, though I would bump to 2.1 at that point.
+
+### New Features
+
+The biggest driver for version 2 is to remove the need for a separate CI/CD system. While **Gopherbot** couldn't replace Jenkins for many shops, it's very lightweight and perfectly adequate for many automated build / test and scheduled job workloads. Gopherbot is already building, running tests, and publishing itself; `.circleci` is only kept around to publish coverage results in a CircleCI-specific way. For a peek at GopherCI pipelines, compare the contents of `.circleci` to `.gopherci`.
+
+Incomplete list of features new in 2.0:
 * API support for pipelines and CI/CD operation (see [gopherci](jobs/gopherci.py))
 * Scheduled job support
+* Job histories
+* [Encryption](doc/Security-Overview.md) for secrets and the robot's brain
+* Configuration merging; maps are merged, arrays are concatenated
+* New default configuration and a wide selection of included external (script) jobs, plugins and tasks
+* Go template substitutions in configuration files for e.g. referencing environment variables or decrypting secrets
+* An [Ansible Playbook](https://github.com/lnxjedi/ansible-role-gopherbot)
+* Docker images - see [Clu](https://github.com/parsley42/clu-docker) for clues on how to launch a container
 
-Features since 1.x:
+### Features since 1.x:
 * Built-in support for [elevated commands](doc/Security-Overview.md#elevation) requiring MFA (ala 'sudo')
 * A prompting API for interactive plugins
 * Comprehensive set of administrative commands
 * Simple single-file script plugins
 
+### Breaking Changes
+
+#### BotInfo
+You need to populate at least `BotInfo:UserName:` for your robot to recognize it's name. See the [default configuration](conf/gopherbot.yaml)
+
+#### ExternalPlugins
+ExternalPlugins were formerly a list, but are now a hash, so:
+```yaml
+ExternalPlugins:
+- Name: chuck
+  Path: plugins/chuck.rb
+```
+   becomes:
+```yaml
+ExternalPlugins:
+  "chuck":
+    Path: plugins/chuck.rb
+```
+
+### Stuff that will change / go away
+Currently it's possible to list tasks or plugins in ScheduledJobs; eventually only jobs will be able to be scheduled.
+
+### Deprecated
+The Windows port still builds, but the PowerShell library is out of date. If you'd like to help with the Windows port, let me know.
+
 ## Documentation
 
-***NOTE: The documentation is currently incomplete and being updated for version 2.x. Documentation for older versions can be found in the `doc/` subdirectory of the distribution archive.***
+Version 2 doesn't even have a basic Getting Started or Install document yet - it's on the way. However, configuration repositories for **Floyd** (the production 'bot that builds all releases) and **Clu** (the devel 'bot that runs on my laptop) are all up on [Github](https://github.com/parsley42).
 
-Other than commented [configuration files](conf/gopherbot.yaml), most documentation is in the [doc/](doc/) folder. Also check the [Documentation Index](doc/README.md).
+Other than commented [configuration files](conf/gopherbot.yaml), most documentation is in the [doc/](doc/) folder. Stuff in `doc/Outdated` is just that.
 
 ## Sample Plugin with the Ruby API
 ```ruby
@@ -79,18 +121,8 @@ when "weather"
 end
 ```
 
-The goal is for Gopherbot to support multiple scripting languages with built-in security features, to make secure ChatOps functions easy to write for most Systems and DevOps engineers.
-
-Examples of work Gopherbot is already doing:
-* Building and publishing new versions/snapshots of Gopherbot and [Luminos](https://github.com/lnxjedi/luminos)
-* Updating development and production websites as commits are made to dev and merged to master
-* Disabling / reenabling user web directories when requested by security engineers
-* Adding users and updating passwords on servers using Ansible
-
 ## Development Status
-Gopherbot 1.x is stable and running in production in several environments, and probably will not see further point updates.
-
-Most of the work for 2.x is complete, with a release expected in the next 2-4 months.
+Gopherbot 2.x is stable and running in production in several environments.
 
 ### Contributing
 See the [development notes](DevNotes.md) for design notes and stuff still needing to be done. Issues and pull requests welcome!

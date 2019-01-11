@@ -1,3 +1,5 @@
+# General Concepts
+
 Since Gopherbot is designed for ChatOps with the idea of being an 'Enterprise Sudo', it is important to discuss security-related issues. It is expected that as team chat services and therefore ChatOps becomes more prevalent in mainstream IT, understanding of ChatOps security issues will improve and mature. Laid out here are a few general considerations along with some of Gopherbot's specific security-related features.
 
 ## Plugin (non-)Separation
@@ -11,6 +13,8 @@ When running Gopherbot for doing real, privileged, security-sensitive work, best
  * Never invite a bot running untrusted plugins into a channel where a bot with trusted plugins is running
 
 The reasoning here is that plugins have the ability to listen and respond to everything said, and a user might not always be certain of what plugin they're interacting with. That being said, many plugins (such as `weather`) are very short and easy to read/audit for malicious code.
+
+### Communication between robots
 
 ## Visibility
 Each plugin can specify one or more of `Users`, `Channels`, `AllChannels`, `RequireAdmin`, `AllowDirect` and `DirectOnly` that will limit who a plugin is visible to, and whether it can be accessed in a given channel or via direct message. For instance, you could allow certain security-sensitive plugins to be visible only in a few invite-only private channels. Note that if a given plugin is available to a user only in certain channels, `help <keyword>` will list the channels where a plugin is available.
@@ -26,6 +30,13 @@ Authorization is useful for all kinds of cases where a given plugin may be avail
 ## Elevation
 Finally, if the user passes the authorization check, the robot will then check for elevation if a given command is listed in `ElevatedCommands` or `ElevateImmediateCommands`. Elevation behaves similarly to `sudo`, in that the user may be required to supply a second form of authentication (mfa / 2fa) before an action is allowed. Individual elevation plugins may be configurable with a timeout for `ElevatedCommands`, such that a user can continue to perform elevated operations for a period of time before re-authentication is required. As the name suggests, `ElevateImmediateCommands` will _always_ require mfa, and should therefore be used sparingly, especially if the mfa method is onerous (e.g. `totp`).
 
+# Hardened Design
 
+## Privilege Separation
+Gopherbot 2.0 introduced the ability to use privilege separation where the robot executable is installed setuid, and run by the robot 'user'. Thus, the main process will run as another user; in the Docker containers and Ansible role, this defaults to 'bin'. The starting environment file `.env` should only be readable by this privileged user, as this is where the robot obtains e.g. it's encryption key or Slack token. Externally executed plugin, job and task scripts (but not Go plugins) all run as the non-privileged user that started the process.
 
+## Encryption
+Gopherbot 2.0 also adds AES-256 / GCM encryption at it's core, which is required for storing secrets and parameters in the robot's brain, and can optionally be used to fully encrypt the contents of the brain.
 
+## Memory Protection
+Preliminary / incomplete has been added for storing the robot's internal encryption key in protected memory. The current implementation provides minimal additional hardening, and needs further thought and development.
