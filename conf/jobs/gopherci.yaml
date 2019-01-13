@@ -1,0 +1,16 @@
+---
+# GopherCI will spawn a build job, Quiet here just suppresses
+# mostly superflous noise.
+Quiet: true
+#Triggers:
+## Github example
+#- User: github
+#  Channel: dev
+#  Regex: 'new commit.*(github.com\/.*)\/tree\/(.*)\|'
+
+# Arguments to be supplied with `run job`
+Arguments:
+- Label: repository
+  Regex: '[\w-.]+\/[\w-.]+\/[\w-.]+\/?'
+- Label: branch
+  Regex: '[\w-.]+'
