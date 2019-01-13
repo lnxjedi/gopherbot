@@ -106,6 +106,10 @@ func (r *Robot) GetSenderAttribute(a string) *AttrRet {
 // channel. Use Robot.Fixed().SendChannelMessage(...) for fixed-width
 // font.
 func (r *Robot) SendChannelMessage(ch, msg string) RetVal {
+	if len(msg) == 0 {
+		r.Log(Warn, "Ignoring zero-length message in SendChannelMessage")
+		return Ok
+	}
 	c := r.getContext()
 	var channel string
 	if ci, ok := c.maps.channel[ch]; ok {
@@ -122,6 +126,10 @@ func (r *Robot) SendChannelMessage(ch, msg string) RetVal {
 // can't resolve usernames, or the username isn't mapped to a user ID in
 // the UserRoster.
 func (r *Robot) SendUserChannelMessage(u, ch, msg string) RetVal {
+	if len(msg) == 0 {
+		r.Log(Warn, "Ignoring zero-length message in SendUserChannelMessage")
+		return Ok
+	}
 	c := r.getContext()
 	var user string
 	if ui, ok := c.maps.user[u]; ok {
@@ -141,6 +149,10 @@ func (r *Robot) SendUserChannelMessage(u, ch, msg string) RetVal {
 // SendUserMessage lets a plugin easily send a DM to a user. If a DM
 // isn't possible, the connector should message the user in a channel.
 func (r *Robot) SendUserMessage(u, msg string) RetVal {
+	if len(msg) == 0 {
+		r.Log(Warn, "Ignoring zero-length message in SendUserMessage")
+		return Ok
+	}
 	c := r.getContext()
 	var user string
 	if ui, ok := c.maps.user[u]; ok {
@@ -153,6 +165,10 @@ func (r *Robot) SendUserMessage(u, msg string) RetVal {
 
 // Reply directs a message to the user
 func (r *Robot) Reply(msg string) RetVal {
+	if len(msg) == 0 {
+		r.Log(Warn, "Ignoring zero-length message in Reply")
+		return Ok
+	}
 	user := r.ProtocolUser
 	if len(user) == 0 {
 		user = r.User
@@ -174,6 +190,10 @@ func (r *Robot) Reply(msg string) RetVal {
 
 // Say just sends a message to the user or channel
 func (r *Robot) Say(msg string) RetVal {
+	if len(msg) == 0 {
+		r.Log(Warn, "Ignoring zero-length message in Say")
+		return Ok
+	}
 	// Support for Direct()
 	if r.Channel == "" {
 		user := r.ProtocolUser
