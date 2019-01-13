@@ -29,6 +29,8 @@ BotInfo:
   UserName: {{ env "GOPHER_BOTNAME" }}
   FullName: {{ env "GOPHER_BOTFULLNAME" }}
 
+Alias: {{ env "GOPHER_ALIAS" }}
+
 ## Definitions for "test" and "term" connectors
 {{ else }}
 BotInfo:
@@ -122,18 +124,10 @@ EncryptBrain: {{ env "GOPHER_ENCRYPT_BRAIN" | default $default_brain_encrypt }}
 ## Key required for secrets, also used for brain encryption
 EncryptionKey: {{ env "GOPHER_ENCRYPTION_KEY" }}
 
-{{ $histdir := env "GOPHER_HISTORY_DIRECTORY" | default (printf "%s/history" $home) }}
-{{ $workdir := env "GOPHER_WORKSPACE_DIRECTORY" | default (printf "%s/workspace" $home) }}
-
-# Dockerized robots default directories; can be overridden
-# in custom config, but not environment variables. This just
-# makes devel easier with a robot that runs locally and in a
-# container with the same '.env' that specifies history and
-# workspace directories for local operation.
-{{ if env "GOPHER_DOCKER" }}
-  {{- $histdir = printf "%s/history" $home }}
-  {{- $workdir = printf "%s/workspace" $home }}
-{{ end }}
+# Defaults for history and workspace directories, relative to the
+# process working directory.
+{{ $histdir := env "GOPHER_HISTORY_DIRECTORY" | default "history" }}
+{{ $workdir := env "GOPHER_WORKSPACE_DIRECTORY" | default "workspace" }}
 
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "file" }}
