@@ -105,12 +105,17 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 			c.currentTask = t
 			c.registerActive(nil)
 			r := c.makeRobot()
+			task, _, job := getTask(t)
+			if task.Disabled {
+				r.Say(fmt.Sprintf("Job '%s' is disabled: %s", jobName, task.reason))
+				c.deregister()
+				return
+			}
 			if !c.jobSecurityCheck(t, "run") {
 				c.deregister()
 				return
 			}
 			var args []string
-			task, _, job := getTask(t)
 			// remember which job we're talking about
 			ctx := memoryContext{"context:task", c.User, c.Channel}
 			s := shortTermMemory{jobName, time.Now()}
@@ -146,6 +151,7 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 								r.Say(fmt.Sprintf("That doesn't match the pattern for argument '%s'", argspec.Label))
 							} else {
 								if ret != Ok {
+									r.Log(Warn, fmt.Sprintf("failed getting arguments running job '%s': %s", jobName, ret))
 									r.Say(fmt.Sprintf("(not running job '%s')", jobName))
 									c.deregister()
 									return
