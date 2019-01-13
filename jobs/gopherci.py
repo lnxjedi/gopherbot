@@ -27,7 +27,6 @@ from gopherbot_v1 import Robot
 
 bot = Robot()
 
-sys.stderr.write("DEBUG: Started\n")
 repodata = bot.GetRepoData()
 
 if not isinstance(repodata, dict):
@@ -46,8 +45,6 @@ if branch.endswith("/"): # illegal end char; assume args swapped
 
 if repository.endswith("/"):
     repository = repository.rstrip("/")
-
-sys.stderr.write("DEBUG: repository is %s\n" % repository)
 
 def get_deps(repository, recurse, all_deps = []):
     deps = []
