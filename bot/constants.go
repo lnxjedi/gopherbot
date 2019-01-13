@@ -16,6 +16,7 @@ const (
 
 type pipeAddFlavor int
 type pipeAddType int
+type taskType int
 
 const (
 	flavorSpawn pipeAddFlavor = iota
@@ -30,8 +31,14 @@ const (
 	typeJob
 )
 
+const (
+	taskGo taskType = iota
+	taskExternal
+)
+
 //go:generate stringer -type=Protocol constants.go
 //go:generate stringer -type=pipeAddFlavor constants.go
 //go:generate stringer -type=pipeAddType constants.go
+//go:generate stringer -type=taskType constants.go
 
-// Generate String method with: go generate ./bot/
+// Generate String methods with: go generate ./bot/

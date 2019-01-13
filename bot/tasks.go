@@ -128,13 +128,6 @@ type JobTrigger struct {
 	re      *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
-type taskType int
-
-const (
-	taskGo taskType = iota
-	taskExternal
-)
-
 // BotTask configuration is common to tasks, plugins or jobs. Any task, plugin or job can call bot methods. Note that tasks are only defined
 // in gopherbot.yaml, and no external configuration is read in.
 type BotTask struct {

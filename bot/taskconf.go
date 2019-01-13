@@ -197,7 +197,7 @@ LoadLoop:
 		tcfgdefault := make(map[string]interface{})
 		tcfgload := make(map[string]json.RawMessage)
 		if isPlugin {
-			Log(Info, fmt.Sprintf("Loading configuration for plugin '%s', type %d", task.name, plugin.taskType))
+			Log(Info, fmt.Sprintf("Loading configuration for plugin '%s', type %s", task.name, plugin.taskType))
 		} else {
 			Log(Info, fmt.Sprintf("Loading configuration for job '%s'", task.name))
 		}
