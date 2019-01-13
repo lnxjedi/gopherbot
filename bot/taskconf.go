@@ -625,6 +625,15 @@ LoadLoop:
 			}
 			for i := range job.Arguments {
 				argument := &job.Arguments[i]
+				label := argument.Label
+				if stockRepliesRe.MatchString(label) {
+					msg := fmt.Sprintf("Disabling '%s', invalid regex label '%s' starts with capital letter", task.name, label)
+					Log(Error, msg)
+					c.debugTask(task, msg, false)
+					task.Disabled = true
+					task.reason = msg
+					continue LoadLoop
+				}
 				regex := `^\s*` + argument.Regex + `\s*$`
 				re, err := regexp.Compile(regex)
 				if err != nil {
@@ -642,6 +651,15 @@ LoadLoop:
 		}
 		for i := range task.ReplyMatchers {
 			reply := &task.ReplyMatchers[i]
+			label := reply.Label
+			if stockRepliesRe.MatchString(label) {
+				msg := fmt.Sprintf("Disabling '%s', invalid regex label '%s' starts with capital letter", task.name, label)
+				Log(Error, msg)
+				c.debugTask(task, msg, false)
+				task.Disabled = true
+				task.reason = msg
+				continue LoadLoop
+			}
 			re, err := regexp.Compile(`^\s*` + reply.Regex + `\s*$`)
 			if err != nil {
 				msg := fmt.Sprintf("Skipping %s, couldn't compile reply regular expression '%s': %v", task.name, reply.Regex, err)
