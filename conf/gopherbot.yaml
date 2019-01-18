@@ -83,6 +83,18 @@ ProtocolConfig:
     LastName: "User"
     Phone: "(555)765-0005"
 
+UserRoster:
+- UserName: "alice"
+  UserID: "u0001"
+- UserName: "bob"
+  UserID: "u0002"
+- UserName: "carol"
+  UserID: "u0003"
+- UserName: "david"
+  UserID: "u0004"
+- UserName: "erin"
+  UserID: "u0005"
+
   {{- if or (eq $proto "test") (eq $proto "term") }}
   StartChannel: general
   StartUser: alice
