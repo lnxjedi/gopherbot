@@ -158,6 +158,7 @@ func (c *botContext) clone() *botContext {
 		Incoming:         c.Incoming,
 		directMsg:        c.directMsg,
 		triggersOnly:     c.triggersOnly,
+		listedUser:       c.listedUser,
 		pipeName:         c.pipeName,
 		pipeDesc:         c.pipeDesc,
 		tasks:            c.tasks,
@@ -192,6 +193,7 @@ type botContext struct {
 	maps               *userChanMaps         // Pointer to current user / channel maps struct
 	repositories       map[string]repository // Set of configured repositories
 	triggersOnly       bool                  // set for users than can only active users or respond to Prompt*Reply
+	listedUser         bool                  // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
 	isCommand          bool                  // Was the message directed at the robot, dm or by mention
 	directMsg          bool                  // if the message was sent by DM
 	msg                string                // the message text sent

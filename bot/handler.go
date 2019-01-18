@@ -84,9 +84,11 @@ func (h handler) IncomingMessage(inc *ConnectorMessage) {
 		}
 	} // ProtocolChannel / channelName should be "" for DM
 	ProtocolUser = bracket(inc.UserID)
+	listedUser := false
 	if un, ok := maps.userID[inc.UserID]; ok {
 		userName = un.UserName
 		triggersOnly = un.TriggersOnly
+		listedUser = true
 	} else if len(inc.UserName) > 0 {
 		userName = inc.UserName
 	} else {
@@ -170,6 +172,7 @@ func (h handler) IncomingMessage(inc *ConnectorMessage) {
 		},
 		maps:         maps,
 		triggersOnly: triggersOnly,
+		listedUser:   listedUser,
 		repositories: repolist,
 		isCommand:    isCommand,
 		directMsg:    inc.DirectMessage,

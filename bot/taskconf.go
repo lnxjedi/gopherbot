@@ -292,7 +292,7 @@ LoadLoop:
 				val = &strval
 			case "HistoryLogs":
 				val = &intval
-			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "Protected", "AuthorizeAllCommands", "CatchAll", "Quiet":
+			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "Protected", "AuthorizeAllCommands", "CatchAll", "MatchUnlisted", "Quiet":
 				val = &boolval
 			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands":
 				val = &sarrval
@@ -444,6 +444,12 @@ LoadLoop:
 			case "CatchAll":
 				if isPlugin {
 					plugin.CatchAll = *(val.(*bool))
+				} else {
+					mismatch = true
+				}
+			case "MatchUnlisted":
+				if isPlugin {
+					plugin.MatchUnlisted = *(val.(*bool))
 				} else {
 					mismatch = true
 				}

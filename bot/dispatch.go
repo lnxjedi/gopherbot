@@ -49,9 +49,6 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 		var ctype string
 		switch pipelineType {
 		case plugCommand:
-			if plugin == nil {
-				continue
-			}
 			if len(plugin.CommandMatchers) == 0 {
 				c.debugT(t, fmt.Sprintf("Plugin has no command matchers, skipping command check"), false)
 				continue
@@ -59,11 +56,14 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 			matchers = plugin.CommandMatchers
 			ctype = "command"
 		case plugMessage:
-			if plugin == nil {
-				continue
-			}
 			if len(plugin.MessageMatchers) == 0 {
 				c.debugT(t, fmt.Sprintf("Plugin has no message matchers, skipping message check"), true)
+				continue
+			}
+			if !c.listedUser && !plugin.MatchUnlisted {
+				msg := fmt.Sprintf("ignoring unlisted user '%s' for plugin '%s' ambient messages", c.User, task.name)
+				Log(Trace, msg)
+				c.debugT(t, msg, false)
 				continue
 			}
 			matchers = plugin.MessageMatchers
