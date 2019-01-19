@@ -14,8 +14,6 @@
 
 {{ $home := env "HOME" | default "/home/robot" }}
 
-AdminUsers: [ {{ env "GOPHER_ADMIN" }} ]
-
 ## Port to listen on for http/JSON api calls, for external plugins
 LocalPort: {{ env "GOPHER_PORT" | default "8080" }}
 
@@ -29,12 +27,54 @@ ProtocolConfig:
   SlackToken: {{ env "GOPHER_SLACK_TOKEN" }}
 {{ end }}
 
+## Trivial "term" connector config for a single admin user.
+{{ if eq $proto "term" }}
+{{ $botname := env "GOPHER_BOTNAME" | default "bender" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Bender Rodriguez" }}
+
+ProtocolConfig:
+  StartChannel: general
+  StartUser: alice
+  BotName: {{ $botname }}
+  BotFullName: {{ $botfullname }}
+  Channels:
+  - random
+  - general
+  Users:
+  - Name: "alice"
+    Email: "alice@example.com"
+    InternalID: "u0001"
+    FullName: "Alice User"
+    FirstName: "Alice"
+    LastName: "User"
+    Phone: "(555)765-0001"
+
+UserRoster:
+- UserName: "alice"
+  UserID: "u0001"
+
+AdminUsers: [ "alice" ]
+DefaultChannels: [ "general", "random" ]
+
+BotInfo:
+  UserName: {{ $botname }}
+  FullName: {{ $botfullname }}
+
+Alias: {{ env "GOPHER_ALIAS" | default ";" }}
+
+## Protocols other than "term"
+{{ else }}
+
+AdminUsers: [ {{ env "GOPHER_ADMIN" }} ]
+
 BotInfo:
   UserName: {{ env "GOPHER_BOTNAME" }}
   FullName: {{ env "GOPHER_BOTFULLNAME" }}
   Email: {{ env "GOPHER_BOT_EMAIL" }}
 
 Alias: {{ env "GOPHER_ALIAS" }}
+
+{{ end }}
 
 ## Configure the robot's brain
 {{ $defaultbrain := "file" }}
