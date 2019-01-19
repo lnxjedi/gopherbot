@@ -43,15 +43,17 @@ func scheduleTasks() {
 			Log(Error, fmt.Sprintf("Task not found when scheduling task: %s", st.Name))
 			continue
 		}
-		task, _, _ := getTask(t)
-		if task.Disabled {
-			Log(Error, fmt.Sprintf("Not scheduling disabled task '%s'; reason: %s", st.Name, task.reason))
+		task, _, job := getTask(t)
+		if job == nil {
+			Log(Error, fmt.Sprintf("Ignoring '%s' in ScheduledJobs: not a job", st.Name))
 			continue
 		}
-		// NOTE: bare tasks ALWAYS have zero-length Channel, and can't be scheduled by design;
-		// TODO: A task would only need a Channel to be scheduled
+		if task.Disabled {
+			Log(Error, fmt.Sprintf("Not scheduling disabled job '%s'; reason: %s", st.Name, task.reason))
+			continue
+		}
 		if len(task.Channel) == 0 {
-			Log(Error, fmt.Sprintf("Not scheduling task '%s'; zero-length Channel", st.Name))
+			Log(Error, fmt.Sprintf("Not scheduling job '%s'; zero-length Channel", st.Name))
 			continue
 		}
 		ts := st.TaskSpec

@@ -22,7 +22,7 @@ These are the items deemed as required for releasing version 2 because they chan
   - DONE?: Squelch arguments in debugging messages when it's a DM - audit
   - Return to drop priv full when thread OS state propagation fixed; issue #29613
 - TODO: Bugs & buglets:
-  - TODO: Don't allow plugins to be scheduled, only jobs; too easy to create nil ptr deref by not supplying correct args to plugin
+  - DONE: Don't allow plugins to be scheduled, only jobs; too easy to create nil ptr deref by not supplying correct args to plugin
   - DONE: Squelch Replies to 'TriggersOnly' users - use Say "UserName: foo"; slack webhooks can't be @mentioned. Easiest solution - add TriggersOnly flag to Robot that's set in makeRobot and cloned. 
 - TODO: Add tests for:
   - Parameter precedence (configured params, stored params, SetParameter)
