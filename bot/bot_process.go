@@ -17,6 +17,7 @@ import (
 	"time"
 )
 
+// VersionInfo holds information about the version, duh. (stupid linter)
 type VersionInfo struct {
 	Version, Commit string
 }
