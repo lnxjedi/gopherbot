@@ -5,16 +5,18 @@ JoinChannels: [ ]
 AdminUsers: [ "alice" ]
 # Alias: ""
 
+{{ $botname := env "GOPHER_BOTNAME" | default "bender" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Bender Rodriguez" }}
+
 BotInfo:
-  UserName: bender
-  FullName: Bender Rodriguez
-  FirstName: Bender
-  LastName: Rodriguez
+  UserName: {{ $botname }}
+  FullName: {{ $botfullname }}
+
 ProtocolConfig:
   StartChannel: general
   StartUser: alice
-  BotName: {{ env "GOPHER_BOTNAME" | default "floyd" }}
-  BotFullName: {{ env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot" }}
+  BotName: {{ $botname }}
+  BotFullName: {{ $botfullname }}
   Channels:
   - random
   - general
@@ -85,10 +87,6 @@ ExternalPlugins:
     Path: plugins/samples/hello.sh
   "hello2":
     Path: plugins/samples/hello2.sh
-
-ProtocolConfig:
-  BotName: bender
-  BotFullName: Bender Rodriguez
 
 WorkSpace: /tmp
 HistoryConfig:
