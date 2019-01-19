@@ -60,7 +60,7 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 				c.debugT(t, fmt.Sprintf("Plugin has no message matchers, skipping message check"), true)
 				continue
 			}
-			if !c.listedUser && !plugin.MatchUnlisted {
+			if !c.listedUser && !plugin.MatchUnlisted && !c.isCommand {
 				msg := fmt.Sprintf("ignoring unlisted user '%s' for plugin '%s' ambient messages", c.User, task.name)
 				Log(Trace, msg)
 				c.debugT(t, msg, false)
