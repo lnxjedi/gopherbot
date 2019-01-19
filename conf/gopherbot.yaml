@@ -5,10 +5,13 @@
 ## configuration repository.
 
 ## Template functions:
-## default:
-##   provide a default value if "" or unset
-## env:
+## default "value":
+##   provide a default value if "" or unset is piped in
+## env "ENV_VAR":
 ##   look a value up from the environment
+## decrypt "<encrypted string>":
+##   decrypt a value encrypted with the 'encrypt <string>' command
+
 {{ $home := env "HOME" | default "/home/robot" }}
 
 AdminUsers: [ {{ env "GOPHER_ADMIN" }} ]
@@ -24,82 +27,14 @@ Protocol: {{ $proto }}
 ProtocolConfig:
   MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
   SlackToken: {{ env "GOPHER_SLACK_TOKEN" }}
+{{ end }}
 
 BotInfo:
   UserName: {{ env "GOPHER_BOTNAME" }}
   FullName: {{ env "GOPHER_BOTFULLNAME" }}
+  Email: {{ env "GOPHER_BOT_EMAIL" }}
 
 Alias: {{ env "GOPHER_ALIAS" }}
-
-## Definitions for "test" and "term" connectors
-{{ else }}
-BotInfo:
-  UserName: bender
-  FullName: Bender Rodriguez
-  FirstName: Bender
-  LastName: Rodriguez
-ProtocolConfig:
-  BotName: {{ env "GOPHER_BOTNAME" | default "floyd" }}
-  BotFullName: {{ env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot" }}
-  Channels:
-  - random
-  - general
-  - bottest
-  - deadzone
-  Users:
-  - Name: "alice"
-    Email: "alice@example.com"
-    InternalID: "u0001"
-    FullName: "Alice User"
-    FirstName: "Alice"
-    LastName: "User"
-    Phone: "(555)765-0001"
-  - Name: "bob"
-    Email: "bob@example.com"
-    InternalID: "u0002"
-    FullName: "Bob User"
-    FirstName: "Robert"
-    LastName: "User"
-    Phone: "(555)765-0002"
-  - Name: "carol"
-    Email: "@example.com"
-    InternalID: "u0003"
-    FullName: "Carol User"
-    FirstName: "Carol"
-    LastName: "User"
-    Phone: "(555)765-0003"
-  - Name: "david"
-    Email: "david@example.com"
-    InternalID: "u0004"
-    FullName: "David User"
-    FirstName: "David"
-    LastName: "User"
-    Phone: "(555)765-0004"
-  - Name: "erin"
-    Email: "erin@example.com"
-    InternalID: "u0005"
-    FullName: "Erin User"
-    FirstName: "Erin"
-    LastName: "User"
-    Phone: "(555)765-0005"
-
-UserRoster:
-- UserName: "alice"
-  UserID: "u0001"
-- UserName: "bob"
-  UserID: "u0002"
-- UserName: "carol"
-  UserID: "u0003"
-- UserName: "david"
-  UserID: "u0004"
-- UserName: "erin"
-  UserID: "u0005"
-
-  {{- if or (eq $proto "test") (eq $proto "term") }}
-  StartChannel: general
-  StartUser: alice
-  {{- end }}
-{{ end }}
 
 ## Configure the robot's brain
 {{ $defaultbrain := "file" }}
