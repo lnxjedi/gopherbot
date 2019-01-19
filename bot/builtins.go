@@ -79,6 +79,10 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		}
 		msg = append(msg, fmt.Sprintf("My software version is: Gopherbot %s, commit: %s", botVersion.Version, botVersion.Commit))
 		msg = append(msg, fmt.Sprintf("The administrators for this robot are: %s", admins))
+		adminContact := r.GetBotAttribute("contact")
+		if len(adminContact.Attribute) > 0 {
+			msg = append(msg, fmt.Sprintf("The administrative contact for this robot is: %s", adminContact))
+		}
 		r.Say(strings.Join(msg, "\n"))
 	}
 	if command == "help" {
