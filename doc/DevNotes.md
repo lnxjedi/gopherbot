@@ -35,7 +35,7 @@ These are the items deemed as required for releasing version 2 because they chan
   - Pipelines
   - Namespaces / extended namespaces and histories; histories include branch, namespaces don't
   - store repository parameter can include a branch - TEST; e.g. store repository parameter xxx/master would override value for xxx in branch master
-  - CI/CI
+  - CI/CD
   - repositories.xml
   - UserRoster
   - TriggersOnly & cross-robot triggering
