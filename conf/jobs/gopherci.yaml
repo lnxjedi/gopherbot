@@ -1,7 +1,5 @@
 ---
-# GopherCI will spawn a build job, Quiet here just suppresses
-# mostly superflous noise.
-Quiet: true
+# GopherCI will spawn a build job.
 #Triggers:
 ## Github example
 #- User: github

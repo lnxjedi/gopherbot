@@ -2,7 +2,4 @@
 RequireAdmin: true
 # Protected jobs run in configPath
 Protected: true
-Channel: general
 AllowDirect: true
-Quiet: true
-HistoryLogs: 7
