@@ -20,7 +20,7 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lusis/go-slackbot v0.0.0-20180109053408-401027ccfef5 // indirect
 	github.com/lusis/slack-test v0.0.0-20180109053238-3c758769bfa6 // indirect
-	github.com/nlopes/slack v0.4.0
+	github.com/nlopes/slack v0.5.0
 	github.com/pkg/errors v0.8.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967

@@ -91,15 +91,14 @@ func (s *slackConnector) startSendLoop() {
 			current = 0
 		}
 		s.Log(bot.Trace, fmt.Sprintf("Bot message in send loop for channel %s, size: %d", send.channel, len(send.message)))
-		// s.conn.SendMessage(s.conn.NewTypingMessage(send.channel))
 		time.Sleep(typingDelay)
-		params := slack.PostMessageParameters{
-			AsUser:      true,
-			UnfurlMedia: true,
-		}
 		sent := false
 		for p := range []int{1, 2, 4} {
-			_, _, err := s.api.PostMessage(send.channel, send.message, params)
+			unfurl := slack.MsgOptionEnableLinkUnfurl()
+			if send.format == bot.Variable {
+				unfurl = slack.MsgOptionDisableLinkUnfurl()
+			}
+			_, _, err := s.api.PostMessage(send.channel, slack.MsgOptionText(send.message, false), slack.MsgOptionAsUser(true), unfurl)
 			if err != nil && p == 1 {
 				s.Log(bot.Warn, fmt.Sprintf("Error sending message '%s' initiating backoff: %v", send.message, err))
 			}
