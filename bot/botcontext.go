@@ -83,7 +83,7 @@ func (c *botContext) registerActive(parent *botContext) {
 			c.ProtocolUser = c.User
 		} else if ui, ok := c.maps.user[c.User]; ok {
 			c.ProtocolUser = bracket(ui.UserID)
-			c.triggersOnly = ui.TriggersOnly
+			c.BotUser = ui.BotUser
 		} else {
 			c.ProtocolUser = c.User
 		}
@@ -157,7 +157,7 @@ func (c *botContext) clone() *botContext {
 		ProtocolChannel:  c.ProtocolChannel,
 		Incoming:         c.Incoming,
 		directMsg:        c.directMsg,
-		triggersOnly:     c.triggersOnly,
+		BotUser:          c.BotUser,
 		listedUser:       c.listedUser,
 		pipeName:         c.pipeName,
 		pipeDesc:         c.pipeDesc,
@@ -192,7 +192,7 @@ type botContext struct {
 	tasks              taskList              // Pointers to current task configuration at start of pipeline
 	maps               *userChanMaps         // Pointer to current user / channel maps struct
 	repositories       map[string]repository // Set of configured repositories
-	triggersOnly       bool                  // set for users than can only active users or respond to Prompt*Reply
+	BotUser            bool                  // set for bots/programs that should never match ambient messages
 	listedUser         bool                  // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
 	isCommand          bool                  // Was the message directed at the robot, dm or by mention
 	directMsg          bool                  // if the message was sent by DM

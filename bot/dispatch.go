@@ -210,7 +210,7 @@ func (c *botContext) handleMessage() {
 	var ok bool
 	// See if the robot got a blank message, indicating that the last message
 	// was meant for it (if it was in the keepListeningDuration)
-	if c.isCommand && len(c.msg) == 0 && !c.triggersOnly {
+	if c.isCommand && len(c.msg) == 0 && !c.BotUser {
 		shortTermMemories.Lock()
 		last, ok = shortTermMemories.m[lastMsgContext]
 		shortTermMemories.Unlock()
@@ -222,7 +222,7 @@ func (c *botContext) handleMessage() {
 			r.Say("Yes?")
 		}
 	}
-	if !messageMatched && c.isCommand && !c.triggersOnly {
+	if !messageMatched && c.isCommand {
 		// See if a command matches (and runs)
 		messageMatched = c.checkPluginMatchersAndRun(plugCommand)
 	}
@@ -258,7 +258,7 @@ func (c *botContext) handleMessage() {
 	// Direct commands were checked above; if a direct command didn't match,
 	// and a there wasn't a reply being waited on, then we check ambient
 	// MessageMatchers.
-	if !messageMatched && !c.triggersOnly {
+	if !messageMatched && !c.BotUser {
 		// check for ambient message matches
 		messageMatched = c.checkPluginMatchersAndRun(plugMessage)
 	}
@@ -266,7 +266,7 @@ func (c *botContext) handleMessage() {
 	if !messageMatched {
 		messageMatched = c.checkJobMatchersAndRun()
 	}
-	if c.isCommand && !messageMatched && !c.triggersOnly { // the robot was spoken to, but nothing matched - call catchAlls
+	if c.isCommand && !messageMatched && !c.BotUser { // the robot was spoken to, but nothing matched - call catchAlls
 		botCfg.RLock()
 		if !botCfg.shuttingDown {
 			botCfg.RUnlock()
@@ -292,7 +292,7 @@ func (c *botContext) handleMessage() {
 			botCfg.RUnlock()
 		}
 	}
-	if c.triggersOnly {
+	if c.BotUser {
 		return
 	}
 	if messageMatched || c.isCommand {

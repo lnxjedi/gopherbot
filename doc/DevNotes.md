@@ -12,7 +12,7 @@
 These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
 - DONE: Update the Ansible playbook for protected install / suid gopherbot
 - DONE: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot; move docker key to separate task
-- DONE: Add 'TriggersOnly' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
+- DONE: Add 'BotUser' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
 
 ## Version 2 Final Release TODOs
 - TODO: Security:
@@ -20,7 +20,7 @@ These are the items deemed as required for releasing version 2 because they chan
   - Return to drop priv full when thread OS state propagation fixed; issue #29613
 - TODO: Bugs & buglets:
   - DONE: Don't allow plugins to be scheduled, only jobs; too easy to create nil ptr deref by not supplying correct args to plugin
-  - DONE: Squelch Replies to 'TriggersOnly' users - use Say "UserName: foo"; slack webhooks can't be @mentioned. Easiest solution - add TriggersOnly flag to Robot that's set in makeRobot and cloned. 
+  - DONE: Squelch Replies to 'BotUser' users - use Say "UserName: foo"; slack webhooks can't be @mentioned. Easiest solution - add BotUser flag to Robot that's set in makeRobot and cloned. 
 - TODO: Add tests for:
   - Parameter precedence (configured params, stored params, SetParameter)
   - Pipelines
@@ -38,7 +38,7 @@ These are the items deemed as required for releasing version 2 because they chan
   - CI/CD
   - repositories.xml
   - UserRoster
-  - TriggersOnly & cross-robot triggering
+  - BotUser & cross-robot triggering
 
 ### Wishlist
 These items aren't required for release, but desired soonish

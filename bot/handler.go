@@ -69,7 +69,7 @@ func (h handler) IncomingMessage(inc *ConnectorMessage) {
 	maps := currentUCMaps.ucmap
 	currentUCMaps.Unlock()
 	var channelName, userName, ProtocolChannel, ProtocolUser string
-	var triggersOnly bool
+	var BotUser bool
 
 	/* Make sure some form of User and Channel are set
 	 */
@@ -87,7 +87,7 @@ func (h handler) IncomingMessage(inc *ConnectorMessage) {
 	listedUser := false
 	if un, ok := maps.userID[inc.UserID]; ok {
 		userName = un.UserName
-		triggersOnly = un.TriggersOnly
+		BotUser = un.BotUser
 		listedUser = true
 	} else if len(inc.UserName) > 0 {
 		userName = inc.UserName
@@ -171,7 +171,7 @@ func (h handler) IncomingMessage(inc *ConnectorMessage) {
 			nameSpaces: nameSpaces,
 		},
 		maps:         maps,
-		triggersOnly: triggersOnly,
+		BotUser:      BotUser,
 		listedUser:   listedUser,
 		repositories: repolist,
 		isCommand:    isCommand,

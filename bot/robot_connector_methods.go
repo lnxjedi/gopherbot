@@ -182,7 +182,7 @@ func (r *Robot) Reply(msg string) RetVal {
 		channel = r.Channel
 	}
 	c := r.getContext()
-	if c != nil && c.triggersOnly {
+	if c != nil && c.BotUser {
 		return botCfg.SendProtocolChannelMessage(r.Channel, r.User+": "+msg, r.Format)
 	}
 	return botCfg.SendProtocolUserChannelMessage(user, r.User, r.Channel, msg, r.Format)

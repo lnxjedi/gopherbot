@@ -85,9 +85,6 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		}
 		return
 	}
-	if c.triggersOnly {
-		return
-	}
 	// Check for built-in run job
 	if c.isCommand {
 		var jobName string

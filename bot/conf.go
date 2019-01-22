@@ -59,14 +59,14 @@ type repository struct {
 //   - Mapping of protocol internal ID to username
 //   - Additional user attributes such as first / last name, email, etc.
 // - Additional information needed by bot internals
-//   - TriggersOnly flag
+//   - BotUser flag
 type UserInfo struct {
 	UserName            string // name that refers to the user in bot config files
 	UserID              string // unique/persistent ID given to the user by the connector
 	Email, Phone        string // for Get*Attribute()
 	FullName            string // for Get*Attribute()
 	FirstName, LastName string // for Get*Attribute()
-	TriggersOnly        bool   // these users are only checked against triggers and reply matchers
+	BotUser             bool   // these users aren't checked against MessageMatchers / ambient messages, and never fall-through to "catchalls"
 }
 
 // ChannelInfo maps channel IDs to channel names when the connector doesn't

@@ -20,9 +20,9 @@
 #Alias: "!"
 
 ## List of users that the robot won't even 'hear'. Note that if you put other
-## robot / webhook IDs in the UserRoster with 'TriggersOnly: true', you can
-## safely allow robots to 'talk' to each other, and trigger a job by another
-## robot.
+## robot / webhook IDs in the UserRoster with 'BotUser: true', you can
+## safely allow robots to 'talk' to each other by sending commands (subject to
+## normal security checks) or triggering jobs.
 #IgnoreUsers: [ "floyd", "bender" ]
 
 ## If a job doesn't specify otherwise, this is the channel where it runs.
@@ -87,10 +87,10 @@
 
 #UserRoster:
 ## Floyd is the production robot that builds gopherbot,
-## thus 'TriggersOnly: true'
+## thus 'BotUser: true'
 #- UserName: floyd
 #  UserID: U138KTVCL
-#  TriggersOnly: true
+#  BotUser: true
 #- UserName: parsley
 #  UserID: U0JLW8EMS
 
