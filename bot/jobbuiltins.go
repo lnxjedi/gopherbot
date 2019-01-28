@@ -266,7 +266,10 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			}
 			idx, _ = strconv.Atoi(rep)
 		} else if len(latest) > 0 {
-			idx = len(jh.Histories) - 1
+			idx = jh.NextIndex - 1
+			if idx < 0 {
+				idx = 0
+			}
 		} else {
 			idx, _ = strconv.Atoi(index)
 		}
