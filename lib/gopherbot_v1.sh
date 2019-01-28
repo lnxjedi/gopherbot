@@ -216,7 +216,6 @@ EOF
 
 SetWorkingDirectory() {
 	local WDPATH="$1"
-	local VALUE="$2"
 	local GB_FUNCARGS=$(cat <<EOF
 {
 	"Path": "$WDPATH"
