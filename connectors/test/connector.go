@@ -45,8 +45,11 @@ loop:
 			if exists {
 				userName = tc.users[i].Name
 			}
+			direct := false
 			if len(msg.Channel) > 0 {
 				channelID = "#" + msg.Channel
+			} else {
+				direct = true
 			}
 			botMsg := &bot.ConnectorMessage{
 				Protocol:      "Test",
@@ -54,7 +57,7 @@ loop:
 				UserID:        msg.User,
 				ChannelName:   msg.Channel,
 				ChannelID:     channelID,
-				DirectMessage: len(msg.Channel) == 0,
+				DirectMessage: direct,
 				MessageText:   msg.Message,
 				MessageObject: msg,
 				Client:        tc,

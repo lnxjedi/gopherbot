@@ -124,18 +124,22 @@ loop:
 				}
 			} else {
 				var channelID string
+				direct := false
 				if len(tc.currentChannel) > 0 {
 					channelID = "#" + tc.currentChannel
+				} else {
+					direct = true
 				}
 				i := userMap[tc.currentUser]
 				ui := tc.users[i]
 				botMsg := &bot.ConnectorMessage{
-					Protocol:    "Terminal",
-					UserName:    tc.currentUser,
-					UserID:      ui.InternalID,
-					ChannelName: tc.currentChannel,
-					ChannelID:   channelID,
-					MessageText: input,
+					Protocol:      "Terminal",
+					UserName:      tc.currentUser,
+					UserID:        ui.InternalID,
+					ChannelName:   tc.currentChannel,
+					ChannelID:     channelID,
+					MessageText:   input,
+					DirectMessage: direct,
 				}
 				tc.RLock()
 				tc.IncomingMessage(botMsg)
