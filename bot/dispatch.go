@@ -285,7 +285,11 @@ func (c *botContext) handleMessage() {
 			} else {
 				// Note: if the catchall plugin has configured security, it
 				// should still apply.
-				c.startPipeline(nil, catchAllPlugins[0], catchAll, "catchall", spaceRe.ReplaceAllString(c.msg, " "))
+				if len(catchAllPlugins) != 0 {
+					c.startPipeline(nil, catchAllPlugins[0], catchAll, "catchall", spaceRe.ReplaceAllString(c.msg, " "))
+				} else {
+					Log(Debug, "Unmatched command to robot and no catchall defined")
+				}
 			}
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins
