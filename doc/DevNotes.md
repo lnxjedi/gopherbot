@@ -8,16 +8,12 @@
 * Remote plugin execution over ssh (ON HOLD)
 * GopherCI for CI/CD (IN PROGRESS)
 
-## Version 2 Stable Release TODOs
-These are the items deemed as required for releasing version 2 because they change fundamental operation, configuration, or APIs, or to address stuff that's broken.
-- DONE: Update the Ansible playbook for protected install / suid gopherbot
-- DONE: Docker images w/ suid robot gopherbot running in protected zone; sample makefile / scripts for creating docker images named after the robot; move docker key to separate task
-- DONE: Add 'BotUser' flag for robot users that can only match triggers; ref: Great Chuck Norris War of 2018
-
 ## Version 2 Final Release TODOs
+- TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
+- TODO: `makerobot.sh <name>` script the copies robot.skel and creates unit file and .env to be edited
 - TODO: Security:
   - DONE?: Squelch arguments in debugging messages when it's a DM - audit
-  - Return to drop priv full when thread OS state propagation fixed; issue #29613
+- TODO: Security: Return to drop priv full when thread OS state propagation fixed; issue #29613
 - TODO: Bugs & buglets:
   - DONE: Don't allow plugins to be scheduled, only jobs; too easy to create nil ptr deref by not supplying correct args to plugin
   - DONE: Squelch Replies to 'BotUser' users - use Say "UserName: foo"; slack webhooks can't be @mentioned. Easiest solution - add BotUser flag to Robot that's set in makeRobot and cloned. 
@@ -46,7 +42,6 @@ These items aren't required for release, but desired soonish
 - TODO: (maybe later) clean up IncomingMessage / botContext struct to eliminate dupes from the ConnectorMessage
 - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
 - TODO: Add tests that check behavior of UserRoster / attributes, user w/ no username, etc.
-- TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
 - TODO: Update 'Starting job xxxx' message to include arguments; e.g. 'Starting job localtrusted github.com/lnxjedi/gopherbot master'
 - TODO: Ansible playbook / Dockerfiles: /var/lib/gopherbot/(.env, custom) gopherbot:550:bin:root; custom:700:robot:robot; /opt/gopherbot/gopherbot suid robot
 - TODO: CommandOnlyUsers - to allow bots to talk to each other without matching ambient messages; 
