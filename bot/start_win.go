@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path"
 	"sync"
 
 	"github.com/joho/godotenv"
@@ -49,10 +48,10 @@ func Start(v VersionInfo) {
 	cusage := "path to the configuration directory"
 	flag.StringVar(&configPath, "config", "", cusage)
 	flag.StringVar(&configPath, "c", "", cusage+" (shorthand)")
-	var penvPath string
-	pepusage := "path to private environment file; defaults to ./.env"
-	flag.StringVar(&penvPath, "penv", "", pepusage)
-	flag.StringVar(&penvPath, "p", "", pepusage+" (shorthand)")
+	var extEnvPath string
+	extenvusage := "path to additional environment file"
+	flag.StringVar(&extEnvPath, "env", "", extenvusage)
+	flag.StringVar(&extEnvPath, "e", "", extenvusage+" (shorthand)")
 	var logFile string
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -92,11 +91,12 @@ func Start(v VersionInfo) {
 		return
 	}
 
-	private := ".env"
-	if len(penvPath) > 0 {
-		private = penvPath
+	var penvErr, extEnvErr error
+	penvErr = godotenv.Overload(".env")
+	if len(extEnvPath) > 0 {
+		godotenv.Overload(extEnvPath)
 	}
-	penvErr := godotenv.Overload(private)
+
 	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
 
 	// Configdir is where all user-supplied configuration and
@@ -112,9 +112,6 @@ func Start(v VersionInfo) {
 			configpath = "."
 		}
 	}
-
-	environment := path.Join(configpath, "gopherbot.env")
-	envErr := godotenv.Overload(environment)
 
 	var botLogger *log.Logger
 	logOut := os.Stdout
@@ -139,14 +136,16 @@ func Start(v VersionInfo) {
 	installpath = binDirectory
 
 	if penvErr != nil {
-		botLogger.Printf("No private environment loaded from '%s': %v\n", private, penvErr)
+		botLogger.Printf("No private environment loaded from '.env': %v\n", penvErr)
 	} else {
-		botLogger.Printf("Loaded initial private environment from: %s\n", private)
+		botLogger.Printf("Loaded initial private environment from '.env'\n")
 	}
-	if envErr != nil {
-		botLogger.Printf("No environment loaded from '%s': %v\n", environment, envErr)
-	} else {
-		botLogger.Printf("Loaded initial environment from: %s\n", environment)
+	if len(extEnvPath) > 0 {
+		if extEnvErr != nil {
+			botLogger.Printf("No environment loaded from '%s': %v\n", extEnvPath, extEnvErr)
+		} else {
+			botLogger.Printf("Loaded initial environment from: %s\n", extEnvPath)
+		}
 	}
 
 	// Create the 'bot and load configuration, supplying configpath and installpath.

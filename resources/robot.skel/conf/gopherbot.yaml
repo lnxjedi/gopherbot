@@ -15,8 +15,7 @@
 ## configured for a plugin.
 #DefaultChannels: [ "general", "random" ]
 
-## This can also be specified with GOPHER_ALIAS in '.env', or in
-## 'gopherbot.env' in the root of the custom configuration repository.
+## This can also be specified with GOPHER_ALIAS in '.env'.
 #Alias: "!"
 
 ## List of users that the robot won't even 'hear'. Note that if you put other

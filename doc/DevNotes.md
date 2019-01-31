@@ -38,6 +38,7 @@
 
 ### Wishlist
 These items aren't required for release, but desired soonish
+- TODO: Clean up platform-specific code; esp. runtasks_(unix|linux|windows).go to reduce duplicate code
 - TODO: Add 'build reponame (branch)' shorthand command with configurable reponame->repo URL mapping
 - TODO: (maybe later) clean up IncomingMessage / botContext struct to eliminate dupes from the ConnectorMessage
 - TODO: (f) skip to final (failed) task for history; may need to modify Section history breaks for non-primary pipeline tasks
@@ -72,8 +73,8 @@ TODO:
 * DONE - Add "Protected" flag for jobs that run in configpath instead of workspace
 * DONE - When relpath == true, run tasks by connecting script to stdin and running `<interpreter> /dev/stdin args`, otherwise use usual method
 * DONE - Mark `update` job as protected and test
-* DONE - Load gopherbot.env from configpath, in both start_* and conf.go
-* DONE - Integrate godotenv for loading environment from $cwd/.env & $cwd/gopherbot.env
+* DONE/obsoleted - Load gopherbot.env from configpath, in both start_* and conf.go
+* DONE - Integrate godotenv for loading environment from $cwd/.env (obsoleted: & $cwd/gopherbot.env)
 * DONE - Update startup to allow for relative path to repo & brain
 * DONE - Put workings in to allow config repo update to happen in the jail
 * DONE - Prevent scripts/plugins that are NOT update from setting the working dir relative to cwd

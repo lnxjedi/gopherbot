@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
-
-	"github.com/joho/godotenv"
 )
 
 /* conf.go - methods and types for reading and storing json configuration */
@@ -98,9 +96,6 @@ var repodata map[string]json.RawMessage
 
 // loadConfig loads the 'bot's yaml configuration files.
 func (c *botContext) loadConfig(preConnect bool) error {
-	if err := godotenv.Overload("gopherbot.env"); err == nil {
-		Log(Info, "Loaded environment from 'gopherbot.env'")
-	}
 	var loglevel LogLevel
 	newconfig := &BotConf{}
 	newconfig.ExternalJobs = make(map[string]ExternalTask)
