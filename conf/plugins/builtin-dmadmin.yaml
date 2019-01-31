@@ -11,9 +11,9 @@ Help:
 - Keywords: [ "dump", "robot" ]
   Helptext: [ "(bot), dump robot - dump the current configuration for the robot" ]
 - Keywords: [ "store", "parameter", "environment" ]
-  Helptext: [ "(bot), store <task|repository> parameter <task/repository name> <var>=<value> - store encrypted parameter in brain"]
+  Helptext: [ "(bot), store <task|namespace|repository> parameter <task/repository name> <var>=<value> - store encrypted parameter in brain"]
 - Keywords: [ "store", "secret", "credentials" ]
-  Helptext: [ "(bot), store <task|repository> secret <task/repository name> <var>=<value> - store encrypted secret in brain"]
+  Helptext: [ "(bot), store <task|namespace|repository> secret <task/repository name> <var>=<value> - store encrypted secret in brain"]
 - Keywords: [ "encrypt", "secret", "credentials" ]
   Helptext: [ "(bot), encrypt <secret> - get the encrypted and base64-encoded value for <secret>"]
 CommandMatchers:
@@ -26,6 +26,6 @@ CommandMatchers:
 - Command: "dumprobot"
   Regex: "dump robot"
 - Command: store
-  Regex: '(?i:store (task|repository) (parameter|secret) ([\w-.\/]+) ([\w-.]+)=(.+))'
+  Regex: '(?i:store (task|namespace|repository) (parameter|secret) ([\w-.\/]+) ([\w-.]+)=(.+))'
 - Command: encrypt
   Regex: '(?i:encrypt (.+))'

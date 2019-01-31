@@ -230,16 +230,16 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		nsname := args[2]
 		c := r.getContext()
 		switch strings.ToLower(nstype) {
-		case "task":
-			_, exists := c.tasks.nameSpaces[nsname]
-			if !exists {
-				r.Say("I don't have that task namespace configured")
-				return
-			}
 		case "repository":
 			_, exists := c.repositories[nsname]
 			if !exists {
 				r.Say("I don't see that repository listed in repositories.yaml")
+				return
+			}
+		default:
+			_, exists := c.tasks.nameSpaces[nsname]
+			if !exists {
+				r.Say("I don't have that task / namespace configured")
 				return
 			}
 		}
