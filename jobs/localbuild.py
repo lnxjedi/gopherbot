@@ -70,4 +70,5 @@ if not clone_url.startswith("http"):
             bot.AddTask("ssh-scan", [ match.group(1) ])
 bot.AddTask("git-sync", [ clone_url, branch, repobranch, "true" ])
 bot.AddTask("runpipeline", [])
-bot.AddTask("cleanup", [])
+# TODO: eventually allow flag to leave the repo on failed builds?
+bot.FinalTask("cleanup", [])
