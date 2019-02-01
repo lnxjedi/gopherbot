@@ -38,9 +38,9 @@ func unprivThread(reason string) {
 		var ruid, euid, suid, nruid, neuid, nsuid uintptr
 		syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&ruid)), uintptr(unsafe.Pointer(&euid)), uintptr(unsafe.Pointer(&suid)))
 		tid := syscall.Gettid()
-		// With current Go, full priv drop leaves potential for a full unpriv thread to be cloned
-		// _, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(unprivUID), uintptr(unprivUID), uintptr(unprivUID))
-		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(unprivUID), uintptr(unprivUID), uintptr(privUID))
+		// go1.11.5 should fix the bug where locked OS thread state leaks
+		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(unprivUID), uintptr(unprivUID), uintptr(unprivUID))
+		// _, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(unprivUID), uintptr(unprivUID), uintptr(privUID))
 		syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&nruid)), uintptr(unsafe.Pointer(&neuid)), uintptr(unsafe.Pointer(&nsuid)))
 		if errno != 0 {
 			Log(Error, fmt.Sprintf("Unprivileged setresuid(%d) call failed for '%s': %d; thread %d r/e/suid: %d/%d/%d", privUID, reason, errno, tid, ruid, euid, suid))

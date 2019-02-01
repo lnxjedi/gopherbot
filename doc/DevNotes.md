@@ -6,17 +6,17 @@
 * Job scheduling (DONE)
 * Pipelines (DONE)
 * Remote plugin execution over ssh (ON HOLD)
-* GopherCI for CI/CD (IN PROGRESS)
+* GopherCI for CI/CD (DONE)
 
 ## Version 2 Final Release TODOs
 - TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
 - TODO: `makerobot.sh <name>` script the copies robot.skel and creates unit file and .env to be edited
 - TODO: Security:
   - DONE?: Squelch arguments in debugging messages when it's a DM - audit
-- TODO: Security: Return to drop priv full when thread OS state propagation fixed; issue #29613
+- DONE/TEST: Security: Return to drop priv full when thread OS state propagation fixed; issue #29613
 - TODO: Bugs & buglets:
   - DONE: Don't allow plugins to be scheduled, only jobs; too easy to create nil ptr deref by not supplying correct args to plugin
-  - DONE: Squelch Replies to 'BotUser' users - use Say "UserName: foo"; slack webhooks can't be @mentioned. Easiest solution - add BotUser flag to Robot that's set in makeRobot and cloned. 
+  - DONE: Squelch Replies to 'BotUser' users - use Say "UserName: foo"; slack webhooks can't be @mentioned. Easiest solution - add BotUser flag to Robot that's set in makeRobot and cloned.
 - TODO: Add tests for:
   - Parameter precedence (configured params, stored params, SetParameter)
   - Pipelines
@@ -45,7 +45,7 @@ These items aren't required for release, but desired soonish
 - TODO: Add tests that check behavior of UserRoster / attributes, user w/ no username, etc.
 - TODO: Update 'Starting job xxxx' message to include arguments; e.g. 'Starting job localtrusted github.com/lnxjedi/gopherbot master'
 - TODO: Ansible playbook / Dockerfiles: /var/lib/gopherbot/(.env, custom) gopherbot:550:bin:root; custom:700:robot:robot; /opt/gopherbot/gopherbot suid robot
-- TODO: CommandOnlyUsers - to allow bots to talk to each other without matching ambient messages; 
+- TODO: CommandOnlyUsers - to allow bots to talk to each other without matching ambient messages;
 - TODO: Decrypt brain utility for removing 2nd level of encryption (secrets still encrypted)
 
 ## Protecting Secrets
