@@ -17,19 +17,19 @@ import (
 )
 
 func privThread(reason string) {
-	if privSep {
-		runtime.LockOSThread()
-		var ruid, euid, suid, nruid, neuid, nsuid uintptr
-		syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&ruid)), uintptr(unsafe.Pointer(&euid)), uintptr(unsafe.Pointer(&suid)))
-		tid := syscall.Gettid()
-		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(privUID), uintptr(privUID), uintptr(unprivUID))
-		syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&nruid)), uintptr(unsafe.Pointer(&neuid)), uintptr(unsafe.Pointer(&nsuid)))
-		if errno != 0 {
-			Log(Error, fmt.Sprintf("Privileged setresuid(%d) call failed for '%s': %d; thread %d r/e/suid: %d/%d/%d", privUID, reason, errno, tid, ruid, euid, suid))
-		} else {
-			Log(Debug, fmt.Sprintf("Locking raised privileges for '%s' in thread %d; old r/e/suid: %d/%d/%d, new r/e/suid: %d/%d/%d", reason, tid, ruid, euid, suid, nruid, neuid, nsuid))
-		}
-	}
+	// if privSep {
+	// 	runtime.LockOSThread()
+	// 	var ruid, euid, suid, nruid, neuid, nsuid uintptr
+	// 	syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&ruid)), uintptr(unsafe.Pointer(&euid)), uintptr(unsafe.Pointer(&suid)))
+	// 	tid := syscall.Gettid()
+	// 	_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(privUID), uintptr(privUID), uintptr(unprivUID))
+	// 	syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&nruid)), uintptr(unsafe.Pointer(&neuid)), uintptr(unsafe.Pointer(&nsuid)))
+	// 	if errno != 0 {
+	// 		Log(Error, fmt.Sprintf("Privileged setresuid(%d) call failed for '%s': %d; thread %d r/e/suid: %d/%d/%d", privUID, reason, errno, tid, ruid, euid, suid))
+	// 	} else {
+	// 		Log(Debug, fmt.Sprintf("Locking raised privileges for '%s' in thread %d; old r/e/suid: %d/%d/%d, new r/e/suid: %d/%d/%d", reason, tid, ruid, euid, suid, nruid, neuid, nsuid))
+	// 	}
+	// }
 }
 
 func unprivThread(reason string) {
