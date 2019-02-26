@@ -9,8 +9,19 @@ import (
 
 // GetRepoData returns the contents of configPath/conf/repodata.yaml, or an
 // empty map/dict/hash. Mainly for GopherCI, Methods for Python and Ruby will
-// retrieve it.
+// retrieve it. Returns nil and logs an error if the calling task isn't a job,
+// or the namespace has already been extended.
 func (r *Robot) GetRepoData() map[string]json.RawMessage {
+	c := r.getContext()
+	t, _, j := getTask(c.currentTask)
+	if j == nil {
+		r.Log(Error, fmt.Sprintf("GetRepoData called by non-job task '%s'", t.name))
+		return nil
+	}
+	if len(c.nsExtension) > 0 {
+		r.Log(Error, fmt.Sprintf("GetRepoData called with namespace extended: '%s'", c.nsExtension))
+		return nil
+	}
 	confLock.RLock()
 	defer confLock.RUnlock()
 	return repodata
