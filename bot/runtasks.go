@@ -23,7 +23,7 @@ var envPassThrough = []string{
 // runPipeline.
 func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipelineType, command string, args ...string) (ret TaskRetVal) {
 	task, _, job := getTask(t)
-	privThread(fmt.Sprintf("task %s / %s", task.name, command))
+	privCheck(fmt.Sprintf("task %s / %s", task.name, command))
 	isJob := job != nil
 	ppipeName := c.pipeName
 	ppipeDesc := c.pipeDesc

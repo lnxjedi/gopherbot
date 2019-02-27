@@ -16,10 +16,10 @@ import (
 )
 
 // no-ops on platforms that don't support priv sep
-func privThread(reason string) {
+func privCheck(reason string) {
 }
 
-func unprivThread(reason string) {
+func dropThreadPriv(reason string) {
 }
 
 func getExtDefCfg(task *BotTask) (*[]byte, error) {

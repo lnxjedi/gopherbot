@@ -16,8 +16,15 @@ import (
 	"unsafe"
 )
 
-func privThread(reason string) {
-	// if privSep {
+func privCheck(reason string) {
+	if privSep {
+		var ruid, euid, suid uintptr
+		syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&ruid)), uintptr(unsafe.Pointer(&euid)), uintptr(unsafe.Pointer(&suid)))
+		tid := syscall.Gettid()
+		if euid != uintptr(privUID) {
+			Log(Error, fmt.Sprintf("Privilege check failed for '%s'; thread %d r/e/suid: %d/%d/%d; e != %d", reason, tid, ruid, euid, suid, privUID))
+		}
+	}
 	// 	runtime.LockOSThread()
 	// 	var ruid, euid, suid, nruid, neuid, nsuid uintptr
 	// 	syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&ruid)), uintptr(unsafe.Pointer(&euid)), uintptr(unsafe.Pointer(&suid)))
@@ -29,10 +36,9 @@ func privThread(reason string) {
 	// 	} else {
 	// 		Log(Debug, fmt.Sprintf("Locking raised privileges for '%s' in thread %d; old r/e/suid: %d/%d/%d, new r/e/suid: %d/%d/%d", reason, tid, ruid, euid, suid, nruid, neuid, nsuid))
 	// 	}
-	// }
 }
 
-func unprivThread(reason string) {
+func dropThreadPriv(reason string) {
 	if privSep {
 		runtime.LockOSThread()
 		var ruid, euid, suid, nruid, neuid, nsuid uintptr
@@ -87,7 +93,7 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *BotTask) {
 
 	// drop privileges when running external task; this thread will terminate
 	// when this goroutine finishes; see runtime.LockOSThread()
-	unprivThread(fmt.Sprintf("task %s default configuration", task.name))
+	dropThreadPriv(fmt.Sprintf("task %s default configuration", task.name))
 
 	Log(Debug, fmt.Sprintf("Calling '%s' with arg: configure", taskPath))
 	//cfg, err = exec.Command(taskPath, "configure").Output()
@@ -337,7 +343,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 
 	// drop privileges when running external task; this thread will terminate
 	// when this goroutine finishes; see runtime.LockOSThread()
-	unprivThread(fmt.Sprintf("task %s / %s", task.name, command))
+	dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
 
 	if err = cmd.Start(); err != nil {
 		Log(Error, fmt.Errorf("Starting command '%s': %v", taskPath, err))
