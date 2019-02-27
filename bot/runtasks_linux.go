@@ -23,6 +23,8 @@ func privCheck(reason string) {
 		tid := syscall.Gettid()
 		if euid != uintptr(privUID) {
 			Log(Error, fmt.Sprintf("Privilege check failed for '%s'; thread %d r/e/suid: %d/%d/%d; e != %d", reason, tid, ruid, euid, suid, privUID))
+		} else {
+			Log(Debug, fmt.Sprintf("Successful privilege check for '%s'; r/e/suid for thread %d: %d/%d/%d", reason, tid, ruid, euid, suid))
 		}
 	}
 	// 	runtime.LockOSThread()
