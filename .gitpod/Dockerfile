@@ -1,15 +1,10 @@
-FROM ubuntu:latest
-
-ARG goversion=1.12
-ENV HOME=/home/gitpod
-ENV PATH=${PATH}:${HOME}/go/bin:/usr/local/go/bin
+FROM golang:1.12.0
 
 RUN apt-get update && \
   apt-get -y upgrade && \
   apt-get install -y \
     curl \
     git \
-    gcc \
     jq \
     openssh-client \
     python \
@@ -18,6 +13,4 @@ RUN apt-get update && \
     zip \
     unzip && \
   apt-get clean && \
-  rm -rf /var/lib/apt/lists/* && \
-  cd /usr/local && \
-  curl -L https://dl.google.com/go/go${goversion}.linux-amd64.tar.gz | tar xzf -
+  rm -rf /var/lib/apt/lists/*
