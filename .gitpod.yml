@@ -1,3 +1,6 @@
-image: golang:1.12
+---
+image:
+    file: .gitpod/Dockerfile
+    context: .gitpod
 checkoutLocation: gopherbot
 workspaceLocation: .
