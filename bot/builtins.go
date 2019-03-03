@@ -21,15 +21,6 @@ const tooManyChannels = 4
 // Size of QR code
 const qrsize = 400
 
-// If this list doesn't match what's registered below,
-// you're gonna have a bad time.
-// var builtIns = []string{
-// 	"builtin-help",
-// 	"builtin-admin",
-// 	"builtIndump",
-// 	"builtin-logging",
-// }
-
 func init() {
 	RegisterPlugin("builtin-dmadmin", PluginHandler{Handler: dmadmin})
 	RegisterPlugin("builtin-help", PluginHandler{Handler: help})
