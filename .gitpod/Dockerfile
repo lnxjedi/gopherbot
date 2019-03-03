@@ -13,4 +13,5 @@ RUN apt-get update && \
     zip \
     unzip && \
   apt-get clean && \
-  rm -rf /var/lib/apt/lists/*
+  rm -rf /var/lib/apt/lists/* && \
+  unset GOPATH
