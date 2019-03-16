@@ -6,3 +6,4 @@ checkoutLocation: gopherbot
 workspaceLocation: .
 tasks:
 - init: git clone https://github.com/lnxjedi/robot.skel.git ../robot.skel
+- command: make && ln -s ../gopherbot/gopherbot ../robot.skel/gopherbot
