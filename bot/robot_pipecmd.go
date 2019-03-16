@@ -13,9 +13,9 @@ import (
 // or the namespace has already been extended.
 func (r *Robot) GetRepoData() map[string]json.RawMessage {
 	c := r.getContext()
-	t, _, j := getTask(c.currentTask)
-	if j == nil {
-		r.Log(Error, fmt.Sprintf("GetRepoData called by non-job task '%s'", t.name))
+	t, p, j := getTask(c.currentTask)
+	if j == nil && p == nil {
+		r.Log(Error, fmt.Sprintf("GetRepoData called by non-job/plugin task '%s'", t.name))
 		return nil
 	}
 	if len(c.nsExtension) > 0 {
