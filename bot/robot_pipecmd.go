@@ -144,14 +144,12 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 					c.logger = pipeHistory
 					c.logger.Section("new log", fmt.Sprintf("Extended log created by job '%s'", c.jobName))
 					r.Log(Debug, fmt.Sprintf("Started new history for job '%s' with namespace '%s'", c.jobName, ext))
-					if c.verbose {
-						r.Channel = c.jobChannel
-						var link string
-						if url, ok := c.history.GetHistoryURL(hspec, hist.LogIndex); ok {
-							link = fmt.Sprintf(" (link: %s)", url)
-						}
-						r.Say(fmt.Sprintf("Job '%s' extended namespace: %s:%s, run %d%s", c.jobName, c.jobName, ext, c.runIndex, link))
-					}
+                    r.Channel = c.jobChannel
+                    var link string
+                    if url, ok := c.history.GetHistoryURL(hspec, hist.LogIndex); ok {
+                        link = fmt.Sprintf(" (link: %s)", url)
+                    }
+                    r.Say(fmt.Sprintf("Job '%s' extended namespace: %s:%s, run %d%s", c.jobName, c.jobName, ext, c.runIndex, link))
 				}
 			} else {
 				if c.history == nil {
