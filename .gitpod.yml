@@ -4,3 +4,5 @@ image:
     context: .gitpod
 checkoutLocation: gopherbot
 workspaceLocation: .
+tasks:
+- init: git clone https://github.com/lnxjedi/robot.skel.git ../robot.skel
