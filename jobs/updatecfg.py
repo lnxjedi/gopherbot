@@ -39,10 +39,10 @@ if not clone_url.startswith("http"):
     match = re.match(r"ssh://(?:.*@)?([^:/]*)(?::([^/]*)/)?", clone_url)
     if match:
         bot.AddTask("ssh-init", [])
+        scanhost = match.group(1)
         if match.group(2):
-            bot.AddTask("ssh-scan", [ "-p", match.group(2), match.group(1) ])
-        else:
-            bot.AddTask("ssh-scan", [ match.group(1) ])
+            scanhost = "%s:%s" % ( scanhost, match.group(2) )
+        bot.AddTask("ssh-scan", [ scanhost ])
     else:
         match = re.match(r"(?:.*@)?([^:/]*)", clone_url)
         if match:

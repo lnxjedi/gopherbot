@@ -220,6 +220,9 @@ ExternalTasks:
   "exec":
     Description: Simple utility for running scripts in a repository
     Path: tasks/exec.sh
+  "remote":
+    Description: Utility for running scripts and commands on a remote host
+    Path: tasks/remote-exec.sh
   "runpipeline":
     Description: Detect one of pipeline.sh|py|rb and add to the pipeline
     Path: tasks/runpipeline.sh
