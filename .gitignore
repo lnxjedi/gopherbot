@@ -3,8 +3,6 @@ gopherbot
 gopherbot.exe
 gopherbot*zip
 gopherbot*tar.gz
-bot/commit.go
 lib/gopherbot_*.pyc
-.publish
 .c9
-commit.go
+.env
