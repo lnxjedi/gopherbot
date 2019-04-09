@@ -17,6 +17,7 @@ The following environment variables are supplied whenever a job is run:
 * `GOPHER_TASK_NAME` - the name of the running task
 * `GOPHER_NAMESPACE_EXTENDED` - the extended namespace (minus the branch), if any
 * `GOPHER_RUN_INDEX` - the run number of the job
+* `GOPHER_WORKSPACE` - the initial working directory when jobs are run
 
 In addition, the `localbuild` GopherCI builder sets the following environment variables that can be used to modify pipelines:
 * `GOPHERCI_REPO` - the repository being built
@@ -24,3 +25,5 @@ In addition, the `localbuild` GopherCI builder sets the following environment va
 * `GOPHERCI_DEPBUILD` - set to "true" if the build was triggered by a dependency
 * `GOPHERCI_DEPREPO` - the updated repository that triggered this build
 * `GOPHERCI_DEPBRANCH` - the updated branch
+
+Finally, the `git-sync` task will set `GOPHER_JOB_DIR` to the subdirectory where a repository is cloned. Adding `cleanup` as a FinalTask will remove the directory when the job finishes (succeeds or fails).

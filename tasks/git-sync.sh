@@ -15,6 +15,12 @@ BRANCH=$2
 REPO_DIR=$3
 SET_WD=$4
 
+if [ -n "$SET_WD" ]
+then
+    SetWorkingDirectory "$REPO_DIR"
+fi
+SetParameter "GOPHER_JOB_DIR" "$REPO_DIR"
+
 mkdir -p $REPO_DIR
 cd $REPO_DIR
 
@@ -26,10 +32,4 @@ then
 else
     git clone $REPO_URL .
     git checkout $BRANCH
-fi
-
-if [ -n "$SET_WD" ]
-then
-    SetWorkingDirectory "$REPO_DIR"
-    SetParameter "GOPHERCI_WORKDIR" "$REPO_DIR"
 fi
