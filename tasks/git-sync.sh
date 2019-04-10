@@ -15,14 +15,14 @@ BRANCH=$2
 REPO_DIR=$3
 SET_WD=$4
 
+mkdir -p $REPO_DIR
+cd $REPO_DIR
+
 if [ -n "$SET_WD" ]
 then
     SetWorkingDirectory "$REPO_DIR"
 fi
 SetParameter "GOPHER_JOB_DIR" "$REPO_DIR"
-
-mkdir -p $REPO_DIR
-cd $REPO_DIR
 
 if [ -e .git ]
 then
