@@ -9,6 +9,8 @@
 # needs dev-robot/.env to get up and running and use for
 # development
 
+clear
+
 REMOTE=$(git -C gopherbot/ remote get-url origin)
 REMOTE_PREFIX=${REMOTE%/gopherbot.git}
 REMOTE_ORG=${REMOTE_PREFIX##*/}
