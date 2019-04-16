@@ -130,46 +130,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	}
 
 	// Set up the per-task environment
-	envhash := make(map[string]string)
-	if len(c.environment) > 0 {
-		for k, v := range c.environment {
-			envhash[k] = v
-		}
-	}
-	// Pull stored and configured env vars specific to this task and supply to
-	// this task only. No effect if already defined. Useful mainly for specific
-	// tasks to have secrets passed in but not handed to everything in the
-	// pipeline. Repository secrets are populated in robot.go/ExtendNamespace
-	cryptKey.RLock()
-	initialized := cryptKey.initialized
-	key := cryptKey.key
-	cryptKey.RUnlock()
-	if initialized {
-		taskEnv, teExists := c.storedEnv.TaskParams[task.NameSpace]
-		if teExists {
-			if initialized {
-				for name, encvalue := range taskEnv {
-					_, exists := envhash[name]
-					if !exists {
-						value, err := decrypt(encvalue, key)
-						if err != nil {
-							Log(Error, fmt.Sprintf("Error decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err))
-							break
-						}
-						envhash[name] = string(value)
-					}
-				}
-			}
-		}
-	}
-
-	// Configured parameters for a pipeline task don't apply if already set
-	for _, p := range task.Parameters {
-		_, exists := envhash[p.Name]
-		if !exists {
-			envhash[p.Name] = p.Value
-		}
-	}
+	envhash := c.getEnvironment(task)
 
 	if isPlugin && plugin.taskType == taskGo {
 		if command != "init" {
@@ -247,18 +208,6 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	c.osCmd = cmd
 	c.Unlock()
 
-	envhash["GOPHER_CHANNEL"] = c.Channel
-	envhash["GOPHER_USER"] = c.User
-	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", c.Protocol)
-	envhash["GOPHER_TASK_NAME"] = c.taskName
-	// Passed-through environment vars have the lowest priority
-	for _, p := range envPassThrough {
-		_, exists := envhash[p]
-		if !exists {
-			// Note that we even pass through empty vars - any harm?
-			envhash[p] = os.Getenv(p)
-		}
-	}
 	env := make([]string, 0, len(envhash))
 	keys := make([]string, 0, len(envhash))
 	for k, v := range envhash {

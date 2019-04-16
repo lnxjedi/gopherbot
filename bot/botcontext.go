@@ -161,6 +161,7 @@ func (c *botContext) clone() *botContext {
 		listedUser:       c.listedUser,
 		pipeName:         c.pipeName,
 		pipeDesc:         c.pipeDesc,
+		ptype:            c.ptype,
 		tasks:            c.tasks,
 		maps:             c.maps,
 		repositories:     c.repositories,
@@ -203,17 +204,18 @@ type botContext struct {
 	storedEnv, secrets brainParams           // encrypted parameters and secrets
 	taskenvironment    map[string]string     // per-task environment for Go plugins
 
-	active         bool       // whether this context has been registered as active
-	stage          pipeStage  // which pipeline is being run; primaryP, finalP, failP
-	jobInitialized bool       // whether a job has started
-	jobName        string     // name of the running job
-	jobChannel     string     // channel where job updates are posted
-	nsExtension    string     // extended namespace
-	runIndex       int        // run number of a job
-	verbose        bool       // flag if initializing job was verbose
-	nextTasks      []TaskSpec // tasks in the pipeline
-	finalTasks     []TaskSpec // clean-up tasks that always run when the pipeline ends
-	failTasks      []TaskSpec // clean-up tasks that run when a pipeline fails
+	active         bool         // whether this context has been registered as active
+	ptype          pipelineType // what started this pipeline
+	stage          pipeStage    // which pipeline is being run; primaryP, finalP, failP
+	jobInitialized bool         // whether a job has started
+	jobName        string       // name of the running job
+	jobChannel     string       // channel where job updates are posted
+	nsExtension    string       // extended namespace
+	runIndex       int          // run number of a job
+	verbose        bool         // flag if initializing job was verbose
+	nextTasks      []TaskSpec   // tasks in the pipeline
+	finalTasks     []TaskSpec   // clean-up tasks that always run when the pipeline ends
+	failTasks      []TaskSpec   // clean-up tasks that run when a pipeline fails
 
 	failedTask, failedTaskDescription string // set when a task fails
 

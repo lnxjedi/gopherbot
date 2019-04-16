@@ -40,14 +40,14 @@ const (
 type pipelineType int
 
 const (
-	plugCommand pipelineType = iota
+	unset pipelineType = iota
+	plugCommand
 	plugMessage
 	catchAll
 	jobTrigger
 	spawnedTask
 	scheduled
 	jobCmd  // i.e. run job xx
-	pipeAdd // from e.g. AddCommand
 )
 
 //go:generate stringer -type=Protocol constants.go
