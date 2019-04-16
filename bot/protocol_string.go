@@ -4,6 +4,15 @@ package bot
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[Slack-0]
+	_ = x[Terminal-1]
+	_ = x[Test-2]
+}
+
 const _Protocol_name = "SlackTerminalTest"
 
 var _Protocol_index = [...]uint8{0, 5, 13, 17}

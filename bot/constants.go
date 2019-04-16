@@ -36,9 +36,24 @@ const (
 	taskExternal
 )
 
+// Indicates what started the pipeline
+type pipelineType int
+
+const (
+	plugCommand pipelineType = iota
+	plugMessage
+	catchAll
+	jobTrigger
+	spawnedTask
+	scheduled
+	jobCmd  // i.e. run job xx
+	pipeAdd // from e.g. AddCommand
+)
+
 //go:generate stringer -type=Protocol constants.go
 //go:generate stringer -type=pipeAddFlavor constants.go
 //go:generate stringer -type=pipeAddType constants.go
 //go:generate stringer -type=taskType constants.go
+//go:generate stringer -type=pipelineType constants.go
 
 // Generate String methods with: go generate ./bot/

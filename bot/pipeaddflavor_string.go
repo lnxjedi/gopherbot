@@ -4,6 +4,16 @@ package bot
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[flavorSpawn-0]
+	_ = x[flavorAdd-1]
+	_ = x[flavorFinal-2]
+	_ = x[flavorFail-3]
+}
+
 const _pipeAddFlavor_name = "flavorSpawnflavorAddflavorFinalflavorFail"
 
 var _pipeAddFlavor_index = [...]uint8{0, 11, 20, 31, 41}

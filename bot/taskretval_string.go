@@ -4,6 +4,17 @@ package bot
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[Normal-0]
+	_ = x[Fail-1]
+	_ = x[MechanismFail-2]
+	_ = x[ConfigurationError-3]
+	_ = x[PipelineAborted-4]
+}
+
 const _TaskRetVal_name = "NormalFailMechanismFailConfigurationErrorPipelineAborted"
 
 var _TaskRetVal_index = [...]uint8{0, 6, 10, 23, 41, 56}
