@@ -22,6 +22,7 @@ then
     cat <<EOF
 
 #################################################################
+
 Welcome to the Gopherbot Demo. This script clones an empty robot
 configuration repository from lnxjedi/robot.skel, prompts for
 required variables, populates robot.skel/.env, and starts a robot
@@ -54,11 +55,26 @@ EOF
     ./gopherbot
 else
     git clone $REMOTE_PREFIX/dev-gopherbot.git
+cat > start.sh << EOF
+#!/bin/bash
+if [ ! -d "dev-gopherbot-secrets" ]
+then
     git clone $REMOTE_PREFIX/dev-gopherbot-secrets.git
-    ln -s ../gopherbot/gopherbot dev-gopherbot/gopherbot
     ln -s ../dev-gopherbot-secrets/environment dev-gopherbot/.env
-    echo "To start the robot: 'cd dev-gopherbot; ./gopherbot'"
-    echo -e "\nPress <enter>"
+fi
+cd dev-gopherbot
+./gopherbot
+EOF
+    chmod +x start.sh
+    ln -s ../gopherbot/gopherbot dev-gopherbot/gopherbot
+cat <<EOF
+
+###################################################################################
+To start the robot:
+$ ./start.sh
+
+Press <enter>
+EOF
     read DUMMY
     kill -9 $$
 fi
