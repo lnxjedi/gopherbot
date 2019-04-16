@@ -73,8 +73,6 @@ cat <<EOF
 To start the robot:
 $ ./start.sh
 
-Press <enter>
+(you can close this tab)
 EOF
-    read DUMMY
-    kill -9 $$
 fi
