@@ -20,6 +20,8 @@ then
     git clone https://github.com/lnxjedi/robot.skel.git
     ln -s ../gopherbot/gopherbot robot.skel/gopherbot
     cat <<EOF
+
+#################################################################
 Welcome to the Gopherbot Demo. This script clones an empty robot
 configuration repository from lnxjedi/robot.skel, prompts for
 required variables, populates robot.skel/.env, and starts a robot
