@@ -25,7 +25,8 @@ then
 Welcome to the Gopherbot Demo. This script clones an empty robot
 configuration repository from lnxjedi/robot.skel, prompts for
 required variables, populates robot.skel/.env, and starts a robot
-you can play with.
+you can play with. (NOTE: you need to click in this tab to enter
+input)
 
 EOF
     echo -n "Slack token? (from https://<org>.slack.com/services/new/bot) "

@@ -36,6 +36,39 @@
   - UserRoster
   - BotUser & cross-robot triggering
 
+Fix this:
+```
+fatal error: sync: Unlock of unlocked RWMutex
+
+goroutine 1 [running]:
+runtime.throw(0xb91930, 0x20)
+        /usr/local/go/src/runtime/panic.go:617 +0x72 fp=0xc000159108 sp=0xc0001590d8 pc=0x42d702
+sync.throw(0xb91930, 0x20)
+        /usr/local/go/src/runtime/panic.go:603 +0x35 fp=0xc000159128 sp=0xc000159108 pc=0x42d685
+sync.(*RWMutex).Unlock(0x1178710)
+        /usr/local/go/src/sync/rwmutex.go:124 +0xa2 fp=0xc000159158 sp=0xc000159128 pc=0x466a22
+github.com/lnxjedi/gopherbot/bot.(*botContext).loadConfig(0xc000159bb8, 0x1, 0xc000232060, 0x7fb0c992b008)
+        /workspace/gopherbot/bot/conf.go:250 +0x5840 fp=0xc0001599f0 sp=0xc000159158 pc=0x7c6fc0
+github.com/lnxjedi/gopherbot/bot.initBot(0xb7a884, 0x1, 0xc000024180, 0x14, 0xc0001fe320)
+        /workspace/gopherbot/bot/bot_process.go:109 +0x2ee fp=0xc000159e58 sp=0xc0001599f0 pc=0x7b4cae
+github.com/lnxjedi/gopherbot/bot.Start(0xb84682, 0xf, 0xcb81f8, 0x7)
+        /workspace/gopherbot/bot/start_unix.go:114 +0x889 fp=0xc000159f68 sp=0xc000159e58 pc=0x7f74d9
+main.main()
+        /workspace/gopherbot/main.go:69 +0x51 fp=0xc000159f98 sp=0xc000159f68 pc=0xa14821
+runtime.main()
+        /usr/local/go/src/runtime/proc.go:200 +0x20c fp=0xc000159fe0 sp=0xc000159f98 pc=0x42f06c
+runtime.goexit()
+        /usr/local/go/src/runtime/asm_amd64.s:1337 +0x1 fp=0xc000159fe8 sp=0xc000159fe0 pc=0x45ca51
+
+goroutine 5 [syscall]:
+os/signal.signal_recv(0x0)
+        /usr/local/go/src/runtime/sigqueue.go:139 +0x9c
+os/signal.loop()
+        /usr/local/go/src/os/signal/signal_unix.go:23 +0x22
+created by os/signal.init.0
+        /usr/local/go/src/os/signal/signal_unix.go:29 +0x41
+```
+
 ### Wishlist
 These items aren't required for release, but desired soonish
 - TODO: Clean up platform-specific code; esp. runtasks_(unix|linux|windows).go to reduce duplicate code
