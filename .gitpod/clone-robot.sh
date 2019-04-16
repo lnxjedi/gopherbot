@@ -15,9 +15,11 @@ REMOTE=$(git -C gopherbot/ remote get-url origin)
 REMOTE_PREFIX=${REMOTE%/gopherbot.git}
 REMOTE_ORG=${REMOTE_PREFIX##*/}
 
+# Wanted for demo and dev
+git clone https://github.com/lnxjedi/robot.skel.git
+
 if [ "$REMOTE_ORG" == "lnxjedi" ] # demo
 then
-    git clone https://github.com/lnxjedi/robot.skel.git
     ln -s ../gopherbot/gopherbot robot.skel/gopherbot
     cat <<EOF
 
