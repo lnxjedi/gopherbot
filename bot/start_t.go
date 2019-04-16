@@ -20,7 +20,7 @@ func init() {
 	testInstallPath = filepath.Dir(wd)
 }
 
-// Start a robot for testing, and return the exit / robot stopped channel
+// StartTest will start a robot for testing, and return the exit / robot stopped channel
 func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (<-chan struct{}, Connector) {
 	botVersion = v
 	configpath := filepath.Join(testInstallPath, cfgdir)

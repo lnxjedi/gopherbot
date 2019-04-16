@@ -4,6 +4,41 @@ package bot
 
 import "strconv"
 
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[Ok-0]
+	_ = x[UserNotFound-1]
+	_ = x[ChannelNotFound-2]
+	_ = x[AttributeNotFound-3]
+	_ = x[FailedUserDM-4]
+	_ = x[FailedChannelJoin-5]
+	_ = x[DatumNotFound-6]
+	_ = x[DatumLockExpired-7]
+	_ = x[DataFormatError-8]
+	_ = x[BrainFailed-9]
+	_ = x[InvalidDatumKey-10]
+	_ = x[InvalidDblPtr-11]
+	_ = x[InvalidCfgStruct-12]
+	_ = x[NoConfigFound-13]
+	_ = x[RetryPrompt-14]
+	_ = x[ReplyNotMatched-15]
+	_ = x[UseDefaultValue-16]
+	_ = x[TimeoutExpired-17]
+	_ = x[Interrupted-18]
+	_ = x[MatcherNotFound-19]
+	_ = x[NoUserEmail-20]
+	_ = x[NoBotEmail-21]
+	_ = x[MailError-22]
+	_ = x[TaskNotFound-23]
+	_ = x[MissingArguments-24]
+	_ = x[InvalidStage-25]
+	_ = x[InvalidTaskType-26]
+	_ = x[CommandNotMatched-27]
+	_ = x[TaskDisabled-28]
+}
+
 const _RetVal_name = "OkUserNotFoundChannelNotFoundAttributeNotFoundFailedUserDMFailedChannelJoinDatumNotFoundDatumLockExpiredDataFormatErrorBrainFailedInvalidDatumKeyInvalidDblPtrInvalidCfgStructNoConfigFoundRetryPromptReplyNotMatchedUseDefaultValueTimeoutExpiredInterruptedMatcherNotFoundNoUserEmailNoBotEmailMailErrorTaskNotFoundMissingArgumentsInvalidStageInvalidTaskTypeCommandNotMatchedTaskDisabled"
 
 var _RetVal_index = [...]uint16{0, 2, 14, 29, 46, 58, 75, 88, 104, 119, 130, 145, 158, 174, 187, 198, 213, 228, 242, 253, 268, 279, 289, 298, 310, 326, 338, 353, 370, 382}

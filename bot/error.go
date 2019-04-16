@@ -23,7 +23,7 @@ const (
 	MechanismFail
 	// ConfigurationError indicates authorization or elevation failed due to misconfiguration
 	ConfigurationError
-	// Failed Exclusive w/o queueTask
+	// PipelineAborted - failed exclusive w/o queueTask
 	PipelineAborted
 	// Success indicates successful authorization or elevation; using '7' (three bits set)
 	// reduces the likelihood of an authorization plugin mistakenly exiting with a success

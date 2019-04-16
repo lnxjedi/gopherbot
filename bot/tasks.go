@@ -97,20 +97,6 @@ type PluginHelp struct {
 	Helptext []string // help string to give for the keywords, conventionally starting with (bot) for commands or (hear) when the bot needn't be addressed directly
 }
 
-// Indicates what started the pipeline
-type pipelineType int
-
-const (
-	plugCommand pipelineType = iota
-	plugMessage
-	catchAll
-	jobTrigger
-	spawnedTask
-	scheduled
-	jobCmd  // i.e. run job xx
-	pipeAdd // from e.g. AddCommand
-)
-
 // InputMatcher specifies the command or message to match for a plugin
 type InputMatcher struct {
 	Regex    string         // The regular expression string to match - bot adds ^\w* & \w*$
