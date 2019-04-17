@@ -157,6 +157,9 @@ ExternalPlugins:
   "update":
     Description: A plugin that triggers the updatecfg job
     Path: plugins/update.sh
+  "citools":
+    Description: Tools for interacting with gopherci
+    Path: plugins/citools.py
   "ssh-admin":
     Description: Administrative plugin for managing the robot's ssh keypair
     Path: plugins/ssh-admin.sh

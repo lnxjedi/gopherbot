@@ -9,6 +9,7 @@
 * GopherCI for CI/CD (DONE)
 
 ## Version 2 Final Release TODOs
+- TODO: fix "stop debugging" crash; `debug task citools`, `stop debugging`
 - TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
 - TODO: `makerobot.sh <name>` script the copies robot.skel and creates unit file and .env to be edited
 - TODO: Security:

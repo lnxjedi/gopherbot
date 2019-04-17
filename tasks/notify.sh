@@ -7,4 +7,10 @@ source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 USER=$1
 MESSAGE=$2
-SendUserChannelMessage "$USER" "$GOPHER_CHANNEL" "$MESSAGE"
+
+if [ -n "$GOPHER_CHANNEL" ]
+then
+    SendUserChannelMessage "$USER" "$GOPHER_CHANNEL" "$MESSAGE"
+else
+    SendUserMessage "$USER" "$MESSAGE"
+fi
