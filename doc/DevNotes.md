@@ -9,6 +9,10 @@
 * GopherCI for CI/CD (DONE)
 
 ## Version 2 Final Release TODOs
+- TODO: Advanced gitpod workflows for demo and devel
+    - Demo should create $BOTNAME-gopherbot repo and help user set up initial repo / install
+    - Devel should clone existing dev-gopherbot* repos
+    - Figure out how demo and devel should differ
 - TODO: fix "stop debugging" crash; `debug task citools`, `stop debugging`
 - TODO: Add admin "monitor \<channel\>" / "stop monitoring" to DM admin with all messages to a channel similar to debug, for use in plugin devel & troubleshooting
 - TODO: `makerobot.sh <name>` script the copies robot.skel and creates unit file and .env to be edited

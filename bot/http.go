@@ -232,11 +232,13 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	// Generate a synthetic Robot for access to it's methods
 	r := Robot{
-		User:     f.User,
-		Channel:  f.Channel,
-		Protocol: setProtocol(f.Protocol),
-		Incoming: c.Incoming,
-		id:       c.id,
+		User:            f.User,
+		ProtocolUser:    c.ProtocolUser,
+		Channel:         f.Channel,
+		ProtocolChannel: c.ProtocolChannel,
+		Protocol:        setProtocol(f.Protocol),
+		Incoming:        c.Incoming,
+		id:              c.id,
 	}
 	if len(f.Format) > 0 {
 		r.Format = setFormat(f.Format)

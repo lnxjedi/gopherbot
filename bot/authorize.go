@@ -73,7 +73,7 @@ func (c *botContext) checkAuthorization(t interface{}, command string, args ...s
 			return MechanismFail
 		}
 		if authRet == Normal {
-			Log(Audit, fmt.Sprintf("Auth plugin '%s' returned 'Normal' (0) instead of 'Success' (1), failing auth in '%s' calling command '%s' for task '%s' in channel '%s'; AuthRequire: '%s'", authPlug.name, c.User, command, task.name, c.Channel, task.AuthRequire))
+			Log(Audit, fmt.Sprintf("Auth plugin '%s' returned 'Normal' (%d) instead of 'Success' (%d), failing auth in '%s' calling command '%s' for task '%s' in channel '%s'; AuthRequire: '%s'", authPlug.name, Normal, Success, c.User, command, task.name, c.Channel, task.AuthRequire))
 			r.Say(technicalAuthError)
 			emit(AuthRanFailNormal)
 			return MechanismFail

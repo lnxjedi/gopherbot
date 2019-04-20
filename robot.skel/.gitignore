@@ -1,0 +1,8 @@
+gopherbot
+brain/**
+!brain/README.txt
+history/**
+!history/README.txt
+workspace/**
+!workspace/README.txt
+.env

@@ -52,6 +52,8 @@ else:
 repobranch = "%s/%s" % (repository, branch)
 if not bot.Exclusive(repobranch, False):
     bot.Log("Warn", "Build of '%s' already in progress, exiting" % repobranch)
+    if len(bot.user) > 0:
+        bot.Say("localbuild of '%s' already in progress, not starting a new build" % repobranch)
     exit()
 
 bot.ExtendNamespace(repobranch, keep_history)
