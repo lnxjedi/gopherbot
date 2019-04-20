@@ -1,0 +1,12 @@
+---
+# Sample configuration for triggering GopherCI builds
+# from the GitHub integration. You'll need to replace
+# <FIXME> with the channel where notifications are sent,
+# and possibly replace the value for User:
+# If notifications go to multiple channels, add entries
+# to the Triggers array.
+HistoryLogs: 14
+#Triggers:
+#- User: github
+#  Channel: <FIXME>
+#  Regex: 'new commit.*(github.com\/.*)\/tree\/(.*)\|'

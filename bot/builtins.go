@@ -429,10 +429,6 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
-	if !r.CheckAdmin() {
-		r.Reply("Sorry, only an admin user can request that")
-		return
-	}
 	switch command {
 	case "reload":
 		err := r.getContext().loadConfig(false)

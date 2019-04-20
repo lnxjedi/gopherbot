@@ -29,6 +29,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	ppipeDesc := c.pipeDesc
 	c.pipeName = task.name
 	c.pipeDesc = task.Description
+	c.protected = task.Protected
 	// Spawned pipelines keep the original ptype
 	if c.ptype == unset {
 		c.ptype = ptype	
@@ -66,7 +67,6 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		c.history = botCfg.history
 		botCfg.RUnlock()
 		c.workingDirectory = ""
-		c.protected = task.Protected
 		var jh jobHistory
 		rememberRuns := job.HistoryLogs
 		if rememberRuns == 0 {
