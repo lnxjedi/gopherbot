@@ -47,12 +47,12 @@ fi
 if [ ! -d "\$CREDREPO" ]
 then
     git clone $REMOTE_PREFIX/\$CREDREPO.git || :
-    if [ ! -d "\$CREDREPO"]
+    if [ ! -d "\$CREDREPO" ]
     then
         echo "Unable to clone $REMOTE_PREFIX/\$CREDREPO.git"
         exit 1
     fi
-    ln -s ../\$CREDREPO/environment \$CREDREPO/.env
+    ln -s ../\$CREDREPO/environment \$BOTREPO/.env
 fi
 
 cd \$BOTREPO
