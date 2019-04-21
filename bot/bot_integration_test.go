@@ -105,7 +105,7 @@ func teardown(t *testing.T, done <-chan struct{}, conn *testc.TestConnector) {
 
 	evOk := true
 	ev := GetEvents()
-	want := []Event{BotDirectMessage, CommandTaskRan, GoPluginRan, AdminCheckPassed}
+	want := []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}
 	if len(*ev) != len(want) {
 		evOk = false
 	} else {
@@ -254,7 +254,7 @@ func TestReload(t *testing.T) {
 	done, conn := setup("resources/cfg/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{aliceID, general, "reload, bender", []testc.TestMessage{{alice, general, "Configuration reloaded successfully"}}, []Event{CommandTaskRan, GoPluginRan, AdminCheckPassed}, 0},
+		{aliceID, general, "reload, bender", []testc.TestMessage{{alice, general, "Configuration reloaded successfully"}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 
@@ -299,22 +299,22 @@ func TestBuiltins(t *testing.T) {
 
 	tests := []testItem{
 		{aliceID, general, ";help log", []testc.TestMessage{{null, general, "direct message only"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, ";set log lines to 3", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 3"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, ";set log lines to 0", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 1"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, ";show log", []testc.TestMessage{{alice, null, ".*"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, ";show log page 1", []testc.TestMessage{{alice, null, ".*"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, ";set log lines to 3", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 3"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, ";set log lines to 0", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 1"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, ";show log", []testc.TestMessage{{alice, null, ".*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, ";show log page 1", []testc.TestMessage{{alice, null, ".*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";help info", []testc.TestMessage{{null, general, "bender,.*admins"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, random, ";help ruby", []testc.TestMessage{{null, random, `(?m:Command.*\n.*random\))`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";help", []testc.TestMessage{{alice, general, `\(the help.*private message\)`}, {alice, null, "bender,.*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "help", []testc.TestMessage{{alice, general, "I've sent.*myself"}, {alice, null, "Hi,.*"}}, []Event{AmbientTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";whoami", []testc.TestMessage{{null, general, "you are 'test' user 'alice/<u0001>', speaking in channel 'general/<#general>', email address: alice@example.com"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		// NOTE: Dumps are all format = Fixed, which for the test connector is ALL CAPS
-		{aliceID, null, "dump robot", []testc.TestMessage{{alice, null, "HERE'S HOW I'VE BEEN CONFIGURED.*"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, "dump plugin echo", []testc.TestMessage{{alice, null, "ALLCHANNELS.*"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, "dump plugin default echo", []testc.TestMessage{{alice, null, "HERE'S.*"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, "dump plugin rubydemo", []testc.TestMessage{{alice, null, "ALLCHANNELS.*"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, "dump plugin default rubydemo", []testc.TestMessage{{alice, null, "HERE'S.*"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, "dump plugin junk", []testc.TestMessage{{alice, null, "Didn't find .* junk"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, "dump robot", []testc.TestMessage{{alice, null, "HERE'S HOW I'VE BEEN CONFIGURED.*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, "dump plugin echo", []testc.TestMessage{{alice, null, "ALLCHANNELS.*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, "dump plugin default echo", []testc.TestMessage{{alice, null, "HERE'S.*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, "dump plugin rubydemo", []testc.TestMessage{{alice, null, "ALLCHANNELS.*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, "dump plugin default rubydemo", []testc.TestMessage{{alice, null, "HERE'S.*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, "dump plugin junk", []testc.TestMessage{{alice, null, "Didn't find .* junk"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 

@@ -32,7 +32,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	c.protected = task.Protected
 	// Spawned pipelines keep the original ptype
 	if c.ptype == unset {
-		c.ptype = ptype	
+		c.ptype = ptype
 	}
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
 	botCfg.Add(1)
@@ -251,21 +251,21 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 		// Security checks for jobs & plugins
 		if (isJob || isPlugin) && !c.automaticTask && c.stage != finalTasks {
 			r := c.makeRobot()
-			_, plugin, _ := getTask(t)
-			if plugin != nil && len(plugin.AdminCommands) > 0 {
-				adminRequired := false
+			task, plugin, _ := getTask(t)
+			adminRequired := task.RequireAdmin
+			if !adminRequired && (plugin != nil && len(plugin.AdminCommands) > 0) {
 				for _, i := range plugin.AdminCommands {
 					if command == i {
 						adminRequired = true
 						break
 					}
 				}
-				if adminRequired {
-					if !r.CheckAdmin() {
-						r.Say("Sorry, that command is only available to bot administrators")
-						ret = Fail
-						break
-					}
+			}
+			if adminRequired {
+				if !r.CheckAdmin() {
+					r.Say(fmt.Sprintf("Sorry, '%s/%s' is only available to bot administrators", task.name, command))
+					ret = Fail
+					break
 				}
 			}
 			if c.checkAuthorization(t, command, args...) != Success {
