@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# setup.sh - set up demo or dev environment
+# setup.sh - set up demo or dev environment for gitpod
 
 # for main lnxjedi/gopherbot, run new-robot.sh
 
@@ -35,7 +35,11 @@ then
     git clone $REMOTE_PREFIX/\$BOTREPO.git || :
     if [ ! -d "\$BOTREPO" ]
     then
-        exec ./gopherbot/new-robot.sh "\$BOTREPO"
+        cat <<HEOF
+Repository \$BOTREPO not found. Try:
+$ ./gopherbot/new-robot.sh \$BOTREPO
+HEOF
+        exit 1
     fi
     ln -s ../gopherbot/gopherbot \$BOTREPO/gopherbot
 fi
@@ -60,6 +64,16 @@ cat <<EOF
 ###################################################################################
 To start the robot:
 $ ./start.sh <botname>
+
+start.sh will:
+- clone $REMOTE_PREFIX/<botname>-gopherbot.git
+  -> robot configuration repository
+- clone $REMOTE_PREFIX/<botname>-credentials.git
+  -> 'environment' file with credentials and secrets
+- create symlinks in <botname>-gopherbot/ for the gopherbot binary and .env
+- start the robot
+
+The development robot can be restarted with 'cd <botname>-gopherbot; ./gopherbot'
 
 (you can close this tab)
 EOF
