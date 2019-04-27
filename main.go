@@ -44,6 +44,9 @@ import (
 	_ "github.com/lnxjedi/gopherbot/goplugins/meme"
 	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
 
+	// Helpful plugin for a Slack bot admin
+	_ "github.com/lnxjedi/gopherbot/goplugins/slackutil"
+
 	/* Enable profiling. You can shrink the binary by removing this, but if the
 	   robot ever stops responding for any reason, it's handy for getting a
 	   dump of all goroutines. Example usage:

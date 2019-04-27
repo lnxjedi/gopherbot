@@ -1,7 +1,13 @@
 gopherbot
 brain/**
 !brain/README.txt
-history/**
+# Uncomment these to keep encrypted secrets for your robot. The files
+# are only useful if GOPHER_ENCRYPTION_KEY is set in .env, normally kept
+# in a separate <botname>-credentials private repository. Note that
+# you'll need to preserve bot:encryptionKey for your robot to use
+# {{ decrypt "<encrypted-string>" }} in configuration files.
+#!brain/bot:encryptionKey
+#!brain/bot:secretshistory/**
 !history/README.txt
 workspace/**
 !workspace/README.txt
