@@ -2,9 +2,14 @@
 package slackutil
 
 import (
+	"fmt"
+	"regexp"
+
 	"github.com/lnxjedi/gopherbot/bot"
 	"github.com/nlopes/slack"
 )
+
+var idre = regexp.MustCompile(`slack id <@(.*)>`)
 
 // Define the handler function
 func slackutil(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
@@ -18,7 +23,8 @@ func slackutil(r *bot.Robot, command string, args ...string) (retval bot.TaskRet
 			return
 		}
 		sl := r.Incoming.MessageObject.(*slack.MessageEvent)
-		r.MessageFormat(bot.Variable).Say(sl.Msg.Text)
+		sid := idre.FindStringSubmatch(sl.Text)[1]
+		r.Say(fmt.Sprintf("User %s has Slack internal ID %s", args[0], sid))
 	}
 	return
 }
