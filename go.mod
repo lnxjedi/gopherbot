@@ -1,6 +1,8 @@
 module github.com/lnxjedi/gopherbot
 
 require (
+	github.com/Jeffail/gabs v1.3.1 // indirect
+	github.com/RocketChat/Rocket.Chat.Go.SDK v0.0.0-20190424183144-888c69384c89
 	github.com/awnumar/memguard v0.15.0
 	github.com/aws/aws-sdk-go v1.13.38
 	github.com/chzyer/logex v1.1.10 // indirect
@@ -11,6 +13,7 @@ require (
 	github.com/duosecurity/duo_api_golang v0.0.0-20161007193522-2b2d787eb38e
 	github.com/ghodss/yaml v0.0.0-20161207003320-04f313413ffd
 	github.com/go-ini/ini v1.39.0 // indirect
+	github.com/gopackage/ddp v0.0.0-20170117053602-652027933df4 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20180628210949-0892b62f0d9f // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect

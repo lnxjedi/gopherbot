@@ -11,6 +11,7 @@ import (
 	// *** Included connectors
 
 	_ "github.com/lnxjedi/gopherbot/connectors/slack"
+	_ "github.com/lnxjedi/gopherbot/connectors/rocket"
 	// NOTE: if you build with '-tags test', the terminal connector will also
 	// show emitted events.
 	_ "github.com/lnxjedi/gopherbot/connectors/terminal"
