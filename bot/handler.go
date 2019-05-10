@@ -97,7 +97,7 @@ func (h handler) IncomingMessage(inc *ConnectorMessage) {
 
 	messageFull := inc.MessageText
 
-	Log(Trace, fmt.Sprintf("Incoming message in channel '%s/%s' from user '%s/%s': %s", channelName, ProtocolChannel, userName, ProtocolUser, messageFull))
+	Log(Trace, "Incoming message in channel '%s/%s' from user '%s/%s': %s", channelName, ProtocolChannel, userName, ProtocolUser, messageFull)
 	// When command == true, the message was directed at the bot
 	isCommand := false
 	logChannel := channelName
@@ -180,9 +180,9 @@ func (h handler) IncomingMessage(inc *ConnectorMessage) {
 		environment:  make(map[string]string),
 	}
 	if c.directMsg {
-		Log(Debug, fmt.Sprintf("Received private message from user '%s'", userName))
+		Log(Debug, "Received private message from user '%s'", userName)
 	} else {
-		Log(Debug, fmt.Sprintf("Message '%s' from user '%s' in channel '%s'; isCommand: %t", message, userName, logChannel, isCommand))
+		Log(Debug, "Message '%s' from user '%s' in channel '%s'; isCommand: %t", message, userName, logChannel, isCommand)
 		c.debug(fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)
 	}
 	go c.handleMessage()
@@ -213,8 +213,8 @@ func (h handler) GetHistoryConfig(v interface{}) error {
 }
 
 // Log logs a message to the robot's log file (or stderr)
-func (h handler) Log(l LogLevel, v ...interface{}) {
-	Log(l, v...)
+func (h handler) Log(l LogLevel, m string, v ...interface{}) {
+	Log(l, m, v...)
 }
 
 // SetID let's the connector set the bot's internal ID

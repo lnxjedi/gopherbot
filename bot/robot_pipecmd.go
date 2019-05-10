@@ -15,11 +15,11 @@ func (r *Robot) GetRepoData() map[string]json.RawMessage {
 	c := r.getContext()
 	t, p, j := getTask(c.currentTask)
 	if j == nil && p == nil {
-		r.Log(Error, fmt.Sprintf("GetRepoData called by non-job/plugin task '%s'", t.name))
+		r.Log(Error, "GetRepoData called by non-job/plugin task '%s'", t.name)
 		return nil
 	}
 	if len(c.nsExtension) > 0 {
-		r.Log(Error, fmt.Sprintf("GetRepoData called with namespace extended: '%s'", c.nsExtension))
+		r.Log(Error, "GetRepoData called with namespace extended: '%s'", c.nsExtension)
 		return nil
 	}
 	confLock.RLock()
@@ -62,10 +62,10 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	branch := cmp[len(cmp)-1]
 	repository, exists := c.repositories[repo]
 	if !exists {
-		r.Log(Error, fmt.Sprintf("Repository '%s' not found in repositories.yaml (missing branch in call to ExtendNamespace?)", repo))
+		r.Log(Error, "Repository '%s' not found in repositories.yaml (missing branch in call to ExtendNamespace?)", repo)
 		return false
 	}
-	r.Log(Debug, fmt.Sprintf("Extending namespace for job '%s': %s (branch %s)", c.jobName, repo, branch))
+	r.Log(Debug, "Extending namespace for job '%s': %s (branch %s)", c.jobName, repo, branch)
 	c.nsExtension = ext
 	c.environment["GOPHER_NAMESPACE_EXTENDED"] = repo
 
@@ -73,7 +73,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	var pjh jobHistory
 	jtok, _, jret := checkoutDatum(jk, &pjh, true)
 	if jret != Ok {
-		r.Log(Error, fmt.Sprintf("Problem checking out '%s', unable to record extended namespace '%s'", jk, ext))
+		r.Log(Error, "Problem checking out '%s', unable to record extended namespace '%s'", jk, ext)
 	} else {
 		xn := make(map[string]bool)
 		for _, v := range pjh.ExtendedNamespaces {
@@ -88,7 +88,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 		}
 		ret := updateDatum(jk, jtok, pjh)
 		if ret != Ok {
-			r.Log(Error, fmt.Sprintf("Problem updating '%s', unable to record extended namespace '%s'", jk, ext))
+			r.Log(Error, "Problem updating '%s', unable to record extended namespace '%s'", jk, ext)
 		}
 	}
 
@@ -108,7 +108,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	key := histPrefix + c.jobName + ":" + ext
 	tok, _, ret := checkoutDatum(key, &jh, true)
 	if ret != Ok {
-		Log(Error, fmt.Sprintf("Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName))
+		Log(Error, "Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
 	} else {
 		var start time.Time
 		if c.timeZone != nil {
@@ -130,20 +130,20 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 		}
 		ret := updateDatum(key, tok, jh)
 		if ret != Ok {
-			Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, c.pipeName))
+			Log(Error, "Error updating '%s', no history will be remembered for '%s'", key, c.pipeName)
 		} else {
 			if nh > 0 && c.history != nil {
 				hspec := c.pipeName + ":" + ext
 				pipeHistory, err := c.history.NewHistory(hspec, hist.LogIndex, nh)
 				if err != nil {
-					Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", c.pipeName, err))
+					Log(Error, "Error starting history for '%s', no history will be recorded: %v", c.pipeName, err)
 				} else {
 					if c.logger != nil {
 						c.logger.Section("close log", fmt.Sprintf("Job '%s' extended namespace: '%s'; starting new log on next task", c.jobName, ext))
 					}
 					c.logger = pipeHistory
 					c.logger.Section("new log", fmt.Sprintf("Extended log created by job '%s'", c.jobName))
-					r.Log(Debug, fmt.Sprintf("Started new history for job '%s' with namespace '%s'", c.jobName, ext))
+					r.Log(Debug, "Started new history for job '%s' with namespace '%s'", c.jobName, ext)
                     r.Channel = c.jobChannel
                     var link string
                     if url, ok := c.history.GetHistoryURL(hspec, hist.LogIndex); ok {
@@ -184,7 +184,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 					if !exists {
 						value, err := decrypt(encvalue, ckey)
 						if err != nil {
-							Log(Error, fmt.Sprintf("Error decrypting '%s' for repository/branch '%s': %v", name, ext, err))
+							Log(Error, "Error decrypting '%s' for repository/branch '%s': %v", name, ext, err)
 							break
 						}
 						c.environment[name] = string(value)
@@ -201,7 +201,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 					if !exists {
 						value, err := decrypt(encvalue, ckey)
 						if err != nil {
-							Log(Error, fmt.Sprintf("Error decrypting '%s' for repository '%s': %v", name, repo, err))
+							Log(Error, "Error decrypting '%s' for repository '%s': %v", name, repo, err)
 							break
 						}
 						c.environment[name] = string(value)
@@ -219,55 +219,55 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 	c := r.getContext()
 	if c.stage != primaryTasks {
 		task, _, _ := getTask(c.currentTask)
-		r.Log(Error, fmt.Sprintf("request to modify pipeline outside of initial pipeline in task '%s'", task.name))
+		r.Log(Error, "request to modify pipeline outside of initial pipeline in task '%s'", task.name)
 		return InvalidStage
 	}
 	t := c.tasks.getTaskByName(name)
 	if t == nil {
 		task, _, _ := getTask(c.currentTask)
-		r.Log(Error, fmt.Sprintf("task '%s' not found updating pipeline from task '%s'", name, task.name))
+		r.Log(Error, "task '%s' not found updating pipeline from task '%s'", name, task.name)
 		return TaskNotFound
 	}
 	task, plugin, job := getTask(t)
 	isPlugin := plugin != nil
 	isJob := job != nil
 	if task.Disabled {
-		r.Log(Error, fmt.Sprintf("attempt to add disabled task '%s' to pipeline", name))
+		r.Log(Error, "attempt to add disabled task '%s' to pipeline", name)
 		return TaskDisabled
 	}
 	if ptype == typePlugin && !isPlugin {
-		r.Log(Error, fmt.Sprintf("adding command to pipeline - not a plugin: %s", name))
+		r.Log(Error, "adding command to pipeline - not a plugin: %s", name)
 		return InvalidTaskType
 	}
 	if ptype == typeJob && !isJob {
-		r.Log(Error, fmt.Sprintf("adding job to pipeline - not a job: %s", name))
+		r.Log(Error, "adding job to pipeline - not a job: %s", name)
 		return InvalidTaskType
 	}
 	if ptype == typeTask && (isJob || isPlugin) {
-		r.Log(Error, fmt.Sprintf("adding task to pipeline - not a task: %s", name))
+		r.Log(Error, "adding task to pipeline - not a task: %s", name)
 		return InvalidTaskType
 	}
 	var command string
 	var cmdargs []string
 	if isPlugin {
 		if len(args) == 0 {
-			r.Log(Error, fmt.Sprintf("added plugin '%s' to pipeline with no command", name))
+			r.Log(Error, "added plugin '%s' to pipeline with no command", name)
 			return MissingArguments
 		}
 		if len(args[0]) == 0 {
-			r.Log(Error, fmt.Sprintf("added plugin '%s' to pipeline with no command", name))
+			r.Log(Error, "added plugin '%s' to pipeline with no command", name)
 			return MissingArguments
 		}
 		cmsg := args[0]
 		c.debugT(t, fmt.Sprintf("Checking %d command matchers against pipe command: '%s'", len(plugin.CommandMatchers), cmsg), false)
 		matched := false
 		for _, matcher := range plugin.CommandMatchers {
-			Log(Trace, fmt.Sprintf("Checking '%s' against '%s'", cmsg, matcher.Regex))
+			Log(Trace, "Checking '%s' against '%s'", cmsg, matcher.Regex)
 			matches := matcher.re.FindAllStringSubmatch(cmsg, -1)
 			if matches != nil {
 				c.debugT(t, fmt.Sprintf("Matched command regex '%s', command: %s", matcher.Regex, matcher.Command), false)
 				matched = true
-				Log(Trace, fmt.Sprintf("pipeline command '%s' matches '%s'", cmsg, matcher.Command))
+				Log(Trace, "pipeline command '%s' matches '%s'", cmsg, matcher.Command)
 				command = matcher.Command
 				cmdargs = matches[0][1:]
 				break
@@ -276,7 +276,7 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 			}
 		}
 		if !matched {
-			r.Log(Error, fmt.Sprintf("Command '%s' didn't match any CommandMatchers while adding plugin '%s' to pipeline", cmsg, name))
+			r.Log(Error, "Command '%s' didn't match any CommandMatchers while adding plugin '%s' to pipeline", cmsg, name)
 			return CommandNotMatched
 		}
 	} else {
@@ -290,7 +290,7 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 		task:      t,
 	}
 	argstr := strings.Join(args, " ")
-	r.Log(Debug, fmt.Sprintf("Adding pipeline task %s/%s: %s %s", pflavor, ptype, name, argstr))
+	r.Log(Debug, "Adding pipeline task %s/%s: %s %s", pflavor, ptype, name, argstr)
 	switch pflavor {
 	case flavorAdd:
 		c.nextTasks = append(c.nextTasks, ts)

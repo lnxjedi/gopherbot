@@ -50,7 +50,7 @@ func (c *botContext) loadTaskConfig() {
 	// Initial load of plugins
 	for index, script := range externalPlugins {
 		if !identifierRe.MatchString(script.Name) {
-			Log(Error, fmt.Sprintf("Plugin name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, identifierRe.String()))
+			Log(Error, "Plugin name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, identifierRe.String())
 			continue
 		}
 		if script.Name == "bot" {
@@ -92,7 +92,7 @@ func (c *botContext) loadTaskConfig() {
 	// Initial load of jobs
 	for index, script := range externalJobs {
 		if !identifierRe.MatchString(script.Name) {
-			Log(Error, fmt.Sprintf("Job name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, identifierRe.String()))
+			Log(Error, "Job name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, identifierRe.String())
 			continue
 		}
 		if script.Name == "bot" {
@@ -134,7 +134,7 @@ func (c *botContext) loadTaskConfig() {
 	// Load of external tasks
 	for index, script := range externalTasks {
 		if !identifierRe.MatchString(script.Name) {
-			Log(Error, fmt.Sprintf("Task name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, identifierRe.String()))
+			Log(Error, "Task name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, identifierRe.String())
 			continue
 		}
 		if script.Name == "bot" {
@@ -142,7 +142,7 @@ func (c *botContext) loadTaskConfig() {
 			continue
 		}
 		if _, ok := taskIndexByName[script.Name]; ok {
-			Log(Error, fmt.Sprintf("External job index: #%d, name: '%s' duplicates name of already loaded task, skipping", index, script.Name))
+			Log(Error, "External job index: #%d, name: '%s' duplicates name of already loaded task, skipping", index, script.Name)
 			continue
 		}
 		nameSpace := script.Name
@@ -197,9 +197,9 @@ LoadLoop:
 		tcfgdefault := make(map[string]interface{})
 		tcfgload := make(map[string]json.RawMessage)
 		if isPlugin {
-			Log(Info, fmt.Sprintf("Loading configuration for plugin '%s', type %s", task.name, plugin.taskType))
+			Log(Info, "Loading configuration for plugin '%s', type %s", task.name, plugin.taskType)
 		} else {
-			Log(Info, fmt.Sprintf("Loading configuration for job '%s'", task.name))
+			Log(Info, "Loading configuration for job '%s'", task.name)
 		}
 
 		if isPlugin {
@@ -221,7 +221,7 @@ LoadLoop:
 				}
 				if err := yaml.Unmarshal(*cfg, &tcfgdefault); err != nil {
 					msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
-					Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err))
+					Log(Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
 					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
@@ -230,7 +230,7 @@ LoadLoop:
 			} else {
 				if err := yaml.Unmarshal([]byte(pluginHandlers[task.name].DefaultConfig), &tcfgdefault); err != nil {
 					msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
-					Log(Error, fmt.Errorf("Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err))
+					Log(Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
 					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
@@ -365,11 +365,11 @@ LoadLoop:
 				} else {
 					namespace = *(val.(*string))
 					if !identifierRe.MatchString(namespace) {
-						Log(Error, fmt.Sprintf("Task '%s' has invalid NameSpace '%s'; doesn't match regex '%s', ignoring", task.name, task.NameSpace, identifierRe.String()))
+						Log(Error, "Task '%s' has invalid NameSpace '%s'; doesn't match regex '%s', ignoring", task.name, task.NameSpace, identifierRe.String())
 						namespace = ""
 					}
 					if namespace == "bot" {
-						Log(Error, fmt.Sprintf("Task '%s' has illegal NameSpace 'bot', ignoring", task.name))
+						Log(Error, "Task '%s' has illegal NameSpace 'bot', ignoring", task.name)
 						namespace = ""
 					}
 				}
@@ -562,12 +562,12 @@ LoadLoop:
 			}
 		} else {
 			if len(task.Channel) == 0 {
-				Log(Error, fmt.Sprintf("Job '%s' has no channel, and no DefaultJobChannel set, disabling", task.name))
+				Log(Error, "Job '%s' has no channel, and no DefaultJobChannel set, disabling", task.name)
 				task.Disabled = true
 				task.reason = "no channel set"
 				continue
 			} else {
-				Log(Info, fmt.Sprintf("Job '%s' will run in channel '%s'", task.name, task.Channel))
+				Log(Info, "Job '%s' will run in channel '%s'", task.name, task.Channel)
 			}
 		}
 
@@ -754,13 +754,13 @@ LoadLoop:
 						task.Disabled = true
 						task.reason = msg
 					} else {
-						Log(Debug, fmt.Sprintf("Config interface isn't a pointer, skipping unmarshal for Go plugin '%s'", task.name))
+						Log(Debug, "Config interface isn't a pointer, skipping unmarshal for Go plugin '%s'", task.name)
 					}
 				}
 			}
 		}
 
-		Log(Debug, fmt.Sprintf("Configured task '%s'", task.name))
+		Log(Debug, "Configured task '%s'", task.name)
 	}
 	// End of configuration loading. All invalid tasks are disabled.
 

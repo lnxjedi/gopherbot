@@ -95,11 +95,11 @@ func (r *Robot) GetSecret(name string) string {
 		c.secrets.retrieved = true
 		_, exists, ret = checkoutDatum(secretKey, &c.secrets, false)
 		if ret != Ok {
-			r.Log(Error, fmt.Sprintf("Error retrieving secrets in GetSecret: %s", ret))
+			r.Log(Error, "Error retrieving secrets in GetSecret: %s", ret)
 			return ""
 		}
 		if !exists {
-			r.Log(Warn, fmt.Sprintf("GetSecret called for '%s', but no secrets stored", name))
+			r.Log(Warn, "GetSecret called for '%s', but no secrets stored", name)
 			return ""
 		}
 	}
@@ -127,9 +127,9 @@ func (r *Robot) GetSecret(name string) string {
 			}
 		}
 		if !found {
-			r.Log(Debug, fmt.Sprintf("Secrets not found for extended namespace '%s'", c.nsExtension))
+			r.Log(Debug, "Secrets not found for extended namespace '%s'", c.nsExtension)
 		} else if !secfound {
-			r.Log(Debug, fmt.Sprintf("Secret '%s' not found for extended namespace '%s'", name, c.nsExtension))
+			r.Log(Debug, "Secret '%s' not found for extended namespace '%s'", name, c.nsExtension)
 		}
 	}
 	// Fall back to task secrets if namespace secret not found
@@ -137,21 +137,21 @@ func (r *Robot) GetSecret(name string) string {
 		var tMap map[string][]byte
 		tMap, exists = c.secrets.TaskParams[task.NameSpace]
 		if !exists {
-			r.Log(Debug, fmt.Sprintf("Secrets not found for task/namespace '%s'", task.NameSpace))
+			r.Log(Debug, "Secrets not found for task/namespace '%s'", task.NameSpace)
 		} else if secret, exists = tMap[name]; !exists {
-			r.Log(Debug, fmt.Sprintf("Secret '%s' not found for task/namespace '%s'", name, task.NameSpace))
+			r.Log(Debug, "Secret '%s' not found for task/namespace '%s'", name, task.NameSpace)
 		} else {
 			secfound = true
 		}
 	}
 	if !secfound {
-		r.Log(Warn, fmt.Sprintf("Secret '%s' not found for extended namespace '%s' or task/namespace '%s'", name, c.nsExtension, task.NameSpace))
+		r.Log(Warn, "Secret '%s' not found for extended namespace '%s' or task/namespace '%s'", name, c.nsExtension, task.NameSpace)
 		return ""
 	}
 	var value []byte
 	var err error
 	if value, err = decrypt(secret, key); err != nil {
-		r.Log(Error, fmt.Sprintf("Error decrypting secret '%s': %v", name, err))
+		r.Log(Error, "Error decrypting secret '%s': %v", name, err)
 		return ""
 	}
 	return string(value)
@@ -171,7 +171,7 @@ func (r *Robot) SetWorkingDirectory(path string) bool {
 		if ok {
 			c.workingDirectory = path
 		} else {
-			r.Log(Error, fmt.Sprintf("Invalid path '%s' in SetWorkingDirectory", path))
+			r.Log(Error, "Invalid path '%s' in SetWorkingDirectory", path)
 		}
 		return ok
 	}
@@ -188,7 +188,7 @@ func (r *Robot) SetWorkingDirectory(path string) bool {
 	if ok {
 		c.workingDirectory = path
 	} else {
-		r.Log(Error, fmt.Sprintf("Invalid path '%s'(%s) in SetWorkingDirectory", path, checkPath))
+		r.Log(Error, "Invalid path '%s'(%s) in SetWorkingDirectory", path, checkPath)
 	}
 	return ok
 }
@@ -333,21 +333,21 @@ func (r *Robot) GetTaskConfig(dptr interface{}) RetVal {
 	c := r.getContext()
 	task, _, _ := getTask(c.currentTask)
 	if task.config == nil {
-		Log(Debug, fmt.Sprintf("Task \"%s\" called GetTaskConfig, but no config was found.", task.name))
+		Log(Debug, "Task \"%s\" called GetTaskConfig, but no config was found.", task.name)
 		return NoConfigFound
 	}
 	tp := reflect.ValueOf(dptr)
 	if tp.Kind() != reflect.Ptr {
-		Log(Debug, fmt.Sprintf("Task \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", task.name))
+		Log(Debug, "Task \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", task.name)
 		return InvalidDblPtr
 	}
 	p := reflect.Indirect(tp)
 	if p.Kind() != reflect.Ptr {
-		Log(Debug, fmt.Sprintf("Task \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", task.name))
+		Log(Debug, "Task \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", task.name)
 		return InvalidDblPtr
 	}
 	if p.Type() != reflect.ValueOf(task.config).Type() {
-		Log(Debug, fmt.Sprintf("Task \"%s\" called GetTaskConfig with an invalid double-pointer", task.name))
+		Log(Debug, "Task \"%s\" called GetTaskConfig with an invalid double-pointer", task.name)
 		return InvalidCfgStruct
 	}
 	p.Set(reflect.ValueOf(task.config))
@@ -356,9 +356,9 @@ func (r *Robot) GetTaskConfig(dptr interface{}) RetVal {
 
 // Log logs a message to the robot's log file (or stderr) if the level
 // is lower than or equal to the robot's current log level
-func (r *Robot) Log(l LogLevel, v ...interface{}) {
+func (r *Robot) Log(l LogLevel, m string, v ...interface{}) {
 	c := r.getContext()
-	if Log(l, v...) && c.logger != nil {
+	if Log(l, m, v...) && c.logger != nil {
 		line := "LOG " + logLevelToStr(l) + " " + fmt.Sprintln(v...)
 		c.logger.Log(strings.TrimSpace(line))
 	}

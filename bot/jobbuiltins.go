@@ -73,7 +73,7 @@ func jobcommands(r *Robot, command string, args ...string) (retval TaskRetVal) {
 func emailhistory(r *Robot, hp HistoryProvider, user, address, spec string, run int) (retval TaskRetVal) {
 	f, err := hp.GetHistory(spec, run)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting history %d for task '%s': %v", run, spec, err))
+		Log(Error, "Error getting history %d for task '%s': %v", run, spec, err)
 		r.Say(fmt.Sprintf("History %d for '%s' not available", run, spec))
 		return
 	}
@@ -82,7 +82,7 @@ func emailhistory(r *Robot, hp HistoryProvider, user, address, spec string, run 
 	body.Write([]byte("<pre>\n"))
 	b, rerr := ioutil.ReadAll(lr)
 	if rerr != nil {
-		r.Log(Error, fmt.Sprintf("reading history #%d for '%s': %v", run, spec, rerr))
+		r.Log(Error, "reading history #%d for '%s': %v", run, spec, rerr)
 		r.Reply("There was a problem reading the history, check with an administrator")
 		return
 	}
@@ -108,7 +108,7 @@ func emailhistory(r *Robot, hp HistoryProvider, user, address, spec string, run 
 func pagehistory(r *Robot, hp HistoryProvider, spec string, run int) (retval TaskRetVal) {
 	f, err := hp.GetHistory(spec, run)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting history %d for task '%s': %v", run, spec, err))
+		Log(Error, "Error getting history %d for task '%s': %v", run, spec, err)
 		r.Say(fmt.Sprintf("History %d for '%s' not available", run, spec))
 		return
 	}

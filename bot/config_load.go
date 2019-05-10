@@ -49,7 +49,7 @@ func mergemap(m, t map[string]interface{}) map[string]interface{} {
 func env(envvar string) string {
 	val := os.Getenv(envvar)
 	if len(val) == 0 {
-		Log(Debug, fmt.Sprintf("Empty environment variable returned for '%s' in template expansion", envvar))
+		Log(Debug, "Empty environment variable returned for '%s' in template expansion", envvar)
 	}
 	return val
 }
@@ -76,12 +76,12 @@ func decryptTpl(encval string) string {
 	}
 	encbytes, err := base64.StdEncoding.DecodeString(encval)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Unable to base64 decode in template decrypt(Tpl): %v", err))
+		Log(Error, "Unable to base64 decode in template decrypt(Tpl): %v", err)
 		return ""
 	}
 	secret, decerr := decrypt(encbytes, key)
 	if decerr != nil {
-		Log(Error, fmt.Sprintf("Unable to decrypt secret in template decrypt(Tpl): %v", decerr))
+		Log(Error, "Unable to decrypt secret in template decrypt(Tpl): %v", decerr)
 		return ""
 	}
 	return string(secret)
@@ -128,18 +128,17 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 	cf, err = ioutil.ReadFile(path)
 	if err == nil {
 		if cf, err = expand(cf); err != nil {
-			err = fmt.Errorf("Expanding '%s': %v", path, err)
-			Log(Error, err)
+			Log(Error, "Expanding '%s': %v", path, err)
 		}
 		if err = yaml.Unmarshal(cf, &installed); err != nil {
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
-			Log(Error, err)
+			Log(Error, err.Error())
 			return err
 		}
 		if len(installed) == 0 {
-			Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
+			Log(Error, "Empty config hash loading %s", path)
 		} else {
-			Log(Debug, fmt.Sprintf("Loaded installed conf/%s", filename))
+			Log(Debug, "Loaded installed conf/%s", filename)
 			cfg = mergemap(installed, cfg)
 			loaded = true
 		}
@@ -151,18 +150,17 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 		cf, err = ioutil.ReadFile(path)
 		if err == nil {
 			if cf, err = expand(cf); err != nil {
-				err = fmt.Errorf("Expanding '%s': %v", path, err)
-				Log(Error, err)
+				Log(Error, "Expanding '%s': %v", path, err)
 			}
 			if err = yaml.Unmarshal(cf, &configured); err != nil {
 				err = fmt.Errorf("Unmarshalling configured \"%s\": %v", filename, err)
-				Log(Error, err)
+				Log(Error, err.Error())
 				return err // If a badly-formatted config is loaded, we always return an error
 			}
 			if len(configured) == 0 {
-				Log(Error, fmt.Sprintf("Empty config hash loading %s", path))
+				Log(Error, "Empty config hash loading %s", path)
 			} else {
-				Log(Debug, fmt.Sprintf("Loaded configured conf/%s", filename))
+				Log(Debug, "Loaded configured conf/%s", filename)
 				cfg = mergemap(configured, cfg)
 				loaded = true
 			}

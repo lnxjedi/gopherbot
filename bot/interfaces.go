@@ -5,7 +5,7 @@ package bot
 
 // Logger is used by a Brain for logging errors
 type Logger interface {
-	Log(l LogLevel, v ...interface{})
+	Log(l LogLevel, m string, v ...interface{})
 }
 
 // Handler is the interface that defines the callback API for Connectors
@@ -38,7 +38,7 @@ type Handler interface {
 	GetConfigPath() string
 	// Log provides a standard logging interface with a level as defined in
 	// bot/logging.go
-	Log(l LogLevel, v ...interface{})
+	Log(l LogLevel, m string, v ...interface{})
 }
 
 // Connector is the interface defining methods that should be provided by

@@ -9,7 +9,7 @@ import (
 
 // Log logs messages whenever the connector log level is
 // less than the given level
-func Log(l LogLevel, v ...interface{}) bool {
+func Log(l LogLevel, m string, v ...interface{}) bool {
 
 	botLogger.Lock()
 	currlevel := botLogger.level
@@ -18,13 +18,9 @@ func Log(l LogLevel, v ...interface{}) bool {
 
 	if l >= currlevel || l == Audit {
 		prefix := logLevelToStr(l) + ":"
-		p := []interface{}{prefix}
-		var msg string
-		if len(v) == 1 {
-			msg = fmt.Sprintln(prefix, v[0])
-		} else {
-			v = append(p, v...)
-			msg = fmt.Sprintln(v...)
+		msg := prefix + " " + m
+		if len(v) > 0 {
+			msg = fmt.Sprintf(msg, v...)
 		}
 
 		if l == Fatal {

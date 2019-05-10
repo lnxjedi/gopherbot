@@ -3,7 +3,6 @@
 package slack
 
 import (
-	"fmt"
 	"log"
 	"sync"
 
@@ -42,7 +41,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 
 	err := robot.GetProtocolConfig(&c)
 	if err != nil {
-		robot.Log(bot.Fatal, fmt.Errorf("Unable to retrieve protocol configuration: %v", err))
+		robot.Log(bot.Fatal, "Unable to retrieve protocol configuration: %v", err)
 	}
 
 	if c.MaxMessageSplit == 0 {
@@ -83,7 +82,7 @@ Loop:
 			switch ev := msg.Data.(type) {
 
 			case *slack.ConnectedEvent:
-				sc.Log(bot.Debug, fmt.Sprintf("Infos: %T %v\n", ev, *ev.Info.User))
+				sc.Log(bot.Debug, "Infos: %T %v\n", ev, *ev.Info.User)
 				sc.Log(bot.Debug, "Connection counter:", ev.ConnectionCount)
 				sc.botName = ev.Info.User.Name
 				sc.botID = ev.Info.User.ID
@@ -124,7 +123,7 @@ loop:
 			sc.Log(bot.Debug, "Received stop in connector")
 			break loop
 		case msg := <-sc.conn.IncomingEvents:
-			sc.Log(bot.Trace, fmt.Sprintf("Event Received (msg, data, type): %v; %v; %T", msg, msg.Data, msg.Data))
+			sc.Log(bot.Trace, "Event Received (msg, data, type): %v; %v; %T", msg, msg.Data, msg.Data)
 			switch ev := msg.Data.(type) {
 			case *slack.HelloEvent:
 				// Ignore hello
@@ -141,13 +140,13 @@ loop:
 				go sc.processMessage(ev)
 
 			case *slack.PresenceChangeEvent:
-				sc.Log(bot.Debug, fmt.Sprintf("Presence Change: %v", ev))
+				sc.Log(bot.Debug, "Presence Change: %v", ev)
 
 			case *slack.LatencyReport:
-				sc.Log(bot.Debug, fmt.Sprintf("Current latency: %v", ev.Value))
+				sc.Log(bot.Debug, "Current latency: %v", ev.Value)
 
 			case *slack.RTMError:
-				sc.Log(bot.Debug, fmt.Sprintf("Error: %s\n", ev.Error()))
+				sc.Log(bot.Debug, "Error: %s\n", ev.Error())
 
 			default:
 

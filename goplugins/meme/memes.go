@@ -5,7 +5,6 @@ package memes
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -51,7 +50,7 @@ func memegen(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVa
 			r.Say(url)
 		} else {
 			r.Reply("Sorry, something went wrong. Check the logs?")
-			r.Log(bot.Error, fmt.Errorf("Generating a meme: %v", err))
+			r.Log(bot.Error, "Generating a meme: %v", err)
 		}
 	}
 	return

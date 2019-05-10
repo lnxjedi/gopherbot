@@ -45,13 +45,13 @@ func checkOTP(r *bot.Robot, code string) (bool, bot.TaskRetVal) {
 	}
 	valid, err := userOTP.Authenticate(code)
 	if err != nil {
-		r.Log(bot.Error, fmt.Errorf("Problem authenticating launch code for user %s: %v", r.User, err))
+		r.Log(bot.Error, "Problem authenticating launch code for user %s: %v", r.User, err)
 		r.CheckinDatum(r.User, lock)
 		return false, bot.MechanismFail
 	}
 	ret = r.UpdateDatum(r.User, lock, &userOTP)
 	if ret != bot.Ok {
-		r.Log(bot.Error, fmt.Errorf("Problem updating OTP for %s, failing", r.User))
+		r.Log(bot.Error, "Problem updating OTP for %s, failing", r.User)
 		return false, bot.MechanismFail
 	}
 	return valid, bot.Success
@@ -84,7 +84,7 @@ func getcode(r *bot.Robot, immediate bool) (retval bot.TaskRetVal) {
 		r.Direct().Say("Invalid code")
 		return bot.Fail
 	}
-	r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to TOTP token prompt", r.User))
+	r.Log(bot.Error, "User \"%s\" failed to respond to TOTP token prompt", r.User)
 	return bot.Fail
 }
 

@@ -49,7 +49,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 
 	err := robot.GetProtocolConfig(&c)
 	if err != nil {
-		robot.Log(bot.Fatal, fmt.Errorf("Unable to retrieve protocol configuration: %v", err))
+		robot.Log(bot.Fatal, "Unable to retrieve protocol configuration: %v", err)
 	}
 	found := false
 	for i, u := range c.Users {
@@ -60,7 +60,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		}
 	}
 	if !found {
-		robot.Log(bot.Fatal, fmt.Sprintf("Start user \"%s\" not listed in Users array", c.StartUser))
+		robot.Log(bot.Fatal, "Start user \"%s\" not listed in Users array", c.StartUser)
 	}
 
 	found = false
@@ -70,7 +70,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		}
 	}
 	if !found {
-		robot.Log(bot.Fatal, fmt.Sprintf("Start channel \"%s\" not listed in Channels array", c.StartChannel))
+		robot.Log(bot.Fatal, "Start channel \"%s\" not listed in Channels array", c.StartChannel)
 	}
 
 	var histfile string

@@ -49,7 +49,7 @@ func bracket(s string) string {
 
 func checkPanic(r *Robot, s string) {
 	if rcv := recover(); rcv != nil {
-		Log(Error, fmt.Sprintf("PANIC from '%s': %s\nStack trace:%s", s, rcv, godebug.Stack()))
+		Log(Error, "PANIC from '%s': %s\nStack trace:%s", s, rcv, godebug.Stack())
 		r.Reply(fmt.Sprintf("OUCH! It looks like you found a bug - please ask an admin to check the log and give them this string: '%s'", s))
 		time.Sleep(2 * time.Second)
 		os.Exit(1)
@@ -86,7 +86,7 @@ func setFormat(format string) MessageFormat {
 	case "raw":
 		return Raw
 	default:
-		Log(Error, fmt.Sprintf("Unknown message format '%s', defaulting to 'raw'", format))
+		Log(Error, "Unknown message format '%s', defaulting to 'raw'", format)
 		return Raw
 	}
 }
@@ -110,22 +110,22 @@ func updateRegexes() {
 	botCfg.RUnlock()
 	pre, post, bare, errpre, errpost, errbare := updateRegexesWrapped(name, alias)
 	if errpre != nil {
-		Log(Error, fmt.Sprintf("Error compiling pre regex: %s", errpre))
+		Log(Error, "Error compiling pre regex: %s", errpre)
 	}
 	if pre != nil {
-		Log(Debug, fmt.Sprintf("Setting pre regex to: %s", pre))
+		Log(Debug, "Setting pre regex to: %s", pre)
 	}
 	if errpost != nil {
-		Log(Error, fmt.Sprintf("Error compiling post regex: %s", errpost))
+		Log(Error, "Error compiling post regex: %s", errpost)
 	}
 	if post != nil {
-		Log(Debug, fmt.Sprintf("Setting post regex to: %s", post))
+		Log(Debug, "Setting post regex to: %s", post)
 	}
 	if errbare != nil {
-		Log(Error, fmt.Sprintf("Error compiling bare regex: %s", errbare))
+		Log(Error, "Error compiling bare regex: %s", errbare)
 	}
 	if bare != nil {
-		Log(Debug, fmt.Sprintf("Setting bare regex to: %s", bare))
+		Log(Debug, "Setting bare regex to: %s", bare)
 	}
 	botCfg.Lock()
 	botCfg.preRegex = pre

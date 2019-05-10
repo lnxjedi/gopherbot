@@ -175,7 +175,7 @@ type replyresponse struct {
 func decode(msg string) string {
 	decoded, err := base64.StdEncoding.DecodeString(msg)
 	if err != nil {
-		Log(Error, fmt.Errorf("Unable to decode base64 message %s: %v", msg, err))
+		Log(Error, "Unable to decode base64 message %s: %v", msg, err)
 		return msg
 	}
 	return string(decoded)
@@ -194,7 +194,7 @@ func getArgs(rw http.ResponseWriter, jsonargs *json.RawMessage, args interface{}
 func sendReturn(rw http.ResponseWriter, ret interface{}) {
 	d, err := json.Marshal(ret)
 	if err != nil { // this should never happen
-		Log(Fatal, fmt.Sprintf("BUG in bot/http.go:sendReturn, error marshalling JSON: %v", err))
+		Log(Fatal, "BUG in bot/http.go:sendReturn, error marshalling JSON: %v", err)
 	}
 	rw.WriteHeader(http.StatusOK)
 	rw.Write(d)
@@ -203,7 +203,7 @@ func sendReturn(rw http.ResponseWriter, ret interface{}) {
 func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	data, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		Log(Fatal, err)
+		Log(Fatal, err.Error())
 	}
 	defer req.Body.Close()
 
@@ -217,7 +217,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	if f.CallerID == "" {
 		rw.WriteHeader(http.StatusBadRequest)
-		Log(Error, fmt.Sprintf("JSON function '%s' called with empty CallerID; args: %v", f.FuncName, f.FuncArgs))
+		Log(Error, "JSON function '%s' called with empty CallerID; args: %v", f.FuncName, f.FuncArgs)
 		return
 	}
 
@@ -225,7 +225,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	c := getBotContextStr(f.CallerID)
 	if c == nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		Log(Error, fmt.Sprintf("JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs))
+		Log(Error, "JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs)
 		return
 	}
 	privCheck(fmt.Sprintf("http method %s", f.FuncName))
@@ -248,7 +248,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		botCfg.RUnlock()
 	}
 	task, _, _ := getTask(c.currentTask)
-	Log(Trace, fmt.Sprintf("Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User))
+	Log(Trace, "Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User)
 
 	if len(f.Format) > 0 {
 		r.Format = setFormat(f.Format)
@@ -415,7 +415,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	case "GetTaskConfig":
 		if task.Config == nil {
-			Log(Error, fmt.Sprintf("GetTaskConfig called by external script '%s', but no config found.", task.name))
+			Log(Error, "GetTaskConfig called by external script '%s', but no config found.", task.name)
 			sendReturn(rw, handler{})
 			return
 		}
@@ -503,7 +503,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// NOTE: "Say", "Reply", PromptForReply and PromptUserForReply are implemented
 	// in the scripting libraries
 	default:
-		Log(Error, fmt.Sprintf("Bad function name: %s", f.FuncName))
+		Log(Error, "Bad function name: %s", f.FuncName)
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}

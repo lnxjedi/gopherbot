@@ -61,7 +61,7 @@ func links(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal)
 		}()
 	}
 	if ret != bot.Ok {
-		r.Log(bot.Error, fmt.Sprintf("Couldn't load links: %s", ret))
+		r.Log(bot.Error, "Couldn't load links: %s", ret)
 		r.Reply("I had a problem loading the links, somebody should check my log file")
 		r.CheckinDatum(datumKey, lock) // well-behaved plugins using the brain will always check in data when done
 		return

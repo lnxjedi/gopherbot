@@ -3,7 +3,6 @@
 package dynamoBrain
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -47,23 +46,23 @@ func (db *brainConfig) Store(k string, b *[]byte) error {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case dynamodb.ErrCodeConditionalCheckFailedException:
-				robot.Log(bot.Error, fmt.Sprintf("Error storing memory: %v, %v", dynamodb.ErrCodeConditionalCheckFailedException, aerr.Error()))
+				robot.Log(bot.Error, "Error storing memory: %v, %v", dynamodb.ErrCodeConditionalCheckFailedException, aerr.Error())
 			case dynamodb.ErrCodeProvisionedThroughputExceededException:
-				robot.Log(bot.Error, fmt.Sprintf("Error storing memory: %v, %v", dynamodb.ErrCodeProvisionedThroughputExceededException, aerr.Error()))
+				robot.Log(bot.Error, "Error storing memory: %v, %v", dynamodb.ErrCodeProvisionedThroughputExceededException, aerr.Error())
 			case dynamodb.ErrCodeResourceNotFoundException:
-				robot.Log(bot.Error, fmt.Sprintf("Error storing memory: %v, %v", dynamodb.ErrCodeResourceNotFoundException, aerr.Error()))
+				robot.Log(bot.Error, "Error storing memory: %v, %v", dynamodb.ErrCodeResourceNotFoundException, aerr.Error())
 			case dynamodb.ErrCodeItemCollectionSizeLimitExceededException:
-				robot.Log(bot.Error, fmt.Sprintf("Error storing memory: %v, %v", dynamodb.ErrCodeItemCollectionSizeLimitExceededException, aerr.Error()))
+				robot.Log(bot.Error, "Error storing memory: %v, %v", dynamodb.ErrCodeItemCollectionSizeLimitExceededException, aerr.Error())
 			case dynamodb.ErrCodeInternalServerError:
-				robot.Log(bot.Error, fmt.Sprintf("Error storing memory: %v, %v", dynamodb.ErrCodeInternalServerError, aerr.Error()))
+				robot.Log(bot.Error, "Error storing memory: %v, %v", dynamodb.ErrCodeInternalServerError, aerr.Error())
 			default:
-				robot.Log(bot.Error, fmt.Sprintf("Error storing memory: %v", aerr.Error()))
+				robot.Log(bot.Error, "Error storing memory: %v", aerr.Error())
 			}
 			return aerr
 		} else {
 			// Print the error, cast err to awserr.Error to get the Code and
 			// Message from an error.
-			robot.Log(bot.Error, fmt.Sprintf("Error storing memory: %v", err.Error()))
+			robot.Log(bot.Error, "Error storing memory: %v", err.Error())
 			return err
 		}
 		return err
@@ -88,17 +87,17 @@ func (db *brainConfig) Retrieve(k string) (datum *[]byte, exists bool, err error
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case dynamodb.ErrCodeProvisionedThroughputExceededException:
-				robot.Log(bot.Error, fmt.Sprintf("Error retrieving memory: %v, %v", dynamodb.ErrCodeProvisionedThroughputExceededException, aerr.Error()))
+				robot.Log(bot.Error, "Error retrieving memory: %v, %v", dynamodb.ErrCodeProvisionedThroughputExceededException, aerr.Error())
 			case dynamodb.ErrCodeResourceNotFoundException:
-				robot.Log(bot.Error, fmt.Sprintf("Error retrieving memory: %v, %v", dynamodb.ErrCodeResourceNotFoundException, aerr.Error()))
+				robot.Log(bot.Error, "Error retrieving memory: %v, %v", dynamodb.ErrCodeResourceNotFoundException, aerr.Error())
 			case dynamodb.ErrCodeInternalServerError:
-				robot.Log(bot.Error, fmt.Sprintf("Error retrieving memory: %v, %v", dynamodb.ErrCodeInternalServerError, aerr.Error()))
+				robot.Log(bot.Error, "Error retrieving memory: %v, %v", dynamodb.ErrCodeInternalServerError, aerr.Error())
 			default:
-				robot.Log(bot.Error, fmt.Sprintf("Error retrieving memory: %v", aerr.Error()))
+				robot.Log(bot.Error, "Error retrieving memory: %v", aerr.Error())
 			}
 			return nil, false, aerr
 		} else {
-			robot.Log(bot.Error, fmt.Sprintf("Error retrieving memory: %v", err.Error()))
+			robot.Log(bot.Error, "Error retrieving memory: %v", err.Error())
 			return nil, false, err
 		}
 	}
@@ -108,7 +107,7 @@ func (db *brainConfig) Retrieve(k string) (datum *[]byte, exists bool, err error
 	err = dynamodbattribute.UnmarshalMap(result.Item, &m)
 
 	if err != nil {
-		robot.Log(bot.Error, fmt.Sprintf("Failed to unmarshal Record, %v", err))
+		robot.Log(bot.Error, "Failed to unmarshal Record, %v", err)
 		return nil, false, err
 	}
 
@@ -132,7 +131,7 @@ func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
 			Region: aws.String(dynamocfg.Region),
 		})
 		if err != nil {
-			robot.Log(bot.Fatal, fmt.Sprintf("Unable to establish AWS session: %v", err))
+			robot.Log(bot.Fatal, "Unable to establish AWS session: %v", err)
 		}
 	} else {
 		sess, err = session.NewSession(&aws.Config{
@@ -140,7 +139,7 @@ func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
 			Credentials: credentials.NewStaticCredentials(AccessKeyID, SecretAccessKey, ""),
 		})
 		if err != nil {
-			robot.Log(bot.Fatal, fmt.Sprintf("Unable to establish AWS session: %v", err))
+			robot.Log(bot.Fatal, "Unable to establish AWS session: %v", err)
 		}
 	}
 	// Create DynamoDB client
@@ -153,14 +152,14 @@ func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
 		if aerr, ok := err.(awserr.Error); ok {
 			switch aerr.Code() {
 			case dynamodb.ErrCodeResourceNotFoundException:
-				robot.Log(bot.Fatal, fmt.Sprintf("Error describing table '%s': %v, %v", dynamocfg.TableName, dynamodb.ErrCodeResourceNotFoundException, aerr.Error()))
+				robot.Log(bot.Fatal, "Error describing table '%s': %v, %v", dynamocfg.TableName, dynamodb.ErrCodeResourceNotFoundException, aerr.Error())
 			case dynamodb.ErrCodeInternalServerError:
-				robot.Log(bot.Fatal, fmt.Sprintf("Error describing table '%s': %v, %v", dynamocfg.TableName, dynamodb.ErrCodeInternalServerError, aerr.Error()))
+				robot.Log(bot.Fatal, "Error describing table '%s': %v, %v", dynamocfg.TableName, dynamodb.ErrCodeInternalServerError, aerr.Error())
 			default:
-				robot.Log(bot.Fatal, fmt.Sprintf("Error describing table '%s': %v", dynamocfg.TableName, aerr.Error()))
+				robot.Log(bot.Fatal, "Error describing table '%s': %v", dynamocfg.TableName, aerr.Error())
 			}
 		} else {
-			robot.Log(bot.Fatal, fmt.Sprintf("Error describing table '%s': %v", dynamocfg.TableName, err.Error()))
+			robot.Log(bot.Fatal, "Error describing table '%s': %v", dynamocfg.TableName, err.Error())
 		}
 	}
 

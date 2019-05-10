@@ -22,9 +22,9 @@ func privCheck(reason string) {
 		syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&ruid)), uintptr(unsafe.Pointer(&euid)), uintptr(unsafe.Pointer(&suid)))
 		tid := syscall.Gettid()
 		if euid != uintptr(privUID) {
-			Log(Error, fmt.Sprintf("Privilege check failed for '%s'; thread %d r/e/suid: %d/%d/%d; e != %d", reason, tid, ruid, euid, suid, privUID))
+			Log(Error, "Privilege check failed for '%s'; thread %d r/e/suid: %d/%d/%d; e != %d", reason, tid, ruid, euid, suid, privUID)
 		} else {
-			Log(Debug, fmt.Sprintf("Successful privilege check for '%s'; r/e/suid for thread %d: %d/%d/%d", reason, tid, ruid, euid, suid))
+			Log(Debug, "Successful privilege check for '%s'; r/e/suid for thread %d: %d/%d/%d", reason, tid, ruid, euid, suid)
 		}
 	}
 }
@@ -38,9 +38,9 @@ func dropThreadPriv(reason string) {
 		_, _, errno := syscall.Syscall(syscall.SYS_SETRESUID, uintptr(unprivUID), uintptr(unprivUID), uintptr(unprivUID))
 		syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&nruid)), uintptr(unsafe.Pointer(&neuid)), uintptr(unsafe.Pointer(&nsuid)))
 		if errno != 0 {
-			Log(Error, fmt.Sprintf("Unprivileged setresuid(%d) call failed for '%s': %d; thread %d r/e/suid: %d/%d/%d", privUID, reason, errno, tid, ruid, euid, suid))
+			Log(Error, "Unprivileged setresuid(%d) call failed for '%s': %d; thread %d r/e/suid: %d/%d/%d", privUID, reason, errno, tid, ruid, euid, suid)
 		} else {
-			Log(Debug, fmt.Sprintf("Dropping privileges for '%s' in thread %d; old r/e/suid: %d/%d/%d, new r/e/suid: %d/%d/%d", reason, tid, ruid, euid, suid, nruid, neuid, nsuid))
+			Log(Debug, "Dropping privileges for '%s' in thread %d; old r/e/suid: %d/%d/%d, new r/e/suid: %d/%d/%d", reason, tid, ruid, euid, suid, nruid, neuid, nsuid)
 		}
 	}
 }
@@ -84,7 +84,7 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *BotTask) {
 	// when this goroutine finishes; see runtime.LockOSThread()
 	dropThreadPriv(fmt.Sprintf("task %s default configuration", task.name))
 
-	Log(Debug, fmt.Sprintf("Calling '%s' with arg: configure", taskPath))
+	Log(Debug, "Calling '%s' with arg: configure", taskPath)
 	//cfg, err = exec.Command(taskPath, "configure").Output()
 	cmd = exec.Command(taskPath, "configure")
 	if relpath {
@@ -161,9 +161,9 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		}
 	}
 	if c.directMsg {
-		Log(Debug, fmt.Sprintf("Dispatching command '%s' to task '%s' with arguments '(omitted for DM)'", command, task.name))
+		Log(Debug, "Dispatching command '%s' to task '%s' with arguments '(omitted for DM)'", command, task.name)
 	} else {
-		Log(Debug, fmt.Sprintf("Dispatching command '%s' to task '%s' with arguments '%#v'", command, task.name, args))
+		Log(Debug, "Dispatching command '%s' to task '%s' with arguments '%#v'", command, task.name, args)
 	}
 
 	// Set up the per-task environment
@@ -173,7 +173,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		if command != "init" {
 			emit(GoPluginRan)
 		}
-		Log(Debug, fmt.Sprintf("Call go plugin: '%s' with args: %q", task.name, args))
+		Log(Debug, "Call go plugin: '%s' with args: %q", task.name, args)
 		c.taskenvironment = envhash
 		ret := pluginHandlers[task.name].Handler(r, command, args...)
 		c.taskenvironment = nil
@@ -212,7 +212,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		externalArgs = append(externalArgs, command)
 	}
 	externalArgs = append(externalArgs, args...)
-	Log(Debug, fmt.Sprintf("Calling '%s' with interpreter '%s' and args: %q", taskPath, interpreter, externalArgs))
+	Log(Debug, "Calling '%s' with interpreter '%s' and args: %q", taskPath, interpreter, externalArgs)
 	var cmd *exec.Cmd
 	if relpath {
 		// Feed the script to stdin
@@ -238,7 +238,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	keys := make([]string, 0, len(envhash))
 	for k, v := range envhash {
 		if len(k) == 0 {
-			Log(Error, fmt.Sprintf("Empty Name value while populating environment for '%s', skipping", task.name))
+			Log(Error, "Empty Name value while populating environment for '%s', skipping", task.name)
 			continue
 		}
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
@@ -256,12 +256,12 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 			botCfg.RUnlock()
 		}
 	}
-	Log(Debug, fmt.Sprintf("Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '")))
+	Log(Debug, "Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '"))
 	var stderr, stdout io.ReadCloser
 	// hold on to stderr in case we need to log an error
 	stderr, err = cmd.StderrPipe()
 	if err != nil {
-		Log(Error, fmt.Errorf("Creating stderr pipe for external command '%s': %v", taskPath, err))
+		Log(Error, "Creating stderr pipe for external command '%s': %v", taskPath, err)
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 		rchan <- taskReturn{errString, MechanismFail}
 		return
@@ -272,7 +272,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	} else {
 		stdout, err = cmd.StdoutPipe()
 		if err != nil {
-			Log(Error, fmt.Errorf("Creating stdout pipe for external command '%s': %v", taskPath, err))
+			Log(Error, "Creating stdout pipe for external command '%s': %v", taskPath, err)
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			rchan <- taskReturn{errString, MechanismFail}
 			return
@@ -284,7 +284,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
 
 	if err = cmd.Start(); err != nil {
-		Log(Error, fmt.Errorf("Starting command '%s': %v", taskPath, err))
+		Log(Error, "Starting command '%s': %v", taskPath, err)
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 		rchan <- taskReturn{errString, MechanismFail}
 		return
@@ -295,14 +295,14 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	if c.logger == nil {
 		var stdErrBytes []byte
 		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
-			Log(Error, fmt.Errorf("Reading from stderr for external command '%s': %v", taskPath, err))
+			Log(Error, "Reading from stderr for external command '%s': %v", taskPath, err)
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			rchan <- taskReturn{errString, MechanismFail}
 			return
 		}
 		stdErrString := string(stdErrBytes)
 		if len(stdErrString) > 0 {
-			Log(Warn, fmt.Errorf("Output from stderr of external command '%s': %s", taskPath, stdErrString))
+			Log(Warn, "Output from stderr of external command '%s': %s", taskPath, stdErrString)
 			errString = fmt.Sprintf("There was error output while calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			emit(ExternalTaskStderrOutput)
 		}
@@ -352,7 +352,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 			}
 		}
 		if !success {
-			Log(Error, fmt.Errorf("Waiting on external command '%s': %v", taskPath, err))
+			Log(Error, "Waiting on external command '%s': %v", taskPath, err)
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			emit(ExternalTaskErrExit)
 		}

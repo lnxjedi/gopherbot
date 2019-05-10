@@ -80,13 +80,13 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 				r.Say(fmt.Sprintf("I don't have a \"%s\" group configured", group))
 				return
 			}
-			r.Log(bot.Warn, fmt.Sprintf("Groups plugin called for non-configured group: %s", group))
+			r.Log(bot.Warn, "Groups plugin called for non-configured group: %s", group)
 			return bot.ConfigurationError
 		}
 	}
 
 	if command == "authorize" && len(group) == 0 {
-		r.Log(bot.Error, fmt.Sprintf("Groups plugin requires a group name for authorization; plugin \"%s\" must set 'AuthRequire'", args[0]))
+		r.Log(bot.Error, "Groups plugin requires a group name for authorization; plugin \"%s\" must set 'AuthRequire'", args[0])
 		return bot.ConfigurationError
 	}
 
@@ -105,7 +105,7 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 		isAdmin := botAdmin
 		if !isAdmin {
 			if len(cfgspec.Administrators) == 0 {
-				r.Log(bot.Error, fmt.Sprintf("No administrators configured for group: %s", group))
+				r.Log(bot.Error, "No administrators configured for group: %s", group)
 			} else {
 				for _, adminUser := range cfgspec.Administrators {
 					if r.User == adminUser {
@@ -129,7 +129,7 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 		}()
 	}
 	if ret != bot.Ok {
-		r.Log(bot.Error, fmt.Sprintf("Couldn't load groupspec: %s", ret))
+		r.Log(bot.Error, "Couldn't load groupspec: %s", ret)
 		r.Reply("I had a problem loading the group, somebody should check my log file")
 		r.CheckinDatum(group, lock) // well-behaved plugins using the brain will always check in data when done
 		return
@@ -151,10 +151,10 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 				found = true
 				mret := r.UpdateDatum(group, lock, &memspec)
 				if mret != bot.Ok {
-					r.Log(bot.Error, fmt.Sprintf("Couldn't update groups: %s", mret))
+					r.Log(bot.Error, "Couldn't update groups: %s", mret)
 					r.Reply("Crud. I had a problem saving my groups - somebody better check the log")
 				} else {
-					r.Log(bot.Audit, fmt.Sprintf("User %s removed user %s from group %s", r.User, user, group))
+					r.Log(bot.Audit, "User %s removed user %s from group %s", r.User, user, group)
 					r.Say(fmt.Sprintf("Ok, I removed %s from the %s group", user, group))
 					updated = true
 				}
@@ -169,10 +169,10 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 		memspec.Users = []string{}
 		mret := r.UpdateDatum(group, lock, &memspec)
 		if mret != bot.Ok {
-			r.Log(bot.Error, fmt.Sprintf("Couldn't update groups: %s", mret))
+			r.Log(bot.Error, "Couldn't update groups: %s", mret)
 			r.Reply("Crud. I had a problem saving the group - somebody better check the log")
 		} else {
-			r.Log(bot.Audit, fmt.Sprintf("User %s removed all users from group %s", r.User, group))
+			r.Log(bot.Audit, "User %s removed all users from group %s", r.User, group)
 			r.Say("Emptied")
 			updated = true
 		}
@@ -242,12 +242,12 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 		if added {
 			mret := r.UpdateDatum(group, lock, &memspec)
 			if mret != bot.Ok {
-				r.Log(bot.Error, fmt.Sprintf("Couldn't update groups: %s", mret))
+				r.Log(bot.Error, "Couldn't update groups: %s", mret)
 				r.Reply("Crud. I had a problem saving my groups - somebody better check the log")
 			} else {
 				updated = true
 			}
-			r.Log(bot.Audit, fmt.Sprintf("User %s added user %s to group %s", r.User, user, group))
+			r.Log(bot.Audit, "User %s added user %s to group %s", r.User, user, group)
 			r.Say(fmt.Sprintf("Ok, I added %s to the %s group", user, group))
 		} else {
 			r.Say(fmt.Sprintf("User %s is already in the %s group", user, group))

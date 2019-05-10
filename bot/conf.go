@@ -113,7 +113,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	repolist := make(map[string]repository)
 	for k, repojson := range reporaw {
 		if strings.ContainsRune(k, ':') {
-			Log(Error, fmt.Sprintf("Invalid repository '%s' contains ':', ignoring", k))
+			Log(Error, "Invalid repository '%s' contains ':', ignoring", k)
 		} else {
 			var repository repository
 			json.Unmarshal(repojson, &repository)
@@ -161,13 +161,13 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			skip = true
 		default:
 			err := fmt.Errorf("Invalid configuration key in gopherbot.yaml: %s", key)
-			Log(Error, err)
+			Log(Error, err.Error())
 			return err
 		}
 		if !skip {
 			if err := json.Unmarshal(value, val); err != nil {
 				err = fmt.Errorf("Unmarshalling bot config value \"%s\": %v", key, err)
-				Log(Error, err)
+				Log(Error, err.Error())
 				return err
 			}
 		}
@@ -272,10 +272,10 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	if newconfig.TimeZone != "" {
 		tz, err := time.LoadLocation(newconfig.TimeZone)
 		if err == nil {
-			Log(Info, fmt.Sprintf("Set timezone: %s", tz))
+			Log(Info, "Set timezone: %s", tz)
 			botCfg.timeZone = tz
 		} else {
-			Log(Error, fmt.Errorf("Parsing time zone '%s', using local time; error: %v", newconfig.TimeZone, err))
+			Log(Error, "Parsing time zone '%s', using local time; error: %v", newconfig.TimeZone, err)
 			botCfg.timeZone = nil
 		}
 	}
@@ -343,7 +343,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	st := make([]ScheduledTask, 0, len(newconfig.ScheduledJobs))
 	for _, s := range newconfig.ScheduledJobs {
 		if len(s.Name) == 0 || len(s.Schedule) == 0 {
-			Log(Error, fmt.Sprintf("Zero-length Name (%s) or Schedule (%s) in ScheduledTask, skipping", s.Name, s.Schedule))
+			Log(Error, "Zero-length Name (%s) or Schedule (%s) in ScheduledTask, skipping", s.Name, s.Schedule)
 		} else {
 			st = append(st, s)
 		}
@@ -366,7 +366,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	if len(newconfig.UserRoster) > 0 {
 		for i, user := range newconfig.UserRoster {
 			if len(user.UserName) == 0 || len(user.UserID) == 0 {
-				Log(Error, fmt.Sprintf("one of Username/UserID empty (%s/%s), ignoring", user.UserName, user.UserID))
+				Log(Error, "one of Username/UserID empty (%s/%s), ignoring", user.UserName, user.UserID)
 			} else {
 				u := &newconfig.UserRoster[i]
 				ucmaps.user[u.UserName] = u
@@ -381,7 +381,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	if len(newconfig.ChannelRoster) > 0 {
 		for i, ch := range newconfig.ChannelRoster {
 			if len(ch.ChannelName) == 0 || len(ch.ChannelID) == 0 {
-				Log(Error, fmt.Sprintf("one of ChannelName/ChannelID empty (%s/%s), ignoring", ch.ChannelName, ch.ChannelID))
+				Log(Error, "one of ChannelName/ChannelID empty (%s/%s), ignoring", ch.ChannelName, ch.ChannelID)
 			} else {
 				c := &newconfig.ChannelRoster[i]
 				ucmaps.channel[c.ChannelName] = c
@@ -396,9 +396,9 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	if len(newconfig.WorkSpace) > 0 {
 		if respath, ok := checkDirectory(newconfig.WorkSpace); ok {
 			botCfg.workSpace = respath
-			Log(Debug, fmt.Sprintf("Setting workspace directory to '%s'", respath))
+			Log(Debug, "Setting workspace directory to '%s'", respath)
 		} else {
-			Log(Error, fmt.Sprintf("WorkSpace directory '%s' doesn't exist, using '%s'", newconfig.WorkSpace, configPath))
+			Log(Error, "WorkSpace directory '%s' doesn't exist, using '%s'", newconfig.WorkSpace, configPath)
 		}
 	}
 	if len(botCfg.workSpace) == 0 {
@@ -452,7 +452,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		botCfg.Unlock()
 		if !historyConfigured && len(newconfig.HistoryProvider) > 0 {
 			if hprovider, ok := historyProviders[newconfig.HistoryProvider]; !ok {
-				Log(Fatal, fmt.Sprintf("No provider registered for history type: \"%s\"", botCfg.historyProvider))
+				Log(Fatal, "No provider registered for history type: \"%s\"", botCfg.historyProvider)
 			} else {
 				hp := hprovider(handler{})
 				botCfg.Lock()
