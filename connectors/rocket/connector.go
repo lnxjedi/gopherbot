@@ -9,14 +9,6 @@ import (
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
-// import (
-// 	"fmt"
-// 	"strings"
-// 	"sync"
-
-// 	"github.com/lnxjedi/gopherbot/bot"
-// )
-
 type config struct {
 	Server   string // Rocket.Chat server to connect to
 	Email    string // Rocket.Chat user email
