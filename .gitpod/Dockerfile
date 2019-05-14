@@ -1,4 +1,4 @@
-FROM golang:1.12.4
+FROM golang:1.12.5
 
 RUN apt-get update && \
   apt-get -y upgrade && \
@@ -14,4 +14,4 @@ RUN apt-get update && \
     unzip && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* && \
-  unset GOPATH
+  GOPATH=/workspace/go go get -u golang.org/x/tools/cmd/gopls
