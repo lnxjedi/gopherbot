@@ -167,9 +167,15 @@ func run() <-chan struct{} {
 	var cl []string
 	botCfg.RLock()
 	cl = append(cl, botCfg.joinChannels...)
+	cl = append(cl, botCfg.plugChannels...)
+	cl = append(cl, botCfg.defaultJobChannel)
 	botCfg.RUnlock()
+	jc := make(map[string]bool)
 	for _, channel := range cl {
-		botCfg.JoinChannel(channel)
+		if _, ok := jc[channel]; !ok {
+			jc[channel] = true
+			botCfg.JoinChannel(channel)
+		}
 	}
 
 	// signal handler
