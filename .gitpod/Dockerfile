@@ -13,6 +13,6 @@ RUN apt-get update && \
     zip \
     unzip && \
   apt-get clean && \
-  rm -rf /var/lib/apt/lists/* && \
-  mkdir -p /workspace/go && \
-  GOPATH=/workspace/go go get -u golang.org/x/tools/cmd/gopls
+  rm -rf /var/lib/apt/lists/*
+ENV GOPATH=/workspace/go \
+    PATH=/workspace/go/bin:$PATH
