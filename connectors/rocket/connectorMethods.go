@@ -42,10 +42,10 @@ func (rc *rocketConnector) SendProtocolUserMessage(u string, msg string, f bot.M
 func (rc *rocketConnector) JoinChannel(c string) (ret bot.RetVal) {
 	rc.Lock()
 	running := rc.running
-	rc.inChannels[c] = struct{}{}
+	rc.joinChannels[c] = struct{}{}
 	rc.Unlock()
 	if running {
-
+		rc.subscribeChannels()
 	}
 	return bot.Ok
 }

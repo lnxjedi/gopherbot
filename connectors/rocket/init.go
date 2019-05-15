@@ -12,6 +12,7 @@ import (
 
 var lock sync.Mutex  // package var lock
 var initialized bool // set when connector is initialized
+var incoming chan models.Message = make(chan models.Message)
 
 func init() {
 	bot.RegisterConnector("rocket", Initialize)
@@ -51,10 +52,10 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 
 	rc := &rocketConnector{
-		rt:          client,
-		Handler:     robot,
-		inChannels:  make(map[string]struct{}),
-		subChannels: make(map[string]chan<- struct{}),
+		rt:           client,
+		Handler:      robot,
+		joinChannels: make(map[string]struct{}),
+		subChannels:  make(map[string]struct{}),
 	}
 
 	if user, err := client.Login(cred); err != nil {

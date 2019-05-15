@@ -21,11 +21,9 @@ type rocketConnector struct {
 	running bool
 	bot.Handler
 	sync.Mutex
-	inChannels  map[string]struct{}
-	subChannels map[string]chan<- struct{}
+	joinChannels map[string]struct{}
+	subChannels  map[string]struct{}
 }
-
-var incoming chan *models.Message = make(chan *models.Message)
 
 func (rc *rocketConnector) Run(stop <-chan struct{}) {
 	rc.Lock()
@@ -36,5 +34,31 @@ func (rc *rocketConnector) Run(stop <-chan struct{}) {
 	}
 	rc.running = true
 	rc.Unlock()
-	// TODO: loop on getting messages until stopped
+	rc.subscribeChannels()
+	<-stop
+	rc.Lock()
+	// TODO: loop on subscriptions and close
+	rc.Unlock()
+}
+
+func (rc *rocketConnector) subscribeChannels() {
+	rc.Lock()
+	defer rc.Unlock()
+	for want := range rc.joinChannels {
+		if _, ok := rc.subChannels[want]; !ok {
+			rc.subChannels[want] = struct{}{}
+			if rid, err := rc.rt.GetChannelId(want); err != nil {
+				if err := rc.rt.JoinChannel(rid); err != nil {
+					rc.Log(bot.Error, "joining channel %s/%s: %v", want, rid, err)
+				}
+			} else {
+				rc.Log(bot.Error, "Getting channel ID for %s: %v", want, err)
+			}
+		}
+	}
+	return
+}
+
+func (rc *rocketConnector) sendMessage(ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
+	return bot.Ok
 }
