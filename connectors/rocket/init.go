@@ -12,7 +12,6 @@ import (
 
 var lock sync.Mutex  // package var lock
 var initialized bool // set when connector is initialized
-var incoming chan models.Message = make(chan models.Message)
 
 func init() {
 	bot.RegisterConnector("rocket", Initialize)

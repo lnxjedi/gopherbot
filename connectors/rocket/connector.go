@@ -25,6 +25,8 @@ type rocketConnector struct {
 	subChannels  map[string]struct{}
 }
 
+var incoming chan models.Message = make(chan models.Message, 100)
+
 func (rc *rocketConnector) Run(stop <-chan struct{}) {
 	rc.Lock()
 	// This should never happen, just a bit of defensive coding
@@ -35,10 +37,31 @@ func (rc *rocketConnector) Run(stop <-chan struct{}) {
 	rc.running = true
 	rc.Unlock()
 	rc.subscribeChannels()
-	<-stop
-	rc.Lock()
-	// TODO: loop on subscriptions and close
-	rc.Unlock()
+loop:
+	for {
+		select {
+		case pmsg := <-incoming:
+			rc.processMessage(&pmsg)
+
+		case <-stop:
+			rc.Log(bot.Debug, "Received stop in connector")
+			break loop
+		}
+	}
+}
+
+// processMessage creates a bot.ConnectorMessage and calls
+// bot.IncomingMessage
+func (rc *rocketConnector) processMessage(msg *models.Message) {
+	botMsg := &bot.ConnectorMessage{
+		Protocol:      "Rocket",
+		UserID:        msg.User.ID,
+		ChannelID:     msg.RoomID,
+		MessageText:   msg.Text,
+		MessageObject: msg,
+		Client:        rc.rt,
+	}
+	rc.IncomingMessage(botMsg)
 }
 
 func (rc *rocketConnector) subscribeChannels() {
@@ -47,12 +70,17 @@ func (rc *rocketConnector) subscribeChannels() {
 	for want := range rc.joinChannels {
 		if _, ok := rc.subChannels[want]; !ok {
 			rc.subChannels[want] = struct{}{}
-			if rid, err := rc.rt.GetChannelId(want); err != nil {
+			if rid, err := rc.rt.GetChannelId(want); err == nil {
 				if err := rc.rt.JoinChannel(rid); err != nil {
 					rc.Log(bot.Error, "joining channel %s/%s: %v", want, rid, err)
+				} else {
+					schan := &models.Channel{ID: rid}
+					if err := rc.rt.SubscribeToMessageStream(schan, incoming); err != nil {
+						rc.Log(bot.Error, "subscribing to %s/%s: %v", want, rid, err)
+					}
 				}
 			} else {
-				rc.Log(bot.Error, "Getting channel ID for %s: %v", want, err)
+				rc.Log(bot.Error, "getting channel ID for %s: %v", want, err)
 			}
 		}
 	}
