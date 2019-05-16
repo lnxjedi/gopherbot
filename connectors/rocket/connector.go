@@ -26,7 +26,7 @@ type rocketConnector struct {
 	subChannels  map[string]struct{} // channels we've sub'ed
 }
 
-var incoming chan models.Message = make(chan models.Message, 100)
+var incoming chan models.Message
 
 func (rc *rocketConnector) Run(stop <-chan struct{}) {
 	rc.Lock()
@@ -54,8 +54,8 @@ loop:
 // processMessage creates a bot.ConnectorMessage and calls
 // bot.IncomingMessage
 func (rc *rocketConnector) processMessage(msg *models.Message) {
-	rc.Log(bot.Debug, "DEBUG: Raw incoming msg: %v", *msg)
-	rc.Log(bot.Debug, "DEBUG: Raw incoming user: %v", *msg.User)
+	rc.Log(bot.Debug, "DEBUG: Raw incoming msg: %+v", *msg)
+	rc.Log(bot.Debug, "DEBUG: Raw incoming user: %+v", *msg.User)
 	rc.RLock()
 	chName := rc.channelNames[msg.RoomID]
 	botMsg := &bot.ConnectorMessage{
@@ -85,6 +85,7 @@ func (rc *rocketConnector) subscribeChannels() {
 				if len(ich.Name) > 0 {
 					rc.channelNames[ich.ID] = ich.Name
 				}
+				rc.Log(bot.Debug, "DEBUG raw channel pre-joined: %+v", ich)
 				rc.Log(bot.Debug, "adding pre-joined channel %s/%s to list of wanted channels", ich.ID, ich.Name)
 			}
 		}
@@ -95,13 +96,12 @@ func (rc *rocketConnector) subscribeChannels() {
 			if !ok {
 				chName = "(private/unknown)"
 			}
-			rc.Log(bot.Debug, "Subscribing to channel %s/%s", chName, want)
+			rc.Log(bot.Debug, "subscribing to channel %s/%s", chName, want)
 			rc.subChannels[want] = struct{}{}
 			if err := rc.rt.JoinChannel(want); err != nil {
 				rc.Log(bot.Error, "joining channel %s/%s: %v", chName, want, err)
 			} else {
-				schan := &models.Channel{ID: want}
-				if err := rc.rt.SubscribeToMessageStream(schan, incoming); err != nil {
+				if err := rc.rt.SubscribeRoomUpdates(want); err != nil {
 					rc.Log(bot.Error, "subscribing to %s/%s: %v", chName, want, err)
 				}
 			}

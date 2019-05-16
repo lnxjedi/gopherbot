@@ -63,6 +63,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	} else {
 		rc.user = user
 	}
+	incoming = client.GetMessageStreamUpdateChannel()
 
 	return bot.Connector(rc)
 }

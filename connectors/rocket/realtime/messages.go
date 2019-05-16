@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/Jeffail/gabs"
-	"github.com/lnxjedi/gopherbot/connectors/rocket/models"
 	"github.com/gopackage/ddp"
+	"github.com/lnxjedi/gopherbot/connectors/rocket/models"
 )
 
 const (
@@ -153,6 +153,32 @@ func (c *Client) UnPinMessage(message *models.Message) error {
 	_, err := c.ddp.Call("unpinMessage", message)
 
 	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetMessageStreamUpdateChannel returns a channel over which messages from subscribed
+// channels are delivered. Add chanels with SubscribeRoomUpdates.
+//
+// https://rocket.chat/docs/developer-guides/realtime-api/subscriptions/stream-room-messages/
+func (c *Client) GetMessageStreamUpdateChannel() chan models.Message {
+
+	mc := make(chan models.Message, default_buffer_size)
+
+	c.ddp.CollectionByName("stream-room-messages").AddUpdateListener(messageExtractor{mc, "update"})
+	return mc
+}
+
+// SubscribeRoomUpdates subscribes to the message updates for a given
+// room ID. Messages are delivered to the channel returned by
+// GetMessageStreamUpdateChannel.
+//
+// https://rocket.chat/docs/developer-guides/realtime-api/subscriptions/stream-room-messages/
+func (c *Client) SubscribeRoomUpdates(rid string) error {
+
+	if err := c.ddp.Sub("stream-room-messages", rid, send_added_event); err != nil {
 		return err
 	}
 
