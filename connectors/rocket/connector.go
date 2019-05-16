@@ -53,11 +53,13 @@ loop:
 // processMessage creates a bot.ConnectorMessage and calls
 // bot.IncomingMessage
 func (rc *rocketConnector) processMessage(msg *models.Message) {
+	rc.Log(bot.Debug, "DEBUG: Raw incoming msg: %v", *msg)
+	rc.Log(bot.Debug, "DEBUG: Raw incoming user: %v", *msg.User)
 	botMsg := &bot.ConnectorMessage{
 		Protocol:      "Rocket",
 		UserID:        msg.User.ID,
 		ChannelID:     msg.RoomID,
-		MessageText:   msg.Text,
+		MessageText:   msg.Msg,
 		MessageObject: msg,
 		Client:        rc.rt,
 	}
