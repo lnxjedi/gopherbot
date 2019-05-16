@@ -85,7 +85,7 @@ func (rc *rocketConnector) subscribeChannels() {
 				if len(ich.Name) > 0 {
 					rc.channelNames[ich.ID] = ich.Name
 				}
-				rc.Log(bot.Debug, "adding member of channel %s/%s to list of wanted channels", ich.ID, ich.Name)
+				rc.Log(bot.Debug, "adding pre-joined channel %s/%s to list of wanted channels", ich.ID, ich.Name)
 			}
 		}
 	}
