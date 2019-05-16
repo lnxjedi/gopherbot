@@ -20,9 +20,10 @@ type rocketConnector struct {
 	user    *models.User
 	running bool
 	bot.Handler
-	sync.Mutex
-	joinChannels map[string]struct{}
-	subChannels  map[string]struct{}
+	sync.RWMutex
+	wantChannels map[string]struct{} // channels we want to sub to
+	channelNames map[string]string   // map from roomID to channel name
+	subChannels  map[string]struct{} // channels we've sub'ed
 }
 
 var incoming chan models.Message = make(chan models.Message, 100)
@@ -55,10 +56,14 @@ loop:
 func (rc *rocketConnector) processMessage(msg *models.Message) {
 	rc.Log(bot.Debug, "DEBUG: Raw incoming msg: %v", *msg)
 	rc.Log(bot.Debug, "DEBUG: Raw incoming user: %v", *msg.User)
+	rc.RLock()
+	chName := rc.channelNames[msg.RoomID]
 	botMsg := &bot.ConnectorMessage{
 		Protocol:      "Rocket",
 		UserID:        msg.User.ID,
+		UserName:      msg.User.UserName,
 		ChannelID:     msg.RoomID,
+		ChannelName:   chName,
 		MessageText:   msg.Msg,
 		MessageObject: msg,
 		Client:        rc.rt,
@@ -67,22 +72,38 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 }
 
 func (rc *rocketConnector) subscribeChannels() {
+	inChannels, err := rc.rt.GetChannelsIn()
+	if err != nil {
+		rc.Log(bot.Error, "rocket getting channels in: %v", err)
+	}
 	rc.Lock()
 	defer rc.Unlock()
-	for want := range rc.joinChannels {
-		if _, ok := rc.subChannels[want]; !ok {
-			rc.subChannels[want] = struct{}{}
-			if rid, err := rc.rt.GetChannelId(want); err == nil {
-				if err := rc.rt.JoinChannel(rid); err != nil {
-					rc.Log(bot.Error, "joining channel %s/%s: %v", want, rid, err)
-				} else {
-					schan := &models.Channel{ID: rid}
-					if err := rc.rt.SubscribeToMessageStream(schan, incoming); err != nil {
-						rc.Log(bot.Error, "subscribing to %s/%s: %v", want, rid, err)
-					}
+	if len(inChannels) > 0 {
+		for _, ich := range inChannels {
+			if _, ok := rc.wantChannels[ich.ID]; !ok {
+				rc.wantChannels[ich.ID] = struct{}{}
+				if len(ich.Name) > 0 {
+					rc.channelNames[ich.ID] = ich.Name
 				}
+				rc.Log(bot.Debug, "adding member of channel %s/%s to list of wanted channels", ich.ID, ich.Name)
+			}
+		}
+	}
+	for want := range rc.wantChannels {
+		if _, ok := rc.subChannels[want]; !ok {
+			chName, ok := rc.channelNames[want]
+			if !ok {
+				chName = "(private/unknown)"
+			}
+			rc.Log(bot.Debug, "Subscribing to channel %s/%s", chName, want)
+			rc.subChannels[want] = struct{}{}
+			if err := rc.rt.JoinChannel(want); err != nil {
+				rc.Log(bot.Error, "joining channel %s/%s: %v", chName, want, err)
 			} else {
-				rc.Log(bot.Error, "getting channel ID for %s: %v", want, err)
+				schan := &models.Channel{ID: want}
+				if err := rc.rt.SubscribeToMessageStream(schan, incoming); err != nil {
+					rc.Log(bot.Error, "subscribing to %s/%s: %v", chName, want, err)
+				}
 			}
 		}
 	}

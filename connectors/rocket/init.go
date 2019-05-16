@@ -53,7 +53,8 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	rc := &rocketConnector{
 		rt:           client,
 		Handler:      robot,
-		joinChannels: make(map[string]struct{}),
+		wantChannels: make(map[string]struct{}),
+		channelNames: make(map[string]string),
 		subChannels:  make(map[string]struct{}),
 	}
 
