@@ -5,9 +5,9 @@ import (
 	"net/url"
 	"sync"
 
-	models "github.com/RocketChat/Rocket.Chat.Go.SDK/models"
-	api "github.com/RocketChat/Rocket.Chat.Go.SDK/realtime"
 	"github.com/lnxjedi/gopherbot/bot"
+	models "github.com/lnxjedi/gopherbot/connectors/rocket/models"
+	api "github.com/lnxjedi/gopherbot/connectors/rocket/realtime"
 )
 
 var lock sync.Mutex  // package var lock

@@ -4,9 +4,9 @@ package rocket
 import (
 	"sync"
 
-	models "github.com/RocketChat/Rocket.Chat.Go.SDK/models"
-	api "github.com/RocketChat/Rocket.Chat.Go.SDK/realtime"
 	"github.com/lnxjedi/gopherbot/bot"
+	models "github.com/lnxjedi/gopherbot/connectors/rocket/models"
+	api "github.com/lnxjedi/gopherbot/connectors/rocket/realtime"
 )
 
 type config struct {

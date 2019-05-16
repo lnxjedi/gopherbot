@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Jeffail/gabs"
-	"github.com/RocketChat/Rocket.Chat.Go.SDK/models"
+	"github.com/lnxjedi/gopherbot/connectors/rocket/models"
 	"github.com/gopackage/ddp"
 )
 
