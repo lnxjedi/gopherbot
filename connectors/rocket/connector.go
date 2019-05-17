@@ -25,6 +25,7 @@ type rocketConnector struct {
 	channelIDs     map[string]string   // map from channel name to roomID
 	joinedChannels map[string]struct{} // channels we've joined
 	dmChannels     map[string]struct{} // direct messages
+	privChannels   map[string]struct{} // private channels
 }
 
 var incoming chan models.Message
@@ -58,13 +59,29 @@ loop:
 // processMessage creates a bot.ConnectorMessage and calls
 // bot.IncomingMessage
 func (rc *rocketConnector) processMessage(msg *models.Message) {
-	rc.Log(bot.Debug, "DEBUG: Raw incoming msg: %+v", *msg)
-	rc.Log(bot.Debug, "DEBUG: Raw incoming user: %+v", *msg.User)
-	rc.RLock()
 	if len(msg.Msg) == 0 {
 		return
 	}
+	rc.RLock()
+	defer rc.RUnlock()
 	chName := rc.channelNames[msg.RoomID]
+	hearIt := false
+	directMsg := false
+	if _, ok := rc.dmChannels[msg.RoomID]; ok {
+		hearIt = true
+		directMsg = true
+	}
+	if _, ok := rc.privChannels[msg.RoomID]; ok {
+		hearIt = true
+	}
+	if _, ok := rc.joinedChannels[msg.RoomID]; ok {
+		hearIt = true
+	}
+	if !hearIt {
+		return
+	}
+	rc.Log(bot.Debug, "DEBUG: Raw incoming msg: %+v", *msg)
+	rc.Log(bot.Debug, "DEBUG: Raw incoming user: %+v", *msg.User)
 	botMsg := &bot.ConnectorMessage{
 		Protocol:      "Rocket",
 		UserID:        msg.User.ID,
@@ -74,6 +91,7 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 		MessageText:   msg.Msg,
 		MessageObject: msg,
 		Client:        rc.rt,
+		DirectMessage: directMsg,
 	}
 	rc.IncomingMessage(botMsg)
 }
@@ -93,6 +111,9 @@ func (rc *rocketConnector) updateChannels() {
 			}
 			if ich.Type == "d" {
 				rc.dmChannels[ich.ID] = struct{}{}
+			}
+			if ich.Type == "p" {
+				rc.privChannels[ich.ID] = struct{}{}
 			}
 		}
 	}

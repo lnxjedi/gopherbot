@@ -57,6 +57,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		channelIDs:     make(map[string]string),
 		joinedChannels: make(map[string]struct{}),
 		dmChannels:     make(map[string]struct{}),
+		privChannels:   make(map[string]struct{}),
 	}
 
 	if user, err := client.Login(cred); err != nil {

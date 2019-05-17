@@ -1,3 +1,2 @@
-- Check dmChannels and set directMessage
 - Add a listener channel for user events
 - subscribe to rooms-changed, subscriptions-changed and updateChannels()
