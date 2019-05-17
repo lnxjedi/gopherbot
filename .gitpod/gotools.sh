@@ -13,6 +13,7 @@ go get -u -v \
     github.com/rogpeppe/godef \
     github.com/zmb3/gogetdoc \
     golang.org/x/tools/cmd/goimports \
+    golang.org/x/tools/cmd/stringer \
     github.com/sqs/goreturns \
     winterdrache.de/goformat/goformat \
     golang.org/x/lint/golint \
