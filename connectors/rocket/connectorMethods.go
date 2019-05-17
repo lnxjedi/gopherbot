@@ -47,6 +47,9 @@ func (rc *rocketConnector) JoinChannel(c string) (ret bot.RetVal) {
 	rc.Lock()
 	running := rc.running
 	rc.wantChannels[rid] = struct{}{}
+	if c != rid {
+		rc.channelNames[rid] = c
+	}
 	rc.Unlock()
 	if running {
 		rc.subscribeChannels()

@@ -24,6 +24,7 @@ type rocketConnector struct {
 	wantChannels map[string]struct{} // channels we want to sub to
 	channelNames map[string]string   // map from roomID to channel name
 	subChannels  map[string]struct{} // channels we've sub'ed
+	dmChannels   map[string]struct{} // direct messages
 }
 
 var incoming chan models.Message
@@ -80,13 +81,16 @@ func (rc *rocketConnector) subscribeChannels() {
 	defer rc.Unlock()
 	if len(inChannels) > 0 {
 		for _, ich := range inChannels {
-			if _, ok := rc.wantChannels[ich.ID]; !ok {
-				rc.wantChannels[ich.ID] = struct{}{}
-				if len(ich.Name) > 0 {
-					rc.channelNames[ich.ID] = ich.Name
+			// we want to sub to direct and private; regular
+			// channels should be listed in JoinChannels, DefaultChannels,
+			// or DefaultJobChannel.
+			if ich.Type == "d" || ich.Type == "p" {
+				if _, ok := rc.wantChannels[ich.ID]; !ok {
+					rc.wantChannels[ich.ID] = struct{}{}
+					if len(ich.Name) > 0 {
+						rc.channelNames[ich.ID] = ich.Name
+					}
 				}
-				rc.Log(bot.Debug, "DEBUG raw channel pre-joined: %+v", ich)
-				rc.Log(bot.Debug, "adding pre-joined channel %s/%s to list of wanted channels", ich.ID, ich.Name)
 			}
 		}
 	}
