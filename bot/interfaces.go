@@ -68,8 +68,9 @@ type Connector interface {
 	// This method also supplies what the bot engine believes to be the username.
 	SendProtocolUserChannelMessage(userid, username, channelname, msg string, format MessageFormat) RetVal
 	// SendProtocolUserMessage sends a direct message to a user if supported.
-	// For protocols not supportint DM, the bot should send a message addressed
-	// to the user in an implementation-specific channel.
+	// The value of user will be either "<userid>", the connector internal
+	// userID in brackets, or "username", a string name the connector associates
+	// with the user.
 	SendProtocolUserMessage(user, msg string, format MessageFormat) RetVal
 	// The Run method starts the main loop and takes a channel for stopping it.
 	Run(stopchannel <-chan struct{})

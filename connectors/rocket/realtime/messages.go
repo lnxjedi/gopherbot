@@ -17,6 +17,17 @@ const (
 	default_buffer_size = 100
 )
 
+// CreateDirectMessage gets the room ID for a direct message
+// to a given UserName
+func (c *Client) CreateDirectMessage(username string) (string, error) {
+	rawResponse, err := c.ddp.Call("createDirectMessage", username)
+	if err != nil {
+		return "", err
+	}
+	ri := rawResponse.(map[string]interface{})["rid"]
+	return ri.(string), nil
+}
+
 // NewMessage creates basic message with an ID, a RoomID, and a Msg
 // Takes channel and text
 func (c *Client) NewMessage(channel *models.Channel, text string) *models.Message {

@@ -55,10 +55,8 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 	if _, ok := rc.joinedChannels[msg.RoomID]; ok {
 		hearIt = true
 	}
-	if rc.gbuserMap == nil {
-		if _, ok := rc.userNameIDMap[msg.User.UserName]; !ok {
-			mapUser = true
-		}
+	if _, ok := rc.userNameIDMap[msg.User.UserName]; !ok {
+		mapUser = true
 	}
 	rc.RUnlock()
 	if mapUser {
@@ -89,14 +87,8 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 
 func (rc *rocketConnector) updateChannels() {
 	inChannels, ierr := rc.rt.GetChannelsIn()
-	subChannels, serr := rc.rt.GetChannelSubscriptions()
 	if ierr != nil {
 		rc.Log(bot.Error, "rocket getting channels in: %v", ierr)
-	}
-	if serr != nil {
-		rc.Log(bot.Error, "rocket getting channel subscriptions: %v", serr)
-	}
-	if ierr != nil && serr != nil {
 		return
 	}
 	rc.Lock()
@@ -112,17 +104,6 @@ func (rc *rocketConnector) updateChannels() {
 			}
 			if ich.Type == "p" {
 				rc.privChannels[ich.ID] = struct{}{}
-			}
-		}
-	}
-	if len(subChannels) > 0 {
-		for _, sch := range subChannels {
-			rc.Log(bot.Debug, "DEBUG processing subscribed channel: %+v", sch)
-			if len(sch.User.ID) > 0 {
-				rc.Log(bot.Debug, "DEBUG: updating maps for uname %s, uid %s, dmchan %s", sch.User.UserName, sch.User.ID, sch.ID)
-				rc.userDM[sch.User.ID] = sch.ID
-				rc.userNameIDMap[sch.User.UserName] = sch.User.ID
-				rc.userIDNameMap[sch.User.ID] = sch.User.UserName
 			}
 		}
 	}

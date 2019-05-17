@@ -98,6 +98,8 @@ func setProtocol(proto string) Protocol {
 		return Slack
 	case "term", "terminal":
 		return Terminal
+	case "rocket", "Rocket":
+		return Rocket
 	default:
 		return Test
 	}

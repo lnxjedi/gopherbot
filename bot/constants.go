@@ -8,6 +8,8 @@ type Protocol int
 const (
 	// Slack connector
 	Slack Protocol = iota
+	// Rocket for Rocket.Chat
+	Rocket
 	// Terminal connector
 	Terminal
 	// Test connector for automated test suites
@@ -47,7 +49,7 @@ const (
 	jobTrigger
 	spawnedTask
 	scheduled
-	jobCmd  // i.e. run job xx
+	jobCmd // i.e. run job xx
 )
 
 //go:generate stringer -type=Protocol constants.go

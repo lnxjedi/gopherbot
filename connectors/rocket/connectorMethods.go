@@ -9,9 +9,14 @@ func (rc *rocketConnector) MessageHeard(u, c string) {
 }
 
 // SetUserMap lets Gopherbot provide a mapping of usernames to user IDs
-func (rc *rocketConnector) SetUserMap(m map[string]string) {
+func (rc *rocketConnector) SetUserMap(n map[string]string) {
+	m := make(map[string]string)
+	for name, id := range n {
+		m[id] = name
+	}
 	rc.Lock()
-	rc.gbuserMap = m
+	rc.gbuserNameIDMap = n
+	rc.gbuserIDNameMap = m
 	rc.Unlock()
 	return
 }
@@ -54,24 +59,28 @@ func (rc *rocketConnector) SendProtocolUserChannelMessage(uid, uname, ch, msg st
 
 // SendProtocolUserMessage sends a direct message to a user
 func (rc *rocketConnector) SendProtocolUserMessage(u string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	var dchan, uid string
-	found := false
-	uid, found = bot.ExtractID(u)
+	var uid, dchan, user string
+	var ok bool
+	var err error
+	if uid, ok = bot.ExtractID(u); ok {
+		rc.RLock()
+		user, ok = rc.userIDNameMap[uid]
+		rc.RUnlock()
+		if !ok {
+			return bot.UserNotFound
+		}
+	} else {
+		user = u
+	}
 	rc.RLock()
-	if !found {
-		uid, found = rc.userNameIDMap[u]
-	}
-	if !found {
-		rc.RUnlock()
-		return bot.UserNotFound
-	}
-	dchan, found = rc.userDM[uid]
-	if !found {
-		rc.Log(bot.Error, "unable to locate DM channel for %s", u)
-		rc.RUnlock()
-		return bot.FailedMessageSend
-	}
+	dchan, ok = rc.userDM[user]
 	rc.RUnlock()
+	if !ok {
+		if dchan, err = rc.rt.CreateDirectMessage(user); err != nil {
+			rc.Log(bot.Error, "creating direct message for %s: %v", user, err)
+			return bot.FailedMessageSend
+		}
+	}
 	// sendMessage expects internal channels IDs to be bracketed
 	return rc.sendMessage("<"+dchan+">", msg)
 }

@@ -25,15 +25,16 @@ type rocketConnector struct {
 	running bool
 	bot.Handler
 	sync.RWMutex
-	channelNames   map[string]string   // map from roomID to channel name
-	channelIDs     map[string]string   // map from channel name to roomID
-	joinedChannels map[string]struct{} // channels we've joined
-	dmChannels     map[string]struct{} // direct messages
-	privChannels   map[string]struct{} // private channels
-	userNameIDMap  map[string]string   // map of rocket.chat username to userID
-	userIDNameMap  map[string]string   // map of userID to username
-	gbuserMap      map[string]string   // configured map of username to userID
-	userDM         map[string]string   // map from userID to dm roomID
+	channelNames    map[string]string   // map from roomID to channel name
+	channelIDs      map[string]string   // map from channel name to roomID
+	joinedChannels  map[string]struct{} // channels we've joined
+	dmChannels      map[string]struct{} // direct message channels
+	privChannels    map[string]struct{} // private channels
+	userNameIDMap   map[string]string   // map of rocket.chat username to userID
+	userIDNameMap   map[string]string   // map of userID to username
+	gbuserNameIDMap map[string]string   // configured map of username to userID
+	gbuserIDNameMap map[string]string   // configured map, iD to configured username
+	userDM          map[string]string   // map from username to dm roomID
 }
 
 func init() {

@@ -147,7 +147,8 @@ func (r *Robot) SendUserChannelMessage(u, ch, msg string) RetVal {
 }
 
 // SendUserMessage lets a plugin easily send a DM to a user. If a DM
-// isn't possible, the connector should message the user in a channel.
+// fails, an error should be returned, since DMs may be used for sending
+// secret/sensitive information.
 func (r *Robot) SendUserMessage(u, msg string) RetVal {
 	if len(msg) == 0 {
 		r.Log(Warn, "Ignoring zero-length message in SendUserMessage")
