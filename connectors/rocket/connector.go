@@ -21,10 +21,10 @@ type rocketConnector struct {
 	running bool
 	bot.Handler
 	sync.RWMutex
-	wantChannels map[string]struct{} // channels we want to sub to
-	channelNames map[string]string   // map from roomID to channel name
-	subChannels  map[string]struct{} // channels we've sub'ed
-	dmChannels   map[string]struct{} // direct messages
+	channelNames   map[string]string   // map from roomID to channel name
+	channelIDs     map[string]string   // map from channel name to roomID
+	joinedChannels map[string]struct{} // channels we've joined
+	dmChannels     map[string]struct{} // direct messages
 }
 
 var incoming chan models.Message
@@ -38,7 +38,10 @@ func (rc *rocketConnector) Run(stop <-chan struct{}) {
 	}
 	rc.running = true
 	rc.Unlock()
-	rc.subscribeChannels()
+	rc.updateChannels()
+	if err := rc.rt.SubscribeRoomUpdates("__my_messages__"); err != nil {
+		rc.Log(bot.Error, "failed subscribing to '__my_messages__, won't hear messages: %v", err)
+	}
 loop:
 	for {
 		select {
@@ -58,6 +61,9 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 	rc.Log(bot.Debug, "DEBUG: Raw incoming msg: %+v", *msg)
 	rc.Log(bot.Debug, "DEBUG: Raw incoming user: %+v", *msg.User)
 	rc.RLock()
+	if len(msg.Msg) == 0 {
+		return
+	}
 	chName := rc.channelNames[msg.RoomID]
 	botMsg := &bot.ConnectorMessage{
 		Protocol:      "Rocket",
@@ -72,7 +78,7 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 	rc.IncomingMessage(botMsg)
 }
 
-func (rc *rocketConnector) subscribeChannels() {
+func (rc *rocketConnector) updateChannels() {
 	inChannels, err := rc.rt.GetChannelsIn()
 	if err != nil {
 		rc.Log(bot.Error, "rocket getting channels in: %v", err)
@@ -81,37 +87,15 @@ func (rc *rocketConnector) subscribeChannels() {
 	defer rc.Unlock()
 	if len(inChannels) > 0 {
 		for _, ich := range inChannels {
-			// we want to sub to direct and private; regular
-			// channels should be listed in JoinChannels, DefaultChannels,
-			// or DefaultJobChannel.
-			if ich.Type == "d" || ich.Type == "p" {
-				if _, ok := rc.wantChannels[ich.ID]; !ok {
-					rc.wantChannels[ich.ID] = struct{}{}
-					if len(ich.Name) > 0 {
-						rc.channelNames[ich.ID] = ich.Name
-					}
-				}
+			if len(ich.Name) > 0 {
+				rc.channelNames[ich.ID] = ich.Name
+				rc.channelIDs[ich.Name] = ich.ID
+			}
+			if ich.Type == "d" {
+				rc.dmChannels[ich.ID] = struct{}{}
 			}
 		}
 	}
-	for want := range rc.wantChannels {
-		if _, ok := rc.subChannels[want]; !ok {
-			chName, ok := rc.channelNames[want]
-			if !ok {
-				chName = "(private/unknown)"
-			}
-			rc.Log(bot.Debug, "subscribing to channel %s/%s", chName, want)
-			rc.subChannels[want] = struct{}{}
-			if err := rc.rt.JoinChannel(want); err != nil {
-				rc.Log(bot.Error, "joining channel %s/%s: %v", chName, want, err)
-			} else {
-				if err := rc.rt.SubscribeRoomUpdates(want); err != nil {
-					rc.Log(bot.Error, "subscribing to %s/%s: %v", chName, want, err)
-				}
-			}
-		}
-	}
-	return
 }
 
 func (rc *rocketConnector) sendMessage(ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {

@@ -160,7 +160,7 @@ func (c *Client) UnPinMessage(message *models.Message) error {
 }
 
 // GetMessageStreamUpdateChannel returns a channel over which messages from subscribed
-// channels are delivered. Add chanels with SubscribeRoomUpdates.
+// channels are delivered. Add channels with SubscribeRoomUpdates.
 //
 // https://rocket.chat/docs/developer-guides/realtime-api/subscriptions/stream-room-messages/
 func (c *Client) GetMessageStreamUpdateChannel() chan models.Message {

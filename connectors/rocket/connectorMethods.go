@@ -40,19 +40,25 @@ func (rc *rocketConnector) SendProtocolUserMessage(u string, msg string, f bot.M
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"
 // Only useful for connectors that require it, a noop otherwise
 func (rc *rocketConnector) JoinChannel(c string) (ret bot.RetVal) {
-	rid, err := rc.rt.GetChannelId(c)
-	if err != nil {
-		rc.Log(bot.Error, "getting channel ID joining channel %s: %v", c, err)
-	}
 	rc.Lock()
-	running := rc.running
-	rc.wantChannels[rid] = struct{}{}
-	if c != rid {
+	rid, ok := rc.channelIDs[c]
+	if !ok {
+		var err error
+		rid, err = rc.rt.GetChannelId(c)
+		if err != nil {
+			rc.Log(bot.Error, "getting channel ID joining channel %s: %v", c, err)
+			rc.Unlock()
+			return bot.ChannelNotFound
+		}
+		rc.channelIDs[c] = rid
 		rc.channelNames[rid] = c
 	}
-	rc.Unlock()
-	if running {
-		rc.subscribeChannels()
+	if _, ok := rc.joinedChannels[rid]; !ok {
+		rc.joinedChannels[rid] = struct{}{}
+		if err := rc.rt.JoinChannel(rid); err != nil {
+			rc.Log(bot.Error, "joining channel %s/%s: %v", c, rid, err)
+		}
 	}
+	rc.Unlock()
 	return bot.Ok
 }

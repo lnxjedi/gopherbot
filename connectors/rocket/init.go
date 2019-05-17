@@ -51,11 +51,12 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 
 	rc := &rocketConnector{
-		rt:           client,
-		Handler:      robot,
-		wantChannels: make(map[string]struct{}),
-		channelNames: make(map[string]string),
-		subChannels:  make(map[string]struct{}),
+		rt:             client,
+		Handler:        robot,
+		channelNames:   make(map[string]string),
+		channelIDs:     make(map[string]string),
+		joinedChannels: make(map[string]struct{}),
+		dmChannels:     make(map[string]struct{}),
 	}
 
 	if user, err := client.Login(cred); err != nil {
