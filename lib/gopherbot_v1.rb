@@ -47,7 +47,7 @@ class BaseBot
 	UserNotFound = 1
 	ChannelNotFound = 2
 	AttributeNotFound = 3
-	FailedUserDM = 4
+	FailedMessageSend = 4
 	FailedChannelJoin = 5
 	DatumNotFound = 6
 	DatumLockExpired = 7

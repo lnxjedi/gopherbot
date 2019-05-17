@@ -203,7 +203,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f bot.Mes
 		_, _, userIMchan, err = s.conn.OpenIMChannel(userID)
 		if err != nil {
 			s.Log(bot.Error, "Unable to open an IM channel to user:", u, "ID:", userID)
-			ret = bot.FailedUserDM
+			ret = bot.FailedMessageSend
 		}
 	}
 	if ret != bot.Ok {
