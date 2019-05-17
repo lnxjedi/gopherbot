@@ -40,6 +40,12 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 	if len(msg.Msg) == 0 {
 		return
 	}
+	if msg.User.ID == userID {
+		return
+	}
+	if msg.User.UserName == userName {
+		return
+	}
 	hearIt := false
 	directMsg := false
 	mapUser := false

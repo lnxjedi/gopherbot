@@ -80,6 +80,9 @@ func (rc *rocketConnector) SendProtocolUserMessage(u string, msg string, f bot.M
 			rc.Log(bot.Error, "creating direct message for %s: %v", user, err)
 			return bot.FailedMessageSend
 		}
+		rc.Lock()
+		rc.userDM[user] = dchan
+		rc.Unlock()
 	}
 	// sendMessage expects internal channels IDs to be bracketed
 	return rc.sendMessage("<"+dchan+">", msg)

@@ -19,9 +19,10 @@ type config struct {
 	Password string // the initial userid
 }
 
+var userName, userID string
+
 type rocketConnector struct {
 	rt      *api.Client
-	user    *models.User
 	running bool
 	bot.Handler
 	sync.RWMutex
@@ -91,7 +92,8 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	if user, err := client.Login(cred); err != nil {
 		rc.Log(bot.Fatal, "unable to log in to rocket chat: %v", err)
 	} else {
-		rc.user = user
+		userName = user.UserName
+		userID = user.ID
 	}
 	incoming = client.GetMessageStreamUpdateChannel()
 
