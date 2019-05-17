@@ -11,7 +11,10 @@ func (rc *rocketConnector) MessageHeard(u, c string) {
 }
 
 // SetUserMap lets Gopherbot provide a mapping of usernames to user IDs
-func (rc *rocketConnector) SetUserMap(map[string]string) {
+func (rc *rocketConnector) SetUserMap(m map[string]string) {
+	rc.Lock()
+	rc.gbuserMap = m
+	rc.Unlock()
 	return
 }
 

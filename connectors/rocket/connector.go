@@ -2,31 +2,9 @@
 package rocket
 
 import (
-	"sync"
-
 	"github.com/lnxjedi/gopherbot/bot"
 	models "github.com/lnxjedi/gopherbot/connectors/rocket/models"
-	api "github.com/lnxjedi/gopherbot/connectors/rocket/realtime"
 )
-
-type config struct {
-	Server   string // Rocket.Chat server to connect to
-	Email    string // Rocket.Chat user email
-	Password string // the initial userid
-}
-
-type rocketConnector struct {
-	rt      *api.Client
-	user    *models.User
-	running bool
-	bot.Handler
-	sync.RWMutex
-	channelNames   map[string]string   // map from roomID to channel name
-	channelIDs     map[string]string   // map from channel name to roomID
-	joinedChannels map[string]struct{} // channels we've joined
-	dmChannels     map[string]struct{} // direct messages
-	privChannels   map[string]struct{} // private channels
-}
 
 var incoming chan models.Message
 
@@ -62,11 +40,11 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 	if len(msg.Msg) == 0 {
 		return
 	}
-	rc.RLock()
-	defer rc.RUnlock()
-	chName := rc.channelNames[msg.RoomID]
 	hearIt := false
 	directMsg := false
+	mapUser := false
+	rc.RLock()
+	chName := rc.channelNames[msg.RoomID]
 	if _, ok := rc.dmChannels[msg.RoomID]; ok {
 		hearIt = true
 		directMsg = true
@@ -76,6 +54,17 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 	}
 	if _, ok := rc.joinedChannels[msg.RoomID]; ok {
 		hearIt = true
+	}
+	if rc.gbuserMap == nil {
+		if _, ok := rc.userMap[msg.User.UserName]; !ok {
+			mapUser = true
+		}
+	}
+	rc.RUnlock()
+	if mapUser {
+		rc.Lock()
+		rc.userMap[msg.User.UserName] = msg.User.ID
+		rc.Unlock()
 	}
 	if !hearIt {
 		return

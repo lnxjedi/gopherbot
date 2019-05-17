@@ -13,6 +13,28 @@ import (
 var lock sync.Mutex  // package var lock
 var initialized bool // set when connector is initialized
 
+type config struct {
+	Server   string // Rocket.Chat server to connect to
+	Email    string // Rocket.Chat user email
+	Password string // the initial userid
+}
+
+type rocketConnector struct {
+	rt      *api.Client
+	user    *models.User
+	running bool
+	bot.Handler
+	sync.RWMutex
+	channelNames   map[string]string   // map from roomID to channel name
+	channelIDs     map[string]string   // map from channel name to roomID
+	joinedChannels map[string]struct{} // channels we've joined
+	dmChannels     map[string]struct{} // direct messages
+	privChannels   map[string]struct{} // private channels
+	userMap        map[string]string   // map of rocket.chat username to userID
+	gbuserMap      map[string]string   // configured map of username to userID
+	userDM         map[string]string   // map from userID to dm roomID
+}
+
 func init() {
 	bot.RegisterConnector("rocket", Initialize)
 }
@@ -58,6 +80,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		joinedChannels: make(map[string]struct{}),
 		dmChannels:     make(map[string]struct{}),
 		privChannels:   make(map[string]struct{}),
+		userDM:         make(map[string]string),
 	}
 
 	if user, err := client.Login(cred); err != nil {
