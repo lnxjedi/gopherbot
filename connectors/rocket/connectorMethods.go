@@ -1,8 +1,6 @@
 package rocket
 
 import (
-	"fmt"
-
 	"github.com/lnxjedi/gopherbot/bot"
 )
 
@@ -26,18 +24,56 @@ func (rc *rocketConnector) GetProtocolUserAttribute(u, attr string) (value strin
 
 // SendProtocolChannelMessage sends a message to a channel
 func (rc *rocketConnector) SendProtocolChannelMessage(ch string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	return rc.sendMessage(ch, msg, f)
+	return rc.sendMessage(ch, msg)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
 func (rc *rocketConnector) SendProtocolUserChannelMessage(uid, uname, ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	msg = "@" + uname + " " + msg
-	return rc.sendMessage(ch, msg, f)
+	var user string
+	// We prefer to use @(rocketchat username), looked up from
+	// the user ID.
+	if len(uid) > 0 {
+		rc.RLock()
+		if u, ok := rc.userIDNameMap[uid]; ok {
+			user = u
+		}
+		rc.RUnlock()
+	}
+	if len(user) == 0 {
+		if len(uname) > 0 {
+			user = uname
+		} else {
+			rc.Log(bot.Warn, "Unable to resolve a rocket chat username for %s", uid)
+		}
+	}
+	if len(user) > 0 {
+		msg = "@" + uname + " " + msg
+	}
+	return rc.sendMessage(ch, msg)
 }
 
 // SendProtocolUserMessage sends a direct message to a user
 func (rc *rocketConnector) SendProtocolUserMessage(u string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	return rc.sendMessage(fmt.Sprintf("(dm:%s)", u), msg, f)
+	var dchan, uid string
+	found := false
+	uid, found = bot.ExtractID(u)
+	rc.RLock()
+	if !found {
+		uid, found = rc.userNameIDMap[u]
+	}
+	if !found {
+		rc.RUnlock()
+		return bot.UserNotFound
+	}
+	dchan, found = rc.userDM[uid]
+	if !found {
+		rc.Log(bot.Error, "unable to locate DM channel for %s", u)
+		rc.RUnlock()
+		return bot.FailedMessageSend
+	}
+	rc.RUnlock()
+	// sendMessage expects internal channels IDs to be bracketed
+	return rc.sendMessage("<"+dchan+">", msg)
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"

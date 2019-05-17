@@ -30,7 +30,8 @@ type rocketConnector struct {
 	joinedChannels map[string]struct{} // channels we've joined
 	dmChannels     map[string]struct{} // direct messages
 	privChannels   map[string]struct{} // private channels
-	userMap        map[string]string   // map of rocket.chat username to userID
+	userNameIDMap  map[string]string   // map of rocket.chat username to userID
+	userIDNameMap  map[string]string   // map of userID to username
 	gbuserMap      map[string]string   // configured map of username to userID
 	userDM         map[string]string   // map from userID to dm roomID
 }
@@ -80,7 +81,10 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		joinedChannels: make(map[string]struct{}),
 		dmChannels:     make(map[string]struct{}),
 		privChannels:   make(map[string]struct{}),
-		userDM:         make(map[string]string),
+		userNameIDMap:  make(map[string]string),
+		userIDNameMap:  make(map[string]string),
+		// gbuserMap should remain nil until set
+		userDM: make(map[string]string),
 	}
 
 	if user, err := client.Login(cred); err != nil {

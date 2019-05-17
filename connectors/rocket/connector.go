@@ -56,14 +56,16 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 		hearIt = true
 	}
 	if rc.gbuserMap == nil {
-		if _, ok := rc.userMap[msg.User.UserName]; !ok {
+		if _, ok := rc.userNameIDMap[msg.User.UserName]; !ok {
 			mapUser = true
 		}
 	}
 	rc.RUnlock()
 	if mapUser {
+		// TODO: is there a better way of mapping username to ID?
 		rc.Lock()
-		rc.userMap[msg.User.UserName] = msg.User.ID
+		rc.userNameIDMap[msg.User.UserName] = msg.User.ID
+		rc.userIDNameMap[msg.User.ID] = msg.User.UserName
 		rc.Unlock()
 	}
 	if !hearIt {
@@ -86,9 +88,16 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 }
 
 func (rc *rocketConnector) updateChannels() {
-	inChannels, err := rc.rt.GetChannelsIn()
-	if err != nil {
-		rc.Log(bot.Error, "rocket getting channels in: %v", err)
+	inChannels, ierr := rc.rt.GetChannelsIn()
+	subChannels, serr := rc.rt.GetChannelSubscriptions()
+	if ierr != nil {
+		rc.Log(bot.Error, "rocket getting channels in: %v", ierr)
+	}
+	if serr != nil {
+		rc.Log(bot.Error, "rocket getting channel subscriptions: %v", serr)
+	}
+	if ierr != nil && serr != nil {
+		return
 	}
 	rc.Lock()
 	defer rc.Unlock()
@@ -106,8 +115,37 @@ func (rc *rocketConnector) updateChannels() {
 			}
 		}
 	}
+	if len(subChannels) > 0 {
+		for _, sch := range subChannels {
+			rc.Log(bot.Debug, "DEBUG processing subscribed channel: %+v", sch)
+			if len(sch.User.ID) > 0 {
+				rc.Log(bot.Debug, "DEBUG: updating maps for uname %s, uid %s, dmchan %s", sch.User.UserName, sch.User.ID, sch.ID)
+				rc.userDM[sch.User.ID] = sch.ID
+				rc.userNameIDMap[sch.User.UserName] = sch.User.ID
+				rc.userIDNameMap[sch.User.ID] = sch.User.UserName
+			}
+		}
+	}
 }
 
-func (rc *rocketConnector) sendMessage(ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
+// sendMessage takes "channel" or "<chanID>" and sends the pre-formatted
+// message.
+func (rc *rocketConnector) sendMessage(ch, msg string) (ret bot.RetVal) {
+	var chanID string
+	found := false
+	chanID, found = bot.ExtractID(ch)
+	if !found {
+		rc.RLock()
+		chanID, found = rc.channelIDs[ch]
+		rc.RUnlock()
+	}
+	if !found {
+		return bot.ChannelNotFound
+	}
+	sendChan := models.Channel{ID: chanID}
+	m := rc.rt.NewMessage(&sendChan, msg)
+	if _, err := rc.rt.SendMessage(m); err != nil {
+		return bot.FailedMessageSend
+	}
 	return bot.Ok
 }
