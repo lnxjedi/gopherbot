@@ -42,7 +42,7 @@ Alias: "<GOPHER_ALIAS>"
 #ExternalPlugins:
 #  "echo":
 #    Description: Trivial bash plugin
-#    Path: plugins/echo.sh
+#    Path: plugins/samples/echo.sh
 
 ## Example configuration for an external job script.
 #ExternalJobs:
