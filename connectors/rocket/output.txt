@@ -1,0 +1,55 @@
+Link expansion; message duplicates
+
+2019/05/18 16:12:10 Debug: DEBUG: Raw incoming msg: {ID:9AFMPZPJz7KnTTPsL RoomID:F47Eiv4JX4dJM3voc Msg:;echo can@lance.bishop visit https://slashdot.org ? EditedBy: Groupable:false EditedAt:<nil> Timestamp:2019-05-18 16:12:10.000000229 +0000 UTC UpdatedAt:<nil> Mentions:[] User:0xc00020c180 PostMessage:{RoomID: Channel: Text: ParseUrls:false Alias: Emoji: Avatar: Attachments:[]}}
+2019/05/18 16:12:10 Debug: DEBUG: Raw incoming user: {ID:zY9wKFNu3mpfXKjTB Name: UserName:parse Status: Token: TokenExpires:0}
+2019/05/18 16:12:10 Debug: Message 'echo can @lance.bishop visit https://slashdot.org ?' from user 'parse' in channel 'gbdev'; isCommand: true
+2019/05/18 16:12:10 Debug: Dispatching command 'echo' to task 'echo' with arguments '[]string{"can @lance.bishopvisit https://slashdot.org ?"}'
+2019/05/18 16:12:10 Debug: Using stock external plugin:%!(EXTRA string=/workspace/gopherbot/plugins/samples/echo.sh)
+2019/05/18 16:12:10 Debug: Detected interpreter for /workspace/gopherbot/plugins/samples/echo.sh: /bin/bash
+2019/05/18 16:12:10 Debug: Calling '/workspace/gopherbot/plugins/samples/echo.sh' with interpreter '/bin/bash' and args: ["echo" "can @lance.bishop visit https://slashdot.org ?"]
+2019/05/18 16:12:10 Debug: Running '/workspace/gopherbot/plugins/samples/echo.sh' in 'workspace' with environment vars: 'GOPHER_TASK_NAME', 'HOSTNAME', 'USER', 'GOPHER_WORKSPACE', 'GOPHER_USER', 'GOPHER_PROTOCOL', 'HOME', 'PATH', 'GOPHER_CHANNEL', 'GOPHER_PIPELINE_TYPE', 'GOPHER_HTTP_POST', 'GOPHER_INSTALLDIR', 'GOPHER_CALLER_ID', 'LANG'
+<- 2019/05/18 16:12:10 [1285] {"msg":"changed","collection":"stream-room-messages","id":"id","fields":{"eventN...
+2019/05/18 16:12:10 Debug: DEBUG: Raw incoming msg: {ID:9AFMPZPJz7KnTTPsL RoomID:F47Eiv4JX4dJM3voc Msg:;echo can@lance.bishop visit https://slashdot.org ? EditedBy: Groupable:false EditedAt:<nil> Timestamp:2019-05-18 16:12:10.000000229 +0000 UTC UpdatedAt:<nil> Mentions:[] User:0xc00020c720 PostMessage:{RoomID: Channel: Text: ParseUrls:false Alias: Emoji: Avatar: Attachments:[]}}
+2019/05/18 16:12:10 Debug: DEBUG: Raw incoming user: {ID:zY9wKFNu3mpfXKjTB Name: UserName:parse Status: Token: TokenExpires:0}
+2019/05/18 16:12:10 Debug: Message 'echo can @lance.bishop visit https://slashdot.org ?' from user 'parse' in channel 'gbdev'; isCommand: true
+
+Edited message; message duplicate send
+2019/05/18 16:17:18 Debug: DEBUG: Raw incoming msg: {ID:puiesDmAKy2GTkspw RoomID:F47Eiv4JX4dJM3voc Msg:;echo see cnn.com EditedBy: Groupable:false EditedAt:<nil> Timestamp:2019-05-18 16:17:18.000000103 +0000 UTC UpdatedAt:<nil> Mentions:[] User:0xc000588660 PostMessage:{RoomID: Channel: Text: ParseUrls:false Alias: Emoji: Avatar: Attachments:[]}}
+2019/05/18 16:17:18 Debug: DEBUG: Raw incoming user: {ID:zY9wKFNu3mpfXKjTB Name: UserName:parse Status: Token: TokenExpires:0}
+2019/05/18 16:17:18 Debug: Message 'echo see cnn.com' from user 'parse' in channel 'gbdev'; isCommand: true
+2019/05/18 16:17:18 Debug: Dispatching command 'echo' to task 'echo' with arguments '[]string{"see cnn.com"}'
+2019/05/18 16:17:18 Debug: Using stock external plugin: /workspace/gopherbot/plugins/samples/echo.sh
+2019/05/18 16:17:18 Debug: Detected interpreter for /workspace/gopherbot/plugins/samples/echo.sh: /bin/bash
+2019/05/18 16:17:18 Debug: Calling '/workspace/gopherbot/plugins/samples/echo.sh' with interpreter '/bin/bash' and args: ["echo" "see cnn.com"]
+2019/05/18 16:17:18 Debug: Running '/workspace/gopherbot/plugins/samples/echo.sh' in 'workspace' with environment vars: 'GOPHER_INSTALLDIR', 'GOPHER_CHANNEL', 'GOPHER_CALLER_ID', 'GOPHER_HTTP_POST', 'GOPHER_PIPELINE_TYPE', 'USER', 'GOPHER_WORKSPACE', 'GOPHER_TASK_NAME', 'GOPHER_USER', 'HOME', 'LANG', 'PATH', 'GOPHER_PROTOCOL', 'HOSTNAME'
+-> 2019/05/18 16:17:19 [125] {"msg":"method","id":"7","method":"sendMessage","params":[{"_id":"0.132428","rid...
+<- 2019/05/18 16:17:19 [411] {"msg":"changed","collection":"stream-room-messages","id":"id","fields":{"eventN...
+<- 2019/05/18 16:17:19 [273] {"msg":"result","id":"7","result":{"_id":"0.132428","rid":"F47Eiv4JX4dJM3voc","m...
+<- 2019/05/18 16:17:19 [33] {"msg":"updated","methods":["7"]}
+<- 2019/05/18 16:17:23 [523] {"msg":"changed","collection":"stream-room-messages","id":"id","fields":{"eventN...
+2019/05/18 16:17:23 Debug: DEBUG: Raw incoming msg: {ID:puiesDmAKy2GTkspw RoomID:F47Eiv4JX4dJM3voc Msg:;echo see cnn.org EditedBy: Groupable:false EditedAt:<nil> Timestamp:2019-05-18 16:17:18.000000103 +0000 UTC UpdatedAt:<nil> Mentions:[] User:0xc0000c52c0 PostMessage:{RoomID: Channel: Text: ParseUrls:false Alias: Emoji: Avatar: Attachments:[]}}
+2019/05/18 16:17:23 Debug: DEBUG: Raw incoming user: {ID:zY9wKFNu3mpfXKjTB Name: UserName:parse Status: Token: TokenExpires:0}
+2019/05/18 16:17:23 Debug: Message 'echo see cnn.org' from user 'parse' in channel 'gbdev'; isCommand: true
+2019/05/18 16:17:23 Debug: Dispatching command 'echo' to task 'echo' with arguments '[]string{"see cnn.org"}'
+2019/05/18 16:17:23 Debug: Using stock external plugin: /workspace/gopherbot/plugins/samples/echo.sh
+2019/05/18 16:17:23 Debug: Detected interpreter for /workspace/gopherbot/plugins/samples/echo.sh: /bin/bash
+2019/05/18 16:17:23 Debug: Calling '/workspace/gopherbot/plugins/samples/echo.sh' with interpreter '/bin/bash' and args: ["echo" "see cnn.org"]
+
+Image link; duplicate message sent
+2019/05/18 16:28:08 Debug: DEBUG: Raw incoming msg: {ID:qHhRKK6djg7MLDAau RoomID:F47Eiv4JX4dJM3voc Msg:;echo https://i.imgflip.com/303mav.jpg EditedBy: Groupable:false EditedAt:<nil> Timestamp:2019-05-18 16:28:08.000000237 +0000 UTC UpdatedAt:<nil> Mentions:[] User:0xc00021a120 PostMessage:{RoomID: Channel: Text: ParseUrls:false Alias: Emoji: Avatar: Attachments:[]}}
+2019/05/18 16:28:08 Debug: DEBUG: Raw incoming user: {ID:zY9wKFNu3mpfXKjTB Name: UserName:parse Status: Token: TokenExpires:0}
+2019/05/18 16:28:08 Debug: Message 'echo https://i.imgflip.com/303mav.jpg' from user 'parse' in channel 'gbdev';isCommand: true
+2019/05/18 16:28:08 Debug: Dispatching command 'echo' to task 'echo' with arguments '[]string{"https://i.imgflip.com/303mav.jpg"}'
+2019/05/18 16:28:08 Debug: Using stock external plugin: /workspace/gopherbot/plugins/samples/echo.sh
+2019/05/18 16:28:08 Debug: Detected interpreter for /workspace/gopherbot/plugins/samples/echo.sh: /bin/bash
+2019/05/18 16:28:08 Debug: Calling '/workspace/gopherbot/plugins/samples/echo.sh' with interpreter '/bin/bash' and args: ["echo" "https://i.imgflip.com/303mav.jpg"]
+2019/05/18 16:28:08 Debug: Running '/workspace/gopherbot/plugins/samples/echo.sh' in 'workspace' with environment vars: 'GOPHER_INSTALLDIR', 'GOPHER_WORKSPACE', 'GOPHER_PIPELINE_TYPE', 'LANG', 'GOPHER_CALLER_ID', 'GOPHER_USER', 'GOPHER_PROTOCOL', 'GOPHER_TASK_NAME', 'HOME', 'GOPHER_HTTP_POST', 'GOPHER_CHANNEL', 'HOSTNAME', 'PATH', 'USER'
+<- 2019/05/18 16:28:08 [716] {"msg":"changed","collection":"stream-room-messages","id":"id","fields":{"eventN...
+2019/05/18 16:28:08 Debug: DEBUG: Raw incoming msg: {ID:qHhRKK6djg7MLDAau RoomID:F47Eiv4JX4dJM3voc Msg:;echo https://i.imgflip.com/303mav.jpg EditedBy: Groupable:false EditedAt:<nil> Timestamp:2019-05-18 16:28:08.000000237 +0000 UTC UpdatedAt:<nil> Mentions:[] User:0xc00021a5a0 PostMessage:{RoomID: Channel: Text: ParseUrls:false Alias: Emoji: Avatar: Attachments:[]}}
+2019/05/18 16:28:08 Debug: DEBUG: Raw incoming user: {ID:zY9wKFNu3mpfXKjTB Name: UserName:parse Status: Token: TokenExpires:0}
+2019/05/18 16:28:08 Debug: Message 'echo https://i.imgflip.com/303mav.jpg' from user 'parse' in channel 'gbdev';isCommand: true
+2019/05/18 16:28:08 Debug: Dispatching command 'echo' to task 'echo' with arguments '[]string{"https://i.imgflip.com/303mav.jpg"}'
+2019/05/18 16:28:08 Debug: Using stock external plugin: /workspace/gopherbot/plugins/samples/echo.sh
+2019/05/18 16:28:08 Debug: Detected interpreter for /workspace/gopherbot/plugins/samples/echo.sh: /bin/bash
+2019/05/18 16:28:08 Debug: Calling '/workspace/gopherbot/plugins/samples/echo.sh' with interpreter '/bin/bash' and args: ["echo" "https://i.imgflip.com/303mav.jpg"]
+2019/05/18 16:28:08 Debug: Running '/workspace/gopherbot/plugins/samples/echo.sh' in 'workspace' with environment vars: 'GOPHER_PROTOCOL', 'LANG', 'GOPHER_USER', 'GOPHER_INSTALLDIR', 'GOPHER_CHANNEL', 'HOME', 'GOPHER_HTTP_POST', 'GOPHER_CALLER_ID', 'HOSTNAME', 'USER', 'GOPHER_WORKSPACE', 'GOPHER_PIPELINE_TYPE', 'PATH', 'GOPHER_TASK_NAME'

@@ -1,2 +1,4 @@
 - Add a listener channel for user events
 - subscribe to rooms-changed, subscriptions-changed and updateChannels()
+- use duplicate message loop to keep track of duplicate messages; for that watches message channel and has time.After() for cleanup
+- implement fixed width font
