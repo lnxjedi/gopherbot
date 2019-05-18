@@ -468,13 +468,13 @@ func getTaskPath(task *BotTask) (tpath string, relpath bool, err error) {
 		_, err := os.Stat(taskPath)
 		if err == nil {
 			// The one case where relpath is true
-			Log(Debug, "Using external plugin from configPath:", taskPath)
+			Log(Debug, "Using external plugin from configPath: %s", taskPath)
 			return task.Path, true, nil
 		}
 	}
 	if _, err := os.Stat(installPath + "/" + task.Path); err == nil {
 		taskPath = installPath + "/" + task.Path
-		Log(Debug, "Using stock external plugin:", taskPath)
+		Log(Debug, "Using stock external plugin: %s", taskPath)
 		return taskPath, false, nil
 	}
 	err = fmt.Errorf("Couldn't locate external plugin %s: %v", task.name, err)

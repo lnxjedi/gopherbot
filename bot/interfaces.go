@@ -53,6 +53,7 @@ type Connector interface {
 	// from the connector protocol, or "",!ok if the connector doesn't have the
 	// information. Plugins should normally call GetUserAttribute, which
 	// supplements protocol data with data from users.json.
+	// The connector should expect "username" or "<userid>".
 	// The current attributes are:
 	// email, realName, firstName, lastName, phone, sms, connections
 	GetProtocolUserAttribute(user, attr string) (value string, ret RetVal)

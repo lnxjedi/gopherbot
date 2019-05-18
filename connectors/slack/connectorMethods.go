@@ -223,7 +223,7 @@ func (s *slackConnector) JoinChannel(c string) (ret bot.RetVal) {
 	}
 	_, err := s.api.JoinChannel(chanID)
 	if err != nil {
-		s.Log(bot.Error, "Failed to join channel", c, ":", err, "(try inviting the bot)")
+		s.Log(bot.Error, "Failed to join channel %s: %v; (try inviting the bot to the channel)", c, err)
 		return bot.FailedChannelJoin
 	}
 	return bot.Ok
