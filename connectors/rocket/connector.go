@@ -27,13 +27,16 @@ func (rc *rocketConnector) Run(stop <-chan struct{}) {
 
 	// Detect UserName
 	// TODO: is there a better way to get the robot's UserName?
-	if sch, err := rc.rt.GetChannelsIn(); err == nil {
+	if sch, err := rc.rt.GetChannelSubscriptions(); err == nil {
 		detected := false
+		rc.Log(bot.Debug, "DEBUG channels %d", len(sch))
 		for _, ch := range sch {
-			if ch.User != nil {
+			rc.Log(bot.Debug, "DEBUG channels in: %+v", ch)
+			if len(ch.User.UserName) > 0 {
 				detected = true
 				userName = ch.User.UserName
 				rc.SetBotMention(userName)
+				break
 			}
 		}
 		if !detected {

@@ -1,4 +1,5 @@
 - Add a listener channel for user events
 - subscribe to rooms-changed, subscriptions-changed and updateChannels()
-- implement fixed width font
+- implement Variable format
 - update default gopherbot.conf to use when GOPHER_PROTOCOL=rocket
+- implement MessageHeard (start, pause 1, stop)

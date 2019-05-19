@@ -111,7 +111,6 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	if user, err := client.Login(cred); err != nil {
 		rc.Log(bot.Fatal, "unable to log in to rocket chat: %v", err)
 	} else {
-		rc.Log(bot.Debug, "DEBUG logged in user: %+v", user)
 		// NOTE: the login user object doesn't have the UserName
 		//userName = user.UserName
 		userID = user.ID
