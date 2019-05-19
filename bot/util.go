@@ -167,7 +167,7 @@ func updateRegexesWrapped(name string, alias rune) (pre, post, bare *regexp.Rege
 	if len(name) > 0 {
 		postString := `^([^,@]+),?\s+(?i:@?` + name + `)([.?!])?$`
 		post, errpost = regexp.Compile(postString)
-		bareString := `^@?` + name + `$`
+		bareString := `^@?(?i:` + name + `)$`
 		bare, errbare = regexp.Compile(bareString)
 	}
 	return
