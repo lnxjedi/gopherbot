@@ -149,22 +149,28 @@ func updateRegexesWrapped(name, mention string, alias rune) (pre, post, bare *re
 	}
 	preString := `^`
 	names := []string{}
+	barenames := []string{}
 	if alias != 0 {
 		if strings.ContainsRune(string(escapeAliases), alias) {
-			names = append(names,`\` + string(alias))
+			names = append(names, `\`+string(alias))
+			barenames = append(barenames, `\`+string(alias))
 		} else {
 			names = append(names, string(alias))
+			barenames = append(barenames, string(alias))
 		}
 	}
 	if len(name) > 0 {
 		if len(mention) > 0 {
-			names = append(names,`(?i:`+name+`)[:, ]`)
+			names = append(names, `(?i:`+name+`)[:, ]`)
+			barenames = append(barenames, `(?i:`+name+`)`)
 		} else {
-			names = append(names,`@?` + name + `[:, ]`)
+			names = append(names, `@?`+name+`[:, ]`)
+			barenames = append(barenames, `@?`+name)
 		}
 	}
 	if len(mention) > 0 {
-		names = append(names,`@?` + mention + `[:, ]`)
+		names = append(names, `@`+mention+`[:, ]`)
+		barenames = append(barenames, `@`+mention)
 	}
 	preString += `^(?:` + strings.Join(names, "|") + `\s*)(.*)$`
 	pre, errpre = regexp.Compile(preString)
@@ -172,7 +178,7 @@ func updateRegexesWrapped(name, mention string, alias rune) (pre, post, bare *re
 	if len(name) > 0 {
 		postString := `^([^,@]+),?\s+(?i:@?` + name + `)([.?!])?$`
 		post, errpost = regexp.Compile(postString)
-		bareString := `^@?(?:` + strings.Join(names, "|") + `)$`
+		bareString := `^@?(?:` + strings.Join(barenames, "|") + `)$`
 		bare, errbare = regexp.Compile(bareString)
 	}
 	return
