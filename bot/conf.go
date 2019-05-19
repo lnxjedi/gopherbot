@@ -64,6 +64,7 @@ type UserInfo struct {
 	Email, Phone        string // for Get*Attribute()
 	FullName            string // for Get*Attribute()
 	FirstName, LastName string // for Get*Attribute()
+	protoMention        string // robot only, @(mention) string
 	BotUser             bool   // these users aren't checked against MessageMatchers / ambient messages, and never fall-through to "catchalls"
 }
 
@@ -282,8 +283,10 @@ func (c *botContext) loadConfig(preConnect bool) error {
 
 	if newconfig.BotInfo != nil {
 		botID := botCfg.botinfo.UserID
+		botMention := botCfg.botinfo.protoMention
 		botCfg.botinfo = *newconfig.BotInfo
 		botCfg.botinfo.UserID = botID
+		botCfg.botinfo.protoMention = botMention
 	}
 	botCfg.mailConf = newconfig.MailConfig
 

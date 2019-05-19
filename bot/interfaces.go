@@ -24,7 +24,12 @@ type Handler interface {
 	// into a struct provided by the brain provider
 	GetHistoryConfig(interface{}) error
 	// SetID allows the connector to set the robot's internal ID
-	SetID(id string)
+	SetBotID(id string)
+	// SetBotMention allows the connector to set the bot's @(mention) ID
+	// (without the @) for protocols where it's a fixed value. This allows
+	// the robot to recognize "@(protoMention) foo", needed for e.g. Rocket
+	// where the robot username may not match the configured name.
+	SetBotMention(mention string)
 	// GetLogLevel allows the connector to check the robot's configured log level
 	// to make it's own decision about how much it should log. For slack, this
 	// determines whether the plugin does api logging.

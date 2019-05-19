@@ -108,9 +108,10 @@ func setProtocol(proto string) Protocol {
 func updateRegexes() {
 	botCfg.RLock()
 	name := botCfg.botinfo.UserName
+	protoMention := botCfg.botinfo.protoMention
 	alias := botCfg.alias
 	botCfg.RUnlock()
-	pre, post, bare, errpre, errpost, errbare := updateRegexesWrapped(name, alias)
+	pre, post, bare, errpre, errpost, errbare := updateRegexesWrapped(name, protoMention, alias)
 	if errpre != nil {
 		Log(Error, "Error compiling pre regex: %s", errpre)
 	}
@@ -139,35 +140,39 @@ func updateRegexes() {
 // TODO: write unit test. The regexes produced shouldn't be checked, but rather
 // whether given strings do or don't match them. Note: this code is partially
 // tested in TestBotName
-func updateRegexesWrapped(name string, alias rune) (pre, post, bare *regexp.Regexp, errpre, errpost, errbare error) {
+func updateRegexesWrapped(name, mention string, alias rune) (pre, post, bare *regexp.Regexp, errpre, errpost, errbare error) {
 	pre = nil
 	post = nil
 	if alias == 0 && len(name) == 0 {
 		Log(Error, "Robot has no name or alias, and will only respond to direct messages")
 		return
 	}
-	preString := `^(?i:`
+	preString := `^`
+	names := []string{}
 	if alias != 0 {
 		if strings.ContainsRune(string(escapeAliases), alias) {
-			preString += `\` + string(alias)
+			names = append(names,`\` + string(alias))
 		} else {
-			preString += string(alias)
+			names = append(names, string(alias))
 		}
 	}
-	// If both name and alias present, combine with an '|' (or)
-	if alias != 0 && len(name) > 0 {
-		preString += `|`
-	}
 	if len(name) > 0 {
-		preString += `@?` + name + `[:, ]`
+		if len(mention) > 0 {
+			names = append(names,`(?i:`+name+`)[:, ]`)
+		} else {
+			names = append(names,`@?` + name + `[:, ]`)
+		}
 	}
-	preString += `\s*)(.*)$`
+	if len(mention) > 0 {
+		names = append(names,`@?` + mention + `[:, ]`)
+	}
+	preString += `^(?:` + strings.Join(names, "|") + `\s*)(.*)$`
 	pre, errpre = regexp.Compile(preString)
 	// NOTE: the preString regex matches a bare alias, but not a bare name
 	if len(name) > 0 {
 		postString := `^([^,@]+),?\s+(?i:@?` + name + `)([.?!])?$`
 		post, errpost = regexp.Compile(postString)
-		bareString := `^@?(?i:` + name + `)$`
+		bareString := `^@?(?:` + strings.Join(names, "|") + `)$`
 		bare, errbare = regexp.Compile(bareString)
 	}
 	return

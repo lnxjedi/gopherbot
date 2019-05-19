@@ -29,7 +29,7 @@ func (rc *rocketConnector) GetProtocolUserAttribute(u, attr string) (value strin
 
 // SendProtocolChannelMessage sends a message to a channel
 func (rc *rocketConnector) SendProtocolChannelMessage(ch string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
-	return rc.sendMessage(ch, msg)
+	return rc.sendMessage(ch, formatMessage(msg, f))
 }
 
 // SendProtocolChannelMessage sends a message to a channel
@@ -51,6 +51,7 @@ func (rc *rocketConnector) SendProtocolUserChannelMessage(uid, uname, ch, msg st
 			rc.Log(bot.Warn, "Unable to resolve a rocket chat username for %s", uid)
 		}
 	}
+	msg = formatMessage(msg, f)
 	if len(user) > 0 {
 		msg = "@" + uname + " " + msg
 	}
@@ -85,7 +86,7 @@ func (rc *rocketConnector) SendProtocolUserMessage(u string, msg string, f bot.M
 		rc.Unlock()
 	}
 	// sendMessage expects internal channels IDs to be bracketed
-	return rc.sendMessage("<"+dchan+">", msg)
+	return rc.sendMessage("<"+dchan+">", formatMessage(msg, f))
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"

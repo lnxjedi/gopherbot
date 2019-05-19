@@ -1,9 +1,11 @@
 package rocket
 
 import (
+	"crypto/md5"
 	"log"
 	"net/url"
 	"sync"
+	"time"
 
 	"github.com/lnxjedi/gopherbot/bot"
 	models "github.com/lnxjedi/gopherbot/connectors/rocket/models"
@@ -18,6 +20,23 @@ type config struct {
 	Email    string // Rocket.Chat user email
 	Password string // the initial userid
 }
+
+// type and vars for tracking duplicate incoming messages
+type msgTrack struct {
+	msgID   string
+	msgHash [md5.Size]byte
+}
+
+type msgQuery struct {
+	reply chan bool
+	msgTrack
+}
+
+// How long to track an incoming message for duplicates
+const msgExpire = 7 * time.Second
+
+var trackedMsgs = make(map[msgTrack]time.Time)
+var check = make(chan msgQuery)
 
 var userName, userID string
 
@@ -92,10 +111,13 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	if user, err := client.Login(cred); err != nil {
 		rc.Log(bot.Fatal, "unable to log in to rocket chat: %v", err)
 	} else {
-		userName = user.UserName
+		rc.Log(bot.Debug, "DEBUG logged in user: %+v", user)
+		// NOTE: the login user object doesn't have the UserName
+		//userName = user.UserName
 		userID = user.ID
+		robot.SetBotID(user.ID)
+		//robot.SetBotMention(user.UserName)
 	}
 	incoming = client.GetMessageStreamUpdateChannel()
-
 	return bot.Connector(rc)
 }

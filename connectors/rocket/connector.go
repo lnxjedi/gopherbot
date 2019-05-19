@@ -2,6 +2,9 @@
 package rocket
 
 import (
+	"crypto/md5"
+	"time"
+
 	"github.com/lnxjedi/gopherbot/bot"
 	models "github.com/lnxjedi/gopherbot/connectors/rocket/models"
 )
@@ -21,12 +24,57 @@ func (rc *rocketConnector) Run(stop <-chan struct{}) {
 	if err := rc.rt.SubscribeRoomUpdates("__my_messages__"); err != nil {
 		rc.Log(bot.Error, "failed subscribing to '__my_messages__, won't hear messages: %v", err)
 	}
+
+	// Detect UserName
+	// TODO: is there a better way to get the robot's UserName?
+	if sch, err := rc.rt.GetChannelsIn(); err == nil {
+		detected := false
+		for _, ch := range sch {
+			if ch.User != nil {
+				detected = true
+				userName = ch.User.UserName
+				rc.SetBotMention(userName)
+			}
+		}
+		if !detected {
+			rc.Log(bot.Warn, "unable to detect username from rocket channel subscriptions")
+		}
+	} else {
+		rc.Log(bot.Error, "failed getting rocket channel subscriptions, can't get username: %v", err)
+	}
+
+	mstop := make(chan struct{})
+	// duplicate messages loop
+	go func() {
+	mloop:
+		for {
+			select {
+			case <-mstop:
+				break mloop
+			case mq := <-check:
+				m := mq.msgTrack
+				_, ok := trackedMsgs[m]
+				if !ok {
+					rc.Log(bot.Debug, "DEBUG: recording message %s", m.msgID)
+					trackedMsgs[m] = time.Now()
+				}
+				mq.reply <- ok
+			case <-time.After(msgExpire / 2):
+				now := time.Now()
+				for m, t := range trackedMsgs {
+					if now.Sub(t) > msgExpire {
+						rc.Log(bot.Debug, "DEBUG: expiring message %s", m.msgID)
+						delete(trackedMsgs, m)
+					}
+				}
+			}
+		}
+	}()
 loop:
 	for {
 		select {
 		case pmsg := <-incoming:
 			rc.processMessage(&pmsg)
-
 		case <-stop:
 			rc.Log(bot.Debug, "Received stop in connector")
 			break loop
@@ -77,6 +125,12 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 	}
 	rc.Log(bot.Debug, "DEBUG: Raw incoming msg: %+v", *msg)
 	rc.Log(bot.Debug, "DEBUG: Raw incoming user: %+v", *msg.User)
+	// Check for and ignore duplicate messages
+	mHash := msgQuery{make(chan bool), msgTrack{msg.ID, md5.Sum([]byte(msg.Msg))}}
+	if check <- mHash; <-mHash.reply {
+		rc.Log(bot.Debug, "DEBUG: ignoring duplicate message %s", msg.ID)
+		return
+	}
 	botMsg := &bot.ConnectorMessage{
 		Protocol:      "Rocket",
 		UserID:        msg.User.ID,
@@ -113,6 +167,13 @@ func (rc *rocketConnector) updateChannels() {
 			}
 		}
 	}
+}
+
+func formatMessage(msg string, f bot.MessageFormat) string {
+	if f == bot.Fixed {
+		msg = "```" + msg + "```"
+	}
+	return msg
 }
 
 // sendMessage takes "channel" or "<chanID>" and sends the pre-formatted
