@@ -22,7 +22,7 @@ Download the current release for your platform from: https://github.com/lnxjedi/
 
 ## Gopherbot Version 2.0
 
-Documentation and tests for version 2 are not yet finished, but configuration and API interfaces have settled to the point that a 2.0 release for early adaters was warranted. Though it is stable and running in production for me, 2.0 is mostly for current users that are willing to do some digging around until documentation is finished and it's had more time to ripen.  There is a small (but non-zero) chance that there could be more breaking changes, though I would bump to 2.1 at that point.
+Documentation and tests for version 2 are not yet finished, but configuration and API interfaces have settled to the point that a 2.0 release for early adapters was warranted. Though it is stable and running in production for me, 2.0 is mostly for current users that are willing to do some digging around until documentation is finished and it's had more time to ripen.  There is a small (but non-zero) chance that there could be more breaking changes, though I would bump to 2.1 at that point.
 
 ### New Features
 
@@ -30,6 +30,7 @@ The biggest driver for version 2 is to remove the need for a separate CI/CD syst
 
 Incomplete list of features new in 2.0:
 * API support for pipelines and CI/CD operation (see [gopherci](jobs/gopherci.py))
+* Rocket.Chat adapter
 * Scheduled job support
 * Job histories
 * [Encryption](doc/Security-Overview.md) for secrets and the robot's brain
