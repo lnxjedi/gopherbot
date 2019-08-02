@@ -49,7 +49,11 @@ func (c *botContext) checkAuthorization(t interface{}, command string, args ...s
 	if task.Authorizer != "" {
 		authorizer = task.Authorizer
 	}
-	_, authPlug, _ := getTask(c.tasks.getTaskByName(authorizer))
+	authTask := c.tasks.getTaskByName(authorizer)
+	if authTask == nil {
+		return ConfigurationError
+	}
+	_, authPlug, _ := getTask(authTask)
 	if authPlug != nil {
 		args = append([]string{task.name, task.AuthRequire, command}, args...)
 		_, authRet := c.callTask(authPlug, "authorize", args...)

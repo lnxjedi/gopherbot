@@ -206,7 +206,7 @@ func initializePlugins() {
 			if task.Disabled {
 				continue
 			}
-			Log(Info, "Initializing plugin:", task.name)
+			Log(Info, "Initializing plugin: %s", task.name)
 			c.callTask(t, "init")
 		}
 	} else {

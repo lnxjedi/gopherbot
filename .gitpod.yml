@@ -5,8 +5,9 @@ image:
 checkoutLocation: gopherbot
 workspaceLocation: .
 tasks:
-- command: make -C gopherbot
-- init: ./gopherbot/.gitpod/setup.sh
+- init: make -C gopherbot
+- init: ./gopherbot/.gitpod/gotools.sh
+- command: ./gopherbot/.gitpod/setup.sh
   openIn: main
 ports:
 - port: 8080

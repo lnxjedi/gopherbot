@@ -1,3 +1,5 @@
+# github.com/Jeffail/gabs v1.3.1
+github.com/Jeffail/gabs
 # github.com/awnumar/memguard v0.15.0
 github.com/awnumar/memguard
 github.com/awnumar/memguard/memcall
@@ -33,6 +35,8 @@ github.com/aws/aws-sdk-go/private/protocol/query/queryutil
 github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 # github.com/chzyer/readline v0.0.0-20171208011716-f6d7a1f6fbf3
 github.com/chzyer/readline
+# github.com/davecgh/go-spew v1.1.0
+github.com/davecgh/go-spew/spew
 # github.com/dgryski/dgoogauth v0.0.0-20160602071324-96977cbd42e2
 github.com/dgryski/dgoogauth
 # github.com/duosecurity/duo_api_golang v0.0.0-20161007193522-2b2d787eb38e
@@ -42,6 +46,8 @@ github.com/duosecurity/duo_api_golang/authapi
 github.com/ghodss/yaml
 # github.com/go-ini/ini v1.39.0
 github.com/go-ini/ini
+# github.com/gopackage/ddp v0.0.0-20170117053602-652027933df4
+github.com/gopackage/ddp
 # github.com/gorilla/websocket v1.4.0
 github.com/gorilla/websocket
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
@@ -55,9 +61,15 @@ github.com/nlopes/slack
 github.com/nlopes/slack/slackutilsx
 # github.com/pkg/errors v0.8.0
 github.com/pkg/errors
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
 # github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 github.com/robfig/cron
-# golang.org/x/sys v0.0.0-20171220172423-d818ba11af44
+# github.com/stretchr/testify v1.2.2
+github.com/stretchr/testify/assert
+# golang.org/x/net v0.0.0-20180906233101-161cd47e91fd
+golang.org/x/net/websocket
+# golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e
 golang.org/x/sys/windows/svc
 golang.org/x/sys/windows/svc/eventlog
 golang.org/x/sys/windows/svc/mgr

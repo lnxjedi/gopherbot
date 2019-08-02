@@ -43,8 +43,8 @@ const (
 	ChannelNotFound
 	// AttributeNotFound - failed looking up user/robot attributes like email, name, etc.
 	AttributeNotFound
-	// FailedUserDM - the bot was not able to send an direct message (DM) to a given user
-	FailedUserDM
+	// FailedMessageSend - the bot was not able to send a message
+	FailedMessageSend
 	// FailedChannelJoin - the robot couldn't join a channel; e.g. slack doesn't allow bots to join
 	FailedChannelJoin
 

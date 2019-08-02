@@ -41,7 +41,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 
 	err := robot.GetProtocolConfig(&c)
 	if err != nil {
-		robot.Log(bot.Fatal, "Unable to retrieve protocol configuration: %v", err)
+		robot.Log(bot.Fatal, "unable to retrieve slack protocol configuration: %v", err)
 	}
 
 	if c.MaxMessageSplit == 0 {
@@ -49,7 +49,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 
 	if len(c.SlackToken) == 0 {
-		robot.Log(bot.Fatal, "No slack token found in config")
+		robot.Log(bot.Fatal, "no slack token found in config")
 	} else {
 		tok = c.SlackToken
 	}
@@ -82,13 +82,12 @@ Loop:
 			switch ev := msg.Data.(type) {
 
 			case *slack.ConnectedEvent:
-				sc.Log(bot.Debug, "Infos: %T %v\n", ev, *ev.Info.User)
-				sc.Log(bot.Debug, "Connection counter:", ev.ConnectionCount)
+				sc.Log(bot.Debug, "slack infos: %T %v\n", ev, *ev.Info.User)
+				sc.Log(bot.Debug, "slack connection counter: %d", ev.ConnectionCount)
 				sc.botName = ev.Info.User.Name
 				sc.botID = ev.Info.User.ID
-				sc.Log(bot.Info, "Slack setting bot internal ID to", sc.botID)
-				sc.SetID(sc.botID)
-				sc.Log(bot.Trace, "Set bot ID to", sc.botID)
+				sc.Log(bot.Info, "slack setting bot internal ID to: %s", sc.botID)
+				sc.SetBotID(sc.botID)
 				sc.teamID = ev.Info.Team.ID
 				sc.Log(bot.Info, "Set team ID to", sc.teamID)
 				break Loop

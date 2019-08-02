@@ -217,9 +217,21 @@ func (h handler) Log(l LogLevel, m string, v ...interface{}) {
 	Log(l, m, v...)
 }
 
-// SetID let's the connector set the bot's internal ID
-func (h handler) SetID(id string) {
+// SetBotID let's the connector set the bot's internal ID
+func (h handler) SetBotID(id string) {
 	botCfg.Lock()
 	botCfg.botinfo.UserID = id
 	botCfg.Unlock()
+}
+
+// SetBotMention set's the @(mention) string, for regexes
+func (h handler) SetBotMention(m string) {
+	if len(m) == 0 {
+		return
+	}
+	Log(Info, "protocol set bot mention string to: %s", m)
+	botCfg.Lock()
+	botCfg.botinfo.protoMention = m
+	botCfg.Unlock()
+	updateRegexes()
 }
