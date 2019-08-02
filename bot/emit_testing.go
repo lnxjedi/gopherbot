@@ -3,7 +3,6 @@
 package bot
 
 import (
-	"fmt"
 	"path"
 	"runtime"
 )

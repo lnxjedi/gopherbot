@@ -1,7 +1,6 @@
 package test
 
 import (
-	"fmt"
 	"log"
 	"sync"
 	"testing"
