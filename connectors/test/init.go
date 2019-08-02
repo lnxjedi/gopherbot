@@ -42,7 +42,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 
 	err := robot.GetProtocolConfig(&c)
 	if err != nil {
-		robot.Log(bot.Fatal, fmt.Errorf("Unable to retrieve protocol configuration: %v", err))
+		robot.Log(bot.Fatal, "Unable to retrieve protocol configuration: %v", err)
 	}
 
 	for i, u := range c.Users {

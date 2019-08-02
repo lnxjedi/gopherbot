@@ -5,7 +5,6 @@ package bot
    handler.go has the methods for callbacks from the connector, */
 
 import (
-	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -107,12 +106,12 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		environment: make(map[string]string),
 	}
 	if err := c.loadConfig(true); err != nil {
-		Log(Fatal, fmt.Sprintf("Error loading initial configuration: %v", err))
+		Log(Fatal, "Error loading initial configuration: %v", err)
 	}
 
 	if len(botCfg.brainProvider) > 0 {
 		if bprovider, ok := brains[botCfg.brainProvider]; !ok {
-			Log(Fatal, fmt.Sprintf("No provider registered for brain: \"%s\"", botCfg.brainProvider))
+			Log(Fatal, "No provider registered for brain: \"%s\"", botCfg.brainProvider)
 		} else {
 			brain := bprovider(handle, logger)
 			botCfg.brain = brain
@@ -139,7 +138,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		go func() {
 			h := handler{}
 			http.Handle("/json", h)
-			Log(Fatal, http.ListenAndServe(botCfg.port, nil))
+			Log(Fatal, "error serving '/json': %s", http.ListenAndServe(botCfg.port, nil))
 		}()
 	}
 }
@@ -194,7 +193,7 @@ func run() <-chan struct{} {
 					botCfg.shuttingDown = true
 					botCfg.Unlock()
 					signal.Stop(sigs)
-					Log(Info, fmt.Sprintf("Exiting on signal: %s", sig))
+					Log(Info, "Exiting on signal: %s", sig)
 					stop()
 				}
 			case <-done:
@@ -222,7 +221,7 @@ func stop() {
 	pr := botCfg.pluginsRunning
 	stop := botCfg.stop
 	botCfg.RUnlock()
-	Log(Debug, fmt.Sprintf("stop called with %d plugins running", pr))
+	Log(Debug, "stop called with %d plugins running", pr)
 	botCfg.Wait()
 	brainQuit()
 	close(stop)

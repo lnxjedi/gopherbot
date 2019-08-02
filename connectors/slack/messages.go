@@ -5,7 +5,6 @@ most of the internal methods. */
 
 import (
 	"bytes"
-	"fmt"
 	"regexp"
 	"strings"
 	"sync"
@@ -83,7 +82,7 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f bot.MessageFormat
 	// It's too big, gotta chop it up. We will send at most maxMessageSplit
 	// messages, plus "(message truncated)".
 	msgs := make([]string, 0, s.maxMessageSplit+1)
-	s.Log(bot.Info, fmt.Sprintf("Message too long, segmenting: %d bytes", msgLen))
+	s.Log(bot.Info, "Message too long, segmenting: %d bytes", msgLen)
 	// Chop it up into <=maxSize pieces
 	for len(sbytes) > maxSize && len(msgs) < s.maxMessageSplit {
 		lineEnd := bytes.LastIndexByte(sbytes[:maxSize], byte('\n'))
@@ -113,7 +112,7 @@ var reMailToLink = regexp.MustCompile(`<mailto:[^|]+\|([\w-./@]+)>`)     // matc
 // processMessage examines incoming messages, removes extra slack cruft, and
 // routes them to the appropriate bot method.
 func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
-	s.Log(bot.Trace, fmt.Sprintf("Message received: %v", msg.Msg))
+	s.Log(bot.Trace, "Message received: %v", msg.Msg)
 
 	// Channel is always part of the root message; if subtype is
 	// message_changed, text and user are part of the submessage
@@ -139,12 +138,12 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		msgtime, exists := lastmsgtime.m[lastlookup]
 		lastmsgtime.Unlock()
 		if exists && timestamp.Sub(msgtime) < ignorewindow {
-			s.Log(bot.Debug, fmt.Sprintf("Ignoring edited message \"%s\" arriving within the ignorewindow: %v", msg.SubMessage.Text, ignorewindow))
+			s.Log(bot.Debug, "Ignoring edited message \"%s\" arriving within the ignorewindow: %v", msg.SubMessage.Text, ignorewindow)
 			return
 		}
-		s.Log(bot.Debug, fmt.Sprintf("SubMessage (edited message) received: %v", message))
+		s.Log(bot.Debug, "SubMessage (edited message) received: %v", message)
 	} else if msg.Msg.SubType == "message_deleted" {
-		s.Log(bot.Debug, fmt.Sprintf("Ignoring deleted message in channel '%s'", chanID))
+		s.Log(bot.Debug, "Ignoring deleted message in channel '%s'", chanID)
 		return
 	} else {
 		message = msg.Msg

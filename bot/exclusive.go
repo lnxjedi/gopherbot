@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -48,7 +47,7 @@ func (r *Robot) Exclusive(tag string, queueTask bool) (success bool) {
 	_, exists := runQueues.m[tag]
 	if !exists {
 		// Take the lock
-		Log(Debug, fmt.Sprintf("Exclusive lock immediately acquired in pipeline '%s', bot #%d", c.pipeName, c.id))
+		Log(Debug, "Exclusive lock immediately acquired in pipeline '%s', bot #%d", c.pipeName, c.id)
 		runQueues.m[tag] = []chan struct{}{}
 		c.exclusive = true
 		success = true
@@ -58,10 +57,10 @@ func (r *Robot) Exclusive(tag string, queueTask bool) (success bool) {
 	runQueues.Unlock()
 	// Update state to indicate what to do after callTask()
 	if queueTask {
-		Log(Debug, fmt.Sprintf("Bot #%d requesting queueing", c.id))
+		Log(Debug, "Bot #%d requesting queueing", c.id)
 		c.queueTask = true
 	} else {
-		Log(Debug, fmt.Sprintf("Bot #%d requesting abort, exclusive lock failed", c.id))
+		Log(Debug, "Bot #%d requesting abort, exclusive lock failed", c.id)
 		c.abortPipeline = true
 	}
 	return

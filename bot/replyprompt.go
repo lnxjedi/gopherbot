@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"fmt"
 	"regexp"
 	"sync"
 	"time"
@@ -198,7 +197,7 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		}
 	}
 	if rep.re == nil {
-		Log(Error, fmt.Sprintf("Unable to resolve a reply matcher for plugin %s, regexID %s", task.name, regexID))
+		Log(Error, "Unable to resolve a reply matcher for plugin %s, regexID %s", task.name, regexID)
 		return "", MatcherNotFound
 	}
 	rep.replyChannel = make(chan reply)
@@ -208,12 +207,12 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 	// and if so append to the list of waiters.
 	waiters, exists := replies.m[matcher]
 	if exists {
-		Log(Debug, fmt.Sprintf("Delaying prompt \"%s\" and appending to the list of waiters for matcher: %q", prompt, matcher))
+		Log(Debug, "Delaying prompt \"%s\" and appending to the list of waiters for matcher: %q", prompt, matcher)
 		waiters = append(waiters, rep)
 		replies.m[matcher] = waiters
 		replies.Unlock()
 	} else {
-		Log(Debug, fmt.Sprintf("Prompting for \"%s \" and creating reply waiters list and prompting for matcher: %q", prompt, matcher))
+		Log(Debug, "Prompting for \"%s \" and creating reply waiters list and prompting for matcher: %q", prompt, matcher)
 		c := r.getContext()
 		var puser string
 		if ui, ok := c.maps.user[user]; ok {
@@ -239,14 +238,14 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 	var replied reply
 	select {
 	case <-time.After(replyTimeout):
-		Log(Warn, fmt.Sprintf("Timed out waiting for a reply to regex \"%s\" in channel: %s", regexID, r.Channel))
+		Log(Warn, "Timed out waiting for a reply to regex \"%s\" in channel: %s", regexID, r.Channel)
 		replies.Lock()
 		waitlist, found := replies.m[matcher]
 		if found {
 			// reply timed out, free up this matcher for later reply requests
 			delete(replies.m, matcher)
 			replies.Unlock()
-			Log(Debug, fmt.Sprintf("Timeout expired waiting for reply to: %s", prompt))
+			Log(Debug, "Timeout expired waiting for reply to: %s", prompt)
 			// let other waiters know to retry
 			for i, rep := range waitlist {
 				if i != 0 {

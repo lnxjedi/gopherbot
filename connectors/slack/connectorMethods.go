@@ -1,7 +1,6 @@
 package slack
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/bot"
@@ -90,7 +89,7 @@ func (s *slackConnector) startSendLoop() {
 		if current == (burstMessages - 1) {
 			current = 0
 		}
-		s.Log(bot.Trace, fmt.Sprintf("Bot message in send loop for channel %s, size: %d", send.channel, len(send.message)))
+		s.Log(bot.Trace, "Bot message in send loop for channel %s, size: %d", send.channel, len(send.message))
 		time.Sleep(typingDelay)
 		sent := false
 		for p := range []int{1, 2, 4} {
@@ -100,7 +99,7 @@ func (s *slackConnector) startSendLoop() {
 			}
 			_, _, err := s.api.PostMessage(send.channel, slack.MsgOptionText(send.message, false), slack.MsgOptionAsUser(true), unfurl)
 			if err != nil && p == 1 {
-				s.Log(bot.Warn, fmt.Sprintf("Error sending message '%s' initiating backoff: %v", send.message, err))
+				s.Log(bot.Warn, "Error sending message '%s' initiating backoff: %v", send.message, err)
 			}
 			if err != nil {
 				time.Sleep(time.Second * time.Duration(p))
@@ -110,7 +109,7 @@ func (s *slackConnector) startSendLoop() {
 			}
 		}
 		if !sent {
-			s.Log(bot.Error, fmt.Sprintf("Failed sending message '%s' to channel '%s' after 3 tries, attempting fallback to RTM", send.message, send.channel))
+			s.Log(bot.Error, "Failed sending message '%s' to channel '%s' after 3 tries, attempting fallback to RTM", send.message, send.channel)
 			s.conn.SendMessage(s.conn.NewOutgoingMessage(send.message, send.channel))
 		}
 		timeSinceBurst := msgTime.Sub(burstTime)
@@ -118,7 +117,7 @@ func (s *slackConnector) startSendLoop() {
 			if timeSinceBurst > coolDown {
 				burstTime = msgTime
 			}
-			s.Log(bot.Debug, fmt.Sprintf("Burst limit exceeded, delaying next message by %v", msgDelay))
+			s.Log(bot.Debug, "Burst limit exceeded, delaying next message by %v", msgDelay)
 			// if we've sent `burstMessages` messages in less than the `burstWindow`
 			// window, delay the next message by `msgDelay`.
 			time.Sleep(msgDelay)

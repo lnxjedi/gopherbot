@@ -115,13 +115,13 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			rep, ret = r.Direct().PromptForReply("singleDigit", "Try again? I need a single-digit device #")
 		}
 		if ret != bot.Ok {
-			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo elevation prompt", r.User))
+			r.Log(bot.Error, "User \"%s\" failed to respond to duo elevation prompt", r.User)
 			return bot.Fail
 		}
 		devnum, _ = strconv.Atoi(rep)
 		if devnum < 0 || devnum >= len(res.Response.Devices) {
 			r.Direct().Say("Invalid device number")
-			r.Log(bot.Error, fmt.Sprintf("Invalid duo device # response from user \"%s\"", r.User))
+			r.Log(bot.Error, "Invalid duo device # response from user \"%s\"", r.User)
 			return bot.Fail
 		}
 	}
@@ -134,7 +134,7 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			}
 		}
 	} else {
-		r.Log(bot.Error, fmt.Sprintf("No devices returned for Duo user %s; auth response: %v", user, res))
+		r.Log(bot.Error, "No devices returned for Duo user %s; auth response: %v", user, res)
 		r.Direct().Say("There's a problem with your duo account, ask an admin to check the log")
 		return bot.MechanismFail
 	}
@@ -164,13 +164,13 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			rep, ret = r.Direct().PromptForReply("singleDigit", "Try again? I need a single-digit method #")
 		}
 		if ret != bot.Ok {
-			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo elevation prompt", r.User))
+			r.Log(bot.Error, "User \"%s\" failed to respond to duo elevation prompt", r.User)
 			return bot.Fail
 		}
 		method, _ = strconv.Atoi(rep)
 		if method < 0 || method >= len(res.Response.Devices[devnum].Capabilities) {
 			r.Direct().Say("Invalid method number")
-			r.Log(bot.Error, fmt.Sprintf("Invalid duo method # response from user \"%s\"", r.User))
+			r.Log(bot.Error, "Invalid duo method # response from user \"%s\"", r.User)
 			return bot.Fail
 		}
 	} else {
@@ -214,7 +214,7 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 		botname += " - Gopherbot"
 	}
 	var authres *authapi.AuthResult
-	r.Log(bot.Debug, fmt.Sprintf("Attempting duo auth for device %v, factor %s", res.Response.Devices[devnum].Device, factor))
+	r.Log(bot.Debug, "Attempting duo auth for device %v, factor %s", res.Response.Devices[devnum].Device, factor)
 	switch factor {
 	case "push":
 		authres, err = auth.Auth(factor,
@@ -237,7 +237,7 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			rep, ret = r.Direct().PromptForReply("multiDigit", "Try again? I need a short string of numbers")
 		}
 		if ret != bot.Ok {
-			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo elevation prompt", r.User))
+			r.Log(bot.Error, "User \"%s\" failed to respond to duo elevation prompt", r.User)
 			return bot.Fail
 		}
 		authres, err = auth.Auth(factor,
@@ -250,14 +250,14 @@ func authduo(r *bot.Robot, immediate bool, user string, res *authapi.PreauthResu
 			authapi.AuthDevice(res.Response.Devices[devnum].Device),
 		)
 	}
-	r.Log(bot.Debug, fmt.Sprintf("Auth response from duo: %v", authres))
+	r.Log(bot.Debug, "Auth response from duo: %v", authres)
 	if err != nil {
-		r.Log(bot.Error, fmt.Sprintf("Error during Duo auth for user %s (%s): %s", user, r.User, err))
+		r.Log(bot.Error, "Error during Duo auth for user %s (%s): %s", user, r.User, err)
 		r.Say("Sorry, there was an error while trying to authenticate you - ask an admin to check the log")
 		return bot.MechanismFail
 	}
 	if authres.Response.Result != "allow" {
-		r.Log(bot.Error, fmt.Sprintf("Duo auth failed for user %s (%s) - result: %s, status: %s, message: %s", user, r.User, authres.Response.Result, authres.Response.Status, authres.Response.Status_Msg))
+		r.Log(bot.Error, "Duo auth failed for user %s (%s) - result: %s, status: %s, message: %s", user, r.User, authres.Response.Result, authres.Response.Status, authres.Response.Status_Msg)
 		r.Say("Duo authentication failed")
 		return bot.Fail
 	}
@@ -299,19 +299,19 @@ func configure(r *bot.Robot, user string, res *authapi.PreauthResult) (retval bo
 			rep, ret = r.Direct().PromptForReply("singleDigit", "Try again? I need a single-digit device #")
 		}
 		if ret != bot.Ok {
-			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo configure prompt", r.User))
+			r.Log(bot.Error, "User \"%s\" failed to respond to duo configure prompt", r.User)
 			return bot.Fail
 		}
 		devnum, _ = strconv.Atoi(rep)
 		if devnum < 0 || devnum >= len(res.Response.Devices) {
 			r.Direct().Say("Invalid device number")
-			r.Log(bot.Error, fmt.Sprintf("Invalid duo device # response from user \"%s\"", r.User))
+			r.Log(bot.Error, "Invalid duo device # response from user \"%s\"", r.User)
 			return bot.Fail
 		}
 		duoDefConfig.device = devnum
 		prompted = true
 	} else {
-		r.Log(bot.Error, fmt.Sprintf("No devices returned for Duo user %s; auth response: %v", user, res))
+		r.Log(bot.Error, "No devices returned for Duo user %s; auth response: %v", user, res)
 		r.Direct().Say("There's a problem with your duo account, ask an admin to check the log")
 		return bot.MechanismFail
 	}
@@ -336,13 +336,13 @@ func configure(r *bot.Robot, user string, res *authapi.PreauthResult) (retval bo
 			rep, ret = r.Direct().PromptForReply("singleDigit", "Try again? I need a single-digit method #")
 		}
 		if ret != bot.Ok {
-			r.Log(bot.Error, fmt.Sprintf("User \"%s\" failed to respond to duo configure prompt", r.User))
+			r.Log(bot.Error, "User \"%s\" failed to respond to duo configure prompt", r.User)
 			return bot.Fail
 		}
 		method, _ = strconv.Atoi(rep)
 		if method < 0 || method >= len(res.Response.Devices[devnum].Capabilities) {
 			r.Direct().Say("Invalid method number")
-			r.Log(bot.Error, fmt.Sprintf("Invalid duo method # response from user \"%s\"", r.User))
+			r.Log(bot.Error, "Invalid duo method # response from user \"%s\"", r.User)
 			return bot.Fail
 		}
 		prompted = true
@@ -363,7 +363,7 @@ func configure(r *bot.Robot, user string, res *authapi.PreauthResult) (retval bo
 		r.Reply("Your duo default configuration has been set")
 		return bot.Normal
 	}
-	r.Log(bot.Error, fmt.Sprintf("Error storing user duo config: %d", ret))
+	r.Log(bot.Error, "Error storing user duo config: %d", ret)
 	return bot.Fail
 }
 
@@ -416,17 +416,17 @@ func duocommands(r *bot.Robot, command string, args ...string) (retval bot.TaskR
 		return bot.ConfigurationError
 	}
 	if len(duouser) == 0 {
-		r.Log(bot.Error, fmt.Sprintf("Couldn't extract a Duo user name for %s with DuoUserString: %s", r.User, cfg.DuoUserString))
+		r.Log(bot.Error, "Couldn't extract a Duo user name for %s with DuoUserString: %s", r.User, cfg.DuoUserString)
 		return bot.MechanismFail
 	}
 	res, err := auth.Preauth(authapi.PreauthUsername(duouser))
-	r.Log(bot.Debug, fmt.Sprintf("Preauth response for duo user %s: %v", duouser, res))
+	r.Log(bot.Debug, "Preauth response for duo user %s: %v", duouser, res)
 	if err != nil {
-		r.Log(bot.Error, fmt.Sprintf("Duo preauthentication error for Duo user %s (%s): %s", duouser, r.User, err))
+		r.Log(bot.Error, "Duo preauthentication error for Duo user %s (%s): %s", duouser, r.User, err)
 		return bot.MechanismFail
 	}
 	if res.Response.Result == "deny" {
-		r.Log(bot.Error, fmt.Sprintf("Received \"deny\" during Duo preauth for Duo user %s (%s)", duouser, r.User))
+		r.Log(bot.Error, "Received \"deny\" during Duo preauth for Duo user %s (%s)", duouser, r.User)
 		return bot.Fail
 	}
 	if command == "duoconf" {

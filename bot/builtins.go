@@ -104,7 +104,7 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			if !r.getContext().pluginAvailable(task, hasKeyword, true) {
 				continue
 			}
-			Log(Trace, fmt.Sprintf("Checking help for plugin %s (term: %s)", task.name, term))
+			Log(Trace, "Checking help for plugin %s (term: %s)", task.name, term)
 			if !hasKeyword { // if you ask for help without a term, you just get help for whatever commands are available to you
 				for _, phelp := range plugin.Help {
 					for _, helptext := range phelp.Helptext {
@@ -200,7 +200,7 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		secret := args[0]
 		b, err := encrypt([]byte(secret), key)
 		if err != nil {
-			r.Log(Error, fmt.Sprintf("Problem encrypting secret in 'encrypt' command: %v", err))
+			r.Log(Error, "Problem encrypting secret in 'encrypt' command: %v", err)
 			r.Say("I had problems encrypting your secret, check with an administrator")
 			return
 		}
@@ -245,7 +245,7 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		}
 		tok, _, ret := checkoutDatum(datumkey, &secrets, true)
 		if ret != Ok {
-			r.Log(Error, fmt.Sprintf("Error checking out brainParams: %s", ret))
+			r.Log(Error, "Error checking out brainParams: %s", ret)
 			r.Say("Ugh, I'm not able to store that memory right now, check with an administrator")
 			return
 		}
@@ -253,7 +253,7 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		// botContext doesn't carry all the unencrypted secrets in memory
 		value, err := encrypt([]byte(rawvalue), key)
 		if err != nil {
-			r.Log(Error, fmt.Sprintf("Problem encrypting value for '%s' in namespace '%s': %v", name, nsname, err))
+			r.Log(Error, "Problem encrypting value for '%s' in namespace '%s': %v", name, nsname, err)
 			r.Say("I had problems encrypting your secret, check with an administrator")
 			return
 		}
@@ -281,7 +281,7 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		if ret == Ok {
 			r.Say("Stored")
 		} else {
-			r.Log(Error, fmt.Sprintf("Problem storing parameter: %s", ret))
+			r.Log(Error, "Problem storing parameter: %s", ret)
 			r.Say("There was a problem storing that parameter, check with an administrator")
 		}
 	case "dumprobot":
@@ -379,10 +379,10 @@ func encryptcfg(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	case "initialize":
 		success := initializeEncryption(args[0])
 		if success {
-			r.Log(Info, fmt.Sprintf("Encryption successfully initialized by user '%s'", r.User))
+			r.Log(Info, "Encryption successfully initialized by user '%s'", r.User)
 			r.Say("Encryption successfully initialized - you should delete your message if possible")
 		} else {
-			r.Log(Error, fmt.Sprintf("User '%s' failed to initialize encryption", r.User))
+			r.Log(Error, "User '%s' failed to initialize encryption", r.User)
 			r.Say("Failed to initialize encryption - check your passphrase?")
 		}
 	}
@@ -403,7 +403,7 @@ func logging(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	case "level":
 		setLogLevel(logStrToLevel(args[0]))
 		r.Say(fmt.Sprintf("I've adjusted the log level to %s", args[0]))
-		Log(Info, fmt.Sprintf("User %s changed logging level to %s", r.User, args[0]))
+		Log(Info, "User %s changed logging level to %s", r.User, args[0])
 	case "show":
 		page := 0
 		if len(args) == 1 {
@@ -434,7 +434,7 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		err := r.getContext().loadConfig(false)
 		if err != nil {
 			r.Reply("Error encountered during reload, check the logs")
-			Log(Error, fmt.Errorf("Reloading configuration, requested by %s: %v", r.User, err))
+			Log(Error, "Reloading configuration, requested by %s: %v", r.User, err)
 			return
 		}
 		r.Reply("Configuration reloaded successfully")
@@ -466,7 +466,7 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		if len(args[1]) > 0 {
 			verbose = true
 		}
-		Log(Debug, fmt.Sprintf("Enabling debugging for %s (%s), verbose: %v", tname, task.taskID, verbose))
+		Log(Debug, "Enabling debugging for %s (%s), verbose: %v", tname, task.taskID, verbose)
 		pd := &debuggingTask{
 			taskID:  task.taskID,
 			name:    tname,

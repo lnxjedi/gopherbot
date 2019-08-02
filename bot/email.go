@@ -76,25 +76,25 @@ func (r *Robot) realEmail(subject, mailTo string, messageBody *bytes.Buffer, htm
 	if botCfg.mailConf.Authtype == "plain" {
 		host := strings.Split(botCfg.mailConf.Mailhost, ":")[0]
 		a = smtp.PlainAuth("", botCfg.mailConf.User, botCfg.mailConf.Password, host)
-		Log(Debug, fmt.Sprintf("Sending authenticated email to \"%s\" from \"%s\" via \"%s\" with user: %s, password: xxxx, and host: %s",
+		Log(Debug, "Sending authenticated email to \"%s\" from \"%s\" via \"%s\" with user: %s, password: xxxx, and host: %s",
 			mailTo,
 			from,
 			botCfg.mailConf.Mailhost,
 			botCfg.mailConf.User,
 			host,
-		))
+		)
 	} else {
-		Log(Debug, fmt.Sprintf("Sending unauthenticated email to \"%s\" from \"%s\" via \"%s\"",
+		Log(Debug, "Sending unauthenticated email to \"%s\" from \"%s\" via \"%s\"",
 			mailTo,
 			from,
 			botCfg.mailConf.Mailhost,
-		))
+		)
 	}
 
 	err := e.Send(botCfg.mailConf.Mailhost, a)
 	if err != nil {
 		err = fmt.Errorf("Sending email: %v", err)
-		Log(Error, err)
+		Log(Error, err.Error())
 		return MailError
 	}
 	return Ok

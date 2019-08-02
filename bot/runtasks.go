@@ -75,7 +75,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		key := histPrefix + c.jobName
 		tok, _, ret := checkoutDatum(key, &jh, true)
 		if ret != Ok {
-			Log(Error, fmt.Sprintf("Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName))
+			Log(Error, "Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
 		} else {
 			var start time.Time
 			if c.timeZone != nil {
@@ -97,12 +97,12 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			}
 			ret := updateDatum(key, tok, jh)
 			if ret != Ok {
-				Log(Error, fmt.Sprintf("Error updating '%s', no history will be remembered for '%s'", key, c.pipeName))
+				Log(Error, "Error updating '%s', no history will be remembered for '%s'", key, c.pipeName)
 			} else {
 				if job.HistoryLogs > 0 && c.history != nil {
 					pipeHistory, err := c.history.NewHistory(c.jobName, hist.LogIndex, job.HistoryLogs)
 					if err != nil {
-						Log(Error, fmt.Sprintf("Error starting history for '%s', no history will be recorded: %v", c.pipeName, err))
+						Log(Error, "Error starting history for '%s', no history will be recorded: %v", c.pipeName, err)
 					} else {
 						c.logger = pipeHistory
 					}
@@ -201,10 +201,10 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		queue, _ := runQueues.m[tag]
 		queueLen := len(queue)
 		if queueLen == 0 {
-			Log(Debug, fmt.Sprintf("Bot #%d finished exclusive pipeline '%s', no waiters in queue, removing", c.id, c.exclusiveTag))
+			Log(Debug, "Bot #%d finished exclusive pipeline '%s', no waiters in queue, removing", c.id, c.exclusiveTag)
 			delete(runQueues.m, tag)
 		} else {
-			Log(Debug, fmt.Sprintf("Bot #%d finished exclusive pipeline '%s', %d waiters in queue, waking next task", c.id, c.exclusiveTag, queueLen))
+			Log(Debug, "Bot #%d finished exclusive pipeline '%s', %d waiters in queue, waking next task", c.id, c.exclusiveTag, queueLen)
 			wakeUpTask := queue[0]
 			queue = queue[1:]
 			runQueues.m[tag] = queue
@@ -339,13 +339,13 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 					queue = append(queue, wakeUp)
 					runQueues.m[tag] = queue
 					runQueues.Unlock()
-					Log(Debug, fmt.Sprintf("Exclusive task in progress, queueing bot #%d and waiting; queue length: %d", c.id, len(queue)))
+					Log(Debug, "Exclusive task in progress, queueing bot #%d and waiting; queue length: %d", c.id, len(queue))
 					if (isJob && !job.Quiet) || ptype == jobCmd {
 						c.makeRobot().Say(fmt.Sprintf("Queueing task '%s' in pipeline '%s'", task.name, c.pipeName))
 					}
 					// Now we block until kissed by a Handsome Prince
 					<-wakeUp
-					Log(Debug, fmt.Sprintf("Bot #%d in queue waking up and re-starting task '%s'", c.id, task.name))
+					Log(Debug, "Bot #%d in queue waking up and re-starting task '%s'", c.id, task.name)
 					if (job != nil && !job.Quiet) || ptype == jobCmd {
 						c.makeRobot().Say(fmt.Sprintf("Re-starting queued task '%s' in pipeline '%s'", task.name, c.pipeName))
 					}
@@ -354,7 +354,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 					// Clear tasks added in the last run (if any)
 					c.nextTasks = []TaskSpec{}
 				} else {
-					Log(Debug, fmt.Sprintf("Exclusive lock acquired in pipeline '%s', bot #%d", c.pipeName, c.id))
+					Log(Debug, "Exclusive lock acquired in pipeline '%s', bot #%d", c.pipeName, c.id)
 					runQueues.m[tag] = []chan struct{}{}
 					runQueues.Unlock()
 				}
@@ -410,7 +410,7 @@ func (c *botContext) getEnvironment(task *BotTask) map[string]string {
 					if !exists {
 						value, err := decrypt(encvalue, key)
 						if err != nil {
-							Log(Error, fmt.Sprintf("Error decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err))
+							Log(Error, "Error decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err)
 							break
 						}
 						envhash[name] = string(value)
@@ -448,7 +448,7 @@ func (c *botContext) getEnvironment(task *BotTask) map[string]string {
 func getTaskPath(task *BotTask) (tpath string, relpath bool, err error) {
 	if len(task.Path) == 0 {
 		err := fmt.Errorf("Path empty for external task: %s", task.name)
-		Log(Error, err)
+		Log(Error, err.Error())
 		return "", false, err
 	}
 	var taskPath string
@@ -460,7 +460,7 @@ func getTaskPath(task *BotTask) (tpath string, relpath bool, err error) {
 			return taskPath, false, nil
 		}
 		err = fmt.Errorf("Invalid path for external plugin: %s (%v)", taskPath, err)
-		Log(Error, err)
+		Log(Error, err.Error())
 		return "", false, err
 	}
 	if len(configPath) > 0 {
@@ -478,7 +478,7 @@ func getTaskPath(task *BotTask) (tpath string, relpath bool, err error) {
 		return taskPath, false, nil
 	}
 	err = fmt.Errorf("Couldn't locate external plugin %s: %v", task.name, err)
-	Log(Error, err)
+	Log(Error, err.Error())
 	return "", false, err
 }
 
@@ -494,29 +494,29 @@ func getInterpreter(spath string, relpath bool) (interpreter string, iargs []str
 	}
 	if _, err = os.Stat(scriptPath); err != nil {
 		err = fmt.Errorf("file stat: %s", err)
-		Log(Error, fmt.Sprintf("Error getting interpreter for %s: %s", scriptPath, err))
+		Log(Error, "Error getting interpreter for %s: %s", scriptPath, err)
 		return
 	}
 	if script, err = os.Open(scriptPath); err != nil {
 		err = fmt.Errorf("opening file: %s", err)
-		Log(Warn, fmt.Sprintf("Unable to get interpreter for %s: %s", scriptPath, err))
+		Log(Warn, "Unable to get interpreter for %s: %s", scriptPath, err)
 		return
 	}
 	r := bufio.NewReader(script)
 	if iline, err = r.ReadString('\n'); err != nil {
 		err = fmt.Errorf("reading first line: %s", err)
-		Log(Debug, fmt.Sprintf("Problem getting interpreter for %s - %s", scriptPath, err))
+		Log(Debug, "Problem getting interpreter for %s - %s", scriptPath, err)
 		return
 	}
 	if !strings.HasPrefix(iline, "#!") {
 		err = fmt.Errorf("Interpreter not found for %s; first line doesn't start with '#!'", scriptPath)
-		Log(Debug, err)
+		Log(Debug, err.Error())
 		return
 	}
 	iline = strings.TrimRight(iline, "\n\r")
 	interpPlusArgs := strings.Split(strings.TrimPrefix(iline, "#!"), " ")
 	interpreter = interpPlusArgs[0]
 	iargs = interpPlusArgs[1:]
-	Log(Debug, fmt.Sprintf("Detected interpreter for %s: %s", scriptPath, interpreter))
+	Log(Debug, "Detected interpreter for %s: %s", scriptPath, interpreter)
 	return
 }

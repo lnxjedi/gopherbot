@@ -39,10 +39,10 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 			c.debugT(t, msg, false)
 			continue
 		}
-		Log(Trace, fmt.Sprintf("Checking availability of task '%s' in channel '%s' for user '%s', active in %d channels (allchannels: %t)", task.name, c.Channel, c.User, len(task.Channels), task.AllChannels))
+		Log(Trace, "Checking availability of task '%s' in channel '%s' for user '%s', active in %d channels (allchannels: %t)", task.name, c.Channel, c.User, len(task.Channels), task.AllChannels)
 		ok := c.pluginAvailable(task, false, verboseOnly)
 		if !ok {
-			Log(Trace, fmt.Sprintf("Task '%s' not available for user '%s' in channel '%s', doesn't meet criteria", task.name, c.User, c.Channel))
+			Log(Trace, "Task '%s' not available for user '%s' in channel '%s', doesn't meet criteria", task.name, c.User, c.Channel)
 			continue
 		}
 		var matchers []InputMatcher
@@ -69,17 +69,17 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 			matchers = plugin.MessageMatchers
 			ctype = "message"
 		}
-		Log(Trace, fmt.Sprintf("Task '%s' is active, will check for matches", task.name))
+		Log(Trace, "Task '%s' is active, will check for matches", task.name)
 		cmsg := spaceRe.ReplaceAllString(c.msg, " ")
 		c.debugT(t, fmt.Sprintf("Checking %d %s matchers against message: '%s'", len(matchers), ctype, cmsg), verboseOnly)
 		for _, matcher := range matchers {
-			Log(Trace, fmt.Sprintf("Checking '%s' against '%s'", cmsg, matcher.Regex))
+			Log(Trace, "Checking '%s' against '%s'", cmsg, matcher.Regex)
 			matches := matcher.re.FindAllStringSubmatch(cmsg, -1)
 			matched := false
 			if matches != nil {
 				c.debugT(t, fmt.Sprintf("Matched %s regex '%s', command: %s", ctype, matcher.Regex, matcher.Command), false)
 				matched = true
-				Log(Trace, fmt.Sprintf("Message '%s' matches command '%s'", cmsg, matcher.Command))
+				Log(Trace, "Message '%s' matches command '%s'", cmsg, matcher.Command)
 				cmdArgs = matches[0][1:]
 				if len(matcher.Contexts) > 0 {
 					// Resolve & store "it" with short-term memories
@@ -123,7 +123,7 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 									shortTermMemories.m[ctx] = s
 								}
 							} else {
-								Log(Error, fmt.Sprintf("Plugin '%s', command '%s', has more contexts than match groups", task.name, matcher.Command))
+								Log(Error, "Plugin '%s', command '%s', has more contexts than match groups", task.name, matcher.Command)
 							}
 						}
 					}
@@ -135,7 +135,7 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 			if matched {
 				if messageMatched {
 					prevTask, _, _ := getTask(runTask)
-					Log(Error, fmt.Sprintf("Message '%s' matched multiple tasks: %s and %s", cmsg, prevTask.name, task.name))
+					Log(Error, "Message '%s' matched multiple tasks: %s and %s", cmsg, prevTask.name, task.name)
 					r.Say("Yikes! Your command matched multiple plugins, so I'm not doing ANYTHING")
 					emit(MultipleMatchesNoAction)
 					return
@@ -181,7 +181,7 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 					rep.replyChannel <- reply{false, retryPrompt, ""}
 				}
 			}
-			Log(Debug, fmt.Sprintf("User '%s' matched a new command while the robot was waiting for a reply in channel '%s'", c.User, c.Channel))
+			Log(Debug, "User '%s' matched a new command while the robot was waiting for a reply in channel '%s'", c.User, c.Channel)
 		} else {
 			replies.Unlock()
 		}
@@ -201,7 +201,7 @@ func (c *botContext) handleMessage() {
 
 	if c.directMsg {
 		emit(BotDirectMessage)
-		Log(Trace, fmt.Sprintf("Bot received a direct message from %s: %s", c.User, c.msg))
+		Log(Trace, "Bot received a direct message from %s: %s", c.User, c.msg)
 	}
 	messageMatched := false
 	ts := time.Now()
@@ -231,7 +231,7 @@ func (c *botContext) handleMessage() {
 	waitingForReply := false
 	if !messageMatched {
 		matcher := replyMatcher{c.User, c.Channel}
-		Log(Trace, fmt.Sprintf("Checking replies for matcher: %q", matcher))
+		Log(Trace, "Checking replies for matcher: %q", matcher)
 		replies.Lock()
 		waiters, waitingForReply = replies.m[matcher]
 		if !waitingForReply {
@@ -246,7 +246,7 @@ func (c *botContext) handleMessage() {
 				if i == 0 {
 					cmsg := spaceRe.ReplaceAllString(c.msg, " ")
 					matched := rep.re.MatchString(cmsg)
-					Log(Debug, fmt.Sprintf("Found replyWaiter for user '%s' in channel '%s', checking if message '%s' matches '%s': %t", c.User, c.Channel, cmsg, rep.re.String(), matched))
+					Log(Debug, "Found replyWaiter for user '%s' in channel '%s', checking if message '%s' matches '%s': %t", c.User, c.Channel, cmsg, rep.re.String(), matched)
 					rep.replyChannel <- reply{matched, replied, cmsg}
 				} else {
 					Log(Debug, "Sending retry to next reply waiter")
@@ -271,7 +271,7 @@ func (c *botContext) handleMessage() {
 		if !botCfg.shuttingDown {
 			botCfg.RUnlock()
 			c.messageHeard()
-			Log(Debug, fmt.Sprintf("Unmatched command sent to robot, calling catchalls: %s", c.msg))
+			Log(Debug, "Unmatched command sent to robot, calling catchalls: %s", c.msg)
 			emit(CatchAllsRan) // for testing, otherwise noop
 			// TODO: should we allow more than 1 catchall?
 			catchAllPlugins := make([]interface{}, 0, 0)

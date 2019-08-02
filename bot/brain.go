@@ -168,7 +168,7 @@ func initializeEncryption(key string) bool {
 	memguard.WipeBytes(kbytes)
 	if err != nil {
 		cryptKey.Unlock()
-		Log(Error, fmt.Sprintf("Error creating protected memory region for key: %v", err))
+		Log(Error, "Error creating protected memory region for key: %v", err)
 		return false
 	}
 	cryptKey.key = cryptKey.protected.Buffer()
@@ -180,7 +180,7 @@ func initializeEncryption(key string) bool {
 		cryptKey.Lock()
 		cryptKey.initializing = false
 		cryptKey.Unlock()
-		Log(Error, fmt.Sprintf("Error retrieving botEncryptionKey from brain: %s", ret))
+		Log(Error, "Error retrieving botEncryptionKey from brain: %s", ret)
 		return false
 	}
 	if exists {
@@ -203,7 +203,7 @@ func initializeEncryption(key string) bool {
 	// Securely generate and store a random 'real' key
 	store, err := memguard.NewImmutableRandom(32)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error generating new random brain key: %v", err))
+		Log(Error, "Error generating new random brain key: %v", err)
 		cryptKey.initializing = false
 		return false
 	}
@@ -237,8 +237,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 	var decrypted []byte
 
 	if !keyRe.MatchString(dkey) {
-		err := fmt.Errorf("Invalid memory key, ':' disallowed: %s", dkey)
-		Log(Error, err)
+		Log(Error, "Invalid memory key, ':' disallowed: %s", dkey)
 		return "", nil, false, InvalidDatumKey
 	}
 	brain := botCfg.brain
@@ -270,12 +269,12 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 		cryptKey.RUnlock()
 		if initializing {
 			if dkey != botEncryptionKey {
-				Log(Warn, fmt.Sprintf("Retrieve called with uninitialized brain for '%s'", dkey))
+				Log(Warn, "Retrieve called with uninitialized brain for '%s'", dkey)
 				return "", nil, false, BrainFailed
 			}
 			decrypted, err = decrypt(*db, key)
 			if err != nil {
-				Log(Error, fmt.Sprintf("Failed to decrypt the brain key, bad key provided?: %v", err))
+				Log(Error, "Failed to decrypt the brain key, bad key provided?: %v", err)
 				return "", nil, false, BrainFailed
 			}
 			db = &decrypted
@@ -284,7 +283,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 		if initialized {
 			decrypted, err = decrypt(*db, key)
 			if err != nil {
-				Log(Warn, fmt.Sprintf("Decryption failed for '%s', assuming unencrypted and converting to encrypted", dkey))
+				Log(Warn, "Decryption failed for '%s', assuming unencrypted and converting to encrypted", dkey)
 				// Calling storeDatum writes to storage without invalidating the lock token
 				storeDatum(dkey, db)
 			} else {
@@ -292,7 +291,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 			}
 			return token, db, true, Ok
 		}
-		Log(Warn, fmt.Sprintf("Retrieve called on uninitialized brain for '%s'", dkey))
+		Log(Warn, "Retrieve called on uninitialized brain for '%s'", dkey)
 		return "", nil, false, BrainFailed
 	}
 	return token, db, true, Ok
@@ -315,20 +314,20 @@ func storeDatum(dkey string, datum *[]byte) RetVal {
 		if !initialized {
 			// When re-keying, we store the 'real' key while uninitialized with a new key
 			if !(initializing && dkey == botEncryptionKey) {
-				Log(Error, fmt.Sprintf("storeDatum called for '%s' with encryptBrain true, but brain not initialized", key))
+				Log(Error, "storeDatum called for '%s' with encryptBrain true, but brain not initialized", key)
 				return BrainFailed
 			}
 		}
 		encrypted, err := encrypt(*datum, key)
 		if err != nil {
-			Log(Error, fmt.Sprintf("Failed encrypting '%s': %v", dkey, err))
+			Log(Error, "Failed encrypting '%s': %v", dkey, err)
 			return BrainFailed
 		}
 		datum = &encrypted
 	}
 	err := botCfg.brain.Store(dkey, datum)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Storing datum %s: %v", dkey, err))
+		Log(Error, "Storing datum %s: %v", dkey, err)
 		return BrainFailed
 	}
 	return Ok
@@ -463,16 +462,15 @@ var keyRe = regexp.MustCompile(keyRegex)
 // ownership for a limited time
 func checkout(d string, rw bool) (string, *[]byte, bool, RetVal) {
 	if !keyRe.MatchString(d) {
-		err := fmt.Errorf("Invalid memory key, ':' disallowed: %s", d)
-		Log(Error, err)
+		Log(Error, "Invalid memory key, ':' disallowed: %s", d)
 		return "", nil, false, InvalidDatumKey
 	}
 	reply := make(chan checkOutReply)
 	creq := checkOutRequest{d, rw, reply}
 	brainChanEvents <- brainOp{checkOutBytes, creq}
 	rep := <-reply
-	Log(Trace, fmt.Sprintf("Brain datum checkout for %s, rw: %t - token: %s, exists: %t, ret: %d",
-		d, rw, rep.token, rep.exists, rep.retval))
+	Log(Trace, "Brain datum checkout for %s, rw: %t - token: %s, exists: %t, ret: %d",
+		d, rw, rep.token, rep.exists, rep.retval)
 	return rep.token, rep.bytes, rep.exists, rep.retval
 }
 
@@ -484,7 +482,7 @@ func update(d, lt string, datum *[]byte) (ret RetVal) {
 	}
 	reply := make(chan RetVal)
 	ur := updateRequest{d, lt, datum, reply}
-	Log(Trace, fmt.Sprintf("Updating datum %s, token: %s", d, lt))
+	Log(Trace, "Updating datum %s, token: %s", d, lt)
 	brainChanEvents <- brainOp{updateBytes, ur}
 	return <-reply
 }
@@ -494,7 +492,7 @@ func checkinDatum(key, locktoken string) {
 	if locktoken == "" {
 		return
 	}
-	Log(Trace, fmt.Sprintf("Checking in datum %s, token: %s", key, locktoken))
+	Log(Trace, "Checking in datum %s, token: %s", key, locktoken)
 	ci := checkInRequest{key, locktoken}
 	brainChanEvents <- brainOp{checkInBytes, ci}
 }
@@ -507,7 +505,7 @@ func checkoutDatum(key string, datum interface{}, rw bool) (locktoken string, ex
 	if exists { // exists = true implies no error
 		err := json.Unmarshal(*dbytes, datum)
 		if err != nil {
-			Log(Error, fmt.Errorf("Unmarshalling datum %s: %v", key, err))
+			Log(Error, "Unmarshalling datum %s: %v", key, err)
 			exists = false
 			ret = DataFormatError
 		}
@@ -519,7 +517,7 @@ func checkoutDatum(key string, datum interface{}, rw bool) (locktoken string, ex
 func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 	dbytes, err := json.Marshal(datum)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Marshalling datum %s: %v", key, err))
+		Log(Error, "Marshalling datum %s: %v", key, err)
 		return DataFormatError
 	}
 	return update(key, locktoken, &dbytes)
@@ -532,8 +530,7 @@ func updateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 func (r *Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal) {
 	if strings.ContainsRune(key, ':') {
 		ret = InvalidDatumKey
-		err := fmt.Errorf("Invalid memory key, ':' disallowed: %s", key)
-		Log(Error, err)
+		Log(Error, "Invalid memory key, ':' disallowed: %s", key)
 		return
 	}
 	c := r.getContext()
@@ -569,8 +566,7 @@ func (r *Robot) CheckinDatum(key, locktoken string) {
 // update failed.
 func (r *Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal) {
 	if strings.ContainsRune(key, ':') {
-		err := fmt.Errorf("Invalid memory key, ':' disallowed: %s", key)
-		Log(Error, err)
+		Log(Error, "Invalid memory key, ':' disallowed: %s", key)
 		return InvalidDatumKey
 	}
 	c := r.getContext()
@@ -592,7 +588,7 @@ func (r *Robot) Remember(key, value string) {
 	timestamp := time.Now()
 	memory := shortTermMemory{value, timestamp}
 	context := memoryContext{key, r.User, r.Channel}
-	Log(Trace, fmt.Sprintf("SHORTMEM: Storing short-term memory \"%s\" -> \"%s\"", key, value))
+	Log(Trace, "SHORTMEM: Storing short-term memory \"%s\" -> \"%s\"", key, value)
 	shortTermMemories.Lock()
 	shortTermMemories.m[context] = memory
 	shortTermMemories.Unlock()
@@ -612,7 +608,7 @@ func (r *Robot) Recall(key string) string {
 	shortTermMemories.Lock()
 	memory, ok := shortTermMemories.m[context]
 	shortTermMemories.Unlock()
-	Log(Trace, fmt.Sprintf("SHORTMEM: Recalling short-term memory \"%s\" -> \"%s\"", key, memory.memory))
+	Log(Trace, "SHORTMEM: Recalling short-term memory \"%s\" -> \"%s\"", key, memory.memory)
 	if !ok {
 		return ""
 	}

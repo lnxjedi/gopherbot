@@ -39,7 +39,7 @@ func (fb *brainConfig) Retrieve(k string) (*[]byte, bool, error) {
 		datum, err := ioutil.ReadFile(datumPath)
 		if err != nil {
 			err = fmt.Errorf("Error reading file \"%s\": %v", datumPath, err)
-			robot.Log(bot.Error, err)
+			robot.Log(bot.Error, err.Error())
 			return nil, false, err
 		}
 		return &datum, true, nil
@@ -58,12 +58,12 @@ func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
 	brainPath = fb.BrainDirectory
 	bd, err := os.Stat(brainPath)
 	if err != nil {
-		robot.Log(bot.Fatal, fmt.Sprintf("Checking brain directory \"%s\": %v", brainPath, err))
+		robot.Log(bot.Fatal, "Checking brain directory \"%s\": %v", brainPath, err)
 	}
 	if !bd.Mode().IsDir() {
-		robot.Log(bot.Fatal, fmt.Sprintf("Checking brain directory: \"%s\" isn't a directory", brainPath))
+		robot.Log(bot.Fatal, "Checking brain directory: \"%s\" isn't a directory", brainPath)
 	}
-	robot.Log(bot.Info, fmt.Sprintf("Initialized file-backed brain with memories directory: '%s'", brainPath))
+	robot.Log(bot.Info, "Initialized file-backed brain with memories directory: '%s'", brainPath)
 	return &fb
 }
 

@@ -4,7 +4,6 @@ package slack
 most of the internal methods. */
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -71,7 +70,7 @@ func (s *slackConnector) updateUserList(want string) (ret string) {
 		}
 	}
 	if err != nil {
-		s.Log(bot.Error, fmt.Sprintf("Protocol timeout updating users: %v\n", err))
+		s.Log(bot.Error, "Protocol timeout updating users: %v\n", err)
 	}
 	for i, user := range userlist {
 		if user.TeamID == s.teamID {
@@ -118,7 +117,7 @@ func (s *slackConnector) userID(u string) (i string, ok bool) {
 		if len(i) > 0 {
 			return i, true
 		}
-		s.Log(bot.Error, fmt.Sprintf("Failed ID lookup for user '%s'", u))
+		s.Log(bot.Error, "Failed ID lookup for user '%s'", u)
 		return "", false
 	}
 	return userID, ok
@@ -147,7 +146,7 @@ func (s *slackConnector) userName(i string) (user string, found bool) {
 	} else {
 		u := s.updateUserList("u:" + i)
 		if len(u) == 0 {
-			s.Log(bot.Error, fmt.Sprintf("Failed username lookup for ID '%s'", i))
+			s.Log(bot.Error, "Failed username lookup for ID '%s'", i)
 			return "", false
 		}
 		user = u
@@ -193,7 +192,7 @@ pageLoop:
 			}
 		}
 		if err != nil {
-			s.Log(bot.Error, fmt.Sprintf("Protocol timeout updating channels: %v\n", err))
+			s.Log(bot.Error, "Protocol timeout updating channels: %v\n", err)
 			break
 		}
 	}
@@ -267,7 +266,7 @@ func (s *slackConnector) getChannelInfo(i string) (c *slack.Channel, ok bool) {
 		c, ok = s.channelInfo[i]
 		s.RUnlock()
 		if !ok {
-			s.Log(bot.Error, fmt.Sprintf("Failed lookup of channel info from ID: %s", i))
+			s.Log(bot.Error, "Failed lookup of channel info from ID: %s", i)
 			return nil, false
 		}
 	}
@@ -282,7 +281,7 @@ func (s *slackConnector) userIMID(i string) (c string, ok bool) {
 	if !ok {
 		c = s.updateChannelMaps("dc:" + i)
 		if len(i) == 0 {
-			s.Log(bot.Error, fmt.Sprintf("Failed lookup of conversation from user ID: %s", i))
+			s.Log(bot.Error, "Failed lookup of conversation from user ID: %s", i)
 			return "", false
 		}
 	}
@@ -297,7 +296,7 @@ func (s *slackConnector) imUserID(c string) (i string, found bool) {
 	if !found {
 		i = s.updateChannelMaps("di:" + c)
 		if len(i) == 0 {
-			s.Log(bot.Error, fmt.Sprintf("Failed lookup of user ID from IM: %s", c))
+			s.Log(bot.Error, "Failed lookup of user ID from IM: %s", c)
 			return "", false
 		}
 		found = true
@@ -312,7 +311,7 @@ func (s *slackConnector) chanID(c string) (i string, ok bool) {
 	if !ok {
 		c = s.updateChannelMaps("ci:" + c)
 		if len(i) == 0 {
-			s.Log(bot.Error, fmt.Sprintf("Failed lookup of channel ID for '%s'", c))
+			s.Log(bot.Error, "Failed lookup of channel ID for '%s'", c)
 			return "", false
 		}
 	}
@@ -326,7 +325,7 @@ func (s *slackConnector) channelName(i string) (c string, ok bool) {
 	if !ok {
 		c = s.updateChannelMaps("cc:" + i)
 		if len(i) == 0 {
-			s.Log(bot.Error, fmt.Sprintf("Failed lookup of channel name from ID: %s", i))
+			s.Log(bot.Error, "Failed lookup of channel name from ID: %s", i)
 			return "", false
 		}
 	}

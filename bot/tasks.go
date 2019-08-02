@@ -57,7 +57,7 @@ func getTask(t interface{}) (*BotTask, *BotPlugin, *BotJob) {
 func (tl *taskList) getTaskByName(name string) interface{} {
 	ti, ok := tl.nameMap[name]
 	if !ok {
-		Log(Error, fmt.Sprintf("task '%s' not found calling getTaskByName", name))
+		Log(Error, "task '%s' not found calling getTaskByName", name)
 		return nil
 	}
 	task := tl.t[ti]
