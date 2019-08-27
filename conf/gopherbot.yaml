@@ -29,8 +29,8 @@ ProtocolConfig:
 
 ## Trivial "term" connector config for a single admin user.
 {{ if eq $proto "term" }}
-{{ $botname := env "GOPHER_BOTNAME" | default "bender" }}
-{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Bender Rodriguez" }}
+{{ $botname := env "GOPHER_BOTNAME" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" }}
 
 ProtocolConfig:
   StartChannel: general
@@ -60,7 +60,7 @@ BotInfo:
   UserName: {{ $botname }}
   FullName: {{ $botfullname }}
 
-Alias: {{ env "GOPHER_ALIAS" | default ";" }}
+Alias: {{ env "GOPHER_ALIAS" }}
 
 ## Protocols other than "term"
 {{ else }}

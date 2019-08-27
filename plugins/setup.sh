@@ -46,6 +46,7 @@ then
     exit 0
 fi
 SetParameter USER_KEY "$KEY"
+Remember AUTH_USER "$GOPHER_USER"
 
 checkReply(){
     if [ $1 -ne 0 ]
@@ -110,7 +111,8 @@ GOPHER_SLACK_TOKEN=$SLACK_TOKEN
 GOPHER_ENCRYPTION_KEY=$ENCRYPTION_KEY
 EOF
 mv conf/gopherbot.yaml conf/gopherbot.yaml.setup
-mv conf/gopherbot.yaml.new conf/gopherbot.yaml
+mv conf/gopherbot-new.yaml conf/gopherbot.yaml
+mv conf/plugins/builtin-admin.yaml conf/plugins/builtin-admin.yaml.setup
 substitute "<GOPHER_ADMIN_USER>" "$USERNAME"
 substitute "<GOPHER_ADMIN_ID>" "$USERID"
 substitute "<GOPHER_BOTNAME>" "$BOTNAME"
@@ -122,6 +124,6 @@ Say "Initial setup complete - the configuration repository in $(pwd) is ready fo
 Pause 3
 Say "The contents of $(pwd)/.env need to be preserved separately, as it contains secrets and is excluded in .gitignore"
 Pause 3
-Say "Finally, encryption won't be initialized until the robot is restarted, but I'll go ahead and reload my configuration..."
+Say "Finally, encryption won't be initialized until the robot is restarted, so I'll go ahead and exit then restart ..."
 
-AddCommand "builtin-admin" "reload"
+AddCommand "builtin-admin" "quit"

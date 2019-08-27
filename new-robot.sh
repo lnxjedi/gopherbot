@@ -6,13 +6,19 @@
 GOPHER_INSTALL_DIR=$(dirname `readlink -f "$0"`)
 
 REPO_DIR=$1
+PROTOCOL=$2
 
 usage(){
-    echo "Usage: new-robot.sh <directory>"
+cat <<EOF
+Usage: new-robot.sh <directory> <protocol>
+
+Set up a new robot repository and perform initial configuration.
+Protocol can be one of: slack, term.
+EOF
     exit 1
 }
 
-if [ -z "$REPO_DIR" ]
+if [ $# -ne 2 ]
 then
     usage
 fi
@@ -39,18 +45,38 @@ start the robot to complete setup using the 'setup' plugin.
 
 EOF
 
-echo -n "Slack token? (from https://<org>.slack.com/services/new/bot) "
-read GOPHER_SLACK_TOKEN
+GOPHER_PROTOCOL=slack
+
+case $PROTOCOL in
+slack)
+    echo -n "Slack token? (from https://<org>.slack.com/services/new/bot) "
+    read GOPHER_SLACK_TOKEN
+    export GOPHER_SLACK_TOKEN
+    ;;
+term)
+    export GOPHER_PROTOCOL=term
+    export GOPHER_ADMIN=alice
+    LOGFILE="/tmp/gopherbot-$REPO_DIR.log"
+    GOPHER_ARGS="-l $LOGFILE"
+    echo "Logging to $LOGFILE"
+    ;;
+esac
+
 echo -n "Setup passphrase? (to be supplied to the robot) "
 read GOPHER_SETUP_KEY
-export GOPHER_SLACK_TOKEN GOPHER_SETUP_KEY
+export GOPHER_SETUP_KEY
 
 cat <<EOF
+***********************************************************
 
-Now we'll start the robot, which should connect to your
-team chat with the provided credentials. Once it's
-connected, open a private chat with your robot and tell
-it "setup $GOPHER_SETUP_KEY".
+Now we'll start the robot, which will start a connection
+with the '${GOPHER_PROTOCOL}' protocol. Once it's connected,
+open a private chat with your robot and tell it:
+
+> setup $GOPHER_SETUP_KEY
+
+(NOTE for 'term' protocol: use '|C' to switch to a private/
+DM channel)
 
 Press <enter>
 EOF
@@ -58,4 +84,6 @@ read DUMMY
 
 cd $REPO_DIR
 ln -s $GOPHER_INSTALL_DIR/gopherbot .
-exec ./gopherbot
+./gopherbot $GOPHER_ARGS
+# Start again after setup to reload and initialize encryption
+[ -e "conf/gopherbot.yaml.setup" ] && ./gopherbot $GOPHER_ARGS
