@@ -6,7 +6,6 @@ trap_handler()
     ERRLINE="$1"
     ERRVAL="$2"
     echo "line ${ERRLINE} exit status: ${ERRVAL}"
-    rm -f commit.go
     exit $ERRVAL
 }
 trap 'trap_handler ${LINENO} $?' ERR
@@ -31,6 +30,7 @@ COMMIT=$(git rev-parse --short HEAD)
 
 eval `go env`
 PLATFORMS=${1:-linux darwin windows}
+ARCHIVE="conf/ doc/ jobs/ lib/ licenses/ plugins/ resources/ robot.skel/ scripts/ tasks/ AUTHORS.txt changelog.txt LICENSE new-robot.sh README.md"
 for BUILDOS in $PLATFORMS
 do
 	echo "Building gopherbot for $BUILDOS"
@@ -40,17 +40,16 @@ do
 	then
 		GOOS=$BUILDOS go build -mod vendor -ldflags "-X main.Commit=$COMMIT" -o gopherbot.exe
 		echo "Creating $OUTFILE"
-		zip -r $OUTFILE gopherbot.exe LICENSE README.md conf/ doc/ lib/ licenses/ plugins/ resources/ jobs/ tasks/ scripts/ --exclude *.swp
+		zip -r $OUTFILE gopherbot.exe $ARCHIVE --exclude *.swp
 	elif [ "$BUILDOS" = "linux" ]
 	then
 		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -ldflags "-X main.Commit=$COMMIT" -a -tags 'netgo osusergo static_build' -o gopherbot
 		echo "Creating $OUTFILE"
-		zip -r $OUTFILE gopherbot LICENSE README.md conf/ doc/ lib/ licenses/ plugins/ resources/ jobs/ tasks/ scripts/ --exclude *.swp
-		tar --exclude *.swp -czf gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot LICENSE README.md conf/ doc/ lib/ licenses/ plugins/ resources/ jobs/ tasks/ scripts/
+		zip -r $OUTFILE gopherbot $ARCHIVE --exclude *.swp
+		tar --exclude *.swp -czf gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot $ARCHIVE
 	else
 		GOOS=$BUILDOS go build -mod vendor -ldflags "-X main.Commit=$COMMIT"
 		echo "Creating $OUTFILE"
-		zip -r $OUTFILE gopherbot LICENSE README.md conf/ doc/ lib/ licenses/ plugins/ resources/ jobs/ tasks/ scripts/ --exclude *.swp
+		zip -r $OUTFILE gopherbot $ARCHIVE --exclude *.swp
 	fi
 done
-rm -f commit.go
