@@ -14,7 +14,16 @@ REMOTE_ORG=${REMOTE_PREFIX##*/}
 
 if [ "$REMOTE_ORG" == "lnxjedi" ] # demo
 then
-    exec ./gopherbot/new-robot.sh demo-robot
+    cat <<EOF
+Welcome to the Gopherbot Demo. If you have a Slack token,
+you can connect the demo robot to your Slack team using the
+'slack' protocol. Otherwise, you can use the 'term' protocol
+to try Gopherbot with the terminal connector.
+
+EOF
+    echo -n "Protocol? (one of: slack, term) "
+    read PROTOCOL
+    exec ./gopherbot/new-robot.sh demo-robot $PROTOCOL
 else
 cat > start.sh <<EOF
 #!/bin/bash -e
