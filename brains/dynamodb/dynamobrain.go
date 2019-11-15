@@ -1,6 +1,6 @@
-// Package dynamoBrain is a simple AWS DynamoDB implementation of the bot.SimpleBrain
+// Package dynamobrain is a simple AWS DynamoDB implementation of the bot.SimpleBrain
 // interface, which gives the robot a place to permanently store it's memories.
-package dynamoBrain
+package dynamobrain
 
 import (
 	"log"
