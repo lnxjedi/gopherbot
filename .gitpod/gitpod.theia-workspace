@@ -1,9 +1,6 @@
 {
    "folders": [
       {
-         "path": "file:///workspace"
-      },
-      {
          "path": "file:///workspace/gopherbot"
       }
    ],
