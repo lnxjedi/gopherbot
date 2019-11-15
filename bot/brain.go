@@ -9,8 +9,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/awnumar/memguard"
 )
 
 // SimpleBrain is the simple interface for a configured brain, where the robot
@@ -48,8 +46,7 @@ var encryptBrain bool
 
 // For aes brain encryption
 var cryptKey = struct {
-	protected                 *memguard.LockedBuffer
-	key                       []byte // the 'real' key; slice referring to protect buffer
+	key                       []byte
 	initializing, initialized bool
 	sync.RWMutex
 }{}
@@ -163,16 +160,9 @@ func initializeEncryption(key string) bool {
 		cryptKey.Unlock()
 		return i
 	}
-	var err error
-	cryptKey.protected, err = memguard.NewImmutableFromBytes(kbytes[0:32])
-	memguard.WipeBytes(kbytes)
-	if err != nil {
-		cryptKey.Unlock()
-		Log(Error, "Error creating protected memory region for key: %v", err)
-		return false
-	}
-	cryptKey.key = cryptKey.protected.Buffer()
+	cryptKey.key = kbytes[0:32]
 	cryptKey.initializing = true
+	var err error
 	cryptKey.Unlock()
 	// retrieve the 'real' key
 	_, rk, exists, ret := getDatum(botEncryptionKey, true)
@@ -185,29 +175,19 @@ func initializeEncryption(key string) bool {
 	}
 	if exists {
 		cryptKey.Lock()
-		cryptKey.protected.Destroy()
-		cryptKey.protected, err = memguard.NewImmutableFromBytes(*rk)
-		memguard.WipeBytes(*rk)
-		if err != nil {
-			cryptKey.initializing = false
-			cryptKey.Unlock()
-			Log(Error, "Failed to create temporary brain key from supplied key, initilization failed")
-			return false
-		}
-		cryptKey.key = cryptKey.protected.Buffer()
+		cryptKey.key = *rk
 		cryptKey.initialized = true
 		cryptKey.initializing = false
 		cryptKey.Unlock()
 		return true
 	}
-	// Securely generate and store a random 'real' key
-	store, err := memguard.NewImmutableRandom(32)
+	sb := make([]byte, 32)
+	_, err = rand.Read(sb)
 	if err != nil {
 		Log(Error, "Error generating new random brain key: %v", err)
 		cryptKey.initializing = false
 		return false
 	}
-	sb := store.Buffer()
 	ret = storeDatum(botEncryptionKey, &sb)
 	cryptKey.Lock()
 	if ret != Ok {
@@ -216,7 +196,6 @@ func initializeEncryption(key string) bool {
 		cryptKey.Unlock()
 		return false
 	}
-	cryptKey.protected = store
 	cryptKey.key = sb
 	cryptKey.initialized = true
 	cryptKey.initializing = false

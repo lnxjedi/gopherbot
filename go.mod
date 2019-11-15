@@ -2,7 +2,6 @@ module github.com/lnxjedi/gopherbot
 
 require (
 	github.com/Jeffail/gabs v1.3.1
-	github.com/awnumar/memguard v0.15.0
 	github.com/aws/aws-sdk-go v1.13.38
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20171208011716-f6d7a1f6fbf3

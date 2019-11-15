@@ -1,7 +1,5 @@
 github.com/Jeffail/gabs v1.3.1 h1:6SHn5/5/JADuTC1SJGYB9RI4aZ7dbtDjXfsHhyoanm8=
 github.com/Jeffail/gabs v1.3.1/go.mod h1:6xMvQMK4k33lb7GUUpaAPh6nKMmemQeg5d4gn7/bOXc=
-github.com/awnumar/memguard v0.15.0 h1:nuC0P7jZ/0dwJsjPEMpPRQBIcAK05qxP7S1mhYdmK9E=
-github.com/awnumar/memguard v0.15.0/go.mod h1:77EUD6uwfgcd6zTmn++i5ujEFviGRQfE8ELbDJO1rpA=
 github.com/aws/aws-sdk-go v1.13.38 h1:c1urQdjR53nMKIB1xvG7P4IpvuNSXA5yOzFh/0XPIQw=
 github.com/aws/aws-sdk-go v1.13.38/go.mod h1:ZRmQr0FajVIyZ4ZzBYKG5P3ZqPz9IHG41ZoMu1ADI3k=
 github.com/chzyer/logex v1.1.10 h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=
