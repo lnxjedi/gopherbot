@@ -2,7 +2,6 @@ module github.com/lnxjedi/gopherbot
 
 require (
 	github.com/Jeffail/gabs v1.3.1
-	github.com/awnumar/memguard v0.15.0
 	github.com/aws/aws-sdk-go v1.13.38
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20171208011716-f6d7a1f6fbf3
@@ -36,3 +35,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/ini.v1 v1.38.1 // indirect
 )
+
+go 1.13

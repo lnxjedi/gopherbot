@@ -12,7 +12,7 @@ REMOTE=$(git -C gopherbot/ remote get-url origin)
 REMOTE_PREFIX=${REMOTE%/gopherbot.git}
 REMOTE_ORG=${REMOTE_PREFIX##*/}
 
-if [ "$REMOTE_ORG" == "lnxjedi" ] # demo
+if [ -n "$1" -o "$REMOTE_ORG" == "lnxjedi" ] # demo
 then
     cat <<EOF
 Welcome to the Gopherbot Demo. If you have a Slack token,

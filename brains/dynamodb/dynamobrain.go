@@ -1,6 +1,6 @@
-// Package dynamoBrain is a simple AWS DynamoDB implementation of the bot.SimpleBrain
+// Package dynamobrain is a simple AWS DynamoDB implementation of the bot.SimpleBrain
 // interface, which gives the robot a place to permanently store it's memories.
-package dynamoBrain
+package dynamobrain
 
 import (
 	"log"
@@ -59,12 +59,10 @@ func (db *brainConfig) Store(k string, b *[]byte) error {
 				robot.Log(bot.Error, "Error storing memory: %v", aerr.Error())
 			}
 			return aerr
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			robot.Log(bot.Error, "Error storing memory: %v", err.Error())
-			return err
 		}
+		// Print the error, cast err to awserr.Error to get the Code and
+		// Message from an error.
+		robot.Log(bot.Error, "Error storing memory: %v", err.Error())
 		return err
 	}
 
@@ -96,10 +94,9 @@ func (db *brainConfig) Retrieve(k string) (datum *[]byte, exists bool, err error
 				robot.Log(bot.Error, "Error retrieving memory: %v", aerr.Error())
 			}
 			return nil, false, aerr
-		} else {
-			robot.Log(bot.Error, "Error retrieving memory: %v", err.Error())
-			return nil, false, err
 		}
+		robot.Log(bot.Error, "Error retrieving memory: %v", err.Error())
+		return nil, false, err
 	}
 
 	m := dynaMemory{}
