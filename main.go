@@ -62,7 +62,9 @@ import (
 	_ "net/http/pprof"
 )
 
+// Version of gopherbot
 var Version = "v2.0.0-snapshot"
+// Commit supplied during linking
 var Commit = "(not set)"
 
 func main() {
