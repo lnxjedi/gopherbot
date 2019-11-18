@@ -79,7 +79,6 @@ var botCfg struct {
 	defaultJobChannel    string          // where job statuses will post if not otherwise specified
 	shuttingDown         bool            // to prevent new plugins from starting
 	pluginsRunning       int             // a count of how many plugins are currently running
-	paused               bool            // it's a Windows thing
 	sync.WaitGroup                       // for keeping track of running plugins
 	sync.RWMutex                         // for safe updating of bot data structures
 }

@@ -29,19 +29,14 @@ git status | grep -qE "nothing to commit, working directory|tree clean" || { ech
 COMMIT=$(git rev-parse --short HEAD)
 
 eval `go env`
-PLATFORMS=${1:-linux darwin windows}
+PLATFORMS=${1:-linux darwin}
 ARCHIVE="conf/ doc/ jobs/ lib/ licenses/ plugins/ resources/ robot.skel/ scripts/ tasks/ AUTHORS.txt changelog.txt LICENSE new-robot.sh README.md"
 for BUILDOS in $PLATFORMS
 do
 	echo "Building gopherbot for $BUILDOS"
 	OUTFILE=./gopherbot-$BUILDOS-$GOARCH.zip
 	rm -f $OUTFILE
-	if [ "$BUILDOS" = "windows" ]
-	then
-		GOOS=$BUILDOS go build -mod vendor -ldflags "-X main.Commit=$COMMIT" -o gopherbot.exe
-		echo "Creating $OUTFILE"
-		zip -r $OUTFILE gopherbot.exe $ARCHIVE --exclude *.swp
-	elif [ "$BUILDOS" = "linux" ]
+	if [ "$BUILDOS" = "linux" ]
 	then
 		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -ldflags "-X main.Commit=$COMMIT" -a -tags 'netgo osusergo static_build' -o gopherbot
 		echo "Creating $OUTFILE"

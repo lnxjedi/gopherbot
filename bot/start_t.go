@@ -49,7 +49,7 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (<-chan stru
 	conn := initializeConnector(h, botLogger)
 
 	// NOTE: we use setConnector instead of passing the connector to run()
-	// because of the way Windows services run. See 'start_win.go'.
+	// because of the way Windows services were run. Maybe remove eventually?
 	setConnector(conn)
 
 	stopped := run()

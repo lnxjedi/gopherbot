@@ -72,10 +72,6 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 			r.Say("Ignoring triggered job(s): shutting down")
 			botCfg.RUnlock()
 			return
-		} else if botCfg.paused {
-			r.Say("Ignoring triggered job(s): paused")
-			botCfg.RUnlock()
-			return
 		}
 		botCfg.RUnlock()
 		if len(robots) > 0 {
