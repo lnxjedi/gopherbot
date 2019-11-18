@@ -442,8 +442,8 @@ func (c *botContext) getEnvironment(task *BotTask) map[string]string {
 	return envhash
 }
 
-// getTaskPath searches configPath and installPath and returns a path
-// to the task. If the path is relative, the bool is true
+// getTaskPath searches configPath and installPath and returns the full path
+// to the task.
 func getTaskPath(task *BotTask) (tpath string, err error) {
 	if len(task.Path) == 0 {
 		err := fmt.Errorf("Path empty for external task: %s", task.name)
@@ -468,11 +468,11 @@ func getTaskPath(task *BotTask) (tpath string, err error) {
 		if err == nil {
 			// The one case where relpath is true
 			Log(Debug, "Using external plugin from configPath: %s", taskPath)
-			return task.Path, nil
+			return taskPath, nil
 		}
 	}
-	if _, err := os.Stat(installPath + "/" + task.Path); err == nil {
-		taskPath = installPath + "/" + task.Path
+	taskPath = filepath.Join(installPath, task.Path)
+	if _, err := os.Stat(taskPath); err == nil {
 		Log(Debug, "Using stock external plugin: %s", taskPath)
 		return taskPath, nil
 	}

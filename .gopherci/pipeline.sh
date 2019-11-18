@@ -41,11 +41,6 @@ then
     exit 0
 fi
 
-Say "GOPHERCI_REPO is $GOPHERCI_REPO"
-Log "Warn" "GOPHERCI_REPO is $GOPHERCI_REPO"
-
-exit 0
-
 if [ "$GOPHERCI_BRANCH" != "master" -o "$GOPHERCI_REPO" == "github.com/parsley42/gopherbot" ]
 then
     AddTask notify $NOTIFY_USER "Completed successful build and test of $GOPHERCI_REPO branch $GOPHERCI_BRANCH"
@@ -53,10 +48,10 @@ then
 fi
 
 # Publish archives to github
-#AddTask exec ./.gopherci/publish.sh
+AddTask exec ./.gopherci/publish.sh
 
 # Trigger Docker build
-#AddTask exec ./.gopherci/dockercloud.sh
+AddTask exec ./.gopherci/dockercloud.sh
 
 # Notify of success
 if [ -n "$NOTIFY_USER" ]
