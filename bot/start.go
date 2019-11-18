@@ -19,7 +19,7 @@ func init() {
 }
 
 // Start gets the robot going
-func Start(v VersionInfo) {
+func Start(v VersionInfo) (restart bool) {
 	botVersion = v
 
 	var installpath, configpath string
@@ -129,5 +129,6 @@ func Start(v VersionInfo) {
 	// Start the robot
 	stopped := run()
 	// ... and wait for the robot to stop
-	<-stopped
+	restart = <-stopped
+	return restart
 }

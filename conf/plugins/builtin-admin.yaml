@@ -7,6 +7,8 @@ Help:
   Helptext: [ "(bot), reload - have the robot reload configuration files" ]
 - Keywords: [ "quit" ]
   Helptext: [ "(bot), quit - request a graceful shutdown, waiting for all plugins to finish" ]
+- Keywords: [ "restart" ]
+  Helptext: [ "(bot), restart - request a graceful shutdown and restart" ]
 - Keywords: [ "abort" ]
   Helptext: [ "(bot), abort - request an immediate shutdown without waiting for plugins to finish" ]
 - Keywords: [ "debug" ]
@@ -18,6 +20,8 @@ CommandMatchers:
   Regex: '(?i:reload)'
 - Command: quit
   Regex: '(?i:quit|exit)'
+- Command: restart
+  Regex: '(?i:restart)'
 - Command: abort
   Regex: '(?i:abort)'
 - Command: "debug"
