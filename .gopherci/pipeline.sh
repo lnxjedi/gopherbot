@@ -41,6 +41,9 @@ then
     exit 0
 fi
 
+Say "GOPHERCI_REPO is $GOPHERCI_REPO"
+exit 0
+
 if [ "$GOPHERCI_BRANCH" != "master" -o "$GOPHERCI_REPO" == "github.com/parsley42/gopherbot" ]
 then
     AddTask notify $NOTIFY_USER "Completed successful build and test of $GOPHERCI_REPO branch $GOPHERCI_BRANCH"
