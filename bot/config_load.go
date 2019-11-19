@@ -26,9 +26,7 @@ func mergemap(m, t map[string]interface{}) map[string]interface{} {
 					t[k] = mergemap(mv, mtv)
 				case []interface{}:
 					sv := v.([]interface{})
-					stv := tv.([]interface{})
-					stv = append(stv, sv...)
-					t[k] = stv
+					t[k] = sv
 				default:
 					t[k] = v
 				}
