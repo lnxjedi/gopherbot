@@ -43,15 +43,15 @@ do
 	if [ "$BUILDOS" = "linux" ]
 	then
 		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -ldflags "-X main.Commit=$COMMIT" -a -tags 'netgo osusergo static_build' -o gopherbot
-		echo "Creating $OUTFILE"
 		cd ..
+		echo "Creating $OUTFILE (from $(pwd))"
 		zip -r $OUTFILE $ARCHIVE --exclude *.swp
 		tar --exclude *.swp -czf gopherbot/gopherbot-$BUILDOS-$GOARCH.tar.gz $ARCHIVE
 		cd -
 	else
 		GOOS=$BUILDOS go build -mod vendor -ldflags "-X main.Commit=$COMMIT"
-		echo "Creating $OUTFILE"
 		cd ..
+		echo "Creating $OUTFILE (from $(pwd))"
 		zip -r $OUTFILE $ARCHIVE --exclude *.swp
 		cd -
 	fi
