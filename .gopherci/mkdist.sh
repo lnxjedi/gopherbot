@@ -55,7 +55,7 @@ do
 		cp -a gopherbot "$ADIR/gopherbot/gopherbot"
 		cd $ADIR
 		echo "Creating $OUTFILE (from $(pwd))"
-		zip -r $OUTFILE $ARCHIVE --exclude *.swp gopherbot/
+		zip -r $OUTFILE gopherbot/ --exclude *.swp
 		cd -
 	fi
 done
