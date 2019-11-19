@@ -101,10 +101,7 @@ func teardown(t *testing.T, done <-chan bool, conn *testc.TestConnector) {
 	conn.SendBotMessage(&testc.TestMessage{aliceID, null, "quit"})
 
 	// Now we wait for the connection to finish
-	restart := <-done
-	if restart {
-		panic("Can't restart when testing!!!")
-	}
+	<-done
 
 	evOk := true
 	ev := GetEvents()

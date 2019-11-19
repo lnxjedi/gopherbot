@@ -220,6 +220,9 @@ func run() <-chan bool {
 			Log(Info, "Restarting...")
 		}
 		done <- restart
+		// NOTE!! Black Magic Ahead - for some reason, the read on the done channel
+		// keeps blocking without this close.
+		close(done)
 	}(botCfg.Connector, botCfg.stop, botCfg.done)
 	botCfg.RUnlock()
 	return botCfg.done
@@ -227,7 +230,7 @@ func run() <-chan bool {
 
 // stop is called whenever the robot needs to shut down gracefully. All callers
 // should lock the bot and check the value of botCfg.shuttingDown; see
-// builtins.go and win_svc_run.go
+// builtins.go.
 func stop() {
 	botCfg.RLock()
 	pr := botCfg.pluginsRunning

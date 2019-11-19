@@ -37,6 +37,7 @@ loop:
 	for {
 		select {
 		case <-stop:
+			tc.Log(bot.Debug, "Received stop in connector")
 			tc.test.Log("Received stop in connector")
 			break loop
 		case msg := <-tc.listener:
