@@ -9,7 +9,7 @@ import "log"
 func privCheck(reason string) {
 }
 
-func dropThreadPriv(reason string) {
+func DropThreadPriv(reason string) {
 }
 
 func checkprivsep(l *log.Logger) {

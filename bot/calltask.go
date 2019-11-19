@@ -36,7 +36,7 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *BotTask) {
 
 	// drop privileges when running external task; this thread will terminate
 	// when this goroutine finishes; see runtime.LockOSThread()
-	dropThreadPriv(fmt.Sprintf("task %s default configuration", task.name))
+	DropThreadPriv(fmt.Sprintf("task %s default configuration", task.name))
 
 	Log(Debug, "Calling '%s' with arg: configure", taskPath)
 	//cfg, err = exec.Command(taskPath, "configure").Output()
@@ -203,7 +203,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 
 	// drop privileges when running external task; this thread will terminate
 	// when this goroutine finishes; see runtime.LockOSThread()
-	dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
+	DropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
 
 	if err = cmd.Start(); err != nil {
 		Log(Error, "Starting command '%s': %v", taskPath, err)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"syscall"
 
@@ -79,7 +80,13 @@ func main() {
 	}
 	restart := bot.Start(versionInfo)
 	if restart {
+		bot.DropThreadPriv("restarting")
 		bin, _ := os.Executable()
-		defer syscall.Exec(bin, os.Args, os.Environ())
+		defer func() {
+			err := syscall.Exec(bin, os.Args, os.Environ())
+			if err != nil {
+				fmt.Printf("Error re-exec'ing: %v", err)
+			}
+		}()
 	}
 }

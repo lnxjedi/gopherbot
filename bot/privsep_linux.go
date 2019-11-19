@@ -35,7 +35,8 @@ func privCheck(reason string) {
 	}
 }
 
-func dropThreadPriv(reason string) {
+// DropThreadPriv exported for use on restart in main()
+func DropThreadPriv(reason string) {
 	if privSep {
 		runtime.LockOSThread()
 		var ruid, euid, suid, nruid, neuid, nsuid uintptr
