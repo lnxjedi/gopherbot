@@ -83,7 +83,7 @@ const random = "random"
 const bottest = "bottest"
 const deadzone = "deadzone"
 
-func setup(cfgdir, logfile string, t *testing.T) (<-chan struct{}, *testc.TestConnector) {
+func setup(cfgdir, logfile string, t *testing.T) (<-chan bool, *testc.TestConnector) {
 	testVer := VersionInfo{"test", "(unknown)"}
 
 	testc.ExportTest.Lock()
@@ -96,7 +96,7 @@ func setup(cfgdir, logfile string, t *testing.T) (<-chan struct{}, *testc.TestCo
 	return done, testConnector
 }
 
-func teardown(t *testing.T, done <-chan struct{}, conn *testc.TestConnector) {
+func teardown(t *testing.T, done <-chan bool, conn *testc.TestConnector) {
 	// Alice is a bot admin who can order the bot to quit in #general
 	conn.SendBotMessage(&testc.TestMessage{aliceID, null, "quit"})
 

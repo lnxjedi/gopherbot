@@ -160,10 +160,6 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 			r.Say("Sorry, I'm shutting down and can't start any new tasks")
 			botCfg.RUnlock()
 			return
-		} else if botCfg.paused && !abort {
-			r.Say("Sorry, I've been paused and can't start any new tasks")
-			botCfg.RUnlock()
-			return
 		}
 		botCfg.RUnlock()
 		// Check to see if user issued a new command when a reply was being

@@ -1,6 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"syscall"
+
 	"github.com/lnxjedi/gopherbot/bot"
 
 	// NOTE: If compiling gopherbot yourself, you can comment out or remove
@@ -10,8 +14,9 @@ import (
 
 	// *** Included connectors
 
-	_ "github.com/lnxjedi/gopherbot/connectors/slack"
 	_ "github.com/lnxjedi/gopherbot/connectors/rocket"
+	_ "github.com/lnxjedi/gopherbot/connectors/slack"
+
 	// NOTE: if you build with '-tags test', the terminal connector will also
 	// show emitted events.
 	_ "github.com/lnxjedi/gopherbot/connectors/terminal"
@@ -64,6 +69,7 @@ import (
 
 // Version of gopherbot
 var Version = "v2.0.0-snapshot"
+
 // Commit supplied during linking
 var Commit = "(not set)"
 
@@ -72,5 +78,15 @@ func main() {
 		Version: Version,
 		Commit:  Commit,
 	}
-	bot.Start(versionInfo)
+	restart := bot.Start(versionInfo)
+	if restart {
+		bot.DropThreadPriv("restarting")
+		bin, _ := os.Executable()
+		defer func() {
+			err := syscall.Exec(bin, os.Args, os.Environ())
+			if err != nil {
+				fmt.Printf("Error re-exec'ing: %v", err)
+			}
+		}()
+	}
 }

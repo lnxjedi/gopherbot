@@ -1,45 +1,26 @@
-// +build windows
+// +build linux darwin dragonfly freebsd netbsd openbsd
 
 package bot
 
 import (
 	"flag"
-	"io/ioutil"
 	"log"
 	"os"
-	"sync"
 
 	"github.com/joho/godotenv"
-	"golang.org/x/sys/windows/svc"
 )
 
-var started bool
-var startLock sync.Mutex
-var isIntSess bool
-var finish = make(chan struct{})
+// Information about privilege separation, set in runtasks_linux.go
+var privSep = false
+var privUID, unprivUID int
 
 func init() {
-	hostName = os.Getenv("COMPUTERNAME")
+	hostName = os.Getenv("HOSTNAME")
 }
 
-// Start gets the robot going; Windows can send this at any time, thus the lock (* AFAIK)
-func Start(v VersionInfo) {
-	startLock.Lock()
-	if started {
-		startLock.Unlock()
-		return
-	}
-	started = true
-	startLock.Unlock()
-
+// Start gets the robot going
+func Start(v VersionInfo) (restart bool) {
 	botVersion = v
-
-	const svcName = "gopherbot"
-	var err error
-	isIntSess, err = svc.IsAnInteractiveSession()
-	if err != nil {
-		log.Fatalf("failed to determine if we are running in an interactive session: %v", err)
-	}
 
 	var installpath, configpath string
 
@@ -56,40 +37,11 @@ func Start(v VersionInfo) {
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
 	flag.StringVar(&logFile, "l", "", lusage+" (shorthand)")
-	var winCommand string
-	if isIntSess {
-		wusage := "manage Windows service, one of: install, remove, start, stop"
-		flag.StringVar(&winCommand, "winsvc", "", wusage)
-		flag.StringVar(&winCommand, "w", "", wusage+" (shorthand)")
-	}
+	var plainlog bool
+	plusage := "omit timestamps from the log"
+	flag.BoolVar(&plainlog, "plainlog", false, plusage)
+	flag.BoolVar(&plainlog, "P", false, plusage+" (shorthand)")
 	flag.Parse()
-
-	if winCommand != "" {
-		switch winCommand {
-		case "install":
-			var args []string
-			if configPath != "" {
-				args = append(args, "-c", configPath)
-			}
-			err = installService(svcName, "Gopherbot ChatOps chat bot", args)
-		case "remove":
-			err = removeService(svcName)
-		case "start":
-			err = startService(svcName)
-		case "stop":
-			err = controlService(svcName, svc.Stop, svc.Stopped)
-		case "pause":
-			err = controlService(svcName, svc.Pause, svc.Paused)
-		case "continue":
-			err = controlService(svcName, svc.Continue, svc.Running)
-		default:
-			log.Fatalf("invalid command %s", winCommand)
-		}
-		if err != nil {
-			log.Fatalf("failed to %s %s: %v", winCommand, svcName, err)
-		}
-		return
-	}
 
 	var penvErr, extEnvErr error
 	penvErr = godotenv.Overload(".env")
@@ -114,12 +66,13 @@ func Start(v VersionInfo) {
 	}
 
 	var botLogger *log.Logger
-	logOut := os.Stdout
+	logFlags := log.LstdFlags
+	if plainlog {
+		logFlags = 0
+	}
+	logOut := os.Stderr
 	if len(logFile) == 0 {
 		logFile = os.Getenv("GOPHER_LOGFILE")
-	}
-	if !isIntSess && len(logFile) == 0 {
-		logFile = "C:/Windows/Temp/gopherbot-startup.log"
 	}
 	if len(logFile) != 0 {
 		lf, err := os.Create(logFile)
@@ -130,7 +83,7 @@ func Start(v VersionInfo) {
 		logOut = lf
 	}
 	log.SetOutput(logOut)
-	botLogger = log.New(logOut, "", log.LstdFlags)
+	botLogger = log.New(logOut, "", logFlags)
 	botLogger.Println("Initialized logging ...")
 
 	installpath = binDirectory
@@ -157,27 +110,25 @@ func Start(v VersionInfo) {
 		lp = configpath
 	}
 	botLogger.Printf("Starting up with config dir: %s, and install dir: %s\n", lp, installpath)
+	checkprivsep(botLogger)
 	initBot(configpath, installpath, botLogger)
 
 	initializeConnector, ok := connectors[botCfg.protocol]
 	if !ok {
-		botLogger.Fatal("No connector registered with name:", botCfg.protocol)
+		botLogger.Fatalf("No connector registered with name: %s", botCfg.protocol)
 	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface
 	h := handler{}
-	conn := initializeConnector(h, log.New(ioutil.Discard, "", 0))
+	conn := initializeConnector(h, botLogger)
+
+	// NOTE: we use setConnector instead of passing the connector to run()
+	// because of the way Windows services were run. Maybe remove eventually?
 	setConnector(conn)
 
-	if isIntSess {
-		// Start the connector's main loop for interactive sessions
-		stopped := run()
-		// ... and wait for the robot to stop
-		<-stopped
-	} else {
-		// Stop logging to startup log when running as a service
-		botLogger.SetOutput(ioutil.Discard)
-		// Started as a Windows Service
-		runService(svcName)
-	}
+	// Start the robot
+	stopped := run()
+	// ... and wait for the robot to stop
+	restart = <-stopped
+	return restart
 }

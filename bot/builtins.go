@@ -396,6 +396,12 @@ var byebye = []string{
 	"Later gator!",
 }
 
+var rightback = []string{
+	"Back in a flash!",
+	"Be right back!",
+	"You won't even have time to miss me...",
+}
+
 func logging(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	switch command {
 	case "init":
@@ -487,7 +493,7 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		}
 		taskDebug.Unlock()
 		r.Say("Debugging disabled")
-	case "quit":
+	case "quit", "restart":
 		botCfg.Lock()
 		if botCfg.shuttingDown {
 			botCfg.Unlock()
@@ -495,6 +501,10 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			return
 		}
 		botCfg.shuttingDown = true
+		restart := command == "restart"
+		if restart {
+			botCfg.restart = true
+		}
 		proto := botCfg.protocol
 		// NOTE: THIS plugin is definitely running, but will end soon!
 		if botCfg.pluginsRunning > 1 {
@@ -506,12 +516,16 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		} else {
 			botCfg.Unlock()
 			if proto != "test" {
-				r.Reply(r.RandomString(byebye))
+				if restart {
+					r.Reply(r.RandomString(rightback))
+				} else {
+					r.Reply(r.RandomString(byebye))
+				}
 				// How long does it _actually_ take for the message to go out?
 				time.Sleep(time.Second)
 			}
 		}
-		Log(Info, "Exiting on administrator 'quit' command")
+		Log(Info, "Exiting on administrator 'quit|restart' command")
 		go stop()
 	}
 	return

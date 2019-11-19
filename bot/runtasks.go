@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -443,13 +442,13 @@ func (c *botContext) getEnvironment(task *BotTask) map[string]string {
 	return envhash
 }
 
-// getTaskPath searches configPath and installPath and returns a path
-// to the task. If the path is relative, the bool is true
-func getTaskPath(task *BotTask) (tpath string, relpath bool, err error) {
+// getTaskPath searches configPath and installPath and returns the full path
+// to the task.
+func getTaskPath(task *BotTask) (tpath string, err error) {
 	if len(task.Path) == 0 {
 		err := fmt.Errorf("Path empty for external task: %s", task.name)
 		Log(Error, err.Error())
-		return "", false, err
+		return "", err
 	}
 	var taskPath string
 	if filepath.IsAbs(task.Path) {
@@ -457,11 +456,11 @@ func getTaskPath(task *BotTask) (tpath string, relpath bool, err error) {
 		_, err := os.Stat(taskPath)
 		if err == nil {
 			Log(Debug, "Using fully specified path to plugin:", taskPath)
-			return taskPath, false, nil
+			return taskPath, nil
 		}
 		err = fmt.Errorf("Invalid path for external plugin: %s (%v)", taskPath, err)
 		Log(Error, err.Error())
-		return "", false, err
+		return "", err
 	}
 	if len(configPath) > 0 {
 		taskPath = filepath.Join(configPath, task.Path)
@@ -469,54 +468,15 @@ func getTaskPath(task *BotTask) (tpath string, relpath bool, err error) {
 		if err == nil {
 			// The one case where relpath is true
 			Log(Debug, "Using external plugin from configPath: %s", taskPath)
-			return task.Path, true, nil
+			return taskPath, nil
 		}
 	}
-	if _, err := os.Stat(installPath + "/" + task.Path); err == nil {
-		taskPath = installPath + "/" + task.Path
+	taskPath = filepath.Join(installPath, task.Path)
+	if _, err := os.Stat(taskPath); err == nil {
 		Log(Debug, "Using stock external plugin: %s", taskPath)
-		return taskPath, false, nil
+		return taskPath, nil
 	}
 	err = fmt.Errorf("Couldn't locate external plugin %s: %v", task.name, err)
 	Log(Error, err.Error())
-	return "", false, err
-}
-
-// emulate Unix script convention by calling external scripts with
-// an interpreter.
-func getInterpreter(spath string, relpath bool) (interpreter string, iargs []string, err error) {
-	var iline, scriptPath string
-	var script *os.File
-	if relpath {
-		scriptPath = filepath.Join(configPath, spath)
-	} else {
-		scriptPath = spath
-	}
-	if _, err = os.Stat(scriptPath); err != nil {
-		err = fmt.Errorf("file stat: %s", err)
-		Log(Error, "Error getting interpreter for %s: %s", scriptPath, err)
-		return
-	}
-	if script, err = os.Open(scriptPath); err != nil {
-		err = fmt.Errorf("opening file: %s", err)
-		Log(Warn, "Unable to get interpreter for %s: %s", scriptPath, err)
-		return
-	}
-	r := bufio.NewReader(script)
-	if iline, err = r.ReadString('\n'); err != nil {
-		err = fmt.Errorf("reading first line: %s", err)
-		Log(Debug, "Problem getting interpreter for %s - %s", scriptPath, err)
-		return
-	}
-	if !strings.HasPrefix(iline, "#!") {
-		err = fmt.Errorf("Interpreter not found for %s; first line doesn't start with '#!'", scriptPath)
-		Log(Debug, err.Error())
-		return
-	}
-	iline = strings.TrimRight(iline, "\n\r")
-	interpPlusArgs := strings.Split(strings.TrimPrefix(iline, "#!"), " ")
-	interpreter = interpPlusArgs[0]
-	iargs = interpPlusArgs[1:]
-	Log(Debug, "Detected interpreter for %s: %s", scriptPath, interpreter)
-	return
+	return "", err
 }

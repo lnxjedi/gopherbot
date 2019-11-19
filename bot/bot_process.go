@@ -74,12 +74,12 @@ var botCfg struct {
 	ScheduledJobs        []ScheduledTask // List of scheduled tasks
 	port                 string          // Localhost port to listen on
 	stop                 chan struct{}   // stop channel for stopping the connector
-	done                 chan struct{}   // channel closed when robot finishes shutting down
+	done                 chan bool       // shutdown channel, true to restart
 	timeZone             *time.Location  // for forcing the TimeZone, Unix only
 	defaultJobChannel    string          // where job statuses will post if not otherwise specified
 	shuttingDown         bool            // to prevent new plugins from starting
+	restart              bool            // indicate stop and restart vs. stop only, for bootstrapping
 	pluginsRunning       int             // a count of how many plugins are currently running
-	paused               bool            // it's a Windows thing
 	sync.WaitGroup                       // for keeping track of running plugins
 	sync.RWMutex                         // for safe updating of bot data structures
 }
@@ -98,7 +98,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	configPath = cpath
 	installPath = epath
 	botCfg.stop = make(chan struct{})
-	botCfg.done = make(chan struct{})
+	botCfg.done = make(chan bool)
 	botCfg.shuttingDown = false
 
 	handle := handler{}
@@ -153,7 +153,7 @@ func setConnector(c Connector) {
 // run starts all the loops and returns a channel that closes when the robot
 // shuts down. It should return after the connector loop has started and
 // plugins are initialized.
-func run() <-chan struct{} {
+func run() <-chan bool {
 	// Start the brain loop
 	go runBrain()
 
@@ -210,9 +210,18 @@ func run() <-chan struct{} {
 
 	// connector loop
 	botCfg.RLock()
-	go func(conn Connector, stop <-chan struct{}, done chan<- struct{}) {
+	go func(conn Connector, stop <-chan struct{}, done chan<- bool) {
 		privCheck("connector loop")
 		conn.Run(stop)
+		botCfg.RLock()
+		restart := botCfg.restart
+		botCfg.RUnlock()
+		if restart {
+			Log(Info, "Restarting...")
+		}
+		done <- restart
+		// NOTE!! Black Magic Ahead - for some reason, the read on the done channel
+		// keeps blocking without this close.
 		close(done)
 	}(botCfg.Connector, botCfg.stop, botCfg.done)
 	botCfg.RUnlock()
@@ -221,7 +230,7 @@ func run() <-chan struct{} {
 
 // stop is called whenever the robot needs to shut down gracefully. All callers
 // should lock the bot and check the value of botCfg.shuttingDown; see
-// builtins.go and win_svc_run.go
+// builtins.go.
 func stop() {
 	botCfg.RLock()
 	pr := botCfg.pluginsRunning

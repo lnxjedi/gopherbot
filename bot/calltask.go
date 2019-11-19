@@ -1,5 +1,3 @@
-// +build darwin dragonfly netbsd openbsd
-
 package bot
 
 import (
@@ -7,30 +5,39 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
 )
 
-// no-ops on platforms that don't support priv sep
-func privCheck(reason string) {
-}
-
-func dropThreadPriv(reason string) {
+type getCfgReturn struct {
+	buffptr *[]byte
+	err     error
 }
 
 func getExtDefCfg(task *BotTask) (*[]byte, error) {
+	cc := make(chan getCfgReturn)
+	go getExtDefCfgThread(cc, task)
+	ret := <-cc
+	return ret.buffptr, ret.err
+}
+
+func getExtDefCfgThread(cchan chan<- getCfgReturn, task *BotTask) {
 	var taskPath string
 	var err error
 	var relpath bool
-	if taskPath, relpath, err = getTaskPath(task); err != nil {
-		return nil, err
+	if taskPath, err = getTaskPath(task); err != nil {
+		cchan <- getCfgReturn{nil, err}
+		return
 	}
 	var cfg []byte
 	var cmd *exec.Cmd
+
+	// drop privileges when running external task; this thread will terminate
+	// when this goroutine finishes; see runtime.LockOSThread()
+	DropThreadPriv(fmt.Sprintf("task %s default configuration", task.name))
+
 	Log(Debug, "Calling '%s' with arg: configure", taskPath)
 	//cfg, err = exec.Command(taskPath, "configure").Output()
 	cmd = exec.Command(taskPath, "configure")
@@ -45,13 +52,30 @@ func getExtDefCfg(task *BotTask) (*[]byte, error) {
 		} else {
 			err = fmt.Errorf("Problem retrieving default configuration for external plugin '%s', skipping: '%v'", taskPath, err)
 		}
-		return nil, err
+		cchan <- getCfgReturn{nil, err}
+		return
 	}
-	return &cfg, nil
+	cchan <- getCfgReturn{&cfg, nil}
+	return
 }
 
-// callTask does the real work of running a job, task or plugin with a command and arguments.
+type taskReturn struct {
+	errString string
+	retval    TaskRetVal
+}
+
+// callTask does the work of running a job, task or plugin with a command and arguments.
 func (c *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
+	rc := make(chan taskReturn)
+	go c.callTaskThread(rc, t, command, args...)
+	ret := <-rc
+	return ret.errString, ret.retval
+}
+
+func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, command string, args ...string) {
+	var errString string
+	var retval TaskRetVal
+
 	c.currentTask = t
 	r := c.makeRobot()
 	task, plugin, _ := getTask(t)
@@ -61,7 +85,8 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		msg := fmt.Sprintf("callTask failed on disabled task %s; reason: %s", task.name, task.reason)
 		Log(Error, msg)
 		c.debug(msg, false)
-		return msg, ConfigurationError
+		rchan <- taskReturn{msg, ConfigurationError}
+		return
 	}
 	if c.logger != nil {
 		var taskinfo string
@@ -106,53 +131,25 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		c.taskenvironment = envhash
 		ret := pluginHandlers[task.name].Handler(r, command, args...)
 		c.taskenvironment = nil
-		return "", ret
+		rchan <- taskReturn{"", ret}
+		return
 	}
 	var taskPath string // full path to the executable
 	var err error
-	var relpath bool
-	taskPath, relpath, err = getTaskPath(task)
+	taskPath, err = getTaskPath(task)
 	if err != nil {
 		emit(ExternalTaskBadPath)
-		return fmt.Sprintf("Error getting path for %s: %v", task.name, err), MechanismFail
-	}
-	interpreter, iargs, err := getInterpreter(taskPath, relpath)
-	if err != nil {
-		errString = "There was a problem calling an external plugin"
-		emit(ExternalTaskBadInterpreter)
-		return errString, MechanismFail
-	}
-	if len(interpreter) == 0 {
-		interpreter = "(none)"
+		rchan <- taskReturn{fmt.Sprintf("Error getting path for %s: %v", task.name, err), MechanismFail}
+		return
 	}
 	var externalArgs []string
-	if relpath {
-		// When the task path is relative, the script is run from stdin;
-		// this allows the script to be run from a different directory
-		// than configPath.
-		externalArgs = append(externalArgs, "/dev/stdin")
-		externalArgs = append(iargs, externalArgs...)
-	}
 	// jobs and tasks don't take a 'command' (it's just 'run', a dummy value)
 	if isPlugin {
 		externalArgs = append(externalArgs, command)
 	}
 	externalArgs = append(externalArgs, args...)
-	Log(Debug, "Calling '%s' with interpreter '%s' and args: %q", taskPath, interpreter, externalArgs)
-	var cmd *exec.Cmd
-	if relpath {
-		// Feed the script to stdin
-		cmd = exec.Command(interpreter, externalArgs...)
-		script, err := os.Open(filepath.Join(configPath, taskPath))
-		if err != nil {
-			errString = fmt.Sprintf("opening task '%s': '%v'", taskPath, err)
-			emit(ExternalTaskBadPath)
-			return errString, MechanismFail
-		}
-		cmd.Stdin = script
-	} else {
-		cmd = exec.Command(taskPath, externalArgs...)
-	}
+	Log(Debug, "Calling '%s' with args: %q", taskPath, externalArgs)
+	cmd := exec.Command(taskPath, externalArgs...)
 	c.Lock()
 	c.taskName = task.name
 	c.taskDesc = task.Description
@@ -188,7 +185,8 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 	if err != nil {
 		Log(Error, "Creating stderr pipe for external command '%s': %v", taskPath, err)
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-		return errString, MechanismFail
+		rchan <- taskReturn{errString, MechanismFail}
+		return
 	}
 	if c.logger == nil {
 		// close stdout on the external plugin...
@@ -198,14 +196,20 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		if err != nil {
 			Log(Error, "Creating stdout pipe for external command '%s': %v", taskPath, err)
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-			return errString, MechanismFail
+			rchan <- taskReturn{errString, MechanismFail}
+			return
 		}
 	}
+
+	// drop privileges when running external task; this thread will terminate
+	// when this goroutine finishes; see runtime.LockOSThread()
+	DropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
+
 	if err = cmd.Start(); err != nil {
 		Log(Error, "Starting command '%s': %v", taskPath, err)
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-		runtime.UnlockOSThread()
-		return errString, MechanismFail
+		rchan <- taskReturn{errString, MechanismFail}
+		return
 	}
 	if command != "init" {
 		emit(ExternalTaskRan)
@@ -215,7 +219,8 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
 			Log(Error, "Reading from stderr for external command '%s': %v", taskPath, err)
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-			return errString, MechanismFail
+			rchan <- taskReturn{errString, MechanismFail}
+			return
 		}
 		stdErrString := string(stdErrBytes)
 		if len(stdErrString) > 0 {
@@ -274,5 +279,5 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 			emit(ExternalTaskErrExit)
 		}
 	}
-	return errString, retval
+	rchan <- taskReturn{errString, retval}
 }
