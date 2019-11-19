@@ -19,6 +19,10 @@ DefaultChannels: [ "general", "random" ]
 ## 'gopherbot.env' in the root of the custom configuration repository.
 Alias: "<GOPHER_ALIAS>"
 
+Brain: file
+BrainConfig:
+  BrainDirectory: private/brain
+
 ## List of users that the robot won't even 'hear'. Note that if you put other
 ## robot / webhook IDs in the UserRoster with 'TriggersOnly: true', you can
 ## safely allow robots to 'talk' to each other, and trigger a job by another

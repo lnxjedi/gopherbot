@@ -188,10 +188,11 @@ func TestBotName(t *testing.T) {
 		{aliceID, general, "ping, bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "ping bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		// This was matching too often when a user was talking about (instead of to) the robot
+		//{aliceID, general, "ping bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "bender, ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "@bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "ping @bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "ping, @bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ping;", []testc.TestMessage{}, []Event{}, 0},
 		{bobID, general, "bender: echo hello world", []testc.TestMessage{{null, general, "Sure thing: hello world"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		// When you forget to address the robot, you can say it's name
@@ -234,10 +235,11 @@ func TestBotNoAlias(t *testing.T) {
 		{aliceID, null, "ping", []testc.TestMessage{{alice, null, "PONG"}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ping, bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "ping bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		// Support for bare names at end removed
+		//{aliceID, general, "ping bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "bender, ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "@bender ping", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "ping @bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "ping, @bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{bobID, general, "bender: echo hello world", []testc.TestMessage{{null, general, "hello world"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		// When you forget to address the robot, you can say it's name
 		{aliceID, general, "ping", []testc.TestMessage{}, []Event{}, 200},
