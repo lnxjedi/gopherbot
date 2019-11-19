@@ -76,14 +76,7 @@ Alias: {{ env "GOPHER_ALIAS" }}
 
 {{ end }}
 
-## Configure the robot's brain
-{{ $defaultbrain := "file" }}
-
-{{ if eq $proto "test" "term" }}
-  {{- $defaultbrain = "mem" }}
-{{ end }}
-
-{{ $brain := env "GOPHER_BRAIN" | default $defaultbrain }}
+{{ $brain := env "GOPHER_BRAIN" | default "mem" }}
 Brain: {{ $brain }}
 
 {{ if eq $brain "file" }}
