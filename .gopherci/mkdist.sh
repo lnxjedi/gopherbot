@@ -29,30 +29,35 @@ eval `go env`
 PLATFORMS=${1:-linux darwin}
 COMMIT=$(git rev-parse --short HEAD)
 
-CONTENTS="gopherbot conf/ doc/ jobs/ lib/ licenses/ plugins/ resources/ robot.skel/ scripts/ tasks/ AUTHORS.txt changelog.txt LICENSE new-robot.sh README.md"
-for ITEM in $CONTENTS
-do
-	ARCHIVE="$ARCHIVE gopherbot/$ITEM"
-done
+CONTENTS="conf/ doc/ jobs/ lib/ licenses/ plugins/ resources/ robot.skel/ scripts/ tasks/ AUTHORS.txt changelog.txt LICENSE new-robot.sh README.md"
+
+ADIR="build-archive"
+mkdir -p "$ADIR/gopherbot"
+cp -a $CONTENTS "$ADIR/gopherbot"
 
 for BUILDOS in $PLATFORMS
 do
 	echo "Building gopherbot for $BUILDOS"
-	OUTFILE=./gopherbot/gopherbot-$BUILDOS-$GOARCH.zip
+	OUTFILE=../gopherbot-$BUILDOS-$GOARCH.zip
 	rm -f $OUTFILE
+	rm -f "$ADIR/gopherbot/gopherbot"
 	if [ "$BUILDOS" = "linux" ]
 	then
 		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -ldflags "-X main.Commit=$COMMIT" -a -tags 'netgo osusergo static_build' -o gopherbot
-		cd ..
+		cp -a gopherbot "$ADIR/gopherbot/gopherbot"
+		cd $ADIR
 		echo "Creating $OUTFILE (from $(pwd))"
-		zip -r $OUTFILE $ARCHIVE --exclude *.swp
-		tar --exclude *.swp -czf gopherbot/gopherbot-$BUILDOS-$GOARCH.tar.gz $ARCHIVE
+		zip -r $OUTFILE gopherbot/ --exclude *.swp
+		tar --exclude *.swp -czf ../gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot/
 		cd -
 	else
 		GOOS=$BUILDOS go build -mod vendor -ldflags "-X main.Commit=$COMMIT"
-		cd ..
+		cp -a gopherbot "$ADIR/gopherbot/gopherbot"
+		cd $ADIR
 		echo "Creating $OUTFILE (from $(pwd))"
-		zip -r $OUTFILE $ARCHIVE --exclude *.swp
+		zip -r $OUTFILE $ARCHIVE --exclude *.swp gopherbot/
 		cd -
 	fi
 done
+
+rm -rf "$ADIR"
