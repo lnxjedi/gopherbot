@@ -25,26 +25,34 @@ then
 	usage
 fi
 
-git status | grep -qE "nothing to commit, working directory|tree clean" || { echo "Your working directory isn't clean, aborting build"; exit 1; }
-COMMIT=$(git rev-parse --short HEAD)
-
 eval `go env`
 PLATFORMS=${1:-linux darwin}
-ARCHIVE="conf/ doc/ jobs/ lib/ licenses/ plugins/ resources/ robot.skel/ scripts/ tasks/ AUTHORS.txt changelog.txt LICENSE new-robot.sh README.md"
+COMMIT=$(git rev-parse --short HEAD)
+
+CONTENTS="gopherbot conf/ doc/ jobs/ lib/ licenses/ plugins/ resources/ robot.skel/ scripts/ tasks/ AUTHORS.txt changelog.txt LICENSE new-robot.sh README.md"
+for ITEM in $CONTENTS
+do
+	ARCHIVE="$ARCHIVE gopherbot/$ITEM"
+done
+
 for BUILDOS in $PLATFORMS
 do
 	echo "Building gopherbot for $BUILDOS"
-	OUTFILE=./gopherbot-$BUILDOS-$GOARCH.zip
+	OUTFILE=./gopherbot/gopherbot-$BUILDOS-$GOARCH.zip
 	rm -f $OUTFILE
 	if [ "$BUILDOS" = "linux" ]
 	then
 		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -ldflags "-X main.Commit=$COMMIT" -a -tags 'netgo osusergo static_build' -o gopherbot
 		echo "Creating $OUTFILE"
-		zip -r $OUTFILE gopherbot $ARCHIVE --exclude *.swp
-		tar --exclude *.swp -czf gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot $ARCHIVE
+		cd ..
+		zip -r $OUTFILE $ARCHIVE --exclude *.swp
+		tar --exclude *.swp -czf gopherbot/gopherbot-$BUILDOS-$GOARCH.tar.gz $ARCHIVE
+		cd -
 	else
 		GOOS=$BUILDOS go build -mod vendor -ldflags "-X main.Commit=$COMMIT"
 		echo "Creating $OUTFILE"
-		zip -r $OUTFILE gopherbot $ARCHIVE --exclude *.swp
+		cd ..
+		zip -r $OUTFILE $ARCHIVE --exclude *.swp
+		cd -
 	fi
 done
