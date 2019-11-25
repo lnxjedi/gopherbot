@@ -65,7 +65,6 @@ func main() {
 	}
 	restart := bot.Start(versionInfo)
 	if restart {
-		bot.DropThreadPriv("restarting")
 		bin, _ := os.Executable()
 		defer func() {
 			err := syscall.Exec(bin, os.Args, os.Environ())

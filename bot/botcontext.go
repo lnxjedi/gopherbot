@@ -104,6 +104,7 @@ func (c *botContext) registerActive(parent *botContext) {
 	c.finalTasks = make([]TaskSpec, 0)
 
 	c.environment["GOPHER_INSTALLDIR"] = installPath
+	c.environment["GOPHER_CONFIGDIR"] = configPath
 	c.environment["GOPHER_WORKSPACE"] = workSpace
 
 	botRunID.Lock()

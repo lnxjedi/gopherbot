@@ -6,13 +6,13 @@ import (
 	"flag"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/joho/godotenv"
 )
 
 // Information about privilege separation, set in runtasks_linux.go
 var privSep = false
-var privUID, unprivUID int
 
 func init() {
 	hostName = os.Getenv("HOSTNAME")
@@ -25,14 +25,6 @@ func Start(v VersionInfo) (restart bool) {
 	var installpath, configpath string
 
 	// Process command-line flags
-	var configPath string
-	cusage := "path to the configuration directory"
-	flag.StringVar(&configPath, "config", "", cusage)
-	flag.StringVar(&configPath, "c", "", cusage+" (shorthand)")
-	var extEnvPath string
-	extenvusage := "path to additional environment file"
-	flag.StringVar(&extEnvPath, "env", "", extenvusage)
-	flag.StringVar(&extEnvPath, "e", "", extenvusage+" (shorthand)")
 	var logFile string
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -43,27 +35,7 @@ func Start(v VersionInfo) (restart bool) {
 	flag.BoolVar(&plainlog, "P", false, plusage+" (shorthand)")
 	flag.Parse()
 
-	var penvErr, extEnvErr error
-	penvErr = godotenv.Overload(".env")
-	if len(extEnvPath) > 0 {
-		godotenv.Overload(extEnvPath)
-	}
-
-	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
-
-	// Configdir is where all user-supplied configuration and
-	// external plugins are.
-	if len(configPath) != 0 {
-		configpath = configPath
-	} else if len(envCfgPath) > 0 {
-		configpath = envCfgPath
-	} else {
-		if respath, ok := checkDirectory("custom"); ok {
-			configpath = respath
-		} else {
-			configpath = "."
-		}
-	}
+	penvErr := godotenv.Overload(".env")
 
 	var botLogger *log.Logger
 	logFlags := log.LstdFlags
@@ -88,28 +60,23 @@ func Start(v VersionInfo) (restart bool) {
 
 	installpath = binDirectory
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		botLogger.Fatalf("Unable to determine working directory: %v", err)
+	}
+	configpath = filepath.Join(cwd, "custom")
+
 	if penvErr != nil {
 		botLogger.Printf("No private environment loaded from '.env': %v\n", penvErr)
 	} else {
 		botLogger.Printf("Loaded initial private environment from '.env'\n")
-	}
-	if len(extEnvPath) > 0 {
-		if extEnvErr != nil {
-			botLogger.Printf("No environment loaded from '%s': %v\n", extEnvPath, extEnvErr)
-		} else {
-			botLogger.Printf("Loaded initial environment from: %s\n", extEnvPath)
-		}
 	}
 
 	// Create the 'bot and load configuration, supplying configpath and installpath.
 	// When loading configuration, gopherbot first loads default configuration
 	// from internal config, then loads from configpath/conf/..., which
 	// overrides defaults.
-	lp := "(none)"
-	if len(configpath) > 0 {
-		lp = configpath
-	}
-	botLogger.Printf("Starting up with config dir: %s, and install dir: %s\n", lp, installpath)
+	botLogger.Printf("Starting up with config dir: %s, and install dir: %s\n", configpath, installpath)
 	checkprivsep(botLogger)
 	initBot(configpath, installpath, botLogger)
 

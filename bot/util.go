@@ -3,7 +3,6 @@ package bot
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	godebug "runtime/debug"
@@ -63,8 +62,8 @@ func checkDirectory(cpath string) (string, bool) {
 		return "", true
 	}
 	var filePath string
-	if path.IsAbs(cpath) {
-		filePath = path.Clean(cpath)
+	if filepath.IsAbs(cpath) {
+		filePath = filepath.Clean(cpath)
 	} else {
 		filePath = cpath
 	}

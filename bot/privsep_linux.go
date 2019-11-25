@@ -12,20 +12,24 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
+var privUID, unprivUID int
+
 func init() {
 	uid := syscall.Getuid()
 	euid := syscall.Geteuid()
 	if uid != euid {
-		privUID = euid
-		unprivUID = uid
+		privUID = uid
+		unprivUID = euid
 		runtime.LockOSThread()
-		syscall.Syscall(syscall.SYS_SETRESUID, uintptr(euid), uintptr(euid), uintptr(uid))
+		syscall.Syscall(syscall.SYS_SETRESUID, uintptr(privUID), uintptr(privUID), uintptr(unprivUID))
 		privSep = true
 	}
 }
 
 func privCheck(reason string) {
 	if privSep {
+		runtime.LockOSThread()
+		syscall.Syscall(syscall.SYS_SETRESUID, uintptr(privUID), uintptr(privUID), uintptr(unprivUID))
 		var ruid, euid, suid uintptr
 		syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&ruid)), uintptr(unsafe.Pointer(&euid)), uintptr(unsafe.Pointer(&suid)))
 		tid := syscall.Gettid()
@@ -37,8 +41,7 @@ func privCheck(reason string) {
 	}
 }
 
-// DropThreadPriv exported for use on restart in main()
-func DropThreadPriv(reason string) {
+func dropThreadPriv(reason string) {
 	if privSep {
 		runtime.LockOSThread()
 		var ruid, euid, suid, nruid, neuid, nsuid uintptr
@@ -59,7 +62,7 @@ func checkprivsep(l *log.Logger) {
 		var ruid, euid, suid uintptr
 		syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&ruid)), uintptr(unsafe.Pointer(&euid)), uintptr(unsafe.Pointer(&suid)))
 		tid := syscall.Gettid()
-		l.Printf(fmt.Sprintf("Privilege separation initialized; daemon UID %d, script UID %d; thread %d r/e/suid: %d/%d/%d\n", privUID, unprivUID, tid, ruid, euid, suid))
+		l.Printf(fmt.Sprintf("Privilege separation initialized; daemon UID %d, script plugin UID %d; thread %d r/e/suid: %d/%d/%d\n", privUID, unprivUID, tid, ruid, euid, suid))
 	} else {
 		l.Printf("Privilege separation not in use\n")
 	}
