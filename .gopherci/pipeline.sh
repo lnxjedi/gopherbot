@@ -55,6 +55,9 @@ fi
 # Initialize ssh for updating docs repo
 AddTask ssh-init
 
+# Make sure github is in known_hosts
+AddTask ssh-scan github.com
+
 # Publish doc updates (if any)
 AddTask exec ./.gopherci/publishdoc.sh
 
