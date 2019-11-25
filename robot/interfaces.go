@@ -1,11 +1,20 @@
-package bot
-
-/* Gather all the interfaces in once place. Structs should be defined
-   close the their methods. */
+package robot
 
 // Logger is used by a Brain for logging errors
 type Logger interface {
 	Log(l LogLevel, m string, v ...interface{})
+}
+
+// SimpleBrain is the simple interface for a configured brain, where the robot
+// handles all locking issues.
+type SimpleBrain interface {
+	// Store stores a blob of data with a string key, returns error
+	// if there's a problem storing the datum.
+	Store(key string, blob *[]byte) error
+	// Retrieve returns a blob of data (probably JSON) given a string key,
+	// and exists=true if the data blob was found, or error if the brain
+	// malfunctions.
+	Retrieve(key string) (blob *[]byte, exists bool, err error)
 }
 
 // Handler is the interface that defines the callback API for Connectors
@@ -44,6 +53,9 @@ type Handler interface {
 	// Log provides a standard logging interface with a level as defined in
 	// bot/logging.go
 	Log(l LogLevel, m string, v ...interface{})
+	// Convenience function for connectors, keeps 'import "regexp" out of
+	// robot.
+	ExtractID(u string) (string, bool)
 }
 
 // Connector is the interface defining methods that should be provided by

@@ -3,7 +3,7 @@ package slack
 import (
 	"time"
 
-	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/nlopes/slack"
 )
 
@@ -21,11 +21,11 @@ const coolDown = 21 * time.Second   // cooldown time after bursting
 
 // GetProtocolUserAttribute returns a string attribute or "" if slack doesn't
 // have that information
-func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string, ret bot.RetVal) {
+func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string, ret robot.RetVal) {
 	var userID string
 	var ok bool
 	var user *slack.User
-	if userID, ok = bot.ExtractID(u); !ok {
+	if userID, ok = s.ExtractID(u); !ok {
 		userID, ok = s.userID(u)
 	}
 	if ok {
@@ -34,30 +34,30 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 		s.RUnlock()
 	}
 	if !ok {
-		return "", bot.UserNotFound
+		return "", robot.UserNotFound
 	}
 	switch attr {
 	case "email":
-		return user.Profile.Email, bot.Ok
+		return user.Profile.Email, robot.Ok
 	case "internalid":
-		return user.ID, bot.Ok
+		return user.ID, robot.Ok
 	case "realname", "fullname", "real name", "full name":
-		return user.RealName, bot.Ok
+		return user.RealName, robot.Ok
 	case "firstname", "first name":
-		return user.Profile.FirstName, bot.Ok
+		return user.Profile.FirstName, robot.Ok
 	case "lastname", "last name":
-		return user.Profile.LastName, bot.Ok
+		return user.Profile.LastName, robot.Ok
 	case "phone":
-		return user.Profile.Phone, bot.Ok
+		return user.Profile.Phone, robot.Ok
 	// that's all the attributes we can currently get from slack
 	default:
-		return "", bot.AttributeNotFound
+		return "", robot.AttributeNotFound
 	}
 }
 
 type sendMessage struct {
 	message, channel string
-	format           bot.MessageFormat
+	format           robot.MessageFormat
 }
 
 var messages = make(chan *sendMessage)
@@ -67,7 +67,7 @@ var messages = make(chan *sendMessage)
 func (s *slackConnector) MessageHeard(user, channel string) {
 	var chanID string
 	var ok bool
-	if chanID, ok = bot.ExtractID(channel); ok {
+	if chanID, ok = s.ExtractID(channel); ok {
 		s.conn.SendMessage(s.conn.NewTypingMessage(chanID))
 	}
 }
@@ -89,17 +89,17 @@ func (s *slackConnector) startSendLoop() {
 		if current == (burstMessages - 1) {
 			current = 0
 		}
-		s.Log(bot.Trace, "bot message in slack send loop for channel %s, size: %d", send.channel, len(send.message))
+		s.Log(robot.Trace, "bot message in slack send loop for channel %s, size: %d", send.channel, len(send.message))
 		time.Sleep(typingDelay)
 		sent := false
 		for p := range []int{1, 2, 4} {
 			unfurl := slack.MsgOptionEnableLinkUnfurl()
-			if send.format == bot.Variable {
+			if send.format == robot.Variable {
 				unfurl = slack.MsgOptionDisableLinkUnfurl()
 			}
 			_, _, err := s.api.PostMessage(send.channel, slack.MsgOptionText(send.message, false), slack.MsgOptionAsUser(true), unfurl)
 			if err != nil && p == 1 {
-				s.Log(bot.Warn, "sending slack message '%s' initiating backoff: %v", send.message, err)
+				s.Log(robot.Warn, "sending slack message '%s' initiating backoff: %v", send.message, err)
 			}
 			if err != nil {
 				time.Sleep(time.Second * time.Duration(p))
@@ -109,7 +109,7 @@ func (s *slackConnector) startSendLoop() {
 			}
 		}
 		if !sent {
-			s.Log(bot.Error, "failed sending slack message '%s' to channel '%s' after 3 tries, attempting fallback to RTM", send.message, send.channel)
+			s.Log(robot.Error, "failed sending slack message '%s' to channel '%s' after 3 tries, attempting fallback to RTM", send.message, send.channel)
 			s.conn.SendMessage(s.conn.NewOutgoingMessage(send.message, send.channel))
 		}
 		timeSinceBurst := msgTime.Sub(burstTime)
@@ -117,7 +117,7 @@ func (s *slackConnector) startSendLoop() {
 			if timeSinceBurst > coolDown {
 				burstTime = msgTime
 			}
-			s.Log(bot.Debug, "slack burst limit exceeded, delaying next message by %v", msgDelay)
+			s.Log(robot.Debug, "slack burst limit exceeded, delaying next message by %v", msgDelay)
 			// if we've sent `burstMessages` messages in less than the `burstWindow`
 			// window, delay the next message by `msgDelay`.
 			time.Sleep(msgDelay)
@@ -125,7 +125,7 @@ func (s *slackConnector) startSendLoop() {
 	}
 }
 
-func (s *slackConnector) sendMessages(msgs []string, chanID string, f bot.MessageFormat) {
+func (s *slackConnector) sendMessages(msgs []string, chanID string, f robot.MessageFormat) {
 	for _, msg := range msgs {
 		messages <- &sendMessage{
 			message: msg,
@@ -145,9 +145,9 @@ func (s *slackConnector) SetUserMap(umap map[string]string) {
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (s *slackConnector) SendProtocolChannelMessage(ch string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
+func (s *slackConnector) SendProtocolChannelMessage(ch string, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	msgs := s.slackifyMessage("", msg, f)
-	if chanID, ok := bot.ExtractID(ch); ok {
+	if chanID, ok := s.ExtractID(ch); ok {
 		s.sendMessages(msgs, chanID, f)
 		return
 	}
@@ -155,27 +155,27 @@ func (s *slackConnector) SendProtocolChannelMessage(ch string, msg string, f bot
 		s.sendMessages(msgs, chanID, f)
 		return
 	}
-	s.Log(bot.Error, "slack channel ID not found for: %s", ch)
-	return bot.ChannelNotFound
+	s.Log(robot.Error, "slack channel ID not found for: %s", ch)
+	return robot.ChannelNotFound
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (s *slackConnector) SendProtocolUserChannelMessage(uid, u, ch, msg string, f bot.MessageFormat) (ret bot.RetVal) {
+func (s *slackConnector) SendProtocolUserChannelMessage(uid, u, ch, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	var userID, chanID string
 	var ok bool
-	if chanID, ok = bot.ExtractID(ch); !ok {
+	if chanID, ok = s.ExtractID(ch); !ok {
 		chanID, ok = s.chanID(ch)
 	}
 	if !ok {
-		s.Log(bot.Error, "slack channel ID not found for: %s", ch)
-		return bot.ChannelNotFound
+		s.Log(robot.Error, "slack channel ID not found for: %s", ch)
+		return robot.ChannelNotFound
 	}
-	if userID, ok = bot.ExtractID(uid); !ok {
+	if userID, ok = s.ExtractID(uid); !ok {
 		userID, ok = s.userID(u)
 	}
 	if !ok {
-		s.Log(bot.Error, "slack user ID not found for: %s", uid)
-		return bot.UserNotFound
+		s.Log(robot.Error, "slack user ID not found for: %s", uid)
+		return robot.UserNotFound
 	}
 	// This gets converted to <@userID> in slackifyMessage
 	prefix := "<@" + userID + ">: "
@@ -185,46 +185,46 @@ func (s *slackConnector) SendProtocolUserChannelMessage(uid, u, ch, msg string, 
 }
 
 // SendProtocolUserMessage sends a direct message to a user
-func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f bot.MessageFormat) (ret bot.RetVal) {
+func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	var userID string
 	var ok bool
-	if userID, ok = bot.ExtractID(u); !ok {
+	if userID, ok = s.ExtractID(u); !ok {
 		userID, ok = s.userID(u)
 	}
 	if !ok {
-		s.Log(bot.Error, "no slack user ID found for user: %s", u)
-		ret = bot.UserNotFound
+		s.Log(robot.Error, "no slack user ID found for user: %s", u)
+		ret = robot.UserNotFound
 	}
 	var userIMchan string
 	var err error
 	userIMchan, ok = s.userIMID(userID)
 	if !ok {
-		s.Log(bot.Warn, "no slack IM channel found for user: %s, ID: %s trying to open IM", u, userID)
+		s.Log(robot.Warn, "no slack IM channel found for user: %s, ID: %s trying to open IM", u, userID)
 		_, _, userIMchan, err = s.conn.OpenIMChannel(userID)
 		if err != nil {
-			s.Log(bot.Error, "unable to open a slack IM channel to user: %s, ID: %s", u, userID)
-			ret = bot.FailedMessageSend
+			s.Log(robot.Error, "unable to open a slack IM channel to user: %s, ID: %s", u, userID)
+			ret = robot.FailedMessageSend
 		}
 	}
-	if ret != bot.Ok {
+	if ret != robot.Ok {
 		return
 	}
 	msgs := s.slackifyMessage("", msg, f)
 	s.sendMessages(msgs, userIMchan, f)
-	return bot.Ok
+	return robot.Ok
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"
-func (s *slackConnector) JoinChannel(c string) (ret bot.RetVal) {
+func (s *slackConnector) JoinChannel(c string) (ret robot.RetVal) {
 	chanID, ok := s.chanID(c)
 	if !ok {
-		s.Log(bot.Error, "slack channel ID not found for: %s", c)
-		return bot.ChannelNotFound
+		s.Log(robot.Error, "slack channel ID not found for: %s", c)
+		return robot.ChannelNotFound
 	}
 	_, err := s.api.JoinChannel(chanID)
 	if err != nil {
-		s.Log(bot.Error, "failed to join slack channel %s: %v; (try inviting the bot to the channel)", c, err)
-		return bot.FailedChannelJoin
+		s.Log(robot.Error, "failed to join slack channel %s: %v; (try inviting the bot to the channel)", c, err)
+		return robot.FailedChannelJoin
 	}
-	return bot.Ok
+	return robot.Ok
 }

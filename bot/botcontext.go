@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 /* botcontext.go - internal methods on botContexts */
@@ -53,7 +55,7 @@ func getBotContextInt(idx int) *botContext {
 func (c *botContext) registerActive(parent *botContext) {
 	botCfg.RLock()
 	if c.Incoming != nil {
-		c.Protocol = setProtocol(c.Incoming.Protocol)
+		c.Protocol, _ = getProtocol(c.Incoming.Protocol)
 	}
 	c.Format = botCfg.defaultMessageFormat
 	c.environment["GOPHER_HTTP_POST"] = "http://" + botCfg.port
@@ -133,16 +135,18 @@ func (c *botContext) deregister() {
 
 // makeRobot returns a *Robot for plugins; the id lets Robot methods
 // get a reference back to the original context.
-func (c *botContext) makeRobot() *Robot {
-	return &Robot{
-		User:            c.User,
-		ProtocolUser:    c.ProtocolUser,
-		Channel:         c.Channel,
-		ProtocolChannel: c.ProtocolChannel,
-		Format:          c.Format,
-		Protocol:        c.Protocol,
-		Incoming:        c.Incoming,
-		id:              c.id,
+func (c *botContext) makeRobot() Robot {
+	return Robot{
+		&robot.Message{
+			User:            c.User,
+			ProtocolUser:    c.ProtocolUser,
+			Channel:         c.Channel,
+			ProtocolChannel: c.ProtocolChannel,
+			Format:          c.Format,
+			Protocol:        c.Protocol,
+			Incoming:        c.Incoming,
+		},
+		c.id,
 	}
 }
 
@@ -180,29 +184,29 @@ func (c *botContext) clone() *botContext {
 // (or doesn't). It could also be called Context, or PipelineState; but for
 // use by plugins, it's best left as Robot.
 type botContext struct {
-	User               string                // The user who sent the message; this can be modified for replying to an arbitrary user
-	Channel            string                // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	ProtocolUser       string                // The username or <userid> to be sent in connector methods
-	ProtocolChannel    string                // the channel name or <channelid> where the message originated
-	Protocol           Protocol              // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
-	Incoming           *ConnectorMessage     // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
-	Format             MessageFormat         // robot's default message format
-	workingDirectory   string                // directory where tasks run relative to cfgdir or workspace
-	protected          bool                  // protected jobs flip this flag, causing tasks in the pipeline to run in cfgdir
-	id                 int                   // incrementing index of Robot threads
-	tasks              taskList              // Pointers to current task configuration at start of pipeline
-	maps               *userChanMaps         // Pointer to current user / channel maps struct
-	repositories       map[string]repository // Set of configured repositories
-	BotUser            bool                  // set for bots/programs that should never match ambient messages
-	listedUser         bool                  // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
-	isCommand          bool                  // Was the message directed at the robot, dm or by mention
-	directMsg          bool                  // if the message was sent by DM
-	msg                string                // the message text sent
-	automaticTask      bool                  // set for scheduled & triggers jobs, where user security restrictions don't apply
-	elevated           bool                  // set when required elevation succeeds
-	environment        map[string]string     // environment vars set for each job/plugin in the pipeline
-	storedEnv, secrets brainParams           // encrypted parameters and secrets
-	taskenvironment    map[string]string     // per-task environment for Go plugins
+	User               string                  // The user who sent the message; this can be modified for replying to an arbitrary user
+	Channel            string                  // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	ProtocolUser       string                  // The username or <userid> to be sent in connector methods
+	ProtocolChannel    string                  // the channel name or <channelid> where the message originated
+	Protocol           robot.Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
+	Incoming           *robot.ConnectorMessage // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
+	Format             robot.MessageFormat     // robot's default message format
+	workingDirectory   string                  // directory where tasks run relative to cfgdir or workspace
+	protected          bool                    // protected jobs flip this flag, causing tasks in the pipeline to run in cfgdir
+	id                 int                     // incrementing index of Robot threads
+	tasks              taskList                // Pointers to current task configuration at start of pipeline
+	maps               *userChanMaps           // Pointer to current user / channel maps struct
+	repositories       map[string]repository   // Set of configured repositories
+	BotUser            bool                    // set for bots/programs that should never match ambient messages
+	listedUser         bool                    // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
+	isCommand          bool                    // Was the message directed at the robot, dm or by mention
+	directMsg          bool                    // if the message was sent by DM
+	msg                string                  // the message text sent
+	automaticTask      bool                    // set for scheduled & triggers jobs, where user security restrictions don't apply
+	elevated           bool                    // set when required elevation succeeds
+	environment        map[string]string       // environment vars set for each job/plugin in the pipeline
+	storedEnv, secrets brainParams             // encrypted parameters and secrets
+	taskenvironment    map[string]string       // per-task environment for Go plugins
 
 	active         bool         // whether this context has been registered as active
 	ptype          pipelineType // what started this pipeline
@@ -219,9 +223,9 @@ type botContext struct {
 
 	failedTask, failedTaskDescription string // set when a task fails
 
-	history  HistoryProvider // history provider for generating the logger
-	timeZone *time.Location  // for history timestamping
-	logger   HistoryLogger   // where to send stdout / stderr
+	history  robot.HistoryProvider // history provider for generating the logger
+	timeZone *time.Location        // for history timestamping
+	logger   robot.HistoryLogger   // where to send stdout / stderr
 
 	sync.Mutex                     // Protects access to the items below
 	parent, child      *botContext // for sub-job contexts

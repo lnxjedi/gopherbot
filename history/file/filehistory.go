@@ -12,10 +12,11 @@ import (
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var historyPath string
-var robot bot.Handler
+var handler robot.Handler
 
 // TODO: move to bot.historyStdFlags
 const logFlags = log.LstdFlags
@@ -54,7 +55,7 @@ var fhc historyConfig
 
 // NewHistory initializes and returns a historyFile, as well as cleaning up old
 // logs.
-func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (bot.HistoryLogger, error) {
+func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (robot.HistoryLogger, error) {
 	tag = strings.Replace(tag, `\`, ":", -1)
 	tag = strings.Replace(tag, `/`, ":", -1)
 	dirPath := path.Join(fhc.Directory, tag)
@@ -79,7 +80,7 @@ func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (bot.H
 				}
 				rerr := os.Remove(rmPath)
 				if rerr != nil {
-					robot.Log(bot.Error, "Error removing old log file '%s': %v", rmPath, rerr)
+					handler.Log(robot.Error, "Error removing old log file '%s': %v", rmPath, rerr)
 					// assume it's pointless to keep trying to delete files
 					break
 				}
@@ -115,24 +116,24 @@ func (fhc *historyConfig) MakeHistoryURL(tag string, index int) (string, bool) {
 	return "", false
 }
 
-func provider(r bot.Handler) bot.HistoryProvider {
-	robot = r
-	robot.GetHistoryConfig(&fhc)
+func provider(r robot.Handler) robot.HistoryProvider {
+	handler = r
+	handler.GetHistoryConfig(&fhc)
 	if len(fhc.Directory) == 0 {
-		robot.Log(bot.Error, "HistoryConfig missing value for Directory required by 'file' history provider")
+		handler.Log(robot.Error, "HistoryConfig missing value for Directory required by 'file' history provider")
 		return nil
 	}
 	historyPath = fhc.Directory
 	hd, err := os.Stat(historyPath)
 	if err != nil {
-		robot.Log(bot.Error, "Checking history directory '%s': %v", historyPath, err)
+		handler.Log(robot.Error, "Checking history directory '%s': %v", historyPath, err)
 		return nil
 	}
 	if !hd.Mode().IsDir() {
-		robot.Log(bot.Error, "Checking history directory: '%s' isn't a directory", historyPath)
+		handler.Log(robot.Error, "Checking history directory: '%s' isn't a directory", historyPath)
 		return nil
 	}
-	robot.Log(bot.Info, "Initialized file history provider with directory: '%s'", historyPath)
+	handler.Log(robot.Info, "Initialized file history provider with directory: '%s'", historyPath)
 	return &fhc
 }
 

@@ -1,13 +1,34 @@
-package bot
+// Package robot defines interfaces and constants for pluggable go modules
+package robot
 
 // RetVal is a integer type for returning error conditions from bot methods, or 0 for Ok
 type RetVal int
 
-//go:generate stringer -type=TaskRetVal error.go
+//go:generate stringer -type=TaskRetVal botdefs.go
 
-//go:generate stringer -type=RetVal error.go
+//go:generate stringer -type=RetVal botdefs.go
 
-// Generate String method with: go generate ./bot/
+//go:generate stringer -type=Protocol botdefs.go
+
+//go:generate stringer -type=MessageFormat botdefs.go
+
+//go:generate stringer -type=LogLevel botdefs.go
+
+// Generate String method with: go generate ./robot/
+
+// LogLevel for determining when to output a log entry
+type LogLevel int
+
+// Definitions of log levels in order from most to least verbose
+const (
+	Trace LogLevel = iota
+	Debug
+	Info
+	Audit // For plugins to emit auditable events
+	Warn
+	Error
+	Fatal
+)
 
 // TaskRetVal is an integer type for return values from plugins, mainly for elevation & authorization
 type TaskRetVal int
@@ -108,4 +129,29 @@ const (
 	CommandNotMatched
 	// TaskDisabled - a method call attempted to add a disabled task to a pipeline
 	TaskDisabled
+)
+
+// Protocol - connector protocols
+type Protocol int
+
+const (
+	// Slack connector
+	Slack Protocol = iota
+	// Rocket for Rocket.Chat
+	Rocket
+	// Terminal connector
+	Terminal
+	// Test connector for automated test suites
+	Test
+)
+
+// MessageFormat indicates how the connector should display the content of
+// the message. One of Variable, Fixed or Raw
+type MessageFormat int
+
+// Outgoing message format, Variable or Fixed
+const (
+	Raw MessageFormat = iota // protocol native, zero value -> default if not specified
+	Fixed
+	Variable
 )

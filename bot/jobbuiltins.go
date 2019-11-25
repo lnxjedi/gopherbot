@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 /*
@@ -24,11 +26,12 @@ const histPageSize = 2048    // how much history to display at a time
 const maxMailBody = 10485760 // 10MB
 
 func init() {
-	RegisterPlugin("builtin-history", PluginHandler{Handler: jobhistory})
-	RegisterPlugin("builtin-jobcmd", PluginHandler{Handler: jobcommands})
+	RegisterPlugin("builtin-history", robot.PluginHandler{Handler: jobhistory})
+	RegisterPlugin("builtin-jobcmd", robot.PluginHandler{Handler: jobcommands})
 }
 
-func jobcommands(r *Robot, command string, args ...string) (retval TaskRetVal) {
+func jobcommands(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+	r := m.(Robot)
 	if command == "init" {
 		return
 	}
@@ -70,26 +73,26 @@ func jobcommands(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	return
 }
 
-func emailhistory(r *Robot, hp HistoryProvider, user, address, spec string, run int) (retval TaskRetVal) {
+func emailhistory(r Robot, hp robot.HistoryProvider, user, address, spec string, run int) (retval robot.TaskRetVal) {
 	f, err := hp.GetHistory(spec, run)
 	if err != nil {
-		Log(Error, "Error getting history %d for task '%s': %v", run, spec, err)
-		r.Say(fmt.Sprintf("History %d for '%s' not available", run, spec))
+		Log(robot.Error, "Error getting history %d for task '%s': %v", run, spec, err)
+		r.Say("History %d for '%s' not available", run, spec)
 		return
 	}
 	lr := io.LimitReader(f, maxMailBody)
 	body := new(bytes.Buffer)
 	body.Write([]byte("<pre>\n"))
-	b, rerr := ioutil.ReadAll(lr)
+	buff, rerr := ioutil.ReadAll(lr)
 	if rerr != nil {
-		r.Log(Error, "reading history #%d for '%s': %v", run, spec, rerr)
+		r.Log(robot.Error, "reading history #%d for '%s': %v", run, spec, rerr)
 		r.Reply("There was a problem reading the history, check with an administrator")
 		return
 	}
-	body.Write(b)
+	body.Write(buff)
 	body.Write([]byte("\n</pre>"))
 	subject := fmt.Sprintf("History for '%s', run %d", spec, run)
-	var ret RetVal
+	var ret robot.RetVal
 	if len(user) > 0 {
 		ret = r.EmailUser(user, subject, body, true)
 	} else if len(address) > 0 {
@@ -97,7 +100,7 @@ func emailhistory(r *Robot, hp HistoryProvider, user, address, spec string, run 
 	} else {
 		ret = r.Email(subject, body, true)
 	}
-	if ret != Ok {
+	if ret != robot.Ok {
 		r.Reply("There was a problem emailing the history log, contact an administrator")
 		return
 	}
@@ -105,11 +108,11 @@ func emailhistory(r *Robot, hp HistoryProvider, user, address, spec string, run 
 	return
 }
 
-func pagehistory(r *Robot, hp HistoryProvider, spec string, run int) (retval TaskRetVal) {
+func pagehistory(r Robot, hp robot.HistoryProvider, spec string, run int) (retval robot.TaskRetVal) {
 	f, err := hp.GetHistory(spec, run)
 	if err != nil {
-		Log(Error, "Error getting history %d for task '%s': %v", run, spec, err)
-		r.Say(fmt.Sprintf("History %d for '%s' not available", run, spec))
+		Log(robot.Error, "Error getting history %d for task '%s': %v", run, spec, err)
+		r.Say("History %d for '%s' not available", run, spec)
 		return
 	}
 	var line string
@@ -142,7 +145,7 @@ PageLoop:
 			break
 		}
 		rep, ret := r.PromptForReply("paging", "'c' to continue, 'q' to quit, or 'n' to skip to the next section")
-		if ret != Ok {
+		if ret != robot.Ok {
 			r.Say("(quitting)")
 			break PageLoop
 		} else {
@@ -164,10 +167,11 @@ PageLoop:
 	return
 }
 
-func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
+func jobhistory(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	if command == "init" {
 		return
 	}
+	r := m.(Robot)
 
 	var histType, latest, histSpec, index, user, address string
 
@@ -196,7 +200,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	if !c.jobSecurityCheck(t, command) {
 		return
 	}
-	vr := r.MessageFormat(Variable)
+	vr := r.MessageFormat(robot.Variable)
 
 	switch command {
 	case "history", "mailhistory":
@@ -211,8 +215,8 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		var jh jobHistory
 		key := histPrefix + histSpec
 		_, _, ret := checkoutDatum(key, &jh, false)
-		if ret != Ok {
-			r.Say(fmt.Sprintf("No history found for '%s'", histSpec))
+		if ret != robot.Ok {
+			r.Say("No history found for '%s'", histSpec)
 			return
 		}
 		if len(latest) == 0 && len(index) == 0 {
@@ -227,7 +231,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 				}
 				vr.Say(strings.Join(nsl, "\n"))
 				rep, ret := r.PromptForReply("selection", "Which namespace #?")
-				if ret != Ok {
+				if ret != robot.Ok {
 					r.Say("(quitting history command)")
 					return
 				}
@@ -240,7 +244,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			}
 		}
 		if len(jh.Histories) == 0 {
-			r.Say(fmt.Sprintf("No history found for '%s'", histSpec))
+			r.Say("No history found for '%s'", histSpec)
 			return
 		}
 
@@ -260,7 +264,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			}
 			vr.Say(strings.Join(hl, "\n"))
 			rep, ret := r.PromptForReply("selection", "Which run #?")
-			if ret != Ok {
+			if ret != robot.Ok {
 				r.Say("(quitting history command)")
 				return
 			}
@@ -284,7 +288,7 @@ func jobhistory(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			}
 		case "link":
 			if link, ok := hp.GetHistoryURL(histSpec, idx); ok {
-				r.Say(fmt.Sprintf("Here you go: %s", link))
+				r.Say("Here you go: %s", link)
 				return
 			}
 			r.Say("No link available")
@@ -312,12 +316,12 @@ func (c *botContext) jobSecurityCheck(t interface{}, command string) bool {
 			return false
 		}
 	}
-	if c.checkAuthorization(t, command) != Success {
+	if c.checkAuthorization(t, command) != robot.Success {
 		return false
 	}
 	if !c.elevated {
 		eret, required := c.checkElevation(t, command)
-		if eret != Success {
+		if eret != robot.Success {
 			return false
 		}
 		if required {
@@ -382,13 +386,13 @@ func (c *botContext) jobAvailable(taskName string) interface{} {
 	r := c.makeRobot()
 	t := c.tasks.getTaskByName(taskName)
 	if t == nil {
-		r.Say(fmt.Sprintf("Sorry, I don't have a task named '%s' configured", taskName))
+		r.Say("Sorry, I don't have a task named '%s' configured", taskName)
 		return nil
 	}
 	task, _, job := getTask(t)
 	isJob := job != nil
 	if !isJob {
-		r.Say(fmt.Sprintf("Sorry, '%s' isn't a job", taskName))
+		r.Say("Sorry, '%s' isn't a job", taskName)
 		return nil
 	}
 	if c.automaticTask {
@@ -398,7 +402,7 @@ func (c *botContext) jobAvailable(taskName string) interface{} {
 	// job, and should be available regardless of channel.
 	if !c.jobInitialized && r.Channel != task.Channel {
 		c.debugTask(task, fmt.Sprintf("not available in channel '%s'", task.Channel), false)
-		r.Say(fmt.Sprintf("Sorry, job '%s' isn't available in this channel, try '%s'", taskName, task.Channel))
+		r.Say("Sorry, job '%s' isn't available in this channel, try '%s'", taskName, task.Channel)
 		return nil
 	}
 	if task.RequireAdmin {
@@ -413,7 +417,7 @@ func (c *botContext) jobAvailable(taskName string) interface{} {
 			}
 		}
 		if !isAdmin {
-			r.Say(fmt.Sprintf("Sorry, '%s' is only available to bot administrators", taskName))
+			r.Say("Sorry, '%s' is only available to bot administrators", taskName)
 			return nil
 		}
 	}

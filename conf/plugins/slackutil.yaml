@@ -1,6 +1,6 @@
 ---
 Help:
-- Keywords: [ "identify", "id", "slack" ]
+- Keywords: [ "identify", "id", "slack", "whois" ]
   Helptext: [ "(bot), slack id <@user> - get the slack internal ID for @user" ]
 CommandMatchers:
 - Command: "identify"

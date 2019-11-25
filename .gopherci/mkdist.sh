@@ -12,10 +12,9 @@ trap 'trap_handler ${LINENO} $?' ERR
 
 usage(){
 	cat <<EOF
-Usage: mkdist.sh (linux|darwin|windows)
+Usage: mkdist.sh
 
-Generate distributable .zip files for the given platform, or all platforms if
-no argument given.
+Generate distributable .zip file for Linux
 EOF
 	exit 0
 }
@@ -26,38 +25,28 @@ then
 fi
 
 eval `go env`
-PLATFORMS=${1:-linux darwin}
 COMMIT=$(git rev-parse --short HEAD)
 
-CONTENTS="conf/ doc/ jobs/ lib/ licenses/ plugins/ resources/ robot.skel/ scripts/ tasks/ AUTHORS.txt changelog.txt LICENSE new-robot.sh README.md"
+CONTENTS="conf/ doc/ jobs/ lib/ licenses/ plugins/ resources/ robot.skel/ scripts/ \
+	tasks/ AUTHORS.txt changelog.txt LICENSE new-robot.sh README.md"
+MODULES="goplugins/knock.so goplugins/duo.so goplugins/meme.so goplugins/totp.so \
+	connectors/slack.so connectors/rocket.so connectors/terminal.so brains/dynamodb.so"
 
 ADIR="build-archive"
 mkdir -p "$ADIR/gopherbot"
-cp -a $CONTENTS "$ADIR/gopherbot"
 
-for BUILDOS in $PLATFORMS
-do
-	echo "Building gopherbot for $BUILDOS"
-	OUTFILE=../gopherbot-$BUILDOS-$GOARCH.zip
-	rm -f $OUTFILE
-	rm -f "$ADIR/gopherbot/gopherbot"
-	if [ "$BUILDOS" = "linux" ]
-	then
-		CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod vendor -ldflags "-X main.Commit=$COMMIT" -a -tags 'netgo osusergo static_build' -o gopherbot
-		cp -a gopherbot "$ADIR/gopherbot/gopherbot"
-		cd $ADIR
-		echo "Creating $OUTFILE (from $(pwd))"
-		zip -r $OUTFILE gopherbot/ --exclude *.swp
-		tar --exclude *.swp -czf ../gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot/
-		cd -
-	else
-		GOOS=$BUILDOS go build -mod vendor -ldflags "-X main.Commit=$COMMIT"
-		cp -a gopherbot "$ADIR/gopherbot/gopherbot"
-		cd $ADIR
-		echo "Creating $OUTFILE (from $(pwd))"
-		zip -r $OUTFILE gopherbot/ --exclude *.swp
-		cd -
-	fi
-done
+BUILDOS="linux"
+echo "Building gopherbot for $BUILDOS"
+make clean
+OUTFILE=../gopherbot-$BUILDOS-$GOARCH.zip
+rm -f "$ADIR/gopherbot/gopherbot"
+make
+cp -a gopherbot "$ADIR/gopherbot/gopherbot"
+cp -a $CONTENTS $MODULES "$ADIR/gopherbot"
+cd $ADIR
+echo "Creating $OUTFILE (from $(pwd))"
+zip -r $OUTFILE gopherbot/ --exclude *.swp
+tar --exclude *.swp -czf ../gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot/
+cd -
 
 rm -rf "$ADIR"

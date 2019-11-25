@@ -6,7 +6,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/nlopes/slack"
 )
 
@@ -22,12 +22,8 @@ type config struct {
 var lock sync.Mutex // package var lock
 var started bool    // set when connector is started
 
-func init() {
-	bot.RegisterConnector("slack", Initialize)
-}
-
 // Initialize starts the connection, sets up and returns the connector object
-func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
+func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	lock.Lock()
 	if started {
 		lock.Unlock()
@@ -39,9 +35,9 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	var c config
 	var tok string
 
-	err := robot.GetProtocolConfig(&c)
+	err := r.GetProtocolConfig(&c)
 	if err != nil {
-		robot.Log(bot.Fatal, "unable to retrieve slack protocol configuration: %v", err)
+		r.Log(robot.Fatal, "unable to retrieve slack protocol configuration: %v", err)
 	}
 
 	if c.MaxMessageSplit == 0 {
@@ -49,7 +45,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 
 	if len(c.SlackToken) == 0 {
-		robot.Log(bot.Fatal, "no slack token found in config")
+		r.Log(robot.Fatal, "no slack token found in config")
 	} else {
 		tok = c.SlackToken
 	}
@@ -58,7 +54,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		slack.OptionLog(l),
 	}
 	// This spits out a lot of extra stuff, so we only enable it when tracing
-	if robot.GetLogLevel() == bot.Trace {
+	if r.GetLogLevel() == robot.Trace {
 		slackOpts = append(slackOpts, slack.OptionDebug(true))
 	}
 
@@ -72,7 +68,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 	go sc.conn.ManageConnection()
 
-	sc.Handler = robot
+	sc.Handler = r
 
 Loop:
 	for {
@@ -82,18 +78,18 @@ Loop:
 			switch ev := msg.Data.(type) {
 
 			case *slack.ConnectedEvent:
-				sc.Log(bot.Debug, "slack infos: %T %v\n", ev, *ev.Info.User)
-				sc.Log(bot.Debug, "slack connection counter: %d", ev.ConnectionCount)
+				r.Log(robot.Debug, "slack infos: %T %v\n", ev, *ev.Info.User)
+				r.Log(robot.Debug, "slack connection counter: %d", ev.ConnectionCount)
 				sc.botName = ev.Info.User.Name
 				sc.botID = ev.Info.User.ID
-				sc.Log(bot.Info, "slack setting bot internal ID to: %s", sc.botID)
-				sc.SetBotID(sc.botID)
+				r.Log(robot.Info, "slack setting bot internal ID to: %s", sc.botID)
+				r.SetBotID(sc.botID)
 				sc.teamID = ev.Info.Team.ID
-				sc.Log(bot.Info, "Set team ID to", sc.teamID)
+				r.Log(robot.Info, "Set team ID to", sc.teamID)
 				break Loop
 
 			case *slack.InvalidAuthEvent:
-				sc.Log(bot.Fatal, "Invalid credentials")
+				r.Log(robot.Fatal, "Invalid credentials")
 			}
 		}
 	}
@@ -103,7 +99,7 @@ Loop:
 	sc.botFullName, _ = sc.GetProtocolUserAttribute(sc.botName, "realname")
 	go sc.startSendLoop()
 
-	return bot.Connector(sc)
+	return robot.Connector(sc)
 }
 
 func (sc *slackConnector) Run(stop <-chan struct{}) {
@@ -119,10 +115,10 @@ loop:
 	for {
 		select {
 		case <-stop:
-			sc.Log(bot.Debug, "Received stop in connector")
+			sc.Log(robot.Debug, "Received stop in connector")
 			break loop
 		case msg := <-sc.conn.IncomingEvents:
-			sc.Log(bot.Trace, "Event Received (msg, data, type): %v; %v; %T", msg, msg.Data, msg.Data)
+			sc.Log(robot.Trace, "Event Received (msg, data, type): %v; %v; %T", msg, msg.Data, msg.Data)
 			switch ev := msg.Data.(type) {
 			case *slack.HelloEvent:
 				// Ignore hello
@@ -139,13 +135,13 @@ loop:
 				go sc.processMessage(ev)
 
 			case *slack.PresenceChangeEvent:
-				sc.Log(bot.Debug, "Presence Change: %v", ev)
+				sc.Log(robot.Debug, "Presence Change: %v", ev)
 
 			case *slack.LatencyReport:
-				sc.Log(bot.Debug, "Current latency: %v", ev.Value)
+				sc.Log(robot.Debug, "Current latency: %v", ev.Value)
 
 			case *slack.RTMError:
-				sc.Log(bot.Debug, "Error: %s\n", ev.Error())
+				sc.Log(robot.Debug, "Error: %s\n", ev.Error())
 
 			default:
 

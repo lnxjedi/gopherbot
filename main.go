@@ -12,21 +12,10 @@ import (
 	// or unneeded funcationality. You'll need at least one connector for your
 	// bot to be useful, however.
 
-	// *** Included connectors
-
-	_ "github.com/lnxjedi/gopherbot/connectors/rocket"
-	_ "github.com/lnxjedi/gopherbot/connectors/slack"
-
-	// NOTE: if you build with '-tags test', the terminal connector will also
-	// show emitted events.
-	_ "github.com/lnxjedi/gopherbot/connectors/terminal"
-
-	// *** Included brain implementations
-
-	_ "github.com/lnxjedi/gopherbot/brains/dynamodb"
+	// *** Compiled-in brain implementations
 	_ "github.com/lnxjedi/gopherbot/brains/file"
 
-	// *** Included history implementations
+	// *** Compiled-in history implementations
 	_ "github.com/lnxjedi/gopherbot/history/file"
 
 	// Many included plugins already have 'Disabled: true', but you can also
@@ -44,14 +33,10 @@ import (
 	// *** Included Go plugins, of varying quality
 
 	_ "github.com/lnxjedi/gopherbot/goplugins/help"
-	_ "github.com/lnxjedi/gopherbot/goplugins/knock"
 	_ "github.com/lnxjedi/gopherbot/goplugins/links"
 	_ "github.com/lnxjedi/gopherbot/goplugins/lists"
 	_ "github.com/lnxjedi/gopherbot/goplugins/meme"
 	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
-
-	// Helpful plugin for a Slack bot admin
-	_ "github.com/lnxjedi/gopherbot/goplugins/slackutil"
 
 	/* Enable profiling. You can shrink the binary by removing this, but if the
 	   robot ever stops responding for any reason, it's handy for getting a

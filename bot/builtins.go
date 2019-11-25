@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // if help is more than tooLong lines long, send a private message
@@ -22,16 +23,17 @@ const tooManyChannels = 4
 const qrsize = 400
 
 func init() {
-	RegisterPlugin("builtin-dmadmin", PluginHandler{Handler: dmadmin})
-	RegisterPlugin("builtin-help", PluginHandler{Handler: help})
-	RegisterPlugin("builtin-admin", PluginHandler{Handler: admin})
-	RegisterPlugin("builtin-logging", PluginHandler{Handler: logging})
-	RegisterPlugin("builtin-brain", PluginHandler{Handler: encryptcfg})
+	RegisterPlugin("builtin-dmadmin", robot.PluginHandler{Handler: dmadmin})
+	RegisterPlugin("builtin-help", robot.PluginHandler{Handler: help})
+	RegisterPlugin("builtin-admin", robot.PluginHandler{Handler: admin})
+	RegisterPlugin("builtin-logging", robot.PluginHandler{Handler: logging})
+	RegisterPlugin("builtin-brain", robot.PluginHandler{Handler: encryptcfg})
 }
 
 /* builtin plugins, like help */
 
-func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
+func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+	r := m.(Robot)
 	if command == "init" {
 		return // ignore init
 	}
@@ -54,7 +56,7 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		} else {
 			alias = string(aliasCh)
 		}
-		channelID, _ := ExtractID(r.ProtocolChannel)
+		channelID, _ := handle.ExtractID(r.ProtocolChannel)
 		msg := make([]string, 0, 7)
 		msg = append(msg, "Here's some information about me and my running environment:")
 		msg = append(msg, fmt.Sprintf("The hostname for the server I'm running on is: %s", hostName))
@@ -89,7 +91,7 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		if len(args) == 1 && len(args[0]) > 0 {
 			hasKeyword = true
 			term = args[0]
-			Log(Trace, "Help requested for term", term)
+			Log(robot.Trace, "Help requested for term", term)
 		}
 
 		helpLines := make([]string, 0, tooLong)
@@ -104,7 +106,7 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			if !r.getContext().pluginAvailable(task, hasKeyword, true) {
 				continue
 			}
-			Log(Trace, "Checking help for plugin %s (term: %s)", task.name, term)
+			Log(robot.Trace, "Checking help for plugin %s (term: %s)", task.name, term)
 			if !hasKeyword { // if you ask for help without a term, you just get help for whatever commands are available to you
 				for _, phelp := range plugin.Help {
 					for _, helptext := range phelp.Helptext {
@@ -183,7 +185,8 @@ func help(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	return
 }
 
-func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
+func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+	r := m.(Robot)
 	if command == "init" {
 		return // ignore init
 	}
@@ -200,7 +203,7 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		secret := args[0]
 		b, err := encrypt([]byte(secret), key)
 		if err != nil {
-			r.Log(Error, "Problem encrypting secret in 'encrypt' command: %v", err)
+			r.Log(robot.Error, "Problem encrypting secret in 'encrypt' command: %v", err)
 			r.Say("I had problems encrypting your secret, check with an administrator")
 			return
 		}
@@ -244,8 +247,8 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			datumkey = paramKey
 		}
 		tok, _, ret := checkoutDatum(datumkey, &secrets, true)
-		if ret != Ok {
-			r.Log(Error, "Error checking out brainParams: %s", ret)
+		if ret != robot.Ok {
+			r.Log(robot.Error, "Error checking out brainParams: %s", ret)
 			r.Say("Ugh, I'm not able to store that memory right now, check with an administrator")
 			return
 		}
@@ -253,7 +256,7 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		// botContext doesn't carry all the unencrypted secrets in memory
 		value, err := encrypt([]byte(rawvalue), key)
 		if err != nil {
-			r.Log(Error, "Problem encrypting value for '%s' in namespace '%s': %v", name, nsname, err)
+			r.Log(robot.Error, "Problem encrypting value for '%s' in namespace '%s': %v", name, nsname, err)
 			r.Say("I had problems encrypting your secret, check with an administrator")
 			return
 		}
@@ -278,20 +281,20 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			secrets.RepositoryParams[nsname][name] = value
 		}
 		ret = updateDatum(datumkey, tok, secrets)
-		if ret == Ok {
+		if ret == robot.Ok {
 			r.Say("Stored")
 		} else {
-			r.Log(Error, "Problem storing parameter: %s", ret)
+			r.Log(robot.Error, "Problem storing parameter: %s", ret)
 			r.Say("There was a problem storing that parameter, check with an administrator")
 		}
 	case "dumprobot":
 		botCfg.RLock()
 		c, _ := yaml.Marshal(config)
 		botCfg.RUnlock()
-		r.Fixed().Say(fmt.Sprintf("Here's how I've been configured, irrespective of interactive changes:\n%s", c))
+		r.Fixed().Say("Here's how I've been configured, irrespective of interactive changes:\n%s", c)
 	case "dumpplugdefault":
 		if plug, ok := pluginHandlers[args[0]]; ok {
-			r.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], plug.DefaultConfig))
+			r.Fixed().Say("Here's the default configuration for \"%s\":\n%s", args[0], plug.DefaultConfig)
 		} else { // look for an external plugin
 			found := false
 			c := r.getContext()
@@ -305,7 +308,7 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 					if plugin.taskType == taskExternal {
 						found = true
 						if cfg, err := getExtDefCfg(plugin.BotTask); err == nil {
-							r.Fixed().Say(fmt.Sprintf("Here's the default configuration for \"%s\":\n%s", args[0], *cfg))
+							r.Fixed().Say("Here's the default configuration for \"%s\":\n%s", args[0], *cfg)
 						} else {
 							r.Say("I had a problem looking that up - somebody should check my logs")
 						}
@@ -323,12 +326,12 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			task, plugin, _ := getTask(t)
 			if args[0] == task.name {
 				if plugin == nil {
-					r.Say(fmt.Sprintf("Task '%s' is a job, not a plugin", task.name))
+					r.Say("Task '%s' is a job, not a plugin", task.name)
 					return
 				}
 				found = true
 				c, _ := yaml.Marshal(plugin)
-				r.Fixed().Say(fmt.Sprintf("%s", c))
+				r.Fixed().Say("%s", c)
 			}
 		}
 		if !found {
@@ -364,7 +367,7 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			}
 		}
 		if len(plist) > 0 {
-			r.Say(fmt.Sprintf(message, strings.Join(plist, joiner)))
+			r.Say(message, strings.Join(plist, joiner))
 		} else { // note because of builtin plugins, plist is ALWAYS > 0 if disabled wasn't specified
 			r.Say("There are no disabled plugins")
 		}
@@ -372,17 +375,18 @@ func dmadmin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	return
 }
 
-func encryptcfg(r *Robot, command string, args ...string) (retval TaskRetVal) {
+func encryptcfg(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+	r := m.(Robot)
 	switch command {
 	case "init":
 		return
 	case "initialize":
 		success := initializeEncryption(args[0])
 		if success {
-			r.Log(Info, "Encryption successfully initialized by user '%s'", r.User)
+			r.Log(robot.Info, "Encryption successfully initialized by user '%s'", r.User)
 			r.Say("Encryption successfully initialized - you should delete your message if possible")
 		} else {
-			r.Log(Error, "User '%s' failed to initialize encryption", r.User)
+			r.Log(robot.Error, "User '%s' failed to initialize encryption", r.User)
 			r.Say("Failed to initialize encryption - check your passphrase?")
 		}
 	}
@@ -402,14 +406,15 @@ var rightback = []string{
 	"You won't even have time to miss me...",
 }
 
-func logging(r *Robot, command string, args ...string) (retval TaskRetVal) {
+func logging(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+	r := m.(Robot)
 	switch command {
 	case "init":
 		return
 	case "level":
 		setLogLevel(logStrToLevel(args[0]))
-		r.Say(fmt.Sprintf("I've adjusted the log level to %s", args[0]))
-		Log(Info, "User %s changed logging level to %s", r.User, args[0])
+		r.Say("I've adjusted the log level to %s", args[0])
+		Log(robot.Info, "User %s changed logging level to %s", r.User, args[0])
 	case "show":
 		page := 0
 		if len(args) == 1 {
@@ -422,29 +427,30 @@ func logging(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		r.Fixed().Say(strings.Join(lines, ""))
 	case "showlevel":
 		l := getLogLevel()
-		r.Say(fmt.Sprintf("My current logging level is: %s", logLevelToStr(l)))
+		r.Say("My current logging level is: %s", logLevelToStr(l))
 	case "setlines":
 		l, _ := strconv.Atoi(args[0])
 		set := setLogPageLines(l)
-		r.Say(fmt.Sprintf("Lines per page of log output set to: %d", set))
+		r.Say("Lines per page of log output set to: %d", set)
 	}
 	return
 }
 
-func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
+func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	if command == "init" {
 		return // ignore init
 	}
+	r := m.(Robot)
 	switch command {
 	case "reload":
 		err := r.getContext().loadConfig(false)
 		if err != nil {
 			r.Reply("Error encountered during reload, check the logs")
-			Log(Error, "Reloading configuration, requested by %s: %v", r.User, err)
+			Log(robot.Error, "Reloading configuration, requested by %s: %v", r.User, err)
 			return
 		}
 		r.Reply("Configuration reloaded successfully")
-		r.Log(Info, "Configuration successfully reloaded by a request from:", r.User)
+		r.Log(robot.Info, "Configuration successfully reloaded by a request from:", r.User)
 	case "abort":
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)
@@ -454,25 +460,25 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 	case "debug":
 		tname := args[0]
 		if !identifierRe.MatchString(tname) {
-			r.Say(fmt.Sprintf("Invalid task name '%s', doesn't match regexp: '%s' (task can't load)", tname, identifierRe.String()))
+			r.Say("Invalid task name '%s', doesn't match regexp: '%s' (task can't load)", tname, identifierRe.String())
 			return
 		}
 		c := r.getContext()
 		t := c.tasks.getTaskByName(tname)
 		if t == nil {
-			r.Say(fmt.Sprintf("Task '%s' not found", tname))
+			r.Say("Task '%s' not found", tname)
 			return
 		}
 		task, _, _ := getTask(t)
 		if task.Disabled {
-			r.Say(fmt.Sprintf("That task is disabled, fix and reload; reason: %s", task.reason))
+			r.Say("That task is disabled, fix and reload; reason: %s", task.reason)
 			return
 		}
 		verbose := false
 		if len(args[1]) > 0 {
 			verbose = true
 		}
-		Log(Debug, "Enabling debugging for %s (%s), verbose: %v", tname, task.taskID, verbose)
+		Log(robot.Debug, "Enabling debugging for %s (%s), verbose: %v", tname, task.taskID, verbose)
 		pd := &debuggingTask{
 			taskID:  task.taskID,
 			name:    tname,
@@ -483,7 +489,7 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		taskDebug.p[task.taskID] = pd
 		taskDebug.u[r.User] = pd
 		taskDebug.Unlock()
-		r.Say(fmt.Sprintf("Debugging enabled for %s (verbose: %v)", args[0], verbose))
+		r.Say("Debugging enabled for %s (verbose: %v)", args[0], verbose)
 	case "stop":
 		taskDebug.Lock()
 		pd, ok := taskDebug.u[r.User]
@@ -497,7 +503,7 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 		botCfg.Lock()
 		if botCfg.shuttingDown {
 			botCfg.Unlock()
-			Log(Warn, "Received administrator `quit` while shutdown in progress")
+			Log(robot.Warn, "Received administrator `quit` while shutdown in progress")
 			return
 		}
 		botCfg.shuttingDown = true
@@ -511,7 +517,7 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 			runningCount := botCfg.pluginsRunning - 1
 			botCfg.Unlock()
 			if proto != "test" {
-				r.Say(fmt.Sprintf("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount))
+				r.Say("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount)
 			}
 		} else {
 			botCfg.Unlock()
@@ -525,7 +531,7 @@ func admin(r *Robot, command string, args ...string) (retval TaskRetVal) {
 				time.Sleep(time.Second)
 			}
 		}
-		Log(Info, "Exiting on administrator 'quit|restart' command")
+		Log(robot.Info, "Exiting on administrator 'quit|restart' command")
 		go stop()
 	}
 	return

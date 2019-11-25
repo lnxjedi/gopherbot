@@ -5,8 +5,8 @@ import (
 	"crypto/md5"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/bot"
 	models "github.com/lnxjedi/gopherbot/connectors/rocket/models"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var incoming chan models.Message
@@ -22,7 +22,7 @@ func (rc *rocketConnector) Run(stop <-chan struct{}) {
 	rc.Unlock()
 	rc.updateChannels()
 	if err := rc.rt.SubscribeRoomUpdates("__my_messages__"); err != nil {
-		rc.Log(bot.Error, "failed subscribing to '__my_messages__, won't hear messages: %v", err)
+		rc.Log(robot.Error, "failed subscribing to '__my_messages__, won't hear messages: %v", err)
 	}
 
 	// Detect UserName
@@ -38,10 +38,10 @@ func (rc *rocketConnector) Run(stop <-chan struct{}) {
 			}
 		}
 		if !detected {
-			rc.Log(bot.Warn, "unable to detect username from rocket channel subscriptions")
+			rc.Log(robot.Warn, "unable to detect username from rocket channel subscriptions")
 		}
 	} else {
-		rc.Log(bot.Error, "failed getting rocket channel subscriptions, can't get username: %v", err)
+		rc.Log(robot.Error, "failed getting rocket channel subscriptions, can't get username: %v", err)
 	}
 
 	mstop := make(chan struct{})
@@ -56,7 +56,7 @@ func (rc *rocketConnector) Run(stop <-chan struct{}) {
 				m := mq.msgTrack
 				_, ok := trackedMsgs[m]
 				if !ok {
-					rc.Log(bot.Debug, "DEBUG: recording message %s", m.msgID)
+					rc.Log(robot.Debug, "DEBUG: recording message %s", m.msgID)
 					trackedMsgs[m] = time.Now()
 				}
 				mq.reply <- ok
@@ -64,7 +64,7 @@ func (rc *rocketConnector) Run(stop <-chan struct{}) {
 				now := time.Now()
 				for m, t := range trackedMsgs {
 					if now.Sub(t) > msgExpire {
-						rc.Log(bot.Debug, "DEBUG: expiring message %s", m.msgID)
+						rc.Log(robot.Debug, "DEBUG: expiring message %s", m.msgID)
 						delete(trackedMsgs, m)
 					}
 				}
@@ -77,14 +77,14 @@ loop:
 		case pmsg := <-incoming:
 			rc.processMessage(&pmsg)
 		case <-stop:
-			rc.Log(bot.Debug, "Received stop in connector")
+			rc.Log(robot.Debug, "Received stop in connector")
 			break loop
 		}
 	}
 }
 
-// processMessage creates a bot.ConnectorMessage and calls
-// bot.IncomingMessage
+// processMessage creates a robot.ConnectorMessage and calls
+// robot.IncomingMessage
 func (rc *rocketConnector) processMessage(msg *models.Message) {
 	if len(msg.Msg) == 0 {
 		return
@@ -124,15 +124,15 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 	if !hearIt {
 		return
 	}
-	rc.Log(bot.Debug, "DEBUG: Raw incoming msg: %+v", *msg)
-	rc.Log(bot.Debug, "DEBUG: Raw incoming user: %+v", *msg.User)
+	rc.Log(robot.Debug, "DEBUG: Raw incoming msg: %+v", *msg)
+	rc.Log(robot.Debug, "DEBUG: Raw incoming user: %+v", *msg.User)
 	// Check for and ignore duplicate messages
 	mHash := msgQuery{make(chan bool), msgTrack{msg.ID, md5.Sum([]byte(msg.Msg))}}
 	if check <- mHash; <-mHash.reply {
-		rc.Log(bot.Debug, "DEBUG: ignoring duplicate message %s", msg.ID)
+		rc.Log(robot.Debug, "DEBUG: ignoring duplicate message %s", msg.ID)
 		return
 	}
-	botMsg := &bot.ConnectorMessage{
+	botMsg := &robot.ConnectorMessage{
 		Protocol:      "Rocket",
 		UserID:        msg.User.ID,
 		UserName:      msg.User.UserName,
@@ -149,7 +149,7 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 func (rc *rocketConnector) updateChannels() {
 	inChannels, ierr := rc.rt.GetChannelsIn()
 	if ierr != nil {
-		rc.Log(bot.Error, "rocket getting channels in: %v", ierr)
+		rc.Log(robot.Error, "rocket getting channels in: %v", ierr)
 		return
 	}
 	rc.Lock()
@@ -170,8 +170,8 @@ func (rc *rocketConnector) updateChannels() {
 	}
 }
 
-func formatMessage(msg string, f bot.MessageFormat) string {
-	if f == bot.Fixed {
+func formatMessage(msg string, f robot.MessageFormat) string {
+	if f == robot.Fixed {
 		msg = "```" + msg + "```"
 	}
 	return msg
@@ -179,22 +179,22 @@ func formatMessage(msg string, f bot.MessageFormat) string {
 
 // sendMessage takes "channel" or "<chanID>" and sends the pre-formatted
 // message.
-func (rc *rocketConnector) sendMessage(ch, msg string) (ret bot.RetVal) {
+func (rc *rocketConnector) sendMessage(ch, msg string) (ret robot.RetVal) {
 	var chanID string
 	found := false
-	chanID, found = bot.ExtractID(ch)
+	chanID, found = rc.ExtractID(ch)
 	if !found {
 		rc.RLock()
 		chanID, found = rc.channelIDs[ch]
 		rc.RUnlock()
 	}
 	if !found {
-		return bot.ChannelNotFound
+		return robot.ChannelNotFound
 	}
 	sendChan := models.Channel{ID: chanID}
 	m := rc.rt.NewMessage(&sendChan, msg)
 	if _, err := rc.rt.SendMessage(m); err != nil {
-		return bot.FailedMessageSend
+		return robot.FailedMessageSend
 	}
-	return bot.Ok
+	return robot.Ok
 }

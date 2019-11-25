@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // TestMessage is for sending messages to the robot
@@ -18,16 +18,16 @@ type TestMessage struct {
 
 // TestConnector holds all the relevant data about a connection
 type TestConnector struct {
-	botName      string            // human-readable name of bot
-	botFullName  string            // human-readble full name of the bot
-	botID        string            // slack internal bot ID
-	users        []testUser        // configured users
-	channels     []string          // the channels the robot is in
-	listener     chan *TestMessage // input channel for test functions to send messages from a user
-	speaking     chan *TestMessage // output channel for test functions to get messages from the bot
-	test         *testing.T        // for the connector to log
-	bot.Handler                    // bot API for connectors
-	sync.RWMutex                   // shared mutex for locking connector data structures
+	botName       string            // human-readable name of bot
+	botFullName   string            // human-readble full name of the bot
+	botID         string            // slack internal bot ID
+	users         []testUser        // configured users
+	channels      []string          // the channels the robot is in
+	listener      chan *TestMessage // input channel for test functions to send messages from a user
+	speaking      chan *TestMessage // output channel for test functions to get messages from the bot
+	test          *testing.T        // for the connector to log
+	robot.Handler                   // bot API for connectors
+	sync.RWMutex                    // shared mutex for locking connector data structures
 }
 
 // Run starts the main loop for the test connector
@@ -37,7 +37,7 @@ loop:
 	for {
 		select {
 		case <-stop:
-			tc.Log(bot.Debug, "Received stop in connector")
+			tc.Log(robot.Debug, "Received stop in connector")
 			tc.test.Log("Received stop in connector")
 			break loop
 		case msg := <-tc.listener:
@@ -52,7 +52,7 @@ loop:
 			} else {
 				direct = true
 			}
-			botMsg := &bot.ConnectorMessage{
+			botMsg := &robot.ConnectorMessage{
 				Protocol:      "Test",
 				UserName:      userName,
 				UserID:        msg.User,
@@ -69,10 +69,10 @@ loop:
 }
 
 // Public 'bot methods all call sendMessage to send a message to a user/channel
-func (tc *TestConnector) sendMessage(msg *BotMessage) (ret bot.RetVal) {
+func (tc *TestConnector) sendMessage(msg *BotMessage) (ret robot.RetVal) {
 	if msg.Channel == "" && msg.User == "" {
 		tc.test.Errorf("Invalid empty user and channel")
-		return bot.ChannelNotFound
+		return robot.ChannelNotFound
 	}
 	if msg.Channel != "" { // direct message
 		found := false
@@ -86,7 +86,7 @@ func (tc *TestConnector) sendMessage(msg *BotMessage) (ret bot.RetVal) {
 		tc.RUnlock()
 		if !found {
 			tc.test.Errorf("Channel not found: %s", msg.Channel)
-			return bot.ChannelNotFound
+			return robot.ChannelNotFound
 		}
 	}
 	if msg.User != "" { // speaking in channel, not talking to user
@@ -101,7 +101,7 @@ func (tc *TestConnector) sendMessage(msg *BotMessage) (ret bot.RetVal) {
 		tc.RUnlock()
 		if !found {
 			tc.test.Errorf("User not found: %s", msg.User)
-			return bot.UserNotFound
+			return robot.UserNotFound
 		}
 	}
 	spoken := &TestMessage{
@@ -109,18 +109,18 @@ func (tc *TestConnector) sendMessage(msg *BotMessage) (ret bot.RetVal) {
 		Channel: msg.Channel,
 	}
 	switch msg.Format {
-	case bot.Fixed:
+	case robot.Fixed:
 		spoken.Message = strings.ToUpper(msg.Message)
-	case bot.Variable:
+	case robot.Variable:
 		spoken.Message = strings.ToLower(msg.Message)
-	case bot.Raw:
+	case robot.Raw:
 		spoken.Message = msg.Message
 	}
 	select {
 	case tc.speaking <- spoken:
 	case <-time.After(200 * time.Millisecond):
-		return bot.TimeoutExpired
+		return robot.TimeoutExpired
 	}
 
-	return bot.Ok
+	return robot.Ok
 }

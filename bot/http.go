@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 type jsonFunction struct {
@@ -128,19 +130,6 @@ type extns struct {
 	Histories int
 }
 
-// Types for returning values
-
-// AttrRet implements Stringer so it can be interpolated with fmt if
-// the plugin author is ok with ignoring the RetVal.
-type AttrRet struct {
-	Attribute string
-	RetVal
-}
-
-func (bar *AttrRet) String() string {
-	return bar.Attribute
-}
-
 // These are only for json marshalling
 type boolresponse struct {
 	Boolean bool
@@ -175,7 +164,7 @@ type replyresponse struct {
 func decode(msg string) string {
 	decoded, err := base64.StdEncoding.DecodeString(msg)
 	if err != nil {
-		Log(Error, "Unable to decode base64 message %s: %v", msg, err)
+		Log(robot.Error, "Unable to decode base64 message %s: %v", msg, err)
 		return msg
 	}
 	return string(decoded)
@@ -185,7 +174,7 @@ func getArgs(rw http.ResponseWriter, jsonargs *json.RawMessage, args interface{}
 	err := json.Unmarshal(*jsonargs, args)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		Log(Error, "Couldn't deciper JSON args: ", err)
+		Log(robot.Error, "Couldn't deciper JSON args: ", err)
 		return false
 	}
 	return true
@@ -194,7 +183,7 @@ func getArgs(rw http.ResponseWriter, jsonargs *json.RawMessage, args interface{}
 func sendReturn(rw http.ResponseWriter, ret interface{}) {
 	d, err := json.Marshal(ret)
 	if err != nil { // this should never happen
-		Log(Fatal, "BUG in bot/http.go:sendReturn, error marshalling JSON: %v", err)
+		Log(robot.Fatal, "BUG in bot/http.go:sendReturn, error marshalling JSON: %v", err)
 	}
 	rw.WriteHeader(http.StatusOK)
 	rw.Write(d)
@@ -203,7 +192,7 @@ func sendReturn(rw http.ResponseWriter, ret interface{}) {
 func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	data, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		Log(Fatal, err.Error())
+		Log(robot.Fatal, err.Error())
 	}
 	defer req.Body.Close()
 
@@ -211,13 +200,13 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	err = json.Unmarshal(data, &f)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		Log(Error, "Couldn't decipher JSON command: ", err)
+		Log(robot.Error, "Couldn't decipher JSON command: ", err)
 		return
 	}
 
 	if f.CallerID == "" {
 		rw.WriteHeader(http.StatusBadRequest)
-		Log(Error, "JSON function '%s' called with empty CallerID; args: %v", f.FuncName, f.FuncArgs)
+		Log(robot.Error, "JSON function '%s' called with empty CallerID; args: %v", f.FuncName, f.FuncArgs)
 		return
 	}
 
@@ -225,20 +214,23 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	c := getBotContextStr(f.CallerID)
 	if c == nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		Log(Error, "JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs)
+		Log(robot.Error, "JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs)
 		return
 	}
 	privCheck(fmt.Sprintf("http method %s", f.FuncName))
 
 	// Generate a synthetic Robot for access to it's methods
+	proto, _ := getProtocol(f.Protocol)
 	r := Robot{
-		User:            f.User,
-		ProtocolUser:    c.ProtocolUser,
-		Channel:         f.Channel,
-		ProtocolChannel: c.ProtocolChannel,
-		Protocol:        setProtocol(f.Protocol),
-		Incoming:        c.Incoming,
-		id:              c.id,
+		&robot.Message{
+			User:            f.User,
+			ProtocolUser:    c.ProtocolUser,
+			Channel:         f.Channel,
+			ProtocolChannel: c.ProtocolChannel,
+			Protocol:        proto,
+			Incoming:        c.Incoming,
+		},
+		c.id,
 	}
 	if len(f.Format) > 0 {
 		r.Format = setFormat(f.Format)
@@ -248,7 +240,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		botCfg.RUnlock()
 	}
 	task, _, _ := getTask(c.currentTask)
-	Log(Trace, "Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User)
+	Log(robot.Trace, "Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User)
 
 	if len(f.Format) > 0 {
 		r.Format = setFormat(f.Format)
@@ -259,9 +251,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	var (
-		attr  *AttrRet
+		attr  *robot.AttrRet
 		reply string
-		ret   RetVal
+		ret   robot.RetVal
 	)
 	switch f.FuncName {
 	case "CheckAdmin":
@@ -276,7 +268,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if !getArgs(rw, &f.FuncArgs, &ts) {
 			return
 		}
-		var ret RetVal
+		var ret robot.RetVal
 		switch f.FuncName {
 		case "AddJob":
 			ret = r.AddJob(ts.Name, ts.CmdArgs...)
@@ -298,7 +290,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if !getArgs(rw, &f.FuncArgs, &cc) {
 			return
 		}
-		var ret RetVal
+		var ret robot.RetVal
 		switch f.FuncName {
 		case "AddCommand":
 			ret = r.AddCommand(cc.Plugin, cc.Command)
@@ -367,7 +359,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		r.CheckinDatum(m.Key, m.Token)
-		sendReturn(rw, &botretvalresponse{int(Ok)})
+		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
 		return
 	case "UpdateDatum":
 		var m memory
@@ -392,7 +384,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			m.Value = decode(m.Value)
 		}
 		r.Remember(m.Key, m.Value)
-		sendReturn(rw, &botretvalresponse{int(Ok)})
+		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
 		return
 	case "Recall":
 		var m shorttermrecollection
@@ -415,7 +407,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	case "GetTaskConfig":
 		if task.Config == nil {
-			Log(Error, "GetTaskConfig called by external script '%s', but no config found.", task.name)
+			Log(robot.Error, "GetTaskConfig called by external script '%s', but no config found.", task.name)
 			sendReturn(rw, handler{})
 			return
 		}
@@ -451,7 +443,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			lm.Message = decode(lm.Message)
 		}
 		r.Log(l, lm.Message)
-		sendReturn(rw, &botretvalresponse{int(Ok)})
+		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
 		return
 	case "SendChannelMessage":
 		var cm channelmessage
@@ -503,7 +495,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// NOTE: "Say", "Reply", PromptForReply and PromptUserForReply are implemented
 	// in the scripting libraries
 	default:
-		Log(Error, "Bad function name: %s", f.FuncName)
+		Log(robot.Error, "Bad function name: %s", f.FuncName)
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}

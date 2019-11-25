@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/nlopes/slack"
 )
 
@@ -25,7 +25,7 @@ type slackConnector struct {
 	botID           string                    // slack internal bot ID
 	name            string                    // name for this connector
 	teamID          string                    // Slack unique Team ID, for identifying team users
-	bot.Handler                               // bot API for connectors
+	robot.Handler                             // bot API for connectors
 	sync.RWMutex                              // shared mutex for locking connector data structures
 	channelInfo     map[string]*slack.Channel // info about all the channels the robot knows about
 	channelToID     map[string]string         // map from channel names to channel IDs
@@ -70,7 +70,7 @@ func (s *slackConnector) updateUserList(want string) (ret string) {
 		}
 	}
 	if err != nil {
-		s.Log(bot.Error, "Protocol timeout updating users: %v\n", err)
+		s.Log(robot.Error, "Protocol timeout updating users: %v\n", err)
 	}
 	for i, user := range userlist {
 		if user.TeamID == s.teamID {
@@ -104,7 +104,7 @@ func (s *slackConnector) updateUserList(want string) (ret string) {
 	s.userIDInfo = userIDInfo
 	s.userMap = userMap
 	s.Unlock()
-	s.Log(bot.Debug, "User maps updated")
+	s.Log(robot.Debug, "User maps updated")
 	return
 }
 
@@ -117,7 +117,7 @@ func (s *slackConnector) userID(u string) (i string, ok bool) {
 		if len(i) > 0 {
 			return i, true
 		}
-		s.Log(bot.Error, "Failed ID lookup for user '%s'", u)
+		s.Log(robot.Error, "Failed ID lookup for user '%s'", u)
 		return "", false
 	}
 	return userID, ok
@@ -146,7 +146,7 @@ func (s *slackConnector) userName(i string) (user string, found bool) {
 	} else {
 		u := s.updateUserList("u:" + i)
 		if len(u) == 0 {
-			s.Log(bot.Error, "Failed username lookup for ID '%s'", i)
+			s.Log(robot.Error, "Failed username lookup for ID '%s'", i)
 			return "", false
 		}
 		user = u
@@ -192,7 +192,7 @@ pageLoop:
 			}
 		}
 		if err != nil {
-			s.Log(bot.Error, "Protocol timeout updating channels: %v\n", err)
+			s.Log(robot.Error, "Protocol timeout updating channels: %v\n", err)
 			break
 		}
 	}
@@ -252,7 +252,7 @@ pageLoop:
 	s.channelToID = chanMap
 	s.idToChannel = chanIDMap
 	s.Unlock()
-	s.Log(bot.Debug, "Channel maps updated")
+	s.Log(robot.Debug, "Channel maps updated")
 	return
 }
 
@@ -266,7 +266,7 @@ func (s *slackConnector) getChannelInfo(i string) (c *slack.Channel, ok bool) {
 		c, ok = s.channelInfo[i]
 		s.RUnlock()
 		if !ok {
-			s.Log(bot.Error, "Failed lookup of channel info from ID: %s", i)
+			s.Log(robot.Error, "Failed lookup of channel info from ID: %s", i)
 			return nil, false
 		}
 	}
@@ -281,7 +281,7 @@ func (s *slackConnector) userIMID(i string) (c string, ok bool) {
 	if !ok {
 		c = s.updateChannelMaps("dc:" + i)
 		if len(i) == 0 {
-			s.Log(bot.Error, "Failed lookup of conversation from user ID: %s", i)
+			s.Log(robot.Error, "Failed lookup of conversation from user ID: %s", i)
 			return "", false
 		}
 	}
@@ -296,7 +296,7 @@ func (s *slackConnector) imUserID(c string) (i string, found bool) {
 	if !found {
 		i = s.updateChannelMaps("di:" + c)
 		if len(i) == 0 {
-			s.Log(bot.Error, "Failed lookup of user ID from IM: %s", c)
+			s.Log(robot.Error, "Failed lookup of user ID from IM: %s", c)
 			return "", false
 		}
 		found = true
@@ -311,7 +311,7 @@ func (s *slackConnector) chanID(c string) (i string, ok bool) {
 	if !ok {
 		c = s.updateChannelMaps("ci:" + c)
 		if len(i) == 0 {
-			s.Log(bot.Error, "Failed lookup of channel ID for '%s'", c)
+			s.Log(robot.Error, "Failed lookup of channel ID for '%s'", c)
 			return "", false
 		}
 	}
@@ -325,7 +325,7 @@ func (s *slackConnector) channelName(i string) (c string, ok bool) {
 	if !ok {
 		c = s.updateChannelMaps("cc:" + i)
 		if len(i) == 0 {
-			s.Log(bot.Error, "Failed lookup of channel name from ID: %s", i)
+			s.Log(robot.Error, "Failed lookup of channel name from ID: %s", i)
 			return "", false
 		}
 	}
