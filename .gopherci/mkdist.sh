@@ -42,7 +42,7 @@ OUTFILE=../gopherbot-$BUILDOS-$GOARCH.zip
 rm -f "$ADIR/gopherbot/gopherbot"
 make
 cp -a gopherbot "$ADIR/gopherbot/gopherbot"
-cp -a $CONTENTS $MODULES "$ADIR/gopherbot"
+cp -a --parents $CONTENTS $MODULES "$ADIR/gopherbot"
 cd $ADIR
 echo "Creating $OUTFILE (from $(pwd))"
 zip -r $OUTFILE gopherbot/ --exclude *.swp
