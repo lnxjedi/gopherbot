@@ -7,3 +7,5 @@ lib/gopherbot_*.pyc
 .c9
 .env
 *.so
+# For dev env
+gopherbot-doc
