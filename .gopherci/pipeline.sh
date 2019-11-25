@@ -28,6 +28,11 @@ AddTask exec ./.gopherci/tools.sh
 # Do a full build for all platforms
 AddTask exec ./.gopherci/mkdist.sh
 
+# Initial clone from public https
+AddTask git-sync https://github.com/lnxjedi/gopherbot-doc.git master gopherbot-doc
+
+AddTask exec ./.gopherci/mkdocs.sh
+
 # See who got this message and decide whether to build
 BOT=$(GetBotAttribute name)
 if [ "$BOT" != "floyd" ]
@@ -46,6 +51,9 @@ then
     AddTask notify $NOTIFY_USER "Completed successful build and test of $GOPHERCI_REPO branch $GOPHERCI_BRANCH"
     exit 0
 fi
+
+# Initialize ssh for updating docs repo
+AddTask ssh-init
 
 # Publish archives to github
 AddTask exec ./.gopherci/publish.sh
