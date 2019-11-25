@@ -72,11 +72,7 @@ if not clone_url.startswith("http"):
             bot.AddTask("ssh-init", [])
             bot.AddTask("ssh-scan", [ match.group(1) ])
 
+# Start with a clean jobdir
+bot.AddTask("cleanup", [ repobranch ])
 bot.AddTask("git-sync", [ clone_url, branch, repobranch, "true" ])
 bot.AddTask("runpipeline", [])
-# TODO: eventually allow flag to leave the repo on failed builds?
-# NOTA BENE: final tasks are executed in reverse order; adding these
-# now means cleanup will be the last FinalTask to run, immediately
-# preceded by resetting the workdir.
-bot.FinalTask("cleanup", [])
-bot.FinalTask("setworkdir", [ "." ])

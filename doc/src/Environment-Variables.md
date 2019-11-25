@@ -32,5 +32,3 @@ In addition, the `localbuild` GopherCI builder sets the following environment va
 * `GOPHERCI_DEPBUILD` - set to "true" if the build was triggered by a dependency
 * `GOPHERCI_DEPREPO` - the updated repository that triggered this build
 * `GOPHERCI_DEPBRANCH` - the updated branch
-
-Finally, the `git-sync` task will set `GOPHER_JOB_DIR` to the subdirectory where a repository is cloned. Adding `cleanup` as a FinalTask will remove the directory when the job finishes (succeeds or fails).

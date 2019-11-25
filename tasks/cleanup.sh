@@ -3,9 +3,11 @@
 # cleanup.sh - task for removing the workdir at the end of a job.
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
-if [ -z "$GOPHER_JOB_DIR" ]
+CLEANUP="$1"
+
+if [ -z "$CLEANUP" ]
 then
-    echo "GOPHER_JOB_DIR not set" >&2
+    Log "Error" "Cleanup directory not given" >&2
     exit 1
 else
     if [ -z "$GOPHER_WORKSPACE" ]
@@ -14,5 +16,5 @@ else
         exit 1
     fi
     cd $GOPHER_WORKSPACE
-    rm -rf "$GOPHER_JOB_DIR"
+    rm -rf "$CLEANUP"
 fi
