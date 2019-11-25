@@ -14,7 +14,11 @@ Slogans under consideration:
 * **The Co-worker that Never Sleeps**
 * **The Swiss-Army Chainsaw for DevOps**
 
+## Latest Release
 Download the current release for your platform from: https://github.com/lnxjedi/gopherbot/releases/latest
+
+## Documentation
+The latest documentation on Github Pages: https://lnxjedi.github.io/gopherbot-doc
 
 ![](https://raw.githubusercontent.com/wiki/lnxjedi/gopherbot/botdemo.gif)
 
