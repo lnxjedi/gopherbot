@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/nlopes/slack"
 )
 
@@ -34,8 +34,8 @@ var lastmsgtime = struct {
 // sending the same command twice in short order.
 const ignorewindow = 2 * time.Second
 
-func optQuote(msg string, f bot.MessageFormat) string {
-	if f == bot.Fixed {
+func optQuote(msg string, f robot.MessageFormat) string {
+	if f == robot.Fixed {
 		return "```" + msg + "```"
 	}
 	return msg
@@ -45,9 +45,9 @@ var mentionRe = regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
 
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // takes care of formatting, and segments the message if needed.
-func (s *slackConnector) slackifyMessage(prefix, msg string, f bot.MessageFormat) []string {
+func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageFormat) []string {
 	maxSize := slack.MaxMessageTextLength - 500 // workaround for large message disconnects
-	if f == bot.Fixed {
+	if f == robot.Fixed {
 		maxSize -= 6
 	}
 	sbytes := []byte(msg)
@@ -55,7 +55,7 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f bot.MessageFormat
 	sbytes = bytes.Replace(sbytes, []byte("<"), []byte("&lt;"), -1)
 	sbytes = bytes.Replace(sbytes, []byte(">"), []byte("&gt;"), -1)
 	// 'escape' special chars
-	if f == bot.Variable {
+	if f == robot.Variable {
 		for _, padChar := range []string{"`", "*", "_", "@", "#", ":"} {
 			padBytes := []byte(padChar)
 			paddedBytes := []byte(escapePad + padChar + escapePad)
@@ -64,7 +64,7 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f bot.MessageFormat
 	}
 
 	// Eventually, this will only work for users configured in the
-	// UserRoster from gopherbot.yaml
+	// UserRoster from gopherrobot.yaml
 	sbytes = mentionRe.ReplaceAllFunc(sbytes, func(bytes []byte) []byte {
 		replace, ok := s.userID(string(bytes[1:]))
 		if ok {
@@ -82,7 +82,7 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f bot.MessageFormat
 	// It's too big, gotta chop it up. We will send at most maxMessageSplit
 	// messages, plus "(message truncated)".
 	msgs := make([]string, 0, s.maxMessageSplit+1)
-	s.Log(bot.Info, "Message too long, segmenting: %d bytes", msgLen)
+	s.Log(robot.Info, "Message too long, segmenting: %d bytes", msgLen)
 	// Chop it up into <=maxSize pieces
 	for len(sbytes) > maxSize && len(msgs) < s.maxMessageSplit {
 		lineEnd := bytes.LastIndexByte(sbytes[:maxSize], byte('\n'))
@@ -112,7 +112,7 @@ var reMailToLink = regexp.MustCompile(`<mailto:[^|]+\|([\w-./@]+)>`)     // matc
 // processMessage examines incoming messages, removes extra slack cruft, and
 // routes them to the appropriate bot method.
 func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
-	s.Log(bot.Trace, "Message received: %v", msg.Msg)
+	s.Log(robot.Trace, "Message received: %v", msg.Msg)
 
 	// Channel is always part of the root message; if subtype is
 	// message_changed, text and user are part of the submessage
@@ -122,7 +122,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	var message slack.Msg
 	ci, ok := s.getChannelInfo(chanID)
 	if !ok {
-		s.Log(bot.Error, "Couldn't find channel info for channel ID", chanID)
+		s.Log(robot.Error, "Couldn't find channel info for channel ID", chanID)
 		return
 	}
 	if msg.Msg.SubType == "message_changed" {
@@ -138,12 +138,12 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		msgtime, exists := lastmsgtime.m[lastlookup]
 		lastmsgtime.Unlock()
 		if exists && timestamp.Sub(msgtime) < ignorewindow {
-			s.Log(bot.Debug, "Ignoring edited message \"%s\" arriving within the ignorewindow: %v", msg.SubMessage.Text, ignorewindow)
+			s.Log(robot.Debug, "Ignoring edited message \"%s\" arriving within the ignorewindow: %v", msg.SubMessage.Text, ignorewindow)
 			return
 		}
-		s.Log(bot.Debug, "SubMessage (edited message) received: %v", message)
+		s.Log(robot.Debug, "SubMessage (edited message) received: %v", message)
 	} else if msg.Msg.SubType == "message_deleted" {
-		s.Log(bot.Debug, "Ignoring deleted message in channel '%s'", chanID)
+		s.Log(robot.Debug, "Ignoring deleted message in channel '%s'", chanID)
 		return
 	} else {
 		message = msg.Msg
@@ -161,11 +161,11 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		lastmsgtime.Unlock()
 	}
 	if len(userID) == 0 {
-		s.Log(bot.Debug, "Zero-length userID, ignoring message")
+		s.Log(robot.Debug, "Zero-length userID, ignoring message")
 		return
 	}
 	if userID == s.botID {
-		s.Log(bot.Debug, "Ignoring message from self")
+		s.Log(robot.Debug, "Ignoring message from self")
 		return
 	}
 	text := message.Text
@@ -188,13 +188,13 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 			mID := mention[2:11]
 			replace, ok := s.userName(mID)
 			if !ok {
-				s.Log(bot.Warn, "Couldn't find username for mentioned", mID)
+				s.Log(robot.Warn, "Couldn't find username for mentioned", mID)
 				continue
 			}
 			text = strings.Replace(text, mention, "@"+replace, -1)
 		}
 	}
-	botMsg := &bot.ConnectorMessage{
+	botMsg := &robot.ConnectorMessage{
 		Protocol:      "Slack",
 		UserID:        userID,
 		ChannelID:     chanID,
@@ -205,7 +205,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	}
 	userName, ok := s.userName(userID)
 	if !ok {
-		s.Log(bot.Debug, "Couldn't find user name for user ID", userID)
+		s.Log(robot.Debug, "Couldn't find user name for user ID", userID)
 	} else {
 		botMsg.UserName = userName
 	}

@@ -4,16 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // an empty object type for passing a Handler to the connector.
 type handler struct{}
 
+// dummy var to pass a handler
+var handle = handler{}
+
 /* Handle incoming messages and other callbacks from the connector. */
 
 // GetLogLevel returns the bot's current loglevel, mainly for the
 // connector to make it's own decision about logging
-func (h handler) GetLogLevel() LogLevel {
+func (h handler) GetLogLevel() robot.LogLevel {
 	return getLogLevel()
 }
 
@@ -39,30 +44,12 @@ func (h handler) GetConfigPath() string {
 	return installPath
 }
 
-// ConnectorMessage is passed in to the robot for every incoming message seen.
-// The *ID fields are required invariant internal representations that the
-// protocol accepts in it's interface methods.
-type ConnectorMessage struct {
-	// Protocol - string name of connector, e.g. "Slack"
-	Protocol string
-	// optional UserName and required internal UserID
-	UserName, UserID string
-	// optional / required channel values
-	ChannelName, ChannelID string
-	// DirectMessage - whether the message should be considered private between user and robot
-	DirectMessage bool
-	// MessageText - sanitized message text, with all protocol-added junk removed
-	MessageText string
-	// MessageObject, Client - interfaces for the raw
-	MessageObject, Client interface{}
-}
-
 // ChannelMessage accepts an incoming channel message from the connector.
 //func (h handler) IncomingMessage(channelName, userName, messageFull string, raw interface{}) {
-func (h handler) IncomingMessage(inc *ConnectorMessage) {
+func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	// Note: zero-len channel name and ID is valid; true of direct messages for some connectors
 	if len(inc.UserName) == 0 && len(inc.UserID) == 0 {
-		Log(Error, "incoming message with no username or user ID")
+		Log(robot.Error, "incoming message with no username or user ID")
 		return
 	}
 	currentUCMaps.Lock()
@@ -97,7 +84,7 @@ func (h handler) IncomingMessage(inc *ConnectorMessage) {
 
 	messageFull := inc.MessageText
 
-	Log(Trace, "Incoming message in channel '%s/%s' from user '%s/%s': %s", channelName, ProtocolChannel, userName, ProtocolUser, messageFull)
+	Log(robot.Trace, "Incoming message in channel '%s/%s' from user '%s/%s': %s", channelName, ProtocolChannel, userName, ProtocolUser, messageFull)
 	// When command == true, the message was directed at the bot
 	isCommand := false
 	logChannel := channelName
@@ -106,7 +93,7 @@ func (h handler) IncomingMessage(inc *ConnectorMessage) {
 	botCfg.RLock()
 	for _, user := range botCfg.ignoreUsers {
 		if strings.EqualFold(userName, user) {
-			Log(Debug, "Ignoring user", userName)
+			Log(robot.Debug, "Ignoring user", userName)
 			c := &botContext{User: userName}
 			c.debug("robot is configured to ignore this user", true)
 			emit(IgnoredUser)
@@ -180,9 +167,9 @@ func (h handler) IncomingMessage(inc *ConnectorMessage) {
 		environment:  make(map[string]string),
 	}
 	if c.directMsg {
-		Log(Debug, "Received private message from user '%s'", userName)
+		Log(robot.Debug, "Received private message from user '%s'", userName)
 	} else {
-		Log(Debug, "Message '%s' from user '%s' in channel '%s'; isCommand: %t", message, userName, logChannel, isCommand)
+		Log(robot.Debug, "Message '%s' from user '%s' in channel '%s'; isCommand: %t", message, userName, logChannel, isCommand)
 		c.debug(fmt.Sprintf("Message (command: %v) in channel %s: %s", isCommand, logChannel, message), true)
 	}
 	go c.handleMessage()
@@ -213,7 +200,7 @@ func (h handler) GetHistoryConfig(v interface{}) error {
 }
 
 // Log logs a message to the robot's log file (or stderr)
-func (h handler) Log(l LogLevel, m string, v ...interface{}) {
+func (h handler) Log(l robot.LogLevel, m string, v ...interface{}) {
 	Log(l, m, v...)
 }
 
@@ -229,7 +216,7 @@ func (h handler) SetBotMention(m string) {
 	if len(m) == 0 {
 		return
 	}
-	Log(Info, "protocol set bot mention string to: %s", m)
+	Log(robot.Info, "protocol set bot mention string to: %s", m)
 	botCfg.Lock()
 	botCfg.botinfo.protoMention = m
 	botCfg.Unlock()

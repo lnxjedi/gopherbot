@@ -9,6 +9,7 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // Global persistent map of user name to user index
@@ -36,7 +37,7 @@ func init() {
 }
 
 // Initialize sets up the connector and returns a connector object
-func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
+func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	lock.Lock()
 	if started {
 		lock.Unlock()
@@ -47,9 +48,9 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 
 	var c config
 
-	err := robot.GetProtocolConfig(&c)
+	err := handler.GetProtocolConfig(&c)
 	if err != nil {
-		robot.Log(bot.Fatal, "Unable to retrieve protocol configuration: %v", err)
+		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
 	}
 	found := false
 	for i, u := range c.Users {
@@ -60,7 +61,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		}
 	}
 	if !found {
-		robot.Log(bot.Fatal, "Start user \"%s\" not listed in Users array", c.StartUser)
+		handler.Log(robot.Fatal, "Start user \"%s\" not listed in Users array", c.StartUser)
 	}
 
 	found = false
@@ -70,7 +71,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		}
 	}
 	if !found {
-		robot.Log(bot.Fatal, "Start channel \"%s\" not listed in Channels array", c.StartChannel)
+		handler.Log(robot.Fatal, "Start channel \"%s\" not listed in Channels array", c.StartChannel)
 	}
 
 	var histfile string
@@ -91,7 +92,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		panic(err)
 	}
 
-	if !robot.GetLogToFile() {
+	if !handler.GetLogToFile() {
 		l.SetOutput(rl.Stdout())
 	}
 
@@ -106,7 +107,7 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		reader:         rl,
 	}
 
-	tc.Handler = robot
+	tc.Handler = handler
 
-	return bot.Connector(tc)
+	return robot.Connector(tc)
 }

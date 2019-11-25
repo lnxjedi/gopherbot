@@ -3,11 +3,11 @@
 package groups
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 const datumName = "group"
@@ -45,20 +45,21 @@ func addnew(list []string, item string) ([]string, bool) {
 }
 
 // Define the handler function
-func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
+func groups(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+	m := r.GetMessage()
 	if command == "init" { // ignore init
 		return
 	}
 	var cfgspec, memspec groupSpec
 	var lock, group string
-	var ret bot.RetVal
+	var ret robot.RetVal
 
 	groupCfg := &config{}
 
 	ret = r.GetTaskConfig(&groupCfg)
-	if ret != bot.Ok {
-		r.Log(bot.Error, "Error loading groups config: %s")
-		return bot.Fail
+	if ret != robot.Ok {
+		r.Log(robot.Error, "Error loading groups config: %s")
+		return robot.Fail
 	}
 
 	updated := false
@@ -77,17 +78,17 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 		cfgspec, ok = groupCfg.Groups[group]
 		if !ok {
 			if command != "authorize" {
-				r.Say(fmt.Sprintf("I don't have a \"%s\" group configured", group))
+				r.Say("I don't have a \"%s\" group configured", group)
 				return
 			}
-			r.Log(bot.Warn, "Groups plugin called for non-configured group: %s", group)
-			return bot.ConfigurationError
+			r.Log(robot.Warn, "Groups plugin called for non-configured group: %s", group)
+			return robot.ConfigurationError
 		}
 	}
 
 	if command == "authorize" && len(group) == 0 {
-		r.Log(bot.Error, "Groups plugin requires a group name for authorization; plugin \"%s\" must set 'AuthRequire'", args[0])
-		return bot.ConfigurationError
+		r.Log(robot.Error, "Groups plugin requires a group name for authorization; plugin \"%s\" must set 'AuthRequire'", args[0])
+		return robot.ConfigurationError
 	}
 
 	botAdmin := r.CheckAdmin()
@@ -105,10 +106,10 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 		isAdmin := botAdmin
 		if !isAdmin {
 			if len(cfgspec.Administrators) == 0 {
-				r.Log(bot.Error, "No administrators configured for group: %s", group)
+				r.Log(robot.Error, "No administrators configured for group: %s", group)
 			} else {
 				for _, adminUser := range cfgspec.Administrators {
-					if r.User == adminUser {
+					if m.User == adminUser {
 						isAdmin = true
 						break
 					}
@@ -128,8 +129,8 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 			}
 		}()
 	}
-	if ret != bot.Ok {
-		r.Log(bot.Error, "Couldn't load groupspec: %s", ret)
+	if ret != robot.Ok {
+		r.Log(robot.Error, "Couldn't load groupspec: %s", ret)
 		r.Reply("I had a problem loading the group, somebody should check my log file")
 		r.CheckinDatum(group, lock) // well-behaved plugins using the brain will always check in data when done
 		return
@@ -140,7 +141,7 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 	case "remove":
 		user := args[0]
 		if len(memspec.Users) == 0 {
-			r.Say(fmt.Sprintf("There are no dynamic users in the \"%s\" group", group))
+			r.Say("There are no dynamic users in the \"%s\" group", group)
 			return
 		}
 		found := false
@@ -150,29 +151,29 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 				memspec.Users = memspec.Users[:len(memspec.Users)-1]
 				found = true
 				mret := r.UpdateDatum(group, lock, &memspec)
-				if mret != bot.Ok {
-					r.Log(bot.Error, "Couldn't update groups: %s", mret)
+				if mret != robot.Ok {
+					r.Log(robot.Error, "Couldn't update groups: %s", mret)
 					r.Reply("Crud. I had a problem saving my groups - somebody better check the log")
 				} else {
-					r.Log(bot.Audit, "User %s removed user %s from group %s", r.User, user, group)
-					r.Say(fmt.Sprintf("Ok, I removed %s from the %s group", user, group))
+					r.Log(robot.Audit, "User %s removed user %s from group %s", m.User, user, group)
+					r.Say("Ok, I removed %s from the %s group", user, group)
 					updated = true
 				}
 				break
 			}
 		}
 		if !found {
-			r.Say(fmt.Sprintf("%s isn't a dynamic member of the %s group (but may be a configured user)", user, group))
+			r.Say("%s isn't a dynamic member of the %s group (but may be a configured user)", user, group)
 			return
 		}
 	case "empty":
 		memspec.Users = []string{}
 		mret := r.UpdateDatum(group, lock, &memspec)
-		if mret != bot.Ok {
-			r.Log(bot.Error, "Couldn't update groups: %s", mret)
+		if mret != robot.Ok {
+			r.Log(robot.Error, "Couldn't update groups: %s", mret)
 			r.Reply("Crud. I had a problem saving the group - somebody better check the log")
 		} else {
-			r.Log(bot.Audit, "User %s removed all users from group %s", r.User, group)
+			r.Log(robot.Audit, "User %s removed all users from group %s", m.User, group)
 			r.Say("Emptied")
 			updated = true
 		}
@@ -182,7 +183,7 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 			add := botAdmin
 			if !add {
 				for _, adminUser := range cfgspec.Administrators {
-					if r.User == adminUser {
+					if m.User == adminUser {
 						add = true
 						break
 					}
@@ -196,7 +197,7 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 			r.Say("You're not the administrator of any groups")
 			return
 		}
-		r.Say(fmt.Sprintf("Here are the groups you're an administrator for:\n%s", strings.Join(groups, "\n")))
+		r.Say("Here are the groups you're an administrator for:\n%s", strings.Join(groups, "\n"))
 	case "show":
 		members := make([]string, 0, 10)
 		for _, user := range cfgspec.Administrators {
@@ -209,31 +210,31 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 			members, _ = addnew(members, user)
 		}
 		if len(members) == 0 {
-			r.Say(fmt.Sprintf("The %s group has no members", group))
+			r.Say("The %s group has no members", group)
 			return
 		}
-		r.Say(fmt.Sprintf("The %s group has the following members:\n%s", group, strings.Join(members, "\n")))
+		r.Say("The %s group has the following members:\n%s", group, strings.Join(members, "\n"))
 	case "authorize":
 		isMember := false
 		for _, member := range cfgspec.Administrators {
-			if r.User == member {
+			if m.User == member {
 				isMember = true
 			}
 		}
 		for _, member := range cfgspec.Users {
-			if r.User == member {
+			if m.User == member {
 				isMember = true
 			}
 		}
 		for _, member := range memspec.Users {
-			if r.User == member {
+			if m.User == member {
 				isMember = true
 			}
 		}
 		if isMember {
-			return bot.Success
+			return robot.Success
 		}
-		return bot.Fail
+		return robot.Fail
 	case "add":
 		// Case sensitive input, case insensitve equality checking
 		user := args[0]
@@ -241,23 +242,23 @@ func groups(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 		memspec.Users, added = addnew(memspec.Users, user)
 		if added {
 			mret := r.UpdateDatum(group, lock, &memspec)
-			if mret != bot.Ok {
-				r.Log(bot.Error, "Couldn't update groups: %s", mret)
+			if mret != robot.Ok {
+				r.Log(robot.Error, "Couldn't update groups: %s", mret)
 				r.Reply("Crud. I had a problem saving my groups - somebody better check the log")
 			} else {
 				updated = true
 			}
-			r.Log(bot.Audit, "User %s added user %s to group %s", r.User, user, group)
-			r.Say(fmt.Sprintf("Ok, I added %s to the %s group", user, group))
+			r.Log(robot.Audit, "User %s added user %s to group %s", m.User, user, group)
+			r.Say("Ok, I added %s to the %s group", user, group)
 		} else {
-			r.Say(fmt.Sprintf("User %s is already in the %s group", user, group))
+			r.Say("User %s is already in the %s group", user, group)
 		}
 	}
 	return
 }
 
 func init() {
-	bot.RegisterPlugin("groups", bot.PluginHandler{
+	bot.RegisterPlugin("groups", robot.PluginHandler{
 		Handler: groups,
 		Config:  &config{},
 	})

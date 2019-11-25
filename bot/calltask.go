@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 type getCfgReturn struct {
@@ -38,7 +40,7 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *BotTask) {
 	// when this goroutine finishes; see runtime.LockOSThread()
 	DropThreadPriv(fmt.Sprintf("task %s default configuration", task.name))
 
-	Log(Debug, "Calling '%s' with arg: configure", taskPath)
+	Log(robot.Debug, "Calling '%s' with arg: configure", taskPath)
 	//cfg, err = exec.Command(taskPath, "configure").Output()
 	cmd = exec.Command(taskPath, "configure")
 	if relpath {
@@ -61,11 +63,11 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *BotTask) {
 
 type taskReturn struct {
 	errString string
-	retval    TaskRetVal
+	retval    robot.TaskRetVal
 }
 
 // callTask does the work of running a job, task or plugin with a command and arguments.
-func (c *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval TaskRetVal) {
+func (c *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval robot.TaskRetVal) {
 	rc := make(chan taskReturn)
 	go c.callTaskThread(rc, t, command, args...)
 	ret := <-rc
@@ -74,7 +76,7 @@ func (c *botContext) callTask(t interface{}, command string, args ...string) (er
 
 func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, command string, args ...string) {
 	var errString string
-	var retval TaskRetVal
+	var retval robot.TaskRetVal
 
 	c.currentTask = t
 	r := c.makeRobot()
@@ -83,9 +85,9 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	// This should only happen in the rare case that a configured authorizer or elevator is disabled
 	if task.Disabled {
 		msg := fmt.Sprintf("callTask failed on disabled task %s; reason: %s", task.name, task.reason)
-		Log(Error, msg)
+		Log(robot.Error, msg)
 		c.debug(msg, false)
-		rchan <- taskReturn{msg, ConfigurationError}
+		rchan <- taskReturn{msg, robot.ConfigurationError}
 		return
 	}
 	if c.logger != nil {
@@ -115,9 +117,9 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		}
 	}
 	if c.directMsg {
-		Log(Debug, "Dispatching command '%s' to task '%s' with arguments '(omitted for DM)'", command, task.name)
+		Log(robot.Debug, "Dispatching command '%s' to task '%s' with arguments '(omitted for DM)'", command, task.name)
 	} else {
-		Log(Debug, "Dispatching command '%s' to task '%s' with arguments '%#v'", command, task.name, args)
+		Log(robot.Debug, "Dispatching command '%s' to task '%s' with arguments '%#v'", command, task.name, args)
 	}
 
 	// Set up the per-task environment
@@ -127,7 +129,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		if command != "init" {
 			emit(GoPluginRan)
 		}
-		Log(Debug, "Call go plugin: '%s' with args: %q", task.name, args)
+		Log(robot.Debug, "Call go plugin: '%s' with args: %q", task.name, args)
 		c.taskenvironment = envhash
 		ret := pluginHandlers[task.name].Handler(r, command, args...)
 		c.taskenvironment = nil
@@ -139,7 +141,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	taskPath, err = getTaskPath(task)
 	if err != nil {
 		emit(ExternalTaskBadPath)
-		rchan <- taskReturn{fmt.Sprintf("Error getting path for %s: %v", task.name, err), MechanismFail}
+		rchan <- taskReturn{fmt.Sprintf("Error getting path for %s: %v", task.name, err), robot.MechanismFail}
 		return
 	}
 	var externalArgs []string
@@ -148,7 +150,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		externalArgs = append(externalArgs, command)
 	}
 	externalArgs = append(externalArgs, args...)
-	Log(Debug, "Calling '%s' with args: %q", taskPath, externalArgs)
+	Log(robot.Debug, "Calling '%s' with args: %q", taskPath, externalArgs)
 	cmd := exec.Command(taskPath, externalArgs...)
 	c.Lock()
 	c.taskName = task.name
@@ -160,7 +162,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	keys := make([]string, 0, len(envhash))
 	for k, v := range envhash {
 		if len(k) == 0 {
-			Log(Error, "Empty Name value while populating environment for '%s', skipping", task.name)
+			Log(robot.Error, "Empty Name value while populating environment for '%s', skipping", task.name)
 			continue
 		}
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
@@ -178,14 +180,14 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 			botCfg.RUnlock()
 		}
 	}
-	Log(Debug, "Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '"))
+	Log(robot.Debug, "Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '"))
 	var stderr, stdout io.ReadCloser
 	// hold on to stderr in case we need to log an error
 	stderr, err = cmd.StderrPipe()
 	if err != nil {
-		Log(Error, "Creating stderr pipe for external command '%s': %v", taskPath, err)
+		Log(robot.Error, "Creating stderr pipe for external command '%s': %v", taskPath, err)
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-		rchan <- taskReturn{errString, MechanismFail}
+		rchan <- taskReturn{errString, robot.MechanismFail}
 		return
 	}
 	if c.logger == nil {
@@ -194,9 +196,9 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	} else {
 		stdout, err = cmd.StdoutPipe()
 		if err != nil {
-			Log(Error, "Creating stdout pipe for external command '%s': %v", taskPath, err)
+			Log(robot.Error, "Creating stdout pipe for external command '%s': %v", taskPath, err)
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-			rchan <- taskReturn{errString, MechanismFail}
+			rchan <- taskReturn{errString, robot.MechanismFail}
 			return
 		}
 	}
@@ -206,9 +208,9 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	DropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
 
 	if err = cmd.Start(); err != nil {
-		Log(Error, "Starting command '%s': %v", taskPath, err)
+		Log(robot.Error, "Starting command '%s': %v", taskPath, err)
 		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-		rchan <- taskReturn{errString, MechanismFail}
+		rchan <- taskReturn{errString, robot.MechanismFail}
 		return
 	}
 	if command != "init" {
@@ -217,14 +219,14 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	if c.logger == nil {
 		var stdErrBytes []byte
 		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
-			Log(Error, "Reading from stderr for external command '%s': %v", taskPath, err)
+			Log(robot.Error, "Reading from stderr for external command '%s': %v", taskPath, err)
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-			rchan <- taskReturn{errString, MechanismFail}
+			rchan <- taskReturn{errString, robot.MechanismFail}
 			return
 		}
 		stdErrString := string(stdErrBytes)
 		if len(stdErrString) > 0 {
-			Log(Warn, "Output from stderr of external command '%s': %s", taskPath, stdErrString)
+			Log(robot.Warn, "Output from stderr of external command '%s': %s", taskPath, stdErrString)
 			errString = fmt.Sprintf("There was error output while calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			emit(ExternalTaskStderrOutput)
 		}
@@ -263,18 +265,18 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		}
 	}
 	if err = cmd.Wait(); err != nil {
-		retval = Fail
+		retval = robot.Fail
 		success := false
 		if exitstatus, ok := err.(*exec.ExitError); ok {
 			if status, ok := exitstatus.Sys().(syscall.WaitStatus); ok {
-				retval = TaskRetVal(status.ExitStatus())
-				if retval == Success {
+				retval = robot.TaskRetVal(status.ExitStatus())
+				if retval == robot.Success {
 					success = true
 				}
 			}
 		}
 		if !success {
-			Log(Error, "Waiting on external command '%s': %v", taskPath, err)
+			Log(robot.Error, "Waiting on external command '%s': %v", taskPath, err)
 			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
 			emit(ExternalTaskErrExit)
 		}

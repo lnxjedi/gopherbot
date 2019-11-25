@@ -1,9 +1,12 @@
 package bot
 
 import (
+	"fmt"
 	"regexp"
 	"sync"
 	"time"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 /* Technical notes on the waiter implementation
@@ -116,60 +119,69 @@ func init() {
 //	SimpleString - Characters commonly found in most english sentences, doesn't
 //    include special characters like @, {, etc.
 //	YesNo
-func (r *Robot) PromptForReply(regexID string, prompt string) (string, RetVal) {
+func (r Robot) PromptForReply(regexID string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	var rep string
-	var ret RetVal
+	var ret robot.RetVal
+	if len(v) > 0 {
+		prompt = fmt.Sprintf(prompt, v...)
+	}
 	for i := 0; i < 3; i++ {
 		rep, ret = r.promptInternal(regexID, r.User, r.Channel, prompt)
-		if ret == RetryPrompt {
+		if ret == robot.RetryPrompt {
 			continue
 		}
 		return rep, ret
 	}
-	if ret == RetryPrompt {
-		return rep, Interrupted
+	if ret == robot.RetryPrompt {
+		return rep, robot.Interrupted
 	}
 	return rep, ret
 }
 
 // PromptUserForReply is identical to PromptForReply, but prompts a specific
 // user with a DM.
-func (r *Robot) PromptUserForReply(regexID string, user string, prompt string) (string, RetVal) {
+func (r Robot) PromptUserForReply(regexID string, user string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	var rep string
-	var ret RetVal
+	var ret robot.RetVal
+	if len(v) > 0 {
+		prompt = fmt.Sprintf(prompt, v...)
+	}
 	for i := 0; i < 3; i++ {
 		rep, ret = r.promptInternal(regexID, user, "", prompt)
-		if ret == RetryPrompt {
+		if ret == robot.RetryPrompt {
 			continue
 		}
 		return rep, ret
 	}
-	if ret == RetryPrompt {
-		return rep, Interrupted
+	if ret == robot.RetryPrompt {
+		return rep, robot.Interrupted
 	}
 	return rep, ret
 }
 
 // PromptUserChannelForReply is identical to PromptForReply, but prompts a
 // specific user in a given channel.
-func (r *Robot) PromptUserChannelForReply(regexID string, user string, channel string, prompt string) (string, RetVal) {
+func (r Robot) PromptUserChannelForReply(regexID string, user string, channel string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	var rep string
-	var ret RetVal
+	var ret robot.RetVal
+	if len(v) > 0 {
+		prompt = fmt.Sprintf(prompt, v...)
+	}
 	for i := 0; i < 3; i++ {
 		rep, ret = r.promptInternal(regexID, user, channel, prompt)
-		if ret == RetryPrompt {
+		if ret == robot.RetryPrompt {
 			continue
 		}
 		return rep, ret
 	}
-	if ret == RetryPrompt {
-		return rep, Interrupted
+	if ret == robot.RetryPrompt {
+		return rep, robot.Interrupted
 	}
 	return rep, ret
 }
 
 // promptInternal can return 'RetryPrompt'
-func (r *Robot) promptInternal(regexID string, user string, channel string, prompt string) (string, RetVal) {
+func (r *Robot) promptInternal(regexID string, user string, channel string, prompt string) (string, robot.RetVal) {
 	matcher := replyMatcher{
 		user:    user,
 		channel: channel,
@@ -197,8 +209,8 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		}
 	}
 	if rep.re == nil {
-		Log(Error, "Unable to resolve a reply matcher for plugin %s, regexID %s", task.name, regexID)
-		return "", MatcherNotFound
+		Log(robot.Error, "Unable to resolve a reply matcher for plugin %s, regexID %s", task.name, regexID)
+		return "", robot.MatcherNotFound
 	}
 	rep.replyChannel = make(chan reply)
 
@@ -207,12 +219,12 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 	// and if so append to the list of waiters.
 	waiters, exists := replies.m[matcher]
 	if exists {
-		Log(Debug, "Delaying prompt \"%s\" and appending to the list of waiters for matcher: %q", prompt, matcher)
+		Log(robot.Debug, "Delaying prompt \"%s\" and appending to the list of waiters for matcher: %q", prompt, matcher)
 		waiters = append(waiters, rep)
 		replies.m[matcher] = waiters
 		replies.Unlock()
 	} else {
-		Log(Debug, "Prompting for \"%s \" and creating reply waiters list and prompting for matcher: %q", prompt, matcher)
+		Log(robot.Debug, "Prompting for \"%s \" and creating reply waiters list and prompting for matcher: %q", prompt, matcher)
 		c := r.getContext()
 		var puser string
 		if ui, ok := c.maps.user[user]; ok {
@@ -220,13 +232,13 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		} else {
 			puser = user
 		}
-		var ret RetVal
+		var ret robot.RetVal
 		if channel == "" {
 			ret = botCfg.SendProtocolUserMessage(puser, prompt, r.Format)
 		} else {
 			ret = botCfg.SendProtocolUserChannelMessage(puser, user, channel, prompt, r.Format)
 		}
-		if ret != Ok {
+		if ret != robot.Ok {
 			replies.Unlock()
 			return "", ret
 		}
@@ -238,23 +250,23 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 	var replied reply
 	select {
 	case <-time.After(replyTimeout):
-		Log(Warn, "Timed out waiting for a reply to regex \"%s\" in channel: %s", regexID, r.Channel)
+		Log(robot.Warn, "Timed out waiting for a reply to regex \"%s\" in channel: %s", regexID, r.Channel)
 		replies.Lock()
 		waitlist, found := replies.m[matcher]
 		if found {
 			// reply timed out, free up this matcher for later reply requests
 			delete(replies.m, matcher)
 			replies.Unlock()
-			Log(Debug, "Timeout expired waiting for reply to: %s", prompt)
+			Log(robot.Debug, "Timeout expired waiting for reply to: %s", prompt)
 			// let other waiters know to retry
 			for i, rep := range waitlist {
 				if i != 0 {
-					Log(Debug, "Sending retryPrompt to waiters on primary waiter timeout")
+					Log(robot.Debug, "Sending retryPrompt to waiters on primary waiter timeout")
 					rep.replyChannel <- reply{false, retryPrompt, ""}
 				}
 			}
 			// matched=false, timedOut=true
-			return "", TimeoutExpired
+			return "", robot.TimeoutExpired
 		}
 		// race: we got a reply at the timeout deadline, and lost the race
 		// to delete the entry, so we read the reply as if the timeout hadn't
@@ -264,20 +276,20 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 	case replied = <-rep.replyChannel:
 	}
 	if replied.disposition == replyInterrupted {
-		return "", Interrupted
+		return "", robot.Interrupted
 	}
 	if replied.disposition == retryPrompt {
-		return "", RetryPrompt
+		return "", robot.RetryPrompt
 	}
 	// Note: the replies.m[] entry is deleted in handleMessage
 	if !replied.matched {
 		if replied.rep == "=" {
-			return "", UseDefaultValue
+			return "", robot.UseDefaultValue
 		}
 		if replied.rep == "-" {
-			return "", Interrupted
+			return "", robot.Interrupted
 		}
-		return "", ReplyNotMatched
+		return "", robot.ReplyNotMatched
 	}
-	return replied.rep, Ok
+	return replied.rep, robot.Ok
 }

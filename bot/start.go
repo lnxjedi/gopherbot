@@ -119,8 +119,7 @@ func Start(v VersionInfo) (restart bool) {
 	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface
-	h := handler{}
-	conn := initializeConnector(h, botLogger)
+	conn := initializeConnector(handle, botLogger)
 
 	// NOTE: we use setConnector instead of passing the connector to run()
 	// because of the way Windows services were run. Maybe remove eventually?

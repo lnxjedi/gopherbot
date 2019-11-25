@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // Global persistent map of user name to user index
@@ -36,12 +37,12 @@ func init() {
 }
 
 // Initialize sets up the connector and returns a connector object
-func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
+func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	var c config
 
-	err := robot.GetProtocolConfig(&c)
+	err := handler.GetProtocolConfig(&c)
 	if err != nil {
-		robot.Log(bot.Fatal, "Unable to retrieve protocol configuration: %v", err)
+		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
 	}
 
 	for i, u := range c.Users {
@@ -64,9 +65,9 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 		test:        t,
 	}
 
-	tc.Handler = robot
+	tc.Handler = handler
 	tc.SetBotID(tc.botID)
-	tc.Log(bot.Info, "Set bot ID to", tc.botID)
+	tc.Log(robot.Info, "Set bot ID to", tc.botID)
 
-	return bot.Connector(tc)
+	return robot.Connector(tc)
 }

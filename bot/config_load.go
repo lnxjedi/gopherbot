@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/ghodss/yaml"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // merge map merges maps and concatenates slices; values in m(erge) override values
@@ -47,7 +48,7 @@ func mergemap(m, t map[string]interface{}) map[string]interface{} {
 func env(envvar string) string {
 	val := os.Getenv(envvar)
 	if len(val) == 0 {
-		Log(Debug, "Empty environment variable returned for '%s' in template expansion", envvar)
+		Log(robot.Debug, "Empty environment variable returned for '%s' in template expansion", envvar)
 	}
 	return val
 }
@@ -69,17 +70,17 @@ func decryptTpl(encval string) string {
 	key := cryptKey.key
 	cryptKey.RUnlock()
 	if !initialized {
-		Log(Warn, "Template called decrypt(Tpl) function but encryption not initialized")
+		Log(robot.Warn, "Template called decrypt(Tpl) function but encryption not initialized")
 		return ""
 	}
 	encbytes, err := base64.StdEncoding.DecodeString(encval)
 	if err != nil {
-		Log(Error, "Unable to base64 decode in template decrypt(Tpl): %v", err)
+		Log(robot.Error, "Unable to base64 decode in template decrypt(Tpl): %v", err)
 		return ""
 	}
 	secret, decerr := decrypt(encbytes, key)
 	if decerr != nil {
-		Log(Error, "Unable to decrypt secret in template decrypt(Tpl): %v", decerr)
+		Log(robot.Error, "Unable to decrypt secret in template decrypt(Tpl): %v", decerr)
 		return ""
 	}
 	return string(secret)
@@ -126,17 +127,17 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 	cf, err = ioutil.ReadFile(path)
 	if err == nil {
 		if cf, err = expand(cf); err != nil {
-			Log(Error, "Expanding '%s': %v", path, err)
+			Log(robot.Error, "Expanding '%s': %v", path, err)
 		}
 		if err = yaml.Unmarshal(cf, &installed); err != nil {
 			err = fmt.Errorf("Unmarshalling installed \"%s\": %v", filename, err)
-			Log(Error, err.Error())
+			Log(robot.Error, err.Error())
 			return err
 		}
 		if len(installed) == 0 {
-			Log(Error, "Empty config hash loading %s", path)
+			Log(robot.Error, "Empty config hash loading %s", path)
 		} else {
-			Log(Debug, "Loaded installed conf/%s", filename)
+			Log(robot.Debug, "Loaded installed conf/%s", filename)
 			cfg = mergemap(installed, cfg)
 			loaded = true
 		}
@@ -148,17 +149,17 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 		cf, err = ioutil.ReadFile(path)
 		if err == nil {
 			if cf, err = expand(cf); err != nil {
-				Log(Error, "Expanding '%s': %v", path, err)
+				Log(robot.Error, "Expanding '%s': %v", path, err)
 			}
 			if err = yaml.Unmarshal(cf, &configured); err != nil {
 				err = fmt.Errorf("Unmarshalling configured \"%s\": %v", filename, err)
-				Log(Error, err.Error())
+				Log(robot.Error, err.Error())
 				return err // If a badly-formatted config is loaded, we always return an error
 			}
 			if len(configured) == 0 {
-				Log(Error, "Empty config hash loading %s", path)
+				Log(robot.Error, "Empty config hash loading %s", path)
 			} else {
-				Log(Debug, "Loaded configured conf/%s", filename)
+				Log(robot.Debug, "Loaded configured conf/%s", filename)
 				cfg = mergemap(configured, cfg)
 				loaded = true
 			}

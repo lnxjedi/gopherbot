@@ -3,9 +3,10 @@ package bot
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var envPassThrough = []string{
@@ -20,7 +21,7 @@ var envPassThrough = []string{
 // Called from dispatch: checkPluginMatchersAndRun,
 // jobcommands: checkJobMatchersAndRun or ScheduledTask,
 // runPipeline.
-func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipelineType, command string, args ...string) (ret TaskRetVal) {
+func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipelineType, command string, args ...string) (ret robot.TaskRetVal) {
 	task, _, job := getTask(t)
 	privCheck(fmt.Sprintf("task %s / %s", task.name, command))
 	isJob := job != nil
@@ -73,8 +74,8 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		}
 		key := histPrefix + c.jobName
 		tok, _, ret := checkoutDatum(key, &jh, true)
-		if ret != Ok {
-			Log(Error, "Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
+		if ret != robot.Ok {
+			Log(robot.Error, "Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
 		} else {
 			var start time.Time
 			if c.timeZone != nil {
@@ -95,19 +96,19 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 				jh.Histories = jh.Histories[l-rememberRuns:]
 			}
 			ret := updateDatum(key, tok, jh)
-			if ret != Ok {
-				Log(Error, "Error updating '%s', no history will be remembered for '%s'", key, c.pipeName)
+			if ret != robot.Ok {
+				Log(robot.Error, "Error updating '%s', no history will be remembered for '%s'", key, c.pipeName)
 			} else {
 				if job.HistoryLogs > 0 && c.history != nil {
 					pipeHistory, err := c.history.NewHistory(c.jobName, hist.LogIndex, job.HistoryLogs)
 					if err != nil {
-						Log(Error, "Error starting history for '%s', no history will be recorded: %v", c.pipeName, err)
+						Log(robot.Error, "Error starting history for '%s', no history will be recorded: %v", c.pipeName, err)
 					} else {
 						c.logger = pipeHistory
 					}
 				} else {
 					if c.history == nil {
-						Log(Warn, "Error starting history, no history provider available")
+						Log(robot.Warn, "Error starting history, no history provider available")
 					}
 				}
 			}
@@ -158,7 +159,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		c.logger.Close()
 	}
 	// Run final and fail (cleanup) tasks
-	if ret != Normal {
+	if ret != robot.Normal {
 		if len(c.failTasks) > 0 {
 			c.stage = failTasks
 			c.runPipeline(ptype, false)
@@ -168,14 +169,14 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		c.stage = finalTasks
 		c.runPipeline(ptype, false)
 	}
-	if ret != Normal {
+	if ret != robot.Normal {
 		if !c.automaticTask && errString != "" {
 			c.makeRobot().Reply(errString)
 		}
 	}
-	if isJob && (!job.Quiet || ret != Normal) {
+	if isJob && (!job.Quiet || ret != robot.Normal) {
 		r := c.makeRobot()
-		if ret == Normal {
+		if ret == robot.Normal {
 			r.SendChannelMessage(c.jobChannel, fmt.Sprintf("Finished job '%s', run %d, final task '%s', status: %s", c.pipeName, c.runIndex, c.taskName, ret))
 		} else {
 			var td string
@@ -186,7 +187,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			if len(c.nsExtension) > 0 {
 				jobName += ":" + c.nsExtension
 			}
-			if ret == PipelineAborted {
+			if ret == robot.PipelineAborted {
 				r.SendChannelMessage(c.jobChannel, fmt.Sprintf("Job '%s', run number %d aborted, job '%s' already in progress", jobName, c.runIndex, c.exclusiveTag))
 			} else {
 				r.SendChannelMessage(c.jobChannel, fmt.Sprintf("Job '%s', run number %d failed in task: '%s'%s, exit code: %s", jobName, c.runIndex, c.failedTask, td, ret))
@@ -200,10 +201,10 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		queue, _ := runQueues.m[tag]
 		queueLen := len(queue)
 		if queueLen == 0 {
-			Log(Debug, "Bot #%d finished exclusive pipeline '%s', no waiters in queue, removing", c.id, c.exclusiveTag)
+			Log(robot.Debug, "Bot #%d finished exclusive pipeline '%s', no waiters in queue, removing", c.id, c.exclusiveTag)
 			delete(runQueues.m, tag)
 		} else {
-			Log(Debug, "Bot #%d finished exclusive pipeline '%s', %d waiters in queue, waking next task", c.id, c.exclusiveTag, queueLen)
+			Log(robot.Debug, "Bot #%d finished exclusive pipeline '%s', %d waiters in queue, waking next task", c.id, c.exclusiveTag, queueLen)
 			wakeUpTask := queue[0]
 			queue = queue[1:]
 			runQueues.m[tag] = queue
@@ -223,7 +224,7 @@ const (
 	failTasks
 )
 
-func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskRetVal, errString string) {
+func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret robot.TaskRetVal, errString string) {
 	var p []TaskSpec
 	eventEmitted := false
 
@@ -262,19 +263,19 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 			}
 			if adminRequired {
 				if !r.CheckAdmin() {
-					r.Say(fmt.Sprintf("Sorry, '%s/%s' is only available to bot administrators", task.name, command))
-					ret = Fail
+					r.Say("Sorry, '%s/%s' is only available to bot administrators", task.name, command)
+					ret = robot.Fail
 					break
 				}
 			}
-			if c.checkAuthorization(t, command, args...) != Success {
-				ret = Fail
+			if c.checkAuthorization(t, command, args...) != robot.Success {
+				ret = robot.Fail
 				break
 			}
 			if !c.elevated {
 				eret, required := c.checkElevation(t, command)
-				if eret != Success {
-					ret = Fail
+				if eret != robot.Success {
+					ret = robot.Fail
 					break
 				}
 				if required {
@@ -309,7 +310,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 			c.debugT(t, fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
 			errString, ret = c.callTask(t, command, args...)
 			c.debug(fmt.Sprintf("Task finished with return value: %s", ret), false)
-			if c.stage != finalTasks && ret != Normal {
+			if c.stage != finalTasks && ret != robot.Normal {
 				c.failedTask = task.name
 				if len(args) > 0 {
 					c.failedTask += " " + strings.Join(args, " ")
@@ -317,13 +318,13 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 				c.failedTaskDescription = task.Description
 			}
 		}
-		if c.stage != finalTasks && ret != Normal {
+		if c.stage != finalTasks && ret != robot.Normal {
 			// task / job in pipeline failed
 			break
 		}
 		if !c.exclusive {
 			if c.abortPipeline {
-				ret = PipelineAborted
+				ret = robot.PipelineAborted
 				errString = "Pipeline aborted, exclusive lock failed"
 				break
 			}
@@ -338,22 +339,22 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 					queue = append(queue, wakeUp)
 					runQueues.m[tag] = queue
 					runQueues.Unlock()
-					Log(Debug, "Exclusive task in progress, queueing bot #%d and waiting; queue length: %d", c.id, len(queue))
+					Log(robot.Debug, "Exclusive task in progress, queueing bot #%d and waiting; queue length: %d", c.id, len(queue))
 					if (isJob && !job.Quiet) || ptype == jobCmd {
-						c.makeRobot().Say(fmt.Sprintf("Queueing task '%s' in pipeline '%s'", task.name, c.pipeName))
+						c.makeRobot().Say("Queueing task '%s' in pipeline '%s'", task.name, c.pipeName)
 					}
 					// Now we block until kissed by a Handsome Prince
 					<-wakeUp
-					Log(Debug, "Bot #%d in queue waking up and re-starting task '%s'", c.id, task.name)
+					Log(robot.Debug, "Bot #%d in queue waking up and re-starting task '%s'", c.id, task.name)
 					if (job != nil && !job.Quiet) || ptype == jobCmd {
-						c.makeRobot().Say(fmt.Sprintf("Re-starting queued task '%s' in pipeline '%s'", task.name, c.pipeName))
+						c.makeRobot().Say("Re-starting queued task '%s' in pipeline '%s'", task.name, c.pipeName)
 					}
 					// Decrement the index so this task runs again
 					i--
 					// Clear tasks added in the last run (if any)
 					c.nextTasks = []TaskSpec{}
 				} else {
-					Log(Debug, "Exclusive lock acquired in pipeline '%s', bot #%d", c.pipeName, c.id)
+					Log(robot.Debug, "Exclusive lock acquired in pipeline '%s', bot #%d", c.pipeName, c.id)
 					runQueues.m[tag] = []chan struct{}{}
 					runQueues.Unlock()
 				}
@@ -372,11 +373,11 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret TaskR
 				// the case where c.queueTask is true is handled right after
 				// callTask
 				if c.abortPipeline {
-					ret = PipelineAborted
+					ret = robot.PipelineAborted
 					errString = "Pipeline aborted, exclusive lock failed"
 					break
 				}
-				if ret != Normal {
+				if ret != robot.Normal {
 					break
 				}
 			}
@@ -409,7 +410,7 @@ func (c *botContext) getEnvironment(task *BotTask) map[string]string {
 					if !exists {
 						value, err := decrypt(encvalue, key)
 						if err != nil {
-							Log(Error, "Error decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err)
+							Log(robot.Error, "Error decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err)
 							break
 						}
 						envhash[name] = string(value)
@@ -446,37 +447,14 @@ func (c *botContext) getEnvironment(task *BotTask) map[string]string {
 // to the task.
 func getTaskPath(task *BotTask) (tpath string, err error) {
 	if len(task.Path) == 0 {
-		err := fmt.Errorf("Path empty for external task: %s", task.name)
-		Log(Error, err.Error())
+		err := fmt.Errorf("path empty for external task: %s", task.name)
+		Log(robot.Error, err.Error())
 		return "", err
 	}
-	var taskPath string
-	if filepath.IsAbs(task.Path) {
-		taskPath = task.Path
-		_, err := os.Stat(taskPath)
-		if err == nil {
-			Log(Debug, "Using fully specified path to plugin:", taskPath)
-			return taskPath, nil
-		}
-		err = fmt.Errorf("Invalid path for external plugin: %s (%v)", taskPath, err)
-		Log(Error, err.Error())
-		return "", err
+	tpath, err = getObjectPath(task.Path)
+	if err != nil {
+		err = fmt.Errorf("couldn't locate external plugin %s: %v", task.name, err)
+		Log(robot.Error, err.Error())
 	}
-	if len(configPath) > 0 {
-		taskPath = filepath.Join(configPath, task.Path)
-		_, err := os.Stat(taskPath)
-		if err == nil {
-			// The one case where relpath is true
-			Log(Debug, "Using external plugin from configPath: %s", taskPath)
-			return taskPath, nil
-		}
-	}
-	taskPath = filepath.Join(installPath, task.Path)
-	if _, err := os.Stat(taskPath); err == nil {
-		Log(Debug, "Using stock external plugin: %s", taskPath)
-		return taskPath, nil
-	}
-	err = fmt.Errorf("Couldn't locate external plugin %s: %v", task.name, err)
-	Log(Error, err.Error())
-	return "", err
+	return
 }

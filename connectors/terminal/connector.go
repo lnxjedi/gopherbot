@@ -9,6 +9,7 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // termConnector holds all the relevant data about a connection
@@ -23,7 +24,7 @@ type termConnector struct {
 	channels       []string           // the channels the robot is in
 	heard          chan string        // when the user speaks
 	reader         *readline.Instance // readline for speaking
-	bot.Handler                       // bot API for connectors
+	robot.Handler                     // bot API for connectors
 	sync.RWMutex                      // shared mutex for locking connector data structures
 }
 
@@ -54,7 +55,7 @@ loop:
 
 		select {
 		case <-stop:
-			tc.Log(bot.Debug, "Received stop in connector")
+			tc.Log(robot.Debug, "Received stop in connector")
 			fmt.Println("Exiting (press enter)")
 			break loop
 		case input := <-tc.heard:
@@ -132,7 +133,7 @@ loop:
 				}
 				i := userMap[tc.currentUser]
 				ui := tc.users[i]
-				botMsg := &bot.ConnectorMessage{
+				botMsg := &robot.ConnectorMessage{
 					Protocol:      "Terminal",
 					UserName:      tc.currentUser,
 					UserID:        ui.InternalID,

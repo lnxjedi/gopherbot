@@ -6,3 +6,4 @@ gopherbot*tar.gz
 lib/gopherbot_*.pyc
 .c9
 .env
+*.so

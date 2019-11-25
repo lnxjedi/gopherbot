@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/jordan-wright/email"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 type botMailer struct {
@@ -21,41 +22,41 @@ type botMailer struct {
 // For the robot, this can be conifigured in gopherbot.conf, Email attribute.
 // For the user, this should be provided by the chat protocol, or in
 // gopherbot.conf.
-// It returns an error and RetVal != 0 if there's a problem.
-func (r *Robot) Email(subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal) {
+// It returns an error and b.RetVal != 0 if there's a problem.
+func (r Robot) Email(subject string, messageBody *bytes.Buffer, html ...bool) (ret robot.RetVal) {
 	mailAttr := r.GetSenderAttribute("email")
-	if mailAttr.RetVal != Ok {
-		return NoUserEmail
+	if mailAttr.RetVal != robot.Ok {
+		return robot.NoUserEmail
 	}
 	return r.realEmail(subject, mailAttr.Attribute, messageBody, html...)
 }
 
 // EmailUser is a method for sending an email to a specified user. See Email.
-func (r *Robot) EmailUser(user, subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal) {
+func (r Robot) EmailUser(user, subject string, messageBody *bytes.Buffer, html ...bool) (ret robot.RetVal) {
 	mailAttr := r.GetUserAttribute(user, "email")
-	if mailAttr.RetVal != Ok {
-		return NoUserEmail
+	if mailAttr.RetVal != robot.Ok {
+		return robot.NoUserEmail
 	}
 	return r.realEmail(subject, mailAttr.Attribute, messageBody, html...)
 }
 
 // EmailAddress is a method for sending an email to a specified address. See Email.
-func (r *Robot) EmailAddress(address, subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal) {
+func (r Robot) EmailAddress(address, subject string, messageBody *bytes.Buffer, html ...bool) (ret robot.RetVal) {
 	return r.realEmail(subject, address, messageBody, html...)
 }
 
-func (r *Robot) realEmail(subject, mailTo string, messageBody *bytes.Buffer, html ...bool) (ret RetVal) {
+func (r Robot) realEmail(subject, mailTo string, messageBody *bytes.Buffer, html ...bool) (ret robot.RetVal) {
 	var mailFrom, botName string
 
 	mailAttr := r.GetBotAttribute("email")
-	if mailAttr.RetVal != Ok || mailAttr.Attribute == "" {
-		Log(Error, "Email send requested but robot has no Email set in config")
-		return NoBotEmail
+	if mailAttr.RetVal != robot.Ok || mailAttr.Attribute == "" {
+		Log(robot.Error, "Email send requested but robot has no Email set in config")
+		return robot.NoBotEmail
 	}
 	mailFrom = mailAttr.Attribute
 	// We can live without a full name
 	botAttr := r.GetBotAttribute("fullName")
-	if botAttr.RetVal != Ok {
+	if botAttr.RetVal != robot.Ok {
 		botName = "Gopherbot"
 	} else {
 		botName = botAttr.Attribute
@@ -76,7 +77,7 @@ func (r *Robot) realEmail(subject, mailTo string, messageBody *bytes.Buffer, htm
 	if botCfg.mailConf.Authtype == "plain" {
 		host := strings.Split(botCfg.mailConf.Mailhost, ":")[0]
 		a = smtp.PlainAuth("", botCfg.mailConf.User, botCfg.mailConf.Password, host)
-		Log(Debug, "Sending authenticated email to \"%s\" from \"%s\" via \"%s\" with user: %s, password: xxxx, and host: %s",
+		Log(robot.Debug, "Sending authenticated email to \"%s\" from \"%s\" via \"%s\" with user: %s, password: xxxx, and host: %s",
 			mailTo,
 			from,
 			botCfg.mailConf.Mailhost,
@@ -84,7 +85,7 @@ func (r *Robot) realEmail(subject, mailTo string, messageBody *bytes.Buffer, htm
 			host,
 		)
 	} else {
-		Log(Debug, "Sending unauthenticated email to \"%s\" from \"%s\" via \"%s\"",
+		Log(robot.Debug, "Sending unauthenticated email to \"%s\" from \"%s\" via \"%s\"",
 			mailTo,
 			from,
 			botCfg.mailConf.Mailhost,
@@ -94,8 +95,8 @@ func (r *Robot) realEmail(subject, mailTo string, messageBody *bytes.Buffer, htm
 	err := e.Send(botCfg.mailConf.Mailhost, a)
 	if err != nil {
 		err = fmt.Errorf("Sending email: %v", err)
-		Log(Error, err.Error())
-		return MailError
+		Log(robot.Error, err.Error())
+		return robot.MailError
 	}
-	return Ok
+	return robot.Ok
 }

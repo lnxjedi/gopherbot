@@ -4,20 +4,8 @@ import (
 	"log"
 	"strings"
 	"sync"
-)
 
-// LogLevel for determining when to output a log entry
-type LogLevel int
-
-// Definitions of log levels in order from most to least verbose
-const (
-	Trace LogLevel = iota
-	Debug
-	Info
-	Audit // For plugins to emit auditable events
-	Warn
-	Error
-	Fatal
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var logToFile bool // is logging to a file?
@@ -28,7 +16,7 @@ const maxLines = 50 // maximum lines to send in a message
 
 var botLogger = struct {
 	l         *log.Logger
-	level     LogLevel
+	level     robot.LogLevel
 	buffer    []string
 	buffLine  int
 	pageLines int
@@ -36,7 +24,7 @@ var botLogger = struct {
 	sync.Mutex
 }{
 	nil,
-	Trace,
+	robot.Trace,
 	make([]string, buffLines),
 	0,
 	20,
@@ -44,38 +32,38 @@ var botLogger = struct {
 	sync.Mutex{},
 }
 
-func logStrToLevel(l string) LogLevel {
+func logStrToLevel(l string) robot.LogLevel {
 	switch strings.ToLower(l) {
 	case "trace":
-		return Trace
+		return robot.Trace
 	case "debug":
-		return Debug
+		return robot.Debug
 	case "info":
-		return Info
+		return robot.Info
 	case "audit":
-		return Audit
+		return robot.Audit
 	case "warn":
-		return Warn
+		return robot.Warn
 	default:
-		return Error
+		return robot.Error
 	}
 }
 
-func logLevelToStr(l LogLevel) string {
+func logLevelToStr(l robot.LogLevel) string {
 	switch l {
-	case Trace:
+	case robot.Trace:
 		return "Trace"
-	case Debug:
+	case robot.Debug:
 		return "Debug"
-	case Info:
+	case robot.Info:
 		return "Info"
-	case Audit:
+	case robot.Audit:
 		return "Audit"
-	case Warn:
+	case robot.Warn:
 		return "Warning"
-	case Error:
+	case robot.Error:
 		return "Error"
-	case Fatal:
+	case robot.Fatal:
 		return "Fatal"
 	default:
 		return ""
@@ -121,13 +109,13 @@ func setLogPageLines(l int) int {
 }
 
 // setLogLevel updates the connector log level
-func setLogLevel(l LogLevel) {
+func setLogLevel(l robot.LogLevel) {
 	botLogger.Lock()
 	botLogger.level = l
 	botLogger.Unlock()
 }
 
-func getLogLevel() LogLevel {
+func getLogLevel() robot.LogLevel {
 	botLogger.Lock()
 	l := botLogger.level
 	botLogger.Unlock()

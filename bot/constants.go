@@ -2,20 +2,6 @@ package bot
 
 // constants.go - separate file for constants so stringer can run
 
-// Protocol - connector protocols
-type Protocol int
-
-const (
-	// Slack connector
-	Slack Protocol = iota
-	// Rocket for Rocket.Chat
-	Rocket
-	// Terminal connector
-	Terminal
-	// Test connector for automated test suites
-	Test
-)
-
 type pipeAddFlavor int
 type pipeAddType int
 type taskType int

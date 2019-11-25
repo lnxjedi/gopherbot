@@ -1,0 +1,15 @@
+# Makefile - just builds the binary, for dev mainly
+
+.PHONY: test generate testbot all
+
+.SUFFIXES: .go .so
+
+LOADPLUGS = $(addsuffix .so, $(basename $(wildcard goplugins/modular/*/*.go)))
+
+GOOS ?= linux
+
+all: $(LOADPLUGS)
+
+%.so: %.go
+	echo $(LOADPLUGS) $@ $<
+	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -o $@ -buildmode=plugin -tags 'netgo osusergo static_build' $<

@@ -5,15 +5,15 @@ package fileBrain
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var brainPath string
-var robot bot.Handler
+var handler robot.Handler
 
 type brainConfig struct {
 	BrainDirectory string `yaml:"BrainDirectory"` // path to brain files
@@ -39,7 +39,7 @@ func (fb *brainConfig) Retrieve(k string) (*[]byte, bool, error) {
 		datum, err := ioutil.ReadFile(datumPath)
 		if err != nil {
 			err = fmt.Errorf("Error reading file \"%s\": %v", datumPath, err)
-			robot.Log(bot.Error, err.Error())
+			handler.Log(robot.Error, err.Error())
 			return nil, false, err
 		}
 		return &datum, true, nil
@@ -49,21 +49,21 @@ func (fb *brainConfig) Retrieve(k string) (*[]byte, bool, error) {
 }
 
 // The file brain doesn't need the logger, but other brains might
-func provider(r bot.Handler, _ *log.Logger) bot.SimpleBrain {
-	robot = r
-	robot.GetBrainConfig(&fb)
+func provider(r robot.Handler) robot.SimpleBrain {
+	handler = r
+	handler.GetBrainConfig(&fb)
 	if len(fb.BrainDirectory) == 0 {
-		robot.Log(bot.Fatal, "BrainConfig missing value for BrainDirectory required by 'file' brain")
+		handler.Log(robot.Fatal, "BrainConfig missing value for BrainDirectory required by 'file' brain")
 	}
 	brainPath = fb.BrainDirectory
 	bd, err := os.Stat(brainPath)
 	if err != nil {
-		robot.Log(bot.Fatal, "Checking brain directory \"%s\": %v", brainPath, err)
+		handler.Log(robot.Fatal, "Checking brain directory \"%s\": %v", brainPath, err)
 	}
 	if !bd.Mode().IsDir() {
-		robot.Log(bot.Fatal, "Checking brain directory: \"%s\" isn't a directory", brainPath)
+		handler.Log(robot.Fatal, "Checking brain directory: \"%s\" isn't a directory", brainPath)
 	}
-	robot.Log(bot.Info, "Initialized file-backed brain with memories directory: '%s'", brainPath)
+	handler.Log(robot.Info, "Initialized file-backed brain with memories directory: '%s'", brainPath)
 	return &fb
 }
 

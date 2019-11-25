@@ -3,6 +3,7 @@ package bot
 import (
 	"sync"
 
+	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/robfig/cron"
 )
 
@@ -19,10 +20,10 @@ func scheduleTasks() {
 	tz := botCfg.timeZone
 	botCfg.RUnlock()
 	if tz != nil {
-		Log(Info, "Scheduling tasks in TimeZone: %s", tz)
+		Log(robot.Info, "Scheduling tasks in TimeZone: %s", tz)
 		taskRunner = cron.NewWithLocation(tz)
 	} else {
-		Log(Info, "Scheduling tasks in system default timezone")
+		Log(robot.Info, "Scheduling tasks in system default timezone")
 		taskRunner = cron.New()
 	}
 	currentTasks.Lock()
@@ -39,24 +40,24 @@ func scheduleTasks() {
 	for _, st := range scheduled {
 		t := tasks.getTaskByName(st.Name)
 		if t == nil {
-			Log(Error, "Task not found when scheduling task: %s", st.Name)
+			Log(robot.Error, "Task not found when scheduling task: %s", st.Name)
 			continue
 		}
 		task, _, job := getTask(t)
 		if job == nil {
-			Log(Error, "Ignoring '%s' in ScheduledJobs: not a job", st.Name)
+			Log(robot.Error, "Ignoring '%s' in ScheduledJobs: not a job", st.Name)
 			continue
 		}
 		if task.Disabled {
-			Log(Error, "Not scheduling disabled job '%s'; reason: %s", st.Name, task.reason)
+			Log(robot.Error, "Not scheduling disabled job '%s'; reason: %s", st.Name, task.reason)
 			continue
 		}
 		if len(task.Channel) == 0 {
-			Log(Error, "Not scheduling job '%s'; zero-length Channel", st.Name)
+			Log(robot.Error, "Not scheduling job '%s'; zero-length Channel", st.Name)
 			continue
 		}
 		ts := st.TaskSpec
-		Log(Info, "Scheduling job '%s', args '%v' with schedule: %s", ts.Name, ts.Arguments, st.Schedule)
+		Log(robot.Info, "Scheduling job '%s', args '%v' with schedule: %s", ts.Name, ts.Arguments, st.Schedule)
 		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, ts, tasks, repolist) })
 	}
 	taskRunner.Start()
@@ -67,7 +68,7 @@ func runScheduledTask(t interface{}, ts TaskSpec, tasks taskList, repolist map[s
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	if isPlugin && len(ts.Command) == 0 {
-		Log(Error, "Empty 'Command' when running scheduled task '%s' of type plugin", ts.Name)
+		Log(robot.Error, "Empty 'Command' when running scheduled task '%s' of type plugin", ts.Name)
 		return
 	}
 
@@ -90,6 +91,6 @@ func runScheduledTask(t interface{}, ts TaskSpec, tasks taskList, repolist map[s
 	} else {
 		command = "run"
 	}
-	Log(Info, "Starting scheduled task: %s", task.name)
+	Log(robot.Info, "Starting scheduled task: %s", task.name)
 	c.startPipeline(nil, t, scheduled, command, ts.Arguments...)
 }

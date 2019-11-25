@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // DO NOT DISABLE THIS PLUGIN! ALL ROBAWTS MUST KNOW THE RULES
@@ -19,7 +20,8 @@ type config struct {
 }
 
 // Define the handler function
-func ping(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
+func ping(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+	r := m.(bot.Robot)
 	var cfg *config
 	// The plugin can handle multiple different commands
 	switch command {
@@ -40,14 +42,14 @@ func ping(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) 
 		p := r.Protocol
 		e := r.GetSenderAttribute("email")
 		var msg string
-		if e.RetVal == bot.Ok {
+		if e.RetVal == robot.Ok {
 			msg = fmt.Sprintf("You are '%s' user '%s/%s', speaking in channel '%s/%s', email address: %s", p, u, uid, c, cid, e)
 		} else {
 			msg = fmt.Sprintf("You are '%s' user '%s/%s', speaking in channel '%s/%s'", p, u, uid, c, cid)
 		}
-		r.MessageFormat(bot.Variable).Say(msg)
+		r.MessageFormat(robot.Variable).Say(msg)
 	case "thanks":
-		if ret := r.GetTaskConfig(&cfg); ret == bot.Ok {
+		if ret := r.GetTaskConfig(&cfg); ret == robot.Ok {
 			r.Reply(r.RandomString(cfg.Welcome))
 		} else {
 			r.Reply("I'm speechless. Please have somebody check my log file.")
@@ -57,7 +59,7 @@ func ping(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) 
 }
 
 func init() {
-	bot.RegisterPlugin("ping", bot.PluginHandler{
+	bot.RegisterPlugin("ping", robot.PluginHandler{
 		Handler: ping,
 		Config:  &config{},
 	})

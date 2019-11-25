@@ -2,6 +2,8 @@ package bot
 
 import (
 	"sync"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var runQueues = struct {
@@ -35,7 +37,7 @@ func (r *Robot) Exclusive(tag string, queueTask bool) (success bool) {
 		return true
 	}
 	if len(c.jobName) == 0 {
-		r.Log(Error, "Exclusive called on pipeline with no job started")
+		r.Log(robot.Error, "Exclusive called on pipeline with no job started")
 		return false
 	}
 	if len(tag) > 0 {
@@ -47,7 +49,7 @@ func (r *Robot) Exclusive(tag string, queueTask bool) (success bool) {
 	_, exists := runQueues.m[tag]
 	if !exists {
 		// Take the lock
-		Log(Debug, "Exclusive lock immediately acquired in pipeline '%s', bot #%d", c.pipeName, c.id)
+		Log(robot.Debug, "Exclusive lock immediately acquired in pipeline '%s', bot #%d", c.pipeName, c.id)
 		runQueues.m[tag] = []chan struct{}{}
 		c.exclusive = true
 		success = true
@@ -57,10 +59,10 @@ func (r *Robot) Exclusive(tag string, queueTask bool) (success bool) {
 	runQueues.Unlock()
 	// Update state to indicate what to do after callTask()
 	if queueTask {
-		Log(Debug, "Bot #%d requesting queueing", c.id)
+		Log(robot.Debug, "Bot #%d requesting queueing", c.id)
 		c.queueTask = true
 	} else {
-		Log(Debug, "Bot #%d requesting abort, exclusive lock failed", c.id)
+		Log(robot.Debug, "Bot #%d requesting abort, exclusive lock failed", c.id)
 		c.abortPipeline = true
 	}
 	return

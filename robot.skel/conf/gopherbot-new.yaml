@@ -23,6 +23,19 @@ Brain: file
 BrainConfig:
   BrainDirectory: private/brain
 
+## Command pluggins, protocol connectors and brain providers can
+## be loaded as modules at runtime.
+# LoadableModules:
+#   "knock":
+#     Description: Knock knock jokes!
+#     Path: goplugins/knock.so
+#   "meme":
+#     Description: Image memes using imgflip API
+#     Path: goplugins/meme.so
+#   "dynamo":
+#     Description: Brain using AWS DynamoDB for the key-value store
+#     Path: brains/dynamodb.so
+
 ## List of users that the robot won't even 'hear'. Note that if you put other
 ## robot / webhook IDs in the UserRoster with 'TriggersOnly: true', you can
 ## safely allow robots to 'talk' to each other, and trigger a job by another

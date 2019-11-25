@@ -5,6 +5,8 @@ package bot
 import (
 	"path"
 	"runtime"
+
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var events = make(chan Event, 16)
@@ -15,9 +17,9 @@ func emit(e Event) {
 	_, file, line, _ := runtime.Caller(1)
 	select {
 	case events <- e:
-		Log(Debug, "Event recorded: %s in %s, line %d", e, path.Base(file), line)
+		Log(robot.Debug, "Event recorded: %s in %s, line %d", e, path.Base(file), line)
 	default:
-		Log(Debug, "Event channel buffer full, didn't record: %s in %s, line %d", e, file, line)
+		Log(robot.Debug, "Event channel buffer full, didn't record: %s in %s, line %d", e, file, line)
 	}
 }
 

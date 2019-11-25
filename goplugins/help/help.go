@@ -4,10 +4,10 @@
 package help
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var (
@@ -16,7 +16,8 @@ var (
 )
 
 // Define the handler function
-func help(bot *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
+func help(bot robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+	m := bot.GetMessage()
 	botName := bot.GetBotAttribute("name").String()
 	if command == "help" { // user just typed 'help' - the robot should introduce itself
 		botContact := bot.GetBotAttribute("contact").String()
@@ -37,16 +38,16 @@ func help(bot *bot.Robot, command string, args ...string) (retval bot.TaskRetVal
 		} else {
 			reply += "."
 		}
-		if bot.Channel != "" {
+		if m.Channel != "" {
 			bot.Reply("I've sent you a private message introducing myself")
 		}
-		bot.SendUserMessage(bot.User, reply)
+		bot.SendUserMessage(m.User, reply)
 	} else if command == "catchall" {
-		bot.Reply(fmt.Sprintf("Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try '%s, help <keyword>'", botName))
+		bot.Reply("Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try '%s, help <keyword>'", botName)
 	}
 	return
 }
 
 func init() {
-	bot.RegisterPlugin("help", bot.PluginHandler{Handler: help})
+	bot.RegisterPlugin("help", robot.PluginHandler{Handler: help})
 }

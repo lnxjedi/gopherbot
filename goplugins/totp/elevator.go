@@ -9,7 +9,7 @@ import (
 	"time"
 
 	otp "github.com/dgryski/dgoogauth"
-	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var timeoutLock sync.RWMutex
@@ -32,34 +32,36 @@ type config struct {
 
 var cfg config
 
-func checkOTP(r *bot.Robot, code string) (bool, bot.TaskRetVal) {
+func checkOTP(r robot.Robot, code string) (bool, robot.TaskRetVal) {
+	m := r.GetMessage()
 	var userOTP otp.OTPConfig
-	lock, exists, ret := r.CheckoutDatum(r.User, &userOTP, true)
-	if ret != bot.Ok {
-		r.CheckinDatum(r.User, lock)
-		return false, bot.MechanismFail
+	lock, exists, ret := r.CheckoutDatum(m.User, &userOTP, true)
+	if ret != robot.Ok {
+		r.CheckinDatum(m.User, lock)
+		return false, robot.MechanismFail
 	}
 	if !exists {
-		r.CheckinDatum(r.User, lock)
-		return false, bot.MechanismFail
+		r.CheckinDatum(m.User, lock)
+		return false, robot.MechanismFail
 	}
 	valid, err := userOTP.Authenticate(code)
 	if err != nil {
-		r.Log(bot.Error, "Problem authenticating launch code for user %s: %v", r.User, err)
-		r.CheckinDatum(r.User, lock)
-		return false, bot.MechanismFail
+		r.Log(robot.Error, "Problem authenticating launch code for user %s: %v", m.User, err)
+		r.CheckinDatum(m.User, lock)
+		return false, robot.MechanismFail
 	}
-	ret = r.UpdateDatum(r.User, lock, &userOTP)
-	if ret != bot.Ok {
-		r.Log(bot.Error, "Problem updating OTP for %s, failing", r.User)
-		return false, bot.MechanismFail
+	ret = r.UpdateDatum(m.User, lock, &userOTP)
+	if ret != robot.Ok {
+		r.Log(robot.Error, "Problem updating OTP for %s, failing", m.User)
+		return false, robot.MechanismFail
 	}
-	return valid, bot.Success
+	return valid, robot.Success
 }
 
-func getcode(r *bot.Robot, immediate bool) (retval bot.TaskRetVal) {
+func getcode(r robot.Robot, immediate bool) (retval robot.TaskRetVal) {
+	m := r.GetMessage()
 	dm := ""
-	if r.Channel != "" {
+	if m.Channel != "" {
 		dm = " - I'll message you directly"
 	}
 	if immediate {
@@ -69,46 +71,47 @@ func getcode(r *bot.Robot, immediate bool) (retval bot.TaskRetVal) {
 	}
 	r.Pause(1)
 	rep, ret := r.Direct().PromptForReply("OTP", "Please provide your totp launch code")
-	if ret != bot.Ok {
+	if ret != robot.Ok {
 		rep, ret = r.Direct().PromptForReply("OTP", "Try again? I need a 6-digit launch code")
 	}
-	if ret == bot.Ok {
+	if ret == robot.Ok {
 		ok, ret := checkOTP(r, rep)
-		if ret != bot.Success {
+		if ret != robot.Success {
 			r.Direct().Say("There were technical issues validating your code, ask an administrator to check the log")
-			return bot.MechanismFail
+			return robot.MechanismFail
 		}
 		if ok {
-			return bot.Success
+			return robot.Success
 		}
 		r.Direct().Say("Invalid code")
-		return bot.Fail
+		return robot.Fail
 	}
-	r.Log(bot.Error, "User \"%s\" failed to respond to TOTP token prompt", r.User)
-	return bot.Fail
+	r.Log(robot.Error, "User \"%s\" failed to respond to TOTP token prompt", m.User)
+	return robot.Fail
 }
 
-func elevate(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
+func elevate(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+	m := r.GetMessage()
 	switch command {
 	case "send":
 		var userOTP otp.OTPConfig
 		updated := false
-		lock, exists, ret := r.CheckoutDatum(r.User, &userOTP, true)
-		if ret != bot.Ok {
+		lock, exists, ret := r.CheckoutDatum(m.User, &userOTP, true)
+		if ret != robot.Ok {
 			r.Say("Yikes! - Something went wrong with my brain, have an admin check my log")
 			return
 		}
 		defer func() {
 			if updated {
-				ret = r.UpdateDatum(r.User, lock, &userOTP)
-				if ret != bot.Ok {
-					r.Log(bot.Error, "Couldn't save OTP config")
+				ret = r.UpdateDatum(m.User, lock, &userOTP)
+				if ret != robot.Ok {
+					r.Log(robot.Error, "Couldn't save OTP config")
 					r.Reply("Good grief, I'm having trouble remembering your launch codes - have somebody check my log")
 				}
 			} else {
 				// Well-behaved plugins will always do a CheckinDatum when the datum hasn't been updated,
 				// in case there's another thread waiting.
-				r.CheckinDatum(r.User, lock)
+				r.CheckinDatum(m.User, lock)
 			}
 		}()
 		if exists {
@@ -124,12 +127,12 @@ func elevate(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVa
 		fmt.Fprintf(&codeMail, "For your authenticator:\n%s\n", userOTP.Secret)
 		// Sending email takes longer than the timeout, so we check it in and check
 		// out again after.
-		r.CheckinDatum(r.User, lock)
-		if ret = r.Email("Your launch codes - if you print this email, please chew it up and swallow it", &codeMail); ret != bot.Ok {
+		r.CheckinDatum(m.User, lock)
+		if ret = r.Email("Your launch codes - if you print this email, please chew it up and swallow it", &codeMail); ret != robot.Ok {
 			r.Reply("There was a problem sending your launch codes, contact an administrator")
 			return
 		}
-		lock, _, ret = r.CheckoutDatum(r.User, &userOTP, true)
+		lock, _, ret = r.CheckoutDatum(m.User, &userOTP, true)
 		updated = true
 		r.Reply("I've emailed your launch codes - please delete it promptly")
 		return
@@ -151,14 +154,14 @@ func elevate(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVa
 			retval = getcode(r, immediate)
 		} else {
 			timeoutLock.RLock()
-			le, ok := lastElevate[r.User]
+			le, ok := lastElevate[m.User]
 			timeoutLock.RUnlock()
 			if ok {
 				diff := now.Sub(le)
 				if diff.Seconds() > cfg.tf64 {
 					ask = true
 				} else {
-					retval = bot.Success
+					retval = robot.Success
 				}
 			} else {
 				ask = true
@@ -167,13 +170,13 @@ func elevate(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVa
 				retval = getcode(r, immediate)
 			}
 		}
-		if retval == bot.Success && cfg.tt == idle {
+		if retval == robot.Success && cfg.tt == idle {
 			timeoutLock.Lock()
-			lastElevate[r.User] = now
+			lastElevate[m.User] = now
 			timeoutLock.Unlock()
-		} else if retval == bot.Success && ask && cfg.tt == absolute {
+		} else if retval == robot.Success && ask && cfg.tt == absolute {
 			timeoutLock.Lock()
-			lastElevate[r.User] = now
+			lastElevate[m.User] = now
 			timeoutLock.Unlock()
 		}
 		return
@@ -181,9 +184,7 @@ func elevate(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVa
 	return
 }
 
-func init() {
-	bot.RegisterPlugin("totp", bot.PluginHandler{
-		Handler: elevate,
-		Config:  &config{},
-	})
+var totphandler = robot.PluginHandler{
+	Handler: elevate,
+	Config:  &config{},
 }

@@ -1,11 +1,12 @@
-// Package knock implements a simple demonstrator plugin for using Gopherbot's
-// WaitForReply function to tell knock-knock jokes.
 package knock
+
+// knock implements a simple demonstrator plugin for using Gopherbot's
+// WaitForReply function to tell knock-knock jokes.
 
 import (
 	"strings"
 
-	"github.com/lnxjedi/gopherbot/bot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // Joke holds a knock-knock joke
@@ -21,13 +22,18 @@ type JokeConfig struct {
 	Phooey   []string // Ways the robot complains if the user doesn't respond correctly
 }
 
-func knock(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal) {
+var knockhandler = robot.PluginHandler{
+	Handler: knock,
+	Config:  &JokeConfig{},
+}
+
+func knock(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	var j *JokeConfig // get access to a copy of the plugin's config
 	switch command {
 	case "init":
 		// Ignore, this plugin has no start-up
 	case "knock":
-		if ret := r.GetTaskConfig(&j); ret != bot.Ok {
+		if ret := r.GetTaskConfig(&j); ret != robot.Ok {
 			r.Reply("Sorry, I couldn't find my joke book")
 		}
 		if len(j.Jokes) == 0 {
@@ -41,15 +47,15 @@ func knock(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal)
 		r.Pause(1.2)
 		for i := 0; i < 2; i++ {
 			_, ret := r.PromptForReply("whosthere", "Knock knock")
-			if ret == bot.Interrupted {
+			if ret == robot.Interrupted {
 				r.Reply("Ok, I guess you don't like knock-knock jokes!")
 				return
 			}
-			if ret == bot.TimeoutExpired {
+			if ret == robot.TimeoutExpired {
 				r.Reply(r.RandomString(j.Phooey))
 				return
 			}
-			if ret == bot.ReplyNotMatched {
+			if ret == robot.ReplyNotMatched {
 				switch i {
 				case 0:
 					r.Pause(0.5)
@@ -59,11 +65,11 @@ func knock(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal)
 					r.Reply(r.RandomString(j.Phooey))
 					return
 				}
-			} else if ret == bot.UseDefaultValue {
+			} else if ret == robot.UseDefaultValue {
 				r.Reply("Sheesh, are you kidding me? Ok, I'll assume you meant 'Who's there?'...")
 				r.Pause(1)
 				break
-			} else if ret != bot.Ok {
+			} else if ret != robot.Ok {
 				r.Reply("Sorry, something broke")
 				return
 			} else {
@@ -80,15 +86,15 @@ func knock(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal)
 		}
 		for i := 0; i < 2; i++ {
 			reply, ret := r.PromptForReply("who", joke.First)
-			if ret == bot.Interrupted {
+			if ret == robot.Interrupted {
 				r.Reply("Oooo, you're going to leave the joke unfinished? What about CLOSURE?!?")
 				return
 			}
-			if ret == bot.TimeoutExpired {
+			if ret == robot.TimeoutExpired {
 				r.Reply(r.RandomString(j.Phooey))
 				return
 			}
-			if ret == bot.UseDefaultValue {
+			if ret == robot.UseDefaultValue {
 				switch i {
 				case 0:
 					r.Reply("Ohhhhh no... you're going to have to spell it out, lazy bones!")
@@ -96,7 +102,7 @@ func knock(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal)
 					r.Reply(r.RandomString(j.Phooey))
 					return
 				}
-			} else if ret == bot.ReplyNotMatched {
+			} else if ret == robot.ReplyNotMatched {
 				switch i {
 				case 0:
 					r.Pause(0.5)
@@ -106,7 +112,7 @@ func knock(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal)
 					r.Reply(r.RandomString(j.Phooey))
 					return
 				}
-			} else if ret == bot.Ok {
+			} else if ret == robot.Ok {
 				// Did the user reply correctly with <j.First> who?
 				if strings.HasPrefix(strings.ToLower(reply), strings.ToLower(joke.First)) {
 					r.Say(joke.Second)
@@ -128,11 +134,4 @@ func knock(r *bot.Robot, command string, args ...string) (retval bot.TaskRetVal)
 		}
 	}
 	return
-}
-
-func init() {
-	bot.RegisterPlugin("knock", bot.PluginHandler{
-		Handler: knock,
-		Config:  &JokeConfig{},
-	})
 }

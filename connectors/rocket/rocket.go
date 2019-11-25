@@ -10,6 +10,7 @@ import (
 	"github.com/lnxjedi/gopherbot/bot"
 	models "github.com/lnxjedi/gopherbot/connectors/rocket/models"
 	api "github.com/lnxjedi/gopherbot/connectors/rocket/realtime"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var lock sync.Mutex  // package var lock
@@ -43,7 +44,7 @@ var userName, userID string
 type rocketConnector struct {
 	rt      *api.Client
 	running bool
-	bot.Handler
+	robot.Handler
 	sync.RWMutex
 	channelNames    map[string]string   // map from roomID to channel name
 	channelIDs      map[string]string   // map from channel name to roomID
@@ -62,7 +63,7 @@ func init() {
 }
 
 // Initialize sets up the connector and returns a connector object
-func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
+func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	lock.Lock()
 	if initialized {
 		lock.Unlock()
@@ -74,9 +75,9 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	var c config
 	var err error
 
-	err = robot.GetProtocolConfig(&c)
+	err = handler.GetProtocolConfig(&c)
 	if err != nil {
-		robot.Log(bot.Fatal, "Unable to retrieve protocol configuration: %v", err)
+		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
 	}
 
 	cred := &models.UserCredentials{
@@ -86,17 +87,17 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 
 	u, err := url.Parse(c.Server)
 	if err != nil {
-		robot.Log(bot.Fatal, "Unable to parse URL: %s, %v", c.Server, err)
+		handler.Log(robot.Fatal, "Unable to parse URL: %s, %v", c.Server, err)
 	}
 
 	client, err := api.NewClient(u, true)
 	if err != nil {
-		robot.Log(bot.Fatal, "Unable to create client: %v", err)
+		handler.Log(robot.Fatal, "Unable to create client: %v", err)
 	}
 
 	rc := &rocketConnector{
 		rt:             client,
-		Handler:        robot,
+		Handler:        handler,
 		channelNames:   make(map[string]string),
 		channelIDs:     make(map[string]string),
 		joinedChannels: make(map[string]struct{}),
@@ -109,14 +110,14 @@ func Initialize(robot bot.Handler, l *log.Logger) bot.Connector {
 	}
 
 	if user, err := client.Login(cred); err != nil {
-		rc.Log(bot.Fatal, "unable to log in to rocket chat: %v", err)
+		rc.Log(robot.Fatal, "unable to log in to rocket chat: %v", err)
 	} else {
 		// NOTE: the login user object doesn't have the UserName
 		//userName = user.UserName
 		userID = user.ID
-		robot.SetBotID(user.ID)
+		handler.SetBotID(user.ID)
 		//robot.SetBotMention(user.UserName)
 	}
 	incoming = client.GetMessageStreamUpdateChannel()
-	return bot.Connector(rc)
+	return robot.Connector(rc)
 }
