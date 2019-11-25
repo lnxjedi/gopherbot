@@ -55,6 +55,9 @@ fi
 # Initialize ssh for updating docs repo
 AddTask ssh-init
 
+# Publish doc updates (if any)
+AddTask exec ./.gopherci/publishdoc.sh
+
 # Publish archives to github
 AddTask exec ./.gopherci/publish.sh
 
