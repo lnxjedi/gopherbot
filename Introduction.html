@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Docker Install - Gopherbot DevOps Chatbot</title>
+        <title>Introduction - Gopherbot DevOps Chatbot</title>
         
 
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
@@ -81,7 +81,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div id="sidebar-scrollbox" class="sidebar-scrollbox">
-                <ol class="chapter"><li class="expanded affix "><a href="Foreward.html">Foreward</a></li><li class="expanded "><a href="Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="expanded "><a href="InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li class="expanded "><a href="DockerInstall.html" class="active"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li class="expanded "><a href="Modules.html"><strong aria-hidden="true">2.</strong> Module Support</a></li></ol>
+                <ol class="chapter"><li class="expanded affix "><a href="Title.html">Title</a></li><li class="expanded affix "><a href="Foreward.html">Foreward</a></li><li class="expanded affix "><a href="Introduction.html" class="active">Introduction</a></li><li class="expanded "><a href="Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="expanded "><a href="InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li class="expanded "><a href="DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li class="expanded "><a href="Modules.html"><strong aria-hidden="true">2.</strong> Module Support</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -148,71 +148,24 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h2><a class="header" href="#quick-start-with-docker" id="quick-start-with-docker">Quick Start with Docker</a></h2>
-<p>If you've already got a Docker host and Slack team, this is the absolute fastest way to get your very own robot up and running for playing around with, though not recommended for production installs.</p>
-<ol>
-<li>Get a Slack token for your robot at https://&lt;your-team&gt;.slack.com/services/new/bot</li>
-<li>Create the environment file <code>.env</code>, filling in your specific values (except for GOPHER_ADMIN, filled in later):</li>
-</ol>
-<pre><code class="language-env">GOPHER_ADMIN=
-GOPHER_SLACK_TOKEN=xoxb-yourTokenHere
-GOPHER_BOTNAME=nameOfYourBot
-GOPHER_BOTFULLNAME=&quot;Optional Full Name&quot;
-# A one-character alias for addressing the robot, e.g. \ping
-# Other good values: ; ! *
-GOPHER_ALIAS=\
-</code></pre>
-<ol start="3">
-<li>Start your robot with <code>docker run --env .env --name &lt;nameOfYourBot&gt; lnxjedi/gopherbot</code>, for example:</li>
-</ol>
-<pre><code class="language-shell">$ docker run --env-file .env --name frodo lnxjedi/gopherbot
-</code></pre>
-<p>If all goes well, your terminal window will start filling up with <strong>Gopherbot</strong> debug logs, and your robot will connect to your Slack team. Now you can invite your robot user to a channel and try out a few commands. Assuming you used <code>\</code> for the alias, and <code>frodo</code> for the robot's name, you can try:</p>
-<ul>
-<li><code>\ping</code></li>
-<li><code>frodo, info</code></li>
-<li><code>help</code> - for general help</li>
-<li><code>\help</code> - for help on available commands</li>
-<li><code>\whoami</code></li>
-</ul>
-<h3><a class="header" href="#adding-an-administrator" id="adding-an-administrator">Adding an Administrator</a></h3>
-<p>These instructions assume you kept the default <code>\</code> for the robot's alias.</p>
-<ol>
-<li>Use the <code>\whoami</code> command to determine your actual Slack username, which frequently differs from the display name you see in channels</li>
-<li>Press &lt;ctrl-c&gt; to stop your container, then remove it:</li>
-</ol>
-<pre><code class="language-shell">$ docker container rm frodo
-</code></pre>
-<ol start="3">
-<li>Edit the <code>.env</code> file, adding your Slack user name for <code>GOPHER_ADMIN</code></li>
-<li>Run the robot again as in step 3 above</li>
-</ol>
-<p>Now you can try out some more commands:</p>
-<ul>
-<li><code>\reload</code></li>
-<li><code>\info</code> (more verbose output for admins)</li>
-</ul>
-<p>Additionally, there are a few commands you can try in a DM (private message) to the robot:</p>
-<ul>
-<li><code>list plugins</code></li>
-<li><code>debug task memes</code></li>
-<li><code>quit</code> - the container will exit and need to be re-started</li>
-<li><code>help</code> - the list of commands will include all the administrator commands</li>
-</ul>
-<p>TODO: More documentation, including production installs.</p>
+                        <h1><a class="header" href="#introduction" id="introduction">Introduction</a></h1>
+<p><strong>Gopherbot</strong> DevOps Chatbot is a tool for teams of developers, operators, infrastructure engineers and support personnel - primarily for those that are already using Slack or another team chat platform for day-to-day communication. It belongs to and integrates well with a larger family of tools including <em>Ansible</em>, <em>git</em> and <em>ssh</em>, and is able to perform many tasks similar to <em>Jenkins</em> or <em>TravisCI</em>.</p>
+<p>The primary strengths of <strong>Gopherbot</strong> stem from it's simplicity and flexibility. It installs and bootstraps readily on a VM or in a container with just a few environment variables, and can be run behind a firewall where it can perform tasks like rebooting server hardware over IPMI. Simple command plugins can be written in <code>bash</code> or <code>python</code>, with easy to use encrypted secrets for accomplishing privileged tasks.</p>
+<p>The philosophy underlying <strong>Gopherbot</strong> is that it's more efficient to use a single, general-purpose tool to accomplish a wide variety of tasks reasonably well, rather than integrating and maintaining several specialized tools. It's true that <strong>Gopherbot</strong> doesn't do CI/CD as well as, say, <em>Jenkins</em> - but it's amazing how productive I am with it. Perhaps the best example of it's flexibility can be seen in the CI/CD pipeline for <strong>Gopherbot</strong> itself; start reading with <code>pipeline.sh</code> in <a href="https://github.com/lnxjedi/gopherbot/tree/master/.gopherci">the <code>.gopherci</code> directory</a>.</p>
+<p>Version 2 for the most part assumes that your robot will employ encryption and get it's configuration from a <em>git</em> repository. Other deployments are possible, but not well documented. This manual will focus on working with <strong>Gopherbot</strong> instances whose configuration is stored on <a href="https://github.com">Github</a>, but other <em>git</em> services are easy to use, as well.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
-                            <a rel="prev" href="InstallOverview.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="Foreward.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
                         
 
                         
-                            <a rel="next" href="Modules.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="Installation.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -224,13 +177,13 @@ GOPHER_ALIAS=\
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
-                    <a href="InstallOverview.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a href="Foreward.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
                 
-                    <a href="Modules.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a href="Installation.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 

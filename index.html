@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Foreward - Gopherbot DevOps Chatbot</title>
+        <title>Title - Gopherbot DevOps Chatbot</title>
         
 
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
@@ -81,7 +81,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div id="sidebar-scrollbox" class="sidebar-scrollbox">
-                <ol class="chapter"><li class="expanded affix "><a href="Foreward.html">Foreward</a></li><li class="expanded "><a href="Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="expanded "><a href="InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li class="expanded "><a href="DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li class="expanded "><a href="Modules.html"><strong aria-hidden="true">2.</strong> Module Support</a></li></ol>
+                <ol class="chapter"><li class="expanded affix "><a href="Title.html">Title</a></li><li class="expanded affix "><a href="Foreward.html">Foreward</a></li><li class="expanded affix "><a href="Introduction.html">Introduction</a></li><li class="expanded "><a href="Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="expanded "><a href="InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li class="expanded "><a href="DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li class="expanded "><a href="Modules.html"><strong aria-hidden="true">2.</strong> Module Support</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -148,64 +148,8 @@
 
                 <div id="content" class="content">
                     <main>
-                        <p>My work with ChatOps began with Hubot around 2012 when I was working as an systems engineer for a small hosting provider. The owner had sent me a link to Hubot, asking me to have a look. I took to the concept immediately, and started automating all kinds of tasks that our support team could easily access from our team chat. Soon they were using our robot to troubleshoot email routing and DNS issues, migrate mailboxes, and build new cPanel server instances.</p>
-<p>Not being a very talented (or motivated) Javascript/NodeJS programmer, my Hubot commands invariably followed the same pattern: write it in Javascript if it was <em>trivially</em> easy  to do so, otherwise shell out to bash and return the results. This was productive and gave results, but it was ugly and limited in functionality.</p>
-<p>When I began teaching myself Go, I needed a good project to learn with. After my experience with Hubot, I decided to write a robot that was more approachable for Systems and DevOps engineers like myself - tasked with providing functionality most easily accessible from e.g. bash or python scripts. Towards that end, Gopherbot's design:</p>
-<ul>
-<li>Is CGI-like in operation: the compiled server process spawns scripts which can then use a simple API for interacting with the user / chat service</li>
-<li>Supports any number of scripting languages by using a simple json-over-http localhost interface</li>
-<li>Uses a multi-process design with method calls that block</li>
-</ul>
-<p>Ultimately, Gopherbot gives me a strong alternative to writing Yet Another Web Application to deliver some kind of reporting, security, or management functionality to managers and technical users. It's a good meet-in-the-middle solution that's nearly as easy to use as a web application, with some added benefits:</p>
-<ul>
-<li>The chat application gives you a single pane of glass for access to a wide range of functionality</li>
-<li>The shared-view nature of channels gives an added measure of security thanks to visibility, and also a simple means of training users to interact with a given application</li>
-<li>Like a CGI, applications can focus on functionality, with security and access control being configured in the server process</li>
-</ul>
-<p>It is my hope that this design will appeal to other engineers like myself, and that somewhere, somebody will exclaim &quot;Wait, what? I can write chat bot plugins <em><strong>in BASH</strong></em>?!?&quot;</p>
-<p>David Parsley, March 2017 / September 2019</p>
-<pre><code class="language-bash">#!/bin/bash
-
-# echo.sh - trivial shell plugin example for Gopherbot
-
-# START Boilerplate
-[ -z &quot;$GOPHER_INSTALLDIR&quot; ] &amp;&amp; { echo &quot;GOPHER_INSTALLDIR not set&quot; &gt;&amp;2; exit 1; }
-source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
-
-command=$1
-shift
-# END Boilerplate
-
-configure(){
-	cat &lt;&lt;&quot;EOF&quot;
----
-Help:
-- Keywords: [ &quot;repeat&quot; ]
-  Helptext: [ &quot;(bot), repeat (me) - prompt for and trivially repeat a phrase&quot; ]
-CommandMatchers:
-- Command: &quot;repeat&quot;
-  Regex: '(?i:repeat( me)?)'
-EOF
-}
-
-case &quot;$command&quot; in
-# NOTE: only &quot;configure&quot; should print anything to stdout
-	&quot;configure&quot;)
-		configure
-		;;
-	&quot;repeat&quot;)
-		REPEAT=$(PromptForReply SimpleString &quot;What do you want me to repeat?&quot;)
-		RETVAL=$?
-		if [ $RETVAL -ne $GBRET_Ok ]
-		then
-			Reply &quot;Sorry, I had a problem getting your reply: $RETVAL&quot;
-		else
-			Reply &quot;$REPEAT&quot;
-		fi
-		;;
-esac
-</code></pre>
-
+                        <h1><a class="header" href="#gopherbotbrdevops-chatbot" id="gopherbotbrdevops-chatbot">Gopherbot</br>DevOps Chatbot</a></h1>
+By David Parsley, parsley@linuxjedi.org
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
@@ -213,7 +157,7 @@ esac
                         
 
                         
-                            <a rel="next" href="Installation.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="Foreward.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -227,7 +171,7 @@ esac
                 
 
                 
-                    <a href="Installation.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a href="Foreward.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
