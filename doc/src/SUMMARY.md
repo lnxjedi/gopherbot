@@ -1,6 +1,10 @@
 # Gopherbot DevOps Chatbot
 
-[Foreward](./Foreward.md)
+[Title](Title.md)
+
+[Foreward](Foreward.md)
+
+[Introduction](Introduction.md)
 
 ## Installation
 - [Installation](Installation.md)

@@ -1,6 +1,6 @@
 ## Notes on Writing Documentation for Developers
 
-Gopherbot documentation is written in Markdown and processed by `mdbook` [found here](https://github.com/rust-lang/mdBook) to be published with [Github Pages](https://lnxjedi.github.io/gopherbot-doc).
+Gopherbot documentation is written in Markdown and processed by [`mdbook`](https://github.com/rust-lang/mdBook) to be published with [Github Pages](https://lnxjedi.github.io/gopherbot).
 
 These instructions are primarily for me (David Parsley) to remind me of the few steps in setting up a dev environment for writing Gopherbot documentation, which I primarily do on a Chromebook with Linux (Crostini) installed.
 
@@ -11,4 +11,4 @@ These instructions are primarily for me (David Parsley) to remind me of the few 
 
 ## CI/CD Notes
 
-Whenever `github.com/linuxjedi/master` is updated, the pipeline should automatically update `github.com/linuxjedi/gopherbot-doc`.
+Whenever the `master` branch is updated, the pipeline automatically updates the `gh-pages` branch (if documentation changed).
