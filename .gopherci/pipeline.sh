@@ -4,6 +4,11 @@
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
+if [ "$GOPHERCI_BRANCH" == "gh-pages" ]
+then
+    Log "Info" "Skipping pipeline on update to gh-pages"
+fi
+
 if [ -n "$NOTIFY_USER" ]
 then
     FailTask notify $NOTIFY_USER "Gopherbot build failed"
@@ -29,7 +34,7 @@ AddTask exec ./.gopherci/tools.sh
 AddTask exec ./.gopherci/mkdist.sh
 
 # Initial clone from public https
-AddTask git-sync https://github.com/lnxjedi/gopherbot-doc.git master gopherbot-doc
+AddTask git-sync https://github.com/lnxjedi/gopherbot.git gh-pages gopherbot-doc
 
 AddTask exec ./.gopherci/mkdocs.sh
 
