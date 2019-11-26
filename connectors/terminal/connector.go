@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/chzyer/readline"
-	"github.com/lnxjedi/gopherbot/bot"
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
@@ -60,13 +59,9 @@ loop:
 			break loop
 		case input := <-tc.heard:
 			if len(input) == 0 {
-				ev := bot.GetEvents()
-				if len(*ev) > 0 {
-					evs := make([]string, len(*ev))
-					for i, e := range *ev {
-						evs[i] = e.String()
-					}
-					tc.reader.Write([]byte(fmt.Sprintf("Events gathered: %s\n", strings.Join(evs, ", "))))
+				evs := tc.GetEventStrings()
+				if len(*evs) > 0 {
+					tc.reader.Write([]byte(fmt.Sprintf("Events gathered: %s\n", strings.Join(*evs, ", "))))
 				}
 				continue
 			}

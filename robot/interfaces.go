@@ -29,6 +29,8 @@ type Handler interface {
 	// GetBrainConfig unmarshals the BrainConfig section of gopherbot.yaml
 	// into a struct provided by the brain provider
 	GetBrainConfig(interface{}) error
+	// GetEventStrings for developing tests with the terminal connector
+	GetEventStrings() *[]string
 	// GetHistoryConfig unmarshals the HistoryConfig section of gopherbot.yaml
 	// into a struct provided by the brain provider
 	GetHistoryConfig(interface{}) error
