@@ -15,18 +15,20 @@ Slogans under consideration:
 * **The Swiss-Army Chainsaw for DevOps**
 
 ## Latest Release
-Download the current release for your platform from: https://github.com/lnxjedi/gopherbot/releases/latest
+Download the current release from: https://github.com/lnxjedi/gopherbot/releases/latest
 
 ## Documentation
-The latest documentation on Github Pages: https://lnxjedi.github.io/gopherbot-doc
+The latest documentation on Github Pages: https://lnxjedi.github.io/gopherbot
+
+---
 
 ![](https://raw.githubusercontent.com/wiki/lnxjedi/gopherbot/botdemo.gif)
 
 (*) with a modular interface for writing other protocol connectors in Go
 
-## Gopherbot Version 2.0
+## Gopherbot Version 2.0 (Unreleased)
 
-Documentation and tests for version 2 are not yet finished, but configuration and API interfaces have settled to the point that a 2.0 release for early adapters was warranted. Though it is stable and running in production for me, 2.0 is mostly for current users that are willing to do some digging around until documentation is finished and it's had more time to ripen.  There is a small (but non-zero) chance that there could be more breaking changes, though I would bump to 2.1 at that point.
+Documentation and tests for version 2 are not yet finished, but configuration and API interfaces have settled to the point that the 2.0 snapshots are worth a look. Though it is stable and running in production for me, 2.0 is mostly for current users that are willing to do some digging around until documentation is finished and it's had more time to ripen. There will be a few more breaking changes before a full release.
 
 ### New Features
 
@@ -43,12 +45,13 @@ Incomplete list of features new in 2.0:
 * Go template substitutions in configuration files for e.g. referencing environment variables or decrypting secrets
 * An [Ansible Playbook](https://github.com/lnxjedi/ansible-role-gopherbot)
 * Docker images - see [Clu](https://github.com/parsley42/clu-docker) for clues on how to launch a container
+* Go loadable modules, enabling new Go plugins at runtime
 
 ### Features since 1.x:
 * Built-in support for [elevated commands](doc/Security-Overview.md#elevation) requiring MFA (ala 'sudo')
 * A prompting API for interactive plugins
 * Comprehensive set of administrative commands
-* Simple single-file script plugins
+* Support for simple single-file script plugins
 
 ### Breaking Changes
 
@@ -72,14 +75,14 @@ ExternalPlugins:
 ### Stuff that will change / go away
 Currently it's possible to list tasks or plugins in ScheduledJobs; eventually only jobs will be able to be scheduled.
 
-### Deprecated
-The Windows port still builds, but the PowerShell library is out of date. If you'd like to help with the Windows port, let me know.
+### Deprecated and Unsupported Platforms
+The Windows port has been removed; the only known use case is being replaced. **Gopherbot** should build on Darwin (Mac OS X), but since builds with module support won't cross-compile, archives are no longer being generated.
 
 ## Documentation
 
-Version 2 doesn't even have a basic Getting Started or Install document yet - it's on the way. However, configuration repositories for **Floyd** (the production 'bot that builds all releases) and **Clu** (the devel 'bot that runs on my laptop) are all up on [Github](https://github.com/parsley42).
+With Version 2 nearly feature complete, documentation has become a priority. Watch https://lnxjedi.github.io/gopherbot for (hopefully) frequent updates. One of the best sources of documentation are the configuration repositories for **Floyd** (the production 'bot that builds all releases) and **Clu** (the devel 'bot that runs on my laptop); they can be found at [Github](https://github.com/parsley42).
 
-Other than commented [configuration files](conf/gopherbot.yaml), most documentation is in the [doc/](doc/) folder. Stuff in `doc/Outdated` is just that.
+Other than commented [configuration files](conf/gopherbot.yaml), most documentation is in the [doc/src/](doc/src/) folder. Stuff in `doc/src/Outdated` is just that.
 
 ## Sample Plugin with the Ruby API
 ```ruby
@@ -126,10 +129,7 @@ when "weather"
 end
 ```
 
-## Development Status
-Gopherbot 2.x is stable and running in production in several environments.
-
 ### Contributing
-See the [development notes](DevNotes.md) for design notes and stuff still needing to be done. Issues and pull requests welcome!
+I've started playing around with [Gitpod](https://gitpod.io) for development, with good results. Sometime after the next batch of core updates, I'll work on stabilizing this again. For now, issues and pull requests welcome.
 
 For development, testing, and collaboration, feel free to shoot me an email for an invite to [the LinuxJedi Slack team](https://linuxjedi.slack.com).

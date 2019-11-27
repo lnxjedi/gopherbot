@@ -12,6 +12,6 @@ then
 fi
 
 git add .
-git commit -m "Updates from lnxjedi/gopherbot commit $COMMIT"
-git remote add update git@github.com:lnxjedi/gopherbot-doc.git
-git push -u update master
+git commit -m "Updates from master branch, commit $COMMIT"
+git remote add update git@github.com:lnxjedi/gopherbot.git
+git push -u update gh-pages
