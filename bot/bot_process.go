@@ -122,6 +122,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		} else {
 			brain := bprovider(handle)
 			botCfg.brain = brain
+			Log(robot.Info, "Initialized brain provider '%s'", botCfg.brainProvider)
 		}
 	} else {
 		bprovider, _ := brains["mem"]
