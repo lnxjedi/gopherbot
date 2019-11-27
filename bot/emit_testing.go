@@ -24,7 +24,7 @@ func emit(e Event) {
 }
 
 // GetEvents called by integration tests
-func (h handler) GetEvents() *[]Event {
+func GetEvents() *[]Event {
 	ev := make([]Event, 0)
 loop:
 	for {
