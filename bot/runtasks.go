@@ -386,7 +386,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret robot
 	return
 }
 
-func (c *botContext) getEnvironment(task *BotTask) map[string]string {
+func (c *botContext) getEnvironment(task *Task) map[string]string {
 	envhash := make(map[string]string)
 	if len(c.environment) > 0 {
 		for k, v := range c.environment {
@@ -445,7 +445,7 @@ func (c *botContext) getEnvironment(task *BotTask) map[string]string {
 
 // getTaskPath searches configPath and installPath and returns the full path
 // to the task.
-func getTaskPath(task *BotTask) (tpath string, err error) {
+func getTaskPath(task *Task) (tpath string, err error) {
 	if len(task.Path) == 0 {
 		err := fmt.Errorf("Path empty for external task: %s", task.name)
 		Log(robot.Error, err.Error())

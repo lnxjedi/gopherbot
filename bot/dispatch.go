@@ -273,7 +273,7 @@ func (c *botContext) handleMessage() {
 			// TODO: should we allow more than 1 catchall?
 			catchAllPlugins := make([]interface{}, 0, 0)
 			for _, t := range c.tasks.t {
-				if plugin, ok := t.(*BotPlugin); ok && plugin.CatchAll {
+				if plugin, ok := t.(*Plugin); ok && plugin.CatchAll {
 					catchAllPlugins = append(catchAllPlugins, t)
 				}
 			}
