@@ -26,7 +26,7 @@ func init() {
 	}
 }
 
-func privCheck(reason string) {
+func raiseThreadPriv(reason string) {
 	if privSep {
 		runtime.LockOSThread()
 		syscall.Syscall(syscall.SYS_SETRESUID, uintptr(privUID), uintptr(privUID), uintptr(unprivUID))

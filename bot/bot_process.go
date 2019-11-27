@@ -217,7 +217,7 @@ func run() <-chan bool {
 	// connector loop
 	botCfg.RLock()
 	go func(conn robot.Connector, stop <-chan struct{}, done chan<- bool) {
-		privCheck("connector loop")
+		raiseThreadPriv("connector loop")
 		conn.Run(stop)
 		botCfg.RLock()
 		restart := botCfg.restart
