@@ -72,7 +72,7 @@ Brain: {{ $brain }}
 
 {{ if eq $brain "file" }}
 BrainConfig:
-  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default "brain" }}
+  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default "private/brain" }}
 
 {{ else if eq $brain "dynamo" }}
 BrainConfig:
