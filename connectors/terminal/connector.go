@@ -16,9 +16,6 @@ type termConnector struct {
 	currentChannel string             // The current channel for the user
 	currentUser    string             // The current userid
 	running        bool               // set on call to Run
-	botName        string             // human-readable name of bot
-	botFullName    string             // human-readble full name of the bot
-	botID          string             // slack internal bot ID
 	users          []termUser         // configured users
 	channels       []string           // the channels the robot is in
 	heard          chan string        // when the user speaks
