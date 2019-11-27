@@ -23,7 +23,7 @@ var envPassThrough = []string{
 // runPipeline.
 func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipelineType, command string, args ...string) (ret robot.TaskRetVal) {
 	task, _, job := getTask(t)
-	privCheck(fmt.Sprintf("task %s / %s", task.name, command))
+	raiseThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
 	isJob := job != nil
 	ppipeName := c.pipeName
 	ppipeDesc := c.pipeDesc
@@ -447,13 +447,13 @@ func (c *botContext) getEnvironment(task *BotTask) map[string]string {
 // to the task.
 func getTaskPath(task *BotTask) (tpath string, err error) {
 	if len(task.Path) == 0 {
-		err := fmt.Errorf("path empty for external task: %s", task.name)
+		err := fmt.Errorf("Path empty for external task: %s", task.name)
 		Log(robot.Error, err.Error())
 		return "", err
 	}
 	tpath, err = getObjectPath(task.Path)
 	if err != nil {
-		err = fmt.Errorf("couldn't locate external plugin %s: %v", task.name, err)
+		err = fmt.Errorf("Couldn't locate external plugin %s: %v", task.name, err)
 		Log(robot.Error, err.Error())
 	}
 	return
