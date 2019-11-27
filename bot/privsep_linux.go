@@ -28,15 +28,23 @@ func init() {
 
 func raiseThreadPriv(reason string) {
 	if privSep {
-		runtime.LockOSThread()
-		syscall.Syscall(syscall.SYS_SETRESUID, uintptr(privUID), uintptr(privUID), uintptr(unprivUID))
 		var ruid, euid, suid uintptr
+		// Should be raised by default; check first
 		syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&ruid)), uintptr(unsafe.Pointer(&euid)), uintptr(unsafe.Pointer(&suid)))
-		tid := syscall.Gettid()
-		if euid != uintptr(privUID) {
-			Log(robot.Error, "Raise privilege failed for '%s'; thread %d r/e/suid: %d/%d/%d; e != %d", reason, tid, ruid, euid, suid, privUID)
+		if euid == uintptr(privUID) {
+			tid := syscall.Gettid()
+			Log(robot.Debug, "Successful privilege check for '%s'; r/e/suid for thread %d: %d/%d/%d", reason, tid, ruid, euid, suid)
 		} else {
-			Log(robot.Debug, "Successful raise privilege for '%s'; r/e/suid for thread %d: %d/%d/%d", reason, tid, ruid, euid, suid)
+			// Not privileged, create a new privileged thread
+			runtime.LockOSThread()
+			tid := syscall.Gettid()
+			syscall.Syscall(syscall.SYS_SETRESUID, uintptr(privUID), uintptr(privUID), uintptr(unprivUID))
+			syscall.Syscall(syscall.SYS_GETRESUID, uintptr(unsafe.Pointer(&ruid)), uintptr(unsafe.Pointer(&euid)), uintptr(unsafe.Pointer(&suid)))
+			if euid != uintptr(privUID) {
+				Log(robot.Error, "Raise privilege failed for '%s'; thread %d r/e/suid: %d/%d/%d; e != %d", reason, tid, ruid, euid, suid, privUID)
+			} else {
+				Log(robot.Debug, "Successfully raised privilege for '%s'; r/e/suid for thread %d: %d/%d/%d", reason, tid, ruid, euid, suid)
+			}
 		}
 	}
 }
