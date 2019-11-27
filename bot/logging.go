@@ -8,8 +8,6 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-var logToFile bool // is logging to a file?
-
 // Should be ample for the internal circular log
 const buffLines = 500
 const maxLines = 50 // maximum lines to send in a message

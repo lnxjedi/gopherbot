@@ -22,12 +22,14 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 		if len(v) > 0 {
 			msg = fmt.Sprintf(msg, v...)
 		}
+		// DEBUG
+		msg = fmt.Sprintf("%p %s", logger, msg)
 
 		if l == robot.Fatal {
 			logger.Fatal(msg)
 		} else {
 			logger.Print(msg)
-			tsMsg := fmt.Sprintf("%s %s", time.Now().Format("Jan 2 15:04:05"), msg)
+			tsMsg := fmt.Sprintf("%s %s\n", time.Now().Format("Jan 2 15:04:05"), msg)
 			botLogger.Lock()
 			botLogger.buffer[botLogger.buffLine] = tsMsg
 			botLogger.buffLine = (botLogger.buffLine + 1) % (buffLines - 1)

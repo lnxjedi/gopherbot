@@ -2,7 +2,10 @@ package bot
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -20,12 +23,6 @@ var handle = handler{}
 // connector to make it's own decision about logging
 func (h handler) GetLogLevel() robot.LogLevel {
 	return getLogLevel()
-}
-
-// GetLogToFile indicates to the terminal connector whether logging output is
-// to a file, to prevent readline from redirecting log output.
-func (h handler) GetLogToFile() bool {
-	return logToFile
 }
 
 // GetInstallPath gets the path to the bot's install dir -
@@ -202,6 +199,30 @@ func (h handler) GetHistoryConfig(v interface{}) error {
 // Log logs a message to the robot's log file (or stderr)
 func (h handler) Log(l robot.LogLevel, m string, v ...interface{}) {
 	Log(l, m, v...)
+}
+
+// GetDirectory verfies or creates a directory with perms 0750, returning an error on failure.
+func (h handler) GetDirectory(p string) error {
+	if len(p) == 0 {
+		return errors.New("invalid 0-length path in GetDirectory")
+	}
+	dperm := os.FileMode(0750)
+	if filepath.IsAbs(p) {
+		p = filepath.Clean(p)
+	}
+	if ds, err := os.Stat(p); err == nil {
+		if !ds.Mode().IsDir() {
+			return fmt.Errorf("getting directory; '%s' exists but is not a directory", p)
+		}
+		if err := os.Chmod(p, dperm); err != nil {
+			return err
+		}
+		return nil
+	}
+	if err := os.MkdirAll(p, dperm); err != nil {
+		return err
+	}
+	return nil
 }
 
 // SetBotID let's the connector set the bot's internal ID

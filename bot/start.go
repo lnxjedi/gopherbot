@@ -43,7 +43,7 @@ func Start(v VersionInfo) (restart bool) {
 	}
 	penvErr := godotenv.Overload(".env")
 
-	var botLogger *log.Logger
+	var logger *log.Logger
 	logFlags := log.LstdFlags
 	if plainlog {
 		logFlags = 0
@@ -57,42 +57,41 @@ func Start(v VersionInfo) (restart bool) {
 		if err != nil {
 			log.Fatalf("Error creating log file: (%T %v)", err, err)
 		}
-		logToFile = true // defined in logging.go
 		logOut = lf
 	}
 	log.SetOutput(logOut)
-	botLogger = log.New(logOut, "", logFlags)
-	botLogger.Println("Initialized logging ...")
+	logger = log.New(logOut, "", logFlags)
+	logger.Println("Initialized logging ...")
 
 	installpath = binDirectory
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		botLogger.Fatalf("Unable to determine working directory: %v", err)
+		logger.Fatalf("Unable to determine working directory: %v", err)
 	}
 	configpath = filepath.Join(cwd, "custom")
 
 	if penvErr != nil {
-		botLogger.Printf("No private environment loaded from '.env': %v\n", penvErr)
+		logger.Printf("No private environment loaded from '.env': %v\n", penvErr)
 	} else {
-		botLogger.Printf("Loaded initial private environment from '.env'\n")
+		logger.Printf("Loaded initial private environment from '.env'\n")
 	}
 
 	// Create the 'bot and load configuration, supplying configpath and installpath.
 	// When loading configuration, gopherbot first loads default configuration
 	// from internal config, then loads from configpath/conf/..., which
 	// overrides defaults.
-	botLogger.Printf("Starting up with config dir: %s, and install dir: %s\n", configpath, installpath)
-	checkprivsep(botLogger)
-	initBot(configpath, installpath, botLogger)
+	logger.Printf("Starting up with config dir: %s, and install dir: %s\n", configpath, installpath)
+	checkprivsep(logger)
+	initBot(configpath, installpath, logger)
 
 	initializeConnector, ok := connectors[botCfg.protocol]
 	if !ok {
-		botLogger.Fatalf("No connector registered with name: %s", botCfg.protocol)
+		logger.Fatalf("No connector registered with name: %s", botCfg.protocol)
 	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface
-	conn := initializeConnector(handle, botLogger)
+	conn := initializeConnector(handle, logger)
 
 	// NOTE: we use setConnector instead of passing the connector to run()
 	// because of the way Windows services were run. Maybe remove eventually?

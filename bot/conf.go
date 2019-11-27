@@ -417,11 +417,12 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	currentUCMaps.Unlock()
 
 	if len(newconfig.WorkSpace) > 0 {
-		if respath, ok := checkDirectory(newconfig.WorkSpace); ok {
-			botCfg.workSpace = respath
-			Log(robot.Debug, "Setting workspace directory to '%s'", respath)
+		h := handler{}
+		if err := h.GetDirectory(newconfig.WorkSpace); err == nil {
+			botCfg.workSpace = newconfig.WorkSpace
+			Log(robot.Debug, "Setting workspace directory to '%s'", botCfg.workSpace)
 		} else {
-			Log(robot.Error, "WorkSpace directory '%s' doesn't exist, using '%s'", newconfig.WorkSpace, configPath)
+			Log(robot.Error, "Getting WorkSpace directory '%s', using '%s': %v", newconfig.WorkSpace, configPath, err)
 		}
 	}
 	if len(botCfg.workSpace) == 0 {
