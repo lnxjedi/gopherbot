@@ -10,21 +10,16 @@ import (
 // Log logs messages whenever the connector log level is
 // less than the given level
 func Log(l robot.LogLevel, m string, v ...interface{}) bool {
-
 	botLogger.Lock()
 	currlevel := botLogger.level
 	logger := botLogger.l
 	botLogger.Unlock()
-
 	if l >= currlevel || l == robot.Audit {
 		prefix := logLevelToStr(l) + ":"
 		msg := prefix + " " + m
 		if len(v) > 0 {
 			msg = fmt.Sprintf(msg, v...)
 		}
-		// DEBUG
-		msg = fmt.Sprintf("%p %s", logger, msg)
-
 		if l == robot.Fatal {
 			logger.Fatal(msg)
 		} else {
