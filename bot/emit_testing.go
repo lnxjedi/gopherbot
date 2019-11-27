@@ -23,14 +23,29 @@ func emit(e Event) {
 	}
 }
 
-// Called by integration tests
-func GetEvents() *[]Event {
+// GetEvents called by integration tests
+func (h handler) GetEvents() *[]Event {
 	ev := make([]Event, 0)
 loop:
 	for {
 		select {
 		case e := <-events:
 			ev = append(ev, e)
+		default:
+			break loop
+		}
+	}
+	return &ev
+}
+
+// GetEventStrings called by terminal connector
+func (h handler) GetEventStrings() *[]string {
+	ev := make([]string, 0)
+loop:
+	for {
+		select {
+		case e := <-events:
+			ev = append(ev, e.String())
 		default:
 			break loop
 		}

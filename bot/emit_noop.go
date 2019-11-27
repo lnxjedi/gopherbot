@@ -7,6 +7,11 @@ func emit(e Event) {
 }
 
 // GetEvents lets the test harness figure out what happened
-func GetEvents() *[]Event {
+func (h handler) GetEvents() *[]Event {
 	return &[]Event{}
+}
+
+// GetEventStrings for terminal connector
+func (h handler) GetEventStrings() *[]string {
+	return &[]string{}
 }
