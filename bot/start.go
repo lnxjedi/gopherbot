@@ -35,6 +35,12 @@ func Start(v VersionInfo) (restart bool) {
 	flag.BoolVar(&plainlog, "P", false, plusage+" (shorthand)")
 	flag.Parse()
 
+	if es, err := os.Stat(".env"); err == nil {
+		em := es.Mode()
+		if (uint32(em) & 0066) != 0 {
+			log.Fatalf("Invalid file mode '%o' on environment file '.env', aborting", em)
+		}
+	}
 	penvErr := godotenv.Overload(".env")
 
 	var botLogger *log.Logger
