@@ -431,7 +431,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			return
 		}
 		r.Reply("Configuration reloaded successfully")
-		r.Log(robot.Info, "Configuration successfully reloaded by a request from:", r.User)
+		r.Log(robot.Info, "Configuration successfully reloaded by a request from: %s", r.User)
 	case "abort":
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)

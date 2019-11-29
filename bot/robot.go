@@ -340,11 +340,13 @@ func (r Robot) GetTaskConfig(dptr interface{}) robot.RetVal {
 
 // Log logs a message to the robot's log file (or stderr) if the level
 // is lower than or equal to the robot's current log level
-func (r Robot) Log(l robot.LogLevel, m string, v ...interface{}) (logged bool) {
+func (r Robot) Log(l robot.LogLevel, msg string, v ...interface{}) (logged bool) {
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
 	c := r.getContext()
-	logged = Log(l, m, v...)
-	if Log(l, m, v...) && c.logger != nil {
-		line := "LOG " + logLevelToStr(l) + " " + fmt.Sprintln(v...)
+	if Log(l, msg) && c.logger != nil {
+		line := "LOG " + logLevelToStr(l) + " " + msg
 		c.logger.Log(strings.TrimSpace(line))
 	}
 	return
