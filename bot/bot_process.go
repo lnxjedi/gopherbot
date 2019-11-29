@@ -5,6 +5,8 @@ package bot
    handler.go has the methods for callbacks from the connector, */
 
 import (
+	"encoding/base64"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -103,12 +105,39 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	botCfg.done = make(chan bool)
 	botCfg.shuttingDown = false
 
+	// Initialize encryption (new style for v2)
+	keyEnv := "GOPHER_ENCRYPTION_KEY"
+	keyFile := "custom/binary-encrypted-key"
+	encryptionInitialized := false
+	if ek, ok := os.LookupEnv(keyEnv); ok {
+		ik := []byte(ek)[0:32]
+		if bkf, err := ioutil.ReadFile(keyFile); err == nil {
+			if bke, err := base64.StdEncoding.DecodeString(string(bkf)); err == nil {
+				if key, err := decrypt(bke, ik); err == nil {
+					cryptKey.key = key
+					cryptKey.initialized = true
+					encryptionInitialized = true
+					Log(robot.Info, "Successfully decrypted binary encryption key '%s'", keyFile)
+				} else {
+					Log(robot.Error, "Decrypting binary encryption key '%s' from environment key '%s': %v", keyFile, keyEnv, err)
+				}
+			} else {
+				Log(robot.Error, "Base64 decoding '%s': %v", keyFile, err)
+			}
+		} else {
+			Log(robot.Warn, "Binary encryption key not loaded from '%s': %v", keyFile, err)
+		}
+	} else {
+		Log(robot.Warn, "GOPHER_ENCRYPTION_KEY not set in environment")
+	}
+
 	c := &botContext{
 		environment: make(map[string]string),
 	}
 	if err := c.loadConfig(true); err != nil {
-		Log(robot.Fatal, "Error loading initial configuration: %v", err)
+		Log(robot.Fatal, "Loading initial configuration: %v", err)
 	}
+	os.Unsetenv(keyEnv)
 
 	// loadModules for go loadable modules; a no-op for static builds
 	loadModules()
@@ -129,16 +158,15 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		botCfg.brain = bprovider(handle)
 		Log(robot.Error, "No brain configured, falling back to default 'mem' brain - no memories will persist")
 	}
-	initialized := false
-	if len(botCfg.encryptionKey) > 0 {
-		if initializeEncryption(botCfg.encryptionKey) {
+	if !encryptionInitialized && len(botCfg.encryptionKey) > 0 {
+		if initializeEncryptionFromBrain(botCfg.encryptionKey) {
 			Log(robot.Info, "Successfully initialized encryption from configured key")
-			initialized = true
+			encryptionInitialized = true
 		} else {
 			Log(robot.Error, "Failed to initialize brain encryption with configured EncryptionKey")
 		}
 	}
-	if encryptBrain && !initialized {
+	if encryptBrain && !encryptionInitialized {
 		Log(robot.Warn, "Brain encryption specified but not initialized; use 'initialize brain <key>' to initialize the encrypted brain interactively")
 	}
 	if !listening {

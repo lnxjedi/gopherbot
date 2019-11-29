@@ -110,7 +110,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	key := histPrefix + c.jobName + ":" + ext
 	tok, _, ret := checkoutDatum(key, &jh, true)
 	if ret != robot.Ok {
-		Log(robot.Error, "Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
+		Log(robot.Error, "Checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
 	} else {
 		var start time.Time
 		if c.timeZone != nil {
@@ -132,13 +132,13 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 		}
 		ret := updateDatum(key, tok, jh)
 		if ret != robot.Ok {
-			Log(robot.Error, "Error updating '%s', no history will be remembered for '%s'", key, c.pipeName)
+			Log(robot.Error, "Updating '%s', no history will be remembered for '%s'", key, c.pipeName)
 		} else {
 			if nh > 0 && c.history != nil {
 				hspec := c.pipeName + ":" + ext
 				pipeHistory, err := c.history.NewHistory(hspec, hist.LogIndex, nh)
 				if err != nil {
-					Log(robot.Error, "Error starting history for '%s', no history will be recorded: %v", c.pipeName, err)
+					Log(robot.Error, "Starting history for '%s', no history will be recorded: %v", c.pipeName, err)
 				} else {
 					if c.logger != nil {
 						c.logger.Section("close log", fmt.Sprintf("Job '%s' extended namespace: '%s'; starting new log on next task", c.jobName, ext))
@@ -155,7 +155,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 				}
 			} else {
 				if c.history == nil {
-					Log(robot.Warn, "Error starting history, no history provider available")
+					Log(robot.Warn, "Starting history, no history provider available")
 				}
 			}
 		}
@@ -186,7 +186,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 					if !exists {
 						value, err := decrypt(encvalue, ckey)
 						if err != nil {
-							Log(robot.Error, "Error decrypting '%s' for repository/branch '%s': %v", name, ext, err)
+							Log(robot.Error, "Decrypting '%s' for repository/branch '%s': %v", name, ext, err)
 							break
 						}
 						c.environment[name] = string(value)
@@ -203,7 +203,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 					if !exists {
 						value, err := decrypt(encvalue, ckey)
 						if err != nil {
-							Log(robot.Error, "Error decrypting '%s' for repository '%s': %v", name, repo, err)
+							Log(robot.Error, "Decrypting '%s' for repository '%s': %v", name, repo, err)
 							break
 						}
 						c.environment[name] = string(value)

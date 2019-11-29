@@ -138,7 +138,7 @@ func replyToWaiter(m *memstatus) {
 // When EncryptBrain is true, the brain needs to be initialized.
 // NOTE: All locking is done with the cryptKey mutex, bypassing
 // the brain loop.
-func initializeEncryption(key string) bool {
+func initializeEncryptionFromBrain(key string) bool {
 	kbytes := []byte(key)
 	if len(kbytes) < 32 {
 		Log(robot.Error, "Failed to initialize brain, provided brain key < 32 bytes")
@@ -160,7 +160,7 @@ func initializeEncryption(key string) bool {
 		cryptKey.Lock()
 		cryptKey.initializing = false
 		cryptKey.Unlock()
-		Log(robot.Error, "Error retrieving botEncryptionKey from brain: %s", ret)
+		Log(robot.Error, "Retrieving botEncryptionKey from brain: %s", ret)
 		return false
 	}
 	if exists {
@@ -174,14 +174,14 @@ func initializeEncryption(key string) bool {
 	sb := make([]byte, 32)
 	_, err = rand.Read(sb)
 	if err != nil {
-		Log(robot.Error, "Error generating new random brain key: %v", err)
+		Log(robot.Error, "Generating new random brain key: %v", err)
 		cryptKey.initializing = false
 		return false
 	}
 	ret = storeDatum(botEncryptionKey, &sb)
 	cryptKey.Lock()
 	if ret != robot.Ok {
-		Log(robot.Error, "Error storing brain key, failed to initialize")
+		Log(robot.Error, "Storing brain key, failed to initialize")
 		cryptKey.initializing = false
 		cryptKey.Unlock()
 		return false

@@ -141,7 +141,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	taskPath, err = getTaskPath(task)
 	if err != nil {
 		emit(ExternalTaskBadPath)
-		rchan <- taskReturn{fmt.Sprintf("Error getting path for %s: %v", task.name, err), robot.MechanismFail}
+		rchan <- taskReturn{fmt.Sprintf("Getting path for %s: %v", task.name, err), robot.MechanismFail}
 		return
 	}
 	var externalArgs []string

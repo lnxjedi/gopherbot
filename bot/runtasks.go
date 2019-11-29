@@ -75,7 +75,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		key := histPrefix + c.jobName
 		tok, _, ret := checkoutDatum(key, &jh, true)
 		if ret != robot.Ok {
-			Log(robot.Error, "Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
+			Log(robot.Error, "Checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
 		} else {
 			var start time.Time
 			if c.timeZone != nil {
@@ -97,18 +97,18 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			}
 			ret := updateDatum(key, tok, jh)
 			if ret != robot.Ok {
-				Log(robot.Error, "Error updating '%s', no history will be remembered for '%s'", key, c.pipeName)
+				Log(robot.Error, "Updating '%s', no history will be remembered for '%s'", key, c.pipeName)
 			} else {
 				if job.HistoryLogs > 0 && c.history != nil {
 					pipeHistory, err := c.history.NewHistory(c.jobName, hist.LogIndex, job.HistoryLogs)
 					if err != nil {
-						Log(robot.Error, "Error starting history for '%s', no history will be recorded: %v", c.pipeName, err)
+						Log(robot.Error, "Starting history for '%s', no history will be recorded: %v", c.pipeName, err)
 					} else {
 						c.logger = pipeHistory
 					}
 				} else {
 					if c.history == nil {
-						Log(robot.Warn, "Error starting history, no history provider available")
+						Log(robot.Warn, "Starting history, no history provider available")
 					}
 				}
 			}
@@ -410,7 +410,7 @@ func (c *botContext) getEnvironment(task *Task) map[string]string {
 					if !exists {
 						value, err := decrypt(encvalue, key)
 						if err != nil {
-							Log(robot.Error, "Error decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err)
+							Log(robot.Error, "Decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err)
 							break
 						}
 						envhash[name] = string(value)

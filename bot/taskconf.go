@@ -208,7 +208,7 @@ LoadLoop:
 				// External plugins spit their default config to stdout when called with command="configure"
 				cfg, err := getExtDefCfg(task)
 				if err != nil {
-					msg := fmt.Sprintf("Error getting default configuration for external plugin, disabling: %v", err)
+					msg := fmt.Sprintf("Getting default configuration for external plugin, disabling: %v", err)
 					Log(robot.Error, msg)
 					c.debugTask(task, msg, false)
 					task.Disabled = true
@@ -221,7 +221,7 @@ LoadLoop:
 					c.debugTask(task, "Unable to obtain default config from plugin, command 'configure' returned no content", false)
 				}
 				if err := yaml.Unmarshal(*cfg, &tcfgdefault); err != nil {
-					msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
+					msg := fmt.Sprintf("Unmarshalling default configuration, disabling: %v", err)
 					Log(robot.Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
 					c.debugTask(task, msg, false)
 					task.Disabled = true
@@ -230,7 +230,7 @@ LoadLoop:
 				}
 			} else {
 				if err := yaml.Unmarshal([]byte(pluginHandlers[task.name].DefaultConfig), &tcfgdefault); err != nil {
-					msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
+					msg := fmt.Sprintf("Unmarshalling default configuration, disabling: %v", err)
 					Log(robot.Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
 					c.debugTask(task, msg, false)
 					task.Disabled = true
@@ -734,7 +734,7 @@ LoadLoop:
 						// reflect magic: create a pointer to a new empty config struct for the plugin
 						task.config = reflect.New(reflect.Indirect(pt).Type()).Interface()
 						if err := json.Unmarshal(task.Config, task.config); err != nil {
-							msg := fmt.Sprintf("Error unmarshalling plugin config json to config, disabling: %v", err)
+							msg := fmt.Sprintf("Unmarshalling plugin config json to config, disabling: %v", err)
 							Log(robot.Error, msg)
 							c.debugTask(task, msg, false)
 							task.Disabled = true

@@ -79,7 +79,7 @@ func (r Robot) GetSecret(name string) string {
 		c.secrets.retrieved = true
 		_, exists, ret = checkoutDatum(secretKey, &c.secrets, false)
 		if ret != robot.Ok {
-			r.Log(robot.Error, "Error retrieving secrets in GetSecret: %s", ret)
+			r.Log(robot.Error, "Retrieving secrets in GetSecret: %s", ret)
 			return ""
 		}
 		if !exists {
@@ -135,7 +135,7 @@ func (r Robot) GetSecret(name string) string {
 	var value []byte
 	var err error
 	if value, err = decrypt(secret, key); err != nil {
-		r.Log(robot.Error, "Error decrypting secret '%s': %v", name, err)
+		r.Log(robot.Error, "Decrypting secret '%s': %v", name, err)
 		return ""
 	}
 	return string(value)

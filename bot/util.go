@@ -146,19 +146,19 @@ func updateRegexes() {
 	botCfg.RUnlock()
 	pre, post, bare, errpre, errpost, errbare := updateRegexesWrapped(name, protoMention, alias)
 	if errpre != nil {
-		Log(robot.Error, "Error compiling pre regex: %s", errpre)
+		Log(robot.Error, "Compiling pre regex: %s", errpre)
 	}
 	if pre != nil {
 		Log(robot.Debug, "Setting pre regex to: %s", pre)
 	}
 	if errpost != nil {
-		Log(robot.Error, "Error compiling post regex: %s", errpost)
+		Log(robot.Error, "Compiling post regex: %s", errpost)
 	}
 	if post != nil {
 		Log(robot.Debug, "Setting post regex to: %s", post)
 	}
 	if errbare != nil {
-		Log(robot.Error, "Error compiling bare regex: %s", errbare)
+		Log(robot.Error, "Compiling bare regex: %s", errbare)
 	}
 	if bare != nil {
 		Log(robot.Debug, "Setting bare regex to: %s", bare)

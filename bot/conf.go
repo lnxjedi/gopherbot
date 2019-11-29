@@ -495,7 +495,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	if tasksOk && !preConnect {
 		c.loadTaskConfig()
 	} else if !tasksOk {
-		return fmt.Errorf("Error reading external plugin config")
+		return fmt.Errorf("reading external plugin config")
 	}
 
 	if !preConnect {
