@@ -85,7 +85,7 @@ Loop:
 				r.Log(robot.Info, "slack setting bot internal ID to: %s", sc.botID)
 				r.SetBotID(sc.botID)
 				sc.teamID = ev.Info.Team.ID
-				r.Log(robot.Info, "Set team ID to", sc.teamID)
+				r.Log(robot.Info, "Set team ID to %s", sc.teamID)
 				break Loop
 
 			case *slack.InvalidAuthEvent:
