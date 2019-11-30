@@ -143,6 +143,7 @@ ExternalPlugins:
     Path: plugins/update.sh
   "citools":
     Description: Tools for interacting with gopherci
+    Privileged: true
     Path: plugins/citools.py
   "ssh-admin":
     Description: Administrative plugin for managing the robot's ssh keypair

@@ -82,7 +82,8 @@ func (c *botContext) loadTaskConfig() {
 			task.reason = "Disabled in installed / custom gopherbot.yaml"
 		}
 		p := &Plugin{
-			Task: task,
+			Privileged: *script.Privileged,
+			Task:       task,
 		}
 		tlist = append(tlist, p)
 		taskIndexByID[task.taskID] = i
@@ -124,7 +125,8 @@ func (c *botContext) loadTaskConfig() {
 			task.reason = "Disabled in installed / custom gopherbot.yaml"
 		}
 		j := &Job{
-			Task: task,
+			Privileged: *script.Privileged,
+			Task:       task,
 		}
 		tlist = append(tlist, j)
 		taskIndexByID[task.taskID] = i
@@ -293,7 +295,7 @@ LoadLoop:
 				val = &strval
 			case "HistoryLogs":
 				val = &intval
-			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "Protected", "AuthorizeAllCommands", "CatchAll", "MatchUnlisted", "Quiet":
+			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "MatchUnlisted", "Quiet":
 				val = &boolval
 			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands":
 				val = &sarrval
@@ -305,6 +307,13 @@ LoadLoop:
 				val = &tval
 			case "Config":
 				skip = true
+			case "Privileged":
+				msg := fmt.Sprintf("Setting 'Privileged' disallowed here for '%s'; must be set in 'gopherbot.yaml'", task.name)
+				Log(robot.Error, msg)
+				c.debugTask(task, msg, false)
+				task.Disabled = true
+				task.reason = msg
+				continue LoadLoop
 			default:
 				msg := fmt.Sprintf("Invalid configuration key for task '%s': %s - disabling", task.name, key)
 				Log(robot.Error, msg)
@@ -348,8 +357,6 @@ LoadLoop:
 				explicitAllChannels = true
 			case "RequireAdmin":
 				task.RequireAdmin = *(val.(*bool))
-			case "Protected":
-				task.Protected = *(val.(*bool))
 			case "AdminCommands":
 				if isPlugin {
 					plugin.AdminCommands = *(val.(*[]string))

@@ -84,6 +84,7 @@ type Parameter struct {
 type ExternalTask struct {
 	Name, Path, Description, NameSpace string
 	Disabled                           bool
+	Privileged                         *bool
 	Parameters                         []Parameter
 }
 
@@ -137,7 +138,6 @@ type Task struct {
 	Channels      []string        // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels   bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
 	RequireAdmin  bool            // Set to only allow administrators to access a plugin / run job
-	Protected     bool            // Protected jobs run with wd = custom config directory; all other jobs run in workSpace
 	Users         []string        // If non-empty, list of all the users with access to this plugin
 	Elevator      string          // Use an elevator other than the DefaultElevator
 	Authorizer    string          // a plugin to call for authorizing users, should handle groups, etc.
@@ -153,6 +153,7 @@ type Task struct {
 // Job - configuration only applicable to jobs. Read in from conf/jobs/<job>.yaml, which can also include anything from a Task.
 type Job struct {
 	Quiet       bool           // whether to quash "job started/ended" messages
+	Privileged  bool           // Privileged jobs run with the privileged UID
 	HistoryLogs int            // how many runs of this job/plugin to keep history for
 	Triggers    []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
 	Arguments   []InputMatcher // list of arguments to prompt the user for
@@ -172,6 +173,7 @@ type Plugin struct {
 	MessageMatchers          []InputMatcher // Input matchers for messages the 'bot hears even when it's not being spoken to
 	CatchAll                 bool           // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
 	MatchUnlisted            bool           // Set to true if ambient messages matches should be checked for users not listed in the UserRoster
+	Privileged               bool           // Privileged plugins run with the privileged UID
 	*Task
 }
 

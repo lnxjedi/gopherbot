@@ -22,14 +22,19 @@ var envPassThrough = []string{
 // jobcommands: checkJobMatchersAndRun or ScheduledTask,
 // runPipeline.
 func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipelineType, command string, args ...string) (ret robot.TaskRetVal) {
-	task, _, job := getTask(t)
-	raiseThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
+	task, plugin, job := getTask(t)
+	raiseThreadPriv(fmt.Sprintf("new pipeline for task %s / %s", task.name, command))
 	isJob := job != nil
+	isPlugin := plugin != nil
 	ppipeName := c.pipeName
 	ppipeDesc := c.pipeDesc
 	c.pipeName = task.name
 	c.pipeDesc = task.Description
-	c.protected = task.Protected
+	if isPlugin {
+		c.privileged = plugin.Privileged
+	} else {
+		c.privileged = job.Privileged
+	}
 	// Spawned pipelines keep the original ptype
 	if c.ptype == unset {
 		c.ptype = ptype

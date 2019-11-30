@@ -160,13 +160,9 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 		return ok
 	}
 	var prefix, checkPath string
-	if c.protected {
-		prefix = configPath
-	} else {
-		botCfg.RLock()
-		prefix = botCfg.workSpace
-		botCfg.RUnlock()
-	}
+	botCfg.RLock()
+	prefix = botCfg.workSpace
+	botCfg.RUnlock()
 	checkPath = filepath.Join(prefix, path)
 	_, ok := checkDirectory(checkPath)
 	if ok {

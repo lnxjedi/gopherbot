@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"sync"
 	"syscall"
@@ -107,7 +108,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 
 	// Initialize encryption (new style for v2)
 	keyEnv := "GOPHER_ENCRYPTION_KEY"
-	keyFile := "custom/binary-encrypted-key"
+	keyFile := filepath.Join(configPath, "binary-encrypted-key")
 	encryptionInitialized := false
 	if ek, ok := os.LookupEnv(keyEnv); ok {
 		ik := []byte(ek)[0:32]

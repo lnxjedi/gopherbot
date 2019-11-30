@@ -172,13 +172,9 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	if filepath.IsAbs(c.workingDirectory) {
 		cmd.Dir = c.workingDirectory
 	} else {
-		if c.protected {
-			cmd.Dir = filepath.Join(configPath, c.workingDirectory)
-		} else {
-			botCfg.RLock()
-			cmd.Dir = filepath.Join(botCfg.workSpace, c.workingDirectory)
-			botCfg.RUnlock()
-		}
+		botCfg.RLock()
+		cmd.Dir = filepath.Join(botCfg.workSpace, c.workingDirectory)
+		botCfg.RUnlock()
 	}
 	Log(robot.Debug, "Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '"))
 	var stderr, stdout io.ReadCloser
@@ -203,9 +199,15 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		}
 	}
 
-	// drop privileges when running external task; this thread will terminate
-	// when this goroutine finishes; see runtime.LockOSThread()
-	dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
+	if c.privileged {
+		if isPlugin && !plugin.Privileged {
+			dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
+		} else {
+			raiseThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
+		}
+	} else {
+		dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
+	}
 
 	if err = cmd.Start(); err != nil {
 		Log(robot.Error, "Starting command '%s': %v", taskPath, err)

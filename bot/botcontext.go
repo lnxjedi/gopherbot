@@ -193,7 +193,7 @@ type botContext struct {
 	Incoming           *robot.ConnectorMessage // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
 	Format             robot.MessageFormat     // robot's default message format
 	workingDirectory   string                  // directory where tasks run relative to cfgdir or workspace
-	protected          bool                    // protected jobs flip this flag, causing tasks in the pipeline to run in cfgdir
+	privileged         bool                    // privileged jobs flip this flag, causing tasks in the pipeline to run in cfgdir
 	id                 int                     // incrementing index of Robot threads
 	tasks              taskList                // Pointers to current task configuration at start of pipeline
 	maps               *userChanMaps           // Pointer to current user / channel maps struct

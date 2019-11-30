@@ -318,48 +318,52 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	if newconfig.DefaultChannels != nil {
 		botCfg.plugChannels = newconfig.DefaultChannels
 	}
-	// TODO: skip when disabled, use append instead of making array to length.
 	if newconfig.ExternalPlugins != nil {
-		ni := len(newconfig.ExternalPlugins)
-		et := make([]ExternalTask, ni)
-		i := 0
+		et := make([]ExternalTask, 0)
 		for name, task := range newconfig.ExternalPlugins {
-			et[i] = task
-			et[i].Name = name
-			i++
+			if task.Disabled {
+				continue
+			}
+			task.Name = name
+			if task.Privileged == nil {
+				p := false
+				task.Privileged = &p
+			}
+			et = append(et, task)
 		}
 		botCfg.externalPlugins = et
 	}
 	if newconfig.ExternalJobs != nil {
-		ni := len(newconfig.ExternalJobs)
-		et := make([]ExternalTask, ni)
-		i := 0
+		et := make([]ExternalTask, 0)
 		for name, task := range newconfig.ExternalJobs {
-			et[i] = task
-			et[i].Name = name
-			i++
+			if task.Disabled {
+				continue
+			}
+			task.Name = name
+			if task.Privileged == nil {
+				p := true
+				task.Privileged = &p
+			}
+			et = append(et, task)
 		}
 		botCfg.externalJobs = et
 	}
 	if newconfig.ExternalTasks != nil {
-		ni := len(newconfig.ExternalTasks)
-		et := make([]ExternalTask, ni)
-		i := 0
+		et := make([]ExternalTask, 0)
 		for name, task := range newconfig.ExternalTasks {
-			et[i] = task
-			et[i].Name = name
-			i++
+			if task.Disabled {
+				continue
+			}
+			task.Name = name
+			et = append(et, task)
 		}
 		botCfg.externalTasks = et
 	}
 	if newconfig.LoadableModules != nil {
-		ni := len(newconfig.LoadableModules)
-		lm := make([]LoadableModule, ni)
-		i := 0
+		lm := make([]LoadableModule, 0)
 		for name, mod := range newconfig.LoadableModules {
-			lm[i] = mod
-			lm[i].Name = name
-			i++
+			mod.Name = name
+			lm = append(lm, mod)
 		}
 		botCfg.loadableModules = lm
 	}

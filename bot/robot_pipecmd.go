@@ -136,6 +136,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 		} else {
 			if nh > 0 && c.history != nil {
 				hspec := c.pipeName + ":" + ext
+				raiseThreadPriv("starting new job log")
 				pipeHistory, err := c.history.NewHistory(hspec, hist.LogIndex, nh)
 				if err != nil {
 					Log(robot.Error, "Starting history for '%s', no history will be recorded: %v", c.pipeName, err)
@@ -242,22 +243,32 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 		return robot.InvalidTaskType
 	}
 	if ptype == typeJob && !isJob {
-		r.Log(robot.Error, "adding job to pipeline - not a job: %s", name)
+		r.Log(robot.Error, "Adding job to pipeline - not a job: %s", name)
 		return robot.InvalidTaskType
 	}
 	if ptype == typeTask && (isJob || isPlugin) {
-		r.Log(robot.Error, "adding task to pipeline - not a task: %s", name)
+		r.Log(robot.Error, "Adding task to pipeline - not a task: %s", name)
 		return robot.InvalidTaskType
+	}
+	if !c.privileged {
+		if isJob && job.Privileged {
+			r.Log(robot.Error, "PrivilegeViolation adding privileged job '%s' to unprivileged pipeline", name)
+			return robot.PrivilegeViolation
+		}
+		if isPlugin && plugin.Privileged {
+			r.Log(robot.Error, "PrivilegeViolation adding privileged plugin '%s' to unprivileged pipeline", name)
+			return robot.PrivilegeViolation
+		}
 	}
 	var command string
 	var cmdargs []string
 	if isPlugin {
 		if len(args) == 0 {
-			r.Log(robot.Error, "added plugin '%s' to pipeline with no command", name)
+			r.Log(robot.Error, "Added plugin '%s' to pipeline with no command", name)
 			return robot.MissingArguments
 		}
 		if len(args[0]) == 0 {
-			r.Log(robot.Error, "added plugin '%s' to pipeline with no command", name)
+			r.Log(robot.Error, "Added plugin '%s' to pipeline with no command", name)
 			return robot.MissingArguments
 		}
 		cmsg := args[0]
