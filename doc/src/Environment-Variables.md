@@ -12,6 +12,7 @@
 * `USER`
 
 In addition to the above passed-through environment vars, **Gopherbot** supplies the following environment variables to external scripts:
+* `GOPHER_HOME` - the startup directory for the robot; relative paths are relative to this directory
 * `GOPHER_INSTALLDIR` - the location of the gopherbot install, normally `/opt/gopherbot`
 * `GOPHER_CONFIGDIR` - the location of the custom configuration directory, `$(pwd)/custom`
 
