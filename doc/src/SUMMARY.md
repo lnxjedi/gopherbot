@@ -13,7 +13,9 @@
 
 ## Upgrading
 - [Upgrading from Version 1](Upgrading.md)
+    - [Required Bot Info](upgrade/BotInfo.md)
     - [External Plugin Configuration](upgrade/External-Plugin.md)
+    - [Custom Configuration Directory](upgrade/Custom-Dir.md)
     - [Early Encryption Initialization](upgrade/Encryption.md)
 
 ## Plugin Development
