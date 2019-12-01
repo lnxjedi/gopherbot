@@ -103,6 +103,7 @@ func (c *botContext) registerActive(parent *botContext) {
 	c.nextTasks = make([]TaskSpec, 0)
 	c.finalTasks = make([]TaskSpec, 0)
 
+	c.environment["GOPHER_HOME"] = homePath
 	c.environment["GOPHER_INSTALLDIR"] = installPath
 	c.environment["GOPHER_CONFIGDIR"] = configPath
 	c.environment["GOPHER_WORKSPACE"] = workSpace

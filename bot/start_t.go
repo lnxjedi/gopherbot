@@ -39,7 +39,7 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (<-chan bool
 		logger = log.New(lf, "", log.LstdFlags)
 	}
 
-	initBot(configpath, testInstallPath, logger)
+	initBot(testInstallPath, configpath, testInstallPath, logger)
 
 	initializeConnector, ok := connectors[botCfg.protocol]
 	if !ok {

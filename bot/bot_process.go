@@ -26,8 +26,8 @@ type VersionInfo struct {
 	Version, Commit string
 }
 
-// configPath is optional, installPath is where gopherbot(.exe) is
-var configPath, installPath string
+// global values for GOPHER_HOME, GOPHER_CONFIGDIR and GOPHER_INSTALLDIR
+var homePath, configPath, installPath string
 
 var botVersion VersionInfo
 
@@ -94,12 +94,13 @@ var listening bool // for tests where initBot runs multiple times
 
 // initBot sets up the global robot and loads
 // configuration.
-func initBot(cpath, epath string, logger *log.Logger) {
+func initBot(hpath, cpath, epath string, logger *log.Logger) {
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	botLogger.l = logger
 
+	homePath = hpath
 	configPath = cpath
 	installPath = epath
 	botCfg.stop = make(chan struct{})
@@ -173,6 +174,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	if !listening {
 		listening = true
 		go func() {
+			raiseThreadPriv("http handler")
 			http.Handle("/json", handle)
 			Log(robot.Fatal, "error serving '/json': %s", http.ListenAndServe(botCfg.port, nil))
 		}()

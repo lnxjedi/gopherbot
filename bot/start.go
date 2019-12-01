@@ -87,7 +87,7 @@ func Start(v VersionInfo) (restart bool) {
 	// overrides defaults.
 	logger.Printf("Starting up with config dir: %s, and install dir: %s\n", configpath, installpath)
 	checkprivsep(logger)
-	initBot(configpath, installpath, logger)
+	initBot(cwd, configpath, installpath, logger)
 
 	initializeConnector, ok := connectors[botCfg.protocol]
 	if !ok {
