@@ -1,0 +1,341 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Requesting Responses - Gopherbot DevOps Chatbot</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div id="sidebar-scrollbox" class="sidebar-scrollbox">
+                <ol class="chapter"><li class="expanded affix "><a href="../Title.html">Title</a></li><li class="expanded affix "><a href="../Foreward.html">Foreward</a></li><li class="expanded affix "><a href="../Introduction.html">Introduction</a></li><li class="expanded "><a href="../Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="expanded "><a href="../InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li class="expanded "><a href="../DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li class="expanded "><a href="../Upgrading.html"><strong aria-hidden="true">2.</strong> Upgrading from Version 1</a></li><li><ol class="section"><li class="expanded "><a href="../upgrade/BotInfo.html"><strong aria-hidden="true">2.1.</strong> Required Bot Info</a></li><li class="expanded "><a href="../upgrade/External-Plugin.html"><strong aria-hidden="true">2.2.</strong> External Plugin Configuration</a></li><li class="expanded "><a href="../upgrade/Custom-Dir.html"><strong aria-hidden="true">2.3.</strong> Custom Configuration Directory</a></li><li class="expanded "><a href="../upgrade/Encryption.html"><strong aria-hidden="true">2.4.</strong> Early Encryption Initialization</a></li></ol></li><li class="expanded "><a href="../api/API-Introduction.html"><strong aria-hidden="true">3.</strong> Gopherbot API</a></li><li><ol class="section"><li class="expanded "><a href="../api/Languages.html"><strong aria-hidden="true">3.1.</strong> Language Templates</a></li><li class="expanded "><a href="../api/Attribute-Retrieval-API.html"><strong aria-hidden="true">3.2.</strong> Attribute Retrieval</a></li><li class="expanded "><a href="../api/Brain-API.html"><strong aria-hidden="true">3.3.</strong> Brain Methods</a></li><li class="expanded "><a href="../api/Message-Sending-API.html"><strong aria-hidden="true">3.4.</strong> Message Sending</a></li><li class="expanded "><a href="../api/Pipeline-API.html"><strong aria-hidden="true">3.5.</strong> Pipeline Construction</a></li><li class="expanded "><a href="../api/Response-Request-API.html" class="active"><strong aria-hidden="true">3.6.</strong> Requesting Responses</a></li><li class="expanded "><a href="../api/Utility-API.html"><strong aria-hidden="true">3.7.</strong> Utility</a></li></ol></li><li class="expanded "><a href="../Modules.html"><strong aria-hidden="true">4.</strong> Module Support</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">Gopherbot DevOps Chatbot</h1>
+
+                        <div class="right-buttons">
+                            <a href="../print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <p>The <code>Prompt*ForReply</code> methods make it simple to write interactive plugins where the bot can request additional input from the user.</p>
+<h1><a class="header" href="#table-of-contents" id="table-of-contents">Table of Contents</a></h1>
+<ul>
+<li><a href="#technical-background">Technical Background</a></li>
+<li><a href="#prompting-methods">Prompting Methods</a>
+<ul>
+<li><a href="#method-arguments">Method Arguments</a></li>
+<li><a href="#return-values">Return Values</a></li>
+</ul>
+</li>
+<li><a href="#code-examples">Code Examples</a>
+<ul>
+<li><a href="#bash">Bash</a></li>
+<li><a href="#powershell">PowerShell</a></li>
+<li><a href="#python">Python</a></li>
+<li><a href="#ruby">Ruby</a></li>
+</ul>
+</li>
+</ul>
+<h2><a class="header" href="#technical-background" id="technical-background">Technical Background</a></h2>
+<p>Interactive plugins are complicated by the fact that multiple plugins can be running simultaneously and each can request input from the user. <strong>Gopherbot</strong> handles requests for replies this way:</p>
+<ol>
+<li>If there are no other plugins waiting for a reply for the given user/channel, the robot emits the prompt and waits to hear back from the user</li>
+<li>If other plugins are waiting for a reply, the prompt is not emitted and the request goes in to a list of waiters</li>
+<li>As other plugins get replies (or timeout while waiting), waiters in the list get a <code>RetVal</code> of <code>RetryPrompt</code>, indicating they should issue the prompt request again (this is handled internally in individual scripting libraries)</li>
+</ol>
+<h2><a class="header" href="#prompting-methods" id="prompting-methods">Prompting Methods</a></h2>
+<p>The following methods are available for prompting for replies:</p>
+<ul>
+<li><code>PromptForReply(regexID string, prompt string)</code> - issue a prompt to whoever/wherever the original command was issued</li>
+<li><code>PromptUserForReply(regexID string, user string, prompt string)</code> - for prompting the user in a direct message (DM) (for e.g. a password or other sensitive information)</li>
+<li><code>PromptUserChannelForReply(regexID string, user string, channel string, prompt string)</code> - prompt a specific user in a specific channel (for e.g. getting approval from another user for an action)</li>
+</ul>
+<h3><a class="header" href="#method-arguments" id="method-arguments">Method arguments</a></h3>
+<p>The <code>user</code> and <code>channel</code> arguments are obvious; the <code>prompt</code> is the question the robot is
+asking the user, and should usually end with a <code>?</code>.</p>
+<p>The <code>regexID</code> should correspond to a <code>ReplyMatcher</code> defined in the plugin configuration,
+(see <a href="Configuration.html#plugin-configuration">Plugin Configuration</a>), or one of the
+built-in regex's:</p>
+<ul>
+<li><code>Email</code></li>
+<li><code>Domain</code> - an alpha-numeric domain name</li>
+<li><code>OTP</code> - a 6-digit one-time password code</li>
+<li><code>IPAddr</code></li>
+<li><code>SimpleString</code> - Characters commonly found in most english sentences, doesn't include special characters like @, {, etc.</li>
+<li><code>YesNo</code></li>
+</ul>
+<h3><a class="header" href="#return-values" id="return-values">Return Values</a></h3>
+<p>Two distinct values are returned from the prompting methods:</p>
+<ol>
+<li>A <code>RetVal</code> indicating success or error condition - <code>Reply.ret</code></li>
+<li>When <code>RetVal</code> == <code>Ok</code>, the matched string is also returned - <code>Reply.reply</code></li>
+</ol>
+<p>In <strong>Go</strong>, these are returned as two separate values; in most scripting
+languages, these are returned as a compound object whose string representation
+is the returned string in <code>Reply.reply</code> (if the <code>RetVal</code> was <code>Ok</code>, otherwise it's the empty string).</p>
+<p>Possible values for the <code>RetVal</code> in <code>Reply.ret</code> are:</p>
+<ul>
+<li><code>Ok</code> - If the user replied and the reply matched the regex identified by <code>regexID</code></li>
+<li><code>UserNotFound</code>, <code>ChannelNotFound</code> - When an invalid user / channel is provided</li>
+<li><code>MatcherNotFound</code> - When an invalid matcher is supplied</li>
+<li><code>Interrupted</code> - If the user issues a new command to the robot (see NOTE below), too many <code>RetryPrompt</code> values are returned (&gt;3), or the user replies with a single dash: '<code>-</code>' (cancel)</li>
+<li><code>TimeoutExpired</code> - If the user says nothing for 45 seconds</li>
+<li><code>UseDefaultValue</code> - If the user replied with a single equal sign (<code>=</code>)</li>
+<li><code>ReplyNotMatched</code> - When the reply from the user didn't match the supplied regex (the user was probably talking to somebody else)</li>
+</ul>
+<h2><a class="header" href="#code-examples" id="code-examples">Code Examples</a></h2>
+<h3><a class="header" href="#bash" id="bash">Bash</a></h3>
+<pre><code class="language-bash"># Note that bash isn't object-oriented
+REPLY=$(PromptForReply &quot;YesNo&quot; &quot;Do you like kittens?&quot;)
+if [ $? -ne 0 ]
+then
+	Reply &quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;
+else
+  if [[ $REPLY == y* ]] || [[ $REPLY == Y* ]]
+  then
+    Say &quot;No kidding! Me too!&quot;
+  else
+    Say &quot;Oh, come on - you're kidding, right?!?&quot;
+  fi
+fi
+</code></pre>
+<h3><a class="header" href="#powershell" id="powershell">PowerShell</a></h3>
+<pre><code class="language-powershell">$rep = $bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
+if ($rep.Ret -ne &quot;Ok&quot;) {
+  $bot.Say(&quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;)
+} else {
+  $reply = [String]$rep
+  switch -Wildcard ($reply) {
+    &quot;y*&quot; { # PS is case-insensitive
+      $bot.Say(&quot;No kidding! Me too!&quot;)
+    }
+    default {
+      $bot.Say(&quot;Oh, come on - you're kidding, right?!?&quot;)
+    }
+  }
+}
+</code></pre>
+<h3><a class="header" href="#python" id="python">Python</a></h3>
+<pre><code class="language-python">rep = bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
+if rep.ret != Robot.Ok:
+  bot.Say(&quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;)
+else:
+  reply = rep.__str__()
+  if re.match(&quot;y.*&quot;, reply, flags=re.IGNORECASE):
+    bot.Say(&quot;No kidding! Me too!&quot;)
+  else:
+    bot.Say(&quot;Oh, come on - you're kidding, right?!?&quot;)
+</code></pre>
+<h3><a class="header" href="#ruby" id="ruby">Ruby</a></h3>
+<pre><code class="language-ruby">rep = bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
+if rep.ret != Robot::Ok
+  bot.Say(&quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;)
+else
+  reply = rep.to_s()
+  if /y.*/i =~ reply
+    bot.Say(&quot;No kidding! Me too!&quot;)
+  else
+    bot.Say(&quot;Oh, come on - you're kidding, right?!?&quot;)
+  end
+end
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../api/Pipeline-API.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../api/Utility-API.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="../api/Pipeline-API.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="../api/Utility-API.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

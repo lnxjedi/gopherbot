@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div id="sidebar-scrollbox" class="sidebar-scrollbox">
-                <ol class="chapter"><li class="expanded affix "><a href="Title.html">Title</a></li><li class="expanded affix "><a href="Foreward.html">Foreward</a></li><li class="expanded affix "><a href="Introduction.html">Introduction</a></li><li class="expanded "><a href="Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="expanded "><a href="InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li class="expanded "><a href="DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li class="expanded "><a href="Modules.html"><strong aria-hidden="true">2.</strong> Module Support</a></li></ol>
+                <ol class="chapter"><li class="expanded affix "><a href="Title.html">Title</a></li><li class="expanded affix "><a href="Foreward.html">Foreward</a></li><li class="expanded affix "><a href="Introduction.html">Introduction</a></li><li class="expanded "><a href="Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="expanded "><a href="InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li class="expanded "><a href="DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li class="expanded "><a href="Upgrading.html"><strong aria-hidden="true">2.</strong> Upgrading from Version 1</a></li><li><ol class="section"><li class="expanded "><a href="upgrade/BotInfo.html"><strong aria-hidden="true">2.1.</strong> Required Bot Info</a></li><li class="expanded "><a href="upgrade/External-Plugin.html"><strong aria-hidden="true">2.2.</strong> External Plugin Configuration</a></li><li class="expanded "><a href="upgrade/Custom-Dir.html"><strong aria-hidden="true">2.3.</strong> Custom Configuration Directory</a></li><li class="expanded "><a href="upgrade/Encryption.html"><strong aria-hidden="true">2.4.</strong> Early Encryption Initialization</a></li></ol></li><li class="expanded "><a href="api/API-Introduction.html"><strong aria-hidden="true">3.</strong> Gopherbot API</a></li><li><ol class="section"><li class="expanded "><a href="api/Languages.html"><strong aria-hidden="true">3.1.</strong> Language Templates</a></li><li class="expanded "><a href="api/Attribute-Retrieval-API.html"><strong aria-hidden="true">3.2.</strong> Attribute Retrieval</a></li><li class="expanded "><a href="api/Brain-API.html"><strong aria-hidden="true">3.3.</strong> Brain Methods</a></li><li class="expanded "><a href="api/Message-Sending-API.html"><strong aria-hidden="true">3.4.</strong> Message Sending</a></li><li class="expanded "><a href="api/Pipeline-API.html"><strong aria-hidden="true">3.5.</strong> Pipeline Construction</a></li><li class="expanded "><a href="api/Response-Request-API.html"><strong aria-hidden="true">3.6.</strong> Requesting Responses</a></li><li class="expanded "><a href="api/Utility-API.html"><strong aria-hidden="true">3.7.</strong> Utility</a></li></ol></li><li class="expanded "><a href="Modules.html"><strong aria-hidden="true">4.</strong> Module Support</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -278,6 +278,884 @@ GOPHER_ALIAS=\
 <li><code>help</code> - the list of commands will include all the administrator commands</li>
 </ul>
 <p>TODO: More documentation, including production installs.</p>
+<h1><a class="header" href="#upgrading-from-version-1" id="upgrading-from-version-1">Upgrading from Version 1</a></h1>
+<p>The following sections detail the required and optional changes for upgrading a robot from version 1 to version 2. Over the course of developing version 2, there were several intermediary states for different configuration options that are not described here. If you need information on upgrading from any of these intermediary states, please <a href="https://github.com/lnxjedi/gopherbot/issues/new">open an issue</a>.</p>
+<h1><a class="header" href="#required-bot-info" id="required-bot-info">Required Bot Info</a></h1>
+<p>Earlier versions of <strong>Gopherbot</strong> expected to get info about the robot - name, handle, etc. - from the protocol connector; however, that can't be counted on. For your robot to respond to a command like <code>floyd, ping</code>, it will need a minimal <code>BotInfo</code> section in <code>gopherbot.yaml</code>:</p>
+<pre><code class="language-yaml">BotInfo:
+  UserName: floyd
+</code></pre>
+<p>To provide other information about the robot to the <code>GetBotAttribute()</code> method, you might want to fill out the entire structure:</p>
+<pre><code class="language-yaml">BotInfo:
+  UserName: floyd
+  Email: floyd@linuxjedi.org
+  FullName: Floyd Gopherbot
+  FirstName: Floyd
+  LastName: Gopherbot
+</code></pre>
+<p>The robot's single-character <code>Alias</code> is still specified by itself, as before; e.g. <code>Alias: &quot;;&quot;</code>.</p>
+<h1><a class="header" href="#external-plugin-configuration" id="external-plugin-configuration">External Plugin Configuration</a></h1>
+<h1><a class="header" href="#custom-configuration-directory" id="custom-configuration-directory">Custom Configuration Directory</a></h1>
+<p>Version 2's configuration layout is heavily oriented towards an all-in-one robot directory, <code>$GOPHER_HOME</code>, with brain, job logs, workspaces, and others as subdirectories. It standardizes the location of the custom configuration directory (repository) to <code>$(pwd)/custom</code> (a.k.a. <code>$GOPHER_HOME/custom</code>). While setting the location with <code>-c &lt;dir&gt;</code> or via the <code>GOPHER_CONFIGDIR</code> environment variable are still supported, existing installations should locate custom configuration in a directory named <code>custom/</code>, with the robot started from the parent directory. See the <a href="upgrade/../InstallOverview.html">Installation Overview</a> for more information on the standard directory structure.</p>
+<p>If your configuration is already in a repository, and the previous updates have already been made, then you can probably just run <code>/opt/gopherbot/gopherbot</code> from an empty directory and use the new setup plugin to bootstrap your robot.</p>
+<h1><a class="header" href="#early-encryption-initialization" id="early-encryption-initialization">Early Encryption Initialization</a></h1>
+<p><strong>Gopherbot</strong> uses two separate keys for encrypting and decrypting secret data:</p>
+<ul>
+<li>The start-up key, normally 32 printable <code>ASCII</code> characters, used only for decrypting the binary, 32-byte random encryption key</li>
+<li>The permanent runtime encryption key, 32 random bytes generated on the first run </li>
+</ul>
+<p>In version 1 and early snapshots of version 2, the runtime key was stored in the brain, and encryption was only initialized after the robot's brain provider and protocol connector. Secrets for these had to be provided in the environment, or unencrypted in <code>gopherbot.yaml</code>. Version 2 addresses this by storing the binary encrypted runtime key in a <code>base64</code> encoded file, <code>custom/binary-encrypted-key</code>. This allows storing encrypted values for e.g. the <em>slack token</em> or <em>AWS credentials</em> in <code>gopherbot.yaml</code>, and only needing to provide the start-up <code>GOPHER_ENCRYPTION_KEY</code> in the environment, or in an external environment file - <code>$GOPHER_HOME/.env</code> or <code>$GOPHER_HOME/private/environment</code>.</p>
+<p>For a robot instance with a file-backed brain, the following command can be used to generate the version 2 key file:</p>
+<pre><code class="language-bash">$ cat /path/to/brain/bot:encryptionKey | base64 -w 0 &gt; /path/to/custom/binary-encrypted-key
+</code></pre>
+<p>This file can then be committed to the custom configuration repository.</p>
+<h2><a class="header" href="#api-for-plugins-jobs-and-tasks" id="api-for-plugins-jobs-and-tasks">API for Plugins, Jobs and Tasks</a></h2>
+<p><strong>Gopherbot</strong> provides an object-oriented API for writing your own command plugins, jobs and tasks. With the exception of the <code>bash</code> library, API calls are accessed from methods on a <strong>robot</strong> object. The following sections detail the usage of the various methods.</p>
+<p>Gopherbot's functionality can be easily extended by writing plugins in one of several different languages. A single plugin can provide:</p>
+<ul>
+<li>One or more new commands the robot will understand</li>
+<li>Elevation logic for providing extra assurance of user identity</li>
+<li>Authorization logic for determining a user's rights to issue various commands</li>
+</ul>
+<p>This article deals mainly with writing plugins in one of the scripting languages supported by Gopherbot, the most popular means for writing new command plugins. For writing native compiled-in plugins in Go, see <code>gopherbot/main.go</code> and the sample plugins in <code>goplugins/</code>. API documentation for Robot methods is available at:</p>
+<p>https://godoc.org/github.com/lnxjedi/gopherbot/bot#Robot</p>
+<p>Note that the script plugin API is implemented on top of the native Go API, so that document may also be of use for scripting plugin authors. The file <code>bot/http.go</code>, and the scripting libraries in <code>lib/</code> will illuminate the mapping from the script APIs to the native Go API.</p>
+<h1><a class="header" href="#table-of-contents" id="table-of-contents">Table of Contents</a></h1>
+<ul>
+<li><a href="api/Languages.html#plugin-loading-and-precedence">Plugin Loading and Precedence</a></li>
+<li><a href="api/Languages.html#default-configuration">Default Configuration</a></li>
+<li><a href="api/Languages.html#calling-convention">Calling Convention</a>
+<ul>
+<li><a href="api/Languages.html#environment-variables">Environment Variables</a></li>
+<li><a href="api/Languages.html#reserved-commands">Reserved Commands</a></li>
+</ul>
+</li>
+<li><a href="api/Languages.html#plugin-types-and-calling-events">Plugin Types and Calling Events</a>
+<ul>
+<li><a href="api/Languages.html#command-plugins">Command Plugins</a></li>
+<li><a href="api/Languages.html#authorization-plugins">Authorization Plugins</a></li>
+<li><a href="api/Languages.html#elevation-plugins">Elevation Plugins</a></li>
+</ul>
+</li>
+<li><a href="api/Languages.html#using-the-terminal-connector">Using the Terminal Connector</a></li>
+<li><a href="api/Languages.html#plugin-debugging">Plugin Debugging</a>
+<ul>
+<li><a href="api/Languages.html#debug-plugin-command">Debug Plugin Command</a></li>
+<li><a href="api/Languages.html#dump-plugin-command">Dump Plugin Command</a></li>
+</ul>
+</li>
+<li><a href="api/Languages.html#getting-started">Getting Started</a>
+<ul>
+<li><a href="api/Languages.html#starting-from-a-sample-plugin">Starting from a Sample Plugin</a></li>
+<li><a href="api/Languages.html#using-boilerplate-code">Using Boilerplate Code</a>
+<ul>
+<li><a href="api/Languages.html#bash-boilerplate">Bash Boilerplate</a></li>
+<li><a href="api/Languages.html#powershell-boilerplate">PowerShell Boilerplate</a></li>
+<li><a href="api/Languages.html#python-boilerplate">Python Boilerplate</a></li>
+<li><a href="api/Languages.html#ruby-boilerplate">Ruby Boilerplate</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="api/Languages.html#the-plugin-api">The Plugin API</a></li>
+</ul>
+<h1><a class="header" href="#plugin-loading-and-precedence" id="plugin-loading-and-precedence">Plugin Loading and Precedence</a></h1>
+<p>Gopherbot ships with a number of external script plugins in the <code>install</code> directory. These can be overridden by placing a plugin with the same filename in the optional configuration directory.</p>
+<h1><a class="header" href="#default-configuration" id="default-configuration">Default Configuration</a></h1>
+<p>Plugin configuration is fully documented in the <a href="api/Configuration.html">configuration</a> article; you should be familiar with that document before beginning to write your own plugins.</p>
+<p>On start-up and during a reload, the robot will run each external script plugin with an argument of <code>configure</code>. The plugin should respond by writing the plugin default configuration to standard out and exiting with exit code 0. When responding to <code>configure</code>, the plugin shouldn't initialize a robot object or make any API calls, as <code>configure</code> is called without setting robot environment variables.</p>
+<h1><a class="header" href="#calling-convention" id="calling-convention">Calling Convention</a></h1>
+<p>The robot calls external plugins by creating a goroutine and exec'ing the external script with a set of environment variables. The external script uses the appropriate library for the scripting language to create a robot object from the environment. The script then examines it's command-line arguments to determine the type of action to take (normally a command followed by arguments to the command), and uses the library to make JSON-over-http calls for executing and returning results from methods. Depending on how the plugin is used, different kinds of events can cause external plugins to be called with a variety of commands and arguments. The most common means of calling an external plugin is for one of it's commands to be matched, or by matching a pattern in an ambient message (one not specifically directed to the robot).</p>
+<p>There are two sources of information for an external plugin being called:</p>
+<ul>
+<li>Environment Variables - these should generally only be referenced by the scripting library</li>
+<li>Command Line Arguments - these should be used by the plugin to determine what to do</li>
+</ul>
+<h2><a class="header" href="#environment-variables" id="environment-variables">Environment Variables</a></h2>
+<p>Gopherbot sets two primary environment variables of use to the plugin developer:</p>
+<ul>
+<li>GOPHER_CONFIGDIR - the directory where Gopherbot looks for it's configuration</li>
+<li>GOPHER_INSTALLDIR - the directory where the Gopherbot executable resides</li>
+</ul>
+<p>In addition, the following two environment variables are set for every script plugin:</p>
+<ul>
+<li>GOPHER_USER - the username of the user who spoke to the robot</li>
+<li>GOPHER_CHANNEL - the channel the user spoke in (empty string indicates a direct message)</li>
+</ul>
+<h2><a class="header" href="#reserved-commands" id="reserved-commands">Reserved Commands</a></h2>
+<p>The first argument to a plugin script is the <strong>command</strong>. In addition to the <code>configure</code> command, which instructs a plugin to dump it's default configuration to standard out, the following commands are reserved:</p>
+<ul>
+<li><code>init</code> - After starting the connector and on reload, the robot will call external plugins with a command argument of <code>init</code>. Since all environment variables for the robot are set at that point, it would be possible to e.g. save a robot data structure that could be loaded and used in a cron job.</li>
+<li><code>authorize</code> - The plugin should check authorization for the user and return <code>Success</code> or <code>Fail</code></li>
+<li><code>elevate</code> - The plugin should perform additional authentication for the user and return <code>Success</code> or <code>Fail</code></li>
+<li><code>event</code> - This command is reserved for future use with e.g. user presence change &amp; channel join/leave events</li>
+<li><code>catchall</code> - Plugins with <code>CatchAll: true</code> will be called for commands directed at the robot that don't match a command plugin. Normally these are handled by the compiled-in <code>help</code> plugin, but administrators could override that setting and provide their own plugin with <code>CatchAll: true</code>. Note that having multiple such plugins is probably a bad idea.</li>
+</ul>
+<h1><a class="header" href="#plugin-types-and-calling-events" id="plugin-types-and-calling-events">Plugin Types and Calling Events</a></h1>
+<p>There are (currently) three different kinds of external plugin:</p>
+<ul>
+<li>Command / Message Plugins - these are called by the robot in respond to messages the user sends</li>
+<li>Authorization Plugins - these plugins encapsulate the logic for authorizing specific users to use specific commands, and are called by the robot during authorization processing</li>
+<li>Elevation Plugins - these plugins perform some variety of multi-factor authentication for higher assurance of user identity, and are called by the robot during elevation processing</li>
+</ul>
+<h2><a class="header" href="#command-plugins" id="command-plugins">Command Plugins</a></h2>
+<p>A command plugin's configuration specifies <code>CommandMatchers</code> and <code>MessageMatchers</code> that associate regular expressions with plugin commands:</p>
+<pre><code class="language-yaml">MessageMatchers:
+- Command: help
+  Regex: '^(?i:help)$'
+CommandMatchers:
+- Regex: (?i:remember ([-\w .,!?:\/]+))
+  Command: remember
+  Contexts: [ &quot;item&quot; ]
+</code></pre>
+<p>Whenever a <code>CommandMatcher</code> regex matches a command given to the robot, or a <code>MessageMatcher</code> matches an ambient message, the robot calls the plugin script with the first argument being the matched <code>Command</code>, and subsequent arguments corresponding to the regex capture groups (which may in some cases be an empty string). Command plugins should normally exit with status 0 (bot.Normal), or non-zero for unusual error conditions that may require an administrator to investigate. The robot will notify the user whenever a command plugin exits non-zero, or when it emits output to STDERR.</p>
+<h2><a class="header" href="#authorization-plugins" id="authorization-plugins">Authorization Plugins</a></h2>
+<p>To separate command logic from user authorization logic, Gopherbot supports the concept of an <strong>authorization plugin</strong>. The main <code>gopherbot.yaml</code> can define a specific plugin as the <code>DefaultAuthorizer</code>, and individual plugins can be configured to override this value by specifying their own <code>Authorizer</code> plugin. If a plugin lists any commands in it's <code>AuthorizedCommands</code> config item, or specifies <code>AuthorizeAllCommands: true</code>, then the robot will call the authorizer plugin with a command of <code>authorize</code>, followed by the following arguments:</p>
+<ul>
+<li>The name of the plugin for which authorization is being requested</li>
+<li>The optional value of <code>AuthRequire</code>, which may be interpreted as a group or role</li>
+<li>The plugin command being called followed by any arguments passed to the command</li>
+</ul>
+<p>Based on these values and the <code>User</code> and <code>Channel</code> values from the robot, the authorization plugin should evaluate whether a user/plugin is authorized for the given command and exit with one of:</p>
+<ul>
+<li>bot.Succeed (1) - authorized</li>
+<li>bot.Fail (2) - not authorized</li>
+<li>bot.MechanismFail (3) - a technical issue prevented the robot from determining authorization</li>
+</ul>
+<p>Note that exiting with <code>bot.Normal</code> (0) or other values will result in an error and failed authentication.</p>
+<p>Additionally, authorization plugins may provide extra feedback to the user on <code>Fail</code> or <code>MechanismFail</code> so they can have the issue addressed, e.g. &quot;Authorization failed: user not a member of group 'foo'&quot;. In some cases, however, authorization plugins may not have a full Gopherbot API library; they could be written in C, and thus not be able to interact with the user.</p>
+<h2><a class="header" href="#elevation-plugins" id="elevation-plugins">Elevation Plugins</a></h2>
+<p>Elevation plugins provide the means to request additional authentication from the user for commands where higher assurance of identity is desired. The main <code>gopherbot.yaml</code> can specify an elevation plugin as the <code>DefaultElevator</code>, which can be overridden by a given plugin specifying an <code>Elevator</code>. When the plugin lists commands as <code>ElevatedCommands</code> or <code>ElevateImmediateCommands</code>, the robot will call the appropriate elevator plugin with a command of <code>elevate</code> and a first argument of <code>true</code> or <code>false</code> for <code>immediate</code>. The elevator plugin should interpret <code>immediate == true</code> to mean MFA is required every time; when <code>immediate != true</code>, successful elevation may persist for a configured timeout period.</p>
+<p>Based on the result of the elevation determination, the plugin should have an exit status one of:</p>
+<ul>
+<li>bot.Succeed (1) - elevation succeeded</li>
+<li>bot.Fail (2) - elevation failed</li>
+<li>bot.MechanismFail (3) - a technical issue prevented the robot from processing the elevation request</li>
+</ul>
+<p>Note that exiting with <code>bot.Normal</code> (0) or other value will result in an error being logged and elevation failing.</p>
+<p>Additionally, the elevation plugin may provide extra feedback to the user when elevation isn't successful to indicate the nature of the failure.</p>
+<h1><a class="header" href="#using-the-terminal-connector" id="using-the-terminal-connector">Using the Terminal Connector</a></h1>
+<p>Interacting with your bot in a chat app might not always be convenient or fast; to simplify
+testing and plugin development, <strong>Gopherbot</strong> includes a terminal connector that emulates
+a chat service with multiple users and channels, with a sample
+configuration in the <code>cfg/term/</code> directory. You'll probably want to copy the directory and modify
+it for your own use (mainly configuring the plugins you're developing), but it can be used
+by using the <code>-c &lt;configpath&gt;</code> option:</p>
+<pre><code>[gopherbot]$ ./gopherbot -c cfg/term/
+2018/04/13 18:07:52 Initialized logging ...
+2018/04/13 18:07:52 Starting up with config dir: cfg/term/, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
+2018/04/13 18:07:52 Debug: Loaded installed conf/gopherbot.yaml
+2018/04/13 18:07:52 Debug: Loaded configured conf/gopherbot.yaml
+Terminal connector running; Use '|C&lt;channel&gt;' to change channel, or '|U&lt;user&gt;' to change user
+c:general/u:alice -&gt; |ubob
+Changed current user to: bob
+c:general/u:bob -&gt; ;ping
+general: @bob PONG
+c:general/u:bob -&gt; |ualice
+Changed current user to: alice
+c:general/u:alice -&gt; |crandom
+Changed current channel to: random
+c:random/u:alice -&gt; ;quit
+random: @alice Adios
+[gopherbot]$
+</code></pre>
+<h1><a class="header" href="#plugin-debugging" id="plugin-debugging">Plugin Debugging</a></h1>
+<p>The most common problem for plugin authors is the robot does nothing after sending it a message,
+or the robot just says <code>Sorry, that didn't match any commands I know, ...</code>.</p>
+<p>This can be due to a number of issues:</p>
+<ul>
+<li>The plugin didn't load because of various configuration problems</li>
+<li>The robot isn't in the channel, and doesn't hear the message</li>
+<li>The plugin isn't visible because of channel, user, or other restrictions</li>
+<li>The user message doesn't match a regex for the plugin</li>
+<li>The plugin runs, but does nothing</li>
+</ul>
+<p>To track down these issues easily, <strong>Gopherbot</strong> has the builtin administrator commands <code>debug plugin</code> and <code>dump plugin</code>. Make sure your username / handle is listed in the
+<code>AdminUsers</code> list in <code>gopherbot.yaml</code> for your development environment.</p>
+<h2><a class="header" href="#debug-plugin-command" id="debug-plugin-command">Debug Plugin Command</a></h2>
+<p><strong>Gopherbot</strong> has a builtin command for plugin debugging that can help quickly pinpoint
+most problems. Turning on plugin debugging will initiate a reload, then send debugging
+information about a plugin in direct messages. If <code>verbose</code> is enabled, you will get debugging
+information for every message you send, or every command sent to the robot by another user.
+You can see an example of plugin debugging here with the terminal connector:</p>
+<pre><code>[gopherbot]$ ./gopherbot
+2018/04/18 15:43:01 Initialized logging ...
+2018/04/18 15:43:01 Starting up with config dir: /home/user/.gopherbot, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
+2018/04/18 15:43:01 Debug: Loaded installed conf/gopherbot.yaml
+2018/04/18 15:43:01 Debug: Loaded configured conf/gopherbot.yaml
+Terminal connector running; Use '|C&lt;channel&gt;' to change channel, or '|U&lt;user&gt;' to change user
+c:general/u:alice -&gt; ;ruby me!
+general: @alice Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help &lt;keyword&gt;'
+c:general/u:alice -&gt; ;help debug
+general: Command(s) matching keyword: debug
+floyd, debug plugin &lt;pluginname&gt; (verbose) - turn on debugging for the named plugin, optionally verbose
+
+floyd, stop debugging - turn off debugging
+c:general/u:alice -&gt; ;debug plugin rubydemo
+general: Debugging enabled for rubydemo (verbose: false)
+c:general/u:alice -&gt; ;ruby me!
+(dm:alice): 2018/04/18 03:43:15 DEBUG rubydemo: plugin is NOT visible to user alice in channel general; channel 'general' is not on the list of allowed channels: random
+general: @alice Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help &lt;keyword&gt;'
+c:general/u:alice -&gt; |crandom
+Changed current channel to: random
+c:random/u:alice -&gt; ;ruby me to the max!
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: plugin is visible to user alice in channel random
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Checking 7 command matchers against message: &quot;ruby me to the max!&quot;
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:bashecho ([.;!\d\w-, ]+))
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:ruby( me)?!?)
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:listen( to me)?!?)
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:remember(?: (slowly))? ([-\w .,!?:\/]+))
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:recall ?([\d]+)?)
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:forget ([\d]{1,2}))
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:check me)
+random: @alice Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help &lt;keyword&gt;'
+c:random/u:alice -&gt; ;ruby me!
+(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: plugin is visible to user alice in channel random
+(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Checking 7 command matchers against message: &quot;ruby me!&quot;
+(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Not matched: (?i:bashecho ([.;!\d\w-, ]+))
+(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Matched command regex '(?i:ruby( me)?!?)', command: ruby
+(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Running plugin with command 'ruby' and arguments: [ me]
+random: Sure, Alice!
+random: I'll ruby you, but not right now - I'll wait 'til you're least expecting it...
+(dm:alice): 2018/04/18 03:43:51 DEBUG rubydemo: Plugin finished with return value: Normal
+</code></pre>
+<p><strong>NOTE:</strong> If your plugin is disabled with a mysterious <code>File not found</code> error, be sure you've got the
+appropriate scripting language installed. If the first line in your plugin is e.g.:</p>
+<pre><code>#!/usr/bin/ruby
+</code></pre>
+<p>... you'll get <code>File not found</code> if <code>/usr/bin/ruby</code> isn't present on the system.</p>
+<h2><a class="header" href="#dump-plugin-command" id="dump-plugin-command">Dump Plugin Command</a></h2>
+<p>To view a plugin's default or final configuration, you can use the <code>dump plugin</code> command:</p>
+<pre><code>c:general/u:alice -&gt; ;help dump
+general: Command(s) matching keyword: dump
+floyd, dump plugin (default) &lt;plugname&gt; - dump the current or default configuration for the plugin (direct message only)
+
+floyd, dump robot - dump the current configuration for the robot (direct message only)
+c:general/u:alice -&gt; |c
+Changed current channel to: direct message
+c:(direct)/u:alice -&gt; dump plugin rubydemo
+(dm:alice): AdminCommands: null
+AllChannels: false
+AllowDirect: true
+AuthRequire: &quot;&quot;
+AuthorizeAllCommands: false
+AuthorizedCommands: null
+Authorizer: &quot;&quot;
+CatchAll: false
+... (MUCH more)
+</code></pre>
+<h1><a class="header" href="#getting-started" id="getting-started">Getting Started</a></h1>
+<h2><a class="header" href="#starting-from-a-sample-plugin" id="starting-from-a-sample-plugin">Starting from a Sample Plugin</a></h2>
+<p>The simplest way for a new plugin author to get started is to:</p>
+<ul>
+<li>Disable the demo plugin for your chosen scripting language (if enabled) in <code>&lt;config dir&gt;/conf/gopherbot.yaml</code></li>
+<li>Copy the demo plugin to <code>&lt;config dir&gt;/plugins/&lt;newname&gt;(.extension)</code></li>
+<li>Enable your new plugin in <code>gopherbot.yaml</code> and give it a descriptive <code>Name</code></li>
+</ul>
+<h2><a class="header" href="#using-boilerplate-code" id="using-boilerplate-code">Using Boilerplate Code</a></h2>
+<p>Each supported scripting language has a certain amount of &quot;boilerplate&quot; code required in every command plugin; generally, the boilerplate code is responsible for:</p>
+<ul>
+<li>Loading the appropriate version of the Gopherbot library from <code>$GOPHER_INSTALLDIR/lib</code></li>
+<li>Defining and providing the default config</li>
+<li>Instantiating a Robot object with a library call
+Normally this is followed by some form of case / switch statement that performs different functions based on the contents of the first argument, a.k.a. the &quot;command&quot;.</li>
+</ul>
+<h3><a class="header" href="#bash-boilerplate" id="bash-boilerplate">Bash Boilerplate</a></h3>
+<pre><code class="language-bash">#!/bin/bash -e
+
+source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
+
+COMMAND=$1
+shift
+
+configure(){
+  cat &lt;&lt;&quot;EOF&quot;
+&lt;yaml config document&gt;
+EOF
+}
+
+case &quot;$COMMAND&quot; in
+	&quot;configure&quot;)
+		configure
+		;;
+...
+esac
+</code></pre>
+<p><strong>NOTE:</strong> Bash doesn't have an object-oriented API</p>
+<h3><a class="header" href="#powershell-boilerplate" id="powershell-boilerplate">PowerShell Boilerplate</a></h3>
+<pre><code class="language-powershell">#!powershell.exe
+# -or-
+#!C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
+
+# Stylistic, can be omitted; $cmdArgs is always a String[],
+# but $Args turns into a String when you shift off the 2nd item
+[String[]]$cmdArgs = $Args
+Import-Module &quot;$Env:GOPHER_INSTALLDIR\lib\gopherbot_v1.psm1&quot;
+$bot = Get-Robot
+
+$config = @'
+&lt;yaml config document&gt;
+'@
+
+$command, $cmdArgs = $cmdArgs
+
+switch ($command)
+{
+  &quot;configure&quot; {
+    Write-Output $config
+    exit
+  }
+ ...
+}
+</code></pre>
+<h3><a class="header" href="#python-boilerplate" id="python-boilerplate">Python Boilerplate</a></h3>
+<pre><code class="language-python">#!/usr/bin/python
+
+import os
+import sys
+sys.path.append(&quot;%s/lib&quot; % os.getenv(&quot;GOPHER_INSTALLDIR&quot;))
+from gopherbot_v1 import Robot
+
+bot = Robot()
+
+default_config = '''
+&lt;yaml config document&gt;
+'''
+
+executable = sys.argv.pop(0)
+command = sys.argv.pop(0)
+
+if command == &quot;configure&quot;:
+    print default_config
+...
+</code></pre>
+<h3><a class="header" href="#ruby-boilerplate" id="ruby-boilerplate">Ruby Boilerplate</a></h3>
+<pre><code class="language-ruby">#!/usr/bin/ruby
+
+# boilerplate
+require ENV[&quot;GOPHER_INSTALLDIR&quot;] + '/lib/gopherbot_v1'
+
+bot = Robot.new()
+
+defaultConfig = &lt;&lt;'DEFCONFIG'
+&lt;yaml config document&gt;
+DEFCONFIG
+
+command = ARGV.shift()
+
+case command
+when &quot;configure&quot;
+	puts defaultConfig
+	exit
+...
+end
+</code></pre>
+<h1><a class="header" href="#the-plugin-api" id="the-plugin-api">The Plugin API</a></h1>
+<p>Gopherbot has a rich set of methods (functions) for interacting with the robot / user. Here we break down the API into sets of related functions:</p>
+<ul>
+<li><a href="api/Attribute-Retrieval-API.html">Attribute Lookup Methods</a> - for retrieving names, email addresses, etc.</li>
+<li><a href="api/Message-Sending-API.html">Sending Messages and Replies</a> - for sending messages to the users</li>
+<li><a href="api/Response-Request-API.html">Prompting for Input</a> - for getting replies from the user</li>
+<li><a href="api/Brain-API.html">Brain Methods and Memories</a> - for storing and retrieving long- and short-term memories</li>
+<li><a href="api/Utility-API.html">Utility Methods</a> - a collection of miscellaneous useful functions, like Pause() and Log()</li>
+</ul>
+<h1><a class="header" href="#getting-information-about-users-and-the-robot" id="getting-information-about-users-and-the-robot">Getting Information About Users and the Robot</a></h1>
+<p>The <code>Get*Attribute(...)</code> family of methods can be used to get basic chat service directory information like first and last name, email address, etc. <code>GetSenderAttribute</code> and <code>GetBotAttribute</code> take a single argument, the name of the attribute to retrieve. The lesser-used <code>GetUserAttribute</code> takes two arguments, the user and the attribute. The return value is an object with <code>Attribute</code> and <code>RetVal</code> members. <code>RetVal</code> will be one of <code>Ok</code>, <code>UserNotFound</code> or <code>AttributeNotFound</code>.</p>
+<h2><a class="header" href="#user-attributes" id="user-attributes">User Attributes</a></h2>
+<p>The available attributes for a user / sender:</p>
+<ul>
+<li>name (handle)</li>
+<li>fullName</li>
+<li>email</li>
+<li>firstName</li>
+<li>lastName</li>
+<li>phone</li>
+<li>internalID (protocol internal representatation)</li>
+</ul>
+<h2><a class="header" href="#bot-attributes" id="bot-attributes">Bot Attributes</a></h2>
+<p>The available attributes for the bot:</p>
+<ul>
+<li>name</li>
+<li>alias</li>
+<li>fullName / realName</li>
+<li>contact / admin / adminContact</li>
+<li>email</li>
+<li>protocol (e.g. &quot;slack&quot;)</li>
+</ul>
+<p>Note: the values for most of these are configured in <code>conf/gopherbot.yaml</code></p>
+<h1><a class="header" href="#code-examples" id="code-examples">Code Examples</a></h1>
+<h2><a class="header" href="#bash" id="bash">Bash</a></h2>
+<pre><code class="language-bash">USEREMAIL=$(GetSenderAttribute email)
+if [ $? -ne $GBRET_Ok ]
+then
+  Say &quot;I was unable to look up your email address&quot;
+else
+  Say &quot;Your email address is $USEREMAIL&quot;
+fi
+</code></pre>
+<h2><a class="header" href="#powershell" id="powershell">PowerShell</a></h2>
+<pre><code class="language-powershell">$attr = $bot.GetBotAttribute(&quot;email&quot;)
+if ( $attr.Ret -eq &quot;Ok&quot; ) {
+  $email = $attr.Attr
+  $bot.Say(&quot;My email address is: $email&quot;)
+} else {
+  $bot.Say(&quot;I don't think I have an email address&quot;)
+}
+</code></pre>
+<h2><a class="header" href="#python" id="python">Python</a></h2>
+<pre><code class="language-python"># In some cases you might forego error checking
+bot.Say(&quot;You can send email to %s&quot; % bot.GetBotAttribte(&quot;email&quot;))
+botNameAttr = bot.GetBotAttribute(&quot;fullName&quot;)
+if botNameAttr.ret == Robot.Ok:
+  bot.Say(&quot;My full name is %s&quot; % botNameAttr)
+else:
+  bot.Say(&quot;I don't even know what my name is!&quot;)
+</code></pre>
+<h2><a class="header" href="#ruby" id="ruby">Ruby</a></h2>
+<pre><code class="language-ruby"># In some cases you might forego error checking
+bot.Say(&quot;You can send email to #{bot.GetBotAttribute(&quot;email&quot;)}&quot;)
+botNameAttr = bot.GetBotAttribute(&quot;fullName&quot;)
+if botNameAttr.ret == Robot::Ok
+  bot.Say(&quot;My full name is #{botNameAttr}&quot;)
+else
+  bot.Say(&quot;I don't even know what my name is!&quot;)
+end
+</code></pre>
+<p><strong>Gopherbot</strong> comes with brain methods allowing plugin authors to store information long-term information like a <code>TODO</code> list, or short-term contextual
+information, such as a particular list item under discussion. An important supplement to this guide can be found in the example scripting
+plugins in the <code>plugins/</code> directory, and the <code>links</code> and <code>lists</code> <em>Go</em> plugins in the <code>goplugins</code> directory (from the source,
+not included in the distributed <code>.zip</code> files).</p>
+<h1><a class="header" href="#table-of-contents-1" id="table-of-contents-1">Table of Contents</a></h1>
+<ul>
+<li><a href="api/Brain-API.html#memory-scoping">Memory Scoping</a></li>
+<li><a href="api/Brain-API.html#long-term-memories">Long-Term Memories</a>
+<ul>
+<li><a href="api/Brain-API.html#long-term-memory-code-examples">Code Examples</a></li>
+<li><a href="api/Brain-API.html#long-term-memory-sample-transcript">Sample Transcript</a></li>
+</ul>
+</li>
+<li><a href="api/Brain-API.html#short-term-memories">Short-Term Memories</a>
+<ul>
+<li><a href="api/Brain-API.html#method-summary">Method Summary</a></li>
+<li><a href="api/Brain-API.html#short-term-memory-code-examples">Code Examples</a></li>
+<li><a href="api/Brain-API.html#short-term-memory-sample-transcript">Sample Transcript</a></li>
+</ul>
+</li>
+</ul>
+<h1><a class="header" href="#memory-scoping" id="memory-scoping">Memory Scoping</a></h1>
+<p>Long-term memories are scoped per-plugin by key, and so the data is not shareable between plugins. Short-term memories are stored
+for each user/channel combination, and can be freely shared between plugins.</p>
+<h1><a class="header" href="#long-term-memories" id="long-term-memories">Long-Term Memories</a></h1>
+<p>The following methods are available for manipulating long-term memories:</p>
+<ul>
+<li><code>CheckoutDatum(key, RWflag)</code> - returns a complex data item (memory) with a short-term exclusive lock on the datum if RW is <code>true</code></li>
+<li><code>CheckinDatum(memory)</code> - signals the robot to release the lock without updating</li>
+<li><code>UpdateDatum(memory)</code> - updates the memory and releases the lock</li>
+</ul>
+<h2><a class="header" href="#long-term-memory-code-examples" id="long-term-memory-code-examples">Long-Term Memory Code Examples</a></h2>
+<p>The memory stored can be an arbitrarily complex data item; a hash, array, or combination - anything that can be serialized to/from
+JSON. The example plugins for <strong>Python</strong>, <strong>Ruby</strong> and <strong>PowerShell</strong> all implement a <em>remember</em> function that remembers a list (array)
+of items. For the code examples, we'll start with a memory whose key is <code>memory</code>, and has two items defined by this snippet of JSON:</p>
+<pre><code class="language-json">[&quot;the Alamo&quot;, &quot;Ferris Bueller&quot;]
+</code></pre>
+<p>The examples will check if the memory exists, add &quot;the answer is 42&quot;, and then update the memory.</p>
+<p>Note that long-term memory commands aren't current implemented for <code>bash</code>.</p>
+<h3><a class="header" href="#python-1" id="python-1">Python</a></h3>
+<pre><code class="language-python">memory = bot.CheckoutDatum(&quot;memory&quot;, True)
+if memory.exists:
+    memory.datum.append(&quot;the answer is 42&quot;)
+else:
+    memory.datum = [ thing ]
+ret = bot.UpdateDatum(memory)
+if ret != Robot.Ok:
+    bot.Say(&quot;Uh-oh, I must be gettin' old - having memory problems!&quot;)
+</code></pre>
+<h3><a class="header" href="#ruby-1" id="ruby-1">Ruby</a></h3>
+<p>Note: the Ruby example is a little more complicated; adapted from plugins/rubydemo.rb.</p>
+<pre><code class="language-ruby">memory = bot.CheckoutDatum(&quot;memory&quot;, true)
+remembered = false
+if memory.exists
+  if memory.datum.include?(thing)
+    bot.Say(&quot;That's already one of my fondest memories&quot;)
+    bot.CheckinDatum(memory)
+  else
+    remembered = true
+    memory.datum.push(&quot;the answer is 42&quot;)
+  end
+else
+  remembered = true
+  memory.datum = [ &quot;the answer is 42&quot; ]
+end
+if remembered
+  ret = bot.UpdateDatum(memory)
+  if ret != Robot::Ok
+    bot.Say(&quot;Dang it, having problems with my memory&quot;)
+  end
+end
+</code></pre>
+<h3><a class="header" href="#powershell-1" id="powershell-1">PowerShell</a></h3>
+<pre><code class="language-powershell">$memory = $bot.CheckoutDatum(&quot;memory&quot;, $TRUE)
+if ($memory.exists) {
+  $memory.Datum += &quot;the answer is 42&quot;
+} else {
+  [String[]] $memory.Datum = @( &quot;the answer is 42&quot; )
+}
+$ret = $bot.UpdateDatum($memory)
+if ($ret -ne &quot;Ok&quot;) {
+  $bot.Say(&quot;I'm having a hard time remembering things&quot;)
+}
+</code></pre>
+<h2><a class="header" href="#long-term-memory-sample-transcript" id="long-term-memory-sample-transcript">Long-Term Memory Sample Transcript</a></h2>
+<p>Using the <code>terminal</code> connector, you can see the <code>remember</code> function in action:</p>
+<pre><code>c:general/u:alice -&gt; floyd, remember the answer is 42
+general: Ok, I'll remember &quot;the answer is 42&quot;
+c:general/u:alice -&gt; |ubob
+Changed current user to: bob
+c:general/u:bob -&gt; floyd, recall
+general: Here's everything I can remember:
+#1: the Alamo
+#2: Ferris Bueller
+#3: the answer is 42
+</code></pre>
+<p>From the transcript you can see that <code>alice</code> added the item to the list, which
+was then visible to <code>bob</code>. The <code>links</code> and <code>lists</code> plugins are more useful, and
+allow easy sharing of bookmark items or <code>TODO</code> lists, for example.</p>
+<h1><a class="header" href="#short-term-memories" id="short-term-memories">Short-Term Memories</a></h1>
+<p>Short term memories are simple key -&gt; string values stored for each user / channel combination, and expiring
+after a time. The best example of this uses the built-in <code>links</code> and <code>lists</code> plugins, shown in this example
+using the <code>terminal</code> plugin:</p>
+<pre><code>c:general/u:alice -&gt; link tuna casserole to https://www.allrecipes.com/recipe/17219/best-tuna-casserole/, floyd
+general: Link added
+c:general/u:alice -&gt; add it to the dinner meals list
+c:general/u:alice -&gt; floyd
+general: Ok, I added tuna casserole to the dinner meals list
+c:general/u:alice -&gt; floyd
+general: Yes?
+c:general/u:bob -&gt; floyd, pick a random item from the dinner meals list
+general: Here you go: tuna casserole
+c:general/u:bob -&gt; look it up, floyd
+general: Here's what I have for &quot;tuna casserole&quot;:
+https://www.allrecipes.com/recipe/17219/best-tuna-casserole/: tuna casserole
+</code></pre>
+<p>Here, the robot is using short-term memories several times. When I forgot to address my command to the robot, the command
+<code>add it to the dinner meals list</code> was stored in short-term memory for user <code>alice</code> in the <code>general</code> channel; then, when
+I typed the robot's name, it checked short-term memory for the last thing <code>alice</code> said (stored automatically). Then,
+the <code>links</code> plugin stored <code>tuna casserole</code> in the <code>item</code> short-term contextual memory; when I used <code>it</code> in the lists command,
+the lists plugin checked the <code>item</code> short-term memory (see <code>contexts</code> in the plugin config for <code>lists</code>) and
+substituted the value from the short-term memory.</p>
+<h2><a class="header" href="#method-summary" id="method-summary">Method Summary</a></h2>
+<p>These methods are available for short-term memories:</p>
+<ul>
+<li><code>Remember(key, value)</code> - associate the string <code>value</code> to <code>key</code>, always returns <code>Ok</code></li>
+<li><code>RememberContext(context, value)</code> - store a short-term contextual memory for use with other plugins</li>
+<li><code>Recall(key)</code> - return the short-term memory associated with <code>key</code>, or the empty string when the memory doesn't exist</li>
+</ul>
+<p>Note that the short-term memory API doesn't have complicated return values. They are always stored in the robot's working
+memory and never persisted, and expire after several minutes - so plugins should always be prepared to get blank return
+values.</p>
+<h2><a class="header" href="#short-term-memory-code-examples" id="short-term-memory-code-examples">Short-Term Memory Code Examples</a></h2>
+<p>Note that the short-term memory API is super trivial, so I didn't go to great lengths to provide
+detailed examples. The <code>bash</code> example comes from the <code>bashdemo.sh</code> plugin.</p>
+<h3><a class="header" href="#bash-1" id="bash-1">Bash</a></h3>
+<pre><code class="language-bash">Remember &quot;$1&quot; &quot;$2&quot;
+Say &quot;I'll remember \&quot;$1\&quot; is \&quot;$2\&quot; - but eventually I'll forget!&quot;
+</code></pre>
+<pre><code class="language-bash">MEMORY=$(Recall &quot;$1&quot;)
+if [ -z &quot;$MEMORY&quot; ]
+then
+	Reply &quot;Gosh, I have no idea - I'm so forgetful!&quot;
+else
+	Say &quot;$1 is $MEMORY&quot;
+fi
+</code></pre>
+<h3><a class="header" href="#python-2" id="python-2">Python</a></h3>
+<pre><code class="language-python">bot.Remember(key, value)
+</code></pre>
+<pre><code class="language-python">mem = bot.Recall(key)
+</code></pre>
+<h3><a class="header" href="#ruby-2" id="ruby-2">Ruby</a></h3>
+<pre><code class="language-ruby">bot.Remember(key, value)
+</code></pre>
+<pre><code class="language-ruby">mem = bot.Recall(key)
+</code></pre>
+<h3><a class="header" href="#powershell-2" id="powershell-2">PowerShell</a></h3>
+<pre><code class="language-powershell">$bot.Remember($key, $value)
+</code></pre>
+<pre><code class="language-powershell">$mem = $bot.Recall($key)
+</code></pre>
+<h2><a class="header" href="#short-term-memory-sample-transcript" id="short-term-memory-sample-transcript">Short-Term Memory Sample Transcript</a></h2>
+<p>Here you can see the robot's short term memories of Ferris Bueller in action (using
+the <code>bashdemo.sh</code> plugin):</p>
+<pre><code>c:general/u:bob -&gt; floyd, what is Ferris Bueller
+general: @bob Gosh, I have no idea - I'm so forgetful!
+c:general/u:bob -&gt; floyd, store Ferris Bueller is a Righteous Dude
+general: I'll remember &quot;Ferris Bueller&quot; is &quot;a Righteous Dude&quot; - but eventually I'll forget!
+c:general/u:bob -&gt; floyd, what is Ferris Bueller
+general: Ferris Bueller is a Righteous Dude
+c:general/u:bob -&gt; |ualice
+Changed current user to: alice
+c:general/u:alice -&gt; floyd, what is Ferris Bueller
+general: @alice Gosh, I have no idea - I'm so forgetful!
+c:general/u:alice -&gt; |ubob
+Changed current user to: bob
+c:general/u:bob -&gt; floyd, what is Ferris Bueller
+general: Ferris Bueller is a Righteous Dude
+</code></pre>
+<h1><a class="header" href="#table-of-contents-2" id="table-of-contents-2">Table of Contents</a></h1>
+<ul>
+<li><a href="api/Message-Sending-API.html#message-formatting">Message Formatting</a></li>
+<li><a href="api/Message-Sending-API.html#say-and-reply">Say and Reply</a></li>
+<li><a href="api/Message-Sending-API.html#sendusermessage-sendchannelmessage-and-senduserchannelmessage">SendUserMessage, SendChannelMessage and SendUserChannelMessage</a></li>
+<li><a href="api/Message-Sending-API.html#code-examples">Code Examples</a>
+<ul>
+<li><a href="api/Message-Sending-API.html#bash">Bash</a></li>
+<li><a href="api/Message-Sending-API.html#powershell">PowerShell</a></li>
+<li><a href="api/Message-Sending-API.html#python">Python</a></li>
+<li><a href="api/Message-Sending-API.html#ruby">Ruby</a></li>
+</ul>
+</li>
+</ul>
+<h1><a class="header" href="#messageformat-method-and-message-formatting" id="messageformat-method-and-message-formatting">MessageFormat method and Message Formatting</a></h1>
+<p><strong>Gopherbot</strong> is designed to provide ChatOps functionality for a variety of team
+chat platforms, with Slack being the first. Due to the technical nature of ChatOps,
+characters like <code>_</code>, <code>*</code> and ` may need to be rendered in replies to the user;
+at times omitting these characters (because they cause formatting changes) could
+remove important information. To provide the plugin author with the most flexibility,
+<strong>Gopherbot</strong> supports the notion of three message formats:</p>
+<ul>
+<li><code>Raw</code> - text sent by a plugin with <code>Raw</code> format is passed straight to the chat platform as-is; this is the default if no other default is specified</li>
+<li><code>Variable</code> - for the <code>Variable</code> format, the protocol connector should attempt to process the message so that special characters are escaped or otherwise modified to render for the user in a standard variable-width font; for Slack, special characters are surrounded by nulls</li>
+<li><code>Fixed</code> - the protocol connector should render <code>Fixed</code> format messages in a fixed-width block format</li>
+</ul>
+<p>The <code>MessageFormat(raw|variable|fixed)</code> method returns a robot object with the specified format. A plugin can use
+<code>GetBotAttribute(&quot;protocol&quot;)</code> to determine the connector protocol (e.g. &quot;slack&quot;) to make intelligent decisions
+about the format to use, or modify the content of raw messages depending on the connection protocol.</p>
+<h1><a class="header" href="#say-and-reply" id="say-and-reply">Say and Reply</a></h1>
+<p><code>Say</code> and <code>Reply</code> are the staples of message sending. Both are generally used for replying to the person who spoke to the robot, but <code>Reply</code> will also <em>mention</em> the user. Normally, <code>Say</code> is used when the robot responds immediately to the user, but <code>Reply</code> is used when the robot is performing a task that takes more than a few minutes, and the robot needs to direct the message to the user to update them with progress on the task. Both <code>Say</code> and <code>Reply</code> take a <code>message</code> argument, and an optional second <code>format</code> argument that can be <code>variable</code> (the default) for variable-width text, or <code>fixed</code> for fixed-width text. The <code>fixed</code> format is normally used with embedded newlines to create tabular output where the columns will line up. The return value is not normally checked, but can be one of <code>Ok</code>, <code>UserNotFound</code>, <code>ChannelNotFound</code>, or <code>FailedMessageSend</code>.</p>
+<h1><a class="header" href="#sendusermessage-sendchannelmessage-and-senduserchannelmessage" id="sendusermessage-sendchannelmessage-and-senduserchannelmessage">SendUserMessage, SendChannelMessage and SendUserChannelMessage</a></h1>
+<p><code>Say</code> and <code>Reply</code> are actually convenience wrappers for the <code>Send*Message</code> family of methods. <code>SendChannelMessage</code> takes the obvious arguments of <code>channel</code> and <code>message</code> and just writes a message to a channel. <code>SendUserMessage</code> sends a direct message to a user, and <code>SendUserChannelMessage</code> directs the message to a user in a channel by using a connector-specific <em>mention</em>. Like <code>Say</code> and <code>Reply</code>, each of these functions also takes an optional <code>format</code> argument, and uses the same return values.</p>
+<h1><a class="header" href="#code-examples-1" id="code-examples-1">Code Examples</a></h1>
+<h2><a class="header" href="#bash-2" id="bash-2">Bash</a></h2>
+<pre><code class="language-bash"># Note that bash isn't object-oriented
+Say &quot;I'm sending a message to Bob in #general&quot;
+SendUserChannelMessage &quot;bob&quot; &quot;general&quot; &quot;Hi, Bob!&quot;
+RETVAL = $?
+if [ $RETVAL -ne $GBRET_Ok ]
+then
+  Log &quot;Error&quot; &quot;Unable to message Bob in #general - return code $RETVAL&quot;
+fi
+</code></pre>
+<h2><a class="header" href="#powershell-3" id="powershell-3">PowerShell</a></h2>
+<pre><code class="language-powershell">$bot.Say(&quot;I'm sending a message to Bob in #general&quot;)
+$retval = $bot.SendUserChannelMessage(&quot;bob&quot;, &quot;general&quot;, &quot;Hi, Bob!&quot;)
+if ( $retval -ne &quot;Ok&quot; ) {
+  $bot.Log(&quot;Error&quot;, &quot;Unable to message Bob in #general - return code $retval&quot;)
+}
+</code></pre>
+<h2><a class="header" href="#python-3" id="python-3">Python</a></h2>
+<pre><code class="language-python">bot.Say(&quot;I'm sending a message to Bob in #general&quot;)
+retval = bot.SendUserChannelMessage(&quot;bob&quot;, &quot;general&quot;, &quot;Hi, Bob!&quot;)
+if ( retval != Robot.Ok ):
+  bot.Log(&quot;Error&quot;, &quot;Unable to message Bob in #general - return code %d&quot; % retval)
+</code></pre>
+<h2><a class="header" href="#ruby-3" id="ruby-3">Ruby</a></h2>
+<pre><code class="language-ruby">bot.Say(&quot;I'm sending a message to Bob in #general&quot;)
+retval = bot.SendUserChannelMessage(&quot;bob&quot;, &quot;general&quot;, &quot;Hi, Bob!&quot;)
+if retval != Robot::Ok
+  bot.Log(&quot;Error&quot;, &quot;Unable to message Bob in #general - return code %d&quot; % retval)
+end
+</code></pre>
+<p><strong>Gopherbot</strong> takes a slightly different approach to creating pipelines; pipelines are created by Add/Fail/Final Job/Command/Task family of methods, rather than by fixed configuration directives. This allows flexible configuration of pipelines if desired for e.g. a CI/CD application, or dynamic generation of pipelines based on logic at runtime.</p>
+<p>Until more documentation is written, see:</p>
+<ul>
+<li><a href="https://github.com/lnxjedi/gopherbot/blob/master/.gopherci/pipeline.sh">The Gopherbot Pipeline Source</a></li>
+<li><a href="https://github.com/parsley42/floyd-gopherbot">The Configuration repository for Floyd, the robot that builds Gopherbot</a></li>
+</ul>
+<h1><a class="header" href="#table-of-contents-3" id="table-of-contents-3">Table of Contents</a></h1>
+<ul>
+<li><a href="api/Pipeline-API.html#addtask">AddTask</a></li>
+<li><a href="api/Pipeline-API.html#setparameter">SetParameter</a></li>
+</ul>
+<h2><a class="header" href="#addtask" id="addtask">AddTask</a></h2>
+<p>The <code>AddTask</code> method ... TODO: finish me!</p>
+<h3><a class="header" href="#bash-3" id="bash-3">Bash</a></h3>
+<pre><code class="language-bash">AddTask &quot;echo&quot; &quot;hello, world&quot;
+</code></pre>
+<h3><a class="header" href="#python-4" id="python-4">Python</a></h3>
+<pre><code class="language-python"></code></pre>
+<h3><a class="header" href="#ruby-4" id="ruby-4">Ruby</a></h3>
+<pre><code class="language-ruby"></code></pre>
+<h3><a class="header" href="#powershell-4" id="powershell-4">PowerShell</a></h3>
+<pre><code class="language-powershell">$ret = $bot.AddTask(&quot;echo&quot;, @(&quot;hello&quot;, &quot;world&quot;))
+</code></pre>
+<h2><a class="header" href="#setparameter" id="setparameter">SetParameter</a></h2>
+<p>The <code>Prompt*ForReply</code> methods make it simple to write interactive plugins where the bot can request additional input from the user.</p>
+<h1><a class="header" href="#table-of-contents-4" id="table-of-contents-4">Table of Contents</a></h1>
+<ul>
+<li><a href="api/Response-Request-API.html#technical-background">Technical Background</a></li>
+<li><a href="api/Response-Request-API.html#prompting-methods">Prompting Methods</a>
+<ul>
+<li><a href="api/Response-Request-API.html#method-arguments">Method Arguments</a></li>
+<li><a href="api/Response-Request-API.html#return-values">Return Values</a></li>
+</ul>
+</li>
+<li><a href="api/Response-Request-API.html#code-examples">Code Examples</a>
+<ul>
+<li><a href="api/Response-Request-API.html#bash">Bash</a></li>
+<li><a href="api/Response-Request-API.html#powershell">PowerShell</a></li>
+<li><a href="api/Response-Request-API.html#python">Python</a></li>
+<li><a href="api/Response-Request-API.html#ruby">Ruby</a></li>
+</ul>
+</li>
+</ul>
+<h2><a class="header" href="#technical-background" id="technical-background">Technical Background</a></h2>
+<p>Interactive plugins are complicated by the fact that multiple plugins can be running simultaneously and each can request input from the user. <strong>Gopherbot</strong> handles requests for replies this way:</p>
+<ol>
+<li>If there are no other plugins waiting for a reply for the given user/channel, the robot emits the prompt and waits to hear back from the user</li>
+<li>If other plugins are waiting for a reply, the prompt is not emitted and the request goes in to a list of waiters</li>
+<li>As other plugins get replies (or timeout while waiting), waiters in the list get a <code>RetVal</code> of <code>RetryPrompt</code>, indicating they should issue the prompt request again (this is handled internally in individual scripting libraries)</li>
+</ol>
+<h2><a class="header" href="#prompting-methods" id="prompting-methods">Prompting Methods</a></h2>
+<p>The following methods are available for prompting for replies:</p>
+<ul>
+<li><code>PromptForReply(regexID string, prompt string)</code> - issue a prompt to whoever/wherever the original command was issued</li>
+<li><code>PromptUserForReply(regexID string, user string, prompt string)</code> - for prompting the user in a direct message (DM) (for e.g. a password or other sensitive information)</li>
+<li><code>PromptUserChannelForReply(regexID string, user string, channel string, prompt string)</code> - prompt a specific user in a specific channel (for e.g. getting approval from another user for an action)</li>
+</ul>
+<h3><a class="header" href="#method-arguments" id="method-arguments">Method arguments</a></h3>
+<p>The <code>user</code> and <code>channel</code> arguments are obvious; the <code>prompt</code> is the question the robot is
+asking the user, and should usually end with a <code>?</code>.</p>
+<p>The <code>regexID</code> should correspond to a <code>ReplyMatcher</code> defined in the plugin configuration,
+(see <a href="api/Configuration.html#plugin-configuration">Plugin Configuration</a>), or one of the
+built-in regex's:</p>
+<ul>
+<li><code>Email</code></li>
+<li><code>Domain</code> - an alpha-numeric domain name</li>
+<li><code>OTP</code> - a 6-digit one-time password code</li>
+<li><code>IPAddr</code></li>
+<li><code>SimpleString</code> - Characters commonly found in most english sentences, doesn't include special characters like @, {, etc.</li>
+<li><code>YesNo</code></li>
+</ul>
+<h3><a class="header" href="#return-values" id="return-values">Return Values</a></h3>
+<p>Two distinct values are returned from the prompting methods:</p>
+<ol>
+<li>A <code>RetVal</code> indicating success or error condition - <code>Reply.ret</code></li>
+<li>When <code>RetVal</code> == <code>Ok</code>, the matched string is also returned - <code>Reply.reply</code></li>
+</ol>
+<p>In <strong>Go</strong>, these are returned as two separate values; in most scripting
+languages, these are returned as a compound object whose string representation
+is the returned string in <code>Reply.reply</code> (if the <code>RetVal</code> was <code>Ok</code>, otherwise it's the empty string).</p>
+<p>Possible values for the <code>RetVal</code> in <code>Reply.ret</code> are:</p>
+<ul>
+<li><code>Ok</code> - If the user replied and the reply matched the regex identified by <code>regexID</code></li>
+<li><code>UserNotFound</code>, <code>ChannelNotFound</code> - When an invalid user / channel is provided</li>
+<li><code>MatcherNotFound</code> - When an invalid matcher is supplied</li>
+<li><code>Interrupted</code> - If the user issues a new command to the robot (see NOTE below), too many <code>RetryPrompt</code> values are returned (&gt;3), or the user replies with a single dash: '<code>-</code>' (cancel)</li>
+<li><code>TimeoutExpired</code> - If the user says nothing for 45 seconds</li>
+<li><code>UseDefaultValue</code> - If the user replied with a single equal sign (<code>=</code>)</li>
+<li><code>ReplyNotMatched</code> - When the reply from the user didn't match the supplied regex (the user was probably talking to somebody else)</li>
+</ul>
+<h2><a class="header" href="#code-examples-2" id="code-examples-2">Code Examples</a></h2>
+<h3><a class="header" href="#bash-4" id="bash-4">Bash</a></h3>
+<pre><code class="language-bash"># Note that bash isn't object-oriented
+REPLY=$(PromptForReply &quot;YesNo&quot; &quot;Do you like kittens?&quot;)
+if [ $? -ne 0 ]
+then
+	Reply &quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;
+else
+  if [[ $REPLY == y* ]] || [[ $REPLY == Y* ]]
+  then
+    Say &quot;No kidding! Me too!&quot;
+  else
+    Say &quot;Oh, come on - you're kidding, right?!?&quot;
+  fi
+fi
+</code></pre>
+<h3><a class="header" href="#powershell-5" id="powershell-5">PowerShell</a></h3>
+<pre><code class="language-powershell">$rep = $bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
+if ($rep.Ret -ne &quot;Ok&quot;) {
+  $bot.Say(&quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;)
+} else {
+  $reply = [String]$rep
+  switch -Wildcard ($reply) {
+    &quot;y*&quot; { # PS is case-insensitive
+      $bot.Say(&quot;No kidding! Me too!&quot;)
+    }
+    default {
+      $bot.Say(&quot;Oh, come on - you're kidding, right?!?&quot;)
+    }
+  }
+}
+</code></pre>
+<h3><a class="header" href="#python-5" id="python-5">Python</a></h3>
+<pre><code class="language-python">rep = bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
+if rep.ret != Robot.Ok:
+  bot.Say(&quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;)
+else:
+  reply = rep.__str__()
+  if re.match(&quot;y.*&quot;, reply, flags=re.IGNORECASE):
+    bot.Say(&quot;No kidding! Me too!&quot;)
+  else:
+    bot.Say(&quot;Oh, come on - you're kidding, right?!?&quot;)
+</code></pre>
+<h3><a class="header" href="#ruby-5" id="ruby-5">Ruby</a></h3>
+<pre><code class="language-ruby">rep = bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
+if rep.ret != Robot::Ok
+  bot.Say(&quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;)
+else
+  reply = rep.to_s()
+  if /y.*/i =~ reply
+    bot.Say(&quot;No kidding! Me too!&quot;)
+  else
+    bot.Say(&quot;Oh, come on - you're kidding, right?!?&quot;)
+  end
+end
+</code></pre>
+<h1><a class="header" href="#log-method" id="log-method">Log Method</a></h1>
+<p>Besides the logging that Gopherbot does on it's own, plugins can also emit log messages with one of the following log levels:</p>
+<ul>
+<li><code>Trace</code> - for fine-grained logging of all actions</li>
+<li><code>Debug</code> - for emitting debugging info</li>
+<li><code>Info</code> - the default log level</li>
+<li><code>Audit</code> - for auditable events - <strong>NOTE:</strong> <em>Audit events are always logged regardless of the current log level</em></li>
+<li><code>Warn</code> - for potentially harmful events</li>
+<li><code>Error</code> - for errors</li>
+<li><code>Fatal</code> - emit fatal error and cause robot to exit(1)</li>
+</ul>
+<h2><a class="header" href="#bash-5" id="bash-5">Bash</a></h2>
+<pre><code class="language-bash">Log &quot;Error&quot; &quot;The robot broke&quot;
+</code></pre>
+<h2><a class="header" href="#powershell-6" id="powershell-6">PowerShell</a></h2>
+<pre><code class="language-powershell">$bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
+</code></pre>
+<h2><a class="header" href="#python-6" id="python-6">Python</a></h2>
+<pre><code class="language-python">bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
+</code></pre>
+<h2><a class="header" href="#ruby-6" id="ruby-6">Ruby</a></h2>
+<pre><code class="language-ruby">bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
+</code></pre>
+<h1><a class="header" href="#pause-method" id="pause-method">Pause Method</a></h1>
+<p>Every language has some means of sleeping / pausing, and this method is provided as a convenience to plugin authors and implemented natively. It takes a single argument, time in seconds.</p>
+<h2><a class="header" href="#bash-6" id="bash-6">Bash</a></h2>
+<pre><code class="language-bash">Say &quot;Be back soon!&quot;
+Pause 2
+Say &quot;... aaaand I'm back!&quot;
+</code></pre>
+<h2><a class="header" href="#powershell-7" id="powershell-7">PowerShell</a></h2>
+<pre><code class="language-powershell">$bot.Say(&quot;Be back soon!&quot;)
+$bot.Pause(2)
+$bot.Say(&quot;... aaaand I'm back!&quot;)
+</code></pre>
+<h2><a class="header" href="#python-7" id="python-7">Python</a></h2>
+<pre><code class="language-python">bot.Say(&quot;Be back soon!&quot;)
+bot.Pause(2)
+bot.Say(&quot;... aaaand I'm back!&quot;)
+</code></pre>
+<h2><a class="header" href="#ruby-7" id="ruby-7">Ruby</a></h2>
+<pre><code class="language-ruby">bot.Say(&quot;Be back soon!&quot;)
+bot.Pause(2)
+bot.Say(&quot;... aaaand I'm back!&quot;)
+</code></pre>
 <h2><a class="header" href="#gopherbot-loadable-module-support" id="gopherbot-loadable-module-support">Gopherbot Loadable Module Support</a></h2>
 <p><strong>Gopherbot's</strong> loadable module support now allows new or updated <strong>Go</strong> plugins to be loaded in to a running robot (though it requires a full restart).</p>
 

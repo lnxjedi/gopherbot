@@ -1,0 +1,399 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Brain Methods - Gopherbot DevOps Chatbot</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div id="sidebar-scrollbox" class="sidebar-scrollbox">
+                <ol class="chapter"><li class="expanded affix "><a href="../Title.html">Title</a></li><li class="expanded affix "><a href="../Foreward.html">Foreward</a></li><li class="expanded affix "><a href="../Introduction.html">Introduction</a></li><li class="expanded "><a href="../Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="expanded "><a href="../InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li class="expanded "><a href="../DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li class="expanded "><a href="../Upgrading.html"><strong aria-hidden="true">2.</strong> Upgrading from Version 1</a></li><li><ol class="section"><li class="expanded "><a href="../upgrade/BotInfo.html"><strong aria-hidden="true">2.1.</strong> Required Bot Info</a></li><li class="expanded "><a href="../upgrade/External-Plugin.html"><strong aria-hidden="true">2.2.</strong> External Plugin Configuration</a></li><li class="expanded "><a href="../upgrade/Custom-Dir.html"><strong aria-hidden="true">2.3.</strong> Custom Configuration Directory</a></li><li class="expanded "><a href="../upgrade/Encryption.html"><strong aria-hidden="true">2.4.</strong> Early Encryption Initialization</a></li></ol></li><li class="expanded "><a href="../api/API-Introduction.html"><strong aria-hidden="true">3.</strong> Gopherbot API</a></li><li><ol class="section"><li class="expanded "><a href="../api/Languages.html"><strong aria-hidden="true">3.1.</strong> Language Templates</a></li><li class="expanded "><a href="../api/Attribute-Retrieval-API.html"><strong aria-hidden="true">3.2.</strong> Attribute Retrieval</a></li><li class="expanded "><a href="../api/Brain-API.html" class="active"><strong aria-hidden="true">3.3.</strong> Brain Methods</a></li><li class="expanded "><a href="../api/Message-Sending-API.html"><strong aria-hidden="true">3.4.</strong> Message Sending</a></li><li class="expanded "><a href="../api/Pipeline-API.html"><strong aria-hidden="true">3.5.</strong> Pipeline Construction</a></li><li class="expanded "><a href="../api/Response-Request-API.html"><strong aria-hidden="true">3.6.</strong> Requesting Responses</a></li><li class="expanded "><a href="../api/Utility-API.html"><strong aria-hidden="true">3.7.</strong> Utility</a></li></ol></li><li class="expanded "><a href="../Modules.html"><strong aria-hidden="true">4.</strong> Module Support</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar" class="menu-bar">
+                    <div id="menu-bar-sticky-container">
+                        <div class="left-buttons">
+                            <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                            <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                                <i class="fa fa-paint-brush"></i>
+                            </button>
+                            <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                                <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                                <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                            </ul>
+                            
+                            <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                                <i class="fa fa-search"></i>
+                            </button>
+                            
+                        </div>
+
+                        <h1 class="menu-title">Gopherbot DevOps Chatbot</h1>
+
+                        <div class="right-buttons">
+                            <a href="../print.html" title="Print this book" aria-label="Print this book">
+                                <i id="print-button" class="fa fa-print"></i>
+                            </a>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <p><strong>Gopherbot</strong> comes with brain methods allowing plugin authors to store information long-term information like a <code>TODO</code> list, or short-term contextual
+information, such as a particular list item under discussion. An important supplement to this guide can be found in the example scripting
+plugins in the <code>plugins/</code> directory, and the <code>links</code> and <code>lists</code> <em>Go</em> plugins in the <code>goplugins</code> directory (from the source,
+not included in the distributed <code>.zip</code> files).</p>
+<h1><a class="header" href="#table-of-contents" id="table-of-contents">Table of Contents</a></h1>
+<ul>
+<li><a href="#memory-scoping">Memory Scoping</a></li>
+<li><a href="#long-term-memories">Long-Term Memories</a>
+<ul>
+<li><a href="#long-term-memory-code-examples">Code Examples</a></li>
+<li><a href="#long-term-memory-sample-transcript">Sample Transcript</a></li>
+</ul>
+</li>
+<li><a href="#short-term-memories">Short-Term Memories</a>
+<ul>
+<li><a href="#method-summary">Method Summary</a></li>
+<li><a href="#short-term-memory-code-examples">Code Examples</a></li>
+<li><a href="#short-term-memory-sample-transcript">Sample Transcript</a></li>
+</ul>
+</li>
+</ul>
+<h1><a class="header" href="#memory-scoping" id="memory-scoping">Memory Scoping</a></h1>
+<p>Long-term memories are scoped per-plugin by key, and so the data is not shareable between plugins. Short-term memories are stored
+for each user/channel combination, and can be freely shared between plugins.</p>
+<h1><a class="header" href="#long-term-memories" id="long-term-memories">Long-Term Memories</a></h1>
+<p>The following methods are available for manipulating long-term memories:</p>
+<ul>
+<li><code>CheckoutDatum(key, RWflag)</code> - returns a complex data item (memory) with a short-term exclusive lock on the datum if RW is <code>true</code></li>
+<li><code>CheckinDatum(memory)</code> - signals the robot to release the lock without updating</li>
+<li><code>UpdateDatum(memory)</code> - updates the memory and releases the lock</li>
+</ul>
+<h2><a class="header" href="#long-term-memory-code-examples" id="long-term-memory-code-examples">Long-Term Memory Code Examples</a></h2>
+<p>The memory stored can be an arbitrarily complex data item; a hash, array, or combination - anything that can be serialized to/from
+JSON. The example plugins for <strong>Python</strong>, <strong>Ruby</strong> and <strong>PowerShell</strong> all implement a <em>remember</em> function that remembers a list (array)
+of items. For the code examples, we'll start with a memory whose key is <code>memory</code>, and has two items defined by this snippet of JSON:</p>
+<pre><code class="language-json">[&quot;the Alamo&quot;, &quot;Ferris Bueller&quot;]
+</code></pre>
+<p>The examples will check if the memory exists, add &quot;the answer is 42&quot;, and then update the memory.</p>
+<p>Note that long-term memory commands aren't current implemented for <code>bash</code>.</p>
+<h3><a class="header" href="#python" id="python">Python</a></h3>
+<pre><code class="language-python">memory = bot.CheckoutDatum(&quot;memory&quot;, True)
+if memory.exists:
+    memory.datum.append(&quot;the answer is 42&quot;)
+else:
+    memory.datum = [ thing ]
+ret = bot.UpdateDatum(memory)
+if ret != Robot.Ok:
+    bot.Say(&quot;Uh-oh, I must be gettin' old - having memory problems!&quot;)
+</code></pre>
+<h3><a class="header" href="#ruby" id="ruby">Ruby</a></h3>
+<p>Note: the Ruby example is a little more complicated; adapted from plugins/rubydemo.rb.</p>
+<pre><code class="language-ruby">memory = bot.CheckoutDatum(&quot;memory&quot;, true)
+remembered = false
+if memory.exists
+  if memory.datum.include?(thing)
+    bot.Say(&quot;That's already one of my fondest memories&quot;)
+    bot.CheckinDatum(memory)
+  else
+    remembered = true
+    memory.datum.push(&quot;the answer is 42&quot;)
+  end
+else
+  remembered = true
+  memory.datum = [ &quot;the answer is 42&quot; ]
+end
+if remembered
+  ret = bot.UpdateDatum(memory)
+  if ret != Robot::Ok
+    bot.Say(&quot;Dang it, having problems with my memory&quot;)
+  end
+end
+</code></pre>
+<h3><a class="header" href="#powershell" id="powershell">PowerShell</a></h3>
+<pre><code class="language-powershell">$memory = $bot.CheckoutDatum(&quot;memory&quot;, $TRUE)
+if ($memory.exists) {
+  $memory.Datum += &quot;the answer is 42&quot;
+} else {
+  [String[]] $memory.Datum = @( &quot;the answer is 42&quot; )
+}
+$ret = $bot.UpdateDatum($memory)
+if ($ret -ne &quot;Ok&quot;) {
+  $bot.Say(&quot;I'm having a hard time remembering things&quot;)
+}
+</code></pre>
+<h2><a class="header" href="#long-term-memory-sample-transcript" id="long-term-memory-sample-transcript">Long-Term Memory Sample Transcript</a></h2>
+<p>Using the <code>terminal</code> connector, you can see the <code>remember</code> function in action:</p>
+<pre><code>c:general/u:alice -&gt; floyd, remember the answer is 42
+general: Ok, I'll remember &quot;the answer is 42&quot;
+c:general/u:alice -&gt; |ubob
+Changed current user to: bob
+c:general/u:bob -&gt; floyd, recall
+general: Here's everything I can remember:
+#1: the Alamo
+#2: Ferris Bueller
+#3: the answer is 42
+</code></pre>
+<p>From the transcript you can see that <code>alice</code> added the item to the list, which
+was then visible to <code>bob</code>. The <code>links</code> and <code>lists</code> plugins are more useful, and
+allow easy sharing of bookmark items or <code>TODO</code> lists, for example.</p>
+<h1><a class="header" href="#short-term-memories" id="short-term-memories">Short-Term Memories</a></h1>
+<p>Short term memories are simple key -&gt; string values stored for each user / channel combination, and expiring
+after a time. The best example of this uses the built-in <code>links</code> and <code>lists</code> plugins, shown in this example
+using the <code>terminal</code> plugin:</p>
+<pre><code>c:general/u:alice -&gt; link tuna casserole to https://www.allrecipes.com/recipe/17219/best-tuna-casserole/, floyd
+general: Link added
+c:general/u:alice -&gt; add it to the dinner meals list
+c:general/u:alice -&gt; floyd
+general: Ok, I added tuna casserole to the dinner meals list
+c:general/u:alice -&gt; floyd
+general: Yes?
+c:general/u:bob -&gt; floyd, pick a random item from the dinner meals list
+general: Here you go: tuna casserole
+c:general/u:bob -&gt; look it up, floyd
+general: Here's what I have for &quot;tuna casserole&quot;:
+https://www.allrecipes.com/recipe/17219/best-tuna-casserole/: tuna casserole
+</code></pre>
+<p>Here, the robot is using short-term memories several times. When I forgot to address my command to the robot, the command
+<code>add it to the dinner meals list</code> was stored in short-term memory for user <code>alice</code> in the <code>general</code> channel; then, when
+I typed the robot's name, it checked short-term memory for the last thing <code>alice</code> said (stored automatically). Then,
+the <code>links</code> plugin stored <code>tuna casserole</code> in the <code>item</code> short-term contextual memory; when I used <code>it</code> in the lists command,
+the lists plugin checked the <code>item</code> short-term memory (see <code>contexts</code> in the plugin config for <code>lists</code>) and
+substituted the value from the short-term memory.</p>
+<h2><a class="header" href="#method-summary" id="method-summary">Method Summary</a></h2>
+<p>These methods are available for short-term memories:</p>
+<ul>
+<li><code>Remember(key, value)</code> - associate the string <code>value</code> to <code>key</code>, always returns <code>Ok</code></li>
+<li><code>RememberContext(context, value)</code> - store a short-term contextual memory for use with other plugins</li>
+<li><code>Recall(key)</code> - return the short-term memory associated with <code>key</code>, or the empty string when the memory doesn't exist</li>
+</ul>
+<p>Note that the short-term memory API doesn't have complicated return values. They are always stored in the robot's working
+memory and never persisted, and expire after several minutes - so plugins should always be prepared to get blank return
+values.</p>
+<h2><a class="header" href="#short-term-memory-code-examples" id="short-term-memory-code-examples">Short-Term Memory Code Examples</a></h2>
+<p>Note that the short-term memory API is super trivial, so I didn't go to great lengths to provide
+detailed examples. The <code>bash</code> example comes from the <code>bashdemo.sh</code> plugin.</p>
+<h3><a class="header" href="#bash" id="bash">Bash</a></h3>
+<pre><code class="language-bash">Remember &quot;$1&quot; &quot;$2&quot;
+Say &quot;I'll remember \&quot;$1\&quot; is \&quot;$2\&quot; - but eventually I'll forget!&quot;
+</code></pre>
+<pre><code class="language-bash">MEMORY=$(Recall &quot;$1&quot;)
+if [ -z &quot;$MEMORY&quot; ]
+then
+	Reply &quot;Gosh, I have no idea - I'm so forgetful!&quot;
+else
+	Say &quot;$1 is $MEMORY&quot;
+fi
+</code></pre>
+<h3><a class="header" href="#python-1" id="python-1">Python</a></h3>
+<pre><code class="language-python">bot.Remember(key, value)
+</code></pre>
+<pre><code class="language-python">mem = bot.Recall(key)
+</code></pre>
+<h3><a class="header" href="#ruby-1" id="ruby-1">Ruby</a></h3>
+<pre><code class="language-ruby">bot.Remember(key, value)
+</code></pre>
+<pre><code class="language-ruby">mem = bot.Recall(key)
+</code></pre>
+<h3><a class="header" href="#powershell-1" id="powershell-1">PowerShell</a></h3>
+<pre><code class="language-powershell">$bot.Remember($key, $value)
+</code></pre>
+<pre><code class="language-powershell">$mem = $bot.Recall($key)
+</code></pre>
+<h2><a class="header" href="#short-term-memory-sample-transcript" id="short-term-memory-sample-transcript">Short-Term Memory Sample Transcript</a></h2>
+<p>Here you can see the robot's short term memories of Ferris Bueller in action (using
+the <code>bashdemo.sh</code> plugin):</p>
+<pre><code>c:general/u:bob -&gt; floyd, what is Ferris Bueller
+general: @bob Gosh, I have no idea - I'm so forgetful!
+c:general/u:bob -&gt; floyd, store Ferris Bueller is a Righteous Dude
+general: I'll remember &quot;Ferris Bueller&quot; is &quot;a Righteous Dude&quot; - but eventually I'll forget!
+c:general/u:bob -&gt; floyd, what is Ferris Bueller
+general: Ferris Bueller is a Righteous Dude
+c:general/u:bob -&gt; |ualice
+Changed current user to: alice
+c:general/u:alice -&gt; floyd, what is Ferris Bueller
+general: @alice Gosh, I have no idea - I'm so forgetful!
+c:general/u:alice -&gt; |ubob
+Changed current user to: bob
+c:general/u:bob -&gt; floyd, what is Ferris Bueller
+general: Ferris Bueller is a Righteous Dude
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="../api/Attribute-Retrieval-API.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="../api/Message-Sending-API.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a href="../api/Attribute-Retrieval-API.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="../api/Message-Sending-API.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
