@@ -13,6 +13,7 @@ RUN apt-get update && \
     zip \
     unzip && \
   apt-get clean && \
-  rm -rf /var/lib/apt/lists/*
-ENV GOPATH=/workspace/go \
-    PATH=/workspace/go/bin:$PATH
+  rm -rf /var/lib/apt/lists/* && \
+  echo -e "export PATH=$PATH:/usr/local/go/bin:/workspace/go/bin" > /etc/profile.d/golang.sh
+
+ENV GOPATH=/workspace/golang
