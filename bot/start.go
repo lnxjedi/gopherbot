@@ -25,6 +25,10 @@ func Start(v VersionInfo) (restart bool) {
 	var installpath, configpath string
 
 	// Process command-line flags
+	var configPath string
+	cusage := "path to the configuration directory"
+	flag.StringVar(&configPath, "config", "", cusage)
+	flag.StringVar(&configPath, "c", "", cusage+" (shorthand)")
 	var logFile string
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -46,6 +50,8 @@ func Start(v VersionInfo) (restart bool) {
 		}
 	}
 	penvErr := godotenv.Overload(envFile)
+
+	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
 
 	var logger *log.Logger
 	logFlags := log.LstdFlags
@@ -73,7 +79,21 @@ func Start(v VersionInfo) (restart bool) {
 	if err != nil {
 		logger.Fatalf("Unable to determine working directory: %v", err)
 	}
-	configpath = filepath.Join(cwd, "custom")
+	// Configdir is where all user-supplied configuration and
+	// external plugins are.
+	if len(configPath) != 0 {
+		configpath = configPath
+	} else if len(envCfgPath) > 0 {
+		configpath = envCfgPath
+	} else {
+		if _, ok := checkDirectory("conf"); ok {
+			configpath = cwd
+		} else {
+			// If not explicitly set or cwd, use "custom" even if it
+			// doesn't exist. For compatibility with old installs.
+			configpath = filepath.Join(cwd, "custom")
+		}
+	}
 
 	if penvErr != nil {
 		logger.Printf("No private environment loaded from '.env': %v\n", penvErr)
