@@ -63,31 +63,31 @@ func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (robot
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return nil, fmt.Errorf("Error creating history directory '%s': %v", dirPath, err)
 	}
-	if file, err := os.Create(filePath); err != nil {
+	file, err := os.Create(filePath)
+	if err != nil {
 		return nil, fmt.Errorf("Error creating history file '%s': %v", filePath, err)
-	} else {
-		hl := log.New(file, "", logFlags)
-		hf := &historyFile{
-			hl,
-			file,
-		}
-		if index-maxHistories >= 0 {
-			for i := index - maxHistories; i >= 0; i-- {
-				rmPath := path.Join(dirPath, fmt.Sprintf("run-%d.log", i))
-				_, err := os.Stat(rmPath)
-				if err != nil {
-					break
-				}
-				rerr := os.Remove(rmPath)
-				if rerr != nil {
-					handler.Log(robot.Error, "Error removing old log file '%s': %v", rmPath, rerr)
-					// assume it's pointless to keep trying to delete files
-					break
-				}
+	}
+	hl := log.New(file, "", logFlags)
+	hf := &historyFile{
+		hl,
+		file,
+	}
+	if index-maxHistories >= 0 {
+		for i := index - maxHistories; i >= 0; i-- {
+			rmPath := path.Join(dirPath, fmt.Sprintf("run-%d.log", i))
+			_, err := os.Stat(rmPath)
+			if err != nil {
+				break
+			}
+			rerr := os.Remove(rmPath)
+			if rerr != nil {
+				handler.Log(robot.Error, "Error removing old log file '%s': %v", rmPath, rerr)
+				// assume it's pointless to keep trying to delete files
+				break
 			}
 		}
-		return hf, nil
 	}
+	return hf, nil
 }
 
 // GetHistory returns an io.Reader
@@ -124,13 +124,8 @@ func provider(r robot.Handler) robot.HistoryProvider {
 		return nil
 	}
 	historyPath = fhc.Directory
-	hd, err := os.Stat(historyPath)
-	if err != nil {
+	if err := r.GetDirectory(historyPath); err != nil {
 		handler.Log(robot.Error, "Checking history directory '%s': %v", historyPath, err)
-		return nil
-	}
-	if !hd.Mode().IsDir() {
-		handler.Log(robot.Error, "Checking history directory: '%s' isn't a directory", historyPath)
 		return nil
 	}
 	handler.Log(robot.Info, "Initialized file history provider with directory: '%s'", historyPath)

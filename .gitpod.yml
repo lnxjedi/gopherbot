@@ -3,11 +3,11 @@ image:
     file: .gitpod/Dockerfile
     context: .gitpod
 checkoutLocation: gopherbot
-workspaceLocation: .
+workspaceLocation: gopherbot
 tasks:
-- init: make -C gopherbot
-- init: ./gopherbot/.gitpod/gotools.sh
-- command: ./gopherbot/.gitpod/setup.sh
+- init: make
+- init: ./.gitpod/gotools.sh
+- command: ./.gitpod/setup.sh
   openIn: main
 ports:
 - port: 8080

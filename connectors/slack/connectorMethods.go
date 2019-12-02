@@ -202,7 +202,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 		s.Log(robot.Warn, "no slack IM channel found for user: %s, ID: %s trying to open IM", u, userID)
 		_, _, userIMchan, err = s.conn.OpenIMChannel(userID)
 		if err != nil {
-			s.Log(robot.Error, "unable to open a slack IM channel to user: %s, ID: %s", u, userID)
+			s.Log(robot.Error, "Unable to open a slack IM channel to user: %s, ID: %s", u, userID)
 			ret = robot.FailedMessageSend
 		}
 	}
@@ -218,13 +218,9 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 func (s *slackConnector) JoinChannel(c string) (ret robot.RetVal) {
 	chanID, ok := s.chanID(c)
 	if !ok {
-		s.Log(robot.Error, "slack channel ID not found for: %s", c)
+		s.Log(robot.Error, "Slack channel ID not found for: %s", c)
 		return robot.ChannelNotFound
 	}
-	_, err := s.api.JoinChannel(chanID)
-	if err != nil {
-		s.Log(robot.Error, "failed to join slack channel %s: %v; (try inviting the bot to the channel)", c, err)
-		return robot.FailedChannelJoin
-	}
+	s.Log(robot.Debug, "Slack robots can't join channels, skipping join for %s/%s", c, chanID)
 	return robot.Ok
 }

@@ -1,9 +1,0 @@
----
-DirectOnly: true
-RequireAdmin: true
-Help:
-- Keywords: [ "initialize", "key", "encryption" ]
-  Helptext: [ "(bot), initialize encryption <key> - by direct message only; provide encryption key" ]
-CommandMatchers:
-- Command: initialize
-  Regex: '(?i:initialize encryption (.*))'

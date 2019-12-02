@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/chzyer/readline"
-	"github.com/lnxjedi/gopherbot/bot"
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
@@ -31,10 +30,6 @@ type config struct {
 
 var lock sync.Mutex // package var lock
 var started bool    // set when connector is started
-
-func init() {
-	bot.RegisterConnector("term", Initialize)
-}
 
 // Initialize sets up the connector and returns a connector object
 func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
@@ -92,16 +87,11 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		panic(err)
 	}
 
-	if !handler.GetLogToFile() {
-		l.SetOutput(rl.Stdout())
-	}
-
 	tc := &termConnector{
 		currentChannel: c.StartChannel,
 		currentUser:    c.StartUser,
 		channels:       c.Channels,
 		running:        false,
-		botID:          "deadbeef", // yes - hex in a string
 		users:          c.Users,
 		heard:          make(chan string),
 		reader:         rl,

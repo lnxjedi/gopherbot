@@ -22,14 +22,19 @@ var envPassThrough = []string{
 // jobcommands: checkJobMatchersAndRun or ScheduledTask,
 // runPipeline.
 func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipelineType, command string, args ...string) (ret robot.TaskRetVal) {
-	task, _, job := getTask(t)
-	privCheck(fmt.Sprintf("task %s / %s", task.name, command))
+	task, plugin, job := getTask(t)
+	raiseThreadPriv(fmt.Sprintf("new pipeline for task %s / %s", task.name, command))
 	isJob := job != nil
+	isPlugin := plugin != nil
 	ppipeName := c.pipeName
 	ppipeDesc := c.pipeDesc
 	c.pipeName = task.name
 	c.pipeDesc = task.Description
-	c.protected = task.Protected
+	if isPlugin {
+		c.privileged = plugin.Privileged
+	} else {
+		c.privileged = job.Privileged
+	}
 	// Spawned pipelines keep the original ptype
 	if c.ptype == unset {
 		c.ptype = ptype
@@ -75,7 +80,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		key := histPrefix + c.jobName
 		tok, _, ret := checkoutDatum(key, &jh, true)
 		if ret != robot.Ok {
-			Log(robot.Error, "Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
+			Log(robot.Error, "Checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
 		} else {
 			var start time.Time
 			if c.timeZone != nil {
@@ -97,18 +102,18 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 			}
 			ret := updateDatum(key, tok, jh)
 			if ret != robot.Ok {
-				Log(robot.Error, "Error updating '%s', no history will be remembered for '%s'", key, c.pipeName)
+				Log(robot.Error, "Updating '%s', no history will be remembered for '%s'", key, c.pipeName)
 			} else {
 				if job.HistoryLogs > 0 && c.history != nil {
 					pipeHistory, err := c.history.NewHistory(c.jobName, hist.LogIndex, job.HistoryLogs)
 					if err != nil {
-						Log(robot.Error, "Error starting history for '%s', no history will be recorded: %v", c.pipeName, err)
+						Log(robot.Error, "Starting history for '%s', no history will be recorded: %v", c.pipeName, err)
 					} else {
 						c.logger = pipeHistory
 					}
 				} else {
 					if c.history == nil {
-						Log(robot.Warn, "Error starting history, no history provider available")
+						Log(robot.Warn, "Starting history, no history provider available")
 					}
 				}
 			}
@@ -386,7 +391,7 @@ func (c *botContext) runPipeline(ptype pipelineType, initialRun bool) (ret robot
 	return
 }
 
-func (c *botContext) getEnvironment(task *BotTask) map[string]string {
+func (c *botContext) getEnvironment(task *Task) map[string]string {
 	envhash := make(map[string]string)
 	if len(c.environment) > 0 {
 		for k, v := range c.environment {
@@ -410,7 +415,7 @@ func (c *botContext) getEnvironment(task *BotTask) map[string]string {
 					if !exists {
 						value, err := decrypt(encvalue, key)
 						if err != nil {
-							Log(robot.Error, "Error decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err)
+							Log(robot.Error, "Decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err)
 							break
 						}
 						envhash[name] = string(value)
@@ -445,15 +450,15 @@ func (c *botContext) getEnvironment(task *BotTask) map[string]string {
 
 // getTaskPath searches configPath and installPath and returns the full path
 // to the task.
-func getTaskPath(task *BotTask) (tpath string, err error) {
+func getTaskPath(task *Task) (tpath string, err error) {
 	if len(task.Path) == 0 {
-		err := fmt.Errorf("path empty for external task: %s", task.name)
+		err := fmt.Errorf("Path empty for external task: %s", task.name)
 		Log(robot.Error, err.Error())
 		return "", err
 	}
 	tpath, err = getObjectPath(task.Path)
 	if err != nil {
-		err = fmt.Errorf("couldn't locate external plugin %s: %v", task.name, err)
+		err = fmt.Errorf("Couldn't locate external plugin %s: %v", task.name, err)
 		Log(robot.Error, err.Error())
 	}
 	return

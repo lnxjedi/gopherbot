@@ -12,31 +12,22 @@
 ## decrypt "<encrypted string>":
 ##   decrypt a value encrypted with the 'encrypt <string>' command
 
-{{ $home := env "HOME" | default "/home/robot" }}
-
 ## Port to listen on for http/JSON api calls, for external plugins
 LocalPort: {{ env "GOPHER_PORT" | default "8080" }}
 
 ## Configure the robot connection protocol
-{{ $proto := env "GOPHER_PROTOCOL" | default "slack" }}
+{{ $proto := env "GOPHER_PROTOCOL" | default "terminal" }}
 Protocol: {{ $proto }}
 
-{{ if eq $proto "slack" }}
-ProtocolConfig:
-  MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
-  SlackToken: {{ env "GOPHER_SLACK_TOKEN" }}
-{{ end }}
-
 ## Trivial "term" connector config for a single admin user.
-{{ if eq $proto "term" }}
-{{ $botname := env "GOPHER_BOTNAME" }}
-{{ $botfullname := env "GOPHER_BOTFULLNAME" }}
+{{ if eq $proto "terminal" }}
+{{ $botname := env "GOPHER_BOTNAME" | default "floyd" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot"}}
+{{ $botalias := env "GOPHER_ALIAS" | default ";"}}
 
 ProtocolConfig:
   StartChannel: general
   StartUser: alice
-  BotName: {{ $botname }}
-  BotFullName: {{ $botfullname }}
   Channels:
   - random
   - general
@@ -60,9 +51,9 @@ BotInfo:
   UserName: {{ $botname }}
   FullName: {{ $botfullname }}
 
-Alias: {{ env "GOPHER_ALIAS" }}
+Alias: {{ $botalias }}
 
-## Protocols other than "term"
+## Protocols other than "term"; normally overridden in custom/conf/gopherbot.yaml
 {{ else }}
 
 AdminUsers: [ {{ env "GOPHER_ADMIN" }} ]
@@ -81,7 +72,7 @@ Brain: {{ $brain }}
 
 {{ if eq $brain "file" }}
 BrainConfig:
-  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default "brain" }}
+  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default "private/brain" }}
 
 {{ else if eq $brain "dynamo" }}
 BrainConfig:
@@ -152,6 +143,7 @@ ExternalPlugins:
     Path: plugins/update.sh
   "citools":
     Description: Tools for interacting with gopherci
+    Privileged: true
     Path: plugins/citools.py
   "ssh-admin":
     Description: Administrative plugin for managing the robot's ssh keypair

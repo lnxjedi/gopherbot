@@ -37,11 +37,12 @@ func _() {
 	_ = x[InvalidTaskType-26]
 	_ = x[CommandNotMatched-27]
 	_ = x[TaskDisabled-28]
+	_ = x[PrivilegeViolation-29]
 }
 
-const _RetVal_name = "OkUserNotFoundChannelNotFoundAttributeNotFoundFailedMessageSendFailedChannelJoinDatumNotFoundDatumLockExpiredDataFormatErrorBrainFailedInvalidDatumKeyInvalidDblPtrInvalidCfgStructNoConfigFoundRetryPromptReplyNotMatchedUseDefaultValueTimeoutExpiredInterruptedMatcherNotFoundNoUserEmailNoBotEmailMailErrorTaskNotFoundMissingArgumentsInvalidStageInvalidTaskTypeCommandNotMatchedTaskDisabled"
+const _RetVal_name = "OkUserNotFoundChannelNotFoundAttributeNotFoundFailedMessageSendFailedChannelJoinDatumNotFoundDatumLockExpiredDataFormatErrorBrainFailedInvalidDatumKeyInvalidDblPtrInvalidCfgStructNoConfigFoundRetryPromptReplyNotMatchedUseDefaultValueTimeoutExpiredInterruptedMatcherNotFoundNoUserEmailNoBotEmailMailErrorTaskNotFoundMissingArgumentsInvalidStageInvalidTaskTypeCommandNotMatchedTaskDisabledPrivilegeViolation"
 
-var _RetVal_index = [...]uint16{0, 2, 14, 29, 46, 63, 80, 93, 109, 124, 135, 150, 163, 179, 192, 203, 218, 233, 247, 258, 273, 284, 294, 303, 315, 331, 343, 358, 375, 387}
+var _RetVal_index = [...]uint16{0, 2, 14, 29, 46, 63, 80, 93, 109, 124, 135, 150, 163, 179, 192, 203, 218, 233, 247, 258, 273, 284, 294, 303, 315, 331, 343, 358, 375, 387, 405}
 
 func (i RetVal) String() string {
 	if i < 0 || i >= RetVal(len(_RetVal_index)-1) {

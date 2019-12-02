@@ -5,11 +5,14 @@ package bot
    handler.go has the methods for callbacks from the connector, */
 
 import (
+	"encoding/base64"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"sync"
 	"syscall"
@@ -23,8 +26,8 @@ type VersionInfo struct {
 	Version, Commit string
 }
 
-// configPath is optional, installPath is where gopherbot(.exe) is
-var configPath, installPath string
+// global values for GOPHER_HOME, GOPHER_CONFIGDIR and GOPHER_INSTALLDIR
+var homePath, configPath, installPath string
 
 var botVersion VersionInfo
 
@@ -91,24 +94,52 @@ var listening bool // for tests where initBot runs multiple times
 
 // initBot sets up the global robot and loads
 // configuration.
-func initBot(cpath, epath string, logger *log.Logger) {
+func initBot(hpath, cpath, epath string, logger *log.Logger) {
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	botLogger.l = logger
 
+	homePath = hpath
 	configPath = cpath
 	installPath = epath
 	botCfg.stop = make(chan struct{})
 	botCfg.done = make(chan bool)
 	botCfg.shuttingDown = false
 
+	// Initialize encryption (new style for v2)
+	keyEnv := "GOPHER_ENCRYPTION_KEY"
+	keyFile := filepath.Join(configPath, "binary-encrypted-key")
+	encryptionInitialized := false
+	if ek, ok := os.LookupEnv(keyEnv); ok {
+		ik := []byte(ek)[0:32]
+		if bkf, err := ioutil.ReadFile(keyFile); err == nil {
+			if bke, err := base64.StdEncoding.DecodeString(string(bkf)); err == nil {
+				if key, err := decrypt(bke, ik); err == nil {
+					cryptKey.key = key
+					cryptKey.initialized = true
+					encryptionInitialized = true
+					Log(robot.Info, "Successfully decrypted binary encryption key '%s'", keyFile)
+				} else {
+					Log(robot.Error, "Decrypting binary encryption key '%s' from environment key '%s': %v", keyFile, keyEnv, err)
+				}
+			} else {
+				Log(robot.Error, "Base64 decoding '%s': %v", keyFile, err)
+			}
+		} else {
+			Log(robot.Warn, "Binary encryption key not loaded from '%s': %v", keyFile, err)
+		}
+	} else {
+		Log(robot.Warn, "GOPHER_ENCRYPTION_KEY not set in environment")
+	}
+
 	c := &botContext{
 		environment: make(map[string]string),
 	}
 	if err := c.loadConfig(true); err != nil {
-		Log(robot.Fatal, "Error loading initial configuration: %v", err)
+		Log(robot.Fatal, "Loading initial configuration: %v", err)
 	}
+	os.Unsetenv(keyEnv)
 
 	// loadModules for go loadable modules; a no-op for static builds
 	loadModules()
@@ -122,27 +153,28 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		} else {
 			brain := bprovider(handle)
 			botCfg.brain = brain
+			Log(robot.Info, "Initialized brain provider '%s'", botCfg.brainProvider)
 		}
 	} else {
 		bprovider, _ := brains["mem"]
 		botCfg.brain = bprovider(handle)
 		Log(robot.Error, "No brain configured, falling back to default 'mem' brain - no memories will persist")
 	}
-	initialized := false
-	if len(botCfg.encryptionKey) > 0 {
-		if initializeEncryption(botCfg.encryptionKey) {
+	if !encryptionInitialized && len(botCfg.encryptionKey) > 0 {
+		if initializeEncryptionFromBrain(botCfg.encryptionKey) {
 			Log(robot.Info, "Successfully initialized encryption from configured key")
-			initialized = true
+			encryptionInitialized = true
 		} else {
 			Log(robot.Error, "Failed to initialize brain encryption with configured EncryptionKey")
 		}
 	}
-	if encryptBrain && !initialized {
+	if encryptBrain && !encryptionInitialized {
 		Log(robot.Warn, "Brain encryption specified but not initialized; use 'initialize brain <key>' to initialize the encrypted brain interactively")
 	}
 	if !listening {
 		listening = true
 		go func() {
+			raiseThreadPriv("http handler")
 			http.Handle("/json", handle)
 			Log(robot.Fatal, "error serving '/json': %s", http.ListenAndServe(botCfg.port, nil))
 		}()
@@ -217,7 +249,7 @@ func run() <-chan bool {
 	// connector loop
 	botCfg.RLock()
 	go func(conn robot.Connector, stop <-chan struct{}, done chan<- bool) {
-		privCheck("connector loop")
+		raiseThreadPriv("connector loop")
 		conn.Run(stop)
 		botCfg.RLock()
 		restart := botCfg.restart

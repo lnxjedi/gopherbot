@@ -21,24 +21,15 @@ import (
 	// Many included plugins already have 'Disabled: true', but you can also
 	// disable by adding that line to conf/plugins/<plugname>.yaml
 
-	// *** Included Elevator plugins
-
-	_ "github.com/lnxjedi/gopherbot/goplugins/duo"
-	_ "github.com/lnxjedi/gopherbot/goplugins/totp"
-
 	// *** Included Authorizer plugins
-
 	_ "github.com/lnxjedi/gopherbot/goplugins/groups"
 
 	// *** Included Go plugins, of varying quality
-
 	_ "github.com/lnxjedi/gopherbot/goplugins/help"
 	_ "github.com/lnxjedi/gopherbot/goplugins/links"
 	_ "github.com/lnxjedi/gopherbot/goplugins/lists"
-	_ "github.com/lnxjedi/gopherbot/goplugins/meme"
 	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
-
-	/* Enable profiling. You can shrink the binary by removing this, but if the
+	/* Enable profiling. This inflates the binary when enabled, but if the
 	   robot ever stops responding for any reason, it's handy for getting a
 	   dump of all goroutines. Example usage:
 
@@ -48,8 +39,7 @@ import (
 	   (pprof) list lnxjedi
 	   Total: 11
 	   ROUTINE ======================== github.com/lnxjedi/gopherbot/bot...
-	*/
-	_ "net/http/pprof"
+	*/// _ "net/http/pprof"
 )
 
 // Version of gopherbot
@@ -65,7 +55,6 @@ func main() {
 	}
 	restart := bot.Start(versionInfo)
 	if restart {
-		bot.DropThreadPriv("restarting")
 		bin, _ := os.Executable()
 		defer func() {
 			err := syscall.Exec(bin, os.Args, os.Environ())

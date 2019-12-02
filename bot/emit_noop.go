@@ -10,3 +10,8 @@ func emit(e Event) {
 func GetEvents() *[]Event {
 	return &[]Event{}
 }
+
+// GetEventStrings for terminal connector
+func (h handler) GetEventStrings() *[]string {
+	return &[]string{}
+}

@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/bot"
 	models "github.com/lnxjedi/gopherbot/connectors/rocket/models"
 	api "github.com/lnxjedi/gopherbot/connectors/rocket/realtime"
 	"github.com/lnxjedi/gopherbot/robot"
@@ -56,10 +55,6 @@ type rocketConnector struct {
 	gbuserNameIDMap map[string]string   // configured map of username to userID
 	gbuserIDNameMap map[string]string   // configured map, iD to configured username
 	userDM          map[string]string   // map from username to dm roomID
-}
-
-func init() {
-	bot.RegisterConnector("rocket", Initialize)
 }
 
 // Initialize sets up the connector and returns a connector object

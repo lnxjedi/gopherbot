@@ -1,5 +1,5 @@
 #!/bin/bash
-go get -u -v \
+/usr/local/go/bin/go get -u -v \
     github.com/mdempsky/gocode \
     github.com/uudashr/gopkgs/cmd/gopkgs \
     github.com/ramya-rao-a/go-outline \
@@ -27,5 +27,5 @@ go get -u -v \
     github.com/go-delve/delve/cmd/dlv \
     github.com/davidrjenni/reftools/cmd/fillstruct \
     github.com/godoctor/godoctor
-go get -u -v -d github.com/stamblerre/gocode
-go build -o $GOPATH/bin/gocode-gomod github.com/stamblerre/gocode
+/usr/local/go/bin/go get -u -v -d github.com/stamblerre/gocode
+/usr/local/go/bin/go build -o $GOPATH/bin/gocode-gomod github.com/stamblerre/gocode

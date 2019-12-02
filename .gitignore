@@ -9,3 +9,5 @@ lib/gopherbot_*.pyc
 *.so
 # For dev env
 gopherbot-doc
+robot.log
+start.sh

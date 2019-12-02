@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/chzyer/readline"
-	"github.com/lnxjedi/gopherbot/bot"
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
@@ -17,9 +16,6 @@ type termConnector struct {
 	currentChannel string             // The current channel for the user
 	currentUser    string             // The current userid
 	running        bool               // set on call to Run
-	botName        string             // human-readable name of bot
-	botFullName    string             // human-readble full name of the bot
-	botID          string             // slack internal bot ID
 	users          []termUser         // configured users
 	channels       []string           // the channels the robot is in
 	heard          chan string        // when the user speaks
@@ -60,13 +56,9 @@ loop:
 			break loop
 		case input := <-tc.heard:
 			if len(input) == 0 {
-				ev := bot.GetEvents()
-				if len(*ev) > 0 {
-					evs := make([]string, len(*ev))
-					for i, e := range *ev {
-						evs[i] = e.String()
-					}
-					tc.reader.Write([]byte(fmt.Sprintf("Events gathered: %s\n", strings.Join(evs, ", "))))
+				evs := tc.GetEventStrings()
+				if len(*evs) > 0 {
+					tc.reader.Write([]byte(fmt.Sprintf("Events gathered: %s\n", strings.Join(*evs, ", "))))
 				}
 				continue
 			}
