@@ -6,6 +6,8 @@
 
 [Introduction](Introduction.md)
 
+[Terminology](Terminology.md)
+
 ## Installation
 - [Installation](Installation.md)
     - [Installation Overview](InstallOverview.md)

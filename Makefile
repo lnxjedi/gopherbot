@@ -20,28 +20,28 @@ gopherbot: main.go bot/* brains/*/* connectors/*/* goplugins/*/* history/*/*
 	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w -X main.Commit=$(commit)" -tags "netgo osusergo static_build $(BUILDTAG)" -o gopherbot
 
 # modules
-connectors/slack.so: connectors/slack-mod.go connectors/slack/*.go
+connectors/slack.so: connectors/slack-mod.go connectors/slack/*.go robot/*.go
 	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w" -o $@ -buildmode=plugin -tags 'netgo osusergo static_build module' $<
 
-connectors/rocket.so: connectors/rocket-mod.go connectors/rocket/*.go
+connectors/rocket.so: connectors/rocket-mod.go connectors/rocket/*.go robot/*.go
 	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w" -o $@ -buildmode=plugin -tags 'netgo osusergo static_build module' $<
 
-connectors/terminal.so: connectors/terminal-mod.go connectors/terminal/*.go
+connectors/terminal.so: connectors/terminal-mod.go connectors/terminal/*.go robot/*.go
 	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w" -o $@ -buildmode=plugin -tags 'netgo osusergo static_build module' $<
 
-goplugins/duo.so: goplugins/duo-mod.go goplugins/duo/*.go
+goplugins/duo.so: goplugins/duo-mod.go goplugins/duo/*.go robot/*.go
 	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w" -o $@ -buildmode=plugin -tags 'netgo osusergo static_build module' $<
 
-goplugins/knock.so: goplugins/knock-mod.go goplugins/knock/*.go
+goplugins/knock.so: goplugins/knock-mod.go goplugins/knock/*.go robot/*.go
 	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w" -o $@ -buildmode=plugin -tags 'netgo osusergo static_build module' $<
 
-goplugins/meme.so: goplugins/meme-mod.go goplugins/meme/*.go
+goplugins/meme.so: goplugins/meme-mod.go goplugins/meme/*.go robot/*.go
 	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w" -o $@ -buildmode=plugin -tags 'netgo osusergo static_build module' $<
 
-goplugins/totp.so: goplugins/totp-mod.go goplugins/totp/*.go
+goplugins/totp.so: goplugins/totp-mod.go goplugins/totp/*.go robot/*.go
 	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w" -o $@ -buildmode=plugin -tags 'netgo osusergo static_build module' $<
 
-brains/dynamodb.so: brains/dynamodb-mod.go brains/dynamodb/*.go
+brains/dynamodb.so: brains/dynamodb-mod.go brains/dynamodb/*.go robot/*.go
 	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w" -o $@ -buildmode=plugin -tags 'netgo osusergo static_build module' $<
 
 clean:

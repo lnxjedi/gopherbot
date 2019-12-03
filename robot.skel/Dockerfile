@@ -1,3 +1,6 @@
+## NOTE: OUTDATED - this note will be removed when Docker support
+## rework is done.
+
 ARG SOURCE_IMAGE=lnxjedi/gopherbot:latest
 FROM ${SOURCE_IMAGE}
 
