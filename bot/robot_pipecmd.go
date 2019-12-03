@@ -110,7 +110,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	key := histPrefix + c.jobName + ":" + ext
 	tok, _, ret := checkoutDatum(key, &jh, true)
 	if ret != robot.Ok {
-		Log(robot.Error, "Error checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
+		Log(robot.Error, "Checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
 	} else {
 		var start time.Time
 		if c.timeZone != nil {
@@ -132,13 +132,14 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 		}
 		ret := updateDatum(key, tok, jh)
 		if ret != robot.Ok {
-			Log(robot.Error, "Error updating '%s', no history will be remembered for '%s'", key, c.pipeName)
+			Log(robot.Error, "Updating '%s', no history will be remembered for '%s'", key, c.pipeName)
 		} else {
 			if nh > 0 && c.history != nil {
 				hspec := c.pipeName + ":" + ext
+				raiseThreadPriv("starting new job log")
 				pipeHistory, err := c.history.NewHistory(hspec, hist.LogIndex, nh)
 				if err != nil {
-					Log(robot.Error, "Error starting history for '%s', no history will be recorded: %v", c.pipeName, err)
+					Log(robot.Error, "Starting history for '%s', no history will be recorded: %v", c.pipeName, err)
 				} else {
 					if c.logger != nil {
 						c.logger.Section("close log", fmt.Sprintf("Job '%s' extended namespace: '%s'; starting new log on next task", c.jobName, ext))
@@ -155,7 +156,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 				}
 			} else {
 				if c.history == nil {
-					Log(robot.Warn, "Error starting history, no history provider available")
+					Log(robot.Warn, "Starting history, no history provider available")
 				}
 			}
 		}
@@ -186,7 +187,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 					if !exists {
 						value, err := decrypt(encvalue, ckey)
 						if err != nil {
-							Log(robot.Error, "Error decrypting '%s' for repository/branch '%s': %v", name, ext, err)
+							Log(robot.Error, "Decrypting '%s' for repository/branch '%s': %v", name, ext, err)
 							break
 						}
 						c.environment[name] = string(value)
@@ -203,7 +204,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 					if !exists {
 						value, err := decrypt(encvalue, ckey)
 						if err != nil {
-							Log(robot.Error, "Error decrypting '%s' for repository '%s': %v", name, repo, err)
+							Log(robot.Error, "Decrypting '%s' for repository '%s': %v", name, repo, err)
 							break
 						}
 						c.environment[name] = string(value)
@@ -242,22 +243,32 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 		return robot.InvalidTaskType
 	}
 	if ptype == typeJob && !isJob {
-		r.Log(robot.Error, "adding job to pipeline - not a job: %s", name)
+		r.Log(robot.Error, "Adding job to pipeline - not a job: %s", name)
 		return robot.InvalidTaskType
 	}
 	if ptype == typeTask && (isJob || isPlugin) {
-		r.Log(robot.Error, "adding task to pipeline - not a task: %s", name)
+		r.Log(robot.Error, "Adding task to pipeline - not a task: %s", name)
 		return robot.InvalidTaskType
+	}
+	if !c.privileged {
+		if isJob && job.Privileged {
+			r.Log(robot.Error, "PrivilegeViolation adding privileged job '%s' to unprivileged pipeline", name)
+			return robot.PrivilegeViolation
+		}
+		if isPlugin && plugin.Privileged {
+			r.Log(robot.Error, "PrivilegeViolation adding privileged plugin '%s' to unprivileged pipeline", name)
+			return robot.PrivilegeViolation
+		}
 	}
 	var command string
 	var cmdargs []string
 	if isPlugin {
 		if len(args) == 0 {
-			r.Log(robot.Error, "added plugin '%s' to pipeline with no command", name)
+			r.Log(robot.Error, "Added plugin '%s' to pipeline with no command", name)
 			return robot.MissingArguments
 		}
 		if len(args[0]) == 0 {
-			r.Log(robot.Error, "added plugin '%s' to pipeline with no command", name)
+			r.Log(robot.Error, "Added plugin '%s' to pipeline with no command", name)
 			return robot.MissingArguments
 		}
 		cmsg := args[0]

@@ -3,12 +3,18 @@
 **Gopherbot** makes extensive use of environment variables, both for configuring the robot and plugins, and for providing parameters to external scripts.
 
 ## External Script Environment
+
 **Gopherbot** always scrubs the environment when executing tasks, so environment variables set on execution are not automatically passed to child processes. The only environment variables that are passed through from original execution are:
 * `HOME`
 * `HOSTNAME`
 * `LANG`
 * `PATH`
 * `USER`
+
+In addition to the above passed-through environment vars, **Gopherbot** supplies the following environment variables to external scripts:
+* `GOPHER_HOME` - the startup directory for the robot; relative paths are relative to this directory
+* `GOPHER_INSTALLDIR` - the location of the gopherbot install, normally `/opt/gopherbot`
+* `GOPHER_CONFIGDIR` - the location of the custom configuration directory, `$(pwd)/custom`
 
 ## Job Environment Variables
 

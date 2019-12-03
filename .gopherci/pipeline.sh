@@ -4,11 +4,6 @@
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
-if [ "$GOPHERCI_BRANCH" == "gh-pages" ]
-then
-    Log "Info" "Skipping pipeline on update to gh-pages"
-fi
-
 if [ -n "$NOTIFY_USER" ]
 then
     FailTask notify $NOTIFY_USER "Gopherbot build failed"

@@ -3,7 +3,6 @@ package bot
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	godebug "runtime/debug"
@@ -63,8 +62,8 @@ func checkDirectory(cpath string) (string, bool) {
 		return "", true
 	}
 	var filePath string
-	if path.IsAbs(cpath) {
-		filePath = path.Clean(cpath)
+	if filepath.IsAbs(cpath) {
+		filePath = filepath.Clean(cpath)
 	} else {
 		filePath = cpath
 	}
@@ -83,26 +82,26 @@ func checkDirectory(cpath string) (string, bool) {
 func getObjectPath(path string) (opath string, err error) {
 	if filepath.IsAbs(path) {
 		opath = path
-		_, err := os.Stat(opath)
+		_, err = os.Stat(opath)
 		if err == nil {
-			Log(robot.Debug, "using fully specified path to object: %s", opath)
+			Log(robot.Debug, "Using fully specified path to object: %s", opath)
 			return opath, nil
 		}
-		err = fmt.Errorf("invalid path for object: %s (%v)", opath, err)
+		err = fmt.Errorf("Invalid path for object: %s (%v)", opath, err)
 		Log(robot.Error, err.Error())
 		return "", err
 	}
 	if len(configPath) > 0 {
 		opath = filepath.Join(configPath, path)
-		_, err := os.Stat(opath)
+		_, err = os.Stat(opath)
 		if err == nil {
-			Log(robot.Debug, "loading object from configPath: %s", opath)
+			Log(robot.Debug, "Loading object from configPath: %s", opath)
 			return opath, nil
 		}
 	}
 	opath = filepath.Join(installPath, path)
-	if _, err := os.Stat(opath); err == nil {
-		Log(robot.Debug, "loading object from installPath: %s", opath)
+	if _, err = os.Stat(opath); err == nil {
+		Log(robot.Debug, "Loading object from installPath: %s", opath)
 		return opath, nil
 	}
 	return "", err
@@ -147,19 +146,19 @@ func updateRegexes() {
 	botCfg.RUnlock()
 	pre, post, bare, errpre, errpost, errbare := updateRegexesWrapped(name, protoMention, alias)
 	if errpre != nil {
-		Log(robot.Error, "Error compiling pre regex: %s", errpre)
+		Log(robot.Error, "Compiling pre regex: %s", errpre)
 	}
 	if pre != nil {
 		Log(robot.Debug, "Setting pre regex to: %s", pre)
 	}
 	if errpost != nil {
-		Log(robot.Error, "Error compiling post regex: %s", errpost)
+		Log(robot.Error, "Compiling post regex: %s", errpost)
 	}
 	if post != nil {
 		Log(robot.Debug, "Setting post regex to: %s", post)
 	}
 	if errbare != nil {
-		Log(robot.Error, "Error compiling bare regex: %s", errbare)
+		Log(robot.Error, "Compiling bare regex: %s", errbare)
 	}
 	if bare != nil {
 		Log(robot.Debug, "Setting bare regex to: %s", bare)

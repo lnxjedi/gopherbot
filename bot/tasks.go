@@ -44,16 +44,16 @@ var currentTasks = struct {
 	sync.Mutex{},
 }
 
-func getTask(t interface{}) (*BotTask, *BotPlugin, *BotJob) {
-	p, ok := t.(*BotPlugin)
+func getTask(t interface{}) (*Task, *Plugin, *Job) {
+	p, ok := t.(*Plugin)
 	if ok {
-		return p.BotTask, p, nil
+		return p.Task, p, nil
 	}
-	j, ok := t.(*BotJob)
+	j, ok := t.(*Job)
 	if ok {
-		return j.BotTask, nil, j
+		return j.Task, nil, j
 	}
-	return t.(*BotTask), nil, nil
+	return t.(*Task), nil, nil
 }
 
 func (tl *taskList) getTaskByName(name string) interface{} {
@@ -84,6 +84,7 @@ type Parameter struct {
 type ExternalTask struct {
 	Name, Path, Description, NameSpace string
 	Disabled                           bool
+	Privileged                         *bool
 	Parameters                         []Parameter
 }
 
@@ -122,9 +123,9 @@ type JobTrigger struct {
 	re      *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
-// BotTask configuration is common to tasks, plugins or jobs. Any task, plugin or job can call bot methods. Note that tasks are only defined
+// Task configuration is common to tasks, plugins or jobs. Any task, plugin or job can call bot methods. Note that tasks are only defined
 // in gopherbot.yaml, and no external configuration is read in.
-type BotTask struct {
+type Task struct {
 	name          string          // name of job or plugin; unique by type, but job & plugin can share
 	taskType      taskType        // taskGo or taskExternal
 	Path          string          // Path to the external executable for jobs or Plugtype=taskExternal only
@@ -137,7 +138,6 @@ type BotTask struct {
 	Channels      []string        // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
 	AllChannels   bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
 	RequireAdmin  bool            // Set to only allow administrators to access a plugin / run job
-	Protected     bool            // Protected jobs run with wd = custom config directory; all other jobs run in workSpace
 	Users         []string        // If non-empty, list of all the users with access to this plugin
 	Elevator      string          // Use an elevator other than the DefaultElevator
 	Authorizer    string          // a plugin to call for authorizing users, should handle groups, etc.
@@ -150,18 +150,19 @@ type BotTask struct {
 	reason        string // why this job/plugin is disabled
 }
 
-// BotJob - configuration only applicable to jobs. Read in from conf/jobs/<job>.yaml, which can also include anything from a BotTask.
-type BotJob struct {
+// Job - configuration only applicable to jobs. Read in from conf/jobs/<job>.yaml, which can also include anything from a Task.
+type Job struct {
 	Quiet       bool           // whether to quash "job started/ended" messages
+	Privileged  bool           // Privileged jobs run with the privileged UID
 	HistoryLogs int            // how many runs of this job/plugin to keep history for
 	Triggers    []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
 	Arguments   []InputMatcher // list of arguments to prompt the user for
-	*BotTask
+	*Task
 }
 
-// BotPlugin specifies the structure of a plugin configuration - plugins should include an example / default config. Custom plugin configuration
-// will be loaded from conf/plugins/<plugin>.yaml, which can also include anything from a BotTask.
-type BotPlugin struct {
+// Plugin specifies the structure of a plugin configuration - plugins should include an example / default config. Custom plugin configuration
+// will be loaded from conf/plugins/<plugin>.yaml, which can also include anything from a Task.
+type Plugin struct {
 	AdminCommands            []string       // A list of commands only a bot admin can use
 	ElevatedCommands         []string       // Commands that require elevation, usually via 2fa
 	ElevateImmediateCommands []string       // Commands that always require elevation promting, regardless of timeouts
@@ -172,7 +173,8 @@ type BotPlugin struct {
 	MessageMatchers          []InputMatcher // Input matchers for messages the 'bot hears even when it's not being spoken to
 	CatchAll                 bool           // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
 	MatchUnlisted            bool           // Set to true if ambient messages matches should be checked for users not listed in the UserRoster
-	*BotTask
+	Privileged               bool           // Privileged plugins run with the privileged UID
+	*Task
 }
 
 var pluginHandlers = make(map[string]robot.PluginHandler)

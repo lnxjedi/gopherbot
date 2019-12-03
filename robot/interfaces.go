@@ -17,7 +17,8 @@ type SimpleBrain interface {
 	Retrieve(key string) (blob *[]byte, exists bool, err error)
 }
 
-// Handler is the interface that defines the callback API for Connectors
+// Handler is the interface that defines the API for the handler object passed
+// to Connectors, history providers and brain providers.
 type Handler interface {
 	// IncomingMessage is called by the connector for all messages the bot
 	// can hear. See the fields for ConnectorMessage for information about
@@ -45,9 +46,6 @@ type Handler interface {
 	// to make it's own decision about how much it should log. For slack, this
 	// determines whether the plugin does api logging.
 	GetLogLevel() LogLevel
-	// GetLogToFile is for the terminal connector to determine if logging is
-	// going to a file, to prevent readline from redirecting log output.
-	GetLogToFile() bool
 	// GetInstallPath returns the installation path of the gopherbot
 	GetInstallPath() string
 	// GetConfigPath returns the path to the config directory if set
@@ -55,8 +53,12 @@ type Handler interface {
 	// Log provides a standard logging interface with a level as defined in
 	// bot/logging.go
 	Log(l LogLevel, m string, v ...interface{})
-	// Convenience function for connectors, keeps 'import "regexp" out of
-	// robot.
+	// MakeDirectory lets infrastructure plugins create directories, for e.g.
+	// file-based history and brain providers. When privilege separation is in
+	// use, the directory is created with the privileged uid.
+	GetDirectory(path string) error
+	// ExtractID is a convenience function for connectors, keeps 'import "regexp"
+	// out of robot.
 	ExtractID(u string) (string, bool)
 }
 

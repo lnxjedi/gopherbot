@@ -129,6 +129,8 @@ const (
 	CommandNotMatched
 	// TaskDisabled - a method call attempted to add a disabled task to a pipeline
 	TaskDisabled
+	// PrivilegeViolation - error adding a privileged job/command to an unprivileged pipeline
+	PrivilegeViolation
 )
 
 // Protocol - connector protocols

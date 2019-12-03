@@ -43,7 +43,7 @@ func loadModule(name, path string) {
 		return
 	}
 	if k, err := plugin.Open(lp); err == nil {
-		Log(robot.Info, "Loaded module '%s': %s", name, path						)
+		Log(robot.Info, "Loaded module '%s': %s", name, path)
 		// look for and register plugins
 		if gp, err := k.Lookup("GetPlugins"); err == nil {
 			gf := gp.(func() []robot.PluginSpec)
@@ -53,7 +53,7 @@ func loadModule(name, path string) {
 				RegisterPlugin(pspec.Name, pspec.Handler)
 			}
 		} else {
-			Log(robot.Debug, "Symbol 'GetPlugins' not found in loadable module '%s': %v", path, err)
+			Log(robot.Debug, "Symbol 'GetPlugins' not found in loadable module '%s'", path)
 		}
 		// look for and register connector
 		if ci, err := k.Lookup("GetInitializer"); err == nil {
@@ -62,7 +62,7 @@ func loadModule(name, path string) {
 			Log(robot.Info, "Registering connector '%s' from loadable module '%s'", name, path)
 			RegisterConnector(name, initializer)
 		} else {
-			Log(robot.Debug, "Symbol 'GetInitializer' not found in loadable module '%s': %v", path, err)
+			Log(robot.Debug, "Symbol 'GetInitializer' not found in loadable module '%s'", path)
 		}
 		// look for and register brain
 		if bp, err := k.Lookup("GetBrainProvider"); err == nil {
@@ -71,7 +71,7 @@ func loadModule(name, path string) {
 			Log(robot.Info, "Registering brain provider '%s' from loadable module '%s'", name, path)
 			RegisterSimpleBrain(name, provider)
 		} else {
-			Log(robot.Debug, "Symbol 'GetInitializer' not found in loadable module '%s': %v", path, err)
+			Log(robot.Debug, "Symbol 'GetBrainProvider' not found in loadable module '%s'", path)
 		}
 	} else {
 		Log(robot.Error, "Loading module '%s': %v", lp, err)

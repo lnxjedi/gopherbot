@@ -7,22 +7,16 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/lnxjedi/gopherbot/bot"
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-var (
-	gobot   bot.Robot
-	botName string
-)
-
-type MemeConfig struct {
+type memeConfig struct {
 	Username string
 	Password string
 }
 
 func memegen(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
-	var m *MemeConfig
+	m := &memeConfig{}
 	r.GetTaskConfig(&m) // make m point to a valid, thread-safe MemeConfig
 	if len(m.Password) == 0 {
 		m.Password = r.GetSecret("PASSWORD")
@@ -56,7 +50,7 @@ func memegen(r robot.Robot, command string, args ...string) (retval robot.TaskRe
 }
 
 // Compose imgflip meme - thanks to Adam Georgeson for this function
-func createMeme(m *MemeConfig, templateId, topText, bottomText string) (string, error) {
+func createMeme(m *memeConfig, templateId, topText, bottomText string) (string, error) {
 	values := url.Values{}
 	values.Set("template_id", templateId)
 	values.Set("username", m.Username)
@@ -91,5 +85,5 @@ func createMeme(m *MemeConfig, templateId, topText, bottomText string) (string, 
 
 var memehandler = robot.PluginHandler{
 	Handler: memegen,
-	Config:  &MemeConfig{},
+	Config:  &memeConfig{},
 }

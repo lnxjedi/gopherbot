@@ -79,7 +79,7 @@ func (r Robot) GetSecret(name string) string {
 		c.secrets.retrieved = true
 		_, exists, ret = checkoutDatum(secretKey, &c.secrets, false)
 		if ret != robot.Ok {
-			r.Log(robot.Error, "Error retrieving secrets in GetSecret: %s", ret)
+			r.Log(robot.Error, "Retrieving secrets in GetSecret: %s", ret)
 			return ""
 		}
 		if !exists {
@@ -135,7 +135,7 @@ func (r Robot) GetSecret(name string) string {
 	var value []byte
 	var err error
 	if value, err = decrypt(secret, key); err != nil {
-		r.Log(robot.Error, "Error decrypting secret '%s': %v", name, err)
+		r.Log(robot.Error, "Decrypting secret '%s': %v", name, err)
 		return ""
 	}
 	return string(value)
@@ -160,13 +160,9 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 		return ok
 	}
 	var prefix, checkPath string
-	if c.protected {
-		prefix = configPath
-	} else {
-		botCfg.RLock()
-		prefix = botCfg.workSpace
-		botCfg.RUnlock()
-	}
+	botCfg.RLock()
+	prefix = botCfg.workSpace
+	botCfg.RUnlock()
 	checkPath = filepath.Join(prefix, path)
 	_, ok := checkDirectory(checkPath)
 	if ok {
@@ -340,11 +336,13 @@ func (r Robot) GetTaskConfig(dptr interface{}) robot.RetVal {
 
 // Log logs a message to the robot's log file (or stderr) if the level
 // is lower than or equal to the robot's current log level
-func (r Robot) Log(l robot.LogLevel, m string, v ...interface{}) (logged bool) {
+func (r Robot) Log(l robot.LogLevel, msg string, v ...interface{}) (logged bool) {
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
 	c := r.getContext()
-	logged = Log(l, m, v...)
-	if Log(l, m, v...) && c.logger != nil {
-		line := "LOG " + logLevelToStr(l) + " " + fmt.Sprintln(v...)
+	if Log(l, msg) && c.logger != nil {
+		line := "LOG " + logLevelToStr(l) + " " + msg
 		c.logger.Log(strings.TrimSpace(line))
 	}
 	return

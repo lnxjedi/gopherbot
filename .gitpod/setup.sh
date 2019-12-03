@@ -8,22 +8,21 @@
 
 clear
 
-REMOTE=$(git -C gopherbot/ remote get-url origin)
+REMOTE=$(git remote get-url origin)
 REMOTE_PREFIX=${REMOTE%/gopherbot.git}
 REMOTE_ORG=${REMOTE_PREFIX##*/}
 
 if [ -n "$1" -o "$REMOTE_ORG" == "lnxjedi" ] # demo
 then
     cat <<EOF
-Welcome to the Gopherbot Demo. If you have a Slack token,
-you can connect the demo robot to your Slack team using the
-'slack' protocol. Otherwise, you can use the 'term' protocol
-to try Gopherbot with the terminal connector.
+Welcome to the Gopherbot Demo. This will run Gopherbot
+in terminal connector mode, and eventually allow you to
+configure a new robot. This is a work in progress.
+
+Type `help` for general help, or `;quit` to exit.
 
 EOF
-    echo -n "Protocol? (one of: slack, term) "
-    read PROTOCOL
-    exec ./gopherbot/new-robot.sh demo-robot $PROTOCOL
+    exec ./gopherbot -l /dev/stderr 2> robot.log
 else
 cat > start.sh <<EOF
 #!/bin/bash -e
@@ -37,34 +36,24 @@ then
 fi
 
 BOTREPO="\$BOTNAME-gopherbot"
-CREDREPO="\$BOTNAME-credentials"
+CREDREPO="\$BOTNAME-private"
 
-if [ ! -d "\$BOTREPO" ]
+if [ ! -d "../\$BOTNAME" ]
 then
-    git clone $REMOTE_PREFIX/\$BOTREPO.git || :
-    if [ ! -d "\$BOTREPO" ]
+    mkdir ../\$BOTNAME
+    git clone $REMOTE_PREFIX$BOTREPO.git ../\$BOTNAME/custom || :
+    git clone $REMOTE_PREFIX$CREDREPO.git ../\$BOTNAME/private || :
+    if [ ! -d "../\$BOTREPO" ]
     then
         cat <<HEOF
-Repository \$BOTREPO not found. Try:
-$ ./gopherbot/new-robot.sh \$BOTREPO
+Repository \$BOTREPO not found.
 HEOF
         exit 1
     fi
-    ln -s ../gopherbot/gopherbot \$BOTREPO/gopherbot
+    ln -s ../gopherbot/gopherbot ../\$BOTREPO/gopherbot
 fi
 
-if [ ! -d "\$CREDREPO" ]
-then
-    git clone $REMOTE_PREFIX/\$CREDREPO.git || :
-    if [ ! -d "\$CREDREPO" ]
-    then
-        echo "Unable to clone $REMOTE_PREFIX/\$CREDREPO.git"
-        exit 1
-    fi
-    ln -s ../\$CREDREPO/environment \$BOTREPO/.env
-fi
-
-cd \$BOTREPO
+cd ../\$BOTREPO
 ./gopherbot
 EOF
     chmod +x start.sh
@@ -75,14 +64,15 @@ To start the robot:
 $ ./start.sh <botname>
 
 start.sh will:
-- clone $REMOTE_PREFIX/<botname>-gopherbot.git
+- clone $REMOTE_PREFIX/<botname>-gopherbot.git to ../<botname>/custom
   -> robot configuration repository
-- clone $REMOTE_PREFIX/<botname>-credentials.git
-  -> 'environment' file with credentials and secrets
-- create symlinks in <botname>-gopherbot/ for the gopherbot binary and .env
+- clone $REMOTE_PREFIX/<botname>-private.git (PRIVATE git repository) to
+  ../<botname>/private
+  -> 'environment' file with GOPHER_ENCRYPTION_KEY
+- create a symlink in ../<botname>/ for the gopherbot binary
 - start the robot
 
-The development robot can be restarted with 'cd <botname>-gopherbot; ./gopherbot'
+The development robot can be restarted with 'cd ../<botname>; ./gopherbot'
 
 (you can close this tab)
 EOF

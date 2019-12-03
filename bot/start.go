@@ -6,13 +6,13 @@ import (
 	"flag"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/joho/godotenv"
 )
 
 // Information about privilege separation, set in runtasks_linux.go
 var privSep = false
-var privUID, unprivUID int
 
 func init() {
 	hostName = os.Getenv("HOSTNAME")
@@ -29,10 +29,6 @@ func Start(v VersionInfo) (restart bool) {
 	cusage := "path to the configuration directory"
 	flag.StringVar(&configPath, "config", "", cusage)
 	flag.StringVar(&configPath, "c", "", cusage+" (shorthand)")
-	var extEnvPath string
-	extenvusage := "path to additional environment file"
-	flag.StringVar(&extEnvPath, "env", "", extenvusage)
-	flag.StringVar(&extEnvPath, "e", "", extenvusage+" (shorthand)")
 	var logFile string
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -43,29 +39,21 @@ func Start(v VersionInfo) (restart bool) {
 	flag.BoolVar(&plainlog, "P", false, plusage+" (shorthand)")
 	flag.Parse()
 
-	var penvErr, extEnvErr error
-	penvErr = godotenv.Overload(".env")
-	if len(extEnvPath) > 0 {
-		godotenv.Overload(extEnvPath)
+	var envFile string
+	for _, ef := range []string{".env", "private/environment"} {
+		if es, err := os.Stat(ef); err == nil {
+			em := es.Mode()
+			if (uint32(em) & 0066) != 0 {
+				log.Fatalf("Invalid file mode '%o' on environment file '%s', aborting", em, ef)
+			}
+			envFile = ef
+		}
 	}
+	penvErr := godotenv.Overload(envFile)
 
 	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
 
-	// Configdir is where all user-supplied configuration and
-	// external plugins are.
-	if len(configPath) != 0 {
-		configpath = configPath
-	} else if len(envCfgPath) > 0 {
-		configpath = envCfgPath
-	} else {
-		if respath, ok := checkDirectory("custom"); ok {
-			configpath = respath
-		} else {
-			configpath = "."
-		}
-	}
-
-	var botLogger *log.Logger
+	var logger *log.Logger
 	logFlags := log.LstdFlags
 	if plainlog {
 		logFlags = 0
@@ -79,47 +67,55 @@ func Start(v VersionInfo) (restart bool) {
 		if err != nil {
 			log.Fatalf("Error creating log file: (%T %v)", err, err)
 		}
-		logToFile = true // defined in logging.go
 		logOut = lf
 	}
 	log.SetOutput(logOut)
-	botLogger = log.New(logOut, "", logFlags)
-	botLogger.Println("Initialized logging ...")
+	logger = log.New(logOut, "", logFlags)
+	logger.Println("Initialized logging ...")
 
 	installpath = binDirectory
 
-	if penvErr != nil {
-		botLogger.Printf("No private environment loaded from '.env': %v\n", penvErr)
-	} else {
-		botLogger.Printf("Loaded initial private environment from '.env'\n")
+	cwd, err := os.Getwd()
+	if err != nil {
+		logger.Fatalf("Unable to determine working directory: %v", err)
 	}
-	if len(extEnvPath) > 0 {
-		if extEnvErr != nil {
-			botLogger.Printf("No environment loaded from '%s': %v\n", extEnvPath, extEnvErr)
+	// Configdir is where all user-supplied configuration and
+	// external plugins are.
+	if len(configPath) != 0 {
+		configpath = configPath
+	} else if len(envCfgPath) > 0 {
+		configpath = envCfgPath
+	} else {
+		if _, ok := checkDirectory("conf"); ok {
+			configpath = cwd
 		} else {
-			botLogger.Printf("Loaded initial environment from: %s\n", extEnvPath)
+			// If not explicitly set or cwd, use "custom" even if it
+			// doesn't exist. For compatibility with old installs.
+			configpath = filepath.Join(cwd, "custom")
 		}
+	}
+
+	if penvErr != nil {
+		logger.Printf("No private environment loaded from '.env': %v\n", penvErr)
+	} else {
+		logger.Printf("Loaded initial private environment from '.env'\n")
 	}
 
 	// Create the 'bot and load configuration, supplying configpath and installpath.
 	// When loading configuration, gopherbot first loads default configuration
 	// from internal config, then loads from configpath/conf/..., which
 	// overrides defaults.
-	lp := "(none)"
-	if len(configpath) > 0 {
-		lp = configpath
-	}
-	botLogger.Printf("Starting up with config dir: %s, and install dir: %s\n", lp, installpath)
-	checkprivsep(botLogger)
-	initBot(configpath, installpath, botLogger)
+	logger.Printf("Starting up with config dir: %s, and install dir: %s\n", configpath, installpath)
+	checkprivsep(logger)
+	initBot(cwd, configpath, installpath, logger)
 
 	initializeConnector, ok := connectors[botCfg.protocol]
 	if !ok {
-		botLogger.Fatalf("No connector registered with name: %s", botCfg.protocol)
+		logger.Fatalf("No connector registered with name: %s", botCfg.protocol)
 	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface
-	conn := initializeConnector(handle, botLogger)
+	conn := initializeConnector(handle, logger)
 
 	// NOTE: we use setConnector instead of passing the connector to run()
 	// because of the way Windows services were run. Maybe remove eventually?

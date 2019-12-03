@@ -16,4 +16,11 @@ import (
 
 	// A joke telling plugin
 	_ "github.com/lnxjedi/gopherbot/goplugins/knock"
+
+	// Memes! (courtesy of imgflip.com)
+	_ "github.com/lnxjedi/gopherbot/goplugins/meme"
+
+	// *** Included Elevator plugins
+	_ "github.com/lnxjedi/gopherbot/goplugins/duo"
+	_ "github.com/lnxjedi/gopherbot/goplugins/totp"
 )

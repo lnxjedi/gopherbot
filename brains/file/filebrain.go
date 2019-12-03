@@ -56,12 +56,8 @@ func provider(r robot.Handler) robot.SimpleBrain {
 		handler.Log(robot.Fatal, "BrainConfig missing value for BrainDirectory required by 'file' brain")
 	}
 	brainPath = fb.BrainDirectory
-	bd, err := os.Stat(brainPath)
-	if err != nil {
-		handler.Log(robot.Fatal, "Checking brain directory \"%s\": %v", brainPath, err)
-	}
-	if !bd.Mode().IsDir() {
-		handler.Log(robot.Fatal, "Checking brain directory: \"%s\" isn't a directory", brainPath)
+	if err := r.GetDirectory(brainPath); err != nil {
+		handler.Log(robot.Fatal, "Getting brain directory \"%s\": %v", brainPath, err)
 	}
 	handler.Log(robot.Info, "Initialized file-backed brain with memories directory: '%s'", brainPath)
 	return &fb

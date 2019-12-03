@@ -1,0 +1,3 @@
+# Upgrading from Version 1
+
+The following sections detail the required and optional changes for upgrading a robot from version 1 to version 2. Over the course of developing version 2, there were several intermediary states for different configuration options that are not described here. If you need information on upgrading from any of these intermediary states, please [open an issue](https://github.com/lnxjedi/gopherbot/issues/new).

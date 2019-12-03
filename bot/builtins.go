@@ -27,7 +27,6 @@ func init() {
 	RegisterPlugin("builtin-help", robot.PluginHandler{Handler: help})
 	RegisterPlugin("builtin-admin", robot.PluginHandler{Handler: admin})
 	RegisterPlugin("builtin-logging", robot.PluginHandler{Handler: logging})
-	RegisterPlugin("builtin-brain", robot.PluginHandler{Handler: encryptcfg})
 }
 
 /* builtin plugins, like help */
@@ -248,7 +247,7 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 		}
 		tok, _, ret := checkoutDatum(datumkey, &secrets, true)
 		if ret != robot.Ok {
-			r.Log(robot.Error, "Error checking out brainParams: %s", ret)
+			r.Log(robot.Error, "Checking out brainParams: %s", ret)
 			r.Say("Ugh, I'm not able to store that memory right now, check with an administrator")
 			return
 		}
@@ -307,7 +306,7 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 					}
 					if plugin.taskType == taskExternal {
 						found = true
-						if cfg, err := getExtDefCfg(plugin.BotTask); err == nil {
+						if cfg, err := getExtDefCfg(plugin.Task); err == nil {
 							r.Fixed().Say("Here's the default configuration for \"%s\":\n%s", args[0], *cfg)
 						} else {
 							r.Say("I had a problem looking that up - somebody should check my logs")
@@ -375,24 +374,6 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 	return
 }
 
-func encryptcfg(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
-	r := m.(Robot)
-	switch command {
-	case "init":
-		return
-	case "initialize":
-		success := initializeEncryption(args[0])
-		if success {
-			r.Log(robot.Info, "Encryption successfully initialized by user '%s'", r.User)
-			r.Say("Encryption successfully initialized - you should delete your message if possible")
-		} else {
-			r.Log(robot.Error, "User '%s' failed to initialize encryption", r.User)
-			r.Say("Failed to initialize encryption - check your passphrase?")
-		}
-	}
-	return
-}
-
 var byebye = []string{
 	"Sayonara!",
 	"Adios",
@@ -450,7 +431,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			return
 		}
 		r.Reply("Configuration reloaded successfully")
-		r.Log(robot.Info, "Configuration successfully reloaded by a request from:", r.User)
+		r.Log(robot.Info, "Configuration successfully reloaded by a request from: %s", r.User)
 	case "abort":
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)

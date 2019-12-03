@@ -1,1 +1,9 @@
 # Introduction
+
+**Gopherbot** DevOps Chatbot is a tool for teams of developers, operators, infrastructure engineers and support personnel - primarily for those that are already using Slack or another team chat platform for day-to-day communication. It belongs to and integrates well with a larger family of tools including *Ansible*, *git* and *ssh*, and is able to perform many tasks similar to *Jenkins* or *TravisCI*.
+
+The primary strengths of **Gopherbot** stem from it's simplicity and flexibility. It installs and bootstraps readily on a VM or in a container with just a few environment variables, and can be run behind a firewall where it can perform tasks like rebooting server hardware over IPMI. Simple command plugins can be written in `bash` or `python`, with easy to use encrypted secrets for accomplishing privileged tasks.
+
+The philosophy underlying **Gopherbot** is that it's more efficient to use a single, general-purpose tool to accomplish a wide variety of tasks reasonably well, rather than integrating and maintaining several specialized tools. It's true that **Gopherbot** doesn't do CI/CD as well as, say, *Jenkins* - but it's amazing how productive I am with it. Perhaps the best example of it's flexibility can be seen in the CI/CD pipeline for **Gopherbot** itself; start reading with `pipeline.sh` in [the `.gopherci` directory](https://github.com/lnxjedi/gopherbot/tree/master/.gopherci).
+
+Version 2 for the most part assumes that your robot will employ encryption and get it's configuration from a *git* repository. Other deployments are possible, but not well documented. This manual will focus on working with **Gopherbot** instances whose configuration is stored on [Github](https://github.com), but other *git* services are easy to use, as well.

@@ -35,16 +35,16 @@ func (c *botContext) loadTaskConfig() {
 	i := 0
 
 	for plugname := range pluginHandlers {
-		plugin := &BotPlugin{
-			BotTask: &BotTask{
+		plugin := &Plugin{
+			Task: &Task{
 				name:     plugname,
 				taskType: taskGo,
 				taskID:   getTaskID(plugname),
 			},
 		}
 		tlist = append(tlist, plugin)
-		taskIndexByID[plugin.BotTask.taskID] = i
-		taskIndexByName[plugin.BotTask.name] = i
+		taskIndexByID[plugin.Task.taskID] = i
+		taskIndexByName[plugin.Task.name] = i
 		i++
 	}
 
@@ -68,7 +68,7 @@ func (c *botContext) loadTaskConfig() {
 			nameSpace = script.NameSpace
 		}
 		nameSpaceSet[nameSpace] = struct{}{}
-		task := &BotTask{
+		task := &Task{
 			name:        script.Name,
 			taskType:    taskExternal,
 			taskID:      getTaskID(script.Name),
@@ -81,8 +81,9 @@ func (c *botContext) loadTaskConfig() {
 			task.Disabled = true
 			task.reason = "Disabled in installed / custom gopherbot.yaml"
 		}
-		p := &BotPlugin{
-			BotTask: task,
+		p := &Plugin{
+			Privileged: *script.Privileged,
+			Task:       task,
 		}
 		tlist = append(tlist, p)
 		taskIndexByID[task.taskID] = i
@@ -110,7 +111,7 @@ func (c *botContext) loadTaskConfig() {
 			nameSpace = script.NameSpace
 		}
 		nameSpaceSet[nameSpace] = struct{}{}
-		task := &BotTask{
+		task := &Task{
 			name:        script.Name,
 			taskType:    taskExternal,
 			taskID:      getTaskID(script.Name),
@@ -123,8 +124,9 @@ func (c *botContext) loadTaskConfig() {
 			task.Disabled = true
 			task.reason = "Disabled in installed / custom gopherbot.yaml"
 		}
-		j := &BotJob{
-			BotTask: task,
+		j := &Job{
+			Privileged: *script.Privileged,
+			Task:       task,
 		}
 		tlist = append(tlist, j)
 		taskIndexByID[task.taskID] = i
@@ -151,7 +153,7 @@ func (c *botContext) loadTaskConfig() {
 			nameSpace = script.NameSpace
 		}
 		nameSpaceSet[nameSpace] = struct{}{}
-		task := &BotTask{
+		task := &Task{
 			name:        script.Name,
 			taskType:    taskExternal,
 			taskID:      getTaskID(script.Name),
@@ -175,18 +177,18 @@ func (c *botContext) loadTaskConfig() {
 	// under lock at the end.
 LoadLoop:
 	for _, j := range tlist {
-		var plugin *BotPlugin
-		var job *BotJob
-		var task *BotTask
+		var plugin *Plugin
+		var job *Job
+		var task *Task
 		var isPlugin bool
 		switch t := j.(type) {
-		case *BotPlugin:
+		case *Plugin:
 			isPlugin = true
 			plugin = t
-			task = t.BotTask
-		case *BotJob:
+			task = t.Task
+		case *Job:
 			job = t
-			task = t.BotTask
+			task = t.Task
 		// a bare task with no config to load
 		default:
 			continue
@@ -208,7 +210,7 @@ LoadLoop:
 				// External plugins spit their default config to stdout when called with command="configure"
 				cfg, err := getExtDefCfg(task)
 				if err != nil {
-					msg := fmt.Sprintf("Error getting default configuration for external plugin, disabling: %v", err)
+					msg := fmt.Sprintf("Getting default configuration for external plugin, disabling: %v", err)
 					Log(robot.Error, msg)
 					c.debugTask(task, msg, false)
 					task.Disabled = true
@@ -221,7 +223,7 @@ LoadLoop:
 					c.debugTask(task, "Unable to obtain default config from plugin, command 'configure' returned no content", false)
 				}
 				if err := yaml.Unmarshal(*cfg, &tcfgdefault); err != nil {
-					msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
+					msg := fmt.Sprintf("Unmarshalling default configuration, disabling: %v", err)
 					Log(robot.Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
 					c.debugTask(task, msg, false)
 					task.Disabled = true
@@ -230,7 +232,7 @@ LoadLoop:
 				}
 			} else {
 				if err := yaml.Unmarshal([]byte(pluginHandlers[task.name].DefaultConfig), &tcfgdefault); err != nil {
-					msg := fmt.Sprintf("Error unmarshalling default configuration, disabling: %v", err)
+					msg := fmt.Sprintf("Unmarshalling default configuration, disabling: %v", err)
 					Log(robot.Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
 					c.debugTask(task, msg, false)
 					task.Disabled = true
@@ -293,7 +295,7 @@ LoadLoop:
 				val = &strval
 			case "HistoryLogs":
 				val = &intval
-			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "Protected", "AuthorizeAllCommands", "CatchAll", "MatchUnlisted", "Quiet":
+			case "Disabled", "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "MatchUnlisted", "Quiet":
 				val = &boolval
 			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands":
 				val = &sarrval
@@ -305,6 +307,13 @@ LoadLoop:
 				val = &tval
 			case "Config":
 				skip = true
+			case "Privileged":
+				msg := fmt.Sprintf("Setting 'Privileged' disallowed here for '%s'; must be set in 'gopherbot.yaml'", task.name)
+				Log(robot.Error, msg)
+				c.debugTask(task, msg, false)
+				task.Disabled = true
+				task.reason = msg
+				continue LoadLoop
 			default:
 				msg := fmt.Sprintf("Invalid configuration key for task '%s': %s - disabling", task.name, key)
 				Log(robot.Error, msg)
@@ -348,8 +357,6 @@ LoadLoop:
 				explicitAllChannels = true
 			case "RequireAdmin":
 				task.RequireAdmin = *(val.(*bool))
-			case "Protected":
-				task.Protected = *(val.(*bool))
 			case "AdminCommands":
 				if isPlugin {
 					plugin.AdminCommands = *(val.(*[]string))
@@ -734,7 +741,7 @@ LoadLoop:
 						// reflect magic: create a pointer to a new empty config struct for the plugin
 						task.config = reflect.New(reflect.Indirect(pt).Type()).Interface()
 						if err := json.Unmarshal(task.Config, task.config); err != nil {
-							msg := fmt.Sprintf("Error unmarshalling plugin config json to config, disabling: %v", err)
+							msg := fmt.Sprintf("Unmarshalling plugin config json to config, disabling: %v", err)
 							Log(robot.Error, msg)
 							c.debugTask(task, msg, false)
 							task.Disabled = true

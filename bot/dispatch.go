@@ -193,7 +193,6 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 // addressed directly but nothing matched, any registered CatchAll plugins are
 // called. There Should Be Only One (terminal plugin called).
 func (c *botContext) handleMessage() {
-	privCheck("incoming message")
 	r := c.makeRobot()
 	defer checkPanic(r, c.msg)
 
@@ -274,7 +273,7 @@ func (c *botContext) handleMessage() {
 			// TODO: should we allow more than 1 catchall?
 			catchAllPlugins := make([]interface{}, 0, 0)
 			for _, t := range c.tasks.t {
-				if plugin, ok := t.(*BotPlugin); ok && plugin.CatchAll {
+				if plugin, ok := t.(*Plugin); ok && plugin.CatchAll {
 					catchAllPlugins = append(catchAllPlugins, t)
 				}
 			}
