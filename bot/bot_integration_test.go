@@ -104,7 +104,7 @@ func teardown(t *testing.T, done <-chan bool, conn *testc.TestConnector) {
 	<-done
 
 	evOk := true
-	ev := conn.GetEvents()
+	ev := GetEvents()
 	want := []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}
 	if len(*ev) != len(want) {
 		evOk = false
@@ -149,7 +149,7 @@ func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
 				}
 			}
 		}
-		ev := conn.GetEvents()
+		ev := GetEvents()
 		evOk := true
 		if len(*ev) != len(test.events) {
 			evOk = false
