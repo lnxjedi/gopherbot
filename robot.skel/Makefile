@@ -1,4 +1,5 @@
 # Makefile with examples for running gopherbot
+# NOTE: Outdated. This note will be removed when rework is complete.
 
 .PHONY: prod image dev clean allclean
 
