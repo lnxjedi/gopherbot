@@ -20,33 +20,12 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
 {{ $proto := env "GOPHER_PROTOCOL" | default "terminal" }}
 Protocol: {{ $proto }}
 
-## Trivial "term" connector config for a single admin user.
+## Trivial "terminal" connector config for a single admin user.
 {{ if eq $proto "terminal" }}
 {{ $botname := env "GOPHER_BOTNAME" | default "floyd" }}
 {{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot"}}
 {{ $botalias := env "GOPHER_ALIAS" | default ";"}}
-
-ProtocolConfig:
-  StartChannel: general
-  StartUser: alice
-  Channels:
-  - random
-  - general
-  Users:
-  - Name: "alice"
-    Email: "alice@example.com"
-    InternalID: "u0001"
-    FullName: "Alice User"
-    FirstName: "Alice"
-    LastName: "User"
-    Phone: "(555)765-0001"
-
-UserRoster:
-- UserName: "alice"
-  UserID: "u0001"
-
-AdminUsers: [ "alice" ]
-DefaultChannels: [ "general", "random" ]
+{{ .Include "terminal.yaml" }}
 
 BotInfo:
   UserName: {{ $botname }}
@@ -54,7 +33,7 @@ BotInfo:
 
 Alias: {{ $botalias }}
 
-## Protocols other than "term"; normally overridden in custom/conf/gopherbot.yaml
+## Protocols other than "terminal"; normally overridden in custom/conf/gopherbot.yaml
 {{ else }}
 
 AdminUsers: [ {{ env "GOPHER_ADMIN" }} ]

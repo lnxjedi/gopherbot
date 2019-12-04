@@ -20,6 +20,9 @@
     - [Custom Configuration Directory](upgrade/Custom-Dir.md)
     - [Early Encryption Initialization](upgrade/Encryption.md)
 
+## Configuration
+- [Configuration File Loading](config/file.md)
+
 ## Plugin Development
 - [Gopherbot API](api/API-Introduction.md)
     - [Language Templates](api/Languages.md)

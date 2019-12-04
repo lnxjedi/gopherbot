@@ -227,8 +227,7 @@ a new plugin only entails copying the plugin to an appropriate plugin directory 
 LocalPort: 8880
 LogLevel: info
 ```
-Gopherbot external scripts communicate with the gopherbot process via JSON over http on a localhost port. The
-port to use is configured with `LocalPort`. `LogLevel` specifies the initial logging level for the robot, one of `error`, `warn`, `info`, `debug`, or `trace`. The log level can also be adjusted on the fly by an administrator. Note that on Windows, debug and trace logging is only available in immediate mode during plugin development.
+Gopherbot external scripts communicate with the gopherbot process via JSON over http on a localhost port. The port to use is configured with `LocalPort`; `0` will automatically allocate an available port. `LogLevel` specifies the initial logging level for the robot, one of `error`, `warn`, `info`, `debug`, or `trace`. The log level can also be adjusted on the fly by an administrator.
 
 # Task Configuration
 
