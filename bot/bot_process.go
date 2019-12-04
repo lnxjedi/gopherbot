@@ -6,9 +6,11 @@ package bot
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -78,7 +80,8 @@ var botCfg struct {
 	externalTasks        []ExternalTask        // List of external tasks to load
 	loadableModules      []LoadableModule      // List of loadable modules to load
 	ScheduledJobs        []ScheduledTask       // List of scheduled tasks
-	port                 string                // Localhost port to listen on
+	port                 string                // Configured localhost port to listen on, or 0 for first open
+	realPort             string                // The actual network address/port being listened on
 	stop                 chan struct{}         // stop channel for stopping the connector
 	done                 chan bool             // shutdown channel, true to restart
 	timeZone             *time.Location        // for forcing the TimeZone, Unix only
@@ -176,7 +179,13 @@ func initBot(hpath, cpath, epath string, logger *log.Logger) {
 		go func() {
 			raiseThreadPriv("http handler")
 			http.Handle("/json", handle)
-			Log(robot.Fatal, "error serving '/json': %s", http.ListenAndServe(botCfg.port, nil))
+			listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%s", botCfg.port))
+			if err != nil {
+				Log(robot.Fatal, "Listening on tcp4 port 127.0.0.1:%s: %v", botCfg.port, err)
+			}
+			botCfg.realPort = listener.Addr().String()
+			Log(robot.Info, "Listening for external plugin connections on http://%s", botCfg.realPort)
+			Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, nil))
 		}()
 	}
 }

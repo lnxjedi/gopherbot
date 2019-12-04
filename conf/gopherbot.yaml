@@ -12,8 +12,9 @@
 ## decrypt "<encrypted string>":
 ##   decrypt a value encrypted with the 'encrypt <string>' command
 
-## Port to listen on for http/JSON api calls, for external plugins
-LocalPort: {{ env "GOPHER_PORT" | default "8080" }}
+## Port to listen on for http/JSON api calls, for external plugins.
+## By default, automatically choose a port.
+LocalPort: {{ env "GOPHER_PORT" | default "0" }}
 
 ## Configure the robot connection protocol
 {{ $proto := env "GOPHER_PROTOCOL" | default "terminal" }}

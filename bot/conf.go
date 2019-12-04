@@ -465,7 +465,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			brainConfig = newconfig.BrainConfig
 		}
 		if newconfig.LocalPort != 0 {
-			botCfg.port = fmt.Sprintf("127.0.0.1:%d", newconfig.LocalPort)
+			botCfg.port = fmt.Sprintf("%d", newconfig.LocalPort)
 		} else {
 			Log(robot.Error, "LocalPort not defined, not exporting GOPHER_HTTP_POST and external tasks will be broken")
 		}
