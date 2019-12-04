@@ -20,9 +20,9 @@
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
-if [ -z "$HOME" ]
+if [ -z "$GOPHER_CONFIGDIR" ]
 then
-    MESSAGE="HOME not set"
+    MESSAGE="GOPHER_CONFIGDIR not set"
     Log "Error" "$MESSAGE"
     echo "$MESSAGE" >&2
     exit 1
@@ -35,14 +35,14 @@ then
 fi
 
 SSH_KEY=${KEYNAME:-robot_rsa}
-SSH_KEY_PATH="$HOME/.ssh/$SSH_KEY"
+SSH_KEY_PATH="$GOPHER_CONFIGDIR/ssh/$SSH_KEY"
 if [ ! -e $SSH_KEY_PATH ]
 then
     Log "Warn" "No ssh key found in ssh-init, exiting"
     exit 0
 fi
 
-if [ -z "$BOT_SSH_PHRASE" -a -z "$(GetSecret BOT_SSH_PHRASE)" ]
+if [ -z "$BOT_SSH_PHRASE" ]
 then
     Say "I don't know the passphrase for my ssh keypair, aborting"
     exit 1
@@ -56,7 +56,7 @@ eval `ssh-agent`
 # Add cleanup task
 FinalTask exec ssh-agent -k
 
-ssh-add $HOME/.ssh/$SSH_KEY < /dev/null
+ssh-add $GOPHER_CONFIGDIR/ssh/$SSH_KEY < /dev/null
 
 # Make agent available to other tasks in the pipeline
 SetParameter SSH_AUTH_SOCK $SSH_AUTH_SOCK
