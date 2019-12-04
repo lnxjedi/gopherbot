@@ -51,6 +51,21 @@ func raiseThreadPriv(reason string) {
 	}
 }
 
+// When raising for external scripts, we need to permanently raise privilege
+// to prevent Go from spawning a child thread unprivileged
+func raiseThreadPrivExternal(reason string) {
+	if privSep {
+		runtime.LockOSThread()
+		tid := syscall.Gettid()
+		err := syscall.Setreuid(privUID, privUID)
+		if err != nil {
+			Log(robot.Error, "Calling Setreuid(%d, %d) in raiseThreadPriv: %v", unprivUID, privUID, err)
+			return
+		}
+		Log(robot.Debug, "Successfully raised privilege permanently for '%s' thread %d; new r/euid: %d/%d", reason, tid, privUID, privUID)
+	}
+}
+
 func dropThreadPriv(reason string) {
 	if privSep {
 		runtime.LockOSThread()

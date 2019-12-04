@@ -203,7 +203,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		if isPlugin && !plugin.Privileged {
 			dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
 		} else {
-			raiseThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
+			raiseThreadPrivExternal(fmt.Sprintf("task %s / %s", task.name, command))
 		}
 	} else {
 		dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
