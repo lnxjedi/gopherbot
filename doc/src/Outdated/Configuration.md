@@ -27,7 +27,7 @@ Table of Contents
       * [AuthorizedCommands, AuthorizeAllCommands, Authorizer and AuthRequire](#authorizedcommands-authorizeallcommands-authorizer-and-authrequire)
       * [Elevator, ElevatedCommands and ElevateImmediateCommands](#elevator-elevatedcommands-and-elevateimmediatecommands)
       * [Help](#help)
-      * [NameSpace and PrivateNameSpace](#namespace-and-privatenamespace)
+      * [NameSpace](#namespace)
       * [CommandMatchers, ReplyMatchers, and MessageMatchers](#commandmatchers-replymatchers-and-messagematchers)
       * [Config](#config)
 
@@ -330,13 +330,13 @@ replaced by the robot's handle.
 Note that if you wish to configure additional help, you'll need to copy the entire `Help` section from the
 plugin's default configuration to the appropriate `<pluginname>.yaml` file.
 
-### NameSpace and PrivateNameSpace
-Gopherbot's memories are stored in individual namespaces to prevent accidental collisions between separate jobs / plugins. In some cases, it is desired for multiple jobs / plugins to share memories. In this case, individual tasks can be configured with the same `NameSpace`. By default, when a pipeline is running, all jobs in the pipeline will use the same `NameSpace`, determined by the
-first task in the pipeline; plugins by default use their configured namespace. To override the default behavior, set `PrivateNameSpace` to `true` for jobs, or `false` for plugins.
+### NameSpace
+By default, **Gopherbot** separates memories and parameters by task (task/job/plugin) name. In some cases, tasks may need to share parameters and memories. To do so, a given plugin, task or job can have the "NameSpace" attribute, referring to another plugin, task or job, with the follow effects:
+* For memories, the given namespace is used
+* For parameters, parameters from the given namespace are merged with current task parameters, with locally defined parameters taking precedence
 
 ```yaml
 NameSpace: builds
-PrivateNameSpace: false # default for jobs; plugins default to true
 ```
 
 ### CommandMatchers, ReplyMatchers, and MessageMatchers

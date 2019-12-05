@@ -4,6 +4,7 @@ package ping
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/lnxjedi/gopherbot/bot"
 	"github.com/lnxjedi/gopherbot/robot"
@@ -17,6 +18,17 @@ const rules = `0. A robot may not harm humanity, or, by inaction, allow humanity
 
 type config struct {
 	Welcome []string
+}
+
+var idRegex = regexp.MustCompile(`^<(.*)>$`)
+
+// extractID copied here for simplicity
+func extractID(u string) (string, bool) {
+	matches := idRegex.FindStringSubmatch(u)
+	if len(matches) > 0 {
+		return matches[1], true
+	}
+	return u, false
 }
 
 // Define the handler function
@@ -36,9 +48,9 @@ func ping(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		r.Fixed().Reply("PONG")
 	case "whoami":
 		u := r.User
-		uid := r.ProtocolUser
+		uid, _ := extractID(r.ProtocolUser)
 		c := r.Channel
-		cid := r.ProtocolChannel
+		cid, _ := extractID(r.ProtocolChannel)
 		p := r.Protocol
 		e := r.GetSenderAttribute("email")
 		var msg string

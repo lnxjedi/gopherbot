@@ -14,7 +14,7 @@ Help:
 - Keywords: [ "ssh", "keygen", "key", "replace", "keypair" ]
   Helptext: [ "(bot), generate|replace keypair - create an ssh keypair for the robot" ]
 - Keywords: [ "ssh", "pubkey", "public", "key" ]
-  Helptext: [ "(bot), (show) pubkey - dump the robot's public key" ]
+  Helptext: [ "(bot), (show) pubkey - show the robot's public key" ]
 CommandMatchers:
 - Command: keypair
   Regex: '(?i:(generate|replace) keypair)'
@@ -32,42 +32,42 @@ then
 	exit 0
 fi
 
-BOT_SSH_PHRASE=$(GetSecret "BOT_SSH_PHRASE")
-
 if [ -z "$BOT_SSH_PHRASE" ]
 then
-	Say "\$BOT_SSH_PHRASE not set; try 'store task secret ssh-init BOT_SSH_PHRASE=<somethingreallylong>'"
+	Say "\$BOT_SSH_PHRASE not set; update Parameters for ssh-init"
 	exit 0
 fi
 
 SSH_KEY=${KEYNAME:-robot_rsa}
 
+SSH_DIR=$GOPHER_CONFIGDIR/ssh
+
 case $command in
 	"keypair")
 		ACTION=$1
-		if [ -e $HOME/.ssh/$SSH_KEY ]
+		if [ -e $SSH_DIR/$SSH_KEY ]
 		then
 			if [ "$ACTION" = "replace" ]
 			then
-				rm -f $HOME/.ssh/$SSH_KEY $HOME/.ssh/$SSH_KEY.pub
+				rm -f $SSH_DIR/$SSH_KEY $SSH_DIR/$SSH_KEY.pub
 			else
 				Say "I've already got an ssh keypair - use 'replace keypair' to replace it"
 				exit 0
 			fi
 		else
-			mkdir -p $HOME/.ssh
-			chmod 700 $HOME/.ssh
+			mkdir -p $SSH_DIR
+			chmod 700 $SSH_DIR
 		fi
 		BOT=$(GetBotAttribute name)
-		/usr/bin/ssh-keygen -q -b 4096 -N "$BOT_SSH_PHRASE" -C "$BOT" -f $HOME/.ssh/$SSH_KEY
+		/usr/bin/ssh-keygen -q -b 4096 -N "$BOT_SSH_PHRASE" -C "$BOT" -f $SSH_DIR/$SSH_KEY
 		Say "Created"
 		;;
 	"pubkey")
-		if [ ! -e $HOME/.ssh/$SSH_KEY.pub ]
+		if [ ! -e $SSH_DIR/$SSH_KEY.pub ]
 		then
 			Say "I don't seem to have an ssh public key - use 'generate keypair' to create one"
 		else
-			Say -f "$(cat $HOME/.ssh/$SSH_KEY.pub)"
+			Say -f "$(cat $SSH_DIR/$SSH_KEY.pub)"
 		fi
 		;;
 esac

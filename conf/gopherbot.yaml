@@ -128,6 +128,8 @@ ExternalPlugins:
   "ssh-admin":
     Description: Administrative plugin for managing the robot's ssh keypair
     Path: plugins/ssh-admin.sh
+    Privileged: true
+    # ssh parameters are set in the ssh-init task, below
     NameSpace: ssh-init
   "weather":
     Description: A plugin that uses OpenWeatherMap to report the weather
@@ -181,10 +183,6 @@ ExternalTasks:
   "ssh-init":
     Description: "Pipeline job for setting up ssh-agent for the 'bot"
     Path: tasks/ssh-init.sh
-#   Parameters:
-##  For specifying a key to use other than id_rsa
-#   - Name: KEYNAME
-#     Value: otherkey_rsa
   "exec":
     Description: Simple utility for running scripts in a repository
     Path: tasks/exec.sh
@@ -198,7 +196,6 @@ ExternalTasks:
     Description: Update working directory as a step in a pipeline
     Path: tasks/setworkdir.sh
   "ansible-playbook":
-    NameSpace: ansible
     Description: Ansible playbook (ansible-playbook) runner with vault passphrase helper
     Path: tasks/ansible-playbook.sh
   "ssh-scan":

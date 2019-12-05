@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -13,7 +12,7 @@ import (
 // empty map/dict/hash. Mainly for GopherCI, Methods for Python and Ruby will
 // retrieve it. Returns nil and logs an error if the calling task isn't a job,
 // or the namespace has already been extended.
-func (r *Robot) GetRepoData() map[string]json.RawMessage {
+func (r *Robot) GetRepoData() map[string]Repository {
 	c := r.getContext()
 	t, p, j := getTask(c.currentTask)
 	if j == nil && p == nil {
@@ -24,9 +23,17 @@ func (r *Robot) GetRepoData() map[string]json.RawMessage {
 		r.Log(robot.Error, "GetRepoData called with namespace extended: '%s'", c.nsExtension)
 		return nil
 	}
-	confLock.RLock()
-	defer confLock.RUnlock()
-	return repodata
+	export := make(map[string]Repository)
+	for r, d := range c.repositories {
+		e := Repository{
+			Type:        d.Type,
+			CloneURL:    d.CloneURL,
+			KeepHistory: d.KeepHistory,
+			Parameters:  []Parameter{},
+		}
+		export[r] = e
+	}
+	return export
 }
 
 // ExtendNamespace is for CI/CD applications to support building multiple
@@ -36,7 +43,8 @@ func (r *Robot) GetRepoData() map[string]json.RawMessage {
 // It is an error to call ExtendNamespace twice in a single job pipeline, or
 // outside of a running job. The histories argument is interpreted as the
 // number of histories to keep for the extended namespace, or -1 to inherit
-// from the parent job.
+// from the parent job. The jobName must match the repository Type, to protect
+// secret parameters stored in repositories.yaml.
 // Arguments:
 // ext (extension) => "<repository>/<branch>", where repository is listed in
 //   repositories.yaml
@@ -65,6 +73,10 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 	repository, exists := c.repositories[repo]
 	if !exists {
 		r.Log(robot.Error, "Repository '%s' not found in repositories.yaml (missing branch in call to ExtendNamespace?)", repo)
+		return false
+	}
+	if c.jobName != repository.Type {
+		r.Log(robot.Error, "ExtendNamespace called with jobName(%s) != repository Type(%s)", c.jobName, repository.Type)
 		return false
 	}
 	r.Log(robot.Debug, "Extending namespace for job '%s': %s (branch %s)", c.jobName, repo, branch)
@@ -167,50 +179,6 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 		_, exists := c.environment[name]
 		if !exists {
 			c.environment[name] = value
-		}
-	}
-	// Populate the environment with encrypted parameters for this repository.
-	// Task secrets are populated in runtasks.go/callTask. Note that repo+branch
-	// is checked before the repo, so the more specific parameters take
-	// precedence.
-	cryptKey.RLock()
-	initialized := cryptKey.initialized
-	ckey := cryptKey.key
-	cryptKey.RUnlock()
-	if initialized {
-		// check repo/branch (ext) first
-		repEnv, exists := c.storedEnv.RepositoryParams[ext]
-		if exists {
-			if initialized {
-				for name, encvalue := range repEnv {
-					_, exists := c.environment[name]
-					if !exists {
-						value, err := decrypt(encvalue, ckey)
-						if err != nil {
-							Log(robot.Error, "Decrypting '%s' for repository/branch '%s': %v", name, ext, err)
-							break
-						}
-						c.environment[name] = string(value)
-					}
-				}
-			}
-		}
-		// ... then check repo
-		repEnv, exists = c.storedEnv.RepositoryParams[repo]
-		if exists {
-			if initialized {
-				for name, encvalue := range repEnv {
-					_, exists := c.environment[name]
-					if !exists {
-						value, err := decrypt(encvalue, ckey)
-						if err != nil {
-							Log(robot.Error, "Decrypting '%s' for repository '%s': %v", name, repo, err)
-							break
-						}
-						c.environment[name] = string(value)
-					}
-				}
-			}
 		}
 	}
 	return true

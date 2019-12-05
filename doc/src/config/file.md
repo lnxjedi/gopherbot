@@ -66,7 +66,7 @@ To make it safe to store secret values in configuration, administrators can send
 
 ```
 c:(direct)/u:alice -> encrypt MyLousyPassword
-(dm:alice): RPzTNsHP4mvB0R6yvo9FO998L/SWBl+EIze3i0OlCvsdWqCtSbiVHX65PA==
+(dm:alice): RPzxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx+9rf==
 ```
 
 The encrypted value can then be pasted in to the `decrypt` function. See the section on *encryption* for more information.

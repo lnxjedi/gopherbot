@@ -52,8 +52,8 @@ def get_deps(repository, recurse, all_deps = []):
         if "dependencies" in repodata[reponame]:
             if repository in repodata[reponame]["dependencies"]:
                 repoconf = repodata[reponame]
-                if "type" in repoconf:
-                    repotype = repoconf["type"]
+                if "Type" in repoconf:
+                    repotype = repoconf["Type"]
                     if repotype != "none":
                         if reponame in all_deps:
                             raise Exception("Found duplicate dependency %s while walking the dependency tree" % reponame)
@@ -71,8 +71,8 @@ if len(sys.argv) == 0:
     # Two args, initial build of modified repository
     if repository in repodata:
         repoconf = repodata[repository]
-        if "type" in repoconf:
-            repotype = repoconf["type"]
+        if "Type" in repoconf:
+            repotype = repoconf["Type"]
             if repotype != "none":
                 build_triggered = True
                 bot.Log("Debug", "Adding primary build for %s / %s to the pipeline" % (repository, branch))
@@ -95,8 +95,8 @@ if len(sys.argv) == 1:
         if "dependencies" in repodata[reponame]:
             if repository in repodata[reponame]["dependencies"]:
                 repoconf = repodata[reponame]
-                if "type" in repoconf:
-                    repotype = repoconf["type"]
+                if "Type" in repoconf:
+                    repotype = repoconf["Type"]
                     if repotype != "none":
                         if "default_branch" in repoconf:
                             repobranch = repoconf["default_branch"]
@@ -113,8 +113,8 @@ if len(sys.argv) == 2:
     depbranch = sys.argv.pop(0)
     if repository in repodata:
         repoconf = repodata[repository]
-        if "type" in repoconf:
-            repotype = repoconf["type"]
+        if "Type" in repoconf:
+            repotype = repoconf["Type"]
             if repotype != "none":
                 build_triggered = True
                 bot.Log("Debug", "Adding primary dependency build for %s / %s to the pipeline, triggered by %s / %s" % (repository, branch, deprepo, depbranch))

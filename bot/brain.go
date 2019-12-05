@@ -41,13 +41,6 @@ var cryptKey = struct {
 	sync.RWMutex
 }{}
 
-// For stored secrets
-type brainParams struct {
-	retrieved        bool
-	TaskParams       map[string]map[string][]byte
-	RepositoryParams map[string]map[string][]byte
-}
-
 // Definitions of bot keys and prefixes
 
 // The "real" key to en-/de-crypt memories;

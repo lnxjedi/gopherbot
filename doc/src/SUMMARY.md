@@ -33,3 +33,8 @@
     - [Requesting Responses](api/Response-Request-API.md)
     - [Utility](api/Utility-API.md)
 - [Module Support](Modules.md)
+
+## Jobs and Build Pipelines
+
+- [Tool Integrations](pipelines/integrations.md)
+    - [Integrating with SSH](pipelines/ssh.md)
