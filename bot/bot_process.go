@@ -176,14 +176,14 @@ func initBot(hpath, cpath, epath string, logger *log.Logger) {
 	}
 	if !listening {
 		listening = true
+		listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%s", botCfg.port))
+		if err != nil {
+			Log(robot.Fatal, "Listening on tcp4 port 127.0.0.1:%s: %v", botCfg.port, err)
+		}
+		botCfg.realPort = listener.Addr().String()
 		go func() {
 			raiseThreadPriv("http handler")
 			http.Handle("/json", handle)
-			listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%s", botCfg.port))
-			if err != nil {
-				Log(robot.Fatal, "Listening on tcp4 port 127.0.0.1:%s: %v", botCfg.port, err)
-			}
-			botCfg.realPort = listener.Addr().String()
 			Log(robot.Info, "Listening for external plugin connections on http://%s", botCfg.realPort)
 			Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, nil))
 		}()
