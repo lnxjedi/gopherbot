@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Early Encryption Initialization - Gopherbot DevOps Chatbot</title>
+        <title>Configuration File Loading - Gopherbot DevOps Chatbot</title>
         
 
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
@@ -81,7 +81,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div id="sidebar-scrollbox" class="sidebar-scrollbox">
-                <ol class="chapter"><li class="expanded affix "><a href="../Title.html">Title</a></li><li class="expanded affix "><a href="../Foreward.html">Foreward</a></li><li class="expanded affix "><a href="../Introduction.html">Introduction</a></li><li class="expanded affix "><a href="../Terminology.html">Terminology</a></li><li class="expanded "><a href="../Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="expanded "><a href="../InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li class="expanded "><a href="../DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li class="expanded "><a href="../Upgrading.html"><strong aria-hidden="true">2.</strong> Upgrading from Version 1</a></li><li><ol class="section"><li class="expanded "><a href="../upgrade/BotInfo.html"><strong aria-hidden="true">2.1.</strong> Required Bot Info</a></li><li class="expanded "><a href="../upgrade/External-Plugin.html"><strong aria-hidden="true">2.2.</strong> External Plugin Configuration</a></li><li class="expanded "><a href="../upgrade/Custom-Dir.html"><strong aria-hidden="true">2.3.</strong> Custom Configuration Directory</a></li><li class="expanded "><a href="../upgrade/Encryption.html" class="active"><strong aria-hidden="true">2.4.</strong> Early Encryption Initialization</a></li></ol></li><li class="expanded "><a href="../config/file.html"><strong aria-hidden="true">3.</strong> Configuration File Loading</a></li><li class="expanded "><a href="../api/API-Introduction.html"><strong aria-hidden="true">4.</strong> Gopherbot API</a></li><li><ol class="section"><li class="expanded "><a href="../api/Languages.html"><strong aria-hidden="true">4.1.</strong> Language Templates</a></li><li class="expanded "><a href="../api/Attribute-Retrieval-API.html"><strong aria-hidden="true">4.2.</strong> Attribute Retrieval</a></li><li class="expanded "><a href="../api/Brain-API.html"><strong aria-hidden="true">4.3.</strong> Brain Methods</a></li><li class="expanded "><a href="../api/Message-Sending-API.html"><strong aria-hidden="true">4.4.</strong> Message Sending</a></li><li class="expanded "><a href="../api/Pipeline-API.html"><strong aria-hidden="true">4.5.</strong> Pipeline Construction</a></li><li class="expanded "><a href="../api/Response-Request-API.html"><strong aria-hidden="true">4.6.</strong> Requesting Responses</a></li><li class="expanded "><a href="../api/Utility-API.html"><strong aria-hidden="true">4.7.</strong> Utility</a></li></ol></li><li class="expanded "><a href="../Modules.html"><strong aria-hidden="true">5.</strong> Module Support</a></li><li class="expanded "><a href="../pipelines/integrations.html"><strong aria-hidden="true">6.</strong> Tool Integrations</a></li><li><ol class="section"><li class="expanded "><a href="../pipelines/ssh.html"><strong aria-hidden="true">6.1.</strong> Integrating with SSH</a></li></ol></li></ol>
+                <ol class="chapter"><li class="expanded affix "><a href="../Title.html">Title</a></li><li class="expanded affix "><a href="../Foreward.html">Foreward</a></li><li class="expanded affix "><a href="../Introduction.html">Introduction</a></li><li class="expanded affix "><a href="../Terminology.html">Terminology</a></li><li class="expanded "><a href="../Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="expanded "><a href="../InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li class="expanded "><a href="../DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li class="expanded "><a href="../Upgrading.html"><strong aria-hidden="true">2.</strong> Upgrading from Version 1</a></li><li><ol class="section"><li class="expanded "><a href="../upgrade/BotInfo.html"><strong aria-hidden="true">2.1.</strong> Required Bot Info</a></li><li class="expanded "><a href="../upgrade/External-Plugin.html"><strong aria-hidden="true">2.2.</strong> External Plugin Configuration</a></li><li class="expanded "><a href="../upgrade/Custom-Dir.html"><strong aria-hidden="true">2.3.</strong> Custom Configuration Directory</a></li><li class="expanded "><a href="../upgrade/Encryption.html"><strong aria-hidden="true">2.4.</strong> Early Encryption Initialization</a></li></ol></li><li class="expanded "><a href="../config/file.html" class="active"><strong aria-hidden="true">3.</strong> Configuration File Loading</a></li><li class="expanded "><a href="../api/API-Introduction.html"><strong aria-hidden="true">4.</strong> Gopherbot API</a></li><li><ol class="section"><li class="expanded "><a href="../api/Languages.html"><strong aria-hidden="true">4.1.</strong> Language Templates</a></li><li class="expanded "><a href="../api/Attribute-Retrieval-API.html"><strong aria-hidden="true">4.2.</strong> Attribute Retrieval</a></li><li class="expanded "><a href="../api/Brain-API.html"><strong aria-hidden="true">4.3.</strong> Brain Methods</a></li><li class="expanded "><a href="../api/Message-Sending-API.html"><strong aria-hidden="true">4.4.</strong> Message Sending</a></li><li class="expanded "><a href="../api/Pipeline-API.html"><strong aria-hidden="true">4.5.</strong> Pipeline Construction</a></li><li class="expanded "><a href="../api/Response-Request-API.html"><strong aria-hidden="true">4.6.</strong> Requesting Responses</a></li><li class="expanded "><a href="../api/Utility-API.html"><strong aria-hidden="true">4.7.</strong> Utility</a></li></ol></li><li class="expanded "><a href="../Modules.html"><strong aria-hidden="true">5.</strong> Module Support</a></li><li class="expanded "><a href="../pipelines/integrations.html"><strong aria-hidden="true">6.</strong> Tool Integrations</a></li><li><ol class="section"><li class="expanded "><a href="../pipelines/ssh.html"><strong aria-hidden="true">6.1.</strong> Integrating with SSH</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -148,30 +148,73 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1><a class="header" href="#early-encryption-initialization" id="early-encryption-initialization">Early Encryption Initialization</a></h1>
-<p><strong>Gopherbot</strong> uses two separate keys for encrypting and decrypting secret data:</p>
+                        <h1><a class="header" href="#configuration-file-loading" id="configuration-file-loading">Configuration File Loading</a></h1>
+<p><strong>Gopherbot</strong> uses <strong>YAML</strong> for it's configuration files, and Go text templates for expanding the files it reads. Any time <strong>Gopherbot</strong> loads a configuration file, say <code>conf/gopherbot.yaml</code>, it first looks for the file in the installation directory, and loads and expands that file if found. Next it looks for the same file in the custom configuration directory; if found, it loads and expands that file, then recursively merges the two data structures:</p>
 <ul>
-<li>The start-up key, normally 32 printable <code>ASCII</code> characters, used only for decrypting the binary, 32-byte random encryption key</li>
-<li>The permanent runtime encryption key, 32 random bytes generated on the first run </li>
+<li>Map values merge and override</li>
+<li>Array values are replaced</li>
 </ul>
-<p>In version 1 and early snapshots of version 2, the runtime key was stored in the brain, and encryption was only initialized after the robot's brain provider and protocol connector. Secrets for these had to be provided in the environment, or unencrypted in <code>gopherbot.yaml</code>. Version 2 addresses this by storing the binary encrypted runtime key in a <code>base64</code> encoded file, <code>custom/binary-encrypted-key</code>. This allows storing encrypted values for e.g. the <em>slack token</em> or <em>AWS credentials</em> in <code>gopherbot.yaml</code>, and only needing to provide the start-up <code>GOPHER_ENCRYPTION_KEY</code> in the environment, or in an external environment file - <code>$GOPHER_HOME/.env</code> or <code>$GOPHER_HOME/private/environment</code>.</p>
-<p>For a robot instance with a file-backed brain, the following command can be used to generate the version 2 key file:</p>
-<pre><code class="language-bash">$ cat /path/to/brain/bot:encryptionKey | base64 -w 0 &gt; /path/to/custom/binary-encrypted-key
+<p>To illustrate with an example, take the following two excerpts from <code>gopherbot.yaml</code>:</p>
+<p>Default from the install archive:</p>
+<pre><code class="language-yaml">ProtocolConfig:
+  StartChannel: general
+  Channels:
+  - random
+  - general
+  StartUser: alice
 </code></pre>
-<p>This file can then be committed to the custom configuration repository.</p>
+<p>Custom local configuration:</p>
+<pre><code class="language-yaml">ProtocolConfig:
+  StartChannel: jobs
+  Channels:
+  - jobs
+  - general
+</code></pre>
+<p>The resulting configuration would be:</p>
+<pre><code class="language-yaml">ProtocolConfig:
+  StartChannel: jobs
+  Channels:
+  - jobs
+  - general
+  StartUser: alice
+</code></pre>
+<h2><a class="header" href="#template-expansion" id="template-expansion">Template Expansion</a></h2>
+<p><strong>Gopherbot</strong> uses standard <a href="https://golang.org/pkg/text/template">Go text templates</a> for expanding the configuration files it reads. In addition to the stock syntactic elements, the following functions and methods are available:</p>
+<h3><a class="header" href="#the-env-function" id="the-env-function">The <code>env</code> function</a></h3>
+<pre><code>{{ env &quot;GOPHER_ALIAS&quot; }}
+</code></pre>
+<p>This would expand to the value of the <code>GOPHER_ALIAS</code> environment variable.</p>
+<h3><a class="header" href="#the-default-function" id="the-default-function">The <code>default</code> function</a></h3>
+<pre><code>{{ env &quot;GOPHER_ALIAS&quot; | default &quot;;&quot; }}
+</code></pre>
+<p>The <code>default</code> function takes two arguments, and returns the first argument if it's length is &gt; 0, the second argument otherwise. The example would expand to the value of the <code>GOPHER_ALIAS</code> environment variable if set, or <code>;</code> otherwise.</p>
+<h2><a class="header" href="#the-decrypt-function" id="the-decrypt-function">The <code>decrypt</code> function</a></h2>
+<pre><code>ProtocolConfig:
+  SlackToken: xoxb-18000000000-470000000000-{{ decrypt &quot;xxxxx&quot; }}
+</code></pre>
+<p>To make it safe to store secret values in configuration, administrators can send a direct message to the robot requesting encryption, e.g.:</p>
+<pre><code>c:(direct)/u:alice -&gt; encrypt MyLousyPassword
+(dm:alice): RPzxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx+9rf==
+</code></pre>
+<p>The encrypted value can then be pasted in to the <code>decrypt</code> function. See the section on <em>encryption</em> for more information.</p>
+<p><strong>NOTE:</strong> In the example, the common, low-entropy portion of a <em>slack</em> token is left as-is, and only the high-entropy portion of the token is encrypted, to prevent attacks where a portion of the encrypted value is known.</p>
+<h2><a class="header" href="#the-include-method" id="the-include-method">The <code>.Include</code> method</a></h2>
+<pre><code>{{ .Include &quot;terminal.yaml&quot; }}
+</code></pre>
+<p>Note that <code>.Include</code> is a <em>method</em> on the configuration file object, which is either an install file or a custom file. If the above example is present in the installed <code>conf/gopherbot.yaml</code>, it will include <em>only</em> the installed <code>conf/terminal.yaml</code>, if present, and ignore that file if it's also present in the custom directory.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
-                            <a rel="prev" href="../upgrade/Custom-Dir.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../upgrade/Encryption.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
                         
 
                         
-                            <a rel="next" href="../config/file.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../api/API-Introduction.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         
@@ -183,13 +226,13 @@
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
-                    <a href="../upgrade/Custom-Dir.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a href="../upgrade/Encryption.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
                 
-                    <a href="../config/file.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a href="../api/API-Introduction.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
