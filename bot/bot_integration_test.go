@@ -309,7 +309,7 @@ func TestBuiltins(t *testing.T) {
 		{aliceID, random, ";help ruby", []testc.TestMessage{{null, random, `(?m:Command.*\n.*random\))`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";help", []testc.TestMessage{{alice, general, `\(the help.*private message\)`}, {alice, null, "bender,.*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "help", []testc.TestMessage{{alice, general, "I've sent.*myself"}, {alice, null, "Hi,.*"}}, []Event{AmbientTaskRan, GoPluginRan}, 0},
-		{aliceID, general, ";whoami", []testc.TestMessage{{null, general, "you are 'test' user 'alice/<u0001>', speaking in channel 'general/<#general>', email address: alice@example.com"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";whoami", []testc.TestMessage{{null, general, "you are 'test' user 'alice/u0001', speaking in channel 'general/#general', email address: alice@example.com"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		// NOTE: Dumps are all format = Fixed, which for the test connector is ALL CAPS
 		{aliceID, null, "dump robot", []testc.TestMessage{{alice, null, "HERE'S HOW I'VE BEEN CONFIGURED.*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, "dump plugin echo", []testc.TestMessage{{alice, null, "ALLCHANNELS.*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
