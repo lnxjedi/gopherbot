@@ -1,27 +1,10 @@
-# See conf/gopherbot.yaml.sample
-AdminContact: "David Parsley, <parsley@linuxjedi.org>"
-DefaultChannels: [ "general", "random" ]
-JoinChannels: [ ]
-AdminUsers: [ "alice" ]
-# Alias: ""
-
-{{ $botname := env "GOPHER_BOTNAME" | default "bender" }}
-{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Bender Rodriguez" }}
-
-BotInfo:
-  UserName: {{ $botname }}
-  FullName: {{ $botfullname }}
-
+# terminal.yaml - stock configuration for the terminal connector
 ProtocolConfig:
   StartChannel: general
   StartUser: alice
-  BotName: {{ $botname }}
-  BotFullName: {{ $botfullname }}
   Channels:
   - random
   - general
-  - bottest
-  - deadzone
   Users:
   - Name: "alice"
     Email: "alice@example.com"
@@ -58,7 +41,7 @@ ProtocolConfig:
     FirstName: "Erin"
     LastName: "User"
     Phone: "(555)765-0005"
-
+  
 UserRoster:
 - UserName: "alice"
   UserID: "u0001"
@@ -69,28 +52,7 @@ UserRoster:
 - UserName: "david"
   UserID: "u0004"
 - UserName: "erin"
-  UserID: "u0005"
+  UserID: "u0005"  
 
-LocalPort: 0
-ExternalPlugins:
-  "bashdemo":
-    Path: plugins/samples/bashdemo.sh
-  "pythondemo":
-    Path: plugins/samples/pythondemo.py
-  "rubydemo":
-    Path: plugins/samples/rubydemo.rb
-  "echo":
-    Path: plugins/samples/echo.sh
-  "test":
-    Path: plugins/samples/test.sh
-  "hello":
-    Path: plugins/samples/hello.sh
-  "hello2":
-    Path: plugins/samples/hello2.sh
-
-WorkSpace: /tmp
-HistoryConfig:
-  Directory: /tmp
-
-Brain: mem
-DefaultElevator: totp
+AdminUsers: [ "alice" ]
+DefaultChannels: [ "general", "random" ]

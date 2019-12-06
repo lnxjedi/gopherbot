@@ -48,7 +48,7 @@ then
     exit 1
 fi
 
-export SSH_ASKPASS=$GOPHER_INSTALLDIR/scripts/ssh-askpass.sh
+export SSH_ASKPASS=$GOPHER_INSTALLDIR/helpers/ssh-askpass.sh
 export DISPLAY=""
 
 eval `ssh-agent`
@@ -61,5 +61,19 @@ ssh-add $GOPHER_CONFIGDIR/ssh/$SSH_KEY < /dev/null
 # Make agent available to other tasks in the pipeline
 SetParameter SSH_AUTH_SOCK $SSH_AUTH_SOCK
 SetParameter SSH_AGENT_PID $SSH_AGENT_PID
+if [ -e "$GOPHER_CONFIGDIR/ssh/config" ]
+then
+    SSH_OPTIONS="-F \"$GOPHER_CONFIGDIR/ssh/config\""
+fi
+
+if [ -e "$GOPHER_HOME/private" ]
+then
+    mkdir -p "$GOPHER_HOME/private/ssh"
+    SSH_OPTIONS="$SSH_OPTIONS -o UserKnownHostsFile=\"$GOPHER_HOME/private/ssh/known_hosts\""
+fi
+
+if [ -n "$SSH_OPTIONS" ]
+    SetParameter SSH_OPTIONS "$SSH_OPTIONS"
+fi
 
 exit 0

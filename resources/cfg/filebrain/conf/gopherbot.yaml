@@ -71,7 +71,7 @@ UserRoster:
 - UserName: "erin"
   UserID: "u0005"
 
-LocalPort: 8889
+LocalPort: 0
 ExternalPlugins:
   "bashdemo":
     Path: plugins/samples/bashdemo.sh

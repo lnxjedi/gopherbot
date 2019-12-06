@@ -64,7 +64,7 @@ func scheduleTasks() {
 	schedMutex.Unlock()
 }
 
-func runScheduledTask(t interface{}, ts TaskSpec, tasks taskList, repolist map[string]repository) {
+func runScheduledTask(t interface{}, ts TaskSpec, tasks taskList, repolist map[string]Repository) {
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	if isPlugin && len(ts.Command) == 0 {

@@ -4,6 +4,7 @@ package bot
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,6 +14,9 @@ import (
 
 // Information about privilege separation, set in runtasks_linux.go
 var privSep = false
+
+// Set for CLI commands
+var cliOp = false
 
 func init() {
 	hostName = os.Getenv("HOSTNAME")
@@ -28,16 +32,38 @@ func Start(v VersionInfo) (restart bool) {
 	var configPath string
 	cusage := "path to the configuration directory"
 	flag.StringVar(&configPath, "config", "", cusage)
-	flag.StringVar(&configPath, "c", "", cusage+" (shorthand)")
+	flag.StringVar(&configPath, "c", "", "")
 	var logFile string
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
-	flag.StringVar(&logFile, "l", "", lusage+" (shorthand)")
+	flag.StringVar(&logFile, "l", "", "")
 	var plainlog bool
 	plusage := "omit timestamps from the log"
 	flag.BoolVar(&plainlog, "plainlog", false, plusage)
-	flag.BoolVar(&plainlog, "P", false, plusage+" (shorthand)")
+	flag.BoolVar(&plainlog, "p", false, "")
+	var help bool
+	husage := "help for gopherbot"
+	flag.BoolVar(&help, "help", false, husage)
+	flag.BoolVar(&help, "h", false, "")
 	flag.Parse()
+
+	usage := `Usage: gopherbot [options] [command [command options]]
+  "command" can be one of:
+	encrypt - encrypt a string or file
+	decrypt - decrypt a string or file
+	fetch - fetch the contents of a memory
+	run (default) - run the robot
+  <command> -h for help on a given command
+
+  Common options:`
+
+	if help {
+		fmt.Println(usage)
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
+
+	cliOp = len(flag.Args()) > 0 && flag.Arg(0) != "run"
 
 	var envFile string
 	for _, ef := range []string{".env", "private/environment"} {
@@ -71,7 +97,9 @@ func Start(v VersionInfo) (restart bool) {
 	}
 	log.SetOutput(logOut)
 	logger = log.New(logOut, "", logFlags)
-	logger.Println("Initialized logging ...")
+	if !cliOp {
+		logger.Println("Initialized logging ...")
+	}
 
 	installpath = binDirectory
 
@@ -95,19 +123,27 @@ func Start(v VersionInfo) (restart bool) {
 		}
 	}
 
-	if penvErr != nil {
-		logger.Printf("No private environment loaded from '.env': %v\n", penvErr)
-	} else {
-		logger.Printf("Loaded initial private environment from '.env'\n")
+	if !cliOp {
+		if penvErr != nil {
+			logger.Printf("No private environment loaded from '.env': %v\n", penvErr)
+		} else {
+			logger.Printf("Loaded initial private environment from '%s'\n", envFile)
+		}
+
+		// Create the 'bot and load configuration, supplying configpath and installpath.
+		// When loading configuration, gopherbot first loads default configuration
+		// from internal config, then loads from configpath/conf/..., which
+		// overrides defaults.
+		logger.Printf("Starting up with config dir: %s, and install dir: %s\n", configpath, installpath)
+		checkprivsep(logger)
 	}
 
-	// Create the 'bot and load configuration, supplying configpath and installpath.
-	// When loading configuration, gopherbot first loads default configuration
-	// from internal config, then loads from configpath/conf/..., which
-	// overrides defaults.
-	logger.Printf("Starting up with config dir: %s, and install dir: %s\n", configpath, installpath)
-	checkprivsep(logger)
 	initBot(cwd, configpath, installpath, logger)
+
+	if cliOp {
+		processCLI(usage)
+		return false
+	}
 
 	initializeConnector, ok := connectors[botCfg.protocol]
 	if !ok {

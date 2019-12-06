@@ -20,6 +20,9 @@
     - [Custom Configuration Directory](upgrade/Custom-Dir.md)
     - [Early Encryption Initialization](upgrade/Encryption.md)
 
+## Configuration
+- [Configuration File Loading](config/file.md)
+
 ## Plugin Development
 - [Gopherbot API](api/API-Introduction.md)
     - [Language Templates](api/Languages.md)
@@ -30,3 +33,8 @@
     - [Requesting Responses](api/Response-Request-API.md)
     - [Utility](api/Utility-API.md)
 - [Module Support](Modules.md)
+
+## Jobs and Build Pipelines
+
+- [Tool Integrations](pipelines/integrations.md)
+    - [Integrating with SSH](pipelines/ssh.md)

@@ -398,32 +398,6 @@ func (c *botContext) getEnvironment(task *Task) map[string]string {
 			envhash[k] = v
 		}
 	}
-	// Pull stored and configured env vars specific to this task and supply to
-	// this task only. No effect if already defined. Useful mainly for specific
-	// tasks to have secrets passed in but not handed to everything in the
-	// pipeline. Repository secrets are populated in robot.go/ExtendNamespace
-	cryptKey.RLock()
-	initialized := cryptKey.initialized
-	key := cryptKey.key
-	cryptKey.RUnlock()
-	if initialized {
-		taskEnv, teExists := c.storedEnv.TaskParams[task.NameSpace]
-		if teExists {
-			if initialized {
-				for name, encvalue := range taskEnv {
-					_, exists := envhash[name]
-					if !exists {
-						value, err := decrypt(encvalue, key)
-						if err != nil {
-							Log(robot.Error, "Decrypting '%s' for task namespace '%s': %v", name, task.NameSpace, err)
-							break
-						}
-						envhash[name] = string(value)
-					}
-				}
-			}
-		}
-	}
 
 	envhash["GOPHER_CHANNEL"] = c.Channel
 	envhash["GOPHER_USER"] = c.User
@@ -435,6 +409,19 @@ func (c *botContext) getEnvironment(task *Task) map[string]string {
 		_, exists := envhash[p.Name]
 		if !exists {
 			envhash[p.Name] = p.Value
+		}
+	}
+	// Next lowest prio are namespace params
+	if len(task.NameSpace) > 0 {
+		t := c.tasks.getTaskByName(task.NameSpace)
+		if t != nil {
+			nstask, _, _ := getTask(t)
+			for _, p := range nstask.Parameters {
+				_, exists := envhash[p.Name]
+				if !exists {
+					envhash[p.Name] = p.Value
+				}
+			}
 		}
 	}
 	// Passed-through environment vars have the lowest priority

@@ -189,10 +189,6 @@ class Robot:
         ret = self.Call("Recall", { "Key": memory })
         return ret["StrVal"]
 
-    def GetSecret(self, secret):
-        ret = self.Call("GetSecret", { "Secret": secret })
-        return ret["StrVal"]
-
     def PromptForReply(self, regex_id, prompt, format=""):
         return self.PromptUserChannelForReply(regex_id, self.user, self.channel, prompt, format)
 

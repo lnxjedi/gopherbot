@@ -11,7 +11,7 @@ type Robot interface {
 	GetSenderAttribute(a string) *AttrRet
 	GetTaskConfig(dptr interface{}) RetVal
 	GetMessage() *Message
-	GetSecret(name string) string
+	GetParameter(name string) string
 	Email(subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal)
 	EmailUser(user, subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal)
 	EmailAddress(address, subject string, messageBody *bytes.Buffer, html ...bool) (ret RetVal)

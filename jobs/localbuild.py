@@ -39,15 +39,15 @@ repodata = bot.GetRepoData()
 if repository in repodata:
     repoconf = repodata[repository]
 
-if "clone_url" not in repoconf:
+if "CloneURL" not in repoconf:
     bot.Say("No 'clone_url' specified for '%s' in repositories.yaml" % repository)
     exit()
-clone_url = repoconf["clone_url"]
+clone_url = repoconf["CloneURL"]
 
-if "keep_history" not in repoconf:
+if "KeepHistory" not in repoconf:
     keep_history = 7
 else:
-    keep_history = repoconf["keep_history"]
+    keep_history = repoconf["KeepHistory"]
 
 repobranch = "%s/%s" % (repository, branch)
 if not bot.Exclusive(repobranch, False):

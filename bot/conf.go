@@ -51,8 +51,12 @@ type BotConf struct {
 	LogLevel             string                    // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
-type repository struct {
-	Parameters []Parameter // per-repository parameters
+// Repository represents a buildable git repository, for CI/CD
+type Repository struct {
+	Type        string // task extending the namespace needs to match for parameters
+	CloneURL    string
+	KeepHistory int         // How many job logs to keep for this repo
+	Parameters  []Parameter // per-repository parameters
 }
 
 // UserInfo is listed in the UserRoster of gopherbot.yaml to provide:
@@ -95,8 +99,7 @@ var currentUCMaps = struct {
 // Protects the bot config and list of repositories
 var confLock sync.RWMutex
 var config *BotConf
-var repositories map[string]repository
-var repodata map[string]json.RawMessage
+var repositories map[string]Repository
 
 // loadConfig loads the 'bot's yaml configuration files.
 func (c *botContext) loadConfig(preConnect bool) error {
@@ -114,12 +117,12 @@ func (c *botContext) loadConfig(preConnect bool) error {
 
 	reporaw := make(map[string]json.RawMessage)
 	c.getConfigFile("repositories.yaml", "", false, reporaw)
-	repolist := make(map[string]repository)
+	repolist := make(map[string]Repository)
 	for k, repojson := range reporaw {
 		if strings.ContainsRune(k, ':') {
 			Log(robot.Error, "Invalid repository '%s' contains ':', ignoring", k)
 		} else {
-			var repository repository
+			var repository Repository
 			json.Unmarshal(repojson, &repository)
 			repolist[k] = repository
 		}
@@ -247,8 +250,11 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		}
 	}
 
-	loglevel = logStrToLevel(newconfig.LogLevel)
-	setLogLevel(loglevel)
+	// Leave loglevel at Warn for CLI operations
+	if !cliOp {
+		loglevel = logStrToLevel(newconfig.LogLevel)
+		setLogLevel(loglevel)
+	}
 
 	if !preConnect {
 		botCfg.Lock()
@@ -465,9 +471,9 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			brainConfig = newconfig.BrainConfig
 		}
 		if newconfig.LocalPort != 0 {
-			botCfg.port = fmt.Sprintf("127.0.0.1:%d", newconfig.LocalPort)
+			botCfg.port = fmt.Sprintf("%d", newconfig.LocalPort)
 		} else {
-			Log(robot.Error, "LocalPort not defined, not exporting GOPHER_HTTP_POST and external tasks will be broken")
+			botCfg.port = "0"
 		}
 	} else {
 		if len(usermap) > 0 {
@@ -493,7 +499,6 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	confLock.Lock()
 	config = newconfig
 	repositories = repolist
-	repodata = reporaw
 	confLock.Unlock()
 
 	if tasksOk && !preConnect {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"text/template"
 
@@ -86,8 +87,31 @@ func decryptTpl(encval string) string {
 	return string(secret)
 }
 
+type loadTpl struct {
+	dir      string
+	isCustom bool
+}
+
+func (t loadTpl) Include(tpl string) string {
+	base := installPath
+	if t.isCustom {
+		base = configPath
+	}
+	path := filepath.Join(base, t.dir, tpl)
+	inc, err := ioutil.ReadFile(path)
+	if err != nil {
+		Log(robot.Error, "Reading include '%s'(%s): %v", tpl, path, err)
+		return ""
+	}
+	return string(inc)
+}
+
 // expand expands a text template
-func expand(in []byte) (out []byte, err error) {
+func expand(dir string, custom bool, in []byte) (out []byte, err error) {
+	lt := loadTpl{
+		dir:      dir,
+		isCustom: custom,
+	}
 	tplFuncs := template.FuncMap{
 		"decrypt": decryptTpl,
 		"default": defval,
@@ -98,7 +122,7 @@ func expand(in []byte) (out []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := tpl.Execute(&outBuff, nil); err != nil {
+	if err := tpl.Execute(&outBuff, lt); err != nil {
 		return nil, err
 	}
 	return outBuff.Bytes(), nil
@@ -123,10 +147,11 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 	} else {
 		cfg = make(map[string]interface{})
 	}
-	path = installPath + "/conf/" + filename
+	path = filepath.Join(installPath, "conf", filename)
+	dir := filepath.Dir(filepath.Join("conf", filename))
 	cf, err = ioutil.ReadFile(path)
 	if err == nil {
-		if cf, err = expand(cf); err != nil {
+		if cf, err = expand(dir, false, cf); err != nil {
 			Log(robot.Error, "Expanding '%s': %v", path, err)
 		}
 		if err = yaml.Unmarshal(cf, &installed); err != nil {
@@ -145,10 +170,10 @@ func (c *botContext) getConfigFile(filename, callerID string, required bool, jso
 		realerr = err
 	}
 	if len(configPath) > 0 {
-		path = configPath + "/conf/" + filename
+		path = filepath.Join(configPath, "conf", filename)
 		cf, err = ioutil.ReadFile(path)
 		if err == nil {
-			if cf, err = expand(cf); err != nil {
+			if cf, err = expand(dir, true, cf); err != nil {
 				Log(robot.Error, "Expanding '%s': %v", path, err)
 			}
 			if err = yaml.Unmarshal(cf, &configured); err != nil {

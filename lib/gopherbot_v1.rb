@@ -183,11 +183,6 @@ class BaseBot
 		return callBotFunc("Recall", args).StrVal
 	end
 
-	def GetSecret(s)
-		args = { "Secret" => s }
-		return callBotFunc("GetSecret", args).StrVal
-	end
-
 	def GetTaskConfig()
 		ret = callBotFunc("GetTaskConfig", {})
 		return ret

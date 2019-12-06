@@ -29,10 +29,6 @@ type attribute struct {
 	Attribute string
 }
 
-type secname struct {
-	Secret string
-}
-
 type elevate struct {
 	Immediate bool
 }
@@ -393,14 +389,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			m.Key = decode(m.Key)
 		}
 		s := r.Recall(m.Key)
-		sendReturn(rw, &stringresponse{s})
-		return
-	case "GetSecret":
-		var sarg secname
-		if !getArgs(rw, &f.FuncArgs, &sarg) {
-			return
-		}
-		s := r.GetSecret(sarg.Secret)
 		sendReturn(rw, &stringresponse{s})
 		return
 	case "GetTaskConfig":
