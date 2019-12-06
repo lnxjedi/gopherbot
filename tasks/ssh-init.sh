@@ -63,7 +63,17 @@ SetParameter SSH_AUTH_SOCK $SSH_AUTH_SOCK
 SetParameter SSH_AGENT_PID $SSH_AGENT_PID
 if [ -e "$GOPHER_CONFIGDIR/ssh/config" ]
 then
-    SetParameter SSH_OPTIONS "-F \"$GOPHER_CONFIGDIR/ssh/config\""
+    SSH_OPTIONS="-F \"$GOPHER_CONFIGDIR/ssh/config\""
+fi
+
+if [ -e "$GOPHER_HOME/private" ]
+then
+    mkdir -p "$GOPHER_HOME/private/ssh"
+    SSH_OPTIONS="$SSH_OPTIONS -o UserKnownHostsFile=\"$GOPHER_HOME/private/ssh/known_hosts\""
+fi
+
+if [ -n "$SSH_OPTIONS" ]
+    SetParameter SSH_OPTIONS "$SSH_OPTIONS"
 fi
 
 exit 0
