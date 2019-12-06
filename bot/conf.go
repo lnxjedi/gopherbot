@@ -250,8 +250,11 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		}
 	}
 
-	loglevel = logStrToLevel(newconfig.LogLevel)
-	setLogLevel(loglevel)
+	// Leave loglevel at Warn for CLI operations
+	if !cliOp {
+		loglevel = logStrToLevel(newconfig.LogLevel)
+		setLogLevel(loglevel)
+	}
 
 	if !preConnect {
 		botCfg.Lock()
@@ -470,7 +473,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		if newconfig.LocalPort != 0 {
 			botCfg.port = fmt.Sprintf("%d", newconfig.LocalPort)
 		} else {
-			Log(robot.Error, "LocalPort not defined, not exporting GOPHER_HTTP_POST and external tasks will be broken")
+			botCfg.port = "0"
 		}
 	} else {
 		if len(usermap) > 0 {

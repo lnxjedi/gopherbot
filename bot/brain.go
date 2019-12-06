@@ -1,10 +1,15 @@
 package bot
 
 import (
+	"bytes"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -48,6 +53,7 @@ var cryptKey = struct {
 // the user to re-key if they change how the key
 // is supplied.
 const botEncryptionKey = "bot:encryptionKey"
+const encryptedKeyFile = "binary-encrypted-key"
 
 const paramKey = "bot:parameters"
 const secretKey = "bot:secrets"
@@ -134,16 +140,17 @@ func replyToWaiter(m *memstatus) {
 func initializeEncryptionFromBrain(key string) bool {
 	kbytes := []byte(key)
 	if len(kbytes) < 32 {
-		Log(robot.Error, "Failed to initialize brain, provided brain key < 32 bytes")
+		Log(robot.Error, "Failed to initialize brain, provided encryption key < 32 bytes")
 		return false
 	}
+	kbytes = kbytes[0:32]
 	cryptKey.Lock()
 	if cryptKey.initialized || cryptKey.initializing {
 		i := cryptKey.initializing
 		cryptKey.Unlock()
 		return i
 	}
-	cryptKey.key = kbytes[0:32]
+	cryptKey.key = kbytes
 	cryptKey.initializing = true
 	var err error
 	cryptKey.Unlock()
@@ -167,18 +174,28 @@ func initializeEncryptionFromBrain(key string) bool {
 	sb := make([]byte, 32)
 	_, err = rand.Read(sb)
 	if err != nil {
-		Log(robot.Error, "Generating new random brain key: %v", err)
+		Log(robot.Error, "Generating new random encryption key: %v", err)
 		cryptKey.initializing = false
 		return false
 	}
-	ret = storeDatum(botEncryptionKey, &sb)
+	h := handler{}
+	if err := h.GetDirectory(configPath); err == nil {
+		var bek []byte
+		var err error
+		if bek, err = encrypt(sb, kbytes); err != nil {
+			Log(robot.Fatal, "Encrypting new random key")
+		}
+		var bekbuff bytes.Buffer
+		encoder := base64.NewEncoder(base64.StdEncoding, &bekbuff)
+		encoder.Write(bek)
+		bekbuff.Write([]byte("\n"))
+		if err := ioutil.WriteFile(filepath.Join(configPath, encryptedKeyFile), bekbuff.Bytes(), os.FileMode(0600)); err != nil {
+			Log(robot.Fatal, "Writing new random key: %v", err)
+		}
+	} else {
+		Log(robot.Fatal, "Getting custom directory: %v", err)
+	}
 	cryptKey.Lock()
-	if ret != robot.Ok {
-		Log(robot.Error, "Storing brain key, failed to initialize")
-		cryptKey.initializing = false
-		cryptKey.Unlock()
-		return false
-	}
 	cryptKey.key = sb
 	cryptKey.initialized = true
 	cryptKey.initializing = false
@@ -236,7 +253,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 			}
 			decrypted, err = decrypt(*db, key)
 			if err != nil {
-				Log(robot.Error, "Failed to decrypt the brain key, bad key provided?: %v", err)
+				Log(robot.Error, "Failed to decrypt the encryption key, bad key provided?: %v", err)
 				return "", nil, false, robot.BrainFailed
 			}
 			db = &decrypted
@@ -245,9 +262,13 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 		if initialized {
 			decrypted, err = decrypt(*db, key)
 			if err != nil {
-				Log(robot.Warn, "Decryption failed for '%s', assuming unencrypted and converting to encrypted", dkey)
-				// Calling storeDatum writes to storage without invalidating the lock token
-				storeDatum(dkey, db)
+				// This should only ever happen with the CLI, but could corrupt
+				// the binary key.
+				if dkey != botEncryptionKey {
+					Log(robot.Warn, "Decryption failed for '%s', assuming unencrypted and converting to encrypted", dkey)
+					// Calling storeDatum writes to storage without invalidating the lock token
+					storeDatum(dkey, db)
+				}
 			} else {
 				db = &decrypted
 			}

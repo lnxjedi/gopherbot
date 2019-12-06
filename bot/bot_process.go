@@ -95,8 +95,9 @@ var botCfg struct {
 
 var listening bool // for tests where initBot runs multiple times
 
-// initBot sets up the global robot and loads
-// configuration.
+// initBot sets up the global robot; when cli is false it also loads configuration.
+// cli indicates that a CLI command is being processed, as opposed to actually running
+// a robot.
 func initBot(hpath, cpath, epath string, logger *log.Logger) {
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -110,9 +111,13 @@ func initBot(hpath, cpath, epath string, logger *log.Logger) {
 	botCfg.done = make(chan bool)
 	botCfg.shuttingDown = false
 
+	if cliOp {
+		setLogLevel(robot.Warn)
+	}
+
 	// Initialize encryption (new style for v2)
 	keyEnv := "GOPHER_ENCRYPTION_KEY"
-	keyFile := filepath.Join(configPath, "binary-encrypted-key")
+	keyFile := filepath.Join(configPath, encryptedKeyFile)
 	encryptionInitialized := false
 	if ek, ok := os.LookupEnv(keyEnv); ok {
 		ik := []byte(ek)[0:32]
@@ -144,6 +149,10 @@ func initBot(hpath, cpath, epath string, logger *log.Logger) {
 	}
 	os.Unsetenv(keyEnv)
 
+	if cliOp {
+		setLogLevel(robot.Warn)
+	}
+
 	// loadModules for go loadable modules; a no-op for static builds
 	loadModules()
 
@@ -174,6 +183,12 @@ func initBot(hpath, cpath, epath string, logger *log.Logger) {
 	if encryptBrain && !encryptionInitialized {
 		Log(robot.Warn, "Brain encryption specified but not initialized; use 'initialize brain <key>' to initialize the encrypted brain interactively")
 	}
+
+	// cli commands don't need an http listener
+	if cliOp {
+		return
+	}
+
 	if !listening {
 		listening = true
 		listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%s", botCfg.port))
