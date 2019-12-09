@@ -19,7 +19,8 @@ const identifierRegex = `[A-Za-z][\w-]*`
 
 var identifierRe = regexp.MustCompile(identifierRegex)
 
-// Global persistent map of plugin name to unique ID
+// Global persistent map of task/namespace name to unique ID
+// TODO: rename this when errors are cleared
 var taskNameIDmap = struct {
 	m map[string]string
 	sync.Mutex
@@ -29,18 +30,27 @@ var taskNameIDmap = struct {
 }
 
 type taskList struct {
-	t          []interface{}
-	nameMap    map[string]int
-	idMap      map[string]int
-	nameSpaces map[string]struct{}
-	//	sync.RWMutex
+	t []interface{}
+	// nameMap - map of every task, job, plugin and namespace to t[] index;
+	// namespaces are all idx==0
+	nameMap map[string]int
+	idMap   map[string]int // task ID to task number
+	// map of namespace name to NameSpace, updated on every load
+	nameSpaces map[string]NameSpace
 }
 
-var currentTasks = struct {
+// The Global Task list, initialized while single threaded in init() funcs,
+// loadModules, and initial config load. Potentially appended to during reload.
+var globalTasks = struct {
 	*taskList
 	sync.Mutex
 }{
-	&taskList{},
+	&taskList{
+		t:          []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces only
+		nameMap:    make(map[string]int),
+		idMap:      make(map[string]int),
+		nameSpaces: make(map[string]NameSpace),
+	},
 	sync.Mutex{},
 }
 
@@ -62,8 +72,18 @@ func (tl *taskList) getTaskByName(name string) interface{} {
 		Log(robot.Error, "task '%s' not found calling getTaskByName", name)
 		return nil
 	}
+	if ti == 0 {
+		Log(robot.Error, "'%s' refers to a namespace in getTaskByName", name)
+		return nil
+	}
 	task := tl.t[ti]
 	return task
+}
+
+// true if name refers to a NameSpace, false if not or doesn't exist
+func (tl *taskList) isNamespace(name string) (ok bool) {
+	_, ok = tl.nameSpaces[name]
+	return
 }
 
 // TaskSpec is the structure for ScheduledJobs (gopherbot.yaml) and AddTask (robot method)
@@ -79,9 +99,10 @@ type Parameter struct {
 	Name, Value string
 }
 
-// ExternalTask struct for ExternalPlugins, ExternalJobs and ExternalTasks in gopherbot.yaml.
-// Note that this is the only configuration supplied for an ExternalTask.
-type ExternalTask struct {
+// TaskSettings struct used for configuration of: ExternalPlugins, ExternalJobs,
+// ExternalTasks, GoPlugins, GoJobs, GoTasks and NameSpaces in gopherbot.yaml.
+// Not every field is used in every case.
+type TaskSettings struct {
 	Name, Path, Description, NameSpace string
 	Disabled                           bool
 	Privileged                         *bool
@@ -90,8 +111,8 @@ type ExternalTask struct {
 
 // LoadableModule struct for loading external modules.
 type LoadableModule struct {
-	Name, Path, Description, NameSpace string
-	Disabled                           bool
+	Name, Path, Description string
+	Disabled                bool
 }
 
 // ScheduledTask items defined in gopherbot.yaml, mostly for scheduled jobs
@@ -121,6 +142,13 @@ type JobTrigger struct {
 	User    string         // required user to trigger this job, normally git-activated webhook or integration
 	Channel string         // required channel for the trigger
 	re      *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
+}
+
+// NameSpace just stores a name, description, and parameters - they cannot be run.
+type NameSpace struct {
+	name        string      // name of the shared namespace
+	Description string      // optional description of the shared namespace
+	Parameters  []Parameter // Parameters for the shared namespace
 }
 
 // Task configuration is common to tasks, plugins or jobs. Any task, plugin or job can call bot methods. Note that tasks are only defined
@@ -178,20 +206,22 @@ type Plugin struct {
 }
 
 var pluginHandlers = make(map[string]robot.PluginHandler)
+var jobHandlers = make(map[string]robot.JobHandler)
+var taskHandlers = make(map[string]robot.TaskHandler)
 
 // stopRegistrations is set "true" when the bot is created to prevent registration outside of init functions
 var stopRegistrations = false
 
 // initialize sends the "init" command to every plugin
 func initializePlugins() {
-	currentTasks.Lock()
+	globalTasks.Lock()
 	tasks := taskList{
-		currentTasks.t,
-		currentTasks.nameMap,
-		currentTasks.idMap,
-		currentTasks.nameSpaces,
+		globalTasks.t,
+		globalTasks.nameMap,
+		globalTasks.idMap,
+		globalTasks.nameSpaces,
 	}
-	currentTasks.Unlock()
+	globalTasks.Unlock()
 	c := &botContext{
 		environment: make(map[string]string),
 		tasks:       tasks,
@@ -217,30 +247,87 @@ func initializePlugins() {
 	c.deregister()
 }
 
+// registerTask centralizes the sanity checking logic for RegisterPlugin,
+// RegisterJob and RegisterTask
+func registerTask(name string) *Task {
+	if stopRegistrations {
+		return nil
+	}
+	if !identifierRe.MatchString(name) {
+		log.Fatalf("Name '%s' doesn't match name regex '%s'", name, identifierRe.String())
+	}
+	if name == "bot" {
+		log.Fatalf("Illegal name registration for 'bot'")
+	}
+	if dupidx, ok := globalTasks.nameMap[name]; ok {
+		dupTask, _, _ := getTask(globalTasks.t[dupidx])
+		dupTask.Disabled = true
+		dupTask.reason = "name collision with existing task/job/plugin/namespace"
+		return nil
+	}
+	tid := getTaskID(name)
+	task := &Task{
+		name:     name,
+		taskType: taskGo,
+		taskID:   tid,
+	}
+	return task
+}
+
+// addTask adds the registered task to the global list
+func (tl *taskList) addTask(t interface{}) {
+	task, _, _ := getTask(t)
+	idx := len(tl.t)
+	tl.t = append(tl.t, t)
+	tl.nameMap[task.name] = idx
+	tl.idMap[task.name] = idx
+}
+
 // RegisterPlugin allows Go plugins to register a PluginHandler in a func init().
+// Also called for new plugins loaded with a loadable module.
 // When the bot initializes, it will call each plugin's handler with a command
 // "init", empty channel, the bot's username, and no arguments, so the plugin
 // can store this information for, e.g., scheduled jobs.
-// See builtins.go for the pluginHandlers definition.
+// See robot/structs.go for the pluginHandlers definition.
 func RegisterPlugin(name string, plug robot.PluginHandler) {
-	if stopRegistrations {
+	task := registerTask(name)
+	if task == nil {
 		return
 	}
-	if !identifierRe.MatchString(name) {
-		log.Fatalf("Plugin name '%s' doesn't match plugin name regex '%s'", name, identifierRe.String())
+	plugin := &Plugin{
+		Task: task,
 	}
-	if name == "bot" {
-		log.Fatalf("Illegal Go plugin name registration for 'bot'")
-	}
-	if _, exists := pluginHandlers[name]; exists {
-		log.Fatalf("Attempted plugin name registration duplicates builtIn or other Go plugin: %s", name)
-	}
+	globalTasks.addTask(plugin)
 	pluginHandlers[name] = plug
 }
 
-func getTaskID(plug string) string {
+// RegisterJob registers a Go job
+func RegisterJob(name string, gojob robot.JobHandler) {
+	task := registerTask(name)
+	if task == nil {
+		return
+	}
+	job := &Job{
+		Task: task,
+	}
+	globalTasks.addTask(job)
+	jobHandlers[name] = gojob
+}
+
+// RegisterTask registers a Go job
+func RegisterTask(name string, gojob robot.JobHandler) {
+	task := registerTask(name)
+	if task == nil {
+		return
+	}
+	globalTasks.addTask(task)
+	jobHandlers[name] = gojob
+}
+
+// return or generate a new taskID
+func getTaskID(name string) string {
 	taskNameIDmap.Lock()
-	taskID, ok := taskNameIDmap.m[plug]
+	taskID, ok := taskNameIDmap.m[name]
 	if ok {
 		taskNameIDmap.Unlock()
 		return taskID
@@ -249,7 +336,7 @@ func getTaskID(plug string) string {
 	p := make([]byte, 16)
 	rand.Read(p)
 	taskID = fmt.Sprintf("%x", p)
-	taskNameIDmap.m[plug] = taskID
+	taskNameIDmap.m[name] = taskID
 	taskNameIDmap.Unlock()
 	return taskID
 }

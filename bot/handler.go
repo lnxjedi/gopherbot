@@ -130,12 +130,12 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		logChannel = "(direct message)"
 	}
 
-	currentTasks.Lock()
-	t := currentTasks.t
-	nameMap := currentTasks.nameMap
-	idMap := currentTasks.idMap
-	nameSpaces := currentTasks.nameSpaces
-	currentTasks.Unlock()
+	globalTasks.Lock()
+	t := globalTasks.t
+	nameMap := globalTasks.nameMap
+	idMap := globalTasks.idMap
+	nameSpaces := globalTasks.nameSpaces
+	globalTasks.Unlock()
 	confLock.RLock()
 	repolist := repositories
 	confLock.RUnlock()

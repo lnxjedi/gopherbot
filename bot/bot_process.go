@@ -49,8 +49,8 @@ func RegisterConnector(name string, connstarter func(robot.Handler, *log.Logger)
 	connectors[name] = connstarter
 }
 
-// robot holds all the interal data relevant to the Bot. Most of it is populated
-// by loadConfig, other stuff is populated by the connector.
+// botCfg holds all the interal data relevant to the Bot. Most of it is populated
+// by loadConfig.
 var botCfg struct {
 	robot.Connector                            // Connector interface, implemented by each specific protocol
 	adminUsers           []string              // List of users with access to administrative commands
@@ -75,9 +75,13 @@ var botCfg struct {
 	workSpace            string                // Read/Write directory where the robot does work
 	defaultElevator      string                // Plugin name for performing elevation
 	defaultAuthorizer    string                // Plugin name for performing authorization
-	externalPlugins      []ExternalTask        // List of external plugins to load
-	externalJobs         []ExternalTask        // List of external jobs to load
-	externalTasks        []ExternalTask        // List of external tasks to load
+	externalPlugins      []TaskSettings        // List of external plugins to load
+	externalJobs         []TaskSettings        // List of external jobs to load
+	externalTasks        []TaskSettings        // List of external tasks to load
+	goPlugins            []TaskSettings        // Settings for goPlugins: Name(match), Description, NameSpace, Parameters, Disabled
+	goJobs               []TaskSettings        // Settings for goJobs: Name(match), Description, NameSpace, Parameters, Disabled
+	goTasks              []TaskSettings        // Settings for goTasks: Name(match), Description, NameSpace, Parameters, Disabled
+	nameSpaces           []TaskSettings        // NameSpaces for shared parameters
 	loadableModules      []LoadableModule      // List of loadable modules to load
 	ScheduledJobs        []ScheduledTask       // List of scheduled tasks
 	port                 string                // Configured localhost port to listen on, or 0 for first open

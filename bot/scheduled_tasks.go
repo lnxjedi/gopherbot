@@ -26,14 +26,14 @@ func scheduleTasks() {
 		Log(robot.Info, "Scheduling tasks in system default timezone")
 		taskRunner = cron.New()
 	}
-	currentTasks.Lock()
+	globalTasks.Lock()
 	tasks := taskList{
-		currentTasks.t,
-		currentTasks.nameMap,
-		currentTasks.idMap,
-		currentTasks.nameSpaces,
+		globalTasks.t,
+		globalTasks.nameMap,
+		globalTasks.idMap,
+		globalTasks.nameSpaces,
 	}
-	currentTasks.Unlock()
+	globalTasks.Unlock()
 	confLock.RLock()
 	repolist := repositories
 	confLock.RUnlock()

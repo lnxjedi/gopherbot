@@ -26,10 +26,11 @@ func (r *Robot) GetRepoData() map[string]Repository {
 	export := make(map[string]Repository)
 	for r, d := range c.repositories {
 		e := Repository{
-			Type:        d.Type,
-			CloneURL:    d.CloneURL,
-			KeepHistory: d.KeepHistory,
-			Parameters:  []Parameter{},
+			Type:         d.Type,
+			CloneURL:     d.CloneURL,
+			Dependencies: d.Dependencies,
+			KeepHistory:  d.KeepHistory,
+			Parameters:   []Parameter{},
 		}
 		export[r] = e
 	}

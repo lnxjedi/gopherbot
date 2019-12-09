@@ -15,8 +15,8 @@ import (
 
 var protocolConfig, brainConfig, historyConfig json.RawMessage
 
-// BotConf defines 'bot configuration, and is read from conf/gopherbot.yaml
-type BotConf struct {
+// Configuration defines 'bot configuration, and is read from conf/gopherbot.yaml
+type Configuration struct {
 	AdminContact         string                    // Contact info for whomever administers the robot
 	MailConfig           botMailer                 // configuration for sending email
 	Protocol             string                    // Name of the connector protocol to use, e.g. "slack"
@@ -40,9 +40,13 @@ type BotConf struct {
 	JoinChannels         []string                  // Channels the 'bot should join when it logs in (not supported by all protocols)
 	DefaultJobChannel    string                    // Where job status is posted by default
 	TimeZone             string                    // For evaluating the hour in a job schedule
-	ExternalJobs         map[string]ExternalTask   // list of available jobs; config in conf/jobs/<jobname>.yaml
-	ExternalPlugins      map[string]ExternalTask   // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
-	ExternalTasks        map[string]ExternalTask   // List executables that can be added to a pipeline (but can't start one)
+	ExternalJobs         map[string]TaskSettings   // list of available jobs; config in conf/jobs/<jobname>.yaml
+	ExternalPlugins      map[string]TaskSettings   // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
+	ExternalTasks        map[string]TaskSettings   // List executables that can be added to a pipeline (but can't start one)
+	GoJobs               map[string]TaskSettings   // settings for go jobs; config in conf/jobs/<jobname>.yaml
+	GoPlugins            map[string]TaskSettings   // settings for go plugins; config in conf/plugins/<plugname>.yaml
+	GoTasks              map[string]TaskSettings   // settings for go tasks
+	NameSpaces           map[string]TaskSettings   // namespaces for shared parameters & memory sharing
 	LoadableModules      map[string]LoadableModule // List of loadable modules to load
 	ScheduledJobs        []ScheduledTask           // see tasks.go
 	AdminUsers           []string                  // List of users who can access administrative commands
@@ -53,10 +57,11 @@ type BotConf struct {
 
 // Repository represents a buildable git repository, for CI/CD
 type Repository struct {
-	Type        string // task extending the namespace needs to match for parameters
-	CloneURL    string
-	KeepHistory int         // How many job logs to keep for this repo
-	Parameters  []Parameter // per-repository parameters
+	Type         string // task extending the namespace needs to match for parameters
+	CloneURL     string
+	Dependencies []string    // List of repositories this one depends on; changes to a dependency trigger a build
+	KeepHistory  int         // How many job logs to keep for this repo
+	Parameters   []Parameter // per-repository parameters
 }
 
 // UserInfo is listed in the UserRoster of gopherbot.yaml to provide:
@@ -98,18 +103,17 @@ var currentUCMaps = struct {
 
 // Protects the bot config and list of repositories
 var confLock sync.RWMutex
-var config *BotConf
+var config *Configuration
 var repositories map[string]Repository
 
 // loadConfig loads the 'bot's yaml configuration files.
 func (c *botContext) loadConfig(preConnect bool) error {
 	var loglevel robot.LogLevel
-	newconfig := &BotConf{}
-	newconfig.ExternalJobs = make(map[string]ExternalTask)
-	newconfig.ExternalPlugins = make(map[string]ExternalTask)
-	newconfig.ExternalTasks = make(map[string]ExternalTask)
+	newconfig := &Configuration{}
+	newconfig.ExternalJobs = make(map[string]TaskSettings)
+	newconfig.ExternalPlugins = make(map[string]TaskSettings)
+	newconfig.ExternalTasks = make(map[string]TaskSettings)
 	configload := make(map[string]json.RawMessage)
-	tasksOk := true
 
 	if err := c.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
@@ -136,7 +140,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		var urval []UserInfo
 		var bival *UserInfo
 		var crval []ChannelInfo
-		var tval map[string]ExternalTask
+		var tval map[string]TaskSettings
 		var mval map[string]LoadableModule
 		var stval []ScheduledTask
 		var mailval botMailer
@@ -228,11 +232,11 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		case "EncryptBrain":
 			newconfig.EncryptBrain = *(val.(*bool))
 		case "ExternalPlugins":
-			newconfig.ExternalPlugins = *(val.(*map[string]ExternalTask))
+			newconfig.ExternalPlugins = *(val.(*map[string]TaskSettings))
 		case "ExternalJobs":
-			newconfig.ExternalJobs = *(val.(*map[string]ExternalTask))
+			newconfig.ExternalJobs = *(val.(*map[string]TaskSettings))
 		case "ExternalTasks":
-			newconfig.ExternalTasks = *(val.(*map[string]ExternalTask))
+			newconfig.ExternalTasks = *(val.(*map[string]TaskSettings))
 		case "LoadableModules":
 			newconfig.LoadableModules = *(val.(*map[string]LoadableModule))
 		case "ScheduledJobs":
@@ -325,7 +329,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		botCfg.plugChannels = newconfig.DefaultChannels
 	}
 	if newconfig.ExternalPlugins != nil {
-		et := make([]ExternalTask, 0)
+		et := make([]TaskSettings, 0)
 		for name, task := range newconfig.ExternalPlugins {
 			if task.Disabled {
 				continue
@@ -340,7 +344,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		botCfg.externalPlugins = et
 	}
 	if newconfig.ExternalJobs != nil {
-		et := make([]ExternalTask, 0)
+		et := make([]TaskSettings, 0)
 		for name, task := range newconfig.ExternalJobs {
 			if task.Disabled {
 				continue
@@ -355,7 +359,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		botCfg.externalJobs = et
 	}
 	if newconfig.ExternalTasks != nil {
-		et := make([]ExternalTask, 0)
+		et := make([]TaskSettings, 0)
 		for name, task := range newconfig.ExternalTasks {
 			if task.Disabled {
 				continue
@@ -501,11 +505,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	repositories = repolist
 	confLock.Unlock()
 
-	if tasksOk && !preConnect {
-		c.loadTaskConfig()
-	} else if !tasksOk {
-		return fmt.Errorf("reading external plugin config")
-	}
+	c.loadTaskConfig(preConnect)
 
 	if !preConnect {
 		updateRegexes()

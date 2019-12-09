@@ -10,16 +10,22 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-// loadTaskConfig() loads the configuration for all the jobs/plugins from
-// /jobs/<jobname>.yaml or /plugins/<pluginname>.yaml, assigns a taskID, and
-// stores the resulting array in b.tasks. Bad tasks are skipped and logged.
-// Task configuration is initially loaded into temporary data structures,
-// then stored in the bot package under the global bot lock.
-func (c *botContext) loadTaskConfig() {
-	taskIndexByID := make(map[string]int)
-	taskIndexByName := make(map[string]int)
-	nameSpaceSet := make(map[string]struct{})
-	tlist := make([]interface{}, 0, 14)
+// loadTaskConfig() updates task/job/plugin configuration and namespaces
+// from gopherbot.yaml and external configuration, then updates the
+// globalTasks struct.
+func (c *botContext) loadTaskConfig(preconnect bool) {
+	newList := taskList{
+		t:          []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces only
+		nameMap:    make(map[string]int),
+		idMap:      make(map[string]int),
+		nameSpaces: make(map[string]NameSpace),
+	}
+	globalTasks.Lock()
+	current := taskList{
+		t:       globalTasks.t,
+		nameMap: globalTasks.nameMap,
+	}
+	globalTasks.Unlock()
 
 	// Copy some data from the bot under read lock, including external plugins
 	botCfg.RLock()
@@ -30,34 +36,95 @@ func (c *botContext) loadTaskConfig() {
 	externalTasks := botCfg.externalTasks
 	externalJobs := botCfg.externalJobs
 	externalPlugins := botCfg.externalPlugins
+	goTasks := botCfg.goTasks
+	goJobs := botCfg.goJobs
+	goPlugins := botCfg.goPlugins
+	nsList := botCfg.nameSpaces
 	botCfg.RUnlock() // we're done with bot data 'til the end
 
-	i := 0
-
-	for plugname := range pluginHandlers {
-		plugin := &Plugin{
-			Task: &Task{
-				name:     plugname,
-				taskType: taskGo,
-				taskID:   getTaskID(plugname),
-			},
-		}
-		tlist = append(tlist, plugin)
-		taskIndexByID[plugin.Task.taskID] = i
-		taskIndexByName[plugin.Task.name] = i
-		i++
+	// Start with all the Go tasks, plugins and jobs
+	for taskname := range taskHandlers {
+		t := current.getTaskByName(taskname)
+		newList.addTask(t)
 	}
 
-	// Initial load of plugins
-	for index, script := range externalPlugins {
-		if !identifierRe.MatchString(script.Name) {
-			Log(robot.Error, "Plugin name: '%s', index: %d doesn't match task name regex '%s', skipping", script.Name, index+1, identifierRe.String())
+	for plugname := range pluginHandlers {
+		t := current.getTaskByName(plugname)
+		newList.addTask(t)
+	}
+
+	for jobname := range jobHandlers {
+		t := current.getTaskByName(jobname)
+		newList.addTask(t)
+	}
+
+	for _, ns := range nsList {
+		if t := newList.getTaskByName(ns.Name); t != nil {
+			Log(robot.Error, "NameSpace '%s' conflicts with Go task/job/plugin name, ignoring", ns.Name)
 			continue
 		}
-		if script.Name == "bot" {
-			Log(robot.Error, "Illegal task name: bot - skipping")
-			continue
+		newList.nameSpaces[ns.Name] = NameSpace{
+			name:        ns.Name,
+			Description: ns.Description,
+			Parameters:  ns.Parameters,
 		}
+		// The nameMap is the definitive list of all names, but namespaces don't correspond
+		// to an actual task.
+		newList.nameMap[ns.Name] = 0
+	}
+
+	checkTaskSettings := func(ts TaskSettings, task *Task) bool {
+		if ts.Disabled {
+			task.Disabled = true
+			task.reason = "disabled in gopherbot.yaml"
+			return false
+		}
+		if len(ts.NameSpace) > 0 {
+			if _, ok := newList.nameSpaces[ts.NameSpace]; !ok {
+				task.Disabled = true
+				task.reason = "configured NameSpace '" + ts.NameSpace + "' not found"
+				return false
+			}
+		}
+		task.Description = ts.Description
+		task.Parameters = ts.Parameters
+		return true
+	}
+
+	setupGoTask := func(ts TaskSettings, ttype pipeAddType) {
+		t := newList.getTaskByName(ts.Name)
+		if t == nil {
+			Log(robot.Error, "Configured Go task '%s' - no task found with that name", ts.Name)
+			return
+		}
+		task, plug, job := getTask(t)
+		if (ttype == typePlugin && plug == nil) || (ttype == typeJob && job == nil) || task == nil {
+			Log(robot.Error, "Configured Go task '%s' (type %s) - no task registered with that name", ts.Name)
+		}
+		checkTaskSettings(ts, task)
+	}
+
+	// Get basic task configurations
+	for _, ts := range goTasks {
+		setupGoTask(ts, typeTask)
+	}
+	for _, ts := range goPlugins {
+		setupGoTask(ts, typePlugin)
+	}
+	for _, ts := range goJobs {
+		setupGoTask(ts, typeJob)
+	}
+
+	addExternalTask := func(name string, ts TaskSettings, ttype pipeAddType) {
+		if !identifierRe.MatchString(name) {
+			Log(robot.Error, "External task '%s' (type %s) doesn't match task name regex '%s', skipping", name, identifierRe.String())
+			return
+		}
+		if name == "bot" {
+			Log(robot.Error, "Illegal external task name 'bot' (type %s) - skipping", name)
+			return
+		}
+		// TODO: finish me!
 		if _, ok := taskIndexByName[script.Name]; ok {
 			msg := fmt.Sprintf("External plugin index: #%d, name: '%s' duplicates name of builtIn or Go plugin, skipping", index, script.Name)
 			Log(robot.Error, msg)
@@ -89,6 +156,10 @@ func (c *botContext) loadTaskConfig() {
 		taskIndexByID[task.taskID] = i
 		taskIndexByName[task.name] = i
 		i++
+	}
+
+	for name, script := range externalPlugins {
+		addExternalTask(name, script, typePlugin)
 	}
 
 	// Initial load of jobs
@@ -773,12 +844,12 @@ LoadLoop:
 	// End of configuration loading. All invalid tasks are disabled.
 
 	reInitPlugins := false
-	currentTasks.Lock()
-	currentTasks.t = tlist
-	currentTasks.idMap = taskIndexByID
-	currentTasks.nameMap = taskIndexByName
-	currentTasks.nameSpaces = nameSpaceSet
-	currentTasks.Unlock()
+	globalTasks.Lock()
+	globalTasks.t = tlist
+	globalTasks.idMap = taskIndexByID
+	globalTasks.nameMap = taskIndexByName
+	globalTasks.nameSpaces = nameSpaceSet
+	globalTasks.Unlock()
 	// loadTaskConfig is called in initBot, before the connector has started;
 	// don't init plugins in that case.
 	botCfg.RLock()
