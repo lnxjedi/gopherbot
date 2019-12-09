@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"encoding/base64"
 	"fmt"
 	"log"
 	"runtime"
@@ -190,25 +189,6 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 		return // ignore init
 	}
 	switch command {
-	case "encrypt":
-		cryptKey.RLock()
-		initialized := cryptKey.initialized
-		key := cryptKey.key
-		cryptKey.RUnlock()
-		if !initialized {
-			r.Say("Sorry, I can't encrypt secrets - encryption isn't initialized, please check with an administrator")
-			return
-		}
-		secret := args[0]
-		b, err := encrypt([]byte(secret), key)
-		if err != nil {
-			r.Log(robot.Error, "Problem encrypting secret in 'encrypt' command: %v", err)
-			r.Say("I had problems encrypting your secret, check with an administrator")
-			return
-		}
-		encoded := base64.StdEncoding.EncodeToString(b)
-		r.Fixed().Say(encoded)
-		return
 	case "dumprobot":
 		botCfg.RLock()
 		c, _ := yaml.Marshal(config)

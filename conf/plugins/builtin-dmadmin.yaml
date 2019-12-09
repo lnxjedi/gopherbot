@@ -10,8 +10,6 @@ Help:
   Helptext: [ "(bot), list (disabled) plugins - list all known plugins, or list disabled plugins with the reason disabled" ]
 - Keywords: [ "dump", "robot" ]
   Helptext: [ "(bot), dump robot - dump the current configuration for the robot" ]
-- Keywords: [ "encrypt", "secret", "credentials" ]
-  Helptext: [ "(bot), encrypt <secret> - get the encrypted and base64-encoded value for <secret>"]
 CommandMatchers:
 - Command: "listplugins"
   Regex: '(?i:list( disabled)? plugins?)'
@@ -21,5 +19,3 @@ CommandMatchers:
   Regex: '(?i:dump plugin ([\d\w-.]+))'
 - Command: "dumprobot"
   Regex: "dump robot"
-- Command: encrypt
-  Regex: '(?i:encrypt (.+))'
