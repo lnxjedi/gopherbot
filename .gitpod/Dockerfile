@@ -6,6 +6,7 @@ RUN apt-get update && \
     curl \
     git \
     jq \
+    less \
     openssh-client \
     python \
     python-yaml \
