@@ -30,7 +30,8 @@ func (c *botContext) checkPluginMatchersAndRun(pipelineType pipelineType) (messa
 	var runTask interface{}
 	var matchedMatcher InputMatcher
 	var cmdArgs []string
-	for _, t := range c.tasks.t {
+	// Note: skip the first task, dummy used for namespaces
+	for _, t := range c.tasks.t[1:] {
 		task, plugin, _ := getTask(t)
 		if plugin == nil {
 			continue

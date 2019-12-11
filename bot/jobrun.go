@@ -24,7 +24,7 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	var triggerArgs []string
 
 	// First, check triggers
-	for _, t := range c.tasks.t {
+	for _, t := range c.tasks.t[1:] {
 		task, _, job := getTask(t)
 		if job == nil {
 			continue

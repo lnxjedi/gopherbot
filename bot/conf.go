@@ -161,7 +161,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			val = &crval
 		case "LocalPort":
 			val = &intval
-		case "ExternalJobs", "ExternalPlugins", "ExternalTasks":
+		case "ExternalJobs", "ExternalPlugins", "ExternalTasks", "GoJobs", "GoPlugins", "GoTasks", "NameSpaces":
 			val = &tval
 		case "LoadableModules":
 			val = &mval
@@ -237,6 +237,14 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			newconfig.ExternalJobs = *(val.(*map[string]TaskSettings))
 		case "ExternalTasks":
 			newconfig.ExternalTasks = *(val.(*map[string]TaskSettings))
+		case "GoPlugins":
+			newconfig.GoPlugins = *(val.(*map[string]TaskSettings))
+		case "GoJobs":
+			newconfig.GoJobs = *(val.(*map[string]TaskSettings))
+		case "GoTasks":
+			newconfig.GoTasks = *(val.(*map[string]TaskSettings))
+		case "NameSpaces":
+			newconfig.NameSpaces = *(val.(*map[string]TaskSettings))
 		case "LoadableModules":
 			newconfig.LoadableModules = *(val.(*map[string]LoadableModule))
 		case "ScheduledJobs":
@@ -505,7 +513,9 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	repositories = repolist
 	confLock.Unlock()
 
-	c.loadTaskConfig(preConnect)
+	if err := c.loadTaskConfig(preConnect); err != nil {
+		return err
+	}
 
 	if !preConnect {
 		updateRegexes()

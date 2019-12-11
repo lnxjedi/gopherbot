@@ -97,7 +97,7 @@ func (c *botContext) loadTaskConfig(preconnect bool) error {
 		}
 		task, plug, job := getTask(t)
 		if (ttype == typePlugin && plug == nil) || (ttype == typeJob && job == nil) || task == nil {
-			return fmt.Errorf("configuring Go task '%s' (type %s) - no task of that type registered with that name", ts.Name)
+			return fmt.Errorf("configuring Go task '%s' (type %s) - no task of that type registered with that name", ts.Name, ttype)
 		}
 		_, err := checkTaskSettings(ts, task)
 		return err
@@ -122,7 +122,7 @@ func (c *botContext) loadTaskConfig(preconnect bool) error {
 
 	addExternalTask := func(ts TaskSettings, ttype pipeAddType) (*Task, error) {
 		if !identifierRe.MatchString(ts.Name) {
-			return nil, fmt.Errorf("external task '%s' (type %s) doesn't match task name regex '%s'", ts.Name, identifierRe.String())
+			return nil, fmt.Errorf("external task '%s' (type %s) doesn't match task name regex '%s'", ts.Name, ttype, identifierRe.String())
 		}
 		if ts.Name == "bot" {
 			return nil, fmt.Errorf("illegal external task name 'bot' (type %s)", ts.Name)
@@ -131,7 +131,7 @@ func (c *botContext) loadTaskConfig(preconnect bool) error {
 			dupt := newList.t[dupidx]
 			duptask, _, _ := getTask(dupt)
 			if duptask.taskType == taskGo {
-				return nil, fmt.Errorf("external task '%s' duplicates name of existing Go task/plugin/job")
+				return nil, fmt.Errorf("external task '%s' duplicates name of existing Go task/plugin/job", ts.Name)
 			}
 			return nil, fmt.Errorf("External task '%s' duplicates name of other external task/plugin/job", ts.Name)
 		}
@@ -329,7 +329,7 @@ LoadLoop:
 			case "Config":
 				skip = true
 			case "Privileged":
-				return fmt.Errorf("task '%s' illegally specifies 'Privileged' outside of gopherbot.yaml")
+				return fmt.Errorf("task '%s' illegally specifies 'Privileged' outside of gopherbot.yaml", task.name)
 			default:
 				msg := fmt.Sprintf("Invalid configuration key for task '%s': %s - disabling", task.name, key)
 				Log(robot.Error, msg)

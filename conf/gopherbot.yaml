@@ -115,6 +115,9 @@ DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}
 ## by e.g. setting 'GOPHER_OWM_APIKEY' in the environment, or by instead using
 ## 'store task parameter weather OWM_APIKEY=<value>'
 
+NameSpaces:
+  "ssh":
+
 ExternalPlugins:
 ## Useful and/or entertaining plugins; disable by setting 'Disabled: true' in
 ## custom configuration.
@@ -130,7 +133,7 @@ ExternalPlugins:
     Path: plugins/ssh-admin.sh
     Privileged: true
     # ssh parameters are set in the ssh-init task, below
-    NameSpace: ssh-init
+    NameSpace: ssh
   "weather":
     Description: A plugin that uses OpenWeatherMap to report the weather
     Path: plugins/weather.rb
