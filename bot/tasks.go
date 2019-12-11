@@ -259,11 +259,8 @@ func registerTask(name string) *Task {
 	if name == "bot" {
 		log.Fatalf("Illegal name registration for 'bot'")
 	}
-	if dupidx, ok := globalTasks.nameMap[name]; ok {
-		dupTask, _, _ := getTask(globalTasks.t[dupidx])
-		dupTask.Disabled = true
-		dupTask.reason = "name collision with existing task/job/plugin/namespace"
-		return nil
+	if _, ok := globalTasks.nameMap[name]; ok {
+		log.Fatalf("Go task '%s' name collision with other task/job/plugin/namespace", name)
 	}
 	tid := getTaskID(name)
 	task := &Task{

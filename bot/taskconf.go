@@ -13,7 +13,7 @@ import (
 // loadTaskConfig() updates task/job/plugin configuration and namespaces
 // from gopherbot.yaml and external configuration, then updates the
 // globalTasks struct.
-func (c *botContext) loadTaskConfig(preconnect bool) {
+func (c *botContext) loadTaskConfig(preconnect bool) error {
 	newList := taskList{
 		t:          []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces only
 		nameMap:    make(map[string]int),
@@ -60,8 +60,7 @@ func (c *botContext) loadTaskConfig(preconnect bool) {
 
 	for _, ns := range nsList {
 		if t := newList.getTaskByName(ns.Name); t != nil {
-			Log(robot.Error, "NameSpace '%s' conflicts with Go task/job/plugin name, ignoring", ns.Name)
-			continue
+			return fmt.Errorf("NameSpace '%s' conflicts with Go task/job/plugin name, ignoring", ns.Name)
 		}
 		newList.nameSpaces[ns.Name] = NameSpace{
 			name:        ns.Name,
@@ -85,6 +84,7 @@ func (c *botContext) loadTaskConfig(preconnect bool) {
 				task.reason = "configured NameSpace '" + ts.NameSpace + "' not found"
 				return false
 			}
+			task.NameSpace = ts.NameSpace
 		}
 		task.Description = ts.Description
 		task.Parameters = ts.Parameters
@@ -100,6 +100,7 @@ func (c *botContext) loadTaskConfig(preconnect bool) {
 		task, plug, job := getTask(t)
 		if (ttype == typePlugin && plug == nil) || (ttype == typeJob && job == nil) || task == nil {
 			Log(robot.Error, "Configured Go task '%s' (type %s) - no task registered with that name", ts.Name)
+			return
 		}
 		checkTaskSettings(ts, task)
 	}
@@ -115,7 +116,7 @@ func (c *botContext) loadTaskConfig(preconnect bool) {
 		setupGoTask(ts, typeJob)
 	}
 
-	addExternalTask := func(name string, ts TaskSettings, ttype pipeAddType) {
+	addExternalTask := func(name string, ts TaskSettings, ttype pipeAddType) error {
 		if !identifierRe.MatchString(name) {
 			Log(robot.Error, "External task '%s' (type %s) doesn't match task name regex '%s', skipping", name, identifierRe.String())
 			return
@@ -125,6 +126,10 @@ func (c *botContext) loadTaskConfig(preconnect bool) {
 			return
 		}
 		// TODO: finish me!
+		if _, ok := newList.nameMap[name]; ok {
+
+			Log(robot.Error, "External task ")
+		}
 		if _, ok := taskIndexByName[script.Name]; ok {
 			msg := fmt.Sprintf("External plugin index: #%d, name: '%s' duplicates name of builtIn or Go plugin, skipping", index, script.Name)
 			Log(robot.Error, msg)

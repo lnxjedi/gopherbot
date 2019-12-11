@@ -2,8 +2,8 @@
 image:
     file: .gitpod/Dockerfile
     context: .gitpod
-checkoutLocation: gopherbot
-workspaceLocation: gopherbot
+# checkoutLocation: gopherbot
+# workspaceLocation: gopherbot
 tasks:
 - init: make
 - init: ./.gitpod/gotools.sh
