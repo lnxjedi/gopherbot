@@ -139,11 +139,11 @@ func getProtocol(proto string) (robot.Protocol, string) {
 }
 
 func updateRegexes() {
-	botCfg.RLock()
-	name := botCfg.botinfo.UserName
-	protoMention := botCfg.botinfo.protoMention
-	alias := botCfg.alias
-	botCfg.RUnlock()
+	currentCfg.RLock()
+	name := currentCfg.botinfo.UserName
+	protoMention := currentCfg.botinfo.protoMention
+	alias := currentCfg.alias
+	currentCfg.RUnlock()
 	pre, post, bare, errpre, errpost, errbare := updateRegexesWrapped(name, protoMention, alias)
 	if errpre != nil {
 		Log(robot.Error, "Compiling pre regex: %s", errpre)
@@ -163,11 +163,11 @@ func updateRegexes() {
 	if bare != nil {
 		Log(robot.Debug, "Setting bare regex to: %s", bare)
 	}
-	botCfg.Lock()
-	botCfg.preRegex = pre
-	botCfg.postRegex = post
-	botCfg.bareRegex = bare
-	botCfg.Unlock()
+	currentCfg.Lock()
+	currentCfg.preRegex = pre
+	currentCfg.postRegex = post
+	currentCfg.bareRegex = bare
+	currentCfg.Unlock()
 }
 
 // TODO: write unit test. The regexes produced shouldn't be checked, but rather

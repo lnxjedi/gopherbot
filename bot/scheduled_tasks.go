@@ -15,10 +15,10 @@ func scheduleTasks() {
 	if taskRunner != nil {
 		taskRunner.Stop()
 	}
-	botCfg.RLock()
-	scheduled := botCfg.ScheduledJobs
-	tz := botCfg.timeZone
-	botCfg.RUnlock()
+	currentCfg.RLock()
+	scheduled := currentCfg.ScheduledJobs
+	tz := currentCfg.timeZone
+	currentCfg.RUnlock()
 	if tz != nil {
 		Log(robot.Info, "Scheduling tasks in TimeZone: %s", tz)
 		taskRunner = cron.NewWithLocation(tz)
@@ -72,7 +72,7 @@ func runScheduledTask(t interface{}, ts TaskSpec, tasks taskList, repolist map[s
 		return
 	}
 
-	botCfg.RLock()
+	currentCfg.RLock()
 	// Create the botContext to carry state through the pipeline.
 	// startPipeline will take care of registerActive()
 	c := &botContext{
@@ -84,7 +84,7 @@ func runScheduledTask(t interface{}, ts TaskSpec, tasks taskList, repolist map[s
 		automaticTask: true, // scheduled jobs don't get authorization / elevation checks
 		environment:   make(map[string]string),
 	}
-	botCfg.RUnlock()
+	currentCfg.RUnlock()
 	var command string
 	if isPlugin {
 		command = ts.Command

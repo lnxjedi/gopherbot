@@ -204,14 +204,11 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 
 	switch command {
 	case "history", "mailhistory":
-		botCfg.RLock()
-		hp := botCfg.history
+		hp := interfaces.history
 		if hp == nil {
-			botCfg.RUnlock()
 			r.Reply("No history provider configured")
 			return
 		}
-		botCfg.RUnlock()
 		var jh jobHistory
 		key := histPrefix + histSpec
 		_, _, ret := checkoutDatum(key, &jh, false)
@@ -361,9 +358,9 @@ func (r *Robot) jobVisible(t interface{}, ignoreChannelRestrictions, disabledOk 
 	}
 	if task.RequireAdmin {
 		isAdmin := false
-		botCfg.RLock()
-		admins := botCfg.adminUsers
-		botCfg.RUnlock()
+		currentCfg.RLock()
+		admins := currentCfg.adminUsers
+		currentCfg.RUnlock()
 		for _, adminUser := range admins {
 			if r.User == adminUser {
 				isAdmin = true
@@ -407,9 +404,9 @@ func (c *botContext) jobAvailable(taskName string) interface{} {
 	}
 	if task.RequireAdmin {
 		isAdmin := false
-		botCfg.RLock()
-		admins := botCfg.adminUsers
-		botCfg.RUnlock()
+		currentCfg.RLock()
+		admins := currentCfg.adminUsers
+		currentCfg.RUnlock()
 		for _, adminUser := range admins {
 			if r.User == adminUser {
 				isAdmin = true

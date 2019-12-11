@@ -52,7 +52,7 @@ func (r Robot) GetUserAttribute(u, a string) *robot.AttrRet {
 			return &robot.AttrRet{attr, robot.Ok}
 		}
 	}
-	attr, ret := botCfg.GetProtocolUserAttribute(user, a)
+	attr, ret := interfaces.GetProtocolUserAttribute(user, a)
 	return &robot.AttrRet{attr, ret}
 }
 
@@ -66,7 +66,7 @@ func (c *botContext) messageHeard() {
 	if len(channel) == 0 {
 		channel = c.Channel
 	}
-	botCfg.MessageHeard(user, channel)
+	interfaces.MessageHeard(user, channel)
 }
 
 // GetSenderAttribute returns a AttrRet with
@@ -108,7 +108,7 @@ func (r Robot) GetSenderAttribute(a string) *robot.AttrRet {
 	if len(user) == 0 {
 		user = r.User
 	}
-	attr, ret := botCfg.GetProtocolUserAttribute(user, a)
+	attr, ret := interfaces.GetProtocolUserAttribute(user, a)
 	return &robot.AttrRet{attr, ret}
 }
 
@@ -130,7 +130,7 @@ func (r Robot) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal
 	} else {
 		channel = ch
 	}
-	return botCfg.SendProtocolChannelMessage(channel, msg, r.Format)
+	return interfaces.SendProtocolChannelMessage(channel, msg, r.Format)
 }
 
 // SendUserChannelMessage lets a plugin easily send a message directed to
@@ -159,7 +159,7 @@ func (r Robot) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot
 	} else {
 		channel = ch
 	}
-	return botCfg.SendProtocolUserChannelMessage(user, u, channel, msg, r.Format)
+	return interfaces.SendProtocolUserChannelMessage(user, u, channel, msg, r.Format)
 }
 
 // SendUserMessage lets a plugin easily send a DM to a user. If a DM
@@ -180,7 +180,7 @@ func (r Robot) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
 	} else {
 		user = u
 	}
-	return botCfg.SendProtocolUserMessage(user, msg, r.Format)
+	return interfaces.SendProtocolUserMessage(user, msg, r.Format)
 }
 
 // Reply directs a message to the user
@@ -198,7 +198,7 @@ func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 	}
 	// Support for Direct()
 	if r.Channel == "" {
-		return botCfg.SendProtocolUserMessage(user, msg, r.Format)
+		return interfaces.SendProtocolUserMessage(user, msg, r.Format)
 	}
 	channel := r.ProtocolChannel
 	if len(channel) == 0 {
@@ -206,9 +206,9 @@ func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 	}
 	c := r.getContext()
 	if c != nil && c.BotUser {
-		return botCfg.SendProtocolChannelMessage(r.Channel, r.User+": "+msg, r.Format)
+		return interfaces.SendProtocolChannelMessage(r.Channel, r.User+": "+msg, r.Format)
 	}
-	return botCfg.SendProtocolUserChannelMessage(user, r.User, r.Channel, msg, r.Format)
+	return interfaces.SendProtocolUserChannelMessage(user, r.User, r.Channel, msg, r.Format)
 }
 
 // Say just sends a message to the user or channel
@@ -226,11 +226,11 @@ func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 		if len(user) == 0 {
 			user = r.User
 		}
-		return botCfg.SendProtocolUserMessage(user, msg, r.Format)
+		return interfaces.SendProtocolUserMessage(user, msg, r.Format)
 	}
 	channel := r.ProtocolChannel
 	if len(channel) == 0 {
 		channel = r.Channel
 	}
-	return botCfg.SendProtocolChannelMessage(channel, msg, r.Format)
+	return interfaces.SendProtocolChannelMessage(channel, msg, r.Format)
 }

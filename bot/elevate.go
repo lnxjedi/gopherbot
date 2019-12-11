@@ -10,9 +10,9 @@ const configElevError = "Sorry, elevation failed due to a configuration error"
 
 func (c *botContext) elevate(task *Task, immediate bool) (retval robot.TaskRetVal) {
 	r := c.makeRobot()
-	botCfg.RLock()
-	defaultElevator := botCfg.defaultElevator
-	botCfg.RUnlock()
+	currentCfg.RLock()
+	defaultElevator := currentCfg.defaultElevator
+	currentCfg.RUnlock()
 	if task.Elevator == "" && defaultElevator == "" {
 		Log(robot.Audit, "Task '%s' requires elevation, but no elevator configured", task.name)
 		r.Say(configElevError)

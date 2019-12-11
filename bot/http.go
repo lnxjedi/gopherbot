@@ -229,9 +229,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if len(f.Format) > 0 {
 		r.Format = setFormat(f.Format)
 	} else {
-		botCfg.RLock()
-		r.Format = botCfg.defaultMessageFormat
-		botCfg.RUnlock()
+		currentCfg.RLock()
+		r.Format = currentCfg.defaultMessageFormat
+		currentCfg.RUnlock()
 	}
 	task, _, _ := getTask(c.currentTask)
 	Log(robot.Trace, "Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User)
@@ -239,9 +239,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if len(f.Format) > 0 {
 		r.Format = setFormat(f.Format)
 	} else {
-		botCfg.RLock()
-		r.Format = botCfg.defaultMessageFormat
-		botCfg.RUnlock()
+		currentCfg.RLock()
+		r.Format = currentCfg.defaultMessageFormat
+		currentCfg.RUnlock()
 	}
 
 	var (

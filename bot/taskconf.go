@@ -28,19 +28,19 @@ func (c *botContext) loadTaskConfig(preconnect bool) error {
 	globalTasks.Unlock()
 
 	// Copy some data from the bot under read lock, including external plugins
-	botCfg.RLock()
-	defaultAllowDirect := botCfg.defaultAllowDirect
+	currentCfg.RLock()
+	defaultAllowDirect := currentCfg.defaultAllowDirect
 	// copy the list of default channels (for plugins only)
-	pchan := botCfg.plugChannels
-	jdefchan := botCfg.defaultJobChannel
-	externalTasks := botCfg.externalTasks
-	externalJobs := botCfg.externalJobs
-	externalPlugins := botCfg.externalPlugins
-	goTasks := botCfg.goTasks
-	goJobs := botCfg.goJobs
-	goPlugins := botCfg.goPlugins
-	nsList := botCfg.nameSpaces
-	botCfg.RUnlock() // we're done with bot data 'til the end
+	pchan := currentCfg.plugChannels
+	jdefchan := currentCfg.defaultJobChannel
+	externalTasks := currentCfg.externalTasks
+	externalJobs := currentCfg.externalJobs
+	externalPlugins := currentCfg.externalPlugins
+	goTasks := currentCfg.goTasks
+	goJobs := currentCfg.goJobs
+	goPlugins := currentCfg.goPlugins
+	nsList := currentCfg.nameSpaces
+	currentCfg.RUnlock() // we're done with bot data 'til the end
 
 	// Start with all the Go tasks, plugins and jobs
 	for taskname := range taskHandlers {
@@ -166,7 +166,7 @@ func (c *botContext) loadTaskConfig(preconnect bool) error {
 		} else {
 			p := &Plugin{
 				Privileged: *script.Privileged,
-				Task: task,
+				Task:       task,
 			}
 			newList.addTask(p)
 		}
@@ -178,7 +178,7 @@ func (c *botContext) loadTaskConfig(preconnect bool) error {
 		} else {
 			p := &Plugin{
 				Privileged: *script.Privileged,
-				Task: task,
+				Task:       task,
 			}
 			newList.addTask(p)
 		}
@@ -766,11 +766,9 @@ LoadLoop:
 	globalTasks.Unlock()
 	// loadTaskConfig is called in initBot, before the connector has started;
 	// don't init plugins in that case.
-	botCfg.RLock()
-	if botCfg.Connector != nil {
+	if interfaces.Connector != nil {
 		reInitPlugins = true
 	}
-	botCfg.RUnlock()
 	if reInitPlugins {
 		initializePlugins()
 	}

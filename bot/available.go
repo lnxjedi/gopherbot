@@ -40,9 +40,9 @@ func (c *botContext) pluginAvailable(task *Task, helpSystem, verboseOnly bool) (
 	}
 	if task.RequireAdmin {
 		isAdmin := false
-		botCfg.RLock()
-		admins := botCfg.adminUsers
-		botCfg.RUnlock()
+		currentCfg.RLock()
+		admins := currentCfg.adminUsers
+		currentCfg.RUnlock()
 		for _, adminUser := range admins {
 			if c.User == adminUser {
 				isAdmin = true

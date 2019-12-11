@@ -87,21 +87,21 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	logChannel := channelName
 	var message string
 
-	botCfg.RLock()
-	for _, user := range botCfg.ignoreUsers {
+	currentCfg.RLock()
+	for _, user := range currentCfg.ignoreUsers {
 		if strings.EqualFold(userName, user) {
 			Log(robot.Debug, "Ignoring user", userName)
 			c := &botContext{User: userName}
 			c.debug("robot is configured to ignore this user", true)
 			emit(IgnoredUser)
-			botCfg.RUnlock()
+			currentCfg.RUnlock()
 			return
 		}
 	}
-	preRegex := botCfg.preRegex
-	postRegex := botCfg.postRegex
-	bareRegex := botCfg.bareRegex
-	botCfg.RUnlock()
+	preRegex := currentCfg.preRegex
+	postRegex := currentCfg.postRegex
+	bareRegex := currentCfg.bareRegex
+	currentCfg.RUnlock()
 	if preRegex != nil {
 		matches := preRegex.FindAllStringSubmatch(messageFull, -1)
 		if matches != nil && len(matches[0]) == 2 {
@@ -174,25 +174,25 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct
 func (h handler) GetProtocolConfig(v interface{}) error {
-	botCfg.RLock()
+	currentCfg.RLock()
 	err := json.Unmarshal(protocolConfig, v)
-	botCfg.RUnlock()
+	currentCfg.RUnlock()
 	return err
 }
 
 // GetBrainConfig unmarshals the brain's configuration data into a provided struct
 func (h handler) GetBrainConfig(v interface{}) error {
-	botCfg.RLock()
+	currentCfg.RLock()
 	err := json.Unmarshal(brainConfig, v)
-	botCfg.RUnlock()
+	currentCfg.RUnlock()
 	return err
 }
 
 // GetHistoryConfig unmarshals the history provider's configuration data into a provided struct
 func (h handler) GetHistoryConfig(v interface{}) error {
-	botCfg.RLock()
+	currentCfg.RLock()
 	err := json.Unmarshal(historyConfig, v)
-	botCfg.RUnlock()
+	currentCfg.RUnlock()
 	return err
 }
 
@@ -227,9 +227,9 @@ func (h handler) GetDirectory(p string) error {
 
 // SetBotID let's the connector set the bot's internal ID
 func (h handler) SetBotID(id string) {
-	botCfg.Lock()
-	botCfg.botinfo.UserID = id
-	botCfg.Unlock()
+	currentCfg.Lock()
+	currentCfg.botinfo.UserID = id
+	currentCfg.Unlock()
 }
 
 // SetBotMention set's the @(mention) string, for regexes
@@ -238,8 +238,8 @@ func (h handler) SetBotMention(m string) {
 		return
 	}
 	Log(robot.Info, "protocol set bot mention string to: %s", m)
-	botCfg.Lock()
-	botCfg.botinfo.protoMention = m
-	botCfg.Unlock()
+	currentCfg.Lock()
+	currentCfg.botinfo.protoMention = m
+	currentCfg.Unlock()
 	updateRegexes()
 }

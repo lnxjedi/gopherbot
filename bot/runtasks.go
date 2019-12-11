@@ -40,19 +40,21 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		c.ptype = ptype
 	}
 	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
-	botCfg.Add(1)
-	botCfg.Lock()
-	botCfg.pluginsRunning++
-	c.timeZone = botCfg.timeZone
-	botCfg.Unlock()
+	state.Add(1)
+	state.Lock()
+	state.pluginsRunning++
+	state.Unlock()
+	currentCfg.RLock()
+	c.timeZone = currentCfg.timeZone
+	currentCfg.RUnlock()
 	defer func() {
-		botCfg.Lock()
-		botCfg.pluginsRunning--
+		state.Lock()
+		state.pluginsRunning--
 		// TODO: this check shouldn't be necessary; remove and test
-		if botCfg.pluginsRunning >= 0 {
-			botCfg.Done()
+		if state.pluginsRunning >= 0 {
+			state.Done()
 		}
-		botCfg.Unlock()
+		state.Unlock()
 	}()
 
 	// redundant but explicit
@@ -68,9 +70,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		c.jobName = task.name // Exclusive always uses the jobName, regardless of the task that calls it
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
 		c.jobChannel = task.Channel
-		botCfg.RLock()
-		c.history = botCfg.history
-		botCfg.RUnlock()
+		c.history = interfaces.history
 		c.workingDirectory = ""
 		var jh jobHistory
 		rememberRuns := job.HistoryLogs

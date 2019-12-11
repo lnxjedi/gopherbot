@@ -22,10 +22,10 @@ func RegisterPreload(mod string) {
 // Load pluggable modules and call "GetPlugins", "GetConnectors", etc., then
 // register them.
 func loadModules() {
-	for _, m := range botCfg.loadableModules {
+	for _, m := range currentCfg.loadableModules {
 		loadModule(m.Name, m.Path)
 	}
-	_, pmod := getProtocol(botCfg.protocol)
+	_, pmod := getProtocol(currentCfg.protocol)
 	ppath := filepath.Join("connectors", pmod+".so")
 	loadModule(pmod, ppath)
 }

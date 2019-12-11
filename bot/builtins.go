@@ -36,18 +36,18 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		return // ignore init
 	}
 	if command == "info" {
-		botCfg.RLock()
-		admins := strings.Join(botCfg.adminUsers, ", ")
-		aliasCh := botCfg.alias
-		name := botCfg.botinfo.UserName
+		currentCfg.RLock()
+		admins := strings.Join(currentCfg.adminUsers, ", ")
+		aliasCh := currentCfg.alias
+		name := currentCfg.botinfo.UserName
 		if len(name) == 0 {
 			name = "(unknown)"
 		}
-		ID := botCfg.botinfo.UserID
+		ID := currentCfg.botinfo.UserID
 		if len(ID) == 0 {
 			ID = "(unknown)"
 		}
-		botCfg.RUnlock()
+		currentCfg.RUnlock()
 		var alias string
 		if aliasCh == 0 {
 			alias = "(not set)"
@@ -77,9 +77,9 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		r.Say(strings.Join(msg, "\n"))
 	}
 	if command == "help" {
-		botCfg.RLock()
-		botname := botCfg.botinfo.UserName
-		botCfg.RUnlock()
+		currentCfg.RLock()
+		botname := currentCfg.botinfo.UserName
+		currentCfg.RUnlock()
 
 		var term, helpOutput string
 		botSub := `(bot)`
@@ -190,9 +190,9 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 	}
 	switch command {
 	case "dumprobot":
-		botCfg.RLock()
+		currentCfg.RLock()
 		c, _ := yaml.Marshal(config)
-		botCfg.RUnlock()
+		currentCfg.RUnlock()
 		r.Fixed().Say("Here's how I've been configured, irrespective of interactive changes:\n%s", c)
 	case "dumpplugdefault":
 		if plug, ok := pluginHandlers[args[0]]; ok {
@@ -384,27 +384,29 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		taskDebug.Unlock()
 		r.Say("Debugging disabled")
 	case "quit", "restart":
-		botCfg.Lock()
-		if botCfg.shuttingDown {
-			botCfg.Unlock()
+		state.Lock()
+		if state.shuttingDown {
+			state.Unlock()
 			Log(robot.Warn, "Received administrator `quit` while shutdown in progress")
 			return
 		}
-		botCfg.shuttingDown = true
+		state.shuttingDown = true
 		restart := command == "restart"
 		if restart {
-			botCfg.restart = true
+			state.restart = true
 		}
-		proto := botCfg.protocol
+		currentCfg.RLock()
+		proto := currentCfg.protocol
+		currentCfg.RUnlock()
 		// NOTE: THIS plugin is definitely running, but will end soon!
-		if botCfg.pluginsRunning > 1 {
-			runningCount := botCfg.pluginsRunning - 1
-			botCfg.Unlock()
+		if state.pluginsRunning > 1 {
+			runningCount := state.pluginsRunning - 1
+			state.Unlock()
 			if proto != "test" {
 				r.Say("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount)
 			}
 		} else {
-			botCfg.Unlock()
+			state.Unlock()
 			if proto != "test" {
 				if restart {
 					r.Reply(r.RandomString(rightback))

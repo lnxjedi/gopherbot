@@ -69,13 +69,13 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		} // end of triggerer checking
 	} // end of job trigger checking
 	if messageMatched {
-		botCfg.RLock()
-		if botCfg.shuttingDown {
+		state.RLock()
+		if state.shuttingDown {
 			r.Say("Ignoring triggered job(s): shutting down")
-			botCfg.RUnlock()
+			state.RUnlock()
 			return
 		}
-		botCfg.RUnlock()
+		state.RUnlock()
 		if len(robots) > 0 {
 			for i, robot := range robots {
 				go robot.startPipeline(nil, runTasks[i], jobTrigger, "run", taskArgs[i]...)

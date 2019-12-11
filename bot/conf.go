@@ -15,8 +15,8 @@ import (
 
 var protocolConfig, brainConfig, historyConfig json.RawMessage
 
-// Configuration defines 'bot configuration, and is read from conf/gopherbot.yaml
-type Configuration struct {
+// ConfigLoader defines 'bot configuration, and is read from conf/gopherbot.yaml
+type ConfigLoader struct {
 	AdminContact         string                    // Contact info for whomever administers the robot
 	MailConfig           botMailer                 // configuration for sending email
 	Protocol             string                    // Name of the connector protocol to use, e.g. "slack"
@@ -103,13 +103,13 @@ var currentUCMaps = struct {
 
 // Protects the bot config and list of repositories
 var confLock sync.RWMutex
-var config *Configuration
+var config *ConfigLoader
 var repositories map[string]Repository
 
 // loadConfig loads the 'bot's yaml configuration files.
 func (c *botContext) loadConfig(preConnect bool) error {
 	var loglevel robot.LogLevel
-	newconfig := &Configuration{}
+	newconfig := &ConfigLoader{}
 	newconfig.ExternalJobs = make(map[string]TaskSettings)
 	newconfig.ExternalPlugins = make(map[string]TaskSettings)
 	newconfig.ExternalTasks = make(map[string]TaskSettings)
@@ -269,72 +269,72 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	}
 
 	if !preConnect {
-		botCfg.Lock()
+		currentCfg.Lock()
 	}
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		if !strings.ContainsRune(string(aliases+escapeAliases), alias) {
-			botCfg.Unlock()
+			currentCfg.Unlock()
 			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escapeAliases, aliases)
 		}
-		botCfg.alias = alias
+		currentCfg.alias = alias
 	}
 
 	if len(newconfig.DefaultMessageFormat) == 0 {
-		botCfg.defaultMessageFormat = robot.Raw
+		currentCfg.defaultMessageFormat = robot.Raw
 	} else {
-		botCfg.defaultMessageFormat = setFormat(newconfig.DefaultMessageFormat)
+		currentCfg.defaultMessageFormat = setFormat(newconfig.DefaultMessageFormat)
 	}
 
 	if explicitDefaultAllowDirect {
-		botCfg.defaultAllowDirect = newconfig.DefaultAllowDirect
+		currentCfg.defaultAllowDirect = newconfig.DefaultAllowDirect
 	} else {
-		botCfg.defaultAllowDirect = true // rare case of defaulting to true
+		currentCfg.defaultAllowDirect = true // rare case of defaulting to true
 	}
 
 	if newconfig.AdminContact != "" {
-		botCfg.adminContact = newconfig.AdminContact
+		currentCfg.adminContact = newconfig.AdminContact
 	}
 
 	if newconfig.TimeZone != "" {
 		tz, err := time.LoadLocation(newconfig.TimeZone)
 		if err == nil {
 			Log(robot.Info, "Set timezone: %s", tz)
-			botCfg.timeZone = tz
+			currentCfg.timeZone = tz
 		} else {
 			Log(robot.Error, "Parsing time zone '%s', using local time; error: %v", newconfig.TimeZone, err)
-			botCfg.timeZone = nil
+			currentCfg.timeZone = nil
 		}
 	}
 
 	if newconfig.BotInfo != nil {
-		botID := botCfg.botinfo.UserID
-		botMention := botCfg.botinfo.protoMention
-		botCfg.botinfo = *newconfig.BotInfo
-		botCfg.botinfo.UserID = botID
-		botCfg.botinfo.protoMention = botMention
+		botID := currentCfg.botinfo.UserID
+		botMention := currentCfg.botinfo.protoMention
+		currentCfg.botinfo = *newconfig.BotInfo
+		currentCfg.botinfo.UserID = botID
+		currentCfg.botinfo.protoMention = botMention
 	}
-	botCfg.mailConf = newconfig.MailConfig
+	currentCfg.mailConf = newconfig.MailConfig
 
 	if newconfig.DefaultJobChannel != "" {
-		botCfg.defaultJobChannel = newconfig.DefaultJobChannel
+		currentCfg.defaultJobChannel = newconfig.DefaultJobChannel
 	}
 
 	if newconfig.DefaultElevator != "" {
-		botCfg.defaultElevator = newconfig.DefaultElevator
+		currentCfg.defaultElevator = newconfig.DefaultElevator
 	}
 
 	if newconfig.DefaultAuthorizer != "" {
-		botCfg.defaultAuthorizer = newconfig.DefaultAuthorizer
+		currentCfg.defaultAuthorizer = newconfig.DefaultAuthorizer
 	}
 
 	if newconfig.AdminUsers != nil {
-		botCfg.adminUsers = newconfig.AdminUsers
+		currentCfg.adminUsers = newconfig.AdminUsers
 	} else {
-		botCfg.adminUsers = []string{}
+		currentCfg.adminUsers = []string{}
 	}
 	if newconfig.DefaultChannels != nil {
-		botCfg.plugChannels = newconfig.DefaultChannels
+		currentCfg.plugChannels = newconfig.DefaultChannels
 	}
 	if newconfig.ExternalPlugins != nil {
 		et := make([]TaskSettings, 0)
@@ -349,7 +349,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			}
 			et = append(et, task)
 		}
-		botCfg.externalPlugins = et
+		currentCfg.externalPlugins = et
 	}
 	if newconfig.ExternalJobs != nil {
 		et := make([]TaskSettings, 0)
@@ -364,7 +364,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			}
 			et = append(et, task)
 		}
-		botCfg.externalJobs = et
+		currentCfg.externalJobs = et
 	}
 	if newconfig.ExternalTasks != nil {
 		et := make([]TaskSettings, 0)
@@ -375,7 +375,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			task.Name = name
 			et = append(et, task)
 		}
-		botCfg.externalTasks = et
+		currentCfg.externalTasks = et
 	}
 	if newconfig.LoadableModules != nil {
 		lm := make([]LoadableModule, 0)
@@ -383,7 +383,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			mod.Name = name
 			lm = append(lm, mod)
 		}
-		botCfg.loadableModules = lm
+		currentCfg.loadableModules = lm
 	}
 	st := make([]ScheduledTask, 0, len(newconfig.ScheduledJobs))
 	for _, s := range newconfig.ScheduledJobs {
@@ -393,12 +393,12 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			st = append(st, s)
 		}
 	}
-	botCfg.ScheduledJobs = st
+	currentCfg.ScheduledJobs = st
 	if newconfig.IgnoreUsers != nil {
-		botCfg.ignoreUsers = newconfig.IgnoreUsers
+		currentCfg.ignoreUsers = newconfig.IgnoreUsers
 	}
 	if newconfig.JoinChannels != nil {
-		botCfg.joinChannels = newconfig.JoinChannels
+		currentCfg.joinChannels = newconfig.JoinChannels
 	}
 
 	ucmaps := userChanMaps{
@@ -419,8 +419,8 @@ func (c *botContext) loadConfig(preConnect bool) error {
 				usermap[u.UserName] = u.UserID
 			}
 		}
-		if len(botCfg.botinfo.UserName) > 0 && len(botCfg.botinfo.UserID) > 0 {
-			usermap[botCfg.botinfo.UserName] = botCfg.botinfo.UserID
+		if len(currentCfg.botinfo.UserName) > 0 && len(currentCfg.botinfo.UserID) > 0 {
+			usermap[currentCfg.botinfo.UserName] = currentCfg.botinfo.UserID
 		}
 	}
 	if len(newconfig.ChannelRoster) > 0 {
@@ -441,18 +441,18 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	if len(newconfig.WorkSpace) > 0 {
 		h := handler{}
 		if err := h.GetDirectory(newconfig.WorkSpace); err == nil {
-			botCfg.workSpace = newconfig.WorkSpace
-			Log(robot.Debug, "Setting workspace directory to '%s'", botCfg.workSpace)
+			currentCfg.workSpace = newconfig.WorkSpace
+			Log(robot.Debug, "Setting workspace directory to '%s'", currentCfg.workSpace)
 		} else {
 			Log(robot.Error, "Getting WorkSpace directory '%s', using '%s': %v", newconfig.WorkSpace, configPath, err)
 		}
 	}
-	if len(botCfg.workSpace) == 0 {
-		botCfg.workSpace = configPath
+	if len(currentCfg.workSpace) == 0 {
+		currentCfg.workSpace = configPath
 	}
 
 	if newconfig.HistoryProvider != "" {
-		botCfg.historyProvider = newconfig.HistoryProvider
+		currentCfg.historyProvider = newconfig.HistoryProvider
 	}
 	if newconfig.HistoryConfig != nil {
 		historyConfig = newconfig.HistoryConfig
@@ -461,7 +461,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	// Items only read at start-up, before multi-threaded
 	if preConnect {
 		if newconfig.Protocol != "" {
-			botCfg.protocol = newconfig.Protocol
+			currentCfg.protocol = newconfig.Protocol
 		} else {
 			return fmt.Errorf("Protocol not specified in gopherbot.yaml")
 		}
@@ -473,39 +473,36 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			encryptBrain = true
 		}
 		if newconfig.EncryptionKey != "" {
-			botCfg.encryptionKey = newconfig.EncryptionKey
+			currentCfg.encryptionKey = newconfig.EncryptionKey
 			newconfig.EncryptionKey = "XXXXXX" // too short to be valid anyway
 		}
 		if newconfig.Brain != "" {
-			botCfg.brainProvider = newconfig.Brain
+			currentCfg.brainProvider = newconfig.Brain
 		}
 		if newconfig.BrainConfig != nil {
 			brainConfig = newconfig.BrainConfig
 		}
 		if newconfig.LocalPort != 0 {
-			botCfg.port = fmt.Sprintf("%d", newconfig.LocalPort)
+			currentCfg.port = fmt.Sprintf("%d", newconfig.LocalPort)
 		} else {
-			botCfg.port = "0"
+			currentCfg.port = "0"
+		}
+		if len(newconfig.HistoryProvider) > 0 {
+			if hprovider, ok := historyProviders[newconfig.HistoryProvider]; !ok {
+				Log(robot.Fatal, "No provider registered for history type: \"%s\"", currentCfg.historyProvider)
+			} else {
+				hp := hprovider(handler{})
+				interfaces.history = hp
+			}
 		}
 	} else {
 		if len(usermap) > 0 {
-			botCfg.SetUserMap(usermap)
+			interfaces.SetUserMap(usermap)
 		}
 		// We should never dump the brain key
 		newconfig.EncryptionKey = "XXXXXX"
 		// loadTaskConfig does it's own locking
-		historyConfigured := botCfg.history != nil
-		botCfg.Unlock()
-		if !historyConfigured && len(newconfig.HistoryProvider) > 0 {
-			if hprovider, ok := historyProviders[newconfig.HistoryProvider]; !ok {
-				Log(robot.Fatal, "No provider registered for history type: \"%s\"", botCfg.historyProvider)
-			} else {
-				hp := hprovider(handler{})
-				botCfg.Lock()
-				botCfg.history = hp
-				botCfg.Unlock()
-			}
-		}
+		currentCfg.Unlock()
 	}
 
 	confLock.Lock()

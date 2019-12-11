@@ -227,9 +227,9 @@ func initializePlugins() {
 		tasks:       tasks,
 	}
 	c.registerActive(nil)
-	botCfg.Lock()
-	if !botCfg.shuttingDown {
-		botCfg.Unlock()
+	state.Lock()
+	if !state.shuttingDown {
+		state.Unlock()
 		for _, t := range tasks.t {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
@@ -242,7 +242,7 @@ func initializePlugins() {
 			c.callTask(t, "init")
 		}
 	} else {
-		botCfg.Unlock()
+		state.Unlock()
 	}
 	c.deregister()
 }
