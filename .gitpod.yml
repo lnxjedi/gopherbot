@@ -5,7 +5,7 @@ image:
 checkoutLocation: gopherbot
 workspaceLocation: "."
 tasks:
-- init: make
+- init: make -C gopherbot
 - init: ./gopherbot/.gitpod/gotools.sh
 - command: ./gopherbot/.gitpod/setup.sh
   openIn: main
