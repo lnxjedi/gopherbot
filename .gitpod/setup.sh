@@ -1,14 +1,10 @@
 #!/bin/bash -e
 
-# setup.sh - set up demo or dev environment for gitpod
-
-# for main lnxjedi/gopherbot, run new-robot.sh
-
-# for <user>/gopherbot, create start.sh
+# setup.sh - run demo bot or give info for devel
 
 clear
 
-REMOTE=$(git remote get-url origin)
+REMOTE=$(cd gopherbot; git remote get-url origin)
 REMOTE_PREFIX=${REMOTE%/gopherbot.git}
 REMOTE_ORG=${REMOTE_PREFIX##*/}
 
@@ -22,7 +18,7 @@ configure a new robot. This is a work in progress.
 Type `help` for general help, or `;quit` to exit.
 
 EOF
-    exec ./gopherbot -l /dev/stderr 2> robot.log
+    exec ./gopherbot/gopherbot -l /dev/stderr 2> robot.log
 else
 cat <<EOF
 

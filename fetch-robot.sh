@@ -95,6 +95,8 @@ echo "Fetching $GOPHER_PRIVATE_REPOSITORY..."
 if ! git clone $GOPHER_PRIVATE_REPOSITORY private
 then
     echo "(not cloned, ignoring)"
+else
+    chmod 600 private/environment
 fi
 
 ln -snf "$SCRIPTDIR/gopherbot" gopherbot
