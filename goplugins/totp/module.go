@@ -9,9 +9,13 @@ var totpspec = robot.PluginSpec{
 	Handler: totphandler,
 }
 
-// GetPlugins is the common exported symbol for loadable go plugins.
-func GetPlugins() []robot.PluginSpec {
-	return []robot.PluginSpec{
+var manifest = robot.Manifest{
+	Plugins: []robot.PluginSpec{
 		totpspec,
-	}
+	},
+}
+
+// GetManifest returns all the handlers available in this plugin
+func GetManifest() robot.Manifest {
+	return manifest
 }

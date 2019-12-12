@@ -5,7 +5,7 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-// GetBrainProvider just wraps the function from the brain
-func GetBrainProvider() (string, func(robot.Handler) robot.SimpleBrain) {
-	return dynamobrain.GetBrainProvider()
+// GetManifest just wraps the function from the module
+func GetManifest() robot.Manifest {
+	return dynamobrain.GetManifest()
 }

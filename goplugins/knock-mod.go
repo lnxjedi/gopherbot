@@ -5,7 +5,7 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-// GetPlugins just wraps the function from the plugin
-func GetPlugins() []robot.PluginSpec {
-	return knock.GetPlugins()
+// GetManifest just wraps the function from the module
+func GetManifest() robot.Manifest {
+	return knock.GetManifest()
 }

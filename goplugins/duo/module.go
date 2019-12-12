@@ -9,9 +9,13 @@ var duospec = robot.PluginSpec{
 	Handler: duohandler,
 }
 
-// GetPlugins is the common exported symbol for loadable go plugins.
-func GetPlugins() []robot.PluginSpec {
-	return []robot.PluginSpec{
+var manifest = robot.Manifest{
+	Plugins: []robot.PluginSpec{
 		duospec,
-	}
+	},
+}
+
+// GetManifest returns all the handlers available in this plugin
+func GetManifest() robot.Manifest {
+	return manifest
 }

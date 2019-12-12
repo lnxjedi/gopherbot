@@ -1,5 +1,7 @@
 package robot
 
+import "log"
+
 // AttrRet implements Stringer so it can be interpolated with fmt if
 // the plugin author is ok with ignoring the RetVal.
 type AttrRet struct {
@@ -76,4 +78,32 @@ type JobSpec struct {
 type TaskSpec struct {
 	Name    string
 	Handler TaskHandler
+}
+
+// ConnectorSpec for specifying a connector
+type ConnectorSpec struct {
+	Name      string
+	Connector func(Handler, *log.Logger) Connector
+}
+
+// BrainSpec for specifying a connector
+type BrainSpec struct {
+	Name  string
+	Brain func(Handler) SimpleBrain
+}
+
+// HistorySpec for specifying a connector
+type HistorySpec struct {
+	Name     string
+	Provider func(Handler) HistoryProvider
+}
+
+// Manifest lists all the handlers available from a given loadable module
+type Manifest struct {
+	Tasks     []TaskSpec
+	Plugins   []PluginSpec
+	Jobs      []JobSpec
+	Connector ConnectorSpec
+	Brain     BrainSpec
+	History   HistorySpec
 }

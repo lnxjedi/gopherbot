@@ -7,7 +7,14 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-// GetBrainProvider is the common exported symbol for loadable connector modules.
-func GetBrainProvider() (string, func(robot.Handler) robot.SimpleBrain) {
-	return "dynamo", provider
+var manifest = robot.Manifest{
+	Brain: robot.BrainSpec{
+		Name:  "dynamo",
+		Brain: provider,
+	},
+}
+
+// GetManifest returns all the handlers available in this plugin
+func GetManifest() robot.Manifest {
+	return manifest
 }
