@@ -163,11 +163,11 @@ func updateRegexes() {
 	if bare != nil {
 		Log(robot.Debug, "Setting bare regex to: %s", bare)
 	}
-	currentCfg.Lock()
-	currentCfg.preRegex = pre
-	currentCfg.postRegex = post
-	currentCfg.bareRegex = bare
-	currentCfg.Unlock()
+	regexes.Lock()
+	regexes.preRegex = pre
+	regexes.postRegex = post
+	regexes.bareRegex = bare
+	regexes.Unlock()
 }
 
 // TODO: write unit test. The regexes produced shouldn't be checked, but rather

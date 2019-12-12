@@ -334,6 +334,7 @@ func (c *botContext) jobSecurityCheck(t interface{}, command string) bool {
 // ignoreChannelRestrictions is set. Note that changes to logic in jobVisible
 // may need to propagate to jobAvailable, below.
 func (r *Robot) jobVisible(t interface{}, ignoreChannelRestrictions, disabledOk bool) bool {
+	c := r.getContext()
 	task, _, job := getTask(t)
 	if job == nil {
 		return false
@@ -358,9 +359,7 @@ func (r *Robot) jobVisible(t interface{}, ignoreChannelRestrictions, disabledOk 
 	}
 	if task.RequireAdmin {
 		isAdmin := false
-		currentCfg.RLock()
-		admins := currentCfg.adminUsers
-		currentCfg.RUnlock()
+		admins := c.cfg.adminUsers
 		for _, adminUser := range admins {
 			if r.User == adminUser {
 				isAdmin = true
@@ -404,9 +403,7 @@ func (c *botContext) jobAvailable(taskName string) interface{} {
 	}
 	if task.RequireAdmin {
 		isAdmin := false
-		currentCfg.RLock()
-		admins := currentCfg.adminUsers
-		currentCfg.RUnlock()
+		admins := c.cfg.adminUsers
 		for _, adminUser := range admins {
 			if r.User == adminUser {
 				isAdmin = true

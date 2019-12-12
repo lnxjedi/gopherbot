@@ -172,9 +172,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	if filepath.IsAbs(c.workingDirectory) {
 		cmd.Dir = c.workingDirectory
 	} else {
-		currentCfg.RLock()
-		cmd.Dir = filepath.Join(currentCfg.workSpace, c.workingDirectory)
-		currentCfg.RUnlock()
+		cmd.Dir = filepath.Join(c.cfg.workSpace, c.workingDirectory)
 	}
 	Log(robot.Debug, "Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '"))
 	var stderr, stdout io.ReadCloser

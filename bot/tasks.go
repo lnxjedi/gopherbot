@@ -222,8 +222,12 @@ func initializePlugins() {
 		globalTasks.nameSpaces,
 	}
 	globalTasks.Unlock()
+	currentCfg.RLock()
+	cfg := currentCfg.configuration
+	currentCfg.RUnlock()
 	c := &botContext{
 		environment: make(map[string]string),
+		cfg:         cfg,
 		tasks:       tasks,
 	}
 	c.registerActive(nil)

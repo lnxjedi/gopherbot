@@ -32,22 +32,21 @@ func init() {
 
 func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
+	c := r.getContext()
 	if command == "init" {
 		return // ignore init
 	}
 	if command == "info" {
-		currentCfg.RLock()
-		admins := strings.Join(currentCfg.adminUsers, ", ")
-		aliasCh := currentCfg.alias
-		name := currentCfg.botinfo.UserName
+		admins := strings.Join(c.cfg.adminUsers, ", ")
+		aliasCh := c.cfg.alias
+		name := c.cfg.botinfo.UserName
 		if len(name) == 0 {
 			name = "(unknown)"
 		}
-		ID := currentCfg.botinfo.UserID
+		ID := c.cfg.botinfo.UserID
 		if len(ID) == 0 {
 			ID = "(unknown)"
 		}
-		currentCfg.RUnlock()
 		var alias string
 		if aliasCh == 0 {
 			alias = "(not set)"
@@ -77,9 +76,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		r.Say(strings.Join(msg, "\n"))
 	}
 	if command == "help" {
-		currentCfg.RLock()
-		botname := currentCfg.botinfo.UserName
-		currentCfg.RUnlock()
+		botname := c.cfg.botinfo.UserName
 
 		var term, helpOutput string
 		botSub := `(bot)`
@@ -190,9 +187,13 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 	}
 	switch command {
 	case "dumprobot":
-		currentCfg.RLock()
+		if r.Protocol != robot.Terminal {
+			r.Say("This command is only valid with the 'terminal' connector")
+			return
+		}
+		confLock.RLock()
 		c, _ := yaml.Marshal(config)
-		currentCfg.RUnlock()
+		confLock.RUnlock()
 		r.Fixed().Say("Here's how I've been configured, irrespective of interactive changes:\n%s", c)
 	case "dumpplugdefault":
 		if plug, ok := pluginHandlers[args[0]]; ok {
@@ -222,6 +223,10 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 			}
 		}
 	case "dumpplugin":
+		if r.Protocol != robot.Terminal {
+			r.Say("This command is only valid with the 'terminal' connector")
+			return
+		}
 		found := false
 		c := r.getContext()
 		for _, t := range c.tasks.t {
@@ -325,6 +330,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		return // ignore init
 	}
 	r := m.(Robot)
+	c := r.getContext()
 	switch command {
 	case "reload":
 		err := r.getContext().loadConfig(false)
@@ -395,9 +401,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		if restart {
 			state.restart = true
 		}
-		currentCfg.RLock()
-		proto := currentCfg.protocol
-		currentCfg.RUnlock()
+		proto := c.cfg.protocol
 		// NOTE: THIS plugin is definitely running, but will end soon!
 		if state.pluginsRunning > 1 {
 			runningCount := state.pluginsRunning - 1

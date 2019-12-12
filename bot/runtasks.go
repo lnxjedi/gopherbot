@@ -44,9 +44,7 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	state.Lock()
 	state.pluginsRunning++
 	state.Unlock()
-	currentCfg.RLock()
-	c.timeZone = currentCfg.timeZone
-	currentCfg.RUnlock()
+	c.timeZone = c.cfg.timeZone
 	defer func() {
 		state.Lock()
 		state.pluginsRunning--

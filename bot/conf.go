@@ -16,6 +16,7 @@ import (
 var protocolConfig, brainConfig, historyConfig json.RawMessage
 
 // ConfigLoader defines 'bot configuration, and is read from conf/gopherbot.yaml
+// Digested content ends up in currentCfg, see bot_process.go.
 type ConfigLoader struct {
 	AdminContact         string                    // Contact info for whomever administers the robot
 	MailConfig           botMailer                 // configuration for sending email
@@ -114,6 +115,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	newconfig.ExternalPlugins = make(map[string]TaskSettings)
 	newconfig.ExternalTasks = make(map[string]TaskSettings)
 	configload := make(map[string]json.RawMessage)
+	processed := &configuration{}
 
 	if err := c.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
@@ -505,18 +507,42 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		currentCfg.Unlock()
 	}
 
+	newList, err := c.loadTaskConfig(processed)
+	if err != nil {
+		return err
+	}
+
+	// Configuration successfully loaded, apply changes
+
+	// Note we always take the locks on global values regardless
+	// of preConnect.
+
+	// Update structs supplied to "dump robot" and "GetRepositories"
+	// Note that GetRepositories blanks out Parameters, but dump
+	// commands are only allowed for the terminal connector.
 	confLock.Lock()
 	config = newconfig
 	repositories = repolist
 	confLock.Unlock()
 
-	if err := c.loadTaskConfig(preConnect); err != nil {
-		return err
-	}
+	currentCfg.Lock()
+	processed.botinfo.UserID = currentCfg.botinfo.UserID
+	processed.botinfo.protoMention = currentCfg.botinfo.protoMention
+	processed.realPort = currentCfg.realPort
+	currentCfg.configuration = processed
+	currentCfg.Unlock()
+
+	globalTasks.Lock()
+	globalTasks.t = newList.t
+	globalTasks.idMap = newList.idMap
+	globalTasks.nameMap = newList.nameMap
+	globalTasks.nameSpaces = newList.nameSpaces
+	globalTasks.Unlock()
 
 	if !preConnect {
 		updateRegexes()
 		scheduleTasks()
+		initializePlugins()
 	}
 
 	return nil

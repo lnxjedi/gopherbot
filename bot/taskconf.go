@@ -13,7 +13,7 @@ import (
 // loadTaskConfig() updates task/job/plugin configuration and namespaces
 // from gopherbot.yaml and external configuration, then updates the
 // globalTasks struct.
-func (c *botContext) loadTaskConfig(preconnect bool) error {
+func (c *botContext) loadTaskConfig(processed *configuration) (taskList, error) {
 	newList := taskList{
 		t:          []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces only
 		nameMap:    make(map[string]int),
@@ -26,21 +26,6 @@ func (c *botContext) loadTaskConfig(preconnect bool) error {
 		nameMap: globalTasks.nameMap,
 	}
 	globalTasks.Unlock()
-
-	// Copy some data from the bot under read lock, including external plugins
-	currentCfg.RLock()
-	defaultAllowDirect := currentCfg.defaultAllowDirect
-	// copy the list of default channels (for plugins only)
-	pchan := currentCfg.plugChannels
-	jdefchan := currentCfg.defaultJobChannel
-	externalTasks := currentCfg.externalTasks
-	externalJobs := currentCfg.externalJobs
-	externalPlugins := currentCfg.externalPlugins
-	goTasks := currentCfg.goTasks
-	goJobs := currentCfg.goJobs
-	goPlugins := currentCfg.goPlugins
-	nsList := currentCfg.nameSpaces
-	currentCfg.RUnlock() // we're done with bot data 'til the end
 
 	// Start with all the Go tasks, plugins and jobs
 	for taskname := range taskHandlers {
@@ -58,9 +43,9 @@ func (c *botContext) loadTaskConfig(preconnect bool) error {
 		newList.addTask(t)
 	}
 
-	for _, ns := range nsList {
+	for _, ns := range processed.nameSpaces {
 		if t := newList.getTaskByName(ns.Name); t != nil {
-			return fmt.Errorf("NameSpace '%s' conflicts with Go task/job/plugin name", ns.Name)
+			return newList, fmt.Errorf("NameSpace '%s' conflicts with Go task/job/plugin name", ns.Name)
 		}
 		newList.nameSpaces[ns.Name] = NameSpace{
 			name:        ns.Name,
@@ -104,19 +89,19 @@ func (c *botContext) loadTaskConfig(preconnect bool) error {
 	}
 
 	// Get basic task configurations
-	for _, ts := range goTasks {
+	for _, ts := range processed.goTasks {
 		if err := setupGoTask(ts, typeTask); err != nil {
-			return err
+			return newList, err
 		}
 	}
-	for _, ts := range goPlugins {
+	for _, ts := range processed.goPlugins {
 		if err := setupGoTask(ts, typePlugin); err != nil {
-			return err
+			return newList, err
 		}
 	}
-	for _, ts := range goJobs {
+	for _, ts := range processed.goJobs {
 		if err := setupGoTask(ts, typeJob); err != nil {
-			return err
+			return newList, err
 		}
 	}
 
@@ -160,9 +145,9 @@ func (c *botContext) loadTaskConfig(preconnect bool) error {
 		return task, nil
 	}
 
-	for _, script := range externalPlugins {
+	for _, script := range processed.externalPlugins {
 		if task, err := addExternalTask(script, typePlugin); err != nil {
-			return err
+			return newList, err
 		} else {
 			p := &Plugin{
 				Privileged: *script.Privileged,
@@ -172,9 +157,9 @@ func (c *botContext) loadTaskConfig(preconnect bool) error {
 		}
 	}
 
-	for _, script := range externalJobs {
+	for _, script := range processed.externalJobs {
 		if task, err := addExternalTask(script, typeJob); err != nil {
-			return err
+			return newList, err
 		} else {
 			p := &Plugin{
 				Privileged: *script.Privileged,
@@ -184,9 +169,9 @@ func (c *botContext) loadTaskConfig(preconnect bool) error {
 		}
 	}
 
-	for _, script := range externalTasks {
+	for _, script := range processed.externalTasks {
 		if task, err := addExternalTask(script, typeTask); err != nil {
-			return err
+			return newList, err
 		} else {
 			newList.addTask(task)
 		}
@@ -329,7 +314,7 @@ LoadLoop:
 			case "Config":
 				skip = true
 			case "Privileged":
-				return fmt.Errorf("task '%s' illegally specifies 'Privileged' outside of gopherbot.yaml", task.name)
+				return newList, fmt.Errorf("task '%s' illegally specifies 'Privileged' outside of gopherbot.yaml", task.name)
 			default:
 				msg := fmt.Sprintf("Invalid configuration key for task '%s': %s - disabling", task.name, key)
 				Log(robot.Error, msg)
@@ -511,19 +496,19 @@ LoadLoop:
 		}
 
 		if !explicitAllowDirect {
-			task.AllowDirect = defaultAllowDirect
+			task.AllowDirect = processed.defaultAllowDirect
 		}
 
 		// Sanity checking / default for channel / channels
 		if isJob && len(task.Channel) == 0 {
-			task.Channel = jdefchan
+			task.Channel = processed.defaultJobChannel
 		}
 		if isPlugin {
 			// Use bot default plugin channels if none defined, unless AllChannels requested.
 			if len(task.Channels) == 0 {
-				if len(pchan) > 0 {
+				if len(processed.plugChannels) > 0 {
 					if !task.AllChannels { // AllChannels = true is always explicit
-						task.Channels = pchan
+						task.Channels = processed.plugChannels
 					}
 				} else { // no default channels specified
 					if !explicitAllChannels { // if AllChannels wasn't explicitly configured, and no default channels, default to AllChannels = true
@@ -757,20 +742,5 @@ LoadLoop:
 	}
 	// End of configuration loading. All invalid tasks are disabled.
 
-	reInitPlugins := false
-	globalTasks.Lock()
-	globalTasks.t = newList.t
-	globalTasks.idMap = newList.idMap
-	globalTasks.nameMap = newList.nameMap
-	globalTasks.nameSpaces = newList.nameSpaces
-	globalTasks.Unlock()
-	// loadTaskConfig is called in initBot, before the connector has started;
-	// don't init plugins in that case.
-	if interfaces.Connector != nil {
-		reInitPlugins = true
-	}
-	if reInitPlugins {
-		initializePlugins()
-	}
-	return nil
+	return newList, nil
 }

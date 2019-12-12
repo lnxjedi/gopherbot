@@ -109,8 +109,6 @@ func (c *botContext) debugTask(task *Task, msg string, verboseonly bool) {
 	debugLog := fmt.Sprintf("%s DEBUG %s: %s", ts, plugName, msg)
 	// Since Format isn't set right away, we always debug with the configured default
 	r := c.makeRobot()
-	currentCfg.RLock()
-	r.Format = currentCfg.defaultMessageFormat
-	currentCfg.RUnlock()
+	r.Format = c.cfg.defaultMessageFormat
 	r.SendUserMessage(targetUser, debugLog)
 }

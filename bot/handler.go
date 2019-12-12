@@ -87,21 +87,22 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	logChannel := channelName
 	var message string
 
+	regexes.RLock()
+	preRegex := regexes.preRegex
+	postRegex := regexes.postRegex
+	bareRegex := regexes.bareRegex
+	regexes.RUnlock()
 	currentCfg.RLock()
-	for _, user := range currentCfg.ignoreUsers {
+	ignoreUsers := currentCfg.ignoreUsers
+	currentCfg.RUnlock()
+
+	for _, user := range ignoreUsers {
 		if strings.EqualFold(userName, user) {
 			Log(robot.Debug, "Ignoring user", userName)
-			c := &botContext{User: userName}
-			c.debug("robot is configured to ignore this user", true)
 			emit(IgnoredUser)
-			currentCfg.RUnlock()
 			return
 		}
 	}
-	preRegex := currentCfg.preRegex
-	postRegex := currentCfg.postRegex
-	bareRegex := currentCfg.bareRegex
-	currentCfg.RUnlock()
 	if preRegex != nil {
 		matches := preRegex.FindAllStringSubmatch(messageFull, -1)
 		if matches != nil && len(matches[0]) == 2 {
@@ -139,6 +140,9 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	confLock.RLock()
 	repolist := repositories
 	confLock.RUnlock()
+	currentCfg.RLock()
+	cfg := currentCfg.configuration
+	currentCfg.RUnlock()
 
 	// Create the botContext and a goroutine to process the message and carry state,
 	// which may eventually run a pipeline.
@@ -154,6 +158,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 			idMap:      idMap,
 			nameSpaces: nameSpaces,
 		},
+		cfg:          cfg,
 		maps:         maps,
 		BotUser:      BotUser,
 		listedUser:   listedUser,
@@ -172,27 +177,26 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	go c.handleMessage()
 }
 
+/* NOTE NOTE NOTE: Connector, Brain and History do not change after start-up, and that
+probably shouldn't change. There's no real good reason to allow it, and not changing means
+we don't need to worry about locking. When absolutely necessary, there's always "restart".
+*/
+
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct
 func (h handler) GetProtocolConfig(v interface{}) error {
-	currentCfg.RLock()
 	err := json.Unmarshal(protocolConfig, v)
-	currentCfg.RUnlock()
 	return err
 }
 
 // GetBrainConfig unmarshals the brain's configuration data into a provided struct
 func (h handler) GetBrainConfig(v interface{}) error {
-	currentCfg.RLock()
 	err := json.Unmarshal(brainConfig, v)
-	currentCfg.RUnlock()
 	return err
 }
 
 // GetHistoryConfig unmarshals the history provider's configuration data into a provided struct
 func (h handler) GetHistoryConfig(v interface{}) error {
-	currentCfg.RLock()
 	err := json.Unmarshal(historyConfig, v)
-	currentCfg.RUnlock()
 	return err
 }
 

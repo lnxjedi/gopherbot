@@ -37,6 +37,9 @@ func scheduleTasks() {
 	confLock.RLock()
 	repolist := repositories
 	confLock.RUnlock()
+	currentCfg.RLock()
+	cfg := currentCfg.configuration
+	currentCfg.RUnlock()
 	for _, st := range scheduled {
 		t := tasks.getTaskByName(st.Name)
 		if t == nil {
@@ -58,13 +61,13 @@ func scheduleTasks() {
 		}
 		ts := st.TaskSpec
 		Log(robot.Info, "Scheduling job '%s', args '%v' with schedule: %s", ts.Name, ts.Arguments, st.Schedule)
-		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, ts, tasks, repolist) })
+		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, ts, cfg, tasks, repolist) })
 	}
 	taskRunner.Start()
 	schedMutex.Unlock()
 }
 
-func runScheduledTask(t interface{}, ts TaskSpec, tasks taskList, repolist map[string]Repository) {
+func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks taskList, repolist map[string]Repository) {
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	if isPlugin && len(ts.Command) == 0 {
@@ -72,11 +75,11 @@ func runScheduledTask(t interface{}, ts TaskSpec, tasks taskList, repolist map[s
 		return
 	}
 
-	currentCfg.RLock()
 	// Create the botContext to carry state through the pipeline.
 	// startPipeline will take care of registerActive()
 	c := &botContext{
 		Channel:       task.Channel,
+		cfg:           cfg,
 		tasks:         tasks,
 		repositories:  repolist,
 		isCommand:     isPlugin,
@@ -84,7 +87,6 @@ func runScheduledTask(t interface{}, ts TaskSpec, tasks taskList, repolist map[s
 		automaticTask: true, // scheduled jobs don't get authorization / elevation checks
 		environment:   make(map[string]string),
 	}
-	currentCfg.RUnlock()
 	var command string
 	if isPlugin {
 		command = ts.Command

@@ -33,9 +33,7 @@ func (r Robot) CheckAdmin() bool {
 	if c.automaticTask {
 		return true
 	}
-	currentCfg.RLock()
-	defer currentCfg.RUnlock()
-	for _, adminUser := range currentCfg.adminUsers {
+	for _, adminUser := range c.cfg.adminUsers {
 		if r.User == adminUser {
 			emit(AdminCheckPassed)
 			return true
@@ -75,9 +73,7 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 		return ok
 	}
 	var prefix, checkPath string
-	currentCfg.RLock()
-	prefix = currentCfg.workSpace
-	currentCfg.RUnlock()
+	prefix = c.cfg.workSpace
 	checkPath = filepath.Join(prefix, path)
 	_, ok := checkDirectory(checkPath)
 	if ok {
@@ -165,22 +161,21 @@ func (r Robot) RandomInt(n int) int {
 // Current attributes:
 // name, alias, fullName, contact
 func (r Robot) GetBotAttribute(a string) *robot.AttrRet {
+	c := r.getContext()
 	a = strings.ToLower(a)
-	currentCfg.RLock()
-	defer currentCfg.RUnlock()
 	ret := robot.Ok
 	var attr string
 	switch a {
 	case "name":
-		attr = currentCfg.botinfo.UserName
+		attr = c.cfg.botinfo.UserName
 	case "fullname", "realname":
-		attr = currentCfg.botinfo.FullName
+		attr = c.cfg.botinfo.FullName
 	case "alias":
-		attr = string(currentCfg.alias)
+		attr = string(c.cfg.alias)
 	case "mail", "email":
-		attr = currentCfg.botinfo.Email
+		attr = c.cfg.botinfo.Email
 	case "contact", "admin", "admincontact":
-		attr = currentCfg.adminContact
+		attr = c.cfg.adminContact
 	case "protocol":
 		attr = r.Protocol.String()
 	default:

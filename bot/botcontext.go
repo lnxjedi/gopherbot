@@ -156,6 +156,7 @@ func (c *botContext) clone() *botContext {
 		pipeName:         c.pipeName,
 		pipeDesc:         c.pipeDesc,
 		ptype:            c.ptype,
+		cfg:              c.cfg,
 		tasks:            c.tasks,
 		maps:             c.maps,
 		repositories:     c.repositories,
@@ -187,6 +188,7 @@ type botContext struct {
 	tasks            taskList                // Pointers to current task configuration at start of pipeline
 	maps             *userChanMaps           // Pointer to current user / channel maps struct
 	repositories     map[string]Repository   // Set of configured repositories
+	cfg              *configuration          // Active configuration when this context was created
 	BotUser          bool                    // set for bots/programs that should never match ambient messages
 	listedUser       bool                    // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
 	isCommand        bool                    // Was the message directed at the robot, dm or by mention

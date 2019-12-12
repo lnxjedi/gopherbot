@@ -67,6 +67,14 @@ var state struct {
 	sync.RWMutex        // for safe updating of bot data structures
 }
 
+// regexes the bot uses to determine if it's being spoken to
+var regexes struct {
+	preRegex  *regexp.Regexp // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
+	postRegex *regexp.Regexp // regex for matching, e.g. "open the pod bay doors, hal"
+	bareRegex *regexp.Regexp // regex for matching the robot's bare name, if you forgot it in the previous command
+	sync.RWMutex
+}
+
 // configuration struct holds all the interal data relevant to the Bot. Most of it is digested
 // and populated by loadConfig.
 type configuration struct {
@@ -76,9 +84,6 @@ type configuration struct {
 	adminContact         string              // who to contact for problems with the bot
 	mailConf             botMailer           // configuration to use when sending email
 	ignoreUsers          []string            // list of users to never listen to, like other bots
-	preRegex             *regexp.Regexp      // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
-	postRegex            *regexp.Regexp      // regex for matching, e.g. "open the pod bay doors, hal"
-	bareRegex            *regexp.Regexp      // regex for matching the robot's bare name, if you forgot it in the previous command
 	joinChannels         []string            // list of channels to join
 	defaultAllowDirect   bool                // whether plugins are available in DM by default
 	defaultMessageFormat robot.MessageFormat // Raw unless set to Variable or Fixed
@@ -103,11 +108,13 @@ type configuration struct {
 	realPort             string              // The actual network address/port being listened on
 	timeZone             *time.Location      // for forcing the TimeZone, Unix only
 	defaultJobChannel    string              // where job statuses will post if not otherwise specified
-	sync.RWMutex                             // for safe updating of bot data structures
 }
 
 // The current configuration
-var currentCfg configuration
+var currentCfg struct {
+	*configuration
+	sync.RWMutex
+}
 
 var listening bool // for tests where initBot runs multiple times
 
@@ -212,10 +219,11 @@ func initBot(hpath, cpath, epath string, logger *log.Logger) {
 			Log(robot.Fatal, "Listening on tcp4 port 127.0.0.1:%s: %v", currentCfg.port, err)
 		}
 		currentCfg.realPort = listener.Addr().String()
+		realPort := currentCfg.realPort
 		go func() {
 			raiseThreadPriv("http handler")
 			http.Handle("/json", handle)
-			Log(robot.Info, "Listening for external plugin connections on http://%s", currentCfg.realPort)
+			Log(robot.Info, "Listening for external plugin connections on http://%s", realPort)
 			Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, nil))
 		}()
 	}
@@ -256,9 +264,7 @@ func run() <-chan bool {
 
 	// signal handler
 	go func() {
-		currentCfg.RLock()
 		done := interfaces.done
-		currentCfg.RUnlock()
 		sigs := make(chan os.Signal, 1)
 
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -267,13 +273,13 @@ func run() <-chan bool {
 		for {
 			select {
 			case sig := <-sigs:
-				currentCfg.Lock()
+				state.Lock()
 				if state.shuttingDown {
 					Log(robot.Warn, "Received SIGINT/SIGTERM while shutdown in progress")
-					currentCfg.Unlock()
+					state.Unlock()
 				} else {
 					state.shuttingDown = true
-					currentCfg.Unlock()
+					state.Unlock()
 					signal.Stop(sigs)
 					Log(robot.Info, "Exiting on signal: %s", sig)
 					stop()
