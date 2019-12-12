@@ -103,7 +103,12 @@ func (t loadTpl) Include(tpl string) string {
 		Log(robot.Error, "Reading include '%s'(%s): %v", tpl, path, err)
 		return ""
 	}
-	return string(inc)
+	expanded, err := expand(t.dir, t.isCustom, inc)
+	if err != nil {
+		Log(robot.Error, "Expanding included '%s': %v", tpl, err)
+		return ""
+	}
+	return string(expanded)
 }
 
 // expand expands a text template
