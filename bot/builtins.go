@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"encoding/base64"
 	"fmt"
 	"log"
 	"runtime"
@@ -33,22 +32,21 @@ func init() {
 
 func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
+	c := r.getContext()
 	if command == "init" {
 		return // ignore init
 	}
 	if command == "info" {
-		botCfg.RLock()
-		admins := strings.Join(botCfg.adminUsers, ", ")
-		aliasCh := botCfg.alias
-		name := botCfg.botinfo.UserName
+		admins := strings.Join(c.cfg.adminUsers, ", ")
+		aliasCh := c.cfg.alias
+		name := c.cfg.botinfo.UserName
 		if len(name) == 0 {
 			name = "(unknown)"
 		}
-		ID := botCfg.botinfo.UserID
+		ID := c.cfg.botinfo.UserID
 		if len(ID) == 0 {
 			ID = "(unknown)"
 		}
-		botCfg.RUnlock()
 		var alias string
 		if aliasCh == 0 {
 			alias = "(not set)"
@@ -78,9 +76,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		r.Say(strings.Join(msg, "\n"))
 	}
 	if command == "help" {
-		botCfg.RLock()
-		botname := botCfg.botinfo.UserName
-		botCfg.RUnlock()
+		botname := c.cfg.botinfo.UserName
 
 		var term, helpOutput string
 		botSub := `(bot)`
@@ -95,7 +91,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 
 		helpLines := make([]string, 0, tooLong)
 		c := r.getContext()
-		for _, t := range c.tasks.t {
+		for _, t := range c.tasks.t[1:] {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
 				continue
@@ -190,29 +186,14 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 		return // ignore init
 	}
 	switch command {
-	case "encrypt":
-		cryptKey.RLock()
-		initialized := cryptKey.initialized
-		key := cryptKey.key
-		cryptKey.RUnlock()
-		if !initialized {
-			r.Say("Sorry, I can't encrypt secrets - encryption isn't initialized, please check with an administrator")
-			return
-		}
-		secret := args[0]
-		b, err := encrypt([]byte(secret), key)
-		if err != nil {
-			r.Log(robot.Error, "Problem encrypting secret in 'encrypt' command: %v", err)
-			r.Say("I had problems encrypting your secret, check with an administrator")
-			return
-		}
-		encoded := base64.StdEncoding.EncodeToString(b)
-		r.Fixed().Say(encoded)
-		return
 	case "dumprobot":
-		botCfg.RLock()
+		if r.Protocol != robot.Terminal && r.Protocol != robot.Test {
+			r.Say("This command is only valid with the 'terminal' connector")
+			return
+		}
+		confLock.RLock()
 		c, _ := yaml.Marshal(config)
-		botCfg.RUnlock()
+		confLock.RUnlock()
 		r.Fixed().Say("Here's how I've been configured, irrespective of interactive changes:\n%s", c)
 	case "dumpplugdefault":
 		if plug, ok := pluginHandlers[args[0]]; ok {
@@ -220,7 +201,7 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 		} else { // look for an external plugin
 			found := false
 			c := r.getContext()
-			for _, t := range c.tasks.t {
+			for _, t := range c.tasks.t[1:] {
 				task, plugin, _ := getTask(t)
 				if args[0] == task.name {
 					if plugin == nil {
@@ -242,9 +223,13 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 			}
 		}
 	case "dumpplugin":
+		if r.Protocol != robot.Terminal && r.Protocol != robot.Test {
+			r.Say("This command is only valid with the 'terminal' connector")
+			return
+		}
 		found := false
 		c := r.getContext()
-		for _, t := range c.tasks.t {
+		for _, t := range c.tasks.t[1:] {
 			task, plugin, _ := getTask(t)
 			if args[0] == task.name {
 				if plugin == nil {
@@ -270,7 +255,7 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 		}
 		c := r.getContext()
 		plist := make([]string, 0, len(c.tasks.t))
-		for _, t := range c.tasks.t {
+		for _, t := range c.tasks.t[1:] {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
 				continue
@@ -345,6 +330,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		return // ignore init
 	}
 	r := m.(Robot)
+	c := r.getContext()
 	switch command {
 	case "reload":
 		err := r.getContext().loadConfig(false)
@@ -404,27 +390,27 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		taskDebug.Unlock()
 		r.Say("Debugging disabled")
 	case "quit", "restart":
-		botCfg.Lock()
-		if botCfg.shuttingDown {
-			botCfg.Unlock()
+		state.Lock()
+		if state.shuttingDown {
+			state.Unlock()
 			Log(robot.Warn, "Received administrator `quit` while shutdown in progress")
 			return
 		}
-		botCfg.shuttingDown = true
+		state.shuttingDown = true
 		restart := command == "restart"
 		if restart {
-			botCfg.restart = true
+			state.restart = true
 		}
-		proto := botCfg.protocol
+		proto := c.cfg.protocol
 		// NOTE: THIS plugin is definitely running, but will end soon!
-		if botCfg.pluginsRunning > 1 {
-			runningCount := botCfg.pluginsRunning - 1
-			botCfg.Unlock()
+		if state.pluginsRunning > 1 {
+			runningCount := state.pluginsRunning - 1
+			state.Unlock()
 			if proto != "test" {
 				r.Say("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount)
 			}
 		} else {
-			botCfg.Unlock()
+			state.Unlock()
 			if proto != "test" {
 				if restart {
 					r.Reply(r.RandomString(rightback))

@@ -4,12 +4,17 @@
 package terminal
 
 import (
-	"log"
-
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-// GetInitializer is the common exported symbol for loadable connector modules.
-func GetInitializer() (string, func(robot.Handler, *log.Logger) robot.Connector) {
-	return "terminal", Initialize
+var manifest = robot.Manifest{
+	Connector: robot.ConnectorSpec{
+		Name:      "terminal",
+		Connector: Initialize,
+	},
+}
+
+// GetManifest returns all the handlers available in this plugin
+func GetManifest() robot.Manifest {
+	return manifest
 }

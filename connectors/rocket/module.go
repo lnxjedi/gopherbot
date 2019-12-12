@@ -4,12 +4,17 @@
 package rocket
 
 import (
-	"log"
-
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-// GetInitializer is the common exported symbol for loadable connector modules.
-func GetInitializer() (string, func(robot.Handler, *log.Logger) robot.Connector) {
-	return "rocket", Initialize
+var manifest = robot.Manifest{
+	Connector: robot.ConnectorSpec{
+		Name:      "rocket",
+		Connector: Initialize,
+	},
+}
+
+// GetManifest returns all the handlers available in this plugin
+func GetManifest() robot.Manifest {
+	return manifest
 }

@@ -219,7 +219,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 		Log(robot.Error, "Invalid memory key, ':' disallowed: %s", dkey)
 		return "", nil, false, robot.InvalidDatumKey
 	}
-	brain := botCfg.brain
+	brain := interfaces.brain
 	if brain == nil {
 		Log(robot.Error, "Brain function called with no brain configured")
 		return "", nil, false, robot.BrainFailed
@@ -233,7 +233,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 	}
 	var err error
 	var db *[]byte
-	db, exists, err = botCfg.brain.Retrieve(dkey)
+	db, exists, err = brain.Retrieve(dkey)
 	if err != nil {
 		return "", nil, false, robot.BrainFailed
 	}
@@ -283,7 +283,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 // storeDatum takes a blob of bytes and optionally encrypts it before sending it
 // to the brain provider
 func storeDatum(dkey string, datum *[]byte) robot.RetVal {
-	brain := botCfg.brain
+	brain := interfaces.brain
 	if brain == nil {
 		Log(robot.Error, "Brain function called with no brain configured")
 		return robot.BrainFailed
@@ -308,7 +308,7 @@ func storeDatum(dkey string, datum *[]byte) robot.RetVal {
 		}
 		datum = &encrypted
 	}
-	err := botCfg.brain.Store(dkey, datum)
+	err := brain.Store(dkey, datum)
 	if err != nil {
 		Log(robot.Error, "Storing datum %s: %v", dkey, err)
 		return robot.BrainFailed

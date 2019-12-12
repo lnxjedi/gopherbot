@@ -80,8 +80,9 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 
 	c.currentTask = t
 	r := c.makeRobot()
-	task, plugin, _ := getTask(t)
+	task, plugin, job := getTask(t)
 	isPlugin := plugin != nil
+	isJob := job != nil
 	// This should only happen in the rare case that a configured authorizer or elevator is disabled
 	if task.Disabled {
 		msg := fmt.Sprintf("callTask failed on disabled task %s; reason: %s", task.name, task.reason)
@@ -129,9 +130,21 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		if command != "init" {
 			emit(GoPluginRan)
 		}
-		Log(robot.Debug, "Call go plugin: '%s' with args: %q", task.name, args)
+		Log(robot.Debug, "Calling go plugin: '%s' with args: %q", task.name, args)
 		c.taskenvironment = envhash
 		ret := pluginHandlers[task.name].Handler(r, command, args...)
+		c.taskenvironment = nil
+		rchan <- taskReturn{"", ret}
+		return
+	} else if task.taskType == taskGo {
+		Log(robot.Debug, "Calling go task '%s' (type %s) with args: %q", task.name, task.taskType, args)
+		c.taskenvironment = envhash
+		var ret robot.TaskRetVal
+		if isJob {
+			ret = jobHandlers[task.name].Handler(r, args...)
+		} else {
+			ret = taskHandlers[task.name].Handler(r, args...)
+		}
 		c.taskenvironment = nil
 		rchan <- taskReturn{"", ret}
 		return
@@ -172,9 +185,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	if filepath.IsAbs(c.workingDirectory) {
 		cmd.Dir = c.workingDirectory
 	} else {
-		botCfg.RLock()
-		cmd.Dir = filepath.Join(botCfg.workSpace, c.workingDirectory)
-		botCfg.RUnlock()
+		cmd.Dir = filepath.Join(c.cfg.workSpace, c.workingDirectory)
 	}
 	Log(robot.Debug, "Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '"))
 	var stderr, stdout io.ReadCloser

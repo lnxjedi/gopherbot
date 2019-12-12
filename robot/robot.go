@@ -3,7 +3,7 @@ package robot
 import "bytes"
 
 // Robot defines the methods exposed by gopherbot.bot Robot struct, for
-// use by plugins.
+// use by plugins/jobs/tasks.
 type Robot interface {
 	CheckAdmin() bool
 	GetBotAttribute(a string) *AttrRet

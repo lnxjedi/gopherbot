@@ -88,7 +88,7 @@ const (
 	InvalidDblPtr
 	// InvalidCfgStruct - The struct type in GetTaskConfig doesn't match the struct registered for the plugin
 	InvalidCfgStruct
-	// NoConfigFound - The plugin doesn't have any config data
+	// NoConfigFound - The plugin/job doesn't have any config data
 	NoConfigFound
 
 	/* Prompt(User)ForReply */

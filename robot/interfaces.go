@@ -53,7 +53,7 @@ type Handler interface {
 	// Log provides a standard logging interface with a level as defined in
 	// bot/logging.go
 	Log(l LogLevel, m string, v ...interface{})
-	// MakeDirectory lets infrastructure plugins create directories, for e.g.
+	// GetDirectory lets infrastructure plugins create directories, for e.g.
 	// file-based history and brain providers. When privilege separation is in
 	// use, the directory is created with the privileged uid.
 	GetDirectory(path string) error
@@ -63,7 +63,7 @@ type Handler interface {
 }
 
 // Connector is the interface defining methods that should be provided by
-// the connector for use by plugins/bot
+// the connector for use by bot
 type Connector interface {
 	// SetUserMap provides the connector with a map from usernames to userIDs,
 	// the protocol-internal ID for a user. The connector can use this map

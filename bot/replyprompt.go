@@ -234,9 +234,9 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		}
 		var ret robot.RetVal
 		if channel == "" {
-			ret = botCfg.SendProtocolUserMessage(puser, prompt, r.Format)
+			ret = interfaces.SendProtocolUserMessage(puser, prompt, r.Format)
 		} else {
-			ret = botCfg.SendProtocolUserChannelMessage(puser, user, channel, prompt, r.Format)
+			ret = interfaces.SendProtocolUserChannelMessage(puser, user, channel, prompt, r.Format)
 		}
 		if ret != robot.Ok {
 			replies.Unlock()

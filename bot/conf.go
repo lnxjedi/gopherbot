@@ -15,8 +15,9 @@ import (
 
 var protocolConfig, brainConfig, historyConfig json.RawMessage
 
-// BotConf defines 'bot configuration, and is read from conf/gopherbot.yaml
-type BotConf struct {
+// ConfigLoader defines 'bot configuration, and is read from conf/gopherbot.yaml
+// Digested content ends up in currentCfg, see bot_process.go.
+type ConfigLoader struct {
 	AdminContact         string                    // Contact info for whomever administers the robot
 	MailConfig           botMailer                 // configuration for sending email
 	Protocol             string                    // Name of the connector protocol to use, e.g. "slack"
@@ -40,9 +41,13 @@ type BotConf struct {
 	JoinChannels         []string                  // Channels the 'bot should join when it logs in (not supported by all protocols)
 	DefaultJobChannel    string                    // Where job status is posted by default
 	TimeZone             string                    // For evaluating the hour in a job schedule
-	ExternalJobs         map[string]ExternalTask   // list of available jobs; config in conf/jobs/<jobname>.yaml
-	ExternalPlugins      map[string]ExternalTask   // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
-	ExternalTasks        map[string]ExternalTask   // List executables that can be added to a pipeline (but can't start one)
+	ExternalJobs         map[string]TaskSettings   // list of available jobs; config in conf/jobs/<jobname>.yaml
+	ExternalPlugins      map[string]TaskSettings   // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
+	ExternalTasks        map[string]TaskSettings   // List executables that can be added to a pipeline (but can't start one)
+	GoJobs               map[string]TaskSettings   // settings for go jobs; config in conf/jobs/<jobname>.yaml
+	GoPlugins            map[string]TaskSettings   // settings for go plugins; config in conf/plugins/<plugname>.yaml
+	GoTasks              map[string]TaskSettings   // settings for go tasks
+	NameSpaces           map[string]TaskSettings   // namespaces for shared parameters & memory sharing
 	LoadableModules      map[string]LoadableModule // List of loadable modules to load
 	ScheduledJobs        []ScheduledTask           // see tasks.go
 	AdminUsers           []string                  // List of users who can access administrative commands
@@ -53,10 +58,11 @@ type BotConf struct {
 
 // Repository represents a buildable git repository, for CI/CD
 type Repository struct {
-	Type        string // task extending the namespace needs to match for parameters
-	CloneURL    string
-	KeepHistory int         // How many job logs to keep for this repo
-	Parameters  []Parameter // per-repository parameters
+	Type         string // task extending the namespace needs to match for parameters
+	CloneURL     string
+	Dependencies []string    // List of repositories this one depends on; changes to a dependency trigger a build
+	KeepHistory  int         // How many job logs to keep for this repo
+	Parameters   []Parameter // per-repository parameters
 }
 
 // UserInfo is listed in the UserRoster of gopherbot.yaml to provide:
@@ -98,18 +104,18 @@ var currentUCMaps = struct {
 
 // Protects the bot config and list of repositories
 var confLock sync.RWMutex
-var config *BotConf
+var config *ConfigLoader
 var repositories map[string]Repository
 
 // loadConfig loads the 'bot's yaml configuration files.
 func (c *botContext) loadConfig(preConnect bool) error {
 	var loglevel robot.LogLevel
-	newconfig := &BotConf{}
-	newconfig.ExternalJobs = make(map[string]ExternalTask)
-	newconfig.ExternalPlugins = make(map[string]ExternalTask)
-	newconfig.ExternalTasks = make(map[string]ExternalTask)
+	newconfig := &ConfigLoader{}
+	newconfig.ExternalJobs = make(map[string]TaskSettings)
+	newconfig.ExternalPlugins = make(map[string]TaskSettings)
+	newconfig.ExternalTasks = make(map[string]TaskSettings)
 	configload := make(map[string]json.RawMessage)
-	tasksOk := true
+	processed := &configuration{}
 
 	if err := c.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
@@ -136,7 +142,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		var urval []UserInfo
 		var bival *UserInfo
 		var crval []ChannelInfo
-		var tval map[string]ExternalTask
+		var tval map[string]TaskSettings
 		var mval map[string]LoadableModule
 		var stval []ScheduledTask
 		var mailval botMailer
@@ -157,7 +163,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			val = &crval
 		case "LocalPort":
 			val = &intval
-		case "ExternalJobs", "ExternalPlugins", "ExternalTasks":
+		case "ExternalJobs", "ExternalPlugins", "ExternalTasks", "GoJobs", "GoPlugins", "GoTasks", "NameSpaces":
 			val = &tval
 		case "LoadableModules":
 			val = &mval
@@ -228,11 +234,19 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		case "EncryptBrain":
 			newconfig.EncryptBrain = *(val.(*bool))
 		case "ExternalPlugins":
-			newconfig.ExternalPlugins = *(val.(*map[string]ExternalTask))
+			newconfig.ExternalPlugins = *(val.(*map[string]TaskSettings))
 		case "ExternalJobs":
-			newconfig.ExternalJobs = *(val.(*map[string]ExternalTask))
+			newconfig.ExternalJobs = *(val.(*map[string]TaskSettings))
 		case "ExternalTasks":
-			newconfig.ExternalTasks = *(val.(*map[string]ExternalTask))
+			newconfig.ExternalTasks = *(val.(*map[string]TaskSettings))
+		case "GoPlugins":
+			newconfig.GoPlugins = *(val.(*map[string]TaskSettings))
+		case "GoJobs":
+			newconfig.GoJobs = *(val.(*map[string]TaskSettings))
+		case "GoTasks":
+			newconfig.GoTasks = *(val.(*map[string]TaskSettings))
+		case "NameSpaces":
+			newconfig.NameSpaces = *(val.(*map[string]TaskSettings))
 		case "LoadableModules":
 			newconfig.LoadableModules = *(val.(*map[string]LoadableModule))
 		case "ScheduledJobs":
@@ -256,76 +270,70 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		setLogLevel(loglevel)
 	}
 
-	if !preConnect {
-		botCfg.Lock()
-	}
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		if !strings.ContainsRune(string(aliases+escapeAliases), alias) {
-			botCfg.Unlock()
 			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escapeAliases, aliases)
 		}
-		botCfg.alias = alias
+		processed.alias = alias
 	}
 
 	if len(newconfig.DefaultMessageFormat) == 0 {
-		botCfg.defaultMessageFormat = robot.Raw
+		processed.defaultMessageFormat = robot.Raw
 	} else {
-		botCfg.defaultMessageFormat = setFormat(newconfig.DefaultMessageFormat)
+		processed.defaultMessageFormat = setFormat(newconfig.DefaultMessageFormat)
 	}
 
 	if explicitDefaultAllowDirect {
-		botCfg.defaultAllowDirect = newconfig.DefaultAllowDirect
+		processed.defaultAllowDirect = newconfig.DefaultAllowDirect
 	} else {
-		botCfg.defaultAllowDirect = true // rare case of defaulting to true
+		processed.defaultAllowDirect = true // rare case of defaulting to true
 	}
 
 	if newconfig.AdminContact != "" {
-		botCfg.adminContact = newconfig.AdminContact
+		processed.adminContact = newconfig.AdminContact
 	}
 
 	if newconfig.TimeZone != "" {
 		tz, err := time.LoadLocation(newconfig.TimeZone)
 		if err == nil {
 			Log(robot.Info, "Set timezone: %s", tz)
-			botCfg.timeZone = tz
+			processed.timeZone = tz
 		} else {
 			Log(robot.Error, "Parsing time zone '%s', using local time; error: %v", newconfig.TimeZone, err)
-			botCfg.timeZone = nil
+			processed.timeZone = nil
 		}
 	}
 
 	if newconfig.BotInfo != nil {
-		botID := botCfg.botinfo.UserID
-		botMention := botCfg.botinfo.protoMention
-		botCfg.botinfo = *newconfig.BotInfo
-		botCfg.botinfo.UserID = botID
-		botCfg.botinfo.protoMention = botMention
+		// Note that connector-supplied values are copied
+		// when processed becomes current.
+		processed.botinfo = *newconfig.BotInfo
 	}
-	botCfg.mailConf = newconfig.MailConfig
+	processed.mailConf = newconfig.MailConfig
 
 	if newconfig.DefaultJobChannel != "" {
-		botCfg.defaultJobChannel = newconfig.DefaultJobChannel
+		processed.defaultJobChannel = newconfig.DefaultJobChannel
 	}
 
 	if newconfig.DefaultElevator != "" {
-		botCfg.defaultElevator = newconfig.DefaultElevator
+		processed.defaultElevator = newconfig.DefaultElevator
 	}
 
 	if newconfig.DefaultAuthorizer != "" {
-		botCfg.defaultAuthorizer = newconfig.DefaultAuthorizer
+		processed.defaultAuthorizer = newconfig.DefaultAuthorizer
 	}
 
 	if newconfig.AdminUsers != nil {
-		botCfg.adminUsers = newconfig.AdminUsers
+		processed.adminUsers = newconfig.AdminUsers
 	} else {
-		botCfg.adminUsers = []string{}
+		processed.adminUsers = []string{}
 	}
 	if newconfig.DefaultChannels != nil {
-		botCfg.plugChannels = newconfig.DefaultChannels
+		processed.plugChannels = newconfig.DefaultChannels
 	}
 	if newconfig.ExternalPlugins != nil {
-		et := make([]ExternalTask, 0)
+		et := make([]TaskSettings, 0)
 		for name, task := range newconfig.ExternalPlugins {
 			if task.Disabled {
 				continue
@@ -337,10 +345,10 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			}
 			et = append(et, task)
 		}
-		botCfg.externalPlugins = et
+		processed.externalPlugins = et
 	}
 	if newconfig.ExternalJobs != nil {
-		et := make([]ExternalTask, 0)
+		et := make([]TaskSettings, 0)
 		for name, task := range newconfig.ExternalJobs {
 			if task.Disabled {
 				continue
@@ -352,10 +360,10 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			}
 			et = append(et, task)
 		}
-		botCfg.externalJobs = et
+		processed.externalJobs = et
 	}
 	if newconfig.ExternalTasks != nil {
-		et := make([]ExternalTask, 0)
+		et := make([]TaskSettings, 0)
 		for name, task := range newconfig.ExternalTasks {
 			if task.Disabled {
 				continue
@@ -363,15 +371,50 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			task.Name = name
 			et = append(et, task)
 		}
-		botCfg.externalTasks = et
+		processed.externalTasks = et
 	}
+	if newconfig.GoTasks != nil {
+		gt := make([]TaskSettings, 0, len(newconfig.GoTasks))
+		for name, task := range newconfig.GoTasks {
+			task.Name = name
+			gt = append(gt, task)
+		}
+		processed.goTasks = gt
+	}
+	if newconfig.GoPlugins != nil {
+		gt := make([]TaskSettings, 0, len(newconfig.GoPlugins))
+		for name, task := range newconfig.GoPlugins {
+			task.Name = name
+			gt = append(gt, task)
+		}
+		processed.goPlugins = gt
+	}
+	if newconfig.GoJobs != nil {
+		gt := make([]TaskSettings, 0, len(newconfig.GoJobs))
+		for name, task := range newconfig.GoJobs {
+			task.Name = name
+			gt = append(gt, task)
+		}
+		processed.goJobs = gt
+	}
+	if newconfig.NameSpaces != nil {
+		ns := make([]TaskSettings, 0, len(newconfig.NameSpaces))
+		for name, nameSpace := range newconfig.NameSpaces {
+			nameSpace.Name = name
+			ns = append(ns, nameSpace)
+		}
+		processed.nameSpaces = ns
+	}
+	// NOTE on Go tasks - we can't just skip a disabled task, since they're
+	// enabled by default. Disabled: true needs to pass through so it's disabled
+	// in taskconf.go
 	if newconfig.LoadableModules != nil {
 		lm := make([]LoadableModule, 0)
 		for name, mod := range newconfig.LoadableModules {
 			mod.Name = name
 			lm = append(lm, mod)
 		}
-		botCfg.loadableModules = lm
+		processed.loadableModules = lm
 	}
 	st := make([]ScheduledTask, 0, len(newconfig.ScheduledJobs))
 	for _, s := range newconfig.ScheduledJobs {
@@ -381,12 +424,12 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			st = append(st, s)
 		}
 	}
-	botCfg.ScheduledJobs = st
+	processed.ScheduledJobs = st
 	if newconfig.IgnoreUsers != nil {
-		botCfg.ignoreUsers = newconfig.IgnoreUsers
+		processed.ignoreUsers = newconfig.IgnoreUsers
 	}
 	if newconfig.JoinChannels != nil {
-		botCfg.joinChannels = newconfig.JoinChannels
+		processed.joinChannels = newconfig.JoinChannels
 	}
 
 	ucmaps := userChanMaps{
@@ -407,8 +450,8 @@ func (c *botContext) loadConfig(preConnect bool) error {
 				usermap[u.UserName] = u.UserID
 			}
 		}
-		if len(botCfg.botinfo.UserName) > 0 && len(botCfg.botinfo.UserID) > 0 {
-			usermap[botCfg.botinfo.UserName] = botCfg.botinfo.UserID
+		if len(processed.botinfo.UserName) > 0 && len(processed.botinfo.UserID) > 0 {
+			usermap[processed.botinfo.UserName] = processed.botinfo.UserID
 		}
 	}
 	if len(newconfig.ChannelRoster) > 0 {
@@ -429,18 +472,18 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	if len(newconfig.WorkSpace) > 0 {
 		h := handler{}
 		if err := h.GetDirectory(newconfig.WorkSpace); err == nil {
-			botCfg.workSpace = newconfig.WorkSpace
-			Log(robot.Debug, "Setting workspace directory to '%s'", botCfg.workSpace)
+			processed.workSpace = newconfig.WorkSpace
+			Log(robot.Debug, "Setting workspace directory to '%s'", processed.workSpace)
 		} else {
 			Log(robot.Error, "Getting WorkSpace directory '%s', using '%s': %v", newconfig.WorkSpace, configPath, err)
 		}
 	}
-	if len(botCfg.workSpace) == 0 {
-		botCfg.workSpace = configPath
+	if len(processed.workSpace) == 0 {
+		processed.workSpace = configPath
 	}
 
 	if newconfig.HistoryProvider != "" {
-		botCfg.historyProvider = newconfig.HistoryProvider
+		processed.historyProvider = newconfig.HistoryProvider
 	}
 	if newconfig.HistoryConfig != nil {
 		historyConfig = newconfig.HistoryConfig
@@ -449,7 +492,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	// Items only read at start-up, before multi-threaded
 	if preConnect {
 		if newconfig.Protocol != "" {
-			botCfg.protocol = newconfig.Protocol
+			processed.protocol = newconfig.Protocol
 		} else {
 			return fmt.Errorf("Protocol not specified in gopherbot.yaml")
 		}
@@ -461,55 +504,71 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			encryptBrain = true
 		}
 		if newconfig.EncryptionKey != "" {
-			botCfg.encryptionKey = newconfig.EncryptionKey
+			processed.encryptionKey = newconfig.EncryptionKey
 			newconfig.EncryptionKey = "XXXXXX" // too short to be valid anyway
 		}
 		if newconfig.Brain != "" {
-			botCfg.brainProvider = newconfig.Brain
+			processed.brainProvider = newconfig.Brain
 		}
 		if newconfig.BrainConfig != nil {
 			brainConfig = newconfig.BrainConfig
 		}
 		if newconfig.LocalPort != 0 {
-			botCfg.port = fmt.Sprintf("%d", newconfig.LocalPort)
+			processed.port = fmt.Sprintf("%d", newconfig.LocalPort)
 		} else {
-			botCfg.port = "0"
+			processed.port = "0"
+		}
+		if len(newconfig.HistoryProvider) > 0 {
+			if hprovider, ok := historyProviders[newconfig.HistoryProvider]; !ok {
+				Log(robot.Fatal, "No provider registered for history type: \"%s\"", processed.historyProvider)
+			} else {
+				hp := hprovider(handler{})
+				interfaces.history = hp
+			}
 		}
 	} else {
 		if len(usermap) > 0 {
-			botCfg.SetUserMap(usermap)
+			interfaces.SetUserMap(usermap)
 		}
 		// We should never dump the brain key
 		newconfig.EncryptionKey = "XXXXXX"
-		// loadTaskConfig does it's own locking
-		historyConfigured := botCfg.history != nil
-		botCfg.Unlock()
-		if !historyConfigured && len(newconfig.HistoryProvider) > 0 {
-			if hprovider, ok := historyProviders[newconfig.HistoryProvider]; !ok {
-				Log(robot.Fatal, "No provider registered for history type: \"%s\"", botCfg.historyProvider)
-			} else {
-				hp := hprovider(handler{})
-				botCfg.Lock()
-				botCfg.history = hp
-				botCfg.Unlock()
-			}
-		}
 	}
 
+	newList, err := c.loadTaskConfig(processed)
+	if err != nil {
+		return err
+	}
+
+	// Configuration successfully loaded, apply changes
+
+	// Note we always take the locks on global values regardless
+	// of preConnect.
+
+	// Update structs supplied to "dump robot" and "GetRepositories"
+	// Note that GetRepositories blanks out Parameters, but dump
+	// commands are only allowed for the terminal connector.
 	confLock.Lock()
 	config = newconfig
 	repositories = repolist
 	confLock.Unlock()
 
-	if tasksOk && !preConnect {
-		c.loadTaskConfig()
-	} else if !tasksOk {
-		return fmt.Errorf("reading external plugin config")
-	}
+	currentCfg.Lock()
+	processed.botinfo.UserID = currentCfg.botinfo.UserID
+	processed.botinfo.protoMention = currentCfg.botinfo.protoMention
+	currentCfg.configuration = processed
+	currentCfg.Unlock()
+
+	globalTasks.Lock()
+	globalTasks.t = newList.t
+	globalTasks.idMap = newList.idMap
+	globalTasks.nameMap = newList.nameMap
+	globalTasks.nameSpaces = newList.nameSpaces
+	globalTasks.Unlock()
 
 	if !preConnect {
 		updateRegexes()
 		scheduleTasks()
+		initializePlugins()
 	}
 
 	return nil

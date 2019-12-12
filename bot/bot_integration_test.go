@@ -303,8 +303,6 @@ func TestBuiltins(t *testing.T) {
 		{aliceID, general, ";help log", []testc.TestMessage{{null, general, "direct message only"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log lines to 3", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 3"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log lines to 0", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 1"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, ";show log", []testc.TestMessage{{alice, null, ".*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, ";show log page 1", []testc.TestMessage{{alice, null, ".*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";help info", []testc.TestMessage{{null, general, "bender,.*admins"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, random, ";help ruby", []testc.TestMessage{{null, random, `(?m:Command.*\n.*random\))`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";help", []testc.TestMessage{{alice, general, `\(the help.*private message\)`}, {alice, null, "bender,.*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
@@ -317,6 +315,8 @@ func TestBuiltins(t *testing.T) {
 		{aliceID, null, "dump plugin rubydemo", []testc.TestMessage{{alice, null, "ALLCHANNELS.*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, "dump plugin default rubydemo", []testc.TestMessage{{alice, null, "HERE'S.*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, "dump plugin junk", []testc.TestMessage{{alice, null, "Didn't find .* junk"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, ";show log", []testc.TestMessage{{alice, null, ".*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, ";show log page 1", []testc.TestMessage{{alice, null, ".*"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 

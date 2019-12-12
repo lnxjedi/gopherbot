@@ -23,6 +23,10 @@
 ## Configuration
 - [Configuration File Loading](config/file.md)
 
+## Using Gopherbot
+- [Administrator Commands](usage/admin.md)
+- [Command-Line Use](usage/cli.md)
+
 ## Plugin Development
 - [Gopherbot API](api/API-Introduction.md)
     - [Language Templates](api/Languages.md)

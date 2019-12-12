@@ -4,19 +4,20 @@
 package slack
 
 import (
-	"log"
-
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-// GetPlugins is the common exported symbol for loadable go plugins.
-func GetPlugins() []robot.PluginSpec {
-	return []robot.PluginSpec{
+var manifest = robot.Manifest{
+	Plugins: []robot.PluginSpec{
 		slackspec,
-	}
+	},
+	Connector: robot.ConnectorSpec{
+		Name:      "slack",
+		Connector: Initialize,
+	},
 }
 
-// GetInitializer is the common exported symbol for loadable connector modules.
-func GetInitializer() (string, func(robot.Handler, *log.Logger) robot.Connector) {
-	return "slack", Initialize
+// GetManifest returns all the handlers available in this plugin
+func GetManifest() robot.Manifest {
+	return manifest
 }

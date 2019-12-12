@@ -49,51 +49,74 @@ func RegisterConnector(name string, connstarter func(robot.Handler, *log.Logger)
 	connectors[name] = connstarter
 }
 
-// robot holds all the interal data relevant to the Bot. Most of it is populated
-// by loadConfig, other stuff is populated by the connector.
-var botCfg struct {
-	robot.Connector                            // Connector interface, implemented by each specific protocol
-	adminUsers           []string              // List of users with access to administrative commands
-	alias                rune                  // single-char alias for addressing the bot
-	botinfo              UserInfo              // robot's name, ID, email, etc.
-	adminContact         string                // who to contact for problems with the bot
-	mailConf             botMailer             // configuration to use when sending email
-	ignoreUsers          []string              // list of users to never listen to, like other bots
-	preRegex             *regexp.Regexp        // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
-	postRegex            *regexp.Regexp        // regex for matching, e.g. "open the pod bay doors, hal"
-	bareRegex            *regexp.Regexp        // regex for matching the robot's bare name, if you forgot it in the previous command
-	joinChannels         []string              // list of channels to join
-	defaultAllowDirect   bool                  // whether plugins are available in DM by default
-	defaultMessageFormat robot.MessageFormat   // Raw unless set to Variable or Fixed
-	plugChannels         []string              // list of channels where plugins are available by default
-	protocol             string                // Name of the protocol, e.g. "slack"
-	brainProvider        string                // Type of Brain provider to use
-	brain                robot.SimpleBrain     // Interface for robot to Store and Retrieve data
-	encryptionKey        string                // Key for encrypting data (unlocks "real" key in brain)
-	historyProvider      string                // Name of the history provider to use
-	history              robot.HistoryProvider // Provider for storing and retrieving job / plugin histories
-	workSpace            string                // Read/Write directory where the robot does work
-	defaultElevator      string                // Plugin name for performing elevation
-	defaultAuthorizer    string                // Plugin name for performing authorization
-	externalPlugins      []ExternalTask        // List of external plugins to load
-	externalJobs         []ExternalTask        // List of external jobs to load
-	externalTasks        []ExternalTask        // List of external tasks to load
-	loadableModules      []LoadableModule      // List of loadable modules to load
-	ScheduledJobs        []ScheduledTask       // List of scheduled tasks
-	port                 string                // Configured localhost port to listen on, or 0 for first open
-	realPort             string                // The actual network address/port being listened on
-	stop                 chan struct{}         // stop channel for stopping the connector
-	done                 chan bool             // shutdown channel, true to restart
-	timeZone             *time.Location        // for forcing the TimeZone, Unix only
-	defaultJobChannel    string                // where job statuses will post if not otherwise specified
-	shuttingDown         bool                  // to prevent new plugins from starting
-	restart              bool                  // indicate stop and restart vs. stop only, for bootstrapping
-	pluginsRunning       int                   // a count of how many plugins are currently running
-	sync.WaitGroup                             // for keeping track of running plugins
-	sync.RWMutex                               // for safe updating of bot data structures
+// Interfaces to external stuff, items should be set while single-threaded and never change
+var interfaces struct {
+	robot.Connector                       // Connector interface, implemented by each specific protocol
+	brain           robot.SimpleBrain     // Interface for robot to Store and Retrieve data
+	history         robot.HistoryProvider // Provider for storing and retrieving job / plugin histories
+	stop            chan struct{}         // stop channel for stopping the connector
+	done            chan bool             // shutdown channel, true to restart
 }
 
-var listening bool // for tests where initBot runs multiple times
+// internal state tracking
+var state struct {
+	shuttingDown   bool // to prevent new plugins from starting
+	restart        bool // indicate stop and restart vs. stop only, for bootstrapping
+	pluginsRunning int  // a count of how many plugins are currently running
+	sync.WaitGroup      // for keeping track of running plugins
+	sync.RWMutex        // for safe updating of bot data structures
+}
+
+// regexes the bot uses to determine if it's being spoken to
+var regexes struct {
+	preRegex  *regexp.Regexp // regex for matching prefixed commands, e.g. "Gort, drop your weapon"
+	postRegex *regexp.Regexp // regex for matching, e.g. "open the pod bay doors, hal"
+	bareRegex *regexp.Regexp // regex for matching the robot's bare name, if you forgot it in the previous command
+	sync.RWMutex
+}
+
+// configuration struct holds all the interal data relevant to the Bot. Most of it is digested
+// and populated by loadConfig.
+type configuration struct {
+	adminUsers           []string            // List of users with access to administrative commands
+	alias                rune                // single-char alias for addressing the bot
+	botinfo              UserInfo            // robot's name, ID, email, etc.
+	adminContact         string              // who to contact for problems with the bot
+	mailConf             botMailer           // configuration to use when sending email
+	ignoreUsers          []string            // list of users to never listen to, like other bots
+	joinChannels         []string            // list of channels to join
+	defaultAllowDirect   bool                // whether plugins are available in DM by default
+	defaultMessageFormat robot.MessageFormat // Raw unless set to Variable or Fixed
+	plugChannels         []string            // list of channels where plugins are available by default
+	protocol             string              // Name of the protocol, e.g. "slack"
+	brainProvider        string              // Type of Brain provider to use
+	encryptionKey        string              // Key for encrypting data (unlocks "real" key in brain)
+	historyProvider      string              // Name of the history provider to use
+	workSpace            string              // Read/Write directory where the robot does work
+	defaultElevator      string              // Plugin name for performing elevation
+	defaultAuthorizer    string              // Plugin name for performing authorization
+	externalPlugins      []TaskSettings      // List of external plugins to load
+	externalJobs         []TaskSettings      // List of external jobs to load
+	externalTasks        []TaskSettings      // List of external tasks to load
+	goPlugins            []TaskSettings      // Settings for goPlugins: Name(match), Description, NameSpace, Parameters, Disabled
+	goJobs               []TaskSettings      // Settings for goJobs: Name(match), Description, NameSpace, Parameters, Disabled
+	goTasks              []TaskSettings      // Settings for goTasks: Name(match), Description, NameSpace, Parameters, Disabled
+	nameSpaces           []TaskSettings      // NameSpaces for shared parameters
+	loadableModules      []LoadableModule    // List of loadable modules to load
+	ScheduledJobs        []ScheduledTask     // List of scheduled tasks
+	port                 string              // Configured localhost port to listen on, or 0 for first open
+	timeZone             *time.Location      // for forcing the TimeZone, Unix only
+	defaultJobChannel    string              // where job statuses will post if not otherwise specified
+}
+
+// The current configuration
+var currentCfg struct {
+	*configuration
+	sync.RWMutex
+}
+
+var listening bool    // for tests where initBot runs multiple times
+var listenPort string // actual listening port
 
 // initBot sets up the global robot; when cli is false it also loads configuration.
 // cli indicates that a CLI command is being processed, as opposed to actually running
@@ -102,14 +125,17 @@ func initBot(hpath, cpath, epath string, logger *log.Logger) {
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
+	// Initialize current config with an empty struct (to be loaded)
+	currentCfg.configuration = &configuration{}
+
 	botLogger.l = logger
 
 	homePath = hpath
 	configPath = cpath
 	installPath = epath
-	botCfg.stop = make(chan struct{})
-	botCfg.done = make(chan bool)
-	botCfg.shuttingDown = false
+	interfaces.stop = make(chan struct{})
+	interfaces.done = make(chan bool)
+	state.shuttingDown = false
 
 	if cliOp {
 		setLogLevel(robot.Warn)
@@ -159,21 +185,21 @@ func initBot(hpath, cpath, epath string, logger *log.Logger) {
 	// All pluggables registered, ok to stop registrations
 	stopRegistrations = true
 
-	if len(botCfg.brainProvider) > 0 {
-		if bprovider, ok := brains[botCfg.brainProvider]; !ok {
-			Log(robot.Fatal, "No provider registered for brain: \"%s\"", botCfg.brainProvider)
+	if len(currentCfg.brainProvider) > 0 {
+		if bprovider, ok := brains[currentCfg.brainProvider]; !ok {
+			Log(robot.Fatal, "No provider registered for brain: \"%s\"", currentCfg.brainProvider)
 		} else {
 			brain := bprovider(handle)
-			botCfg.brain = brain
-			Log(robot.Info, "Initialized brain provider '%s'", botCfg.brainProvider)
+			interfaces.brain = brain
+			Log(robot.Info, "Initialized brain provider '%s'", currentCfg.brainProvider)
 		}
 	} else {
 		bprovider, _ := brains["mem"]
-		botCfg.brain = bprovider(handle)
+		interfaces.brain = bprovider(handle)
 		Log(robot.Error, "No brain configured, falling back to default 'mem' brain - no memories will persist")
 	}
-	if !encryptionInitialized && len(botCfg.encryptionKey) > 0 {
-		if initializeEncryptionFromBrain(botCfg.encryptionKey) {
+	if !encryptionInitialized && len(currentCfg.encryptionKey) > 0 {
+		if initializeEncryptionFromBrain(currentCfg.encryptionKey) {
 			Log(robot.Info, "Successfully initialized encryption from configured key")
 			encryptionInitialized = true
 		} else {
@@ -191,15 +217,15 @@ func initBot(hpath, cpath, epath string, logger *log.Logger) {
 
 	if !listening {
 		listening = true
-		listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%s", botCfg.port))
+		listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%s", currentCfg.port))
 		if err != nil {
-			Log(robot.Fatal, "Listening on tcp4 port 127.0.0.1:%s: %v", botCfg.port, err)
+			Log(robot.Fatal, "Listening on tcp4 port 127.0.0.1:%s: %v", currentCfg.port, err)
 		}
-		botCfg.realPort = listener.Addr().String()
+		listenPort = listener.Addr().String()
 		go func() {
 			raiseThreadPriv("http handler")
 			http.Handle("/json", handle)
-			Log(robot.Info, "Listening for external plugin connections on http://%s", botCfg.realPort)
+			Log(robot.Info, "Listening for external plugin connections on http://%s", listenPort)
 			Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, nil))
 		}()
 	}
@@ -207,9 +233,7 @@ func initBot(hpath, cpath, epath string, logger *log.Logger) {
 
 // set connector sets the connector, which should already be initialized
 func setConnector(c robot.Connector) {
-	botCfg.Lock()
-	botCfg.Connector = c
-	botCfg.Unlock()
+	interfaces.Connector = c
 }
 
 // run starts all the loops and returns a channel that closes when the robot
@@ -227,24 +251,22 @@ func run() <-chan bool {
 	c.deregister()
 
 	var cl []string
-	botCfg.RLock()
-	cl = append(cl, botCfg.joinChannels...)
-	cl = append(cl, botCfg.plugChannels...)
-	cl = append(cl, botCfg.defaultJobChannel)
-	botCfg.RUnlock()
+	currentCfg.RLock()
+	cl = append(cl, currentCfg.joinChannels...)
+	cl = append(cl, currentCfg.plugChannels...)
+	cl = append(cl, currentCfg.defaultJobChannel)
+	currentCfg.RUnlock()
 	jc := make(map[string]bool)
 	for _, channel := range cl {
 		if _, ok := jc[channel]; !ok {
 			jc[channel] = true
-			botCfg.JoinChannel(channel)
+			interfaces.JoinChannel(channel)
 		}
 	}
 
 	// signal handler
 	go func() {
-		botCfg.RLock()
-		done := botCfg.done
-		botCfg.RUnlock()
+		done := interfaces.done
 		sigs := make(chan os.Signal, 1)
 
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -253,13 +275,13 @@ func run() <-chan bool {
 		for {
 			select {
 			case sig := <-sigs:
-				botCfg.Lock()
-				if botCfg.shuttingDown {
+				state.Lock()
+				if state.shuttingDown {
 					Log(robot.Warn, "Received SIGINT/SIGTERM while shutdown in progress")
-					botCfg.Unlock()
+					state.Unlock()
 				} else {
-					botCfg.shuttingDown = true
-					botCfg.Unlock()
+					state.shuttingDown = true
+					state.Unlock()
 					signal.Stop(sigs)
 					Log(robot.Info, "Exiting on signal: %s", sig)
 					stop()
@@ -271,13 +293,12 @@ func run() <-chan bool {
 	}()
 
 	// connector loop
-	botCfg.RLock()
 	go func(conn robot.Connector, stop <-chan struct{}, done chan<- bool) {
 		raiseThreadPriv("connector loop")
 		conn.Run(stop)
-		botCfg.RLock()
-		restart := botCfg.restart
-		botCfg.RUnlock()
+		state.RLock()
+		restart := state.restart
+		state.RUnlock()
 		if restart {
 			Log(robot.Info, "Restarting...")
 		}
@@ -285,21 +306,20 @@ func run() <-chan bool {
 		// NOTE!! Black Magic Ahead - for some reason, the read on the done channel
 		// keeps blocking without this close.
 		close(done)
-	}(botCfg.Connector, botCfg.stop, botCfg.done)
-	botCfg.RUnlock()
-	return botCfg.done
+	}(interfaces.Connector, interfaces.stop, interfaces.done)
+	return interfaces.done
 }
 
 // stop is called whenever the robot needs to shut down gracefully. All callers
 // should lock the bot and check the value of botCfg.shuttingDown; see
 // builtins.go.
 func stop() {
-	botCfg.RLock()
-	pr := botCfg.pluginsRunning
-	stop := botCfg.stop
-	botCfg.RUnlock()
+	state.RLock()
+	pr := state.pluginsRunning
+	stop := interfaces.stop
+	state.RUnlock()
 	Log(robot.Debug, "stop called with %d plugins running", pr)
-	botCfg.Wait()
+	state.Wait()
 	brainQuit()
 	close(stop)
 }

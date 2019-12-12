@@ -1,4 +1,4 @@
-FROM golang:1.13.4
+FROM golang:1.13.5
 
 RUN apt-get update && \
   apt-get -y upgrade && \
@@ -6,6 +6,7 @@ RUN apt-get update && \
     curl \
     git \
     jq \
+    less \
     openssh-client \
     python \
     python-yaml \
