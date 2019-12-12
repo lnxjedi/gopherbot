@@ -234,7 +234,7 @@ func initializePlugins() {
 	state.Lock()
 	if !state.shuttingDown {
 		state.Unlock()
-		for _, t := range tasks.t {
+		for _, t := range tasks.t[1:] {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
 				continue
@@ -315,14 +315,14 @@ func RegisterJob(name string, gojob robot.JobHandler) {
 	jobHandlers[name] = gojob
 }
 
-// RegisterTask registers a Go job
-func RegisterTask(name string, gojob robot.JobHandler) {
+// RegisterTask registers a Go task
+func RegisterTask(name string, gotask robot.TaskHandler) {
 	task := registerTask(name)
 	if task == nil {
 		return
 	}
 	globalTasks.addTask(task)
-	jobHandlers[name] = gojob
+	taskHandlers[name] = gotask
 }
 
 // return or generate a new taskID

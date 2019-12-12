@@ -105,7 +105,6 @@ type configuration struct {
 	loadableModules      []LoadableModule    // List of loadable modules to load
 	ScheduledJobs        []ScheduledTask     // List of scheduled tasks
 	port                 string              // Configured localhost port to listen on, or 0 for first open
-	realPort             string              // The actual network address/port being listened on
 	timeZone             *time.Location      // for forcing the TimeZone, Unix only
 	defaultJobChannel    string              // where job statuses will post if not otherwise specified
 }
@@ -116,7 +115,8 @@ var currentCfg struct {
 	sync.RWMutex
 }
 
-var listening bool // for tests where initBot runs multiple times
+var listening bool    // for tests where initBot runs multiple times
+var listenPort string // actual listening port
 
 // initBot sets up the global robot; when cli is false it also loads configuration.
 // cli indicates that a CLI command is being processed, as opposed to actually running
@@ -124,6 +124,9 @@ var listening bool // for tests where initBot runs multiple times
 func initBot(hpath, cpath, epath string, logger *log.Logger) {
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	// Initialize current config with an empty struct (to be loaded)
+	currentCfg.configuration = &configuration{}
 
 	botLogger.l = logger
 
@@ -218,12 +221,11 @@ func initBot(hpath, cpath, epath string, logger *log.Logger) {
 		if err != nil {
 			Log(robot.Fatal, "Listening on tcp4 port 127.0.0.1:%s: %v", currentCfg.port, err)
 		}
-		currentCfg.realPort = listener.Addr().String()
-		realPort := currentCfg.realPort
+		listenPort = listener.Addr().String()
 		go func() {
 			raiseThreadPriv("http handler")
 			http.Handle("/json", handle)
-			Log(robot.Info, "Listening for external plugin connections on http://%s", realPort)
+			Log(robot.Info, "Listening for external plugin connections on http://%s", listenPort)
 			Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, nil))
 		}()
 	}

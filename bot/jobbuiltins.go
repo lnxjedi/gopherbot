@@ -45,7 +45,7 @@ func jobcommands(m robot.Robot, command string, args ...string) (retval robot.Ta
 			jl = []string{"Here's a list of jobs for this channel:"}
 		}
 		c := r.getContext()
-		for _, t := range c.tasks.t {
+		for _, t := range c.tasks.t[1:] {
 			if !r.jobVisible(t, alljobs, true) {
 				continue
 			}

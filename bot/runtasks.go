@@ -411,23 +411,24 @@ func (c *botContext) getEnvironment(task *Task) map[string]string {
 	}
 	// Next lowest prio are namespace params
 	if len(task.NameSpace) > 0 {
-		t := c.tasks.getTaskByName(task.NameSpace)
-		if t != nil {
-			nstask, _, _ := getTask(t)
-			for _, p := range nstask.Parameters {
+		if ns, ok := c.tasks.nameSpaces[task.NameSpace]; ok {
+			for _, p := range ns.Parameters {
 				_, exists := envhash[p.Name]
 				if !exists {
 					envhash[p.Name] = p.Value
 				}
 			}
+		} else {
+			Log(robot.Error, "NameSpace '%s' not found for task '%s' (this should never happen)", task.NameSpace, task.name)
 		}
 	}
 	// Passed-through environment vars have the lowest priority
 	for _, p := range envPassThrough {
 		_, exists := envhash[p]
 		if !exists {
-			// Note that we even pass through empty vars - any harm?
-			envhash[p] = os.Getenv(p)
+			if value, ok := os.LookupEnv(p); ok {
+				envhash[p] = value
+			}
 		}
 	}
 	return envhash

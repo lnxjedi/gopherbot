@@ -91,7 +91,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 
 		helpLines := make([]string, 0, tooLong)
 		c := r.getContext()
-		for _, t := range c.tasks.t {
+		for _, t := range c.tasks.t[1:] {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
 				continue
@@ -187,7 +187,7 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 	}
 	switch command {
 	case "dumprobot":
-		if r.Protocol != robot.Terminal {
+		if r.Protocol != robot.Terminal && r.Protocol != robot.Test {
 			r.Say("This command is only valid with the 'terminal' connector")
 			return
 		}
@@ -201,7 +201,7 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 		} else { // look for an external plugin
 			found := false
 			c := r.getContext()
-			for _, t := range c.tasks.t {
+			for _, t := range c.tasks.t[1:] {
 				task, plugin, _ := getTask(t)
 				if args[0] == task.name {
 					if plugin == nil {
@@ -223,13 +223,13 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 			}
 		}
 	case "dumpplugin":
-		if r.Protocol != robot.Terminal {
+		if r.Protocol != robot.Terminal && r.Protocol != robot.Test {
 			r.Say("This command is only valid with the 'terminal' connector")
 			return
 		}
 		found := false
 		c := r.getContext()
-		for _, t := range c.tasks.t {
+		for _, t := range c.tasks.t[1:] {
 			task, plugin, _ := getTask(t)
 			if args[0] == task.name {
 				if plugin == nil {
@@ -255,7 +255,7 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 		}
 		c := r.getContext()
 		plist := make([]string, 0, len(c.tasks.t))
-		for _, t := range c.tasks.t {
+		for _, t := range c.tasks.t[1:] {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
 				continue

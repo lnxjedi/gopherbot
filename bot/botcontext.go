@@ -58,7 +58,7 @@ func (c *botContext) registerActive(parent *botContext) {
 		c.Protocol, _ = getProtocol(c.Incoming.Protocol)
 	}
 	c.Format = currentCfg.defaultMessageFormat
-	c.environment["GOPHER_HTTP_POST"] = "http://" + currentCfg.realPort
+	c.environment["GOPHER_HTTP_POST"] = "http://" + listenPort
 	workSpace := currentCfg.workSpace
 	currentCfg.RUnlock()
 

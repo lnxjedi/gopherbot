@@ -44,7 +44,7 @@ func (c *botContext) loadTaskConfig(processed *configuration) (taskList, error) 
 	}
 
 	for _, ns := range processed.nameSpaces {
-		if t := newList.getTaskByName(ns.Name); t != nil {
+		if _, ok := newList.nameMap[ns.Name]; ok {
 			return newList, fmt.Errorf("NameSpace '%s' conflicts with Go task/job/plugin name", ns.Name)
 		}
 		newList.nameSpaces[ns.Name] = NameSpace{
@@ -127,13 +127,10 @@ func (c *botContext) loadTaskConfig(processed *configuration) (taskList, error) 
 			Description: ts.Description,
 			Parameters:  ts.Parameters,
 		}
-		disabled, err := checkTaskSettings(ts, task)
+		// Note that disabled external tasks are skipped in conf.go
+		_, err := checkTaskSettings(ts, task)
 		if err != nil {
 			return nil, err
-		}
-		// We don't care about namespace/path errors if it's disabled
-		if disabled {
-			return task, nil
 		}
 		if len(ts.Path) == 0 {
 			return nil, fmt.Errorf("zero-length path for external task '%s'", ts.Name)
@@ -161,11 +158,11 @@ func (c *botContext) loadTaskConfig(processed *configuration) (taskList, error) 
 		if task, err := addExternalTask(script, typeJob); err != nil {
 			return newList, err
 		} else {
-			p := &Plugin{
+			j := &Job{
 				Privileged: *script.Privileged,
 				Task:       task,
 			}
-			newList.addTask(p)
+			newList.addTask(j)
 		}
 	}
 
@@ -181,7 +178,7 @@ func (c *botContext) loadTaskConfig(processed *configuration) (taskList, error) 
 	// in to non-shared data structures that will replace current configuration
 	// under lock at the end.
 LoadLoop:
-	for _, j := range newList.t {
+	for _, j := range newList.t[1:] {
 		var plugin *Plugin
 		var job *Job
 		var task *Task
@@ -263,7 +260,7 @@ LoadLoop:
 		if disjson, ok := tcfgload["Disabled"]; ok {
 			disabled := false
 			if err := json.Unmarshal(disjson, &disabled); err != nil {
-				msg := fmt.Sprintf("Problem unmarshalling value for 'Disabled' in plugin '%s', disabling: %v", task.name, err)
+				msg := fmt.Sprintf("Problem unmarshalling value for 'Disabled' in plugin/job '%s', disabling: %v", task.name, err)
 				Log(robot.Error, msg)
 				c.debugTask(task, msg, false)
 				task.Disabled = true
@@ -271,7 +268,7 @@ LoadLoop:
 				continue
 			}
 			if disabled {
-				msg := fmt.Sprintf("Plugin '%s' is disabled by configuration", task.name)
+				msg := fmt.Sprintf("Plugin/Job '%s' is disabled by configuration", task.name)
 				Log(robot.Info, msg)
 				c.debugTask(task, msg, false)
 				task.Disabled = true

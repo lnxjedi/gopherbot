@@ -270,73 +270,67 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		setLogLevel(loglevel)
 	}
 
-	if !preConnect {
-		currentCfg.Lock()
-	}
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		if !strings.ContainsRune(string(aliases+escapeAliases), alias) {
-			currentCfg.Unlock()
 			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escapeAliases, aliases)
 		}
-		currentCfg.alias = alias
+		processed.alias = alias
 	}
 
 	if len(newconfig.DefaultMessageFormat) == 0 {
-		currentCfg.defaultMessageFormat = robot.Raw
+		processed.defaultMessageFormat = robot.Raw
 	} else {
-		currentCfg.defaultMessageFormat = setFormat(newconfig.DefaultMessageFormat)
+		processed.defaultMessageFormat = setFormat(newconfig.DefaultMessageFormat)
 	}
 
 	if explicitDefaultAllowDirect {
-		currentCfg.defaultAllowDirect = newconfig.DefaultAllowDirect
+		processed.defaultAllowDirect = newconfig.DefaultAllowDirect
 	} else {
-		currentCfg.defaultAllowDirect = true // rare case of defaulting to true
+		processed.defaultAllowDirect = true // rare case of defaulting to true
 	}
 
 	if newconfig.AdminContact != "" {
-		currentCfg.adminContact = newconfig.AdminContact
+		processed.adminContact = newconfig.AdminContact
 	}
 
 	if newconfig.TimeZone != "" {
 		tz, err := time.LoadLocation(newconfig.TimeZone)
 		if err == nil {
 			Log(robot.Info, "Set timezone: %s", tz)
-			currentCfg.timeZone = tz
+			processed.timeZone = tz
 		} else {
 			Log(robot.Error, "Parsing time zone '%s', using local time; error: %v", newconfig.TimeZone, err)
-			currentCfg.timeZone = nil
+			processed.timeZone = nil
 		}
 	}
 
 	if newconfig.BotInfo != nil {
-		botID := currentCfg.botinfo.UserID
-		botMention := currentCfg.botinfo.protoMention
-		currentCfg.botinfo = *newconfig.BotInfo
-		currentCfg.botinfo.UserID = botID
-		currentCfg.botinfo.protoMention = botMention
+		// Note that connector-supplied values are copied
+		// when processed becomes current.
+		processed.botinfo = *newconfig.BotInfo
 	}
-	currentCfg.mailConf = newconfig.MailConfig
+	processed.mailConf = newconfig.MailConfig
 
 	if newconfig.DefaultJobChannel != "" {
-		currentCfg.defaultJobChannel = newconfig.DefaultJobChannel
+		processed.defaultJobChannel = newconfig.DefaultJobChannel
 	}
 
 	if newconfig.DefaultElevator != "" {
-		currentCfg.defaultElevator = newconfig.DefaultElevator
+		processed.defaultElevator = newconfig.DefaultElevator
 	}
 
 	if newconfig.DefaultAuthorizer != "" {
-		currentCfg.defaultAuthorizer = newconfig.DefaultAuthorizer
+		processed.defaultAuthorizer = newconfig.DefaultAuthorizer
 	}
 
 	if newconfig.AdminUsers != nil {
-		currentCfg.adminUsers = newconfig.AdminUsers
+		processed.adminUsers = newconfig.AdminUsers
 	} else {
-		currentCfg.adminUsers = []string{}
+		processed.adminUsers = []string{}
 	}
 	if newconfig.DefaultChannels != nil {
-		currentCfg.plugChannels = newconfig.DefaultChannels
+		processed.plugChannels = newconfig.DefaultChannels
 	}
 	if newconfig.ExternalPlugins != nil {
 		et := make([]TaskSettings, 0)
@@ -351,7 +345,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			}
 			et = append(et, task)
 		}
-		currentCfg.externalPlugins = et
+		processed.externalPlugins = et
 	}
 	if newconfig.ExternalJobs != nil {
 		et := make([]TaskSettings, 0)
@@ -366,7 +360,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			}
 			et = append(et, task)
 		}
-		currentCfg.externalJobs = et
+		processed.externalJobs = et
 	}
 	if newconfig.ExternalTasks != nil {
 		et := make([]TaskSettings, 0)
@@ -377,15 +371,50 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			task.Name = name
 			et = append(et, task)
 		}
-		currentCfg.externalTasks = et
+		processed.externalTasks = et
 	}
+	if newconfig.GoTasks != nil {
+		gt := make([]TaskSettings, 0, len(newconfig.GoTasks))
+		for name, task := range newconfig.GoTasks {
+			task.Name = name
+			gt = append(gt, task)
+		}
+		processed.goTasks = gt
+	}
+	if newconfig.GoPlugins != nil {
+		gt := make([]TaskSettings, 0, len(newconfig.GoPlugins))
+		for name, task := range newconfig.GoPlugins {
+			task.Name = name
+			gt = append(gt, task)
+		}
+		processed.goPlugins = gt
+	}
+	if newconfig.GoJobs != nil {
+		gt := make([]TaskSettings, 0, len(newconfig.GoJobs))
+		for name, task := range newconfig.GoJobs {
+			task.Name = name
+			gt = append(gt, task)
+		}
+		processed.goJobs = gt
+	}
+	if newconfig.NameSpaces != nil {
+		ns := make([]TaskSettings, 0, len(newconfig.NameSpaces))
+		for name, nameSpace := range newconfig.NameSpaces {
+			nameSpace.Name = name
+			ns = append(ns, nameSpace)
+		}
+		processed.nameSpaces = ns
+	}
+	// NOTE on Go tasks - we can't just skip a disabled task, since they're
+	// enabled by default. Disabled: true needs to pass through so it's disabled
+	// in taskconf.go
 	if newconfig.LoadableModules != nil {
 		lm := make([]LoadableModule, 0)
 		for name, mod := range newconfig.LoadableModules {
 			mod.Name = name
 			lm = append(lm, mod)
 		}
-		currentCfg.loadableModules = lm
+		processed.loadableModules = lm
 	}
 	st := make([]ScheduledTask, 0, len(newconfig.ScheduledJobs))
 	for _, s := range newconfig.ScheduledJobs {
@@ -395,12 +424,12 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			st = append(st, s)
 		}
 	}
-	currentCfg.ScheduledJobs = st
+	processed.ScheduledJobs = st
 	if newconfig.IgnoreUsers != nil {
-		currentCfg.ignoreUsers = newconfig.IgnoreUsers
+		processed.ignoreUsers = newconfig.IgnoreUsers
 	}
 	if newconfig.JoinChannels != nil {
-		currentCfg.joinChannels = newconfig.JoinChannels
+		processed.joinChannels = newconfig.JoinChannels
 	}
 
 	ucmaps := userChanMaps{
@@ -421,8 +450,8 @@ func (c *botContext) loadConfig(preConnect bool) error {
 				usermap[u.UserName] = u.UserID
 			}
 		}
-		if len(currentCfg.botinfo.UserName) > 0 && len(currentCfg.botinfo.UserID) > 0 {
-			usermap[currentCfg.botinfo.UserName] = currentCfg.botinfo.UserID
+		if len(processed.botinfo.UserName) > 0 && len(processed.botinfo.UserID) > 0 {
+			usermap[processed.botinfo.UserName] = processed.botinfo.UserID
 		}
 	}
 	if len(newconfig.ChannelRoster) > 0 {
@@ -443,18 +472,18 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	if len(newconfig.WorkSpace) > 0 {
 		h := handler{}
 		if err := h.GetDirectory(newconfig.WorkSpace); err == nil {
-			currentCfg.workSpace = newconfig.WorkSpace
-			Log(robot.Debug, "Setting workspace directory to '%s'", currentCfg.workSpace)
+			processed.workSpace = newconfig.WorkSpace
+			Log(robot.Debug, "Setting workspace directory to '%s'", processed.workSpace)
 		} else {
 			Log(robot.Error, "Getting WorkSpace directory '%s', using '%s': %v", newconfig.WorkSpace, configPath, err)
 		}
 	}
-	if len(currentCfg.workSpace) == 0 {
-		currentCfg.workSpace = configPath
+	if len(processed.workSpace) == 0 {
+		processed.workSpace = configPath
 	}
 
 	if newconfig.HistoryProvider != "" {
-		currentCfg.historyProvider = newconfig.HistoryProvider
+		processed.historyProvider = newconfig.HistoryProvider
 	}
 	if newconfig.HistoryConfig != nil {
 		historyConfig = newconfig.HistoryConfig
@@ -463,7 +492,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	// Items only read at start-up, before multi-threaded
 	if preConnect {
 		if newconfig.Protocol != "" {
-			currentCfg.protocol = newconfig.Protocol
+			processed.protocol = newconfig.Protocol
 		} else {
 			return fmt.Errorf("Protocol not specified in gopherbot.yaml")
 		}
@@ -475,23 +504,23 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			encryptBrain = true
 		}
 		if newconfig.EncryptionKey != "" {
-			currentCfg.encryptionKey = newconfig.EncryptionKey
+			processed.encryptionKey = newconfig.EncryptionKey
 			newconfig.EncryptionKey = "XXXXXX" // too short to be valid anyway
 		}
 		if newconfig.Brain != "" {
-			currentCfg.brainProvider = newconfig.Brain
+			processed.brainProvider = newconfig.Brain
 		}
 		if newconfig.BrainConfig != nil {
 			brainConfig = newconfig.BrainConfig
 		}
 		if newconfig.LocalPort != 0 {
-			currentCfg.port = fmt.Sprintf("%d", newconfig.LocalPort)
+			processed.port = fmt.Sprintf("%d", newconfig.LocalPort)
 		} else {
-			currentCfg.port = "0"
+			processed.port = "0"
 		}
 		if len(newconfig.HistoryProvider) > 0 {
 			if hprovider, ok := historyProviders[newconfig.HistoryProvider]; !ok {
-				Log(robot.Fatal, "No provider registered for history type: \"%s\"", currentCfg.historyProvider)
+				Log(robot.Fatal, "No provider registered for history type: \"%s\"", processed.historyProvider)
 			} else {
 				hp := hprovider(handler{})
 				interfaces.history = hp
@@ -503,8 +532,6 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		}
 		// We should never dump the brain key
 		newconfig.EncryptionKey = "XXXXXX"
-		// loadTaskConfig does it's own locking
-		currentCfg.Unlock()
 	}
 
 	newList, err := c.loadTaskConfig(processed)
@@ -528,7 +555,6 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	currentCfg.Lock()
 	processed.botinfo.UserID = currentCfg.botinfo.UserID
 	processed.botinfo.protoMention = currentCfg.botinfo.protoMention
-	processed.realPort = currentCfg.realPort
 	currentCfg.configuration = processed
 	currentCfg.Unlock()
 
