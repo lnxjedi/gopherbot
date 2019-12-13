@@ -11,8 +11,6 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-var base64header = "#GOPHERBOT-ENCRYPTED-BASE64\n"
-
 func processCLI(usage string) {
 	cliArgs := flag.Args()
 	command := cliArgs[0]
@@ -114,11 +112,7 @@ func cliEncrypt(item, file string, binary bool) {
 		if binary {
 			os.Stdout.Write(ct)
 		} else {
-			os.Stdout.Write([]byte(base64header))
-			encoder := base64.NewEncoder(base64.StdEncoding, os.Stdout)
-			encoder.Write(ct)
-			encoder.Close()
-			os.Stdout.Write([]byte("\n"))
+			WriteBase64(os.Stdout, &ct)
 		}
 		return
 	}

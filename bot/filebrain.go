@@ -23,7 +23,7 @@ func (fb *fbConfig) Store(k string, b *[]byte) error {
 	k = strings.Replace(k, `/`, ":", -1)
 	k = strings.Replace(k, `\`, ":", -1)
 	datumPath := filepath.Join(brainPath, k)
-	if err := ioutil.WriteFile(datumPath, *b, 0644); err != nil {
+	if err := ioutil.WriteFile(datumPath, *b, 0600); err != nil {
 		return fmt.Errorf("Writing datum \"%s\": %v", datumPath, err)
 	}
 	return nil

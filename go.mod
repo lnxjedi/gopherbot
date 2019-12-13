@@ -9,6 +9,7 @@ require (
 	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/dgryski/dgoogauth v0.0.0-20160602071324-96977cbd42e2
 	github.com/duosecurity/duo_api_golang v0.0.0-20161007193522-2b2d787eb38e
+	github.com/emersion/go-textwrapper v0.0.0-20160606182133-d0e65e56babe
 	github.com/ghodss/yaml v0.0.0-20161207003320-04f313413ffd
 	github.com/go-ini/ini v1.39.0 // indirect
 	github.com/gopackage/ddp v0.0.0-20170117053602-652027933df4
