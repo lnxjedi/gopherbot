@@ -403,7 +403,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 			nameSpace.Name = name
 			ns = append(ns, nameSpace)
 		}
-		processed.nameSpaces = ns
+		processed.nsList = ns
 	}
 	// NOTE on Go tasks - we can't just skip a disabled task, since they're
 	// enabled by default. Disabled: true needs to pass through so it's disabled
@@ -556,14 +556,8 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	processed.botinfo.UserID = currentCfg.botinfo.UserID
 	processed.botinfo.protoMention = currentCfg.botinfo.protoMention
 	currentCfg.configuration = processed
+	currentCfg.taskList = newList
 	currentCfg.Unlock()
-
-	globalTasks.Lock()
-	globalTasks.t = newList.t
-	globalTasks.idMap = newList.idMap
-	globalTasks.nameMap = newList.nameMap
-	globalTasks.nameSpaces = newList.nameSpaces
-	globalTasks.Unlock()
 
 	if !preConnect {
 		updateRegexes()

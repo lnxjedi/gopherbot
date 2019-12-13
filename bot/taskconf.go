@@ -13,19 +13,19 @@ import (
 // loadTaskConfig() updates task/job/plugin configuration and namespaces
 // from gopherbot.yaml and external configuration, then updates the
 // globalTasks struct.
-func (c *botContext) loadTaskConfig(processed *configuration) (taskList, error) {
-	newList := taskList{
+func (c *botContext) loadTaskConfig(processed *configuration) (*taskList, error) {
+	newList := &taskList{
 		t:          []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces only
 		nameMap:    make(map[string]int),
 		idMap:      make(map[string]int),
 		nameSpaces: make(map[string]NameSpace),
 	}
-	globalTasks.Lock()
+	currentCfg.RLock()
 	current := taskList{
-		t:       globalTasks.t,
-		nameMap: globalTasks.nameMap,
+		t:       currentCfg.t,
+		nameMap: currentCfg.nameMap,
 	}
-	globalTasks.Unlock()
+	currentCfg.RUnlock()
 
 	// Start with all the Go tasks, plugins and jobs
 	for taskname := range taskHandlers {
@@ -43,7 +43,7 @@ func (c *botContext) loadTaskConfig(processed *configuration) (taskList, error) 
 		newList.addTask(t)
 	}
 
-	for _, ns := range processed.nameSpaces {
+	for _, ns := range processed.nsList {
 		if _, ok := newList.nameMap[ns.Name]; ok {
 			return newList, fmt.Errorf("NameSpace '%s' conflicts with Go task/job/plugin name", ns.Name)
 		}
@@ -111,6 +111,9 @@ func (c *botContext) loadTaskConfig(processed *configuration) (taskList, error) 
 		}
 		if ts.Name == "bot" {
 			return nil, fmt.Errorf("illegal external task name 'bot' (type %s)", ts.Name)
+		}
+		if _, ok := newList.nameSpaces[ts.Name]; ok {
+			return nil, fmt.Errorf("external task '%s' duplicates name of configured NameSpace", ts.Name)
 		}
 		if dupidx, ok := newList.nameMap[ts.Name]; ok {
 			dupt := newList.t[dupidx]

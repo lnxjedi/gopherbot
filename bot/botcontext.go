@@ -185,7 +185,7 @@ type botContext struct {
 	workingDirectory string                  // directory where tasks run relative to cfgdir or workspace
 	privileged       bool                    // privileged jobs flip this flag, causing tasks in the pipeline to run in cfgdir
 	id               int                     // incrementing index of Robot threads
-	tasks            taskList                // Pointers to current task configuration at start of pipeline
+	tasks            *taskList               // Pointers to current task configuration at start of pipeline
 	maps             *userChanMaps           // Pointer to current user / channel maps struct
 	repositories     map[string]Repository   // Set of configured repositories
 	cfg              *configuration          // Active configuration when this context was created
