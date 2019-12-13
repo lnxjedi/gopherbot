@@ -117,6 +117,7 @@ func cliEncrypt(item, file string, binary bool) {
 			os.Stdout.Write([]byte(base64header))
 			encoder := base64.NewEncoder(base64.StdEncoding, os.Stdout)
 			encoder.Write(ct)
+			encoder.Close()
 			os.Stdout.Write([]byte("\n"))
 		}
 		return
