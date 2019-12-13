@@ -144,7 +144,9 @@ func Start(v VersionInfo) (restart bool) {
 	initBot(cwd, configpath, installpath, logger)
 
 	if cliOp {
+		go runBrain()
 		processCLI(usage)
+		brainQuit()
 		return false
 	}
 
