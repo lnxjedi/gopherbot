@@ -202,7 +202,7 @@
 <pre><code>{{ .Include &quot;terminal.yaml&quot; }}
 </code></pre>
 <p><code>.Include</code> is a <em>method</em> on the configuration file object, which is either an install file or a custom file. If the above example is present in the installed <code>conf/gopherbot.yaml</code>, it will include <em>only</em> the installed <code>conf/terminal.yaml</code>, if present, and ignore that file if it's also present in the custom directory.</p>
-<p>Note that <code>.Include</code>'d files should only contain raw <em>yaml</em>; additional <code>{{ ... }}</code> will not be expanded.</p>
+<p>Note that <code>.Include</code>'d files are also expanded as templates in the same manner.</p>
 
                     </main>
 
