@@ -28,6 +28,19 @@ func (mb *memBrain) Retrieve(k string) (*[]byte, bool, error) {
 	return datum, false, nil
 }
 
+func (mb *memBrain) List() ([]string, error) {
+	keys := make([]string, 0, len(mb.memories))
+	for key, _ := range mb.memories {
+		keys = append(keys, key)
+	}
+	return keys, nil
+}
+
+func (mb *memBrain) Delete(key string) error {
+	delete(mb.memories, key)
+	return nil
+}
+
 // The file brain doesn't need the logger, but other brains might
 func provider(r robot.Handler) robot.SimpleBrain {
 	mb := &memBrain{

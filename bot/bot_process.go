@@ -101,7 +101,7 @@ type configuration struct {
 	goPlugins            []TaskSettings      // Settings for goPlugins: Name(match), Description, NameSpace, Parameters, Disabled
 	goJobs               []TaskSettings      // Settings for goJobs: Name(match), Description, NameSpace, Parameters, Disabled
 	goTasks              []TaskSettings      // Settings for goTasks: Name(match), Description, NameSpace, Parameters, Disabled
-	nameSpaces           []TaskSettings      // NameSpaces for shared parameters
+	nsList               []TaskSettings      // loaded NameSpaces for shared parameters
 	loadableModules      []LoadableModule    // List of loadable modules to load
 	ScheduledJobs        []ScheduledTask     // List of scheduled tasks
 	port                 string              // Configured localhost port to listen on, or 0 for first open
@@ -109,10 +109,20 @@ type configuration struct {
 	defaultJobChannel    string              // where job statuses will post if not otherwise specified
 }
 
-// The current configuration
-var currentCfg struct {
+// The current configuration and task list
+var currentCfg = struct {
 	*configuration
+	*taskList
 	sync.RWMutex
+}{
+	configuration: &configuration{},
+	taskList: &taskList{
+		t:          []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces only
+		nameMap:    make(map[string]int),
+		idMap:      make(map[string]int),
+		nameSpaces: make(map[string]NameSpace),
+	},
+	RWMutex: sync.RWMutex{},
 }
 
 var listening bool    // for tests where initBot runs multiple times

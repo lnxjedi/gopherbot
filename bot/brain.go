@@ -506,6 +506,13 @@ func updateDatum(key, locktoken string, datum interface{}) (ret robot.RetVal) {
 	return update(key, locktoken, &dbytes)
 }
 
+func getNameSpace(task *Task) string {
+	if len(task.NameSpace) > 0 {
+		return task.NameSpace
+	}
+	return task.name
+}
+
 // CheckoutDatum gets a datum from the robot's brain and unmarshals it into
 // a struct. If rw is set, the datum is checked out read-write and a non-empty
 // lock token is returned that expires after lockTimeout (250ms). The bool
@@ -518,10 +525,11 @@ func (r Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken 
 	}
 	c := r.getContext()
 	task, _, _ := getTask(c.currentTask)
+	ns := getNameSpace(task)
 	if len(c.nsExtension) > 0 {
-		key = task.NameSpace + ":" + c.nsExtension + ":" + key
+		key = ns + ":" + c.nsExtension + ":" + key
 	} else {
-		key = task.NameSpace + ":" + key
+		key = ns + ":" + key
 	}
 	return checkoutDatum(key, datum, rw)
 }
@@ -536,10 +544,11 @@ func (r Robot) CheckinDatum(key, locktoken string) {
 	}
 	c := r.getContext()
 	task, _, _ := getTask(c.currentTask)
+	ns := getNameSpace(task)
 	if len(c.nsExtension) > 0 {
-		key = task.NameSpace + ":" + c.nsExtension + ":" + key
+		key = ns + ":" + c.nsExtension + ":" + key
 	} else {
-		key = task.NameSpace + ":" + key
+		key = ns + ":" + key
 	}
 	checkinDatum(key, locktoken)
 }
@@ -554,10 +563,11 @@ func (r Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.
 	}
 	c := r.getContext()
 	task, _, _ := getTask(c.currentTask)
+	ns := getNameSpace(task)
 	if len(c.nsExtension) > 0 {
-		key = task.NameSpace + ":" + c.nsExtension + ":" + key
+		key = ns + ":" + c.nsExtension + ":" + key
 	} else {
-		key = task.NameSpace + ":" + key
+		key = ns + ":" + key
 	}
 	return updateDatum(key, locktoken, datum)
 }

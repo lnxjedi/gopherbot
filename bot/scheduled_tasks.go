@@ -26,20 +26,13 @@ func scheduleTasks() {
 		Log(robot.Info, "Scheduling tasks in system default timezone")
 		taskRunner = cron.New()
 	}
-	globalTasks.Lock()
-	tasks := taskList{
-		globalTasks.t,
-		globalTasks.nameMap,
-		globalTasks.idMap,
-		globalTasks.nameSpaces,
-	}
-	globalTasks.Unlock()
+	currentCfg.RLock()
+	cfg := currentCfg.configuration
+	tasks := currentCfg.taskList
+	currentCfg.RUnlock()
 	confLock.RLock()
 	repolist := repositories
 	confLock.RUnlock()
-	currentCfg.RLock()
-	cfg := currentCfg.configuration
-	currentCfg.RUnlock()
 	for _, st := range scheduled {
 		t := tasks.getTaskByName(st.Name)
 		if t == nil {
@@ -67,7 +60,7 @@ func scheduleTasks() {
 	schedMutex.Unlock()
 }
 
-func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks taskList, repolist map[string]Repository) {
+func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *taskList, repolist map[string]Repository) {
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	if isPlugin && len(ts.Command) == 0 {

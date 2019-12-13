@@ -12,9 +12,6 @@ import (
 	// or unneeded funcationality. You'll need at least one connector for your
 	// bot to be useful, however.
 
-	// *** Compiled-in brain implementations
-	_ "github.com/lnxjedi/gopherbot/brains/file"
-
 	// *** Compiled-in history implementations
 	_ "github.com/lnxjedi/gopherbot/history/file"
 

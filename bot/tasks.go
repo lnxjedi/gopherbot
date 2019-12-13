@@ -39,21 +39,6 @@ type taskList struct {
 	nameSpaces map[string]NameSpace
 }
 
-// The Global Task list, initialized while single threaded in init() funcs,
-// loadModules, and initial config load. Potentially appended to during reload.
-var globalTasks = struct {
-	*taskList
-	sync.Mutex
-}{
-	&taskList{
-		t:          []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces only
-		nameMap:    make(map[string]int),
-		idMap:      make(map[string]int),
-		nameSpaces: make(map[string]NameSpace),
-	},
-	sync.Mutex{},
-}
-
 func getTask(t interface{}) (*Task, *Plugin, *Job) {
 	p, ok := t.(*Plugin)
 	if ok {
@@ -214,16 +199,9 @@ var stopRegistrations = false
 
 // initialize sends the "init" command to every plugin
 func initializePlugins() {
-	globalTasks.Lock()
-	tasks := taskList{
-		globalTasks.t,
-		globalTasks.nameMap,
-		globalTasks.idMap,
-		globalTasks.nameSpaces,
-	}
-	globalTasks.Unlock()
 	currentCfg.RLock()
 	cfg := currentCfg.configuration
+	tasks := currentCfg.taskList
 	currentCfg.RUnlock()
 	c := &botContext{
 		environment: make(map[string]string),
@@ -263,7 +241,7 @@ func registerTask(name string) *Task {
 	if name == "bot" {
 		log.Fatalf("Illegal name registration for 'bot'")
 	}
-	if _, ok := globalTasks.nameMap[name]; ok {
+	if _, ok := currentCfg.nameMap[name]; ok {
 		log.Fatalf("Go task '%s' name collision with other task/job/plugin/namespace", name)
 	}
 	tid := getTaskID(name)
@@ -298,7 +276,7 @@ func RegisterPlugin(name string, plug robot.PluginHandler) {
 	plugin := &Plugin{
 		Task: task,
 	}
-	globalTasks.addTask(plugin)
+	currentCfg.addTask(plugin)
 	pluginHandlers[name] = plug
 }
 
@@ -311,7 +289,7 @@ func RegisterJob(name string, gojob robot.JobHandler) {
 	job := &Job{
 		Task: task,
 	}
-	globalTasks.addTask(job)
+	currentCfg.addTask(job)
 	jobHandlers[name] = gojob
 }
 
@@ -321,7 +299,7 @@ func RegisterTask(name string, gotask robot.TaskHandler) {
 	if task == nil {
 		return
 	}
-	globalTasks.addTask(task)
+	currentCfg.addTask(task)
 	taskHandlers[name] = gotask
 }
 

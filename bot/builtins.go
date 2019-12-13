@@ -335,7 +335,8 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 	case "reload":
 		err := r.getContext().loadConfig(false)
 		if err != nil {
-			r.Reply("Error encountered during reload, check the logs")
+			r.Reply("Error encountered during reload:")
+			r.Fixed().Say("%v", err)
 			Log(robot.Error, "Reloading configuration, requested by %s: %v", r.User, err)
 			return
 		}

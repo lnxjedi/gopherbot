@@ -1,5 +1,3 @@
 ---
 RequireAdmin: true
-# Protected jobs run in configPath
-Protected: true
 AllowDirect: true

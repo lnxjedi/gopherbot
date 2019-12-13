@@ -131,18 +131,14 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		logChannel = "(direct message)"
 	}
 
-	globalTasks.Lock()
-	t := globalTasks.t
-	nameMap := globalTasks.nameMap
-	idMap := globalTasks.idMap
-	nameSpaces := globalTasks.nameSpaces
-	globalTasks.Unlock()
+	currentCfg.RLock()
+	cfg := currentCfg.configuration
+	t := currentCfg.taskList
+	currentCfg.RUnlock()
+
 	confLock.RLock()
 	repolist := repositories
 	confLock.RUnlock()
-	currentCfg.RLock()
-	cfg := currentCfg.configuration
-	currentCfg.RUnlock()
 
 	// Create the botContext and a goroutine to process the message and carry state,
 	// which may eventually run a pipeline.
@@ -152,21 +148,16 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		ProtocolUser:    ProtocolUser,
 		ProtocolChannel: ProtocolChannel,
 		Incoming:        inc,
-		tasks: taskList{
-			t:          t,
-			nameMap:    nameMap,
-			idMap:      idMap,
-			nameSpaces: nameSpaces,
-		},
-		cfg:          cfg,
-		maps:         maps,
-		BotUser:      BotUser,
-		listedUser:   listedUser,
-		repositories: repolist,
-		isCommand:    isCommand,
-		directMsg:    inc.DirectMessage,
-		msg:          message,
-		environment:  make(map[string]string),
+		tasks:           t,
+		cfg:             cfg,
+		maps:            maps,
+		BotUser:         BotUser,
+		listedUser:      listedUser,
+		repositories:    repolist,
+		isCommand:       isCommand,
+		directMsg:       inc.DirectMessage,
+		msg:             message,
+		environment:     make(map[string]string),
 	}
 	if c.directMsg {
 		Log(robot.Debug, "Received private message from user '%s'", userName)

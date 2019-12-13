@@ -69,6 +69,24 @@ func processCLI(usage string) {
 			return
 		}
 		cliFetch(fetchFlags.Arg(0), encodeBase64)
+	case "store":
+		if len(cliArgs) < 2 {
+			fmt.Println("Usage: gopherbot store <key> [filename]")
+			return
+		}
+		file := "-"
+		if len(cliArgs) == 3 {
+			file = cliArgs[2]
+		}
+		cliStore(cliArgs[1], file)
+	case "list":
+		cliList()
+	case "delete":
+		if len(cliArgs) != 2 {
+			fmt.Println("Usage: gopherbot delete <key>")
+			return
+		}
+		cliDelete(cliArgs[1])
 	default:
 		fmt.Println(usage)
 		flag.PrintDefaults()
@@ -186,4 +204,51 @@ func cliFetch(item string, b64 bool) {
 	}
 	os.Stdout.Write(*datum)
 	os.Stdout.Write([]byte("\n"))
+}
+
+func cliStore(key, file string) {
+	var fc []byte
+	var err error
+	if file == "-" {
+		fc, err = ioutil.ReadAll(os.Stdin)
+	} else {
+		fc, err = ioutil.ReadFile(file)
+	}
+	if err != nil {
+		fmt.Printf("Error reading file: %v\n", err)
+		os.Exit(1)
+	}
+	tok, _, _, ret := checkout(key, true)
+	if ret != robot.Ok {
+		fmt.Printf("Getting token: %s\n", ret)
+		return
+	}
+	ret = update(key, tok, &fc)
+	if ret != robot.Ok {
+		fmt.Printf("Storing datum: %s\n", ret)
+		return
+	}
+	fmt.Println("Stored")
+}
+
+func cliList() {
+	brain := interfaces.brain
+	list, err := brain.List()
+	if err != nil {
+		fmt.Printf("Listing memories: %v\n", err)
+		return
+	}
+	for _, memory := range list {
+		fmt.Println(memory)
+	}
+}
+
+func cliDelete(key string) {
+	brain := interfaces.brain
+	err := brain.Delete(key)
+	if err != nil {
+		fmt.Printf("Deleting memory: %v\n", err)
+		return
+	}
+	fmt.Println("Deleted")
 }

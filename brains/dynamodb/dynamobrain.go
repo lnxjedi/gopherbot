@@ -113,6 +113,43 @@ func (db *brainConfig) Retrieve(k string) (datum *[]byte, exists bool, err error
 	return &m.Content, true, nil
 }
 
+func (db *brainConfig) Delete(key string) error {
+	delete := &dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"Memory": {
+				S: aws.String(key),
+			},
+		},
+		TableName: aws.String(dynamocfg.TableName),
+	}
+	_, err := svc.DeleteItem(delete)
+	return err
+}
+
+func (db *brainConfig) List() ([]string, error) {
+	keys := make([]string, 0)
+	keyName := "Memory"
+	scan := &dynamodb.ScanInput{
+		ProjectionExpression: &keyName,
+		TableName:            aws.String(dynamocfg.TableName),
+	}
+	res, err := svc.Scan(scan)
+	if err != nil {
+		return keys, err
+	}
+	for _, av := range res.Items {
+		for _, item := range av {
+			var m string
+			err := dynamodbattribute.Unmarshal(item, &m)
+			if err != nil {
+				return keys, err
+			}
+			keys = append(keys, m)
+		}
+	}
+	return keys, nil
+}
+
 func provider(r robot.Handler) robot.SimpleBrain {
 	handler = r
 	handler.GetBrainConfig(&dynamocfg)
