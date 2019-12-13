@@ -358,7 +358,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		var key string
 		task, _, _ := getTask(c.currentTask)
-		key = task.NameSpace + ":" + m.Key
+		ns := getNameSpace(task)
+		key = ns + ":" + m.Key
 		// Since we're getting raw JSON (=[]byte), we call update directly.
 		// See brain.go
 		ret = update(key, m.Token, (*[]byte)(&m.Datum))

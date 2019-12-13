@@ -15,6 +15,11 @@ type SimpleBrain interface {
 	// and exists=true if the data blob was found, or error if the brain
 	// malfunctions.
 	Retrieve(key string) (blob *[]byte, exists bool, err error)
+	// List returns a list of all memories - Gopherbot isn't a database,
+	// so it _should_ be pretty short.
+	List() (keys []string, err error)
+	// Delete deletes a memory
+	Delete(key string) error
 }
 
 // Handler is the interface that defines the API for the handler object passed

@@ -69,6 +69,14 @@ func processCLI(usage string) {
 			return
 		}
 		cliFetch(fetchFlags.Arg(0), encodeBase64)
+	case "list":
+		cliList()
+	case "delete":
+		if len(cliArgs) != 2 {
+			fmt.Println("Usage: gopherbot delete <key>")
+			return
+		}
+		cliDelete(cliArgs[1])
 	default:
 		fmt.Println(usage)
 		flag.PrintDefaults()
@@ -186,4 +194,26 @@ func cliFetch(item string, b64 bool) {
 	}
 	os.Stdout.Write(*datum)
 	os.Stdout.Write([]byte("\n"))
+}
+
+func cliList() {
+	brain := interfaces.brain
+	list, err := brain.List()
+	if err != nil {
+		fmt.Printf("Listing memories: %v\n", err)
+		return
+	}
+	for _, memory := range list {
+		fmt.Println(memory)
+	}
+}
+
+func cliDelete(key string) {
+	brain := interfaces.brain
+	err := brain.Delete(key)
+	if err != nil {
+		fmt.Printf("Deleting memory: %v\n", err)
+		return
+	}
+	fmt.Println("Deleted")
 }

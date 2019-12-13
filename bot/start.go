@@ -51,7 +51,10 @@ func Start(v VersionInfo) (restart bool) {
   "command" can be one of:
 	encrypt - encrypt a string or file
 	decrypt - decrypt a string or file
+	list - list robot memories
+	delete - delete a memory
 	fetch - fetch the contents of a memory
+	store - store a memory
 	run (default) - run the robot
   <command> -h for help on a given command
 

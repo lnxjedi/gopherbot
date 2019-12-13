@@ -81,4 +81,4 @@ The encrypted value can then be pasted in to the `decrypt` function. See the sec
 
 `.Include` is a *method* on the configuration file object, which is either an install file or a custom file. If the above example is present in the installed `conf/gopherbot.yaml`, it will include *only* the installed `conf/terminal.yaml`, if present, and ignore that file if it's also present in the custom directory.
 
-Note that `.Include`'d files should only contain raw *yaml*; additional `{{ ... }}` will not be expanded.
+Note that `.Include`'d files are also expanded as templates in the same manner.
