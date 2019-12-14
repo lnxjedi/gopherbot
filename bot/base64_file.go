@@ -1,8 +1,10 @@
 package bot
 
 import (
+	"bufio"
 	"encoding/base64"
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/emersion/go-textwrapper"
@@ -33,6 +35,33 @@ func WriteBase64(out io.Writer, b *[]byte) error {
 	return nil
 }
 
-// func ReadBase64File(filename string) (*[]byte, error) {
+// ReadBinaryFile reads a binary file, detecting and decoding base64
+func ReadBinaryFile(filename string) (*[]byte, error) {
+	in, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	return ReadBinary(in)
+}
 
-// }
+// ReadBinary reads a binary reader, detecting and decoding base64
+func ReadBinary(in io.Reader) (*[]byte, error) {
+	br := bufio.NewReader(in)
+	header, err := br.Peek(len(base64header))
+	if err == nil {
+		if string(header) == base64header {
+			br.Discard(len(base64header))
+			decoder := base64.NewDecoder(base64.StdEncoding, br)
+			bytes, err := ioutil.ReadAll(decoder)
+			if err != nil {
+				return nil, err
+			}
+			return &bytes, nil
+		}
+	}
+	bytes, err := ioutil.ReadAll(br)
+	if err == nil {
+		return &bytes, nil
+	}
+	return nil, err
+}

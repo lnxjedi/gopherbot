@@ -11,6 +11,9 @@
 ##   look a value up from the environment
 ## decrypt "<encrypted string>":
 ##   decrypt a value encrypted with the 'encrypt <string>' command
+## .Include "<filename>":
+##   Include and expand the contents of another file from the same
+##   location (installed defaults or custom config)
 
 ## Port to listen on for http/JSON api calls, for external plugins.
 ## By default, automatically choose a port.
@@ -47,12 +50,13 @@ Alias: {{ env "GOPHER_ALIAS" }}
 
 {{ end }}
 
-{{ $brain := env "GOPHER_BRAIN" | default "mem" }}
+{{ $brain := env "GOPHER_BRAIN" | default "file" }}
 Brain: {{ $brain }}
 
 {{ if eq $brain "file" }}
 BrainConfig:
-  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default "private/brain" }}
+  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default "state/brain" }}
+  Encode: true
 
 {{ else if eq $brain "dynamo" }}
 BrainConfig:

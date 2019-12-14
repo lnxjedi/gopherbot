@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"bytes"
 	"encoding/base64"
 	"flag"
 	"fmt"
@@ -32,9 +31,11 @@ func processCLI(usage string) {
 	decFlags := flag.NewFlagSet("decrypt", flag.ExitOnError)
 	decFlags.StringVar(&fileName, "file", "", "file to decrypt (or - for stdin)")
 	decFlags.StringVar(&fileName, "f", "", "")
+	decFlags.BoolVar(&encodeBinary, "binary", false, "")
+	decFlags.BoolVar(&encodeBinary, "b", false, "")
 	decFlags.Usage = func() {
 		fmt.Println("Usage: gopherbot decrypt [options] [string to decrypt]\n\nOptions:")
-		encFlags.PrintDefaults()
+		decFlags.PrintDefaults()
 	}
 
 	fetchFlags := flag.NewFlagSet("fetch", flag.ExitOnError)
@@ -139,24 +140,18 @@ func cliDecrypt(item, file string) {
 		os.Exit(1)
 	}
 	if len(file) > 0 {
-		var fc, ct []byte
+		var ct *[]byte
 		var err error
 		if file == "-" {
-			fc, err = ioutil.ReadAll(os.Stdin)
+			ct, err = ReadBinary(os.Stdin)
 		} else {
-			fc, err = ioutil.ReadFile(file)
+			ct, err = ReadBinaryFile(file)
 		}
 		if err != nil {
 			fmt.Printf("Error reading file: %v\n", err)
 			os.Exit(1)
 		}
-		if string(fc[0:len(base64header)]) == base64header {
-			decoder := base64.NewDecoder(base64.StdEncoding, bytes.NewBuffer(fc[len(base64header):]))
-			ct, err = ioutil.ReadAll(decoder)
-		} else {
-			ct = fc
-		}
-		pt, err := decrypt(ct, cryptKey.key)
+		pt, err := decrypt(*ct, cryptKey.key)
 		if err != nil {
 			fmt.Printf("Error decrypting: %v\n", err)
 		}
@@ -233,9 +228,13 @@ func cliList() {
 		fmt.Printf("Listing memories: %v\n", err)
 		return
 	}
-	for _, memory := range list {
-		fmt.Println(memory)
+	if len(list) > 0 {
+		for _, memory := range list {
+			fmt.Println(memory)
+		}
+		return
 	}
+	fmt.Println("No memories found")
 }
 
 func cliDelete(key string) {
