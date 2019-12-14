@@ -8,17 +8,21 @@
 [![Coverage Status](https://coveralls.io/repos/github/lnxjedi/gopherbot/badge.svg?branch=master&service=github)](https://coveralls.io/github/lnxjedi/gopherbot?branch=master)
 [![GoDoc](https://godoc.org/github.com/lnxjedi/gopherbot/bot?status.png)](https://godoc.org/github.com/lnxjedi/gopherbot/bot)
 
-Enterprise Slack(\*) DevOps / ChatOps / CI/CD bot for Linux, supporting plugins in Python, Ruby, and Bash
+Enterprise Slack(\*) DevOps / ChatOps / CI/CD bot for Linux, supporting plugins in Go, Python, Ruby, and Bash
 
 Slogans under consideration:
 * **The Co-worker that Never Sleeps**
-* **The Swiss-Army Chainsaw for DevOps**
+* **The DevOps Swiss-Army Chainsaw**
 
 ## Latest Release
 Download the current release from: https://github.com/lnxjedi/gopherbot/releases/latest
 
+**NOTE:** Version 1 is getting pretty old. I've been running the core of Version 2, heavily using pipelines and encrypted secrets, for about a year now. I'm in the process of breaking/fixing things that have become obvious over the last year, in preparation to release v2 in early 2020. If you've been using v2-snapshot, it's probably been bumpy.
+
 ## Documentation
-The latest documentation on Github Pages: https://lnxjedi.github.io/gopherbot
+The latest documentation for Version 2 is on Github Pages: https://lnxjedi.github.io/gopherbot
+
+Documentation for v1 can be found in the `/doc` subdirectory of the archive.
 
 ---
 
@@ -39,41 +43,23 @@ Incomplete list of features new in 2.0:
 * Rocket.Chat adapter
 * Scheduled job support
 * Job histories
-* [Encryption](doc/Security-Overview.md) for secrets and the robot's brain
-* Configuration merging; maps are merged, arrays are concatenated
+* [Encryption](doc/src/Security-Overview.md) for secrets and the robot's brain
+* Configuration merging custom with installed defaults; maps are merged, arrays are replaced
 * New default configuration and a wide selection of included external (script) jobs, plugins and tasks
-* Go template substitutions in configuration files for e.g. referencing environment variables or decrypting secrets
+* Go template substitutions in configuration files for e.g. includes, referencing environment variables or decrypting secrets
 * An [Ansible Playbook](https://github.com/lnxjedi/ansible-role-gopherbot)
-* Docker images - see [Clu](https://github.com/parsley42/clu-docker) for clues on how to launch a container
+* First-class container support; ability to bootstrap a robot with a few environment variables and no persistent volumes
 * Go loadable modules, enabling new Go plugins at runtime
 
 ### Features since 1.x:
-* Built-in support for [elevated commands](doc/Security-Overview.md#elevation) requiring MFA (ala 'sudo')
+* Built-in support for [elevated commands](doc/src/Security-Overview.md#elevation) requiring MFA (ala 'sudo')
 * A prompting API for interactive plugins
 * Comprehensive set of administrative commands
 * Support for simple single-file script plugins
 
 ### Breaking Changes
 
-#### BotInfo
-You need to populate at least `BotInfo:UserName:` for your robot to recognize it's name. See the [default configuration](conf/gopherbot.yaml)
-
-#### ExternalPlugins
-ExternalPlugins were formerly a list, but are now a hash, so:
-```yaml
-ExternalPlugins:
-- Name: chuck
-  Path: plugins/chuck.rb
-```
-   becomes:
-```yaml
-ExternalPlugins:
-  "chuck":
-    Path: plugins/chuck.rb
-```
-
-### Stuff that will change / go away
-Currently it's possible to list tasks or plugins in ScheduledJobs; eventually only jobs will be able to be scheduled.
+Breaking changes are documented [in the new manual](https://lnxjedi.github.io/gopherbot/Upgrading.html)
 
 ### Deprecated and Unsupported Platforms
 The Windows port has been removed; the only known use case is being replaced. **Gopherbot** should build on Darwin (Mac OS X), but since builds with module support won't cross-compile, archives are no longer being generated.
