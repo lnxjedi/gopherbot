@@ -228,6 +228,10 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 			r.Log(robot.Error, "PrivilegeViolation adding privileged plugin '%s' to unprivileged pipeline", name)
 			return robot.PrivilegeViolation
 		}
+		if !isJob && !isPlugin && task.Privileged {
+			r.Log(robot.Error, "PrivilegeViolation adding privileged task '%s' to unprivileged pipeline", name)
+			return robot.PrivilegeViolation
+		}
 	}
 	var command string
 	var cmdargs []string

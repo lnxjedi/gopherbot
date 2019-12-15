@@ -49,7 +49,7 @@ func loadModule(name, path string) {
 			pm := gf()
 			for _, tspec := range pm.Tasks {
 				Log(robot.Info, "Registering task '%s' from loadable module '%s'", tspec.Name, path)
-				RegisterTask(tspec.Name, tspec.Handler)
+				RegisterTask(tspec.Name, tspec.RequiresPrivilege, tspec.Handler)
 			}
 			for _, pspec := range pm.Plugins {
 				Log(robot.Info, "Registering plugin '%s' from loadable module '%s'", pspec.Name, path)

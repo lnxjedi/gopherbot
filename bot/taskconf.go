@@ -150,8 +150,7 @@ func (c *botContext) loadTaskConfig(processed *configuration) (*taskList, error)
 			return newList, err
 		} else {
 			p := &Plugin{
-				Privileged: *script.Privileged,
-				Task:       task,
+				Task: task,
 			}
 			newList.addTask(p)
 		}
@@ -161,9 +160,9 @@ func (c *botContext) loadTaskConfig(processed *configuration) (*taskList, error)
 		if task, err := addExternalTask(script, typeJob); err != nil {
 			return newList, err
 		} else {
+			task.Privileged = *script.Privileged
 			j := &Job{
-				Privileged: *script.Privileged,
-				Task:       task,
+				Task: task,
 			}
 			newList.addTask(j)
 		}
@@ -173,6 +172,7 @@ func (c *botContext) loadTaskConfig(processed *configuration) (*taskList, error)
 		if task, err := addExternalTask(script, typeTask); err != nil {
 			return newList, err
 		} else {
+			task.Privileged = *script.Privileged
 			newList.addTask(task)
 		}
 	}

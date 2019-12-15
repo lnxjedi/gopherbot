@@ -76,8 +76,9 @@ type JobSpec struct {
 
 // TaskSpec used by loadable plugins that return a slice of TaskSpecs
 type TaskSpec struct {
-	Name    string
-	Handler TaskHandler
+	Name              string
+	RequiresPrivilege bool
+	Handler           TaskHandler
 }
 
 // ConnectorSpec for specifying a connector

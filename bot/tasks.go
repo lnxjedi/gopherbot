@@ -161,12 +161,14 @@ type Task struct {
 	config        interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
 	Disabled      bool
 	reason        string // why this job/plugin is disabled
+	// Privileged jobs/plugins run with the privileged UID, privileged tasks
+	// require privileged pipelines.
+	Privileged bool
 }
 
 // Job - configuration only applicable to jobs. Read in from conf/jobs/<job>.yaml, which can also include anything from a Task.
 type Job struct {
 	Quiet       bool           // whether to quash "job started/ended" messages
-	Privileged  bool           // Privileged jobs run with the privileged UID
 	HistoryLogs int            // how many runs of this job/plugin to keep history for
 	Triggers    []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
 	Arguments   []InputMatcher // list of arguments to prompt the user for
@@ -186,7 +188,6 @@ type Plugin struct {
 	MessageMatchers          []InputMatcher // Input matchers for messages the 'bot hears even when it's not being spoken to
 	CatchAll                 bool           // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
 	MatchUnlisted            bool           // Set to true if ambient messages matches should be checked for users not listed in the UserRoster
-	Privileged               bool           // Privileged plugins run with the privileged UID
 	*Task
 }
 
@@ -293,12 +294,14 @@ func RegisterJob(name string, gojob robot.JobHandler) {
 	jobHandlers[name] = gojob
 }
 
-// RegisterTask registers a Go task
-func RegisterTask(name string, gotask robot.TaskHandler) {
+// RegisterTask registers a Go task. If prevRequired is set, the task can
+// only be added to a privileged pipeline.
+func RegisterTask(name string, privRequired bool, gotask robot.TaskHandler) {
 	task := registerTask(name)
 	if task == nil {
 		return
 	}
+	task.Privileged = privRequired
 	currentCfg.addTask(task)
 	taskHandlers[name] = gotask
 }
