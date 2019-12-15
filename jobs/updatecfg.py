@@ -16,7 +16,9 @@
 import os
 import re
 import sys
-sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
+if os.getenv("GOPHER_INSTALLDIR"):
+    sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
+sys.path.append("/opt/gopherbot/lib")
 from gopherbot_v1 import Robot
 
 bot = Robot()

@@ -369,6 +369,10 @@ func (c *botContext) loadConfig(preConnect bool) error {
 				continue
 			}
 			task.Name = name
+			if task.Privileged == nil {
+				p := false
+				task.Privileged = &p
+			}
 			et = append(et, task)
 		}
 		processed.externalTasks = et

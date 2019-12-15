@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -166,5 +167,7 @@ func Start(v VersionInfo) (restart bool) {
 	stopped := run()
 	// ... and wait for the robot to stop
 	restart = <-stopped
+	raiseThreadPrivExternal("Exiting")
+	time.Sleep(time.Second)
 	return restart
 }
