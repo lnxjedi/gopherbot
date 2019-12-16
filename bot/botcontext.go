@@ -53,14 +53,12 @@ func getBotContextInt(idx int) *botContext {
 // Assign a bot run number and register it in the global hash of running
 // robots. Should be called before running plugins.
 func (c *botContext) registerActive(parent *botContext) {
-	currentCfg.RLock()
 	if c.Incoming != nil {
 		c.Protocol, _ = getProtocol(c.Incoming.Protocol)
 	}
 	c.Format = currentCfg.defaultMessageFormat
 	c.environment["GOPHER_HTTP_POST"] = "http://" + listenPort
-	workSpace := currentCfg.workSpace
-	currentCfg.RUnlock()
+	workSpace := c.cfg.workSpace
 
 	// Only needed for bots not created by IncomingMessage
 	if c.maps == nil {

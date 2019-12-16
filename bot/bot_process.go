@@ -261,11 +261,9 @@ func run() <-chan bool {
 	c.deregister()
 
 	var cl []string
-	currentCfg.RLock()
 	cl = append(cl, currentCfg.joinChannels...)
 	cl = append(cl, currentCfg.plugChannels...)
 	cl = append(cl, currentCfg.defaultJobChannel)
-	currentCfg.RUnlock()
 	jc := make(map[string]bool)
 	for _, channel := range cl {
 		if _, ok := jc[channel]; !ok {

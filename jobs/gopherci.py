@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # gopherci.py - Dispatcher for commit events, spawns the appropriate build job.
 # NOTE: Don't use SetParameter(...) here; build_triggered jobs don't inherit

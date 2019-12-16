@@ -114,9 +114,15 @@ func Start(v VersionInfo) (restart bool) {
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
 	if len(configPath) != 0 {
-		configpath = configPath
+		configpath, err = filepath.Abs(configPath)
+		if err != nil {
+			logger.Fatalf("Unable to get absolute path to provided config path '%s': %v", configPath, err)
+		}
 	} else if len(envCfgPath) > 0 {
-		configpath = envCfgPath
+		configpath, err = filepath.Abs(envCfgPath)
+		if err != nil {
+			logger.Fatalf("Unable to get absolute path to GOPHER_CONFIGDIR '%s': %v", envCfgPath, err)
+		}
 	} else {
 		if _, ok := checkDirectory("conf"); ok {
 			configpath = cwd

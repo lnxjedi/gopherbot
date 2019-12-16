@@ -150,6 +150,15 @@ ExternalPlugins:
   "chuck":
     Description: A plugin that pipes up whenever The Man's name is mentioned
     Path: plugins/chuck.rb
+  "bootstrap":
+    Description: A plugin to bootstrap an existing robot to a new container/directory
+    Privileged: true
+    Path: plugins/bootstrap.py
+    Parameters:
+    - Name: GOPHER_CUSTOM_REPOSITORY
+      Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
+    - Name: DEPLOY_KEY
+      Value: {{ env "DEPLOY_KEY" }}
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)

@@ -2,19 +2,39 @@
 
 **Gopherbot** makes extensive use of environment variables, both for configuring the robot and plugins, and for providing parameters to external scripts.
 
+## Robot Execution Environment
+
+Certain environment variables can be supplied to the running **Gopherbot** process to configure and/or bootstrap your robot. These environment variables can be set by:
+
+* `systemd` - Not recommded; while systemd can provide environment variables to your robot, it's insecure and will allow local users on the system to view the values
+* `$GOPHER_HOME/private/environment` - a slightly better option, normally used for devel robots with `fetch-robot.sh`, where `private` is a private repository with the single file `environment`
+* `docker` or `docker-compose` - these and other container environments provide more secure means of providing environment variables to containers
+* `$GOPHER_HOME/.env` - the most secure means is by creating a `.env` in `$GOPHER_HOME`, outside of any git repository, mode `0600`
+
+The last two options are recommended for production deployments of a **Gopherbot** robot.
+
+### Start-up Environment
+
+The following values can be provided to your robot on start-up:
+
+* `GOPHER_ENCRYPTION_KEY` - 32+ character encryption key used for decrypting the `binary-encrypted-key`
+* `GOPHER_CUSTOM_REPOSITORY` - clone URL for the robot's custom configuration, used in bootstrapping
+* `DEPLOY_KEY` - ssh deploy key for cloning the custom repository
+* `GOPHER_PROTOCOL` - used to select a non-default protocol (e.g. "terminal") in the default configuration for a new robot
+
 ## External Script Environment
 
 **Gopherbot** always scrubs the environment when executing tasks, so environment variables set on execution are not automatically passed to child processes. The only environment variables that are passed through from original execution are:
-* `HOME`
+* `HOME` - this should rarely be used; for portable robots, use `GOPHER_HOME`, instead
 * `HOSTNAME`
 * `LANG`
-* `PATH`
+* `PATH` - this should be used with care since it can make your robot less portable
 * `USER`
 
 In addition to the above passed-through environment vars, **Gopherbot** supplies the following environment variables to external scripts:
-* `GOPHER_HOME` - the startup directory for the robot; relative paths are relative to this directory
-* `GOPHER_INSTALLDIR` - the location of the gopherbot install, normally `/opt/gopherbot`
-* `GOPHER_CONFIGDIR` - the location of the custom configuration directory, `$(pwd)/custom`
+* `GOPHER_HOME` - absolute path to the startup directory for the robot; relative paths are relative to this directory
+* `GOPHER_INSTALLDIR` - absolute path to the gopherbot install, normally `/opt/gopherbot`
+* `GOPHER_CONFIGDIR` - absolute path to the custom configuration directory, `$(pwd)/custom`
 
 ## Job Environment Variables
 

@@ -23,54 +23,58 @@ bot = Robot()
 # Pop off the executable path
 sys.argv.pop(0)
 
-repository = sys.argv.pop(0)
-branch = sys.argv.pop(0)
-bot.SetParameter("GOPHERCI_REPO", repository)
-bot.SetParameter("GOPHERCI_BRANCH", branch)
-if len(sys.argv) > 0:
-    deprepo = sys.argv.pop(0)
-    depbranch = sys.argv.pop(0)
-    bot.SetParameter("GOPHERCI_DEPBUILD", "true")
-    bot.SetParameter("GOPHERCI_DEPREPO", deprepo)
-    bot.SetParameter("GOPHERCI_DEPBRANCH", depbranch)
+command = sys.argv.pop(0)
+if command != "init":
+    exit(0)
 
-repodata = bot.GetRepoData()
+cfgdir = os.getenv("GOPHER_CONFIGDIR")
+cfgfile = os.path.join(cfgdir, "conf", "gopherbot.yaml")
 
-if repository in repodata:
-    repoconf = repodata[repository]
-
-if "CloneURL" not in repoconf:
-    bot.Say("No 'clone_url' specified for '%s' in repositories.yaml" % repository)
-    exit()
-clone_url = repoconf["CloneURL"]
-
-if "KeepHistory" not in repoconf:
-    keep_history = 7
+try:
+    os.stat(cfgfile)
+except FileNotFoundError:
+    pass
+except:
+    bot.Log("Error", "Checking for gopherbot.yaml: %s" % sys.exc_info()[0])
+    exit(1)
 else:
-    keep_history = repoconf["KeepHistory"]
+    exit(0)
 
-repobranch = "%s/%s" % (repository, branch)
-if not bot.Exclusive(repobranch, False):
-    bot.Log("Warn", "Build of '%s' already in progress, exiting" % repobranch)
-    if len(bot.user) > 0:
-        bot.Say("localbuild of '%s' already in progress, not starting a new build" % repobranch)
-    exit()
+# TODO: start here !!
+ghome = os.getenv("GOPHER_HOME")
 
-bot.ExtendNamespace(repobranch, keep_history)
+bot.SetWorkingDirectory(ghome)
+os.chdir(ghome)
 
+bot.AddTask("cleanup", [ cfgdir ])
+
+clone_url = os.getenv("GOPHER_CUSTOM_REPOSITORY")
+if len(clone_url) == 0:
+    bot.Log("Warn", "GOPHER_CUSTOM_REPOSITORY not set")
+
+ssh_repo = False
 if not clone_url.startswith("http"):
     match = re.match(r"ssh://(?:.*@)?([^:/]*)(?::([^/]*)/)?", clone_url)
     if match:
-        bot.AddTask("ssh-init", [])
+        ssh_repo = True
         scanhost = match.group(1)
         if match.group(2):
             scanhost = "%s:%s" % ( scanhost, match.group(2) )
-        bot.AddTask("ssh-scan", [ scanhost ])
     else:
         match = re.match(r"(?:.*@)?([^:/]*)", clone_url)
         if match:
             bot.AddTask("ssh-init", [])
-            bot.AddTask("ssh-scan", [ match.group(1) ])
+            scanhost = match.group(1)
+
+if ssh_repo:
+    depkey = os.getenv("DEPLOY_KEY")
+    if len(depkey) == 0:
+        bot.Log("Error", "GOPHER_CUSTOM_REPOSITORY needs ssh, but no DEPLOY_KEY set")
+        exit(1)
+    bot.SetParameter("DEPLOY_KEY", depkey)
+    bot.AddTask("ssh-init", ["bootstrap"])
+    bot.AddTask("ssh-scan", [ scanhost ])
+
 
 # Start with a clean jobdir
 bot.AddTask("cleanup", [ repobranch ])

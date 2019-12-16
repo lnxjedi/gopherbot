@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # updatecfg.py - clone or update the robot's config repository.
 
@@ -16,9 +16,7 @@
 import os
 import re
 import sys
-if os.getenv("GOPHER_INSTALLDIR"):
-    sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
-sys.path.append("/opt/gopherbot/lib")
+sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
 from gopherbot_v1 import Robot
 
 bot = Robot()
