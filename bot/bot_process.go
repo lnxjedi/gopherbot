@@ -159,31 +159,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		setLogLevel(robot.Warn)
 	}
 
-	// Initialize encryption (new style for v2)
-	keyEnv := "GOPHER_ENCRYPTION_KEY"
-	keyFile := filepath.Join(configPath, encryptedKeyFile)
-	encryptionInitialized := false
-	if ek, ok := os.LookupEnv(keyEnv); ok {
-		ik := []byte(ek)[0:32]
-		if bkf, err := ioutil.ReadFile(keyFile); err == nil {
-			if bke, err := base64.StdEncoding.DecodeString(string(bkf)); err == nil {
-				if key, err := decrypt(bke, ik); err == nil {
-					cryptKey.key = key
-					cryptKey.initialized = true
-					encryptionInitialized = true
-					Log(robot.Info, "Successfully decrypted binary encryption key '%s'", keyFile)
-				} else {
-					Log(robot.Error, "Decrypting binary encryption key '%s' from environment key '%s': %v", keyFile, keyEnv, err)
-				}
-			} else {
-				Log(robot.Error, "Base64 decoding '%s': %v", keyFile, err)
-			}
-		} else {
-			Log(robot.Warn, "Binary encryption key not loaded from '%s': %v", keyFile, err)
-		}
-	} else {
-		Log(robot.Warn, "GOPHER_ENCRYPTION_KEY not set in environment")
-	}
+	encryptionInitialized := initCrypt()
 
 	c := &botContext{
 		environment: make(map[string]string),
@@ -194,7 +170,11 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	os.Unsetenv(keyEnv)
 
 	if cliOp {
-		setLogLevel(robot.Warn)
+		if fileLog {
+			setLogLevel(robot.Debug)
+		} else {
+			setLogLevel(robot.Warn)
+		}
 	}
 
 	// loadModules for go loadable modules; a no-op for static builds
@@ -252,6 +232,37 @@ func initBot(cpath, epath string, logger *log.Logger) {
 // set connector sets the connector, which should already be initialized
 func setConnector(c robot.Connector) {
 	interfaces.Connector = c
+}
+
+var keyEnv = "GOPHER_ENCRYPTION_KEY"
+
+func initCrypt() bool {
+	// Initialize encryption (new style for v2)
+	keyFile := filepath.Join(configPath, encryptedKeyFile)
+	encryptionInitialized := false
+	if ek, ok := os.LookupEnv(keyEnv); ok {
+		ik := []byte(ek)[0:32]
+		if bkf, err := ioutil.ReadFile(keyFile); err == nil {
+			if bke, err := base64.StdEncoding.DecodeString(string(bkf)); err == nil {
+				if key, err := decrypt(bke, ik); err == nil {
+					cryptKey.key = key
+					cryptKey.initialized = true
+					encryptionInitialized = true
+					Log(robot.Info, "Successfully decrypted binary encryption key '%s'", keyFile)
+				} else {
+					Log(robot.Error, "Decrypting binary encryption key '%s' from environment key '%s': %v", keyFile, keyEnv, err)
+				}
+			} else {
+				Log(robot.Error, "Base64 decoding '%s': %v", keyFile, err)
+			}
+		} else {
+			Log(robot.Warn, "Binary encryption key not loaded from '%s': %v", keyFile, err)
+		}
+		os.Unsetenv(keyEnv)
+	} else {
+		Log(robot.Warn, "GOPHER_ENCRYPTION_KEY not set in environment")
+	}
+	return encryptionInitialized
 }
 
 // run starts all the loops and returns a channel that closes when the robot

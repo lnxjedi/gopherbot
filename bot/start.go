@@ -18,6 +18,7 @@ var privSep = false
 
 // Set for CLI commands
 var cliOp = false
+var fileLog = false
 
 func init() {
 	hostName = os.Getenv("HOSTNAME")
@@ -103,6 +104,7 @@ func Start(v VersionInfo) (restart bool) {
 		if err != nil {
 			log.Fatalf("Error creating log file: (%T %v)", err, err)
 		}
+		fileLog = true
 		logOut = lf
 	}
 	log.SetOutput(logOut)
@@ -155,6 +157,7 @@ func Start(v VersionInfo) (restart bool) {
 		case "installed", "configured":
 			configPath = configpath
 			installPath = binDirectory
+			initCrypt()
 			cliDump(flag.Arg(1), flag.Arg(2))
 		default:
 			fmt.Println("DEBUG default")
