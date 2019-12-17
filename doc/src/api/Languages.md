@@ -302,7 +302,7 @@ switch ($command)
 
 ### Python Boilerplate
 ```python
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 import sys

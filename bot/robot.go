@@ -55,12 +55,20 @@ func (r Robot) SetParameter(name, value string) bool {
 }
 
 // SetWorkingDirectory sets the working directory of the pipeline for all scripts
-// executed. The path argument can be absolute or relative; if relative, it is
-// always relative to the robot's WorkSpace.
+// executed. The value of path is interpreted as follows:
+// * "/absolute/path" - tasks that follow will start with this workingDirectory;
+//   "cleanup" won't work, see tasks/cleanup.sh (unsafe)
+// * "relative/path" - sets workingDirectory relative to baseDirectory;
+//   workSpace or $(pwd) depending on value of Homed for the job/plugin starting
+//   the pipeline
+// * "./sub/directory" - appends to the current workingDirectory
+// * "." - resets workingDirectory to baseDirectory
+// Fails if the new working directory doesn't exist
+// See also: tasks/setworkdir.sh for updating working directory in a pipeline
 func (r Robot) SetWorkingDirectory(path string) bool {
 	c := r.getContext()
 	if path == "." {
-		c.workingDirectory = ""
+		c.workingDirectory = c.baseDirectory
 		return true
 	}
 	if filepath.IsAbs(path) {
@@ -72,12 +80,20 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 		}
 		return ok
 	}
-	var prefix, checkPath string
-	prefix = c.cfg.workSpace
-	checkPath = filepath.Join(prefix, path)
+	if strings.HasPrefix(path, "./") {
+		checkPath := filepath.Join(c.workingDirectory, path)
+		_, ok := checkDirectory(checkPath)
+		if ok {
+			c.workingDirectory = checkPath
+		} else {
+			r.Log(robot.Error, "Invalid path '%s'(%s) in SetWorkingDirectory", path, checkPath)
+		}
+		return ok
+	}
+	checkPath := filepath.Join(c.baseDirectory, path)
 	_, ok := checkDirectory(checkPath)
 	if ok {
-		c.workingDirectory = path
+		c.workingDirectory = checkPath
 	} else {
 		r.Log(robot.Error, "Invalid path '%s'(%s) in SetWorkingDirectory", path, checkPath)
 	}

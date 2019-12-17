@@ -464,8 +464,8 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	currentUCMaps.ucmap = &ucmaps
 	currentUCMaps.Unlock()
 
+	h := handler{}
 	if len(newconfig.WorkSpace) > 0 {
-		h := handler{}
 		if err := h.GetDirectory(newconfig.WorkSpace); err == nil {
 			processed.workSpace = newconfig.WorkSpace
 			Log(robot.Debug, "Setting workspace directory to '%s'", processed.workSpace)
@@ -474,7 +474,10 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		}
 	}
 	if len(processed.workSpace) == 0 {
-		processed.workSpace = configPath
+		if err := h.GetDirectory("workspace"); err != nil {
+			Log(robot.Fatal, "Unable to set/create workspace directory 'workspace'")
+		}
+		processed.workSpace = "workspace"
 	}
 
 	if newconfig.HistoryProvider != "" {

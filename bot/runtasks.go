@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,6 +35,17 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		c.privileged = plugin.Privileged
 	} else {
 		c.privileged = job.Privileged
+	}
+	// Initial baseDirectory and workingDirectory are the same; SetWorkingDirectory
+	// modifies workingDirectory.
+	if task.Homed {
+		c.baseDirectory = "."
+		c.workingDirectory = "."
+		c.environment["GOPHER_WORKSPACE"] = c.cfg.workSpace
+		c.environment["GOPHER_CONFIGDIR"] = configPath
+	} else {
+		c.baseDirectory = c.cfg.workSpace
+		c.workingDirectory = c.cfg.workSpace
 	}
 	// Spawned pipelines keep the original ptype
 	if c.ptype == unset {
@@ -69,7 +81,6 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
 		c.jobChannel = task.Channel
 		c.history = interfaces.history
-		c.workingDirectory = ""
 		var jh jobHistory
 		rememberRuns := job.HistoryLogs
 		if rememberRuns == 0 {
@@ -436,7 +447,7 @@ func (c *botContext) getEnvironment(task *Task) map[string]string {
 
 // getTaskPath searches configPath and installPath and returns the full path
 // to the task.
-func getTaskPath(task *Task) (tpath string, err error) {
+func getTaskPath(task *Task, workDir string) (tpath string, err error) {
 	if len(task.Path) == 0 {
 		err := fmt.Errorf("Path empty for external task: %s", task.name)
 		Log(robot.Error, err.Error())
@@ -447,5 +458,9 @@ func getTaskPath(task *Task) (tpath string, err error) {
 		err = fmt.Errorf("Couldn't locate external plugin %s: %v", task.name, err)
 		Log(robot.Error, err.Error())
 	}
+	if filepath.IsAbs(tpath) {
+		return
+	}
+	tpath, err = filepath.Rel(workDir, tpath)
 	return
 }

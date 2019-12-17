@@ -85,6 +85,7 @@ type TaskSpec struct {
 type TaskSettings struct {
 	Name, Path, Description, NameSpace string
 	Disabled                           bool
+	Homed                              bool
 	Privileged                         *bool
 	Parameters                         []robot.Parameter
 }
@@ -159,6 +160,9 @@ type Task struct {
 	// Privileged jobs/plugins run with the privileged UID, privileged tasks
 	// require privileged pipelines.
 	Privileged bool
+	// Homed for jobs/plugins starts the pipeline with c.basePath = ".", Homed tasks
+	// always run in ".", e.g. "cleanup"
+	Homed bool
 }
 
 // Job - configuration only applicable to jobs. Read in from conf/jobs/<job>.yaml, which can also include anything from a Task.

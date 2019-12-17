@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -29,7 +28,7 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *Task) {
 	var taskPath string
 	var err error
 	var relpath bool
-	if taskPath, err = getTaskPath(task); err != nil {
+	if taskPath, err = getTaskPath(task, "."); err != nil {
 		cchan <- getCfgReturn{nil, err}
 		return
 	}
@@ -151,7 +150,11 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	}
 	var taskPath string // full path to the executable
 	var err error
-	taskPath, err = getTaskPath(task)
+	if task.Homed {
+		taskPath, err = getTaskPath(task, ".")
+	} else {
+		taskPath, err = getTaskPath(task, c.workingDirectory)
+	}
 	if err != nil {
 		emit(ExternalTaskBadPath)
 		rchan <- taskReturn{fmt.Sprintf("Getting path for %s: %v", task.name, err), robot.MechanismFail}
@@ -171,6 +174,17 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	c.osCmd = cmd
 	c.Unlock()
 
+	// Homed tasks ALWAYS run in cwd, Homed pipelines may have modified the
+	// working directory with SetWorkingDirectory
+	if task.Homed {
+		cmd.Dir = "."
+		// Always set for homed tasks
+		envhash["GOPHER_WORKSPACE"] = c.cfg.workSpace
+		envhash["GOPHER_CONFIGDIR"] = configPath
+		envhash["GOPHER_WORKDIR"] = c.workingDirectory
+	} else {
+		cmd.Dir = c.workingDirectory
+	}
 	env := make([]string, 0, len(envhash))
 	keys := make([]string, 0, len(envhash))
 	for k, v := range envhash {
@@ -182,11 +196,6 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		keys = append(keys, k)
 	}
 	cmd.Env = env
-	if filepath.IsAbs(c.workingDirectory) {
-		cmd.Dir = c.workingDirectory
-	} else {
-		cmd.Dir = filepath.Join(c.cfg.workSpace, c.workingDirectory)
-	}
 	Log(robot.Debug, "Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '"))
 	var stderr, stdout io.ReadCloser
 	// hold on to stderr in case we need to log an error

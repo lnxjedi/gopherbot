@@ -82,7 +82,8 @@ EncryptionKey: {{ env "GOPHER_ENCRYPTION_KEY" }}
 # Defaults for history and workspace directories, relative to the
 # process working directory.
 {{ $histdir := env "GOPHER_HISTORY_DIRECTORY" | default "history" }}
-{{ $workdir := env "GOPHER_WORKSPACE_DIRECTORY" | default "workspace" }}
+{{ $workdir := env "GOPHER_WORKSPACE_DIRECTORY" }}
+{{ if $workdir -}} WorkSpace: {{ $workdir }} {{- end }}
 
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "file" }}
@@ -93,8 +94,6 @@ HistoryConfig:
   Directory: {{ $histdir }}
 {{ end }}
 ## End history config
-
-WorkSpace: {{ $workdir }}
 
 ## Configure log level; defaults to debug to aid in troubleshooting
 ## if custom configuration can't be loaded.
@@ -153,12 +152,13 @@ ExternalPlugins:
   "bootstrap":
     Description: A plugin to bootstrap an existing robot to a new container/directory
     Privileged: true
+    Homed: true
     Path: plugins/bootstrap.py
     Parameters:
     - Name: GOPHER_CUSTOM_REPOSITORY
       Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
     - Name: DEPLOY_KEY
-      Value: {{ env "DEPLOY_KEY" }}
+      Value: "{{ env "DEPLOY_KEY" }}"
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)
@@ -221,7 +221,8 @@ ExternalTasks:
     Description: Simple script to clone or pull a repository
     Path: tasks/git-sync.sh
   "cleanup":
-    Description: Task for removing a repository after a build has completed
+    Description: Task for cleaning a working directory before starting a job/build
+    Homed: true
     Path: tasks/cleanup.sh
 
 ## NOTE: Items below are informational only, and should be defined in the

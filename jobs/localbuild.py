@@ -25,7 +25,6 @@ sys.argv.pop(0)
 
 repository = sys.argv.pop(0)
 branch = sys.argv.pop(0)
-bot.SetParameter("GOPHERCI_REPO", repository)
 bot.SetParameter("GOPHERCI_BRANCH", branch)
 if len(sys.argv) > 0:
     deprepo = sys.argv.pop(0)
@@ -73,6 +72,6 @@ if not clone_url.startswith("http"):
             bot.AddTask("ssh-scan", [ match.group(1) ])
 
 # Start with a clean jobdir
-bot.AddTask("cleanup", [ repobranch ])
+bot.AddTask("cleanup", [])
 bot.AddTask("git-sync", [ clone_url, branch, repobranch, "true" ])
 bot.AddTask("runpipeline", [])

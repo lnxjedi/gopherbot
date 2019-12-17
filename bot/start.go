@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // Information about privilege separation, set in runtasks_linux.go
@@ -27,13 +27,13 @@ func init() {
 func Start(v VersionInfo) (restart bool) {
 	botVersion = v
 
-	var installpath, configpath string
+	var configpath string
 
 	// Process command-line flags
-	var configPath string
+	var explicitCfgPath string
 	cusage := "path to the configuration directory"
-	flag.StringVar(&configPath, "config", "", cusage)
-	flag.StringVar(&configPath, "c", "", "")
+	flag.StringVar(&explicitCfgPath, "config", "", cusage)
+	flag.StringVar(&explicitCfgPath, "c", "", "")
 	var logFile string
 	lusage := "path to robot's log file"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -56,7 +56,9 @@ func Start(v VersionInfo) (restart bool) {
 	delete - delete a memory
 	fetch - fetch the contents of a memory
 	store - store a memory
-	run (default) - run the robot
+	run - run the robot (default)
+	dump (installed|configured) [path/to/file.yaml] -
+	  read and dump a raw config file, for yaml troubleshooting
   <command> -h for help on a given command
 
   Common options:`
@@ -68,6 +70,10 @@ func Start(v VersionInfo) (restart bool) {
 	}
 
 	cliOp = len(flag.Args()) > 0 && flag.Arg(0) != "run"
+	var cliCommand string
+	if cliOp {
+		cliCommand = flag.Arg(0)
+	}
 
 	var envFile string
 	for _, ef := range []string{".env", "private/environment"} {
@@ -105,31 +111,19 @@ func Start(v VersionInfo) (restart bool) {
 		logger.Println("Initialized logging ...")
 	}
 
-	installpath = binDirectory
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		logger.Fatalf("Unable to determine working directory: %v", err)
-	}
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
-	if len(configPath) != 0 {
-		configpath, err = filepath.Abs(configPath)
-		if err != nil {
-			logger.Fatalf("Unable to get absolute path to provided config path '%s': %v", configPath, err)
-		}
+	if len(explicitCfgPath) != 0 {
+		configpath = explicitCfgPath
 	} else if len(envCfgPath) > 0 {
-		configpath, err = filepath.Abs(envCfgPath)
-		if err != nil {
-			logger.Fatalf("Unable to get absolute path to GOPHER_CONFIGDIR '%s': %v", envCfgPath, err)
-		}
+		configpath = envCfgPath
 	} else {
 		if _, ok := checkDirectory("conf"); ok {
-			configpath = cwd
+			configpath = "."
 		} else {
 			// If not explicitly set or cwd, use "custom" even if it
 			// doesn't exist. For compatibility with old installs.
-			configpath = filepath.Join(cwd, "custom")
+			configpath = "custom"
 		}
 	}
 
@@ -144,11 +138,33 @@ func Start(v VersionInfo) (restart bool) {
 		// When loading configuration, gopherbot first loads default configuration
 		// from internal config, then loads from configpath/conf/..., which
 		// overrides defaults.
-		logger.Printf("Starting up with config dir: %s, and install dir: %s\n", configpath, installpath)
+		logger.Printf("Starting up with config dir: %s, and install dir: %s\n", configpath, binDirectory)
 		checkprivsep(logger)
 	}
 
-	initBot(cwd, configpath, installpath, logger)
+	if cliCommand == "dump" {
+		botLogger.l = logger
+		setLogLevel(robot.Warn)
+		if len(flag.Args()) != 3 {
+			fmt.Println("DEBUG wrong args")
+			fmt.Println(usage)
+			flag.PrintDefaults()
+			os.Exit(1)
+		}
+		switch flag.Arg(1) {
+		case "installed", "configured":
+			configPath = configpath
+			installPath = binDirectory
+			cliDump(flag.Arg(1), flag.Arg(2))
+		default:
+			fmt.Println("DEBUG default")
+			fmt.Println(usage)
+			flag.PrintDefaults()
+			os.Exit(1)
+		}
+	}
+
+	initBot(configpath, binDirectory, logger)
 
 	if cliOp {
 		go runBrain()

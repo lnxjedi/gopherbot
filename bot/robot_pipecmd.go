@@ -40,7 +40,9 @@ func (r Robot) GetRepoData() map[string]robot.Repository {
 // ExtendNamespace is for CI/CD applications to support building multiple
 // repositories from a single triggered job. When ExtendNamespace is called,
 // all future long-term memory lookups are prefixed with the extended
-// namespace, and a new history is started for the extended namespace.
+// namespace, and a new history is started for the extended namespace,
+// including the branch (needed to differentiate histories for differing
+// branches).
 // It is an error to call ExtendNamespace twice in a single job pipeline, or
 // outside of a running job. The histories argument is interpreted as the
 // number of histories to keep for the extended namespace, or -1 to inherit

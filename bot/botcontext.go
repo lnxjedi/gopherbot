@@ -58,7 +58,6 @@ func (c *botContext) registerActive(parent *botContext) {
 	}
 	c.Format = currentCfg.defaultMessageFormat
 	c.environment["GOPHER_HTTP_POST"] = "http://" + listenPort
-	workSpace := c.cfg.workSpace
 
 	// Only needed for bots not created by IncomingMessage
 	if c.maps == nil {
@@ -89,10 +88,10 @@ func (c *botContext) registerActive(parent *botContext) {
 	c.nextTasks = make([]TaskSpec, 0)
 	c.finalTasks = make([]TaskSpec, 0)
 
-	c.environment["GOPHER_HOME"] = homePath
+	if len(homePath) > 0 {
+		c.environment["GOPHER_HOME"] = homePath
+	}
 	c.environment["GOPHER_INSTALLDIR"] = installPath
-	c.environment["GOPHER_CONFIGDIR"] = configPath
-	c.environment["GOPHER_WORKSPACE"] = workSpace
 
 	botRunID.Lock()
 	botRunID.idx++
@@ -181,7 +180,7 @@ type botContext struct {
 	Incoming         *robot.ConnectorMessage     // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
 	Format           robot.MessageFormat         // robot's default message format
 	workingDirectory string                      // directory where tasks run relative to $(pwd)
-	baseDirectory    string                      // base for this pipeline relative to $(pwd), depends on `Homed`
+	baseDirectory    string                      // base for this pipeline relative to $(pwd), depends on `Homed`, affects SetWorkingDirectory
 	privileged       bool                        // privileged jobs flip this flag, causing tasks in the pipeline to run in cfgdir
 	id               int                         // incrementing index of Robot threads
 	tasks            *taskList                   // Pointers to current task configuration at start of pipeline

@@ -131,7 +131,7 @@ var listenPort string // actual listening port
 // initBot sets up the global robot; when cli is false it also loads configuration.
 // cli indicates that a CLI command is being processed, as opposed to actually running
 // a robot.
-func initBot(hpath, cpath, epath string, logger *log.Logger) {
+func initBot(cpath, epath string, logger *log.Logger) {
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -140,7 +140,15 @@ func initBot(hpath, cpath, epath string, logger *log.Logger) {
 
 	botLogger.l = logger
 
-	homePath = hpath
+	var err error
+	homePath, err = os.Getwd()
+	if err != nil {
+		Log(robot.Warn, "Unable to get cwd")
+	}
+	h := handler{}
+	if err := h.GetDirectory(cpath); err != nil {
+		Log(robot.Fatal, "Unable to get/create config path: %s", cpath)
+	}
 	configPath = cpath
 	installPath = epath
 	interfaces.stop = make(chan struct{})

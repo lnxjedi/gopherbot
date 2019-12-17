@@ -48,7 +48,7 @@ executable = sys.argv.pop(0)
 command = sys.argv.pop(0)
 
 if command == "configure":
-    print default_config
+    print(default_config)
 
 if command == "python":
     bot.Say("Sure, %s, gimme a sec to look for it..." % bot.GetSenderAttribute("firstName"))
