@@ -324,6 +324,17 @@ GOPHER_ALIAS=\
 </code></pre>
 <p>The robot's single-character <code>Alias</code> is still specified by itself, as before; e.g. <code>Alias: &quot;;&quot;</code>.</p>
 <h1><a class="header" href="#external-plugin-configuration" id="external-plugin-configuration">External Plugin Configuration</a></h1>
+<p>ExternalPlugins were formerly a list, but are now a hash, so:</p>
+<pre><code class="language-yaml">ExternalPlugins:
+- Name: chuck
+  Path: plugins/chuck.rb
+</code></pre>
+<p>becomes:</p>
+<pre><code class="language-yaml">ExternalPlugins:
+  &quot;chuck&quot;:
+    Path: plugins/chuck.rb
+</code></pre>
+<p>This allows all default configuration in the installation to be flexibly modified for a particular robot, using the new configuration merging.</p>
 <h1><a class="header" href="#custom-configuration-directory" id="custom-configuration-directory">Custom Configuration Directory</a></h1>
 <p>Version 2's configuration layout is heavily oriented towards an all-in-one robot directory, <code>$GOPHER_HOME</code>, with brain, job logs, workspaces, and others as subdirectories. It standardizes the location of the custom configuration directory (repository) to <code>$(pwd)/custom</code> (a.k.a. <code>$GOPHER_HOME/custom</code>). While setting the location with <code>-c &lt;dir&gt;</code> or via the <code>GOPHER_CONFIGDIR</code> environment variable are still supported, existing installations should locate custom configuration in a directory named <code>custom/</code>, with the robot started from the parent directory. See the <a href="upgrade/../InstallOverview.html">Installation Overview</a> for more information on the standard directory structure.</p>
 <p>If your configuration is already in a repository, and the previous updates have already been made, then you can probably just run <code>/opt/gopherbot/gopherbot</code> from an empty directory and use the new setup plugin to bootstrap your robot.</p>
@@ -695,7 +706,7 @@ switch ($command)
 }
 </code></pre>
 <h3><a class="header" href="#python-boilerplate" id="python-boilerplate">Python Boilerplate</a></h3>
-<pre><code class="language-python">#!/usr/bin/python
+<pre><code class="language-python">#!/usr/bin/python3
 
 import os
 import sys
