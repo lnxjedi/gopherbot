@@ -56,15 +56,6 @@ type ConfigLoader struct {
 	LogLevel             string                    // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
-// Repository represents a buildable git repository, for CI/CD
-type Repository struct {
-	Type         string // task extending the namespace needs to match for parameters
-	CloneURL     string
-	Dependencies []string    // List of repositories this one depends on; changes to a dependency trigger a build
-	KeepHistory  int         // How many job logs to keep for this repo
-	Parameters   []Parameter // per-repository parameters
-}
-
 // UserInfo is listed in the UserRoster of gopherbot.yaml to provide:
 // - Attributes and info that might not be provided by the connector:
 //   - Mapping of protocol internal ID to username
@@ -105,7 +96,7 @@ var currentUCMaps = struct {
 // Protects the bot config and list of repositories
 var confLock sync.RWMutex
 var config *ConfigLoader
-var repositories map[string]Repository
+var repositories map[string]robot.Repository
 
 // loadConfig loads the 'bot's yaml configuration files.
 func (c *botContext) loadConfig(preConnect bool) error {
@@ -123,12 +114,12 @@ func (c *botContext) loadConfig(preConnect bool) error {
 
 	reporaw := make(map[string]json.RawMessage)
 	c.getConfigFile("repositories.yaml", "", false, reporaw)
-	repolist := make(map[string]Repository)
+	repolist := make(map[string]robot.Repository)
 	for k, repojson := range reporaw {
 		if strings.ContainsRune(k, ':') {
 			Log(robot.Error, "Invalid repository '%s' contains ':', ignoring", k)
 		} else {
-			var repository Repository
+			var repository robot.Repository
 			json.Unmarshal(repojson, &repository)
 			repolist[k] = repository
 		}

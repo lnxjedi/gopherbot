@@ -102,7 +102,7 @@ func (r Robot) GetParameter(key string) string {
 // Elevate lets a plugin request elevation on the fly. When immediate = true,
 // the elevator should always prompt for 2fa; otherwise a configured timeout
 // should apply.
-func (r *Robot) Elevate(immediate bool) bool {
+func (r Robot) Elevate(immediate bool) bool {
 	c := r.getContext()
 	task, _, _ := getTask(c.currentTask)
 	retval := c.elevate(task, immediate)

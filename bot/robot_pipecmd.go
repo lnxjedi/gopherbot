@@ -12,7 +12,7 @@ import (
 // empty map/dict/hash. Mainly for GopherCI, Methods for Python and Ruby will
 // retrieve it. Returns nil and logs an error if the calling task isn't a job,
 // or the namespace has already been extended.
-func (r *Robot) GetRepoData() map[string]Repository {
+func (r Robot) GetRepoData() map[string]robot.Repository {
 	c := r.getContext()
 	t, p, j := getTask(c.currentTask)
 	if j == nil && p == nil {
@@ -23,14 +23,14 @@ func (r *Robot) GetRepoData() map[string]Repository {
 		r.Log(robot.Error, "GetRepoData called with namespace extended: '%s'", c.nsExtension)
 		return nil
 	}
-	export := make(map[string]Repository)
+	export := make(map[string]robot.Repository)
 	for r, d := range c.repositories {
-		e := Repository{
+		e := robot.Repository{
 			Type:         d.Type,
 			CloneURL:     d.CloneURL,
 			Dependencies: d.Dependencies,
 			KeepHistory:  d.KeepHistory,
-			Parameters:   []Parameter{},
+			Parameters:   []robot.Parameter{},
 		}
 		export[r] = e
 	}
@@ -50,7 +50,7 @@ func (r *Robot) GetRepoData() map[string]Repository {
 // ext (extension) => "<repository>/<branch>", where repository is listed in
 //   repositories.yaml
 // histories => number of histories to keep
-func (r *Robot) ExtendNamespace(ext string, histories int) bool {
+func (r Robot) ExtendNamespace(ext string, histories int) bool {
 	if strings.ContainsRune(ext, ':') {
 		r.Log(robot.Error, "Invalid namespace extension contains ':'")
 		return false
@@ -187,7 +187,7 @@ func (r *Robot) ExtendNamespace(ext string, histories int) bool {
 
 // pipeTask does all the real work of adding tasks to pipelines or spawning
 // new tasks.
-func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, args ...string) robot.RetVal {
+func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, args ...string) robot.RetVal {
 	c := r.getContext()
 	if c.stage != primaryTasks {
 		task, _, _ := getTask(c.currentTask)
@@ -296,7 +296,7 @@ func (r *Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, 
 // job. It's primary use is for CI/CD applications where a single
 // triggered job may want to spawn several jobs when e.g. a dependency for
 // multiple projects is updated.
-func (r *Robot) SpawnJob(name string, args ...string) robot.RetVal {
+func (r Robot) SpawnJob(name string, args ...string) robot.RetVal {
 	return r.pipeTask(flavorSpawn, typeJob, name, args...)
 }
 
@@ -306,7 +306,7 @@ func (r *Robot) SpawnJob(name string, args ...string) robot.RetVal {
 // and uses AddTask to generate a pipeline. When the task is a plugin, cmdargs
 // should be a command followed by arguments. For jobs, cmdargs are just
 // arguments passed to the job.
-func (r *Robot) AddTask(name string, args ...string) robot.RetVal {
+func (r Robot) AddTask(name string, args ...string) robot.RetVal {
 	return r.pipeTask(flavorAdd, typeTask, name, args...)
 }
 
@@ -316,39 +316,39 @@ func (r *Robot) AddTask(name string, args ...string) robot.RetVal {
 // the pipeline failed.
 // Note that unlike other tasks, final tasks are run in reverse of the order
 // they're added.
-func (r *Robot) FinalTask(name string, args ...string) robot.RetVal {
+func (r Robot) FinalTask(name string, args ...string) robot.RetVal {
 	return r.pipeTask(flavorFinal, typeTask, name, args...)
 }
 
 // FailTask adds a task that runs only if the pipeline fails. This can be used
 // to e.g. notify a user / channel on failure.
-func (r *Robot) FailTask(name string, args ...string) robot.RetVal {
+func (r Robot) FailTask(name string, args ...string) robot.RetVal {
 	return r.pipeTask(flavorFail, typeTask, name, args...)
 }
 
 // AddJob puts another job in the queue for the pipeline. The added job
 // will run in a new separate context, and when it completes the current
 // pipeline will resume if the job succeeded.
-func (r *Robot) AddJob(name string, args ...string) robot.RetVal {
+func (r Robot) AddJob(name string, args ...string) robot.RetVal {
 	return r.pipeTask(flavorAdd, typeJob, name, args...)
 }
 
 // AddCommand adds a plugin command to the pipeline. The command string
 // argument should match a CommandMatcher for the given plugin.
-func (r *Robot) AddCommand(plugname, command string) robot.RetVal {
+func (r Robot) AddCommand(plugname, command string) robot.RetVal {
 	return r.pipeTask(flavorAdd, typePlugin, plugname, command)
 }
 
 // FinalCommand adds a plugin command that always runs when a pipeline
 // ends, for e.g. emailing the job history. The command string
 // argument should match a CommandMatcher for the given plugin.
-func (r *Robot) FinalCommand(plugname, command string) robot.RetVal {
+func (r Robot) FinalCommand(plugname, command string) robot.RetVal {
 	return r.pipeTask(flavorFinal, typePlugin, plugname, command)
 }
 
 // FailCommand adds a plugin command that runs whenever a pipeline fails,
 // for e.g. emailing the job history. The command string
 // argument should match a CommandMatcher for the given plugin.
-func (r *Robot) FailCommand(plugname, command string) robot.RetVal {
+func (r Robot) FailCommand(plugname, command string) robot.RetVal {
 	return r.pipeTask(flavorFail, typePlugin, plugname, command)
 }

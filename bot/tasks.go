@@ -79,11 +79,6 @@ type TaskSpec struct {
 	task      interface{} // populated in AddTask
 }
 
-// Parameter items are provided to jobs and plugins as environment variables
-type Parameter struct {
-	Name, Value string
-}
-
 // TaskSettings struct used for configuration of: ExternalPlugins, ExternalJobs,
 // ExternalTasks, GoPlugins, GoJobs, GoTasks and NameSpaces in gopherbot.yaml.
 // Not every field is used in every case.
@@ -91,7 +86,7 @@ type TaskSettings struct {
 	Name, Path, Description, NameSpace string
 	Disabled                           bool
 	Privileged                         *bool
-	Parameters                         []Parameter
+	Parameters                         []robot.Parameter
 }
 
 // LoadableModule struct for loading external modules.
@@ -131,34 +126,34 @@ type JobTrigger struct {
 
 // NameSpace just stores a name, description, and parameters - they cannot be run.
 type NameSpace struct {
-	name        string      // name of the shared namespace
-	Description string      // optional description of the shared namespace
-	Parameters  []Parameter // Parameters for the shared namespace
+	name        string            // name of the shared namespace
+	Description string            // optional description of the shared namespace
+	Parameters  []robot.Parameter // Parameters for the shared namespace
 }
 
 // Task configuration is common to tasks, plugins or jobs. Any task, plugin or job can call bot methods. Note that tasks are only defined
 // in gopherbot.yaml, and no external configuration is read in.
 type Task struct {
-	name          string          // name of job or plugin; unique by type, but job & plugin can share
-	taskType      taskType        // taskGo or taskExternal
-	Path          string          // Path to the external executable for jobs or Plugtype=taskExternal only
-	NameSpace     string          // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
-	Parameters    []Parameter     // Fixed parameters for a given job; many jobs will use the same script with differing parameters
-	Description   string          // description of job or plugin
-	AllowDirect   bool            // Set this true if this plugin can be accessed via direct message
-	DirectOnly    bool            // Set this true if this plugin ONLY accepts direct messages
-	Channel       string          // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
-	Channels      []string        // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
-	AllChannels   bool            // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	RequireAdmin  bool            // Set to only allow administrators to access a plugin / run job
-	Users         []string        // If non-empty, list of all the users with access to this plugin
-	Elevator      string          // Use an elevator other than the DefaultElevator
-	Authorizer    string          // a plugin to call for authorizing users, should handle groups, etc.
-	AuthRequire   string          // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
-	taskID        string          // 32-char random ID for identifying plugins/jobs
-	ReplyMatchers []InputMatcher  // store this here for prompt*reply methods
-	Config        json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
-	config        interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
+	name          string            // name of job or plugin; unique by type, but job & plugin can share
+	taskType      taskType          // taskGo or taskExternal
+	Path          string            // Path to the external executable for jobs or Plugtype=taskExternal only
+	NameSpace     string            // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
+	Parameters    []robot.Parameter // Fixed parameters for a given job; many jobs will use the same script with differing parameters
+	Description   string            // description of job or plugin
+	AllowDirect   bool              // Set this true if this plugin can be accessed via direct message
+	DirectOnly    bool              // Set this true if this plugin ONLY accepts direct messages
+	Channel       string            // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
+	Channels      []string          // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
+	AllChannels   bool              // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
+	RequireAdmin  bool              // Set to only allow administrators to access a plugin / run job
+	Users         []string          // If non-empty, list of all the users with access to this plugin
+	Elevator      string            // Use an elevator other than the DefaultElevator
+	Authorizer    string            // a plugin to call for authorizing users, should handle groups, etc.
+	AuthRequire   string            // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
+	taskID        string            // 32-char random ID for identifying plugins/jobs
+	ReplyMatchers []InputMatcher    // store this here for prompt*reply methods
+	Config        json.RawMessage   // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
+	config        interface{}       // A pointer to an empty struct that the bot can Unmarshal custom configuration into
 	Disabled      bool
 	reason        string // why this job/plugin is disabled
 	// Privileged jobs/plugins run with the privileged UID, privileged tasks
