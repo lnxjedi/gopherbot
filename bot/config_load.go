@@ -70,9 +70,6 @@ func decryptTpl(encval string) string {
 	initialized := cryptKey.initialized
 	key := cryptKey.key
 	cryptKey.RUnlock()
-	if cliOp {
-		return "xxxencryptedxxx"
-	}
 	if !initialized {
 		Log(robot.Warn, "Template called decrypt(Tpl) function but encryption not initialized")
 		return ""
