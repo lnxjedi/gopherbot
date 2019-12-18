@@ -3,7 +3,7 @@ gopherbot
 gopherbot.exe
 gopherbot*zip
 gopherbot*tar.gz
-lib/gopherbot_*.pyc
+*.pyc
 .c9
 .env
 *.so

@@ -102,9 +102,8 @@ class Robot:
         req.add_header('Content-Type', 'application/json')
         # sys.stderr.write("Sending: %s\n" % func_json)
         f = urllib.request.urlopen(req)
-        body = f.read()
         # sys.stderr.write("Got back: %s\n" % body)
-        return json.loads(body)
+        return json.load(f)
 
     def CheckAdmin(self):
         return self.Call("CheckAdmin", {})["Boolean"]
