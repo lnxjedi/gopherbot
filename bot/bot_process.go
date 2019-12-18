@@ -5,6 +5,7 @@ package bot
    handler.go has the methods for callbacks from the connector, */
 
 import (
+	crand "crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -257,6 +258,28 @@ func initCrypt() bool {
 			}
 		} else {
 			Log(robot.Warn, "Binary encryption key not loaded from '%s': %v", keyFile, err)
+			if len(currentCfg.encryptionKey) == 0 {
+				// No encryptionKey in config, create new-style key
+				bk := make([]byte, 32)
+				_, err := crand.Read(bk)
+				if err != nil {
+					Log(robot.Error, "Generating new random encryption key: %v", err)
+					return false
+				}
+				bek, err := encrypt(bk, ik)
+				if err != nil {
+					Log(robot.Error, "Encrypting new random key: %v", err)
+					return false
+				}
+				beks := base64.StdEncoding.EncodeToString(bek)
+				err = ioutil.WriteFile(keyFile, []byte(beks), 0444)
+				if err != nil {
+					Log(robot.Error, "Writing out generated key: %v", err)
+					return false
+				}
+				Log(robot.Info, "Successfully wrote new binary encryption key to '%s'", keyFile)
+				return true
+			}
 		}
 		os.Unsetenv(keyEnv)
 	} else {
