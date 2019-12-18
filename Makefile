@@ -49,7 +49,7 @@ clean:
 
 # Run test suite
 test:
-	go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
+	go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./test
 
 # Generate Stringer methods
 generate:

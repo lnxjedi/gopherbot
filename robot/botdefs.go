@@ -147,6 +147,8 @@ const (
 	Terminal
 	// Test connector for automated test suites
 	Test
+	// Null connector for unconfigured robots
+	Null
 )
 
 // MessageFormat indicates how the connector should display the content of

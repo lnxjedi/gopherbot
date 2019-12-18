@@ -131,6 +131,8 @@ func getProtocol(proto string) (robot.Protocol, string) {
 		return robot.Slack, "slack"
 	case "term", "terminal":
 		return robot.Terminal, "terminal"
+	case "nullconn":
+		return robot.Null, "nullconn"
 	case "rocket":
 		return robot.Rocket, "rocket"
 	default:

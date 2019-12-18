@@ -20,7 +20,7 @@
 LocalPort: {{ env "GOPHER_PORT" | default "0" }}
 
 ## Configure the robot connection protocol
-{{ $proto := env "GOPHER_PROTOCOL" | default "terminal" }}
+{{ $proto := env "GOPHER_PROTOCOL" | default "nullconn" }}
 Protocol: {{ $proto }}
 
 ## Trivial "terminal" connector config for a single admin user.
