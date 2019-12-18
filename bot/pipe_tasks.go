@@ -11,7 +11,7 @@ func restart(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		Log(robot.Warn, "Restart triggered in pipeline '%s' with shutdown already in progress", c.pipeName)
 		return
 	}
-	running := state.pluginsRunning - 1
+	running := state.pipelinesRunning - 1
 	state.shuttingDown = true
 	state.restart = true
 	state.Unlock()

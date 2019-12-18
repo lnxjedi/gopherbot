@@ -61,11 +61,11 @@ var interfaces struct {
 
 // internal state tracking
 var state struct {
-	shuttingDown   bool // to prevent new plugins from starting
-	restart        bool // indicate stop and restart vs. stop only, for bootstrapping
-	pluginsRunning int  // a count of how many plugins are currently running
-	sync.WaitGroup      // for keeping track of running plugins
-	sync.RWMutex        // for safe updating of bot data structures
+	shuttingDown     bool // to prevent new plugins from starting
+	restart          bool // indicate stop and restart vs. stop only, for bootstrapping
+	pipelinesRunning int  // a count of how many plugins are currently running
+	sync.WaitGroup        // for keeping track of running plugins
+	sync.RWMutex          // for safe updating of bot data structures
 }
 
 // regexes the bot uses to determine if it's being spoken to
@@ -364,7 +364,7 @@ func run() <-chan bool {
 // builtins.go.
 func stop() {
 	state.RLock()
-	pr := state.pluginsRunning
+	pr := state.pipelinesRunning
 	stop := interfaces.stop
 	state.RUnlock()
 	Log(robot.Debug, "stop called with %d plugins running", pr)

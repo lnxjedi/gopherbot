@@ -46,7 +46,7 @@ if len(clone_url) == 0:
     exit(0)
 
 bot.Log("Info", "Creating bootstrap pipeline for %s" % clone_url)
-bot.Log("Debug", "DEBUG **** RUNNING RUNNING **** DEBUG")
+
 ssh_repo = False
 if not clone_url.startswith("http"):
     match = re.match(r"ssh://(?:.*@)?([^:/]*)(?::([^/]*)/)?", clone_url)
@@ -70,10 +70,8 @@ if ssh_repo:
     bot.AddTask("ssh-init", ["bootstrap"])
     bot.AddTask("ssh-scan", [ scanhost ])
 
-exit(0)
-bot.AddTask("cleanup", [ cfgdir ])
-
-# Start with a clean jobdir
-bot.AddTask("cleanup", [ repobranch ])
-bot.AddTask("git-sync", [ clone_url, branch, repobranch, "true" ])
-bot.AddTask("runpipeline", [])
+tkey = os.path.join(cfgdir, "binary-encrypted-key")
+bot.AddTask("exec", [ "rm", "-f", tkey ])
+bot.AddTask("git-sync", [ clone_url, "master", cfgdir, "false" ])
+bot.AddTask("exec", [ "touch", ".restore" ])
+bot.AddTask("restart", [])

@@ -404,8 +404,8 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		}
 		proto := c.cfg.protocol
 		// NOTE: THIS plugin is definitely running, but will end soon!
-		if state.pluginsRunning > 1 {
-			runningCount := state.pluginsRunning - 1
+		if state.pipelinesRunning > 1 {
+			runningCount := state.pipelinesRunning - 1
 			state.Unlock()
 			if proto != "test" {
 				r.Say("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount)

@@ -54,6 +54,7 @@ test:
 # Generate Stringer methods
 generate:
 	go generate -v --tags 'test integration netgo osusergo static_build' -mod vendor ./bot/
+	go generate -v --tags 'test integration netgo osusergo static_build' -mod vendor ./robot/
 
 # Terminal robot that emits events gathered, for developing integration tests
 testbot:

@@ -24,6 +24,13 @@ var envPassThrough = []string{
 // runPipeline.
 func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipelineType, command string, args ...string) (ret robot.TaskRetVal) {
 	task, plugin, job := getTask(t)
+	state.RLock()
+	if state.shuttingDown {
+		state.RUnlock()
+		Log(robot.Warn, "Not starting new pipeline for task '%s', shutting down", task.name)
+		return robot.RobotStopping
+	}
+	state.RUnlock()
 	raiseThreadPriv(fmt.Sprintf("new pipeline for task %s / %s", task.name, command))
 	isJob := job != nil
 	isPlugin := plugin != nil
@@ -56,17 +63,17 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	if c.ptype == unset {
 		c.ptype = ptype
 	}
-	// TODO: Replace the waitgroup, pluginsRunning, defer func(), etc.
+	// TODO: Replace the waitgroup, pipelinesRunning, defer func(), etc.
 	state.Add(1)
 	state.Lock()
-	state.pluginsRunning++
+	state.pipelinesRunning++
 	state.Unlock()
 	c.timeZone = c.cfg.timeZone
 	defer func() {
 		state.Lock()
-		state.pluginsRunning--
+		state.pipelinesRunning--
 		// TODO: this check shouldn't be necessary; remove and test
-		if state.pluginsRunning >= 0 {
+		if state.pipelinesRunning >= 0 {
 			state.Done()
 		}
 		state.Unlock()
