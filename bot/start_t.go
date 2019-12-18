@@ -23,7 +23,7 @@ func init() {
 }
 
 // StartTest will start a robot for testing, and return the exit / robot stopped channel
-func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (<-chan bool, robot.Connector) {
+func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, robot.Connector) {
 	botVersion = v
 	configpath := filepath.Join(testInstallPath, cfgdir)
 	t.Logf("Initializing test bot with installpath: \"%s\" and configpath: \"%s\"", testInstallPath, configpath)
@@ -53,6 +53,6 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (<-chan bool
 	// because of the way Windows services were run. Maybe remove eventually?
 	setConnector(conn)
 
-	stopped := run()
-	return stopped, conn
+	run()
+	return done, conn
 }

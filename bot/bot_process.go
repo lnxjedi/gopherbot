@@ -55,9 +55,10 @@ var interfaces struct {
 	robot.Connector                       // Connector interface, implemented by each specific protocol
 	brain           robot.SimpleBrain     // Interface for robot to Store and Retrieve data
 	history         robot.HistoryProvider // Provider for storing and retrieving job / plugin histories
-	stop            chan struct{}         // stop channel for stopping the connector
-	done            chan bool             // shutdown channel, true to restart
 }
+
+var done = make(chan bool)              // shutdown channel, true to restart
+var stopConnector = make(chan struct{}) // stop channel for stopping the connector
 
 // internal state tracking
 var state struct {
@@ -152,8 +153,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	}
 	configPath = cpath
 	installPath = epath
-	interfaces.stop = make(chan struct{})
-	interfaces.done = make(chan bool)
+
 	state.shuttingDown = false
 
 	if cliOp {
@@ -291,7 +291,7 @@ func initCrypt() bool {
 // run starts all the loops and returns a channel that closes when the robot
 // shuts down. It should return after the connector loop has started and
 // plugins are initialized.
-func run() <-chan bool {
+func run() {
 	// Start the brain loop
 	go runBrain()
 
@@ -308,8 +308,8 @@ func run() <-chan bool {
 	}
 
 	// signal handler
-	go func() {
-		done := interfaces.done
+	sigBreak := make(chan struct{})
+	go func(brk chan struct{}) {
 		sigs := make(chan os.Signal, 1)
 
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -329,16 +329,19 @@ func run() <-chan bool {
 					Log(robot.Info, "Exiting on signal: %s", sig)
 					stop()
 				}
-			case <-done:
+			// done declared globally at top of this file
+			case <-sigBreak:
+				Log(robot.Info, "Stopping signal handler")
 				break loop
 			}
 		}
-	}()
+	}(sigBreak)
 
 	// connector loop
-	go func(conn robot.Connector, stop <-chan struct{}, done chan<- bool) {
+	go func(conn robot.Connector, sigBreak chan<- struct{}) {
 		raiseThreadPriv("connector loop")
-		conn.Run(stop)
+		conn.Run(stopConnector)
+		sigBreak <- struct{}{}
 		state.RLock()
 		restart := state.restart
 		state.RUnlock()
@@ -346,17 +349,14 @@ func run() <-chan bool {
 			Log(robot.Info, "Restarting...")
 		}
 		done <- restart
-		// NOTE!! Black Magic Ahead - for some reason, the read on the done channel
-		// keeps blocking without this close.
-		close(done)
-	}(interfaces.Connector, interfaces.stop, interfaces.done)
+	}(interfaces.Connector, sigBreak)
+
 	c := &botContext{
 		environment: make(map[string]string),
 	}
 	c.registerActive(nil)
 	c.loadConfig(false)
 	c.deregister()
-	return interfaces.done
 }
 
 // stop is called whenever the robot needs to shut down gracefully. All callers
@@ -365,10 +365,9 @@ func run() <-chan bool {
 func stop() {
 	state.RLock()
 	pr := state.pipelinesRunning
-	stop := interfaces.stop
 	state.RUnlock()
 	Log(robot.Debug, "stop called with %d plugins running", pr)
 	state.Wait()
 	brainQuit()
-	close(stop)
+	close(stopConnector)
 }

@@ -4,7 +4,7 @@ require (
 	github.com/Jeffail/gabs v1.3.1
 	github.com/aws/aws-sdk-go v1.13.38
 	github.com/chzyer/logex v1.1.10 // indirect
-	github.com/chzyer/readline v0.0.0-20171208011716-f6d7a1f6fbf3
+	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1 // indirect
 	github.com/davecgh/go-spew v1.1.0 // indirect
 	github.com/dgryski/dgoogauth v0.0.0-20160602071324-96977cbd42e2
@@ -32,6 +32,7 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/smartystreets/gunit v0.0.0-20180314194857-6f0d6275bdcd // indirect
 	github.com/stretchr/testify v1.2.2
+	golang.org/x/sys v0.0.0-20191218084908-4a24b4065292 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/ini.v1 v1.38.1 // indirect
 )

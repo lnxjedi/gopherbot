@@ -188,10 +188,10 @@ func Start(v VersionInfo) (restart bool) {
 	// because of the way Windows services were run. Maybe remove eventually?
 	setConnector(conn)
 
-	// Start the robot
-	stopped := run()
+	// Start the robot loops
+	run()
 	// ... and wait for the robot to stop
-	restart = <-stopped
+	restart = <-done
 	raiseThreadPrivExternal("Exiting")
 	time.Sleep(time.Second)
 	return restart
