@@ -155,12 +155,13 @@ EOF
 }
 
 SetParameter() {
-	local NAME="$1"
-	local VALUE="$2"
+	local NAME=$(base64_encode "$1")
+	local VALUE=$(base64_encode "$2")
 	local GB_FUNCARGS=$(cat <<EOF
 {
 	"Name": "$NAME",
-	"Value": "$VALUE"
+	"Value": "$VALUE",
+	"Base64": true
 }
 EOF
 )

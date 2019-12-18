@@ -32,9 +32,7 @@ The following values can be provided to your robot on start-up:
 * `USER`
 
 In addition to the above passed-through environment vars, **Gopherbot** supplies the following environment variables to external scripts:
-* `GOPHER_HOME` - absolute path to the startup directory for the robot, relative paths are relative to this directory; unset if `cwd` can't be determined
 * `GOPHER_INSTALLDIR` - absolute path to the gopherbot install, normally `/opt/gopherbot`
-* `GOPHER_CONFIGDIR` - absolute path to the custom configuration directory, `$(pwd)/custom`
 
 ## Pipeline Environment Variables
 
@@ -51,14 +49,15 @@ The following environment variables are supplied whenever a job is run:
     * `scheduled` - started by a ScheduledTask
     * `jobCmd` - started from `run job ...` command
 
-If the pipeline is started by a job or plugin with `Homed: true`, the pipeline also has these variables set:
-* `GOPHER_WORKSPACE` - the workspace directory
-* `GOPHER_CONFIGDIR` - the configuration directory
-
-Tasks with `Homed: true` always run in `$(pwd)` and get `GOPHER_WORKSPACE` and `GOPHER_CONFIGDIR` regardless of whether the pipeline was `Homed`; in addition:
+Pipelines and tasks that have `Homed: true` and/or `Privileged: true` may also get:
+* `GOPHER_HOME` - absolute path to the startup directory for the robot, relative paths are relative to this directory; unset if `cwd` can't be determined
+* `GOPHER_WORKSPACE` - the workspace directory (normally relative to `GOPHER_HOME`)
+* `GOPHER_CONFIGDIR` - custom configuration directory, normally `custom`
 * `GOPHER_WORKDIR` - set to the current working directory for the pipeline (used by e.g. the "clean" task)
 
-In addition, the `localbuild` GopherCI builder sets the following environment variables that can be used to modify pipelines:
+### GopherCI Environment Variables
+
+In addition to the environment variables set by the **Gopherbot** engine, the `localbuild` GopherCI builder sets the following environment variables that can be used to modify pipelines:
 * `GOPHERCI_BRANCH` - the branch being built (`GOPHER_REPOSITORY` is set by `ExtendNamespace`)
 * `GOPHERCI_DEPBUILD` - set to "true" if the build was triggered by a dependency
 * `GOPHERCI_DEPREPO` - the updated repository that triggered this build

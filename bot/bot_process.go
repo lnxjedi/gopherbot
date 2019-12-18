@@ -272,13 +272,6 @@ func run() <-chan bool {
 	// Start the brain loop
 	go runBrain()
 
-	c := &botContext{
-		environment: make(map[string]string),
-	}
-	c.registerActive(nil)
-	c.loadConfig(false)
-	c.deregister()
-
 	var cl []string
 	cl = append(cl, currentCfg.joinChannels...)
 	cl = append(cl, currentCfg.plugChannels...)
@@ -334,6 +327,12 @@ func run() <-chan bool {
 		// keeps blocking without this close.
 		close(done)
 	}(interfaces.Connector, interfaces.stop, interfaces.done)
+	c := &botContext{
+		environment: make(map[string]string),
+	}
+	c.registerActive(nil)
+	c.loadConfig(false)
+	c.deregister()
 	return interfaces.done
 }
 

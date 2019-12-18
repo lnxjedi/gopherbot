@@ -158,6 +158,7 @@ ExternalPlugins:
     - Name: GOPHER_CUSTOM_REPOSITORY
       Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
     - Name: DEPLOY_KEY
+      # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
       Value: "{{ env "DEPLOY_KEY" }}"
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
@@ -216,6 +217,7 @@ ExternalTasks:
     Path: tasks/ansible-playbook.sh
   "ssh-scan":
     Description: Helper script for adding ssh host keys to known_hosts
+    Homed: true
     Path: tasks/ssh-scan.sh
   "git-sync":
     Description: Simple script to clone or pull a repository

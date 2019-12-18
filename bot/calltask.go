@@ -175,15 +175,21 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	c.Unlock()
 
 	// Homed tasks ALWAYS run in cwd, Homed pipelines may have modified the
-	// working directory with SetWorkingDirectory
+	// working directory with SetWorkingDirectory.
 	if task.Homed {
 		cmd.Dir = "."
-		// Always set for homed tasks
+	} else {
+		cmd.Dir = c.workingDirectory
+	}
+	if task.Privileged || task.Homed {
+		if task.Privileged && len(homePath) > 0 {
+			// May already be provided for a privileged pipeline
+			envhash["GOPHER_HOME"] = homePath
+		}
+		// Always set for homed and privileged tasks
 		envhash["GOPHER_WORKSPACE"] = c.cfg.workSpace
 		envhash["GOPHER_CONFIGDIR"] = configPath
 		envhash["GOPHER_WORKDIR"] = c.workingDirectory
-	} else {
-		cmd.Dir = c.workingDirectory
 	}
 	env := make([]string, 0, len(envhash))
 	keys := make([]string, 0, len(envhash))

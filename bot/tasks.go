@@ -221,7 +221,7 @@ func initializePlugins() {
 				continue
 			}
 			Log(robot.Info, "Initializing plugin: %s", task.name)
-			c.callTask(t, "init")
+			c.startPipeline(nil, t, plugCommand, "init")
 		}
 	} else {
 		state.Unlock()

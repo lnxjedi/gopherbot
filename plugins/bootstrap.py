@@ -40,18 +40,13 @@ except:
 else:
     exit(0)
 
-# TODO: start here !!
-ghome = os.getenv("GOPHER_HOME")
-
-bot.SetWorkingDirectory(ghome)
-os.chdir(ghome)
-
-bot.AddTask("cleanup", [ cfgdir ])
-
 clone_url = os.getenv("GOPHER_CUSTOM_REPOSITORY")
 if len(clone_url) == 0:
-    bot.Log("Warn", "GOPHER_CUSTOM_REPOSITORY not set")
+    bot.Log("Warn", "GOPHER_CUSTOM_REPOSITORY not set, not bootstrapping")
+    exit(0)
 
+bot.Log("Info", "Creating bootstrap pipeline for %s" % clone_url)
+bot.Log("Debug", "DEBUG **** RUNNING RUNNING **** DEBUG")
 ssh_repo = False
 if not clone_url.startswith("http"):
     match = re.match(r"ssh://(?:.*@)?([^:/]*)(?::([^/]*)/)?", clone_url)
@@ -63,7 +58,7 @@ if not clone_url.startswith("http"):
     else:
         match = re.match(r"(?:.*@)?([^:/]*)", clone_url)
         if match:
-            bot.AddTask("ssh-init", [])
+            ssh_repo = True
             scanhost = match.group(1)
 
 if ssh_repo:
@@ -75,6 +70,8 @@ if ssh_repo:
     bot.AddTask("ssh-init", ["bootstrap"])
     bot.AddTask("ssh-scan", [ scanhost ])
 
+exit(0)
+bot.AddTask("cleanup", [ cfgdir ])
 
 # Start with a clean jobdir
 bot.AddTask("cleanup", [ repobranch ])

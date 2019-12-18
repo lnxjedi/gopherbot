@@ -62,6 +62,7 @@ type cmdcall struct {
 
 type paramcall struct {
 	Name, Value string
+	Base64      bool
 }
 
 type wdcall struct {
@@ -297,6 +298,10 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		var param paramcall
 		if !getArgs(rw, &f.FuncArgs, &param) {
 			return
+		}
+		if param.Base64 {
+			param.Name = decode(param.Name)
+			param.Value = decode(param.Value)
 		}
 		success := r.SetParameter(param.Name, param.Value)
 		sendReturn(rw, boolresponse{Boolean: success})

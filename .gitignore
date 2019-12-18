@@ -4,6 +4,10 @@ gopherbot.exe
 gopherbot*zip
 gopherbot*tar.gz
 *.pyc
+# Ignore symlinks useful for development
+plugins/gopherbot_v1.py
+jobss/gopherbot_v1.py
+tasks/gopherbot_v1.py
 .c9
 .env
 *.so

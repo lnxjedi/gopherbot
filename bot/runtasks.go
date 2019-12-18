@@ -36,6 +36,11 @@ func (c *botContext) startPipeline(parent *botContext, t interface{}, ptype pipe
 	} else {
 		c.privileged = job.Privileged
 	}
+	if c.privileged {
+		if len(homePath) > 0 {
+			c.environment["GOPHER_HOME"] = homePath
+		}
+	}
 	// Initial baseDirectory and workingDirectory are the same; SetWorkingDirectory
 	// modifies workingDirectory.
 	if task.Homed {

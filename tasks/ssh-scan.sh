@@ -3,6 +3,8 @@
 # Usage:
 # - Add it to a pipeline: `AddTask ssh-scan some.host.name(:port)`
 
+source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
+
 unset REMOTE_PORT
 
 REMOTE_HOST="$1"
@@ -15,22 +17,14 @@ then
 	SKARGS="-p $REMOTE_PORT"
 fi
 
-echo "Checking for $SCAN_HOST"
-if [ -n "$REMOTE_PORT" ]
-then
-	if grep -Eq "^\[$REMOTE_HOST\]:$REMOTE_PORT\s" $HOME/.ssh/known_hosts
-	then
-		echo "$SCAN_HOST already in known_hosts, exiting"
-		exit 0
-	fi
-else
-	if grep -Eq "^$REMOTE_HOST\s" $HOME/.ssh/known_hosts
-	then
-		echo "$SCAN_HOST already in known_hosts, exiting"
-		exit 0
-	fi
-fi
+# Ignore ssh error value; github.com for instance will exit 1
+SCAN=$(cat <<EOF | ssh $SSH_OPTIONS -o StrictHostKeyChecking=no $REMOTE_HOST 2>&1 || :
+EOF
+)
 
-echo "Running \"ssh-keyscan $SKARGS $REMOTE_HOST 2>/dev/null >> $HOME/.ssh/known_hosts\""
-touch $HOME/.ssh/known_hosts # in case it doesn't already exist
-ssh-keyscan $SKARGS $REMOTE_HOST 2>/dev/null >> $HOME/.ssh/known_hosts
+if echo "$SCAN" | grep -q "WARNING"
+then
+	Log "Error" "ssh-scan failed, remote host changed"
+	echo "$SCAN" > /dev/stderr
+	exit 1
+fi
