@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
+	"os"
 	"os/exec"
 	"strings"
 	"syscall"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
+
+var local bool
 
 type getCfgReturn struct {
 	buffptr *[]byte
@@ -212,7 +216,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		rchan <- taskReturn{errString, robot.MechanismFail}
 		return
 	}
-	if c.logger == nil {
+	if !local && c.logger == nil {
 		// close stdout on the external plugin...
 		cmd.Stdout = nil
 	} else {
@@ -244,7 +248,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	if command != "init" {
 		emit(ExternalTaskRan)
 	}
-	if c.logger == nil {
+	if !local && c.logger == nil {
 		var stdErrBytes []byte
 		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
 			Log(robot.Error, "Reading from stderr for external command '%s': %v", taskPath, err)
@@ -261,19 +265,36 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	} else {
 		closed := make(chan struct{})
 		hl := c.logger
+		var solog, selog *log.Logger
+		if local {
+			solog = log.New(os.Stdout, "OUT: ", 0)
+			selog = log.New(os.Stdout, "ERR: ", 0)
+		}
 		go func() {
+			logging := c.logger != nil
 			scanner := bufio.NewScanner(stdout)
 			for scanner.Scan() {
 				line := scanner.Text()
-				c.logger.Log("OUT " + line)
+				if logging {
+					hl.Log("OUT " + line)
+				}
+				if local {
+					solog.Println(line)
+				}
 			}
 			closed <- struct{}{}
 		}()
 		go func() {
+			logging := c.logger != nil
 			scanner := bufio.NewScanner(stderr)
 			for scanner.Scan() {
 				line := scanner.Text()
-				c.logger.Log("ERR " + line)
+				if logging {
+					hl.Log("ERR " + line)
+				}
+				if local {
+					selog.Println(line)
+				}
 			}
 			closed <- struct{}{}
 		}()

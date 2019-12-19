@@ -180,6 +180,9 @@ func Start(v VersionInfo) (restart bool) {
 	if !ok {
 		logger.Fatalf("No connector registered with name: %s", currentCfg.protocol)
 	}
+	if currentCfg.protocol == "terminal" {
+		local = true
+	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface
 	conn := initializeConnector(handle, logger)
