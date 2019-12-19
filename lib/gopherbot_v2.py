@@ -4,9 +4,10 @@ import random
 import subprocess
 import sys
 import time
-import urllib2
+import urllib.request
+import urllib.parse
 
-# python 2 version
+# python 3 version
 
 class Attribute:
     "A Gopherbot Attribute return object"
@@ -96,15 +97,16 @@ class Robot:
                     "Channel": self.channel, "Format": format,
                     "Protocol": self.protocol, "CallerID": self.plugin_id,
                     "FuncArgs": func_args }
-        func_json = json.dumps(func_call)
-        req = urllib2.Request(url="%s/json" % os.getenv("GOPHER_HTTP_POST"),
-            data=func_json)
+        data = json.dumps(func_call)
+        data = bytes(data, 'utf-8')
+        req = urllib.request.Request(url="%s/json" % os.getenv("GOPHER_HTTP_POST"),
+            data=data)
         req.add_header('Content-Type', 'application/json')
         # sys.stderr.write("Sending: %s\n" % func_json)
-        f = urllib2.urlopen(req)
-        body = f.read()
+        res = urllib.request.urlopen(req)
+        body = res.read()
         # sys.stderr.write("Got back: %s\n" % body)
-        return json.loads(body)
+        return json.loads(body.decode("utf-8"))
 
     def CheckAdmin(self):
         return self.Call("CheckAdmin", {})["Boolean"]
