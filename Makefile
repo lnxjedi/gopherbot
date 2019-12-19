@@ -47,9 +47,9 @@ brains/dynamodb.so: brains/dynamodb-mod.go brains/dynamodb/*.go robot/*.go
 clean:
 	rm -f gopherbot $(MODULES)
 
-# Run test suite
+# Run test suite without coverage (see .gopherci/pipeline.sh)
 test:
-	go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./test
+	go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -race ./test
 
 # Generate Stringer methods
 generate:
@@ -58,4 +58,4 @@ generate:
 
 # Terminal robot that emits events gathered, for developing integration tests
 testbot:
-	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -tags 'netgo osusergo static_build test' -o gopherbot
+	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -tags 'netgo osusergo static_build testbot' -o gopherbot

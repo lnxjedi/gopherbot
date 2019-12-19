@@ -204,9 +204,10 @@ func initializePlugins() {
 	tasks := currentCfg.taskList
 	currentCfg.RUnlock()
 	c := &botContext{
-		environment: make(map[string]string),
-		cfg:         cfg,
-		tasks:       tasks,
+		environment:   make(map[string]string),
+		cfg:           cfg,
+		tasks:         tasks,
+		automaticTask: true,
 	}
 	c.registerActive(nil)
 	state.Lock()

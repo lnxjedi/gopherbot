@@ -272,34 +272,6 @@ esac
 ```
 **NOTE:** Bash doesn't have an object-oriented API
 
-### PowerShell Boilerplate
-```powershell
-#!powershell.exe
-# -or-
-#!C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
-
-# Stylistic, can be omitted; $cmdArgs is always a String[],
-# but $Args turns into a String when you shift off the 2nd item
-[String[]]$cmdArgs = $Args
-Import-Module "$Env:GOPHER_INSTALLDIR\lib\gopherbot_v1.psm1"
-$bot = Get-Robot
-
-$config = @'
-<yaml config document>
-'@
-
-$command, $cmdArgs = $cmdArgs
-
-switch ($command)
-{
-  "configure" {
-    Write-Output $config
-    exit
-  }
- ...
-}
-```
-
 ### Python Boilerplate
 ```python
 #!/usr/bin/python3
@@ -307,7 +279,7 @@ switch ($command)
 import os
 import sys
 sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
-from gopherbot_v1 import Robot
+from gopherbot_v2 import Robot # use _v1 for python2
 
 bot = Robot()
 

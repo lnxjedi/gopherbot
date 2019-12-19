@@ -140,7 +140,10 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	// Initialize current config with an empty struct (to be loaded)
 	currentCfg.configuration = &configuration{}
 
-	botLogger.l = logger
+	// Only true with test suite
+	if logger != nil {
+		botLogger.l = logger
+	}
 
 	var err error
 	homePath, err = os.Getwd()
@@ -369,5 +372,5 @@ func stop() {
 	Log(robot.Debug, "stop called with %d plugins running", pr)
 	state.Wait()
 	brainQuit()
-	close(stopConnector)
+	stopConnector <- struct{}{}
 }

@@ -1,4 +1,4 @@
-// +build !test
+// +build !testbot
 
 package terminal
 

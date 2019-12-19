@@ -17,7 +17,7 @@ SetParameter "PATH" "$PATH"
 FailCommand builtin-history "send history $GOPHER_JOB_NAME:$GOPHER_REPOSITORY/$GOPHERCI_BRANCH $GOPHER_RUN_INDEX to user parsley"
 
 # Run tests
-AddTask exec go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
+AddTask exec go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./test
 
 # Install required tools
 AddTask exec ./.gopherci/tools.sh

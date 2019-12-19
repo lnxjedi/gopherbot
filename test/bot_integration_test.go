@@ -6,13 +6,13 @@ package bot_test
 bot_integration_test.go - setup and initialization of "black box" integration testing.
 
 Run integration tests with:
-$ go test -v --tags 'test integration' ./bot
+$ go test -v --tags 'test integration' ./test
 
 Run specific tests with e.g.:
-$ go test -run MessageMatch -v --tags 'test integration' ./bot
+$ go test -run MessageMatch -v --tags 'test integration' ./test
 
 To run tests with static builds and modules from vendor:
-$ CGO_ENABLED=0 go test -v --tags 'test integration netgo osusergo static_build' -mod vendor ./bot
+$ CGO_ENABLED=0 go test -v --tags 'test integration netgo osusergo static_build' -mod vendor ./test
 
 Generate coverage statistics report with:
 $ go tool cover -html=coverage.out -o coverage.html
@@ -129,6 +129,8 @@ func teardown(t *testing.T, done <-chan bool, conn *testc.TestConnector) {
 
 func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
 	for _, test := range tests {
+		// Clear out start-up events
+		GetEvents()
 		conn.SendBotMessage(&testc.TestMessage{test.user, test.channel, test.message})
 		for _, want := range test.replies {
 			if re, err := regexp.Compile(want.Message); err != nil {
@@ -255,7 +257,7 @@ func TestReload(t *testing.T) {
 	done, conn := setup("resources/cfg/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{aliceID, general, "reload, bender", []testc.TestMessage{{alice, general, "Configuration reloaded successfully"}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "reload, bender", []testc.TestMessage{{alice, general, "Configuration reloaded successfully"}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
 
