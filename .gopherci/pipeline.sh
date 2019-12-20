@@ -9,12 +9,14 @@ then
     FailTask notify $NOTIFY_USER "Gopherbot build failed"
 fi
 
+REPO_NAME=${GOPHER_NAMESPACE_EXTENDED:-$GOPHER_REPOSITORY}
+
 # Update path for a Go build
 PATH=$PATH:$HOME/go/bin:/usr/local/go/bin
 SetParameter "PATH" "$PATH"
 
 # Email the job history if it fails
-FailCommand builtin-history "send history $GOPHER_JOB_NAME:$GOPHER_REPOSITORY/$GOPHERCI_BRANCH $GOPHER_RUN_INDEX to user parsley"
+FailCommand builtin-history "send history $GOPHER_JOB_NAME:$REPO_NAME/$GOPHERCI_BRANCH $GOPHER_RUN_INDEX to user parsley"
 
 # Run tests
 AddTask exec go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./test

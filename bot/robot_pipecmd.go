@@ -84,7 +84,10 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 	}
 	r.Log(robot.Debug, "Extending namespace for job '%s': %s (branch %s)", c.jobName, repo, branch)
 	c.nsExtension = ext
+	// old, deprecated, TODO: remove me someday
 	c.environment["GOPHER_NAMESPACE_EXTENDED"] = repo
+	// new hotness
+	c.environment["GOPHER_REPOSITORY"] = repo
 
 	jk := histPrefix + c.jobName
 	var pjh jobHistory
