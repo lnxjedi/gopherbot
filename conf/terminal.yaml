@@ -1,4 +1,14 @@
 # terminal.yaml - stock configuration for the terminal connector
+{{ $botname := env "GOPHER_BOTNAME" | default "floyd" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot"}}
+{{ $botalias := env "GOPHER_ALIAS" | default ";"}}
+
+BotInfo:
+  UserName: {{ $botname }}
+  FullName: {{ $botfullname }}
+
+Alias: {{ $botalias }}
+
 ProtocolConfig:
   StartChannel: general
   StartUser: alice

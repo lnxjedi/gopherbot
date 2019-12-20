@@ -20,7 +20,23 @@ The following values can be provided to your robot on start-up:
 * `GOPHER_ENCRYPTION_KEY` - 32+ character encryption key used for decrypting the `binary-encrypted-key`
 * `GOPHER_CUSTOM_REPOSITORY` - clone URL for the robot's custom configuration, used in bootstrapping
 * `DEPLOY_KEY` - ssh deploy key for cloning the custom repository
-* `GOPHER_PROTOCOL` - used to select a non-default protocol (e.g. "terminal") in the default configuration for a new robot
+
+### Configuration Environment Variables
+
+**Gopherbot** normally takes almost all of it's configuration from the collection of `*.yaml` files in the custom configuration directory, but for easy flexibility, a collection of environment variables are referenced in the default configuration. These are some of the values that are expanded; the actual configuration files are the definitive reference.
+
+* `GOPHER_PROTOCOL` - used to select a non-default protocol (e.g. "terminal")
+* `GOPHER_LOGLEVEL` - error, warn, info, debug, trace
+* `GOPHER_BOTNAME` - the name the robot will answer to, e.g. "floyd"
+* `GOPHER_ALIAS` - the one-character alias for the robot, e.g. ";"
+* `GOPHER_BOTMAIL` - the robot's email address
+* `GOPHER_BOTFULLNAME` - the robot's full name
+* `GOPHER_HISTORY_DIRECTORY` - directory for storing file-based historical job logs
+* `GOPHER_WORKSPACE_DIRECTORY` - workspace directory where e.g. build jobs clone and run
+* `GOPHER_BRAIN` - non-default brain provider to use
+* `GOPHER_BRAIN_DIRECTORY` - directory where file-based memories are stored
+* `GOPHER_JOBCHANNEL` - where jobs run by default if not otherwise specified
+* `GOPHER_TIMEZONE` - UNIX tz, e.g. "America/New_York" (default)
 
 ## External Script Environment
 

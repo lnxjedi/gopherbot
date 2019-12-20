@@ -19,107 +19,33 @@
 ## By default, automatically choose a port.
 LocalPort: {{ env "GOPHER_PORT" | default "0" }}
 
-## Configure the robot connection protocol
 {{ $proto := env "GOPHER_PROTOCOL" | default "nullconn" }}
 Protocol: {{ $proto }}
 
 ## Trivial "terminal" connector config for a single admin user.
+## This pulls in a basic default config for the terminal connector
+## which can be overridden in custom if desired.
 {{ if eq $proto "terminal" }}
-{{ $botname := env "GOPHER_BOTNAME" | default "floyd" }}
-{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot"}}
-{{ $botalias := env "GOPHER_ALIAS" | default ";"}}
 {{ .Include "terminal.yaml" }}
-
-BotInfo:
-  UserName: {{ $botname }}
-  FullName: {{ $botfullname }}
-
-Alias: {{ $botalias }}
-
-## Protocols other than "terminal"; normally overridden in custom/conf/gopherbot.yaml
-{{ else }}
-
-AdminUsers: [ {{ env "GOPHER_ADMIN" }} ]
-
-BotInfo:
-  UserName: {{ env "GOPHER_BOTNAME" }}
-  FullName: {{ env "GOPHER_BOTFULLNAME" }}
-  Email: {{ env "GOPHER_BOT_EMAIL" }}
-
-Alias: {{ env "GOPHER_ALIAS" }}
-
 {{ end }}
 
-{{ $brain := env "GOPHER_BRAIN" | default "file" }}
-Brain: {{ $brain }}
+EncryptBrain: true
 
-{{ if eq $brain "file" }}
-BrainConfig:
-  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default "state/brain" }}
-  Encode: true
+## Configure log level
+LogLevel: {{ env "GOPHER_LOGLEVEL" | default "info" }}
 
-{{ else if eq $brain "dynamo" }}
-BrainConfig:
-  TableName: {{ env "GOPHER_BRAIN_TABLE" }}
-  Region: {{ env "GOPHER_BRAIN_REGION" | default "us-east-1" }}
-  AccessKeyID: {{ env "GOPHER_BRAIN_KEY_ID" }}
-  SecretAccessKey: {{ env "GOPHER_BRAIN_SECRET_KEY" }}
+TimeZone: {{ env "GOPHER_TIMEZONE" | default "America/New_York" }}
 
-{{ end }}
-
-# If a brain encryption key isn't provided, the admin can still
-# set GOPHER_ENCRYPT_BRAIN="true" and supply the key interactively
-{{ $default_brain_encrypt := "false" }}
-{{ if env "GOPHER_ENCRYPTION_KEY" }}
-  {{- $default_brain_encrypt = "true" }}
-{{ end }}
-EncryptBrain: {{ env "GOPHER_ENCRYPT_BRAIN" | default $default_brain_encrypt }}
-## End brain config
-
-## Key required for secrets, also used for brain encryption
-EncryptionKey: {{ env "GOPHER_ENCRYPTION_KEY" }}
-
-# Defaults for history and workspace directories, relative to the
-# process working directory.
-{{ $histdir := env "GOPHER_HISTORY_DIRECTORY" | default "history" }}
-{{ $workdir := env "GOPHER_WORKSPACE_DIRECTORY" }}
-{{ if $workdir -}} WorkSpace: {{ $workdir }} {{- end }}
-
-## Configure a history provider
-{{ $history := env "GOPHER_HISTORY_PROVIDER" | default "file" }}
-HistoryProvider: {{ $history }}
-
-{{ if eq $history "file" }}
-HistoryConfig:
-  Directory: {{ $histdir }}
-{{ end }}
-## End history config
-
-## Configure log level; defaults to debug to aid in troubleshooting
-## if custom configuration can't be loaded.
-LogLevel: {{ env "GOPHER_LOGLEVEL" | default "debug" }}
-
-## Later: modify this for other protocols
-{{ $defaultjobchannel := "general" }}
-DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}
+# This needs to exist to prevent a dangling reference; associated
+# parameters need to be provided in the robot's custom configuraton.
+NameSpaces:
+  "ssh":
 
 ## NOTE:
 ## External script jobs/tasks/plugins do NOT have direct access to
 ## environment variables, but instead get a combination of:
 ## - vars explicitly propagated such as $HOME
 ## - vars defined in "Parameters" (see below)
-## - vars provided interactively by an administrator with the
-##   'store <"task"|"repository"> parameter <name> <var>=<value>' command;
-##   normally used for secrets kept in an encrypted brain
-##
-## While some environment variables like GOPHER_SLACK_TOKEN or GOPHER_BRAIN_KEY
-## need to come from the environment to allow the robot to start, others may
-## be stored in the brain. The definitions below allow you to go either way,
-## by e.g. setting 'GOPHER_OWM_APIKEY' in the environment, or by instead using
-## 'store task parameter weather OWM_APIKEY=<value>'
-
-NameSpaces:
-  "ssh":
 
 ExternalPlugins:
 ## Useful and/or entertaining plugins; disable by setting 'Disabled: true' in
@@ -136,19 +62,6 @@ ExternalPlugins:
     Path: plugins/ssh-admin.sh
     Privileged: true
     NameSpace: ssh
-  "weather":
-    Description: A plugin that uses OpenWeatherMap to report the weather
-    Path: plugins/weather.rb
-    Parameters:
-    - Name: OWM_APIKEY
-      Value: {{ env "GOPHER_OWM_APIKEY" }}
-    - Name: TEMP_UNITS
-      Value: {{ env "GOPHER_OWM_UNITS" | default "imperial" }} # or 'metric'
-    - Name: DEFAULT_COUNTRY
-      Value: {{ env "GOPHER_OWM_COUNTRY" | default "us" }} # or other ISO 3166 country code
-  "chuck":
-    Description: A plugin that pipes up whenever The Man's name is mentioned
-    Path: plugins/chuck.rb
   "bootstrap":
     Description: A plugin to bootstrap an existing robot to a new container/directory
     Privileged: true
@@ -163,7 +76,6 @@ ExternalPlugins:
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)
-
 ExternalJobs:
   "updatecfg":
     Description: A job that updates the robot's configuration from git
@@ -182,10 +94,7 @@ ExternalJobs:
 
 ## ExternalTasks enumerate external executables that can be added to pipelines
 ## with AddTask <name>. Note the e.g. the update plugin requires ssh,
-## ssh-agent, and git. Unlike Plugins and Jobs, ExternalTasks can have
-## NameSpace and Parameters specified, since they don't read external config
-## files.
-
+## ssh-agent, and git.
 ExternalTasks:
   "notify":
     Description: Send a message to a user in the job channel, generally as a FailTask
@@ -226,42 +135,3 @@ ExternalTasks:
     Description: Task for cleaning a working directory before starting a job/build
     Homed: true
     Path: tasks/cleanup.sh
-
-## NOTE: Items below are informational only, and should be defined in the
-## custom configuration repository.
-
-## If the plugin doesn't specify an outgoing message format, what's the default?
-## This will be 'Raw' (unmodified, subject to protocol-specific formatting) if
-## not set. 'Variable' will escape special characters like #, @, _, `, etc. so
-## those characters can appear in replies. 'Fixed' will send everything in a
-## fixed-width font.
-#DefaultMessageFormat: Variable # 'Raw' if not specified
-
-## The robot's email address (used in From:)
-#Email: robbie@robot.com
-
-## Configuration for sending out email. For Authtype: none, User and Password
-## can be left out. Note that sending email will fail if Email isn't set. Note
-## for GMail users - for your robot to send email, you'll need to enable less
-## secure apps for the sending account. See:
-## https://support.google.com/accounts/answer/6010255
-
-#MailConfig:
-#  Mailhost: smtp.gmail.com:587
-#  Authtype: plain
-#  User: yourbot@your.dom
-#  Password: robotpassword
-
-## Use Google Authenticator TOTP by default for elevated commands. To use:
-## - Ask the robot to 'send launch codes', and it will send you (one time)
-##   a string for configuring your Google Authencticator app, and store it's
-##   own copy in the robot's brain. You can verify it works with the
-##   'check launch code <code>' command.
-## - To require a token to be provided before running a given plugin command,
-##   add the elevated command(s) to the plugin's ElevatedCommands list, or to
-##   ElevateImmediateCommands for commands that require elevation every time
-##   regardless of timeout.
-## - Configure the elevator by overriding the config for the plugin in
-##   'conf/plugins/totp.yaml'
-
-#DefaultElevator: totp
