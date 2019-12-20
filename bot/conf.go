@@ -100,6 +100,7 @@ var repositories map[string]robot.Repository
 
 // loadConfig loads the 'bot's yaml configuration files.
 func (c *botContext) loadConfig(preConnect bool) error {
+	raiseThreadPriv("loading configuration")
 	var loglevel robot.LogLevel
 	newconfig := &ConfigLoader{}
 	newconfig.ExternalJobs = make(map[string]TaskSettings)
@@ -472,12 +473,6 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		} else {
 			Log(robot.Error, "Getting WorkSpace directory '%s', using '%s': %v", newconfig.WorkSpace, configPath, err)
 		}
-	}
-	if len(processed.workSpace) == 0 {
-		if err := h.GetDirectory("workspace"); err != nil {
-			Log(robot.Fatal, "Unable to set/create workspace directory 'workspace'")
-		}
-		processed.workSpace = "workspace"
 	}
 
 	if newconfig.HistoryProvider != "" {

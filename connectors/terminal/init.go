@@ -98,6 +98,6 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	}
 
 	tc.Handler = handler
-
+	tc.SetTerminalWriter(tc.reader)
 	return robot.Connector(tc)
 }

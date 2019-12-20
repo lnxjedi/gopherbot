@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,6 +24,12 @@ var handle = handler{}
 // connector to make it's own decision about logging
 func (h handler) GetLogLevel() robot.LogLevel {
 	return getLogLevel()
+}
+
+// SetTerminalWriter let's the terminal connector set the output writer
+// for logging of Warn and Error logs.
+func (h handler) SetTerminalWriter(w io.Writer) {
+	botStdOutLogger.SetOutput(w)
 }
 
 // GetInstallPath gets the path to the bot's install dir -

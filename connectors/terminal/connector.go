@@ -42,7 +42,6 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 			tc.heard <- line
 		}
 	}(tc)
-
 	tc.reader.Write([]byte("Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user\n"))
 
 loop:

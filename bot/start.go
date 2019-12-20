@@ -36,7 +36,7 @@ func Start(v VersionInfo) (restart bool) {
 	flag.StringVar(&explicitCfgPath, "config", "", cusage)
 	flag.StringVar(&explicitCfgPath, "c", "", "")
 	var logFile string
-	lusage := "path to robot's log file"
+	lusage := "path to robot's log file (or 'stderr')"
 	flag.StringVar(&logFile, "log", "", lusage)
 	flag.StringVar(&logFile, "l", "", "")
 	var plainlog bool
@@ -95,17 +95,26 @@ func Start(v VersionInfo) (restart bool) {
 	if plainlog {
 		logFlags = 0
 	}
-	logOut := os.Stderr
+	botStdErrLogger = log.New(os.Stderr, "", logFlags)
+	botStdOutLogger = log.New(os.Stdout, "", logFlags)
+	logOut := os.Stdout
+	botStdOutLogging = true
 	if len(logFile) == 0 {
 		logFile = os.Getenv("GOPHER_LOGFILE")
 	}
 	if len(logFile) != 0 {
-		lf, err := os.Create(logFile)
-		if err != nil {
-			log.Fatalf("Error creating log file: (%T %v)", err, err)
+		if logFile == "stderr" {
+			botStdOutLogging = false
+			logOut = os.Stderr
+		} else {
+			lf, err := os.Create(logFile)
+			if err != nil {
+				log.Fatalf("Error creating log file: (%T %v)", err, err)
+			}
+			botStdOutLogging = false
+			fileLog = true
+			logOut = lf
 		}
-		fileLog = true
-		logOut = lf
 	}
 	log.SetOutput(logOut)
 	logger = log.New(logOut, "", logFlags)

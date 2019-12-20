@@ -1,5 +1,7 @@
 package robot
 
+import "io"
+
 // Logger is used by a Brain for logging errors
 type Logger interface {
 	Log(l LogLevel, m string, v ...interface{})
@@ -42,6 +44,9 @@ type Handler interface {
 	GetHistoryConfig(interface{}) error
 	// SetID allows the connector to set the robot's internal ID
 	SetBotID(id string)
+	// SetTerminalWriter allows the terminal connector to provide an io.Writer
+	// to log to.
+	SetTerminalWriter(io.Writer)
 	// SetBotMention allows the connector to set the bot's @(mention) ID
 	// (without the @) for protocols where it's a fixed value. This allows
 	// the robot to recognize "@(protoMention) foo", needed for e.g. Rocket
