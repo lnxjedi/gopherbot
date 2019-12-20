@@ -42,3 +42,9 @@
 
 - [Tool Integrations](pipelines/integrations.md)
     - [Integrating with SSH](pipelines/ssh.md)
+
+## Gopherbot Development
+- [Working on Gopherbot](GopherDev.md)
+    - [Development Robot](botdev/DevelRobot.md) <!--TODO: write me! -->
+    - [Integration Tests](botdev/IntegrationTests.md)
+    - [Coding with Gitpod](botdev/Gitpod.md) <!--TODO: write me! -->
