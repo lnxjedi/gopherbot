@@ -6,7 +6,14 @@
 # If notifications go to multiple channels, add entries
 # to the Triggers array.
 HistoryLogs: 14
-#Triggers:
-#- User: github
-#  Channel: <FIXME>
-#  Regex: 'new commit.*(github.com\/.*)\/tree\/(.*)\|'
+Quiet: true
+Triggers:
+- User: github
+  Channel: <FIXME>
+  Regex: 'new commit.*(github.com\/.*)\/tree\/(.*)\|'
+# Arguments to be supplied with `run job`
+Arguments:
+- Label: repository
+  Regex: '[\w-.]+\/[\w-.]+\/[\w-.]+\/?'
+- Label: branch
+  Regex: '[\w-.]+'
