@@ -148,20 +148,20 @@ func (c *botContext) clone() *botContext {
 		directMsg:        c.directMsg,
 		BotUser:          c.BotUser,
 		listedUser:       c.listedUser,
-		pipeName:         c.pipeName,
-		pipeDesc:         c.pipeDesc,
+		_pipeName:        c._pipeName,
+		_pipeDesc:        c._pipeDesc,
 		ptype:            c.ptype,
 		cfg:              c.cfg,
 		tasks:            c.tasks,
 		maps:             c.maps,
 		repositories:     c.repositories,
 		automaticTask:    c.automaticTask,
-		elevated:         c.elevated,
+		_elevated:        c._elevated,
 		Protocol:         c.Protocol,
 		Format:           c.Format,
 		msg:              c.msg,
 		workingDirectory: "",
-		environment:      make(map[string]string),
+		_environment:     make(map[string]string),
 	}
 	c.RUnlock()
 	return clone
@@ -199,24 +199,25 @@ type botContext struct {
 	active           bool                        // whether this context has been registered as active
 	ptype            pipelineType                // what started this pipeline
 
-	sync.RWMutex                       // Protects access to the items below
-	elevated         bool              // set when required elevation succeeds
-	_environment     map[string]string // environment vars set for each job/plugin in the pipeline
-	_taskenvironment map[string]string // per-task environment for Go plugins
-	_stage           pipeStage         // which pipeline is being run; primaryP, finalP, failP
-	_jobInitialized  bool              // whether a job has started
-	_jobName         string            // name of the running job
-	_jobChannel      string            // channel where job updates are posted
-	_nsExtension     string            // extended namespace
-	_runIndex        int               // run number of a job
-	_verbose         bool              // flag if initializing job was verbose
-	_nextTasks       []TaskSpec        // tasks in the pipeline
-	_finalTasks      []TaskSpec        // clean-up tasks that always run when the pipeline ends
-	_failTasks       []TaskSpec        // clean-up tasks that run when a pipeline fails
+	// Parent and child values protected by the activeRobots lock
+	update            chan interface{}  // Channel for serializing ... ?
+	__parent, __child *botContext       // for sub-job contexts
+	_elevated         bool              // set when required elevation succeeds
+	_environment      map[string]string // environment vars set for each job/plugin in the pipeline
+	_taskenvironment  map[string]string // per-task environment for Go plugins
+	_stage            pipeStage         // which pipeline is being run; primaryP, finalP, failP
+	_jobInitialized   bool              // whether a job has started
+	_jobName          string            // name of the running job
+	_jobChannel       string            // channel where job updates are posted
+	_nsExtension      string            // extended namespace
+	_runIndex         int               // run number of a job
+	_verbose          bool              // flag if initializing job was verbose
+	_nextTasks        []TaskSpec        // tasks in the pipeline
+	_finalTasks       []TaskSpec        // clean-up tasks that always run when the pipeline ends
+	_failTasks        []TaskSpec        // clean-up tasks that run when a pipeline fails
 
 	_failedTask, failedTaskDescription string // set when a task fails
 
-	_parent, _child      *botContext // for sub-job contexts
 	_pipeName, _pipeDesc string      // name and description of task that started pipeline
 	_currentTask         interface{} // pointer to currently executing task
 	_taskName            string      // name of current task
