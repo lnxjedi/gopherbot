@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -77,11 +78,17 @@ func Start(v VersionInfo) (restart bool) {
 	}
 
 	var envFile string
-	for _, ef := range []string{".env", "private/environment"} {
+	var fixed = []string{}
+	for _, ef := range []string{"private/environment", ".env"} {
 		if es, err := os.Stat(ef); err == nil {
 			em := es.Mode()
-			if (uint32(em) & 0066) != 0 {
-				log.Fatalf("Invalid file mode '%o' on environment file '%s', aborting", em, ef)
+			if (uint32(em) & 0077) != 0 {
+				mask := os.FileMode(0700)
+				want := em & mask
+				if err := os.Chmod(ef, want); err != nil {
+					log.Fatalf("Invalid file mode '%o' on environment file '%s', can't fix: %v", em, ef, err)
+				}
+				fixed = append(fixed, ef)
 			}
 			envFile = ef
 		}
@@ -143,6 +150,9 @@ func Start(v VersionInfo) (restart bool) {
 			logger.Printf("No private environment loaded from '.env': %v\n", penvErr)
 		} else {
 			logger.Printf("Loaded initial private environment from '%s'\n", envFile)
+		}
+		if len(fixed) > 0 {
+			logger.Printf("Notice! Fixed invalid file modes for environment file(s): %s", strings.Join(fixed, ", "))
 		}
 
 		// Create the 'bot and load configuration, supplying configpath and installpath.
