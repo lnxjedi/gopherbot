@@ -1,1 +1,0 @@
-These configuration directories are used with the `test` connector for automated testing. See `bot/*_test.go`. To run the robot with one of these configurations using the terminal connector, run `gopherbot` inside a configuration directory with `-e gopherbot.env` to pick up the extra configuration.

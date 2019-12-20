@@ -1,5 +1,6 @@
 # This file is only used when gopherbot is run from this directory.
 # The test suite doesn't read it, so it's mainly useful for developing
-# and troubleshooting tests.
-GOPHER_PROTOCOL=term
+# and troubleshooting tests. Use "make testbot" to compile gopherbot
+# with the terminal connector in test development mode.
+GOPHER_PROTOCOL=terminal
 GOPHER_LOGFILE=/tmp/term.log
