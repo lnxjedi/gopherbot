@@ -6,6 +6,8 @@ import sys
 import time
 import urllib2
 
+# python 2 version
+
 class Attribute:
     "A Gopherbot Attribute return object"
     def __init__(self, ret):

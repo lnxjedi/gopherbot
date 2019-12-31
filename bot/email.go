@@ -46,7 +46,6 @@ func (r Robot) EmailAddress(address, subject string, messageBody *bytes.Buffer, 
 }
 
 func (r Robot) realEmail(subject, mailTo string, messageBody *bytes.Buffer, html ...bool) (ret robot.RetVal) {
-	c := r.getContext()
 	var mailFrom, botName string
 
 	mailAttr := r.GetBotAttribute("email")
@@ -75,25 +74,25 @@ func (r Robot) realEmail(subject, mailTo string, messageBody *bytes.Buffer, html
 	}
 
 	var a smtp.Auth
-	if c.cfg.mailConf.Authtype == "plain" {
-		host := strings.Split(c.cfg.mailConf.Mailhost, ":")[0]
-		a = smtp.PlainAuth("", c.cfg.mailConf.User, c.cfg.mailConf.Password, host)
+	if r.cfg.mailConf.Authtype == "plain" {
+		host := strings.Split(r.cfg.mailConf.Mailhost, ":")[0]
+		a = smtp.PlainAuth("", r.cfg.mailConf.User, r.cfg.mailConf.Password, host)
 		Log(robot.Debug, "Sending authenticated email to \"%s\" from \"%s\" via \"%s\" with user: %s, password: xxxx, and host: %s",
 			mailTo,
 			from,
-			c.cfg.mailConf.Mailhost,
-			c.cfg.mailConf.User,
+			r.cfg.mailConf.Mailhost,
+			r.cfg.mailConf.User,
 			host,
 		)
 	} else {
 		Log(robot.Debug, "Sending unauthenticated email to \"%s\" from \"%s\" via \"%s\"",
 			mailTo,
 			from,
-			c.cfg.mailConf.Mailhost,
+			r.cfg.mailConf.Mailhost,
 		)
 	}
 
-	err := e.Send(c.cfg.mailConf.Mailhost, a)
+	err := e.Send(r.cfg.mailConf.Mailhost, a)
 	if err != nil {
 		err = fmt.Errorf("Sending email: %v", err)
 		Log(robot.Error, err.Error())

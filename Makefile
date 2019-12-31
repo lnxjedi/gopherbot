@@ -14,6 +14,10 @@ modular: CGO = 1
 modular: BUILDTAG = modular
 modular: gopherbot $(MODULES)
 
+ifdef TEST
+TESTARGS = -run ${TEST}
+endif
+
 static: gopherbot
 
 gopherbot: main.go bot/* brains/*/* connectors/*/* goplugins/*/* history/*/*
@@ -47,13 +51,14 @@ brains/dynamodb.so: brains/dynamodb-mod.go brains/dynamodb/*.go robot/*.go
 clean:
 	rm -f gopherbot $(MODULES)
 
-# Run test suite
+# Run test suite without coverage (see .gopherci/pipeline.sh)
 test:
-	go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
+	go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod vendor -race ./test
 
 # Generate Stringer methods
 generate:
 	go generate -v --tags 'test integration netgo osusergo static_build' -mod vendor ./bot/
+	go generate -v --tags 'test integration netgo osusergo static_build' -mod vendor ./robot/
 
 # Terminal robot that emits events gathered, for developing integration tests
 testbot:

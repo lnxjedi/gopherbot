@@ -56,15 +56,6 @@ type ConfigLoader struct {
 	LogLevel             string                    // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
-// Repository represents a buildable git repository, for CI/CD
-type Repository struct {
-	Type         string // task extending the namespace needs to match for parameters
-	CloneURL     string
-	Dependencies []string    // List of repositories this one depends on; changes to a dependency trigger a build
-	KeepHistory  int         // How many job logs to keep for this repo
-	Parameters   []Parameter // per-repository parameters
-}
-
 // UserInfo is listed in the UserRoster of gopherbot.yaml to provide:
 // - Attributes and info that might not be provided by the connector:
 //   - Mapping of protocol internal ID to username
@@ -105,10 +96,11 @@ var currentUCMaps = struct {
 // Protects the bot config and list of repositories
 var confLock sync.RWMutex
 var config *ConfigLoader
-var repositories map[string]Repository
+var repositories map[string]robot.Repository
 
 // loadConfig loads the 'bot's yaml configuration files.
-func (c *botContext) loadConfig(preConnect bool) error {
+func loadConfig(preConnect bool) error {
+	raiseThreadPriv("loading configuration")
 	var loglevel robot.LogLevel
 	newconfig := &ConfigLoader{}
 	newconfig.ExternalJobs = make(map[string]TaskSettings)
@@ -117,18 +109,18 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	configload := make(map[string]json.RawMessage)
 	processed := &configuration{}
 
-	if err := c.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
+	if err := getConfigFile("gopherbot.yaml", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
 	}
 
 	reporaw := make(map[string]json.RawMessage)
-	c.getConfigFile("repositories.yaml", "", false, reporaw)
-	repolist := make(map[string]Repository)
+	getConfigFile("repositories.yaml", false, reporaw)
+	repolist := make(map[string]robot.Repository)
 	for k, repojson := range reporaw {
 		if strings.ContainsRune(k, ':') {
 			Log(robot.Error, "Invalid repository '%s' contains ':', ignoring", k)
 		} else {
-			var repository Repository
+			var repository robot.Repository
 			json.Unmarshal(repojson, &repository)
 			repolist[k] = repository
 		}
@@ -369,6 +361,10 @@ func (c *botContext) loadConfig(preConnect bool) error {
 				continue
 			}
 			task.Name = name
+			if task.Privileged == nil {
+				p := false
+				task.Privileged = &p
+			}
 			et = append(et, task)
 		}
 		processed.externalTasks = et
@@ -469,17 +465,14 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	currentUCMaps.ucmap = &ucmaps
 	currentUCMaps.Unlock()
 
+	h := handler{}
 	if len(newconfig.WorkSpace) > 0 {
-		h := handler{}
 		if err := h.GetDirectory(newconfig.WorkSpace); err == nil {
 			processed.workSpace = newconfig.WorkSpace
 			Log(robot.Debug, "Setting workspace directory to '%s'", processed.workSpace)
 		} else {
 			Log(robot.Error, "Getting WorkSpace directory '%s', using '%s': %v", newconfig.WorkSpace, configPath, err)
 		}
-	}
-	if len(processed.workSpace) == 0 {
-		processed.workSpace = configPath
 	}
 
 	if newconfig.HistoryProvider != "" {
@@ -534,7 +527,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		newconfig.EncryptionKey = "XXXXXX"
 	}
 
-	newList, err := c.loadTaskConfig(processed)
+	newList, err := loadTaskConfig(processed)
 	if err != nil {
 		return err
 	}

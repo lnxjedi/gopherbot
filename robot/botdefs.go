@@ -46,6 +46,8 @@ const (
 	ConfigurationError
 	// PipelineAborted - failed exclusive w/o queueTask
 	PipelineAborted
+	// RobotStopping - the robot is shutting down and can't start any new pipelines
+	RobotStopping
 	// Success indicates successful authorization or elevation; using '7' (three bits set)
 	// reduces the likelihood of an authorization plugin mistakenly exiting with a success
 	// value
@@ -145,6 +147,8 @@ const (
 	Terminal
 	// Test connector for automated test suites
 	Test
+	// Null connector for unconfigured robots
+	Null
 )
 
 // MessageFormat indicates how the connector should display the content of

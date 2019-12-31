@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # gopherci.py - Dispatcher for commit events, spawns the appropriate build job.
 # NOTE: Don't use SetParameter(...) here; build_triggered jobs don't inherit
@@ -23,7 +23,7 @@
 import os
 import sys
 sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
-from gopherbot_v1 import Robot
+from gopherbot_v2 import Robot
 
 bot = Robot()
 

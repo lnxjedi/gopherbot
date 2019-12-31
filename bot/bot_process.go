@@ -5,6 +5,7 @@ package bot
    handler.go has the methods for callbacks from the connector, */
 
 import (
+	crand "crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -13,11 +14,9 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"regexp"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -54,17 +53,18 @@ var interfaces struct {
 	robot.Connector                       // Connector interface, implemented by each specific protocol
 	brain           robot.SimpleBrain     // Interface for robot to Store and Retrieve data
 	history         robot.HistoryProvider // Provider for storing and retrieving job / plugin histories
-	stop            chan struct{}         // stop channel for stopping the connector
-	done            chan bool             // shutdown channel, true to restart
 }
+
+var done = make(chan bool)              // shutdown channel, true to restart
+var stopConnector = make(chan struct{}) // stop channel for stopping the connector
 
 // internal state tracking
 var state struct {
-	shuttingDown   bool // to prevent new plugins from starting
-	restart        bool // indicate stop and restart vs. stop only, for bootstrapping
-	pluginsRunning int  // a count of how many plugins are currently running
-	sync.WaitGroup      // for keeping track of running plugins
-	sync.RWMutex        // for safe updating of bot data structures
+	shuttingDown     bool // to prevent new plugins from starting
+	restart          bool // indicate stop and restart vs. stop only, for bootstrapping
+	pipelinesRunning int  // a count of how many plugins are currently running
+	sync.WaitGroup        // for keeping track of running plugins
+	sync.RWMutex          // for safe updating of bot data structures
 }
 
 // regexes the bot uses to determine if it's being spoken to
@@ -131,62 +131,49 @@ var listenPort string // actual listening port
 // initBot sets up the global robot; when cli is false it also loads configuration.
 // cli indicates that a CLI command is being processed, as opposed to actually running
 // a robot.
-func initBot(hpath, cpath, epath string, logger *log.Logger) {
+func initBot(cpath, epath string, logger *log.Logger) {
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// Initialize current config with an empty struct (to be loaded)
 	currentCfg.configuration = &configuration{}
 
-	botLogger.l = logger
+	// Only true with test suite
+	if logger != nil {
+		botLogger.l = logger
+	}
 
-	homePath = hpath
+	var err error
+	homePath, err = os.Getwd()
+	if err != nil {
+		Log(robot.Warn, "Unable to get cwd")
+	}
+	h := handler{}
+	if err := h.GetDirectory(cpath); err != nil {
+		Log(robot.Fatal, "Unable to get/create config path: %s", cpath)
+	}
 	configPath = cpath
 	installPath = epath
-	interfaces.stop = make(chan struct{})
-	interfaces.done = make(chan bool)
+
 	state.shuttingDown = false
 
 	if cliOp {
 		setLogLevel(robot.Warn)
 	}
 
-	// Initialize encryption (new style for v2)
-	keyEnv := "GOPHER_ENCRYPTION_KEY"
-	keyFile := filepath.Join(configPath, encryptedKeyFile)
-	encryptionInitialized := false
-	if ek, ok := os.LookupEnv(keyEnv); ok {
-		ik := []byte(ek)[0:32]
-		if bkf, err := ioutil.ReadFile(keyFile); err == nil {
-			if bke, err := base64.StdEncoding.DecodeString(string(bkf)); err == nil {
-				if key, err := decrypt(bke, ik); err == nil {
-					cryptKey.key = key
-					cryptKey.initialized = true
-					encryptionInitialized = true
-					Log(robot.Info, "Successfully decrypted binary encryption key '%s'", keyFile)
-				} else {
-					Log(robot.Error, "Decrypting binary encryption key '%s' from environment key '%s': %v", keyFile, keyEnv, err)
-				}
-			} else {
-				Log(robot.Error, "Base64 decoding '%s': %v", keyFile, err)
-			}
-		} else {
-			Log(robot.Warn, "Binary encryption key not loaded from '%s': %v", keyFile, err)
-		}
-	} else {
-		Log(robot.Warn, "GOPHER_ENCRYPTION_KEY not set in environment")
-	}
+	encryptionInitialized := initCrypt()
 
-	c := &botContext{
-		environment: make(map[string]string),
-	}
-	if err := c.loadConfig(true); err != nil {
+	if err := loadConfig(true); err != nil {
 		Log(robot.Fatal, "Loading initial configuration: %v", err)
 	}
 	os.Unsetenv(keyEnv)
 
 	if cliOp {
-		setLogLevel(robot.Warn)
+		if fileLog {
+			setLogLevel(robot.Debug)
+		} else {
+			setLogLevel(robot.Warn)
+		}
 	}
 
 	// loadModules for go loadable modules; a no-op for static builds
@@ -246,26 +233,73 @@ func setConnector(c robot.Connector) {
 	interfaces.Connector = c
 }
 
+var keyEnv = "GOPHER_ENCRYPTION_KEY"
+
+func initCrypt() bool {
+	// Initialize encryption (new style for v2)
+	keyFile := filepath.Join(configPath, encryptedKeyFile)
+	encryptionInitialized := false
+	if ek, ok := os.LookupEnv(keyEnv); ok {
+		ik := []byte(ek)[0:32]
+		if bkf, err := ioutil.ReadFile(keyFile); err == nil {
+			if bke, err := base64.StdEncoding.DecodeString(string(bkf)); err == nil {
+				if key, err := decrypt(bke, ik); err == nil {
+					cryptKey.key = key
+					cryptKey.initialized = true
+					encryptionInitialized = true
+					Log(robot.Info, "Successfully decrypted binary encryption key '%s'", keyFile)
+				} else {
+					Log(robot.Error, "Decrypting binary encryption key '%s' from environment key '%s': %v", keyFile, keyEnv, err)
+				}
+			} else {
+				Log(robot.Error, "Base64 decoding '%s': %v", keyFile, err)
+			}
+		} else {
+			Log(robot.Warn, "Binary encryption key not loaded from '%s': %v", keyFile, err)
+			if len(currentCfg.encryptionKey) == 0 {
+				// No encryptionKey in config, create new-style key
+				bk := make([]byte, 32)
+				_, err := crand.Read(bk)
+				if err != nil {
+					Log(robot.Error, "Generating new random encryption key: %v", err)
+					return false
+				}
+				bek, err := encrypt(bk, ik)
+				if err != nil {
+					Log(robot.Error, "Encrypting new random key: %v", err)
+					return false
+				}
+				beks := base64.StdEncoding.EncodeToString(bek)
+				err = ioutil.WriteFile(keyFile, []byte(beks), 0444)
+				if err != nil {
+					Log(robot.Error, "Writing out generated key: %v", err)
+					return false
+				}
+				Log(robot.Info, "Successfully wrote new binary encryption key to '%s'", keyFile)
+				cryptKey.key = bk
+				cryptKey.initialized = true
+				encryptionInitialized = true
+				return true
+			}
+		}
+		os.Unsetenv(keyEnv)
+	} else {
+		Log(robot.Warn, "GOPHER_ENCRYPTION_KEY not set in environment")
+	}
+	return encryptionInitialized
+}
+
 // run starts all the loops and returns a channel that closes when the robot
 // shuts down. It should return after the connector loop has started and
 // plugins are initialized.
-func run() <-chan bool {
+func run() {
 	// Start the brain loop
 	go runBrain()
 
-	c := &botContext{
-		environment: make(map[string]string),
-	}
-	c.registerActive(nil)
-	c.loadConfig(false)
-	c.deregister()
-
 	var cl []string
-	currentCfg.RLock()
 	cl = append(cl, currentCfg.joinChannels...)
 	cl = append(cl, currentCfg.plugChannels...)
 	cl = append(cl, currentCfg.defaultJobChannel)
-	currentCfg.RUnlock()
 	jc := make(map[string]bool)
 	for _, channel := range cl {
 		if _, ok := jc[channel]; !ok {
@@ -275,37 +309,14 @@ func run() <-chan bool {
 	}
 
 	// signal handler
-	go func() {
-		done := interfaces.done
-		sigs := make(chan os.Signal, 1)
-
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	loop:
-		for {
-			select {
-			case sig := <-sigs:
-				state.Lock()
-				if state.shuttingDown {
-					Log(robot.Warn, "Received SIGINT/SIGTERM while shutdown in progress")
-					state.Unlock()
-				} else {
-					state.shuttingDown = true
-					state.Unlock()
-					signal.Stop(sigs)
-					Log(robot.Info, "Exiting on signal: %s", sig)
-					stop()
-				}
-			case <-done:
-				break loop
-			}
-		}
-	}()
+	sigBreak := make(chan struct{})
+	go sigHandle(sigBreak)
 
 	// connector loop
-	go func(conn robot.Connector, stop <-chan struct{}, done chan<- bool) {
+	go func(conn robot.Connector, sigBreak chan<- struct{}) {
 		raiseThreadPriv("connector loop")
-		conn.Run(stop)
+		conn.Run(stopConnector)
+		sigBreak <- struct{}{}
 		state.RLock()
 		restart := state.restart
 		state.RUnlock()
@@ -313,11 +324,9 @@ func run() <-chan bool {
 			Log(robot.Info, "Restarting...")
 		}
 		done <- restart
-		// NOTE!! Black Magic Ahead - for some reason, the read on the done channel
-		// keeps blocking without this close.
-		close(done)
-	}(interfaces.Connector, interfaces.stop, interfaces.done)
-	return interfaces.done
+	}(interfaces.Connector, sigBreak)
+
+	loadConfig(false)
 }
 
 // stop is called whenever the robot needs to shut down gracefully. All callers
@@ -325,11 +334,10 @@ func run() <-chan bool {
 // builtins.go.
 func stop() {
 	state.RLock()
-	pr := state.pluginsRunning
-	stop := interfaces.stop
+	pr := state.pipelinesRunning
 	state.RUnlock()
 	Log(robot.Debug, "stop called with %d plugins running", pr)
 	state.Wait()
 	brainQuit()
-	close(stop)
+	stopConnector <- struct{}{}
 }

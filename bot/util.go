@@ -48,10 +48,10 @@ func bracket(s string) string {
 	return "<" + s + ">"
 }
 
-func checkPanic(r Robot, s string) {
+func checkPanic(w *worker, s string) {
 	if rcv := recover(); rcv != nil {
 		Log(robot.Error, "PANIC from '%s': %s\nStack trace:%s", s, rcv, godebug.Stack())
-		r.Reply("OUCH! It looks like you found a bug - please ask an admin to check the log and give them this string: '%s'", s)
+		w.Reply("OUCH! It looks like you found a bug - please ask an admin to check the log and give them this string: '%s'", s)
 		time.Sleep(2 * time.Second)
 		os.Exit(1)
 	}
@@ -131,6 +131,8 @@ func getProtocol(proto string) (robot.Protocol, string) {
 		return robot.Slack, "slack"
 	case "term", "terminal":
 		return robot.Terminal, "terminal"
+	case "nullconn":
+		return robot.Null, "nullconn"
 	case "rocket":
 		return robot.Rocket, "rocket"
 	default:

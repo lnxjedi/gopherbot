@@ -42,8 +42,7 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 			tc.heard <- line
 		}
 	}(tc)
-
-	tc.reader.Write([]byte("Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user\n"))
+	tc.reader.Write([]byte("Terminal connector running; Use '|c<channel|?>' to change channel, or '|u<user|?>' to change user\n"))
 
 loop:
 	// Main loop and prompting
@@ -70,6 +69,15 @@ loop:
 				case 'C', 'c':
 					exists := false
 					newchan := input[2:]
+					if newchan == "?" {
+						chanlist := []string{"Available channels; '|c' for direct message:"}
+						for _, channel := range tc.channels {
+							chanlist = append(chanlist, fmt.Sprintf("%s ('|c%s')", channel, channel))
+						}
+						tc.reader.Write([]byte(strings.Join(chanlist, "\n")))
+						tc.reader.Write([]byte("\n"))
+						continue
+					}
 					tc.Lock()
 					if newchan == "" {
 						tc.currentChannel = ""
@@ -94,6 +102,15 @@ loop:
 				case 'U', 'u':
 					exists := false
 					newuser := input[2:]
+					if newuser == "?" {
+						userlist := []string{"Available users:"}
+						for _, user := range tc.users {
+							userlist = append(userlist, fmt.Sprintf("%s ('|u%s')", user.Name, user.Name))
+						}
+						tc.reader.Write([]byte(strings.Join(userlist, "\n")))
+						tc.reader.Write([]byte("\n"))
+						continue
+					}
 					tc.Lock()
 					if newuser == "" {
 						tc.reader.Write([]byte("Invalid 0-length user\n"))

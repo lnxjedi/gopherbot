@@ -14,7 +14,8 @@ var brainPath string
 var fbhandler robot.Handler
 
 type fbConfig struct {
-	BrainDirectory string `yaml:"BrainDirectory"` // path to brain files
+	BrainDirectory string // path to brain files
+	Encode         bool   // whether to base64 encode memories, default true
 }
 
 var fb fbConfig
@@ -23,8 +24,14 @@ func (fb *fbConfig) Store(k string, b *[]byte) error {
 	k = strings.Replace(k, `/`, ":", -1)
 	k = strings.Replace(k, `\`, ":", -1)
 	datumPath := filepath.Join(brainPath, k)
-	if err := ioutil.WriteFile(datumPath, *b, 0644); err != nil {
-		return fmt.Errorf("Writing datum \"%s\": %v", datumPath, err)
+	if fb.Encode {
+		if err := WriteBase64File(datumPath, b); err != nil {
+			return fmt.Errorf("writing datum '%s': %v", datumPath, err)
+		}
+		return nil
+	}
+	if err := ioutil.WriteFile(datumPath, *b, 0600); err != nil {
+		return fmt.Errorf("Writing datum '%s': %v", datumPath, err)
 	}
 	return nil
 }
@@ -34,13 +41,13 @@ func (fb *fbConfig) Retrieve(k string) (*[]byte, bool, error) {
 	k = strings.Replace(k, `\`, ":", -1)
 	datumPath := filepath.Join(brainPath, k)
 	if _, err := os.Stat(datumPath); err == nil {
-		datum, err := ioutil.ReadFile(datumPath)
+		datum, err := ReadBinaryFile(datumPath)
 		if err != nil {
 			err = fmt.Errorf("Error reading file \"%s\": %v", datumPath, err)
 			fbhandler.Log(robot.Error, err.Error())
 			return nil, false, err
 		}
-		return &datum, true, nil
+		return datum, true, nil
 	}
 	// Memory doesn't exist yet
 	return nil, false, nil

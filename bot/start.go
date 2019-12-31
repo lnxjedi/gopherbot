@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // Information about privilege separation, set in runtasks_linux.go
@@ -17,6 +19,7 @@ var privSep = false
 
 // Set for CLI commands
 var cliOp = false
+var fileLog = false
 
 func init() {
 	hostName = os.Getenv("HOSTNAME")
@@ -26,15 +29,15 @@ func init() {
 func Start(v VersionInfo) (restart bool) {
 	botVersion = v
 
-	var installpath, configpath string
+	var configpath string
 
 	// Process command-line flags
-	var configPath string
+	var explicitCfgPath string
 	cusage := "path to the configuration directory"
-	flag.StringVar(&configPath, "config", "", cusage)
-	flag.StringVar(&configPath, "c", "", "")
+	flag.StringVar(&explicitCfgPath, "config", "", cusage)
+	flag.StringVar(&explicitCfgPath, "c", "", "")
 	var logFile string
-	lusage := "path to robot's log file"
+	lusage := "path to robot's log file (or 'stderr')"
 	flag.StringVar(&logFile, "log", "", lusage)
 	flag.StringVar(&logFile, "l", "", "")
 	var plainlog bool
@@ -55,7 +58,9 @@ func Start(v VersionInfo) (restart bool) {
 	delete - delete a memory
 	fetch - fetch the contents of a memory
 	store - store a memory
-	run (default) - run the robot
+	run - run the robot (default)
+	dump (installed|configured) [path/to/file.yaml] -
+	  read and dump a raw config file, for yaml troubleshooting
   <command> -h for help on a given command
 
   Common options:`
@@ -67,13 +72,23 @@ func Start(v VersionInfo) (restart bool) {
 	}
 
 	cliOp = len(flag.Args()) > 0 && flag.Arg(0) != "run"
+	var cliCommand string
+	if cliOp {
+		cliCommand = flag.Arg(0)
+	}
 
 	var envFile string
-	for _, ef := range []string{".env", "private/environment"} {
+	var fixed = []string{}
+	for _, ef := range []string{"private/environment", ".env"} {
 		if es, err := os.Stat(ef); err == nil {
 			em := es.Mode()
-			if (uint32(em) & 0066) != 0 {
-				log.Fatalf("Invalid file mode '%o' on environment file '%s', aborting", em, ef)
+			if (uint32(em) & 0077) != 0 {
+				mask := os.FileMode(0700)
+				want := em & mask
+				if err := os.Chmod(ef, want); err != nil {
+					log.Fatalf("Invalid file mode '%o' on environment file '%s', can't fix: %v", em, ef, err)
+				}
+				fixed = append(fixed, ef)
 			}
 			envFile = ef
 		}
@@ -87,16 +102,26 @@ func Start(v VersionInfo) (restart bool) {
 	if plainlog {
 		logFlags = 0
 	}
-	logOut := os.Stderr
+	botStdErrLogger = log.New(os.Stderr, "", logFlags)
+	botStdOutLogger = log.New(os.Stdout, "", logFlags)
+	logOut := os.Stdout
+	botStdOutLogging = true
 	if len(logFile) == 0 {
 		logFile = os.Getenv("GOPHER_LOGFILE")
 	}
 	if len(logFile) != 0 {
-		lf, err := os.Create(logFile)
-		if err != nil {
-			log.Fatalf("Error creating log file: (%T %v)", err, err)
+		if logFile == "stderr" {
+			botStdOutLogging = false
+			logOut = os.Stderr
+		} else {
+			lf, err := os.Create(logFile)
+			if err != nil {
+				log.Fatalf("Error creating log file: (%T %v)", err, err)
+			}
+			botStdOutLogging = false
+			fileLog = true
+			logOut = lf
 		}
-		logOut = lf
 	}
 	log.SetOutput(logOut)
 	logger = log.New(logOut, "", logFlags)
@@ -104,25 +129,19 @@ func Start(v VersionInfo) (restart bool) {
 		logger.Println("Initialized logging ...")
 	}
 
-	installpath = binDirectory
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		logger.Fatalf("Unable to determine working directory: %v", err)
-	}
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
-	if len(configPath) != 0 {
-		configpath = configPath
+	if len(explicitCfgPath) != 0 {
+		configpath = explicitCfgPath
 	} else if len(envCfgPath) > 0 {
 		configpath = envCfgPath
 	} else {
 		if _, ok := checkDirectory("conf"); ok {
-			configpath = cwd
+			configpath = "."
 		} else {
 			// If not explicitly set or cwd, use "custom" even if it
 			// doesn't exist. For compatibility with old installs.
-			configpath = filepath.Join(cwd, "custom")
+			configpath = "custom"
 		}
 	}
 
@@ -132,16 +151,42 @@ func Start(v VersionInfo) (restart bool) {
 		} else {
 			logger.Printf("Loaded initial private environment from '%s'\n", envFile)
 		}
+		if len(fixed) > 0 {
+			logger.Printf("Notice! Fixed invalid file modes for environment file(s): %s", strings.Join(fixed, ", "))
+		}
 
 		// Create the 'bot and load configuration, supplying configpath and installpath.
 		// When loading configuration, gopherbot first loads default configuration
 		// from internal config, then loads from configpath/conf/..., which
 		// overrides defaults.
-		logger.Printf("Starting up with config dir: %s, and install dir: %s\n", configpath, installpath)
+		logger.Printf("Starting up with config dir: %s, and install dir: %s\n", configpath, binDirectory)
 		checkprivsep(logger)
 	}
 
-	initBot(cwd, configpath, installpath, logger)
+	if cliCommand == "dump" {
+		botLogger.l = logger
+		setLogLevel(robot.Warn)
+		if len(flag.Args()) != 3 {
+			fmt.Println("DEBUG wrong args")
+			fmt.Println(usage)
+			flag.PrintDefaults()
+			os.Exit(1)
+		}
+		switch flag.Arg(1) {
+		case "installed", "configured":
+			configPath = configpath
+			installPath = binDirectory
+			initCrypt()
+			cliDump(flag.Arg(1), flag.Arg(2))
+		default:
+			fmt.Println("DEBUG default")
+			fmt.Println(usage)
+			flag.PrintDefaults()
+			os.Exit(1)
+		}
+	}
+
+	initBot(configpath, binDirectory, logger)
 
 	if cliOp {
 		go runBrain()
@@ -154,6 +199,9 @@ func Start(v VersionInfo) (restart bool) {
 	if !ok {
 		logger.Fatalf("No connector registered with name: %s", currentCfg.protocol)
 	}
+	if currentCfg.protocol == "terminal" {
+		local = true
+	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface
 	conn := initializeConnector(handle, logger)
@@ -162,9 +210,11 @@ func Start(v VersionInfo) (restart bool) {
 	// because of the way Windows services were run. Maybe remove eventually?
 	setConnector(conn)
 
-	// Start the robot
-	stopped := run()
+	// Start the robot loops
+	run()
 	// ... and wait for the robot to stop
-	restart = <-stopped
+	restart = <-done
+	raiseThreadPrivExternal("Exiting")
+	time.Sleep(time.Second)
 	return restart
 }

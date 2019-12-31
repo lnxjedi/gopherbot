@@ -6,6 +6,7 @@ checkoutLocation: gopherbot
 workspaceLocation: "."
 tasks:
 - init: make -C gopherbot
+- init: cp -a ./gopherbot/.gitpod/*.theia-workspace /workspace
 - init: ./gopherbot/.gitpod/gotools.sh
 - command: ./gopherbot/.gitpod/setup.sh
   openIn: main

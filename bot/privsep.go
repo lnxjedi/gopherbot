@@ -36,7 +36,7 @@ func raiseThreadPriv(reason string) {
 		euid := syscall.Geteuid()
 		if euid == privUID {
 			tid := syscall.Gettid()
-			Log(robot.Debug, "Successful privilege check for '%s'; r/e for thread %d: %d/%d/%d", reason, tid, ruid, euid)
+			Log(robot.Debug, "Successful privilege check for '%s'; r/e for thread %d: %d/%d", reason, tid, ruid, euid)
 		} else {
 			// Not privileged, create a new privileged thread
 			runtime.LockOSThread()

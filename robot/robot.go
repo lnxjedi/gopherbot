@@ -3,9 +3,11 @@ package robot
 import "bytes"
 
 // Robot defines the methods exposed by gopherbot.bot Robot struct, for
-// use by plugins/jobs/tasks.
+// use by plugins/jobs/tasks. See bot/Robot for complete definitions.
 type Robot interface {
+	// Primarily plugin methods
 	CheckAdmin() bool
+	Elevate(bool) bool
 	GetBotAttribute(a string) *AttrRet
 	GetUserAttribute(u, a string) *AttrRet
 	GetSenderAttribute(a string) *AttrRet
@@ -36,4 +38,17 @@ type Robot interface {
 	Remember(key, value string)
 	RememberContext(context, value string)
 	Recall(key string) string
+	// Primarily job/pipeline methods
+	GetRepoData() map[string]Repository
+	ExtendNamespace(string, int) bool
+	SpawnJob(string, ...string) RetVal
+	AddTask(string, ...string) RetVal
+	FinalTask(string, ...string) RetVal
+	FailTask(string, ...string) RetVal
+	AddJob(string, ...string) RetVal
+	AddCommand(string, string) RetVal
+	FinalCommand(string, string) RetVal
+	FailCommand(string, string) RetVal
+	SetParameter(string, string) bool
+	SetWorkingDirectory(string) bool
 }

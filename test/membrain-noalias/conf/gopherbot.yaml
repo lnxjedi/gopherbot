@@ -1,0 +1,96 @@
+# See conf/gopherbot.yaml.sample
+AdminContact: "David Parsley, <parsley@linuxjedi.org>"
+DefaultChannels: [ "general", "random" ]
+DefaultJobChannel: general
+JoinChannels: [ ]
+AdminUsers: [ "alice" ]
+# Alias: ""
+LogLevel: debug
+
+{{ $botname := env "GOPHER_BOTNAME" | default "bender" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Bender Rodriguez" }}
+
+BotInfo:
+  UserName: {{ $botname }}
+  FullName: {{ $botfullname }}
+
+ProtocolConfig:
+  StartChannel: general
+  StartUser: alice
+  BotName: {{ $botname }}
+  BotFullName: {{ $botfullname }}
+  Channels:
+  - random
+  - general
+  - bottest
+  - deadzone
+  Users:
+  - Name: "alice"
+    Email: "alice@example.com"
+    InternalID: "u0001"
+    FullName: "Alice User"
+    FirstName: "Alice"
+    LastName: "User"
+    Phone: "(555)765-0001"
+  - Name: "bob"
+    Email: "bob@example.com"
+    InternalID: "u0002"
+    FullName: "Bob User"
+    FirstName: "Robert"
+    LastName: "User"
+    Phone: "(555)765-0002"
+  - Name: "carol"
+    Email: "@example.com"
+    InternalID: "u0003"
+    FullName: "Carol User"
+    FirstName: "Carol"
+    LastName: "User"
+    Phone: "(555)765-0003"
+  - Name: "david"
+    Email: "david@example.com"
+    InternalID: "u0004"
+    FullName: "David User"
+    FirstName: "David"
+    LastName: "User"
+    Phone: "(555)765-0004"
+  - Name: "erin"
+    Email: "erin@example.com"
+    InternalID: "u0005"
+    FullName: "Erin User"
+    FirstName: "Erin"
+    LastName: "User"
+    Phone: "(555)765-0005"
+
+UserRoster:
+- UserName: "alice"
+  UserID: "u0001"
+- UserName: "bob"
+  UserID: "u0002"
+- UserName: "carol"
+  UserID: "u0003"
+- UserName: "david"
+  UserID: "u0004"
+- UserName: "erin"
+  UserID: "u0005"
+
+LocalPort: 0
+ExternalPlugins:
+  "bashdemo":
+    Path: plugins/samples/bashdemo.sh
+  "pythondemo":
+    Path: plugins/samples/pythondemo.py
+  "rubydemo":
+    Path: plugins/samples/rubydemo.rb
+  "echo":
+    Path: plugins/samples/echo.sh
+  "test":
+    Path: plugins/samples/test.sh
+  "hello":
+    Path: plugins/samples/hello.sh
+  "hello2":
+    Path: plugins/samples/hello2.sh
+
+WorkSpace: workspace
+
+Brain: mem
+DefaultElevator: totp

@@ -5,13 +5,18 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
+	"os"
 	"os/exec"
-	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
+
+var local bool
 
 type getCfgReturn struct {
 	buffptr *[]byte
@@ -29,7 +34,7 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *Task) {
 	var taskPath string
 	var err error
 	var relpath bool
-	if taskPath, err = getTaskPath(task); err != nil {
+	if taskPath, err = getTaskPath(task, "."); err != nil {
 		cchan <- getCfgReturn{nil, err}
 		return
 	}
@@ -66,32 +71,90 @@ type taskReturn struct {
 	retval    robot.TaskRetVal
 }
 
-// callTask does the work of running a job, task or plugin with a command and arguments.
-func (c *botContext) callTask(t interface{}, command string, args ...string) (errString string, retval robot.TaskRetVal) {
+// Maps populated by callTaskThread, so external tasks can get their Robot
+// from the eid (GOPHER_CALLER_ID), and Go tasks can get a handle to the
+// *worker from an incrementing tid (task id).
+var taskLookup = struct {
+	e map[string]Robot
+	i map[int]*worker
+	sync.RWMutex
+}{
+	make(map[string]Robot),
+	make(map[int]*worker),
+	sync.RWMutex{},
+}
+
+// register a worker for a tid so Go tasks can look up the *worker
+func (w *worker) registerWorker(tid int) {
+	taskLookup.Lock()
+	taskLookup.i[tid] = w
+	taskLookup.Unlock()
+}
+
+// deregister the worker when done
+func deregisterWorker(tid int) {
+	taskLookup.Lock()
+	delete(taskLookup.i, tid)
+	taskLookup.Unlock()
+}
+
+// funtion for active Go Robots to look up the *worker, always locked
+// before returning. Note that we always pass a Robot.tid instead of making
+// this a method on the Robot, since copying the whole robot for a single
+// int is senseless.
+func getLockedWorker(idx int) *worker {
+	if idx == 0 { // illegal value
+		_, file, line, _ := runtime.Caller(1)
+		Log(robot.Error, "Illegal call to getLockedWorker with tid = 0 in '%s', line %d", file, line)
+		return nil
+	}
+	taskLookup.RLock()
+	w, ok := taskLookup.i[idx]
+	taskLookup.RUnlock()
+	if !ok {
+		_, file, line, _ := runtime.Caller(2)
+		Log(robot.Error, "Illegal call to getLockedWorker for inactive worker in '%s', line %d", file, line)
+		return nil
+	}
+	w.Lock()
+	return w
+}
+
+// callTask does the work of running a job, task or plugin with a command and
+// arguments. Note that callTask(Thread) has to concern itself with locking of
+// the worker because it can be called within a task by the Elevate() method.
+func (w *worker) callTask(t interface{}, command string, args ...string) (errString string, retval robot.TaskRetVal) {
 	rc := make(chan taskReturn)
-	go c.callTaskThread(rc, t, command, args...)
+	go w.callTaskThread(rc, t, command, args...)
 	ret := <-rc
 	return ret.errString, ret.retval
 }
 
-func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, command string, args ...string) {
+func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command string, args ...string) {
 	var errString string
 	var retval robot.TaskRetVal
-
-	c.currentTask = t
-	r := c.makeRobot()
 	task, plugin, job := getTask(t)
 	isPlugin := plugin != nil
 	isJob := job != nil
+	w.Lock()
+	w.currentTask = t
+	logger := w.logger
+	workdir := w.workingDirectory
+	eid := w.eid
+	privileged := w.privileged
+	w.taskName = task.name
+	w.taskDesc = task.Description
+	w.Unlock()
+	r := w.makeRobot()
 	// This should only happen in the rare case that a configured authorizer or elevator is disabled
 	if task.Disabled {
 		msg := fmt.Sprintf("callTask failed on disabled task %s; reason: %s", task.name, task.reason)
 		Log(robot.Error, msg)
-		c.debug(msg, false)
+		debugT(t, msg, false)
 		rchan <- taskReturn{msg, robot.ConfigurationError}
 		return
 	}
-	if c.logger != nil {
+	if logger != nil {
 		var taskinfo string
 		if isPlugin {
 			taskinfo = task.name + " " + command
@@ -107,51 +170,67 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		} else {
 			desc = fmt.Sprintf("Starting task '%s'", task.name)
 		}
-		c.logger.Section(taskinfo, desc)
+		logger.Section(taskinfo, desc)
 	}
 
 	if !(task.name == "builtin-admin" && command == "abort") {
-		if c.directMsg {
-			defer checkPanic(r, fmt.Sprintf("Plugin: %s, command: %s, arguments: (omitted)", task.name, command))
+		if w.directMsg {
+			defer checkPanic(w, fmt.Sprintf("Plugin: %s, command: %s, arguments: (omitted)", task.name, command))
 		} else {
-			defer checkPanic(r, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
+			defer checkPanic(w, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
 		}
 	}
-	if c.directMsg {
+	if w.directMsg {
 		Log(robot.Debug, "Dispatching command '%s' to task '%s' with arguments '(omitted for DM)'", command, task.name)
 	} else {
 		Log(robot.Debug, "Dispatching command '%s' to task '%s' with arguments '%#v'", command, task.name, args)
 	}
 
-	// Set up the per-task environment
-	envhash := c.getEnvironment(task)
+	// Set up the per-task environment, getEnvironment takes lock & releases
+	envhash := w.getEnvironment(task)
+	r.environment = envhash
 
+	w.registerWorker(r.tid)
 	if isPlugin && plugin.taskType == taskGo {
 		if command != "init" {
 			emit(GoPluginRan)
 		}
 		Log(robot.Debug, "Calling go plugin: '%s' with args: %q", task.name, args)
-		c.taskenvironment = envhash
 		ret := pluginHandlers[task.name].Handler(r, command, args...)
-		c.taskenvironment = nil
+		deregisterWorker(r.tid)
 		rchan <- taskReturn{"", ret}
 		return
 	} else if task.taskType == taskGo {
 		Log(robot.Debug, "Calling go task '%s' (type %s) with args: %q", task.name, task.taskType, args)
-		c.taskenvironment = envhash
 		var ret robot.TaskRetVal
 		if isJob {
 			ret = jobHandlers[task.name].Handler(r, args...)
 		} else {
 			ret = taskHandlers[task.name].Handler(r, args...)
 		}
-		c.taskenvironment = nil
+		deregisterWorker(r.tid)
 		rchan <- taskReturn{"", ret}
 		return
 	}
+
+	// Task lookup; add lookup for http.go
+	taskLookup.Lock()
+	taskLookup.e[eid] = r
+	taskLookup.Unlock()
+	defer func() {
+		taskLookup.Lock()
+		delete(taskLookup.e, eid)
+		taskLookup.Unlock()
+		deregisterWorker(r.tid)
+	}()
+
 	var taskPath string // full path to the executable
 	var err error
-	taskPath, err = getTaskPath(task)
+	if task.Homed {
+		taskPath, err = getTaskPath(task, ".")
+	} else {
+		taskPath, err = getTaskPath(task, workdir)
+	}
 	if err != nil {
 		emit(ExternalTaskBadPath)
 		rchan <- taskReturn{fmt.Sprintf("Getting path for %s: %v", task.name, err), robot.MechanismFail}
@@ -165,12 +244,32 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	externalArgs = append(externalArgs, args...)
 	Log(robot.Debug, "Calling '%s' with args: %q", taskPath, externalArgs)
 	cmd := exec.Command(taskPath, externalArgs...)
-	c.Lock()
-	c.taskName = task.name
-	c.taskDesc = task.Description
-	c.osCmd = cmd
-	c.Unlock()
+	w.Lock()
+	w.osCmd = cmd
+	w.Unlock()
+	defer func() {
+		w.Lock()
+		w.osCmd = nil
+		w.Unlock()
+	}()
 
+	// Homed tasks ALWAYS run in cwd, Homed pipelines may have modified the
+	// working directory with SetWorkingDirectory.
+	if task.Homed {
+		cmd.Dir = "."
+	} else {
+		cmd.Dir = workdir
+	}
+	if task.Privileged || task.Homed {
+		if task.Privileged && len(homePath) > 0 {
+			// May already be provided for a privileged pipeline
+			envhash["GOPHER_HOME"] = homePath
+		}
+		// Always set for homed and privileged tasks
+		envhash["GOPHER_WORKSPACE"] = r.cfg.workSpace
+		envhash["GOPHER_CONFIGDIR"] = configPath
+		envhash["GOPHER_WORKDIR"] = workdir
+	}
 	env := make([]string, 0, len(envhash))
 	keys := make([]string, 0, len(envhash))
 	for k, v := range envhash {
@@ -182,11 +281,6 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		keys = append(keys, k)
 	}
 	cmd.Env = env
-	if filepath.IsAbs(c.workingDirectory) {
-		cmd.Dir = c.workingDirectory
-	} else {
-		cmd.Dir = filepath.Join(c.cfg.workSpace, c.workingDirectory)
-	}
 	Log(robot.Debug, "Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '"))
 	var stderr, stdout io.ReadCloser
 	// hold on to stderr in case we need to log an error
@@ -197,7 +291,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		rchan <- taskReturn{errString, robot.MechanismFail}
 		return
 	}
-	if c.logger == nil {
+	if !local && logger == nil {
 		// close stdout on the external plugin...
 		cmd.Stdout = nil
 	} else {
@@ -210,7 +304,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		}
 	}
 
-	if c.privileged {
+	if privileged {
 		if isPlugin && !plugin.Privileged {
 			dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
 		} else {
@@ -229,7 +323,7 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 	if command != "init" {
 		emit(ExternalTaskRan)
 	}
-	if c.logger == nil {
+	if !local && logger == nil {
 		var stdErrBytes []byte
 		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
 			Log(robot.Error, "Reading from stderr for external command '%s': %v", taskPath, err)
@@ -245,20 +339,36 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 		}
 	} else {
 		closed := make(chan struct{})
-		hl := c.logger
+		var solog, selog *log.Logger
+		if local {
+			solog = log.New(os.Stdout, "OUT: ", 0)
+			selog = log.New(os.Stdout, "ERR: ", 0)
+		}
 		go func() {
+			logging := logger != nil
 			scanner := bufio.NewScanner(stdout)
 			for scanner.Scan() {
 				line := scanner.Text()
-				c.logger.Log("OUT " + line)
+				if logging {
+					logger.Log("OUT " + line)
+				}
+				if local {
+					solog.Println(line)
+				}
 			}
 			closed <- struct{}{}
 		}()
 		go func() {
+			logging := logger != nil
 			scanner := bufio.NewScanner(stderr)
 			for scanner.Scan() {
 				line := scanner.Text()
-				c.logger.Log("ERR " + line)
+				if logging {
+					logger.Log("ERR " + line)
+				}
+				if local {
+					selog.Println(line)
+				}
 			}
 			closed <- struct{}{}
 		}()
@@ -273,9 +383,11 @@ func (c *botContext) callTaskThread(rchan chan<- taskReturn, t interface{}, comm
 				halfClosed = true
 			}
 		}
-		if c.logger != hl {
-			hl.Close()
+		w.Lock()
+		if w.logger != logger {
+			logger.Close()
 		}
+		w.Unlock()
 	}
 	if err = cmd.Wait(); err != nil {
 		retval = robot.Fail

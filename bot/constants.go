@@ -38,7 +38,6 @@ const (
 	jobCmd // i.e. run job xx
 )
 
-//go:generate stringer -type=Protocol constants.go
 //go:generate stringer -type=pipeAddFlavor constants.go
 //go:generate stringer -type=pipeAddType constants.go
 //go:generate stringer -type=taskType constants.go

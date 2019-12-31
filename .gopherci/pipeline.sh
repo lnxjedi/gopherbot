@@ -9,15 +9,17 @@ then
     FailTask notify $NOTIFY_USER "Gopherbot build failed"
 fi
 
+REPO_NAME=${GOPHER_NAMESPACE_EXTENDED:-$GOPHER_REPOSITORY}
+
 # Update path for a Go build
 PATH=$PATH:$HOME/go/bin:/usr/local/go/bin
 SetParameter "PATH" "$PATH"
 
 # Email the job history if it fails
-FailCommand builtin-history "send history $GOPHER_JOB_NAME:$GOPHER_NAMESPACE_EXTENDED/$GOPHERCI_BRANCH $GOPHER_RUN_INDEX to user parsley"
+FailCommand builtin-history "send history $GOPHER_JOB_NAME:$REPO_NAME/$GOPHERCI_BRANCH $GOPHER_RUN_INDEX to user parsley"
 
 # Run tests
-AddTask exec go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./bot
+AddTask exec go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./test
 
 # Install required tools
 AddTask exec ./.gopherci/tools.sh
@@ -46,9 +48,9 @@ then
     exit 0
 fi
 
-if [ "$GOPHERCI_BRANCH" != "master" -o "$GOPHERCI_REPO" == "github.com/parsley42/gopherbot" ]
+if [ "$GOPHERCI_BRANCH" != "master" -o "$GOPHER_REPOSITORY" == "github.com/parsley42/gopherbot" ]
 then
-    AddTask notify $NOTIFY_USER "Completed successful build and test of $GOPHERCI_REPO branch $GOPHERCI_BRANCH"
+    AddTask notify $NOTIFY_USER "Completed successful build and test of $GOPHER_REPOSITORY branch $GOPHERCI_BRANCH"
     exit 0
 fi
 

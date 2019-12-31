@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 import sys
 sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
-from gopherbot_v1 import Robot
+from gopherbot_v2 import Robot
 
 bot = Robot()
 
@@ -18,6 +18,8 @@ repodata = bot.GetRepoData()
 def start_build(repository, branch):
     bot.Say("Ok, I'll start the gopherci job for %s, %s branch..." % (repository, branch))
     bot.AddJob("gopherci", [ repository, branch ])
+    bot.AddTask("say", ["... build completed"])
+    bot.FailTask("say", ["... build failed"])
 
 if not isinstance(repodata, dict):
     bot.Say("'repodata.yaml' missing or invalid; GetRepoData() failed")

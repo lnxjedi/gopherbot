@@ -30,7 +30,7 @@ func (mb *memBrain) Retrieve(k string) (*[]byte, bool, error) {
 
 func (mb *memBrain) List() ([]string, error) {
 	keys := make([]string, 0, len(mb.memories))
-	for key, _ := range mb.memories {
+	for key := range mb.memories {
 		keys = append(keys, key)
 	}
 	return keys, nil

@@ -34,18 +34,29 @@ then
     exit 0 # already running
 fi
 
-SSH_KEY=${KEYNAME:-robot_rsa}
-SSH_KEY_PATH="$GOPHER_CONFIGDIR/ssh/$SSH_KEY"
-if [ ! -e $SSH_KEY_PATH ]
+if [ "$1" == "bootstrap" ]
 then
-    Log "Warn" "No ssh key found in ssh-init, exiting"
-    exit 0
+    Log "Info" "ssh-init starting in bootstrap mode"
+    BOOTSTRAP="true"
 fi
 
-if [ -z "$BOT_SSH_PHRASE" ]
+SSH_KEY=${KEYNAME:-robot_rsa}
+SSH_KEY_PATH="$GOPHER_CONFIGDIR/ssh/$SSH_KEY"
+
+if [ -z "$BOOTSTRAP" ]
 then
-    Say "I don't know the passphrase for my ssh keypair, aborting"
-    exit 1
+    if [ ! -e $SSH_KEY_PATH ]
+    then
+        Log "Warn" "No ssh key found in ssh-init, exiting"
+        exit 0
+    fi
+
+    if [ -z "$BOT_SSH_PHRASE" ]
+    then
+        Say "I don't know the passphrase for my ssh keypair, aborting"
+        exit 1
+    fi
+    chmod 600 "$SSH_KEY_PATH"
 fi
 
 export SSH_ASKPASS=$GOPHER_INSTALLDIR/helpers/ssh-askpass.sh
@@ -56,7 +67,17 @@ eval `ssh-agent`
 # Add cleanup task
 FinalTask exec ssh-agent -k
 
-ssh-add $GOPHER_CONFIGDIR/ssh/$SSH_KEY < /dev/null
+if [ -n "$BOOTSTRAP" ]
+then
+    if [ -z "$DEPLOY_KEY" ]
+    then
+        Log "Error" "Bootstrap given but DEPLOY_KEY unset"
+        exit 1
+    fi
+    echo "$DEPLOY_KEY" | tr ':' '\n' | ssh-add -
+else
+    ssh-add $GOPHER_CONFIGDIR/ssh/$SSH_KEY < /dev/null
+fi
 
 # Make agent available to other tasks in the pipeline
 SetParameter SSH_AUTH_SOCK $SSH_AUTH_SOCK
@@ -66,13 +87,13 @@ then
     SSH_OPTIONS="-F \"$GOPHER_CONFIGDIR/ssh/config\""
 fi
 
-if [ -e "$GOPHER_HOME/private" ]
+if [ -n "$GOPHER_HOME" ]
 then
-    mkdir -p "$GOPHER_HOME/private/ssh"
-    SSH_OPTIONS="$SSH_OPTIONS -o UserKnownHostsFile=\"$GOPHER_HOME/private/ssh/known_hosts\""
+    SSH_OPTIONS="$SSH_OPTIONS -o UserKnownHostsFile=\"$GOPHER_HOME/known_hosts\""
 fi
 
 if [ -n "$SSH_OPTIONS" ]
+then
     SetParameter SSH_OPTIONS "$SSH_OPTIONS"
 fi
 

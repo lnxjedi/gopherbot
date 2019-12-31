@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 import sys
 sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
-from gopherbot_v1 import Robot
+from gopherbot_v2 import Robot
 
 bot = Robot()
 

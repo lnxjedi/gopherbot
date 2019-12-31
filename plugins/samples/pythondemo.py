@@ -1,9 +1,9 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import os
 import sys
 sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
-from gopherbot_v1 import Robot
+from gopherbot_v2 import Robot
 
 bot = Robot()
 
@@ -48,7 +48,7 @@ executable = sys.argv.pop(0)
 command = sys.argv.pop(0)
 
 if command == "configure":
-    print default_config
+    print(default_config)
 
 if command == "python":
     bot.Say("Sure, %s, gimme a sec to look for it..." % bot.GetSenderAttribute("firstName"))

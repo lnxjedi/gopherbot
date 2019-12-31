@@ -14,4 +14,4 @@ do
     fi
 done
 
-Log "Warn" "Repository pipeline not found in job $GOPHER_JOB_NAME (wd: $(pwd), repo: ${GOPHERCI_REPO:-not set}), ignoring"
+Log "Warn" "Repository pipeline not found in job $GOPHER_JOB_NAME (wd: $(pwd), repo: ${GOPHER_REPOSITORY:-not set}), ignoring"

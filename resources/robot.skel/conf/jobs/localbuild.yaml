@@ -1,9 +1,0 @@
----
-# You shouldn't need to keep histories for localbuild itself. When localbuild
-# extends the namespace with the repository/branch being built, a new
-# history log is started for the build with a configurable number of
-# histories kept.
-#HistoryLogs: 7
-# I'm still undecided - either gopherci or localbuild should have Quiet: true,
-# otherwise builds are just very noisy.
-Quiet: true
