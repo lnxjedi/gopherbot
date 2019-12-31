@@ -13,7 +13,7 @@ import (
 // loadTaskConfig() updates task/job/plugin configuration and namespaces
 // from gopherbot.yaml and external configuration, then updates the
 // globalTasks struct.
-func (c *botContext) loadTaskConfig(processed *configuration) (*taskList, error) {
+func loadTaskConfig(processed *configuration) (*taskList, error) {
 	newList := &taskList{
 		t:          []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces only
 		nameMap:    make(map[string]int),
@@ -126,7 +126,6 @@ func (c *botContext) loadTaskConfig(processed *configuration) (*taskList, error)
 		task := &Task{
 			name:        ts.Name,
 			taskType:    taskExternal,
-			taskID:      getTaskID(ts.Name),
 			Description: ts.Description,
 			Parameters:  ts.Parameters,
 		}
@@ -222,20 +221,13 @@ LoadLoop:
 				if err != nil {
 					msg := fmt.Sprintf("Getting default configuration for external plugin, disabling: %v", err)
 					Log(robot.Error, msg)
-					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue
 				}
-				if len(*cfg) > 0 {
-					c.debugTask(task, fmt.Sprintf("Loaded default config from the plugin, size: %d", len(*cfg)), false)
-				} else {
-					c.debugTask(task, "Unable to obtain default config from plugin, command 'configure' returned no content", false)
-				}
 				if err := yaml.Unmarshal(*cfg, &tcfgdefault); err != nil {
 					msg := fmt.Sprintf("Unmarshalling default configuration, disabling: %v", err)
 					Log(robot.Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
-					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue
@@ -244,7 +236,6 @@ LoadLoop:
 				if err := yaml.Unmarshal([]byte(pluginHandlers[task.name].DefaultConfig), &tcfgdefault); err != nil {
 					msg := fmt.Sprintf("Unmarshalling default configuration, disabling: %v", err)
 					Log(robot.Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
-					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue
@@ -256,10 +247,9 @@ LoadLoop:
 		if isPlugin {
 			cpath = "plugins/"
 		}
-		if err := c.getConfigFile(cpath+task.name+".yaml", task.taskID, false, tcfgload, tcfgdefault); err != nil {
+		if err := getConfigFile(cpath+task.name+".yaml", false, tcfgload, tcfgdefault); err != nil {
 			msg := fmt.Sprintf("Problem loading configuration file(s) for task '%s', disabling: %v", task.name, err)
 			Log(robot.Error, msg)
-			c.debugTask(task, msg, false)
 			task.Disabled = true
 			task.reason = msg
 			continue
@@ -269,7 +259,6 @@ LoadLoop:
 			if err := json.Unmarshal(disjson, &disabled); err != nil {
 				msg := fmt.Sprintf("Problem unmarshalling value for 'Disabled' in plugin/job '%s', disabling: %v", task.name, err)
 				Log(robot.Error, msg)
-				c.debugTask(task, msg, false)
 				task.Disabled = true
 				task.reason = msg
 				continue
@@ -277,7 +266,6 @@ LoadLoop:
 			if disabled {
 				msg := fmt.Sprintf("Plugin/Job '%s' is disabled by configuration", task.name)
 				Log(robot.Info, msg)
-				c.debugTask(task, msg, false)
 				task.Disabled = true
 				task.reason = msg
 				continue
@@ -322,7 +310,6 @@ LoadLoop:
 			default:
 				msg := fmt.Sprintf("Invalid configuration key for task '%s': %s - disabling", task.name, key)
 				Log(robot.Error, msg)
-				c.debugTask(task, msg, false)
 				task.Disabled = true
 				task.reason = msg
 				continue LoadLoop
@@ -332,7 +319,6 @@ LoadLoop:
 				if err := json.Unmarshal(value, val); err != nil {
 					msg := fmt.Sprintf("Disabling plugin '%s' - error unmarshalling value '%s': %v", task.name, key, err)
 					Log(robot.Error, msg)
-					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue LoadLoop
@@ -473,7 +459,6 @@ LoadLoop:
 					msg = fmt.Sprintf("Disabling job '%s' - invalid configuration key: %s", task.name, key)
 				}
 				Log(robot.Error, msg)
-				c.debugTask(task, msg, false)
 				task.Disabled = true
 				task.reason = msg
 				continue LoadLoop
@@ -487,7 +472,6 @@ LoadLoop:
 				if !task.AllowDirect {
 					msg := fmt.Sprintf("Task '%s' has conflicting values for AllowDirect (false) and DirectOnly (true), disabling", task.name)
 					Log(robot.Error, msg)
-					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue
@@ -527,19 +511,15 @@ LoadLoop:
 			if len(task.Channels) > 0 {
 				msg := fmt.Sprintf("Plugin '%s' will be available in channels %q", task.name, task.Channels)
 				Log(robot.Info, msg)
-				c.debugTask(task, msg, false)
 			} else {
 				if !(task.AllowDirect || task.AllChannels) {
 					msg := fmt.Sprintf("Plugin '%s' not visible in any channels or by direct message, disabling", task.name)
 					Log(robot.Error, msg)
-					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue
 				} else {
-					msg := fmt.Sprintf("Plugin '%s' has no channel restrictions configured; all channels: %t", task.name, task.AllChannels)
-					Log(robot.Info, msg)
-					c.debugTask(task, msg, false)
+					Log(robot.Info, "Plugin '%s' has no channel restrictions configured; all channels: %t", task.name, task.AllChannels)
 				}
 			}
 		} else {
@@ -562,7 +542,6 @@ LoadLoop:
 				if err != nil {
 					msg := fmt.Sprintf("Disabling '%s', couldn't compile command regular expression '%s': %v", task.name, regex, err)
 					Log(robot.Error, msg)
-					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue LoadLoop
@@ -580,7 +559,6 @@ LoadLoop:
 				if err != nil {
 					msg := fmt.Sprintf("Disabling '%s', couldn't compile message regular expression '%s': %v", task.name, message.Regex, err)
 					Log(robot.Error, msg)
-					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue LoadLoop
@@ -594,7 +572,6 @@ LoadLoop:
 				if len(trigger.User) == 0 || len(trigger.Channel) == 0 {
 					msg := fmt.Sprintf("Disabling '%s', zero-length User or Channel for trigger #%d", task.name, i+1)
 					Log(robot.Error, msg)
-					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue LoadLoop
@@ -603,7 +580,6 @@ LoadLoop:
 				if err != nil {
 					msg := fmt.Sprintf("Disabling '%s', couldn't compile trigger regular expression '%s': %v", task.name, trigger.Regex, err)
 					Log(robot.Error, msg)
-					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue LoadLoop
@@ -617,7 +593,6 @@ LoadLoop:
 				if stockRepliesRe.MatchString(label) {
 					msg := fmt.Sprintf("Disabling '%s', invalid regex label '%s' starts with capital letter", task.name, label)
 					Log(robot.Error, msg)
-					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue LoadLoop
@@ -627,7 +602,6 @@ LoadLoop:
 				if err != nil {
 					msg := fmt.Sprintf("Disabling '%s', couldn't compile argument regular expression '%s': %v", task.name, regex, err)
 					Log(robot.Error, msg)
-					c.debugTask(task, msg, false)
 					task.Disabled = true
 					task.reason = msg
 					continue LoadLoop
@@ -643,7 +617,6 @@ LoadLoop:
 			if stockRepliesRe.MatchString(label) {
 				msg := fmt.Sprintf("Disabling '%s', invalid regex label '%s' starts with capital letter", task.name, label)
 				Log(robot.Error, msg)
-				c.debugTask(task, msg, false)
 				task.Disabled = true
 				task.reason = msg
 				continue LoadLoop
@@ -652,7 +625,6 @@ LoadLoop:
 			if err != nil {
 				msg := fmt.Sprintf("Skipping %s, couldn't compile reply regular expression '%s': %v", task.name, reply.Regex, err)
 				Log(robot.Error, msg)
-				c.debugTask(task, msg, false)
 				task.Disabled = true
 				task.reason = msg
 				continue LoadLoop
@@ -694,7 +666,6 @@ LoadLoop:
 						if !cmdfound {
 							msg := fmt.Sprintf("Disabling %s, %s command %s didn't match a command from CommandMatchers or MessageMatchers", task.name, cmd.ctype, i)
 							Log(robot.Error, msg)
-							c.debugTask(task, msg, false)
 							task.Disabled = true
 							task.reason = msg
 							continue LoadLoop
@@ -717,22 +688,18 @@ LoadLoop:
 						if err := json.Unmarshal(task.Config, task.config); err != nil {
 							msg := fmt.Sprintf("Unmarshalling plugin config json to config, disabling: %v", err)
 							Log(robot.Error, msg)
-							c.debugTask(task, msg, false)
 							task.Disabled = true
 							task.reason = msg
 							continue
 						}
 					} else {
 						// Providing custom config not required (should it be?)
-						msg := fmt.Sprintf("Plugin '%s' has custom config, but none is configured", task.name)
-						Log(robot.Warn, msg)
-						c.debugTask(task, msg, false)
+						Log(robot.Warn, "Plugin '%s' has custom config, but none is configured", task.name)
 					}
 				} else {
 					if task.Config != nil {
 						msg := fmt.Sprintf("Custom configuration data provided for Go plugin '%s', but no config struct was registered; disabling", task.name)
 						Log(robot.Error, msg)
-						c.debugTask(task, msg, false)
 						task.Disabled = true
 						task.reason = msg
 					} else {

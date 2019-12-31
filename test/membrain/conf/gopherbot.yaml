@@ -5,6 +5,7 @@ DefaultJobChannel: general
 JoinChannels: [ ]
 AdminUsers: [ "alice" ]
 Alias: ";"
+LogLevel: debug
 
 {{ $botname := env "GOPHER_BOTNAME" | default "bender" }}
 {{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Bender Rodriguez" }}
@@ -90,6 +91,8 @@ ExternalPlugins:
     Path: plugins/samples/hello2.sh
   "format":
     Path: plugins/samples/format.sh
+
+WorkSpace: workspace
 
 Brain: mem
 DefaultElevator: totp

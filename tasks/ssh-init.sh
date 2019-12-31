@@ -51,11 +51,12 @@ then
         exit 0
     fi
 
-    if [ -a -z "$BOT_SSH_PHRASE" ]
+    if [ -z "$BOT_SSH_PHRASE" ]
     then
         Say "I don't know the passphrase for my ssh keypair, aborting"
         exit 1
     fi
+    chmod 600 "$SSH_KEY_PATH"
 fi
 
 export SSH_ASKPASS=$GOPHER_INSTALLDIR/helpers/ssh-askpass.sh

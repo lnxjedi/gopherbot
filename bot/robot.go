@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -13,15 +14,81 @@ import (
 /* robot_methods.go defines some convenience functions on struct Robot to
    simplify use by plugins. */
 
-// Robot is the internal struct for a robot.Message
+// Robot is the internal struct for a robot.Message, with bits copied
+// from the pipeContext; see that struct for better descriptions.
+// A new Robot is created for every task, plugin or job executed by
+// callTask(...).
 type Robot struct {
 	*robot.Message
-	id int // For looking up the botContext
+	tid          int                         // task ID for looking up the *worker
+	pipeContext                              // snapshot copy of pipeline context
+	cfg          *configuration              // convenience only; r.cfg shorter than r.worker.cfg
+	tasks        *taskList                   // same
+	maps         *userChanMaps               // same
+	repositories map[string]robot.Repository // same
 }
 
-// getContext returns the botContext for a given Robot
-func (r Robot) getContext() *botContext {
-	return getBotContextInt(r.id)
+// Incrementing tid for individual tasks that run, so Go Robots
+// can look up the *worker when needed.
+var taskID = struct {
+	idx int
+	sync.Mutex
+}{
+	0,
+	sync.Mutex{},
+}
+
+// Get the next task ID; 0 is an illegal value
+func getTaskID() int {
+	taskID.Lock()
+	taskID.idx++
+	if taskID.idx == 0 {
+		taskID.idx = 1
+	}
+	tid := taskID.idx
+	taskID.Unlock()
+	return tid
+}
+
+// makeRobot returns a Robot for plugins; the tid lets Robot methods
+// get a reference back to the original context when needed. The Robot
+// should contain a copy of almost all of the information needed for plugins
+// to run.
+func (w *worker) makeRobot() Robot {
+	r := Robot{
+		tid: getTaskID(),
+		// Copy these bits, which can be modified for an individual Robot
+		Message: &robot.Message{
+			User:            w.User,
+			ProtocolUser:    w.ProtocolUser,
+			Channel:         w.Channel,
+			ProtocolChannel: w.ProtocolChannel,
+			Format:          w.Format,
+			Protocol:        w.Protocol,
+			Incoming:        w.Incoming,
+		},
+		pipeContext: pipeContext{
+			privileged:     w.privileged,
+			history:        w.history,
+			timeZone:       w.timeZone,
+			logger:         w.logger,
+			ptype:          w.ptype,
+			elevated:       w.elevated,
+			stage:          w.stage,
+			jobInitialized: w.jobInitialized,
+			jobName:        w.jobName,
+			pipeName:       w.pipeName,
+			pipeDesc:       w.pipeDesc,
+			nsExtension:    w.nsExtension,
+			currentTask:    w.currentTask,
+			exclusive:      w.exclusive,
+		},
+		cfg:          w.cfg,
+		tasks:        w.tasks,
+		maps:         w.maps,
+		repositories: w.repositories,
+	}
+	return r
 }
 
 // CheckAdmin returns true if the user is a configured administrator of the
@@ -29,12 +96,19 @@ func (r Robot) getContext() *botContext {
 // plugin has multiple commands, some which require admin. Otherwise the plugin
 // should just configure RequireAdmin: true
 func (r Robot) CheckAdmin() bool {
-	c := r.getContext()
-	if c.automaticTask {
+	// Note that this does "the right thing", using the user from the worker;
+	// the user in the Robot is writeable.
+	w := getLockedWorker(r.tid)
+	w.Unlock()
+	return w.CheckAdmin()
+}
+
+func (w *worker) CheckAdmin() bool {
+	if w.automaticTask {
 		return true
 	}
-	for _, adminUser := range c.cfg.adminUsers {
-		if r.User == adminUser {
+	for _, adminUser := range w.cfg.adminUsers {
+		if w.User == adminUser {
 			emit(AdminCheckPassed)
 			return true
 		}
@@ -49,7 +123,9 @@ func (r Robot) SetParameter(name, value string) bool {
 	if !identifierRe.MatchString(name) {
 		return false
 	}
-	c := r.getContext()
+	w := getLockedWorker(r.tid)
+	defer w.Unlock()
+	c := w.pipeContext
 	c.environment[name] = value
 	return true
 }
@@ -66,7 +142,9 @@ func (r Robot) SetParameter(name, value string) bool {
 // Fails if the new working directory doesn't exist
 // See also: tasks/setworkdir.sh for updating working directory in a pipeline
 func (r Robot) SetWorkingDirectory(path string) bool {
-	c := r.getContext()
+	w := getLockedWorker(r.tid)
+	defer w.Unlock()
+	c := w.pipeContext
 	if path == "." {
 		c.workingDirectory = c.baseDirectory
 		return true
@@ -107,8 +185,7 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 // parameters in a pipeline, and for getting long-term parameters such as
 // credentials.
 func (r Robot) GetParameter(key string) string {
-	c := r.getContext()
-	value, ok := c.taskenvironment[key]
+	value, ok := r.environment[key]
 	if ok {
 		return value
 	}
@@ -119,9 +196,8 @@ func (r Robot) GetParameter(key string) string {
 // the elevator should always prompt for 2fa; otherwise a configured timeout
 // should apply.
 func (r Robot) Elevate(immediate bool) bool {
-	c := r.getContext()
-	task, _, _ := getTask(c.currentTask)
-	retval := c.elevate(task, immediate)
+	task, _, _ := getTask(r.currentTask)
+	retval := r.elevate(task, immediate)
 	if retval == robot.Success {
 		return true
 	}
@@ -177,21 +253,20 @@ func (r Robot) RandomInt(n int) int {
 // Current attributes:
 // name, alias, fullName, contact
 func (r Robot) GetBotAttribute(a string) *robot.AttrRet {
-	c := r.getContext()
 	a = strings.ToLower(a)
 	ret := robot.Ok
 	var attr string
 	switch a {
 	case "name":
-		attr = c.cfg.botinfo.UserName
+		attr = r.cfg.botinfo.UserName
 	case "fullname", "realname":
-		attr = c.cfg.botinfo.FullName
+		attr = r.cfg.botinfo.FullName
 	case "alias":
-		attr = string(c.cfg.alias)
+		attr = string(r.cfg.alias)
 	case "mail", "email":
-		attr = c.cfg.botinfo.Email
+		attr = r.cfg.botinfo.Email
 	case "contact", "admin", "admincontact":
-		attr = c.cfg.adminContact
+		attr = r.cfg.adminContact
 	case "protocol":
 		attr = r.Protocol.String()
 	default:
@@ -236,8 +311,7 @@ and call GetTaskConfig with a double-pointer:
 ... And voila! *pConf is populated with the contents from the configured Config: stanza
 */
 func (r Robot) GetTaskConfig(dptr interface{}) robot.RetVal {
-	c := r.getContext()
-	task, _, _ := getTask(c.currentTask)
+	task, _, _ := getTask(r.currentTask)
 	if task.config == nil {
 		Log(robot.Debug, "Task \"%s\" called GetTaskConfig, but no config was found.", task.name)
 		return robot.NoConfigFound
@@ -266,10 +340,9 @@ func (r Robot) Log(l robot.LogLevel, msg string, v ...interface{}) (logged bool)
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
-	c := r.getContext()
-	if Log(l, msg) && c.logger != nil {
+	if Log(l, msg) && r.logger != nil {
 		line := "LOG " + logLevelToStr(l) + " " + msg
-		c.logger.Log(strings.TrimSpace(line))
+		r.logger.Log(strings.TrimSpace(line))
 	}
 	return
 }

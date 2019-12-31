@@ -29,29 +29,30 @@ var runQueues = struct {
 // arguments, holding the Exclusive lock, and the call to Exclusive will
 // always succeed.
 // The safest way to use Exclusive is near the beginning of a pipeline.
-func (r *Robot) Exclusive(tag string, queueTask bool) (success bool) {
-	c := r.getContext()
-	if c.exclusive {
+func (r Robot) Exclusive(tag string, queueTask bool) (success bool) {
+	w := getLockedWorker(r.tid)
+	defer w.Unlock()
+	if r.exclusive {
 		// TODO: make sure tag matches, or error! Note that it's legit and normal
 		// to call Exclusive twice with the same tag name.
 		return true
 	}
-	if len(c.jobName) == 0 {
+	if len(r.jobName) == 0 {
 		r.Log(robot.Error, "Exclusive called on pipeline with no job started")
 		return false
 	}
 	if len(tag) > 0 {
 		tag = ":" + tag
 	}
-	tag = c.jobName + tag
-	c.exclusiveTag = tag
+	tag = r.jobName + tag
+	w.exclusiveTag = tag
 	runQueues.Lock()
 	_, exists := runQueues.m[tag]
 	if !exists {
 		// Take the lock
-		Log(robot.Debug, "Exclusive lock immediately acquired in pipeline '%s', bot #%d", c.pipeName, c.id)
+		Log(robot.Debug, "Exclusive lock immediately acquired in pipeline '%s', bot #%d", w.pipeName, w.id)
 		runQueues.m[tag] = []chan struct{}{}
-		c.exclusive = true
+		w.exclusive = true
 		success = true
 		runQueues.Unlock()
 		return
@@ -59,11 +60,11 @@ func (r *Robot) Exclusive(tag string, queueTask bool) (success bool) {
 	runQueues.Unlock()
 	// Update state to indicate what to do after callTask()
 	if queueTask {
-		Log(robot.Debug, "Bot #%d requesting queueing", c.id)
-		c.queueTask = true
+		Log(robot.Debug, "Worker #%d requesting queueing", w.id)
+		w.queueTask = true
 	} else {
-		Log(robot.Debug, "Bot #%d requesting abort, exclusive lock failed", c.id)
-		c.abortPipeline = true
+		Log(robot.Debug, "Worker #%d requesting abort, exclusive lock failed", w.id)
+		w.abortPipeline = true
 	}
 	return
 }

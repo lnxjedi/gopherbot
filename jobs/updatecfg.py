@@ -21,11 +21,17 @@ from gopherbot_v2 import Robot
 
 bot = Robot()
 
-clone_url = os.getenv("CUSTOM_REPOSITORY_URL")
-clone_branch = os.getenv("CUSTOM_REPOSITORY_BRANCH")
+clone_url = os.getenv("GOPHER_CUSTOM_REPOSITORY")
+clone_branch = os.getenv("GOPHER_CUSTOM_BRANCH")
+cfgdir = os.getenv("GOPHER_CONFIGDIR")
 
 if not clone_url:
     bot.Say("GOPHER_CUSTOM_REPOSITORY not set")
+    exit()
+
+if not cfgdir:
+    bot.Say("GOPHER_CONFIGDIR not set")
+    bot.Log("Error", "GOPHER_CONFIGDIR not set in updatecfg.py")
     exit()
 
 if not bot.Exclusive("updatecfg", False):
@@ -49,7 +55,7 @@ if not clone_url.startswith("http"):
             bot.AddTask("ssh-init", [])
             bot.AddTask("ssh-scan", [ match.group(1) ])
 
-bot.AddTask("git-sync", [ clone_url, clone_branch, "." ])
+bot.AddTask("git-sync", [ clone_url, clone_branch, cfgdir, "true" ])
 bot.AddTask("runpipeline", [])
 bot.AddTask("status", [ "Custom configuration repository successfully updated" ])
 bot.AddCommand("builtin-admin", "reload")

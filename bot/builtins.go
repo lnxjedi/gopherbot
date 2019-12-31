@@ -32,18 +32,17 @@ func init() {
 
 func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
-	c := r.getContext()
 	if command == "init" {
 		return // ignore init
 	}
 	if command == "info" {
-		admins := strings.Join(c.cfg.adminUsers, ", ")
-		aliasCh := c.cfg.alias
-		name := c.cfg.botinfo.UserName
+		admins := strings.Join(r.cfg.adminUsers, ", ")
+		aliasCh := r.cfg.alias
+		name := r.cfg.botinfo.UserName
 		if len(name) == 0 {
 			name = "(unknown)"
 		}
-		ID := c.cfg.botinfo.UserID
+		ID := r.cfg.botinfo.UserID
 		if len(ID) == 0 {
 			ID = "(unknown)"
 		}
@@ -76,8 +75,8 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		r.Say(strings.Join(msg, "\n"))
 	}
 	if command == "help" {
-		botname := c.cfg.botinfo.UserName
-
+		botname := r.cfg.botinfo.UserName
+		tasks := r.tasks
 		var term, helpOutput string
 		botSub := `(bot)`
 		hasKeyword := false
@@ -89,16 +88,18 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			Log(robot.Trace, "Help requested for term", term)
 		}
 
+		// Nothing we need will ever change for a worker.
+		w := getLockedWorker(r.tid)
+		w.Unlock()
 		helpLines := make([]string, 0, tooLong)
-		c := r.getContext()
-		for _, t := range c.tasks.t[1:] {
+		for _, t := range tasks.t[1:] {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
 				continue
 			}
 			// If a keyword was supplied, give help for all matching commands with channels;
 			// without a keyword, show help for all commands available in the channel.
-			if !r.getContext().pluginAvailable(task, hasKeyword, true) {
+			if !w.pluginAvailable(task, hasKeyword, true) {
 				continue
 			}
 			Log(robot.Trace, "Checking help for plugin %s (term: %s)", task.name, term)
@@ -159,7 +160,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			// Unless builtins are disabled or reconfigured, 'ping' is available in all channels
 			r.Say("Sorry, I didn't find any commands matching your keyword")
 		case len(helpLines) > tooLong:
-			if !c.directMsg {
+			if !w.directMsg {
 				r.Reply("(the help output was pretty long, so I sent you a private message)")
 				if !hasKeyword {
 					helpOutput = "Command(s) available in channel: " + r.Channel + "\n" + strings.Join(helpLines, lineSeparator)
@@ -200,8 +201,7 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 			r.Fixed().Say("Here's the default configuration for \"%s\":\n%s", args[0], plug.DefaultConfig)
 		} else { // look for an external plugin
 			found := false
-			c := r.getContext()
-			for _, t := range c.tasks.t[1:] {
+			for _, t := range r.tasks.t[1:] {
 				task, plugin, _ := getTask(t)
 				if args[0] == task.name {
 					if plugin == nil {
@@ -228,8 +228,7 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 			return
 		}
 		found := false
-		c := r.getContext()
-		for _, t := range c.tasks.t[1:] {
+		for _, t := range r.tasks.t[1:] {
 			task, plugin, _ := getTask(t)
 			if args[0] == task.name {
 				if plugin == nil {
@@ -253,9 +252,8 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 			joiner = "\n"
 			message = "Here's a list of all disabled plugins:\n%s"
 		}
-		c := r.getContext()
-		plist := make([]string, 0, len(c.tasks.t))
-		for _, t := range c.tasks.t[1:] {
+		plist := make([]string, 0, len(r.tasks.t))
+		for _, t := range r.tasks.t[1:] {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
 				continue
@@ -330,10 +328,9 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		return // ignore init
 	}
 	r := m.(Robot)
-	c := r.getContext()
 	switch command {
 	case "reload":
-		err := r.getContext().loadConfig(false)
+		err := loadConfig(false)
 		if err != nil {
 			r.Reply("Error encountered during reload:")
 			r.Fixed().Say("%v", err)
@@ -354,8 +351,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			r.Say("Invalid task name '%s', doesn't match regexp: '%s' (task can't load)", tname, identifierRe.String())
 			return
 		}
-		c := r.getContext()
-		t := c.tasks.getTaskByName(tname)
+		t := r.tasks.getTaskByName(tname)
 		if t == nil {
 			r.Say("Task '%s' not found", tname)
 			return
@@ -369,25 +365,19 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		if len(args[1]) > 0 {
 			verbose = true
 		}
-		Log(robot.Debug, "Enabling debugging for %s (%s), verbose: %v", tname, task.taskID, verbose)
+		Log(robot.Debug, "Enabling debugging for %s, verbose: %v", tname, verbose)
 		pd := &debuggingTask{
-			taskID:  task.taskID,
+			taskID:  task.name,
 			name:    tname,
-			user:    r.User,
 			verbose: verbose,
 		}
 		taskDebug.Lock()
-		taskDebug.p[task.taskID] = pd
-		taskDebug.u[r.User] = pd
+		taskDebug.p[task.name] = pd
 		taskDebug.Unlock()
 		r.Say("Debugging enabled for %s (verbose: %v)", args[0], verbose)
 	case "stop":
 		taskDebug.Lock()
-		pd, ok := taskDebug.u[r.User]
-		if ok {
-			delete(taskDebug.p, pd.taskID)
-			delete(taskDebug.u, r.User)
-		}
+		taskDebug.p = make(map[string]*debuggingTask)
 		taskDebug.Unlock()
 		r.Say("Debugging disabled")
 	case "quit", "restart":
@@ -402,7 +392,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		if restart {
 			state.restart = true
 		}
-		proto := c.cfg.protocol
+		proto := r.cfg.protocol
 		// NOTE: THIS plugin is definitely running, but will end soon!
 		if state.pipelinesRunning > 1 {
 			runningCount := state.pipelinesRunning - 1

@@ -1,4 +1,4 @@
-# Early Encryption Initialization
+## Early Encryption Initialization
 
 **Gopherbot** uses two separate keys for encrypting and decrypting secret data:
 * The start-up key, normally 32 printable `ASCII` characters, used only for decrypting the binary, 32-byte random encryption key
@@ -13,3 +13,11 @@ $ cat /path/to/brain/bot:encryptionKey | base64 -w 0 > /path/to/custom/binary-en
 ```
 
 This file can then be committed to the custom configuration repository.
+
+## Default Brain Encryption
+
+In version 2, **Gopherbot** defaults to an encrypted brain, which requires a `GOPHER_ENCRYPTION_KEY` to be set. To run your robot without brain encryption, you need to explicitly turn it off in your custom `gopherbot.yaml`:
+
+```yaml
+EncryptBrain: false
+```

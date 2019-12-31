@@ -6,9 +6,11 @@ gopherbot*tar.gz
 *.pyc
 # Ignore symlinks useful for development
 plugins/gopherbot_v1.py
-jobss/gopherbot_v1.py
+jobs/gopherbot_v1.py
 tasks/gopherbot_v1.py
-.c9
+plugins/gopherbot_v2.py
+jobs/gopherbot_v2.py
+tasks/gopherbot_v2.py
 .env
 *.so
 # For dev env

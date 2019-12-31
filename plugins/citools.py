@@ -18,6 +18,8 @@ repodata = bot.GetRepoData()
 def start_build(repository, branch):
     bot.Say("Ok, I'll start the gopherci job for %s, %s branch..." % (repository, branch))
     bot.AddJob("gopherci", [ repository, branch ])
+    bot.AddTask("say", ["... build completed"])
+    bot.FailTask("say", ["... build failed"])
 
 if not isinstance(repodata, dict):
     bot.Say("'repodata.yaml' missing or invalid; GetRepoData() failed")

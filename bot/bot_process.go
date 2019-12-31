@@ -14,11 +14,9 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"regexp"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -165,10 +163,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 
 	encryptionInitialized := initCrypt()
 
-	c := &botContext{
-		environment: make(map[string]string),
-	}
-	if err := c.loadConfig(true); err != nil {
+	if err := loadConfig(true); err != nil {
 		Log(robot.Fatal, "Loading initial configuration: %v", err)
 	}
 	os.Unsetenv(keyEnv)
@@ -281,6 +276,9 @@ func initCrypt() bool {
 					return false
 				}
 				Log(robot.Info, "Successfully wrote new binary encryption key to '%s'", keyFile)
+				cryptKey.key = bk
+				cryptKey.initialized = true
+				encryptionInitialized = true
 				return true
 			}
 		}
@@ -312,33 +310,7 @@ func run() {
 
 	// signal handler
 	sigBreak := make(chan struct{})
-	go func(brk chan struct{}) {
-		sigs := make(chan os.Signal, 1)
-
-		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	loop:
-		for {
-			select {
-			case sig := <-sigs:
-				state.Lock()
-				if state.shuttingDown {
-					Log(robot.Warn, "Received SIGINT/SIGTERM while shutdown in progress")
-					state.Unlock()
-				} else {
-					state.shuttingDown = true
-					state.Unlock()
-					signal.Stop(sigs)
-					Log(robot.Info, "Exiting on signal: %s", sig)
-					stop()
-				}
-			// done declared globally at top of this file
-			case <-sigBreak:
-				Log(robot.Info, "Stopping signal handler")
-				break loop
-			}
-		}
-	}(sigBreak)
+	go sigHandle(sigBreak)
 
 	// connector loop
 	go func(conn robot.Connector, sigBreak chan<- struct{}) {
@@ -354,12 +326,7 @@ func run() {
 		done <- restart
 	}(interfaces.Connector, sigBreak)
 
-	c := &botContext{
-		environment: make(map[string]string),
-	}
-	c.registerActive(nil)
-	c.loadConfig(false)
-	c.deregister()
+	loadConfig(false)
 }
 
 // stop is called whenever the robot needs to shut down gracefully. All callers

@@ -6,6 +6,7 @@ testing.
 */
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -60,5 +61,10 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 	setConnector(conn)
 
 	run()
+
+	bk := filepath.Join(testInstallPath, cfgdir, "binary-encrypted-key")
+	if err := os.Remove(bk); err != nil {
+		fmt.Printf("Removing temporary key: %v\n", err)
+	}
 	return done, conn
 }

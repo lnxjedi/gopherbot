@@ -1,9 +1,7 @@
 package bot
 
 import (
-	"crypto/rand"
 	"encoding/json"
-	"fmt"
 	"log"
 	"regexp"
 	"sync"
@@ -135,26 +133,26 @@ type NameSpace struct {
 // Task configuration is common to tasks, plugins or jobs. Any task, plugin or job can call bot methods. Note that tasks are only defined
 // in gopherbot.yaml, and no external configuration is read in.
 type Task struct {
-	name          string            // name of job or plugin; unique by type, but job & plugin can share
-	taskType      taskType          // taskGo or taskExternal
-	Path          string            // Path to the external executable for jobs or Plugtype=taskExternal only
-	NameSpace     string            // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
-	Parameters    []robot.Parameter // Fixed parameters for a given job; many jobs will use the same script with differing parameters
-	Description   string            // description of job or plugin
-	AllowDirect   bool              // Set this true if this plugin can be accessed via direct message
-	DirectOnly    bool              // Set this true if this plugin ONLY accepts direct messages
-	Channel       string            // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
-	Channels      []string          // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
-	AllChannels   bool              // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	RequireAdmin  bool              // Set to only allow administrators to access a plugin / run job
-	Users         []string          // If non-empty, list of all the users with access to this plugin
-	Elevator      string            // Use an elevator other than the DefaultElevator
-	Authorizer    string            // a plugin to call for authorizing users, should handle groups, etc.
-	AuthRequire   string            // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
-	taskID        string            // 32-char random ID for identifying plugins/jobs
-	ReplyMatchers []InputMatcher    // store this here for prompt*reply methods
-	Config        json.RawMessage   // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
-	config        interface{}       // A pointer to an empty struct that the bot can Unmarshal custom configuration into
+	name         string            // name of job or plugin; unique by type, but job & plugin can share
+	taskType     taskType          // taskGo or taskExternal
+	Path         string            // Path to the external executable for jobs or Plugtype=taskExternal only
+	NameSpace    string            // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
+	Parameters   []robot.Parameter // Fixed parameters for a given job; many jobs will use the same script with differing parameters
+	Description  string            // description of job or plugin
+	AllowDirect  bool              // Set this true if this plugin can be accessed via direct message
+	DirectOnly   bool              // Set this true if this plugin ONLY accepts direct messages
+	Channel      string            // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
+	Channels     []string          // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
+	AllChannels  bool              // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
+	RequireAdmin bool              // Set to only allow administrators to access a plugin / run job
+	Users        []string          // If non-empty, list of all the users with access to this plugin
+	Elevator     string            // Use an elevator other than the DefaultElevator
+	Authorizer   string            // a plugin to call for authorizing users, should handle groups, etc.
+	AuthRequire  string            // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
+	// taskID        string            // 32-char random ID for identifying plugins/jobs
+	ReplyMatchers []InputMatcher  // store this here for prompt*reply methods
+	Config        json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
+	config        interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
 	Disabled      bool
 	reason        string // why this job/plugin is disabled
 	// Privileged jobs/plugins run with the privileged UID, privileged tasks
@@ -203,13 +201,11 @@ func initializePlugins() {
 	cfg := currentCfg.configuration
 	tasks := currentCfg.taskList
 	currentCfg.RUnlock()
-	c := &botContext{
-		environment:   make(map[string]string),
+	w := &worker{
 		cfg:           cfg,
 		tasks:         tasks,
 		automaticTask: true,
 	}
-	c.registerActive(nil)
 	state.Lock()
 	if !state.shuttingDown {
 		state.Unlock()
@@ -222,12 +218,11 @@ func initializePlugins() {
 				continue
 			}
 			Log(robot.Info, "Initializing plugin: %s", task.name)
-			c.startPipeline(nil, t, plugCommand, "init")
+			w.startPipeline(nil, t, plugCommand, "init")
 		}
 	} else {
 		state.Unlock()
 	}
-	c.deregister()
 }
 
 // registerTask centralizes the sanity checking logic for RegisterPlugin,
@@ -245,11 +240,9 @@ func registerTask(name string) *Task {
 	if _, ok := currentCfg.nameMap[name]; ok {
 		log.Fatalf("Go task '%s' name collision with other task/job/plugin/namespace", name)
 	}
-	tid := getTaskID(name)
 	task := &Task{
 		name:     name,
 		taskType: taskGo,
-		taskID:   tid,
 	}
 	return task
 }
@@ -304,21 +297,4 @@ func RegisterTask(name string, privRequired bool, gotask robot.TaskHandler) {
 	task.Privileged = privRequired
 	currentCfg.addTask(task)
 	taskHandlers[name] = gotask
-}
-
-// return or generate a new taskID
-func getTaskID(name string) string {
-	taskNameIDmap.Lock()
-	taskID, ok := taskNameIDmap.m[name]
-	if ok {
-		taskNameIDmap.Unlock()
-		return taskID
-	}
-	// Generate a random id
-	p := make([]byte, 16)
-	rand.Read(p)
-	taskID = fmt.Sprintf("%x", p)
-	taskNameIDmap.m[name] = taskID
-	taskNameIDmap.Unlock()
-	return taskID
 }

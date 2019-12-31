@@ -13,18 +13,17 @@ import (
 // retrieve it. Returns nil and logs an error if the calling task isn't a job,
 // or the namespace has already been extended.
 func (r Robot) GetRepoData() map[string]robot.Repository {
-	c := r.getContext()
-	t, p, j := getTask(c.currentTask)
+	t, p, j := getTask(r.currentTask)
 	if j == nil && p == nil {
 		r.Log(robot.Error, "GetRepoData called by non-job/plugin task '%s'", t.name)
 		return nil
 	}
-	if len(c.nsExtension) > 0 {
-		r.Log(robot.Error, "GetRepoData called with namespace extended: '%s'", c.nsExtension)
+	if len(r.nsExtension) > 0 {
+		r.Log(robot.Error, "GetRepoData called with namespace extended: '%s'", r.nsExtension)
 		return nil
 	}
 	export := make(map[string]robot.Repository)
-	for r, d := range c.repositories {
+	for r, d := range r.repositories {
 		e := robot.Repository{
 			Type:         d.Type,
 			CloneURL:     d.CloneURL,
@@ -57,39 +56,40 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 		r.Log(robot.Error, "Invalid namespace extension contains ':'")
 		return false
 	}
-	c := r.getContext()
-	if c.stage != primaryTasks {
+	if r.stage != primaryTasks {
 		r.Log(robot.Error, "ExtendNamespace called after pipeline end")
 		return false
 	}
-	if len(c.jobName) == 0 {
+	if len(r.jobName) == 0 {
 		r.Log(robot.Error, "ExtendNamespace called with no job in progress")
 		return false
 	}
-	if len(c.nsExtension) > 0 {
+	if len(r.nsExtension) > 0 {
 		r.Log(robot.Error, "ExtendNamespace called after namespace already extended")
 		return false
 	}
 	cmp := strings.Split(ext, "/")
 	repo := strings.Join(cmp[0:len(cmp)-1], "/")
 	branch := cmp[len(cmp)-1]
-	repository, exists := c.repositories[repo]
+	repository, exists := r.repositories[repo]
 	if !exists {
 		r.Log(robot.Error, "Repository '%s' not found in repositories.yaml (missing branch in call to ExtendNamespace?)", repo)
 		return false
 	}
-	if c.jobName != repository.Type {
-		r.Log(robot.Error, "ExtendNamespace called with jobName(%s) != repository Type(%s)", c.jobName, repository.Type)
+	if r.jobName != repository.Type {
+		r.Log(robot.Error, "ExtendNamespace called with jobName(%s) != repository Type(%s)", r.jobName, repository.Type)
 		return false
 	}
-	r.Log(robot.Debug, "Extending namespace for job '%s': %s (branch %s)", c.jobName, repo, branch)
-	c.nsExtension = ext
+	r.Log(robot.Debug, "Extending namespace for job '%s': %s (branch %s)", r.jobName, repo, branch)
+	w := getLockedWorker(r.tid)
+	w.nsExtension = ext
 	// old, deprecated, TODO: remove me someday
-	c.environment["GOPHER_NAMESPACE_EXTENDED"] = repo
+	w.environment["GOPHER_NAMESPACE_EXTENDED"] = repo
 	// new hotness
-	c.environment["GOPHER_REPOSITORY"] = repo
+	w.environment["GOPHER_REPOSITORY"] = repo
+	w.Unlock()
 
-	jk := histPrefix + c.jobName
+	jk := histPrefix + r.jobName
 	var pjh jobHistory
 	jtok, _, jret := checkoutDatum(jk, &pjh, true)
 	if jret != robot.Ok {
@@ -116,7 +116,7 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 	if histories != -1 {
 		nh = histories
 	} else {
-		j := c.tasks.getTaskByName(c.jobName)
+		j := r.tasks.getTaskByName(r.jobName)
 		_, _, job := getTask(j)
 		nh = job.HistoryLogs
 	}
@@ -125,21 +125,23 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 	if rememberRuns == 0 {
 		rememberRuns = 1
 	}
-	key := histPrefix + c.jobName + ":" + ext
+	key := histPrefix + r.jobName + ":" + ext
 	tok, _, ret := checkoutDatum(key, &jh, true)
 	if ret != robot.Ok {
-		Log(robot.Error, "Checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
+		Log(robot.Error, "Checking out '%s', no history will be remembered for '%s'", key, r.pipeName)
 	} else {
 		var start time.Time
-		if c.timeZone != nil {
-			start = time.Now().In(c.timeZone)
+		if r.timeZone != nil {
+			start = time.Now().In(r.timeZone)
 		} else {
 			start = time.Now()
 		}
-		c.runIndex = jh.NextIndex
-		c.environment["GOPHER_RUN_INDEX"] = fmt.Sprintf("%d", c.runIndex)
+		w.Lock()
+		w.runIndex = jh.NextIndex
+		w.environment["GOPHER_RUN_INDEX"] = fmt.Sprintf("%d", jh.NextIndex)
+		w.Unlock()
 		hist := historyLog{
-			LogIndex:   c.runIndex,
+			LogIndex:   jh.NextIndex,
 			CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
 		}
 		jh.NextIndex++
@@ -150,58 +152,60 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 		}
 		ret := updateDatum(key, tok, jh)
 		if ret != robot.Ok {
-			Log(robot.Error, "Updating '%s', no history will be remembered for '%s'", key, c.pipeName)
+			Log(robot.Error, "Updating '%s', no history will be remembered for '%s'", key, r.pipeName)
 		} else {
-			if nh > 0 && c.history != nil {
-				hspec := c.pipeName + ":" + ext
+			if nh > 0 && r.history != nil {
+				hspec := r.pipeName + ":" + ext
 				raiseThreadPriv("starting new job log")
-				pipeHistory, err := c.history.NewHistory(hspec, hist.LogIndex, nh)
+				pipeHistory, err := r.history.NewHistory(hspec, hist.LogIndex, nh)
 				if err != nil {
-					Log(robot.Error, "Starting history for '%s', no history will be recorded: %v", c.pipeName, err)
+					Log(robot.Error, "Starting history for '%s', no history will be recorded: %v", r.pipeName, err)
 				} else {
-					if c.logger != nil {
-						c.logger.Section("close log", fmt.Sprintf("Job '%s' extended namespace: '%s'; starting new log on next task", c.jobName, ext))
+					if r.logger != nil {
+						r.logger.Section("close log", fmt.Sprintf("Job '%s' extended namespace: '%s'; starting new log on next task", r.jobName, ext))
 					}
-					c.logger = pipeHistory
-					c.logger.Section("new log", fmt.Sprintf("Extended log created by job '%s'", c.jobName))
-					r.Log(robot.Debug, "Started new history for job '%s' with namespace '%s'", c.jobName, ext)
-					r.Channel = c.jobChannel
+					w.Lock()
+					w.logger = pipeHistory
+					w.logger.Section("new log", fmt.Sprintf("Extended log created by job '%s'", r.jobName))
+					r.Log(robot.Debug, "Started new history for job '%s' with namespace '%s'", r.jobName, ext)
 					var link string
-					if url, ok := c.history.GetHistoryURL(hspec, hist.LogIndex); ok {
+					if url, ok := w.history.GetHistoryURL(hspec, hist.LogIndex); ok {
 						link = fmt.Sprintf(" (link: %s)", url)
 					}
-					r.Say("Job '%s' extended namespace: %s:%s, run %d%s", c.jobName, c.jobName, ext, c.runIndex, link)
+					r.Say("Job '%s' extended namespace: %s:%s, run %d%s", r.jobName, r.jobName, ext, w.runIndex, link)
+					w.Unlock()
 				}
 			} else {
-				if c.history == nil {
+				if r.history == nil {
 					Log(robot.Warn, "Starting history, no history provider available")
 				}
 			}
 		}
 	}
+	w.Lock()
 	for _, param := range repository.Parameters {
 		name := param.Name
 		value := param.Value
-		_, exists := c.environment[name]
+		_, exists := w.environment[name]
 		if !exists {
-			c.environment[name] = value
+			w.environment[name] = value
 		}
 	}
+	w.Unlock()
 	return true
 }
 
 // pipeTask does all the real work of adding tasks to pipelines or spawning
 // new tasks.
 func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, args ...string) robot.RetVal {
-	c := r.getContext()
-	if c.stage != primaryTasks {
-		task, _, _ := getTask(c.currentTask)
+	if r.stage != primaryTasks {
+		task, _, _ := getTask(r.currentTask)
 		r.Log(robot.Error, "request to modify pipeline outside of initial pipeline in task '%s'", task.name)
 		return robot.InvalidStage
 	}
-	t := c.tasks.getTaskByName(name)
+	t := r.tasks.getTaskByName(name)
 	if t == nil {
-		task, _, _ := getTask(c.currentTask)
+		task, _, _ := getTask(r.currentTask)
 		r.Log(robot.Error, "task '%s' not found updating pipeline from task '%s'", name, task.name)
 		return robot.TaskNotFound
 	}
@@ -224,7 +228,7 @@ func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, a
 		r.Log(robot.Error, "Adding task to pipeline - not a task: %s", name)
 		return robot.InvalidTaskType
 	}
-	if !c.privileged {
+	if !r.privileged {
 		if isJob && job.Privileged {
 			r.Log(robot.Error, "PrivilegeViolation adding privileged job '%s' to unprivileged pipeline", name)
 			return robot.PrivilegeViolation
@@ -250,20 +254,20 @@ func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, a
 			return robot.MissingArguments
 		}
 		cmsg := args[0]
-		c.debugT(t, fmt.Sprintf("Checking %d command matchers against pipe command: '%s'", len(plugin.CommandMatchers), cmsg), false)
+		debugT(t, fmt.Sprintf("Checking %d command matchers against pipe command: '%s'", len(plugin.CommandMatchers), cmsg), false)
 		matched := false
 		for _, matcher := range plugin.CommandMatchers {
 			Log(robot.Trace, "Checking '%s' against '%s'", cmsg, matcher.Regex)
 			matches := matcher.re.FindAllStringSubmatch(cmsg, -1)
 			if matches != nil {
-				c.debugT(t, fmt.Sprintf("Matched command regex '%s', command: %s", matcher.Regex, matcher.Command), false)
+				debugT(t, fmt.Sprintf("Matched command regex '%s', command: %s", matcher.Regex, matcher.Command), false)
 				matched = true
 				Log(robot.Trace, "pipeline command '%s' matches '%s'", cmsg, matcher.Command)
 				command = matcher.Command
 				cmdargs = matches[0][1:]
 				break
 			} else {
-				c.debugT(t, fmt.Sprintf("Not matched: %s", matcher.Regex), false)
+				debugT(t, fmt.Sprintf("Not matched: %s", matcher.Regex), false)
 			}
 		}
 		if !matched {
@@ -282,22 +286,27 @@ func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, a
 	}
 	argstr := strings.Join(args, " ")
 	r.Log(robot.Debug, "Adding pipeline task %s/%s: %s %s", pflavor, ptype, name, argstr)
+	w := getLockedWorker(r.tid)
 	switch pflavor {
 	case flavorAdd:
-		c.nextTasks = append(c.nextTasks, ts)
+		w.nextTasks = append(w.nextTasks, ts)
+		w.Unlock()
 	case flavorFinal:
 		// Final tasks are FILO/LIFO (run in reverse order of being added)
-		c.finalTasks = append([]TaskSpec{ts}, c.finalTasks...)
+		w.finalTasks = append([]TaskSpec{ts}, w.finalTasks...)
+		w.Unlock()
 	case flavorFail:
-		c.failTasks = append(c.failTasks, ts)
+		w.failTasks = append(w.failTasks, ts)
+		w.Unlock()
 	case flavorSpawn:
-		sb := c.clone()
+		w.Unlock()
+		sb := w.clone()
 		go sb.startPipeline(nil, t, spawnedTask, command, args...)
 	}
 	return robot.Ok
 }
 
-// SpawnJob creates a new botContext in a new goroutine to run a
+// SpawnJob creates a new pipeContext in a new goroutine to run a
 // job. It's primary use is for CI/CD applications where a single
 // triggered job may want to spawn several jobs when e.g. a dependency for
 // multiple projects is updated.

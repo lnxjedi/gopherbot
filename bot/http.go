@@ -206,39 +206,27 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Look up the botContext
-	c := getBotContextStr(f.CallerID)
-	if c == nil {
+	// Look up the Robot
+	taskLookup.RLock()
+	r, ok := taskLookup.e[f.CallerID]
+	taskLookup.RUnlock()
+	if !ok {
 		rw.WriteHeader(http.StatusBadRequest)
 		Log(robot.Error, "JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs)
 		return
 	}
-
-	// Generate a synthetic Robot for access to it's methods
-	proto, _ := getProtocol(f.Protocol)
-	r := Robot{
-		&robot.Message{
-			User:            f.User,
-			ProtocolUser:    c.ProtocolUser,
-			Channel:         f.Channel,
-			ProtocolChannel: c.ProtocolChannel,
-			Protocol:        proto,
-			Incoming:        c.Incoming,
-		},
-		c.id,
-	}
 	if len(f.Format) > 0 {
 		r.Format = setFormat(f.Format)
 	} else {
-		r.Format = c.cfg.defaultMessageFormat
+		r.Format = r.cfg.defaultMessageFormat
 	}
-	task, _, _ := getTask(c.currentTask)
+	task, _, _ := getTask(r.currentTask)
 	Log(robot.Trace, "Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User)
 
 	if len(f.Format) > 0 {
 		r.Format = setFormat(f.Format)
 	} else {
-		r.Format = c.cfg.defaultMessageFormat
+		r.Format = r.cfg.defaultMessageFormat
 	}
 
 	var (
@@ -362,7 +350,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		var key string
-		task, _, _ := getTask(c.currentTask)
 		ns := getNameSpace(task)
 		key = ns + ":" + m.Key
 		// Since we're getting raw JSON (=[]byte), we call update directly.

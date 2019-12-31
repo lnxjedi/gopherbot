@@ -297,7 +297,7 @@ func storeDatum(dkey string, datum *[]byte) robot.RetVal {
 		if !initialized {
 			// When re-keying, we store the 'real' key while uninitialized with a new key
 			if !(initializing && dkey == botEncryptionKey) {
-				Log(robot.Error, "storeDatum called for '%s' with encryptBrain true, but brain not initialized", key)
+				Log(robot.Error, "storeDatum called for '%s' with encryptBrain true, but encryption not initialized", key)
 				return robot.BrainFailed
 			}
 		}
@@ -523,11 +523,10 @@ func (r Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken 
 		Log(robot.Error, "Invalid memory key, ':' disallowed: %s", key)
 		return
 	}
-	c := r.getContext()
-	task, _, _ := getTask(c.currentTask)
+	task, _, _ := getTask(r.currentTask)
 	ns := getNameSpace(task)
-	if len(c.nsExtension) > 0 {
-		key = ns + ":" + c.nsExtension + ":" + key
+	if len(r.nsExtension) > 0 {
+		key = ns + ":" + r.nsExtension + ":" + key
 	} else {
 		key = ns + ":" + key
 	}
@@ -542,11 +541,10 @@ func (r Robot) CheckinDatum(key, locktoken string) {
 	if strings.ContainsRune(key, ':') {
 		return
 	}
-	c := r.getContext()
-	task, _, _ := getTask(c.currentTask)
+	task, _, _ := getTask(r.currentTask)
 	ns := getNameSpace(task)
-	if len(c.nsExtension) > 0 {
-		key = ns + ":" + c.nsExtension + ":" + key
+	if len(r.nsExtension) > 0 {
+		key = ns + ":" + r.nsExtension + ":" + key
 	} else {
 		key = ns + ":" + key
 	}
@@ -561,11 +559,10 @@ func (r Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.
 		Log(robot.Error, "Invalid memory key, ':' disallowed: %s", key)
 		return robot.InvalidDatumKey
 	}
-	c := r.getContext()
-	task, _, _ := getTask(c.currentTask)
+	task, _, _ := getTask(r.currentTask)
 	ns := getNameSpace(task)
-	if len(c.nsExtension) > 0 {
-		key = ns + ":" + c.nsExtension + ":" + key
+	if len(r.nsExtension) > 0 {
+		key = ns + ":" + r.nsExtension + ":" + key
 	} else {
 		key = ns + ":" + key
 	}

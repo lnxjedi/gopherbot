@@ -1,6 +1,7 @@
 # See conf/gopherbot.yaml.sample
 AdminContact: "Joe User, <user@example.org>"
 DefaultChannels: [ "general", "random" ]
+DefaultJobChannel: general
 JoinChannels: [ ]
 AdminUsers: [ "alice" ]
 Alias: ";"
@@ -82,9 +83,7 @@ ExternalPlugins:
   "echo":
     Path: plugins/samples/echo.sh
 
-WorkSpace: /tmp
-HistoryConfig:
-  Directory: /tmp
+WorkSpace: workspace
 
 Brain: file
 BrainConfig:

@@ -181,13 +181,13 @@ func (r Robot) PromptUserChannelForReply(regexID string, user string, channel st
 }
 
 // promptInternal can return 'RetryPrompt'
-func (r *Robot) promptInternal(regexID string, user string, channel string, prompt string) (string, robot.RetVal) {
+func (r Robot) promptInternal(regexID string, user string, channel string, prompt string) (string, robot.RetVal) {
 	matcher := replyMatcher{
 		user:    user,
 		channel: channel,
 	}
 	var rep replyWaiter
-	task, _, job := getTask(r.getContext().currentTask)
+	task, _, job := getTask(r.currentTask)
 	isJob := job != nil
 	if stockRepliesRe.MatchString(regexID) {
 		rep.re = stockReplies[regexID]
@@ -225,9 +225,8 @@ func (r *Robot) promptInternal(regexID string, user string, channel string, prom
 		replies.Unlock()
 	} else {
 		Log(robot.Debug, "Prompting for \"%s \" and creating reply waiters list and prompting for matcher: %q", prompt, matcher)
-		c := r.getContext()
 		var puser string
-		if ui, ok := c.maps.user[user]; ok {
+		if ui, ok := r.maps.user[user]; ok {
 			puser = bracket(ui.UserID)
 		} else {
 			puser = user

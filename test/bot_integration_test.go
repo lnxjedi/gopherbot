@@ -29,7 +29,9 @@ ROUTINE ======================== github.com/lnxjedi/gopherbot/bot...
 */
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -47,9 +49,13 @@ import (
 	_ "net/http/pprof"
 )
 
+var testInstallPath string
+
 // Environment setting(s) for expanding installed conf/gopherbot.yaml
 func init() {
 	os.Setenv("GOPHER_PROTOCOL", "test")
+	wd, _ := os.Getwd()
+	testInstallPath = filepath.Dir(wd)
 }
 
 type testItem struct {
@@ -83,6 +89,7 @@ const bottest = "bottest"
 const deadzone = "deadzone"
 
 func setup(cfgdir, logfile string, t *testing.T) (<-chan bool, *testc.TestConnector) {
+	os.Setenv("GOPHER_ENCRYPTION_KEY", "gopherbot-integration-tests-brain-key")
 	testVer := VersionInfo{"test", "(unknown)"}
 
 	testc.ExportTest.Lock()
@@ -101,6 +108,10 @@ func teardown(t *testing.T, done <-chan bool, conn *testc.TestConnector) {
 
 	// Now we wait for the connection to finish
 	<-done
+	ws := filepath.Join(testInstallPath, "test", "workspace")
+	if err := os.RemoveAll(ws); err != nil {
+		fmt.Printf("Removing temporary workspace: %v\n", err)
+	}
 
 	evOk := true
 	ev := GetEvents()
@@ -335,7 +346,7 @@ func TestPrompting(t *testing.T) {
 		// wait ask waits a second before prompting; in 2 seconds it'll message the test to answer the second question first
 		{davidID, general, ";waitask", []testc.TestMessage{}, []Event{}, 200},
 		// ask now asks a question right away, but we don't reply until the command above tells us to - by which time the first command has prompted, but now has to wait
-		{davidID, general, ";asknow", []testc.TestMessage{{david, general, `Do you like puppies\?`}, {null, general, `ok - answer puppies`}}, []Event{CommandTaskRan, ExternalTaskRan, CommandTaskRan, ExternalTaskRan}, 0},
+		{davidID, general, ";asknow", []testc.TestMessage{{david, general, `Do you like puppies\?`}, {null, general, `ok - answer puppies`}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		{davidID, general, "yes", []testc.TestMessage{{david, general, `Do you like kittens\?`}, {null, general, `I like puppies too!`}}, []Event{}, 0},
 		{davidID, general, "yes", []testc.TestMessage{{null, general, `I like kittens too!`}}, []Event{}, 0},
 	}

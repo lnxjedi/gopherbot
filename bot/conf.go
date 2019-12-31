@@ -99,7 +99,7 @@ var config *ConfigLoader
 var repositories map[string]robot.Repository
 
 // loadConfig loads the 'bot's yaml configuration files.
-func (c *botContext) loadConfig(preConnect bool) error {
+func loadConfig(preConnect bool) error {
 	raiseThreadPriv("loading configuration")
 	var loglevel robot.LogLevel
 	newconfig := &ConfigLoader{}
@@ -109,12 +109,12 @@ func (c *botContext) loadConfig(preConnect bool) error {
 	configload := make(map[string]json.RawMessage)
 	processed := &configuration{}
 
-	if err := c.getConfigFile("gopherbot.yaml", "", true, configload); err != nil {
+	if err := getConfigFile("gopherbot.yaml", true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
 	}
 
 	reporaw := make(map[string]json.RawMessage)
-	c.getConfigFile("repositories.yaml", "", false, reporaw)
+	getConfigFile("repositories.yaml", false, reporaw)
 	repolist := make(map[string]robot.Repository)
 	for k, repojson := range reporaw {
 		if strings.ContainsRune(k, ':') {
@@ -527,7 +527,7 @@ func (c *botContext) loadConfig(preConnect bool) error {
 		newconfig.EncryptionKey = "XXXXXX"
 	}
 
-	newList, err := c.loadTaskConfig(processed)
+	newList, err := loadTaskConfig(processed)
 	if err != nil {
 		return err
 	}

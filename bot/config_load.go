@@ -135,7 +135,7 @@ func expand(dir string, custom bool, in []byte) (out []byte, err error) {
 
 // getConfigFile loads a config file first from installPath, then from configPath
 // if set. Required indicates whether to return an error if neither file is found.
-func (c *botContext) getConfigFile(filename, callerID string, required bool, jsonMap map[string]json.RawMessage, prev ...map[string]interface{}) error {
+func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMessage, prev ...map[string]interface{}) error {
 	var (
 		cf           []byte
 		err, realerr error

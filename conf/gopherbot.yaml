@@ -36,10 +36,18 @@ LogLevel: {{ env "GOPHER_LOGLEVEL" | default "info" }}
 
 TimeZone: {{ env "GOPHER_TIMEZONE" | default "America/New_York" }}
 
-# This needs to exist to prevent a dangling reference; associated
-# parameters need to be provided in the robot's custom configuraton.
+# Default shared namespaces to allow sharing of parameters between
+# various administrative tasks/plugins/jobs
 NameSpaces:
+  # Needed to prevent dangling reference; parameters need to be in
+  # custom config.
   "ssh":
+  "config":
+    Parameters:
+      - Name: GOPHER_CUSTOM_REPOSITORY
+        Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
+      - Name: GOPHER_CUSTOM_BRANCH
+        Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "master" }}
 
 ## NOTE:
 ## External script jobs/tasks/plugins do NOT have direct access to
@@ -52,6 +60,7 @@ ExternalPlugins:
 ## custom configuration.
   "update":
     Description: A plugin that triggers the updatecfg job
+    Privileged: true
     Path: plugins/update.sh
   "citools":
     Description: Tools for interacting with gopherci
@@ -66,10 +75,9 @@ ExternalPlugins:
     Description: A plugin to bootstrap an existing robot to a new container/directory
     Privileged: true
     Homed: true
+    NameSpace: config
     Path: plugins/bootstrap.py
     Parameters:
-    - Name: GOPHER_CUSTOM_REPOSITORY
-      Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
     - Name: DEPLOY_KEY
       # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
       Value: "{{ env "DEPLOY_KEY" }}"
@@ -79,12 +87,9 @@ ExternalPlugins:
 ExternalJobs:
   "updatecfg":
     Description: A job that updates the robot's configuration from git
+    Homed: true
     Path: jobs/updatecfg.py
-    Parameters:
-    - Name: CUSTOM_REPOSITORY_URL
-      Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
-    - Name: CUSTOM_REPOSITORY_BRANCH
-      Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "master" }}
+    NameSpace: config
   "gopherci":
     Description: A job for dispatching build jobs, triggered by commit notifications
     Path: jobs/gopherci.py
@@ -103,11 +108,15 @@ ExternalTasks:
     Description: Send a DM to a user, generally as a FailTask
     Path: tasks/dmnotify.sh
   "status":
-    Decription: trivial task that can be used to send status updates
+    Decription: Trivial task that can be used to send status updates in a pipeline
+    Path: tasks/status.sh
+  "say":
+    Decription: Convenience synonym for 'status'
     Path: tasks/status.sh
   "ssh-init":
     Description: "Pipeline job for setting up ssh-agent for the 'bot"
     Path: tasks/ssh-init.sh
+    Homed: true
     NameSpace: ssh
   "exec":
     Description: Simple utility for running scripts in a repository

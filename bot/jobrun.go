@@ -14,17 +14,16 @@ const runJobRegex = `run +job +(` + identifierRegex + `)(?: (.*))?`
 var runJobRe = regexp.MustCompile(`(?i:^\s*` + runJobRegex + `\s*$)`)
 
 // checkJobMatchersAndRun handles triggers, 'run job <foo>'
-func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
-	r := c.makeRobot()
+func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 	// un-needed, but more clear
 	messageMatched = false
 	runTasks := []interface{}{}
-	robots := []*botContext{}
+	robots := []*worker{}
 	taskArgs := [][]string{}
 	var triggerArgs []string
 
 	// First, check triggers
-	for _, t := range c.tasks.t[1:] {
+	for _, t := range w.tasks.t[1:] {
 		task, _, job := getTask(t)
 		if job == nil {
 			continue
@@ -32,35 +31,35 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		if task.Disabled {
 			msg := fmt.Sprintf("Skipping disabled job '%s', reason: %s", task.name, task.reason)
 			Log(robot.Trace, msg)
-			c.debugT(t, msg, false)
+			debugT(t, msg, false)
 			continue
 		}
 		Log(robot.Trace, "Checking triggers for job '%s'", task.name)
 		triggers := job.Triggers
-		c.debugT(t, fmt.Sprintf("Checking %d JobTriggers against message: '%s' from user '%s' in channel '%s'", len(triggers), c.msg, c.User, c.Channel), false)
+		debugT(t, fmt.Sprintf("Checking %d JobTriggers against message: '%s' from user '%s' in channel '%s'", len(triggers), w.msg, w.User, w.Channel), false)
 		for _, trigger := range triggers {
-			Log(robot.Trace, "Checking '%s' against user '%s', channel '%s', regex: '%s'", c.msg, trigger.User, trigger.Channel, trigger.Regex)
-			if c.User != trigger.User {
-				c.debugT(t, fmt.Sprintf("User '%s' doesn't match trigger user '%s'", c.User, trigger.User), false)
+			Log(robot.Trace, "Checking '%s' against user '%s', channel '%s', regex: '%s'", w.msg, trigger.User, trigger.Channel, trigger.Regex)
+			if w.User != trigger.User {
+				debugT(t, fmt.Sprintf("User '%s' doesn't match trigger user '%s'", w.User, trigger.User), false)
 				continue
 			}
-			if c.Channel != trigger.Channel {
-				c.debugT(t, fmt.Sprintf("Channel '%s' doesn't match trigger", c.Channel), false)
+			if w.Channel != trigger.Channel {
+				debugT(t, fmt.Sprintf("Channel '%s' doesn't match trigger", w.Channel), false)
 				continue
 			}
-			matches := trigger.re.FindAllStringSubmatch(c.msg, -1)
+			matches := trigger.re.FindAllStringSubmatch(w.msg, -1)
 			matched := false
 			if matches != nil {
-				c.debugT(t, fmt.Sprintf("Matched trigger regex '%s'", trigger.Regex), false)
-				Log(robot.Trace, "Message '%s' matches trigger for job '%s'", c.msg, task.name)
+				debugT(t, fmt.Sprintf("Matched trigger regex '%s'", trigger.Regex), false)
+				Log(robot.Trace, "Message '%s' matches trigger for job '%s'", w.msg, task.name)
 				matched = true
 				triggerArgs = matches[0][1:]
 			} else {
-				c.debugT(t, fmt.Sprintf("Not matched: %s", trigger.Regex), false)
+				debugT(t, fmt.Sprintf("Not matched: %s", trigger.Regex), false)
 			}
 			if matched {
 				messageMatched = true
-				newbot := c.clone()
+				newbot := w.clone()
 				newbot.automaticTask = true
 				robots = append(robots, newbot)
 				runTasks = append(runTasks, t)
@@ -71,7 +70,7 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 	if messageMatched {
 		state.RLock()
 		if state.shuttingDown {
-			r.Say("Ignoring triggered job(s): shutting down")
+			w.Say("Ignoring triggered job(s): shutting down")
 			state.RUnlock()
 			return
 		}
@@ -84,35 +83,41 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 		return
 	}
 	// Check for built-in run job
-	if c.isCommand {
+	if w.isCommand {
 		var jobName string
-		cmsg := spaceRe.ReplaceAllString(c.msg, " ")
+		cmsg := spaceRe.ReplaceAllString(w.msg, " ")
 		matches := runJobRe.FindAllStringSubmatch(cmsg, -1)
 		if matches != nil {
 			jobName = matches[0][1]
 			messageMatched = true
-			c.messageHeard()
+			w.messageHeard()
 		} else {
 			return
 		}
-		t := c.jobAvailable(jobName)
+		t := w.jobAvailable(jobName)
 		if t != nil {
+			c := &pipeContext{
+				environment: make(map[string]string),
+			}
+			w.pipeContext = c
 			c.currentTask = t
-			c.registerActive(nil)
-			r := c.makeRobot()
+			// We need an active worker in case we need to call possibly
+			// external authorizer or elevator.
+			w.registerActive(nil)
+			// REMOVE ME r := w.makeRobot()
 			task, _, job := getTask(t)
 			if task.Disabled {
-				r.Say("Job '%s' is disabled: %s", jobName, task.reason)
-				c.deregister()
+				w.Say("Job '%s' is disabled: %s", jobName, task.reason)
+				w.deregister()
 				return
 			}
-			if !c.jobSecurityCheck(t, "run") {
-				c.deregister()
+			if !w.jobSecurityCheck(t, "run") {
+				w.deregister()
 				return
 			}
 			var args []string
 			// remember which job we're talking about
-			ctx := memoryContext{"context:task", c.User, c.Channel}
+			ctx := memoryContext{"context:task", w.User, w.Channel}
 			s := shortTermMemory{jobName, time.Now()}
 			shortTermMemories.Lock()
 			shortTermMemories.m[ctx] = s
@@ -120,14 +125,14 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 			if len(matches[0][2]) > 0 { // arguments supplied with `run job foo bar baz`, check match to arguments
 				args = strings.Split(matches[0][2], " ")
 				if len(args) != len(job.Arguments) {
-					r.Say("Wrong number of arguments for job '%s', %d configured but %d given", jobName, len(job.Arguments), len(args))
-					c.deregister()
+					w.Say("Wrong number of arguments for job '%s', %d configured but %d given", jobName, len(job.Arguments), len(args))
+					w.deregister()
 					return
 				}
 				for i, arg := range args {
 					if !job.Arguments[i].re.MatchString(arg) {
-						r.Say("'%s' doesn't match the pattern for argument '%s'", arg, job.Arguments[i].Label)
-						c.deregister()
+						w.Say("'%s' doesn't match the pattern for argument '%s'", arg, job.Arguments[i].Label)
+						w.deregister()
 						return
 					}
 				}
@@ -137,7 +142,7 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 					c.currentTask = t
 					c.pipeName = task.name
 					c.pipeDesc = task.Description
-					r = c.makeRobot()
+					r := w.makeRobot()
 					for i, argspec := range job.Arguments {
 						var t int
 						for t = 1; t < 3; t++ {
@@ -148,7 +153,7 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 								if ret != robot.Ok {
 									r.Log(robot.Warn, "failed getting arguments running job '%s': %s", jobName, ret)
 									r.Say("(not running job '%s')", jobName)
-									c.deregister()
+									w.deregister()
 									return
 								}
 								args[i] = arg
@@ -157,15 +162,15 @@ func (c *botContext) checkJobMatchersAndRun() (messageMatched bool) {
 						}
 						if t == 3 {
 							r.Say("(giving up)")
-							c.deregister()
+							w.deregister()
 							return
 						}
 					}
 				}
 			}
-			c.deregister()
+			w.deregister()
 			c.verbose = true
-			c.startPipeline(nil, t, jobCmd, "run", args...)
+			w.startPipeline(nil, t, jobCmd, "run", args...)
 		} // jobAvailable sends a message if it's not
 	}
 	return

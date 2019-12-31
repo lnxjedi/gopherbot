@@ -19,6 +19,7 @@ The following values can be provided to your robot on start-up:
 
 * `GOPHER_ENCRYPTION_KEY` - 32+ character encryption key used for decrypting the `binary-encrypted-key`
 * `GOPHER_CUSTOM_REPOSITORY` - clone URL for the robot's custom configuration, used in bootstrapping
+* `GOPHER_CUSTOM_BRANCH` - branch to use if other than `master`
 * `GOPHER_LOGFILE` - where to write out a log file
 * `DEPLOY_KEY` - ssh deploy key for cloning the custom repository
 

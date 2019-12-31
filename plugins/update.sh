@@ -28,5 +28,6 @@ case "$COMMAND" in
   "update")
     Say "Ok, I'll trigger the 'updatecfg' job to issue a git pull and reload configuration..."
     AddJob updatecfg
+    AddTask say "... done"
     ;;
 esac

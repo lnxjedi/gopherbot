@@ -1,9 +1,11 @@
 # See conf/gopherbot.yaml.sample
 AdminContact: "David Parsley, <parsley@linuxjedi.org>"
 DefaultChannels: [ "general", "random" ]
+DefaultJobChannel: general
 JoinChannels: [ ]
 AdminUsers: [ "alice" ]
 Alias: ";"
+LogLevel: debug
 
 {{ $botname := env "GOPHER_BOTNAME" | default "bender" }}
 {{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Bender Rodriguez" }}
@@ -88,9 +90,7 @@ ExternalPlugins:
   "hello2":
     Path: plugins/samples/hello2.sh
 
-WorkSpace: /tmp
-HistoryConfig:
-  Directory: /tmp
+WorkSpace: workspace
 
 Brain: mem
 DefaultElevator: totp
