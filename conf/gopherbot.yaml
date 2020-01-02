@@ -90,6 +90,15 @@ ExternalJobs:
     Homed: true
     Path: jobs/updatecfg.py
     NameSpace: config
+  "backup":
+    Decription: A job for backing up the robot's state, normally just a file-based brain
+    Homed: true
+    Privileged: true
+    Path: jobs/backup.sh
+    Parameters:
+    # A default installed robot stores its brain in state/brain
+    - Name: STATE_DIR
+      Value: {{ env "GOPHER_STATE_DIRECTORY" | default "state" }}
   "gopherci":
     Description: A job for dispatching build jobs, triggered by commit notifications
     Path: jobs/gopherci.py
@@ -111,8 +120,11 @@ ExternalTasks:
     Decription: Trivial task that can be used to send status updates in a pipeline
     Path: tasks/status.sh
   "say":
-    Decription: Convenience synonym for 'status'
+    Description: Convenience synonym for 'status'
     Path: tasks/status.sh
+  "git-credentials":
+    Description: Check for and initialize ssh for a repository if needed
+    Path: tasks/git-credentials.py
   "ssh-init":
     Description: "Pipeline job for setting up ssh-agent for the 'bot"
     Path: tasks/ssh-init.sh
@@ -124,7 +136,7 @@ ExternalTasks:
   "remote":
     Description: Utility for running scripts and commands on a remote host
     Path: tasks/remote-exec.sh
-  "runpipeline":
+  "run-pipeline":
     Description: Detect one of pipeline.sh|py|rb and add to the pipeline
     Path: tasks/runpipeline.sh
   "setworkdir":

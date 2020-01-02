@@ -36,7 +36,8 @@ The following values can be provided to your robot on start-up:
 * `GOPHER_HISTORY_DIRECTORY` - directory for storing file-based historical job logs
 * `GOPHER_WORKSPACE_DIRECTORY` - workspace directory where e.g. build jobs clone and run
 * `GOPHER_BRAIN` - non-default brain provider to use
-* `GOPHER_BRAIN_DIRECTORY` - directory where file-based memories are stored
+* `GOPHER_STATE_DIRECTORY` - default dir for storing state, normally just the brain
+* `GOPHER_BRAIN_DIRECTORY` - directory where file-based memories are stored, overrides above
 * `GOPHER_JOBCHANNEL` - where jobs run by default if not otherwise specified
 * `GOPHER_TIMEZONE` - UNIX tz, e.g. "America/New_York" (default)
 
@@ -53,19 +54,24 @@ In addition to the above passed-through environment vars, **Gopherbot** supplies
 * `GOPHER_INSTALLDIR` - absolute path to the gopherbot install, normally `/opt/gopherbot`
 
 ## Pipeline Environment Variables
-
-The following environment variables are supplied whenever a job is run:
-* `GOPHER_JOB_NAME` - the name of the running job
+The following environment variable are set for all pipelines, whether started by a plugin or a job:
+* `GOPHER_CHANNEL` - the channel where the plugin/job is providing output
+* `GOPHER_USER` - the user whose message created the pipeline (if any)
+* `GOPHER_PROTOCOL` - the name of the protocol in use, e.g. "slack"
 * `GOPHER_TASK_NAME` - the name of the running task
-* `GOPHER_REPOSITORY` - the extended namespace from `repositories.yaml`, if any
-* `GOPHER_RUN_INDEX` - the run number of the job
 * `GOPHER_PIPELINE_TYPE` - the event type that started the current pipeline, one of:
     * `plugCommand` - direct robot command, not `run job ...`
     * `plugMessage` - ambient message matched
     * `catchAll` - catchall plugin ran
     * `jobTrigger` - triggered by a JobTrigger
     * `scheduled` - started by a ScheduledTask
-    * `jobCmd` - started from `run job ...` command
+    * `jobCommand` - started from `run job ...` command
+
+The following are also supplied whenever a job is run:
+* `GOPHER_JOB_NAME` - the name of the running job
+* `GOPHER_START_CHANNEL` - the channel where the job was started
+* `GOPHER_REPOSITORY` - the extended namespace from `repositories.yaml`, if any
+* `GOPHER_RUN_INDEX` - the run number of the job
 
 Pipelines and tasks that have `Homed: true` and/or `Privileged: true` may also get:
 * `GOPHER_HOME` - absolute path to the startup directory for the robot, relative paths are relative to this directory; unset if `cwd` can't be determined

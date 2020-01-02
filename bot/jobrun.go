@@ -170,7 +170,7 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 			}
 			w.deregister()
 			c.verbose = true
-			w.startPipeline(nil, t, jobCmd, "run", args...)
+			w.startPipeline(nil, t, jobCommand, "run", args...)
 		} // jobAvailable sends a message if it's not
 	}
 	return
