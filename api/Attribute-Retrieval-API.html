@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="sidebar-visible no-js">
+<html lang="en" class="sidebar-visible no-js light">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -32,11 +32,11 @@
 
         
     </head>
-    <body class="light">
+    <body>
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../";
-            var default_theme = "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -60,8 +60,11 @@
             var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
-            document.body.className = theme;
-            document.querySelector('html').className = theme + ' js';
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
@@ -77,8 +80,8 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="affix"><a href="../Title.html">Title</a></li><li class="affix"><a href="../Foreward.html">Foreward</a></li><li class="affix"><a href="../Introduction.html">Introduction</a></li><li class="affix"><a href="../Terminology.html">Terminology</a></li><li><a href="../Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li><a href="../InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li><a href="../DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li><a href="../Upgrading.html"><strong aria-hidden="true">2.</strong> Upgrading from Version 1</a></li><li><ol class="section"><li><a href="../upgrade/BotInfo.html"><strong aria-hidden="true">2.1.</strong> Required Bot Info</a></li><li><a href="../upgrade/External-Plugin.html"><strong aria-hidden="true">2.2.</strong> External Plugin Configuration</a></li><li><a href="../upgrade/Custom-Dir.html"><strong aria-hidden="true">2.3.</strong> Custom Configuration Directory</a></li><li><a href="../upgrade/Encryption.html"><strong aria-hidden="true">2.4.</strong> Early Encryption Initialization</a></li></ol></li><li><a href="../config/file.html"><strong aria-hidden="true">3.</strong> Configuration File Loading</a></li><li><a href="../usage/admin.html"><strong aria-hidden="true">4.</strong> Administrator Commands</a></li><li><a href="../usage/cli.html"><strong aria-hidden="true">5.</strong> Command-Line Use</a></li><li><a href="../api/API-Introduction.html"><strong aria-hidden="true">6.</strong> Gopherbot API</a></li><li><ol class="section"><li><a href="../api/Languages.html"><strong aria-hidden="true">6.1.</strong> Language Templates</a></li><li><a href="../api/Attribute-Retrieval-API.html" class="active"><strong aria-hidden="true">6.2.</strong> Attribute Retrieval</a></li><li><a href="../api/Brain-API.html"><strong aria-hidden="true">6.3.</strong> Brain Methods</a></li><li><a href="../api/Message-Sending-API.html"><strong aria-hidden="true">6.4.</strong> Message Sending</a></li><li><a href="../api/Pipeline-API.html"><strong aria-hidden="true">6.5.</strong> Pipeline Construction</a></li><li><a href="../api/Response-Request-API.html"><strong aria-hidden="true">6.6.</strong> Requesting Responses</a></li><li><a href="../api/Utility-API.html"><strong aria-hidden="true">6.7.</strong> Utility</a></li></ol></li><li><a href="../Modules.html"><strong aria-hidden="true">7.</strong> Module Support</a></li><li><a href="../pipelines/integrations.html"><strong aria-hidden="true">8.</strong> Tool Integrations</a></li><li><ol class="section"><li><a href="../pipelines/ssh.html"><strong aria-hidden="true">8.1.</strong> Integrating with SSH</a></li></ol></li><li><a href="../GopherDev.html"><strong aria-hidden="true">9.</strong> Working on Gopherbot</a></li><li><ol class="section"><li><a href="../botdev/DevelRobot.html"><strong aria-hidden="true">9.1.</strong> Development Robot</a></li><li><a href="../botdev/IntegrationTests.html"><strong aria-hidden="true">9.2.</strong> Integration Tests</a></li><li><a href="../botdev/Gitpod.html"><strong aria-hidden="true">9.3.</strong> Coding with Gitpod</a></li><li><a href="../botdev/StructsInterfaces.html"><strong aria-hidden="true">9.4.</strong> Important Structs and Interfaces</a></li></ol></li></ol>
+            <div id="sidebar-scrollbox" class="sidebar-scrollbox">
+                <ol class="chapter"><li class="expanded affix "><a href="../Title.html">Title</a></li><li class="expanded affix "><a href="../Foreward.html">Foreward</a></li><li class="expanded affix "><a href="../Introduction.html">Introduction</a></li><li class="expanded affix "><a href="../Terminology.html">Terminology</a></li><li class="expanded "><a href="../Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="expanded "><a href="../InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li class="expanded "><a href="../DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li class="expanded "><a href="../Upgrading.html"><strong aria-hidden="true">2.</strong> Upgrading from Version 1</a></li><li><ol class="section"><li class="expanded "><a href="../upgrade/BotInfo.html"><strong aria-hidden="true">2.1.</strong> Required Bot Info</a></li><li class="expanded "><a href="../upgrade/External-Plugin.html"><strong aria-hidden="true">2.2.</strong> External Plugin Configuration</a></li><li class="expanded "><a href="../upgrade/Custom-Dir.html"><strong aria-hidden="true">2.3.</strong> Custom Configuration Directory</a></li><li class="expanded "><a href="../upgrade/Encryption.html"><strong aria-hidden="true">2.4.</strong> Early Encryption Initialization</a></li></ol></li><li class="expanded "><a href="../config/file.html"><strong aria-hidden="true">3.</strong> Configuration File Loading</a></li><li class="expanded "><a href="../usage/admin.html"><strong aria-hidden="true">4.</strong> Administrator Commands</a></li><li class="expanded "><a href="../usage/cli.html"><strong aria-hidden="true">5.</strong> Command-Line Use</a></li><li class="expanded "><a href="../api/API-Introduction.html"><strong aria-hidden="true">6.</strong> Gopherbot API</a></li><li><ol class="section"><li class="expanded "><a href="../api/Languages.html"><strong aria-hidden="true">6.1.</strong> Language Templates</a></li><li class="expanded "><a href="../api/Attribute-Retrieval-API.html" class="active"><strong aria-hidden="true">6.2.</strong> Attribute Retrieval</a></li><li class="expanded "><a href="../api/Brain-API.html"><strong aria-hidden="true">6.3.</strong> Brain Methods</a></li><li class="expanded "><a href="../api/Message-Sending-API.html"><strong aria-hidden="true">6.4.</strong> Message Sending</a></li><li class="expanded "><a href="../api/Pipeline-API.html"><strong aria-hidden="true">6.5.</strong> Pipeline Construction</a></li><li class="expanded "><a href="../api/Response-Request-API.html"><strong aria-hidden="true">6.6.</strong> Requesting Responses</a></li><li class="expanded "><a href="../api/Utility-API.html"><strong aria-hidden="true">6.7.</strong> Utility</a></li></ol></li><li class="expanded "><a href="../Modules.html"><strong aria-hidden="true">7.</strong> Module Support</a></li><li class="expanded "><a href="../pipelines/integrations.html"><strong aria-hidden="true">8.</strong> Tool Integrations</a></li><li><ol class="section"><li class="expanded "><a href="../pipelines/ssh.html"><strong aria-hidden="true">8.1.</strong> Integrating with SSH</a></li></ol></li><li class="expanded "><a href="../GopherDev.html"><strong aria-hidden="true">9.</strong> Working on Gopherbot</a></li><li><ol class="section"><li class="expanded "><a href="../botdev/DevelRobot.html"><strong aria-hidden="true">9.1.</strong> Development Robot</a></li><li class="expanded "><a href="../botdev/IntegrationTests.html"><strong aria-hidden="true">9.2.</strong> Integration Tests</a></li><li class="expanded "><a href="../botdev/Gitpod.html"><strong aria-hidden="true">9.3.</strong> Coding with Gitpod</a></li><li class="expanded "><a href="../botdev/StructsInterfaces.html"><strong aria-hidden="true">9.4.</strong> Important Structs and Interfaces</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -247,6 +250,14 @@ end
 
         
 
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
         
 
         
