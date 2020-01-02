@@ -62,55 +62,6 @@ const histPrefix = "bot:histories:"
 
 const shortTermDuration = 7 * time.Minute
 
-type brainOpType int
-
-const (
-	checkOutBytes brainOpType = iota
-	checkInBytes
-	pauseBrainOps
-	updateBytes
-	quit
-)
-
-type brainOp struct {
-	opType brainOpType
-	opData interface{}
-}
-
-type checkOutRequest struct {
-	key   string
-	rw    bool
-	reply chan checkOutReply
-}
-
-type checkInRequest struct {
-	key   string
-	token string
-}
-
-type updateRequest struct {
-	key   string
-	token string
-	datum *[]byte
-	reply chan robot.RetVal
-}
-
-type checkOutReply struct {
-	token  string
-	bytes  *[]byte
-	exists bool
-	RetVal robot.RetVal
-}
-
-type pauseRequest struct {
-	resume chan struct{}
-	wid    int
-}
-
-type quitRequest struct {
-	reply chan struct{}
-}
-
 type memState int
 
 const (
@@ -125,7 +76,41 @@ type memstatus struct {
 	waiters []checkOutRequest
 }
 
-var brainChanEvents = make(chan brainOp)
+var brainChanEvents = make(chan interface{})
+
+type checkOutRequest struct {
+	key   string
+	rw    bool
+	reply chan checkOutReply
+}
+
+type checkOutReply struct {
+	token  string
+	bytes  *[]byte
+	exists bool
+	RetVal robot.RetVal
+}
+
+type checkInRequest struct {
+	key   string
+	token string
+}
+
+type updateRequest struct {
+	key   string
+	token string
+	datum *[]byte
+	reply chan robot.RetVal
+}
+
+type pauseRequest struct {
+	resume chan struct{}
+	wid    int
+}
+
+type quitRequest struct {
+	reply chan struct{}
+}
 
 // how often does the robot cycle through memories and update state?
 // a value of time.Second means a lock will last between 1 and 2 seconds
@@ -167,9 +152,9 @@ loop:
 	for {
 		select {
 		case evt := <-brainChanEvents:
-			switch evt.opType {
-			case pauseBrainOps:
-				pb := evt.opData.(pauseRequest)
+			switch evt.(type) {
+			case pauseRequest:
+				pb := evt.(pauseRequest)
 				Log(robot.Debug, "Brain pause requested by worker %d", pb.wid)
 				select {
 				case <-pb.resume:
@@ -183,8 +168,8 @@ loop:
 					brainLocks.Unlock()
 					continue
 				}
-			case checkOutBytes:
-				creq := evt.opData.(checkOutRequest)
+			case checkOutRequest:
+				creq := evt.(checkOutRequest)
 				memStat, exists := memories[creq.key]
 				if !exists {
 					lt, d, e, r := getDatum(creq.key, creq.rw)
@@ -219,8 +204,8 @@ loop:
 					memStat.waiters = append(memStat.waiters, creq)
 					memories[creq.key] = memStat
 				}
-			case checkInBytes:
-				ci := evt.opData.(checkInRequest)
+			case checkInRequest:
+				ci := evt.(checkInRequest)
 				m, ok := memories[ci.key]
 				if !ok {
 					break
@@ -234,8 +219,8 @@ loop:
 					break
 				}
 				delete(memories, ci.key)
-			case updateBytes:
-				ur := evt.opData.(updateRequest)
+			case updateRequest:
+				ur := evt.(updateRequest)
 				m, ok := memories[ur.key]
 				if !ok {
 					ur.reply <- robot.DatumNotFound
@@ -251,8 +236,8 @@ loop:
 					break
 				}
 				delete(memories, ur.key)
-			case quit:
-				qr := evt.opData.(quitRequest)
+			case quitRequest:
+				qr := evt.(quitRequest)
 				qr.reply <- struct{}{}
 				break loop
 			}
@@ -283,7 +268,7 @@ loop:
 
 func brainQuit() {
 	reply := make(chan struct{})
-	brainChanEvents <- brainOp{quit, quitRequest{reply}}
+	brainChanEvents <- quitRequest{reply}
 	Log(robot.Debug, "Brain exiting on quit")
 	<-reply
 }
@@ -299,8 +284,7 @@ func checkout(d string, rw bool) (string, *[]byte, bool, robot.RetVal) {
 		return "", nil, false, robot.InvalidDatumKey
 	}
 	reply := make(chan checkOutReply)
-	creq := checkOutRequest{d, rw, reply}
-	brainChanEvents <- brainOp{checkOutBytes, creq}
+	brainChanEvents <- checkOutRequest{d, rw, reply}
 	rep := <-reply
 	Log(robot.Trace, "Brain datum checkout for %s, rw: %t - token: %s, exists: %t, ret: %d",
 		d, rw, rep.token, rep.exists, rep.RetVal)
@@ -314,9 +298,8 @@ func update(d, lt string, datum *[]byte) (ret robot.RetVal) {
 		return robot.Ok
 	}
 	reply := make(chan robot.RetVal)
-	ur := updateRequest{d, lt, datum, reply}
 	Log(robot.Trace, "Updating datum %s, token: %s", d, lt)
-	brainChanEvents <- brainOp{updateBytes, ur}
+	brainChanEvents <- updateRequest{d, lt, datum, reply}
 	return <-reply
 }
 
@@ -326,14 +309,12 @@ func checkinDatum(key, locktoken string) {
 		return
 	}
 	Log(robot.Trace, "Checking in datum %s, token: %s", key, locktoken)
-	ci := checkInRequest{key, locktoken}
-	brainChanEvents <- brainOp{checkInBytes, ci}
+	brainChanEvents <- checkInRequest{key, locktoken}
 }
 
 // pauseBrain pauses the brain for backups, passing a resume channel
 func pauseBrain(wid int, resume chan struct{}) {
-	pb := pauseRequest{resume, wid}
-	brainChanEvents <- brainOp{pauseBrainOps, pb}
+	brainChanEvents <- pauseRequest{resume, wid}
 }
 
 // checkoutDatum is the robot internal version of CheckoutDatum that uses
