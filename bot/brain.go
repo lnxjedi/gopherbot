@@ -175,7 +175,7 @@ loop:
 					lt, d, e, r := getDatum(creq.key, creq.rw)
 					if r != robot.Ok {
 						creq.reply <- checkOutReply{lt, d, e, r}
-						break
+						continue
 					}
 					if creq.rw {
 						m := &memstatus{
@@ -186,12 +186,12 @@ loop:
 						memories[creq.key] = m
 					}
 					creq.reply <- checkOutReply{lt, d, e, r}
-					break
+					continue
 				}
 				if !creq.rw {
 					lt, d, e, r := getDatum(creq.key, creq.rw)
 					creq.reply <- checkOutReply{lt, d, e, r}
-					break
+					continue
 				} // read-write request below
 				// if state is available, there are no waiters
 				if memStat.state == available {
@@ -208,15 +208,15 @@ loop:
 				ci := evt.(checkInRequest)
 				m, ok := memories[ci.key]
 				if !ok {
-					break
+					continue
 				}
 				// memory expired and somebody else owns it
 				if ci.token != m.token {
-					break
+					continue
 				}
 				if len(m.waiters) > 0 {
 					replyToWaiter(m)
-					break
+					continue
 				}
 				delete(memories, ci.key)
 			case updateRequest:
@@ -224,16 +224,16 @@ loop:
 				m, ok := memories[ur.key]
 				if !ok {
 					ur.reply <- robot.DatumNotFound
-					break
+					continue
 				}
 				if ur.token != m.token {
 					ur.reply <- robot.DatumLockExpired
-					break
+					continue
 				}
 				ur.reply <- storeDatum(ur.key, ur.datum)
 				if len(m.waiters) > 0 {
 					replyToWaiter(m)
-					break
+					continue
 				}
 				delete(memories, ur.key)
 			case quitRequest:
@@ -257,7 +257,7 @@ loop:
 				case seen:
 					if len(m.waiters) > 0 {
 						replyToWaiter(m)
-						break
+						continue
 					}
 					m.state = available
 				}
