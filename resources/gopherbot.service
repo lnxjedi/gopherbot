@@ -1,7 +1,6 @@
-# sample systemd unit file for Gopherbot
 [Unit]
 Description=Gopherbot DevOps Chatbot
-Documentation=https://godoc.org/github.com/lnxjedi/gopherbot
+Documentation=https://lnxjedi.github.io/gopherbot
 After=syslog.target
 After=network.target
 
@@ -9,12 +8,11 @@ After=network.target
 Type=simple
 User=robot
 Group=robot
-WorkingDirectory=/opt/gopherbot
-ExecStart=/opt/gopherbot/gopherbot -plainlog
+WorkingDirectory=/var/lib/gopherbot
+ExecStart=/opt/gopherbot/gopherbot -plainlog 
 Restart=on-failure
-# Need HOSTNAME for Gopherbot to tell you where it's running; a bad value
-# for HOME will cause problems.
-Environment=USER=robot HOME=/opt/robot HOSTNAME=%H
+Environment=USER=robot HOME=/home/robot HOSTNAME=%H
+
 KillMode=process
 # Give the robot plenty of time to finish plugins currently executing;
 # no new plugins will start after SIGTERM is caught.

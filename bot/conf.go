@@ -98,8 +98,16 @@ var confLock sync.RWMutex
 var config *ConfigLoader
 var repositories map[string]robot.Repository
 
+type loadStage int
+
+const (
+	preLoad loadStage = iota
+	preConnect
+	running
+)
+
 // loadConfig loads the 'bot's yaml configuration files.
-func loadConfig(preConnect bool) error {
+func loadConfig(stage loadStage) error {
 	raiseThreadPriv("loading configuration")
 	var loglevel robot.LogLevel
 	newconfig := &ConfigLoader{}
@@ -262,6 +270,25 @@ func loadConfig(preConnect bool) error {
 		setLogLevel(loglevel)
 	}
 
+	if newconfig.Protocol != "" {
+		processed.protocol = newconfig.Protocol
+	} else {
+		return fmt.Errorf("Protocol not specified in gopherbot.yaml")
+	}
+
+	if stage == preLoad {
+		if newconfig.LoadableModules != nil {
+			lm := make([]LoadableModule, 0)
+			for name, mod := range newconfig.LoadableModules {
+				mod.Name = name
+				lm = append(lm, mod)
+			}
+			processed.loadableModules = lm
+		}
+		currentCfg.configuration = processed
+		return nil
+	}
+
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		if !strings.ContainsRune(string(aliases+escapeAliases), alias) {
@@ -369,6 +396,9 @@ func loadConfig(preConnect bool) error {
 		}
 		processed.externalTasks = et
 	}
+	// NOTE on Go tasks - we can't just skip a disabled task, since they're
+	// enabled by default. Disabled: true needs to pass through so it's disabled
+	// in taskconf.go
 	if newconfig.GoTasks != nil {
 		gt := make([]TaskSettings, 0, len(newconfig.GoTasks))
 		for name, task := range newconfig.GoTasks {
@@ -400,17 +430,6 @@ func loadConfig(preConnect bool) error {
 			ns = append(ns, nameSpace)
 		}
 		processed.nsList = ns
-	}
-	// NOTE on Go tasks - we can't just skip a disabled task, since they're
-	// enabled by default. Disabled: true needs to pass through so it's disabled
-	// in taskconf.go
-	if newconfig.LoadableModules != nil {
-		lm := make([]LoadableModule, 0)
-		for name, mod := range newconfig.LoadableModules {
-			mod.Name = name
-			lm = append(lm, mod)
-		}
-		processed.loadableModules = lm
 	}
 	st := make([]ScheduledTask, 0, len(newconfig.ScheduledJobs))
 	for _, s := range newconfig.ScheduledJobs {
@@ -483,12 +502,7 @@ func loadConfig(preConnect bool) error {
 	}
 
 	// Items only read at start-up, before multi-threaded
-	if preConnect {
-		if newconfig.Protocol != "" {
-			processed.protocol = newconfig.Protocol
-		} else {
-			return fmt.Errorf("Protocol not specified in gopherbot.yaml")
-		}
+	if stage == preConnect {
 		if newconfig.ProtocolConfig != nil {
 			protocolConfig = newconfig.ProtocolConfig
 		}
@@ -552,7 +566,7 @@ func loadConfig(preConnect bool) error {
 	currentCfg.taskList = newList
 	currentCfg.Unlock()
 
-	if !preConnect {
+	if stage == running {
 		updateRegexes()
 		scheduleTasks()
 		initializePlugins()

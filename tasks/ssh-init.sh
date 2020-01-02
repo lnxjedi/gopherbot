@@ -53,7 +53,7 @@ then
 
     if [ -z "$BOT_SSH_PHRASE" ]
     then
-        Say "I don't know the passphrase for my ssh keypair, aborting"
+        Log "Error" "I don't know the passphrase for my ssh keypair, aborting"
         exit 1
     fi
     chmod 600 "$SSH_KEY_PATH"
