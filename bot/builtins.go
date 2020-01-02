@@ -330,7 +330,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 	r := m.(Robot)
 	switch command {
 	case "reload":
-		err := loadConfig(false)
+		err := loadConfig(running)
 		if err != nil {
 			r.Reply("Error encountered during reload:")
 			r.Fixed().Say("%v", err)
