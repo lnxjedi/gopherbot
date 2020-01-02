@@ -35,7 +35,7 @@ const (
 	jobTrigger
 	spawnedTask
 	scheduled
-	jobCmd // i.e. run job xx
+	jobCommand // i.e. run job xx
 )
 
 //go:generate stringer -type=pipeAddFlavor constants.go

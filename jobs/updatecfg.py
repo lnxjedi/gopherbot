@@ -41,21 +41,8 @@ if not bot.Exclusive("updatecfg", False):
 
 bot.FailTask("status", [ "Updating configuration failed, check history for 'updatecfg'"])
 
-if not clone_url.startswith("http"):
-    match = re.match(r"ssh://(?:.*@)?([^:/]*)(?::([^/]*)/)?", clone_url)
-    if match:
-        bot.AddTask("ssh-init", [])
-        scanhost = match.group(1)
-        if match.group(2):
-            scanhost = "%s:%s" % ( scanhost, match.group(2) )
-        bot.AddTask("ssh-scan", [ scanhost ])
-    else:
-        match = re.match(r"(?:.*@)?([^:/]*)", clone_url)
-        if match:
-            bot.AddTask("ssh-init", [])
-            bot.AddTask("ssh-scan", [ match.group(1) ])
-
+bot.AddTask("git-credentials", [ clone_url ])
 bot.AddTask("git-sync", [ clone_url, clone_branch, cfgdir, "true" ])
-bot.AddTask("runpipeline", [])
+bot.AddTask("run-pipeline", [])
 bot.AddTask("status", [ "Custom configuration repository successfully updated" ])
 bot.AddCommand("builtin-admin", "reload")

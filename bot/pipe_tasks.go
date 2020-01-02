@@ -50,7 +50,7 @@ func resume(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 }
 
 func init() {
-	RegisterTask("restart", true, robot.TaskHandler{Handler: restart})
-	RegisterTask("pause", true, robot.TaskHandler{Handler: pause})
-	RegisterTask("resume", true, robot.TaskHandler{Handler: resume})
+	RegisterTask("restart-robot", true, robot.TaskHandler{Handler: restart})
+	RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pause})
+	RegisterTask("resume-brain", true, robot.TaskHandler{Handler: resume})
 }

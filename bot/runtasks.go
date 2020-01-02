@@ -104,6 +104,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
 		c.jobName = task.name // Exclusive always uses the jobName, regardless of the task that calls it
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
+		c.environment["GOPHER_START_CHANNEL"] = w.Channel
 		iChannel := w.Channel
 		// To change the channel to the job channel, we need to clear the ProcotolChannel
 		w.Channel = task.Channel
@@ -170,7 +171,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 			switch ptype {
 			case jobTrigger:
 				r.Say("Starting job '%s', run %d%s - triggered by app '%s' in channel '%s'", taskinfo, c.runIndex, link, w.User, iChannel)
-			case jobCmd:
+			case jobCommand:
 				r.Say("Starting job '%s', run %d%s - requested by user '%s' in channel '%s'", taskinfo, c.runIndex, link, w.User, iChannel)
 			case spawnedTask:
 				r.Say("Starting job '%s', run %d%s - spawned by pipeline '%s': %s", taskinfo, c.runIndex, link, ppipeName, ppipeDesc)
@@ -345,7 +346,7 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 				emit(SpawnedTaskRan)
 			case scheduled:
 				emit(ScheduledTaskRan)
-			case jobCmd:
+			case jobCommand:
 				emit(JobTaskRan)
 			}
 		}
@@ -386,13 +387,13 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 					runQueues.m[tag] = queue
 					runQueues.Unlock()
 					Log(robot.Debug, "Exclusive task in progress, queueing bot #%d and waiting; queue length: %d", w.id, len(queue))
-					if (isJob && !job.Quiet) || ptype == jobCmd {
+					if (isJob && !job.Quiet) || ptype == jobCommand {
 						w.makeRobot().Say("Queueing task '%s' in pipeline '%s'", task.name, w.pipeName)
 					}
 					// Now we block until kissed by a Handsome Prince
 					<-wakeUp
 					Log(robot.Debug, "Bot #%d in queue waking up and re-starting task '%s'", w.id, task.name)
-					if (job != nil && !job.Quiet) || ptype == jobCmd {
+					if (job != nil && !job.Quiet) || ptype == jobCommand {
 						w.makeRobot().Say("Re-starting queued task '%s' in pipeline '%s'", task.name, w.pipeName)
 					}
 					// Decrement the index so this task runs again

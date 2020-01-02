@@ -45,33 +45,21 @@ if len(clone_url) == 0:
     bot.Log("Warn", "GOPHER_CUSTOM_REPOSITORY not set, not bootstrapping")
     exit(0)
 
-bot.Log("Info", "Creating bootstrap pipeline for %s" % clone_url)
+clone_branch = os.getenv("GOPHER_CUSTOM_BRANCH")
 
-ssh_repo = False
 if not clone_url.startswith("http"):
-    match = re.match(r"ssh://(?:.*@)?([^:/]*)(?::([^/]*)/)?", clone_url)
-    if match:
-        ssh_repo = True
-        scanhost = match.group(1)
-        if match.group(2):
-            scanhost = "%s:%s" % ( scanhost, match.group(2) )
-    else:
-        match = re.match(r"(?:.*@)?([^:/]*)", clone_url)
-        if match:
-            ssh_repo = True
-            scanhost = match.group(1)
-
-if ssh_repo:
     depkey = os.getenv("DEPLOY_KEY")
     if len(depkey) == 0:
-        bot.Log("Error", "GOPHER_CUSTOM_REPOSITORY needs ssh, but no DEPLOY_KEY set")
+        bot.Log("Error", "SSH required for bootstrapping and no DEPLOY_KEY set")
         exit(1)
-    bot.SetParameter("DEPLOY_KEY", depkey)
-    bot.AddTask("ssh-init", ["bootstrap"])
-    bot.AddTask("ssh-scan", [ scanhost ])
+
+bot.Log("Info", "Creating bootstrap pipeline for %s" % clone_url)
+bot.SetParameter("BOOTSTRAP", "true")
+bot.AddTask("git-credentials", [ clone_url ])
 
 tkey = os.path.join(cfgdir, "binary-encrypted-key")
 bot.AddTask("exec", [ "rm", "-f", tkey ])
-bot.AddTask("git-sync", [ clone_url, "master", cfgdir, "false" ])
 bot.AddTask("exec", [ "touch", ".restore" ])
-bot.AddTask("restart", [])
+bot.AddTask("git-sync", [ clone_url, clone_branch, cfgdir, "true" ])
+bot.AddTask("run-pipeline", [])
+bot.AddTask("restart-robot", [])

@@ -12,11 +12,12 @@ func _() {
 	_ = x[Rocket-1]
 	_ = x[Terminal-2]
 	_ = x[Test-3]
+	_ = x[Null-4]
 }
 
-const _Protocol_name = "SlackRocketTerminalTest"
+const _Protocol_name = "SlackRocketTerminalTestNull"
 
-var _Protocol_index = [...]uint8{0, 5, 11, 19, 23}
+var _Protocol_index = [...]uint8{0, 5, 11, 19, 23, 27}
 
 func (i Protocol) String() string {
 	if i < 0 || i >= Protocol(len(_Protocol_index)-1) {

@@ -34,7 +34,7 @@ then
     exit 0 # already running
 fi
 
-if [ "$1" == "bootstrap" ]
+if [ -n "$BOOTSTRAP" ]
 then
     Log "Info" "ssh-init starting in bootstrap mode"
     BOOTSTRAP="true"
