@@ -19,7 +19,7 @@ assignments to w.xxx.
 */
 
 // Global context run number (incrementing int)
-var contextID = struct {
+var workerID = struct {
 	idx int
 	sync.Mutex
 }{
@@ -28,14 +28,14 @@ var contextID = struct {
 }
 
 // Get the next context ID
-func getCtxID() int {
-	contextID.Lock()
-	contextID.idx++
-	if contextID.idx == 0 {
-		contextID.idx = 1
+func getWorkerID() int {
+	workerID.Lock()
+	workerID.idx++
+	if workerID.idx == 0 {
+		workerID.idx = 1
 	}
-	ctxid := contextID.idx
-	contextID.Unlock()
+	ctxid := workerID.idx
+	workerID.Unlock()
 	return ctxid
 }
 
