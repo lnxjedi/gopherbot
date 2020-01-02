@@ -91,8 +91,15 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		state.Unlock()
 	}()
 
-	// A job is always the first task in a pipeline; a new sub-pipeline is created
-	// if a job is added in another pipeline.
+	// Pipelines start with all the parameters for the job/plugin
+	for _, p := range task.Parameters {
+		_, exists := c.environment[p.Name]
+		if !exists {
+			c.environment[p.Name] = p.Value
+		}
+	}
+	// A job or plugin is always the first task in a pipeline; a new
+	// sub-pipeline is created if a job is added in another pipeline.
 	if isJob {
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
 		c.jobName = task.name // Exclusive always uses the jobName, regardless of the task that calls it
@@ -146,12 +153,6 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 						Log(robot.Warn, "Starting history, no history provider available")
 					}
 				}
-			}
-		}
-		for _, p := range task.Parameters {
-			_, exists := c.environment[p.Name]
-			if !exists {
-				c.environment[p.Name] = p.Value
 			}
 		}
 		if !job.Quiet || c.verbose {
@@ -348,7 +349,7 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 				emit(JobTaskRan)
 			}
 		}
-		if isJob && i != 0 {
+		if (isJob || isPlugin) && i != 0 {
 			child := w.clone()
 			ret = child.startPipeline(w, t, ptype, command, args...)
 		} else {
