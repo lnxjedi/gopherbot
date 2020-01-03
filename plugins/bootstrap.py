@@ -27,6 +27,15 @@ command = sys.argv.pop(0)
 if command != "init":
     exit(0)
 
+# First, see if we're doing a restore
+try:
+    os.stat(".restore")
+    bot.AddTask("exec", [ "rm", "-f", ".restore" ])
+    bot.AddJob("restore", [])
+    exit(0)
+except FileNotFoundError:
+    pass
+
 cfgdir = os.getenv("GOPHER_CONFIGDIR")
 cfgfile = os.path.join(cfgdir, "conf", "gopherbot.yaml")
 

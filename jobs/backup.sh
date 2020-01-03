@@ -17,12 +17,17 @@ then
     if [ "$PTYPE" == "plugCommand" -o "$PTYPE" == "jobCommand" ]
     then
         Say "No changes, exiting..."
-        exit 0
     fi
+    exit 0
+fi
+
+if ! Exclusive "backup"
+then
+    Log "Info" "Unable to get exclusive access to 'backup', exiting"
+    exit 0
 fi
 
 GIT_URL=$(cd $STATE_DIR; git remote get-url origin)
-
 SetWorkingDirectory "$STATE_DIR"
 AddTask git-credentials "$GIT_URL"
 AddTask pause-brain

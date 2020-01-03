@@ -2,15 +2,23 @@
 
 # cleanup.sh - task for cleaning a workdir at the start of a job.
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
-if [ -z "$GOPHER_WORKDIR" ]
+
+WORKDIR="$1"
+
+if [ ! "$WORKDIR" ]
 then
-    echo "GOPHER_WORKDIR not set" >&2
+    Log "Error" "Argument WORKDIR not given" >&2
     exit 1
 fi
-if [[ $GOPHER_WORKDIR = /* ]]
+if [[ $WORKDIR = /* ]]
 then
-    Log "Error" "Not cleaning absolute GOPHER_WORKDIR: $GOPHER_WORKDIR"
+    Log "Error" "Not cleaning absolute WORKDIR: $WORKDIR"
     exit 1
 fi
-rm -rf "$GOPHER_WORKDIR"
-mkdir -p "$GOPHER_WORKDIR"
+if [ ! -d "$WORKDIR" ]
+then
+    Log "Info" "WORKDIR: $WORKDIR not found, ignoring"
+    exit 0
+fi
+rm -rf "$WORKDIR"
+mkdir -p "$WORKDIR"

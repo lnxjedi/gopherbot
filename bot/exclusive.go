@@ -37,14 +37,14 @@ func (r Robot) Exclusive(tag string, queueTask bool) (success bool) {
 		// to call Exclusive twice with the same tag name.
 		return true
 	}
-	if len(r.jobName) == 0 {
+	if len(r.nameSpace) == 0 {
 		r.Log(robot.Error, "Exclusive called on pipeline with no job started")
 		return false
 	}
 	if len(tag) > 0 {
 		tag = ":" + tag
 	}
-	tag = r.jobName + tag
+	tag = r.nameSpace + tag
 	w.exclusiveTag = tag
 	runQueues.Lock()
 	_, exists := runQueues.m[tag]

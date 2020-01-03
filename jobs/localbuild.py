@@ -57,21 +57,8 @@ if not bot.Exclusive(repobranch, False):
 
 bot.ExtendNamespace(repobranch, keep_history)
 
-if not clone_url.startswith("http"):
-    match = re.match(r"ssh://(?:.*@)?([^:/]*)(?::([^/]*)/)?", clone_url)
-    if match:
-        bot.AddTask("ssh-init", [])
-        scanhost = match.group(1)
-        if match.group(2):
-            scanhost = "%s:%s" % ( scanhost, match.group(2) )
-        bot.AddTask("ssh-scan", [ scanhost ])
-    else:
-        match = re.match(r"(?:.*@)?([^:/]*)", clone_url)
-        if match:
-            bot.AddTask("ssh-init", [])
-            bot.AddTask("ssh-scan", [ match.group(1) ])
-
+bot.AddTask("git-credentials", [ clone_url ])
 # Start with a clean jobdir
-bot.AddTask("cleanup", [])
+bot.AddTask("cleanup", [ repobranch ])
 bot.AddTask("git-sync", [ clone_url, branch, repobranch, "true" ])
 bot.AddTask("run-pipeline", [])
