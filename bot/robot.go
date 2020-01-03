@@ -77,6 +77,7 @@ func (w *worker) makeRobot() Robot {
 			stage:          w.stage,
 			jobInitialized: w.jobInitialized,
 			jobName:        w.jobName,
+			nameSpace:      w.nameSpace,
 			pipeName:       w.pipeName,
 			pipeDesc:       w.pipeDesc,
 			nsExtension:    w.nsExtension,

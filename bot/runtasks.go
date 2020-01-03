@@ -102,7 +102,10 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	// sub-pipeline is created if a job is added in another pipeline.
 	if isJob {
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
-		c.jobName = task.name // Exclusive always uses the jobName, regardless of the task that calls it
+		// histories use the job name for maximum separation
+		c.jobName = task.name
+		// Exclusive always uses the pipeline nameSpace, regardless of the task that calls it
+		c.nameSpace = getNameSpace(task)
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
 		c.environment["GOPHER_START_CHANNEL"] = w.Channel
 		iChannel := w.Channel

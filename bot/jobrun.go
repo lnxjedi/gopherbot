@@ -84,17 +84,17 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 	}
 	// Check for built-in run job
 	if w.isCommand {
-		var jobName string
+		var jname string
 		cmsg := spaceRe.ReplaceAllString(w.msg, " ")
 		matches := runJobRe.FindAllStringSubmatch(cmsg, -1)
 		if matches != nil {
-			jobName = matches[0][1]
+			jname = matches[0][1]
 			messageMatched = true
 			w.messageHeard()
 		} else {
 			return
 		}
-		t := w.jobAvailable(jobName)
+		t := w.jobAvailable(jname)
 		if t != nil {
 			c := &pipeContext{
 				environment: make(map[string]string),
@@ -107,7 +107,7 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 			// REMOVE ME r := w.makeRobot()
 			task, _, job := getTask(t)
 			if task.Disabled {
-				w.Say("Job '%s' is disabled: %s", jobName, task.reason)
+				w.Say("Job '%s' is disabled: %s", jname, task.reason)
 				w.deregister()
 				return
 			}
@@ -118,20 +118,23 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 			var args []string
 			// remember which job we're talking about
 			ctx := memoryContext{"context:task", w.User, w.Channel}
-			s := shortTermMemory{jobName, time.Now()}
+			s := shortTermMemory{jname, time.Now()}
 			shortTermMemories.Lock()
 			shortTermMemories.m[ctx] = s
 			shortTermMemories.Unlock()
-			if len(matches[0][2]) > 0 { // arguments supplied with `run job foo bar baz`, check match to arguments
+			if len(matches[0][2]) > 0 {
+				// arguments supplied with `run job foo bar baz`, check match to required arguments
 				args = strings.Split(matches[0][2], " ")
-				if len(args) != len(job.Arguments) {
-					w.Say("Wrong number of arguments for job '%s', %d configured but %d given", jobName, len(job.Arguments), len(args))
+				numargs := len(args)
+				if numargs > 0 && numargs < len(job.Arguments) {
+					w.Say("Too few arguments to job '%s', %d required but %d given", jname, len(job.Arguments), len(args))
 					w.deregister()
 					return
 				}
-				for i, arg := range args {
-					if !job.Arguments[i].re.MatchString(arg) {
-						w.Say("'%s' doesn't match the pattern for argument '%s'", arg, job.Arguments[i].Label)
+				// Check regexes for required arguments
+				for i, jobarg := range job.Arguments {
+					if !jobarg.re.MatchString(args[i]) {
+						w.Say("'%s' doesn't match the pattern for argument '%s': %s", args[i], jobarg.Label, jobarg.Regex)
 						w.deregister()
 						return
 					}
@@ -151,8 +154,8 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 								r.Say("That doesn't match the pattern for argument '%s'", argspec.Label)
 							} else {
 								if ret != robot.Ok {
-									r.Log(robot.Warn, "failed getting arguments running job '%s': %s", jobName, ret)
-									r.Say("(not running job '%s')", jobName)
+									r.Log(robot.Warn, "failed getting arguments running job '%s': %s", jname, ret)
+									r.Say("(not running job '%s')", jname)
 									w.deregister()
 									return
 								}

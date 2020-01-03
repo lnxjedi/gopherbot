@@ -155,6 +155,7 @@ type pipeContext struct {
 	stage              pipeStage             // which pipeline is being run; primaryP, finalP, failP
 	jobInitialized     bool                  // whether a job has started
 	jobName            string                // name of the running job
+	nameSpace          string                // namespace for the pipeline, used by exclusive
 	pipeName, pipeDesc string                // name and description of task that started pipeline
 	nsExtension        string                // extended namespace
 	currentTask        interface{}           // pointer to currently executing task

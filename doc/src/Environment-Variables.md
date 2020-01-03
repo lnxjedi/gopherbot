@@ -23,6 +23,12 @@ The following values can be provided to your robot on start-up:
 * `GOPHER_LOGFILE` - where to write out a log file
 * `DEPLOY_KEY` - ssh deploy key for cloning the custom repository
 
+For the optional `state` and `private` repositories, the included jobs will use the `GOPHER_CUSTOM_REPOSITORY` value with `s/gopherbot/state/` and `s/gopherbot/private/` (same branch). If desired, the values can also be supplied:
+* `GOPHER_STATE_REPOSITORY` - repository holding state, normally just a file-backed brain
+* `GOPHER_STATE_BRANCH` - branch to use if other than `master`
+* `GOPHER_PRIVATE_REPOSITORY` - non-public repository with `environment`, for dev only
+* `GOPHER_PRIVATE_BRANCH` - branch to use if other than `master`
+
 ### Configuration Environment Variables
 
 **Gopherbot** normally takes almost all of it's configuration from the collection of `*.yaml` files in the custom configuration directory, but for easy flexibility, a collection of environment variables are referenced in the default configuration. These are some of the values that are expanded; the actual configuration files are the definitive reference.

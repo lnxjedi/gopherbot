@@ -159,7 +159,7 @@ type Task struct {
 	// require privileged pipelines.
 	Privileged bool
 	// Homed for jobs/plugins starts the pipeline with c.basePath = ".", Homed tasks
-	// always run in ".", e.g. "cleanup"
+	// always run in ".", e.g. "ssh-init"
 	Homed bool
 }
 

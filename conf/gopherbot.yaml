@@ -42,12 +42,15 @@ NameSpaces:
   # Needed to prevent dangling reference; parameters need to be in
   # custom config.
   "ssh":
-  "config":
+  "manage":
     Parameters:
       - Name: GOPHER_CUSTOM_REPOSITORY
         Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
       - Name: GOPHER_CUSTOM_BRANCH
         Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "master" }}
+      # A default installed robot stores its brain in state/brain
+      - Name: STATE_DIR
+        Value: {{ env "GOPHER_STATE_DIRECTORY" | default "state" }}
 
 ## NOTE:
 ## External script jobs/tasks/plugins do NOT have direct access to
@@ -75,7 +78,7 @@ ExternalPlugins:
     Description: A plugin to bootstrap an existing robot to a new container/directory
     Privileged: true
     Homed: true
-    NameSpace: config
+    NameSpace: manage
     Path: plugins/bootstrap.py
     Parameters:
     - Name: DEPLOY_KEY
@@ -88,17 +91,20 @@ ExternalJobs:
   "updatecfg":
     Description: A job that updates the robot's configuration from git
     Homed: true
+    NameSpace: manage
     Path: jobs/updatecfg.py
-    NameSpace: config
   "backup":
     Decription: A job for backing up the robot's state, normally just a file-based brain
     Homed: true
     Privileged: true
+    NameSpace: manage
     Path: jobs/backup.sh
-    Parameters:
-    # A default installed robot stores its brain in state/brain
-    - Name: STATE_DIR
-      Value: {{ env "GOPHER_STATE_DIRECTORY" | default "state" }}
+  "restore":
+    Decription: A job for restoring the robot's state from git
+    Homed: true
+    Privileged: true
+    NameSpace: manage
+    Path: jobs/restore.sh
   "gopherci":
     Description: A job for dispatching build jobs, triggered by commit notifications
     Path: jobs/gopherci.py
@@ -154,5 +160,5 @@ ExternalTasks:
     Path: tasks/git-sync.sh
   "cleanup":
     Description: Task for cleaning a working directory before starting a job/build
-    Homed: true
+    Privileged: true
     Path: tasks/cleanup.sh

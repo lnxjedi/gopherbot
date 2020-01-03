@@ -128,7 +128,7 @@ func replyToWaiter(m *memstatus) {
 // brain locking for backups
 // the brain shouldn't be big, and this pauses all activity for
 // a maximum of lockMax seconds
-const lockMax = 4
+const lockMax = 7
 
 var brainLocks = struct {
 	locks map[int]chan struct{}

@@ -193,8 +193,8 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 	}
 
 	// boilerplate availability and security checking for job commands
-	jobName := strings.Split(histSpec, ":")[0]
-	t := w.jobAvailable(jobName)
+	jname := strings.Split(histSpec, ":")[0]
+	t := w.jobAvailable(jname)
 	if t == nil {
 		return
 	}
