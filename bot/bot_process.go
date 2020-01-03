@@ -163,12 +163,7 @@ func initBot(cpath, epath string, logger *log.Logger) {
 
 	encryptionInitialized := initCrypt()
 
-	if err := loadConfig(preLoad); err != nil {
-		Log(robot.Fatal, "Loading module configuration: %v", err)
-	}
-	// loadModules for go loadable modules; a no-op for static builds
-	loadModules()
-	if err := loadConfig(preConnect); err != nil {
+	if err := loadConfig(true); err != nil {
 		Log(robot.Fatal, "Loading initial configuration: %v", err)
 	}
 
@@ -331,7 +326,7 @@ func run() {
 
 	// No need to check for errors on first load; it would have been
 	// caught during the preConnect load above.
-	loadConfig(running)
+	loadConfig(false)
 }
 
 // stop is called whenever the robot needs to shut down gracefully. All callers

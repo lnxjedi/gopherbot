@@ -8,6 +8,6 @@ func RegisterPreload(s string) {
 }
 
 // empty declarations for static builds
-func loadModules() {
+func loadModules(p string, m []LoadableModule) {
 
 }

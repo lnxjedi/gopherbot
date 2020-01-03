@@ -98,16 +98,8 @@ var confLock sync.RWMutex
 var config *ConfigLoader
 var repositories map[string]robot.Repository
 
-type loadStage int
-
-const (
-	preLoad loadStage = iota
-	preConnect
-	running
-)
-
 // loadConfig loads the 'bot's yaml configuration files.
-func loadConfig(stage loadStage) error {
+func loadConfig(preConnect bool) error {
 	raiseThreadPriv("loading configuration")
 	var loglevel robot.LogLevel
 	newconfig := &ConfigLoader{}
@@ -276,7 +268,7 @@ func loadConfig(stage loadStage) error {
 		return fmt.Errorf("Protocol not specified in gopherbot.yaml")
 	}
 
-	if stage == preLoad {
+	if preConnect {
 		if newconfig.LoadableModules != nil {
 			lm := make([]LoadableModule, 0)
 			for name, mod := range newconfig.LoadableModules {
@@ -284,9 +276,8 @@ func loadConfig(stage loadStage) error {
 				lm = append(lm, mod)
 			}
 			processed.loadableModules = lm
+			loadModules(newconfig.Protocol, lm)
 		}
-		currentCfg.configuration = processed
-		return nil
 	}
 
 	if newconfig.Alias != "" {
@@ -502,7 +493,7 @@ func loadConfig(stage loadStage) error {
 	}
 
 	// Items only read at start-up, before multi-threaded
-	if stage == preConnect {
+	if preConnect {
 		if newconfig.ProtocolConfig != nil {
 			protocolConfig = newconfig.ProtocolConfig
 		}
@@ -566,7 +557,7 @@ func loadConfig(stage loadStage) error {
 	currentCfg.taskList = newList
 	currentCfg.Unlock()
 
-	if stage == running {
+	if !preConnect {
 		updateRegexes()
 		scheduleTasks()
 		initializePlugins()
