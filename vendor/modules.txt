@@ -62,6 +62,8 @@ github.com/nlopes/slack/slackutilsx
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
+# github.com/ramr/go-reaper v0.2.0
+github.com/ramr/go-reaper
 # github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 github.com/robfig/cron
 # github.com/stretchr/testify v1.2.2

@@ -30,8 +30,9 @@ AddTask exec ./.gopherci/tools.sh
 # Do a full build for all platforms
 AddTask exec ./.gopherci/mkdist.sh
 
-# Initial clone from public https
+# Initial clones from public https
 AddTask git-sync https://github.com/lnxjedi/gopherbot.git gh-pages gopherbot-doc
+AddTask git-sync https://github.com/lnxjedi/gopherbot-docker.git master gopherbot-docker
 
 AddTask exec ./.gopherci/mkdocs.sh
 

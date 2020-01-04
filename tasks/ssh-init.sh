@@ -82,19 +82,20 @@ fi
 # Make agent available to other tasks in the pipeline
 SetParameter SSH_AUTH_SOCK $SSH_AUTH_SOCK
 SetParameter SSH_AGENT_PID $SSH_AGENT_PID
-if [ -e "$GOPHER_CONFIGDIR/ssh/config" ]
-then
-    SSH_OPTIONS="-F \"$GOPHER_CONFIGDIR/ssh/config\""
-fi
 
 if [ -n "$GOPHER_HOME" ]
 then
+    if [ -e "$GOPHER_CONFIGDIR/ssh/config" ]
+    then
+        SSH_OPTIONS="-F \"$GOPHER_HOME/$GOPHER_CONFIGDIR/ssh/config\""
+    fi
     SSH_OPTIONS="$SSH_OPTIONS -o UserKnownHostsFile=\"$GOPHER_HOME/known_hosts\""
 fi
 
 if [ -n "$SSH_OPTIONS" ]
 then
     SetParameter SSH_OPTIONS "$SSH_OPTIONS"
+    SetParameter GIT_SSH_COMMAND "ssh $SSH_OPTIONS"
 fi
 
 exit 0

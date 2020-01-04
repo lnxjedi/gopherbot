@@ -1,11 +1,9 @@
 import os
 import json
 import random
-import subprocess
 import sys
 import time
 import urllib.request
-import urllib.parse
 
 # python 3 version
 

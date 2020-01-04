@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/lnxjedi/gopherbot/robot"
+	reaper "github.com/ramr/go-reaper"
 )
 
 // Information about privilege separation, set in runtasks_linux.go
@@ -26,11 +29,13 @@ func init() {
 }
 
 // Start gets the robot going
-func Start(v VersionInfo) (restart bool) {
+func Start(v VersionInfo) {
 	botVersion = v
 
 	var configpath string
 
+	// Save args in case we need to spawn child
+	args := os.Args[1:]
 	// Process command-line flags
 	var explicitCfgPath string
 	cusage := "path to the configuration directory"
@@ -49,6 +54,35 @@ func Start(v VersionInfo) (restart bool) {
 	flag.BoolVar(&help, "help", false, husage)
 	flag.BoolVar(&help, "h", false, "")
 	flag.Parse()
+	logFlags := log.LstdFlags
+	if plainlog {
+		logFlags = 0
+	}
+	botStdErrLogger = log.New(os.Stderr, "", logFlags)
+	botStdOutLogger = log.New(os.Stdout, "", logFlags)
+	// Container support
+	// if _, ok := os.LookupEnv("GOPHER_CHILD"); !ok {
+	if os.Getpid() == 1 {
+		Log(robot.Info, "PID == 1, spawning child")
+		bin, _ := os.Executable()
+		env := append(os.Environ(), "GOPHER_CHILD=true")
+		cmd := exec.Command(bin, args...)
+		cmd.Env = env
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		raiseThreadPrivExternal("exec child process")
+		err := cmd.Start()
+		if err != nil {
+			log.Fatal(err)
+		}
+		// NOTE: this doesn't work - why?
+		go initSigHandle(cmd.Process)
+		go reaper.Reap()
+		cmd.Wait()
+		Log(robot.Info, "quitting on child exit")
+		return
+	}
 
 	usage := `Usage: gopherbot [options] [command [command options]]
   "command" can be one of:
@@ -98,12 +132,6 @@ func Start(v VersionInfo) (restart bool) {
 	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
 
 	var logger *log.Logger
-	logFlags := log.LstdFlags
-	if plainlog {
-		logFlags = 0
-	}
-	botStdErrLogger = log.New(os.Stderr, "", logFlags)
-	botStdOutLogger = log.New(os.Stdout, "", logFlags)
 	logOut := os.Stdout
 	botStdOutLogging = true
 	if len(logFile) == 0 {
@@ -192,7 +220,7 @@ func Start(v VersionInfo) (restart bool) {
 		go runBrain()
 		processCLI(usage)
 		brainQuit()
-		return false
+		return
 	}
 
 	initializeConnector, ok := connectors[currentCfg.protocol]
@@ -213,8 +241,17 @@ func Start(v VersionInfo) (restart bool) {
 	// Start the robot loops
 	run()
 	// ... and wait for the robot to stop
-	restart = <-done
+	restart := <-done
 	raiseThreadPrivExternal("Exiting")
 	time.Sleep(time.Second)
-	return restart
+	if restart {
+		bin, _ := os.Executable()
+		env := os.Environ()
+		defer func() {
+			err := syscall.Exec(bin, os.Args, env)
+			if err != nil {
+				fmt.Printf("Error re-exec'ing: %v", err)
+			}
+		}()
+	}
 }

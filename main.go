@@ -1,10 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"syscall"
-
 	"github.com/lnxjedi/gopherbot/bot"
 
 	// NOTE: If compiling gopherbot yourself, you can comment out or remove
@@ -50,14 +46,5 @@ func main() {
 		Version: Version,
 		Commit:  Commit,
 	}
-	restart := bot.Start(versionInfo)
-	if restart {
-		bin, _ := os.Executable()
-		defer func() {
-			err := syscall.Exec(bin, os.Args, os.Environ())
-			if err != nil {
-				fmt.Printf("Error re-exec'ing: %v", err)
-			}
-		}()
-	}
+	bot.Start(versionInfo)
 }
