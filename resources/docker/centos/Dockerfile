@@ -27,15 +27,15 @@ ENV HOME=/home/robot
 ENV USER=${username}
 ENV GROUP=${groupname}
 
-# Invalidate the cache when master changes
-ADD https://api.github.com/repos/lnxjedi/gopherbot/commits/master /commit
-
 RUN cd /usr/local && \
   curl -L https://dl.google.com/go/go${goversion}.linux-amd64.tar.gz | tar xzf - && \
   mkdir -p ${installdir} && \
   mkdir -p ${HOME} && \
   chown ${username}:${groupname} ${HOME} && \
   chmod 0750 ${HOME} 
+
+# Invalidate the cache when master changes
+ADD https://api.github.com/repos/lnxjedi/gopherbot/commits/master /commit
 
 ## For dev
 # ADD gopherbot-linux-amd64.tar.gz ${installdir}

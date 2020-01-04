@@ -14,7 +14,6 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/lnxjedi/gopherbot/robot"
-	reaper "github.com/ramr/go-reaper"
 )
 
 // Information about privilege separation, set in runtasks_linux.go
@@ -61,14 +60,15 @@ func Start(v VersionInfo) {
 	botStdErrLogger = log.New(os.Stderr, "", logFlags)
 	botStdOutLogger = log.New(os.Stdout, "", logFlags)
 	// Container support
-	// if _, ok := os.LookupEnv("GOPHER_CHILD"); !ok {
-	if os.Getpid() == 1 {
+	pid := os.Getpid()
+	if _, ok := os.LookupEnv("GOPHER_CHILD"); !ok {
+		// if pid == 1 {
 		Log(robot.Info, "PID == 1, spawning child")
 		bin, _ := os.Executable()
 		env := append(os.Environ(), "GOPHER_CHILD=true")
 		cmd := exec.Command(bin, args...)
 		cmd.Env = env
-		cmd.Stdin = os.Stdin
+		cmd.Stdin = nil
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		raiseThreadPrivExternal("exec child process")
@@ -78,7 +78,18 @@ func Start(v VersionInfo) {
 		}
 		// NOTE: this doesn't work - why?
 		go initSigHandle(cmd.Process)
-		go reaper.Reap()
+		if pid == 1 {
+			go func() {
+				var ws syscall.WaitStatus
+				// Reap children FOREVER...
+				for {
+					pid, err := syscall.Wait4(-1, &ws, 0, nil)
+					if err == nil {
+						Log(robot.Debug, "Reaped child pid: %d, status: %+v", pid, ws)
+					}
+				}
+			}()
+		}
 		cmd.Wait()
 		Log(robot.Info, "quitting on child exit")
 		return

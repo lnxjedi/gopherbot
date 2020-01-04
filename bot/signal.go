@@ -48,6 +48,8 @@ func initSigHandle(c *os.Process) {
 	for {
 		select {
 		case sig := <-sigs:
+			signal.Stop(sigs)
+			Log(robot.Info, "Caught signal '%s', propagating to child pid %d", sig, c.Pid)
 			c.Signal(sig)
 		}
 	}
