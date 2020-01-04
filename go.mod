@@ -27,6 +27,7 @@ require (
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pkg/errors v0.8.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/ramr/go-reaper v0.2.0
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 	github.com/smartystreets/assertions v0.0.0-20180607162144-eb5b59917fa2 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect

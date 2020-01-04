@@ -37,3 +37,18 @@ loop:
 		}
 	}
 }
+
+// sigHandler for pid 1
+func initSigHandle(c *os.Process) {
+	Log(robot.Info, "Starting pid 1 signal handler")
+	sigs := make(chan os.Signal, 1)
+
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	for {
+		select {
+		case sig := <-sigs:
+			c.Signal(sig)
+		}
+	}
+}

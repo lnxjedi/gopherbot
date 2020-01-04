@@ -48,6 +48,10 @@ NameSpaces:
         Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
       - Name: GOPHER_CUSTOM_BRANCH
         Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "master" }}
+      - Name: GOPHER_STATE_REPOSITORY
+        Value: {{ env "GOPHER_STATE_REPOSITORY" }}
+      - Name: GOPHER_STATE_BRANCH
+        Value: {{ env "GOPHER_STATE_BRANCH" }}
       # A default installed robot stores its brain in state/brain
       - Name: STATE_DIR
         Value: {{ env "GOPHER_STATE_DIRECTORY" | default "state" }}
@@ -84,6 +88,8 @@ ExternalPlugins:
     - Name: DEPLOY_KEY
       # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
       Value: "{{ env "DEPLOY_KEY" }}"
+    - Name: GOPHER_ENCRYPTION_KEY
+      Value: {{ env "GOPHER_ENCRYPTION_KEY" }}
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)

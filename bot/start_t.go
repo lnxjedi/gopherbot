@@ -31,6 +31,7 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 	configpath := filepath.Join(testInstallPath, cfgdir)
 	t.Logf("Initializing test bot with installpath: \"%s\" and configpath: \"%s\"", testInstallPath, configpath)
 
+	botStdOutLogger = log.New(os.Stdout, "", log.LstdFlags)
 	if testLogger == nil {
 		if len(logfile) == 0 {
 			testLogger = log.New(ioutil.Discard, "", 0)

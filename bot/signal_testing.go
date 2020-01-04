@@ -33,3 +33,7 @@ loop:
 		}
 	}
 }
+
+// sigHandler for pid 1
+func initSigHandle(c *os.Process) {
+}

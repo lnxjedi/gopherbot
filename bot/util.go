@@ -69,11 +69,13 @@ func checkDirectory(cpath string) (string, bool) {
 	}
 	ds, err := os.Stat(filePath)
 	if err != nil {
+		Log(robot.Debug, "Checking os.Stat for dir '%s' from wd '%s': %v", cpath, homePath, err)
 		return "", false
 	}
 	if ds.Mode().IsDir() {
 		return filePath, true
 	}
+	Log(robot.Debug, "IsDir() for dir '%s' from wd '%s' returned false", cpath, homePath)
 	return "", false
 }
 
