@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="sidebar-visible no-js">
+<html lang="en" class="sidebar-visible no-js light">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -34,11 +34,11 @@
 
         
     </head>
-    <body class="light">
+    <body>
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "";
-            var default_theme = "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -62,8 +62,11 @@
             var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
-            document.body.className = theme;
-            document.querySelector('html').className = theme + ' js';
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
@@ -79,8 +82,8 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="affix"><a href="Title.html">Title</a></li><li class="affix"><a href="Foreward.html">Foreward</a></li><li class="affix"><a href="Introduction.html">Introduction</a></li><li class="affix"><a href="Terminology.html">Terminology</a></li><li><a href="Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li><a href="InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li><a href="DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li><a href="Upgrading.html"><strong aria-hidden="true">2.</strong> Upgrading from Version 1</a></li><li><ol class="section"><li><a href="upgrade/BotInfo.html"><strong aria-hidden="true">2.1.</strong> Required Bot Info</a></li><li><a href="upgrade/External-Plugin.html"><strong aria-hidden="true">2.2.</strong> External Plugin Configuration</a></li><li><a href="upgrade/Custom-Dir.html"><strong aria-hidden="true">2.3.</strong> Custom Configuration Directory</a></li><li><a href="upgrade/Encryption.html"><strong aria-hidden="true">2.4.</strong> Early Encryption Initialization</a></li></ol></li><li><a href="config/file.html"><strong aria-hidden="true">3.</strong> Configuration File Loading</a></li><li><a href="usage/admin.html"><strong aria-hidden="true">4.</strong> Administrator Commands</a></li><li><a href="usage/cli.html"><strong aria-hidden="true">5.</strong> Command-Line Use</a></li><li><a href="api/API-Introduction.html"><strong aria-hidden="true">6.</strong> Gopherbot API</a></li><li><ol class="section"><li><a href="api/Languages.html"><strong aria-hidden="true">6.1.</strong> Language Templates</a></li><li><a href="api/Attribute-Retrieval-API.html"><strong aria-hidden="true">6.2.</strong> Attribute Retrieval</a></li><li><a href="api/Brain-API.html"><strong aria-hidden="true">6.3.</strong> Brain Methods</a></li><li><a href="api/Message-Sending-API.html"><strong aria-hidden="true">6.4.</strong> Message Sending</a></li><li><a href="api/Pipeline-API.html"><strong aria-hidden="true">6.5.</strong> Pipeline Construction</a></li><li><a href="api/Response-Request-API.html"><strong aria-hidden="true">6.6.</strong> Requesting Responses</a></li><li><a href="api/Utility-API.html"><strong aria-hidden="true">6.7.</strong> Utility</a></li></ol></li><li><a href="Modules.html"><strong aria-hidden="true">7.</strong> Module Support</a></li><li><a href="pipelines/integrations.html"><strong aria-hidden="true">8.</strong> Tool Integrations</a></li><li><ol class="section"><li><a href="pipelines/ssh.html"><strong aria-hidden="true">8.1.</strong> Integrating with SSH</a></li></ol></li><li><a href="GopherDev.html"><strong aria-hidden="true">9.</strong> Working on Gopherbot</a></li><li><ol class="section"><li><a href="botdev/DevelRobot.html"><strong aria-hidden="true">9.1.</strong> Development Robot</a></li><li><a href="botdev/IntegrationTests.html"><strong aria-hidden="true">9.2.</strong> Integration Tests</a></li><li><a href="botdev/Gitpod.html"><strong aria-hidden="true">9.3.</strong> Coding with Gitpod</a></li><li><a href="botdev/StructsInterfaces.html"><strong aria-hidden="true">9.4.</strong> Important Structs and Interfaces</a></li></ol></li></ol>
+            <div id="sidebar-scrollbox" class="sidebar-scrollbox">
+                <ol class="chapter"><li class="expanded affix "><a href="Title.html">Title</a></li><li class="expanded affix "><a href="Foreward.html">Foreward</a></li><li class="expanded affix "><a href="Introduction.html">Introduction</a></li><li class="expanded affix "><a href="Terminology.html">Terminology</a></li><li class="expanded "><a href="Installation.html"><strong aria-hidden="true">1.</strong> Installation</a></li><li><ol class="section"><li class="expanded "><a href="InstallOverview.html"><strong aria-hidden="true">1.1.</strong> Installation Overview</a></li><li class="expanded "><a href="DockerInstall.html"><strong aria-hidden="true">1.2.</strong> Docker Install</a></li></ol></li><li class="expanded "><a href="Upgrading.html"><strong aria-hidden="true">2.</strong> Upgrading from Version 1</a></li><li><ol class="section"><li class="expanded "><a href="upgrade/BotInfo.html"><strong aria-hidden="true">2.1.</strong> Required Bot Info</a></li><li class="expanded "><a href="upgrade/External-Plugin.html"><strong aria-hidden="true">2.2.</strong> External Plugin Configuration</a></li><li class="expanded "><a href="upgrade/Custom-Dir.html"><strong aria-hidden="true">2.3.</strong> Custom Configuration Directory</a></li><li class="expanded "><a href="upgrade/Encryption.html"><strong aria-hidden="true">2.4.</strong> Early Encryption Initialization</a></li></ol></li><li class="expanded "><a href="config/file.html"><strong aria-hidden="true">3.</strong> Configuration File Loading</a></li><li class="expanded "><a href="usage/admin.html"><strong aria-hidden="true">4.</strong> Administrator Commands</a></li><li class="expanded "><a href="usage/cli.html"><strong aria-hidden="true">5.</strong> Command-Line Use</a></li><li class="expanded "><a href="api/API-Introduction.html"><strong aria-hidden="true">6.</strong> Gopherbot API</a></li><li><ol class="section"><li class="expanded "><a href="api/Languages.html"><strong aria-hidden="true">6.1.</strong> Language Templates</a></li><li class="expanded "><a href="api/Attribute-Retrieval-API.html"><strong aria-hidden="true">6.2.</strong> Attribute Retrieval</a></li><li class="expanded "><a href="api/Brain-API.html"><strong aria-hidden="true">6.3.</strong> Brain Methods</a></li><li class="expanded "><a href="api/Message-Sending-API.html"><strong aria-hidden="true">6.4.</strong> Message Sending</a></li><li class="expanded "><a href="api/Pipeline-API.html"><strong aria-hidden="true">6.5.</strong> Pipeline Construction</a></li><li class="expanded "><a href="api/Response-Request-API.html"><strong aria-hidden="true">6.6.</strong> Requesting Responses</a></li><li class="expanded "><a href="api/Utility-API.html"><strong aria-hidden="true">6.7.</strong> Utility</a></li></ol></li><li class="expanded "><a href="Modules.html"><strong aria-hidden="true">7.</strong> Module Support</a></li><li class="expanded "><a href="pipelines/integrations.html"><strong aria-hidden="true">8.</strong> Tool Integrations</a></li><li><ol class="section"><li class="expanded "><a href="pipelines/ssh.html"><strong aria-hidden="true">8.1.</strong> Integrating with SSH</a></li></ol></li><li class="expanded "><a href="GopherDev.html"><strong aria-hidden="true">9.</strong> Working on Gopherbot</a></li><li><ol class="section"><li class="expanded "><a href="botdev/DevelRobot.html"><strong aria-hidden="true">9.1.</strong> Development Robot</a></li><li class="expanded "><a href="botdev/IntegrationTests.html"><strong aria-hidden="true">9.2.</strong> Integration Tests</a></li><li class="expanded "><a href="botdev/Gitpod.html"><strong aria-hidden="true">9.3.</strong> Coding with Gitpod</a></li><li class="expanded "><a href="botdev/StructsInterfaces.html"><strong aria-hidden="true">9.4.</strong> Important Structs and Interfaces</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -245,7 +248,7 @@ esac
 <p>Version 2 of <strong>Gopherbot</strong> introduced a new, unified and simplified install method for both host- and container- based installs. Whether creating an instance of a new robot, or running an existing robot in a new location, basic installation to a host consists of a few simple steps:</p>
 <ol>
 <li>Un-zip or un-tar the download archive in <code>/opt/gopherbot</code></li>
-<li>Create a new empty directory for your robot; by convention <code>&lt;name\&gt;-gopherbot</code>, e.g. <code>clu-gopherbot</code>
+<li>Create a new empty directory for your robot; by convention <code>\&lt;name\&gt;-gopherbot</code>, e.g. <code>clu-gopherbot</code>
 <ol>
 <li>Optionally, create a symlink to the binary, e.g.: <code>cd clu-gopherbot; ln -s /opt/gopherbot/gopherbot .</code></li>
 </ol>
@@ -271,7 +274,7 @@ GOPHER_ALIAS=\
 </ol>
 <pre><code class="language-shell">$ docker run --env-file .env --name frodo lnxjedi/gopherbot
 </code></pre>
-<p>If all goes well, your terminal window will start filling up with <strong>Gopherbot</strong> debug logs, and your robot will connect to your Slack team. Now you can invite your robot user to a channel and try out a few commands. Assuming you used <code></code> for the alias, and <code>frodo</code> for the robot's name, you can try:</p>
+<p>If all goes well, your terminal window will start filling up with <strong>Gopherbot</strong> debug logs, and your robot will connect to your Slack team. Now you can invite your robot user to a channel and try out a few commands. Assuming you used <code>\</code> for the alias, and <code>frodo</code> for the robot's name, you can try:</p>
 <ul>
 <li><code>\ping</code></li>
 <li><code>frodo, info</code></li>
@@ -280,7 +283,7 @@ GOPHER_ALIAS=\
 <li><code>\whoami</code></li>
 </ul>
 <h3><a class="header" href="#adding-an-administrator" id="adding-an-administrator">Adding an Administrator</a></h3>
-<p>These instructions assume you kept the default <code></code> for the robot's alias.</p>
+<p>These instructions assume you kept the default <code>\</code> for the robot's alias.</p>
 <ol>
 <li>Use the <code>\whoami</code> command to determine your actual Slack username, which frequently differs from the display name you see in channels</li>
 <li>Press &lt;ctrl-c&gt; to stop your container, then remove it:</li>
@@ -420,42 +423,42 @@ GOPHER_ALIAS=\
 <p>Note that the script plugin API is implemented on top of the native Go API, so that document may also be of use for scripting plugin authors. The file <code>bot/http.go</code>, and the scripting libraries in <code>lib/</code> will illuminate the mapping from the script APIs to the native Go API.</p>
 <h1><a class="header" href="#table-of-contents" id="table-of-contents">Table of Contents</a></h1>
 <ul>
-<li><a href="api/#plugin-loading-and-precedence">Plugin Loading and Precedence</a></li>
-<li><a href="api/#default-configuration">Default Configuration</a></li>
-<li><a href="api/#calling-convention">Calling Convention</a>
+<li><a href="api/Languages.html#plugin-loading-and-precedence">Plugin Loading and Precedence</a></li>
+<li><a href="api/Languages.html#default-configuration">Default Configuration</a></li>
+<li><a href="api/Languages.html#calling-convention">Calling Convention</a>
 <ul>
-<li><a href="api/#environment-variables">Environment Variables</a></li>
-<li><a href="api/#reserved-commands">Reserved Commands</a></li>
+<li><a href="api/Languages.html#environment-variables">Environment Variables</a></li>
+<li><a href="api/Languages.html#reserved-commands">Reserved Commands</a></li>
 </ul>
 </li>
-<li><a href="api/#plugin-types-and-calling-events">Plugin Types and Calling Events</a>
+<li><a href="api/Languages.html#plugin-types-and-calling-events">Plugin Types and Calling Events</a>
 <ul>
-<li><a href="api/#command-plugins">Command Plugins</a></li>
-<li><a href="api/#authorization-plugins">Authorization Plugins</a></li>
-<li><a href="api/#elevation-plugins">Elevation Plugins</a></li>
+<li><a href="api/Languages.html#command-plugins">Command Plugins</a></li>
+<li><a href="api/Languages.html#authorization-plugins">Authorization Plugins</a></li>
+<li><a href="api/Languages.html#elevation-plugins">Elevation Plugins</a></li>
 </ul>
 </li>
-<li><a href="api/#using-the-terminal-connector">Using the Terminal Connector</a></li>
-<li><a href="api/#plugin-debugging">Plugin Debugging</a>
+<li><a href="api/Languages.html#using-the-terminal-connector">Using the Terminal Connector</a></li>
+<li><a href="api/Languages.html#plugin-debugging">Plugin Debugging</a>
 <ul>
-<li><a href="api/#debug-plugin-command">Debug Plugin Command</a></li>
-<li><a href="api/#dump-plugin-command">Dump Plugin Command</a></li>
+<li><a href="api/Languages.html#debug-plugin-command">Debug Plugin Command</a></li>
+<li><a href="api/Languages.html#dump-plugin-command">Dump Plugin Command</a></li>
 </ul>
 </li>
-<li><a href="api/#getting-started">Getting Started</a>
+<li><a href="api/Languages.html#getting-started">Getting Started</a>
 <ul>
-<li><a href="api/#starting-from-a-sample-plugin">Starting from a Sample Plugin</a></li>
-<li><a href="api/#using-boilerplate-code">Using Boilerplate Code</a>
+<li><a href="api/Languages.html#starting-from-a-sample-plugin">Starting from a Sample Plugin</a></li>
+<li><a href="api/Languages.html#using-boilerplate-code">Using Boilerplate Code</a>
 <ul>
-<li><a href="api/#bash-boilerplate">Bash Boilerplate</a></li>
-<li><a href="api/#powershell-boilerplate">PowerShell Boilerplate</a></li>
-<li><a href="api/#python-boilerplate">Python Boilerplate</a></li>
-<li><a href="api/#ruby-boilerplate">Ruby Boilerplate</a></li>
+<li><a href="api/Languages.html#bash-boilerplate">Bash Boilerplate</a></li>
+<li><a href="api/Languages.html#powershell-boilerplate">PowerShell Boilerplate</a></li>
+<li><a href="api/Languages.html#python-boilerplate">Python Boilerplate</a></li>
+<li><a href="api/Languages.html#ruby-boilerplate">Ruby Boilerplate</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="api/#the-plugin-api">The Plugin API</a></li>
+<li><a href="api/Languages.html#the-plugin-api">The Plugin API</a></li>
 </ul>
 <h1><a class="header" href="#plugin-loading-and-precedence" id="plugin-loading-and-precedence">Plugin Loading and Precedence</a></h1>
 <p>Gopherbot ships with a number of external script plugins in the <code>install</code> directory. These can be overridden by placing a plugin with the same filename in the optional configuration directory.</p>
@@ -799,18 +802,18 @@ plugins in the <code>plugins/</code> directory, and the <code>links</code> and <
 not included in the distributed <code>.zip</code> files).</p>
 <h1><a class="header" href="#table-of-contents-1" id="table-of-contents-1">Table of Contents</a></h1>
 <ul>
-<li><a href="api/#memory-scoping">Memory Scoping</a></li>
-<li><a href="api/#long-term-memories">Long-Term Memories</a>
+<li><a href="api/Brain-API.html#memory-scoping">Memory Scoping</a></li>
+<li><a href="api/Brain-API.html#long-term-memories">Long-Term Memories</a>
 <ul>
-<li><a href="api/#long-term-memory-code-examples">Code Examples</a></li>
-<li><a href="api/#long-term-memory-sample-transcript">Sample Transcript</a></li>
+<li><a href="api/Brain-API.html#long-term-memory-code-examples">Code Examples</a></li>
+<li><a href="api/Brain-API.html#long-term-memory-sample-transcript">Sample Transcript</a></li>
 </ul>
 </li>
-<li><a href="api/#short-term-memories">Short-Term Memories</a>
+<li><a href="api/Brain-API.html#short-term-memories">Short-Term Memories</a>
 <ul>
-<li><a href="api/#method-summary">Method Summary</a></li>
-<li><a href="api/#short-term-memory-code-examples">Code Examples</a></li>
-<li><a href="api/#short-term-memory-sample-transcript">Sample Transcript</a></li>
+<li><a href="api/Brain-API.html#method-summary">Method Summary</a></li>
+<li><a href="api/Brain-API.html#short-term-memory-code-examples">Code Examples</a></li>
+<li><a href="api/Brain-API.html#short-term-memory-sample-transcript">Sample Transcript</a></li>
 </ul>
 </li>
 </ul>
@@ -975,15 +978,15 @@ general: Ferris Bueller is a Righteous Dude
 </code></pre>
 <h1><a class="header" href="#table-of-contents-2" id="table-of-contents-2">Table of Contents</a></h1>
 <ul>
-<li><a href="api/#message-formatting">Message Formatting</a></li>
-<li><a href="api/#say-and-reply">Say and Reply</a></li>
-<li><a href="api/#sendusermessage-sendchannelmessage-and-senduserchannelmessage">SendUserMessage, SendChannelMessage and SendUserChannelMessage</a></li>
-<li><a href="api/#code-examples">Code Examples</a>
+<li><a href="api/Message-Sending-API.html#message-formatting">Message Formatting</a></li>
+<li><a href="api/Message-Sending-API.html#say-and-reply">Say and Reply</a></li>
+<li><a href="api/Message-Sending-API.html#sendusermessage-sendchannelmessage-and-senduserchannelmessage">SendUserMessage, SendChannelMessage and SendUserChannelMessage</a></li>
+<li><a href="api/Message-Sending-API.html#code-examples">Code Examples</a>
 <ul>
-<li><a href="api/#bash">Bash</a></li>
-<li><a href="api/#powershell">PowerShell</a></li>
-<li><a href="api/#python">Python</a></li>
-<li><a href="api/#ruby">Ruby</a></li>
+<li><a href="api/Message-Sending-API.html#bash">Bash</a></li>
+<li><a href="api/Message-Sending-API.html#powershell">PowerShell</a></li>
+<li><a href="api/Message-Sending-API.html#python">Python</a></li>
+<li><a href="api/Message-Sending-API.html#ruby">Ruby</a></li>
 </ul>
 </li>
 </ul>
@@ -1045,8 +1048,8 @@ end
 </ul>
 <h1><a class="header" href="#table-of-contents-3" id="table-of-contents-3">Table of Contents</a></h1>
 <ul>
-<li><a href="api/#addtask">AddTask</a></li>
-<li><a href="api/#setparameter">SetParameter</a></li>
+<li><a href="api/Pipeline-API.html#addtask">AddTask</a></li>
+<li><a href="api/Pipeline-API.html#setparameter">SetParameter</a></li>
 </ul>
 <h2><a class="header" href="#addtask" id="addtask">AddTask</a></h2>
 <p>The <code>AddTask</code> method ... TODO: finish me!</p>
@@ -1064,19 +1067,19 @@ end
 <p>The <code>Prompt*ForReply</code> methods make it simple to write interactive plugins where the bot can request additional input from the user.</p>
 <h1><a class="header" href="#table-of-contents-4" id="table-of-contents-4">Table of Contents</a></h1>
 <ul>
-<li><a href="api/#technical-background">Technical Background</a></li>
-<li><a href="api/#prompting-methods">Prompting Methods</a>
+<li><a href="api/Response-Request-API.html#technical-background">Technical Background</a></li>
+<li><a href="api/Response-Request-API.html#prompting-methods">Prompting Methods</a>
 <ul>
-<li><a href="api/#method-arguments">Method Arguments</a></li>
-<li><a href="api/#return-values">Return Values</a></li>
+<li><a href="api/Response-Request-API.html#method-arguments">Method Arguments</a></li>
+<li><a href="api/Response-Request-API.html#return-values">Return Values</a></li>
 </ul>
 </li>
-<li><a href="api/#code-examples">Code Examples</a>
+<li><a href="api/Response-Request-API.html#code-examples">Code Examples</a>
 <ul>
-<li><a href="api/#bash">Bash</a></li>
-<li><a href="api/#powershell">PowerShell</a></li>
-<li><a href="api/#python">Python</a></li>
-<li><a href="api/#ruby">Ruby</a></li>
+<li><a href="api/Response-Request-API.html#bash">Bash</a></li>
+<li><a href="api/Response-Request-API.html#powershell">PowerShell</a></li>
+<li><a href="api/Response-Request-API.html#python">Python</a></li>
+<li><a href="api/Response-Request-API.html#ruby">Ruby</a></li>
 </ul>
 </li>
 </ul>
@@ -1369,6 +1372,14 @@ make: *** [test] Error 1
 
         
 
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
         
 
         
