@@ -61,8 +61,8 @@ func Start(v VersionInfo) {
 	botStdOutLogger = log.New(os.Stdout, "", logFlags)
 	// Container support
 	pid := os.Getpid()
-	if _, ok := os.LookupEnv("GOPHER_CHILD"); !ok {
-		// if pid == 1 {
+	// if _, ok := os.LookupEnv("GOPHER_CHILD"); !ok {
+	if pid == 1 {
 		Log(robot.Info, "PID == 1, spawning child")
 		bin, _ := os.Executable()
 		env := append(os.Environ(), "GOPHER_CHILD=true")

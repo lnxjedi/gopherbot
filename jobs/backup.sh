@@ -11,7 +11,7 @@ fi
 
 PTYPE=$GOPHER_PIPELINE_TYPE
 CHANGES=$(cd $STATE_DIR; git status --porcelain)
-echo "Changes: $CHANGES" >&2
+
 if [ -z "$CHANGES" ] # no changes
 then
     if [ "$PTYPE" == "plugCommand" -o "$PTYPE" == "jobCommand" ]
