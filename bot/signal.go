@@ -3,9 +3,12 @@
 package bot
 
 import (
+	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
@@ -13,22 +16,31 @@ import (
 func sigHandle(sigBreak chan struct{}) {
 	sigs := make(chan os.Signal, 1)
 
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1)
 
 loop:
 	for {
 		select {
 		case sig := <-sigs:
-			state.Lock()
-			if state.shuttingDown {
-				Log(robot.Warn, "Received SIGINT/SIGTERM while shutdown in progress")
-				state.Unlock()
-			} else {
-				state.shuttingDown = true
-				state.Unlock()
-				signal.Stop(sigs)
-				Log(robot.Info, "Exiting on signal: %s", sig)
-				stop()
+			switch sig {
+			case syscall.SIGINT, syscall.SIGTERM:
+				state.Lock()
+				if state.shuttingDown {
+					Log(robot.Warn, "Received SIGINT/SIGTERM while shutdown in progress")
+					state.Unlock()
+				} else {
+					state.shuttingDown = true
+					state.Unlock()
+					signal.Stop(sigs)
+					Log(robot.Info, "Exiting on signal: %s", sig)
+					stop()
+				}
+			case syscall.SIGUSR1:
+				buf := make([]byte, 32768)
+				runtime.Stack(buf, true)
+				log.Printf("%s", buf)
+				time.Sleep(2 * time.Second)
+				panic("SIGUSR1 received")
 			}
 		// done declared globally at top of this file
 		case <-sigBreak:
