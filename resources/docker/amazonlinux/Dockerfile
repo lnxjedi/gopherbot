@@ -16,12 +16,12 @@ RUN yum -y update && \
   yum clean all && \
   rm -rf /var/cache/yum
 
-# Common from here down
-ARG installdir=/opt
-ARG version=v2.0.0-snapshot
 ARG username=daemon
 ARG nonprivuser=nobody
 ARG groupname=nobody
+# Common from here down
+ARG installdir=/opt
+ARG version=v2.0.0-snapshot
 ARG goversion=1.13.5
 
 ENV PATH=${PATH}:${HOME}/go/bin:/usr/local/go/bin

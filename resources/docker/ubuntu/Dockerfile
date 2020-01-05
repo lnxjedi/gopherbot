@@ -16,12 +16,12 @@ RUN apt-get update && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
+ARG username=daemon
+ARG nonprivuser=nobody
+ARG groupname=nogroup
 # Common from here down
 ARG installdir=/opt
 ARG version=v2.0.0-snapshot
-ARG username=daemon
-ARG nonprivuser=nobody
-ARG groupname=nobody
 ARG goversion=1.13.5
 
 ENV PATH=${PATH}:${HOME}/go/bin:/usr/local/go/bin
