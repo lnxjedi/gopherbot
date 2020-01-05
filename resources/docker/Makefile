@@ -5,7 +5,7 @@
 include environment
 
 GOPHER_SOURCE_IMAGE?=lnxjedi/gopherbot:latest
-GOPHER_BOTNAME?=$(notdir $(basename $(abspath ..)))
+GOPHER_BOTNAME?=$(notdir $(basename $(abspath .)))
 
 # Example prod container that runs detached and restarts on failure.
 prod:
