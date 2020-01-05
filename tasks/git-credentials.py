@@ -15,6 +15,14 @@ from gopherbot_v2 import Robot
 
 bot = Robot()
 
+cfgdir = os.getenv("GOPHER_CONFIGDIR")
+try:
+    os.stat("%s/git/config" % cfgdir)
+except FileNotFoundError:
+    bot.Log("Warn", "%s/git/config not found, git push will fail" % cfgdir)
+
+bot.SetParameter("XDG_CONFIG_HOME", "%s/git" % cfgdir)
+
 # Pop off the executable path
 sys.argv.pop(0)
 

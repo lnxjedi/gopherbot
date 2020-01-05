@@ -64,7 +64,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		c.baseDirectory = "."
 		c.workingDirectory = "."
 		c.environment["GOPHER_WORKSPACE"] = w.cfg.workSpace
-		c.environment["GOPHER_CONFIGDIR"] = configPath
+		c.environment["GOPHER_CONFIGDIR"] = configFull
 	} else {
 		c.baseDirectory = w.cfg.workSpace
 		c.workingDirectory = w.cfg.workSpace

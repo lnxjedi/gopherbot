@@ -87,7 +87,7 @@ if [ -n "$GOPHER_HOME" ]
 then
     if [ -e "$GOPHER_CONFIGDIR/ssh/config" ]
     then
-        SSH_OPTIONS="-F $GOPHER_HOME/$GOPHER_CONFIGDIR/ssh/config"
+        SSH_OPTIONS="-F $GOPHER_CONFIGDIR/ssh/config"
     fi
     SSH_OPTIONS="$SSH_OPTIONS -o UserKnownHostsFile=$GOPHER_HOME/known_hosts"
 fi

@@ -28,7 +28,7 @@ type VersionInfo struct {
 }
 
 // global values for GOPHER_HOME, GOPHER_CONFIGDIR and GOPHER_INSTALLDIR
-var homePath, configPath, installPath string
+var homePath, configPath, configFull, installPath string
 
 var botVersion VersionInfo
 
@@ -153,6 +153,11 @@ func initBot(cpath, epath string, logger *log.Logger) {
 		Log(robot.Fatal, "Unable to get/create config path: %s", cpath)
 	}
 	configPath = cpath
+	if filepath.IsAbs(cpath) {
+		configFull = cpath
+	} else {
+		configFull = filepath.Join(homePath, cpath)
+	}
 	installPath = epath
 
 	state.shuttingDown = false

@@ -21,6 +21,7 @@ The following values can be provided to your robot on start-up:
 * `GOPHER_CUSTOM_REPOSITORY` - clone URL for the robot's custom configuration, used in bootstrapping
 * `GOPHER_CUSTOM_BRANCH` - branch to use if other than `master`
 * `GOPHER_LOGFILE` - where to write out a log file
+* `GOPHER_CONFIGDIR` - absolute or relative path to configuration directory
 * `DEPLOY_KEY` - ssh deploy key for cloning the custom repository
 
 For the optional `state` and `private` repositories, the included jobs will use the `GOPHER_CUSTOM_REPOSITORY` value with `s/gopherbot/state/` and `s/gopherbot/private/` (same branch). If desired, the values can also be supplied:
@@ -82,7 +83,7 @@ The following are also supplied whenever a job is run:
 Pipelines and tasks that have `Homed: true` and/or `Privileged: true` may also get:
 * `GOPHER_HOME` - absolute path to the startup directory for the robot, relative paths are relative to this directory; unset if `cwd` can't be determined
 * `GOPHER_WORKSPACE` - the workspace directory (normally relative to `GOPHER_HOME`)
-* `GOPHER_CONFIGDIR` - custom configuration directory, normally `custom`
+* `GOPHER_CONFIGDIR` - absolute path to custom configuration directory, normally `$GOPHER_HOME/custom`
 * `GOPHER_WORKDIR` - set to the current working directory for the pipeline (used by e.g. the "clean" task)
 
 ### GopherCI Environment Variables
