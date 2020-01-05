@@ -1,16 +1,16 @@
 FROM centos:latest
 
 RUN yum -y update && \
-  yum -y install epel-release \
   yum -y install \
     git \
     jq \
+    gcc \
     make \
     openssh-clients \
-    PyYAML \
-    rh-ruby24 && \
-  ln -s /opt/rh/rh-ruby24/root/usr/bin/ruby /usr/bin/ruby && \
-  ln -s /opt/rh/rh-ruby24/root/usr/lib64/libruby.so.2.4.* /usr/lib64/libruby.so.2.4 && \
+    python3 \
+    ruby \
+    unzip \
+    zip && \
   yum clean all && \
   rm -rf /var/cache/yum
 
@@ -32,7 +32,7 @@ RUN cd /usr/local && \
   mkdir -p ${installdir} && \
   mkdir -p ${HOME} && \
   chown ${username}:${groupname} ${HOME} && \
-  chmod 0750 ${HOME} 
+  chmod 0750 ${HOME}
 
 # Invalidate the cache when master changes
 ADD https://api.github.com/repos/lnxjedi/gopherbot/commits/master /commit

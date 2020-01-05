@@ -5,12 +5,14 @@ RUN apt-get update && \
   apt-get install -y \
     curl \
     git \
+    gcc \
     jq \
     make \
     openssh-client \
     python3 \
     ruby \
-    unzip && \
+    unzip \
+    zip && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
@@ -32,7 +34,7 @@ RUN cd /usr/local && \
   mkdir -p ${installdir} && \
   mkdir -p ${HOME} && \
   chown ${username}:${groupname} ${HOME} && \
-  chmod 0750 ${HOME} 
+  chmod 0750 ${HOME}
 
 # Invalidate the cache when master changes
 ADD https://api.github.com/repos/lnxjedi/gopherbot/commits/master /commit
