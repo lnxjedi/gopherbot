@@ -67,8 +67,11 @@ AddTask exec ./.gopherci/publishdoc.sh
 # Publish archives to github
 AddTask exec ./.gopherci/publish.sh
 
+# Update gopherbot-docker
+AddTask exec ./.gopherci/dockerupdate.sh
+
 # Trigger Docker build
-AddTask exec ./.gopherci/dockercloud.sh
+# AddTask exec ./.gopherci/dockercloud.sh
 
 # Notify of success
 if [ -n "$NOTIFY_USER" ]
