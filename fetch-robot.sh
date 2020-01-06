@@ -110,3 +110,12 @@ echo "Setting 'GOPHER_PROTOCOL' to 'terminal' and logging to ./robot.log..."
 GOPHER_PROTOCOL=terminal ./gopherbot -l robot.log
 EOF
 chmod +x terminal.sh
+
+cp $SCRIPTDIR/resources/docker/Makefile .
+if [ -e ".env" ]
+then
+    ln -s ".env" "environment"
+elif [ -e "private/environment" ]
+then
+    ln -s "private/environment" "environment"
+fi

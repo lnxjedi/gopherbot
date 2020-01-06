@@ -1,3 +1,7 @@
 # Installation
 
-The most basic install of **Gopherbot** consists of extracting the archive to `/opt/gopherbot`, creating a robot configuration repository, and running the `gopherbot` binary from the root of that directory. There are a number of other details covered in the [overview](InstallOverview.md), but that's the gist of it.
+There are two distinct pieces to any given robot:
+
+* The **Gopherbot** distribution archive, normally in `/opt/gopherbot` providing the `gopherbot` binary, default configuration, and a wide assortment of included batteries (libraries, plugins, jobs, tasks, helper scripts and more). This short chapter discusses the software install and requirements.
+
+* Configuration for a specific robot - configuring and running your robot(s) is the topic of most of the other chapters

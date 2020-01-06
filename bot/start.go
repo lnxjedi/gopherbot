@@ -175,11 +175,13 @@ func Start(v VersionInfo) {
 	} else if len(envCfgPath) > 0 {
 		configpath = envCfgPath
 	} else {
-		if _, ok := checkDirectory("conf"); ok {
+		if _, ok := checkDirectory("custom"); ok {
+			configpath = "custom"
+		} else if _, ok := checkDirectory("conf"); ok {
 			configpath = "."
 		} else {
 			// If not explicitly set or cwd, use "custom" even if it
-			// doesn't exist. For compatibility with old installs.
+			// doesn't exist.
 			configpath = "custom"
 		}
 	}

@@ -8,10 +8,12 @@
 
 [Terminology](Terminology.md)
 
-## Installation
+## Software Installation
 - [Installation](Installation.md)
-    - [Installation Overview](InstallOverview.md)
-    - [Docker Install](DockerInstall.md)
+    - [Gopherbot and Requirements](GopherbotInstall.md)
+
+## Setting up a Robot
+- [Initial Configuration](RobotInstall.md)
 
 ## Upgrading
 - [Upgrading from Version 1](Upgrading.md)
@@ -38,8 +40,8 @@
     - [Utility](api/Utility-API.md)
 - [Module Support](Modules.md)
 
-## Jobs and Build Pipelines
-
+## Jobs and Pipelines
+- [Jobs and Pipelines](pipelines/jobspipes.md)
 - [Tool Integrations](pipelines/integrations.md)
     - [Integrating with SSH](pipelines/ssh.md)
 
