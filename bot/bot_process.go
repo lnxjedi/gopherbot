@@ -329,6 +329,7 @@ func run() {
 	// No need to check for errors on first load; it would have been
 	// caught during the preConnect load above.
 	loadConfig(false)
+	Log(robot.Info, "Robot is initialized and running")
 }
 
 // stop is called whenever the robot needs to shut down gracefully. All callers
