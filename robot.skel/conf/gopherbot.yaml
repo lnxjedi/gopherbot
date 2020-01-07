@@ -1,140 +1,179 @@
-## This is an example gopherbot.yaml that cat be used to customize
-## the default configuration. The contents of this file override / 
-## augment the contents of conf/gopherbot.yaml in the distribution,
-## and you should examine that file's contents as well.
+# This is the non-sensitive configuration for Clu, the gopherbot used
+# for development with Docker.
+# List of users that can issue admin commands like reload, quit. Should be
+# a list of user handles / nicks.
+AdminContact: "David Parsley, <parsley@linuxjedi.org>"
+IgnoreUsers: [ "floyd", "bender" ]
 
-## NOTE: dictionaries are merged, arrays are replaced.
+## Configure the robot connection protocol
+{{ $proto := env "GOPHER_PROTOCOL" | default "slack" }}
+Protocol: {{ $proto }}
 
-## List of users that can issue admin commands like reload, quit. Should be
-## a list of user handles / nicks. Added to value(s) from GOPHER_ADMIN.
-## You can find your "real" slack username with the "whoami" command, but
-## eventually that info may not be available; it's best to put all usernames
-## with protocol internal IDs in the UserRoster
-#AdminUsers: [ "alice", "bob" ]
+DefaultChannels: [ "general", "random", "chat", "botdev", "clu-jobs" ]
+## Protocol-specific configuration
+{{ if eq $proto "slack" }}
+{{ .Include "slack.yaml" }}
+{{ end }}
 
-## Provided by 'info'
-#AdminContact: "Your Name, <you@your.dom>"
+{{ if eq $proto "terminal" }}
+{{ .Include "terminal.yaml" }}
+{{ end }}
 
-## Channels where plugins will be available by default if none explicitly
-## configured for a plugin.
-DefaultChannels: [ "general", "random" ]
-
-## This can also be specified with GOPHER_ALIAS in '.env', or in
-## 'gopherbot.env' in the root of the custom configuration repository.
-#Alias: ";"
-
-Brain: file
-BrainConfig:
-  BrainDirectory: private/brain
-
-## Command pluggins, protocol connectors and brain providers can
-## be loaded as modules at runtime.
-# LoadableModules:
-#   "knock":
-#     Description: Knock knock jokes!
-#     Path: goplugins/knock.so
-#   "meme":
-#     Description: Image memes using imgflip API
-#     Path: goplugins/meme.so
-#   "dynamo":
-#     Description: Brain using AWS DynamoDB for the key-value store
-#     Path: brains/dynamodb.so
-
-## List of users that the robot won't even 'hear'. Note that if you put other
-## robot / webhook IDs in the UserRoster with 'TriggersOnly: true', you can
-## safely allow robots to 'talk' to each other, and trigger a job by another
-## robot.
-#IgnoreUsers: [ "floyd", "bender" ]
-
-## If a job doesn't specify otherwise, this is the channel where it runs.
-#DefaultJobChannel: clu-jobs
-
-## Example scheduled job
-## Timezone for scheduled jobs
-#TimeZone: "America/New_York"
-## Job scheduling with github.com/robfig/cron
-#ScheduledTasks:
-#- Name: hello
-#  Schedule: "@every 30s" # see: https://godoc.org/github.com/robfig/cron
-#  Arguments: # an array of strings; up to the job to parse numbers & bools
-#  - "Hello, World !!!"
-
-## ExternalPlugins can be added here, or have extra configuration provided.
-#ExternalPlugins:
-#  "echo":
-#    Description: Trivial bash plugin
-#    Path: plugins/samples/echo.sh
-
-## Example configuration for an external job script.
-#ExternalJobs:
-#  "hello":
-#    Description: Trivial hello world job for testing
-#    Path: jobs/hello.sh
-#    Parameters:
-#    - Name: NONCE
-#      Value: "No way, Jack!"
-
-## Add or modify ExternalTasks; mainly ssh-init
-#ExternalTasks:
-
-
-## See the documentation on configuration for an explanation of message format.
-#DefaultMessageFormat: Raw
-
-## Initial log level, one of trace, debug, info, warn, error. See 'help log'
-## for help on changing the log level and viewing contents of the log.
-## The default of "debug" is quite verbose, "info" is recommended.
-
-#LogLevel: info
-
-## If your history logs are in a directory being served by a webserver,
-## put the URLPrefix here.
-
-#HistoryConfig:
-#  URLPrefix: 'http://localhost:9000'
-
-## Optional; all you really need can be put in GOPHER_BOTNAME,
-## GOPHER_BOTFULLNAME, and GOPHER_BOT_EMAIL environment variables.
+{{ $botname := env "GOPHER_BOTNAME" | default "Clu" }}
+{{ $botemail := env "GOPHER_BOTMAIL" | default "clu@linuxjedi.org" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Clu Gopherbot" }}
+{{ $botalias := env "GOPHER_ALIAS" | default "!" }}
 
 BotInfo:
-  UserName: "<GOPHER_BOTNAME>"
-#  Email: clu@linuxjedi.org
-#  FullName: Clu Gopherbot
-#  FirstName: Clu
-#  LastName: Gopherbot
+  UserName: {{ $botname }}
+  Email: {{ $botemail }}
+  FullName: {{ $botfullname }}
+  FirstName: {{ $botname }}
+  LastName: Gopherbot
 
-## By default, if a user isn't listed in the UserRoster, the robot won't
-## try matches for ambient messages not specifically directed to the robot,
-## and those users could be deprived of the Chuck Norris plugin. That aside,
-## Slack has anounced that it will no longer provide a consistent username
-## in the future, and the UserRoster will be required for a persistent
-## mapping from Slack internal IDs (provided by 'whoami') to usernames.
+Alias: "{{ $botalias }}"
 
-# Slack will eventually stop sending a username in messages, so we need
-# to map usernames to user ID's here, for consistency and ease of use
-# for e.g. group membership.
-UserRoster:
-- UserName: "<GOPHER_ADMIN_USER>"
-  UserID: "<GOPHER_ADMIN_ID>"
-## Floyd is the production robot that builds gopherbot,
-## thus 'BotUser: true'
-#- UserName: floyd
-#  UserID: U138KTVCL
-#  BotUser: true
-#- UserName: parsley
-#  UserID: U0JLW8EMS
+# Brain configuration; this can all be replaced with static configuration
+# and encrypted secrets for most robots.
+{{ $brain := env "GOPHER_BRAIN" | default "file" }}
+{{ $statedir := env "GOPHER_STATE_DIRECTORY" | default "state" }}
+{{ $defbraindir := printf "%s/brain" $statedir }}
+Brain: {{ $brain }}
+#EncryptBrain: true # default
+{{ if eq $brain "file" }}
+BrainConfig:
+  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default $defbraindir }}
+  Encode: true
+{{ else if eq $brain "dynamo" }}
+BrainConfig:
+  TableName: "your table name here"
+  Region: {{ env "GOPHER_BRAIN_REGION" | default "us-east-1" }}
+  AccessKeyID: "replace with encrypted value"
+  SecretAccessKey: "replace with encrypted value"
+{{ end }}
+# End brain config
 
-## Example configuration for sending out email via Gmail; also see the
-## comments in the distributed conf/gopherbot.yaml. Note that sending email
-## will fail if BotInfo:Email: isn't set.
+# Defaults for history and workspace directories, relative to the
+# process working directory.
+{{ $histdir := env "GOPHER_HISTORY_DIRECTORY" | default "history" }}
+{{ $workdir := env "GOPHER_WORKSPACE_DIRECTORY" | default "workspace" }}
+{{ if $workdir -}} WorkSpace: {{ $workdir }} {{- end }}
 
-#MailConfig:
-#  Mailhost: smtp.gmail.com:587
-#  Authtype: plain
-#  User: clu@linuxjedi.org
-## DM the robot with 'encrypt <password>' to get the encrypted string.
-#  Password: {{ decrypt "<encryptedEmailPassword>" }}
+## Configure a history provider
+{{ $history := env "GOPHER_HISTORY_PROVIDER" | default "file" }}
+HistoryProvider: {{ $history }}
 
-## An Elevator is used to require additional assurance before running
-## certain commands, such as requiring Duo two-factor.
-#DefaultElevator: duo
+{{ if eq $history "file" }}
+HistoryConfig:
+  Directory: {{ $histdir }}
+  #URLPrefix: 'http://localhost:9000'
+{{ end }}
+## End history config
+
+## Later: modify this for other protocols
+{{ $defaultjobchannel := "clu-jobs" }}
+DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}
+
+## If the plugin doesn't specify an outgoing message format, what's the default?
+## This will be 'Raw' (unmodified, subject to protocol-specific formatting) if
+## not set. 'Variable' will escape special characters like #, @, _, `, etc. so
+## those characters can appear in replies. 'Fixed' will send everything in a
+## fixed-width font.
+#DefaultMessageFormat: Variable # 'Raw' if not specified
+
+# Job scheduling with github.com/robfig/cron
+ScheduledJobs:
+- Name: backup
+  Schedule: "@every 1m"
+# - Name: hello
+#   Schedule: "@every 30s" # see: https://godoc.org/github.com/robfig/cron
+#   Arguments: # an array of strings; up to the job to parse numbers & bools
+#   - "Hello, World !!!"
+# - Name: hello
+#   Schedule: "@every 35s" # see: https://godoc.org/github.com/robfig/cron
+#   Arguments: # an array of strings; up to the job to parse numbers & bools
+#   - "Goodbye, World !!!"
+
+ExternalPlugins:
+  "bootstrap":
+    Parameters: # clear bootstrap parameters once configured
+  "weather":
+    Description: A plugin that uses OpenWeatherMap to report the weather
+    Path: plugins/weather.rb
+    Parameters:
+    - Name: OWM_APIKEY
+      Value: {{ decrypt "KYJzQD8jvfq3liQYPovkdgxe86Im2w79l9YgAQlc1rOBybCLKrDzjkTV8WeLyvah1F5H0vrYGIjfjp8Q" }}
+    - Name: TEMP_UNITS
+      Value: {{ env "GOPHER_OWM_UNITS" | default "imperial" }} # or 'metric'
+    - Name: DEFAULT_COUNTRY
+      Value: {{ env "GOPHER_OWM_COUNTRY" | default "us" }} # or other ISO 3166 country code
+  "chuck":
+    Description: A plugin that pipes up whenever The Man's name is mentioned
+    Path: plugins/chuck.rb
+  "echo":
+    Description: Trivial bash plugin
+    Path: plugins/echo.sh
+  "pythondemo":
+    Description: Sample python plugin
+    Path: plugins/samples/pythondemo.py
+
+LoadableModules:
+  "knock":
+    Description: Knock knock jokes!
+    Path: goplugins/knock.so
+  "memes":
+    Description: Memes!
+    Path: goplugins/meme.so
+
+ExternalJobs:
+  "hello":
+    Description: Trivial hello world job for testing
+    Path: jobs/hello.sh
+    Privileged: true
+    Parameters:
+    - Name: NONCE
+      Value: "No way, Jack!"
+
+NameSpaces:
+  "ssh":
+    Parameters:  
+    - Name: BOT_SSH_PHRASE
+      Value: {{ decrypt "CBow8Kg/9iynxBQFWru+EdWAookX7ERVKcUuLEIp9NDZcpm/QDChILq9p0/2X2dCB7gIrJ4=" }}
+  "manage":
+    Parameters:
+    - Name: GOPHER_STATE_REPOSITORY
+      Value: git@github.com:parsley42/clu-state.git
+    # A default installed robot stores its brain in state/brain
+    - Name: STATE_DIR
+      Value: {{ env "GOPHER_STATE_DIRECTORY" | default "state" }}
+
+
+DefaultMessageFormat: Raw
+# Users the bot should never listen to
+#IgnoreUsers: [ "otherbot", "slackbot" ]
+
+## Configuration for sending out email. For Authtype: none, User and Password
+## can be left out. Note that sending email will fail if Email isn't set. Note
+## for GMail users - for your robot to send email, you'll need to enable less
+## secure apps for the sending account. See:
+## https://support.google.com/accounts/answer/6010255
+
+MailConfig:
+  Mailhost: smtp.gmail.com:587
+  Authtype: plain
+  User: clu@linuxjedi.org
+  Password: {{ decrypt "dIeNE9EID+eXIrutB+8hQQrhBD5cBxSSVzYLlwtj5hX7Lhs/j6uAUl538ro=" }}
+
+## Use Google Authenticator TOTP by default for elevated commands. To use:
+## - Ask the robot to 'send launch codes', and it will send you (one time)
+##   a string for configuring your Google Authencticator app, and store it's
+##   own copy in the robot's brain. You can verify it works with the
+##   'check launch code <code>' command.
+## - To require a token to be provided before running a given plugin command,
+##   add the elevated command(s) to the plugin's ElevatedCommands list, or to
+##   ElevateImmediateCommands for commands that require elevation every time
+##   regardless of timeout.
+## - Configure the elevator by overriding the config for the plugin in
+##   'conf/plugins/totp.yaml'
+
+#DefaultElevator: totp

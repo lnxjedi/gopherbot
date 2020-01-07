@@ -65,7 +65,7 @@ then
     Say "Starting state restore requested by user $GOPHER_USER in channel: $GOPHER_START_CHANNEL"
 fi
 
-AddTask git-credentials "$GOPHER_STATE_REPOSITORY"
+AddTask git-init "$GOPHER_STATE_REPOSITORY"
 # Not certain this will all happen within lockMax, but *shrug*
 AddTask pause-brain
 AddTask cleanup "$STATE_DIR"

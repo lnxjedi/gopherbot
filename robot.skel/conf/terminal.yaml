@@ -1,0 +1,8 @@
+DefaultChannels: [ "general", "random", "chat", "botdev", "clu-jobs" ]
+ProtocolConfig:
+  Channels:
+  - random
+  - general
+  - chat
+  - botdev
+  - clu-jobs

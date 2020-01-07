@@ -57,7 +57,7 @@ if not bot.Exclusive(repobranch, False):
 
 bot.ExtendNamespace(repobranch, keep_history)
 
-bot.AddTask("git-credentials", [ clone_url ])
+bot.AddTask("git-init", [ clone_url ])
 # Start with a clean jobdir
 bot.AddTask("cleanup", [ repobranch ])
 bot.AddTask("git-sync", [ clone_url, branch, repobranch, "true" ])

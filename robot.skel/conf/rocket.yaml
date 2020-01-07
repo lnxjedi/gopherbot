@@ -1,0 +1,16 @@
+## NOTE: Support for Rocket.Chat is new, feel free to create an issue
+## if you try it out and have problems.
+
+# UserRoster:
+## Floyd is the production robot that builds gopherbot
+# - UserName: floyd
+#   UserID: U138KTVCL
+#   BotUser: true
+# - UserName: parsley
+#   UserID: U0JLW8EMS
+
+AdminUsers: [ "parsley", "adrienne" ]
+ProtocolConfig:
+  Server: https://open.rocket.chat
+  Email: {{ env "GOPHER_ROCKET_EMAIL" }}
+  Password: {{ env "GOPHER_ROCKET_PASSWORD" }}

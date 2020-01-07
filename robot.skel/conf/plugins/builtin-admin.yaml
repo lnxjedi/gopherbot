@@ -1,4 +1,0 @@
----
-RequireAdmin: false
-Authorizer: authsetup
-AuthorizeAllCommands: true

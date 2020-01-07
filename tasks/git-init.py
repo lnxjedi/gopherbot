@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-# git-credentials.py - task for setting up git credentials
+# git-init.py - task for setting up git credentials
 # Currently this only adds ssh-init and ssh-scan <host> to
 # the pipeline if needed, but may eventually handle http credentials
 # with a git credential helper.
 
-# Usage: AddTask git-credentials <clone_url>
+# Usage: AddTask git-init <clone_url>
 
 import os
 import re

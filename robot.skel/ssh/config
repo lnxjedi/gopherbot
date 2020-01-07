@@ -1,0 +1,6 @@
+ForwardAgent false
+CanonicalizeHostname yes
+CanonicalDomains hpc.virginia.edu arcs.virginia.edu virginia.edu
+Host rivanna*
+	User dlp7y
+	CheckHostIP no
