@@ -2,10 +2,22 @@ package bot
 
 import "github.com/lnxjedi/gopherbot/robot"
 
+import "os"
+
 // func template(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 // 	r := m.(Robot)
 // 	return
 // }
+
+func setenv(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
+	r := m.(Robot)
+	if len(args) != 2 {
+		r.Log(robot.Error, "task 'setenv' called with %d args != 2", len(args))
+		return robot.Fail
+	}
+	os.Setenv(args[0], args[1])
+	return
+}
 
 func restart(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
@@ -50,6 +62,7 @@ func resume(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 }
 
 func init() {
+	RegisterTask("setenv", true, robot.TaskHandler{Handler: setenv})
 	RegisterTask("restart-robot", true, robot.TaskHandler{Handler: restart})
 	RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pause})
 	RegisterTask("resume-brain", true, robot.TaskHandler{Handler: resume})
