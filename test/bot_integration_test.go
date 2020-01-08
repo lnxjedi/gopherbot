@@ -208,9 +208,9 @@ func TestBotName(t *testing.T) {
 		{aliceID, general, "ping;", []testc.TestMessage{}, []Event{}, 0},
 		{bobID, general, "bender: echo hello world", []testc.TestMessage{{null, general, "Sure thing: hello world"}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		// When you forget to address the robot, you can say it's name
-		{aliceID, general, "ping", []testc.TestMessage{}, []Event{}, 200},
+		{aliceID, general, "ping", []testc.TestMessage{}, []Event{}, 300},
 		{aliceID, general, "bender", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "ping", []testc.TestMessage{}, []Event{}, 200},
+		{aliceID, general, "ping", []testc.TestMessage{}, []Event{}, 300},
 		{aliceID, general, ";", []testc.TestMessage{{alice, general, "PONG"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
