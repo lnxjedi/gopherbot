@@ -14,21 +14,11 @@ configure(){
 	cat <<"EOF"
 ---
 Help:
-- Keywords: [ "setup" ]
-  Helptext: [ "(bot), setup - perform initial setup of a new robot" ]
+- Keywords: [ "administrator" ]
+  Helptext: [ "(bot), add admin <key> - add the user as a robot administrator" ]
 CommandMatchers:
-- Command: "setup"
-  Regex: '(?i:setup)'
-MessageMatchers:
-- Command: "setup"
-  Regex: '(?i:setup)'
-ReplyMatchers:
-- Label: "alias"
-  Regex: '([&!;:%#@~<>\/*+^\$?\\\[\]{}-])'
-- Label: "encryptionkey"
-  Regex: '(.{32,})'
-- Label: "sshkey"
-  Regex: '(.{16,})'
+- Command: "add"
+  Regex: '(?i:add ?admin(istrator)? ([^\s]+))'
 EOF
 }
 
@@ -38,27 +28,11 @@ then
     exit 0
 fi
 
-if [ "$command" == "init" ]
-then
-    NAME=$(GetBotAttribute "name")
-    ALIAS=$(GetBotAttribute "alias")
-    Pause 2
-    SendChannelMessage "general" "Hi, I'm $NAME, the default robot - I see you're running Gopherbot unconfigured"
-    Pause 4
-    SendChannelMessage "general" "Feel free to play around with Gopherbot; you can start by typing 'help'"
-    Pause 4
-    SendChannelMessage "general" "If you've started the robot by mistake, just hit ctrl-D to exit and try 'gopherbot --help'"
-    Pause 4
-    SendChannelMessage "general" "If you'd like to start configuring a new robot, type: '${ALIAS}setup'"
-    exit 0
-fi
-
 if [ "$command" != "setup" ]
 then
     exit 0
 fi
 
-exit 0
 KEY=$1
 
 if [ "$KEY" != "$SETUP_KEY" ]

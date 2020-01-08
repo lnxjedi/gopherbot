@@ -98,6 +98,24 @@ ExternalPlugins:
       Value: "{{ env "DEPLOY_KEY" }}"
     - Name: GOPHER_ENCRYPTION_KEY
       Value: {{ env "GOPHER_ENCRYPTION_KEY" }}
+  {{- if env "GOPHER_UNCONFIGURED" }}
+  "setup":
+    Description: Setup plugin for creating a new robot
+    Privileged: true
+    Homed: true
+    NameSpace: manage
+    Path: plugins/setup.sh
+  {{- end }}
+  {{- if env "GOPHER_ADMIN_TOKEN" }}
+  "addadmin":
+    Description: One-time use plugin for adding the initial robot administrator
+    Privileged: true
+    Homed: true
+    Path: plugins/addadmin.sh
+    Parameters:
+    - Name: GOPHER_ADMIN_TOKEN
+      Value: {{ env "GOPHER_ADMIN_TOKEN" }}
+  {{- end }}
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)
