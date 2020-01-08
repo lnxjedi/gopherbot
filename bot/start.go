@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -141,6 +142,40 @@ func Start(v VersionInfo) {
 	penvErr := godotenv.Overload(envFile)
 
 	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
+	// Configdir is where all user-supplied configuration and
+	// external plugins are.
+	if len(explicitCfgPath) != 0 {
+		configpath = explicitCfgPath
+	} else if len(envCfgPath) > 0 {
+		configpath = envCfgPath
+	} else {
+		if _, ok := checkDirectory("custom"); ok {
+			configpath = "custom"
+		} else if _, ok := checkDirectory("conf"); ok {
+			configpath = "."
+		} else {
+			// If not explicitly set or cwd, use "custom" even if it
+			// doesn't exist.
+			configpath = "custom"
+		}
+	}
+
+	// support for setup plugin
+	_, err := os.Stat(filepath.Join(configPath, "conf", "gopherbot.yaml"))
+	if err != nil {
+		_, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
+		if !ok {
+			os.Setenv("GOPHER_UNCONFIGURED", "true")
+			if _, ok := os.LookupEnv("GOPHER_PROTOCOL"); !ok {
+				os.Setenv("GOPHER_PROTOCOL", "terminal")
+			}
+			if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
+				os.Setenv("GOPHER_LOGFILE", "robot.log")
+			}
+		}
+	} else {
+		os.Unsetenv("GOPHER_UNCONFIGURED")
+	}
 
 	var logger *log.Logger
 	logOut := os.Stdout
@@ -166,24 +201,6 @@ func Start(v VersionInfo) {
 	logger = log.New(logOut, "", logFlags)
 	if !cliOp {
 		logger.Println("Initialized logging ...")
-	}
-
-	// Configdir is where all user-supplied configuration and
-	// external plugins are.
-	if len(explicitCfgPath) != 0 {
-		configpath = explicitCfgPath
-	} else if len(envCfgPath) > 0 {
-		configpath = envCfgPath
-	} else {
-		if _, ok := checkDirectory("custom"); ok {
-			configpath = "custom"
-		} else if _, ok := checkDirectory("conf"); ok {
-			configpath = "."
-		} else {
-			// If not explicitly set or cwd, use "custom" even if it
-			// doesn't exist.
-			configpath = "custom"
-		}
 	}
 
 	if !cliOp {

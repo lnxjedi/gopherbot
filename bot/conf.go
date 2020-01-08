@@ -267,17 +267,29 @@ func loadConfig(preConnect bool) error {
 	} else {
 		return fmt.Errorf("Protocol not specified in gopherbot.yaml")
 	}
+	if newconfig.Brain != "" {
+		processed.brainProvider = newconfig.Brain
+	}
+	if newconfig.BrainConfig != nil {
+		brainConfig = newconfig.BrainConfig
+	}
+	if newconfig.HistoryProvider != "" {
+		processed.historyProvider = newconfig.HistoryProvider
+	}
+	if newconfig.HistoryConfig != nil {
+		historyConfig = newconfig.HistoryConfig
+	}
 
 	if preConnect {
+		lm := make([]LoadableModule, 0)
 		if newconfig.LoadableModules != nil {
-			lm := make([]LoadableModule, 0)
 			for name, mod := range newconfig.LoadableModules {
 				mod.Name = name
 				lm = append(lm, mod)
 			}
 			processed.loadableModules = lm
-			loadModules(newconfig.Protocol, lm)
 		}
+		loadModules(newconfig.Protocol, newconfig.Brain, newconfig.HistoryProvider, lm)
 	}
 
 	if newconfig.Alias != "" {
@@ -485,13 +497,6 @@ func loadConfig(preConnect bool) error {
 		}
 	}
 
-	if newconfig.HistoryProvider != "" {
-		processed.historyProvider = newconfig.HistoryProvider
-	}
-	if newconfig.HistoryConfig != nil {
-		historyConfig = newconfig.HistoryConfig
-	}
-
 	// Items only read at start-up, before multi-threaded
 	if preConnect {
 		if newconfig.ProtocolConfig != nil {
@@ -504,12 +509,6 @@ func loadConfig(preConnect bool) error {
 		if newconfig.EncryptionKey != "" {
 			processed.encryptionKey = newconfig.EncryptionKey
 			newconfig.EncryptionKey = "XXXXXX" // too short to be valid anyway
-		}
-		if newconfig.Brain != "" {
-			processed.brainProvider = newconfig.Brain
-		}
-		if newconfig.BrainConfig != nil {
-			brainConfig = newconfig.BrainConfig
 		}
 		if newconfig.LocalPort != 0 {
 			processed.port = fmt.Sprintf("%d", newconfig.LocalPort)

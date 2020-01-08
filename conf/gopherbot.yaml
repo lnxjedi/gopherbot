@@ -56,6 +56,14 @@ NameSpaces:
       - Name: STATE_DIR
         Value: {{ env "GOPHER_STATE_DIRECTORY" | default "state" }}
 
+{{ if env "GOPHER_UNCONFIGURED" }}
+LoadableModules:
+  # Make the default terminal robot a little more fun
+  "knock":
+    Description: Knock knock jokes!
+    Path: goplugins/knock.so
+{{ end }}
+
 ## NOTE:
 ## External script jobs/tasks/plugins do NOT have direct access to
 ## environment variables, but instead get a combination of:

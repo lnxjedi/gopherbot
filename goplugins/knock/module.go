@@ -13,6 +13,12 @@ var manifest = robot.Manifest{
 	Plugins: []robot.PluginSpec{
 		knockspec,
 	},
+	Tasks: []robot.TaskSpec {
+		robot.TaskSpec{
+			Name: "moo",
+			Handler: robot.TaskHandler { moo },
+		},
+	},
 }
 
 // GetManifest returns all the handlers available in this plugin

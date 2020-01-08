@@ -60,6 +60,13 @@ For the optional `state` and `private` repositories, the included jobs will use 
 In addition to the above passed-through environment vars, **Gopherbot** supplies the following environment variables to external scripts:
 * `GOPHER_INSTALLDIR` - absolute path to the gopherbot install, normally `/opt/gopherbot`
 
+## Automatic Environment Variables
+
+On startup, **Gopherbot** will check for a custom `conf/gopherbot.yaml` or the presence of a `GOPHER_CUSTOM_REPOSITORY` environment variable. In the absence of either, the following will be automatically set:
+* `GOPHER_UNCONFIGURED` - set true
+* `GOPHER_PROTOCOL` - set to "terminal" if not already set
+* `GOPHER_LOGFILE` - set to "robot.log" if not already set
+
 ## Pipeline Environment Variables
 The following environment variable are set for all pipelines, whether started by a plugin or a job:
 * `GOPHER_CHANNEL` - the channel where the plugin/job is providing output

@@ -20,13 +20,17 @@ func RegisterPreload(mod string) {
 
 // Load pluggable modules and call "GetPlugins", "GetConnectors", etc., then
 // register them.
-func loadModules(protocol string, modules []LoadableModule) {
+func loadModules(protocol, brain, history string, modules []LoadableModule) {
 	for _, m := range modules {
 		loadModule(m.Name, m.Path)
 	}
 	_, pmod := getProtocol(protocol)
 	ppath := filepath.Join("connectors", pmod+".so")
 	loadModule(pmod, ppath)
+	bpath := filepath.Join("brains", brain+".so")
+	loadModule(brain, bpath)
+	hpath := filepath.Join("history", history+".so")
+	loadModule(history, hpath)
 }
 
 // loadModule loads a module and registers it's contents

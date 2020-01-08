@@ -66,3 +66,4 @@ UserRoster:
 
 AdminUsers: [ "alice" ]
 DefaultChannels: [ "general", "random" ]
+DefaultJobChannel: "general"

@@ -136,7 +136,7 @@ ExternalJobs:
 
 NameSpaces:
   "ssh":
-    Parameters:  
+    Parameters:
     - Name: BOT_SSH_PHRASE
       Value: {{ decrypt "CBow8Kg/9iynxBQFWru+EdWAookX7ERVKcUuLEIp9NDZcpm/QDChILq9p0/2X2dCB7gIrJ4=" }}
   "manage":

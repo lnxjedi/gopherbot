@@ -23,7 +23,11 @@
     - [Early Encryption Initialization](upgrade/Encryption.md)
 
 ## Configuration
-- [Configuration File Loading](config/file.md)
+- [Configuring Gopherbot](Configuration.md)
+    - [Environment Variables](Environment-Variables.md)
+    - [Configuration File Loading](config/file.md)
+    - [Job and Plugin Configuration](config/job-plug.md)
+    - [Troubleshooting](config/troubleshooting.md)
 
 ## Using Gopherbot
 - [Administrator Commands](usage/admin.md)
