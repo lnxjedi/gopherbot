@@ -25,7 +25,7 @@ var envPassThrough = []string{
 func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType, command string, args ...string) (ret robot.TaskRetVal) {
 	task, plugin, job := getTask(t)
 	state.RLock()
-	if state.shuttingDown {
+	if state.shuttingDown && task.name != "builtin-admin" {
 		state.RUnlock()
 		Log(robot.Warn, "Not starting new pipeline for task '%s', shutting down", task.name)
 		return robot.RobotStopping

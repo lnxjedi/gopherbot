@@ -17,6 +17,7 @@ type termConnector struct {
 	currentChannel string             // The current channel for the user
 	currentUser    string             // The current userid
 	eof            string             // command to send on ctrl-d (EOF)
+	abort          string             // command to send on ctrl-c (interrupt)
 	running        bool               // set on call to Run
 	users          []termUser         // configured users
 	channels       []string           // the channels the robot is in
@@ -43,7 +44,9 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 			line, err := tc.reader.Readline()
 			if err == io.EOF {
 				tc.heard <- tc.eof
-			} else {
+			} else if err == readline.ErrInterrupt {
+				tc.heard <- tc.abort
+			} else if err == nil {
 				tc.heard <- line
 			}
 		}

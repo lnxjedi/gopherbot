@@ -25,6 +25,7 @@ type config struct {
 	StartChannel string // the initial channel
 	StartUser    string // the initial userid
 	EOF          string // command to send on EOF (ctrl-D), default ";quit"
+	Abort        string // command to send on ctrl-c
 	Users        []termUser
 	Channels     []string
 }
@@ -49,8 +50,12 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
 	}
 	eof := ";quit"
-	if len(c.EOF) != 0 {
+	abort := ";abort"
+	if len(c.EOF) > 0 {
 		eof = c.EOF
+	}
+	if len(c.Abort) > 0 {
+		abort = c.Abort
 	}
 	found := false
 	for i, u := range c.Users {
@@ -87,6 +92,7 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		Prompt:            fmt.Sprintf("c:%s/u:%s -> ", c.StartChannel, c.StartUser),
 		HistoryFile:       histfile,
 		HistorySearchFold: true,
+		InterruptPrompt:   "abort",
 		EOFPrompt:         "exit",
 	})
 	if err != nil {
@@ -97,6 +103,7 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		currentChannel: c.StartChannel,
 		currentUser:    c.StartUser,
 		eof:            eof,
+		abort:          abort,
 		channels:       c.Channels,
 		running:        false,
 		users:          c.Users,

@@ -119,6 +119,7 @@ func knock(r robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			} else if ret == robot.Ok {
 				// Did the user reply correctly with <j.First> who?
 				if strings.HasPrefix(strings.ToLower(reply), strings.ToLower(joke.First)) {
+					r.Pause(0.5)
 					r.Say(joke.Second)
 					return
 				}
