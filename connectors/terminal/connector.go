@@ -4,6 +4,7 @@ package terminal
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"sync"
 
@@ -15,6 +16,7 @@ import (
 type termConnector struct {
 	currentChannel string             // The current channel for the user
 	currentUser    string             // The current userid
+	eof            string             // command to send on ctrl-d (EOF)
 	running        bool               // set on call to Run
 	users          []termUser         // configured users
 	channels       []string           // the channels the robot is in
@@ -38,8 +40,12 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 	// listen loop
 	go func(tc *termConnector) {
 		for {
-			line, _ := tc.reader.Readline()
-			tc.heard <- line
+			line, err := tc.reader.Readline()
+			if err == io.EOF {
+				tc.heard <- tc.eof
+			} else {
+				tc.heard <- line
+			}
 		}
 	}(tc)
 	tc.reader.Write([]byte("Terminal connector running; Use '|c<channel|?>' to change channel, or '|u<user|?>' to change user\n"))
