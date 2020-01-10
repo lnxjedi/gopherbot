@@ -1,32 +1,9 @@
-# repositories.yaml - Gopherbot's list of repositories that are valid for extending the namespace
-"github.com/parsley42/aws-devel":
-  Type: none
-"bitbucket.org/lnxjedi/linuxjedi-private":
-  Type: none
-"github.com/parsley42/aws-linuxjedi":
-  Type: none
-"github.com/parsley42/deploy-gopherbot":
-  Type: none
-"github.com/lnxjedi/gopherbot":
-  Type: localbuild
-  CloneURL: https://github.com/lnxjedi/gopherbot.git
-  KeepHistory: 14
-  Parameters:
-  - Name: NOTIFY_USER
-    Value: parsley
-"github.com/parsley42/gopherbot":
-  Type: localbuild
-  CloneURL: https://github.com/parsley42/gopherbot.git
-  KeepHistory: 14
-  Parameters:
-  - Name: NOTIFY_USER
-    Value: parsley
-# "github.com/lnxjedi/luminos":
+## repositories.yaml - Gopherbot's list of repositories that are valid for extending
+## the namespace. Example:
+# "github.com/lnxjedi/gopherbot":
 #   Type: localbuild
-#   CloneURL: https://github.com/lnxjedi/luminos.git
+#   CloneURL: https://github.com/lnxjedi/gopherbot.git
 #   KeepHistory: 14
 #   Parameters:
 #   - Name: NOTIFY_USER
 #     Value: parsley
-#   - Name: PATH
-#     Value: /home/robot/go/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/usr/local/go/bin:/home/robot/bin

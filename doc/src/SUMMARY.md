@@ -46,6 +46,7 @@
 
 ## Jobs and Pipelines
 - [Jobs and Pipelines](pipelines/jobspipes.md)
+- [Included Tasks](pipelines/tasks.md)
 - [Tool Integrations](pipelines/integrations.md)
     - [Integrating with SSH](pipelines/ssh.md)
 

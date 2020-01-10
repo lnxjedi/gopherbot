@@ -9,6 +9,14 @@ import "os"
 // 	return
 // }
 
+func initcrypt(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
+	success := initCrypt()
+	if success {
+		return robot.Normal
+	}
+	return robot.Fail
+}
+
 func setenv(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
 	if len(args) != 2 {
@@ -62,7 +70,8 @@ func resume(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 }
 
 func init() {
-	RegisterTask("setenv", true, robot.TaskHandler{Handler: setenv})
+	RegisterTask("set-environment", true, robot.TaskHandler{Handler: setenv})
+	RegisterTask("initialize-encryption", true, robot.TaskHandler{Handler: initcrypt})
 	RegisterTask("restart-robot", true, robot.TaskHandler{Handler: restart})
 	RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pause})
 	RegisterTask("resume-brain", true, robot.TaskHandler{Handler: resume})

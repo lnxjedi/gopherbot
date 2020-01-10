@@ -6,3 +6,6 @@ ProtocolConfig:
   - chat
   - botdev
   - clu-jobs
+
+{{ $defaultjobchannel := "general" }}
+DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}

@@ -9,8 +9,8 @@
 # - UserName: parsley
 #   UserID: U0JLW8EMS
 
-AdminUsers: [ "parsley", "adrienne" ]
+AdminUsers: [ "<GOPHER_ADMIN>" ]
 ProtocolConfig:
-  Server: https://open.rocket.chat
-  Email: {{ env "GOPHER_ROCKET_EMAIL" }}
-  Password: {{ env "GOPHER_ROCKET_PASSWORD" }}
+  Server: "<GOPHER_ROCKET_SERVER>"
+  Email: "<GOPHER_ROCKET_EMAIL>"
+  Password: {{ decrypt "<GOPHER_ROCKET_PASSWORD>" }}

@@ -92,12 +92,6 @@ then
       "What username do you want the robot to know you by?")
 fi
 Say "Detected User ID $USERID for $USERNAME"
-BOTNAME=$(getMatching "SimpleString" \
-  "What do you want your robot's name to be?")
-checkReply $?
-BOTALIAS=$(getMatching "alias" \
-  "Pick a one-character alias for your robot from '&!;:-%#@~<>/*+^\$?\[]{}'")
-checkReply $?
 ENCRYPTION_KEY=$(getMatching "encryptionkey" \
   "Give me a string at least 32 characters long for the robot's encryption key")
 checkReply $?

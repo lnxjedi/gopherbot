@@ -245,8 +245,10 @@ func initCrypt() bool {
 		if bkf, err := ioutil.ReadFile(keyFile); err == nil {
 			if bke, err := base64.StdEncoding.DecodeString(string(bkf)); err == nil {
 				if key, err := decrypt(bke, ik); err == nil {
+					cryptKey.Lock()
 					cryptKey.key = key
 					cryptKey.initialized = true
+					cryptKey.Unlock()
 					encryptionInitialized = true
 					Log(robot.Info, "Successfully decrypted binary encryption key '%s'", keyFile)
 				} else {
@@ -271,14 +273,17 @@ func initCrypt() bool {
 					return false
 				}
 				beks := base64.StdEncoding.EncodeToString(bek)
+				raiseThreadPriv("writing generated encrypted key")
 				err = ioutil.WriteFile(keyFile, []byte(beks), 0444)
 				if err != nil {
 					Log(robot.Error, "Writing out generated key: %v", err)
 					return false
 				}
 				Log(robot.Info, "Successfully wrote new binary encryption key to '%s'", keyFile)
+				cryptKey.Lock()
 				cryptKey.key = bk
 				cryptKey.initialized = true
+				cryptKey.Unlock()
 				encryptionInitialized = true
 				return true
 			}

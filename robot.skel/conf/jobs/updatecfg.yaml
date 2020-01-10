@@ -3,7 +3,10 @@ RequireAdmin: true
 AllowDirect: true
 HistoryLogs: 7
 Quiet: true # The reload plugin provides feedback
-Triggers:
-- User: github
-  Channel: ljdev
-  Regex: 'new commit.*github.com\/parsley42\/clu-gopherbot\/tree'
+## Example trigger - when the robot see's its configuration has been
+## udpated, it'll trigger this job to automatically update the repository
+## and reload.
+# Triggers:
+# - User: github
+#   Channel: ljdev
+#   Regex: 'new commit.*github.com\/parsley42\/clu-gopherbot\/tree'

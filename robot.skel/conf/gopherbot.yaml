@@ -1,15 +1,10 @@
-# This is the non-sensitive configuration for Clu, the gopherbot used
-# for development with Docker.
-# List of users that can issue admin commands like reload, quit. Should be
-# a list of user handles / nicks.
-AdminContact: "David Parsley, <parsley@linuxjedi.org>"
-IgnoreUsers: [ "floyd", "bender" ]
+# AdminContact: "Joe Admin, <joe@my.org>"
 
 ## Configure the robot connection protocol
 {{ $proto := env "GOPHER_PROTOCOL" | default "slack" }}
 Protocol: {{ $proto }}
 
-DefaultChannels: [ "general", "random", "chat", "botdev", "clu-jobs" ]
+DefaultChannels: [ "general", "random" ]
 ## Protocol-specific configuration
 {{ if eq $proto "slack" }}
 {{ .Include "slack.yaml" }}
@@ -19,10 +14,10 @@ DefaultChannels: [ "general", "random", "chat", "botdev", "clu-jobs" ]
 {{ .Include "terminal.yaml" }}
 {{ end }}
 
-{{ $botname := env "GOPHER_BOTNAME" | default "Clu" }}
-{{ $botemail := env "GOPHER_BOTMAIL" | default "clu@linuxjedi.org" }}
-{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Clu Gopherbot" }}
-{{ $botalias := env "GOPHER_ALIAS" | default "!" }}
+{{ $botname := env "GOPHER_BOTNAME" | default "<GOPHER_BOTNAME>" }}
+{{ $botemail := env "GOPHER_BOTMAIL" | default "<GOPHER_EMAIL>" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "<GOPHER_FULLNAME>" }}
+{{ $botalias := env "GOPHER_ALIAS" | default "<GOPHER_ALIAS>" }}
 
 BotInfo:
   UserName: {{ $botname }}
@@ -70,21 +65,26 @@ HistoryConfig:
 {{ end }}
 ## End history config
 
-## Later: modify this for other protocols
-{{ $defaultjobchannel := "clu-jobs" }}
-DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}
-
 ## If the plugin doesn't specify an outgoing message format, what's the default?
 ## This will be 'Raw' (unmodified, subject to protocol-specific formatting) if
 ## not set. 'Variable' will escape special characters like #, @, _, `, etc. so
 ## those characters can appear in replies. 'Fixed' will send everything in a
 ## fixed-width font.
-#DefaultMessageFormat: Variable # 'Raw' if not specified
+# DefaultMessageFormat: Variable # 'Raw' if not specified
 
-# Job scheduling with github.com/robfig/cron
-ScheduledJobs:
-- Name: backup
-  Schedule: "@every 1m"
+# ExternalJobs:
+#   "hello":
+#     Description: Trivial hello world job for testing
+#     Path: jobs/hello.sh
+#     Privileged: true
+#     Parameters:
+#     - Name: NONCE
+#       Value: "No way, Jack!"
+
+## Job scheduling with github.com/robfig/cron; includes seconds
+# ScheduledJobs:
+# - Name: backup
+#   Schedule: "@every 1m"
 # - Name: hello
 #   Schedule: "@every 30s" # see: https://godoc.org/github.com/robfig/cron
 #   Arguments: # an array of strings; up to the job to parse numbers & bools
@@ -94,59 +94,48 @@ ScheduledJobs:
 #   Arguments: # an array of strings; up to the job to parse numbers & bools
 #   - "Goodbye, World !!!"
 
-ExternalPlugins:
-  "bootstrap":
-    Parameters: # clear bootstrap parameters once configured
-  "weather":
-    Description: A plugin that uses OpenWeatherMap to report the weather
-    Path: plugins/weather.rb
-    Parameters:
-    - Name: OWM_APIKEY
-      Value: {{ decrypt "KYJzQD8jvfq3liQYPovkdgxe86Im2w79l9YgAQlc1rOBybCLKrDzjkTV8WeLyvah1F5H0vrYGIjfjp8Q" }}
-    - Name: TEMP_UNITS
-      Value: {{ env "GOPHER_OWM_UNITS" | default "imperial" }} # or 'metric'
-    - Name: DEFAULT_COUNTRY
-      Value: {{ env "GOPHER_OWM_COUNTRY" | default "us" }} # or other ISO 3166 country code
-  "chuck":
-    Description: A plugin that pipes up whenever The Man's name is mentioned
-    Path: plugins/chuck.rb
-  "echo":
-    Description: Trivial bash plugin
-    Path: plugins/echo.sh
-  "pythondemo":
-    Description: Sample python plugin
-    Path: plugins/samples/pythondemo.py
+# ExternalPlugins:
+#   "weather":
+#     Description: A plugin that uses OpenWeatherMap to report the weather
+#     Path: plugins/weather.rb
+#     Parameters:
+#     - Name: OWM_APIKEY
+#       Value: {{ decrypt "KYJzQD8jvfq3liQYPovkdgxe86Im2w79l9YgAQlc1rOBybCLKrDzjkTV8WeLyvah1F5H0vrYGIjfjp8Q" }}
+#     - Name: TEMP_UNITS
+#       Value: {{ env "GOPHER_OWM_UNITS" | default "imperial" }} # or 'metric'
+#     - Name: DEFAULT_COUNTRY
+#       Value: {{ env "GOPHER_OWM_COUNTRY" | default "us" }} # or other ISO 3166 country code
+#   "chuck":
+#     Description: A plugin that pipes up whenever The Man's name is mentioned
+#     Path: plugins/chuck.rb
+#   "echo":
+#     Description: Trivial bash plugin
+#     Path: plugins/echo.sh
+#   "pythondemo":
+#     Description: Sample python plugin
+#     Path: plugins/samples/pythondemo.py
 
-LoadableModules:
-  "knock":
-    Description: Knock knock jokes!
-    Path: goplugins/knock.so
-  "memes":
-    Description: Memes!
-    Path: goplugins/meme.so
-
-ExternalJobs:
-  "hello":
-    Description: Trivial hello world job for testing
-    Path: jobs/hello.sh
-    Privileged: true
-    Parameters:
-    - Name: NONCE
-      Value: "No way, Jack!"
+## Note that modules for connectors, brains and history providers load automatically
+# LoadableModules:
+#   "knock":
+#     Description: Knock knock jokes!
+#     Path: goplugins/knock.so
+#   "memes":
+#     Description: Memes!
+#     Path: goplugins/meme.so
 
 NameSpaces:
-  "ssh":
-    Parameters:
-    - Name: BOT_SSH_PHRASE
-      Value: {{ decrypt "CBow8Kg/9iynxBQFWru+EdWAookX7ERVKcUuLEIp9NDZcpm/QDChILq9p0/2X2dCB7gIrJ4=" }}
+  # "ssh":
+  #   Parameters:
+  #   - Name: BOT_SSH_PHRASE
+  #     Value: replace with encrypted string
   "manage":
     Parameters:
-    - Name: GOPHER_STATE_REPOSITORY
-      Value: git@github.com:parsley42/clu-state.git
     # A default installed robot stores its brain in state/brain
     - Name: STATE_DIR
       Value: {{ env "GOPHER_STATE_DIRECTORY" | default "state" }}
-
+    # - Name: GOPHER_STATE_REPOSITORY
+    #   Value: git@github.com:parsley42/clu-state.git
 
 DefaultMessageFormat: Raw
 # Users the bot should never listen to
@@ -158,11 +147,11 @@ DefaultMessageFormat: Raw
 ## secure apps for the sending account. See:
 ## https://support.google.com/accounts/answer/6010255
 
-MailConfig:
-  Mailhost: smtp.gmail.com:587
-  Authtype: plain
-  User: clu@linuxjedi.org
-  Password: {{ decrypt "dIeNE9EID+eXIrutB+8hQQrhBD5cBxSSVzYLlwtj5hX7Lhs/j6uAUl538ro=" }}
+# MailConfig:
+#   Mailhost: smtp.gmail.com:587
+#   Authtype: plain
+#   User: clu@linuxjedi.org
+#   Password: replace with encrypted string
 
 ## Use Google Authenticator TOTP by default for elevated commands. To use:
 ## - Ask the robot to 'send launch codes', and it will send you (one time)
@@ -176,4 +165,4 @@ MailConfig:
 ## - Configure the elevator by overriding the config for the plugin in
 ##   'conf/plugins/totp.yaml'
 
-#DefaultElevator: totp
+# DefaultElevator: totp

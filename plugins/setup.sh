@@ -42,32 +42,14 @@ if [ "$command" == "init" ]
 then
     NAME=$(GetBotAttribute "name")
     ALIAS=$(GetBotAttribute "alias")
-    Pause 2
+    Pause 1
     SendChannelMessage "general" "Hi, I'm $NAME, the default robot - I see you're running Gopherbot unconfigured"
-    Pause 4
-    SendChannelMessage "general" "Feel free to play around with Gopherbot; you can start by typing 'help'"
-    Pause 4
-    SendChannelMessage "general" "If you've started the robot by mistake, just hit ctrl-D to exit and try 'gopherbot --help'"
-    Pause 4
-    SendChannelMessage "general" "If you'd like to start configuring a new robot, type: '${ALIAS}setup'"
+    Pause 2
+    SendChannelMessage "general" "If you've started the robot by mistake, just hit ctrl-D to exit and try \
+'gopherbot --help'; otherwise feel free to play around with Gopherbot; you can start by typing 'help'. \
+If you'd like to start configuring a new robot, type: '${ALIAS}setup'."
     exit 0
 fi
-
-if [ "$command" != "setup" ]
-then
-    exit 0
-fi
-
-exit 0
-KEY=$1
-
-if [ "$KEY" != "$SETUP_KEY" ]
-then
-    Say "Invalid setup key"
-    exit 0
-fi
-SetParameter USER_KEY "$KEY"
-Remember AUTH_USER "$GOPHER_USER"
 
 checkReply(){
     if [ $1 -ne 0 ]
@@ -105,8 +87,54 @@ getMatching(){
 substitute(){
     local FIND=$1
     local REPLACE=$2
+    local FILE=${3:-conf/gopherbot.yaml}
     sed -i -e "s/$FIND/$REPLACE/g" conf/gopherbot.yaml
 }
+
+if [ "$command" == "setup" ]
+then
+    Say "Before we can get started, I need to set up encryption"
+    ENCRYPTION_KEY=$(getMatching "encryptionkey" \
+    "Give me a string at least 32 characters long for the robot's encryption key")
+    checkReply $?
+    cat > .env <<EOF
+GOPHER_ENCRYPTION_KEY=$ENCRYPTION_KEY
+EOF
+    AddTask "set-environment" GOPHER_ENCRYPTION_KEY "$ENCRYPTION_KEY"
+    AddTask "initialize-encryption"
+    AddTask say "Ok, ignore the warning - I've initialized encryption"
+    AddTask "setup-task" "continue"
+fi
+
+# Running again as a pipeline task
+if [ "$command" == "continue" ]
+then
+    Pause 2
+    BOTNAME=$(getMatching "SimpleString" "What do you want your robot's name to be?")
+checkReply $?
+BOTALIAS=$(getMatching "alias" \
+"Pick a one-character alias for your robot from '&!;:-%#@~<>/*+^\$?\[]{}'")
+checkReply $?
+    
+fi
+
+exit 0
+if [ "$command" != "setup" ]
+then
+    exit 0
+fi
+
+exit 0
+KEY=$1
+
+if [ "$KEY" != "$SETUP_KEY" ]
+then
+    Say "Invalid setup key"
+    exit 0
+fi
+SetParameter USER_KEY "$KEY"
+Remember AUTH_USER "$GOPHER_USER"
+
 
 USERNAME=$(GetSenderAttribute "user")
 USERID=$(GetSenderAttribute "id")
@@ -124,13 +152,6 @@ checkReply $?
 BOTALIAS=$(getMatching "alias" \
   "Pick a one-character alias for your robot from '&!;:-%#@~<>/*+^\$?\[]{}'")
 checkReply $?
-ENCRYPTION_KEY=$(getMatching "encryptionkey" \
-  "Give me a string at least 32 characters long for the robot's encryption key")
-checkReply $?
-cat > .env <<EOF
-GOPHER_SLACK_TOKEN=$SLACK_TOKEN
-GOPHER_ENCRYPTION_KEY=$ENCRYPTION_KEY
-EOF
 mv conf/gopherbot.yaml conf/gopherbot.yaml.setup
 mv conf/gopherbot-new.yaml conf/gopherbot.yaml
 mv conf/plugins/builtin-admin.yaml conf/plugins/builtin-admin.yaml.setup
