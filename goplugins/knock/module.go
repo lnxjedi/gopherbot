@@ -13,15 +13,9 @@ var manifest = robot.Manifest{
 	Plugins: []robot.PluginSpec{
 		knockspec,
 	},
-	Tasks: []robot.TaskSpec {
-		robot.TaskSpec{
-			Name: "moo",
-			Handler: robot.TaskHandler { moo },
-		},
-	},
 }
 
-// GetManifest returns all the handlers available in this plugin
+// GetMa   nifest returns all the handlers available in this plugin
 func GetManifest() robot.Manifest {
 	return manifest
 }

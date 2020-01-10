@@ -27,12 +27,6 @@ var knockhandler = robot.PluginHandler{
 	Config:  &JokeConfig{},
 }
 
-func moo(r robot.Robot, args ...string) robot.TaskRetVal {
-	r.Pause(3.5)
-	r.Reply("MOOOOOOOO!!!")
-	return robot.Normal
-}
-
 func knock(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	var j *JokeConfig // get access to a copy of the plugin's config
 	switch command {
@@ -84,8 +78,9 @@ func knock(r robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		}
 		r.Pause(0.5)
 		if joke.First == "Interrupting Cow" {
-			r.Say(joke.First)
-			r.AddTask("moo")
+			r.Reply(joke.First)
+			r.Pause(3.5)
+			r.Reply("MOOOOOOOO!!!")
 			return
 		}
 		for i := 0; i < 2; i++ {
