@@ -44,10 +44,16 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 			line, err := tc.reader.Readline()
 			if err == io.EOF {
 				tc.heard <- tc.eof
+				break
 			} else if err == readline.ErrInterrupt {
 				tc.heard <- tc.abort
+				break
 			} else if err == nil {
 				tc.heard <- line
+				line = strings.TrimSpace(line)
+				if line == tc.eof || line == tc.abort {
+					break
+				}
 			}
 		}
 	}(tc)
@@ -60,7 +66,7 @@ loop:
 		select {
 		case <-stop:
 			tc.Log(robot.Debug, "Received stop in connector")
-			fmt.Println("Exiting (press enter)")
+			// fmt.Println("Exiting (press enter)")
 			break loop
 		case input := <-tc.heard:
 			if len(input) == 0 {
