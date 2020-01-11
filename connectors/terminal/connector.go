@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/chzyer/readline"
 	"github.com/lnxjedi/gopherbot/robot"
@@ -27,6 +28,18 @@ type termConnector struct {
 	sync.RWMutex                      // shared mutex for locking connector data structures
 }
 
+var exit = struct {
+	reading, exiting, quitting bool
+	waitchan                   chan struct{}
+	sync.Mutex
+}{
+	true, false, false,
+	make(chan struct{}),
+	sync.Mutex{},
+}
+
+var quitTimeout = 4 * time.Second
+
 func (tc *termConnector) Run(stop <-chan struct{}) {
 	tc.Lock()
 	// This should never happen, just a bit of defensive coding
@@ -36,37 +49,77 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 	}
 	tc.running = true
 	tc.Unlock()
-	defer tc.reader.Close()
+	defer func() {
+		tc.reader.SetPrompt("")
+		tc.reader.Write([]byte("Terminal connector exiting\n"))
+		tc.reader.Close()
+	}()
 
 	// listen loop
 	go func(tc *termConnector) {
 		for {
 			line, err := tc.reader.Readline()
+			waitquit := false
 			if err == io.EOF {
 				tc.heard <- tc.eof
-				break
+				waitquit = true
 			} else if err == readline.ErrInterrupt {
 				tc.heard <- tc.abort
-				break
+				waitquit = true
 			} else if err == nil {
+				exit.Lock()
+				stop := exit.exiting
+				exit.Unlock()
+				if stop {
+					break
+				}
 				tc.heard <- line
 				line = strings.TrimSpace(line)
 				if line == tc.eof || line == tc.abort {
-					break
+					waitquit = true
 				}
 			}
+			exit.Lock()
+			if waitquit {
+				exit.quitting = true
+				exit.reading = false
+				exit.Unlock()
+				select {
+				case <-exit.waitchan:
+					break
+				case <-time.After(quitTimeout):
+					exit.Lock()
+					exit.reading = true
+					exit.Unlock()
+					tc.reader.Write([]byte("(timed out waiting for robot to exit)\n"))
+				}
+			} else {
+				exit.Unlock()
+			}
 		}
+		exit.Lock()
+		exit.reading = false
+		exit.Unlock()
 	}(tc)
 	tc.reader.Write([]byte("Terminal connector running; Use '|c<channel|?>' to change channel, or '|u<user|?>' to change user\n"))
 
 loop:
 	// Main loop and prompting
 	for {
-
 		select {
 		case <-stop:
 			tc.Log(robot.Debug, "Received stop in connector")
-			// fmt.Println("Exiting (press enter)")
+			exit.Lock()
+			reading := exit.reading
+			quitting := exit.quitting
+			exit.exiting = true
+			exit.Unlock()
+			if reading {
+				tc.reader.Write([]byte("Exiting (press <enter> ...)\n"))
+			}
+			if quitting {
+				exit.waitchan <- struct{}{}
+			}
 			break loop
 		case input := <-tc.heard:
 			if len(input) == 0 {
