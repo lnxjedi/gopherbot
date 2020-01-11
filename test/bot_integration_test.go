@@ -268,7 +268,7 @@ func TestReload(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{aliceID, general, "reload, bender", []testc.TestMessage{{alice, general, "Configuration reloaded successfully"}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan, CommandTaskRan}, 0},
+		{aliceID, general, "reload, bender", []testc.TestMessage{{alice, general, "Configuration reloaded successfully"}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 
