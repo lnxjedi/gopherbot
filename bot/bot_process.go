@@ -167,6 +167,9 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	}
 
 	encryptionInitialized := initCrypt()
+	if encryptionInitialized {
+		os.Setenv("GOPHER_ENCRYPTION_INITIALIZED", "initialized")
+	}
 
 	if err := loadConfig(true); err != nil {
 		Log(robot.Fatal, "Loading initial configuration: %v", err)

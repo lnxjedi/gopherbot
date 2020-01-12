@@ -13,12 +13,18 @@ shift
 configure(){
 	cat <<"EOF"
 ---
+AdminCommands:
+- setup
 Help:
 - Keywords: [ "setup" ]
   Helptext: [ "(bot), setup - perform initial setup of a new robot" ]
+- Keywords: [ "administrator" ]
+  Helptext: [ "(bot), add admin <key> - add the user as a robot administrator" ]
 CommandMatchers:
 - Command: "setup"
   Regex: '(?i:setup)'
+- Command: "add"
+  Regex: '(?i:add ?admin(istrator)? ([^\s]+))'
 MessageMatchers:
 - Command: "setup"
   Regex: '(?i:setup)'
@@ -38,11 +44,16 @@ then
     exit 0
 fi
 
-if [ "$command" == "init" ]
+if [ "$command" == "init" -a "$GOPHER_UNCONFIGURED" ]
 then
     NAME=$(GetBotAttribute "name")
     ALIAS=$(GetBotAttribute "alias")
     Pause 1
+    if [ "$GOPHER_ENCRYPTION_INITIALIZED" ]
+    then
+        SendChannelMessage "general" "Type '${ALIAS}setup' to continue setup..."
+        exit 0
+    fi
     SendChannelMessage "general" "Hi, I'm $NAME, the default robot - I see you're running Gopherbot unconfigured"
     Pause 2
     SendChannelMessage "general" "If you've started the robot by mistake, just hit ctrl-D to exit and try \
@@ -91,19 +102,18 @@ substitute(){
     sed -i -e "s/$FIND/$REPLACE/g" conf/gopherbot.yaml
 }
 
-if [ "$command" == "setup" ]
+if [ "$command" == "setup" -a -z "$GOPHER_ENCRYPTION_INITIALIZED" ]
 then
-    Say "Before we can get started, I need to set up encryption"
+    Say "Before we can get started, we need to set up encryption"
     ENCRYPTION_KEY=$(getMatching "encryptionkey" \
     "Give me a string at least 32 characters long for the robot's encryption key")
     checkReply $?
     cat > .env <<EOF
 GOPHER_ENCRYPTION_KEY=$ENCRYPTION_KEY
 EOF
-    AddTask "set-environment" GOPHER_ENCRYPTION_KEY "$ENCRYPTION_KEY"
-    AddTask "initialize-encryption"
-    AddTask say "Ok, ignore the warning - I've initialized encryption"
-    AddTask "setup-task" "continue"
+    Say "Now I'll restart with encryption initialized..."
+    AddTask "restart-robot"
+    exit 0
 fi
 
 # Running again as a pipeline task

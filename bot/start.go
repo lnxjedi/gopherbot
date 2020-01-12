@@ -165,7 +165,7 @@ func Start(v VersionInfo) {
 	if err != nil {
 		_, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
 		if !ok {
-			os.Setenv("GOPHER_UNCONFIGURED", "true")
+			os.Setenv("GOPHER_UNCONFIGURED", "unconfigured")
 			if _, ok := os.LookupEnv("GOPHER_PROTOCOL"); !ok {
 				os.Setenv("GOPHER_PROTOCOL", "terminal")
 			}

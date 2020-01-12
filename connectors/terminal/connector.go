@@ -55,6 +55,7 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 
 	// listen loop
 	go func(tc *termConnector) {
+	readloop:
 		for {
 			line, err := tc.reader.Readline()
 			exit.Lock()
@@ -83,7 +84,7 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 				exit.Unlock()
 				select {
 				case <-exit.waitchan:
-					break
+					break readloop
 				case <-time.After(quitTimeout):
 					exit.Lock()
 					exit.kbquit = false
@@ -223,7 +224,6 @@ loop:
 	if !kbquit {
 		<-tc.heard
 	}
-	tc.reader.SetPrompt("")
 	tc.reader.Write([]byte("Terminal connector finished\n"))
 	tc.reader.Close()
 }

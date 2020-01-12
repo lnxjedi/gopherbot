@@ -94,7 +94,11 @@ HistoryConfig:
 #   Arguments: # an array of strings; up to the job to parse numbers & bools
 #   - "Goodbye, World !!!"
 
+## After adding an initial administrator, you should disable the setup
+## plugin by uncommenting the next three lines.
 # ExternalPlugins:
+#   "setup":
+#     Disabled: true
 #   "weather":
 #     Description: A plugin that uses OpenWeatherMap to report the weather
 #     Path: plugins/weather.rb

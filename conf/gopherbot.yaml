@@ -96,24 +96,17 @@ ExternalPlugins:
     - Name: DEPLOY_KEY
       # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
       Value: "{{ env "DEPLOY_KEY" }}"
-  {{- if env "GOPHER_UNCONFIGURED" }}
   "setup":
     Description: Setup plugin for creating a new robot
     Privileged: true
     Homed: true
     NameSpace: manage
     Path: plugins/setup.sh
-  {{- end }}
-  {{- if env "GOPHER_ADMIN_TOKEN" }}
-  "addadmin":
-    Description: One-time use plugin for adding the initial robot administrator
-    Privileged: true
-    Homed: true
-    Path: plugins/addadmin.sh
     Parameters:
-    - Name: GOPHER_ADMIN_TOKEN
-      Value: {{ env "GOPHER_ADMIN_TOKEN" }}
-  {{- end }}
+    - Name: GOPHER_UNCONFIGURED
+      Value: {{ env "GOPHER_UNCONFIGURED" }}
+    - Name: GOPHER_ENCRYPTION_INITIALIZED
+      Value: {{ env "GOPHER_ENCRYPTION_INITIALIZED" }}
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)
@@ -195,11 +188,9 @@ ExternalTasks:
     Description: Task for cleaning a working directory before starting a job/build
     Privileged: true
     Path: tasks/cleanup.sh
-  {{- if env "GOPHER_UNCONFIGURED" }}
   "setup-task":
     Description: Setup plugin, callable as a pipeline task
     Privileged: true
     NameSpace: manage
     Path: plugins/setup.sh
-  {{- end }}
   

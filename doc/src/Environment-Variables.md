@@ -66,6 +66,7 @@ On startup, **Gopherbot** will check for a custom `conf/gopherbot.yaml` or the p
 * `GOPHER_UNCONFIGURED` - set true
 * `GOPHER_PROTOCOL` - set to "terminal" if not already set
 * `GOPHER_LOGFILE` - set to "robot.log" if not already set
+Additionally, `GOPHER_ENCRYPTION_INITIALIZED` will be set to `true` if encryption is initialized on start-up, regardless of whether the robot is configured.
 
 ## Pipeline Environment Variables
 The following environment variable are set for all pipelines, whether started by a plugin or a job:
