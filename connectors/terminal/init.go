@@ -106,6 +106,7 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		abort:          abort,
 		channels:       c.Channels,
 		running:        false,
+		width:          readline.GetScreenWidth(),
 		users:          c.Users,
 		heard:          make(chan string),
 		reader:         rl,
