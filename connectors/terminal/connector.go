@@ -63,7 +63,7 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 			if robotexit {
 				exit.Unlock()
 				tc.heard <- ""
-				break
+				break readloop
 			}
 			kbquit := false
 			if err == io.EOF {
