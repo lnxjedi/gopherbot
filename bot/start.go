@@ -161,16 +161,21 @@ func Start(v VersionInfo) {
 	}
 
 	// support for setup plugin
-	_, err := os.Stat(filepath.Join(configPath, "conf", "gopherbot.yaml"))
+	var defaultProto, defaultLogfile bool
+	testpath := filepath.Join(configpath, "conf", "gopherbot.yaml")
+	_, err := os.Stat(testpath)
 	if err != nil {
 		_, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
 		if !ok {
+			Log(robot.Warn, "Starting unconfigured: %v", err)
 			os.Setenv("GOPHER_UNCONFIGURED", "unconfigured")
 			if _, ok := os.LookupEnv("GOPHER_PROTOCOL"); !ok {
 				os.Setenv("GOPHER_PROTOCOL", "terminal")
+				defaultProto = true
 			}
 			if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
 				os.Setenv("GOPHER_LOGFILE", "robot.log")
+				defaultLogfile = true
 			}
 		}
 	} else {
@@ -275,6 +280,12 @@ func Start(v VersionInfo) {
 	raiseThreadPrivExternal("Exiting")
 	time.Sleep(time.Second)
 	if restart {
+		if defaultProto {
+			os.Unsetenv("GOPHER_PROTOCOL")
+		}
+		if defaultLogfile {
+			os.Unsetenv("GOPHER_LOGFILE")
+		}
 		bin, _ := os.Executable()
 		env := os.Environ()
 		defer func() {
