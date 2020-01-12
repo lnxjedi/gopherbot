@@ -1,7 +1,7 @@
 # AdminContact: "Joe Admin, <joe@my.org>"
 
 ## Configure the robot connection protocol
-{{ $proto := env "GOPHER_PROTOCOL" | default "slack" }}
+{{ $proto := env "GOPHER_PROTOCOL" | default "<defaultprotocol>" }}
 Protocol: {{ $proto }}
 
 DefaultChannels: [ "general", "random" ]
@@ -14,10 +14,10 @@ DefaultChannels: [ "general", "random" ]
 {{ .Include "terminal.yaml" }}
 {{ end }}
 
-{{ $botname := env "GOPHER_BOTNAME" | default "<GOPHER_BOTNAME>" }}
-{{ $botemail := env "GOPHER_BOTMAIL" | default "<GOPHER_EMAIL>" }}
-{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "<GOPHER_FULLNAME>" }}
-{{ $botalias := env "GOPHER_ALIAS" | default "<GOPHER_ALIAS>" }}
+{{ $botname := env "GOPHER_BOTNAME" | default "<botname>" }}
+{{ $botemail := env "GOPHER_BOTMAIL" | default "<botemail>" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "<botfullname>" }}
+{{ $botalias := env "GOPHER_ALIAS" | default "<botalias>" }}
 
 BotInfo:
   UserName: {{ $botname }}
@@ -129,10 +129,10 @@ HistoryConfig:
 #     Path: goplugins/meme.so
 
 NameSpaces:
-  # "ssh":
-  #   Parameters:
-  #   - Name: BOT_SSH_PHRASE
-  #     Value: replace with encrypted string
+  "ssh":
+    Parameters:
+    - Name: BOT_SSH_PHRASE
+      Value: {{ decrypt "<sshencrypted>" }}
   "manage":
     Parameters:
     # A default installed robot stores its brain in state/brain

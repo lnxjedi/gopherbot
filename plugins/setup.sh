@@ -35,6 +35,8 @@ ReplyMatchers:
   Regex: '(.{32,})'
 - Label: "sshkey"
   Regex: '(.{16,})'
+- Label: "slacktoken"
+  Regex: 'xoxb-[\w-]+'
 EOF
 }
 
@@ -54,6 +56,7 @@ then
         SendChannelMessage "general" "Type '${ALIAS}setup' to continue setup..."
         exit 0
     fi
+    SendChannelMessage "general" "*******"
     SendChannelMessage "general" "Hi, I'm $NAME, the default robot - I see you're running Gopherbot unconfigured"
     Pause 2
     SendChannelMessage "general" "If you've started the robot by mistake, just hit ctrl-D to exit and try \
@@ -99,7 +102,7 @@ substitute(){
     local FIND=$1
     local REPLACE=$2
     local FILE=${3:-conf/gopherbot.yaml}
-    sed -i -e "s/$FIND/$REPLACE/g" conf/gopherbot.yaml
+    sed -i -e "s#$FIND#$REPLACE#g" "$GOPHER_CONFIGDIR/$FILE"
 }
 
 if [ "$command" == "setup" -a -z "$GOPHER_ENCRYPTION_INITIALIZED" ]
@@ -116,15 +119,45 @@ EOF
     exit 0
 fi
 
+if [ "$command" == "setup" ]
+then
+    # Get all the information
+    SLACK_TOKEN=$(getMatching "slacktoken" "Slack token? (from https://<org>.slack.com/services/new/bot)")
+    SLACK_TOKEN=${SLACK_TOKEN#xoxb-}
+    SLACK_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt $SLACK_TOKEN)
+    checkReply $?
+    BOTNAME=$(getMatching "SimpleString" "What do you want your robot's name to be?")
+    checkReply $?
+    BOTALIAS=$(getMatching "alias" \
+    "Pick a one-character alias for your robot from '&!;:-%#@~<>/*+^\$?\[]{}'")
+    checkReply $?
+    BOTMAIL=$(getMatching "Email" "Email address for the robot? (will be used in git commits)")
+    checkReply $?
+    BOTFULLNAME=$(getMatching "SimpleString" "\"Full Name\" for the robot? (also used in git commits)")
+    checkReply $?
+    SSHPHRASE=$(getMatching "sshkey" "Passphrase to use for encrypting my ssh private key? (at least 16 characters)")
+    checkReply $?
+    SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt "$SSHPHRASE")
+    # Create configuration
+    cp -a $GOPHER_INSTALLDIR/robot.skel/* "$GOPHER_CONFIGDIR"
+    substitute "<defaultprotocol>" "slack" # slack-only for now
+    substitute "<slackencrypted>" "$SLACK_ENCRYPTED" "conf/slack.yaml"
+    substitute "<sshencrypted>" "$SSH_ENCRYPTED"
+    substitute "<botname>" "$BOTNAME"
+    substitute "<botalias>" "$BOTALIAS"
+    substitute "<botfullname>" "$BOTFULLNAME"
+    substitute "<botfullname>" "$BOTFULLNAME" "git/config"
+    substitute "<botemail>" "$BOTMAIL"
+    substitute "<botemail>" "$BOTMAIL" "git/config"
+    Say "Configuration complete - restarting and connecting to slack"
+    AddTask "restart-robot"
+    exit 0
+fi
+
 # Running again as a pipeline task
 if [ "$command" == "continue" ]
 then
     Pause 2
-    BOTNAME=$(getMatching "SimpleString" "What do you want your robot's name to be?")
-checkReply $?
-BOTALIAS=$(getMatching "alias" \
-"Pick a one-character alias for your robot from '&!;:-%#@~<>/*+^\$?\[]{}'")
-checkReply $?
     
 fi
 

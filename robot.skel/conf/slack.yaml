@@ -8,7 +8,7 @@
 AdminUsers: [ "<GOPHER_ADMIN>" ]
 ProtocolConfig:
   MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
-  SlackToken: xoxb-{{ decrypt "<GOHER_SLACK_ENCRYPTED>" }}
+  SlackToken: xoxb-{{ decrypt "<slackencrypted>" }}
 
 {{ $defaultjobchannel := "general" }}
 DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}
