@@ -25,6 +25,10 @@ import "github.com/lnxjedi/gopherbot/robot"
 // 	return
 // }
 
+func rotatelog(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
+	return logRotate()
+}
+
 func restart(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
 	pn := r.pipeName
@@ -71,6 +75,7 @@ func init() {
 	// RegisterTask("set-environment", true, robot.TaskHandler{Handler: setenv})
 	// RegisterTask("initialize-encryption", true, robot.TaskHandler{Handler: initcrypt})
 	RegisterTask("restart-robot", true, robot.TaskHandler{Handler: restart})
+	RegisterTask("rotate-log", true, robot.TaskHandler{Handler: rotatelog})
 	RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pause})
 	RegisterTask("resume-brain", true, robot.TaskHandler{Handler: resume})
 }

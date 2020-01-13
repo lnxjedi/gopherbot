@@ -2,6 +2,7 @@ package bot
 
 import (
 	"log"
+	"os"
 	"strings"
 	"sync"
 
@@ -11,6 +12,7 @@ import (
 // Should be ample for the internal circular log
 const buffLines = 500
 const maxLines = 50 // maximum lines to send in a message
+var logFileName string
 
 var botLogger = struct {
 	l         *log.Logger
@@ -22,12 +24,30 @@ var botLogger = struct {
 	sync.Mutex
 }{
 	nil,
-	robot.Trace,
+	robot.Info,
 	make([]string, buffLines),
 	0,
 	20,
 	buffLines / 20,
 	sync.Mutex{},
+}
+
+func logRotate() robot.TaskRetVal {
+	if len(logFileName) == 0 {
+		return robot.Normal
+	}
+	raiseThreadPriv("rotating log")
+	if err := os.Remove(logFileName); err != nil {
+		Log(robot.Error, "Unlinking old log file '%s': %v", logFileName, err)
+		return robot.Fail
+	}
+	lf, err := os.Create(logFileName)
+	if err != nil {
+		Log(robot.Error, "Creating new log file '%s': %v", logFileName, err)
+		return robot.Fail
+	}
+	botLogger.l.SetOutput(lf)
+	return robot.Normal
 }
 
 func logStrToLevel(l string) robot.LogLevel {
