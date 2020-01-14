@@ -438,28 +438,34 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 	return
 }
 
+// getEnvironment generates the environment for each task run.
 func (w *worker) getEnvironment(task *Task) map[string]string {
 	c := w.pipeContext
 	envhash := make(map[string]string)
+	// Start with the pipeline environment; values configured for the job,
+	// or set with SetParameter(name, value)
 	if len(c.environment) > 0 {
 		for k, v := range c.environment {
 			envhash[k] = v
 		}
 	}
-
+	// These values are always fixed
 	envhash["GOPHER_CHANNEL"] = w.Channel
 	envhash["GOPHER_USER"] = w.User
 	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", w.Protocol)
 	envhash["GOPHER_TASK_NAME"] = c.taskName
 	envhash["GOPHER_PIPELINE_TYPE"] = c.ptype.String()
-	// Configured parameters for a pipeline task don't apply if already set
+	// Configured parameters for a pipeline task don't apply if already set;
+	// task parameters are effectively default values if not otherwise
+	// provided.
 	for _, p := range task.Parameters {
 		_, exists := envhash[p.Name]
 		if !exists {
 			envhash[p.Name] = p.Value
 		}
 	}
-	// Next lowest prio are namespace params
+	// Next lowest prio are namespace params; task parameters can override
+	// parameters from the namespace.
 	if len(task.NameSpace) > 0 {
 		if ns, ok := w.tasks.nameSpaces[task.NameSpace]; ok {
 			for _, p := range ns.Parameters {
