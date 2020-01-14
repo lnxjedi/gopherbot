@@ -205,8 +205,13 @@ func Start(v VersionInfo) {
 			logOut = lf
 		}
 	}
-	log.SetOutput(logOut)
+	// Not needed?
+	// log.SetOutput(logOut)
 	logger = log.New(logOut, "", logFlags)
+	botLogger.l = logger
+	if fileLog {
+		botLogger.setOutputFile(logOut)
+	}
 
 	if daemonize {
 		scrubargs := []string{}
@@ -269,7 +274,6 @@ func Start(v VersionInfo) {
 	}
 
 	if cliCommand == "dump" {
-		botLogger.l = logger
 		setLogLevel(robot.Warn)
 		if len(flag.Args()) != 3 {
 			fmt.Println("DEBUG wrong args")
@@ -291,7 +295,7 @@ func Start(v VersionInfo) {
 		}
 	}
 
-	initBot(configpath, binDirectory, logger)
+	initBot(configpath, binDirectory)
 
 	if cliOp {
 		go runBrain()

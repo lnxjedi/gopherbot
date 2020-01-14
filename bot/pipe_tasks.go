@@ -26,7 +26,11 @@ import "github.com/lnxjedi/gopherbot/robot"
 // }
 
 func rotatelog(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
-	return logRotate()
+	ext := ""
+	if len(args) == 1 {
+		ext = args[0]
+	}
+	return logRotate(ext)
 }
 
 func restart(m robot.Robot, args ...string) (retval robot.TaskRetVal) {

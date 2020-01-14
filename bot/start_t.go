@@ -23,30 +23,26 @@ func init() {
 	testInstallPath = filepath.Dir(wd)
 }
 
-var testLogger *log.Logger
-
 // StartTest will start a robot for testing, and return the exit / robot stopped channel
 func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, robot.Connector) {
+	var testLogger *log.Logger
 	botVersion = v
 	configpath := filepath.Join(testInstallPath, cfgdir)
 	t.Logf("Initializing test bot with installpath: \"%s\" and configpath: \"%s\"", testInstallPath, configpath)
 
 	botStdOutLogger = log.New(os.Stdout, "", log.LstdFlags)
-	if testLogger == nil {
-		if len(logfile) == 0 {
-			testLogger = log.New(ioutil.Discard, "", 0)
-		} else {
-			lf, err := os.Create(logfile)
-			if err != nil {
-				log.Fatalf("Error creating log file: (%T %v)", err, err)
-			}
-			testLogger = log.New(lf, "", log.LstdFlags)
-		}
-
-		initBot(configpath, testInstallPath, testLogger)
+	if len(logfile) == 0 {
+		testLogger = log.New(ioutil.Discard, "", 0)
 	} else {
-		initBot(configpath, testInstallPath, nil)
+		lf, err := os.Create(logfile)
+		if err != nil {
+			log.Fatalf("Error creating log file: (%T %v)", err, err)
+		}
+		testLogger = log.New(lf, "", log.LstdFlags)
 	}
+
+	botLogger.l = testLogger
+	initBot(configpath, testInstallPath)
 
 	initializeConnector, ok := connectors[currentCfg.protocol]
 	if !ok {

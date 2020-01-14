@@ -131,17 +131,12 @@ var listenPort string // actual listening port
 // initBot sets up the global robot; when cli is false it also loads configuration.
 // cli indicates that a CLI command is being processed, as opposed to actually running
 // a robot.
-func initBot(cpath, epath string, logger *log.Logger) {
+func initBot(cpath, epath string) {
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// Initialize current config with an empty struct (to be loaded)
 	currentCfg.configuration = &configuration{}
-
-	// Only true with test suite
-	if logger != nil {
-		botLogger.l = logger
-	}
 
 	var err error
 	homePath, err = os.Getwd()

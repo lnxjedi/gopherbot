@@ -42,8 +42,8 @@ loop:
 				time.Sleep(2 * time.Second)
 				panic("SIGUSR1 received")
 			case syscall.SIGUSR2:
-				Log(robot.Info, "Rotating logfile")
-				logRotate()
+				Log(robot.Info, "Restarting logfile")
+				logRotate("")
 				Log(robot.Info, "Log rotated")
 			}
 		// done declared globally at top of this file
