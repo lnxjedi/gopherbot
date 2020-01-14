@@ -73,6 +73,9 @@ HistoryConfig:
 # DefaultMessageFormat: Variable # 'Raw' if not specified
 
 # ExternalJobs:
+#   "logrotate":
+#     Description: Log rotation for file logging, schedule daily
+#     Path: jobs/logrotate.sh
 #   "hello":
 #     Description: Trivial hello world job for testing
 #     Path: jobs/hello.sh
@@ -85,6 +88,8 @@ HistoryConfig:
 # ScheduledJobs:
 # - Name: backup
 #   Schedule: "@every 1m"
+# - Name: logrotate
+#   Schedule: "5 0 0 * * *"
 # - Name: hello
 #   Schedule: "@every 30s" # see: https://godoc.org/github.com/robfig/cron
 #   Arguments: # an array of strings; up to the job to parse numbers & bools
