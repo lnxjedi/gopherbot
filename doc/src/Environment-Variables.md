@@ -1,6 +1,6 @@
 # Gopherbot Environment Variables
 
-**Gopherbot** makes extensive use of environment variables, both for configuring the robot and plugins, and for providing parameters to external scripts.
+**Gopherbot** makes extensive use of environment variables, both for configuring the robot and plugins, and for providing parameters to external scripts. This article describes the various environment variables and their use; for the environment applicable to a given running task, see [per-task environment](pipelines/TaskEnvironment.md).
 
 ## Robot Execution Environment
 

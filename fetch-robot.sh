@@ -102,13 +102,7 @@ else
 fi
 
 ln -snf "$SCRIPTDIR/gopherbot" gopherbot
-cat >terminal.sh <<EOF
-#!/bin/bash
-
-# terminal.sh - run $BOTNAME in local terminal mode
-echo "Setting 'GOPHER_PROTOCOL' to 'terminal' and logging to ./robot.log..."
-GOPHER_PROTOCOL=terminal ./gopherbot -l robot.log
-EOF
+cp $SCRIPTDIR/resoures/terminal.sh .
 chmod +x terminal.sh
 
 cp $SCRIPTDIR/resources/docker/Makefile .

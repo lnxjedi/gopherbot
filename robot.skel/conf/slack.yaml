@@ -1,11 +1,11 @@
-# UserRoster:
+UserRoster:
+- UserName: <adminusername>
+  UserID: <adminuserid>
 # - UserName: floyd
 #   UserID: U138KTVCL
 #   BotUser: true
-# - UserName: parsley
-#   UserID: U0JLW8EMS
 
-AdminUsers: [ "<GOPHER_ADMIN>" ]
+AdminUsers: [ "<adminusername>" ]
 ProtocolConfig:
   MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
   SlackToken: xoxb-{{ decrypt "<slackencrypted>" }}

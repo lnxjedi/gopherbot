@@ -29,8 +29,6 @@ Protocol: {{ $proto }}
 {{ .Include "terminal.yaml" }}
 {{ end }}
 
-EncryptBrain: true
-
 ## Configure log level
 LogLevel: {{ env "GOPHER_LOGLEVEL" | default "info" }}
 
@@ -62,6 +60,8 @@ LoadableModules:
   "knock":
     Description: Knock knock jokes!
     Path: goplugins/knock.so
+{{ else }}
+EncryptBrain: true
 {{ end }}
 
 ## NOTE:

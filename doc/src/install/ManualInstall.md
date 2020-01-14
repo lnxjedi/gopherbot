@@ -29,17 +29,3 @@ The latest release, pre-release and beta versions are available for download on 
 ## Privilege Separation
 
 **Gopherbot** need never run as root; all of it's privileges derive from the collection of encrypted secrets that a given robot collects. However, given that chat bots tend to accumulate an assortment of 3rd-party command plugins (like the included **Chuck Norris**, hell yeah), **Gopherbot** can be installed *setuid nobody*. Configured this way, the main process may be started by your userid, or a system user such as `robot`, and a given robot will run it's privileged scripts using the `uid` of the parent process. Since almost all toy 3rd-party plugin scripts don't require any privileges, only access to the local API port, **Gopherbot** will run these external scripts with real/effective uid `nobody`. As child processes do not inherit environment, this effectively prevents any potential access to the `GOPHER_ENCRYPTION_KEY`, and any ability to modify the robot's running environment.
-
-## Requirements
-
-Since **Gopherbot** is primarily a *Go* daemon that utilizes external tools and scripts to perform most of the real work, you'll probably want to have most of the (common) listed dependencies. Note that if you deploy your robot in a container, most of these are included in the base container.
-
-* `git` - with version 2, **Gopherbot** is tightly integrated with git for updating configuration and keeping state
-* `ssh` - most robots should have an encrypted private key / public key pair for performing *git* operations and running remote jobs
-* `bash` - the majority of the *batteries included* scripts included with **Gopherbot** are written in good 'ol **Bash**; this is nearly universal but listed here for containerized deployments
-* `jq` - required by the `gopherbot/lib/gopherbot_v1.sh` **bash** library for parsing the **JSON** responses from the robot
-* `python` - (version 3) next to `bash`, the second most common language for extensions is **python** version 3, which includes several management jobs
-
-**Optional**
-* `ruby` - ruby isn't heavily used with the default extensions, but is a supported language and included the pre-built containers
-* `go` - the pre-built containers all include a recent version of *Go*, which can be used for e.g. building loadable modules for *Go* plugins, jobs and tasks
