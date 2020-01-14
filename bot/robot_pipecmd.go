@@ -182,14 +182,13 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 			}
 		}
 	}
+	// Question: should repository parameters override job parameters, but _not_
+	// parameters set with SetParameter?
 	w.Lock()
 	for _, param := range repository.Parameters {
 		name := param.Name
 		value := param.Value
-		_, exists := w.environment[name]
-		if !exists {
-			w.environment[name] = value
-		}
+		w.environment[name] = value
 	}
 	w.Unlock()
 	return true
