@@ -50,8 +50,44 @@ Now edit your `conf/slack.yaml` file and replace `<slackencrypted>` with the cip
   SlackToken: xoxb-{{ decrypt "FverBqdWHzHfEPDy/cQ8U9AJ3z4v8KdGSubDMALPfHIupwDLctDWQ1c=" }}
 ```
 
-TODO: replace other `<foo>` strings, start robot and get admin username and ID.
+### Editing Default Configuration
+Now you need to edit the configuration files under `custom/`, replacing most of the `<replacevalue>` instances with values for your robot.
+
+In `custom/conf/gopherbot.yaml`:
+* Replace `<defaultprotocol>` with "slack"
+* Replace `<botname>` with the name of your robot, e.g. `clu`
+* Replace `<botemail>` with an email address for your robot; will be used for "from:"
+* Replace `<botfullname>` with a full name, informational only; e.g. "Clu Gopherbot"
+* Replace `<botalias>` with a single-character alias for addressing your robot from the list `'&!;:-%#@~<>/*+^\$?\[]{}'` (";" is good for this)
+* Replace `<sshencrypted>` encrypted ciphertext for a 16+ char ssh passphrase for your robot
+
+In `custom/conf/slack.yaml`:
+* Replace `<slackencrypted>` with the ciphertext generated above
+* You'll replace `<adminusername>` and `<adminuserid>` later, after your robot has successfully connected
+
+In `custom/git/config`, replace the values for `<botfullname>` and `<botemail>`; these will be used when your robot performs a `git commit`.
 
 ## SSH Keypair
+Now generate a new ssh keypair for your robot, using the passphrase from above:
+```shell
+[clu]$ ssh-keygen -N "VeryLovelyNicePassword" -C "clu@linuxjedi.org" -f custom/ssh/robot_rsa
+Generating public/private rsa key pair.
+Your identification has been saved in custom/ssh/robot_rsa.
+Your public key has been saved in custom/ssh/robot_rsa.pub.
+The key fingerprint is:
+...
+```
 
-## Git Settings
+## Connecting to Team Chat
+Now your robot should be able to connect to team chat, and respond to your messages:
+```shell
+[clu]$ ./gopherbot 
+2020/01/15 14:24:19 Initialized logging ...
+2020/01/15 14:24:19 Loaded initial private environment from '.env'
+2020/01/15 14:24:19 Starting up with config dir: custom, and install dir: /home/parse/git/gopher/gopherbot
+...
+2020/01/15 14:24:20 Info: Robot is initialized and running
+```
+
+Now you talk to your robot in the `#general` channel, and get the information you need from Slack to configure yourself as the robot's administrator:
+... TODO: finish me!
