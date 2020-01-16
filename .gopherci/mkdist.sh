@@ -28,7 +28,7 @@ eval `go env`
 COMMIT=$(git rev-parse --short HEAD)
 
 CONTENTS="conf/ doc/ jobs/ lib/ licenses/ plugins/ resources/ robot.skel/ helpers/ \
-	tasks/ AUTHORS.txt changelog.txt LICENSE new-robot.sh README.md"
+	tasks/ AUTHORS.txt changelog.txt LICENSE README.md fetch-robot.sh"
 MODULES="goplugins/knock.so goplugins/duo.so goplugins/meme.so goplugins/totp.so \
 	connectors/slack.so connectors/rocket.so connectors/terminal.so brains/dynamodb.so"
 

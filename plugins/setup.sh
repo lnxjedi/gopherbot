@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# echo.sh - trivial shell plugin example for Gopherbot
+# setup.sh - plugin for setting up a new robot
 
 # START Boilerplate
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
@@ -13,17 +13,30 @@ shift
 configure(){
 	cat <<"EOF"
 ---
+AdminCommands:
+- setup
 Help:
 - Keywords: [ "setup" ]
-  Helptext: [ "(bot), setup <key> - perform initial setup of your robot" ]
+  Helptext: [ "(bot), setup - perform initial setup of a new robot" ]
+- Keywords: [ "administrator" ]
+  Helptext: [ "(bot), add admin <key> - add the user as a robot administrator" ]
 CommandMatchers:
 - Command: "setup"
-  Regex: '(?i:setup ([^\s]+))'
+  Regex: '(?i:setup)'
+- Command: "add"
+  Regex: '(?i:add ?admin(istrator)? ([^\s]+))'
+MessageMatchers:
+- Command: "setup"
+  Regex: '(?i:setup)'
 ReplyMatchers:
 - Label: "alias"
   Regex: '([&!;:%#@~<>\/*+^\$?\\\[\]{}-])'
 - Label: "encryptionkey"
   Regex: '(.{32,})'
+- Label: "sshkey"
+  Regex: '(.{16,})'
+- Label: "slacktoken"
+  Regex: 'xoxb-[\w-]+'
 EOF
 }
 
@@ -33,20 +46,24 @@ then
     exit 0
 fi
 
-if [ "$command" != "setup" ]
+if [ "$command" == "init" -a "$GOPHER_UNCONFIGURED" ]
 then
+    NAME=$(GetBotAttribute "name")
+    ALIAS=$(GetBotAttribute "alias")
+    Pause 1
+    if [ "$GOPHER_ENCRYPTION_INITIALIZED" ]
+    then
+        SendChannelMessage "general" "Type '${ALIAS}setup' to continue setup..."
+        exit 0
+    fi
+    SendChannelMessage "general" "*******"
+    SendChannelMessage "general" "Hi, I'm $NAME, the default robot - I see you're running Gopherbot unconfigured"
+    Pause 2
+    SendChannelMessage "general" "If you've started the robot by mistake, just hit ctrl-D to exit and try \
+'gopherbot --help'; otherwise feel free to play around with Gopherbot; you can start by typing 'help'. \
+If you'd like to start configuring a new robot, type: '${ALIAS}setup'."
     exit 0
 fi
-
-KEY=$1
-
-if [ "$KEY" != "$SETUP_KEY" ]
-then
-    Say "Invalid setup key"
-    exit 0
-fi
-SetParameter USER_KEY "$KEY"
-Remember AUTH_USER "$GOPHER_USER"
 
 checkReply(){
     if [ $1 -ne 0 ]
@@ -84,8 +101,83 @@ getMatching(){
 substitute(){
     local FIND=$1
     local REPLACE=$2
-    sed -i -e "s/$FIND/$REPLACE/g" conf/gopherbot.yaml
+    local FILE=${3:-conf/gopherbot.yaml}
+    sed -i -e "s#$FIND#$REPLACE#g" "$GOPHER_CONFIGDIR/$FILE"
 }
+
+if [ "$command" == "setup" -a -z "$GOPHER_ENCRYPTION_INITIALIZED" ]
+then
+    Say "Before we can get started, we need to set up encryption"
+    ENCRYPTION_KEY=$(getMatching "encryptionkey" \
+    "Give me a string at least 32 characters long for the robot's encryption key")
+    checkReply $?
+    cat > .env <<EOF
+GOPHER_ENCRYPTION_KEY=$ENCRYPTION_KEY
+EOF
+    Say "Now I'll restart with encryption initialized..."
+    AddTask "restart-robot"
+    exit 0
+fi
+
+if [ "$command" == "setup" ]
+then
+    # Get all the information
+    SLACK_TOKEN=$(getMatching "slacktoken" "Slack token? (from https://<org>.slack.com/services/new/bot)")
+    SLACK_TOKEN=${SLACK_TOKEN#xoxb-}
+    SLACK_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt $SLACK_TOKEN)
+    checkReply $?
+    BOTNAME=$(getMatching "SimpleString" "What do you want your robot's name to be?")
+    checkReply $?
+    BOTALIAS=$(getMatching "alias" \
+    "Pick a one-character alias for your robot from '&!;:-%#@~<>/*+^\$?\[]{}'")
+    checkReply $?
+    BOTMAIL=$(getMatching "Email" "Email address for the robot? (will be used in git commits)")
+    checkReply $?
+    BOTFULLNAME=$(getMatching "SimpleString" "\"Full Name\" for the robot? (also used in git commits)")
+    checkReply $?
+    SSHPHRASE=$(getMatching "sshkey" "Passphrase to use for encrypting my ssh private key? (at least 16 characters)")
+    checkReply $?
+    SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt "$SSHPHRASE")
+    # Create configuration
+    cp -a $GOPHER_INSTALLDIR/robot.skel/* "$GOPHER_CONFIGDIR"
+    substitute "<defaultprotocol>" "slack" # slack-only for now
+    substitute "<slackencrypted>" "$SLACK_ENCRYPTED" "conf/slack.yaml"
+    substitute "<sshencrypted>" "$SSH_ENCRYPTED"
+    substitute "<botname>" "$BOTNAME"
+    substitute "<botalias>" "$BOTALIAS"
+    substitute "<botfullname>" "$BOTFULLNAME"
+    substitute "<botfullname>" "$BOTFULLNAME" "git/config"
+    substitute "<botemail>" "$BOTMAIL"
+    substitute "<botemail>" "$BOTMAIL" "git/config"
+    Say "Configuration complete - restarting and connecting to slack"
+    AddTask "restart-robot"
+    exit 0
+fi
+
+# Running again as a pipeline task
+if [ "$command" == "continue" ]
+then
+    Pause 2
+    
+fi
+
+exit 0
+if [ "$command" != "setup" ]
+then
+    exit 0
+fi
+
+exit 0
+KEY=$1
+
+if [ "$KEY" != "$SETUP_KEY" ]
+then
+    Say "Invalid setup key"
+    exit 0
+fi
+SetParameter USER_KEY "$KEY"
+Remember AUTH_USER "$GOPHER_USER"
+
 
 USERNAME=$(GetSenderAttribute "user")
 USERID=$(GetSenderAttribute "id")
@@ -103,13 +195,6 @@ checkReply $?
 BOTALIAS=$(getMatching "alias" \
   "Pick a one-character alias for your robot from '&!;:-%#@~<>/*+^\$?\[]{}'")
 checkReply $?
-ENCRYPTION_KEY=$(getMatching "encryptionkey" \
-  "Give me a string at least 32 characters long for the robot's encryption key")
-checkReply $?
-cat > .env <<EOF
-GOPHER_SLACK_TOKEN=$SLACK_TOKEN
-GOPHER_ENCRYPTION_KEY=$ENCRYPTION_KEY
-EOF
 mv conf/gopherbot.yaml conf/gopherbot.yaml.setup
 mv conf/gopherbot-new.yaml conf/gopherbot.yaml
 mv conf/plugins/builtin-admin.yaml conf/plugins/builtin-admin.yaml.setup
@@ -127,3 +212,96 @@ Pause 3
 Say "Finally, encryption won't be initialized until the robot is restarted, so I'll go ahead and exit then restart ..."
 
 AddCommand "builtin-admin" "quit"
+
+exit 0
+
+# Contents of new-robot.sh for mining; remove later!
+#!/bin/bash -e
+
+# new-robot.sh - set up a new robot and create
+# the configuration repo.
+
+GOPHER_INSTALL_DIR=$(dirname `readlink -f "$0"`)
+
+REPO_DIR=$1
+PROTOCOL=$2
+
+usage(){
+cat <<EOF
+Usage: new-robot.sh <directory> <protocol>
+
+Set up a new robot repository and perform initial configuration.
+Protocol can be one of: slack, term.
+EOF
+    exit 1
+}
+
+if [ $# -ne 2 ]
+then
+    usage
+fi
+
+if ! mkdir -p "$REPO_DIR"
+then
+    echo "Unable to create destination directory"
+    usage
+fi
+export GOPHER_SETUP_DIR=$(readlink -f $REPO_DIR)
+
+cp -a $GOPHER_INSTALL_DIR/robot.skel/* $REPO_DIR
+cp $GOPHER_INSTALL_DIR/robot.skel/.gitignore $REPO_DIR
+
+cat <<EOF
+Setting up new robot configuration repository in "$REPO_DIR".
+
+This script will create a new robot directory and configure
+you as a robot administrator, which provides access to
+admin-only commands like 'reload', 'quit', 'update', etc.
+
+The first part will prompt for required credentials, then
+start the robot to complete setup using the 'setup' plugin.
+
+EOF
+
+GOPHER_PROTOCOL=slack
+
+case $PROTOCOL in
+slack)
+    echo -n "Slack token? (from https://<org>.slack.com/services/new/bot) "
+    read GOPHER_SLACK_TOKEN
+    export GOPHER_SLACK_TOKEN
+    ;;
+term)
+    export GOPHER_PROTOCOL=term
+    export GOPHER_ADMIN=alice
+    LOGFILE="/tmp/gopherbot-$REPO_DIR.log"
+    GOPHER_ARGS="-l $LOGFILE"
+    echo "Logging to $LOGFILE"
+    ;;
+esac
+
+echo -n "Setup passphrase? (to be supplied to the robot) "
+read GOPHER_SETUP_KEY
+export GOPHER_SETUP_KEY
+
+cat <<EOF
+***********************************************************
+
+Now we'll start the robot, which will start a connection
+with the '${GOPHER_PROTOCOL}' protocol. Once it's connected,
+open a private chat with your robot and tell it:
+
+> setup $GOPHER_SETUP_KEY
+
+(NOTE for 'term' protocol: use '|C' to switch to a private/
+DM channel)
+
+Press <enter>
+EOF
+read DUMMY
+
+cd $REPO_DIR
+ln -s $GOPHER_INSTALL_DIR/gopherbot .
+./gopherbot $GOPHER_ARGS
+# Start again after setup to reload and initialize encryption
+[ -e "conf/gopherbot.yaml.setup" ] && ./gopherbot $GOPHER_ARGS

@@ -1,0 +1,6 @@
+---
+# Config:
+  ## How long elevation lasts
+  # TimeoutSeconds: 7200
+  ## When 'idle', the timer resets on every elevated command
+  # TimeoutType: idle # or absolute

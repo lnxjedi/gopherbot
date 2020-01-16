@@ -1,4 +1,4 @@
-# terminal.yaml - stock configuration for the terminal connector
+## terminal.yaml - stock configuration for the terminal connector
 {{ $botname := env "GOPHER_BOTNAME" | default "floyd" }}
 {{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot"}}
 {{ $botalias := env "GOPHER_ALIAS" | default ";"}}
@@ -66,3 +66,6 @@ UserRoster:
 
 AdminUsers: [ "alice" ]
 DefaultChannels: [ "general", "random" ]
+
+{{ $defaultjobchannel := "general" }}
+DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}

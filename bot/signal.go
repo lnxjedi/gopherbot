@@ -16,7 +16,7 @@ import (
 func sigHandle(sigBreak chan struct{}) {
 	sigs := make(chan os.Signal, 1)
 
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1, syscall.SIGUSR2)
 
 loop:
 	for {
@@ -41,6 +41,10 @@ loop:
 				log.Printf("%s", buf)
 				time.Sleep(2 * time.Second)
 				panic("SIGUSR1 received")
+			case syscall.SIGUSR2:
+				Log(robot.Info, "Restarting logfile")
+				logRotate("")
+				Log(robot.Info, "Log rotated")
 			}
 		// done declared globally at top of this file
 		case <-sigBreak:

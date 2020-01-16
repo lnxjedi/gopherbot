@@ -8,26 +8,39 @@
 
 [Terminology](Terminology.md)
 
-## Installation
+## Installation and Setup
 - [Installation](Installation.md)
-    - [Installation Overview](InstallOverview.md)
-    - [Docker Install](DockerInstall.md)
+    - [Requirements](install/Requirements.md)
+    - [Manual Installation](install/ManualInstall.md)
 
-## Upgrading
 - [Upgrading from Version 1](Upgrading.md)
     - [Required Bot Info](upgrade/BotInfo.md)
     - [External Plugin Configuration](upgrade/External-Plugin.md)
     - [Custom Configuration Directory](upgrade/Custom-Dir.md)
     - [Early Encryption Initialization](upgrade/Encryption.md)
 
-## Configuration
-- [Configuration File Loading](config/file.md)
+- [Initial Configuration](RobotInstall.md)
+    - [Requirements](botsetup/Requirements.md)
+    - [Manual Setup](botsetup/ManualSetup.md)
+    - [Using the Setup Plugin](botsetup/Plugin.md)
 
-## Using Gopherbot
-- [Administrator Commands](usage/admin.md)
-- [Command-Line Use](usage/cli.md)
+- [Deploying and Running Your Robot](RunRobot.md)
+    - [CLI Operation](deploy/CLI.md)
+    - [Running in a Container](deploy/Container.md)
 
-## Plugin Development
+- [Configuring Gopherbot](Configuration.md)
+    - [Environment Variables](Environment-Variables.md)
+    - [Configuration File Loading](config/file.md)
+    - [Job and Plugin Configuration](config/job-plug.md)
+    - [Troubleshooting](config/troubleshooting.md)
+
+- [Administering Your Robot](Admin.md)
+    - [Administrator Commands](usage/admin.md)
+    - [Command-Line Use](usage/cli.md)
+    - [Logging](usage/logging.md)
+
+## Developing Plugins, Jobs and Tasks
+
 - [Gopherbot API](api/API-Introduction.md)
     - [Language Templates](api/Languages.md)
     - [Attribute Retrieval](api/Attribute-Retrieval-API.md)
@@ -36,11 +49,13 @@
     - [Pipeline Construction](api/Pipeline-API.md)
     - [Requesting Responses](api/Response-Request-API.md)
     - [Utility](api/Utility-API.md)
+
 - [Module Support](Modules.md)
 
-## Jobs and Build Pipelines
-
-- [Tool Integrations](pipelines/integrations.md)
+- [Jobs and Pipelines](pipelines/jobspipes.md)
+    - [Included Tasks](pipelines/tasks.md)
+    - [Task Environment Variables](pipelines/TaskEnvironment.md)
+    - [Tool Integrations](pipelines/integrations.md)
     - [Integrating with SSH](pipelines/ssh.md)
 
 ## Gopherbot Development

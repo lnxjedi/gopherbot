@@ -1,16 +1,6 @@
 #!/usr/bin/env python3
 
-# localbuild.py - Clone a repository locally and run .gopherci/pipeline.sh
-
-# localbuild is one of possibly several build types for a repository. When
-# called with two arguments, they are interpreted as the repository and branch
-# of a primary build. When called with four arguments, the first two are the
-# repository and branch to build, and the second two are the repository and
-# branch that triggered the build.
-#
-# The build type is responsible for calling Exclusive, setting up the build
-# directory, and adding the initial pipeline tasks. All other
-# pipeline/dependency logic is in gopherci.
+# bootstrap.py - bootstrap a robot from env vars
 
 import os
 import re
@@ -64,7 +54,7 @@ if not clone_url.startswith("http"):
 
 bot.Log("Info", "Creating bootstrap pipeline for %s" % clone_url)
 bot.SetParameter("BOOTSTRAP", "true")
-bot.AddTask("git-credentials", [ clone_url ])
+bot.AddTask("git-init", [ clone_url ])
 
 tkey = os.path.join(cfgdir, "binary-encrypted-key")
 bot.AddTask("exec", [ "rm", "-f", tkey ])

@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -40,6 +41,10 @@ func Start(v VersionInfo) {
 	cusage := "path to the configuration directory"
 	flag.StringVar(&explicitCfgPath, "config", "", cusage)
 	flag.StringVar(&explicitCfgPath, "c", "", "")
+	var daemonize bool
+	var dusage = "daemonize on startup"
+	flag.BoolVar(&daemonize, "daemonize", false, dusage)
+	flag.BoolVar(&daemonize, "d", false, "")
 	var logFile string
 	lusage := "path to robot's log file (or 'stderr')"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -61,11 +66,10 @@ func Start(v VersionInfo) {
 	botStdOutLogger = log.New(os.Stdout, "", logFlags)
 	// Container support
 	pid := os.Getpid()
-	// if _, ok := os.LookupEnv("GOPHER_CHILD"); !ok {
 	if pid == 1 {
 		Log(robot.Info, "PID == 1, spawning child")
 		bin, _ := os.Executable()
-		env := append(os.Environ(), "GOPHER_CHILD=true")
+		env := os.Environ()
 		cmd := exec.Command(bin, args...)
 		cmd.Env = env
 		cmd.Stdin = nil
@@ -76,7 +80,6 @@ func Start(v VersionInfo) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		// NOTE: this doesn't work - why?
 		go initSigHandle(cmd.Process)
 		if pid == 1 {
 			go func() {
@@ -141,6 +144,45 @@ func Start(v VersionInfo) {
 	penvErr := godotenv.Overload(envFile)
 
 	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
+	// Configdir is where all user-supplied configuration and
+	// external plugins are.
+	if len(explicitCfgPath) != 0 {
+		configpath = explicitCfgPath
+	} else if len(envCfgPath) > 0 {
+		configpath = envCfgPath
+	} else {
+		if _, ok := checkDirectory("custom"); ok {
+			configpath = "custom"
+		} else if _, ok := checkDirectory("conf"); ok {
+			configpath = "."
+		} else {
+			// If not explicitly set or cwd, use "custom" even if it
+			// doesn't exist.
+			configpath = "custom"
+		}
+	}
+
+	// support for setup plugin
+	var defaultProto, defaultLogfile bool
+	testpath := filepath.Join(configpath, "conf", "gopherbot.yaml")
+	_, err := os.Stat(testpath)
+	if err != nil {
+		_, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
+		if !ok {
+			Log(robot.Warn, "Starting unconfigured: %v", err)
+			os.Setenv("GOPHER_UNCONFIGURED", "unconfigured")
+			if _, ok := os.LookupEnv("GOPHER_PROTOCOL"); !ok {
+				os.Setenv("GOPHER_PROTOCOL", "terminal")
+				defaultProto = true
+			}
+			if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
+				os.Setenv("GOPHER_LOGFILE", "robot.log")
+				defaultLogfile = true
+			}
+		}
+	} else {
+		os.Unsetenv("GOPHER_UNCONFIGURED")
+	}
 
 	var logger *log.Logger
 	logOut := os.Stdout
@@ -159,29 +201,58 @@ func Start(v VersionInfo) {
 			}
 			botStdOutLogging = false
 			fileLog = true
+			logFileName = logFile
 			logOut = lf
 		}
 	}
-	log.SetOutput(logOut)
+	// Not needed?
+	// log.SetOutput(logOut)
 	logger = log.New(logOut, "", logFlags)
-	if !cliOp {
-		logger.Println("Initialized logging ...")
+	botLogger.l = logger
+	if fileLog {
+		botLogger.setOutputFile(logOut)
 	}
 
-	// Configdir is where all user-supplied configuration and
-	// external plugins are.
-	if len(explicitCfgPath) != 0 {
-		configpath = explicitCfgPath
-	} else if len(envCfgPath) > 0 {
-		configpath = envCfgPath
-	} else {
-		if _, ok := checkDirectory("conf"); ok {
-			configpath = "."
-		} else {
-			// If not explicitly set or cwd, use "custom" even if it
-			// doesn't exist. For compatibility with old installs.
-			configpath = "custom"
+	if daemonize {
+		scrubargs := []string{}
+		skip := false
+		for _, arg := range args {
+			if arg == "-d" || arg == "-daemonize" {
+				continue
+			}
+			if arg == "-l" || arg == "-log" {
+				skip = true
+				continue
+			}
+			if skip {
+				skip = false
+				continue
+			}
+			scrubargs = append(scrubargs, arg)
 		}
+		Log(robot.Info, "backgrounding")
+		bin, _ := os.Executable()
+		env := os.Environ()
+		if !fileLog {
+			env = append(env, "GOPHER_LOGFILE=robot.log")
+		} else {
+			env = append(env, fmt.Sprintf("GOPHER_LOGFILE=%s", logFile))
+		}
+		cmd := exec.Command(bin, scrubargs...)
+		cmd.Env = env
+		cmd.Stdin = nil
+		cmd.Stdout = nil
+		cmd.Stderr = nil
+		raiseThreadPrivExternal("fork in to background")
+		err := cmd.Start()
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	if !cliOp {
+		logger.Println("Initialized logging ...")
 	}
 
 	if !cliOp {
@@ -203,7 +274,6 @@ func Start(v VersionInfo) {
 	}
 
 	if cliCommand == "dump" {
-		botLogger.l = logger
 		setLogLevel(robot.Warn)
 		if len(flag.Args()) != 3 {
 			fmt.Println("DEBUG wrong args")
@@ -225,7 +295,7 @@ func Start(v VersionInfo) {
 		}
 	}
 
-	initBot(configpath, binDirectory, logger)
+	initBot(configpath, binDirectory)
 
 	if cliOp {
 		go runBrain()
@@ -256,6 +326,12 @@ func Start(v VersionInfo) {
 	raiseThreadPrivExternal("Exiting")
 	time.Sleep(time.Second)
 	if restart {
+		if defaultProto {
+			os.Unsetenv("GOPHER_PROTOCOL")
+		}
+		if defaultLogfile {
+			os.Unsetenv("GOPHER_LOGFILE")
+		}
 		bin, _ := os.Executable()
 		env := os.Environ()
 		defer func() {

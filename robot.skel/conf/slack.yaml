@@ -1,0 +1,14 @@
+UserRoster:
+- UserName: <adminusername>
+  UserID: <adminuserid>
+# - UserName: floyd
+#   UserID: U138KTVCL
+#   BotUser: true
+
+AdminUsers: [ "<adminusername>" ]
+ProtocolConfig:
+  MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
+  SlackToken: xoxb-{{ decrypt "<slackencrypted>" }}
+
+{{ $defaultjobchannel := "general" }}
+DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}

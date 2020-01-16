@@ -4,8 +4,10 @@ package terminal
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/chzyer/readline"
 	"github.com/lnxjedi/gopherbot/robot"
@@ -15,7 +17,10 @@ import (
 type termConnector struct {
 	currentChannel string             // The current channel for the user
 	currentUser    string             // The current userid
+	eof            string             // command to send on ctrl-d (EOF)
+	abort          string             // command to send on ctrl-c (interrupt)
 	running        bool               // set on call to Run
+	width          int                // width of terminal
 	users          []termUser         // configured users
 	channels       []string           // the channels the robot is in
 	heard          chan string        // when the user speaks
@@ -23,6 +28,18 @@ type termConnector struct {
 	robot.Handler                     // bot API for connectors
 	sync.RWMutex                      // shared mutex for locking connector data structures
 }
+
+var exit = struct {
+	kbquit, robotexit bool
+	waitchan          chan struct{}
+	sync.Mutex
+}{
+	false, false,
+	make(chan struct{}),
+	sync.Mutex{},
+}
+
+var quitTimeout = 4 * time.Second
 
 func (tc *termConnector) Run(stop <-chan struct{}) {
 	tc.Lock()
@@ -33,25 +50,72 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 	}
 	tc.running = true
 	tc.Unlock()
-	defer tc.reader.Close()
+	defer func() {
+	}()
 
 	// listen loop
 	go func(tc *termConnector) {
+	readloop:
 		for {
-			line, _ := tc.reader.Readline()
-			tc.heard <- line
+			line, err := tc.reader.Readline()
+			exit.Lock()
+			robotexit := exit.robotexit
+			if robotexit {
+				exit.Unlock()
+				tc.heard <- ""
+				break readloop
+			}
+			kbquit := false
+			if err == io.EOF {
+				tc.heard <- tc.eof
+				kbquit = true
+			} else if err == readline.ErrInterrupt {
+				tc.heard <- tc.abort
+				kbquit = true
+			} else if err == nil {
+				tc.heard <- line
+				line = strings.TrimSpace(line)
+				if line == tc.eof || line == tc.abort {
+					kbquit = true
+				}
+			}
+			if kbquit {
+				exit.kbquit = true
+				exit.Unlock()
+				select {
+				case <-exit.waitchan:
+					break readloop
+				case <-time.After(quitTimeout):
+					exit.Lock()
+					exit.kbquit = false
+					exit.Unlock()
+					tc.reader.Write([]byte("(timed out waiting for robot to exit; check terminal connector settings 'EOF' and 'Abort')\n"))
+				}
+			} else {
+				exit.Unlock()
+			}
 		}
 	}(tc)
+
 	tc.reader.Write([]byte("Terminal connector running; Use '|c<channel|?>' to change channel, or '|u<user|?>' to change user\n"))
+
+	kbquit := false
 
 loop:
 	// Main loop and prompting
 	for {
-
 		select {
 		case <-stop:
-			tc.Log(robot.Debug, "Received stop in connector")
-			fmt.Println("Exiting (press enter)")
+			tc.Log(robot.Info, "Received stop in connector")
+			exit.Lock()
+			kbquit = exit.kbquit
+			exit.robotexit = true
+			exit.Unlock()
+			if kbquit {
+				exit.waitchan <- struct{}{}
+			} else {
+				tc.reader.Write([]byte("Exiting (press <enter> ...)\n"))
+			}
 			break loop
 		case input := <-tc.heard:
 			if len(input) == 0 {
@@ -157,4 +221,9 @@ loop:
 			}
 		}
 	}
+	if !kbquit {
+		<-tc.heard
+	}
+	tc.reader.Write([]byte("Terminal connector finished\n"))
+	tc.reader.Close()
 }

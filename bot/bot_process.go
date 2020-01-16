@@ -131,17 +131,12 @@ var listenPort string // actual listening port
 // initBot sets up the global robot; when cli is false it also loads configuration.
 // cli indicates that a CLI command is being processed, as opposed to actually running
 // a robot.
-func initBot(cpath, epath string, logger *log.Logger) {
+func initBot(cpath, epath string) {
 	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// Initialize current config with an empty struct (to be loaded)
 	currentCfg.configuration = &configuration{}
-
-	// Only true with test suite
-	if logger != nil {
-		botLogger.l = logger
-	}
 
 	var err error
 	homePath, err = os.Getwd()
@@ -167,6 +162,9 @@ func initBot(cpath, epath string, logger *log.Logger) {
 	}
 
 	encryptionInitialized := initCrypt()
+	if encryptionInitialized {
+		os.Setenv("GOPHER_ENCRYPTION_INITIALIZED", "initialized")
+	}
 
 	if err := loadConfig(true); err != nil {
 		Log(robot.Fatal, "Loading initial configuration: %v", err)
@@ -245,8 +243,10 @@ func initCrypt() bool {
 		if bkf, err := ioutil.ReadFile(keyFile); err == nil {
 			if bke, err := base64.StdEncoding.DecodeString(string(bkf)); err == nil {
 				if key, err := decrypt(bke, ik); err == nil {
+					cryptKey.Lock()
 					cryptKey.key = key
 					cryptKey.initialized = true
+					cryptKey.Unlock()
 					encryptionInitialized = true
 					Log(robot.Info, "Successfully decrypted binary encryption key '%s'", keyFile)
 				} else {
@@ -271,14 +271,17 @@ func initCrypt() bool {
 					return false
 				}
 				beks := base64.StdEncoding.EncodeToString(bek)
+				raiseThreadPriv("writing generated encrypted key")
 				err = ioutil.WriteFile(keyFile, []byte(beks), 0444)
 				if err != nil {
 					Log(robot.Error, "Writing out generated key: %v", err)
 					return false
 				}
 				Log(robot.Info, "Successfully wrote new binary encryption key to '%s'", keyFile)
+				cryptKey.Lock()
 				cryptKey.key = bk
 				cryptKey.initialized = true
+				cryptKey.Unlock()
 				encryptionInitialized = true
 				return true
 			}
@@ -329,6 +332,7 @@ func run() {
 	// No need to check for errors on first load; it would have been
 	// caught during the preConnect load above.
 	loadConfig(false)
+	Log(robot.Info, "Robot is initialized and running")
 }
 
 // stop is called whenever the robot needs to shut down gracefully. All callers

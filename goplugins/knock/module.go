@@ -15,7 +15,7 @@ var manifest = robot.Manifest{
 	},
 }
 
-// GetManifest returns all the handlers available in this plugin
+// GetMa   nifest returns all the handlers available in this plugin
 func GetManifest() robot.Manifest {
 	return manifest
 }

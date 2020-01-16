@@ -40,7 +40,7 @@ func knock(r robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			r.Reply("Sorry, I don't know any jokes :-(")
 			return
 		}
-		//
+		// joke := &j.Jokes[0] // interruping cow
 		joke := &j.Jokes[r.RandomInt(len(j.Jokes))]
 		r.Pause(0.5)
 		r.Say(r.RandomString(j.Openings))
@@ -78,10 +78,9 @@ func knock(r robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		}
 		r.Pause(0.5)
 		if joke.First == "Interrupting Cow" {
-			go func() {
-				r.Pause(3.5)
-				r.Reply("MOOOOOOOO!!!")
-			}()
+			r.Reply(joke.First)
+			r.Pause(3.5)
+			r.Reply("MOOOOOOOO!!!")
 			return
 		}
 		for i := 0; i < 2; i++ {
@@ -115,6 +114,7 @@ func knock(r robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			} else if ret == robot.Ok {
 				// Did the user reply correctly with <j.First> who?
 				if strings.HasPrefix(strings.ToLower(reply), strings.ToLower(joke.First)) {
+					r.Pause(0.5)
 					r.Say(joke.Second)
 					return
 				}

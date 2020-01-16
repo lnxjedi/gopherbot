@@ -29,7 +29,7 @@ fi
 
 GIT_URL=$(cd $STATE_DIR; git remote get-url origin)
 SetWorkingDirectory "$STATE_DIR"
-AddTask git-credentials "$GIT_URL"
+AddTask git-init "$GIT_URL"
 AddTask pause-brain
 AddTask exec git add --all
 AddTask resume-brain

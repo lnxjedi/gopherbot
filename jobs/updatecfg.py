@@ -41,7 +41,7 @@ if not bot.Exclusive("updatecfg", False):
 
 bot.FailTask("status", [ "Updating configuration failed, check history for 'updatecfg'"])
 
-bot.AddTask("git-credentials", [ clone_url ])
+bot.AddTask("git-init", [ clone_url ])
 bot.AddTask("git-sync", [ clone_url, clone_branch, cfgdir, "true" ])
 bot.AddTask("run-pipeline", [])
 bot.AddTask("status", [ "Custom configuration repository successfully updated" ])

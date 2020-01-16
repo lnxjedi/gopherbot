@@ -29,8 +29,6 @@ Protocol: {{ $proto }}
 {{ .Include "terminal.yaml" }}
 {{ end }}
 
-EncryptBrain: true
-
 ## Configure log level
 LogLevel: {{ env "GOPHER_LOGLEVEL" | default "info" }}
 
@@ -55,6 +53,16 @@ NameSpaces:
       # A default installed robot stores its brain in state/brain
       - Name: STATE_DIR
         Value: {{ env "GOPHER_STATE_DIRECTORY" | default "state" }}
+
+{{ if env "GOPHER_UNCONFIGURED" }}
+LoadableModules:
+  # Make the default terminal robot a little more fun
+  "knock":
+    Description: Knock knock jokes!
+    Path: goplugins/knock.so
+{{ else }}
+EncryptBrain: true
+{{ end }}
 
 ## NOTE:
 ## External script jobs/tasks/plugins do NOT have direct access to
@@ -88,8 +96,17 @@ ExternalPlugins:
     - Name: DEPLOY_KEY
       # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
       Value: "{{ env "DEPLOY_KEY" }}"
-    - Name: GOPHER_ENCRYPTION_KEY
-      Value: {{ env "GOPHER_ENCRYPTION_KEY" }}
+  "setup":
+    Description: Setup plugin for creating a new robot
+    Privileged: true
+    Homed: true
+    NameSpace: manage
+    Path: plugins/setup.sh
+    Parameters:
+    - Name: GOPHER_UNCONFIGURED
+      Value: {{ env "GOPHER_UNCONFIGURED" }}
+    - Name: GOPHER_ENCRYPTION_INITIALIZED
+      Value: {{ env "GOPHER_ENCRYPTION_INITIALIZED" }}
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)
@@ -134,11 +151,11 @@ ExternalTasks:
   "say":
     Description: Convenience synonym for 'status'
     Path: tasks/status.sh
-  "git-credentials":
+  "git-init":
     Description: >
       Check for and initialize ssh for a repository if needed, check for
       GOPHER_CONFIGDIR/git/config and set XDG_CONFIG_HOME
-    Path: tasks/git-credentials.py
+    Path: tasks/git-init.py
     Homed: true
   "ssh-init":
     Description: "Pipeline job for setting up ssh-agent for the 'bot"
@@ -171,3 +188,9 @@ ExternalTasks:
     Description: Task for cleaning a working directory before starting a job/build
     Privileged: true
     Path: tasks/cleanup.sh
+  "setup-task":
+    Description: Setup plugin, callable as a pipeline task
+    Privileged: true
+    NameSpace: manage
+    Path: plugins/setup.sh
+  

@@ -1,14 +1,12 @@
 ---
-# Custom configuration for the updatecfg job, overrides/augments
-# conf/jobs/updatecfg.yaml from the distribution.
+RequireAdmin: true
+AllowDirect: true
 HistoryLogs: 7
 Quiet: true # The reload plugin provides feedback
-Channel: general
-# Example trigger. If GOPHER_CUSTOM_REPOSITORY is set, this trigger can
-# be used for the robot to update it's configuration with `git pull` and
-# reload. That way, updating configuration for your robot is as simple
-# as `git push`.
-#Triggers:
-#- User: github
-#  Channel: <FIXME>
-#  Regex: 'new commit.*github.com\/<FIXME>\/<YOUR-ROBOT-REPO>\/tree'
+## Example trigger - when the robot see's its configuration has been
+## udpated, it'll trigger this job to automatically update the repository
+## and reload.
+# Triggers:
+# - User: github
+#   Channel: ljdev
+#   Regex: 'new commit.*github.com\/parsley42\/clu-gopherbot\/tree'

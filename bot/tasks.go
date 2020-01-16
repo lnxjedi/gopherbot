@@ -201,11 +201,6 @@ func initializePlugins() {
 	cfg := currentCfg.configuration
 	tasks := currentCfg.taskList
 	currentCfg.RUnlock()
-	w := &worker{
-		cfg:           cfg,
-		tasks:         tasks,
-		automaticTask: true,
-	}
 	state.Lock()
 	if !state.shuttingDown {
 		state.Unlock()
@@ -217,8 +212,14 @@ func initializePlugins() {
 			if task.Disabled {
 				continue
 			}
+			w := &worker{
+				cfg:           cfg,
+				tasks:         tasks,
+				automaticTask: true,
+				id:            getWorkerID(),
+			}
 			Log(robot.Info, "Initializing plugin: %s", task.name)
-			w.startPipeline(nil, t, plugCommand, "init")
+			go w.startPipeline(nil, t, plugCommand, "init")
 		}
 	} else {
 		state.Unlock()

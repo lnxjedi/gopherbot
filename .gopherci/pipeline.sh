@@ -18,6 +18,9 @@ SetParameter "PATH" "$PATH"
 # Email the job history if it fails
 FailCommand builtin-history "send history $GOPHER_JOB_NAME:$REPO_NAME/$GOPHERCI_BRANCH $GOPHER_RUN_INDEX to user parsley"
 
+# Do a full build for all platforms
+AddTask exec ./.gopherci/mkdist.sh
+
 # Run tests
 AddTask exec go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./test
 
@@ -26,9 +29,6 @@ AddTask exec ./.gopherci/tools.sh
 
 # Publish coverage results
 #AddTask exec goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
-
-# Do a full build for all platforms
-AddTask exec ./.gopherci/mkdist.sh
 
 # Initial clones from public https
 AddTask git-sync https://github.com/lnxjedi/gopherbot.git gh-pages gopherbot-doc
@@ -69,9 +69,6 @@ AddTask exec ./.gopherci/publish.sh
 
 # Update gopherbot-docker
 AddTask exec ./.gopherci/dockerupdate.sh
-
-# Trigger Docker build
-# AddTask exec ./.gopherci/dockercloud.sh
 
 # Notify of success
 if [ -n "$NOTIFY_USER" ]

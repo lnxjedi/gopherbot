@@ -1,0 +1,14 @@
+## The terminal connector can mirror the actual team/users/channels for
+## devel.
+# DefaultChannels: [ "general", "staff", "helpdesk" ]
+# ProtocolConfig:
+#   Users:
+#   - tommy
+#   - jane
+#   - phil
+#   - margie
+#   Channels:
+#   - general
+#   - random
+#   - staff
+#   - helpdesk

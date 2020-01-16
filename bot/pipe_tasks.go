@@ -7,6 +7,32 @@ import "github.com/lnxjedi/gopherbot/robot"
 // 	return
 // }
 
+// func initcrypt(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
+// 	success := initCrypt()
+// 	if success {
+// 		return robot.Normal
+// 	}
+// 	return robot.Fail
+// }
+
+// func setenv(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
+// 	r := m.(Robot)
+// 	if len(args) != 2 {
+// 		r.Log(robot.Error, "task 'setenv' called with %d args != 2", len(args))
+// 		return robot.Fail
+// 	}
+// 	os.Setenv(args[0], args[1])
+// 	return
+// }
+
+func rotatelog(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
+	ext := ""
+	if len(args) == 1 {
+		ext = args[0]
+	}
+	return logRotate(ext)
+}
+
 func restart(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
 	pn := r.pipeName
@@ -50,7 +76,10 @@ func resume(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 }
 
 func init() {
+	// RegisterTask("set-environment", true, robot.TaskHandler{Handler: setenv})
+	// RegisterTask("initialize-encryption", true, robot.TaskHandler{Handler: initcrypt})
 	RegisterTask("restart-robot", true, robot.TaskHandler{Handler: restart})
+	RegisterTask("rotate-log", true, robot.TaskHandler{Handler: rotatelog})
 	RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pause})
 	RegisterTask("resume-brain", true, robot.TaskHandler{Handler: resume})
 }

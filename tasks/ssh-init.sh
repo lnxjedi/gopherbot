@@ -74,7 +74,7 @@ then
         Log "Error" "Bootstrap given but DEPLOY_KEY unset"
         exit 1
     fi
-    echo "$DEPLOY_KEY" | tr ':' '\n' | ssh-add -
+    echo "$DEPLOY_KEY" | tr '=:' ' \n' | ssh-add -
 else
     ssh-add $GOPHER_CONFIGDIR/ssh/$SSH_KEY < /dev/null
 fi

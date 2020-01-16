@@ -1,6 +1,6 @@
 # Gopherbot Environment Variables
 
-**Gopherbot** makes extensive use of environment variables, both for configuring the robot and plugins, and for providing parameters to external scripts.
+**Gopherbot** makes extensive use of environment variables, both for configuring the robot and plugins, and for providing parameters to external scripts. This article describes the various environment variables and their use; for the environment applicable to a given running task, see [per-task environment](pipelines/TaskEnvironment.md).
 
 ## Robot Execution Environment
 
@@ -59,6 +59,14 @@ For the optional `state` and `private` repositories, the included jobs will use 
 
 In addition to the above passed-through environment vars, **Gopherbot** supplies the following environment variables to external scripts:
 * `GOPHER_INSTALLDIR` - absolute path to the gopherbot install, normally `/opt/gopherbot`
+
+## Automatic Environment Variables
+
+On startup, **Gopherbot** will check for a custom `conf/gopherbot.yaml` or the presence of a `GOPHER_CUSTOM_REPOSITORY` environment variable. In the absence of either, the following will be automatically set:
+* `GOPHER_UNCONFIGURED` - set true
+* `GOPHER_PROTOCOL` - set to "terminal" if not already set
+* `GOPHER_LOGFILE` - set to "robot.log" if not already set
+Additionally, `GOPHER_ENCRYPTION_INITIALIZED` will be set to `true` if encryption is initialized on start-up, regardless of whether the robot is configured.
 
 ## Pipeline Environment Variables
 The following environment variable are set for all pipelines, whether started by a plugin or a job:

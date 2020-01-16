@@ -27,6 +27,10 @@ func (tc *termConnector) sendMessage(ch, msg string, f robot.MessageFormat) (ret
 		tc.Log(robot.Error, "Channel not found:", ch)
 		return robot.ChannelNotFound
 	}
-	tc.reader.Write([]byte(fmt.Sprintf("%s: %s\n", ch, msg)))
+	output := fmt.Sprintf("%s: %s\n", ch, msg)
+	if f != robot.Fixed {
+		output = Wrap(output, tc.width)
+	}
+	tc.reader.Write([]byte(output)[0 : len(output)-1])
 	return robot.Ok
 }
