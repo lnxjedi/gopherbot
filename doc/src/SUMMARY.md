@@ -24,6 +24,10 @@
     - [Manual Setup](botsetup/ManualSetup.md)
     - [Using the Setup Plugin](botsetup/Plugin.md)
 
+- [Deploying and Running Your Robot](RunRobot.md)
+    - [CLI Operation](deploy/CLI.md)
+    - [Running in a Container](deploy/Container.md)
+
 - [Configuring Gopherbot](Configuration.md)
     - [Environment Variables](Environment-Variables.md)
     - [Configuration File Loading](config/file.md)

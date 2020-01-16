@@ -90,4 +90,13 @@ Now your robot should be able to connect to team chat, and respond to your messa
 ```
 
 Now you talk to your robot in the `#general` channel, and get the information you need from Slack to configure yourself as the robot's administrator:
-... TODO: finish me!
+```
+#general me-> clu, whoami
+#general clu-> You are 'Slack' user 'parsley/U0JLW8EMS', speaking in channel 'general/C0JLW8EP6', email address: parsley@linuxjedi.org
+```
+
+Given this reply, you would replace `<adminusername>` with `parsley` and `<adminuserid>` with `U0JLW8EMS` in `custom/conf/slack.yaml`. Now you can stop the robot with `ctrl-c` and restart with access to administrative commands.
+
+## Saving Configuration and Updating your Robot
+
+At this point the contents of `custom/` should be committed to a git repository, and your robot should be run with `GOPHER_CUSTOM_REPOSITORY=<clone-url>`. This allows for a common workflow where the robot is running in a container, VM, or server in your infrastructure, and updates to robot configuration are made by updating the robot's configuration repository, followed by an administrator `update` command, (e.g. `clu, update`). The `update` command will cause the robot to `git pull` it's custom configuration, then perform a reload and report any errors.
