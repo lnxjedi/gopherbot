@@ -101,9 +101,17 @@ HistoryConfig:
 
 ## After adding an initial administrator, you should disable the setup
 ## plugin by uncommenting the next three lines.
-# ExternalPlugins:
-#   "setup":
-#     Disabled: true
+ExternalPlugins:
+{{ if env "GOPHER_SETUP_TOKEN" }}
+  "setup":
+    Description: Setup plugin allowing an administrator to be added
+    Path: plugins/setup.sh
+    Privileged: true
+    Homed: true
+    Parameters:
+    - Name: GOPHER_SETUP_TOKEN
+      Value: {{ env "GOPHER_SETUP_TOKEN" }}
+{{ end }}
 #   "weather":
 #     Description: A plugin that uses OpenWeatherMap to report the weather
 #     Path: plugins/weather.rb

@@ -13,8 +13,6 @@ shift
 configure(){
 	cat <<"EOF"
 ---
-AdminCommands:
-- setup
 Help:
 - Keywords: [ "setup" ]
   Helptext: [ "(bot), setup - perform initial setup of a new robot" ]
@@ -30,11 +28,15 @@ MessageMatchers:
   Regex: '(?i:setup)'
 ReplyMatchers:
 - Label: "alias"
-  Regex: '([&!;:%#@~<>\/*+^\$?\\\[\]{}-])'
+  Regex: '[&!;:%#@~<>\/*+^\$?\\\[\]{}-]'
 - Label: "encryptionkey"
-  Regex: '(.{32,})'
+  Regex: '.{32,}'
 - Label: "sshkey"
-  Regex: '(.{16,})'
+  Regex: '.{16,}'
+- Label: "token"
+  Regex: '.{8,}'
+- Label: "repo"
+  Regex: "[\w-_@:/\\]+"
 - Label: "slacktoken"
   Regex: 'xoxb-[\w-]+'
 EOF
@@ -121,6 +123,10 @@ fi
 
 if [ "$command" == "setup" ]
 then
+    Say "Welcome to the Gopherbot interactive setup plugin. I'll be asking a series of \
+questions that I'll use to generate the initial configuration for your Gopherbot robot. \
+At the end of the process, the contents of the 'custom/' directory should be committed to \
+a git repository."
     # Get all the information
     SLACK_TOKEN=$(getMatching "slacktoken" "Slack token? (from https://<org>.slack.com/services/new/bot)")
     SLACK_TOKEN=${SLACK_TOKEN#xoxb-}
@@ -128,18 +134,33 @@ then
     checkReply $?
     BOTNAME=$(getMatching "SimpleString" "What do you want your robot's name to be?")
     checkReply $?
+    BOTNAME=$(echo "$BOTNAME" | tr '[:upper:]' '[:lower:]')
+    CASENAME=$(echo "${BOTNAME:0:1}" | tr '[:lower:]' '[:upper:]')${BOTNAME:1}
+    BOTFULLNAME="$CASENAME Gopherbot"
     BOTALIAS=$(getMatching "alias" \
     "Pick a one-character alias for your robot from '&!;:-%#@~<>/*+^\$?\[]{}'")
     checkReply $?
     BOTMAIL=$(getMatching "Email" "Email address for the robot? (will be used in git commits)")
     checkReply $?
-    BOTFULLNAME=$(getMatching "SimpleString" "\"Full Name\" for the robot? (also used in git commits)")
+    SETUPKEY=$(getMatching "token" "I need a one-time password from you; you'll use this to \
+identify and add yourself as an administrator after I connect to team chat.\n\nPassword? \
+(at least 8 chars)")
     checkReply $?
-    SSHPHRASE=$(getMatching "sshkey" "Passphrase to use for encrypting my ssh private key? (at least 16 characters)")
+    echo "GOPHER_SETUP_TOKEN=$SETUPKEY" >> .env
+    SSHPHRASE=$(getMatching "sshkey" "Passphrase to use for encrypting my ssh private key? \
+(at least 16 characters)")
     checkReply $?
     SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt "$SSHPHRASE")
     # Create configuration
     cp -a $GOPHER_INSTALLDIR/robot.skel/* "$GOPHER_CONFIGDIR"
+    Say "Generating my ssh keypair..."
+    ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -f custom/ssh/robot_rsa
+    Say "Here's my public key, which you can use to grant write access to my configuration \
+and state repositories:"
+    Say -f "$(cat custom/ssh/robot_rsa.pub)"
+    CUSTOM_REPO=$(getMatching "repo" "What's the URL to use for my custom configuration \
+repository? If you're going to save my configuration with the 'save' adminstrative \
+command, this needs to be an ssh url that I can push with my private key.\n\nRepository URL?")
     substitute "<defaultprotocol>" "slack" # slack-only for now
     substitute "<slackencrypted>" "$SLACK_ENCRYPTED" "conf/slack.yaml"
     substitute "<sshencrypted>" "$SSH_ENCRYPTED"
@@ -149,7 +170,14 @@ then
     substitute "<botfullname>" "$BOTFULLNAME" "git/config"
     substitute "<botemail>" "$BOTMAIL"
     substitute "<botemail>" "$BOTMAIL" "git/config"
-    Say "Configuration complete - restarting and connecting to slack"
+    Pause 3
+    Say "Initial configuration is nearly complete. Before we can configure you as an \
+administrator, I'll need to restart and connect to your team chat with the supplied \
+credentials. Once connected, you'll need to identify yourself with a private message: \
+\"add administrator $SETUPKEY\""
+    Say "Once you've been configured as an administrator, you can use the 'save' command \
+to save my initial configuration if my repository has been configured for push. Otherwise \
+you should commit and push the contents of 'custom/' manually."
     AddTask "restart-robot"
     exit 0
 fi
