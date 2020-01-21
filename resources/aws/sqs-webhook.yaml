@@ -130,5 +130,5 @@ Resources:
     Properties:
       DeploymentId: !Ref 'prodDeployment'
       RestApiId: !Ref 'APIGateway'
-      StageName: queue
+      StageName: build
     Type: AWS::ApiGateway::Stage
