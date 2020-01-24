@@ -8,12 +8,12 @@ You can bootstrap an existing robot in to a docker container by simply running t
 ```shell
 GOPHER_ENCRYPTION_KEY=ThisIsntReallyMyEncryptionKeySrsly
 GOPHER_CUSTOM_REPOSITORY=git@github.com:parsley42/clu-gopherbot.git
-DEPLOY_KEY=-----BEGIN=OPENSSH=PRIVATE KEY-----:...:-----END=OPENSSH=PRIVATE=KEY-----:
+DEPLOY_KEY=-----BEGIN_OPENSSH_PRIVATE KEY-----:...:-----END_OPENSSH_PRIVATE_KEY-----:
 ```
 
 Note that the deploy key is a _very_ long line, created with e.g.:
 ```shell
-$ cat deploy_rsa | tr ' \n' '=:'
+$ cat deploy_rsa | tr ' \n' '_:'
 ```
 
 Put this environment file, along with the `Makefile` from this repository, in to a directory with the same name as your robot; then you can start your robot using the `make` targets.
