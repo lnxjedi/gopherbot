@@ -95,10 +95,6 @@ func (w *worker) registerActive(parent *worker) {
 		}
 		w.eid = eid
 	}
-	w.environment["GOPHER_CALLER_ID"] = w.eid
-	w.environment["GOPHER_HTTP_POST"] = "http://" + listenPort
-	w.environment["GOPHER_INSTALLDIR"] = installPath
-
 	if parent != nil {
 		parent._child = w
 		w._parent = parent

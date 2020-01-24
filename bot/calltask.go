@@ -187,7 +187,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	}
 
 	// Set up the per-task environment, getEnvironment takes lock & releases
-	envhash := w.getEnvironment(task)
+	envhash := w.getEnvironment(t)
 	r.environment = envhash
 
 	w.registerWorker(r.tid)
