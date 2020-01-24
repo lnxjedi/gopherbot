@@ -102,7 +102,7 @@ else
 fi
 
 ln -snf "$SCRIPTDIR/gopherbot" gopherbot
-cp $SCRIPTDIR/resoures/terminal.sh .
+cp $SCRIPTDIR/resources/terminal.sh .
 chmod +x terminal.sh
 
 cp $SCRIPTDIR/resources/docker/Makefile .
