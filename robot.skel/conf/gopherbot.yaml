@@ -146,13 +146,6 @@ NameSpaces:
     Parameters:
     - Name: BOT_SSH_PHRASE
       Value: {{ decrypt "<sshencrypted>" }}
-  "manage":
-    Parameters:
-    # A default installed robot stores its brain in state/brain
-    - Name: STATE_DIR
-      Value: {{ env "GOPHER_STATE_DIRECTORY" | default "state" }}
-    # - Name: GOPHER_STATE_REPOSITORY
-    #   Value: git@github.com:parsley42/clu-state.git
 
 DefaultMessageFormat: Raw
 # Users the bot should never listen to

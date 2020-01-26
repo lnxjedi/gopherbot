@@ -116,6 +116,12 @@ ExternalJobs:
     Homed: true
     NameSpace: manage
     Path: jobs/updatecfg.py
+  "save":
+    Decription: A job for saving up the robot's configuration
+    Homed: true
+    Privileged: true
+    NameSpace: manage
+    Path: jobs/save.sh
   "backup":
     Decription: A job for backing up the robot's state, normally just a file-based brain
     Homed: true

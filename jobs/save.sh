@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# backup.sh - back up job for backing up the robot's state (brain)
-# Note: significant changes here should probably be done to save.sh, too
+# save.sh - save robot's configuration to GOPHER_CUSTOM_REPOSITORY
+# Note: significant changes here should probably be done to backup.sh, too
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
@@ -9,7 +9,7 @@ PTYPE="$GOPHER_PIPELINE_TYPE"
 
 if [ "$PTYPE" == "plugCommand" -o "$PTYPE" == "jobCommand" ]
 then
-    Say "Starting backup requested by user $GOPHER_USER in channel: $GOPHER_START_CHANNEL"
+    Say "Starting config save requested by user $GOPHER_USER in channel: $GOPHER_START_CHANNEL"
 fi
 
 if [ ! "$GOPHER_CUSTOM_REPOSITORY" ]
@@ -17,21 +17,21 @@ then
     Log "Error" "GOPHER_CUSTOM_REPOSITORY not set"
     exit 1
 fi
-DEFAULT_STATE_REPOSITORY=${GOPHER_CUSTOM_REPOSITORY/gopherbot/state}
-GOPHER_STATE_REPOSITORY=${GOPHER_STATE_REPOSITORY:-$DEFAULT_STATE_REPOSITORY}
 
-if ! Exclusive "backup"
+if ! Exclusive "save"
 then
-    Log "Info" "Unable to get exclusive access to 'backup', exiting"
+    Log "Info" "Unable to get exclusive access to 'save', exiting"
     exit 0
 fi
 
-cd $STATE_DIR
+cd $GOPHER_CONFIGDIR
 if [ ! -d .git ]
 then
     NEWREPO="true"
+    # Default gitignore, don't back up histories
+    echo 'bot:histories:*' > .gitignore
     git init
-    git remote add origin $GOPHER_STATE_REPOSITORY
+    git remote add origin $GOPHER_CUSTOM_REPOSITORY
 else
     CHANGES=$(git status --porcelain)
 fi
@@ -45,12 +45,10 @@ then
     exit 0
 fi
 
-SetWorkingDirectory "$STATE_DIR"
-AddTask git-init "$GOPHER_STATE_REPOSITORY"
-AddTask pause-brain
+SetWorkingDirectory "$GOPHER_CONFIGDIR"
+AddTask git-init "$GOPHER_CUSTOM_REPOSITORY"
 AddTask exec git add --all
-AddTask resume-brain
-AddTask exec git commit -m "Automated backup of robot state"
+AddTask exec git commit -m "Save robot configuration"
 if [ "$NEWREPO" ]
 then
     AddTask exec git push -u origin master
@@ -60,5 +58,5 @@ else
 fi
 if [ "$PTYPE" == "plugCommand" -o "$PTYPE" == "jobCommand" ]
 then
-    AddTask say "Backup complete"
+    AddTask say "Save finished"
 fi
