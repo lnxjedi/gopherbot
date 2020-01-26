@@ -54,6 +54,7 @@ if not clone_url.startswith("http"):
 
 bot.Log("Info", "Creating bootstrap pipeline for %s" % clone_url)
 bot.SetParameter("BOOTSTRAP", "true")
+bot.SetParameter("DEPLOY_KEY", depkey)
 bot.AddTask("git-init", [ clone_url ])
 
 tkey = os.path.join(cfgdir, "binary-encrypted-key")

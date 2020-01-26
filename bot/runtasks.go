@@ -91,16 +91,17 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		state.Unlock()
 	}()
 
-	// Pipelines start with all the parameters for the job/plugin
-	for _, p := range task.Parameters {
-		_, exists := c.environment[p.Name]
-		if !exists {
-			c.environment[p.Name] = p.Value
-		}
-	}
 	// A job or plugin is always the first task in a pipeline; a new
 	// sub-pipeline is created if a job is added in another pipeline.
 	if isJob {
+		// Job parameters are available to the whole pipeline, plugin
+		// parameters are not
+		for _, p := range task.Parameters {
+			_, exists := c.environment[p.Name]
+			if !exists {
+				c.environment[p.Name] = p.Value
+			}
+		}
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
 		// histories use the job name for maximum separation
 		c.jobName = task.name
@@ -355,7 +356,7 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 				emit(JobTaskRan)
 			}
 		}
-		if (isJob || isPlugin) && i != 0 {
+		if isJob && i != 0 {
 			child := w.clone()
 			ret = child.startPipeline(w, t, ptype, command, args...)
 		} else {
@@ -439,12 +440,19 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 }
 
 // getEnvironment generates the environment for each task run.
-func (w *worker) getEnvironment(task *Task) map[string]string {
+func (w *worker) getEnvironment(t interface{}) map[string]string {
+	task, plugin, _ := getTask(t)
+	isPlugin := plugin != nil
 	c := w.pipeContext
 	envhash := make(map[string]string)
 	// Start with the pipeline environment; values configured for the job,
-	// or set with SetParameter(name, value)
-	if len(c.environment) > 0 {
+	// or set with SetParameter(name, value). Unprivileged plugins don't
+	// get pipe env.
+	pipeEnv := true
+	if isPlugin && !task.Privileged {
+		pipeEnv = false
+	}
+	if pipeEnv && len(c.environment) > 0 {
 		for k, v := range c.environment {
 			envhash[k] = v
 		}
@@ -455,6 +463,9 @@ func (w *worker) getEnvironment(task *Task) map[string]string {
 	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", w.Protocol)
 	envhash["GOPHER_TASK_NAME"] = c.taskName
 	envhash["GOPHER_PIPELINE_TYPE"] = c.ptype.String()
+	envhash["GOPHER_CALLER_ID"] = w.eid
+	envhash["GOPHER_HTTP_POST"] = "http://" + listenPort
+	envhash["GOPHER_INSTALLDIR"] = installPath
 	// Configured parameters for a pipeline task don't apply if already set;
 	// task parameters are effectively default values if not otherwise
 	// provided.
