@@ -36,7 +36,7 @@ ReplyMatchers:
 - Label: "token"
   Regex: '.{8,}'
 - Label: "repo"
-  Regex: "[\w-_@:/\\]+"
+  Regex: '[\w-_@:/\\]+'
 - Label: "slacktoken"
   Regex: 'xoxb-[\w-]+'
 EOF

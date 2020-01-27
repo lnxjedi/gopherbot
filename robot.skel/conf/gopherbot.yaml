@@ -87,6 +87,9 @@ HistoryConfig:
 
 ## Job scheduling with github.com/robfig/cron; includes seconds
 # ScheduledJobs:
+## Once your robot has successfully saved it's configuration to
+## $GOPHER_CUSTOM_REPOSITORY, enable the backup job to save long-term
+## memories to the "robot-state" branch.
 # - Name: backup
 #   Schedule: "@every 1m"
 # - Name: logrotate
