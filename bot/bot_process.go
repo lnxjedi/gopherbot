@@ -342,7 +342,7 @@ func stop() {
 	state.RLock()
 	pr := state.pipelinesRunning
 	state.RUnlock()
-	Log(robot.Debug, "stop called with %d plugins running", pr)
+	Log(robot.Info, "Stop called with %d pipelines running", pr)
 	state.Wait()
 	brainQuit()
 	stopConnector <- struct{}{}
