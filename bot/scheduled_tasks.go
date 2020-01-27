@@ -61,12 +61,7 @@ func scheduleTasks() {
 }
 
 func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *taskList, repolist map[string]robot.Repository) {
-	task, plugin, _ := getTask(t)
-	isPlugin := plugin != nil
-	if isPlugin && len(ts.Command) == 0 {
-		Log(robot.Error, "Empty 'Command' when running scheduled task '%s' of type plugin", ts.Name)
-		return
-	}
+	task, _, _ := getTask(t)
 
 	// Create the pipeContext to carry state through the pipeline.
 	// startPipeline will take care of registerActive()
@@ -75,16 +70,9 @@ func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *tas
 		cfg:           cfg,
 		tasks:         tasks,
 		repositories:  repolist,
-		isCommand:     isPlugin,
 		directMsg:     false,
 		automaticTask: true, // scheduled jobs don't get authorization / elevation checks
 	}
-	var command string
-	if isPlugin {
-		command = ts.Command
-	} else {
-		command = "run"
-	}
-	Log(robot.Info, "Starting scheduled task: %s", task.name)
-	w.startPipeline(nil, t, scheduled, command, ts.Arguments...)
+	Log(robot.Debug, "Starting scheduled job: %s", task.name)
+	w.startPipeline(nil, t, scheduled, "run", ts.Arguments...)
 }
