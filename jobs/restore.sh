@@ -33,24 +33,31 @@ then
     exit 0
 fi
 
-if [ ! "$GOPHER_STATE_REPOSITORY" ]
+if [ -e "$GOPHER_CONFIGDIR/.robot-state" ]
 then
-    if [ ! "$GOPHER_CUSTOM_REPOSITORY" ]
+    CONFIGREPO=$(cd $GOPHER_CONFIGDIR; git remote get-url origin)
+    GOPHER_STATE_REPOSITORY="$CONFIGREPO"
+    GOPHER_STATE_BRANCH="robot-state"
+else
+    if [ ! "$GOPHER_STATE_REPOSITORY" ]
     then
-        report "Error" "Neither GOPHER_CUSTOM_REPOSITORY nor GOPHER_STATE_REPOSITORY set, giving up"
-        exit 0
+        if [ ! "$GOPHER_CUSTOM_REPOSITORY" ]
+        then
+            report "Error" "Neither GOPHER_CUSTOM_REPOSITORY nor GOPHER_STATE_REPOSITORY set, giving up"
+            exit 0
+        fi
+        GOPHER_STATE_REPOSITORY=${GOPHER_CUSTOM_REPOSITORY/gopherbot/state}
+        report "Info" "GOPHER_STATE_REPOSITORY not set, defaulting to $GOPHER_STATE_REPOSITORY"
     fi
-    GOPHER_STATE_REPOSITORY=${GOPHER_CUSTOM_REPOSITORY/gopherbot/state}
-    report "Info" "GOPHER_STATE_REPOSITORY not set, defaulting to $GOPHER_STATE_REPOSITORY"
-fi
 
-if [ ! "$GOPHER_STATE_BRANCH" ]
-then
-    if [ ! "$GOPHER_CUSTOM_BRANCH" ]
+    if [ ! "$GOPHER_STATE_BRANCH" ]
     then
-        GOPHER_STATE_BRANCH="master"
-    else
-        GOPHER_STATE_BRANCH=$GOPHER_CUSTOM_BRANCH
+        if [ ! "$GOPHER_CUSTOM_BRANCH" ]
+        then
+            GOPHER_STATE_BRANCH="master"
+        else
+            GOPHER_STATE_BRANCH=$GOPHER_CUSTOM_BRANCH
+        fi
     fi
 fi
 

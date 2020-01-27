@@ -28,8 +28,6 @@ cd $GOPHER_CONFIGDIR
 if [ ! -d .git ]
 then
     NEWREPO="true"
-    # Default gitignore, don't back up histories
-    echo 'bot:histories:*' > .gitignore
     git init
     git remote add origin $GOPHER_CUSTOM_REPOSITORY
 else
