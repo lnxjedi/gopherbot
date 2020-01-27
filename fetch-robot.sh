@@ -102,8 +102,6 @@ else
 fi
 
 ln -snf "$SCRIPTDIR/gopherbot" gopherbot
-cp $SCRIPTDIR/resources/terminal.sh .
-chmod +x terminal.sh
 
 cp $SCRIPTDIR/resources/docker/Makefile .
 if [ -e ".env" ]

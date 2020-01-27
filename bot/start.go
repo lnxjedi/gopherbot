@@ -53,6 +53,10 @@ func Start(v VersionInfo) {
 	plusage := "omit timestamps from the log"
 	flag.BoolVar(&plainlog, "plainlog", false, plusage)
 	flag.BoolVar(&plainlog, "p", false, "")
+	var terminalmode bool
+	tmusage := "run in terminal mode and default logging to 'robot.log'"
+	flag.BoolVar(&terminalmode, "terminal", false, tmusage)
+	flag.BoolVar(&terminalmode, "t", false, "")
 	var help bool
 	husage := "help for gopherbot"
 	flag.BoolVar(&help, "help", false, husage)
@@ -143,6 +147,11 @@ func Start(v VersionInfo) {
 	}
 	penvErr := godotenv.Overload(envFile)
 
+	// terminal mode overrides any other setting of GOPHER_PROTOCOL
+	if terminalmode {
+		os.Setenv("GOPHER_PROTOCOL", "terminal")
+	}
+
 	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
@@ -189,6 +198,10 @@ func Start(v VersionInfo) {
 	botStdOutLogging = true
 	if len(logFile) == 0 {
 		logFile = os.Getenv("GOPHER_LOGFILE")
+	}
+	eproto := os.Getenv("GOPHER_PROTOCOL")
+	if len(logFile) == 0 && eproto == "terminal" {
+		logFile = "robot.log"
 	}
 	if len(logFile) != 0 {
 		if logFile == "stderr" {
