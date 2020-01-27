@@ -7,17 +7,21 @@ Each time a task is run, a custom environment is generated for that task. For ex
 The precedence of environment variables seen by a given task is determined by the algorithm in `bot/runtasks.go:getEnvironment()`. The various environment sources are listed here, in order from least to highest priority.
 
 ## NameSpace Parameters
-
 Various tasks, plugins and jobs can be configured to share parameters by defining `NameSpaces` in `conf/gopherbot.yaml`, and setting the `NameSpace` parameter for a given task to the shared namespace. For instance, the `ssh-init` task and `ssh-admin` plugin both get access to the `BOT_SSH_PHRASE` environment variable via the `ssh` namespace.
 
 ## Task Parameters
 Individual tasks, plugins and jobs can also have `Parameters` defined. If present, these override any parameters set for a shared namespace.
 
 ## Pipeline Parameters
-The least-specific environment variables are those set for the pipeline. Any time a job or plugin is run, the parameters for that job or plugin initialize the environment variables for the pipeline as a whole, and are available to all tasks in the pipeline.
+Any time a job is run, the parameters for that job (including those inherited from it's namespace, if any) initialize the environment variables for the pipeline as a whole, and are available to all tasks in the pipeline. Parameters set in the pipeline override task and namespace parameters for any tasks run in the pipeline, allowing specific job parameters to override defaults for the task.
 
-### Repository Parameters
-If a given Job calls the `ExtendNamespace()` API to start a build, the parameters for that repository set in `conf/repositories.yaml` overwrite any values in the current pipeline.
+### Plugins and Pipelines
+Plugins can also start a new pipeline, but plugin parameters are not automatically added to the pipeline. Plugins can, however, explicity publish parameters to the pipeline with the `SetParameter()` API call.
 
-### SetParameter()
-Parameters set with the `SetParameter()` API call overwrite the current value for a pipeline; thus, it makes little sense to call `SetParameter()` before `ExtendNamespace()`.
+Plugin tasks can also be added to a pipeline with the `AddCommand()`, `FinalCommand()` and `FailCommand()` API calls. Unlike tasks, plugins only inherit parameters from the pipeline when they are configured with `Privileged: true` in `gopherbot.yaml`.
+
+## Repository Parameters
+If a given Job calls the `ExtendNamespace()` API to start a build, the parameters for that repository set in `conf/repositories.yaml` overwrite any values in the current pipeline, which then behave as **Pipeline Parameters** as above.
+
+## SetParameter()
+Parameters set with the `SetParameter()` API call overwrite the current value for a pipeline; thus, it makes little sense to call `SetParameter()` before `ExtendNamespace()`. Parameters set with `SetParameter()` have the highest priority, and will always apply to further tasks in the pipeline.

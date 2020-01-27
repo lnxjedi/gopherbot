@@ -1,6 +1,7 @@
 # AdminContact: "Joe Admin, <joe@my.org>"
 
-## Configure the robot connection protocol
+## Configure the robot connection protocol; modifying this could
+## break `gopherbot -t`
 {{ $proto := env "GOPHER_PROTOCOL" | default "<defaultprotocol>" }}
 Protocol: {{ $proto }}
 
@@ -31,7 +32,7 @@ Alias: "{{ $botalias }}"
 # Brain configuration; this can all be replaced with static configuration
 # and encrypted secrets for most robots.
 {{ $brain := env "GOPHER_BRAIN" | default "file" }}
-{{ $statedir := env "GOPHER_STATE_DIRECTORY" | default "state" }}
+{{ $statedir := env "GOPHER_STATEDIR" | default "state" }}
 {{ $defbraindir := printf "%s/brain" $statedir }}
 Brain: {{ $brain }}
 #EncryptBrain: true # default
@@ -50,8 +51,8 @@ BrainConfig:
 
 # Defaults for history and workspace directories, relative to the
 # process working directory.
-{{ $histdir := env "GOPHER_HISTORY_DIRECTORY" | default "history" }}
-{{ $workdir := env "GOPHER_WORKSPACE_DIRECTORY" | default "workspace" }}
+{{ $histdir := env "GOPHER_HISTORYDIR" | default "history" }}
+{{ $workdir := env "GOPHER_WORKSPACE" | default "workspace" }}
 {{ if $workdir -}} WorkSpace: {{ $workdir }} {{- end }}
 
 ## Configure a history provider

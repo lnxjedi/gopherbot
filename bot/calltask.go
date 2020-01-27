@@ -268,7 +268,6 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		// Always set for homed and privileged tasks
 		envhash["GOPHER_WORKSPACE"] = r.cfg.workSpace
 		envhash["GOPHER_CONFIGDIR"] = configFull
-		envhash["GOPHER_WORKDIR"] = workdir
 	}
 	env := make([]string, 0, len(envhash))
 	keys := make([]string, 0, len(envhash))

@@ -51,8 +51,8 @@ NameSpaces:
       - Name: GOPHER_STATE_BRANCH
         Value: {{ env "GOPHER_STATE_BRANCH" }}
       # A default installed robot stores its brain in state/brain
-      - Name: STATE_DIR
-        Value: {{ env "GOPHER_STATE_DIRECTORY" | default "state" }}
+      - Name: GOPHER_STATEDIR
+        Value: {{ env "GOPHER_STATEDIR" | default "state" }}
 
 {{ if env "GOPHER_UNCONFIGURED" }}
 LoadableModules:

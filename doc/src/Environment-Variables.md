@@ -40,10 +40,10 @@ For the optional `state` and `private` repositories, the included jobs will use 
 * `GOPHER_ALIAS` - the one-character alias for the robot, e.g. ";"
 * `GOPHER_BOTMAIL` - the robot's email address
 * `GOPHER_BOTFULLNAME` - the robot's full name
-* `GOPHER_HISTORY_DIRECTORY` - directory for storing file-based historical job logs
-* `GOPHER_WORKSPACE_DIRECTORY` - workspace directory where e.g. build jobs clone and run
+* `GOPHER_HISTORYDIR` - directory for storing file-based historical job logs
+* `GOPHER_WORKSPACE` - workspace directory where e.g. build jobs clone and run
 * `GOPHER_BRAIN` - non-default brain provider to use
-* `GOPHER_STATE_DIRECTORY` - default dir for storing state, normally just the brain
+* `GOPHER_STATEDIR` - default dir for storing state, normally just the brain
 * `GOPHER_BRAIN_DIRECTORY` - directory where file-based memories are stored, overrides above
 * `GOPHER_JOBCHANNEL` - where jobs run by default if not otherwise specified
 * `GOPHER_TIMEZONE` - UNIX tz, e.g. "America/New_York" (default)
@@ -92,7 +92,6 @@ Pipelines and tasks that have `Homed: true` and/or `Privileged: true` may also g
 * `GOPHER_HOME` - absolute path to the startup directory for the robot, relative paths are relative to this directory; unset if `cwd` can't be determined
 * `GOPHER_WORKSPACE` - the workspace directory (normally relative to `GOPHER_HOME`)
 * `GOPHER_CONFIGDIR` - absolute path to custom configuration directory, normally `$GOPHER_HOME/custom`
-* `GOPHER_WORKDIR` - set to the current working directory for the pipeline (used by e.g. the "clean" task)
 
 ### GopherCI Environment Variables
 

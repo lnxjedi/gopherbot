@@ -20,16 +20,16 @@ report(){
     fi
 }
 
-# STATE_DIR should be defined in the "manage" namespace
-if [ -z "$STATE_DIR" ]
+# GOPHER_STATEDIR should be defined in the "manage" namespace
+if [ -z "$GOPHER_STATEDIR" ]
 then
-    report "Error" "STATE_DIR not defined, giving up"
+    report "Error" "GOPHER_STATEDIR not defined, giving up"
     exit 0
 fi
 
-if [ -e "$STATE_DIR/.git" -a "$1" != "force" ]
+if [ -e "$GOPHER_STATEDIR/.git" -a "$1" != "force" ]
 then
-    report "Warn" "'$STATE_DIR/.git' exists, use 'force' to restore anyway"
+    report "Warn" "'$GOPHER_STATEDIR/.git' exists, use 'force' to restore anyway"
     exit 0
 fi
 
@@ -68,8 +68,8 @@ fi
 AddTask git-init "$GOPHER_STATE_REPOSITORY"
 # Not certain this will all happen within lockMax, but *shrug*
 AddTask pause-brain
-AddTask cleanup "$STATE_DIR"
-AddTask git-sync "$GOPHER_STATE_REPOSITORY" "$GOPHER_STATE_BRANCH" "$STATE_DIR"
+AddTask cleanup "$GOPHER_STATEDIR"
+AddTask git-sync "$GOPHER_STATE_REPOSITORY" "$GOPHER_STATE_BRANCH" "$GOPHER_STATEDIR"
 AddTask resume-brain
 if [ "$INTERACTIVE" ]
 then

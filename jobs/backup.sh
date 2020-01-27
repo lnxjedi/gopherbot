@@ -26,7 +26,7 @@ then
     exit 0
 fi
 
-cd $STATE_DIR
+cd $GOPHER_STATEDIR
 if [ ! -d .git ]
 then
     NEWREPO="true"
@@ -45,7 +45,7 @@ then
     exit 0
 fi
 
-SetWorkingDirectory "$STATE_DIR"
+SetWorkingDirectory "$GOPHER_STATEDIR"
 AddTask git-init "$GOPHER_STATE_REPOSITORY"
 AddTask pause-brain
 AddTask exec git add --all
