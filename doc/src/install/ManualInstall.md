@@ -2,7 +2,19 @@
 
 ## Installing the `gopherbot` software archive
 
-The latest release, pre-release and beta versions are available for download on the [Github](https://github.com) releases page for [gopherbot](https://github.com/lnxjedi/gopherbot/releases). Download the `.tar.gz` or `.zip` archive of your choice, and extract the archive in `/opt` to create `/opt/gopherbot`.
+The latest release, pre-release and beta versions are available for download on the [Github](https://github.com) releases page for [gopherbot](https://github.com/lnxjedi/gopherbot/releases).
+
+1. As **root**, download the `.tar.gz` or `.zip` archive of your choice, and extract the archive in `/opt` to create `/opt/gopherbot`, e.g.:
+```shell
+[root]# cd /opt
+[opt]# wget https://github.com/lnxjedi/gopherbot/releases/download/v2.0.0-snapshot/gopherbot-linux-amd64.tar.gz
+[opt]# tar xzf gopherbot-linux-amd64.tar.gz
+```
+2. (Optional) Also as root, make the `gopherbot` binary **setuid nobody**:
+```shell
+[opt]# chown nobody gopherbot/gopherbot
+[opt]# chmod u+x gopherbot/gopherbot
+```
 
 ### Archive Contents
 
