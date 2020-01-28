@@ -53,6 +53,8 @@ NameSpaces:
       # A default installed robot stores its brain in state/brain
       - Name: GOPHER_STATEDIR
         Value: {{ env "GOPHER_STATEDIR" | default "state" }}
+      - Name: KEYNAME
+        Value: manage_rsa
 
 {{ if env "GOPHER_UNCONFIGURED" }}
 LoadableModules:

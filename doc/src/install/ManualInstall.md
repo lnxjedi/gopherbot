@@ -1,6 +1,4 @@
-# Gopherbot and Requirements
-
-## Installing the `gopherbot` software archive
+# Installing the `gopherbot` software archive
 
 The latest release, pre-release and beta versions are available for download on the [Github](https://github.com) releases page for [gopherbot](https://github.com/lnxjedi/gopherbot/releases).
 
@@ -16,7 +14,7 @@ The latest release, pre-release and beta versions are available for download on 
 [opt]# chmod u+x gopherbot/gopherbot
 ```
 
-### Archive Contents
+## Archive Contents
 
 **Files**
 * `gopherbot` - the main executable, both a *CLI* and *daemon*
@@ -38,6 +36,6 @@ The latest release, pre-release and beta versions are available for download on 
 * `robot.skel/` - the initial configuration for new robots
 * `licenses/` - licenses for other packages used by **Gopherbot**, as required
 
-## Privilege Separation
+# Privilege Separation
 
 **Gopherbot** need never run as root; all of it's privileges derive from the collection of encrypted secrets that a given robot collects. However, given that chat bots tend to accumulate an assortment of 3rd-party command plugins (like the included **Chuck Norris**, hell yeah), **Gopherbot** can be installed *setuid nobody*. Configured this way, the main process may be started by your userid, or a system user such as `robot`, and a given robot will run it's privileged scripts using the `uid` of the parent process. Since almost all toy 3rd-party plugin scripts don't require any privileges, only access to the local API port, **Gopherbot** will run these external scripts with real/effective uid `nobody`. As child processes do not inherit environment, this effectively prevents any potential access to the `GOPHER_ENCRYPTION_KEY`, and any ability to modify the robot's running environment.

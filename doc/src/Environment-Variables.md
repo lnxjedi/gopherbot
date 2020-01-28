@@ -25,8 +25,8 @@ The following values can be provided to your robot on start-up:
 * `DEPLOY_KEY` - ssh deploy key for cloning the custom repository
 
 For the optional `state` and `private` repositories, the included jobs will use the `GOPHER_CUSTOM_REPOSITORY` value with `s/gopherbot/state/` and `s/gopherbot/private/` (same branch). If desired, the values can also be supplied:
-* `GOPHER_STATE_REPOSITORY` - repository holding state, normally just a file-backed brain
-* `GOPHER_STATE_BRANCH` - branch to use if other than `master`
+* `GOPHER_STATE_REPOSITORY` - repository holding state, normally just a file-backed brain, defaults to `$GOPHER_CUSTOM_REPOSITORY` and `robot-state` branch
+* `GOPHER_STATE_BRANCH` - if `GOPHER_STATE_REPOSITORY` is set, this defaults to `master`, otherwise `robot-state`
 * `GOPHER_PRIVATE_REPOSITORY` - non-public repository with `environment`, for dev only
 * `GOPHER_PRIVATE_BRANCH` - branch to use if other than `master`
 

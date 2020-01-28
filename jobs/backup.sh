@@ -17,8 +17,6 @@ then
     Log "Error" "GOPHER_CUSTOM_REPOSITORY not set"
     exit 1
 fi
-DEFAULT_STATE_REPOSITORY=${GOPHER_CUSTOM_REPOSITORY/gopherbot/state}
-GOPHER_STATE_REPOSITORY=${GOPHER_STATE_REPOSITORY:-$DEFAULT_STATE_REPOSITORY}
 
 if ! Exclusive "backup"
 then
@@ -26,8 +24,10 @@ then
     exit 0
 fi
 
-if [ -e "$GOPHER_CONFIGDIR/.robot-state" ]
+if [ ! "$GOPHER_STATE_REPOSITORY" ]
 then
+    GOPHER_STATE_REPOSITORY="$GOPHER_CUSTOM_REPOSITORY"
+    PUSHBRANCH="${GOPHER_STATE_BRANCH:-robot-state}"
     if [ ! -d "$GOPHER_STATEDIR/.git" ]
     then
         if [ ! -d "$GOPHER_CONFIGDIR/.git" ]
@@ -41,7 +41,6 @@ then
             exit 1
         fi
         NEWREPO="true"
-        PUSHBRANCH="robot-state"
         # NOTE: technically, with no exclusive lock, GOPHER_CONFIGDIR
         # could change during the copy; however, this only happens once
         # on the first backup.
@@ -58,11 +57,11 @@ then
         cd "$GOPHER_STATEDIR"
     fi
 else
+    PUSHBRANCH="${GOPHER_STATE_BRANCH:-master}"
     cd "$GOPHER_STATEDIR"
     if [ ! -d .git ]
     then
         NEWREPO="true"
-        PUSHBRANCH="master"
         git init
         git remote add origin $GOPHER_STATE_REPOSITORY
     fi

@@ -8,7 +8,6 @@
 
 [Terminology](Terminology.md)
 
-## Installation and Setup
 - [Installation](Installation.md)
     - [Requirements](install/Requirements.md)
     - [Manual Installation](install/ManualInstall.md)
@@ -38,8 +37,6 @@
     - [Administrator Commands](usage/admin.md)
     - [Command-Line Use](usage/cli.md)
     - [Logging](usage/logging.md)
-
-## Developing Plugins, Jobs and Tasks
 
 - [Gopherbot API](api/API-Introduction.md)
     - [Language Templates](api/Languages.md)
