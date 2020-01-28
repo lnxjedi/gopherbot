@@ -200,7 +200,7 @@ func Start(v VersionInfo) {
 		logFile = os.Getenv("GOPHER_LOGFILE")
 	}
 	eproto := os.Getenv("GOPHER_PROTOCOL")
-	if len(logFile) == 0 && eproto == "terminal" {
+	if len(logFile) == 0 && (cliOp || eproto == "terminal") {
 		logFile = "robot.log"
 	}
 	if len(logFile) != 0 {
