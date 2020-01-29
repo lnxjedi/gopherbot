@@ -2,6 +2,16 @@
 
 # restore.sh - restore the robot's state from git
 
+trap_handler()
+{
+    ERRLINE="$1"
+    ERRVAL="$2"
+    echo "line ${ERRLINE} exit status: ${ERRVAL}"
+    # The script should usually exit on error
+    exit $ERRVAL
+}
+trap 'trap_handler ${LINENO} $?' ERR
+
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 PTYPE=$GOPHER_PIPELINE_TYPE

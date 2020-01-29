@@ -1,7 +1,17 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # save.sh - save robot's configuration to GOPHER_CUSTOM_REPOSITORY
 # Note: significant changes here should probably be done to backup.sh, too
+
+trap_handler()
+{
+    ERRLINE="$1"
+    ERRVAL="$2"
+    echo "line ${ERRLINE} exit status: ${ERRVAL}"
+    # The script should usually exit on error
+    exit $ERRVAL
+}
+trap 'trap_handler ${LINENO} $?' ERR
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 

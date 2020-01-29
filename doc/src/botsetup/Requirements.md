@@ -3,7 +3,7 @@
 While a dedicated *git* repository is strongly recommended, the requirements listed here are mainly items for consideration before setting up your **Gopherbot** robot.
 
 ## Git Repository
-**Gopherbot** version 2 integrates heavily with *git*. This guide and the setup plugin require a *git* repository (normally named `<yourrobotname>-gopherbot`) that your robot will be able to push to with it's encrypted management ssh key (`manage_rsa`), which will be set up as a read-write deployment key for the robot's repository. In addition to saving it's initial configuration to this repository, the default robot configured with this guide will back up it's long-term memories to a separate `robot-state` branch.
+**Gopherbot** version 2 integrates heavily with *git*. This guide and the setup plugin require a *git* repository (normally named `<yourrobotname>-gopherbot`), which can be public or private. Your robot will need to be able to push to it with it's encrypted management ssh key (`manage_rsa`), which will be set up as a read-write deployment key. In addition to saving it's initial configuration to this repository, the default robot configured with this guide will back up it's long-term memories to a separate `robot-state` branch.
 
 > Note: The standard robot configured with this guide will have THREE DIFFERENT SSH KEYS, with the following uses:
 > * A dedicated encrypted `manage_rsa` key, configured as a read-write deploy key for the robot's git repository; the robot will use this for saving it's initial configuration and backup up it's long-term memories in the `state/` directory

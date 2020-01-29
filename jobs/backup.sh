@@ -3,6 +3,16 @@
 # backup.sh - back up job for backing up the robot's state (brain)
 # Note: significant changes here should probably be done to save.sh, too
 
+trap_handler()
+{
+    ERRLINE="$1"
+    ERRVAL="$2"
+    echo "line ${ERRLINE} exit status: ${ERRVAL}"
+    # The script should usually exit on error
+    exit $ERRVAL
+}
+trap 'trap_handler ${LINENO} $?' ERR
+
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 PTYPE="$GOPHER_PIPELINE_TYPE"
@@ -24,8 +34,18 @@ then
     exit 0
 fi
 
-if [ ! "$GOPHER_STATE_REPOSITORY" ]
+if [ "$GOPHER_STATE_REPOSITORY" ]
 then
+    PUSHBRANCH="${GOPHER_STATE_BRANCH:-master}"
+    cd "$GOPHER_STATEDIR"
+    if [ ! -d .git ]
+    then
+        NEWREPO="true"
+        git init
+        git remote add origin $GOPHER_STATE_REPOSITORY
+        FailTask exec rm -rf ".git"
+    fi
+else
     GOPHER_STATE_REPOSITORY="$GOPHER_CUSTOM_REPOSITORY"
     PUSHBRANCH="${GOPHER_STATE_BRANCH:-robot-state}"
     if [ ! -d "$GOPHER_STATEDIR/.git" ]
@@ -53,23 +73,20 @@ then
         rm -rf custom/
         CONFIGREPO=$(git remote get-url origin)
         GOPHER_STATE_REPOSITORY="$CONFIGREPO"
+        FailTask exec rm -rf ".git"
     else
         cd "$GOPHER_STATEDIR"
     fi
-else
-    PUSHBRANCH="${GOPHER_STATE_BRANCH:-master}"
-    cd "$GOPHER_STATEDIR"
-    if [ ! -d .git ]
-    then
-        NEWREPO="true"
-        git init
-        git remote add origin $GOPHER_STATE_REPOSITORY
-    fi
 fi
 
+if [ -e ".failed" ]
+then
+    rm ".failed"
+    FAILED="true"
+fi
 CHANGES=$(git status --porcelain)
 
-if [ ! "$CHANGES" -a ! "$NEWREPO" ] # no changes
+if [ ! "$CHANGES" -a ! "$NEWREPO" -a ! "$FAILED" ] # no changes
 then
     if [ "$PTYPE" == "plugCommand" -o "$PTYPE" == "jobCommand" ]
     then
@@ -87,15 +104,18 @@ then
 else
     ORIGIN=$(git remote get-url origin)
     AddTask git-init "$ORIGIN"
+    FailTask exec touch ".failed"
 fi
-AddTask pause-brain
-AddTask exec git add --all
-AddTask resume-brain
-AddTask exec git commit -m "Automated backup of robot state"
+if [ "$CHANGES" ]
+then
+    AddTask pause-brain
+    AddTask exec git add --all
+    AddTask resume-brain
+    AddTask exec git commit -m "Automated backup of robot state"
+fi
 if [ "$NEWREPO" ]
 then
     AddTask exec git push -u origin $PUSHBRANCH
-    FailTask exec rm -rf .git
 else
     AddTask exec git push
 fi
