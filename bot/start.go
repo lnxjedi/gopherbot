@@ -54,7 +54,7 @@ func Start(v VersionInfo) {
 	flag.BoolVar(&plainlog, "plainlog", false, plusage)
 	flag.BoolVar(&plainlog, "p", false, "")
 	var terminalmode bool
-	tmusage := "run in terminal mode and default logging to 'robot.log'"
+	tmusage := "set 'GOPHER_PROTOCOL=terminal' and default logging to 'robot.log'"
 	flag.BoolVar(&terminalmode, "terminal", false, tmusage)
 	flag.BoolVar(&terminalmode, "t", false, "")
 	var help bool
