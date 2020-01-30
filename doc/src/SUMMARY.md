@@ -21,6 +21,7 @@
 - [Initial Configuration](RobotInstall.md)
     - [Requirements](botsetup/Requirements.md)
     - [Manual Setup](botsetup/ManualSetup.md)
+    - [Setup with Docker](botsetup/DockerSetup.md)
     - [Using the Setup Plugin](botsetup/Plugin.md)
 
 - [Deploying and Running Your Robot](RunRobot.md)

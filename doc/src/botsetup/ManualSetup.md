@@ -1,8 +1,13 @@
 # Manual Setup
 This section documents manual setup of a new robot custom configuration repository. Note that the documentation will often refer to a robot's *configuration repository*, even though using a *git* repository isn't strictly required.
 
+> Note: This manual in general, and this section in particular, is not written for UNIX/Linux novices. If you're somewhat new to Linux, but have some experience with containers (e.g. [Docker](https://www.docker.com/)), I recommend you see the chapter on [Setup with Docker](DockerSetup.md), instead. This chapter is more of an outline, and skips a lot of e.g. `mkdir`, `sudo`, etc.
+
 ## 1. Create the `GOPHER_HOME` directory
-Similar to an [Ansible](https://www.ansible.com/) playbook, a **Gopherbot** robot is heavily oriented around a standard directory structure for a given robot. To begin with, create an empty directory for your robot. I normally name the directory after the robot; in this example setup, we'll use `clu`.
+Similar to an [Ansible](https://www.ansible.com/) playbook, a **Gopherbot** robot is heavily oriented around a standard directory structure for a given robot. To begin with, create an empty directory for your robot; `/var/lib/robots` or `/home/robots` are good places for this. I normally name the directory after the robot; in this example setup, we'll use `clu`.
+```shell
+TODO: start here!
+```
 
 ## 2. Create the `.env` file
 Though it's possible to run **Gopherbot** with neither encryption nor a *git* repository, this example documents the more common scenario. To begin with, create a `.env` file in your new directory with contents similar to the following:
