@@ -34,13 +34,13 @@ report(){
 if [ -z "$GOPHER_STATEDIR" ]
 then
     report "Error" "GOPHER_STATEDIR not defined, giving up"
-    exit 0
+    exit 1
 fi
 
-if [ -e "$GOPHER_STATEDIR/.git" -a "$1" != "force" ]
+if [ -e "$GOPHER_STATEDIR/.git" -a ! "$1" ]
 then
     report "Warn" "'$GOPHER_STATEDIR/.git' exists, use 'force' to restore anyway"
-    exit 0
+    exit 1
 fi
 
 if [ ! "$GOPHER_STATE_REPOSITORY" ]
@@ -55,7 +55,7 @@ fi
 if ! Exclusive "backup"
 then
     report "Warn" "Unable to get exclusive access to 'backup' in restore job, exiting"
-    exit 0
+    exit 1
 fi
 
 if [ "$INTERACTIVE" ]
@@ -67,7 +67,7 @@ AddTask git-init "$GOPHER_STATE_REPOSITORY"
 # Not certain this will all happen within lockMax, but *shrug*
 AddTask pause-brain
 AddTask cleanup "$GOPHER_STATEDIR"
-AddTask git-sync "$GOPHER_STATE_REPOSITORY" "$GOPHER_STATE_BRANCH" "$GOPHER_STATEDIR"
+AddTask git-clone "$GOPHER_STATE_REPOSITORY" "$GOPHER_STATE_BRANCH" "$GOPHER_STATEDIR"
 AddTask resume-brain
 if [ "$INTERACTIVE" ]
 then

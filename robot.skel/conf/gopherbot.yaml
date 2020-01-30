@@ -90,9 +90,6 @@ ExternalJobs:
     Parameters:
     - Name: "KEYNAME"
       Value: "manage_rsa"
-#   "logrotate":
-#     Description: Log rotation for file logging, schedule daily
-#     Path: jobs/logrotate.sh
 #   "hello":
 #     Description: Trivial hello world job for testing
 #     Path: jobs/hello.sh
@@ -108,6 +105,7 @@ ExternalJobs:
 ## memories to the "robot-state" branch.
 # - Name: backup
 #   Schedule: "@every 1m"
+## If your robot is logging to a file, this job will rotate logs
 # - Name: logrotate
 #   Schedule: "5 0 0 * * *"
 # - Name: hello

@@ -39,10 +39,11 @@ if not bot.Exclusive("updatecfg", False):
     bot.Log("Warn", "Configuration update already in progress, exiting")
     exit()
 
+bot.SetWorkingDirectory(cfgdir)
 bot.FailTask("status", [ "Updating configuration failed, check history for 'updatecfg'"])
 
 bot.AddTask("git-init", [ clone_url ])
-bot.AddTask("git-sync", [ clone_url, clone_branch, cfgdir, "true" ])
+bot.AddTask("exec", [ "git", "pull" ])
 bot.AddTask("run-pipeline", [])
 bot.AddTask("status", [ "Custom configuration repository successfully updated" ])
 bot.AddCommand("builtin-admin", "reload")
