@@ -93,9 +93,9 @@ ExternalPlugins:
     NameSpace: manage
     Path: plugins/bootstrap.py
     Parameters:
-    - Name: DEPLOY_KEY
+    - Name: GOPHER_DEPLOY_KEY
     # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
-      Value: "{{ env "DEPLOY_KEY" }}"
+      Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
   "setup":
     Description: Setup plugin for creating a new robot
     Privileged: true

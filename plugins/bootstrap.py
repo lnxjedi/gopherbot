@@ -47,14 +47,14 @@ if len(clone_url) == 0:
 clone_branch = os.getenv("GOPHER_CUSTOM_BRANCH")
 
 if not clone_url.startswith("http"):
-    depkey = os.getenv("DEPLOY_KEY")
+    depkey = os.getenv("GOPHER_DEPLOY_KEY")
     if len(depkey) == 0:
-        bot.Log("Error", "SSH required for bootstrapping and no DEPLOY_KEY set")
+        bot.Log("Error", "SSH required for bootstrapping and no GOPHER_DEPLOY_KEY set")
         exit(1)
 
 bot.Log("Info", "Creating bootstrap pipeline for %s" % clone_url)
 bot.SetParameter("BOOTSTRAP", "true")
-bot.SetParameter("DEPLOY_KEY", depkey)
+bot.SetParameter("GOPHER_DEPLOY_KEY", depkey)
 bot.AddTask("git-init", [ clone_url ])
 
 tkey = os.path.join(cfgdir, "binary-encrypted-key")

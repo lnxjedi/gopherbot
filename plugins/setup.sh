@@ -16,13 +16,9 @@ configure(){
 Help:
 - Keywords: [ "setup" ]
   Helptext: [ "(bot), setup - perform initial setup of a new robot" ]
-- Keywords: [ "administrator" ]
-  Helptext: [ "(bot), add admin <key> - add the user as a robot administrator" ]
 CommandMatchers:
 - Command: "setup"
   Regex: '(?i:setup)'
-- Command: "add"
-  Regex: '(?i:add ?admin(istrator)? ([^\s]+))'
 MessageMatchers:
 - Command: "setup"
   Regex: '(?i:setup)'
@@ -36,7 +32,7 @@ ReplyMatchers:
 - Label: "token"
   Regex: '.{8,}'
 - Label: "repo"
-  Regex: '[\w-_@:/\\]+'
+  Regex: '[\w-_@:\/\\.]+'
 - Label: "slacktoken"
   Regex: 'xoxb-[\w-]+'
 EOF
@@ -59,11 +55,13 @@ then
         exit 0
     fi
     SendChannelMessage "general" "*******"
-    SendChannelMessage "general" "Hi, I'm $NAME, the default robot - I see you're running Gopherbot unconfigured"
+    SendChannelMessage "general" "Hi, I'm $NAME, the default robot - I see you're running \
+Gopherbot unconfigured."
     Pause 2
-    SendChannelMessage "general" "If you've started the robot by mistake, just hit ctrl-D to exit and try \
-'gopherbot --help'; otherwise feel free to play around with Gopherbot; you can start by typing 'help'. \
-If you'd like to start configuring a new robot, type: '${ALIAS}setup'."
+    SendChannelMessage "general" "If you've started the robot by mistake, just hit ctrl-D \
+to exit and try 'gopherbot --help'; otherwise feel free to play around - \
+you can start by typing 'help'. If you'd like to start configuring a new robot, \
+type: '${ALIAS}setup'."
     exit 0
 fi
 
@@ -73,6 +71,8 @@ checkReply(){
         Say "Cancelling setup"
         exit 0
     fi
+    Say "Thanks"
+    Pause 1
 }
 
 getMatching(){
@@ -104,7 +104,16 @@ substitute(){
     local FIND=$1
     local REPLACE=$2
     local FILE=${3:-conf/gopherbot.yaml}
-    sed -i -e "s#$FIND#$REPLACE#g" "$GOPHER_CONFIGDIR/$FILE"
+    REPLACE=${REPLACE//\\/\\\\}
+    for TRY in "#" "|" "%" "^"
+    do
+        if [[ ! $REPLACE = *$TRY* ]]
+        then
+            RC="$TRY"
+            break
+        fi
+    done
+    sed -i -e "s${RC}$FIND${RC}$REPLACE${RC}g" "$GOPHER_CONFIGDIR/$FILE"
 }
 
 if [ "$command" == "setup" -a -z "$GOPHER_ENCRYPTION_INITIALIZED" ]
@@ -121,215 +130,145 @@ EOF
     exit 0
 fi
 
-if [ "$command" == "setup" ]
-then
-    Say "Welcome to the Gopherbot interactive setup plugin. I'll be asking a series of \
-questions that I'll use to generate the initial configuration for your Gopherbot robot. \
-At the end of the process, the contents of the 'custom/' directory should be committed to \
-a git repository."
-    # Get all the information
-    SLACK_TOKEN=$(getMatching "slacktoken" "Slack token? (from https://<org>.slack.com/services/new/bot)")
-    SLACK_TOKEN=${SLACK_TOKEN#xoxb-}
-    SLACK_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt $SLACK_TOKEN)
-    checkReply $?
-    BOTNAME=$(getMatching "SimpleString" "What do you want your robot's name to be?")
-    checkReply $?
-    BOTNAME=$(echo "$BOTNAME" | tr '[:upper:]' '[:lower:]')
-    CASENAME=$(echo "${BOTNAME:0:1}" | tr '[:lower:]' '[:upper:]')${BOTNAME:1}
-    BOTFULLNAME="$CASENAME Gopherbot"
-    BOTALIAS=$(getMatching "alias" \
-    "Pick a one-character alias for your robot from '&!;:-%#@~<>/*+^\$?\[]{}'")
-    checkReply $?
-    BOTMAIL=$(getMatching "Email" "Email address for the robot? (will be used in git commits)")
-    checkReply $?
-    SETUPKEY=$(getMatching "token" "I need a one-time password from you; you'll use this to \
-identify and add yourself as an administrator after I connect to team chat.\n\nPassword? \
-(at least 8 chars)")
-    checkReply $?
-    echo "GOPHER_SETUP_TOKEN=$SETUPKEY" >> .env
-    SSHPHRASE=$(getMatching "sshkey" "Passphrase to use for encrypting my ssh private key? \
-(at least 16 characters)")
-    checkReply $?
-    SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt "$SSHPHRASE")
-    # Create configuration
-    cp -a $GOPHER_INSTALLDIR/robot.skel/* "$GOPHER_CONFIGDIR"
-    Say "Generating my ssh keypair..."
-    ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -f custom/ssh/robot_rsa
-    Say "Here's my public key, which you can use to grant write access to my configuration \
-and state repositories:"
-    Say -f "$(cat custom/ssh/robot_rsa.pub)"
-    CUSTOM_REPO=$(getMatching "repo" "What's the URL to use for my custom configuration \
-repository? If you're going to save my configuration with the 'save' adminstrative \
-command, this needs to be an ssh url that I can push with my private key.\n\nRepository URL?")
-    substitute "<defaultprotocol>" "slack" # slack-only for now
-    substitute "<slackencrypted>" "$SLACK_ENCRYPTED" "conf/slack.yaml"
-    substitute "<sshencrypted>" "$SSH_ENCRYPTED"
-    substitute "<botname>" "$BOTNAME"
-    substitute "<botalias>" "$BOTALIAS"
-    substitute "<botfullname>" "$BOTFULLNAME"
-    substitute "<botfullname>" "$BOTFULLNAME" "git/config"
-    substitute "<botemail>" "$BOTMAIL"
-    substitute "<botemail>" "$BOTMAIL" "git/config"
-    Pause 3
-    Say "Initial configuration is nearly complete. Before we can configure you as an \
-administrator, I'll need to restart and connect to your team chat with the supplied \
-credentials. Once connected, you'll need to identify yourself with a private message: \
-\"add administrator $SETUPKEY\""
-    Say "Once you've been configured as an administrator, you can use the 'save' command \
-to save my initial configuration if my repository has been configured for push. Otherwise \
-you should commit and push the contents of 'custom/' manually."
-    AddTask "restart-robot"
-    exit 0
-fi
-
-# Running again as a pipeline task
-if [ "$command" == "continue" ]
-then
-    Pause 2
-    
-fi
-
-exit 0
 if [ "$command" != "setup" ]
 then
     exit 0
 fi
 
-exit 0
-KEY=$1
-
-if [ "$KEY" != "$SETUP_KEY" ]
-then
-    Say "Invalid setup key"
-    exit 0
-fi
-SetParameter USER_KEY "$KEY"
-Remember AUTH_USER "$GOPHER_USER"
-
-
-USERNAME=$(GetSenderAttribute "user")
-USERID=$(GetSenderAttribute "id")
-USERID=${USERID#<}
-USERID=${USERID%>}
-if [ -z "$USERNAME" ]
-then
-    USERNAME=$(getMatching "SimpleString" \
-      "What username do you want the robot to know you by?")
-fi
-Say "Detected User ID $USERID for $USERNAME"
-BOTNAME=$(getMatching "SimpleString" \
-  "What do you want your robot's name to be?")
+Say "Welcome to the Gopherbot interactive setup plugin. I'll be asking a series of \
+questions that I'll use to generate the initial configuration for your Gopherbot robot. \
+At the end of the process, the contents of the 'custom/' directory should be committed to \
+a git repository."
+# Get all the information
+Say "First I'll need a Slack authentication token that your robot will use to connect to \
+your Slack team. The best place to get a Gopherbot-compatible token is: \
+https://<team>.slack.com/services/new/bot"
+Pause 2
+SLACK_TOKEN=$(getMatching "slacktoken" "Slack token?")
 checkReply $?
-BOTALIAS=$(getMatching "alias" \
-  "Pick a one-character alias for your robot from '&!;:-%#@~<>/*+^\$?\[]{}'")
+
+SLACK_TOKEN=${SLACK_TOKEN#xoxb-}
+SLACK_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt $SLACK_TOKEN)
+
+Say "Next I'll need the name you'll use for your robot. To get your robot's attention, \
+it should be sufficient to use e.g. a '@mention', but for maximum compatibility and \
+portability to other chat platforms, your robot will always look for messages addressed \
+to them; for example 'floyd, ping'."
+Pause 2
+BOTNAME=$(getMatching "SimpleString" "What do you want your robot's name to be?")
 checkReply $?
-mv conf/gopherbot.yaml conf/gopherbot.yaml.setup
-mv conf/gopherbot-new.yaml conf/gopherbot.yaml
-mv conf/plugins/builtin-admin.yaml conf/plugins/builtin-admin.yaml.setup
-substitute "<GOPHER_ADMIN_USER>" "$USERNAME"
-substitute "<GOPHER_ADMIN_ID>" "$USERID"
-substitute "<GOPHER_BOTNAME>" "$BOTNAME"
-substitute "<GOPHER_ALIAS>" "$BOTALIAS"
-git init
-git add .
-git commit -m "Initial commit from Gopherbot setup"
-Say "Initial setup complete - the configuration repository in $(pwd) is ready for 'git remote add origin ...; git push'"
-Pause 3
-Say "The contents of $(pwd)/.env need to be preserved separately, as it contains secrets and is excluded in .gitignore"
-Pause 3
-Say "Finally, encryption won't be initialized until the robot is restarted, so I'll go ahead and exit then restart ..."
 
-AddCommand "builtin-admin" "quit"
+BOTNAME=$(echo "$BOTNAME" | tr '[:upper:]' '[:lower:]')
+CASENAME=$(echo "${BOTNAME:0:1}" | tr '[:lower:]' '[:upper:]')${BOTNAME:1}
+BOTFULLNAME="$CASENAME Gopherbot"
 
-exit 0
+Say "Now you can supply a one-character alias your robot will also recognize as it's \
+name, chosen from this list: '&!;:-%#@~<>/*+^\$?\[]{}'. You'll probably use this most often \
+for sending messages to your robot, as it's the most concise; e.g. ';ping'."
+Pause 2
+BOTALIAS=$(getMatching "alias" "Alias?")
+checkReply $?
 
-# Contents of new-robot.sh for mining; remove later!
-#!/bin/bash -e
+Say "Your robot will likely run scheduled jobs periodically; for instance to back up \
+it's long-term memories, or rotate a log file. Any output from these jobs will go to a
+default job channel for your robot. If you don't expect your robot to run a lot of jobs,
+it's safe to use e.g. 'general'."
+Pause 2
+JOBCHANNEL=$(getMatching "SimpleString" "Default job channel for your robot?")
+checkReply $?
 
-# new-robot.sh - set up a new robot and create
-# the configuration repo.
+Say "I'll need an email address for your robot to use; it'll be used in the 'from:' when \
+it sends email (configured separately), and also for git commits."
+Pause 2
+BOTMAIL=$(getMatching "Email" "Email address for your robot?")
+checkReply $?
 
-GOPHER_INSTALL_DIR=$(dirname `readlink -f "$0"`)
+Say "Your robot will make heavy use of 'ssh' for doing it's work, and it's private keys \
+will be encrypted. I'll need a passphrase your robot can use, at least 16 characters; don't \
+worry if it's hard to type - the robot will get it right every time."
+Pause 2
+SSHPHRASE=$(getMatching "sshkey" "SSH Passphrase? \
+(at least 16 characters)")
+checkReply $?
 
-REPO_DIR=$1
-PROTOCOL=$2
+SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt "$SSHPHRASE")
+mkdir -p custom/ssh
+ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -f custom/ssh/robot_rsa
+ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -f custom/ssh/manage_rsa
+ssh-keygen -N "" -C "$BOTMAIL" -f custom/ssh/deploy_rsa
+DEPKEY=$(cat custom/ssh/deploy_rsa | tr ' \n' '_:')
+rm -f custom/ssh/deploy_rsa
 
-usage(){
-cat <<EOF
-Usage: new-robot.sh <directory> <protocol>
+Say "After your robot has connected to your team chat for the first time, and you've \
+added yourself as an administrator, you'll have the option of using the 'save' command to \
+commit and push your robot's configuration to a git repository. The repository URL should \
+be appropriate for ssh authentication."
+Pause 2
+BOTREPO=$(getMatching "repo" "Custom configuration repository URL?")
+checkReply $?
 
-Set up a new robot repository and perform initial configuration.
-Protocol can be one of: slack, term.
+Pause 2
+Say "$(cat <<EOF
+
+In just a few moments I'll restart the Gopherbot daemon; when it starts, YOUR new robot will connect to the team chat. At first it won't recognize you as an administrator, since your robot doesn't yet have access to the unique internal ID that your team chat assigns. I need to get a shared secret from you, so you can use the '${BOTALIAS}add admin xxxx' command.
 EOF
-    exit 1
-}
+)"
+Pause 2
+SETUPKEY=$(getMatching "token" "Shared secret (at least 8 chars)?")
+checkReply $?
 
-if [ $# -ne 2 ]
-then
-    usage
-fi
-
-if ! mkdir -p "$REPO_DIR"
-then
-    echo "Unable to create destination directory"
-    usage
-fi
-export GOPHER_SETUP_DIR=$(readlink -f $REPO_DIR)
-
-cp -a $GOPHER_INSTALL_DIR/robot.skel/* $REPO_DIR
-cp $GOPHER_INSTALL_DIR/robot.skel/.gitignore $REPO_DIR
-
-cat <<EOF
-Setting up new robot configuration repository in "$REPO_DIR".
-
-This script will create a new robot directory and configure
-you as a robot administrator, which provides access to
-admin-only commands like 'reload', 'quit', 'update', etc.
-
-The first part will prompt for required credentials, then
-start the robot to complete setup using the 'setup' plugin.
-
+. .env
+cat > .env <<EOF
+GOPHER_ENCRYPTION_KEY=$GOPHER_ENCRYPTION_KEY
+GOPHER_CUSTOM_REPOSITORY=$BOTREPO
+# To use the deploy key below, add ssh/deploy_rsa.pub as a read-only deploy key
+# for the custom configuration repository.
+GOPHER_DEPLOY_KEY=$DEPKEY
 EOF
-
-GOPHER_PROTOCOL=slack
-
-case $PROTOCOL in
-slack)
-    echo -n "Slack token? (from https://<org>.slack.com/services/new/bot) "
-    read GOPHER_SLACK_TOKEN
-    export GOPHER_SLACK_TOKEN
-    ;;
-term)
-    export GOPHER_PROTOCOL=term
-    export GOPHER_ADMIN=alice
-    LOGFILE="/tmp/gopherbot-$REPO_DIR.log"
-    GOPHER_ARGS="-l $LOGFILE"
-    echo "Logging to $LOGFILE"
-    ;;
-esac
-
-echo -n "Setup passphrase? (to be supplied to the robot) "
-read GOPHER_SETUP_KEY
-export GOPHER_SETUP_KEY
-
-cat <<EOF
-***********************************************************
-
-Now we'll start the robot, which will start a connection
-with the '${GOPHER_PROTOCOL}' protocol. Once it's connected,
-open a private chat with your robot and tell it:
-
-> setup $GOPHER_SETUP_KEY
-
-(NOTE for 'term' protocol: use '|C' to switch to a private/
-DM channel)
-
-Press <enter>
+Say "$(cat <<EOF
+I've created an '.env' file with environment variables you'll need for running your robot. It contains, among other things, the GOPHER_ENCRYPTION_KEY your robot will need to decrypt it's secrets, including it's credentials for team chat. With proper setup, it can also be used as-is to bootstrap your robot in a container.
+This file should be kept in a safe place outside of a git repository - password managers are good for this. Here are it's contents:
 EOF
-read DUMMY
+)"
+Pause 2
+Say -f "$(echo; cat .env)"
 
-cd $REPO_DIR
-ln -s $GOPHER_INSTALL_DIR/gopherbot .
-./gopherbot $GOPHER_ARGS
-# Start again after setup to reload and initialize encryption
-[ -e "conf/gopherbot.yaml.setup" ] && ./gopherbot $GOPHER_ARGS
+Say "$(cat <<EOF
+
+For your robot to be able to save it's configuration, you'll need to configure a read-write deploy key in the repository settings. Here's the public-key portion that you can paste in for your read-write deploy key:
+EOF
+)"
+Pause 2
+Say -f "$(echo; cat custom/ssh/manage_rsa.pub)"
+
+Pause 2
+Say "$(cat <<EOF
+
+While you're at it, you can also configure a read-only deploy key that corresponds to a flattened and unencrypted private key defined in 'GOPHER_DEPLOY_KEY', above. This deploy key will allow you to easily bootstrap your robot to a new container or VM, only requiring a few environment variables to be defined. Here's the public-key portion of the read-only deploy key:
+EOF
+)"
+Say -f "$(echo; cat custom/ssh/deploy_rsa.pub)"
+
+echo "GOPHER_SETUP_TOKEN=$SETUPKEY" >> .env
+
+# Create configuration
+cp -a $GOPHER_INSTALLDIR/robot.skel/* "$GOPHER_CONFIGDIR"
+substitute "<defaultprotocol>" "slack" # slack-only for now
+substitute "<slackencrypted>" "$SLACK_ENCRYPTED" "conf/slack.yaml"
+substitute "<sshencrypted>" "$SSH_ENCRYPTED"
+substitute "<jobchannel>" "$JOBCHANNEL" "conf/slack.yaml"
+substitute "<botname>" "$BOTNAME"
+substitute "<botalias>" "$BOTALIAS"
+substitute "<botfullname>" "$BOTFULLNAME"
+substitute "<botfullname>" "$BOTFULLNAME" "git/config"
+substitute "<botemail>" "$BOTMAIL"
+substitute "<botemail>" "$BOTMAIL" "git/config"
+Pause 2
+Say "I've created the initial configuration for your robot, and now I'm ready to \
+restart the daemon. Once your robot has connected, you'll need to identify yourself with \
+a private message: \
+'add administrator $SETUPKEY'."
+AddTask "restart-robot"
+Pause 2
+Say "Once you've recorded the '.env' and public deploy keys provided above, press <enter> to restart."
+Pause 2

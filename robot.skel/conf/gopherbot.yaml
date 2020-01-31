@@ -74,6 +74,9 @@ HistoryConfig:
 # DefaultMessageFormat: Variable # 'Raw' if not specified
 
 ExternalJobs:
+  ## Using a dedicated read-write deploy key dramatically simplifies initial
+  ## setup. You can remove these override parameters to use the robot's
+  ## default "robot_rsa", or use another key of your choice.
   "updatecfg":
     Parameters:
     - Name: "KEYNAME"
@@ -121,9 +124,9 @@ ExternalJobs:
 ## plugin by uncommenting the next three lines.
 ExternalPlugins:
 {{ if env "GOPHER_SETUP_TOKEN" }}
-  "setup":
-    Description: Setup plugin allowing an administrator to be added
-    Path: plugins/setup.sh
+  "addadmin":
+    Description: Setup plugin allowing an initial administrator to be added
+    Path: plugins/addadmin.sh
     Privileged: true
     Homed: true
     Parameters:

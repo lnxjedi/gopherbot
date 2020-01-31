@@ -1,6 +1,7 @@
 ---
 RequireAdmin: true
 AllowDirect: true
+AllChannels: true
 Help:
 - Keywords: [ "config", "configuration", "update", "admin", "manage" ]
   Helptext: [ "(bot), update (configuration) - perform a git clone/pull of custom configuration and reload" ]
