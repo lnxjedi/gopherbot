@@ -26,15 +26,17 @@ ReplyMatchers:
 - Label: "alias"
   Regex: '[&!;:%#@~<>\/*+^\$?\\\[\]{}-]'
 - Label: "encryptionkey"
-  Regex: '.{32,}'
+  Regex: '[gG]|[^\s]{32,}'
 - Label: "sshkey"
-  Regex: '.{16,}'
+  Regex: '[gG]|[^\s]{16,}'
 - Label: "token"
-  Regex: '.{8,}'
+  Regex: '[gG]|[^\s]{8,}'
 - Label: "repo"
   Regex: '[\w-_@:\/\\.]+'
 - Label: "slacktoken"
   Regex: 'xoxb-[\w-]+'
+- Label: "contquit"
+  Regex: '(?i:c|q)'
 EOF
 }
 
@@ -44,13 +46,15 @@ then
     exit 0
 fi
 
+ALIAS=$(GetBotAttribute "alias")
+
 if [ "$command" == "init" -a "$GOPHER_UNCONFIGURED" ]
 then
     NAME=$(GetBotAttribute "name")
-    ALIAS=$(GetBotAttribute "alias")
     Pause 1
     if [ "$GOPHER_ENCRYPTION_INITIALIZED" ]
     then
+        SendChannelMessage "general" "*******"
         SendChannelMessage "general" "Type '${ALIAS}setup' to continue setup..."
         exit 0
     fi
@@ -65,14 +69,11 @@ type: '${ALIAS}setup'."
     exit 0
 fi
 
-checkReply(){
-    if [ $1 -ne 0 ]
+checkExit(){
+    if [ $1 != 0 ]
     then
-        Say "Cancelling setup"
         exit 0
     fi
-    Say "Thanks"
-    Pause 1
 }
 
 getMatching(){
@@ -82,10 +83,17 @@ getMatching(){
     do
         REPLY=$(PromptForReply "$REGEX" "$PROMPT")
         RETVAL=$?
-        [ $RETVAL -eq 0 ] && { echo "$REPLY"; return 0; }
+        if [ $RETVAL -eq 0 ]
+        then
+            echo "$REPLY"
+            Say "Thanks"
+            Pause 1
+            return 0
+        fi
         if [ -n "$TRY" ]
         then
-            return $RETVAL
+            Say "Cancelling setup"
+            return 1
         fi
         case $RETVAL in
         $GBRET_ReplyNotMatched)
@@ -98,6 +106,60 @@ getMatching(){
             return $RETVAL
         esac
     done
+}
+
+getOrGenerate(){
+    local REGEX=$1
+    local SIZE=$2
+    local BYTES=$(( $SIZE / 4 * 3 ))
+    local PROMPT=$3
+    for TRY in "" "" "LAST"
+    do
+        REPLY=$(PromptForReply "$REGEX" "$PROMPT")
+        RETVAL=$?
+        if [ $RETVAL -eq 0 ]
+        then
+            CHECK=$(echo $REPLY | tr [:upper:] [:lower:])
+            if [ "$CHECK" == "g" ]
+            then
+                REPLY=$(dd status=none if=/dev/random bs=1 count=$BYTES | base64)
+                echo "$REPLY"
+                Say "Generated: $REPLY"
+                Pause 1
+                return 0
+            else
+                echo "$REPLY"
+                Say "Thanks"
+                Pause 1
+                return 0
+            fi
+        fi
+        if [ -n "$TRY" ]
+        then
+            Say "Cancelling setup"
+            return 1
+        fi
+        case $RETVAL in
+        $GBRET_ReplyNotMatched)
+            Say "Try again? Your answer doesn't match the pattern for $REGEX"
+            ;;
+        $GBRET_TimeoutExpired)
+            Say "Try again? Timeout expired waiting for your reply"
+            ;;
+        *)
+            return $RETVAL
+        esac
+    done
+}
+
+continueQuit(){
+    RESP=$(getMatching 'contquit' "('c' to continue, 'q' to quit)")
+    RESP=$(echo "$RESP" | tr [:upper:] [:lower:])
+    if [ $1 -ne 0 -o "$RESP" != "c" ]
+    then
+        Say "Quitting setup, type '${ALIAS}setup' to start over"
+        exit 0
+    fi
 }
 
 substitute(){
@@ -118,14 +180,21 @@ substitute(){
 
 if [ "$command" == "setup" -a -z "$GOPHER_ENCRYPTION_INITIALIZED" ]
 then
-    Say "Before we can get started, we need to set up encryption"
-    ENCRYPTION_KEY=$(getMatching "encryptionkey" \
-    "Give me a string at least 32 characters long for the robot's encryption key")
-    checkReply $?
+    Say "Before we can get started, I need to initialize the encryption keys for \
+your new robot."
+    ENCRYPTION_KEY=$(getOrGenerate "encryptionkey" 32 \
+    "Give me a string at least 32 characters long for the robot's encryption key (or 'g' to generate)")
+    checkExit $?
     cat > .env <<EOF
 GOPHER_ENCRYPTION_KEY=$ENCRYPTION_KEY
 EOF
-    Say "Now I'll restart with encryption initialized..."
+    Say "$(cat <<EOF
+In just a moment I'll restart with encryption initialized; before restarting it'll help to have a few things ready to go:
+1) You should have the credentials your robot will need for connecting to your team chat platform. For Slack, you should obtain a classic 'bot token' from the following URL:
+https://<team>.slack.com/services/new/bot
+2) You should have the clone URL for an empty git repository, accessible with ssh credentials, to hold your robot's configuration and state.
+EOF
+)"
     AddTask "restart-robot"
     exit 0
 fi
@@ -137,26 +206,24 @@ fi
 
 Say "Welcome to the Gopherbot interactive setup plugin. I'll be asking a series of \
 questions that I'll use to generate the initial configuration for your Gopherbot robot. \
-At the end of the process, the contents of the 'custom/' directory should be committed to \
-a git repository."
+At the end of the process, your robot can be pushed to a git repository."
 # Get all the information
-Say "First I'll need a Slack authentication token that your robot will use to connect to \
-your Slack team. The best place to get a Gopherbot-compatible token is: \
-https://<team>.slack.com/services/new/bot"
+Say "First I'll need the Slack authentication token that your robot will use to connect to \
+your team chat."
 Pause 2
 SLACK_TOKEN=$(getMatching "slacktoken" "Slack token?")
-checkReply $?
+checkExit $?
 
 SLACK_TOKEN=${SLACK_TOKEN#xoxb-}
 SLACK_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt $SLACK_TOKEN)
 
-Say "Next I'll need the name you'll use for your robot. To get your robot's attention, \
-it should be sufficient to use e.g. a '@mention', but for maximum compatibility and \
-portability to other chat platforms, your robot will always look for messages addressed \
-to them; for example 'floyd, ping'."
+Say "Next I'll need the name you'll use for your robot. To get your robot's attention \
+it should be sufficient to start a commane with e.g. a '@mention', but for maximum \
+compatibility and portability to other chat platforms, your robot will always look for \
+messages addressed to them; for example 'floyd, ping'."
 Pause 2
 BOTNAME=$(getMatching "SimpleString" "What do you want your robot's name to be?")
-checkReply $?
+checkExit $?
 
 BOTNAME=$(echo "$BOTNAME" | tr '[:upper:]' '[:lower:]')
 CASENAME=$(echo "${BOTNAME:0:1}" | tr '[:lower:]' '[:upper:]')${BOTNAME:1}
@@ -167,29 +234,32 @@ name, chosen from this list: '&!;:-%#@~<>/*+^\$?\[]{}'. You'll probably use this
 for sending messages to your robot, as it's the most concise; e.g. ';ping'."
 Pause 2
 BOTALIAS=$(getMatching "alias" "Alias?")
-checkReply $?
+checkExit $?
 
 Say "Your robot will likely run scheduled jobs periodically; for instance to back up \
-it's long-term memories, or rotate a log file. Any output from these jobs will go to a
-default job channel for your robot. If you don't expect your robot to run a lot of jobs,
+it's long-term memories, or rotate a log file. Any output from these jobs will go to a \
+default job channel for your robot. If you don't expect your robot to run a lot of jobs, \
 it's safe to use e.g. 'general'."
 Pause 2
 JOBCHANNEL=$(getMatching "SimpleString" "Default job channel for your robot?")
-checkReply $?
+checkExit $?
 
 Say "I'll need an email address for your robot to use; it'll be used in the 'from:' when \
 it sends email (configured separately), and also for git commits."
 Pause 2
 BOTMAIL=$(getMatching "Email" "Email address for your robot?")
-checkReply $?
+checkExit $?
 
 Say "Your robot will make heavy use of 'ssh' for doing it's work, and it's private keys \
 will be encrypted. I'll need a passphrase your robot can use, at least 16 characters; don't \
 worry if it's hard to type - the robot will get it right every time."
 Pause 2
-SSHPHRASE=$(getMatching "sshkey" "SSH Passphrase? \
-(at least 16 characters)")
-checkReply $?
+SSHPHRASE=$(getOrGenerate "sshkey" 16 "SSH Passphrase? \
+(at least 16 characters, or 'g' to generate)")
+checkExit $?
+
+Say "Now I'll generate my ssh keypairs..."
+continueQuit
 
 SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt "$SSHPHRASE")
 mkdir -p custom/ssh
@@ -205,17 +275,17 @@ commit and push your robot's configuration to a git repository. The repository U
 be appropriate for ssh authentication."
 Pause 2
 BOTREPO=$(getMatching "repo" "Custom configuration repository URL?")
-checkReply $?
+checkExit $?
 
 Pause 2
 Say "$(cat <<EOF
 
-In just a few moments I'll restart the Gopherbot daemon; when it starts, YOUR new robot will connect to the team chat. At first it won't recognize you as an administrator, since your robot doesn't yet have access to the unique internal ID that your team chat assigns. I need to get a shared secret from you, so you can use the '${BOTALIAS}add admin xxxx' command.
+In just a few moments I'll restart the Gopherbot daemon; when it starts, your new robot will connect to the team chat. At first it won't recognize you as an administrator, since your robot doesn't yet have access to the unique internal ID that your team chat assigns. I need to get a shared secret from you, so you can use the '${BOTALIAS}add admin xxxx' command.
 EOF
 )"
 Pause 2
-SETUPKEY=$(getMatching "token" "Shared secret (at least 8 chars)?")
-checkReply $?
+SETUPKEY=$(getOrGenerate "token" 8 "Shared secret (at least 8 chars, 'g' to generate)?")
+checkExit $?
 
 . .env
 cat > .env <<EOF
@@ -232,6 +302,7 @@ EOF
 )"
 Pause 2
 Say -f "$(echo; cat .env)"
+continueQuit
 
 Say "$(cat <<EOF
 
@@ -240,6 +311,7 @@ EOF
 )"
 Pause 2
 Say -f "$(echo; cat custom/ssh/manage_rsa.pub)"
+continueQuit
 
 Pause 2
 Say "$(cat <<EOF
@@ -248,6 +320,7 @@ While you're at it, you can also configure a read-only deploy key that correspon
 EOF
 )"
 Say -f "$(echo; cat custom/ssh/deploy_rsa.pub)"
+continueQuit
 
 echo "GOPHER_SETUP_TOKEN=$SETUPKEY" >> .env
 
@@ -268,6 +341,7 @@ Say "I've created the initial configuration for your robot, and now I'm ready to
 restart the daemon. Once your robot has connected, you'll need to identify yourself with \
 a private message: \
 'add administrator $SETUPKEY'."
+touch ".addadmin"
 AddTask "restart-robot"
 Pause 2
 Say "Once you've recorded the '.env' and public deploy keys provided above, press <enter> to restart."

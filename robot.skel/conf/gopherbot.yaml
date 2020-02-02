@@ -101,6 +101,10 @@ ExternalJobs:
 #     - Name: NONCE
 #       Value: "No way, Jack!"
 
+## Most often you don't want your robot to run scheduled jobs
+## with the "terminal" connector, normally used for testing and
+## development.
+{{ if ne $proto "terminal" }}
 ## Job scheduling with github.com/robfig/cron; includes seconds
 # ScheduledJobs:
 ## Once your robot has successfully saved it's configuration to
@@ -119,6 +123,7 @@ ExternalJobs:
 #   Schedule: "@every 35s" # see: https://godoc.org/github.com/robfig/cron
 #   Arguments: # an array of strings; up to the job to parse numbers & bools
 #   - "Goodbye, World !!!"
+{{ end }}
 
 ## After adding an initial administrator, you should disable the setup
 ## plugin by uncommenting the next three lines.
