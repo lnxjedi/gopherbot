@@ -20,7 +20,7 @@ Help:
   Helptext: [ "(bot), add admin <key> - add the user as a robot administrator" ]
 CommandMatchers:
 - Command: "add"
-  Regex: '(?i:add ?admin(istrator)? ([^\s]+))'
+  Regex: '(?i:add ?admin(?:istrator)? ([^\s]+))'
 EOF
 }
 

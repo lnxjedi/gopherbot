@@ -232,13 +232,14 @@ CASENAME=$(echo "${BOTNAME:0:1}" | tr '[:lower:]' '[:upper:]')${BOTNAME:1}
 BOTFULLNAME="$CASENAME Gopherbot"
 
 Say "Now you can supply a one-character alias your robot will also recognize as it's \
-name, chosen from this list: '&!;:-%#@~<>/*+^\$?\[]{}'. You'll probably use this most often \
+name, chosen from this list: '&!;:-%#@~<>/*+^\$?[]{}'. You'll probably use this most often \
 for sending messages to your robot, as it's the most concise; e.g. ';ping'."
 Pause 2
 BOTALIAS=$(getMatching "alias" "Alias?")
-# '\' is an escape character and needs special handling
-[[ $BOTALIAS = \\ ]] && BOTALIAS="\\\\"
 checkExit $?
+# '\' is an escape character and needs special handling
+# Note: This still doesn't work, fix later
+#[[ $BOTALIAS = \\ ]] && BOTALIAS="\\\\"
 
 Say "Your robot will likely run scheduled jobs periodically; for instance to back up \
 it's long-term memories, or rotate a log file. Any output from these jobs will go to a \
