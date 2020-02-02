@@ -154,8 +154,9 @@ getOrGenerate(){
 
 continueQuit(){
     RESP=$(getMatching 'contquit' "('c' to continue, 'q' to quit)")
+    RET=$?
     RESP=$(echo "$RESP" | tr [:upper:] [:lower:])
-    if [ $1 -ne 0 -o "$RESP" != "c" ]
+    if [ $RET -ne 0 ] || [ "$RESP" != "c" ]
     then
         Say "Quitting setup, type '${ALIAS}setup' to start over"
         exit 0
@@ -213,12 +214,13 @@ your team chat."
 Pause 2
 SLACK_TOKEN=$(getMatching "slacktoken" "Slack token?")
 checkExit $?
+Say "Don't worry - I'll encrypt that"
 
 SLACK_TOKEN=${SLACK_TOKEN#xoxb-}
 SLACK_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt $SLACK_TOKEN)
 
 Say "Next I'll need the name you'll use for your robot. To get your robot's attention \
-it should be sufficient to start a commane with e.g. a '@mention', but for maximum \
+it should be sufficient to start a command with e.g. a '@mention', but for maximum \
 compatibility and portability to other chat platforms, your robot will always look for \
 messages addressed to them; for example 'floyd, ping'."
 Pause 2
@@ -234,6 +236,8 @@ name, chosen from this list: '&!;:-%#@~<>/*+^\$?\[]{}'. You'll probably use this
 for sending messages to your robot, as it's the most concise; e.g. ';ping'."
 Pause 2
 BOTALIAS=$(getMatching "alias" "Alias?")
+# '\' is an escape character and needs special handling
+[[ $BOTALIAS = \\ ]] && BOTALIAS="\\\\"
 checkExit $?
 
 Say "Your robot will likely run scheduled jobs periodically; for instance to back up \
@@ -257,8 +261,7 @@ Pause 2
 SSHPHRASE=$(getOrGenerate "sshkey" 16 "SSH Passphrase? \
 (at least 16 characters, or 'g' to generate)")
 checkExit $?
-
-Say "Now I'll generate my ssh keypairs..."
+Say "I'll encrypt that, too; now I'll generate my ssh keypairs..."
 continueQuit
 
 SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt "$SSHPHRASE")
@@ -295,31 +298,33 @@ GOPHER_CUSTOM_REPOSITORY=$BOTREPO
 # for the custom configuration repository.
 GOPHER_DEPLOY_KEY=$DEPKEY
 EOF
+Say "*******"
 Say "$(cat <<EOF
 I've created an '.env' file with environment variables you'll need for running your robot. It contains, among other things, the GOPHER_ENCRYPTION_KEY your robot will need to decrypt it's secrets, including it's credentials for team chat. With proper setup, it can also be used as-is to bootstrap your robot in a container.
 This file should be kept in a safe place outside of a git repository - password managers are good for this. Here are it's contents:
 EOF
 )"
 Pause 2
-Say -f "$(echo; cat .env)"
+Say -f "$(echo; echo '--- snip ---'; cat .env; echo '--- /snip ---')"
 continueQuit
 
+Say "*******"
 Say "$(cat <<EOF
 
 For your robot to be able to save it's configuration, you'll need to configure a read-write deploy key in the repository settings. Here's the public-key portion that you can paste in for your read-write deploy key:
 EOF
 )"
 Pause 2
-Say -f "$(echo; cat custom/ssh/manage_rsa.pub)"
+Say -f "$(echo; echo '--- snip ---'; cat custom/ssh/manage_rsa.pub; echo '--- /snip ---')"
 continueQuit
 
-Pause 2
+Say "*******"
 Say "$(cat <<EOF
 
 While you're at it, you can also configure a read-only deploy key that corresponds to a flattened and unencrypted private key defined in 'GOPHER_DEPLOY_KEY', above. This deploy key will allow you to easily bootstrap your robot to a new container or VM, only requiring a few environment variables to be defined. Here's the public-key portion of the read-only deploy key:
 EOF
 )"
-Say -f "$(echo; cat custom/ssh/deploy_rsa.pub)"
+Say -f "$(echo; echo '--- snip ---'; cat custom/ssh/deploy_rsa.pub; echo '--- /snip ---')"
 continueQuit
 
 echo "GOPHER_SETUP_TOKEN=$SETUPKEY" >> .env
