@@ -27,7 +27,7 @@ BotInfo:
   FirstName: {{ $botname }}
   LastName: Gopherbot
 
-Alias: "{{ $botalias }}"
+Alias: '{{ $botalias }}'
 
 # Brain configuration; this can all be replaced with static configuration
 # and encrypted secrets for most robots.
@@ -143,7 +143,7 @@ ExternalPlugins:
 #     Path: plugins/weather.rb
 #     Parameters:
 #     - Name: OWM_APIKEY
-#       Value: {{ decrypt "KYJzQD8jvfq3liQYPovkdgxe86Im2w79l9YgAQlc1rOBybCLKrDzjkTV8WeLyvah1F5H0vrYGIjfjp8Q" }}
+#       Value: replace with encrypted string
 #     - Name: TEMP_UNITS
 #       Value: {{ env "GOPHER_OWM_UNITS" | default "imperial" }} # or 'metric'
 #     - Name: DEFAULT_COUNTRY
