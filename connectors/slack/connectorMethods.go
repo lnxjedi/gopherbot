@@ -136,7 +136,7 @@ func (s *slackConnector) sendMessages(msgs []string, chanID string, f robot.Mess
 }
 
 // SetUserMap takes a map of username to userID mappings, built from the UserRoster
-// of gopherbot.yaml
+// of robot.yaml
 func (s *slackConnector) SetUserMap(umap map[string]string) {
 	s.Lock()
 	s.botUserMap = umap

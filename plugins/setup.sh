@@ -166,7 +166,7 @@ continueQuit(){
 substitute(){
     local FIND=$1
     local REPLACE=$2
-    local FILE=${3:-conf/gopherbot.yaml}
+    local FILE=${3:-conf/robot.yaml}
     REPLACE=${REPLACE//\\/\\\\}
     for TRY in "#" "|" "%" "^"
     do

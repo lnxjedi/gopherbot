@@ -68,7 +68,7 @@ The Windows port has been removed; the only known use case is being replaced. **
 
 With Version 2 nearly feature complete, documentation has become a priority. Watch https://lnxjedi.github.io/gopherbot for (hopefully) frequent updates. One of the best sources of documentation are the configuration repositories for **Floyd** (the production 'bot that builds all releases) and **Clu** (the devel 'bot that runs on my laptop); they can be found at [Github](https://github.com/parsley42).
 
-Other than commented [configuration files](conf/gopherbot.yaml), most documentation is in the [doc/src/](doc/src/) folder. Stuff in `doc/src/Outdated` is just that.
+Other than commented [configuration files](conf/robot.yaml), most documentation is in the [doc/src/](doc/src/) folder. Stuff in `doc/src/Outdated` is just that.
 
 ## Sample Plugin with the Ruby API
 ```ruby

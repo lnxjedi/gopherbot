@@ -27,14 +27,14 @@ except FileNotFoundError:
     pass
 
 cfgdir = os.getenv("GOPHER_CONFIGDIR")
-cfgfile = os.path.join(cfgdir, "conf", "gopherbot.yaml")
+cfgconf = os.path.join(cfgdir, "conf")
 
 try:
-    os.stat(cfgfile)
+    os.stat(cfgconf)
 except FileNotFoundError:
     pass
 except:
-    bot.Log("Error", "Checking for gopherbot.yaml: %s" % sys.exc_info()[0])
+    bot.Log("Error", "Checking for %s: %s" % (cfgconf, sys.exc_info()[0]))
     exit(1)
 else:
     exit(0)

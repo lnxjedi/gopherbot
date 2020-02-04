@@ -62,7 +62,7 @@ In addition to the above passed-through environment vars, **Gopherbot** supplies
 
 ## Automatic Environment Variables
 
-On startup, **Gopherbot** will check for a custom `conf/gopherbot.yaml` or the presence of a `GOPHER_CUSTOM_REPOSITORY` environment variable. In the absence of either, the following will be automatically set:
+On startup, **Gopherbot** will check for a custom `conf/robot.yaml` or the presence of a `GOPHER_CUSTOM_REPOSITORY` environment variable. In the absence of either, the following will be automatically set:
 * `GOPHER_UNCONFIGURED` - set true
 * `GOPHER_PROTOCOL` - set to "terminal" if not already set
 * `GOPHER_LOGFILE` - set to "robot.log" if not already set

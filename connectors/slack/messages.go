@@ -64,7 +64,7 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageForm
 	}
 
 	// Eventually, this will only work for users configured in the
-	// UserRoster from gopherbot.yaml
+	// UserRoster from robot.yaml
 	sbytes = mentionRe.ReplaceAllFunc(sbytes, func(bytes []byte) []byte {
 		replace, ok := s.userID(string(bytes[1:]))
 		if ok {

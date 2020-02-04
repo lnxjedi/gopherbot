@@ -173,8 +173,15 @@ func Start(v VersionInfo) {
 
 	// support for setup plugin
 	var defaultProto, defaultLogfile bool
-	testpath := filepath.Join(configpath, "conf", "gopherbot.yaml")
+	testpath := filepath.Join(configpath, "conf", robotConfigFileName)
 	_, err := os.Stat(testpath)
+	if err != nil {
+		testpath = filepath.Join(configpath, "conf", "gopherbot.yaml")
+		_, err = os.Stat(testpath)
+		if err == nil {
+			robotConfigFileName = "gopherbot.yaml"
+		}
+	}
 	if err != nil {
 		_, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
 		if !ok {
@@ -289,7 +296,6 @@ func Start(v VersionInfo) {
 	if cliCommand == "dump" {
 		setLogLevel(robot.Warn)
 		if len(flag.Args()) != 3 {
-			fmt.Println("DEBUG wrong args")
 			fmt.Println(usage)
 			flag.PrintDefaults()
 			os.Exit(1)

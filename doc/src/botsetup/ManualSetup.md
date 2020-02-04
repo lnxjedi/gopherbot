@@ -25,7 +25,7 @@ Now start the default robot using the terminal connector, and the binary encrypt
 
 ```
 [clu]$ ./gopherbot 
-2020/01/14 15:15:29 Warning: Starting unconfigured: stat custom/conf/gopherbot.yaml: no such file or directory
+2020/01/14 15:15:29 Warning: Starting unconfigured: stat custom/conf/robot.yaml: no such file or directory
 Terminal connector running; Use '|c<channel|?>' to change channel, or '|u<user|?>' to change user
 2020/01/14 15:15:29 Warning: GOPHER_CUSTOM_REPOSITORY not set, not bootstrapping
 general: Type ';setup' to continue setup...
@@ -58,7 +58,7 @@ Now edit your `conf/slack.yaml` file and replace `<slackencrypted>` with the cip
 ### Editing Default Configuration
 Now you need to edit the configuration files under `custom/`, replacing most of the `<replacevalue>` instances with values for your robot.
 
-In `custom/conf/gopherbot.yaml`:
+In `custom/conf/robot.yaml`:
 * Replace `<defaultprotocol>` with "slack"
 * Replace `<botname>` with the name of your robot, e.g. `clu`
 * Replace `<botemail>` with an email address for your robot; will be used for "from:"

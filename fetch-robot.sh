@@ -19,7 +19,7 @@ deduced from the repository where the 'fetch-robot.sh' script resides.
 Note that this scripts assumes a convention for repository names; for a
 robot named 'clu', the following repository names are assumed:
 * clu-gopherbot - (required) the custom configuration, including
-  'conf/gopherbot.yaml'
+  'conf/robot.yaml'
 * clu-state - (optional) state repository for memories and other cruft
 * clu-private - (optional, discouraged) repository containing
   'environment' file with GOPHER_ENCRYPTION_KEY; this repository should
@@ -31,6 +31,7 @@ EOF
 
 SCRIPTPATH=$(readlink -f $0)
 SCRIPTDIR=$(dirname $SCRIPTPATH)
+umask 0022
 
 devbot(){
     local BOTNAME="$1"

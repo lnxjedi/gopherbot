@@ -7,7 +7,7 @@
 # in a git repository specified in the GOPHER_CUSTOM_REPOSITORY
 # environment variable, which translates to CUSTOM_REPOSITORY_URL
 # in the job (see the definition for the updatecfg job in
-# conf/gopherbot.yaml). When this job is run, the robot will attempt
+# conf/robot.yaml). When this job is run, the robot will attempt
 # to clone or pull it's configuration repository.
 
 # Note that if your config repo has a '.gopherci/pipeline.sh', it'll

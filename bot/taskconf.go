@@ -11,7 +11,7 @@ import (
 )
 
 // loadTaskConfig() updates task/job/plugin configuration and namespaces
-// from gopherbot.yaml and external configuration, then updates the
+// from robot.yaml and external configuration, then updates the
 // globalTasks struct.
 func loadTaskConfig(processed *configuration) (*taskList, error) {
 	newList := &taskList{
@@ -61,7 +61,7 @@ func loadTaskConfig(processed *configuration) (*taskList, error) {
 	checkTaskSettings := func(ts TaskSettings, task *Task) (bool, error) {
 		if ts.Disabled {
 			task.Disabled = true
-			task.reason = "disabled in gopherbot.yaml"
+			task.reason = fmt.Sprintf("disabled in %s", robotConfigFileName)
 			return true, nil
 		}
 		if len(ts.NameSpace) > 0 {
@@ -306,7 +306,7 @@ LoadLoop:
 			case "Config":
 				skip = true
 			case "Privileged":
-				return newList, fmt.Errorf("task '%s' illegally specifies 'Privileged' outside of gopherbot.yaml", task.name)
+				return newList, fmt.Errorf("task '%s' illegally specifies 'Privileged' outside of %s", task.name, robotConfigFileName)
 			default:
 				msg := fmt.Sprintf("Invalid configuration key for task '%s': %s - disabling", task.name, key)
 				Log(robot.Error, msg)
@@ -355,7 +355,7 @@ LoadLoop:
 					mismatch = true
 				}
 			case "NameSpace":
-				Log(robot.Error, "Task '%s' specifies NameSpace outside of gopherbot.yaml, ignoring")
+				Log(robot.Error, "Task '%s' specifies NameSpace outside of %s, ignoring", robotConfigFileName)
 			case "Elevator":
 				task.Elevator = *(val.(*string))
 			case "ElevatedCommands":
