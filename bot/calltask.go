@@ -11,9 +11,9 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"golang.org/x/sys/unix"
 )
 
 var local bool
@@ -392,7 +392,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		retval = robot.Fail
 		success := false
 		if exitstatus, ok := err.(*exec.ExitError); ok {
-			if status, ok := exitstatus.Sys().(syscall.WaitStatus); ok {
+			if status, ok := exitstatus.Sys().(unix.WaitStatus); ok {
 				retval = robot.TaskRetVal(status.ExitStatus())
 				if retval == robot.Success {
 					success = true

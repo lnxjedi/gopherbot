@@ -10,11 +10,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/lnxjedi/gopherbot/robot"
+	"golang.org/x/sys/unix"
 )
 
 // Information about privilege separation, set in runtasks_linux.go
@@ -87,10 +87,10 @@ func Start(v VersionInfo) {
 		go initSigHandle(cmd.Process)
 		if pid == 1 {
 			go func() {
-				var ws syscall.WaitStatus
+				var ws unix.WaitStatus
 				// Reap children FOREVER...
 				for {
-					pid, err := syscall.Wait4(-1, &ws, 0, nil)
+					pid, err := unix.Wait4(-1, &ws, 0, nil)
 					if err == nil {
 						Log(robot.Debug, "Reaped child pid: %d, status: %+v", pid, ws)
 					}
@@ -348,7 +348,7 @@ func Start(v VersionInfo) {
 		bin, _ := os.Executable()
 		env := os.Environ()
 		defer func() {
-			err := syscall.Exec(bin, os.Args, env)
+			err := unix.Exec(bin, os.Args, env)
 			if err != nil {
 				fmt.Printf("Error re-exec'ing: %v", err)
 			}
