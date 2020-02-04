@@ -76,7 +76,7 @@ func Start(v VersionInfo) {
 		env := os.Environ()
 		cmd := exec.Command(bin, args...)
 		cmd.Env = env
-		cmd.Stdin = nil
+		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		raiseThreadPrivExternal("exec child process")
