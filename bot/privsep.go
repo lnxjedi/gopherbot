@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 	"runtime"
-	"syscall"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"golang.org/x/sys/unix"
 )
 
 var privUID, unprivUID int
@@ -19,29 +19,30 @@ different uids on a single host with a single install.
 */
 
 func init() {
-	uid := syscall.Getuid()
-	euid := syscall.Geteuid()
+	uid := unix.Getuid()
+	euid := unix.Geteuid()
 	if uid != euid {
 		privUID = uid
 		unprivUID = euid
+		unix.Umask(0022)
 		runtime.LockOSThread()
-		syscall.Setreuid(unprivUID, privUID)
+		unix.Setreuid(unprivUID, privUID)
 		privSep = true
 	}
 }
 
 func raiseThreadPriv(reason string) {
 	if privSep {
-		ruid := syscall.Getuid()
-		euid := syscall.Geteuid()
+		ruid := unix.Getuid()
+		euid := unix.Geteuid()
 		if euid == privUID {
-			tid := syscall.Gettid()
+			tid := unix.Gettid()
 			Log(robot.Debug, "Successful privilege check for '%s'; r/e for thread %d: %d/%d", reason, tid, ruid, euid)
 		} else {
 			// Not privileged, create a new privileged thread
 			runtime.LockOSThread()
-			tid := syscall.Gettid()
-			err := syscall.Setreuid(unprivUID, privUID)
+			tid := unix.Gettid()
+			err := unix.Setreuid(unprivUID, privUID)
 			if err != nil {
 				Log(robot.Error, "Calling Setreuid(%d, %d) in raiseThreadPriv: %v", unprivUID, privUID, err)
 				return
@@ -56,8 +57,8 @@ func raiseThreadPriv(reason string) {
 func raiseThreadPrivExternal(reason string) {
 	if privSep {
 		runtime.LockOSThread()
-		tid := syscall.Gettid()
-		err := syscall.Setreuid(privUID, privUID)
+		tid := unix.Gettid()
+		err := unix.Setreuid(privUID, privUID)
 		if err != nil {
 			Log(robot.Error, "Calling Setreuid(%d, %d) in raiseThreadPriv: %v", unprivUID, privUID, err)
 			return
@@ -69,8 +70,8 @@ func raiseThreadPrivExternal(reason string) {
 func dropThreadPriv(reason string) {
 	if privSep {
 		runtime.LockOSThread()
-		tid := syscall.Gettid()
-		err := syscall.Setreuid(unprivUID, unprivUID)
+		tid := unix.Gettid()
+		err := unix.Setreuid(unprivUID, unprivUID)
 		if err != nil {
 			Log(robot.Error, "Calling Setreuid(%d, %d) in dropThreadPriv: %v", unprivUID, unprivUID, err)
 			return
@@ -82,9 +83,9 @@ func dropThreadPriv(reason string) {
 func checkprivsep(l *log.Logger) {
 	if privSep {
 		runtime.LockOSThread()
-		ruid := syscall.Getuid()
-		euid := syscall.Geteuid()
-		tid := syscall.Gettid()
+		ruid := unix.Getuid()
+		euid := unix.Geteuid()
+		tid := unix.Gettid()
 		l.Printf(fmt.Sprintf("Privilege separation initialized; daemon UID %d, unprivileged UID %d; thread %d r/euid: %d/%d\n", privUID, unprivUID, tid, ruid, euid))
 	} else {
 		l.Printf("Privilege separation not in use\n")
