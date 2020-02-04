@@ -31,8 +31,8 @@ AddTask exec ./.gopherci/tools.sh
 #AddTask exec goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
 # Initial clones from public https
-AddTask git-sync https://github.com/lnxjedi/gopherbot.git gh-pages gopherbot-doc
-AddTask git-sync https://github.com/lnxjedi/gopherbot-docker.git master gopherbot-docker
+AddTask git-clone https://github.com/lnxjedi/gopherbot.git gh-pages gopherbot-doc
+AddTask git-clone https://github.com/lnxjedi/gopherbot-docker.git master gopherbot-docker
 
 AddTask exec ./.gopherci/mkdocs.sh
 

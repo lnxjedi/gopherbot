@@ -2,6 +2,16 @@
 
 # restore.sh - restore the robot's state from git
 
+trap_handler()
+{
+    ERRLINE="$1"
+    ERRVAL="$2"
+    echo "line ${ERRLINE} exit status: ${ERRVAL}"
+    # The script should usually exit on error
+    exit $ERRVAL
+}
+trap 'trap_handler ${LINENO} $?' ERR
+
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 PTYPE=$GOPHER_PIPELINE_TYPE
@@ -20,44 +30,32 @@ report(){
     fi
 }
 
-# STATE_DIR should be defined in the "manage" namespace
-if [ -z "$STATE_DIR" ]
+# GOPHER_STATEDIR should be defined in the "manage" namespace
+if [ -z "$GOPHER_STATEDIR" ]
 then
-    report "Error" "STATE_DIR not defined, giving up"
-    exit 0
+    report "Error" "GOPHER_STATEDIR not defined, giving up"
+    exit 1
 fi
 
-if [ -e "$STATE_DIR/.git" -a "$1" != "force" ]
+if [ -e "$GOPHER_STATEDIR/.git" -a ! "$1" ]
 then
-    report "Warn" "'$STATE_DIR/.git' exists, use 'force' to restore anyway"
-    exit 0
+    report "Warn" "'$GOPHER_STATEDIR/.git' exists, use 'force' to restore anyway"
+    exit 1
 fi
 
 if [ ! "$GOPHER_STATE_REPOSITORY" ]
 then
-    if [ ! "$GOPHER_CUSTOM_REPOSITORY" ]
-    then
-        report "Error" "Neither GOPHER_CUSTOM_REPOSITORY nor GOPHER_STATE_REPOSITORY set, giving up"
-        exit 0
-    fi
-    GOPHER_STATE_REPOSITORY=${GOPHER_CUSTOM_REPOSITORY/gopherbot/state}
-    report "Info" "GOPHER_STATE_REPOSITORY not set, defaulting to $GOPHER_STATE_REPOSITORY"
-fi
-
-if [ ! "$GOPHER_STATE_BRANCH" ]
-then
-    if [ ! "$GOPHER_CUSTOM_BRANCH" ]
-    then
-        GOPHER_STATE_BRANCH="master"
-    else
-        GOPHER_STATE_BRANCH=$GOPHER_CUSTOM_BRANCH
-    fi
+    CONFIGREPO=$(cd $GOPHER_CONFIGDIR; git remote get-url origin)
+    GOPHER_STATE_REPOSITORY="$CONFIGREPO"
+    GOPHER_STATE_BRANCH="${GOPHER_STATE_BRANCH:-robot-state}"
+else
+    GOPHER_STATE_BRANCH="${GOPHER_STATE_BRANCH:-master}"
 fi
 
 if ! Exclusive "backup"
 then
     report "Warn" "Unable to get exclusive access to 'backup' in restore job, exiting"
-    exit 0
+    exit 1
 fi
 
 if [ "$INTERACTIVE" ]
@@ -68,8 +66,8 @@ fi
 AddTask git-init "$GOPHER_STATE_REPOSITORY"
 # Not certain this will all happen within lockMax, but *shrug*
 AddTask pause-brain
-AddTask cleanup "$STATE_DIR"
-AddTask git-sync "$GOPHER_STATE_REPOSITORY" "$GOPHER_STATE_BRANCH" "$STATE_DIR"
+AddTask cleanup "$GOPHER_STATEDIR"
+AddTask git-clone "$GOPHER_STATE_REPOSITORY" "$GOPHER_STATE_BRANCH" "$GOPHER_STATEDIR"
 AddTask resume-brain
 if [ "$INTERACTIVE" ]
 then

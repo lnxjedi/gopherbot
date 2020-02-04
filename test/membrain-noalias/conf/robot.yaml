@@ -1,4 +1,3 @@
-# See conf/gopherbot.yaml.sample
 AdminContact: "David Parsley, <parsley@linuxjedi.org>"
 DefaultChannels: [ "general", "random" ]
 DefaultJobChannel: general

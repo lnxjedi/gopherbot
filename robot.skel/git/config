@@ -3,3 +3,5 @@
 # Please adapt and uncomment the following lines:
 	name = <botfullname>
 	email = <botemail>
+[push]
+	default = simple

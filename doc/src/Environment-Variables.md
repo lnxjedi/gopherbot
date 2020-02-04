@@ -22,11 +22,11 @@ The following values can be provided to your robot on start-up:
 * `GOPHER_CUSTOM_BRANCH` - branch to use if other than `master`
 * `GOPHER_LOGFILE` - where to write out a log file
 * `GOPHER_CONFIGDIR` - absolute or relative path to configuration directory
-* `DEPLOY_KEY` - ssh deploy key for cloning the custom repository
+* `GOPHER_DEPLOY_KEY` - ssh deploy key for cloning the custom repository
 
 For the optional `state` and `private` repositories, the included jobs will use the `GOPHER_CUSTOM_REPOSITORY` value with `s/gopherbot/state/` and `s/gopherbot/private/` (same branch). If desired, the values can also be supplied:
-* `GOPHER_STATE_REPOSITORY` - repository holding state, normally just a file-backed brain
-* `GOPHER_STATE_BRANCH` - branch to use if other than `master`
+* `GOPHER_STATE_REPOSITORY` - repository holding state, normally just a file-backed brain, defaults to `$GOPHER_CUSTOM_REPOSITORY` and `robot-state` branch
+* `GOPHER_STATE_BRANCH` - if `GOPHER_STATE_REPOSITORY` is set, this defaults to `master`, otherwise `robot-state`
 * `GOPHER_PRIVATE_REPOSITORY` - non-public repository with `environment`, for dev only
 * `GOPHER_PRIVATE_BRANCH` - branch to use if other than `master`
 
@@ -40,10 +40,10 @@ For the optional `state` and `private` repositories, the included jobs will use 
 * `GOPHER_ALIAS` - the one-character alias for the robot, e.g. ";"
 * `GOPHER_BOTMAIL` - the robot's email address
 * `GOPHER_BOTFULLNAME` - the robot's full name
-* `GOPHER_HISTORY_DIRECTORY` - directory for storing file-based historical job logs
-* `GOPHER_WORKSPACE_DIRECTORY` - workspace directory where e.g. build jobs clone and run
+* `GOPHER_HISTORYDIR` - directory for storing file-based historical job logs
+* `GOPHER_WORKSPACE` - workspace directory where e.g. build jobs clone and run
 * `GOPHER_BRAIN` - non-default brain provider to use
-* `GOPHER_STATE_DIRECTORY` - default dir for storing state, normally just the brain
+* `GOPHER_STATEDIR` - default dir for storing state, normally just the brain
 * `GOPHER_BRAIN_DIRECTORY` - directory where file-based memories are stored, overrides above
 * `GOPHER_JOBCHANNEL` - where jobs run by default if not otherwise specified
 * `GOPHER_TIMEZONE` - UNIX tz, e.g. "America/New_York" (default)
@@ -62,7 +62,7 @@ In addition to the above passed-through environment vars, **Gopherbot** supplies
 
 ## Automatic Environment Variables
 
-On startup, **Gopherbot** will check for a custom `conf/gopherbot.yaml` or the presence of a `GOPHER_CUSTOM_REPOSITORY` environment variable. In the absence of either, the following will be automatically set:
+On startup, **Gopherbot** will check for a custom `conf/robot.yaml` or the presence of a `GOPHER_CUSTOM_REPOSITORY` environment variable. In the absence of either, the following will be automatically set:
 * `GOPHER_UNCONFIGURED` - set true
 * `GOPHER_PROTOCOL` - set to "terminal" if not already set
 * `GOPHER_LOGFILE` - set to "robot.log" if not already set
@@ -92,7 +92,6 @@ Pipelines and tasks that have `Homed: true` and/or `Privileged: true` may also g
 * `GOPHER_HOME` - absolute path to the startup directory for the robot, relative paths are relative to this directory; unset if `cwd` can't be determined
 * `GOPHER_WORKSPACE` - the workspace directory (normally relative to `GOPHER_HOME`)
 * `GOPHER_CONFIGDIR` - absolute path to custom configuration directory, normally `$GOPHER_HOME/custom`
-* `GOPHER_WORKDIR` - set to the current working directory for the pipeline (used by e.g. the "clean" task)
 
 ### GopherCI Environment Variables
 

@@ -7,23 +7,23 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"syscall"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"golang.org/x/sys/unix"
 )
 
 func sigHandle(sigBreak chan struct{}) {
 	sigs := make(chan os.Signal, 1)
 
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1, syscall.SIGUSR2)
+	signal.Notify(sigs, unix.SIGINT, unix.SIGTERM, unix.SIGUSR1, unix.SIGUSR2)
 
 loop:
 	for {
 		select {
 		case sig := <-sigs:
 			switch sig {
-			case syscall.SIGINT, syscall.SIGTERM:
+			case unix.SIGINT, unix.SIGTERM:
 				state.Lock()
 				if state.shuttingDown {
 					Log(robot.Warn, "Received SIGINT/SIGTERM while shutdown in progress")
@@ -35,13 +35,13 @@ loop:
 					Log(robot.Info, "Exiting on signal: %s", sig)
 					stop()
 				}
-			case syscall.SIGUSR1:
+			case unix.SIGUSR1:
 				buf := make([]byte, 32768)
 				runtime.Stack(buf, true)
 				log.Printf("%s", buf)
 				time.Sleep(2 * time.Second)
 				panic("SIGUSR1 received")
-			case syscall.SIGUSR2:
+			case unix.SIGUSR2:
 				Log(robot.Info, "Restarting logfile")
 				logRotate("")
 				Log(robot.Info, "Log rotated")
@@ -59,7 +59,7 @@ func initSigHandle(c *os.Process) {
 	Log(robot.Info, "Starting pid 1 signal handler")
 	sigs := make(chan os.Signal, 1)
 
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigs, unix.SIGINT, unix.SIGTERM)
 
 	for {
 		select {

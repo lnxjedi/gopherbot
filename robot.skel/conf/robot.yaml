@@ -1,6 +1,7 @@
 # AdminContact: "Joe Admin, <joe@my.org>"
 
-## Configure the robot connection protocol
+## Configure the robot connection protocol; modifying this could
+## break `gopherbot -t`
 {{ $proto := env "GOPHER_PROTOCOL" | default "<defaultprotocol>" }}
 Protocol: {{ $proto }}
 
@@ -26,12 +27,12 @@ BotInfo:
   FirstName: {{ $botname }}
   LastName: Gopherbot
 
-Alias: "{{ $botalias }}"
+Alias: '{{ $botalias }}'
 
 # Brain configuration; this can all be replaced with static configuration
 # and encrypted secrets for most robots.
 {{ $brain := env "GOPHER_BRAIN" | default "file" }}
-{{ $statedir := env "GOPHER_STATE_DIRECTORY" | default "state" }}
+{{ $statedir := env "GOPHER_STATEDIR" | default "state" }}
 {{ $defbraindir := printf "%s/brain" $statedir }}
 Brain: {{ $brain }}
 #EncryptBrain: true # default
@@ -50,8 +51,8 @@ BrainConfig:
 
 # Defaults for history and workspace directories, relative to the
 # process working directory.
-{{ $histdir := env "GOPHER_HISTORY_DIRECTORY" | default "history" }}
-{{ $workdir := env "GOPHER_WORKSPACE_DIRECTORY" | default "workspace" }}
+{{ $histdir := env "GOPHER_HISTORYDIR" | default "history" }}
+{{ $workdir := env "GOPHER_WORKSPACE" | default "workspace" }}
 {{ if $workdir -}} WorkSpace: {{ $workdir }} {{- end }}
 
 ## Configure a history provider
@@ -72,10 +73,26 @@ HistoryConfig:
 ## fixed-width font.
 # DefaultMessageFormat: Variable # 'Raw' if not specified
 
-# ExternalJobs:
-#   "logrotate":
-#     Description: Log rotation for file logging, schedule daily
-#     Path: jobs/logrotate.sh
+ExternalJobs:
+  ## Using a dedicated read-write deploy key dramatically simplifies initial
+  ## setup. You can remove these override parameters to use the robot's
+  ## default "robot_rsa", or use another key of your choice.
+  "updatecfg":
+    Parameters:
+    - Name: "KEYNAME"
+      Value: "manage_rsa"
+  "save":
+    Parameters:
+    - Name: "KEYNAME"
+      Value: "manage_rsa"
+  "backup":
+    Parameters:
+    - Name: "KEYNAME"
+      Value: "manage_rsa"
+  "restore":
+    Parameters:
+    - Name: "KEYNAME"
+      Value: "manage_rsa"
 #   "hello":
 #     Description: Trivial hello world job for testing
 #     Path: jobs/hello.sh
@@ -84,10 +101,18 @@ HistoryConfig:
 #     - Name: NONCE
 #       Value: "No way, Jack!"
 
+## Most often you don't want your robot to run scheduled jobs
+## with the "terminal" connector, normally used for testing and
+## development.
+{{ if ne $proto "terminal" }}
 ## Job scheduling with github.com/robfig/cron; includes seconds
 # ScheduledJobs:
+## Once your robot has successfully saved it's configuration to
+## $GOPHER_CUSTOM_REPOSITORY, enable the backup job to save long-term
+## memories to the "robot-state" branch.
 # - Name: backup
 #   Schedule: "@every 1m"
+## If your robot is logging to a file, this job will rotate logs
 # - Name: logrotate
 #   Schedule: "5 0 0 * * *"
 # - Name: hello
@@ -98,18 +123,27 @@ HistoryConfig:
 #   Schedule: "@every 35s" # see: https://godoc.org/github.com/robfig/cron
 #   Arguments: # an array of strings; up to the job to parse numbers & bools
 #   - "Goodbye, World !!!"
+{{ end }}
 
 ## After adding an initial administrator, you should disable the setup
 ## plugin by uncommenting the next three lines.
-# ExternalPlugins:
-#   "setup":
-#     Disabled: true
+ExternalPlugins:
+{{ if env "GOPHER_SETUP_TOKEN" }}
+  "addadmin":
+    Description: Setup plugin allowing an initial administrator to be added
+    Path: plugins/addadmin.sh
+    Privileged: true
+    Homed: true
+    Parameters:
+    - Name: GOPHER_SETUP_TOKEN
+      Value: {{ env "GOPHER_SETUP_TOKEN" }}
+{{ end }}
 #   "weather":
 #     Description: A plugin that uses OpenWeatherMap to report the weather
 #     Path: plugins/weather.rb
 #     Parameters:
 #     - Name: OWM_APIKEY
-#       Value: {{ decrypt "KYJzQD8jvfq3liQYPovkdgxe86Im2w79l9YgAQlc1rOBybCLKrDzjkTV8WeLyvah1F5H0vrYGIjfjp8Q" }}
+#       Value: replace with encrypted string
 #     - Name: TEMP_UNITS
 #       Value: {{ env "GOPHER_OWM_UNITS" | default "imperial" }} # or 'metric'
 #     - Name: DEFAULT_COUNTRY
@@ -138,14 +172,7 @@ NameSpaces:
     Parameters:
     - Name: BOT_SSH_PHRASE
       Value: {{ decrypt "<sshencrypted>" }}
-  "manage":
-    Parameters:
-    # A default installed robot stores its brain in state/brain
-    - Name: STATE_DIR
-      Value: {{ env "GOPHER_STATE_DIRECTORY" | default "state" }}
-    # - Name: GOPHER_STATE_REPOSITORY
-    #   Value: git@github.com:parsley42/clu-state.git
-
+    
 DefaultMessageFormat: Raw
 # Users the bot should never listen to
 #IgnoreUsers: [ "otherbot", "slackbot" ]

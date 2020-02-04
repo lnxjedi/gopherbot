@@ -10,11 +10,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/lnxjedi/gopherbot/robot"
+	"golang.org/x/sys/unix"
 )
 
 // Information about privilege separation, set in runtasks_linux.go
@@ -53,6 +53,10 @@ func Start(v VersionInfo) {
 	plusage := "omit timestamps from the log"
 	flag.BoolVar(&plainlog, "plainlog", false, plusage)
 	flag.BoolVar(&plainlog, "p", false, "")
+	var terminalmode bool
+	tmusage := "set 'GOPHER_PROTOCOL=terminal' and default logging to 'robot.log'"
+	flag.BoolVar(&terminalmode, "terminal", false, tmusage)
+	flag.BoolVar(&terminalmode, "t", false, "")
 	var help bool
 	husage := "help for gopherbot"
 	flag.BoolVar(&help, "help", false, husage)
@@ -83,10 +87,10 @@ func Start(v VersionInfo) {
 		go initSigHandle(cmd.Process)
 		if pid == 1 {
 			go func() {
-				var ws syscall.WaitStatus
+				var ws unix.WaitStatus
 				// Reap children FOREVER...
 				for {
-					pid, err := syscall.Wait4(-1, &ws, 0, nil)
+					pid, err := unix.Wait4(-1, &ws, 0, nil)
 					if err == nil {
 						Log(robot.Debug, "Reaped child pid: %d, status: %+v", pid, ws)
 					}
@@ -143,6 +147,11 @@ func Start(v VersionInfo) {
 	}
 	penvErr := godotenv.Overload(envFile)
 
+	// terminal mode overrides any other setting of GOPHER_PROTOCOL
+	if terminalmode {
+		os.Setenv("GOPHER_PROTOCOL", "terminal")
+	}
+
 	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
@@ -164,8 +173,15 @@ func Start(v VersionInfo) {
 
 	// support for setup plugin
 	var defaultProto, defaultLogfile bool
-	testpath := filepath.Join(configpath, "conf", "gopherbot.yaml")
+	testpath := filepath.Join(configpath, "conf", robotConfigFileName)
 	_, err := os.Stat(testpath)
+	if err != nil {
+		testpath = filepath.Join(configpath, "conf", "gopherbot.yaml")
+		_, err = os.Stat(testpath)
+		if err == nil {
+			robotConfigFileName = "gopherbot.yaml"
+		}
+	}
 	if err != nil {
 		_, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
 		if !ok {
@@ -189,6 +205,10 @@ func Start(v VersionInfo) {
 	botStdOutLogging = true
 	if len(logFile) == 0 {
 		logFile = os.Getenv("GOPHER_LOGFILE")
+	}
+	eproto := os.Getenv("GOPHER_PROTOCOL")
+	if len(logFile) == 0 && (cliOp || eproto == "terminal") {
+		logFile = "robot.log"
 	}
 	if len(logFile) != 0 {
 		if logFile == "stderr" {
@@ -276,7 +296,6 @@ func Start(v VersionInfo) {
 	if cliCommand == "dump" {
 		setLogLevel(robot.Warn)
 		if len(flag.Args()) != 3 {
-			fmt.Println("DEBUG wrong args")
 			fmt.Println(usage)
 			flag.PrintDefaults()
 			os.Exit(1)
@@ -335,7 +354,7 @@ func Start(v VersionInfo) {
 		bin, _ := os.Executable()
 		env := os.Environ()
 		defer func() {
-			err := syscall.Exec(bin, os.Args, env)
+			err := unix.Exec(bin, os.Args, env)
 			if err != nil {
 				fmt.Printf("Error re-exec'ing: %v", err)
 			}

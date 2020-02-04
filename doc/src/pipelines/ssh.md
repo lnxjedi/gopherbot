@@ -4,7 +4,7 @@ The **GopherCI** job(s) use *ssh* tasks for cloning repositories with public key
 
 ## Configuring SSH
 
-You start by choosing a passphrase for your robot's ssh keypair - make it something quite long; you shouldn't need to type it more than once. Use the `encrypt` command (normally with the terminal connector) to produce the encrypted value, and put it in a stanza like the following in your `gopherbot.yaml`:
+You start by choosing a passphrase for your robot's ssh keypair - make it something quite long; you shouldn't need to type it more than once. Use the `encrypt` command (normally with the terminal connector) to produce the encrypted value, and put it in a stanza like the following in your `robot.yaml`:
 
 ```yaml
 ExternalTasks:

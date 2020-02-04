@@ -89,7 +89,7 @@ CommandMatchers:
 Whenever a `CommandMatcher` regex matches a command given to the robot, or a `MessageMatcher` matches an ambient message, the robot calls the plugin script with the first argument being the matched `Command`, and subsequent arguments corresponding to the regex capture groups (which may in some cases be an empty string). Command plugins should normally exit with status 0 (bot.Normal), or non-zero for unusual error conditions that may require an administrator to investigate. The robot will notify the user whenever a command plugin exits non-zero, or when it emits output to STDERR.
 
 ## Authorization Plugins
-To separate command logic from user authorization logic, Gopherbot supports the concept of an **authorization plugin**. The main `gopherbot.yaml` can define a specific plugin as the `DefaultAuthorizer`, and individual plugins can be configured to override this value by specifying their own `Authorizer` plugin. If a plugin lists any commands in it's `AuthorizedCommands` config item, or specifies `AuthorizeAllCommands: true`, then the robot will call the authorizer plugin with a command of `authorize`, followed by the following arguments:
+To separate command logic from user authorization logic, Gopherbot supports the concept of an **authorization plugin**. The main `robot.yaml` can define a specific plugin as the `DefaultAuthorizer`, and individual plugins can be configured to override this value by specifying their own `Authorizer` plugin. If a plugin lists any commands in it's `AuthorizedCommands` config item, or specifies `AuthorizeAllCommands: true`, then the robot will call the authorizer plugin with a command of `authorize`, followed by the following arguments:
  * The name of the plugin for which authorization is being requested
  * The optional value of `AuthRequire`, which may be interpreted as a group or role
  * The plugin command being called followed by any arguments passed to the command
@@ -104,7 +104,7 @@ Note that exiting with `bot.Normal` (0) or other values will result in an error 
 Additionally, authorization plugins may provide extra feedback to the user on `Fail` or `MechanismFail` so they can have the issue addressed, e.g. "Authorization failed: user not a member of group 'foo'". In some cases, however, authorization plugins may not have a full Gopherbot API library; they could be written in C, and thus not be able to interact with the user.
 
 ## Elevation Plugins
-Elevation plugins provide the means to request additional authentication from the user for commands where higher assurance of identity is desired. The main `gopherbot.yaml` can specify an elevation plugin as the `DefaultElevator`, which can be overridden by a given plugin specifying an `Elevator`. When the plugin lists commands as `ElevatedCommands` or `ElevateImmediateCommands`, the robot will call the appropriate elevator plugin with a command of `elevate` and a first argument of `true` or `false` for `immediate`. The elevator plugin should interpret `immediate == true` to mean MFA is required every time; when `immediate != true`, successful elevation may persist for a configured timeout period.
+Elevation plugins provide the means to request additional authentication from the user for commands where higher assurance of identity is desired. The main `robot.yaml` can specify an elevation plugin as the `DefaultElevator`, which can be overridden by a given plugin specifying an `Elevator`. When the plugin lists commands as `ElevatedCommands` or `ElevateImmediateCommands`, the robot will call the appropriate elevator plugin with a command of `elevate` and a first argument of `true` or `false` for `immediate`. The elevator plugin should interpret `immediate == true` to mean MFA is required every time; when `immediate != true`, successful elevation may persist for a configured timeout period.
 
 Based on the result of the elevation determination, the plugin should have an exit status one of:
  * bot.Succeed (1) - elevation succeeded
@@ -126,8 +126,8 @@ by using the `-c <configpath>` option:
 [gopherbot]$ ./gopherbot -c cfg/term/
 2018/04/13 18:07:52 Initialized logging ...
 2018/04/13 18:07:52 Starting up with config dir: cfg/term/, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
-2018/04/13 18:07:52 Debug: Loaded installed conf/gopherbot.yaml
-2018/04/13 18:07:52 Debug: Loaded configured conf/gopherbot.yaml
+2018/04/13 18:07:52 Debug: Loaded installed conf/robot.yaml
+2018/04/13 18:07:52 Debug: Loaded configured conf/robot.yaml
 Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
 c:general/u:alice -> |ubob
 Changed current user to: bob
@@ -155,7 +155,7 @@ This can be due to a number of issues:
 * The plugin runs, but does nothing
 
 To track down these issues easily, **Gopherbot** has the builtin administrator commands `debug plugin` and `dump plugin`. Make sure your username / handle is listed in the
-`AdminUsers` list in `gopherbot.yaml` for your development environment.
+`AdminUsers` list in `robot.yaml` for your development environment.
 
 ## Debug Plugin Command
 **Gopherbot** has a builtin command for plugin debugging that can help quickly pinpoint
@@ -167,8 +167,8 @@ You can see an example of plugin debugging here with the terminal connector:
 [gopherbot]$ ./gopherbot
 2018/04/18 15:43:01 Initialized logging ...
 2018/04/18 15:43:01 Starting up with config dir: /home/user/.gopherbot, and install dir: /home/user/go/src/github.com/lnxjedi/gopherbot
-2018/04/18 15:43:01 Debug: Loaded installed conf/gopherbot.yaml
-2018/04/18 15:43:01 Debug: Loaded configured conf/gopherbot.yaml
+2018/04/18 15:43:01 Debug: Loaded installed conf/robot.yaml
+2018/04/18 15:43:01 Debug: Loaded configured conf/robot.yaml
 Terminal connector running; Use '|C<channel>' to change channel, or '|U<user>' to change user
 c:general/u:alice -> ;ruby me!
 general: @alice Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help <keyword>'
@@ -237,9 +237,9 @@ CatchAll: false
 # Getting Started
 ## Starting from a Sample Plugin
 The simplest way for a new plugin author to get started is to:
-* Disable the demo plugin for your chosen scripting language (if enabled) in `<config dir>/conf/gopherbot.yaml`
+* Disable the demo plugin for your chosen scripting language (if enabled) in `<config dir>/conf/robot.yaml`
 * Copy the demo plugin to `<config dir>/plugins/<newname>(.extension)`
-* Enable your new plugin in `gopherbot.yaml` and give it a descriptive `Name`
+* Enable your new plugin in `robot.yaml` and give it a descriptive `Name`
 
 ## Using Boilerplate Code
 Each supported scripting language has a certain amount of "boilerplate" code required in every command plugin; generally, the boilerplate code is responsible for:

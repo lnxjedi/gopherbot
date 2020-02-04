@@ -1,0 +1,22 @@
+---
+RequireAdmin: true
+AllowDirect: true
+AllChannels: true
+Help:
+- Keywords: [ "config", "configuration", "update", "admin", "manage" ]
+  Helptext: [ "(bot), update (configuration) - perform a git clone/pull of custom configuration and reload" ]
+- Keywords: [ "config", "configuration", "save", "admin", "manage" ]
+  Helptext: [ "(bot), save (configuration) - git push custom repository" ]
+- Keywords: [ "brain", "state", "restore", "admin", "manage" ]
+  Helptext: [ "(bot), backup - git push state directory, pausing brain if needed" ]
+- Keywords: [ "brain", "state", "restore", "admin", "manage" ]
+  Helptext: [ "(bot), (force) restore - restore state directory from git" ]
+CommandMatchers:
+- Command: "update"
+  Regex: '(?i:update(?: config(?:uration)?)?)'
+- Command: "save"
+  Regex: '(?i:save(?: config(?:uration)?)?)'
+- Command: "backup"
+  Regex: '(?i:back ?up)'
+- Command: "restore"
+  Regex: '(?i:(force )?restore)'

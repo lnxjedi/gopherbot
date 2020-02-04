@@ -20,7 +20,7 @@ The available attributes for the bot:
  * email
  * protocol (e.g. "slack")
 
-Note: the values for most of these are configured in `conf/gopherbot.yaml`
+Note: the values for most of these are configured in `conf/robot.yaml`
 
 # Code Examples
 ## Bash

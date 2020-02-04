@@ -60,5 +60,5 @@ bot.ExtendNamespace(repobranch, keep_history)
 bot.AddTask("git-init", [ clone_url ])
 # Start with a clean jobdir
 bot.AddTask("cleanup", [ repobranch ])
-bot.AddTask("git-sync", [ clone_url, branch, repobranch, "true" ])
+bot.AddTask("git-clone", [ clone_url, branch, repobranch, "true" ])
 bot.AddTask("run-pipeline", [])

@@ -8,8 +8,7 @@
 
 [Terminology](Terminology.md)
 
-## Installation and Setup
-- [Installation](Installation.md)
+- [Gopherbot Software Installation](Installation.md)
     - [Requirements](install/Requirements.md)
     - [Manual Installation](install/ManualInstall.md)
 
@@ -19,9 +18,10 @@
     - [Custom Configuration Directory](upgrade/Custom-Dir.md)
     - [Early Encryption Initialization](upgrade/Encryption.md)
 
-- [Initial Configuration](RobotInstall.md)
+- [Initial Robot Configuration](RobotInstall.md)
     - [Requirements](botsetup/Requirements.md)
     - [Manual Setup](botsetup/ManualSetup.md)
+    - [Setup with Docker](botsetup/DockerSetup.md)
     - [Using the Setup Plugin](botsetup/Plugin.md)
 
 - [Deploying and Running Your Robot](RunRobot.md)
@@ -38,8 +38,6 @@
     - [Administrator Commands](usage/admin.md)
     - [Command-Line Use](usage/cli.md)
     - [Logging](usage/logging.md)
-
-## Developing Plugins, Jobs and Tasks
 
 - [Gopherbot API](api/API-Introduction.md)
     - [Language Templates](api/Languages.md)

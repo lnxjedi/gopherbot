@@ -1,4 +1,3 @@
-# See conf/gopherbot.yaml.sample
 AdminContact: "Joe User, <user@example.org>"
 DefaultChannels: [ "general", "random" ]
 DefaultJobChannel: general

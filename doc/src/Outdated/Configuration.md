@@ -39,9 +39,9 @@ Credentials and other per-robot variables would normally be configured in the **
 directory**, and plugins, additional libraries, and common configuration would reside in an
 optional **config directory**, which is likely a git repository. A standard Linux
 install with a configuration management tool would unzip the archive in `/opt/gopherbot` and
-set e.g. the Slack Token in `/opt/gopherbot/conf/gopherbot.yaml`. Configuration might
+set e.g. the Slack Token in `/opt/gopherbot/conf/robot.yaml`. Configuration might
 be in `/usr/local/etc/gopherbot`, and external plugins to load would be defined in
-`/usr/local/etc/gopherbot/conf/gopherbot.yaml`. On Windows, the install directory would
+`/usr/local/etc/gopherbot/conf/robot.yaml`. On Windows, the install directory would
 normally be `C:\Program Files\Gopherbot`, and the configuration directory would be in
 `C:\ProgramData\Gopherbot`.
 
@@ -58,12 +58,12 @@ On startup, **Gopherbot** will search for a configuration directory in the follo
       * `C:\ProgramData\Gopherbot`
       * `%USERPROFILE%\.gopherbot` (`$env:USERPROFILE\.gopherbot`)
 
-# Primary Configuration File - gopherbot.yaml
+# Primary Configuration File - robot.yaml
 
-The robot's core configuration is obtained by simply loading `conf/gopherbot.yaml` from the **install directory** first, then the **config directory** (if set), overwriting top-level items in the process.
+The robot's core configuration is obtained by simply loading `conf/robot.yaml` from the **install directory** first, then the **config directory** (if set), overwriting top-level items in the process.
 
 ## Configuration Directives
-Note that some of this information is also available in the comments of the distributed `conf/gopherbot.yaml.sample`.
+Note that some of this information is also available in the comments of the distributed `conf/robot.yaml.sample`.
 
 ### AdminContact, Name and Alias
 
@@ -122,7 +122,7 @@ For CI/CD applications where the brain may be used for storing secrets, **Gopher
 
 *NOTE*: The author holds no security or encryption certifications or credentials, and this functionality is provided with no guarantees against sophisticated attacks. Any security sensitive use for protecting high-value assets should start with a thorough security audit of the code. (PRs welcome) That being said, if the brain is initialized interactively, it should be quite difficult for another process running as root or the robot's UID to obtain the key and decrypt memories.
 
-The key can also be provided in `gopherbot.yaml`, or in the `GOPHER_ENCRYPTION_KEY` environment variable, referenced in the default `gopherbot.yaml`.
+The key can also be provided in `robot.yaml`, or in the `GOPHER_ENCRYPTION_KEY` environment variable, referenced in the default `robot.yaml`.
 ```yaml
 EncryptionKey: ThisNeedsToBeAStringLongerThan32bytesForItToWork # optional
 ```

@@ -95,11 +95,23 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	// sub-pipeline is created if a job is added in another pipeline.
 	if isJob {
 		// Job parameters are available to the whole pipeline, plugin
-		// parameters are not
+		// parameters are not.
 		for _, p := range task.Parameters {
 			_, exists := c.environment[p.Name]
 			if !exists {
 				c.environment[p.Name] = p.Value
+			}
+		}
+		if len(task.NameSpace) > 0 {
+			if ns, ok := w.tasks.nameSpaces[task.NameSpace]; ok {
+				for _, p := range ns.Parameters {
+					_, exists := c.environment[p.Name]
+					if !exists {
+						c.environment[p.Name] = p.Value
+					}
+				}
+			} else {
+				Log(robot.Error, "NameSpace '%s' not found for task '%s' (this should never happen)", task.NameSpace, task.name)
 			}
 		}
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?

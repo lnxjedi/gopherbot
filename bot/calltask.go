@@ -11,9 +11,9 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"golang.org/x/sys/unix"
 )
 
 var local bool
@@ -268,7 +268,6 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		// Always set for homed and privileged tasks
 		envhash["GOPHER_WORKSPACE"] = r.cfg.workSpace
 		envhash["GOPHER_CONFIGDIR"] = configFull
-		envhash["GOPHER_WORKDIR"] = workdir
 	}
 	env := make([]string, 0, len(envhash))
 	keys := make([]string, 0, len(envhash))
@@ -393,7 +392,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		retval = robot.Fail
 		success := false
 		if exitstatus, ok := err.(*exec.ExitError); ok {
-			if status, ok := exitstatus.Sys().(syscall.WaitStatus); ok {
+			if status, ok := exitstatus.Sys().(unix.WaitStatus); ok {
 				retval = robot.TaskRetVal(status.ExitStatus())
 				if retval == robot.Success {
 					success = true

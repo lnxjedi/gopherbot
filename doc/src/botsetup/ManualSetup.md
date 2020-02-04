@@ -1,8 +1,13 @@
 # Manual Setup
 This section documents manual setup of a new robot custom configuration repository. Note that the documentation will often refer to a robot's *configuration repository*, even though using a *git* repository isn't strictly required.
 
+> Note: This manual in general, and this section in particular, is not written as a complete step-by-step guide. Rather more of an outline, it skips a lot of e.g. `mkdir`, `sudo`, etc. If you're somewhat new to Linux systems administration, but have some experience with containers (e.g. [Docker](https://www.docker.com/)), you might get more from the chapter on [Setup with Docker](DockerSetup.md).
+
 ## 1. Create the `GOPHER_HOME` directory
-Similar to an [Ansible](https://www.ansible.com/) playbook, a **Gopherbot** robot is heavily oriented around a standard directory structure for a given robot. To begin with, create an empty directory for your robot. I normally name the directory after the robot; in this example setup, we'll use `clu`.
+Similar to an [Ansible](https://www.ansible.com/) playbook, a **Gopherbot** robot is heavily oriented around a standard directory structure for a given robot. To begin with, create an empty directory for your robot; `/var/lib/robots` or `/home/robots` are good places for this. I normally name the directory after the robot; in this example setup, we'll use `clu`:
+```shell
+$ 
+```
 
 ## 2. Create the `.env` file
 Though it's possible to run **Gopherbot** with neither encryption nor a *git* repository, this example documents the more common scenario. To begin with, create a `.env` file in your new directory with contents similar to the following:
@@ -20,7 +25,7 @@ Now start the default robot using the terminal connector, and the binary encrypt
 
 ```
 [clu]$ ./gopherbot 
-2020/01/14 15:15:29 Warning: Starting unconfigured: stat custom/conf/gopherbot.yaml: no such file or directory
+2020/01/14 15:15:29 Warning: Starting unconfigured: stat custom/conf/robot.yaml: no such file or directory
 Terminal connector running; Use '|c<channel|?>' to change channel, or '|u<user|?>' to change user
 2020/01/14 15:15:29 Warning: GOPHER_CUSTOM_REPOSITORY not set, not bootstrapping
 general: Type ';setup' to continue setup...
@@ -53,7 +58,7 @@ Now edit your `conf/slack.yaml` file and replace `<slackencrypted>` with the cip
 ### Editing Default Configuration
 Now you need to edit the configuration files under `custom/`, replacing most of the `<replacevalue>` instances with values for your robot.
 
-In `custom/conf/gopherbot.yaml`:
+In `custom/conf/robot.yaml`:
 * Replace `<defaultprotocol>` with "slack"
 * Replace `<botname>` with the name of your robot, e.g. `clu`
 * Replace `<botemail>` with an email address for your robot; will be used for "from:"

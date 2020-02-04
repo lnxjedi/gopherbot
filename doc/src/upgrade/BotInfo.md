@@ -1,6 +1,6 @@
 # Required Bot Info
 
-Earlier versions of **Gopherbot** expected to get info about the robot - name, handle, etc. - from the protocol connector; however, that can't be counted on. For your robot to respond to a command like `floyd, ping`, it will need a minimal `BotInfo` section in `gopherbot.yaml`:
+Earlier versions of **Gopherbot** expected to get info about the robot - name, handle, etc. - from the protocol connector; however, that can't be counted on. For your robot to respond to a command like `floyd, ping`, it will need a minimal `BotInfo` section in `robot.yaml`:
 
 ```yaml
 BotInfo:

@@ -51,7 +51,7 @@ import (
 
 var testInstallPath string
 
-// Environment setting(s) for expanding installed conf/gopherbot.yaml
+// Environment setting(s) for expanding installed conf/robot.yaml
 func init() {
 	os.Setenv("GOPHER_PROTOCOL", "test")
 	wd, _ := os.Getwd()
@@ -373,7 +373,7 @@ func TestHelp(t *testing.T) {
 
 	tests := []testItem{
 		// Took a while to get the regex right; should be # of help msgs * 2 - 1; e.g. 10 lines -> 19
-		{aliceID, deadzone, ";help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){19}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){27}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, deadzone, ";help help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){3}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)

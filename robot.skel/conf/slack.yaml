@@ -10,5 +10,5 @@ ProtocolConfig:
   MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
   SlackToken: xoxb-{{ decrypt "<slackencrypted>" }}
 
-{{ $defaultjobchannel := "general" }}
+{{ $defaultjobchannel := "<jobchannel>" }}
 DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}

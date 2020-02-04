@@ -153,6 +153,11 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 		cfg = make(map[string]interface{})
 	}
 	path = filepath.Join(installPath, "conf", filename)
+	// compatibility with old config file name
+	if filename == "gopherbot.yaml" {
+		Log(robot.Warn, "Merging legacy custom gopherbot.yaml with installed robot.yaml")
+		path = filepath.Join(installPath, "conf", "robot.yaml")
+	}
 	dir := filepath.Dir(filepath.Join("conf", filename))
 	cf, err = ioutil.ReadFile(path)
 	if err == nil {

@@ -31,15 +31,15 @@ type Handler interface {
 	// can hear. See the fields for ConnectorMessage for information about
 	// this object.
 	IncomingMessage(*ConnectorMessage)
-	// GetProtocolConfig unmarshals the ProtocolConfig section of gopherbot.yaml
+	// GetProtocolConfig unmarshals the ProtocolConfig section of robot.yaml
 	// into a connector-provided struct
 	GetProtocolConfig(interface{}) error
-	// GetBrainConfig unmarshals the BrainConfig section of gopherbot.yaml
+	// GetBrainConfig unmarshals the BrainConfig section of robot.yaml
 	// into a struct provided by the brain provider
 	GetBrainConfig(interface{}) error
 	// GetEventStrings for developing tests with the terminal connector
 	GetEventStrings() *[]string
-	// GetHistoryConfig unmarshals the HistoryConfig section of gopherbot.yaml
+	// GetHistoryConfig unmarshals the HistoryConfig section of robot.yaml
 	// into a struct provided by the brain provider
 	GetHistoryConfig(interface{}) error
 	// SetID allows the connector to set the robot's internal ID

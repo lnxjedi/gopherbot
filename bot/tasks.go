@@ -69,7 +69,7 @@ func (tl *taskList) isNamespace(name string) (ok bool) {
 	return
 }
 
-// TaskSpec is the structure for ScheduledJobs (gopherbot.yaml) and AddTask (robot method)
+// TaskSpec is the structure for ScheduledJobs (robot.yaml) and AddTask (robot method)
 type TaskSpec struct {
 	Name      string // name of the job or plugin
 	Command   string // plugins only
@@ -78,7 +78,7 @@ type TaskSpec struct {
 }
 
 // TaskSettings struct used for configuration of: ExternalPlugins, ExternalJobs,
-// ExternalTasks, GoPlugins, GoJobs, GoTasks and NameSpaces in gopherbot.yaml.
+// ExternalTasks, GoPlugins, GoJobs, GoTasks and NameSpaces in robot.yaml.
 // Not every field is used in every case.
 type TaskSettings struct {
 	Name, Path, Description, NameSpace string
@@ -94,7 +94,7 @@ type LoadableModule struct {
 	Disabled                bool
 }
 
-// ScheduledTask items defined in gopherbot.yaml, mostly for scheduled jobs
+// ScheduledTask items defined in robot.yaml, mostly for scheduled jobs
 type ScheduledTask struct {
 	Schedule string // timespec for https://godoc.org/github.com/robfig/cron
 	TaskSpec
@@ -131,7 +131,7 @@ type NameSpace struct {
 }
 
 // Task configuration is common to tasks, plugins or jobs. Any task, plugin or job can call bot methods. Note that tasks are only defined
-// in gopherbot.yaml, and no external configuration is read in.
+// in robot.yaml, and no external configuration is read in.
 type Task struct {
 	name         string            // name of job or plugin; unique by type, but job & plugin can share
 	taskType     taskType          // taskGo or taskExternal

@@ -42,17 +42,17 @@ NameSpaces:
   "ssh":
   "manage":
     Parameters:
-      - Name: GOPHER_CUSTOM_REPOSITORY
-        Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
-      - Name: GOPHER_CUSTOM_BRANCH
-        Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "master" }}
-      - Name: GOPHER_STATE_REPOSITORY
-        Value: {{ env "GOPHER_STATE_REPOSITORY" }}
-      - Name: GOPHER_STATE_BRANCH
-        Value: {{ env "GOPHER_STATE_BRANCH" }}
-      # A default installed robot stores its brain in state/brain
-      - Name: STATE_DIR
-        Value: {{ env "GOPHER_STATE_DIRECTORY" | default "state" }}
+    - Name: GOPHER_CUSTOM_REPOSITORY
+      Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
+    - Name: GOPHER_CUSTOM_BRANCH
+      Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "master" }}
+    - Name: GOPHER_STATE_REPOSITORY
+      Value: {{ env "GOPHER_STATE_REPOSITORY" }}
+    - Name: GOPHER_STATE_BRANCH
+      Value: {{ env "GOPHER_STATE_BRANCH" }}
+    # A default installed robot stores its brain in state/brain
+    - Name: GOPHER_STATEDIR
+      Value: {{ env "GOPHER_STATEDIR" | default "state" }}
 
 {{ if env "GOPHER_UNCONFIGURED" }}
 LoadableModules:
@@ -73,10 +73,10 @@ EncryptBrain: true
 ExternalPlugins:
 ## Useful and/or entertaining plugins; disable by setting 'Disabled: true' in
 ## custom configuration.
-  "update":
-    Description: A plugin that triggers the updatecfg job
+  "admin":
+    Description: A plugin that triggers management jobs like update, save, backup, etc.
     Privileged: true
-    Path: plugins/update.sh
+    Path: plugins/admin.sh
   "citools":
     Description: Tools for interacting with gopherci
     Privileged: true
@@ -93,9 +93,9 @@ ExternalPlugins:
     NameSpace: manage
     Path: plugins/bootstrap.py
     Parameters:
-    - Name: DEPLOY_KEY
-      # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
-      Value: "{{ env "DEPLOY_KEY" }}"
+    - Name: GOPHER_DEPLOY_KEY
+    # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
+      Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
   "setup":
     Description: Setup plugin for creating a new robot
     Privileged: true
@@ -116,18 +116,27 @@ ExternalJobs:
     Homed: true
     NameSpace: manage
     Path: jobs/updatecfg.py
+  "save":
+    Description: A job for saving up the robot's configuration
+    Homed: true
+    Privileged: true
+    NameSpace: manage
+    Path: jobs/save.sh
   "backup":
-    Decription: A job for backing up the robot's state, normally just a file-based brain
+    Description: A job for backing up the robot's state, normally just a file-based brain
     Homed: true
     Privileged: true
     NameSpace: manage
     Path: jobs/backup.sh
   "restore":
-    Decription: A job for restoring the robot's state from git
+    Description: A job for restoring the robot's state from git
     Homed: true
     Privileged: true
     NameSpace: manage
     Path: jobs/restore.sh
+  "logrotate":
+    Description: Log rotation for file logging, schedule daily
+    Path: jobs/logrotate.sh
   "gopherci":
     Description: A job for dispatching build jobs, triggered by commit notifications
     Path: jobs/gopherci.py
@@ -181,9 +190,9 @@ ExternalTasks:
     Description: Helper script for adding ssh host keys to known_hosts
     Homed: true
     Path: tasks/ssh-scan.sh
-  "git-sync":
-    Description: Simple script to clone or pull a repository
-    Path: tasks/git-sync.sh
+  "git-clone":
+    Description: Simple script to clone a repository and optionally set the working directory
+    Path: tasks/git-clone.sh
   "cleanup":
     Description: Task for cleaning a working directory before starting a job/build
     Privileged: true

@@ -32,7 +32,7 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/smartystreets/gunit v0.0.0-20180314194857-6f0d6275bdcd // indirect
 	github.com/stretchr/testify v1.2.2
-	golang.org/x/sys v0.0.0-20191218084908-4a24b4065292 // indirect
+	golang.org/x/sys v0.0.0-20191218084908-4a24b4065292
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/ini.v1 v1.38.1 // indirect
 )

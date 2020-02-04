@@ -17,7 +17,7 @@ var base64header = "#GOPHERBOT-BASE64-DATA\n"
 // WriteBase64File writes a byte slice to a #GOPHERBOT-BASE64-DATA
 // file
 func WriteBase64File(filename string, b *[]byte) error {
-	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0600)
+	f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}

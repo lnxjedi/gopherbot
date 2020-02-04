@@ -1,10 +1,10 @@
 # Configuration File Loading
 
-**Gopherbot** uses **YAML** for it's configuration files, and Go text templates for expanding the files it reads. Any time **Gopherbot** loads a configuration file, say `conf/gopherbot.yaml`, it first looks for the file in the installation directory, and loads and expands that file if found. Next it looks for the same file in the custom configuration directory; if found, it loads and expands that file, then recursively merges the two data structures:
+**Gopherbot** uses **YAML** for it's configuration files, and Go text templates for expanding the files it reads. Any time **Gopherbot** loads a configuration file, say `conf/robot.yaml`, it first looks for the file in the installation directory, and loads and expands that file if found. Next it looks for the same file in the custom configuration directory; if found, it loads and expands that file, then recursively merges the two data structures:
 * Map values merge and override
 * Array values are replaced
 
-To illustrate with an example, take the following two excerpts from `gopherbot.yaml`:
+To illustrate with an example, take the following two excerpts from `robot.yaml`:
 
 Default from the install archive:
 ```yaml
@@ -79,6 +79,6 @@ The encrypted value can then be pasted in to the `decrypt` function. See the sec
 {{ .Include "terminal.yaml" }}
 ```
 
-`.Include` is a *method* on the configuration file object, which is either an install file or a custom file. If the above example is present in the installed `conf/gopherbot.yaml`, it will include *only* the installed `conf/terminal.yaml`, if present, and ignore that file if it's also present in the custom directory.
+`.Include` is a *method* on the configuration file object, which is either an install file or a custom file. If the above example is present in the installed `conf/robot.yaml`, it will include *only* the installed `conf/terminal.yaml`, if present, and ignore that file if it's also present in the custom directory.
 
 Note that `.Include`'d files are also expanded as templates in the same manner.

@@ -69,12 +69,12 @@ FinalTask exec ssh-agent -k
 
 if [ -n "$BOOTSTRAP" ]
 then
-    if [ -z "$DEPLOY_KEY" ]
+    if [ -z "$GOPHER_DEPLOY_KEY" ]
     then
-        Log "Error" "Bootstrap given but DEPLOY_KEY unset"
+        Log "Error" "Bootstrap given but GOPHER_DEPLOY_KEY unset"
         exit 1
     fi
-    echo "$DEPLOY_KEY" | tr '_:' ' \n' | ssh-add -
+    echo "$GOPHER_DEPLOY_KEY" | tr '_:' ' \n' | ssh-add -
 else
     ssh-add $GOPHER_CONFIGDIR/ssh/$SSH_KEY < /dev/null
 fi

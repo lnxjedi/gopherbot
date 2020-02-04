@@ -15,7 +15,9 @@ import (
 
 var protocolConfig, brainConfig, historyConfig json.RawMessage
 
-// ConfigLoader defines 'bot configuration, and is read from conf/gopherbot.yaml
+var robotConfigFileName = "robot.yaml"
+
+// ConfigLoader defines 'bot configuration, and is read from conf/robot.yaml
 // Digested content ends up in currentCfg, see bot_process.go.
 type ConfigLoader struct {
 	AdminContact         string                    // Contact info for whomever administers the robot
@@ -56,7 +58,7 @@ type ConfigLoader struct {
 	LogLevel             string                    // Initial log level, can be modified by plugins. One of "trace" "debug" "info" "warn" "error"
 }
 
-// UserInfo is listed in the UserRoster of gopherbot.yaml to provide:
+// UserInfo is listed in the UserRoster of robot.yaml to provide:
 // - Attributes and info that might not be provided by the connector:
 //   - Mapping of protocol internal ID to username
 //   - Additional user attributes such as first / last name, email, etc.
@@ -109,7 +111,7 @@ func loadConfig(preConnect bool) error {
 	configload := make(map[string]json.RawMessage)
 	processed := &configuration{}
 
-	if err := getConfigFile("gopherbot.yaml", true, configload); err != nil {
+	if err := getConfigFile(robotConfigFileName, true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
 	}
 
@@ -168,7 +170,7 @@ func loadConfig(preConnect bool) error {
 		case "ProtocolConfig", "BrainConfig", "HistoryConfig":
 			skip = true
 		default:
-			err := fmt.Errorf("Invalid configuration key in gopherbot.yaml: %s", key)
+			err := fmt.Errorf("Invalid configuration key in %s: %s", robotConfigFileName, key)
 			Log(robot.Error, err.Error())
 			return err
 		}
@@ -265,7 +267,7 @@ func loadConfig(preConnect bool) error {
 	if newconfig.Protocol != "" {
 		processed.protocol = newconfig.Protocol
 	} else {
-		return fmt.Errorf("Protocol not specified in gopherbot.yaml")
+		return fmt.Errorf("Protocol not specified in %s", robotConfigFileName)
 	}
 	if newconfig.Brain != "" {
 		processed.brainProvider = newconfig.Brain
