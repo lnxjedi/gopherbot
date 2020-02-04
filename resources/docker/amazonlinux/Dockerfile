@@ -22,7 +22,7 @@ ARG groupname=nobody
 # Common from here down
 ARG installdir=/opt
 ARG version=v2.0.0-snapshot
-ARG goversion=1.13.5
+ARG goversion=1.13.7
 
 ENV PATH=${PATH}:${HOME}/go/bin:/usr/local/go/bin
 ENV HOME=/home/robot

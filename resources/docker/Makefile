@@ -21,6 +21,12 @@ dev:
 	  -e GOPHER_LOGLEVEL=debug \
 	  $(GOPHER_SOURCE_IMAGE)
 
+# An interactive container for running the setup plugin
+setup:
+	docker container run --name $(GOPHER_BOTNAME) \
+	  --interactive --tty -e HOSTNAME=$(HOSTNAME) \
+	  $(GOPHER_SOURCE_IMAGE)
+
 # A debug container that just executes a shell
 debug:
 	docker container run --name $(GOPHER_BOTNAME) \

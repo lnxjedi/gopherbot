@@ -12,13 +12,13 @@ if [ -n "$1" -o "$REMOTE_ORG" == "lnxjedi" ] # demo
 then
     cat <<EOF
 Welcome to the Gopherbot Demo. This will run Gopherbot
-in terminal connector mode, and eventually allow you to
-configure a new robot. This is a work in progress.
-
-Type `help` for general help, or `;quit` to exit.
+in terminal connector mode, where you can use the setup
+plugin to configure a new robot.
 
 EOF
-    exec ./gopherbot/gopherbot -l /dev/stderr 2> robot.log
+    mkdir demobot
+    cd demobot
+    exec ../gopherbot/gopherbot
 else
 cat <<EOF
 
