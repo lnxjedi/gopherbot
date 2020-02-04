@@ -237,10 +237,13 @@ for sending messages to your robot, as it's the most concise; e.g. ';ping'."
 Pause 2
 BOTALIAS=$(getMatching "alias" "Alias?")
 checkExit $?
-# '\' is an escape character and needs special handling
-# Note: This still doesn't work, fix later
-#[[ $BOTALIAS = \\ ]] && BOTALIAS="\\\\"
-
+DISPALIAS="$BOTALIAS"
+# '\' is an escape character and needs tons of special handling
+if [[ $BOTALIAS = \\ ]]
+then
+    BOTALIAS='\\\\'
+    DISPALIAS='\'
+fi
 Say "Your robot will likely run scheduled jobs periodically; for instance to back up \
 it's long-term memories, or rotate a log file. Any output from these jobs will go to a \
 default job channel for your robot. If you don't expect your robot to run a lot of jobs, \
@@ -284,7 +287,7 @@ checkExit $?
 Pause 2
 Say "$(cat <<EOF
 
-In just a few moments I'll restart the Gopherbot daemon; when it starts, your new robot will connect to the team chat. At first it won't recognize you as an administrator, since your robot doesn't yet have access to the unique internal ID that your team chat assigns. I need to get a shared secret from you, so you can use the '${BOTALIAS}add admin xxxx' command.
+In just a few moments I'll restart the Gopherbot daemon; when it starts, your new robot will connect to the team chat. At first it won't recognize you as an administrator, since your robot doesn't yet have access to the unique internal ID that your team chat assigns. I need to get a shared secret from you, so you can use the '${DISPALIAS}add admin xxxx' command.
 EOF
 )"
 Pause 2
@@ -331,7 +334,7 @@ continueQuit
 echo "GOPHER_SETUP_TOKEN=$SETUPKEY" >> .env
 
 # Create configuration
-cp -a $GOPHER_INSTALLDIR/robot.skel/* "$GOPHER_CONFIGDIR"
+cp -r $GOPHER_INSTALLDIR/robot.skel/* "$GOPHER_CONFIGDIR"
 substitute "<defaultprotocol>" "slack" # slack-only for now
 substitute "<slackencrypted>" "$SLACK_ENCRYPTED" "conf/slack.yaml"
 substitute "<sshencrypted>" "$SSH_ENCRYPTED"

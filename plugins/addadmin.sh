@@ -74,7 +74,16 @@ substitute(){
     local FIND=$1
     local REPLACE=$2
     local FILE=${3:-conf/gopherbot.yaml}
-    sed -i -e "s#$FIND#$REPLACE#g" "$GOPHER_CONFIGDIR/$FILE"
+    REPLACE=${REPLACE//\\/\\\\}
+    for TRY in "#" "|" "%" "^"
+    do
+        if [[ ! $REPLACE = *$TRY* ]]
+        then
+            RC="$TRY"
+            break
+        fi
+    done
+    sed -i -e "s${RC}$FIND${RC}$REPLACE${RC}g" "$GOPHER_CONFIGDIR/$FILE"
 }
 
 KEY=$1
@@ -102,13 +111,12 @@ then
     checkReply $?
 fi
 Say "Detected User ID $USERID for $USERNAME"
-substitute "<adminusername>" "$USERNAME"
-substitute "<adminuserid>" "$USERID"
+substitute "<adminusername>" "$USERNAME" "conf/slack.yaml"
+substitute "<adminuserid>" "$USERID" "conf/slack.yaml"
 
 AddTask "restart-robot"
 AddTask say "You've been successfully added as an administrator. \
 If you've configured 'manage_rsa.pub' as a read-write deploy key \
 for my repository, you can use the 'save' command to upload my \
 configuration. After that, you might want to configure my 'backup' \
-job to periodically push my long-term memories. Have fun automating \
-with me."
+job to periodically push my long-term memories. Have fun."
