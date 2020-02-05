@@ -185,7 +185,7 @@ func Start(v VersionInfo) {
 	if err != nil {
 		_, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
 		if !ok {
-			Log(robot.Warn, "Starting unconfigured: %v", err)
+			Log(robot.Warn, "Starting unconfigured; no robot.yaml/gopherbot.yaml found")
 			os.Setenv("GOPHER_UNCONFIGURED", "unconfigured")
 			if _, ok := os.LookupEnv("GOPHER_PROTOCOL"); !ok {
 				os.Setenv("GOPHER_PROTOCOL", "terminal")
