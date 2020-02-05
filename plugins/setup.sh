@@ -47,6 +47,7 @@ then
 fi
 
 ALIAS=$(GetBotAttribute "alias")
+SLACKALIASES='!;-%~*+^\$?[]{}' # subset of all possible; others don't work
 
 if [ "$command" == "init" -a "$GOPHER_UNCONFIGURED" ]
 then
@@ -232,7 +233,7 @@ CASENAME=$(echo "${BOTNAME:0:1}" | tr '[:lower:]' '[:upper:]')${BOTNAME:1}
 BOTFULLNAME="$CASENAME Gopherbot"
 
 Say "Now you can supply a one-character alias your robot will also recognize as it's \
-name, chosen from this list: '&!;:-%#@~<>/*+^\$?[]{}'. You'll probably use this most often \
+name, chosen from this list: '$SLACKALIASES'. You'll probably use this most often \
 for sending messages to your robot, as it's the most concise; e.g. ';ping'."
 Pause 2
 BOTALIAS=$(getMatching "alias" "Alias?")
@@ -298,6 +299,7 @@ checkExit $?
 cat > .env <<EOF
 GOPHER_ENCRYPTION_KEY=$GOPHER_ENCRYPTION_KEY
 GOPHER_CUSTOM_REPOSITORY=$BOTREPO
+GOPHER_PROTOCOL=slack
 # To use the deploy key below, add ssh/deploy_rsa.pub as a read-only deploy key
 # for the custom configuration repository.
 GOPHER_DEPLOY_KEY=$DEPKEY
@@ -335,7 +337,6 @@ echo "GOPHER_SETUP_TOKEN=$SETUPKEY" >> .env
 
 # Create configuration
 cp -r $GOPHER_INSTALLDIR/robot.skel/* "$GOPHER_CONFIGDIR"
-substitute "<defaultprotocol>" "slack" # slack-only for now
 substitute "<slackencrypted>" "$SLACK_ENCRYPTED" "conf/slack.yaml"
 substitute "<sshencrypted>" "$SSH_ENCRYPTED"
 substitute "<jobchannel>" "$JOBCHANNEL" "conf/slack.yaml"
