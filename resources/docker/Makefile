@@ -23,7 +23,7 @@ dev:
 
 # An interactive container for running the setup plugin
 setup:
-	docker container run --name $(GOPHER_BOTNAME) \
+	docker container run --name floyd \
 	  --interactive --tty -e HOSTNAME=$(HOSTNAME) \
 	  $(GOPHER_SOURCE_IMAGE)
 

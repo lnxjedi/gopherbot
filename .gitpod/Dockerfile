@@ -8,8 +8,7 @@ RUN apt-get update && \
     jq \
     less \
     openssh-client \
-    python \
-    python-yaml \
+    python3 \
     ruby \
     zip \
     unzip && \
