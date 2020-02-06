@@ -33,8 +33,12 @@ func mergemap(m, t map[string]interface{}) map[string]interface{} {
 					t[k] = v
 				}
 			} else {
-				// mis-matched types, use new value
-				t[k] = v
+				// mis-matched types, use new value if non-nil
+				if v != nil {
+					t[k] = v
+				} else {
+					t[k] = tv
+				}
 			}
 		} else {
 			t[k] = v
