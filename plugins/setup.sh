@@ -248,7 +248,8 @@ fi
 Say "Your robot will likely run scheduled jobs periodically; for instance to back up \
 it's long-term memories, or rotate a log file. Any output from these jobs will go to a \
 default job channel for your robot. If you don't expect your robot to run a lot of jobs, \
-it's safe to use e.g. 'general'."
+it's safe to use e.g. 'general'. If you create a new channel for this purpose, be sure \
+and invite your robot to the channel when it first connects."
 Pause 2
 JOBCHANNEL=$(getMatching "SimpleString" "Default job channel for your robot?")
 checkExit $?
@@ -299,9 +300,11 @@ checkExit $?
 cat > .env <<EOF
 GOPHER_ENCRYPTION_KEY=$GOPHER_ENCRYPTION_KEY
 GOPHER_CUSTOM_REPOSITORY=$BOTREPO
+# You should normally keep GOPHER_PROTOCOL commented out, except in
+# production.
 GOPHER_PROTOCOL=slack
-# To use the deploy key below, add ssh/deploy_rsa.pub as a read-only deploy key
-# for the custom configuration repository.
+# To use the deploy key below, add ssh/deploy_rsa.pub as a read-only
+# deploy key for the custom configuration repository.
 GOPHER_DEPLOY_KEY=$DEPKEY
 EOF
 Say "*******"
