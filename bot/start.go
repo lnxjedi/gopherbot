@@ -171,7 +171,7 @@ func Start(v VersionInfo) {
 		}
 	}
 
-	// support for setup plugin
+	// support for setup and bootstrap plugins
 	var defaultProto, defaultLogfile bool
 	testpath := filepath.Join(configpath, "conf", robotConfigFileName)
 	_, err := os.Stat(testpath)
@@ -187,15 +187,16 @@ func Start(v VersionInfo) {
 		if !ok {
 			Log(robot.Warn, "Starting unconfigured; no robot.yaml/gopherbot.yaml found")
 			os.Setenv("GOPHER_UNCONFIGURED", "unconfigured")
-			if _, ok := os.LookupEnv("GOPHER_PROTOCOL"); !ok {
-				os.Setenv("GOPHER_PROTOCOL", "terminal")
-				defaultProto = true
-			}
+			os.Setenv("GOPHER_PROTOCOL", "terminal")
 			if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
 				os.Setenv("GOPHER_LOGFILE", "robot.log")
 				defaultLogfile = true
 			}
+		} else {
+			// no robot.yaml, but GOPHER_CUSTOM_REPOSITORY set
+			os.Setenv("GOPHER_PROTOCOL", "nullconn")
 		}
+		defaultProto = true
 	} else {
 		os.Unsetenv("GOPHER_UNCONFIGURED")
 	}
