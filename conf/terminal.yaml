@@ -65,7 +65,7 @@ UserRoster:
 - UserName: "david"
   UserID: "u0004"
 - UserName: "erin"
-  UserID: "u0005"  
+  UserID: "u0005"
 
 {{ $defaultjobchannel := "general" }}
 DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}

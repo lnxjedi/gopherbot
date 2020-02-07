@@ -147,11 +147,6 @@ func Start(v VersionInfo) {
 	}
 	penvErr := godotenv.Overload(envFile)
 
-	// terminal mode overrides any other setting of GOPHER_PROTOCOL
-	if terminalmode {
-		os.Setenv("GOPHER_PROTOCOL", "terminal")
-	}
-
 	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
@@ -180,7 +175,6 @@ func Start(v VersionInfo) {
 			os.Setenv("GOPHER_LOGFILE", "robot.log")
 			defaultLogfile = true
 		}
-		defaultProto = true
 	}
 
 	protoEnv, protoSet := os.LookupEnv("GOPHER_PROTOCOL")
@@ -202,11 +196,11 @@ func Start(v VersionInfo) {
 		} else {
 			// no robot.yaml, but GOPHER_CUSTOM_REPOSITORY set
 			os.Setenv("GOPHER_PROTOCOL", "nullconn")
-			defaultProto = true
 		}
+		defaultProto = true
 	} else {
 		os.Unsetenv("GOPHER_UNCONFIGURED")
-		if !protoSet {
+		if !protoSet || terminalmode {
 			termStart()
 		}
 	}
