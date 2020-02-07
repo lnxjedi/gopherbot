@@ -22,6 +22,8 @@ general: If you've started the robot by mistake, just hit ctrl-D to exit and
 try 'gopherbot --help'; otherwise feel free to play around - you can start by
 typing 'help'. If you'd like to start configuring a new robot, type:
 ';setup'.
+c:general/u:alice -> floyd, tell me a joke
+...
 ```
 
 ## Bootstrapping an existing robot

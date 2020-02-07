@@ -275,6 +275,11 @@ func Start(v VersionInfo) {
 	}
 
 	if !cliOp {
+		lle := os.Getenv("GOPHER_LOGLEVEL")
+		if len(lle) > 0 {
+			loglevel := logStrToLevel(lle)
+			setLogLevel(loglevel)
+		}
 		logger.Println("Initialized logging ...")
 	}
 

@@ -102,6 +102,7 @@ func (t loadTpl) Include(tpl string) string {
 		base = configPath
 	}
 	path := filepath.Join(base, t.dir, tpl)
+	Log(robot.Debug, "Loading Include'd config: %s", path)
 	inc, err := ioutil.ReadFile(path)
 	if err != nil {
 		Log(robot.Error, "Reading include '%s'(%s): %v", tpl, path, err)

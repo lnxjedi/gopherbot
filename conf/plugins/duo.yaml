@@ -6,9 +6,9 @@ Config:
   TimeoutSeconds: 7200
 ## When 'idle', the timer resets on every elevated command
   TimeoutType: idle # or absolute
-  DuoIKey: {{ env "GOPHER_DUO_IKEY" }} # or `store task secret duo IKEY=<something>`
-  DuoSKey: {{ env "GOPHER_DUO_SKEY" }} # or `store task secret duo SKEY=<something>`
-  DuoHost: {{ env "GOPHER_DUO_HOST" }} # or `store task secret duo HOST=<something>`
+  DuoIKey: {{ env "GOPHER_DUO_IKEY" }} # or replace with encrypted string
+  DuoSKey: {{ env "GOPHER_DUO_SKEY" }} # or replace with encrypted string
+  DuoHost: {{ env "GOPHER_DUO_HOST" }} # or replace with encrypted string
   DuoUserString: emailUser
 {{ if not (env "GOPHER_DUO_HOST") }}
 Disabled: true

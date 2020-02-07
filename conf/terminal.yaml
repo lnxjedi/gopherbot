@@ -3,6 +3,9 @@
 {{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot"}}
 {{ $botalias := env "GOPHER_ALIAS" | default ";"}}
 
+AdminUsers: [ "alice" ]
+DefaultChannels: [ "general", "random" ]
+
 BotInfo:
   UserName: {{ $botname }}
   FullName: {{ $botfullname }}
@@ -63,9 +66,6 @@ UserRoster:
   UserID: "u0004"
 - UserName: "erin"
   UserID: "u0005"  
-
-AdminUsers: [ "alice" ]
-DefaultChannels: [ "general", "random" ]
 
 {{ $defaultjobchannel := "general" }}
 DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}
