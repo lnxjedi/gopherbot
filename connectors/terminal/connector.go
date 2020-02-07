@@ -186,7 +186,7 @@ loop:
 						}
 						if exists {
 							tc.currentUser = newuser
-							tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentUser, tc.currentChannel))
+							tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentChannel, tc.currentUser))
 							tc.reader.Write([]byte(fmt.Sprintf("Changed current user to: %s\n", newuser)))
 						} else {
 							tc.reader.Write([]byte("Invalid user\n"))

@@ -1,9 +1,10 @@
 ---
 ## Example plugin configuration file showing most configurable items.
 
-## NOTE: Configured items merge with the default config, and arrays are
-## appended; to add e.g. Help entries, just create a Help: section with
-## new items to be added.
+## NOTE: If you're modifying the configuration of an existing Gopherbot
+## plugin, configured items merge with the default config, and arrays are
+## replaced. To add e.g. Help entries, copy the original help entries and
+## then add your own.
 
 ## Compiled-in go plugins can be disabled
 Disabled: false
@@ -28,7 +29,8 @@ RequireAdmin: false
 Users: [ "alice", "bob", "carol" ]
 ## You can require users to be members of a group
 Authorizer: groups
-AuthrRequire: monkeys
+## For groups, the AuthRequire is the name of the group
+AuthRequire: monkeys
 ## When help <keyword> is requested, the robot will spit out the items in
 ## Helptext. By convention, commands that must be directed at the robot
 ## start with "(bot),"
