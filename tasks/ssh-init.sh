@@ -87,6 +87,7 @@ if [ -n "$GOPHER_HOME" ]
 then
     if [ -e "$GOPHER_CONFIGDIR/ssh/config" ]
     then
+        chmod 0600 "$GOPHER_CONFIGDIR/ssh/config"
         SSH_OPTIONS="-F $GOPHER_CONFIGDIR/ssh/config"
     fi
     SSH_OPTIONS="$SSH_OPTIONS -o UserKnownHostsFile=$GOPHER_HOME/known_hosts"

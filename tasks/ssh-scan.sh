@@ -18,7 +18,7 @@ then
 fi
 
 # Ignore ssh error value; github.com for instance will exit 1
-SCAN=$(cat <<EOF | ssh $SSH_OPTIONS -o StrictHostKeyChecking=no $REMOTE_HOST 2>&1 || :
+SCAN=$(cat <<EOF | ssh $SKARGS $SSH_OPTIONS -o StrictHostKeyChecking=no $REMOTE_HOST whoami 2>&1 || :
 EOF
 )
 
