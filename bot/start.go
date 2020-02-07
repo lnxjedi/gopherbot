@@ -173,7 +173,17 @@ func Start(v VersionInfo) {
 
 	// support for setup and bootstrap plugins
 	var defaultProto, defaultLogfile bool
-	var protoEnv string
+
+	termStart := func() {
+		os.Setenv("GOPHER_PROTOCOL", "terminal")
+		if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
+			os.Setenv("GOPHER_LOGFILE", "robot.log")
+			defaultLogfile = true
+		}
+		defaultProto = true
+	}
+
+	protoEnv, protoSet := os.LookupEnv("GOPHER_PROTOCOL")
 	testpath := filepath.Join(configpath, "conf", robotConfigFileName)
 	_, err := os.Stat(testpath)
 	if err != nil {
@@ -184,23 +194,21 @@ func Start(v VersionInfo) {
 		}
 	}
 	if err != nil {
-		protoEnv = os.Getenv("GOPHER_PROTOCOL")
 		_, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
 		if !ok {
 			Log(robot.Warn, "Starting unconfigured; no robot.yaml/gopherbot.yaml found")
 			os.Setenv("GOPHER_UNCONFIGURED", "unconfigured")
-			os.Setenv("GOPHER_PROTOCOL", "terminal")
-			if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
-				os.Setenv("GOPHER_LOGFILE", "robot.log")
-				defaultLogfile = true
-			}
+			termStart()
 		} else {
 			// no robot.yaml, but GOPHER_CUSTOM_REPOSITORY set
 			os.Setenv("GOPHER_PROTOCOL", "nullconn")
+			defaultProto = true
 		}
-		defaultProto = true
 	} else {
 		os.Unsetenv("GOPHER_UNCONFIGURED")
+		if !protoSet {
+			termStart()
+		}
 	}
 
 	var logger *log.Logger
