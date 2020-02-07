@@ -13,4 +13,4 @@ then
     exit 1
 fi
 
-echo "$BOT_SSH_PHRASE"
+cat <<< "$BOT_SSH_PHRASE"
