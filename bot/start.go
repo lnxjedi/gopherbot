@@ -147,11 +147,6 @@ func Start(v VersionInfo) {
 	}
 	penvErr := godotenv.Overload(envFile)
 
-	// terminal mode overrides any other setting of GOPHER_PROTOCOL
-	if terminalmode {
-		os.Setenv("GOPHER_PROTOCOL", "terminal")
-	}
-
 	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
@@ -173,7 +168,16 @@ func Start(v VersionInfo) {
 
 	// support for setup and bootstrap plugins
 	var defaultProto, defaultLogfile bool
-	var protoEnv string
+
+	termStart := func() {
+		os.Setenv("GOPHER_PROTOCOL", "terminal")
+		if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
+			os.Setenv("GOPHER_LOGFILE", "robot.log")
+			defaultLogfile = true
+		}
+	}
+
+	protoEnv, protoSet := os.LookupEnv("GOPHER_PROTOCOL")
 	testpath := filepath.Join(configpath, "conf", robotConfigFileName)
 	_, err := os.Stat(testpath)
 	if err != nil {
@@ -184,16 +188,11 @@ func Start(v VersionInfo) {
 		}
 	}
 	if err != nil {
-		protoEnv = os.Getenv("GOPHER_PROTOCOL")
 		_, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
 		if !ok {
 			Log(robot.Warn, "Starting unconfigured; no robot.yaml/gopherbot.yaml found")
 			os.Setenv("GOPHER_UNCONFIGURED", "unconfigured")
-			os.Setenv("GOPHER_PROTOCOL", "terminal")
-			if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
-				os.Setenv("GOPHER_LOGFILE", "robot.log")
-				defaultLogfile = true
-			}
+			termStart()
 		} else {
 			// no robot.yaml, but GOPHER_CUSTOM_REPOSITORY set
 			os.Setenv("GOPHER_PROTOCOL", "nullconn")
@@ -201,6 +200,9 @@ func Start(v VersionInfo) {
 		defaultProto = true
 	} else {
 		os.Unsetenv("GOPHER_UNCONFIGURED")
+		if !protoSet || terminalmode {
+			termStart()
+		}
 	}
 
 	var logger *log.Logger
@@ -275,6 +277,11 @@ func Start(v VersionInfo) {
 	}
 
 	if !cliOp {
+		lle := os.Getenv("GOPHER_LOGLEVEL")
+		if len(lle) > 0 {
+			loglevel := logStrToLevel(lle)
+			setLogLevel(loglevel)
+		}
 		logger.Println("Initialized logging ...")
 	}
 

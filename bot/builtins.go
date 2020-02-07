@@ -59,12 +59,8 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		msg = append(msg, fmt.Sprintf("My name is '%s', alias '%s', and my %s internal ID is '%s'", name, alias, r.Protocol, ID))
 		msg = append(msg, fmt.Sprintf("This is channel '%s', %s internal ID: %s", r.Channel, r.Protocol, channelID))
 		if r.CheckAdmin() {
-			msg = append(msg, fmt.Sprintf("My install directory is: %s", installPath))
-			lp := "(not set)"
-			if len(configPath) > 0 {
-				lp = configPath
-			}
-			msg = append(msg, fmt.Sprintf("My configuration directory is: %s", lp))
+			msg = append(msg, fmt.Sprintf("The gopherbot install directory is: %s", installPath))
+			msg = append(msg, fmt.Sprintf("My home directory is: %s", homePath))
 		}
 		msg = append(msg, fmt.Sprintf("My software version is: Gopherbot %s, commit: %s", botVersion.Version, botVersion.Commit))
 		msg = append(msg, fmt.Sprintf("The administrators for this robot are: %s", admins))
