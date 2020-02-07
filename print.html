@@ -556,13 +556,23 @@ The key fingerprint is:
 <li><code>GOPHER_INSTALLDIR</code> - absolute path to the gopherbot install, normally <code>/opt/gopherbot</code></li>
 </ul>
 <h2><a class="header" href="#automatic-environment-variables" id="automatic-environment-variables">Automatic Environment Variables</a></h2>
-<p>On startup, <strong>Gopherbot</strong> will check for a custom <code>conf/robot.yaml</code> or the presence of a <code>GOPHER_CUSTOM_REPOSITORY</code> environment variable. In the absence of either, the following will be automatically set:</p>
+<p>During startup, <strong>Gopherbot</strong> will examine it's environment and potentially set values for a few environment variables to support the bootstrap and setup plugins, and simplify common operations.</p>
+<p>First, <strong>Gopherbot</strong> will check for custom configuration or the presence of a <code>GOPHER_CUSTOM_REPOSITORY</code> environment variable. In the absence of either, the following will be automatically set:</p>
 <ul>
 <li><code>GOPHER_UNCONFIGURED</code> - set true</li>
-<li><code>GOPHER_PROTOCOL</code> - set to &quot;terminal&quot; if not already set</li>
-<li><code>GOPHER_LOGFILE</code> - set to &quot;robot.log&quot; if not already set
-Additionally, <code>GOPHER_ENCRYPTION_INITIALIZED</code> will be set to <code>true</code> if encryption is initialized on start-up, regardless of whether the robot is configured.</li>
+<li><code>GOPHER_LOGFILE</code> - set to &quot;robot.log&quot; if not already set</li>
+<li><code>GOPHER_PROTOCOL</code> - set to &quot;terminal&quot; so the default robot will start</li>
 </ul>
+<p>If no custom configuration is present but <code>GOPHER_CUSTOM_REPOSITORY</code> is set:</p>
+<ul>
+<li><code>GOPHER_PROTOCOL</code> - set to &quot;nullconn&quot;, the null connectory, to allow the bootstrap plugin to bootstrap your robot</li>
+</ul>
+<p>If the robot is configured but <code>GOPHER_PROTOCOL</code> isn't set:</p>
+<ul>
+<li><code>GOPHER_PROTOCOL</code> - set to &quot;terminal&quot; for local operations</li>
+<li><code>GOPHER_LOGFILE</code> - set to &quot;robot.log&quot; if not already set</li>
+</ul>
+<p>Finally, if encryption is initialized on start-up, <code>GOPHER_ENCRYPTION_INITIALIZED</code> will be set to <code>true</code>, regardless of whether the robot is configured.</p>
 <h2><a class="header" href="#pipeline-environment-variables" id="pipeline-environment-variables">Pipeline Environment Variables</a></h2>
 <p>The following environment variable are set for all pipelines, whether started by a plugin or a job:</p>
 <ul>
