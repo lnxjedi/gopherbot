@@ -108,9 +108,11 @@ ExternalJobs:
 # ScheduledJobs:
 ## Once your robot has successfully saved it's configuration to
 ## $GOPHER_CUSTOM_REPOSITORY, enable the backup job to save long-term
-## memories to the "robot-state" branch.
+## memories to the "robot-state" branch. Just un-comment the next
+## two lines, and your robot will check for changes and back up
+## every hour.
 # - Name: backup
-#   Schedule: "@every 1m"
+#   Schedule: "@every 1h"
 ## If your robot is logging to a file, this job will rotate logs
 # - Name: logrotate
 #   Schedule: "5 0 0 * * *"
