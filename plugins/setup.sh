@@ -17,11 +17,11 @@ Help:
 - Keywords: [ "setup" ]
   Helptext: [ "(bot), setup - perform initial setup of a new robot" ]
 CommandMatchers:
-- Command: "setup"
+- Command: 'setup'
   Regex: '(?i:setup)'
 MessageMatchers:
 - Command: "setup"
-  Regex: '(?i:setup)'
+  Regex: '(?i:^setup$)'
 ReplyMatchers:
 - Label: "alias"
   Regex: '[&!;:%#@~<>\/*+^\$?\\\[\]{}-]'
@@ -49,7 +49,7 @@ fi
 ALIAS=$(GetBotAttribute "alias")
 SLACKALIASES='!;-%~*+^\$?[]{}' # subset of all possible; others don't work
 
-if [ "$command" == "init" -a "$GOPHER_UNCONFIGURED" ]
+if [ "$command" == "init" ]
 then
     NAME=$(GetBotAttribute "name")
     Pause 1

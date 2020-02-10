@@ -96,6 +96,7 @@ ExternalPlugins:
     - Name: GOPHER_DEPLOY_KEY
     # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
       Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
+{{ if env "GOPHER_UNCONFIGURED" }}
   "setup":
     Description: Setup plugin for creating a new robot
     Privileged: true
@@ -103,10 +104,9 @@ ExternalPlugins:
     NameSpace: manage
     Path: plugins/setup.sh
     Parameters:
-    - Name: GOPHER_UNCONFIGURED
-      Value: {{ env "GOPHER_UNCONFIGURED" }}
     - Name: GOPHER_ENCRYPTION_INITIALIZED
       Value: {{ env "GOPHER_ENCRYPTION_INITIALIZED" }}
+{{ end }}
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)
