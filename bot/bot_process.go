@@ -220,9 +220,10 @@ func initBot(cpath, epath string) {
 		listenPort = listener.Addr().String()
 		go func() {
 			raiseThreadPriv("http handler")
-			http.Handle("/json", handle)
+			apiServer := http.NewServeMux()
+			apiServer.Handle("/json", handle)
 			Log(robot.Info, "Listening for external plugin connections on http://%s", listenPort)
-			Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, nil))
+			Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, apiServer))
 		}()
 	}
 }

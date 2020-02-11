@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -24,6 +25,8 @@ const logFlags = log.LstdFlags
 type historyConfig struct {
 	Directory string `yaml:"Directory"` // path to histories
 	URLPrefix string `yaml:"URLPrefix"` // Optional URL prefix corresponding to the Directory
+	// If LocalPort set, passed to http.ListenAndServe to serve static files
+	LocalPort string `yaml:"LocalPort"`
 }
 
 type historyFile struct {
@@ -128,7 +131,17 @@ func provider(r robot.Handler) robot.HistoryProvider {
 		handler.Log(robot.Error, "Checking history directory '%s': %v", historyPath, err)
 		return nil
 	}
-	handler.Log(robot.Info, "Initialized file history provider with directory: '%s'", historyPath)
+	if len(fhc.LocalPort) > 0 {
+		go func() {
+			handler.Log(robot.Info, "Starting fileserver listener for file history provider")
+			log.Fatal(http.ListenAndServe(fhc.LocalPort, http.FileServer(http.Dir(historyPath))))
+		}()
+	}
+	if len(fhc.LocalPort) > 0 {
+		handler.Log(robot.Info, "Initialized file history provider with directory: '%s'; serving on: '%s'", historyPath, fhc.LocalPort)
+	} else {
+		handler.Log(robot.Info, "Initialized file history provider with directory: '%s'", historyPath)
+	}
 	return &fhc
 }
 
