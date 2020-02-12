@@ -151,6 +151,7 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 		return true
 	}
 	if filepath.IsAbs(path) {
+		raiseThreadPriv("checking absolute path")
 		_, ok := checkDirectory(path)
 		if ok {
 			c.workingDirectory = path
