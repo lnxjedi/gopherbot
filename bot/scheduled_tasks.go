@@ -62,11 +62,15 @@ func scheduleTasks() {
 
 func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *taskList, repolist map[string]robot.Repository) {
 	task, _, _ := getTask(t)
+	currentCfg.RLock()
+	protocol := currentCfg.protocol
+	currentCfg.RUnlock()
 
 	// Create the pipeContext to carry state through the pipeline.
 	// startPipeline will take care of registerActive()
 	w := &worker{
 		Channel:       task.Channel,
+		Protocol:      getProtocol(protocol),
 		cfg:           cfg,
 		tasks:         tasks,
 		repositories:  repolist,

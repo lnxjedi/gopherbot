@@ -195,7 +195,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		}
 	}
 	botMsg := &robot.ConnectorMessage{
-		Protocol:      "Slack",
+		Protocol:      "slack",
 		UserID:        userID,
 		ChannelID:     chanID,
 		DirectMessage: ci.IsIM,

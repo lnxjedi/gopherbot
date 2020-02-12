@@ -207,7 +207,7 @@ loop:
 				i := userMap[tc.currentUser]
 				ui := tc.users[i]
 				botMsg := &robot.ConnectorMessage{
-					Protocol:      "Terminal",
+					Protocol:      "terminal",
 					UserName:      tc.currentUser,
 					UserID:        ui.InternalID,
 					ChannelName:   tc.currentChannel,

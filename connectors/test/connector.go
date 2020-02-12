@@ -53,7 +53,7 @@ loop:
 				direct = true
 			}
 			botMsg := &robot.ConnectorMessage{
-				Protocol:      "Test",
+				Protocol:      "test",
 				UserName:      userName,
 				UserID:        msg.User,
 				ChannelName:   msg.Channel,

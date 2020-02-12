@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -18,8 +19,11 @@ func init() {
 // initialized in start.go
 var botStdErrLogger, botStdOutLogger *log.Logger
 
+// Set by terminal connector
+var terminalWriter io.Writer
+
 // set in start.go
-var botStdOutLogging bool
+var terminalLogging bool
 
 var errorThreshold = robot.Warn
 
@@ -46,8 +50,13 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 		if l == robot.Fatal {
 			logger.Fatal(msg)
 		} else {
-			if botStdOutLogging && l >= errorThreshold {
-				botStdErrLogger.Print(msg)
+			if terminalLogging && l >= errorThreshold {
+				if terminalWriter != nil {
+					terminalWriter.Write([]byte(msg))
+					terminalWriter.Write([]byte("\n"))
+				} else {
+					botStdOutLogger.Print(msg)
+				}
 			} else {
 				logger.Print(msg)
 			}

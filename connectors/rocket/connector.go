@@ -133,7 +133,7 @@ func (rc *rocketConnector) processMessage(msg *models.Message) {
 		return
 	}
 	botMsg := &robot.ConnectorMessage{
-		Protocol:      "Rocket",
+		Protocol:      "rocket",
 		UserID:        msg.User.ID,
 		UserName:      msg.User.UserName,
 		ChannelID:     msg.RoomID,

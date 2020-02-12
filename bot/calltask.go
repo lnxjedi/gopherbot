@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// Set for the terminal connector
 var local bool
 
 type getCfgReturn struct {
@@ -340,8 +340,8 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		closed := make(chan struct{})
 		var solog, selog *log.Logger
 		if local {
-			solog = log.New(os.Stdout, "OUT: ", 0)
-			selog = log.New(os.Stdout, "ERR: ", 0)
+			solog = log.New(terminalWriter, "OUT: ", 0)
+			selog = log.New(terminalWriter, "ERR: ", 0)
 		}
 		go func() {
 			logging := logger != nil

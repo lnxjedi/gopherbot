@@ -200,6 +200,7 @@ func initializePlugins() {
 	currentCfg.RLock()
 	cfg := currentCfg.configuration
 	tasks := currentCfg.taskList
+	protocol := currentCfg.protocol
 	currentCfg.RUnlock()
 	state.Lock()
 	if !state.shuttingDown {
@@ -215,6 +216,7 @@ func initializePlugins() {
 			w := &worker{
 				cfg:           cfg,
 				tasks:         tasks,
+				Protocol:      getProtocol(protocol),
 				automaticTask: true,
 				id:            getWorkerID(),
 			}

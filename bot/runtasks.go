@@ -472,7 +472,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	// These values are always fixed
 	envhash["GOPHER_CHANNEL"] = w.Channel
 	envhash["GOPHER_USER"] = w.User
-	envhash["GOPHER_PROTOCOL"] = fmt.Sprintf("%s", w.Protocol)
+	envhash["GOPHER_PROTOCOL"] = strings.ToLower(fmt.Sprintf("%s", w.Protocol))
 	envhash["GOPHER_TASK_NAME"] = c.taskName
 	envhash["GOPHER_PIPELINE_TYPE"] = c.ptype.String()
 	envhash["GOPHER_CALLER_ID"] = w.eid
