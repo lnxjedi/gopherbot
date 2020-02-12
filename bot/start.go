@@ -170,6 +170,7 @@ func Start(v VersionInfo) {
 	var defaultProto, defaultLogfile bool
 
 	termStart := func() {
+		defaultProto = true
 		os.Setenv("GOPHER_PROTOCOL", "terminal")
 		if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
 			os.Setenv("GOPHER_LOGFILE", "robot.log")
@@ -207,7 +208,6 @@ func Start(v VersionInfo) {
 
 	var logger *log.Logger
 	logOut := os.Stdout
-	botStdOutLogging = true
 	if len(logFile) == 0 {
 		logFile = os.Getenv("GOPHER_LOGFILE")
 	}
@@ -217,14 +217,12 @@ func Start(v VersionInfo) {
 	}
 	if len(logFile) != 0 {
 		if logFile == "stderr" {
-			botStdOutLogging = false
 			logOut = os.Stderr
 		} else {
 			lf, err := os.Create(logFile)
 			if err != nil {
 				log.Fatalf("Error creating log file: (%T %v)", err, err)
 			}
-			botStdOutLogging = false
 			fileLog = true
 			logFileName = logFile
 			logOut = lf
@@ -332,13 +330,12 @@ func Start(v VersionInfo) {
 		brainQuit()
 		return
 	}
-
+	if currentCfg.protocol == "terminal" {
+		local = true
+	}
 	initializeConnector, ok := connectors[currentCfg.protocol]
 	if !ok {
 		logger.Fatalf("No connector registered with name: %s", currentCfg.protocol)
-	}
-	if currentCfg.protocol == "terminal" {
-		local = true
 	}
 
 	// handler{} is just a placeholder struct for implementing the Handler interface
@@ -356,7 +353,11 @@ func Start(v VersionInfo) {
 	time.Sleep(time.Second)
 	if restart {
 		if defaultProto {
-			os.Setenv("GOPHER_PROTOCOL", protoEnv)
+			if protoSet {
+				os.Setenv("GOPHER_PROTOCOL", protoEnv)
+			} else {
+				os.Unsetenv("GOPHER_PROTOCOL")
+			}
 		}
 		if defaultLogfile {
 			os.Unsetenv("GOPHER_LOGFILE")

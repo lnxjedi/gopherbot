@@ -126,19 +126,19 @@ func setFormat(format string) robot.MessageFormat {
 
 // getProtocol takes a string name of the protocol and returns the constant and
 // the name of the loadable module, if any.
-func getProtocol(proto string) (robot.Protocol, string) {
+func getProtocol(proto string) robot.Protocol {
 	proto = strings.ToLower(proto)
 	switch proto {
 	case "slack":
-		return robot.Slack, "slack"
+		return robot.Slack
 	case "term", "terminal":
-		return robot.Terminal, "terminal"
+		return robot.Terminal
 	case "nullconn":
-		return robot.Null, "nullconn"
+		return robot.Null
 	case "rocket":
-		return robot.Rocket, "rocket"
+		return robot.Rocket
 	default:
-		return robot.Test, ""
+		return robot.Test
 	}
 }
 

@@ -61,6 +61,8 @@ HistoryProvider: {{ $history }}
 {{ if eq $history "file" }}
 HistoryConfig:
   Directory: {{ $histdir }}
+  ## LocalPort here is the full string passed in to ListenAndServe(...)
+  #LocalPort: ':9000' # Start http fileserver
   #URLPrefix: 'http://localhost:9000'
 {{ end }}
 ## End history config

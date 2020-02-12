@@ -1,6 +1,6 @@
 # Makefile - just builds the binary, for dev mainly
 
-.PHONY: clean test generate testbot modular static
+.PHONY: clean test generate testbot static
 
 commit := $(shell git rev-parse --short HEAD)
 

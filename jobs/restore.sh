@@ -20,6 +20,12 @@ then
     INTERACTIVE="true"
 fi
 
+echo "GOPHER_PROTOCOL is $GOPHER_PROTOCOL"
+if [ "$GOPHER_PROTOCOL" == "terminal" ]
+then
+    TERMINAL="true"
+fi
+
 report(){
     local LEVEL=$1
     local MESSAGE=$2
@@ -61,6 +67,9 @@ fi
 if [ "$INTERACTIVE" ]
 then
     Say "Starting state restore requested by user $GOPHER_USER in channel: $GOPHER_START_CHANNEL"
+elif [ "$TERMINAL" ]
+then
+    Say "Starting restore of robot state..."
 fi
 
 AddTask git-init "$GOPHER_STATE_REPOSITORY"
@@ -69,7 +78,7 @@ AddTask pause-brain
 AddTask cleanup "$GOPHER_STATEDIR"
 AddTask git-clone "$GOPHER_STATE_REPOSITORY" "$GOPHER_STATE_BRANCH" "$GOPHER_STATEDIR"
 AddTask resume-brain
-if [ "$INTERACTIVE" ]
+if [ "$INTERACTIVE" -o "$TERMINAL" ]
 then
     AddTask say "Restore finished"
 fi

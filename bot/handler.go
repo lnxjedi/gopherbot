@@ -30,7 +30,8 @@ func (h handler) GetLogLevel() robot.LogLevel {
 // SetTerminalWriter let's the terminal connector set the output writer
 // for logging of Warn and Error logs.
 func (h handler) SetTerminalWriter(w io.Writer) {
-	botStdOutLogger.SetOutput(w)
+	botStdErrLogger.SetOutput(w)
+	terminalWriter = w
 }
 
 // GetInstallPath gets the path to the bot's install dir -
@@ -147,7 +148,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	} else {
 		userName = bracket(inc.UserID)
 	}
-	protocol, _ := getProtocol(inc.Protocol)
+	protocol := getProtocol(inc.Protocol)
 
 	messageFull := inc.MessageText
 
