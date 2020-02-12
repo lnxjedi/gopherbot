@@ -17,26 +17,27 @@ command = sys.argv.pop(0)
 if command != "init":
     exit(0)
 
-# First, see if we're doing a restore
-try:
-    os.stat(".restore")
-    bot.AddTask("exec", [ "rm", "-f", ".restore" ])
-    bot.AddJob("restore", [])
-    exit(0)
-except FileNotFoundError:
-    pass
-
 cfgdir = os.getenv("GOPHER_CONFIGDIR")
 cfgconf = os.path.join(cfgdir, "conf")
 
+hasconfig = True
 try:
     os.stat(cfgconf)
 except FileNotFoundError:
-    pass
+    hasconfig = False
 except:
     bot.Log("Error", "Checking for %s: %s" % (cfgconf, sys.exc_info()[0]))
     exit(1)
-else:
+
+# First, see if we're doing a restore
+if hasconfig:
+    try:
+        os.stat(".restore")
+        bot.AddTask("exec", [ "rm", "-f", ".restore" ])
+        bot.AddJob("restore", [])
+        exit(0)
+    except FileNotFoundError:
+        pass
     exit(0)
 
 clone_url = os.getenv("GOPHER_CUSTOM_REPOSITORY")
