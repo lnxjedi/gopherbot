@@ -11,12 +11,12 @@ REMOTE_ORG=${REMOTE_PREFIX##*/}
 if [ -n "$1" -o "$REMOTE_ORG" == "lnxjedi" ] # demo
 then
     cat <<EOF
+############################################################################
 Welcome to the Gopherbot Demo. This will run Gopherbot
 in terminal connector mode, where you can use the setup
-plugin to configure a new robot.
-
-NOTENOTENOTE: This isn't currently working due to an
-unknown issue with the terminal connectory on gitpod.
+plugin to configure a new robot and store it in a git
+repository.
+############################################################################
 
 EOF
     mkdir demobot

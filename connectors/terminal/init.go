@@ -7,8 +7,8 @@ import (
 	"path"
 	"sync"
 
-	"github.com/chzyer/readline"
 	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/readline"
 )
 
 // Global persistent map of user name to user index

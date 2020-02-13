@@ -30,8 +30,6 @@ github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/service/dynamodb
 github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute
 github.com/aws/aws-sdk-go/service/sts
-# github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
-github.com/chzyer/readline
 # github.com/davecgh/go-spew v1.1.0
 github.com/davecgh/go-spew/spew
 # github.com/dgryski/dgoogauth v0.0.0-20160602071324-96977cbd42e2
@@ -55,6 +53,8 @@ github.com/jmespath/go-jmespath
 github.com/joho/godotenv
 # github.com/jordan-wright/email v0.0.0-20181206031209-52b567308cb0
 github.com/jordan-wright/email
+# github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159
+github.com/lnxjedi/readline
 # github.com/nlopes/slack v0.5.0
 github.com/nlopes/slack
 github.com/nlopes/slack/slackutilsx
