@@ -120,6 +120,10 @@ end
 ```
 
 ### Contributing
-I've started playing around with [Gitpod](https://gitpod.io) for development, with good results. The shortest path to developing Gopherbot is to sign up with [Gitpod](https://gitpod.io), fork this repository, and visit `https://gitpod.io/#https://github.com/<your-user-name>/gopherbot`.
+I've started playing around with [Gitpod](https://gitpod.io) for development, with good results. The shortest path to developing Gopherbot:
+* Sign up with [Gitpod](https://gitpod.io)
+* Fork this repository
+* Visit `https://gitpod.io/#https://github.com/<your-user-name>/gopherbot`
+* Go to "File", "Open Workspace...", and open `gitpod.theia-workspace` (this lets the Go language server work)
 
 For development, testing, and collaboration, feel free to shoot me an email for an invite to [the LinuxJedi Slack team](https://linuxjedi.slack.com).
