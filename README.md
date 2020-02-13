@@ -8,13 +8,15 @@
 [![Coverage Status](https://coveralls.io/repos/github/lnxjedi/gopherbot/badge.svg?branch=master&service=github)](https://coveralls.io/github/lnxjedi/gopherbot?branch=master)
 [![GoDoc](https://godoc.org/github.com/lnxjedi/gopherbot/bot?status.png)](https://godoc.org/github.com/lnxjedi/gopherbot/bot)
 
-Enterprise Slack(\*) DevOps / ChatOps / CI/CD bot for Linux, supporting plugins in Go, Python, Ruby, and Bash
+Enterprise Slack(\*) DevOps / ChatOps / CI/CD bot for Linux, supporting extensions in Go, Python, Ruby, and Bash
+
+Try out **Gopherbot** and generate a Slack robot with Gitpod:
+
+[![Open with Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/lnxjedi/gopherbot)
 
 Slogans under consideration:
 * **The Co-worker that Never Sleeps**
 * **The DevOps Swiss-Army Chainsaw**
-
-[![Try it out with Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/lnxjedi/gopherbot)
 
 ## Latest Release
 Download the current release from: https://github.com/lnxjedi/gopherbot/releases/latest
