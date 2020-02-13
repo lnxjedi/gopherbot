@@ -120,6 +120,6 @@ end
 ```
 
 ### Contributing
-I've started playing around with [Gitpod](https://gitpod.io) for development, with good results. Sometime after the next batch of core updates, I'll work on stabilizing this again. For now, issues and pull requests welcome.
+I've started playing around with [Gitpod](https://gitpod.io) for development, with good results. The shortest path to developing Gopherbot is to sign up with [Gitpod](https://gitpod.io), fork this repository, and visit `https://gitpod.io/#https://github.com/<your-user-name>/gopherbot`.
 
 For development, testing, and collaboration, feel free to shoot me an email for an invite to [the LinuxJedi Slack team](https://linuxjedi.slack.com).

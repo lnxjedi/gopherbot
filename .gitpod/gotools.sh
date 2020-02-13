@@ -23,7 +23,7 @@
     github.com/golangci/golangci-lint/cmd/golangci-lint \
     github.com/mgechev/revive \
     github.com/sourcegraph/go-langserver \
-    golang.org/x/tools/cmd/gopls \
+    golang.org/x/tools/gopls \
     github.com/go-delve/delve/cmd/dlv \
     github.com/davidrjenni/reftools/cmd/fillstruct \
     github.com/godoctor/godoctor
