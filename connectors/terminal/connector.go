@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/chzyer/readline"
 	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/readline"
 )
 
 // termConnector holds all the relevant data about a connection

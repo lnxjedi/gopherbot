@@ -14,6 +14,8 @@ Slogans under consideration:
 * **The Co-worker that Never Sleeps**
 * **The DevOps Swiss-Army Chainsaw**
 
+[![Try it out with Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/lnxjedi/gopherbot)
+
 ## Latest Release
 Download the current release from: https://github.com/lnxjedi/gopherbot/releases/latest
 
