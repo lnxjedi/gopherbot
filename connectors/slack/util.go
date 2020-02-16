@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 const optimeout = 1 * time.Minute

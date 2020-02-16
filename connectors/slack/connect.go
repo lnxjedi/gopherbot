@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 type botDefinition struct {
