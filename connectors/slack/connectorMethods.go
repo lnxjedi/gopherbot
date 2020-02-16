@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"github.com/nlopes/slack"
+	"github.com/slack-go/slack"
 )
 
 // Message send delay; slack has problems with scrolling if messages fly out

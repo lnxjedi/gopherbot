@@ -30,7 +30,7 @@ github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/service/dynamodb
 github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute
 github.com/aws/aws-sdk-go/service/sts
-# github.com/davecgh/go-spew v1.1.0
+# github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/dgryski/dgoogauth v0.0.0-20160602071324-96977cbd42e2
 github.com/dgryski/dgoogauth
@@ -55,15 +55,17 @@ github.com/joho/godotenv
 github.com/jordan-wright/email
 # github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159
 github.com/lnxjedi/readline
-# github.com/nlopes/slack v0.5.0
-github.com/nlopes/slack
-github.com/nlopes/slack/slackutilsx
 # github.com/pkg/errors v0.8.0
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 github.com/robfig/cron
+# github.com/slack-go/slack v0.6.1
+github.com/slack-go/slack
+github.com/slack-go/slack/internal/errorsx
+github.com/slack-go/slack/internal/timex
+github.com/slack-go/slack/slackutilsx
 # github.com/stretchr/testify v1.2.2
 github.com/stretchr/testify/assert
 # golang.org/x/net v0.0.0-20180906233101-161cd47e91fd
