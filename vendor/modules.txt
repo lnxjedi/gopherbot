@@ -45,7 +45,7 @@ github.com/ghodss/yaml
 github.com/go-ini/ini
 # github.com/gopackage/ddp v0.0.0-20170117053602-652027933df4
 github.com/gopackage/ddp
-# github.com/gorilla/websocket v1.4.0
+# github.com/gorilla/websocket v1.4.1
 github.com/gorilla/websocket
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
@@ -55,13 +55,13 @@ github.com/joho/godotenv
 github.com/jordan-wright/email
 # github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159
 github.com/lnxjedi/readline
-# github.com/pkg/errors v0.8.0
+# github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 github.com/robfig/cron
-# github.com/slack-go/slack v0.6.1
+# github.com/slack-go/slack v0.6.2
 github.com/slack-go/slack
 github.com/slack-go/slack/internal/errorsx
 github.com/slack-go/slack/internal/timex
