@@ -83,20 +83,18 @@ fi
 SetParameter SSH_AUTH_SOCK $SSH_AUTH_SOCK
 SetParameter SSH_AGENT_PID $SSH_AGENT_PID
 
+SSH_OPTIONS = "-o PasswordAuthentication=no"
 if [ -n "$GOPHER_HOME" ]
 then
     if [ -e "$GOPHER_CONFIGDIR/ssh/config" ]
     then
         chmod 0600 "$GOPHER_CONFIGDIR/ssh/config"
-        SSH_OPTIONS="-F $GOPHER_CONFIGDIR/ssh/config"
+        SSH_OPTIONS="$SSH_OPTIONS -F $GOPHER_CONFIGDIR/ssh/config"
     fi
     SSH_OPTIONS="$SSH_OPTIONS -o UserKnownHostsFile=$GOPHER_HOME/known_hosts"
 fi
 
-if [ -n "$SSH_OPTIONS" ]
-then
-    SetParameter SSH_OPTIONS "$SSH_OPTIONS"
-    SetParameter GIT_SSH_COMMAND "ssh $SSH_OPTIONS"
-fi
+SetParameter SSH_OPTIONS "$SSH_OPTIONS"
+SetParameter GIT_SSH_COMMAND "ssh $SSH_OPTIONS"
 
 exit 0
