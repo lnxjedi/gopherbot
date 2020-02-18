@@ -2,8 +2,6 @@
 
 .PHONY: prod dev clean
 
-include environment
-
 GOPHER_SOURCE_IMAGE?=lnxjedi/gopherbot:latest
 GOPHER_BOTNAME?=$(notdir $(basename $(abspath .)))
 
@@ -18,7 +16,16 @@ prod:
 dev:
 	docker container run --name $(GOPHER_BOTNAME) \
 	  --env-file environment -e HOSTNAME=$(HOSTNAME) \
-	  -e GOPHER_LOGLEVEL=debug \
+	  -e GOPHER_LOGLEVEL=debug --interactive --tty \
+	  $(GOPHER_SOURCE_IMAGE)
+
+# A container that mounts $(PWD) to the $(GOPHER_HOME), for local dev
+# For the ubuntu/latest container, $(PWD) must be owned/writable by
+# UID 1.
+local:
+	docker container run --name $(GOPHER_BOTNAME) \
+	  -e HOSTNAME=$(HOSTNAME) -v $(PWD):/home/robot \
+	  -e GOPHER_LOGLEVEL=debug --interactive --tty \
 	  $(GOPHER_SOURCE_IMAGE)
 
 # An interactive container for running the setup plugin
@@ -31,7 +38,8 @@ setup:
 debug:
 	docker container run --name $(GOPHER_BOTNAME) \
 	  --env-file environment -e HOSTNAME=$(HOSTNAME) \
-	  -e GOPHER_LOGLEVEL=debug -it --entrypoint /bin/bash \
+	  -e GOPHER_LOGLEVEL=debug --interactive --tty \
+	  --entrypoint /bin/bash \
 	  $(GOPHER_SOURCE_IMAGE)
 
 clean:
