@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"log"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -61,6 +62,9 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		if r.CheckAdmin() {
 			msg = append(msg, fmt.Sprintf("The gopherbot install directory is: %s", installPath))
 			msg = append(msg, fmt.Sprintf("My home directory is: %s", homePath))
+			if custom, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY"); ok {
+				msg = append(msg, fmt.Sprintf("My git repository is: %s", custom))
+			}
 		}
 		msg = append(msg, fmt.Sprintf("My software version is: Gopherbot %s, commit: %s", botVersion.Version, botVersion.Commit))
 		msg = append(msg, fmt.Sprintf("The administrators for this robot are: %s", admins))
@@ -68,7 +72,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		if len(adminContact.Attribute) > 0 {
 			msg = append(msg, fmt.Sprintf("The administrative contact for this robot is: %s", adminContact))
 		}
-		r.Say(strings.Join(msg, "\n"))
+		r.MessageFormat(robot.Variable).Say(strings.Join(msg, "\n"))
 	}
 	if command == "help" {
 		botname := r.cfg.botinfo.UserName
