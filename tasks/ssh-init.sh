@@ -83,7 +83,7 @@ fi
 SetParameter SSH_AUTH_SOCK $SSH_AUTH_SOCK
 SetParameter SSH_AGENT_PID $SSH_AGENT_PID
 
-SSH_OPTIONS = "-o PasswordAuthentication=no"
+SSH_OPTIONS="-o PasswordAuthentication=no"
 if [ -n "$GOPHER_HOME" ]
 then
     if [ -e "$GOPHER_CONFIGDIR/ssh/config" ]
