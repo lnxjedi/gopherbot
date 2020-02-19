@@ -320,7 +320,7 @@ continueQuit
 Say "*******"
 Say "$(cat <<EOF
 
-For your robot to be able to save it's configuration, you'll need to configure a read-write deploy key in the repository settings. Here's the public-key portion that you can paste in for your read-write deploy key:
+For your robot to be able to save it's configuration, you'll need to configure a read-write deploy key in the repository settings. Here's the public-key portion (manage_rsa.pub) that you can paste in for your read-write deploy key:
 EOF
 )"
 Pause 2
@@ -330,7 +330,7 @@ continueQuit
 Say "*******"
 Say "$(cat <<EOF
 
-While you're at it, you can also configure a read-only deploy key that corresponds to a flattened and unencrypted private key defined in 'GOPHER_DEPLOY_KEY', above. This deploy key will allow you to easily bootstrap your robot to a new container or VM, only requiring a few environment variables to be defined. Here's the public-key portion of the read-only deploy key:
+While you're at it, you can also configure a read-only deploy key that corresponds to a flattened and unencrypted private key defined in 'GOPHER_DEPLOY_KEY', above. This deploy key will allow you to easily bootstrap your robot to a new container or VM, only requiring a few environment variables to be defined. Here's the public-key portion (deploy_rsa.pub) of the read-only deploy key:
 EOF
 )"
 Say -f "$(echo; echo '--- snip ---'; cat custom/ssh/deploy_rsa.pub; echo '--- /snip ---')"
