@@ -67,6 +67,11 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageForm
 	// UserRoster from robot.yaml
 	if f != robot.Variable {
 		sbytes = mentionRe.ReplaceAllFunc(sbytes, func(bytes []byte) []byte {
+			mentioned := string(bytes[1:])
+			switch mentioned {
+			case "here", "channel", "everyone":
+				return []byte("<!" + mentioned + ">")
+			}
 			replace, ok := s.userID(string(bytes[1:]))
 			if ok {
 				return []byte("<@" + replace + ">")
