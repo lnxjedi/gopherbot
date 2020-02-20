@@ -17,15 +17,18 @@
     - [External Plugin Configuration](upgrade/External-Plugin.md)
     - [Custom Configuration Directory](upgrade/Custom-Dir.md)
     - [Early Encryption Initialization](upgrade/Encryption.md)
+    - [Long-Term Memories](upgrade/Memories.md)
 
 - [Initial Robot Configuration](RobotInstall.md)
     - [Requirements](botsetup/Requirements.md)
     - [Manual Setup](botsetup/ManualSetup.md)
-    - [Setup with Docker](botsetup/DockerSetup.md)
+    - [Setup with Containers](botsetup/ContainerSetup.md)
     - [Using the Setup Plugin](botsetup/Plugin.md)
+    - [Setting up a Robot with Gitpod](botsetup/Gitpod.md)
 
 - [Deploying and Running Your Robot](RunRobot.md)
     - [CLI Operation](deploy/CLI.md)
+    - [Running with Systemd](deploy/systemd.md)
     - [Running in a Container](deploy/Container.md)
 
 - [Configuring Gopherbot](Configuration.md)
