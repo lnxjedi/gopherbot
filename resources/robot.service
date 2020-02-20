@@ -17,7 +17,8 @@ Group=<robot>
 WorkingDirectory=/home/robots/<my-robot-home>
 ExecStart=/opt/gopherbot/gopherbot -plainlog 
 Restart=on-failure
-Environment=USER=<robot> HOME=/home/robots/<my-robot-name> HOSTNAME=%H
+## Change "slack" if needed
+Environment=USER=<robot> HOME=/home/robots/<my-robot-name> GOPHER_PROTOCOL=slack HOSTNAME=%H
 
 KillMode=process
 ## Give the robot plenty of time to finish plugins currently executing;

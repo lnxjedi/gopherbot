@@ -28,6 +28,10 @@
 
 - [Deploying and Running Your Robot](RunRobot.md)
     - [CLI Operation](deploy/CLI.md)
+        - [Local Install](deploy/local.md)
+        - [Container Operation](deploy/containercli.md)
+        - [Using Gitpod](deploy/gitpodcli.md)
+        - [Encrypting Secrets](deploy/secrets.md)
     - [Running with Systemd](deploy/systemd.md)
     - [Running in a Container](deploy/Container.md)
 

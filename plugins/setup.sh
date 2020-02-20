@@ -300,11 +300,11 @@ checkExit $?
 cat > .env <<EOF
 GOPHER_ENCRYPTION_KEY=$GOPHER_ENCRYPTION_KEY
 GOPHER_CUSTOM_REPOSITORY=$BOTREPO
-# You should normally keep GOPHER_PROTOCOL commented out, except in
-# production.
+## You should normally keep GOPHER_PROTOCOL commented out, except in
+## production.
 GOPHER_PROTOCOL=slack
-# To use the deploy key below, add ssh/deploy_rsa.pub as a read-only
-# deploy key for the custom configuration repository.
+## To use the deploy key below, add ssh/deploy_rsa.pub as a read-only
+## deploy key for the custom configuration repository.
 GOPHER_DEPLOY_KEY=$DEPKEY
 EOF
 Say "*******"
@@ -339,12 +339,13 @@ continueQuit
 echo "GOPHER_SETUP_TOKEN=$SETUPKEY" >> .env
 
 # Create configuration
-cp -r $GOPHER_INSTALLDIR/robot.skel/* "$GOPHER_CONFIGDIR"
+cp -r $GOPHER_INSTALLDIR/robot.skel/* $GOPHER_INSTALLDIR/robot.skel/.??* "$GOPHER_CONFIGDIR"
 substitute "<slackencrypted>" "$SLACK_ENCRYPTED" "conf/slack.yaml"
 substitute "<sshencrypted>" "$SSH_ENCRYPTED"
 substitute "<jobchannel>" "$JOBCHANNEL" "conf/slack.yaml"
 substitute "<botname>" "$BOTNAME"
 substitute "<botalias>" "$BOTALIAS"
+substitute "<botalias>" "$BOTALIAS" "conf/terminal.yaml"
 substitute "<botfullname>" "$BOTFULLNAME"
 substitute "<botfullname>" "$BOTFULLNAME" "git/config"
 substitute "<botemail>" "$BOTMAIL"
