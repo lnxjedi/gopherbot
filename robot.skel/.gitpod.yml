@@ -1,0 +1,7 @@
+---
+image: lnxjedi/gopherbot:gitpod
+checkoutLocation: "custom"
+workspaceLocation: "."
+tasks:
+- command: touch .restore
+- command: ln -s /opt/gopherbot/gopherbot .

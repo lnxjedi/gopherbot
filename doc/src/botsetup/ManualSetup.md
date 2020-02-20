@@ -42,7 +42,7 @@ binary-encrypted-key
 ## 4. Copy and Modify the Standard Robot
 Now copy the contents of `robot.skel` from the distribution archive to the new `custom/` directory:
 ```shell
-davidparsley@penguin:/home/robots/clu$ cp -a /opt/gopherbot/robot.skel/* custom/
+davidparsley@penguin:/home/robots/clu$ cp -a /opt/gopherbot/robot.skel/* /opt/gopherbot/robot.skel/.??* custom/
 ```
 
 ### 4.1 Encrypting your Slack Token (and other secrets)
@@ -71,6 +71,9 @@ In `custom/conf/robot.yaml`:
 In `custom/conf/slack.yaml`:
 * Replace `<slackencrypted>` with the ciphertext generated above
 * You'll replace `<adminusername>` and `<adminuserid>` later, after your robot has successfully connected
+
+In `custom/conf/terminal.yaml`:
+* Replace `<botalias>` with your robot's single-character alias
 
 In `custom/git/config`, replace the values for `<botfullname>` and `<botemail>`; these will be used when your robot performs a `git commit`.
 

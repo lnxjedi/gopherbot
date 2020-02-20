@@ -1,7 +1,9 @@
 ## The terminal connector can mirror the actual team/users/channels for
 ## devel.
 # DefaultChannels: [ "general", "staff", "helpdesk" ]
-# ProtocolConfig:
+ProtocolConfig:
+  EOF: '<botalias>quit'
+  Abort: '<botalias>abort'
 #   Users:
 #   - tommy
 #   - jane

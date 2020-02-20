@@ -20,7 +20,6 @@ then
     INTERACTIVE="true"
 fi
 
-echo "GOPHER_PROTOCOL is $GOPHER_PROTOCOL"
 if [ "$GOPHER_PROTOCOL" == "terminal" ]
 then
     TERMINAL="true"
