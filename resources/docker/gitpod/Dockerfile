@@ -4,6 +4,9 @@ ARG installdir=/opt
 ARG version=v2.0.0-snapshot
 ARG nonprivuser=nobody
 
+ENV PATH=${PATH}:/opt/gopherbot
+ENV GOPATH=/workspace/golang
+
 RUN apt-get update && \
   apt-get -y upgrade && \
   apt-get install -y \
@@ -23,9 +26,6 @@ RUN apt-get update && \
   curl -L https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.tar.gz | tar xzvf - && \
   chown ${nonprivuser} ${installdir}/gopherbot/gopherbot && \
   chmod u+s ${installdir}/gopherbot/gopherbot
-
-ENV PATH=${PATH}:/opt/gopherbot
-ENV GOPATH=/workspace/golang
 
 WORKDIR /home
 ENTRYPOINT [ "/bin/bash" ]
