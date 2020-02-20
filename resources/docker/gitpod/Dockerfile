@@ -23,3 +23,6 @@ RUN apt-get update && \
 
 ENV PATH=${PATH}:/opt/gopherbot
 ENV GOPATH=/workspace/golang
+
+WORKDIR /home
+ENTRYPOINT [ "/bin/bash" ]

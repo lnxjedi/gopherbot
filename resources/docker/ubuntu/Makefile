@@ -1,4 +1,4 @@
-.PHONY: image clean
+.PHONY: clean
 
 image:
 	docker image build -t lnxjedi/gopherbot:v2-ubuntu -t lnxjedi/gopherbot:ubuntu -t lnxjedi/gopherbot:latest .
