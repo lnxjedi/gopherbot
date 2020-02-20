@@ -1,0 +1,28 @@
+## Template for running your robot as a systemd service;
+## remove these lines, edit for your robot, and copy to
+## /etc/systemd/system/<robot-name>.service.
+[Unit]
+Description=<MyRobotName> - Gopherbot DevOps Chatbot
+Documentation=https://lnxjedi.github.io/gopherbot
+After=syslog.target
+After=network.target
+
+[Service]
+Type=simple
+## Update with the user/group for this robot
+User=<robot>
+Group=<robot>
+## Place the robot's ".env" file in the WorkingDirectory,
+## owned by the User, mode r-------- (0400).
+WorkingDirectory=/home/robots/<my-robot-home>
+ExecStart=/opt/gopherbot/gopherbot -plainlog 
+Restart=on-failure
+Environment=USER=<robot> HOME=/home/robots/<my-robot-name> HOSTNAME=%H
+
+KillMode=process
+## Give the robot plenty of time to finish plugins currently executing;
+## no new plugins will start after SIGTERM is caught.
+TimeoutStopSec=600
+
+[Install]
+WantedBy=multi-user.target
