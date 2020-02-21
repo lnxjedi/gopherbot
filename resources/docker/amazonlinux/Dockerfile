@@ -34,7 +34,7 @@ RUN cd /usr/local && \
   mkdir -p ${installdir} && \
   mkdir -p ${HOME} && \
   chown ${username}:${groupname} ${HOME} && \
-  chmod 0750 ${HOME}
+  chmod 0755 ${HOME}
 
 # Invalidate the cache when master changes
 ADD https://api.github.com/repos/lnxjedi/gopherbot/commits/master /commit
