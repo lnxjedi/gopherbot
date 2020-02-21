@@ -10,6 +10,7 @@ RUN yum -y update && \
     python3 \
     ruby \
     unzip \
+    vim \
     zip && \
   yum clean all && \
   rm -rf /var/cache/yum

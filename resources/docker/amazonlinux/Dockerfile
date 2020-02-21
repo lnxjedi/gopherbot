@@ -11,6 +11,7 @@ RUN yum -y update && \
     tar \
     python3 \
     unzip \
+    vim \
     zip && \
   amazon-linux-extras install ruby2.4 && \
   yum clean all && \

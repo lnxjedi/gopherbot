@@ -12,6 +12,7 @@ RUN apt-get update && \
     python3 \
     ruby \
     unzip \
+    vim \
     zip && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
