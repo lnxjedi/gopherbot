@@ -22,7 +22,7 @@ ARG installdir=/opt
 ARG version=v2.0.0-snapshot
 ARG goversion=1.13.8
 
-ENV PATH=${PATH}:${HOME}/go/bin:/usr/local/go/bin
+ENV PATH=${PATH}:${HOME}/go/bin:/usr/local/go/bin:/opt/gopherbot
 ENV HOME=/home/robot
 ENV USER=${username}
 ENV GROUP=${groupname}
@@ -45,7 +45,8 @@ ADD https://api.github.com/repos/lnxjedi/gopherbot/commits/master /commit
 RUN cd ${installdir} && \
   curl -L https://github.com/lnxjedi/gopherbot/releases/download/${version}/gopherbot-linux-amd64.tar.gz | tar xzvf - && \
   chown ${nonprivuser}:${groupname} ${installdir}/gopherbot/gopherbot && \
-  chmod u+s ${installdir}/gopherbot/gopherbot
+  chmod u+s ${installdir}/gopherbot/gopherbot && \
+  ln -s ${installdir}/gopherbot/gopherbot ${HOME}/gopherbot
 
 WORKDIR ${HOME}
 USER ${USER}:${GROUP}
