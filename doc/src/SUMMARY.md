@@ -16,6 +16,7 @@
     - [Required Bot Info](upgrade/BotInfo.md)
     - [External Plugin Configuration](upgrade/External-Plugin.md)
     - [Custom Configuration Directory](upgrade/Custom-Dir.md)
+    - [Main Configuration File Rename](upgrade/robot-yaml.md)
     - [Early Encryption Initialization](upgrade/Encryption.md)
     - [Long-Term Memories](upgrade/Memories.md)
 
