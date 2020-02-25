@@ -18,7 +18,7 @@ The **bootstrap** plugin will trigger a restore during start-up, so launching yo
 ### Providing Environment Variables
 When launching your robot in a container, you'll need to provide the environment variables defined in the robot's `.env` file. There are two primary ways of accomplishing this:
 * Both `docker` and `podman` allow you to set environment variables with a `--env-file .env` argument
-* Container orchestration environments or e.g. `docker-compose` provide other means of providing these values; take care that the value for `GOPHER_ENCRYPTION_KEY` does not get committed to to a repository
+* Container orchestration environments or e.g. `docker-compose` provide other means of providing these values; take care that the value for `GOPHER_ENCRYPTION_KEY` doesn't get committed to a repository
 
 ### Setting the `GOPHER_PROTOCOL` Environment Variable
 When starting `gopherbot` at the CLI, or using systemd, the value for `GOPHER_PROTOCOL` should be commented out in the `.env`; this value is required for launching in a container so that your robot will start and connect to your team chat.
