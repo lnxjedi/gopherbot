@@ -2,7 +2,7 @@
 
 [Gitpod](https://gitpod.io) is a pretty good way to work with your robot's CLI, with the caveat that your robot needs to be stored in a public repository to use the free service. The standard robot includes a `.gitpod.yml` file, so if you've already signed up for **Gitpod** you can just visit: https://gitpod.io/#https://github.com/\<org\>/\<robot-repo\>, or click the **Gitpod** button if you've installed the [browser extension](https://www.gitpod.io/docs/browser-extension).
 
-Once you've created the `.env` file with the **Gitpod** editor, just start the robot:
+When your workspace opens, you can use the `File` menu to create a new `.env` file directly in the `/workspace` folder. Once you've pasted in the contents and saved the file, just start the robot in the lower terminal pane:
 ```
 gitpod /workspace $ gopherbot 
 2020/02/20 19:52:01 Debug: Checking os.Stat for dir 'custom' from wd '': stat custom: no such file or directory
