@@ -24,7 +24,7 @@
 #   of any commands that use ssh remotely. Further arguments are ignored when "-s" is
 #   given.
 #
-#   If '-s' is given, the host keys for the remote host are added to $HOME/.ssh/known_hosts
+#   If '-s' is given, the host keys for the remote host are added to $GOPHER_HOME/known_hosts
 #   unless already present.
 #
 # A standard pipeline using the `remote` task might look like this:
@@ -65,7 +65,8 @@ do
         GR_REMOTE_SCRIPT="$OPTARG"
         ;;
     s)
-        GR_LOCAL_SCAN="true"
+        AddTask ssh-scan $GOPHER_REMOTE_HOST
+        exit 0
         ;;
     S)
         GR_REMOTE_SCANHOST="$OPTARG"
