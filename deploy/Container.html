@@ -161,7 +161,7 @@
 <p>When launching your robot in a container, you'll need to provide the environment variables defined in the robot's <code>.env</code> file. There are two primary ways of accomplishing this:</p>
 <ul>
 <li>Both <code>docker</code> and <code>podman</code> allow you to set environment variables with a <code>--env-file .env</code> argument</li>
-<li>Container orchestration environments or e.g. <code>docker-compose</code> provide other means of providing these values; take care that the value for <code>GOPHER_ENCRYPTION_KEY</code> does not get committed to to a repository</li>
+<li>Container orchestration environments or e.g. <code>docker-compose</code> provide other means of providing these values; take care that the value for <code>GOPHER_ENCRYPTION_KEY</code> doesn't get committed to a repository</li>
 </ul>
 <h3><a class="header" href="#setting-the-gopher_protocol-environment-variable" id="setting-the-gopher_protocol-environment-variable">Setting the <code>GOPHER_PROTOCOL</code> Environment Variable</a></h3>
 <p>When starting <code>gopherbot</code> at the CLI, or using systemd, the value for <code>GOPHER_PROTOCOL</code> should be commented out in the <code>.env</code>; this value is required for launching in a container so that your robot will start and connect to your team chat.</p>

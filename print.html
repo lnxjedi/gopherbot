@@ -732,7 +732,7 @@ lists:listmap
 </code></pre>
 <h1><a class="header" href="#using-gitpod" id="using-gitpod">Using Gitpod</a></h1>
 <p><a href="https://gitpod.io">Gitpod</a> is a pretty good way to work with your robot's CLI, with the caveat that your robot needs to be stored in a public repository to use the free service. The standard robot includes a <code>.gitpod.yml</code> file, so if you've already signed up for <strong>Gitpod</strong> you can just visit: https://gitpod.io/#https://github.com/&lt;org&gt;/&lt;robot-repo&gt;, or click the <strong>Gitpod</strong> button if you've installed the <a href="https://www.gitpod.io/docs/browser-extension">browser extension</a>.</p>
-<p>Once you've created the <code>.env</code> file with the <strong>Gitpod</strong> editor, just start the robot:</p>
+<p>When your workspace opens, you can use the <code>File</code> menu to create a new <code>.env</code> file directly in the <code>/workspace</code> folder. Once you've pasted in the contents and saved the file, just start the robot in the lower terminal pane:</p>
 <pre><code>gitpod /workspace $ gopherbot 
 2020/02/20 19:52:01 Debug: Checking os.Stat for dir 'custom' from wd '': stat custom: no such file or directory
 2020/02/20 19:52:01 Debug: Checking os.Stat for dir 'conf' from wd '': stat conf: no such file or directory
@@ -796,7 +796,7 @@ UK+T6/HocaR9AAD8Ty2giHdNR3r03pbffpah/rk+MZumPK4Y3A==
 <p>When launching your robot in a container, you'll need to provide the environment variables defined in the robot's <code>.env</code> file. There are two primary ways of accomplishing this:</p>
 <ul>
 <li>Both <code>docker</code> and <code>podman</code> allow you to set environment variables with a <code>--env-file .env</code> argument</li>
-<li>Container orchestration environments or e.g. <code>docker-compose</code> provide other means of providing these values; take care that the value for <code>GOPHER_ENCRYPTION_KEY</code> does not get committed to to a repository</li>
+<li>Container orchestration environments or e.g. <code>docker-compose</code> provide other means of providing these values; take care that the value for <code>GOPHER_ENCRYPTION_KEY</code> doesn't get committed to a repository</li>
 </ul>
 <h3><a class="header" href="#setting-the-gopher_protocol-environment-variable" id="setting-the-gopher_protocol-environment-variable">Setting the <code>GOPHER_PROTOCOL</code> Environment Variable</a></h3>
 <p>When starting <code>gopherbot</code> at the CLI, or using systemd, the value for <code>GOPHER_PROTOCOL</code> should be commented out in the <code>.env</code>; this value is required for launching in a container so that your robot will start and connect to your team chat.</p>
