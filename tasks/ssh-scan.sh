@@ -19,7 +19,7 @@ fi
 
 # Ignore ssh error value; github.com for instance will exit 1
 SCAN=$(ssh $SKARGS $SSH_OPTIONS -o PasswordAuthentication=no -o PubkeyAuthentication=no \
--o StrictHostKeyChecking=accept-new $REMOTE_HOST : 2>&1 || :)
+-o StrictHostKeyChecking=no $REMOTE_HOST : 2>&1 || :)
 
 if echo "$SCAN" | grep -q "WARNING"
 then

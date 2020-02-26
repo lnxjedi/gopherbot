@@ -1,16 +1,18 @@
 #!/bin/bash -e
 
+source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
+
 # remote-exec.sh - script for the `remote` task, for running simple commands
 # on a remote system. To use the remote task:
 # 1) Add the `ssh-init` task to start the robot's ssh agent
 # 2) set the following environment vars for the pipeline with
 #    `SetParameter <name> <value>`:
 # - GOPHER_REMOTE_HOST - required if (-h <host>) not given
-# - GOPHER_REMOTE_USER - optional, override with (-l <loginid>); defaults to $USER
+# - GOPHER_REMOTE_USER - optional, override with (-l <loginid>); defaults to $USER;
+#   if this is always the same, you can also add as a Parameter for the "remote"
+#   task
 # - GOPHER_REMOTE_DIR - optional remote directory, override with (-d <dir>);
 #   defaults to remote $HOME
-
-# Technical note: this task 
 
 # Usage: `AddTask remote (-A) (-l <login>) (-h <host>) (-f <file>|-S <scanhost(:port)>|-s|<remote command>)`
 #   Executes a command on a remote host. Passing `-A` forwards the robot's ssh agent.
@@ -45,7 +47,7 @@
 unset GR_FORWARD_AGENT GR_REMOTE_HOST GR_REMOTE_SCANHOST GR_REMOTE_SCRIPT GR_REMOTE_USER \
 GR_REMOTE_DIR GR_LOCAL_SCAN
 
-[ -n "$GOPHER_REMOTE_USER" ] && GR_REMOTE_USER="$GOPHER_REMOTE_USER"
+[ -n "$GOPHER_REMOTE_USER" ] && GR_REMOTE_USER="-l $GOPHER_REMOTE_USER"
 [ -n "$GOPHER_REMOTE_HOST" ] && GR_REMOTE_HOST="$GOPHER_REMOTE_HOST"
 [ -n "$GOPHER_REMOTE_DIR" ] && GR_REMOTE_DIR="$GOPHER_REMOTE_DIR"
 
@@ -65,8 +67,7 @@ do
         GR_REMOTE_SCRIPT="$OPTARG"
         ;;
     s)
-        AddTask ssh-scan $GOPHER_REMOTE_HOST
-        exit 0
+        GR_LOCAL_SCAN="true"
         ;;
     S)
         GR_REMOTE_SCANHOST="$OPTARG"
@@ -108,26 +109,8 @@ remote_scan(){
         SKARGS="-p $REMOTE_PORT"
     fi
     cat <<EOF
-set -e
-echo "Checking for $SCAN_HOST from $GR_REMOTE_HOST"
-if [ -n "$REMOTE_PORT" ]
-then
-	if grep -Eq "^\[$REMOTE_HOST\]:$REMOTE_PORT\s" \$HOME/.ssh/known_hosts
-	then
-		echo "$SCAN_HOST already in known_hosts, exiting"
-		exit 0
-	fi
-else
-	if grep -Eq "^$REMOTE_HOST\s" \$HOME/.ssh/known_hosts
-	then
-		echo "$SCAN_HOST already in known_hosts, exiting"
-		exit 0
-	fi
-fi
-
-echo "Running \"ssh-keyscan $SKARGS $REMOTE_HOST 2>/dev/null >> \$HOME/.ssh/known_hosts\""
-touch \$HOME/.ssh/known_hosts # in case it doesn't already exist
-ssh-keyscan $SKARGS $REMOTE_HOST 2>/dev/null >> \$HOME/.ssh/known_hosts
+ssh $SKARGS -o PasswordAuthentication=no -o PubkeyAuthentication=no \
+-o StrictHostKeyChecking=no $REMOTE_HOST : 2>&1 || :
 EOF
 }
 
@@ -137,45 +120,11 @@ then
     exit 1
 fi
 
-# ssh-keyscan remote host to known_hosts
-if [ -n "$GR_LOCAL_SCAN" ]
+if [ "$GR_LOCAL_SCAN" ]
 then
-    unset REMOTE_HOST REMOTE_PORT
-
-    REMOTE_HOST="$GR_REMOTE_HOST"
-    SCAN_HOST="$REMOTE_HOST"
-
-    if [[ $REMOTE_HOST = *:* ]]
-    then
-        REMOTE_PORT=${REMOTE_HOST##*:}
-        REMOTE_HOST=${REMOTE_HOST%%:*}
-        SKARGS="-p $REMOTE_PORT"
-    fi
-
-    echo "Checking for $SCAN_HOST"
-    if [ -n "$REMOTE_PORT" ]
-    then
-        if grep -Eq "^\[$REMOTE_HOST\]:$REMOTE_PORT\s" $HOME/.ssh/known_hosts
-        then
-            echo "$SCAN_HOST already in known_hosts, exiting"
-            exit 0
-        fi
-    else
-        if grep -Eq "^$REMOTE_HOST\s" $HOME/.ssh/known_hosts
-        then
-            echo "$SCAN_HOST already in known_hosts, exiting"
-            exit 0
-        fi
-    fi
-
-    echo "Running \"ssh-keyscan $SKARGS $REMOTE_HOST 2>/dev/null >> $HOME/.ssh/known_hosts\""
-    touch $HOME/.ssh/known_hosts # in case it doesn't already exist
-    ssh-keyscan $SKARGS $REMOTE_HOST 2>/dev/null >> $HOME/.ssh/known_hosts
-
+    AddTask ssh-scan $GOPHER_REMOTE_HOST
     exit 0
 fi
-
-SSH_OPTIONS="-o PasswordAuthentication=no"
 
 # Run a remote script
 if [ -n "$GR_REMOTE_SCRIPT" ]
