@@ -7,9 +7,6 @@ import (
 	// Included connectors
 	_ "github.com/lnxjedi/gopherbot/connectors/rocket"
 	_ "github.com/lnxjedi/gopherbot/connectors/slack"
-	// NOTE: if you build with '-tags test', the terminal connector will also
-	// show emitted events.
-	_ "github.com/lnxjedi/gopherbot/connectors/terminal"
 
 	// A brain using AWS DynamoDB
 	_ "github.com/lnxjedi/gopherbot/brains/dynamodb"

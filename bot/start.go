@@ -193,7 +193,18 @@ func Start(v VersionInfo) {
 		if !ok {
 			Log(robot.Warn, "Starting unconfigured; no robot.yaml/gopherbot.yaml found")
 			os.Setenv("GOPHER_UNCONFIGURED", "unconfigured")
-			termStart()
+			// Start a setup plugin; if answerfile.txt is present, use the new-style,
+			// otherwise run the terminal connector for the interactive plugin.
+			if _, err := os.Stat("answerfile.txt"); err == nil {
+				defaultProto = true
+				os.Setenv("GOPHER_PROTOCOL", "nullconn")
+				if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
+					os.Setenv("GOPHER_LOGFILE", "robot.log")
+					defaultLogfile = true
+				}
+			} else {
+				termStart()
+			}
 		} else {
 			// no robot.yaml, but GOPHER_CUSTOM_REPOSITORY set
 			os.Setenv("GOPHER_PROTOCOL", "nullconn")

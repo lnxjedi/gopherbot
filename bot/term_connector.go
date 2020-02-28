@@ -1,10 +1,11 @@
-// Package terminal implements a terminal console connector for plugin development
-// and bot testing; eventually a test framework will be built around it.
-package terminal
+package bot
 
 import (
 	"fmt"
 	"io"
+	"log"
+	"os"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -12,6 +13,30 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/lnxjedi/readline"
 )
+
+func init() {
+	RegisterPreload("connectors/terminal.so")
+	RegisterConnector("terminal", Initialize)
+}
+
+// Global persistent map of user name to user index
+var userIDMap = make(map[string]int)
+var userMap = make(map[string]int)
+
+type termUser struct {
+	Name                                        string // username / handle
+	InternalID                                  string // connector internal identifier
+	Email, FullName, FirstName, LastName, Phone string
+}
+
+type termconfig struct {
+	StartChannel string // the initial channel
+	StartUser    string // the initial userid
+	EOF          string // command to send on EOF (ctrl-D), default ";quit"
+	Abort        string // command to send on ctrl-c
+	Users        []termUser
+	Channels     []string
+}
 
 // termConnector holds all the relevant data about a connection
 type termConnector struct {
@@ -40,6 +65,93 @@ var exit = struct {
 }
 
 var quitTimeout = 4 * time.Second
+
+var lock sync.Mutex // package var lock
+var started bool    // set when connector is started
+
+// Initialize sets up the connector and returns a connector object
+func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
+	lock.Lock()
+	if started {
+		lock.Unlock()
+		return nil
+	}
+	started = true
+	lock.Unlock()
+
+	var c termconfig
+
+	err := handler.GetProtocolConfig(&c)
+	if err != nil {
+		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
+	}
+	eof := ";quit"
+	abort := ";abort"
+	if len(c.EOF) > 0 {
+		eof = c.EOF
+	}
+	if len(c.Abort) > 0 {
+		abort = c.Abort
+	}
+	found := false
+	for i, u := range c.Users {
+		userMap[u.Name] = i
+		userIDMap[u.InternalID] = i
+		if c.StartUser == u.Name {
+			found = true
+		}
+	}
+	if !found {
+		handler.Log(robot.Fatal, "Start user \"%s\" not listed in Users array", c.StartUser)
+	}
+
+	found = false
+	for _, ch := range c.Channels {
+		if c.StartChannel == ch {
+			found = true
+		}
+	}
+	if !found {
+		handler.Log(robot.Fatal, "Start channel \"%s\" not listed in Channels array", c.StartChannel)
+	}
+
+	var histfile string
+	home := os.Getenv("HOME")
+	if len(home) == 0 {
+		home = os.Getenv("USERPROFILE")
+	}
+	if len(home) > 0 {
+		histfile = path.Join(home, ".gopherbot_history")
+	}
+
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:            fmt.Sprintf("c:%s/u:%s -> ", c.StartChannel, c.StartUser),
+		HistoryFile:       histfile,
+		HistorySearchFold: true,
+		InterruptPrompt:   "abort",
+		EOFPrompt:         "exit",
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	tc := &termConnector{
+		currentChannel: c.StartChannel,
+		currentUser:    c.StartUser,
+		eof:            eof,
+		abort:          abort,
+		channels:       c.Channels,
+		running:        false,
+		width:          readline.GetScreenWidth(),
+		users:          c.Users,
+		heard:          make(chan string),
+		reader:         rl,
+	}
+
+	tc.Handler = handler
+	tc.SetTerminalWriter(tc.reader)
+	return robot.Connector(tc)
+}
 
 func (tc *termConnector) Run(stop <-chan struct{}) {
 	tc.Lock()
@@ -226,4 +338,90 @@ loop:
 	}
 	tc.reader.Write([]byte("Terminal connector finished\n"))
 	tc.reader.Close()
+}
+
+func (tc *termConnector) MessageHeard(u, c string) {
+	return
+}
+
+func (tc *termConnector) getUserInfo(u string) (*termUser, bool) {
+	var i int
+	var exists bool
+	if id, ok := tc.ExtractID(u); ok {
+		i, exists = userIDMap[id]
+	} else {
+		i, exists = userMap[u]
+	}
+	if exists {
+		return &tc.users[i], true
+	}
+	return nil, false
+}
+
+func (tc *termConnector) getChannel(c string) string {
+	if ch, ok := tc.ExtractID(c); ok {
+		return strings.TrimPrefix(ch, "#")
+	}
+	return c
+}
+
+// SetUserMap lets Gopherbot provide a mapping of usernames to user IDs
+func (tc *termConnector) SetUserMap(map[string]string) {
+	return
+}
+
+// GetUserAttribute returns a string attribute or nil if slack doesn't
+// have that information
+func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string, ret robot.RetVal) {
+	var user *termUser
+	var exists bool
+	if user, exists = tc.getUserInfo(u); !exists {
+		return "", robot.UserNotFound
+	}
+	switch attr {
+	case "email":
+		return user.Email, robot.Ok
+	case "internalid":
+		return user.InternalID, robot.Ok
+	case "realname", "fullname", "real name", "full name":
+		return user.FullName, robot.Ok
+	case "firstname", "first name":
+		return user.FirstName, robot.Ok
+	case "lastname", "last name":
+		return user.LastName, robot.Ok
+	case "phone":
+		return user.Phone, robot.Ok
+	// that's all the attributes we can currently get from slack
+	default:
+		return "", robot.AttributeNotFound
+	}
+}
+
+// SendProtocolChannelMessage sends a message to a channel
+func (tc *termConnector) SendProtocolChannelMessage(ch string, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+	channel := tc.getChannel(ch)
+	return tc.sendMessage(channel, msg, f)
+}
+
+// SendProtocolChannelMessage sends a message to a channel
+func (tc *termConnector) SendProtocolUserChannelMessage(uid, uname, ch, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+	channel := tc.getChannel(ch)
+	msg = "@" + uname + " " + msg
+	return tc.sendMessage(channel, msg, f)
+}
+
+// SendProtocolUserMessage sends a direct message to a user
+func (tc *termConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+	var user *termUser
+	var exists bool
+	if user, exists = tc.getUserInfo(u); !exists {
+		return robot.UserNotFound
+	}
+	return tc.sendMessage(fmt.Sprintf("(dm:%s)", user.Name), msg, f)
+}
+
+// JoinChannel joins a channel given it's human-readable name, e.g. "general"
+// Only useful for connectors that require it, a noop otherwise
+func (tc *termConnector) JoinChannel(c string) (ret robot.RetVal) {
+	return robot.Ok
 }

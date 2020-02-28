@@ -106,6 +106,15 @@ ExternalPlugins:
     Parameters:
     - Name: GOPHER_ENCRYPTION_INITIALIZED
       Value: {{ env "GOPHER_ENCRYPTION_INITIALIZED" }}
+  "autosetup":
+    Description: Setup plugin for creating a new robot from an answerfile
+    Privileged: true
+    Homed: true
+    NameSpace: manage
+    Path: plugins/autosetup.sh
+    Parameters:
+    - Name: GOPHER_ENCRYPTION_INITIALIZED
+      Value: {{ env "GOPHER_ENCRYPTION_INITIALIZED" }}
 {{ end }}
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires

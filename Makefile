@@ -5,7 +5,7 @@
 commit := $(shell git rev-parse --short HEAD)
 
 MODULES = goplugins/knock.so goplugins/duo.so goplugins/meme.so goplugins/totp.so \
-	connectors/slack.so connectors/rocket.so connectors/terminal.so brains/dynamodb.so
+	connectors/slack.so connectors/rocket.so brains/dynamodb.so
 
 GOOS ?= linux
 CGO ?= 0
@@ -28,9 +28,6 @@ connectors/slack.so: connectors/slack-mod.go connectors/slack/*.go robot/*.go
 	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w" -o $@ -buildmode=plugin -tags 'netgo osusergo static_build module' $<
 
 connectors/rocket.so: connectors/rocket-mod.go connectors/rocket/*.go robot/*.go
-	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w" -o $@ -buildmode=plugin -tags 'netgo osusergo static_build module' $<
-
-connectors/terminal.so: connectors/terminal-mod.go connectors/terminal/*.go robot/*.go
 	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w" -o $@ -buildmode=plugin -tags 'netgo osusergo static_build module' $<
 
 goplugins/duo.so: goplugins/duo-mod.go goplugins/duo/*.go robot/*.go

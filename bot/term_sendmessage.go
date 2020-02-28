@@ -1,6 +1,6 @@
 // +build !test
 
-package terminal
+package bot
 
 import (
 	"fmt"
