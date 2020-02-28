@@ -46,7 +46,7 @@ then
     exit 0
 fi
 
-ALIAS=$(GetBotAttribute "alias")
+ALIAS=$(GetBotAttribute "alias" | tr -d '\0')
 SLACKALIASES='!;-%~*+^\$?[]{}' # subset of all possible; others don't work
 
 if [ "$command" == "init" ]

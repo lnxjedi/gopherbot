@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -16,7 +17,10 @@ import (
 )
 
 // Set for the terminal connector
-var local bool
+var localTerm bool
+
+// Set for the null connector
+var nullConn bool
 
 type getCfgReturn struct {
 	buffptr *[]byte
@@ -290,7 +294,11 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		rchan <- taskReturn{errString, robot.MechanismFail}
 		return
 	}
-	if !local && logger == nil {
+	// Null connector can read from stdin
+	if nullConn {
+		cmd.Stdin = os.Stdin
+	}
+	if !(localTerm || nullConn) && logger == nil {
 		// close stdout on the external plugin...
 		cmd.Stdout = nil
 	} else {
@@ -322,7 +330,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	if command != "init" {
 		emit(ExternalTaskRan)
 	}
-	if !local && logger == nil {
+	if !(localTerm || nullConn) && logger == nil {
 		var stdErrBytes []byte
 		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
 			Log(robot.Error, "Reading from stderr for external command '%s': %v", taskPath, err)
@@ -339,9 +347,13 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	} else {
 		closed := make(chan struct{})
 		var solog, selog *log.Logger
-		if local {
+		if localTerm {
 			solog = log.New(terminalWriter, "OUT: ", 0)
 			selog = log.New(terminalWriter, "ERR: ", 0)
+		}
+		if nullConn {
+			solog = log.New(os.Stdout, "OUT: ", 0)
+			selog = log.New(os.Stderr, "ERR: ", 0)
 		}
 		go func() {
 			logging := logger != nil
@@ -351,7 +363,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				if logging {
 					logger.Log("OUT " + line)
 				}
-				if local {
+				if localTerm || nullConn {
 					solog.Println(line)
 				}
 			}
@@ -365,7 +377,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				if logging {
 					logger.Log("ERR " + line)
 				}
-				if local {
+				if localTerm || nullConn {
 					selog.Println(line)
 				}
 			}

@@ -43,7 +43,7 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 		botStdOutLogger.Print(msg)
 		return true
 	}
-	if local && l >= errorThreshold {
+	if localTerm && l >= errorThreshold {
 		botStdOutLogger.Print(msg)
 	}
 	if l >= currlevel || l == robot.Audit {

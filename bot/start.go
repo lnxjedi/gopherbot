@@ -342,7 +342,10 @@ func Start(v VersionInfo) {
 		return
 	}
 	if currentCfg.protocol == "terminal" {
-		local = true
+		localTerm = true
+	}
+	if currentCfg.protocol == "nullconn" {
+		nullConn = true
 	}
 	initializeConnector, ok := connectors[currentCfg.protocol]
 	if !ok {

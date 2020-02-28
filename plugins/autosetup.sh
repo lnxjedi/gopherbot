@@ -20,13 +20,13 @@ then
     exit 0
 fi
 
-if [ -e "answerfile.txt" ]
+if [ ! -e "answerfile.txt" ]
 then
-    exit 0 # new-style setup
+    exit 0
 fi
 
 checkExit() {
-    if [ ! "${!1} "]
+    if [ ! "${!1}" ]
     then
         Say "Missing value for \"$1\", quitting..."
         AddTask robot-quit
@@ -37,6 +37,8 @@ checkExit() {
 getOrGenerate(){
     local VARNAME=$1
     local SIZE=$2
+
+    local VALUE=${!VARNAME}
     local BYTES=$(( $SIZE / 4 * 3 ))
 
     VALUE=${!1}
@@ -52,12 +54,16 @@ if [ ! "$GOPHER_ENCRYPTION_INITIALIZED" ]
 then
     checkExit "ANS_ENCRYPTION_KEY"
     Say "Initializing encryption and restarting..."
+    #set -x
+    ENCRYPTION_KEY=$(getOrGenerate ANS_ENCRYPTION_KEY 32)
     cat > .env <<EOF
 GOPHER_ENCRYPTION_KEY=$ENCRYPTION_KEY
 EOF
     AddTask restart-robot
     exit 0
 fi
+
+Say "Continuing automatic setup..."
 
 Say "Exiting, press <enter>"
 read DUMMY
