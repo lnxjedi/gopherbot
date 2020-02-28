@@ -51,6 +51,23 @@ func restart(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	return
 }
 
+func quit(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
+	r := m.(Robot)
+	pn := r.pipeName
+	state.Lock()
+	if state.shuttingDown {
+		state.Unlock()
+		Log(robot.Warn, "Quit triggered in pipeline '%s' with shutdown already in progress", pn)
+		return
+	}
+	running := state.pipelinesRunning - 1
+	state.shuttingDown = true
+	state.Unlock()
+	r.Log(robot.Info, "Quit triggered in pipeline '%s' with %d pipelines running (including this one)", pn, running)
+	go stop()
+	return
+}
+
 func pause(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
 	w := getLockedWorker(r.tid)
@@ -79,6 +96,7 @@ func init() {
 	// RegisterTask("set-environment", true, robot.TaskHandler{Handler: setenv})
 	// RegisterTask("initialize-encryption", true, robot.TaskHandler{Handler: initcrypt})
 	RegisterTask("restart-robot", true, robot.TaskHandler{Handler: restart})
+	RegisterTask("robot-quit", true, robot.TaskHandler{Handler: quit})
 	RegisterTask("rotate-log", true, robot.TaskHandler{Handler: rotatelog})
 	RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pause})
 	RegisterTask("resume-brain", true, robot.TaskHandler{Handler: resume})

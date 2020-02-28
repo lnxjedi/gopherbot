@@ -10,69 +10,69 @@ command=$1
 shift
 # END Boilerplate
 
-configure(){
-	cat <<"EOF"
----
-Help:
-- Keywords: [ "setup" ]
-  Helptext: [ "(bot), setup - perform initial setup of a new robot" ]
-CommandMatchers:
-- Command: 'setup'
-  Regex: '(?i:setup)'
-MessageMatchers:
-- Command: "setup"
-  Regex: '(?i:^setup$)'
-ReplyMatchers:
-- Label: "alias"
-  Regex: '[&!;:%#@~<>\/*+^\$?\\\[\]{}-]'
-- Label: "encryptionkey"
-  Regex: '[gG]|[^\s]{32,}'
-- Label: "sshkey"
-  Regex: '[gG]|[^\s]{16,}'
-- Label: "token"
-  Regex: '[gG]|[^\s]{8,}'
-- Label: "repo"
-  Regex: '[\w-_@:\/\\.]+'
-- Label: "slacktoken"
-  Regex: 'xoxb-[\w-]+'
-- Label: "contquit"
-  Regex: '(?i:c|q)'
-EOF
-}
-
 if [ "$command" == "configure" ]
 then
-    configure
     exit 0
 fi
 
-ALIAS=$(GetBotAttribute "alias")
-SLACKALIASES='!;-%~*+^\$?[]{}' # subset of all possible; others don't work
-
-if [ "$command" == "init" ]
+if [ "$command" != "init" ]
 then
-    if [ -e "answerfile.txt" ]
+    exit 0
+fi
+
+if [ -e "answerfile.txt" ]
+then
+    exit 0 # new-style setup
+fi
+
+checkExit() {
+    if [ ! "${!1} "]
     then
-        exit 0 # new-style setup
-    fi
-    NAME=$(GetBotAttribute "name")
-    Pause 1
-    if [ "$GOPHER_ENCRYPTION_INITIALIZED" ]
-    then
-        SendChannelMessage "general" "*******"
-        SendChannelMessage "general" "Type '${ALIAS}setup' to continue setup..."
+        Say "Missing value for \"$1\", quitting..."
+        AddTask robot-quit
         exit 0
     fi
-    SendChannelMessage "general" "*******"
-    SendChannelMessage "general" "Welcome to the *Gopherbot* terminal connector. Since no \
+}
+
+getOrGenerate(){
+    local VARNAME=$1
+    local SIZE=$2
+    local BYTES=$(( $SIZE / 4 * 3 ))
+
+    VALUE=${!1}
+    if [ "$VALUE" == "g" ]
+    then
+        VALUE=$(dd status=none if=/dev/random bs=1 count=$BYTES | base64)
+    fi
+    echo "$VALUE"
+}
+
+source "answerfile.txt"
+if [ ! "$GOPHER_ENCRYPTION_INITIALIZED" ]
+then
+    checkExit "ANS_ENCRYPTION_KEY"
+    Say "Initializing encryption and restarting..."
+    cat > .env <<EOF
+GOPHER_ENCRYPTION_KEY=$ENCRYPTION_KEY
+EOF
+    AddTask restart-robot
+    exit 0
+fi
+
+Say "Exiting, press <enter>"
+read DUMMY
+AddTask robot-quit
+exit 0
+
+SendChannelMessage "general" "*******"
+SendChannelMessage "general" "Welcome to the *Gopherbot* terminal connector. Since no \
 configuration was detected, you're connected to '$NAME', the default robot."
-    Pause 2
-    SendChannelMessage "general" "If you've started the robot by mistake, just hit ctrl-D \
+Pause 2
+SendChannelMessage "general" "If you've started the robot by mistake, just hit ctrl-D \
 to exit and try 'gopherbot --help'; otherwise feel free to play around with the default robot - \
 you can start by typing 'help'. If you'd like to start configuring a new robot, \
 type: '${ALIAS}setup'."
     exit 0
-fi
 
 checkExit(){
     if [ $1 != 0 ]
@@ -113,49 +113,6 @@ getMatching(){
     done
 }
 
-getOrGenerate(){
-    local REGEX=$1
-    local SIZE=$2
-    local BYTES=$(( $SIZE / 4 * 3 ))
-    local PROMPT=$3
-    for TRY in "" "" "LAST"
-    do
-        REPLY=$(PromptForReply "$REGEX" "$PROMPT")
-        RETVAL=$?
-        if [ $RETVAL -eq 0 ]
-        then
-            CHECK=$(echo $REPLY | tr [:upper:] [:lower:])
-            if [ "$CHECK" == "g" ]
-            then
-                REPLY=$(dd status=none if=/dev/random bs=1 count=$BYTES | base64)
-                echo "$REPLY"
-                Say "Generated: $REPLY"
-                Pause 1
-                return 0
-            else
-                echo "$REPLY"
-                Say "Thanks"
-                Pause 1
-                return 0
-            fi
-        fi
-        if [ -n "$TRY" ]
-        then
-            Say "Cancelling setup"
-            return 1
-        fi
-        case $RETVAL in
-        $GBRET_ReplyNotMatched)
-            Say "Try again? Your answer doesn't match the pattern for $REGEX"
-            ;;
-        $GBRET_TimeoutExpired)
-            Say "Try again? Timeout expired waiting for your reply"
-            ;;
-        *)
-            return $RETVAL
-        esac
-    done
-}
 
 continueQuit(){
     RESP=$(getMatching 'contquit' "('c' to continue, 'q' to quit)")
