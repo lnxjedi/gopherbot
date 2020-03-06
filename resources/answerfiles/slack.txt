@@ -83,6 +83,15 @@
 # ANS_SSH_PHRASE="0123456789012345"
   ANS_SSH_PHRASE=""
 ##
+## * KEY_TYPE: Set this value to generate ssh keypairs of the desired type.
+##   The default "rsa" is the most common, you can also use "dsa", "ecdsa",
+##   or "ed25519"
+##
+# ANS_KEY_TYPE="dsa"
+# ANS_KEY_TYPE="ecdsa"
+# ANS_KEY_TYPE="ed25519"
+  ANS_KEY_TYPE="rsa"
+##
 ## * ROBOT REPOSITORY: The standard for Gopherbot robots is to store all
 ##   of a robot's configuration and scripts in a single git repository
 ##   that can be bootstrapped in to a generic Gopherbot container or VM

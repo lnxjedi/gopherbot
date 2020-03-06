@@ -125,14 +125,16 @@ fi
 JOBCHANNEL="$ANS_JOB_CHANNEL"
 BOTMAIL="$ANS_ROBOT_EMAIL"
 
+KEY_TYPE=${ANS_KEY_TYPE:-rsa}
+
 SSHPHRASE="$(getOrGenerate ANS_SSH_PHRASE 16)"
 Say "Generating ssh keys..."
 sleep 1
 SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l encrypt.log encrypt "$SSHPHRASE")
 mkdir -p custom/ssh
-ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -f custom/ssh/robot_rsa
-ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -f custom/ssh/manage_rsa
-ssh-keygen -N "" -C "$BOTMAIL" -f custom/ssh/deploy_rsa
+ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -t "$KEY_TYPE" -f custom/ssh/robot_rsa
+ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -t "$KEY_TYPE" -f custom/ssh/manage_rsa
+ssh-keygen -N "" -C "$BOTMAIL" -t "$KEY_TYPE" -f custom/ssh/deploy_rsa
 DEPKEY=$(cat custom/ssh/deploy_rsa | tr ' \n' '_:')
 rm -f custom/ssh/deploy_rsa
 

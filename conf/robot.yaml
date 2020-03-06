@@ -137,6 +137,8 @@ ExternalPlugins:
       Value: '{{ env "ANS_ROBOT_EMAIL" }}'
     - Name: ANS_SSH_PHRASE
       Value: '{{ env "ANS_SSH_PHRASE" }}'
+    - Name: ANS_KEY_TYPE
+      Value: '{{ env "ANS_KEY_TYPE" }}'
     - Name: ANS_ROBOT_REPOSITORY
       Value: '{{ env "ANS_ROBOT_REPOSITORY" }}'
     - Name: ANS_ADMIN_SECRET
