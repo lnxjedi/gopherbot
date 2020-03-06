@@ -95,18 +95,47 @@ func NewEmailFromReader(r io.Reader) (*Email, error) {
 		switch {
 		case h == "Subject":
 			e.Subject = v[0]
+			subj, err := (&mime.WordDecoder{}).DecodeHeader(e.Subject)
+			if err == nil && len(subj) > 0 {
+				e.Subject = subj
+			}
 			delete(hdrs, h)
 		case h == "To":
-			e.To = v
+			for _, to := range v {
+				tt, err := (&mime.WordDecoder{}).DecodeHeader(to)
+				if err == nil {
+					e.To = append(e.To, tt)
+				} else {
+					e.To = append(e.To, to)
+				}
+			}
 			delete(hdrs, h)
 		case h == "Cc":
-			e.Cc = v
+			for _, cc := range v {
+				tcc, err := (&mime.WordDecoder{}).DecodeHeader(cc)
+				if err == nil {
+					e.Cc = append(e.Cc, tcc)
+				} else {
+					e.Cc = append(e.Cc, cc)
+				}
+			}
 			delete(hdrs, h)
 		case h == "Bcc":
-			e.Bcc = v
+			for _, bcc := range v {
+				tbcc, err := (&mime.WordDecoder{}).DecodeHeader(bcc)
+				if err == nil {
+					e.Bcc = append(e.Bcc, tbcc)
+				} else {
+					e.Bcc = append(e.Bcc, bcc)
+				}
+			}
 			delete(hdrs, h)
 		case h == "From":
 			e.From = v[0]
+			fr, err := (&mime.WordDecoder{}).DecodeHeader(e.From)
+			if err == nil && len(fr) > 0 {
+				e.From = fr
+			}
 			delete(hdrs, h)
 		}
 	}
@@ -168,6 +197,9 @@ func parseMIMEParts(hs textproto.MIMEHeader, b io.Reader) ([]*part, error) {
 				p.Header.Set("Content-Type", defaultContentType)
 			}
 			subct, _, err := mime.ParseMediaType(p.Header.Get("Content-Type"))
+			if err != nil {
+				return ps, err
+			}
 			if strings.HasPrefix(subct, "multipart/") {
 				sps, err := parseMIMEParts(p.Header, p)
 				if err != nil {
@@ -213,11 +245,9 @@ func (e *Email) Attach(r io.Reader, filename string, c string) (a *Attachment, e
 		Header:   textproto.MIMEHeader{},
 		Content:  buffer.Bytes(),
 	}
-	// Get the Content-Type to be used in the MIMEHeader
 	if c != "" {
 		at.Header.Set("Content-Type", c)
 	} else {
-		// If the Content-Type is blank, set the Content-Type to "application/octet-stream"
 		at.Header.Set("Content-Type", "application/octet-stream")
 	}
 	at.Header.Set("Content-Disposition", fmt.Sprintf("attachment;\r\n filename=\"%s\"", filename))
