@@ -51,7 +51,7 @@ SLACKALIASES='!;-%~*+^\$?[]{}' # subset of all possible; others don't work
 
 if [ "$command" == "init" ]
 then
-    if [ -e "answerfile.txt" ]
+    if [ -e "answerfile.txt" -o "$ANS_PROTOCOL" ]
     then
         exit 0 # new-style setup
     fi

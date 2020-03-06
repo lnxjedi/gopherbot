@@ -106,6 +106,8 @@ ExternalPlugins:
     Parameters:
     - Name: GOPHER_ENCRYPTION_INITIALIZED
       Value: {{ env "GOPHER_ENCRYPTION_INITIALIZED" }}
+    - Name: ANS_PROTOCOL
+      Value: {{ env "ANS_PROTOCOL" }}
   "autosetup":
     Description: Setup plugin for creating a new robot from an answerfile
     Privileged: true
@@ -115,6 +117,31 @@ ExternalPlugins:
     Parameters:
     - Name: GOPHER_ENCRYPTION_INITIALIZED
       Value: {{ env "GOPHER_ENCRYPTION_INITIALIZED" }}
+    - Name: GOPHER_CONTAINER
+      Value: {{ env "GOPHER_CONTAINER" }}
+    {{- if env "GOPHER_CONTAINER" }}
+    # pass-through all ANS_ vars...
+    - Name: ANS_PROTOCOL
+      Value: '{{ env "ANS_PROTOCOL" }}'
+    - Name: ANS_ENCRYPTION_KEY
+      Value: '{{ env "ANS_ENCRYPTION_KEY" }}'
+    - Name: ANS_SLACK_TOKEN
+      Value: '{{ env "ANS_SLACK_TOKEN" }}'
+    - Name: ANS_ROBOT_NAME
+      Value: '{{ env "ANS_ROBOT_NAME" }}'
+    - Name: ANS_ROBOT_ALIAS
+      Value: '{{ env "ANS_ROBOT_ALIAS" }}'
+    - Name: ANS_JOB_CHANNEL
+      Value: '{{ env "ANS_JOB_CHANNEL" }}'
+    - Name: ANS_ROBOT_EMAIL
+      Value: '{{ env "ANS_ROBOT_EMAIL" }}'
+    - Name: ANS_SSH_PHRASE
+      Value: '{{ env "ANS_SSH_PHRASE" }}'
+    - Name: ANS_ROBOT_REPOSITORY
+      Value: '{{ env "ANS_ROBOT_REPOSITORY" }}'
+    - Name: ANS_ADMIN_SECRET
+      Value: '{{ env "ANS_ADMIN_SECRET" }}'
+    {{ end }}
 {{ end }}
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires

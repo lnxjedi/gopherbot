@@ -20,7 +20,10 @@ then
     exit 0
 fi
 
-if [ ! -e "answerfile.txt" ]
+if [ -e "answerfile.txt" ]
+then
+    source "answerfile.txt"
+elif [ ! "$ANS_PROTOCOL" ]
 then
     exit 0
 fi
@@ -80,7 +83,6 @@ substitute(){
     sed -i -e "s${RC}$FIND${RC}$REPLACE${RC}g" "$GOPHER_CONFIGDIR/$FILE"
 }
 
-source "answerfile.txt"
 if [ ! "$GOPHER_ENCRYPTION_INITIALIZED" ]
 then
     checkExit "ANS_ENCRYPTION_KEY"
@@ -168,11 +170,72 @@ touch ".addadmin"
 ln -s "$GOPHER_INSTALLDIR/gopherbot" .
 echo
 echo
-
-Say "********************************************************
+if [ "$GOPHER_CONTAINER" ]
+then
+    echo "Generated files (between <-- snip ...>/<-- /snip --> lines):"
+    echo
+    cat <<EOF
+<-- snip .env -->
+GOPHER_ENCRYPTION_KEY=$GOPHER_ENCRYPTION_KEY
+GOPHER_CUSTOM_REPOSITORY=$BOTREPO
+## You should normally keep GOPHER_PROTOCOL commented out, except when
+## used in a production container. This allows for the normal case where
+## the robot starts in terminal mode for local development.
+# GOPHER_PROTOCOL=slack
+## To use the deploy key below, add ssh/deploy_rsa.pub as a read-only
+## deploy key for the custom configuration repository.
+GOPHER_DEPLOY_KEY=$DEPKEY
+<-- /snip >
+EOF
+    echo
+    echo "<-- snip manage_rsa.pub -->"
+    cat "custom/ssh/manage_rsa.pub"
+    echo "<-- /snip >"
+    echo
+    echo "<-- snip deploy_rsa.pub -->"
+    cat "custom/ssh/deploy_rsa.pub"
+    echo "<-- /snip >"
+    echo
+    Say "********************************************************
 
 "
-Say "Initial configuration of your robot is complete. To finish setting up your robot, \
+    Say "Initial configuration of your robot is complete. To finish setting up your robot, \
+and to add yourself as an administrator:
+1) Add a read-write deploy key to the robot's repository, using the the 'manage_rsa.pub' \
+shown above; this corresponds to an encrypted 'manage_rsa' that your robot will use to save \
+and update it's configuration. 
+2) Add a read-only deploy key to the robot's repository, using the 'deploy_rsa.pub' shown \
+above; this corresponds to an unencrypted 'deploy_rsa' (file removed) which is trivially \
+encoded as the 'GOPHER_DEPLOY_KEY' in the '.env' file. *Gopherbot* will use this deploy key, \
+along with the 'GOPHER_CUSTOM_REPOSITORY', to initially clone it's repository during bootstrapping.
+3) Copy the contents of the '.env' file shown above to a safe place, not kept in a repository. \
+GOPHER_PROTOCOL is commented out to avoid accidentally connecting another instance of your robot \
+to team chat when run from a terminal window. With proper configuration of your git repository, \
+the '.env' file is all that's needed to bootstrap your robot in to an empty *Gopherbot* \
+container, (https://hub.docker.com/r/lnxjedi/gopherbot) or on a Linux host or VM with the \
+*Gopherbot* software archive installed.
+4) Once these tasks are complete, copy steps 5-7 below to a temporary text file for reference, \
+and press <enter> to restart your robot, which will then connect to your team chat.
+5) Invite your robot to #${JOBCHANNEL}; slack robots will need to be invited to any channels \
+where they will be listening and/or speaking.
+6) Open a direct message (DM) channel to your robot, and give this command to add yourself \
+as an administrator: \"add administrator $SETUPKEY\"; your robot will then update \
+'custom/conf/slack.yaml' to make you an administrator, and reload it's configuration.
+7) Once that completes, you can instruct the robot to store it's configuration in it's git \
+repository by issuing the 'save' command.
+
+After your robot has saved it's configuration, press <ctrl-c> to stop this container, which \
+can then be discarded.
+
+Press <enter> to restart..."
+    read DUMMY
+    AddTask restart-robot
+    exit 0
+else
+    Say "********************************************************
+
+"
+    Say "Initial configuration of your robot is complete. To finish setting up your robot, \
 and to add yourself as an administrator:
 1) Open a second terminal window in the same directory as answerfile.txt; you'll need this \
 for completing setup.
@@ -190,7 +253,7 @@ arguments. Your robot should connect to your team chat.
 where they will be listening and/or speaking.
 6) Open a direct message (DM) channel to your robot, and give this command to add yourself \
 as an administrator: \"add administrator $SETUPKEY\"; your robot will then update \
-'custom/conf/slack.yaml' to add you as an administrator, and reload it's configuration.
+'custom/conf/slack.yaml' to make you an administrator, and reload it's configuration.
 7) Once that completes, you can instruct the robot to store it's configuration in it's git \
 repository by issuing the 'save' command.
 8) Finally, copy the contents of the '.env' file to a safe place, with the GOPHER_PROTOCOL \
@@ -205,5 +268,6 @@ deploying and running your robot (https://lnxjedi.github.io/gopherbot/RunRobot.h
 information on day-to-day operations. You can stop the running robot in your second terminal \
 window using <ctrl-c>."
 
-AddTask robot-quit
-exit 0
+    AddTask robot-quit
+    exit 0
+fi

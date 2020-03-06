@@ -73,6 +73,7 @@ func Start(v VersionInfo) {
 	if pid == 1 {
 		Log(robot.Info, "PID == 1, spawning child")
 		bin, _ := os.Executable()
+		os.Setenv("GOPHER_CONTAINER", "iscontainer")
 		env := os.Environ()
 		cmd := exec.Command(bin, args...)
 		cmd.Env = env
@@ -193,9 +194,17 @@ func Start(v VersionInfo) {
 		if !ok {
 			Log(robot.Warn, "Starting unconfigured; no robot.yaml/gopherbot.yaml found")
 			os.Setenv("GOPHER_UNCONFIGURED", "unconfigured")
-			// Start a setup plugin; if answerfile.txt is present, use the new-style,
-			// otherwise run the terminal connector for the interactive plugin.
+			// Start a setup plugin; if answerfile.txt is present, or ANS_PROTOCOL is set,
+			// use the new-style, otherwise run the terminal connector for the interactive plugin.
+			setup := false
 			if _, err := os.Stat("answerfile.txt"); err == nil {
+				// true for CLI setup
+				setup = true
+			} else if _, ok := os.LookupEnv("ANS_PROTOCOL"); ok {
+				// true for container-based setup
+				setup = true
+			}
+			if setup {
 				defaultProto = true
 				os.Setenv("GOPHER_PROTOCOL", "nullconn")
 				if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
