@@ -75,25 +75,6 @@ HistoryConfig:
 # DefaultMessageFormat: Variable # 'Raw' if not specified
 
 ExternalJobs:
-  ## Using a dedicated read-write deploy key dramatically simplifies initial
-  ## setup. You can remove these override parameters to use the robot's
-  ## default "robot_rsa", or use another key of your choice.
-  "updatecfg":
-    Parameters:
-    - Name: "KEYNAME"
-      Value: "manage_rsa"
-  "save":
-    Parameters:
-    - Name: "KEYNAME"
-      Value: "manage_rsa"
-  "backup":
-    Parameters:
-    - Name: "KEYNAME"
-      Value: "manage_rsa"
-  "restore":
-    Parameters:
-    - Name: "KEYNAME"
-      Value: "manage_rsa"
 #   "hello":
 #     Description: Trivial hello world job for testing
 #     Path: jobs/hello.sh
@@ -175,7 +156,24 @@ NameSpaces:
     Parameters:
     - Name: BOT_SSH_PHRASE
       Value: {{ decrypt "<sshencrypted>" }}
-    
+  "manage":
+    Parameters:
+    - Name: "KEYNAME"
+      Value: "manage_rsa"
+    - Name: BOT_SSH_PHRASE
+      Value: {{ decrypt "<sshencrypted>" }}
+    - Name: GOPHER_CUSTOM_REPOSITORY
+      Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
+    - Name: GOPHER_CUSTOM_BRANCH
+      Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "master" }}
+    - Name: GOPHER_STATE_REPOSITORY
+      Value: {{ env "GOPHER_STATE_REPOSITORY" }}
+    - Name: GOPHER_STATE_BRANCH
+      Value: {{ env "GOPHER_STATE_BRANCH" }}
+    # A default installed robot stores its brain in state/brain
+    - Name: GOPHER_STATEDIR
+      Value: {{ env "GOPHER_STATEDIR" | default "state" }}
+
 DefaultMessageFormat: Raw
 # Users the bot should never listen to
 #IgnoreUsers: [ "otherbot", "slackbot" ]

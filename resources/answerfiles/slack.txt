@@ -6,7 +6,7 @@
 ##   to your robot
 ##
 ## Note on generated strings:
-## Several values will accept a lowercase "g" to generate a random string of
+## Several values will accept a lowercase 'g' to generate a random string of
 ## the required length. This algorithm merely reads a few random bytes from
 ## /dev/random and spits out the base64-encoded value.
 ##
@@ -22,21 +22,21 @@
 ## * ENCRYPTION KEY: A thirty-two character key to be kept outside of any
 ##   git repository. Your robot will use this key to unlock the
 ##   `binary-encrypted-key` in your robot's repository, which the robot uses
-##   to decrypt other secrets. Use "g" to generate.
+##   to decrypt other secrets. Use 'g' to generate.
 ##
-# ANS_ENCRYPTION_KEY="g" # to generate
-# ANS_ENCRYPTION_KEY="GretFilllLterbRounwn8-v]CarpeDie"
-  ANS_ENCRYPTION_KEY=""
+# ANS_ENCRYPTION_KEY='g' # to generate
+# ANS_ENCRYPTION_KEY='GretFilllLterbRounwn8-v]CarpeDie'
+  ANS_ENCRYPTION_KEY=''
 ##
 ## * SLACK TOKEN: The authentication token your robot will need to connect to
 ##   your team chat. You can obtain this key from:
 ##   https://<team>.slack.com/services/new/bot
-##   Setup will encrypt everything after the common "xoxb-" prefix and add
-##   this to your robot's "slack.yaml". Note that while your token should
-##   also start with "xoxb-", the number of dash-separated fields may vary.
+##   Setup will encrypt everything after the common 'xoxb-' prefix and add
+##   this to your robot's 'slack.yaml'. Note that while your token should
+##   also start with 'xoxb-', the number of dash-separated fields may vary.
 ##
-# ANS_SLACK_TOKEN="xoxb-1234568-abcdefghijklmnop-qrstuvwxyz"
-  ANS_SLACK_TOKEN=""
+# ANS_SLACK_TOKEN='xoxb-1234568-abcdefghijklmnop-qrstuvwxyz'
+  ANS_SLACK_TOKEN=''
 ##
 ## * ROBOT NAME: The given name that your robot will recognize. To get your
 ##   robot's attention it should be sufficient to start a command with e.g. a
@@ -44,8 +44,8 @@
 ##   platforms, your robot will always look for messages addressed to them;
 ##   for example 'floyd, ping'.
 ##
-# ANS_ROBOT_NAME="Floyd"
-  ANS_ROBOT_NAME=""
+# ANS_ROBOT_NAME='Floyd'
+  ANS_ROBOT_NAME=''
 ##
 ## * ROBOT ALIAS: A one-character alias your robot will also recognize as 
 ##   it's name, chosen from this list: '!;-%~*+^\$?[]{}'. You'll probably
@@ -62,35 +62,35 @@
 ##   'general'. If you create a new channel for this purpose, be sure and
 ##   invite your robot to the channel when it first connects.
 ##
-# ANS_JOB_CHANNEL="general"
-# ANS_JOB_CHANNEL="floyd-jobs" # Floyd does a lot of builds
-  ANS_JOB_CHANNEL=""
+# ANS_JOB_CHANNEL='general'
+# ANS_JOB_CHANNEL='floyd-jobs' # Floyd does a lot of builds
+  ANS_JOB_CHANNEL=''
 ##
 ## * ROBOT EMAIL: An email address for your robot to use; it'll be used in the
 ##   'from:' when it sends email (configured separately), and also for git
 ##   commits. If you don't have a machine user configured for your robot, or a
 ##   separate email account for your robot, you can use your own email address.
 ##
-# ANS_ROBOT_EMAIL="clu@example.com"
-# ANS_ROBOT_EMAIL="joe@example.com"
-  ANS_ROBOT_EMAIL=""
+# ANS_ROBOT_EMAIL='clu@example.com'
+# ANS_ROBOT_EMAIL='joe@example.com'
+  ANS_ROBOT_EMAIL=''
 ##
 ## * ROBOT SSH PHRASE: Your robot will make heavy use of 'ssh' for doing it's
 ##   work, and it's private keys will be encrypted. Supply a passphrase
-##   your robot can use, at least 16 characters.
+##   your robot can use, at least 16 characters: [0-9A-Za-z_+/-].
 ##
-# ANS_SSH_PHRASE="g"
-# ANS_SSH_PHRASE="0123456789012345"
-  ANS_SSH_PHRASE=""
+# ANS_SSH_PHRASE='g'
+# ANS_SSH_PHRASE='0123456789012345'
+  ANS_SSH_PHRASE=''
 ##
 ## * KEY_TYPE: Set this value to generate ssh keypairs of the desired type.
-##   The default "rsa" is the most common, you can also use "dsa", "ecdsa",
-##   or "ed25519"
+##   The default 'rsa' is the most common, you can also use 'dsa', 'ecdsa',
+##   or 'ed25519'
 ##
-# ANS_KEY_TYPE="dsa"
-# ANS_KEY_TYPE="ecdsa"
-# ANS_KEY_TYPE="ed25519"
-  ANS_KEY_TYPE="rsa"
+# ANS_KEY_TYPE='dsa'
+# ANS_KEY_TYPE='ecdsa'
+# ANS_KEY_TYPE='ed25519'
+  ANS_KEY_TYPE='rsa'
 ##
 ## * ROBOT REPOSITORY: The standard for Gopherbot robots is to store all
 ##   of a robot's configuration and scripts in a single git repository
@@ -98,27 +98,27 @@
 ##   to deploy your robot. This value should be a clone URL for your
 ##   robot's repository using ssh credentials. This repository should be
 ##   created empty, without any README, LICENSE, or other files. The
-##   "save" job performs a simple "git push" without any fancy
+##   'save' job performs a simple 'git push' without any fancy
 ##   pull/rebase logic.
 ##
-# ANS_ROBOT_REPOSITORY="git@github.com:parsley42/clu-gopherbot.git"
-# ANS_ROBOT_REPOSITORY="ssh://git@git.linuxjedi.org/robots/hal-gopherbot.git"
-  ANS_ROBOT_REPOSITORY=""
+# ANS_ROBOT_REPOSITORY='git@github.com:parsley42/clu-gopherbot.git'
+# ANS_ROBOT_REPOSITORY='ssh://git@git.linuxjedi.org/robots/hal-gopherbot.git'
+  ANS_ROBOT_REPOSITORY=''
 ##
 ## * ROBOT ADMIN SECRET: When your new robot first connects to the team chat,
 ##   it won't recognize you as an administrator since your robot doesn't yet
 ##   have access to the unique internal ID that your team chat assigns. Supply
 ##   a shared secret so you can use the 'add admin xxxx' command in a DM to
 ##   your robot, which will then update the robot's configuration. This should
-##   be at least 8 characters, or use "g" to generate.
+##   be at least 8 characters ([0-9A-Za-z_+/-]), or use 'g' to generate.
 ##
-# ANS_ADMIN_SECRET="g"
-# ANS_ADMIN_SECRET="LoveMyNewRobot"
-  ANS_ADMIN_SECRET=""
+# ANS_ADMIN_SECRET='g'
+# ANS_ADMIN_SECRET='LoveMyNewRobot'
+  ANS_ADMIN_SECRET=''
 ##
 ## Now that you've populated all the values, save this file and run
 ## 'gopherbot' from the directory where this file is saved. The setup
 ## process will read this file and generate your robot's custom configuration
-## in a "custom/" sub-directory, then provide instructions for adding
+## in a 'custom/' sub-directory, then provide instructions for adding
 ## yourself as a robot administrator, completing setup, and saving your
 ## robot's configuration to it's git repository.

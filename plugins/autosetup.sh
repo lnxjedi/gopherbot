@@ -99,13 +99,14 @@ fi
 Say "Continuing automatic setup..."
 
 checkExit "ANS_SLACK_TOKEN" '^xoxb-[0-9A-Za-z-]+$'
-checkExit "ANS_ROBOT_NAME" '^[0-9A-Za-z-]+$'
+checkExit "ANS_ROBOT_NAME" '^[0-9A-Za-z_-]+$'
 checkExit "ANS_ROBOT_ALIAS" '^[]!;%~*+^$?[\{\}-]$'
-checkExit "ANS_JOB_CHANNEL" '^[0-9A-Za-z-]+$'
+checkExit "ANS_JOB_CHANNEL" '^[0-9A-Za-z_-]+$'
 checkExit "ANS_ROBOT_EMAIL" '^[0-9A-Za-z+\.\_\-]*@[0-9A-Za-z+\.\_\-]*$'
-checkExit "ANS_SSH_PHRASE" '^[0-9A-Za-z-_]{16,}$' "g"
+checkExit "ANS_SSH_PHRASE" '^[0-9A-Za-z_+/-]{16,}$' "g"
+checkExit "ANS_KEY_TYPE" '^dsa|ecdsa|rsa|ed25519$'
 checkExit "ANS_ROBOT_REPOSITORY"
-checkExit "ANS_ADMIN_SECRET" '^[0-9A-Za-z_-]{8,}$' "g"
+checkExit "ANS_ADMIN_SECRET" '^[0-9A-Za-z_+/-]{8,}$' "g"
 
 SLACK_TOKEN=${ANS_SLACK_TOKEN#xoxb-}
 SLACK_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l encrypt.log encrypt $SLACK_TOKEN)
