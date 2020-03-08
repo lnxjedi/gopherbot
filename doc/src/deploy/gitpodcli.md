@@ -21,15 +21,15 @@ gitpod /workspace $ gopherbot
 2020/02/20 19:52:03 Info: Restarting...
 2020/02/20 19:52:03 Info: Stopping signal handler
 Terminal connector running; Use '|c<channel|?>' to change channel, or '|u<user|?>' to change user
-GOPHER_PROTOCOL is terminal
+OUT: GOPHER_PROTOCOL is terminal
 clu-jobs: Starting restore of robot state...
-Agent pid 1764
+OUT: Agent pid 1764
 ERR: Identity added: /workspace/custom/ssh/manage_rsa (parse@hakuin.localdomain)
 ERR: Cloning into '.'...
 clu-jobs: Restore finished
-unset SSH_AUTH_SOCK;
-unset SSH_AGENT_PID;
-echo Agent pid 1764 killed;
+OUT: unset SSH_AUTH_SOCK;
+OUT: unset SSH_AGENT_PID;
+OUT: echo Agent pid 1764 killed;
 c:general/u:alice -> <ctrl-d>
 general: @alice Later gator!
 Terminal connector finished

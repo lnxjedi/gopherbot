@@ -23,15 +23,15 @@ daemon@af2a1924e1ff:~$ gopherbot
 2020/02/20 19:26:30 Info: Restarting...
 2020/02/20 19:26:30 Info: Stopping signal handler
 Terminal connector running; Use '|c<channel|?>' to change channel, or '|u<user|?>' to change user
-GOPHER_PROTOCOL is terminal
+OUT: GOPHER_PROTOCOL is terminal
 clu-jobs: Starting restore of robot state...
-Agent pid 440
+OUT: Agent pid 440
 ERR: Identity added: /home/custom/ssh/manage_rsa (parse@hakuin.localdomain)
 ERR: Cloning into '.'...
 clu-jobs: Restore finished
-unset SSH_AUTH_SOCK;
-unset SSH_AGENT_PID;
-echo Agent pid 440 killed;
+OUT: unset SSH_AUTH_SOCK;
+OUT: unset SSH_AGENT_PID;
+OUT: echo Agent pid 440 killed;
 c:general/u:alice -> <ctrl-d>
 general: @alice Sayonara!
 Terminal connector finished
