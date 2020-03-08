@@ -133,11 +133,11 @@ Say "Generating ssh keys..."
 sleep 1
 SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l encrypt.log encrypt "$SSHPHRASE")
 mkdir -p custom/ssh
-ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -t "$KEY_TYPE" -f custom/ssh/robot_rsa
-ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -t "$KEY_TYPE" -f custom/ssh/manage_rsa
-ssh-keygen -N "" -C "$BOTMAIL" -t "$KEY_TYPE" -f custom/ssh/deploy_rsa
-DEPKEY=$(cat custom/ssh/deploy_rsa | tr ' \n' '_:')
-rm -f custom/ssh/deploy_rsa
+ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -t "$KEY_TYPE" -f custom/ssh/robot_key
+ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -t "$KEY_TYPE" -f custom/ssh/manage_key
+ssh-keygen -N "" -C "$BOTMAIL" -t "$KEY_TYPE" -f custom/ssh/deploy_key
+DEPKEY=$(cat custom/ssh/deploy_key | tr ' \n' '_:')
+rm -f custom/ssh/deploy_key
 
 BOTREPO="$ANS_ROBOT_REPOSITORY"
 SETUPKEY="$(getOrGenerate ANS_ADMIN_SECRET 8)"
@@ -150,7 +150,7 @@ GOPHER_CUSTOM_REPOSITORY=$BOTREPO
 ## used in a production container. This allows for the normal case where
 ## the robot starts in terminal mode for local development.
 GOPHER_PROTOCOL=slack
-## To use the deploy key below, add ssh/deploy_rsa.pub as a read-only
+## To use the deploy key below, add ssh/deploy_key.pub as a read-only
 ## deploy key for the custom configuration repository.
 GOPHER_DEPLOY_KEY=$DEPKEY
 GOPHER_SETUP_TOKEN=$SETUPKEY
@@ -185,18 +185,18 @@ GOPHER_CUSTOM_REPOSITORY=$BOTREPO
 ## used in a production container. This allows for the normal case where
 ## the robot starts in terminal mode for local development.
 # GOPHER_PROTOCOL=slack
-## To use the deploy key below, add ssh/deploy_rsa.pub as a read-only
+## To use the deploy key below, add ssh/deploy_key.pub as a read-only
 ## deploy key for the custom configuration repository.
 GOPHER_DEPLOY_KEY=$DEPKEY
 <-- /snip >
 EOF
     echo
-    echo "<-- snip manage_rsa.pub -->"
-    cat "custom/ssh/manage_rsa.pub"
+    echo "<-- snip manage_key.pub -->"
+    cat "custom/ssh/manage_key.pub"
     echo "<-- /snip >"
     echo
-    echo "<-- snip deploy_rsa.pub -->"
-    cat "custom/ssh/deploy_rsa.pub"
+    echo "<-- snip deploy_key.pub -->"
+    cat "custom/ssh/deploy_key.pub"
     echo "<-- /snip >"
     echo
     Say "********************************************************
@@ -204,11 +204,11 @@ EOF
 "
     Say "Initial configuration of your robot is complete. To finish setting up your robot, \
 and to add yourself as an administrator:
-1) Add a read-write deploy key to the robot's repository, using the the 'manage_rsa.pub' \
-shown above; this corresponds to an encrypted 'manage_rsa' that your robot will use to save \
+1) Add a read-write deploy key to the robot's repository, using the the 'manage_key.pub' \
+shown above; this corresponds to an encrypted 'manage_key' that your robot will use to save \
 and update it's configuration. 
-2) Add a read-only deploy key to the robot's repository, using the 'deploy_rsa.pub' shown \
-above; this corresponds to an unencrypted 'deploy_rsa' (file removed) which is trivially \
+2) Add a read-only deploy key to the robot's repository, using the 'deploy_key.pub' shown \
+above; this corresponds to an unencrypted 'deploy_key' (file removed) which is trivially \
 encoded as the 'GOPHER_DEPLOY_KEY' in the '.env' file. *Gopherbot* will use this deploy key, \
 along with the 'GOPHER_CUSTOM_REPOSITORY', to initially clone it's repository during bootstrapping.
 3) Copy the contents of the '.env' file shown above to a safe place, not kept in a repository. \
@@ -243,10 +243,10 @@ and to add yourself as an administrator:
 1) Open a second terminal window in the same directory as answerfile.txt; you'll need this \
 for completing setup.
 2) Add a read-write deploy key to the robot's repository, using the contents of \
-'custom/ssh/manage_rsa.pub'; this corresponds to an encrypted 'manage_rsa' that your \
+'custom/ssh/manage_key.pub'; this corresponds to an encrypted 'manage_key' that your \
 robot will use to save and update it's configuration.
 3) Add a read-only deploy key to the robot's repository, using the contents of \
-'custom/ssh/deploy_rsa.pub'; this corresponds to an unencrypted 'deploy_rsa' (file removed) \
+'custom/ssh/deploy_key.pub'; this corresponds to an unencrypted 'deploy_key' (file removed) \
 which is trivially encoded as the 'GOPHER_DEPLOY_KEY' in the '.env' file. *Gopherbot* will \
 use this deploy key, along with the 'GOPHER_CUSTOM_REPOSITORY', to initially clone it's \
 repository during bootstrapping.

@@ -5,8 +5,8 @@ At this point the contents of `custom/` should be committed to a git repository,
 As noted in [requirements](Requirements.md#git-access), the standard robot has three ssh keypairs by default, two of which are configured as deploy keys for the repository.
 
 Find the **deploy keys** section for the robot's git repository, then:
-* Configure a **read-write** deploy key with the contents of `custom/ssh/manage_rsa.pub`; this corresponds to the encrypted `manage_rsa` key the robot can use to save it's own configuration, or back up it's state / brain
-* Configure a **read-only** deploy key with the contents of `custom/ssh/deploy_rsa.pub`; this corresponds to the unencrypted `GOPHER_DEPLOY_KEY` in the `.env` file, and the gopherbot **bootstrap** plugin can use this to deploy your robot to e.g. a generic container or new VM
+* Configure a **read-write** deploy key with the contents of `custom/ssh/manage_key.pub`; this corresponds to the encrypted `manage_key` the robot can use to save it's own configuration, or back up it's state / brain
+* Configure a **read-only** deploy key with the contents of `custom/ssh/deploy_key.pub`; this corresponds to the unencrypted `GOPHER_DEPLOY_KEY` in the `.env` file, and the gopherbot **bootstrap** plugin can use this to deploy your robot to e.g. a generic container or new VM
 
 Once you've set up the deploy keys, open a private chat with your robot and tell it to `save`; if all has gone well, your robot will push the contents of `custom/` to it's git repository, and should be ready to go.
 

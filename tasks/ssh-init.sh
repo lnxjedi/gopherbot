@@ -40,7 +40,7 @@ then
     BOOTSTRAP="true"
 fi
 
-SSH_KEY=${KEYNAME:-robot_rsa}
+SSH_KEY=${KEYNAME:-robot_key}
 SSH_KEY_PATH="$GOPHER_CONFIGDIR/ssh/$SSH_KEY"
 
 if [ -z "$BOOTSTRAP" ]

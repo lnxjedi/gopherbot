@@ -25,7 +25,7 @@ If you've [installed Gopherbot](../install/ManualInstall.md) on a Linux host, yo
 Terminal connector running; Use '|c<channel|?>' to change channel, or '|u<user|?>' to change user
 clu-jobs: Starting restore of robot state...
 OUT: Agent pid 11337
-ERR: Identity added: /home/parse/clu/custom/ssh/manage_rsa (parse@hakuin.localdomain)
+ERR: Identity added: /home/parse/clu/custom/ssh/manage_key (parse@hakuin.localdomain)
 ERR: Cloning into '.'...
 ERR: Warning: Permanently added the RSA host key for IP address '192.30.253.112' to the list of known hosts.
 clu-jobs: Restore finished

@@ -280,11 +280,11 @@ continueQuit
 
 SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l setup.log encrypt "$SSHPHRASE")
 mkdir -p custom/ssh
-ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -f custom/ssh/robot_rsa
-ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -f custom/ssh/manage_rsa
-ssh-keygen -N "" -C "$BOTMAIL" -f custom/ssh/deploy_rsa
-DEPKEY=$(cat custom/ssh/deploy_rsa | tr ' \n' '_:')
-rm -f custom/ssh/deploy_rsa
+ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -f custom/ssh/robot_key
+ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -f custom/ssh/manage_key
+ssh-keygen -N "" -C "$BOTMAIL" -f custom/ssh/deploy_key
+DEPKEY=$(cat custom/ssh/deploy_key | tr ' \n' '_:')
+rm -f custom/ssh/deploy_key
 
 Say "After your robot has connected to your team chat for the first time, and you've \
 added yourself as an administrator, you'll have the option of using the 'save' command to \
@@ -311,7 +311,7 @@ GOPHER_CUSTOM_REPOSITORY=$BOTREPO
 ## You should normally keep GOPHER_PROTOCOL commented out, except in
 ## production.
 GOPHER_PROTOCOL=slack
-## To use the deploy key below, add ssh/deploy_rsa.pub as a read-only
+## To use the deploy key below, add ssh/deploy_key.pub as a read-only
 ## deploy key for the custom configuration repository.
 GOPHER_DEPLOY_KEY=$DEPKEY
 EOF
@@ -328,20 +328,20 @@ continueQuit
 Say "*******"
 Say "$(cat <<EOF
 
-For your robot to be able to save it's configuration, you'll need to configure a read-write deploy key in the repository settings. Here's the public-key portion (manage_rsa.pub) that you can paste in for your read-write deploy key:
+For your robot to be able to save it's configuration, you'll need to configure a read-write deploy key in the repository settings. Here's the public-key portion (manage_key.pub) that you can paste in for your read-write deploy key:
 EOF
 )"
 Pause 2
-Say -f "$(echo; echo '--- snip ---'; cat custom/ssh/manage_rsa.pub; echo '--- /snip ---')"
+Say -f "$(echo; echo '--- snip ---'; cat custom/ssh/manage_key.pub; echo '--- /snip ---')"
 continueQuit
 
 Say "*******"
 Say "$(cat <<EOF
 
-While you're at it, you can also configure a read-only deploy key that corresponds to a flattened and unencrypted private key defined in 'GOPHER_DEPLOY_KEY', above. This deploy key will allow you to easily bootstrap your robot to a new container or VM, only requiring a few environment variables to be defined. Here's the public-key portion (deploy_rsa.pub) of the read-only deploy key:
+While you're at it, you can also configure a read-only deploy key that corresponds to a flattened and unencrypted private key defined in 'GOPHER_DEPLOY_KEY', above. This deploy key will allow you to easily bootstrap your robot to a new container or VM, only requiring a few environment variables to be defined. Here's the public-key portion (deploy_key.pub) of the read-only deploy key:
 EOF
 )"
-Say -f "$(echo; echo '--- snip ---'; cat custom/ssh/deploy_rsa.pub; echo '--- /snip ---')"
+Say -f "$(echo; echo '--- snip ---'; cat custom/ssh/deploy_key.pub; echo '--- /snip ---')"
 continueQuit
 
 echo "GOPHER_SETUP_TOKEN=$SETUPKEY" >> .env

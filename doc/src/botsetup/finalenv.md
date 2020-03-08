@@ -1,8 +1,8 @@
 # Finish the `.env` File
 
-First, use `tr` to dump a flattened version of the `deploy_rsa` private key to the `.env` file:
+First, use `tr` to dump a flattened version of the `deploy_key` private key to the `.env` file:
 ```
-$ cat custom/ssh/deploy_rsa | tr ' \n' '_:' >> .env
+$ cat custom/ssh/deploy_key | tr ' \n' '_:' >> .env
 ```
 
 Now edit the `.env` file and stick `GOPHER_DEPLOY_KEY=` in front of that mess, and add values for `GOPHER_PROTOCOL` and `GOPHER_CUSTOM_REPOSITORY`. Using **Clu** as an example, the end result should look something like this:

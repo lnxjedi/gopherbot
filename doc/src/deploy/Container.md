@@ -4,7 +4,7 @@ A major goal for **Gopherbot** v2 was container-native operation, and the abilit
 
 This section doesn't delve in to the specifics of running your robot in any particular container environment. Whether your robot runs as a persistent container on a Docker host, or as a managed container in a Kubernetes or Openshift cluster - or elsewhere - the same principles apply. If you're planning on deploying in a container, it is presumed that you're already running other containerized workloads, and can provide the requirements by common means for your container environment.
 
-The contents of your robot's `.env` file are all that's needed - the built-in **bootstrap** plugin will use your robot's `deploy_rsa` key to clone it's `GOPHER_CUSTOM_REPOSITORY` configuration repository, then use the `GOPHER_ENCRYPTION_KEY` to decrypt the `manage_rsa` ssh private key to restore file-backed memories if you use the default `file` brain for the standard robot.
+The contents of your robot's `.env` file are all that's needed - the built-in **bootstrap** plugin will use your robot's `deploy_key` key to clone it's `GOPHER_CUSTOM_REPOSITORY` configuration repository, then use the `GOPHER_ENCRYPTION_KEY` to decrypt the `manage_key` ssh private key to restore file-backed memories if you use the default `file` brain for the standard robot.
 
 You can find example `docker` commands and comments regarding usage in `resources/docker/Makefile`.
 

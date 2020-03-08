@@ -38,7 +38,7 @@ then
 	exit 0
 fi
 
-SSH_KEY=${KEYNAME:-robot_rsa}
+SSH_KEY=${KEYNAME:-robot_key}
 
 SSH_DIR=$GOPHER_CONFIGDIR/ssh
 

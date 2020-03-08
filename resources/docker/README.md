@@ -35,7 +35,7 @@ GOPHER_DEPLOY_KEY=-----BEGIN_OPENSSH_PRIVATE KEY-----:...:-----END_OPENSSH_PRIVA
 
 Note that the deploy key is a _very_ long line, created with e.g.:
 ```shell
-$ cat deploy_rsa | tr ' \n' '_:'
+$ cat deploy_key | tr ' \n' '_:'
 ```
 
 Put this environment file, along with the `Makefile` from this repository, in to a directory with the same name as your robot; then you can start your robot using the `make` targets.

@@ -116,7 +116,7 @@ substitute "<adminuserid>" "$USERID" "conf/slack.yaml"
 
 AddTask "restart-robot"
 AddTask say "You've been successfully added as an administrator. \
-If you've configured 'manage_rsa.pub' as a read-write deploy key \
+If you've configured 'manage_key.pub' as a read-write deploy key \
 for my repository, you can use the 'save' command to upload my \
 configuration. After that, you might want to configure my 'backup' \
 job to periodically push my long-term memories. Have fun."

@@ -24,7 +24,7 @@ Terminal connector running; Use '|c<channel|?>' to change channel, or '|u<user|?
 OUT: GOPHER_PROTOCOL is terminal
 clu-jobs: Starting restore of robot state...
 OUT: Agent pid 1764
-ERR: Identity added: /workspace/custom/ssh/manage_rsa (parse@hakuin.localdomain)
+ERR: Identity added: /workspace/custom/ssh/manage_key (parse@hakuin.localdomain)
 ERR: Cloning into '.'...
 clu-jobs: Restore finished
 OUT: unset SSH_AUTH_SOCK;
