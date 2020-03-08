@@ -149,30 +149,30 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#generate-ssh-keypairs" id="generate-ssh-keypairs">Generate SSH Keypairs</a></h1>
-<p>Now generate the ssh keypairs for your robot - use the passphrase you encrypted previously for generating both <code>manage_rsa</code> and <code>robot_rsa</code>; finally create an unencrypted <code>deploy_rsa</code> and move it out of the repo:</p>
+<p>Now generate the ssh keypairs for your robot - use the passphrase you encrypted previously for generating both <code>manage_key</code> and <code>robot_key</code>; finally create an unencrypted <code>deploy_key</code> and move it out of the repo:</p>
 <pre><code class="language-shell">davidparsley@penguin:/home/robots/clu$ mkdir custom/ssh
-davidparsley@penguin:/home/robots/clu$ ssh-keygen -N &quot;VeryLovelyNicePassword&quot; -C &quot;clu@linuxjedi.org&quot; -f custom/ssh/manage_rsa
+davidparsley@penguin:/home/robots/clu$ ssh-keygen -N &quot;VeryLovelyNicePassword&quot; -C &quot;clu@linuxjedi.org&quot; -f custom/ssh/manage_key
 Generating public/private rsa key pair.
-Your identification has been saved in custom/ssh/manage_rsa.
-Your public key has been saved in custom/ssh/manage_rsa.pub.
+Your identification has been saved in custom/ssh/manage_key.
+Your public key has been saved in custom/ssh/manage_key.pub.
 The key fingerprint is:
 ...
-davidparsley@penguin:/home/robots/clu$ ssh-keygen -N &quot;VeryLovelyNicePassword&quot; -C &quot;clu@linuxjedi.org&quot; -f custom/ssh/robot_rsa
+davidparsley@penguin:/home/robots/clu$ ssh-keygen -N &quot;VeryLovelyNicePassword&quot; -C &quot;clu@linuxjedi.org&quot; -f custom/ssh/robot_key
 Generating public/private rsa key pair.
-Your identification has been saved in custom/ssh/robot_rsa.
-Your public key has been saved in custom/ssh/robot_rsa.pub.
+Your identification has been saved in custom/ssh/robot_key.
+Your public key has been saved in custom/ssh/robot_key.pub.
 The key fingerprint is:
 ...
-davidparsley@penguin:/home/robots/clu$ ssh-keygen -N &quot;&quot; -C &quot;clu@linuxjedi.org&quot; -f custom/ssh/deploy_rsa
+davidparsley@penguin:/home/robots/clu$ ssh-keygen -N &quot;&quot; -C &quot;clu@linuxjedi.org&quot; -f custom/ssh/deploy_key
 Generating public/private rsa key pair.
-Your identification has been saved in custom/ssh/deploy_rsa.
-Your public key has been saved in custom/ssh/deploy_rsa.pub.
+Your identification has been saved in custom/ssh/deploy_key.
+Your public key has been saved in custom/ssh/deploy_key.pub.
 The key fingerprint is:
 ...
-davidparsley@penguin:/home/robots/clu$ mv custom/ssh/deploy_rsa .
+davidparsley@penguin:/home/robots/clu$ mv custom/ssh/deploy_key .
 </code></pre>
 <blockquote>
-<p>Note that deploy_rsa is unencrypted, and not kept in the robot's repository which is rooted in the <code>custom</code> directory.</p>
+<p>Note that deploy_key is unencrypted, and not kept in the robot's repository which is rooted in the <code>custom</code> directory.</p>
 </blockquote>
 
                     </main>

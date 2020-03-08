@@ -398,13 +398,13 @@ esac
 </ul>
 <p>The other requirements listed here are mainly items for consideration before setting up your <strong>Gopherbot</strong> robot.</p>
 <h2><a class="header" href="#git-access" id="git-access">Git Access</a></h2>
-<p><strong>Gopherbot</strong> version 2 integrates heavily with <em>git</em>, using <em>ssh</em> as the authentication mechanism. This guide and the setup plugin require a <em>git</em> repository that your robot can push to it with it's encrypted management ssh key (<code>manage_rsa</code>), which will be set up as a read-write deployment key. In addition to saving it's initial configuration to this repository, the standard robot configured with this guide will back up it's long-term memories to a separate <code>robot-state</code> branch.</p>
+<p><strong>Gopherbot</strong> version 2 integrates heavily with <em>git</em>, using <em>ssh</em> as the authentication mechanism. This guide and the setup plugin require a <em>git</em> repository that your robot can push to it with it's encrypted management ssh key (<code>manage_key</code>), which will be set up as a read-write deployment key. In addition to saving it's initial configuration to this repository, the standard robot configured with this guide will back up it's long-term memories to a separate <code>robot-state</code> branch.</p>
 <blockquote>
 <p>Note: The standard robot configured with this guide will have THREE DIFFERENT SSH KEYS, with the following uses:</p>
 <ul>
-<li>A dedicated encrypted <code>manage_rsa</code> key, configured as a read-write deploy key for the robot's git repository; the robot will use this for saving it's initial configuration and backing up it's long-term memories from the <code>state/</code> directory</li>
-<li>An unencrypted <code>deploy_rsa</code> read-only deploy key that can be used for deploying your robot to e.g. a container or new VM</li>
-<li>A default encrypted <code>robot_rsa</code> key which the robot will use for all other CI/CD and remote ssh jobs</li>
+<li>A dedicated encrypted <code>manage_key</code>, configured as a read-write deploy key for the robot's git repository; the robot will use this for saving it's initial configuration and backing up it's long-term memories from the <code>state/</code> directory</li>
+<li>An unencrypted, read-only <code>deploy_key</code> that can be used for deploying your robot to e.g. a container or new VM</li>
+<li>A default encrypted <code>robot_key</code> which the robot will use for all other CI/CD and remote ssh jobs</li>
 </ul>
 </blockquote>
 <p>Additionally, you may want to take advantage of <strong>Gopherbot</strong>'s CI/CD funcationality or ability to run git-driven jobs, which can be scheduled and/or on-demand; for example, <strong>Floyd</strong> updates the <code>gh-pages</code> branch of <a href="https://github.com/lnxjedi/gopherbot">lnxjedi/gopherbot</a> and also the <a href="https://github.com/lnxjedi">gopherbot-docker</a> repository after a successful build - see <a href="https://github.com/lnxjedi/gopherbot/blob/master/.gopherci/pipeline.sh">gopherbot/.gopherci/pipeline.sh</a>. It's worth considering how you'll set up your robot to access <em>git</em> repositories.</p>
@@ -414,7 +414,7 @@ esac
 <p><em>Github</em>, at least, allows you to associate unique ssh deploy keys with a single repository, and even grant read-write access. The limitation of one repository per key pair increases administration overhead, and makes your robot's life more difficult. Though not fully documented here, it's possible to do this with <strong>Gopherbot</strong> by carefully managing the <code>KEYNAME</code> and <code>BOT_SSH_PHRASE</code> parameters (environment variables). See the section on <a href="botsetup/../pipelines/TaskEnvironment.html">task environment variables</a> for more information on parameter precedence.</p>
 <p>The standard setup uses a read-write deploy key because it is the easiest means of configuring your robot initially, compatible with private repositories.</p>
 <h3><a class="header" href="#user-ssh-keys" id="user-ssh-keys">User SSH Keys</a></h3>
-<p>Git services also allow you to add multiple ssh keys to an individual user. It's also possible to add your robot's <code>robot_rsa.pub</code> key, allowing your robot read-write access to all the repositories you have access to. This is the least recommended means of providing <em>git</em> repository write access for your robot, but may be the most expedient.</p>
+<p>Git services also allow you to add multiple ssh keys to an individual user. It's also possible to add your robot's <code>robot_key.pub</code>, allowing your robot read-write access to all the repositories you have access to. This is the least recommended means of providing <em>git</em> repository write access for your robot, but may be the most expedient.</p>
 <h2><a class="header" href="#brain-storage" id="brain-storage">Brain Storage</a></h2>
 <p><strong>Gopherbot</strong> supports the notion of long-term memories, which are technically just key-blob stores. The included <code>lists</code> and <code>links</code> plugins both use long-term memory storage.</p>
 <h3><a class="header" href="#file-backed-brains" id="file-backed-brains">File backed brains</a></h3>
@@ -492,34 +492,34 @@ FverBqdWHzHfEPDy/cQ8U9AJ3z4v8KdGSubDMALPfHIupwDLctDWQ1c=
 </ul>
 <p>In <code>custom/git/config</code>, replace the values for <code>&lt;botfullname&gt;</code> and <code>&lt;botemail&gt;</code>; these will be used when your robot performs a <code>git commit</code>.</p>
 <h1><a class="header" href="#generate-ssh-keypairs" id="generate-ssh-keypairs">Generate SSH Keypairs</a></h1>
-<p>Now generate the ssh keypairs for your robot - use the passphrase you encrypted previously for generating both <code>manage_rsa</code> and <code>robot_rsa</code>; finally create an unencrypted <code>deploy_rsa</code> and move it out of the repo:</p>
+<p>Now generate the ssh keypairs for your robot - use the passphrase you encrypted previously for generating both <code>manage_key</code> and <code>robot_key</code>; finally create an unencrypted <code>deploy_key</code> and move it out of the repo:</p>
 <pre><code class="language-shell">davidparsley@penguin:/home/robots/clu$ mkdir custom/ssh
-davidparsley@penguin:/home/robots/clu$ ssh-keygen -N &quot;VeryLovelyNicePassword&quot; -C &quot;clu@linuxjedi.org&quot; -f custom/ssh/manage_rsa
+davidparsley@penguin:/home/robots/clu$ ssh-keygen -N &quot;VeryLovelyNicePassword&quot; -C &quot;clu@linuxjedi.org&quot; -f custom/ssh/manage_key
 Generating public/private rsa key pair.
-Your identification has been saved in custom/ssh/manage_rsa.
-Your public key has been saved in custom/ssh/manage_rsa.pub.
+Your identification has been saved in custom/ssh/manage_key.
+Your public key has been saved in custom/ssh/manage_key.pub.
 The key fingerprint is:
 ...
-davidparsley@penguin:/home/robots/clu$ ssh-keygen -N &quot;VeryLovelyNicePassword&quot; -C &quot;clu@linuxjedi.org&quot; -f custom/ssh/robot_rsa
+davidparsley@penguin:/home/robots/clu$ ssh-keygen -N &quot;VeryLovelyNicePassword&quot; -C &quot;clu@linuxjedi.org&quot; -f custom/ssh/robot_key
 Generating public/private rsa key pair.
-Your identification has been saved in custom/ssh/robot_rsa.
-Your public key has been saved in custom/ssh/robot_rsa.pub.
+Your identification has been saved in custom/ssh/robot_key.
+Your public key has been saved in custom/ssh/robot_key.pub.
 The key fingerprint is:
 ...
-davidparsley@penguin:/home/robots/clu$ ssh-keygen -N &quot;&quot; -C &quot;clu@linuxjedi.org&quot; -f custom/ssh/deploy_rsa
+davidparsley@penguin:/home/robots/clu$ ssh-keygen -N &quot;&quot; -C &quot;clu@linuxjedi.org&quot; -f custom/ssh/deploy_key
 Generating public/private rsa key pair.
-Your identification has been saved in custom/ssh/deploy_rsa.
-Your public key has been saved in custom/ssh/deploy_rsa.pub.
+Your identification has been saved in custom/ssh/deploy_key.
+Your public key has been saved in custom/ssh/deploy_key.pub.
 The key fingerprint is:
 ...
-davidparsley@penguin:/home/robots/clu$ mv custom/ssh/deploy_rsa .
+davidparsley@penguin:/home/robots/clu$ mv custom/ssh/deploy_key .
 </code></pre>
 <blockquote>
-<p>Note that deploy_rsa is unencrypted, and not kept in the robot's repository which is rooted in the <code>custom</code> directory.</p>
+<p>Note that deploy_key is unencrypted, and not kept in the robot's repository which is rooted in the <code>custom</code> directory.</p>
 </blockquote>
 <h1><a class="header" href="#finish-the-env-file" id="finish-the-env-file">Finish the <code>.env</code> File</a></h1>
-<p>First, use <code>tr</code> to dump a flattened version of the <code>deploy_rsa</code> private key to the <code>.env</code> file:</p>
-<pre><code>$ cat custom/ssh/deploy_rsa | tr ' \n' '_:' &gt;&gt; .env
+<p>First, use <code>tr</code> to dump a flattened version of the <code>deploy_key</code> private key to the <code>.env</code> file:</p>
+<pre><code>$ cat custom/ssh/deploy_key | tr ' \n' '_:' &gt;&gt; .env
 </code></pre>
 <p>Now edit the <code>.env</code> file and stick <code>GOPHER_DEPLOY_KEY=</code> in front of that mess, and add values for <code>GOPHER_PROTOCOL</code> and <code>GOPHER_CUSTOM_REPOSITORY</code>. Using <strong>Clu</strong> as an example, the end result should look something like this:</p>
 <pre><code>GOPHER_ENCRYPTION_KEY=&lt;redacted&gt;
@@ -549,8 +549,8 @@ GOPHER_DEPLOY_KEY=-----BEGIN_OPENSSH_PRIVATE_KEY-----:lksjflsjdf&lt;muchjunkremo
 <p>As noted in <a href="botsetup/Requirements.html#git-access">requirements</a>, the standard robot has three ssh keypairs by default, two of which are configured as deploy keys for the repository.</p>
 <p>Find the <strong>deploy keys</strong> section for the robot's git repository, then:</p>
 <ul>
-<li>Configure a <strong>read-write</strong> deploy key with the contents of <code>custom/ssh/manage_rsa.pub</code>; this corresponds to the encrypted <code>manage_rsa</code> key the robot can use to save it's own configuration, or back up it's state / brain</li>
-<li>Configure a <strong>read-only</strong> deploy key with the contents of <code>custom/ssh/deploy_rsa.pub</code>; this corresponds to the unencrypted <code>GOPHER_DEPLOY_KEY</code> in the <code>.env</code> file, and the gopherbot <strong>bootstrap</strong> plugin can use this to deploy your robot to e.g. a generic container or new VM</li>
+<li>Configure a <strong>read-write</strong> deploy key with the contents of <code>custom/ssh/manage_key.pub</code>; this corresponds to the encrypted <code>manage_key</code> the robot can use to save it's own configuration, or back up it's state / brain</li>
+<li>Configure a <strong>read-only</strong> deploy key with the contents of <code>custom/ssh/deploy_key.pub</code>; this corresponds to the unencrypted <code>GOPHER_DEPLOY_KEY</code> in the <code>.env</code> file, and the gopherbot <strong>bootstrap</strong> plugin can use this to deploy your robot to e.g. a generic container or new VM</li>
 </ul>
 <p>Once you've set up the deploy keys, open a private chat with your robot and tell it to <code>save</code>; if all has gone well, your robot will push the contents of <code>custom/</code> to it's git repository, and should be ready to go.</p>
 <p>This setup allows for a common workflow where the robot is running in a container, VM, or server in your infrastructure, and updates to robot configuration are made by updating the robot's configuration repository, followed by an administrator <code>update</code> command, (e.g. <code>clu, update</code>). The <code>update</code> command will cause the robot to <code>git pull</code> it's custom configuration, then perform a reload and report any errors.</p>
@@ -694,7 +694,7 @@ GOPHER_DEPLOY_KEY=-----BEGIN_OPENSSH_PRIVATE_KEY-----:&lt;much junk removed&gt;:
 Terminal connector running; Use '|c&lt;channel|?&gt;' to change channel, or '|u&lt;user|?&gt;' to change user
 clu-jobs: Starting restore of robot state...
 OUT: Agent pid 11337
-ERR: Identity added: /home/parse/clu/custom/ssh/manage_rsa (parse@hakuin.localdomain)
+ERR: Identity added: /home/parse/clu/custom/ssh/manage_key (parse@hakuin.localdomain)
 ERR: Cloning into '.'...
 ERR: Warning: Permanently added the RSA host key for IP address '192.30.253.112' to the list of known hosts.
 clu-jobs: Restore finished
@@ -736,7 +736,7 @@ Terminal connector running; Use '|c&lt;channel|?&gt;' to change channel, or '|u&
 OUT: GOPHER_PROTOCOL is terminal
 clu-jobs: Starting restore of robot state...
 OUT: Agent pid 440
-ERR: Identity added: /home/custom/ssh/manage_rsa (parse@hakuin.localdomain)
+ERR: Identity added: /home/custom/ssh/manage_key (parse@hakuin.localdomain)
 ERR: Cloning into '.'...
 clu-jobs: Restore finished
 OUT: unset SSH_AUTH_SOCK;
@@ -775,7 +775,7 @@ Terminal connector running; Use '|c&lt;channel|?&gt;' to change channel, or '|u&
 OUT: GOPHER_PROTOCOL is terminal
 clu-jobs: Starting restore of robot state...
 OUT: Agent pid 1764
-ERR: Identity added: /workspace/custom/ssh/manage_rsa (parse@hakuin.localdomain)
+ERR: Identity added: /workspace/custom/ssh/manage_key (parse@hakuin.localdomain)
 ERR: Cloning into '.'...
 clu-jobs: Restore finished
 OUT: unset SSH_AUTH_SOCK;
@@ -808,7 +808,7 @@ UK+T6/HocaR9AAD8Ty2giHdNR3r03pbffpah/rk+MZumPK4Y3A==
 <h1><a class="header" href="#running-in-a-container" id="running-in-a-container">Running in a Container</a></h1>
 <p>A major goal for <strong>Gopherbot</strong> v2 was container-native operation, and the ability to run your robot with all it's functionality and state/context, without requiring a persistent volume mount or a custom image with your robot baked-in. You can launch your robot using any of the <a href="https://hub.docker.com/r/lnxjedi/gopherbot">stock images</a>; you should only need to create a custom image if your robot requires specific extra tools or libraries to do it's work, such as e.g. an ldap client or specific python module.</p>
 <p>This section doesn't delve in to the specifics of running your robot in any particular container environment. Whether your robot runs as a persistent container on a Docker host, or as a managed container in a Kubernetes or Openshift cluster - or elsewhere - the same principles apply. If you're planning on deploying in a container, it is presumed that you're already running other containerized workloads, and can provide the requirements by common means for your container environment.</p>
-<p>The contents of your robot's <code>.env</code> file are all that's needed - the built-in <strong>bootstrap</strong> plugin will use your robot's <code>deploy_rsa</code> key to clone it's <code>GOPHER_CUSTOM_REPOSITORY</code> configuration repository, then use the <code>GOPHER_ENCRYPTION_KEY</code> to decrypt the <code>manage_rsa</code> ssh private key to restore file-backed memories if you use the default <code>file</code> brain for the standard robot.</p>
+<p>The contents of your robot's <code>.env</code> file are all that's needed - the built-in <strong>bootstrap</strong> plugin will use your robot's <code>deploy_key</code> key to clone it's <code>GOPHER_CUSTOM_REPOSITORY</code> configuration repository, then use the <code>GOPHER_ENCRYPTION_KEY</code> to decrypt the <code>manage_key</code> ssh private key to restore file-backed memories if you use the default <code>file</code> brain for the standard robot.</p>
 <p>You can find example <code>docker</code> commands and comments regarding usage in <code>resources/docker/Makefile</code>.</p>
 <h2><a class="header" href="#container-considerations" id="container-considerations">Container Considerations</a></h2>
 <h3><a class="header" href="#backing-up-state-and-memories" id="backing-up-state-and-memories">Backing up State and Memories</a></h3>

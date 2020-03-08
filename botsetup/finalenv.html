@@ -149,8 +149,8 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#finish-the-env-file" id="finish-the-env-file">Finish the <code>.env</code> File</a></h1>
-<p>First, use <code>tr</code> to dump a flattened version of the <code>deploy_rsa</code> private key to the <code>.env</code> file:</p>
-<pre><code>$ cat custom/ssh/deploy_rsa | tr ' \n' '_:' &gt;&gt; .env
+<p>First, use <code>tr</code> to dump a flattened version of the <code>deploy_key</code> private key to the <code>.env</code> file:</p>
+<pre><code>$ cat custom/ssh/deploy_key | tr ' \n' '_:' &gt;&gt; .env
 </code></pre>
 <p>Now edit the <code>.env</code> file and stick <code>GOPHER_DEPLOY_KEY=</code> in front of that mess, and add values for <code>GOPHER_PROTOCOL</code> and <code>GOPHER_CUSTOM_REPOSITORY</code>. Using <strong>Clu</strong> as an example, the end result should look something like this:</p>
 <pre><code>GOPHER_ENCRYPTION_KEY=&lt;redacted&gt;

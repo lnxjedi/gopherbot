@@ -163,13 +163,13 @@
 </ul>
 <p>The other requirements listed here are mainly items for consideration before setting up your <strong>Gopherbot</strong> robot.</p>
 <h2><a class="header" href="#git-access" id="git-access">Git Access</a></h2>
-<p><strong>Gopherbot</strong> version 2 integrates heavily with <em>git</em>, using <em>ssh</em> as the authentication mechanism. This guide and the setup plugin require a <em>git</em> repository that your robot can push to it with it's encrypted management ssh key (<code>manage_rsa</code>), which will be set up as a read-write deployment key. In addition to saving it's initial configuration to this repository, the standard robot configured with this guide will back up it's long-term memories to a separate <code>robot-state</code> branch.</p>
+<p><strong>Gopherbot</strong> version 2 integrates heavily with <em>git</em>, using <em>ssh</em> as the authentication mechanism. This guide and the setup plugin require a <em>git</em> repository that your robot can push to it with it's encrypted management ssh key (<code>manage_key</code>), which will be set up as a read-write deployment key. In addition to saving it's initial configuration to this repository, the standard robot configured with this guide will back up it's long-term memories to a separate <code>robot-state</code> branch.</p>
 <blockquote>
 <p>Note: The standard robot configured with this guide will have THREE DIFFERENT SSH KEYS, with the following uses:</p>
 <ul>
-<li>A dedicated encrypted <code>manage_rsa</code> key, configured as a read-write deploy key for the robot's git repository; the robot will use this for saving it's initial configuration and backing up it's long-term memories from the <code>state/</code> directory</li>
-<li>An unencrypted <code>deploy_rsa</code> read-only deploy key that can be used for deploying your robot to e.g. a container or new VM</li>
-<li>A default encrypted <code>robot_rsa</code> key which the robot will use for all other CI/CD and remote ssh jobs</li>
+<li>A dedicated encrypted <code>manage_key</code>, configured as a read-write deploy key for the robot's git repository; the robot will use this for saving it's initial configuration and backing up it's long-term memories from the <code>state/</code> directory</li>
+<li>An unencrypted, read-only <code>deploy_key</code> that can be used for deploying your robot to e.g. a container or new VM</li>
+<li>A default encrypted <code>robot_key</code> which the robot will use for all other CI/CD and remote ssh jobs</li>
 </ul>
 </blockquote>
 <p>Additionally, you may want to take advantage of <strong>Gopherbot</strong>'s CI/CD funcationality or ability to run git-driven jobs, which can be scheduled and/or on-demand; for example, <strong>Floyd</strong> updates the <code>gh-pages</code> branch of <a href="https://github.com/lnxjedi/gopherbot">lnxjedi/gopherbot</a> and also the <a href="https://github.com/lnxjedi">gopherbot-docker</a> repository after a successful build - see <a href="https://github.com/lnxjedi/gopherbot/blob/master/.gopherci/pipeline.sh">gopherbot/.gopherci/pipeline.sh</a>. It's worth considering how you'll set up your robot to access <em>git</em> repositories.</p>
@@ -179,7 +179,7 @@
 <p><em>Github</em>, at least, allows you to associate unique ssh deploy keys with a single repository, and even grant read-write access. The limitation of one repository per key pair increases administration overhead, and makes your robot's life more difficult. Though not fully documented here, it's possible to do this with <strong>Gopherbot</strong> by carefully managing the <code>KEYNAME</code> and <code>BOT_SSH_PHRASE</code> parameters (environment variables). See the section on <a href="../pipelines/TaskEnvironment.html">task environment variables</a> for more information on parameter precedence.</p>
 <p>The standard setup uses a read-write deploy key because it is the easiest means of configuring your robot initially, compatible with private repositories.</p>
 <h3><a class="header" href="#user-ssh-keys" id="user-ssh-keys">User SSH Keys</a></h3>
-<p>Git services also allow you to add multiple ssh keys to an individual user. It's also possible to add your robot's <code>robot_rsa.pub</code> key, allowing your robot read-write access to all the repositories you have access to. This is the least recommended means of providing <em>git</em> repository write access for your robot, but may be the most expedient.</p>
+<p>Git services also allow you to add multiple ssh keys to an individual user. It's also possible to add your robot's <code>robot_key.pub</code>, allowing your robot read-write access to all the repositories you have access to. This is the least recommended means of providing <em>git</em> repository write access for your robot, but may be the most expedient.</p>
 <h2><a class="header" href="#brain-storage" id="brain-storage">Brain Storage</a></h2>
 <p><strong>Gopherbot</strong> supports the notion of long-term memories, which are technically just key-blob stores. The included <code>lists</code> and <code>links</code> plugins both use long-term memory storage.</p>
 <h3><a class="header" href="#file-backed-brains" id="file-backed-brains">File backed brains</a></h3>
