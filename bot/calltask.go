@@ -348,7 +348,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		closed := make(chan struct{})
 		var solog, selog *log.Logger
 		if localTerm {
-			solog = log.New(terminalWriter, "", 0)
+			solog = log.New(terminalWriter, "OUT: ", 0)
 			selog = log.New(terminalWriter, "ERR: ", 0)
 		}
 		if nullConn {
