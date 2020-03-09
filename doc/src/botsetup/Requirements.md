@@ -5,7 +5,7 @@ To set up your robot you'll need:
    * If you've signed up for an account on [Gitpod](https://gitpod.io) (free accounts available), you can set up a new robot with the online [Gopherbot Gitpod Demo](https://gitpod.io/#https://github.com/lnxjedi/gopherbot)
 * Credentials your robot can use to log in to your team chat; you can obtain a **Gopherbot**-compatible [Slack](https://slack.com) token here: https://\<team-name\>.slack.com/services/new/bot
 * The name of a channel where your robot will run jobs by default, e.g. `clu-jobs` or `floyd-jobs`
-* An empty *git* repository (public or private) to store your robot, normally *botname*-gopherbot; for example you can find **Clu** at [https://github.com/parsley42/clu-gopherbot](https://github.com/parsley42/clu-gopherbot)
+* A completely empty (no README, LICENSE, etc.) public or private *git* repository, to store your robot, normally *botname*-gopherbot; for example you can find **Clu** at [https://github.com/parsley42/clu-gopherbot](https://github.com/parsley42/clu-gopherbot)
 * If you're using a container and/or the **setup plugin**, you'll need to be able to configure a read/write deploy key for the robot's repository - this is widely supported with almost all of the major *git* hosting services and applications, check your repository settings or consult the documentation for your particular service
 
 The other requirements listed here are mainly items for consideration before setting up your **Gopherbot** robot.
