@@ -3,7 +3,7 @@ package slack
 import (
 	"time"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 	"github.com/slack-go/slack"
 )
 

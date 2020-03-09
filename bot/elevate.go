@@ -1,6 +1,6 @@
 package bot
 
-import "github.com/lnxjedi/gopherbot/robot"
+import "github.com/lnxjedi/robot"
 
 const technicalElevError = "Sorry, elevation failed due to a problem with the elevation service"
 const configElevError = "Sorry, elevation failed due to a configuration error"

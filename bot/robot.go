@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 /* robot_methods.go defines some convenience functions on struct Robot to

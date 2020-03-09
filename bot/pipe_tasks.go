@@ -1,6 +1,6 @@
 package bot
 
-import "github.com/lnxjedi/gopherbot/robot"
+import "github.com/lnxjedi/robot"
 
 // func template(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 // 	r := m.(Robot)

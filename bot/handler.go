@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // an empty object type for passing a Handler to the connector.

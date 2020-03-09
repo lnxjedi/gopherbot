@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 type debuggingTask struct {

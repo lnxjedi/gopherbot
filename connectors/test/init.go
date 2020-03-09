@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/lnxjedi/gopherbot/bot"
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // Global persistent map of user name to user index

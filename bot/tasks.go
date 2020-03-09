@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // Regex for task/job/plugin/NameSpace names. NOTE: if this changes,

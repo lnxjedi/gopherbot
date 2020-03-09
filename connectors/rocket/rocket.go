@@ -9,7 +9,7 @@ import (
 
 	models "github.com/lnxjedi/gopherbot/connectors/rocket/models"
 	api "github.com/lnxjedi/gopherbot/connectors/rocket/realtime"
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 var lock sync.Mutex  // package var lock

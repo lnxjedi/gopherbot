@@ -3,7 +3,7 @@ package bot
 import (
 	"sync"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 var runQueues = struct {

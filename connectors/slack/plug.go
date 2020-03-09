@@ -3,7 +3,7 @@ package slack
 import (
 	"regexp"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 	"github.com/slack-go/slack"
 )
 

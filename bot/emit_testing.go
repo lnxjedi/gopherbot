@@ -6,7 +6,7 @@ import (
 	"path"
 	"runtime"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 var events = make(chan Event, 16)

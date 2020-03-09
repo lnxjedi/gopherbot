@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // loggers of last resort, initialize early and update in start.go

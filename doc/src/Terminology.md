@@ -8,7 +8,7 @@ This section is most important for referring back to as you read the documentati
 * **robot** - you'll see the term *robot* in several different contexts in the documentation with these several meanings:
    * **robot** - A configured instance of a running **Gopherbot** daemon, available in your team chat; normally associated with a *git* repository that holds all the configuration and extensions for the robot
    * **Robot** - The object passed to user plugins, jobs and tasks
-   * **robot** - the **Go** library for loadable modules, i.e. `import github.com/lnxjedi/gopherbot/robot`
+   * **robot** - the **Go** library for loadable modules, i.e. `import github.com/lnxjedi/robot`
 * **default robot** - If you run Gopherbot with no custom configuration, you get *Floyd*, the default robot
 * **standard robot** - A standard robot is what you get from using `robot.skel` or running the `setup` plugin from the **default robot**; more generally, any robot that has the standard `robot.skel` configuration as it's base is still a **standard robot**
 * **GOPHER_HOME** - The top-level directory for a given robot; the **Gopherbot** binary (`/opt/gopherbot/gopherbot`) is run from this directory to start or interact with the robot

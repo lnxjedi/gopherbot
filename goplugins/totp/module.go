@@ -2,7 +2,7 @@
 
 package totp
 
-import "github.com/lnxjedi/gopherbot/robot"
+import "github.com/lnxjedi/robot"
 
 var totpspec = robot.PluginSpec{
 	Name:    "totp",

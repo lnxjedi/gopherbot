@@ -2,7 +2,7 @@
 
 package meme
 
-import "github.com/lnxjedi/gopherbot/robot"
+import "github.com/lnxjedi/robot"
 
 var memespec = robot.PluginSpec{
 	Name:    "memes",

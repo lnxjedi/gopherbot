@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 /* Technical notes on the waiter implementation

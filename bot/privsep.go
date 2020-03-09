@@ -5,7 +5,7 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 	"golang.org/x/sys/unix"
 )
 

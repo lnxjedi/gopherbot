@@ -4,7 +4,7 @@ package main
 
 import (
 	"github.com/lnxjedi/gopherbot/connectors/slack"
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // GetManifest just wraps the function from the module

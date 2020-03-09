@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 const keepListeningDuration = 77 * time.Second

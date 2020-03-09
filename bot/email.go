@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/jordan-wright/email"
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 type botMailer struct {

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 /* pipeContext.go - internal methods on pipeContexts

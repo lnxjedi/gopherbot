@@ -12,7 +12,7 @@ import (
 	"text/template"
 
 	"github.com/ghodss/yaml"
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // merge map merges maps and concatenates slices; values in m(erge) override values

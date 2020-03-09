@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // Should be ample for the internal circular log

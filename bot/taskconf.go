@@ -7,7 +7,7 @@ import (
 	"regexp"
 
 	"github.com/ghodss/yaml"
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // loadTaskConfig() updates task/job/plugin configuration and namespaces

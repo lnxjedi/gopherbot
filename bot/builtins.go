@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // if help is more than tooLong lines long, send a private message
