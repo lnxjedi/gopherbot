@@ -103,7 +103,7 @@ const (
 	UseDefaultValue
 	// TimeoutExpired - The user didn't reply within the given timeout
 	TimeoutExpired
-	// Interrupted - The user issued another command instead of replying, or replied with '-' (cancel)
+	// Interrupted - The user replied with '-' (cancel)
 	Interrupted
 	// MatcherNotFound - There was no matcher configured with the given string, or the regex didn't compile
 	MatcherNotFound

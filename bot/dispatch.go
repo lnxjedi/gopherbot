@@ -163,25 +163,6 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 			return
 		}
 		state.RUnlock()
-		// Check to see if user issued a new command when a reply was being
-		// waited on
-		replyMatcher := replyMatcher{w.User, w.Channel}
-		replies.Lock()
-		waiters, waitingForReply := replies.m[replyMatcher]
-		if waitingForReply {
-			delete(replies.m, replyMatcher)
-			replies.Unlock()
-			for i, rep := range waiters {
-				if i == 0 {
-					rep.replyChannel <- reply{false, replyInterrupted, ""}
-				} else {
-					rep.replyChannel <- reply{false, retryPrompt, ""}
-				}
-			}
-			Log(robot.Debug, "User '%s' matched a new command while the robot was waiting for a reply in channel '%s'", w.User, w.Channel)
-		} else {
-			replies.Unlock()
-		}
 		w.startPipeline(nil, runTask, pipelineType, matcher.Command, cmdArgs...)
 	}
 	return
@@ -203,9 +184,37 @@ func (w *worker) handleMessage() {
 	lastMsgContext := memoryContext{"lastMsg", w.User, w.Channel}
 	var last shortTermMemory
 	var ok bool
+	// First, see if the robot was waiting on a reply; replies from
+	// user take precedence over everything else.
+	var waiters []replyWaiter
+	waitingForReply := false
+	matcher := replyMatcher{w.User, w.Channel}
+	Log(robot.Trace, "Checking replies for matcher: %q", matcher)
+	replies.Lock()
+	waiters, waitingForReply = replies.m[matcher]
+	if !waitingForReply {
+		replies.Unlock()
+	} else {
+		delete(replies.m, matcher)
+		replies.Unlock()
+		// if the robot was waiting on a reply from this user, it always
+		// counts as a matched message.
+		messageMatched = true
+		for i, rep := range waiters {
+			if i == 0 {
+				cmsg := spaceRe.ReplaceAllString(w.msg, " ")
+				matched := rep.re.MatchString(cmsg)
+				Log(robot.Debug, "Found replyWaiter for user '%s' in channel '%s', checking if message '%s' matches '%s': %t", w.User, w.Channel, cmsg, rep.re.String(), matched)
+				rep.replyChannel <- reply{matched, replied, cmsg}
+			} else {
+				Log(robot.Debug, "Sending retry to next reply waiter")
+				rep.replyChannel <- reply{false, retryPrompt, ""}
+			}
+		}
+	}
 	// See if the robot got a blank message, indicating that the last message
 	// was meant for it (if it was in the keepListeningDuration)
-	if w.isCommand && len(w.msg) == 0 && !w.BotUser {
+	if !messageMatched && w.isCommand && len(w.msg) == 0 && !w.BotUser {
 		shortTermMemories.Lock()
 		last, ok = shortTermMemories.m[lastMsgContext]
 		shortTermMemories.Unlock()
@@ -220,35 +229,6 @@ func (w *worker) handleMessage() {
 	if !messageMatched && w.isCommand {
 		// See if a command matches (and runs)
 		messageMatched = w.checkPluginMatchersAndRun(plugCommand)
-	}
-	// See if the robot was waiting on a reply
-	var waiters []replyWaiter
-	waitingForReply := false
-	if !messageMatched {
-		matcher := replyMatcher{w.User, w.Channel}
-		Log(robot.Trace, "Checking replies for matcher: %q", matcher)
-		replies.Lock()
-		waiters, waitingForReply = replies.m[matcher]
-		if !waitingForReply {
-			replies.Unlock()
-		} else {
-			delete(replies.m, matcher)
-			replies.Unlock()
-			// if the robot was waiting on a reply, we don't want to check for
-			// ambient message matches - the plugin will handle it.
-			messageMatched = true
-			for i, rep := range waiters {
-				if i == 0 {
-					cmsg := spaceRe.ReplaceAllString(w.msg, " ")
-					matched := rep.re.MatchString(cmsg)
-					Log(robot.Debug, "Found replyWaiter for user '%s' in channel '%s', checking if message '%s' matches '%s': %t", w.User, w.Channel, cmsg, rep.re.String(), matched)
-					rep.replyChannel <- reply{matched, replied, cmsg}
-				} else {
-					Log(robot.Debug, "Sending retry to next reply waiter")
-					rep.replyChannel <- reply{false, retryPrompt, ""}
-				}
-			}
-		}
 	}
 	// Direct commands were checked above; if a direct command didn't match,
 	// and a there wasn't a reply being waited on, then we check ambient
