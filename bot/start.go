@@ -105,16 +105,17 @@ func Start(v VersionInfo) {
 
 	usage := `Usage: gopherbot [options] [command [command options] [command args]]
   "command" can be one of:
-	encrypt - encrypt a string or file
 	decrypt - decrypt a string or file
-	init (protocol) - create a new robot in currect directory
-	list - list robot memories
+	encrypt - encrypt a string or file
 	delete - delete a memory
-	fetch - fetch the contents of a memory
-	store - store a memory
-	run - run the robot (default)
 	dump (installed|configured) [path/to/file.yaml] -
 	  read and dump a raw config file, for yaml troubleshooting
+	fetch - fetch the contents of a memory
+	init (protocol) - create a new robot in currect directory
+	list - list robot memories
+	run - run the robot (default)
+	store - store a memory
+	version - display the gopherbot version
   <command> -h for help on a given command
 
   Common options:`

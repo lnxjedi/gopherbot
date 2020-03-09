@@ -123,6 +123,8 @@ func processCLI(usage string) {
 			return
 		}
 		cliDelete(cliArgs[1])
+	case "version":
+		fmt.Printf("Version %s, commit: %s\n", botVersion.Version, botVersion.Commit)
 	default:
 		fmt.Println(usage)
 		flag.PrintDefaults()
