@@ -39,7 +39,7 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
-	if logger == nil {
+	if logger == nil && l >= currlevel {
 		botStdOutLogger.Print(msg)
 		return true
 	}
