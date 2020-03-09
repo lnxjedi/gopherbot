@@ -103,10 +103,11 @@ func Start(v VersionInfo) {
 		return
 	}
 
-	usage := `Usage: gopherbot [options] [command [command options]]
+	usage := `Usage: gopherbot [options] [command [command options] [command args]]
   "command" can be one of:
 	encrypt - encrypt a string or file
 	decrypt - decrypt a string or file
+	init (protocol) - create a new robot in currect directory
 	list - list robot memories
 	delete - delete a memory
 	fetch - fetch the contents of a memory
@@ -210,7 +211,9 @@ func Start(v VersionInfo) {
 				os.Setenv("GOPHER_PROTOCOL", "nullconn")
 				if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
 					os.Setenv("GOPHER_LOGFILE", "robot.log")
-					Log(robot.Info, "Logging to robot.log")
+					if !cliOp {
+						Log(robot.Info, "Logging to robot.log")
+					}
 					defaultLogfile = true
 				}
 			} else {

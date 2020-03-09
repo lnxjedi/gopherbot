@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
@@ -68,6 +69,42 @@ func processCLI(usage string) {
 			return
 		}
 		cliFetch(fetchFlags.Arg(0), encodeBase64)
+	case "init":
+		if len(cliArgs) < 2 {
+			fmt.Println("Usage: gopherbot init <protocol>")
+			return
+		}
+		if _, err := os.Stat("answerfile.txt"); err == nil {
+			fmt.Println("Not over-writing existing 'answerfile.txt'")
+			return
+		}
+		ansFile := filepath.Join(installPath, "resources", "answerfiles", cliArgs[1]+".txt")
+		if _, err := os.Stat(ansFile); err != nil {
+			fmt.Printf("Protocol answerfile template not found: %s\n", ansFile)
+			return
+		}
+		var ansBytes []byte
+		var err error
+		if ansBytes, err = ioutil.ReadFile(ansFile); err != nil {
+			fmt.Printf("Reading '%s': %v", ansFile, err)
+			return
+		}
+		if err = ioutil.WriteFile("answerfile.txt", ansBytes, 0600); err != nil {
+			fmt.Printf("Writing 'answerfile.txt': %v", err)
+			return
+		}
+		if _, err := os.Stat("gopherbot"); err == nil {
+			fmt.Println("Edit 'answerfile.txt' and re-run gopherbot with no arguments to generate your robot.")
+		} else {
+			exeFile := filepath.Join(installPath, "gopherbot")
+			err := os.Symlink(exeFile, "gopherbot")
+			if err != nil {
+				fmt.Println("Unable to create symlink for 'gopherbot'")
+				fmt.Println("Edit 'answerfile.txt' and re-run gopherbot with no arguments to generate your robot.")
+			} else {
+				fmt.Println("Edit 'answerfile.txt' and run './gopherbot' with no arguments to generate your robot.")
+			}
+		}
 	case "store":
 		if len(cliArgs) < 2 {
 			fmt.Println("Usage: gopherbot store <key> [filename]")
