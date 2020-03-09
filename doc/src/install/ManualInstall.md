@@ -11,7 +11,7 @@ The latest release, pre-release and beta versions are available for download on 
 2. (Optional) Also as root, make the `gopherbot` binary **setuid nobody** (see [below](#privilege-separation)):
 ```shell
 [opt]# chown nobody gopherbot/gopherbot
-[opt]# chmod u+x gopherbot/gopherbot
+[opt]# chmod u+s gopherbot/gopherbot
 ```
 
 ## Archive Contents
