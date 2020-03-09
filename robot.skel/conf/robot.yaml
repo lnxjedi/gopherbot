@@ -157,22 +157,11 @@ NameSpaces:
     - Name: BOT_SSH_PHRASE
       Value: {{ decrypt "<sshencrypted>" }}
   "manage":
-    Parameters:
+    AppendParameters:
     - Name: "KEYNAME"
       Value: "manage_key"
     - Name: BOT_SSH_PHRASE
       Value: {{ decrypt "<sshencrypted>" }}
-    - Name: GOPHER_CUSTOM_REPOSITORY
-      Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
-    - Name: GOPHER_CUSTOM_BRANCH
-      Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "master" }}
-    - Name: GOPHER_STATE_REPOSITORY
-      Value: {{ env "GOPHER_STATE_REPOSITORY" }}
-    - Name: GOPHER_STATE_BRANCH
-      Value: {{ env "GOPHER_STATE_BRANCH" }}
-    # A default installed robot stores its brain in state/brain
-    - Name: GOPHER_STATEDIR
-      Value: {{ env "GOPHER_STATEDIR" | default "state" }}
 
 DefaultMessageFormat: Raw
 # Users the bot should never listen to
