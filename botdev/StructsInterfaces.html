@@ -154,7 +154,7 @@
 <h3><a class="header" href="#the-robot-interface" id="the-robot-interface">The <code>Robot</code> interface</a></h3>
 <p><code>Robot</code> defines the methods available to a <strong>Go</strong> task, plugin or job. Whenever the engine calls a handler for one of these, the first argument to the handler is always an object that implements the <code>Robot</code> interface. Internally (in the <code>bot</code> package), this is a <code>bot.Robot</code> struct, with methods that implement the <code>robot.Robot</code> interface.</p>
 <h3><a class="header" href="#the-message-struct" id="the-message-struct">The <code>Message</code> struct</a></h3>
-<p>The <code>GetMessage()</code> method on the <code>Robot</code> will return a <code>robot.Message</code>, which contains information about the user and channel, as well as a pointer to a copy of the original incoming data structure from the external connector. The complete definition is available from <a href="https://godoc.org/github.com/lnxjedi/gopherbot/robot#Message">godoc.org</a>.</p>
+<p>The <code>GetMessage()</code> method on the <code>Robot</code> will return a <code>robot.Message</code>, which contains information about the user and channel, as well as a pointer to a copy of the original incoming data structure from the external connector. The complete definition is available from <a href="https://godoc.org/github.com/lnxjedi/robot#Message">godoc.org</a>.</p>
 <h2><a class="header" href="#the-bot-package" id="the-bot-package">The <code>bot</code> package</a></h2>
 <p>The <code>bot</code> package contains all the logic for a running robot.</p>
 <h3><a class="header" href="#pipelines" id="pipelines">Pipelines</a></h3>
