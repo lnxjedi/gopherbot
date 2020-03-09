@@ -9,16 +9,24 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"text/template"
 
 	"github.com/ghodss/yaml"
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
+
+const appendPrefix = "Append"
 
 // merge map merges maps and concatenates slices; values in m(erge) override values
 // in t(arget).
 func mergemap(m, t map[string]interface{}) map[string]interface{} {
 	for k, v := range m {
+		appendArr := false
+		if strings.HasPrefix(k, appendPrefix) {
+			k = strings.TrimPrefix(k, appendPrefix)
+			appendArr = true
+		}
 		if tv, ok := t[k]; ok {
 			if reflect.TypeOf(v) == reflect.TypeOf(tv) {
 				switch v.(type) {
@@ -28,7 +36,12 @@ func mergemap(m, t map[string]interface{}) map[string]interface{} {
 					t[k] = mergemap(mv, mtv)
 				case []interface{}:
 					sv := v.([]interface{})
-					t[k] = sv
+					if !appendArr {
+						t[k] = sv
+					} else {
+						tva := tv.([]interface{})
+						t[k] = append(tva, sv...)
+					}
 				default:
 					t[k] = v
 				}

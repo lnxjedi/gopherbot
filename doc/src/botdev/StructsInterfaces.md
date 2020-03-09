@@ -8,7 +8,7 @@ The `robot` package defines structs and interfaces for **Go** tasks, plugins and
 `Robot` defines the methods available to a **Go** task, plugin or job. Whenever the engine calls a handler for one of these, the first argument to the handler is always an object that implements the `Robot` interface. Internally (in the `bot` package), this is a `bot.Robot` struct, with methods that implement the `robot.Robot` interface.
 
 ### The `Message` struct
-The `GetMessage()` method on the `Robot` will return a `robot.Message`, which contains information about the user and channel, as well as a pointer to a copy of the original incoming data structure from the external connector. The complete definition is available from [godoc.org](https://godoc.org/github.com/lnxjedi/gopherbot/robot#Message).
+The `GetMessage()` method on the `Robot` will return a `robot.Message`, which contains information about the user and channel, as well as a pointer to a copy of the original incoming data structure from the external connector. The complete definition is available from [godoc.org](https://godoc.org/github.com/lnxjedi/robot#Message).
 
 ## The `bot` package
 

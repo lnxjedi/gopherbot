@@ -1,0 +1,11 @@
+## nullconn.yaml - dummy values to squelch errors
+AdminUsers: [ "alice" ]
+DefaultChannels: [ "general", "random" ]
+
+BotInfo:
+  UserName: floyd
+  FullName: Floyd Gopherbot
+
+Alias: ;
+
+DefaultJobChannel: general

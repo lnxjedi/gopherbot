@@ -4,7 +4,7 @@
 package dynamobrain
 
 import (
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 var manifest = robot.Manifest{

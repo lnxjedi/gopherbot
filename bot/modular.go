@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"plugin"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // Loadable modules can still be compiled in to the binary. When

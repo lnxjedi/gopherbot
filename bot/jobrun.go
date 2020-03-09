@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 const runJobRegex = `run +job +(` + identifierRegex + `)(?: (.*))?`

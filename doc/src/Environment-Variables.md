@@ -70,7 +70,7 @@ First, **Gopherbot** will check for custom configuration or the presence of a `G
 * `GOPHER_PROTOCOL` - set to "terminal" so the default robot will start
 
 If no custom configuration is present but `GOPHER_CUSTOM_REPOSITORY` is set:
-* `GOPHER_PROTOCOL` - set to "nullconn", the null connectory, to allow the bootstrap plugin to bootstrap your robot
+* `GOPHER_PROTOCOL` - set to "nullconn", the null connector, to allow the bootstrap plugin to bootstrap your robot
 
 If the robot is configured but `GOPHER_PROTOCOL` isn't set:
 * `GOPHER_PROTOCOL` - set to "terminal" for local operations

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	models "github.com/lnxjedi/gopherbot/connectors/rocket/models"
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 var incoming chan models.Message

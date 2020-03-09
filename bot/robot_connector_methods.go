@@ -3,7 +3,7 @@ package bot
 import (
 	"strings"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // GetMessage returns a pointer to the message struct

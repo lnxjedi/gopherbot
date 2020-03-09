@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 	"golang.org/x/sys/unix"
 )
 
@@ -50,7 +50,6 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *Task) {
 	dropThreadPriv(fmt.Sprintf("task %s default configuration", task.name))
 
 	Log(robot.Debug, "Calling '%s' with arg: configure", taskPath)
-	//cfg, err = exec.Command(taskPath, "configure").Output()
 	cmd = exec.Command(taskPath, "configure")
 	if relpath {
 		cmd.Dir = configPath

@@ -1,3 +1,4 @@
+
 ## This is a the default configuration for gopherbot. Values here can be
 ## overridden by values in the custom configuration. Primarily configuration
 ## required on initial load is defined here; most configuration, as well as
@@ -21,12 +22,15 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
 
 {{ $proto := env "GOPHER_PROTOCOL" | default "nullconn" }}
 Protocol: {{ $proto }}
-
 ## Trivial "terminal" connector config for a single admin user.
 ## This pulls in a basic default config for the terminal connector
 ## which can be overridden in custom if desired.
 {{ if eq $proto "terminal" }}
 {{ .Include "terminal.yaml" }}
+{{ end }}
+## Dummy connector for bootstrapping & autosetup
+{{ if eq $proto "nullconn" }}
+{{ .Include "nullconn.yaml" }}
 {{ end }}
 
 ## Configure log level
@@ -40,6 +44,9 @@ NameSpaces:
   # Needed to prevent dangling reference; parameters need to be in
   # custom config.
   "ssh":
+    Parameters:
+    - Name: "KEYNAME"
+      Value: "robot_key"
   "manage":
     Parameters:
     - Name: GOPHER_CUSTOM_REPOSITORY
@@ -86,28 +93,12 @@ ExternalPlugins:
     Path: plugins/ssh-admin.sh
     Privileged: true
     NameSpace: ssh
-  "bootstrap":
-    Description: A plugin to bootstrap an existing robot to a new container/directory
-    Privileged: true
-    Homed: true
-    NameSpace: manage
-    Path: plugins/bootstrap.py
-    Parameters:
-    - Name: GOPHER_DEPLOY_KEY
-    # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
-      Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
 {{ if env "GOPHER_UNCONFIGURED" }}
-  "setup":
-    Description: Setup plugin for creating a new robot
-    Privileged: true
-    Homed: true
-    NameSpace: manage
-    Path: plugins/setup.sh
-    Parameters:
-    - Name: GOPHER_ENCRYPTION_INITIALIZED
-      Value: {{ env "GOPHER_ENCRYPTION_INITIALIZED" }}
-    - Name: ANS_PROTOCOL
-      Value: {{ env "ANS_PROTOCOL" }}
+  {{- if eq $proto "terminal" }}
+  "welcome":
+    Description: The welcome plugin provides a greeting when unconfigured
+    Path: plugins/welcome.sh
+  {{- end }}
   "autosetup":
     Description: Setup plugin for creating a new robot from an answerfile
     Privileged: true
@@ -144,6 +135,17 @@ ExternalPlugins:
     - Name: ANS_ADMIN_SECRET
       Value: '{{ env "ANS_ADMIN_SECRET" }}'
     {{ end }}
+{{ else }}
+  "bootstrap":
+    Description: A plugin to bootstrap an existing robot to a new container/directory
+    Privileged: true
+    Homed: true
+    NameSpace: manage
+    Path: plugins/bootstrap.py
+    Parameters:
+    - Name: GOPHER_DEPLOY_KEY
+    # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
+      Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
 {{ end }}
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
@@ -235,9 +237,4 @@ ExternalTasks:
     Description: Task for cleaning a working directory before starting a job/build
     Privileged: true
     Path: tasks/cleanup.sh
-  "setup-task":
-    Description: Setup plugin, callable as a pipeline task
-    Privileged: true
-    NameSpace: manage
-    Path: plugins/setup.sh
   

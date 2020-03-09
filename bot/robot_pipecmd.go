@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // GetRepoData returns the contents of configPath/conf/repodata.yaml, or an

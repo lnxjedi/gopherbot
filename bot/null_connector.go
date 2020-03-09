@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 type nullConnector struct{}

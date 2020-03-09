@@ -38,13 +38,14 @@ if [ -n "$BOOTSTRAP" ]
 then
     Log "Info" "ssh-init starting in bootstrap mode"
     BOOTSTRAP="true"
-fi
-
-SSH_KEY=${KEYNAME:-robot_key}
-SSH_KEY_PATH="$GOPHER_CONFIGDIR/ssh/$SSH_KEY"
-
-if [ -z "$BOOTSTRAP" ]
+elif [ ! "$KEYNAME" ]
 then
+    MESSAGE="KEYNAME not set"
+    Log "Error" "$MESSAGE"
+    echo "$MESSAGE" >&2
+    exit 1
+else
+    SSH_KEY_PATH="$GOPHER_CONFIGDIR/ssh/$KEYNAME"
     if [ ! -e $SSH_KEY_PATH ]
     then
         Log "Warn" "No ssh key found in ssh-init, exiting"
@@ -76,7 +77,7 @@ then
     fi
     echo "$GOPHER_DEPLOY_KEY" | tr '_:' ' \n' | ssh-add -
 else
-    ssh-add $GOPHER_CONFIGDIR/ssh/$SSH_KEY < /dev/null
+    ssh-add $SSH_KEY_PATH < /dev/null
 fi
 
 # Make agent available to other tasks in the pipeline

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 /* Technical notes on the waiter implementation
@@ -103,7 +103,7 @@ func init() {
 // with one of the following RetVals:
 //  UserNotFound
 //  ChannelNotFound
-//	Interrupted - the user issued a new command that ran or canceled with '-'
+//	Interrupted - the user canceled with '-'
 //  UseDefaultValue - user supplied a single "=", meaning "use the default value"
 //	ReplyNotMatched - didn't successfully match for any reason
 //	MatcherNotFound - the regexId didn't correspond to a valid regex

@@ -2,7 +2,7 @@
 
 package duo
 
-import "github.com/lnxjedi/gopherbot/robot"
+import "github.com/lnxjedi/robot"
 
 var duospec = robot.PluginSpec{
 	Name:    "duo",

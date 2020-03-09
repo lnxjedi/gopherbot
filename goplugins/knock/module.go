@@ -2,7 +2,7 @@
 
 package knock
 
-import "github.com/lnxjedi/gopherbot/robot"
+import "github.com/lnxjedi/robot"
 
 var knockspec = robot.PluginSpec{
 	Name:    "knock",

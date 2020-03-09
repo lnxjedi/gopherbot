@@ -7,7 +7,7 @@ import (
 	"regexp"
 
 	"github.com/lnxjedi/gopherbot/bot"
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // DO NOT DISABLE THIS PLUGIN! ALL ROBAWTS MUST KNOW THE RULES

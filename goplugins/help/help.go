@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/bot"
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 var (

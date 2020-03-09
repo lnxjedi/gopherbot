@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 // Map of registered brains

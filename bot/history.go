@@ -12,7 +12,7 @@ package bot
 import (
 	"log"
 
-	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/robot"
 )
 
 type historyLog struct {
