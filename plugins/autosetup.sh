@@ -109,7 +109,8 @@ checkExit "ANS_ROBOT_REPOSITORY"
 checkExit "ANS_ADMIN_SECRET" '^[0-9A-Za-z_+/-]{8,}$' "g"
 
 SLACK_TOKEN=${ANS_SLACK_TOKEN#xoxb-}
-SLACK_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l encrypt.log encrypt $SLACK_TOKEN)
+#SLACK_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l encrypt.log encrypt $SLACK_TOKEN)
+SLACK_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot encrypt $SLACK_TOKEN)
 BOTNAME=$(echo "$BOTNAME" | tr '[:upper:]' '[:lower:]')
 CASENAME=$(echo "${BOTNAME:0:1}" | tr '[:lower:]' '[:upper:]')${BOTNAME:1}
 BOTFULLNAME="$CASENAME Gopherbot"
@@ -170,7 +171,10 @@ substitute "<botemail>" "$BOTMAIL"
 substitute "<botemail>" "$BOTMAIL" "git/config"
 
 touch ".addadmin"
-ln -s "$GOPHER_INSTALLDIR/gopherbot" .
+if [ ! -e "gopherbot" ]
+then
+    ln -s "$GOPHER_INSTALLDIR/gopherbot" .
+fi
 echo
 echo
 if [ "$GOPHER_CONTAINER" ]

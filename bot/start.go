@@ -189,10 +189,11 @@ func Start(v VersionInfo) {
 			robotConfigFileName = "gopherbot.yaml"
 		}
 	}
+	unconfigured := false
 	if err != nil {
 		_, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
 		if !ok {
-			Log(robot.Warn, "Starting unconfigured; no robot.yaml/gopherbot.yaml found")
+			unconfigured = true
 			os.Setenv("GOPHER_UNCONFIGURED", "unconfigured")
 			// Start a setup plugin; if answerfile.txt is present, or ANS_PROTOCOL is set,
 			// use the new-style, otherwise run the terminal connector for the interactive plugin.
@@ -209,6 +210,7 @@ func Start(v VersionInfo) {
 				os.Setenv("GOPHER_PROTOCOL", "nullconn")
 				if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
 					os.Setenv("GOPHER_LOGFILE", "robot.log")
+					Log(robot.Info, "Logging to robot.log")
 					defaultLogfile = true
 				}
 			} else {
@@ -226,6 +228,7 @@ func Start(v VersionInfo) {
 		}
 	}
 
+	// Set up Logging
 	var logger *log.Logger
 	logOut := os.Stdout
 	if len(logFile) == 0 {
@@ -248,12 +251,14 @@ func Start(v VersionInfo) {
 			logOut = lf
 		}
 	}
-	// Not needed?
-	// log.SetOutput(logOut)
+
 	logger = log.New(logOut, "", logFlags)
 	botLogger.l = logger
 	if fileLog {
 		botLogger.setOutputFile(logOut)
+	}
+	if unconfigured {
+		Log(robot.Warn, "Starting unconfigured; no robot.yaml/gopherbot.yaml found")
 	}
 
 	if daemonize {
@@ -273,14 +278,15 @@ func Start(v VersionInfo) {
 			}
 			scrubargs = append(scrubargs, arg)
 		}
-		Log(robot.Info, "backgrounding")
 		bin, _ := os.Executable()
 		env := os.Environ()
 		if !fileLog {
+			Log(robot.Info, "Logging to robot.log")
 			env = append(env, "GOPHER_LOGFILE=robot.log")
 		} else {
 			env = append(env, fmt.Sprintf("GOPHER_LOGFILE=%s", logFile))
 		}
+		Log(robot.Info, "Forking in to background...")
 		cmd := exec.Command(bin, scrubargs...)
 		cmd.Env = env
 		cmd.Stdin = nil
@@ -352,6 +358,9 @@ func Start(v VersionInfo) {
 	}
 	if currentCfg.protocol == "terminal" {
 		localTerm = true
+		if defaultLogfile {
+			botStdOutLogger.Println("Logging to robot.log; warnings and errors duplicated to stdout")
+		}
 	}
 	if currentCfg.protocol == "nullconn" {
 		nullConn = true
