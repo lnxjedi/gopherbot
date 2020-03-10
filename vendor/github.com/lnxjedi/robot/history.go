@@ -5,12 +5,15 @@ import "io"
 // HistoryLogger is provided by a HistoryProvider for each job / plugin run
 // where it's requested
 type HistoryLogger interface {
-	// Log a line of output; bot should prefix with STDOUT or STDERR
+	// Log a line of output; bot should prefix with OUT or ERR
 	Log(line string)
 	// Start a new log section with a given name and descriptive info
 	Section(name, info string)
-	// Close a log file and store
+	// Close a log file against further writes, but keep
 	Close()
+	// Finalize called after pipeline finishes, log can be removed for
+	// e.g. the memory provider.
+	Finalize()
 }
 
 // HistoryProvider is responsible for storing and retrieving job histories

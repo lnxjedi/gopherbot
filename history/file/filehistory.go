@@ -30,8 +30,10 @@ type historyConfig struct {
 }
 
 type historyFile struct {
-	l *log.Logger
-	f *os.File
+	l    *log.Logger
+	f    *os.File
+	path string
+	keep bool
 }
 
 // Log takes a line of text and stores it in the history file
@@ -54,6 +56,16 @@ func (hf *historyFile) Close() {
 	hf.f.Close()
 }
 
+// Finalize removes the log if needed
+func (hf *historyFile) Finalize() {
+	if hf.keep {
+		return
+	}
+	if rerr := os.Remove(hf.path); rerr != nil {
+		handler.Log(robot.Error, "Removing %s: %v", hf.path, rerr)
+	}
+}
+
 var fhc historyConfig
 
 // NewHistory initializes and returns a historyFile, as well as cleaning up old
@@ -70,10 +82,13 @@ func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (robot
 	if err != nil {
 		return nil, fmt.Errorf("Error creating history file '%s': %v", filePath, err)
 	}
+	keep := maxHistories != 0
 	hl := log.New(file, "", logFlags)
 	hf := &historyFile{
 		hl,
 		file,
+		filePath,
+		keep,
 	}
 	if index-maxHistories >= 0 {
 		for i := index - maxHistories; i >= 0; i-- {
