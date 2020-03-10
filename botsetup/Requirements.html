@@ -159,8 +159,11 @@
 <li>Credentials your robot can use to log in to your team chat; you can obtain a <strong>Gopherbot</strong>-compatible <a href="https://slack.com">Slack</a> token here: https://&lt;team-name&gt;.slack.com/services/new/bot</li>
 <li>The name of a channel where your robot will run jobs by default, e.g. <code>clu-jobs</code> or <code>floyd-jobs</code></li>
 <li>A completely empty (no README, LICENSE, etc.) public or private <em>git</em> repository, to store your robot, normally <em>botname</em>-gopherbot; for example you can find <strong>Clu</strong> at <a href="https://github.com/parsley42/clu-gopherbot">https://github.com/parsley42/clu-gopherbot</a></li>
-<li>If you're using a container and/or the <strong>setup plugin</strong>, you'll need to be able to configure a read/write deploy key for the robot's repository - this is widely supported with almost all of the major <em>git</em> hosting services and applications, check your repository settings or consult the documentation for your particular service</li>
+<li>If you're using a container and/or the <strong>autosetup plugin</strong>, you'll need to be able to configure a read/write deploy key for the robot's repository - this is widely supported with almost all of the major <em>git</em> hosting services and applications, check your repository settings or consult the documentation for your particular service</li>
 </ul>
+<blockquote>
+<p>Note on Deploy Keys: If you are unfamiliar with ssh deploy keys, you should take a few minutes to read your git provider's documentation. A standard <em>Gopherbot</em> robot uses two deploy keys which are dedicated for use only with the robot's repository.</p>
+</blockquote>
 <p>The other requirements listed here are mainly items for consideration before setting up your <strong>Gopherbot</strong> robot.</p>
 <h2><a class="header" href="#git-access" id="git-access">Git Access</a></h2>
 <p><strong>Gopherbot</strong> version 2 integrates heavily with <em>git</em>, using <em>ssh</em> as the authentication mechanism. This guide and the setup plugin require a <em>git</em> repository that your robot can push to it with it's encrypted management ssh key (<code>manage_key</code>), which will be set up as a read-write deployment key. In addition to saving it's initial configuration to this repository, the standard robot configured with this guide will back up it's long-term memories to a separate <code>robot-state</code> branch.</p>
@@ -169,7 +172,7 @@
 <ul>
 <li>A dedicated encrypted <code>manage_key</code>, configured as a read-write deploy key for the robot's git repository; the robot will use this for saving it's initial configuration and backing up it's long-term memories from the <code>state/</code> directory</li>
 <li>An unencrypted, read-only <code>deploy_key</code> that can be used for deploying your robot to e.g. a container or new VM</li>
-<li>A default encrypted <code>robot_key</code> which the robot will use for all other CI/CD and remote ssh jobs</li>
+<li>A default encrypted <code>robot_key</code> which the robot will use for all other CI/CD and remote ssh jobs; this is the key that should be associated with a git user, or machine user</li>
 </ul>
 </blockquote>
 <p>Additionally, you may want to take advantage of <strong>Gopherbot</strong>'s CI/CD funcationality or ability to run git-driven jobs, which can be scheduled and/or on-demand; for example, <strong>Floyd</strong> updates the <code>gh-pages</code> branch of <a href="https://github.com/lnxjedi/gopherbot">lnxjedi/gopherbot</a> and also the <a href="https://github.com/lnxjedi">gopherbot-docker</a> repository after a successful build - see <a href="https://github.com/lnxjedi/gopherbot/blob/master/.gopherci/pipeline.sh">gopherbot/.gopherci/pipeline.sh</a>. It's worth considering how you'll set up your robot to access <em>git</em> repositories.</p>

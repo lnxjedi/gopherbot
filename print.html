@@ -394,8 +394,11 @@ esac
 <li>Credentials your robot can use to log in to your team chat; you can obtain a <strong>Gopherbot</strong>-compatible <a href="https://slack.com">Slack</a> token here: https://&lt;team-name&gt;.slack.com/services/new/bot</li>
 <li>The name of a channel where your robot will run jobs by default, e.g. <code>clu-jobs</code> or <code>floyd-jobs</code></li>
 <li>A completely empty (no README, LICENSE, etc.) public or private <em>git</em> repository, to store your robot, normally <em>botname</em>-gopherbot; for example you can find <strong>Clu</strong> at <a href="https://github.com/parsley42/clu-gopherbot">https://github.com/parsley42/clu-gopherbot</a></li>
-<li>If you're using a container and/or the <strong>setup plugin</strong>, you'll need to be able to configure a read/write deploy key for the robot's repository - this is widely supported with almost all of the major <em>git</em> hosting services and applications, check your repository settings or consult the documentation for your particular service</li>
+<li>If you're using a container and/or the <strong>autosetup plugin</strong>, you'll need to be able to configure a read/write deploy key for the robot's repository - this is widely supported with almost all of the major <em>git</em> hosting services and applications, check your repository settings or consult the documentation for your particular service</li>
 </ul>
+<blockquote>
+<p>Note on Deploy Keys: If you are unfamiliar with ssh deploy keys, you should take a few minutes to read your git provider's documentation. A standard <em>Gopherbot</em> robot uses two deploy keys which are dedicated for use only with the robot's repository.</p>
+</blockquote>
 <p>The other requirements listed here are mainly items for consideration before setting up your <strong>Gopherbot</strong> robot.</p>
 <h2><a class="header" href="#git-access" id="git-access">Git Access</a></h2>
 <p><strong>Gopherbot</strong> version 2 integrates heavily with <em>git</em>, using <em>ssh</em> as the authentication mechanism. This guide and the setup plugin require a <em>git</em> repository that your robot can push to it with it's encrypted management ssh key (<code>manage_key</code>), which will be set up as a read-write deployment key. In addition to saving it's initial configuration to this repository, the standard robot configured with this guide will back up it's long-term memories to a separate <code>robot-state</code> branch.</p>
@@ -404,7 +407,7 @@ esac
 <ul>
 <li>A dedicated encrypted <code>manage_key</code>, configured as a read-write deploy key for the robot's git repository; the robot will use this for saving it's initial configuration and backing up it's long-term memories from the <code>state/</code> directory</li>
 <li>An unencrypted, read-only <code>deploy_key</code> that can be used for deploying your robot to e.g. a container or new VM</li>
-<li>A default encrypted <code>robot_key</code> which the robot will use for all other CI/CD and remote ssh jobs</li>
+<li>A default encrypted <code>robot_key</code> which the robot will use for all other CI/CD and remote ssh jobs; this is the key that should be associated with a git user, or machine user</li>
 </ul>
 </blockquote>
 <p>Additionally, you may want to take advantage of <strong>Gopherbot</strong>'s CI/CD funcationality or ability to run git-driven jobs, which can be scheduled and/or on-demand; for example, <strong>Floyd</strong> updates the <code>gh-pages</code> branch of <a href="https://github.com/lnxjedi/gopherbot">lnxjedi/gopherbot</a> and also the <a href="https://github.com/lnxjedi">gopherbot-docker</a> repository after a successful build - see <a href="https://github.com/lnxjedi/gopherbot/blob/master/.gopherci/pipeline.sh">gopherbot/.gopherci/pipeline.sh</a>. It's worth considering how you'll set up your robot to access <em>git</em> repositories.</p>
@@ -443,15 +446,15 @@ davidparsley@penguin:/home/robots/clu$ ln -s /opt/gopherbot/gopherbot .
 <h1><a class="header" href="#initialize-encryption" id="initialize-encryption">Initialize Encryption</a></h1>
 <p>Now that you've set the robot's encryption key, you can initialize encryption and create the binary key (<code>binary-encrypted-key</code>) encrypted with your <code>GOPHER_ENCRYPTION_KEY</code>. Start the default robot using the terminal connector, and the binary encryption key will be automatically created in <code>custom/binary-encrypted-key</code>; use <code>ctrl-d</code> to exit:</p>
 <pre><code>davidparsley@penguin:/home/robots/clu$ ./gopherbot 
-2020/02/19 15:29:57 Debug: Checking os.Stat for dir 'custom' from wd '': stat custom: no such file or directory
-2020/02/19 15:29:57 Debug: Checking os.Stat for dir 'conf' from wd '': stat conf: no such file or directory
-2020/02/19 15:29:57 Warning: Starting unconfigured; no robot.yaml/gopherbot.yaml found
+2020/03/09 18:29:43 Logging to robot.log; warnings and errors duplicated to stdout
 Terminal connector running; Use '|c&lt;channel|?&gt;' to change channel, or '|u&lt;user|?&gt;' to change user
-c:general/u:alice -&gt; 2020/02/19 15:29:57 Warning: GOPHER_CUSTOM_REPOSITORY not set, not bootstrapping
 general: *******
-general: Type ';setup' to continue setup...
-c:general/u:alice -&gt; &lt;ctrl-d&gt;
-general: @alice Adios
+general: Welcome to the *Gopherbot* terminal connector. Since no configuration was detected, you're
+connected to 'floyd', the default robot.
+general: If you've started the robot by mistake, just hit ctrl-D to exit and try 'gopherbot --help';
+otherwise feel free to play around with the default robot - you can start by typing 'help'.
+c:general/u:alice -&gt; exit
+general: @alice Hasta la vista!
 Terminal connector finished
 davidparsley@penguin:/home/robots/clu$ ls custom/
 binary-encrypted-key
@@ -465,7 +468,7 @@ binary-encrypted-key
 </blockquote>
 <h3><a class="header" href="#41-encrypting-your-slack-token-and-other-secrets" id="41-encrypting-your-slack-token-and-other-secrets">4.1 Encrypting your Slack Token (and other secrets)</a></h3>
 <p>With encryption initialized, you can use the <code>gopherbot encrypt</code> command to generate base64 encoded ciphertext. This ciphertext can then be placed in your configuration <code>yaml</code> files by using e.g. <code>{{ decrypt &quot;jfhPe8akfivTRnfeCxyIetdUl+Jb7hIWnjeVFiwLJarFHuW4TuSD7GQ3F0s2puuZ3JUotw==&quot; }}</code>. The default configuration assumes you'll only encrypt the portion of your slack token (from https://&lt;org&gt;.slack.com/services/new/bot) following the common <code>xoxb-</code> prefix. So, for a slack token of <code>xoxb-123-abc-XXXXX</code>, you would generate the ciphertext with:</p>
-<pre><code class="language-shell">davidparsley@penguin:/home/robots/clu$ ./gopherbot -l robot.log encrypt 123-abc-XXXXX
+<pre><code class="language-shell">davidparsley@penguin:/home/robots/clu$ ./gopherbot encrypt 123-abc-XXXXX
 FverBqdWHzHfEPDy/cQ8U9AJ3z4v8KdGSubDMALPfHIupwDLctDWQ1c=
 </code></pre>
 <p>(Note that we use <code>-l robot.log</code> to send some superfluous error messages to a log file)</p>
@@ -557,51 +560,43 @@ GOPHER_DEPLOY_KEY=-----BEGIN_OPENSSH_PRIVATE_KEY-----:lksjflsjdf&lt;muchjunkremo
 <h1><a class="header" href="#finished" id="finished">Finished</a></h1>
 <p>That's it! You've created the initial configuration for your <strong>Gopherbot</strong> robot, which you can now customize and deploy.</p>
 <h1><a class="header" href="#setup-with-containers" id="setup-with-containers">Setup with Containers</a></h1>
-<p>If you have an environment where you can run and interact with containers in a terminal window, using either <a href="https://www.docker.com/">Docker</a> or <a href="https://podman.io/">Podman</a>, you can use the <strong>setup</strong> plugin with the default robot in a container:</p>
+<p>If you have an environment where you can run and interact with containers in a terminal window, using either <a href="https://www.docker.com/">Docker</a> or <a href="https://podman.io/">Podman</a>, you can supply an answerfile for using the <strong>autosetup</strong> plugin in a container.</p>
+<h2><a class="header" href="#getting-answerfiletxt" id="getting-answerfiletxt">Getting <code>answerfile.txt</code></a></h2>
+<p>For container-based installs, you'll have to download the appropriate answerfile for your protocol. These can be found in <a href="https://github.com/lnxjedi/gopherbot/tree/master/resources/answerfiles">resources/answerfiles</a>; save as <code>answerfile.txt</code>.</p>
+<p>You can download directly with <code>wget</code>:</p>
+<pre><code class="language-shell">$ wget -O answerfile.txt https://raw.githubusercontent.com/lnxjedi/gopherbot/master/resources/answerfiles/slack.txt
+</code></pre>
+<p>Once you have your <code>answerfile.txt</code> you'll need to edit the file and set appropriate values for each <code>ANS_*</code> variable appropriate to your robot. Take care to use an unquoted value for <code>ANS_ROBOT_ALIAS</code>.</p>
+<h2><a class="header" href="#starting-the-autosetup-plugin" id="starting-the-autosetup-plugin">Starting the <em>autosetup</em> plugin</a></h2>
+<p>With a complete answerfile, you can start a <em>Gopherbot</em> container, passing the answerfile in for the environment. After the <em>autosetup</em> plugin runs and generates configuration, it'll pause and provide instructions for completing setup.</p>
 <p><strong>With Podman</strong>:</p>
-<pre><code>$ podman run -it lnxjedi/gopherbot:latest
+<pre><code>$ podman run -it --env-file answerfile.txt lnxjedi/gopherbot:latest
 Trying to pull docker.io/lnxjedi/gopherbot:latest...
 Getting image source signatures
 ...
 Info: PID == 1, spawning child
-Debug: Successfully raised privilege permanently for 'exec child process' thread 1; new r/euid: 1/1
 Info: Starting pid 1 signal handler
-Debug: Checking os.Stat for dir 'custom' from wd '': stat custom: no such file or directory
-Debug: Checking os.Stat for dir 'conf' from wd '': stat conf: no such file or directory
-Warning: Starting unconfigured; no robot.yaml/gopherbot.yaml found
-Terminal connector running; Use '|c&lt;channel|?&gt;' to change channel, or '|u&lt;user|?&gt;' to change user
-c:general/u:alice -&gt; Warning: GOPHER_CUSTOM_REPOSITORY not set, not bootstrapping
-general: *******
-general: Welcome to the *Gopherbot* terminal connector. Since no configuration was detected, you're
-connected to 'floyd', the default robot.
-general: If you've started the robot by mistake, just hit ctrl-D to exit and try 'gopherbot --help';
-otherwise feel free to play around with the default robot - you can start by typing 'help'. If you'd
-like to start configuring a new robot, type: ';setup'.
-c:general/u:alice -&gt; ;setup
+Info: Logging to robot.log
+null connector: Initializing encryption and restarting...
+Info: Logging to robot.log
+null connector: Continuing automatic setup...
 ...
 </code></pre>
 <p><strong>With Docker</strong>:</p>
-<pre><code>$ docker run -it lnxjedi/gopherbot:latest
+<pre><code>$ docker run -it --env-file answerfile.txt lnxjedi/gopherbot:latest
 Unable to find image 'lnxjedi/gopherbot:latest' locally
 latest: Pulling from lnxjedi/gopherbot
 ...
 Info: PID == 1, spawning child
-Debug: Successfully raised privilege permanently for 'exec child process' thread 1; new r/euid: 1/1
 Info: Starting pid 1 signal handler
-Debug: Checking os.Stat for dir 'custom' from wd '': stat custom: no such file or directory
-Debug: Checking os.Stat for dir 'conf' from wd '': stat conf: no such file or directory
-Warning: Starting unconfigured; no robot.yaml/gopherbot.yaml found
-Terminal connector running; Use '|c&lt;channel|?&gt;' to change channel, or '|u&lt;user|?&gt;' to change user
-c:general/u:alice -&gt; Warning: GOPHER_CUSTOM_REPOSITORY not set, not bootstrapping
-general: *******
-general: Welcome to the *Gopherbot* terminal connector. Since no configuration was detected, you're
-connected to 'floyd', the default robot.
-general: If you've started the robot by mistake, just hit ctrl-D to exit and try 'gopherbot --help';
-otherwise feel free to play around with the default robot - you can start by typing 'help'. If you'd
-like to start configuring a new robot, type: ';setup'.
-c:general/u:alice -&gt; ;setup
+Info: Logging to robot.log
+null connector: Initializing encryption and restarting...
+Info: Logging to robot.log
+null connector: Continuing automatic setup...
 ...
 </code></pre>
+<h2><a class="header" href="#finishing-up" id="finishing-up">Finishing Up</a></h2>
+<p>After your robot has successfully saved it's configuration to it's <em>git</em> repository, you can press <code>&lt;ctrl-c&gt;</code> to stop the container, then remove it. Your robot is now ready to be <a href="botsetup/../RunRobot.html">deployed</a>.</p>
 <h1><a class="header" href="#using-the-setup-plugin" id="using-the-setup-plugin">Using the Setup Plugin</a></h1>
 <p>If you've installed the [Gopherbot software] on a Linux host or VM, you can just create an empty directory and run the <code>gopherbot</code> binary to start the default robot and use the <strong>setup</strong> plugin:</p>
 <pre><code>[~]$ mkdir clu

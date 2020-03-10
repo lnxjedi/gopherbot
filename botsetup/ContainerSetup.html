@@ -149,51 +149,43 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#setup-with-containers" id="setup-with-containers">Setup with Containers</a></h1>
-<p>If you have an environment where you can run and interact with containers in a terminal window, using either <a href="https://www.docker.com/">Docker</a> or <a href="https://podman.io/">Podman</a>, you can use the <strong>setup</strong> plugin with the default robot in a container:</p>
+<p>If you have an environment where you can run and interact with containers in a terminal window, using either <a href="https://www.docker.com/">Docker</a> or <a href="https://podman.io/">Podman</a>, you can supply an answerfile for using the <strong>autosetup</strong> plugin in a container.</p>
+<h2><a class="header" href="#getting-answerfiletxt" id="getting-answerfiletxt">Getting <code>answerfile.txt</code></a></h2>
+<p>For container-based installs, you'll have to download the appropriate answerfile for your protocol. These can be found in <a href="https://github.com/lnxjedi/gopherbot/tree/master/resources/answerfiles">resources/answerfiles</a>; save as <code>answerfile.txt</code>.</p>
+<p>You can download directly with <code>wget</code>:</p>
+<pre><code class="language-shell">$ wget -O answerfile.txt https://raw.githubusercontent.com/lnxjedi/gopherbot/master/resources/answerfiles/slack.txt
+</code></pre>
+<p>Once you have your <code>answerfile.txt</code> you'll need to edit the file and set appropriate values for each <code>ANS_*</code> variable appropriate to your robot. Take care to use an unquoted value for <code>ANS_ROBOT_ALIAS</code>.</p>
+<h2><a class="header" href="#starting-the-autosetup-plugin" id="starting-the-autosetup-plugin">Starting the <em>autosetup</em> plugin</a></h2>
+<p>With a complete answerfile, you can start a <em>Gopherbot</em> container, passing the answerfile in for the environment. After the <em>autosetup</em> plugin runs and generates configuration, it'll pause and provide instructions for completing setup.</p>
 <p><strong>With Podman</strong>:</p>
-<pre><code>$ podman run -it lnxjedi/gopherbot:latest
+<pre><code>$ podman run -it --env-file answerfile.txt lnxjedi/gopherbot:latest
 Trying to pull docker.io/lnxjedi/gopherbot:latest...
 Getting image source signatures
 ...
 Info: PID == 1, spawning child
-Debug: Successfully raised privilege permanently for 'exec child process' thread 1; new r/euid: 1/1
 Info: Starting pid 1 signal handler
-Debug: Checking os.Stat for dir 'custom' from wd '': stat custom: no such file or directory
-Debug: Checking os.Stat for dir 'conf' from wd '': stat conf: no such file or directory
-Warning: Starting unconfigured; no robot.yaml/gopherbot.yaml found
-Terminal connector running; Use '|c&lt;channel|?&gt;' to change channel, or '|u&lt;user|?&gt;' to change user
-c:general/u:alice -&gt; Warning: GOPHER_CUSTOM_REPOSITORY not set, not bootstrapping
-general: *******
-general: Welcome to the *Gopherbot* terminal connector. Since no configuration was detected, you're
-connected to 'floyd', the default robot.
-general: If you've started the robot by mistake, just hit ctrl-D to exit and try 'gopherbot --help';
-otherwise feel free to play around with the default robot - you can start by typing 'help'. If you'd
-like to start configuring a new robot, type: ';setup'.
-c:general/u:alice -&gt; ;setup
+Info: Logging to robot.log
+null connector: Initializing encryption and restarting...
+Info: Logging to robot.log
+null connector: Continuing automatic setup...
 ...
 </code></pre>
 <p><strong>With Docker</strong>:</p>
-<pre><code>$ docker run -it lnxjedi/gopherbot:latest
+<pre><code>$ docker run -it --env-file answerfile.txt lnxjedi/gopherbot:latest
 Unable to find image 'lnxjedi/gopherbot:latest' locally
 latest: Pulling from lnxjedi/gopherbot
 ...
 Info: PID == 1, spawning child
-Debug: Successfully raised privilege permanently for 'exec child process' thread 1; new r/euid: 1/1
 Info: Starting pid 1 signal handler
-Debug: Checking os.Stat for dir 'custom' from wd '': stat custom: no such file or directory
-Debug: Checking os.Stat for dir 'conf' from wd '': stat conf: no such file or directory
-Warning: Starting unconfigured; no robot.yaml/gopherbot.yaml found
-Terminal connector running; Use '|c&lt;channel|?&gt;' to change channel, or '|u&lt;user|?&gt;' to change user
-c:general/u:alice -&gt; Warning: GOPHER_CUSTOM_REPOSITORY not set, not bootstrapping
-general: *******
-general: Welcome to the *Gopherbot* terminal connector. Since no configuration was detected, you're
-connected to 'floyd', the default robot.
-general: If you've started the robot by mistake, just hit ctrl-D to exit and try 'gopherbot --help';
-otherwise feel free to play around with the default robot - you can start by typing 'help'. If you'd
-like to start configuring a new robot, type: ';setup'.
-c:general/u:alice -&gt; ;setup
+Info: Logging to robot.log
+null connector: Initializing encryption and restarting...
+Info: Logging to robot.log
+null connector: Continuing automatic setup...
 ...
 </code></pre>
+<h2><a class="header" href="#finishing-up" id="finishing-up">Finishing Up</a></h2>
+<p>After your robot has successfully saved it's configuration to it's <em>git</em> repository, you can press <code>&lt;ctrl-c&gt;</code> to stop the container, then remove it. Your robot is now ready to be <a href="../RunRobot.html">deployed</a>.</p>
 
                     </main>
 
