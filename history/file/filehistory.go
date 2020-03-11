@@ -1,6 +1,6 @@
-// Package fileHistory is a simple file-backed implementation for bot plugin
+// Package filehistory is a simple file-backed implementation for bot plugin
 // and job histories.
-package fileHistory
+package filehistory
 
 import (
 	"fmt"
@@ -41,7 +41,6 @@ func (hf *historyFile) Log(line string) {
 	hf.l.Println(line)
 }
 
-// TODO: This belongs in the Robot as a generic method - move
 // Section creates a new named section in the history file, for separating
 // output from jobs/plugins in a pipeline
 func (hf *historyFile) Section(task, desc string) {
