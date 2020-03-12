@@ -74,7 +74,7 @@ func jobcommands(m robot.Robot, command string, args ...string) (retval robot.Ta
 }
 
 func emailhistory(r Robot, hp robot.HistoryProvider, user, address, spec string, run int) (retval robot.TaskRetVal) {
-	f, err := hp.GetHistory(spec, run)
+	f, err := hp.GetLog(spec, run)
 	if err != nil {
 		Log(robot.Error, "Getting history %d for task '%s': %v", run, spec, err)
 		r.Say("History %d for '%s' not available", run, spec)
@@ -109,7 +109,7 @@ func emailhistory(r Robot, hp robot.HistoryProvider, user, address, spec string,
 }
 
 func pagehistory(r Robot, hp robot.HistoryProvider, spec string, run int) (retval robot.TaskRetVal) {
-	f, err := hp.GetHistory(spec, run)
+	f, err := hp.GetLog(spec, run)
 	if err != nil {
 		Log(robot.Error, "Getting history %d for task '%s': %v", run, spec, err)
 		r.Say("History %d for '%s' not available", run, spec)
@@ -285,7 +285,7 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 				return emailhistory(r, hp, "", "", histSpec, idx)
 			}
 		case "link":
-			if link, ok := hp.GetHistoryURL(histSpec, idx); ok {
+			if link, ok := hp.GetLogURL(histSpec, idx); ok {
 				r.Say("Here you go: %s", link)
 				return
 			}

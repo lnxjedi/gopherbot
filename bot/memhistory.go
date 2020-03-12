@@ -25,12 +25,12 @@ type memlog struct {
 	log   *lineBuffer
 }
 
-type histLogs struct {
+type memHistLog struct {
 	logs map[memlogentry]memlog
 	sync.Mutex
 }
 
-var memHistories histLogs
+var memHistories *memHistLog
 
 // Log writes a line to the buffer
 func (m memlog) Log(line string) {
@@ -55,7 +55,7 @@ func (m memlog) Finalize() {
 }
 
 // NewHistory returns a lineBuffer based history logger
-func (h histLogs) NewHistory(tag string, index, maxHistories int) (robot.HistoryLogger, error) {
+func (h *memHistLog) NewLog(tag string, index, maxHistories int) (robot.HistoryLogger, error) {
 	lb := newlineBuffer(logSize, maxLogLine, trunc)
 	entry := memlogentry{tag, index}
 	ml := memlog{entry, lb}
@@ -65,8 +65,18 @@ func (h histLogs) NewHistory(tag string, index, maxHistories int) (robot.History
 	return ml, nil
 }
 
+// GetLogURL does nothing for mem logs
+func (h *memHistLog) GetLogURL(tag string, index int) (string, bool) {
+	return "", false
+}
+
+// MakeLogURL does nothing for mem logs
+func (h *memHistLog) MakeLogURL(tag string, index int) (string, bool) {
+	return "", false
+}
+
 // GetHistory returns a reader for the log if it exists
-func (h histLogs) GetHistory(tag string, index int) (io.Reader, error) {
+func (h *memHistLog) GetLog(tag string, index int) (io.Reader, error) {
 	entry := memlogentry{tag, index}
 	memHistories.Lock()
 	defer memHistories.Unlock()
@@ -82,7 +92,7 @@ func (h histLogs) GetHistory(tag string, index int) (io.Reader, error) {
 }
 
 func mhprovider(r robot.Handler) robot.HistoryProvider {
-	memHistories = histLogs{
+	memHistories = &memHistLog{
 		make(map[memlogentry]memlog),
 		sync.Mutex{},
 	}

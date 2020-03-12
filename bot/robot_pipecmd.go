@@ -157,7 +157,7 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 			if nh > 0 && r.history != nil {
 				hspec := r.pipeName + ":" + ext
 				raiseThreadPriv("starting new job log")
-				pipeHistory, err := r.history.NewHistory(hspec, hist.LogIndex, nh)
+				pipeHistory, err := r.history.NewLog(hspec, hist.LogIndex, nh)
 				if err != nil {
 					Log(robot.Error, "Starting history for '%s', no history will be recorded: %v", r.pipeName, err)
 				} else {
@@ -169,7 +169,7 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 					w.logger.Section("new log", fmt.Sprintf("Extended log created by job '%s'", r.jobName))
 					r.Log(robot.Debug, "Started new history for job '%s' with namespace '%s'", r.jobName, ext)
 					var link string
-					if url, ok := w.history.GetHistoryURL(hspec, hist.LogIndex); ok {
+					if url, ok := w.history.GetLogURL(hspec, hist.LogIndex); ok {
 						link = fmt.Sprintf(" (link: %s)", url)
 					}
 					r.Say("Job '%s' extended namespace: %s:%s, run %d%s", r.jobName, r.jobName, ext, w.runIndex, link)

@@ -1,6 +1,6 @@
-// Package filehistory is a simple file-backed implementation for bot plugin
+// Package fileHistory is a simple file-backed implementation for bot plugin
 // and job histories.
-package filehistory
+package fileHistory
 
 import (
 	"fmt"
@@ -67,9 +67,9 @@ func (hf *historyFile) Finalize() {
 
 var fhc historyConfig
 
-// NewHistory initializes and returns a historyFile, as well as cleaning up old
+// NewLog initializes and returns a historyFile, as well as cleaning up old
 // logs.
-func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (robot.HistoryLogger, error) {
+func (fhc *historyConfig) NewLog(tag string, index, maxHistories int) (robot.HistoryLogger, error) {
 	tag = strings.Replace(tag, `\`, ":", -1)
 	tag = strings.Replace(tag, `/`, ":", -1)
 	dirPath := path.Join(fhc.Directory, tag)
@@ -107,8 +107,8 @@ func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (robot
 	return hf, nil
 }
 
-// GetHistory returns an io.Reader
-func (fhc *historyConfig) GetHistory(tag string, index int) (io.Reader, error) {
+// GetLog returns an io.Reader
+func (fhc *historyConfig) GetLog(tag string, index int) (io.Reader, error) {
 	tag = strings.Replace(tag, `\`, ":", -1)
 	tag = strings.Replace(tag, `/`, ":", -1)
 	dirPath := path.Join(fhc.Directory, tag)
@@ -116,8 +116,8 @@ func (fhc *historyConfig) GetHistory(tag string, index int) (io.Reader, error) {
 	return os.Open(filePath)
 }
 
-// GetHistoryURL returns the permanent link to the history
-func (fhc *historyConfig) GetHistoryURL(tag string, index int) (string, bool) {
+// GetLogURL returns the permanent link to the history
+func (fhc *historyConfig) GetLogURL(tag string, index int) (string, bool) {
 	if len(fhc.URLPrefix) == 0 {
 		return "", false
 	}
@@ -128,8 +128,8 @@ func (fhc *historyConfig) GetHistoryURL(tag string, index int) (string, bool) {
 	return htmlPath, true
 }
 
-// MakeHistoryURL publishes a history to a URL and returns the URL
-func (fhc *historyConfig) MakeHistoryURL(tag string, index int) (string, bool) {
+// MakeLogURL publishes a history to a URL and returns the URL
+func (fhc *historyConfig) MakeLogURL(tag string, index int) (string, bool) {
 	return "", false
 }
 

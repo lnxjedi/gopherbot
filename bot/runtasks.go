@@ -159,7 +159,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 				Log(robot.Error, "Updating '%s', no history will be remembered for '%s'", key, c.pipeName)
 			} else {
 				if job.HistoryLogs > 0 && c.history != nil {
-					pipeHistory, err := c.history.NewHistory(c.jobName, hist.LogIndex, job.HistoryLogs)
+					pipeHistory, err := c.history.NewLog(c.jobName, hist.LogIndex, job.HistoryLogs)
 					if err != nil {
 						Log(robot.Error, "Starting history for '%s', no history will be recorded: %v", c.pipeName, err)
 					} else {
@@ -180,7 +180,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 			}
 			var link string
 			if c.history != nil {
-				if url, ok := c.history.GetHistoryURL(task.name, c.runIndex); ok {
+				if url, ok := c.history.GetLogURL(task.name, c.runIndex); ok {
 					link = fmt.Sprintf(" (link: %s)", url)
 				}
 			}
