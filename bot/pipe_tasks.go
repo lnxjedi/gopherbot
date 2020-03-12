@@ -33,6 +33,11 @@ func rotatelog(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	return logRotate(ext)
 }
 
+// func logtail(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
+// 	r := m.(Robot)
+// 	return
+// }
+
 func restart(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
 	pn := r.pipeName
