@@ -87,10 +87,11 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 	w.environment["GOPHER_NAMESPACE_EXTENDED"] = repo
 	// new hotness
 	w.environment["GOPHER_REPOSITORY"] = repo
+	jobLogger := w.logger
 	w.Unlock()
 
 	jk := histPrefix + r.jobName
-	var pjh jobHistory
+	var pjh pipeHistory
 	jtok, _, jret := checkoutDatum(jk, &pjh, true)
 	if jret != robot.Ok {
 		r.Log(robot.Error, "Problem checking out '%s', unable to record extended namespace '%s'", jk, ext)
@@ -120,7 +121,7 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 		_, _, job := getTask(j)
 		nh = job.HistoryLogs
 	}
-	var jh jobHistory
+	var jh pipeHistory
 	rememberRuns := nh
 	if rememberRuns == 0 {
 		rememberRuns = 1

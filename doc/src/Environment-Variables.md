@@ -83,6 +83,7 @@ The following environment variable are set for all pipelines, whether started by
 * `GOPHER_CHANNEL` - the channel where the plugin/job is providing output
 * `GOPHER_USER` - the user whose message created the pipeline (if any)
 * `GOPHER_PROTOCOL` - the name of the protocol in use, e.g. "slack"
+* `GOPHER_PIPE_NAME` - the name of the plugin or job that started the pipeline
 * `GOPHER_TASK_NAME` - the name of the running task
 * `GOPHER_PIPELINE_TYPE` - the event type that started the current pipeline, one of:
     * `plugCommand` - direct robot command, not `run job ...`

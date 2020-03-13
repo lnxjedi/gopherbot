@@ -210,7 +210,7 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 			r.Reply("No history provider configured")
 			return
 		}
-		var jh jobHistory
+		var jh pipeHistory
 		key := histPrefix + histSpec
 		_, _, ret := checkoutDatum(key, &jh, false)
 		if ret != robot.Ok {

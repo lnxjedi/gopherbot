@@ -5,10 +5,10 @@ import "io"
 // HistoryLogger is provided by a HistoryProvider for each job / plugin run
 // where it's requested
 type HistoryLogger interface {
-	// Log a line of output; bot should prefix with OUT or ERR
+	// Log a line of output, normally timestamped; bot should prefix with OUT or ERR
 	Log(line string)
-	// Start a new log section with a given name and descriptive info
-	Section(name, info string)
+	// Add a plain line to the log, without a timestamp
+	Line(line string)
 	// Close a log file against further writes, but keep
 	Close()
 	// Finalize called after pipeline finishes, log can be removed.

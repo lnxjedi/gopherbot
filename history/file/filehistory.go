@@ -42,9 +42,9 @@ func (hf *historyFile) Log(line string) {
 
 // Section creates a new named section in the history file, for separating
 // output from jobs/plugins in a pipeline
-func (hf *historyFile) Section(task, desc string) {
+func (hf *historyFile) Line(line string) {
 	hf.l.SetFlags(0)
-	hf.l.Println("*** " + task + " - " + desc)
+	hf.l.Println(line)
 	hf.l.SetFlags(logFlags)
 }
 

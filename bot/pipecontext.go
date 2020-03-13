@@ -157,3 +157,9 @@ type pipeContext struct {
 	currentTask        interface{}           // pointer to currently executing task
 	exclusive          bool                  // indicates task was running exclusively
 }
+
+func (c *pipeContext) section(name, info string) {
+	if c.logger != nil {
+		c.logger.Line("*** " + name + " - " + info)
+	}
+}

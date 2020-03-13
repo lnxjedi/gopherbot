@@ -173,7 +173,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		} else {
 			desc = fmt.Sprintf("Starting task '%s'", task.name)
 		}
-		logger.Section(taskinfo, desc)
+		w.section(taskinfo, desc)
 	}
 
 	if !(task.name == "builtin-admin" && command == "abort") {

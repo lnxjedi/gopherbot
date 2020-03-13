@@ -5,8 +5,10 @@ package bot
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/lnxjedi/robot"
 )
@@ -39,14 +41,15 @@ var mhc memHistoryConfig
 
 var memHistories *memHistLog
 
-// Log writes a line to the buffer
+// Log writes a timestamped line to the buffer
 func (m memlog) Log(line string) {
-	m.log.writeLine(line)
+	tsLine := fmt.Sprintf("%s %s", time.Now().Format("Jan 2 15:04:05"), line)
+	m.log.writeLine(tsLine)
 }
 
-// Section adds a new section to the log
-func (m memlog) Section(task, desc string) {
-	m.log.writeLine("*** " + task + " - " + desc)
+// Line writes a bare line to a buffer
+func (m memlog) Line(line string) {
+	m.log.writeLine(line)
 }
 
 // Close closes the log against further writes

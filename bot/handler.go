@@ -77,7 +77,7 @@ type worker struct {
 	directMsg       bool                        // if the message was sent by DM
 	msg             string                      // the message text sent
 	automaticTask   bool                        // set for scheduled & triggers jobs, where user security restrictions don't apply
-	*pipeContext                                // pointer to the pipeline context, created in
+	*pipeContext                                // pointer to the pipeline context
 	sync.Mutex                                  // Lock to protect the bot context when pipeline running
 }
 
