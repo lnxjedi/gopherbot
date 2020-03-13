@@ -44,6 +44,7 @@ HistoryProvider: {{ $history }}
 HistoryConfig:
   BufferSize: 131072
   MaxLineLength: 16384
+  Truncated: "<... truncated>"
 {{ end }}
 ## End history config
 

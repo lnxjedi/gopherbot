@@ -1,6 +1,6 @@
-// Package fileHistory is a simple file-backed implementation for bot plugin
+// Package filehistory is a simple file-backed implementation for bot plugin
 // and job histories.
-package fileHistory
+package filehistory
 
 import (
 	"fmt"
@@ -12,7 +12,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/lnxjedi/gopherbot/bot"
 	"github.com/lnxjedi/robot"
 )
 
@@ -159,8 +158,4 @@ func provider(r robot.Handler) robot.HistoryProvider {
 		handler.Log(robot.Info, "Initialized file history provider with directory: '%s'", historyPath)
 	}
 	return &fhc
-}
-
-func init() {
-	bot.RegisterHistoryProvider("file", provider)
 }

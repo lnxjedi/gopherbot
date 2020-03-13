@@ -30,6 +30,13 @@ type memHistLog struct {
 	sync.Mutex
 }
 
+type memHistoryConfig struct {
+	BufferSize, MaxLineLength int
+	Truncated                 string
+}
+
+var mhc memHistoryConfig
+
 var memHistories *memHistLog
 
 // Log writes a line to the buffer
@@ -56,7 +63,7 @@ func (m memlog) Finalize() {
 
 // NewHistory returns a lineBuffer based history logger
 func (h *memHistLog) NewLog(tag string, index, maxHistories int) (robot.HistoryLogger, error) {
-	lb := newlineBuffer(logSize, maxLogLine, trunc)
+	lb := newlineBuffer(mhc.BufferSize, mhc.MaxLineLength, mhc.Truncated)
 	entry := memlogentry{tag, index}
 	ml := memlog{entry, lb}
 	memHistories.Lock()
@@ -92,9 +99,23 @@ func (h *memHistLog) GetLog(tag string, index int) (io.Reader, error) {
 }
 
 func mhprovider(r robot.Handler) robot.HistoryProvider {
+	r.GetHistoryConfig(&mhc)
+	if mhc.BufferSize < 4096 {
+		mhc.BufferSize = 4096
+	}
+	if mhc.MaxLineLength < 1024 {
+		mhc.MaxLineLength = 1024
+	}
+	if mhc.Truncated == "" {
+		mhc.Truncated = "<... truncated>"
+	}
 	memHistories = &memHistLog{
 		make(map[memlogentry]memlog),
 		sync.Mutex{},
 	}
 	return memHistories
+}
+
+func init() {
+	RegisterHistoryProvider("mem", mhprovider)
 }

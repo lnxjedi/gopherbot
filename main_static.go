@@ -2,22 +2,26 @@
 
 package main
 
-// blank imports used in static builds
 import (
-	// Included connectors
-	_ "github.com/lnxjedi/gopherbot/connectors/rocket"
-	_ "github.com/lnxjedi/gopherbot/connectors/slack"
+	"github.com/lnxjedi/gopherbot/bot"
+	// *** Included Authorizer plugins
+	_ "github.com/lnxjedi/gopherbot/goplugins/groups"
 
-	// A brain using AWS DynamoDB
-	_ "github.com/lnxjedi/gopherbot/brains/dynamodb"
-
-	// A joke telling plugin
-	_ "github.com/lnxjedi/gopherbot/goplugins/knock"
-
-	// Memes! (courtesy of imgflip.com)
-	_ "github.com/lnxjedi/gopherbot/goplugins/meme"
-
-	// *** Included Elevator plugins
-	_ "github.com/lnxjedi/gopherbot/goplugins/duo"
-	_ "github.com/lnxjedi/gopherbot/goplugins/totp"
+	// *** Included Go plugins, of varying quality
+	_ "github.com/lnxjedi/gopherbot/goplugins/help"
+	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
 )
+
+// Version of gopherbot
+var Version = "v2.0.0-snapshot"
+
+// Commit supplied during linking
+var Commit = "(not set)"
+
+func main() {
+	versionInfo := bot.VersionInfo{
+		Version: Version,
+		Commit:  Commit,
+	}
+	bot.Start(versionInfo)
+}
