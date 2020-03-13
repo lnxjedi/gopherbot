@@ -521,7 +521,6 @@ func loadConfig(preConnect bool) error {
 			if hprovider, ok := historyProviders[newconfig.HistoryProvider]; !ok {
 				Log(robot.Fatal, "No provider registered for history type: \"%s\"", processed.historyProvider)
 			} else {
-				raiseThreadPriv("starting history provider")
 				hp := hprovider(handler{})
 				interfaces.history = hp
 			}

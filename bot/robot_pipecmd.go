@@ -156,7 +156,6 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 		} else {
 			if nh > 0 && r.history != nil {
 				hspec := r.pipeName + ":" + ext
-				raiseThreadPriv("starting new job log")
 				pipeHistory, err := r.history.NewLog(hspec, hist.LogIndex, nh)
 				if err != nil {
 					Log(robot.Error, "Starting history for '%s', no history will be recorded: %v", r.pipeName, err)

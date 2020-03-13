@@ -118,6 +118,12 @@ func (w *worker) CheckAdmin() bool {
 	return false
 }
 
+// RaisePriv lets go plugins raise privilege for a thread, allowing filesystem
+// access in GOPHER_HOME.
+func (r Robot) RaisePriv(reason string) {
+	raiseThreadPriv(reason)
+}
+
 // SetParameter sets a parameter for the current pipeline, useful only for
 // passing parameters (as environment variables) to tasks later in the pipeline.
 func (r Robot) SetParameter(name, value string) bool {

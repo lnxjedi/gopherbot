@@ -31,7 +31,6 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		return robot.RobotStopping
 	}
 	state.RUnlock()
-	raiseThreadPriv(fmt.Sprintf("new pipeline for task %s / %s", task.name, command))
 	isJob := job != nil
 	isPlugin := plugin != nil
 	var ppipeName, ppipeDesc string

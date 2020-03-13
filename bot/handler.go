@@ -50,6 +50,11 @@ func (h handler) GetConfigPath() string {
 	return installPath
 }
 
+// RaisePriv raises privilege for connectors, brains, etc.
+func (h handler) RaisePriv(reason string) {
+	raiseThreadPriv(reason)
+}
+
 // A new worker is created for every incoming message, and may or may not end
 // up creating a new pipeline. Workers are also created by scheduled jobs
 // and Spawned jobs, in which case a pipeline is always created.
