@@ -128,24 +128,28 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 	}
 	key := histPrefix + r.jobName + ":" + ext
 	tok, _, ret := checkoutDatum(key, &jh, true)
+	w.Lock()
 	if ret != robot.Ok {
 		Log(robot.Error, "Checking out '%s', no history will be remembered for '%s'", key, r.pipeName)
+		w.runIndex = w.id
 	} else {
-		var start time.Time
-		if r.timeZone != nil {
-			start = time.Now().In(r.timeZone)
-		} else {
-			start = time.Now()
-		}
-		w.Lock()
 		w.runIndex = jh.NextIndex
-		w.environment["GOPHER_RUN_INDEX"] = fmt.Sprintf("%d", jh.NextIndex)
-		w.Unlock()
-		hist := historyLog{
-			LogIndex:   jh.NextIndex,
-			CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
-		}
 		jh.NextIndex++
+	}
+	runIndex := w.runIndex
+	w.environment["GOPHER_RUN_INDEX"] = fmt.Sprintf("%d", runIndex)
+	w.Unlock()
+	var start time.Time
+	if r.timeZone != nil {
+		start = time.Now().In(r.timeZone)
+	} else {
+		start = time.Now()
+	}
+	hist := historyLog{
+		LogIndex:   runIndex,
+		CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
+	}
+	if ret == robot.Ok {
 		jh.Histories = append(jh.Histories, hist)
 		l := len(jh.Histories)
 		if l > rememberRuns {
@@ -154,37 +158,30 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 		ret := updateDatum(key, tok, jh)
 		if ret != robot.Ok {
 			Log(robot.Error, "Updating '%s', no history will be remembered for '%s'", key, r.pipeName)
-		} else {
-			if nh > 0 && r.history != nil {
-				hspec := r.pipeName + ":" + ext
-				pipeHistory, err := r.history.NewLog(hspec, hist.LogIndex, nh)
-				if err != nil {
-					Log(robot.Error, "Starting history for '%s', no history will be recorded: %v", r.pipeName, err)
-				} else {
-					if r.logger != nil {
-						r.logger.Section("close log", fmt.Sprintf("Job '%s' extended namespace: '%s'; starting new log on next task", r.jobName, ext))
-					}
-					w.Lock()
-					w.logger = pipeHistory
-					w.logger.Section("new log", fmt.Sprintf("Extended log created by job '%s'", r.jobName))
-					r.Log(robot.Debug, "Started new history for job '%s' with namespace '%s'", r.jobName, ext)
-					var link string
-					if url, ok := w.history.GetLogURL(hspec, hist.LogIndex); ok {
-						link = fmt.Sprintf(" (link: %s)", url)
-					}
-					r.Say("Job '%s' extended namespace: %s:%s, run %d%s", r.jobName, r.jobName, ext, w.runIndex, link)
-					w.Unlock()
-				}
-			} else {
-				if r.history == nil {
-					Log(robot.Warn, "Starting history, no history provider available")
-				}
-			}
 		}
 	}
+	hspec := r.pipeName + ":" + ext
+	pipeHistory, err := r.history.NewLog(hspec, hist.LogIndex, nh)
+	if err != nil {
+		Log(robot.Error, "Starting history for '%s' failed (%v) - falling back to memory log", r.pipeName, err)
+		pipeHistory, _ = memHistories.NewLog(hspec, hist.LogIndex, 0)
+	}
+	w.section("close log", fmt.Sprintf("Job '%s' extended namespace: '%s'; starting new log on next task", r.jobName, ext))
+	jobLogger.Close()
+	jobLogger.Finalize()
+	var link string
+	if url, ok := w.history.GetLogURL(hspec, hist.LogIndex); ok {
+		link = fmt.Sprintf(" (link: %s)", url)
+	}
+	w.Lock()
+	if link != "" {
+		w.environment["GOPHER_HISTORY_LINK"] = link
+	}
+	w.logger = pipeHistory
+	w.section("new log", fmt.Sprintf("Extended log created by job '%s'", r.jobName))
+	r.Log(robot.Debug, "Started new history for job '%s' with namespace '%s'", r.jobName, ext)
 	// Question: should repository parameters override job parameters, but _not_
 	// parameters set with SetParameter?
-	w.Lock()
 	for _, param := range repository.Parameters {
 		name := param.Name
 		value := param.Value
