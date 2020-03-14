@@ -117,10 +117,8 @@ func (w *worker) deregister() {
 	activePipelines.Unlock()
 }
 
-// pipeContext is created for each incoming message, in a separate goroutine that
-// persists for the life of the message, until finally a plugin runs
-// (or doesn't). It could also be called Context, or PipelineState; but for
-// use by plugins, it's best left as Robot.
+// pipeContext is created for each running pipeline, and holds the state
+// for the pipeline.
 type pipeContext struct {
 	// Parent and child values protected by the activePipelines lock
 	_parent, _child                   *worker
