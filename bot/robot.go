@@ -69,7 +69,6 @@ func (w *worker) makeRobot() Robot {
 		},
 		pipeContext: pipeContext{
 			privileged:     w.privileged,
-			history:        w.history,
 			timeZone:       w.timeZone,
 			logger:         w.logger,
 			ptype:          w.ptype,

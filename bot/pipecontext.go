@@ -128,6 +128,7 @@ type pipeContext struct {
 	active                            bool              // whether this context has been registered as active
 	environment                       map[string]string // environment vars set for each job/plugin in the pipeline
 	runIndex                          int               // run number of a job
+	histName                          string            // GetLog(histName, index) can be used in final/fail pipes
 	verbose                           bool              // flag if initializing job was verbose
 	nextTasks                         []TaskSpec        // tasks in the pipeline
 	finalTasks                        []TaskSpec        // clean-up tasks that always run when the pipeline ends
@@ -140,20 +141,19 @@ type pipeContext struct {
 	queueTask                         bool              // whether to queue up if Exclusive call failed
 	abortPipeline                     bool              // Exclusive request failed w/o queueTask
 	// Stuff we want to copy in makeRobot
-	privileged         bool                  // privileged jobs flip this flag, causing tasks in the pipeline to run in cfgdir
-	history            robot.HistoryProvider // history provider for generating the logger
-	timeZone           *time.Location        // for history timestamping
-	logger             robot.HistoryLogger   // where to send stdout / stderr
-	ptype              pipelineType          // what started this pipeline
-	elevated           bool                  // set when required elevation succeeds
-	stage              pipeStage             // which pipeline is being run; primaryP, finalP, failP
-	jobInitialized     bool                  // whether a job has started
-	jobName            string                // name of the running job
-	nameSpace          string                // namespace for the pipeline, used by exclusive
-	pipeName, pipeDesc string                // name and description of task that started pipeline
-	nsExtension        string                // extended namespace
-	currentTask        interface{}           // pointer to currently executing task
-	exclusive          bool                  // indicates task was running exclusively
+	privileged         bool                // privileged jobs flip this flag, causing tasks in the pipeline to run in cfgdir
+	timeZone           *time.Location      // for history timestamping
+	logger             robot.HistoryLogger // where to send stdout / stderr
+	ptype              pipelineType        // what started this pipeline
+	elevated           bool                // set when required elevation succeeds
+	stage              pipeStage           // which pipeline is being run; primaryP, finalP, failP
+	jobInitialized     bool                // whether a job has started
+	jobName            string              // name of the running job
+	nameSpace          string              // namespace for the pipeline, used by exclusive
+	pipeName, pipeDesc string              // name and description of task that started pipeline
+	nsExtension        string              // extended namespace
+	currentTask        interface{}         // pointer to currently executing task
+	exclusive          bool                // indicates task was running exclusively
 }
 
 func (c *pipeContext) section(name, info string) {

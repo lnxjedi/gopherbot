@@ -126,14 +126,10 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		w.ProtocolChannel = ""
 	}
 	c.environment["GOPHER_PIPE_NAME"] = task.name
-	c.history = interfaces.history
 	var ph pipeHistory
-	var rememberRuns int
+	rememberRuns := 0
 	if isJob {
 		rememberRuns = job.HistoryLogs
-	}
-	if rememberRuns == 0 {
-		rememberRuns = 1
 	}
 	key := histPrefix + c.pipeName
 	tok, _, mret := checkoutDatum(key, &ph, true)
@@ -144,6 +140,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		c.runIndex = ph.NextIndex
 		ph.NextIndex++
 	}
+	c.histName = c.pipeName
 	var start time.Time
 	hist := historyLog{
 		LogIndex:   c.runIndex,
@@ -166,21 +163,21 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		start = time.Now()
 	}
 	c.environment["GOPHER_RUN_INDEX"] = fmt.Sprintf("%d", c.runIndex)
-	pipeHistory, err := c.history.NewLog(c.pipeName, hist.LogIndex, job.HistoryLogs)
+	pipeHistory, err := interfaces.history.NewLog(c.pipeName, hist.LogIndex, rememberRuns)
 	if err != nil {
 		Log(robot.Error, "Starting history for '%s' failed (%v) - falling back to memory log", c.pipeName, err)
 		pipeHistory, _ = memHistories.NewLog(c.pipeName, hist.LogIndex, 0)
 	}
 	c.logger = pipeHistory
-	if !job.Quiet || c.verbose {
+	if isJob && (!job.Quiet || c.verbose) {
 		r := w.makeRobot()
 		taskinfo := task.name
 		if len(args) > 0 {
 			taskinfo += " " + strings.Join(args, " ")
 		}
 		var link string
-		if c.history != nil {
-			if url, ok := c.history.GetLogURL(task.name, c.runIndex); ok {
+		if interfaces.history != nil {
+			if url, ok := interfaces.history.GetLogURL(task.name, c.runIndex); ok {
 				link = fmt.Sprintf(" (link: %s)", url)
 			}
 		}
