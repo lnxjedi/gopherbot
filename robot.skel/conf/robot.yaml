@@ -154,9 +154,13 @@ ExternalPlugins:
 NameSpaces:
   "ssh":
     Parameters:
+    - Name: "KEYNAME"
+      Value: "robot_key"
     - Name: BOT_SSH_PHRASE
       Value: {{ decrypt "<sshencrypted>" }}
   "manage":
+    # The default standard config defines a bunch of pass-through env vars,
+    # so here we use AppendParameters
     AppendParameters:
     - Name: "KEYNAME"
       Value: "manage_key"
