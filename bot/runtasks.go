@@ -31,7 +31,6 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		return robot.RobotStopping
 	}
 	state.RUnlock()
-	raiseThreadPriv(fmt.Sprintf("new pipeline for task %s / %s", task.name, command))
 	isJob := job != nil
 	isPlugin := plugin != nil
 	var ppipeName, ppipeDesc string
@@ -91,6 +90,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		state.Unlock()
 	}()
 
+	initChannel := w.Channel
 	// A job or plugin is always the first task in a pipeline; a new
 	// sub-pipeline is created if a job is added in another pipeline.
 	if isJob {
@@ -121,83 +121,83 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		c.nameSpace = getNameSpace(task)
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
 		c.environment["GOPHER_START_CHANNEL"] = w.Channel
-		iChannel := w.Channel
 		// To change the channel to the job channel, we need to clear the ProcotolChannel
 		w.Channel = task.Channel
 		w.ProtocolChannel = ""
-		c.history = interfaces.history
-		var jh jobHistory
-		rememberRuns := job.HistoryLogs
-		if rememberRuns == 0 {
-			rememberRuns = 1
+	}
+	c.environment["GOPHER_PIPE_NAME"] = task.name
+	var ph pipeHistory
+	rememberRuns := 0
+	if isJob {
+		rememberRuns = job.HistoryLogs
+	}
+	key := histPrefix + c.pipeName
+	tok, _, mret := checkoutDatum(key, &ph, true)
+	if mret != robot.Ok {
+		Log(robot.Error, "Checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
+		c.runIndex = w.id
+	} else {
+		c.runIndex = ph.NextIndex
+		ph.NextIndex++
+	}
+	c.histName = c.pipeName
+	var start time.Time
+	hist := historyLog{
+		LogIndex:   c.runIndex,
+		CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
+	}
+	if mret == robot.Ok {
+		ph.Histories = append(ph.Histories, hist)
+		l := len(ph.Histories)
+		if l > rememberRuns {
+			ph.Histories = ph.Histories[l-rememberRuns:]
 		}
-		key := histPrefix + c.jobName
-		tok, _, ret := checkoutDatum(key, &jh, true)
-		if ret != robot.Ok {
-			Log(robot.Error, "Checking out '%s', no history will be remembered for '%s'", key, c.pipeName)
-		} else {
-			var start time.Time
-			if c.timeZone != nil {
-				start = time.Now().In(c.timeZone)
-			} else {
-				start = time.Now()
-			}
-			c.runIndex = jh.NextIndex
-			c.environment["GOPHER_RUN_INDEX"] = fmt.Sprintf("%d", c.runIndex)
-			hist := historyLog{
-				LogIndex:   c.runIndex,
-				CreateTime: start.Format("Mon Jan 2 15:04:05 MST 2006"),
-			}
-			jh.NextIndex++
-			jh.Histories = append(jh.Histories, hist)
-			l := len(jh.Histories)
-			if l > rememberRuns {
-				jh.Histories = jh.Histories[l-rememberRuns:]
-			}
-			ret := updateDatum(key, tok, jh)
-			if ret != robot.Ok {
-				Log(robot.Error, "Updating '%s', no history will be remembered for '%s'", key, c.pipeName)
-			} else {
-				if job.HistoryLogs > 0 && c.history != nil {
-					pipeHistory, err := c.history.NewHistory(c.jobName, hist.LogIndex, job.HistoryLogs)
-					if err != nil {
-						Log(robot.Error, "Starting history for '%s', no history will be recorded: %v", c.pipeName, err)
-					} else {
-						c.logger = pipeHistory
-					}
-				} else {
-					if c.history == nil {
-						Log(robot.Warn, "Starting history, no history provider available")
-					}
-				}
+		mret = updateDatum(key, tok, ph)
+		if mret != robot.Ok {
+			Log(robot.Error, "Updating '%s', no history will be remembered for '%s'", key, c.pipeName)
+		}
+	}
+	if c.timeZone != nil {
+		start = time.Now().In(c.timeZone)
+	} else {
+		start = time.Now()
+	}
+	c.environment["GOPHER_RUN_INDEX"] = fmt.Sprintf("%d", c.runIndex)
+	pipeHistory, err := interfaces.history.NewLog(c.pipeName, hist.LogIndex, rememberRuns)
+	if err != nil {
+		Log(robot.Error, "Starting history for '%s' failed (%v) - falling back to memory log", c.pipeName, err)
+		pipeHistory, _ = memHistories.NewLog(c.pipeName, hist.LogIndex, 0)
+	}
+	c.logger = pipeHistory
+	if isJob && (!job.Quiet || c.verbose) {
+		r := w.makeRobot()
+		taskinfo := task.name
+		if len(args) > 0 {
+			taskinfo += " " + strings.Join(args, " ")
+		}
+		var link string
+		if interfaces.history != nil {
+			if url, ok := interfaces.history.GetLogURL(task.name, c.runIndex); ok {
+				link = fmt.Sprintf(" (link: %s)", url)
 			}
 		}
-		if !job.Quiet || c.verbose {
-			r := w.makeRobot()
-			taskinfo := task.name
-			if len(args) > 0 {
-				taskinfo += " " + strings.Join(args, " ")
-			}
-			var link string
-			if c.history != nil {
-				if url, ok := c.history.GetHistoryURL(task.name, c.runIndex); ok {
-					link = fmt.Sprintf(" (link: %s)", url)
-				}
-			}
-			switch ptype {
-			case jobTrigger:
-				r.Say("Starting job '%s', run %d%s - triggered by app '%s' in channel '%s'", taskinfo, c.runIndex, link, w.User, iChannel)
-			case jobCommand:
-				r.Say("Starting job '%s', run %d%s - requested by user '%s' in channel '%s'", taskinfo, c.runIndex, link, w.User, iChannel)
-			case spawnedTask:
-				r.Say("Starting job '%s', run %d%s - spawned by pipeline '%s': %s", taskinfo, c.runIndex, link, ppipeName, ppipeDesc)
-			case scheduled:
-				r.Say("Starting scheduled job '%s', run %d%s", taskinfo, c.runIndex, link)
-			default:
-				r.Say("Starting job '%s', run %d%s", taskinfo, c.runIndex, link)
-			}
-			c.verbose = true
+		schannel := initChannel
+		if schannel == "" {
+			schannel = "(direct message)"
 		}
+		switch ptype {
+		case jobTrigger:
+			r.Say("Starting job '%s', run %d%s - triggered by app '%s' in channel '%s'", taskinfo, c.runIndex, link, w.User, schannel)
+		case jobCommand:
+			r.Say("Starting job '%s', run %d%s - requested by user '%s' in channel '%s'", taskinfo, c.runIndex, link, w.User, schannel)
+		case spawnedTask:
+			r.Say("Starting job '%s', run %d%s - spawned by pipeline '%s': %s", taskinfo, c.runIndex, link, ppipeName, ppipeDesc)
+		case scheduled:
+			r.Say("Starting scheduled job '%s', run %d%s", taskinfo, c.runIndex, link)
+		default:
+			r.Say("Starting job '%s', run %d%s", taskinfo, c.runIndex, link)
+		}
+		c.verbose = true
 	}
 
 	ts := TaskSpec{task.name, command, args, t}
@@ -211,7 +211,11 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	ret, errString = w.runPipeline(primaryTasks, ptype, true)
 	// Close the log so final / fail tasks could potentially send log emails / links
 	if c.logger != nil {
-		c.logger.Section("done", "primary pipeline has completed")
+		if ret != robot.Normal && ret != robot.Success {
+			c.section("failed", fmt.Sprintf("primary pipeline failed in task %s: %s (code: %d)", c.taskName, ret, ret))
+		} else {
+			c.section("done", "primary pipeline has completed")
+		}
 		c.logger.Close()
 	}
 	numFailTasks := len(w.failTasks)

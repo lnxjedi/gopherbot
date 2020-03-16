@@ -20,7 +20,7 @@ type historyLog struct {
 	CreateTime string
 }
 
-type jobHistory struct {
+type pipeHistory struct {
 	NextIndex          int
 	Histories          []historyLog
 	ExtendedNamespaces []string

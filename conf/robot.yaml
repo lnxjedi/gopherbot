@@ -36,6 +36,18 @@ Protocol: {{ $proto }}
 ## Configure log level
 LogLevel: {{ env "GOPHER_LOGLEVEL" | default "info" }}
 
+## Configure a history provider
+{{ $history := env "GOPHER_HISTORY_PROVIDER" | default "mem" }}
+HistoryProvider: {{ $history }}
+
+{{ if eq $history "mem" }}
+HistoryConfig:
+  BufferSize: 131072
+  MaxLineLength: 16384
+  Truncated: "<... truncated>"
+{{ end }}
+## End history config
+
 TimeZone: {{ env "GOPHER_TIMEZONE" | default "America/New_York" }}
 
 # Default shared namespaces to allow sharing of parameters between

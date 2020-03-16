@@ -69,7 +69,6 @@ func (w *worker) makeRobot() Robot {
 		},
 		pipeContext: pipeContext{
 			privileged:     w.privileged,
-			history:        w.history,
 			timeZone:       w.timeZone,
 			logger:         w.logger,
 			ptype:          w.ptype,
@@ -116,6 +115,12 @@ func (w *worker) CheckAdmin() bool {
 	}
 	emit(AdminCheckFailed)
 	return false
+}
+
+// RaisePriv lets go plugins raise privilege for a thread, allowing filesystem
+// access in GOPHER_HOME.
+func (r Robot) RaisePriv(reason string) {
+	raiseThreadPriv(reason)
 }
 
 // SetParameter sets a parameter for the current pipeline, useful only for

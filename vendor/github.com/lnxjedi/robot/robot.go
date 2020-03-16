@@ -49,6 +49,8 @@ type Robot interface {
 	AddCommand(string, string) RetVal
 	FinalCommand(string, string) RetVal
 	FailCommand(string, string) RetVal
+	// Go plugins only, for filesystem access to GOPHER_HOME
+	RaisePriv(string)
 	SetParameter(string, string) bool
 	SetWorkingDirectory(string) bool
 }

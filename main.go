@@ -1,3 +1,5 @@
+// +build modular
+
 package main
 
 import (
@@ -7,9 +9,6 @@ import (
 	// most of the import lines below to shrink the binary or remove unwanted
 	// or unneeded funcationality. You'll need at least one connector for your
 	// bot to be useful, however.
-
-	// *** Compiled-in history implementations
-	_ "github.com/lnxjedi/gopherbot/history/file"
 
 	// Many included plugins already have 'Disabled: true', but you can also
 	// disable by adding that line to conf/plugins/<plugname>.yaml

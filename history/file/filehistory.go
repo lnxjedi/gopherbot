@@ -1,6 +1,6 @@
-// Package fileHistory is a simple file-backed implementation for bot plugin
+// Package filehistory is a simple file-backed implementation for bot plugin
 // and job histories.
-package fileHistory
+package filehistory
 
 import (
 	"fmt"
@@ -12,7 +12,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/lnxjedi/gopherbot/bot"
 	"github.com/lnxjedi/robot"
 )
 
@@ -30,8 +29,10 @@ type historyConfig struct {
 }
 
 type historyFile struct {
-	l *log.Logger
-	f *os.File
+	l    *log.Logger
+	f    *os.File
+	path string
+	keep bool
 }
 
 // Log takes a line of text and stores it in the history file
@@ -39,12 +40,11 @@ func (hf *historyFile) Log(line string) {
 	hf.l.Println(line)
 }
 
-// TODO: This belongs in the Robot as a generic method - move
 // Section creates a new named section in the history file, for separating
 // output from jobs/plugins in a pipeline
-func (hf *historyFile) Section(task, desc string) {
+func (hf *historyFile) Line(line string) {
 	hf.l.SetFlags(0)
-	hf.l.Println("*** " + task + " - " + desc)
+	hf.l.Println(line)
 	hf.l.SetFlags(logFlags)
 }
 
@@ -54,15 +54,26 @@ func (hf *historyFile) Close() {
 	hf.f.Close()
 }
 
+// Finalize removes the log if needed
+func (hf *historyFile) Finalize() {
+	if hf.keep {
+		return
+	}
+	if rerr := os.Remove(hf.path); rerr != nil {
+		handler.Log(robot.Error, "Removing %s: %v", hf.path, rerr)
+	}
+}
+
 var fhc historyConfig
 
-// NewHistory initializes and returns a historyFile, as well as cleaning up old
+// NewLog initializes and returns a historyFile, as well as cleaning up old
 // logs.
-func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (robot.HistoryLogger, error) {
+func (fhc *historyConfig) NewLog(tag string, index, maxHistories int) (robot.HistoryLogger, error) {
 	tag = strings.Replace(tag, `\`, ":", -1)
 	tag = strings.Replace(tag, `/`, ":", -1)
 	dirPath := path.Join(fhc.Directory, tag)
 	filePath := path.Join(dirPath, fmt.Sprintf("run-%d.log", index))
+	handler.RaisePriv("creating new log for " + tag)
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return nil, fmt.Errorf("Error creating history directory '%s': %v", dirPath, err)
 	}
@@ -70,10 +81,13 @@ func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (robot
 	if err != nil {
 		return nil, fmt.Errorf("Error creating history file '%s': %v", filePath, err)
 	}
+	keep := maxHistories != 0
 	hl := log.New(file, "", logFlags)
 	hf := &historyFile{
 		hl,
 		file,
+		filePath,
+		keep,
 	}
 	if index-maxHistories >= 0 {
 		for i := index - maxHistories; i >= 0; i-- {
@@ -93,8 +107,8 @@ func (fhc *historyConfig) NewHistory(tag string, index, maxHistories int) (robot
 	return hf, nil
 }
 
-// GetHistory returns an io.Reader
-func (fhc *historyConfig) GetHistory(tag string, index int) (io.Reader, error) {
+// GetLog returns an io.Reader
+func (fhc *historyConfig) GetLog(tag string, index int) (io.Reader, error) {
 	tag = strings.Replace(tag, `\`, ":", -1)
 	tag = strings.Replace(tag, `/`, ":", -1)
 	dirPath := path.Join(fhc.Directory, tag)
@@ -102,8 +116,8 @@ func (fhc *historyConfig) GetHistory(tag string, index int) (io.Reader, error) {
 	return os.Open(filePath)
 }
 
-// GetHistoryURL returns the permanent link to the history
-func (fhc *historyConfig) GetHistoryURL(tag string, index int) (string, bool) {
+// GetLogURL returns the permanent link to the history
+func (fhc *historyConfig) GetLogURL(tag string, index int) (string, bool) {
 	if len(fhc.URLPrefix) == 0 {
 		return "", false
 	}
@@ -114,8 +128,8 @@ func (fhc *historyConfig) GetHistoryURL(tag string, index int) (string, bool) {
 	return htmlPath, true
 }
 
-// MakeHistoryURL publishes a history to a URL and returns the URL
-func (fhc *historyConfig) MakeHistoryURL(tag string, index int) (string, bool) {
+// MakeLogURL publishes a history to a URL and returns the URL
+func (fhc *historyConfig) MakeLogURL(tag string, index int) (string, bool) {
 	return "", false
 }
 
@@ -127,6 +141,7 @@ func provider(r robot.Handler) robot.HistoryProvider {
 		return nil
 	}
 	historyPath = fhc.Directory
+	handler.RaisePriv("initializing file history")
 	if err := r.GetDirectory(historyPath); err != nil {
 		handler.Log(robot.Error, "Checking history directory '%s': %v", historyPath, err)
 		return nil
@@ -143,8 +158,4 @@ func provider(r robot.Handler) robot.HistoryProvider {
 		handler.Log(robot.Info, "Initialized file history provider with directory: '%s'", historyPath)
 	}
 	return &fhc
-}
-
-func init() {
-	bot.RegisterHistoryProvider("file", provider)
 }

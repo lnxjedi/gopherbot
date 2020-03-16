@@ -517,14 +517,21 @@ func loadConfig(preConnect bool) error {
 		} else {
 			processed.port = "0"
 		}
-		if len(newconfig.HistoryProvider) > 0 {
-			if hprovider, ok := historyProviders[newconfig.HistoryProvider]; !ok {
-				Log(robot.Fatal, "No provider registered for history type: \"%s\"", processed.historyProvider)
-			} else {
-				raiseThreadPriv("starting history provider")
-				hp := hprovider(handler{})
-				interfaces.history = hp
-			}
+		if len(newconfig.HistoryProvider) == 0 {
+			newconfig.HistoryProvider = "mem"
+		}
+		var hprovider func(robot.Handler) robot.HistoryProvider
+		var ok bool
+		if hprovider, ok = historyProviders[newconfig.HistoryProvider]; !ok {
+			Log(robot.Error, "No provider registered for history type: \"%s\", falling back to 'mem'", processed.historyProvider)
+			newconfig.HistoryProvider = "mem"
+			hprovider = historyProviders["mem"]
+		}
+		hp := hprovider(handler{})
+		interfaces.history = hp
+		if newconfig.HistoryProvider != "mem" {
+			// Initialize the memory provider as a last-ditch fallback
+			mhprovider(handler{})
 		}
 	} else {
 		if len(usermap) > 0 {
