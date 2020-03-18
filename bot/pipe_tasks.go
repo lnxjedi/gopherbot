@@ -1,6 +1,11 @@
 package bot
 
-import "github.com/lnxjedi/robot"
+import (
+	"bufio"
+	"io/ioutil"
+
+	"github.com/lnxjedi/robot"
+)
 
 // func template(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 // 	r := m.(Robot)
@@ -33,10 +38,33 @@ func rotatelog(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	return logRotate(ext)
 }
 
-// func logtail(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
-// 	r := m.(Robot)
-// 	return
-// }
+func logtail(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
+	r := m.(Robot)
+	r.Say("Getting log...")
+	r.Log(robot.Debug, "DEBUG: getting log")
+	Log(robot.Debug, "DEBUG: wtf?")
+	w := getLockedWorker(r.tid)
+	hist := w.histName
+	idx := w.runIndex
+	w.Lock()
+	logReader, err := interfaces.history.GetLog(hist, idx)
+	if err != nil && interfaces.history == memHistories {
+		Log(robot.Error, "Failed getting log reader in tail-log for history %s, index: %d", hist, idx)
+		return robot.Fail
+	}
+	tail := newlineBuffer(2048, 512, "<... truncated...>")
+	scanner := bufio.NewScanner(logReader)
+	for scanner.Scan() {
+		line := scanner.Text()
+		Log(robot.Debug, "DEBUG, got line: %s", line)
+		tail.writeLine(line)
+	}
+	tail.close()
+	tailReader, _ := tail.getReader()
+	buffer, _ := ioutil.ReadAll(tailReader)
+	r.Say(string(buffer))
+	return
+}
 
 func restart(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
@@ -105,4 +133,5 @@ func init() {
 	RegisterTask("rotate-log", true, robot.TaskHandler{Handler: rotatelog})
 	RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pause})
 	RegisterTask("resume-brain", true, robot.TaskHandler{Handler: resume})
+	RegisterTask("tail-log", false, robot.TaskHandler{Handler: logtail})
 }

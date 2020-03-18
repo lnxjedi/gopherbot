@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -157,24 +156,22 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		rchan <- taskReturn{msg, robot.ConfigurationError}
 		return
 	}
-	if logger != nil {
-		var taskinfo string
-		if isPlugin {
-			taskinfo = task.name + " " + command
-		} else {
-			taskinfo = task.name
-		}
-		if len(args) > 0 {
-			taskinfo += " " + strings.Join(args, " ")
-		}
-		var desc string
-		if len(task.Description) > 0 {
-			desc = fmt.Sprintf("Starting task '%s': %s", task.name, task.Description)
-		} else {
-			desc = fmt.Sprintf("Starting task '%s'", task.name)
-		}
-		w.section(taskinfo, desc)
+	var taskinfo string
+	if isPlugin {
+		taskinfo = task.name + " " + command
+	} else {
+		taskinfo = task.name
 	}
+	if len(args) > 0 {
+		taskinfo += " " + strings.Join(args, " ")
+	}
+	var desc string
+	if len(task.Description) > 0 {
+		desc = fmt.Sprintf("Starting task '%s': %s", task.name, task.Description)
+	} else {
+		desc = fmt.Sprintf("Starting task '%s'", task.name)
+	}
+	w.section(taskinfo, desc)
 
 	if !(task.name == "builtin-admin" && command == "abort") {
 		if w.directMsg {
@@ -297,17 +294,12 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	if nullConn {
 		cmd.Stdin = os.Stdin
 	}
-	if !(localTerm || nullConn) && logger == nil {
-		// close stdout on the external plugin...
-		cmd.Stdout = nil
-	} else {
-		stdout, err = cmd.StdoutPipe()
-		if err != nil {
-			Log(robot.Error, "Creating stdout pipe for external command '%s': %v", taskPath, err)
-			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-			rchan <- taskReturn{errString, robot.MechanismFail}
-			return
-		}
+	stdout, err = cmd.StdoutPipe()
+	if err != nil {
+		Log(robot.Error, "Creating stdout pipe for external command '%s': %v", taskPath, err)
+		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
+		rchan <- taskReturn{errString, robot.MechanismFail}
+		return
 	}
 
 	if privileged {
@@ -329,76 +321,60 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	if command != "init" {
 		emit(ExternalTaskRan)
 	}
-	if !(localTerm || nullConn) && logger == nil {
-		var stdErrBytes []byte
-		if stdErrBytes, err = ioutil.ReadAll(stderr); err != nil {
-			Log(robot.Error, "Reading from stderr for external command '%s': %v", taskPath, err)
-			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-			rchan <- taskReturn{errString, robot.MechanismFail}
-			return
-		}
-		stdErrString := string(stdErrBytes)
-		if len(stdErrString) > 0 {
-			Log(robot.Warn, "Output from stderr of external command '%s': %s", taskPath, stdErrString)
-			errString = fmt.Sprintf("There was error output while calling external task '%s', you might want to ask an administrator to check the logs", task.name)
-			emit(ExternalTaskStderrOutput)
-		}
-	} else {
-		closed := make(chan struct{})
-		var solog, selog *log.Logger
-		if localTerm {
-			solog = log.New(terminalWriter, "OUT: ", 0)
-			selog = log.New(terminalWriter, "ERR: ", 0)
-		}
-		if nullConn {
-			solog = log.New(os.Stdout, "", 0)
-			selog = log.New(os.Stderr, "ERR: ", 0)
-		}
-		go func() {
-			logging := logger != nil
-			scanner := bufio.NewScanner(stdout)
-			for scanner.Scan() {
-				line := scanner.Text()
-				if logging {
-					logger.Log("OUT " + line)
-				}
-				if localTerm || nullConn {
-					solog.Println(line)
-				}
-			}
-			closed <- struct{}{}
-		}()
-		go func() {
-			logging := logger != nil
-			scanner := bufio.NewScanner(stderr)
-			for scanner.Scan() {
-				line := scanner.Text()
-				if logging {
-					logger.Log("ERR " + line)
-				}
-				if localTerm || nullConn {
-					selog.Println(line)
-				}
-			}
-			closed <- struct{}{}
-		}()
-		halfClosed := false
-	closeLoop:
-		for {
-			select {
-			case <-closed:
-				if halfClosed {
-					break closeLoop
-				}
-				halfClosed = true
-			}
-		}
-		w.Lock()
-		if w.logger != logger {
-			logger.Close()
-		}
-		w.Unlock()
+	closed := make(chan struct{})
+	var solog, selog *log.Logger
+	if localTerm {
+		solog = log.New(terminalWriter, "OUT: ", 0)
+		selog = log.New(terminalWriter, "ERR: ", 0)
 	}
+	if nullConn {
+		solog = log.New(os.Stdout, "", 0)
+		selog = log.New(os.Stderr, "ERR: ", 0)
+	}
+	go func() {
+		logging := logger != nil
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if logging {
+				logger.Log("OUT " + line)
+			}
+			if localTerm || nullConn {
+				solog.Println(line)
+			}
+		}
+		closed <- struct{}{}
+	}()
+	go func() {
+		logging := logger != nil
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if logging {
+				logger.Log("ERR " + line)
+			}
+			if localTerm || nullConn {
+				selog.Println(line)
+			}
+		}
+		closed <- struct{}{}
+	}()
+	halfClosed := false
+closeLoop:
+	for {
+		select {
+		case <-closed:
+			if halfClosed {
+				break closeLoop
+			}
+			halfClosed = true
+		}
+	}
+	w.Lock()
+	if w.logger != logger {
+		logger.Close()
+	}
+	w.Unlock()
 	if err = cmd.Wait(); err != nil {
 		retval = robot.Fail
 		success := false
