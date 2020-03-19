@@ -370,11 +370,6 @@ closeLoop:
 			halfClosed = true
 		}
 	}
-	w.Lock()
-	if w.logger != logger {
-		logger.Close()
-	}
-	w.Unlock()
 	if err = cmd.Wait(); err != nil {
 		retval = robot.Fail
 		success := false

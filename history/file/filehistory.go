@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/lnxjedi/robot"
 )
@@ -28,9 +29,24 @@ type historyConfig struct {
 	LocalPort string `yaml:"LocalPort"`
 }
 
+type histref struct {
+	name string
+	idx  int
+}
+
+var current = struct {
+	running map[histref]bool
+	sync.Mutex
+}{
+	make(map[histref]bool),
+	sync.Mutex{},
+}
+
 type historyFile struct {
 	l    *log.Logger
 	f    *os.File
+	name string
+	idx  int
 	path string
 	keep bool
 }
@@ -56,6 +72,10 @@ func (hf *historyFile) Close() {
 
 // Finalize removes the log if needed
 func (hf *historyFile) Finalize() {
+	hr := histref{hf.name, hf.idx}
+	current.Lock()
+	delete(current.running, hr)
+	current.Unlock()
 	if hf.keep {
 		return
 	}
@@ -73,7 +93,7 @@ func (fhc *historyConfig) NewLog(tag string, index, maxHistories int) (robot.His
 	tag = strings.Replace(tag, `/`, ":", -1)
 	dirPath := path.Join(fhc.Directory, tag)
 	filePath := path.Join(dirPath, fmt.Sprintf("run-%d.log", index))
-	handler.RaisePriv("creating new log for " + tag)
+	handler.RaisePriv("creating new log for: " + tag)
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return nil, fmt.Errorf("Error creating history directory '%s': %v", dirPath, err)
 	}
@@ -83,13 +103,19 @@ func (fhc *historyConfig) NewLog(tag string, index, maxHistories int) (robot.His
 	}
 	keep := maxHistories != 0
 	hl := log.New(file, "", logFlags)
+	hr := histref{tag, index}
+	current.Lock()
+	current.running[hr] = keep
+	current.Unlock()
 	hf := &historyFile{
 		hl,
 		file,
+		tag,
+		index,
 		filePath,
 		keep,
 	}
-	if index-maxHistories >= 0 {
+	if maxHistories > 0 {
 		for i := index - maxHistories; i >= 0; i-- {
 			rmPath := path.Join(dirPath, fmt.Sprintf("run-%d.log", i))
 			_, err := os.Stat(rmPath)
@@ -119,6 +145,13 @@ func (fhc *historyConfig) GetLog(tag string, index int) (io.Reader, error) {
 // GetLogURL returns the permanent link to the history
 func (fhc *historyConfig) GetLogURL(tag string, index int) (string, bool) {
 	if len(fhc.URLPrefix) == 0 {
+		return "", false
+	}
+	hr := histref{tag, index}
+	current.Lock()
+	keep, ok := current.running[hr]
+	current.Unlock()
+	if ok && !keep {
 		return "", false
 	}
 	tag = strings.Replace(tag, `\`, ":", -1)

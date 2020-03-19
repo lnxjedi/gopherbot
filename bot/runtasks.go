@@ -210,14 +210,12 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	var errString string
 	ret, errString = w.runPipeline(primaryTasks, ptype, true)
 	// Close the log so final / fail tasks could potentially send log emails / links
-	if c.logger != nil {
-		if ret != robot.Normal && ret != robot.Success {
-			c.section("failed", fmt.Sprintf("primary pipeline failed in task %s: %s (code: %d)", c.taskName, ret, ret))
-		} else {
-			c.section("done", "primary pipeline has completed")
-		}
-		c.logger.Close()
+	if ret != robot.Normal && ret != robot.Success {
+		c.section("failed", fmt.Sprintf("primary pipeline failed in task %s: %s (code: %d)", c.taskName, ret, ret))
+	} else {
+		c.section("done", "primary pipeline has completed")
 	}
+	c.logger.Close()
 	numFailTasks := len(w.failTasks)
 	numFinalTasks := len(w.finalTasks)
 	// Run final and fail (cleanup) tasks
@@ -229,6 +227,8 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	if numFinalTasks > 0 {
 		w.runPipeline(finalTasks, ptype, false)
 	}
+	// Release logs that shouldn't be saved
+	c.logger.Finalize()
 	w.deregister()
 	// Once deregistered, no Robot can get a pointer to the worker, and
 	// locking is no longer needed. Invalid calls to getLockedWorker()

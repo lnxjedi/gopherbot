@@ -12,24 +12,7 @@ import (
 // 	return
 // }
 
-// func initcrypt(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
-// 	success := initCrypt()
-// 	if success {
-// 		return robot.Normal
-// 	}
-// 	return robot.Fail
-// }
-
-// func setenv(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
-// 	r := m.(Robot)
-// 	if len(args) != 2 {
-// 		r.Log(robot.Error, "task 'setenv' called with %d args != 2", len(args))
-// 		return robot.Fail
-// 	}
-// 	os.Setenv(args[0], args[1])
-// 	return
-// }
-
+// rotatelog (task rotate-log); rotate the log file when logging to file
 func rotatelog(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	ext := ""
 	if len(args) == 1 {
@@ -38,31 +21,36 @@ func rotatelog(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	return logRotate(ext)
 }
 
+// logtail - task tail-log; get the last 2k of pipeline log
 func logtail(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
-	r.Say("Getting log...")
-	r.Log(robot.Debug, "DEBUG: getting log")
-	Log(robot.Debug, "DEBUG: wtf?")
 	w := getLockedWorker(r.tid)
 	hist := w.histName
 	idx := w.runIndex
-	w.Lock()
+	w.Unlock()
 	logReader, err := interfaces.history.GetLog(hist, idx)
 	if err != nil && interfaces.history == memHistories {
 		Log(robot.Error, "Failed getting log reader in tail-log for history %s, index: %d", hist, idx)
 		return robot.Fail
 	}
+	if err != nil {
+		Log(robot.Debug, "Failed getting log reader in tail-log, checking for memlog fallback")
+		logReader, err = memHistories.GetLog(hist, idx)
+	}
+	if err != nil {
+		Log(robot.Error, "Failed memlog fallback retrieving %s:%d in tail-log")
+		return robot.MechanismFail
+	}
 	tail := newlineBuffer(2048, 512, "<... truncated...>")
 	scanner := bufio.NewScanner(logReader)
 	for scanner.Scan() {
 		line := scanner.Text()
-		Log(robot.Debug, "DEBUG, got line: %s", line)
 		tail.writeLine(line)
 	}
 	tail.close()
 	tailReader, _ := tail.getReader()
 	buffer, _ := ioutil.ReadAll(tailReader)
-	r.Say(string(buffer))
+	r.Fixed().Say(string(buffer))
 	return
 }
 
