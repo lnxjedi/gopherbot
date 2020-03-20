@@ -22,8 +22,7 @@ Job builtins are special:
 
 */
 
-const histPageSize = 2048    // how much history to display at a time
-const maxMailBody = 10485760 // 10MB
+const histPageSize = 2048 // how much history to display at a time
 
 func init() {
 	RegisterPlugin("builtin-history", robot.PluginHandler{Handler: jobhistory})
