@@ -61,7 +61,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		msg = append(msg, fmt.Sprintf("This is channel '%s', %s internal ID: %s", r.Channel, r.Protocol, channelID))
 		if r.CheckAdmin() {
 			msg = append(msg, fmt.Sprintf("The gopherbot install directory is: %s", installPath))
-			msg = append(msg, fmt.Sprintf("My home directory is: %s", homePath))
+			msg = append(msg, fmt.Sprintf("My home directory (GOPHER_HOME) is: %s", homePath))
 			if custom, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY"); ok {
 				msg = append(msg, fmt.Sprintf("My git repository is: %s", custom))
 			}

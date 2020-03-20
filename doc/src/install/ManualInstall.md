@@ -16,9 +16,9 @@ The latest release, pre-release and beta versions are available for download on 
 
 ## Archive Contents
 
-**Files**]
-* `gopherbot` - the main executable, both a *CLI* and *daemon*
-* `fetch-robot.sh` - a utility script for retrieving a robot for local development
+**Files**
+* `gopherbot` - the main executable, both a *daemon* and a *command-line interface*
+* `fetch-robot.sh` - a developer utility script for retrieving a robot for local development
 
 **Directories**
 * `connectors/` - loadable modules for protocol connectors, e.g. *slack*
@@ -32,7 +32,7 @@ The latest release, pre-release and beta versions are available for download on 
 * `jobs/` - a collection of jobs for robot management (backup/restore) and CI/CD
 * `helpers/` - helper scripts not directly called by the robot
 * `resources/` - miscellaneous useful bits for a running robot, also *Dockerfiles*
-* `doc/` - the source for the documentation on [github pages](https://lnxjedi.github.io/gopherbot/)
+* `doc/` - the source for this documentation on [github pages](https://lnxjedi.github.io/gopherbot/)
 * `robot.skel/` - the initial configuration for new robots
 * `licenses/` - licenses for other packages used by **Gopherbot**, as required
 

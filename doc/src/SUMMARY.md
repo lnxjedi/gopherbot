@@ -22,6 +22,7 @@
 
 - [Initial Robot Configuration](RobotInstall.md)
     - [Requirements](botsetup/Requirements.md)
+    - [Robot Directory Structure](botsetup/gopherhome.md)
     - [Manual Setup](botsetup/ManualSetup.md)
         - [Create the `GOPHER_HOME` directory](botsetup/bothome.md)
         - [Create the Initial `.env` File](botsetup/initenv.md)
