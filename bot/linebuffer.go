@@ -117,13 +117,13 @@ func (m *lineBuffer) writeLine(line string) {
 }
 
 // getReader returns a memreader from a memlog
-func (m *lineBuffer) getReader() (lineBufferReader, error) {
+func (m *lineBuffer) getReader() (io.Reader, error) {
 	m.Lock()
 	defer m.Unlock()
 	if !m.closed {
-		return lineBufferReader{}, errors.New("Not closed")
+		return nil, errors.New("Not closed")
 	}
-	mr := lineBufferReader{
+	mr := &lineBufferReader{
 		lb:       m,
 		position: 0,
 		size:     m.length,
@@ -133,7 +133,7 @@ func (m *lineBuffer) getReader() (lineBufferReader, error) {
 
 // copyReader locks the linebuffer and returns a reader for
 // a copy.
-func (m *lineBuffer) copyReader() lineBufferReader {
+func (m *lineBuffer) copyReader() io.Reader {
 	m.Lock()
 	defer m.Unlock()
 	lb := &lineBuffer{
@@ -146,7 +146,7 @@ func (m *lineBuffer) copyReader() lineBufferReader {
 		Mutex:  sync.Mutex{},
 	}
 	copy(lb.buffer, m.buffer)
-	mr := lineBufferReader{
+	mr := &lineBufferReader{
 		lb:       lb,
 		position: 0,
 		size:     m.length,
@@ -155,7 +155,7 @@ func (m *lineBuffer) copyReader() lineBufferReader {
 }
 
 // Read implements Read() for a linebuffer
-func (mr lineBufferReader) Read(p []byte) (int, error) {
+func (mr *lineBufferReader) Read(p []byte) (int, error) {
 	rsize := len(p)
 	eof := false
 	if mr.position+rsize > mr.size {
