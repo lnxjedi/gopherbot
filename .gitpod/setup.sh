@@ -19,9 +19,7 @@ in a git repository.
 ############################################################################
 
 EOF
-    mkdir demobot
-    cd demobot
-    exec ../gopherbot/gopherbot
+    exec ./gopherbot/gopherbot
 else
 cat <<EOF
 
