@@ -4,28 +4,51 @@ Dockerfiles for Gopherbot DevOps Chatbot running on Ubuntu, Amazon Linux, and Ce
 
 ## Demo / Setup with the Default Robot
 
-If you run a new **Gopherbot** container with no environment variables set, you'll get the *default robot*, **Floyd**, running the *terminal* connector. Floyd can tell knock-knock jokes, and can also run the **interactive setup plugin** which you can use to start configuring your own robot. To get started:
+If you run a new **Gopherbot** container with no environment variables set, you'll get the *default robot*, **Floyd**, running the *terminal* connector. Floyd can tell knock-knock jokes, and can also kick-off setup with the **autosetup** plugin. To get started:
 ```shell
-$ docker run -it lnxjedi/gopherbot
+$ docker run -it --name ansfile lnxjedi/gopherbot:latest
 Info: PID == 1, spawning child
-Debug: Successfully raised privilege permanently for 'exec child process' thread 1; new r/euid: 1/1
 Info: Starting pid 1 signal handler
-Debug: Checking os.Stat for dir 'custom' from wd '': stat custom: no such file or directory
-Debug: Checking os.Stat for dir 'conf' from wd '': stat conf: no such file or directory
-Warning: Starting unconfigured; no robot.yaml/gopherbot.yaml found
+Logging to robot.log; warnings and errors duplicated to stdout
 Terminal connector running; Use '|c<channel|?>' to change channel, or '|u<user|?>' to change user
-c:general/u:alice -> Warning: GOPHER_CUSTOM_REPOSITORY not set, not bootstrapping
 general: *******
-general: Welcome to the *Gopherbot* terminal connector. Since no configuration was detected, you're connected to 'floyd', the default robot.
-general: If you've started the robot by mistake, just hit ctrl-D to exit and try 'gopherbot --help'; otherwise feel free to play around with the default robot - you can start by typing 'help'. If you'd like to
-start configuring a new robot, type: ';setup'.
-c:general/u:alice -> floyd, tell me a joke
+general: Welcome to the *Gopherbot* terminal connector. Since no configuration was detected,
+you're connected to 'floyd', the default robot.
+general: If you've started the robot by mistake, just hit ctrl-D to exit and try
+'gopherbot --help'; otherwise feel free to play around with the default robot - you can
+start by typing 'help'. If you'd like to start configuring a new robot, type: ';setup
+<protocol>'.
+c:general/u:alice -> ;setup slack
+general: Copy to answerfile.txt:
+<-- snip answerfile.txt -->
+...
+<-- /snip -->
+
+Edit your 'answerfile.txt' and run the container with '--env-file answerfile.txt'.
+Exiting (press <enter> ...)
+c:general/u:alice -> 
+Terminal connector finished
+# Remove the temporary container
+$ docker container rm ansfile
+```
+
+After you've edited your `answerfile.txt`, run the container again and provide it to the container environment with `--env-file`:
+```shell
+$ docker run -it --env-file answerfile.txt lnxjedi/gopherbot:latest
+Info: PID == 1, spawning child
+Info: Starting pid 1 signal handler
+Info: Logging to robot.log
+null connector: Initializing encryption and restarting...
+Info: Logging to robot.log
+null connector: Continuing automatic setup...
 ...
 ```
 
+... then follow the provided instructions to set yourself up as an administrator and save your robot's configuration to a *git* repository.
+
 ## Bootstrapping an existing robot
 
-You can bootstrap an existing robot in to a docker container by simply running the container with a few environment variables. One possibility is to use a deploy key for the robot's custom repository; create an environment file like so:
+You can bootstrap an existing robot in to a docker container by simply running the container with a few environment variables. One possibility is to use a deploy key for the robot's custom repository; create an environment file named `environment` like so:
 ```shell
 GOPHER_ENCRYPTION_KEY=ThisIsntReallyMyEncryptionKeySrsly
 GOPHER_CUSTOM_REPOSITORY=git@github.com:parsley42/clu-gopherbot.git
@@ -38,4 +61,4 @@ Note that the deploy key is a _very_ long line, created with e.g.:
 $ cat deploy_key | tr ' \n' '_:'
 ```
 
-Put this environment file, along with the `Makefile` from this repository, in to a directory with the same name as your robot; then you can start your robot using the `make` targets.
+Put the `environment` file, along with the `Makefile` from this repository, in a directory with the same name as your robot; then you can start your robot using the `make` targets.

@@ -12,6 +12,57 @@ shift
 
 if [ "$command" == "configure" ]
 then
+cat << "EOF"
+Help:
+- Keywords: [ "setup" ]
+  Helptext: [ "(bot), setup <protocol> - display the answerfile for the given protocol" ]
+CommandMatchers:
+- Command: 'setup'
+  Regex: '(?i:setup (\w+))'
+MessageMatchers:
+- Command: "setup"
+  Regex: '(?i:^setup (\w+)$)'
+EOF
+    exit 0
+fi
+
+if [ "$command" == "setup" ]
+then
+    PROTOCOL=$1
+    ANSFILE="$GOPHER_INSTALLDIR/resources/answerfiles/$PROTOCOL.txt"
+    if [ ! -e "$ANSFILE" ]
+    then
+        Say "Protocol answerfile template not found: $ANSFILE"
+        exit 0
+    fi
+    if [ ! "$GOPHER_CONTAINER" ]
+    then
+        if [ -e "answerfile.txt" ]
+        then
+            Say "Not over-writing existing 'answerfile.txt'"
+            exit 0
+        fi
+        cp "$ANSFILE" "answerfile.txt"
+        if [ ! -e "gopherbot" ]
+        then
+            ln -s "$GOPHER_INSTALLDIR/gopherbot" .
+        fi
+        Say "Edit 'answerfile.txt' and re-run gopherbot with no arguments to generate your robot."
+        FinalTask robot-quit
+        exit 0
+    fi
+    # Running in a container
+    ANSTXT="$(cat $ANSFILE)"
+    Say -f "$(cat <<EOF
+Copy to answerfile.txt:
+<-- snip answerfile.txt -->
+$ANSTXT
+<-- /snip -->
+
+Edit your 'answerfile.txt' and run the container with '--env-file answerfile.txt'.
+EOF
+)"
+    FinalTask robot-quit
     exit 0
 fi
 

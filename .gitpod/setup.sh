@@ -13,9 +13,9 @@ then
     cat <<EOF
 ############################################################################
 Welcome to the Gopherbot Demo. This will run Gopherbot
-in terminal connector mode, where you can use the setup
-plugin to configure a new robot and store it in a git
-repository.
+in terminal connector mode, where you can use the 
+autosetup plugin to configure a new robot and store it
+in a git repository.
 ############################################################################
 
 EOF

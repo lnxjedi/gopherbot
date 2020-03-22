@@ -23,6 +23,8 @@
 - [Initial Robot Configuration](RobotInstall.md)
     - [Requirements](botsetup/Requirements.md)
     - [Robot Directory Structure](botsetup/gopherhome.md)
+    - [Quick Start with Autosetup](botsetup/Plugin.md)
+    - [Setting up a Robot with Gitpod](botsetup/Gitpod.md)
     - [Manual Setup](botsetup/ManualSetup.md)
         - [Create the `GOPHER_HOME` directory](botsetup/bothome.md)
         - [Create the Initial `.env` File](botsetup/initenv.md)
@@ -34,8 +36,6 @@
         - [Saving Your Robot to Git](botsetup/saverobot.md)
         - [Finished](botsetup/finished.md)
     - [Setup with Containers](botsetup/ContainerSetup.md)
-    - [Using the Setup Plugin](botsetup/Plugin.md)
-    - [Setting up a Robot with Gitpod](botsetup/Gitpod.md)
 
 - [Deploying and Running Your Robot](RunRobot.md)
     - [CLI Operation](deploy/CLI.md)
@@ -56,6 +56,8 @@
     - [Administrator Commands](usage/admin.md)
     - [Command-Line Use](usage/cli.md)
     - [Logging](usage/logging.md)
+
+- [Developing Extensions for Your Robot](botprogramming.md)
 
 - [Gopherbot API](api/API-Introduction.md)
     - [Language Templates](api/Languages.md)

@@ -10,6 +10,6 @@ There are three distinct tasks involved in installing and running a **Gopherbot*
 
 It's helpful to understand the relationship between **Gopherbot** and individual robots you run. It's helpful to compare Gopherbot with *Ansible*:
 * *Gopherbot* is similar to *Ansible* - a common code base with an assortment of included batteries, but with limited functionality on it's own
-* A *Robot* is comparable to a collection of playbooks and/or roles - this is your code for accomplishing work in your environment, which uses *Gopherbot* and it's included extensions
+* A *Robot* is comparable to a collection of playbooks and/or roles - this is your code for accomplishing work in your environment, which uses *Gopherbot* and it's included extensions to do it's work
 
 Similar to Ansible playbooks and roles, individual robots may periodically require updates as you upgrade the **Gopherbot** core.
