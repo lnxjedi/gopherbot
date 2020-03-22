@@ -169,8 +169,6 @@ func resume(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 }
 
 func init() {
-	// RegisterTask("set-environment", true, robot.TaskHandler{Handler: setenv})
-	// RegisterTask("initialize-encryption", true, robot.TaskHandler{Handler: initcrypt})
 	RegisterTask("restart-robot", true, robot.TaskHandler{Handler: restart})
 	RegisterTask("robot-quit", true, robot.TaskHandler{Handler: quit})
 	RegisterTask("rotate-log", true, robot.TaskHandler{Handler: rotatelog})
