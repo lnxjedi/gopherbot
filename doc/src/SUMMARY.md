@@ -59,6 +59,12 @@
 
 - [Developing Extensions for Your Robot](botprogramming.md)
 
+- [Jobs and Pipelines](pipelines/jobspipes.md)
+    - [All Included Tasks](pipelines/tasks.md)
+    - [Task Environment Variables](pipelines/TaskEnvironment.md)
+    - [Tool Integrations](pipelines/integrations.md)
+    - [Integrating with SSH](pipelines/ssh.md)
+
 - [Gopherbot API](api/API-Introduction.md)
     - [Language Templates](api/Languages.md)
     - [Attribute Retrieval](api/Attribute-Retrieval-API.md)
@@ -69,12 +75,6 @@
     - [Utility](api/Utility-API.md)
 
 - [Module Support](Modules.md)
-
-- [Jobs and Pipelines](pipelines/jobspipes.md)
-    - [Included Tasks](pipelines/tasks.md)
-    - [Task Environment Variables](pipelines/TaskEnvironment.md)
-    - [Tool Integrations](pipelines/integrations.md)
-    - [Integrating with SSH](pipelines/ssh.md)
 
 ## Appendix
 - [Appendix](appendices/Appendix.md)
