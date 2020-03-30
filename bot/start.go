@@ -246,7 +246,7 @@ func Start(v VersionInfo) {
 		if logFile == "stderr" {
 			logOut = os.Stderr
 		} else {
-			lf, err := os.Create(logFile)
+			lf, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
 				log.Fatalf("Error creating log file: (%T %v)", err, err)
 			}
@@ -258,9 +258,6 @@ func Start(v VersionInfo) {
 
 	logger = log.New(logOut, "", logFlags)
 	botLogger.l = logger
-	if fileLog {
-		botLogger.setOutputFile(logOut)
-	}
 	if unconfigured {
 		Log(robot.Warn, "Starting unconfigured; no robot.yaml/gopherbot.yaml found")
 	}
