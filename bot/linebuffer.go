@@ -24,7 +24,7 @@ type lineBufferReader struct {
 	position int
 }
 
-func newlineBuffer(buffsize, linesize int, truncstr string) *lineBuffer {
+func newLineBuffer(buffsize, linesize int, truncstr string) *lineBuffer {
 	if !strings.HasSuffix(truncstr, "\n") {
 		truncstr += "\n"
 	}

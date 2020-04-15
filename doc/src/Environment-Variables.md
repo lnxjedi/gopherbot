@@ -97,7 +97,18 @@ The following are also supplied whenever a job is run:
 * `GOPHER_JOB_NAME` - the name of the running job
 * `GOPHER_START_CHANNEL` - the channel where the job was started
 * `GOPHER_REPOSITORY` - the extended namespace from `repositories.yaml`, if any
-* `GOPHER_RUN_INDEX` - the run number of the job
+* `GOPHER_RUN_INDEX` - the run number of the job (deprecated)
+* `GOPHER_LOG_LINK` - link to job log, if non-ephemeral
+* `GOPHER_LOG_REF` - log reference used for email log and tail log commands
+
+The following are set at the end of the main pipeline, and can be referenced in final and fail tasks:
+* `GOPHER_FINAL_TASK` - name of final task that ran in the pipeline
+* `GOPHER_FINAL_TYPE` - type of last task to run, one of "task", "plugin", "job"
+* `GOPHER_FINAL_COMMAND` - if type == "plugin", set to the plugin command
+* `GOPHER_FINAL_ARGS` - space-separated list of arguments to final task
+* `GOPHER_FINAL_DESC` - `Description:` of final task
+* `GOPHER_FAIL_CODE` - numeric return value if final task failed
+* `GOPHER_FAIL_STR` - string value of robot.TaskRetVal returned
 
 Pipelines and tasks that have `Homed: true` and/or `Privileged: true` may also get:
 * `GOPHER_HOME` - absolute path to the startup directory for the robot, relative paths are relative to this directory; unset if `cwd` can't be determined

@@ -66,7 +66,7 @@ func (m memlog) Finalize() {
 
 // NewHistory returns a lineBuffer based history logger
 func (h *memHistLog) NewLog(tag string, index, maxHistories int) (robot.HistoryLogger, error) {
-	lb := newlineBuffer(mhc.BufferSize, mhc.MaxLineLength, mhc.Truncated)
+	lb := newLineBuffer(mhc.BufferSize, mhc.MaxLineLength, mhc.Truncated)
 	entry := memlogentry{tag, index}
 	ml := memlog{entry, lb}
 	memHistories.Lock()

@@ -15,7 +15,7 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/jordan-wright/email v0.0.0-20200121133829-a0b5c5b58bb6
 	github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159
-	github.com/lnxjedi/robot v0.1.4
+	github.com/lnxjedi/robot v0.1.5
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/robfig/cron v1.2.0

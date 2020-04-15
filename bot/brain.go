@@ -58,8 +58,6 @@ const encryptedKeyFile = "binary-encrypted-key"
 const paramKey = "bot:parameters"
 const secretKey = "bot:secrets"
 
-const histPrefix = "bot:histories:"
-
 const shortTermDuration = 7 * time.Minute
 
 type memState int
@@ -353,7 +351,8 @@ func getNameSpace(task *Task) string {
 // CheckoutDatum gets a datum from the robot's brain and unmarshals it into
 // a struct. If rw is set, the datum is checked out read-write and a non-empty
 // lock token is returned that expires after lockTimeout (250ms). The bool
-// return indicates whether the datum exists.
+// return indicates whether the datum exists. Datum must be a pointer to a
+// var.
 func (r Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret robot.RetVal) {
 	if strings.ContainsRune(key, ':') {
 		ret = robot.InvalidDatumKey

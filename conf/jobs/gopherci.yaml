@@ -7,6 +7,7 @@
 #  Regex: 'new commit.*(github.com\/.*)\/tree\/(.*)\|'
 
 # Arguments to be supplied with `run job`
+Quiet: true
 Arguments:
 - Label: repository
   Regex: '[\w-.]+\/[\w-.]+\/[\w-.]+\/?'

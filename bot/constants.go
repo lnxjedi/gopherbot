@@ -1,6 +1,6 @@
 package bot
 
-// constants.go - separate file for constants so stringer can run
+const maxIndex = 2 ^ 16
 
 type pipeAddFlavor int
 type pipeAddType int

@@ -33,6 +33,7 @@ PLUGRET_Normal=0
 PLUGRET_Fail=1
 PLUGRET_MechanismFail=2
 PLUGRET_ConfigurationError=3
+PLUGRET_NotFound=6
 PLUGRET_Success=7
 
 base64_encode(){

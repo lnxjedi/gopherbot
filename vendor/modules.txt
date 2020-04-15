@@ -63,7 +63,7 @@ github.com/joho/godotenv
 github.com/jordan-wright/email
 # github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159
 github.com/lnxjedi/readline
-# github.com/lnxjedi/robot v0.1.4
+# github.com/lnxjedi/robot v0.1.5
 github.com/lnxjedi/robot
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors

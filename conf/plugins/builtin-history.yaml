@@ -2,11 +2,15 @@
 AllChannels: true
 AllowDirect: false
 Help:
-- Keywords: [ "history", "job", "mail", "email", "send" ]
+- Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
   Helptext:
-  - "(bot), (email|link) (last) history <job(:namespace)> (run#) - get the history for a job"
-  - "(bot), send (last) history <job(:namespace)> (run#) to user <user>"
-  - "(bot), send (last) history <job(:namespace)> (run#) to somebody@some.domain"
+  - "(bot), email log <ref> (to (user foo|user@my.domain)) - email a log to the user given the log ref"
+  - "(bot), tail log <ref> - view the end of a log given the log ref"
+  - "(bot), link log <ref> - get a URL for a log"
+- Keywords: [ "list", "job", "jobs", "log", "logs", "history", "joblogs" ]
+  Helptext: [ "(bot), joblogs <jobname> - list logs for a given job" ]
+- Keywords: [ "list", "log", "logs", "history", "build", "builds", "buildlogs" ]
+  Helptext: [ "(bot), buildlogs <repo> (branch) - list build logs matching a given repository / branch" ]
 CommandMatchers:
 - Command: history
   Regex: '(?i:(?:(e?mail|link) )?(?:(latest|last) )?history(?: ([A-Za-z][\w-:./]*))?(?: (\d+))?)'
@@ -14,6 +18,16 @@ CommandMatchers:
 - Command: mailhistory
   Regex: '(?i:send (?:(latest|last) )?history(?: ([A-Za-z][\w-:./]*))?(?: (\d+))? to (?:(?:user (.*))|([^@]+@[^@]+)))'
   Contexts: [ "", "", "task" ]
+- Command: maillog
+  Regex: '(?i:(?:send|mail|email) ?log ([A-Za-z0-9]+)( to (?:(?:user (.*))|([^@]+@[^@]+)))?)'
+- Command: taillog
+  Regex: '(?i:(?:tail|view|show) ?log ([A-Za-z0-9]+))'
+- Command: linklog
+  Regex: '(?i:(?:link|get) ?log ([A-Za-z0-9]+))'
+- Command: joblogs
+  Regex: '(?i:joblogs(?: ([A-Za-z][\w-]*)))'
+- Command: buildlogs
+  Regex: '(?i:buildlogs(?: ([A-Za-z][\w-:./]*))(?: ([A-Za-z][\w-]*))?)'
 ReplyMatchers:
 - Label: paging
   Regex: '(?i:(c|n|q))'

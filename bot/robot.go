@@ -215,6 +215,8 @@ func (r Robot) Elevate(immediate bool) bool {
 // font.
 func (r Robot) Fixed() robot.Robot {
 	nr := r
+	m := *r.Message
+	nr.Message = &m
 	nr.Format = robot.Fixed
 	return nr
 }
@@ -223,6 +225,8 @@ func (r Robot) Fixed() robot.Robot {
 // plugin that will mostly use e.g. Variable format.
 func (r Robot) MessageFormat(f robot.MessageFormat) robot.Robot {
 	nr := r
+	m := *r.Message
+	nr.Message = &m
 	nr.Format = f
 	return nr
 }
@@ -231,6 +235,8 @@ func (r Robot) MessageFormat(f robot.MessageFormat) robot.Robot {
 // user. Created initially so a plugin could prompt for a password in a DM.
 func (r Robot) Direct() robot.Robot {
 	nr := r
+	m := *r.Message
+	nr.Message = &m
 	nr.Channel = ""
 	return nr
 }

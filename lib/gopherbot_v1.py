@@ -71,6 +71,7 @@ class Robot:
     Fail = 1
     MechanismFail = 2
     ConfigurationError = 3
+    NotFound = 6
     Success = 7
 
     def __init__(self):

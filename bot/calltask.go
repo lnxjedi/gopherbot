@@ -144,8 +144,6 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	workdir := w.workingDirectory
 	eid := w.eid
 	privileged := w.privileged
-	w.taskName = task.name
-	w.taskDesc = task.Description
 	w.Unlock()
 	r := w.makeRobot()
 	// This should only happen in the rare case that a configured authorizer or elevator is disabled
@@ -286,7 +284,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	stderr, err = cmd.StderrPipe()
 	if err != nil {
 		Log(robot.Error, "Creating stderr pipe for external command '%s': %v", taskPath, err)
-		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
+		errString = fmt.Sprintf("Pipeline failed in external task '%s'", task.name)
 		rchan <- taskReturn{errString, robot.MechanismFail}
 		return
 	}
@@ -297,7 +295,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		Log(robot.Error, "Creating stdout pipe for external command '%s': %v", taskPath, err)
-		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
+		errString = fmt.Sprintf("Pipeline failed in external task '%s'", task.name)
 		rchan <- taskReturn{errString, robot.MechanismFail}
 		return
 	}
@@ -314,7 +312,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 
 	if err = cmd.Start(); err != nil {
 		Log(robot.Error, "Starting command '%s': %v", taskPath, err)
-		errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
+		errString = fmt.Sprintf("Pipeline failed in external task '%s'", task.name)
 		rchan <- taskReturn{errString, robot.MechanismFail}
 		return
 	}
@@ -383,7 +381,7 @@ closeLoop:
 		}
 		if !success {
 			Log(robot.Error, "Waiting on external command '%s': %v", taskPath, err)
-			errString = fmt.Sprintf("There were errors calling external task '%s', you might want to ask an administrator to check the logs", task.name)
+			errString = fmt.Sprintf("Pipeline failed in external task '%s'", task.name)
 			emit(ExternalTaskErrExit)
 		}
 	}

@@ -31,7 +31,7 @@ var workerID = struct {
 func getWorkerID() int {
 	workerID.Lock()
 	workerID.idx++
-	if workerID.idx == 0 {
+	if workerID.idx == maxIndex {
 		workerID.idx = 1
 	}
 	ctxid := workerID.idx
@@ -121,25 +121,28 @@ func (w *worker) deregister() {
 // for the pipeline.
 type pipeContext struct {
 	// Parent and child values protected by the activePipelines lock
-	_parent, _child                   *worker
-	workingDirectory                  string            // directory where tasks run relative to $(pwd)
-	baseDirectory                     string            // base for this pipeline relative to $(pwd), depends on `Homed`, affects SetWorkingDirectory
-	eid                               string            // unique ID for external tasks
-	active                            bool              // whether this context has been registered as active
-	environment                       map[string]string // environment vars set for each job/plugin in the pipeline
-	runIndex                          int               // run number of a job
-	histName                          string            // GetLog(histName, index) can be used in final/fail pipes
-	verbose                           bool              // flag if initializing job was verbose
-	nextTasks                         []TaskSpec        // tasks in the pipeline
-	finalTasks                        []TaskSpec        // clean-up tasks that always run when the pipeline ends
-	failTasks                         []TaskSpec        // clean-up tasks that run when a pipeline fails
-	failedTask, failedTaskDescription string            // set when a task fails
-	taskName                          string            // name of current task
-	taskDesc                          string            // description for same
-	osCmd                             *exec.Cmd         // running Command, for aborting a pipeline
-	exclusiveTag                      string            // tasks with the same exclusiveTag never run at the same time
-	queueTask                         bool              // whether to queue up if Exclusive call failed
-	abortPipeline                     bool              // Exclusive request failed w/o queueTask
+	_parent, _child  *worker
+	workingDirectory string            // directory where tasks run relative to $(pwd)
+	baseDirectory    string            // base for this pipeline relative to $(pwd), depends on `Homed`, affects SetWorkingDirectory
+	eid              string            // unique ID for external tasks
+	active           bool              // whether this context has been registered as active
+	environment      map[string]string // environment vars set for each job/plugin in the pipeline
+	runIndex         int               // run number of a job
+	histName         string            // GetLog(histName, index) can be used in final/fail pipes
+	verbose          bool              // flag if initializing job was verbose
+	nextTasks        []TaskSpec        // tasks in the pipeline
+	finalTasks       []TaskSpec        // clean-up tasks that always run when the pipeline ends
+	failTasks        []TaskSpec        // clean-up tasks that run when a pipeline fails
+	finalFailed      []string          // list of task names of final tasks that failed
+	taskName         string            // name of current task
+	taskDesc         string            // description for same
+	taskType         string            // one of task, plugin, job
+	plugCommand      string            // plugin command if type=plugin, else blank
+	taskArgs         []string          // args for current task
+	osCmd            *exec.Cmd         // running Command, for aborting a pipeline
+	exclusiveTag     string            // tasks with the same exclusiveTag never run at the same time
+	queueTask        bool              // whether to queue up if Exclusive call failed
+	abortPipeline    bool              // Exclusive request failed w/o queueTask
 	// Stuff we want to copy in makeRobot
 	privileged         bool                // privileged jobs flip this flag, causing tasks in the pipeline to run in cfgdir
 	timeZone           *time.Location      // for history timestamping

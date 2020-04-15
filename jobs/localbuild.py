@@ -57,8 +57,10 @@ if not bot.Exclusive(repobranch, False):
 
 bot.ExtendNamespace(repobranch, keep_history)
 
+bot.AddTask("start-build", [])
 bot.AddTask("git-init", [ clone_url ])
 # Start with a clean jobdir
 bot.AddTask("cleanup", [ repobranch ])
 bot.AddTask("git-clone", [ clone_url, branch, repobranch, "true" ])
 bot.AddTask("run-pipeline", [])
+bot.FinalTask("finish-build", [])

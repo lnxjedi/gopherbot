@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"regexp"
+	"runtime"
 	"sync"
 
 	"github.com/lnxjedi/robot"
@@ -50,6 +51,10 @@ func getTask(t interface{}) (*Task, *Plugin, *Job) {
 }
 
 func (tl *taskList) getTaskByName(name string) interface{} {
+	if len(name) == 0 {
+		_, file, line, _ := runtime.Caller(1)
+		Log(robot.Error, "Invalid 0-length task from caller: %s, line %d", file, line)
+	}
 	ti, ok := tl.nameMap[name]
 	if !ok {
 		Log(robot.Error, "task '%s' not found calling getTaskByName", name)

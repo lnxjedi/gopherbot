@@ -48,6 +48,8 @@ const (
 	PipelineAborted
 	// RobotStopping - the robot is shutting down and can't start any new pipelines
 	RobotStopping
+	// NotFound - generic return value when the asked for item couldn't be returned
+	NotFound
 	// Success indicates successful authorization or elevation; using '7' (three bits set)
 	// reduces the likelihood of an authorization plugin mistakenly exiting with a success
 	// value

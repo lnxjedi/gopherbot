@@ -75,6 +75,7 @@ class BaseBot
 	Fail = 1
 	MechanismFail = 2
 	ConfigurationError = 3
+	NotFound = 6
 	Success = 7
 
 	attr_reader :user, :channel

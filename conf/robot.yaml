@@ -229,6 +229,12 @@ ExternalTasks:
   "remote":
     Description: Utility for running scripts and commands on a remote host
     Path: tasks/remote-exec.sh
+  "start-build":
+    Description: GopherCI utility task for telling the user a build started
+    Path: tasks/startbuild.sh
+  "finish-build":
+    Description: GopherCI utility task for telling the user a build finished
+    Path: tasks/finishbuild.sh
   "run-pipeline":
     Description: Detect one of pipeline.sh|py|rb and add to the pipeline
     Path: tasks/runpipeline.sh

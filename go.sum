@@ -38,8 +38,8 @@ github.com/jordan-wright/email v0.0.0-20200121133829-a0b5c5b58bb6 h1:gI29NnCaNU8
 github.com/jordan-wright/email v0.0.0-20200121133829-a0b5c5b58bb6/go.mod h1:1c7szIrayyPPB/987hsnvNzLushdWf4o/79s3P08L8A=
 github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159 h1:CaHkuprt1LJw3CMKCM1Xo0td1gvmyK/fAzQXZrZ/+gI=
 github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159/go.mod h1:zd7Sx4PCZQcUyXjnOhObTr846lfd6ZwlzcJ9M7kPomc=
-github.com/lnxjedi/robot v0.1.4 h1:19UqkrwSsPy1Ah0+E8PxugOAbNuRGpEaz5JDkUslHEg=
-github.com/lnxjedi/robot v0.1.4/go.mod h1:UchAo8nEqKwDqHPDjhHauCZm559VlUDPBPGuTkCJYa4=
+github.com/lnxjedi/robot v0.1.5 h1:sK/oPmUEqOOEHGwmFLhc8iE+pGPgCSCMIuuvhPUVY74=
+github.com/lnxjedi/robot v0.1.5/go.mod h1:UchAo8nEqKwDqHPDjhHauCZm559VlUDPBPGuTkCJYa4=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.12.0 h1:Iw5WCbBcaAAd0fpRb1c9r5YCylv4XDoCSigm1zLevwU=
 github.com/onsi/ginkgo v1.12.0/go.mod h1:oUhWkIvk5aDxtKvDDuw8gItl8pKl42LzjC9KZE0HfGg=

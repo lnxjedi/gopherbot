@@ -99,7 +99,7 @@ SetWorkingDirectory "$GOPHER_STATEDIR"
 if [ "$NEWREPO" ]
 then
     # Default gitignore, don't back up histories
-    echo 'bot:histories:*' > .gitignore
+    echo 'bot:histories*' > .gitignore
     AddTask git-init "$GOPHER_STATE_REPOSITORY"
 else
     ORIGIN=$(git remote get-url origin)
