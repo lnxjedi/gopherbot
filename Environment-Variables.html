@@ -248,7 +248,19 @@
 <li><code>GOPHER_JOB_NAME</code> - the name of the running job</li>
 <li><code>GOPHER_START_CHANNEL</code> - the channel where the job was started</li>
 <li><code>GOPHER_REPOSITORY</code> - the extended namespace from <code>repositories.yaml</code>, if any</li>
-<li><code>GOPHER_RUN_INDEX</code> - the run number of the job</li>
+<li><code>GOPHER_RUN_INDEX</code> - the run number of the job (deprecated)</li>
+<li><code>GOPHER_LOG_LINK</code> - link to job log, if non-ephemeral</li>
+<li><code>GOPHER_LOG_REF</code> - log reference used for email log and tail log commands</li>
+</ul>
+<p>The following are set at the end of the main pipeline, and can be referenced in final and fail tasks:</p>
+<ul>
+<li><code>GOPHER_FINAL_TASK</code> - name of final task that ran in the pipeline</li>
+<li><code>GOPHER_FINAL_TYPE</code> - type of last task to run, one of &quot;task&quot;, &quot;plugin&quot;, &quot;job&quot;</li>
+<li><code>GOPHER_FINAL_COMMAND</code> - if type == &quot;plugin&quot;, set to the plugin command</li>
+<li><code>GOPHER_FINAL_ARGS</code> - space-separated list of arguments to final task</li>
+<li><code>GOPHER_FINAL_DESC</code> - <code>Description:</code> of final task</li>
+<li><code>GOPHER_FAIL_CODE</code> - numeric return value if final task failed</li>
+<li><code>GOPHER_FAIL_STR</code> - string value of robot.TaskRetVal returned</li>
 </ul>
 <p>Pipelines and tasks that have <code>Homed: true</code> and/or <code>Privileged: true</code> may also get:</p>
 <ul>
