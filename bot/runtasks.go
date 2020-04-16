@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -235,14 +236,24 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 			w.runPipeline(failTasks, ptype, false)
 		}
 	}
-	// Release logs that shouldn't be saved
-	c.logger.Finalize()
-
 	if isPlugin && ret != robot.Normal {
 		if !w.automaticTask && errString != "" {
 			w.Reply(errString)
 		}
+		plog, err := interfaces.history.GetLog(w.histName, w.runIndex)
+		if err == nil {
+			raiseThreadPriv("writing plugin fail log for " + w.pipeName)
+			fname := w.pipeName + "-fail.log"
+			flog, err := os.Create(fname)
+			if err == nil {
+				io.Copy(flog, plog)
+				flog.Close()
+			}
+		}
 	}
+	// Release logs that shouldn't be saved
+	c.logger.Finalize()
+
 	if isJob && !job.Quiet {
 		r := w.makeRobot()
 		if ret == robot.Normal {

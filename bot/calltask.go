@@ -284,7 +284,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	stderr, err = cmd.StderrPipe()
 	if err != nil {
 		Log(robot.Error, "Creating stderr pipe for external command '%s': %v", taskPath, err)
-		errString = fmt.Sprintf("Pipeline failed in external task '%s'", task.name)
+		errString = fmt.Sprintf("Pipeline failed in external task '%s', writing fail log in GOPHER_HOME", task.name)
 		rchan <- taskReturn{errString, robot.MechanismFail}
 		return
 	}
@@ -295,7 +295,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		Log(robot.Error, "Creating stdout pipe for external command '%s': %v", taskPath, err)
-		errString = fmt.Sprintf("Pipeline failed in external task '%s'", task.name)
+		errString = fmt.Sprintf("Pipeline failed in external task '%s', writing fail log in GOPHER_HOME", task.name)
 		rchan <- taskReturn{errString, robot.MechanismFail}
 		return
 	}
@@ -312,7 +312,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 
 	if err = cmd.Start(); err != nil {
 		Log(robot.Error, "Starting command '%s': %v", taskPath, err)
-		errString = fmt.Sprintf("Pipeline failed in external task '%s'", task.name)
+		errString = fmt.Sprintf("Pipeline failed in external task '%s', writing fail log in GOPHER_HOME", task.name)
 		rchan <- taskReturn{errString, robot.MechanismFail}
 		return
 	}
@@ -381,7 +381,7 @@ closeLoop:
 		}
 		if !success {
 			Log(robot.Error, "Waiting on external command '%s': %v", taskPath, err)
-			errString = fmt.Sprintf("Pipeline failed in external task '%s'", task.name)
+			errString = fmt.Sprintf("Pipeline failed in external task '%s', writing fail log in GOPHER_HOME", task.name)
 			emit(ExternalTaskErrExit)
 		}
 	}
