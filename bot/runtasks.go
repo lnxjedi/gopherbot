@@ -219,7 +219,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		c.section("failed", fmt.Sprintf("pipeline failed in task %s with exit code %d (%s)", c.taskName, ret, ret))
 		fc := int64(ret)
 		c.environment["GOPHER_FAIL_CODE"] = strconv.FormatInt(fc, 10)
-		c.environment["GOPHER_FAIL_STR"] = ret.String()
+		c.environment["GOPHER_FAIL_STRING"] = ret.String()
 	} else {
 		c.section("done", "primary pipeline has completed")
 	}

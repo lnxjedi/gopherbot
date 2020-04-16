@@ -10,13 +10,23 @@ then
   then
     FAILED="plugin $GOPHER_FINAL_TASK, command \"$GOPHER_FINAL_COMMAND\""
   else
-    FAILED="$GOPHER_FINAL_TYPE"
+    FAILED="$GOPHER_FINAL_TYPE $GOPHER_FINAL_TASK"
   fi
   if [ "$GOPHER_FINAL_ARGS" ]
   then
     FAILED="$FAILED with args: $GOPHER_FINAL_ARGS"
   fi
-  TELL="Build failed for $GOPHER_REPOSITORY, branch: '$GOPHERCI_BRANCH'; failure in $FAILED; exit code $GOPHER_FAIL_CODE ($GOPHER_FAIL_STRING)"
+  REF=";"
+  if [ "$GOPHER_LOG_REF" ]
+  then
+    if [ "$GOPHER_LOG_LINK" ]
+    then
+      REF=" (log $GOPHER_LOG_REF: $GOPHER_LOG_LINK);"
+    else
+      REF=" (log $GOPHER_LOG_REF);"
+    fi
+  fi
+  TELL="BUILD FAILED for $GOPHER_REPOSITORY, branch: '$GOPHERCI_BRANCH'$REF failure in $FAILED; exit code $GOPHER_FAIL_CODE ($GOPHER_FAIL_STRING)"
 else
   TELL="Build of $GOPHER_REPOSITORY, branch: '$GOPHERCI_BRANCH' finished successfully"
 fi

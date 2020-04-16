@@ -108,7 +108,7 @@ The following are set at the end of the main pipeline, and can be referenced in 
 * `GOPHER_FINAL_ARGS` - space-separated list of arguments to final task
 * `GOPHER_FINAL_DESC` - `Description:` of final task
 * `GOPHER_FAIL_CODE` - numeric return value if final task failed
-* `GOPHER_FAIL_STR` - string value of robot.TaskRetVal returned
+* `GOPHER_FAIL_STRING` - string value of robot.TaskRetVal returned
 
 Pipelines and tasks that have `Homed: true` and/or `Privileged: true` may also get:
 * `GOPHER_HOME` - absolute path to the startup directory for the robot, relative paths are relative to this directory; unset if `cwd` can't be determined
