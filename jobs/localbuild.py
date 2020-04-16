@@ -48,19 +48,20 @@ if "KeepHistory" not in repoconf:
 else:
     keep_history = repoconf["KeepHistory"]
 
-repobranch = "%s/%s" % (repository, branch)
-if not bot.Exclusive(repobranch, False):
-    bot.Log("Warn", "Build of '%s' already in progress, exiting" % repobranch)
+# Protect the repository directory with Exclusive
+if not bot.Exclusive(repository, False):
+    bot.Log("Warn", "Build of '%s' already in progress, exiting" % repository)
     if len(bot.user) > 0:
-        bot.Say("localbuild of '%s' already in progress, not starting a new build" % repobranch)
+        bot.Say("localbuild of '%s' already in progress, not starting a new build" % repository)
     exit()
 
+repobranch = "%s/%s" % (repository, branch)
 bot.ExtendNamespace(repobranch, keep_history)
 
 bot.AddTask("start-build", [])
 bot.AddTask("git-init", [ clone_url ])
 # Start with a clean jobdir
-bot.AddTask("cleanup", [ repobranch ])
-bot.AddTask("git-clone", [ clone_url, branch, repobranch, "true" ])
+bot.AddTask("cleanup", [ repository ])
+bot.AddTask("git-clone", [ clone_url, branch, repository, "true" ])
 bot.AddTask("run-pipeline", [])
 bot.FinalTask("finish-build", [])
