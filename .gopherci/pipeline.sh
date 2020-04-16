@@ -15,6 +15,8 @@ REPO_NAME=${GOPHER_NAMESPACE_EXTENDED:-$GOPHER_REPOSITORY}
 PATH=$PATH:$HOME/go/bin:/usr/local/go/bin
 SetParameter "PATH" "$PATH"
 
+FailTask email-log parsley@linuxjedi.org
+
 # Do a full build for all platforms
 AddTask exec ./.gopherci/mkdist.sh
 
@@ -37,19 +39,14 @@ AddTask exec ./.gopherci/mkdocs.sh
 BOT=$(GetBotAttribute name)
 if [ "$BOT" != "floyd" ]
 then
+    # if it's not Floyd, stop the pipeline here
     if [ -n "$NOTIFY_USER" ]
     then
         AddTask notify $NOTIFY_USER "Builds and tests succeeded for Gopherbot"
-# Email the job history if it fails
-FailCommand builtin-history "send history $GOPHER_JOB_NAME:$REPO_NAME/$GOPHERCI_BRANCH $GOPHER_RUN_INDEX to user parsley"
     else
         Say "NOTIFY_USER not set"
     fi
-    FailTask email-log parsley@linuxjedi.org
     exit 0
-else
-    # Email the job history if it fails
-    FailCommand builtin-history "send history $GOPHER_JOB_NAME:$REPO_NAME/$GOPHERCI_BRANCH $GOPHER_RUN_INDEX to user parsley"
 fi
 
 if [ "$GOPHERCI_BRANCH" != "master" -o "$GOPHER_REPOSITORY" == "github.com/parsley42/gopherbot" ]
