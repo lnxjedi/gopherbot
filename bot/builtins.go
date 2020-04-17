@@ -369,7 +369,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		// wid pwid pid Go|Ext plugin|task|job
 		psl := &psList{
 			pslines: []string{
-				"WID   PWID  PID   G/E TYPE   PIPENAME         TASK             PLUG-COMMAND ARGS",
+				"WID    PWID  PID   G/E TYPE   PIPENAME         TASK             PLUG-COMMAND ARGS",
 			},
 			wids: []int{-1},
 		}
@@ -390,6 +390,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			pid := ""
 			if worker.osCmd != nil {
 				pid = strconv.Itoa(worker.osCmd.Process.Pid)
+				wid = wid + "*"
 			}
 			class := worker.taskClass
 			ttype := worker.taskType
@@ -400,7 +401,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			if pipename == "builtin-admin" && command == "ps" {
 				continue
 			}
-			psline := fmt.Sprintf("%5.5s %5.5s %5.5s %-3.3s %-6.6s %-16.16s %-16.16s %-12.12s %s", wid, pwid, pid, class, ttype, pipename, tname, command, args)
+			psline := fmt.Sprintf("%6.6s %5.5s %5.5s %-3.3s %-6.6s %-16.16s %-16.16s %-12.12s %s", wid, pwid, pid, class, ttype, pipename, tname, command, args)
 			psl.pslines = append(psl.pslines, psline)
 			psl.wids = append(psl.wids, widx)
 		}
@@ -431,6 +432,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			r.Say("No active process found for pipeline")
 			return
 		}
+		raiseThreadPriv(fmt.Sprintf("killing process %d", pid))
 		unix.Kill(-pid, unix.SIGKILL)
 		r.Say("Killed pid %d", pid)
 	case "debug":
