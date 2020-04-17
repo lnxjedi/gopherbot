@@ -5,12 +5,14 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ghodss/yaml"
 	"github.com/lnxjedi/robot"
+	"golang.org/x/sys/unix"
 )
 
 // if help is more than tooLong lines long, send a private message
@@ -323,6 +325,24 @@ func logging(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 	return
 }
 
+type psList struct {
+	pslines []string
+	wids    []int
+}
+
+func (p *psList) Len() int {
+	return len(p.pslines)
+}
+
+func (p *psList) Swap(i, j int) {
+	p.pslines[i], p.pslines[j] = p.pslines[j], p.pslines[i]
+	p.wids[i], p.wids[j] = p.wids[j], p.wids[i]
+}
+
+func (p *psList) Less(i, j int) bool {
+	return p.wids[i] < p.wids[j]
+}
+
 func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	if command == "init" {
 		return // ignore init
@@ -345,6 +365,74 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		log.Printf("%s", buf)
 		time.Sleep(2 * time.Second)
 		panic("Abort command issued")
+	case "ps":
+		// wid pwid pid Go|Ext plugin|task|job
+		psl := &psList{
+			pslines: []string{
+				"WID   PWID  PID   G/E TYPE   PIPENAME         TASK             PLUG-COMMAND ARGS",
+			},
+			wids: []int{-1},
+		}
+		activePipelines.Lock()
+		if len(activePipelines.i) == 1 {
+			r.Say("No pipelines running")
+			activePipelines.Unlock()
+			return
+		}
+		for widx, worker := range activePipelines.i {
+			pipename := worker.pipeName
+			worker.Lock()
+			wid := strconv.Itoa(widx)
+			pwid := ""
+			if worker._parent != nil {
+				pwid = strconv.Itoa(worker._parent.id)
+			}
+			pid := ""
+			if worker.osCmd != nil {
+				pid = strconv.Itoa(worker.osCmd.Process.Pid)
+			}
+			class := worker.taskClass
+			ttype := worker.taskType
+			tname := worker.taskName
+			command := worker.plugCommand
+			args := strings.Join(worker.taskArgs, " ")
+			worker.Unlock()
+			if pipename == "builtin-admin" && command == "ps" {
+				continue
+			}
+			psline := fmt.Sprintf("%5.5s %5.5s %5.5s %-3.3s %-6.6s %-16.16s %-16.16s %-12.12s %s", wid, pwid, pid, class, ttype, pipename, tname, command, args)
+			psl.pslines = append(psl.pslines, psline)
+			psl.wids = append(psl.wids, widx)
+		}
+		activePipelines.Unlock()
+		sort.Sort(psl)
+		r.Fixed().Say(strings.Join(psl.pslines, "\n"))
+	case "kill":
+		wid := args[0]
+		widx, err := strconv.ParseInt(wid, 10, 0)
+		if err != nil {
+			r.Say("Couldn't convert '%s' to an int", wid)
+			return
+		}
+		activePipelines.Lock()
+		worker, ok := activePipelines.i[int(widx)]
+		activePipelines.Unlock()
+		if !ok {
+			r.Say("Pipeline %s not found", wid)
+			return
+		}
+		var pid int
+		worker.Lock()
+		if worker.osCmd != nil {
+			pid = worker.osCmd.Process.Pid
+		}
+		worker.Unlock()
+		if pid == 0 {
+			r.Say("No active process found for pipeline")
+			return
+		}
+		unix.Kill(-pid, unix.SIGKILL)
+		r.Say("Killed pid %d", pid)
 	case "debug":
 		tname := args[0]
 		if !identifierRe.MatchString(tname) {

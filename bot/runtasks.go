@@ -331,6 +331,8 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 		isJob := job != nil
 		isPlugin := plugin != nil
 
+		// Protect with lock for ps/kill
+		w.Lock()
 		w.taskName = task.name
 		w.taskDesc = task.Description
 		w.plugCommand = ""
@@ -343,6 +345,12 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 		} else {
 			w.taskType = "task"
 		}
+		if task.taskType == taskGo {
+			w.taskClass = "Go"
+		} else {
+			w.taskClass = "Ext"
+		}
+		w.Unlock()
 
 		// Security checks for jobs & plugins
 		if (isJob || isPlugin) && !w.automaticTask {

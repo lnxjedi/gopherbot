@@ -137,6 +137,7 @@ type pipeContext struct {
 	taskName         string            // name of current task
 	taskDesc         string            // description for same
 	taskType         string            // one of task, plugin, job
+	taskClass        string            // one of Go, Ext
 	plugCommand      string            // plugin command if type=plugin, else blank
 	taskArgs         []string          // args for current task
 	osCmd            *exec.Cmd         // running Command, for aborting a pipeline

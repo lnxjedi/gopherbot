@@ -11,6 +11,10 @@ Help:
   Helptext: [ "(bot), restart - request a graceful shutdown and restart" ]
 - Keywords: [ "abort" ]
   Helptext: [ "(bot), abort - request an immediate shutdown without waiting for plugins to finish" ]
+- Keywords: [ "process", "processes", "ps", "pipeline", "pipelines" ]
+  Helptext: [ "(bot), ps - list running pipelines" ]
+- Keywords: [ "kill", "process" ]
+  Helptext: [ "(bot), kill <wid> - kill the current process for the pipeline identified by <wid>"]
 - Keywords: [ "debug" ]
   Helptext: [ "(bot), debug task <pluginname> (verbose) - turn on debugging for the named task, optionally verbose" ]
 - Keywords: [ "debug" ]
@@ -24,6 +28,10 @@ CommandMatchers:
   Regex: '(?i:restart)'
 - Command: abort
   Regex: '(?i:abort)'
+- Command: ps
+  Regex: '(?i:ps)'
+- Command: "kill"
+  Regex: '(?i:kill ([\d]+))'
 - Command: "debug"
   Regex: '(?i:debug (?:task )?([\d\w-.]+)(?: (verbose))?)'
 - Command: "stop"

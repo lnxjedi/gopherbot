@@ -242,14 +242,6 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	externalArgs = append(externalArgs, args...)
 	Log(robot.Debug, "Calling '%s' with args: %q", taskPath, externalArgs)
 	cmd := exec.Command(taskPath, externalArgs...)
-	w.Lock()
-	w.osCmd = cmd
-	w.Unlock()
-	defer func() {
-		w.Lock()
-		w.osCmd = nil
-		w.Unlock()
-	}()
 
 	// Homed tasks ALWAYS run in cwd, Homed pipelines may have modified the
 	// working directory with SetWorkingDirectory.
@@ -310,12 +302,22 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
 	}
 
+	// Create separate process group to enable killing the process group
+	cmd.SysProcAttr = &unix.SysProcAttr{Setpgid: true}
 	if err = cmd.Start(); err != nil {
 		Log(robot.Error, "Starting command '%s': %v", taskPath, err)
 		errString = fmt.Sprintf("Pipeline failed in external task '%s', writing fail log in GOPHER_HOME", task.name)
 		rchan <- taskReturn{errString, robot.MechanismFail}
 		return
 	}
+	w.Lock()
+	w.osCmd = cmd
+	w.Unlock()
+	defer func() {
+		w.Lock()
+		w.osCmd = nil
+		w.Unlock()
+	}()
 	if command != "init" {
 		emit(ExternalTaskRan)
 	}
