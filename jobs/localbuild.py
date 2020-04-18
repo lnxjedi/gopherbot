@@ -57,7 +57,7 @@ else:
 if not bot.Exclusive(repository, False):
     bot.Log("Warn", "Build of '%s' already in progress, exiting" % repository)
     if len(bot.user) > 0:
-        bot.Say("localbuild of '%s' already in progress, not starting a new build" % repository)
+        bot.Say("localbuild of '%s' already in progress, not starting a new build for branch '%s'" % (repository, branch))
     exit()
 
 repobranch = "%s/%s" % (repository, branch)
