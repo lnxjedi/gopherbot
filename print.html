@@ -1058,6 +1058,7 @@ UK+T6/HocaR9AAD8Ty2giHdNR3r03pbffpah/rk+MZumPK4Y3A==
 <li><code>GOPHERCI_DEPBUILD</code> - set to &quot;true&quot; if the build was triggered by a dependency</li>
 <li><code>GOPHERCI_DEPREPO</code> - the updated repository that triggered this build</li>
 <li><code>GOPHERCI_DEPBRANCH</code> - the updated branch</li>
+<li><code>GOPHERCI_CUSTOM_PIPELINE</code> - pipeline being run if other than &quot;pipeline&quot;</li>
 </ul>
 <h1><a class="header" href="#configuration-file-loading" id="configuration-file-loading">Configuration File Loading</a></h1>
 <p><strong>Gopherbot</strong> uses <strong>YAML</strong> for it's configuration files, and Go text templates for expanding the files it reads. Any time <strong>Gopherbot</strong> loads a configuration file, say <code>conf/robot.yaml</code>, it first looks for the file in the installation directory, and loads and expands that file if found. Next it looks for the same file in the custom configuration directory; if found, it loads and expands that file, then recursively merges the two data structures:</p>
