@@ -374,7 +374,7 @@ func TestHelp(t *testing.T) {
 	tests := []testItem{
 		// Took a while to get the regex right; should be # of help msgs * 2 - 1; e.g. 10 lines -> 19
 		// NOTE: the default 'help' output is now too long for in-channel reply
-		{aliceID, deadzone, ";help", []testc.TestMessage{{alice, deadzone, `\(the help output was pretty long, so I sent you a private message\)`}, {alice, null, `(?s:^Command(?:[^\n]*\n){31}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help", []testc.TestMessage{{alice, deadzone, `\(the help output was pretty long, so I sent you a private message\)`}, {alice, null, `(?s:^Command(?:[^\n]*\n){33}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, deadzone, ";help help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){3}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
