@@ -138,7 +138,6 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	pipeHistory, link, ref, idx := newLogger(c.pipeName, w.eid, "", w.id, rememberRuns)
 	c.histName = c.pipeName
 	c.runIndex = idx
-	c.environment["GOPHER_RUN_INDEX"] = fmt.Sprintf("%d", idx)
 	c.logger = pipeHistory
 	var logref string
 	if rememberRuns > 0 {

@@ -97,7 +97,6 @@ The following are also supplied whenever a job is run:
 * `GOPHER_JOB_NAME` - the name of the running job
 * `GOPHER_START_CHANNEL` - the channel where the job was started
 * `GOPHER_REPOSITORY` - the extended namespace from `repositories.yaml`, if any
-* `GOPHER_RUN_INDEX` - the run number of the job (deprecated)
 * `GOPHER_LOG_LINK` - link to job log, if non-ephemeral
 * `GOPHER_LOG_REF` - log reference used for email log and tail log commands
 

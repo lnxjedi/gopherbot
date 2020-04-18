@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/lnxjedi/robot"
 )
@@ -162,26 +161,13 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 		return
 	}
 	r := m.(Robot)
-	vr := r.MessageFormat(robot.Variable)
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 
-	var histType, histRef, latest, histSpec, jobName, buildSpec, branch, index, user, address string
+	var histRef, histSpec, jobName, buildSpec, branch, index, user, address string
 	var idx int
 
 	switch command {
-	case "history":
-		histType = args[0]
-		latest = args[1]
-		histSpec = args[2]
-		index = args[3]
-	case "mailhistory":
-		histType = "email"
-		latest = args[0]
-		histSpec = args[1]
-		index = args[2]
-		user = args[3]
-		address = args[4]
 	case "maillog":
 		histRef = args[0]
 		user = args[1]
@@ -345,92 +331,6 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 		}
 		r.Say(strings.Join(loglines, "\n"))
 		return
-	// TODO: deprecated commands, eventually remove
-	case "history", "mailhistory":
-		var jh pipeHistory
-		key := histPrefix + histSpec
-		_, _, ret := checkoutDatum(key, &jh, false)
-		if ret != robot.Ok {
-			r.Say("No history found for '%s'", histSpec)
-			return
-		}
-		if len(latest) == 0 && len(index) == 0 {
-			if len(jh.ExtendedNamespaces) > 0 {
-				nsl := make([]string, len(jh.ExtendedNamespaces)+2)
-				nsl = append(nsl, fmt.Sprintf("Namespaces for %s:", histSpec))
-				if len(jh.Histories) > 0 {
-					nsl = append(nsl, "0: (base job)")
-				}
-				for i, ens := range jh.ExtendedNamespaces {
-					nsl = append(nsl, fmt.Sprintf("%d: %s", i+1, ens))
-				}
-				vr.Say(strings.Join(nsl, "\n"))
-				rep, ret := r.PromptForReply("selection", "Which namespace #?")
-				if ret != robot.Ok {
-					r.Say("(quitting history command)")
-					return
-				}
-				if rep != "0" {
-					i, _ := strconv.Atoi(rep)
-					histSpec += ":" + jh.ExtendedNamespaces[i-1]
-					key = histPrefix + histSpec
-					_, _, ret = checkoutDatum(key, &jh, false)
-				}
-			}
-		}
-		if len(jh.Histories) == 0 {
-			r.Say("No history found for '%s'", histSpec)
-			return
-		}
-
-		// remember which job we're talking about
-		ctx := memoryContext{"context:task", r.User, r.Channel}
-		s := shortTermMemory{histSpec, time.Now()}
-		shortTermMemories.Lock()
-		shortTermMemories.m[ctx] = s
-		shortTermMemories.Unlock()
-
-		var idx int
-		if len(latest) == 0 && len(index) == 0 {
-			hl := make([]string, len(jh.Histories)+1)
-			hl = append(hl, fmt.Sprintf("History of job runs for '%s':", histSpec))
-			for _, he := range jh.Histories {
-				hl = append(hl, fmt.Sprintf("Run %d - %s", he.LogIndex, he.CreateTime))
-			}
-			vr.Say(strings.Join(hl, "\n"))
-			rep, ret := r.PromptForReply("selection", "Which run #?")
-			if ret != robot.Ok {
-				r.Say("(quitting history command)")
-				return
-			}
-			idx, _ = strconv.Atoi(rep)
-		} else if len(latest) > 0 {
-			idx = jh.NextIndex - 1
-			if idx < 0 {
-				idx = 0
-			}
-		} else {
-			idx, _ = strconv.Atoi(index)
-		}
-		switch histType {
-		case "mail", "email":
-			if len(user) > 0 {
-				return emailhistory(r, user, "", histSpec, idx)
-			} else if len(address) > 0 {
-				return emailhistory(r, "", address, histSpec, idx)
-			} else {
-				return emailhistory(r, "", "", histSpec, idx)
-			}
-		case "link":
-			if link, ok := interfaces.history.GetLogURL(histSpec, idx); ok {
-				r.Say("Here you go: %s", link)
-				return
-			}
-			r.Say("No link available")
-			return
-		default:
-			return pagehistory(r, histSpec, idx)
-		}
 	}
 	return
 }

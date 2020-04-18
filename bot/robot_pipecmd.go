@@ -139,8 +139,6 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 	w.Lock()
 	w.histName = tag
 	w.runIndex = idx
-	// support old method using AddCommand for now
-	w.environment["GOPHER_RUN_INDEX"] = fmt.Sprintf("%d", idx)
 	if nh > 0 {
 		if len(link) > 0 {
 			w.environment["GOPHER_LOG_LINK"] = link
