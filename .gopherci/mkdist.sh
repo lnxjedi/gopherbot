@@ -45,8 +45,8 @@ cp -a gopherbot "$ADIR/gopherbot/gopherbot"
 cp -a --parents $CONTENTS $MODULES "$ADIR/gopherbot"
 cd $ADIR
 echo "Creating $OUTFILE (from $(pwd))"
-zip -r $OUTFILE gopherbot/ --exclude *.swp
-tar --exclude *.swp -czf ../gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot/
+zip -r $OUTFILE gopherbot/ --exclude *.swp *.pyc *__pycache__*
+tar --exclude *.swp --exclude *.pyc --exclude __pycache__ -czvf ../gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot/
 cd -
 
 rm -rf "$ADIR"
