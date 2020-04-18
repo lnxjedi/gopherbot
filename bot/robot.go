@@ -353,7 +353,8 @@ func (r Robot) Log(l robot.LogLevel, msg string, v ...interface{}) (logged bool)
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
-	if Log(l, msg) && r.logger != nil {
+	Log(l, msg)
+	if r.logger != nil {
 		line := "LOG " + logLevelToStr(l) + " " + msg
 		r.logger.Log(strings.TrimSpace(line))
 	}
