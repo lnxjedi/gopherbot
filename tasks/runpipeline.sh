@@ -1,11 +1,13 @@
 #!/bin/bash -e
 
 # runpipeline.sh - utility task to detect and run the repository
-# pipeline
+# pipeline, or custom job pipeline
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
-for PTRY in pipeline.sh pipeline.py pipeline.rb
+PIPELINE=${1:-pipeline}
+
+for PTRY in $PIPELINE $PIPELINE.sh $PIPELINE.py $PIPELINE.rb
 do
     if [ -x ".gopherci/$PTRY" ]
     then

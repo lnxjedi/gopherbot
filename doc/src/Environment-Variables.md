@@ -122,3 +122,4 @@ In addition to the environment variables set by the **Gopherbot** engine, the `l
 * `GOPHERCI_DEPBUILD` - set to "true" if the build was triggered by a dependency
 * `GOPHERCI_DEPREPO` - the updated repository that triggered this build
 * `GOPHERCI_DEPBRANCH` - the updated branch
+* `GOPHERCI_CUSTOM_PIPELINE` - pipeline being run if other than "pipeline"

@@ -26,7 +26,12 @@ sys.argv.pop(0)
 repository = sys.argv.pop(0)
 branch = sys.argv.pop(0)
 bot.SetParameter("GOPHERCI_BRANCH", branch)
-if len(sys.argv) > 0:
+pipeline = "pipeline"
+# check for custom pipeline
+if len(sys.argv) == 1:
+    pipeline = sys.argv.pop(0)
+    bot.SetParameter("GOPHERCI_CUSTOM_PIPELINE", pipeline)
+if len(sys.argv) == 2:
     deprepo = sys.argv.pop(0)
     depbranch = sys.argv.pop(0)
     bot.SetParameter("GOPHERCI_DEPBUILD", "true")
@@ -63,5 +68,5 @@ bot.AddTask("git-init", [ clone_url ])
 # Start with a clean jobdir
 bot.AddTask("cleanup", [ repository ])
 bot.AddTask("git-clone", [ clone_url, branch, repository, "true" ])
-bot.AddTask("run-pipeline", [])
+bot.AddTask("run-pipeline", [ pipeline ])
 bot.FinalTask("finish-build", [])

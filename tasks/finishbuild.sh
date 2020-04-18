@@ -26,9 +26,19 @@ then
       REF=" (log $GOPHER_LOG_REF);"
     fi
   fi
-  TELL="BUILD FAILED for $GOPHER_REPOSITORY, branch: '$GOPHERCI_BRANCH'$REF failure in $FAILED; exit code $GOPHER_FAIL_CODE ($GOPHER_FAIL_STRING)"
+  if [ "$GOPHERCI_CUSTOM_PIPELINE" ]
+  then
+    TELL="JOB FAILED for $GOPHER_REPOSITORY, branch '$GOPHERCI_BRANCH'$REF, running pipeline '$GOPHERCI_CUSTOM_PIPELINE': failure in $FAILED; exit code $GOPHER_FAIL_CODE ($GOPHER_FAIL_STRING)"
+  else
+    TELL="BUILD FAILED for $GOPHER_REPOSITORY, branch '$GOPHERCI_BRANCH'$REF: failure in $FAILED; exit code $GOPHER_FAIL_CODE ($GOPHER_FAIL_STRING)"
+  fi
 else
-  TELL="Build of $GOPHER_REPOSITORY, branch: '$GOPHERCI_BRANCH' finished successfully"
+  if [ "$GOPHERCI_CUSTOM_PIPELINE" ]
+  then
+    TELL="Custom job for $GOPHER_REPOSITORY, branch '$GOPHERCI_BRANCH', running pipeline '$GOPHERCI_CUSTOM_PIPELINE' finished successfully"
+  else
+    TELL="Build of $GOPHER_REPOSITORY, branch '$GOPHERCI_BRANCH' finished successfully"
+  fi
 fi
 
 Say "$TELL"

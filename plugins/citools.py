@@ -15,11 +15,17 @@ if command == "configure":
 
 repodata = bot.GetRepoData()
 
-def start_build(repository, branch):
-    bot.Say("Ok, I'll start the gopherci job for %s, %s branch..." % (repository, branch))
-    bot.AddJob("gopherci", [ repository, branch ])
-    bot.AddTask("say", ["... build completed"])
-    bot.FailTask("say", ["... build failed"])
+def start_build(repository, branch, pipeline):
+    if pipeline == "pipeline":
+        bot.Say("Ok, I'll start the gopherci job for %s, %s branch..." % (repository, branch))
+        bot.AddJob("gopherci", [ repository, branch ])
+        bot.AddTask("say", ["... build of %s/%s completed" % (repository, branch) ])
+        bot.FailTask("say", ["... build of %s/%s failed" % (repository, branch) ])
+    else:
+        bot.Say("Ok, I'll start the gopherci custom job for %s, %s branch, running pipeline: %s" % (repository, branch, pipeline))
+        bot.AddJob("gopherci", [ repository, branch, pipeline ])
+        bot.AddTask("say", ["... job %s/%s - %s: completed" % (repository, branch, pipeline) ])
+        bot.FailTask("say", ["... job %s/%s - %s: failed" % (repository, branch, pipeline) ])
 
 if not isinstance(repodata, dict):
     bot.Say("'repodata.yaml' missing or invalid; GetRepoData() failed")
@@ -33,6 +39,10 @@ if command == "build":
     branch = sys.argv.pop(0)
     if len(branch) == 0:
         branch = "master"
+    
+    pipeline = sys.argv.pop(0)
+    if len(pipeline) == 0:
+        pipeline = "pipeline"
 
     for reponame in repodata.keys():
         match = "/".join(reponame.lower().split("/")[-fcount:])
@@ -53,7 +63,7 @@ if command == "build":
     elif len(build) > 1:
         bot.Say("Multiple repositories match %s, please qualify further" % repospec)
     else:
-        start_build(build[0], branch)
+        start_build(build[0], branch, pipeline)
 
 if command == "help":
     bot.Say("""\
