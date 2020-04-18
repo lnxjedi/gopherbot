@@ -24,12 +24,18 @@ func loadModules(protocol, brain, history string, modules []LoadableModule) {
 	for _, m := range modules {
 		loadModule(m.Name, m.Path)
 	}
-	ppath := filepath.Join("connectors", protocol+".so")
-	loadModule(protocol, ppath)
-	bpath := filepath.Join("brains", brain+".so")
-	loadModule(brain, bpath)
-	hpath := filepath.Join("history", history+".so")
-	loadModule(history, hpath)
+	if len(protocol) > 0 {
+		ppath := filepath.Join("connectors", protocol+".so")
+		loadModule(protocol, ppath)
+	}
+	if len(brain) > 0 {
+		bpath := filepath.Join("brains", brain+".so")
+		loadModule(brain, bpath)
+	}
+	if len(history) > 0 {
+		hpath := filepath.Join("history", history+".so")
+		loadModule(history, hpath)
+	}
 }
 
 // loadModule loads a module and registers it's contents
