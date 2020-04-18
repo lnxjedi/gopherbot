@@ -42,7 +42,7 @@ func jobcommands(m robot.Robot, command string, args ...string) (retval robot.Ta
 			jl = []string{"Here's a list of jobs for this channel:"}
 		}
 		for _, t := range tasks.t[1:] {
-			if !r.jobVisible(t, alljobs, true) {
+			if ok, _ := r.jobVisible(t, alljobs, true); !ok {
 				continue
 			}
 			task, _, _ := getTask(t)
@@ -50,7 +50,7 @@ func jobcommands(m robot.Robot, command string, args ...string) (retval robot.Ta
 			if task.Disabled {
 				after = fmt.Sprintf(" (disabled: %s)", task.reason)
 			}
-			if alljobs && r.Channel != task.Channel {
+			if alljobs {
 				jl = append(jl, fmt.Sprintf("%s (channel: %s)%s", task.name, task.Channel, after))
 			} else {
 				jl = append(jl, fmt.Sprintf("%s%s", task.name, after))
@@ -369,16 +369,13 @@ func (w *worker) jobSecurityCheck(t interface{}, command string) bool {
 // jobVisible checks whether a user should see a job in a channel, unless
 // ignoreChannelRestrictions is set. Note that changes to logic in jobVisible
 // may need to propagate to jobAvailable, below.
-func (r Robot) jobVisible(t interface{}, ignoreChannelRestrictions, disabledOk bool) bool {
+func (r Robot) jobVisible(t interface{}, ignoreChannelRestrictions, disabledOk bool) (visible bool, channel string) {
 	task, _, job := getTask(t)
 	if job == nil {
-		return false
+		return
 	}
 	if task.Disabled && !disabledOk {
-		return false
-	}
-	if !ignoreChannelRestrictions && r.Channel != task.Channel {
-		return false
+		return
 	}
 	if len(task.Users) > 0 {
 		userOk := false
@@ -389,7 +386,7 @@ func (r Robot) jobVisible(t interface{}, ignoreChannelRestrictions, disabledOk b
 			}
 		}
 		if !userOk {
-			return false
+			return
 		}
 	}
 	if task.RequireAdmin {
@@ -402,10 +399,14 @@ func (r Robot) jobVisible(t interface{}, ignoreChannelRestrictions, disabledOk b
 			}
 		}
 		if !isAdmin {
-			return false
+			return
 		}
 	}
-	return true
+	if !ignoreChannelRestrictions && r.Channel != task.Channel {
+		channel = task.Channel
+		return
+	}
+	return true, ""
 }
 
 // jobAvailable does the work of looking up a job and checking whether it's

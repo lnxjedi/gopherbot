@@ -21,7 +21,7 @@ import (
 type Robot struct {
 	*robot.Message
 	tid          int                         // task ID for looking up the *worker
-	pipeContext                              // snapshot copy of pipeline context
+	*pipeContext                             // snapshot copy of pipeline context
 	cfg          *configuration              // convenience only; r.cfg shorter than r.worker.cfg
 	tasks        *taskList                   // same
 	maps         *userChanMaps               // same
@@ -67,7 +67,13 @@ func (w *worker) makeRobot() Robot {
 			Protocol:        w.Protocol,
 			Incoming:        w.Incoming,
 		},
-		pipeContext: pipeContext{
+		cfg:          w.cfg,
+		tasks:        w.tasks,
+		maps:         w.maps,
+		repositories: w.repositories,
+	}
+	if w.pipeContext != nil {
+		r.pipeContext = &pipeContext{
 			privileged:     w.privileged,
 			timeZone:       w.timeZone,
 			logger:         w.logger,
@@ -82,11 +88,7 @@ func (w *worker) makeRobot() Robot {
 			nsExtension:    w.nsExtension,
 			currentTask:    w.currentTask,
 			exclusive:      w.exclusive,
-		},
-		cfg:          w.cfg,
-		tasks:        w.tasks,
-		maps:         w.maps,
-		repositories: w.repositories,
+		}
 	}
 	return r
 }

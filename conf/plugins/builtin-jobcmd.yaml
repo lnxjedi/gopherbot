@@ -4,6 +4,8 @@ AllowDirect: false
 Help:
 - Keywords: [ "jobs" ]
   Helptext: [ "(bot), list (all) jobs - list the jobs you have access to, optionally in all channels" ]
+- Keywords: [ "job", "jobs", "run" ]
+  Helptext: [ "(bot), run job <name> (args...) - manually start a job run" ]
 CommandMatchers:
 - Command: jobs
   Regex: '(?i:list (all )?jobs)'

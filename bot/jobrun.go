@@ -96,6 +96,15 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 		}
 		t := w.jobAvailable(jname)
 		if t != nil {
+			r := w.makeRobot()
+			visible, jchan := r.jobVisible(t, false, false)
+			if !visible {
+				if len(jchan) > 0 {
+					r.Say("Job not available in this channel; try: %s", jchan)
+				} else {
+					r.Say("Sorry, that job isn't available")
+				}
+			}
 			c := &pipeContext{
 				environment: make(map[string]string),
 			}
