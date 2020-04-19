@@ -435,6 +435,54 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		raiseThreadPriv(fmt.Sprintf("killing process %d", pid))
 		unix.Kill(-pid, unix.SIGKILL)
 		r.Say("Killed pid %d", pid)
+	case "pause":
+		name := args[0]
+		t := r.tasks.getTaskByName(name)
+		_, _, job := getTask(t)
+		if job == nil {
+			r.Say("I don't have a job configured with that name")
+		}
+		pausedJobs.Lock()
+		defer pausedJobs.Unlock()
+		_, ok := pausedJobs.jobs[name]
+		if ok {
+			r.Say("That job has already been paused")
+			return
+		}
+		m := r.GetMessage()
+		pausedJobs.jobs[name] = m.User
+		r.Say("Ok, I'll stop running '%s' as a scheduled task", name)
+		return
+	case "resume":
+		name := args[0]
+		t := r.tasks.getTaskByName(name)
+		_, _, job := getTask(t)
+		if job == nil {
+			r.Say("I don't have a job configured with that name")
+		}
+		pausedJobs.Lock()
+		defer pausedJobs.Unlock()
+		_, ok := pausedJobs.jobs[name]
+		if !ok {
+			r.Say("That job isn't paused")
+			return
+		}
+		delete(pausedJobs.jobs, name)
+		r.Say("Ok, I'll resume running '%s' as a scheduled task", name)
+		return
+	case "pauselist":
+		pausedJobs.Lock()
+		defer pausedJobs.Unlock()
+		if len(pausedJobs.jobs) == 0 {
+			r.Say("There are no paused jobs")
+			return
+		}
+		jl := make([]string, 0, len(pausedJobs.jobs))
+		for job := range pausedJobs.jobs {
+			jl = append(jl, job)
+		}
+		sort.Strings(jl)
+		r.Say("These jobs are paused: %s", strings.Join(jl, ", "))
 	case "debug":
 		tname := args[0]
 		if !identifierRe.MatchString(tname) {

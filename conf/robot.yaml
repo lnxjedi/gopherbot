@@ -196,6 +196,11 @@ ExternalJobs:
     Description: Build job run by gopherci to just clone a repo locally and run .gopherci/pipeline.(sh|py|rb)
     Path: jobs/localbuild.py
 
+ScheduledJobs:
+## Notify users if they've paused jobs
+- Name: "pause-notifies"
+  Schedule: "0 0 8 * * *"
+
 ## ExternalTasks enumerate external executables that can be added to pipelines
 ## with AddTask <name>. Note the e.g. the update plugin requires ssh,
 ## ssh-agent, and git.

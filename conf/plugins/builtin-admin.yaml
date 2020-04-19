@@ -15,6 +15,12 @@ Help:
   Helptext: [ "(bot), ps - list running pipelines" ]
 - Keywords: [ "kill", "process" ]
   Helptext: [ "(bot), kill <wid> - kill the current process for the pipeline identified by <wid>"]
+- Keywords: [ "pause", "job" ]
+  Helptext: [ "(bot), pause <job> - pause running of <job> as a scheduled task"]
+- Keywords: [ "pause", "resume", "job", "unpause", "un-pause" ]
+  Helptext: [ "(bot), resume <job> - kill the current process for the pipeline identified by <wid>"]
+- Keywords: [ "pause", "resume", "job", "jobs" ]
+  Helptext: [ "(bot), paused jobs - list the paused jobs"]
 - Keywords: [ "debug" ]
   Helptext: [ "(bot), debug task <pluginname> (verbose) - turn on debugging for the named task, optionally verbose" ]
 - Keywords: [ "debug" ]
@@ -32,6 +38,12 @@ CommandMatchers:
   Regex: '(?i:ps)'
 - Command: "kill"
   Regex: '(?i:kill ([\d]+))'
+- Command: "pause"
+  Regex: '(?i:pause ([A-Za-z][\w-]*))'
+- Command: "resume"
+  Regex: '(?i:resume ([A-Za-z][\w-]*))'
+- Command: pauselist
+  Regex: '(?i:(list )?paused jobs)'
 - Command: "debug"
   Regex: '(?i:debug (?:task )?([\d\w-.]+)(?: (verbose))?)'
 - Command: "stop"
