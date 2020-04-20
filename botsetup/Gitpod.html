@@ -149,29 +149,42 @@
                 <div id="content" class="content">
                     <main>
                         <h1><a class="header" href="#setting-up-a-robot-with-gitpod" id="setting-up-a-robot-with-gitpod">Setting up a Robot with Gitpod</a></h1>
-<p><a href="https://gitpod.io">Gitpod</a> is an online development environment with a generous free offering for use with public free software projects. You can use <strong>Gitpod</strong> to configure a new robot, or to develop <strong>Gopherbot</strong> on your own fork. Once you've signed up for an account, you can use the <strong>setup</strong> plugin from the <a href="https://gitpod.io/#https://github.com/lnxjedi/gopherbot">Gitpod Online Demo</a>:</p>
+<p><a href="https://gitpod.io">Gitpod</a> is an online development environment with a generous free offering for use with public free software projects. You can use <strong>Gitpod</strong> to configure a new robot, or to develop <strong>Gopherbot</strong> on your own fork. Once you've signed up for an account, you can use the <strong>autosetup</strong> plugin from the <a href="https://gitpod.io/#https://github.com/lnxjedi/gopherbot">Gitpod Online Demo</a>.</p>
+<p><strong>1.</strong> Use the <code>setup</code> command to create <code>answerfile.txt</code>:</p>
 <pre><code>############################################################################
 Welcome to the Gopherbot Demo. This will run Gopherbot
-in terminal connector mode, where you can use the setup
-plugin to configure a new robot and store it in a git
-repository.
+in terminal connector mode, where you can use the 
+autosetup plugin to configure a new robot and store it
+in a git repository.
 ############################################################################
 
-2020/02/20 15:06:57 Debug: Checking os.Stat for dir 'custom' from wd '': stat custom: no such file or directory
-2020/02/20 15:06:57 Debug: Checking os.Stat for dir 'conf' from wd '': stat conf: no such file or directory
-2020/02/20 15:06:57 Warning: Starting unconfigured; no robot.yaml/gopherbot.yaml found
+2020/03/22 18:25:29 Logging to robot.log; warnings and errors duplicated to stdout
 Terminal connector running; Use '|c&lt;channel|?&gt;' to change channel, or '|u&lt;user|?&gt;' to change user
-c:general/u:alice -&gt; 2020/02/20 15:06:58 Warning: GOPHER_CUSTOM_REPOSITORY not set, not bootstrapping
 general: *******
 general: Welcome to the *Gopherbot* terminal connector. Since no configuration
 was detected, you're connected to 'floyd', the default robot.
 general: If you've started the robot by mistake, just hit ctrl-D to exit and try
 'gopherbot --help'; otherwise feel free to play around with the default robot -
 you can start by typing 'help'. If you'd like to start configuring a new robot,
-type: ';setup'.
-c:general/u:alice -&gt; ;setup
+type: ';setup &lt;protocol&gt;'.
+c:general/u:alice -&gt; ;setup slack
+general: Edit 'answerfile.txt' and re-run gopherbot with no arguments to
+generate your robot.
+Exiting (press &lt;enter&gt; ...)
+c:general/u:alice -&gt; 
+Terminal connector finished
+gitpod /workspace $
+</code></pre>
+<p><strong>2.</strong> Open <code>answerfile.txt</code> in the left pane, and edit, taking note of the embedded documentation, and setting the &quot;alias&quot; per CLI-based setup.</p>
+<p><strong>3.</strong> Back in the <strong>/workspace</strong> tab, re-run <code>gopherbot</code> to continue setup:</p>
+<pre><code>gitpod /workspace $ ./gopherbot/gopherbot 
+2020/03/22 18:38:46 Info: Logging to robot.log
+null connector: Initializing encryption and restarting...
+2020/03/22 18:38:48 Info: Logging to robot.log
+null connector: Continuing automatic setup...
 ...
 </code></pre>
+<p><strong>4.</strong> Follow the instructions given (you'll need to scroll back) to set yourself up as an administrator and save the robot's configuration to <em>git</em>. Note that the path to the <strong>gopherbot</strong> binary is <code>./gopherbot/gopherbot</code>.</p>
 
                     </main>
 
