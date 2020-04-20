@@ -76,9 +76,19 @@
     - [Tool Integrations](pipelines/integrations.md)
     - [Integrating with SSH](pipelines/ssh.md)
 
+## Appendix
+- [Appendix](appendices/Appendix.md)
+    - [A - Protocols](appendices/Protocols.md)
+        - [A.1 - Slack](appendices/slack.md)
+        - [A.2 - Rocket.Chat](appendices/rocket.md)
+        - [A.3 - Terminal](appendices/terminal.md)
+        - [A.4 - Test](appendices/testproto.md)
+        - [A.5 - Nullconn](appendices/nullconn.md)
+
 ## Gopherbot Development
 - [Working on Gopherbot](GopherDev.md)
     - [Development Robot](botdev/DevelRobot.md) <!--TODO: write me! -->
     - [Integration Tests](botdev/IntegrationTests.md)
     - [Coding with Gitpod](botdev/Gitpod.md) <!--TODO: write me! -->
     - [Important Structs and Interfaces](botdev/StructsInterfaces.md)
+    - [Protocols](botdev/protocols.md)
