@@ -16,11 +16,10 @@ then
     then
         PRERELEASE="--prerelease"
         UPDATE="--update"
+    elif [[ $RELEASE = *-beta* ]]
+    then
+        PRERELEASE="--prerelease"
     fi
-else
-    RELEASE="$BRANCH-snapshot"
-    PRERELEASE="--prerelease"
-    UPDATE="--update"
 fi
 
 github-release $RELEASE *zip *tar.gz --github-repository lnxjedi/gopherbot --commit $COMMIT --target $BRANCH $PRERELEASE $UPDATE

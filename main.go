@@ -35,7 +35,7 @@ import (
 )
 
 // Version of gopherbot
-var Version = "v2.0.0-snapshot"
+var Version = "v2.0.0-beta1"
 
 // Commit supplied during linking
 var Commit = "(not set)"
