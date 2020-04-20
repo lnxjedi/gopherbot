@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
@@ -116,11 +117,26 @@ func (t loadTpl) Include(tpl string) string {
 	}
 	path := filepath.Join(base, t.dir, tpl)
 	Log(robot.Debug, "Loading Include'd config: %s", path)
-	inc, err := ioutil.ReadFile(path)
+	incfile, err := os.Open(path)
+	if err != nil {
+		Log(robot.Error, "Opening include '%s'(%s): %v", tpl, path, err)
+		return ""
+	}
+	var incbuff bytes.Buffer
+	incscanner := bufio.NewScanner(incfile)
+	for incscanner.Scan() {
+		line := incscanner.Text()
+		if !strings.HasPrefix(line, "---") {
+			incbuff.WriteString(line)
+			incbuff.WriteString("\n")
+		}
+	}
+	err = incscanner.Err()
 	if err != nil {
 		Log(robot.Error, "Reading include '%s'(%s): %v", tpl, path, err)
 		return ""
 	}
+	inc := incbuff.Bytes()
 	expanded, err := expand(t.dir, t.isCustom, inc)
 	if err != nil {
 		Log(robot.Error, "Expanding included '%s': %v", tpl, err)
