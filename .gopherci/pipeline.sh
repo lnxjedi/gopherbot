@@ -17,6 +17,22 @@ SetParameter "PATH" "$PATH"
 
 FailTask email-log parsley@linuxjedi.org
 
+# Docs only
+if [ "$GOPHER_REPOSITORY" == "github.com/lnxjedi/gopherbot" -a "$GOPHERCI_BRANCH" == "docs" ]
+then
+    AddTask exec ./.gopherci/mkdocs.sh
+    # Initialize ssh for updating docs repo
+    AddTask ssh-init
+
+    # Make sure github is in known_hosts
+    AddTask ssh-scan github.com
+
+    # Publish doc updates (if any)
+    AddTask exec ./.gopherci/publishdoc.sh
+    AddTask notify $NOTIFY_USER "Completed successful documentation build"
+    exit 0
+fi
+
 # Do a full build for all platforms
 AddTask exec ./.gopherci/mkdist.sh
 
