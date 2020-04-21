@@ -6,7 +6,7 @@
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 PIPELINE=${1:-pipeline}
-shift
+[ $# -gt 0 ] && shift
 
 for PTRY in $PIPELINE $PIPELINE.sh $PIPELINE.py $PIPELINE.rb
 do
