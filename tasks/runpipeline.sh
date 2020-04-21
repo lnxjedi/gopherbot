@@ -5,7 +5,7 @@
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
-PIPELINE=${1}
+PIPELINE=${1:-pipeline}
 shift
 
 for PTRY in $PIPELINE $PIPELINE.sh $PIPELINE.py $PIPELINE.rb
