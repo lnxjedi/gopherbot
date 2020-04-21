@@ -5,13 +5,14 @@
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
-PIPELINE=${1:-pipeline}
+PIPELINE=${1}
+shift
 
 for PTRY in $PIPELINE $PIPELINE.sh $PIPELINE.py $PIPELINE.rb
 do
     if [ -x ".gopherci/$PTRY" ]
     then
-        AddTask exec "./.gopherci/$PTRY"
+        AddTask exec "./.gopherci/$PTRY $*"
         exit 0
     fi
 done

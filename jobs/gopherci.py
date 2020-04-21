@@ -38,14 +38,6 @@ build_triggered = False
 # Pop off the executable path
 sys.argv.pop(0)
 
-repository = sys.argv.pop(0)
-branch = sys.argv.pop(0)
-if branch.endswith("/"): # illegal end char; assume args swapped
-    repository, branch = branch, repository
-
-if repository.endswith("/"):
-    repository = repository.rstrip("/")
-
 def get_deps(repository, recurse, all_deps = []):
     deps = []
     for reponame in repodata.keys():
@@ -67,8 +59,20 @@ def get_deps(repository, recurse, all_deps = []):
 
     return deps
 
-if len(sys.argv) == 0:
-    # Two args, initial build of modified repository
+if len(sys.argv) == 2:
+    command = "build"
+else:
+    command = sys.argv.pop(0)
+
+repository = sys.argv.pop(0)
+branch = sys.argv.pop(0)
+
+if command == "build":
+    if branch.endswith("/"): # illegal end char; assume args swapped
+        repository, branch = branch, repository
+
+    if repository.endswith("/"):
+        repository = repository.rstrip("/")
     if repository in repodata:
         repoconf = repodata[repository]
         if "Type" in repoconf:
@@ -76,7 +80,7 @@ if len(sys.argv) == 0:
             if repotype != "none":
                 build_triggered = True
                 bot.Log("Debug", "Adding primary build for %s / %s to the pipeline" % (repository, branch))
-                bot.AddJob(repotype, [ repository, branch ])
+                bot.AddJob(repotype, [ "build", repository, branch ])
     try:
         deps = get_deps(repository, True)
     except Exception as e:
@@ -87,40 +91,41 @@ if len(sys.argv) == 0:
         build_triggered = True
         bot.Log("Debug", "Starting builds for everything that depends on %s / %s" % (repository, branch))
         # Third arg of '-' means build deps; anything else is custom pipeline
-        bot.AddJob("gopherci", [ repository, branch, "-" ])
+        bot.AddJob("gopherci", [ "builddeps", repository, branch ])
 
-if len(sys.argv) == 1:
-    arg = sys.argv.pop(0)
-    # check for custom pipeline
-    if arg != "-":
-        pipeline = arg
-        if repository in repodata:
-            repoconf = repodata[repository]
-            if "Type" in repoconf:
-                repotype = repoconf["Type"]
-                if repotype != "none":
-                    build_triggered = True
-                    bot.Log("Debug", "Adding custom job for %s / %s to the pipeline, running pipeline: %s" % (repository, branch, pipeline))
-                    bot.AddJob(repotype, [ repository, branch, pipeline ])
-    else:
-        # build depdencies for a repository
-        build_triggered = True
-        for reponame in repodata.keys():
-            if "dependencies" in repodata[reponame]:
-                if repository in repodata[reponame]["dependencies"]:
-                    repoconf = repodata[reponame]
-                    if "Type" in repoconf:
-                        repotype = repoconf["Type"]
-                        if repotype != "none":
-                            if "default_branch" in repoconf:
-                                repobranch = repoconf["default_branch"]
-                            else:
-                                repobranch = "master"
-                            bot.Log("Debug", "Spawning dependency build of %s / %s for primary build of %s / %s" % (reponame, repobranch, repository, branch))
-                            bot.SpawnJob("gopherci", [ reponame, repobranch, repository, branch ])
+if command == "job":
+    # Run a custom pipeline
+    pipeline = sys.argv.pop(0)
+    if repository in repodata:
+        repoconf = repodata[repository]
+        if "Type" in repoconf:
+            repotype = repoconf["Type"]
+            if repotype != "none":
+                bot.Log("Debug", "Adding custom job for %s / %s to the pipeline, running pipeline: %s" % (repository, branch, pipeline))
+                bot.AddJob(repotype, [ "job", repository, branch, pipeline ] + sys.argv )
+                exit()
+    bot.Log("Error", "Missing repository '%s' or repository Type for custom job: %s" % (repository, pipeline))
+    exit()
 
-if len(sys.argv) == 2:
-    # Four args, inital build of dependency
+if command == "builddeps":
+    # build depdencies for a repository
+    build_triggered = True
+    for reponame in repodata.keys():
+        if "dependencies" in repodata[reponame]:
+            if repository in repodata[reponame]["dependencies"]:
+                repoconf = repodata[reponame]
+                if "Type" in repoconf:
+                    repotype = repoconf["Type"]
+                    if repotype != "none":
+                        if "default_branch" in repoconf:
+                            repobranch = repoconf["default_branch"]
+                        else:
+                            repobranch = "master"
+                        bot.Log("Debug", "Spawning dependency build of %s / %s for primary build of %s / %s" % (reponame, repobranch, repository, branch))
+                        bot.SpawnJob("gopherci", [ "depbuild", reponame, repobranch, repository, branch ])
+
+if command == "depbuild":
+    # Inital build of dependency
     # build repo + deps
     build_triggered = True
     deprepo = sys.argv.pop(0)
@@ -132,11 +137,11 @@ if len(sys.argv) == 2:
             if repotype != "none":
                 build_triggered = True
                 bot.Log("Debug", "Adding primary dependency build for %s / %s to the pipeline, triggered by %s / %s" % (repository, branch, deprepo, depbranch))
-                bot.AddJob(repotype, [ repository, branch, deprepo, depbranch ])
+                bot.AddJob(repotype, [ "depbuild", repository, branch, deprepo, depbranch ])
     deps = get_deps(repository, False)
     if deps:
         bot.Log("Debug", "Starting builds for everything that depends on %s / %s (initially triggered by %s / %s" % (repository, branch, deprepo, depbranch))
-        bot.AddJob("gopherci", [ repository, branch, "true" ])
+        bot.AddJob("gopherci", [ "builddeps", repository, branch ])
 
 if not build_triggered:
     bot.Log("Debug", "Ignoring update on '%s', no builds triggered" % repository)

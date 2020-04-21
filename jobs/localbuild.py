@@ -23,15 +23,22 @@ bot = Robot()
 # Pop off the executable path
 sys.argv.pop(0)
 
+# localbuild and all build types always get a "command" from gopherci,
+# never triggered.
+# One of "build", "depbuild", "job"
+command = sys.argv.pop(0)
+
 repository = sys.argv.pop(0)
 branch = sys.argv.pop(0)
+
 bot.SetParameter("GOPHERCI_BRANCH", branch)
 pipeline = "pipeline"
-# check for custom pipeline
-if len(sys.argv) == 1:
+
+if command == "job":
     pipeline = sys.argv.pop(0)
     bot.SetParameter("GOPHERCI_CUSTOM_PIPELINE", pipeline)
-if len(sys.argv) == 2:
+
+if command == "depbuild":
     deprepo = sys.argv.pop(0)
     depbranch = sys.argv.pop(0)
     bot.SetParameter("GOPHERCI_DEPBUILD", "true")
@@ -57,7 +64,7 @@ else:
 if not bot.Exclusive(repository, False):
     bot.Log("Warn", "Build of '%s' already in progress, exiting" % repository)
     if len(bot.user) > 0:
-        bot.Say("localbuild of '%s' already in progress, not starting a new build for branch '%s'" % (repository, branch))
+        bot.Say("build for '%s' already in progress, not starting a new build for branch '%s'" % (repository, branch))
     exit()
 
 repobranch = "%s/%s" % (repository, branch)
@@ -68,5 +75,5 @@ bot.AddTask("git-init", [ clone_url ])
 # Start with a clean jobdir
 bot.AddTask("cleanup", [ repository ])
 bot.AddTask("git-clone", [ clone_url, branch, repository, "true" ])
-bot.AddTask("run-pipeline", [ pipeline ])
+bot.AddTask("run-pipeline", [ pipeline ] + sys.argv)
 bot.FinalTask("finish-build", [])

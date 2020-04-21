@@ -15,15 +15,15 @@ if command == "configure":
 
 repodata = bot.GetRepoData()
 
-def start_build(repository, branch, pipeline):
+def start_build(repository, branch, pipeline, args):
     if pipeline == "pipeline":
         bot.Say("Ok, I'll start the gopherci job for %s, %s branch..." % (repository, branch))
-        bot.AddJob("gopherci", [ repository, branch ])
+        bot.AddJob("gopherci", [ "build", repository, branch ])
         bot.AddTask("say", ["... build of %s/%s completed" % (repository, branch) ])
         bot.FailTask("say", ["... build of %s/%s failed" % (repository, branch) ])
     else:
         bot.Say("Ok, I'll start the gopherci custom job for %s, %s branch, running pipeline: %s" % (repository, branch, pipeline))
-        bot.AddJob("gopherci", [ repository, branch, pipeline ])
+        bot.AddJob("gopherci", [ "job", repository, branch, pipeline ] + args)
         bot.AddTask("say", ["... job %s/%s - %s: completed" % (repository, branch, pipeline) ])
         bot.FailTask("say", ["... job %s/%s - %s: failed" % (repository, branch, pipeline) ])
 
@@ -41,8 +41,11 @@ if command == "build":
         branch = "master"
     
     pipeline = sys.argv.pop(0)
+    args = []
     if len(pipeline) == 0:
         pipeline = "pipeline"
+    else:
+        args = sys.argv.pop(0).split(" ")
 
     for reponame in repodata.keys():
         match = "/".join(reponame.lower().split("/")[-fcount:])
@@ -63,7 +66,7 @@ if command == "build":
     elif len(build) > 1:
         bot.Say("Multiple repositories match %s, please qualify further" % repospec)
     else:
-        start_build(build[0], branch, pipeline)
+        start_build(build[0], branch, pipeline, args)
 
 if command == "help":
     bot.Say("""\
