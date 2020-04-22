@@ -2,6 +2,26 @@
 
 # ssh-admin.sh - shell plugin for managing the robot's ssh keypair
 # see tasks/ssh-init.sh
+
+trap_handler()
+{
+    ERRLINE="$1"
+    ERRVAL="$2"
+    echo "line ${ERRLINE} exit status: ${ERRVAL}"
+    # The script should usually exit on error
+    exit $ERRVAL
+}
+trap 'trap_handler ${LINENO} $?' ERR
+
+for REQUIRED in git jq ssh
+do
+    if ! which $REQUIRED >/dev/null 2>&1
+    then
+        echo "Required '$REQUIRED' not found in \$PATH"
+        exit 1
+    fi
+done
+
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 

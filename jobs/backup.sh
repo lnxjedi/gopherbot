@@ -13,6 +13,15 @@ trap_handler()
 }
 trap 'trap_handler ${LINENO} $?' ERR
 
+for REQUIRED in git jq ssh
+do
+    if ! which $REQUIRED >/dev/null 2>&1
+    then
+        echo "Required '$REQUIRED' not found in \$PATH"
+        exit 1
+    fi
+done
+
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 PTYPE="$GOPHER_PIPELINE_TYPE"
@@ -21,6 +30,8 @@ if [ "$PTYPE" == "plugCommand" -o "$PTYPE" == "jobCommand" ]
 then
     Say "Starting backup requested by user $GOPHER_USER in channel: $GOPHER_START_CHANNEL"
 fi
+
+FailTask tail-log
 
 if [ ! "$GOPHER_CUSTOM_REPOSITORY" ]
 then
@@ -43,7 +54,7 @@ then
         NEWREPO="true"
         git init
         git remote add origin $GOPHER_STATE_REPOSITORY
-        FailTask exec rm -rf ".git"
+        #DEBUG FailTask exec rm -rf ".git"
     fi
 else
     GOPHER_STATE_REPOSITORY="$GOPHER_CUSTOM_REPOSITORY"
@@ -73,7 +84,7 @@ else
         rm -rf custom/
         CONFIGREPO=$(git remote get-url origin)
         GOPHER_STATE_REPOSITORY="$CONFIGREPO"
-        FailTask exec rm -rf ".git"
+        #DEBUG FailTask exec rm -rf ".git"
     else
         cd "$GOPHER_STATEDIR"
     fi
@@ -109,6 +120,7 @@ fi
 if [ "$CHANGES" ]
 then
     AddTask pause-brain
+    FailTask resume-brain
     AddTask exec git add --all
     AddTask resume-brain
     AddTask exec git commit -m "Automated backup of robot state"

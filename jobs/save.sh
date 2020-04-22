@@ -13,13 +13,25 @@ trap_handler()
 }
 trap 'trap_handler ${LINENO} $?' ERR
 
+for REQUIRED in git jq ssh
+do
+    if ! which $REQUIRED >/dev/null 2>&1
+    then
+        echo "Required '$REQUIRED' not found in \$PATH"
+        exit 1
+    fi
+done
+
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
+
+FailTask tail-log
 
 PTYPE="$GOPHER_PIPELINE_TYPE"
 
 if [ "$PTYPE" == "plugCommand" -o "$PTYPE" == "jobCommand" ]
 then
-    Say "Starting config save requested by user $GOPHER_USER in channel: $GOPHER_START_CHANNEL"
+    CHANNEL=${GOPHER_START_CHANNEL:-(direct message)}
+    Say "Starting config save requested by user $GOPHER_USER in channel: $CHANNEL"
 fi
 
 if [ ! "$GOPHER_CUSTOM_REPOSITORY" ]

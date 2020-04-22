@@ -40,7 +40,8 @@ if not bot.Exclusive("updatecfg", False):
     exit()
 
 bot.SetWorkingDirectory(cfgdir)
-bot.FailTask("status", [ "Updating configuration failed, check history for 'updatecfg'"])
+bot.FailTask("tail-log", [])
+bot.FailTask("status", [ "Updating configuration failed"])
 
 bot.AddTask("git-init", [ clone_url ])
 bot.AddTask("exec", [ "git", "pull" ])

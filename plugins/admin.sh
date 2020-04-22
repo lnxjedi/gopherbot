@@ -2,7 +2,28 @@
 
 # admin.sh - a bash plugin that triggers management jobs like save, update, etc.
 
+trap_handler()
+{
+    ERRLINE="$1"
+    ERRVAL="$2"
+    echo "line ${ERRLINE} exit status: ${ERRVAL}"
+    # The script should usually exit on error
+    exit $ERRVAL
+}
+trap 'trap_handler ${LINENO} $?' ERR
+
+for REQUIRED in git jq ssh
+do
+    if ! which $REQUIRED >/dev/null 2>&1
+    then
+        echo "Required '$REQUIRED' not found in \$PATH"
+        exit 1
+    fi
+done
+
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
+
+FailTask tail-log
 
 COMMAND=$1
 shift

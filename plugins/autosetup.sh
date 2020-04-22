@@ -2,6 +2,25 @@
 
 # setup.sh - plugin for setting up a new robot
 
+trap_handler()
+{
+    ERRLINE="$1"
+    ERRVAL="$2"
+    echo "line ${ERRLINE} exit status: ${ERRVAL}"
+    # The script should usually exit on error
+    exit $ERRVAL
+}
+trap 'trap_handler ${LINENO} $?' ERR
+
+for REQUIRED in git jq ssh
+do
+    if ! which $REQUIRED >/dev/null 2>&1
+    then
+        echo "Required '$REQUIRED' not found in \$PATH"
+        exit 1
+    fi
+done
+
 # START Boilerplate
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
@@ -182,7 +201,7 @@ KEY_TYPE=${ANS_KEY_TYPE:-rsa}
 SSHPHRASE="$(getOrGenerate ANS_SSH_PHRASE 16)"
 Say "Generating ssh keys..."
 sleep 1
-SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot -l encrypt.log encrypt "$SSHPHRASE")
+SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot encrypt "$SSHPHRASE")
 mkdir -p custom/ssh
 ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -t "$KEY_TYPE" -f custom/ssh/robot_key
 ssh-keygen -N "$SSHPHRASE" -C "$BOTMAIL" -t "$KEY_TYPE" -f custom/ssh/manage_key
