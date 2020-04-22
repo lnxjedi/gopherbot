@@ -12,7 +12,18 @@ trap_handler()
 }
 trap 'trap_handler ${LINENO} $?' ERR
 
+for REQUIRED in git jq ssh
+do
+    if ! which $REQUIRED >/dev/null 2>&1
+    then
+        echo "Required '$REQUIRED' not found in \$PATH"
+        exit 1
+    fi
+done
+
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
+
+FailTask tail-log
 
 PTYPE=$GOPHER_PIPELINE_TYPE
 if [ \( "$PTYPE" == "plugCommand" -o "$PTYPE" == "jobCommand" \) -a "$GOPHER_USER" ]
@@ -74,9 +85,13 @@ fi
 AddTask git-init "$GOPHER_STATE_REPOSITORY"
 # Not certain this will all happen within lockMax, but *shrug*
 AddTask pause-brain
-AddTask cleanup "$GOPHER_STATEDIR"
+FailTask resume-brain
+AddTask exec mv "$GOPHER_STATEDIR" "$GOPHER_STATEDIR.tmp"
 AddTask git-clone "$GOPHER_STATE_REPOSITORY" "$GOPHER_STATE_BRANCH" "$GOPHER_STATEDIR"
 AddTask resume-brain
+AddTask exec rm -rf "$GOPHER_STATEDIR.tmp"
+FailTask exec rm -rf "$GOPHER_STATEDIR"
+FailTask exec mv "$GOPHER_STATEDIR.tmp" "$GOPHER_STATEDIR"
 if [ "$INTERACTIVE" -o "$TERMINAL" ]
 then
     AddTask say "Restore finished"
