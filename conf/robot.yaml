@@ -197,6 +197,8 @@ ScheduledJobs:
 ## Notify users if they've paused jobs
 - Name: "pause-notifies"
   Schedule: "0 0 8 * * *"
+- Name: "backup"
+  Schedule: "@every 1m"
 
 ## ExternalTasks enumerate external executables that can be added to pipelines
 ## with AddTask <name>. Note the e.g. the update plugin requires ssh,

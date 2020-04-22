@@ -87,15 +87,15 @@ ExternalJobs:
 ## with the "terminal" connector, normally used for testing and
 ## development.
 {{ if ne $proto "terminal" }}
-## Job scheduling with github.com/robfig/cron; includes seconds
+## Jobs are scheduled with github.com/robfig/cron; includes seconds.
+## Note that pause-notifies and backup are scheduled by default;
+## If you override the defaults, you should probably keep (and
+## potentially modify) the default scheduled jobs.
 # ScheduledJobs:
-## Once your robot has successfully saved it's configuration to
-## $GOPHER_CUSTOM_REPOSITORY, enable the backup job to save long-term
-## memories to the "robot-state" branch. Just un-comment the next
-## two lines, and your robot will check for changes and back up
-## every hour.
+# - Name: pause-notifies
+#   Schedule: "0 0 8 * * *"
 # - Name: backup
-#   Schedule: "@every 1h"
+#   Schedule: "@every 1m"
 ## If your robot is logging to a file, this job will rotate logs
 # - Name: logrotate
 #   Schedule: "5 0 0 * * *"

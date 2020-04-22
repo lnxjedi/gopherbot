@@ -63,13 +63,8 @@ else
     then
         if [ ! -d "$GOPHER_CONFIGDIR/.git" ]
         then
-            Log "Error" "Backup to state branch specified with $GOPHER_CONFIGDIR/.robot-state, but $GOPHER_CONFIGDIR/.git doesn't exist"
-            exit 1
-        fi
-        if [ -d "$GOPHER_STATEDIR/custom" ]
-        then
-            Log "Error" "$GOPHER_STATEDIR/custom already exists during initialization of backup"
-            exit 1
+            Log "Error" "Backup to state branch specified, but $GOPHER_CONFIGDIR/.git doesn't exist"
+            exit 0
         fi
         NEWREPO="true"
         # NOTE: technically, with no exclusive lock, GOPHER_CONFIGDIR
