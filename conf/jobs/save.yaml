@@ -2,3 +2,4 @@
 RequireAdmin: true
 AllowDirect: true
 Quiet: true
+HistoryLogs: 2
