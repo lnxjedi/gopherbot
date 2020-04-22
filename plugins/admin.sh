@@ -12,6 +12,15 @@ trap_handler()
 }
 trap 'trap_handler ${LINENO} $?' ERR
 
+source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
+
+COMMAND=$1
+shift
+
+[ "$COMMAND" = "configure" ] && exit 0
+
+FailTask tail-log
+
 for REQUIRED in git jq ssh
 do
     if ! which $REQUIRED >/dev/null 2>&1
@@ -20,13 +29,6 @@ do
         exit 1
     fi
 done
-
-source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
-
-FailTask tail-log
-
-COMMAND=$1
-shift
 
 case "$COMMAND" in
 	"configure")

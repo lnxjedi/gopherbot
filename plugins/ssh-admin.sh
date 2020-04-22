@@ -13,15 +13,6 @@ trap_handler()
 }
 trap 'trap_handler ${LINENO} $?' ERR
 
-for REQUIRED in git jq ssh
-do
-    if ! which $REQUIRED >/dev/null 2>&1
-    then
-        echo "Required '$REQUIRED' not found in \$PATH"
-        exit 1
-    fi
-done
-
 [ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
@@ -51,6 +42,15 @@ elif [ "$command" = "init" ]
 then
 	exit 0
 fi
+
+for REQUIRED in git jq ssh
+do
+    if ! which $REQUIRED >/dev/null 2>&1
+    then
+        echo "Required '$REQUIRED' not found in \$PATH"
+        exit 1
+    fi
+done
 
 if [ -z "$BOT_SSH_PHRASE" ]
 then
