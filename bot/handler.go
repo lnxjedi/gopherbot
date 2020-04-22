@@ -291,6 +291,7 @@ func (h handler) GetDirectory(p string) error {
 		}
 		return nil
 	}
+	raiseThreadPriv(fmt.Sprintf("getting directory: %s", p))
 	if err := os.MkdirAll(p, dperm); err != nil {
 		return err
 	}
