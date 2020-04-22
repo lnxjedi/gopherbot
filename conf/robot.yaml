@@ -56,9 +56,6 @@ NameSpaces:
   # Needed to prevent dangling reference; parameters need to be in
   # custom config.
   "ssh":
-    Parameters:
-    - Name: "KEYNAME"
-      Value: "robot_key"
   "manage":
     Parameters:
     - Name: GOPHER_CUSTOM_REPOSITORY
