@@ -535,7 +535,7 @@ using &lt;ctrl-c&gt;.
 <p>That's it - your robot is ready to start doing some work. The rest of this manual details deploying and managing your robot.</p>
 <h1><a class="header" href="#setting-up-a-robot-with-gitpod" id="setting-up-a-robot-with-gitpod">Setting up a Robot with Gitpod</a></h1>
 <p><a href="https://gitpod.io">Gitpod</a> is an online development environment with a generous free offering for use with public free software projects. You can use <strong>Gitpod</strong> to configure a new robot, or to develop <strong>Gopherbot</strong> on your own fork. Once you've signed up for an account, you can use the <strong>autosetup</strong> plugin from the <a href="https://gitpod.io/#https://github.com/lnxjedi/gopherbot">Gitpod Online Demo</a>.</p>
-<p><strong>1.</strong> Use the <code>setup</code> command to create <code>answerfile.txt</code>:</p>
+<p><strong>1.</strong> Use the <code>setup</code> command to create <code>answerfile.txt</code>, then press <code>&lt;enter&gt;</code> to exit:</p>
 <pre><code>############################################################################
 Welcome to the Gopherbot Demo. This will run Gopherbot
 in terminal connector mode, where you can use the 
@@ -556,12 +556,12 @@ c:general/u:alice -&gt; ;setup slack
 general: Edit 'answerfile.txt' and re-run gopherbot with no arguments to
 generate your robot.
 Exiting (press &lt;enter&gt; ...)
-c:general/u:alice -&gt; 
+c:general/u:alice -&gt; &lt;enter&gt;
 Terminal connector finished
 gitpod /workspace $
 </code></pre>
 <p><strong>2.</strong> Open <code>answerfile.txt</code> in the left pane, and edit, taking note of the embedded documentation, and setting the &quot;alias&quot; per CLI-based setup.</p>
-<p><strong>3.</strong> Back in the <strong>/workspace</strong> tab, re-run <code>gopherbot</code> to continue setup:</p>
+<p><strong>3.</strong> Back in the <strong>/workspace</strong> tab, re-run <code>gopherbot</code> to continue setup (note the path to the binary is <code>./gopherbot/gopherbot</code>):</p>
 <pre><code>gitpod /workspace $ ./gopherbot/gopherbot 
 2020/03/22 18:38:46 Info: Logging to robot.log
 null connector: Initializing encryption and restarting...
@@ -569,7 +569,7 @@ null connector: Initializing encryption and restarting...
 null connector: Continuing automatic setup...
 ...
 </code></pre>
-<p><strong>4.</strong> Follow the instructions given (you'll need to scroll back) to set yourself up as an administrator and save the robot's configuration to <em>git</em>. Note that the path to the <strong>gopherbot</strong> binary is <code>./gopherbot/gopherbot</code>.</p>
+<p><strong>4.</strong> Follow the instructions given (you'll need to scroll back) to set yourself up as an administrator and save the robot's configuration to <em>git</em>. Note that when you re-run gopherbot, the path is once again <code>./gopherbot/gopherbot</code>.</p>
 <h1><a class="header" href="#manual-setup" id="manual-setup">Manual Setup</a></h1>
 <p>This section documents manual setup of a new robot custom configuration repository, using a Linux system or VM with the <strong>Gopherbot</strong> software <a href="botsetup/../install/ManualInstall.html">already installed</a>. Note that the documentation will often refer to a robot's <em>configuration repository</em>, even though using a <em>git</em> repository isn't strictly required.</p>
 <blockquote>
