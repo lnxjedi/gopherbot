@@ -48,8 +48,8 @@ else
     SSH_KEY_PATH="$GOPHER_CONFIGDIR/ssh/$KEYNAME"
     if [ ! -e $SSH_KEY_PATH ]
     then
-        Log "Warn" "No ssh key found in ssh-init, exiting"
-        exit 0
+        Log "Error" "ssh/$KEYNAME not found in ssh-init, exiting"
+        exit 1
     fi
 
     if [ -z "$BOT_SSH_PHRASE" ]
