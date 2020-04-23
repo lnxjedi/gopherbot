@@ -54,7 +54,7 @@ then
         NEWREPO="true"
         git init
         git remote add origin $GOPHER_STATE_REPOSITORY
-        #DEBUG FailTask exec rm -rf ".git"
+        FailTask exec rm -rf ".git"
     fi
 else
     GOPHER_STATE_REPOSITORY="$GOPHER_CUSTOM_REPOSITORY"
@@ -79,7 +79,7 @@ else
         rm -rf custom/
         CONFIGREPO=$(git remote get-url origin)
         GOPHER_STATE_REPOSITORY="$CONFIGREPO"
-        #DEBUG FailTask exec rm -rf ".git"
+        FailTask exec rm -rf ".git"
     else
         cd "$GOPHER_STATEDIR"
     fi
