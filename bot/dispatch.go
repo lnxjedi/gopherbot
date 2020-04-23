@@ -152,12 +152,15 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 		task, _, _ := getTask(runTask)
 		w.messageHeard()
 		matcher := matchedMatcher
-		abort := false
-		if task.name == "builtin-admin" && matcher.Command == "abort" {
-			abort = true
+		allow := false
+		if task.name == "builtin-admin" {
+			switch matcher.Command {
+			case "ps", "kill", "abort":
+				allow = true
+			}
 		}
 		state.RLock()
-		if state.shuttingDown && !abort {
+		if state.shuttingDown && !allow {
 			w.Say("Sorry, I'm shutting down and can't start any new tasks")
 			state.RUnlock()
 			return
