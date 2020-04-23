@@ -143,6 +143,7 @@ func resume(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	brainLocks.Lock()
 	if resume, ok := brainLocks.locks[w.id]; ok {
 		close(resume)
+		delete(brainLocks.locks, w.id)
 	}
 	brainLocks.Unlock()
 	return
