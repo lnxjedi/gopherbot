@@ -2,7 +2,7 @@
 
 [Gitpod](https://gitpod.io) is an online development environment with a generous free offering for use with public free software projects. You can use **Gitpod** to configure a new robot, or to develop **Gopherbot** on your own fork. Once you've signed up for an account, you can use the **autosetup** plugin from the [Gitpod Online Demo](https://gitpod.io/#https://github.com/lnxjedi/gopherbot).
 
-**1.** Use the `setup` command to create `answerfile.txt`:
+**1.** Use the `setup` command to create `answerfile.txt`, then press `<enter>` to exit:
 
 ```
 ############################################################################
@@ -25,14 +25,14 @@ c:general/u:alice -> ;setup slack
 general: Edit 'answerfile.txt' and re-run gopherbot with no arguments to
 generate your robot.
 Exiting (press <enter> ...)
-c:general/u:alice -> 
+c:general/u:alice -> <enter>
 Terminal connector finished
 gitpod /workspace $
 ```
 
 **2.** Open `answerfile.txt` in the left pane, and edit, taking note of the embedded documentation, and setting the "alias" per CLI-based setup.
 
-**3.** Back in the **/workspace** tab, re-run `gopherbot` to continue setup:
+**3.** Back in the **/workspace** tab, re-run `gopherbot` to continue setup (note the path to the binary is `./gopherbot/gopherbot`):
 ```
 gitpod /workspace $ ./gopherbot/gopherbot 
 2020/03/22 18:38:46 Info: Logging to robot.log
@@ -42,4 +42,4 @@ null connector: Continuing automatic setup...
 ...
 ```
 
-**4.** Follow the instructions given (you'll need to scroll back) to set yourself up as an administrator and save the robot's configuration to *git*. Note that the path to the **gopherbot** binary is `./gopherbot/gopherbot`.
+**4.** Follow the instructions given (you'll need to scroll back) to set yourself up as an administrator and save the robot's configuration to *git*. Note that when you re-run gopherbot, the path is once again `./gopherbot/gopherbot`.
