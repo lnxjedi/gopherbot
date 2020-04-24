@@ -67,6 +67,7 @@ func (r Robot) realEmail(subject, mailTo string, messageBody *bytes.Buffer, html
 			mailTo = userMailAttr.Attribute
 		} else {
 			r.Log(robot.Error, "Unable to look up email address for: %s", mailTo)
+			return robot.AttributeNotFound
 		}
 	}
 
