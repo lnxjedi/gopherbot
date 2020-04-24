@@ -1140,7 +1140,11 @@ UK+T6/HocaR9AAD8Ty2giHdNR3r03pbffpah/rk+MZumPK4Y3A==
 <p><strong>Gopherbot</strong> ships with a selection of available pipeline tasks, listed here alphabetically. Note that the given examples use <strong>bash</strong> syntax for simplicity; for <strong>ruby</strong> and <strong>python</strong> see the chapter on the <a href="pipelines/../api/API-Introduction.html">Gopherbot API</a>.</p>
 <hr />
 <p><strong>email-log</strong> - <em>privileged</em></p>
-<p>Usage: <code>FinalTask email-log joe@example.com emily@example.com</code></p>
+<p>Usage:</p>
+<ul>
+<li><code>FinalTask email-log joe@example.com emily@example.com frank bob</code></li>
+<li><code>FinalTask email-log</code></li>
+</ul>
 <p>Normally used in the <strong>fail</strong> and <strong>final</strong> pipelines, emails a copy of the pipeline log. Can also be used with <code>AddTask</code> in the main pipeline, but content will be incomplete.</p>
 <p><em>Notes on the current implementation:</em><br />
 The email function call takes a byte slice for the email body, rather than an <code>io.Reader</code>, meaning the entire body of the message is read in to memory. To limit memory use, <strong>Gopherbot</strong> allocates a 10MB line-based circular buffer, with maximum 16KB-long lines (terminated by <code>\n</code>), and reads the log to that buffer for emailing. Logs that are longer than 10MB will only send the last 10MB of the log, and lines longer than 16KB will be truncated.</p>
