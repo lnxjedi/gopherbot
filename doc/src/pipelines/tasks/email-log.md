@@ -2,7 +2,9 @@ ___
 
 **email-log** - *privileged*
 
-Usage: `FinalTask email-log joe@example.com emily@example.com`
+Usage:
+* `FinalTask email-log joe@example.com emily@example.com frank bob`
+* `FinalTask email-log`
 
 Normally used in the **fail** and **final** pipelines, emails a copy of the pipeline log. Can also be used with `AddTask` in the main pipeline, but content will be incomplete.
 

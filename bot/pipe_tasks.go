@@ -56,11 +56,21 @@ func sendmsg(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 // logmail - task email-log; send the job log to one or more email
 // addresses.
 func logmail(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
-	if len(args) == 0 {
-		m.Log(robot.Error, "email-log called with no addresses")
-		return robot.Fail
-	}
 	r := m.(Robot)
+	if len(args) == 0 {
+		defaultMail := false
+		if len(r.Message.User) > 0 {
+			sa := r.GetSenderAttribute("email")
+			if sa.RetVal == robot.Ok {
+				defaultMail = true
+				args = []string{sa.Attribute}
+			}
+		}
+		if !defaultMail {
+			m.Log(robot.Error, "email-log called with no addresses")
+			return robot.Fail
+		}
+	}
 	w := getLockedWorker(r.tid)
 	hist := w.histName
 	idx := w.runIndex
