@@ -12,12 +12,6 @@ Help:
 - Keywords: [ "list", "log", "logs", "history", "build", "builds", "buildlogs" ]
   Helptext: [ "(bot), buildlogs <repo> (branch) - list build logs matching a given repository / branch" ]
 CommandMatchers:
-- Command: history
-  Regex: '(?i:(?:(e?mail|link) )?(?:(latest|last) )?history(?: ([A-Za-z][\w-:./]*))?(?: (\d+))?)'
-  Contexts: [ "", "", "task" ]
-- Command: mailhistory
-  Regex: '(?i:send (?:(latest|last) )?history(?: ([A-Za-z][\w-:./]*))?(?: (\d+))? to (?:(?:user (.*))|([^@]+@[^@]+)))'
-  Contexts: [ "", "", "task" ]
 - Command: maillog
   Regex: '(?i:(?:send|mail|email) ?log ([A-Za-z0-9]+)( to (?:(?:user (.*))|([^@]+@[^@]+)))?)'
 - Command: taillog
@@ -28,8 +22,3 @@ CommandMatchers:
   Regex: '(?i:joblogs(?: ([A-Za-z][\w-]*)))'
 - Command: buildlogs
   Regex: '(?i:buildlogs(?: ([A-Za-z][\w-:./]*))(?: ([A-Za-z][\w-]*))?)'
-ReplyMatchers:
-- Label: paging
-  Regex: '(?i:(c|n|q))'
-- Label: selection
-  Regex: '(\d+)'
