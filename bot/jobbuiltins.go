@@ -319,7 +319,7 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 			}
 			var logline string
 			if isBuild {
-				logline = fmt.Sprintf("Run #%d, branch '%s', %s; log %s", log.LogIndex, log.Descriptor, log.CreateTime, log.Ref)
+				logline = fmt.Sprintf("Run #%d, %s, branch '%s'; log %s", log.LogIndex, log.CreateTime, log.Descriptor, log.Ref)
 			} else {
 				logline = fmt.Sprintf("Run #%d, %s; log %s", log.LogIndex, log.CreateTime, log.Ref)
 			}
