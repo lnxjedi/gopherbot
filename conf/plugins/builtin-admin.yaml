@@ -21,10 +21,6 @@ Help:
   Helptext: [ "(bot), resume <job> - kill the current process for the pipeline identified by <wid>"]
 - Keywords: [ "pause", "resume", "job", "jobs" ]
   Helptext: [ "(bot), paused jobs - list the paused jobs"]
-- Keywords: [ "debug" ]
-  Helptext: [ "(bot), debug task <pluginname> (verbose) - turn on debugging for the named task, optionally verbose" ]
-- Keywords: [ "debug" ]
-  Helptext: [ "(bot), stop debugging - turn off debugging" ]
 CommandMatchers:
 - Command: reload
   Regex: '(?i:reload)'
@@ -44,7 +40,3 @@ CommandMatchers:
   Regex: '(?i:resume ([A-Za-z][\w-]*))'
 - Command: pauselist
   Regex: '(?i:(list )?paused jobs)'
-- Command: "debug"
-  Regex: '(?i:debug (?:task )?([\d\w-.]+)(?: (verbose))?)'
-- Command: "stop"
-  Regex: '(?i:stop debugging)'

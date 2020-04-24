@@ -483,41 +483,6 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		}
 		sort.Strings(jl)
 		r.Say("These jobs are paused: %s", strings.Join(jl, ", "))
-	case "debug":
-		tname := args[0]
-		if !identifierRe.MatchString(tname) {
-			r.Say("Invalid task name '%s', doesn't match regexp: '%s' (task can't load)", tname, identifierRe.String())
-			return
-		}
-		t := r.tasks.getTaskByName(tname)
-		if t == nil {
-			r.Say("Task '%s' not found", tname)
-			return
-		}
-		task, _, _ := getTask(t)
-		if task.Disabled {
-			r.Say("That task is disabled, fix and reload; reason: %s", task.reason)
-			return
-		}
-		verbose := false
-		if len(args[1]) > 0 {
-			verbose = true
-		}
-		Log(robot.Debug, "Enabling debugging for %s, verbose: %v", tname, verbose)
-		pd := &debuggingTask{
-			taskID:  task.name,
-			name:    tname,
-			verbose: verbose,
-		}
-		taskDebug.Lock()
-		taskDebug.p[task.name] = pd
-		taskDebug.Unlock()
-		r.Say("Debugging enabled for %s (verbose: %v)", args[0], verbose)
-	case "stop":
-		taskDebug.Lock()
-		taskDebug.p = make(map[string]*debuggingTask)
-		taskDebug.Unlock()
-		r.Say("Debugging disabled")
 	case "quit", "restart":
 		state.Lock()
 		if state.shuttingDown {
