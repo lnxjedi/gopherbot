@@ -88,25 +88,21 @@ ExternalJobs:
 ## development.
 {{ if ne $proto "terminal" }}
 ## Jobs are scheduled with github.com/robfig/cron; includes seconds.
-## Note that pause-notifies and backup are scheduled by default;
-## If you override the defaults, you should probably keep (and
-## potentially modify) the default scheduled jobs.
-# ScheduledJobs:
-# - Name: pause-notifies
-#   Schedule: "0 0 8 * * *"
-# - Name: backup
-#   Schedule: "@every 1m"
+## Note that pause-notifies and backup are scheduled by default in
+## a standard robot.
+ScheduledJobs:
+- Name: pause-notifies
+  Schedule: "0 0 8 * * *"
+- Name: backup
+  Schedule: "@every 1m"
 ## If your robot is logging to a file, this job will rotate logs
 # - Name: logrotate
 #   Schedule: "5 0 0 * * *"
+## Example with arguments
 # - Name: hello
-#   Schedule: "@every 30s" # see: https://godoc.org/github.com/robfig/cron
+#   Schedule: "@every 30s"
 #   Arguments: # an array of strings; up to the job to parse numbers & bools
 #   - "Hello, World !!!"
-# - Name: hello
-#   Schedule: "@every 35s" # see: https://godoc.org/github.com/robfig/cron
-#   Arguments: # an array of strings; up to the job to parse numbers & bools
-#   - "Goodbye, World !!!"
 {{ end }}
 
 ## After adding an initial administrator, you should disable the setup
