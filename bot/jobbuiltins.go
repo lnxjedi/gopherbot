@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"path/filepath"
@@ -94,65 +93,6 @@ func emailhistory(r Robot, user, address, spec string, run int) (retval robot.Ta
 		return
 	}
 	r.Say("Email sent")
-	return
-}
-
-func pagehistory(r Robot, spec string, run int) (retval robot.TaskRetVal) {
-	f, err := interfaces.history.GetLog(spec, run)
-	if err != nil {
-		Log(robot.Error, "Getting history %d for task '%s': %v", run, spec, err)
-		r.Say("History %d for '%s' not available", run, spec)
-		return
-	}
-	var line string
-	scanner := bufio.NewScanner(f)
-	finished := false
-PageLoop:
-	for {
-		size := 0
-		lines := make([]string, 0, 40)
-		if len(line) > 0 {
-			lines = append(lines, line)
-			size += len(line) + 1
-			line = ""
-		}
-		for size < histPageSize {
-			if scanner.Scan() {
-				line = scanner.Text()
-				size += len(line) + 1
-				if size < histPageSize {
-					lines = append(lines, line)
-					line = ""
-				}
-			} else {
-				finished = true
-				break
-			}
-		}
-		r.Fixed().Say(strings.Join(lines, "\n"))
-		if finished {
-			break
-		}
-		rep, ret := r.PromptForReply("paging", "'c' to continue, 'q' to quit, or 'n' to skip to the next section")
-		if ret != robot.Ok {
-			r.Say("(quitting)")
-			break PageLoop
-		} else {
-		ContinueSwitch:
-			switch rep {
-			case "q", "Q":
-				r.Say("(ok, quitting)")
-				break PageLoop
-			case "n", "N":
-				for scanner.Scan() {
-					line = scanner.Text()
-					if strings.HasPrefix(line, "***") {
-						break ContinueSwitch
-					}
-				}
-			}
-		}
-	}
 	return
 }
 

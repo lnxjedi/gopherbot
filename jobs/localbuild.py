@@ -50,13 +50,16 @@ repodata = bot.GetRepoData()
 if repository in repodata:
     repoconf = repodata[repository]
 
+print("Repoconf:", repoconf)
+
 if "CloneURL" not in repoconf:
     bot.Say("No 'clone_url' specified for '%s' in repositories.yaml" % repository)
     exit()
 clone_url = repoconf["CloneURL"]
 
 if "KeepHistory" not in repoconf:
-    keep_history = 7
+    bot.Log("Debug", "DEBUG: defaulting keep_history to -1")
+    keep_history = -1
 else:
     keep_history = repoconf["KeepHistory"]
 

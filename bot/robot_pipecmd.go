@@ -139,17 +139,15 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 	w.Lock()
 	w.histName = tag
 	w.runIndex = idx
-	if nh > 0 {
-		if len(link) > 0 {
-			w.environment["GOPHER_LOG_LINK"] = link
-		} else {
-			delete(w.environment, "GOPHER_LOG_LINK")
-		}
-		if len(ref) > 0 {
-			w.environment["GOPHER_LOG_REF"] = ref
-		} else {
-			delete(w.environment, "GOPHER_LOG_REF")
-		}
+	if nh > 0 && len(link) > 0 {
+		w.environment["GOPHER_LOG_LINK"] = link
+	} else {
+		delete(w.environment, "GOPHER_LOG_LINK")
+	}
+	if nh > 0 && len(ref) > 0 {
+		w.environment["GOPHER_LOG_REF"] = ref
+	} else {
+		delete(w.environment, "GOPHER_LOG_REF")
 	}
 	// Question: should repository parameters override job parameters, but _not_
 	// parameters set with SetParameter?
