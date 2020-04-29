@@ -186,6 +186,9 @@ ExternalJobs:
   "logrotate":
     Description: Log rotation for file logging, schedule daily
     Path: jobs/logrotate.sh
+  "ssh-job":
+    Description: Wrapper for ssh jobs.
+    Path: jobs/ssh-job.sh
   "gopherci":
     Description: A job for dispatching build jobs, triggered by commit notifications
     Path: jobs/gopherci.py
