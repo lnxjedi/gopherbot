@@ -1,6 +1,9 @@
 #!/bin/bash -e
 
-# restore.sh - restore the robot's state from git
+# ssh-job.sh - simple wrapper job for ssh tasks
+# Normal usage is to define multiple jobs with the same path to this script,
+# but different values for REMOTEHOST and REMOTETASK (name of task to run).
+# Can also call e.g. AddJob ssh-job <host> <task> (args...)
 
 trap_handler()
 {
@@ -23,11 +26,23 @@ done
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
-if [ $# -eq 2 ]
+if [ "$REMOTEHOST" -o "$REMOTETASK" ]
 then
-    REMOTEHOST=$1
-    REMOTETASK=$2
-    shift 2
+    if [ ! \( "$REMOTEHOST" -a "$REMOTETASK" \) ]
+    then
+        Log "Error" "Only one of REMOTEHOST or REMOTETASK set"
+        exit 1
+    fi
+else
+    if [ $# -eq 2 ]
+    then
+        REMOTEHOST=$1
+        REMOTETASK=$2
+        shift 2
+    else
+        Log "Error" "REMOTEHOST and REMOTETASK not set or provided in arguments"
+        exit 1
+    fi
 fi
 
 if [ ! "$REMOTEHOST" ]
