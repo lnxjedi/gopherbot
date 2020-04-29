@@ -501,7 +501,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			runningCount := state.pipelinesRunning - 1
 			state.Unlock()
 			if proto != "test" {
-				r.Say("There are still %d plugins running; I'll exit when they all complete, or you can issue an \"abort\" command", runningCount)
+				r.Say("There are still %d pipelines running; I'll %s when they all complete, or you can issue an \"abort\" command", runningCount, command)
 			}
 		} else {
 			state.Unlock()
