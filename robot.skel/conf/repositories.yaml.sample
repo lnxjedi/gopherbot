@@ -3,7 +3,7 @@
 # "github.com/lnxjedi/gopherbot":
 #   Type: localbuild
 #   CloneURL: https://github.com/lnxjedi/gopherbot.git
-#   KeepHistory: 14
+#   KeepLogs: 14
 #   Parameters:
 #   - Name: NOTIFY_USER
 #     Value: parsley

@@ -4,7 +4,7 @@ package bot
 	history.go provides the mechanism and methods for storing and retrieving
 	job / plugin run histories of stdout/stderr for a given run. Each time
 	a job / plugin is initiated by a trigger, scheduled job, or user command,
-	a new history file is started if HistoryLogs is != 0 for the job/plugin.
+	a new history file is started if KeepLogs is != 0 for the job/plugin.
 	The history provider will store histories up to some maximum, and return
 	that history based on the index.
 */

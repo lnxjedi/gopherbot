@@ -27,7 +27,7 @@ func (r Robot) GetRepoData() map[string]robot.Repository {
 			Type:         d.Type,
 			CloneURL:     d.CloneURL,
 			Dependencies: d.Dependencies,
-			KeepHistory:  d.KeepHistory,
+			KeepLogs:     d.KeepLogs,
 			Parameters:   []robot.Parameter{},
 		}
 		export[r] = e
@@ -130,7 +130,7 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 	} else {
 		j := r.tasks.getTaskByName(r.jobName)
 		_, _, job := getTask(j)
-		nh = job.HistoryLogs
+		nh = job.KeepLogs
 	}
 	pipeHistory, link, ref, idx := newLogger(tag, eid, branch, wid, nh)
 	w.section("close log", fmt.Sprintf("Job '%s' extended namespace: '%s'; starting new log on next task", r.jobName, ext))

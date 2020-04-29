@@ -132,7 +132,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	w.registerActive(parent)
 	rememberRuns := 0
 	if isJob {
-		rememberRuns = job.HistoryLogs
+		rememberRuns = job.KeepLogs
 	}
 	w.Lock()
 	pipeHistory, link, ref, idx := newLogger(c.pipeName, w.eid, "", w.id, rememberRuns)

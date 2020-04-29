@@ -170,10 +170,10 @@ type Task struct {
 
 // Job - configuration only applicable to jobs. Read in from conf/jobs/<job>.yaml, which can also include anything from a Task.
 type Job struct {
-	Quiet       bool           // whether to quash "job started/ended" messages
-	HistoryLogs int            // how many runs of this job/plugin to keep history for
-	Triggers    []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
-	Arguments   []InputMatcher // list of arguments to prompt the user for
+	Quiet     bool           // whether to quash "job started/ended" messages
+	KeepLogs  int            // how many runs of this job/plugin to keep history for
+	Triggers  []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
+	Arguments []InputMatcher // list of arguments to prompt the user for
 	*Task
 }
 

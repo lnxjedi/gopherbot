@@ -289,7 +289,7 @@ LoadLoop:
 			switch key {
 			case "Elevator", "Authorizer", "AuthRequire", "NameSpace", "Channel":
 				val = &strval
-			case "HistoryLogs":
+			case "KeepLogs":
 				val = &intval
 			case "Disabled":
 				skip = true
@@ -372,11 +372,11 @@ LoadLoop:
 				}
 			case "Users":
 				task.Users = *(val.(*[]string))
-			case "HistoryLogs":
+			case "KeepLogs":
 				if isPlugin {
 					mismatch = true
 				} else {
-					job.HistoryLogs = *(val.(*int))
+					job.KeepLogs = *(val.(*int))
 				}
 			case "Authorizer":
 				task.Authorizer = *(val.(*string))

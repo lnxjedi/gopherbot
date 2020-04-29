@@ -40,6 +40,8 @@ github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159 h1:CaHkuprt1LJw3C
 github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159/go.mod h1:zd7Sx4PCZQcUyXjnOhObTr846lfd6ZwlzcJ9M7kPomc=
 github.com/lnxjedi/robot v0.1.6 h1:p1pDk0QRfmj3EkFmYA18uo2tpXmByT1ez+jc8WoQ7AM=
 github.com/lnxjedi/robot v0.1.6/go.mod h1:UchAo8nEqKwDqHPDjhHauCZm559VlUDPBPGuTkCJYa4=
+github.com/lnxjedi/robot v0.1.7 h1:cfTs15wLjU93EmF/8QURPvQONnNNpewS3fy1w0EpdqQ=
+github.com/lnxjedi/robot v0.1.7/go.mod h1:UchAo8nEqKwDqHPDjhHauCZm559VlUDPBPGuTkCJYa4=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.12.0 h1:Iw5WCbBcaAAd0fpRb1c9r5YCylv4XDoCSigm1zLevwU=
 github.com/onsi/ginkgo v1.12.0/go.mod h1:oUhWkIvk5aDxtKvDDuw8gItl8pKl42LzjC9KZE0HfGg=

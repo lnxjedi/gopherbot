@@ -307,9 +307,9 @@ func main() {
 * AddTask(...) will replace CallPlugin
 
 ### TODO
-* Move HistoryLogs and WorkingDirectory to BotJob
+* Move KeepLogs and WorkingDirectory to BotJob
   * Make "update" a job triggered by the update plugin
-  * Initialize history on the first job in the initial pipeline that has HistoryLogs > 0
+  * Initialize history on the first job in the initial pipeline that has KeepLogs > 0
   * Create new botContext for sub-pipelines; if parent context has no history, the child context may start one
 * Implement "SpawnPipeline" - create a new goroutine / botContext and run startPipeline; allow trigger / plugin to start multiple jobs in parallel whose success or failure doesn't affect the running pipeline
 * Add SetWorkingDirectory(...) bool method, allow relative paths relative to pipeline WorkingDirectory
@@ -339,7 +339,7 @@ func main() {
 
 ## Histories
 
-Whenever a new pipeline starts, if the initiating job/plugin has HistoryLogs > 0, a history file will be recorded, tagged with the name of the job/plugin.
+Whenever a new pipeline starts, if the initiating job/plugin has KeepLogs > 0, a history file will be recorded, tagged with the name of the job/plugin.
 
 ### TODO
 * Add a *botConf member to the Robot

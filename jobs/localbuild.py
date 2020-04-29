@@ -55,7 +55,7 @@ if len(clone_url) == 0:
     bot.Say("No 'clone_url' specified for '%s' in repositories.yaml" % repository)
     exit(1)
 
-keep_history = repoconf["KeepHistory"]
+keep_history = repoconf["KeepLogs"]
 if keep_history == None:
     keep_history = -1
 
