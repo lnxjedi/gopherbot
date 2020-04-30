@@ -3,7 +3,7 @@ package main
 import "github.com/lnxjedi/gopherbot/bot"
 
 // Version of gopherbot
-var Version = "v2.0.0-beta3-snapshot"
+var Version = "v2.0.0-beta3"
 
 // Commit supplied during linking
 var Commit = "(not set)"
