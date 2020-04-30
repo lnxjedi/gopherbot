@@ -3,7 +3,8 @@ package main
 import "github.com/lnxjedi/gopherbot/bot"
 
 // Version of gopherbot
-var Version = "v2.0.0-beta3"
+// NOTE NOTE NOTE: update docker builds.
+var Version = "v2.0.0-beta4-snapshot"
 
 // Commit supplied during linking
 var Commit = "(not set)"

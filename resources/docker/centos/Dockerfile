@@ -20,7 +20,7 @@ ARG nonprivuser=nobody
 ARG groupname=nobody
 # Common from here down
 ARG installdir=/opt
-ARG version=v2.0.0-snapshot
+ARG version=v2.0.0-beta3
 ARG goversion=1.13.8
 
 ENV PATH=${PATH}:${HOME}/go/bin:/usr/local/go/bin:/opt/gopherbot

@@ -1,7 +1,7 @@
 FROM golang:1.13.8
 
 ARG installdir=/opt
-ARG version=v2.0.0-snapshot
+ARG version=v2.0.0-beta3
 ARG nonprivuser=nobody
 
 ENV PATH=${PATH}:/opt/gopherbot
