@@ -20,7 +20,7 @@ endif
 
 static: gopherbot
 
-gopherbot: main.go bot/* brains/*/* connectors/*/* goplugins/*/* history/*/*
+gopherbot: main*.go bot/* brains/*/* connectors/*/* goplugins/*/* history/*/*
 	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w -X main.Commit=$(commit)" -tags "netgo osusergo static_build $(BUILDTAG)" -o gopherbot
 
 # modules
