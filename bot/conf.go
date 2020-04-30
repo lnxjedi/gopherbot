@@ -38,6 +38,7 @@ type ConfigLoader struct {
 	DefaultAuthorizer    string                    // Authorizer plugin to use by default for AuthorizedCommands, or when AuthorizeAllCommands = true
 	DefaultMessageFormat string                    // How the robot should format outgoing messages unless told otherwise; default: Raw
 	DefaultAllowDirect   bool                      // Whether plugins are available in a DM by default
+	IgnoreUnlistedUsers  bool                      // Drop all messages from id not in the UserRoster
 	DefaultChannels      []string                  // Channels where plugins are active by default, e.g. [ "general", "random" ]
 	IgnoreUsers          []string                  // Users the 'bot never talks to - like other bots
 	JoinChannels         []string                  // Channels the 'bot should join when it logs in (not supported by all protocols)
@@ -147,7 +148,7 @@ func loadConfig(preConnect bool) error {
 		switch key {
 		case "AdminContact", "Email", "Protocol", "Brain", "EncryptionKey", "HistoryProvider", "WorkSpace", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
 			val = &strval
-		case "DefaultAllowDirect", "EncryptBrain":
+		case "DefaultAllowDirect", "EncryptBrain", "IgnoreUnlistedUsers":
 			val = &boolval
 		case "BotInfo":
 			val = &bival
@@ -227,6 +228,8 @@ func loadConfig(preConnect bool) error {
 			newconfig.JoinChannels = *(val.(*[]string))
 		case "EncryptBrain":
 			newconfig.EncryptBrain = *(val.(*bool))
+		case "IgnoreUnlistedUsers":
+			newconfig.IgnoreUnlistedUsers = *(val.(*bool))
 		case "ExternalPlugins":
 			newconfig.ExternalPlugins = *(val.(*map[string]TaskSettings))
 		case "ExternalJobs":
@@ -264,6 +267,7 @@ func loadConfig(preConnect bool) error {
 		setLogLevel(loglevel)
 	}
 
+	processed.ignoreUnlistedUsers = newconfig.IgnoreUnlistedUsers
 	if newconfig.Protocol != "" {
 		processed.protocol = newconfig.Protocol
 	} else {

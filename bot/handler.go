@@ -170,11 +170,16 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	regexes.RUnlock()
 	currentCfg.RLock()
 	ignoreUsers := currentCfg.ignoreUsers
+	ignoreUnlisted := currentCfg.ignoreUnlistedUsers
 	currentCfg.RUnlock()
-
+	if !listedUser && ignoreUnlisted {
+		Log(robot.Debug, "IgnoreUnlistedUsers - ignoring: %s / %s", inc.UserID, userName)
+		emit(IgnoredUser)
+		return
+	}
 	for _, user := range ignoreUsers {
 		if strings.EqualFold(userName, user) {
-			Log(robot.Debug, ": %s", userName)
+			Log(robot.Debug, "User listed in IgnoreUsers, ignoring: %s", userName)
 			emit(IgnoredUser)
 			return
 		}

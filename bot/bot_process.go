@@ -86,6 +86,7 @@ type configuration struct {
 	ignoreUsers          []string            // list of users to never listen to, like other bots
 	joinChannels         []string            // list of channels to join
 	defaultAllowDirect   bool                // whether plugins are available in DM by default
+	ignoreUnlistedUsers  bool                // ignore users not listed in the UserRoster
 	defaultMessageFormat robot.MessageFormat // Raw unless set to Variable or Fixed
 	plugChannels         []string            // list of channels where plugins are available by default
 	protocol             string              // Name of the protocol, e.g. "slack"
