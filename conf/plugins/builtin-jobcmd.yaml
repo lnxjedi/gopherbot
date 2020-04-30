@@ -2,10 +2,14 @@
 AllChannels: true
 AllowDirect: false
 Help:
-- Keywords: [ "jobs" ]
+- Keywords: [ "jobs", "list", "job" ]
   Helptext: [ "(bot), list (all) jobs - list the jobs you have access to, optionally in all channels" ]
 - Keywords: [ "job", "jobs", "run" ]
   Helptext: [ "(bot), run job <name> (args...) - manually start a job run" ]
+- Keywords: [ "build", "builds", "list", "repository", "repositories" ]
+  Helptext: [ "(bot), list builds - list the buildable repositories" ]
 CommandMatchers:
 - Command: jobs
   Regex: '(?i:list (all )?jobs)'
+- Command: builds
+  Regex: '(?i:list (?:builds|repositories))'

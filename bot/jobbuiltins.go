@@ -64,6 +64,16 @@ func jobcommands(m robot.Robot, command string, args ...string) (retval robot.Ta
 			return
 		}
 		r.Say(strings.Join(jl, "\n"))
+	case "builds":
+		rl := []string{"Here's a list of all the repositories I can build:"}
+		for repo := range r.repositories {
+			rl = append(rl, repo)
+		}
+		if len(rl) > 1 {
+			r.MessageFormat(robot.Variable).Say(strings.Join(rl, "\n"))
+		} else {
+			r.Say("I don't have any repositories in my repositories.yaml")
+		}
 	}
 	return
 }
