@@ -1,5 +1,10 @@
 # AdminContact: "Joe Admin, <joe@my.org>"
 
+## "BIG HAMMER" security - if IgnoreUnlistedUsers is set, your
+## robot will drop all messages from users that don't appear in the
+## UserRoster.
+# IgnoreUnlistedUsers: true
+
 ## Configure the robot connection protocol; modifying this could
 ## break `gopherbot -t`
 {{ $proto := env "GOPHER_PROTOCOL" | default "terminal" }}

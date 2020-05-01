@@ -1,0 +1,2 @@
+# The Fail Pipeline
+The fail pipeline is a straight-forward pipeline of actions to take in the event of a failure in the primary pipeline. There are a host of [environment variables](../Environment-Variables.md) that are set in the event of a primary pipeline failure, and fail tasks can use these for reporting the nature of the failure. Every task in the fail pipeline runs, regardless of individual task failures, in the order they were added.
