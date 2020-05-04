@@ -104,6 +104,7 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 				} else {
 					r.Say("Sorry, that job isn't available")
 				}
+				return
 			}
 			c := &pipeContext{
 				environment: make(map[string]string),
