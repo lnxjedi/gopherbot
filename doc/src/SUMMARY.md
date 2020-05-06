@@ -45,11 +45,13 @@
     - [Running with Systemd](deploy/systemd.md)
     - [Running in a Container](deploy/Container.md)
 
-- [Configuring Gopherbot](Configuration.md)
-    - [Environment Variables](Environment-Variables.md)
-    - [Configuration File Loading](config/file.md)
-    - [Job and Plugin Configuration](config/job-plug.md)
-    - [Troubleshooting](config/troubleshooting.md)
+- [Robot Basics](Basics.md)
+    - [Addressing your Robot](basics/ping.md)
+    - [Command Matching](basics/matching.md)
+    - [Availability by Channel](basics/channels.md)
+    - [The built-in Help System](basics/help.md)
+    - [Standard Commands](basics/stdplugins.md)
+    - [Context](basics/context.md)
 
 - [Administering Your Robot](Admin.md)
     - [Administrator Commands](usage/admin.md)
@@ -57,6 +59,12 @@
     - [Logging](usage/logging.md)
 
 - [Developing Extensions for Your Robot](botprogramming.md)
+
+- [Gopherbot Configuration Reference](Configuration.md)
+    - [Environment Variables](Environment-Variables.md)
+    - [Configuration File Loading](config/file.md)
+    - [Job and Plugin Configuration](config/job-plug.md)
+    - [Troubleshooting](config/troubleshooting.md)
 
 - [Pipelines, Plugins, Jobs and Tasks](pipelines/jobspipes.md)
     - [The Primary Pipeline](pipelines/primary.md)
