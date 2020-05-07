@@ -13,6 +13,8 @@ do
         VALUE=${ARG#*=}
         export $VAR="$VALUE"
         shift
+    else
+        break
     fi
 done
 
