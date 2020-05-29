@@ -53,7 +53,9 @@
     - [Standard Commands](basics/stdplugins.md)
     - [Context](basics/context.md)
 
-- [Administering Your Robot](Admin.md)
+- [Robot Administration](Admin.md)
+    - [Updating from Git](usage/update.md)
+    - [Using the Terminal Connector](usage/terminal.md)
     - [Administrator Commands](usage/admin.md)
     - [Command-Line Use](usage/cli.md)
     - [Logging](usage/logging.md)
