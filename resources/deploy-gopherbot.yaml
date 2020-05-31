@@ -1,0 +1,50 @@
+---
+# deploy-gopherbot.yaml - For deploying a Gopherbot Robot to your Kubernetes
+# cluster:
+# 1) Verify GOPHER_ENCRYPTION_KEY, GOPHER_DEPLOY_KEY and GOPHER_PROTOCOL
+#    are all defined (and uncommented) in your .env
+# 2) Verify the image you want in "image: ..." below
+# 3) kubectl create secret generic robot-secrets --from-env-file=.env
+# 4) kubectl apply -f deploy-gopherbot.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gopherbot
+  name: gopherbot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gopherbot
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: gopherbot
+    spec:
+      containers:
+      - image: lnxjedi/gopherbot:v2.0.0-beta3
+        name: gopherbot
+        env:
+          - name: GOPHER_ENCRYPTION_KEY
+            valueFrom:
+              secretKeyRef:
+                name: robot-secrets
+                key: GOPHER_ENCRYPTION_KEY
+          - name: GOPHER_CUSTOM_REPOSITORY
+            valueFrom:
+              secretKeyRef:
+                name: robot-secrets
+                key: GOPHER_CUSTOM_REPOSITORY
+          - name: GOPHER_DEPLOY_KEY
+            valueFrom:
+              secretKeyRef:
+                name: robot-secrets
+                key: GOPHER_DEPLOY_KEY
+          - name: GOPHER_PROTOCOL
+            valueFrom:
+              secretKeyRef:
+                name: robot-secrets
+                key: GOPHER_PROTOCOL
