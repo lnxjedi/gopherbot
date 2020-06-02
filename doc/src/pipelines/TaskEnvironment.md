@@ -1,10 +1,10 @@
-**NOTE on Parameters and Environment Variables**: The **Gopherbot** documentation uses *environment variable* and *parameter* somewhat interchangeably; this is due to configured parameters being made available to external scripts as environment variables.
+> Note on Parameters and Environment Variables: The **Gopherbot** documentation uses *environment variable* and *parameter* somewhat interchangeably; this is due to configured and set parameters being made available to external scripts as environment variables.
 
 # Task Environment Variables
 
 Each time a task is run, a custom environment is generated for that task. For external tasks such as `ssh-init`, these values are actually set as environment variables for the process. *Go* tasks access these values with the `GetParameter()` API call.
 
-The precedence of environment variables seen by a given task is determined by the algorithm in `bot/runtasks.go:getEnvironment()`. The various environment sources are listed here, in order from least to highest priority.
+The precedence of environment variables seen by a given task is determined by the algorithm in `bot/run_pipelines.go:getEnvironment()`. The various environment sources are listed here, in order from lowest to highest priority.
 
 ## NameSpace Parameters
 Various tasks, plugins and jobs can be configured to share parameters by defining `NameSpaces` in `conf/robot.yaml`, and setting the `NameSpace` parameter for a given task to the shared namespace. For instance, the `ssh-init` task and `ssh-admin` plugin both get access to the `BOT_SSH_PHRASE` environment variable via the `ssh` namespace.
@@ -24,4 +24,4 @@ Plugin tasks can also be added to a pipeline with the `AddCommand()`, `FinalComm
 If a given Job calls the `ExtendNamespace()` API to start a build, the parameters for that repository set in `conf/repositories.yaml` overwrite any values in the current pipeline, which then behave as **Pipeline Parameters** as above.
 
 ## SetParameter()
-Parameters set with the `SetParameter()` API call overwrite the current value for a pipeline; thus, it makes little sense to call `SetParameter()` before `ExtendNamespace()`. Parameters set with `SetParameter()` have the highest priority, and will always apply to further tasks in the pipeline.
+Parameters set with the `SetParameter()` API call overwrite the current value for a pipeline. Parameters set with `SetParameter()` have the highest priority, and will always apply to later tasks in the pipeline.

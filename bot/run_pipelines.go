@@ -415,9 +415,7 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 			child := w.clone()
 			ret = child.startPipeline(w, t, ptype, command, args...)
 		} else {
-			debugT(t, fmt.Sprintf("Running task with command '%s' and arguments: %v", command, args), false)
 			errString, ret = w.callTask(t, command, args...)
-			debugT(t, fmt.Sprintf("Task finished with return value: %s", ret), false)
 		}
 		if w.stage == finalTasks && ret != robot.Normal {
 			w.finalFailed = append(w.finalFailed, task.name)
@@ -468,10 +466,15 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 		if w.stage == primaryTasks {
 			t := len(w.nextTasks)
 			if t > 0 {
+				// If this is the last task in the pipeline, and more tasks
+				// have been added, just append to the current pipeline.
 				if i == l-1 {
 					p = append(p, w.nextTasks...)
 					l += t
 				} else {
+					// If more tasks are added in the middle of a pipeline,
+					// run all those tasks before continuing with the current
+					// tasks.
 					ret, errString = w.runPipeline(stage, ptype, false)
 				}
 				w.nextTasks = []TaskSpec{}

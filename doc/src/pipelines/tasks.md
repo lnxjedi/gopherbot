@@ -1,5 +1,7 @@
 # Included Tasks
 
+> NOTE: This section is incomplete!
+
 **Gopherbot** ships with a selection of available pipeline tasks, listed here alphabetically. Note that the given examples use **bash** syntax for simplicity; for **ruby** and **python** see the chapter on the [Gopherbot API](../api/API-Introduction.md).
 
 {{#include tasks/email-log.md}}
