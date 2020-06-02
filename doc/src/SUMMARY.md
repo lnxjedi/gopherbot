@@ -37,13 +37,9 @@
     - [Long-Term Memories](upgrade/Memories.md)
 
 - [Deploying and Running Your Robot](RunRobot.md)
-    - [CLI Operation](deploy/CLI.md)
-        - [Local Install](deploy/local.md)
-        - [Container Operation](deploy/containercli.md)
-        - [Using Gitpod](deploy/gitpodcli.md)
-        - [Encrypting Secrets](deploy/secrets.md)
     - [Running with Systemd](deploy/systemd.md)
     - [Running in a Container](deploy/Container.md)
+    - [Deploying to Kubernetes](deploy/Kubernetes.md)
 
 - [Robot Basics](Basics.md)
     - [Addressing your Robot](basics/ping.md)
@@ -54,6 +50,12 @@
     - [Context](basics/context.md)
 
 - [Robot Administration](Admin.md)
+    # TODO: move the stuff below from deploy to admin or elsewhere...
+    - [CLI Operation](deploy/CLI.md)
+        - [Local Install](deploy/local.md)
+        - [Container Operation](deploy/containercli.md)
+        - [Using Gitpod](deploy/gitpodcli.md)
+        - [Encrypting Secrets](deploy/secrets.md)
     - [Updating from Git](usage/update.md)
     - [Using the Terminal Connector](usage/terminal.md)
     - [Administrator Commands](usage/admin.md)
