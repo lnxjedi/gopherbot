@@ -57,7 +57,7 @@ do
 	cd $ADIR
 	echo "Creating $OUTFILE (from $(pwd))"
 	zip -r $OUTFILE gopherbot/ --exclude *.swp *.pyc *__pycache__*
-	tar --exclude *.swp --exclude *.pyc --exclude __pycache__ -czvf ../gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot/
+	tar --owner=0 --group=0 --exclude *.swp --exclude *.pyc --exclude __pycache__ -czvf ../gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot/
 	cd -
 done
 
