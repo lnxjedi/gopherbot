@@ -18,12 +18,13 @@ RUN yum -y update && \
   rm -rf /var/cache/yum
 
 ARG username=daemon
+ARG userid=2
 ARG nonprivuser=nobody
 ARG groupname=nobody
 # Common from here down
 ARG installdir=/opt
 ARG version=v2.0.0-beta3
-ARG goversion=1.13.8
+ARG goversion=1.14.4
 
 ENV PATH=${PATH}:${HOME}/go/bin:/usr/local/go/bin:/opt/gopherbot
 ENV HOME=/home/robot
@@ -52,6 +53,6 @@ RUN cd ${installdir} && \
   ln -s ${installdir}/gopherbot/gopherbot ${HOME}/gopherbot
 
 WORKDIR ${HOME}
-USER ${USER}:${GROUP}
+USER ${userid}:${GROUP}
 
 ENTRYPOINT [ "/opt/gopherbot/gopherbot" , "-plainlog" ]
