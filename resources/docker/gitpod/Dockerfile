@@ -1,4 +1,4 @@
-FROM golang:1.13.8
+FROM golang:1.14.4
 
 ARG installdir=/opt
 ARG version=v2.0.0-beta3
