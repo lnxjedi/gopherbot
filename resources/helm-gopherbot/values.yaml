@@ -19,7 +19,7 @@ replicaCount: 1
 
 image:
   repository: docker.io/lnxjedi/gopherbot
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""
 
@@ -38,7 +38,8 @@ serviceAccount:
 
 podAnnotations: {}
 
-podSecurityContext: {}
+podSecurityContext:
+  runAsNonRoot: true
   # fsGroup: 2000
 
 securityContext: {}

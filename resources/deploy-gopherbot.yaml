@@ -27,6 +27,8 @@ spec:
       labels:
         app: gopherbot
     spec:
+      securityContext:
+        runAsNonRoot: true
       containers:
       - image: lnxjedi/gopherbot:v2.0.0-beta3
         name: gopherbot
