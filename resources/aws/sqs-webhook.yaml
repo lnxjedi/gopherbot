@@ -1,0 +1,134 @@
+---
+# https://xxx.execute-api.us-east-1.amazonaws.com/prod/v1/enqueue
+Description: API Gateway integration with SQS
+Outputs:
+  ApiEndpoint:
+    Description: Webook URL
+    Value: !Join
+      - ''
+      - - https://
+        - !Ref 'APIGateway'
+        - .execute-api.
+        - !Ref 'AWS::Region'
+        - .amazonaws.com/
+        - queue/
+        - !Ref 'endpointID'
+  QueueArnSQS:
+    Description: ARN of SQS Queue
+    Value: !GetAtt 'DestQueue.Arn'
+  AccessPolicy:
+    Description: Name of policy for robot access to queue
+    Value: !Join
+    - ''
+    - - !Ref 'AWS::Region'
+      - '-'
+      - !Ref 'queueName'
+      - '-access'
+Parameters:
+  queueName:
+    Description: The name of the SQS queue to create.
+    Type: String
+  endpointID:
+    Description: A random identifier for the enpoint URL.
+    Type: String
+Resources:
+  APIGateway:
+    Properties:
+      Description: Webhook for queueing git builds to sqs
+      Name: APIGateway
+    Type: AWS::ApiGateway::RestApi
+  APIGatewayRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+        Version: '2012-10-17'
+      Path: /
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action: sqs:SendMessage
+                Effect: Allow
+                Resource: !GetAtt 'DestQueue.Arn'
+            Version: '2012-10-17'
+          PolicyName: apig-sqs-send-msg-policy
+      RoleName: apig-sqs-send-msg-role
+    Type: AWS::IAM::Role
+  DestQueue:
+    Properties:
+      DelaySeconds: 0
+      MaximumMessageSize: 262144
+      MessageRetentionPeriod: 604800 # 1 week
+      QueueName: !Ref 'queueName'
+      ReceiveMessageWaitTimeSeconds: 0
+      VisibilityTimeout: 7200 # 2 hours
+    Type: AWS::SQS::Queue
+  RobotPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties: 
+      Description: Policy allowing robot to access queue
+      ManagedPolicyName: !Join
+      - ''
+      - - !Ref 'AWS::Region'
+        - '-'
+        - !Ref 'queueName'
+        - '-access'
+      PolicyDocument:
+        Statement:
+        - Action: SQS:*
+          Effect: Allow
+          Resource: !GetAtt 'DestQueue.Arn'
+          Sid: Sid1517269801413
+        Version: '2012-10-17'
+  PostMethod:
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        Credentials: !GetAtt 'APIGatewayRole.Arn'
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+          - StatusCode: '200'
+        PassthroughBehavior: NEVER
+        RequestParameters:
+          integration.request.header.Content-Type: '''application/x-www-form-urlencoded'''
+        RequestTemplates:
+          application/json: Action=SendMessage&MessageBody=$input.body
+        Type: AWS
+        Uri: !Join
+          - ''
+          - - 'arn:aws:apigateway:'
+            - !Ref 'AWS::Region'
+            - :sqs:path/
+            - !Ref 'AWS::AccountId'
+            - /
+            - !Ref 'queueName'
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          StatusCode: '200'
+      ResourceId: !Ref 'enqueueResource'
+      RestApiId: !Ref 'APIGateway'
+    Type: AWS::ApiGateway::Method
+  enqueueResource:
+    Properties:
+      ParentId: !GetAtt 'APIGateway.RootResourceId'
+      PathPart: !Ref 'endpointID'
+      RestApiId: !Ref 'APIGateway'
+    Type: AWS::ApiGateway::Resource
+  prodDeployment:
+    DependsOn: PostMethod
+    Properties:
+      RestApiId: !Ref 'APIGateway'
+    Type: AWS::ApiGateway::Deployment
+  prodStage:
+    Properties:
+      DeploymentId: !Ref 'prodDeployment'
+      RestApiId: !Ref 'APIGateway'
+      StageName: build
+    Type: AWS::ApiGateway::Stage
