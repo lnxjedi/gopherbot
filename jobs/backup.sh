@@ -90,6 +90,12 @@ then
     rm ".failed"
     FAILED="true"
 fi
+
+if [ -d "brain" -a ! -e "brain/README.txt" ]
+then
+    echo "Placeholder file for git backups, ensures brain directory is created." > brain/README.txt
+fi
+
 CHANGES=$(git status --porcelain)
 
 if [ ! "$CHANGES" -a ! "$NEWREPO" -a ! "$FAILED" ] # no changes
