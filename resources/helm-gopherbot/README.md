@@ -4,25 +4,48 @@ This helm chart can be used to deploy your **Gopherbot** robot to your Kubernete
 
 Before using this chart you should have already created a **Gopherbot** robot with an associated git repository, along with a `.env` file for bootstrapping your robot.
 
-Most of the data in values.yaml should come directly from the `.env` file. The additional `name` value (default: "robot") gives you the ability to deploy multiple robots to your cluster.
+You can deploy your robot with this helm chart with two basic steps:
+1. Store your robot's secrets in the target namespace using the `.env`
+2. Deploy the robot with a helm values file
 
-As an example, for a simple deployment of my "Clu" robot, I can use a `clu-values.yaml` file like this:
-```yaml
-# defaults to robot, set if you want multiple robots
-robotName: "clu"
+The values file should have no sensitive data, and could be stored in source control management.
 
-# These values should come from the .env file created during setup
-# clone URL for the repository using ssh; GOPHER_CUSTOM_REPOSITORY
-robotRepository: "git@github.com:parsley42/clu-gopherbot.git"
-# trivially encoded read-only deploy key; GOPHER_DEPLOY_KEY
-deployKey: "<redacted - use value from .env file>"
-# secret used for encryption/decryption; GOPHER_ENCRYPTION_KEY
-encryptionKey: "<redacted - use value from .env file>"
-# protocol for connecting to team chat; GOPHER_PROTOCOL
-protocol: slack
+## Generating and Storing Your Robot's Secrets
+
+The first step is to store your robot's sensitive data in a secret in the robot's target namespace. You can use the included `generate-secret.sh` script, like so:
+```
+$ ./resources/helm-gopherbot/generate-secret.sh robot-secrets ~/robot/.env | kubectl -n robot apply -f -
+secret/robot-secrets created
 ```
 
-Then, to deploy Clu to my cluster:
+## Creating your Robot's Values File
+
+The second step is configuring your robot. Make a copy of `resources/helm-gopherbot/values.yaml` and edit it. Most items can be removed, but you may wish to set a value for the `robotDataVolume` if you want your robot to have a persistent data volume. Since `gopherbot` runs non-root, you should probably also set `fsGroup` in the `podSecurityContext`, so the mount will be writeable.
+
+For example:
+```yaml
+robotDataVolume:
+  persistentVolumeClaim:
+    claimName: robot-pvc
+
+podSecurityContext:
+  fsGroup: 1 # "daemon"
+```
+
+If you're going to have multiple robots in a single namespace, you should override the values for secrets and fullname; using `clu` as an example:
+```yaml
+robotDataVolume:
+  persistentVolumeClaim:
+    claimName: clu-pvc
+
+robotSecrets: clu-secrets
+
+fullnameOverride: clu-gopherbot
+```
+
+## Deploying Your Robot with Helm
+
+Then, to deploy your robot to your cluster (using `clu` as an example):
 ```
 $ helm install clu ./helm-gopherbot --values=clu-values.yaml
 NAME: clu

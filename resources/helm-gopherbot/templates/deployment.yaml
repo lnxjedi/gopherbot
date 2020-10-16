@@ -28,7 +28,7 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       volumes:
       - name: robot-home
-        emptyDir: {}
+        {{- toYaml .Values.robotDataVolume | nindent 8 }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -44,22 +44,22 @@ spec:
             - name: GOPHER_ENCRYPTION_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.robotName | default "robot" }}-secrets
+                  name: {{ .Values.robotSecrets }}
                   key: GOPHER_ENCRYPTION_KEY
             - name: GOPHER_CUSTOM_REPOSITORY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.robotName | default "robot" }}-secrets
+                  name: {{ .Values.robotSecrets }}
                   key: GOPHER_CUSTOM_REPOSITORY
             - name: GOPHER_DEPLOY_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.robotName | default "robot" }}-secrets
+                  name: {{ .Values.robotSecrets }}
                   key: GOPHER_DEPLOY_KEY
             - name: GOPHER_PROTOCOL
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.robotName | default "robot" }}-secrets
+                  name: {{ .Values.robotSecrets }}
                   key: GOPHER_PROTOCOL
       {{- with .Values.nodeSelector }}
       nodeSelector:

@@ -2,19 +2,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# defaults to robot, set if you want multiple robots
-robotName: ""
-
-# These values should come from the .env file created during setup
-# clone URL for the repository using ssh; GOPHER_CUSTOM_REPOSITORY
-robotRepository: ""
-# trivially encoded read-only deploy key; GOPHER_DEPLOY_KEY
-deployKey: ""
-# secret used for encryption/decryption; GOPHER_ENCRYPTION_KEY
-encryptionKey: ""
-# protocol for connecting to team chat; GOPHER_PROTOCOL
-protocol: slack
-
 replicaCount: 1
 
 image:
@@ -41,6 +28,11 @@ podAnnotations: {}
 podSecurityContext:
   runAsNonRoot: true
   # fsGroup: 2000
+
+robotDataVolume: {}
+  # emptyDir: {}
+
+robotSecrets: robot-secrets
 
 securityContext: {}
   # capabilities:
