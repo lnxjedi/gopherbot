@@ -17,3 +17,4 @@ tasks/gopherbot_v2.py
 gopherbot-doc
 robot.log
 start.sh
+.vscode
