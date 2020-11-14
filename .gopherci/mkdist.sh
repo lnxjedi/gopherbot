@@ -34,7 +34,7 @@ MODULES="goplugins/knock.so goplugins/duo.so goplugins/meme.so goplugins/totp.so
 
 ADIR="build-archive"
 
-for BUILDOS in linux darwin
+for BUILDOS in ${1:-linux darwin}
 do
 	echo "Building gopherbot for $BUILDOS"
 	make clean

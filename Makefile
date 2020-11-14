@@ -51,6 +51,16 @@ brains/dynamodb.so: brains/dynamodb-mod.go brains/dynamodb/*.go
 clean:
 	rm -f gopherbot $(MODULES)
 
+containers:
+	./.gopherci/mkdist.sh linux
+	cp gopherbot-linux-amd64.tar.gz resources/containers/minimal/
+	cp gopherbot-linux-amd64.tar.gz resources/containers/theia/
+	cp gopherbot-linux-amd64.tar.gz resources/containers/dev/
+	podman pull quay.io/lnxjedi/gopherbot-base
+	podman pull quay.io/lnxjedi/gopherbot-base-theia
+	podman build -f resources/containers/minimal/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/minimal/
+	rm -f resources/containers/minimal/gopherbot-linux-amd64.tar.gz resources/containers/theia/gopherbot-linux-amd64.tar.gz resources/containers/dev/gopherbot-linux-amd64.tar.gz
+
 # Run test suite without coverage (see .gopherci/pipeline.sh)
 test:
 	go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod vendor -race ./test
