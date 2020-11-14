@@ -54,9 +54,10 @@ then
     git remote add origin $GOPHER_CUSTOM_REPOSITORY
 else
     CHANGES=$(git status --porcelain)
+    COMMITS=$(git cherry)
 fi
 
-if [ ! "$CHANGES" -a ! "$NEWREPO" ] # no changes
+if [ ! "$CHANGES" -a ! "$COMMITS" -a ! "$NEWREPO" ] # no changes
 then
     if [ "$PTYPE" == "plugCommand" -o "$PTYPE" == "jobCommand" ]
     then
@@ -67,8 +68,11 @@ fi
 
 SetWorkingDirectory "$GOPHER_CONFIGDIR"
 AddTask git-init "$GOPHER_CUSTOM_REPOSITORY"
-AddTask exec git add --all
-AddTask exec git commit -m "Save robot configuration"
+if [ "$CHANGES" -o "$NEWREPO" ]
+then
+    AddTask exec git add --all
+    AddTask exec git commit -m "Save robot configuration"
+fi
 if [ "$NEWREPO" ]
 then
     AddTask exec git push -u origin master
