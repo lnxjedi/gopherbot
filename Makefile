@@ -54,8 +54,8 @@ clean:
 containers:
 	./.gopherci/mkdist.sh linux
 	cp gopherbot-linux-amd64.tar.gz resources/containers/minimal/
-	cp gopherbot-linux-amd64.tar.gz resources/containers/theia/
-	cp gopherbot-linux-amd64.tar.gz resources/containers/dev/
+	# cp gopherbot-linux-amd64.tar.gz resources/containers/theia/
+	# cp gopherbot-linux-amd64.tar.gz resources/containers/dev/
 	buildah pull quay.io/lnxjedi/gopherbot-base
 	buildah pull quay.io/lnxjedi/gopherbot-base-theia
 	buildah bud --layers -f resources/containers/minimal/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/minimal/
