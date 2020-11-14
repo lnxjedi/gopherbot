@@ -2,22 +2,22 @@
 
 # admin.sh - a bash plugin that triggers management jobs like save, update, etc.
 
+COMMAND=$1
+shift
+
+[ "$COMMAND" = "configure" ] && exit 0
+
 trap_handler()
 {
     ERRLINE="$1"
     ERRVAL="$2"
-    echo "line ${ERRLINE} exit status: ${ERRVAL}"
+    echo "line ${ERRLINE} exit status: ${ERRVAL}" >&2
     # The script should usually exit on error
     exit $ERRVAL
 }
 trap 'trap_handler ${LINENO} $?' ERR
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
-
-COMMAND=$1
-shift
-
-[ "$COMMAND" = "configure" ] && exit 0
 
 FailTask tail-log
 

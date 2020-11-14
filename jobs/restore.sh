@@ -6,7 +6,7 @@ trap_handler()
 {
     ERRLINE="$1"
     ERRVAL="$2"
-    echo "line ${ERRLINE} exit status: ${ERRVAL}"
+    echo "line ${ERRLINE} exit status: ${ERRVAL}" >&2
     # The script should usually exit on error
     exit $ERRVAL
 }

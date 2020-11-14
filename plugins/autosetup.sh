@@ -1,33 +1,9 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # setup.sh - plugin for setting up a new robot
 
-trap_handler()
-{
-    ERRLINE="$1"
-    ERRVAL="$2"
-    echo "line ${ERRLINE} exit status: ${ERRVAL}"
-    # The script should usually exit on error
-    exit $ERRVAL
-}
-trap 'trap_handler ${LINENO} $?' ERR
-
-for REQUIRED in git jq ssh
-do
-    if ! which $REQUIRED >/dev/null 2>&1
-    then
-        echo "Required '$REQUIRED' not found in \$PATH"
-        exit 1
-    fi
-done
-
-# START Boilerplate
-[ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
-source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
-
 command=$1
 shift
-# END Boilerplate
 
 if [ "$command" == "configure" ]
 then
@@ -44,6 +20,30 @@ MessageMatchers:
 EOF
     exit 0
 fi
+
+trap_handler()
+{
+    ERRLINE="$1"
+    ERRVAL="$2"
+    echo "line ${ERRLINE} exit status: ${ERRVAL}" >&2
+    # The script should usually exit on error
+    exit $ERRVAL
+}
+trap 'trap_handler ${LINENO} $?' ERR
+
+for REQUIRED in git jq ssh
+do
+    if ! which $REQUIRED >/dev/null 2>&1
+    then
+        echo "Required '$REQUIRED' not found in \$PATH" >&2
+        exit 1
+    fi
+done
+
+# START Boilerplate
+[ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
+source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
+# END Boilerplate
 
 if [ "$command" == "setup" ]
 then
