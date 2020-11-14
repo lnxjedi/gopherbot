@@ -61,6 +61,7 @@ else
 fi
 
 export SSH_ASKPASS=$GOPHER_INSTALLDIR/helpers/ssh-askpass.sh
+export SSH_ASKPASS_REQUIRE=force
 export DISPLAY=""
 
 eval `ssh-agent`
