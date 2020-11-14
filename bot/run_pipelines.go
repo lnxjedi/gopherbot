@@ -155,7 +155,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		}
 	}
 	w.Unlock()
-	if isJob && (!job.Quiet || c.verbose) {
+	if isJob && (!job.Quiet || c.verbose || ptype == jobCommand) {
 		r := w.makeRobot()
 		taskinfo := task.name
 		if len(args) > 0 {
@@ -253,7 +253,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	// Release logs that shouldn't be saved
 	c.logger.Finalize()
 
-	if isJob && !job.Quiet {
+	if isJob && (!job.Quiet || c.verbose) {
 		r := w.makeRobot()
 		if ret == robot.Normal {
 			r.Say("Finished job '%s', run %d, final task '%s', status: normal", c.pipeName, c.runIndex, finalTask)
