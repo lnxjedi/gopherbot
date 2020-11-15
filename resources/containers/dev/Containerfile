@@ -13,7 +13,7 @@ RUN chown ${nonprivuser}:${username} ${installdir}/gopherbot/gopherbot && \
   chmod u+s ${installdir}/gopherbot/gopherbot && \
   ln -s ${installdir}/gopherbot/gopherbot ${HOME}/gopherbot
 
-WORKDIR ${HOME}
+WORKDIR /usr/local/theia
 USER ${userid}:${GROUP}
 
 ENTRYPOINT [ "node", "/usr/local/theia/src-gen/backend/main.js", "${homedir}", "--hostname=0.0.0.0" ]
