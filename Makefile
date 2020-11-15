@@ -58,9 +58,9 @@ containers:
 	cp gopherbot-linux-amd64.tar.gz resources/containers/dev/
 	buildah pull quay.io/lnxjedi/gopherbot-base
 	buildah pull quay.io/lnxjedi/gopherbot-base-theia
-	buildah bud --layers -f resources/containers/minimal/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/minimal/
-	buildah bud --layers -f resources/containers/dev/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/dev/
-	buildah bud --layers -f resources/containers/theia/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/theia/
+	buildah bud --layers --isolation chroot -f resources/containers/minimal/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/minimal/
+	buildah bud --layers --isolation chroot -f resources/containers/dev/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/dev/
+	buildah bud --layers --isolation chroot -f resources/containers/theia/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/theia/
 	rm -f resources/containers/minimal/gopherbot-linux-amd64.tar.gz resources/containers/theia/gopherbot-linux-amd64.tar.gz resources/containers/dev/gopherbot-linux-amd64.tar.gz
 
 # Run test suite without coverage (see .gopherci/pipeline.sh)
