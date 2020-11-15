@@ -1,4 +1,4 @@
-FROM quay.io/lnxjedi/gopherbot-base:latest
+FROM quay.io/lnxjedi/gopherbot-base-theia:latest
 
 ARG username=robot
 ARG userid=1000
