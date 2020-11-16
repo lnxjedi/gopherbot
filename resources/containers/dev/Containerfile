@@ -1,4 +1,4 @@
-FROM quay.io/lnxjedi/gopherbot-theia:latest
+FROM quay.io/lnxjedi/gopherbot-base-theia:latest
 
 ARG username=robot
 ARG userid=1000
@@ -6,6 +6,14 @@ ARG nonprivuser=nobody
 
 ARG installdir=/opt
 ARG homedir=/home/robot
+
+# For dev
+ADD gopherbot-linux-amd64.tar.gz ${installdir}
+RUN chown ${nonprivuser}:${username} ${installdir}/gopherbot/gopherbot && \
+  chmod u+s ${installdir}/gopherbot/gopherbot && \
+  ln -s ${installdir}/gopherbot/gopherbot ${HOME}/gopherbot && \
+  chown -R robot:robot ${homedir} && \
+  chmod go+rx ${homedir}
 
 WORKDIR /usr/local/theia
 USER ${userid}:${GROUP}
