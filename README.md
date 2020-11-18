@@ -10,23 +10,40 @@
 
 Enterprise Slack(\*) DevOps / ChatOps / CI/CD bot for Linux, supporting extensions in Go, Python, Ruby, and Bash
 
-Try out **Gopherbot** and generate a Slack robot with Gitpod:
-
-[![Open with Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/lnxjedi/gopherbot)
-
 Slogans under consideration:
 * **The Co-worker that Never Sleeps**
 * **The DevOps Swiss-Army Chainsaw**
 
-## Latest Release
-Download the current release from: https://github.com/lnxjedi/gopherbot/releases/latest
+## Building from Source
+With Gopherbot version 2 defaulting to a modular build (to avoid, e.g. linking in go-aws when it's not used), I've stopped building downloadable artifacts, since they were linked to the glibc on the build system.
 
-**NOTE:** Version 1 is getting pretty old. I've been running the core of Version 2, heavily using pipelines and encrypted secrets, for about a year now. I'm in the process of breaking/fixing things that have become obvious over the last year, in preparation to release v2 in early 2020. If you've been using v2-snapshot, it's probably been bumpy.
+**Requirements:**
+* A recent (1.14+) version of Go
+* Tar and zip for creating the archives
+
+**Steps:**
+1. Clone this repository
+1. `make dist` in the repository root
+1. Follow installation instructions at https://lnxjedi.github.io/gopherbot/
+
+## Container Builds
+Version 2 and onward will be primarily built and released as containers:
+* [https://quay.io/repository/lnxjedi/gopherbot-dev](gopherbot-dev) - `quay.io/lnxjedi/gopherbot-dev`
+  * `gopherbot-dev` uses [https://github.com/theia-ide/theia-apps](Theia) for the entrypoint, and is intended for use in coding extensions for your robot
+* [https://quay.io/repository/lnxjedi/gopherbot-theia](gopherbot-dev) - `quay.io/lnxjedi/gopherbot-theia`
+  * `gopherbot-theia` includes theia but uses `gopherbot` for the entrypoint, intended for robots that can run `theia` as a child process
+* [https://quay.io/repository/lnxjedi/gopherbot](gopherbot) - `quay.io/lnxjedi/gopherbot`
+  * `gopherbot` is a fairly minimal gopherbot container just for running a containerized robot
+
+Like other projects, the `latest` tag will always be built from the most recent code, and released versions will have version tags.
+
+## Release Status
+Version 2 is nearing release. I've accepted that up-to-date documentation will lag the release significantly.
 
 ## Documentation
 The latest documentation for Version 2 is on Github Pages: https://lnxjedi.github.io/gopherbot
 
-Documentation for v1 can be found in the `/doc` subdirectory of the archive.
+Documentation for v1 can be found in the `/doc` subdirectory of the old archives.
 
 ---
 
