@@ -8,7 +8,7 @@ ARG installdir=/opt
 ARG homedir=/home/robot
 
 # For dev
-ADD gopherbot-linux-amd64.tar.gz ${installdir}
+ADD gopherbot.tar.gz ${installdir}
 RUN chown ${nonprivuser}:${username} ${installdir}/gopherbot/gopherbot && \
   chmod u+s ${installdir}/gopherbot/gopherbot && \
   ln -s ${installdir}/gopherbot/gopherbot ${HOME}/gopherbot && \

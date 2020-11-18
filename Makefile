@@ -1,11 +1,14 @@
 # Makefile - just builds the binary, for dev mainly
 
-.PHONY: clean test generate testbot static
+.PHONY: clean test generate testbot static modular dist containers
 
 commit := $(shell git rev-parse --short HEAD)
 
 MODULES = goplugins/knock.so goplugins/duo.so goplugins/meme.so goplugins/totp.so \
 	connectors/slack.so connectors/rocket.so brains/dynamodb.so history/file.so
+
+TAR_ARCHIVE = gopherbot-linux-amd64.tar.gz
+ZIP_ARCHIVE = gopherbot-linux-amd64.zip
 
 GOOS ?= linux
 CGO ?= 0
@@ -49,19 +52,24 @@ brains/dynamodb.so: brains/dynamodb-mod.go brains/dynamodb/*.go
 	GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w" -o $@ -buildmode=plugin -tags 'netgo osusergo static_build module' $<
 
 clean:
-	rm -f gopherbot $(MODULES)
+	rm -f gopherbot $(MODULES) $(TAR_ARCHIVE) $(ZIP_ARCHIVE)
 
-containers:
-	./.gopherci/mkdist.sh linux
-	cp gopherbot-linux-amd64.tar.gz resources/containers/minimal/
-	cp gopherbot-linux-amd64.tar.gz resources/containers/theia/
-	cp gopherbot-linux-amd64.tar.gz resources/containers/dev/
+$(TAR_ARCHIVE): modular
+	# Note that mkdist.sh currently makes both tar.gz and zip files
+	./.gopherci/mkdist.sh
+
+dist: $(TAR_ARCHIVE)
+
+containers: dist
+	cp $(TAR_ARCHIVE) resources/containers/minimal/gopherbot.tar.gz
+	cp $(TAR_ARCHIVE) resources/containers/theia/gopherbot.tar.gz
+	cp $(TAR_ARCHIVE) resources/containers/dev/gopherbot.tar.gz
 	buildah pull quay.io/lnxjedi/gopherbot-base
 	buildah pull quay.io/lnxjedi/gopherbot-base-theia
 	buildah bud --isolation chroot -f resources/containers/minimal/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/minimal/
 	buildah bud --isolation chroot -f resources/containers/theia/Containerfile -t quay.io/lnxjedi/gopherbot-theia:latest ./resources/containers/theia/
 	buildah bud --isolation chroot -f resources/containers/dev/Containerfile -t quay.io/lnxjedi/gopherbot-dev:latest ./resources/containers/dev/
-	rm -f resources/containers/minimal/gopherbot-linux-amd64.tar.gz resources/containers/theia/gopherbot-linux-amd64.tar.gz resources/containers/dev/gopherbot-linux-amd64.tar.gz
+	rm -f resources/containers/minimal/gopherbot.tar.gz resources/containers/theia/gopherbot.tar.gz resources/containers/dev/gopherbot.tar.gz
 
 # Run test suite without coverage (see .gopherci/pipeline.sh)
 test:

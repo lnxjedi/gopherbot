@@ -1,5 +1,3 @@
-// +build linux darwin dragonfly freebsd netbsd openbsd
-
 package bot
 
 import (
