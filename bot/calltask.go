@@ -53,7 +53,10 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *Task) {
 	if relpath {
 		cmd.Dir = configPath
 	}
-	env := []string{fmt.Sprintf("GOPHER_INSTALLDIR=%s", installPath)}
+	env := []string{
+		fmt.Sprintf("GOPHER_INSTALLDIR=%s", installPath),
+		fmt.Sprintf("GOPHER_CONFIGDIR=%s", configFull),
+	}
 	for _, p := range envPassThrough {
 		if value, ok := os.LookupEnv(p); ok {
 			env = append(env, fmt.Sprintf("%s=%s", p, value))
