@@ -148,13 +148,10 @@ func Start(v VersionInfo) {
 	}
 	penvErr := godotenv.Overload(envFile)
 
-	envCfgPath := os.Getenv("GOPHER_CONFIGDIR")
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
 	if len(explicitCfgPath) != 0 {
 		configpath = explicitCfgPath
-	} else if len(envCfgPath) > 0 {
-		configpath = envCfgPath
 	} else {
 		if _, ok := checkDirectory("custom"); ok {
 			configpath = "custom"
