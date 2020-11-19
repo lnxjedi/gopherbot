@@ -53,18 +53,16 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	} else {
 		c.privileged = job.Privileged
 	}
-	if c.privileged {
-		if len(homePath) > 0 {
-			c.environment["GOPHER_HOME"] = homePath
-		}
+	if len(homePath) > 0 {
+		c.environment["GOPHER_HOME"] = homePath
 	}
+	c.environment["GOPHER_WORKSPACE"] = w.cfg.workSpace
+	c.environment["GOPHER_CONFIGDIR"] = configFull
 	// Initial baseDirectory and workingDirectory are the same; SetWorkingDirectory
 	// modifies workingDirectory.
 	if task.Homed {
 		c.baseDirectory = "."
 		c.workingDirectory = "."
-		c.environment["GOPHER_WORKSPACE"] = w.cfg.workSpace
-		c.environment["GOPHER_CONFIGDIR"] = configFull
 	} else {
 		c.baseDirectory = w.cfg.workSpace
 		c.workingDirectory = w.cfg.workSpace
