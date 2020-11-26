@@ -1,16 +1,6 @@
 ## The terminal connector can mirror the actual team/users/channels for
-## devel.
-# DefaultChannels: [ "general", "staff", "helpdesk" ]
+## devel. See the installed `terminal.yaml`
+## (normally in /opt/gopherbot/conf/terminal.yaml) for a full example.
 ProtocolConfig:
   EOF: '<botalias>quit'
   Abort: '<botalias>abort'
-#   Users:
-#   - tommy
-#   - jane
-#   - phil
-#   - margie
-#   Channels:
-#   - general
-#   - random
-#   - staff
-#   - helpdesk
