@@ -30,9 +30,17 @@ var workerID = struct {
 // Get the next context ID
 func getWorkerID() int {
 	workerID.Lock()
-	workerID.idx++
-	if workerID.idx == maxIndex {
-		workerID.idx = 1
+	for {
+		workerID.idx++
+		if workerID.idx == maxIndex {
+			workerID.idx = 1
+		}
+		activePipelines.Lock()
+		_, exists := activePipelines.i[workerID.idx]
+		activePipelines.Unlock()
+		if !exists {
+			break
+		}
 	}
 	ctxid := workerID.idx
 	workerID.Unlock()

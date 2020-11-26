@@ -1,6 +1,7 @@
 package bot
 
-const maxIndex = 2 ^ 16
+// 65536
+const maxIndex = 1 << 16
 
 type pipeAddFlavor int
 type pipeAddType int
