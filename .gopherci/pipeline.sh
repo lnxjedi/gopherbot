@@ -15,7 +15,7 @@ FailTask email-log parsley@linuxjedi.org
 AddTask exec go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./test
 
 # Do a full build
-AddTask exec ./.gopherci/mkdist.sh
+AddTask exec make
 
 # See who got this message and act accordingly
 BOT=$(GetBotAttribute name)
