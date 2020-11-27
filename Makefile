@@ -67,8 +67,8 @@ containers: dist
 	cp $(TAR_ARCHIVE) resources/containers/minimal/gopherbot.tar.gz
 	cp $(TAR_ARCHIVE) resources/containers/theia/gopherbot.tar.gz
 	cp $(TAR_ARCHIVE) resources/containers/dev/gopherbot.tar.gz
-	buildah pull quay.io/lnxjedi/gopherbot-base
-	buildah pull quay.io/lnxjedi/gopherbot-base-theia
+	buildah pull quay.io/lnxjedi/gopherbot-base:latest
+	buildah pull quay.io/lnxjedi/gopherbot-base-theia:latest
 	buildah bud -f resources/containers/minimal/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/minimal/
 	buildah bud -f resources/containers/theia/Containerfile -t quay.io/lnxjedi/gopherbot-theia:latest ./resources/containers/theia/
 	buildah bud -f resources/containers/dev/Containerfile -t quay.io/lnxjedi/gopherbot-dev:latest ./resources/containers/dev/
