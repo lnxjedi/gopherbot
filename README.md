@@ -19,7 +19,7 @@ With Gopherbot version 2 defaulting to a modular build (to avoid, e.g. linking i
 
 **Requirements:**
 * A recent (1.14+) version of Go
-* Tar and zip for creating the archives
+* Standard build utilities; make, tar, gzip
 
 **Steps:**
 1. Clone this repository
