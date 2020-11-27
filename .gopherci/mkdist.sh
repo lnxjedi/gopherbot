@@ -1,5 +1,5 @@
 #!/bin/bash -e
-# mkdist.sh - create a distributable .zip file
+# mkdist.sh - create a distributable gopherbot-*.tar.gz file
 
 trap_handler()
 {
@@ -14,7 +14,7 @@ usage(){
 	cat <<EOF
 Usage: mkdist.sh
 
-Generate distributable zip/tar.gz files for Linux
+Generate distributable tar.gz file for Linux
 EOF
 	exit 0
 }
@@ -41,8 +41,7 @@ mkdir -p "$ADIR/gopherbot"
 cp -a gopherbot "$ADIR/gopherbot/gopherbot"
 cp -a --parents $CONTENTS $MODULES "$ADIR/gopherbot"
 cd $ADIR
-echo "Creating gopherbot-$BUILDOS-$GOARCH.[zip|tar.gz] (from $(pwd))"
-zip -r ../gopherbot-$BUILDOS-$GOARCH.zip gopherbot/ --exclude *.swp *.pyc *__pycache__*
+echo "Creating gopherbot-$BUILDOS-$GOARCH.tar.gz (from $(pwd))"
 tar --owner=0 --group=0 --exclude *.swp --exclude *.pyc --exclude __pycache__ -czvf ../gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot/
 cd -
 
