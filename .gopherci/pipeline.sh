@@ -9,58 +9,19 @@ then
     FailTask notify $NOTIFY_USER "Gopherbot build failed"
 fi
 
-REPO_NAME=${GOPHER_NAMESPACE_EXTENDED:-$GOPHER_REPOSITORY}
-
-# Update path for a Go build
-PATH=$PATH:$HOME/go/bin:/usr/local/go/bin
-SetParameter "PATH" "$PATH"
-
 FailTask email-log parsley@linuxjedi.org
-
-# Docs only
-if [ "$GOPHER_REPOSITORY" == "github.com/lnxjedi/gopherbot" -a "$GOPHERCI_BRANCH" == "docs" ]
-then
-    # Initialize ssh for updating docs repo
-    AddTask ssh-init
-
-    # Make sure github is in known_hosts
-    AddTask ssh-scan github.com
-
-    # Clone existing gh-pages
-    AddTask git-clone https://github.com/lnxjedi/gopherbot.git gh-pages gopherbot-doc
-
-    # Build new
-    AddTask exec ./.gopherci/mkdocs.sh
-
-    # Publish doc updates (if any)
-    AddTask exec ./.gopherci/publishdoc.sh
-    AddTask notify $NOTIFY_USER "Completed successful documentation build"
-    exit 0
-fi
-
-# Do a full build for all platforms
-AddTask exec ./.gopherci/mkdist.sh
 
 # Run tests
 AddTask exec go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./test
 
-# Install required tools
-AddTask exec ./.gopherci/tools.sh
-
-# Publish coverage results
-#AddTask exec goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
-
-# Initial clones from public https
-AddTask git-clone https://github.com/lnxjedi/gopherbot.git gh-pages gopherbot-doc
-AddTask git-clone https://github.com/lnxjedi/gopherbot-docker.git master gopherbot-docker
-
-AddTask exec ./.gopherci/mkdocs.sh
+# Do a full build
+AddTask exec ./.gopherci/mkdist.sh
 
 # See who got this message and act accordingly
 BOT=$(GetBotAttribute name)
-if [ "$BOT" != "floyd" ]
+if [ "$BOT" != "data" ]
 then
-    # if it's not Floyd, stop the pipeline here
+    # if it's not Data, stop the pipeline here
     if [ -n "$NOTIFY_USER" ]
     then
         AddTask notify $NOTIFY_USER "Builds and tests succeeded for Gopherbot"
@@ -76,23 +37,27 @@ then
     exit 0
 fi
 
-# Initialize ssh for updating docs repo
-AddTask ssh-init
+# Set for building containers in containers
+SetParameter BUILDAH_ISOLATION chroot
 
-# Make sure github is in known_hosts
-AddTask ssh-scan github.com
+# Log in to container registries
+AddTask buildah-login quay.io parsley42 QUAY
+AddTask buildah-login registry.in.linuxjedi.org linux LINUXJEDI
 
-# Publish doc updates (if any)
-AddTask exec ./.gopherci/publishdoc.sh
+# Build the containers, tag for developer registry
+# Note that the make target pulls the FROM images first
+AddTask exec make containers
+AddTask exec buildah tag quay.io/lnxjedi/gopherbot registry.in.linuxjedi.org/lnxjedi/gopherbot
+AddTask exec buildah tag quay.io/lnxjedi/gopherbot-theia registry.in.linuxjedi.org/lnxjedi/gopherbot-theia
 
-# Publish archives to github
-AddTask exec ./.gopherci/publish.sh
-
-# Update gopherbot-docker
-AddTask exec ./.gopherci/dockerupdate.sh
+# Push containers out
+AddTask exec buildah push quay.io/lnxjedi/gopherbot
+AddTask exec buildah push quay.io/lnxjedi/gopherbot-theia
+AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot
+AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot-theia
 
 # Notify of success
 if [ -n "$NOTIFY_USER" ]
 then
-    AddTask notify $NOTIFY_USER "Successfully built and released latest Gopherbot"
+    AddTask notify $NOTIFY_USER "Successfully built and pushed gopherbot:latest"
 fi

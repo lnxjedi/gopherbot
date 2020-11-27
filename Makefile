@@ -69,9 +69,9 @@ containers: dist
 	cp $(TAR_ARCHIVE) resources/containers/dev/gopherbot.tar.gz
 	buildah pull quay.io/lnxjedi/gopherbot-base
 	buildah pull quay.io/lnxjedi/gopherbot-base-theia
-	buildah bud --isolation chroot -f resources/containers/minimal/Containerfile -t quay.io/lnxjedi/gopherbot:latest -t registry.in.linuxjedi.org/lnxjedi/gopherbot:latest ./resources/containers/minimal/
-	buildah bud --isolation chroot -f resources/containers/theia/Containerfile -t quay.io/lnxjedi/gopherbot-theia:latest -t registry.in.linuxjedi.org/lnxjedi/gopherbot-theia:latest ./resources/containers/theia/
-	buildah bud --isolation chroot -f resources/containers/dev/Containerfile -t quay.io/lnxjedi/gopherbot-dev:latest -t registry.in.linuxjedi.org/lnxjedi/gopherbot-dev:latest ./resources/containers/dev/
+	buildah bud -f resources/containers/minimal/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/minimal/
+	buildah bud -f resources/containers/theia/Containerfile -t quay.io/lnxjedi/gopherbot-theia:latest ./resources/containers/theia/
+	buildah bud -f resources/containers/dev/Containerfile -t quay.io/lnxjedi/gopherbot-dev:latest ./resources/containers/dev/
 	rm -f resources/containers/minimal/gopherbot.tar.gz resources/containers/theia/gopherbot.tar.gz resources/containers/dev/gopherbot.tar.gz
 
 # Run test suite without coverage (see .gopherci/pipeline.sh)
