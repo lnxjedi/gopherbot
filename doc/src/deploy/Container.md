@@ -1,6 +1,6 @@
 # Running in a Container
 
-A major goal for **Gopherbot** v2 was container-native operation, and the ability to run your robot with all it's functionality and state/context, without requiring a persistent volume mount or a custom image with your robot baked-in. You can launch your robot using any of the [stock images](https://hub.docker.com/r/lnxjedi/gopherbot); you should only need to create a custom image if your robot requires specific extra tools or libraries to do it's work, such as e.g. an ldap client or specific python module.
+A major goal for **Gopherbot** v2 was container-native operation, and the ability to run your robot with all it's functionality and state/context, without requiring a persistent volume mount or a custom image with your robot baked-in. You can launch your robot using any of the [stock images](https://quay.io/lnxjedi/gopherbot); you should only need to create a custom image if your robot requires specific extra tools or libraries to do it's work, such as e.g. an ldap client or specific python module.
 
 This section doesn't delve in to the specifics of running your robot in any particular container environment. Whether your robot runs as a persistent container on a Docker host, or as a managed container in a Kubernetes or Openshift cluster - or elsewhere - the same principles apply. If you're planning on deploying in a container, it is presumed that you're already running other containerized workloads, and can provide the requirements by common means for your container environment.
 

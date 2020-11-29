@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: docker.io/lnxjedi/gopherbot
+  repository: quay.io/lnxjedi/gopherbot
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""

@@ -30,7 +30,7 @@ spec:
       securityContext:
         runAsNonRoot: true
       containers:
-      - image: lnxjedi/gopherbot:v2.0.0-beta3
+      - image: quay.io/lnxjedi/gopherbot:latest
         name: gopherbot
         env:
           - name: GOPHER_ENCRYPTION_KEY

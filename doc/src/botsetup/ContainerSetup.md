@@ -6,7 +6,7 @@ If you have an environment where you can run and interact with containers in a t
 
 For container-based installs, you can start an empty container and use the `setup` command to display an appropriate `answerfile.txt`, using **Podman** to set up **slack** as an example:
 ```
-$ podman run -it --name ansfile lnxjedi/gopherbot:latest
+$ podman run -it --name ansfile quay.io/lnxjedi/gopherbot:latest
 Info: PID == 1, spawning child
 Info: Starting pid 1 signal handler
 Logging to robot.log; warnings and errors duplicated to stdout
@@ -40,8 +40,8 @@ With a complete answerfile, you can start a *Gopherbot* container, passing the a
 
 **With Podman**:
 ```
-$ podman run -it --env-file answerfile.txt lnxjedi/gopherbot:latest
-Trying to pull docker.io/lnxjedi/gopherbot:latest...
+$ podman run -it --env-file answerfile.txt quay.io/lnxjedi/gopherbot:latest
+Trying to pull quay.io/lnxjedi/gopherbot:latest...
 Getting image source signatures
 ...
 Info: PID == 1, spawning child
@@ -55,9 +55,9 @@ null connector: Continuing automatic setup...
 
 **With Docker**:
 ```
-$ docker run -it --env-file answerfile.txt lnxjedi/gopherbot:latest
-Unable to find image 'lnxjedi/gopherbot:latest' locally
-latest: Pulling from lnxjedi/gopherbot
+$ docker run -it --env-file answerfile.txt quay.io/lnxjedi/gopherbot:latest
+Unable to find image 'quay.io/lnxjedi/gopherbot:latest' locally
+latest: Pulling from quay.io/lnxjedi/gopherbot
 ...
 Info: PID == 1, spawning child
 Info: Starting pid 1 signal handler

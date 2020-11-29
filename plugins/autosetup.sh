@@ -288,10 +288,10 @@ along with the 'GOPHER_CUSTOM_REPOSITORY', to initially clone it's repository du
 GOPHER_PROTOCOL is commented out to avoid accidentally connecting another instance of your robot \
 to team chat when run from a terminal window. With proper configuration of your git repository, \
 the '.env' file is all that's needed to bootstrap your robot in to an empty *Gopherbot* \
-container, (https://hub.docker.com/r/lnxjedi/gopherbot) or on a Linux host or VM with the \
+container, (https://quay.io/lnxjedi/gopherbot) or on a Linux host or VM with the \
 *Gopherbot* software archive installed.
-4) Once these tasks are complete, copy steps 5-7 below to a temporary text file for reference, \
-and press <enter> to restart your robot, which will then connect to your team chat.
+4) Once these tasks are complete, re-start this container in a separate tab/window to connect \
+your robot to team chat.
 5) Invite your robot to #${JOBCHANNEL}; slack robots will need to be invited to any channels \
 where they will be listening and/or speaking.
 6) Open a direct message (DM) channel to your robot, and give this command to add yourself \
@@ -300,12 +300,9 @@ as an administrator: \"add administrator $SETUPKEY\"; your robot will then updat
 7) Once that completes, you can instruct the robot to store it's configuration in it's git \
 repository by issuing the 'save' command.
 
-After your robot has saved it's configuration, press <ctrl-c> to stop this container, which \
-can then be discarded.
+After your robot has saved it's configuration, you can stop and discard this container."
 
-Press <enter> to restart..."
-    read DUMMY
-    AddTask restart-robot
+    AddTask robot-quit
     exit 0
 else
     Say "********************************************************
@@ -336,7 +333,7 @@ repository by issuing the 'save' command.
 commented out; this avoids accidentally connecting another instance of your robot to team chat \
 when run from a terminal window. With proper configuration of your git repository, the '.env' \
 file is all that's needed to bootstrap your robot in to an empty *Gopherbot* container, \
-(https://hub.docker.com/r/lnxjedi/gopherbot) or on a Linux host or VM with the *Gopherbot* \
+(https://quay.io/lnxjedi/gopherbot) or on a Linux host or VM with the *Gopherbot* \
 software archive installed.
 
 Now you've completed all of the initial setup for your *Gopherbot* robot. See the chapter on \

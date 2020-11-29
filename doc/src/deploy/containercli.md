@@ -1,11 +1,11 @@
 # Container Operation
 
-The next best option to a local install is running the CLI in a container; just drop your robot's `.env` file in a directory and run the one of the [stock images](https://hub.docker.com/r/lnxjedi/gopherbot), overriding the entrypoint. Using `podman` as an example:
+The next best option to a local install is running the CLI in a container; just drop your robot's `.env` file in a directory and run the one of the [stock images](https://quay.io/lnxjedi/gopherbot), overriding the entrypoint. Using `podman` as an example:
 ```
 [parse@hakuin ~]$ mkdir clu
 [parse@hakuin ~]$ cd clu/
 [parse@hakuin clu]$ vim .env
-[parse@hakuin clu]$ podman run -it --entrypoint /bin/bash --env-file .env lnxjedi/gopherbot:latest
+[parse@hakuin clu]$ podman run -it --entrypoint /bin/bash --env-file .env quay.io/lnxjedi/gopherbot:latest
 daemon@af2a1924e1ff:~$ gopherbot
 2020/02/20 19:23:32 Debug: Checking os.Stat for dir 'custom' from wd '': stat custom: no such file or directory
 2020/02/20 19:23:32 Debug: Checking os.Stat for dir 'conf' from wd '': stat conf: no such file or directory

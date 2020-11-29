@@ -12,9 +12,9 @@ GOPHER_BOTFULLNAME="Optional Full Name"
 # Other good values: ; ! *
 GOPHER_ALIAS=\
 ```
-3. Start your robot with `docker run --env .env --name <nameOfYourBot> lnxjedi/gopherbot`, for example:
+3. Start your robot with `docker run --env .env --name <nameOfYourBot> quay.io/lnxjedi/gopherbot`, for example:
 ```shell
-$ docker run --env-file .env --name frodo lnxjedi/gopherbot
+$ docker run --env-file .env --name frodo quay.io/lnxjedi/gopherbot
 ```
 
 If all goes well, your terminal window will start filling up with **Gopherbot** debug logs, and your robot will connect to your Slack team. Now you can invite your robot user to a channel and try out a few commands. Assuming you used `\` for the alias, and `frodo` for the robot's name, you can try:
