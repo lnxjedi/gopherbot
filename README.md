@@ -15,7 +15,7 @@ Slogans under consideration:
 * **The DevOps Swiss-Army Chainsaw**
 
 ## Building from Source
-With Gopherbot version 2 defaulting to a modular build (to avoid, e.g. linking in go-aws when it's not used), I've stopped building downloadable artifacts, since they were linked to the glibc on the build system.
+With Gopherbot version 2 defaulting to a modular build (to avoid e.g. linking in the go-aws library when it's not used), I've stopped building downloadable artifacts, since they were linked to the glibc on the build system.
 
 **Requirements:**
 * A recent (1.14+) version of Go
