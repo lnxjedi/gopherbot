@@ -17,4 +17,6 @@ RUN chown ${nonprivuser}:${username} ${installdir}/gopherbot/gopherbot && \
 WORKDIR /usr/local/theia
 USER ${userid}:${GROUP}
 
-ENTRYPOINT [ "node", "/usr/local/theia/src-gen/backend/main.js", "$HOME", "--hostname=0.0.0.0" ]
+# NOTE: the entrypoint is hard-coded to /home/robot to work around a bug; TODO: proper fix using
+# ${homedir} or ${HOME}.
+ENTRYPOINT [ "node", "/usr/local/theia/src-gen/backend/main.js", "/home/robot", "--hostname=0.0.0.0" ]
