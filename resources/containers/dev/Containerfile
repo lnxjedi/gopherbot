@@ -5,6 +5,7 @@ ARG userid=1000
 ARG nonprivuser=nobody
 
 ARG installdir=/opt
+# NOTE: repeated below in the ENTRYPOINT to work around an expansion strangeness
 ARG homedir=/home/robot
 
 # For dev
@@ -18,4 +19,4 @@ RUN chown ${nonprivuser}:${username} ${installdir}/gopherbot/gopherbot && \
 WORKDIR /usr/local/theia
 USER ${userid}:${GROUP}
 
-ENTRYPOINT [ "node", "/usr/local/theia/src-gen/backend/main.js", ${homedir}, "--hostname=0.0.0.0" ]
+ENTRYPOINT [ "node", "/usr/local/theia/src-gen/backend/main.js", "/home/robot", "--hostname=0.0.0.0" ]
