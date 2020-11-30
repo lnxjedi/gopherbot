@@ -1,5 +1,0 @@
-# Upgrading from Version 1
-
-The following sections detail the required and optional changes for upgrading a robot from version 1 to version 2. Over the course of developing version 2, there were several intermediary states for different configuration options that are not described here. If you need information on upgrading from any of these intermediary states, please [open an issue](https://github.com/lnxjedi/gopherbot/issues/new).
-
-Note that this chapter is not exhaustive in the changes required for updating your robot. The best approach would be to set up a new robot, then port your customizations from version 1; the API hasn't changed, but there are configuration changes described here. Another approach might be to set up a new test robot to understand the v2 robot architecture, then examine the contents of `robot.skel` and incrementally update your robot to the v2 standard.
