@@ -339,7 +339,9 @@ software archive installed.
 Now you've completed all of the initial setup for your *Gopherbot* robot. See the chapter on \
 deploying and running your robot (https://lnxjedi.github.io/gopherbot/RunRobot.html) for \
 information on day-to-day operations. You can stop the running robot in your second terminal \
-window using <ctrl-c>."
+window using <ctrl-c>.
+
+(NOTE: Scroll back to the line of *** above and follow the directions to finish setup)"
 
     AddTask robot-quit
     exit 0
