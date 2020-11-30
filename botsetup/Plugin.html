@@ -172,28 +172,15 @@ root INFO Configuration directory URI: 'file:///home/robot/.theia'
 root INFO Deploy plugins list took: 441.6 ms
 </code></pre>
 <p><strong>2.</strong> Open your browser and browse to <code>http://127.0.0.1:3000</code> to view the <a href="https://github.com/eclipse-theia/theia">Theia</a> interface.</p>
-<p><strong>3.</strong> Open a terminal from the <code>Terminal</code> menu, and run <code>gopherbot</code>:</p>
-<pre><code>$ gopherbot
-2020/11/30 16:00:23 Logging to robot.log; warnings and errors duplicated to stdout
-Terminal connector running; Use '|c&lt;channel|?&gt;' to change channel, or '|u&lt;user|?&gt;' to change user
-general: *******
-general: Welcome to the *Gopherbot* terminal connector. Since no configuration was detected, you're connected to 'floyd', the default robot.
-general: If you've started the robot by mistake, just hit ctrl-D to exit and try 'gopherbot --help'; otherwise feel free to play around with the default robot - you can start by typing 'help'. If you'd
-like to start configuring a new robot, type: ';setup &lt;protocol&gt;'.
-c:general/u:alice -&gt;
+<p><strong>3.</strong> Open a terminal from the <code>Terminal</code> menu, and run <code>gopherbot init slack</code> to get a slack <code>answerfile.txt</code>:</p>
+<pre><code>$ gopherbot init slack
+Edit 'answerfile.txt' and re-run gopherbot with no arguments to generate your robot.
 </code></pre>
-<p><strong>4.</strong> Use the setup command to create a new <code>answerfile.txt</code> for <strong>Slack</strong>:</p>
-<pre><code>c:general/u:alice -&gt; ;setup slack
-general: Edit 'answerfile.txt' and re-run gopherbot with no arguments to generate your robot.
-Exiting (press &lt;enter&gt; ...)
-c:general/u:alice -&gt; 
-Terminal connector finished
-</code></pre>
-<p><strong>5.</strong> Click the file icon or use the <code>File ... Open...</code> menu to open the newly-created <code>answerfile.txt</code>, then follow the directions to fill in the blanks. Note that the answerfile template also contains documentation regarding the requirements for setting up your robot, including information on obtaining credentials for your robot to use with team chat.</p>
+<p><strong>4.</strong> Click the file icon or use the <code>File ... Open...</code> menu to open the newly-created <code>answerfile.txt</code>, then follow the directions to fill in the blanks. Note that the answerfile template also contains documentation regarding the requirements for setting up your robot, including information on obtaining credentials for your robot to use with team chat.</p>
 <blockquote>
 <p>If you're not already familiar with <strong>ssh deploy keys</strong>, you should read up on the documentation for your <em>git</em> provider; see for example the <a href="https://developer.github.com/v3/guides/managing-deploy-keys/#deploy-keys">Github deploy keys</a> documentation, which also has useful information about <a href="https://developer.github.com/v3/guides/managing-deploy-keys/#machine-users">machine users</a>.</p>
 </blockquote>
-<p><strong>6.</strong> When you've finished editing and saving <code>answerfile.txt</code>, re-run <code>gopherbot</code>; your robot will process the answerfile to generate your robot's initial configuration:</p>
+<p><strong>5.</strong> When you've finished editing and saving <code>answerfile.txt</code>, re-run <code>gopherbot</code>; your robot will process the answerfile to generate your robot's initial configuration:</p>
 <pre><code>$ ./gopherbot 
 2020/03/22 10:40:57 Info: Logging to robot.log
 null connector: Initializing encryption and restarting...
@@ -212,7 +199,7 @@ need this for completing setup.
 (NOTE: Scroll back to the line of *** above and follow the directions to finish
 setup)
 </code></pre>
-<p><strong>7.</strong> Follow the instructions to add yourself as a robot administrator, and save your robot to it's <em>git</em> repository.</p>
+<p><strong>6.</strong> Follow the instructions to add yourself as a robot administrator, and save your robot to it's <em>git</em> repository.</p>
 <blockquote>
 <p>NOTE: the quickest way to open a second terminal is to click the &quot;Split Terminal&quot; box in the upper-right corner of your initial terminal.</p>
 </blockquote>
