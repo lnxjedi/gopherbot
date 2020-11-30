@@ -49,6 +49,7 @@ AddTask buildah-login registry.in.linuxjedi.org linux LINUXJEDI
 AddTask exec make containers
 AddTask exec buildah tag quay.io/lnxjedi/gopherbot registry.in.linuxjedi.org/lnxjedi/gopherbot
 AddTask exec buildah tag quay.io/lnxjedi/gopherbot-theia registry.in.linuxjedi.org/lnxjedi/gopherbot-theia
+AddTask exec buildah tag quay.io/lnxjedi/gopherbot-dev registry.in.linuxjedi.org/lnxjedi/gopherbot-dev
 
 # Push containers out
 AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot
