@@ -227,7 +227,7 @@ GOPHER_SETUP_TOKEN=$SETUPKEY
 EOF
 
 # Create configuration
-cp -r $GOPHER_INSTALLDIR/robot.skel/* $GOPHER_INSTALLDIR/robot.skel/.??* "$GOPHER_CONFIGDIR"
+cp -r $GOPHER_INSTALLDIR/robot.skel/* "$GOPHER_CONFIGDIR"
 substitute "<slackencrypted>" "$SLACK_ENCRYPTED" "conf/slack.yaml"
 substitute "<sshencrypted>" "$SSH_ENCRYPTED"
 substitute "<jobchannel>" "$JOBCHANNEL" "conf/slack.yaml"

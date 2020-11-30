@@ -54,12 +54,8 @@
 ##   use this most often for sending messages to your robot, as it's the most
 ##   concise; e.g. ';ping'.
 ##
-## NOTE NOTE NOTE: For container-based setup, this should be un-quoted,
-## for CLI-initiated setup, this value should be single-quoted.
+## NOTE NOTE NOTE: This value should be single-quoted.
 ##
-## Container-based setup example
-# ANS_ROBOT_ALIAS=;
-## CLI-based setup example
 # ANS_ROBOT_ALIAS=';'
   ANS_ROBOT_ALIAS=
 ##
