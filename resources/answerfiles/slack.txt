@@ -24,7 +24,7 @@
 ## * ENCRYPTION KEY: A thirty-two character key to be kept outside of any
 ##   git repository. Your robot will use this key to unlock the
 ##   `binary-encrypted-key` in your robot's repository, which the robot uses
-##   to decrypt other secrets. Use 'g' to generate.
+##   to decrypt other secrets. Use 'g' to generate a random one.
 ##
 # ANS_ENCRYPTION_KEY=g
 # ANS_ENCRYPTION_KEY=GretFilllLterbRounwn8-v]CarpeDie
@@ -64,7 +64,8 @@
 ##   output from these jobs will go to a default job channel for your robot.
 ##   If you don't expect your robot to run a lot of jobs, it's safe to use e.g.
 ##   'general'. If you create a new channel for this purpose, be sure and
-##   invite your robot to the channel when it first connects.
+##   invite your robot to the channel when it first connects. A common
+##   convention for this is "<robotname>-jobs"
 ##
 # ANS_JOB_CHANNEL=general
 # ANS_JOB_CHANNEL=floyd-jobs
@@ -81,7 +82,8 @@
 ##
 ## * ROBOT SSH PHRASE: Your robot will make heavy use of 'ssh' for doing it's
 ##   work, and it's private keys will be encrypted. Supply a passphrase
-##   your robot can use, at least 16 characters: [0-9A-Za-z_+/-].
+##   your robot can use, at least 16 characters: [0-9A-Za-z_+/-]. Use 'g' to
+##   generate a random one.
 ##
 # ANS_SSH_PHRASE=g
 # ANS_SSH_PHRASE=0123456789012345
@@ -94,7 +96,7 @@
 # ANS_KEY_TYPE=dsa
 # ANS_KEY_TYPE=ecdsa
 # ANS_KEY_TYPE=ed25519
-  ANS_KEY_TYPE=rsa
+  ANS_KEY_TYPE=
 ##
 ## * ROBOT REPOSITORY: The standard for Gopherbot robots is to store all
 ##   of a robot's configuration and scripts in a single git repository
@@ -114,7 +116,8 @@
 ##   have access to the unique internal ID that your team chat assigns. Supply
 ##   a shared secret so you can use the 'add admin xxxx' command in a DM to
 ##   your robot, which will then update the robot's configuration. This should
-##   be at least 8 characters ([0-9A-Za-z_+/-]), or use 'g' to generate.
+##   be at least 8 characters ([0-9A-Za-z_+/-]), or use 'g' to generate a
+##   random one.
 ##
 # ANS_ADMIN_SECRET=g
 # ANS_ADMIN_SECRET=LoveMyNewRobot
