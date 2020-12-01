@@ -219,7 +219,7 @@ GOPHER_CUSTOM_REPOSITORY=$BOTREPO
 ## You should normally keep GOPHER_PROTOCOL commented out, except when
 ## used in a production container. This allows for the normal case where
 ## the robot starts in terminal mode for local development.
-GOPHER_PROTOCOL=slack
+#GOPHER_PROTOCOL=slack
 ## To use the deploy key below, add ssh/deploy_key.pub as a read-only
 ## deploy key for the custom configuration repository.
 GOPHER_DEPLOY_KEY=$DEPKEY
@@ -286,10 +286,10 @@ encoded as the 'GOPHER_DEPLOY_KEY' in the '.env' file. *Gopherbot* will use this
 along with the 'GOPHER_CUSTOM_REPOSITORY', to initially clone it's repository during bootstrapping.
 3) Copy the contents of the '.env' file shown above to a safe place, not kept in a repository. \
 GOPHER_PROTOCOL is commented out to avoid accidentally connecting another instance of your robot \
-to team chat when run from a terminal window. With proper configuration of your git repository, \
-the '.env' file is all that's needed to bootstrap your robot in to an empty *Gopherbot* \
-container, (https://quay.io/lnxjedi/gopherbot) or on a Linux host or VM with the \
-*Gopherbot* software archive installed.
+to team chat when run from a terminal window for the development environment. With proper \
+configuration of your git repository, the '.env' file is all that's needed to bootstrap your \
+robot in to an empty *Gopherbot* container, (https://quay.io/lnxjedi/gopherbot) or on a Linux \
+host or VM with the *Gopherbot* software archive installed.
 4) Once these tasks are complete, re-start this container in a separate tab/window to connect \
 your robot to team chat.
 5) Invite your robot to #${JOBCHANNEL}; slack robots will need to be invited to any channels \
@@ -299,6 +299,9 @@ as an administrator: \"add administrator $SETUPKEY\"; your robot will then updat
 'custom/conf/slack.yaml' to make you an administrator, and reload it's configuration.
 7) Once that completes, you can instruct the robot to store it's configuration in it's git \
 repository by issuing the 'save' command.
+8) At this point, feel free to experiment with the default robot; you can start by typing \
+\"help\" in ${JOBCHANNEL}. When you're finished, press <ctrl-c> in the window where you \
+ran \"gopherbot\" to stop the robot, or optionally tell your robot to \"${BOTALIAS}quit\".
 
 After your robot has saved it's configuration, you can stop and discard this container."
 
@@ -329,12 +332,15 @@ as an administrator: \"add administrator $SETUPKEY\"; your robot will then updat
 'custom/conf/slack.yaml' to make you an administrator, and reload it's configuration.
 7) Once that completes, you can instruct the robot to store it's configuration in it's git \
 repository by issuing the 'save' command.
-8) Finally, copy the contents of the '.env' file to a safe place, with the GOPHER_PROTOCOL \
+8) At this point, feel free to experiment with the default robot; you can start by typing \
+\"help\" in ${JOBCHANNEL}. When you're finished, press <ctrl-c> in the window where you \
+ran \"gopherbot\" to stop the robot, or optionally tell your robot to \"${BOTALIAS}quit\".
+9) Finally, copy the contents of the '.env' file to a safe place, with the GOPHER_PROTOCOL \
 commented out; this avoids accidentally connecting another instance of your robot to team chat \
-when run from a terminal window. With proper configuration of your git repository, the '.env' \
-file is all that's needed to bootstrap your robot in to an empty *Gopherbot* container, \
-(https://quay.io/lnxjedi/gopherbot) or on a Linux host or VM with the *Gopherbot* \
-software archive installed.
+when run from a terminal window for the development environment. With proper configuration of \
+your git repository, the '.env' file is all that's needed to bootstrap your robot in to an empty \
+*Gopherbot* container, (https://quay.io/lnxjedi/gopherbot) or on a Linux host or VM with the \
+*Gopherbot* software archive installed.
 
 Now you've completed all of the initial setup for your *Gopherbot* robot. See the chapter on \
 deploying and running your robot (https://lnxjedi.github.io/gopherbot/RunRobot.html) for \
