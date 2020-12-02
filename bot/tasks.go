@@ -140,7 +140,7 @@ type NameSpace struct {
 type Task struct {
 	name         string            // name of job or plugin; unique by type, but job & plugin can share
 	taskType     taskType          // taskGo or taskExternal
-	Path         string            // Path to the external executable for jobs or Plugtype=taskExternal only
+	Path         string            // Path to the external executable for external scripts
 	NameSpace    string            // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
 	Parameters   []robot.Parameter // Fixed parameters for a given job; many jobs will use the same script with differing parameters
 	Description  string            // description of job or plugin

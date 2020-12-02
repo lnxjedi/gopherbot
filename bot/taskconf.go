@@ -145,39 +145,42 @@ func loadTaskConfig(processed *configuration) (*taskList, error) {
 	}
 
 	for _, script := range processed.externalPlugins {
-		if task, err := addExternalTask(script, typePlugin); err != nil {
+		var task *Task
+		var err error
+		if task, err = addExternalTask(script, typePlugin); err != nil {
 			return newList, err
-		} else {
-			task.Privileged = *script.Privileged
-			task.Homed = script.Homed
-			p := &Plugin{
-				Task: task,
-			}
-			newList.addTask(p)
 		}
+		task.Privileged = *script.Privileged
+		task.Homed = script.Homed
+		p := &Plugin{
+			Task: task,
+		}
+		newList.addTask(p)
 	}
 
 	for _, script := range processed.externalJobs {
-		if task, err := addExternalTask(script, typeJob); err != nil {
+		var task *Task
+		var err error
+		if task, err = addExternalTask(script, typeJob); err != nil {
 			return newList, err
-		} else {
-			task.Privileged = *script.Privileged
-			task.Homed = script.Homed
-			j := &Job{
-				Task: task,
-			}
-			newList.addTask(j)
 		}
+		task.Privileged = *script.Privileged
+		task.Homed = script.Homed
+		j := &Job{
+			Task: task,
+		}
+		newList.addTask(j)
 	}
 
 	for _, script := range processed.externalTasks {
-		if task, err := addExternalTask(script, typeTask); err != nil {
+		var task *Task
+		var err error
+		if task, err = addExternalTask(script, typeTask); err != nil {
 			return newList, err
-		} else {
-			task.Privileged = *script.Privileged
-			task.Homed = script.Homed
-			newList.addTask(task)
 		}
+		task.Privileged = *script.Privileged
+		task.Homed = script.Homed
+		newList.addTask(task)
 	}
 
 	// Load configuration for all valid tasks. Note that this is all being loaded
@@ -194,6 +197,8 @@ LoadLoop:
 			isPlugin = true
 			plugin = t
 			task = t.Task
+			// Reset list of channels
+			task.Channels = []string{}
 		case *Job:
 			isJob = true
 			job = t
