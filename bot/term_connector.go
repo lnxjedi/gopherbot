@@ -209,7 +209,7 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 		}
 	}(tc)
 
-	tc.reader.Write([]byte("Terminal connector running; Use '|c<channel|?>' to change channel, or '|u<user|?>' to change user\n"))
+	tc.reader.Write([]byte("Terminal connector running; Type '|c?' to list channels, '|u?' to list users\n"))
 
 	kbquit := false
 
@@ -246,9 +246,9 @@ loop:
 					exists := false
 					newchan := input[2:]
 					if newchan == "?" {
-						chanlist := []string{"Available channels; '|c' for direct message:"}
+						chanlist := []string{"Available channels:", "(direct message); type: '|c'"}
 						for _, channel := range tc.channels {
-							chanlist = append(chanlist, fmt.Sprintf("%s ('|c%s')", channel, channel))
+							chanlist = append(chanlist, fmt.Sprintf("'%s'; type: '|c%s'", channel, channel))
 						}
 						tc.reader.Write([]byte(strings.Join(chanlist, "\n")))
 						tc.reader.Write([]byte("\n"))
