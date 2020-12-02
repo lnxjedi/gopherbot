@@ -281,7 +281,7 @@ loop:
 					if newuser == "?" {
 						userlist := []string{"Available users:"}
 						for _, user := range tc.users {
-							userlist = append(userlist, fmt.Sprintf("%s ('|u%s')", user.Name, user.Name))
+							userlist = append(userlist, fmt.Sprintf("'%s'; type: '|u%s'", user.Name, user.Name))
 						}
 						tc.reader.Write([]byte(strings.Join(userlist, "\n")))
 						tc.reader.Write([]byte("\n"))
