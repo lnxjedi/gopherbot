@@ -12,6 +12,7 @@ ADD gopherbot.tar.gz ${installdir}
 RUN chown ${nonprivuser}:${username} ${installdir}/gopherbot/gopherbot && \
   chmod u+s ${installdir}/gopherbot/gopherbot && \
   ln -s ${installdir}/gopherbot/gopherbot ${HOME}/gopherbot && \
+  ln -s ${installdir} ${HOME}/defaults && \
   chown -R robot:robot ${homedir} && \
   chmod go+rx ${homedir}
 
