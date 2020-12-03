@@ -167,9 +167,9 @@
 <p><strong>Gopherbot</strong> uses <strong>YAML</strong> for it's configuration files, and Go text templates for expanding the files it reads. Any time <strong>Gopherbot</strong> loads a configuration file, say <code>conf/robot.yaml</code>, it first looks for the file in the installation directory, and loads and expands that file if found. Next it looks for the same file in the custom configuration directory; if found, it loads and expands that file, then recursively merges the two data structures:</p>
 <ul>
 <li>Map values merge and override</li>
-<li>Array values are replaced</li>
+<li>Array values are replaced or appended</li>
 </ul>
-<p>To illustrate with an example, take the following two excerpts from <code>robot.yaml</code>:</p>
+<p>To illustrate with an example, take the following two hypothetical excerpts from <code>terminal.yaml</code>:</p>
 <p>Default from the install archive:</p>
 <pre><code class="language-yaml">ProtocolConfig:
   StartChannel: general
@@ -177,6 +177,9 @@
   - random
   - general
   StartUser: alice
+UserRoster:
+- UserName: &quot;alice&quot;
+  UserID: &quot;u0001&quot;
 </code></pre>
 <p>Custom local configuration:</p>
 <pre><code class="language-yaml">ProtocolConfig:
@@ -184,6 +187,9 @@
   Channels:
   - jobs
   - general
+AppendUserRoster:
+- UserName: &quot;bob&quot;
+  UserID: &quot;u0002&quot;
 </code></pre>
 <p>The resulting configuration would be:</p>
 <pre><code class="language-yaml">ProtocolConfig:
@@ -192,6 +198,11 @@
   - jobs
   - general
   StartUser: alice
+UserRoster:
+- UserName: &quot;alice&quot;
+  UserID: &quot;u0001&quot;
+- UserName: &quot;bob&quot;
+  UserID: &quot;u0002&quot;
 </code></pre>
 <h2><a class="header" href="#template-expansion" id="template-expansion">Template Expansion</a></h2>
 <p><strong>Gopherbot</strong> uses standard <a href="https://golang.org/pkg/text/template">Go text templates</a> for expanding the configuration files it reads. In addition to the stock syntactic elements, the following functions and methods are available:</p>

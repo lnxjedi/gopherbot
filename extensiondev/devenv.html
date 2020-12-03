@@ -170,7 +170,7 @@
 <p>I think I've repeated this at least a dozen times, but be sure <code>GOPHER_PROTOCOL</code> is commented out (or missing altogether) in the environment file. Not only does this prevent connecting a second robot with the same name and credentials to your team chat, but if you examine the default distributed configuration <code>yaml</code> files, you'll see that it disables certain scheduled jobs and modifies the robot's behavior in other ways more suitable for a dev environment.</p>
 </blockquote>
 <p><strong>2.</strong> From this directory, run the <code>gopherbot-dev</code> container, this time supplying the robot's environment. Using &quot;clu&quot; as an example:</p>
-<pre><code>$ docker run -p 127.0.0.1:3000:3000 --name clu-dev --env-file environment quay.io/lnxjedi/gopherbot-dev:latest
+<pre><code>$ docker run -p 127.0.0.1:3000:3000 --name clu-dev -it --rm --env-file environment quay.io/lnxjedi/gopherbot-dev:latest
 </code></pre>
 <p><strong>3.</strong> Now open your browser and connect to <a href="http://127.0.0.1:3000">http://127.0.0.1:3000</a>, where you'll be presented with the <a href="https://github.com/eclipse-theia/theia">Theia</a> interface.</p>
 <p>I find a three-pane layout most convenient; the top pane where code and configuration can be edited, and two terminal windows - one for running the robot in terminal mode, and one for running <code>gopherbot</code> CLI commands.</p>
@@ -184,7 +184,7 @@ OUT: unset SSH_AGENT_PID;
 OUT: echo Agent pid 625 killed;
 c:general/u:alice -&gt;
 </code></pre>
-<p>Later sections will discuss how to push changes in this environment.</p>
+<p>When you're finished with your robot, you can press <code>&lt;ctrl-c&gt;</code> to stop and remove the dev container, or from another window: <code>$ docker stop clu-dev</code>. Later sections will discuss how to push changes in this environment.</p>
 
                     </main>
 
