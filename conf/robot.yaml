@@ -225,6 +225,10 @@ ExternalTasks:
     Homed: true
     Privileged: true
     NameSpace: ssh
+  "ssh-task":
+    Description: Wrapper for ssh tasks
+    Path: jobs/ssh-job.sh
+    Privileged: true
   "exec":
     Description: Simple utility for running scripts in a repository
     Path: tasks/exec.sh
