@@ -87,6 +87,7 @@ func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *tas
 		Channel:       task.Channel,
 		Protocol:      getProtocol(protocol),
 		cfg:           cfg,
+		id:            getWorkerID(),
 		tasks:         tasks,
 		repositories:  repolist,
 		directMsg:     false,
