@@ -1329,6 +1329,10 @@ The email function call takes a byte slice for the email body, rather than an <c
 <p>Usage: <code>AddTask pause-brain</code></p>
 <p>Pause brain operations for backups and restores. After half a minute, the brain automatically resumes; best practice is to add <code>resume-brain</code> after the backup/restore task.</p>
 <hr />
+<p><strong>pause-brain</strong></p>
+<p>Usage: <code>AddTask pause &lt;seconds&gt;</code></p>
+<p>Causes the pipeline to pause for a number of seconds before proceeding to the next task. Useful when triggering an external process that there's no easy way to poll for completion.</p>
+<hr />
 <p><strong>restart-robot</strong> - <em>privileged</em></p>
 <p>Usage: <code>AddTask restart-robot</code></p>
 <p>Allow a privileged pipeline to queue a restart of the robot after the pipeline completes. Heavily used by bootstrap and setup plugins. <strong>NOTE:</strong> This behavior means that tasks added after <strong>restart-robot</strong> are actually completed <em>before</em> the restart. In practice, the current pipeline will change the state of the robot, and after restarting a plugin <strong>init</strong> function will check for the state change (e.g. presence of <code>.restore</code> file) and start a new pipeline.</p>
@@ -1337,12 +1341,24 @@ The email function call takes a byte slice for the email body, rather than an <c
 <p>Usage: <code>AddTask resume-brain</code></p>
 <p>Resume brain functions after backup/restore.</p>
 <hr />
+<p><strong>robot-quit</strong> - <em>privileged</em></p>
+<p>Usage: <code>AddTask robot-quit</code></p>
+<p>Special purpose task; once called, the robot will exit as soon as all pipelines have completed, and not allow new pipelines to start.</p>
+<hr />
 <p><strong>rotate-log</strong> - <em>privileged</em></p>
 <p>Usage: <code>AddTask rotate-log &lt;extension&gt;</code></p>
 <p>Useful for e.g. nightly log rotation jobs, when the robot has been started with e.g.: <code>gopherbot -d -l robot.log</code>. For example:</p>
 <pre><code>AddTask rotate-log &quot;log.$(date +%a)&quot;
 </code></pre>
 <p>This would keep daily logs of the form <code>robot.log.Mon</code>, etc.</p>
+<hr />
+<p><strong>send-message</strong></p>
+<p>Usage: <code>AddTask send-message &lt;str&gt; (...)</code></p>
+<p>Have the robot send a message in the channel, normally to report status of a build. Can be a single long string, or multiple strings; in the case of multiple strings they will be joined with a space separator.</p>
+<hr />
+<p><strong>tail-log</strong></p>
+<p>Usage: <code>AddTask tail-log</code> or <code>FailTask tail-log</code></p>
+<p>Dump the last 2k chars (in even line increments) to the channel. Normally this is used as a <code>FailTask</code> to show the source of the failure.</p>
 <h1><a class="header" href="#tool-integrations" id="tool-integrations">Tool Integrations</a></h1>
 <p>To simplify using tools like <code>ssh</code> and <code>ansible</code> in your pipeline, <strong>Gopherbot</strong> ships with some predefined pipeline elements detailed in the following sections.</p>
 <h1><a class="header" href="#integrating-with-ssh" id="integrating-with-ssh">Integrating with SSH</a></h1>
