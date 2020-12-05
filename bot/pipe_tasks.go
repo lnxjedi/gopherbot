@@ -3,7 +3,9 @@ package bot
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lnxjedi/robot"
 )
@@ -20,6 +22,21 @@ func rotatelog(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		ext = args[0]
 	}
 	return logRotate(ext)
+}
+
+// pause just adds a pause to the pipeline
+func pause(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
+	if len(args) != 1 {
+		m.Log(robot.Warn, "pause called with wrong number or args, not pausing")
+		return
+	}
+	seconds, err := strconv.Atoi(args[0])
+	if err != nil {
+		m.Log(robot.Warn, "unable to parse integer argument for pause, not pausing")
+		return
+	}
+	time.Sleep(time.Duration(seconds) * time.Second)
+	return
 }
 
 // logtail - task tail-log; get the last 2k of pipeline log
@@ -134,7 +151,7 @@ func quit(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	return
 }
 
-func pause(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
+func pauseBrainTask(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
 	w := getLockedWorker(r.tid)
 	w.Unlock()
@@ -163,7 +180,8 @@ func init() {
 	RegisterTask("restart-robot", true, robot.TaskHandler{Handler: restart})
 	RegisterTask("robot-quit", true, robot.TaskHandler{Handler: quit})
 	RegisterTask("rotate-log", true, robot.TaskHandler{Handler: rotatelog})
-	RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pause})
+	RegisterTask("pause", false, robot.TaskHandler{Handler: pause})
+	RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pauseBrainTask})
 	RegisterTask("resume-brain", true, robot.TaskHandler{Handler: resume})
 	RegisterTask("send-message", false, robot.TaskHandler{Handler: sendmsg})
 	RegisterTask("tail-log", false, robot.TaskHandler{Handler: logtail})
