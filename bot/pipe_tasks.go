@@ -177,13 +177,13 @@ func resume(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 }
 
 func init() {
+	RegisterTask("email-log", true, robot.TaskHandler{Handler: logmail})
+	RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pauseBrainTask})
+	RegisterTask("pause", false, robot.TaskHandler{Handler: pause})
 	RegisterTask("restart-robot", true, robot.TaskHandler{Handler: restart})
+	RegisterTask("resume-brain", true, robot.TaskHandler{Handler: resume})
 	RegisterTask("robot-quit", true, robot.TaskHandler{Handler: quit})
 	RegisterTask("rotate-log", true, robot.TaskHandler{Handler: rotatelog})
-	RegisterTask("pause", false, robot.TaskHandler{Handler: pause})
-	RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pauseBrainTask})
-	RegisterTask("resume-brain", true, robot.TaskHandler{Handler: resume})
 	RegisterTask("send-message", false, robot.TaskHandler{Handler: sendmsg})
 	RegisterTask("tail-log", false, robot.TaskHandler{Handler: logtail})
-	RegisterTask("email-log", true, robot.TaskHandler{Handler: logmail})
 }
