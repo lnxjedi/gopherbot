@@ -83,7 +83,7 @@ Incomplete list of features new in 2.0:
 Breaking changes are documented [in the new manual](https://lnxjedi.github.io/gopherbot/Upgrading.html)
 
 ### Deprecated and Unsupported Platforms
-The Windows port has been removed; the only known use case is being replaced. **Gopherbot** should build on Darwin (Mac OS X), but since builds with module support won't cross-compile, archives are no longer being generated.
+The Windows and Darwin (MacOS) ports have both been removed. The best solution for these platforms is to take advantage of the excellent Linux container support to run your robot in a container.
 
 ## Documentation
 
