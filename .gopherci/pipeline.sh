@@ -52,12 +52,12 @@ AddTask exec buildah tag quay.io/lnxjedi/gopherbot-theia registry.in.linuxjedi.o
 AddTask exec buildah tag quay.io/lnxjedi/gopherbot-dev registry.in.linuxjedi.org/lnxjedi/gopherbot-dev
 
 # Push containers out
-AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot
-AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot-theia
-AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot-dev
 AddTask exec buildah push quay.io/lnxjedi/gopherbot
 AddTask exec buildah push quay.io/lnxjedi/gopherbot-theia
 AddTask exec buildah push quay.io/lnxjedi/gopherbot-dev
+AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot
+AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot-theia
+AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot-dev
 
 # Notify of success
 if [ -n "$NOTIFY_USER" ]
