@@ -18,10 +18,10 @@ RUN cd / && \
   chmod u+s ${installdir}/gopherbot/gopherbot && \
   ln -s ${installdir}/gopherbot/gopherbot ${HOME}/gopherbot && \
   ln -s ${installdir} ${HOME}/defaults && \
-  chown -R robot:robot ${HOME} && \
+  chown -R ${USER}:${USER} ${HOME} && \
   chmod go+rx ${HOME}
 
 WORKDIR ${HOME}
-USER ${userid}:${GROUP}
+USER ${userid}:${USER}
 
 ENTRYPOINT [ "/opt/gopherbot/gopherbot" , "-plainlog" ]
