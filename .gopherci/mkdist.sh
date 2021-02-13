@@ -25,7 +25,6 @@ then
 fi
 
 eval `go env`
-COMMIT=$(git rev-parse --short HEAD)
 
 CONTENTS="conf/ doc/ jobs/ lib/ licenses/ plugins/ resources/ robot.skel/ helpers/ \
 	tasks/ AUTHORS.txt changelog.txt LICENSE README.md fetch-robot.sh"

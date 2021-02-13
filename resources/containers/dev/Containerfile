@@ -6,9 +6,14 @@ ARG nonprivuser=nobody
 
 ARG installdir=/opt
 
-# For dev
-ADD gopherbot.tar.gz ${installdir}
-RUN chown ${nonprivuser}:${username} ${installdir}/gopherbot/gopherbot && \
+RUN cd / && \
+  git clone https://github.com/lnxjedi/gopherbot.git build && \
+  cd build && \
+  make dist && \
+  cd ${installdir} && \
+  tar xzf /build/gopherbot-linux-amd64.tar.gz && \
+  rm -rf /build && \
+  chown ${nonprivuser}:${username} ${installdir}/gopherbot/gopherbot && \
   chmod u+s ${installdir}/gopherbot/gopherbot && \
   ln -s ${installdir}/gopherbot/gopherbot ${HOME}/gopherbot && \
   ln -s ${installdir} ${HOME}/defaults && \
