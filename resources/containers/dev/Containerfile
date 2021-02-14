@@ -10,6 +10,7 @@ RUN cd / && \
   git clone https://github.com/lnxjedi/gopherbot.git build && \
   cd build && \
   make dist && \
+  rm -rf ${HOME}/.cache && \
   cd ${installdir} && \
   tar xzf /build/gopherbot-linux-amd64.tar.gz && \
   rm -rf /build && \
