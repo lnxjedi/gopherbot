@@ -58,6 +58,8 @@ AddTask exec buildah push quay.io/lnxjedi/gopherbot-dev
 AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot
 AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot-theia
 AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot-dev
+# As good a place as any?
+AddTask exec buildah rmi -p
 
 # Notify of success
 if [ -n "$NOTIFY_USER" ]
