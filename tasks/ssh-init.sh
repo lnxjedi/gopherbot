@@ -1,17 +1,7 @@
 #!/bin/bash -e
 
-# ssh-init.sh - pipeline task for setting up an ssh-agent for the robot. To
-# use:
-# - Copy conf/jobs/ssh-init.yaml.sample to ssh-init.yaml (as-is)
-# - Add "ssh" and "ssh-agent" to ExternalTask list, with Name, Path and
-#   Description (or uncomment)
-# - Add job "ssh-init" to ExternalJobs (uncomment from sample) and reload
-# - Set the ssh passphrase with a DM to the robot:
-#   store task parameter ssh-init BOT_SSH_PHRASE=<bot ssh passphrase>
-# - Put tasks in a pipeline, e.g.:
-#    AddTask ssh-init
-#    ... (do stuff)
-#    AddTask ssh-agent -k
+# ssh-init.sh - pipeline task for setting up an ssh-agent for the robot.
+# See jobs/ssh-job.sh for info on generic ssh jobs and tasks.
 
 # NOTE:
 # The use of a FIFO and cat <<EOF is to prevent the passphrase from ever

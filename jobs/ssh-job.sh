@@ -1,9 +1,15 @@
 #!/bin/bash -e
 
 # ssh-job.sh - simple wrapper job for ssh tasks
+# NOTE: This script is both a job - 'ssh-job', and a task - 'ssh-task'
 # Normal usage is to define multiple jobs with the same path to this script,
 # but different values for REMOTEHOST and REMOTETASK (name of task to run).
-# Can also call e.g. AddJob ssh-job <host> <task> (args...)
+# Can also call with e.g.:
+# - AddJob ssh-job <host> <task> (args...)
+# - AddTask ssh-task <host> <task> (args...)
+#
+# Then, in your task, you can use ssh somewhat normally, but adding
+# "$SSH_OPTIONS", e.g. "ssh $SSH_OPTIONS <user>@<host>"
 
 trap_handler()
 {
@@ -34,7 +40,7 @@ then
         exit 1
     fi
 else
-    if [ $# -eq 2 ]
+    if [ $# -ge 2 ]
     then
         REMOTEHOST=$1
         REMOTETASK=$2
