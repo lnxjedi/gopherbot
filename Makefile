@@ -58,21 +58,16 @@ clean:
 	rm -f gopherbot $(MODULES) $(TAR_ARCHIVE) $(ZIP_ARCHIVE)
 
 $(TAR_ARCHIVE): modular
-	# Note that mkdist.sh currently makes both tar.gz and zip files
 	./.gopherci/mkdist.sh
 
 dist: $(TAR_ARCHIVE)
 
 containers: dist
-	cp $(TAR_ARCHIVE) resources/containers/minimal/gopherbot.tar.gz
-	cp $(TAR_ARCHIVE) resources/containers/theia/gopherbot.tar.gz
-	cp $(TAR_ARCHIVE) resources/containers/dev/gopherbot.tar.gz
 	buildah pull quay.io/lnxjedi/gopherbot-base:latest
 	buildah pull quay.io/lnxjedi/gopherbot-base-theia:latest
 	buildah bud -f resources/containers/minimal/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/minimal/
 	buildah bud -f resources/containers/theia/Containerfile -t quay.io/lnxjedi/gopherbot-theia:latest ./resources/containers/theia/
 	buildah bud -f resources/containers/dev/Containerfile -t quay.io/lnxjedi/gopherbot-dev:latest ./resources/containers/dev/
-	rm -f resources/containers/minimal/gopherbot.tar.gz resources/containers/theia/gopherbot.tar.gz resources/containers/dev/gopherbot.tar.gz
 
 # Run test suite without coverage (see .gopherci/pipeline.sh)
 test:
