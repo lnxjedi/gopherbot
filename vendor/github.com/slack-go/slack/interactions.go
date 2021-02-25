@@ -24,6 +24,10 @@ const (
 	InteractionTypeInteractionMessage = InteractionType("interactive_message")
 	InteractionTypeMessageAction      = InteractionType("message_action")
 	InteractionTypeBlockActions       = InteractionType("block_actions")
+	InteractionTypeBlockSuggestion    = InteractionType("block_suggestion")
+	InteractionTypeViewSubmission     = InteractionType("view_submission")
+	InteractionTypeViewClosed         = InteractionType("view_closed")
+	InteractionTypeShortcut           = InteractionType("shortcut")
 )
 
 // InteractionCallback is sent from slack when a user interactions with a button or dialog.
@@ -44,7 +48,83 @@ type InteractionCallback struct {
 	MessageTs       string          `json:"message_ts"`
 	AttachmentID    string          `json:"attachment_id"`
 	ActionCallback  ActionCallbacks `json:"actions"`
+	View            View            `json:"view"`
+	ActionID        string          `json:"action_id"`
+	APIAppID        string          `json:"api_app_id"`
+	BlockID         string          `json:"block_id"`
+	Container       Container       `json:"container"`
 	DialogSubmissionCallback
+	ViewSubmissionCallback
+	ViewClosedCallback
+
+	// FIXME(kanata2): just workaround for backward-compatibility.
+	// See also https://github.com/slack-go/slack/issues/816
+	RawState json.RawMessage `json:"state,omitempty"`
+
+	// BlockActionState stands for the `state` field in block_actions type.
+	// NOTE: InteractionCallback.State has a role for the state of dialog_submission type,
+	// so we cannot use this field for backward-compatibility for now.
+	BlockActionState *BlockActionStates `json:"-"`
+}
+
+type BlockActionStates struct {
+	Values map[string]map[string]BlockAction `json:"values"`
+}
+
+func (ic *InteractionCallback) MarshalJSON() ([]byte, error) {
+	type alias InteractionCallback
+	tmp := alias(*ic)
+	if tmp.Type == InteractionTypeBlockActions {
+		if tmp.BlockActionState == nil {
+			tmp.RawState = []byte(`{}`)
+		} else {
+			state, err := json.Marshal(tmp.BlockActionState.Values)
+			if err != nil {
+				return nil, err
+			}
+			tmp.RawState = []byte(`{"values":` + string(state) + `}`)
+		}
+	} else if ic.Type == InteractionTypeDialogSubmission {
+		tmp.RawState = []byte(tmp.State)
+	}
+	// Use pointer for go1.7
+	return json.Marshal(&tmp)
+}
+
+func (ic *InteractionCallback) UnmarshalJSON(b []byte) error {
+	type alias InteractionCallback
+	tmp := struct {
+		Type InteractionType `json:"type"`
+		*alias
+	}{
+		alias: (*alias)(ic),
+	}
+	if err := json.Unmarshal(b, &tmp); err != nil {
+		return err
+	}
+	*ic = InteractionCallback(*tmp.alias)
+	ic.Type = tmp.Type
+	if ic.Type == InteractionTypeBlockActions {
+		if len(ic.RawState) > 0 {
+			err := json.Unmarshal(ic.RawState, &ic.BlockActionState)
+			if err != nil {
+				return err
+			}
+		}
+	} else if ic.Type == InteractionTypeDialogSubmission {
+		ic.State = string(ic.RawState)
+	}
+	return nil
+}
+
+type Container struct {
+	Type         string      `json:"type"`
+	ViewID       string      `json:"view_id"`
+	MessageTs    string      `json:"message_ts"`
+	AttachmentID json.Number `json:"attachment_id"`
+	ChannelID    string      `json:"channel_id"`
+	IsEphemeral  bool        `json:"is_ephemeral"`
+	IsAppUnfurl  bool        `json:"is_app_unfurl"`
 }
 
 // ActionCallback is a convenience struct defined to allow dynamic unmarshalling of
@@ -119,7 +199,7 @@ func (a *ActionCallbacks) UnmarshalJSON(data []byte) error {
 			}
 
 			a.BlockActions = append(a.BlockActions, action.(*BlockAction))
-			return nil
+			continue
 		}
 
 		action, err := unmarshalAction(r, &AttachmentAction{})

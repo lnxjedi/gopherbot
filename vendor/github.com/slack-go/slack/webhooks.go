@@ -1,11 +1,8 @@
 package slack
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"net/http"
-
-	"github.com/pkg/errors"
 )
 
 type WebhookMessage struct {
@@ -17,24 +14,17 @@ type WebhookMessage struct {
 	Text            string       `json:"text,omitempty"`
 	Attachments     []Attachment `json:"attachments,omitempty"`
 	Parse           string       `json:"parse,omitempty"`
+	Blocks          *Blocks      `json:"blocks,omitempty"`
 }
 
 func PostWebhook(url string, msg *WebhookMessage) error {
-	return PostWebhookCustomHTTP(url, http.DefaultClient, msg)
+	return PostWebhookCustomHTTPContext(context.Background(), url, http.DefaultClient, msg)
+}
+
+func PostWebhookContext(ctx context.Context, url string, msg *WebhookMessage) error {
+	return PostWebhookCustomHTTPContext(ctx, url, http.DefaultClient, msg)
 }
 
 func PostWebhookCustomHTTP(url string, httpClient *http.Client, msg *WebhookMessage) error {
-	raw, err := json.Marshal(msg)
-
-	if err != nil {
-		return errors.Wrap(err, "marshal failed")
-	}
-
-	response, err := httpClient.Post(url, "application/json", bytes.NewReader(raw))
-
-	if err != nil {
-		return errors.Wrap(err, "failed to post webhook")
-	}
-
-	return checkStatusCode(response, discard{})
+	return PostWebhookCustomHTTPContext(context.Background(), url, httpClient, msg)
 }

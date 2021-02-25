@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -30,6 +31,7 @@ type UserProfile struct {
 	Image48               string                  `json:"image_48"`
 	Image72               string                  `json:"image_72"`
 	Image192              string                  `json:"image_192"`
+	Image512              string                  `json:"image_512"`
 	ImageOriginal         string                  `json:"image_original"`
 	Title                 string                  `json:"title"`
 	BotID                 string                  `json:"bot_id,omitempty"`
@@ -184,6 +186,7 @@ type TeamIdentity struct {
 type userResponseFull struct {
 	Members []User `json:"members,omitempty"`
 	User    `json:"user,omitempty"`
+	Users   []User `json:"users,omitempty"`
 	UserPresence
 	SlackResponse
 	Metadata ResponseMetadata `json:"response_metadata"`
@@ -250,6 +253,26 @@ func (api *Client) GetUserInfoContext(ctx context.Context, user string) (*User, 
 		return nil, err
 	}
 	return &response.User, nil
+}
+
+// GetUsersInfo will retrieve the complete multi-users information
+func (api *Client) GetUsersInfo(users ...string) (*[]User, error) {
+	return api.GetUsersInfoContext(context.Background(), users...)
+}
+
+// GetUsersInfoContext will retrieve the complete multi-users information with a custom context
+func (api *Client) GetUsersInfoContext(ctx context.Context, users ...string) (*[]User, error) {
+	values := url.Values{
+		"token":          {api.token},
+		"users":          {strings.Join(users, ",")},
+		"include_locale": {strconv.FormatBool(true)},
+	}
+
+	response, err := api.userRequest(ctx, "users.info", values)
+	if err != nil {
+		return nil, err
+	}
+	return &response.Users, nil
 }
 
 // GetUsersOption options for the GetUsers method call.
@@ -487,6 +510,45 @@ func (api *Client) DeleteUserPhotoContext(ctx context.Context) (err error) {
 	return response.Err()
 }
 
+// SetUserRealName changes the currently authenticated user's realName
+//
+// For more information see SetUserRealNameContextWithUser
+func (api *Client) SetUserRealName(realName string) error {
+	return api.SetUserRealNameContextWithUser(context.Background(), "", realName)
+}
+
+// SetUserRealNameContextWithUser will set a real name for the provided user with a custom context
+func (api *Client) SetUserRealNameContextWithUser(ctx context.Context, user, realName string) error {
+	profile, err := json.Marshal(
+		&struct {
+			RealName string `json:"real_name"`
+		}{
+			RealName: realName,
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	values := url.Values{
+		"token":   {api.token},
+		"profile": {string(profile)},
+	}
+
+	// optional field. It should not be set if empty
+	if user != "" {
+		values["user"] = []string{user}
+	}
+
+	response := &userResponseFull{}
+	if err = api.postMethod(ctx, "users.profile.set", values, response); err != nil {
+		return err
+	}
+
+	return response.Err()
+}
+
 // SetUserCustomStatus will set a custom status and emoji for the currently
 // authenticated user. If statusEmoji is "" and statusText is not, the Slack API
 // will automatically set it to ":speech_balloon:". Otherwise, if both are ""
@@ -500,7 +562,7 @@ func (api *Client) SetUserCustomStatus(statusText, statusEmoji string, statusExp
 //
 // For more information see SetUserCustomStatus
 func (api *Client) SetUserCustomStatusContext(ctx context.Context, statusText, statusEmoji string, statusExpiration int64) error {
-	return api.SetUserCustomStatusContextWithUser(context.Background(), "", statusText, statusEmoji, statusExpiration)
+	return api.SetUserCustomStatusContextWithUser(ctx, "", statusText, statusEmoji, statusExpiration)
 }
 
 // SetUserCustomStatusWithUser will set a custom status and emoji for the provided user.
@@ -541,9 +603,13 @@ func (api *Client) SetUserCustomStatusContextWithUser(ctx context.Context, user,
 	}
 
 	values := url.Values{
-		"user":    {user},
 		"token":   {api.token},
 		"profile": {string(profile)},
+	}
+
+	// optional field. It should not be set if empty
+	if user != "" {
+		values["user"] = []string{user}
 	}
 
 	response := &userResponseFull{}
