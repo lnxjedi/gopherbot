@@ -47,7 +47,7 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 		if l == robot.Fatal {
 			logger.Fatal(msg)
 		} else {
-			if localTerm && l >= errorThreshold {
+			if localTerm {
 				if terminalWriter != nil {
 					terminalWriter.Write([]byte("LOG " + msg + "\n"))
 				} else {
