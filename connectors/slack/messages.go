@@ -113,7 +113,7 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageForm
 
 var reAddedLinks = regexp.MustCompile(`<https?://[\w-./]+\|([\w-./]+)>`) // match a slack-inserted link
 var reLinks = regexp.MustCompile(`<(https?://[.\w-:/?=~]+)>`)            // match a link where slack added <>
-var reUser = regexp.MustCompile(`<@U[A-Z0-9]{8}>`)                       // match a @user mention
+var reUser = regexp.MustCompile(`<@U[A-Z0-9]{7,21}>`)                    // match a @user mention
 var reMailToLink = regexp.MustCompile(`<mailto:[^|]+\|([\w-./@]+)>`)     // match mailto links
 
 // processMessage examines incoming messages, removes extra slack cruft, and
@@ -192,7 +192,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 			mset[mention] = true
 		}
 		for mention := range mset {
-			mID := mention[2:11]
+			mID := mention[2 : len(mention)-1]
 			replace, ok := s.userName(mID)
 			if !ok {
 				s.Log(robot.Warn, "Couldn't find username for mentioned", mID)
