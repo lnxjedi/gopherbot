@@ -702,7 +702,7 @@ GOPHER_DEPLOY_KEY=-----BEGIN_OPENSSH_PRIVATE_KEY-----:&lt;much junk removed&gt;:
 </code></pre>
 <h1><a class="header" href="#running-in-a-container" id="running-in-a-container">Running in a Container</a></h1>
 <p>A major goal for <strong>Gopherbot</strong> v2 was container-native operation, and the ability to run your robot with all it's functionality and state/context, without requiring a persistent volume mount or a custom image with your robot baked-in. You can launch your robot using any of the <a href="https://quay.io/lnxjedi">stock images</a>; you should only need to create a custom image if your robot requires specific extra tools or libraries to do it's work, such as e.g. an ldap client or specific python module.</p>
-<p>This section doesn't delve in to the specifics of running your robot in any particular container environment. Whether your robot runs as a persistent container on a Docker host, or as a managed container in a Kubernetes or Openshift cluster - or elsewhere - the same principles apply. If you're planning on deploying in a container, it is presumed that you're already running other containerized workloads, and can provide the requirements by common means for your container environment.</p>
+<p>This section gives an example of running your robot with docker/podman, but otherwise doesn't delve in to the specifics of running your robot in any particular container environment. Whether your robot runs as a persistent container on a Docker host, or as a managed container in a Kubernetes or Openshift cluster - or elsewhere - the same principles apply. If you're planning on deploying in a container, it is presumed that you're already running other containerized workloads, and can provide the requirements by common means for your container environment.</p>
 <p>The contents of your robot's <code>.env</code> file are all that's needed - the built-in <strong>bootstrap</strong> plugin will use your robot's <code>deploy_key</code> key to clone it's configuration from <code>GOPHER_CUSTOM_REPOSITORY</code>, then use the <code>GOPHER_ENCRYPTION_KEY</code> to decrypt the <code>manage_key</code> ssh private key to restore file-backed memories if you use the default <code>file</code> brain for the standard robot.</p>
 <h2><a class="header" href="#container-considerations" id="container-considerations">Container Considerations</a></h2>
 <h3><a class="header" href="#backing-up-state-and-memories" id="backing-up-state-and-memories">Backing up State and Memories</a></h3>
@@ -736,6 +736,9 @@ Info: Initializing plugin: citools
 Info: Initializing plugin: ssh-admin
 Info: Robot is initialized and running
 </code></pre>
+<blockquote>
+<p>Note: when running on Linux, you could use <code>podman</code> in place of <code>docker</code>.</p>
+</blockquote>
 <h1><a class="header" href="#deploying-to-kubernetes" id="deploying-to-kubernetes">Deploying to Kubernetes</a></h1>
 <p>Eventually, as Kubernetes eats the world, this will be <strong>THE</strong> way to run your <strong>Gopherbot</strong> robot. It's the platform of choice for my own production robot, <code>Data</code>, who runs my CI/CD pipelines and other jobs. For now, this is somewhat experimental. If you have a k8s cluster, and <a href="https://helm.sh/">helm 3</a>, see the <code>README.md</code> in <code>resources/helm-gopherbot</code> of the <strong>Gopherbot</strong> archive.</p>
 <h1><a class="header" href="#running-with-systemd" id="running-with-systemd">Running with Systemd</a></h1>
