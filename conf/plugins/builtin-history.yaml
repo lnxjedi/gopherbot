@@ -13,7 +13,7 @@ Help:
   Helptext: [ "(bot), buildlogs <repo> (branch) - list build logs matching a given repository / branch" ]
 CommandMatchers:
 - Command: maillog
-  Regex: '(?i:(?:send|mail|email) ?log ([A-Za-z0-9]+)( to (?:(?:user (.*))|([^@]+@[^@]+)))?)'
+  Regex: '(?i:(?:send|mail|email) ?log ([A-Za-z0-9]+)(?: to (?:(?:user (.*))|([^@]+@[^@]+)))?)'
 - Command: taillog
   Regex: '(?i:(?:tail|view|show) ?log ([A-Za-z0-9]+))'
 - Command: linklog
