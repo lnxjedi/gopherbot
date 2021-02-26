@@ -4,15 +4,26 @@
 
 # Gopherbot DevOps Chatbot
 
-[![CircleCI](https://circleci.com/gh/lnxjedi/gopherbot.svg?style=shield)](https://circleci.com/gh/lnxjedi/gopherbot)
-[![Coverage Status](https://coveralls.io/repos/github/lnxjedi/gopherbot/badge.svg?branch=master&service=github)](https://coveralls.io/github/lnxjedi/gopherbot?branch=master)
-[![GoDoc](https://godoc.org/github.com/lnxjedi/gopherbot/bot?status.png)](https://godoc.org/github.com/lnxjedi/gopherbot/bot)
-
 Enterprise Slack(\*) DevOps / ChatOps / CI/CD bot for Linux, supporting extensions in Go, Python, Ruby, and Bash
+
+> (*) with a modular interface for writing other protocol connectors in Go
 
 Slogans under consideration:
 * **The Co-worker that Never Sleeps**
 * **The DevOps Swiss-Army Chainsaw**
+
+## What does Gopherbot *do*?
+**Gopherbot** logs in to your team chat like a normal user, and can respond to CLI-like commands for interacting with infrastructure. Since Gopherbot relies heavily on external shell utilities and scripting languages (python, ruby, bash) for adding functionality, it's strongest use case is kind of a "super **CRON**", running jobs on a schedule on on demand, and reporting any problems in your team chat. It can be used with strongly-encrypted secrets to run ansible playbooks or python/ruby/curl scripts interacting with remote APIs. Other use cases include manually triggering software deployments, or updating a status message on your company's website. If you have a collection of scripts for doing this kind of thing, and have ever wished you could trigger these scripts in your team chat, chances are good **Gopherbot** is the tool for you. You can find a lot more information in the [introduction](https://lnxjedi.github.io/gopherbot/Introduction.html) of the online docs.
+
+## Online Documentation
+The latest documentation can always be found at the GitHub-hosted [lnxjedi.github.io](https://lnxjedi.github.io/gopherbot); the documentation source is in a [separate repository](https://github.com/lnxjedi/gopherbot-doc).
+
+The online manual is still somewhat incomplete; however, sometimes the best documentation is example code. To that end, the most powerful and complete robot I have is [Mr. Data](https://github.com/parsley42/data-gopherbot) - the robot that runs in my home Kubernetes cluster and builds/pushes **Gopherbot** containers to [quay.io](https://quay.io/lnxjedi). The repositories for [Floyd](https://github.com/parsley42/floyd-gopherbot) (a utility robot I share with my wife) and [Clu](https://github.com/parsley42/clu-gopherbot) (the devel 'bot that runs on my laptop) are also available.
+
+## Release Status
+Version 2 has been stable for me for over year, and has finally been released. I've accepted that a fully up-to-date manual will lag significantly.
+
+Future development will be focused on bugfixes and enhancements, with no major updates in functionality currently planned. The next big update (v2.1) will likely revolve around creating a new Slack connector using [more recent APIs](https://api.slack.com/apis/connections/socket), and using that connector in the default robot setup.
 
 ## Building from Source
 With Gopherbot version 2 defaulting to a modular build (to avoid e.g. linking in the go-aws library when it's not used), I've stopped building downloadable artifacts, since they were linked to the glibc on the build system.
@@ -20,76 +31,33 @@ With Gopherbot version 2 defaulting to a modular build (to avoid e.g. linking in
 **Requirements:**
 * A recent (1.14+) version of Go
 * Standard build utilities; make, tar, gzip
+> Note that a bug in Go v1.16 causes a crash on startup which should be fixed in the [next release](https://github.com/golang/go/issues/44586).
 
 **Steps:**
 1. Clone this repository
-1. `make dist` in the repository root
-1. Follow installation instructions at https://lnxjedi.github.io/gopherbot/
+1. Optionally check out a release version - `git checkout v2.0`
+1. `make dist` in the repository root to create an installable archive, or just `make` to build the binaries
+1. Follow the [manual installation instructions](https://lnxjedi.github.io/gopherbot/install/ManualInstall.html) for installing an archive on your system
 
-## Container Builds
-Version 2 and onward will be primarily built and released as containers:
-* [https://quay.io/repository/lnxjedi/gopherbot-dev](gopherbot-dev) - `quay.io/lnxjedi/gopherbot-dev`
-  * `gopherbot-dev` uses [https://github.com/theia-ide/theia-apps](Theia) for the entrypoint, and is intended for use in coding extensions for your robot
-* [https://quay.io/repository/lnxjedi/gopherbot-theia](gopherbot-dev) - `quay.io/lnxjedi/gopherbot-theia`
-  * `gopherbot-theia` includes theia but uses `gopherbot` for the entrypoint, intended for robots that can run `theia` as a child process
-* [https://quay.io/repository/lnxjedi/gopherbot](gopherbot) - `quay.io/lnxjedi/gopherbot`
-  * `gopherbot` is a fairly minimal gopherbot container just for running a containerized robot
+## Gopherbot Container Variants
+Each release of **Gopherbot** creates three container variants:
+* [gopherbot](https://quay.io/repository/lnxjedi/gopherbot) - `quay.io/lnxjedi/gopherbot`
+  * `gopherbot` is a fairly minimal gopherbot container for running a containerized robot
+* [gopherbot-dev](https://quay.io/repository/lnxjedi/gopherbot-dev) - `quay.io/lnxjedi/gopherbot-dev`
+  * `gopherbot-dev` uses [Theia](https://github.com/theia-ide/theia-apps) for the entrypoint, and is intended for use in coding extensions for your robot
+* [gopherbot-theia](https://quay.io/repository/lnxjedi/gopherbot-theia) - `quay.io/lnxjedi/gopherbot-theia`
+  * `gopherbot-theia` includes theia but uses `gopherbot` for the entrypoint, intended for robots that can run `theia` as a child process; this is currently not ready for prime time
 
 Like other projects, the `latest` tag will always be built from the most recent code, and released versions will have version tags.
 
-## Release Status
-Version 2 is nearing release. I've accepted that up-to-date documentation will lag the release significantly.
-
-## Documentation
-The latest documentation for Version 2 is on Github Pages: https://lnxjedi.github.io/gopherbot
-
-Documentation for v1 can be found in the `/doc` subdirectory of the old archives.
-
 ---
+
+This example transcript is a little outdated, and doesn't showcase the new job functionality introduced in version 2 - but **Gopherbot** still knows how to tell jokes.
 
 ![](https://raw.githubusercontent.com/wiki/lnxjedi/gopherbot/botdemo.gif)
 
-(*) with a modular interface for writing other protocol connectors in Go
-
-## Gopherbot Version 2.0 (Unreleased)
-
-Documentation and tests for version 2 are not yet finished, but configuration and API interfaces have settled to the point that the 2.0 snapshots are worth a look. Though it is stable and running in production for me, 2.0 is mostly for current users that are willing to do some digging around until documentation is finished and it's had more time to ripen. There will be a few more breaking changes before a full release.
-
-### New Features
-
-The biggest driver for version 2 is to remove the need for a separate CI/CD system. While **Gopherbot** couldn't replace Jenkins for many shops, it's very lightweight and perfectly adequate for many automated build / test and scheduled job workloads. Gopherbot is already building, running tests, and publishing itself; `.circleci` is only kept around to publish coverage results in a CircleCI-specific way. For a peek at GopherCI pipelines, compare the contents of `.circleci` to `.gopherci`.
-
-Incomplete list of features new in 2.0:
-* API support for pipelines and CI/CD operation (see [gopherci](jobs/gopherci.py))
-* Rocket.Chat adapter
-* Scheduled job support
-* Job histories
-* [Encryption](doc/src/Security-Overview.md) for secrets and the robot's brain
-* Configuration merging custom with installed defaults; maps are merged, arrays are replaced
-* New default configuration and a wide selection of included external (script) jobs, plugins and tasks
-* Go template substitutions in configuration files for e.g. includes, referencing environment variables or decrypting secrets
-* An [Ansible Playbook](https://github.com/lnxjedi/ansible-role-gopherbot)
-* First-class container support; ability to bootstrap a robot with a few environment variables and no persistent volumes
-* Go loadable modules, enabling new Go plugins at runtime
-
-### Features since 1.x:
-* Built-in support for [elevated commands](doc/src/Security-Overview.md#elevation) requiring MFA (ala 'sudo')
-* A prompting API for interactive plugins
-* Comprehensive set of administrative commands
-* Support for simple single-file script plugins
-
-### Breaking Changes
-
-Breaking changes are documented [in the new manual](https://lnxjedi.github.io/gopherbot/Upgrading.html)
-
 ### Deprecated and Unsupported Platforms
-The Windows and Darwin (MacOS) ports have both been removed. The best solution for these platforms is to take advantage of the excellent Linux container support to run your robot in a container.
-
-## Documentation
-
-With Version 2 nearly feature complete, documentation has become a priority. Watch https://lnxjedi.github.io/gopherbot for (hopefully) frequent updates. One of the best sources of documentation are the configuration repositories for **Floyd** (the production 'bot that builds all releases) and **Clu** (the devel 'bot that runs on my laptop); they can be found at [Github](https://github.com/parsley42).
-
-Other than commented [configuration files](conf/robot.yaml), most documentation is in the [doc/src/](doc/src/) folder. Stuff in `doc/src/Outdated` is just that.
+The Windows and Darwin (MacOS) ports have both been removed. The best solution for these platforms is to take advantage of the excellent Linux container support to run your robot in a container, perhaps with [Docker Desktop](https://www.docker.com/products/docker-desktop).
 
 ## Sample Plugin with the Ruby API
 ```ruby
@@ -137,10 +105,4 @@ end
 ```
 
 ### Contributing
-I've started playing around with [Gitpod](https://gitpod.io) for development, with good results. The shortest path to developing Gopherbot:
-* Sign up with [Gitpod](https://gitpod.io)
-* Fork this repository
-* Visit `https://gitpod.io/#https://github.com/<your-user-name>/gopherbot`
-* Go to "File", "Open Workspace...", and open `gitpod.theia-workspace` (this lets the Go language server work)
-
 For development, testing, and collaboration, feel free to shoot me an email for an invite to [the LinuxJedi Slack team](https://linuxjedi.slack.com).

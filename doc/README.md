@@ -1,1 +1,0 @@
-**Gopherbot** documentation can be found at [lnxjedi.github.io/gopherbot](https://lnxjedi.github.io/gopherbot/); the sources can be found at [github.com/lnxjedi/gopherbot-doc](https://github.com/lnxjedi/gopherbot-doc).
