@@ -39,6 +39,8 @@ rm -rf "$ADIR/gopherbot"
 mkdir -p "$ADIR/gopherbot"
 cp -a gopherbot "$ADIR/gopherbot/gopherbot"
 cp -a --parents $CONTENTS $MODULES "$ADIR/gopherbot"
+chmod -R a+rX $ADIR
+
 cd $ADIR
 echo "Creating gopherbot-$BUILDOS-$GOARCH.tar.gz (from $(pwd))"
 tar --owner=0 --group=0 --exclude *.swp --exclude *.pyc --exclude __pycache__ -czvf ../gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot/
