@@ -11,6 +11,8 @@ fi
 
 FailTask email-log parsley@linuxjedi.org
 
+CTAG="latest"
+
 if [[ $GOPHERCI_BRANCH == release-* ]]
 then
     if [ "$GOPHER_PIPELINE_TYPE" != "plugCommand" ]
@@ -18,7 +20,11 @@ then
         Say "Skipping build of $GOPHER_REPOSITORY, branch $GOPHERCI_BRANCH"
         exit 0
     fi
+    CTAG="$GOPHERCI_BRANCH"
 fi
+
+# SetParameter ~= "export" for the pipeline.
+SetParameter CTAG "$CTAG"
 
 # Run tests
 AddTask exec go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./test
@@ -40,12 +46,6 @@ then
     exit 0
 fi
 
-if [ "$GOPHERCI_BRANCH" != "master" -o "$GOPHER_REPOSITORY" == "github.com/parsley42/gopherbot" ]
-then
-    AddTask notify $NOTIFY_USER "Completed successful build and test of $GOPHER_REPOSITORY branch $GOPHERCI_BRANCH"
-    exit 0
-fi
-
 # Set for building containers in containers
 SetParameter BUILDAH_ISOLATION chroot
 
@@ -56,18 +56,18 @@ AddTask buildah-login registry.in.linuxjedi.org linux LINUXJEDI
 # Build the containers, tag for developer registry
 # Note that the make target pulls the FROM images first
 AddTask exec make containers
-AddTask exec buildah tag quay.io/lnxjedi/gopherbot registry.in.linuxjedi.org/lnxjedi/gopherbot
-AddTask exec buildah tag quay.io/lnxjedi/gopherbot-theia registry.in.linuxjedi.org/lnxjedi/gopherbot-theia
-AddTask exec buildah tag quay.io/lnxjedi/gopherbot-dev registry.in.linuxjedi.org/lnxjedi/gopherbot-dev
+AddTask exec buildah tag quay.io/lnxjedi/gopherbot:$CTAG registry.in.linuxjedi.org/lnxjedi/gopherbot
+AddTask exec buildah tag quay.io/lnxjedi/gopherbot-theia:$CTAG registry.in.linuxjedi.org/lnxjedi/gopherbot-theia
+AddTask exec buildah tag quay.io/lnxjedi/gopherbot-dev:$CTAG registry.in.linuxjedi.org/lnxjedi/gopherbot-dev
 
 # Push containers out
-AddTask exec buildah push quay.io/lnxjedi/gopherbot
-AddTask exec buildah push quay.io/lnxjedi/gopherbot-theia
-AddTask exec buildah push quay.io/lnxjedi/gopherbot-dev
+AddTask exec buildah push quay.io/lnxjedi/gopherbot:$CTAG
+AddTask exec buildah push quay.io/lnxjedi/gopherbot-theia:$CTAG
+AddTask exec buildah push quay.io/lnxjedi/gopherbot-dev:$CTAG
 AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot
 AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot-theia
 AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot-dev
-# As good a place as any?
+# As good a place as any for now? Need to remove later in favor of weekly job.
 AddTask exec buildah rmi -p
 
 # Notify of success

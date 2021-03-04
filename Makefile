@@ -12,6 +12,7 @@ ZIP_ARCHIVE = gopherbot-linux-amd64.zip
 
 GOOS ?= linux
 CGO ?= 0
+CTAG ?= latest
 
 modular: CGO = 1
 modular: BUILDTAG = modular
@@ -65,9 +66,9 @@ dist: $(TAR_ARCHIVE)
 containers: dist
 	buildah pull quay.io/lnxjedi/gopherbot-base:latest
 	buildah pull quay.io/lnxjedi/gopherbot-base-theia:latest
-	buildah bud -f resources/containers/minimal/Containerfile -t quay.io/lnxjedi/gopherbot:latest ./resources/containers/minimal/
-	buildah bud -f resources/containers/theia/Containerfile -t quay.io/lnxjedi/gopherbot-theia:latest ./resources/containers/theia/
-	buildah bud -f resources/containers/dev/Containerfile -t quay.io/lnxjedi/gopherbot-dev:latest ./resources/containers/dev/
+	buildah bud -f resources/containers/minimal/Containerfile -t quay.io/lnxjedi/gopherbot:$(CTAG) ./resources/containers/minimal/
+	buildah bud -f resources/containers/theia/Containerfile -t quay.io/lnxjedi/gopherbot-theia:$(CTAG) ./resources/containers/theia/
+	buildah bud -f resources/containers/dev/Containerfile -t quay.io/lnxjedi/gopherbot-dev:$(CTAG) ./resources/containers/dev/
 
 # Run test suite without coverage (see .gopherci/pipeline.sh)
 test:
