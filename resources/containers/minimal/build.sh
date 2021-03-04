@@ -1,6 +1,5 @@
 #!/bin/bash
 
-set -x
 CTAG="latest"
 if [ "$1" ]
 then

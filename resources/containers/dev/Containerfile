@@ -6,8 +6,12 @@ ARG nonprivuser=nobody
 
 ARG installdir=/opt
 
+ARG buildref
+ENV BUILDREF=${buildref}
+
 RUN cd / && \
-  git clone https://github.com/lnxjedi/gopherbot.git build && \
+  [ "$BUILDREF" ] && CLONEREF="-b $BUILDREF" || : && \
+  git clone ${CLONEREF} https://github.com/lnxjedi/gopherbot.git build && \
   cd build && \
   make dist && \
   rm -rf ${HOME}/.cache && \

@@ -21,6 +21,7 @@ then
         exit 0
     fi
     CTAG="$GOPHERCI_BRANCH"
+    SetParameter BUILDREF "$GOPHERCI_BRANCH"
 fi
 
 # SetParameter ~= "export" for the pipeline.
