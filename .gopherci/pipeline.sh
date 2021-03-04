@@ -11,6 +11,15 @@ fi
 
 FailTask email-log parsley@linuxjedi.org
 
+if [[ $GOPHERCI_BRANCH == release-* ]]
+then
+    if [ "$GOPHER_PIPELINE_TYPE" != "plugCommand" ]
+    then
+        Say "Skipping build of $GOPHER_REPOSITORY, branch $GOPHERCI_BRANCH"
+        exit 0
+    fi
+fi
+
 # Run tests
 AddTask exec go test -v --tags 'test integration netgo osusergo static_build' -mod vendor -cover -race -coverprofile coverage.out -coverpkg ./... ./test
 
