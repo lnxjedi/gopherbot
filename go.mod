@@ -12,7 +12,6 @@ require (
 	github.com/emersion/go-textwrapper v0.0.0-20160606182133-d0e65e56babe
 	github.com/ghodss/yaml v1.0.0
 	github.com/gopackage/ddp v0.0.0-20170117053602-652027933df4
-	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/jordan-wright/email v0.0.0-20200121133829-a0b5c5b58bb6
 	github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159
