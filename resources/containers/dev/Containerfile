@@ -20,12 +20,16 @@ RUN cd / && \
   rm -rf /build && \
   chown ${nonprivuser}:${username} ${installdir}/gopherbot/gopherbot && \
   chmod u+s ${installdir}/gopherbot/gopherbot && \
-  ln -s ${installdir} ${HOME}/defaults && \
+  ln -s ${installdir}/gopherbot ${HOME}/defaults && \
   chown -R ${USER}:${USER} ${HOME} && \
   chmod go+rx ${HOME}
 
 WORKDIR /usr/local/theia
+# Super ugly hack to suppress an error message when theia
+# starts a terminal.
+RUN ln -s /usr/bin/groups /usr/local/go/bin/groups
+COPY entrypoint-theia.sh /usr/local/bin/
+
 USER ${userid}:${USER}
 
-COPY entrypoint-theia.sh /usr/local/bin/
 ENTRYPOINT [ "/usr/local/bin/entrypoint-theia.sh" ]
