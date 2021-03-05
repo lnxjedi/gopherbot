@@ -7,4 +7,4 @@ then
     CTAG="$1"
 fi
 
-podman build -f Containerfile $BUILDARG -t quay.io/lnxjedi/gopherbot:$CTAG .
+docker build -f Containerfile $BUILDARG -t quay.io/lnxjedi/gopherbot:$CTAG .
