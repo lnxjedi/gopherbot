@@ -25,9 +25,6 @@ RUN cd / && \
   chmod go+rx ${HOME}
 
 WORKDIR /usr/local/theia
-# Super ugly hack to suppress an error message when theia
-# starts a terminal.
-RUN ln -s /usr/bin/groups /usr/local/go/bin/groups
 COPY entrypoint-theia.sh /usr/local/bin/
 
 USER ${userid}:${USER}
