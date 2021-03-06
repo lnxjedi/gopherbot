@@ -7,10 +7,17 @@ ARG nonprivuser=nobody
 ARG installdir=/opt
 ARG homedir=/home/robot
 
+ENV HOME=${homedir}
+ENV GOPATH=${HOME}
+ENV PATH=${HOME}/go/bin:${HOME}/.local/bin:/opt/gopherbot:${PATH}
+ENV USER=${username}
+ENV USERID=${userid}
+
 ARG buildref
 ENV BUILDREF=${buildref}
 
-RUN cd / && \
+RUN useradd -d ${homedir} -m -u ${userid} ${username} && \
+  cd / && \
   [ "$BUILDREF" ] && CLONEREF="-b $BUILDREF" || : && \
   git clone ${CLONEREF} https://github.com/lnxjedi/gopherbot.git build && \
   cd build && \
@@ -21,8 +28,6 @@ RUN cd / && \
   rm -rf /build && \
   chown ${nonprivuser}:${username} ${installdir}/gopherbot/gopherbot && \
   chmod u+s ${installdir}/gopherbot/gopherbot && \
-  ln -s ${installdir} ${HOME}/defaults && \
-  chown -R ${USER}:${USER} ${HOME} && \
   chmod go+rx ${HOME}
 
 WORKDIR ${HOME}
