@@ -1,32 +1,20 @@
-FROM quay.io/lnxjedi/gopherbot-base-theia:latest
+FROM quay.io/lnxjedi/gopherbot-theia:latest
 
-ARG username=robot
-ARG userid=1000
-ARG nonprivuser=nobody
+USER root
 
-ARG installdir=/opt
-
-ARG buildref
-ENV BUILDREF=${buildref}
-
+# Tiny little init
 RUN cd / && \
-  [ "$BUILDREF" ] && CLONEREF="-b $BUILDREF" || : && \
-  git clone ${CLONEREF} https://github.com/lnxjedi/gopherbot.git build && \
+  git clone https://github.com/lnxjedi/dinit.git build && \
   cd build && \
-  make dist && \
-  rm -rf ${HOME}/.cache && \
-  cd ${installdir} && \
-  tar xzf /build/gopherbot-linux-amd64.tar.gz && \
-  rm -rf /build && \
-  chown ${nonprivuser}:${username} ${installdir}/gopherbot/gopherbot && \
-  chmod u+s ${installdir}/gopherbot/gopherbot && \
-  ln -s ${installdir}/gopherbot ${HOME}/defaults && \
-  chown -R ${USER}:${USER} ${HOME} && \
-  chmod go+rx ${HOME}
+  make && \
+  mv dinit / && \
+  cd / && \
+  rm -rf /build /root/.cache
+
+# Numeric for Kubernetes runAsNonRoot
+USER 1000:robot
 
 WORKDIR /usr/local/theia
-COPY entrypoint-theia.sh /usr/local/bin/
 
-USER ${userid}:${USER}
-
-ENTRYPOINT [ "/usr/local/bin/entrypoint-theia.sh" ]
+EXPOSE 3000
+ENTRYPOINT [ "/dinit", "-r", "ssh-agent", "node", "/usr/local/theia/src-gen/backend/main.js", "/home/robot", "--hostname=0.0.0.0" ]
