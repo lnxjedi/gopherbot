@@ -437,10 +437,16 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		r.Say("Killed pid %d", pid)
 	case "pause":
 		name := args[0]
+		notfound := "I don't have a job configured with that name"
 		t := r.tasks.getTaskByName(name)
+		if t == nil {
+			r.Say(notfound)
+			return
+		}
 		_, _, job := getTask(t)
 		if job == nil {
-			r.Say("I don't have a job configured with that name")
+			r.Say(notfound)
+			return
 		}
 		pausedJobs.Lock()
 		defer pausedJobs.Unlock()
