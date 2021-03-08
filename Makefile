@@ -63,7 +63,7 @@ $(TAR_ARCHIVE): modular
 
 dist: $(TAR_ARCHIVE)
 
-containers: dist
+containers:
 	buildah pull quay.io/lnxjedi/gopherbot-base:latest
 	buildah pull quay.io/lnxjedi/gopherbot-base-theia:latest
 	# NOTE: set BUILDREF in the environment to build anything other than default branch
