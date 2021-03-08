@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker run --rm --name gopherbot-min quay.io/lnxjedi/gopherbot:latest
+docker run -it --rm --name gopherbot-min quay.io/lnxjedi/gopherbot:latest

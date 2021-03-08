@@ -6,4 +6,4 @@ then
     exit 1
 fi
 
-docker run --rm --env-file=$1 --name gopherbot-theia quay.io/lnxjedi/gopherbot-theia:latest
+docker run -it --rm --env-file=$1 --name gopherbot-theia quay.io/lnxjedi/gopherbot-theia:latest
