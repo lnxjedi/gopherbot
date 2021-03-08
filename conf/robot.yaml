@@ -61,7 +61,7 @@ NameSpaces:
     - Name: GOPHER_CUSTOM_REPOSITORY
       Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
     - Name: GOPHER_CUSTOM_BRANCH
-      Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "master" }}
+      Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "." }}
     - Name: GOPHER_STATE_REPOSITORY
       Value: {{ env "GOPHER_STATE_REPOSITORY" }}
     - Name: GOPHER_STATE_BRANCH

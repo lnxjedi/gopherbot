@@ -47,12 +47,12 @@ fi
 
 if [ "$GOPHER_STATE_REPOSITORY" ]
 then
-    PUSHBRANCH="${GOPHER_STATE_BRANCH:-master}"
+    PUSHBRANCH="${GOPHER_STATE_BRANCH:-main}"
     cd "$GOPHER_STATEDIR"
     if [ ! -d .git ]
     then
         NEWREPO="true"
-        git init
+        git init -b $PUSHBRANCH
         git remote add origin $GOPHER_STATE_REPOSITORY
         FailTask exec rm -rf ".git"
     fi

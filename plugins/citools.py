@@ -38,7 +38,7 @@ if command == "build":
 
     branch = sys.argv.pop(0)
     if len(branch) == 0:
-        branch = "master"
+        branch = "."
     
     pipeline = sys.argv.pop(0)
     args = []
@@ -71,8 +71,8 @@ if command == "build":
 if command == "help":
     bot.Say("""\
 The "build <repo> (branch)" command takes a repository name and optional \
-branch (default "master"), which the robot will try matching against \
-repositories and dependencies in "repositories.yaml". When the repository \
-name is not unique, you can also add a user/org component to match, e.g. \
+branch, which the robot will try matching against repositories and \
+dependencies in "repositories.yaml". When the repository name is not \
+unique, you can also add a user/org component to match, e.g. \
 "build joeblow/website"; that can be further qualified with the site name \
 if needed, e.g. "build github.com/joeblow/website".""")

@@ -40,4 +40,8 @@ then
     SetWorkingDirectory "$REPO_DIR"
 fi
 
-git clone -b $BRANCH $REPO_URL .
+if [ "$BRANCH" != "." ]
+then
+    CLONEREF="-b $BRANCH"
+fi
+git clone $CLONEREF $REPO_URL .

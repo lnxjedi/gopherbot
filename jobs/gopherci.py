@@ -118,7 +118,7 @@ if command == "builddeps":
                     if "default_branch" in repoconf:
                         repobranch = repoconf["default_branch"]
                     else:
-                        repobranch = "master"
+                        repobranch = "."
                     bot.Log("Debug", "Spawning dependency build of %s / %s for primary build of %s / %s" % (reponame, repobranch, repository, branch))
                     bot.SpawnJob("gopherci", [ "depbuild", reponame, repobranch, repository, branch ])
 

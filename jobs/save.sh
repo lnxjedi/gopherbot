@@ -67,7 +67,7 @@ then
 fi
 
 SetWorkingDirectory "$GOPHER_CONFIGDIR"
-AddTask git-init "$GOPHER_CUSTOM_REPOSITORY"
+AddTask git-init "$GOPHER_CUSTOM_REPOSITORY" "-b" "main"
 if [ "$CHANGES" -o "$NEWREPO" ]
 then
     AddTask exec git add --all
@@ -75,7 +75,7 @@ then
 fi
 if [ "$NEWREPO" ]
 then
-    AddTask exec git push -u origin master
+    AddTask exec git push -u origin main
     FailTask exec rm -rf .git
 else
     AddTask exec git push
