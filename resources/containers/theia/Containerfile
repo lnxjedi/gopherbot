@@ -2,8 +2,6 @@ FROM quay.io/lnxjedi/gopherbot-base-theia:latest
 
 USER root
 
-ENV PATH=/opt/gopherbot:${PATH}
-
 ARG buildref
 ENV BUILDREF=${buildref}
 
@@ -17,6 +15,8 @@ RUN cd / && \
   rm -rf /build /root/.cache && \
   chown nobody /opt/gopherbot/gopherbot && \
   chmod u+s /opt/gopherbot/gopherbot
+
+ENV PATH=/opt/gopherbot:${PATH}
 
 RUN adduser -u 1000 \
     --no-create-home \
