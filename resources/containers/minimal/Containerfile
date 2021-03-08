@@ -1,11 +1,8 @@
 FROM quay.io/lnxjedi/gopherbot-base:latest
 
-ARG username=robot
-ARG userid=1000
-ARG nonprivuser=nobody
+USER root
 
-ARG installdir=/opt
-ARG homedir=/home/robot
+ENV PATH=/opt/gopherbot:${PATH}
 
 ARG buildref
 ENV BUILDREF=${buildref}
@@ -15,18 +12,24 @@ RUN cd / && \
   git clone ${CLONEREF} https://github.com/lnxjedi/gopherbot.git build && \
   cd build && \
   make dist && \
-  rm -rf ${HOME}/.cache && \
-  cd ${installdir} && \
+  cd /opt && \
   tar xzf /build/gopherbot-linux-amd64.tar.gz && \
-  rm -rf /build && \
-  chown ${nonprivuser}:${username} ${installdir}/gopherbot/gopherbot && \
-  chmod u+s ${installdir}/gopherbot/gopherbot && \
-  ln -s ${installdir}/gopherbot/gopherbot ${HOME}/gopherbot && \
-  ln -s ${installdir} ${HOME}/defaults && \
-  chown -R ${USER}:${USER} ${HOME} && \
-  chmod go+rx ${HOME}
+  rm -rf /build /root/.cache && \
+  chown nobody /opt/gopherbot/gopherbot && \
+  chmod u+s /opt/gopherbot/gopherbot
 
-WORKDIR ${HOME}
-USER ${userid}:${USER}
+RUN adduser -u 1000 \
+    --no-create-home \
+    --disabled-password \
+    --gecos '' robot && \
+  mkdir /home/robot && \
+  chown robot:robot /home/robot && \
+  chmod 0755 /home/robot
+
+WORKDIR /home/robot
+
+# Numeric for Kubernetes runAsNonRoot
+USER 1000:robot
+ENV GOPATH=/home/robot
 
 ENTRYPOINT [ "/opt/gopherbot/gopherbot" , "-plainlog" ]
