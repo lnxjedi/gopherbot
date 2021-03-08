@@ -29,38 +29,52 @@ spec:
       volumes:
       - name: robot-home
         {{- toYaml .Values.robotDataVolume | nindent 8 }}
+      initContainers:
+      - name: {{ .Chart.Name }}-fsinit
+        securityContext:
+          runAsUser: 0
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
+        imagePullPolicy: "IfNotPresent"
+        command:
+        - /bin/bash
+        args:
+        - "-c"
+        - "chown robot:robot /home/robot && chmod 0755 /home/robot"
+        volumeMounts:
+        - mountPath: /home/robot
+          name: robot-home
       containers:
-        - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          volumeMounts:
-          - mountPath: /home/robot
-            name: robot-home
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-          env:
-            - name: GOPHER_ENCRYPTION_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.robotSecrets }}
-                  key: GOPHER_ENCRYPTION_KEY
-            - name: GOPHER_CUSTOM_REPOSITORY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.robotSecrets }}
-                  key: GOPHER_CUSTOM_REPOSITORY
-            - name: GOPHER_DEPLOY_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.robotSecrets }}
-                  key: GOPHER_DEPLOY_KEY
-            - name: GOPHER_PROTOCOL
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.robotSecrets }}
-                  key: GOPHER_PROTOCOL
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        volumeMounts:
+        - mountPath: /home/robot
+          name: robot-home
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        env:
+        - name: GOPHER_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.robotSecrets }}
+              key: GOPHER_ENCRYPTION_KEY
+        - name: GOPHER_CUSTOM_REPOSITORY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.robotSecrets }}
+              key: GOPHER_CUSTOM_REPOSITORY
+        - name: GOPHER_DEPLOY_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.robotSecrets }}
+              key: GOPHER_DEPLOY_KEY
+        - name: GOPHER_PROTOCOL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.robotSecrets }}
+              key: GOPHER_PROTOCOL
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
