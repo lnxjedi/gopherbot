@@ -43,7 +43,7 @@ chmod -R a+rX $ADIR
 
 cd $ADIR
 echo "Creating gopherbot-$BUILDOS-$GOARCH.tar.gz (from $(pwd))"
-tar --owner=0 --group=0 --exclude *.swp --exclude *.pyc --exclude __pycache__ -czvf ../gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot/
+tar --owner=0 --group=0 --exclude *.swp --exclude *.pyc --exclude __pycache__ -czf ../gopherbot-$BUILDOS-$GOARCH.tar.gz gopherbot/
 cd -
 
 rm -rf "$ADIR"
