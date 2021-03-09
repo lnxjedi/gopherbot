@@ -15,8 +15,13 @@ CTAG="latest"
 
 if [[ $GOPHERCI_BRANCH == release-* ]]
 then
-    Say "Skipping build of $GOPHER_REPOSITORY, ref '$GOPHERCI_BRANCH' (requires manual release build)"
-    exit 0
+    if [ "$GOPHER_PIPELINE_TYPE" != "plugCommand" ]
+    then
+        Say "Skipping build of $GOPHER_REPOSITORY, ref '$GOPHERCI_BRANCH' (requires manual build)"
+        exit 0
+    fi
+    CTAG="$GOPHERCI_BRANCH"
+    SetParameter BUILDREF "$GOPHERCI_BRANCH"
 fi
 
 if [[ $GOPHERCI_BRANCH == v*.* ]]
