@@ -3,6 +3,7 @@
 .PHONY: clean test generate testbot static modular dist containers debug
 
 commit := $(shell git rev-parse --short HEAD)
+version := $(shell ./get-version.sh)
 
 MODULES = goplugins/knock.so goplugins/duo.so goplugins/meme.so goplugins/totp.so \
 	connectors/slack.so connectors/rocket.so brains/dynamodb.so history/file.so
@@ -25,10 +26,10 @@ endif
 static: gopherbot
 
 gopherbot: main*.go bot/* brains/*/* connectors/*/* goplugins/*/* history/*/*
-	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w -X main.Commit=$(commit)" -tags "netgo osusergo static_build $(BUILDTAG)" -o gopherbot
+	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w -X main.Commit=$(commit) -X main.Version=$(version)" -tags "netgo osusergo static_build $(BUILDTAG)" -o gopherbot
 
 debug:
-	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-X main.Commit=$(commit)" -tags "netgo osusergo static_build" -o gopherbot
+	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-X main.Commit=$(commit) -X main.Version=$(version)" -tags "netgo osusergo static_build" -o gopherbot
 
 # modules
 connectors/slack.so: connectors/slack-mod.go connectors/slack/*.go
