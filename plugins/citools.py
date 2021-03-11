@@ -16,16 +16,20 @@ if command == "configure":
 repodata = bot.GetRepoData()
 
 def start_build(repository, branch, pipeline, args):
-    if pipeline == "pipeline":
-        bot.Say("Ok, I'll start the gopherci job for %s, %s branch..." % (repository, branch))
-        bot.AddJob("gopherci", [ "build", repository, branch ])
-        bot.AddTask("say", ["... build of %s/%s completed" % (repository, branch) ])
-        bot.FailTask("say", ["... build of %s/%s failed" % (repository, branch) ])
+    if branch == ".":
+        tell_branch = "(default)"
     else:
-        bot.Say("Ok, I'll start the gopherci custom job for %s, %s branch, running pipeline: %s" % (repository, branch, pipeline))
+        tell_branch = branch
+    if pipeline == "pipeline":
+        bot.Say("Ok, I'll start the gopherci job for %s, %s branch..." % (repository, tell_branch))
+        bot.AddJob("gopherci", [ "build", repository, branch ])
+        bot.AddTask("say", ["... build of %s/%s completed" % (repository, tell_branch) ])
+        bot.FailTask("say", ["... build of %s/%s failed" % (repository, tell_branch) ])
+    else:
+        bot.Say("Ok, I'll start the gopherci custom job for %s, %s branch, running pipeline: %s" % (repository, tell_branch, pipeline))
         bot.AddJob("gopherci", [ "job", repository, branch, pipeline ] + args)
-        bot.AddTask("say", ["... job %s/%s - %s: completed" % (repository, branch, pipeline) ])
-        bot.FailTask("say", ["... job %s/%s - %s: failed" % (repository, branch, pipeline) ])
+        bot.AddTask("say", ["... job %s/%s - %s: completed" % (repository, tell_branch, pipeline) ])
+        bot.FailTask("say", ["... job %s/%s - %s: failed" % (repository, tell_branch, pipeline) ])
 
 if not isinstance(repodata, dict):
     bot.Say("'repodata.yaml' missing or invalid; GetRepoData() failed")
