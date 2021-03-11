@@ -171,6 +171,17 @@ ExternalJobs:
     Privileged: true
     NameSpace: manage
     Path: jobs/save.sh
+  "theia":
+    Description: "Start theia interface; WARNING: UNAUTHENTICATED"
+    Path: jobs/theia.sh
+    # Allow the robot to load it's read-write key
+    NameSpace: manage
+    Parameters:
+    # Allow "gopherbot encrypt/decrypt" to work
+    - Name: "GOPHER_ENCRYPTION_KEY"
+      Value: "{{ env "GOPHER_ENCRYPTION_KEY" }}"
+    - Name: GOPHER_CUSTOM_REPOSITORY
+      Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
   "backup":
     Description: A job for backing up the robot's state, normally just a file-based brain
     Homed: true
