@@ -34,7 +34,7 @@ spec:
         securityContext:
           runAsUser: 0
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
-        imagePullPolicy: "IfNotPresent"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command:
         - /bin/bash
         args:
