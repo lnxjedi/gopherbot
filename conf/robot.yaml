@@ -272,3 +272,7 @@ ExternalTasks:
     Description: Task for cleaning a working directory before starting a job/build
     Privileged: true
     Path: tasks/cleanup.sh
+  "run-theia":
+    Description: "Set up environment required for theia and run"
+    Path: tasks/run-theia.sh
+    Privileged: true
