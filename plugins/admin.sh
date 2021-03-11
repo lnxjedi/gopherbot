@@ -9,11 +9,11 @@ shift
 
 trap_handler()
 {
-    ERRLINE="$1"
-    ERRVAL="$2"
-    echo "line ${ERRLINE} exit status: ${ERRVAL}" >&2
-    # The script should usually exit on error
-    exit $ERRVAL
+  ERRLINE="$1"
+  ERRVAL="$2"
+  echo "line ${ERRLINE} exit status: ${ERRVAL}" >&2
+  # The script should usually exit on error
+  exit $ERRVAL
 }
 trap 'trap_handler ${LINENO} $?' ERR
 
@@ -31,7 +31,7 @@ do
 done
 
 case "$COMMAND" in
-	"configure")
+  "configure")
 		exit 0
 		;;
   "update")
@@ -45,6 +45,12 @@ case "$COMMAND" in
     AddJob save
     FailTask say "Job failed!"
     AddTask say "... done"
+    ;;
+  "theia")
+    Say "Ok, I'll start the Theia IDE..."
+    AddJob theia
+    FailTask say "Starting theia failed! (are you using the gopherbot-theia image?)"
+    AddTask say "... Theia finished"
     ;;
   "backup")
     Say "Ok, I'll start the backup job to push my state..."
