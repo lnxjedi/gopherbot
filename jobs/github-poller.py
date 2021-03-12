@@ -35,15 +35,14 @@ if not memory.exists:
     first_run = True
     memory.datum = {}
 repostats = memory.datum
-print("Memory is: %s" % repostats)
+
+want_builds = {}
 
 def fetch_refs(url):
-    print("Fetching refs from '%s'" % url)
     req = urllib.request.Request(url=url)
     req.add_header('Authorization', f'token {token}')
     res = urllib.request.urlopen(req)
     body = res.read()
-    print("Got: %s" % body)
     return json.loads(body.decode("utf-8"))
 
 def check_repo(reponame, repoconf):
@@ -60,7 +59,6 @@ def check_repo(reponame, repoconf):
     for t in list(tags):
         name = t["name"]
         commit = t["commit"]["sha"]
-        print("Found %s tag %s/%s" % (fullname, name, commit))
         refs[name] = commit
 
     branchurl = "%s/%s/branches" % (prefix, fullname)
@@ -68,7 +66,6 @@ def check_repo(reponame, repoconf):
     for b in list(branches):
         name = b["name"]
         commit = b["commit"]["sha"]
-        print("Found %s branch %s/%s" % (fullname, name, commit))
         refs[name] = commit
 
     for name in list(refs):
@@ -85,8 +82,9 @@ def check_repo(reponame, repoconf):
             repotype = repoconf["Type"]
             if first_run:
                 bot.Log("Debug", "Skipping primary build for %s (branch %s) to the pipeline, type '%s' (first run)" % (reponame, name, repotype))
-            bot.Log("Debug", "Adding primary build for %s (branch %s) to the pipeline, type '%s'" % (reponame, name, repotype))
-            bot.SpawnJob("gopherci", [ "build", reponame, name ])
+            else:
+                bot.Log("Debug", "Adding primary build for %s (branch %s) to the pipeline, type '%s'" % (reponame, name, repotype))
+                want_builds[reponame] = name
     if len(refs) > 0:
         for name in list(repostat):
             if not name in refs:
@@ -105,3 +103,8 @@ memory.datum = repostats
 ret = bot.UpdateDatum(memory)
 if ret != Robot.Ok:
     bot.Log("Error", "Unable to save long-term memory in github-poller: %s" % ret)
+    exit(1)
+
+for reponame in list(want_builds):
+    name = want_builds[reponame]
+    bot.SpawnJob("gopherci", [ "build", reponame, name ])
