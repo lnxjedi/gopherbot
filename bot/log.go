@@ -36,6 +36,7 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
+	// Note logger is nil very briefly on startup
 	if logger == nil && l >= currlevel {
 		botStdOutLogger.Print(msg)
 		return true
@@ -49,9 +50,9 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 		} else {
 			if localTerm {
 				if terminalWriter != nil {
-					terminalWriter.Write([]byte("LOG " + msg + "\n"))
+					terminalWriter.Write([]byte("LOG " + logLevelToStr(l) + ": " + msg + "\n"))
 				} else {
-					botStdOutLogger.Print(msg)
+					botStdOutLogger.Print("LOG " + logLevelToStr(l) + ": " + msg)
 				}
 			}
 			logger.Print(msg)
