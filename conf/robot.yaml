@@ -170,7 +170,6 @@ ExternalJobs:
   "save":
     Description: A job for saving up the robot's configuration
     Homed: true
-    Privileged: true
     NameSpace: manage
     Path: jobs/save.sh
   "github-poller":
@@ -192,13 +191,11 @@ ExternalJobs:
   "backup":
     Description: A job for backing up the robot's state, normally just a file-based brain
     Homed: true
-    Privileged: true
     NameSpace: manage
     Path: jobs/backup.sh
   "restore":
     Description: A job for restoring the robot's state from git
     Homed: true
-    Privileged: true
     NameSpace: manage
     Path: jobs/restore.sh
   "logrotate":
