@@ -96,6 +96,17 @@ then
     echo "Placeholder file for git backups, ensures brain directory is created." > brain/README.txt
 fi
 
+# Ignore known, noisy memories created by the default robot
+for IGNORE in 'bot:histories*' '*:repostats'
+do
+    IGNORED=$(grep -F "$IGNORE" .gitignore || :)
+    if [ "$IGNORED" != "$IGNORE" ]
+    then
+        Log "Debug" "Adding '$IGNORE' to .gitignore"
+        echo "$IGNORE" >> .gitignore
+    fi
+done
+
 CHANGES=$(git status --porcelain)
 
 if [ ! "$CHANGES" -a ! "$NEWREPO" -a ! "$FAILED" ] # no changes
@@ -108,13 +119,9 @@ then
 fi
 
 SetWorkingDirectory "$GOPHER_STATEDIR"
+
 if [ "$NEWREPO" ]
 then
-    # Default gitignore, don't back up histories, repostats
-    cat > .gitignore <<EOF
-bot:histories*
-*:repostats
-EOF
     AddTask git-init "$GOPHER_STATE_REPOSITORY"
 else
     ORIGIN=$(git remote get-url origin)
