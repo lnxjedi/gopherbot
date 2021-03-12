@@ -97,7 +97,7 @@ then
 fi
 
 # Ignore known, noisy memories created by the default robot
-for IGNORE in 'bot:histories*' '*:repostats'
+for IGNORE in 'bot:histories*' '*:repostats*'
 do
     IGNORED=$(grep -F "$IGNORE" .gitignore || :)
     if [ "$IGNORED" != "$IGNORE" ]
