@@ -68,17 +68,11 @@ AddTask buildah-login registry.in.linuxjedi.org linux LINUXJEDI
 # Build the containers, tag for developer registry
 # Note that the make target pulls the FROM images first
 AddTask exec make containers
-AddTask exec buildah tag quay.io/lnxjedi/gopherbot:$CTAG registry.in.linuxjedi.org/lnxjedi/gopherbot
-AddTask exec buildah tag quay.io/lnxjedi/gopherbot-theia:$CTAG registry.in.linuxjedi.org/lnxjedi/gopherbot-theia
-AddTask exec buildah tag quay.io/lnxjedi/gopherbot-dev:$CTAG registry.in.linuxjedi.org/lnxjedi/gopherbot-dev
 
 # Push containers out
 AddTask exec buildah push quay.io/lnxjedi/gopherbot:$CTAG
 AddTask exec buildah push quay.io/lnxjedi/gopherbot-theia:$CTAG
 AddTask exec buildah push quay.io/lnxjedi/gopherbot-dev:$CTAG
-AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot
-AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot-theia
-AddTask exec buildah push registry.in.linuxjedi.org/lnxjedi/gopherbot-dev
 # As good a place as any for now? Need to remove later in favor of weekly job.
 AddTask exec buildah rmi -p
 
