@@ -56,6 +56,8 @@ NameSpaces:
   # Needed to prevent dangling reference; parameters need to be in
   # custom config.
   "ssh":
+  # Administrator needs to define GITHUB_TOKEN
+  "github":
   "manage":
     Parameters:
     - Name: GOPHER_CUSTOM_REPOSITORY
@@ -171,6 +173,11 @@ ExternalJobs:
     Privileged: true
     NameSpace: manage
     Path: jobs/save.sh
+  "github-poller":
+    Description: "Job that polls github repositories and builds new/updated tags and branches"
+    Disabled: true
+    NameSpace: github
+    Path: jobs/github-poller.py
   "theia":
     Description: "Start theia interface; WARNING: UNAUTHENTICATED"
     Path: jobs/theia.sh
