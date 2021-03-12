@@ -355,9 +355,17 @@ func (r Robot) Log(l robot.LogLevel, msg string, v ...interface{}) (logged bool)
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
-	Log(l, msg)
+	logged = Log(l, msg)
+	// All robot Log calls get logged to terminal output
+	if !logged && localTerm {
+		if terminalWriter != nil {
+			terminalWriter.Write([]byte("LOG " + logLevelToStr(l) + ": " + msg + "\n"))
+		} else {
+			botStdOutLogger.Print("LOG " + logLevelToStr(l) + ": " + msg)
+		}
+	}
 	if r.logger != nil {
-		line := "LOG " + logLevelToStr(l) + " " + msg
+		line := "LOG " + logLevelToStr(l) + ": " + msg
 		r.logger.Log(strings.TrimSpace(line))
 	}
 	return
