@@ -246,12 +246,11 @@ loop:
 					exists := false
 					newchan := input[2:]
 					if newchan == "?" {
-						chanlist := []string{"Available channels:", "(direct message); type: '|c'"}
+						tc.reader.Write([]byte("Available channels:\n"))
+						tc.reader.Write([]byte("(direct message); type: '|c'\n"))
 						for _, channel := range tc.channels {
-							chanlist = append(chanlist, fmt.Sprintf("'%s'; type: '|c%s'", channel, channel))
+							tc.reader.Write([]byte(fmt.Sprintf("'%s'; type: '|c%s'\n", channel, channel)))
 						}
-						tc.reader.Write([]byte(strings.Join(chanlist, "\n")))
-						tc.reader.Write([]byte("\n"))
 						continue
 					}
 					tc.Lock()
@@ -279,12 +278,10 @@ loop:
 					exists := false
 					newuser := input[2:]
 					if newuser == "?" {
-						userlist := []string{"Available users:"}
+						tc.reader.Write([]byte("Available users:\n"))
 						for _, user := range tc.users {
-							userlist = append(userlist, fmt.Sprintf("'%s'; type: '|u%s'", user.Name, user.Name))
+							tc.reader.Write([]byte(fmt.Sprintf("'%s'; type: '|u%s'\n", user.Name, user.Name)))
 						}
-						tc.reader.Write([]byte(strings.Join(userlist, "\n")))
-						tc.reader.Write([]byte("\n"))
 						continue
 					}
 					tc.Lock()
