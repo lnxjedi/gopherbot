@@ -89,10 +89,8 @@ for reponame in repodata.keys():
                 remotes[reponame] = refs
 
 # Retrive repo status memory
-first_run = False
 memory = bot.CheckoutDatum("repostats", True)
 if not memory.exists:
-    first_run = True
     memory.datum = {}
 repostats = memory.datum
 
@@ -100,7 +98,9 @@ want_builds = {}
 
 for reponame in remotes.keys():
     repostat = {}
+    first_seen = False
     if not reponame in repostats:
+        first_seen = True
         repostats[reponame] = {}
     repostat = repostats[reponame]
     refs = remotes[reponame]
@@ -110,14 +110,14 @@ for reponame in remotes.keys():
         if name in repostat:
             last = repostat[name]
         repostat[name] = commit
-        build = False
+        changed = False
         if commit != last:
-            build = True
-        print("Evaluating %s / %s: last built: %s, current: %s, build: %s" % (reponame, name, last, commit, build))
-        if build:
+            changed = True
+        print("Evaluating %s / %s: last built: %s, current: %s, changed: %s" % (reponame, name, last, commit, changed))
+        if changed:
             repotype = repoconf["Type"]
-            if first_run:
-                print("Skipping primary build for %s (branch %s) to the pipeline, type '%s' (first run)" % (reponame, name, repotype))
+            if first_seen:
+                print("Skipping primary build for %s (branch %s) to the pipeline, type '%s' (first time seen)" % (reponame, name, repotype))
             else:
                 print("Adding primary build for %s (branch %s) to the pipeline, type '%s'" % (reponame, name, repotype))
                 want_builds[reponame] = name
