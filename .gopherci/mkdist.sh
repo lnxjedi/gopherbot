@@ -27,7 +27,7 @@ fi
 eval `go env`
 
 CONTENTS="conf/ jobs/ lib/ licenses/ plugins/ resources/ robot.skel/ helpers/ \
-	tasks/ AUTHORS.txt changelog.txt LICENSE README.md fetch-robot.sh"
+	tasks/ AUTHORS.txt changelog.txt LICENSE README.md setuid-nobody.sh"
 MODULES="goplugins/knock.so goplugins/duo.so goplugins/meme.so goplugins/totp.so \
 	connectors/slack.so connectors/rocket.so brains/dynamodb.so history/file.so"
 
