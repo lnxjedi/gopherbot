@@ -47,7 +47,12 @@ case "$COMMAND" in
     AddTask say "... done"
     ;;
   "theia")
-    Say "Ok, I'll start the Theia IDE..."
+    if [ ! -e "/usr/local/theia/src-gen/backend/main.js" ]
+    then
+      Say "Theia installation not found. Wrong container?"
+      exit 0
+    fi
+    Say "Ok, I'll start the Theia Gopherbot IDE..."
     AddJob theia
     FailTask say "Starting theia failed! (are you using the gopherbot-theia image?)"
     AddTask say "... Theia finished"
