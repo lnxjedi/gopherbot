@@ -126,6 +126,7 @@ func processCLI(usage string) {
 	case "version":
 		fmt.Printf("Version %s, commit: %s\n", botVersion.Version, botVersion.Commit)
 	default:
+		fmt.Printf("Invalid command/option(s): %s, %q\n", cliArgs[0], cliArgs[1:])
 		fmt.Println(usage)
 		flag.PrintDefaults()
 	}
