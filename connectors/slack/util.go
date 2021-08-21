@@ -171,7 +171,7 @@ pageLoop:
 			var cl []slack.Channel
 			params := &slack.GetConversationsParameters{
 				Cursor:          cursor,
-				ExcludeArchived: "true",
+				ExcludeArchived: true,
 				Limit:           limit,
 				Types: []string{
 					"public_channel",

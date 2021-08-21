@@ -1,5 +1,3 @@
-// +build !module
-
 package meme
 
 import "github.com/lnxjedi/gopherbot/bot"

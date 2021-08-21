@@ -1,6 +1,6 @@
 module github.com/lnxjedi/gopherbot
 
-go 1.13
+go 1.16
 
 require (
 	github.com/Jeffail/gabs v1.4.0
@@ -19,7 +19,7 @@ require (
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/robfig/cron v1.2.0
-	github.com/slack-go/slack v0.8.1
+	github.com/slack-go/slack v0.9.4
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
 )

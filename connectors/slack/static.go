@@ -1,6 +1,3 @@
-// Only needed when built as part of the gopherbot binary
-// +build !module
-
 package slack
 
 import "github.com/lnxjedi/gopherbot/bot"

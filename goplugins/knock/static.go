@@ -1,5 +1,3 @@
-// +build !module
-
 package knock
 
 import "github.com/lnxjedi/gopherbot/bot"

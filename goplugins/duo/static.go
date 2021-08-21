@@ -1,5 +1,3 @@
-// +build !module
-
 package duo
 
 import "github.com/lnxjedi/gopherbot/bot"

@@ -1,5 +1,3 @@
-// +build !module
-
 package totp
 
 import "github.com/lnxjedi/gopherbot/bot"

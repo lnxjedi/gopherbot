@@ -200,12 +200,21 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 		s.Log(robot.Error, "no slack user ID found for user: %s", u)
 		ret = robot.UserNotFound
 	}
-	var userIMchan string
+	var userIMchanstr string
+	var userIMchan *slack.Channel
 	var err error
-	userIMchan, ok = s.userIMID(userID)
+	userIMchanstr, ok = s.userIMID(userID)
 	if !ok {
 		s.Log(robot.Warn, "no slack IM channel found for user: %s, ID: %s trying to open IM", u, userID)
-		_, _, userIMchan, err = s.conn.OpenIMChannel(userID)
+		ocParam := slack.OpenConversationParameters{
+			ChannelID: "",
+			ReturnIM:  false,
+			Users:     []string{userID},
+		}
+		userIMchan, _, _, err = s.conn.OpenConversation(&ocParam)
+		userIMchanstr = userIMchan.Conversation.ID
+		//s.conn.OpenIMChannel(userID)
+
 		if err != nil {
 			s.Log(robot.Error, "Unable to open a slack IM channel to user: %s, ID: %s", u, userID)
 			ret = robot.FailedMessageSend
@@ -215,7 +224,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 		return
 	}
 	msgs := s.slackifyMessage("", msg, f)
-	s.sendMessages(msgs, userIMchan, f)
+	s.sendMessages(msgs, userIMchanstr, f)
 	return robot.Ok
 }
 
