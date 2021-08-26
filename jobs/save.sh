@@ -51,6 +51,7 @@ if [ ! -d .git ]
 then
     NEWREPO="true"
     git init
+    git branch -m main
     git remote add origin $GOPHER_CUSTOM_REPOSITORY
 else
     CHANGES=$(git status --porcelain)
