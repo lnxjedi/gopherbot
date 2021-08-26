@@ -219,7 +219,7 @@ GOPHER_CUSTOM_REPOSITORY=$BOTREPO
 ## You should normally keep GOPHER_PROTOCOL commented out, except when
 ## used in a production container. This allows for the normal case where
 ## the robot starts in terminal mode for local development.
-#GOPHER_PROTOCOL=slack
+GOPHER_PROTOCOL=slack
 ## To use the deploy key below, add ssh/deploy_key.pub as a read-only
 ## deploy key for the custom configuration repository.
 GOPHER_DEPLOY_KEY=$DEPKEY
