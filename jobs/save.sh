@@ -50,9 +50,6 @@ cd $GOPHER_CONFIGDIR
 if [ ! -d .git ]
 then
     NEWREPO="true"
-    git init
-    git branch -m main
-    git remote add origin $GOPHER_CUSTOM_REPOSITORY
 else
     CHANGES=$(git status --porcelain)
     COMMITS=$(git cherry)
@@ -68,19 +65,20 @@ then
 fi
 
 SetWorkingDirectory "$GOPHER_CONFIGDIR"
-AddTask git-init "$GOPHER_CUSTOM_REPOSITORY" "-b" "main"
+AddTask git-init "$GOPHER_CUSTOM_REPOSITORY"
+if [ "$NEWREPO" ]
+then
+    AddTask exec git clone "$GOPHER_CUSTOM_REPOSITORY" empty
+    AddTask exec mv empty/.git .
+    AddTask exec rm -rf empty
+    FailTask exec rm -rf .git
+fi
 if [ "$CHANGES" -o "$NEWREPO" ]
 then
     AddTask exec git add --all
     AddTask exec git commit -m "Save robot configuration"
 fi
-if [ "$NEWREPO" ]
-then
-    AddTask exec git push -u origin main
-    FailTask exec rm -rf .git
-else
-    AddTask exec git push
-fi
+AddTask exec git push
 if [ "$PTYPE" == "plugCommand" -o "$PTYPE" == "jobCommand" ]
 then
     AddTask say "Save finished"

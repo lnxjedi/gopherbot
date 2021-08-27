@@ -19,6 +19,15 @@ fi
 if [ "$command" == "init" ]
 then
     Pause 1
+    for REQUIRED in jq git ssh
+    do
+        if ! which $REQUIRED &>/dev/null
+        then
+            SendChannelMessage "general" "***ERROR***: Missing required '$REQUIRED' executable!"
+            AddTask robot-quit
+            exit 0
+        fi
+    done
     NAME=$(GetBotAttribute "name")
     SendChannelMessage "general" "*******"
     SendChannelMessage "general" "Welcome to the *Gopherbot* terminal connector. Since no \
@@ -28,6 +37,6 @@ configuration was detected, you're connected to '$NAME', the default robot."
     SendChannelMessage "general" "If you've started the robot by mistake, just hit ctrl-D \
 to exit and try 'gopherbot --help'; otherwise feel free to play around with the default robot - \
 you can start by typing 'help'. If you'd like to start configuring a new robot, \
-type: '${ALIAS}setup <protocol>'."
+type: '${ALIAS}setup slack'."
     exit 0
 fi

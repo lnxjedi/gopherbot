@@ -7,4 +7,4 @@ The major update for 2.1.0+ is the temporary and possibly permanent removal of m
 The other major change is a greater focus on **Slack** as the primary protocol. While the **terminal** connector will continue to be the best way to develop Gopherbot jobs and plugins, the primary build artifacts will be largely Slack-specific.
 
 Other updates/fixes:
-* Don't comment-out `GOPHER_PROTOCOL` during setup; fixes an issue with setting up new robots.
+* Several fixes to the `autosetup` installer for additional robustness.

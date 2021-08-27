@@ -108,6 +108,7 @@ ExternalPlugins:
   {{- if eq $proto "terminal" }}
   "welcome":
     Description: The welcome plugin provides a greeting when unconfigured
+    Privileged: true
     Path: plugins/welcome.sh
   {{- end }}
   "autosetup":
