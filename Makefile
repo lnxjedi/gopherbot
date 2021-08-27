@@ -2,7 +2,7 @@
 
 .PHONY: clean test generate testbot static dist containers debug
 
-commit := $(shell git rev-parse --short HEAD)
+commit := -X main.Commit=$(shell git rev-parse --short HEAD)
 version := $(shell ./get-version.sh)
 
 TAR_ARCHIVE = gopherbot-linux-amd64.tar.gz
@@ -19,10 +19,10 @@ endif
 static: gopherbot
 
 gopherbot: main*.go bot/* brains/*/* connectors/*/* goplugins/*/* history/*/*
-	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w -X main.Commit=$(commit) -X main.Version=$(version)" -tags "netgo osusergo static_build" -o gopherbot main.go main_static.go
+	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w $(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot main.go main_static.go
 
 debug:
-	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-X main.Commit=$(commit) -X main.Version=$(version)" -tags "netgo osusergo static_build" -o gopherbot
+	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "$(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot
 
 clean:
 	rm -f gopherbot $(TAR_ARCHIVE) $(ZIP_ARCHIVE)

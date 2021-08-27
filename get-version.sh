@@ -5,7 +5,5 @@
 
 if VERSION=$(git describe --exact-match --tags HEAD 2>/dev/null)
 then
-    echo "$VERSION"
-else
-    echo "(not set)"
+    echo "-X main.Version=$VERSION"
 fi
