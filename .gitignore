@@ -18,3 +18,4 @@ gopherbot-doc
 robot.log
 start.sh
 .vscode
+*fail.log
