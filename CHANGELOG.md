@@ -1,4 +1,4 @@
-# Gopherbot v2.1.0-pre
+# Gopherbot v2.1.0
 
 Changes since v2.0.2:
 

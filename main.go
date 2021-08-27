@@ -2,8 +2,8 @@ package main
 
 import "github.com/lnxjedi/gopherbot/bot"
 
-// Version - major version of gopherbot
-var Version = "v2.1-pre"
+// Version supplied during linking
+var Version = "(not set)"
 
 // Commit supplied during linking
 var Commit = "(not set)"
