@@ -1,3 +1,8 @@
+# Gopherbot v2.1.1
+
+* Compile in the dynamodb brain, famously used by Floyd
+* Update aws and other deps
+
 # Gopherbot v2.1.0
 
 Changes since v2.0.2:
