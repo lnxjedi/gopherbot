@@ -25,6 +25,9 @@ import (
 
 	// *** Default file history
 	_ "github.com/lnxjedi/gopherbot/history/file"
+
+	// *** A fantastic brain
+	_ "github.com/lnxjedi/gopherbot/brains/dynamodb"
 )
 
 /* Uncomment under Profiling above to enable profiling. This inflates
