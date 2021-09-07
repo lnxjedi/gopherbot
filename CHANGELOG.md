@@ -1,3 +1,7 @@
+# Gopherbot v2.1.2
+
+* Update container builds, using GitHub actions for releases and containers
+
 # Gopherbot v2.1.1
 
 * Compile in the dynamodb brain, famously used by Floyd

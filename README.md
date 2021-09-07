@@ -28,10 +28,13 @@ The manual is still somewhat incomplete; however, sometimes the best documentati
 ## Release Status
 Version 2 has been stable for me for over year, and has finally been released. I've accepted that a fully up-to-date manual will lag significantly.
 
-Future development will be focused on bugfixes and enhancements, with no major updates in functionality currently planned. The next big update (v2.1) will likely revolve around creating a new Slack connector using [more recent APIs](https://api.slack.com/apis/connections/socket), and using that connector in the default robot setup.
+Future development will be focused on bugfixes and enhancements, with no major updates in functionality currently planned.
+
+## Downloading
+You can download the latest release build from the [release page](https://github.com/lnxjedi/gopherbot/releases/latest).
 
 ## Building from Source
-With Gopherbot version 2 defaulting to a modular build (to avoid e.g. linking in the go-aws library when it's not used), I've stopped building downloadable artifacts, since they were linked to the glibc on the build system.
+Building from source is straight-forward with the `Makefile`, as long as the build system has all the requirements.
 
 **Requirements:**
 * A recent (1.14+) version of Go
@@ -52,8 +55,6 @@ Each release of **Gopherbot** creates three container variants:
   * `gopherbot-dev` uses [Theia](https://github.com/theia-ide/theia-apps) for the entrypoint, and is intended for use in coding extensions for your robot
 * [gopherbot-theia](https://quay.io/repository/lnxjedi/gopherbot-theia) - `quay.io/lnxjedi/gopherbot-theia`
   * `gopherbot-theia` includes theia but uses `gopherbot` for the entrypoint, intended for robots that can run `theia` as a child process; this is currently not ready for prime time
-
-Like other projects, the `latest` tag will always be built from the most recent code, and released versions will have version tags.
 
 ---
 
