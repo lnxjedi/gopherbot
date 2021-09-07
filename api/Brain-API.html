@@ -215,18 +215,6 @@ if remembered
   end
 end
 </code></pre>
-<h3 id="powershell"><a class="header" href="#powershell">PowerShell</a></h3>
-<pre><code class="language-powershell">$memory = $bot.CheckoutDatum(&quot;memory&quot;, $TRUE)
-if ($memory.exists) {
-  $memory.Datum += &quot;the answer is 42&quot;
-} else {
-  [String[]] $memory.Datum = @( &quot;the answer is 42&quot; )
-}
-$ret = $bot.UpdateDatum($memory)
-if ($ret -ne &quot;Ok&quot;) {
-  $bot.Say(&quot;I'm having a hard time remembering things&quot;)
-}
-</code></pre>
 <h2 id="long-term-memory-sample-transcript"><a class="header" href="#long-term-memory-sample-transcript">Long-Term Memory Sample Transcript</a></h2>
 <p>Using the <code>terminal</code> connector, you can see the <code>remember</code> function in action:</p>
 <pre><code>c:general/u:alice -&gt; floyd, remember the answer is 42
@@ -299,11 +287,6 @@ fi
 <pre><code class="language-ruby">bot.Remember(key, value)
 </code></pre>
 <pre><code class="language-ruby">mem = bot.Recall(key)
-</code></pre>
-<h3 id="powershell-1"><a class="header" href="#powershell-1">PowerShell</a></h3>
-<pre><code class="language-powershell">$bot.Remember($key, $value)
-</code></pre>
-<pre><code class="language-powershell">$mem = $bot.Recall($key)
 </code></pre>
 <h2 id="short-term-memory-sample-transcript"><a class="header" href="#short-term-memory-sample-transcript">Short-Term Memory Sample Transcript</a></h2>
 <p>Here you can see the robot's short term memories of Ferris Bueller in action (using

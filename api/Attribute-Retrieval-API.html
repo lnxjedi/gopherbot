@@ -177,15 +177,6 @@ else
   Say &quot;Your email address is $USEREMAIL&quot;
 fi
 </code></pre>
-<h2 id="powershell"><a class="header" href="#powershell">PowerShell</a></h2>
-<pre><code class="language-powershell">$attr = $bot.GetBotAttribute(&quot;email&quot;)
-if ( $attr.Ret -eq &quot;Ok&quot; ) {
-  $email = $attr.Attr
-  $bot.Say(&quot;My email address is: $email&quot;)
-} else {
-  $bot.Say(&quot;I don't think I have an email address&quot;)
-}
-</code></pre>
 <h2 id="python"><a class="header" href="#python">Python</a></h2>
 <pre><code class="language-python"># In some cases you might forego error checking
 bot.Say(&quot;You can send email to %s&quot; % bot.GetBotAttribte(&quot;email&quot;))

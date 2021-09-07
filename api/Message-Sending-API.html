@@ -151,7 +151,6 @@
 <li><a href="#code-examples">Code Examples</a>
 <ul>
 <li><a href="#bash">Bash</a></li>
-<li><a href="#powershell">PowerShell</a></li>
 <li><a href="#python">Python</a></li>
 <li><a href="#ruby">Ruby</a></li>
 </ul>
@@ -186,13 +185,6 @@ if [ $RETVAL -ne $GBRET_Ok ]
 then
   Log &quot;Error&quot; &quot;Unable to message Bob in #general - return code $RETVAL&quot;
 fi
-</code></pre>
-<h2 id="powershell"><a class="header" href="#powershell">PowerShell</a></h2>
-<pre><code class="language-powershell">$bot.Say(&quot;I'm sending a message to Bob in #general&quot;)
-$retval = $bot.SendUserChannelMessage(&quot;bob&quot;, &quot;general&quot;, &quot;Hi, Bob!&quot;)
-if ( $retval -ne &quot;Ok&quot; ) {
-  $bot.Log(&quot;Error&quot;, &quot;Unable to message Bob in #general - return code $retval&quot;)
-}
 </code></pre>
 <h2 id="python"><a class="header" href="#python">Python</a></h2>
 <pre><code class="language-python">bot.Say(&quot;I'm sending a message to Bob in #general&quot;)

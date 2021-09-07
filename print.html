@@ -1434,7 +1434,6 @@ AddTask exec ssh $SSH_OPTIONS user@my.remote.host &quot;whoami&quot;
 <li><a href="api/Languages.html#using-boilerplate-code">Using Boilerplate Code</a>
 <ul>
 <li><a href="api/Languages.html#bash-boilerplate">Bash Boilerplate</a></li>
-<li><a href="api/Languages.html#powershell-boilerplate">PowerShell Boilerplate</a></li>
 <li><a href="api/Languages.html#python-boilerplate">Python Boilerplate</a></li>
 <li><a href="api/Languages.html#ruby-boilerplate">Ruby Boilerplate</a></li>
 </ul>
@@ -1751,15 +1750,6 @@ else
   Say &quot;Your email address is $USEREMAIL&quot;
 fi
 </code></pre>
-<h2 id="powershell"><a class="header" href="#powershell">PowerShell</a></h2>
-<pre><code class="language-powershell">$attr = $bot.GetBotAttribute(&quot;email&quot;)
-if ( $attr.Ret -eq &quot;Ok&quot; ) {
-  $email = $attr.Attr
-  $bot.Say(&quot;My email address is: $email&quot;)
-} else {
-  $bot.Say(&quot;I don't think I have an email address&quot;)
-}
-</code></pre>
 <h2 id="python"><a class="header" href="#python">Python</a></h2>
 <pre><code class="language-python"># In some cases you might forego error checking
 bot.Say(&quot;You can send email to %s&quot; % bot.GetBotAttribte(&quot;email&quot;))
@@ -1851,18 +1841,6 @@ if remembered
   end
 end
 </code></pre>
-<h3 id="powershell-1"><a class="header" href="#powershell-1">PowerShell</a></h3>
-<pre><code class="language-powershell">$memory = $bot.CheckoutDatum(&quot;memory&quot;, $TRUE)
-if ($memory.exists) {
-  $memory.Datum += &quot;the answer is 42&quot;
-} else {
-  [String[]] $memory.Datum = @( &quot;the answer is 42&quot; )
-}
-$ret = $bot.UpdateDatum($memory)
-if ($ret -ne &quot;Ok&quot;) {
-  $bot.Say(&quot;I'm having a hard time remembering things&quot;)
-}
-</code></pre>
 <h2 id="long-term-memory-sample-transcript"><a class="header" href="#long-term-memory-sample-transcript">Long-Term Memory Sample Transcript</a></h2>
 <p>Using the <code>terminal</code> connector, you can see the <code>remember</code> function in action:</p>
 <pre><code>c:general/u:alice -&gt; floyd, remember the answer is 42
@@ -1936,11 +1914,6 @@ fi
 </code></pre>
 <pre><code class="language-ruby">mem = bot.Recall(key)
 </code></pre>
-<h3 id="powershell-2"><a class="header" href="#powershell-2">PowerShell</a></h3>
-<pre><code class="language-powershell">$bot.Remember($key, $value)
-</code></pre>
-<pre><code class="language-powershell">$mem = $bot.Recall($key)
-</code></pre>
 <h2 id="short-term-memory-sample-transcript"><a class="header" href="#short-term-memory-sample-transcript">Short-Term Memory Sample Transcript</a></h2>
 <p>Here you can see the robot's short term memories of Ferris Bueller in action (using
 the <code>bashdemo.sh</code> plugin):</p>
@@ -1967,7 +1940,6 @@ general: Ferris Bueller is a Righteous Dude
 <li><a href="api/Message-Sending-API.html#code-examples">Code Examples</a>
 <ul>
 <li><a href="api/Message-Sending-API.html#bash">Bash</a></li>
-<li><a href="api/Message-Sending-API.html#powershell">PowerShell</a></li>
 <li><a href="api/Message-Sending-API.html#python">Python</a></li>
 <li><a href="api/Message-Sending-API.html#ruby">Ruby</a></li>
 </ul>
@@ -2002,13 +1974,6 @@ if [ $RETVAL -ne $GBRET_Ok ]
 then
   Log &quot;Error&quot; &quot;Unable to message Bob in #general - return code $RETVAL&quot;
 fi
-</code></pre>
-<h2 id="powershell-3"><a class="header" href="#powershell-3">PowerShell</a></h2>
-<pre><code class="language-powershell">$bot.Say(&quot;I'm sending a message to Bob in #general&quot;)
-$retval = $bot.SendUserChannelMessage(&quot;bob&quot;, &quot;general&quot;, &quot;Hi, Bob!&quot;)
-if ( $retval -ne &quot;Ok&quot; ) {
-  $bot.Log(&quot;Error&quot;, &quot;Unable to message Bob in #general - return code $retval&quot;)
-}
 </code></pre>
 <h2 id="python-3"><a class="header" href="#python-3">Python</a></h2>
 <pre><code class="language-python">bot.Say(&quot;I'm sending a message to Bob in #general&quot;)
@@ -2059,7 +2024,6 @@ end
 <li><a href="api/Response-Request-API.html#code-examples">Code Examples</a>
 <ul>
 <li><a href="api/Response-Request-API.html#bash">Bash</a></li>
-<li><a href="api/Response-Request-API.html#powershell">PowerShell</a></li>
 <li><a href="api/Response-Request-API.html#python">Python</a></li>
 <li><a href="api/Response-Request-API.html#ruby">Ruby</a></li>
 </ul>
@@ -2128,22 +2092,6 @@ else
   fi
 fi
 </code></pre>
-<h3 id="powershell-4"><a class="header" href="#powershell-4">PowerShell</a></h3>
-<pre><code class="language-powershell">$rep = $bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
-if ($rep.Ret -ne &quot;Ok&quot;) {
-  $bot.Say(&quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;)
-} else {
-  $reply = [String]$rep
-  switch -Wildcard ($reply) {
-    &quot;y*&quot; { # PS is case-insensitive
-      $bot.Say(&quot;No kidding! Me too!&quot;)
-    }
-    default {
-      $bot.Say(&quot;Oh, come on - you're kidding, right?!?&quot;)
-    }
-  }
-}
-</code></pre>
 <h3 id="python-5"><a class="header" href="#python-5">Python</a></h3>
 <pre><code class="language-python">rep = bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
 if rep.ret != Robot.Ok:
@@ -2182,9 +2130,6 @@ end
 <h2 id="bash-5"><a class="header" href="#bash-5">Bash</a></h2>
 <pre><code class="language-bash">Log &quot;Error&quot; &quot;The robot broke&quot;
 </code></pre>
-<h2 id="powershell-5"><a class="header" href="#powershell-5">PowerShell</a></h2>
-<pre><code class="language-powershell">$bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
-</code></pre>
 <h2 id="python-6"><a class="header" href="#python-6">Python</a></h2>
 <pre><code class="language-python">bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
 </code></pre>
@@ -2197,11 +2142,6 @@ end
 <pre><code class="language-bash">Say &quot;Be back soon!&quot;
 Pause 2
 Say &quot;... aaaand I'm back!&quot;
-</code></pre>
-<h2 id="powershell-6"><a class="header" href="#powershell-6">PowerShell</a></h2>
-<pre><code class="language-powershell">$bot.Say(&quot;Be back soon!&quot;)
-$bot.Pause(2)
-$bot.Say(&quot;... aaaand I'm back!&quot;)
 </code></pre>
 <h2 id="python-7"><a class="header" href="#python-7">Python</a></h2>
 <pre><code class="language-python">bot.Say(&quot;Be back soon!&quot;)

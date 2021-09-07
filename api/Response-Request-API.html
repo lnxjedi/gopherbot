@@ -156,7 +156,6 @@
 <li><a href="#code-examples">Code Examples</a>
 <ul>
 <li><a href="#bash">Bash</a></li>
-<li><a href="#powershell">PowerShell</a></li>
 <li><a href="#python">Python</a></li>
 <li><a href="#ruby">Ruby</a></li>
 </ul>
@@ -224,22 +223,6 @@ else
     Say &quot;Oh, come on - you're kidding, right?!?&quot;
   fi
 fi
-</code></pre>
-<h3 id="powershell"><a class="header" href="#powershell">PowerShell</a></h3>
-<pre><code class="language-powershell">$rep = $bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
-if ($rep.Ret -ne &quot;Ok&quot;) {
-  $bot.Say(&quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;)
-} else {
-  $reply = [String]$rep
-  switch -Wildcard ($reply) {
-    &quot;y*&quot; { # PS is case-insensitive
-      $bot.Say(&quot;No kidding! Me too!&quot;)
-    }
-    default {
-      $bot.Say(&quot;Oh, come on - you're kidding, right?!?&quot;)
-    }
-  }
-}
 </code></pre>
 <h3 id="python"><a class="header" href="#python">Python</a></h3>
 <pre><code class="language-python">rep = bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
