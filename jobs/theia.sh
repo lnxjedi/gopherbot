@@ -12,7 +12,7 @@ then
 # File created by jobs/theia.sh; changes will be preserved across restarts
 # of theia.
 PS1="\[\033[01;32m\]robot@gopherbot-dev\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "
-PATH=$HOME/bin:$HOME/.local/bin:$HOME/go/bin:/opt/gopherbot:$PATH
+PATH=$HOME/bin:$HOME/.local/bin:$PATH
 export PATH PS1
 EOF
 fi
@@ -49,13 +49,10 @@ then
 {
    "folders": [
       {
-         "path": "file:///home/robot/custom"
+         "path": "file:///var/lib/robot/custom"
       },
       {
-         "path": "file:///home/robot/robot-defaults"
-      },
-      {
-         "path": "file:///home"
+         "path": "file:///var/lib/robot/robot-defaults"
       }
    ],
    "settings": {}
@@ -84,8 +81,6 @@ else
 fi
 EOF
 fi
-
-ln -snf /opt/gopherbot $HOME/robot-defaults || Say "Failed to create symlink $HOME/robot-defaults"
 
 AddTask git-init $GOPHER_CUSTOM_REPOSITORY
 AddTask run-theia

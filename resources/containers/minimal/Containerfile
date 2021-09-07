@@ -4,32 +4,14 @@ USER root
 
 ENV PATH=/opt/gopherbot:${PATH}
 
-ARG buildref
-ENV BUILDREF=${buildref}
+ADD gopherbot-linux-amd64.tar.gz /opt
 
-RUN cd / && \
-  [ "$BUILDREF" ] && CLONEREF="-b $BUILDREF" || : && \
-  git clone ${CLONEREF} https://github.com/lnxjedi/gopherbot.git build && \
-  cd build && \
-  make dist && \
-  cd /opt && \
-  tar xzf /build/gopherbot-linux-amd64.tar.gz && \
-  rm -rf /build /root/.cache && \
-  chown nobody /opt/gopherbot/gopherbot && \
+RUN chown nobody /opt/gopherbot/gopherbot && \
   chmod u+s /opt/gopherbot/gopherbot
 
-RUN adduser -u 1000 \
-    --no-create-home \
-    --disabled-password \
-    --gecos '' robot && \
-  mkdir /home/robot && \
-  chown robot:robot /home/robot && \
-  chmod 0755 /home/robot
-
-WORKDIR /home/robot
+WORKDIR /var/lib/robot
 
 # Numeric for Kubernetes runAsNonRoot
-USER 1000:robot
-ENV GOPATH=/home/robot
+USER 994:robot
 
 ENTRYPOINT [ "/opt/gopherbot/gopherbot" , "-plainlog" ]

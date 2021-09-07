@@ -2,37 +2,19 @@ FROM quay.io/lnxjedi/gopherbot-base-theia:latest
 
 USER root
 
-ARG buildref
-ENV BUILDREF=${buildref}
+ENV PATH=/opt/gopherbot:${PATH}
 
-RUN cd / && \
-  [ "$BUILDREF" ] && CLONEREF="-b $BUILDREF" || : && \
-  git clone ${CLONEREF} https://github.com/lnxjedi/gopherbot.git build && \
-  cd build && \
-  make dist && \
-  cd /opt && \
-  tar xzf /build/gopherbot-linux-amd64.tar.gz && \
-  rm -rf /build /root/.cache && \
-  chown nobody /opt/gopherbot/gopherbot && \
+ADD gopherbot-linux-amd64.tar.gz /opt
+
+RUN chown nobody /opt/gopherbot/gopherbot && \
   chmod u+s /opt/gopherbot/gopherbot
 
-RUN adduser -u 1000 \
-    --no-create-home \
-    --disabled-password \
-    --gecos '' robot && \
-  mkdir /home/robot && \
-  chown robot:robot /home/robot && \
-  chmod 0755 /home/robot
-
-COPY --chown=robot:robot robot-bashrc /home/robot/.bashrc
+WORKDIR /var/lib/robot
 
 # Numeric for Kubernetes runAsNonRoot
-USER 1000:robot
-ENV GOPATH=/home/robot
-RUN ln -s /opt/gopherbot /home/robot/robot-defaults && \
-  mkdir /home/robot/bin
-
-WORKDIR /home/robot
+USER 994:robot
+RUN ln -s /opt/gopherbot /var/lib/robot/robot-defaults && \
+  mkdir /var/lib/robot/bin
 
 EXPOSE 3000
 # In the gopherbot-theia image, theia runs as a gopherbot job
