@@ -1,2 +1,0 @@
-PS1="\[\033[01;32m\]robot@gopherbot-dev\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "
-PATH=$HOME/bin:$HOME/.local/bin:$HOME/go/bin:/opt/gopherbot:/usr/local/go-tools/bin:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
