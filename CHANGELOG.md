@@ -1,13 +1,17 @@
-# Gopherbot v2.1.2
+# v2.1.3
+
+* More container build updates - make all containers more useful for dev env
+
+# v2.1.2
 
 * Update container builds, using GitHub actions for releases and containers
 
-# Gopherbot v2.1.1
+# v2.1.1
 
 * Compile in the dynamodb brain, famously used by Floyd
 * Update aws and other deps
 
-# Gopherbot v2.1.0
+# v2.1.0
 
 Changes since v2.0.2:
 
