@@ -2,16 +2,12 @@ FROM quay.io/lnxjedi/gopherbot-base:latest
 
 USER root
 
-ENV PATH=/opt/gopherbot:${PATH}
-
 ADD gopherbot-linux-amd64.tar.gz /opt
 
 RUN chown nobody /opt/gopherbot/gopherbot && \
   chmod u+s /opt/gopherbot/gopherbot
 
-WORKDIR /var/lib/robot
-
 # Numeric for Kubernetes runAsNonRoot
-USER 994:robot
+USER ${ROBOT_UID}:${ROBOT_UID}
 
 ENTRYPOINT [ "/opt/gopherbot/gopherbot" , "-plainlog" ]

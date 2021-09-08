@@ -2,8 +2,6 @@ FROM quay.io/lnxjedi/gopherbot-base-theia:latest
 
 USER root
 
-ENV PATH=/opt/gopherbot:${PATH}
-
 ADD gopherbot-linux-amd64.tar.gz /opt
 
 RUN chown nobody /opt/gopherbot/gopherbot && \
@@ -15,14 +13,8 @@ RUN cd / && \
     $(curl --silent https://api.github.com/repos/lnxjedi/dinit/releases/latest | jq -r .assets[0].browser_download_url) && \
   chmod 755 dinit
 
-WORKDIR /var/lib/robot
-
 # Numeric for Kubernetes runAsNonRoot
-USER 994:robot
-RUN ln -s /opt/gopherbot /var/lib/robot/robot-defaults && \
-  mkdir /var/lib/robot/bin
-
-WORKDIR /usr/local/theia
+USER ${ROBOT_UID}:${ROBOT_UID}
 
 EXPOSE 3000
 ENTRYPOINT [ "/dinit", "-r", "ssh-agent", "node", "/usr/local/theia/src-gen/backend/main.js", "/var/lib/robot", "--hostname=0.0.0.0" ]

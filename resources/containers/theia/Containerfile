@@ -2,19 +2,15 @@ FROM quay.io/lnxjedi/gopherbot-base-theia:latest
 
 USER root
 
-ENV PATH=/opt/gopherbot:${PATH}
-
 ADD gopherbot-linux-amd64.tar.gz /opt
 
 RUN chown nobody /opt/gopherbot/gopherbot && \
   chmod u+s /opt/gopherbot/gopherbot
 
-WORKDIR /var/lib/robot
+WORKDIR ${HOME}
 
 # Numeric for Kubernetes runAsNonRoot
-USER 994:robot
-RUN ln -s /opt/gopherbot /var/lib/robot/robot-defaults && \
-  mkdir /var/lib/robot/bin
+USER ${ROBOT_UID}:${ROBOT_UID}
 
 EXPOSE 3000
 # In the gopherbot-theia image, theia runs as a gopherbot job

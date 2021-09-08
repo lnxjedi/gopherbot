@@ -6,17 +6,6 @@ source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 FailTask tail-log
 
-if [ ! -e "$HOME/.bashrc" ]
-then
-    cat > $HOME/.bashrc <<EOF
-# File created by jobs/theia.sh; changes will be preserved across restarts
-# of theia.
-PS1="\[\033[01;32m\]robot@gopherbot-dev\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "
-PATH=$HOME/bin:$HOME/.local/bin:$PATH
-export PATH PS1
-EOF
-fi
-
 if [ ! -e "$HOME/.gitconfig" ]
 then
    FULL_NAME=$(GetSenderAttribute fullname)

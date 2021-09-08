@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# rc-start - convenience script for starting a Gopherbot dev container.
+
+usage(){
+	cat <<EOF
+Usage:
+$ rc-start <robot>.env
+EOF
+	exit 1
+}
+
+if [ ! "$1" ]
+then
+	usage
+fi
+
+BOTENV="$1"
+if [ ! -e "$BOTENV" ]
+then
+	if [ -e "$BOTENV.env" ]
+	then
+		BOTENV="$BOTENV.env"
+	else
+		usage
+	fi
+fi
+
+BOTNAME=$(basename -s '.env' $BOTENV)
+
+source $BOTENV
+CONTAINER=${BOT_CONTAINER:-quay.io/lnxjedi/gopherbot:latest}
+
+docker run -it --rm -p=127.0.0.1:3000:3000 --pull=always \
+	--env-file $BOTENV --name $BOTNAME \
+	-v $BOTNAME:/var/lib/robot $CONTAINER
