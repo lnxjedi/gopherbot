@@ -96,11 +96,20 @@ then
     echo "Placeholder file for git backups, ensures brain directory is created." > brain/README.txt
 fi
 
-# Ignore known, noisy memories created by the default robot
-for IGNORE in 'bot:histories*' '*:repostats*'
+# Ignore known, noisy memories created by the default robot;
+# ignore any memory with a leading underscore.
+for IGNORE in 'bot:histories*' '*:repostats*' '*:_*' 'one'
 do
-    IGNORED=$(grep -F "$IGNORE" .gitignore || :)
-    if [ "$IGNORED" != "$IGNORE" ]
+    ALL_IGNORED=$(grep -F "$IGNORE" .gitignore || :)
+    unset FOUND
+    for IGNORED in $ALL_IGNORED
+    do
+        if [ "$IGNORED" == "$IGNORE" ]
+        then
+            FOUND=true
+        fi
+    done
+    if [ ! "$FOUND" ]
     then
         Log "Debug" "Adding '$IGNORE' to .gitignore"
         echo "$IGNORE" >> .gitignore
