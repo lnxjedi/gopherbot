@@ -98,7 +98,7 @@ fi
 
 # Ignore known, noisy memories created by the default robot;
 # ignore any memory with a leading underscore.
-for IGNORE in 'bot:histories*' '*:repostats*' '*:_*' 'one'
+for IGNORE in 'bot:histories*' '*:repostats*' '*:_*'
 do
     ALL_IGNORED=$(grep -F "$IGNORE" .gitignore || :)
     unset FOUND
