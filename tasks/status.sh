@@ -5,5 +5,4 @@
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
-MESSAGE="$1"
-Say "$MESSAGE"
+Say "$*"
