@@ -5,10 +5,26 @@
 usage(){
 	cat <<EOF
 Usage:
-$ rc-start <robot>.env
+$ rc-start [-n] <robot>.env
+Where:
+-n : don't pull containers
 EOF
 	exit 1
 }
+
+PULL="always"
+while getopts ":n" OPT; do
+    case $OPT in
+    n )
+        PULL="never"
+        ;;
+    \? )
+        echo "Invalid option: $OPTARG" >&2
+		usage
+        ;;
+    esac
+done
+shift $((OPTIND -1))
 
 if [ ! "$1" ]
 then
@@ -31,6 +47,6 @@ BOTNAME=$(basename -s '.env' $BOTENV)
 source $BOTENV
 CONTAINER=${BOT_CONTAINER:-quay.io/lnxjedi/gopherbot:latest}
 
-docker run -it --rm -p=127.0.0.1:3000:3000 --pull=always \
+docker run -it --rm -p=127.0.0.1:3000:3000 --pull=$PULL \
 	--env-file $BOTENV --name $BOTNAME \
 	-v $BOTNAME:/var/lib/robot $CONTAINER
