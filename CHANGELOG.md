@@ -1,18 +1,17 @@
-# v2.1.3
+# v2.1.4
+* Allow for ephemeral memories with the git brain; any memories with leading underscores will be ignored by the '.gitignore', allowing developers to prevent frequent git commits for fast changing memories. Also made the .gitignore algorithm more robust.
 
+# v2.1.3
 * More container build updates - make all containers more useful for dev env
 
 # v2.1.2
-
 * Update container builds, using GitHub actions for releases and containers
 
 # v2.1.1
-
 * Compile in the dynamodb brain, famously used by Floyd
 * Update aws and other deps
 
 # v2.1.0
-
 Changes since v2.0.2:
 
 The major update for 2.1.0+ is the temporary and possibly permanent removal of modular builds. Support for loadable Go modules was *cool*, but it meant that I couldn't build a single distribution archive installable on all recent Linux distributions due to modular builds using the gcc toolchain linker. Starting with 2.1.0, **Gopherbot** will once again create installable build artifacts.
