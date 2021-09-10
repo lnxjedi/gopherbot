@@ -328,21 +328,21 @@ and call GetTaskConfig with a double-pointer:
 func (r Robot) GetTaskConfig(dptr interface{}) robot.RetVal {
 	task, _, _ := getTask(r.currentTask)
 	if task.config == nil {
-		Log(robot.Debug, "Task \"%s\" called GetTaskConfig, but no config was found.", task.name)
+		Log(robot.Error, "Task \"%s\" called GetTaskConfig, but no config was found.", task.name)
 		return robot.NoConfigFound
 	}
 	tp := reflect.ValueOf(dptr)
 	if tp.Kind() != reflect.Ptr {
-		Log(robot.Debug, "Task \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", task.name)
+		Log(robot.Error, "Task \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", task.name)
 		return robot.InvalidDblPtr
 	}
 	p := reflect.Indirect(tp)
 	if p.Kind() != reflect.Ptr {
-		Log(robot.Debug, "Task \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", task.name)
+		Log(robot.Error, "Task \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", task.name)
 		return robot.InvalidDblPtr
 	}
 	if p.Type() != reflect.ValueOf(task.config).Type() {
-		Log(robot.Debug, "Task \"%s\" called GetTaskConfig with an invalid double-pointer", task.name)
+		Log(robot.Error, "Task \"%s\" called GetTaskConfig with an invalid double-pointer", task.name)
 		return robot.InvalidCfgStruct
 	}
 	p.Set(reflect.ValueOf(task.config))

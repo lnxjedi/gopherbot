@@ -1,14 +1,17 @@
 package bot
 
 import (
+	"bytes"
 	"encoding/base64"
 	"flag"
 	"fmt"
+	"image/png"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/lnxjedi/robot"
+	"github.com/pquerna/otp/totp"
 )
 
 func processCLI(usage string) {
@@ -39,6 +42,11 @@ func processCLI(usage string) {
 		decFlags.PrintDefaults()
 	}
 
+	totpFlags := flag.NewFlagSet("gentotp", flag.ExitOnError)
+	totpFlags.Usage = func() {
+		fmt.Println("Usage: gopherbot gentotp <username>\n")
+	}
+
 	fetchFlags := flag.NewFlagSet("fetch", flag.ExitOnError)
 	fetchFlags.BoolVar(&encodeBase64, "base64", false, "encode memory as base64")
 	fetchFlags.BoolVar(&encodeBase64, "b", false, "")
@@ -62,6 +70,13 @@ func processCLI(usage string) {
 			return
 		}
 		cliDecrypt(decFlags.Arg(0), fileName)
+	case "gentotp":
+		totpFlags.Parse(cliArgs[1:])
+		if len(totpFlags.Args()) == 0 || len(totpFlags.Arg(0)) == 0 {
+			totpFlags.Usage()
+			return
+		}
+		cliTOTPgen(totpFlags.Arg(0))
 	case "fetch":
 		fetchFlags.Parse(cliArgs[1:])
 		if len(fetchFlags.Args()) == 0 || len(fetchFlags.Arg(0)) == 0 {
@@ -132,6 +147,42 @@ func processCLI(usage string) {
 	}
 }
 
+func cliTOTPgen(user string) {
+	if !cryptKey.initialized {
+		fmt.Println("Encryption not initialized")
+		os.Exit(1)
+	}
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      currentCfg.botinfo.FullName,
+		AccountName: user,
+	})
+	if err != nil {
+		fmt.Printf("Error generating TOTP: %v\n", err)
+		os.Exit(1)
+	}
+	secStr := key.Secret()
+	fmt.Printf("Secret for %s: %s\n", user, secStr)
+	ct, err := encrypt([]byte(secStr), cryptKey.key)
+	if err != nil {
+		fmt.Printf("Error encrypting: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Encrypted secret for config: \"%s\": \"{{ decrypt \"%s\" }}\"\n", user, base64.StdEncoding.EncodeToString(ct))
+	var buf bytes.Buffer
+	img, imgerr := key.Image(400, 400)
+	if imgerr != nil {
+		fmt.Printf("Error generating image: %v\n", imgerr)
+		os.Exit(1)
+	}
+	png.Encode(&buf, img)
+	ferr := os.WriteFile(fmt.Sprintf("%s.png", user), buf.Bytes(), 0644)
+	if ferr != nil {
+		fmt.Printf("Error writing '%s.png': %v\n", user, imgerr)
+		os.Exit(1)
+	}
+	fmt.Printf("Wrote '%s.png'\n", user)
+}
+
 func cliEncrypt(item, file string, binary bool) {
 	if !cryptKey.initialized {
 		fmt.Println("Encryption not initialized")
@@ -150,6 +201,10 @@ func cliEncrypt(item, file string, binary bool) {
 			os.Exit(1)
 		}
 		ct, err := encrypt(fc, cryptKey.key)
+		if err != nil {
+			fmt.Printf("Error encrypting: %v\n", err)
+			os.Exit(1)
+		}
 		if binary {
 			os.Stdout.Write(ct)
 		} else {

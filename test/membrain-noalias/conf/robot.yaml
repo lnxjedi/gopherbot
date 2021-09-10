@@ -92,4 +92,4 @@ ExternalPlugins:
 WorkSpace: workspace
 
 Brain: mem
-DefaultElevator: totp
+DefaultElevator: builtin-totp

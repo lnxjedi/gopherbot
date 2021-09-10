@@ -105,6 +105,7 @@ func Start(v VersionInfo) {
   "command" can be one of:
 	decrypt - decrypt a string or file
 	encrypt - encrypt a string or file
+	gentotp - generate a user TOTP string
 	delete - delete a memory
 	dump (installed|configured) [path/to/file.yaml] -
 	  read and dump a raw config file, for yaml troubleshooting

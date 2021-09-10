@@ -1,4 +1,5 @@
 # v2.1.5
+* Stronger TOTP implementation; generate user codes with the CLI and add encrypted secrets to `conf/plugins/builtin-totp.yaml`
 * Make standard "robot, help" contextual (less noisy); "robot, help-all" gives the formerly verbose output
 * Export `PYTHONPATH` and `RUBYLIB`, removed ugly env-var references from python & ruby plugins
 * Simple tasks now inherit their memory namespace from the pipeline they're added to

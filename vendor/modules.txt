@@ -46,15 +46,16 @@ github.com/aws/aws-sdk-go/service/sso
 github.com/aws/aws-sdk-go/service/sso/ssoiface
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
+# github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
+github.com/boombuler/barcode
+github.com/boombuler/barcode/qr
+github.com/boombuler/barcode/utils
 # github.com/chzyer/logex v1.1.10
 ## explicit
 # github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1
 ## explicit
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/dgryski/dgoogauth v0.0.0-20190221195224-5a805980a5f3
-## explicit
-github.com/dgryski/dgoogauth
 # github.com/duosecurity/duo_api_golang v0.0.0-20200206192355-a9725220d6ca
 ## explicit
 github.com/duosecurity/duo_api_golang
@@ -65,8 +66,6 @@ github.com/emersion/go-textwrapper
 # github.com/ghodss/yaml v1.0.0
 ## explicit
 github.com/ghodss/yaml
-# github.com/go-sql-driver/mysql v1.5.0
-## explicit
 # github.com/gopackage/ddp v0.0.0-20170117053602-652027933df4
 ## explicit
 github.com/gopackage/ddp
@@ -94,6 +93,11 @@ github.com/lnxjedi/robot
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
+# github.com/pquerna/otp v1.3.0
+## explicit
+github.com/pquerna/otp
+github.com/pquerna/otp/hotp
+github.com/pquerna/otp/totp
 # github.com/robfig/cron v1.2.0
 ## explicit
 github.com/robfig/cron
@@ -108,8 +112,6 @@ github.com/slack-go/slack/slackutilsx
 # github.com/stretchr/testify v1.5.1
 ## explicit
 github.com/stretchr/testify/assert
-# golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
-## explicit
 # golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 golang.org/x/net/websocket
 # golang.org/x/sys v0.0.0-20210423082822-04245dca01da

@@ -50,9 +50,9 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 		} else {
 			if localTerm {
 				if terminalWriter != nil {
-					terminalWriter.Write([]byte("LOG " + logLevelToStr(l) + ": " + msg + "\n"))
+					terminalWriter.Write([]byte("LOG " + msg + "\n"))
 				} else {
-					botStdOutLogger.Print("LOG " + logLevelToStr(l) + ": " + msg)
+					botStdOutLogger.Print("LOG " + msg)
 				}
 			}
 			logger.Print(msg)

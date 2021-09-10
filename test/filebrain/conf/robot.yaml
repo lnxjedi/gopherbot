@@ -87,4 +87,4 @@ WorkSpace: workspace
 Brain: file
 BrainConfig:
   BrainDirectory: brain
-DefaultElevator: totp
+DefaultElevator: builtin-totp

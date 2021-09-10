@@ -196,4 +196,4 @@ DefaultMessageFormat: Raw
 ## - Configure the elevator by overriding the config for the plugin in
 ##   'conf/plugins/totp.yaml'
 
-# DefaultElevator: totp
+# DefaultElevator: builtin-totp

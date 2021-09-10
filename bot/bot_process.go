@@ -32,7 +32,8 @@ var homePath, configPath, configFull, installPath string
 
 var botVersion VersionInfo
 
-var random *rand.Rand
+// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
+var random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 var connectors = make(map[string]func(robot.Handler, *log.Logger) robot.Connector)
 
@@ -75,7 +76,7 @@ var regexes struct {
 	sync.RWMutex
 }
 
-// configuration struct holds all the interal data relevant to the Bot. Most of it is digested
+// configuration struct holds all the internal data relevant to the Bot. Most of it is digested
 // and populated by loadConfig.
 type configuration struct {
 	adminUsers           []string            // List of users with access to administrative commands
@@ -133,9 +134,6 @@ var listenPort string // actual listening port
 // cli indicates that a CLI command is being processed, as opposed to actually running
 // a robot.
 func initBot(cpath, epath string) {
-	// Seed the pseudo-random number generator, for plugin IDs, RandomString, etc.
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-
 	// Initialize current config with an empty struct (to be loaded)
 	currentCfg.configuration = &configuration{}
 
