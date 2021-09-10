@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -58,30 +59,29 @@ func checkOTP(r robot.Robot, code string) (bool, robot.TaskRetVal) {
 
 func getcode(r robot.Robot, immediate bool) (retval robot.TaskRetVal) {
 	m := r.GetMessage()
-	dm := ""
-	if m.Channel != "" {
-		dm = " - I'll message you directly"
-	}
+	currentCfg.Lock()
+	botFull := currentCfg.botinfo.FullName
+	currentCfg.Unlock()
+	var prompt string
 	if immediate {
-		r.Say("This command requires immediate elevation" + dm)
+		prompt = fmt.Sprintf("This command requires immediate elevation, please provide a TOTP code for '%s':", botFull)
 	} else {
-		r.Say("This command requires elevation" + dm)
+		prompt = fmt.Sprintf("This command requires elevation, please provide a TOTP code for '%s':", botFull)
 	}
-	r.Pause(1)
-	rep, ret := r.Direct().PromptForReply("OTP", "Please provide your totp launch code")
+	rep, ret := r.PromptForReply("OTP", prompt)
 	if ret != robot.Ok {
 		rep, ret = r.Direct().PromptForReply("OTP", "Try again? I need a 6-digit launch code")
 	}
 	if ret == robot.Ok {
 		ok, ret := checkOTP(r, rep)
 		if ret != robot.Success {
-			r.Direct().Say("There were technical issues validating your code, ask an administrator to check the log")
+			r.Say("There were technical issues validating your code, ask an administrator to check the log")
 			return robot.MechanismFail
 		}
 		if ok {
 			return robot.Success
 		}
-		r.Direct().Say("Invalid code")
+		r.Say("Invalid code")
 		return robot.Fail
 	}
 	r.Log(robot.Error, "User \"%s\" failed to respond to TOTP token prompt", m.User)
