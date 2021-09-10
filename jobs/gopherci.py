@@ -20,9 +20,7 @@
 # NOTE: current gopherci does not cascade dependent builds; if a dependency
 # build is itself a de
 
-import os
 import sys
-sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
 from gopherbot_v2 import Robot
 
 bot = Robot()

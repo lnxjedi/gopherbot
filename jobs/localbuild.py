@@ -12,10 +12,7 @@
 # directory, and adding the initial pipeline tasks. All other
 # pipeline/dependency logic is in gopherci.
 
-import os
-import re
 import sys
-sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
 from gopherbot_v2 import Robot
 
 bot = Robot()

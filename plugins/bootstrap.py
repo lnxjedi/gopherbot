@@ -3,9 +3,7 @@
 # bootstrap.py - bootstrap a robot from env vars
 
 import os
-import re
 import sys
-sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
 from gopherbot_v2 import Robot
 
 bot = Robot()

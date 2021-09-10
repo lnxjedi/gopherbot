@@ -3,7 +3,7 @@ require 'net/http'
 require 'json'
 
 # load the Gopherbot ruby library and instantiate the bot
-require ENV["GOPHER_INSTALLDIR"] + '/lib/gopherbot_v1'
+require 'gopherbot_v1'
 bot = Robot.new()
 
 defaultConfig = <<'DEFCONFIG'

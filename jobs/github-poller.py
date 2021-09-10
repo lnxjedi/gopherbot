@@ -5,10 +5,8 @@
 # GITHUB_TOKEN needs to be provided in `robot.yaml`
 
 import os
-import sys
 import json
 import urllib.request
-sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
 from gopherbot_v2 import Robot
 
 bot = Robot()

@@ -10,7 +10,6 @@
 import os
 import re
 import sys
-sys.path.append("%s/lib" % os.getenv("GOPHER_INSTALLDIR"))
 from gopherbot_v2 import Robot
 
 bot = Robot()
