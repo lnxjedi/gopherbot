@@ -418,7 +418,6 @@ esac
 
 import os
 import sys
-sys.path.append(&quot;%s/lib&quot; % os.getenv(&quot;GOPHER_INSTALLDIR&quot;))
 from gopherbot_v2 import Robot # use _v1 for python2
 
 bot = Robot()
@@ -438,7 +437,7 @@ if command == &quot;configure&quot;:
 <pre><code class="language-ruby">#!/usr/bin/ruby
 
 # boilerplate
-require ENV[&quot;GOPHER_INSTALLDIR&quot;] + '/lib/gopherbot_v1'
+require 'gopherbot_v1'
 
 bot = Robot.new()
 

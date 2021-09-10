@@ -167,6 +167,10 @@ not included in the distributed <code>.zip</code> files).</p>
 <h1 id="memory-scoping"><a class="header" href="#memory-scoping">Memory Scoping</a></h1>
 <p>Long-term memories are scoped per-plugin by key, and so the data is not shareable between plugins. Short-term memories are stored
 for each user/channel combination, and can be freely shared between plugins.</p>
+<h2 id="sharing-memories"><a class="header" href="#sharing-memories">Sharing Memories</a></h2>
+<p>For multiple jobs and/or plugins to share the same memory namespace, create an entry in the robot's <code>NameSpaces:</code>, and set the <code>NameSpace:</code> for each job or plugin.</p>
+<h2 id="simple-task-memory-namespace"><a class="header" href="#simple-task-memory-namespace">Simple Task Memory NameSpace</a></h2>
+<p>By default, simple tasks in a job or plugin pipeline inherit the NameSpace from the pipeline, allowing memory-using tasks to be re-used. If a particular task needs to use the same memories for different plugins and jobs, create a unique entry for the task in the robot's <code>NameSpaces:</code>, and set that task's <code>NameSpace:</code> accordingly.</p>
 <h1 id="long-term-memories"><a class="header" href="#long-term-memories">Long-Term Memories</a></h1>
 <p>The following methods are available for manipulating long-term memories:</p>
 <ul>

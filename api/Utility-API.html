@@ -161,8 +161,13 @@
 <pre><code class="language-python">bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
 </code></pre>
 <h2 id="ruby"><a class="header" href="#ruby">Ruby</a></h2>
-<pre><code class="language-ruby">bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
+<pre><code class="language-ruby">bot.Log(:error, &quot;The robot broke&quot;)
+# or
+bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
 </code></pre>
+<blockquote>
+<p>Symbols look better and work just fine.</p>
+</blockquote>
 <h1 id="pause-method"><a class="header" href="#pause-method">Pause Method</a></h1>
 <p>Every language has some means of sleeping / pausing, and this method is provided as a convenience to plugin authors and implemented natively. It takes a single argument, time in seconds.</p>
 <h2 id="bash-1"><a class="header" href="#bash-1">Bash</a></h2>

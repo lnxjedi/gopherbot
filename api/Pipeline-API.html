@@ -161,11 +161,22 @@
 </code></pre>
 <h3 id="python"><a class="header" href="#python">Python</a></h3>
 <pre><code class="language-python">ret = bot.AddTask(&quot;echo&quot;, [&quot;hello&quot;, &quot;world&quot;])
+bot.AddTask(&quot;robot-quit&quot;, [])
 </code></pre>
 <h3 id="ruby"><a class="header" href="#ruby">Ruby</a></h3>
-<pre><code class="language-ruby">
+<pre><code class="language-ruby">ret = bot.AddTask(&quot;echo&quot;, [&quot;hello&quot;, &quot;world&quot;])
+bot.AddTask(&quot;robot-quit&quot;, [])
 </code></pre>
 <h2 id="setparameter"><a class="header" href="#setparameter">SetParameter</a></h2>
+<h3 id="bash-1"><a class="header" href="#bash-1">Bash</a></h3>
+<pre><code class="language-bash">SetParameter &quot;PING_LATENCY&quot; &quot;45ms&quot;
+</code></pre>
+<h3 id="python-1"><a class="header" href="#python-1">Python</a></h3>
+<pre><code class="language-python">bot.SetParameter(&quot;PING_LATENCY&quot;, &quot;45ms&quot;)
+</code></pre>
+<h3 id="ruby-1"><a class="header" href="#ruby-1">Ruby</a></h3>
+<pre><code class="language-ruby">bot.SetParameter(&quot;PING_LATENCY&quot;, &quot;45ms&quot;)
+</code></pre>
 
                     </main>
 

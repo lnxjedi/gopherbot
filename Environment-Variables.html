@@ -199,6 +199,8 @@
 <p>In addition to the above passed-through environment vars, <strong>Gopherbot</strong> supplies the following environment variables to external scripts:</p>
 <ul>
 <li><code>GOPHER_INSTALLDIR</code> - absolute path to the gopherbot install, normally <code>/opt/gopherbot</code></li>
+<li><code>RUBYLIB</code> - path for Ruby <code>require 'gopherbot_v1'</code>, normally <code>/opt/gopherbot/lib</code></li>
+<li><code>PYTHONPATH</code> - path for Python <code>import</code>, normally <code>/opt/gopherbot/lib</code></li>
 </ul>
 <h2 id="automatic-environment-variables"><a class="header" href="#automatic-environment-variables">Automatic Environment Variables</a></h2>
 <p>During startup, <strong>Gopherbot</strong> will examine it's environment and potentially set values for a few environment variables to support the bootstrap and setup plugins, and simplify common operations.</p>

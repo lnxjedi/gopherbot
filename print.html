@@ -1083,6 +1083,8 @@ UK+T6/HocaR9AAD8Ty2giHdNR3r03pbffpah/rk+MZumPK4Y3A==
 <p>In addition to the above passed-through environment vars, <strong>Gopherbot</strong> supplies the following environment variables to external scripts:</p>
 <ul>
 <li><code>GOPHER_INSTALLDIR</code> - absolute path to the gopherbot install, normally <code>/opt/gopherbot</code></li>
+<li><code>RUBYLIB</code> - path for Ruby <code>require 'gopherbot_v1'</code>, normally <code>/opt/gopherbot/lib</code></li>
+<li><code>PYTHONPATH</code> - path for Python <code>import</code>, normally <code>/opt/gopherbot/lib</code></li>
 </ul>
 <h2 id="automatic-environment-variables"><a class="header" href="#automatic-environment-variables">Automatic Environment Variables</a></h2>
 <p>During startup, <strong>Gopherbot</strong> will examine it's environment and potentially set values for a few environment variables to support the bootstrap and setup plugins, and simplify common operations.</p>
@@ -1670,7 +1672,6 @@ esac
 
 import os
 import sys
-sys.path.append(&quot;%s/lib&quot; % os.getenv(&quot;GOPHER_INSTALLDIR&quot;))
 from gopherbot_v2 import Robot # use _v1 for python2
 
 bot = Robot()
@@ -1690,7 +1691,7 @@ if command == &quot;configure&quot;:
 <pre><code class="language-ruby">#!/usr/bin/ruby
 
 # boilerplate
-require ENV[&quot;GOPHER_INSTALLDIR&quot;] + '/lib/gopherbot_v1'
+require 'gopherbot_v1'
 
 bot = Robot.new()
 
@@ -1793,6 +1794,10 @@ not included in the distributed <code>.zip</code> files).</p>
 <h1 id="memory-scoping"><a class="header" href="#memory-scoping">Memory Scoping</a></h1>
 <p>Long-term memories are scoped per-plugin by key, and so the data is not shareable between plugins. Short-term memories are stored
 for each user/channel combination, and can be freely shared between plugins.</p>
+<h2 id="sharing-memories"><a class="header" href="#sharing-memories">Sharing Memories</a></h2>
+<p>For multiple jobs and/or plugins to share the same memory namespace, create an entry in the robot's <code>NameSpaces:</code>, and set the <code>NameSpace:</code> for each job or plugin.</p>
+<h2 id="simple-task-memory-namespace"><a class="header" href="#simple-task-memory-namespace">Simple Task Memory NameSpace</a></h2>
+<p>By default, simple tasks in a job or plugin pipeline inherit the NameSpace from the pipeline, allowing memory-using tasks to be re-used. If a particular task needs to use the same memories for different plugins and jobs, create a unique entry for the task in the robot's <code>NameSpaces:</code>, and set that task's <code>NameSpace:</code> accordingly.</p>
 <h1 id="long-term-memories-1"><a class="header" href="#long-term-memories-1">Long-Term Memories</a></h1>
 <p>The following methods are available for manipulating long-term memories:</p>
 <ul>
@@ -2006,11 +2011,22 @@ end
 </code></pre>
 <h3 id="python-4"><a class="header" href="#python-4">Python</a></h3>
 <pre><code class="language-python">ret = bot.AddTask(&quot;echo&quot;, [&quot;hello&quot;, &quot;world&quot;])
+bot.AddTask(&quot;robot-quit&quot;, [])
 </code></pre>
 <h3 id="ruby-4"><a class="header" href="#ruby-4">Ruby</a></h3>
-<pre><code class="language-ruby">
+<pre><code class="language-ruby">ret = bot.AddTask(&quot;echo&quot;, [&quot;hello&quot;, &quot;world&quot;])
+bot.AddTask(&quot;robot-quit&quot;, [])
 </code></pre>
 <h2 id="setparameter-1"><a class="header" href="#setparameter-1">SetParameter</a></h2>
+<h3 id="bash-4"><a class="header" href="#bash-4">Bash</a></h3>
+<pre><code class="language-bash">SetParameter &quot;PING_LATENCY&quot; &quot;45ms&quot;
+</code></pre>
+<h3 id="python-5"><a class="header" href="#python-5">Python</a></h3>
+<pre><code class="language-python">bot.SetParameter(&quot;PING_LATENCY&quot;, &quot;45ms&quot;)
+</code></pre>
+<h3 id="ruby-5"><a class="header" href="#ruby-5">Ruby</a></h3>
+<pre><code class="language-ruby">bot.SetParameter(&quot;PING_LATENCY&quot;, &quot;45ms&quot;)
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><p>The <code>Prompt*ForReply</code> methods make it simple to write interactive plugins where the bot can request additional input from the user.</p>
 <h1 id="table-of-contents-4"><a class="header" href="#table-of-contents-4">Table of Contents</a></h1>
 <ul>
@@ -2077,7 +2093,7 @@ is the returned string in <code>Reply.reply</code> (if the <code>RetVal</code> w
 <li><code>ReplyNotMatched</code> - When the reply from the user didn't match the supplied regex (the user was probably talking to somebody else)</li>
 </ul>
 <h2 id="code-examples-2"><a class="header" href="#code-examples-2">Code Examples</a></h2>
-<h3 id="bash-4"><a class="header" href="#bash-4">Bash</a></h3>
+<h3 id="bash-5"><a class="header" href="#bash-5">Bash</a></h3>
 <pre><code class="language-bash"># Note that bash isn't object-oriented
 REPLY=$(PromptForReply &quot;YesNo&quot; &quot;Do you like kittens?&quot;)
 if [ $? -ne 0 ]
@@ -2092,7 +2108,7 @@ else
   fi
 fi
 </code></pre>
-<h3 id="python-5"><a class="header" href="#python-5">Python</a></h3>
+<h3 id="python-6"><a class="header" href="#python-6">Python</a></h3>
 <pre><code class="language-python">rep = bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
 if rep.ret != Robot.Ok:
   bot.Say(&quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;)
@@ -2103,7 +2119,7 @@ else:
   else:
     bot.Say(&quot;Oh, come on - you're kidding, right?!?&quot;)
 </code></pre>
-<h3 id="ruby-5"><a class="header" href="#ruby-5">Ruby</a></h3>
+<h3 id="ruby-6"><a class="header" href="#ruby-6">Ruby</a></h3>
 <pre><code class="language-ruby">rep = bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
 if rep.ret != Robot::Ok
   bot.Say(&quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;)
@@ -2127,28 +2143,33 @@ end
 <li><code>Error</code> - for errors</li>
 <li><code>Fatal</code> - emit fatal error and cause robot to exit(1)</li>
 </ul>
-<h2 id="bash-5"><a class="header" href="#bash-5">Bash</a></h2>
+<h2 id="bash-6"><a class="header" href="#bash-6">Bash</a></h2>
 <pre><code class="language-bash">Log &quot;Error&quot; &quot;The robot broke&quot;
 </code></pre>
-<h2 id="python-6"><a class="header" href="#python-6">Python</a></h2>
+<h2 id="python-7"><a class="header" href="#python-7">Python</a></h2>
 <pre><code class="language-python">bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
 </code></pre>
-<h2 id="ruby-6"><a class="header" href="#ruby-6">Ruby</a></h2>
-<pre><code class="language-ruby">bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
+<h2 id="ruby-7"><a class="header" href="#ruby-7">Ruby</a></h2>
+<pre><code class="language-ruby">bot.Log(:error, &quot;The robot broke&quot;)
+# or
+bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
 </code></pre>
+<blockquote>
+<p>Symbols look better and work just fine.</p>
+</blockquote>
 <h1 id="pause-method"><a class="header" href="#pause-method">Pause Method</a></h1>
 <p>Every language has some means of sleeping / pausing, and this method is provided as a convenience to plugin authors and implemented natively. It takes a single argument, time in seconds.</p>
-<h2 id="bash-6"><a class="header" href="#bash-6">Bash</a></h2>
+<h2 id="bash-7"><a class="header" href="#bash-7">Bash</a></h2>
 <pre><code class="language-bash">Say &quot;Be back soon!&quot;
 Pause 2
 Say &quot;... aaaand I'm back!&quot;
 </code></pre>
-<h2 id="python-7"><a class="header" href="#python-7">Python</a></h2>
+<h2 id="python-8"><a class="header" href="#python-8">Python</a></h2>
 <pre><code class="language-python">bot.Say(&quot;Be back soon!&quot;)
 bot.Pause(2)
 bot.Say(&quot;... aaaand I'm back!&quot;)
 </code></pre>
-<h2 id="ruby-7"><a class="header" href="#ruby-7">Ruby</a></h2>
+<h2 id="ruby-8"><a class="header" href="#ruby-8">Ruby</a></h2>
 <pre><code class="language-ruby">bot.Say(&quot;Be back soon!&quot;)
 bot.Pause(2)
 bot.Say(&quot;... aaaand I'm back!&quot;)
