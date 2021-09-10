@@ -112,8 +112,9 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
 		// histories use the job name for maximum separation
 		c.jobName = task.name
-		// Exclusive always uses the pipeline nameSpace, regardless of the task that calls it
-		c.nameSpace = getNameSpace(task)
+		// Exclusive always uses the pipeline nameSpace, regardless of the task that calls it;
+		// simple tasks inherit the nameSpace when not explicitly set.
+		c.nameSpace = w.getNameSpace(task)
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
 		c.environment["GOPHER_START_CHANNEL"] = w.Channel
 		// To change the channel to the job channel, we need to clear the ProcotolChannel
@@ -519,6 +520,9 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	envhash["GOPHER_CALLER_ID"] = w.eid
 	envhash["GOPHER_HTTP_POST"] = "http://" + listenPort
 	envhash["GOPHER_INSTALLDIR"] = installPath
+	libPath := fmt.Sprintf("%s/lib", installPath)
+	envhash["RUBYLIB"] = libPath
+	envhash["PYTHONPATH"] = libPath
 	// Configured parameters for a pipeline task don't apply if already set;
 	// task parameters are effectively default values if not otherwise
 	// provided.

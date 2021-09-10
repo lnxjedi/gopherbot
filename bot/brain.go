@@ -341,9 +341,14 @@ func updateDatum(key, locktoken string, datum interface{}) (ret robot.RetVal) {
 	return update(key, locktoken, &dbytes)
 }
 
-func getNameSpace(task *Task) string {
+func (w *worker) getNameSpace(task *Task) string {
 	if len(task.NameSpace) > 0 {
 		return task.NameSpace
+	}
+	w.Lock()
+	defer w.Unlock()
+	if len(w.nameSpace) > 0 {
+		return w.nameSpace
 	}
 	return task.name
 }
@@ -360,7 +365,9 @@ func (r Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken 
 		return
 	}
 	task, _, _ := getTask(r.currentTask)
-	ns := getNameSpace(task)
+	w := getLockedWorker(r.tid)
+	w.Unlock()
+	ns := w.getNameSpace(task)
 	if len(r.nsExtension) > 0 {
 		key = ns + ":" + r.nsExtension + ":" + key
 	} else {
@@ -378,7 +385,9 @@ func (r Robot) CheckinDatum(key, locktoken string) {
 		return
 	}
 	task, _, _ := getTask(r.currentTask)
-	ns := getNameSpace(task)
+	w := getLockedWorker(r.tid)
+	w.Unlock()
+	ns := w.getNameSpace(task)
 	if len(r.nsExtension) > 0 {
 		key = ns + ":" + r.nsExtension + ":" + key
 	} else {
@@ -396,7 +405,9 @@ func (r Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.
 		return robot.InvalidDatumKey
 	}
 	task, _, _ := getTask(r.currentTask)
-	ns := getNameSpace(task)
+	w := getLockedWorker(r.tid)
+	w.Unlock()
+	ns := w.getNameSpace(task)
 	if len(r.nsExtension) > 0 {
 		key = ns + ":" + r.nsExtension + ":" + key
 	} else {

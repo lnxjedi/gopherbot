@@ -350,7 +350,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		var key string
-		ns := getNameSpace(task)
+		w := getLockedWorker(r.tid)
+		w.Unlock()
+		ns := w.getNameSpace(task)
 		key = ns + ":" + m.Key
 		// Since we're getting raw JSON (=[]byte), we call update directly.
 		// See brain.go

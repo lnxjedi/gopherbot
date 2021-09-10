@@ -55,6 +55,8 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *Task) {
 	}
 	env := []string{
 		fmt.Sprintf("GOPHER_INSTALLDIR=%s", installPath),
+		fmt.Sprintf("RUBYLIB=%s/lib", installPath),
+		fmt.Sprintf("PYTHONPATH=%s/lib", installPath),
 		fmt.Sprintf("GOPHER_CONFIGDIR=%s", configFull),
 	}
 	for _, p := range envPassThrough {
@@ -109,7 +111,7 @@ func deregisterWorker(tid int) {
 	taskLookup.Unlock()
 }
 
-// funtion for active Go Robots to look up the *worker, always locked
+// function for active Go Robots to look up the *worker, always locked
 // before returning. Note that we always pass a Robot.tid instead of making
 // this a method on the Robot, since copying the whole robot for a single
 // int is senseless.
