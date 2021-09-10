@@ -41,7 +41,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 			continue
 		}
 		Log(robot.Trace, "Checking availability of task '%s' in channel '%s' for user '%s', active in %d channels (allchannels: %t)", task.name, w.Channel, w.User, len(task.Channels), task.AllChannels)
-		ok := w.pluginAvailable(task, false, verboseOnly)
+		ok, _ := w.pluginAvailable(task, false, verboseOnly)
 		if !ok {
 			Log(robot.Trace, "Task '%s' not available for user '%s' in channel '%s', doesn't meet criteria", task.name, w.User, w.Channel)
 			continue

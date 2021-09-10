@@ -76,7 +76,8 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		}
 		r.MessageFormat(robot.Variable).Say(strings.Join(msg, "\n"))
 	}
-	if command == "help" {
+	if command == "help" || command == "help-all" {
+		want_specific := command == "help"
 		botname := r.cfg.botinfo.UserName
 		tasks := r.tasks
 		var term, helpOutput string
@@ -94,6 +95,10 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		w := getLockedWorker(r.tid)
 		w.Unlock()
 		helpLines := make([]string, 0, tooLong)
+		if want_specific {
+			helptext := "(bot), help-all - help for all commands available in this channel"
+			helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1))
+		}
 		for _, t := range tasks.t[1:] {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
@@ -101,7 +106,11 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			}
 			// If a keyword was supplied, give help for all matching commands with channels;
 			// without a keyword, show help for all commands available in the channel.
-			if !w.pluginAvailable(task, hasKeyword, true) {
+			available, specific := w.pluginAvailable(task, hasKeyword, true)
+			if !available {
+				continue
+			}
+			if want_specific && !specific {
 				continue
 			}
 			Log(robot.Trace, "Checking help for plugin %s (term: %s)", task.name, term)
