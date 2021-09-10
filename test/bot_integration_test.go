@@ -316,8 +316,8 @@ func TestBuiltins(t *testing.T) {
 		{aliceID, general, ";help log", []testc.TestMessage{{null, general, "direct message only"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log lines to 3", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 3"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log lines to 0", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 1"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, ";help info", []testc.TestMessage{{null, general, `bender,.*admins\nbender, help-all.*`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, random, ";help ruby", []testc.TestMessage{{null, random, `(?m:Command.*\n.*random\))`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";help info", []testc.TestMessage{{null, general, `bender,.*admins.*`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, random, ";help ruby", []testc.TestMessage{{null, random, `prove that ruby plugins work \(channels: random\)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";help", []testc.TestMessage{{alice, general, `\(the help.*private message\)`}, {alice, null, "bender,.*"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "help", []testc.TestMessage{{alice, general, "I've sent.*myself"}, {alice, null, "Hi,.*"}}, []Event{AmbientTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";whoami", []testc.TestMessage{{null, general, "you are 'test' user 'alice/u0001', speaking in channel 'general/#general', email address: alice@example.com"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
@@ -375,8 +375,9 @@ func TestHelp(t *testing.T) {
 	tests := []testItem{
 		// Took a while to get the regex right; should be # of help msgs * 2 - 1; e.g. 10 lines -> 19
 		// NOTE: the default 'help' output is now too long for in-channel reply
-		{aliceID, deadzone, ";help", []testc.TestMessage{{alice, deadzone, `\(the help output was pretty long, so I sent you a private message\)`}, {alice, null, `(?s:^Command(?:[^\n]*\n){37}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";help help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){3}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help", []testc.TestMessage{{null, deadzone, `help-all - help for all commands available, including global commands`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help-all", []testc.TestMessage{{alice, deadzone, `\(the help output was pretty long, so I sent you a private message\)`}, {alice, null, `(?s:^Command(?:[^\n]*\n){39}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help help", []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){7}[^\n]*$)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 

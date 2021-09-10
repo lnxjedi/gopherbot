@@ -18,6 +18,7 @@ ProtocolConfig:
   Channels:
   - random
   - general
+  - deadzone
   Users:
   - Name: "alice"
     Email: "alice@example.com"
