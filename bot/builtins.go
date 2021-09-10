@@ -77,7 +77,6 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		r.MessageFormat(robot.Variable).Say(strings.Join(msg, "\n"))
 	}
 	if command == "help" || command == "help-all" {
-		want_specific := command == "help"
 		botname := r.cfg.botinfo.UserName
 		tasks := r.tasks
 		var term, helpOutput string
@@ -90,13 +89,14 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			term = args[0]
 			Log(robot.Trace, "Help requested for term", term)
 		}
+		want_specific := command == "help" || hasKeyword
 
 		// Nothing we need will ever change for a worker.
 		w := getLockedWorker(r.tid)
 		w.Unlock()
 		helpLines := make([]string, 0, tooLong)
 		if want_specific {
-			helptext := "(bot), help-all - help for all commands available in this channel"
+			helptext := "(bot), help-all - help for all commands available, including global commands"
 			helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1))
 		}
 		for _, t := range tasks.t[1:] {

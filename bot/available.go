@@ -71,7 +71,7 @@ func (w *worker) pluginAvailable(task *Task, helpSystem, verboseOnly bool) (avai
 		if task.DirectOnly {
 			return true, true
 		}
-		return true, false
+		return true, helpSystem
 	}
 	if len(task.Channels) > 0 {
 		for _, pchannel := range task.Channels {
@@ -81,7 +81,7 @@ func (w *worker) pluginAvailable(task *Task, helpSystem, verboseOnly bool) (avai
 		}
 	} else {
 		if task.AllChannels {
-			return true, false
+			return true, helpSystem
 		}
 	}
 	if helpSystem {
