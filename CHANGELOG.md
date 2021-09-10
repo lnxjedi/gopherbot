@@ -1,3 +1,8 @@
+# v2.1.5
+* Make standard "robot, help" contextual (less noisy); "robot, help-all" gives the formerly verbose output
+* Export `PYTHONPATH` and `RUBYLIB`, removed ugly env-var references from python & ruby plugins
+* Simple tasks now inherit their memory namespace from the pipeline they're added to
+
 # v2.1.4
 * Allow for ephemeral memories with the git brain; any memories with leading underscores will be ignored by the '.gitignore', allowing developers to prevent frequent git commits for fast changing memories. Also made the .gitignore algorithm more robust.
 
