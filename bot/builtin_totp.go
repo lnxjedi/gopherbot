@@ -57,11 +57,10 @@ func checkOTP(r robot.Robot, code string) (bool, robot.TaskRetVal) {
 	return valid, robot.Success
 }
 
-func getcode(r robot.Robot, immediate bool) (retval robot.TaskRetVal) {
-	m := r.GetMessage()
-	currentCfg.Lock()
-	botFull := currentCfg.botinfo.FullName
-	currentCfg.Unlock()
+func getcode(gr robot.Robot, immediate bool) (retval robot.TaskRetVal) {
+	m := gr.GetMessage()
+	r := gr.(Robot)
+	botFull := r.cfg.botinfo.FullName
 	var prompt string
 	if immediate {
 		prompt = fmt.Sprintf("This command requires immediate elevation, please provide a TOTP code for '%s':", botFull)
