@@ -1,4 +1,4 @@
-module github.com/lnxjedi/gopherbot
+module github.com/lnxjedi/gopherbot/v2
 
 go 1.16
 

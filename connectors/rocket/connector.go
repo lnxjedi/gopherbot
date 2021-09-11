@@ -5,7 +5,7 @@ import (
 	"crypto/md5"
 	"time"
 
-	models "github.com/lnxjedi/gopherbot/connectors/rocket/models"
+	models "github.com/lnxjedi/gopherbot/v2/connectors/rocket/models"
 	"github.com/lnxjedi/robot"
 )
 

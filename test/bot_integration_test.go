@@ -24,7 +24,7 @@ $ go tool pprof http://localhost:8889/debug/pprof/goroutine
 Entering interactive mode (type "help" for commands, "o" for options)
 (pprof) list lnxjedi
 Total: 11
-ROUTINE ======================== github.com/lnxjedi/gopherbot/bot...
+ROUTINE ======================== github.com/lnxjedi/gopherbot/v2/bot...
 
 (eventual) Setup for "clear box" testing of bot internals is in bot_test.go
 */
@@ -38,14 +38,14 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/lnxjedi/gopherbot/bot"
-	testc "github.com/lnxjedi/gopherbot/connectors/test"
-	_ "github.com/lnxjedi/gopherbot/goplugins/groups"
-	_ "github.com/lnxjedi/gopherbot/goplugins/help"
-	_ "github.com/lnxjedi/gopherbot/goplugins/links"
-	_ "github.com/lnxjedi/gopherbot/goplugins/lists"
-	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
-	_ "github.com/lnxjedi/gopherbot/history/file"
+	. "github.com/lnxjedi/gopherbot/v2/bot"
+	testc "github.com/lnxjedi/gopherbot/v2/connectors/test"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/groups"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/help"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/links"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/lists"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
+	_ "github.com/lnxjedi/gopherbot/v2/history/file"
 
 	_ "net/http/pprof"
 )

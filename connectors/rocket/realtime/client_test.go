@@ -4,8 +4,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/lnxjedi/gopherbot/connectors/rocket/common_testing"
-	"github.com/lnxjedi/gopherbot/connectors/rocket/models"
+	"github.com/lnxjedi/gopherbot/v2/connectors/rocket/common_testing"
+	"github.com/lnxjedi/gopherbot/v2/connectors/rocket/models"
 	"github.com/stretchr/testify/assert"
 )
 

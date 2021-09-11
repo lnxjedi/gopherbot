@@ -3,7 +3,7 @@ package rest
 import (
 	"net/url"
 
-	"github.com/lnxjedi/gopherbot/connectors/rocket/models"
+	"github.com/lnxjedi/gopherbot/v2/connectors/rocket/models"
 )
 
 type InfoResponse struct {

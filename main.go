@@ -1,6 +1,6 @@
 package main
 
-import "github.com/lnxjedi/gopherbot/bot"
+import "github.com/lnxjedi/gopherbot/v2/bot"
 
 // Version supplied during linking
 var Version = "(no version set)"

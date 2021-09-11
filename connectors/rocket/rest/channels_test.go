@@ -3,7 +3,7 @@ package rest
 import (
 	"testing"
 
-	"github.com/lnxjedi/gopherbot/connectors/rocket/models"
+	"github.com/lnxjedi/gopherbot/v2/connectors/rocket/models"
 	"github.com/stretchr/testify/assert"
 )
 

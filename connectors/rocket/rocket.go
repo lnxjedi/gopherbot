@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	models "github.com/lnxjedi/gopherbot/connectors/rocket/models"
-	api "github.com/lnxjedi/gopherbot/connectors/rocket/realtime"
+	models "github.com/lnxjedi/gopherbot/v2/connectors/rocket/models"
+	api "github.com/lnxjedi/gopherbot/v2/connectors/rocket/realtime"
 	"github.com/lnxjedi/robot"
 )
 

@@ -3,7 +3,8 @@ package rest
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/lnxjedi/gopherbot/connectors/rocket/models"
+
+	"github.com/lnxjedi/gopherbot/v2/connectors/rocket/models"
 )
 
 type UpdatePermissionsRequest struct {

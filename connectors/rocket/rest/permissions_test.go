@@ -1,10 +1,11 @@
 package rest
 
 import (
-	"github.com/lnxjedi/gopherbot/connectors/rocket/common_testing"
-	"github.com/lnxjedi/gopherbot/connectors/rocket/models"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/lnxjedi/gopherbot/v2/connectors/rocket/common_testing"
+	"github.com/lnxjedi/gopherbot/v2/connectors/rocket/models"
+	"github.com/stretchr/testify/assert"
 )
 
 // you have to set access-permissions on role "user" to run this test successfully!

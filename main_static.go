@@ -8,25 +8,25 @@ import (
 	// _ "net/http/pprof"
 
 	// *** Included Authorizer plugins
-	_ "github.com/lnxjedi/gopherbot/goplugins/groups"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/groups"
 
 	// *** Included Go plugins, of varying quality
-	_ "github.com/lnxjedi/gopherbot/goplugins/duo"
-	_ "github.com/lnxjedi/gopherbot/goplugins/help"
-	_ "github.com/lnxjedi/gopherbot/goplugins/knock"
-	_ "github.com/lnxjedi/gopherbot/goplugins/links"
-	_ "github.com/lnxjedi/gopherbot/goplugins/lists"
-	_ "github.com/lnxjedi/gopherbot/goplugins/meme"
-	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/duo"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/help"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/knock"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/links"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/lists"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/meme"
+	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
 
 	// *** Default Slack connector
-	_ "github.com/lnxjedi/gopherbot/connectors/slack"
+	_ "github.com/lnxjedi/gopherbot/v2/connectors/slack"
 
 	// *** Default file history
-	_ "github.com/lnxjedi/gopherbot/history/file"
+	_ "github.com/lnxjedi/gopherbot/v2/history/file"
 
 	// *** A fantastic brain
-	_ "github.com/lnxjedi/gopherbot/brains/dynamodb"
+	_ "github.com/lnxjedi/gopherbot/v2/brains/dynamodb"
 )
 
 /* Uncomment under Profiling above to enable profiling. This inflates
@@ -38,5 +38,5 @@ $ go tool pprof http://localhost:8888/debug/pprof/goroutine
 Entering interactive mode (type "help" for commands, "o" for options)
 (pprof) list lnxjedi
 Total: 11
-ROUTINE ======================== github.com/lnxjedi/gopherbot/bot...
+ROUTINE ======================== github.com/lnxjedi/gopherbot/v2/bot...
 */

@@ -1,6 +1,6 @@
 package rocket
 
-import "github.com/lnxjedi/gopherbot/bot"
+import "github.com/lnxjedi/gopherbot/v2/bot"
 
 func init() {
 	bot.RegisterPreload("connectors/rocket.so")

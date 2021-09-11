@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package bot_test
@@ -7,8 +8,8 @@ package bot_test
 import (
 	"testing"
 
-	. "github.com/lnxjedi/gopherbot/bot"
-	testc "github.com/lnxjedi/gopherbot/connectors/test"
+	. "github.com/lnxjedi/gopherbot/v2/bot"
+	testc "github.com/lnxjedi/gopherbot/v2/connectors/test"
 )
 
 func TestLists(t *testing.T) {

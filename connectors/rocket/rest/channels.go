@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/lnxjedi/gopherbot/connectors/rocket/models"
+	"github.com/lnxjedi/gopherbot/v2/connectors/rocket/models"
 )
 
 type ChannelsResponse struct {
@@ -69,4 +69,3 @@ func (c *Client) GetChannelInfo(channel *models.Channel) (*models.Channel, error
 
 	return &response.Channel, nil
 }
-
