@@ -21,20 +21,20 @@ Slogans under consideration:
 Running a **Gopherbot** robot essentially means running the core robot (on a VM or in a container) with a handful of environment variables that tell the core robot how to clone and run *your* individual robot.
 
 ## Documentation
-The latest documentation can always be found at the GitHub-hosted [online manual](https://lnxjedi.github.io/gopherbot); the documentation source is in a [separate repository](https://github.com/lnxjedi/gopherbot-doc).
+The latest documentation can always be found at the GitHub-hosted [online manual](https://lnxjedi.github.io/gopherbot); the documentation source is in a [separate repository](https://github.com/lnxjedi/gopherbot-doc). Automatically generated documentation can be found at [pkg.go.dev](https://pkg.go.dev/github.com/lnxjedi/gopherbot/v2).
 
-The manual is still somewhat incomplete; however, sometimes the best documentation is example code. To that end, the most powerful and complete robot I have is [Mr. Data](https://github.com/parsley42/data-gopherbot) - the robot that runs in my home Kubernetes cluster and builds/pushes **Gopherbot** containers to [quay.io](https://quay.io/lnxjedi). The repositories for [Floyd](https://github.com/parsley42/floyd-gopherbot) (a utility robot I share with my wife) and [Clu](https://github.com/parsley42/clu-gopherbot) (the devel 'bot that runs on my laptop) are also available.
+The manual is still somewhat incomplete; however, sometimes the best documentation is example code. To that end, the most powerful and complete robot I have is [Mr. Data](https://github.com/parsley42/data-gopherbot) - the robot that ran my home Kubernetes cluster when I still had time for such things. The repositories for [Floyd](https://github.com/parsley42/floyd-gopherbot) (a utility robot I share with my wife) and [Clu](https://github.com/parsley42/clu-gopherbot) (the devel 'bot that runs on my laptop) are also available.
 
 ## Release Status
 Version 2 has been stable for me for over year, and has finally been released. I've accepted that a fully up-to-date manual will lag significantly.
 
-Future development will be focused on bugfixes and enhancements, with no major updates in functionality currently planned.
+Future development will be focused on documentation, bugfixes and enhancements, with no major updates in functionality currently planned.
 
 ## Downloading
 You can download the latest release build from the [release page](https://github.com/lnxjedi/gopherbot/releases/latest).
 
 ## Building from Source
-Building from source is straight-forward with the `Makefile`, as long as the build system has all the requirements.
+Building from source is straight-forward as `make dist` with the `Makefile`, as long as the build system has all the requirements.
 
 **Requirements:**
 * A recent (1.14+) version of Go
@@ -52,9 +52,9 @@ Each release of **Gopherbot** creates three container variants:
 * [gopherbot](https://quay.io/repository/lnxjedi/gopherbot) - `quay.io/lnxjedi/gopherbot`
   * `gopherbot` is a fairly minimal gopherbot container for running a containerized robot
 * [gopherbot-dev](https://quay.io/repository/lnxjedi/gopherbot-dev) - `quay.io/lnxjedi/gopherbot-dev`
-  * `gopherbot-dev` uses [Theia](https://github.com/theia-ide/theia-apps) for the entrypoint, and is intended for use in coding extensions for your robot
+  * `gopherbot-dev` uses [Theia](https://github.com/theia-ide/theia-apps) for the entrypoint, and is intended for use in setting up a new robot
 * [gopherbot-theia](https://quay.io/repository/lnxjedi/gopherbot-theia) - `quay.io/lnxjedi/gopherbot-theia`
-  * `gopherbot-theia` includes theia but uses `gopherbot` for the entrypoint, intended for robots that can run `theia` as a child process; this is currently not ready for prime time
+  * `gopherbot-theia` includes theia but uses `gopherbot` for the entrypoint, intended for developing extensions for existing robots
 
 ---
 
