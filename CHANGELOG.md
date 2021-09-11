@@ -1,3 +1,6 @@
+# v2.2.0
+* Updated `go.mod` and import paths for (hopefully) 'proper' go module support; since **Gopherbot** is far more an application than a library, this should only matter for indexes like [pkg.go.dev](https://pkg.go.dev)
+
 # v2.1.5
 * Stronger TOTP implementation; generate user codes with the CLI and add encrypted secrets to `conf/plugins/builtin-totp.yaml`
 * Make standard "robot, help" contextual (less noisy); "robot, help-all" gives the formerly verbose output
