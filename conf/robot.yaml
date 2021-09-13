@@ -95,6 +95,12 @@ ExternalPlugins:
     Description: A plugin that triggers management jobs like update, save, backup, etc.
     Privileged: true
     Path: plugins/admin.sh
+  {{- if env "GOPHER_CONTAINER" }}
+  "theia-plugin":
+    Description: A utility plugin for running the theia job, to start the container IDE
+    Privileged: true
+    Path: plugins/theia.sh
+  {{- end }}
   "citools":
     Description: Tools for interacting with gopherci
     Privileged: true
@@ -178,6 +184,7 @@ ExternalJobs:
     Disabled: true
     NameSpace: github
     Path: jobs/github-poller.py
+  {{- if env "GOPHER_CONTAINER"}}
   "theia":
     Description: "Start theia interface; WARNING: UNAUTHENTICATED"
     Path: jobs/theia.sh
@@ -188,7 +195,24 @@ ExternalJobs:
     - Name: "GOPHER_ENCRYPTION_KEY"
       Value: "{{ env "GOPHER_ENCRYPTION_KEY" }}"
     - Name: GOPHER_CUSTOM_REPOSITORY
-      Value: {{ env "GOPHER_CUSTOM_REPOSITORY" }}
+      Value: "{{ env "GOPHER_CUSTOM_REPOSITORY" }}"
+    - Name: GIT_AUTHOR_NAME
+      Value: "{{ env "GIT_AUTHOR_NAME" }}"
+    - Name: GIT_AUTHOR_EMAIL
+      Value: "{{ env "GIT_AUTHOR_EMAIL" }}"
+    - Name: GIT_COMMITTER_NAME
+      Value: "{{ env "GIT_COMMITTER_NAME" }}"
+    - Name: GIT_COMMITTER_EMAIL
+      Value: "{{ env "GIT_COMMITTER_EMAIL" }}"
+    - Name: GIT_COMMITTER_EMAIL
+      Value: "{{ env "GIT_COMMITTER_EMAIL" }}"
+    {{- if env "GIT_EDITOR" }}
+    - Name: GIT_EDITOR
+      Value: "{{ env "GIT_EDITOR" }}"
+    {{- end}}
+    - Name: DEV_PRIVATE_KEY
+      Value: "{{ env "DEV_PRIVATE_KEY" }}"
+  {{- end}}
   "backup":
     Description: A job for backing up the robot's state, normally just a file-based brain
     Homed: true

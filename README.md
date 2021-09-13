@@ -26,7 +26,7 @@ The latest documentation can always be found at the GitHub-hosted [online manual
 The manual is still somewhat incomplete; however, sometimes the best documentation is example code. To that end, the most powerful and complete robot I have is [Mr. Data](https://github.com/parsley42/data-gopherbot) - the robot that ran my home Kubernetes cluster when I still had time for such things. The repositories for [Floyd](https://github.com/parsley42/floyd-gopherbot) (a utility robot I share with my wife) and [Clu](https://github.com/parsley42/clu-gopherbot) (the devel 'bot that runs on my laptop) are also available.
 
 ## Release Status
-Version 2 has been stable for me for over year, and has finally been released. I've accepted that a fully up-to-date manual will lag significantly.
+Version 2 has been stable for me for over a year, and has finally been released. I've accepted that a fully up-to-date manual will lag significantly.
 
 Future development will be focused on documentation, bugfixes and enhancements, with no major updates in functionality currently planned.
 

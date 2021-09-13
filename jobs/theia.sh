@@ -6,32 +6,6 @@ source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 FailTask tail-log
 
-if [ ! -e "$HOME/.gitconfig" ]
-then
-   FULL_NAME=$(GetSenderAttribute fullname)
-   if [ $? -ne $GBRET_Ok ]
-   then
-      Say "I was unable to look up your full name"
-      exit 0
-   fi
-   EMAIL=$(GetSenderAttribute email)
-   if [ $? -ne $GBRET_Ok ]
-   then
-      Say "I was unable to look up your email address"
-      exit 0
-   fi
-   cat > $HOME/.gitconfig <<EOF
-# This is Git's per-user configuration file, created by jobs/theia.sh;
-# changes will be preserved across restarts of theia.
-# Settings here override those in custom/git/config.
-[user]
-        name = $FULL_NAME
-        email = $EMAIL
-[pull]
-        rebase = true
-EOF
-fi
-
 if [ ! -e "$HOME/robot.theia-workspace" ]
 then
     cat > $HOME/robot.theia-workspace <<EOF
