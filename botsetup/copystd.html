@@ -151,7 +151,7 @@
 <p>Note the <code>.??*</code> wildcard picks up any hidden files</p>
 </blockquote>
 <h3 id="41-encrypting-your-slack-token-and-other-secrets"><a class="header" href="#41-encrypting-your-slack-token-and-other-secrets">4.1 Encrypting your Slack Token (and other secrets)</a></h3>
-<p>With encryption initialized, you can use the <code>gopherbot encrypt</code> command to generate base64 encoded ciphertext. This ciphertext can then be placed in your configuration <code>yaml</code> files by using e.g. <code>{{ decrypt &quot;jfhPe8akfivTRnfeCxyIetdUl+Jb7hIWnjeVFiwLJarFHuW4TuSD7GQ3F0s2puuZ3JUotw==&quot; }}</code>. The default configuration assumes you'll only encrypt the portion of your slack token (from https://&lt;org&gt;.slack.com/services/new/bot) following the common <code>xoxb-</code> prefix. So, for a slack token of <code>xoxb-123-abc-XXXXX</code>, you would generate the ciphertext with:</p>
+<p>With encryption initialized, you can use the <code>gopherbot encrypt</code> command to generate base64 encoded ciphertext. This ciphertext can then be placed in your configuration <code>yaml</code> files by using e.g. <code>{{ decrypt &quot;jfhPe8akfivTRnfeCxyIetdUl+Jb7hIWnjeVFiwLJarFHuW4TuSD7GQ3F0s2puuZ3JUotw==&quot; }}</code>. The default configuration assumes you'll only encrypt the portion of your slack token (from https://&lt;your-team&gt;.slack.com/apps/A0F7XDU93-hubot) following the common <code>xoxb-</code> prefix. So, for a slack token of <code>xoxb-123-abc-XXXXX</code>, you would generate the ciphertext with:</p>
 <pre><code class="language-shell">davidparsley@penguin:/home/robots/clu$ ./gopherbot encrypt 123-abc-XXXXX
 FverBqdWHzHfEPDy/cQ8U9AJ3z4v8KdGSubDMALPfHIupwDLctDWQ1c=
 </code></pre>
