@@ -31,8 +31,8 @@
   ANS_ENCRYPTION_KEY=
 ##
 ## * SLACK TOKEN: The authentication token your robot will need to connect to
-##   your team chat. You can obtain this key from:
-##   https://<team>.slack.com/services/new/bot
+##   your team chat. You should use a Slack Hubot token from:
+##   https://<your-team>.slack.com/apps/A0F7XDU93-hubot
 ##   Setup will encrypt everything after the common 'xoxb-' prefix and add
 ##   this to your robot's 'slack.yaml'. Note that while your token should
 ##   also start with 'xoxb-', the number of dash-separated fields may vary.
