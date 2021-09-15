@@ -96,7 +96,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		w.Unlock()
 		helpLines := make([]string, 0, tooLong)
 		if want_specific {
-			helptext := "(bot), help-all - help for all commands available, including global commands"
+			helptext := "(bot), help-all - help for all commands available in this channel, including global commands"
 			helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1))
 		}
 		for _, t := range tasks.t[1:] {
