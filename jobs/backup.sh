@@ -24,6 +24,12 @@ done
 
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
+if [ -e ".restore" ]
+then
+    Log "Warn" "Found '.restore' file; restore in progress, not starting a backup"
+    exit 0
+fi
+
 PTYPE="$GOPHER_PIPELINE_TYPE"
 
 if [ "$PTYPE" == "plugCommand" -o "$PTYPE" == "jobCommand" ]

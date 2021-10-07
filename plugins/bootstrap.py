@@ -31,7 +31,6 @@ except:
 if hasconfig:
     try:
         os.stat(".restore")
-        bot.AddTask("exec", [ "rm", "-f", ".restore" ])
         bot.AddJob("restore", [])
         exit(0)
     except FileNotFoundError:

@@ -21,6 +21,8 @@ do
     fi
 done
 
+env
+
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 FailTask tail-log
@@ -46,6 +48,8 @@ report(){
     fi
 }
 
+echo "DEBUG starting restore..."
+sleep 30
 # GOPHER_STATEDIR should be defined in the "manage" namespace
 if [ -z "$GOPHER_STATEDIR" ]
 then
