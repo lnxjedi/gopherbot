@@ -51,6 +51,7 @@ type ConfigLoader struct {
 	GoPlugins            map[string]TaskSettings   // settings for go plugins; config in conf/plugins/<plugname>.yaml
 	GoTasks              map[string]TaskSettings   // settings for go tasks
 	NameSpaces           map[string]TaskSettings   // namespaces for shared parameters & memory sharing
+	ParameterSets        map[string]TaskSettings   // named sets of parameters, for stuff like GITHUB_TOKEN used multiple places
 	LoadableModules      map[string]LoadableModule // List of loadable modules to load
 	ScheduledJobs        []ScheduledTask           // see tasks.go
 	AdminUsers           []string                  // List of users who can access administrative commands
@@ -158,7 +159,7 @@ func loadConfig(preConnect bool) error {
 			val = &crval
 		case "LocalPort":
 			val = &intval
-		case "ExternalJobs", "ExternalPlugins", "ExternalTasks", "GoJobs", "GoPlugins", "GoTasks", "NameSpaces":
+		case "ExternalJobs", "ExternalPlugins", "ExternalTasks", "GoJobs", "GoPlugins", "GoTasks", "NameSpaces", "ParameterSets":
 			val = &tval
 		case "LoadableModules":
 			val = &mval
@@ -244,6 +245,8 @@ func loadConfig(preConnect bool) error {
 			newconfig.GoTasks = *(val.(*map[string]TaskSettings))
 		case "NameSpaces":
 			newconfig.NameSpaces = *(val.(*map[string]TaskSettings))
+		case "ParameterSets":
+			newconfig.ParameterSets = *(val.(*map[string]TaskSettings))
 		case "LoadableModules":
 			newconfig.LoadableModules = *(val.(*map[string]LoadableModule))
 		case "ScheduledJobs":
@@ -439,6 +442,14 @@ func loadConfig(preConnect bool) error {
 			ns = append(ns, nameSpace)
 		}
 		processed.nsList = ns
+	}
+	if newconfig.ParameterSets != nil {
+		ps := make([]TaskSettings, 0, len(newconfig.ParameterSets))
+		for name, parameterSet := range newconfig.ParameterSets {
+			parameterSet.Name = name
+			ps = append(ps, parameterSet)
+		}
+		processed.psList = ps
 	}
 	st := make([]ScheduledTask, 0, len(newconfig.ScheduledJobs))
 	for _, s := range newconfig.ScheduledJobs {

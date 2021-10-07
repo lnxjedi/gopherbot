@@ -136,14 +136,17 @@ func getLockedWorker(idx int) *worker {
 // callTask does the work of running a job, task or plugin with a command and
 // arguments. Note that callTask(Thread) has to concern itself with locking of
 // the worker because it can be called within a task by the Elevate() method.
-func (w *worker) callTask(t interface{}, command string, args ...string) (errString string, retval robot.TaskRetVal) {
+// Arg notes:
+// * The pipeInit bool is true for the first task in a pipeline; this allows
+//   the job/plugin starting the pipeline to get the full environment.
+func (w *worker) callTask(t interface{}, pipeInit bool, command string, args ...string) (errString string, retval robot.TaskRetVal) {
 	rc := make(chan taskReturn)
-	go w.callTaskThread(rc, t, command, args...)
+	go w.callTaskThread(rc, t, pipeInit, command, args...)
 	ret := <-rc
 	return ret.errString, ret.retval
 }
 
-func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command string, args ...string) {
+func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, pipeInit bool, command string, args ...string) {
 	var errString string
 	var retval robot.TaskRetVal
 	task, plugin, job := getTask(t)
@@ -196,7 +199,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	}
 
 	// Set up the per-task environment, getEnvironment takes lock & releases
-	envhash := w.getEnvironment(t)
+	envhash := w.getEnvironment(t, pipeInit)
 	r.environment = envhash
 
 	w.registerWorker(r.tid)

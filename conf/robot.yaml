@@ -56,7 +56,7 @@ NameSpaces:
   # Needed to prevent dangling reference; parameters need to be in
   # custom config.
   "ssh":
-  # Administrator needs to define GITHUB_TOKEN
+  # github namespace for sharing memories
   "github":
   "manage":
     Parameters:
@@ -71,6 +71,10 @@ NameSpaces:
     # A default installed robot stores its brain in state/brain
     - Name: GOPHER_STATEDIR
       Value: {{ env "GOPHER_STATEDIR" | default "state" }}
+
+ParameterSets:
+  # Administrator needs to define a github-token parameterset with GITHUB_TOKEN set.
+  "github-token":
 
 {{ if env "GOPHER_UNCONFIGURED" }}
 LoadableModules:
@@ -176,7 +180,9 @@ ExternalJobs:
   "github-poller":
     Description: "Job that polls github repositories and builds new/updated tags and branches"
     Disabled: true
-    NameSpace: github
+    NameSpace: "github"
+    ParameterSets:
+    - github-token
     Path: jobs/github-poller.py
   "theia":
     Description: "Start theia interface; WARNING: UNAUTHENTICATED"
