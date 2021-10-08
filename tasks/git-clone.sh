@@ -16,9 +16,6 @@ BRANCH=$2
 REPO_DIR=$3
 SET_WD=$4
 
-echo "DEBUG!!"
-env
-
 if [ -d "$REPO_DIR" -a "$(ls -A $REPO_DIR 2>/dev/null)" ]
 then
     echo "Directory $REPO_DIR exists and is not empty" >&2
