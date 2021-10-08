@@ -16,7 +16,12 @@ EOF
 
 GIT_USER=$(git config --get user.name)
 GIT_EMAIL=$(git config --get user.email)
-PRIVATE_KEY="$HOME/.ssh/id_rsa"
+PRIVATE_KEY=$(ls $HOME/.ssh/id_* | head -1)
+if [ "$PRIVATE_KEY" ]
+then
+	echo "Using $PRIVATE_KEY for your coding key, override with '-s $HOME/.ssh/<file>'" >&2
+fi
+
 while getopts ":e:o:s:u:" OPT; do
     case $OPT in
 	e )
@@ -80,7 +85,7 @@ do
 	fi
 done
 
-SSH_PRIVATE_KEY=$(cat $PRIVATE_KEY | tr ' \n' '_:')
+SSH_PRIVATE_KEY=$(cat $PRIVATE_KEY | openssl base64 -e -A)
 
 generate(){
 	cat <<EOF
