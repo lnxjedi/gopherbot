@@ -1,3 +1,9 @@
+# v2.4.0
+This is the first release of a mostly-working Gopherbot IDE, based on [Theia](https://theia-ide.org/). In short:
+* Use the `gb-dev-profile` script to generate an IDE profile from a robot's `.env` file - this packages an ssh key and other **git** goodness into a new env file
+* Use `gb-start-dev <profile>` to start a local docker container with the profile
+* Once the robot starts, tell it to `start-ide` (or `start-theia`), then connect to `http://localhost:3000`
+
 # v2.3.0
 This release adds `ParameterSets`. Since the `NameSpace` of a task also determines access to long-term memories, tasks can only have a single namespace. ParameterSets are identical in form to NameSpaces, but a given job/task/plugin can list multiple ParameterSets. This allows more flexible sharing of secrets between jobs - especially for secrets like GITHUB_TOKENs, that don't really map well to a namespace. For examples of `ParameterSets` in action, see [Clu](https://github.com/parsley42/clu-gopherbot).
 
