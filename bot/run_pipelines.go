@@ -527,44 +527,10 @@ func (w *worker) getEnvironment(t interface{}, pipeInit bool) map[string]string 
 	envhash["RUBYLIB"] = libPath
 	envhash["PYTHONPATH"] = libPath
 
-	/* Parameters attached directly to the task */
-
-	// Configured parameters for a pipeline task don't apply if already set;
-	// task parameters are effectively default values if not otherwise
-	// provided.
-	for _, p := range task.Parameters {
-		_, exists := envhash[p.Name]
-		if !exists {
-			envhash[p.Name] = p.Value
-		}
-	}
-	// Next lowest prio are namespace params; task parameters can override
-	// parameters from the namespace.
-	if len(task.NameSpace) > 0 {
-		if ns, ok := w.tasks.nameSpaces[task.NameSpace]; ok {
-			for _, p := range ns.Parameters {
-				_, exists := envhash[p.Name]
-				if !exists {
-					envhash[p.Name] = p.Value
-				}
-			}
-		}
-	}
-	// ParameterSets can be overridden by task or NameSpace parameters.
-	if len(task.ParameterSets) > 0 {
-		for _, set := range task.ParameterSets {
-			if ps, ok := w.tasks.parameterSets[set]; ok {
-				for _, p := range ps.Parameters {
-					_, exists := envhash[p.Name]
-					if !exists {
-						envhash[p.Name] = p.Value
-					}
-				}
-			}
-		}
-	}
-
-	/* NameSpace and ParameterSet parameters inherited from the pipeline. */
+	/*
+		NameSpace and ParameterSet parameters inherited from the pipeline.
+		Highest priority, allowing jobs to set secret sets for the pipeline.
+	*/
 	if pipeInit || task.Privileged {
 		// Next lowest prio are inherited namespace params; task parameters can override
 		// parameters from the namespace.
@@ -590,7 +556,51 @@ func (w *worker) getEnvironment(t interface{}, pipeInit bool) map[string]string 
 			}
 		}
 	}
-	/* end of inherited parameters */
+	/* end of pipeline inherited parameters */
+
+	/*
+		NameSpace and ParameterSets attached to the task.
+		Second highest priority; effectively default parameter sets if not
+		supplied by the pipeline.
+	*/
+	if len(task.NameSpace) > 0 {
+		if ns, ok := w.tasks.nameSpaces[task.NameSpace]; ok {
+			for _, p := range ns.Parameters {
+				_, exists := envhash[p.Name]
+				if !exists {
+					envhash[p.Name] = p.Value
+				}
+			}
+		}
+	}
+	// ParameterSets can be overridden by NameSpace parameters.
+	if len(task.ParameterSets) > 0 {
+		for _, set := range task.ParameterSets {
+			if ps, ok := w.tasks.parameterSets[set]; ok {
+				for _, p := range ps.Parameters {
+					_, exists := envhash[p.Name]
+					if !exists {
+						envhash[p.Name] = p.Value
+					}
+				}
+			}
+		}
+	}
+
+	/*
+		Parameters attached directly to the task.
+		Lowest priority, failsafe fallbacks.
+	*/
+
+	// Configured parameters for a pipeline task don't apply if already set;
+	// task parameters are effectively default values if not otherwise
+	// provided by the pipeline or attached parameter sets.
+	for _, p := range task.Parameters {
+		_, exists := envhash[p.Name]
+		if !exists {
+			envhash[p.Name] = p.Value
+		}
+	}
 
 	// Passed-through environment vars have the lowest priority
 	for _, p := range envPassThrough {
