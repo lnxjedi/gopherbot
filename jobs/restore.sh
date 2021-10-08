@@ -90,6 +90,7 @@ AddTask exec mv "$GOPHER_STATEDIR" "$GOPHER_STATEDIR.tmp"
 AddTask git-clone "$GOPHER_STATE_REPOSITORY" "$GOPHER_STATE_BRANCH" "$GOPHER_STATEDIR"
 AddTask resume-brain
 AddTask exec rm -rf "$GOPHER_STATEDIR.tmp"
+AddTask exec rm -f ".restore"
 FailTask exec rm -rf "$GOPHER_STATEDIR"
 FailTask exec mv "$GOPHER_STATEDIR.tmp" "$GOPHER_STATEDIR"
 if [ "$INTERACTIVE" -o "$TERMINAL" ]

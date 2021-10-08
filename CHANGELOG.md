@@ -1,3 +1,6 @@
+# v2.3.0
+This release adds `ParameterSets`. Since the `NameSpace` of a task also determines access to long-term memories, tasks can only have a single namespace. ParameterSets are identical in form to NameSpaces, but a given job/task/plugin can list multiple ParameterSets. This allows more flexible sharing of secrets between jobs - especially for secrets like GITHUB_TOKENs, that don't really map well to a namespace. For examples of `ParameterSets` in action, see [Clu](https://github.com/parsley42/clu-gopherbot).
+
 # v2.2.0
 * Updated `go.mod` and import paths for (hopefully) 'proper' go module support; since **Gopherbot** is far more an application than a library, this should only matter for indexes like [pkg.go.dev](https://pkg.go.dev)
 

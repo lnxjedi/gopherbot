@@ -35,7 +35,9 @@ type taskList struct {
 	nameMap map[string]int
 	idMap   map[string]int // task ID to task number
 	// map of namespace name to NameSpace, updated on every load
-	nameSpaces map[string]NameSpace
+	nameSpaces map[string]ParameterSet
+	// map of parameterset name to NameSpace (re-using identical data structure)
+	parameterSets map[string]ParameterSet
 }
 
 func getTask(t interface{}) (*Task, *Plugin, *Job) {
@@ -87,6 +89,7 @@ type TaskSpec struct {
 // Not every field is used in every case.
 type TaskSettings struct {
 	Name, Path, Description, NameSpace string
+	ParameterSets                      []string
 	Disabled                           bool
 	Homed                              bool
 	Privileged                         *bool
@@ -128,8 +131,8 @@ type JobTrigger struct {
 	re      *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
-// NameSpace just stores a name, description, and parameters - they cannot be run.
-type NameSpace struct {
+// ParameterSet just stores a name, description, and parameters - they cannot be run.
+type ParameterSet struct {
 	name        string            // name of the shared namespace
 	Description string            // optional description of the shared namespace
 	Parameters  []robot.Parameter // Parameters for the shared namespace
@@ -138,22 +141,23 @@ type NameSpace struct {
 // Task configuration is common to tasks, plugins or jobs. Any task, plugin or job can call bot methods. Note that tasks are only defined
 // in robot.yaml, and no external configuration is read in.
 type Task struct {
-	name         string            // name of job or plugin; unique by type, but job & plugin can share
-	taskType     taskType          // taskGo or taskExternal
-	Path         string            // Path to the external executable for external scripts
-	NameSpace    string            // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
-	Parameters   []robot.Parameter // Fixed parameters for a given job; many jobs will use the same script with differing parameters
-	Description  string            // description of job or plugin
-	AllowDirect  bool              // Set this true if this plugin can be accessed via direct message
-	DirectOnly   bool              // Set this true if this plugin ONLY accepts direct messages
-	Channel      string            // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
-	Channels     []string          // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
-	AllChannels  bool              // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	RequireAdmin bool              // Set to only allow administrators to access a plugin / run job
-	Users        []string          // If non-empty, list of all the users with access to this plugin
-	Elevator     string            // Use an elevator other than the DefaultElevator
-	Authorizer   string            // a plugin to call for authorizing users, should handle groups, etc.
-	AuthRequire  string            // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
+	name          string            // name of job or plugin; unique by type, but job & plugin can share
+	taskType      taskType          // taskGo or taskExternal
+	Path          string            // Path to the external executable for external scripts
+	NameSpace     string            // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
+	Parameters    []robot.Parameter // Fixed parameters for a given job; many jobs will use the same script with differing parameters
+	ParameterSets []string          //
+	Description   string            // description of job or plugin
+	AllowDirect   bool              // Set this true if this plugin can be accessed via direct message
+	DirectOnly    bool              // Set this true if this plugin ONLY accepts direct messages
+	Channel       string            // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
+	Channels      []string          // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
+	AllChannels   bool              // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
+	RequireAdmin  bool              // Set to only allow administrators to access a plugin / run job
+	Users         []string          // If non-empty, list of all the users with access to this plugin
+	Elevator      string            // Use an elevator other than the DefaultElevator
+	Authorizer    string            // a plugin to call for authorizing users, should handle groups, etc.
+	AuthRequire   string            // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
 	// taskID        string            // 32-char random ID for identifying plugins/jobs
 	ReplyMatchers []InputMatcher  // store this here for prompt*reply methods
 	Config        json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()

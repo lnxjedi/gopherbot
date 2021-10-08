@@ -88,6 +88,16 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	initChannel := w.Channel
 	// A job or plugin is always the first task in a pipeline; a new
 	// sub-pipeline is created if a job is added in another pipeline.
+	if len(task.NameSpace) > 0 {
+		if ns, ok := w.tasks.nameSpaces[task.NameSpace]; ok {
+			c.nameSpaceParameters = ns.Parameters
+		} else {
+			Log(robot.Error, "NameSpace '%s' not found for task '%s' (this should never happen)", task.NameSpace, task.name)
+		}
+	}
+	if len(task.ParameterSets) > 0 {
+		c.parameterSets = task.ParameterSets
+	}
 	if isJob {
 		// Job parameters are available to the whole pipeline, plugin
 		// parameters are not.
@@ -95,18 +105,6 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 			_, exists := c.environment[p.Name]
 			if !exists {
 				c.environment[p.Name] = p.Value
-			}
-		}
-		if len(task.NameSpace) > 0 {
-			if ns, ok := w.tasks.nameSpaces[task.NameSpace]; ok {
-				for _, p := range ns.Parameters {
-					_, exists := c.environment[p.Name]
-					if !exists {
-						c.environment[p.Name] = p.Value
-					}
-				}
-			} else {
-				Log(robot.Error, "NameSpace '%s' not found for task '%s' (this should never happen)", task.NameSpace, task.name)
 			}
 		}
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
@@ -490,6 +488,7 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 }
 
 // getEnvironment generates the environment for each task run.
+// See callTask for the definition of pipeInit.
 func (w *worker) getEnvironment(t interface{}) map[string]string {
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
@@ -523,17 +522,48 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	libPath := fmt.Sprintf("%s/lib", installPath)
 	envhash["RUBYLIB"] = libPath
 	envhash["PYTHONPATH"] = libPath
-	// Configured parameters for a pipeline task don't apply if already set;
-	// task parameters are effectively default values if not otherwise
-	// provided.
-	for _, p := range task.Parameters {
-		_, exists := envhash[p.Name]
-		if !exists {
-			envhash[p.Name] = p.Value
+
+	/*
+		NameSpace and ParameterSet parameters inherited from the pipeline.
+		Highest priority, allowing jobs to set secret sets for the pipeline.
+		Note that only privileged tasks/plugins can inherit secrets from
+		the pipeline.
+	*/
+	// NOTE: Even if the job/plugin that started the pipeline isn't privileged,
+	// it will still see the namespace and paramtersets parameters, since they're
+	// directly attached to the task.
+	if task.Privileged {
+		// Next lowest prio are inherited namespace params; task parameters can override
+		// parameters from the namespace.
+		if len(c.nameSpaceParameters) > 0 {
+			for _, p := range c.nameSpaceParameters {
+				_, exists := envhash[p.Name]
+				if !exists {
+					envhash[p.Name] = p.Value
+				}
+			}
+		}
+		// Inherited ParameterSets can be overridden by inherited NameSpace parameters.
+		if len(c.parameterSets) > 0 {
+			for _, set := range c.parameterSets {
+				if ps, ok := w.tasks.parameterSets[set]; ok {
+					for _, p := range ps.Parameters {
+						_, exists := envhash[p.Name]
+						if !exists {
+							envhash[p.Name] = p.Value
+						}
+					}
+				}
+			}
 		}
 	}
-	// Next lowest prio are namespace params; task parameters can override
-	// parameters from the namespace.
+	/* end of pipeline inherited parameters */
+
+	/*
+		NameSpace and ParameterSets attached to the task.
+		Second highest priority; effectively default parameter sets if not
+		supplied by the pipeline.
+	*/
 	if len(task.NameSpace) > 0 {
 		if ns, ok := w.tasks.nameSpaces[task.NameSpace]; ok {
 			for _, p := range ns.Parameters {
@@ -542,10 +572,37 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 					envhash[p.Name] = p.Value
 				}
 			}
-		} else {
-			Log(robot.Error, "NameSpace '%s' not found for task '%s' (this should never happen)", task.NameSpace, task.name)
 		}
 	}
+	// ParameterSets can be overridden by NameSpace parameters.
+	if len(task.ParameterSets) > 0 {
+		for _, set := range task.ParameterSets {
+			if ps, ok := w.tasks.parameterSets[set]; ok {
+				for _, p := range ps.Parameters {
+					_, exists := envhash[p.Name]
+					if !exists {
+						envhash[p.Name] = p.Value
+					}
+				}
+			}
+		}
+	}
+
+	/*
+		Parameters attached directly to the task.
+		Lowest priority, failsafe fallbacks.
+	*/
+
+	// Configured parameters for a pipeline task don't apply if already set;
+	// task parameters are effectively default values if not otherwise
+	// provided by the pipeline or attached parameter sets.
+	for _, p := range task.Parameters {
+		_, exists := envhash[p.Name]
+		if !exists {
+			envhash[p.Name] = p.Value
+		}
+	}
+
 	// Passed-through environment vars have the lowest priority
 	for _, p := range envPassThrough {
 		_, exists := envhash[p]
@@ -562,7 +619,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 // to the task.
 func getTaskPath(task *Task, workDir string) (tpath string, err error) {
 	if len(task.Path) == 0 {
-		err := fmt.Errorf("Path empty for external task: %s", task.name)
+		err := fmt.Errorf("path empty for external task: %s", task.name)
 		Log(robot.Error, err.Error())
 		return "", err
 	}

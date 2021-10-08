@@ -104,6 +104,7 @@ type configuration struct {
 	goJobs               []TaskSettings      // Settings for goJobs: Name(match), Description, NameSpace, Parameters, Disabled
 	goTasks              []TaskSettings      // Settings for goTasks: Name(match), Description, NameSpace, Parameters, Disabled
 	nsList               []TaskSettings      // loaded NameSpaces for shared parameters
+	psList               []TaskSettings      // loaded ParameterSets for shared parameter sets
 	loadableModules      []LoadableModule    // List of loadable modules to load
 	ScheduledJobs        []ScheduledTask     // List of scheduled tasks
 	port                 string              // Configured localhost port to listen on, or 0 for first open
@@ -119,10 +120,11 @@ var currentCfg = struct {
 }{
 	configuration: &configuration{},
 	taskList: &taskList{
-		t:          []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces only
-		nameMap:    make(map[string]int),
-		idMap:      make(map[string]int),
-		nameSpaces: make(map[string]NameSpace),
+		t:             []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces only
+		nameMap:       make(map[string]int),
+		idMap:         make(map[string]int),
+		nameSpaces:    make(map[string]ParameterSet),
+		parameterSets: make(map[string]ParameterSet),
 	},
 	RWMutex: sync.RWMutex{},
 }
@@ -189,7 +191,7 @@ func initBot(cpath, epath string) {
 			Log(robot.Info, "Initialized brain provider '%s'", currentCfg.brainProvider)
 		}
 	} else {
-		bprovider, _ := brains["mem"]
+		bprovider := brains["mem"]
 		interfaces.brain = bprovider(handle)
 		Log(robot.Error, "No brain configured, falling back to default 'mem' brain - no memories will persist")
 	}

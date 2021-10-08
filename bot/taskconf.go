@@ -10,15 +10,16 @@ import (
 	"github.com/lnxjedi/robot"
 )
 
-// loadTaskConfig() updates task/job/plugin configuration and namespaces
+// loadTaskConfig() updates task/job/plugin configuration and namespaces/parametersets
 // from robot.yaml and external configuration, then updates the
 // globalTasks struct.
 func loadTaskConfig(processed *configuration) (*taskList, error) {
 	newList := &taskList{
-		t:          []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces only
-		nameMap:    make(map[string]int),
-		idMap:      make(map[string]int),
-		nameSpaces: make(map[string]NameSpace),
+		t:             []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces & parametersets only
+		nameMap:       make(map[string]int),
+		idMap:         make(map[string]int),
+		nameSpaces:    make(map[string]ParameterSet),
+		parameterSets: make(map[string]ParameterSet),
 	}
 	currentCfg.RLock()
 	current := taskList{
@@ -45,9 +46,9 @@ func loadTaskConfig(processed *configuration) (*taskList, error) {
 
 	for _, ns := range processed.nsList {
 		if _, ok := newList.nameMap[ns.Name]; ok {
-			return newList, fmt.Errorf("NameSpace '%s' conflicts with Go task/job/plugin name", ns.Name)
+			return newList, fmt.Errorf("NameSpace '%s' conflicts with another task/job/plugin/parameterset name", ns.Name)
 		}
-		newList.nameSpaces[ns.Name] = NameSpace{
+		newList.nameSpaces[ns.Name] = ParameterSet{
 			name:        ns.Name,
 			Description: ns.Description,
 			Parameters:  ns.Parameters,
@@ -55,6 +56,20 @@ func loadTaskConfig(processed *configuration) (*taskList, error) {
 		// The nameMap is the definitive list of all names, but namespaces don't correspond
 		// to an actual task.
 		newList.nameMap[ns.Name] = 0
+	}
+
+	for _, ps := range processed.psList {
+		if _, ok := newList.nameMap[ps.Name]; ok {
+			return newList, fmt.Errorf("ParameterSet '%s' conflicts with another task/job/plugin/parameterset name", ps.Name)
+		}
+		newList.parameterSets[ps.Name] = ParameterSet{
+			name:        ps.Name,
+			Description: ps.Description,
+			Parameters:  ps.Parameters,
+		}
+		// The nameMap is the definitive list of all names, but parameter sets don't correspond
+		// to an actual task.
+		newList.nameMap[ps.Name] = 0
 	}
 
 	// Return disabled, error
@@ -69,6 +84,14 @@ func loadTaskConfig(processed *configuration) (*taskList, error) {
 				return false, fmt.Errorf("configured NameSpace '%s' for task '%s' doesn't exist", ts.NameSpace, ts.Name)
 			}
 			task.NameSpace = ts.NameSpace
+		}
+		if len(ts.ParameterSets) > 0 {
+			for _, set := range ts.ParameterSets {
+				if _, ok := newList.parameterSets[set]; !ok {
+					return false, fmt.Errorf("configured ParameterSet '%s' for task '%s' doesn't exist", set, ts.Name)
+				}
+			}
+			task.ParameterSets = ts.ParameterSets
 		}
 		task.Description = ts.Description
 		task.Parameters = ts.Parameters
@@ -115,13 +138,16 @@ func loadTaskConfig(processed *configuration) (*taskList, error) {
 		if _, ok := newList.nameSpaces[ts.Name]; ok {
 			return nil, fmt.Errorf("external task '%s' duplicates name of configured NameSpace", ts.Name)
 		}
+		if _, ok := newList.parameterSets[ts.Name]; ok {
+			return nil, fmt.Errorf("external task '%s' duplicates name of configured ParameterSet", ts.Name)
+		}
 		if dupidx, ok := newList.nameMap[ts.Name]; ok {
 			dupt := newList.t[dupidx]
 			duptask, _, _ := getTask(dupt)
 			if duptask.taskType == taskGo {
 				return nil, fmt.Errorf("external task '%s' duplicates name of existing Go task/plugin/job", ts.Name)
 			}
-			return nil, fmt.Errorf("External task '%s' duplicates name of other external task/plugin/job", ts.Name)
+			return nil, fmt.Errorf("external task '%s' duplicates name of other external task/plugin/job", ts.Name)
 		}
 		task := &Task{
 			name:        ts.Name,
@@ -300,7 +326,7 @@ LoadLoop:
 				skip = true
 			case "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "MatchUnlisted", "Quiet":
 				val = &boolval
-			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands":
+			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands", "ParameterSets":
 				val = &sarrval
 			case "Help":
 				val = &hval
@@ -361,6 +387,8 @@ LoadLoop:
 				}
 			case "NameSpace":
 				Log(robot.Error, "Task '%s' specifies NameSpace outside of %s, ignoring", robotConfigFileName)
+			case "ParameterSets":
+				Log(robot.Error, "Task '%s' specifies ParameterSets outside of %s, ignoring", robotConfigFileName)
 			case "Elevator":
 				task.Elevator = *(val.(*string))
 			case "ElevatedCommands":

@@ -153,19 +153,21 @@ type pipeContext struct {
 	queueTask        bool              // whether to queue up if Exclusive call failed
 	abortPipeline    bool              // Exclusive request failed w/o queueTask
 	// Stuff we want to copy in makeRobot
-	privileged         bool                // privileged jobs flip this flag, causing tasks in the pipeline to run in cfgdir
-	timeZone           *time.Location      // for history timestamping
-	logger             robot.HistoryLogger // where to send stdout / stderr
-	ptype              pipelineType        // what started this pipeline
-	elevated           bool                // set when required elevation succeeds
-	stage              pipeStage           // which pipeline is being run; primaryP, finalP, failP
-	jobInitialized     bool                // whether a job has started
-	jobName            string              // name of the running job
-	nameSpace          string              // namespace for the pipeline, used by exclusive and brain
-	pipeName, pipeDesc string              // name and description of task that started pipeline
-	nsExtension        string              // extended namespace
-	currentTask        interface{}         // pointer to currently executing task
-	exclusive          bool                // indicates task was running exclusively
+	privileged          bool                // privileged jobs flip this flag, causing tasks in the pipeline to run in cfgdir
+	timeZone            *time.Location      // for history timestamping
+	logger              robot.HistoryLogger // where to send stdout / stderr
+	ptype               pipelineType        // what started this pipeline
+	elevated            bool                // set when required elevation succeeds
+	stage               pipeStage           // which pipeline is being run; primaryP, finalP, failP
+	jobInitialized      bool                // whether a job has started
+	jobName             string              // name of the running job
+	nameSpace           string              // namespace for the pipeline, used by exclusive, brain and environment
+	nameSpaceParameters []robot.Parameter   // namespace shared parameters
+	parameterSets       []string            // parametersets for the pipeline for environment
+	pipeName, pipeDesc  string              // name and description of task that started pipeline
+	nsExtension         string              // extended namespace
+	currentTask         interface{}         // pointer to currently executing task
+	exclusive           bool                // indicates task was running exclusively
 }
 
 func (c *pipeContext) section(name, info string) {
