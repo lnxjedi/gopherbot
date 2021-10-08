@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# rc-dev-profile - generate an environment file for robot development
+# gb-dev-profile - generate an environment file for robot development
 
 usage(){
 	cat <<EOF
 
-rc-dev-profile - Generate an environment file for Gopherbot robot
+gb-dev-profile - Generate an environment file for Gopherbot robot
 development.
 
 Usage:
-$ rc-dev-profile [-e <email>] [-u <user>] [-o <file>] [-s <path/to/private-key> ] <path/to/.env> (> myrobot.env)
+$ gb-dev-profile [-e <email>] [-u <user>] [-o <file>] [-s <path/to/private-key> ] <path/to/.env> (> myrobot.env)
 EOF
 	exit 1
 }
