@@ -28,6 +28,9 @@ cat > $HOME/stop-theia.sh <<"EOF"
 kill $PPID
 EOF
 
+mkdir -p "$HOME/.ssh"
+chmod 0700 "$HOME/.ssh"
+
 USERNAME=$(GetSenderAttribute name)
 if [ $? -eq $GBRET_Ok ]
 then
