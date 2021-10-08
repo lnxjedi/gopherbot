@@ -44,8 +44,9 @@ stop-theia(){
 if ! ssh-add -l &>/dev/null
 then
    flock -n /tmp/ssh.lock -c \
-      "echo -e '\n... adding your coding key to the ssh-agent'; ssh-add $HOME/.ssh/id_code" || :
+      "echo -e '\n... adding your coding key (\$DEV_KEY_NAME) to the ssh-agent'; ssh-add $HOME/.ssh/id_code" || :
 fi
+PS1="\[\033[01;32m\]robot@gopherbot-ide\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "
 EOF
 
 SetParameter "GOPHERBOT_IDE" "true"

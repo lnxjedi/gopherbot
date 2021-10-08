@@ -216,6 +216,8 @@ ExternalJobs:
     {{- end}}
     - Name: DEV_PRIVATE_KEY
       Value: "{{ env "DEV_PRIVATE_KEY" }}"
+    - Name: DEV_KEY_NAME
+      Value: {{ env "DEV_KEY_NAME" }}
   {{- end}}
   "backup":
     Description: A job for backing up the robot's state, normally just a file-based brain

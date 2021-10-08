@@ -3,7 +3,7 @@
 # gb-dev-profile - generate an environment file for robot development
 
 usage(){
-	cat <<EOF
+	cat >&2 <<EOF
 
 gb-dev-profile - Generate an environment file for Gopherbot robot
 development.
@@ -16,11 +16,6 @@ EOF
 
 GIT_USER=$(git config --get user.name)
 GIT_EMAIL=$(git config --get user.email)
-PRIVATE_KEY=$(ls $HOME/.ssh/id_* | head -1)
-if [ "$PRIVATE_KEY" ]
-then
-	echo "Using $PRIVATE_KEY for your coding key, override with '-s $HOME/.ssh/<file>'" >&2
-fi
 
 while getopts ":e:o:s:u:" OPT; do
     case $OPT in
@@ -47,6 +42,20 @@ shift $((OPTIND -1))
 if [ ! "$1" ]
 then
 	usage
+fi
+
+if [ ! "$PRIVATE_KEY" ]
+then
+	PRIVATE_KEY=$(ls $HOME/.ssh/id_* | head -1)
+	if [ "$PRIVATE_KEY" ]
+	then
+		echo "Using $PRIVATE_KEY for your coding key, override with '-s $HOME/.ssh/<file>'" >&2
+	else
+		echo "Unable to automatically determine private key file, use '-s $HOME/.ssh/<file>'" >&2
+		echo
+	fi
+else
+	echo "Using $PRIVATE_KEY for your coding key"
 fi
 
 if [ ! -e "$PRIVATE_KEY" ]
@@ -86,6 +95,7 @@ do
 done
 
 SSH_PRIVATE_KEY=$(cat $PRIVATE_KEY | openssl base64 -e -A)
+KEY_NAME=$(basename $PRIVATE_KEY)
 
 generate(){
 	cat <<EOF
@@ -101,6 +111,7 @@ GIT_AUTHOR_EMAIL="$GIT_EMAIL"
 GIT_COMMITTER_NAME="$GIT_USER"
 GIT_COMMITTER_EMAIL="$GIT_EMAIL"
 DEV_PRIVATE_KEY=$SSH_PRIVATE_KEY
+DEV_KEY_NAME="$KEY_NAME"
 EOF
 }
 
