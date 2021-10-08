@@ -18,16 +18,18 @@ then
     exit 1
 fi
 
-if [ -n "$SSH_AGENT_PID" ]
+if [ "$SSH_AGENT_PID" ]
 then
     Log "Debug" "ssh-init exiting; ssh-agent already running"
     exit 0 # already running
 fi
 
-if [ -n "$BOOTSTRAP" ]
+if [ "$BOOTSTRAP" ]
 then
     Log "Info" "ssh-init starting in bootstrap mode"
-    BOOTSTRAP="true"
+elif [ "$GOPHERBOT_IDE" ]
+then
+    Log "Info" "ssh-init starting in Gopherbot IDE mode (without loading a key)"
 elif [ ! "$KEYNAME" ]
 then
     MESSAGE="KEYNAME not set"
@@ -59,7 +61,7 @@ eval `ssh-agent`
 # Add cleanup task
 FinalTask exec ssh-agent -k
 
-if [ -n "$BOOTSTRAP" ]
+if [ "$BOOTSTRAP" ]
 then
     if [ -z "$GOPHER_DEPLOY_KEY" ]
     then
@@ -67,7 +69,8 @@ then
         exit 1
     fi
     echo "$GOPHER_DEPLOY_KEY" | tr '_:' ' \n' | ssh-add -
-else
+elif [ ! "$GOPHERBOT_IDE" ]
+then
     ssh-add $SSH_KEY_PATH < /dev/null
 fi
 
@@ -76,7 +79,7 @@ SetParameter SSH_AUTH_SOCK $SSH_AUTH_SOCK
 SetParameter SSH_AGENT_PID $SSH_AGENT_PID
 
 SSH_OPTIONS="-o PasswordAuthentication=no"
-if [ -n "$GOPHER_HOME" ]
+if [ ! "$GOPHERBOT_IDE" -a "$GOPHER_HOME" ]
 then
     if [ -e "$GOPHER_CONFIGDIR/ssh/config" ]
     then

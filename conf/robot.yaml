@@ -194,8 +194,6 @@ ExternalJobs:
   "theia":
     Description: "Start theia interface; WARNING: UNAUTHENTICATED"
     Path: jobs/theia.sh
-    # Allow the robot to load it's read-write key
-    NameSpace: manage
     Parameters:
     # Allow "gopherbot encrypt/decrypt" to work
     - Name: "GOPHER_ENCRYPTION_KEY"
@@ -203,15 +201,15 @@ ExternalJobs:
     - Name: GOPHER_CUSTOM_REPOSITORY
       Value: "{{ env "GOPHER_CUSTOM_REPOSITORY" }}"
     - Name: GIT_AUTHOR_NAME
-      Value: "{{ env "GIT_AUTHOR_NAME" }}"
+      Value: {{ env "GIT_AUTHOR_NAME" }}
     - Name: GIT_AUTHOR_EMAIL
-      Value: "{{ env "GIT_AUTHOR_EMAIL" }}"
+      Value: {{ env "GIT_AUTHOR_EMAIL" }}
     - Name: GIT_COMMITTER_NAME
-      Value: "{{ env "GIT_COMMITTER_NAME" }}"
+      Value: {{ env "GIT_COMMITTER_NAME" }}
     - Name: GIT_COMMITTER_EMAIL
-      Value: "{{ env "GIT_COMMITTER_EMAIL" }}"
+      Value: {{ env "GIT_COMMITTER_EMAIL" }}
     - Name: GIT_COMMITTER_EMAIL
-      Value: "{{ env "GIT_COMMITTER_EMAIL" }}"
+      Value: {{ env "GIT_COMMITTER_EMAIL" }}
     {{- if env "GIT_EDITOR" }}
     - Name: GIT_EDITOR
       Value: "{{ env "GIT_EDITOR" }}"

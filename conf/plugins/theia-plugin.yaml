@@ -3,8 +3,8 @@ RequireAdmin: true
 AllowDirect: true
 AllChannels: true
 Help:
-- Keywords: [ "theia", "code" ]
-  Helptext: [ "(bot), start-theia - start theia IDE (requires gopherbot-theia image)" ]
+- Keywords: [ "theia", "code", "ide", "gopherbot" ]
+  Helptext: [ "(bot), start-ide - start theia IDE (requires gopherbot-theia image)" ]
 CommandMatchers:
 - Command: "theia"
-  Regex: '(?i:start-theia)'
+  Regex: '(?i:start-(?:theia|ide))'

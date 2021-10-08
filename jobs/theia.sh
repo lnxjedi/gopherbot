@@ -30,23 +30,17 @@ EOF
 
 mkdir -p "$HOME/.ssh"
 chmod 0700 "$HOME/.ssh"
+echo "$DEV_PRIVATE_KEY" | base64 -d > $HOME/.ssh/id_code # not really
+chmod 0600 "$HOME/.ssh/id_code"
 
-USERNAME=$(GetSenderAttribute name)
-if [ $? -eq $GBRET_Ok ]
-then
-    cat > $HOME/load-personal-key.sh<<EOF
-# Source this in \$HOME: ". load-personal-key.sh"
-if [ ! -e "\$HOME/custom/ssh/$USERNAME-key.enc" ]
-then
-    echo "'\$HOME/custom/ssh/$USERNAME-key.enc' not found."
-else
-    /opt/gopherbot/gopherbot decrypt -f \$HOME/custom/ssh/$USERNAME-key.enc > \$HOME/coding_key
-    chmod 0600 \$HOME/coding_key
-    ssh-add -D
-    ssh-add \$HOME/coding_key
-fi
+cat > $HOME/.bashrc <<EOF
+cat <<WELCOME
+Welcome to the Gopherbot IDE. Use 'ssh-add .ssh/id_code' to
+load your ssh key, or '. stop-theia.sh' to stop the IDE.
+WELCOME
 EOF
-fi
+
+SetParameter "GOPHERBOT_IDE" "true"
 
 AddTask git-init $GOPHER_CUSTOM_REPOSITORY
 AddTask run-theia
