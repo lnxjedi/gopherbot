@@ -28,7 +28,7 @@ func (r Robot) elevate(task *Task, immediate bool) (retval robot.TaskRetVal) {
 		}
 		w := getLockedWorker(r.tid)
 		w.Unlock()
-		_, elevRet := w.callTask(ePlug, false, "elevate", immedString)
+		_, elevRet := w.callTask(ePlug, "elevate", immedString)
 		elevated := elevRet == robot.Success
 		w.Lock()
 		w.elevated = elevated

@@ -55,7 +55,7 @@ func (r Robot) checkAuthorization(w *worker, t interface{}, command string, args
 	_, authPlug, _ := getTask(authTask)
 	if authPlug != nil {
 		args = append([]string{task.name, task.AuthRequire, command}, args...)
-		_, authRet := w.callTask(authPlug, false, "authorize", args...)
+		_, authRet := w.callTask(authPlug, "authorize", args...)
 		w.currentTask = r.currentTask
 		if authRet == robot.Success {
 			Log(robot.Audit, "Authorization succeeded by authorizer '%s' for user '%s' calling command '%s' for task '%s' in channel '%s'; AuthRequire: '%s'", authPlug.name, r.User, command, task.name, r.Channel, task.AuthRequire)

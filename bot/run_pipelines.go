@@ -408,11 +408,7 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 			child := w.clone()
 			ret = child.startPipeline(w, t, ptype, command, args...)
 		} else {
-			pipeInit := false
-			if initialRun && i == 0 {
-				pipeInit = true
-			}
-			errString, ret = w.callTask(t, pipeInit, command, args...)
+			errString, ret = w.callTask(t, command, args...)
 		}
 		if w.stage == finalTasks && ret != robot.Normal {
 			w.finalFailed = append(w.finalFailed, task.name)
@@ -493,7 +489,7 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 
 // getEnvironment generates the environment for each task run.
 // See callTask for the definition of pipeInit.
-func (w *worker) getEnvironment(t interface{}, pipeInit bool) map[string]string {
+func (w *worker) getEnvironment(t interface{}) map[string]string {
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	c := w.pipeContext
@@ -530,8 +526,13 @@ func (w *worker) getEnvironment(t interface{}, pipeInit bool) map[string]string 
 	/*
 		NameSpace and ParameterSet parameters inherited from the pipeline.
 		Highest priority, allowing jobs to set secret sets for the pipeline.
+		Note that only privileged tasks/plugins can inherit secrets from
+		the pipeline.
 	*/
-	if pipeInit || task.Privileged {
+	// NOTE: Even if the job/plugin that started the pipeline isn't privileged,
+	// it will still see the namespace and paramtersets parameters, since they're
+	// directly attached to the task.
+	if task.Privileged {
 		// Next lowest prio are inherited namespace params; task parameters can override
 		// parameters from the namespace.
 		if len(c.nameSpaceParameters) > 0 {
