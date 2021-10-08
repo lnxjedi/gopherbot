@@ -35,9 +35,17 @@ chmod 0600 "$HOME/.ssh/id_code"
 
 cat > $HOME/.bashrc <<EOF
 cat <<WELCOME
-Welcome to the Gopherbot IDE. Use 'ssh-add .ssh/id_code' to
-load your ssh key, or '. stop-theia.sh' to stop the IDE.
+Welcome to the Gopherbot Theia IDE.
+Use 'stop-theia' to quit.
 WELCOME
+stop-theia(){
+   kill \$(cat /tmp/theia.pid)
+}
+if ! ssh-add -l &>/dev/null
+then
+   flock -n /tmp/ssh.lock -c \
+      "echo -e '\n... adding your coding key to the ssh-agent'; ssh-add $HOME/.ssh/id_code" || :
+fi
 EOF
 
 SetParameter "GOPHERBOT_IDE" "true"
