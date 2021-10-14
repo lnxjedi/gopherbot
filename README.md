@@ -66,7 +66,7 @@ Each release of **Gopherbot** creates three container variants:
   * `gopherbot-theia` includes theia but uses `gopherbot` for the entrypoint; this is the official **Gopherbot IDE** for developing extensions
 
 ## Building from Source
-Building from source is straight-forward as `make dist` with the `Makefile`, as long as the build system has all the requirements.
+Building from source is as straight-forward as `make dist` with the `Makefile`, as long as the build system has all the requirements.
 
 **Requirements:**
 * A recent (1.14+) version of Go
