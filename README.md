@@ -11,14 +11,14 @@ Slogans under consideration:
 ## What does Gopherbot *do*?
 **Gopherbot** runs as a process or container in your infrastructure and connects to your team chat. From there it can respond to CLI-like commands written in Bash, Ruby or Python (\*), and perform any number of functions to provision resources, run reports and scheduled jobs, deploy software or interact with CI/CD - just about any functionality a DevOps engineer might want to provide in team chat. You can find a lot more information in the [introduction](https://lnxjedi.github.io/gopherbot/Introduction.html) of the online manual.
 
+> (*) More advanced and Slack-specific extensions can be written in **Go**; support for additional scripting languages is relatively simple to add.
+
 ## Major Features
 * Powerful pipeline-oriented engine for creating and combining reusable components in multiple scripting languages
 * Flexible support for encrypted secrets
 * Wide variety of security features including built-in Google Authenticator TOTP
-* Full-featured terminal connector and built-in IDE for developing extensions for your infrastructure
+* Full-featured terminal connector and built-in IDE for developing extensions
 * Highly configurable with Go-templated YAML
-
-> (*) More advanced and Slack-specific extensions can be written in **Go**; support for additional scripting languages is relatively simple to add.
 
 ## Software Overview
 **Gopherbot** uses a model similar to [Ansible](https://ansible.com), distributing a core robot with an array of built-in reusable components. Individual robots are configured and stored in a **git** repository that is cloned when you bootstrap your robot in your infrastructure; several example robot repositories are given below.
