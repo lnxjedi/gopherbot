@@ -87,7 +87,7 @@ This example transcript is a little outdated, and doesn't showcase the new job f
 ## Deprecated and Unsupported Platforms
 The Windows and Darwin (MacOS) ports have both been removed. The best solution for these platforms is to take advantage of the excellent Linux container support to run your robot in a container, perhaps with [Docker Desktop](https://www.docker.com/products/docker-desktop). [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) is also a good solution for Windows.
 
-## Sample Plugin with the Ruby API
+## Sample Command Plugin with the Ruby API
 ```ruby
 #!/usr/bin/ruby
 require 'net/http'
