@@ -4,7 +4,7 @@
 
 # Gopherbot DevOps Chatbot
 
-Enterprise Slack(\*) DevOps / ChatOps / CI/CD bot for Linux, supporting extensions in Bash, Python, Ruby, and Go.
+Slack(\*) DevOps / ChatOps bot for Linux, supporting extensions in Bash, Python, Ruby, and Go.
 
 > (*) with a modular interface for writing other protocol connectors in Go
 
