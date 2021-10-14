@@ -1,7 +1,3 @@
-![Gophers+bot by Renee French, cropped, cc3.0](https://raw.githubusercontent.com/wiki/lnxjedi/gopherbot/gopherbot.PNG)
-
-[Gophers + Robot by Renee French (cropped) licensed under Creative Commons License 3.0](https://creativecommons.org/licenses/by/3.0/)
-
 # Gopherbot DevOps Chatbot
 
 Slack(\*) DevOps / ChatOps bot for Linux, supporting extensions in Bash, Python, Ruby, and Go.
@@ -13,7 +9,7 @@ Slogans under consideration:
 * **The DevOps Swiss-Army Chainsaw**
 
 ## What does Gopherbot *do*?
-**Gopherbot** runs as a process or container in your infrastructure and connects to your team chat. From there it can respond to CLI-like commands written in Bash, Ruby or Python (\*), and perform any number of functions to provision resources, run reports and scheduled jobs, deploy software or interact with CI/CD - just about anything a DevOps engineer might want to provide in team chat. You can find a lot more information in the [introduction](https://lnxjedi.github.io/gopherbot/Introduction.html) of the online manual.
+**Gopherbot** runs as a process or container in your infrastructure and connects to your team chat. From there it can respond to CLI-like commands written in Bash, Ruby or Python (\*), and perform any number of functions to provision resources, run reports and scheduled jobs, deploy software or interact with CI/CD - just about any functionality a DevOps engineer might want to provide in team chat. You can find a lot more information in the [introduction](https://lnxjedi.github.io/gopherbot/Introduction.html) of the online manual.
 
 ## Major Features
 * Powerful pipeline-oriented engine for creating and combining reusable components in multiple scripting languages
