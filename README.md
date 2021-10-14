@@ -113,8 +113,8 @@ command = ARGV.shift()
 
 case command
 when "configure"
-	puts defaultConfig
-	exit
+    puts defaultConfig
+    exit
 when "weather"
     location = ARGV.shift()
     location += ",#{ENV["DEFAULT_COUNTRY"]}" unless location.include?(',')
