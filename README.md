@@ -38,7 +38,7 @@ With the recent (2021) addition of `ParameterSets` and a container-based **IDE**
 ## Previewing
 If you have [Docker](https://www.docker.com/) available, you can kick the tires on the default robot running the **terminal** connector:
 ```
-$ docker run -it quay.io/lnxjedi/gopherbot
+$ docker run -it --rm quay.io/lnxjedi/gopherbot
 ...
 Terminal connector running; Type '|c?' to list channels, '|u?' to list users
 ...
@@ -49,6 +49,8 @@ general: If you've started the robot by mistake, just hit ctrl-D to exit and try
 'gopherbot --help'; otherwise feel free to play around with the default robot - you
 can start by typing 'help'. If you'd like to start configuring a new robot, type:
 ';setup slack'.
+c:general/u:alice -> help
+...
 ```
 
 ## Downloading
