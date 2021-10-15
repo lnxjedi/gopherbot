@@ -1,0 +1,31 @@
+#!/bin/bash -e
+
+# Trivial script to symlink gb-* scripts in to $PATH
+
+DEST="$1"
+
+if [ ! "$DEST" ]
+then
+    echo "Missing required <dest-dir>"
+    exit 1
+fi
+
+if [ ! -d "$DEST" ]
+then
+    echo "Not a directory: $DEST"j
+    exit 1
+fi
+
+if [ ! -w "$DEST" ]
+then
+    echo "Destination not writable: $DEST"
+    exit 1
+fi
+
+SCRIPT_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
+
+for SCRIPT in gb-dev-profile gb-start-dev
+do
+    ln -snf "$SCRIPT_DIR/$SCRIPT" "$DEST"
+done
+echo "linked"
