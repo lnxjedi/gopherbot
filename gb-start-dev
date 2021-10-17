@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# rc-start - convenience script for starting a Gopherbot dev container.
+# gb-start - convenience script for starting a Gopherbot dev container.
 
 usage(){
 	cat <<EOF
