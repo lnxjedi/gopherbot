@@ -61,14 +61,18 @@ func scheduleTasks() {
 			continue
 		}
 		ts := st.TaskSpec
-		Log(robot.Info, "Scheduling job '%s', args '%v' with schedule: %s", ts.Name, ts.Arguments, st.Schedule)
-		taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, ts, cfg, tasks, repolist) })
+		if st.Schedule == "@init" {
+			runScheduledTask(t, ts, cfg, tasks, repolist, true)
+		} else {
+			Log(robot.Info, "Scheduling job '%s', args '%v' with schedule: %s", ts.Name, ts.Arguments, st.Schedule)
+			taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, ts, cfg, tasks, repolist, false) })
+		}
 	}
 	taskRunner.Start()
 	schedMutex.Unlock()
 }
 
-func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *taskList, repolist map[string]robot.Repository) {
+func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *taskList, repolist map[string]robot.Repository, isInitJob bool) {
 	task, _, _ := getTask(t)
 	currentCfg.RLock()
 	protocol := currentCfg.protocol
@@ -93,6 +97,14 @@ func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *tas
 		directMsg:     false,
 		automaticTask: true, // scheduled jobs don't get authorization / elevation checks
 	}
-	Log(robot.Debug, "Starting scheduled job: %s", task.name)
-	w.startPipeline(nil, t, scheduled, "run", ts.Arguments...)
+	if isInitJob {
+		Log(robot.Debug, "Starting init job: %s", task.name)
+	} else {
+		Log(robot.Debug, "Starting scheduled job: %s", task.name)
+	}
+	jobtype := scheduled
+	if isInitJob {
+		jobtype = initJob
+	}
+	w.startPipeline(nil, t, jobtype, "run", ts.Arguments...)
 }

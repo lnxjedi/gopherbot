@@ -1,3 +1,10 @@
+# v2.4.1
+> **NOTE: Potentially breaking change**
+
+This release adds a special '@init' value for scheduled jobs, allowing certain jobs to be run during start-up and reload. The use case for this was to allow decrypting an encrypted `.kube/config` file, but this could also be used for installing python packages and ruby gems.
+
+The **potentially breaking change** is that `$HOME` is now fixed to `$GOPHER_HOME`, the main working directory for the robot. It doesn't make a lot of sense for this to be anything different, or to require this to be set elsewhere (e.g. in the `Dockerfile`).
+
 # v2.4.0
 This is the first release of a mostly-working Gopherbot IDE, based on [Theia](https://theia-ide.org/). In short:
 * Use the `gb-dev-profile` script to generate an IDE profile from a robot's `.env` file - this packages an ssh key and other **git** goodness into a new env file

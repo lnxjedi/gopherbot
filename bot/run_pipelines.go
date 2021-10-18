@@ -12,7 +12,7 @@ import (
 )
 
 var envPassThrough = []string{
-	"HOME",
+	"HOME", // only applies in rare error cases when homePath isn't set
 	"HOSTNAME",
 	"LANG",
 	"PATH",
@@ -167,6 +167,8 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 			r.Say("Starting job '%s', run %d%s - spawned by pipeline '%s': %s", taskinfo, c.runIndex, logref, ppipeName, ppipeDesc)
 		case scheduled:
 			r.Say("Starting scheduled job '%s', run %d%s", taskinfo, c.runIndex, logref)
+		case initJob:
+			r.Say("Starting init job '%s', run %d%s", taskinfo, c.runIndex, logref)
 		default:
 			r.Say("Starting job '%s', run %d%s", taskinfo, c.runIndex, logref)
 		}
@@ -398,7 +400,7 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 				emit(TriggeredTaskRan)
 			case spawnedTask:
 				emit(SpawnedTaskRan)
-			case scheduled:
+			case scheduled, initJob:
 				emit(ScheduledTaskRan)
 			case jobCommand:
 				emit(JobTaskRan)
@@ -508,6 +510,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	}
 	// These values are always fixed
 	if len(homePath) > 0 {
+		envhash["HOME"] = homePath
 		envhash["GOPHER_HOME"] = homePath
 	}
 	envhash["GOPHER_CONFIGDIR"] = configFull

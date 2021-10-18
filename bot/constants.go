@@ -36,6 +36,7 @@ const (
 	jobTrigger
 	spawnedTask
 	scheduled
+	initJob    // scheduled job schedule: @init
 	jobCommand // i.e. run job xx
 )
 
