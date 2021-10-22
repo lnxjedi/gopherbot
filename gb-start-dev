@@ -93,7 +93,7 @@ prep-container(){
 		sleep 1
 	done
 	docker cp $HOME/.gitconfig $BOTNAME:/var/lib/robot/.gitconfig
-	docker exec -u root clu /bin/bash -c "chown robot:robot /var/lib/robot/.gitconfig"
+	docker exec -u root $BOTNAME /bin/bash -c "chown robot:robot /var/lib/robot/.gitconfig"
 	exit 0
 }
 
