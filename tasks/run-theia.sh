@@ -12,7 +12,7 @@ export SHELL THEIA_DEFAULT_PLUGINS USE_LOCAL_GIT
 unset BOT_SSH_PHRASE
 
 cd /usr/local/theia
-node /usr/local/theia/src-gen/backend/main.js /home/robot --hostname 0.0.0.0 > /tmp/theia.log 2>/tmp/theia.errorlog &
+node /usr/local/theia/src-gen/backend/main.js /var/lib/robot --hostname 0.0.0.0 > /tmp/theia.log 2>/tmp/theia.errorlog &
 THEIA_PID=$!
 
 echo "$THEIA_PID" > /tmp/theia.pid

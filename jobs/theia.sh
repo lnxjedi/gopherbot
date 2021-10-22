@@ -6,28 +6,6 @@ source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 FailTask tail-log
 
-if [ ! -e "$HOME/robot.theia-workspace" ]
-then
-    cat > $HOME/robot.theia-workspace <<EOF
-{
-   "folders": [
-      {
-         "path": "file:///var/lib/robot/custom"
-      },
-      {
-         "path": "file:///var/lib/robot/robot-defaults"
-      }
-   ],
-   "settings": {}
-}
-EOF
-fi
-
-cat > $HOME/stop-theia.sh <<"EOF"
-# Source this in $HOME: ". stop-theia.sh"
-kill $PPID
-EOF
-
 mkdir -p "$HOME/.ssh"
 chmod 0700 "$HOME/.ssh"
 echo "$DEV_PRIVATE_KEY" | base64 -d > $HOME/.ssh/id_code # not really
@@ -41,10 +19,12 @@ WELCOME
 stop-theia(){
    kill \$(cat /tmp/theia.pid)
 }
+load-ssh-key(){
+   ssh-add \$HOME/.ssh/id_code
+}
 if ! ssh-add -l &>/dev/null
 then
-   flock -n /tmp/ssh.lock -c \
-      "echo -e '\n... adding your coding key (\$DEV_KEY_NAME) to the ssh-agent'; ssh-add $HOME/.ssh/id_code" || :
+   echo "Use 'load-ssh-key' to load your coding key (\$DEV_KEY_NAME)."
 fi
 PS1="\[\033[01;32m\]robot@gopherbot-ide\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "
 EOF
