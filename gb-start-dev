@@ -86,7 +86,7 @@ prep-container(){
 	sleep 4
 	while :
 	do
-		if docker exec $BOTNAME /bin/bash -c "pwd &>/dev/null"
+		if docker exec $BOTNAME /bin/bash -c "pwd &>/dev/null" &>/dev/null
 		then
 			break
 		fi
