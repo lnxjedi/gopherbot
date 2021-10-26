@@ -522,7 +522,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	envhash["GOPHER_CALLER_ID"] = w.eid
 	envhash["GOPHER_HTTP_POST"] = "http://" + listenPort
 	envhash["GOPHER_INSTALLDIR"] = installPath
-	libPath := fmt.Sprintf("%s/lib", installPath)
+	libPath := fmt.Sprintf("%s/lib:%s/lib", installPath, configFull)
 	envhash["RUBYLIB"] = libPath
 	envhash["PYTHONPATH"] = libPath
 
