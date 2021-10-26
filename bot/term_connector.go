@@ -185,10 +185,17 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 				tc.heard <- tc.abort
 				kbquit = true
 			} else if err == nil {
-				tc.heard <- line
 				line = strings.TrimSpace(line)
-				if line == tc.eof || line == tc.abort {
-					kbquit = true
+				if len(line) == 0 {
+					tc.reader.Write([]byte("Terminal connector: Type '|c?' to list channels, '|u?' to list users\n"))
+				} else {
+					if line == "help" {
+						tc.reader.Write([]byte("Terminal connector: Type '|c?' to list channels, '|u?' to list users\n"))
+					}
+					tc.heard <- line
+					if line == tc.eof || line == tc.abort {
+						kbquit = true
+					}
 				}
 			}
 			if kbquit {
