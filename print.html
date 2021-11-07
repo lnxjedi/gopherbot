@@ -153,7 +153,8 @@
 <p>The section on environment variables is updated fairly often, as well as the section on configuration file loading. The sections dealing with actual contents of configuration files was woefully outdated and need to be replaced. The best place to look for examples of legal configuration is the defaults in <code>conf/</code>.</p>
 <h2 id="extension-development-and-apis"><a class="header" href="#extension-development-and-apis">Extension Development and APIs</a></h2>
 <p>These sections fairly out of date and in need of TLC.</p>
-<div style="break-before: page; page-break-before: always;"></div><p>My work with ChatOps began with Hubot around 2012 when I was working as an systems engineer for a small hosting provider. The owner had sent me a link to Hubot, asking me to have a look. I took to the concept immediately, and started automating all kinds of tasks that our support team could easily access from our team chat. Soon they were using our robot to troubleshoot email routing and DNS issues, migrate mailboxes, and build new cPanel server instances.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="foreword"><a class="header" href="#foreword">Foreword</a></h1>
+<p>My work with ChatOps began with Hubot around 2012 when I was working as an systems engineer for a small hosting provider. The owner had sent me a link to Hubot, asking me to have a look. I took to the concept immediately, and started automating all kinds of tasks that our support team could easily access from our team chat. Soon they were using our robot to troubleshoot email routing and DNS issues, migrate mailboxes, and build new cPanel server instances.</p>
 <p>Not being a very talented (or motivated) Javascript/NodeJS programmer, my Hubot commands invariably followed the same pattern: write it in Javascript if it was <em>trivially</em> easy  to do so, otherwise shell out to bash and return the results. This was productive and gave results, but it was ugly and limited in functionality.</p>
 <p>When I began teaching myself Go, I needed a good project to learn with. After my experience with Hubot, I decided to write a robot that was more approachable for Systems and DevOps engineers like myself - tasked with providing functionality most easily accessible from e.g. bash or python scripts. Towards that end, Gopherbot's design:</p>
 <ul>
@@ -228,6 +229,9 @@ esac
 <p>Version 2 for the most part assumes that your robot will employ encryption and get its configuration from a <em>git</em> repository. Other deployments are possible, but not well documented. This manual will focus on working with <strong>Gopherbot</strong> instances whose configuration is stored on <a href="https://github.com">GitHub</a>, but other <em>git</em> services are easy to use, as well.</p>
 <p>That's it for the &quot;marketing&quot; portion of this manual - by now you should have an idea whether <strong>Gopherbot</strong> would be a good addition to your DevOps tool set.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="terminology"><a class="header" href="#terminology">Terminology</a></h1>
+<blockquote>
+<p>Up-to-date with v2.4</p>
+</blockquote>
 <p>This section is most important for referring back to as you read the documentation, to disambiguate terms.</p>
 <p>(It's also for the author, to help maintain some consistency)</p>
 <ul>
@@ -272,6 +276,9 @@ esac
 </ul>
 <p>Similar to Ansible playbooks and roles, individual robots may periodically require updates as you upgrade the <strong>Gopherbot</strong> core.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="requirements"><a class="header" href="#requirements">Requirements</a></h1>
+<blockquote>
+<p>Up-to-date with v2.4</p>
+</blockquote>
 <p>Since <strong>Gopherbot</strong> is primarily a <em>Go</em> daemon that utilizes external tools and scripts to perform most of the real work, you'll probably want to have most of the (common) listed dependencies. Note that if you deploy your robot in a container, most of these are included in the base container, which you can further customize by adding your own tools. (<a href="https://github.com/parsley42/data-gopherbot/blob/master/Containerfile">Data</a> is the best example of this.)</p>
 <ul>
 <li><code>git</code> - with version 2, <strong>Gopherbot</strong> is tightly integrated with git for updating configuration and keeping state; <strong>Gopherbot</strong> requires fairly recent versions of <em>git</em> supporting <code>git remote get-url ...</code>
@@ -294,6 +301,9 @@ esac
 <li><code>go</code> - While Gopherbot is written in <em>Go</em>, writing plugins in Go is considered an advanced topic and not well covered in this manual</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="installing-the-gopherbot-software-archive"><a class="header" href="#installing-the-gopherbot-software-archive">Installing the <strong>Gopherbot</strong> Software Archive</a></h1>
+<blockquote>
+<p>Up-to-date with v2.4</p>
+</blockquote>
 <blockquote>
 <p>NOTE: The Gopherbot binary is currently Linux-only. Earlier versions ran on MacOS - and even Windows - but these platforms have fallen out of use. Patches are welcome if you'd like to maintain one of these platforms, and I'd be happy to provide advice and assistance. If you have a Mac with Docker installed, you can still use the <code>gb-*</code> bash scripts for setting up and running a container-based robot on your Mac.</p>
 </blockquote>
@@ -358,10 +368,18 @@ esac
 <div style="break-before: page; page-break-before: always;"></div><h1 id="configuring-a-new-robot"><a class="header" href="#configuring-a-new-robot">Configuring a New Robot</a></h1>
 <p>This chapter discusses the process of setting up a new <strong>Gopherbot</strong> robot to connect to your team chat. Even if you use the <code>autosetup</code> plugin to create your new robot, you may want to read the section on manual installation for the technical detail it provides.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="robot-requirements"><a class="header" href="#robot-requirements">Robot Requirements</a></h1>
+<blockquote>
+<p>Up-to-date with v2.4; Nov. '21</p>
+</blockquote>
 <p>To set up your robot you'll need:</p>
 <ul>
 <li>Access to a Linux host with the <strong>Gopherbot</strong> software installed, or an environment where you can run and interact with the <a href="https://quay.io/repository/lnxjedi/gopherbot-dev?tab=info">official Gopherbot container image</a></li>
-<li>Credentials your robot can use to log in to your team chat; you can obtain a <strong>Gopherbot</strong>-compatible <a href="https://slack.com">Slack</a> token here: https://&lt;your-team&gt;.slack.com/apps/A0F7XDU93-hubot</li>
+<li>Slack credentials your robot can use to log in to your team chat; since <strong>Gopherbot</strong> uses credentials compatible with <a href="https://hubot.github.com/">Hubot</a>, the best guide for this is the <a href="https://slack.dev/hubot-slack/">Slack Developer Kit for Hubot</a>
+<ul>
+<li>Note that if you follow the procedure to create a <em>Classic Slack App</em>, you'll only need the <strong>bot OAuth token</strong> generated when you add the app to your workspace</li>
+<li>You can also simply use the <a href="https://my.slack.com/apps/A0F7XDU93-hubot">Hubot Integration</a></li>
+</ul>
+</li>
 <li>The name of a channel where your robot will run jobs by default, e.g. <code>clu-jobs</code> or <code>data-jobs</code></li>
 <li>A completely empty (no README, LICENSE, etc.) public or private <em>git</em> repository, to store your robot; a common naming convention is <em>botname</em>-gopherbot. For example, you can find <strong>Clu</strong> at <a href="https://github.com/parsley42/clu-gopherbot">https://github.com/parsley42/clu-gopherbot</a></li>
 <li>If you're using a container and/or the <strong>autosetup plugin</strong>, you'll need to be able to configure read/write and read-only deploy keys for the robot's repository - this is widely supported with almost all of the major <em>git</em> hosting services and applications, check your repository settings or consult the documentation for your particular service (the Github documentation can be found <a href="https://docs.github.com/en/free-pro-team@latest/developers/overview/managing-deploy-keys#deploy-keys">here</a>)</li>
@@ -391,11 +409,18 @@ esac
 <h2 id="brain-storage"><a class="header" href="#brain-storage">Brain Storage</a></h2>
 <p><strong>Gopherbot</strong> supports the notion of long-term memories, which are technically just key-blob stores. The included <code>lists</code> and <code>links</code> plugins both use long-term memory storage.</p>
 <h3 id="file-backed-brains"><a class="header" href="#file-backed-brains">File backed brains</a></h3>
-<p>The standard configuration for a new robot uses the file-backed brain, with memories stored in <code>$GOPHER_HOME/state/brain</code>. You can schedule the included <code>backup</code> job to run periodically, and by default your robot will commit new memories as they're updated to a separate <code>robot-state</code> branch of it's configuration repository. If you want to store state in a separate repository, you can configure the <code>GOPHER_STATE_REPOSITORY</code> and optionally <code>GOPHER_STATE_BRANCH</code> for the included <code>backup</code> and <code>restore</code> jobs.</p>
+<p>The standard configuration for a new robot uses the file-backed brain that's backed up to a <code>robot-state</code> branch in the robot's <em>git</em> repository, with memories stored in <code>$GOPHER_HOME/state/brain</code>. This brain works reasonably well for most robots, however:</p>
+<ul>
+<li>If you write an extension that updates memories frequently, consider using memories with a <code>_</code> prefix - this will automatically exclude the memory from being backed up to <em>git</em> (and thus spamming the robot's repository)</li>
+<li>If you need frequently-changing memories that are backed up, you should switch to the <a href="botsetup/Requirements.html#dynamodb-brains">dynamo</a> brain</li>
+</ul>
 <h3 id="dynamodb-brains"><a class="header" href="#dynamodb-brains">DynamoDB brains</a></h3>
 <p>As of this writing, the <a href="https://aws.amazon.com/">AWS</a> free tier provides a very generous 25GB of free DynamoDB storage - far more than any reasonable robot should use. See the section on <a href="botsetup/TODO">configuring the DynamoDB brain</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="robot-directory-structure"><a class="header" href="#robot-directory-structure">Robot Directory Structure</a></h1>
-<p><strong>Gopherbot</strong> robots run in the context of a standard directory structure. The root of this directory structure is the <code>$GOPHER_HOME</code> for a given robot, and your robot starts by running the <em>gopherbot</em> binary in this directory. This section documents a standard directory structure; though it's possible to modify your particular configuration for different directories, only the standard structure is documented. There are no requirements on this directory except that it needs to be owned and writable by the UID running the <em>gopherbot</em> binary; it should not be located under <code>/opt/gopherbot</code>, to avoid complicating upgrades. The <a href="https://quay.io/organization/lnxjedi">stock containers</a> create a <code>robot</code> user and home directory in <code>/home/robot</code>, but the software was written to e.g. pass <code>-c &lt;filename&gt;</code> to <code>ssh</code> to allow multiple robots to run on a single system without home directories. In this kind of setup, I normally keep them in <code>/var/lib/robots/&lt;robotname&gt;</code>. You can always give your robot the <code>info</code> command to report on where it's running, and in what directory (<code>$GOPHER_HOME</code>):</p>
+<blockquote>
+<p>Up-to-date with v2.4</p>
+</blockquote>
+<p><strong>Gopherbot</strong> robots run in the context of a standard directory structure. The root of this directory structure is the <code>$HOME</code> for a given robot, and your robot starts by running the <em>gopherbot</em> binary in this directory. There are no requirements on this directory except that it needs to be owned and writable by the UID running the <em>gopherbot</em> binary; it should not be located under <code>/opt/gopherbot</code>, to avoid complicating upgrades. The <a href="https://quay.io/organization/lnxjedi">stock containers</a> create a <code>robot</code> user and home directory in <code>/var/lib/robot</code>, but the software was written to e.g. pass <code>-c &lt;filename&gt;</code> to <code>ssh</code> to allow multiple robots to run on a single system without <em>real</em> system users and home directories. In this kind of setup, the standard location is <code>/var/lib/robots/&lt;robotname&gt;</code>. You can always give your robot the <code>info</code> command to report on where it's running, and in what directory (<code>$GOPHER_HOME</code>):</p>
 <pre><code>parsley - 10:02 AM:
 *info
 
@@ -431,11 +456,10 @@ The administrative contact for this robot is: David Parsley, &lt;parsley@linuxje
 <h3 id="during-development"><a class="header" href="#during-development">During Development</a></h3>
 <p>When developing jobs, tasks and plugins for your robot, you'll mostly use the terminal connector and treat <code>state/</code> as disposable. A fairly standard workflow goes like this:</p>
 <ol>
-<li>Run your robot with the <a href="https://quay.io/repository/lnxjedi/gopherbot-dev?tab=info">gopherbot-dev</a> container, providing an environment file for your robot</li>
+<li>Run your robot with the <code>gb-start-dev</code> script, which uses the <a href="https://quay.io/repository/lnxjedi/gopherbot-theia?tab=info">gopherbot-theia</a> container, providing an environment file for your robot</li>
 <li>Use the <strong>terminal</strong> connector, configured to mirror your team chat environment, for developing extensions for your robot</li>
-<li>In the <code>custom/</code> directory, create commits as desired, and use the robot's <code>save</code> command to push these changes</li>
+<li>In the <code>custom/</code> directory, create commits as desired, creating and pushing commits as normal</li>
 <li>Send an administrator <code>update</code> command to your production robot to pull down the latest changes and reload</li>
-<li>Remove this temporary container until the next time you work on the robot</li>
 </ol>
 <p>For more information on developing, see the chapter on <a href="botsetup/../botprogramming.html">Developing Extensions</a>.</p>
 <h3 id="deployment-to-production"><a class="header" href="#deployment-to-production">Deployment to Production</a></h3>
