@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# Trivial script to symlink gb-* scripts in to $PATH
+# Trivial EXECUTABLE to symlink gb-* EXECUTABLEs in to $PATH
 
 DEST="$1"
 
@@ -22,10 +22,10 @@ then
     exit 1
 fi
 
-SCRIPT_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
+EXECUTABLE_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
 
-for SCRIPT in gb-dev-profile gb-start-dev
+for EXECUTABLE in gopherbot gb-dev-profile gb-start-dev
 do
-    ln -snf "$SCRIPT_DIR/$SCRIPT" "$DEST"
+    ln -snf "$EXECUTABLE_DIR/$EXECUTABLE" "$DEST"
 done
 echo "linked"

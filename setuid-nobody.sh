@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # setuid-nobody.sh - trivial convenience script for common permissions on
-# gopherbbot binary; prevents silly typos.
+# gopherbot binary; prevents silly typos.
 
 if [ $(id -u) -ne 0 ]
 then
