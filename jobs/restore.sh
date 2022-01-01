@@ -49,14 +49,22 @@ report(){
 # GOPHER_STATEDIR should be defined in the "manage" namespace
 if [ -z "$GOPHER_STATEDIR" ]
 then
-    report "Error" "GOPHER_STATEDIR not defined, giving up"
-    exit 1
+    report "Warn" "GOPHER_STATEDIR not defined, giving up"
+    rm -f .restore
+    exit 0
 fi
 
 if [ -e "$GOPHER_STATEDIR/.git" -a ! "$1" ]
 then
     report "Warn" "'$GOPHER_STATEDIR/.git' exists, use 'force' to restore anyway"
     exit 1
+fi
+
+if [ ! -e "$GOPHER_STATEDIR" ]
+then
+    report "Info" "Directory '$GOPHER_STATEDIR'  not found, assuming non-file brain"
+    rm -f .restore
+    exit 0
 fi
 
 if [ ! "$GOPHER_STATE_REPOSITORY" ]
