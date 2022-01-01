@@ -58,6 +58,7 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *Task) {
 		fmt.Sprintf("RUBYLIB=%s/lib", installPath),
 		fmt.Sprintf("PYTHONPATH=%s/lib", installPath),
 		fmt.Sprintf("GOPHER_CONFIGDIR=%s", configFull),
+		fmt.Sprintf("HOME=%s", homePath),
 	}
 	for _, p := range envPassThrough {
 		if value, ok := os.LookupEnv(p); ok {

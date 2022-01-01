@@ -12,7 +12,6 @@ import (
 )
 
 var envPassThrough = []string{
-	"HOME", // only applies in rare error cases when homePath isn't set
 	"HOSTNAME",
 	"LANG",
 	"PATH",
