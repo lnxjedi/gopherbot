@@ -1,3 +1,8 @@
+# v2.4.3 - DynamoDB Brain support, more HOME updates
+This update primary deals with correct operation for robots with non-file brains. It's noteworthy that DynamoDB is the best brain.
+* During bootstrapping, the robot was always trying to restore a file-backed (git) brain; now the restore job handles non-file brains gracefully
+* During configuration loading, `$HOME` was not being set, causing certain plugins to always be disabled when gems weren't found
+
 # v2.4.2 - Improved IDE UX
 This release makes a number of changes to the user experience for the Gopherbot IDE. Notably, it now copies the user's `$HOME/.gitconfig` to the container, so all user git settings apply.
 
