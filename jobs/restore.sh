@@ -62,7 +62,7 @@ fi
 
 if [ ! -e "$GOPHER_STATEDIR" ]
 then
-    report "Info" "Directory '$GOPHER_STATEDIR'  not found, assuming non-file brain"
+    report "Info" "Directory '$GOPHER_STATEDIR' not found, assuming non-file brain"
     rm -f .restore
     exit 0
 fi
