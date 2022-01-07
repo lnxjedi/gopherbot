@@ -55,9 +55,6 @@ var cryptKey = struct {
 const botEncryptionKey = "bot:encryptionKey"
 const encryptedKeyFile = "binary-encrypted-key"
 
-const paramKey = "bot:parameters"
-const secretKey = "bot:secrets"
-
 const shortTermDuration = 7 * time.Minute
 
 type memState int
@@ -145,7 +142,7 @@ func runBrain() {
 	shortTermMemories.Unlock()
 	// map key to status
 	memories := make(map[string]*memstatus)
-	processMemories := time.Tick(memCycle)
+	processMemories := time.NewTicker(memCycle)
 loop:
 	for {
 		select {
@@ -160,9 +157,7 @@ loop:
 				case <-time.After(lockMax * time.Second):
 					Log(robot.Warn, "Brain pause timed out after %d seconds for worker %d", lockMax, pb.wid)
 					brainLocks.Lock()
-					if _, ok := brainLocks.locks[pb.wid]; ok {
-						delete(brainLocks.locks, pb.wid)
-					}
+					delete(brainLocks.locks, pb.wid)
 					brainLocks.Unlock()
 					continue
 				}
@@ -239,7 +234,7 @@ loop:
 				qr.reply <- struct{}{}
 				break loop
 			}
-		case <-processMemories:
+		case <-processMemories.C:
 			now := time.Now()
 			shortTermMemories.Lock()
 			for k, v := range shortTermMemories.m {
@@ -532,13 +527,6 @@ func initializeEncryptionFromBrain(key string) bool {
 	cryptKey.initialized = true
 	cryptKey.initializing = false
 	cryptKey.Unlock()
-	return true
-}
-
-// Most likely used when switching from configured to interactively-provided
-// encryption key
-func reKey(newkey string) bool {
-	// NOTE: this function should temporarily set initialized = false
 	return true
 }
 
