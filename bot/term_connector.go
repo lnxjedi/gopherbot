@@ -15,7 +15,6 @@ import (
 )
 
 func init() {
-	RegisterPreload("connectors/terminal.so")
 	RegisterConnector("terminal", Initialize)
 }
 

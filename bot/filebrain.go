@@ -87,5 +87,4 @@ func fbprovider(r robot.Handler) robot.SimpleBrain {
 
 func init() {
 	RegisterSimpleBrain("file", fbprovider)
-	RegisterPreload("brains/file.so")
 }

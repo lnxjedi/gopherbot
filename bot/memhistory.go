@@ -121,5 +121,4 @@ func mhprovider(r robot.Handler) robot.HistoryProvider {
 
 func init() {
 	RegisterHistoryProvider("mem", mhprovider)
-	RegisterPreload("history/mem.so")
 }

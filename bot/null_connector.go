@@ -16,7 +16,6 @@ func nullStart(robot.Handler, *log.Logger) robot.Connector {
 }
 
 func init() {
-	RegisterPreload("connectors/nullconn.so")
 	RegisterConnector("nullconn", nullStart)
 }
 
