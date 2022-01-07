@@ -1,9 +1,7 @@
 package bot
 
 import (
-	"fmt"
 	"path/filepath"
-	"strings"
 )
 
 // pluginAvailable checks the user and channel against the task's
@@ -23,21 +21,13 @@ func (w *worker) pluginAvailable(task *Task, helpSystem, verboseOnly bool) (avai
 		nvmsg += w.Channel
 		vmsg += w.Channel
 	}
-	defer func(vmsg string) {
-		if available {
-			debugTask(task, vmsg, verboseOnly)
-		}
-	}(vmsg)
 	if task.Disabled {
-		debugTask(task, nvmsg+"; task is disabled, possibly due to configuration error", verboseOnly)
 		return false, false
 	}
 	if !w.directMsg && task.DirectOnly && !helpSystem {
-		debugTask(task, nvmsg+"; only available by direct message: DirectOnly is TRUE", verboseOnly)
 		return false, false
 	}
 	if w.directMsg && !task.AllowDirect && !helpSystem {
-		debugTask(task, nvmsg+"; not available by direct message: AllowDirect is FALSE", verboseOnly)
 		return false, false
 	}
 	if task.RequireAdmin {
@@ -50,7 +40,6 @@ func (w *worker) pluginAvailable(task *Task, helpSystem, verboseOnly bool) (avai
 			}
 		}
 		if !isAdmin {
-			debugTask(task, nvmsg+"; RequireAdmin is TRUE and user isn't an Admin", verboseOnly)
 			return false, false
 		}
 	}
@@ -63,7 +52,6 @@ func (w *worker) pluginAvailable(task *Task, helpSystem, verboseOnly bool) (avai
 			}
 		}
 		if !userOk {
-			debugTask(task, nvmsg+"; user is not on the list of allowed users", verboseOnly)
 			return false, false
 		}
 	}
@@ -87,6 +75,5 @@ func (w *worker) pluginAvailable(task *Task, helpSystem, verboseOnly bool) (avai
 	if helpSystem {
 		return true, true
 	}
-	debugTask(task, fmt.Sprintf(nvmsg+"; channel '%s' is not on the list of allowed channels: %s", w.Channel, strings.Join(task.Channels, ", ")), verboseOnly)
 	return false, false
 }

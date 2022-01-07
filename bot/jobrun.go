@@ -31,31 +31,24 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 		if task.Disabled {
 			msg := fmt.Sprintf("Skipping disabled job '%s', reason: %s", task.name, task.reason)
 			Log(robot.Trace, msg)
-			debugT(t, msg, false)
 			continue
 		}
 		Log(robot.Trace, "Checking triggers for job '%s'", task.name)
 		triggers := job.Triggers
-		debugT(t, fmt.Sprintf("Checking %d JobTriggers against message: '%s' from user '%s' in channel '%s'", len(triggers), w.msg, w.User, w.Channel), false)
 		for _, trigger := range triggers {
 			Log(robot.Trace, "Checking '%s' against user '%s', channel '%s', regex: '%s'", w.msg, trigger.User, trigger.Channel, trigger.Regex)
 			if w.User != trigger.User {
-				debugT(t, fmt.Sprintf("User '%s' doesn't match trigger user '%s'", w.User, trigger.User), false)
 				continue
 			}
 			if w.Channel != trigger.Channel {
-				debugT(t, fmt.Sprintf("Channel '%s' doesn't match trigger", w.Channel), false)
 				continue
 			}
 			matches := trigger.re.FindAllStringSubmatch(w.msg, -1)
 			matched := false
 			if matches != nil {
-				debugT(t, fmt.Sprintf("Matched trigger regex '%s'", trigger.Regex), false)
 				Log(robot.Trace, "Message '%s' matches trigger for job '%s'", w.msg, task.name)
 				matched = true
 				triggerArgs = matches[0][1:]
-			} else {
-				debugT(t, fmt.Sprintf("Not matched: %s", trigger.Regex), false)
 			}
 			if matched {
 				messageMatched = true

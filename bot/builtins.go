@@ -87,7 +87,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		if len(args) == 1 && len(args[0]) > 0 {
 			hasKeyword = true
 			term = args[0]
-			Log(robot.Trace, "Help requested for term", term)
+			Log(robot.Trace, "Help requested for term '%s'", term)
 		}
 		want_specific := command == "help" || hasKeyword
 
@@ -498,6 +498,31 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		}
 		sort.Strings(jl)
 		r.Say("These jobs are paused: %s", strings.Join(jl, ", "))
+	case "chanlog":
+		lchan := r.Channel
+		if len(args) > 0 && len(args[0]) > 0 {
+			lchan = args[0]
+		}
+		if len(lchan) == 0 {
+			lchan = "dm"
+		}
+		fname := lchan + "-channel.log"
+		cfile, err := os.Create(fname)
+		if err != nil {
+			r.Say("Sorry, there was a problem creating the log file")
+			Log(robot.Error, "creating '%s': %v", fname, err)
+			return
+		}
+		clog := log.New(cfile, "", log.LstdFlags)
+		chanLoggers.Lock()
+		chanLoggers.channels[lchan] = clog
+		chanLoggers.Unlock()
+		r.Say("Ok, I'll start logging all messages in channel '%s' to '%s'", lchan, fname)
+	case "stopchanlog":
+		chanLoggers.Lock()
+		chanLoggers.channels = make(map[string]*log.Logger)
+		chanLoggers.Unlock()
+		r.Say("Ok, I've removed all channel logs")
 	case "quit", "restart":
 		state.Lock()
 		if state.shuttingDown {

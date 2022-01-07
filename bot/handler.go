@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -116,6 +117,15 @@ func (w *worker) clone() *worker {
 	return clone
 }
 
+// for logging raw messages from channels
+var chanLoggers = struct {
+	sync.Mutex
+	channels map[string]*log.Logger
+}{
+	Mutex:    sync.Mutex{},
+	channels: make(map[string]*log.Logger),
+}
+
 // ChannelMessage accepts an incoming channel message from the connector.
 //func (h handler) IncomingMessage(channelName, userName, messageFull string, raw interface{}) {
 func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
@@ -157,6 +167,12 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 
 	messageFull := inc.MessageText
 
+	chanLoggers.Lock()
+	clog, ok := chanLoggers.channels[channelName]
+	chanLoggers.Unlock()
+	if ok {
+		clog.Printf("c:%s/%s, u:%s/%s, m:'%s'\n", channelName, ProtocolChannel, userName, ProtocolUser, messageFull)
+	}
 	Log(robot.Trace, "Incoming message in channel '%s/%s' from user '%s/%s': %s", channelName, ProtocolChannel, userName, ProtocolUser, messageFull)
 	// When command == true, the message was directed at the bot
 	isCommand := false

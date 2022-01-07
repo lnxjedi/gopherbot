@@ -1,3 +1,10 @@
+# v2.4.4 - File history fix, Channel Logging
+(Possibly) **BREAKING CHANGE**: The `LoadableModules` configuration stanza is removed in this version. All releases since 2.1.0 have been fully static builds, with loadable modules disabled. Starting with this version, having `LoadableModules` defined will be a fatal error.
+
+This update contains a fairly major fix - at some point the default file history provider was disabled, causing robots to fall back to memory-based history, which is of limited use. I didn't bother to bisect since the fix was pretty obvious and the culprit was definitely me (David).
+
+The other big-ish change is the addition of channel logging. Using the `log channel (name)` command, administrators can log the raw strings from a channel to a file. This should help in a variety of situations where the bot administrator needs to see "what the robot sees" in a channel - for matching users, writing regular expressions, etc. Use `help debug` for command syntax.
+
 # v2.4.3 - DynamoDB Brain support, more HOME updates
 This update primary deals with correct operation for robots with non-file brains. It's noteworthy that DynamoDB is the best brain.
 * During bootstrapping, the robot was always trying to restore a file-backed (git) brain; now the restore job handles non-file brains gracefully

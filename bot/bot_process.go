@@ -105,7 +105,6 @@ type configuration struct {
 	goTasks              []TaskSettings      // Settings for goTasks: Name(match), Description, NameSpace, Parameters, Disabled
 	nsList               []TaskSettings      // loaded NameSpaces for shared parameters
 	psList               []TaskSettings      // loaded ParameterSets for shared parameter sets
-	loadableModules      []LoadableModule    // List of loadable modules to load
 	ScheduledJobs        []ScheduledTask     // List of scheduled tasks
 	port                 string              // Configured localhost port to listen on, or 0 for first open
 	timeZone             *time.Location      // for forcing the TimeZone, Unix only

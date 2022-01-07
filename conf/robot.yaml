@@ -76,13 +76,7 @@ ParameterSets:
   # Administrator needs to define a github-token parameterset with GITHUB_TOKEN set.
   "github-token":
 
-{{ if env "GOPHER_UNCONFIGURED" }}
-LoadableModules:
-  # Make the default terminal robot a little more fun
-  "knock":
-    Description: Knock knock jokes!
-    Path: goplugins/knock.so
-{{ else }}
+{{ if env "GOPHER_UNCONFIGURED" | not }}
 EncryptBrain: true
 {{ end }}
 

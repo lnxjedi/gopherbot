@@ -13,10 +13,6 @@ import (
 	"github.com/lnxjedi/robot"
 )
 
-const logSize = 65536
-const maxLogLine = 8092
-const trunc = "<... truncated>"
-
 type memlogentry struct {
 	tag string
 	idx int
@@ -92,7 +88,7 @@ func (h *memHistLog) GetLog(tag string, index int) (io.Reader, error) {
 	defer memHistories.Unlock()
 	mh, ok := memHistories.logs[entry]
 	if !ok {
-		return nil, errors.New("Not found")
+		return nil, errors.New("not found")
 	}
 	mr, err := mh.log.getReader()
 	if err != nil {

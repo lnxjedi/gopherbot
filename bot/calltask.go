@@ -162,7 +162,6 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	if task.Disabled {
 		msg := fmt.Sprintf("callTask failed on disabled task %s; reason: %s", task.name, task.reason)
 		Log(robot.Error, msg)
-		debugT(t, msg, false)
 		rchan <- taskReturn{msg, robot.ConfigurationError}
 		return
 	}
