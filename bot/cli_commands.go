@@ -23,7 +23,7 @@ func processCLI(usage string) {
 	var encodeBase64 bool
 
 	encFlags := flag.NewFlagSet("encrypt", flag.ExitOnError)
-	encFlags.StringVar(&fileName, "file", "", "file to encrypt (or - for stdout)")
+	encFlags.StringVar(&fileName, "file", "", "file to encrypt (or - for stdin)")
 	encFlags.StringVar(&fileName, "f", "", "")
 	encFlags.BoolVar(&encodeBinary, "binary", false, "binary dump (defauts to base64 encoded)")
 	encFlags.BoolVar(&encodeBinary, "b", false, "")
