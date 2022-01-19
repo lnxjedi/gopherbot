@@ -116,6 +116,12 @@ var reLinks = regexp.MustCompile(`<(https?://[.\w-:/?=~]+)>`)            // matc
 var reUser = regexp.MustCompile(`<@U[A-Z0-9]{7,21}>`)                    // match a @user mention
 var reMailToLink = regexp.MustCompile(`<mailto:[^|]+\|([\w-./@]+)>`)     // match mailto links
 
+// I don't love this: if the message text is '<foo>', the robot sees '&lt;foo&gt;'. HOWEVER,
+// if the message text is '&lt;foo&gt;', the robot STILL sees '&lt;foo&gt;'. Still, '<' and '>'
+// are more useful than '&lt;' and '&gt;', so we always send the angle brackets.
+var reLeftAngle = regexp.MustCompile(`&lt;`)
+var reRightAngle = regexp.MustCompile(`&gt;`)
+
 // processMessage examines incoming messages, removes extra slack cruft, and
 // routes them to the appropriate bot method.
 func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
@@ -184,6 +190,9 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 	text = reAddedLinks.ReplaceAllString(text, "$1")
 	text = reLinks.ReplaceAllString(text, "$1")
 	text = reMailToLink.ReplaceAllString(text, "$1")
+	// Convert '&lt;' and '&gt;' to angle brackets.
+	text = reLeftAngle.ReplaceAllString(text, "<")
+	text = reRightAngle.ReplaceAllString(text, ">")
 
 	mentions := reUser.FindAllString(text, -1)
 	if len(mentions) != 0 {

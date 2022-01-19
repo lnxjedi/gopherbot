@@ -1,3 +1,6 @@
+# v2.4.5 - Let the robot see angle brackets
+This version always translates e.g. `&lt;` to `<`, since slack sends the former instead of the latter when the user in fact typed the latter. This allows the robot to 'see' angle brackets now, but unfortunately prevents the robot from seeing the string `&lt;`. Brackets seem more useful. (Same goes for `>`, naturally)
+
 # v2.4.4 - File history fix, Channel Logging
 (Possibly) **BREAKING CHANGE**: The `LoadableModules` configuration stanza is removed in this version. All releases since 2.1.0 have been fully static builds, with loadable modules disabled. Starting with this version, having `LoadableModules` defined will be a fatal error.
 
