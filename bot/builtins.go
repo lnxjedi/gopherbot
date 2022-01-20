@@ -522,7 +522,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		chanLoggers.Lock()
 		chanLoggers.channels = make(map[string]*log.Logger)
 		chanLoggers.Unlock()
-		r.Say("Ok, I've removed all channel logs")
+		r.Say("Ok, I've stopped all channel logs")
 	case "quit", "restart":
 		state.Lock()
 		if state.shuttingDown {
