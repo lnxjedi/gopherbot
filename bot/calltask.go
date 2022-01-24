@@ -55,8 +55,8 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *Task) {
 	}
 	env := []string{
 		fmt.Sprintf("GOPHER_INSTALLDIR=%s", installPath),
-		fmt.Sprintf("RUBYLIB=%s/lib", installPath),
-		fmt.Sprintf("PYTHONPATH=%s/lib", installPath),
+		fmt.Sprintf("RUBYLIB=%s/lib:%s/custom/lib", installPath, homePath),
+		fmt.Sprintf("PYTHONPATH=%s/lib:%s/custom/lib", installPath, homePath),
 		fmt.Sprintf("GOPHER_CONFIGDIR=%s", configFull),
 		fmt.Sprintf("HOME=%s", homePath),
 	}

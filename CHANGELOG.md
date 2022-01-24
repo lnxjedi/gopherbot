@@ -1,3 +1,6 @@
+# v2.4.6 - Improve custom lib support
+Bugfix release - fixes an issue with initial loading of plugins that require/import a library from `custom/lib`; this path wasn't included during plugin initial config loading, causing errors that resulted in plugins being disabled.
+
 # v2.4.5 - Let the robot see angle brackets
 This version always translates e.g. `&lt;` to `<`, since slack sends the former instead of the latter when the user in fact typed the latter. This allows the robot to 'see' angle brackets now, but unfortunately prevents the robot from seeing the string `&lt;`. Brackets seem more useful. (Same goes for `>`, naturally)
 
