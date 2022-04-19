@@ -12,10 +12,10 @@ Help:
   Helptext: [ "(bot), dump robot - dump the current configuration for the robot" ]
 CommandMatchers:
 - Command: "listplugins"
-  Regex: '(?i:list( disabled)? plugins?)'
+  Regex: '(?i:list(?:[- ](disabled))?[- ]plugins?)'
 - Command: "dumpplugdefault"
-  Regex: '(?i:dump plugin default ([\d\w-.]+))'
+  Regex: '(?i:dump[- ]plugin[- ]default ([\d\w-.]+))'
 - Command: "dumpplugin"
-  Regex: '(?i:dump plugin ([\d\w-.]+))'
+  Regex: '(?i:dump[- ]plugin ([\d\w-.]+))'
 - Command: "dumprobot"
-  Regex: "dump robot"
+  Regex: "(?i:dump[- ]robot)"

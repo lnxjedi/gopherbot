@@ -17,7 +17,7 @@ CommandMatchers:
 - Command: keypair
   Regex: '(?i:(generate|replace) keypair)'
 - Command: pubkey
-  Regex: '(?i:(show )?pubkey)'
+  Regex: '(?i:(show[ -])?pubkey)'
 EOF
 }
 
