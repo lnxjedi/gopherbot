@@ -1,3 +1,6 @@
+# v2.4.7 - Improve developer workflow
+This release adds a new admin `change-branch <branch>` command to support more normal development workflows. Significant updates can be made to a robot on a development branch and tested / fixed before merging. In the event something breaks badly, `change-branch main` can quickly restore the robot to a working condition.
+
 # v2.4.6 - Improve custom lib support
 Bugfix release - fixes an issue with initial loading of plugins that require/import a library from `custom/lib`; this path wasn't included during plugin initial config loading, causing errors that resulted in plugins being disabled.
 
