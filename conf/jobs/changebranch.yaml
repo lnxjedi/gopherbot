@@ -1,0 +1,5 @@
+---
+RequireAdmin: true
+AllowDirect: true
+KeepLogs: 2
+Quiet: true

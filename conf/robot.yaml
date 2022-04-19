@@ -172,6 +172,11 @@ ExternalJobs:
     Homed: true
     NameSpace: manage
     Path: jobs/updatecfg.py
+  "changebranch":
+    Description: A job that lets the robot switch branches for development
+    Homed: true
+    NameSpace: manage
+    Path: jobs/changebranch.py
   "save":
     Description: A job for saving up the robot's configuration
     Homed: true

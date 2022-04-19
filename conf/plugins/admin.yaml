@@ -3,8 +3,10 @@ RequireAdmin: true
 AllowDirect: true
 AllChannels: true
 Help:
-- Keywords: [ "config", "configuration", "update", "admin", "manage" ]
+- Keywords: [ "config", "configuration", "update" ]
   Helptext: [ "(bot), update (configuration) - perform a git clone/pull of custom configuration and reload" ]
+- Keywords: [ "config", "configuration", "branch" ]
+  Helptext: [ "(bot), switch-branch <branch> - switch branches in configuration repository" ]
 - Keywords: [ "config", "configuration", "save", "admin", "manage" ]
   Helptext: [ "(bot), save (configuration) - git push custom repository" ]
 - Keywords: [ "brain", "state", "restore", "admin", "manage" ]
@@ -13,10 +15,12 @@ Help:
   Helptext: [ "(bot), (force) restore - restore state directory from git" ]
 CommandMatchers:
 - Command: "update"
-  Regex: '(?i:update(?: config(?:uration)?)?)'
+  Regex: '(?i:update(?:[ -]config(?:uration)?)?)'
+- Command: "branch"
+  Regex: '(?i:(?:switch|change)[ -]branch ([^\s]+))'
 - Command: "save"
-  Regex: '(?i:save(?: config(?:uration)?)?)'
+  Regex: '(?i:save(?:[ -]config(?:uration)?)?)'
 - Command: "backup"
   Regex: '(?i:back ?up)'
 - Command: "restore"
-  Regex: '(?i:(force )?restore)'
+  Regex: '(?i:(force[ -])?restore)'

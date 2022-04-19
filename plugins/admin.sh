@@ -37,6 +37,12 @@ case "$COMMAND" in
     FailTask say "Job failed!"
     AddTask say "... done"
     ;;
+  "branch")
+    BRANCH="$1"
+    AddJob changebranch "$BRANCH"
+    FailTask say "Error switching branches - does '$BRANCH' exist?"
+    AddTask say "... switched to branch '$BRANCH'"
+    ;;
   "save")
     Say "Ok, I'll push my configuration..."
     AddJob save
