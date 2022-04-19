@@ -144,8 +144,8 @@
 <h2 id="gopherbot-and-robots"><a class="header" href="#gopherbot-and-robots"><strong>Gopherbot</strong> and <em>Robots</em></a></h2>
 <p>It's helpful to understand the relationship between <strong>Gopherbot</strong> and individual robots you run. It's apt to compare Gopherbot with <em>Ansible</em>:</p>
 <ul>
-<li><em>Gopherbot</em> is similar to <em>Ansible</em> - a common code base with an assortment of included batteries, but with limited functionality on it's own</li>
-<li>A <em>Robot</em> is comparable to a collection of playbooks and/or roles - this is your code for accomplishing work in your environment, which uses <em>Gopherbot</em> and it's included extensions to do it's work</li>
+<li><em>Gopherbot</em> is similar to <em>Ansible</em> - a common code base with an assortment of included batteries, but with limited functionality on it's own; several <strong>Go</strong> tasks and plugins are part of the compiled binary, but the bulk of the base robot configuration is stored in <strong>yaml</strong> and script files under <code>/opt/gopherbot</code></li>
+<li>A <em>Robot</em> is comparable to a collection of playbooks and/or roles - this is your code for accomplishing work in your environment, which uses <em>Gopherbot</em> and it's included extensions to do it's work; in the case of <strong>yaml</strong> configuration files your robot configuration is merged with the base, while jobs and plugins can be overridden by providing replacements in your robot's repository</li>
 </ul>
 <p>Similar to Ansible playbooks and roles, individual robots may periodically require updates as you upgrade the <strong>Gopherbot</strong> core.</p>
 

@@ -175,22 +175,19 @@
 <p><strong>Files</strong></p>
 <ul>
 <li><code>gopherbot</code> - the main executable, both a <em>daemon</em> and a <em>command-line interface</em></li>
-<li><code>gb-*</code> - a developer utility script for retrieving a robot for local development</li>
+<li><code>gb-*</code> - a small set of developer utility scripts for local development</li>
 </ul>
 <p><strong>Directories</strong></p>
 <ul>
 <li><code>connectors/</code> - loadable modules for protocol connectors, e.g. <em>slack</em></li>
-<li><code>goplugins/</code> - loadable modules for non-default <em>Go</em> plugins</li>
-<li><code>brains/</code> - lodable modules for non-default brain implementations</li>
-<li><code>conf/</code> - the default configuration, overridden by individual robots</li>
+<li><code>conf/</code> - the default <strong>yaml</strong> configuration files, merged with / overridden by individual robots</li>
 <li><code>lib/</code> - API libraries for <code>bash</code>, <code>python</code> and <code>ruby</code></li>
-<li><code>plugins/</code> - external script plugins</li>
+<li><code>plugins/</code> - default external script plugins</li>
 <li><code>plugins/samples</code> - sample plugins that show API usage but aren't otherwise very useful</li>
-<li><code>tasks/</code> - a collection of pipeline task scripts</li>
-<li><code>jobs/</code> - a collection of jobs for robot management (backup/restore) and CI/CD</li>
+<li><code>tasks/</code> - a collection of default pipeline task scripts</li>
+<li><code>jobs/</code> - a collection of default jobs for robot management (backup/restore) and CI/CD</li>
 <li><code>helpers/</code> - helper scripts not directly called by the robot</li>
 <li><code>resources/</code> - miscellaneous useful bits for a running robot, also the <em>Containerfiles</em> used for publishing the stock containers</li>
-<li><code>doc/</code> - deprecated; contents moved to <a href="https://github.com/lnxjedi/gopherbot-doc">gopherbot-doc</a></li>
 <li><code>robot.skel/</code> - the initial configuration for new robots, analogous to the contents of <code>/etc/skel</code></li>
 <li><code>licenses/</code> - licenses for other packages used by <strong>Gopherbot</strong>, as required</li>
 </ul>

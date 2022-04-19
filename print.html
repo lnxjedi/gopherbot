@@ -243,7 +243,7 @@ esac
 <li><strong>robot</strong> - the <strong>Go</strong> library for loadable modules, i.e. <code>import github.com/lnxjedi/robot</code></li>
 </ul>
 </li>
-<li><strong>default robot</strong> - If you run Gopherbot with no custom configuration, you get <em>Floyd</em>, the default robot</li>
+<li><strong>default (or base) robot</strong> - If you run Gopherbot with no custom configuration, you get <em>Floyd</em>, the default robot; this configuration is typically found under /opt/gopherbot, and defines how a robot behaves in the absence of other configuration, and the configuration of your specific robot is merged with the base robot</li>
 <li><strong>standard robot</strong> - A standard robot is what you get from using <code>robot.skel</code> or running the <code>autosetup</code> plugin from the <strong>default robot</strong>; more generally, any robot that has the standard <code>robot.skel</code> configuration as its base is still a <strong>standard robot</strong></li>
 <li><strong>GOPHER_HOME</strong> - The top-level directory for a given robot's repository; the <strong>Gopherbot</strong> binary (<code>/opt/gopherbot/gopherbot</code>) is run from this directory to start or interact with the robot</li>
 <li><strong>bootstrapping</strong> - When you start the <code>gopherbot</code> daemon in a container or host with a few environment variables, or in an empty directory with a suitable <code>.env</code> environment file, the <strong>bootstrap</strong> plugin included with the <strong>default robot</strong> will use a deploy key to clone your robot from a <em>git</em> repository and start it up; this process is called <strong>bootstrapping</strong> your robot, allows deploying your robot to new environments quickly, and supports the devops mantras of disposable environments / infrastructure-as-code</li>
@@ -271,8 +271,8 @@ esac
 <h2 id="gopherbot-and-robots"><a class="header" href="#gopherbot-and-robots"><strong>Gopherbot</strong> and <em>Robots</em></a></h2>
 <p>It's helpful to understand the relationship between <strong>Gopherbot</strong> and individual robots you run. It's apt to compare Gopherbot with <em>Ansible</em>:</p>
 <ul>
-<li><em>Gopherbot</em> is similar to <em>Ansible</em> - a common code base with an assortment of included batteries, but with limited functionality on it's own</li>
-<li>A <em>Robot</em> is comparable to a collection of playbooks and/or roles - this is your code for accomplishing work in your environment, which uses <em>Gopherbot</em> and it's included extensions to do it's work</li>
+<li><em>Gopherbot</em> is similar to <em>Ansible</em> - a common code base with an assortment of included batteries, but with limited functionality on it's own; several <strong>Go</strong> tasks and plugins are part of the compiled binary, but the bulk of the base robot configuration is stored in <strong>yaml</strong> and script files under <code>/opt/gopherbot</code></li>
+<li>A <em>Robot</em> is comparable to a collection of playbooks and/or roles - this is your code for accomplishing work in your environment, which uses <em>Gopherbot</em> and it's included extensions to do it's work; in the case of <strong>yaml</strong> configuration files your robot configuration is merged with the base, while jobs and plugins can be overridden by providing replacements in your robot's repository</li>
 </ul>
 <p>Similar to Ansible playbooks and roles, individual robots may periodically require updates as you upgrade the <strong>Gopherbot</strong> core.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="software-requirements"><a class="header" href="#software-requirements">Software Requirements</a></h1>
@@ -341,22 +341,19 @@ esac
 <p><strong>Files</strong></p>
 <ul>
 <li><code>gopherbot</code> - the main executable, both a <em>daemon</em> and a <em>command-line interface</em></li>
-<li><code>gb-*</code> - a developer utility script for retrieving a robot for local development</li>
+<li><code>gb-*</code> - a small set of developer utility scripts for local development</li>
 </ul>
 <p><strong>Directories</strong></p>
 <ul>
 <li><code>connectors/</code> - loadable modules for protocol connectors, e.g. <em>slack</em></li>
-<li><code>goplugins/</code> - loadable modules for non-default <em>Go</em> plugins</li>
-<li><code>brains/</code> - lodable modules for non-default brain implementations</li>
-<li><code>conf/</code> - the default configuration, overridden by individual robots</li>
+<li><code>conf/</code> - the default <strong>yaml</strong> configuration files, merged with / overridden by individual robots</li>
 <li><code>lib/</code> - API libraries for <code>bash</code>, <code>python</code> and <code>ruby</code></li>
-<li><code>plugins/</code> - external script plugins</li>
+<li><code>plugins/</code> - default external script plugins</li>
 <li><code>plugins/samples</code> - sample plugins that show API usage but aren't otherwise very useful</li>
-<li><code>tasks/</code> - a collection of pipeline task scripts</li>
-<li><code>jobs/</code> - a collection of jobs for robot management (backup/restore) and CI/CD</li>
+<li><code>tasks/</code> - a collection of default pipeline task scripts</li>
+<li><code>jobs/</code> - a collection of default jobs for robot management (backup/restore) and CI/CD</li>
 <li><code>helpers/</code> - helper scripts not directly called by the robot</li>
 <li><code>resources/</code> - miscellaneous useful bits for a running robot, also the <em>Containerfiles</em> used for publishing the stock containers</li>
-<li><code>doc/</code> - deprecated; contents moved to <a href="https://github.com/lnxjedi/gopherbot-doc">gopherbot-doc</a></li>
 <li><code>robot.skel/</code> - the initial configuration for new robots, analogous to the contents of <code>/etc/skel</code></li>
 <li><code>licenses/</code> - licenses for other packages used by <strong>Gopherbot</strong>, as required</li>
 </ul>
@@ -465,8 +462,8 @@ The administrative contact for this robot is: David Parsley, &lt;parsley@linuxje
 <li><code>robot.yaml</code> (mandatory) - primary configuration for your robot, defines all tasks, jobs, plugins, namespaces, parameter sets, and other bits</li>
 <li><code>slack.yaml</code> - configuration for the slack connector, including encrypted credentials and user mapping</li>
 <li><code>terminal.yaml</code> - configuration for the terminal connector; normally included users and channel definitions to mirror the contents of <code>slack.yaml</code> for use in developing extensions</li>
-<li><code>jobs</code> (mandatory) - directory of <code>&lt;job name&gt;.yaml</code> files with extended configuration for jobs defined in <code>robot.yaml</code></li>
-<li><code>plugins</code> (mandatory) - directory of <code>&lt;plugin name&gt;.yaml</code> files with extended configuration for plugins defined in <code>robot.yaml</code></li>
+<li><code>jobs/</code> (mandatory) - directory of <code>&lt;job name&gt;.yaml</code> files with extended configuration for jobs defined in <code>robot.yaml</code></li>
+<li><code>plugins/</code> (mandatory) - directory of <code>&lt;plugin name&gt;.yaml</code> files with extended configuration for plugins defined in <code>robot.yaml</code></li>
 </ul>
 </li>
 <li><code>git/</code> (mandatory)
@@ -474,10 +471,26 @@ The administrative contact for this robot is: David Parsley, &lt;parsley@linuxje
 <li><code>config</code> (mandatory) - contents of your robot's git config defining the name and email used for git operations</li>
 </ul>
 </li>
-<li><code>lib/</code> (standard) - location of script libraries; plugins run with standard environment variables for Ruby and Python so that <code>import</code>s and <code>require</code>s automatically look here</li>
+<li><code>jobs/</code> (conventional) - common location for job scripts, actual path specified in <code>robot.yaml</code></li>
+<li><code>lib/</code> (standard) - location of script libraries; jobs and plugins run with standard environment variables for Ruby and Python so that <code>import</code> and <code>require</code> automatically look here</li>
+<li><code>plugins/</code> (conventional) - common location for plugin scripts, actual path specified in <code>robot.yaml</code></li>
+<li><code>ssh/</code> (mandatory) - location of robot's ssh configuration files
+<ul>
+<li><code>config</code> (optional) - any robot-specific ssh configuration, e.g. host-ip mappings</li>
+<li><code>deploy_key.pub</code> (optional) - copy of the public key used for bootstrapping</li>
+<li><code>manage_key</code> (optional) - encrypted private key used by the robot to save it's configuration; can be removed after initial configuration</li>
+<li><code>manage_key.pub</code> (optional) - public key used as a read-write deploy key, allowing the private key to store the robot's initial configuration in git; can be removed</li>
+<li><code>robot_key</code> (optional, default) - the robot's &quot;personal&quot; encrypted ssh key for other ssh / git operations</li>
+<li><code>robot_key.pub</code> (optional, default) - the robot's public key corresponding to <code>robot_key</code>; the robot will respond to <code>show pubkey</code> (or just <code>pubkey</code>) with the contents of this file</li>
+</ul>
+</li>
+<li><code>tasks/</code> (conventional) - common location for simple task scripts, actual path specified in <code>robot.yaml</code></li>
 </ul>
 </li>
 </ul>
+<blockquote>
+<p>Note that many of these directories are also under <code>/opt/gopherbot</code>, and make up the configuration of the default (or base) robot.</p>
+</blockquote>
 <h3 id="during-development"><a class="header" href="#during-development">During Development</a></h3>
 <p>When developing jobs, tasks and plugins for your robot, you'll mostly use the terminal connector and treat <code>state/</code> as disposable. A fairly standard workflow goes like this:</p>
 <ol>
