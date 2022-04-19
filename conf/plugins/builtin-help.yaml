@@ -9,7 +9,7 @@ Help:
   - "(bot), help - help for commands specific to this channel"
 CommandMatchers:
 - Command: help
-  Regex: '(?i:help ?([^\s]+)?)'
+  Regex: '(?i:help(?: ([^\s]+))?)'
 - Command: help-all
   Regex: '(?i:help-all)'
 - Command: info
