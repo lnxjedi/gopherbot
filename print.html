@@ -1837,9 +1837,10 @@ for each user/channel combination, and can be freely shared between plugins.</p>
 <li><code>CheckinDatum(memory)</code> - signals the robot to release the lock without updating</li>
 <li><code>UpdateDatum(memory)</code> - updates the memory and releases the lock</li>
 </ul>
+<p>When checking out a memory read-write, the engine grants a short-term lock on the memory lasting 1-2 seconds. For tasks where the time between checkout and update could be longer than one second, you should check the return value on <code>UpdateDatum</code> - <code>DatumLockExpired</code> indicates another waiting task took the lock. It's worth noting that for low-contention memories, a given task can keep the memory checked out indefinitely and still update successfully; the 1-2 seconds is guaranteed, but the lock isn't actually lost unless another task checks out the memory read-write. This also means that a read-only checkout may get an outdated memory.</p>
 <h2 id="long-term-memory-code-examples"><a class="header" href="#long-term-memory-code-examples">Long-Term Memory Code Examples</a></h2>
 <p>The memory stored can be an arbitrarily complex data item; a hash, array, or combination - anything that can be serialized to/from
-JSON. The example plugins for <strong>Python</strong>, <strong>Ruby</strong> and <strong>PowerShell</strong> all implement a <em>remember</em> function that remembers a list (array)
+JSON. The example plugins for <strong>Python</strong> and <strong>Ruby</strong> implement a <em>remember</em> function that remembers a list (array)
 of items. For the code examples, we'll start with a memory whose key is <code>memory</code>, and has two items defined by this snippet of JSON:</p>
 <pre><code class="language-json">[&quot;the Alamo&quot;, &quot;Ferris Bueller&quot;]
 </code></pre>
