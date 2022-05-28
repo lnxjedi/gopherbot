@@ -223,12 +223,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	task, _, _ := getTask(r.currentTask)
 	Log(robot.Trace, "Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User)
 
-	if len(f.Format) > 0 {
-		r.Format = setFormat(f.Format)
-	} else {
-		r.Format = r.cfg.defaultMessageFormat
-	}
-
 	var (
 		attr  *robot.AttrRet
 		reply string
