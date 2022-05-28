@@ -14,7 +14,8 @@ import (
 	"github.com/slack-go/slack"
 )
 
-const escapePad = "\f"
+// Soft hyphen. *shrug*
+const escapePad = "\u00AD"
 
 type userlast struct {
 	user, channel string
@@ -51,21 +52,13 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageForm
 		maxSize -= 6
 	}
 	sbytes := []byte(msg)
-	sbytes = bytes.Replace(sbytes, []byte("&"), []byte("&amp;"), -1)
-	sbytes = bytes.Replace(sbytes, []byte("<"), []byte("&lt;"), -1)
-	sbytes = bytes.Replace(sbytes, []byte(">"), []byte("&gt;"), -1)
 	// 'escape' special chars; NOTE: this should be covered by slack.MsgOptions now.
 	// if f == robot.Variable {
-	// 	for _, padChar := range []string{"`", "*", "_", "@", "#", ":"} {
-	// 		padBytes := []byte(padChar)
-	// 		paddedBytes := []byte(escapePad + padChar + escapePad)
-	// 		sbytes = bytes.Replace(sbytes, padBytes, paddedBytes, -1)
-	// 	}
 	// }
 
 	// Eventually, this will only work for users configured in the
 	// UserRoster from robot.yaml
-	if f != robot.Variable {
+	if f == robot.Raw {
 		sbytes = mentionRe.ReplaceAllFunc(sbytes, func(bytes []byte) []byte {
 			mentioned := string(bytes[1:])
 			switch mentioned {
@@ -78,6 +71,18 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageForm
 			}
 			return bytes
 		})
+	} else {
+		sbytes = bytes.Replace(sbytes, []byte("&"), []byte("&amp;"), -1)
+		sbytes = bytes.Replace(sbytes, []byte("<"), []byte("&lt;"), -1)
+		sbytes = bytes.Replace(sbytes, []byte(">"), []byte("&gt;"), -1)
+	}
+	if f == robot.Variable {
+		// 'escape' special chars that aren't covered by disabling markdown.
+		for _, padChar := range []string{"`", "*", "_", "@", "#", ":"} {
+			padBytes := []byte(padChar)
+			paddedBytes := []byte(escapePad + padChar)
+			sbytes = bytes.Replace(sbytes, padBytes, paddedBytes, -1)
+		}
 	}
 	if len(prefix) > 0 {
 		sbytes = append([]byte(prefix), sbytes...)

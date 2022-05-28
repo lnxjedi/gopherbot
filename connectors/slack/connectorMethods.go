@@ -92,11 +92,10 @@ func (s *slackConnector) startSendLoop() {
 		opts := []slack.MsgOption{
 			slack.MsgOptionText(send.message, false),
 			slack.MsgOptionAsUser(true),
+			slack.MsgOptionDisableLinkUnfurl(),
 		}
 		if send.format == robot.Variable {
-			opts = append(opts, slack.MsgOptionDisableLinkUnfurl(), slack.MsgOptionDisableMarkdown(), slack.MsgOptionParse(false))
-		} else {
-			opts = append(opts, slack.MsgOptionEnableLinkUnfurl())
+			opts = append(opts, slack.MsgOptionDisableMarkdown(), slack.MsgOptionParse(false))
 		}
 		s.Log(robot.Trace, "bot message in slack send loop for channel %s, size: %d", send.channel, len(send.message))
 		time.Sleep(typingDelay)
