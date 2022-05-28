@@ -1,3 +1,6 @@
+# v2.4.8 - Fix Slack escaping
+The Slack "Raw" format was incorrectly escaping angle brackets ("<>"), disabling e.g. nice hyperlinks with text. This release corrects this issue, and also restores escaping of '*', '_', ':', '@', '#' and '`' for the "Variable" format - allowing these characters to "appear" unadulterated in message. I quote "appear" because there are invisible characters inserted - so copy/paste will get these. If the text is truly meant to be copied and pasted, use the "Fixed" format instead.
+
 # v2.4.7 - Improve developer workflow
 This release adds a new admin `change-branch <branch>` command to support more normal development workflows. Significant updates can be made to a robot on a development branch and tested / fixed before merging. In the event something breaks badly, `change-branch main` can quickly restore the robot to a working condition.
 
