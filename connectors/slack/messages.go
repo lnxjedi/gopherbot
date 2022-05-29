@@ -78,7 +78,7 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageForm
 	}
 	if f == robot.Variable {
 		// 'escape' special chars that aren't covered by disabling markdown.
-		for _, padChar := range []string{"`", "*", "_", "@", "#", ":"} {
+		for _, padChar := range []string{"`", "*", "_", ":"} {
 			padBytes := []byte(padChar)
 			paddedBytes := []byte(escapePad + padChar)
 			sbytes = bytes.Replace(sbytes, padBytes, paddedBytes, -1)
