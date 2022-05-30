@@ -49,6 +49,11 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 		}
 		botLogger.setOutputFile(lf)
 	}
+
+	// install signal handler early for SIGUSR1 troubleshooting startup code.
+	sigBreak := make(chan struct{})
+	go sigHandle(sigBreak)
+
 	initBot(configpath, testInstallPath)
 
 	initializeConnector, ok := connectors[currentCfg.protocol]
@@ -64,7 +69,7 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 	// because of the way Windows services were run. Maybe remove eventually?
 	setConnector(conn)
 
-	run()
+	run(sigBreak)
 
 	bk := filepath.Join(testInstallPath, cfgdir, "binary-encrypted-key")
 	if err := os.Remove(bk); err != nil {

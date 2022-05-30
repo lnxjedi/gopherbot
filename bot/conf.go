@@ -105,6 +105,11 @@ var repositories map[string]robot.Repository
 func loadConfig(preConnect bool) error {
 	raiseThreadPriv("loading configuration")
 	var loglevel robot.LogLevel
+	if preConnect {
+		Log(robot.Info, "Loading initial pre-connection configuration and running init jobs")
+	} else {
+		Log(robot.Info, "Loading full post-connect configuration and scheduling jobs")
+	}
 	newconfig := &ConfigLoader{}
 	newconfig.ExternalJobs = make(map[string]TaskSettings)
 	newconfig.ExternalPlugins = make(map[string]TaskSettings)
@@ -113,7 +118,7 @@ func loadConfig(preConnect bool) error {
 	processed := &configuration{}
 
 	if err := getConfigFile(robotConfigFileName, true, configload); err != nil {
-		return fmt.Errorf("Loading configuration file: %v", err)
+		return fmt.Errorf("loading configuration file: %v", err)
 	}
 
 	reporaw := make(map[string]json.RawMessage)
@@ -540,7 +545,7 @@ func loadConfig(preConnect bool) error {
 		newconfig.EncryptionKey = "XXXXXX"
 	}
 
-	newList, err := loadTaskConfig(processed)
+	newList, err := loadTaskConfig(processed, preConnect)
 	if err != nil {
 		return err
 	}
@@ -565,7 +570,11 @@ func loadConfig(preConnect bool) error {
 	currentCfg.taskList = newList
 	currentCfg.Unlock()
 
-	if !preConnect {
+	if preConnect {
+		// This just runs init jobs that may be required by
+		// external plugins - e.g. loading ruby or python libraries.
+		initJobs()
+	} else {
 		updateRegexes()
 		scheduleTasks()
 		initializePlugins()

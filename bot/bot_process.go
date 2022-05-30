@@ -166,6 +166,9 @@ func initBot(cpath, epath string) {
 		os.Setenv("GOPHER_ENCRYPTION_INITIALIZED", "initialized")
 	}
 
+	// The pre-connect load is for initial configuration and init
+	// jobs. External plugin configuration isn't loaded and plugins
+	// aren't initialized.
 	if err := loadConfig(true); err != nil {
 		Log(robot.Fatal, "Loading initial configuration: %v", err)
 	}
@@ -296,9 +299,7 @@ func initCrypt() bool {
 // run starts all the loops and returns a channel that closes when the robot
 // shuts down. It should return after the connector loop has started and
 // plugins are initialized.
-func run() {
-	// Start the brain loop
-	go runBrain()
+func run(sigBreak chan struct{}) {
 
 	var cl []string
 	cl = append(cl, currentCfg.joinChannels...)
@@ -311,10 +312,6 @@ func run() {
 			interfaces.JoinChannel(channel)
 		}
 	}
-
-	// signal handler
-	sigBreak := make(chan struct{})
-	go sigHandle(sigBreak)
 
 	// connector loop
 	go func(conn robot.Connector, sigBreak chan<- struct{}) {
@@ -330,9 +327,12 @@ func run() {
 		done <- restart
 	}(interfaces.Connector, sigBreak)
 
-	// No need to check for errors on first load; it would have been
-	// caught during the preConnect load above.
-	loadConfig(false)
+	// The first run through is for configuring and running init
+	// jobs (which can't send messages), the second run through
+	// (post-connect) initializes plugins and may send messages.
+	if err := loadConfig(false); err != nil {
+		Log(robot.Fatal, "Loading full/post-connect configuration: %v", err)
+	}
 	Log(robot.Info, "Robot is initialized and running")
 }
 

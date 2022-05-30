@@ -345,10 +345,18 @@ func Start(v VersionInfo) {
 		}
 	}
 
+	// install signal handler early for SIGUSR1 troubleshooting startup code.
+	sigBreak := make(chan struct{})
+	go sigHandle(sigBreak)
+	go runBrain()
+
+	// Set up an initial null connector for running init jobs.
+	nullConnector := connectors["nullconn"]
+	nc := nullConnector(handle, logger)
+	setConnector(nc)
 	initBot(configpath, binDirectory)
 
 	if cliOp {
-		go runBrain()
 		processCLI(usage)
 		brainQuit()
 		return
@@ -375,7 +383,7 @@ func Start(v VersionInfo) {
 	setConnector(conn)
 
 	// Start the robot loops
-	run()
+	run(sigBreak)
 	// ... and wait for the robot to stop
 	restart := <-done
 	raiseThreadPrivExternal("Exiting")

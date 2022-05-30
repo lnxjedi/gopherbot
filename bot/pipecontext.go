@@ -29,12 +29,14 @@ var workerID = struct {
 
 // Get the next context ID
 func getWorkerID() int {
+	Log(robot.Warn, "DEBUG: aquiring workerID lock")
 	workerID.Lock()
 	for {
 		workerID.idx++
 		if workerID.idx == maxIndex {
 			workerID.idx = 1
 		}
+		Log(robot.Warn, "DEBUG: aquiring activePipelines lock")
 		activePipelines.Lock()
 		_, exists := activePipelines.i[workerID.idx]
 		activePipelines.Unlock()
@@ -44,6 +46,7 @@ func getWorkerID() int {
 	}
 	ctxid := workerID.idx
 	workerID.Unlock()
+	Log(robot.Warn, "DEBUG: all locks dropped, returning %v", ctxid)
 	return ctxid
 }
 

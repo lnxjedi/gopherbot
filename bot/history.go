@@ -128,6 +128,7 @@ func newLogger(tag, eid, descriptor string, wid, keep int) (logger robot.History
 		}
 	}
 	var err error
+	Log(robot.Warn, "DEBUG: interfaces.history is %v", interfaces.history)
 	logger, err = interfaces.history.NewLog(tag, idx, keep)
 	if err != nil {
 		Log(robot.Error, "Starting history for '%s' failed (%v) - falling back to memory log", tag, err)
