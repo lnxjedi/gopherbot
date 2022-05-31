@@ -73,17 +73,14 @@ func scheduleTasks() {
 
 // initJobs - run init jobs that might be required by external plugins
 func initJobs() {
-	Log(robot.Warn, "DEBUG: taking currentCfg RLock")
 	currentCfg.RLock()
 	scheduled := currentCfg.ScheduledJobs
 	cfg := currentCfg.configuration
 	tasks := currentCfg.taskList
 	currentCfg.RUnlock()
-	Log(robot.Warn, "DEBUG: taking confLock RLock")
 	confLock.RLock()
 	repolist := repositories
 	confLock.RUnlock()
-	Log(robot.Warn, "DEBUG: ... all locks taken and dropped")
 	for _, st := range scheduled {
 		ts := st.TaskSpec
 		if st.Schedule == "@init" {
@@ -101,7 +98,6 @@ func initJobs() {
 				Log(robot.Error, "Ignoring disabled job '%s' while running init jobs; reason: %s", st.Name, task.reason)
 				continue
 			}
-			Log(robot.Warn, "DEBUG: running init job %s", st.Name)
 			runScheduledTask(t, ts, cfg, tasks, repolist, true)
 		}
 	}
@@ -138,7 +134,7 @@ func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *tas
 		automaticTask: true, // scheduled jobs don't get authorization / elevation checks
 	}
 	if isInitJob {
-		Log(robot.Debug, "Starting init job: %s", task.name)
+		Log(robot.Info, "Starting init job: %s", task.name)
 	} else {
 		Log(robot.Debug, "Starting scheduled job: %s", task.name)
 	}
@@ -146,6 +142,5 @@ func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *tas
 	if isInitJob {
 		jobtype = initJob
 	}
-	Log(robot.Warn, "DEBUG: starting pipeline ...")
 	w.startPipeline(nil, t, jobtype, "run", ts.Arguments...)
 }

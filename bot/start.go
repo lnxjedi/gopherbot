@@ -338,7 +338,6 @@ func Start(v VersionInfo) {
 			initCrypt()
 			cliDump(flag.Arg(1), flag.Arg(2))
 		default:
-			fmt.Println("DEBUG default")
 			fmt.Println(usage)
 			flag.PrintDefaults()
 			os.Exit(1)
