@@ -105,6 +105,14 @@ var repositories map[string]robot.Repository
 func loadConfig(preConnect bool) error {
 	raiseThreadPriv("loading configuration")
 	var loglevel robot.LogLevel
+<<<<<<< HEAD
+=======
+	if preConnect {
+		Log(robot.Info, "Loading initial pre-connection configuration")
+	} else {
+		Log(robot.Info, "Loading full post-connect configuration")
+	}
+>>>>>>> 675b79eb (Run initJobs serially before calling loadTastConfig, initializePlugins)
 	newconfig := &ConfigLoader{}
 	newconfig.ExternalJobs = make(map[string]TaskSettings)
 	newconfig.ExternalPlugins = make(map[string]TaskSettings)
@@ -519,7 +527,7 @@ func loadConfig(preConnect bool) error {
 		}
 		var hprovider func(robot.Handler) robot.HistoryProvider
 		var ok bool
-		if !cliOp { // CLI operations don't need history
+		if !cliOp { // CLI operations don't need a real history
 			if hprovider, ok = historyProviders[newconfig.HistoryProvider]; !ok {
 				Log(robot.Error, "No provider registered for history type: \"%s\", falling back to 'mem'", processed.historyProvider)
 				newconfig.HistoryProvider = "mem"
@@ -538,6 +546,8 @@ func loadConfig(preConnect bool) error {
 		}
 		// We should never dump the brain key
 		newconfig.EncryptionKey = "XXXXXX"
+		// initJobs need to run before post-connect loadTaskConfig
+		initJobs()
 	}
 
 	newList, err := loadTaskConfig(processed)
