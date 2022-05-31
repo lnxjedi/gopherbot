@@ -1,3 +1,6 @@
+# v2.4.9 - Run init jobs before other external scripts
+This update allows plugins to take advantage of ruby gems and/or python modules installed from an init job. Prior to this update, the robot would need to be manually restarted, or plugins would have to be specially edited to require/import later in the script (ugh).
+
 # v2.4.8 - Fix Slack escaping
 The Slack "Raw" format was incorrectly escaping angle brackets ("<>"), disabling e.g. nice hyperlinks with text. This release corrects this issue, and also restores escaping of '*', '_', ':', '@', '#' and '`' for the "Variable" format - allowing these characters to "appear" unadulterated in message. I quote "appear" because there are invisible characters inserted - so copy/paste will get these. If the text is truly meant to be copied and pasted, use the "Fixed" format instead.
 
