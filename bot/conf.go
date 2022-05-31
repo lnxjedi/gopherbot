@@ -105,14 +105,11 @@ var repositories map[string]robot.Repository
 func loadConfig(preConnect bool) error {
 	raiseThreadPriv("loading configuration")
 	var loglevel robot.LogLevel
-<<<<<<< HEAD
-=======
 	if preConnect {
 		Log(robot.Info, "Loading initial pre-connection configuration")
 	} else {
 		Log(robot.Info, "Loading full post-connect configuration")
 	}
->>>>>>> 675b79eb (Run initJobs serially before calling loadTastConfig, initializePlugins)
 	newconfig := &ConfigLoader{}
 	newconfig.ExternalJobs = make(map[string]TaskSettings)
 	newconfig.ExternalPlugins = make(map[string]TaskSettings)
@@ -550,7 +547,7 @@ func loadConfig(preConnect bool) error {
 		initJobs()
 	}
 
-	newList, err := loadTaskConfig(processed)
+	newList, err := loadTaskConfig(processed, preConnect)
 	if err != nil {
 		return err
 	}
