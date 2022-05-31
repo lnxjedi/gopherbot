@@ -13,7 +13,7 @@ import (
 // loadTaskConfig() updates task/job/plugin configuration and namespaces/parametersets
 // from robot.yaml and external configuration, then updates the
 // globalTasks struct.
-func loadTaskConfig(processed *configuration) (*taskList, error) {
+func loadTaskConfig(processed *configuration, preConnect bool) (*taskList, error) {
 	newList := &taskList{
 		t:             []interface{}{struct{}{}}, // initialize 0 to "nothing", for namespaces & parametersets only
 		nameMap:       make(map[string]int),
@@ -245,7 +245,9 @@ LoadLoop:
 			Log(robot.Info, "Loading configuration for job '%s', type %s", task.name, task.taskType)
 		}
 
-		if isPlugin {
+		// Don't get plugin external configuration during preconnect,
+		// since plugins may rely on stuff loaded by init jobs.
+		if isPlugin && !preConnect {
 			if plugin.taskType == taskExternal {
 				// External plugins spit their default config to stdout when called with command="configure"
 				cfg, err := getExtDefCfg(task)
