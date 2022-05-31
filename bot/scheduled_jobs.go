@@ -72,6 +72,38 @@ func scheduleTasks() {
 	schedMutex.Unlock()
 }
 
+// initJobs - run init jobs that might be required by external plugins
+func initJobs() {
+	currentCfg.RLock()
+	scheduled := currentCfg.ScheduledJobs
+	cfg := currentCfg.configuration
+	tasks := currentCfg.taskList
+	currentCfg.RUnlock()
+	confLock.RLock()
+	repolist := repositories
+	confLock.RUnlock()
+	for _, st := range scheduled {
+		ts := st.TaskSpec
+		if st.Schedule == "@init" {
+			t := tasks.getTaskByName(st.Name)
+			if t == nil {
+				Log(robot.Error, "Task not found when running init job: %s", st.Name)
+				continue
+			}
+			task, _, job := getTask(t)
+			if job == nil {
+				Log(robot.Error, "Ignoring '%s' while running init jobs: not a job", st.Name)
+				continue
+			}
+			if task.Disabled {
+				Log(robot.Error, "Ignoring disabled job '%s' while running init jobs; reason: %s", st.Name, task.reason)
+				continue
+			}
+			runScheduledTask(t, ts, cfg, tasks, repolist, true)
+		}
+	}
+}
+
 func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *taskList, repolist map[string]robot.Repository, isInitJob bool) {
 	task, _, _ := getTask(t)
 	currentCfg.RLock()
