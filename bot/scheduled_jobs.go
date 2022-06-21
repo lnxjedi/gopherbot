@@ -61,9 +61,7 @@ func scheduleTasks() {
 			continue
 		}
 		ts := st.TaskSpec
-		if st.Schedule == "@init" {
-			runScheduledTask(t, ts, cfg, tasks, repolist, true)
-		} else {
+		if st.Schedule != "@init" {
 			Log(robot.Info, "Scheduling job '%s', args '%v' with schedule: %s", ts.Name, ts.Arguments, st.Schedule)
 			taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, ts, cfg, tasks, repolist, false) })
 		}
