@@ -15,8 +15,9 @@ type botDefinition struct {
 }
 
 type config struct {
-	SlackToken      string // the 'bot token for connecting to Slack
-	MaxMessageSplit int    // the maximum # of ~4000 byte messages to split a large message into
+	SlackToken         string // the 'bot token for connecting to Slack using RTM
+	AppToken, BotToken string // tokens used for connecting to Slack using the new SocketMode
+	MaxMessageSplit    int    // the maximum # of ~4000 byte messages to split a large message into
 }
 
 var lock sync.Mutex // package var lock
