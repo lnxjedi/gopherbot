@@ -182,7 +182,7 @@ func (s *slackConnector) processMessage(msg *slack.MessageEvent) {
 		s.Log(robot.Debug, "Zero-length userID, ignoring message")
 		return
 	}
-	if userID == s.botID {
+	if userID == s.botUserID {
 		s.Log(robot.Debug, "Ignoring message from self")
 		return
 	}

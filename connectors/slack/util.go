@@ -10,6 +10,7 @@ import (
 
 	"github.com/lnxjedi/robot"
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/socketmode"
 )
 
 const optimeout = 1 * time.Minute
@@ -18,11 +19,14 @@ const optimeout = 1 * time.Minute
 type slackConnector struct {
 	api             *slack.Client
 	conn            *slack.RTM
+	sock            *socketmode.Client
 	maxMessageSplit int                       // The maximum # of ~4000 byte messages to send before truncating
 	running         bool                      // set on call to Run
 	botName         string                    // human-readable name of bot
 	botFullName     string                    // human-readble full name of the bot
 	botID           string                    // slack internal bot ID
+	botUserID       string                    // slack internal user ID for bot
+	appID           string                    // app ID for socketmode bots
 	name            string                    // name for this connector
 	teamID          string                    // Slack unique Team ID, for identifying team users
 	robot.Handler                             // bot API for connectors
@@ -129,7 +133,7 @@ func (s *slackConnector) userID(u string) (i string, ok bool) {
 // always know the robot's name.
 func (s *slackConnector) userName(i string) (user string, found bool) {
 	s.RLock()
-	if i == s.botID {
+	if i == s.botUserID {
 		name := s.botName
 		s.RUnlock()
 		return name, true

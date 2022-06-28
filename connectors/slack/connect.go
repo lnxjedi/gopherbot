@@ -4,10 +4,12 @@ package slack
 
 import (
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/lnxjedi/robot"
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/socketmode"
 )
 
 type botDefinition struct {
@@ -20,8 +22,10 @@ type config struct {
 	MaxMessageSplit    int    // the maximum # of ~4000 byte messages to split a large message into
 }
 
-var lock sync.Mutex // package var lock
-var started bool    // set when connector is started
+var lock sync.Mutex        // package var lock
+var started bool           // set when connector is started
+var socketmodeEnabled bool // set when using socketmode to connect, duh
+var slackDebug bool        // set to enable debugging output in slack lib
 
 // Initialize starts the connection, sets up and returns the connector object
 func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
@@ -36,6 +40,15 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	var c config
 	var tok string
 
+	slackOpts := []slack.Option{
+		slack.OptionLog(l),
+	}
+	// This spits out a lot of extra stuff, so we only enable it when tracing
+	if r.GetLogLevel() == robot.Trace {
+		slackOpts = append(slackOpts, slack.OptionDebug(true))
+		slackDebug = true
+	}
+
 	err := r.GetProtocolConfig(&c)
 	if err != nil {
 		r.Log(robot.Fatal, "unable to retrieve slack protocol configuration: %v", err)
@@ -46,54 +59,123 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	}
 
 	if len(c.SlackToken) == 0 {
-		r.Log(robot.Fatal, "no slack token found in config")
+		if len(c.BotToken) > 0 && len(c.AppToken) > 0 {
+			if !strings.HasPrefix(c.BotToken, "xoxb-") {
+				r.Log(robot.Fatal, "BotToken must have the prefix \"xoxb-\".")
+			}
+			if !strings.HasPrefix(c.AppToken, "xapp-") {
+				r.Log(robot.Fatal, "AppToken must have the prefix \"xapp-\".")
+			}
+			tok = c.BotToken
+			socketmodeEnabled = true
+			slackOpts = append(slackOpts, slack.OptionAppLevelToken(c.AppToken))
+		} else {
+			r.Log(robot.Fatal, "no slack token or bot/app tokens found in config")
+		}
 	} else {
 		tok = c.SlackToken
 	}
 
-	slackOpts := []slack.Option{
-		slack.OptionLog(l),
-	}
-	// This spits out a lot of extra stuff, so we only enable it when tracing
-	if r.GetLogLevel() == robot.Trace {
-		slackOpts = append(slackOpts, slack.OptionDebug(true))
-	}
-
 	api := slack.New(tok, slackOpts...)
 
-	sc := &slackConnector{
-		api:             api,
-		conn:            api.NewRTM(),
-		maxMessageSplit: c.MaxMessageSplit,
-		name:            "slack",
+	var sc *slackConnector
+
+	if socketmodeEnabled {
+		sockOpts := []socketmode.Option{
+			socketmode.OptionLog(l),
+			socketmode.OptionDebug(slackDebug),
+		}
+		sc = &slackConnector{
+			api:             api,
+			sock:            socketmode.New(api, sockOpts...),
+			maxMessageSplit: c.MaxMessageSplit,
+			name:            "slack",
+		}
+		go sc.sock.Run()
+	} else {
+		sc = &slackConnector{
+			api:             api,
+			conn:            api.NewRTM(),
+			maxMessageSplit: c.MaxMessageSplit,
+			name:            "slack",
+		}
+		go sc.conn.ManageConnection()
 	}
-	go sc.conn.ManageConnection()
 
 	sc.Handler = r
 
-Loop:
-	for {
-		select {
-		case msg := <-sc.conn.IncomingEvents:
-
+	if socketmodeEnabled {
+	SOCKLoop:
+		for evt := range sc.sock.Events {
+			switch evt.Type {
+			case socketmode.EventTypeConnected:
+				connectEvent, ok := evt.Data.(*socketmode.ConnectedEvent)
+				if !ok {
+					r.Log(robot.Warn, "Ignoring %+v", evt)
+				} else {
+					r.Log(robot.Debug, "Socket mode connected to '%s', count: %d",
+						connectEvent.Info.URL,
+						connectEvent.ConnectionCount)
+				}
+			case socketmode.EventTypeDisconnect:
+				break SOCKLoop // DEBUG
+			case socketmode.EventTypeHello:
+				r.Log(robot.Debug, "Received hello event for app_id '%s', slack host '%s', build number: %d",
+					evt.Request.ConnectionInfo.AppID,
+					evt.Request.DebugInfo.Host,
+					evt.Request.DebugInfo.BuildNumber)
+				sc.appID = evt.Request.ConnectionInfo.AppID
+				break SOCKLoop
+			case socketmode.EventTypeInvalidAuth:
+				r.Log(robot.Fatal, "Invalid credentials")
+			default:
+				if evt.Request == nil {
+					r.Log(robot.Debug, "Unhandled event type '%s' (nil request)", evt.Type)
+				} else {
+					r.Log(robot.Debug, "Unhandled event type '%s':\n%v", evt.Type, evt.Request)
+				}
+			}
+		}
+	} else {
+	RTMLoop:
+		for msg := range sc.conn.IncomingEvents {
 			switch ev := msg.Data.(type) {
 
 			case *slack.ConnectedEvent:
 				r.Log(robot.Debug, "slack infos: %T %v\n", ev, *ev.Info.User)
 				r.Log(robot.Debug, "slack connection counter: %d", ev.ConnectionCount)
 				sc.botName = ev.Info.User.Name
-				sc.botID = ev.Info.User.ID
+				sc.botUserID = ev.Info.User.ID
 				r.Log(robot.Info, "slack setting bot internal ID to: %s", sc.botID)
 				r.SetBotID(sc.botID)
 				sc.teamID = ev.Info.Team.ID
 				r.Log(robot.Info, "Set team ID to %s", sc.teamID)
-				break Loop
+				break RTMLoop
 
 			case *slack.InvalidAuthEvent:
 				r.Log(robot.Fatal, "Invalid credentials")
 			}
 		}
 	}
+
+	info, err := api.AuthTest()
+	if err != nil {
+		r.Log(robot.Fatal, "Error getting auth info: %v", err)
+	}
+	r.Log(robot.Debug, "retrieved auth info:\n%+v", info)
+	sc.botUserID = info.UserID
+	r.Log(robot.Info, "slack setting bot internal ID to: %s", sc.botUserID)
+	r.SetBotID(sc.botUserID)
+	sc.botID = info.BotID
+	botInfo, err := api.GetBotInfo(sc.botID)
+	if err != nil {
+		r.Log(robot.Fatal, "Error getting bot info: %v", err)
+	}
+	r.Log(robot.Debug, "retrieved bot info:\n%+v", botInfo)
+	// 	sc.teamID = ev.Info.Team.ID
+	// 	r.Log(robot.Info, "Set team ID to %s", sc.teamID)
+
+	r.Log(robot.Fatal, "DEBUG testing socketmode support")
 
 	sc.updateChannelMaps("")
 	sc.updateUserList("")

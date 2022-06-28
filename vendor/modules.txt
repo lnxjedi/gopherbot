@@ -89,8 +89,6 @@ github.com/lnxjedi/robot
 ## explicit
 # github.com/onsi/gomega v1.9.0
 ## explicit
-# github.com/pkg/errors v0.9.1
-github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/pquerna/otp v1.3.0
@@ -101,14 +99,15 @@ github.com/pquerna/otp/totp
 # github.com/robfig/cron v1.2.0
 ## explicit
 github.com/robfig/cron
-# github.com/slack-go/slack v0.9.4
+# github.com/slack-go/slack v0.11.0
 ## explicit
 github.com/slack-go/slack
 github.com/slack-go/slack/internal/backoff
 github.com/slack-go/slack/internal/errorsx
-github.com/slack-go/slack/internal/misc
 github.com/slack-go/slack/internal/timex
+github.com/slack-go/slack/slackevents
 github.com/slack-go/slack/slackutilsx
+github.com/slack-go/slack/socketmode
 # github.com/stretchr/testify v1.5.1
 ## explicit
 github.com/stretchr/testify/assert
