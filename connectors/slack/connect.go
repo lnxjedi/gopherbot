@@ -117,8 +117,6 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 						connectEvent.Info.URL,
 						connectEvent.ConnectionCount)
 				}
-			case socketmode.EventTypeDisconnect:
-				break SOCKLoop // DEBUG
 			case socketmode.EventTypeHello:
 				r.Log(robot.Debug, "Received hello event for app_id '%s', slack host '%s', build number: %d",
 					evt.Request.ConnectionInfo.AppID,
@@ -144,14 +142,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 			case *slack.ConnectedEvent:
 				r.Log(robot.Debug, "slack infos: %T %v\n", ev, *ev.Info.User)
 				r.Log(robot.Debug, "slack connection counter: %d", ev.ConnectionCount)
-				sc.botName = ev.Info.User.Name
-				sc.botUserID = ev.Info.User.ID
-				r.Log(robot.Info, "slack setting bot internal ID to: %s", sc.botID)
-				r.SetBotID(sc.botID)
-				sc.teamID = ev.Info.Team.ID
-				r.Log(robot.Info, "Set team ID to %s", sc.teamID)
 				break RTMLoop
-
 			case *slack.InvalidAuthEvent:
 				r.Log(robot.Fatal, "Invalid credentials")
 			}
@@ -167,19 +158,20 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	r.Log(robot.Info, "slack setting bot internal ID to: %s", sc.botUserID)
 	r.SetBotID(sc.botUserID)
 	sc.botID = info.BotID
+	sc.botName = info.User
+	sc.teamID = info.TeamID
+	r.Log(robot.Info, "set team ID to %s", sc.teamID)
 	botInfo, err := api.GetBotInfo(sc.botID)
 	if err != nil {
 		r.Log(robot.Fatal, "Error getting bot info: %v", err)
 	}
-	r.Log(robot.Debug, "retrieved bot info:\n%+v", botInfo)
-	// 	sc.teamID = ev.Info.Team.ID
-	// 	r.Log(robot.Info, "Set team ID to %s", sc.teamID)
-
-	r.Log(robot.Fatal, "DEBUG testing socketmode support")
+	sc.botFullName = botInfo.Name
 
 	sc.updateChannelMaps("")
 	sc.updateUserList("")
-	sc.botFullName, _ = sc.GetProtocolUserAttribute(sc.botName, "realname")
+
+	r.Log(robot.Fatal, "DEBUG testing socketmode support")
+
 	go sc.startSendLoop()
 
 	return robot.Connector(sc)
