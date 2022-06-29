@@ -69,7 +69,7 @@ func (s *slackConnector) MessageHeard(user, channel string) {
 	var ok bool
 	if chanID, ok = s.ExtractID(channel); ok {
 		if socketmodeEnabled {
-
+			// TODO someday - socketmode doesn't support typing notifications :-(
 		} else {
 			s.conn.SendMessage(s.conn.NewTypingMessage(chanID))
 		}
@@ -117,10 +117,11 @@ func (s *slackConnector) startSendLoop() {
 			}
 		}
 		if !sent {
-			s.Log(robot.Error, "failed sending slack message '%s' to channel '%s' after 3 tries, attempting fallback to RTM", send.message, send.channel)
 			if socketmodeEnabled {
-
+				s.Log(robot.Error, "failed sending slack message '%s' to channel '%s' after 3 tries", send.message, send.channel)
+				// There doesn't appear to be a fallback available with socket mode
 			} else {
+				s.Log(robot.Error, "failed sending slack message '%s' to channel '%s' after 3 tries, attempting fallback to RTM", send.message, send.channel)
 				s.conn.SendMessage(s.conn.NewOutgoingMessage(send.message, send.channel))
 			}
 		}
@@ -213,21 +214,17 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 	userIMchanstr, ok = s.userIMID(userID)
 	if !ok {
 		s.Log(robot.Warn, "no slack IM channel found for user: %s, ID: %s trying to open IM", u, userID)
-		if socketmodeEnabled {
+		ocParam := slack.OpenConversationParameters{
+			ChannelID: "",
+			ReturnIM:  false,
+			Users:     []string{userID},
+		}
+		userIMchan, _, _, err = s.api.OpenConversation(&ocParam)
+		userIMchanstr = userIMchan.Conversation.ID
 
-		} else {
-			ocParam := slack.OpenConversationParameters{
-				ChannelID: "",
-				ReturnIM:  false,
-				Users:     []string{userID},
-			}
-			userIMchan, _, _, err = s.conn.OpenConversation(&ocParam)
-			userIMchanstr = userIMchan.Conversation.ID
-
-			if err != nil {
-				s.Log(robot.Error, "Unable to open a slack IM channel to user: %s, ID: %s", u, userID)
-				ret = robot.FailedMessageSend
-			}
+		if err != nil {
+			s.Log(robot.Error, "Unable to open a slack IM channel to user: %s, ID: %s", u, userID)
+			ret = robot.FailedMessageSend
 		}
 	}
 	if ret != robot.Ok {
