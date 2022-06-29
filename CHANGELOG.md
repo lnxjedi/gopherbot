@@ -1,3 +1,6 @@
+# v2.5.0 - Add socket mode support
+This has been hanging over my head for a long while, so very happy to announce that starting with Gopherbot v2.5.0, robots can be configured with an app/bot token pair to connect via socket mode. Note that eventually Slack is expected to remove support for the old RTM protocol; as it is, creating new Gopherbot robots means ignoring some scary messages about using old/legacy/"classic" app support.
+
 # v2.4.9 - Run init jobs before other external scripts
 This update allows plugins to take advantage of ruby gems and/or python modules installed from an init job. Prior to this update, the robot would need to be manually restarted, or plugins would have to be specially edited to require/import later in the script (ugh).
 
