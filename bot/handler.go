@@ -175,7 +175,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	}
 	Log(robot.Trace, "Incoming message in channel '%s/%s' from user '%s/%s': %s", channelName, ProtocolChannel, userName, ProtocolUser, messageFull)
 	// When command == true, the message was directed at the bot
-	isCommand := false
+	isCommand := inc.BotMessage
 	logChannel := channelName
 	var message string
 
@@ -200,7 +200,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 			return
 		}
 	}
-	if preRegex != nil {
+	if !isCommand && preRegex != nil {
 		matches := preRegex.FindAllStringSubmatch(messageFull, -1)
 		if matches != nil && len(matches[0]) == 2 {
 			isCommand = true

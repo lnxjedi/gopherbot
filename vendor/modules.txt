@@ -82,7 +82,7 @@ github.com/jordan-wright/email
 # github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159
 ## explicit
 github.com/lnxjedi/readline
-# github.com/lnxjedi/robot v0.1.7
+# github.com/lnxjedi/robot v0.1.8
 ## explicit
 github.com/lnxjedi/robot
 # github.com/onsi/ginkgo v1.12.0

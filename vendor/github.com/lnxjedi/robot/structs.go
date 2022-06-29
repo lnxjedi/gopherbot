@@ -37,9 +37,13 @@ type ConnectorMessage struct {
 	ChannelName, ChannelID string
 	// DirectMessage - whether the message should be considered private between user and robot
 	DirectMessage bool
+	// BotMessage - true when the connector is certain the message has been sent to the robot,
+	// e.g. for slack slash commands
+	BotMessage bool
 	// MessageText - sanitized message text, with all protocol-added junk removed
 	MessageText string
-	// MessageObject, Client - interfaces for the raw
+	// MessageObject, Client - interfaces for the raw objects; go extensions can use
+	// these with type switches/assertions to access object internals
 	MessageObject, Client interface{}
 }
 

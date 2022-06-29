@@ -68,7 +68,11 @@ func (s *slackConnector) MessageHeard(user, channel string) {
 	var chanID string
 	var ok bool
 	if chanID, ok = s.ExtractID(channel); ok {
-		s.conn.SendMessage(s.conn.NewTypingMessage(chanID))
+		if socketmodeEnabled {
+
+		} else {
+			s.conn.SendMessage(s.conn.NewTypingMessage(chanID))
+		}
 	}
 }
 
@@ -114,7 +118,11 @@ func (s *slackConnector) startSendLoop() {
 		}
 		if !sent {
 			s.Log(robot.Error, "failed sending slack message '%s' to channel '%s' after 3 tries, attempting fallback to RTM", send.message, send.channel)
-			s.conn.SendMessage(s.conn.NewOutgoingMessage(send.message, send.channel))
+			if socketmodeEnabled {
+
+			} else {
+				s.conn.SendMessage(s.conn.NewOutgoingMessage(send.message, send.channel))
+			}
 		}
 		timeSinceBurst := msgTime.Sub(burstTime)
 		if msgTime.Sub(mtimes[windowStartMsg]) < burstWindow || timeSinceBurst < coolDown {
@@ -205,18 +213,21 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 	userIMchanstr, ok = s.userIMID(userID)
 	if !ok {
 		s.Log(robot.Warn, "no slack IM channel found for user: %s, ID: %s trying to open IM", u, userID)
-		ocParam := slack.OpenConversationParameters{
-			ChannelID: "",
-			ReturnIM:  false,
-			Users:     []string{userID},
-		}
-		userIMchan, _, _, err = s.conn.OpenConversation(&ocParam)
-		userIMchanstr = userIMchan.Conversation.ID
-		//s.conn.OpenIMChannel(userID)
+		if socketmodeEnabled {
 
-		if err != nil {
-			s.Log(robot.Error, "Unable to open a slack IM channel to user: %s, ID: %s", u, userID)
-			ret = robot.FailedMessageSend
+		} else {
+			ocParam := slack.OpenConversationParameters{
+				ChannelID: "",
+				ReturnIM:  false,
+				Users:     []string{userID},
+			}
+			userIMchan, _, _, err = s.conn.OpenConversation(&ocParam)
+			userIMchanstr = userIMchan.Conversation.ID
+
+			if err != nil {
+				s.Log(robot.Error, "Unable to open a slack IM channel to user: %s, ID: %s", u, userID)
+				ret = robot.FailedMessageSend
+			}
 		}
 	}
 	if ret != robot.Ok {
