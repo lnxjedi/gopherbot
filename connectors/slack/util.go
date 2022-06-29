@@ -10,6 +10,7 @@ import (
 
 	"github.com/lnxjedi/robot"
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/socketmode"
 )
 
 const optimeout = 1 * time.Minute
@@ -18,11 +19,14 @@ const optimeout = 1 * time.Minute
 type slackConnector struct {
 	api             *slack.Client
 	conn            *slack.RTM
+	sock            *socketmode.Client
 	maxMessageSplit int                       // The maximum # of ~4000 byte messages to send before truncating
 	running         bool                      // set on call to Run
 	botName         string                    // human-readable name of bot
 	botFullName     string                    // human-readble full name of the bot
 	botID           string                    // slack internal bot ID
+	botUserID       string                    // slack internal user ID for bot
+	appID           string                    // app ID for socketmode bots
 	name            string                    // name for this connector
 	teamID          string                    // Slack unique Team ID, for identifying team users
 	robot.Handler                             // bot API for connectors
@@ -70,12 +74,13 @@ func (s *slackConnector) updateUserList(want string) (ret string) {
 		}
 	}
 	if err != nil {
-		s.Log(robot.Error, "Protocol timeout updating users: %v\n", err)
+		s.Log(robot.Error, "Protocol timeout updating users: %v", err)
 	}
 	for i, user := range userlist {
 		if user.TeamID == s.teamID {
 			userIDInfo[user.ID] = &userlist[i]
 			if _, ok := userMap[user.Name]; !ok {
+				s.Log(robot.Debug, "updateUserList recorded user: %s/%s", user.Name, user.ID)
 				userMap[user.Name] = user.ID
 			}
 		}
@@ -104,7 +109,7 @@ func (s *slackConnector) updateUserList(want string) (ret string) {
 	s.userIDInfo = userIDInfo
 	s.userMap = userMap
 	s.Unlock()
-	s.Log(robot.Debug, "User maps updated")
+	s.Log(robot.Info, "User maps updated, found %d users", len(userMap))
 	return
 }
 
@@ -129,7 +134,7 @@ func (s *slackConnector) userID(u string) (i string, ok bool) {
 // always know the robot's name.
 func (s *slackConnector) userName(i string) (user string, found bool) {
 	s.RLock()
-	if i == s.botID {
+	if i == s.botUserID {
 		name := s.botName
 		s.RUnlock()
 		return name, true
@@ -192,7 +197,7 @@ pageLoop:
 			}
 		}
 		if err != nil {
-			s.Log(robot.Error, "Protocol timeout updating channels: %v\n", err)
+			s.Log(robot.Error, "Protocol timeout updating channels: %v", err)
 			break
 		}
 	}
@@ -204,9 +209,11 @@ pageLoop:
 	for i, channel := range channelList {
 		chanInfo[channel.ID] = &channelList[i]
 		if channel.IsIM {
+			s.Log(robot.Debug, "updateChannelMaps recorded DM channel for user: %s", channel.User)
 			userIMMap[channel.User] = channel.ID
 			userIMIDMap[channel.ID] = channel.User
 		} else {
+			s.Log(robot.Debug, "updateChannelMaps recorded channel: %s", channel.Name)
 			chanMap[channel.Name] = channel.ID
 			chanIDMap[channel.ID] = channel.Name
 		}
@@ -252,7 +259,7 @@ pageLoop:
 	s.channelToID = chanMap
 	s.idToChannel = chanIDMap
 	s.Unlock()
-	s.Log(robot.Debug, "Channel maps updated")
+	s.Log(robot.Info, "Channel maps updated, recorded %d channels", len(chanMap))
 	return
 }
 

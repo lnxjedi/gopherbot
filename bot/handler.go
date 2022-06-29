@@ -166,6 +166,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	protocol := getProtocol(inc.Protocol)
 
 	messageFull := inc.MessageText
+	var message string
 
 	chanLoggers.Lock()
 	clog, ok := chanLoggers.channels[channelName]
@@ -177,7 +178,6 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	// When command == true, the message was directed at the bot
 	isCommand := false
 	logChannel := channelName
-	var message string
 
 	regexes.RLock()
 	preRegex := regexes.preRegex
@@ -200,27 +200,32 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 			return
 		}
 	}
-	if preRegex != nil {
-		matches := preRegex.FindAllStringSubmatch(messageFull, -1)
-		if matches != nil && len(matches[0]) == 2 {
-			isCommand = true
-			message = matches[0][1]
-		}
-	}
-	if !isCommand && postRegex != nil {
-		matches := postRegex.FindAllStringSubmatch(messageFull, -1)
-		if matches != nil && len(matches[0]) == 3 {
-			isCommand = true
-			message = matches[0][1] + matches[0][2]
-		}
-	}
-	if !isCommand && bareRegex != nil {
-		if bareRegex.MatchString(messageFull) {
-			isCommand = true
-		}
-	}
-	if !isCommand {
+	if inc.BotMessage {
+		isCommand = true
 		message = messageFull
+	} else {
+		if preRegex != nil {
+			matches := preRegex.FindAllStringSubmatch(messageFull, -1)
+			if matches != nil && len(matches[0]) == 2 {
+				isCommand = true
+				message = matches[0][1]
+			}
+		}
+		if !isCommand && postRegex != nil {
+			matches := postRegex.FindAllStringSubmatch(messageFull, -1)
+			if matches != nil && len(matches[0]) == 3 {
+				isCommand = true
+				message = matches[0][1] + matches[0][2]
+			}
+		}
+		if !isCommand && bareRegex != nil {
+			if bareRegex.MatchString(messageFull) {
+				isCommand = true
+			}
+		}
+		if !isCommand {
+			message = messageFull
+		}
 	}
 
 	if inc.DirectMessage {

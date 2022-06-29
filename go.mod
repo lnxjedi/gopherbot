@@ -14,12 +14,12 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/jordan-wright/email v0.0.0-20200121133829-a0b5c5b58bb6
 	github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159
-	github.com/lnxjedi/robot v0.1.7
+	github.com/lnxjedi/robot v0.1.8
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/pquerna/otp v1.3.0
 	github.com/robfig/cron v1.2.0
-	github.com/slack-go/slack v0.9.4
+	github.com/slack-go/slack v0.11.0
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/sys v0.0.0-20210423082822-04245dca01da
 )
