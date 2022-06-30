@@ -7,9 +7,10 @@ import (
 	"github.com/slack-go/slack"
 )
 
+const typingDelay = 200 * time.Millisecond
+
 // Message send delay; slack has problems with scrolling if messages fly out
 // too fast.
-const typingDelay = 200 * time.Millisecond
 const msgDelay = 1 * time.Second
 
 // Bursting constants; we allow the robot to send a maximum of `burstMessages`
@@ -242,6 +243,15 @@ func (s *slackConnector) JoinChannel(c string) (ret robot.RetVal) {
 		s.Log(robot.Error, "Slack channel ID not found for: %s", c)
 		return robot.ChannelNotFound
 	}
-	s.Log(robot.Debug, "Slack robots can't join channels, skipping join for %s/%s", c, chanID)
+	if socketmodeEnabled {
+		_, _, _, err := s.api.JoinConversation(chanID)
+		if err != nil {
+			s.Log(robot.Error, "joining channel '%s': %v", c, err)
+		} else {
+			s.Log(robot.Debug, "joined channel %s/%s", c, chanID)
+		}
+	} else {
+		s.Log(robot.Debug, "Slack RTM robots can't join channels, skipping join for %s/%s", c, chanID)
+	}
 	return robot.Ok
 }
