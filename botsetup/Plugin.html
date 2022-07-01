@@ -135,16 +135,16 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="quick-start-with-autosetup"><a class="header" href="#quick-start-with-autosetup">Quick Start with Autosetup</a></h1>
-<p>The best way to set up a new robot is using the <a href="https://quay.io/repository/lnxjedi/gopherbot-dev?tab=info">gopherbot-dev</a> container image running in <a href="https://www.docker.com/">Docker</a> on your workstation. Using <strong>Clu</strong> as an example:</p>
+<h2 id="setting-up-a-new-robot-on-linux"><a class="header" href="#setting-up-a-new-robot-on-linux">Setting up a New Robot on Linux</a></h2>
+<p>If you have easy access to a Linux system, the simplest way to set up a new robot is to <a href="../install/ManualInstall.html">install the gopherbot archive</a>, create an empty working directory, create a symlink there to the <code>/opt/gopherbot/gopherbot</code> executable, then use the autosetup plugin as described in the docker instructions below (with appropriate and obvious modifications, e.g. running <code>./gopherbot init slack</code>).</p>
+<h2 id="setting-up-a-new-robot-with-docker"><a class="header" href="#setting-up-a-new-robot-with-docker">Setting up a New Robot with Docker</a></h2>
+<p>If you're running a Windows or MacOS system, the best way to set up a new robot is using the <a href="https://quay.io/repository/lnxjedi/gopherbot-dev?tab=info">gopherbot-dev</a> container image running in <a href="https://www.docker.com/">Docker</a> on your workstation. Using <strong>Clu</strong> as an example:</p>
 <p><strong>1.</strong> Start a new, empty <code>gopherbot-dev</code> container:</p>
 <pre><code>$ docker run -p 127.0.0.1:3000:3000 --name clu quay.io/lnxjedi/gopherbot-dev:latest
 root INFO Configuration directory URI: 'file:///home/robot/.theia'
 ...
 root INFO Deploy plugins list took: 441.6 ms
 </code></pre>
-<blockquote>
-<p>Note: Normally <code>podman</code> can be used as a drop-in replacement for <code>docker</code>, but on my Fedora 33 workstation, an odd bug is preventing directories from being removed. YMMV, but as of this writing <code>docker</code> can be installed from nightly builds, even though it's not in the main repositories.</p>
-</blockquote>
 <p><strong>2.</strong> Open your browser and browse to <code>http://127.0.0.1:3000</code> to view the <a href="https://github.com/eclipse-theia/theia">Theia</a> interface.</p>
 <p><strong>3.</strong> Open a terminal from the <code>Terminal</code> menu, and run <code>gopherbot init slack</code> to get a slack <code>answerfile.txt</code>:</p>
 <pre><code>$ gopherbot init slack
