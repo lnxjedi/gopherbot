@@ -30,15 +30,14 @@
 # ANS_ENCRYPTION_KEY=GretFilllLterbRounwn8-v]CarpeDie
   ANS_ENCRYPTION_KEY=
 ##
-## * SLACK TOKEN: The authentication token your robot will need to connect to
-##   your team chat. You should use a Slack Hubot token from:
-##   https://<your-team>.slack.com/apps/A0F7XDU93-hubot
-##   Setup will encrypt everything after the common 'xoxb-' prefix and add
-##   this to your robot's 'slack.yaml'. Note that while your token should
-##   also start with 'xoxb-', the number of dash-separated fields may vary.
+## * APP and BOT TOKEN: The authentication tokens your robot will need to
+##   connect to your team chat. Refer to the manual for generating these:
+##   https://lnxjedi.github.io/gopherbot/botsetup/slacksock.html
 ##
-# ANS_SLACK_TOKEN=xoxb-1234568-abcdefghijklmnop-qrstuvwxyz
-  ANS_SLACK_TOKEN=
+# ANS_SLACK_APP_TOKEN=xapp-1234568-abcdefghijklmnop-qrstuvwxyzABCDEFG1234567thistokenisprettydangedlongforsure
+  ANS_SLACK_APP_TOKEN=
+# ANS_SLACK_BOT_TOKEN=xoxb-1234568-abcdefghijklmnop-qrstuvwxyzABCDEFG1234567
+  ANS_SLACK_BOT_TOKEN=
 ##
 ## * ROBOT NAME: The given name that your robot will recognize. To get your
 ##   robot's attention it should be sufficient to start a command with e.g. a
@@ -57,7 +56,7 @@
 ## NOTE NOTE NOTE: This value should be single-quoted.
 ##
 # ANS_ROBOT_ALIAS=';'
-  ANS_ROBOT_ALIAS=
+  ANS_ROBOT_ALIAS=''
 ##
 ## * JOB CHANNEL: Your robot will likely run scheduled jobs periodically; for
 ##   instance to back up it's long-term memories, or rotate a log file. Any

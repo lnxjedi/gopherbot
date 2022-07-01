@@ -168,7 +168,8 @@ fi
 
 Say "Continuing automatic setup..."
 
-checkExit "ANS_SLACK_TOKEN" '^xoxb-[0-9A-Za-z-]+$'
+checkExit "ANS_SLACK_APP_TOKEN" '^xapp-[0-9A-Za-z-]+$'
+checkExit "ANS_SLACK_BOT_TOKEN" '^xoxb-[0-9A-Za-z-]+$'
 checkExit "ANS_ROBOT_NAME" '^[0-9A-Za-z_-]+$'
 checkExit "ANS_ROBOT_ALIAS" '^[]!;%~*+^$?[\{\}-]$'
 checkExit "ANS_JOB_CHANNEL" '^[0-9A-Za-z_-]+$'
@@ -178,8 +179,10 @@ checkExit "ANS_KEY_TYPE" '^dsa|ecdsa|rsa|ed25519$'
 checkExit "ANS_ROBOT_REPOSITORY"
 checkExit "ANS_ADMIN_SECRET" '^[0-9A-Za-z_+/-]{8,}$' "g"
 
-SLACK_TOKEN=${ANS_SLACK_TOKEN#xoxb-}
-SLACK_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot encrypt $SLACK_TOKEN)
+SLACK_APP_TOKEN=${ANS_SLACK_APP_TOKEN#xapp-}
+SLACK_APP_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot encrypt $SLACK_APP_TOKEN)
+SLACK_BOT_TOKEN=${ANS_SLACK_BOT_TOKEN#xoxb-}
+SLACK_BOT_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot encrypt $SLACK_BOT_TOKEN)
 BOTNAME=$(echo "$ANS_ROBOT_NAME" | tr '[:upper:]' '[:lower:]')
 CASENAME=$(echo "${BOTNAME:0:1}" | tr '[:lower:]' '[:upper:]')${BOTNAME:1}
 BOTFULLNAME="$CASENAME Gopherbot"
@@ -228,7 +231,8 @@ EOF
 
 # Create configuration
 cp -r $GOPHER_INSTALLDIR/robot.skel/* "$GOPHER_CONFIGDIR"
-substitute "<slackencrypted>" "$SLACK_ENCRYPTED" "conf/slack.yaml"
+substitute "<slackappencrypted>" "$SLACK_APP_ENCRYPTED" "conf/slack.yaml"
+substitute "<slackbotencrypted>" "$SLACK_BOT_ENCRYPTED" "conf/slack.yaml"
 substitute "<sshencrypted>" "$SSH_ENCRYPTED"
 substitute "<jobchannel>" "$JOBCHANNEL" "conf/slack.yaml"
 substitute "<botname>" "$BOTNAME"
@@ -292,14 +296,13 @@ robot in to an empty *Gopherbot* container, (https://quay.io/lnxjedi/gopherbot) 
 host or VM with the *Gopherbot* software archive installed.
 4) Once these tasks are complete, re-start this container in a separate tab/window to connect \
 your robot to team chat.
-5) Invite your robot to #${JOBCHANNEL}; slack robots will need to be invited to any channels \
-where they will be listening and/or speaking.
-6) Open a direct message (DM) channel to your robot, and give this command to add yourself \
+5) Open a direct message (DM) channel to your robot, and give this command to add yourself \
 as an administrator: \"add administrator $SETUPKEY\"; your robot will then update \
-'custom/conf/slack.yaml' to make you an administrator, and reload it's configuration.
-7) Once that completes, you can instruct the robot to store it's configuration in it's git \
+'custom/conf/slack.yaml' to make you an administrator, and reload it's configuration. \
+(You can find your new bot in ${JOBCHANNEL}).
+6) Once that completes, you can instruct the robot to store it's configuration in it's git \
 repository by issuing the 'save' command.
-8) At this point, feel free to experiment with the default robot; you can start by typing \
+7) At this point, feel free to experiment with the default robot; you can start by typing \
 \"help\" in ${JOBCHANNEL}. When you're finished, press <ctrl-c> in the window where you \
 ran \"gopherbot\" to stop the robot, or optionally tell your robot to \"${BOTALIAS}quit\".
 
@@ -325,17 +328,16 @@ use this deploy key, along with the 'GOPHER_CUSTOM_REPOSITORY', to initially clo
 repository during bootstrapping.
 4) Once these tasks are complete, in your second terminal window, run './gopherbot' without any \
 arguments. Your robot should connect to your team chat.
-5) Invite your robot to #${JOBCHANNEL}; slack robots will need to be invited to any channels \
-where they will be listening and/or speaking.
-6) Open a direct message (DM) channel to your robot, and give this command to add yourself \
+5) Open a direct message (DM) channel to your robot, and give this command to add yourself \
 as an administrator: \"add administrator $SETUPKEY\"; your robot will then update \
-'custom/conf/slack.yaml' to make you an administrator, and reload it's configuration.
-7) Once that completes, you can instruct the robot to store it's configuration in it's git \
+'custom/conf/slack.yaml' to make you an administrator, and reload it's configuration. \
+(You can find your new bot in ${JOBCHANNEL}).
+6) Once that completes, you can instruct the robot to store it's configuration in it's git \
 repository by issuing the 'save' command.
-8) At this point, feel free to experiment with the default robot; you can start by typing \
+7) At this point, feel free to experiment with the default robot; you can start by typing \
 \"help\" in ${JOBCHANNEL}. When you're finished, press <ctrl-c> in the window where you \
 ran \"gopherbot\" to stop the robot, or optionally tell your robot to \"${BOTALIAS}quit\".
-9) Finally, copy the contents of the '.env' file to a safe place, with the GOPHER_PROTOCOL \
+8) Finally, copy the contents of the '.env' file to a safe place, with the GOPHER_PROTOCOL \
 commented out; this avoids accidentally connecting another instance of your robot to team chat \
 when run from a terminal window for the development environment. With proper configuration of \
 your git repository, the '.env' file is all that's needed to bootstrap your robot in to an empty \

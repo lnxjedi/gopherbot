@@ -1,7 +1,8 @@
 AdminUsers: [ "<adminusername>" ]
 ProtocolConfig:
   MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
-  SlackToken: xoxb-{{ decrypt "<slackencrypted>" }}
+  AppToken: xapp-{{ decrypt "<slackappencrypted>" }}
+  BotToken: xoxb-{{ decrypt "<slackbotencrypted>" }}
 
 DefaultChannels: [ "general", "random" ]
 

@@ -1,6 +1,17 @@
 # v2.5.0 - Add socket mode support
 This has been hanging over my head for a long while, so very happy to announce that starting with Gopherbot v2.5.0, robots can be configured with an app/bot token pair to connect via socket mode. Note that eventually Slack is expected to remove support for the old RTM protocol; as it is, creating new Gopherbot robots means ignoring some scary messages about using old/legacy/"classic" app support.
 
+## Upgrading Existing Robots
+1. You'll need to obtain a new set of credentials; the steps are fully documented in the [online manual](http://localhost:8888/botsetup/slacksock.html).
+2. Use `gopherbot encrypt "..."` to create encrypted versions of these tokens (optionally, only the portion after the `xapp-` / `xoxb-`, although AES is supposed to be very resistant to partially-known plaintext attacks).
+3. Edit your `conf/slack.yaml` and add lines for `AppToken` and `BotToken` under the `SlackToken` line; use the `decrypt` function to decrypt the encrypted values you created.
+
+Now you can start your robot with it's new credentials. If all goes well, you can remove the `SlackToken`.
+
+> NOTE: As far as Slack is concerned, this is a new app/user - so if you have a DM open with the old app, you should go ahead and close it.
+
+> NOTE: The new version will still accept the old `SlackToken` to make legacy RTM connections.
+
 # v2.4.9 - Run init jobs before other external scripts
 This update allows plugins to take advantage of ruby gems and/or python modules installed from an init job. Prior to this update, the robot would need to be manually restarted, or plugins would have to be specially edited to require/import later in the script (ugh).
 
