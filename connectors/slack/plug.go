@@ -5,6 +5,7 @@ import (
 
 	"github.com/lnxjedi/robot"
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 )
 
 var idre = regexp.MustCompile(`slack id <@(.*)>`)
@@ -26,8 +27,13 @@ func slackutil(r robot.Robot, command string, args ...string) (retval robot.Task
 			r.Say("Sorry, that only works with Slack")
 			return
 		}
-		sl := m.Incoming.MessageObject.(*slack.MessageEvent)
-		sid := idre.FindStringSubmatch(sl.Text)[1]
+		var sid string
+		switch msg := m.Incoming.MessageObject.(type) {
+		case *slack.MessageEvent:
+			sid = idre.FindStringSubmatch(msg.Text)[1]
+		case *slackevents.MessageEvent:
+			sid = idre.FindStringSubmatch(msg.Text)[1]
+		}
 		r.Say("User %s has Slack internal ID %s", args[0], sid)
 	}
 	return
