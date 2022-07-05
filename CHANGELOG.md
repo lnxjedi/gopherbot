@@ -1,3 +1,6 @@
+# v2.5.1 - Bugfix Slack Plugin
+This release just fixes a crash in the "slack id @user" plugin. It adds a type switch to differentiate the message objects returned by Socket Mode vs. RTM.
+
 # v2.5.0 - Add socket mode support
 This has been hanging over my head for a long while, so very happy to announce that starting with Gopherbot v2.5.0, robots can be configured with an app/bot token pair to connect via socket mode. Note that eventually Slack is expected to remove support for the old RTM protocol; as it is, creating new Gopherbot robots means ignoring some scary messages about using old/legacy/"classic" app support.
 
