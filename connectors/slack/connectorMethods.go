@@ -71,6 +71,17 @@ func (s *slackConnector) MessageHeard(user, channel string) {
 	if chanID, ok = s.ExtractID(channel); ok {
 		if socketmodeEnabled {
 			// TODO someday - socketmode doesn't support typing notifications :-(
+			// Two problems with what's below:
+			// - doesn't show up in thread
+			// - never disappears
+			// if userID, ok := s.ExtractID(user); ok {
+			// 	opts := []slack.MsgOption{
+			// 		slack.MsgOptionText(":speech_balloon:", false),
+			// 		slack.MsgOptionAsUser(true),
+			// 		slack.MsgOptionDisableLinkUnfurl(),
+			// 	}
+			// 	s.api.PostEphemeral(chanID, userID, opts...)
+			// }
 		} else {
 			s.conn.SendMessage(s.conn.NewTypingMessage(chanID))
 		}

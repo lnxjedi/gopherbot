@@ -11,6 +11,7 @@ require (
 	github.com/emersion/go-textwrapper v0.0.0-20160606182133-d0e65e56babe
 	github.com/ghodss/yaml v1.0.0
 	github.com/gopackage/ddp v0.0.0-20170117053602-652027933df4
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/jordan-wright/email v0.0.0-20200121133829-a0b5c5b58bb6
 	github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159
@@ -19,7 +20,9 @@ require (
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/pquerna/otp v1.3.0
 	github.com/robfig/cron v1.2.0
-	github.com/slack-go/slack v0.11.0
+	github.com/slack-go/slack v0.11.2
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/sys v0.0.0-20210423082822-04245dca01da
 )
+
+replace github.com/slack-go/slack => github.com/lnxjedi/slack v0.1.0
