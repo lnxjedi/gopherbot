@@ -9,7 +9,8 @@ import (
 	"github.com/lnxjedi/robot"
 )
 
-const runJobRegex = `run +job +(` + identifierRegex + `)(?: (.*))?`
+// (?i:^\s*run[- ]job ([A-Za-z][\w-]*)(?: (.*))?\s*$)
+const runJobRegex = `run[- ]job (` + identifierRegex + `)(?: (.*))?`
 
 var runJobRe = regexp.MustCompile(`(?i:^\s*` + runJobRegex + `\s*$)`)
 

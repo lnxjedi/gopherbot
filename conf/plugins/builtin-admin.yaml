@@ -14,13 +14,13 @@ Help:
 - Keywords: [ "process", "processes", "ps", "pipeline", "pipelines" ]
   Helptext: [ "(bot), ps - list running pipelines" ]
 - Keywords: [ "kill", "process" ]
-  Helptext: [ "(bot), kill <wid> - kill the current process for the pipeline identified by <wid>"]
+  Helptext: [ "(bot), kill-job <wid> - kill the current process for the pipeline identified by <wid>"]
 - Keywords: [ "pause", "job", "jobs" ]
-  Helptext: [ "(bot), pause <job> - pause running of <job> as a scheduled task"]
+  Helptext: [ "(bot), pause-job <job> - pause running of <job> as a scheduled task"]
 - Keywords: [ "pause", "resume", "job", "jobs", "unpause", "un-pause" ]
-  Helptext: [ "(bot), resume <job> - kill the current process for the pipeline identified by <wid>"]
+  Helptext: [ "(bot), resume-job <job> - kill the current process for the pipeline identified by <wid>"]
 - Keywords: [ "pause", "resume", "job", "jobs" ]
-  Helptext: [ "(bot), paused jobs - list the paused jobs"]
+  Helptext: [ "(bot), paused-jobs - list the paused jobs"]
 - Keywords: [ "debug", "log", "channel" ]
   Helptext:
   - "(bot), log-channel (channel) - start a log of the current or given channel"
@@ -37,13 +37,13 @@ CommandMatchers:
 - Command: ps
   Regex: '(?i:ps)'
 - Command: "kill"
-  Regex: '(?i:kill ([\d]+))'
+  Regex: '(?i:kill([- ]job)? ([\d]+))'
 - Command: "pause"
-  Regex: '(?i:pause ([A-Za-z][\w-]*))'
+  Regex: '(?i:pause([- ]job)? ([A-Za-z][\w-]*))'
 - Command: "resume"
   Regex: '(?i:resume ([A-Za-z][\w-]*))'
 - Command: pauselist
-  Regex: '(?i:(list )?paused jobs)'
+  Regex: '(?i:(list[- ])?paused[- ]jobs)'
 - Command: "chanlog"
   Regex: '(?i:log-channel(?: ([A-Za-z][\w-]*))?)'
 - Command: "stopchanlog"
