@@ -18,6 +18,7 @@ type config struct {
 	SlackToken         string // the 'bot token for connecting to Slack using RTM
 	AppToken, BotToken string // tokens used for connecting to Slack using the new SocketMode
 	MaxMessageSplit    int    // the maximum # of ~4000 byte messages to split a large message into
+	Debug              bool   // Explicitly turn on Slack protocol debug output
 }
 
 var lock sync.Mutex        // package var lock
@@ -41,15 +42,16 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	slackOpts := []slack.Option{
 		slack.OptionLog(l),
 	}
-	// This spits out a lot of extra stuff, so we only enable it when tracing
-	if r.GetLogLevel() == robot.Trace {
-		slackOpts = append(slackOpts, slack.OptionDebug(true))
-		slackDebug = true
-	}
 
 	err := r.GetProtocolConfig(&c)
 	if err != nil {
 		r.Log(robot.Fatal, "unable to retrieve slack protocol configuration: %v", err)
+	}
+	// This spits out a lot of extra stuff, so we only enable it when tracing or
+	// explicitly configured.
+	if c.Debug || r.GetLogLevel() == robot.Trace {
+		slackOpts = append(slackOpts, slack.OptionDebug(true))
+		slackDebug = true
 	}
 
 	if c.MaxMessageSplit == 0 {
