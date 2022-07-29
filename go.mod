@@ -25,4 +25,7 @@ require (
 	golang.org/x/sys v0.0.0-20210423082822-04245dca01da
 )
 
-replace github.com/slack-go/slack => github.com/lnxjedi/slack v0.1.0
+replace github.com/slack-go/slack => github.com/lnxjedi/slack v0.1.1
+
+// *** For local Slack lib dev - comment out any other replace for slack above
+// replace github.com/slack-go/slack => ../slack
