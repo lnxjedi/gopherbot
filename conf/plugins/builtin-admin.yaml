@@ -37,9 +37,9 @@ CommandMatchers:
 - Command: ps
   Regex: '(?i:ps)'
 - Command: "kill"
-  Regex: '(?i:kill([- ]job)? ([\d]+))'
+  Regex: '(?i:kill(?:[- ]job)? ([\d]+))'
 - Command: "pause"
-  Regex: '(?i:pause([- ]job)? ([A-Za-z][\w-]*))'
+  Regex: '(?i:pause(?:[- ]job)? ([A-Za-z][\w-]*))'
 - Command: "resume"
   Regex: '(?i:resume ([A-Za-z][\w-]*))'
 - Command: pauselist
