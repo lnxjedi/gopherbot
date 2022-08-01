@@ -1,3 +1,7 @@
+# v2.5.2 - Socket mode stability and command standardization
+* After a problem with a robot becoming unresponsive, an [issue](https://github.com/slack-go/slack/issues/1093) with the Slack Go library was found that could delay reconnecting in the event of a timeout on the websocket. This release incorporates a [fix](https://github.com/slack-go/slack/pull/1094).
+*  To make job-related commands easier to remember, `<verb>-<noun>` synonyms were added for job related commands, e.g. `list-jobs`, `pause-job`, `resume-job`, etc.
+
 # v2.5.1 - Bugfix Slack Plugin
 This release just fixes a crash in the "slack id @user" plugin. It adds a type switch to differentiate the message objects returned by Socket Mode vs. RTM.
 
