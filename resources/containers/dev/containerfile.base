@@ -1,0 +1,123 @@
+FROM docker.io/buildpack-deps:bullseye-curl
+
+#######
+#
+# containerfile.base - official container build for developing Gopherbot
+# and Robots built from Gopherbot. Automatically built every week.
+# See also: containerfile.daily
+#
+#######
+
+# ARG OVSC_LATEST=openvscode-server-v1.73.1 # dynamically detected
+ARG OVSC_ORG="gitpod-io"
+ARG OPENVSCODE_SERVER_ROOT="/home/.openvscode-server"
+ARG USERNAME=botdev
+ARG USER_UID=1001
+ARG USER_GID=$USER_UID
+
+# GH Repo
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
+	chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
+
+RUN set -eux; \
+	apt-get update; \
+	apt-get install -y --no-install-recommends \
+		build-essential \
+		curl \
+		gh \
+        git \
+		imagemagick \
+        jq \
+        less \
+        libatomic1 \
+		openssh-client \
+		python \
+		ruby \
+        sudo \
+		tini \
+	; \
+	rm -rf /var/lib/apt/lists/*
+
+WORKDIR /home/
+
+# Downloading the latest VSC Server release and extracting the release archive
+# Rename `openvscode-server` cli tool to `code` for convenience
+RUN OVSC_LATEST=$(curl --silent https://api.github.com/repos/${OVSC_ORG}/openvscode-server/releases/latest | jq -r .tag_name) && \
+    arch=$(uname -m) && \
+    if [ "${arch}" = "x86_64" ]; then \
+        arch="x64"; \
+    elif [ "${arch}" = "aarch64" ]; then \
+        arch="arm64"; \
+    elif [ "${arch}" = "armv7l" ]; then \
+        arch="armhf"; \
+    fi && \
+    wget https://github.com/${OVSC_ORG}/openvscode-server/releases/download/${OVSC_LATEST}/${OVSC_LATEST}-linux-${arch}.tar.gz && \
+    tar -xzf ${OVSC_LATEST}-linux-${arch}.tar.gz && \
+    mv -f ${OVSC_LATEST}-linux-${arch} ${OPENVSCODE_SERVER_ROOT} && \
+    cp ${OPENVSCODE_SERVER_ROOT}/bin/remote-cli/openvscode-server ${OPENVSCODE_SERVER_ROOT}/bin/remote-cli/code && \
+    rm -f ${OVSC_LATEST}-linux-${arch}.tar.gz
+
+RUN cd /usr/local && \
+    GO_LATEST=$(curl --silent https://go.dev/VERSION?m=text) && \
+    curl -s -L -o go.tar.gz https://dl.google.com/go/${GO_LATEST}.linux-amd64.tar.gz && \
+    tar xzf go.tar.gz && \
+    rm -f go.tar.gz
+
+RUN MDBOOK_LATEST=$(curl --silent https://api.github.com/repos/rust-lang/mdBook/releases/latest | jq -r .tag_name) && \
+    curl -s -L -o mdbook.tar.gz https://github.com/rust-lang/mdBook/releases/download/${MDBOOK_LATEST}/mdbook-${MDBOOK_LATEST}-x86_64-unknown-linux-gnu.tar.gz && \
+    tar xzf mdbook.tar.gz && \
+    install -m 0755 mdbook /usr/local/bin && \
+    rm -f mdbook mdbook.tar.gz
+
+# Creating the user and usergroup
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USERNAME -m -s /bin/bash $USERNAME \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
+RUN chmod g+rw /home && \
+    mkdir -p /home/workspace && \
+    chown -R $USERNAME:$USERNAME /home/workspace && \
+    chown -R $USERNAME:$USERNAME ${OPENVSCODE_SERVER_ROOT}
+
+RUN chmod g+rw /home && \
+    mkdir -p /home/${USERNAME}/workspace && \
+    chown -R $USERNAME:$USERNAME /home/${USERNAME}/workspace && \
+    chown -R $USERNAME:$USERNAME ${OPENVSCODE_SERVER_ROOT}
+
+# For kubernetes
+USER ${USER_UID}:${USER_GID}
+
+# Install language extensions
+RUN /home/.openvscode-server/bin/openvscode-server --install-extension golang.Go && \
+  /home/.openvscode-server/bin/openvscode-server --install-extension rebornix.ruby && \
+  /home/.openvscode-server/bin/openvscode-server --install-extension ms-python.python
+
+RUN echo -n "PS1='" >> /home/${USERNAME}/.bashrc && \
+    echo -n '\[\]\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u:\[\033[01;34m\]\w\[\033[00m\]\$ \[\]' >> /home/${USERNAME}/.bashrc && \
+    echo "'" >> /home/${USERNAME}/.bashrc
+
+WORKDIR /home/${USERNAME}/workspace/
+
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    EDITOR=code \
+    VISUAL=code \
+    GIT_EDITOR="code --wait" \
+    OPENVSCODE_SERVER_ROOT=${OPENVSCODE_SERVER_ROOT} \
+    HOME=/home/${USERNAME} \
+    PATH=/usr/local/go/bin:${PATH}:${HOME}/go/bin
+
+RUN go install -v golang.org/x/tools/gopls@latest && \
+    go install -v github.com/cweill/gotests/gotests@v1.6.0 && \
+    go install -v github.com/fatih/gomodifytags@v1.16.0 && \
+    go install -v github.com/josharian/impl@v1.1.0 && \
+    go install -v github.com/haya14busa/goplay/cmd/goplay@v1.0.0 && \
+    go install -v github.com/go-delve/delve/cmd/dlv@latest && \
+    go install -v honnef.co/go/tools/cmd/staticcheck@latest && \
+    go install -v golang.org/x/tools/gopls@latest
+
+EXPOSE 7777
+
+ENTRYPOINT [ "/usr/bin/tini", "--", "/bin/sh", "-c", "exec ${OPENVSCODE_SERVER_ROOT}/bin/openvscode-server --host 0.0.0.0 --port 7777 \"${@}\"", "--" ]
