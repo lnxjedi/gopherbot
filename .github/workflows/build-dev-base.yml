@@ -10,7 +10,7 @@ env:
   IMAGE_NAME: lnxjedi/gopherbot-dev-base
 
 jobs:
-  build-and-push-image:
+  build-and-push-dev-base:
     runs-on: ubuntu-latest
     permissions:
       contents: read
