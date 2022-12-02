@@ -1,0 +1,24 @@
+# function for loading ssh key and removing; needs
+# to be activated during container builds by adding
+# a call to the end of $HOME/.bashrc
+check-load-ssh(){
+    [ ! -e $HOME/.ssh/id_rsa ] && return
+    if ! ssh-add -l >/dev/null && [ -e $HOME/.ssh/id_rsa ]
+    then
+        echo "Loading ssh private key ..."
+        ssh-add
+    fi
+    if ssh-add -l >/dev/null && [ -e $HOME/.ssh/id_rsa ]
+    then
+        echo "Removing ssh private key ..."
+        rm -f $HOME/.ssh/id_rsa
+    fi
+}
+# ssh-agent in shell sessions
+if [ ! "$SSH_AUTH_SOCK" ]
+then
+    export SSH_AUTH_SOCK=$(echo /tmp/ssh-*/*)
+    export SSH_AGENT_PID=$(pgrep ssh-agent)
+fi
+check-load-ssh
+PATH=${PATH}:/opt/gopherbot:${HOME}/go/bin

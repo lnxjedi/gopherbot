@@ -12,9 +12,12 @@ ARG USERNAME=botdev
 COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot/ /opt/gopherbot/
 COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot-doc/ /home/${USERNAME}/workspace/gopherbot-doc/
 COPY --chown=${USERNAME}:${USERNAME} assets/gopherbot.code-workspace /home/${USERNAME}/gopherbot.code-workspace
+COPY --chown=${USERNAME}:${USERNAME} assets/dev-init /home/${USERNAME}/.dev-init
 
 RUN mkdir -p /home/${USERNAME}/workspace/robot && \
-    echo "PATH=${PATH}:/opt/gopherbot:${HOME}/go/bin" >> /home/${USERNAME}/.bashrc && \
+    echo "source /home/${USERNAME}/.dev-init" >> /home/${USERNAME}/.bashrc && \
+    mkdir -p /home/${USERNAME}/.ssh && \
+    chmod 0700 /home/${USERNAME}/.ssh && \
     cd /opt/gopherbot && \
     make
 
