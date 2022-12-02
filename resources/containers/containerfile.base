@@ -77,11 +77,6 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 
 RUN chmod g+rw /home && \
-    mkdir -p /home/workspace && \
-    chown -R $USERNAME:$USERNAME /home/workspace && \
-    chown -R $USERNAME:$USERNAME ${OPENVSCODE_SERVER_ROOT}
-
-RUN chmod g+rw /home && \
     mkdir -p /home/${USERNAME}/workspace && \
     chown -R $USERNAME:$USERNAME /home/${USERNAME}/workspace && \
     chown -R $USERNAME:$USERNAME ${OPENVSCODE_SERVER_ROOT}
