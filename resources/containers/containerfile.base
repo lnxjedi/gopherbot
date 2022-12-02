@@ -32,7 +32,7 @@ RUN set -eux; \
         less \
         libatomic1 \
 		openssh-client \
-		python \
+		python3 \
 		ruby \
         sudo \
 		tini \

@@ -19,3 +19,4 @@ robot.log
 start.sh
 .vscode
 *fail.log
+tmp/
