@@ -1,4 +1,4 @@
-name: build-dev-base
+name: build-base
 
 on:
   schedule:
@@ -7,10 +7,10 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: lnxjedi/gopherbot-dev-base
+  IMAGE_NAME: ${{ github.repository_owner }}/gopherbot-base
 
 jobs:
-  build-and-push-dev-base:
+  build-and-push-container-base:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -37,7 +37,8 @@ jobs:
         uses: docker/build-push-action@175d02bffea74695e96b351069ac938b338802f9
         with:
           context: .
-          file: resources/containers/dev/containerfile.base
+          file: resources/containers/containerfile.base
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           labels: ${{ steps.meta.outputs.labels }}
