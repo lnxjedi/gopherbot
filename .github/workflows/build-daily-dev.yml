@@ -1,0 +1,70 @@
+name: build daily dev container
+
+on:
+  schedule:
+  # Build dev container daily
+  - cron: "42 7 * * *"
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/gopherbot-dev
+
+jobs:
+  build-dev:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Create repo tmp dir
+      run: |
+        mkdir -p resources/containers/tmp
+
+    - name: Checkout repository for container
+      uses: actions/checkout@v3
+      with:
+        path: resources/containers/tmp/gopherbot
+
+    - name: Checkout doc repository for container
+      uses: actions/checkout@v3
+      with:
+        repository: lnxjedi/gopherbot-doc
+        path: resources/containers/tmp/gopherbot-doc
+
+    - name: Fix up gopherbot repository URL
+      run: |
+        cd resources/containers/tmp/gopherbot
+        git remote set-url origin git@github.com:${{ github.repository_owner }}/gopherbot.git
+
+    - name: Fix up gopherbot-doc repository URL
+      run: |
+        cd resources/containers/tmp/gopherbot-doc
+        git remote set-url origin git@github.com:${{ github.repository_owner }}/gopherbot-doc.git
+      
+    - name: Log in to the Container registry
+      uses: docker/login-action@f75d088332b07a08afadf6ac53c74509b9453f12
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata (tags, labels) for Docker
+      id: meta
+      uses: docker/metadata-action@314ddf6d4a82333bf1bc7630399df41bf68eba09
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@175d02bffea74695e96b351069ac938b338802f9
+      with:
+        context: resources/containers/
+        file: containerfile.dev
+        push: true
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        labels: ${{ steps.meta.outputs.labels }}
