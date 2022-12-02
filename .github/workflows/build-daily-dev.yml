@@ -63,7 +63,7 @@ jobs:
       uses: docker/build-push-action@175d02bffea74695e96b351069ac938b338802f9
       with:
         context: resources/containers/
-        file: containerfile.dev
+        file: resources/containers/containerfile.dev
         push: true
         tags: |
           ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
