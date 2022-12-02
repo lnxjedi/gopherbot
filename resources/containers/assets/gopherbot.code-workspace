@@ -1,0 +1,14 @@
+{
+    "folders": [
+        {
+                "path": "workspace/robot"
+        },
+        {
+                "path": "/opt/gopherbot"
+        },
+        {
+                "path": "workspace/gopherbot-doc"
+        }
+    ],
+    "settings": {}
+}

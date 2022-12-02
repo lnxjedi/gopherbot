@@ -1,0 +1,25 @@
+ARG base_org=lnxjedi
+
+FROM ghcr.io/${base_org}/gopherbot-base:latest
+
+#######
+# containerfile.dev
+# For daily builds of a gopherbot development container with up-to-date sources.
+#######
+
+ARG USERNAME=botdev
+
+COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot/ /opt/gopherbot/
+COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot-doc/ /home/${USERNAME}/workspace/gopherbot-doc/
+COPY --chown=${USERNAME}:${USERNAME} assets/gopherbot.code-workspace /home/${USERNAME}/gopherbot.code-workspace
+
+RUN mkdir -p /home/${USERNAME}/workspace/robot && \
+    echo "PATH=${PATH}:/opt/gopherbot:${HOME}/go/bin" >> /home/${USERNAME}/.bashrc && \
+    cd /opt/gopherbot && \
+    make
+
+ENV RUBYLIB=/opt/gopherbot/lib:/home/${USERNAME}/workspace/robot/custom/lib \
+    PYTHONPATH=/opt/gopherbot/lib:/home/${USERNAME}/workspace/robot/custom/lib \
+    GOPHER_INSTALLDIR=/opt/gopherbot
+
+ENTRYPOINT [ "/usr/bin/tini", "--", "/usr/bin/ssh-agent", "/bin/sh", "-c", "exec ${OPENVSCODE_SERVER_ROOT}/bin/openvscode-server --host 0.0.0.0 --port 7777 \"${@}\"", "--" ]
