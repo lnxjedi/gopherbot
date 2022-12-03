@@ -8,5 +8,5 @@ then
     git clone git@github.com:lnxjedi/gopherbot-doc.git tmp/gopherbot-doc
 fi
 
-docker pull ghcr.io/lnxjedi/gopherbot-base:latest
+#docker pull ghcr.io/lnxjedi/gopherbot-base:latest
 docker build -f containerfile.dev -t ghcr.io/lnxjedi/gopherbot-dev:latest .
