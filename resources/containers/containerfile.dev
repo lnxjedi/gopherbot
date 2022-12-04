@@ -14,8 +14,7 @@ COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot-doc/ /opt/gopherbot-doc/
 COPY --chown=${USERNAME}:${USERNAME} assets/gopherbot.code-workspace /home/${USERNAME}/gopherbot.code-workspace
 COPY --chown=${USERNAME}:${USERNAME} assets/dev-init /home/${USERNAME}/.dev-init
 
-RUN mkdir -p /home/${USERNAME}/workspace/robot && \
-    echo "source /home/${USERNAME}/.dev-init" >> /home/${USERNAME}/.bashrc && \
+RUN echo "source /home/${USERNAME}/.dev-init" >> /home/${USERNAME}/.bashrc && \
     mkdir -p /home/${USERNAME}/.ssh && \
     chmod 0700 /home/${USERNAME}/.ssh && \
     cd /opt/gopherbot && \

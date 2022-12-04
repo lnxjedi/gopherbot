@@ -1,21 +1,46 @@
 #!/bin/bash -e
 
-# botc.sh - Script to simplify running Gopherbot containers
+# cbot.sh - Script to simplify running Gopherbot containers
 
 IMAGE_NAME="ghcr.io/lnxjedi/gopherbot-dev"
 IMAGE_TAG="latest"
 
 usage() {
     cat <<EOF
-Usage: ./botc.sh dev|start|remove
+Usage: ./botc.sh (options...) profile|dev|start|stop|remove (arguments...)
 
-Start development container:
-$ ./botc.sh start [-b] [-k <path/to/private_key>] <name> (path/to/bot.env)
+----
+Generate a profile for development:
+./cbot.sh profile <container-name> "<full name>" <email> (path to ssh private key)
 
+Example:
+$ ./cbot.sh profile bishop "David Parsley" parsley@linuxjedi.org ~/.ssh/id_rsa | tee ~/bishop.env
+## Lines starting with #| are used by the cbot.sh script
+GIT_AUTHOR_NAME="David Parsley"
+GIT_AUTHOR_EMAIL=parsley@linuxjedi.org
+GIT_COMMITTER_NAME="David Parsley"
+GIT_COMMITTER_EMAIL=parsley@linuxjedi.org
+#|CONTAINERNAME=bishop
+#|SSH_KEY_PATH=/home/david/.ssh/id_rsa
+
+----
 Start a gopherbot development container:
- -b - start a bare/bootstrap container without a robot env (no 2nd arg)
- -k <path> - copy ssh private key from given path
- -u - pull the latest version first
+./cbot.sh dev (-u) (path/to/profile)
+ -u - pull the latest container version first
+
+----
+Stop a gopherbot container:
+./cbot.sh stop (path/to/profile)
+
+Example:
+$ ./cbot.sh stop ~/bishop.env
+
+----
+Stop and remove a container:
+./cbot.sh remove (path/to/profile)
+
+Example:
+$ ./cbot.sh remove ~/bishop.env
 EOF
 }
 
@@ -29,7 +54,29 @@ COMMAND="$1"
 shift
 
 show_access() {
-    echo "Access your dev environment at: http://localhost:7777/?workspace=/home/botdev/gopherbot.code-workspace&tkn=$RANDOM_TOKEN"
+    echo "Access your dev environment at: http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=$RANDOM_TOKEN"
+}
+
+check_profile() {
+    if [ ! "$GOPHER_PROFILE" ]
+    then
+        echo "Missing profile argument" 
+        exit 1
+    fi
+
+    if [ ! -e "$GOPHER_PROFILE" ]
+    then
+        echo "Profile file not found: $GOPHER_PROFILE"
+        exit 1
+    fi
+}
+
+read_profile() {
+    for CFG_VAR in CONTAINERNAME SSH_KEY_PATH
+    do
+        RAW=$(grep "^#|$CFG_VAR" $GOPHER_PROFILE)
+        echo "${CFG_VAR}=${RAW#*=}"
+    done
 }
 
 wait_for_container() {
@@ -46,24 +93,53 @@ wait_for_container() {
 }
 
 copy_ssh() {
-    if [ "$KEYPATH" ]
+    if [ "$SSH_KEY_PATH" ]
     then
-        echo "Copying $KEYPATH to $CONTAINERNAME:/home/botdev/.ssh/id_rsa ..."
-        docker cp "$KEYPATH" $CONTAINERNAME:/home/botdev/.ssh/id_rsa
-        docker exec -it -u root $CONTAINERNAME /bin/bash -c "chown botdev:botdev /home/botdev/.ssh/id_rsa; chmod 0600 /home/botdev/.ssh/id_rsa"
+        echo "Copying $SSH_KEY_PATH to $CONTAINERNAME:/home/bot/.ssh/id_ssh ..."
+        docker cp "$SSH_KEY_PATH" $CONTAINERNAME:/home/bot/.ssh/id_ssh
+        docker exec -it -u root $CONTAINERNAME /bin/bash -c "chown bot:bot /home/bot/.ssh/id_ssh; chmod 0600 /home/bot/.ssh/id_ssh"
     fi
 }
 
 case $COMMAND in
-up )
-    while getopts ":bk:u" OPT; do
+profile )
+    CONTAINERNAME="$1"
+    GIT_USER="$2"
+    GIT_EMAIL="$3"
+    SSH_KEY_PATH="$4"
+    cat <<EOF
+## Lines starting with #| are used by the cbot.sh script
+GIT_AUTHOR_NAME="${GIT_USER}"
+GIT_AUTHOR_EMAIL=${GIT_EMAIL}
+GIT_COMMITTER_NAME="${GIT_USER}"
+GIT_COMMITTER_EMAIL=${GIT_EMAIL}
+#|CONTAINERNAME=${CONTAINERNAME}
+EOF
+    if [ "$SSH_KEY_PATH" ]
+    then
+        echo "#|SSH_KEY_PATH=${SSH_KEY_PATH}"
+    fi
+    exit 0
+    ;;
+remove )
+    GOPHER_PROFILE=$1
+    check_profile
+    eval `read_profile`
+    docker stop $CONTAINERNAME >/dev/null && docker rm $CONTAINERNAME >/dev/null
+    echo "Removed"
+    exit 0
+    ;;
+stop )
+    GOPHER_PROFILE=$1
+    check_profile
+    eval `read_profile`
+    docker stop $CONTAINERNAME >/dev/null
+    echo "Stopped"
+    exit 0
+    ;;
+dev )
+    while getopts ":u" OPT; do
         case $OPT in
-        b )
-            BARE="true"
-            ;;
-        k )
-            KEYPATH="$OPTARG"
-            ;;
         u )
             PULL="true"
             ;;
@@ -76,21 +152,18 @@ up )
     done
     shift $((OPTIND -1))
 
-    if [ $# -eq 0 ]
-    then
-        echo "Wrong number of arguments given"
-        usage
-        exit 1
-    fi
-
     IMAGE_SPEC="$IMAGE_NAME:$IMAGE_TAG"
 
-    CONTAINERNAME="$1"
+    GOPHER_PROFILE=$1
+    check_profile
+    eval `read_profile`
 
     if STATUS=$(docker inspect -f {{.State.Status}} $CONTAINERNAME 2>/dev/null)
     then
+        echo "(found existing container '$CONTAINERNAME', re-using)"
         if [ "$STATUS" == "exited" ]
         then
+            echo "Starting '$CONTAINERNAME':"
             docker start $CONTAINERNAME
             wait_for_container
             if [ ! "$SUCCESS" ]
@@ -106,29 +179,20 @@ up )
         exit 0
     fi
 
-    REQUIRED=2
-    [ "$BARE" ] && REQUIRED=1
-
-    if [ $# -ne $REQUIRED ]
-    then
-        echo "Wrong number of arguments given"
-        usage
-        exit 1
-    fi
-
     if [ "$PULL" ]
     then
         docker pull $IMAGE_SPEC
     fi
 
-    if [ ! "$BARE" ]
-    then
-        ENV_FILE_ARG="--env-file $2"
-    fi
-
     RANDOM_TOKEN="$(openssl rand -hex 21)"
 
-    docker run -d -p 127.0.0.1:7777:7777 $ENV_FILE_ARG --name $CONTAINERNAME $IMAGE_SPEC --connection-token $RANDOM_TOKEN
+    echo "Running '$CONTAINERNAME':"
+    docker run -d \
+        -p 127.0.0.1:7777:7777 \
+        -p 127.0.0.1:8888:8888 \
+        --env-file $GOPHER_PROFILE \
+        --name $CONTAINERNAME $IMAGE_SPEC \
+        --connection-token $RANDOM_TOKEN
 
     wait_for_container
     if [ ! "$SUCCESS" ]

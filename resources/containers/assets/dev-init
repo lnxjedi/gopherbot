@@ -2,16 +2,16 @@
 # to be activated during container builds by adding
 # a call to the end of $HOME/.bashrc
 check-load-ssh(){
-    [ ! -e $HOME/.ssh/id_rsa ] && return
-    if ! ssh-add -l >/dev/null && [ -e $HOME/.ssh/id_rsa ]
+    [ ! -e $HOME/.ssh/id_ssh ] && return
+    if ! ssh-add -l >/dev/null && [ -e $HOME/.ssh/id_ssh ]
     then
         echo "Loading ssh private key ..."
-        ssh-add
+        ssh-add $HOME/.ssh/id_ssh
     fi
-    if ssh-add -l >/dev/null && [ -e $HOME/.ssh/id_rsa ]
+    if ssh-add -l >/dev/null && [ -e $HOME/.ssh/id_ssh ]
     then
         echo "Removing ssh private key ..."
-        rm -f $HOME/.ssh/id_rsa
+        rm -f $HOME/.ssh/id_ssh
     fi
 }
 # ssh-agent in shell sessions
