@@ -35,6 +35,9 @@ type ConnectorMessage struct {
 	UserName, UserID string
 	// optional / required channel values
 	ChannelName, ChannelID string
+	// Opaque value
+	ThreadID        string
+	ThreadedMessage bool
 	// DirectMessage - whether the message should be considered private between user and robot
 	DirectMessage bool
 	// BotMessage - true when the connector is certain the message has been sent to the robot,

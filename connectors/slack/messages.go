@@ -225,21 +225,22 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 	} else {
 		threadedMessage = true
 	}
-	s.Log(robot.Debug, "DEBUG: ts is '%s', tts is '%s', threadID is '%s'; threaded message: %t", ts, tts, threadID, threadedMessage)
 	// some bot messages don't have any text, so check for a fallback
 	if text == "" && len(msg.Attachments) > 0 {
 		text = msg.Attachments[0].Fallback
 	}
 	text = s.processText(text)
 	botMsg := &robot.ConnectorMessage{
-		Protocol:      "slack",
-		UserID:        userID,
-		ChannelID:     chanID,
-		DirectMessage: ci.IsIM,
-		BotMessage:    false,
-		MessageText:   text,
-		MessageObject: msg,
-		Client:        s.api,
+		Protocol:        "slack",
+		UserID:          userID,
+		ChannelID:       chanID,
+		ThreadID:        threadID,
+		ThreadedMessage: threadedMessage,
+		DirectMessage:   ci.IsIM,
+		BotMessage:      false,
+		MessageText:     text,
+		MessageObject:   msg,
+		Client:          s.api,
 	}
 	userName, ok := s.userName(userID)
 	if !ok {
@@ -266,9 +267,10 @@ func (s *slackConnector) processSlashCmdSocketMode(cmd *slack.SlashCommand) {
 	}
 	text := s.processText(cmd.Text)
 	botMsg := &robot.ConnectorMessage{
-		Protocol:      "slack",
-		UserID:        userID,
-		ChannelID:     chanID,
+		Protocol:  "slack",
+		UserID:    userID,
+		ChannelID: chanID,
+		// ThreadID should be empty, and ThreadedMessage always false
 		DirectMessage: ci.IsIM,
 		BotMessage:    true,
 		MessageText:   text,
