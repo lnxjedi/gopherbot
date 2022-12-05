@@ -514,6 +514,8 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	}
 	envhash["GOPHER_CONFIGDIR"] = configFull
 	envhash["GOPHER_CHANNEL"] = w.Channel
+	envhash["GOPHER_THREAD_ID"] = w.ThreadID
+	envhash["GOPHER_THREADED_MESSAGE"] = fmt.Sprintf("%t", w.ThreadedMessage)
 	envhash["GOPHER_USER"] = w.User
 	envhash["GOPHER_PROTOCOL"] = strings.ToLower(fmt.Sprintf("%s", w.Protocol))
 	envhash["GOPHER_TASK_NAME"] = c.taskName
