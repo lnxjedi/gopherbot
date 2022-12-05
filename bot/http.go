@@ -50,6 +50,13 @@ type channelmessage struct {
 	Base64  bool
 }
 
+type channelthreadmessage struct {
+	Channel string
+	Thread  string
+	Message string
+	Base64  bool
+}
+
 type taskcall struct {
 	Name    string
 	CmdArgs []string
@@ -107,6 +114,13 @@ type usermessage struct {
 }
 
 type userchannelmessage struct {
+	User    string
+	Channel string
+	Message string
+	Base64  bool
+}
+
+type userchannelthreadmessage struct {
 	User    string
 	Channel string
 	Message string

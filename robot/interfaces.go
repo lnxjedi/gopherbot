@@ -99,9 +99,16 @@ type Connector interface {
 	JoinChannel(c string) RetVal
 	// SendProtocolChannelMessage sends a message to a channel
 	SendProtocolChannelMessage(channelname, msg string, format MessageFormat) RetVal
+	// SendProtocolChannelThreadMessage sends a message to a thread in a channel,
+	// starting a thread if none exists, and falls back to SPCM if threading
+	// not supported.
+	SendProtocolChannelThreadMessage(channelname, threadid, msg string, format MessageFormat) RetVal
 	// SendProtocolUserChannelMessage directs a message to a user in a channel
 	// This method also supplies what the bot engine believes to be the username.
 	SendProtocolUserChannelMessage(userid, username, channelname, msg string, format MessageFormat) RetVal
+	// SendProtocolUserChannelThreadMessage directs a message to a user in a channel
+	// This method also supplies what the bot engine believes to be the username.
+	SendProtocolUserChannelThreadMessage(userid, username, channelname, threadid, msg string, format MessageFormat) RetVal
 	// SendProtocolUserMessage sends a direct message to a user if supported.
 	// The value of user will be either "<userid>", the connector internal
 	// userID in brackets, or "username", a string name the connector associates
