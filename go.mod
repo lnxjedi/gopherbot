@@ -14,6 +14,7 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/joho/godotenv v1.3.0
 	github.com/jordan-wright/email v0.0.0-20200121133829-a0b5c5b58bb6
+	github.com/lnxjedi/gopherbot/robot v0.0.0-20221205155336-9f52206a3a2a // indirect
 	github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
