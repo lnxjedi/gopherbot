@@ -2,16 +2,16 @@ FROM docker.io/buildpack-deps:bullseye-curl
 
 #######
 #
-# containerfile.base - official container build for developing Gopherbot
-# and Robots built from Gopherbot. Automatically built every week.
-# See also: containerfile.daily
+# containerfile.base - base container build for Gopherbot development
+# and running production Robots built from Gopherbot. Automatically built
+# every week.
+# See also: containerfile.dev
 #
 #######
 
-# ARG OVSC_LATEST=openvscode-server-v1.73.1 # dynamically detected
 ARG OVSC_ORG="gitpod-io"
 ARG OPENVSCODE_SERVER_ROOT="/home/.openvscode-server"
-ARG USERNAME=botdev
+ARG USERNAME=bot
 ARG USER_UID=1001
 ARG USER_GID=$USER_UID
 
@@ -77,8 +77,6 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 
 RUN chmod g+rw /home && \
-    mkdir -p /home/${USERNAME}/workspace && \
-    chown -R $USERNAME:$USERNAME /home/${USERNAME}/workspace && \
     chown -R $USERNAME:$USERNAME ${OPENVSCODE_SERVER_ROOT}
 
 # For kubernetes
@@ -89,11 +87,7 @@ RUN /home/.openvscode-server/bin/openvscode-server --install-extension golang.Go
   /home/.openvscode-server/bin/openvscode-server --install-extension rebornix.ruby && \
   /home/.openvscode-server/bin/openvscode-server --install-extension ms-python.python
 
-RUN echo -n "PS1='" >> /home/${USERNAME}/.bashrc && \
-    echo -n '\[\]\[\e]0;\u@\h: \w\a\]${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u:\[\033[01;34m\]\w\[\033[00m\]\$ \[\]' >> /home/${USERNAME}/.bashrc && \
-    echo "'" >> /home/${USERNAME}/.bashrc
-
-WORKDIR /home/${USERNAME}/workspace/
+WORKDIR /home/${USERNAME}
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \

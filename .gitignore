@@ -16,7 +16,6 @@ tasks/gopherbot_v2.py
 # For dev env
 gopherbot-doc
 robot.log
-start.sh
 .vscode
 *fail.log
 tmp/

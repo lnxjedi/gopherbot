@@ -1,13 +1,13 @@
 {
     "folders": [
         {
-                "path": "workspace/robot"
+                "path": "/home/bot"
         },
         {
                 "path": "/opt/gopherbot"
         },
         {
-                "path": "workspace/gopherbot-doc"
+                "path": "/opt/gopherbot-doc"
         }
     ],
     "settings": {}
