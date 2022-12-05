@@ -100,7 +100,7 @@ github.com/pquerna/otp/totp
 # github.com/robfig/cron v1.2.0
 ## explicit
 github.com/robfig/cron
-# github.com/slack-go/slack v0.11.2 => github.com/lnxjedi/slack v0.1.1
+# github.com/slack-go/slack v0.11.4
 ## explicit
 github.com/slack-go/slack
 github.com/slack-go/slack/internal/backoff
@@ -120,4 +120,3 @@ golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 # gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
-# github.com/slack-go/slack => github.com/lnxjedi/slack v0.1.1

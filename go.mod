@@ -20,12 +20,13 @@ require (
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/pquerna/otp v1.3.0
 	github.com/robfig/cron v1.2.0
-	github.com/slack-go/slack v0.11.2
+	github.com/slack-go/slack v0.11.4
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/sys v0.0.0-20210423082822-04245dca01da
 )
 
-replace github.com/slack-go/slack => github.com/lnxjedi/slack v0.1.1
+// *** When using a fork
+// replace github.com/slack-go/slack => github.com/lnxjedi/slack v0.1.1
 
 // *** For local Slack lib dev - comment out any other replace for slack above
 // replace github.com/slack-go/slack => ../slack

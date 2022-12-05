@@ -155,6 +155,47 @@ type GroupRenameInfo struct {
 	Created int    `json:"created"`
 }
 
+// FileChangeEvent represents the information associated with the File change
+// event.
+type FileChangeEvent struct {
+	Type   string        `json:"type"`
+	FileID string        `json:"file_id"`
+	File   FileEventFile `json:"file"`
+}
+
+// FileDeletedEvent represents the information associated with the File deleted
+// event.
+type FileDeletedEvent struct {
+	Type           string `json:"type"`
+	FileID         string `json:"file_id"`
+	EventTimestamp string `json:"event_ts"`
+}
+
+// FileSharedEvent represents the information associated with the File shared
+// event.
+type FileSharedEvent struct {
+	Type           string        `json:"type"`
+	ChannelID      string        `json:"channel_id"`
+	FileID         string        `json:"file_id"`
+	UserID         string        `json:"user_id"`
+	File           FileEventFile `json:"file"`
+	EventTimestamp string        `json:"event_ts"`
+}
+
+// FileUnsharedEvent represents the information associated with the File
+// unshared event.
+type FileUnsharedEvent struct {
+	Type   string        `json:"type"`
+	FileID string        `json:"file_id"`
+	File   FileEventFile `json:"file"`
+}
+
+// FileEventFile represents information on the specific file being shared in a
+// file-related Slack event.
+type FileEventFile struct {
+	ID string `json:"id"`
+}
+
 // GridMigrationFinishedEvent An enterprise grid migration has finished on this workspace.
 type GridMigrationFinishedEvent struct {
 	Type         string `json:"type"`
@@ -178,11 +219,11 @@ type LinkSharedEvent struct {
 	// compose text area.
 	MessageTimeStamp string        `json:"message_ts"`
 	ThreadTimeStamp  string        `json:"thread_ts"`
-	Links            []sharedLinks `json:"links"`
+	Links            []SharedLinks `json:"links"`
 	EventTimestamp   string        `json:"event_ts"`
 }
 
-type sharedLinks struct {
+type SharedLinks struct {
 	Domain string `json:"domain"`
 	URL    string `json:"url"`
 }
@@ -332,6 +373,47 @@ type WorkflowStepExecuteEvent struct {
 	EventTimestamp string            `json:"event_ts"`
 }
 
+// MessageMetadataPostedEvent is sent, if a message with metadata is posted
+type MessageMetadataPostedEvent struct {
+	Type             string               `json:"type"`
+	AppId            string               `json:"app_id"`
+	BotId            string               `json:"bot_id"`
+	UserId           string               `json:"user_id"`
+	TeamId           string               `json:"team_id"`
+	ChannelId        string               `json:"channel_id"`
+	Metadata         *slack.SlackMetadata `json:"metadata"`
+	MessageTimestamp string               `json:"message_ts"`
+	EventTimestamp   string               `json:"event_ts"`
+}
+
+// MessageMetadataUpdatedEvent is sent, if a message with metadata is deleted
+type MessageMetadataUpdatedEvent struct {
+	Type             string               `json:"type"`
+	ChannelId        string               `json:"channel_id"`
+	EventTimestamp   string               `json:"event_ts"`
+	PreviousMetadata *slack.SlackMetadata `json:"previous_metadata"`
+	AppId            string               `json:"app_id"`
+	BotId            string               `json:"bot_id"`
+	UserId           string               `json:"user_id"`
+	TeamId           string               `json:"team_id"`
+	MessageTimestamp string               `json:"message_ts"`
+	Metadata         *slack.SlackMetadata `json:"metadata"`
+}
+
+// MessageMetadataDeletedEvent is sent, if a message with metadata is deleted
+type MessageMetadataDeletedEvent struct {
+	Type             string               `json:"type"`
+	ChannelId        string               `json:"channel_id"`
+	EventTimestamp   string               `json:"event_ts"`
+	PreviousMetadata *slack.SlackMetadata `json:"previous_metadata"`
+	AppId            string               `json:"app_id"`
+	BotId            string               `json:"bot_id"`
+	UserId           string               `json:"user_id"`
+	TeamId           string               `json:"team_id"`
+	MessageTimestamp string               `json:"message_ts"`
+	DeletedTimestamp string               `json:"deleted_ts"`
+}
+
 type EventWorkflowStep struct {
 	WorkflowStepExecuteID string                      `json:"workflow_step_execute_id"`
 	WorkflowID            string                      `json:"workflow_id"`
@@ -475,6 +557,14 @@ const (
 	GroupLeft = EventsAPIType("group_left")
 	// GroupRename is sent when a group is renamed.
 	GroupRename = EventsAPIType("group_rename")
+	// FileChange is sent when a file is changed.
+	FileChange = EventsAPIType("file_change")
+	// FileDeleted is sent when a file is deleted.
+	FileDeleted = EventsAPIType("file_deleted")
+	// FileShared is sent when a file is shared.
+	FileShared = EventsAPIType("file_shared")
+	// FileUnshared is sent when a file is unshared.
+	FileUnshared = EventsAPIType("file_unshared")
 	// GridMigrationFinished An enterprise grid migration has finished on this workspace.
 	GridMigrationFinished = EventsAPIType("grid_migration_finished")
 	// GridMigrationStarted An enterprise grid migration has started on this workspace.
@@ -503,39 +593,52 @@ const (
 	EmojiChanged = EventsAPIType("emoji_changed")
 	// WorkflowStepExecute Happens, if a workflow step of your app is invoked
 	WorkflowStepExecute = EventsAPIType("workflow_step_execute")
+	// MessageMetadataPosted A message with metadata was posted
+	MessageMetadataPosted = EventsAPIType("message_metadata_posted")
+	// MessageMetadataPosted A message with metadata was updated
+	MessageMetadataUpdated = EventsAPIType("message_metadata_updated")
+	// MessageMetadataPosted A message with metadata was deleted
+	MessageMetadataDeleted = EventsAPIType("message_metadata_deleted")
 )
 
 // EventsAPIInnerEventMapping maps INNER Event API events to their corresponding struct
 // implementations. The structs should be instances of the unmarshalling
 // target for the matching event type.
 var EventsAPIInnerEventMapping = map[EventsAPIType]interface{}{
-	AppMention:            AppMentionEvent{},
-	AppHomeOpened:         AppHomeOpenedEvent{},
-	AppUninstalled:        AppUninstalledEvent{},
-	ChannelCreated:        ChannelCreatedEvent{},
-	ChannelDeleted:        ChannelDeletedEvent{},
-	ChannelArchive:        ChannelArchiveEvent{},
-	ChannelUnarchive:      ChannelUnarchiveEvent{},
-	ChannelLeft:           ChannelLeftEvent{},
-	ChannelRename:         ChannelRenameEvent{},
-	ChannelIDChanged:      ChannelIDChangedEvent{},
-	GroupDeleted:          GroupDeletedEvent{},
-	GroupArchive:          GroupArchiveEvent{},
-	GroupUnarchive:        GroupUnarchiveEvent{},
-	GroupLeft:             GroupLeftEvent{},
-	GroupRename:           GroupRenameEvent{},
-	GridMigrationFinished: GridMigrationFinishedEvent{},
-	GridMigrationStarted:  GridMigrationStartedEvent{},
-	LinkShared:            LinkSharedEvent{},
-	Message:               MessageEvent{},
-	MemberJoinedChannel:   MemberJoinedChannelEvent{},
-	MemberLeftChannel:     MemberLeftChannelEvent{},
-	PinAdded:              PinAddedEvent{},
-	PinRemoved:            PinRemovedEvent{},
-	ReactionAdded:         ReactionAddedEvent{},
-	ReactionRemoved:       ReactionRemovedEvent{},
-	TeamJoin:              TeamJoinEvent{},
-	TokensRevoked:         TokensRevokedEvent{},
-	EmojiChanged:          EmojiChangedEvent{},
-	WorkflowStepExecute:   WorkflowStepExecuteEvent{},
+	AppMention:             AppMentionEvent{},
+	AppHomeOpened:          AppHomeOpenedEvent{},
+	AppUninstalled:         AppUninstalledEvent{},
+	ChannelCreated:         ChannelCreatedEvent{},
+	ChannelDeleted:         ChannelDeletedEvent{},
+	ChannelArchive:         ChannelArchiveEvent{},
+	ChannelUnarchive:       ChannelUnarchiveEvent{},
+	ChannelLeft:            ChannelLeftEvent{},
+	ChannelRename:          ChannelRenameEvent{},
+	ChannelIDChanged:       ChannelIDChangedEvent{},
+	FileChange:             FileChangeEvent{},
+	FileDeleted:            FileDeletedEvent{},
+	FileShared:             FileSharedEvent{},
+	FileUnshared:           FileUnsharedEvent{},
+	GroupDeleted:           GroupDeletedEvent{},
+	GroupArchive:           GroupArchiveEvent{},
+	GroupUnarchive:         GroupUnarchiveEvent{},
+	GroupLeft:              GroupLeftEvent{},
+	GroupRename:            GroupRenameEvent{},
+	GridMigrationFinished:  GridMigrationFinishedEvent{},
+	GridMigrationStarted:   GridMigrationStartedEvent{},
+	LinkShared:             LinkSharedEvent{},
+	Message:                MessageEvent{},
+	MemberJoinedChannel:    MemberJoinedChannelEvent{},
+	MemberLeftChannel:      MemberLeftChannelEvent{},
+	PinAdded:               PinAddedEvent{},
+	PinRemoved:             PinRemovedEvent{},
+	ReactionAdded:          ReactionAddedEvent{},
+	ReactionRemoved:        ReactionRemovedEvent{},
+	TeamJoin:               TeamJoinEvent{},
+	TokensRevoked:          TokensRevokedEvent{},
+	EmojiChanged:           EmojiChangedEvent{},
+	WorkflowStepExecute:    WorkflowStepExecuteEvent{},
+	MessageMetadataPosted:  MessageMetadataPostedEvent{},
+	MessageMetadataUpdated: MessageMetadataUpdatedEvent{},
+	MessageMetadataDeleted: MessageMetadataDeletedEvent{},
 }
