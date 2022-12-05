@@ -216,6 +216,16 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 		return
 	}
 	text := message.Text
+	ts := message.TimeStamp
+	tts := message.ThreadTimeStamp
+	threadID := tts
+	threadedMessage := false
+	if len(tts) == 0 {
+		threadID = ts
+	} else {
+		threadedMessage = true
+	}
+	s.Log(robot.Debug, "DEBUG: ts is '%s', tts is '%s', threadID is '%s'; threaded message: %t", ts, tts, threadID, threadedMessage)
 	// some bot messages don't have any text, so check for a fallback
 	if text == "" && len(msg.Attachments) > 0 {
 		text = msg.Attachments[0].Fallback
