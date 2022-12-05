@@ -14,7 +14,7 @@ import (
 	"text/template"
 
 	"github.com/ghodss/yaml"
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 const appendPrefix = "Append"

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 /* Technical notes on the waiter implementation
@@ -101,24 +101,26 @@ func init() {
 // text and RetVal = Ok.
 // If there's an error getting the reply, it returns an empty string
 // with one of the following RetVals:
-//  UserNotFound
-//  ChannelNotFound
-//	Interrupted - the user canceled with '-'
-//  UseDefaultValue - user supplied a single "=", meaning "use the default value"
-//	ReplyNotMatched - didn't successfully match for any reason
-//	MatcherNotFound - the regexId didn't correspond to a valid regex
-//	TimeoutExpired - the user didn't respond within the timeout window
+//
+//	 UserNotFound
+//	 ChannelNotFound
+//		Interrupted - the user canceled with '-'
+//	 UseDefaultValue - user supplied a single "=", meaning "use the default value"
+//		ReplyNotMatched - didn't successfully match for any reason
+//		MatcherNotFound - the regexId didn't correspond to a valid regex
+//		TimeoutExpired - the user didn't respond within the timeout window
 //
 // Plugin authors can define regex's for regexId's in the plugin's JSON config,
 // with the restriction that the regexId must start with a lowercase letter.
 // A pre-definied regex from the following list can also be used:
-// 	Email
-//	Domain - an alpha-numeric domain name
-//	OTP - a 6-digit one-time password code
-//	IPAddr
-//	SimpleString - Characters commonly found in most english sentences, doesn't
-//    include special characters like @, {, etc.
-//	YesNo
+//
+//		Email
+//		Domain - an alpha-numeric domain name
+//		OTP - a 6-digit one-time password code
+//		IPAddr
+//		SimpleString - Characters commonly found in most english sentences, doesn't
+//	   include special characters like @, {, etc.
+//		YesNo
 func (r Robot) PromptForReply(regexID string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	var rep string
 	var ret robot.RetVal

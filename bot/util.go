@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var idRegex = regexp.MustCompile(`^<(.*)>$`)

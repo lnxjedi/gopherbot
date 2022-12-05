@@ -3,7 +3,7 @@ package test
 import (
 	"strings"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // BotMessage is for receiving messages from the robot

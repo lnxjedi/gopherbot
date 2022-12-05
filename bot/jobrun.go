@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // (?i:^\s*run[- ]job ([A-Za-z][\w-]*)(?: (.*))?\s*$)

@@ -1,6 +1,6 @@
 package rocket
 
-import "github.com/lnxjedi/robot"
+import "github.com/lnxjedi/gopherbot/robot"
 
 func (rc *rocketConnector) MessageHeard(u, c string) {
 	return

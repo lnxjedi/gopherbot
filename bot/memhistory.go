@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 type memlogentry struct {

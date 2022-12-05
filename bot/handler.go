@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // an empty object type for passing a Handler to the connector.
@@ -127,7 +127,7 @@ var chanLoggers = struct {
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
-//func (h handler) IncomingMessage(channelName, userName, messageFull string, raw interface{}) {
+// func (h handler) IncomingMessage(channelName, userName, messageFull string, raw interface{}) {
 func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	// Note: zero-len channel name and ID is valid; true of direct messages for some connectors
 	if len(inc.UserName) == 0 && len(inc.UserID) == 0 {

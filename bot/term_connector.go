@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/lnxjedi/readline"
-	"github.com/lnxjedi/robot"
 )
 
 func init() {

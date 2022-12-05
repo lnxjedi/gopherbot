@@ -1,3 +1,4 @@
+//go:build !test
 // +build !test
 
 package bot
@@ -9,7 +10,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 	"golang.org/x/sys/unix"
 )
 

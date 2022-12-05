@@ -3,7 +3,7 @@ package bot
 import (
 	"fmt"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 /* send_message.go - all the message sending methods for a worker or a Robot.

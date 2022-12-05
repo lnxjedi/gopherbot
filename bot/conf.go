@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 /* conf.go - methods and types for reading and storing json configuration */
@@ -63,6 +63,7 @@ type ConfigLoader struct {
 // - Attributes and info that might not be provided by the connector:
 //   - Mapping of protocol internal ID to username
 //   - Additional user attributes such as first / last name, email, etc.
+//
 // - Additional information needed by bot internals
 //   - BotUser flag
 type UserInfo struct {

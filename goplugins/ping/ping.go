@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/lnxjedi/gopherbot/v2/bot"
-	"github.com/lnxjedi/robot"
 )
 
 // DO NOT DISABLE THIS PLUGIN! ALL ROBAWTS MUST KNOW THE RULES

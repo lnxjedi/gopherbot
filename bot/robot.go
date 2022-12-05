@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 /* robot_methods.go defines some convenience functions on struct Robot to
@@ -140,13 +140,14 @@ func (r Robot) SetParameter(name, value string) bool {
 
 // SetWorkingDirectory sets the working directory of the pipeline for all scripts
 // executed. The value of path is interpreted as follows:
-// * "/absolute/path" - tasks that follow will start with this workingDirectory;
-//   "cleanup" won't work, see tasks/cleanup.sh (unsafe)
-// * "relative/path" - sets workingDirectory relative to baseDirectory;
-//   workSpace or $(pwd) depending on value of Homed for the job/plugin starting
-//   the pipeline
-// * "./sub/directory" - appends to the current workingDirectory
-// * "." - resets workingDirectory to baseDirectory
+//   - "/absolute/path" - tasks that follow will start with this workingDirectory;
+//     "cleanup" won't work, see tasks/cleanup.sh (unsafe)
+//   - "relative/path" - sets workingDirectory relative to baseDirectory;
+//     workSpace or $(pwd) depending on value of Homed for the job/plugin starting
+//     the pipeline
+//   - "./sub/directory" - appends to the current workingDirectory
+//   - "." - resets workingDirectory to baseDirectory
+//
 // Fails if the new working directory doesn't exist
 // See also: tasks/setworkdir.sh for updating working directory in a pipeline
 func (r Robot) SetWorkingDirectory(path string) bool {
@@ -291,7 +292,6 @@ func (r Robot) GetBotAttribute(a string) *robot.AttrRet {
 }
 
 /*
-
 GetTaskConfig sets a struct pointer to point to a config struct populated
 from configuration when plugins were loaded. To use, a plugin should define
 a struct for it's configuration data, e.g.:

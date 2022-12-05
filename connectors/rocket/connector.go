@@ -5,8 +5,8 @@ import (
 	"crypto/md5"
 	"time"
 
+	"github.com/lnxjedi/gopherbot/robot"
 	models "github.com/lnxjedi/gopherbot/v2/connectors/rocket/models"
-	"github.com/lnxjedi/robot"
 )
 
 var incoming chan models.Message
