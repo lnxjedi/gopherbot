@@ -1,8 +1,11 @@
 # github.com/Jeffail/gabs v1.4.0
 ## explicit
 github.com/Jeffail/gabs
-# github.com/aws/aws-sdk-go v1.40.34
-## explicit
+# github.com/apex/log v1.9.0
+## explicit; go 1.12
+github.com/apex/log
+# github.com/aws/aws-sdk-go v1.44.152
+## explicit; go 1.11
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/aws/awsutil
@@ -47,53 +50,54 @@ github.com/aws/aws-sdk-go/service/sso/ssoiface
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
+## explicit
 github.com/boombuler/barcode
 github.com/boombuler/barcode/qr
 github.com/boombuler/barcode/utils
-# github.com/chzyer/logex v1.1.10
-## explicit
-# github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1
-## explicit
+# github.com/chzyer/test v1.0.0
+## explicit; go 1.15
 # github.com/davecgh/go-spew v1.1.1
-github.com/davecgh/go-spew/spew
-# github.com/duosecurity/duo_api_golang v0.0.0-20200206192355-a9725220d6ca
 ## explicit
+github.com/davecgh/go-spew/spew
+# github.com/duosecurity/duo_api_golang v0.0.0-20221117185402-091daa09e19d
+## explicit; go 1.15
 github.com/duosecurity/duo_api_golang
 github.com/duosecurity/duo_api_golang/authapi
-# github.com/emersion/go-textwrapper v0.0.0-20160606182133-d0e65e56babe
+# github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594
 ## explicit
 github.com/emersion/go-textwrapper
 # github.com/ghodss/yaml v1.0.0
 ## explicit
 github.com/ghodss/yaml
-# github.com/gopackage/ddp v0.0.0-20170117053602-652027933df4
-## explicit
+# github.com/gopackage/ddp v0.0.4
+## explicit; go 1.17
 github.com/gopackage/ddp
 # github.com/gorilla/websocket v1.5.0
-## explicit
+## explicit; go 1.12
 github.com/gorilla/websocket
 # github.com/jmespath/go-jmespath v0.4.0
+## explicit; go 1.14
 github.com/jmespath/go-jmespath
-# github.com/joho/godotenv v1.3.0
-## explicit
+# github.com/joho/godotenv v1.4.0
+## explicit; go 1.12
 github.com/joho/godotenv
 # github.com/jordan-wright/email v0.0.0-20200121133829-a0b5c5b58bb6
 ## explicit
 github.com/jordan-wright/email
 # github.com/lnxjedi/gopherbot/robot v0.0.0-20221205155336-9f52206a3a2a
-## explicit
+## explicit; go 1.14
 github.com/lnxjedi/gopherbot/robot
 # github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159
 ## explicit
 github.com/lnxjedi/readline
-# github.com/onsi/ginkgo v1.12.0
+# github.com/pkg/errors v0.9.1
 ## explicit
-# github.com/onsi/gomega v1.9.0
-## explicit
+github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
+## explicit
 github.com/pmezard/go-difflib/difflib
 # github.com/pquerna/otp v1.3.0
-## explicit
+## explicit; go 1.12
 github.com/pquerna/otp
 github.com/pquerna/otp/hotp
 github.com/pquerna/otp/totp
@@ -101,7 +105,7 @@ github.com/pquerna/otp/totp
 ## explicit
 github.com/robfig/cron
 # github.com/slack-go/slack v0.11.4
-## explicit
+## explicit; go 1.16
 github.com/slack-go/slack
 github.com/slack-go/slack/internal/backoff
 github.com/slack-go/slack/internal/errorsx
@@ -109,14 +113,18 @@ github.com/slack-go/slack/internal/timex
 github.com/slack-go/slack/slackevents
 github.com/slack-go/slack/slackutilsx
 github.com/slack-go/slack/socketmode
-# github.com/stretchr/testify v1.5.1
-## explicit
+# github.com/stretchr/testify v1.8.1
+## explicit; go 1.13
 github.com/stretchr/testify/assert
-# golang.org/x/net v0.0.0-20210614182718-04defd469f4e
+# golang.org/x/net v0.1.0
+## explicit; go 1.17
 golang.org/x/net/websocket
-# golang.org/x/sys v0.0.0-20210423082822-04245dca01da
-## explicit
-golang.org/x/sys/internal/unsafeheader
+# golang.org/x/sys v0.3.0
+## explicit; go 1.17
 golang.org/x/sys/unix
-# gopkg.in/yaml.v2 v2.2.8
+# gopkg.in/yaml.v2 v2.3.0
+## explicit
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3
