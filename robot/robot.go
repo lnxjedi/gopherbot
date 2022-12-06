@@ -22,16 +22,22 @@ type Robot interface {
 	Direct() Robot
 	Log(l LogLevel, m string, v ...interface{}) bool
 	SendChannelMessage(ch, msg string, v ...interface{}) RetVal
+	SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) RetVal
 	SendUserChannelMessage(u, ch, msg string, v ...interface{}) RetVal
+	SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) RetVal
 	SendUserMessage(u, msg string, v ...interface{}) RetVal
 	Reply(msg string, v ...interface{}) RetVal
+	ReplyThread(msg string, v ...interface{}) RetVal
 	Say(msg string, v ...interface{}) RetVal
+	SayThread(msg string, v ...interface{}) RetVal
 	RandomInt(n int) int
 	RandomString(s []string) string
 	Pause(s float64)
 	PromptForReply(regexID string, prompt string, v ...interface{}) (string, RetVal)
+	PromptThreadForReply(regexID string, prompt string, v ...interface{}) (string, RetVal)
 	PromptUserForReply(regexID string, user string, prompt string, v ...interface{}) (string, RetVal)
-	PromptUserChannelForReply(regexID string, user string, channel string, prompt string, v ...interface{}) (string, RetVal)
+	PromptUserChannelForReply(regexID string, user, channel string, prompt string, v ...interface{}) (string, RetVal)
+	PromptUserChannelThreadForReply(regexID string, user, channel, thread string, prompt string, v ...interface{}) (string, RetVal)
 	CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal)
 	CheckinDatum(key, locktoken string)
 	UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal)

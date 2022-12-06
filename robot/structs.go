@@ -20,6 +20,8 @@ type Message struct {
 	ProtocolUser    string            // the protocol internal ID of the user
 	Channel         string            // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
 	ProtocolChannel string            // the protocol internal channel ID
+	ThreadID        string            // Opaque thread identifier for protocols that support it, otherwise empty
+	ThreadedMessage bool              // Indicates if the incoming message was in a thread, false if not supported
 	Protocol        Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
 	Incoming        *ConnectorMessage // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
 	Format          MessageFormat     // The outgoing message format, one of Raw, Fixed, or Variable

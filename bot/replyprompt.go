@@ -50,7 +50,7 @@ type replyWaiter struct {
 
 // a reply matcher is used as the key in the replys map
 type replyMatcher struct {
-	user, channel string // Only one reply at a time can be requested for a given user/channel combination
+	user, channel, thread string // Only one reply at a time can be requested for a given user/channel/thread combination
 }
 
 // a reply is sent over the replyWaiter channel when a user replies
@@ -128,7 +128,30 @@ func (r Robot) PromptForReply(regexID string, prompt string, v ...interface{}) (
 		prompt = fmt.Sprintf(prompt, v...)
 	}
 	for i := 0; i < 3; i++ {
-		rep, ret = r.promptInternal(regexID, r.User, r.Channel, prompt)
+		var thread string
+		if r.ThreadedMessage {
+			thread = r.ThreadID
+		}
+		rep, ret = r.promptInternal(regexID, r.User, r.Channel, thread, prompt)
+		if ret == robot.RetryPrompt {
+			continue
+		}
+		return rep, ret
+	}
+	if ret == robot.RetryPrompt {
+		return rep, robot.Interrupted
+	}
+	return rep, ret
+}
+
+func (r Robot) PromptThreadForReply(regexID string, prompt string, v ...interface{}) (string, robot.RetVal) {
+	var rep string
+	var ret robot.RetVal
+	if len(v) > 0 {
+		prompt = fmt.Sprintf(prompt, v...)
+	}
+	for i := 0; i < 3; i++ {
+		rep, ret = r.promptInternal(regexID, r.User, r.Channel, r.ThreadID, prompt)
 		if ret == robot.RetryPrompt {
 			continue
 		}
@@ -149,7 +172,7 @@ func (r Robot) PromptUserForReply(regexID string, user string, prompt string, v 
 		prompt = fmt.Sprintf(prompt, v...)
 	}
 	for i := 0; i < 3; i++ {
-		rep, ret = r.promptInternal(regexID, user, "", prompt)
+		rep, ret = r.promptInternal(regexID, user, "", "", prompt)
 		if ret == robot.RetryPrompt {
 			continue
 		}
@@ -170,7 +193,28 @@ func (r Robot) PromptUserChannelForReply(regexID string, user string, channel st
 		prompt = fmt.Sprintf(prompt, v...)
 	}
 	for i := 0; i < 3; i++ {
-		rep, ret = r.promptInternal(regexID, user, channel, prompt)
+		rep, ret = r.promptInternal(regexID, user, channel, "", prompt)
+		if ret == robot.RetryPrompt {
+			continue
+		}
+		return rep, ret
+	}
+	if ret == robot.RetryPrompt {
+		return rep, robot.Interrupted
+	}
+	return rep, ret
+}
+
+// PromptUserChannelForReply is identical to PromptForReply, but prompts a
+// specific user in a given channel.
+func (r Robot) PromptUserChannelThreadForReply(regexID string, user, channel, thread string, prompt string, v ...interface{}) (string, robot.RetVal) {
+	var rep string
+	var ret robot.RetVal
+	if len(v) > 0 {
+		prompt = fmt.Sprintf(prompt, v...)
+	}
+	for i := 0; i < 3; i++ {
+		rep, ret = r.promptInternal(regexID, user, channel, "", prompt)
 		if ret == robot.RetryPrompt {
 			continue
 		}
@@ -183,10 +227,11 @@ func (r Robot) PromptUserChannelForReply(regexID string, user string, channel st
 }
 
 // promptInternal can return 'RetryPrompt'
-func (r Robot) promptInternal(regexID string, user string, channel string, prompt string) (string, robot.RetVal) {
+func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (string, robot.RetVal) {
 	matcher := replyMatcher{
 		user:    user,
 		channel: channel,
+		thread:  thread,
 	}
 	var rep replyWaiter
 	task, _, job := getTask(r.currentTask)
@@ -237,7 +282,7 @@ func (r Robot) promptInternal(regexID string, user string, channel string, promp
 		if channel == "" {
 			ret = interfaces.SendProtocolUserMessage(puser, prompt, r.Format)
 		} else {
-			ret = interfaces.SendProtocolUserChannelMessage(puser, user, channel, prompt, r.Format)
+			ret = interfaces.SendProtocolUserChannelThreadMessage(puser, user, channel, thread, prompt, r.Format)
 		}
 		if ret != robot.Ok {
 			replies.Unlock()
