@@ -44,12 +44,6 @@ type logmessage struct {
 	Base64  bool
 }
 
-type channelmessage struct {
-	Channel string
-	Message string
-	Base64  bool
-}
-
 type channelthreadmessage struct {
 	Channel string
 	Thread  string
@@ -113,16 +107,10 @@ type usermessage struct {
 	Base64  bool
 }
 
-type userchannelmessage struct {
-	User    string
-	Channel string
-	Message string
-	Base64  bool
-}
-
 type userchannelthreadmessage struct {
 	User    string
 	Channel string
+	Thread  string
 	Message string
 	Base64  bool
 }
@@ -131,6 +119,7 @@ type replyrequest struct {
 	RegexID string
 	User    string
 	Channel string
+	Thread  string
 	Prompt  string
 	Base64  bool
 }
@@ -431,27 +420,51 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
 		return
 	case "SendChannelMessage":
-		var cm channelmessage
-		if !getArgs(rw, &f.FuncArgs, &cm) {
+		var ctm channelthreadmessage
+		if !getArgs(rw, &f.FuncArgs, &ctm) {
 			return
 		}
-		if cm.Base64 {
-			cm.Message = decode(cm.Message)
+		if ctm.Base64 {
+			ctm.Message = decode(ctm.Message)
 		}
 		sendReturn(rw, &botretvalresponse{
-			int(r.SendChannelMessage(cm.Channel, cm.Message)),
+			int(r.SendChannelMessage(ctm.Channel, ctm.Message)),
+		})
+		return
+	case "SendChannelThreadMessage":
+		var ctm channelthreadmessage
+		if !getArgs(rw, &f.FuncArgs, &ctm) {
+			return
+		}
+		if ctm.Base64 {
+			ctm.Message = decode(ctm.Message)
+		}
+		sendReturn(rw, &botretvalresponse{
+			int(r.SendChannelMessage(ctm.Channel, ctm.Message)),
 		})
 		return
 	case "SendUserChannelMessage":
-		var ucm userchannelmessage
-		if !getArgs(rw, &f.FuncArgs, &ucm) {
+		var uctm userchannelthreadmessage
+		if !getArgs(rw, &f.FuncArgs, &uctm) {
 			return
 		}
-		if ucm.Base64 {
-			ucm.Message = decode(ucm.Message)
+		if uctm.Base64 {
+			uctm.Message = decode(uctm.Message)
 		}
 		sendReturn(rw, &botretvalresponse{
-			int(r.SendUserChannelMessage(ucm.User, ucm.Channel, ucm.Message)),
+			int(r.SendUserChannelThreadMessage(uctm.User, uctm.Channel, uctm.Thread, uctm.Message)),
+		})
+		return
+	case "SendUserChannelThreadMessage":
+		var uctm userchannelthreadmessage
+		if !getArgs(rw, &f.FuncArgs, &uctm) {
+			return
+		}
+		if uctm.Base64 {
+			uctm.Message = decode(uctm.Message)
+		}
+		sendReturn(rw, &botretvalresponse{
+			int(r.SendUserChannelThreadMessage(uctm.User, uctm.Channel, uctm.Thread, uctm.Message)),
 		})
 		return
 	case "SendUserMessage":
@@ -466,7 +479,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			int(r.SendUserMessage(um.User, um.Message)),
 		})
 		return
-	case "PromptUserChannelForReply":
+	case "PromptUserChannelThreadForReply":
 		var rr replyrequest
 		if !getArgs(rw, &f.FuncArgs, &rr) {
 			return
