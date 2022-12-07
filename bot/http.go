@@ -474,7 +474,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if rr.Base64 {
 			rr.Prompt = decode(rr.Prompt)
 		}
-		reply, ret = r.promptInternal(rr.RegexID, rr.User, rr.Channel, rr.Prompt)
+		reply, ret = r.promptInternal(rr.RegexID, rr.User, rr.Channel, "", rr.Prompt)
 		sendReturn(rw, &replyresponse{reply, int(ret)})
 		return
 	// NOTE: "Say", "Reply", PromptForReply and PromptUserForReply are implemented
