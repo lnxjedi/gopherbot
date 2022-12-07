@@ -72,7 +72,7 @@ func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (tc *TestConnector) SendProtocolChannelThreadMessage(ch, mesg, thr string, f robot.MessageFormat) (ret robot.RetVal) {
+func (tc *TestConnector) SendProtocolChannelThreadMessage(ch, thr, mesg string, f robot.MessageFormat) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	msg := &BotMessage{
 		User:    "",
