@@ -11,11 +11,10 @@ Usage: ./botc.sh (options...) profile|dev|start|stop|remove (arguments...)
 
 ----
 Generate a profile for development:
-./cbot.sh profile (-k path/to/ssh/private/key) <container-name> "<full name>" <email>
- -k (path) - Load an ssh private key when using this profile
+./cbot.sh profile <container-name> "<full name>" <email> (path to ssh private key)
 
 Example:
-$ ./cbot.sh profile -k ~/.ssh/id_rsa bishop "David Parsley" parsley@linuxjedi.org | tee ~/bishop.env
+$ ./cbot.sh profile bishop "David Parsley" parsley@linuxjedi.org ~/.ssh/id_rsa | tee ~/bishop.env
 ## Lines starting with #| are used by the cbot.sh script
 GIT_AUTHOR_NAME="David Parsley"
 GIT_AUTHOR_EMAIL=parsley@linuxjedi.org
@@ -28,15 +27,6 @@ GIT_COMMITTER_EMAIL=parsley@linuxjedi.org
 Start a gopherbot development container:
 ./cbot.sh dev (-u) (path/to/profile)
  -u - pull the latest container version first
-
-Example:
-$ ./cbot.sh dev ~/bishop.env 
-Running 'bishop':
-Unable to find image 'ghcr.io/lnxjedi/gopherbot-dev:latest' locally
-latest: Pulling from lnxjedi/gopherbot-dev
-...
-Copying /home/david/.ssh/id_rsa to bishop:/home/bot/.ssh/id_ssh ...
-Access your dev environment at: http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=XXXXXXX
 
 ----
 Stop a gopherbot container:
@@ -113,28 +103,10 @@ copy_ssh() {
 
 case $COMMAND in
 profile )
-    while getopts ":k:" OPT; do
-        case $OPT in
-        k )
-            SSH_KEY_PATH="$OPTARG"
-            ;;
-        \? | h)
-            [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
-            usage
-            exit 0
-            ;;
-        esac
-    done
-    shift $((OPTIND -1))
-    if [ $# -ne 3 ]
-    then
-        echo "Wrong number of arguments"
-        usage
-        exit 1
-    fi
     CONTAINERNAME="$1"
     GIT_USER="$2"
     GIT_EMAIL="$3"
+    SSH_KEY_PATH="$4"
     cat <<EOF
 ## Lines starting with #| are used by the cbot.sh script
 GIT_AUTHOR_NAME="${GIT_USER}"
@@ -149,7 +121,7 @@ EOF
     fi
     exit 0
     ;;
-remove | rm )
+remove )
     GOPHER_PROFILE=$1
     check_profile
     eval `read_profile`

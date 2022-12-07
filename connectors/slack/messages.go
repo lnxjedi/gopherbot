@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
 )
@@ -216,20 +216,31 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 		return
 	}
 	text := message.Text
+	ts := message.TimeStamp
+	tts := message.ThreadTimeStamp
+	threadID := tts
+	threadedMessage := false
+	if len(tts) == 0 {
+		threadID = ts
+	} else {
+		threadedMessage = true
+	}
 	// some bot messages don't have any text, so check for a fallback
 	if text == "" && len(msg.Attachments) > 0 {
 		text = msg.Attachments[0].Fallback
 	}
 	text = s.processText(text)
 	botMsg := &robot.ConnectorMessage{
-		Protocol:      "slack",
-		UserID:        userID,
-		ChannelID:     chanID,
-		DirectMessage: ci.IsIM,
-		BotMessage:    false,
-		MessageText:   text,
-		MessageObject: msg,
-		Client:        s.api,
+		Protocol:        "slack",
+		UserID:          userID,
+		ChannelID:       chanID,
+		ThreadID:        threadID,
+		ThreadedMessage: threadedMessage,
+		DirectMessage:   ci.IsIM,
+		BotMessage:      false,
+		MessageText:     text,
+		MessageObject:   msg,
+		Client:          s.api,
 	}
 	userName, ok := s.userName(userID)
 	if !ok {
@@ -256,9 +267,10 @@ func (s *slackConnector) processSlashCmdSocketMode(cmd *slack.SlashCommand) {
 	}
 	text := s.processText(cmd.Text)
 	botMsg := &robot.ConnectorMessage{
-		Protocol:      "slack",
-		UserID:        userID,
-		ChannelID:     chanID,
+		Protocol:  "slack",
+		UserID:    userID,
+		ChannelID: chanID,
+		// ThreadID should be empty, and ThreadedMessage always false
 		DirectMessage: ci.IsIM,
 		BotMessage:    true,
 		MessageText:   text,

@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // Regex for task/job/plugin/NameSpace names. NOTE: if this changes,

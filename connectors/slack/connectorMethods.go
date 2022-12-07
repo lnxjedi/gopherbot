@@ -3,7 +3,7 @@ package slack
 import (
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/slack-go/slack"
 )
 
@@ -57,8 +57,8 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 type sendMessage struct {
-	message, channel string
-	format           robot.MessageFormat
+	message, channel, thread string
+	format                   robot.MessageFormat
 }
 
 var messages = make(chan *sendMessage)
@@ -110,6 +110,9 @@ func (s *slackConnector) startSendLoop() {
 			slack.MsgOptionAsUser(true),
 			slack.MsgOptionDisableLinkUnfurl(),
 		}
+		if len(send.thread) > 0 {
+			opts = append(opts, slack.MsgOptionTS(send.thread))
+		}
 		if send.format == robot.Variable {
 			opts = append(opts, slack.MsgOptionDisableMarkdown(), slack.MsgOptionParse(false))
 		}
@@ -150,11 +153,12 @@ func (s *slackConnector) startSendLoop() {
 	}
 }
 
-func (s *slackConnector) sendMessages(msgs []string, chanID string, f robot.MessageFormat) {
+func (s *slackConnector) sendMessages(msgs []string, chanID, threadID string, f robot.MessageFormat) {
 	for _, msg := range msgs {
 		messages <- &sendMessage{
 			message: msg,
 			channel: chanID,
+			thread:  threadID,
 			format:  f,
 		}
 	}
@@ -170,14 +174,14 @@ func (s *slackConnector) SetUserMap(umap map[string]string) {
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (s *slackConnector) SendProtocolChannelMessage(ch string, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	msgs := s.slackifyMessage("", msg, f)
 	if chanID, ok := s.ExtractID(ch); ok {
-		s.sendMessages(msgs, chanID, f)
+		s.sendMessages(msgs, chanID, thr, f)
 		return
 	}
 	if chanID, ok := s.chanID(ch); ok {
-		s.sendMessages(msgs, chanID, f)
+		s.sendMessages(msgs, chanID, thr, f)
 		return
 	}
 	s.Log(robot.Error, "slack channel ID not found for: %s", ch)
@@ -185,7 +189,7 @@ func (s *slackConnector) SendProtocolChannelMessage(ch string, msg string, f rob
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (s *slackConnector) SendProtocolUserChannelMessage(uid, u, ch, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	var userID, chanID string
 	var ok bool
 	if chanID, ok = s.ExtractID(ch); !ok {
@@ -205,7 +209,7 @@ func (s *slackConnector) SendProtocolUserChannelMessage(uid, u, ch, msg string, 
 	// This gets converted to <@userID> in slackifyMessage
 	prefix := "<@" + userID + ">: "
 	msgs := s.slackifyMessage(prefix, msg, f)
-	s.sendMessages(msgs, chanID, f)
+	s.sendMessages(msgs, chanID, thr, f)
 	return
 }
 
@@ -243,7 +247,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 		return
 	}
 	msgs := s.slackifyMessage("", msg, f)
-	s.sendMessages(msgs, userIMchanstr, f)
+	s.sendMessages(msgs, userIMchanstr, "", f)
 	return robot.Ok
 }
 

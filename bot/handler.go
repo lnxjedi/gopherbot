@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // an empty object type for passing a Handler to the connector.
@@ -62,6 +62,8 @@ func (h handler) RaisePriv(reason string) {
 type worker struct {
 	User            string                      // The user who sent the message; this can be modified for replying to an arbitrary user
 	Channel         string                      // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	ThreadID        string                      // Opaque identifier for conversation thread
+	ThreadedMessage bool                        // Whether the message was sent in a thread
 	ProtocolUser    string                      // The username or <userid> to be sent in connector methods
 	ProtocolChannel string                      // the channel name or <channelid> where the message originated
 	Protocol        robot.Protocol              // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
@@ -127,7 +129,7 @@ var chanLoggers = struct {
 }
 
 // ChannelMessage accepts an incoming channel message from the connector.
-//func (h handler) IncomingMessage(channelName, userName, messageFull string, raw interface{}) {
+// func (h handler) IncomingMessage(channelName, userName, messageFull string, raw interface{}) {
 func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	// Note: zero-len channel name and ID is valid; true of direct messages for some connectors
 	if len(inc.UserName) == 0 && len(inc.UserID) == 0 {
@@ -247,6 +249,8 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	w := &worker{
 		User:            userName,
 		Channel:         channelName,
+		ThreadID:        inc.ThreadID,
+		ThreadedMessage: inc.ThreadedMessage,
 		ProtocolUser:    ProtocolUser,
 		ProtocolChannel: ProtocolChannel,
 		Protocol:        protocol,
@@ -266,7 +270,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	if w.directMsg {
 		Log(robot.Debug, "Received private message from user '%s'", userName)
 	} else {
-		Log(robot.Debug, "Message '%s' from user '%s' in channel '%s'; isCommand: %t", message, userName, logChannel, isCommand)
+		Log(robot.Debug, "Message '%s' from user '%s' in channel '%s'/thread '%s' (threaded: %t); isCommand: %t", message, userName, logChannel, inc.ThreadID, inc.ThreadedMessage, isCommand)
 	}
 	go w.handleMessage()
 }

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 	"golang.org/x/sys/unix"
 )
 

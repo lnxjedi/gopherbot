@@ -13,7 +13,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 const histPrefix = "bot:histories:"

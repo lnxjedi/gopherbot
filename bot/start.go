@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 	"golang.org/x/sys/unix"
 )
 

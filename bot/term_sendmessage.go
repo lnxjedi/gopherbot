@@ -1,3 +1,4 @@
+//go:build !test
 // +build !test
 
 package bot
@@ -6,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 func (tc *termConnector) sendMessage(ch, msg string, f robot.MessageFormat) (ret robot.RetVal) {

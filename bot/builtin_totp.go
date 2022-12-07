@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/pquerna/otp/totp"
 )
 

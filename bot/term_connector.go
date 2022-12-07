@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/lnxjedi/readline"
-	"github.com/lnxjedi/robot"
 )
 
 func init() {
@@ -400,14 +400,14 @@ func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string,
 	}
 }
 
-// SendProtocolChannelMessage sends a message to a channel
-func (tc *termConnector) SendProtocolChannelMessage(ch string, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+// SendProtocolChannelThreadMessage sends a message to a channel
+func (tc *termConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	return tc.sendMessage(channel, msg, f)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (tc *termConnector) SendProtocolUserChannelMessage(uid, uname, ch, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	msg = "@" + uname + " " + msg
 	return tc.sendMessage(channel, msg, f)

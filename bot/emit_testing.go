@@ -1,3 +1,4 @@
+//go:build test
 // +build test
 
 package bot
@@ -6,7 +7,7 @@ import (
 	"path"
 	"runtime"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var events = make(chan Event, 16)

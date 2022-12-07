@@ -3,7 +3,7 @@ package bot
 import (
 	"sync"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/robfig/cron"
 )
 

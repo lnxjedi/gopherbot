@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 const keepListeningDuration = 77 * time.Second
@@ -180,7 +180,7 @@ func (w *worker) handleMessage() {
 	// user take precedence over everything else.
 	var waiters []replyWaiter
 	waitingForReply := false
-	matcher := replyMatcher{w.User, w.Channel}
+	matcher := replyMatcher{w.User, w.Channel, w.ThreadID}
 	Log(robot.Trace, "Checking replies for matcher: %q", matcher)
 	replies.Lock()
 	waiters, waitingForReply = replies.m[matcher]

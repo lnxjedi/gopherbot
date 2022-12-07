@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 type nullConnector struct{}
@@ -35,11 +35,11 @@ func (nc nullConnector) Run(stop <-chan struct{}) {
 	<-stop
 }
 
-func (nc nullConnector) SendProtocolChannelMessage(ch string, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (nc nullConnector) SendProtocolChannelThreadMessage(ch string, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	return nc.sendMessage(msg, f)
 }
 
-func (nc nullConnector) SendProtocolUserChannelMessage(uid, uname, ch, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (nc nullConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	return nc.sendMessage(msg, f)
 }
 

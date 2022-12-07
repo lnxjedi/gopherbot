@@ -1,6 +1,6 @@
 package bot
 
-import "github.com/lnxjedi/robot"
+import "github.com/lnxjedi/gopherbot/robot"
 
 const technicalAuthError = "Sorry, authorization failed due to a problem with the authorization plugin"
 const configAuthError = "Sorry, authorization failed due to a configuration error"
