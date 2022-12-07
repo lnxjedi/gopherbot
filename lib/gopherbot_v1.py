@@ -77,6 +77,8 @@ class Robot:
     def __init__(self):
         random.seed()
         self.channel = os.getenv("GOPHER_CHANNEL")
+        self.thread_id = os.getenv("GOPHER_THREAD_ID")
+        self.threaded_message = os.getenv("GOPHER_THREADED_MESSAGE")
         self.user = os.getenv("GOPHER_USER")
         self.plugin_id = os.getenv("GOPHER_CALLER_ID")
         self.format = ""
@@ -93,9 +95,8 @@ class Robot:
     def Call(self, func_name, func_args, format=""):
         if len(format) == 0:
             format = self.format
-        func_call = { "FuncName": func_name, "User": self.user,
-                    "Channel": self.channel, "Format": format,
-                    "Protocol": self.protocol, "CallerID": self.plugin_id,
+        func_call = { "FuncName": func_name, "Format": format,
+                    "CallerID": self.plugin_id,
                     "FuncArgs": func_args }
         func_json = json.dumps(func_call)
         req = urllib2.Request(url="%s/json" % os.getenv("GOPHER_HTTP_POST"),
@@ -193,14 +194,20 @@ class Robot:
         return ret["StrVal"]
 
     def PromptForReply(self, regex_id, prompt, format=""):
-        return self.PromptUserChannelForReply(regex_id, self.user, self.channel, prompt, format)
+        thread = ""
+        if self.threaded_message:
+            thread = self.thread_id
+        return self.PromptUserChannelThreadForReply(regex_id, self.user, self.channel, thread, prompt, format)
+
+    def PromptThreadForReply(self, regex_id, prompt, format=""):
+        return self.PromptUserChannelThreadForReply(regex_id, self.user, self.channel, self.thread_id, prompt, format)
 
     def PromptUserForReply(self, regex_id, user, prompt, format=""):
-        return self.PromptUserChannelForReply(regex_id, user, "", prompt, format)
+        return self.PromptUserChannelThreadForReply(regex_id, user, "", prompt, format)
 
-    def PromptUserChannelForReply(self, regex_id, user, channel, prompt, format=""):
+    def PromptUserChannelThreadForReply(self, regex_id, user, channel, thread, prompt, format=""):
         for i in range(0, 3):
-            rep = self.Call("PromptUserChannelForReply", { "RegexID": regex_id, "User": user, "Channel": channel, "Prompt": prompt }, format)
+            rep = self.Call("PromptUserChannelThreadForReply", { "RegexID": regex_id, "User": user, "Channel": channel, "Thread": thread, "Prompt": prompt }, format)
             if rep["RetVal"] == self.RetryPrompt:
                 continue
             return Reply(rep)
@@ -209,7 +216,10 @@ class Robot:
         return Reply(rep)
 
     def SendChannelMessage(self, channel, message, format=""):
-        ret = self.Call("SendChannelMessage", { "Channel": channel,
+        return self.SendChannelThreadMessage(channel, "", message, format)
+
+    def SendChannelThreadMessage(self, channel, thread, message, format=""):
+        ret = self.Call("SendChannelThreadMessage", { "Channel": channel, "Thread": thread,
         "Message": message }, format)
         return ret["RetVal"]
 
@@ -219,21 +229,42 @@ class Robot:
         return ret["RetVal"]
 
     def SendUserChannelMessage(self, user, channel, message, format=""):
-        ret = self.Call("SendUserChannelMessage", { "User": user,
-        "Channel": channel, "Message": message }, format)
+        return self.SendUserChannelThreadMessage(user, channel, "", message, format)
+
+    def SendUserChannelThreadMessage(self, user, channel, thread, message, format=""):
+        ret = self.Call("SendUserChannelThreadMessage", { "User": user,
+        "Channel": channel, "Thread": thread, "Message": message }, format)
         return ret["RetVal"]
 
     def Say(self, message, format=""):
         if self.channel == '':
             return self.SendUserMessage(self.user, message, format)
         else:
-            return self.SendChannelMessage(self.channel, message, format)
+            thread = ""
+            if self.threaded_message:
+                thread = self.thread_id
+            return self.SendChannelThreadMessage(self.channel, thread, message, format)
+
+    def SayThread(self, message, format=""):
+        if self.channel == '':
+            return self.SendUserMessage(self.user, message, format)
+        else:
+            return self.SendChannelThreadMessage(self.channel, self.thread_id, message, format)
 
     def Reply(self, message, format=""):
         if self.channel == '':
             return self.SendUserMessage(self.user, message, format)
         else:
-            return self.SendUserChannelMessage(self.user, self.channel, message, format)
+            thread = ""
+            if self.threaded_message:
+                thread = self.thread_id
+            return self.SendUserChannelThreadMessage(self.user, self.channel, thread, message, format)
+
+    def ReplyThread(self, message, format=""):
+        if self.channel == '':
+            return self.SendUserMessage(self.user, message, format)
+        else:
+            return self.SendUserChannelThreadMessage(self.user, self.channel, self.thread_id, message, format)
 
 class DirectBot(Robot):
     "Instantiate a robot for direct messaging with the user"
@@ -248,6 +279,8 @@ class FormattedBot(Robot):
     "Instantiate a robot with a non-default message format"
     def __init__(self, bot, format):
         self.channel = bot.channel
+        self.thread_id = bot.thread_id
+        self.threaded_message = bot.threaded_message
         self.user = bot.user
         self.protocol = bot.protocol
         self.format = format

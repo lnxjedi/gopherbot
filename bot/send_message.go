@@ -387,7 +387,7 @@ func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
 // SayThread creates a new thread if replying to an existing message
 func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
 	if len(msg) == 0 {
-		r.Log(robot.Warn, "Ignoring zero-length message in Say")
+		r.Log(robot.Warn, "Ignoring zero-length message in SayThread")
 		return robot.Ok
 	}
 	if len(v) > 0 {

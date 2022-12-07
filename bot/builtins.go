@@ -15,9 +15,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// if help is more than tooLong lines long, send a private message
-const tooLong = 14
-
 // Cut off for listing channels after help text
 const tooManyChannels = 4
 
@@ -94,7 +91,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		// Nothing we need will ever change for a worker.
 		w := getLockedWorker(r.tid)
 		w.Unlock()
-		helpLines := make([]string, 0, tooLong)
+		helpLines := make([]string, 0, 14)
 		if want_specific {
 			helptext := "(bot), help-all - help for all commands available in this channel, including global commands"
 			helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1))
@@ -119,11 +116,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 					for _, helptext := range phelp.Helptext {
 						if len(phelp.Keywords) > 0 && phelp.Keywords[0] == "*" {
 							// * signifies help that should be prepended
-							newSize := tooLong
-							if len(helpLines) > newSize {
-								newSize += len(helpLines)
-							}
-							prepend := make([]string, 1, newSize)
+							prepend := make([]string, 1, len(helpLines)+1)
 							prepend[0] = strings.Replace(helptext, botSub, botname, -1)
 							helpLines = append(prepend, helpLines...)
 						} else {
@@ -163,30 +156,16 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 				}
 			}
 		}
-		if hasKeyword {
-			helpOutput = "Command(s) matching keyword: " + term + "\n" + strings.Join(helpLines, lineSeparator)
-		}
-		switch {
-		case len(helpLines) == 0:
+		if len(helpLines) == 0 {
 			// Unless builtins are disabled or reconfigured, 'ping' is available in all channels
-			r.Say("Sorry, I didn't find any commands matching your keyword")
-		case len(helpLines) > tooLong:
-			if !w.directMsg {
-				r.Reply("(the help output was pretty long, so I sent you a private message)")
-				if !hasKeyword {
-					helpOutput = "Command(s) available in channel: " + r.Channel + "\n" + strings.Join(helpLines, lineSeparator)
-				}
+			r.SayThread("Sorry, I didn't find any commands matching your keyword")
+		} else {
+			if hasKeyword {
+				helpOutput = "Command(s) matching keyword: " + term + "\n" + strings.Join(helpLines, lineSeparator)
 			} else {
-				if !hasKeyword {
-					helpOutput = "Command(s) available in this channel:\n" + strings.Join(helpLines, lineSeparator)
-				}
-			}
-			r.SendUserMessage(r.User, helpOutput)
-		default:
-			if !hasKeyword {
 				helpOutput = "Command(s) available in this channel:\n" + strings.Join(helpLines, lineSeparator)
 			}
-			r.Say(helpOutput)
+			r.SayThread(helpOutput)
 		}
 	}
 	return

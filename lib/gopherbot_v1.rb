@@ -214,9 +214,13 @@ class BaseBot
 	end
 
 	def SendChannelMessage(channel, message, format="")
+		return SendChannelThreadMessage(channel, "", message, format)
+	end
+
+	def SendChannelThreadMessage(channel, thread, message, format="")
 		format = format.to_s if format.class == Symbol
-		args = { "Channel" => channel, "Message" => message }
-		ret = callBotFunc("SendChannelMessage", args, format)
+		args = { "Channel" => channel, "Thread" => thread, "Message" => message }
+		ret = callBotFunc("SendChannelThreadMessage", args, format)
 		return ret["RetVal"]
 	end
 
@@ -228,9 +232,13 @@ class BaseBot
 	end
 
 	def SendUserChannelMessage(user, channel, message, format="")
+		return SendUserChannelThreadMessage(user, channel, "", message, format)
+	end
+
+	def SendUserChannelThreadMessage(user, channel, thread, message, format="")
 		format = format.to_s if format.class == Symbol
-		args = { "User" => user, "Channel" => channel, "Message" => message }
-		ret = callBotFunc("SendUserChannelMessage", args, format)
+		args = { "User" => user, "Channel" => channel, "Thread" => thread, "Message" => message }
+		ret = callBotFunc("SendUserChannelThreadMessage", args, format)
 		return ret["RetVal"]
 	end
 
@@ -239,7 +247,17 @@ class BaseBot
 		if @channel.empty?
 			return SendUserMessage(@user, message, format)
 		else
-			return SendChannelMessage(@channel, message, format)
+			thread = @threaded_message ? @thread_id : ""
+			return SendChannelThreadMessage(@channel, thread, message, format)
+		end
+	end
+
+	def SayThread(message, format="")
+		format = format.to_s if format.class == Symbol
+		if @channel.empty?
+			return SendUserMessage(@user, message, format)
+		else
+			return SendChannelThreadMessage(@channel, @thread_id, message, format)
 		end
 	end
 
@@ -252,22 +270,37 @@ class BaseBot
 		if @channel.empty?
 			return SendUserMessage(@user, message, format)
 		else
-			return SendUserChannelMessage(@user, @channel, message, format)
+			thread = @threaded_message ? @thread_id : ""
+			return SendUserChannelThreadMessage(@user, @channel, thread, message, format)
+		end
+	end
+
+	def ReplyThread(message, format="")
+		format = format.to_s if format.class == Symbol
+		if @channel.empty?
+			return SendUserMessage(@user, message, format)
+		else
+			return SendUserChannelThreadMessage(@user, @channel, @thread_id, message, format)
 		end
 	end
 
 	def PromptForReply(regex_id, prompt)
-		return PromptUserChannelForReply(regex_id, @user, @channel, prompt)
+		thread = @threaded_message ? @thread_id : ""
+		return PromptUserChannelThreadForReply(regex_id, @user, @channel, thread, prompt)
+	end
+
+	def PromptThreadForReply(regex_id, prompt)
+		return PromptUserChannelThreadForReply(regex_id, @user, @channel, @thread_id, prompt)
 	end
 
 	def PromptUserForReply(regex_id, prompt)
-		return PromptUserChannelForReply(regex_id, user, "", prompt)
+		return PromptUserChannelThreadForReply(regex_id, @user, "", "", prompt)
 	end
 
-	def PromptUserChannelForReply(regex_id, user, channel, prompt)
-		args = { "RegexID" => regex_id, "User" => user, "Channel" => channel, "Prompt" => prompt }
+	def PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt)
+		args = { "RegexID" => regex_id, "User" => user, "Channel" => channel, "Thread" => thread, "Prompt" => prompt }
 		for i in 1..3
-			ret = callBotFunc("PromptUserChannelForReply", args)
+			ret = callBotFunc("PromptUserChannelThreadForReply", args)
 			next if ret["RetVal"] == RetryPrompt
 			return Reply.new(ret["Reply"], ret["RetVal"])
 		end
@@ -284,9 +317,6 @@ class BaseBot
 		end
 		func = {
 			"FuncName" => funcname,
-			"User" => @user,
-			"Channel" => @channel,
-			"Protocol" => @protocol,
 			"Format" => format,
 			"CallerID" => @plugin_id,
 			"FuncArgs" => args
@@ -308,6 +338,8 @@ class Robot < BaseBot
 
 	def initialize()
 		@channel = ENV["GOPHER_CHANNEL"]
+        @thread_id = ENV["GOPHER_THREAD_ID"]
+		@threaded_message = ENV["GOPHER_THREADED_MESSAGE"]
 		@user = ENV["GOPHER_USER"]
 		@plugin_id = ENV["GOPHER_CALLER_ID"]
 		@protocol = ENV["GOPHER_PROTOCOL"]
@@ -320,7 +352,7 @@ class Robot < BaseBot
 	end
 
 	def MessageFormat(format)
-		FormattedBot.new(@user, @channel, @plugin_id, @protocol, format, @prng)
+		FormattedBot.new(@user, @channel, @thread_id, @threaded_message, @plugin_id, @protocol, format, @prng)
 	end
 end
 
@@ -339,8 +371,10 @@ end
 
 class FormattedBot < BaseBot
 
-	def initialize(user, channel, plugin_id, protocol, format, prng)
+	def initialize(user, channel, thread_id, threaded_message, plugin_id, protocol, format, prng)
 		@channel = channel
+		@thread_id = thread_id
+		@threaded_message = threaded_message
 		@user = user
 		@plugin_id = plugin_id
 		@protocol = protocol

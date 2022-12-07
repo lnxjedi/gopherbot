@@ -196,7 +196,7 @@ func (w *worker) handleMessage() {
 			if i == 0 {
 				cmsg := spaceRe.ReplaceAllString(w.msg, " ")
 				matched := rep.re.MatchString(cmsg)
-				Log(robot.Debug, "Found replyWaiter for user '%s' in channel '%s', checking if message '%s' matches '%s': %t", w.User, w.Channel, cmsg, rep.re.String(), matched)
+				Log(robot.Debug, "Found replyWaiter for user '%s' in channel '%s'/thread '%s', checking if message '%s' matches '%s': %t", w.User, w.Channel, w.ThreadID, cmsg, rep.re.String(), matched)
 				rep.replyChannel <- reply{matched, replied, cmsg}
 			} else {
 				Log(robot.Debug, "Sending retry to next reply waiter")
