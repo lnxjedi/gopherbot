@@ -15,6 +15,8 @@ CommandMatchers:
   Regex: "(?i:thanks?( you)?!?)"
 - Command: "rules"
   Regex: "(?i:(?:what are )?the rules\\??)"
+- Command: "thread"
+  Regex: "(?:(?i:(?:(?:new|start|create) )?thread)(?: .*)?)"
 - Command: "whoami"
   Regex: "(?i:whoami)"
 - Command: "hello"
@@ -30,3 +32,8 @@ Config:
   - "No problemo!"
   - "Happy to help"
   - "T'was nothing"
+  Thread:
+  - "Here you go, a shiny new thread!"
+  - "Cool, let's get work done, eh?"
+  - "Alrighty, let's keep this junk out of the main channel"
+  - "That's very kind of you - keeping your silly cruft tucked away in a thread like that"
