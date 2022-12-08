@@ -271,6 +271,7 @@ loop:
 						tc.currentChannel = ""
 						tc.reader.SetPrompt(fmt.Sprintf("c:(direct)/u:%s -> ", tc.currentUser))
 						tc.reader.Write([]byte("Changed current channel to: direct message\n"))
+						tc.typingInThread = false
 					} else {
 						for _, ch := range tc.channels {
 							if ch == newchan {
@@ -280,6 +281,7 @@ loop:
 						}
 						if exists {
 							tc.currentChannel = newchan
+							tc.typingInThread = false
 							tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentChannel, tc.currentUser))
 							tc.reader.Write([]byte(fmt.Sprintf("Changed current channel to: %s\n", newchan)))
 						} else {
