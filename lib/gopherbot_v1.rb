@@ -360,6 +360,8 @@ class DirectBot < BaseBot
 
 	def initialize(user, plugin_id, protocol, format, prng)
 		@channel = ""
+		@thread_id = ""
+		@threaded_message = nil
 		@user = user
 		@plugin_id = plugin_id
 		@protocol = protocol

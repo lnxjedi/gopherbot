@@ -446,16 +446,21 @@ EOF
 }
 
 PromptForReply(){
-	PromptThreadForReply "$1" ""
+	local FORMAT
+	if [[ $1 = -? ]]; then FORMAT=$1; shift; fi
+	local REGEX=$1
+	local THREAD=""
+	[ "$GOPHER_THREADED_MESSAGE" ] && THREAD="$GOPHER_THREAD_ID"
+	shift
+	PromptUserChannelThreadForReply $FORMAT "$REGEX" "$GOPHER_USER" "$GOPHER_CHANNEL" "$THREAD" "$*"
 }
 
 PromptThreadForReply(){
 	local FORMAT
 	if [[ $1 = -? ]]; then FORMAT=$1; shift; fi
 	local REGEX=$1
-	local THREAD="$2"
 	shift
-	PromptUserChannelThreadForReply $FORMAT "$REGEX" "$GOPHER_USER" "$GOPHER_CHANNEL" "$THREAD" "$*"
+	PromptUserChannelThreadForReply $FORMAT "$REGEX" "$GOPHER_USER" "$GOPHER_CHANNEL" "$GOPHER_THREAD_ID" "$*"
 }
 
 PromptUserForReply(){
@@ -464,7 +469,7 @@ PromptUserForReply(){
 	local REGEX=$1
 	local PUSER=$2
 	shift 2
-	PromptUserChannelThreadForReply "$REGEX" "$PUSER" "" "$*"
+	PromptUserChannelThreadForReply "$REGEX" "$PUSER" "" "" "$*"
 }
 
 MessageFormat(){

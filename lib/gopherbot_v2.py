@@ -270,6 +270,8 @@ class DirectBot(Robot):
     "Instantiate a robot for direct messaging with the user"
     def __init__(self, bot):
         self.channel = ""
+        self.thread_id = ""
+        self.threaded_message = None
         self.user = bot.user
         self.protocol = bot.protocol
         self.format = bot.format
