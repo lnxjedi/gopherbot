@@ -233,6 +233,9 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	if inc.DirectMessage {
 		isCommand = true
 		logChannel = "(direct message)"
+		// We don't support threads in DMs; we blank out the thread
+		// so replies will match.
+		inc.ThreadID = ""
 	}
 
 	currentCfg.RLock()

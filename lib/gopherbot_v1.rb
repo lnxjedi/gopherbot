@@ -325,7 +325,7 @@ class BaseBot
 		http = Net::HTTP.new(uri.host, uri.port)
 		req = Net::HTTP::Post.new(uri, initheader = {'Content-Type' =>'application/json'})
 		req.body = func.to_json
-#		STDERR.puts "Sending:\n#{req.body}"
+		STDERR.puts "Sending:\n#{req.body}"
 		res = http.request(req)
 		body = res.body()
 #		STDERR.puts "Got back:\n#{body}"

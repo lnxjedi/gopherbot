@@ -425,7 +425,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			ctm.Message = decode(ctm.Message)
 		}
 		sendReturn(rw, &botretvalresponse{
-			int(r.SendChannelMessage(ctm.Channel, ctm.Message)),
+			int(r.SendChannelThreadMessage(ctm.Channel, ctm.Thread, ctm.Message)),
 		})
 		return
 	case "SendUserChannelThreadMessage":
