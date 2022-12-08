@@ -10,7 +10,7 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-func (tc *termConnector) sendMessage(ch, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (tc *termConnector) sendMessage(ch, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	found := false
 	tc.RLock()
 	if strings.HasPrefix(ch, "(dm:") {
@@ -28,12 +28,19 @@ func (tc *termConnector) sendMessage(ch, msg string, f robot.MessageFormat) (ret
 		tc.Log(robot.Error, "Channel not found:", ch)
 		return robot.ChannelNotFound
 	}
+	threadID := ""
+	if len(thr) > 0 {
+		threadID = fmt.Sprintf("(%s)", thr)
+		tc.Lock()
+		tc.lastThread = thr
+		tc.Unlock()
+	}
 	switch f {
 	case robot.Fixed:
 		msg = strings.ToUpper(msg)
 	case robot.Variable:
 		msg = strings.ToLower(msg)
 	}
-	tc.reader.Write([]byte(fmt.Sprintf("%s: %s\n", ch, msg)))
+	tc.reader.Write([]byte(fmt.Sprintf("%s%s: %s\n", ch, threadID, msg)))
 	return robot.Ok
 }
