@@ -137,7 +137,7 @@
 <h2 id="setting-up-a-new-robot-on-linux"><a class="header" href="#setting-up-a-new-robot-on-linux">Setting up a New Robot on Linux</a></h2>
 <p>If you have easy access to a Linux system, the simplest way to set up a new robot is to <a href="../install/ManualInstall.html">install the gopherbot archive</a>, create an empty working directory, create a symlink there to the <code>/opt/gopherbot/gopherbot</code> executable, then use the autosetup plugin as described in the docker instructions below (with appropriate and obvious modifications, e.g. running <code>./gopherbot init slack</code>).</p>
 <h2 id="setting-up-a-new-robot-with-docker"><a class="header" href="#setting-up-a-new-robot-with-docker">Setting up a New Robot with Docker</a></h2>
-<p>If you're running a Windows or MacOS system, the best way to set up a new robot is using the <a href="https://quay.io/repository/lnxjedi/gopherbot-dev?tab=info">gopherbot-dev</a> container image running in <a href="https://www.docker.com/">Docker</a> on your workstation. Using <strong>Clu</strong> as an example:</p>
+<p>If you're running a Windows or MacOS system, the best way to set up a new robot is using the <a href="https://github.com/lnxjedi/gopherbot/pkgs/container/gopherbot-dev">gopherbot-dev</a> container image running in <a href="https://www.docker.com/">Docker</a> on your workstation. Using <strong>Clu</strong> as an example:</p>
 <p><strong>1.</strong> Start a new, empty <code>gopherbot-dev</code> container:</p>
 <pre><code>$ docker run -p 127.0.0.1:3000:3000 --name clu quay.io/lnxjedi/gopherbot-dev:latest
 root INFO Configuration directory URI: 'file:///home/robot/.theia'

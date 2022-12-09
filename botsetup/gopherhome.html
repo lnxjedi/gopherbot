@@ -137,7 +137,7 @@
 <blockquote>
 <p>Up-to-date with v2.4</p>
 </blockquote>
-<p><strong>Gopherbot</strong> robots run in the context of a standard directory structure. The root of this directory structure is the <code>$HOME</code> for a given robot, and your robot starts by running the <em>gopherbot</em> binary in this directory. There are no requirements on this directory except that it needs to be owned and writable by the UID running the <em>gopherbot</em> binary; it should not be located under <code>/opt/gopherbot</code>, to avoid complicating upgrades. The <a href="https://quay.io/organization/lnxjedi">stock containers</a> create a <code>robot</code> user and home directory in <code>/var/lib/robot</code>, but the software was written to e.g. pass <code>-c &lt;filename&gt;</code> to <code>ssh</code> to allow multiple robots to run on a single system without <em>real</em> system users and home directories. In this kind of setup, the standard location is <code>/var/lib/robots/&lt;robotname&gt;</code>. You can always give your robot the <code>info</code> command to report on where it's running, and in what directory (<code>$GOPHER_HOME</code>):</p>
+<p><strong>Gopherbot</strong> robots run in the context of a standard directory structure. The root of this directory structure is the <code>$HOME</code> for a given robot, and your robot starts by running the <em>gopherbot</em> binary in this directory. There are no requirements on this directory except that it needs to be owned and writable by the UID running the <em>gopherbot</em> binary; it should not be located under <code>/opt/gopherbot</code>, to avoid complicating upgrades. The <a href="https://github.com/orgs/lnxjedi/packages">stock containers</a> create a <code>bot</code> user and home directory in <code>/home/bot</code>, but the software was written to e.g. pass <code>-c &lt;filename&gt;</code> to <code>ssh</code> to allow multiple robots to run on a single system without <em>real</em> system users and home directories. In this kind of setup, the standard location is <code>/var/lib/robots/&lt;robotname&gt;</code>. You can always give your robot the <code>info</code> command to report on where it's running, and in what directory (<code>$GOPHER_HOME</code>):</p>
 <pre><code>parsley - 10:02 AM:
 *info
 
@@ -215,7 +215,7 @@ The administrative contact for this robot is: David Parsley, &lt;parsley@linuxje
 <h3 id="during-development"><a class="header" href="#during-development">During Development</a></h3>
 <p>When developing jobs, tasks and plugins for your robot, you'll mostly use the terminal connector and treat <code>state/</code> as disposable. A fairly standard workflow goes like this:</p>
 <ol>
-<li>Run your robot with the <code>gb-start-dev</code> script, which uses the <a href="https://quay.io/repository/lnxjedi/gopherbot-theia?tab=info">gopherbot-theia</a> container, providing an environment file for your robot</li>
+<li>Run your robot with the <code>./cbot.sh dev &lt;path/to/profile&gt;</code> script, which uses the <a href="https://github.com/lnxjedi/gopherbot/pkgs/container/gopherbot-dev">gopherbot-dev</a> container, providing the path to a profile used for that robot</li>
 <li>Use the <strong>terminal</strong> connector, configured to mirror your team chat environment, for developing extensions for your robot</li>
 <li>In the <code>custom/</code> directory, create commits as desired, creating and pushing commits as normal</li>
 <li>Send an administrator <code>update</code> command to your production robot to pull down the latest changes and reload</li>
