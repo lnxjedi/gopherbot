@@ -7,7 +7,7 @@ IMAGE_TAG="latest"
 
 usage() {
     cat <<EOF
-Usage: ./botc.sh (options...) profile|dev|start|stop|remove (arguments...)
+Usage: ./botc.sh profile|dev|start|stop|remove (options...) (arguments...)
 
 ----
 Generate a profile for development:
