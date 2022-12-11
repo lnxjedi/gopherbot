@@ -18,6 +18,9 @@ func init() {
 	RegisterConnector("terminal", Initialize)
 }
 
+const threadIDMax = 65536
+const terminalConnectorHelpLine = "Terminal connector: Type '|c?' to list channels, '|u?' to list users, '|t?' for thread help\n"
+
 // Global persistent map of user name to user index
 var userIDMap = make(map[string]int)
 var userMap = make(map[string]int)
@@ -41,6 +44,10 @@ type termconfig struct {
 type termConnector struct {
 	currentChannel string             // The current channel for the user
 	currentUser    string             // The current userid
+	currentThread  string             // Active threadID if typingInThread is true
+	lastThread     string             // last thread heard from the robot, used with join
+	threadCounter  int                // Incrementing integer for assigning thread IDs
+	typingInThread bool               // Tracks whether input is coming from a thread
 	eof            string             // command to send on ctrl-d (EOF)
 	abort          string             // command to send on ctrl-c (interrupt)
 	running        bool               // set on call to Run
@@ -186,10 +193,10 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 			} else if err == nil {
 				line = strings.TrimSpace(line)
 				if len(line) == 0 {
-					tc.reader.Write([]byte("Terminal connector: Type '|c?' to list channels, '|u?' to list users\n"))
+					tc.reader.Write([]byte(terminalConnectorHelpLine))
 				} else {
 					if line == "help" {
-						tc.reader.Write([]byte("Terminal connector: Type '|c?' to list channels, '|u?' to list users\n"))
+						tc.reader.Write([]byte(terminalConnectorHelpLine))
 					}
 					tc.heard <- line
 					if line == tc.eof || line == tc.abort {
@@ -264,6 +271,7 @@ loop:
 						tc.currentChannel = ""
 						tc.reader.SetPrompt(fmt.Sprintf("c:(direct)/u:%s -> ", tc.currentUser))
 						tc.reader.Write([]byte("Changed current channel to: direct message\n"))
+						tc.typingInThread = false
 					} else {
 						for _, ch := range tc.channels {
 							if ch == newchan {
@@ -273,11 +281,50 @@ loop:
 						}
 						if exists {
 							tc.currentChannel = newchan
+							tc.typingInThread = false
 							tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentChannel, tc.currentUser))
 							tc.reader.Write([]byte(fmt.Sprintf("Changed current channel to: %s\n", newchan)))
 						} else {
 							tc.reader.Write([]byte("Invalid channel\n"))
 						}
+					}
+					tc.Unlock()
+				case 'J', 'j':
+					tc.RLock()
+					lastThread := tc.lastThread
+					tc.RUnlock()
+					if len(lastThread) == 0 {
+						tc.reader.Write([]byte("(sorry, I don't see a thread to join)\n"))
+						continue
+					}
+					tc.Lock()
+					tc.typingInThread = true
+					tc.currentThread = lastThread
+					tc.reader.SetPrompt(fmt.Sprintf("c:%s(%s)/u:%s -> ", tc.currentChannel, tc.currentThread, tc.currentUser))
+					tc.reader.Write([]byte(fmt.Sprintf("(now typing in thread: %s)\n", tc.currentThread)))
+					tc.Unlock()
+				case 'T', 't':
+					setThread := input[2:]
+					if setThread == "?" {
+						tc.reader.Write([]byte("Use '|t' to toggle typing in a thread, '|t<string>' to set the current thread ID, or '|j' to join the robot's thread\n"))
+						continue
+					}
+					tc.Lock()
+					if len(setThread) == 0 {
+						tc.typingInThread = !tc.typingInThread
+						if tc.typingInThread {
+							tc.currentThread = fmt.Sprintf("%04x", tc.threadCounter%threadIDMax)
+						}
+					} else {
+						tc.typingInThread = true
+						tc.currentThread = setThread
+					}
+					if tc.typingInThread {
+						tc.reader.SetPrompt(fmt.Sprintf("c:%s(%s)/u:%s -> ", tc.currentChannel, tc.currentThread, tc.currentUser))
+						tc.reader.Write([]byte(fmt.Sprintf("(now typing in thread: %s)\n", tc.currentThread)))
+					} else {
+						tc.reader.SetPrompt(fmt.Sprintf("c:%s/u:%s -> ", tc.currentChannel, tc.currentUser))
+						tc.reader.Write([]byte("(typing in channel now)\n"))
 					}
 					tc.Unlock()
 				case 'U', 'u':
@@ -321,14 +368,23 @@ loop:
 				}
 				i := userMap[tc.currentUser]
 				ui := tc.users[i]
+				tc.threadCounter++
+				var threadID string
+				if tc.typingInThread {
+					threadID = tc.currentThread
+				} else {
+					threadID = fmt.Sprintf("%04x", tc.threadCounter%threadIDMax)
+				}
 				botMsg := &robot.ConnectorMessage{
-					Protocol:      "terminal",
-					UserName:      tc.currentUser,
-					UserID:        ui.InternalID,
-					ChannelName:   tc.currentChannel,
-					ChannelID:     channelID,
-					MessageText:   input,
-					DirectMessage: direct,
+					Protocol:        "terminal",
+					UserName:        tc.currentUser,
+					UserID:          ui.InternalID,
+					ChannelName:     tc.currentChannel,
+					ChannelID:       channelID,
+					ThreadedMessage: tc.typingInThread,
+					ThreadID:        threadID,
+					MessageText:     input,
+					DirectMessage:   direct,
 				}
 				tc.RLock()
 				tc.IncomingMessage(botMsg)
@@ -403,14 +459,14 @@ func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string,
 // SendProtocolChannelThreadMessage sends a message to a channel
 func (tc *termConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
-	return tc.sendMessage(channel, msg, f)
+	return tc.sendMessage(channel, thr, msg, f)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
 func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	msg = "@" + uname + " " + msg
-	return tc.sendMessage(channel, msg, f)
+	return tc.sendMessage(channel, thr, msg, f)
 }
 
 // SendProtocolUserMessage sends a direct message to a user
@@ -420,7 +476,7 @@ func (tc *termConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 	if user, exists = tc.getUserInfo(u); !exists {
 		return robot.UserNotFound
 	}
-	return tc.sendMessage(fmt.Sprintf("(dm:%s)", user.Name), msg, f)
+	return tc.sendMessage(fmt.Sprintf("(dm:%s)", user.Name), "", msg, f)
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"

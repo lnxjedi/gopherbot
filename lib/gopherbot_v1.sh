@@ -53,10 +53,7 @@ gbPostJSON(){
 	JSON=$(cat <<EOF
 {
 	"FuncName": "$GB_FUNCNAME",
-	"User": "$GOPHER_USER",
-	"Channel": "$GOPHER_CHANNEL",
 	"Format": "$FORMAT",
-	"Protocol": "$GOPHER_PROTOCOL",
 	"CallerID": "$GOPHER_CALLER_ID",
 	"FuncArgs": $GB_FUNCARGS
 }
@@ -402,14 +399,19 @@ EOF
 }
 
 PromptUserChannelForReply(){
+	PromptUserChannelThreadForReply "$1" "$2" "$3" "" "$4"
+}
+
+PromptUserChannelThreadForReply(){
 	local FORMAT
 	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="PromptUserChannelForReply"
+	local GB_FUNCNAME="PromptUserChannelThreadForReply"
 	local REGEX="$1"
 	local PUSER="$2"
 	local PCHANNEL="$3"
-	local PROMPT=$(base64_encode "$4")
+	local PTHREAD="$4"
+	local PROMPT=$(base64_encode "$5")
 	GB_FUNCARGS=$(cat <<EOF
 {
 	"RegexID": "$REGEX",
@@ -447,8 +449,18 @@ PromptForReply(){
 	local FORMAT
 	if [[ $1 = -? ]]; then FORMAT=$1; shift; fi
 	local REGEX=$1
+	local THREAD=""
+	[ "$GOPHER_THREADED_MESSAGE" ] && THREAD="$GOPHER_THREAD_ID"
 	shift
-	PromptUserChannelForReply $FORMAT "$REGEX" "$GOPHER_USER" "$GOPHER_CHANNEL" "$*"
+	PromptUserChannelThreadForReply $FORMAT "$REGEX" "$GOPHER_USER" "$GOPHER_CHANNEL" "$THREAD" "$*"
+}
+
+PromptThreadForReply(){
+	local FORMAT
+	if [[ $1 = -? ]]; then FORMAT=$1; shift; fi
+	local REGEX=$1
+	shift
+	PromptUserChannelThreadForReply $FORMAT "$REGEX" "$GOPHER_USER" "$GOPHER_CHANNEL" "$GOPHER_THREAD_ID" "$*"
 }
 
 PromptUserForReply(){
@@ -457,7 +469,7 @@ PromptUserForReply(){
 	local REGEX=$1
 	local PUSER=$2
 	shift 2
-	PromptUserChannelForReply "$REGEX" "$PUSER" "" "$*"
+	PromptUserChannelThreadForReply "$REGEX" "$PUSER" "" "" "$*"
 }
 
 MessageFormat(){
@@ -504,20 +516,26 @@ EOF
 }
 
 SendUserChannelMessage(){
+	SendChannelThreadMessage "$1" "$2" "" "$@"
+}
+
+SendUserChannelThreadMessage(){
 	local FORMAT
 	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="SendUserChannelMessage"
-	local SUCM_USER=$1
-	local SUCM_CHANNEL=$2
+	local GB_FUNCNAME="SendUserChannelThreadMessage"
+	local SUCTM_USER=$1
+	local SUCTM_CHANNEL=$2
+	local SUCTM_THREAD="$3"
 	shift 2
 	MESSAGE="$*"
 	MESSAGE=$(base64_encode "$MESSAGE")
 
 	GB_FUNCARGS=$(cat <<EOF
 {
-	"User": "$SUCM_USER",
-	"Channel": "$SUCM_CHANNEL",
+	"User": "$SUCTM_USER",
+	"Channel": "$SUCTM_CHANNEL",
+	"Thread": "$SUCTM_THREAD",
 	"Message": "$MESSAGE",
 	"Base64" : true
 }
@@ -528,18 +546,24 @@ EOF
 }
 
 SendChannelMessage(){
+	SendChannelThreadMessage "$1" "" "$@"
+}
+
+SendChannelThreadMessage(){
 	local FORMAT
 	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="SendChannelMessage"
-	local SCM_CHANNEL=$1
+	local GB_FUNCNAME="SendChannelThreadMessage"
+	local SCTM_CHANNEL=$1
+	local SCTM_THREAD="$2"
 	shift
 	MESSAGE="$*"
 	MESSAGE=$(base64_encode "$MESSAGE")
 
 	GB_FUNCARGS=$(cat <<EOF
 {
-	"Channel": "$SCM_CHANNEL",
+	"Channel": "$SCTM_CHANNEL",
+	"Thread": "$SCTM_THREAD",
 	"Message": "$MESSAGE",
 	"Base64" : true
 }
@@ -555,7 +579,9 @@ Say(){
 	[[ $1 == -? ]] && { FARG=$1; shift; }
 	if [ -n "$GOPHER_CHANNEL" ]
 	then
-		SendChannelMessage $FARG "$GOPHER_CHANNEL" "$*"
+		local THREAD=""
+		[ "$GOPHER_THREADED_MESSAGE" ] && THREAD="$GOPHER_THREAD_ID"
+		SendChannelThreadMessage $FARG "$GOPHER_CHANNEL" "$THREAD" "$*"
 	else
 		SendUserMessage $FARG "$GOPHER_USER" "$*"
 	fi
@@ -566,7 +592,31 @@ Reply(){
 	[[ $1 == -? ]] && { FARG=$1; shift; }
 	if [ -n "$GOPHER_CHANNEL" ]
 	then
-		SendUserChannelMessage $FARG "$GOPHER_USER" "$GOPHER_CHANNEL" "$*"
+		local THREAD=""
+		[ "$GOPHER_THREADED_MESSAGE" ] && THREAD="$GOPHER_THREAD_ID"
+		SendUserChannelThreadMessage $FARG "$GOPHER_USER" "$GOPHER_CHANNEL" "$THREAD" "$*"
+	else
+		SendUserMessage $FARG "$GOPHER_USER" "$*"
+	fi
+}
+
+SayThread(){
+	local FARG
+	[[ $1 == -? ]] && { FARG=$1; shift; }
+	if [ -n "$GOPHER_CHANNEL" ]
+	then
+		SendChannelThreadMessage $FARG "$GOPHER_CHANNEL" "$GOPHER_THREAD_ID" "$*"
+	else
+		SendUserMessage $FARG "$GOPHER_USER" "$*"
+	fi
+}
+
+ReplyThread(){
+	local FARG
+	[[ $1 == -? ]] && { FARG=$1; shift; }
+	if [ -n "$GOPHER_CHANNEL" ]
+	then
+		SendUserChannelThreadMessage $FARG "$GOPHER_USER" "$GOPHER_CHANNEL" "$GOPHER_THREAD_ID" "$*"
 	else
 		SendUserMessage $FARG "$GOPHER_USER" "$*"
 	fi

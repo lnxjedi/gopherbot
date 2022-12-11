@@ -15,10 +15,7 @@ import (
 
 type jsonFunction struct {
 	FuncName string
-	User     string
-	Channel  string
 	Format   string
-	Protocol string
 	CallerID string
 	FuncArgs json.RawMessage
 }
@@ -224,7 +221,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		r.Format = r.cfg.defaultMessageFormat
 	}
 	task, _, _ := getTask(r.currentTask)
-	Log(robot.Trace, "Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, f.Channel, f.User)
+	Log(robot.Trace, "Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, r.Channel, r.User)
 
 	var (
 		attr  *robot.AttrRet
@@ -419,18 +416,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		r.Log(l, lm.Message)
 		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
 		return
-	case "SendChannelMessage":
-		var ctm channelthreadmessage
-		if !getArgs(rw, &f.FuncArgs, &ctm) {
-			return
-		}
-		if ctm.Base64 {
-			ctm.Message = decode(ctm.Message)
-		}
-		sendReturn(rw, &botretvalresponse{
-			int(r.SendChannelMessage(ctm.Channel, ctm.Message)),
-		})
-		return
 	case "SendChannelThreadMessage":
 		var ctm channelthreadmessage
 		if !getArgs(rw, &f.FuncArgs, &ctm) {
@@ -440,19 +425,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			ctm.Message = decode(ctm.Message)
 		}
 		sendReturn(rw, &botretvalresponse{
-			int(r.SendChannelMessage(ctm.Channel, ctm.Message)),
-		})
-		return
-	case "SendUserChannelMessage":
-		var uctm userchannelthreadmessage
-		if !getArgs(rw, &f.FuncArgs, &uctm) {
-			return
-		}
-		if uctm.Base64 {
-			uctm.Message = decode(uctm.Message)
-		}
-		sendReturn(rw, &botretvalresponse{
-			int(r.SendUserChannelThreadMessage(uctm.User, uctm.Channel, uctm.Thread, uctm.Message)),
+			int(r.SendChannelThreadMessage(ctm.Channel, ctm.Thread, ctm.Message)),
 		})
 		return
 	case "SendUserChannelThreadMessage":
@@ -487,7 +460,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if rr.Base64 {
 			rr.Prompt = decode(rr.Prompt)
 		}
-		reply, ret = r.promptInternal(rr.RegexID, rr.User, rr.Channel, "", rr.Prompt)
+		reply, ret = r.promptInternal(rr.RegexID, rr.User, rr.Channel, rr.Thread, rr.Prompt)
 		sendReturn(rw, &replyresponse{reply, int(ret)})
 		return
 	// NOTE: "Say", "Reply", PromptForReply and PromptUserForReply are implemented

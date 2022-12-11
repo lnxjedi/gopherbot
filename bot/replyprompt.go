@@ -271,7 +271,7 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 		replies.m[matcher] = waiters
 		replies.Unlock()
 	} else {
-		Log(robot.Debug, "Prompting for \"%s \" and creating reply waiters list and prompting for matcher: %q", prompt, matcher)
+		Log(robot.Debug, "Prompting for \"%s\" and creating reply waiters list and prompting for matcher: %q", prompt, matcher)
 		var puser string
 		if ui, ok := r.maps.user[user]; ok {
 			puser = bracket(ui.UserID)
@@ -296,7 +296,7 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 	var replied reply
 	select {
 	case <-time.After(replyTimeout):
-		Log(robot.Warn, "Timed out waiting for a reply to regex \"%s\" in channel: %s", regexID, r.Channel)
+		Log(robot.Warn, "Timed out waiting for a reply to regex \"%s\" in channel: %s", regexID, channel)
 		replies.Lock()
 		waitlist, found := replies.m[matcher]
 		if found {

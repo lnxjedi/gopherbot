@@ -18,6 +18,7 @@ const rules = `0. A robot may not harm humanity, or, by inaction, allow humanity
 
 type config struct {
 	Welcome []string
+	Thread  []string
 }
 
 var idRegex = regexp.MustCompile(`^<(.*)>$`)
@@ -46,6 +47,12 @@ func ping(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		r.Reply("Howdy. Try 'help' if you want usage information.")
 	case "ping":
 		r.Fixed().Reply("PONG")
+	case "thread":
+		if ret := r.GetTaskConfig(&cfg); ret == robot.Ok {
+			r.ReplyThread(r.RandomString(cfg.Thread))
+		} else {
+			r.ReplyThread("Sure thing")
+		}
 	case "whoami":
 		u := r.User
 		uid, _ := extractID(r.ProtocolUser)
