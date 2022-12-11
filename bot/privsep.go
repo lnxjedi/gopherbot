@@ -1,3 +1,4 @@
+//go:build linux || dragonfly || freebsd || netbsd || openbsd
 // +build linux dragonfly freebsd netbsd openbsd
 
 package bot
@@ -7,7 +8,7 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 	"golang.org/x/sys/unix"
 )
 

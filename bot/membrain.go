@@ -6,7 +6,7 @@ package bot
 // however, if no other brain is configured, membrain is used as the default.
 
 import (
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // NOTE: brains shouldn't need to do their own locking. See bot/brain.go

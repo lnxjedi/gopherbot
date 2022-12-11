@@ -19,10 +19,10 @@ endif
 static: gopherbot
 
 gopherbot: main*.go bot/* brains/*/* connectors/*/* goplugins/*/* history/*/*
-	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "-s -w $(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot main.go main_static.go
+	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod readonly -ldflags "-s -w $(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot main.go main_static.go
 
 debug:
-	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -ldflags "$(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot
+	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod readonly -ldflags "$(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot
 
 clean:
 	rm -f gopherbot $(TAR_ARCHIVE) $(ZIP_ARCHIVE)
@@ -34,13 +34,13 @@ dist: $(TAR_ARCHIVE)
 
 # Run test suite without coverage (see .gopherci/pipeline.sh)
 test:
-	go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod vendor -race ./test
+	go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test
 
 # Generate Stringer methods
 generate:
-	go generate -v --tags 'test integration netgo osusergo static_build' -mod vendor ./bot/
-	go generate -v --tags 'test integration netgo osusergo static_build' -mod vendor ./robot/
+	go generate -v --tags 'test integration netgo osusergo static_build' -mod readonly ./bot/
+	go generate -v --tags 'test integration netgo osusergo static_build' -mod readonly ./robot/
 
 # Terminal robot that emits events gathered, for developing integration tests
 testbot:
-	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -mod vendor -tags 'netgo osusergo static_build test' -o gopherbot
+	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -mod readonly -tags 'netgo osusergo static_build test' -o gopherbot

@@ -3,7 +3,7 @@ package bot
 import (
 	"fmt"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 /* send_message.go - all the message sending methods for a worker or a Robot.
@@ -55,7 +55,7 @@ func (r Robot) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal
 	} else {
 		channel = ch
 	}
-	return interfaces.SendProtocolChannelMessage(channel, msg, r.Format)
+	return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, r.Format)
 }
 
 func (w *worker) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal {
@@ -68,7 +68,37 @@ func (w *worker) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetV
 	} else {
 		channel = ch
 	}
-	return interfaces.SendProtocolChannelMessage(channel, msg, w.Format)
+	return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, w.Format)
+}
+
+func (r Robot) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
+	if len(msg) == 0 {
+		r.Log(robot.Warn, "Ignoring zero-length message in SendChannelMessage")
+		return robot.Ok
+	}
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	var channel string
+	if ci, ok := r.maps.channel[ch]; ok {
+		channel = bracket(ci.ChannelID)
+	} else {
+		channel = ch
+	}
+	return interfaces.SendProtocolChannelThreadMessage(channel, thr, msg, r.Format)
+}
+
+func (w *worker) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	var channel string
+	if ci, ok := w.maps.channel[ch]; ok {
+		channel = bracket(ci.ChannelID)
+	} else {
+		channel = ch
+	}
+	return interfaces.SendProtocolChannelThreadMessage(channel, thr, msg, w.Format)
 }
 
 // SendUserChannelMessage lets a plugin easily send a message directed to
@@ -96,7 +126,7 @@ func (r Robot) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot
 	} else {
 		channel = ch
 	}
-	return interfaces.SendProtocolUserChannelMessage(user, u, channel, msg, r.Format)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, r.Format)
 }
 
 func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot.RetVal {
@@ -115,7 +145,49 @@ func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) rob
 	} else {
 		channel = ch
 	}
-	return interfaces.SendProtocolUserChannelMessage(user, u, channel, msg, w.Format)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, w.Format)
+}
+
+func (r Robot) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
+	if len(msg) == 0 {
+		r.Log(robot.Warn, "Ignoring zero-length message in SendUserChannelMessage")
+		return robot.Ok
+	}
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	var user string
+	if ui, ok := r.maps.user[u]; ok {
+		user = bracket(ui.UserID)
+	} else {
+		user = u
+	}
+	var channel string
+	if ci, ok := r.maps.channel[ch]; ok {
+		channel = bracket(ci.ChannelID)
+	} else {
+		channel = ch
+	}
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, r.Format)
+}
+
+func (w *worker) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	var user string
+	if ui, ok := w.maps.user[u]; ok {
+		user = bracket(ui.UserID)
+	} else {
+		user = u
+	}
+	var channel string
+	if ci, ok := w.maps.channel[ch]; ok {
+		channel = bracket(ci.ChannelID)
+	} else {
+		channel = ch
+	}
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, w.Format)
 }
 
 // SendUserMessage lets a plugin easily send a DM to a user. If a DM
@@ -172,12 +244,16 @@ func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 	if len(channel) == 0 {
 		channel = r.Channel
 	}
+	var thread string
+	if r.ThreadedMessage {
+		thread = r.ThreadID
+	}
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	if w.BotUser {
-		return interfaces.SendProtocolChannelMessage(r.Channel, r.User+": "+msg, r.Format)
+		return interfaces.SendProtocolChannelThreadMessage(r.Channel, thread, r.User+": "+msg, r.Format)
 	}
-	return interfaces.SendProtocolUserChannelMessage(user, r.User, r.Channel, msg, r.Format)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, r.User, r.Channel, thread, msg, r.Format)
 }
 
 func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
@@ -196,10 +272,65 @@ func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
 	if len(channel) == 0 {
 		channel = w.Channel
 	}
-	if w.BotUser {
-		return interfaces.SendProtocolChannelMessage(w.Channel, w.User+": "+msg, w.Format)
+	var thread string
+	if w.ThreadedMessage {
+		thread = w.ThreadID
 	}
-	return interfaces.SendProtocolUserChannelMessage(user, w.User, w.Channel, msg, w.Format)
+	if w.BotUser {
+		return interfaces.SendProtocolChannelThreadMessage(w.Channel, thread, w.User+": "+msg, w.Format)
+	}
+	return interfaces.SendProtocolUserChannelThreadMessage(user, w.User, w.Channel, thread, msg, w.Format)
+}
+
+// ReplyThread directs a message to the user, creating a new thread
+func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
+	if len(msg) == 0 {
+		r.Log(robot.Warn, "Ignoring zero-length message in Reply")
+		return robot.Ok
+	}
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	user := r.ProtocolUser
+	if len(user) == 0 {
+		user = r.User
+	}
+	// Support for Direct()
+	if r.Channel == "" {
+		return interfaces.SendProtocolUserMessage(user, msg, r.Format)
+	}
+	channel := r.ProtocolChannel
+	if len(channel) == 0 {
+		channel = r.Channel
+	}
+	w := getLockedWorker(r.tid)
+	w.Unlock()
+	if w.BotUser {
+		return interfaces.SendProtocolChannelThreadMessage(r.Channel, r.ThreadID, r.User+": "+msg, r.Format)
+	}
+	return interfaces.SendProtocolUserChannelThreadMessage(user, r.User, r.Channel, r.ThreadID, msg, r.Format)
+}
+
+func (w *worker) ReplyThread(msg string, v ...interface{}) robot.RetVal {
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	user := w.ProtocolUser
+	if len(user) == 0 {
+		user = w.User
+	}
+	// Support for Direct()
+	if w.Channel == "" {
+		return interfaces.SendProtocolUserMessage(user, msg, w.Format)
+	}
+	channel := w.ProtocolChannel
+	if len(channel) == 0 {
+		channel = w.Channel
+	}
+	if w.BotUser {
+		return interfaces.SendProtocolChannelThreadMessage(w.Channel, w.ThreadID, w.User+": "+msg, w.Format)
+	}
+	return interfaces.SendProtocolUserChannelThreadMessage(user, w.User, w.Channel, w.ThreadID, msg, w.Format)
 }
 
 // Say just sends a message to the user or channel
@@ -223,7 +354,11 @@ func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 	if len(channel) == 0 {
 		channel = r.Channel
 	}
-	return interfaces.SendProtocolChannelMessage(channel, msg, r.Format)
+	var thread string
+	if r.ThreadedMessage {
+		thread = r.ThreadID
+	}
+	return interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, r.Format)
 }
 
 func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
@@ -242,5 +377,52 @@ func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
 	if len(channel) == 0 {
 		channel = w.Channel
 	}
-	return interfaces.SendProtocolChannelMessage(channel, msg, w.Format)
+	var thread string
+	if w.ThreadedMessage {
+		thread = w.ThreadID
+	}
+	return interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, w.Format)
+}
+
+// SayThread creates a new thread if replying to an existing message
+func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
+	if len(msg) == 0 {
+		r.Log(robot.Warn, "Ignoring zero-length message in SayThread")
+		return robot.Ok
+	}
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	// Support for Direct()
+	if r.Channel == "" {
+		user := r.ProtocolUser
+		if len(user) == 0 {
+			user = r.User
+		}
+		return interfaces.SendProtocolUserMessage(user, msg, r.Format)
+	}
+	channel := r.ProtocolChannel
+	if len(channel) == 0 {
+		channel = r.Channel
+	}
+	return interfaces.SendProtocolChannelThreadMessage(channel, r.ThreadID, msg, r.Format)
+}
+
+func (w *worker) SayThread(msg string, v ...interface{}) robot.RetVal {
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	// Support for Direct()
+	if w.Channel == "" {
+		user := w.ProtocolUser
+		if len(user) == 0 {
+			user = w.User
+		}
+		return interfaces.SendProtocolUserMessage(user, msg, w.Format)
+	}
+	channel := w.ProtocolChannel
+	if len(channel) == 0 {
+		channel = w.Channel
+	}
+	return interfaces.SendProtocolChannelThreadMessage(channel, w.ThreadID, msg, w.Format)
 }

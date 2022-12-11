@@ -3,7 +3,7 @@ package bot
 import (
 	"strings"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 func pausenotifies(m robot.Robot, args ...string) (retval robot.TaskRetVal) {

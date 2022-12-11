@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"io/ioutil"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // logbuffers.go - utility functions for pulling pipeline logs in to

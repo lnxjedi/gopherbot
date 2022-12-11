@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // VersionInfo holds information about the version, duh. (stupid linter)

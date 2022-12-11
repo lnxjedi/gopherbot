@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var envPassThrough = []string{
@@ -514,6 +514,11 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	}
 	envhash["GOPHER_CONFIGDIR"] = configFull
 	envhash["GOPHER_CHANNEL"] = w.Channel
+	envhash["GOPHER_THREAD_ID"] = w.ThreadID
+	// Env vars are for scripting languages; unset vars are seen as false
+	if w.ThreadedMessage {
+		envhash["GOPHER_THREADED_MESSAGE"] = "true"
+	}
 	envhash["GOPHER_USER"] = w.User
 	envhash["GOPHER_PROTOCOL"] = strings.ToLower(fmt.Sprintf("%s", w.Protocol))
 	envhash["GOPHER_TASK_NAME"] = c.taskName

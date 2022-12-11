@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 /* Technical notes on the waiter implementation
@@ -50,7 +50,7 @@ type replyWaiter struct {
 
 // a reply matcher is used as the key in the replys map
 type replyMatcher struct {
-	user, channel string // Only one reply at a time can be requested for a given user/channel combination
+	user, channel, thread string // Only one reply at a time can be requested for a given user/channel/thread combination
 }
 
 // a reply is sent over the replyWaiter channel when a user replies
@@ -101,24 +101,26 @@ func init() {
 // text and RetVal = Ok.
 // If there's an error getting the reply, it returns an empty string
 // with one of the following RetVals:
-//  UserNotFound
-//  ChannelNotFound
-//	Interrupted - the user canceled with '-'
-//  UseDefaultValue - user supplied a single "=", meaning "use the default value"
-//	ReplyNotMatched - didn't successfully match for any reason
-//	MatcherNotFound - the regexId didn't correspond to a valid regex
-//	TimeoutExpired - the user didn't respond within the timeout window
+//
+//	 UserNotFound
+//	 ChannelNotFound
+//		Interrupted - the user canceled with '-'
+//	 UseDefaultValue - user supplied a single "=", meaning "use the default value"
+//		ReplyNotMatched - didn't successfully match for any reason
+//		MatcherNotFound - the regexId didn't correspond to a valid regex
+//		TimeoutExpired - the user didn't respond within the timeout window
 //
 // Plugin authors can define regex's for regexId's in the plugin's JSON config,
 // with the restriction that the regexId must start with a lowercase letter.
 // A pre-definied regex from the following list can also be used:
-// 	Email
-//	Domain - an alpha-numeric domain name
-//	OTP - a 6-digit one-time password code
-//	IPAddr
-//	SimpleString - Characters commonly found in most english sentences, doesn't
-//    include special characters like @, {, etc.
-//	YesNo
+//
+//		Email
+//		Domain - an alpha-numeric domain name
+//		OTP - a 6-digit one-time password code
+//		IPAddr
+//		SimpleString - Characters commonly found in most english sentences, doesn't
+//	   include special characters like @, {, etc.
+//		YesNo
 func (r Robot) PromptForReply(regexID string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	var rep string
 	var ret robot.RetVal
@@ -126,7 +128,30 @@ func (r Robot) PromptForReply(regexID string, prompt string, v ...interface{}) (
 		prompt = fmt.Sprintf(prompt, v...)
 	}
 	for i := 0; i < 3; i++ {
-		rep, ret = r.promptInternal(regexID, r.User, r.Channel, prompt)
+		var thread string
+		if r.ThreadedMessage {
+			thread = r.ThreadID
+		}
+		rep, ret = r.promptInternal(regexID, r.User, r.Channel, thread, prompt)
+		if ret == robot.RetryPrompt {
+			continue
+		}
+		return rep, ret
+	}
+	if ret == robot.RetryPrompt {
+		return rep, robot.Interrupted
+	}
+	return rep, ret
+}
+
+func (r Robot) PromptThreadForReply(regexID string, prompt string, v ...interface{}) (string, robot.RetVal) {
+	var rep string
+	var ret robot.RetVal
+	if len(v) > 0 {
+		prompt = fmt.Sprintf(prompt, v...)
+	}
+	for i := 0; i < 3; i++ {
+		rep, ret = r.promptInternal(regexID, r.User, r.Channel, r.ThreadID, prompt)
 		if ret == robot.RetryPrompt {
 			continue
 		}
@@ -147,7 +172,7 @@ func (r Robot) PromptUserForReply(regexID string, user string, prompt string, v 
 		prompt = fmt.Sprintf(prompt, v...)
 	}
 	for i := 0; i < 3; i++ {
-		rep, ret = r.promptInternal(regexID, user, "", prompt)
+		rep, ret = r.promptInternal(regexID, user, "", "", prompt)
 		if ret == robot.RetryPrompt {
 			continue
 		}
@@ -168,7 +193,28 @@ func (r Robot) PromptUserChannelForReply(regexID string, user string, channel st
 		prompt = fmt.Sprintf(prompt, v...)
 	}
 	for i := 0; i < 3; i++ {
-		rep, ret = r.promptInternal(regexID, user, channel, prompt)
+		rep, ret = r.promptInternal(regexID, user, channel, "", prompt)
+		if ret == robot.RetryPrompt {
+			continue
+		}
+		return rep, ret
+	}
+	if ret == robot.RetryPrompt {
+		return rep, robot.Interrupted
+	}
+	return rep, ret
+}
+
+// PromptUserChannelForReply is identical to PromptForReply, but prompts a
+// specific user in a given channel.
+func (r Robot) PromptUserChannelThreadForReply(regexID string, user, channel, thread string, prompt string, v ...interface{}) (string, robot.RetVal) {
+	var rep string
+	var ret robot.RetVal
+	if len(v) > 0 {
+		prompt = fmt.Sprintf(prompt, v...)
+	}
+	for i := 0; i < 3; i++ {
+		rep, ret = r.promptInternal(regexID, user, channel, "", prompt)
 		if ret == robot.RetryPrompt {
 			continue
 		}
@@ -181,10 +227,11 @@ func (r Robot) PromptUserChannelForReply(regexID string, user string, channel st
 }
 
 // promptInternal can return 'RetryPrompt'
-func (r Robot) promptInternal(regexID string, user string, channel string, prompt string) (string, robot.RetVal) {
+func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (string, robot.RetVal) {
 	matcher := replyMatcher{
 		user:    user,
 		channel: channel,
+		thread:  thread,
 	}
 	var rep replyWaiter
 	task, _, job := getTask(r.currentTask)
@@ -224,7 +271,7 @@ func (r Robot) promptInternal(regexID string, user string, channel string, promp
 		replies.m[matcher] = waiters
 		replies.Unlock()
 	} else {
-		Log(robot.Debug, "Prompting for \"%s \" and creating reply waiters list and prompting for matcher: %q", prompt, matcher)
+		Log(robot.Debug, "Prompting for \"%s\" and creating reply waiters list and prompting for matcher: %q", prompt, matcher)
 		var puser string
 		if ui, ok := r.maps.user[user]; ok {
 			puser = bracket(ui.UserID)
@@ -235,7 +282,7 @@ func (r Robot) promptInternal(regexID string, user string, channel string, promp
 		if channel == "" {
 			ret = interfaces.SendProtocolUserMessage(puser, prompt, r.Format)
 		} else {
-			ret = interfaces.SendProtocolUserChannelMessage(puser, user, channel, prompt, r.Format)
+			ret = interfaces.SendProtocolUserChannelThreadMessage(puser, user, channel, thread, prompt, r.Format)
 		}
 		if ret != robot.Ok {
 			replies.Unlock()
@@ -249,7 +296,7 @@ func (r Robot) promptInternal(regexID string, user string, channel string, promp
 	var replied reply
 	select {
 	case <-time.After(replyTimeout):
-		Log(robot.Warn, "Timed out waiting for a reply to regex \"%s\" in channel: %s", regexID, r.Channel)
+		Log(robot.Warn, "Timed out waiting for a reply to regex \"%s\" in channel: %s", regexID, channel)
 		replies.Lock()
 		waitlist, found := replies.m[matcher]
 		if found {

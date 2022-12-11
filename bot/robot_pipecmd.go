@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // GetRepoData returns the contents of configPath/conf/repodata.yaml, or an
@@ -48,7 +48,9 @@ func (r Robot) GetRepoData() map[string]robot.Repository {
 // secret parameters stored in repositories.yaml.
 // Arguments:
 // ext (extension) => "<repository>/<branch>", where repository is listed in
-//   repositories.yaml
+//
+//	repositories.yaml
+//
 // histories => number of histories to keep
 func (r Robot) ExtendNamespace(ext string, histories int) bool {
 	if strings.ContainsRune(ext, ':') {

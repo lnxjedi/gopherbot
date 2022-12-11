@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // func template(m robot.Robot, args ...string) (retval robot.TaskRetVal) {

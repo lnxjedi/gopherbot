@@ -20,6 +20,10 @@ Help:
   Helptext: [ "(bot), ruby (me!) - prove that ruby plugins work" ]
 - Keywords: [ "listen" ]
   Helptext: [ "(bot), listen (to me!) - ask a question" ]
+- Keywords: [ "thread" ]
+  Helptext: [ "(bot), ruby-thread - ask the robot to start a new thread" ]
+- Keywords: [ "thread" ]
+  Helptext: [ "(bot), ruby-ask-thread - ask a question in a thread" ]
 - Keywords: [ "remember", "memory" ]
   Helptext: [ "(bot), remember <anything> - prove the robot has a brain(tm)" ]
 - Keywords: [ "recall", "memory" ]
@@ -31,6 +35,10 @@ Help:
 CommandMatchers:
 - Regex: (?i:ruby( me)?!?)
   Command: ruby
+- Regex: (?i:ruby-thread)
+  Command: thread
+- Regex: (?i:ruby-ask-thread)
+  Command: askthread
 - Regex: (?i:listen( to me)?!?)
   Command: listen
 - Regex: '(?i:remember(?: (slowly))? ([-\w .,!?:\/]+))'
@@ -60,6 +68,16 @@ when "ruby"
   bot.Say("Sure, #{bot.GetSenderAttribute("firstName")}!")
   sleep 1.5
   bot.Say(bot.RandomString(bot.GetTaskConfig()["Replies"]))
+when "thread"
+  bot.ReplyThread("Ok, let's chat here")
+  bot.SayThread("... you still have to use my name, though")
+when "askthread"
+  rep = bot.PromptThreadForReply("SimpleString", "Tell me something - anything!")
+  if rep.ret == Robot::Ok
+    bot.SayThread("I hear what you're saying - '#{rep}'")
+  else
+    bot.SayThread("I'm sorry, I'm not sure what you're trying to tell me - did you put funny characters in your reply?")
+  end
 when "listen"
   dbot = bot.Direct()
   rep = dbot.PromptForReply("SimpleString", "Ok, what do you want to tell me?")

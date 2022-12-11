@@ -3,7 +3,7 @@ package test
 import (
 	"strings"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // BotMessage is for receiving messages from the robot
@@ -72,7 +72,7 @@ func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (tc *TestConnector) SendProtocolChannelMessage(ch string, mesg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (tc *TestConnector) SendProtocolChannelThreadMessage(ch, thr, mesg string, f robot.MessageFormat) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	msg := &BotMessage{
 		User:    "",
@@ -84,7 +84,7 @@ func (tc *TestConnector) SendProtocolChannelMessage(ch string, mesg string, f ro
 }
 
 // SendProtocolUserChannelMessage sends a message to a user in a channel
-func (tc *TestConnector) SendProtocolUserChannelMessage(uid, uname, ch, mesg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (tc *TestConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, mesg string, f robot.MessageFormat) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	msg := &BotMessage{
 		User:    uname,

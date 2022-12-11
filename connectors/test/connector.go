@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lnxjedi/robot"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // TestMessage is for sending messages to the robot
