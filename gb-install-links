@@ -24,7 +24,7 @@ fi
 
 EXECUTABLE_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
 
-for EXECUTABLE in gopherbot gb-dev-profile gb-start-dev
+for EXECUTABLE in gopherbot cbot.sh
 do
     ln -snf "$EXECUTABLE_DIR/$EXECUTABLE" "$DEST"
 done
