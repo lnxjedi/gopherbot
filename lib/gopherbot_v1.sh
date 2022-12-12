@@ -39,7 +39,6 @@ PLUGRET_Success=7
 base64_encode(){
 	local MESSAGE
 	MESSAGE=$(echo -n "$@" | base64)
-	MESSAGE=$(echo -n "$MESSAGE")
 	echo -n "$MESSAGE"
 }
 
@@ -500,7 +499,7 @@ SendUserMessage(){
 	local GB_FUNCNAME="SendUserMessage"
 	local SUM_USER=$1
 	shift
-	MESSAGE="$*"
+	local MESSAGE="$*"
 	MESSAGE=$(base64_encode "$MESSAGE")
 
 	GB_FUNCARGS=$(cat <<EOF
@@ -516,7 +515,10 @@ EOF
 }
 
 SendUserChannelMessage(){
-	SendChannelThreadMessage "$1" "$2" "" "$@"
+	local SEND_USER="$1"
+	local SEND_CHANNEL="$2"
+	shift 2
+	SendUserChannelThreadMessage "$SEND_USER" "$SEND_CHANNEL" "" "$@"
 }
 
 SendUserChannelThreadMessage(){
@@ -528,7 +530,7 @@ SendUserChannelThreadMessage(){
 	local SUCTM_CHANNEL=$2
 	local SUCTM_THREAD="$3"
 	shift 2
-	MESSAGE="$*"
+	local MESSAGE="$*"
 	MESSAGE=$(base64_encode "$MESSAGE")
 
 	GB_FUNCARGS=$(cat <<EOF
@@ -546,7 +548,9 @@ EOF
 }
 
 SendChannelMessage(){
-	SendChannelThreadMessage "$1" "" "$@"
+	local SEND_CHANNEL="$1"
+	shift
+	SendChannelThreadMessage "$SEND_CHANNEL" "" "$@"
 }
 
 SendChannelThreadMessage(){
@@ -557,7 +561,7 @@ SendChannelThreadMessage(){
 	local SCTM_CHANNEL=$1
 	local SCTM_THREAD="$2"
 	shift
-	MESSAGE="$*"
+	local MESSAGE="$*"
 	MESSAGE=$(base64_encode "$MESSAGE")
 
 	GB_FUNCARGS=$(cat <<EOF
