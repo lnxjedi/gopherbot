@@ -9,6 +9,10 @@ FROM ghcr.io/${base_org}/gopherbot-base:latest
 
 ARG USERNAME=bot
 
+WORKDIR /home/${USERNAME}
+RUN curl -o .git-completion.bash https://raw.githubusercontent.com/git/git/master/contrib/completion/git-completion.bash && \
+    curl -o .git-prompt.sh https://raw.githubusercontent.com/git/git/master/contrib/completion/git-prompt.sh
+
 COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot/ /opt/gopherbot/
 COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot-doc/ /opt/gopherbot-doc/
 COPY --chown=${USERNAME}:${USERNAME} assets/gopherbot.code-workspace /home/${USERNAME}/gopherbot.code-workspace
