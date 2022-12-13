@@ -17,6 +17,7 @@ COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot/ /opt/gopherbot/
 COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot-doc/ /opt/gopherbot-doc/
 COPY --chown=${USERNAME}:${USERNAME} assets/gopherbot.code-workspace /home/${USERNAME}/gopherbot.code-workspace
 COPY --chown=${USERNAME}:${USERNAME} assets/dev-init /home/${USERNAME}/.dev-init
+COPY --chown=${USERNAME}:${USERNAME} assets/gitconfig /home/${USERNAME}/.gitconfig
 
 RUN echo "source /home/${USERNAME}/.dev-init" >> /home/${USERNAME}/.bashrc && \
     mkdir -p /home/${USERNAME}/.ssh && \
