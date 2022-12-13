@@ -180,7 +180,11 @@ func (w *worker) handleMessage() {
 	// user take precedence over everything else.
 	var waiters []replyWaiter
 	waitingForReply := false
-	matcher := replyMatcher{w.User, w.Channel, w.ThreadID}
+	threadID := ""
+	if w.ThreadedMessage {
+		threadID = w.ThreadID
+	}
+	matcher := replyMatcher{w.User, w.Channel, threadID}
 	Log(robot.Trace, "Checking replies for matcher: %q", matcher)
 	replies.Lock()
 	waiters, waitingForReply = replies.m[matcher]
