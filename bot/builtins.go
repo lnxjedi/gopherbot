@@ -71,7 +71,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		if len(adminContact.Attribute) > 0 {
 			msg = append(msg, fmt.Sprintf("The administrative contact for this robot is: %s", adminContact))
 		}
-		r.MessageFormat(robot.Variable).Say(strings.Join(msg, "\n"))
+		r.MessageFormat(robot.Variable).SayThread(strings.Join(msg, "\n"))
 	}
 	if command == "help" || command == "help-all" {
 		botname := r.cfg.botinfo.UserName
