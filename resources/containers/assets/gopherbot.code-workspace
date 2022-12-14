@@ -1,14 +1,20 @@
 {
     "folders": [
         {
-                "path": "/home/bot"
+            "path": "/home/bot"
         },
         {
-                "path": "/opt/gopherbot"
+            "path": "/opt/gopherbot"
         },
         {
-                "path": "/opt/gopherbot-doc"
+            "path": "/opt/gopherbot-doc"
         }
     ],
-    "settings": {}
+    "settings": {
+        "search.exclude": {
+            "/.cache": true,
+            "/.openvscode*": true,
+            "/go/pkg": true
+        }
+    }
 }
