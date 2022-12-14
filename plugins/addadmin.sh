@@ -100,16 +100,12 @@ then
 fi
 rm -f ".addadmin"
 sed -i ".env" -e '/^GOPHER_SETUP_TOKEN=/d'
-USERNAME=$(GetSenderAttribute "user")
 USERID=$(GetSenderAttribute "id")
 USERID=${USERID#<}
 USERID=${USERID%>}
-if [ -z "$USERNAME" ]
-then
-    USERNAME=$(getMatching "SimpleString" \
-      "What username do you want the robot to know you by?")
-    checkReply $?
-fi
+USERNAME=$(getMatching "SimpleString" \
+    "What username do you want the robot to know you by?")
+checkReply $?
 Say "Detected User ID $USERID for $USERNAME"
 substitute "<adminusername>" "$USERNAME" "conf/slack.yaml"
 substitute "<adminuserid>" "$USERID" "conf/slack.yaml"
