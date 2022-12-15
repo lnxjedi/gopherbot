@@ -5,7 +5,10 @@
         <meta charset="UTF-8">
         <title>Gopherbot DevOps Chatbot</title>
         <meta name="robots" content="noindex" />
+
+
         <!-- Custom HTML head -->
+        
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
@@ -16,15 +19,18 @@
         <link rel="stylesheet" href="css/general.css">
         <link rel="stylesheet" href="css/chrome.css">
         <link rel="stylesheet" href="css/print.css" media="print">
+
         <!-- Fonts -->
         <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
         <link rel="stylesheet" href="fonts/fonts.css">
+
         <!-- Highlight.js Stylesheets -->
         <link rel="stylesheet" href="highlight.css">
         <link rel="stylesheet" href="tomorrow-night.css">
         <link rel="stylesheet" href="ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+
     </head>
     <body>
         <!-- Provide site root to javascript -->
@@ -83,7 +89,7 @@
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                <div id="menu-bar-hover-placeholder"></div>
+                                <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky bordered">
                     <div class="left-buttons">
                         <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
@@ -110,6 +116,7 @@
                         <a href="print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
+
                     </div>
                 </div>
 
@@ -123,6 +130,7 @@
                         </ul>
                     </div>
                 </div>
+
                 <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
                 <script>
                     document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
@@ -704,13 +712,44 @@ setup)
 <blockquote>
 <p>NOTE: the quickest way to open a second terminal is to click the &quot;Split Terminal&quot; box in the upper-right corner of your initial terminal. To access the public keys for configuring deployment keys, you can e.g. <code>cat custom/ssh/deploy_key.pub</code>, or open it from the file explorer</p>
 </blockquote>
+<ol start="7">
+<li>
+<p>Once you've uploaded your robot to it's <em>git</em> repository, you'll only need the contents of <code>/home/bot/.env</code> for deploying your robot - you should browse the <code>bot</code> section in file explorer, locate and download the <code>.env</code>.</p>
+</li>
+<li>
+<p>Once you've downloaded your robot's <code>.env</code>, you should append it's contents to your IDE development profile for the robot, so you can easily bootstrap and update your robot later. Here's are example commands for doing this in your host OS terminal (NOT in an IDE / OpenVSCode terminal window):</p>
+</li>
+</ol>
+<pre><code class="language-shell">david@penguin:~/botwork$ cat ~/Downloads/.env &gt;&gt; bishop.env # NOTE: supply the path to _your_ download directory
+david@penguin:~/botwork$ rm ~/Downloads/.env
+david@penguin:~/botwork$ cat bishop.env 
+## Lines starting with #| are used by the cbot.sh script
+GIT_AUTHOR_NAME=&quot;David Parsley&quot;
+GIT_AUTHOR_EMAIL=parsley@linuxjedi.org
+GIT_COMMITTER_NAME=&quot;David Parsley&quot;
+GIT_COMMITTER_EMAIL=parsley@linuxjedi.org
+#|CONTAINERNAME=bishop
+#|SSH_KEY_PATH=/home/david/.ssh/id_rsa
+GOPHER_ENCRYPTION_KEY=&lt;redacted&gt;
+GOPHER_CUSTOM_REPOSITORY=git@github.com:parsley42/bishop-gopherbot.git
+## You should normally keep GOPHER_PROTOCOL commented out, except when
+## used in a production container. This allows for the normal case where
+## the robot starts in terminal mode for local development.
+GOPHER_PROTOCOL=slack
+## To use the deploy key below, add ssh/deploy_key.pub as a read-only
+## deploy key for the custom configuration repository.
+GOPHER_DEPLOY_KEY=-----BEGIN_OPENSSH_PRIVATE_KEY-----:&lt;redacted&gt;:-----END_OPENSSH_PRIVATE_KEY-----:
+</code></pre>
 <p>That's it - your robot is ready to be deployed and start doing some work. Once you've saved the robot's <code>.env</code> file to a safe location, you can delete the container. The rest of this manual details deploying and managing your robot.</p>
-<p><strong>7.</strong> To clean up:</p>
-<pre><code>$ docker stop clu
-$ docker rm clu
+<ol start="9">
+<li>To clean up:</li>
+</ol>
+<pre><code class="language-shell">david@penguin:~/botwork$ ./cbot.sh stop bishop.env # to just stop the container
+# OR
+david@penguin:~/botwork$ ./cbot.sh rm bishop.env # to remove the container
 </code></pre>
 <blockquote>
-<p>Note: After setting up your robot, you may get an e-mail from GitHub about having uploaded an ssh private key. Don't panic! If you download the keys and try to use them with <code>ssh-add</code>, you'll find they're encrypted - false alarm. You'll need your robot's <code>GOPHER_ENCRYPTION_KEY</code> to decrypt the passphrase.</p>
+<p>Note: After setting up your robot, you may get an e-mail from GitHub (or other hosted <strong>git</strong> provider) about having uploaded an ssh private key. Don't panic! If you download the keys and try to use them with <code>ssh-add</code>, you'll find they're encrypted - false alarm. You'll need your robot's <code>GOPHER_ENCRYPTION_KEY</code> to decrypt the passphrase.</p>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="manual-setup"><a class="header" href="#manual-setup">Manual Setup</a></h1>
 <p>This section documents manual setup of a new robot custom configuration repository, using a Linux system or VM with the <strong>Gopherbot</strong> software <a href="botsetup/../install/ManualInstall.html">already installed</a>. Note that the documentation will often refer to a robot's <em>configuration repository</em>, even though using a <em>git</em> repository isn't strictly required.</p>
@@ -2525,31 +2564,42 @@ make: *** [test] Error 1
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+
+
                         <div style="clear: both"></div>
                     </nav>
                 </div>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
             </nav>
 
         </div>
 
+
+
+
         <script>
             window.playground_copyable = true;
         </script>
+
+
         <script src="elasticlunr.min.js"></script>
         <script src="mark.min.js"></script>
         <script src="searcher.js"></script>
+
         <script src="clipboard.min.js"></script>
         <script src="highlight.js"></script>
         <script src="book.js"></script>
 
         <!-- Custom JS scripts -->
+
         <script>
         window.addEventListener('load', function() {
             window.setTimeout(window.print, 100);
         });
         </script>
+
     </body>
 </html>
