@@ -29,4 +29,4 @@ source $HOME/.git-prompt.sh
 PATH=${PATH}:/opt/gopherbot:${HOME}/go/bin
 GIT_PS1_SHOWUPSTREAM="auto"
 GIT_PS1_SHOWDIRTYSTATE="true"
-PS1='[\w$(__git_ps1 " (%s)")]\$ '
+PS1='[\[\033[01;32m\]\w\[\033[01;34m\]$(__git_ps1 "(%s)")\[\033[00m\]]\$ \[\]\[\]'
