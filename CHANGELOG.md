@@ -1,3 +1,10 @@
+# v2.6.1 - Robots can now talk to themselves
+* When Gopherbot was first created, it didn't make much sense for Gopherbot robots to process messages that originated from themselves. Now that messages carry a "ThreadID" ("GOPHER_THREAD_ID"), a clever roboticist can take advantage of the robot's ability to hear itself to e.g. associate state with a thread. To enable this, set `HearSelf: true` in your Slack ProcotolConfig.
+
+# v2.6.0 - New IDE and Threaded Conversations Support
+* The documentation is just starting to catch up with the new **Gopherbot IDE** - a giant (>2G) container with everything you need to do development either on your robot, or Gopherbot itself.
+* Gopherbot robots can now hear an opaque "ThreadID" (env var: "GOPHER_THREAD_ID") and "ThreadedMessage" (env var: "GOPHER_THREADED_MESSAGE", "true" when the message was issued in a thread). "Say" and "Reply" will post to the thread if the robot was spoken to there. Additionally, the new "SayThread", "ReplyThread" and "PromptThreadForReply" methods will create a new thread from a message in the channel, allowing you to keep noisy responses out of the main channel; the "help" command does this now.
+
 # v2.5.2 - Socket mode stability and command standardization
 * After a problem with a robot becoming unresponsive, an [issue](https://github.com/slack-go/slack/issues/1093) with the Slack Go library was found that could delay reconnecting in the event of a timeout on the websocket. This release incorporates a [fix](https://github.com/slack-go/slack/pull/1094).
 *  To make job-related commands easier to remember, `<verb>-<noun>` synonyms were added for job related commands, e.g. `list-jobs`, `pause-job`, `resume-job`, etc.
