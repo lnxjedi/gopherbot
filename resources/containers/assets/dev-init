@@ -21,6 +21,9 @@ then
     export SSH_AGENT_PID=$(pgrep ssh-agent)
 fi
 check-load-ssh
+devbot(){
+    GOPHER_PROTOCOL=terminal GOPHER_BRAIN=mem gopherbot
+}
 source $HOME/.git-completion.bash
 source $HOME/.git-prompt.sh
 PATH=${PATH}:/opt/gopherbot:${HOME}/go/bin
