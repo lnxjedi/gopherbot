@@ -2,12 +2,12 @@
 
 # cbot.sh - Script to simplify running Gopherbot containers
 
-IMAGE_NAME="ghcr.io/lnxjedi/gopherbot-dev"
+IMAGE_NAME="ghcr.io/lnxjedi/gopherbot"
 IMAGE_TAG="latest"
 
 usage() {
     cat <<EOF
-Usage: ./botc.sh profile|dev|start|stop|remove (options...) (arguments...)
+Usage: ./botc.sh profile|start|stop|remove (options...) (arguments...)
 
 ----
 Generate a profile for development:
@@ -26,11 +26,12 @@ GIT_COMMITTER_EMAIL=parsley@linuxjedi.org
 
 ----
 Start a gopherbot development container:
-./cbot.sh dev (-u) (path/to/profile)
+./cbot.sh start (-u) (-p) (path/to/profile)
  -u - pull the latest container version first
+ -p - start a production robot (minimal image)
 
 Example:
-$ ./cbot.sh dev ~/bishop.env
+$ ./cbot.sh start ~/bishop.env
 Running 'bishop':
 Unable to find image 'ghcr.io/lnxjedi/gopherbot-dev:latest' locally
 latest: Pulling from lnxjedi/gopherbot-dev
@@ -40,7 +41,8 @@ Access your dev environment at: http://localhost:7777/?workspace=/home/bot/gophe
 
 ----
 Stop a gopherbot container:
-./cbot.sh stop (path/to/profile)
+./cbot.sh stop (-p) (path/to/profile)
+ -p - stop a production robot
 
 Example:
 $ ./cbot.sh stop ~/bishop.env
@@ -48,9 +50,10 @@ $ ./cbot.sh stop ~/bishop.env
 ----
 Stop and remove a container:
 ./cbot.sh remove (path/to/profile)
+ -p - remove a production robot
 
 Example:
-$ ./cbot.sh remove ~/bishop.env
+$ ./cbot.sh remove (-p) ~/bishop.env
 EOF
 }
 
@@ -150,26 +153,63 @@ EOF
     exit 0
     ;;
 remove | rm )
+    while getopts ":p" OPT; do
+        case $OPT in
+        p )
+            PROD="true"
+            ;;
+        \? | h)
+            [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
+            usage
+            exit 0
+            ;;
+        esac
+    done
+    shift $((OPTIND -1))
     GOPHER_PROFILE=$1
     check_profile
     eval `read_profile`
+    if [ ! "$PROD" ]
+    then
+        CONTAINERNAME="$CONTAINERNAME-dev"
+    fi
     docker stop $CONTAINERNAME >/dev/null && docker rm $CONTAINERNAME >/dev/null
     echo "Removed"
     exit 0
     ;;
 stop )
+    while getopts ":p" OPT; do
+        case $OPT in
+        p )
+            PROD="true"
+            ;;
+        \? | h)
+            [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
+            usage
+            exit 0
+            ;;
+        esac
+    done
+    shift $((OPTIND -1))
     GOPHER_PROFILE=$1
     check_profile
     eval `read_profile`
+    if [ ! "$PROD" ]
+    then
+        CONTAINERNAME="$CONTAINERNAME-dev"
+    fi
     docker stop $CONTAINERNAME >/dev/null
     echo "Stopped"
     exit 0
     ;;
-dev )
-    while getopts ":u" OPT; do
+start )
+    while getopts ":up" OPT; do
         case $OPT in
         u )
             PULL="true"
+            ;;
+        p )
+            PROD="true"
             ;;
         \? | h)
             [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
@@ -180,11 +220,16 @@ dev )
     done
     shift $((OPTIND -1))
 
-    IMAGE_SPEC="$IMAGE_NAME:$IMAGE_TAG"
-
     GOPHER_PROFILE=$1
     check_profile
     eval `read_profile`
+
+    if [ ! "$PROD" ]
+    then
+        IMAGE_NAME="$IMAGE_NAME-dev"
+        CONTAINERNAME="$CONTAINERNAME-dev"
+    fi
+    IMAGE_SPEC="$IMAGE_NAME:$IMAGE_TAG"
 
     if STATUS=$(docker inspect -f {{.State.Status}} $CONTAINERNAME 2>/dev/null)
     then
@@ -200,10 +245,15 @@ dev )
                 exit 1
             fi
         fi
-        copy_ssh
-        TOK_LINE=$(docker logs $CONTAINERNAME 2>/dev/null | grep "^Web UI" | tail -1)
-        RANDOM_TOKEN=${TOK_LINE##*=}
-        show_access
+        if [ "$PROD" ]
+        then
+            echo "... started"
+        else
+            copy_ssh
+            TOK_LINE=$(docker logs $CONTAINERNAME 2>/dev/null | grep "^Web UI" | tail -1)
+            RANDOM_TOKEN=${TOK_LINE##*=}
+            show_access
+        fi
         exit 0
     fi
 
@@ -212,16 +262,22 @@ dev )
         docker pull $IMAGE_SPEC
     fi
 
-    RANDOM_TOKEN="$(openssl rand -hex 21)"
-
     echo "Running '$CONTAINERNAME':"
-    docker run -d \
-        -p 127.0.0.1:7777:7777 \
-        -p 127.0.0.1:8888:8888 \
-        --env-file $GOPHER_PROFILE \
-        --name $CONTAINERNAME $IMAGE_SPEC \
-        --connection-token $RANDOM_TOKEN
 
+    if [ "$PROD" ]
+    then
+        docker run -d \
+            --env-file $GOPHER_PROFILE \
+            --name $CONTAINERNAME $IMAGE_SPEC
+    else
+        RANDOM_TOKEN="$(openssl rand -hex 21)"
+        docker run -d \
+            -p 127.0.0.1:7777:7777 \
+            -p 127.0.0.1:8888:8888 \
+            --env-file $GOPHER_PROFILE \
+            --name $CONTAINERNAME $IMAGE_SPEC \
+            --connection-token $RANDOM_TOKEN
+    fi
     wait_for_container
     if [ ! "$SUCCESS" ]
     then
@@ -229,8 +285,11 @@ dev )
         exit 1
     fi
 
-    copy_ssh
-    show_access
+    if [ ! "$PROD" ]
+    then
+        copy_ssh
+        show_access
+    fi
     ;;
 * )
     echo "Invalid command: $COMMAND"

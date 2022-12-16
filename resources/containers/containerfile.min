@@ -1,0 +1,55 @@
+FROM ghcr.io/lnxjedi/gopherbot-dev:latest as build
+
+#######
+#
+# containerfile.min - minimal container for running a Gopherbot robot.
+#
+#######
+
+RUN cd /opt/gopherbot && \
+    GOPHER_LATEST=$(curl --silent https://api.github.com/repos/lnxjedi/gopherbot/releases/latest | jq -r .tag_name) && \
+    git remote set-url origin https://github.com/lnxjedi/gopherbot.git && \
+    git pull && \
+    git pull --tags && \
+    git checkout $GOPHER_LATEST && \
+    make clean && \
+    make dist && \
+    cd /tmp && \
+    tar xzvf /opt/gopherbot/gopherbot-linux-amd64.tar.gz
+
+FROM buildpack-deps:bullseye
+
+# Enough stuff to run bash, python, and ruby extensions
+RUN apt-get update && \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    bind9-dnsutils \
+    jq \
+    python3-pip \
+    ruby \
+    vim && \
+  rm -rf /var/lib/apt/lists/*
+
+# Start common section
+ENV ROBOT_UID=994
+ENV SHELL=/bin/bash
+ENV HOME=/home/bot
+ENV PATH=$PATH:${HOME}/bin:${HOME}/.local/bin:/opt/gopherbot
+ENV RUBYLIB=/opt/gopherbot/lib
+ENV PYTHONPATH=/opt/gopherbot/lib
+
+RUN useradd -d ${HOME} -r -c "Gopherbot Robot" -u ${ROBOT_UID} robot && \
+  mkdir -p ${HOME} && \
+  chown robot:robot ${HOME} && \
+  chmod 0755 ${HOME}
+
+COPY --from=build /tmp/gopherbot /opt/gopherbot
+
+# USER root
+# RUN cd /opt/gopherbot && \
+#     ./setuid-nobody.sh
+
+USER ${ROBOT_UID}:${ROBOT_UID}
+
+WORKDIR ${HOME}
+
+ENTRYPOINT [ "/opt/gopherbot/gopherbot" ]
