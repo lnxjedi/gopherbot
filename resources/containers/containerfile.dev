@@ -22,7 +22,10 @@ COPY --chown=${USERNAME}:${USERNAME} assets/gitconfig /home/${USERNAME}/.gitconf
 RUN echo "source /home/${USERNAME}/.dev-init" >> /home/${USERNAME}/.bashrc && \
     mkdir -p /home/${USERNAME}/.ssh && \
     chmod 0700 /home/${USERNAME}/.ssh && \
+    cd /opt/gopherbot-doc && \
+    sed -i -e '/\[http/,+1d' .git/config && \
     cd /opt/gopherbot && \
+    sed -i -e '/\[http/,+1d' .git/config && \
     make
 
 ENV RUBYLIB=/opt/gopherbot/lib:/home/${USERNAME}/custom/lib \
