@@ -32,6 +32,7 @@ RUN set -eux; \
         less \
         libatomic1 \
         openssh-client \
+        procps \
         python3 \
         python3-pip \
         ruby \
