@@ -211,8 +211,8 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 		s.Log(robot.Debug, "Zero-length userID, ignoring message")
 		return
 	}
-	if userID == s.botUserID {
-		s.Log(robot.Debug, "Ignoring message from self")
+	if (userID == s.botUserID) && !s.hearSelf {
+		s.Log(robot.Debug, "Ignoring message from self (HearSelf not set)")
 		return
 	}
 	text := message.Text
@@ -344,8 +344,8 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 		s.Log(robot.Debug, "Zero-length userID, ignoring message")
 		return
 	}
-	if userID == s.botUserID {
-		s.Log(robot.Debug, "Ignoring message from self")
+	if (userID == s.botUserID) && !s.hearSelf {
+		s.Log(robot.Debug, "Ignoring message from self (HearSelf not set)")
 		return
 	}
 	text := message.Text

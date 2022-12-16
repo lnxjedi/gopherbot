@@ -14,10 +14,15 @@ import (
 	"github.com/slack-go/slack/socketmode"
 )
 
+/*
+NOTE: HearSelf is mainly useful for sending a formatted message, hearing it, and getting
+the thread ID.
+*/
 type config struct {
 	SlackToken         string // the 'bot token for connecting to Slack using RTM
 	AppToken, BotToken string // tokens used for connecting to Slack using the new SocketMode
 	MaxMessageSplit    int    // the maximum # of ~4000 byte messages to split a large message into
+	HearSelf           bool   // Pass messages the robot sends back to the robot
 	Debug              bool   // Explicitly turn on Slack protocol debug output
 }
 
@@ -93,6 +98,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 			api:             api,
 			sock:            socketmode.New(api, sockOpts...),
 			maxMessageSplit: c.MaxMessageSplit,
+			hearSelf:        c.HearSelf,
 			name:            "slack",
 		}
 		go sc.sock.Run()
