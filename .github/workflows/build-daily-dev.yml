@@ -12,13 +12,12 @@ env:
 
 jobs:
   build-dev:
+    if: github.repository_owner	== 'lnxjedi'
     runs-on: ubuntu-latest
-    if: ${{ github.repository_owner	 == 'lnxjedi' }}
     permissions:
       contents: read
       packages: write
 
-    if: ${{ github.repository_owner	 == 'lnxjedi' }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3

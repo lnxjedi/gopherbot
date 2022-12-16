@@ -11,12 +11,12 @@ env:
 
 jobs:
   build-and-push-container-base:
+    if: github.repository_owner	== 'lnxjedi'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
-    if: ${{ github.repository_owner	 == 'lnxjedi' }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
