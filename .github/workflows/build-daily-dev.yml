@@ -5,6 +5,10 @@ on:
   # Build dev container daily
   - cron: "42 7 * * *"
   workflow_dispatch:
+    inputs:
+      build_anyway:
+        type: boolean
+        description: Allow the workflow to run when repo owner != lnxjedi
 
 env:
   REGISTRY: ghcr.io
@@ -12,7 +16,7 @@ env:
 
 jobs:
   build-dev:
-    if: github.repository_owner	== 'lnxjedi'
+    if: ( github.repository_owner == 'lnxjedi' ) || github.event.inputs.build_anyway
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,12 +34,14 @@ jobs:
       uses: actions/checkout@v3
       with:
         path: resources/containers/tmp/gopherbot
+        fetch-depth: 0
 
     - name: Checkout doc repository for container
       uses: actions/checkout@v3
       with:
         repository: lnxjedi/gopherbot-doc
         path: resources/containers/tmp/gopherbot-doc
+        fetch-depth: 0
 
     - name: Fix up gopherbot repository URL
       run: |
