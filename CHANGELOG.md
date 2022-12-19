@@ -1,3 +1,6 @@
+# v2.6.2 - Boogs
+* Fixed an old bug where the robot might not answer to being @mentioned in Slack. To be sure @mentions work, your robot needs to list itself in the Slack user map, with the same name as in `robot.yaml`.
+
 # v2.6.1 - Robots can now talk to themselves
 * When Gopherbot was first created, it didn't make much sense for Gopherbot robots to process messages that originated from themselves. Now that messages carry a "ThreadID" ("GOPHER_THREAD_ID"), a clever roboticist can take advantage of the robot's ability to hear itself to e.g. associate state with a thread. To enable this, set `HearSelf: true` in your Slack ProcotolConfig.
 
