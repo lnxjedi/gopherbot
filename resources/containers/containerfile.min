@@ -7,15 +7,15 @@ FROM ghcr.io/lnxjedi/gopherbot-dev:latest as build
 #######
 
 RUN cd /opt/gopherbot && \
-    GOPHER_LATEST=$(curl --silent https://api.github.com/repos/lnxjedi/gopherbot/releases/latest | jq -r .tag_name) && \
-    git remote set-url origin https://github.com/lnxjedi/gopherbot.git && \
-    git pull && \
-    git pull --tags && \
-    git checkout $GOPHER_LATEST && \
-    make clean && \
-    make dist && \
-    cd /tmp && \
-    tar xzvf /opt/gopherbot/gopherbot-linux-amd64.tar.gz
+  git remote set-url origin $(git config --get remote.origin.url | sed 's/git@github\.com:/https:\/\/github.com\//') && \
+  git pull && \
+  git pull --tags && \
+  GOPHER_LATEST=$(git describe --tags --match 'v*' `git rev-list --tags --max-count=1`) && \
+  git checkout ${GOPHER_LATEST%-*-*} && \
+  make clean && \
+  make dist && \
+  cd /tmp && \
+  tar xzvf /opt/gopherbot/gopherbot-linux-amd64.tar.gz
 
 FROM buildpack-deps:bullseye
 
