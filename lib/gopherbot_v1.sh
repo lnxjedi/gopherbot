@@ -529,7 +529,7 @@ SendUserChannelThreadMessage(){
 	local SUCTM_USER=$1
 	local SUCTM_CHANNEL=$2
 	local SUCTM_THREAD="$3"
-	shift 2
+	shift 3
 	local MESSAGE="$*"
 	MESSAGE=$(base64_encode "$MESSAGE")
 
@@ -560,7 +560,7 @@ SendChannelThreadMessage(){
 	local GB_FUNCNAME="SendChannelThreadMessage"
 	local SCTM_CHANNEL=$1
 	local SCTM_THREAD="$2"
-	shift
+	shift 2
 	local MESSAGE="$*"
 	MESSAGE=$(base64_encode "$MESSAGE")
 
