@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: "14 7 * * 0"
   workflow_dispatch:
+    inputs:
+      build_anyway:
+        type: boolean
+        description: Allow the workflow to run when repo owner != lnxjedi
 
 env:
   REGISTRY: ghcr.io
@@ -11,7 +15,7 @@ env:
 
 jobs:
   build-and-push-container-base:
-    if: github.repository_owner	== 'lnxjedi'
+    if: ( github.repository_owner == 'lnxjedi' ) || github.event.inputs.build_anyway
     runs-on: ubuntu-latest
     permissions:
       contents: read
