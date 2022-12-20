@@ -10,7 +10,7 @@ usage() {
 Usage: ./botc.sh profile|start|stop|remove (options...) (arguments...)
 
 ----
-Generate a profile for development:
+Generate a profile for working with a gopherbot robot container:
 ./cbot.sh profile (-k path/to/ssh/private/key) <container-name> "<full name>" <email>
  -k (path) - Load an ssh private key when using this profile
 
@@ -25,7 +25,7 @@ GIT_COMMITTER_EMAIL=parsley@linuxjedi.org
 #|SSH_KEY_PATH=/home/david/.ssh/id_rsa
 
 ----
-Start a gopherbot development container:
+Start a robot container:
 ./cbot.sh start (-u) (-p) (path/to/profile)
  -u - pull the latest container version first
  -p - start a production robot (minimal image)
@@ -40,7 +40,7 @@ Copying /home/david/.ssh/id_rsa to bishop:/home/bot/.ssh/id_ssh ...
 Access your dev environment at: http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=XXXXXXX
 
 ----
-Stop a gopherbot container:
+Stop a robot container:
 ./cbot.sh stop (-p) (path/to/profile)
  -p - stop a production robot
 
@@ -53,7 +53,7 @@ Stop and remove a container:
  -p - remove a production robot
 
 Example:
-$ ./cbot.sh remove (-p) ~/bishop.env
+$ ./cbot.sh remove ~/bishop.env
 EOF
 }
 
