@@ -103,15 +103,20 @@ sed -i ".env" -e '/^GOPHER_SETUP_TOKEN=/d'
 USERID=$(GetSenderAttribute "id")
 USERID=${USERID#<}
 USERID=${USERID%>}
+BOTID=$(GetBotAttribute "id")
+BOTID=${BOTID#<}
+BOTID=${BOTID%>}
+BOTNAME=$(GetBotAttribute "name")
 USERNAME=$(getMatching "SimpleString" \
     "What username do you want the robot to know you by?")
 checkReply $?
-Say "Detected User ID $USERID for $USERNAME"
+Say "Detected User ID $USERID for $USERNAME, and ID $BOTID for $BOTNAME"
 substitute "<adminusername>" "$USERNAME" "conf/slack.yaml"
 substitute "<adminuserid>" "$USERID" "conf/slack.yaml"
+substitute "<botid>" "$BOTID" "conf/slack.yaml"
 
-AddTask "restart-robot"
 AddTask say "You've been successfully added as an administrator. \
 If you've configured 'manage_key.pub' as a read-write deploy key \
 for my repository, you can use the 'save' command to upload my \
 configuration. Have fun."
+AddTask "restart-robot"

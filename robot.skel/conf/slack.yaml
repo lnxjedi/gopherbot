@@ -3,12 +3,16 @@ ProtocolConfig:
   MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
   AppToken: xapp-{{ decrypt "<slackappencrypted>" }}
   BotToken: xoxb-{{ decrypt "<slackbotencrypted>" }}
+  HearSelf: false
 
 DefaultChannels: [ "general", "random" ]
 
 UserRoster:
   - UserName: <adminusername>
     UserID: <adminuserid>
+  - UserName: <botname>
+    UserID: <botid>
+    BotUser: true
   # - UserName: floyd
   #   UserID: U138KTVCL
   #   BotUser: true
