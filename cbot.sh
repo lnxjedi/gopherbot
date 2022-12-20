@@ -7,9 +7,9 @@ IMAGE_TAG="latest"
 
 usage() {
     cat <<EOF
-Usage: ./botc.sh profile|start|stop|remove (options...) (arguments...)
+Usage: ./cbot.sh profile|start|stop|remove|list (options...) (arguments...)
 
-----
+-------
 Generate a profile for working with a gopherbot robot container:
 ./cbot.sh profile (-k path/to/ssh/private/key) <container-name> "<full name>" <email>
  -k (path) - Load an ssh private key when using this profile
@@ -24,7 +24,7 @@ GIT_COMMITTER_EMAIL=parsley@linuxjedi.org
 #|CONTAINERNAME=bishop
 #|SSH_KEY_PATH=/home/david/.ssh/id_rsa
 
-----
+-------
 Start a robot container:
 ./cbot.sh start (-u) (-p) (path/to/profile)
  -u - pull the latest container version first
@@ -39,7 +39,17 @@ latest: Pulling from lnxjedi/gopherbot-dev
 Copying /home/david/.ssh/id_rsa to bishop:/home/bot/.ssh/id_ssh ...
 Access your dev environment at: http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=XXXXXXX
 
-----
+-------
+List all robot containers:
+./cbot.sh list
+
+Example:
+$ ./cbot.sh list
+CONTAINER ID   STATUS         NAMES        environment
+1c470fd80c31   Up 3 seconds   clu          robot/production
+1ba4563c4afe   Up 5 minutes   bishop-dev   robot/development
+
+-------
 Stop a robot container:
 ./cbot.sh stop (-p) (path/to/profile)
  -p - stop a production robot
@@ -47,7 +57,7 @@ Stop a robot container:
 Example:
 $ ./cbot.sh stop ~/bishop.env
 
-----
+-------
 Stop and remove a container:
 ./cbot.sh remove (path/to/profile)
  -p - remove a production robot
@@ -151,6 +161,9 @@ EOF
         echo "#|SSH_KEY_PATH=${SSH_KEY_PATH}"
     fi
     exit 0
+    ;;
+list )
+    docker ps --filter "label=type=gopherbot/robot" --format "table {{.ID}}\t{{.Status}}\t{{.Names}}\t{{.Label \"environment\"}}"
     ;;
 remove | rm )
     while getopts ":p" OPT; do
@@ -268,6 +281,8 @@ start )
     then
         docker run -d \
             --env-file $GOPHER_PROFILE \
+            -l type=gopherbot/robot \
+            -l environment=robot/production \
             --name $CONTAINERNAME $IMAGE_SPEC
     else
         RANDOM_TOKEN="$(openssl rand -hex 21)"
@@ -275,6 +290,8 @@ start )
             -p 127.0.0.1:7777:7777 \
             -p 127.0.0.1:8888:8888 \
             --env-file $GOPHER_PROFILE \
+            -l type=gopherbot/robot \
+            -l environment=robot/development \
             --name $CONTAINERNAME $IMAGE_SPEC \
             --connection-token $RANDOM_TOKEN
     fi
