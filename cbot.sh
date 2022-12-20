@@ -168,7 +168,7 @@ EOF
     fi
     exit 0
     ;;
-list )
+list | ls )
     docker ps --filter "label=type=gopherbot/robot" --format "table {{.ID}}\t{{.Status}}\t{{.Names}}\t{{.Label \"environment\"}}\t{{.Label \"access\"}}"
     ;;
 remove | rm )
