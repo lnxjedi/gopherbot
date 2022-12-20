@@ -7,6 +7,7 @@
     UserID: U0123456789
     BotUser: true
 ```
+* Batch of improvements to the `cbot.sh` script for local dockerized development
 
 # v2.6.1 - Robots can now talk to themselves
 * When Gopherbot was first created, it didn't make much sense for Gopherbot robots to process messages that originated from themselves. Now that messages carry a "ThreadID" ("GOPHER_THREAD_ID"), a clever roboticist can take advantage of the robot's ability to hear itself to e.g. associate state with a thread. To enable this, set `HearSelf: true` in your Slack ProcotolConfig.
