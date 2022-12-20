@@ -287,6 +287,8 @@ func (r Robot) GetBotAttribute(a string) *robot.AttrRet {
 		attr = r.cfg.adminContact
 	case "protocol":
 		attr = r.Protocol.String()
+	case "id", "internalid", "protocolid":
+		attr = r.cfg.botinfo.UserID
 	default:
 		ret = robot.AttributeNotFound
 	}
