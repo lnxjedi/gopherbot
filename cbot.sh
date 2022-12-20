@@ -45,9 +45,9 @@ List all robot containers:
 
 Example:
 $ ./cbot.sh list
-CONTAINER ID   STATUS         NAMES        environment
-1c470fd80c31   Up 3 seconds   clu          robot/production
-1ba4563c4afe   Up 5 minutes   bishop-dev   robot/development
+CONTAINER ID   STATUS             NAMES        environment         access
+0f50a4ce6b2a   Up 37 seconds      bishop-dev   robot/development   http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=XXXXXXX
+1c470fd80c31   Up About an hour   clu          robot/production 
 
 -------
 Stop a robot container:
@@ -76,8 +76,14 @@ fi
 COMMAND="$1"
 shift
 
+get_access() {
+    echo "http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=$RANDOM_TOKEN"
+}
+
 show_access() {
-    echo "Access your dev environment at: http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=$RANDOM_TOKEN"
+    GENERATED=$(get_access)
+    local ACCESS_URL=${1:-$GENERATED}
+    echo "Access your dev environment at: $ACCESS_URL"
 }
 
 check_profile() {
@@ -163,7 +169,7 @@ EOF
     exit 0
     ;;
 list )
-    docker ps --filter "label=type=gopherbot/robot" --format "table {{.ID}}\t{{.Status}}\t{{.Names}}\t{{.Label \"environment\"}}"
+    docker ps --filter "label=type=gopherbot/robot" --format "table {{.ID}}\t{{.Status}}\t{{.Names}}\t{{.Label \"environment\"}}\t{{.Label \"access\"}}"
     ;;
 remove | rm )
     while getopts ":p" OPT; do
@@ -263,9 +269,10 @@ start )
             echo "... started"
         else
             copy_ssh
+            ACCESS_URL=$(docker inspect --format='{{index .Config.Labels "access"}}' $CONTAINERNAME)
             TOK_LINE=$(docker logs $CONTAINERNAME 2>/dev/null | grep "^Web UI" | tail -1)
             RANDOM_TOKEN=${TOK_LINE##*=}
-            show_access
+            show_access $ACCESS_URL
         fi
         exit 0
     fi
@@ -292,6 +299,7 @@ start )
             --env-file $GOPHER_PROFILE \
             -l type=gopherbot/robot \
             -l environment=robot/development \
+            -l access=$(get_access) \
             --name $CONTAINERNAME $IMAGE_SPEC \
             --connection-token $RANDOM_TOKEN
     fi
