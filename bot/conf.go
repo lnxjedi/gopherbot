@@ -473,9 +473,6 @@ func loadConfig(preConnect bool) error {
 				usermap[u.UserName] = u.UserID
 			}
 		}
-		if len(processed.botinfo.UserName) > 0 && len(processed.botinfo.UserID) > 0 {
-			usermap[processed.botinfo.UserName] = processed.botinfo.UserID
-		}
 	}
 	if len(newconfig.ChannelRoster) > 0 {
 		for i, ch := range newconfig.ChannelRoster {

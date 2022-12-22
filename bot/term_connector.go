@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/lnxjedi/readline"
@@ -18,6 +19,7 @@ func init() {
 	RegisterConnector("terminal", Initialize)
 }
 
+const termBotID = "u0000"
 const threadIDMax = 65536
 const terminalConnectorHelpLine = "Terminal connector: Type '|c?' to list channels, '|u?' to list users, '|t?' for thread help\n"
 
@@ -37,8 +39,7 @@ type termconfig struct {
 	EOF          string // command to send on EOF (ctrl-D), default ";quit"
 	Abort        string // command to send on ctrl-c
 	HearSelf     bool   // whether messages the robot sends echo back to the engine
-	BotID        string // the InternalID corresponding to the roster entry, required with HearSelf
-	BotName      string // the bot's name, also required for HearSelf
+	BotName      string // the bot's name, required for HearSelf
 	Users        []termUser
 	Channels     []string
 }
@@ -52,7 +53,6 @@ type termConnector struct {
 	threadCounter  int                // Incrementing integer for assigning thread IDs
 	typingInThread bool               // Tracks whether input is coming from a thread
 	hearSelf       bool               // see above
-	botID          string             // see above
 	botName        string             // see above
 	eof            string             // command to send on ctrl-d (EOF)
 	abort          string             // command to send on ctrl-c (interrupt)
@@ -116,6 +116,23 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	if !found {
 		handler.Log(robot.Fatal, "Start user \"%s\" not listed in Users array", c.StartUser)
 	}
+	if _, ok := userIDMap[termBotID]; !ok {
+		firstRunes := []rune(c.BotName)
+		firstRunes[0] = unicode.ToUpper(firstRunes[0])
+		botUser := termUser{
+			Name:       c.BotName,
+			InternalID: termBotID,
+			Email:      c.BotName + "@example.com",
+			FullName:   string(firstRunes) + " Gopherbot",
+			FirstName:  string(firstRunes),
+			LastName:   "Gopherbot",
+			Phone:      "(555)765-0000",
+		}
+		c.Users = append(c.Users, botUser)
+		idx := len(c.Users) - 1
+		userMap[c.BotName] = idx
+		userIDMap[termBotID] = idx
+	}
 
 	found = false
 	for _, ch := range c.Channels {
@@ -151,7 +168,6 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		currentChannel: c.StartChannel,
 		currentUser:    c.StartUser,
 		hearSelf:       c.HearSelf,
-		botID:          c.BotID,
 		botName:        c.BotName,
 		eof:            eof,
 		abort:          abort,
@@ -451,7 +467,7 @@ func (tc *termConnector) checkSendSelf(ch, thr, msg string, f robot.MessageForma
 		botMsg := &robot.ConnectorMessage{
 			Protocol:        "terminal",
 			UserName:        tc.botName,
-			UserID:          tc.botID,
+			UserID:          termBotID,
 			ChannelName:     ch,
 			ChannelID:       "#" + ch,
 			ThreadedMessage: threadedMessage,
