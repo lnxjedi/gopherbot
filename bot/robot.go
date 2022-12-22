@@ -95,6 +95,32 @@ func (w *worker) makeRobot() Robot {
 	return r
 }
 
+func (w *worker) makeMemoryContext(key string) memoryContext {
+	var threadID string
+	if w.ThreadedMessage {
+		threadID = w.ThreadID
+	}
+	return memoryContext{
+		key:     key,
+		user:    w.User,
+		channel: w.Channel,
+		thread:  threadID,
+	}
+}
+
+func (r Robot) makeMemoryContext(key string) memoryContext {
+	var threadID string
+	if r.ThreadedMessage {
+		threadID = r.ThreadID
+	}
+	return memoryContext{
+		key:     key,
+		user:    r.User,
+		channel: r.Channel,
+		thread:  threadID,
+	}
+}
+
 // CheckAdmin returns true if the user is a configured administrator of the
 // robot, and true for automatic tasks. Should be used sparingly, when a single
 // plugin has multiple commands, some which require admin. Otherwise the plugin

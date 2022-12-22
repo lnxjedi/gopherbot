@@ -28,7 +28,7 @@ type shortTermMemory struct {
 }
 
 type memoryContext struct {
-	key, user, channel string
+	key, user, channel, thread string
 }
 
 var shortTermMemories = struct {
@@ -419,7 +419,7 @@ func (r Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.
 func (r Robot) Remember(key, value string) {
 	timestamp := time.Now()
 	memory := shortTermMemory{value, timestamp}
-	context := memoryContext{key, r.User, r.Channel}
+	context := r.makeMemoryContext(key)
 	Log(robot.Trace, "SHORTMEM: Storing short-term memory \"%s\" -> \"%s\"", key, value)
 	shortTermMemories.Lock()
 	shortTermMemories.m[context] = memory
@@ -436,7 +436,7 @@ func (r Robot) RememberContext(context, value string) {
 
 // Recall recalls a short term memory, or the empty string if it doesn't exist
 func (r Robot) Recall(key string) string {
-	context := memoryContext{key, r.User, r.Channel}
+	context := r.makeMemoryContext(key)
 	shortTermMemories.Lock()
 	memory, ok := shortTermMemories.m[context]
 	shortTermMemories.Unlock()

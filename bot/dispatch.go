@@ -85,7 +85,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 								contextMatches := []string{""}
 								contextMatches = append(contextMatches, ctxargs[1:]...)
 								key := "context:" + contextName
-								ctx := memoryContext{key, w.User, w.Channel}
+								ctx := w.makeMemoryContext(key)
 								// Check if the capture group matches the empty string
 								// or one of the generic values (e.g. "it")
 								cMatch := false
@@ -173,7 +173,7 @@ func (w *worker) handleMessage() {
 	}
 	messageMatched := false
 	ts := time.Now()
-	lastMsgContext := memoryContext{"lastMsg", w.User, w.Channel}
+	lastMsgContext := w.makeMemoryContext("lastMsg")
 	var last shortTermMemory
 	var ok bool
 	// First, see if the robot was waiting on a reply; replies from
