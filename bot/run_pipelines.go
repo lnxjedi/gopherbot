@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -630,7 +631,8 @@ func getTaskPath(task *Task, workDir string) (tpath string, err error) {
 		Log(robot.Error, err.Error())
 		return "", err
 	}
-	tpath, err = getObjectPath(task.Path)
+	var info fs.FileInfo
+	tpath, info, err = getObjectPath(task.Path)
 	if err != nil {
 		err = fmt.Errorf("couldn't locate external plugin %s: %v", task.name, err)
 		Log(robot.Error, err.Error())
@@ -640,10 +642,6 @@ func getTaskPath(task *Task, workDir string) (tpath string, err error) {
 		if err != nil {
 			return "", err
 		}
-	}
-	info, err := os.Stat(tpath)
-	if err != nil {
-		return "", err
 	}
 	if info.Mode()&0100 == 0 {
 		return "", fmt.Errorf("not executable: %s", tpath)

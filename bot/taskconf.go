@@ -163,7 +163,7 @@ func loadTaskConfig(processed *configuration, preConnect bool) (*taskList, error
 		if len(ts.Path) == 0 {
 			return nil, fmt.Errorf("zero-length path for external task '%s'", ts.Name)
 		}
-		if _, err := getObjectPath(ts.Path); err != nil {
+		if _, _, err := getObjectPath(ts.Path); err != nil {
 			return nil, fmt.Errorf("getting path '%s' for task '%s': %v", ts.Path, ts.Name, err)
 		}
 		task.Path = ts.Path

@@ -243,6 +243,9 @@ ExternalTasks:
   "say":
     Description: Convenience synonym for 'status'
     Path: tasks/status.sh
+  "reply":
+    Description: Trivial task to reply to the user with a message
+    Path: tasks/reply.sh
   "git-init":
     Description: >
       Check for and initialize ssh for a repository if needed, check for

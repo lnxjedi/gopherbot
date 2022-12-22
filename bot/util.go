@@ -2,6 +2,7 @@ package bot
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -81,32 +82,32 @@ func checkDirectory(cpath string) (string, bool) {
 
 // getObjectPath looks for an object first in the custom config dir, then
 // the install dir.
-func getObjectPath(path string) (opath string, err error) {
+func getObjectPath(path string) (opath string, info fs.FileInfo, err error) {
 	if filepath.IsAbs(path) {
 		opath = path
-		_, err = os.Stat(opath)
+		info, err = os.Stat(opath)
 		if err == nil {
 			Log(robot.Debug, "Using fully specified path to object: %s", opath)
-			return opath, nil
+			return opath, info, nil
 		}
 		err = fmt.Errorf("Invalid path for object: %s (%v)", opath, err)
 		Log(robot.Error, err.Error())
-		return "", err
+		return "", nil, err
 	}
 	if len(configPath) > 0 {
 		opath = filepath.Join(configPath, path)
-		_, err = os.Stat(opath)
+		info, err = os.Stat(opath)
 		if err == nil {
 			Log(robot.Debug, "Loading object from configPath: %s", opath)
-			return opath, nil
+			return opath, info, nil
 		}
 	}
 	opath = filepath.Join(installPath, path)
-	if _, err = os.Stat(opath); err == nil {
+	if info, err = os.Stat(opath); err == nil {
 		Log(robot.Debug, "Loading object from installPath: %s", opath)
-		return opath, nil
+		return opath, info, nil
 	}
-	return "", err
+	return "", nil, err
 }
 
 func setFormat(format string) robot.MessageFormat {
