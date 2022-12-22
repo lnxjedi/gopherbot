@@ -336,8 +336,8 @@ GIT_COMMITTER_EMAIL=parsley@linuxjedi.org
 <ol start="4">
 <li>Start a development container:</li>
 </ol>
-<pre><code class="language-shell">$ ./cbot.sh dev dolores.env
-Starting 'dolores':
+<pre><code class="language-shell">$ ./cbot.sh start dolores.env
+Starting 'dolores-dev':
 dolores
 Copying /home/david/.ssh/id_rsa to dolores:/home/bot/.ssh/id_ssh ...
 Access your dev environment at: http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&amp;tkn=XXXX
@@ -653,7 +653,7 @@ The administrative contact for this robot is: David Parsley, &lt;parsley@linuxje
 <h3 id="during-development"><a class="header" href="#during-development">During Development</a></h3>
 <p>When developing jobs, tasks and plugins for your robot, you'll mostly use the terminal connector and treat <code>state/</code> as disposable. A fairly standard workflow goes like this:</p>
 <ol>
-<li>Run your robot with the <code>./cbot.sh dev &lt;path/to/profile&gt;</code> script, which uses the <a href="https://github.com/lnxjedi/gopherbot/pkgs/container/gopherbot-dev">gopherbot-dev</a> container, providing the path to a profile used for that robot</li>
+<li>Run your robot with the <code>./cbot.sh start &lt;path/to/profile&gt;</code> script, which uses the <a href="https://github.com/lnxjedi/gopherbot/pkgs/container/gopherbot-dev">gopherbot-dev</a> container, providing the path to a profile used for that robot</li>
 <li>Use the <strong>terminal</strong> connector, configured to mirror your team chat environment, for developing extensions for your robot</li>
 <li>In the <code>custom/</code> directory, create commits as desired, creating and pushing commits as normal</li>
 <li>Send an administrator <code>update</code> command to your production robot to pull down the latest changes and reload</li>
