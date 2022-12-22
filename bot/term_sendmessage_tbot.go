@@ -11,6 +11,7 @@ import (
 )
 
 func (tc *termConnector) sendMessage(ch, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+	tc.checkSendSelf(ch, thr, msg, f)
 	found := false
 	tc.RLock()
 	if strings.HasPrefix(ch, "(dm:") {

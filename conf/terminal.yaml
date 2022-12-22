@@ -15,11 +15,21 @@ Alias: {{ $botalias }}
 ProtocolConfig:
   StartChannel: general
   StartUser: alice
+  HearSelf: false # Needs to be enabled for individual robots
+  BotID: "u0000"
+  BotName: {{ $botname }}
   Channels:
   - random
   - general
   - deadzone
   Users:
+  - Name: {{ $botname }}
+    Email: "{{ $botname }}@example.com"
+    InternalID: "u0000"
+    FullName: {{ $botfullname }}
+    FirstName: {{ $botname }}
+    LastName: "Gopherbot"
+    Phone: "(555)765-0000"
   - Name: "alice"
     Email: "alice@example.com"
     InternalID: "u0001"
@@ -57,6 +67,9 @@ ProtocolConfig:
     Phone: "(555)765-0005"
   
 UserRoster:
+- UserName: {{ $botname }}
+  UserID: "u0000"
+  BotUser: true
 - UserName: "alice"
   UserID: "u0001"
 - UserName: "bob"

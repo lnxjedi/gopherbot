@@ -36,6 +36,9 @@ type termconfig struct {
 	StartUser    string // the initial userid
 	EOF          string // command to send on EOF (ctrl-D), default ";quit"
 	Abort        string // command to send on ctrl-c
+	HearSelf     bool   // whether messages the robot sends echo back to the engine
+	BotID        string // the InternalID corresponding to the roster entry, required with HearSelf
+	BotName      string // the bot's name, also required for HearSelf
 	Users        []termUser
 	Channels     []string
 }
@@ -48,6 +51,9 @@ type termConnector struct {
 	lastThread     string             // last thread heard from the robot, used with join
 	threadCounter  int                // Incrementing integer for assigning thread IDs
 	typingInThread bool               // Tracks whether input is coming from a thread
+	hearSelf       bool               // see above
+	botID          string             // see above
+	botName        string             // see above
 	eof            string             // command to send on ctrl-d (EOF)
 	abort          string             // command to send on ctrl-c (interrupt)
 	running        bool               // set on call to Run
@@ -144,6 +150,9 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	tc := &termConnector{
 		currentChannel: c.StartChannel,
 		currentUser:    c.StartUser,
+		hearSelf:       c.HearSelf,
+		botID:          c.BotID,
+		botName:        c.BotName,
 		eof:            eof,
 		abort:          abort,
 		channels:       c.Channels,
@@ -368,13 +377,15 @@ loop:
 				}
 				i := userMap[tc.currentUser]
 				ui := tc.users[i]
-				tc.threadCounter++
 				var threadID string
+				tc.Lock()
 				if tc.typingInThread {
 					threadID = tc.currentThread
 				} else {
+					tc.threadCounter++
 					threadID = fmt.Sprintf("%04x", tc.threadCounter%threadIDMax)
 				}
+				tc.Unlock()
 				botMsg := &robot.ConnectorMessage{
 					Protocol:        "terminal",
 					UserName:        tc.currentUser,
@@ -422,6 +433,35 @@ func (tc *termConnector) getChannel(c string) string {
 		return strings.TrimPrefix(ch, "#")
 	}
 	return c
+}
+
+func (tc *termConnector) checkSendSelf(ch, thr, msg string, f robot.MessageFormat) {
+	if tc.hearSelf {
+		var threadID string
+		var threadedMessage bool
+		if len(thr) > 0 {
+			threadedMessage = true
+			threadID = thr
+		} else {
+			tc.Lock()
+			tc.threadCounter++
+			threadID = fmt.Sprintf("%04x", tc.threadCounter%threadIDMax)
+			tc.Unlock()
+		}
+		botMsg := &robot.ConnectorMessage{
+			Protocol:        "terminal",
+			UserName:        tc.botName,
+			UserID:          tc.botID,
+			ChannelName:     ch,
+			ChannelID:       "#" + ch,
+			ThreadedMessage: threadedMessage,
+			ThreadID:        threadID,
+			MessageText:     msg,
+		}
+		tc.RLock()
+		tc.IncomingMessage(botMsg)
+		tc.RUnlock()
+	}
 }
 
 // SetUserMap lets Gopherbot provide a mapping of usernames to user IDs
