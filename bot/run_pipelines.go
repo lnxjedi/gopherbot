@@ -632,12 +632,21 @@ func getTaskPath(task *Task, workDir string) (tpath string, err error) {
 	}
 	tpath, err = getObjectPath(task.Path)
 	if err != nil {
-		err = fmt.Errorf("Couldn't locate external plugin %s: %v", task.name, err)
+		err = fmt.Errorf("couldn't locate external plugin %s: %v", task.name, err)
 		Log(robot.Error, err.Error())
 	}
-	if filepath.IsAbs(tpath) {
-		return
+	if !filepath.IsAbs(tpath) {
+		tpath, err = filepath.Rel(workDir, tpath)
+		if err != nil {
+			return "", err
+		}
 	}
-	tpath, err = filepath.Rel(workDir, tpath)
+	info, err := os.Stat(tpath)
+	if err != nil {
+		return "", err
+	}
+	if info.Mode()&0100 == 0 {
+		return "", fmt.Errorf("not executable: %s", tpath)
+	}
 	return
 }
