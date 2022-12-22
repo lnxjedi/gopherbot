@@ -90,6 +90,8 @@ func (w *worker) clone() *worker {
 		User:            w.User,
 		ProtocolUser:    w.ProtocolUser,
 		Channel:         w.Channel,
+		ThreadID:        w.ThreadID,
+		ThreadedMessage: w.ThreadedMessage,
 		ProtocolChannel: w.ProtocolChannel,
 		Incoming:        w.Incoming,
 		directMsg:       w.directMsg,
