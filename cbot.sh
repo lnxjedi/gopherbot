@@ -7,7 +7,13 @@ IMAGE_TAG="latest"
 
 usage() {
     cat <<EOF
-Usage: ./cbot.sh profile|start|stop|remove|list (options...) (arguments...)
+Usage: ./cbot.sh preview|profile|start|stop|remove|list (options...) (arguments...)
+
+-------
+Preview the Gopherbot IDE and Floyd, the default robot:
+./cbot.sh preview (-u) (-r)
+ -u - pull the latest container version first
+ -r - stop and remove the preview container
 
 -------
 Generate a profile for working with a gopherbot robot container:
@@ -81,9 +87,15 @@ get_access() {
 }
 
 show_access() {
+    local ENV_TYPE="dev"
+    if [ "$1" == "-p" ]
+    then
+        ENV_TYPE="preview"
+        shift
+    fi
     GENERATED=$(get_access)
     local ACCESS_URL=${1:-$GENERATED}
-    echo "Access your dev environment at: $ACCESS_URL"
+    echo "Access your $ENV_TYPE environment at: $ACCESS_URL"
 }
 
 check_profile() {
@@ -221,6 +233,73 @@ stop )
     echo "Stopped"
     exit 0
     ;;
+preview )
+    CONTAINERNAME='floyd-gopherbot-preview'
+    while getopts ":ru" OPT; do
+        case $OPT in
+        r )
+            docker stop $CONTAINERNAME >/dev/null && docker rm $CONTAINERNAME >/dev/null
+            echo "Removed"
+            exit 0
+            ;;
+        u )
+            PULL="true"
+            ;;
+        \? | h)
+            [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
+            usage
+            exit 0
+            ;;
+        esac
+    done
+
+    if STATUS=$(docker inspect -f {{.State.Status}} $CONTAINERNAME 2>/dev/null)
+    then
+        echo "(found existing container '$CONTAINERNAME', re-using)"
+        if [ "$STATUS" == "exited" ]
+        then
+            echo "Starting '$CONTAINERNAME':"
+            docker start $CONTAINERNAME
+            wait_for_container
+            if [ ! "$SUCCESS" ]
+            then
+                echo "Timed out waiting for container to start"
+                exit 1
+            fi
+        fi
+        ACCESS_URL=$(docker inspect --format='{{index .Config.Labels "access"}}' $CONTAINERNAME)
+        RANDOM_TOKEN=${ACCESS_URL##*=}
+        show_access $ACCESS_URL
+        exit 0
+    fi
+
+    if [ "$PULL" ]
+    then
+        docker pull $IMAGE_SPEC
+    fi
+
+    echo "Running '$CONTAINERNAME':"
+
+    IMAGE_NAME="$IMAGE_NAME-dev"
+    IMAGE_SPEC="$IMAGE_NAME:$IMAGE_TAG"
+
+    RANDOM_TOKEN="$(openssl rand -hex 21)"
+    docker run -d \
+        -p 127.0.0.1:7777:7777 \
+        -l type=gopherbot/robot \
+        -l environment=robot/preview \
+        -l access=$(get_access) \
+        --name $CONTAINERNAME $IMAGE_SPEC \
+        --connection-token $RANDOM_TOKEN
+    wait_for_container
+    if [ ! "$SUCCESS" ]
+    then
+        echo "Timed out waiting for container to start"
+        exit 1
+    fi
+
+    show_access -p
+    ;;
 start )
     while getopts ":up" OPT; do
         case $OPT in
@@ -270,8 +349,7 @@ start )
         else
             copy_ssh
             ACCESS_URL=$(docker inspect --format='{{index .Config.Labels "access"}}' $CONTAINERNAME)
-            TOK_LINE=$(docker logs $CONTAINERNAME 2>/dev/null | grep "^Web UI" | tail -1)
-            RANDOM_TOKEN=${TOK_LINE##*=}
+            RANDOM_TOKEN=${ACCESS_URL##*=}
             show_access $ACCESS_URL
         fi
         exit 0
