@@ -166,6 +166,38 @@
 <p>Note that the common theme here is <code>docker</code> and <code>bash</code> - the primary script for managing the Gopherbot IDE (<code>cbot.sh</code>) is written in <strong>bash</strong>.</p>
 </blockquote>
 <p>The Gopherbot IDE is designed for use with <strong>ssh</strong> git credentials, though it also includes the <code>gh</code> utility. It would be helpful in following the tutorials to have an ssh keypair to use for development; if you're only using the IDE for managing a single robot, this could be a special-purpose keypair that you configure as a read-write deployment key for your robot git repository. Generating and configuring read-write deployment keys is outside the scope of this manual.</p>
+<h2 id="previewing-gopherbot"><a class="header" href="#previewing-gopherbot">Previewing Gopherbot</a></h2>
+<p>If you're just previewing the <strong>Gopherbot</strong> software, you can just download the <code>cbot.sh</code> wrapper script and run the preview, otherwise you should skip down to <a href="#getting-started">Getting Started</a>.</p>
+<ol>
+<li>Download the latest <code>cbot.sh</code> wrapper script for docker:</li>
+</ol>
+<pre><code>curl -o cbot.sh https://raw.githubusercontent.com/lnxjedi/gopherbot/main/cbot.sh
+</code></pre>
+<ol start="2">
+<li>Make the script executable:</li>
+</ol>
+<pre><code>chmod +x cbot.sh
+</code></pre>
+<ol start="3">
+<li>Run the preview container:</li>
+</ol>
+<pre><code>./cbot.sh preview
+</code></pre>
+<ol start="4">
+<li>
+<p>Connect to the URL, then:</p>
+<ul>
+<li>open a terminal window in the home (<code>bot</code>) directory (or type <code>cd</code> to change to the home directory)</li>
+<li>run <code>gopherbot</code> to start <strong>Floyd</strong>, the default robot</li>
+</ul>
+</li>
+<li>
+<p>To clean up:</p>
+</li>
+</ol>
+<pre><code>./cbot.sh preview -r
+docker image rm ghcr.io/lnxjedi/gopherbot-dev:latest
+</code></pre>
 <h2 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h2>
 <blockquote>
 <p>This section will describe setting up a simple directory called <code>botwork</code> for working with you robot(s); feel free to adjust specific paths and commands according to your preferences and comfort with the command line.</p>
