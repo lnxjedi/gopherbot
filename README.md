@@ -1,19 +1,20 @@
 # Gopherbot DevOps Chatbot
 
-Slack(\*) DevOps / ChatOps bot for Linux, supporting extensions in Bash, Python, Ruby, and Go.
+Slack[^connectors] DevOps / ChatOps general purpose IT robot framework for Linux, supporting extensions in Bash, Python, Ruby, and Go[^go].
 
-> (*) with a modular interface for writing other protocol connectors in Go
+[^connectors]: Gopherbot a modular interface for writing other protocol connectors in Go; currently only Slack and the Terminal connector are supported
+[^go]: Go extensions are the hardest to write, requiring custom forks/builds; Gopherbot is heavily optimized for extension with scripting
 
 Slogans under consideration:
 * **The Co-worker that Never Sleeps**
 * **The DevOps Swiss-Army Chainsaw**
 
 ## What does Gopherbot *do*?
-**Gopherbot** runs as a process or container in your infrastructure and connects to your team chat. From there it can respond to CLI-like commands written in Bash, Ruby or Python (\*), and perform any number of functions to provision resources, run reports and scheduled jobs, deploy software or interact with CI/CD - just about any functionality a DevOps engineer might want to provide in team chat. You can find a lot more information in the [introduction](https://lnxjedi.github.io/gopherbot/Introduction.html) of the online manual.
-
-> (*) More advanced and Slack-specific extensions can be written in **Go**; support for additional scripting languages is relatively simple to add.
+**Gopherbot** runs as a process or container in your infrastructure and connects to your team chat. From there it can respond to CLI-like commands written in Bash, Ruby or Python, and perform any number of functions to provision resources, run reports and scheduled jobs, deploy software or interact with CI/CD - just about any functionality a DevOps engineer might want to provide in team chat. You can find a lot more information in the [introduction](https://lnxjedi.github.io/gopherbot/Introduction.html) of the online manual.
 
 ## Major Features
+* Self-deploying and updating with a **GitOps**-style management
+* Threaded conversation support and thread-awareness
 * Powerful pipeline-oriented engine for creating and combining reusable components in multiple scripting languages
 * Flexible support for encrypted secrets
 * Wide variety of security features including built-in Google Authenticator TOTP
