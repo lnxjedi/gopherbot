@@ -18,7 +18,7 @@ Slogans under consideration:
 * Powerful pipeline-oriented engine for creating and combining reusable components in multiple scripting languages
 * Flexible support for encrypted secrets
 * Wide variety of security features including built-in Google Authenticator TOTP
-* Full-featured terminal connector and built-in IDE for developing extensions
+* Full-featured **IDE** and terminal connector for developing extensions
 * Highly configurable with Go-templated YAML
 
 ## Software Overview
@@ -29,12 +29,12 @@ Running a **Gopherbot** robot essentially means running the core robot (on a VM 
 ## Documentation
 The latest documentation can always be found at the GitHub-hosted [online manual](https://lnxjedi.github.io/gopherbot); the documentation source is in a [separate repository](https://github.com/lnxjedi/gopherbot-doc). Documentation automatically generated from the Go sources can be found at [pkg.go.dev](https://pkg.go.dev/github.com/lnxjedi/gopherbot/v2).
 
-The manual is still very incomplete; however, sometimes the best documentation is example code. To that end, the most powerful and complete robot I have is [Mr. Data](https://github.com/parsley42/data-gopherbot)(now retired) - the robot that ran my home Kubernetes cluster when I still had time for such things. [Clu](https://github.com/parsley42/clu-gopherbot) is the development robot used for development and writing documentation. Though **Clu** doesn't do any useful work, he has examples of most facets of **Gopherbot** functionality. [Floyd](https://github.com/parsley42/floyd-gopherbot) (a utility robot I share with my wife) is the oldest and longest-running robot instance - occasionally he does useful work, but mostly he just makes dinner meal suggestions.
+The manual is still very incomplete; however, sometimes the best documentation is example code. To that end, the most powerful and complete robot I have is [Mr. Data](https://github.com/parsley42/data-gopherbot) (now retired) - the robot that ran my home Kubernetes cluster when I still had time for such things. [Clu](https://github.com/parsley42/clu-gopherbot) is the development robot used for development and writing documentation. Though **Clu** doesn't do any useful work, he has examples of most facets of **Gopherbot** functionality. [Floyd](https://github.com/parsley42/floyd-gopherbot) (a utility robot I share with my wife) is the oldest and longest-running robot instance - occasionally he does useful work, but mostly he just makes dinner meal suggestions.
 
 ## Release Status
 Version 2 has been stable for me for over a year, and has finally been released. I've accepted that a fully up-to-date manual will lag significantly, but that is currently where the most work is being done.
 
-With the recent (2021) addition of `ParameterSets` and a container-based **IDE**, and threaded conversation support (2022), there are no major updates in functionality currently planned.
+With the recent (2021) addition of `ParameterSets`, a container-based **IDE** and threaded conversation support (2022), there are no major updates in functionality currently planned.
 
 ## Previewing
 If you have [Docker](https://www.docker.com/) available, you can kick the tires on the default robot running the **terminal** connector:
