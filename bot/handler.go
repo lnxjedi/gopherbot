@@ -176,7 +176,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	clog, ok := chanLoggers.channels[channelName]
 	chanLoggers.Unlock()
 	if ok {
-		clog.Printf("c:%s/%s, u:%s/%s, m:'%s'\n", channelName, ProtocolChannel, userName, ProtocolUser, messageFull)
+		clog.Printf("c:%s/%s(t:%s/%t), u:%s/%s, m:'%s'\n", channelName, ProtocolChannel, inc.ThreadID, inc.ThreadedMessage, userName, ProtocolUser, messageFull)
 	}
 	Log(robot.Trace, "Incoming message in channel '%s/%s' from user '%s/%s': %s", channelName, ProtocolChannel, userName, ProtocolUser, messageFull)
 	// When command == true, the message was directed at the bot
