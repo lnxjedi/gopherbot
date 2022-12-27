@@ -115,7 +115,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		c.nameSpace = w.getNameSpace(task)
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
 		c.environment["GOPHER_START_CHANNEL"] = w.Channel
-		c.environment["GOPHER_START_THREAD"] = w.ThreadID
+		c.environment["GOPHER_START_THREAD_ID"] = w.ThreadID
 		if w.ThreadedMessage {
 			c.environment["GOPHER_START_THREADED_MESSAGE"] = "true"
 		}
