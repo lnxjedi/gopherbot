@@ -115,9 +115,15 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		c.nameSpace = w.getNameSpace(task)
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
 		c.environment["GOPHER_START_CHANNEL"] = w.Channel
+		c.environment["GOPHER_START_THREAD"] = w.ThreadID
+		if w.ThreadedMessage {
+			c.environment["GOPHER_START_THREADED_MESSAGE"] = "true"
+		}
 		// To change the channel to the job channel, we need to clear the ProcotolChannel
 		w.Channel = task.Channel
 		w.ProtocolChannel = ""
+		w.ThreadID = ""
+		w.ThreadedMessage = false
 	}
 	c.environment["GOPHER_PIPE_NAME"] = task.name
 	// Once Active, we need to use the Mutex for access to some fields; see
