@@ -37,7 +37,8 @@ AuthRequire: monkeys
 Help:
 - Keywords: [ "open", "pod" ]
   Helptext:
-  - (bot), open the pod bay doors
+  - (bot), open the pod bay doors - Opens the doors to the pod bay, if you're in space
+# - (bot), <some command> - <description of what the command does>
 ## Command matches can be matched when the user addresses the robot directly,
 ## either in a direct message, or by giving it's name or alias. The Regex
 ## is a Go regular expression, easily developed by using the tool at:
