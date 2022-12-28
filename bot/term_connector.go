@@ -283,6 +283,7 @@ loop:
 				case 'C', 'c':
 					exists := false
 					newchan := input[2:]
+					newchan = strings.TrimLeft(newchan, " ")
 					if newchan == "?" {
 						tc.reader.Write([]byte("Available channels:\n"))
 						tc.reader.Write([]byte("(direct message); type: '|c'\n"))
@@ -330,6 +331,7 @@ loop:
 					tc.Unlock()
 				case 'T', 't':
 					setThread := input[2:]
+					setThread = strings.TrimLeft(setThread, " ")
 					if setThread == "?" {
 						tc.reader.Write([]byte("Use '|t' to toggle typing in a thread, '|t<string>' to set the current thread ID, or '|j' to join the robot's thread\n"))
 						continue
@@ -355,6 +357,7 @@ loop:
 				case 'U', 'u':
 					exists := false
 					newuser := input[2:]
+					newuser = strings.TrimLeft(newuser, " ")
 					if newuser == "?" {
 						tc.reader.Write([]byte("Available users:\n"))
 						for _, user := range tc.users {
