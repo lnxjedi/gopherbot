@@ -7,7 +7,7 @@ IMAGE_TAG="latest"
 
 usage() {
     cat <<EOF
-Usage: ./cbot.sh preview|profile|start|stop|remove|list (options...) (arguments...)
+Usage: ./cbot.sh preview|profile|start|stop|remove|terminal|list (options...) (arguments...)
 
 -------
 Preview the Gopherbot IDE and Floyd, the default robot:
@@ -233,6 +233,33 @@ stop )
     echo "Stopped"
     exit 0
     ;;
+term | terminal )
+    while getopts ":rp" OPT; do
+        case $OPT in
+        p )
+            PROD="true"
+            ;;
+        r )
+            DOCKUSER="-u root"
+            ;;
+        \? | h)
+            [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
+            usage
+            exit 0
+            ;;
+        esac
+    done
+    shift $((OPTIND -1))
+    GOPHER_PROFILE=$1
+    check_profile
+    eval `read_profile`
+    if [ ! "$PROD" ]
+    then
+        CONTAINERNAME="$CONTAINERNAME-dev"
+    fi
+    echo "Starting shell session in the $CONTAINERNAME container ..."
+    exec docker exec -it $DOCKUSER $CONTAINERNAME /bin/bash
+    ;;
 preview )
     CONTAINERNAME='floyd-gopherbot-preview'
     while getopts ":ru" OPT; do
@@ -374,6 +401,7 @@ start )
         docker run -d \
             -p 127.0.0.1:7777:7777 \
             -p 127.0.0.1:8888:8888 \
+            --env GOPHER_IDE="true" \
             --env-file $GOPHER_PROFILE \
             -l type=gopherbot/robot \
             -l environment=robot/development \
