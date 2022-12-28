@@ -47,6 +47,10 @@ func Start(v VersionInfo) {
 	lusage := "path to robot's log file (or 'stderr')"
 	flag.StringVar(&logFile, "log", "", lusage)
 	flag.StringVar(&logFile, "l", "", "")
+	var overrideIDEMode bool
+	ovusage := "Override GOPHER_IDE mode"
+	flag.BoolVar(&overrideIDEMode, "override", false, ovusage)
+	flag.BoolVar(&overrideIDEMode, "o", false, "")
 	var plainlog bool
 	plusage := "omit timestamps from the log"
 	flag.BoolVar(&plainlog, "plainlog", false, plusage)
@@ -59,7 +63,26 @@ func Start(v VersionInfo) {
 	husage := "help for gopherbot"
 	flag.BoolVar(&help, "help", false, husage)
 	flag.BoolVar(&help, "h", false, "")
+	// TODO: Gopherbot CLI commands suck. Make them suck less.
 	flag.Parse()
+
+	_, ideMode := os.LookupEnv("GOPHER_IDE")
+	if ideMode {
+		if overrideIDEMode {
+			ideMode = false
+		} else {
+			// Guardrail when running the gopherbot IDE from cbot.sh, which sets
+			// GOPHER_IDE=true. To prevent inadvertently bootstrapping a production
+			// robot in a random directory, we force it to run in $HOME with
+			// the terminal connector and memory brain, unless the user specifically
+			// overrides this behavior.
+			homeDir := os.Getenv("HOME")
+			os.Chdir(homeDir)
+			os.Setenv("GOPHER_PROTOCOL", "terminal")
+			os.Setenv("GOPHER_BRAIN", "mem")
+		}
+	}
+
 	logFlags := log.LstdFlags
 	if plainlog {
 		logFlags = 0
