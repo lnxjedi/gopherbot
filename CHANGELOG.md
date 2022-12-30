@@ -1,3 +1,13 @@
+# v2.6.3 - IDE and Packaging Updates
+* The dev container now defines GOPHER_IDE=true, which activates IDE mode:
+  * This will always cause `gopherbot` to change directory to `$HOME` on startup, to prevent a common UX issue where admins start the robot in, say, the `custom/` directory; this behavior can only be overridden by explicity unsetting the env var in the shell: `$ unset GOPHER_IDE`
+  * When `GOPHER_CUSTOM_REPOSITORY` is set in the initial container environment, `gopherbot` will set `GOPHER_PROTOCOL=terminal` and `GOPHER_BRAIN=mem` - sensible defaults for the IDE / development environment; this can be more easily overridden by passing the `-o` flag to `gopherbot` if you want to run your robot in production mode in the development environment: `$ gopherbot -o`
+* The dev and min containers now include the `ruby-dev` and `python-dev` packages, allowing gems/packages that need to be compiled to be installed
+* The ruby `debug` gem and python `rpdb` packages are installed in the dev container, allowing developers to set breakpoints in their robot scripts and attach a command-line debugger to the running script:
+  * For Ruby, you can set a breakpoint by inserting `require debug/open` in the code, then running `$ rdbg -A` to attach when you see it hit the breakpoint in the output log
+  * Python should offer similar functionality using `import rpdb` and `rpdb.set_trace()` to set the breakpoint in your code, then using `telnet` to attach
+  * Keep in mind that each time a Ruby or Python extension is called, a new interpreter is spun up; thus the normal workflow is just inserting a breakpoint in the code and e.g. telling your robot to "do that again" - e.g. `> bot, trigger my buggy code`
+
 # v2.6.2 - Boogs
 * Fixed an old bug where the robot might not answer to being @mentioned in Slack. To be sure @mentions work, your robot needs to list itself in the Slack user map, with the same name as in `robot.yaml`.
 * Fixed a lingering thread bug in the bash library
