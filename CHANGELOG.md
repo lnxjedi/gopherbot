@@ -7,6 +7,18 @@
   * For Ruby, you can set a breakpoint by inserting `require debug/open` in the code, then running `$ rdbg -A` to attach when you see it hit the breakpoint in the output log
   * Python should offer similar functionality using `import rpdb` and `rpdb.set_trace()` to set the breakpoint in your code, then using `telnet` to attach
   * Keep in mind that each time a Ruby or Python extension is called, a new interpreter is spun up; thus the normal workflow is just inserting a breakpoint in the code and e.g. telling your robot to "do that again" - e.g. `> bot, trigger my buggy code`
+* I've introduced experimental support for `GOPHER_ENVIRONMENT`, which can be used to have a production and development set of encrypted credentials, to allow developers to work with the robot without having full access to production credentials. If you do nothing at all, your script extensions will simply see two new environment variables:
+  * `GOPHER_ENVIRONMENT`, which defaults to "production"
+  * `GOPHER_BRAIN`, which is set to the name of the brain being used
+
+To try out working with a separate environment:
+  * Start an IDE with no robot configured (a pristine `bot.env`)
+  * Open a terminal window in `/home/bot` and generate a new encryption key: `$ export GOPHER_ENCRYPTION_KEY=$(dd status=none if=/dev/random bs=1 count=24 | base64); echo $GOPHER_ENCRYPTION_KEY`
+  * Start up the default robot, and as soon as you get the terminal connector prompt press `<ctrl-d>`
+  * Copy the contents of `custom/binary-encrypted-key` to your production robot as `custom/binary-encrypted-key.<env>`, e.g. `custom/binary-encrypted-key.dev`, and push the new file
+  * Copy your robot's profile to a new version with e.g. `GOPHER_ENVIRONMENT=dev`, and `GOPHER_ENCRYPTION_KEY=<value from above>`
+  * When you start your robot from the new profile, it will use the new `GOPHER_ENCRYPTION_KEY` to decrypt e.g. `binary-encrypted-key.dev`, which will then be used for decrypting any secrets found in your robot's configuration files
+  * It's up to you to add any needed `if` and `.Include` logic in your configuration files (testing the `GOPHER_ENVIRONMENT` environment variable) to make sure your robot can start with the alternate environment
 
 # v2.6.2 - Boogs
 * Fixed an old bug where the robot might not answer to being @mentioned in Slack. To be sure @mentions work, your robot needs to list itself in the Slack user map, with the same name as in `robot.yaml`.
