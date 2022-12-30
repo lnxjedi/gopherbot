@@ -61,6 +61,8 @@ if deploy_env != "production":
     tmp_key_name += "." + deploy_env
 tkey = os.path.join(cfgdir, tmp_key_name)
 bot.AddTask("exec", [ "rm", "-f", tkey ])
+# touch restore even if GOPHER_BRAIN != file;
+# backup and restore will check and exit
 bot.AddTask("exec", [ "touch", ".restore" ])
 bot.AddTask("git-clone", [ clone_url, clone_branch, cfgdir, "true" ])
 bot.AddTask("run-pipeline", [])

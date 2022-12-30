@@ -2,6 +2,11 @@
 
 # restore.sh - restore the robot's state from git
 
+if [ "$GOPHER_BRAIN" != "file" ]
+then
+    exit 0
+fi
+
 trap_handler()
 {
     ERRLINE="$1"

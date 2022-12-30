@@ -98,8 +98,10 @@ ExternalJobs:
 ScheduledJobs:
 - Name: pause-notifies
   Schedule: "0 0 8 * * *"
+{{ if eq $brain "file" }}
 - Name: backup
   Schedule: "@every 1m"
+{{ end }}
 ## If your robot is logging to a file, this job will rotate logs
 # - Name: logrotate
 #   Schedule: "5 0 0 * * *"

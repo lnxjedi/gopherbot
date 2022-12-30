@@ -3,6 +3,11 @@
 # backup.sh - back up job for backing up the robot's state (brain)
 # Note: significant changes here should probably be done to save.sh, too
 
+if [ "$GOPHER_BRAIN" != "file" ]
+then
+    exit 0
+fi
+
 trap_handler()
 {
     ERRLINE="$1"
