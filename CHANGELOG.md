@@ -1,4 +1,4 @@
-# v2.6.3 - IDE and Packaging Updates
+# v2.6.3 - IDE, Development and Packaging Updates
 * The dev container now defines GOPHER_IDE=true, which activates IDE mode:
   * This will always cause `gopherbot` to change directory to `$HOME` on startup, to prevent a common UX issue where admins start the robot in, say, the `custom/` directory; this behavior can only be overridden by explicity unsetting the env var in the shell: `$ unset GOPHER_IDE`
   * When `GOPHER_CUSTOM_REPOSITORY` is set in the initial container environment, `gopherbot` will set `GOPHER_PROTOCOL=terminal` and `GOPHER_BRAIN=mem` - sensible defaults for the IDE / development environment; this can be more easily overridden by passing the `-o` flag to `gopherbot` if you want to run your robot in production mode in the development environment: `$ gopherbot -o`
