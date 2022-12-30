@@ -181,6 +181,10 @@ func Start(v VersionInfo) {
 	}
 	penvErr := godotenv.Overload(envFile)
 
+	if _, ok := os.LookupEnv("GOPHER_ENVIRONMENT"); !ok {
+		os.Setenv("GOPHER_ENVIRONMENT", "production")
+	}
+
 	// Configdir is where all user-supplied configuration and
 	// external plugins are.
 	if len(explicitCfgPath) != 0 {

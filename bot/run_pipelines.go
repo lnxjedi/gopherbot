@@ -536,6 +536,8 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	libPath := fmt.Sprintf("%s/lib:%s/lib", installPath, configFull)
 	envhash["RUBYLIB"] = libPath
 	envhash["PYTHONPATH"] = libPath
+	envhash["GOPHER_ENVIRONMENT"] = os.Getenv("GOPHER_ENVIRONMENT")
+	envhash["GOPHER_BRAIN"] = os.Getenv("GOPHER_BRAIN")
 
 	/*
 		NameSpace and ParameterSet parameters inherited from the pipeline.

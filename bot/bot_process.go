@@ -240,7 +240,13 @@ var keyEnv = "GOPHER_ENCRYPTION_KEY"
 
 func initCrypt() bool {
 	// Initialize encryption (new style for v2)
-	keyFile := filepath.Join(configPath, encryptedKeyFile)
+	keyFileName := encryptedKeyFile
+	deployEnvironment := os.Getenv("GOPHER_ENVIRONMENT")
+	if deployEnvironment != "production" {
+		Log(robot.Info, "Initializing encryption for the '%s' environment", deployEnvironment)
+		keyFileName += "." + deployEnvironment
+	}
+	keyFile := filepath.Join(configPath, keyFileName)
 	encryptionInitialized := false
 	if ek, ok := os.LookupEnv(keyEnv); ok {
 		ik := []byte(ek)[0:32]

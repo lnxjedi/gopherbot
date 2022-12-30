@@ -55,7 +55,11 @@ bot.SetParameter("BOOTSTRAP", "true")
 bot.SetParameter("GOPHER_DEPLOY_KEY", depkey)
 bot.AddTask("git-init", [ clone_url ])
 
-tkey = os.path.join(cfgdir, "binary-encrypted-key")
+tmp_key_name = "binary-encrypted-key"
+deploy_env = os.getenv("GOPHER_ENVIRONMENT")
+if deploy_env != "production":
+    tmp_key_name += "." + deploy_env
+tkey = os.path.join(cfgdir, tmp_key_name)
 bot.AddTask("exec", [ "rm", "-f", tkey ])
 bot.AddTask("exec", [ "touch", ".restore" ])
 bot.AddTask("git-clone", [ clone_url, clone_branch, cfgdir, "true" ])
