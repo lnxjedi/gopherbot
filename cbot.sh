@@ -401,7 +401,6 @@ start )
         docker run -d \
             -p 127.0.0.1:7777:7777 \
             -p 127.0.0.1:8888:8888 \
-            --env GOPHER_IDE="true" \
             --env-file $GOPHER_PROFILE \
             -l type=gopherbot/robot \
             -l environment=robot/development \
