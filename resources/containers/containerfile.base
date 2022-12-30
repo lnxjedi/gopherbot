@@ -35,10 +35,19 @@ RUN set -eux; \
         procps \
         python3 \
         python3-pip \
+        python3-dev \
         ruby \
+        ruby-dev \
+        telnet \
         tini \
     ; \
     rm -rf /var/lib/apt/lists/*
+
+# NOTE: My little bit of research indicated rpdb would probably be easiest
+# to use for Python script debugging in Gopherbot. If you're a pythonista
+# and want to make a case for, say, debugpy - I'd be happy to chat with you.
+RUN gem install -N debug && \
+    pip install rpdb
 
 WORKDIR /home/
 
