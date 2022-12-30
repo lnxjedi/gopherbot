@@ -68,18 +68,27 @@ func Start(v VersionInfo) {
 
 	_, ideMode := os.LookupEnv("GOPHER_IDE")
 	if ideMode {
+		// To prevent inadvertently bootstrapping a production
+		// robot in a random directory, we force it to run in $HOME.
+		// This behavior can only be overridden by unsetting
+		// GOPHER_IDE in the terminal before invoking gopherbot.
+		// (`unset GOPHER_IDE; gopherbot`)
+		homeDir := os.Getenv("HOME")
+		os.Chdir(homeDir)
 		if overrideIDEMode {
 			ideMode = false
 		} else {
 			// Guardrail when running the gopherbot IDE from cbot.sh, which sets
-			// GOPHER_IDE=true. To prevent inadvertently bootstrapping a production
-			// robot in a random directory, we force it to run in $HOME with
+			// GOPHER_IDE=true.  with
 			// the terminal connector and memory brain, unless the user specifically
 			// overrides this behavior.
-			homeDir := os.Getenv("HOME")
-			os.Chdir(homeDir)
-			os.Setenv("GOPHER_PROTOCOL", "terminal")
-			os.Setenv("GOPHER_BRAIN", "mem")
+			_, profileConfigured := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
+			if profileConfigured {
+				os.Setenv("GOPHER_PROTOCOL", "terminal")
+				os.Setenv("GOPHER_BRAIN", "mem")
+			} else {
+				ideMode = false
+			}
 		}
 	}
 
@@ -279,6 +288,9 @@ func Start(v VersionInfo) {
 	botLogger.l = logger
 	if unconfigured {
 		Log(robot.Warn, "Starting unconfigured; no robot.yaml/gopherbot.yaml found")
+	}
+	if ideMode {
+		Log(robot.Info, "Starting in IDE mode, defaulting GOPHER_BRAIN to 'mem' and GOPHER_PROTOCOL to 'terminal'; override with '-o' flag")
 	}
 
 	if daemonize {
