@@ -30,6 +30,7 @@ RUN echo "source /home/${USERNAME}/.dev-init" >> /home/${USERNAME}/.bashrc && \
 
 ENV RUBYLIB=/opt/gopherbot/lib:/home/${USERNAME}/custom/lib \
     PYTHONPATH=/opt/gopherbot/lib:/home/${USERNAME}/custom/lib \
-    GOPHER_INSTALLDIR=/opt/gopherbot
+    GOPHER_INSTALLDIR=/opt/gopherbot \
+    GOPHER_IDE=true
 
 ENTRYPOINT [ "/usr/bin/tini", "--", "/usr/bin/ssh-agent", "/bin/sh", "-c", "exec ${OPENVSCODE_SERVER_ROOT}/bin/openvscode-server --host 0.0.0.0 --port 7777 \"${@}\"", "--" ]
