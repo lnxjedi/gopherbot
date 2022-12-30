@@ -31,6 +31,9 @@ func help(bot robot.Robot, command string, args ...string) (retval robot.TaskRet
 		}
 		reply += "When the help text for a command has (something) in parentheses, that term or phrase is optional. If <something> is in angle brackets, it's required. With the help function, if you don't supply a keyword you will get help for every command available to you in the current channel, which may differ between channels depending on each channel's purpose. If you use a keyword, you will get help for every command with a matching keyword, along with the channels where it can be used. If the help text is too long, I'll send you a direct message so the channels don't fill up with help output.\n\n"
 		reply += "Also, from time to I may ask you a question, prompting for additional information - these messages will mention you by name if not in a private conversation. You only need to type your reply - if you address me by name (or alias), I'll consider it a new command and send an error to the plugin requesting input. Additionally, there are two special replies I understand: \"=\" means 'use the default value', whatever that might be; \"-\" means 'cancel', returning an error value to the plugin.\n\n"
+		if bot.GetMessage().Protocol.String() == "Terminal" {
+			reply += "Since you're using the 'terminal' connector, you can get simple help for changing the user, channel and thread just by hitting <return> with an empty command.\n\n"
+		}
 		reply += "For basic information about me, you can use my \"info\" command. Finally, if there's anything else you'd like to see me do, please contact my administrator"
 		if len(botContact) > 0 {
 			reply += ", " + botContact + "."
