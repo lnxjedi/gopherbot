@@ -19,15 +19,17 @@ RUN cd /opt/gopherbot && \
 
 FROM buildpack-deps:bullseye
 
-# Enough stuff to run bash, python, and ruby extensions
+# Enough stuff to run bash, python, and ruby extensions and install requirements
 RUN apt-get update && \
   DEBIAN_FRONTEND=noninteractive apt-get install -y \
     jq \
     python3-pip \
-    ruby && \
+    python3-dev \
+    ruby \
+    ruby-dev \
+    && \
   rm -rf /var/lib/apt/lists/*
 
-# Start common section
 ENV ROBOT_UID=994
 ENV SHELL=/bin/bash
 ENV HOME=/home/bot
