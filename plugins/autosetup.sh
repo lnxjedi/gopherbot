@@ -132,7 +132,7 @@ getOrGenerate(){
     VALUE=${!1}
     if [ "$VALUE" == "g" ]
     then
-        VALUE=$(dd status=none if=/dev/random bs=1 count=$BYTES | base64)
+        VALUE=$(openssl rand -base64 $BYTES)
     fi
     echo "$VALUE"
 }
@@ -201,7 +201,7 @@ BOTMAIL="$ANS_ROBOT_EMAIL"
 
 KEY_TYPE=${ANS_KEY_TYPE:-rsa}
 
-SSHPHRASE="$(getOrGenerate ANS_SSH_PHRASE 16)"
+SSHPHRASE="$(getOrGenerate ANS_SSH_PHRASE 24)"
 Say "Generating ssh keys..."
 sleep 1
 SSH_ENCRYPTED=$($GOPHER_INSTALLDIR/gopherbot encrypt "$SSHPHRASE")
