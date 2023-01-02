@@ -13,7 +13,7 @@
 
 To try out working with a separate environment:
   * Start an IDE with no robot configured (a pristine `bot.env`)
-  * Open a terminal window in `/home/bot` and generate a new encryption key: `$ export GOPHER_ENCRYPTION_KEY=$(dd status=none if=/dev/random bs=1 count=24 | base64); echo $GOPHER_ENCRYPTION_KEY`
+  * Open a terminal window in `/home/bot` and generate a new encryption key: `$ export GOPHER_ENCRYPTION_KEY=$(openssl rand -base64 24); echo $GOPHER_ENCRYPTION_KEY`
   * Start up the default robot, and as soon as you get the terminal connector prompt press `<ctrl-d>`
   * Copy the contents of `custom/binary-encrypted-key` to your production robot as `custom/binary-encrypted-key.<env>`, e.g. `custom/binary-encrypted-key.dev`, and push the new file
   * Copy your robot's profile to a new version with e.g. `GOPHER_ENVIRONMENT=dev`, and `GOPHER_ENCRYPTION_KEY=<value from above>`
