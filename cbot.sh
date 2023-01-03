@@ -181,7 +181,7 @@ EOF
     exit 0
     ;;
 list | ls )
-    docker ps --filter "label=type=gopherbot/robot" --format "table {{.ID}}\t{{.Status}}\t{{.Names}}\t{{.Label \"environment\"}}\t{{.Label \"access\"}}"
+    docker ps -a --filter "label=type=gopherbot/robot" --format "table {{.ID}}\t{{.Status}}\t{{.Names}}\t{{.Label \"environment\"}}\t{{.Label \"access\"}}"
     ;;
 remove | rm )
     while getopts ":p" OPT; do
@@ -426,4 +426,3 @@ start )
     usage
     exit 1
 esac
-
