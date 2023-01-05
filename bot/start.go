@@ -83,7 +83,8 @@ func Start(v VersionInfo) {
 			// the terminal connector and memory brain, unless the user specifically
 			// overrides this behavior.
 			_, profileConfigured := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
-			if profileConfigured {
+			termEnv := os.Getenv("GOPHER_PROTOCOL") == "terminal"
+			if profileConfigured && !termEnv {
 				os.Setenv("GOPHER_PROTOCOL", "terminal")
 				os.Setenv("GOPHER_BRAIN", "mem")
 			} else {
