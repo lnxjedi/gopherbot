@@ -86,16 +86,20 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			term = args[0]
 			Log(robot.Trace, "Help requested for term '%s'", term)
 		}
-		want_specific := command == "help" || hasKeyword
 
 		// Nothing we need will ever change for a worker.
 		w := getLockedWorker(r.tid)
 		w.Unlock()
 		helpLines := make([]string, 0, 14)
-		if want_specific {
-			helptext := "(bot), help-all - help for all commands available in this channel, including global commands"
-			helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1))
+		if command == "help" {
+			if !hasKeyword {
+				helptext := "(bot), help <keyword> - get help for the provided <keyword>"
+				helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1))
+				helptext = "(bot), help-all - help for all commands available in this channel, including global commands"
+				helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1))
+			}
 		}
+		want_specific := command == "help" || hasKeyword
 		for _, t := range tasks.t[1:] {
 			task, plugin, _ := getTask(t)
 			if plugin == nil {
