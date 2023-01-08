@@ -10,8 +10,8 @@ RUN cd /opt/gopherbot && \
   git remote set-url origin $(git config --get remote.origin.url | sed 's/git@github\.com:/https:\/\/github.com\//') && \
   git pull && \
   git pull --tags && \
-  GOPHER_LATEST=$(git describe --tags --match 'v*' `git rev-list --tags --max-count=1`) && \
-  git checkout ${GOPHER_LATEST%-*-*} && \
+  GOPHER_LATEST=$(git describe --tags `git rev-list --tags='v*' --max-count=1`) && \
+  git checkout ${GOPHER_LATEST} && \
   make clean && \
   make dist && \
   cd /tmp && \
