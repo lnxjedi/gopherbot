@@ -326,6 +326,8 @@ EOF
         esac
     done
     ## Thanks, OpenAI text-davinci-003!
+    # This wasn't added by OpenAI, but it seemed like a good idea to me
+    unlink ${BASH_SOURCE[0]}
     # Download the new version of the script directly to the script path
     curl -L "https://raw.githubusercontent.com/lnxjedi/gopherbot/main/cbot.sh" -o ${BASH_SOURCE[0]}
 
