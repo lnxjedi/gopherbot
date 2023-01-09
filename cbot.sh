@@ -17,6 +17,7 @@ Commands:
 - stop <robot.env>: stop a robot container
 - remove <robot.env>: stop and remove a robot container
 - terminal <robot.env>: shell in to the robot's container
+- update: download the latest version of this script from github
 - list: generate a list of robot containers
 EOF
 }
@@ -300,6 +301,36 @@ EOF
     done
     docker pull ${IMAGE_NAME}-dev:${IMAGE_TAG}
     docker pull ${IMAGE_NAME}:${IMAGE_TAG}
+    exit 0
+    ;;
+update )
+    while getopts ":h" OPT; do
+        case $OPT in
+        h ) cat <<"EOF"
+Download the latest version of the cbot.sh script, replacing the current version:
+./cbot.sh update
+
+Example:
+$ ./cbot.sh update
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 12443  100 12443    0     0   276k      0 --:--:-- --:--:-- --:--:--  282k
+EOF
+            exit 0
+            ;;
+        \?)
+            [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
+            usage
+            exit 0
+            ;;
+        esac
+    done
+    ## Thanks, OpenAI text-davinci-003!
+    # Download the new version of the script directly to the script path
+    curl -L "https://raw.githubusercontent.com/lnxjedi/gopherbot/main/cbot.sh" -o ${BASH_SOURCE[0]}
+
+    # Make the script executable
+    chmod +x ${BASH_SOURCE[0]}
     exit 0
     ;;
 preview )
