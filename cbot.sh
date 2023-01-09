@@ -7,69 +7,17 @@ IMAGE_TAG="latest"
 
 usage() {
     cat <<EOF
-Usage: ./cbot.sh preview|profile|start|stop|remove|terminal|list (options...) (arguments...)
-
--------
-Preview the Gopherbot IDE and Floyd, the default robot:
-./cbot.sh preview (-u) (-r)
- -u - pull the latest container version first
- -r - stop and remove the preview container
-
--------
-Generate a profile for working with a gopherbot robot container:
-./cbot.sh profile (-k path/to/ssh/private/key) <container-name> "<full name>" <email>
- -k (path) - Load an ssh private key when using this profile
-
-Example:
-$ ./cbot.sh profile -k ~/.ssh/id_rsa bishop "David Parsley" parsley@linuxjedi.org | tee ~/bishop.env
-## Lines starting with #| are used by the cbot.sh script
-GIT_AUTHOR_NAME="David Parsley"
-GIT_AUTHOR_EMAIL=parsley@linuxjedi.org
-GIT_COMMITTER_NAME="David Parsley"
-GIT_COMMITTER_EMAIL=parsley@linuxjedi.org
-#|CONTAINERNAME=bishop
-#|SSH_KEY_PATH=/home/david/.ssh/id_rsa
-
--------
-Start a robot container:
-./cbot.sh start (-u) (-p) (path/to/profile)
- -u - pull the latest container version first
- -p - start a production robot (minimal image)
-
-Example:
-$ ./cbot.sh start ~/bishop.env
-Running 'bishop':
-Unable to find image 'ghcr.io/lnxjedi/gopherbot-dev:latest' locally
-latest: Pulling from lnxjedi/gopherbot-dev
-...
-Copying /home/david/.ssh/id_rsa to bishop:/home/bot/.ssh/id_ssh ...
-Access your dev environment at: http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=XXXXXXX
-
--------
-List all robot containers:
-./cbot.sh list
-
-Example:
-$ ./cbot.sh list
-CONTAINER ID   STATUS             NAMES        environment         access
-0f50a4ce6b2a   Up 37 seconds      bishop-dev   robot/development   http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=XXXXXXX
-1c470fd80c31   Up About an hour   clu          robot/production 
-
--------
-Stop a robot container:
-./cbot.sh stop (-p) (path/to/profile)
- -p - stop a production robot
-
-Example:
-$ ./cbot.sh stop ~/bishop.env
-
--------
-Stop and remove a container:
-./cbot.sh remove (path/to/profile)
- -p - remove a production robot
-
-Example:
-$ ./cbot.sh remove ~/bishop.env
+Usage: ./cbot.sh <command> (options...) (arguments...)
+Use './cbot.sh <command> -h' for help on a given command.
+Commands:
+- preview: launch the preview for a terminal interface to the default robot
+- profile <robotname> <fullname> <email>: generate a robot development profile
+- pull: pull the latest docker images
+- start <robot.env>: start a development (or production) robot container
+- stop <robot.env>: stop a robot container
+- remove <robot.env>: stop and remove a robot container
+- terminal <robot.env>: shell in to the robot's container
+- list: generate a list of robot containers
 EOF
 }
 
@@ -144,12 +92,29 @@ copy_ssh() {
 
 case $COMMAND in
 profile )
-    while getopts ":k:" OPT; do
+    while getopts ":hk:" OPT; do
         case $OPT in
+        h ) cat <<"EOF"
+Generate a profile for working with a gopherbot robot container:
+./cbot.sh profile (-k path/to/ssh/private/key) <container-name> "<full name>" <email>
+ -k (path) - Load an ssh private key when using this profile
+
+Example:
+$ ./cbot.sh profile -k ~/.ssh/id_rsa bishop "David Parsley" parsley@linuxjedi.org | tee bishop.env
+## Lines starting with #| are used by the cbot.sh script
+GIT_AUTHOR_NAME="David Parsley"
+GIT_AUTHOR_EMAIL=parsley@linuxjedi.org
+GIT_COMMITTER_NAME="David Parsley"
+GIT_COMMITTER_EMAIL=parsley@linuxjedi.org
+#|CONTAINERNAME=bishop
+#|SSH_KEY_PATH=/home/david/.ssh/id_rsa
+EOF
+            exit 0
+            ;;
         k )
             SSH_KEY_PATH="$OPTARG"
             ;;
-        \? | h)
+        \?)
             [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
             usage
             exit 0
@@ -181,15 +146,46 @@ EOF
     exit 0
     ;;
 list | ls )
+    while getopts ":h" OPT; do
+        case $OPT in
+        h ) cat <<"EOF"
+List all robot containers:
+./cbot.sh list
+
+Example:
+$ ./cbot.sh list
+CONTAINER ID   STATUS             NAMES        environment         access
+0f50a4ce6b2a   Up 37 seconds      bishop-dev   robot/development   http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=XXXXXXX
+1c470fd80c31   Up About an hour   clu          robot/production 
+EOF
+            exit 0
+            ;;
+        \?)
+            [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
+            usage
+            exit 0
+            ;;
+        esac
+    done
     docker ps -a --filter "label=type=gopherbot/robot" --format "table {{.ID}}\t{{.Status}}\t{{.Names}}\t{{.Label \"environment\"}}\t{{.Label \"access\"}}"
     ;;
 remove | rm )
-    while getopts ":p" OPT; do
+    while getopts ":hp" OPT; do
         case $OPT in
+        h ) cat <<"EOF"
+Stop and remove a container:
+./cbot.sh remove (path/to/profile)
+ -p - remove a production robot
+
+Example:
+$ ./cbot.sh remove bishop.env
+EOF
+            exit 0
+            ;;
         p )
             PROD="true"
             ;;
-        \? | h)
+        \?)
             [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
             usage
             exit 0
@@ -209,12 +205,22 @@ remove | rm )
     exit 0
     ;;
 stop )
-    while getopts ":p" OPT; do
+    while getopts ":hp" OPT; do
         case $OPT in
+        h ) cat <<"EOF"
+Stop a robot container:
+./cbot.sh stop (-p) (path/to/profile)
+ -p - stop a production robot
+
+Example:
+$ ./cbot.sh stop bishop.env
+EOF
+            exit 0
+            ;;
         p )
             PROD="true"
             ;;
-        \? | h)
+        \?)
             [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
             usage
             exit 0
@@ -234,15 +240,26 @@ stop )
     exit 0
     ;;
 term | terminal )
-    while getopts ":rp" OPT; do
+    while getopts ":hrp" OPT; do
         case $OPT in
+        h ) cat <<"EOF"
+Shell in to a robot container:
+./cbot.sh term (-p) (-r) (path/to/profile)
+ -p - look for a production container
+ -r - connect as the "root" user
+
+Example:
+$ ./cbot.sh term -r bishop.env
+EOF
+            exit 0
+            ;;
         p )
             PROD="true"
             ;;
         r )
             DOCKUSER="-u root"
             ;;
-        \? | h)
+        \?)
             [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
             usage
             exit 0
@@ -260,10 +277,45 @@ term | terminal )
     echo "Starting shell session in the $CONTAINERNAME container ..."
     exec docker exec -it $DOCKUSER $CONTAINERNAME /bin/bash
     ;;
+pull )
+    while getopts ":h" OPT; do
+        case $OPT in
+        h ) cat <<"EOF"
+Pull the most recent development and production gopherbot containers:
+./cbot.sh pull
+
+Example:
+$ ./cbot.sh pull
+latest: Pulling from lnxjedi/gopherbot-dev
+...
+EOF
+            exit 0
+            ;;
+        \?)
+            [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
+            usage
+            exit 0
+            ;;
+        esac
+    done
+    docker pull ${IMAGE_NAME}-dev:${IMAGE_TAG}
+    docker pull ${IMAGE_NAME}:${IMAGE_TAG}
+    exit 0
+    ;;
 preview )
     CONTAINERNAME='floyd-gopherbot-preview'
-    while getopts ":ru" OPT; do
+    while getopts ":hru" OPT; do
         case $OPT in
+        h ) cat <<"EOF"
+Preview the Gopherbot IDE and Floyd, the default robot:
+./cbot.sh preview (-u) (-r)
+ -u - pull the latest container version first
+ -r - stop and remove the preview container
+(Note: you'll need to connect to the localhost interface, open a terminal,
+and run 'gopherbot')
+EOF
+            exit 0
+            ;;
         r )
             docker stop $CONTAINERNAME >/dev/null && docker rm $CONTAINERNAME >/dev/null
             echo "Removed"
@@ -272,7 +324,7 @@ preview )
         u )
             PULL="true"
             ;;
-        \? | h)
+        \?)
             [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
             usage
             exit 0
@@ -328,15 +380,32 @@ preview )
     show_access -p
     ;;
 start )
-    while getopts ":up" OPT; do
+    while getopts ":hup" OPT; do
         case $OPT in
+        h ) cat <<"EOF"
+Start a robot container:
+./cbot.sh start (-u) (-p) (path/to/profile)
+ -u - pull the latest container version first
+ -p - start a production robot (minimal image)
+
+Example:
+$ ./cbot.sh start bishop.env
+Running 'bishop':
+Unable to find image 'ghcr.io/lnxjedi/gopherbot-dev:latest' locally
+latest: Pulling from lnxjedi/gopherbot-dev
+...
+Copying /home/david/.ssh/id_rsa to bishop:/home/bot/.ssh/id_ssh ...
+Access your dev environment at: http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=XXXXXXX
+EOF
+            exit 0
+            ;;
         u )
             PULL="true"
             ;;
         p )
             PROD="true"
             ;;
-        \? | h)
+        \?)
             [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
             usage
             exit 0
