@@ -1,3 +1,6 @@
+# v2.6.4 - Add RememberThread, RememberContextThread
+* To support development of a new OpenAI Chat plugin, these functions were needed to allow a command in a channel to create a short-term memory for a new thread created by the robot.
+
 # v2.6.3 - IDE, Development and Packaging Updates
 * The dev container now defines GOPHER_IDE=true, which activates IDE mode:
   * This will always cause `gopherbot` to change directory to `$HOME` on startup, to prevent a common UX issue where admins start the robot in, say, the `custom/` directory; this behavior can only be overridden by explicity unsetting the env var in the shell: `$ unset GOPHER_IDE`
