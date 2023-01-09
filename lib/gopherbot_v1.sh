@@ -128,6 +128,35 @@ RememberContext(){
 	return 0
 }
 
+RememberThread(){
+	if [ -z "$1" -o -z "$2" ]
+	then
+		return 1
+	fi
+	local GB_FUNCNAME="RememberThread"
+	local R_KEY=$(base64_encode "$1")
+	local R_MEMORY=$(base64_encode "$2")
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Key": "$R_KEY",
+	"Value": "$R_MEMORY",
+	"Base64" : true
+}
+EOF
+)
+	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
+	return 0
+}
+
+RememberContextThread(){
+	if [ -z "$1" -o -z "$2" ]
+	then
+		return 1
+	fi
+	RememberThread "context:$1" "$2"
+	return 0
+}
+
 Pause(){
 	sleep $1
 }

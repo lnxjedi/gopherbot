@@ -42,7 +42,9 @@ type Robot interface {
 	CheckinDatum(key, locktoken string)
 	UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal)
 	Remember(key, value string)
+	RememberThread(key, value string)
 	RememberContext(context, value string)
+	RememberContextThread(context, value string)
 	Recall(key string) string
 	// Primarily job/pipeline methods
 	GetRepoData() map[string]Repository

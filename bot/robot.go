@@ -108,7 +108,7 @@ func (w *worker) makeMemoryContext(key string) memoryContext {
 	}
 }
 
-func (r Robot) makeMemoryContext(key string) memoryContext {
+func (r Robot) makeMemoryContext(key string, forceThread bool) memoryContext {
 	var threadID string
 	if r.ThreadedMessage {
 		threadID = r.ThreadID

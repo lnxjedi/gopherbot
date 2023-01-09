@@ -365,6 +365,18 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		r.Remember(m.Key, m.Value)
 		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
 		return
+	case "RememberThread":
+		var m shorttermmemory
+		if !getArgs(rw, &f.FuncArgs, &m) {
+			return
+		}
+		if m.Base64 {
+			m.Key = decode(m.Key)
+			m.Value = decode(m.Value)
+		}
+		r.RememberThread(m.Key, m.Value)
+		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
+		return
 	case "Recall":
 		var m shorttermrecollection
 		if !getArgs(rw, &f.FuncArgs, &m) {

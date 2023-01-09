@@ -189,6 +189,20 @@ class Robot:
         ret = self.Call("GetBotAttribute", { "Attribute": attr })
         return Attribute(ret)
 
+    def Remember(k, v):
+        ret = self.Call("Remember", { "Key": k, "Value": v })
+        return ret["RetVal"]
+
+    def RememberContext(k, v):
+        return self.Remember("context:"+k, v)
+
+    def RememberThread(k, v):
+        ret = self.Call("RememberThread", { "Key": k, "Value": v })
+        return ret["RetVal"]
+
+    def RememberContextThread(k, v):
+        return self.RememberThread("context:"+k, v)
+
     def Recall(self, memory):
         ret = self.Call("Recall", { "Key": memory })
         return ret["StrVal"]

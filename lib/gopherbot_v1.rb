@@ -179,6 +179,16 @@ class BaseBot
 		return Remember("context:"+c, v)
 	end
 
+	def RememberThread(k, v)
+		args = { "Key" => k, "Value" => v }
+		ret = callBotFunc("RememberThread", args)
+		return ret["RetVal"]
+	end
+
+	def RememberContextThread(c, v)
+		return RememberThread("context:"+c, v)
+	end
+
 	def Recall(k)
 		args = { "Key" => k }
 		return callBotFunc("Recall", args).StrVal

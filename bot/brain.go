@@ -419,7 +419,19 @@ func (r Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.
 func (r Robot) Remember(key, value string) {
 	timestamp := time.Now()
 	memory := shortTermMemory{value, timestamp}
-	context := r.makeMemoryContext(key)
+	context := r.makeMemoryContext(key, false)
+	Log(robot.Trace, "SHORTMEM: Storing short-term memory \"%s\" -> \"%s\"", key, value)
+	shortTermMemories.Lock()
+	shortTermMemories.m[context] = memory
+	shortTermMemories.Unlock()
+}
+
+// RememberThread is identical to Remember, except that it forces the memory
+// to associate with the thread.
+func (r Robot) RememberThread(key, value string) {
+	timestamp := time.Now()
+	memory := shortTermMemory{value, timestamp}
+	context := r.makeMemoryContext(key, true)
 	Log(robot.Trace, "SHORTMEM: Storing short-term memory \"%s\" -> \"%s\"", key, value)
 	shortTermMemories.Lock()
 	shortTermMemories.m[context] = memory
@@ -434,9 +446,17 @@ func (r Robot) RememberContext(context, value string) {
 	r.Remember("context:"+context, value)
 }
 
-// Recall recalls a short term memory, or the empty string if it doesn't exist
+// RememberContextThread is identical to RememberContext, except that the memory
+// is forced to associate with the thread.
+func (r Robot) RememberContextThread(context, value string) {
+	r.RememberThread("context:"+context, value)
+}
+
+// Recall recalls a short term memory, or the empty string if it doesn't exist.
+// Note that there are no RecallThread methods - Recall is always in the current
+// context.
 func (r Robot) Recall(key string) string {
-	context := r.makeMemoryContext(key)
+	context := r.makeMemoryContext(key, false)
 	shortTermMemories.Lock()
 	memory, ok := shortTermMemories.m[context]
 	shortTermMemories.Unlock()
