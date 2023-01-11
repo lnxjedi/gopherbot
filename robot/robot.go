@@ -20,6 +20,7 @@ type Robot interface {
 	Fixed() Robot
 	MessageFormat(f MessageFormat) Robot
 	Direct() Robot
+	Threaded() Robot
 	Log(l LogLevel, m string, v ...interface{}) bool
 	SendChannelMessage(ch, msg string, v ...interface{}) RetVal
 	SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) RetVal

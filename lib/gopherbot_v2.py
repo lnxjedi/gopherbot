@@ -83,14 +83,6 @@ class Robot:
         self.format = ""
         self.protocol = os.getenv("GOPHER_PROTOCOL")
 
-    def Direct(self):
-        "Get a direct messaging instance of the robot"
-        return DirectBot(self)
-
-    def MessageFormat(self, format):
-        "Get a bot with a non-default message format"
-        return FormattedBot(self, format)
-
     def Call(self, func_name, func_args, format=""):
         if len(format) == 0:
             format = self.format
@@ -190,7 +182,8 @@ class Robot:
         return Attribute(ret)
 
     def Remember(k, v):
-        ret = self.Call("Remember", { "Key": k, "Value": v })
+        funcname = "RememberThread" if self.threaded_message else "Remember"
+        ret = self.Call(funcname, { "Key": k, "Value": v })
         return ret["RetVal"]
 
     def RememberContext(k, v):
@@ -280,6 +273,18 @@ class Robot:
         else:
             return self.SendUserChannelThreadMessage(self.user, self.channel, self.thread_id, message, format)
 
+    def Direct(self):
+        "Get a direct messaging instance of the robot"
+        return DirectBot(self)
+
+    def MessageFormat(self, format):
+        "Get a bot with a non-default message format"
+        return FormattedBot(self, format)
+
+    def Threaded(self):
+        "Get a bot associated with the message thread"
+        return ThreadedBot(self)
+
 class DirectBot(Robot):
     "Instantiate a robot for direct messaging with the user"
     def __init__(self, bot):
@@ -300,4 +305,18 @@ class FormattedBot(Robot):
         self.user = bot.user
         self.protocol = bot.protocol
         self.format = format
+        self.plugin_id = bot.plugin_id
+
+class ThreadedBot(Robot):
+    "Instantiate a robot with a non-default message format"
+    def __init__(self, bot):
+        self.channel = bot.channel
+        self.thread_id = bot.thread_id
+        if len(self.channel) > 0:
+            self.threaded_message = "true"
+        else:
+            self.threaded_message = None
+        self.user = bot.user
+        self.protocol = bot.protocol
+        self.format = bot.format
         self.plugin_id = bot.plugin_id

@@ -170,8 +170,9 @@ class BaseBot
 	end
 
 	def Remember(k, v)
+		funcName = @threaded_message ? "RememberThread" : "Remember"
 		args = { "Key" => k, "Value" => v }
-		ret = callBotFunc("Remember", args)
+		ret = callBotFunc(funcName, args)
 		return ret["RetVal"]
 	end
 
@@ -345,7 +346,6 @@ class BaseBot
 end
 
 class Robot < BaseBot
-
 	def initialize()
 		@channel = ENV["GOPHER_CHANNEL"]
         @thread_id = ENV["GOPHER_THREAD_ID"]
@@ -358,40 +358,39 @@ class Robot < BaseBot
 	end
 
 	def Direct()
-		DirectBot.new(@user, @plugin_id, @protocol, @format, @prng)
+		DirectBot.new
+	end
+
+	def Threaded()
+		ThreadedBot.new
 	end
 
 	def MessageFormat(format)
-		FormattedBot.new(@user, @channel, @thread_id, @threaded_message, @plugin_id, @protocol, format, @prng)
+		FormattedBot.new(format)
 	end
 end
 
 class DirectBot < BaseBot
-
 	def initialize(user, plugin_id, protocol, format, prng)
+		super
 		@channel = ""
 		@thread_id = ""
 		@threaded_message = nil
-		@user = user
-		@plugin_id = plugin_id
-		@protocol = protocol
-		@format = format
-		@prng = prng
 	end
+end
 
+class ThreadedBot < BaseBot
+	def initialize(user, plugin_id, protocol, format, prng)
+		super
+		if @channel.length > 0
+			@threaded_message = nil
+		end
+	end
 end
 
 class FormattedBot < BaseBot
-
-	def initialize(user, channel, thread_id, threaded_message, plugin_id, protocol, format, prng)
-		@channel = channel
-		@thread_id = thread_id
-		@threaded_message = threaded_message
-		@user = user
-		@plugin_id = plugin_id
-		@protocol = protocol
+	def initialize(format)
+		super
 		@format = format
-		@prng = prng
 	end
-
 end

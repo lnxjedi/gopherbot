@@ -272,6 +272,19 @@ func (r Robot) Direct() robot.Robot {
 	return nr
 }
 
+// Threaded associates the robot with the thread of the incoming message.
+func (r Robot) Threaded() robot.Robot {
+	nr := r
+	m := *r.Message
+	nr.Message = &m
+	if len(nr.Channel) > 0 {
+		nr.ThreadedMessage = true
+	} else {
+		nr.ThreadedMessage = false
+	}
+	return nr
+}
+
 // Pause is a convenience function to pause some fractional number of seconds.
 func (r Robot) Pause(s float64) {
 	ms := time.Duration(s * float64(1000))
