@@ -124,6 +124,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		w.Channel = task.Channel
 		w.ProtocolChannel = ""
 		w.ThreadID = ""
+		w.MessageID = ""
 		w.ThreadedMessage = false
 	}
 	c.environment["GOPHER_PIPE_NAME"] = task.name
