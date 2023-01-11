@@ -19,3 +19,4 @@ robot.log
 .vscode
 *fail.log
 tmp/
+binary-encrypted-key*
