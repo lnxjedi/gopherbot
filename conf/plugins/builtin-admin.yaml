@@ -45,6 +45,6 @@ CommandMatchers:
 - Command: pauselist
   Regex: '(?i:(list[- ])?paused[- ]jobs)'
 - Command: "chanlog"
-  Regex: '(?i:log-channel(?: ([A-Za-z][\w-]*))?)'
+  Regex: '(?i:log[- ]channel(?: ([A-Za-z][\w-]*))?)'
 - Command: "stopchanlog"
-  Regex: '(?i:stop-channel-logging)'
+  Regex: '(?i:stop[- ]channel[- ]logging)'
