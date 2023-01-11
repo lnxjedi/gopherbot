@@ -62,6 +62,7 @@ func (h handler) RaisePriv(reason string) {
 type worker struct {
 	User            string                      // The user who sent the message; this can be modified for replying to an arbitrary user
 	Channel         string                      // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	MessageID       string                      // Opaque message identifier
 	ThreadID        string                      // Opaque identifier for conversation thread
 	ThreadedMessage bool                        // Whether the message was sent in a thread
 	ProtocolUser    string                      // The username or <userid> to be sent in connector methods
@@ -90,6 +91,7 @@ func (w *worker) clone() *worker {
 		User:            w.User,
 		ProtocolUser:    w.ProtocolUser,
 		Channel:         w.Channel,
+		MessageID:       w.MessageID,
 		ThreadID:        w.ThreadID,
 		ThreadedMessage: w.ThreadedMessage,
 		ProtocolChannel: w.ProtocolChannel,
@@ -176,7 +178,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	clog, ok := chanLoggers.channels[channelName]
 	chanLoggers.Unlock()
 	if ok {
-		clog.Printf("c:%s/%s(t:%s/%t), u:%s/%s, m:'%s'\n", channelName, ProtocolChannel, inc.ThreadID, inc.ThreadedMessage, userName, ProtocolUser, messageFull)
+		clog.Printf("c:%s/%s(m:%s/t:%s/%t), u:%s/%s, m:'%s'\n", channelName, ProtocolChannel, inc.MessageID, inc.ThreadID, inc.ThreadedMessage, userName, ProtocolUser, messageFull)
 	}
 	Log(robot.Trace, "Incoming message in channel '%s/%s' from user '%s/%s': %s", channelName, ProtocolChannel, userName, ProtocolUser, messageFull)
 	// When command == true, the message was directed at the bot
@@ -254,6 +256,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	w := &worker{
 		User:            userName,
 		Channel:         channelName,
+		MessageID:       inc.MessageID,
 		ThreadID:        inc.ThreadID,
 		ThreadedMessage: inc.ThreadedMessage,
 		ProtocolUser:    ProtocolUser,
@@ -275,7 +278,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	if w.directMsg {
 		Log(robot.Debug, "Received private message from user '%s'", userName)
 	} else {
-		Log(robot.Debug, "Message '%s' from user '%s' in channel '%s'/thread '%s' (threaded: %t); isCommand: %t", message, userName, logChannel, inc.ThreadID, inc.ThreadedMessage, isCommand)
+		Log(robot.Debug, "Message '%s'/id '%s' from user '%s' in channel '%s'/thread '%s' (threaded: %t); isCommand: %t", message, inc.MessageID, userName, logChannel, inc.ThreadID, inc.ThreadedMessage, isCommand)
 	}
 	go w.handleMessage()
 }

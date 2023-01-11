@@ -396,21 +396,25 @@ loop:
 				}
 				i := userMap[tc.currentUser]
 				ui := tc.users[i]
-				var threadID string
+				var threadID, messageID string
 				tc.Lock()
+				tc.threadCounter++
+				messageNumber := tc.threadCounter
+				tc.Unlock()
 				if tc.typingInThread {
+					messageID = fmt.Sprintf("%04x", messageNumber%threadIDMax)
 					threadID = tc.currentThread
 				} else {
-					tc.threadCounter++
-					threadID = fmt.Sprintf("%04x", tc.threadCounter%threadIDMax)
+					threadID = fmt.Sprintf("%04x", messageNumber%threadIDMax)
+					messageID = threadID
 				}
-				tc.Unlock()
 				botMsg := &robot.ConnectorMessage{
 					Protocol:        "terminal",
 					UserName:        tc.currentUser,
 					UserID:          ui.InternalID,
 					ChannelName:     tc.currentChannel,
 					ChannelID:       channelID,
+					MessageID:       messageID,
 					ThreadedMessage: tc.typingInThread,
 					ThreadID:        threadID,
 					MessageText:     input,
@@ -456,16 +460,19 @@ func (tc *termConnector) getChannel(c string) string {
 
 func (tc *termConnector) checkSendSelf(ch, thr, msg string, f robot.MessageFormat) {
 	if tc.hearSelf {
-		var threadID string
+		var threadID, messageID string
 		var threadedMessage bool
+		tc.Lock()
+		tc.threadCounter++
+		messageNumber := tc.threadCounter
+		tc.Unlock()
 		if len(thr) > 0 {
 			threadedMessage = true
+			messageID = fmt.Sprintf("%04x", messageNumber%threadIDMax)
 			threadID = thr
 		} else {
-			tc.Lock()
-			tc.threadCounter++
-			threadID = fmt.Sprintf("%04x", tc.threadCounter%threadIDMax)
-			tc.Unlock()
+			threadID = fmt.Sprintf("%04x", messageNumber%threadIDMax)
+			messageID = threadID
 		}
 		botMsg := &robot.ConnectorMessage{
 			Protocol:        "terminal",
@@ -473,6 +480,7 @@ func (tc *termConnector) checkSendSelf(ch, thr, msg string, f robot.MessageForma
 			UserID:          termBotID,
 			ChannelName:     ch,
 			ChannelID:       "#" + ch,
+			MessageID:       messageID,
 			ThreadedMessage: threadedMessage,
 			ThreadID:        threadID,
 			MessageText:     msg,

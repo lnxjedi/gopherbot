@@ -63,6 +63,7 @@ func (w *worker) makeRobot() Robot {
 			ProtocolUser:    w.ProtocolUser,
 			Channel:         w.Channel,
 			ProtocolChannel: w.ProtocolChannel,
+			MessageID:       w.MessageID,
 			ThreadID:        w.ThreadID,
 			ThreadedMessage: w.ThreadedMessage,
 			Format:          w.Format,

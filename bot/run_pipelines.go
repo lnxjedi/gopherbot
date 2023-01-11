@@ -116,6 +116,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
 		c.environment["GOPHER_START_CHANNEL"] = w.Channel
 		c.environment["GOPHER_START_THREAD_ID"] = w.ThreadID
+		c.environment["GOPHER_START_MESSAGE_ID"] = w.MessageID
 		if w.ThreadedMessage {
 			c.environment["GOPHER_START_THREADED_MESSAGE"] = "true"
 		}
@@ -521,6 +522,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	}
 	envhash["GOPHER_CONFIGDIR"] = configFull
 	envhash["GOPHER_CHANNEL"] = w.Channel
+	envhash["GOPHER_MESSAGE_ID"] = w.MessageID
 	envhash["GOPHER_THREAD_ID"] = w.ThreadID
 	// Env vars are for scripting languages; unset vars are seen as false
 	if w.ThreadedMessage {

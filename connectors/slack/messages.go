@@ -216,6 +216,7 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 		return
 	}
 	text := message.Text
+	messageID := message.TimeStamp
 	ts := message.TimeStamp
 	tts := message.ThreadTimeStamp
 	threadID := tts
@@ -234,6 +235,7 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 		Protocol:        "slack",
 		UserID:          userID,
 		ChannelID:       chanID,
+		MessageID:       messageID,
 		ThreadID:        threadID,
 		ThreadedMessage: threadedMessage,
 		DirectMessage:   ci.IsIM,
@@ -354,15 +356,28 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 		text = msg.Attachments[0].Fallback
 	}
 	text = s.processText(text)
+	messageID := msg.Timestamp
+	ts := msg.Timestamp
+	tts := msg.ThreadTimestamp
+	threadID := tts
+	threadedMessage := false
+	if len(tts) == 0 {
+		threadID = ts
+	} else {
+		threadedMessage = true
+	}
 	botMsg := &robot.ConnectorMessage{
-		Protocol:      "slack",
-		UserID:        userID,
-		ChannelID:     chanID,
-		DirectMessage: ci.IsIM,
-		BotMessage:    false,
-		MessageText:   text,
-		MessageObject: msg,
-		Client:        s.api,
+		Protocol:        "slack",
+		UserID:          userID,
+		ChannelID:       chanID,
+		MessageID:       messageID,
+		ThreadID:        threadID,
+		ThreadedMessage: threadedMessage,
+		DirectMessage:   ci.IsIM,
+		BotMessage:      false,
+		MessageText:     text,
+		MessageObject:   msg,
+		Client:          s.api,
 	}
 	userName, ok := s.userName(userID)
 	if !ok {

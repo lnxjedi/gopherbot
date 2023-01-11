@@ -21,6 +21,7 @@ type Message struct {
 	Channel         string            // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
 	ProtocolChannel string            // the protocol internal channel ID
 	ThreadID        string            // Opaque thread identifier for protocols that support it, otherwise empty
+	MessageID       string            // Opaque message identifier for protocols that support it
 	ThreadedMessage bool              // Indicates if the incoming message was in a thread, false if not supported
 	Protocol        Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
 	Incoming        *ConnectorMessage // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
@@ -37,9 +38,9 @@ type ConnectorMessage struct {
 	UserName, UserID string
 	// optional / required channel values
 	ChannelName, ChannelID string
-	// Opaque value
-	ThreadID        string
-	ThreadedMessage bool
+	// Opaque values
+	ThreadID, MessageID string
+	ThreadedMessage     bool
 	// DirectMessage - whether the message should be considered private between user and robot
 	DirectMessage bool
 	// BotMessage - true when the connector is certain the message has been sent to the robot,
