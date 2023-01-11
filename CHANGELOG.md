@@ -1,5 +1,6 @@
 # v2.6.4 - Add RememberThread, RememberContextThread
 * To support development of a new OpenAI Chat plugin, these functions were needed to allow a command in a channel to create a short-term memory for a new thread created by the robot.
+* Added a `Threaded` method for all libraries (except BASH, where you can just set `GOPHER_THREADED_MESSAGE`); `bot.Threaded()` will return a bot object that always speaks and acts in the message thread.
 
 # v2.6.3 - IDE, Development and Packaging Updates
 * The dev container now defines GOPHER_IDE=true, which activates IDE mode:

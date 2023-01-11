@@ -105,6 +105,10 @@ Remember(){
 		return 1
 	fi
 	local GB_FUNCNAME="Remember"
+	if [ "$GOPHER_THREADED_MESSAGE" ]
+	then
+		GB_FUNCNAME="RememberThread"
+	fi
 	local R_KEY=$(base64_encode "$1")
 	local R_MEMORY=$(base64_encode "$2")
 	local GB_FUNCARGS=$(cat <<EOF
