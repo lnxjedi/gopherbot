@@ -222,6 +222,7 @@
 <p>The following environment variable are set for all pipelines, whether started by a plugin or a job:</p>
 <ul>
 <li><code>GOPHER_CHANNEL</code> - the channel where the plugin/job is providing output</li>
+<li><code>GOPHER_CHANNEL_ID</code> - the protocol channel ID</li>
 <li><code>GOPHER_MESSAGE_ID</code> - the opaque message id of the matching message</li>
 <li><code>GOPHER_THREAD_ID</code> - an opaque string value identifying the conversation thread</li>
 <li><code>GOPHER_THREADED_MESSAGE</code> - set &quot;true&quot; if the message was received in a thread</li>
@@ -246,6 +247,7 @@
 <ul>
 <li><code>GOPHER_JOB_NAME</code> - the name of the running job</li>
 <li><code>GOPHER_START_CHANNEL</code> - the channel where the job was started</li>
+<li><code>GOPHER_START_CHANNEL_ID</code> - the protocol ID for the channel where the job was started</li>
 <li><code>GOPHER_START_MESSAGE_ID</code> - the opaque message id for the message that started the job</li>
 <li><code>GOPHER_START_THREAD_ID</code> - the opaque thread id where the job was started</li>
 <li><code>GOPHER_START_THREADED_MESSAGE</code> - whether the job was started from a message in a thread</li>
