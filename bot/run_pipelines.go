@@ -115,6 +115,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		c.nameSpace = w.getNameSpace(task)
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
 		c.environment["GOPHER_START_CHANNEL"] = w.Channel
+		c.environment["GOPHER_START_CHANNEL_ID"] = w.ProtocolChannel
 		c.environment["GOPHER_START_THREAD_ID"] = w.ThreadID
 		c.environment["GOPHER_START_MESSAGE_ID"] = w.MessageID
 		if w.ThreadedMessage {
@@ -523,6 +524,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	}
 	envhash["GOPHER_CONFIGDIR"] = configFull
 	envhash["GOPHER_CHANNEL"] = w.Channel
+	envhash["GOPHER_CHANNEL_ID"] = w.ProtocolChannel
 	envhash["GOPHER_MESSAGE_ID"] = w.MessageID
 	envhash["GOPHER_THREAD_ID"] = w.ThreadID
 	// Env vars are for scripting languages; unset vars are seen as false
@@ -530,7 +532,8 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 		envhash["GOPHER_THREADED_MESSAGE"] = "true"
 	}
 	envhash["GOPHER_USER"] = w.User
-	envhash["GOPHER_PROTOCOL"] = strings.ToLower(fmt.Sprintf("%s", w.Protocol))
+	envhash["GOPHER_USER_ID"] = w.ProtocolUser
+	envhash["GOPHER_PROTOCOL"] = strings.ToLower(w.Protocol.String())
 	envhash["GOPHER_TASK_NAME"] = c.taskName
 	envhash["GOPHER_PIPELINE_TYPE"] = c.ptype.String()
 	envhash["GOPHER_CALLER_ID"] = w.eid
