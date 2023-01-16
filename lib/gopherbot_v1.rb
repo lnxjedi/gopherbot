@@ -346,6 +346,7 @@ class BaseBot
 end
 
 class Robot < BaseBot
+	attr_accessor :channel, :thread_id, :threaded_message, :user, :plugin_id, :protocol, :format
 	def initialize()
 		@channel = ENV["GOPHER_CHANNEL"]
         @thread_id = ENV["GOPHER_THREAD_ID"]
@@ -383,9 +384,9 @@ class ThreadedBot < Robot
 	def initialize()
 		super
 		if @channel.length > 0
-			@threaded_message = nil
-		else
 			@threaded_message = "true"
+		else
+			@threaded_message = nil
 		end
 	end
 end
