@@ -10,14 +10,8 @@
 {{ $proto := env "GOPHER_PROTOCOL" | default "terminal" }}
 Protocol: {{ $proto }}
 
-## Protocol-specific configuration
-{{ if eq $proto "slack" }}
-{{ .Include "slack.yaml" }}
-{{ end }}
-
-{{ if eq $proto "terminal" }}
-{{ .Include "terminal.yaml" }}
-{{ end }}
+## Include protocol-specific configuration
+{{ printf "%s.yaml" $proto | .Include }}
 
 {{ $botname := env "GOPHER_BOTNAME" | default "<botname>" }}
 {{ $botemail := env "GOPHER_BOTMAIL" | default "<botemail>" }}
