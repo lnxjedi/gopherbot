@@ -370,8 +370,8 @@ class Robot < BaseBot
 	end
 end
 
-class DirectBot < BaseBot
-	def initialize(user, plugin_id, protocol, format, prng)
+class DirectBot < Robot
+	def initialize()
 		super
 		@channel = ""
 		@thread_id = ""
@@ -379,11 +379,13 @@ class DirectBot < BaseBot
 	end
 end
 
-class ThreadedBot < BaseBot
-	def initialize(user, plugin_id, protocol, format, prng)
+class ThreadedBot < Robot
+	def initialize()
 		super
 		if @channel.length > 0
 			@threaded_message = nil
+		else
+			@threaded_message = "true"
 		end
 	end
 end
