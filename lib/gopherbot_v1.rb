@@ -192,7 +192,7 @@ class BaseBot
 
 	def Recall(k)
 		args = { "Key" => k }
-		return callBotFunc("Recall", args).StrVal
+		ret = callBotFunc("Recall", args)["StrVal"]
 	end
 
 	def GetTaskConfig()
