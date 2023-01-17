@@ -28,4 +28,4 @@ GIT_PS1_SHOWUPSTREAM="auto"
 GIT_PS1_SHOWDIRTYSTATE="true"
 GIT_PS1_SHOWSTASHSTATE="true"
 GIT_PS1_SHOWUNTRACKEDFILES="true"
-PS1='[\[\033[01;32m\]\w\[\033[01;34m\]$(__git_ps1 "(%s)")\[\033[00m\]]\$ \[\]\[\]'
+PS1='[\[\033[01;34m\]${GOPHER_IDE%-dev}:\[\033[01;32m\]\w\[\033[01;34m\]$(__git_ps1 "(%s)")\[\033[00m\]]\$ \[\]\[\]'
