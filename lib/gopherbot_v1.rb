@@ -346,14 +346,18 @@ class BaseBot
 end
 
 class Robot < BaseBot
-	attr_accessor :channel, :thread_id, :threaded_message, :user, :plugin_id, :protocol, :format
+	attr_accessor :channel, :channel_id, :message_id, :thread_id, :threaded_message, :user, :user_id, :plugin_id, :protocol, :format
 	def initialize()
 		@channel = ENV["GOPHER_CHANNEL"]
+		@channel_id = ENV["GOPHER_CHANNEL_ID"]
+		@message_id = ENV["GOPHER_MESSAGE_ID"]
         @thread_id = ENV["GOPHER_THREAD_ID"]
 		@threaded_message = ENV["GOPHER_THREADED_MESSAGE"]
 		@user = ENV["GOPHER_USER"]
+		@user_id = ENV["GOPHER_USER_ID"]
 		@plugin_id = ENV["GOPHER_CALLER_ID"]
 		@protocol = ENV["GOPHER_PROTOCOL"]
+		@brain = ENV["GOPHER_BRAIN"]
 		@format = ""
 		@prng = Random.new
 	end

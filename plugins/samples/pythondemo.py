@@ -62,8 +62,9 @@ if command == "python":
   bot.Say(bot.RandomString(bot.GetTaskConfig()["Replies"]))
 
 if command == "thread":
-  bot.ReplyThread("Sure, we can chat here")
-  bot.SayThread("... you still have to use my name, though")
+  tbot = bot.Threaded()
+  tbot.Reply("Sure, we can chat here")
+  tbot.Say("... you still have to use my name, though")
 
 if command == "askthread":
   rep = bot.PromptThreadForReply("SimpleString", "Tell me something - anything!")
