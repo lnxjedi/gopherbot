@@ -210,7 +210,7 @@ func updateRegexesWrapped(name, mention string, alias rune) (pre, post, bare *re
 		names = append(names, `@`+mention+`[:, ]`)
 		barenames = append(barenames, `@`+mention)
 	}
-	preString += `^(?i:` + strings.Join(names, "|") + `\s*)(.*)$`
+	preString += `^(?i:` + strings.Join(names, "|") + `\s*)([\s\S]*)$`
 	pre, errpre = regexp.Compile(preString)
 	// NOTE: the preString regex matches a bare alias, but not a bare name
 	if len(name) > 0 {
