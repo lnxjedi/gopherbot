@@ -34,36 +34,38 @@ type termUser struct {
 }
 
 type termconfig struct {
-	StartChannel string // the initial channel
-	StartUser    string // the initial userid
-	EOF          string // command to send on EOF (ctrl-D), default ";quit"
-	Abort        string // command to send on ctrl-c
-	HearSelf     bool   // whether messages the robot sends echo back to the engine
-	BotName      string // the bot's name, required for HearSelf
-	Users        []termUser
-	Channels     []string
+	StartChannel     string // the initial channel
+	StartUser        string // the initial userid
+	EOF              string // command to send on EOF (ctrl-D), default ";quit"
+	Abort            string // command to send on ctrl-c
+	HearSelf         bool   // whether messages the robot sends echo back to the engine
+	BotName          string // the bot's name, required for HearSelf
+	Users            []termUser
+	Channels         []string
+	GenerateNewlines bool // whether to replace the \n sequence with an actual newline
 }
 
 // termConnector holds all the relevant data about a connection
 type termConnector struct {
-	currentChannel string             // The current channel for the user
-	currentUser    string             // The current userid
-	currentThread  string             // Active threadID if typingInThread is true
-	lastThread     string             // last thread heard from the robot, used with join
-	threadCounter  int                // Incrementing integer for assigning thread IDs
-	typingInThread bool               // Tracks whether input is coming from a thread
-	hearSelf       bool               // see above
-	botName        string             // see above
-	eof            string             // command to send on ctrl-d (EOF)
-	abort          string             // command to send on ctrl-c (interrupt)
-	running        bool               // set on call to Run
-	width          int                // width of terminal
-	users          []termUser         // configured users
-	channels       []string           // the channels the robot is in
-	heard          chan string        // when the user speaks
-	reader         *readline.Instance // readline for speaking
-	robot.Handler                     // bot API for connectors
-	sync.RWMutex                      // shared mutex for locking connector data structures
+	currentChannel   string             // The current channel for the user
+	currentUser      string             // The current userid
+	currentThread    string             // Active threadID if typingInThread is true
+	lastThread       string             // last thread heard from the robot, used with join
+	threadCounter    int                // Incrementing integer for assigning thread IDs
+	typingInThread   bool               // Tracks whether input is coming from a thread
+	hearSelf         bool               // see above
+	generateNewlines bool               // see above
+	botName          string             // see above
+	eof              string             // command to send on ctrl-d (EOF)
+	abort            string             // command to send on ctrl-c (interrupt)
+	running          bool               // set on call to Run
+	width            int                // width of terminal
+	users            []termUser         // configured users
+	channels         []string           // the channels the robot is in
+	heard            chan string        // when the user speaks
+	reader           *readline.Instance // readline for speaking
+	robot.Handler                       // bot API for connectors
+	sync.RWMutex                        // shared mutex for locking connector data structures
 }
 
 var exit = struct {
@@ -165,18 +167,19 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	}
 
 	tc := &termConnector{
-		currentChannel: c.StartChannel,
-		currentUser:    c.StartUser,
-		hearSelf:       c.HearSelf,
-		botName:        c.BotName,
-		eof:            eof,
-		abort:          abort,
-		channels:       c.Channels,
-		running:        false,
-		width:          readline.GetScreenWidth(),
-		users:          c.Users,
-		heard:          make(chan string),
-		reader:         rl,
+		currentChannel:   c.StartChannel,
+		currentUser:      c.StartUser,
+		hearSelf:         c.HearSelf,
+		generateNewlines: c.GenerateNewlines,
+		botName:          c.BotName,
+		eof:              eof,
+		abort:            abort,
+		channels:         c.Channels,
+		running:          false,
+		width:            readline.GetScreenWidth(),
+		users:            c.Users,
+		heard:            make(chan string),
+		reader:           rl,
 	}
 
 	tc.Handler = handler
@@ -407,6 +410,9 @@ loop:
 				} else {
 					threadID = fmt.Sprintf("%04x", messageNumber%threadIDMax)
 					messageID = threadID
+				}
+				if tc.generateNewlines {
+					input = strings.ReplaceAll(input, `\n`, "\n")
 				}
 				botMsg := &robot.ConnectorMessage{
 					Protocol:        "terminal",
