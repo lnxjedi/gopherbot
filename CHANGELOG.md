@@ -1,3 +1,24 @@
+# v2.7.0 - Support for OpenAI Chat Plugin, ambient message matching fixes
+
+With the massive ChatGPT craze, and a website that was frequently unavailable, I just *had* to write a AI plugin for Gopherbot. Unfortunately, (or fortunately?) using this plugin revealed a whole host of niggly and corner-case bugs that have mostly been fixed in v2.6.4.1-5. There was one final fix, however, that could possibly break existing plugins...
+
+## Change to `MessageMatchers` matching
+Ambient `MessageMatchers` were previously matching against the original message with the robot name or alias stripped away, so:
+* if your robot's alias was, for instance `;`
+* and the user typed the command `;some garbage`
+* and your plugin had a `MessageMatcher` of e.g. `^([^;].*)`
+* ... the matcher would be checked against `some garbage`, and match even when it shouldn't
+
+This has now been fixed, but since `MessageMatchers` now match differently (and the version string was getting kind of nutty), I went ahead and bumped all the way to v2.7.0.
+
+## Multi-line match and space fixes
+In the early early days of Gopherbot, users would frequently copy and paste in commands, and many times there would be multiple spaces between words - `something  like   this`. This wouldn't match the regex `/something like this/`, and meant regexes would need to be littered with `/s+`, which was crazy ugly. In a stroke of cleverness, I sanitized input by replacing all instances of multiple spaces with a single space, thus fixing that issue but good. Until, that is, I started caring about preserving those spaces when sending messages to plugins (think sending formatted Python code blocks to ChatGPT). To preserve spaces AND preserve space-collapsed matching, the engine first tries matching against the full message text, and failing that the space-collapsed version. If either matches, that text is passed to the plugin.
+
+Additionally, the **terminal** connector was updated with a `GenerateNewlines` boolean option. When this option is set, you can type a command like: `;Complete this sequence:\n5,4,3,2`, and a message with a newline will be sent to the engine. Note, however, that `(.*)` won't match the whole thing - instead I found I had to use `([\s\S]*)` to match *everything*, including the newlines.
+
+## The OpenAI Chat Plugin
+If you'd like to try the `ai.rb` plugin, which uses the OpenAI *completions* api, you'll have to check out [**Floyd**](https://github.com/parsley42/floyd-gopherbot) (my oldest robot).
+
 # v2.6.4(.1) - Add RememberThread, RememberContextThread; Message IDs, env vars
 * To support development of a new OpenAI Chat plugin, these functions were needed to allow a command in a channel to create a short-term memory for a new thread created by the robot.
 * Added a `Threaded` method for all libraries (except BASH, where you can just set `GOPHER_THREADED_MESSAGE`); `bot.Threaded()` will return a bot object that always speaks and acts in the message thread.
