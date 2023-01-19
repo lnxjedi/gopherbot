@@ -20,10 +20,12 @@ var spaceRe = regexp.MustCompile(" +")
 func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMatched bool) {
 	// un-needed, but more clear
 	messageMatched = false
+	matchMsg := w.msg
 	// If we're checking messages, debugging messages require that the admin requested verboseness
 	verboseOnly := false
 	if pipelineType == plugMessage {
 		verboseOnly = true
+		matchMsg = w.fmsg
 	}
 	var runTask interface{}
 	var matchedMatcher InputMatcher
@@ -64,20 +66,20 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 			matchers = plugin.MessageMatchers
 		}
 		Log(robot.Trace, "Task '%s' is active, will check for matches", task.name)
-		cmsg := spaceRe.ReplaceAllString(w.msg, " ")
+		cmsg := spaceRe.ReplaceAllString(matchMsg, " ")
 		for _, matcher := range matchers {
 			Log(robot.Trace, "Checking '%s' against '%s'", cmsg, matcher.Regex)
-			matches := matcher.re.FindAllStringSubmatch(w.msg, -1)
+			matches := matcher.re.FindStringSubmatch(matchMsg)
 			if matches != nil {
 				cmsg = w.msg
 			} else {
-				matches = matcher.re.FindAllStringSubmatch(cmsg, -1)
+				matches = matcher.re.FindStringSubmatch(cmsg)
 			}
 			matched := false
 			if matches != nil {
 				matched = true
 				Log(robot.Trace, "Message '%s' matches command '%s'", cmsg, matcher.Command)
-				cmdArgs = matches[0][1:]
+				cmdArgs = matches[1:]
 				if len(matcher.Contexts) > 0 {
 					// Resolve & store "it" with short-term memories
 					ts := time.Now()
@@ -203,10 +205,10 @@ func (w *worker) handleMessage() {
 		messageMatched = true
 		for i, rep := range waiters {
 			if i == 0 {
-				cmsg := spaceRe.ReplaceAllString(w.msg, " ")
-				matched := rep.re.MatchString(w.msg)
+				cmsg := spaceRe.ReplaceAllString(w.fmsg, " ")
+				matched := rep.re.MatchString(w.fmsg)
 				if matched {
-					cmsg = w.msg
+					cmsg = w.fmsg
 				} else {
 					matched = rep.re.MatchString(cmsg)
 				}

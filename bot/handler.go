@@ -79,7 +79,7 @@ type worker struct {
 	listedUser      bool                        // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
 	isCommand       bool                        // Was the message directed at the robot, dm or by mention
 	directMsg       bool                        // if the message was sent by DM
-	msg             string                      // the message text sent
+	msg, fmsg       string                      // the message text sent; without robot name/alias, and with for message matching
 	automaticTask   bool                        // set for scheduled & triggers jobs, where user security restrictions don't apply
 	*pipeContext                                // pointer to the pipeline context
 	sync.Mutex                                  // Lock to protect the bot context when pipeline running
@@ -108,6 +108,7 @@ func (w *worker) clone() *worker {
 		Protocol:        w.Protocol,
 		Format:          w.Format,
 		msg:             w.msg,
+		fmsg:            w.fmsg,
 	}
 	if w.pipeContext != nil {
 		w.Lock()
@@ -211,17 +212,17 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		message = messageFull
 	} else {
 		if preRegex != nil {
-			matches := preRegex.FindAllStringSubmatch(messageFull, -1)
-			if matches != nil && len(matches[0]) == 2 {
+			matches := preRegex.FindStringSubmatch(messageFull)
+			if len(matches) == 2 {
 				isCommand = true
-				message = matches[0][1]
+				message = matches[1]
 			}
 		}
 		if !isCommand && postRegex != nil {
-			matches := postRegex.FindAllStringSubmatch(messageFull, -1)
-			if matches != nil && len(matches[0]) == 3 {
+			matches := postRegex.FindStringSubmatch(messageFull)
+			if len(matches) == 3 {
 				isCommand = true
-				message = matches[0][1] + matches[0][2]
+				message = matches[1] + matches[2]
 			}
 		}
 		if !isCommand && bareRegex != nil {
@@ -274,6 +275,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		isCommand:       isCommand,
 		directMsg:       inc.DirectMessage,
 		msg:             message,
+		fmsg:            messageFull,
 	}
 	if w.directMsg {
 		Log(robot.Debug, "Received private message from user '%s'", userName)
