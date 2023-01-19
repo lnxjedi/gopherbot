@@ -67,7 +67,12 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 		cmsg := spaceRe.ReplaceAllString(w.msg, " ")
 		for _, matcher := range matchers {
 			Log(robot.Trace, "Checking '%s' against '%s'", cmsg, matcher.Regex)
-			matches := matcher.re.FindAllStringSubmatch(cmsg, -1)
+			matches := matcher.re.FindAllStringSubmatch(w.msg, -1)
+			if matches != nil {
+				cmsg = w.msg
+			} else {
+				matches = matcher.re.FindAllStringSubmatch(cmsg, -1)
+			}
 			matched := false
 			if matches != nil {
 				matched = true
@@ -199,7 +204,12 @@ func (w *worker) handleMessage() {
 		for i, rep := range waiters {
 			if i == 0 {
 				cmsg := spaceRe.ReplaceAllString(w.msg, " ")
-				matched := rep.re.MatchString(cmsg)
+				matched := rep.re.MatchString(w.msg)
+				if matched {
+					cmsg = w.msg
+				} else {
+					matched = rep.re.MatchString(cmsg)
+				}
 				Log(robot.Debug, "Found replyWaiter for user '%s' in channel '%s'/thread '%s', checking if message '%s' matches '%s': %t", w.User, w.Channel, w.ThreadID, cmsg, rep.re.String(), matched)
 				rep.replyChannel <- reply{matched, replied, cmsg}
 			} else {
