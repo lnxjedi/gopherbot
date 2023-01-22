@@ -43,6 +43,8 @@ func ping(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		// ignore
 	case "rules":
 		r.Say(rules)
+	case "ignore":
+		// uh... ignore!
 	case "hello":
 		r.Reply("Howdy. Try 'help' if you want usage information.")
 	case "ping":

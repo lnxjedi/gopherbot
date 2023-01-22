@@ -4,6 +4,8 @@ AllChannels: true
 Help:
 - Keywords: [ "ping" ]
   Helptext: [ "(bot), ping - see if the bot is alive" ]
+- Keywords: [ "ignore" ]
+  Helptext: [ "(bot), i(gnore) <anything> - ignore a chat message, useful in channels that match all messages"]
 - Keywords: [ "thread" ]
   Helptext: [ "(bot), new thread (topic) - start a new thread with the robot; informational topic optional" ]
 - Keywords: [ "rules" ]
@@ -13,10 +15,12 @@ Help:
 CommandMatchers:
 - Command: "ping"
   Regex: "(?i:ping)"
+- Command: "ignore"
+  Regex: '(?is:i(?:gnore)?\b.*)'
 - Command: "thanks"
   Regex: "(?i:thanks?( you)?!?)"
 - Command: "rules"
-  Regex: "(?i:(?:what are )?the rules\\??)"
+  Regex: '(?i:(?:what are )?the rules\??)'
 - Command: "thread"
   Regex: "(?:(?i:(?:(?:new|start|create)[ -])?thread)(?: .*)?)"
 - Command: "whoami"
