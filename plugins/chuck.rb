@@ -28,10 +28,10 @@ when "configure"
 	puts defaultConfig
 	exit
 when "chuck"
-    uri = URI("http://api.icndb.com/jokes/random")
+    uri = URI("https://api.chucknorris.io/jokes/random")
     d = JSON::parse(Net::HTTP.get(uri))
     opening = bot.RandomString(bot.GetTaskConfig()["Openings"])
     bot.Say("#{opening} Did you know ...?")
     bot.Pause(2)
-    bot.Say(d["value"]["joke"])
+    bot.Say(d["value"])
 end
