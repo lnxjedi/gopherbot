@@ -572,7 +572,7 @@ LoadLoop:
 		if isPlugin {
 			for i := range plugin.CommandMatchers {
 				command := &plugin.CommandMatchers[i]
-				regex := `^\s*` + command.Regex + `\s*$`
+				regex := `^(?s:\s*` + command.Regex + `\s*)$`
 				re, err := regexp.Compile(regex)
 				if err != nil {
 					msg := fmt.Sprintf("Disabling '%s', couldn't compile command regular expression '%s': %v", task.name, regex, err)
