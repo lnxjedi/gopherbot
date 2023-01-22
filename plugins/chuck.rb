@@ -9,7 +9,7 @@ bot = Robot.new()
 defaultConfig = <<'DEFCONFIG'
 MessageMatchers:
 - Command: chuck
-  Regex: '(?i:chuck norris)'
+  Regex: '(?i:\bchuck norris\b)'
 Config:
   Openings:
   - "Chuck Norris?!?! He's AWESOME!!!"
