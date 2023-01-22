@@ -1,3 +1,8 @@
+# v2.7.1 - More regex updates, new global ignore command
+* In another potential but unlikely breaking change, command matching now sets the `s` flag by default, which IMHO gives the expected result for e.g. `(?i:echo (.*))` - for a robot command, `.*` would match everything to the end of the message.
+* Additionally, the message space collapsing now includes all whitespace, including newlines. Thus, for somewhat standard commands with simple string arguments, the command will still match even if the user breaks up a long command with a newline.
+* Since I've been deploying the OpenAI chat plugin in an #ai channel, where EVERY message matches the plugin, I've added a simple global `i(gnore) <anything>` command that allows you to speak to other people in a channel without triggering a command or error.
+
 # v2.7.0 - Support for OpenAI Chat Plugin, ambient message matching fixes
 
 With the massive ChatGPT craze, and a website that was frequently unavailable, I just *had* to write a AI plugin for Gopherbot. Unfortunately, (or fortunately?) using this plugin revealed a whole host of niggly and corner-case bugs that have mostly been fixed in v2.6.4.1-5. There was one final fix, however, that could possibly break existing plugins...
@@ -14,7 +19,7 @@ This has now been fixed, but since `MessageMatchers` now match differently (and 
 ## Multi-line match and space fixes
 In the early early days of Gopherbot, users would frequently copy and paste in commands, and many times there would be multiple spaces between words - `something  like   this`. This wouldn't match the regex `/something like this/`, and meant regexes would need to be littered with `/s+`, which was crazy ugly. In a stroke of cleverness, I sanitized input by replacing all instances of multiple spaces with a single space, thus fixing that issue but good. Until, that is, I started caring about preserving those spaces when sending messages to plugins (think sending formatted Python code blocks to ChatGPT). To preserve spaces AND preserve space-collapsed matching, the engine first tries matching against the full message text, and failing that the space-collapsed version. If either matches, that text is passed to the plugin.
 
-Additionally, the **terminal** connector was updated with a `GenerateNewlines` boolean option. When this option is set, you can type a command like: `;Complete this sequence:\n5,4,3,2`, and a message with a newline will be sent to the engine. Note, however, that `(.*)` won't always match the whole thing as you might expect - you can add the `s` flag to your regexp definition (e.g. `(?is:<something>)`) or use `([\s\S]*)` to match *everything*, including the newlines.
+Additionally, the **terminal** connector was updated with a `GenerateNewlines` boolean option. When this option is set, you can type a command like: `;Complete this sequence:\n5,4,3,2`, and a message with a newline will be sent to the engine. Note, however, that `(.*)` won't always match the whole thing as you might expect - you can add the `s` flag to your regexp definition (e.g. `(?is:<something>)`) or use `([\s\S]*)` to match *everything*, including the newlines (CHANGED, see v2.7.1 above).
 
 ## The OpenAI Chat Plugin
 If you'd like to try the `ai.rb` plugin, which uses the OpenAI *completions* api, you'll have to check out [**Floyd**](https://github.com/parsley42/floyd-gopherbot) (my oldest robot).

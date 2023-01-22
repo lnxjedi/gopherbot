@@ -11,7 +11,7 @@ import (
 
 const keepListeningDuration = 77 * time.Second
 
-var spaceRe = regexp.MustCompile(" +")
+var spaceRe = regexp.MustCompile(`\s+`)
 
 // checkPluginMatchersAndRun checks either command matchers (for messages directed at
 // the robot), or message matchers (for ambient commands that need not be
