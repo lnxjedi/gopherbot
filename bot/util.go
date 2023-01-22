@@ -185,7 +185,6 @@ func updateRegexesWrapped(name, mention string, alias rune) (pre, post, bare *re
 		Log(robot.Error, "Robot has no name or alias, and will only respond to direct messages")
 		return
 	}
-	preString := `^`
 	names := []string{}
 	barenames := []string{}
 	if alias != 0 {
@@ -210,7 +209,7 @@ func updateRegexesWrapped(name, mention string, alias rune) (pre, post, bare *re
 		names = append(names, `@`+mention+`[:, ]`)
 		barenames = append(barenames, `@`+mention)
 	}
-	preString += `^(?is:` + strings.Join(names, "|") + `\s*)(.*)$`
+	preString := `^(?s)(?i:` + strings.Join(names, "|") + `\s*)(.*)$`
 	pre, errpre = regexp.Compile(preString)
 	// NOTE: the preString regex matches a bare alias, but not a bare name
 	if len(name) > 0 {
