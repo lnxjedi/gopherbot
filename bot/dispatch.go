@@ -256,20 +256,40 @@ func (w *worker) handleMessage() {
 			w.messageHeard()
 			Log(robot.Debug, "Unmatched command sent to robot, calling catchalls: %s", w.msg)
 			emit(CatchAllsRan) // for testing, otherwise noop
-			// TODO: should we allow more than 1 catchall?
-			catchAllPlugins := make([]interface{}, 0, 0)
+			var specificCatchAll, fallbackCatchAll interface{}
+			var multipleCatchallMatched, multipleFallbackMatched bool
 			for _, t := range w.tasks.t[1:] {
-				if plugin, ok := t.(*Plugin); ok && plugin.CatchAll {
-					catchAllPlugins = append(catchAllPlugins, t)
+				task, plugin, _ := getTask(t)
+				if plugin == nil || !plugin.CatchAll {
+					continue
+				}
+				_, specific := w.pluginAvailable(task, false, false)
+				if specific {
+					if specificCatchAll == nil {
+						specificCatchAll = t
+					} else {
+						multipleCatchallMatched = true
+						break
+					}
+				} else {
+					if fallbackCatchAll == nil {
+						fallbackCatchAll = t
+					} else {
+						multipleFallbackMatched = true
+					}
 				}
 			}
-			if len(catchAllPlugins) > 1 {
-				Log(robot.Error, "More than one catch all registered, none will be called")
+			if multipleCatchallMatched {
+				Log(robot.Error, "More than one specific catch-all matched, none will be called")
 			} else {
-				// Note: if the catchall plugin has configured security, it
-				// should still apply.
-				if len(catchAllPlugins) != 0 {
-					w.startPipeline(nil, catchAllPlugins[0], catchAll, "catchall", spaceRe.ReplaceAllString(w.msg, " "))
+				if specificCatchAll != nil {
+					w.startPipeline(nil, specificCatchAll, catchAll, "catchall", w.fmsg)
+				} else if fallbackCatchAll != nil {
+					if multipleFallbackMatched {
+						Log(robot.Error, "More than one fallback catch-all matched, none will be called")
+					} else {
+						w.startPipeline(nil, fallbackCatchAll, catchAll, "catchall", w.fmsg)
+					}
 				} else {
 					Log(robot.Debug, "Unmatched command to robot and no catchall defined")
 				}

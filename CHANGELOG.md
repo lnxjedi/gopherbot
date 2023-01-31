@@ -1,3 +1,18 @@
+# v2.7.2 - Enhanced Catch-All Plugin Matching
+Since the earliest versions, **Gopherbot** has had a `CatchAll` setting for plugins, allowing special plugins to be run when the robot is being spoken to (via direct message, or when mentioned by name) but no command matched. The only default plugin so configured is the built-in `help` plugin, which gives the familiar "No command matched ..." responses.
+
+Previously the behavior of the `CatchAll` setting for a plugin wasn't very useful; if you set it to `true` for a plugin, and didn't disable it for the built-in `help` plugin, multiple plugins would match and result in an error log message with neither being run. Starting with v2.7.2, if you set `CatchAll: true` and your plugin is either marked `DirectOnly`, or the current channel is in the list of channels for the plugin, it will match as a *specific* catch-all. So long as only one specific catch-all matches, your plugin will be called, and only fall-back to the built-in `help` plugin if no specific catch-all matches. In detail:
+* If a single *specific* catch-all matches, it will be called.
+* If more than 1 *specific* catch-all matches, an error will be logged and nothing will be called.
+* If no *specific* catch-all matched and only a single fallback catch-all matched, it will be called.
+* If multiple fallback catch-alls match, an error will be logged and nothing will be called.
+
+The only other small change is that previously the catch-all was called with the space-reduced version of the message, and going forward it will be called with the full message, which may include e.g. newlines.
+
+This new behavior allows for:
+* Channel-specific help messages
+* Channel-specific and/or DM default plugins; the impetus for this enhancement was to allow direct messages to a robot to be routed to the AI plugin if no other command matched
+
 # v2.7.1 - More regex updates, new global ignore command
 * In another potential but unlikely breaking change, command matching now sets the `s` flag by default, which IMHO gives the expected result for e.g. `(?i:echo (.*))` - for a robot command, `.*` would match everything to the end of the message.
 * Additionally, the message space collapsing now includes all whitespace, including newlines. Thus, for somewhat standard commands with simple string arguments, the command will still match even if the user breaks up a long command with a newline.
