@@ -271,7 +271,7 @@ func (w *worker) handleMessage() {
 						multipleCatchallMatched = true
 						break
 					}
-				} else {
+				} else if plugin.AllChannels {
 					if fallbackCatchAll == nil {
 						fallbackCatchAll = t
 					} else {
