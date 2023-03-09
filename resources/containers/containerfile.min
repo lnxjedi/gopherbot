@@ -35,6 +35,7 @@ ENV SHELL=/bin/bash
 ENV HOME=/home/bot
 ENV PATH=$PATH:${HOME}/bin:${HOME}/.local/bin:/opt/gopherbot
 ENV RUBYLIB=/opt/gopherbot/lib
+ENV GEM_HOME=${HOME}/.local
 ENV PYTHONPATH=/opt/gopherbot/lib
 
 RUN useradd -d ${HOME} -r -c "Gopherbot Robot" -u ${ROBOT_UID} robot && \

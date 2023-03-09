@@ -1,3 +1,6 @@
+# v2.7.3 - Gemfile support and improved ruby/python3 library support
+To make it sane to use a `Gemfile`, we now set `GEM_HOME=${HOME}/.local`, which causes bundler to install ruby gems in the same location as python3.
+
 # v2.7.2 - Enhanced Catch-All Plugin Matching
 Since the earliest versions, **Gopherbot** has had a `CatchAll` setting for plugins, allowing special plugins to be run when the robot is being spoken to (via direct message, or when mentioned by name) but no command matched. The only default plugin so configured is the built-in `help` plugin, which gives the familiar "No command matched ..." responses.
 

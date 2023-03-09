@@ -28,7 +28,9 @@ RUN echo "source /home/${USERNAME}/.dev-init" >> /home/${USERNAME}/.bashrc && \
     sed -i -e '/\[http/,+1d' .git/config && \
     make
 
+# Note: PATH for dev gets set in assets/dev-init
 ENV RUBYLIB=/opt/gopherbot/lib:/home/${USERNAME}/custom/lib \
+    GEM_HOME=/home/${USERNAME}/.local \
     PYTHONPATH=/opt/gopherbot/lib:/home/${USERNAME}/custom/lib \
     GOPHER_INSTALLDIR=/opt/gopherbot
 

@@ -541,6 +541,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	envhash["GOPHER_INSTALLDIR"] = installPath
 	libPath := fmt.Sprintf("%s/lib:%s/lib", installPath, configFull)
 	envhash["RUBYLIB"] = libPath
+	envhash["GEM_HOME"] = fmt.Sprintf("%s/.local", homePath)
 	envhash["PYTHONPATH"] = libPath
 	envhash["GOPHER_ENVIRONMENT"] = os.Getenv("GOPHER_ENVIRONMENT")
 	envhash["GOPHER_BRAIN"] = w.cfg.brainProvider

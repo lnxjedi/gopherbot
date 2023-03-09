@@ -182,6 +182,10 @@ ExternalJobs:
     Homed: true
     NameSpace: manage
     Path: jobs/save.sh
+  "install-libs":
+    Description: A job for installing ruby gems and python packages
+    Homed: true
+    Path: jobs/install-libs.sh
   "github-poller":
     Description: "Job that polls github repositories and builds new/updated tags and branches"
     Disabled: true

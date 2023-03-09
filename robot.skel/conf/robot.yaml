@@ -96,6 +96,10 @@ ScheduledJobs:
 - Name: backup
   Schedule: "@every 1m"
 {{ end }}
+## If you have a Gemfile or requirements.txt, you can install library
+## dependencies with this init job.
+# - Name: install-libs
+#   Schedule: "@init"
 ## If your robot is logging to a file, this job will rotate logs
 # - Name: logrotate
 #   Schedule: "5 0 0 * * *"

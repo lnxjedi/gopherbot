@@ -23,7 +23,7 @@ fi
 check-load-ssh
 source $HOME/.git-completion.bash
 source $HOME/.git-prompt.sh
-PATH=${PATH}:/opt/gopherbot:${HOME}/go/bin
+PATH=${PATH}:/opt/gopherbot:${HOME}/go/bin:${HOME}/.local/bin
 GIT_PS1_SHOWUPSTREAM="auto"
 GIT_PS1_SHOWDIRTYSTATE="true"
 GIT_PS1_SHOWSTASHSTATE="true"
