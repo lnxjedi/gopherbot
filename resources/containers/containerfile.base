@@ -37,6 +37,7 @@ RUN set -eux; \
         python3-pip \
         python3-dev \
         ruby \
+        ruby-bundler \
         ruby-dev \
         telnet \
         tini \
