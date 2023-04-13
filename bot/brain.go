@@ -55,7 +55,8 @@ var cryptKey = struct {
 const botEncryptionKey = "bot:encryptionKey"
 const encryptedKeyFile = "binary-encrypted-key"
 
-const shortTermDuration = 7 * time.Minute
+// People generally expect the robot to remember things longer.
+const shortTermDuration = 14 * time.Hour
 
 type memState int
 
