@@ -1,3 +1,6 @@
+# v2.7.4 - Longer Memories
+Short-term memories really only came in to serious use with the OpenAI plugin, where 7 minutes just wasn't enough for expectations. Now Gopherbot robots have a 14-hour short-term memory.
+
 # v2.7.3 - Improved ruby/python3 dependency support
 To make it sane to use a `Gemfile`, we now set `GEM_HOME=${HOME}/.local`, which causes bundler to install ruby gems in the same location as python3. To install ruby and python dependencies with the included `install-libs` job, create `Gemfile` and/or `requirements.txt` to the root of your robot's repository, and add this `ScheduledJob` to your `robot.yaml`:
 ```yaml
