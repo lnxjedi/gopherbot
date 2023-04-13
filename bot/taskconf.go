@@ -326,7 +326,7 @@ LoadLoop:
 				val = &intval
 			case "Disabled":
 				skip = true
-			case "AllowDirect", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "MatchUnlisted", "Quiet":
+			case "AllowDirect", "AmbientMatchCommand", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "MatchUnlisted", "Quiet":
 				val = &boolval
 			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands", "ParameterSets":
 				val = &sarrval
@@ -458,6 +458,12 @@ LoadLoop:
 					mismatch = true
 				} else {
 					job.Arguments = *(val.(*[]InputMatcher))
+				}
+			case "AmbientMatchCommand":
+				if isPlugin {
+					plugin.AmbientMatchCommand = *(val.(*bool))
+				} else {
+					mismatch = true
 				}
 			case "CatchAll":
 				if isPlugin {

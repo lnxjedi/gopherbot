@@ -1,3 +1,6 @@
+# v2.8.0 - POTENTIALLY BREAKING ambient message matching update
+In most cases, if someone directs a message to the robot (issues a "command") in a channel, the message should go to the CatchAll if no command matches. Up to now, the default behavior was to match against `MessageMatchers`, even in the case of a command. Starting with v2.8.0, commands will no longer match against message matchers unless `AmbientMatchCommand` is set `true`. For most configurations this shouldn't be an issue, but this could break some configurations. Note that this has no effect in the case of direct messages to the robot, which are always considered commands; all direct messages to the robot can potentially match against `MessageMatchers`.
+
 # v2.7.4 - Longer Memories
 Short-term memories really only came in to serious use with the OpenAI plugin, where 7 minutes just wasn't enough for expectations. Now Gopherbot robots have a 14-hour short-term memory.
 

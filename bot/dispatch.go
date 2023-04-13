@@ -55,6 +55,9 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 			}
 			matchers = plugin.CommandMatchers
 		case plugMessage:
+			if w.isCommand && !w.directMsg && !plugin.AmbientMatchCommand {
+				continue
+			}
 			if len(plugin.MessageMatchers) == 0 {
 				continue
 			}

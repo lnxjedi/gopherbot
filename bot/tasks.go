@@ -192,6 +192,7 @@ type Plugin struct {
 	Help                     []PluginHelp   // All the keyword sets / help texts for this plugin
 	CommandMatchers          []InputMatcher // Input matchers for messages that need to be directed to the 'bot
 	MessageMatchers          []InputMatcher // Input matchers for messages the 'bot hears even when it's not being spoken to
+	AmbientMatchCommand      bool           // Whether message matchers should also match when isCommand is true
 	CatchAll                 bool           // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
 	MatchUnlisted            bool           // Set to true if ambient messages matches should be checked for users not listed in the UserRoster
 	*Task

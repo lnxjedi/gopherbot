@@ -13,6 +13,7 @@ Help:
 CommandMatchers:
 - Regex: '(?i:hello world)'
   Command: "hello"
+AmbientMatchCommand: true
 MessageMatchers:
 - Regex: 'hello robot'
   Command: "hello"
