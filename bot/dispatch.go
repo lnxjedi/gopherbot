@@ -55,7 +55,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 			}
 			matchers = plugin.CommandMatchers
 		case plugMessage:
-			if w.isCommand && !w.directMsg && !plugin.AmbientMatchCommand {
+			if w.isCommand && !plugin.AmbientMatchCommand {
 				continue
 			}
 			if len(plugin.MessageMatchers) == 0 {
@@ -264,17 +264,23 @@ func (w *worker) handleMessage() {
 			for _, t := range w.tasks.t[1:] {
 				task, plugin, _ := getTask(t)
 				if plugin == nil || !plugin.CatchAll {
+					Log(robot.Trace, "checking plugin %s for catch-all (false)", task.name)
 					continue
 				}
-				_, specific := w.pluginAvailable(task, false, false)
+				available, specific := w.pluginAvailable(task, false, false)
+				if !available {
+					continue
+				}
 				if specific {
+					Log(robot.Trace, "checking plugin %s for catch-all (true, specific)", task.name)
 					if specificCatchAll == nil {
 						specificCatchAll = t
 					} else {
 						multipleCatchallMatched = true
 						break
 					}
-				} else if plugin.AllChannels {
+				} else {
+					Log(robot.Trace, "checking plugin %s for catch-all (true, non-specific)", task.name)
 					if fallbackCatchAll == nil {
 						fallbackCatchAll = t
 					} else {
