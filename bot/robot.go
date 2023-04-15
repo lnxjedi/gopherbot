@@ -103,7 +103,7 @@ func (w *worker) makeMemoryContext(key string) memoryContext {
 	}
 	return memoryContext{
 		key:     key,
-		user:    w.User,
+		user:    w.Incoming.UserID,
 		channel: w.Channel,
 		thread:  threadID,
 	}
@@ -116,7 +116,7 @@ func (r Robot) makeMemoryContext(key string, forceThread bool) memoryContext {
 	}
 	return memoryContext{
 		key:     key,
-		user:    r.User,
+		user:    r.Incoming.UserID,
 		channel: r.Channel,
 		thread:  threadID,
 	}
