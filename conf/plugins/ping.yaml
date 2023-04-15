@@ -16,7 +16,7 @@ CommandMatchers:
 - Command: "ping"
   Regex: "(?i:ping)"
 - Command: "ignore"
-  Regex: '(?s:i(?:gnore)?[ :].*)'
+  Regex: '(?is:i(?:gnore)?[ :].*)'
 - Command: "thanks"
   Regex: "(?i:thanks?( you)?!?)"
 - Command: "rules"
