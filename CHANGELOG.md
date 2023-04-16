@@ -1,3 +1,6 @@
+# v2.8.2 - Allow plugins to handle "robot?"
+Very minor enhancement; if your robot's name was floyd, and the user typed "floyd?", the only way to handle it was to use a message matcher that hard-coded the robot's name. Now you can define a command with the regex '^\?$' to catch this case and handle it.  Added for - you guessed it - the AI plugin.
+
 # v2.8.0, 2.8.1 - POTENTIALLY BREAKING ambient message matching update, direct catch-all update
 In most cases, if someone directs a message to the robot (issues a "command") in a channel, the message should go to the CatchAll if no command matches. Up to now, the default behavior was to match against `MessageMatchers`, even in the case of a command. Starting with v2.8.0, commands will no longer match against message matchers unless `AmbientMatchCommand` is set `true`. For most configurations this shouldn't be an issue, but this could break some configurations. Note that direct messages to the robot are always commands, and will need `AmbientMatchCommand` set to match against a plugin's `MessageMatchers`; for the normal use case of `MessageMatchers` (e.g. mentioning Chuck Norris), this probably isn't what you want.
 

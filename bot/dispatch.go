@@ -224,17 +224,25 @@ func (w *worker) handleMessage() {
 		}
 	}
 	// See if the robot got a blank message, indicating that the last message
-	// was meant for it (if it was in the keepListeningDuration)
+	// was meant for it (if it was in the keepListeningDuration); also handle "robot?"
 	if !messageMatched && w.isCommand && len(w.msg) == 0 && !w.BotUser {
-		shortTermMemories.Lock()
-		last, ok = shortTermMemories.m[lastMsgContext]
-		shortTermMemories.Unlock()
-		if ok && ts.Sub(last.timestamp) < keepListeningDuration {
-			w.msg = last.memory
+		// Allow individual plugins to handle a lone "?"
+		// Feature added for - you guessed it - the AI plugin
+		if strings.HasSuffix(w.fmsg, "?") {
+			w.msg = "?"
 			messageMatched = w.checkPluginMatchersAndRun(plugCommand)
-		} else {
-			messageMatched = true
-			w.Say("Yes?")
+		}
+		if !messageMatched {
+			shortTermMemories.Lock()
+			last, ok = shortTermMemories.m[lastMsgContext]
+			shortTermMemories.Unlock()
+			if ok && ts.Sub(last.timestamp) < keepListeningDuration {
+				w.msg = last.memory
+				messageMatched = w.checkPluginMatchersAndRun(plugCommand)
+			} else {
+				messageMatched = true
+				w.Say("Yes?")
+			}
 		}
 	}
 	if !messageMatched && w.isCommand {
