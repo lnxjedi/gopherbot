@@ -77,7 +77,7 @@ func authduo(r robot.Robot, immediate bool, user string, res *authapi.PreauthRes
 	}
 
 	if !remembered {
-		rememberedOpts := r.Recall(memoryKey)
+		rememberedOpts := r.Recall(memoryKey, false)
 		if rememberedOpts != "" {
 			v := strings.Split(rememberedOpts, ",")
 			devnum, _ = strconv.Atoi(v[0])
@@ -262,7 +262,7 @@ func authduo(r robot.Robot, immediate bool, user string, res *authapi.PreauthRes
 		r.Say("Duo authentication failed")
 		return robot.Fail
 	}
-	r.Remember(memoryKey, fmt.Sprintf("%d,%d", devnum, method))
+	r.Remember(memoryKey, fmt.Sprintf("%d,%d", devnum, method), false)
 	return robot.Success
 }
 

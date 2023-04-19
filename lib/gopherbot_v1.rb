@@ -169,29 +169,29 @@ class BaseBot
 		return ret["RetVal"]
 	end
 
-	def Remember(k, v)
+	def Remember(k, v, shared = false)
 		funcName = @threaded_message ? "RememberThread" : "Remember"
-		args = { "Key" => k, "Value" => v }
+		args = { "Key" => k, "Value" => v, "Shared" => shared }
 		ret = callBotFunc(funcName, args)
 		return ret["RetVal"]
 	end
 
 	def RememberContext(c, v)
-		return Remember("context:"+c, v)
+		return Remember("context:"+c, v, false)
 	end
 
-	def RememberThread(k, v)
-		args = { "Key" => k, "Value" => v }
+	def RememberThread(k, v, shared = false)
+		args = { "Key" => k, "Value" => v, "Shared" => shared }
 		ret = callBotFunc("RememberThread", args)
 		return ret["RetVal"]
 	end
 
 	def RememberContextThread(c, v)
-		return RememberThread("context:"+c, v)
+		return RememberThread("context:"+c, v, false)
 	end
 
-	def Recall(k)
-		args = { "Key" => k }
+	def Recall(k, shared = false)
+		args = { "Key" => k, "Shared" => shared }
 		ret = callBotFunc("Recall", args)["StrVal"]
 	end
 

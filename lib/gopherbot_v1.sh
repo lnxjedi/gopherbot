@@ -104,6 +104,10 @@ Remember(){
 	then
 		return 1
 	fi
+	if [ "$3" ]
+	then
+		SHARED=', "Shared": true'
+	fi
 	local GB_FUNCNAME="Remember"
 	if [ "$GOPHER_THREADED_MESSAGE" ]
 	then
@@ -115,7 +119,7 @@ Remember(){
 {
 	"Key": "$R_KEY",
 	"Value": "$R_MEMORY",
-	"Base64" : true
+	"Base64": true$SHARED
 }
 EOF
 )
@@ -137,6 +141,10 @@ RememberThread(){
 	then
 		return 1
 	fi
+	if [ "$3" ]
+	then
+		SHARED=', "Shared": true'
+	fi
 	local GB_FUNCNAME="RememberThread"
 	local R_KEY=$(base64_encode "$1")
 	local R_MEMORY=$(base64_encode "$2")
@@ -144,7 +152,7 @@ RememberThread(){
 {
 	"Key": "$R_KEY",
 	"Value": "$R_MEMORY",
-	"Base64" : true
+	"Base64": true$SHARED
 }
 EOF
 )
@@ -170,12 +178,16 @@ Recall(){
 	then
 		return 1
 	fi
+	if [ "$3" ]
+	then
+		SHARED=', "Shared": true'
+	fi
 	local R_KEY=$(base64_encode "$1")
 	local GB_FUNCNAME="Recall"
 	local GB_FUNCARGS=$(cat <<EOF
 {
 	"Key": "$R_KEY",
-	"Base64": true
+	"Base64": true$SHARED
 }
 EOF
 )

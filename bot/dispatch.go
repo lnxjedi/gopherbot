@@ -84,9 +84,9 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 				Log(robot.Trace, "Message '%s' matches command '%s'", cmsg, matcher.Command)
 				cmdArgs = matches[1:]
 				if len(matcher.Contexts) > 0 {
-					// Resolve & store "it" with short-term memories
+					// Resolve & store "it" with ephemeral memories
 					ts := time.Now()
-					shortTermMemories.Lock()
+					ephemeralMemories.Lock()
 					for i, contextLabel := range matcher.Contexts {
 						if contextLabel != "" {
 							if len(cmdArgs) > i {
@@ -105,31 +105,31 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 									}
 								}
 								if cMatch {
-									// If a generic matched, try to recall from short-term memory
-									s, ok := shortTermMemories.m[ctx]
+									// If a generic matched, try to recall from ephemeral memory
+									s, ok := ephemeralMemories.m[ctx]
 									if ok {
 										cmdArgs[i] = s.memory
 										// TODO: it would probably be best to substitute the value
 										// from "it" back in to the original message and re-check for
 										// a match. Failing a match, matched should be set to false.
 										s.timestamp = ts
-										shortTermMemories.m[ctx] = s
+										ephemeralMemories.m[ctx] = s
 									} else {
 										w.Say("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel)
-										shortTermMemories.Unlock()
+										ephemeralMemories.Unlock()
 										return true
 									}
 								} else {
-									// Didn't match generic, store the value in short-term context memory
-									s := shortTermMemory{cmdArgs[i], ts}
-									shortTermMemories.m[ctx] = s
+									// Didn't match generic, store the value in ephemeral context memory
+									s := ephemeralMemory{cmdArgs[i], ts}
+									ephemeralMemories.m[ctx] = s
 								}
 							} else {
 								Log(robot.Error, "Plugin '%s', command '%s', has more contexts than match groups", task.name, matcher.Command)
 							}
 						}
 					}
-					shortTermMemories.Unlock()
+					ephemeralMemories.Unlock()
 				}
 			}
 			if matched {
@@ -184,7 +184,7 @@ func (w *worker) handleMessage() {
 	messageMatched := false
 	ts := time.Now()
 	lastMsgContext := w.makeMemoryContext("lastMsg")
-	var last shortTermMemory
+	var last ephemeralMemory
 	var ok bool
 	// First, see if the robot was waiting on a reply; replies from
 	// user take precedence over everything else.
@@ -233,9 +233,9 @@ func (w *worker) handleMessage() {
 			messageMatched = w.checkPluginMatchersAndRun(plugCommand)
 		}
 		if !messageMatched {
-			shortTermMemories.Lock()
-			last, ok = shortTermMemories.m[lastMsgContext]
-			shortTermMemories.Unlock()
+			ephemeralMemories.Lock()
+			last, ok = ephemeralMemories.m[lastMsgContext]
+			ephemeralMemories.Unlock()
 			if ok && ts.Sub(last.timestamp) < keepListeningDuration {
 				w.msg = last.memory
 				messageMatched = w.checkPluginMatchersAndRun(plugCommand)
@@ -320,13 +320,13 @@ func (w *worker) handleMessage() {
 		return
 	}
 	if messageMatched || w.isCommand {
-		shortTermMemories.Lock()
-		delete(shortTermMemories.m, lastMsgContext)
-		shortTermMemories.Unlock()
+		ephemeralMemories.Lock()
+		delete(ephemeralMemories.m, lastMsgContext)
+		ephemeralMemories.Unlock()
 	} else {
-		last = shortTermMemory{w.msg, ts}
-		shortTermMemories.Lock()
-		shortTermMemories.m[lastMsgContext] = last
-		shortTermMemories.Unlock()
+		last = ephemeralMemory{w.msg, ts}
+		ephemeralMemories.Lock()
+		ephemeralMemories.m[lastMsgContext] = last
+		ephemeralMemories.Unlock()
 	}
 }

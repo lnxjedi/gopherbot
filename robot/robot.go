@@ -42,11 +42,11 @@ type Robot interface {
 	CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal)
 	CheckinDatum(key, locktoken string)
 	UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal)
-	Remember(key, value string)
-	RememberThread(key, value string)
+	Remember(key, value string, shared bool)
+	RememberThread(key, value string, shared bool)
 	RememberContext(context, value string)
 	RememberContextThread(context, value string)
-	Recall(key string) string
+	Recall(key string, shared bool) string
 	// Primarily job/pipeline methods
 	GetRepoData() map[string]Repository
 	ExtendNamespace(string, int) bool

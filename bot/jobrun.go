@@ -122,10 +122,10 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 			var args []string
 			// remember which job we're talking about
 			ctx := w.makeMemoryContext("context:task")
-			s := shortTermMemory{jname, time.Now()}
-			shortTermMemories.Lock()
-			shortTermMemories.m[ctx] = s
-			shortTermMemories.Unlock()
+			s := ephemeralMemory{jname, time.Now()}
+			ephemeralMemories.Lock()
+			ephemeralMemories.m[ctx] = s
+			ephemeralMemories.Unlock()
 			if len(matches[0][2]) > 0 {
 				// arguments supplied with `run job foo bar baz`, check match to required arguments
 				args = strings.Split(matches[0][2], " ")

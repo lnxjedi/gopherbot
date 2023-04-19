@@ -109,14 +109,21 @@ func (w *worker) makeMemoryContext(key string) memoryContext {
 	}
 }
 
-func (r Robot) makeMemoryContext(key string, forceThread bool) memoryContext {
+func (r Robot) makeMemoryContext(key string, forceThread, shared bool) memoryContext {
 	var threadID string
 	if r.ThreadedMessage || forceThread {
 		threadID = r.ThreadID
 	}
+	user := r.Incoming.UserID
+	// if len(r.Channel) == 0, it's a direct message to the robot
+	// and the idea of shared is meaningless - plus we NEED the user ID
+	// to differentiate between different user's DM memories
+	if shared && len(r.Channel) > 0 {
+		user = ""
+	}
 	return memoryContext{
 		key:     key,
-		user:    r.Incoming.UserID,
+		user:    user,
 		channel: r.Channel,
 		thread:  threadID,
 	}
@@ -220,7 +227,7 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 // GetParameter retrieves the value of a parameter for a namespace. Only useful
 // for Go plugins; external scripts have all parameters for the NameSpace stored
 // as environment variables. Note that runtasks.go populates the environment
-// with Stored parameters, too. So GetParameter is useful for both short-term
+// with Stored parameters, too. So GetParameter is useful for both ephemeral
 // parameters in a pipeline, and for getting long-term parameters such as
 // credentials.
 func (r Robot) GetParameter(key string) string {

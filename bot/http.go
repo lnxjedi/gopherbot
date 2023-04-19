@@ -67,16 +67,18 @@ type wdcall struct {
 	Path string
 }
 
-// Something to be placed in short-term memory
-type shorttermmemory struct {
+// Something to be placed in ephemeral memory
+type ephemeralmemory struct {
 	Key, Value string
 	Base64     bool
+	Shared     bool
 }
 
-// Something to be recalled from short-term memory
-type shorttermrecollection struct {
+// Something to be recalled from ephemeral memory
+type ephemeralrecollection struct {
 	Key    string
 	Base64 bool
+	Shared bool
 }
 
 // Something to be remembered in long term memory
@@ -346,7 +348,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		var key string
 		w := getLockedWorker(r.tid)
 		w.Unlock()
-		ns := w.getNameSpace(task)
+		ns := w.getNameSpace(r.currentTask)
 		key = ns + ":" + m.Key
 		// Since we're getting raw JSON (=[]byte), we call update directly.
 		// See brain.go
@@ -354,7 +356,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		sendReturn(rw, &botretvalresponse{int(ret)})
 		return
 	case "Remember":
-		var m shorttermmemory
+		var m ephemeralmemory
 		if !getArgs(rw, &f.FuncArgs, &m) {
 			return
 		}
@@ -362,11 +364,11 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			m.Key = decode(m.Key)
 			m.Value = decode(m.Value)
 		}
-		r.Remember(m.Key, m.Value)
+		r.Remember(m.Key, m.Value, m.Shared)
 		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
 		return
 	case "RememberThread":
-		var m shorttermmemory
+		var m ephemeralmemory
 		if !getArgs(rw, &f.FuncArgs, &m) {
 			return
 		}
@@ -374,18 +376,18 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			m.Key = decode(m.Key)
 			m.Value = decode(m.Value)
 		}
-		r.RememberThread(m.Key, m.Value)
+		r.RememberThread(m.Key, m.Value, m.Shared)
 		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
 		return
 	case "Recall":
-		var m shorttermrecollection
+		var m ephemeralrecollection
 		if !getArgs(rw, &f.FuncArgs, &m) {
 			return
 		}
 		if m.Base64 {
 			m.Key = decode(m.Key)
 		}
-		s := r.Recall(m.Key)
+		s := r.Recall(m.Key, m.Shared)
 		sendReturn(rw, &stringresponse{s})
 		return
 	case "GetTaskConfig":

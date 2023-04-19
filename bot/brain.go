@@ -21,8 +21,8 @@ import (
 // Map of registered brains
 var brains = make(map[string]func(robot.Handler) robot.SimpleBrain)
 
-// short-term memories, mostly what "it" is
-type shortTermMemory struct {
+// ephemeral memories held im RAM that expire after a time
+type ephemeralMemory struct {
 	memory    string
 	timestamp time.Time
 }
@@ -31,8 +31,8 @@ type memoryContext struct {
 	key, user, channel, thread string
 }
 
-var shortTermMemories = struct {
-	m map[memoryContext]shortTermMemory
+var ephemeralMemories = struct {
+	m map[memoryContext]ephemeralMemory
 	sync.Mutex
 }{}
 
@@ -56,7 +56,8 @@ const botEncryptionKey = "bot:encryptionKey"
 const encryptedKeyFile = "binary-encrypted-key"
 
 // People generally expect the robot to remember things longer.
-const shortTermDuration = 14 * time.Hour
+const channelMemoryDuration = 7 * time.Minute // In the main channel, conversation context/topics tend to change often
+const threadMemoryDuration = 42 * time.Hour   // In a thread, the conversation context/topic tends to last days
 
 type memState int
 
@@ -138,9 +139,9 @@ var brainLocks = struct {
 // functions and insures consistency.
 func runBrain() {
 	raiseThreadPriv("runBrain loop")
-	shortTermMemories.Lock()
-	shortTermMemories.m = make(map[memoryContext]shortTermMemory)
-	shortTermMemories.Unlock()
+	ephemeralMemories.Lock()
+	ephemeralMemories.m = make(map[memoryContext]ephemeralMemory)
+	ephemeralMemories.Unlock()
 	// map key to status
 	memories := make(map[string]*memstatus)
 	processMemories := time.NewTicker(memCycle)
@@ -237,13 +238,19 @@ loop:
 			}
 		case <-processMemories.C:
 			now := time.Now()
-			shortTermMemories.Lock()
-			for k, v := range shortTermMemories.m {
-				if now.Sub(v.timestamp) > shortTermDuration {
-					delete(shortTermMemories.m, k)
+			ephemeralMemories.Lock()
+			for context, memory := range ephemeralMemories.m {
+				if len(context.thread) > 0 {
+					if now.Sub(memory.timestamp) > threadMemoryDuration {
+						delete(ephemeralMemories.m, context)
+					}
+				} else {
+					if now.Sub(memory.timestamp) > channelMemoryDuration {
+						delete(ephemeralMemories.m, context)
+					}
 				}
 			}
-			shortTermMemories.Unlock()
+			ephemeralMemories.Unlock()
 			for _, m := range memories {
 				switch m.state {
 				case newMemory:
@@ -337,7 +344,12 @@ func updateDatum(key, locktoken string, datum interface{}) (ret robot.RetVal) {
 	return update(key, locktoken, &dbytes)
 }
 
-func (w *worker) getNameSpace(task *Task) string {
+func (w *worker) getNameSpace(t interface{}) string {
+	task, plugin, _ := getTask(t)
+	// Plugins always have their own namespace
+	if plugin != nil {
+		return task.name
+	}
 	if len(task.NameSpace) > 0 {
 		return task.NameSpace
 	}
@@ -360,10 +372,9 @@ func (r Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken 
 		Log(robot.Error, "Invalid memory key, ':' disallowed: %s", key)
 		return
 	}
-	task, _, _ := getTask(r.currentTask)
 	w := getLockedWorker(r.tid)
 	w.Unlock()
-	ns := w.getNameSpace(task)
+	ns := w.getNameSpace(r.currentTask)
 	if len(r.nsExtension) > 0 {
 		key = ns + ":" + r.nsExtension + ":" + key
 	} else {
@@ -380,10 +391,9 @@ func (r Robot) CheckinDatum(key, locktoken string) {
 	if strings.ContainsRune(key, ':') {
 		return
 	}
-	task, _, _ := getTask(r.currentTask)
 	w := getLockedWorker(r.tid)
 	w.Unlock()
-	ns := w.getNameSpace(task)
+	ns := w.getNameSpace(r.currentTask)
 	if len(r.nsExtension) > 0 {
 		key = ns + ":" + r.nsExtension + ":" + key
 	} else {
@@ -400,10 +410,9 @@ func (r Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.
 		Log(robot.Error, "Invalid memory key, ':' disallowed: %s", key)
 		return robot.InvalidDatumKey
 	}
-	task, _, _ := getTask(r.currentTask)
 	w := getLockedWorker(r.tid)
 	w.Unlock()
-	ns := w.getNameSpace(task)
+	ns := w.getNameSpace(r.currentTask)
 	if len(r.nsExtension) > 0 {
 		key = ns + ":" + r.nsExtension + ":" + key
 	} else {
@@ -412,31 +421,31 @@ func (r Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.
 	return updateDatum(key, locktoken, datum)
 }
 
-// Remember adds a short-term memory (with no backing store) to the robot's
+// Remember adds a ephemeral memory (with no backing store) to the robot's
 // brain. This is used internally for resolving the meaning of "it", but can
 // be used by plugins to remember other contextual facts. Since memories are
 // indexed by user and channel, but not plugin, these facts can be referenced
 // between plugins. This functionality is considered EXPERIMENTAL.
-func (r Robot) Remember(key, value string) {
+func (r Robot) Remember(key, value string, shared bool) {
 	timestamp := time.Now()
-	memory := shortTermMemory{value, timestamp}
-	context := r.makeMemoryContext(key, false)
-	Log(robot.Trace, "SHORTMEM: Storing short-term memory \"%s\" -> \"%s\"", key, value)
-	shortTermMemories.Lock()
-	shortTermMemories.m[context] = memory
-	shortTermMemories.Unlock()
+	memory := ephemeralMemory{value, timestamp}
+	context := r.makeMemoryContext(key, false, shared)
+	Log(robot.Trace, "storing ephemeral memory \"%s\" -> \"%s\"", key, value)
+	ephemeralMemories.Lock()
+	ephemeralMemories.m[context] = memory
+	ephemeralMemories.Unlock()
 }
 
 // RememberThread is identical to Remember, except that it forces the memory
 // to associate with the thread.
-func (r Robot) RememberThread(key, value string) {
+func (r Robot) RememberThread(key, value string, shared bool) {
 	timestamp := time.Now()
-	memory := shortTermMemory{value, timestamp}
-	context := r.makeMemoryContext(key, true)
-	Log(robot.Trace, "SHORTMEM: Storing short-term memory \"%s\" -> \"%s\"", key, value)
-	shortTermMemories.Lock()
-	shortTermMemories.m[context] = memory
-	shortTermMemories.Unlock()
+	memory := ephemeralMemory{value, timestamp}
+	context := r.makeMemoryContext(key, true, shared)
+	Log(robot.Trace, "storing ephemeral memory \"%s\" -> \"%s\"", key, value)
+	ephemeralMemories.Lock()
+	ephemeralMemories.m[context] = memory
+	ephemeralMemories.Unlock()
 }
 
 // RememberContext is a convenience function that stores a context reference in
@@ -444,24 +453,24 @@ func (r Robot) RememberThread(key, value string) {
 // next time the user uses "it" in the context of a "server", the robot will
 // substitute "web1.my.dom".
 func (r Robot) RememberContext(context, value string) {
-	r.Remember("context:"+context, value)
+	r.Remember("context:"+context, value, false)
 }
 
 // RememberContextThread is identical to RememberContext, except that the memory
 // is forced to associate with the thread.
 func (r Robot) RememberContextThread(context, value string) {
-	r.RememberThread("context:"+context, value)
+	r.RememberThread("context:"+context, value, false)
 }
 
 // Recall recalls a short term memory, or the empty string if it doesn't exist.
 // Note that there are no RecallThread methods - Recall is always in the current
 // context.
-func (r Robot) Recall(key string) string {
-	context := r.makeMemoryContext(key, false)
-	shortTermMemories.Lock()
-	memory, ok := shortTermMemories.m[context]
-	shortTermMemories.Unlock()
-	Log(robot.Trace, "SHORTMEM: Recalling short-term memory \"%s\" -> \"%s\"", key, memory.memory)
+func (r Robot) Recall(key string, shared bool) string {
+	context := r.makeMemoryContext(key, false, shared)
+	ephemeralMemories.Lock()
+	memory, ok := ephemeralMemories.m[context]
+	ephemeralMemories.Unlock()
+	Log(robot.Trace, "recalling ephemeral memory \"%s\" -> \"%s\"", key, memory.memory)
 	if !ok {
 		return ""
 	}

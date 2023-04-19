@@ -45,14 +45,14 @@ func checkOTP(r robot.Robot, code string) (bool, robot.TaskRetVal) {
 		return false, robot.MechanismFail
 	}
 	m.Channel = ""
-	lastValid := r.Recall("lastTOTP")
+	lastValid := r.Recall("lastTOTP", false)
 	if lastValid == code {
 		r.Log(robot.Warn, "User %s attempted to re-use a TOTP code", m.User)
 		return false, robot.Fail
 	}
 	valid := totp.Validate(code, secret)
 	if valid {
-		r.Remember("lastTOTP", code)
+		r.Remember("lastTOTP", code, false)
 	}
 	return valid, robot.Success
 }

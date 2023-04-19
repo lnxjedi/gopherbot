@@ -1,3 +1,12 @@
+# v2.9.0 - Ephemeral Memories Update
+This is a large-ish change in the API and operation of ephemeral memories, once again motivated by the AI plugin and enabled by threaded conversation support:
+* The old notion of "short term memories" is now more generically "ephemeral memories"
+* Ephemeral memories for a channel are shorter-lived, about 7 minutes, reflecting that channel topics and contexts tend to change relatively quickly
+* Ephemeral memories for a thread are longer-lived, almost two days, reflecting that threads tend to stay on a single topic and may last days
+* Remember, RememberThread and Recall now take an optional third argument, shared; when a memory is shared, it is the same for all users in the channel/thread - but NOTE, there is no record locking for shared (or non-shared, for that matter) memories!
+   * To keep multiple plugin runs from stomping on each other, you can use the Exclusive API
+   * The Exclusive API method, formerly exclusive to Jobs and job pipelines, now works with Plugins, too
+
 # v2.8.2 - Allow plugins to handle "robot?"
 Very minor enhancement; if your robot's name was floyd, and the user typed "floyd?", the only way to handle it was to use a message matcher that hard-coded the robot's name. Now you can define a command with the regex '^\?$' to catch this case and handle it.  Added for - you guessed it - the AI plugin.
 

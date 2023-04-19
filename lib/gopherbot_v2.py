@@ -181,23 +181,23 @@ class Robot:
         ret = self.Call("GetBotAttribute", { "Attribute": attr })
         return Attribute(ret)
 
-    def Remember(k, v):
+    def Remember(k, v, shared=False):
         funcname = "RememberThread" if self.threaded_message else "Remember"
-        ret = self.Call(funcname, { "Key": k, "Value": v })
+        ret = self.Call(funcname, { "Key": k, "Value": v, "Shared": shared })
         return ret["RetVal"]
 
     def RememberContext(k, v):
-        return self.Remember("context:"+k, v)
+        return self.Remember("context:"+k, v, False)
 
-    def RememberThread(k, v):
-        ret = self.Call("RememberThread", { "Key": k, "Value": v })
+    def RememberThread(k, v, shared=False):
+        ret = self.Call("RememberThread", { "Key": k, "Value": v, "Shared": shared })
         return ret["RetVal"]
 
     def RememberContextThread(k, v):
-        return self.RememberThread("context:"+k, v)
+        return self.RememberThread("context:"+k, v, False)
 
-    def Recall(self, memory):
-        ret = self.Call("Recall", { "Key": memory })
+    def Recall(self, memory, shared=False):
+        ret = self.Call("Recall", { "Key": memory, "Shared": shared })
         return ret["StrVal"]
 
     def PromptForReply(self, regex_id, prompt, format=""):
