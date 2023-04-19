@@ -1,6 +1,6 @@
 # v2.9.0 - Ephemeral Memories Update
-This is a large-ish change in the API and operation of ephemeral memories, once again motivated by the AI plugin and enabled by threaded conversation support:
-* The old notion of "short term memories" is now more generically "ephemeral memories"
+This is a large-ish change in the API and operation of ephemeral memories, once again motivated by the AI plugin and partly enabled by threaded conversation support:
+* The old notion of "short term memories" is now more generically "ephemeral memories" - memories stored in RAM that are forgotten after a time
 * Ephemeral memories for a channel are shorter-lived, about 7 minutes, reflecting that channel topics and contexts tend to change relatively quickly
 * Ephemeral memories for a thread are longer-lived, almost two days, reflecting that threads tend to stay on a single topic and may last days
 * Remember, RememberThread and Recall now take an optional third argument, shared; when a memory is shared, it is the same for all users in the channel/thread - but NOTE, there is no record locking for shared (or non-shared, for that matter) memories!
