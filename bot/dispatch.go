@@ -63,7 +63,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 			}
 			if !w.listedUser && !plugin.MatchUnlisted && !w.isCommand {
 				msg := fmt.Sprintf("ignoring unlisted user '%s' for plugin '%s' ambient messages", w.User, task.name)
-				Log(robot.Trace, msg)
+				Log(robot.Debug, msg)
 				continue
 			}
 			matchers = plugin.MessageMatchers
