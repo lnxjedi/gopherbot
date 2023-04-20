@@ -432,7 +432,9 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 		if !w.exclusive {
 			if w.abortPipeline {
 				ret = robot.PipelineAborted
-				errString = "Pipeline aborted, exclusive lock failed"
+				if !isPlugin { // Plugins should catch and emit this
+					errString = "Pipeline aborted, exclusive lock failed"
+				}
 				break
 			}
 			if w.queueTask {
@@ -486,7 +488,9 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 				// callTask
 				if w.abortPipeline {
 					ret = robot.PipelineAborted
-					errString = "Pipeline aborted, exclusive lock failed"
+					if !isPlugin { // Plugins should catch and emit this
+						errString = "Pipeline aborted, exclusive lock failed"
+					}
 					break
 				}
 				if ret != robot.Normal {
