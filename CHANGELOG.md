@@ -1,3 +1,6 @@
+# v2.9.1 - Slack Updates, Bugfixes and Security Enhancement
+For the first time in years I'm running a robot that does NOT have `IgnoreUnlistedUsers: true` - and for the record, if you're using Gopherbot for team chat DevOps, I strongly recommend you make the effort. In any event, moving my personal robot Floyd to my local community Slack team has revealed some issues in the Slack connector with the regex that matches a username mention. In addition to widening that regex appropriately, I've updated the Slack library for a bugfix in the socketmode connector, and improved the security in user loading, adding a guardrail to prevent Slack-provided usernames from conflicting with users listed in the UserRoster.
+
 # v2.9.0 - Ephemeral Memories Update
 This is a large-ish change in the API and operation of ephemeral memories, once again motivated by the AI plugin and partly enabled by threaded conversation support:
 * The old notion of "short term memories" is now more generically "ephemeral memories" - memories stored in RAM that are forgotten after a time
