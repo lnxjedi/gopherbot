@@ -43,7 +43,9 @@ func optQuote(msg string, f robot.MessageFormat) string {
 	return msg
 }
 
-var mentionRe = regexp.MustCompile(`@[0-9a-z]{1,21}\b`)
+var mentionMatch = `[0-9a-z][-_0-9a-z.]{1,19}[0-9a-z]`
+var mentionRe = regexp.MustCompile(`@` + mentionMatch + `\b`)
+var usernameRe = regexp.MustCompile(`^` + mentionMatch + `$`)
 
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // takes care of formatting, and segments the message if needed.

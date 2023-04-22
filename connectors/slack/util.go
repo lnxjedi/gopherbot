@@ -78,12 +78,21 @@ func (s *slackConnector) updateUserList(want string) (ret string) {
 		}
 	}
 	if err != nil {
-		s.Log(robot.Error, "Protocol timeout updating users: %v", err)
+		s.Log(robot.Error, "protocol timeout updating users: %v", err)
 	}
 	for i, user := range userlist {
 		if user.TeamID == s.teamID {
+			if match_id, ok := userMap[user.Name]; ok {
+				if user.ID != match_id {
+					s.Log(robot.Error, "found Slack user '%s' with id '%s' duplicating user from roster with id '%s', ignoring!", user.Name, user.ID, match_id)
+					continue
+				}
+			}
 			userIDInfo[user.ID] = &userlist[i]
 			if _, ok := userIDMap[user.ID]; !ok {
+				if !usernameRe.MatchString(user.Name) {
+					s.Log(robot.Warn, "slack username '%s' doesn't match against the slack mentionMatch '%s'", user.Name, mentionMatch)
+				}
 				s.Log(robot.Debug, "updateUserList recorded user: %s/%s", user.Name, user.ID)
 				userMap[user.Name] = user.ID
 				userIDMap[user.ID] = user.Name
@@ -296,7 +305,7 @@ func (s *slackConnector) userIMID(i string) (c string, ok bool) {
 			return "", false
 		}
 	}
-	return i, ok
+	return c, ok
 }
 
 // Get user ID from IM conversation

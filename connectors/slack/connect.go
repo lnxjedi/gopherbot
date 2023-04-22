@@ -178,7 +178,8 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	sc.botFullName = botInfo.Name
 
 	sc.updateChannelMaps("")
-	sc.updateUserList("")
+	// This should trigger from the engine calling SetUserMap
+	// sc.updateUserList("")
 
 	go sc.startSendLoop()
 

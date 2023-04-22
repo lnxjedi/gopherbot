@@ -15,7 +15,7 @@ require (
 	github.com/lnxjedi/readline v0.0.0-20200213173224-cdfc6ee4b159
 	github.com/pquerna/otp v1.3.0
 	github.com/robfig/cron v1.2.0
-	github.com/slack-go/slack v0.12.0
+	github.com/slack-go/slack v0.12.2
 	golang.org/x/sys v0.3.0
 )
 
