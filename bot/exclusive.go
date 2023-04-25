@@ -32,27 +32,39 @@ var runQueues = struct {
 // always succeed.
 // The safest way to use Exclusive is near the beginning of a pipeline.
 func (r Robot) Exclusive(tag string, queueTask bool) (success bool) {
-	w := getLockedWorker(r.tid)
-	defer w.Unlock()
 	if r.exclusive {
 		// TODO: make sure tag matches, or error! Note that it's legit and normal
 		// to call Exclusive twice with the same tag name.
 		return true
 	}
-	if len(r.nameSpace) == 0 && queueTask {
-		r.Log(robot.Error, "Exclusive called on pipeline with no job started")
+	_, plugin, job := getTask(r.currentTask)
+	isPlugin := plugin != nil
+	isJob := job != nil
+	w := getLockedWorker(r.tid)
+	ns := r.nameSpace
+	// The intent here is that simple tasks can only call exclusive in the
+	// context of a job pipeline, which is the only case where r.nameSpace
+	// is set.
+	if !isPlugin && !isJob && queueTask && len(r.nameSpace) == 0 {
+		r.Log(robot.Error, "exclusive called by job or task with queueing outside of job pipeline")
 		return false
 	}
+	if len(ns) == 0 {
+		w.Unlock()
+		ns = w.getNameSpace(r.currentTask)
+		w.Lock()
+	}
+	defer w.Unlock()
 	if len(tag) > 0 {
 		tag = ":" + tag
 	}
-	tag = r.nameSpace + tag
+	tag = ns + tag
 	w.exclusiveTag = tag
 	runQueues.Lock()
 	_, exists := runQueues.m[tag]
 	if !exists {
 		// Take the lock
-		Log(robot.Debug, "Exclusive lock immediately acquired in pipeline '%s', bot #%d", w.pipeName, w.id)
+		Log(robot.Debug, "Exclusive lock '%s' immediately acquired in pipeline '%s', bot #%d", tag, w.pipeName, w.id)
 		runQueues.m[tag] = []chan struct{}{}
 		w.exclusive = true
 		success = true
@@ -65,8 +77,11 @@ func (r Robot) Exclusive(tag string, queueTask bool) (success bool) {
 		Log(robot.Debug, "Worker #%d requesting queueing", w.id)
 		w.queueTask = true
 	} else {
-		Log(robot.Debug, "Worker #%d requesting abort, exclusive lock failed", w.id)
-		w.abortPipeline = true
+		// When a plugin requests Exclusive, it should handle false
+		if plugin != nil {
+			Log(robot.Debug, "Worker #%d requesting abort, exclusive lock failed", w.id)
+			w.abortPipeline = true
+		}
 	}
 	return
 }

@@ -98,9 +98,6 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	if len(task.ParameterSets) > 0 {
 		c.parameterSets = task.ParameterSets
 	}
-	// Exclusive always uses the pipeline nameSpace, regardless of the task that calls it;
-	// simple tasks inherit the nameSpace when not explicitly set.
-	c.nameSpace = w.getNameSpace(t)
 	if isJob {
 		// Job parameters are available to the whole pipeline, plugin
 		// parameters are not.
@@ -113,6 +110,9 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		// TODO / NOTE: RawMsg will differ between plugins and triggers - document?
 		// histories use the job name for maximum separation
 		c.jobName = task.name
+		// Only a Job pipeline sets a nameSpace that simple tasks in the
+		// pipeline can inherit.
+		c.nameSpace = w.getNameSpace(t)
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
 		c.environment["GOPHER_START_CHANNEL"] = w.Channel
 		c.environment["GOPHER_START_CHANNEL_ID"] = w.ProtocolChannel
@@ -432,9 +432,7 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 		if !w.exclusive {
 			if w.abortPipeline {
 				ret = robot.PipelineAborted
-				if !isPlugin { // Plugins should catch and emit this
-					errString = "Pipeline aborted, exclusive lock failed"
-				}
+				errString = "Pipeline aborted, exclusive lock failed"
 				break
 			}
 			if w.queueTask {

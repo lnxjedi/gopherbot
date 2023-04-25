@@ -350,7 +350,8 @@ func (w *worker) getNameSpace(t interface{}) string {
 	if len(task.NameSpace) > 0 {
 		return task.NameSpace
 	}
-	// Plugins never inherit the pipeline namespace
+	// Plugins never inherit the pipeline namespace,
+	// because they implement authorizers and elevators.
 	if plugin != nil {
 		return task.name
 	}

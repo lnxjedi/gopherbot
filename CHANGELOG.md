@@ -1,3 +1,6 @@
+# v2.9.2 - Pipeline / Namespace Bugfix
+It bears repeating here (not actually sure it's documented elsewhere) - both Jobs and Plugins can create pipelines, but simple tasks only inherit the namespace in a Job pipeline, where simple tasks are intended to have access to Job-specific memories and secrets. Plugin-namespaced memories and secrets should be restricted to the plugin only, largely because plugins also serve as authorizers (establishing group membership) and elevators (which normally require some form of 2fa).
+
 # v2.9.1 - Slack Updates, Bugfixes and Security Enhancement
 For the first time in years I'm running a robot that does NOT have `IgnoreUnlistedUsers: true` - and for the record, if you're using Gopherbot for team chat DevOps, I strongly recommend you make the effort. In any event, moving my personal robot Floyd to my local community Slack team has revealed some issues in the Slack connector with the regex that matches a username mention. In addition to widening that regex appropriately, I've updated the Slack library for a bugfix in the socketmode connector, and improved the security in user loading, adding a guardrail to prevent Slack-provided usernames from conflicting with users listed in the UserRoster.
 
