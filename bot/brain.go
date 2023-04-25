@@ -346,15 +346,17 @@ func updateDatum(key, locktoken string, datum interface{}) (ret robot.RetVal) {
 
 func (w *worker) getNameSpace(t interface{}) string {
 	task, plugin, _ := getTask(t)
-	// Plugins always have their own namespace
-	if plugin != nil {
-		return task.name
-	}
+	// A configured NameSpace always takes precedence
 	if len(task.NameSpace) > 0 {
 		return task.NameSpace
 	}
+	// Plugins never inherit the pipeline namespace
+	if plugin != nil {
+		return task.name
+	}
 	w.Lock()
 	defer w.Unlock()
+	// Inherit namespace from the pipeline
 	if len(w.nameSpace) > 0 {
 		return w.nameSpace
 	}
