@@ -27,7 +27,7 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 	var ok bool
 	var user *slack.User
 	if userID, ok = s.ExtractID(u); !ok {
-		userID, ok = s.userID(u)
+		userID, ok = s.userID(u, false)
 	}
 	if ok {
 		s.RLock()
@@ -200,7 +200,7 @@ func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, m
 		return robot.ChannelNotFound
 	}
 	if userID, ok = s.ExtractID(uid); !ok {
-		userID, ok = s.userID(u)
+		userID, ok = s.userID(u, false)
 	}
 	if !ok {
 		s.Log(robot.Error, "slack user ID not found for: %s", uid)
@@ -218,7 +218,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 	var userID string
 	var ok bool
 	if userID, ok = s.ExtractID(u); !ok {
-		userID, ok = s.userID(u)
+		userID, ok = s.userID(u, false)
 	}
 	if !ok {
 		s.Log(robot.Error, "no slack user ID found for user: %s", u)

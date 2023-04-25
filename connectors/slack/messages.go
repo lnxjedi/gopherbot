@@ -68,7 +68,7 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageForm
 			case "here", "channel", "everyone":
 				return []byte("<!" + mentioned + ">")
 			}
-			replace, ok := s.userID(string(bytes[1:]))
+			replace, ok := s.userID(string(bytes[1:]), true)
 			if ok {
 				return []byte("<@" + replace + ">")
 			}

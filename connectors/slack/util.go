@@ -128,16 +128,20 @@ func (s *slackConnector) updateUserList(want string) (ret string) {
 	return
 }
 
-func (s *slackConnector) userID(u string) (i string, ok bool) {
+func (s *slackConnector) userID(u string, isMention bool) (i string, ok bool) {
 	s.RLock()
 	userID, ok := s.userMap[u]
 	s.RUnlock()
 	if !ok {
-		i := s.updateUserList("i:" + u)
-		if len(i) > 0 {
-			return i, true
+		if isMention {
+			s.Log(robot.Error, "failed ID lookup for user '%s' (invalid @mention)", u)
+		} else {
+			i := s.updateUserList("i:" + u)
+			if len(i) > 0 {
+				return i, true
+			}
+			s.Log(robot.Error, "failed ID lookup for user '%s' after updating userlist", u)
 		}
-		s.Log(robot.Error, "Failed ID lookup for user '%s'", u)
 		return "", false
 	}
 	return userID, ok
