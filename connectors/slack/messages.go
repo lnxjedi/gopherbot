@@ -345,12 +345,19 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 		lastmsgtime.Unlock()
 	}
 	if len(userID) == 0 {
-		s.Log(robot.Debug, "Zero-length userID, ignoring message")
+		s.Log(robot.Debug, "zero-length userID, ignoring message")
 		return
 	}
-	if (userID == s.botUserID) && !s.hearSelf {
-		s.Log(robot.Debug, "Ignoring message from self (HearSelf not set)")
-		return
+	messageID := msg.Timestamp
+	selfMessage := false
+	if userID == s.botUserID {
+		if s.hearSelf {
+			s.Log(robot.Debug, "ignoring message from self (HearSelf not set)")
+			return
+		} else {
+			s.Log(robot.Debug, "forwarding message id '%s' from self (robot hearSelf)", messageID)
+			selfMessage = true
+		}
 	}
 	text := message.Text
 	// some bot messages don't have any text, so check for a fallback
@@ -358,7 +365,6 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 		text = msg.Attachments[0].Fallback
 	}
 	text = s.processText(text)
-	messageID := msg.Timestamp
 	ts := msg.Timestamp
 	tts := msg.ThreadTimestamp
 	threadID := tts
@@ -375,6 +381,7 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 		MessageID:       messageID,
 		ThreadID:        threadID,
 		ThreadedMessage: threadedMessage,
+		SelfMessage:     selfMessage,
 		DirectMessage:   ci.IsIM,
 		BotMessage:      false,
 		MessageText:     text,

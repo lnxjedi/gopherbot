@@ -225,7 +225,7 @@ func (w *worker) handleMessage() {
 	}
 	// See if the robot got a blank message, indicating that the last message
 	// was meant for it (if it was in the keepListeningDuration); also handle "robot?"
-	if !messageMatched && w.isCommand && len(w.msg) == 0 && !w.BotUser {
+	if !messageMatched && w.isCommand && !w.Incoming.SelfMessage && len(w.msg) == 0 && !w.BotUser {
 		// Allow individual plugins to handle a lone "?"
 		// Feature added for - you guessed it - the AI plugin
 		if strings.HasSuffix(w.fmsg, "?") {
@@ -245,14 +245,15 @@ func (w *worker) handleMessage() {
 			}
 		}
 	}
-	if !messageMatched && w.isCommand {
+	// NOTE: Another bot can send a plugCommand to the bot
+	if !messageMatched && w.isCommand && !w.Incoming.SelfMessage {
 		// See if a command matches (and runs)
 		messageMatched = w.checkPluginMatchersAndRun(plugCommand)
 	}
 	// Direct commands were checked above; if a direct command didn't match,
 	// and a there wasn't a reply being waited on, then we check ambient
 	// MessageMatchers.
-	if !messageMatched && !w.BotUser {
+	if !messageMatched && !w.Incoming.SelfMessage && !w.BotUser {
 		// check for ambient message matches
 		messageMatched = w.checkPluginMatchersAndRun(plugMessage)
 	}
@@ -261,7 +262,7 @@ func (w *worker) handleMessage() {
 		messageMatched = w.checkJobMatchersAndRun()
 	}
 	catchAllMatched := false
-	if w.isCommand && !messageMatched && !w.BotUser { // the robot was spoken to, but nothing matched - call catchAlls
+	if w.isCommand && !messageMatched && !w.Incoming.SelfMessage && !w.BotUser { // the robot was spoken to, but nothing matched - call catchAlls
 		state.RLock()
 		if !state.shuttingDown {
 			state.RUnlock()
@@ -298,7 +299,7 @@ func (w *worker) handleMessage() {
 				}
 			}
 			if multipleCatchallMatched {
-				Log(robot.Error, "More than one specific catch-all matched, none will be called")
+				Log(robot.Error, "more than one specific catch-all matched, none will be called")
 			} else {
 				if specificCatchAll != nil {
 					task, _, _ := getTask(specificCatchAll)
@@ -315,7 +316,7 @@ func (w *worker) handleMessage() {
 						w.startPipeline(nil, fallbackCatchAll, catchAll, "catchall", w.fmsg)
 					}
 				} else {
-					Log(robot.Debug, "Unmatched command to robot and no catchall defined")
+					Log(robot.Debug, "unmatched command to robot and no catchall defined")
 				}
 			}
 		} else {
@@ -324,16 +325,19 @@ func (w *worker) handleMessage() {
 		}
 	}
 	// Last of all, check for thread subscriptions
-	if !messageMatched && (w.isCommand && !catchAllMatched || !w.isCommand) {
-		Log(robot.Debug, "DEBUG: w.isCommand %t, messageMatched %t, catchAllMatched %t", w.isCommand, messageMatched, catchAllMatched)
+	if !messageMatched && !w.Incoming.SelfMessage && (w.isCommand && !catchAllMatched || !w.isCommand) {
 		subscriptionSpec := subscriptionMatcher{w.Channel, w.ThreadID}
 		subscriptions.Lock()
 		if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
 			subscription.timestamp = time.Now()
 			subscriptions.Unlock()
 			t := w.tasks.getTaskByName(subscription.plugin)
-			Log(robot.Debug, "unmatched message being routed to thread subscriber '%s' in thread '%s', channel '%s'", subscription.plugin, w.ThreadID, w.Channel)
-			w.startPipeline(nil, t, plugThreadSubscription, "subscribed", w.fmsg)
+			if w.Incoming.UserID != w.cfg.botinfo.UserID {
+				Log(robot.Debug, "unmatched message being routed to thread subscriber '%s' in thread '%s', channel '%s'", subscription.plugin, w.ThreadID, w.Channel)
+				w.startPipeline(nil, t, plugThreadSubscription, "subscribed", w.fmsg)
+			} else {
+				Log(robot.Debug, "ignoring message from the robot after subscription matched for thread subscriber '%s' in thread '%s', channel '%s'")
+			}
 		} else {
 			subscriptions.Unlock()
 		}

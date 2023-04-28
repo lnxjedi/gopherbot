@@ -480,6 +480,7 @@ func (tc *termConnector) checkSendSelf(ch, thr, msg string, f robot.MessageForma
 			threadID = fmt.Sprintf("%04x", messageNumber%threadIDMax)
 			messageID = threadID
 		}
+		tc.Log(robot.Debug, "forwarding message id '%s' from self (robot hearSelf)", messageID)
 		botMsg := &robot.ConnectorMessage{
 			Protocol:        "terminal",
 			UserName:        tc.botName,
@@ -488,6 +489,7 @@ func (tc *termConnector) checkSendSelf(ch, thr, msg string, f robot.MessageForma
 			ChannelID:       "#" + ch,
 			MessageID:       messageID,
 			ThreadedMessage: threadedMessage,
+			SelfMessage:     true,
 			ThreadID:        threadID,
 			MessageText:     msg,
 		}
