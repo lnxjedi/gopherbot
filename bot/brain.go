@@ -144,7 +144,7 @@ func runBrain() {
 	ephemeralMemories.Unlock()
 	// map key to status
 	memories := make(map[string]*memstatus)
-	processMemories := time.NewTicker(memCycle)
+	brainTicker := time.NewTicker(memCycle)
 loop:
 	for {
 		select {
@@ -236,8 +236,10 @@ loop:
 				qr.reply <- struct{}{}
 				break loop
 			}
-		case <-processMemories.C:
+		case <-brainTicker.C:
 			now := time.Now()
+			// Expire thread subscriptions - see thread_subscriptions.go
+			expireSubscriptions(now)
 			ephemeralMemories.Lock()
 			for context, memory := range ephemeralMemories.m {
 				if len(context.thread) > 0 {

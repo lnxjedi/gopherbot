@@ -99,6 +99,20 @@ CheckAdmin(){
 	fi
 }
 
+Subscribe(){
+	local GB_FUNCARGS="{}"
+	local GB_FUNCNAME="Subscribe"
+	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
+	echo "$RETVAL"
+	if [ "$RETVAL" -eq "true" ]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
 Remember(){
 	if [ -z "$1" -o -z "$2" ]
 	then

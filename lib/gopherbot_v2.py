@@ -103,6 +103,9 @@ class Robot:
     def CheckAdmin(self):
         return self.Call("CheckAdmin", {})["Boolean"]
 
+    def Subscribe(self):
+        return self.Call("Subscribe", {})["Boolean"]
+
     def Elevate(self, immediate=False):
         return self.Call("Elevate", { "Immediate": immediate })["Boolean"]
 

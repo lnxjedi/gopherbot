@@ -95,6 +95,10 @@ class BaseBot
 		return callBotFunc("CheckAdmin", {})["Boolean"]
 	end
 
+	def Subscribe()
+		return callBotFunc("Subscribe", {})["Boolean"]
+	end
+
 	def Elevate(immediate=false)
 		return callBotFunc("Elevate", { "Immediate" => immediate })["Boolean"]
 	end

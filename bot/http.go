@@ -235,6 +235,10 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		bret := r.CheckAdmin()
 		sendReturn(rw, boolresponse{Boolean: bret})
 		return
+	case "Subscribe":
+		bret := r.Subscribe()
+		sendReturn(rw, boolresponse{Boolean: bret})
+		return
 	case "GetRepoData":
 		sendReturn(rw, r.GetRepoData())
 		return
