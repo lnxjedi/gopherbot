@@ -12,16 +12,17 @@ func _() {
 	_ = x[plugCommand-1]
 	_ = x[plugMessage-2]
 	_ = x[catchAll-3]
-	_ = x[jobTrigger-4]
-	_ = x[spawnedTask-5]
-	_ = x[scheduled-6]
-	_ = x[initJob-7]
-	_ = x[jobCommand-8]
+	_ = x[plugThreadSubscription-4]
+	_ = x[jobTrigger-5]
+	_ = x[spawnedTask-6]
+	_ = x[scheduled-7]
+	_ = x[initJob-8]
+	_ = x[jobCommand-9]
 }
 
-const _pipelineType_name = "unsetplugCommandplugMessagecatchAlljobTriggerspawnedTaskscheduledinitJobjobCommand"
+const _pipelineType_name = "unsetplugCommandplugMessagecatchAllplugThreadSubscriptionjobTriggerspawnedTaskscheduledinitJobjobCommand"
 
-var _pipelineType_index = [...]uint8{0, 5, 16, 27, 35, 45, 56, 65, 72, 82}
+var _pipelineType_index = [...]uint8{0, 5, 16, 27, 35, 57, 67, 78, 87, 94, 104}
 
 func (i pipelineType) String() string {
 	if i < 0 || i >= pipelineType(len(_pipelineType_index)-1) {

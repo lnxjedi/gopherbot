@@ -260,6 +260,7 @@ func (w *worker) handleMessage() {
 	if !messageMatched {
 		messageMatched = w.checkJobMatchersAndRun()
 	}
+	catchAllMatched := false
 	if w.isCommand && !messageMatched && !w.BotUser { // the robot was spoken to, but nothing matched - call catchAlls
 		state.RLock()
 		if !state.shuttingDown {
@@ -300,11 +301,17 @@ func (w *worker) handleMessage() {
 				Log(robot.Error, "More than one specific catch-all matched, none will be called")
 			} else {
 				if specificCatchAll != nil {
+					task, _, _ := getTask(specificCatchAll)
+					Log(robot.Debug, "unmatched command, calling specific catchall '%s' in channel '%s'", task.name, w.Channel)
+					catchAllMatched = true
 					w.startPipeline(nil, specificCatchAll, catchAll, "catchall", w.fmsg)
 				} else if fallbackCatchAll != nil {
 					if multipleFallbackMatched {
 						Log(robot.Error, "More than one fallback catch-all matched, none will be called")
 					} else {
+						task, _, _ := getTask(fallbackCatchAll)
+						Log(robot.Debug, "unmatched command, calling fallback catchall '%s' in channel '%s'", task.name, w.Channel)
+						catchAllMatched = true
 						w.startPipeline(nil, fallbackCatchAll, catchAll, "catchall", w.fmsg)
 					}
 				} else {
@@ -314,6 +321,21 @@ func (w *worker) handleMessage() {
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins
 			state.RUnlock()
+		}
+	}
+	// Last of all, check for thread subscriptions
+	if !messageMatched && (w.isCommand && !catchAllMatched || !w.isCommand) {
+		Log(robot.Debug, "DEBUG: w.isCommand %t, messageMatched %t, catchAllMatched %t", w.isCommand, messageMatched, catchAllMatched)
+		subscriptionSpec := subscriptionMatcher{w.Channel, w.ThreadID}
+		subscriptions.Lock()
+		if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
+			subscription.timestamp = time.Now()
+			subscriptions.Unlock()
+			t := w.tasks.getTaskByName(subscription.plugin)
+			Log(robot.Debug, "unmatched message being routed to thread subscriber '%s' in thread '%s', channel '%s'", subscription.plugin, w.ThreadID, w.Channel)
+			w.startPipeline(nil, t, plugThreadSubscription, "subscribed", w.fmsg)
+		} else {
+			subscriptions.Unlock()
 		}
 	}
 	if w.BotUser {

@@ -51,14 +51,19 @@ func (r Robot) Subscribe() (success bool) {
 	subscriptions.Lock()
 	defer subscriptions.Unlock()
 	if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
-		r.Log(robot.Error, "plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription already held by plugin '%s'", task.name, w.ThreadID, w.Channel, subscription.plugin)
-		return false
+		if task.name != subscription.plugin {
+			r.Log(robot.Error, "Subscribe - plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription already held by plugin '%s'", task.name, w.ThreadID, w.Channel, subscription.plugin)
+			return false
+		} else {
+			r.Log(robot.Debug, "Subscribe - already subscribed; plugin '%s' subscribing to thread '%s' in channel '%s'", task.name, w.ThreadID, w.Channel)
+			return true
+		}
 	}
 	subscriptions.m[subscriptionSpec] = subscriber{
 		plugin:    task.name,
 		timestamp: time.Now(),
 	}
-	r.Log(robot.Debug, "plugin '%s' successfully subscribed to thread '%s' in channel '%s'", task.name, w.ThreadID, w.Channel)
+	r.Log(robot.Debug, "Subscribe - plugin '%s' successfully subscribed to thread '%s' in channel '%s'", task.name, w.ThreadID, w.Channel)
 	return true
 }
 
@@ -69,7 +74,7 @@ func expireSubscriptions(now time.Time) {
 	for subscription, subscriber := range subscriptions.m {
 		if now.Sub(subscriber.timestamp) > subscriptionTimeout {
 			delete(subscriptions.m, subscription)
-			Log(robot.Debug, "expiring subscription for plugin '%s' to thread '%s' in channel '%s'", subscriber.plugin, subscription.thread, subscription.channel)
+			Log(robot.Debug, "Subscribe - expiring subscription for plugin '%s' to thread '%s' in channel '%s'", subscriber.plugin, subscription.thread, subscription.channel)
 		}
 	}
 }
