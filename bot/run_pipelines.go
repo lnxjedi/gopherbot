@@ -533,6 +533,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	if w.ThreadedMessage {
 		envhash["GOPHER_THREADED_MESSAGE"] = "true"
 	}
+	envhash["GOPHER_CMDMODE"] = w.cmdMode
 	envhash["GOPHER_USER"] = w.User
 	envhash["GOPHER_USER_ID"] = w.ProtocolUser
 	envhash["GOPHER_PROTOCOL"] = strings.ToLower(w.Protocol.String())

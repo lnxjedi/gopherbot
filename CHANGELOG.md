@@ -1,3 +1,6 @@
+# v2.10.0 - Command Mode, thread Subscribe API
+* Once again for the AI plugin, it's useful to differentiate between robot commands using the robot's single-character alias vs the robot's regular name. The single-character alias is mostly understood by users as a "command prefix" for the robot, and used with chatops commands for e.g. deploying software. Using the robot's name, however, could indicate the user intends the message to be delivered to the AI. Starting in this version, external plugins will see a new `GOPHER_CMDMODE` environment variable, which will be "alias", "name", or "direct", and can be used to modify behavior.
+
 # v2.9.2 - Pipeline / Namespace Bugfix
 It bears repeating here (not actually sure it's documented elsewhere) - both Jobs and Plugins can create pipelines, but simple tasks only inherit the namespace in a Job pipeline, where simple tasks are intended to have access to Job-specific memories and secrets. Plugin-namespaced memories and secrets should be restricted to the plugin only, largely because plugins also serve as authorizers (establishing group membership) and elevators (which normally require some form of 2fa).
 

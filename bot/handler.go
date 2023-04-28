@@ -78,6 +78,7 @@ type worker struct {
 	BotUser         bool                        // set for bots/programs that should never match ambient messages
 	listedUser      bool                        // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
 	isCommand       bool                        // Was the message directed at the robot, dm or by mention
+	cmdMode         string                      // one of "alias", "name", "direct" - for disambiguation
 	directMsg       bool                        // if the message was sent by DM
 	msg, fmsg       string                      // the message text sent; without robot name/alias, and with for message matching
 	automaticTask   bool                        // set for scheduled & triggers jobs, where user security restrictions don't apply
@@ -186,14 +187,10 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	isCommand := false
 	logChannel := channelName
 
-	regexes.RLock()
-	preRegex := regexes.preRegex
-	postRegex := regexes.postRegex
-	bareRegex := regexes.bareRegex
-	regexes.RUnlock()
 	currentCfg.RLock()
 	ignoreUsers := currentCfg.ignoreUsers
 	ignoreUnlisted := currentCfg.ignoreUnlistedUsers
+	botAlias := currentCfg.alias
 	currentCfg.RUnlock()
 	if !listedUser && ignoreUnlisted {
 		Log(robot.Debug, "IgnoreUnlistedUsers - ignoring: %s / %s", inc.UserID, userName)
@@ -207,27 +204,61 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 			return
 		}
 	}
+	cmdMode := ""
 	if inc.BotMessage {
 		isCommand = true
 		message = messageFull
+		cmdMode = "alias" // technically not true, but makes more sense
 	} else {
+		regexes.RLock()
+		preRegex := regexes.preRegex
+		postRegex := regexes.postRegex
+		bareRegex := regexes.bareRegex
+		regexes.RUnlock()
 		if preRegex != nil {
 			matches := preRegex.FindStringSubmatch(messageFull)
-			if len(matches) == 2 {
+			if len(matches) == 4 {
 				isCommand = true
-				message = matches[1]
+				if len(matches[1]) > 0 {
+					cmdMode = "alias"
+				} else {
+					cmdMode = "name"
+				}
+				message = matches[3]
+			} else if len(matches) == 3 {
+				isCommand = true
+				if botAlias != 0 {
+					cmdMode = "alias"
+				} else {
+					cmdMode = "name"
+				}
+				message = matches[2]
 			}
 		}
 		if !isCommand && postRegex != nil {
 			matches := postRegex.FindStringSubmatch(messageFull)
 			if len(matches) == 3 {
 				isCommand = true
+				cmdMode = "name"
 				message = matches[1] + matches[2]
 			}
 		}
 		if !isCommand && bareRegex != nil {
-			if bareRegex.MatchString(messageFull) {
+			matches := bareRegex.FindStringSubmatch(messageFull)
+			if len(matches) == 3 {
 				isCommand = true
+				if len(matches[1]) > 0 {
+					cmdMode = "alias"
+				} else {
+					cmdMode = "name"
+				}
+			} else if len(matches) == 2 {
+				isCommand = true
+				if botAlias != 0 {
+					cmdMode = "alias"
+				} else {
+					cmdMode = "name"
+				}
 			}
 		}
 		if !isCommand {
@@ -237,6 +268,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 
 	if inc.DirectMessage {
 		isCommand = true
+		cmdMode = "direct"
 		logChannel = "(direct message)"
 		// We don't support threads in DMs; we blank out the thread
 		// so replies will match.
@@ -273,6 +305,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		id:              getWorkerID(),
 		repositories:    repolist,
 		isCommand:       isCommand,
+		cmdMode:         cmdMode,
 		directMsg:       inc.DirectMessage,
 		msg:             message,
 		fmsg:            messageFull,
@@ -280,7 +313,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	if w.directMsg {
 		Log(robot.Debug, "Received private message from user '%s'", userName)
 	} else {
-		Log(robot.Debug, "Message '%s'/id '%s' from user '%s' in channel '%s'/thread '%s' (threaded: %t); isCommand: %t", message, inc.MessageID, userName, logChannel, inc.ThreadID, inc.ThreadedMessage, isCommand)
+		Log(robot.Debug, "Message '%s'/id '%s' from user '%s' in channel '%s'/thread '%s' (threaded: %t); isCommand: %t; cmdMode: %s", message, inc.MessageID, userName, logChannel, inc.ThreadID, inc.ThreadedMessage, isCommand, cmdMode)
 	}
 	go w.handleMessage()
 }
