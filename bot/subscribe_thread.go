@@ -67,6 +67,34 @@ func (r Robot) Subscribe() (success bool) {
 	return true
 }
 
+// Unsubscribe unsubscribes from the thread, returning true on success
+// or false if no subscription was found. Generally, the return value
+// can be ignored.
+func (r Robot) Unsubscribe() (success bool) {
+	w := getLockedWorker(r.tid)
+	defer w.Unlock()
+	task, plugin, _ := getTask(r.currentTask)
+	if plugin == nil {
+		r.Log(robot.Error, "Unsubscribe called by non-plugin task '%s'", task.name)
+		return false
+	}
+	subscriptionSpec := subscriptionMatcher{w.Channel, w.ThreadID}
+	subscriptions.Lock()
+	defer subscriptions.Unlock()
+	if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
+		if task.name != subscription.plugin {
+			r.Log(robot.Error, "Unsubscribe - plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription held by other plugin '%s'", task.name, w.ThreadID, w.Channel, subscription.plugin)
+			return false
+		} else {
+			r.Log(robot.Debug, "Unsubscribe - plugin '%s' unsubscribing from thread '%s' in channel '%s'", task.name, w.ThreadID, w.Channel)
+			delete(subscriptions.m, subscriptionSpec)
+			return true
+		}
+	}
+	r.Log(robot.Warn, "Unsubscribe - plugin '%s' not subscribed to thread '%s' in channel '%s'", task.name, w.ThreadID, w.Channel)
+	return true
+}
+
 // expireSubscriptions is called by the brainTicker
 func expireSubscriptions(now time.Time) {
 	subscriptions.Lock()
