@@ -213,10 +213,6 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 		s.Log(robot.Debug, "Zero-length userID, ignoring message")
 		return
 	}
-	if (userID == s.botUserID) && !s.hearSelf {
-		s.Log(robot.Debug, "Ignoring message from self (HearSelf not set)")
-		return
-	}
 	text := message.Text
 	messageID := message.TimeStamp
 	ts := message.TimeStamp
@@ -254,6 +250,10 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 	}
 	if !ci.IsIM {
 		botMsg.ChannelName = ci.Name
+	}
+	if userID == s.botUserID {
+		botMsg.SelfMessage = true
+		s.Log(robot.Trace, "forwarding slack return message '%s' from the robot %s/%s", messageID, userName, userID)
 	}
 	s.IncomingMessage(botMsg)
 }
@@ -349,16 +349,6 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 		return
 	}
 	messageID := msg.Timestamp
-	selfMessage := false
-	if userID == s.botUserID {
-		if s.hearSelf {
-			s.Log(robot.Debug, "ignoring message from self (HearSelf not set)")
-			return
-		} else {
-			s.Log(robot.Debug, "forwarding message id '%s' from self (robot hearSelf)", messageID)
-			selfMessage = true
-		}
-	}
 	text := message.Text
 	// some bot messages don't have any text, so check for a fallback
 	if text == "" && len(msg.Attachments) > 0 {
@@ -381,7 +371,6 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 		MessageID:       messageID,
 		ThreadID:        threadID,
 		ThreadedMessage: threadedMessage,
-		SelfMessage:     selfMessage,
 		DirectMessage:   ci.IsIM,
 		BotMessage:      false,
 		MessageText:     text,
@@ -396,6 +385,10 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 	}
 	if !ci.IsIM {
 		botMsg.ChannelName = ci.Name
+	}
+	if userID == s.botUserID {
+		botMsg.SelfMessage = true
+		s.Log(robot.Trace, "forwarding slack return message '%s' from the robot %s/%s", messageID, userName, userID)
 	}
 	s.IncomingMessage(botMsg)
 }

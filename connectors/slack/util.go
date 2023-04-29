@@ -21,7 +21,6 @@ type slackConnector struct {
 	conn            *slack.RTM
 	sock            *socketmode.Client
 	maxMessageSplit int                       // The maximum # of ~4000 byte messages to send before truncating
-	hearSelf        bool                      // Whether to pass in messsages sent by the robot
 	running         bool                      // set on call to Run
 	botName         string                    // human-readable name of bot
 	botFullName     string                    // human-readble full name of the bot
