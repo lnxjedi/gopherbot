@@ -106,6 +106,9 @@ class Robot:
     def Subscribe(self):
         return self.Call(sys._getframe().f_code.co_name, {})["Boolean"]
 
+    def Unsubscribe(self):
+        return self.Call(sys._getframe().f_code.co_name, {})["Boolean"]
+
     def Elevate(self, immediate=False):
         return self.Call(sys._getframe().f_code.co_name, { "Immediate": immediate })["Boolean"]
 

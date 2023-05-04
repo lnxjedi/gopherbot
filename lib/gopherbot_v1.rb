@@ -99,6 +99,10 @@ class BaseBot
 		return callBotFunc(__method__, {})["Boolean"]
 	end
 
+	def Unsubscribe()
+		return callBotFunc(__method__, {})["Boolean"]
+	end
+
 	def Elevate(immediate=false)
 		return callBotFunc(__method__, { "Immediate" => immediate })["Boolean"]
 	end
