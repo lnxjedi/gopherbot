@@ -87,8 +87,7 @@ gbExtract() {
 
 CheckAdmin(){
 	local GB_FUNCARGS="{}"
-	local GB_FUNCNAME="CheckAdmin"
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
 	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
 	echo "$RETVAL"
 	if [ "$RETVAL" -eq "true" ]
@@ -159,7 +158,6 @@ RememberThread(){
 	then
 		SHARED=', "Shared": true'
 	fi
-	local GB_FUNCNAME="RememberThread"
 	local R_KEY=$(base64_encode "$1")
 	local R_MEMORY=$(base64_encode "$2")
 	local GB_FUNCARGS=$(cat <<EOF
@@ -170,7 +168,7 @@ RememberThread(){
 }
 EOF
 )
-	gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS"
+	gbPostJSON $FUNCNAME "$GB_FUNCARGS"
 	return 0
 }
 
@@ -197,7 +195,6 @@ Recall(){
 		SHARED=', "Shared": true'
 	fi
 	local R_KEY=$(base64_encode "$1")
-	local GB_FUNCNAME="Recall"
 	local GB_FUNCARGS=$(cat <<EOF
 {
 	"Key": "$R_KEY",
@@ -205,7 +202,7 @@ Recall(){
 }
 EOF
 )
-	local GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	local GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
 	local RETVAL=$(echo "$GB_RET" | jq -r .StrVal)
 	echo -n "$RETVAL"
 }
@@ -221,8 +218,7 @@ SetParameter() {
 }
 EOF
 )
-	local GB_FUNCNAME="SetParameter"
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS" $FORMAT)
 	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
 	if [ "$RETVAL" = "true" ]
 	then
@@ -242,8 +238,7 @@ ExtendNamespace() {
 }
 EOF
 )
-	local GB_FUNCNAME="ExtendNamespace"
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS" $FORMAT)
 	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
 	if [ "$RETVAL" = "true" ]
 	then
@@ -261,8 +256,7 @@ SetWorkingDirectory() {
 }
 EOF
 )
-	local GB_FUNCNAME="SetWorkingDirectory"
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS" $FORMAT)
 	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
 	if [ "$RETVAL" = "true" ]
 	then
@@ -333,15 +327,15 @@ EOF
 }
 
 AddCommand(){
-	_cmdTask "AddCommand" "$@"
+	_cmdTask $FUNCNAME "$@"
 }
 
 FailCommand(){
-	_cmdTask "FailCommand" "$@"
+	_cmdTask $FUNCNAME "$@"
 }
 
 FinalCommand(){
-	_cmdTask "FinalCommand" "$@"
+	_cmdTask $FUNCNAME "$@"
 }
 
 Exclusive(){
@@ -358,8 +352,7 @@ Exclusive(){
 }
 EOF
 )
-	local GB_FUNCNAME="Exclusive"
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
 	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
 	if [ "$RETVAL" = "true" ]
 	then
@@ -381,8 +374,7 @@ Elevate(){
 }
 EOF
 )
-	local GB_FUNCNAME="Elevate"
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
 	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
 	if [ "$RETVAL" = "true" ]
 	then
@@ -394,7 +386,6 @@ EOF
 
 GetBotAttribute(){
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="GetBotAttribute"
 	local ATTR="$1"
 	GB_FUNCARGS=$(cat <<EOF
 {
@@ -402,14 +393,13 @@ GetBotAttribute(){
 }
 EOF
 )
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
 	gbExtract "$GB_RET" Attribute
 	gbBotRet "$GB_RET"
 }
 
 GetSenderAttribute(){
 	local GB_FUNCARGS
-	local GB_FUNCNAME="GetSenderAttribute"
 	local ATTR="$1"
 	GB_FUNCARGS=$(cat <<EOF
 {
@@ -417,14 +407,13 @@ GetSenderAttribute(){
 }
 EOF
 )
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
 	gbExtract "$GB_RET" Attribute
 	gbBotRet "$GB_RET"
 }
 
 GetUserAttribute(){
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="GetUserAttribute"
 	local GUA_USER="$1"
 	local ATTR="$2"
 	GB_FUNCARGS=$(cat <<EOF
@@ -434,14 +423,13 @@ GetUserAttribute(){
 }
 EOF
 )
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
 	gbExtract "$GB_RET" Attribute
 	gbBotRet "$GB_RET"
 }
 
 Log(){
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="Log"
 	local GLM_LEVEL="$1"
 	local GLM_MESSAGE=$(base64_encode "$2")
 	GB_FUNCARGS=$(cat <<EOF
@@ -452,7 +440,7 @@ Log(){
 }
 EOF
 )
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
 	gbBotRet "$GB_RET"
 }
 
@@ -464,7 +452,6 @@ PromptUserChannelThreadForReply(){
 	local FORMAT
 	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="PromptUserChannelThreadForReply"
 	local REGEX="$1"
 	local PUSER="$2"
 	local PCHANNEL="$3"
@@ -483,7 +470,7 @@ EOF
 	local RETVAL
 	for TRY in 0 1 2
 	do
-		GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+		GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS" $FORMAT)
 		gbBotRet "$GB_RET"
 		RETVAL=$?
 		if [ $RETVAL -eq $GBRET_RetryPrompt ]
@@ -555,7 +542,6 @@ SendUserMessage(){
 	local FORMAT
 	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="SendUserMessage"
 	local SUM_USER=$1
 	shift
 	local MESSAGE="$*"
@@ -569,7 +555,7 @@ SendUserMessage(){
 }
 EOF
 )
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS" $FORMAT)
 	gbBotRet "$GB_RET"
 }
 
@@ -584,7 +570,6 @@ SendUserChannelThreadMessage(){
 	local FORMAT
 	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="SendUserChannelThreadMessage"
 	local SUCTM_USER=$1
 	local SUCTM_CHANNEL=$2
 	local SUCTM_THREAD="$3"
@@ -602,7 +587,7 @@ SendUserChannelThreadMessage(){
 }
 EOF
 )
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS" $FORMAT)
 	gbBotRet "$GB_RET"
 }
 
@@ -616,7 +601,6 @@ SendChannelThreadMessage(){
 	local FORMAT
 	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi
 	local GB_FUNCARGS GB_RET
-	local GB_FUNCNAME="SendChannelThreadMessage"
 	local SCTM_CHANNEL=$1
 	local SCTM_THREAD="$2"
 	shift 2
@@ -632,7 +616,7 @@ SendChannelThreadMessage(){
 }
 EOF
 )
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS" $FORMAT)
 	gbBotRet "$GB_RET"
 }
 
