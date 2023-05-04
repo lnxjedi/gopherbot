@@ -101,13 +101,13 @@ class Robot:
         return json.loads(body)
 
     def CheckAdmin(self):
-        return self.Call("CheckAdmin", {})["Boolean"]
+        return self.Call(sys._getframe().f_code.co_name, {})["Boolean"]
 
     def Subscribe(self):
-        return self.Call("Subscribe", {})["Boolean"]
+        return self.Call(sys._getframe().f_code.co_name, {})["Boolean"]
 
     def Elevate(self, immediate=False):
-        return self.Call("Elevate", { "Immediate": immediate })["Boolean"]
+        return self.Call(sys._getframe().f_code.co_name, { "Immediate": immediate })["Boolean"]
 
     def Pause(self, s):
         time.sleep(s)
@@ -116,72 +116,72 @@ class Robot:
         return sa[random.randint(0, (len(sa)-1))]
 
     def GetTaskConfig(self):
-        return self.Call("GetTaskConfig", {})
+        return self.Call(sys._getframe().f_code.co_name, {})
 
     def CheckoutDatum(self, key, rw):
-        ret = self.Call("CheckoutDatum", { "Key": key, "RW": rw })
+        ret = self.Call(sys._getframe().f_code.co_name, { "Key": key, "RW": rw })
         return Memory(key, ret)
 
     def SpawnJob(self, name, args):
-        return self.Call("SpawnJob", { "Name": name, "CmdArgs": args })["RetVal"]
+        return self.Call(sys._getframe().f_code.co_name, { "Name": name, "CmdArgs": args })["RetVal"]
 
     def AddJob(self, name, args):
-        return self.Call("AddJob", { "Name": name, "CmdArgs": args })["RetVal"]
+        return self.Call(sys._getframe().f_code.co_name, { "Name": name, "CmdArgs": args })["RetVal"]
 
     def AddTask(self, name, args):
-        return self.Call("AddTask", { "Name": name, "CmdArgs": args })["RetVal"]
+        return self.Call(sys._getframe().f_code.co_name, { "Name": name, "CmdArgs": args })["RetVal"]
 
     def FinalTask(self, name, args):
-        return self.Call("FinalTask", { "Name": name, "CmdArgs": args })["RetVal"]
+        return self.Call(sys._getframe().f_code.co_name, { "Name": name, "CmdArgs": args })["RetVal"]
 
     def FailTask(self, name, args):
-        return self.Call("FailTask", { "Name": name, "CmdArgs": args })["RetVal"]
+        return self.Call(sys._getframe().f_code.co_name, { "Name": name, "CmdArgs": args })["RetVal"]
 
     def AddCommand(self, plugin, cmd):
-        return self.Call("AddCommand", { "Plugin": plugin, "Command": cmd })["RetVal"]
+        return self.Call(sys._getframe().f_code.co_name, { "Plugin": plugin, "Command": cmd })["RetVal"]
 
     def FinalCommand(self, plugin, cmd):
-        return self.Call("FinalCommand", { "Plugin": plugin, "Command": cmd })["RetVal"]
+        return self.Call(sys._getframe().f_code.co_name, { "Plugin": plugin, "Command": cmd })["RetVal"]
 
     def FailCommand(self, plugin, cmd):
-        return self.Call("FailCommand", { "Plugin": plugin, "Command": cmd })["RetVal"]
+        return self.Call(sys._getframe().f_code.co_name, { "Plugin": plugin, "Command": cmd })["RetVal"]
 
     def SetParameter(self, name, value):
-        return self.Call("SetParameter", { "Name": name, "Value": value })["Boolean"]
+        return self.Call(sys._getframe().f_code.co_name, { "Name": name, "Value": value })["Boolean"]
 
     def Exclusive(self, tag, queue_task=False):
-        return self.Call("Exclusive", { "Tag": tag, "QueueTask": queue_task })["Boolean"]
+        return self.Call(sys._getframe().f_code.co_name, { "Tag": tag, "QueueTask": queue_task })["Boolean"]
 
     def ExtendNamespace(self, ns, hist):
-        return self.Call("ExtendNamespace", { "Extend": ns, "Histories": hist })["Boolean"]
+        return self.Call(sys._getframe().f_code.co_name, { "Extend": ns, "Histories": hist })["Boolean"]
 
     def SetWorkingDirectory(self, path):
-        return self.Call("SetWorkingDirectory", { "Path": path })["Boolean"]
+        return self.Call(sys._getframe().f_code.co_name, { "Path": path })["Boolean"]
 
     def GetRepoData(self):
-        return self.Call("GetRepoData", {})
+        return self.Call(sys._getframe().f_code.co_name, {})
 
     def Log(self, level, msg):
-        self.Call("Log", { "Level": level, "Message": msg })
+        self.Call(sys._getframe().f_code.co_name, { "Level": level, "Message": msg })
 
     def CheckinDatum(self, m):
-        self.Call("CheckinDatum", { "Key": m.key, "Token": m.lock_token })
+        self.Call(sys._getframe().f_code.co_name, { "Key": m.key, "Token": m.lock_token })
 
     def UpdateDatum(self, m):
-        ret = self.Call("UpdateDatum", { "Key": m.key, "Token": m.lock_token,
+        ret = self.Call(sys._getframe().f_code.co_name, { "Key": m.key, "Token": m.lock_token,
         "Datum": m.datum })
         return ret["RetVal"]
 
     def GetSenderAttribute(self, attr):
-        ret = self.Call("GetSenderAttribute", { "Attribute": attr })
+        ret = self.Call(sys._getframe().f_code.co_name, { "Attribute": attr })
         return Attribute(ret)
 
     def GetUserAttribute(self, user, attr):
-        ret = self.Call("GetUserAttribute", { "User": user, "Attribute": attr })
+        ret = self.Call(sys._getframe().f_code.co_name, { "User": user, "Attribute": attr })
         return Attribute(ret)
 
     def GetBotAttribute(self, attr):
-        ret = self.Call("GetBotAttribute", { "Attribute": attr })
+        ret = self.Call(sys._getframe().f_code.co_name, { "Attribute": attr })
         return Attribute(ret)
 
     def Remember(k, v, shared=False):
@@ -193,14 +193,14 @@ class Robot:
         return self.Remember("context:"+k, v, False)
 
     def RememberThread(k, v, shared=False):
-        ret = self.Call("RememberThread", { "Key": k, "Value": v, "Shared": shared })
+        ret = self.Call(sys._getframe().f_code.co_name, { "Key": k, "Value": v, "Shared": shared })
         return ret["RetVal"]
 
     def RememberContextThread(k, v):
         return self.RememberThread("context:"+k, v, False)
 
     def Recall(self, memory, shared=False):
-        ret = self.Call("Recall", { "Key": memory, "Shared": shared })
+        ret = self.Call(sys._getframe().f_code.co_name, { "Key": memory, "Shared": shared })
         return ret["StrVal"]
 
     def PromptForReply(self, regex_id, prompt, format=""):
@@ -217,7 +217,7 @@ class Robot:
 
     def PromptUserChannelThreadForReply(self, regex_id, user, channel, thread, prompt, format=""):
         for i in range(0, 3):
-            rep = self.Call("PromptUserChannelThreadForReply", { "RegexID": regex_id, "User": user, "Channel": channel, "Thread": thread, "Prompt": prompt }, format)
+            rep = self.Call(sys._getframe().f_code.co_name, { "RegexID": regex_id, "User": user, "Channel": channel, "Thread": thread, "Prompt": prompt }, format)
             if rep["RetVal"] == self.RetryPrompt:
                 continue
             return Reply(rep)
@@ -229,12 +229,12 @@ class Robot:
         return self.SendChannelThreadMessage(channel, "", message, format)
 
     def SendChannelThreadMessage(self, channel, thread, message, format=""):
-        ret = self.Call("SendChannelThreadMessage", { "Channel": channel, "Thread": thread,
+        ret = self.Call(sys._getframe().f_code.co_name, { "Channel": channel, "Thread": thread,
         "Message": message }, format)
         return ret["RetVal"]
 
     def SendUserMessage(self, user, message, format=""):
-        ret = self.Call("SendUserMessage", { "User": user,
+        ret = self.Call(sys._getframe().f_code.co_name, { "User": user,
         "Message": message }, format)
         return ret["RetVal"]
 
@@ -242,7 +242,7 @@ class Robot:
         return self.SendUserChannelThreadMessage(user, channel, "", message, format)
 
     def SendUserChannelThreadMessage(self, user, channel, thread, message, format=""):
-        ret = self.Call("SendUserChannelThreadMessage", { "User": user,
+        ret = self.Call(sys._getframe().f_code.co_name, { "User": user,
         "Channel": channel, "Thread": thread, "Message": message }, format)
         return ret["RetVal"]
 
