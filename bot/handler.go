@@ -268,7 +268,12 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 
 	if inc.DirectMessage {
 		isCommand = true
-		cmdMode = "direct"
+		// When the user addresses the robot by name or alias in a DM,
+		// we stick with that, otherwise we use "direct" so the
+		// plugin can try to be smart.
+		if len(cmdMode) == 0 {
+			cmdMode = "direct"
+		}
 		logChannel = "(direct message)"
 		// We don't support threads in DMs; we blank out the thread
 		// so replies will match.
