@@ -50,19 +50,25 @@ show_access() {
 check_profile() {
     if [ ! "$GOPHER_PROFILE" ]
     then
-        echo "Missing profile argument" 
+        echo "Missing profile argument"
         exit 1
     fi
 
     if [ ! -e "$GOPHER_PROFILE" ]
     then
-        echo "Profile file not found: $GOPHER_PROFILE"
-        exit 1
+        # Check for ${GOPHER_PROFILE}.env file
+        if [ -e "${GOPHER_PROFILE}.env" ]
+        then
+            GOPHER_PROFILE="${GOPHER_PROFILE}.env"
+        else
+            echo "No profile found for ${GOPHER_PROFILE}"
+            exit 1
+        fi
     fi
 }
 
 read_profile() {
-    for CFG_VAR in CONTAINERNAME SSH_KEY_PATH
+    for CFG_VAR in CONTAINERNAME SSH_KEY_PATH FORWARD_SSH
     do
         RAW=$(grep "^#|$CFG_VAR" $GOPHER_PROFILE)
         echo "${CFG_VAR}=${RAW#*=}"
@@ -83,22 +89,29 @@ wait_for_container() {
 }
 
 copy_ssh() {
-    if [ "$SSH_KEY_PATH" ]
-    then
-        echo "Copying $SSH_KEY_PATH to $CONTAINERNAME:/home/bot/.ssh/id_ssh ..."
-        docker cp "$SSH_KEY_PATH" $CONTAINERNAME:/home/bot/.ssh/id_ssh
-        docker exec -it -u root $CONTAINERNAME /bin/bash -c "chown bot:bot /home/bot/.ssh/id_ssh; chmod 0600 /home/bot/.ssh/id_ssh"
-    fi
+    echo "Copying $SSH_KEY_PATH to $CONTAINERNAME:/home/bot/.ssh/id_ssh ..."
+    docker cp "$SSH_KEY_PATH" $CONTAINERNAME:/home/bot/.ssh/id_ssh
+    docker exec -it -u root $CONTAINERNAME /bin/bash -c "chown bot:bot /home/bot/.ssh/id_ssh; chmod 0600 /home/bot/.ssh/id_ssh"
+}
+
+update_container_uid() {
+    EXTERNAL_UID=$(id -u)
+    EXTERNAL_GID=$(id -g)
+    echo "Updating the container for forwarding the local ssh-agent ..."
+    docker exec -u root $CONTAINERNAME /bin/sh -c "sed -i 's/^bot:x:[0-9]*:[0-9]*:/bot:x:$EXTERNAL_UID:$EXTERNAL_GID:/' /etc/passwd"
+    docker exec -u root $CONTAINERNAME /bin/sh -c "sed -i 's/^bot:x:[0-9]*:/bot:x:$EXTERNAL_GID:/' /etc/group"
+    docker exec -u root $CONTAINERNAME chown -R $EXTERNAL_UID:$EXTERNAL_GID /home/bot /opt
 }
 
 case $COMMAND in
 profile )
-    while getopts ":hk:" OPT; do
+    while getopts ":hfk:" OPT; do
         case $OPT in
         h ) cat <<"EOF"
 Generate a profile for working with a gopherbot robot container:
 ./cbot.sh profile (-k path/to/ssh/private/key) <container-name> "<full name>" <email>
  -k (path) - Load an ssh private key when using this profile
+ -f        - Forward the local ssh-agent when using this profile
 
 Example:
 $ ./cbot.sh profile -k ~/.ssh/id_rsa bishop "David Parsley" parsley@linuxjedi.org | tee bishop.env
@@ -114,6 +127,9 @@ EOF
             ;;
         k )
             SSH_KEY_PATH="$OPTARG"
+            ;;
+        f )
+            FORWARD_SSH="true"
             ;;
         \?)
             [ "$OPT" != "h" ] && echo "Invalid option: $OPTARG"
@@ -144,6 +160,10 @@ EOF
     then
         echo "#|SSH_KEY_PATH=${SSH_KEY_PATH}"
     fi
+    if [ "$FORWARD_SSH" ]
+    then
+        echo "#|FORWARD_SSH=true"
+    fi
     exit 0
     ;;
 list | ls )
@@ -157,7 +177,7 @@ Example:
 $ ./cbot.sh list
 CONTAINER ID   STATUS             NAMES        environment         access
 0f50a4ce6b2a   Up 37 seconds      bishop-dev   robot/development   http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=XXXXXXX
-1c470fd80c31   Up About an hour   clu          robot/production 
+1c470fd80c31   Up About an hour   clu          robot/production
 EOF
             exit 0
             ;;
@@ -476,7 +496,10 @@ EOF
         then
             echo "... started"
         else
-            copy_ssh
+            if [ "$SSH_KEY_PATH" ]
+            then
+                copy_ssh
+            fi
             ACCESS_URL=$(docker inspect --format='{{index .Config.Labels "access"}}' $CONTAINERNAME)
             RANDOM_TOKEN=${ACCESS_URL##*=}
             show_access $ACCESS_URL
@@ -500,16 +523,28 @@ EOF
             --name $CONTAINERNAME $IMAGE_SPEC
     else
         RANDOM_TOKEN="$(openssl rand -hex 21)"
-        docker run -d \
+        if [ "$SSH_KEY_PATH" ]
+        then
+            CONTAINER_COMMAND=ssh-agent
+        elif [ "$FORWARD_SSH" ]
+        then
+            EXTERNAL_UID=$(id -u)
+            EXTERNAL_GID=$(id -g)
+            SSH_FORWARDING="-u $EXTERNAL_UID:$EXTERNAL_GID -v $(readlink -f $SSH_AUTH_SOCK):/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent"
+        fi
+
+        docker run -d $SSH_FORWARDING \
             -p 127.0.0.1:7777:7777 \
             -p 127.0.0.1:8888:8888 \
             --env-file $GOPHER_PROFILE \
+            --entrypoint /usr/bin/tini \
             -e GOPHER_IDE="$CONTAINERNAME" \
             -l type=gopherbot/robot \
             -l environment=robot/development \
             -l access=$(get_access) \
             --name $CONTAINERNAME $IMAGE_SPEC \
-            --connection-token $RANDOM_TOKEN
+            -- $CONTAINER_COMMAND /bin/sh -c \
+            "exec \${OPENVSCODE_SERVER_ROOT}/bin/openvscode-server --host 0.0.0.0 --port 7777 --connection-token=$RANDOM_TOKEN"
     fi
     wait_for_container
     if [ ! "$SUCCESS" ]
@@ -520,7 +555,13 @@ EOF
 
     if [ ! "$PROD" ]
     then
-        copy_ssh
+        if [ "$SSH_KEY_PATH" ]
+        then
+            copy_ssh
+        elif [ "$FORWARD_SSH" ]
+        then
+            update_container_uid
+        fi
         show_access
     fi
     ;;
