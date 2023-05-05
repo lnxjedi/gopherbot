@@ -40,6 +40,7 @@ type botLoggerInfo struct {
 	buffLine  int
 	pageLines int
 	buffPages int
+	totLines  int // total number of lines logged, ever
 	sync.Mutex
 }
 
@@ -145,7 +146,7 @@ func logLevelToStr(l robot.LogLevel) string {
 func logPage(p int) ([]string, bool) {
 	wrapped := false
 	botLogger.Lock()
-	fmt.Printf("DEBUG: lines in log: %d\n", len(botLogger.buffer))
+	fmt.Printf("DEBUG: lines in log: %d\n", botLogger.totLines)
 	page := p % botLogger.buffPages
 	if page != p {
 		wrapped = true
@@ -229,6 +230,7 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 			botLogger.Lock()
 			botLogger.buffer[botLogger.buffLine] = tsMsg
 			botLogger.buffLine = (botLogger.buffLine + 1) % (buffLines - 1)
+			botLogger.totLines++
 			botLogger.Unlock()
 		}
 		return true
