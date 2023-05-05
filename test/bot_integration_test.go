@@ -310,7 +310,7 @@ func TestVisibility(t *testing.T) {
 }
 
 func TestBuiltins(t *testing.T) {
-	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("test/membrain", "/tmp/bottest-builtins.log", t)
 
 	tests := []testItem{
 		{aliceID, general, ";help log", []testc.TestMessage{{null, general, "direct message only"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
