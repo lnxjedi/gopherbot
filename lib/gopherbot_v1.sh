@@ -100,8 +100,20 @@ CheckAdmin(){
 
 Subscribe(){
 	local GB_FUNCARGS="{}"
-	local GB_FUNCNAME="Subscribe"
-	GB_RET=$(gbPostJSON $GB_FUNCNAME "$GB_FUNCARGS")
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
+	echo "$RETVAL"
+	if [ "$RETVAL" -eq "true" ]
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
+Unsubscribe(){
+	local GB_FUNCARGS="{}"
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
 	local RETVAL=$(echo "$GB_RET" | jq .Boolean)
 	echo "$RETVAL"
 	if [ "$RETVAL" -eq "true" ]
@@ -291,23 +303,23 @@ EOF
 }
 
 AddJob(){
-	_pipeTask "AddJob" "$@"
+	_pipeTask $FUNCNAME "$@"
 }
 
 AddTask(){
-	_pipeTask "AddTask" "$@"
+	_pipeTask $FUNCNAME "$@"
 }
 
 FinalTask(){
-	_pipeTask "FinalTask" "$@"
+	_pipeTask $FUNCNAME "$@"
 }
 
 FailTask(){
-	_pipeTask "FailTask" "$@"
+	_pipeTask $FUNCNAME "$@"
 }
 
 SpawnJob(){
-	_pipeTask "SpawnJob" "$@"
+	_pipeTask $FUNCNAME "$@"
 }
 
 _cmdTask(){
@@ -366,7 +378,7 @@ Elevate(){
 	IMMEDIATE="false"
 	if [ -n "$1" ]
 	then
-		IMMEDIATE = $1
+		IMMEDIATE="$1"
 	fi
 	local GB_FUNCARGS=$(cat <<EOF
 {
