@@ -222,15 +222,21 @@ loop:
 			// Expire thread subscriptions - see thread_subscriptions.go
 			expireSubscriptions(now)
 			ephemeralMemories.Lock()
+			modified := false
 			for context, memory := range ephemeralMemories.m {
 				if len(context.thread) > 0 {
 					if now.Sub(memory.timestamp) > threadMemoryDuration {
 						delete(ephemeralMemories.m, context)
+						modified = true
 					}
 				} else {
 					if now.Sub(memory.timestamp) > channelMemoryDuration {
 						delete(ephemeralMemories.m, context)
+						modified = true
 					}
+				}
+				if modified {
+					saveEphemeralMemories()
 				}
 			}
 			ephemeralMemories.Unlock()
@@ -419,6 +425,9 @@ func (r Robot) Remember(key, value string, shared bool) {
 	Log(robot.Trace, "storing ephemeral memory \"%s\" -> \"%s\"", key, value)
 	ephemeralMemories.Lock()
 	ephemeralMemories.m[context] = memory
+	if len(context.thread) > 0 {
+		saveEphemeralMemories()
+	}
 	ephemeralMemories.Unlock()
 }
 
@@ -431,6 +440,7 @@ func (r Robot) RememberThread(key, value string, shared bool) {
 	Log(robot.Trace, "storing ephemeral memory \"%s\" -> \"%s\"", key, value)
 	ephemeralMemories.Lock()
 	ephemeralMemories.m[context] = memory
+	saveEphemeralMemories()
 	ephemeralMemories.Unlock()
 }
 

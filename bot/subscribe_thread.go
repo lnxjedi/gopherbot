@@ -3,6 +3,7 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,6 +17,12 @@ to the plugin with a command of "subscribed". This is meant to replace message
 matchers that match all messages.
 */
 
+/*
+NOTE on Marshalling, Unmarshalling and locks:
+The Go linter is complaining about copying locks, but in reality we're not using the lock
+that's being copied anyway.
+*/
+
 const subscriptionTimeout = 14 * 24 * time.Hour
 
 const subscriptionMemKey = "bot:_subscriptions"
@@ -27,8 +34,8 @@ type subscriptionMatcher struct {
 }
 
 type subscriber struct {
-	plugin    string    // the plugin subscribed
-	timestamp time.Time // for expiring after subscriptionTimeout
+	Plugin    string    // the plugin subscribed
+	Timestamp time.Time // for expiring after subscriptionTimeout
 }
 
 type tSubs struct {
@@ -40,19 +47,17 @@ var subscriptions = tSubs{
 	m: make(map[subscriptionMatcher]subscriber),
 }
 
-func (s *tSubs) MarshalJSON() ([]byte, error) {
-	s.Lock()
-	defer s.Unlock()
-
+// the lock should be held on entry and released after return
+func (s tSubs) MarshalJSON() ([]byte, error) {
 	tempMap := make(map[string]subscriber)
 	for k, v := range s.m {
 		keyString := fmt.Sprintf("%s{|}%s", k.channel, k.thread)
 		tempMap[keyString] = v
 	}
-
 	return json.Marshal(tempMap)
 }
 
+// No locking needed - called before multi-threaded
 func (s *tSubs) UnmarshalJSON(data []byte) error {
 	var tempMap map[string]subscriber
 	err := json.Unmarshal(data, &tempMap)
@@ -60,16 +65,15 @@ func (s *tSubs) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	s.Lock()
-	defer s.Unlock()
+	Log(robot.Debug, "Unmarshalled data: %v", tempMap)
 
 	s.m = make(map[subscriptionMatcher]subscriber)
 	for k, v := range tempMap {
-		var key subscriptionMatcher
-		_, err := fmt.Sscanf(k, "%s{|}%s", &key.channel, &key.thread)
-		if err != nil {
-			return err
+		parts := strings.SplitN(k, "{|}", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid key string format: %s", k)
 		}
+		key := subscriptionMatcher{channel: parts[0], thread: parts[1]}
 		s.m[key] = v
 	}
 
@@ -85,7 +89,7 @@ func restoreSubscriptions() {
 				Log(robot.Info, "Restored '%d' subscriptions from long-term memory", len(storedSubscriptions.m))
 				now := time.Now()
 				for _, s := range storedSubscriptions.m {
-					s.timestamp = now
+					s.Timestamp = now
 				}
 				subscriptions.m = storedSubscriptions.m
 			} else {
@@ -107,7 +111,12 @@ func saveSubscriptions() {
 	ss_tok, _, ss_ret := checkoutDatum(subscriptionMemKey, &storedSubscriptions, true)
 	if ss_ret == robot.Ok {
 		storedSubscriptions.m = subscriptions.m
-		updateDatum(subscriptionMemKey, ss_tok, storedSubscriptions)
+		ret := updateDatum(subscriptionMemKey, ss_tok, storedSubscriptions)
+		if ret == robot.Ok {
+			Log(robot.Debug, "Successfully saved '%d' long-term subscription memories", len(storedSubscriptions.m))
+		} else {
+			Log(robot.Error, "Error '%s' updating long-term subscription memory", ret)
+		}
 	} else {
 		Log(robot.Error, "Saving suscriptions to long-term memory: error '%s' getting datum", ss_ret)
 	}
@@ -129,8 +138,8 @@ func (r Robot) Subscribe() (success bool) {
 	subscriptions.Lock()
 	defer subscriptions.Unlock()
 	if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
-		if task.name != subscription.plugin {
-			r.Log(robot.Error, "Subscribe - plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription already held by plugin '%s'", task.name, w.ThreadID, w.Channel, subscription.plugin)
+		if task.name != subscription.Plugin {
+			r.Log(robot.Error, "Subscribe - plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription already held by plugin '%s'", task.name, w.ThreadID, w.Channel, subscription.Plugin)
 			return false
 		} else {
 			r.Log(robot.Debug, "Subscribe - already subscribed; plugin '%s' subscribing to thread '%s' in channel '%s'", task.name, w.ThreadID, w.Channel)
@@ -138,8 +147,8 @@ func (r Robot) Subscribe() (success bool) {
 		}
 	}
 	subscriptions.m[subscriptionSpec] = subscriber{
-		plugin:    task.name,
-		timestamp: time.Now(),
+		Plugin:    task.name,
+		Timestamp: time.Now(),
 	}
 	saveSubscriptions()
 	r.Log(robot.Debug, "Subscribe - plugin '%s' successfully subscribed to thread '%s' in channel '%s'", task.name, w.ThreadID, w.Channel)
@@ -161,8 +170,8 @@ func (r Robot) Unsubscribe() (success bool) {
 	subscriptions.Lock()
 	defer subscriptions.Unlock()
 	if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
-		if task.name != subscription.plugin {
-			r.Log(robot.Error, "Unsubscribe - plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription held by other plugin '%s'", task.name, w.ThreadID, w.Channel, subscription.plugin)
+		if task.name != subscription.Plugin {
+			r.Log(robot.Error, "Unsubscribe - plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription held by other plugin '%s'", task.name, w.ThreadID, w.Channel, subscription.Plugin)
 			return false
 		} else {
 			r.Log(robot.Debug, "Unsubscribe - plugin '%s' unsubscribing from thread '%s' in channel '%s'", task.name, w.ThreadID, w.Channel)
@@ -181,10 +190,10 @@ func expireSubscriptions(now time.Time) {
 	subscriptions.Lock()
 	defer subscriptions.Unlock()
 	for subscription, subscriber := range subscriptions.m {
-		if now.Sub(subscriber.timestamp) > subscriptionTimeout {
+		if now.Sub(subscriber.Timestamp) > subscriptionTimeout {
 			delete(subscriptions.m, subscription)
 			modified = true
-			Log(robot.Debug, "Subscribe - expiring subscription for plugin '%s' to thread '%s' in channel '%s'", subscriber.plugin, subscription.thread, subscription.channel)
+			Log(robot.Debug, "Subscribe - expiring subscription for plugin '%s' to thread '%s' in channel '%s'", subscriber.Plugin, subscription.thread, subscription.channel)
 		}
 	}
 	if modified {

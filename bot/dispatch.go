@@ -13,6 +13,8 @@ const keepListeningDuration = 77 * time.Second
 
 var spaceRe = regexp.MustCompile(`\s+`)
 
+const lastMsgKey = "lastMsg"
+
 // checkPluginMatchersAndRun checks either command matchers (for messages directed at
 // the robot), or message matchers (for ambient commands that need not be
 // directed at the robot), and calls the plugin if it matches. Note: this
@@ -86,6 +88,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 				if len(matcher.Contexts) > 0 {
 					// Resolve & store "it" with ephemeral memories
 					ts := time.Now()
+					modified := false
 					ephemeralMemories.Lock()
 					for i, contextLabel := range matcher.Contexts {
 						if contextLabel != "" {
@@ -114,6 +117,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 										// a match. Failing a match, matched should be set to false.
 										s.timestamp = ts
 										ephemeralMemories.m[ctx] = s
+										modified = true
 									} else {
 										w.Say("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel)
 										ephemeralMemories.Unlock()
@@ -123,11 +127,15 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 									// Didn't match generic, store the value in ephemeral context memory
 									s := ephemeralMemory{cmdArgs[i], ts}
 									ephemeralMemories.m[ctx] = s
+									modified = true
 								}
 							} else {
 								Log(robot.Error, "Plugin '%s', command '%s', has more contexts than match groups", task.name, matcher.Command)
 							}
 						}
+					}
+					if modified {
+						saveEphemeralMemories()
 					}
 					ephemeralMemories.Unlock()
 				}
@@ -183,7 +191,7 @@ func (w *worker) handleMessage() {
 	}
 	messageMatched := false
 	ts := time.Now()
-	lastMsgContext := w.makeMemoryContext("lastMsg")
+	lastMsgContext := w.makeMemoryContext(lastMsgKey)
 	var last ephemeralMemory
 	var ok bool
 	// First, see if the robot was waiting on a reply; replies from
@@ -329,11 +337,11 @@ func (w *worker) handleMessage() {
 		subscriptionSpec := subscriptionMatcher{w.Channel, w.ThreadID}
 		subscriptions.Lock()
 		if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
-			subscription.timestamp = time.Now()
+			subscription.Timestamp = time.Now()
 			subscriptions.Unlock()
-			t := w.tasks.getTaskByName(subscription.plugin)
+			t := w.tasks.getTaskByName(subscription.Plugin)
 			if w.Incoming.UserID != w.cfg.botinfo.UserID {
-				Log(robot.Debug, "unmatched message being routed to thread subscriber '%s' in thread '%s', channel '%s'", subscription.plugin, w.ThreadID, w.Channel)
+				Log(robot.Debug, "unmatched message being routed to thread subscriber '%s' in thread '%s', channel '%s'", subscription.Plugin, w.ThreadID, w.Channel)
 				w.startPipeline(nil, t, plugThreadSubscription, "subscribed", w.fmsg)
 			} else {
 				Log(robot.Debug, "ignoring message from the robot after subscription matched for thread subscriber '%s' in thread '%s', channel '%s'")
