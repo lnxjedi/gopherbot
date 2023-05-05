@@ -39,7 +39,8 @@ type subscriber struct {
 }
 
 type tSubs struct {
-	m map[subscriptionMatcher]subscriber
+	m     map[subscriptionMatcher]subscriber
+	dirty bool
 	sync.Mutex
 }
 
@@ -105,12 +106,14 @@ func restoreSubscriptions() {
 	}
 }
 
-// NOTE: subscriptions is already locked on entry, and unlocks after exit
 func saveSubscriptions() {
 	var storedSubscriptions tSubs
 	ss_tok, _, ss_ret := checkoutDatum(subscriptionMemKey, &storedSubscriptions, true)
 	if ss_ret == robot.Ok {
+		subscriptions.Lock()
 		storedSubscriptions.m = subscriptions.m
+		subscriptions.dirty = false
+		subscriptions.Unlock()
 		ret := updateDatum(subscriptionMemKey, ss_tok, storedSubscriptions)
 		if ret == robot.Ok {
 			Log(robot.Debug, "Successfully saved '%d' long-term subscription memories", len(storedSubscriptions.m))
@@ -150,7 +153,7 @@ func (r Robot) Subscribe() (success bool) {
 		Plugin:    task.name,
 		Timestamp: time.Now(),
 	}
-	saveSubscriptions()
+	subscriptions.dirty = true
 	r.Log(robot.Debug, "Subscribe - plugin '%s' successfully subscribed to thread '%s' in channel '%s'", task.name, w.ThreadID, w.Channel)
 	return true
 }
@@ -176,7 +179,7 @@ func (r Robot) Unsubscribe() (success bool) {
 		} else {
 			r.Log(robot.Debug, "Unsubscribe - plugin '%s' unsubscribing from thread '%s' in channel '%s'", task.name, w.ThreadID, w.Channel)
 			delete(subscriptions.m, subscriptionSpec)
-			saveSubscriptions()
+			subscriptions.dirty = true
 			return true
 		}
 	}
@@ -185,18 +188,16 @@ func (r Robot) Unsubscribe() (success bool) {
 }
 
 // expireSubscriptions is called by the brainTicker
-func expireSubscriptions(now time.Time) {
-	modified := false
+func expireSubscriptions(now time.Time) bool {
 	subscriptions.Lock()
-	defer subscriptions.Unlock()
 	for subscription, subscriber := range subscriptions.m {
 		if now.Sub(subscriber.Timestamp) > subscriptionTimeout {
 			delete(subscriptions.m, subscription)
-			modified = true
+			subscriptions.dirty = true
 			Log(robot.Debug, "Subscribe - expiring subscription for plugin '%s' to thread '%s' in channel '%s'", subscriber.Plugin, subscription.thread, subscription.channel)
 		}
 	}
-	if modified {
-		saveSubscriptions()
-	}
+	updated := subscriptions.dirty
+	subscriptions.Unlock()
+	return updated
 }

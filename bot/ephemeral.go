@@ -14,8 +14,8 @@ const ephemeralMemKey = "bot:_ephemeral-memories"
 
 // ephemeral memories held im RAM that expire after a time
 type ephemeralMemory struct {
-	memory    string
-	timestamp time.Time
+	Memory    string
+	Timestamp time.Time
 }
 
 type memoryContext struct {
@@ -23,7 +23,8 @@ type memoryContext struct {
 }
 
 type eMemories struct {
-	m map[memoryContext]ephemeralMemory
+	m     map[memoryContext]ephemeralMemory
+	dirty bool
 	sync.Mutex
 }
 
@@ -79,7 +80,7 @@ func restoreEphemeralMemories() {
 				Log(robot.Info, "Restored '%d' ephemeral memories from long-term memory", len(storedMemories.m))
 				now := time.Now()
 				for _, m := range storedMemories.m {
-					m.timestamp = now
+					m.Timestamp = now
 				}
 				ephemeralMemories.m = storedMemories.m
 			} else {
@@ -95,12 +96,14 @@ func restoreEphemeralMemories() {
 	}
 }
 
-// NOTE: subscriptions is already locked on entry, and unlocks after exit
 func saveEphemeralMemories() {
 	var storedEphemeralMemories eMemories
 	sm_tok, _, sm_ret := checkoutDatum(ephemeralMemKey, &storedEphemeralMemories, true)
 	if sm_ret == robot.Ok {
+		ephemeralMemories.Lock()
 		storedEphemeralMemories.m = ephemeralMemories.m
+		ephemeralMemories.dirty = false
+		ephemeralMemories.Unlock()
 		ret := updateDatum(ephemeralMemKey, sm_tok, storedEphemeralMemories)
 		if ret == robot.Ok {
 			Log(robot.Debug, "Successfully saved '%d' ephemeral memories to long-term memory", len(storedEphemeralMemories.m))

@@ -111,11 +111,11 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 									// If a generic matched, try to recall from ephemeral memory
 									s, ok := ephemeralMemories.m[ctx]
 									if ok {
-										cmdArgs[i] = s.memory
+										cmdArgs[i] = s.Memory
 										// TODO: it would probably be best to substitute the value
 										// from "it" back in to the original message and re-check for
 										// a match. Failing a match, matched should be set to false.
-										s.timestamp = ts
+										s.Timestamp = ts
 										ephemeralMemories.m[ctx] = s
 										modified = true
 									} else {
@@ -135,7 +135,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 						}
 					}
 					if modified {
-						saveEphemeralMemories()
+						ephemeralMemories.dirty = true
 					}
 					ephemeralMemories.Unlock()
 				}
@@ -244,8 +244,8 @@ func (w *worker) handleMessage() {
 			ephemeralMemories.Lock()
 			last, ok = ephemeralMemories.m[lastMsgContext]
 			ephemeralMemories.Unlock()
-			if ok && ts.Sub(last.timestamp) < keepListeningDuration {
-				w.msg = last.memory
+			if ok && ts.Sub(last.Timestamp) < keepListeningDuration {
+				w.msg = last.Memory
 				messageMatched = w.checkPluginMatchersAndRun(plugCommand)
 			} else {
 				messageMatched = true

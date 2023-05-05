@@ -220,26 +220,29 @@ loop:
 		case <-brainTicker.C:
 			now := time.Now()
 			// Expire thread subscriptions - see thread_subscriptions.go
-			expireSubscriptions(now)
+			isDirty := expireSubscriptions(now)
+			if isDirty {
+				go saveSubscriptions()
+			}
 			ephemeralMemories.Lock()
-			modified := false
 			for context, memory := range ephemeralMemories.m {
 				if len(context.thread) > 0 {
-					if now.Sub(memory.timestamp) > threadMemoryDuration {
+					if now.Sub(memory.Timestamp) > threadMemoryDuration {
 						delete(ephemeralMemories.m, context)
-						modified = true
+						ephemeralMemories.dirty = true
 					}
 				} else {
-					if now.Sub(memory.timestamp) > channelMemoryDuration {
+					if now.Sub(memory.Timestamp) > channelMemoryDuration {
 						delete(ephemeralMemories.m, context)
-						modified = true
+						ephemeralMemories.dirty = true
 					}
 				}
-				if modified {
-					saveEphemeralMemories()
-				}
 			}
+			isDirty = ephemeralMemories.dirty
 			ephemeralMemories.Unlock()
+			if isDirty {
+				go saveEphemeralMemories()
+			}
 			for _, m := range memories {
 				switch m.state {
 				case newMemory:
@@ -426,7 +429,7 @@ func (r Robot) Remember(key, value string, shared bool) {
 	ephemeralMemories.Lock()
 	ephemeralMemories.m[context] = memory
 	if len(context.thread) > 0 {
-		saveEphemeralMemories()
+		ephemeralMemories.dirty = true
 	}
 	ephemeralMemories.Unlock()
 }
@@ -440,7 +443,7 @@ func (r Robot) RememberThread(key, value string, shared bool) {
 	Log(robot.Trace, "storing ephemeral memory \"%s\" -> \"%s\"", key, value)
 	ephemeralMemories.Lock()
 	ephemeralMemories.m[context] = memory
-	saveEphemeralMemories()
+	ephemeralMemories.dirty = true
 	ephemeralMemories.Unlock()
 }
 
@@ -466,11 +469,11 @@ func (r Robot) Recall(key string, shared bool) string {
 	ephemeralMemories.Lock()
 	memory, ok := ephemeralMemories.m[context]
 	ephemeralMemories.Unlock()
-	Log(robot.Trace, "recalling ephemeral memory \"%s\" -> \"%s\"", key, memory.memory)
+	Log(robot.Trace, "recalling ephemeral memory \"%s\" -> \"%s\"", key, memory.Memory)
 	if !ok {
 		return ""
 	}
-	return memory.memory
+	return memory.Memory
 }
 
 // RegisterSimpleBrain allows brain implementations to register a function with a named
