@@ -146,14 +146,13 @@ func logLevelToStr(l robot.LogLevel) string {
 func logPage(p int) ([]string, bool) {
 	wrapped := false
 	botLogger.Lock()
-	fmt.Printf("DEBUG: lines in log: %d\n", botLogger.totLines)
 	page := p % botLogger.buffPages
 	if page != p {
 		wrapped = true
 	}
 	pageSlice := make([]string, botLogger.pageLines)
 	start := (botLogger.buffLine + buffLines - ((page + 1) * botLogger.pageLines))
-	start = start - (start/buffLines)*buffLines
+	start = (botLogger.totLines - start) % buffLines
 	if start+botLogger.pageLines > buffLines {
 		copy(pageSlice, botLogger.buffer[start:buffLines])
 		copy(pageSlice[buffLines-start:], botLogger.buffer[0:])
