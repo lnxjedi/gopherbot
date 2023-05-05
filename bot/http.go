@@ -7,7 +7,7 @@ package bot
 import (
 	"encoding/base64"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -188,7 +188,7 @@ func sendReturn(rw http.ResponseWriter, ret interface{}) {
 }
 
 func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	data, err := ioutil.ReadAll(req.Body)
+	data, err := io.ReadAll(req.Body)
 	if err != nil {
 		Log(robot.Fatal, err.Error())
 	}

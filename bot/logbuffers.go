@@ -2,7 +2,7 @@ package bot
 
 import (
 	"bufio"
-	"io/ioutil"
+	"io"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
@@ -49,7 +49,7 @@ func getLogBuffer(tag, trunc string, idx, buffsize, linesize int) (ret robot.Tas
 	}
 	tail.close()
 	tailReader, _ := tail.getReader()
-	buff, _ = ioutil.ReadAll(tailReader)
+	buff, _ = io.ReadAll(tailReader)
 
 	return
 }

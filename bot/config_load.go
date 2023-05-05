@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -193,7 +192,7 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 		path = filepath.Join(installPath, "conf", "robot.yaml")
 	}
 	dir := filepath.Dir(filepath.Join("conf", filename))
-	cf, err = ioutil.ReadFile(path)
+	cf, err = os.ReadFile(path)
 	if err == nil {
 		if cf, err = expand(dir, false, cf); err != nil {
 			Log(robot.Error, "Expanding '%s': %v", path, err)
@@ -215,7 +214,7 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 	}
 	if len(configPath) > 0 {
 		path = filepath.Join(configPath, "conf", filename)
-		cf, err = ioutil.ReadFile(path)
+		cf, err = os.ReadFile(path)
 		if err == nil {
 			if cf, err = expand(dir, true, cf); err != nil {
 				Log(robot.Error, "Expanding '%s': %v", path, err)

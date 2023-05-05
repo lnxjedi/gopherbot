@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"image/png"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -100,11 +100,11 @@ func processCLI(usage string) {
 		}
 		var ansBytes []byte
 		var err error
-		if ansBytes, err = ioutil.ReadFile(ansFile); err != nil {
+		if ansBytes, err = os.ReadFile(ansFile); err != nil {
 			fmt.Printf("Reading '%s': %v", ansFile, err)
 			return
 		}
-		if err = ioutil.WriteFile("answerfile.txt", ansBytes, 0600); err != nil {
+		if err = os.WriteFile("answerfile.txt", ansBytes, 0600); err != nil {
 			fmt.Printf("Writing 'answerfile.txt': %v", err)
 			return
 		}
@@ -192,9 +192,9 @@ func cliEncrypt(item, file string, binary bool) {
 		var fc []byte
 		var err error
 		if file == "-" {
-			fc, err = ioutil.ReadAll(os.Stdin)
+			fc, err = io.ReadAll(os.Stdin)
 		} else {
-			fc, err = ioutil.ReadFile(file)
+			fc, err = os.ReadFile(file)
 		}
 		if err != nil {
 			fmt.Printf("Error reading file: %v\n", err)
@@ -295,9 +295,9 @@ func cliStore(key, file string) {
 	var fc []byte
 	var err error
 	if file == "-" {
-		fc, err = ioutil.ReadAll(os.Stdin)
+		fc, err = io.ReadAll(os.Stdin)
 	} else {
-		fc, err = ioutil.ReadFile(file)
+		fc, err = os.ReadFile(file)
 	}
 	if err != nil {
 		fmt.Printf("Error reading file: %v\n", err)

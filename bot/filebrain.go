@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,7 +29,7 @@ func (fb *fbConfig) Store(k string, b *[]byte) error {
 		}
 		return nil
 	}
-	if err := ioutil.WriteFile(datumPath, *b, 0600); err != nil {
+	if err := os.WriteFile(datumPath, *b, 0600); err != nil {
 		return fmt.Errorf("Writing datum '%s': %v", datumPath, err)
 	}
 	return nil

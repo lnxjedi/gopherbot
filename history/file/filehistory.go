@@ -5,7 +5,6 @@ package filehistory
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -66,7 +65,7 @@ func (hf *historyFile) Line(line string) {
 
 // Close sets the logger output to discard and closes the log file
 func (hf *historyFile) Close() {
-	hf.l.SetOutput(ioutil.Discard)
+	hf.l.SetOutput(io.Discard)
 	hf.f.Close()
 }
 

@@ -7,7 +7,7 @@ testing.
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -33,7 +33,7 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 		var testLogger *log.Logger
 		botStdOutLogger = log.New(os.Stdout, "", log.LstdFlags)
 		if len(logfile) == 0 {
-			testLogger = log.New(ioutil.Discard, "", 0)
+			testLogger = log.New(io.Discard, "", 0)
 		} else {
 			lf, err := os.Create(logfile)
 			if err != nil {

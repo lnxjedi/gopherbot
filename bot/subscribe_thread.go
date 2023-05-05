@@ -1,6 +1,8 @@
 package bot
 
 import (
+	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 
@@ -16,6 +18,8 @@ matchers that match all messages.
 
 const subscriptionTimeout = 14 * 24 * time.Hour
 
+const subscriptionMemKey = "bot:_subscriptions"
+
 // Plugins can subscribe to a thread in a channel. This struct is used as the
 // key in the subscriptions map.
 type subscriptionMatcher struct {
@@ -27,12 +31,86 @@ type subscriber struct {
 	timestamp time.Time // for expiring after subscriptionTimeout
 }
 
-var subscriptions = struct {
+type tSubs struct {
 	m map[subscriptionMatcher]subscriber
 	sync.Mutex
-}{
-	make(map[subscriptionMatcher]subscriber),
-	sync.Mutex{},
+}
+
+var subscriptions = tSubs{
+	m: make(map[subscriptionMatcher]subscriber),
+}
+
+func (s *tSubs) MarshalJSON() ([]byte, error) {
+	s.Lock()
+	defer s.Unlock()
+
+	tempMap := make(map[string]subscriber)
+	for k, v := range s.m {
+		keyString := fmt.Sprintf("%s{|}%s", k.channel, k.thread)
+		tempMap[keyString] = v
+	}
+
+	return json.Marshal(tempMap)
+}
+
+func (s *tSubs) UnmarshalJSON(data []byte) error {
+	var tempMap map[string]subscriber
+	err := json.Unmarshal(data, &tempMap)
+	if err != nil {
+		return err
+	}
+
+	s.Lock()
+	defer s.Unlock()
+
+	s.m = make(map[subscriptionMatcher]subscriber)
+	for k, v := range tempMap {
+		var key subscriptionMatcher
+		_, err := fmt.Sscanf(k, "%s{|}%s", &key.channel, &key.thread)
+		if err != nil {
+			return err
+		}
+		s.m[key] = v
+	}
+
+	return nil
+}
+
+func restoreSubscriptions() {
+	var storedSubscriptions tSubs
+	ss_tok, ss_exists, ss_ret := checkoutDatum(subscriptionMemKey, &storedSubscriptions, true)
+	if ss_ret == robot.Ok {
+		if ss_exists {
+			if len(storedSubscriptions.m) > 0 {
+				Log(robot.Info, "Restored '%d' subscriptions from long-term memory", len(storedSubscriptions.m))
+				now := time.Now()
+				for _, s := range storedSubscriptions.m {
+					s.timestamp = now
+				}
+				subscriptions.m = storedSubscriptions.m
+			} else {
+				Log(robot.Info, "Restoring subscriptions from long-term memory: zero-length map")
+				checkinDatum(subscriptionMemKey, ss_tok)
+			}
+		} else {
+			Log(robot.Info, "Restoring suscriptions from long-term memory: memory doesn't exist")
+			checkinDatum(subscriptionMemKey, ss_tok)
+		}
+	} else {
+		Log(robot.Error, "Restoring suscriptions from long-term memory: error '%s' getting datum", ss_ret)
+	}
+}
+
+// NOTE: subscriptions is already locked on entry, and unlocks after exit
+func saveSubscriptions() {
+	var storedSubscriptions tSubs
+	ss_tok, _, ss_ret := checkoutDatum(subscriptionMemKey, &storedSubscriptions, true)
+	if ss_ret == robot.Ok {
+		storedSubscriptions.m = subscriptions.m
+		updateDatum(subscriptionMemKey, ss_tok, storedSubscriptions)
+	} else {
+		Log(robot.Error, "Saving suscriptions to long-term memory: error '%s' getting datum", ss_ret)
+	}
 }
 
 // Subscribe allows a plugin to subscribe to it's current thread and
@@ -63,6 +141,7 @@ func (r Robot) Subscribe() (success bool) {
 		plugin:    task.name,
 		timestamp: time.Now(),
 	}
+	saveSubscriptions()
 	r.Log(robot.Debug, "Subscribe - plugin '%s' successfully subscribed to thread '%s' in channel '%s'", task.name, w.ThreadID, w.Channel)
 	return true
 }
@@ -88,6 +167,7 @@ func (r Robot) Unsubscribe() (success bool) {
 		} else {
 			r.Log(robot.Debug, "Unsubscribe - plugin '%s' unsubscribing from thread '%s' in channel '%s'", task.name, w.ThreadID, w.Channel)
 			delete(subscriptions.m, subscriptionSpec)
+			saveSubscriptions()
 			return true
 		}
 	}
@@ -97,12 +177,17 @@ func (r Robot) Unsubscribe() (success bool) {
 
 // expireSubscriptions is called by the brainTicker
 func expireSubscriptions(now time.Time) {
+	modified := false
 	subscriptions.Lock()
 	defer subscriptions.Unlock()
 	for subscription, subscriber := range subscriptions.m {
 		if now.Sub(subscriber.timestamp) > subscriptionTimeout {
 			delete(subscriptions.m, subscription)
+			modified = true
 			Log(robot.Debug, "Subscribe - expiring subscription for plugin '%s' to thread '%s' in channel '%s'", subscriber.plugin, subscription.thread, subscription.channel)
 		}
+	}
+	if modified {
+		saveSubscriptions()
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -20,21 +19,6 @@ import (
 
 // Map of registered brains
 var brains = make(map[string]func(robot.Handler) robot.SimpleBrain)
-
-// ephemeral memories held im RAM that expire after a time
-type ephemeralMemory struct {
-	memory    string
-	timestamp time.Time
-}
-
-type memoryContext struct {
-	key, user, channel, thread string
-}
-
-var ephemeralMemories = struct {
-	m map[memoryContext]ephemeralMemory
-	sync.Mutex
-}{}
 
 // Set on start-up
 var encryptBrain bool
@@ -139,9 +123,6 @@ var brainLocks = struct {
 // functions and insures consistency.
 func runBrain() {
 	raiseThreadPriv("runBrain loop")
-	ephemeralMemories.Lock()
-	ephemeralMemories.m = make(map[memoryContext]ephemeralMemory)
-	ephemeralMemories.Unlock()
 	// map key to status
 	memories := make(map[string]*memstatus)
 	brainTicker := time.NewTicker(memCycle)
@@ -551,7 +532,7 @@ func initializeEncryptionFromBrain(key string) bool {
 		encoder := base64.NewEncoder(base64.StdEncoding, &bekbuff)
 		encoder.Write(bek)
 		bekbuff.Write([]byte("\n"))
-		if err := ioutil.WriteFile(filepath.Join(configPath, encryptedKeyFile), bekbuff.Bytes(), os.FileMode(0600)); err != nil {
+		if err := os.WriteFile(filepath.Join(configPath, encryptedKeyFile), bekbuff.Bytes(), os.FileMode(0600)); err != nil {
 			Log(robot.Fatal, "Writing new random key: %v", err)
 		}
 	} else {
