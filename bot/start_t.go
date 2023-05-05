@@ -29,7 +29,7 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 	configpath := filepath.Join(testInstallPath, cfgdir)
 	t.Logf("Initializing test bot with installpath: '%s', configpath: '%s' and logfile: %s", testInstallPath, configpath, logfile)
 
-	if botLogger.l == nil {
+	if botLogger.logger == nil {
 		var testLogger *log.Logger
 		botStdOutLogger = log.New(os.Stdout, "", log.LstdFlags)
 		if len(logfile) == 0 {
@@ -41,7 +41,7 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 			}
 			testLogger = log.New(lf, "", log.LstdFlags)
 		}
-		botLogger.l = testLogger
+		botLogger.logger = testLogger
 	} else {
 		lf, err := os.Create(logfile)
 		if err != nil {
@@ -58,7 +58,7 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 	Log(robot.Info, "Starting new test with cfgdir: %s\n", cfgdir)
 
 	// handler{} is just a placeholder struct for implementing the Handler interface
-	conn := initializeConnector(handle, botLogger.l)
+	conn := initializeConnector(handle, botLogger.logger)
 
 	// NOTE: we use setConnector instead of passing the connector to run()
 	// because of the way Windows services were run. Maybe remove eventually?
