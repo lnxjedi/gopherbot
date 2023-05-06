@@ -41,6 +41,8 @@ type ConnectorMessage struct {
 	// Opaque values
 	ThreadID, MessageID string
 	ThreadedMessage     bool
+	// true when the incoming message originated from the robot itself
+	SelfMessage bool
 	// DirectMessage - whether the message should be considered private between user and robot
 	DirectMessage bool
 	// BotMessage - true when the connector is certain the message has been sent to the robot,

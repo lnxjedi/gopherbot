@@ -1,14 +1,31 @@
 package bot
 
 import (
+	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
+
+// loggers of last resort, initialize early and update in start.go
+func init() {
+	botStdErrLogger = log.New(os.Stderr, "", log.LstdFlags)
+	botStdOutLogger = log.New(os.Stdout, "", log.LstdFlags)
+}
+
+// initialized in start.go
+var botStdErrLogger, botStdOutLogger *log.Logger
+
+// Set by terminal connector
+var terminalWriter io.Writer
+
+var errorThreshold = robot.Warn
 
 // Should be ample for the internal circular log
 const buffLines = 500
@@ -16,25 +33,26 @@ const maxLines = 50 // maximum lines to send in a message
 var logFileName string
 
 type botLoggerInfo struct {
-	l         *log.Logger
+	logger    *log.Logger
 	f         *os.File
 	level     robot.LogLevel
 	buffer    []string
 	buffLine  int
 	pageLines int
 	buffPages int
+	totLines  int // total number of lines logged, ever
 	sync.Mutex
 }
 
 var botLogger = botLoggerInfo{
-	nil,
-	nil,
-	robot.Info,
-	make([]string, buffLines),
-	0,
-	20,
-	buffLines / 20,
-	sync.Mutex{},
+	logger:    nil,
+	f:         nil,
+	level:     robot.Info,
+	buffer:    make([]string, buffLines),
+	buffLine:  0,
+	pageLines: 20,
+	buffPages: buffLines / 20,
+	Mutex:     sync.Mutex{},
 }
 
 // note that closing the old output file probably isn't strictly necessary,
@@ -44,7 +62,7 @@ func (bl *botLoggerInfo) setOutputFile(f *os.File) {
 	of := bl.f
 	bl.f = f
 	bl.Unlock()
-	bl.l.SetOutput(f)
+	bl.logger.SetOutput(f)
 	err := of.Close()
 	if err != nil {
 		Log(robot.Error, "Closing old log file: %v", err)
@@ -134,7 +152,7 @@ func logPage(p int) ([]string, bool) {
 	}
 	pageSlice := make([]string, botLogger.pageLines)
 	start := (botLogger.buffLine + buffLines - ((page + 1) * botLogger.pageLines))
-	start = start - (start/buffLines)*buffLines
+	start = (botLogger.totLines - start) % buffLines
 	if start+botLogger.pageLines > buffLines {
 		copy(pageSlice, botLogger.buffer[start:buffLines])
 		copy(pageSlice[buffLines-start:], botLogger.buffer[0:])
@@ -173,4 +191,48 @@ func getLogLevel() robot.LogLevel {
 	l := botLogger.level
 	botLogger.Unlock()
 	return l
+}
+
+// Log logs messages whenever the connector log level is
+// less than the given level
+func Log(l robot.LogLevel, m string, v ...interface{}) bool {
+	botLogger.Lock()
+	currlevel := botLogger.level
+	logger := botLogger.logger
+	botLogger.Unlock()
+	prefix := logLevelToStr(l) + ":"
+	msg := prefix + " " + m
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	// Note logger is nil very briefly on startup
+	if logger == nil && l >= currlevel {
+		botStdOutLogger.Print(msg)
+		return true
+	}
+	if nullConn && l >= errorThreshold {
+		botStdOutLogger.Print(msg)
+	}
+	if l >= currlevel || l == robot.Audit {
+		if l == robot.Fatal {
+			logger.Fatal(msg)
+		} else {
+			if localTerm {
+				if terminalWriter != nil {
+					terminalWriter.Write([]byte("LOG " + msg + "\n"))
+				} else {
+					botStdOutLogger.Print("LOG " + msg)
+				}
+			}
+			logger.Print(msg)
+			tsMsg := fmt.Sprintf("%s %s\n", time.Now().Format("Jan 2 15:04:05"), msg)
+			botLogger.Lock()
+			botLogger.buffer[botLogger.buffLine] = tsMsg
+			botLogger.buffLine = (botLogger.buffLine + 1) % (buffLines - 1)
+			botLogger.totLines++
+			botLogger.Unlock()
+		}
+		return true
+	}
+	return false
 }

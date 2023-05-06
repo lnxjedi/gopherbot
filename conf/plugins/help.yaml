@@ -14,4 +14,3 @@ MessageMatchers:
 # robot) should match for unlisted users.
 MatchUnlisted: true
 AllChannels: true
-CatchAll: true

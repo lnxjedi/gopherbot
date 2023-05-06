@@ -48,7 +48,7 @@ type replyWaiter struct {
 	replyChannel chan reply     // The channel to send the reply to when it is received
 }
 
-// a reply matcher is used as the key in the replys map
+// a reply matcher is used as the key in the replies map
 type replyMatcher struct {
 	user, channel, thread string // Only one reply at a time can be requested for a given user/channel/thread combination
 }

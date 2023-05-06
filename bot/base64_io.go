@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/base64"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/emersion/go-textwrapper"
@@ -52,14 +51,14 @@ func ReadBinary(in io.Reader) (*[]byte, error) {
 		if string(header) == base64header {
 			br.Discard(len(base64header))
 			decoder := base64.NewDecoder(base64.StdEncoding, br)
-			bytes, err := ioutil.ReadAll(decoder)
+			bytes, err := io.ReadAll(decoder)
 			if err != nil {
 				return nil, err
 			}
 			return &bytes, nil
 		}
 	}
-	bytes, err := ioutil.ReadAll(br)
+	bytes, err := io.ReadAll(br)
 	if err == nil {
 		return &bytes, nil
 	}

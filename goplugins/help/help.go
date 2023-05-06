@@ -18,7 +18,6 @@ var (
 // Define the handler function
 func help(bot robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	botName := bot.GetBotAttribute("name").String()
-	botAlias := bot.GetBotAttribute("alias").String()
 	if command == "help" { // user just typed 'help' - the robot should introduce itself
 		botContact := bot.GetBotAttribute("contact").String()
 		botAlias := bot.GetBotAttribute("alias").String()
@@ -42,13 +41,6 @@ func help(bot robot.Robot, command string, args ...string) (retval robot.TaskRet
 			reply += "."
 		}
 		bot.SayThread(reply)
-	} else if command == "catchall" {
-		channelName := bot.GetMessage().Channel
-		if len(channelName) > 0 {
-			bot.SayThread("No command matched in channel '%s'; try '%shelp'", channelName, botAlias)
-		} else {
-			bot.Say("Command not found; try your command in a channel, or use '%shelp'", botAlias)
-		}
 	}
 	return
 }

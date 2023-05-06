@@ -92,80 +92,88 @@ class BaseBot
 	end
 
 	def CheckAdmin()
-		return callBotFunc("CheckAdmin", {})["Boolean"]
+		return callBotFunc(__method__, {})["Boolean"]
+	end
+
+	def Subscribe()
+		return callBotFunc(__method__, {})["Boolean"]
+	end
+
+	def Unsubscribe()
+		return callBotFunc(__method__, {})["Boolean"]
 	end
 
 	def Elevate(immediate=false)
-		return callBotFunc("Elevate", { "Immediate" => immediate })["Boolean"]
+		return callBotFunc(__method__, { "Immediate" => immediate })["Boolean"]
 	end
 
 	def SpawnJob(name, args)
-		return callBotFunc("SpawnJob", { "Name" => name, "CmdArgs" => args })["RetVal"]
+		return callBotFunc(__method__, { "Name" => name, "CmdArgs" => args })["RetVal"]
 	end
 
 	def AddJob(name, args)
-		return callBotFunc("AddJob", { "Name" => name, "CmdArgs" => args })["RetVal"]
+		return callBotFunc(__method__, { "Name" => name, "CmdArgs" => args })["RetVal"]
 	end
 
 	def AddTask(name, args)
-		return callBotFunc("AddTask", { "Name" => name, "CmdArgs" => args })["RetVal"]
+		return callBotFunc(__method__, { "Name" => name, "CmdArgs" => args })["RetVal"]
 	end
 
 	def FinalTask(name, args)
-		return callBotFunc("FinalTask", { "Name" => name, "CmdArgs" => args })["RetVal"]
+		return callBotFunc(__method__, { "Name" => name, "CmdArgs" => args })["RetVal"]
 	end
 
 	def FailTask(name, args)
-		return callBotFunc("FailTask", { "Name" => name, "CmdArgs" => args })["RetVal"]
+		return callBotFunc(__method__, { "Name" => name, "CmdArgs" => args })["RetVal"]
 	end
 
 	def AddCommand(name, arg)
-		return callBotFunc("AddCommand", { "Plugin" => name, "Command" => arg })["RetVal"]
+		return callBotFunc(__method__, { "Plugin" => name, "Command" => arg })["RetVal"]
 	end
 
 	def FinalCommand(name, arg)
-		return callBotFunc("FinalCommand", { "Plugin" => name, "Command" => arg })["RetVal"]
+		return callBotFunc(__method__, { "Plugin" => name, "Command" => arg })["RetVal"]
 	end
 
 	def FailCommand(name, arg)
-		return callBotFunc("FailCommand", { "Plugin" => name, "Command" => arg })["RetVal"]
+		return callBotFunc(__method__, { "Plugin" => name, "Command" => arg })["RetVal"]
 	end
 
 	def SetParameter(name, value)
-		return callBotFunc("SetParameter", { "Name" => name, "Value" => value })["Boolean"]
+		return callBotFunc(__method__, { "Name" => name, "Value" => value })["Boolean"]
 	end
 
 	def Exclusive(tag, queue_task=false)
-		return callBotFunc("Exclusive", { "Tag" => tag, "QueueTask" => queue_task })["Boolean"]
+		return callBotFunc(__method__, { "Tag" => tag, "QueueTask" => queue_task })["Boolean"]
 	end
 
 	def ExtendNamespace(ns, hist)
-		return callBotFunc("ExtendNamespace", { "Extend" => ns, "Histories" => hist })["Boolean"]
+		return callBotFunc(__method__, { "Extend" => ns, "Histories" => hist })["Boolean"]
 	end
 
 	def SetWorkingDirectory(path)
-		return callBotFunc("SetWorkingDirectory", { "Path" => path })["Boolean"]
+		return callBotFunc(__method__, { "Path" => path })["Boolean"]
 	end
 
 	def GetRepoData()
-		return callBotFunc("GetRepoData", {})
+		return callBotFunc(__method__, {})
 	end
 
 	def CheckoutDatum(key, rw)
 		args = { "Key" => key, "RW" => rw }
-		ret = callBotFunc("CheckoutDatum", args)
+		ret = callBotFunc(__method__, args)
 		return Memory.new(key, ret["LockToken"], ret["Exists"], ret["Datum"], ret["RetVal"])
 	end
 
 	def CheckinDatum(m)
 		args = { "Key" => m.key, "Token" => m.lock_token }
-		callBotFunc("CheckinDatum", args)
+		callBotFunc(__method__, args)
 		return 0
 	end
 
 	def UpdateDatum(m)
 		args = { "Key" => m.key, "Token" => m.lock_token, "Datum" => m.datum }
-		ret = callBotFunc("UpdateDatum", args)
+		ret = callBotFunc(__method__, args)
 		return ret["RetVal"]
 	end
 
@@ -182,7 +190,7 @@ class BaseBot
 
 	def RememberThread(k, v, shared = false)
 		args = { "Key" => k, "Value" => v, "Shared" => shared }
-		ret = callBotFunc("RememberThread", args)
+		ret = callBotFunc(__method__, args)
 		return ret["RetVal"]
 	end
 
@@ -192,29 +200,29 @@ class BaseBot
 
 	def Recall(k, shared = false)
 		args = { "Key" => k, "Shared" => shared }
-		ret = callBotFunc("Recall", args)["StrVal"]
+		ret = callBotFunc(__method__, args)["StrVal"]
 	end
 
 	def GetTaskConfig()
-		ret = callBotFunc("GetTaskConfig", {})
+		ret = callBotFunc(__method__, {})
 		return ret
 	end
 
 	def GetSenderAttribute(attr)
 		args = { "Attribute" => attr }
-		ret = callBotFunc("GetSenderAttribute", args)
+		ret = callBotFunc(__method__, args)
 		return Attribute.new(ret["Attribute"], ret["RetVal"])
 	end
 
 	def GetUserAttribute(user, attr)
 		args = { "User" => user, "Attribute" => attr }
-		ret = callBotFunc("GetUserAttribute", args)
+		ret = callBotFunc(__method__, args)
 		return Attribute.new(ret["Attribute"], ret["RetVal"])
 	end
 
 	def GetBotAttribute(attr)
 		args = { "Attribute" => attr }
-		ret = callBotFunc("GetBotAttribute", args)
+		ret = callBotFunc(__method__, args)
 		return Attribute.new(ret["Attribute"], ret["RetVal"])
 	end
 
@@ -231,14 +239,14 @@ class BaseBot
 	def SendChannelThreadMessage(channel, thread, message, format="")
 		format = format.to_s if format.class == Symbol
 		args = { "Channel" => channel, "Thread" => thread, "Message" => message }
-		ret = callBotFunc("SendChannelThreadMessage", args, format)
+		ret = callBotFunc(__method__, args, format)
 		return ret["RetVal"]
 	end
 
 	def SendUserMessage(user, message, format="")
 		format = format.to_s if format.class == Symbol
 		args = { "User" => user, "Message" => message }
-		ret = callBotFunc("SendUserMessage", args, format)
+		ret = callBotFunc(__method__, args, format)
 		return ret["RetVal"]
 	end
 
@@ -249,7 +257,7 @@ class BaseBot
 	def SendUserChannelThreadMessage(user, channel, thread, message, format="")
 		format = format.to_s if format.class == Symbol
 		args = { "User" => user, "Channel" => channel, "Thread" => thread, "Message" => message }
-		ret = callBotFunc("SendUserChannelThreadMessage", args, format)
+		ret = callBotFunc(__method__, args, format)
 		return ret["RetVal"]
 	end
 
@@ -311,7 +319,7 @@ class BaseBot
 	def PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt)
 		args = { "RegexID" => regex_id, "User" => user, "Channel" => channel, "Thread" => thread, "Prompt" => prompt }
 		for i in 1..3
-			ret = callBotFunc("PromptUserChannelThreadForReply", args)
+			ret = callBotFunc(__method__, args)
 			next if ret["RetVal"] == RetryPrompt
 			return Reply.new(ret["Reply"], ret["RetVal"])
 		end

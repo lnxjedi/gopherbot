@@ -13,6 +13,8 @@ const keepListeningDuration = 77 * time.Second
 
 var spaceRe = regexp.MustCompile(`\s+`)
 
+const lastMsgKey = "lastMsg"
+
 // checkPluginMatchersAndRun checks either command matchers (for messages directed at
 // the robot), or message matchers (for ambient commands that need not be
 // directed at the robot), and calls the plugin if it matches. Note: this
@@ -86,6 +88,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 				if len(matcher.Contexts) > 0 {
 					// Resolve & store "it" with ephemeral memories
 					ts := time.Now()
+					modified := false
 					ephemeralMemories.Lock()
 					for i, contextLabel := range matcher.Contexts {
 						if contextLabel != "" {
@@ -108,12 +111,13 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 									// If a generic matched, try to recall from ephemeral memory
 									s, ok := ephemeralMemories.m[ctx]
 									if ok {
-										cmdArgs[i] = s.memory
+										cmdArgs[i] = s.Memory
 										// TODO: it would probably be best to substitute the value
 										// from "it" back in to the original message and re-check for
 										// a match. Failing a match, matched should be set to false.
-										s.timestamp = ts
+										s.Timestamp = ts
 										ephemeralMemories.m[ctx] = s
+										modified = true
 									} else {
 										w.Say("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel)
 										ephemeralMemories.Unlock()
@@ -123,11 +127,15 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 									// Didn't match generic, store the value in ephemeral context memory
 									s := ephemeralMemory{cmdArgs[i], ts}
 									ephemeralMemories.m[ctx] = s
+									modified = true
 								}
 							} else {
 								Log(robot.Error, "Plugin '%s', command '%s', has more contexts than match groups", task.name, matcher.Command)
 							}
 						}
+					}
+					if modified {
+						ephemeralMemories.dirty = true
 					}
 					ephemeralMemories.Unlock()
 				}
@@ -183,7 +191,7 @@ func (w *worker) handleMessage() {
 	}
 	messageMatched := false
 	ts := time.Now()
-	lastMsgContext := w.makeMemoryContext("lastMsg")
+	lastMsgContext := w.makeMemoryContext(lastMsgKey)
 	var last ephemeralMemory
 	var ok bool
 	// First, see if the robot was waiting on a reply; replies from
@@ -225,7 +233,12 @@ func (w *worker) handleMessage() {
 	}
 	// See if the robot got a blank message, indicating that the last message
 	// was meant for it (if it was in the keepListeningDuration); also handle "robot?"
-	if !messageMatched && w.isCommand && len(w.msg) == 0 && !w.BotUser {
+	// This happens when the bareRegex matches.
+	if !messageMatched && w.isCommand && !w.Incoming.SelfMessage && len(w.msg) == 0 && !w.BotUser {
+		ephemeralMemories.Lock()
+		last, ok = ephemeralMemories.m[lastMsgContext]
+		ephemeralMemories.Unlock()
+		Log(robot.Debug, "Barename/blank message to robot received ('%s'), checking last message: '%s'", w.fmsg, last.Memory)
 		// Allow individual plugins to handle a lone "?"
 		// Feature added for - you guessed it - the AI plugin
 		if strings.HasSuffix(w.fmsg, "?") {
@@ -233,11 +246,8 @@ func (w *worker) handleMessage() {
 			messageMatched = w.checkPluginMatchersAndRun(plugCommand)
 		}
 		if !messageMatched {
-			ephemeralMemories.Lock()
-			last, ok = ephemeralMemories.m[lastMsgContext]
-			ephemeralMemories.Unlock()
-			if ok && ts.Sub(last.timestamp) < keepListeningDuration {
-				w.msg = last.memory
+			if ok && ts.Sub(last.Timestamp) < keepListeningDuration {
+				w.msg = last.Memory
 				messageMatched = w.checkPluginMatchersAndRun(plugCommand)
 			} else {
 				messageMatched = true
@@ -245,14 +255,15 @@ func (w *worker) handleMessage() {
 			}
 		}
 	}
-	if !messageMatched && w.isCommand {
+	// NOTE: Another bot can send a plugCommand to the bot
+	if !messageMatched && w.isCommand && !w.Incoming.SelfMessage {
 		// See if a command matches (and runs)
 		messageMatched = w.checkPluginMatchersAndRun(plugCommand)
 	}
 	// Direct commands were checked above; if a direct command didn't match,
 	// and a there wasn't a reply being waited on, then we check ambient
 	// MessageMatchers.
-	if !messageMatched && !w.BotUser {
+	if !messageMatched && !w.Incoming.SelfMessage && !w.BotUser {
 		// check for ambient message matches
 		messageMatched = w.checkPluginMatchersAndRun(plugMessage)
 	}
@@ -260,7 +271,8 @@ func (w *worker) handleMessage() {
 	if !messageMatched {
 		messageMatched = w.checkJobMatchersAndRun()
 	}
-	if w.isCommand && !messageMatched && !w.BotUser { // the robot was spoken to, but nothing matched - call catchAlls
+	catchAllMatched := false
+	if w.isCommand && !messageMatched && !w.Incoming.SelfMessage && !w.BotUser { // the robot was spoken to, but nothing matched - call catchAlls
 		state.RLock()
 		if !state.shuttingDown {
 			state.RUnlock()
@@ -272,7 +284,7 @@ func (w *worker) handleMessage() {
 			for _, t := range w.tasks.t[1:] {
 				task, plugin, _ := getTask(t)
 				if plugin == nil || !plugin.CatchAll {
-					Log(robot.Trace, "checking plugin %s for catch-all (false)", task.name)
+					Log(robot.Trace, "Checking plugin %s for catch-all (false)", task.name)
 					continue
 				}
 				available, specific := w.pluginAvailable(task, false, false)
@@ -280,7 +292,7 @@ func (w *worker) handleMessage() {
 					continue
 				}
 				if specific {
-					Log(robot.Trace, "checking plugin %s for catch-all (true, specific)", task.name)
+					Log(robot.Trace, "Checking plugin %s for catch-all (true, specific)", task.name)
 					if specificCatchAll == nil {
 						specificCatchAll = t
 					} else {
@@ -288,7 +300,7 @@ func (w *worker) handleMessage() {
 						break
 					}
 				} else {
-					Log(robot.Trace, "checking plugin %s for catch-all (true, non-specific)", task.name)
+					Log(robot.Trace, "Checking plugin %s for catch-all (true, non-specific)", task.name)
 					if fallbackCatchAll == nil {
 						fallbackCatchAll = t
 					} else {
@@ -300,11 +312,17 @@ func (w *worker) handleMessage() {
 				Log(robot.Error, "More than one specific catch-all matched, none will be called")
 			} else {
 				if specificCatchAll != nil {
+					task, _, _ := getTask(specificCatchAll)
+					Log(robot.Debug, "Unmatched command, calling specific catchall '%s' in channel '%s'", task.name, w.Channel)
+					catchAllMatched = true
 					w.startPipeline(nil, specificCatchAll, catchAll, "catchall", w.fmsg)
 				} else if fallbackCatchAll != nil {
 					if multipleFallbackMatched {
 						Log(robot.Error, "More than one fallback catch-all matched, none will be called")
 					} else {
+						task, _, _ := getTask(fallbackCatchAll)
+						Log(robot.Debug, "Unmatched command, calling fallback catchall '%s' in channel '%s'", task.name, w.Channel)
+						catchAllMatched = true
 						w.startPipeline(nil, fallbackCatchAll, catchAll, "catchall", w.fmsg)
 					}
 				} else {
@@ -314,6 +332,24 @@ func (w *worker) handleMessage() {
 		} else {
 			// If the robot is shutting down, just ignore catch-all plugins
 			state.RUnlock()
+		}
+	}
+	// Last of all, check for thread subscriptions
+	if !messageMatched && !w.Incoming.SelfMessage && (w.isCommand && !catchAllMatched || !w.isCommand) {
+		subscriptionSpec := subscriptionMatcher{w.Channel, w.ThreadID}
+		subscriptions.Lock()
+		if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
+			subscription.Timestamp = time.Now()
+			subscriptions.Unlock()
+			t := w.tasks.getTaskByName(subscription.Plugin)
+			if w.Incoming.UserID != w.cfg.botinfo.UserID {
+				Log(robot.Debug, "unmatched message being routed to thread subscriber '%s' in thread '%s', channel '%s'", subscription.Plugin, w.ThreadID, w.Channel)
+				w.startPipeline(nil, t, plugThreadSubscription, "subscribed", w.fmsg)
+			} else {
+				Log(robot.Debug, "ignoring message from the robot after subscription matched for thread subscriber '%s' in thread '%s', channel '%s'")
+			}
+		} else {
+			subscriptions.Unlock()
 		}
 	}
 	if w.BotUser {

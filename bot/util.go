@@ -26,9 +26,6 @@ func (h handler) ExtractID(u string) (string, bool) {
 	return u, false
 }
 
-const escapeAliases = `*+^$?\[]{}`
-const aliases = `&!;:-%#@~<>/`
-
 var hostName, binDirectory string
 
 func init() {
@@ -141,82 +138,4 @@ func getProtocol(proto string) robot.Protocol {
 	default:
 		return robot.Test
 	}
-}
-
-func updateRegexes() {
-	currentCfg.RLock()
-	name := currentCfg.botinfo.UserName
-	protoMention := currentCfg.botinfo.protoMention
-	alias := currentCfg.alias
-	currentCfg.RUnlock()
-	pre, post, bare, errpre, errpost, errbare := updateRegexesWrapped(name, protoMention, alias)
-	if errpre != nil {
-		Log(robot.Error, "Compiling pre regex: %s", errpre)
-	}
-	if pre != nil {
-		Log(robot.Debug, "Setting pre regex to: %s", pre)
-	}
-	if errpost != nil {
-		Log(robot.Error, "Compiling post regex: %s", errpost)
-	}
-	if post != nil {
-		Log(robot.Debug, "Setting post regex to: %s", post)
-	}
-	if errbare != nil {
-		Log(robot.Error, "Compiling bare regex: %s", errbare)
-	}
-	if bare != nil {
-		Log(robot.Debug, "Setting bare regex to: %s", bare)
-	}
-	regexes.Lock()
-	regexes.preRegex = pre
-	regexes.postRegex = post
-	regexes.bareRegex = bare
-	regexes.Unlock()
-}
-
-// TODO: write unit test. The regexes produced shouldn't be checked, but rather
-// whether given strings do or don't match them. Note: this code is partially
-// tested in TestBotName
-func updateRegexesWrapped(name, mention string, alias rune) (pre, post, bare *regexp.Regexp, errpre, errpost, errbare error) {
-	pre = nil
-	post = nil
-	if alias == 0 && len(name) == 0 {
-		Log(robot.Error, "Robot has no name or alias, and will only respond to direct messages")
-		return
-	}
-	names := []string{}
-	barenames := []string{}
-	if alias != 0 {
-		if strings.ContainsRune(string(escapeAliases), alias) {
-			names = append(names, `\`+string(alias))
-			barenames = append(barenames, `\`+string(alias))
-		} else {
-			names = append(names, string(alias))
-			barenames = append(barenames, string(alias))
-		}
-	}
-	if len(name) > 0 {
-		if len(mention) > 0 {
-			names = append(names, `(?i:`+name+`)[:, ]`)
-			barenames = append(barenames, `(?i:`+name+`\??)`)
-		} else {
-			names = append(names, `@?`+name+`[:, ]`)
-			barenames = append(barenames, `@?`+name+`\??`)
-		}
-	}
-	if len(mention) > 0 {
-		names = append(names, `@`+mention+`[:, ]`)
-		barenames = append(barenames, `@`+mention+`\??`)
-	}
-	preString := `^(?s)(?i:` + strings.Join(names, "|") + `\s*)(.*)$`
-	pre, errpre = regexp.Compile(preString)
-	// NOTE: the preString regex matches a bare alias, but not a bare name
-	if len(name) > 0 {
-		postString := `^([^,@]+),\s+(?i:@?` + name + `)([.?!])?$`
-		post, errpost = regexp.Compile(postString)
-		bareString := `^@?(?i:` + strings.Join(barenames, "|") + `)$`
-		bare, errbare = regexp.Compile(bareString)
-	}
-	return
 }

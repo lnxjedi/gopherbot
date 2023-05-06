@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -20,21 +19,6 @@ import (
 
 // Map of registered brains
 var brains = make(map[string]func(robot.Handler) robot.SimpleBrain)
-
-// ephemeral memories held im RAM that expire after a time
-type ephemeralMemory struct {
-	memory    string
-	timestamp time.Time
-}
-
-type memoryContext struct {
-	key, user, channel, thread string
-}
-
-var ephemeralMemories = struct {
-	m map[memoryContext]ephemeralMemory
-	sync.Mutex
-}{}
 
 // Set on start-up
 var encryptBrain bool
@@ -56,8 +40,8 @@ const botEncryptionKey = "bot:encryptionKey"
 const encryptedKeyFile = "binary-encrypted-key"
 
 // People generally expect the robot to remember things longer.
-const channelMemoryDuration = 7 * time.Minute // In the main channel, conversation context/topics tend to change often
-const threadMemoryDuration = 42 * time.Hour   // In a thread, the conversation context/topic tends to last days
+const channelMemoryDuration = 7 * time.Minute   // In the main channel, conversation context/topics tend to change often
+const threadMemoryDuration = 7 * time.Hour * 24 // In a thread, the conversation context/topic tends to last days
 
 type memState int
 
@@ -139,12 +123,9 @@ var brainLocks = struct {
 // functions and insures consistency.
 func runBrain() {
 	raiseThreadPriv("runBrain loop")
-	ephemeralMemories.Lock()
-	ephemeralMemories.m = make(map[memoryContext]ephemeralMemory)
-	ephemeralMemories.Unlock()
 	// map key to status
 	memories := make(map[string]*memstatus)
-	processMemories := time.NewTicker(memCycle)
+	brainTicker := time.NewTicker(memCycle)
 loop:
 	for {
 		select {
@@ -236,21 +217,32 @@ loop:
 				qr.reply <- struct{}{}
 				break loop
 			}
-		case <-processMemories.C:
+		case <-brainTicker.C:
 			now := time.Now()
+			// Expire thread subscriptions - see thread_subscriptions.go
+			isDirty := expireSubscriptions(now)
+			if isDirty {
+				go saveSubscriptions()
+			}
 			ephemeralMemories.Lock()
 			for context, memory := range ephemeralMemories.m {
 				if len(context.thread) > 0 {
-					if now.Sub(memory.timestamp) > threadMemoryDuration {
+					if now.Sub(memory.Timestamp) > threadMemoryDuration {
 						delete(ephemeralMemories.m, context)
+						ephemeralMemories.dirty = true
 					}
 				} else {
-					if now.Sub(memory.timestamp) > channelMemoryDuration {
+					if now.Sub(memory.Timestamp) > channelMemoryDuration {
 						delete(ephemeralMemories.m, context)
+						ephemeralMemories.dirty = true
 					}
 				}
 			}
+			isDirty = ephemeralMemories.dirty
 			ephemeralMemories.Unlock()
+			if isDirty {
+				go saveEphemeralMemories()
+			}
 			for _, m := range memories {
 				switch m.state {
 				case newMemory:
@@ -436,6 +428,9 @@ func (r Robot) Remember(key, value string, shared bool) {
 	Log(robot.Trace, "storing ephemeral memory \"%s\" -> \"%s\"", key, value)
 	ephemeralMemories.Lock()
 	ephemeralMemories.m[context] = memory
+	if len(context.thread) > 0 {
+		ephemeralMemories.dirty = true
+	}
 	ephemeralMemories.Unlock()
 }
 
@@ -448,6 +443,7 @@ func (r Robot) RememberThread(key, value string, shared bool) {
 	Log(robot.Trace, "storing ephemeral memory \"%s\" -> \"%s\"", key, value)
 	ephemeralMemories.Lock()
 	ephemeralMemories.m[context] = memory
+	ephemeralMemories.dirty = true
 	ephemeralMemories.Unlock()
 }
 
@@ -473,11 +469,11 @@ func (r Robot) Recall(key string, shared bool) string {
 	ephemeralMemories.Lock()
 	memory, ok := ephemeralMemories.m[context]
 	ephemeralMemories.Unlock()
-	Log(robot.Trace, "recalling ephemeral memory \"%s\" -> \"%s\"", key, memory.memory)
+	Log(robot.Trace, "recalling ephemeral memory \"%s\" -> \"%s\"", key, memory.Memory)
 	if !ok {
 		return ""
 	}
-	return memory.memory
+	return memory.Memory
 }
 
 // RegisterSimpleBrain allows brain implementations to register a function with a named
@@ -549,7 +545,7 @@ func initializeEncryptionFromBrain(key string) bool {
 		encoder := base64.NewEncoder(base64.StdEncoding, &bekbuff)
 		encoder.Write(bek)
 		bekbuff.Write([]byte("\n"))
-		if err := ioutil.WriteFile(filepath.Join(configPath, encryptedKeyFile), bekbuff.Bytes(), os.FileMode(0600)); err != nil {
+		if err := os.WriteFile(filepath.Join(configPath, encryptedKeyFile), bekbuff.Bytes(), os.FileMode(0600)); err != nil {
 			Log(robot.Fatal, "Writing new random key: %v", err)
 		}
 	} else {

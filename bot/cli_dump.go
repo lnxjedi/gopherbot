@@ -2,7 +2,6 @@ package bot
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -19,7 +18,7 @@ func cliDump(which, file string) {
 		base = configPath
 	}
 	cfgfile := filepath.Join(base, "conf", file)
-	raw, err := ioutil.ReadFile(cfgfile)
+	raw, err := os.ReadFile(cfgfile)
 	if err != nil {
 		fmt.Printf("Reading '%s': %v\n", cfgfile, err)
 		os.Exit(1)

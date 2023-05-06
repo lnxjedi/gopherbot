@@ -310,12 +310,12 @@ func TestVisibility(t *testing.T) {
 }
 
 func TestBuiltins(t *testing.T) {
-	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
+	done, conn := setup("test/membrain", "/tmp/bottest-builtins.log", t)
 
 	tests := []testItem{
 		{aliceID, general, ";help log", []testc.TestMessage{{null, general, "direct message only"}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, null, ";set log lines to 3", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 3"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log lines to 0", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 1"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, ";set log lines to 3", []testc.TestMessage{{alice, null, "Lines per page of log output set to: 3"}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";help info", []testc.TestMessage{{null, general, `bender,.*admins.*`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, random, ";help ruby", []testc.TestMessage{{null, random, `prove that ruby plugins work \(channels: random\)`}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "help", []testc.TestMessage{{null, general, "Hi,.*"}}, []Event{AmbientTaskRan, GoPluginRan}, 0},

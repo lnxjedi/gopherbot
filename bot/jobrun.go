@@ -76,6 +76,11 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 		}
 		return
 	}
+	// Messages from the robot itself can match a job trigger, but
+	// nothing else.
+	if w.Incoming.SelfMessage {
+		return
+	}
 	// Check for built-in run job
 	if w.isCommand {
 		var jname string

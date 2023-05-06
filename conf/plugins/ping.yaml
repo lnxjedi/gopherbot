@@ -16,6 +16,8 @@ CommandMatchers:
 - Command: "ping"
   Regex: "(?i:ping)"
 - Command: "ignore"
+  # NOTE: We don't match 'I <something>' - otherwise users couldn't say
+  # "Floyd, I love you" (or "Floyd, I think you're a nimrod")
   Regex: '(?s:(?:i(?:gnore)?|Ignore|I:)[ :].*)'
 - Command: "thanks"
   Regex: "(?i:thanks?( you)?!?)"

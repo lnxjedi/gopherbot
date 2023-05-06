@@ -33,6 +33,7 @@ const (
 	plugCommand
 	plugMessage
 	catchAll
+	plugThreadSubscription
 	jobTrigger
 	spawnedTask
 	scheduled

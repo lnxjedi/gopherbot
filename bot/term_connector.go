@@ -38,8 +38,7 @@ type termconfig struct {
 	StartUser        string // the initial userid
 	EOF              string // command to send on EOF (ctrl-D), default ";quit"
 	Abort            string // command to send on ctrl-c
-	HearSelf         bool   // whether messages the robot sends echo back to the engine
-	BotName          string // the bot's name, required for HearSelf
+	BotName          string // the bot's name, required for the robot to hear it's own messages
 	Users            []termUser
 	Channels         []string
 	GenerateNewlines bool // whether to replace the \n sequence with an actual newline
@@ -53,7 +52,6 @@ type termConnector struct {
 	lastThread       string             // last thread heard from the robot, used with join
 	threadCounter    int                // Incrementing integer for assigning thread IDs
 	typingInThread   bool               // Tracks whether input is coming from a thread
-	hearSelf         bool               // see above
 	generateNewlines bool               // see above
 	botName          string             // see above
 	eof              string             // command to send on ctrl-d (EOF)
@@ -169,7 +167,6 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	tc := &termConnector{
 		currentChannel:   c.StartChannel,
 		currentUser:      c.StartUser,
-		hearSelf:         c.HearSelf,
 		generateNewlines: c.GenerateNewlines,
 		botName:          c.BotName,
 		eof:              eof,
@@ -465,36 +462,36 @@ func (tc *termConnector) getChannel(c string) string {
 }
 
 func (tc *termConnector) checkSendSelf(ch, thr, msg string, f robot.MessageFormat) {
-	if tc.hearSelf {
-		var threadID, messageID string
-		var threadedMessage bool
-		tc.Lock()
-		tc.threadCounter++
-		messageNumber := tc.threadCounter
-		tc.Unlock()
-		if len(thr) > 0 {
-			threadedMessage = true
-			messageID = fmt.Sprintf("%04x", messageNumber%threadIDMax)
-			threadID = thr
-		} else {
-			threadID = fmt.Sprintf("%04x", messageNumber%threadIDMax)
-			messageID = threadID
-		}
-		botMsg := &robot.ConnectorMessage{
-			Protocol:        "terminal",
-			UserName:        tc.botName,
-			UserID:          termBotID,
-			ChannelName:     ch,
-			ChannelID:       "#" + ch,
-			MessageID:       messageID,
-			ThreadedMessage: threadedMessage,
-			ThreadID:        threadID,
-			MessageText:     msg,
-		}
-		tc.RLock()
-		tc.IncomingMessage(botMsg)
-		tc.RUnlock()
+	var threadID, messageID string
+	var threadedMessage bool
+	tc.Lock()
+	tc.threadCounter++
+	messageNumber := tc.threadCounter
+	tc.Unlock()
+	if len(thr) > 0 {
+		threadedMessage = true
+		messageID = fmt.Sprintf("%04x", messageNumber%threadIDMax)
+		threadID = thr
+	} else {
+		threadID = fmt.Sprintf("%04x", messageNumber%threadIDMax)
+		messageID = threadID
 	}
+	tc.Log(robot.Debug, "forwarding message id '%s' from the robot %s/%s", messageID, tc.botName, termBotID)
+	botMsg := &robot.ConnectorMessage{
+		Protocol:        "terminal",
+		UserName:        tc.botName,
+		UserID:          termBotID,
+		ChannelName:     ch,
+		ChannelID:       "#" + ch,
+		MessageID:       messageID,
+		ThreadedMessage: threadedMessage,
+		SelfMessage:     true,
+		ThreadID:        threadID,
+		MessageText:     msg,
+	}
+	tc.RLock()
+	tc.IncomingMessage(botMsg)
+	tc.RUnlock()
 }
 
 // SetUserMap lets Gopherbot provide a mapping of usernames to user IDs

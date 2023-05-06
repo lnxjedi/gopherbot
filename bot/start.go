@@ -290,7 +290,7 @@ func Start(v VersionInfo) {
 	}
 
 	logger = log.New(logOut, "", logFlags)
-	botLogger.l = logger
+	botLogger.logger = logger
 	if unconfigured {
 		Log(robot.Warn, "Starting unconfigured; no robot.yaml/gopherbot.yaml found")
 	}

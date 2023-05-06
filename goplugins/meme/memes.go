@@ -3,7 +3,7 @@ package meme
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -63,7 +63,7 @@ func createMeme(m *memeConfig, templateId, topText, bottomText string) (string, 
 		return "", err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

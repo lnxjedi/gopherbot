@@ -8,7 +8,6 @@ import (
 	crand "crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net"
@@ -250,7 +249,7 @@ func initCrypt() bool {
 	encryptionInitialized := false
 	if ek, ok := os.LookupEnv(keyEnv); ok {
 		ik := []byte(ek)[0:32]
-		if bkf, err := ioutil.ReadFile(keyFile); err == nil {
+		if bkf, err := os.ReadFile(keyFile); err == nil {
 			if bke, err := base64.StdEncoding.DecodeString(string(bkf)); err == nil {
 				if key, err := decrypt(bke, ik); err == nil {
 					cryptKey.Lock()
@@ -282,7 +281,7 @@ func initCrypt() bool {
 				}
 				beks := base64.StdEncoding.EncodeToString(bek)
 				raiseThreadPriv("writing generated encrypted key")
-				err = ioutil.WriteFile(keyFile, []byte(beks), 0444)
+				err = os.WriteFile(keyFile, []byte(beks), 0444)
 				if err != nil {
 					Log(robot.Error, "Writing out generated key: %v", err)
 					return false
@@ -308,6 +307,10 @@ func initCrypt() bool {
 func run() {
 	// Start the brain loop
 	go runBrain()
+
+	// Restore subscriptions and ephemeral memories
+	restoreSubscriptions()
+	restoreEphemeralMemories()
 
 	var cl []string
 	cl = append(cl, currentCfg.joinChannels...)
