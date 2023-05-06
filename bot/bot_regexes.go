@@ -56,27 +56,27 @@ func updateRegexesWrapped(name, mention string, alias rune) (preRe, postRe, bare
 	barenames := []string{}
 	if alias != 0 {
 		if strings.ContainsRune(string(escapeAliases), alias) {
-			names = append(names, `(`+`\`+string(alias)+`)`)
-			barenames = append(barenames, `(`+`\`+string(alias)+`)`)
+			names = append(names, `\`+string(alias))
+			barenames = append(barenames, `\`+string(alias))
 		} else {
-			names = append(names, `(`+string(alias)+`)`)
-			barenames = append(barenames, `(`+string(alias)+`)`)
+			names = append(names, string(alias))
+			barenames = append(barenames, string(alias))
 		}
 	}
 	if len(name) > 0 {
 		if len(mention) > 0 {
-			names = append(names, `(`+`(?i:`+name+`)[:, ])`)
-			barenames = append(barenames, `(`+`(?i:`+name+`\??)`+`)`)
+			names = append(names, `(?i:`+name+`)[:, ]`)
+			barenames = append(barenames, `(?i:`+name+`\??)`)
 		} else {
-			names = append(names, `(?:@?`+`(`+name+`)`+`[:, ])`)
-			barenames = append(barenames, `(?:@?`+`(`+name+`\??)`+`)`)
+			names = append(names, `(?i:@?`+name+`[:, ])`)
+			barenames = append(barenames, `(?i:@?`+name+`\??)`)
 		}
 	}
 	if len(mention) > 0 {
-		names = append(names, `(?:@`+`(`+mention+`)`+`[:, ])`)
-		barenames = append(barenames, `(?:@`+`(`+mention+`\??)`+`)`)
+		names = append(names, `(?:@`+mention+`[:, ])`)
+		barenames = append(barenames, `(?:@`+mention+`\??)`)
 	}
-	preString := `^(?s)(?i:` + strings.Join(names, "|") + `\s*)(.*)$`
+	preString := `^(?s)(?i:(` + strings.Join(names, "|") + `)\s*)(.*)$`
 	preRe, errpre = regexp.Compile(preString)
 	// NOTE: the preString regex matches a bare alias, but not a bare name
 	if len(name) > 0 {

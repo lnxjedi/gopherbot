@@ -205,6 +205,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		}
 	}
 	cmdMode := ""
+	// Log(robot.Debug, "DEBUG: incoming %+v", inc)
 	if inc.BotMessage {
 		isCommand = true
 		message = messageFull
@@ -217,17 +218,10 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		regexes.RUnlock()
 		if preRegex != nil {
 			matches := preRegex.FindStringSubmatch(messageFull)
-			if len(matches) == 4 {
+			if len(matches) == 3 {
 				isCommand = true
-				if len(matches[1]) > 0 {
-					cmdMode = "alias"
-				} else {
-					cmdMode = "name"
-				}
-				message = matches[3]
-			} else if len(matches) == 3 {
-				isCommand = true
-				if botAlias != 0 {
+				name := matches[1]
+				if name == string(botAlias) {
 					cmdMode = "alias"
 				} else {
 					cmdMode = "name"
@@ -244,25 +238,14 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 			}
 		}
 		if !isCommand && bareRegex != nil {
-			matches := bareRegex.FindStringSubmatch(messageFull)
-			if len(matches) == 3 {
-				isCommand = true
-				if len(matches[1]) > 0 {
+			if bareRegex.MatchString(messageFull) {
+				if messageFull == string(botAlias) {
 					cmdMode = "alias"
 				} else {
 					cmdMode = "name"
 				}
-			} else if len(matches) == 2 {
 				isCommand = true
-				if botAlias != 0 {
-					cmdMode = "alias"
-				} else {
-					cmdMode = "name"
-				}
 			}
-		}
-		if !isCommand {
-			message = messageFull
 		}
 	}
 
