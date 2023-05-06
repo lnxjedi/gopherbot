@@ -40,8 +40,8 @@ const botEncryptionKey = "bot:encryptionKey"
 const encryptedKeyFile = "binary-encrypted-key"
 
 // People generally expect the robot to remember things longer.
-const channelMemoryDuration = 7 * time.Minute // In the main channel, conversation context/topics tend to change often
-const threadMemoryDuration = 42 * time.Hour   // In a thread, the conversation context/topic tends to last days
+const channelMemoryDuration = 7 * time.Minute   // In the main channel, conversation context/topics tend to change often
+const threadMemoryDuration = 7 * time.Hour * 24 // In a thread, the conversation context/topic tends to last days
 
 type memState int
 

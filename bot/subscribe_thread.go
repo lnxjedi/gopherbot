@@ -23,8 +23,6 @@ The Go linter is complaining about copying locks, but in reality we're not using
 that's being copied anyway.
 */
 
-const subscriptionTimeout = 14 * 24 * time.Hour
-
 const subscriptionMemKey = "bot:_subscriptions"
 
 // Plugins can subscribe to a thread in a channel. This struct is used as the
@@ -193,7 +191,7 @@ func (r Robot) Unsubscribe() (success bool) {
 func expireSubscriptions(now time.Time) bool {
 	subscriptions.Lock()
 	for subscription, subscriber := range subscriptions.m {
-		if now.Sub(subscriber.Timestamp) > subscriptionTimeout {
+		if now.Sub(subscriber.Timestamp) > threadMemoryDuration {
 			delete(subscriptions.m, subscription)
 			subscriptions.dirty = true
 			Log(robot.Debug, "Subscribe - expiring subscription for plugin '%s' to thread '%s' in channel '%s'", subscriber.Plugin, subscription.thread, subscription.channel)
