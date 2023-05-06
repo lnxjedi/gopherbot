@@ -476,7 +476,7 @@ func (tc *termConnector) checkSendSelf(ch, thr, msg string, f robot.MessageForma
 		threadID = fmt.Sprintf("%04x", messageNumber%threadIDMax)
 		messageID = threadID
 	}
-	tc.Log(robot.Debug, "forwarding message id '%s' from the robot %s/%s", messageID, tc.botName, termBotID)
+	tc.Log(robot.Debug, "Forwarding message id '%s' from the robot %s/%s", messageID, tc.botName, termBotID)
 	botMsg := &robot.ConnectorMessage{
 		Protocol:        "terminal",
 		UserName:        tc.botName,
