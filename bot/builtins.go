@@ -18,10 +18,8 @@ import (
 // Cut off for listing channels after help text
 const tooManyChannels = 4
 
-// Size of QR code
-const qrsize = 400
-
 func init() {
+	RegisterPlugin("builtin-fallback", robot.PluginHandler{Handler: fallback})
 	RegisterPlugin("builtin-dmadmin", robot.PluginHandler{Handler: dmadmin})
 	RegisterPlugin("builtin-help", robot.PluginHandler{Handler: help})
 	RegisterPlugin("builtin-admin", robot.PluginHandler{Handler: admin})
@@ -29,6 +27,23 @@ func init() {
 }
 
 /* builtin plugins, like help */
+
+func fallback(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+	r := m.(Robot)
+	if command == "init" {
+		return // ignore init
+	}
+	botAlias := r.GetBotAttribute("alias").String()
+	if command == "catchall" {
+		channelName := r.GetMessage().Channel
+		if len(channelName) > 0 {
+			r.SayThread("No command matched in channel '%s'; try '%shelp'", channelName, botAlias)
+		} else {
+			r.Say("Command not found; try your command in a channel, or use '%shelp'", botAlias)
+		}
+	}
+	return
+}
 
 func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
