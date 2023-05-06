@@ -113,8 +113,10 @@ func saveSubscriptions() {
 		subscriptions.Lock()
 		storedSubscriptions.m = subscriptions.m
 		subscriptions.dirty = false
-		subscriptions.Unlock()
 		ret := updateDatum(subscriptionMemKey, ss_tok, storedSubscriptions)
+		// NOTE: Hold the lock until after serializing - the
+		// storedSubscriptions assignment doesn't copy.
+		subscriptions.Unlock()
 		if ret == robot.Ok {
 			Log(robot.Debug, "Successfully saved '%d' long-term subscription memories", len(storedSubscriptions.m))
 		} else {

@@ -103,8 +103,10 @@ func saveEphemeralMemories() {
 		ephemeralMemories.Lock()
 		storedEphemeralMemories.m = ephemeralMemories.m
 		ephemeralMemories.dirty = false
-		ephemeralMemories.Unlock()
 		ret := updateDatum(ephemeralMemKey, sm_tok, storedEphemeralMemories)
+		// NOTE: Hold the lock until after serializing - the
+		// storedEphmemeralMemories assignment doesn't copy.
+		ephemeralMemories.Unlock()
 		if ret == robot.Ok {
 			Log(robot.Debug, "Successfully saved '%d' ephemeral memories to long-term memory", len(storedEphemeralMemories.m))
 		} else {
