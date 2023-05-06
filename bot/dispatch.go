@@ -233,7 +233,12 @@ func (w *worker) handleMessage() {
 	}
 	// See if the robot got a blank message, indicating that the last message
 	// was meant for it (if it was in the keepListeningDuration); also handle "robot?"
+	// This happens when the bareRegex matches.
 	if !messageMatched && w.isCommand && !w.Incoming.SelfMessage && len(w.msg) == 0 && !w.BotUser {
+		ephemeralMemories.Lock()
+		last, ok = ephemeralMemories.m[lastMsgContext]
+		ephemeralMemories.Unlock()
+		Log(robot.Debug, "Barename/blank message to robot received ('%s'), checking last message: '%s'", w.fmsg, last.Memory)
 		// Allow individual plugins to handle a lone "?"
 		// Feature added for - you guessed it - the AI plugin
 		if strings.HasSuffix(w.fmsg, "?") {
@@ -241,9 +246,6 @@ func (w *worker) handleMessage() {
 			messageMatched = w.checkPluginMatchersAndRun(plugCommand)
 		}
 		if !messageMatched {
-			ephemeralMemories.Lock()
-			last, ok = ephemeralMemories.m[lastMsgContext]
-			ephemeralMemories.Unlock()
 			if ok && ts.Sub(last.Timestamp) < keepListeningDuration {
 				w.msg = last.Memory
 				messageMatched = w.checkPluginMatchersAndRun(plugCommand)
@@ -282,7 +284,7 @@ func (w *worker) handleMessage() {
 			for _, t := range w.tasks.t[1:] {
 				task, plugin, _ := getTask(t)
 				if plugin == nil || !plugin.CatchAll {
-					Log(robot.Trace, "checking plugin %s for catch-all (false)", task.name)
+					Log(robot.Trace, "Checking plugin %s for catch-all (false)", task.name)
 					continue
 				}
 				available, specific := w.pluginAvailable(task, false, false)
@@ -290,7 +292,7 @@ func (w *worker) handleMessage() {
 					continue
 				}
 				if specific {
-					Log(robot.Trace, "checking plugin %s for catch-all (true, specific)", task.name)
+					Log(robot.Trace, "Checking plugin %s for catch-all (true, specific)", task.name)
 					if specificCatchAll == nil {
 						specificCatchAll = t
 					} else {
@@ -298,7 +300,7 @@ func (w *worker) handleMessage() {
 						break
 					}
 				} else {
-					Log(robot.Trace, "checking plugin %s for catch-all (true, non-specific)", task.name)
+					Log(robot.Trace, "Checking plugin %s for catch-all (true, non-specific)", task.name)
 					if fallbackCatchAll == nil {
 						fallbackCatchAll = t
 					} else {
@@ -307,11 +309,11 @@ func (w *worker) handleMessage() {
 				}
 			}
 			if multipleCatchallMatched {
-				Log(robot.Error, "more than one specific catch-all matched, none will be called")
+				Log(robot.Error, "More than one specific catch-all matched, none will be called")
 			} else {
 				if specificCatchAll != nil {
 					task, _, _ := getTask(specificCatchAll)
-					Log(robot.Debug, "unmatched command, calling specific catchall '%s' in channel '%s'", task.name, w.Channel)
+					Log(robot.Debug, "Unmatched command, calling specific catchall '%s' in channel '%s'", task.name, w.Channel)
 					catchAllMatched = true
 					w.startPipeline(nil, specificCatchAll, catchAll, "catchall", w.fmsg)
 				} else if fallbackCatchAll != nil {
@@ -319,12 +321,12 @@ func (w *worker) handleMessage() {
 						Log(robot.Error, "More than one fallback catch-all matched, none will be called")
 					} else {
 						task, _, _ := getTask(fallbackCatchAll)
-						Log(robot.Debug, "unmatched command, calling fallback catchall '%s' in channel '%s'", task.name, w.Channel)
+						Log(robot.Debug, "Unmatched command, calling fallback catchall '%s' in channel '%s'", task.name, w.Channel)
 						catchAllMatched = true
 						w.startPipeline(nil, fallbackCatchAll, catchAll, "catchall", w.fmsg)
 					}
 				} else {
-					Log(robot.Debug, "unmatched command to robot and no catchall defined")
+					Log(robot.Debug, "Unmatched command to robot and no catchall defined")
 				}
 			}
 		} else {

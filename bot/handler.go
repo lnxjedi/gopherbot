@@ -247,6 +247,9 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 				isCommand = true
 			}
 		}
+		if !isCommand {
+			message = messageFull
+		}
 	}
 
 	if inc.DirectMessage {
