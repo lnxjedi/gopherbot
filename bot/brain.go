@@ -427,7 +427,11 @@ func (r Robot) Remember(key, value string, shared bool) {
 	context := r.makeMemoryContext(key, false, shared)
 	Log(robot.Trace, "storing ephemeral memory \"%s\" -> \"%s\"", key, value)
 	ephemeralMemories.Lock()
-	ephemeralMemories.m[context] = memory
+	if len(value) > 0 {
+		ephemeralMemories.m[context] = memory
+	} else {
+		delete(ephemeralMemories.m, context)
+	}
 	if len(context.thread) > 0 {
 		ephemeralMemories.dirty = true
 	}
