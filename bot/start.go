@@ -130,7 +130,7 @@ func Start(v VersionInfo) {
 			}()
 		}
 		cmd.Wait()
-		Log(robot.Info, "quitting on child exit")
+		Log(robot.Info, "Quitting on child exit")
 		return
 	}
 

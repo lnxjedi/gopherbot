@@ -77,22 +77,22 @@ func (s *slackConnector) updateUserList(want string) (ret string) {
 		}
 	}
 	if err != nil {
-		s.Log(robot.Error, "protocol timeout updating users: %v", err)
+		s.Log(robot.Error, "Protocol timeout updating users: %v", err)
 	}
 	for i, user := range userlist {
 		if user.TeamID == s.teamID {
 			if match_id, ok := userMap[user.Name]; ok {
 				if user.ID != match_id {
-					s.Log(robot.Error, "found Slack user '%s' with id '%s' duplicating user from roster with id '%s', ignoring!", user.Name, user.ID, match_id)
+					s.Log(robot.Error, "Found Slack user '%s' with id '%s' duplicating user from roster with id '%s', ignoring!", user.Name, user.ID, match_id)
 					continue
 				}
 			}
 			userIDInfo[user.ID] = &userlist[i]
 			if _, ok := userIDMap[user.ID]; !ok {
 				if !usernameRe.MatchString(user.Name) {
-					s.Log(robot.Warn, "slack username '%s' doesn't match against the slack mentionMatch '%s'", user.Name, mentionMatch)
+					s.Log(robot.Warn, "Slack username '%s' doesn't match against the slack mentionMatch '%s'", user.Name, mentionMatch)
 				}
-				s.Log(robot.Debug, "updateUserList recorded user: %s/%s", user.Name, user.ID)
+				s.Log(robot.Debug, "UpdateUserList recorded user: %s/%s", user.Name, user.ID)
 				userMap[user.Name] = user.ID
 				userIDMap[user.ID] = user.Name
 			}
@@ -133,13 +133,13 @@ func (s *slackConnector) userID(u string, isMention bool) (i string, ok bool) {
 	s.RUnlock()
 	if !ok {
 		if isMention {
-			s.Log(robot.Error, "failed ID lookup for user '%s' (invalid @mention)", u)
+			s.Log(robot.Error, "Failed ID lookup for user '%s' (invalid @mention)", u)
 		} else {
 			i := s.updateUserList("i:" + u)
 			if len(i) > 0 {
 				return i, true
 			}
-			s.Log(robot.Error, "failed ID lookup for user '%s' after updating userlist", u)
+			s.Log(robot.Error, "Failed ID lookup for user '%s' after updating userlist", u)
 		}
 		return "", false
 	}
@@ -225,11 +225,11 @@ pageLoop:
 	for i, channel := range channelList {
 		chanInfo[channel.ID] = &channelList[i]
 		if channel.IsIM {
-			s.Log(robot.Debug, "updateChannelMaps recorded DM channel for user: %s", channel.User)
+			s.Log(robot.Debug, "UpdateChannelMaps recorded DM channel for user: %s", channel.User)
 			userIMMap[channel.User] = channel.ID
 			userIMIDMap[channel.ID] = channel.User
 		} else {
-			s.Log(robot.Debug, "updateChannelMaps recorded channel: %s", channel.Name)
+			s.Log(robot.Debug, "UpdateChannelMaps recorded channel: %s", channel.Name)
 			chanMap[channel.Name] = channel.ID
 			chanIDMap[channel.ID] = channel.Name
 		}

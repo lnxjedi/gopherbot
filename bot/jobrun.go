@@ -163,7 +163,7 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 								r.Say("That doesn't match the pattern for argument '%s'", argspec.Label)
 							} else {
 								if ret != robot.Ok {
-									r.Log(robot.Warn, "failed getting arguments running job '%s': %s", jname, ret)
+									r.Log(robot.Warn, "Failed getting arguments running job '%s': %s", jname, ret)
 									r.Say("(not running job '%s')", jname)
 									w.deregister()
 									return

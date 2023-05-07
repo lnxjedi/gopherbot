@@ -253,7 +253,7 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 	}
 	if userID == s.botUserID {
 		botMsg.SelfMessage = true
-		s.Log(robot.Trace, "forwarding slack return message '%s' from the robot %s/%s", messageID, userName, userID)
+		s.Log(robot.Trace, "Forwarding slack return message '%s' from the robot %s/%s", messageID, userName, userID)
 	}
 	s.IncomingMessage(botMsg)
 }
@@ -261,7 +261,7 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 // processSlashCmdSocketMode examines incoming /<foo> messages routed to the robot,
 // removes extra slack cruft, and routes them to the appropriate bot method.
 func (s *slackConnector) processSlashCmdSocketMode(cmd *slack.SlashCommand) {
-	s.Log(robot.Trace, "slash command received: %+v", cmd)
+	s.Log(robot.Trace, "Slash command received: %+v", cmd)
 	chanID := cmd.ChannelID
 	userID := cmd.UserID
 	ci, ok := s.getChannelInfo(chanID)
@@ -345,7 +345,7 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 		lastmsgtime.Unlock()
 	}
 	if len(userID) == 0 {
-		s.Log(robot.Debug, "zero-length userID, ignoring message")
+		s.Log(robot.Debug, "Zero-length userID, ignoring message")
 		return
 	}
 	messageID := msg.Timestamp
@@ -388,7 +388,7 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 	}
 	if userID == s.botUserID {
 		botMsg.SelfMessage = true
-		s.Log(robot.Trace, "forwarding slack return message '%s' from the robot %s/%s", messageID, userName, userID)
+		s.Log(robot.Trace, "Forwarding slack return message '%s' from the robot %s/%s", messageID, userName, userID)
 	}
 	s.IncomingMessage(botMsg)
 }

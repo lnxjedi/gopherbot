@@ -46,7 +46,7 @@ func (r Robot) Exclusive(tag string, queueTask bool) (success bool) {
 	// context of a job pipeline, which is the only case where r.nameSpace
 	// is set.
 	if !isPlugin && !isJob && queueTask && len(r.nameSpace) == 0 {
-		r.Log(robot.Error, "exclusive called by job or task with queueing outside of job pipeline")
+		r.Log(robot.Error, "Exclusive called by job or task with queueing outside of job pipeline")
 		return false
 	}
 	if len(ns) == 0 {

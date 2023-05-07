@@ -465,7 +465,7 @@ func loadConfig(preConnect bool) error {
 	if len(newconfig.UserRoster) > 0 {
 		for i, user := range newconfig.UserRoster {
 			if len(user.UserName) == 0 || len(user.UserID) == 0 {
-				Log(robot.Error, "one of Username/UserID empty (%s/%s), ignoring", user.UserName, user.UserID)
+				Log(robot.Error, "One of Username/UserID empty (%s/%s), ignoring", user.UserName, user.UserID)
 			} else {
 				u := &newconfig.UserRoster[i]
 				ucmaps.user[u.UserName] = u
@@ -477,7 +477,7 @@ func loadConfig(preConnect bool) error {
 	if len(newconfig.ChannelRoster) > 0 {
 		for i, ch := range newconfig.ChannelRoster {
 			if len(ch.ChannelName) == 0 || len(ch.ChannelID) == 0 {
-				Log(robot.Error, "one of ChannelName/ChannelID empty (%s/%s), ignoring", ch.ChannelName, ch.ChannelID)
+				Log(robot.Error, "One of ChannelName/ChannelID empty (%s/%s), ignoring", ch.ChannelName, ch.ChannelID)
 			} else {
 				c := &newconfig.ChannelRoster[i]
 				ucmaps.channel[c.ChannelName] = c

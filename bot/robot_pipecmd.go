@@ -78,7 +78,7 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 		return false
 	}
 	if r.jobName != repository.Type {
-		r.Log(robot.Error, "space called with jobName(%s) != repository Type(%s)", r.jobName, repository.Type)
+		r.Log(robot.Error, "Space called with jobName(%s) != repository Type(%s)", r.jobName, repository.Type)
 		return false
 	}
 	r.Log(robot.Debug, "Extending namespace for job '%s': %s (branch %s)", r.jobName, repo, branch)
@@ -170,24 +170,24 @@ func (r Robot) ExtendNamespace(ext string, histories int) bool {
 func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, args ...string) robot.RetVal {
 	if r.stage != primaryTasks {
 		task, _, _ := getTask(r.currentTask)
-		r.Log(robot.Error, "request to modify pipeline outside of initial pipeline in task '%s'", task.name)
+		r.Log(robot.Error, "Request to modify pipeline outside of initial pipeline in task '%s'", task.name)
 		return robot.InvalidStage
 	}
 	t := r.tasks.getTaskByName(name)
 	if t == nil {
 		task, _, _ := getTask(r.currentTask)
-		r.Log(robot.Error, "task '%s' not found updating pipeline from task '%s'", name, task.name)
+		r.Log(robot.Error, "Task '%s' not found updating pipeline from task '%s'", name, task.name)
 		return robot.TaskNotFound
 	}
 	task, plugin, job := getTask(t)
 	isPlugin := plugin != nil
 	isJob := job != nil
 	if task.Disabled {
-		r.Log(robot.Error, "attempt to add disabled task '%s' to pipeline", name)
+		r.Log(robot.Error, "Attempt to add disabled task '%s' to pipeline", name)
 		return robot.TaskDisabled
 	}
 	if ptype == typePlugin && !isPlugin {
-		r.Log(robot.Error, "adding command to pipeline - not a plugin: %s", name)
+		r.Log(robot.Error, "Adding command to pipeline - not a plugin: %s", name)
 		return robot.InvalidTaskType
 	}
 	if ptype == typeJob && !isJob {
@@ -230,7 +230,7 @@ func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, a
 			matches := matcher.re.FindAllStringSubmatch(cmsg, -1)
 			if matches != nil {
 				matched = true
-				Log(robot.Trace, "pipeline command '%s' matches '%s'", cmsg, matcher.Command)
+				Log(robot.Trace, "Pipeline command '%s' matches '%s'", cmsg, matcher.Command)
 				command = matcher.Command
 				cmdargs = matches[0][1:]
 				break

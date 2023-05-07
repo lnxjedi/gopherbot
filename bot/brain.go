@@ -481,7 +481,7 @@ func (r Robot) Recall(key string, shared bool) string {
 	ephemeralMemories.Lock()
 	memory, ok := ephemeralMemories.m[context]
 	ephemeralMemories.Unlock()
-	Log(robot.Trace, "recalling ephemeral memory \"%s\" -> \"%s\"", key, memory.Memory)
+	Log(robot.Trace, "Recalling ephemeral memory \"%s\" -> \"%s\"", key, memory.Memory)
 	if !ok {
 		return ""
 	}
@@ -658,7 +658,7 @@ func storeDatum(dkey string, datum *[]byte) robot.RetVal {
 		if !initialized {
 			// When re-keying, we store the 'real' key while uninitialized with a new key
 			if !(initializing && dkey == botEncryptionKey) {
-				Log(robot.Error, "storeDatum called for '%s' with encryptBrain true, but encryption not initialized", key)
+				Log(robot.Error, "StoreDatum called for '%s' with encryptBrain true, but encryption not initialized", key)
 				return robot.BrainFailed
 			}
 		}

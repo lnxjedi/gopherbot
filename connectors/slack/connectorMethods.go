@@ -116,13 +116,13 @@ func (s *slackConnector) startSendLoop() {
 		if send.format == robot.Variable {
 			opts = append(opts, slack.MsgOptionDisableMarkdown(), slack.MsgOptionParse(false))
 		}
-		s.Log(robot.Trace, "bot message in slack send loop for channel %s, size: %d", send.channel, len(send.message))
+		s.Log(robot.Trace, "Bot message in slack send loop for channel %s, size: %d", send.channel, len(send.message))
 		time.Sleep(typingDelay)
 		sent := false
 		for p := range []int{1, 2, 4} {
 			_, _, err := s.api.PostMessage(send.channel, opts...)
 			if err != nil && p == 1 {
-				s.Log(robot.Warn, "sending slack message '%s' initiating backoff: %v", send.message, err)
+				s.Log(robot.Warn, "Sending slack message '%s' initiating backoff: %v", send.message, err)
 			}
 			if err != nil {
 				time.Sleep(time.Second * time.Duration(p))
@@ -133,10 +133,10 @@ func (s *slackConnector) startSendLoop() {
 		}
 		if !sent {
 			if socketmodeEnabled {
-				s.Log(robot.Error, "failed sending slack message '%s' to channel '%s' after 3 tries", send.message, send.channel)
+				s.Log(robot.Error, "Failed sending slack message '%s' to channel '%s' after 3 tries", send.message, send.channel)
 				// There doesn't appear to be a fallback available with socket mode
 			} else {
-				s.Log(robot.Error, "failed sending slack message '%s' to channel '%s' after 3 tries, attempting fallback to RTM", send.message, send.channel)
+				s.Log(robot.Error, "Failed sending slack message '%s' to channel '%s' after 3 tries, attempting fallback to RTM", send.message, send.channel)
 				s.conn.SendMessage(s.conn.NewOutgoingMessage(send.message, send.channel))
 			}
 		}
@@ -145,7 +145,7 @@ func (s *slackConnector) startSendLoop() {
 			if timeSinceBurst > coolDown {
 				burstTime = msgTime
 			}
-			s.Log(robot.Debug, "slack burst limit exceeded, delaying next message by %v", msgDelay)
+			s.Log(robot.Debug, "Slack burst limit exceeded, delaying next message by %v", msgDelay)
 			// if we've sent `burstMessages` messages in less than the `burstWindow`
 			// window, delay the next message by `msgDelay`.
 			time.Sleep(msgDelay)
@@ -184,7 +184,7 @@ func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f
 		s.sendMessages(msgs, chanID, thr, f)
 		return
 	}
-	s.Log(robot.Error, "slack channel ID not found for: %s", ch)
+	s.Log(robot.Error, "Slack channel ID not found for: %s", ch)
 	return robot.ChannelNotFound
 }
 
@@ -196,14 +196,14 @@ func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, m
 		chanID, ok = s.chanID(ch)
 	}
 	if !ok {
-		s.Log(robot.Error, "slack channel ID not found for: %s", ch)
+		s.Log(robot.Error, "Slack channel ID not found for: %s", ch)
 		return robot.ChannelNotFound
 	}
 	if userID, ok = s.ExtractID(uid); !ok {
 		userID, ok = s.userID(u, false)
 	}
 	if !ok {
-		s.Log(robot.Error, "slack user ID not found for: %s", uid)
+		s.Log(robot.Error, "Slack user ID not found for: %s", uid)
 		return robot.UserNotFound
 	}
 	// This gets converted to <@userID> in slackifyMessage
@@ -221,7 +221,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 		userID, ok = s.userID(u, false)
 	}
 	if !ok {
-		s.Log(robot.Error, "no slack user ID found for user: %s", u)
+		s.Log(robot.Error, "No slack user ID found for user: %s", u)
 		ret = robot.UserNotFound
 	}
 	var userIMchanstr string
@@ -229,7 +229,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 	var err error
 	userIMchanstr, ok = s.userIMID(userID)
 	if !ok {
-		s.Log(robot.Warn, "no slack IM channel found for user: %s, ID: %s trying to open IM", u, userID)
+		s.Log(robot.Warn, "No slack IM channel found for user: %s, ID: %s trying to open IM", u, userID)
 		ocParam := slack.OpenConversationParameters{
 			ChannelID: "",
 			ReturnIM:  false,
@@ -261,9 +261,9 @@ func (s *slackConnector) JoinChannel(c string) (ret robot.RetVal) {
 	if socketmodeEnabled {
 		_, _, _, err := s.api.JoinConversation(chanID)
 		if err != nil {
-			s.Log(robot.Error, "joining channel '%s': %v", c, err)
+			s.Log(robot.Error, "Joining channel '%s': %v", c, err)
 		} else {
-			s.Log(robot.Debug, "joined channel %s/%s", c, chanID)
+			s.Log(robot.Debug, "Joined channel %s/%s", c, chanID)
 		}
 	} else {
 		s.Log(robot.Debug, "Slack RTM robots can't join channels, skipping join for %s/%s", c, chanID)

@@ -45,7 +45,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 
 	err := r.GetProtocolConfig(&c)
 	if err != nil {
-		r.Log(robot.Fatal, "unable to retrieve slack protocol configuration: %v", err)
+		r.Log(robot.Fatal, "Unable to retrieve slack protocol configuration: %v", err)
 	}
 	// This spits out a lot of extra stuff, so we only enable it when tracing or
 	// explicitly configured.
@@ -70,12 +70,12 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 		slackOpts = append(slackOpts, slack.OptionAppLevelToken(c.AppToken))
 	} else {
 		if len(c.SlackToken) == 0 {
-			r.Log(robot.Fatal, "no slack token or bot/app tokens found in config")
+			r.Log(robot.Fatal, "No slack token or bot/app tokens found in config")
 		} else {
 			if !strings.HasPrefix(c.SlackToken, "xoxb-") {
 				r.Log(robot.Fatal, "BotToken must have the prefix \"xoxb-\".")
 			}
-			r.Log(robot.Warn, "using deprecated legacy RTM mode for connection")
+			r.Log(robot.Warn, "Using deprecated legacy RTM mode for connection")
 			tok = c.SlackToken
 		}
 	}
@@ -144,8 +144,8 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 			switch ev := msg.Data.(type) {
 
 			case *slack.ConnectedEvent:
-				r.Log(robot.Debug, "slack infos: %T %v\n", ev, *ev.Info.User)
-				r.Log(robot.Debug, "slack connection counter: %d", ev.ConnectionCount)
+				r.Log(robot.Debug, "Slack infos: %T %v\n", ev, *ev.Info.User)
+				r.Log(robot.Debug, "Slack connection counter: %d", ev.ConnectionCount)
 				break RTMInitLoop
 			case *slack.InvalidAuthEvent:
 				r.Log(robot.Fatal, "Invalid credentials")
@@ -157,14 +157,14 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	if err != nil {
 		r.Log(robot.Fatal, "Error getting auth info: %v", err)
 	}
-	r.Log(robot.Debug, "retrieved auth info:\n%+v", info)
+	r.Log(robot.Debug, "Retrieved auth info:\n%+v", info)
 	sc.botUserID = info.UserID
-	r.Log(robot.Info, "slack setting bot internal ID to: %s", sc.botUserID)
+	r.Log(robot.Info, "Slack setting bot internal ID to: %s", sc.botUserID)
 	r.SetBotID(sc.botUserID)
 	sc.botID = info.BotID
 	sc.botName = info.User
 	sc.teamID = info.TeamID
-	r.Log(robot.Info, "set team ID to %s", sc.teamID)
+	r.Log(robot.Info, "Set team ID to %s", sc.teamID)
 	botInfo, err := api.GetBotInfo(sc.botID)
 	if err != nil {
 		r.Log(robot.Fatal, "Error getting bot info: %v", err)
@@ -223,10 +223,10 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 							mevt := innerEvent.Data.(*slackevents.MessageEvent)
 							go sc.processMessageSocketMode(mevt)
 						default:
-							sc.Log(robot.Debug, "ignored CallbackEvent type: %s", innerEvent.Type)
+							sc.Log(robot.Debug, "Ignored CallbackEvent type: %s", innerEvent.Type)
 						}
 					default:
-						sc.Log(robot.Debug, "unhandled Events API event received, type: %s", eventsAPIEvent.Type)
+						sc.Log(robot.Debug, "Unhandled Events API event received, type: %s", eventsAPIEvent.Type)
 					}
 				case socketmode.EventTypeSlashCommand:
 					cmd, ok := evt.Data.(slack.SlashCommand)

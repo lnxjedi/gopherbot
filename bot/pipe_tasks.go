@@ -27,12 +27,12 @@ func rotatelog(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 // pause just adds a pause to the pipeline
 func pause(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	if len(args) != 1 {
-		m.Log(robot.Warn, "pause called with wrong number or args, not pausing")
+		m.Log(robot.Warn, "Pause called with wrong number or args, not pausing")
 		return
 	}
 	seconds, err := strconv.Atoi(args[0])
 	if err != nil {
-		m.Log(robot.Warn, "unable to parse integer argument for pause, not pausing")
+		m.Log(robot.Warn, "Unable to parse integer argument for pause, not pausing")
 		return
 	}
 	time.Sleep(time.Duration(seconds) * time.Second)
@@ -59,7 +59,7 @@ func logtail(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 func sendmsg(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	r := m.GetMessage()
 	if len(args) == 0 {
-		m.Log(robot.Warn, "empty status message")
+		m.Log(robot.Warn, "Empty status message")
 		return
 	}
 	full := strings.Join(args, " ")
@@ -84,7 +84,7 @@ func logmail(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 			}
 		}
 		if !defaultMail {
-			m.Log(robot.Error, "email-log called with no addresses")
+			m.Log(robot.Error, "Email-log called with no addresses")
 			return robot.Fail
 		}
 	}

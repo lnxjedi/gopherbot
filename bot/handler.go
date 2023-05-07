@@ -139,7 +139,7 @@ var chanLoggers = struct {
 func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	// Note: zero-len channel name and ID is valid; true of direct messages for some connectors
 	if len(inc.UserName) == 0 && len(inc.UserID) == 0 {
-		Log(robot.Error, "incoming message with no username or user ID")
+		Log(robot.Error, "Incoming message with no username or user ID")
 		return
 	}
 	currentUCMaps.Lock()
@@ -374,7 +374,7 @@ func (h handler) SetBotMention(m string) {
 	if len(m) == 0 {
 		return
 	}
-	Log(robot.Info, "protocol set bot mention string to: %s", m)
+	Log(robot.Info, "Protocol set bot mention string to: %s", m)
 	currentCfg.Lock()
 	currentCfg.botinfo.protoMention = m
 	currentCfg.Unlock()

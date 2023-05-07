@@ -59,7 +59,7 @@ func (tl *taskList) getTaskByName(name string) interface{} {
 	}
 	ti, ok := tl.nameMap[name]
 	if !ok {
-		Log(robot.Error, "task '%s' not found calling getTaskByName", name)
+		Log(robot.Error, "Task '%s' not found calling getTaskByName", name)
 		return nil
 	}
 	if ti == 0 {

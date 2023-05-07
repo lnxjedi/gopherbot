@@ -508,7 +508,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		cfile, err := os.Create(fname)
 		if err != nil {
 			r.Say("Sorry, there was a problem creating the log file")
-			Log(robot.Error, "creating '%s': %v", fname, err)
+			Log(robot.Error, "Creating '%s': %v", fname, err)
 			return
 		}
 		clog := log.New(cfile, "", log.LstdFlags)
