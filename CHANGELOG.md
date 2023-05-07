@@ -1,3 +1,6 @@
+# v2.10.1 - ChannelOnly matching
+`CommandMatchers` and `MessageMatchers` can now set a boolean flag, `ChannelOnly`, to only match messages in a main channel or DM (not a thread).
+
 # v2.10.0 - Command Mode, thread Subscribe API, short-term memory backing store
 * Once again for the AI plugin, it's useful to differentiate between robot commands using the robot's single-character alias vs the robot's regular name. The single-character alias is mostly understood by users as a "command prefix" for the robot, and used with chatops commands for e.g. deploying software. Using the robot's name, however, could indicate the user intends the message to be delivered to the AI. Starting in this version, external plugins will see a new `GOPHER_CMDMODE` environment variable, which will be "alias", "name", or "direct", and can be used to modify behavior.
 * This seems like an obvious API in retrospect - a plugin can now Subscribe to (and Unsubscribe from) the thread of the message that started it. This allows plugins to deal with conversations in a fairly natural fashion - starting a conversation thread and subscribing to it, and keeping state in short-term memory (which for threads is quite long).

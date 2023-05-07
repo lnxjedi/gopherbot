@@ -116,11 +116,12 @@ type PluginHelp struct {
 
 // InputMatcher specifies the command or message to match for a plugin
 type InputMatcher struct {
-	Regex    string         // The regular expression string to match - bot adds ^\w* & \w*$
-	Command  string         // The name of the command to pass to the plugin with it's arguments
-	Label    string         // ReplyMatchers use "Label" instead of "Command"
-	Contexts []string       // label the contexts corresponding to capture groups, for supporting "it" & optional args
-	re       *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
+	Regex       string         // The regular expression string to match - bot adds ^\w* & \w*$
+	Command     string         // The name of the command to pass to the plugin with it's arguments
+	Label       string         // ReplyMatchers use "Label" instead of "Command"
+	ChannelOnly bool           // Whether this matcher only applies in the main channel (not a thread)
+	Contexts    []string       // label the contexts corresponding to capture groups, for supporting "it" & optional args
+	re          *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
 }
 
 // JobTrigger specifies a user and message to trigger a job

@@ -29,6 +29,10 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 		verboseOnly = true
 		matchMsg = w.fmsg
 	}
+	matchChannelOnly := false
+	if len(w.Channel) > 0 && !w.ThreadedMessage {
+		matchChannelOnly = true
+	}
 	var runTask interface{}
 	var matchedMatcher InputMatcher
 	var cmdArgs []string
@@ -73,6 +77,10 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 		Log(robot.Trace, "Task '%s' is active, will check for matches", task.name)
 		cmsg := spaceRe.ReplaceAllString(matchMsg, " ")
 		for _, matcher := range matchers {
+			if matcher.ChannelOnly && !matchChannelOnly {
+				Log(robot.Trace, "Skipping '%s', requested ChannelOnly matching", matcher.Regex)
+				continue
+			}
 			Log(robot.Trace, "Checking '%s' against '%s'", cmsg, matcher.Regex)
 			matches := matcher.re.FindStringSubmatch(matchMsg)
 			if matches != nil {
