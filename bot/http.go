@@ -239,6 +239,10 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		bret := r.Subscribe()
 		sendReturn(rw, boolresponse{Boolean: bret})
 		return
+	case "Unsubscribe":
+		bret := r.Unsubscribe()
+		sendReturn(rw, boolresponse{Boolean: bret})
+		return
 	case "GetRepoData":
 		sendReturn(rw, r.GetRepoData())
 		return
