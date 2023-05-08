@@ -382,8 +382,8 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		}
 		activePipelines.Lock()
 		if len(activePipelines.i) == 1 {
-			r.Say("No pipelines running")
 			activePipelines.Unlock()
+			r.Say("No pipelines running")
 			return
 		}
 		for widx, worker := range activePipelines.i {
