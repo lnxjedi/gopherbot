@@ -50,35 +50,18 @@ var usernameRe = regexp.MustCompile(`^` + mentionMatch + `$`)
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // takes care of formatting, and segments the message if needed.
 func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageFormat) []string {
+	if f == robot.Raw {
+		return s.processRawMessage(prefix, msg)
+	}
 	maxSize := slack.MaxMessageTextLength - 500 // workaround for large message disconnects
 	if f == robot.Fixed {
 		maxSize -= 6
 	}
 	sbytes := []byte(msg)
-	// 'escape' special chars; NOTE: this should be covered by slack.MsgOptions now.
-	// if f == robot.Variable {
-	// }
 
-	// Eventually, this will only work for users configured in the
-	// UserRoster from robot.yaml
-	if f == robot.Raw {
-		sbytes = mentionRe.ReplaceAllFunc(sbytes, func(bytes []byte) []byte {
-			mentioned := string(bytes[1:])
-			switch mentioned {
-			case "here", "channel", "everyone":
-				return []byte("<!" + mentioned + ">")
-			}
-			replace, ok := s.userID(string(bytes[1:]), true)
-			if ok {
-				return []byte("<@" + replace + ">")
-			}
-			return bytes
-		})
-	} else {
-		sbytes = bytes.Replace(sbytes, []byte("&"), []byte("&amp;"), -1)
-		sbytes = bytes.Replace(sbytes, []byte("<"), []byte("&lt;"), -1)
-		sbytes = bytes.Replace(sbytes, []byte(">"), []byte("&gt;"), -1)
-	}
+	sbytes = bytes.Replace(sbytes, []byte("&"), []byte("&amp;"), -1)
+	sbytes = bytes.Replace(sbytes, []byte("<"), []byte("&lt;"), -1)
+	sbytes = bytes.Replace(sbytes, []byte(">"), []byte("&gt;"), -1)
 	if f == robot.Variable {
 		// 'escape' special chars that aren't covered by disabling markdown.
 		for _, padChar := range []string{"`", "*", "_", ":"} {
