@@ -17,18 +17,27 @@ RUN cd /opt/gopherbot && \
   cd /tmp && \
   tar xzvf /opt/gopherbot/gopherbot-linux-amd64.tar.gz
 
-FROM buildpack-deps:bullseye
+FROM docker.io/amazonlinux:2023
 
 # Enough stuff to run bash, python, and ruby extensions and install requirements
-RUN apt-get update && \
-  DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    jq \
-    python3-pip \
-    python3-dev \
-    ruby \
-    ruby-dev \
+RUN dnf install -y \
+        gcc \
+        git-core \
+        gzip \
+        jq \
+        make \
+        openssh-clients \
+        python3-pip \
+        python3-devel \
+        ruby \
+        ruby-devel \
+        tar \
     && \
-  rm -rf /var/lib/apt/lists/*
+  	dnf clean all && \
+  	rm -rf /var/cache/yum
+
+# These seem to be base requirements for a variety of other python modules
+RUN pip install setuptools wheel
 
 ENV ROBOT_UID=994
 ENV SHELL=/bin/bash

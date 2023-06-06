@@ -1,4 +1,4 @@
-FROM docker.io/buildpack-deps:bullseye-curl
+FROM docker.io/amazonlinux:2023
 
 #######
 #
@@ -15,40 +15,38 @@ ARG USERNAME=bot
 ARG USER_UID=1001
 ARG USER_GID=$USER_UID
 
-# GH Repo
-RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
-    chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
+# EPEL 7
+RUN curl -o epel.rpm https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
+    rpm -i --nodeps epel.rpm && \
+    rm -f epel.rpm
 
-RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends \
+RUN dnf install -y \
         bash-completion \
-        build-essential \
-        curl \
-        gh \
-        git \
-        imagemagick \
+        gcc \
+        git-core \
+        gzip \
         jq \
         less \
-        libatomic1 \
-        openssh-client \
-        procps \
-        python3 \
+        make \
+        openssh-clients \
+        procps-ng \
         python3-pip \
-        python3-dev \
+        python3-devel \
         ruby \
-        ruby-bundler \
-        ruby-dev \
+        ruby-devel \
+        tar \
         telnet \
         tini \
-    ; \
-    rm -rf /var/lib/apt/lists/*
+        which \
+    && \
+  	dnf clean all && \
+  	rm -rf /var/cache/yum
 
 # NOTE: My little bit of research indicated rpdb would probably be easiest
 # to use for Python script debugging in Gopherbot. If you're a pythonista
 # and want to make a case for, say, debugpy - I'd be happy to chat with you.
 RUN gem install -N debug && \
+    pip install setuptools wheel && \
     pip install rpdb
 
 WORKDIR /home/
@@ -64,7 +62,7 @@ RUN OVSC_LATEST=$(curl --silent https://api.github.com/repos/${OVSC_ORG}/openvsc
     elif [ "${arch}" = "armv7l" ]; then \
         arch="armhf"; \
     fi && \
-    wget https://github.com/${OVSC_ORG}/openvscode-server/releases/download/${OVSC_LATEST}/${OVSC_LATEST}-linux-${arch}.tar.gz && \
+    curl -s -L -o ${OVSC_LATEST}-linux-${arch}.tar.gz https://github.com/${OVSC_ORG}/openvscode-server/releases/download/${OVSC_LATEST}/${OVSC_LATEST}-linux-${arch}.tar.gz && \
     tar -xzf ${OVSC_LATEST}-linux-${arch}.tar.gz && \
     mv -f ${OVSC_LATEST}-linux-${arch} ${OPENVSCODE_SERVER_ROOT} && \
     cp ${OPENVSCODE_SERVER_ROOT}/bin/remote-cli/openvscode-server ${OPENVSCODE_SERVER_ROOT}/bin/remote-cli/code && \

@@ -1,4 +1,4 @@
 #!/bin/bash
 
-docker pull docker.io/buildpack-deps:bullseye-curl
+docker pull docker.io/amazonlinux:2023
 docker build -f containerfile.base -t ghcr.io/lnxjedi/gopherbot-base:latest .
