@@ -1,3 +1,8 @@
+# v2.10.2 - Helptext Formatting Update
+Now that robots can tell the difference between being addressed using it's name or it's alias, the help system has been updated:
+* The old "(bot), do something" format can be replaced with "(alias) do something", so e.g. you'll get "Floyd, do something" in the first case, or ";do something" in the second case; this lets the robot's administrator provide help in a format the users are most likely to use
+* Connectors now have a `FormatHelp` method that takes and returns a string, and allows the protocol to further modify the help line to be more visually appealing for the specific protocol; in Slack, for instance, the command portion of the help line is enclosed in single-backticks, so you get e.g. "`;build <package>` - start a new build of \<package\>"
+
 # v2.10.1 - ChannelOnly matching
 `CommandMatchers` and `MessageMatchers` can now set a boolean flag, `ChannelOnly`, to only match messages in a main channel or DM (not a thread).
 

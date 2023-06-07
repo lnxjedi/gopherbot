@@ -35,6 +35,10 @@ func (nc nullConnector) Run(stop <-chan struct{}) {
 	<-stop
 }
 
+func (nc nullConnector) FormatHelp(input string) string {
+	return input
+}
+
 func (nc nullConnector) SendProtocolChannelThreadMessage(ch string, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
 	return nc.sendMessage(msg, f)
 }

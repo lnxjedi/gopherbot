@@ -1,6 +1,7 @@
 package slack
 
 import (
+	"strings"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -269,4 +270,13 @@ func (s *slackConnector) JoinChannel(c string) (ret robot.RetVal) {
 		s.Log(robot.Debug, "Slack RTM robots can't join channels, skipping join for %s/%s", c, chanID)
 	}
 	return robot.Ok
+}
+
+// FormatHelp returns a helpline formatted for the terminal connector.
+func (s *slackConnector) FormatHelp(input string) string {
+	arr := strings.SplitN(input, " - ", 2)
+	if len(arr) != 2 {
+		return "`" + input + "`"
+	}
+	return "`" + arr[0] + "` - " + arr[1]
 }

@@ -116,3 +116,8 @@ func (tc *TestConnector) SendProtocolUserMessage(u string, mesg string, f robot.
 func (tc *TestConnector) JoinChannel(c string) (ret robot.RetVal) {
 	return robot.Ok
 }
+
+// FormatHelp returns a helpline formatted for the terminal connector.
+func (tc *TestConnector) FormatHelp(input string) string {
+	return input
+}

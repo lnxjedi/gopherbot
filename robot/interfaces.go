@@ -95,6 +95,9 @@ type Connector interface {
 	// the message has been heard and is being responded to. The connector
 	// can then e.g. send a typing notifier.
 	MessageHeard(user, channel string)
+	// FormatHelp takes a (bot)/(alias) (command) - (description) string, and
+	// returns a protocol-specific string formatted for display in the protocol.
+	FormatHelp(string) string
 	// JoinChannel joins a channel given it's human-readable name, e.g. "general"
 	JoinChannel(c string) RetVal
 	// SendProtocolChannelThreadMessage sends a message to a thread in a channel,
