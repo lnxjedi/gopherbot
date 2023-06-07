@@ -3,13 +3,13 @@ DirectOnly: true
 RequireAdmin: true
 Help:
 - Keywords: [ "log", "logs", "level" ]
-  Helptext: [ "(bot), set-loglevel to <trace|debug|info|warning|error> - adjust the logging verbosity" ]
+  Helptext: [ "(alias) set-loglevel to <trace|debug|info|warning|error> - adjust the logging verbosity" ]
 - Keywords: [ "show", "log", "logs" ]
-  Helptext: [ "(bot), show-log (page X) - display the last or Xth previous page of log output" ]
+  Helptext: [ "(alias) show-log (page X) - display the last or Xth previous page of log output" ]
 - Keywords: [ "show", "log", "logs", "level" ]
-  Helptext: [ "(bot), show-loglevel - show the current logging level" ]
+  Helptext: [ "(alias) show-loglevel - show the current logging level" ]
 - Keywords: [ "log", "page", "lines" ]
-  Helptext: [ "(bot), set-loglines to <number> - set the number of lines returned by show log"]
+  Helptext: [ "(alias) set-loglines to <number> - set the number of lines returned by show log"]
 CommandMatchers:
 - Command: "level"
   Regex: '(?i:set[- ]log ?level(?: to)? (trace|debug|info|warn|error))'

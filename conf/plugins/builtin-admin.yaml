@@ -4,27 +4,27 @@ AllowDirect: true
 RequireAdmin: true
 Help:
 - Keywords: [ "reload" ]
-  Helptext: [ "(bot), reload - have the robot reload configuration files" ]
+  Helptext: [ "(alias) reload - have the robot reload configuration files" ]
 - Keywords: [ "quit" ]
-  Helptext: [ "(bot), quit - request a graceful shutdown, waiting for all plugins to finish" ]
+  Helptext: [ "(alias) quit - request a graceful shutdown, waiting for all plugins to finish" ]
 - Keywords: [ "restart" ]
-  Helptext: [ "(bot), restart - request a graceful shutdown and restart" ]
+  Helptext: [ "(alias) restart - request a graceful shutdown and restart" ]
 - Keywords: [ "abort" ]
-  Helptext: [ "(bot), abort - request an immediate shutdown without waiting for plugins to finish" ]
+  Helptext: [ "(alias) abort - request an immediate shutdown without waiting for plugins to finish" ]
 - Keywords: [ "process", "processes", "ps", "pipeline", "pipelines" ]
-  Helptext: [ "(bot), ps - list running pipelines" ]
+  Helptext: [ "(alias) ps - list running pipelines" ]
 - Keywords: [ "kill", "process" ]
-  Helptext: [ "(bot), kill-job <wid> - kill the current process for the pipeline identified by <wid>"]
+  Helptext: [ "(alias) kill-job <wid> - kill the current process for the pipeline identified by <wid>"]
 - Keywords: [ "pause", "job", "jobs" ]
-  Helptext: [ "(bot), pause-job <job> - pause running of <job> as a scheduled task"]
+  Helptext: [ "(alias) pause-job <job> - pause running of <job> as a scheduled task"]
 - Keywords: [ "pause", "resume", "job", "jobs", "unpause", "un-pause" ]
-  Helptext: [ "(bot), resume-job <job> - kill the current process for the pipeline identified by <wid>"]
+  Helptext: [ "(alias) resume-job <job> - kill the current process for the pipeline identified by <wid>"]
 - Keywords: [ "pause", "resume", "job", "jobs" ]
-  Helptext: [ "(bot), paused-jobs - list the paused jobs"]
+  Helptext: [ "(alias) paused-jobs - list the paused jobs"]
 - Keywords: [ "debug", "log", "channel" ]
   Helptext:
-  - "(bot), log-channel (channel) - start a log of the current or given channel"
-  - "(bot), stop-channel-logging - stop all channel logging"
+  - "(alias) log-channel (channel) - start a log of the current or given channel"
+  - "(alias) stop-channel-logging - stop all channel logging"
 CommandMatchers:
 - Command: reload
   Regex: '(?i:reload)'

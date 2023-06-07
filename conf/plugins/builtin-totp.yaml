@@ -1,7 +1,7 @@
 ---
 Help:
 - Keywords: [ "totp", "launch", "missiles" ]
-  Helptext: [ "(bot), validate <code> - check that your TOTP codes are working" ]
+  Helptext: [ "(alias) validate <code> - check that your TOTP codes are working" ]
 CommandMatchers:
 - Command: "check"
   Regex: '(?i:(?:validate|launch missiles:) (\d{6}))'

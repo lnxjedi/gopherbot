@@ -3,8 +3,8 @@
 Help:
 - Keywords: [ "build" ]
   Helptext:
-  - "(bot), build <repo> (branch) (pipeline) (args) - start a gopherci build for the given repo"
-  - "(bot), help with build - give detailed help on the build command"
+  - "(alias) build <repo> (branch) (pipeline) (args) - start a gopherci build for the given repo"
+  - "(alias) help with build - give detailed help on the build command"
 CommandMatchers:
 - Command: 'build'
   Regex: '(?i:build ([^\s]+)(?: ([^\s]+))?(?: ([^\s]+))?(?: (.*))?)'

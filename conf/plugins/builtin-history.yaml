@@ -4,13 +4,13 @@ AllowDirect: false
 Help:
 - Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
   Helptext:
-  - "(bot), email-log <ref> (to (user foo|user@my.domain)) - email a log to the user given the log ref"
-  - "(bot), tail-log <ref> - view the end of a log given the log ref"
-  - "(bot), link-log <ref> - get a URL for a log"
+  - "(alias) email-log <ref> (to (user foo|user@my.domain)) - email a log to the user given the log ref"
+  - "(alias) tail-log <ref> - view the end of a log given the log ref"
+  - "(alias) link-log <ref> - get a URL for a log"
 - Keywords: [ "list", "job", "jobs", "log", "logs", "history", "joblogs" ]
-  Helptext: [ "(bot), job-logs <jobname> - list logs for a given job" ]
+  Helptext: [ "(alias) job-logs <jobname> - list logs for a given job" ]
 - Keywords: [ "list", "log", "logs", "history", "build", "builds", "buildlogs" ]
-  Helptext: [ "(bot), build-logs <repo> (branch) - list build logs matching a given repository / branch" ]
+  Helptext: [ "(alias) build-logs <repo> (branch) - list build logs matching a given repository / branch" ]
 CommandMatchers:
 - Command: maillog
   Regex: '(?i:(?:send|mail|email)[- ]?log ([A-Za-z0-9]+)(?: to (?:(?:user (.*))|([^@]+@[^@]+)))?)'

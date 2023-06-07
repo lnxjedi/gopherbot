@@ -2,17 +2,17 @@
 # For authorizing users by group
 Help:
 - Keywords: [ "group", "groups" ]
-  Helptext: [ "(bot), help with groups - give general help for using groups"]
+  Helptext: [ "(alias) help with groups - give general help for using groups"]
 - Keywords: [ "group", "groups", "add" ]
-  Helptext: [ "(bot), add <user> to the <groupname> group - add a user to a group" ]
+  Helptext: [ "(alias) add <user> to the <groupname> group - add a user to a group" ]
 - Keywords: [ "group", "groups", "remove" ]
-  Helptext: [ "(bot), remove <user> from the <groupname> group - remove a dynamic user from a group" ]
+  Helptext: [ "(alias) remove <user> from the <groupname> group - remove a dynamic user from a group" ]
 - Keywords: [ "group", "groups", "empty" ]
-  Helptext: [ "(bot), empty the <groupname> group - remove all dynamic users from a group" ]
+  Helptext: [ "(alias) empty the <groupname> group - remove all dynamic users from a group" ]
 - Keywords: [ "list", "group", "groups" ]
-  Helptext: [ "(bot), list groups - give a list of all the groups the robot knows about (bot administrators only)" ]
+  Helptext: [ "(alias) list groups - give a list of all the groups the robot knows about (bot administrators only)" ]
 - Keywords: [ "group", "groups", "show", "view" ]
-  Helptext: [ "(bot), show the <groupname> group - show the members of a group" ]
+  Helptext: [ "(alias) show the <groupname> group - show the members of a group" ]
 CommandMatchers:
 - Command: 'help'
   Regex: '(?i:help with groups?)'

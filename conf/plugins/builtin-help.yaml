@@ -2,11 +2,11 @@
 AllChannels: true
 Help:
 - Keywords: [ "info", "information", "robot", "admin", "administrators" ]
-  Helptext: [ "(bot), info | tell me about yourself - provide useful information for admins, or a list of admins" ]
+  Helptext: [ "(alias) info | tell me about yourself - provide useful information for admins, or a list of admins" ]
 - Keywords: [ "*", "help" ]
   Helptext:
-  - "(bot), help <keyword> - find help for commands matching <keyword>"
-  - "(bot), help - help for commands specific to this channel"
+  - "(alias) help <keyword> - find help for commands matching <keyword>"
+  - "(alias) help - help for commands specific to this channel"
 CommandMatchers:
 - Command: help
   Regex: '(?i:help(?: ([^\s]+))?)'

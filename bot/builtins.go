@@ -45,6 +45,23 @@ func fallback(m robot.Robot, command string, args ...string) (retval robot.TaskR
 	return
 }
 
+func (r Robot) formatHelpLine(input string) string {
+	botName := r.cfg.botinfo.UserName
+	botAlias := string(r.cfg.alias)
+	if strings.HasPrefix(input, "(bot),") {
+		if len(botName) == 0 {
+			return input
+		}
+		return strings.Replace(input, "(bot),", botName+",", 1)
+	} else if strings.HasPrefix(input, "(alias)") {
+		if len(botAlias) == 0 {
+			return input
+		}
+		return strings.Replace(input, "(alias) ", botAlias, 1)
+	}
+	return input
+}
+
 func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
 	if command == "init" {
@@ -89,10 +106,8 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		r.MessageFormat(robot.Variable).SayThread(strings.Join(msg, "\n"))
 	}
 	if command == "help" || command == "help-all" {
-		botname := r.cfg.botinfo.UserName
 		tasks := r.tasks
 		var term, helpOutput string
-		botSub := `(bot)`
 		hasKeyword := false
 		lineSeparator := "\n\n"
 
@@ -108,10 +123,10 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		helpLines := make([]string, 0, 14)
 		if command == "help" {
 			if !hasKeyword {
-				helptext := "(bot), help <keyword> - get help for the provided <keyword>"
-				helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1))
-				helptext = "(bot), help-all - help for all commands available in this channel, including global commands"
-				helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1))
+				helptext := "(alias) help <keyword> - get help for the provided <keyword>"
+				helpLines = append(helpLines, r.formatHelpLine(helptext))
+				helptext = "(alias) help-all - help for all commands available in this channel, including global commands"
+				helpLines = append(helpLines, r.formatHelpLine(helptext))
 			}
 		}
 		want_specific := command == "help" || hasKeyword
@@ -136,10 +151,10 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 						if len(phelp.Keywords) > 0 && phelp.Keywords[0] == "*" {
 							// * signifies help that should be prepended
 							prepend := make([]string, 1, len(helpLines)+1)
-							prepend[0] = strings.Replace(helptext, botSub, botname, -1)
+							prepend[0] = r.formatHelpLine(helptext)
 							helpLines = append(prepend, helpLines...)
 						} else {
-							helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1))
+							helpLines = append(helpLines, r.formatHelpLine(helptext))
 						}
 					}
 				}
@@ -168,7 +183,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 								chantext += ")"
 							}
 							for _, helptext := range phelp.Helptext {
-								helpLines = append(helpLines, strings.Replace(helptext, botSub, botname, -1)+chantext)
+								helpLines = append(helpLines, r.formatHelpLine(helptext)+chantext)
 							}
 						}
 					}

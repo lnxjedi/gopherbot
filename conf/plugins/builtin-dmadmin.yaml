@@ -5,11 +5,11 @@ DirectOnly: true
 RequireAdmin: true
 Help:
 - Keywords: [ "dump", "plugin" ]
-  Helptext: [ "(bot), dump plugin (default) <plugname> - dump the current or default configuration for the plugin" ]
+  Helptext: [ "(alias) dump plugin (default) <plugname> - dump the current or default configuration for the plugin" ]
 - Keywords: [ "list", "plugin", "plugins" ]
-  Helptext: [ "(bot), list (disabled) plugins - list all known plugins, or list disabled plugins with the reason disabled" ]
+  Helptext: [ "(alias) list (disabled) plugins - list all known plugins, or list disabled plugins with the reason disabled" ]
 - Keywords: [ "dump", "robot" ]
-  Helptext: [ "(bot), dump robot - dump the current configuration for the robot" ]
+  Helptext: [ "(alias) dump robot - dump the current configuration for the robot" ]
 CommandMatchers:
 - Command: "listplugins"
   Regex: '(?i:list(?:[- ](disabled))?[- ]plugins?)'
