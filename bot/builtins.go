@@ -202,14 +202,22 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		}
 		if len(helpLines) == 0 {
 			// Unless builtins are disabled or reconfigured, 'ping' is available in all channels
-			r.SayThread("Sorry, I didn't find any commands matching your keyword")
+			if r.ThreadedMessage {
+				r.Reply("Sorry, I didn't find any commands matching your keyword")
+			} else {
+				r.SayThread("Sorry, I didn't find any commands matching your keyword")
+			}
 		} else {
 			if hasKeyword {
 				helpOutput = "Command(s) matching keyword: " + term + "\n" + strings.Join(helpLines, lineSeparator)
 			} else {
 				helpOutput = "Command(s) available in this channel:\n" + strings.Join(helpLines, lineSeparator)
 			}
-			r.SayThread(helpOutput)
+			if r.ThreadedMessage {
+				r.Reply(helpOutput)
+			} else {
+				r.SayThread(helpOutput)
+			}
 		}
 	}
 	return
