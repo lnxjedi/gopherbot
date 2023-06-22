@@ -40,7 +40,7 @@ const botEncryptionKey = "bot:encryptionKey"
 const encryptedKeyFile = "binary-encrypted-key"
 
 // People generally expect the robot to remember things longer.
-const channelMemoryDuration = 7 * time.Minute   // In the main channel, conversation context/topics tend to change often
+const channelMemoryDuration = 14 * time.Minute  // In the main channel, conversation context/topics tend to change often
 const threadMemoryDuration = 7 * time.Hour * 24 // In a thread, the conversation context/topic tends to last days
 
 type memState int
@@ -226,7 +226,8 @@ loop:
 			}
 			ephemeralMemories.Lock()
 			for context, memory := range ephemeralMemories.m {
-				if len(context.thread) > 0 {
+				// Expire bot direct message memories the same as threads
+				if len(context.thread) > 0 || len(context.channel) == 0 {
 					if now.Sub(memory.Timestamp) > threadMemoryDuration {
 						delete(ephemeralMemories.m, context)
 						ephemeralMemories.dirty = true
