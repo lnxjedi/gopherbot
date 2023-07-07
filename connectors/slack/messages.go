@@ -43,7 +43,7 @@ func optQuote(msg string, f robot.MessageFormat) string {
 	return msg
 }
 
-var mentionMatch = `[0-9a-z](?:[-_0-9a-z.]{0,19}[_0-9a-z])?`
+var mentionMatch = `[0-9A-Za-z](?:[-_0-9A-Za-z.]{0,19}[_0-9A-Za-z])?`
 var mentionRe = regexp.MustCompile(`@` + mentionMatch + `\b`)
 var usernameRe = regexp.MustCompile(`^` + mentionMatch + `$`)
 
