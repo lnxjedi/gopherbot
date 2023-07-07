@@ -13,12 +13,12 @@ Help:
   Helptext: [ "(alias) abort - request an immediate shutdown without waiting for plugins to finish" ]
 - Keywords: [ "process", "processes", "ps", "pipeline", "pipelines" ]
   Helptext: [ "(alias) ps - list running pipelines" ]
-- Keywords: [ "kill", "process" ]
-  Helptext: [ "(alias) kill-job <wid> - kill the current process for the pipeline identified by <wid>"]
+- Keywords: [ "kill", "process", "job" ]
+  Helptext: [ "(alias) kill-pipeline <wid> - kill the current process for the pipeline identified by <wid>"]
 - Keywords: [ "pause", "job", "jobs" ]
   Helptext: [ "(alias) pause-job <job> - pause running of <job> as a scheduled task"]
 - Keywords: [ "pause", "resume", "job", "jobs", "unpause", "un-pause" ]
-  Helptext: [ "(alias) resume-job <job> - kill the current process for the pipeline identified by <wid>"]
+  Helptext: [ "(alias) resume-job <job> - resume running of <job> as a scheduled task"]
 - Keywords: [ "pause", "resume", "job", "jobs" ]
   Helptext: [ "(alias) paused-jobs - list the paused jobs"]
 - Keywords: [ "debug", "log", "channel" ]
@@ -37,11 +37,11 @@ CommandMatchers:
 - Command: ps
   Regex: '(?i:ps)'
 - Command: "kill"
-  Regex: '(?i:kill(?:[- ]job)? ([\d]+))'
+  Regex: '(?i:kill(?:[- ](?:job|pipeline|process))? ([\d]+))'
 - Command: "pause"
   Regex: '(?i:pause(?:[- ]job)? ([A-Za-z][\w-]*))'
 - Command: "resume"
-  Regex: '(?i:resume ([A-Za-z][\w-]*))'
+  Regex: '(?i:resume(?:[- ]job)? ([A-Za-z][\w-]*))'
 - Command: pauselist
   Regex: '(?i:(list[- ])?paused[- ]jobs)'
 - Command: "chanlog"
