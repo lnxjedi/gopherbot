@@ -378,6 +378,11 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 					break
 				}
 			}
+			if isPlugin && r.Incoming.HiddenMessage {
+				if r.checkHiddenCommands(w, t, command) != robot.Success {
+					r.Say("Sorry, '%s/%s' cannot be run as a hidden command - use the robot's name or alias", task.name, command)
+				}
+			}
 			if r.checkAuthorization(w, t, command, args...) != robot.Success {
 				ret = robot.Fail
 				deregisterWorker(r.tid)

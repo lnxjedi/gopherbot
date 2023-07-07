@@ -417,6 +417,12 @@ LoadLoop:
 				task.Authorizer = *(val.(*string))
 			case "AuthRequire":
 				task.AuthRequire = *(val.(*string))
+			case "AllowedHiddenCommands":
+				if isPlugin {
+					plugin.AllowedHiddenCommands = *(val.(*[]string))
+				} else {
+					mismatch = true
+				}
 			case "AuthorizedCommands":
 				if isPlugin {
 					plugin.AuthorizedCommands = *(val.(*[]string))

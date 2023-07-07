@@ -189,6 +189,7 @@ type Plugin struct {
 	ElevatedCommands         []string       // Commands that require elevation, usually via 2fa
 	ElevateImmediateCommands []string       // Commands that always require elevation promting, regardless of timeouts
 	AuthorizedCommands       []string       // Which commands to authorize
+	AllowedHiddenCommands    []string       // which commands are allowed to be hidden
 	AuthorizeAllCommands     bool           // when ALL commands need to be authorized
 	Help                     []PluginHelp   // All the keyword sets / help texts for this plugin
 	CommandMatchers          []InputMatcher // Input matchers for messages that need to be directed to the 'bot
