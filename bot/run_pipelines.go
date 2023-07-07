@@ -124,9 +124,9 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		// To change the channel to the job channel, we need to clear the ProcotolChannel
 		w.Channel = task.Channel
 		w.ProtocolChannel = ""
-		w.ThreadID = ""
-		w.MessageID = ""
-		w.ThreadedMessage = false
+		w.Incoming.ThreadID = ""
+		w.Incoming.MessageID = ""
+		w.Incoming.ThreadedMessage = false
 	}
 	c.environment["GOPHER_PIPE_NAME"] = task.name
 	// Once Active, we need to use the Mutex for access to some fields; see
@@ -529,11 +529,14 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	envhash["GOPHER_CONFIGDIR"] = configFull
 	envhash["GOPHER_CHANNEL"] = w.Channel
 	envhash["GOPHER_CHANNEL_ID"] = w.ProtocolChannel
-	envhash["GOPHER_MESSAGE_ID"] = w.MessageID
-	envhash["GOPHER_THREAD_ID"] = w.ThreadID
+	envhash["GOPHER_MESSAGE_ID"] = w.Incoming.MessageID
+	envhash["GOPHER_THREAD_ID"] = w.Incoming.ThreadID
 	// Env vars are for scripting languages; unset vars are seen as false
-	if w.ThreadedMessage {
+	if w.Incoming.ThreadedMessage {
 		envhash["GOPHER_THREADED_MESSAGE"] = "true"
+	}
+	if w.Incoming.HiddenMessage {
+		envhash["GOPHER_HIDDEN_MESSAGE"] = "true"
 	}
 	envhash["GOPHER_CMDMODE"] = w.cmdMode
 	envhash["GOPHER_USER"] = w.User

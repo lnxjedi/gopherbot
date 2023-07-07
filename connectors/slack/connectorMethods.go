@@ -6,6 +6,7 @@ import (
 
 	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 )
 
 const typingDelay = 200 * time.Millisecond
@@ -60,6 +61,7 @@ func (s *slackConnector) GetProtocolUserAttribute(u, attr string) (value string,
 type sendMessage struct {
 	message, user, channel, thread string
 	format                         robot.MessageFormat
+	mtype                          msgType
 }
 
 var messages = make(chan *sendMessage)
@@ -111,7 +113,8 @@ func (s *slackConnector) startSendLoop() {
 			slack.MsgOptionAsUser(true),
 			slack.MsgOptionDisableLinkUnfurl(),
 		}
-		if len(send.user) > 0 {
+		// Slash commands are hidden, so we respond with an ephemeral message
+		if len(send.user) > 0 && send.mtype == msgSlashCmd {
 			opts = append(opts, slack.MsgOptionPostEphemeral(send.user))
 		}
 		if len(send.thread) > 0 {
@@ -157,7 +160,18 @@ func (s *slackConnector) startSendLoop() {
 	}
 }
 
-func (s *slackConnector) sendMessages(msgs []string, userID, chanID, threadID string, f robot.MessageFormat) {
+func (s *slackConnector) sendMessages(msgs []string, userID, chanID, threadID string, f robot.MessageFormat, msgObject interface{}) {
+	var mtype msgType
+	switch msgObject.(type) {
+	case *slackevents.MessageEvent:
+		mtype = msgEvent
+	case *slack.SlashCommand:
+		mtype = msgSlashCmd
+	case *slack.MessageEvent:
+		mtype = msgRTM
+	default:
+		mtype = msgEvent
+	}
 	for _, msg := range msgs {
 		messages <- &sendMessage{
 			message: msg,
@@ -165,6 +179,7 @@ func (s *slackConnector) sendMessages(msgs []string, userID, chanID, threadID st
 			channel: chanID,
 			thread:  threadID,
 			format:  f,
+			mtype:   mtype,
 		}
 	}
 }
@@ -179,14 +194,14 @@ func (s *slackConnector) SetUserMap(umap map[string]string) {
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, protoContext interface{}) (ret robot.RetVal) {
+func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject interface{}) (ret robot.RetVal) {
 	msgs := s.slackifyMessage("", msg, f)
 	if chanID, ok := s.ExtractID(ch); ok {
-		s.sendMessages(msgs, "", chanID, thr, f)
+		s.sendMessages(msgs, "", chanID, thr, f, msgObject)
 		return
 	}
 	if chanID, ok := s.chanID(ch); ok {
-		s.sendMessages(msgs, "", chanID, thr, f)
+		s.sendMessages(msgs, "", chanID, thr, f, msgObject)
 		return
 	}
 	s.Log(robot.Error, "Slack channel ID not found for: %s", ch)
@@ -194,7 +209,7 @@ func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, msg string, f robot.MessageFormat, protoContext interface{}) (ret robot.RetVal) {
+func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, msg string, f robot.MessageFormat, msgObject interface{}) (ret robot.RetVal) {
 	var userID, chanID string
 	var ok bool
 	if chanID, ok = s.ExtractID(ch); !ok {
@@ -214,12 +229,12 @@ func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, m
 	// This gets converted to <@userID> in slackifyMessage
 	prefix := "<@" + userID + ">: "
 	msgs := s.slackifyMessage(prefix, msg, f)
-	s.sendMessages(msgs, userID, chanID, thr, f)
+	s.sendMessages(msgs, userID, chanID, thr, f, msgObject)
 	return
 }
 
 // SendProtocolUserMessage sends a direct message to a user
-func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, protoContext interface{}) (ret robot.RetVal) {
+func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, msgObject interface{}) (ret robot.RetVal) {
 	var userID string
 	var ok bool
 	if userID, ok = s.ExtractID(u); !ok {
@@ -252,7 +267,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 		return
 	}
 	msgs := s.slackifyMessage("", msg, f)
-	s.sendMessages(msgs, "", userIMchanstr, "", f)
+	s.sendMessages(msgs, "", userIMchanstr, "", f, msgObject)
 	return robot.Ok
 }
 
