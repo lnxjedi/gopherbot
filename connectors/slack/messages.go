@@ -49,7 +49,7 @@ var usernameRe = regexp.MustCompile(`^` + mentionMatch + `$`)
 
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // takes care of formatting, and segments the message if needed.
-func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageFormat) []string {
+func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageFormat, msgObject interface{}) []string {
 	maxSize := slack.MaxMessageTextLength - 500 // workaround for large message disconnects
 	if f == robot.Fixed {
 		maxSize -= 6
@@ -87,7 +87,8 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageForm
 			sbytes = bytes.Replace(sbytes, padBytes, paddedBytes, -1)
 		}
 	}
-	if len(prefix) > 0 {
+	mtype := getMsgType(msgObject)
+	if len(prefix) > 0 && mtype != msgSlashCmd {
 		sbytes = append([]byte(prefix), sbytes...)
 	}
 	msgLen := len(sbytes)
@@ -275,12 +276,12 @@ func (s *slackConnector) processSlashCmdSocketMode(cmd *slack.SlashCommand) {
 		UserID:    userID,
 		ChannelID: chanID,
 		// ThreadID should be empty, and ThreadedMessage always false
-		DirectMessage:  ci.IsIM,
-		BotMessage:     true,
-		HiddenMessage:  true,
-		MessageText:    text,
-		MessageObject:  cmd,
-		Client:         s.api,
+		DirectMessage: ci.IsIM,
+		BotMessage:    true,
+		HiddenMessage: true,
+		MessageText:   text,
+		MessageObject: cmd,
+		Client:        s.api,
 	}
 	userName, ok := s.userName(userID)
 	if !ok {

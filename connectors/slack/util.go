@@ -10,6 +10,7 @@ import (
 
 	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/slack-go/slack"
+	"github.com/slack-go/slack/slackevents"
 	"github.com/slack-go/slack/socketmode"
 )
 
@@ -40,6 +41,28 @@ type slackConnector struct {
 	userIDMap       map[string]string         // map from user ID to engine-provided username, for resolving @foo
 	userIDToIM      map[string]string         // map from user ID to IM channel ID
 	imToUserID      map[string]string         // map from IM channel ID to user ID
+}
+
+type msgType int
+
+const (
+	msgRTM msgType = iota
+	msgEvent
+	msgSlashCmd
+)
+
+func getMsgType(msgObject interface{}) (mtype msgType) {
+	switch msgObject.(type) {
+	case *slackevents.MessageEvent:
+		mtype = msgEvent
+	case *slack.SlashCommand:
+		mtype = msgSlashCmd
+	case *slack.MessageEvent:
+		mtype = msgRTM
+	default:
+		mtype = msgEvent
+	}
+	return
 }
 
 // updateUserList gets an updated list of users from Slack and creates

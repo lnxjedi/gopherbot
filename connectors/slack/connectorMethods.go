@@ -6,7 +6,6 @@ import (
 
 	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/slack-go/slack"
-	"github.com/slack-go/slack/slackevents"
 )
 
 const typingDelay = 200 * time.Millisecond
@@ -161,17 +160,7 @@ func (s *slackConnector) startSendLoop() {
 }
 
 func (s *slackConnector) sendMessages(msgs []string, userID, chanID, threadID string, f robot.MessageFormat, msgObject interface{}) {
-	var mtype msgType
-	switch msgObject.(type) {
-	case *slackevents.MessageEvent:
-		mtype = msgEvent
-	case *slack.SlashCommand:
-		mtype = msgSlashCmd
-	case *slack.MessageEvent:
-		mtype = msgRTM
-	default:
-		mtype = msgEvent
-	}
+	mtype := getMsgType(msgObject)
 	for _, msg := range msgs {
 		messages <- &sendMessage{
 			message: msg,
@@ -195,7 +184,7 @@ func (s *slackConnector) SetUserMap(umap map[string]string) {
 
 // SendProtocolChannelMessage sends a message to a channel
 func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject interface{}) (ret robot.RetVal) {
-	msgs := s.slackifyMessage("", msg, f)
+	msgs := s.slackifyMessage("", msg, f, msgObject)
 	if chanID, ok := s.ExtractID(ch); ok {
 		s.sendMessages(msgs, "", chanID, thr, f, msgObject)
 		return
@@ -228,7 +217,7 @@ func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, m
 	}
 	// This gets converted to <@userID> in slackifyMessage
 	prefix := "<@" + userID + ">: "
-	msgs := s.slackifyMessage(prefix, msg, f)
+	msgs := s.slackifyMessage(prefix, msg, f, msgObject)
 	s.sendMessages(msgs, userID, chanID, thr, f, msgObject)
 	return
 }
@@ -266,7 +255,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 	if ret != robot.Ok {
 		return
 	}
-	msgs := s.slackifyMessage("", msg, f)
+	msgs := s.slackifyMessage("", msg, f, msgObject)
 	s.sendMessages(msgs, "", userIMchanstr, "", f, msgObject)
 	return robot.Ok
 }

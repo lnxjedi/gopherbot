@@ -21,14 +21,6 @@ type config struct {
 	Debug              bool   // Explicitly turn on Slack protocol debug output
 }
 
-type msgType int
-
-const (
-	msgRTM msgType = iota
-	msgEvent
-	msgSlashCmd
-)
-
 var lock sync.Mutex        // package var lock
 var started bool           // set when connector is started
 var socketmodeEnabled bool // set when using socketmode to connect, duh
