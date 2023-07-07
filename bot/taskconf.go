@@ -328,7 +328,7 @@ LoadLoop:
 				skip = true
 			case "AllowDirect", "AmbientMatchCommand", "DirectOnly", "DenyDirect", "AllChannels", "RequireAdmin", "AuthorizeAllCommands", "CatchAll", "MatchUnlisted", "Quiet":
 				val = &boolval
-			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AdminCommands", "ParameterSets":
+			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AllowedHiddenCommands", "AdminCommands", "ParameterSets":
 				val = &sarrval
 			case "Help":
 				val = &hval

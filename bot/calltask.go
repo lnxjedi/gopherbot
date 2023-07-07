@@ -184,13 +184,13 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	w.section(taskinfo, desc)
 
 	if !(task.name == "builtin-admin" && command == "abort") {
-		if w.directMsg {
+		if w.Incoming.DirectMessage {
 			defer checkPanic(w, fmt.Sprintf("Plugin: %s, command: %s, arguments: (omitted)", task.name, command))
 		} else {
 			defer checkPanic(w, fmt.Sprintf("Plugin: %s, command: %s, arguments: %v", task.name, command, args))
 		}
 	}
-	if w.directMsg {
+	if w.Incoming.DirectMessage {
 		Log(robot.Debug, "Dispatching command '%s' to task '%s' with arguments '(omitted for DM)'", command, task.name)
 	} else {
 		Log(robot.Debug, "Dispatching command '%s' to task '%s' with arguments '%#v'", command, task.name, args)

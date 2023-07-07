@@ -339,6 +339,9 @@ func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 		r.Log(robot.Warn, "Ignoring zero-length message in Say")
 		return robot.Ok
 	}
+	if r.Incoming.HiddenMessage {
+		return r.Reply(msg, v...)
+	}
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
@@ -362,6 +365,13 @@ func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 }
 
 func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
+	if len(msg) == 0 {
+		Log(robot.Warn, "Ignoring zero-length message in Say")
+		return robot.Ok
+	}
+	if w.Incoming.HiddenMessage {
+		return w.Reply(msg, v...)
+	}
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
@@ -390,6 +400,9 @@ func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
 		r.Log(robot.Warn, "Ignoring zero-length message in SayThread")
 		return robot.Ok
 	}
+	if r.Incoming.HiddenMessage {
+		return r.ReplyThread(msg, v...)
+	}
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
@@ -409,6 +422,13 @@ func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
 }
 
 func (w *worker) SayThread(msg string, v ...interface{}) robot.RetVal {
+	if len(msg) == 0 {
+		Log(robot.Warn, "Ignoring zero-length message in SayThread")
+		return robot.Ok
+	}
+	if w.Incoming.HiddenMessage {
+		return w.ReplyThread(msg, v...)
+	}
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}

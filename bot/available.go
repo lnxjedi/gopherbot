@@ -14,7 +14,7 @@ import (
 func (w *worker) pluginAvailable(task *Task, helpSystem, verboseOnly bool) (available, specific bool) {
 	nvmsg := "task is NOT visible to user " + w.User + " in channel "
 	vmsg := "task is visible to user " + w.User + " in channel "
-	if w.directMsg {
+	if w.Incoming.DirectMessage {
 		nvmsg += "(direct message)"
 		vmsg += "(direct message)"
 	} else {
@@ -24,10 +24,10 @@ func (w *worker) pluginAvailable(task *Task, helpSystem, verboseOnly bool) (avai
 	if task.Disabled {
 		return false, false
 	}
-	if !w.directMsg && task.DirectOnly && !helpSystem {
+	if !w.Incoming.DirectMessage && task.DirectOnly && !helpSystem {
 		return false, false
 	}
-	if w.directMsg && !task.AllowDirect && !helpSystem {
+	if w.Incoming.DirectMessage && !task.AllowDirect && !helpSystem {
 		return false, false
 	}
 	if task.RequireAdmin {
@@ -55,7 +55,7 @@ func (w *worker) pluginAvailable(task *Task, helpSystem, verboseOnly bool) (avai
 			return false, false
 		}
 	}
-	if w.directMsg && (task.AllowDirect || task.DirectOnly) {
+	if w.Incoming.DirectMessage && (task.AllowDirect || task.DirectOnly) {
 		if task.DirectOnly {
 			return true, true
 		}

@@ -193,7 +193,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 func (w *worker) handleMessage() {
 	defer checkPanic(w, w.msg)
 
-	if w.directMsg {
+	if w.Incoming.DirectMessage {
 		emit(BotDirectMessage)
 		Log(robot.Trace, "Bot received a direct message from %s: %s", w.User, w.msg)
 	}

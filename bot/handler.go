@@ -91,7 +91,7 @@ func (w *worker) clone() *worker {
 		Channel:         w.Channel,
 		ProtocolChannel: w.ProtocolChannel,
 		Incoming:        w.Incoming,
-		directMsg:       w.directMsg,
+		directMsg:       w.Incoming.DirectMessage,
 		BotUser:         w.BotUser,
 		listedUser:      w.listedUser,
 		id:              getWorkerID(),
@@ -291,7 +291,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		msg:             message,
 		fmsg:            messageFull,
 	}
-	if w.directMsg {
+	if w.Incoming.DirectMessage {
 		Log(robot.Debug, "Received private message from user '%s'", userName)
 	} else {
 		Log(robot.Debug, "Message '%s'/id '%s' from user '%s' in channel '%s'/thread '%s' (threaded: %t); isCommand: %t; cmdMode: %s", message, inc.MessageID, userName, logChannel, inc.ThreadID, inc.ThreadedMessage, isCommand, cmdMode)
