@@ -228,6 +228,7 @@ func initializePlugins() {
 				cfg:           cfg,
 				tasks:         tasks,
 				Protocol:      getProtocol(protocol),
+				Incoming:      &robot.ConnectorMessage{},
 				automaticTask: true,
 				id:            getWorkerID(),
 			}

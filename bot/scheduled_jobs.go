@@ -120,6 +120,7 @@ func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *tas
 	w := &worker{
 		Channel:       task.Channel,
 		Protocol:      getProtocol(protocol),
+		Incoming:      &robot.ConnectorMessage{},
 		cfg:           cfg,
 		id:            getWorkerID(),
 		tasks:         tasks,
