@@ -72,7 +72,7 @@ func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (tc *TestConnector) SendProtocolChannelThreadMessage(ch, thr, mesg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (tc *TestConnector) SendProtocolChannelThreadMessage(ch, thr, mesg string, f robot.MessageFormat, protoContext interface{}) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	msg := &BotMessage{
 		User:    "",
@@ -84,7 +84,7 @@ func (tc *TestConnector) SendProtocolChannelThreadMessage(ch, thr, mesg string, 
 }
 
 // SendProtocolUserChannelMessage sends a message to a user in a channel
-func (tc *TestConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, mesg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (tc *TestConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, mesg string, f robot.MessageFormat, protoContext interface{}) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	msg := &BotMessage{
 		User:    uname,
@@ -96,7 +96,7 @@ func (tc *TestConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, th
 }
 
 // SendProtocolUserMessage sends a direct message to a user
-func (tc *TestConnector) SendProtocolUserMessage(u string, mesg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (tc *TestConnector) SendProtocolUserMessage(u string, mesg string, f robot.MessageFormat, protoContext interface{}) (ret robot.RetVal) {
 	var user *testUser
 	var exists bool
 	if user, exists = tc.getUserInfo(u); !exists {

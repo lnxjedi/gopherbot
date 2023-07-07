@@ -62,13 +62,10 @@ func (h handler) RaisePriv(reason string) {
 type worker struct {
 	User            string                      // The user who sent the message; this can be modified for replying to an arbitrary user
 	Channel         string                      // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	MessageID       string                      // Opaque message identifier
-	ThreadID        string                      // Opaque identifier for conversation thread
-	ThreadedMessage bool                        // Whether the message was sent in a thread
 	ProtocolUser    string                      // The username or <userid> to be sent in connector methods
 	ProtocolChannel string                      // the channel name or <channelid> where the message originated
 	Protocol        robot.Protocol              // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
-	Incoming        *robot.ConnectorMessage     // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
+	Incoming        *robot.ConnectorMessage     // raw struct of message sent by connector
 	Format          robot.MessageFormat         // robot's default message format
 	id              int                         // integer worker ID used when being registered as an active pipeline
 	tasks           *taskList                   // Pointers to current task configuration at start of pipeline
@@ -92,9 +89,6 @@ func (w *worker) clone() *worker {
 		User:            w.User,
 		ProtocolUser:    w.ProtocolUser,
 		Channel:         w.Channel,
-		MessageID:       w.MessageID,
-		ThreadID:        w.ThreadID,
-		ThreadedMessage: w.ThreadedMessage,
 		ProtocolChannel: w.ProtocolChannel,
 		Incoming:        w.Incoming,
 		directMsg:       w.directMsg,
@@ -280,9 +274,6 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	w := &worker{
 		User:            userName,
 		Channel:         channelName,
-		MessageID:       inc.MessageID,
-		ThreadID:        inc.ThreadID,
-		ThreadedMessage: inc.ThreadedMessage,
 		ProtocolUser:    ProtocolUser,
 		ProtocolChannel: ProtocolChannel,
 		Protocol:        protocol,
@@ -297,7 +288,6 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		repositories:    repolist,
 		isCommand:       isCommand,
 		cmdMode:         cmdMode,
-		directMsg:       inc.DirectMessage,
 		msg:             message,
 		fmsg:            messageFull,
 	}

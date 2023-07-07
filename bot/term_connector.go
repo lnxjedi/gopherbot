@@ -527,20 +527,20 @@ func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 // SendProtocolChannelThreadMessage sends a message to a channel
-func (tc *termConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (tc *termConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, dummyMsgObject interface{}) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	return tc.sendMessage(channel, thr, msg, f)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, dummyMsgObject interface{}) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	msg = "@" + uname + " " + msg
 	return tc.sendMessage(channel, thr, msg, f)
 }
 
 // SendProtocolUserMessage sends a direct message to a user
-func (tc *termConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (tc *termConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, dummyMsgObject interface{}) (ret robot.RetVal) {
 	var user *termUser
 	var exists bool
 	if user, exists = tc.getUserInfo(u); !exists {

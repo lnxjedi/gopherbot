@@ -116,9 +116,9 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
 		c.environment["GOPHER_START_CHANNEL"] = w.Channel
 		c.environment["GOPHER_START_CHANNEL_ID"] = w.ProtocolChannel
-		c.environment["GOPHER_START_THREAD_ID"] = w.ThreadID
-		c.environment["GOPHER_START_MESSAGE_ID"] = w.MessageID
-		if w.ThreadedMessage {
+		c.environment["GOPHER_START_THREAD_ID"] = w.Incoming.ThreadID
+		c.environment["GOPHER_START_MESSAGE_ID"] = w.Incoming.MessageID
+		if w.Incoming.ThreadedMessage {
 			c.environment["GOPHER_START_THREADED_MESSAGE"] = "true"
 		}
 		// To change the channel to the job channel, we need to clear the ProcotolChannel

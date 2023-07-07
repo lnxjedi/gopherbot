@@ -103,15 +103,15 @@ type Connector interface {
 	// SendProtocolChannelThreadMessage sends a message to a thread in a channel,
 	// starting a thread if none exists. If thread is unset or unsupported by the
 	// protocol, it just sends a message to the channel.
-	SendProtocolChannelThreadMessage(channelname, threadid, msg string, format MessageFormat) RetVal
+	SendProtocolChannelThreadMessage(channelname, threadid, msg string, format MessageFormat, msgObject interface{}) RetVal
 	// SendProtocolUserChannelThreadMessage directs a message to a user in a channel/thread.
 	// This method also supplies what the bot engine believes to be the username.
-	SendProtocolUserChannelThreadMessage(userid, username, channelname, threadid, msg string, format MessageFormat) RetVal
+	SendProtocolUserChannelThreadMessage(userid, username, channelname, threadid, msg string, format MessageFormat, msgObject interface{}) RetVal
 	// SendProtocolUserMessage sends a direct message to a user if supported.
 	// The value of user will be either "<userid>", the connector internal
 	// userID in brackets, or "username", a string name the connector associates
 	// with the user.
-	SendProtocolUserMessage(user, msg string, format MessageFormat) RetVal
+	SendProtocolUserMessage(user, msg string, format MessageFormat, msgObject interface{}) RetVal
 	// The Run method starts the main loop and takes a channel for stopping it.
 	Run(stopchannel <-chan struct{})
 }

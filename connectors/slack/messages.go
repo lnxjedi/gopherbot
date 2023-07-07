@@ -275,11 +275,12 @@ func (s *slackConnector) processSlashCmdSocketMode(cmd *slack.SlashCommand) {
 		UserID:    userID,
 		ChannelID: chanID,
 		// ThreadID should be empty, and ThreadedMessage always false
-		DirectMessage: ci.IsIM,
-		BotMessage:    true,
-		MessageText:   text,
-		MessageObject: cmd,
-		Client:        s.api,
+		DirectMessage:  ci.IsIM,
+		BotMessage:     true,
+		HiddenMessage:  true,
+		MessageText:    text,
+		MessageObject:  cmd,
+		Client:         s.api,
 	}
 	userName, ok := s.userName(userID)
 	if !ok {

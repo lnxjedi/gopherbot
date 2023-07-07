@@ -30,7 +30,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 		matchMsg = w.fmsg
 	}
 	matchChannelOnly := false
-	if len(w.Channel) > 0 && !w.ThreadedMessage {
+	if len(w.Channel) > 0 && !w.Incoming.ThreadedMessage {
 		matchChannelOnly = true
 	}
 	var runTask interface{}
@@ -207,8 +207,8 @@ func (w *worker) handleMessage() {
 	var waiters []replyWaiter
 	waitingForReply := false
 	threadID := ""
-	if w.ThreadedMessage {
-		threadID = w.ThreadID
+	if w.Incoming.ThreadedMessage {
+		threadID = w.Incoming.ThreadID
 	}
 	matcher := replyMatcher{w.User, w.Channel, threadID}
 	Log(robot.Trace, "Checking replies for matcher: %q", matcher)
@@ -231,7 +231,7 @@ func (w *worker) handleMessage() {
 				} else {
 					matched = rep.re.MatchString(cmsg)
 				}
-				Log(robot.Debug, "Found replyWaiter for user '%s' in channel '%s'/thread '%s', checking if message '%s' matches '%s': %t", w.User, w.Channel, w.ThreadID, cmsg, rep.re.String(), matched)
+				Log(robot.Debug, "Found replyWaiter for user '%s' in channel '%s'/thread '%s', checking if message '%s' matches '%s': %t", w.User, w.Channel, w.Incoming.ThreadID, cmsg, rep.re.String(), matched)
 				rep.replyChannel <- reply{matched, replied, cmsg}
 			} else {
 				Log(robot.Debug, "Sending retry to next reply waiter")
@@ -344,14 +344,14 @@ func (w *worker) handleMessage() {
 	}
 	// Last of all, check for thread subscriptions
 	if !messageMatched && !w.Incoming.SelfMessage && (w.isCommand && !catchAllMatched || !w.isCommand) {
-		subscriptionSpec := subscriptionMatcher{w.Channel, w.ThreadID}
+		subscriptionSpec := subscriptionMatcher{w.Channel, w.Incoming.ThreadID}
 		subscriptions.Lock()
 		if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
 			subscription.Timestamp = time.Now()
 			subscriptions.Unlock()
 			t := w.tasks.getTaskByName(subscription.Plugin)
 			if w.Incoming.UserID != w.cfg.botinfo.UserID {
-				Log(robot.Debug, "Unmatched message being routed to thread subscriber '%s' in thread '%s', channel '%s'", subscription.Plugin, w.ThreadID, w.Channel)
+				Log(robot.Debug, "Unmatched message being routed to thread subscriber '%s' in thread '%s', channel '%s'", subscription.Plugin, w.Incoming.ThreadID, w.Channel)
 				w.startPipeline(nil, t, plugThreadSubscription, "subscribed", w.fmsg)
 			} else {
 				Log(robot.Debug, "Ignoring message from the robot after subscription matched for thread subscriber '%s' in thread '%s', channel '%s'")

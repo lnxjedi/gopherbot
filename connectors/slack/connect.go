@@ -21,6 +21,11 @@ type config struct {
 	Debug              bool   // Explicitly turn on Slack protocol debug output
 }
 
+// Context created by incoming messages and optionally returned by the engine.
+type msgContext struct {
+	hiddenMessage bool // did the message originate from a slash command
+}
+
 var lock sync.Mutex        // package var lock
 var started bool           // set when connector is started
 var socketmodeEnabled bool // set when using socketmode to connect, duh

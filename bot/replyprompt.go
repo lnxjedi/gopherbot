@@ -129,8 +129,8 @@ func (r Robot) PromptForReply(regexID string, prompt string, v ...interface{}) (
 	}
 	for i := 0; i < 3; i++ {
 		var thread string
-		if r.ThreadedMessage {
-			thread = r.ThreadID
+		if r.Incoming.ThreadedMessage {
+			thread = r.Incoming.ThreadID
 		}
 		rep, ret = r.promptInternal(regexID, r.User, r.Channel, thread, prompt)
 		if ret == robot.RetryPrompt {
@@ -151,7 +151,7 @@ func (r Robot) PromptThreadForReply(regexID string, prompt string, v ...interfac
 		prompt = fmt.Sprintf(prompt, v...)
 	}
 	for i := 0; i < 3; i++ {
-		rep, ret = r.promptInternal(regexID, r.User, r.Channel, r.ThreadID, prompt)
+		rep, ret = r.promptInternal(regexID, r.User, r.Channel, r.Incoming.ThreadID, prompt)
 		if ret == robot.RetryPrompt {
 			continue
 		}
@@ -280,9 +280,9 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 		}
 		var ret robot.RetVal
 		if channel == "" {
-			ret = interfaces.SendProtocolUserMessage(puser, prompt, r.Format)
+			ret = interfaces.SendProtocolUserMessage(puser, prompt, r.Format, r.Incoming.MessageObject)
 		} else {
-			ret = interfaces.SendProtocolUserChannelThreadMessage(puser, user, channel, thread, prompt, r.Format)
+			ret = interfaces.SendProtocolUserChannelThreadMessage(puser, user, channel, thread, prompt, r.Format, r.Incoming.MessageObject)
 		}
 		if ret != robot.Ok {
 			replies.Unlock()

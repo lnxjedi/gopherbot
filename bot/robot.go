@@ -63,9 +63,6 @@ func (w *worker) makeRobot() Robot {
 			ProtocolUser:    w.ProtocolUser,
 			Channel:         w.Channel,
 			ProtocolChannel: w.ProtocolChannel,
-			MessageID:       w.MessageID,
-			ThreadID:        w.ThreadID,
-			ThreadedMessage: w.ThreadedMessage,
 			Format:          w.Format,
 			Protocol:        w.Protocol,
 			Incoming:        w.Incoming,
@@ -98,8 +95,8 @@ func (w *worker) makeRobot() Robot {
 
 func (w *worker) makeMemoryContext(key string) memoryContext {
 	var threadID string
-	if w.ThreadedMessage {
-		threadID = w.ThreadID
+	if w.Incoming.ThreadedMessage {
+		threadID = w.Incoming.ThreadID
 	}
 	return memoryContext{
 		key:     key,
@@ -111,8 +108,8 @@ func (w *worker) makeMemoryContext(key string) memoryContext {
 
 func (r Robot) makeMemoryContext(key string, forceThread, shared bool) memoryContext {
 	var threadID string
-	if r.ThreadedMessage || forceThread {
-		threadID = r.ThreadID
+	if r.Incoming.ThreadedMessage || forceThread {
+		threadID = r.Incoming.ThreadID
 	}
 	user := r.Incoming.UserID
 	// if len(r.Channel) == 0, it's a direct message to the robot
@@ -286,9 +283,9 @@ func (r Robot) Threaded() robot.Robot {
 	m := *r.Message
 	nr.Message = &m
 	if len(nr.Channel) > 0 {
-		nr.ThreadedMessage = true
+		nr.Incoming.ThreadedMessage = true
 	} else {
-		nr.ThreadedMessage = false
+		nr.Incoming.ThreadedMessage = false
 	}
 	return nr
 }

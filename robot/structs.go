@@ -20,11 +20,8 @@ type Message struct {
 	ProtocolUser    string            // the protocol internal ID of the user
 	Channel         string            // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
 	ProtocolChannel string            // the protocol internal channel ID
-	ThreadID        string            // Opaque thread identifier for protocols that support it, otherwise empty
-	MessageID       string            // Opaque message identifier for protocols that support it
-	ThreadedMessage bool              // Indicates if the incoming message was in a thread, false if not supported
 	Protocol        Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
-	Incoming        *ConnectorMessage // raw struct of message sent by connector; interpret based on protocol. For Slack this is a *slack.MessageEvent
+	Incoming        *ConnectorMessage // raw IncomingMessage object
 	Format          MessageFormat     // The outgoing message format, one of Raw, Fixed, or Variable
 }
 
@@ -48,11 +45,16 @@ type ConnectorMessage struct {
 	// BotMessage - true when the connector is certain the message has been sent to the robot,
 	// e.g. for slack slash commands
 	BotMessage bool
+	// HiddenMessage - true when the user sent a message to the robot that can't be seen by
+	// other users, also true for slack slash commands
+	HiddenMessage bool
 	// MessageText - sanitized message text, with all protocol-added junk removed
 	MessageText string
 	// MessageObject, Client - interfaces for the raw objects; go extensions can use
 	// these with type switches/assertions to access object internals
-	MessageObject, Client interface{}
+	// MessageContext - protocol-specific context sent back to the connector when sending
+	// messages; initial use was for slack to reply to slash commands with ephemeral messages.
+	MessageObject, MessageContext, Client interface{}
 }
 
 // PluginHandler is the struct a Go plugin registers for the Gopherbot plugin API.
