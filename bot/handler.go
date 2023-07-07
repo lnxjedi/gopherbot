@@ -76,7 +76,6 @@ type worker struct {
 	listedUser      bool                        // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
 	isCommand       bool                        // Was the message directed at the robot, dm or by mention
 	cmdMode         string                      // one of "alias", "name", "direct" - for disambiguation
-	directMsg       bool                        // if the message was sent by DM
 	msg, fmsg       string                      // the message text sent; without robot name/alias, and with for message matching
 	automaticTask   bool                        // set for scheduled & triggers jobs, where user security restrictions don't apply
 	*pipeContext                                // pointer to the pipeline context
@@ -91,7 +90,6 @@ func (w *worker) clone() *worker {
 		Channel:         w.Channel,
 		ProtocolChannel: w.ProtocolChannel,
 		Incoming:        w.Incoming,
-		directMsg:       w.Incoming.DirectMessage,
 		BotUser:         w.BotUser,
 		listedUser:      w.listedUser,
 		id:              getWorkerID(),

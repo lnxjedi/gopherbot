@@ -125,7 +125,6 @@ func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *tas
 		id:            getWorkerID(),
 		tasks:         tasks,
 		repositories:  repolist,
-		directMsg:     false,
 		automaticTask: true, // scheduled jobs don't get authorization / elevation checks
 	}
 	if isInitJob {
