@@ -121,3 +121,7 @@ func (tc *TestConnector) JoinChannel(c string) (ret robot.RetVal) {
 func (tc *TestConnector) FormatHelp(input string) string {
 	return input
 }
+
+func (tc *TestConnector) DefaultHelp() []string {
+	return []string{}
+}

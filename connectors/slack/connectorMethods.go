@@ -295,3 +295,10 @@ func (s *slackConnector) FormatHelp(input string) string {
 	}
 	return "`" + arr[0] + "` - " + arr[1]
 }
+
+func (s *slackConnector) DefaultHelp() []string {
+	return []string{
+		"/(bot) help <keyword> - get help for the provided <keyword>",
+		"/(bot) help-all - help for all commands available in this channel, including global commands",
+	}
+}

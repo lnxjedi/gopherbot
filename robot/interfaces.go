@@ -98,6 +98,9 @@ type Connector interface {
 	// FormatHelp takes a (bot)/(alias) (command) - (description) string, and
 	// returns a protocol-specific string formatted for display in the protocol.
 	FormatHelp(string) string
+	// DefaultHelp allows a connector to override the default help lines when
+	// there is no keyword.
+	DefaultHelp() []string
 	// JoinChannel joins a channel given it's human-readable name, e.g. "general"
 	JoinChannel(c string) RetVal
 	/* NOTE: Each of the Send* methods takes a pointer to a ConnectorMessage.

@@ -27,6 +27,13 @@ func init() {
 	RegisterPlugin("builtin-logging", robot.PluginHandler{Handler: logging})
 }
 
+func defaultHelp() []string {
+	return []string{
+		"(alias) help <keyword> - get help for the provided <keyword>",
+		"(alias) help-all - help for all commands available in this channel, including global commands",
+	}
+}
+
 /* builtin plugins, like help */
 
 func fallback(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
@@ -134,10 +141,13 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		helpLines := make([]string, 0, 14)
 		if command == "help" {
 			if !hasKeyword {
-				helptext := "(alias) help <keyword> - get help for the provided <keyword>"
-				helpLines = append(helpLines, r.formatHelpLine(helptext))
-				helptext = "(alias) help-all - help for all commands available in this channel, including global commands"
-				helpLines = append(helpLines, r.formatHelpLine(helptext))
+				defaultHelpLines := interfaces.DefaultHelp()
+				if len(defaultHelpLines) == 0 {
+					defaultHelpLines = defaultHelp()
+				}
+				for _, line := range defaultHelpLines {
+					helpLines = append(helpLines, r.formatHelpLine(line))
+				}
 			}
 		}
 		want_specific := command == "help" || hasKeyword

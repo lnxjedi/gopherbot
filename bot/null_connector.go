@@ -39,6 +39,10 @@ func (nc nullConnector) FormatHelp(input string) string {
 	return input
 }
 
+func (nc nullConnector) DefaultHelp() []string {
+	return []string{}
+}
+
 func (nc nullConnector) SendProtocolChannelThreadMessage(ch string, thr, msg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	return nc.sendMessage(msg, f)
 }

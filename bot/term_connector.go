@@ -563,3 +563,8 @@ func (tc *termConnector) FormatHelp(input string) string {
 	}
 	return "*" + arr[0] + "* - " + arr[1]
 }
+
+// DefaultHelp returns an empty array (no override)
+func (tc *termConnector) DefaultHelp() []string {
+	return []string{}
+}
