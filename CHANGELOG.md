@@ -1,3 +1,5 @@
+# v2.11.0 - Hidden Commands and Support for Slack Slash Commands
+
 # v2.10.2 - Helptext Formatting Update
 Now that robots can tell the difference between being addressed using it's name or it's alias, the help system has been updated:
 * The old "(bot), do something" format can be replaced with "(alias) do something", so e.g. you'll get "Floyd, do something" in the first case, or ";do something" in the second case; this lets the robot's administrator provide help in a format the users are most likely to use
