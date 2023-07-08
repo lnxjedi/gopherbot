@@ -12,10 +12,13 @@ The nicest feature of this new functionality is how it's implemented in Slack. S
 That is all to say, Slack hidden messages behave much like many other Slack integrations you've used, and don't clutter up channels with output that likely isn't useful to others.
 
 ## Updates to built-in help
-Probably the most useful application of this new feature is the update to the built-in help system:
+Absolutely the most useful application of this new feature is the update to the built-in help system:
 * Built-in help commands are listed as `AllowedHiddenCommands` by default, so in any given channel a user can type e.g. `/clu help` and receive contextual help for the current channel in the same pane, without spamming everybody else in the channel, or creating a thread.
 * Expansion of helplines now accepts a prefix before "(bot)", so you can now add a helptext line of the form "/(bot) do something - do anything at all", and it will render as e.g. "`/Clu do something` - do anything at all".
 * Protocol connectors now define a `DefaultHelp()` method that can return a non-zero array of help lines that override the engine defaults when the help command is issued without a keyword. Thus, a Slack robot will add e.g. "`/Clu help <keyword>` - get help for the provided \<keyword\>".
+
+## Additional Changes to the Core
+To support this functionality, the message sending methods were updated. Before, whenever a connector had an incoming message, it was packaged up in to a `*robot.ConnectorMessage`, with a `MessageObject` field containing a protocol-specific `interface{}` corresponding to an object received by the protocol, and a similar `Client interface{}` corresponding to a client object for the protocol. Now this same object is passed back as an argument in the message sending functions, allowing the connector to make context-aware decisions on how to handle message sends. In the case of Slack, it's used to determine that an ephemeral message should be sent to the user. At the same time, the `worker` struct was cleaned up, removing several fields that were merely copied from the `ConnectorMessage`.
 
 # v2.10.2 - Helptext Formatting Update
 Now that robots can tell the difference between being addressed using it's name or it's alias, the help system has been updated:

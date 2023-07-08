@@ -52,9 +52,7 @@ type ConnectorMessage struct {
 	MessageText string
 	// MessageObject, Client - interfaces for the raw objects; go extensions can use
 	// these with type switches/assertions to access object internals
-	// MessageContext - protocol-specific context sent back to the connector when sending
-	// messages; initial use was for slack to reply to slash commands with ephemeral messages.
-	MessageObject, MessageContext, Client interface{}
+	MessageObject, Client interface{}
 }
 
 // PluginHandler is the struct a Go plugin registers for the Gopherbot plugin API.
