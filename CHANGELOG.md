@@ -1,4 +1,21 @@
 # v2.11.0 - Hidden Commands and Support for Slack Slash Commands
+When Gopherbot's Slack connector migrated from RTM to socketmode events, I added bare minimum support for "slash commands" - if you set up your robot with e.g. "/clu" for a slash command, you could type "/clu ping" and it would dutifully respond "@parsley PONG" in the channel - but nobody would have seen the original ping command, since slash commands are hidden. Version 2.11.0 adds a more useful functionality for slash commands called "hidden commands", meaning the user can message the robot and receive a reply that is hidden from other users. The interfaces are defined in a generic way so that future connectors could also support this functionality in a connector-specific way, but for now I will only document how it's implemented in Slack.
+
+## AllowedHiddenCommands - potentially breaking change
+Where before every plugin command would respond to e.g. "/clu do something" the same as "clu, do something", now each plugin must define a list of commands that are allowed to be hidden with an `AllowedHiddenCommands:` array in the plugin yaml configuration. Since Gopherbot allows an adminstrator to pin certain commands to certain channels, and visibility of commands is one layer of security, this feature returns some control back to the adminstrator.
+
+## Slack Implementation with Ephemeral Messages
+The nicest feature of this new functionality is how it's implemented in Slack. Simply, when a command is issued as a slash command, all replies are sent as an "ephemeral message" to the user:
+* Slack tags these messages as "Only visible to you"
+* They are not kept in team history
+* They do not persist between sessions / reloads
+That is all to say, Slack hidden messages behave much like many other Slack integrations you've used, and don't clutter up channels with output that likely isn't useful to others.
+
+## Updates to built-in help
+Probably the most useful application of this new feature is the update to the built-in help system:
+* Built-in help commands are listed as `AllowedHiddenCommands` by default, so in any given channel a user can type e.g. `/clu help` and receive contextual help for the current channel in the same pane, without spamming everybody else in the channel, or creating a thread.
+* Expansion of helplines now accepts a prefix before "(bot)", so you can now add a helptext line of the form "/(bot) do something - do anything at all", and it will render as e.g. "`/Clu do something` - do anything at all".
+* Protocol connectors now define a `DefaultHelp()` method that can return a non-zero array of help lines that override the engine defaults when the help command is issued without a keyword. Thus, a Slack robot will add e.g. "`/Clu help <keyword>` - get help for the provided \<keyword\>".
 
 # v2.10.2 - Helptext Formatting Update
 Now that robots can tell the difference between being addressed using it's name or it's alias, the help system has been updated:
