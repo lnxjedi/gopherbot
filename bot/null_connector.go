@@ -39,15 +39,15 @@ func (nc nullConnector) FormatHelp(input string) string {
 	return input
 }
 
-func (nc nullConnector) SendProtocolChannelThreadMessage(ch string, thr, msg string, f robot.MessageFormat, dummyMsgObject interface{}) (ret robot.RetVal) {
+func (nc nullConnector) SendProtocolChannelThreadMessage(ch string, thr, msg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	return nc.sendMessage(msg, f)
 }
 
-func (nc nullConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, dummyMsgObject interface{}) (ret robot.RetVal) {
+func (nc nullConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	return nc.sendMessage(msg, f)
 }
 
-func (nc nullConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, dummyMsgObject interface{}) (ret robot.RetVal) {
+func (nc nullConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	return nc.sendMessage(msg, f)
 }
 

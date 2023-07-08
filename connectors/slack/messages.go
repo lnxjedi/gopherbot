@@ -49,7 +49,7 @@ var usernameRe = regexp.MustCompile(`^` + mentionMatch + `$`)
 
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // takes care of formatting, and segments the message if needed.
-func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageFormat, msgObject interface{}) []string {
+func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) []string {
 	maxSize := slack.MaxMessageTextLength - 500 // workaround for large message disconnects
 	if f == robot.Fixed {
 		maxSize -= 6

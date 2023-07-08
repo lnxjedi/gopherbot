@@ -55,7 +55,7 @@ func (r Robot) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal
 	} else {
 		channel = ch
 	}
-	return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, r.Format, r.Incoming.MessageObject)
+	return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, r.Format, r.Incoming)
 }
 
 func (w *worker) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal {
@@ -68,7 +68,7 @@ func (w *worker) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetV
 	} else {
 		channel = ch
 	}
-	return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, w.Format, w.Incoming.MessageObject)
+	return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, w.Format, w.Incoming)
 }
 
 func (r Robot) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
@@ -85,7 +85,7 @@ func (r Robot) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) r
 	} else {
 		channel = ch
 	}
-	return interfaces.SendProtocolChannelThreadMessage(channel, thr, msg, r.Format, r.Incoming.MessageObject)
+	return interfaces.SendProtocolChannelThreadMessage(channel, thr, msg, r.Format, r.Incoming)
 }
 
 func (w *worker) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
@@ -98,7 +98,7 @@ func (w *worker) SendChannelThreadMessage(ch, thr, msg string, v ...interface{})
 	} else {
 		channel = ch
 	}
-	return interfaces.SendProtocolChannelThreadMessage(channel, thr, msg, w.Format, w.Incoming.MessageObject)
+	return interfaces.SendProtocolChannelThreadMessage(channel, thr, msg, w.Format, w.Incoming)
 }
 
 // SendUserChannelMessage lets a plugin easily send a message directed to
@@ -126,7 +126,7 @@ func (r Robot) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot
 	} else {
 		channel = ch
 	}
-	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, r.Format, r.Incoming.MessageObject)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, r.Format, r.Incoming)
 }
 
 func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot.RetVal {
@@ -145,7 +145,7 @@ func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) rob
 	} else {
 		channel = ch
 	}
-	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, w.Format, w.Incoming.MessageObject)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, w.Format, w.Incoming)
 }
 
 func (r Robot) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
@@ -168,7 +168,7 @@ func (r Robot) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interfa
 	} else {
 		channel = ch
 	}
-	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, r.Format, r.Incoming.MessageObject)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, r.Format, r.Incoming)
 }
 
 func (w *worker) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
@@ -187,7 +187,7 @@ func (w *worker) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...inter
 	} else {
 		channel = ch
 	}
-	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, w.Format, w.Incoming.MessageObject)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, w.Format, w.Incoming)
 }
 
 // SendUserMessage lets a plugin easily send a DM to a user. If a DM
@@ -207,7 +207,7 @@ func (r Robot) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
 	} else {
 		user = u
 	}
-	return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming.MessageObject)
+	return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
 }
 
 func (w *worker) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
@@ -220,7 +220,7 @@ func (w *worker) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
 	} else {
 		user = u
 	}
-	return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming.MessageObject)
+	return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
 }
 
 // Reply directs a message to the user
@@ -238,7 +238,7 @@ func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 	}
 	// Support for Direct()
 	if r.Channel == "" {
-		return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming.MessageObject)
+		return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
 	}
 	channel := r.ProtocolChannel
 	if len(channel) == 0 {
@@ -251,9 +251,9 @@ func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	if w.BotUser {
-		return interfaces.SendProtocolChannelThreadMessage(r.Channel, thread, r.User+": "+msg, r.Format, r.Incoming.MessageObject)
+		return interfaces.SendProtocolChannelThreadMessage(r.Channel, thread, r.User+": "+msg, r.Format, r.Incoming)
 	}
-	return interfaces.SendProtocolUserChannelThreadMessage(user, r.User, r.Channel, thread, msg, r.Format, r.Incoming.MessageObject)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, r.User, r.Channel, thread, msg, r.Format, r.Incoming)
 }
 
 func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
@@ -266,7 +266,7 @@ func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
 	}
 	// Support for Direct()
 	if w.Channel == "" {
-		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming.MessageObject)
+		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
 	}
 	channel := w.ProtocolChannel
 	if len(channel) == 0 {
@@ -277,9 +277,9 @@ func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
 		thread = w.Incoming.ThreadID
 	}
 	if w.BotUser {
-		return interfaces.SendProtocolChannelThreadMessage(w.Channel, thread, w.User+": "+msg, w.Format, w.Incoming.MessageObject)
+		return interfaces.SendProtocolChannelThreadMessage(w.Channel, thread, w.User+": "+msg, w.Format, w.Incoming)
 	}
-	return interfaces.SendProtocolUserChannelThreadMessage(user, w.User, w.Channel, thread, msg, w.Format, w.Incoming.MessageObject)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, w.User, w.Channel, thread, msg, w.Format, w.Incoming)
 }
 
 // ReplyThread directs a message to the user, creating a new thread
@@ -297,7 +297,7 @@ func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 	}
 	// Support for Direct()
 	if r.Channel == "" {
-		return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming.MessageObject)
+		return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
 	}
 	channel := r.ProtocolChannel
 	if len(channel) == 0 {
@@ -306,9 +306,9 @@ func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	if w.BotUser {
-		return interfaces.SendProtocolChannelThreadMessage(r.Channel, r.Incoming.ThreadID, r.User+": "+msg, r.Format, r.Incoming.MessageObject)
+		return interfaces.SendProtocolChannelThreadMessage(r.Channel, r.Incoming.ThreadID, r.User+": "+msg, r.Format, r.Incoming)
 	}
-	return interfaces.SendProtocolUserChannelThreadMessage(user, r.User, r.Channel, r.Incoming.ThreadID, msg, r.Format, r.Incoming.MessageObject)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, r.User, r.Channel, r.Incoming.ThreadID, msg, r.Format, r.Incoming)
 }
 
 func (w *worker) ReplyThread(msg string, v ...interface{}) robot.RetVal {
@@ -321,16 +321,16 @@ func (w *worker) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 	}
 	// Support for Direct()
 	if w.Channel == "" {
-		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming.MessageObject)
+		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
 	}
 	channel := w.ProtocolChannel
 	if len(channel) == 0 {
 		channel = w.Channel
 	}
 	if w.BotUser {
-		return interfaces.SendProtocolChannelThreadMessage(w.Channel, w.Incoming.ThreadID, w.User+": "+msg, w.Format, w.Incoming.MessageObject)
+		return interfaces.SendProtocolChannelThreadMessage(w.Channel, w.Incoming.ThreadID, w.User+": "+msg, w.Format, w.Incoming)
 	}
-	return interfaces.SendProtocolUserChannelThreadMessage(user, w.User, w.Channel, w.Incoming.ThreadID, msg, w.Format, w.Incoming.MessageObject)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, w.User, w.Channel, w.Incoming.ThreadID, msg, w.Format, w.Incoming)
 }
 
 // Say just sends a message to the user or channel
@@ -348,7 +348,7 @@ func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 		if len(user) == 0 {
 			user = r.User
 		}
-		return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming.MessageObject)
+		return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
 	}
 	channel := r.ProtocolChannel
 	if len(channel) == 0 {
@@ -358,7 +358,7 @@ func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 	if r.Incoming.ThreadedMessage {
 		thread = r.Incoming.ThreadID
 	}
-	return interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, r.Format, r.Incoming.MessageObject)
+	return interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, r.Format, r.Incoming)
 }
 
 func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
@@ -375,7 +375,7 @@ func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
 		if len(user) == 0 {
 			user = w.User
 		}
-		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming.MessageObject)
+		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
 	}
 	channel := w.ProtocolChannel
 	if len(channel) == 0 {
@@ -385,7 +385,7 @@ func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
 	if w.Incoming.ThreadedMessage {
 		thread = w.Incoming.ThreadID
 	}
-	return interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, w.Format, w.Incoming.MessageObject)
+	return interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, w.Format, w.Incoming)
 }
 
 // SayThread creates a new thread if replying to an existing message
@@ -403,13 +403,13 @@ func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
 		if len(user) == 0 {
 			user = r.User
 		}
-		return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming.MessageObject)
+		return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
 	}
 	channel := r.ProtocolChannel
 	if len(channel) == 0 {
 		channel = r.Channel
 	}
-	return interfaces.SendProtocolChannelThreadMessage(channel, r.Incoming.ThreadID, msg, r.Format, r.Incoming.MessageObject)
+	return interfaces.SendProtocolChannelThreadMessage(channel, r.Incoming.ThreadID, msg, r.Format, r.Incoming)
 }
 
 func (w *worker) SayThread(msg string, v ...interface{}) robot.RetVal {
@@ -426,11 +426,11 @@ func (w *worker) SayThread(msg string, v ...interface{}) robot.RetVal {
 		if len(user) == 0 {
 			user = w.User
 		}
-		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming.MessageObject)
+		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
 	}
 	channel := w.ProtocolChannel
 	if len(channel) == 0 {
 		channel = w.Channel
 	}
-	return interfaces.SendProtocolChannelThreadMessage(channel, w.Incoming.ThreadID, msg, w.Format, w.Incoming.MessageObject)
+	return interfaces.SendProtocolChannelThreadMessage(channel, w.Incoming.ThreadID, msg, w.Format, w.Incoming)
 }

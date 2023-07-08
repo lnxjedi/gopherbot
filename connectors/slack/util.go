@@ -46,13 +46,14 @@ type slackConnector struct {
 type msgType int
 
 const (
-	msgRTM msgType = iota
+	msgNone msgType = iota
+	msgRTM
 	msgEvent
 	msgSlashCmd
 )
 
-func getMsgType(msgObject interface{}) (mtype msgType) {
-	switch msgObject.(type) {
+func getMsgType(msgObject *robot.ConnectorMessage) (mtype msgType) {
+	switch msgObject.MessageObject.(type) {
 	case *slackevents.MessageEvent:
 		mtype = msgEvent
 	case *slack.SlashCommand:
@@ -60,7 +61,7 @@ func getMsgType(msgObject interface{}) (mtype msgType) {
 	case *slack.MessageEvent:
 		mtype = msgRTM
 	default:
-		mtype = msgEvent
+		mtype = msgNone
 	}
 	return
 }

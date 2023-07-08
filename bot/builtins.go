@@ -46,7 +46,7 @@ func fallback(m robot.Robot, command string, args ...string) (retval robot.TaskR
 	return
 }
 
-var botRegex = regexp.MustCompile(`^\(bot\)(,?) *`)
+var botRegex = regexp.MustCompile(`^([^(]*)\(bot\)(,?) *`)
 var aliasRegex = regexp.MustCompile(`^\(alias\) *`)
 
 func (r Robot) formatHelpLine(input string) (ret string) {
@@ -55,17 +55,18 @@ func (r Robot) formatHelpLine(input string) (ret string) {
 	if len(botName) == 0 && len(botAlias) == 0 {
 		ret = input
 	} else {
-		if strings.HasPrefix(input, "(bot)") {
-			if len(botName) == 0 {
+		if botRegex.MatchString(input) {
+			if len(botName) > 0 {
+				ret = botRegex.ReplaceAllString(input, "${1}"+botName+"${2} ")
+				r.Log(robot.Debug, "Sending '%s' to FormatHelp", ret)
+			} else {
 				ret = botRegex.ReplaceAllString(input, botAlias)
-			} else {
-				ret = botRegex.ReplaceAllString(input, botName+"$1 ")
 			}
-		} else if strings.HasPrefix(input, "(alias)") {
-			if len(botAlias) == 0 {
-				ret = aliasRegex.ReplaceAllString(input, botName+", ")
-			} else {
+		} else if aliasRegex.MatchString(input) {
+			if len(botAlias) > 0 {
 				ret = aliasRegex.ReplaceAllString(input, botAlias)
+			} else {
+				ret = aliasRegex.ReplaceAllString(input, botName+", ")
 			}
 		}
 	}

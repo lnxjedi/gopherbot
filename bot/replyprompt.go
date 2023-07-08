@@ -280,9 +280,9 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 		}
 		var ret robot.RetVal
 		if channel == "" {
-			ret = interfaces.SendProtocolUserMessage(puser, prompt, r.Format, r.Incoming.MessageObject)
+			ret = interfaces.SendProtocolUserMessage(puser, prompt, r.Format, r.Incoming)
 		} else {
-			ret = interfaces.SendProtocolUserChannelThreadMessage(puser, user, channel, thread, prompt, r.Format, r.Incoming.MessageObject)
+			ret = interfaces.SendProtocolUserChannelThreadMessage(puser, user, channel, thread, prompt, r.Format, r.Incoming)
 		}
 		if ret != robot.Ok {
 			replies.Unlock()

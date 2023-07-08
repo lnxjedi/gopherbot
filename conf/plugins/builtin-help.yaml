@@ -14,3 +14,7 @@ CommandMatchers:
   Regex: '(?i:help-all)'
 - Command: info
   Regex: '(?i:info|tell me about yourself|about|information)'
+AllowedHiddenCommands:
+- help
+- help-all
+- info
