@@ -106,9 +106,11 @@ func saveEphemeralMemories() {
 		ret := updateDatum(ephemeralMemKey, sm_tok, storedEphemeralMemories)
 		// NOTE: Hold the lock until after serializing - the
 		// storedEphmemeralMemories assignment doesn't copy.
+		// NOTE also: getting the len counts as a read.
+		stored := len(storedEphemeralMemories.m)
 		ephemeralMemories.Unlock()
 		if ret == robot.Ok {
-			Log(robot.Debug, "Successfully saved '%d' ephemeral memories to long-term memory", len(storedEphemeralMemories.m))
+			Log(robot.Debug, "Successfully saved '%d' ephemeral memories to long-term memory", stored)
 		} else {
 			Log(robot.Error, "Error '%s' updating ephemeral memories in long-term memory", ret)
 		}
