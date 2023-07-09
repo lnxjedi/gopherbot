@@ -4,6 +4,9 @@ When Gopherbot's Slack connector migrated from RTM to socketmode events, I added
 ## AllowedHiddenCommands - potentially breaking change
 Where before every plugin command would respond to e.g. "/clu do something" the same as "clu, do something", now each plugin must define a list of commands that are allowed to be hidden with an `AllowedHiddenCommands:` array in the plugin yaml configuration. Since Gopherbot allows an adminstrator to pin certain commands to certain channels, and visibility of commands is one layer of security, this feature returns some control back to the adminstrator.
 
+## New GOPHER_HIDDEN_COMMAND Environment Variable
+When a plugin runs from a hidden command, the engine will set `GOPHER_HIDDEN_COMMAND=true`; otherwise it's unset.
+
 ## Slack Implementation with Ephemeral Messages
 The nicest feature of this new functionality is how it's implemented in Slack. Simply, when a command is issued as a slash command, all replies are sent as an "ephemeral message" to the user:
 * Slack tags these messages as "Only visible to you"
@@ -17,8 +20,8 @@ Absolutely the most useful application of this new feature is the update to the 
 * Expansion of helplines now accepts a prefix before "(bot)", so you can now add a helptext line of the form "/(bot) do something - do anything at all", and it will render as e.g. "`/Clu do something` - do anything at all".
 * Protocol connectors now define a `DefaultHelp()` method that can return a non-zero array of help lines that override the engine defaults when the help command is issued without a keyword. Thus, a Slack robot will add e.g. "`/Clu help <keyword>` - get help for the provided \<keyword\>".
 
-## Additional Changes to the Core
-To support this functionality, the message sending methods were updated. Before, whenever a connector had an incoming message, it was packaged up in to a `*robot.ConnectorMessage`, with a `MessageObject` field containing a protocol-specific `interface{}` corresponding to an object received by the protocol, and a similar `Client interface{}` corresponding to a client object for the protocol. Now this same object is passed back as an argument in the message sending functions, allowing the connector to make context-aware decisions on how to handle message sends. In the case of Slack, it's used to determine that an ephemeral message should be sent to the user. At the same time, the `worker` struct was cleaned up, removing several fields that were merely copied from the `ConnectorMessage`.
+## (Development Notes) Additional Changes to the Core
+To support this functionality, the message sending methods were updated. Before, whenever a connector had an incoming message, it was packaged up in to a `*robot.ConnectorMessage`, with a `MessageObject` field containing a protocol-specific `interface{}` corresponding to an object received by the protocol (e.g. `*slack.Event`), and a similar `Client interface{}` corresponding to a client object for the protocol (e.g. `*slack.Client`). Now this same object is passed back as an argument in the message sending functions, allowing the connector to make context-aware decisions on how to handle message sends. In the case of Slack, it's used to determine that an ephemeral message should be sent to the user. At the same time, the `worker` struct was cleaned up, removing several fields that were merely copied from the `ConnectorMessage`.
 
 # v2.10.2 - Helptext Formatting Update
 Now that robots can tell the difference between being addressed using it's name or it's alias, the help system has been updated:
