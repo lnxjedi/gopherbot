@@ -544,7 +544,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 		envhash["GOPHER_THREADED_MESSAGE"] = "true"
 	}
 	if w.Incoming.HiddenMessage {
-		envhash["GOPHER_HIDDEN_MESSAGE"] = "true"
+		envhash["GOPHER_HIDDEN_COMMAND"] = "true"
 	}
 	envhash["GOPHER_CMDMODE"] = w.cmdMode
 	envhash["GOPHER_USER"] = w.User
