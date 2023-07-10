@@ -7,3 +7,5 @@
 AllChannels: true
 CatchAll: true
 AllowDirect: true
+AllowedHiddenCommands:
+- catchall
