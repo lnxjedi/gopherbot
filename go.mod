@@ -30,8 +30,8 @@ require (
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
 
-// *** When using a fork
-// replace github.com/slack-go/slack => github.com/lnxjedi/slack v0.1.1
+// *** When using a fork - in this case, iaburton's safer-socketmode
+replace github.com/slack-go/slack => github.com/lnxjedi/slack v0.1.2
 
 // *** For local Slack lib dev - comment out any other replace for slack above
 // replace github.com/slack-go/slack => ../slack

@@ -34,7 +34,7 @@ var lastmsgtime = struct {
 // ignorewindow ... well, we ignore it. The problem is, the Slack service will
 // on occasion edit a user message, and the robot was seeing this as the user
 // sending the same command twice in short order.
-const ignorewindow = 2 * time.Second
+const ignorewindow = 3 * time.Second
 
 func optQuote(msg string, f robot.MessageFormat) string {
 	if f == robot.Fixed {
@@ -194,6 +194,9 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 		s.Log(robot.Debug, "SubMessage (edited message) received: %v", message)
 	} else if msg.SubType == "message_deleted" {
 		s.Log(robot.Debug, "Ignoring deleted message in channel '%s'", chanID)
+		return
+	} else if len(msg.SubType) > 0 {
+		s.Log(robot.Debug, "Ignoring message with unknown/unhandled subtype '%s'", msg.SubType)
 		return
 	} else {
 		message = *msg
