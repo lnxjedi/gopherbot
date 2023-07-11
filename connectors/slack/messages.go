@@ -196,7 +196,7 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 		s.Log(robot.Debug, "Ignoring deleted message in channel '%s'", chanID)
 		return
 	} else if len(msg.SubType) > 0 {
-		s.Log(robot.Debug, "Ignoring message with unknown/unhandled subtype '%s'", msg.SubType)
+		s.Log(robot.Warn, "Ignoring message with unknown/unhandled subtype '%s'", msg.SubType)
 		return
 	} else {
 		message = *msg
