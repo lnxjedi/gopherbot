@@ -159,6 +159,15 @@ func (s *slackConnector) processText(text string) string {
 	return text
 }
 
+func validSubtype(st string) bool {
+	switch st {
+	case "bot_message", "message_replied":
+		return true
+	default:
+		return false
+	}
+}
+
 // processMessageSocketMode examines incoming messages, removes extra slack cruft, and
 // routes them to the appropriate bot method.
 func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent) {
@@ -195,7 +204,7 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 	} else if msg.SubType == "message_deleted" {
 		s.Log(robot.Debug, "Ignoring deleted message in channel '%s'", chanID)
 		return
-	} else if len(msg.SubType) > 0 && msg.SubType != "bot_message" {
+	} else if len(msg.SubType) > 0 && !validSubtype(msg.SubType) {
 		s.Log(robot.Warn, "Ignoring message with unknown/unhandled subtype '%s'", msg.SubType)
 		return
 	} else {
