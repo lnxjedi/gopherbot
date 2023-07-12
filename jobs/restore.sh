@@ -106,6 +106,8 @@ AddTask exec rm -rf "$GOPHER_STATEDIR.tmp"
 AddTask exec rm -f ".restore"
 FailTask exec rm -rf "$GOPHER_STATEDIR"
 FailTask exec mv "$GOPHER_STATEDIR.tmp" "$GOPHER_STATEDIR"
+FailTask status "Failed restoring git/file memories; no backup available?"
+FailTask exec rm -f ".restore"
 if [ "$INTERACTIVE" -o "$TERMINAL" ]
 then
     AddTask say "Restore finished"
