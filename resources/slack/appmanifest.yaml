@@ -12,10 +12,10 @@ features:
     messages_tab_read_only_enabled: false
   bot_user:
     display_name: Clu Gopherbot
-    always_online: false
+    always_online: true
   slash_commands:
     - command: /clu
-      description: Provides an alternate means of messaging Clu
+      description: Provides access to Clu's hidden commands
       should_escape: false
 oauth_config:
   scopes:
