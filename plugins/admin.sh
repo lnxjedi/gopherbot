@@ -44,8 +44,9 @@ case "$COMMAND" in
     AddTask say "... switched to branch '$BRANCH'"
     ;;
   "save")
-    Say "Ok, I'll push my configuration..."
+    Say "Ok, I'll push my configuration and long-term memory store ..."
     AddJob save
+    AddJob backup
     FailTask say "Job failed!"
     AddTask say "... done"
     ;;
