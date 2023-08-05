@@ -1,6 +1,3 @@
-# function for loading ssh key and removing; needs
-# to be activated during container builds by adding
-# a call to the end of $HOME/.bashrc
 check-load-ssh(){
     [ ! -e $HOME/.ssh/id_ssh ] && return
     if ! ssh-add -l >/dev/null && [ -e $HOME/.ssh/id_ssh ]
@@ -14,6 +11,35 @@ check-load-ssh(){
         rm -f $HOME/.ssh/id_ssh
     fi
 }
+check-clone-robot(){
+    if [ "$GOPHER_DEPLOY_KEY" -a "$GOPHER_CUSTOM_REPOSITORY" -a ! -e ~/custom ]
+    then
+        echo $GOPHER_DEPLOY_KEY | tr ':_' '\n ' > /tmp/decoded_key.pem
+        chmod 600 /tmp/decoded_key.pem
+        export GIT_SSH_COMMAND="ssh -i /tmp/decoded_key.pem -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+        git clone $GOPHER_CUSTOM_REPOSITORY ~/custom
+        rm -f /tmp/decoded_key.pem
+    fi
+}
+check-load-botkey(){
+    ssh-add -l > /dev/null && return
+    ENCRYPTED_KEY=$(grep -A3 '"manage_key"' custom/conf/robot.yaml | sed -n 's/.*decrypt "\(.*\)" }}.*/\1/p')
+    echo "Loading robot's manage_key with encrypted passphrase ($ENCRYPTED_KEY)..."
+    NAMED_PIPE=$(mktemp -u)
+    mkfifo $NAMED_PIPE
+    SSH_ASKPASS_SCRIPT=$(mktemp)
+    chmod +x $SSH_ASKPASS_SCRIPT
+    echo "cat $NAMED_PIPE" > $SSH_ASKPASS_SCRIPT
+    export SSH_ASKPASS=$SSH_ASKPASS_SCRIPT
+    export DISPLAY=:0
+    chmod 0600 ~/custom/ssh/manage_key
+    ssh-add ~/custom/ssh/manage_key < /dev/null &
+    SSH_ADD_PID=$!
+    gopherbot decrypt "$ENCRYPTED_KEY" > $NAMED_PIPE
+    wait $SSH_ADD_PID
+    rm -f $NAMED_PIPE
+    rm -f $SSH_ASKPASS_SCRIPT
+}
 # ssh-agent in shell sessions
 if [ ! "$SSH_AUTH_SOCK" ]
 then
@@ -21,6 +47,8 @@ then
     export SSH_AGENT_PID=$(pgrep ssh-agent)
 fi
 check-load-ssh
+check-clone-robot
+check-load-botkey
 source $HOME/.git-completion.bash
 source $HOME/.git-prompt.sh
 PATH=${PATH}:/opt/gopherbot:${HOME}/go/bin:${HOME}/.local/bin
