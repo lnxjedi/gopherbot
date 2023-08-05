@@ -523,14 +523,13 @@ EOF
             --name $CONTAINERNAME $IMAGE_SPEC
     else
         RANDOM_TOKEN="$(openssl rand -hex 21)"
-        if [ "$SSH_KEY_PATH" ]
-        then
-            CONTAINER_COMMAND=ssh-agent
-        elif [ "$FORWARD_SSH" ]
+        if [ "$FORWARD_SSH" ]
         then
             EXTERNAL_UID=$(id -u)
             EXTERNAL_GID=$(id -g)
             SSH_FORWARDING="-u $EXTERNAL_UID:$EXTERNAL_GID -v $(readlink -f $SSH_AUTH_SOCK):/ssh-agent -e SSH_AUTH_SOCK=/ssh-agent"
+        else
+            CONTAINER_COMMAND=ssh-agent
         fi
 
         docker run -d $SSH_FORWARDING \
