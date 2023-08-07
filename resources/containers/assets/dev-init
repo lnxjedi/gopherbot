@@ -14,6 +14,7 @@ check-load-ssh(){
 check-clone-robot(){
     if [ "$GOPHER_DEPLOY_KEY" -a "$GOPHER_CUSTOM_REPOSITORY" -a ! -e ~/custom ]
     then
+        echo "Cloning $GOPHER_CUSTOM_REPOSITORY to ~/custom ..."
         echo $GOPHER_DEPLOY_KEY | tr ':_' '\n ' > /tmp/decoded_key.pem
         chmod 600 /tmp/decoded_key.pem
         export GIT_SSH_COMMAND="ssh -i /tmp/decoded_key.pem -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
@@ -24,7 +25,7 @@ check-clone-robot(){
 check-load-botkey(){
     ssh-add -l > /dev/null && return
     ENCRYPTED_KEY=$(grep -A3 '"manage_key"' ~/custom/conf/robot.yaml | sed -n 's/.*decrypt "\(.*\)" }}.*/\1/p')
-    echo "Loading robot's manage_key with encrypted passphrase ($ENCRYPTED_KEY)..."
+    echo "Loading robot's manage_key with encrypted passphrase ($ENCRYPTED_KEY) ..."
     NAMED_PIPE=$(mktemp -u)
     mkfifo $NAMED_PIPE
     SSH_ASKPASS_SCRIPT=$(mktemp)
