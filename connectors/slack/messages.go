@@ -161,7 +161,7 @@ func (s *slackConnector) processText(text string) string {
 
 func validSubtype(st string) bool {
 	switch st {
-	case "bot_message", "message_replied":
+	case "bot_message", "message_replied", "file_share":
 		return true
 	default:
 		return false
