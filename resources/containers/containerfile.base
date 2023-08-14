@@ -70,7 +70,7 @@ RUN OVSC_LATEST=$(curl --silent https://api.github.com/repos/${OVSC_ORG}/openvsc
     rm -f ${OVSC_LATEST}-linux-${arch}.tar.gz
 
 RUN cd /usr/local && \
-    GO_LATEST=$(curl --silent https://go.dev/VERSION?m=text) && \
+    GO_LATEST=$(curl --silent https://go.dev/VERSION?m=text | head -1) && \
     curl -s -L -o go.tar.gz https://dl.google.com/go/${GO_LATEST}.linux-amd64.tar.gz && \
     tar xzf go.tar.gz && \
     rm -f go.tar.gz
