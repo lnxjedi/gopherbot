@@ -34,13 +34,6 @@ var lastmsgtime = struct {
 // sending the same command twice in short order.
 const ignorewindow = 3 * time.Second
 
-func optQuote(msg string, f robot.MessageFormat) string {
-	if f == robot.Fixed {
-		return "```" + msg + "```"
-	}
-	return msg
-}
-
 var mentionMatch = `[0-9A-Za-z](?:[-_0-9A-Za-z.]{0,19}[_0-9A-Za-z])?`
 var mentionRe = regexp.MustCompile(`@` + mentionMatch + `\b`)
 var usernameRe = regexp.MustCompile(`^` + mentionMatch + `$`)
@@ -60,16 +53,84 @@ func (s *slackConnector) replaceMentions(msg string) string {
 	})
 }
 
+// normalizeBackticks adds leading and trailing newlines to triple backticks (```)
+// If the leading or trailing newline is already present, it doesn't duplicate it.
+func normalizeBackticks(input string) string {
+	// Regular expression that matches a triple backtick with any character (or none) on either side
+	re := regexp.MustCompile(".{0,1}```.{0,1}")
+
+	// Replace function adds newlines before and after every triple backtick
+	// If the newline is already present, it doesn't duplicate it
+	return re.ReplaceAllStringFunc(input, func(s string) string {
+		if s == "\n```\n" {
+			return s
+		}
+		if strings.Count(s, "`") != 3 {
+			return s
+		}
+		leading := string(s[0])
+		trailing := string(s[len(s)-1])
+		if leading == "`" {
+			leading = ""
+		} else if leading != "\n" {
+			leading = leading + "\n"
+		}
+		if trailing == "`" {
+			trailing = ""
+		} else if trailing != "\n" {
+			trailing = "\n" + trailing
+		}
+		return leading + "```" + trailing
+	})
+}
+
+func optAddBlockDelimeters(inside_block bool, chunk string) (bool, string) {
+	delimeters := strings.Count(chunk, "```")
+	if inside_block {
+		chunk = "```\n" + chunk
+	}
+	if delimeters%2 == 1 {
+		inside_block = !inside_block
+	}
+	if inside_block {
+		chunk = chunk + "\n```"
+	}
+	return inside_block, chunk
+}
+
+func (s *slackConnector) processRawMessage(msg string) string {
+	var result strings.Builder
+	inside_block := false
+	chunks := strings.Split(msg, "```")
+	num_chunks := len(chunks)
+
+	for i, chunk := range chunks {
+		if !inside_block {
+			chunk = s.replaceMentions(chunk)
+		}
+		result.WriteString(chunk)
+		// If there are more chunks, write the delimeter and flip the bool
+		if i != num_chunks-1 {
+			result.WriteString("```")
+			inside_block = !inside_block
+		}
+	}
+
+	if inside_block {
+		result.WriteString("\n```")
+	}
+
+	return result.String()
+}
+
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // takes care of formatting, and segments the message if needed.
 func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) []string {
-	maxSize := slack.MaxMessageTextLength - 500 // workaround for large message disconnects
-	if f == robot.Fixed {
-		maxSize -= 6
-	}
+	maxSize := slack.MaxMessageTextLength - 490
 
 	if f == robot.Raw {
-		msg = s.replaceMentions(msg)
+		msg = normalizeBackticks(msg)
+		msg = s.processRawMessage(msg)
 	} else {
 		msg = strings.Replace(msg, "&", "&amp;", -1)
 		msg = strings.Replace(msg, "<", "&lt;", -1)
@@ -86,32 +147,40 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageForm
 	if len(prefix) > 0 && mtype != msgSlashCmd {
 		msg = prefix + msg
 	}
+	if f == robot.Fixed {
+		msg = "```\n" + msg + "\n```"
+	}
 
 	msgLen := len(msg)
 	if msgLen <= maxSize {
-		return []string{optQuote(msg, f)}
+		return []string{msg}
 	}
 	// It's too big, gotta chop it up. We will send at most maxMessageSplit
 	// messages, plus "(message truncated)".
 	msgs := make([]string, 0, s.maxMessageSplit+1)
 	s.Log(robot.Info, "Message too long, segmenting: %d bytes", msgLen)
 	// Chop it up into <=maxSize pieces
+	var chunk string
+	inside_block := false
 	for len(msg) > maxSize && len(msgs) < s.maxMessageSplit {
 		lineEnd := strings.LastIndexByte(msg[:maxSize], '\n')
 		if lineEnd == -1 { // no newline in this chunk
-			msgs = append(msgs, optQuote(msg[:maxSize], f))
+			chunk = msg[:maxSize]
 			msg = msg[maxSize:]
 		} else {
-			msgs = append(msgs, optQuote(msg[:lineEnd], f))
+			chunk = msg[:lineEnd]
 			msg = msg[lineEnd+1:] // skip over the newline
 		}
+		inside_block, chunk = optAddBlockDelimeters(inside_block, chunk)
+		msgs = append(msgs, chunk)
 	}
 	if len(msgs) == s.maxMessageSplit { // we've maxed out
 		if len(msg) > 0 { // if there's anything left, we've truncated
 			msgs = append(msgs, "(message too long, truncated)")
 		}
 	} else { // the last chunk fits
-		msgs = append(msgs, optQuote(msg, f))
+		_, chunk = optAddBlockDelimeters(inside_block, msg)
+		msgs = append(msgs, chunk)
 	}
 	return msgs
 }
