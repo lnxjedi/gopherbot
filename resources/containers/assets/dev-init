@@ -17,8 +17,8 @@ check-clone-robot(){
         echo "Cloning $GOPHER_CUSTOM_REPOSITORY to ~/custom ..."
         echo $GOPHER_DEPLOY_KEY | tr ':_' '\n ' > /tmp/decoded_key.pem
         chmod 600 /tmp/decoded_key.pem
-        export GIT_SSH_COMMAND="ssh -i /tmp/decoded_key.pem -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-        git clone $GOPHER_CUSTOM_REPOSITORY ~/custom
+        GIT_SSH_COMMAND="ssh -i /tmp/decoded_key.pem -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
+            git clone $GOPHER_CUSTOM_REPOSITORY ~/custom
         rm -f /tmp/decoded_key.pem
     fi
 }
