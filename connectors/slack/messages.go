@@ -4,7 +4,6 @@ package slack
 most of the internal methods. */
 
 import (
-	"bytes"
 	"regexp"
 	"strings"
 	"sync"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/slack-go/slack"
-	"github.com/slack-go/slack/slackevents"
 )
 
 // Soft hyphen. *shrug*
@@ -47,6 +45,21 @@ var mentionMatch = `[0-9A-Za-z](?:[-_0-9A-Za-z.]{0,19}[_0-9A-Za-z])?`
 var mentionRe = regexp.MustCompile(`@` + mentionMatch + `\b`)
 var usernameRe = regexp.MustCompile(`^` + mentionMatch + `$`)
 
+func (s *slackConnector) replaceMentions(msg string) string {
+	return mentionRe.ReplaceAllStringFunc(msg, func(mentioned string) string {
+		mentioned = mentioned[1:]
+		switch mentioned {
+		case "here", "channel", "everyone":
+			return "<!" + mentioned + ">"
+		}
+		replace, ok := s.userID(mentioned, true)
+		if ok {
+			return "<@" + replace + ">"
+		}
+		return mentioned
+	})
+}
+
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // takes care of formatting, and segments the message if needed.
 func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) []string {
@@ -54,68 +67,51 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageForm
 	if f == robot.Fixed {
 		maxSize -= 6
 	}
-	sbytes := []byte(msg)
-	// 'escape' special chars; NOTE: this should be covered by slack.MsgOptions now.
-	// if f == robot.Variable {
-	// }
 
-	// Eventually, this will only work for users configured in the
-	// UserRoster from robot.yaml
 	if f == robot.Raw {
-		sbytes = mentionRe.ReplaceAllFunc(sbytes, func(bytes []byte) []byte {
-			mentioned := string(bytes[1:])
-			switch mentioned {
-			case "here", "channel", "everyone":
-				return []byte("<!" + mentioned + ">")
-			}
-			replace, ok := s.userID(string(bytes[1:]), true)
-			if ok {
-				return []byte("<@" + replace + ">")
-			}
-			return bytes
-		})
+		msg = s.replaceMentions(msg)
 	} else {
-		sbytes = bytes.Replace(sbytes, []byte("&"), []byte("&amp;"), -1)
-		sbytes = bytes.Replace(sbytes, []byte("<"), []byte("&lt;"), -1)
-		sbytes = bytes.Replace(sbytes, []byte(">"), []byte("&gt;"), -1)
+		msg = strings.Replace(msg, "&", "&amp;", -1)
+		msg = strings.Replace(msg, "<", "&lt;", -1)
+		msg = strings.Replace(msg, ">", "&gt;", -1)
 	}
 	if f == robot.Variable {
 		// 'escape' special chars that aren't covered by disabling markdown.
 		for _, padChar := range []string{"`", "*", "_", ":"} {
-			padBytes := []byte(padChar)
-			paddedBytes := []byte(escapePad + padChar)
-			sbytes = bytes.Replace(sbytes, padBytes, paddedBytes, -1)
+			paddedString := escapePad + padChar
+			msg = strings.Replace(msg, padChar, paddedString, -1)
 		}
 	}
 	mtype := getMsgType(msgObject)
 	if len(prefix) > 0 && mtype != msgSlashCmd {
-		sbytes = append([]byte(prefix), sbytes...)
+		msg = prefix + msg
 	}
-	msgLen := len(sbytes)
+
+	msgLen := len(msg)
 	if msgLen <= maxSize {
-		return []string{optQuote(string(sbytes), f)}
+		return []string{optQuote(msg, f)}
 	}
 	// It's too big, gotta chop it up. We will send at most maxMessageSplit
 	// messages, plus "(message truncated)".
 	msgs := make([]string, 0, s.maxMessageSplit+1)
 	s.Log(robot.Info, "Message too long, segmenting: %d bytes", msgLen)
 	// Chop it up into <=maxSize pieces
-	for len(sbytes) > maxSize && len(msgs) < s.maxMessageSplit {
-		lineEnd := bytes.LastIndexByte(sbytes[:maxSize], byte('\n'))
+	for len(msg) > maxSize && len(msgs) < s.maxMessageSplit {
+		lineEnd := strings.LastIndexByte(msg[:maxSize], '\n')
 		if lineEnd == -1 { // no newline in this chunk
-			msgs = append(msgs, optQuote(string(sbytes[:maxSize]), f))
-			sbytes = sbytes[maxSize:]
+			msgs = append(msgs, optQuote(msg[:maxSize], f))
+			msg = msg[maxSize:]
 		} else {
-			msgs = append(msgs, optQuote(string(sbytes[:lineEnd]), f))
-			sbytes = sbytes[lineEnd+1:] // skip over the newline
+			msgs = append(msgs, optQuote(msg[:lineEnd], f))
+			msg = msg[lineEnd+1:] // skip over the newline
 		}
 	}
 	if len(msgs) == s.maxMessageSplit { // we've maxed out
-		if len(sbytes) > 0 { // if there's anything left, we've truncated
+		if len(msg) > 0 { // if there's anything left, we've truncated
 			msgs = append(msgs, "(message too long, truncated)")
 		}
 	} else { // the last chunk fits
-		msgs = append(msgs, optQuote(string(sbytes), f))
+		msgs = append(msgs, optQuote(msg, f))
 	}
 	return msgs
 }
@@ -166,243 +162,4 @@ func validSubtype(st string) bool {
 	default:
 		return false
 	}
-}
-
-// processMessageSocketMode examines incoming messages, removes extra slack cruft, and
-// routes them to the appropriate bot method.
-func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent) {
-	s.Log(robot.Trace, "Message received: %v", msg)
-
-	// Channel is always part of the root message; if subtype is
-	// message_changed, text and user are part of the submessage
-	chanID := msg.Channel
-	var userID string
-	timestamp := time.Now()
-	var message slackevents.MessageEvent
-	ci, ok := s.getChannelInfo(chanID)
-	if !ok {
-		s.Log(robot.Error, "Couldn't find channel info for channel ID", chanID)
-		return
-	}
-	if msg.SubType == "message_changed" {
-		message = *msg.Message
-		userID = message.User
-		if userID == "" {
-			if message.BotID != "" {
-				userID = message.BotID
-			}
-		}
-		lastlookup := userlast{userID, chanID}
-		lastmsgtime.Lock()
-		msgtime, exists := lastmsgtime.m[lastlookup]
-		lastmsgtime.Unlock()
-		if exists && timestamp.Sub(msgtime) < ignorewindow {
-			s.Log(robot.Debug, "Ignoring edited message \"%s\" arriving within the ignorewindow: %v", msg.Message.Text, ignorewindow)
-			return
-		}
-		s.Log(robot.Debug, "SubMessage (edited message) received: %v", message)
-	} else if msg.SubType == "message_deleted" {
-		s.Log(robot.Debug, "Ignoring deleted message in channel '%s'", chanID)
-		return
-	} else if len(msg.SubType) > 0 && !validSubtype(msg.SubType) {
-		s.Log(robot.Warn, "Ignoring message with unknown/unhandled subtype '%s'", msg.SubType)
-		return
-	} else {
-		message = *msg
-		userID = message.User
-		if len(userID) == 0 {
-			if message.BotID != "" {
-				userID = message.BotID
-			} else if ci.IsIM {
-				userID, _ = s.imUserID(chanID)
-			}
-		}
-		lastlookup := userlast{userID, chanID}
-		lastmsgtime.Lock()
-		lastmsgtime.m[lastlookup] = timestamp
-		lastmsgtime.Unlock()
-	}
-	if len(userID) == 0 {
-		s.Log(robot.Debug, "Zero-length userID, ignoring message")
-		return
-	}
-	text := message.Text
-	messageID := message.TimeStamp
-	ts := message.TimeStamp
-	tts := message.ThreadTimeStamp
-	threadID := tts
-	threadedMessage := false
-	if len(tts) == 0 {
-		threadID = ts
-	} else {
-		threadedMessage = true
-	}
-	// some bot messages don't have any text, so check for a fallback
-	if text == "" && len(msg.Attachments) > 0 {
-		text = msg.Attachments[0].Fallback
-	}
-	text = s.processText(text)
-	botMsg := &robot.ConnectorMessage{
-		Protocol:        "slack",
-		UserID:          userID,
-		ChannelID:       chanID,
-		MessageID:       messageID,
-		ThreadID:        threadID,
-		ThreadedMessage: threadedMessage,
-		DirectMessage:   ci.IsIM,
-		BotMessage:      false,
-		MessageText:     text,
-		MessageObject:   msg,
-		Client:          s.api,
-	}
-	userName, ok := s.userName(userID)
-	if !ok {
-		s.Log(robot.Debug, "Couldn't find user name for user ID", userID)
-	} else {
-		botMsg.UserName = userName
-	}
-	if !ci.IsIM {
-		botMsg.ChannelName = ci.Name
-	}
-	if userID == s.botUserID {
-		botMsg.SelfMessage = true
-		s.Log(robot.Trace, "Forwarding slack return message '%s' from the robot %s/%s", messageID, userName, userID)
-	}
-	s.IncomingMessage(botMsg)
-}
-
-// processSlashCmdSocketMode examines incoming /<foo> messages routed to the robot,
-// removes extra slack cruft, and routes them to the appropriate bot method.
-func (s *slackConnector) processSlashCmdSocketMode(cmd *slack.SlashCommand) {
-	s.Log(robot.Trace, "Slash command received: %+v", cmd)
-	chanID := cmd.ChannelID
-	userID := cmd.UserID
-	ci, ok := s.getChannelInfo(chanID)
-	if !ok {
-		s.Log(robot.Error, "Couldn't find channel info for channel ID", chanID)
-		return
-	}
-	text := s.processText(cmd.Text)
-	botMsg := &robot.ConnectorMessage{
-		Protocol:  "slack",
-		UserID:    userID,
-		ChannelID: chanID,
-		// ThreadID should be empty, and ThreadedMessage always false
-		DirectMessage: ci.IsIM,
-		BotMessage:    true,
-		HiddenMessage: true,
-		MessageText:   text,
-		MessageObject: cmd,
-		Client:        s.api,
-	}
-	userName, ok := s.userName(userID)
-	if !ok {
-		s.Log(robot.Debug, "Couldn't find user name for user ID", userID)
-	} else {
-		botMsg.UserName = userName
-	}
-	if !ci.IsIM {
-		botMsg.ChannelName = ci.Name
-	}
-	s.IncomingMessage(botMsg)
-}
-
-// processMessageRTM examines incoming messages, removes extra slack cruft, and
-// routes them to the appropriate bot method.
-func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
-	s.Log(robot.Trace, "Message received: %v", msg.Msg)
-
-	// Channel is always part of the root message; if subtype is
-	// message_changed, text and user are part of the submessage
-	chanID := msg.Channel
-	var userID string
-	timestamp := time.Now()
-	var message slack.Msg
-	ci, ok := s.getChannelInfo(chanID)
-	if !ok {
-		s.Log(robot.Error, "Couldn't find channel info for channel ID", chanID)
-		return
-	}
-	if msg.Msg.SubType == "message_changed" {
-		message = *msg.SubMessage
-		userID = message.User
-		if userID == "" {
-			if message.BotID != "" {
-				userID = message.BotID
-			}
-		}
-		lastlookup := userlast{userID, chanID}
-		lastmsgtime.Lock()
-		msgtime, exists := lastmsgtime.m[lastlookup]
-		lastmsgtime.Unlock()
-		if exists && timestamp.Sub(msgtime) < ignorewindow {
-			s.Log(robot.Debug, "Ignoring edited message \"%s\" arriving within the ignorewindow: %v", msg.SubMessage.Text, ignorewindow)
-			return
-		}
-		s.Log(robot.Debug, "SubMessage (edited message) received: %v", message)
-	} else if msg.Msg.SubType == "message_deleted" {
-		s.Log(robot.Debug, "Ignoring deleted message in channel '%s'", chanID)
-		return
-	} else {
-		message = msg.Msg
-		userID = message.User
-		if len(userID) == 0 {
-			if message.BotID != "" {
-				userID = message.BotID
-			} else if ci.IsIM {
-				userID, _ = s.imUserID(chanID)
-			}
-		}
-		lastlookup := userlast{userID, chanID}
-		lastmsgtime.Lock()
-		lastmsgtime.m[lastlookup] = timestamp
-		lastmsgtime.Unlock()
-	}
-	if len(userID) == 0 {
-		s.Log(robot.Debug, "Zero-length userID, ignoring message")
-		return
-	}
-	messageID := msg.Timestamp
-	text := message.Text
-	// some bot messages don't have any text, so check for a fallback
-	if text == "" && len(msg.Attachments) > 0 {
-		text = msg.Attachments[0].Fallback
-	}
-	text = s.processText(text)
-	ts := msg.Timestamp
-	tts := msg.ThreadTimestamp
-	threadID := tts
-	threadedMessage := false
-	if len(tts) == 0 {
-		threadID = ts
-	} else {
-		threadedMessage = true
-	}
-	botMsg := &robot.ConnectorMessage{
-		Protocol:        "slack",
-		UserID:          userID,
-		ChannelID:       chanID,
-		MessageID:       messageID,
-		ThreadID:        threadID,
-		ThreadedMessage: threadedMessage,
-		DirectMessage:   ci.IsIM,
-		BotMessage:      false,
-		MessageText:     text,
-		MessageObject:   msg,
-		Client:          s.api,
-	}
-	userName, ok := s.userName(userID)
-	if !ok {
-		s.Log(robot.Debug, "Couldn't find user name for user ID", userID)
-	} else {
-		botMsg.UserName = userName
-	}
-	if !ci.IsIM {
-		botMsg.ChannelName = ci.Name
-	}
-	if userID == s.botUserID {
-		botMsg.SelfMessage = true
-		s.Log(robot.Trace, "Forwarding slack return message '%s' from the robot %s/%s", messageID, userName, userID)
-	}
-	s.IncomingMessage(botMsg)
 }
