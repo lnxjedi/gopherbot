@@ -24,6 +24,11 @@ check-clone-robot(){
 }
 check-load-botkey(){
     ssh-add -l > /dev/null && return
+    if [ "$SSH_AUTH_SOCK" == "/ssh-agent" ]
+    then
+        echo -e "\n***WARNING***: ssh forwarding set but no key loaded! Run 'ssh-add' on the host?"
+        return
+    fi
     ENCRYPTED_KEY=$(grep -A3 '"manage_key"' ~/custom/conf/robot.yaml | sed -n 's/.*decrypt "\(.*\)" }}.*/\1/p')
     echo "Loading robot's manage_key with encrypted passphrase ($ENCRYPTED_KEY) ..."
     NAMED_PIPE=$(mktemp -u)
