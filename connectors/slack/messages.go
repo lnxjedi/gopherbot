@@ -87,13 +87,21 @@ func normalizeBackticks(input string) string {
 func optAddBlockDelimeters(inside_block bool, chunk string) (bool, string) {
 	delimeters := strings.Count(chunk, "```")
 	if inside_block {
-		chunk = "```\n" + chunk
+		if strings.HasPrefix(chunk, "\n") {
+			chunk = "```" + chunk
+		} else {
+			chunk = "```\n" + chunk
+		}
 	}
 	if delimeters%2 == 1 {
 		inside_block = !inside_block
 	}
 	if inside_block {
-		chunk = chunk + "\n```"
+		if strings.HasSuffix(chunk, "\n") {
+			chunk = chunk + "```"
+		} else {
+			chunk = chunk + "\n```"
+		}
 	}
 	return inside_block, chunk
 }
@@ -148,7 +156,15 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageForm
 		msg = prefix + msg
 	}
 	if f == robot.Fixed {
-		msg = "```\n" + msg + "\n```"
+		f_prefix := "```\n"
+		if strings.HasPrefix(msg, "\n") {
+			f_prefix = "```"
+		}
+		f_suffix := "\n```"
+		if strings.HasSuffix(msg, "\n") {
+			f_suffix = "```"
+		}
+		msg = f_prefix + msg + f_suffix
 	}
 
 	msgLen := len(msg)

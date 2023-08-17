@@ -1,3 +1,6 @@
+# v2.11.1 - Improved Slack "raw" Message Splitting
+On occasion the AI plugin could generate very long Slack messages containing one or more code blocks. The old message splitting algorithm just blindly split up the message and sent chunks, breaking on newlines when possible. The new algorithm now keeps track of code blocks, and closes and re-opens them between messages.
+
 # v2.11.0 - Hidden Commands and Support for Slack Slash Commands
 When Gopherbot's Slack connector migrated from RTM to socketmode events, I added bare minimum support for "slash commands" - if you set up your robot with e.g. "/clu" for a slash command, you could type "/clu ping" and it would dutifully respond "@parsley PONG" in the channel - but nobody would have seen the original ping command, since slash commands are hidden. Version 2.11.0 adds a more useful functionality for slash commands called "hidden commands", meaning the user can message the robot and receive a reply that is hidden from other users. The interfaces are defined in a generic way so that future connectors could also support this functionality in a connector-specific way, but for now I will only document how it's implemented in Slack.
 
