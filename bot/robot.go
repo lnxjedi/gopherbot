@@ -144,6 +144,11 @@ func (w *worker) CheckAdmin() bool {
 	}
 	for _, adminUser := range w.cfg.adminUsers {
 		if w.User == adminUser {
+			if !w.listedUser {
+				Log(robot.Error, "admin user %s not listed in roster; failing admin check", w.User)
+				emit(AdminCheckFailed)
+				return false
+			}
 			emit(AdminCheckPassed)
 			return true
 		}
