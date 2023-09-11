@@ -27,6 +27,7 @@ RUN dnf install -y \
         gzip \
         jq \
         less \
+        libyaml-devel \
         make \
         openssh-clients \
         openssl \
