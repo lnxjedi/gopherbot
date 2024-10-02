@@ -15,11 +15,6 @@ ARG USERNAME=bot
 ARG USER_UID=1001
 ARG USER_GID=$USER_UID
 
-# EPEL 7
-RUN curl -o epel.rpm https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm && \
-    rpm -i --nodeps epel.rpm && \
-    rm -f epel.rpm
-
 RUN dnf install -y \
         bash-completion \
         gcc \
@@ -38,11 +33,15 @@ RUN dnf install -y \
         ruby-devel \
         tar \
         telnet \
-        tini \
         which \
     && \
   	dnf clean all && \
   	rm -rf /var/cache/yum
+
+RUN TINI_LATEST=$(curl --silent https://api.github.com/krallin/tini/releases/latest | jq -r .tag_name) && \
+    curl -s -L -o tini https://github.com/krallin/tini/releases/download/$TINI_LATEST/tini-amd64 && \
+    sudo install -m 0755 tini /usr/local/bin && \
+    rm -f tini
 
 # NOTE: My little bit of research indicated rpdb would probably be easiest
 # to use for Python script debugging in Gopherbot. If you're a pythonista
@@ -119,4 +118,4 @@ RUN go install -v golang.org/x/tools/gopls@latest && \
 
 EXPOSE 7777
 
-ENTRYPOINT [ "/usr/bin/tini", "--", "/bin/sh", "-c", "exec ${OPENVSCODE_SERVER_ROOT}/bin/openvscode-server --host 0.0.0.0 --port 7777 \"${@}\"", "--" ]
+ENTRYPOINT [ "/usr/local/bin/tini", "--", "/bin/sh", "-c", "exec ${OPENVSCODE_SERVER_ROOT}/bin/openvscode-server --host 0.0.0.0 --port 7777 \"${@}\"", "--" ]
