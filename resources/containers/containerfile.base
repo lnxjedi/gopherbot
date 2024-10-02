@@ -40,7 +40,7 @@ RUN dnf install -y \
 
 RUN TINI_LATEST=$(curl --silent https://api.github.com/krallin/tini/releases/latest | jq -r .tag_name) && \
     curl -s -L -o tini https://github.com/krallin/tini/releases/download/$TINI_LATEST/tini-amd64 && \
-    sudo install -m 0755 tini /usr/local/bin && \
+    install -m 0755 tini /usr/local/bin && \
     rm -f tini
 
 # NOTE: My little bit of research indicated rpdb would probably be easiest
