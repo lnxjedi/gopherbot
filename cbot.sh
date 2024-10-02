@@ -546,7 +546,7 @@ EOF
             -p 127.0.0.1:7777:7777 \
             -p 127.0.0.1:8888:8888 \
             --env-file $GOPHER_PROFILE \
-            --entrypoint /usr/bin/tini \
+            --entrypoint /usr/local/bin/tini \
             -e GOPHER_IDE="$CONTAINERNAME" \
             -l type=gopherbot/robot \
             -l environment=robot/development \
