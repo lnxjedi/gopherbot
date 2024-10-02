@@ -30,21 +30,25 @@ check-load-botkey(){
         return
     fi
     ENCRYPTED_KEY=$(grep -A3 '"manage_key"' ~/custom/conf/robot.yaml | sed -n 's/.*decrypt "\(.*\)" }}.*/\1/p')
-    echo "Loading robot's manage_key with encrypted passphrase ($ENCRYPTED_KEY) ..."
-    NAMED_PIPE=$(mktemp -u)
-    mkfifo $NAMED_PIPE
-    SSH_ASKPASS_SCRIPT=$(mktemp)
-    chmod +x $SSH_ASKPASS_SCRIPT
-    echo "cat $NAMED_PIPE" > $SSH_ASKPASS_SCRIPT
-    export SSH_ASKPASS=$SSH_ASKPASS_SCRIPT
-    export DISPLAY=:0
-    chmod 0600 ~/custom/ssh/manage_key
-    ssh-add ~/custom/ssh/manage_key < /dev/null &
-    SSH_ADD_PID=$!
-    gopherbot decrypt "$ENCRYPTED_KEY" > $NAMED_PIPE
-    wait $SSH_ADD_PID
-    rm -f $NAMED_PIPE
-    rm -f $SSH_ASKPASS_SCRIPT
+    if [[ $ENCRYPTED_KEY ]]; then
+        echo "Loading robot's manage_key with encrypted passphrase ($ENCRYPTED_KEY) ..."
+        NAMED_PIPE=$(mktemp -u)
+        mkfifo $NAMED_PIPE
+        SSH_ASKPASS_SCRIPT=$(mktemp)
+        chmod +x $SSH_ASKPASS_SCRIPT
+        echo "cat $NAMED_PIPE" > $SSH_ASKPASS_SCRIPT
+        export SSH_ASKPASS=$SSH_ASKPASS_SCRIPT
+        export DISPLAY=:0
+        chmod 0600 ~/custom/ssh/manage_key
+        ssh-add ~/custom/ssh/manage_key < /dev/null &
+        SSH_ADD_PID=$!
+        gopherbot decrypt "$ENCRYPTED_KEY" > $NAMED_PIPE
+        wait $SSH_ADD_PID
+        rm -f $NAMED_PIPE
+        rm -f $SSH_ASKPASS_SCRIPT
+    else
+        echo "(no robot found, skipping key loading)"
+    fi
 }
 # ssh-agent in shell sessions
 if [ ! "$SSH_AUTH_SOCK" ]
