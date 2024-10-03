@@ -29,8 +29,8 @@ check-load-botkey(){
         echo -e "\n***WARNING***: ssh forwarding set but no key loaded! Run 'ssh-add' on the host?"
         return
     fi
-    ENCRYPTED_KEY=$(grep -A3 '"manage_key"' ~/custom/conf/robot.yaml | sed -n 's/.*decrypt "\(.*\)" }}.*/\1/p')
-    if [[ $ENCRYPTED_KEY ]]; then
+    if [[ -e ~/custom/conf/robot.yaml ]]; then
+        ENCRYPTED_KEY=$(grep -A3 '"manage_key"' ~/custom/conf/robot.yaml | sed -n 's/.*decrypt "\(.*\)" }}.*/\1/p')
         echo "Loading robot's manage_key with encrypted passphrase ($ENCRYPTED_KEY) ..."
         NAMED_PIPE=$(mktemp -u)
         mkfifo $NAMED_PIPE
