@@ -38,7 +38,7 @@ RUN dnf install -y \
   	dnf clean all && \
   	rm -rf /var/cache/yum
 
-RUN TINI_LATEST=$(curl --silent https://api.github.com/krallin/tini/releases/latest | jq -r .tag_name) && \
+RUN TINI_LATEST=$(curl --silent https://api.github.com/repos/krallin/tini/releases/latest | jq -r .tag_name) && \
     curl -s -L -o tini https://github.com/krallin/tini/releases/download/$TINI_LATEST/tini-amd64 && \
     install -m 0755 tini /usr/local/bin && \
     rm -f tini
