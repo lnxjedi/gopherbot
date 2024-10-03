@@ -105,7 +105,7 @@ ENV LANG=C.UTF-8 \
     GIT_EDITOR="code --wait" \
     OPENVSCODE_SERVER_ROOT=${OPENVSCODE_SERVER_ROOT} \
     HOME=/home/${USERNAME} \
-    PATH=/usr/local/go/bin:${PATH}:${HOME}/go/bin:${HOME}/.local/bin
+    PATH=/usr/local/go/bin:${PATH}:/home/${USERNAME}/go/bin:/home/${USERNAME}/.local/bin
 
 RUN go install -v golang.org/x/tools/gopls@latest && \
     go install -v github.com/cweill/gotests/gotests@v1.6.0 && \
