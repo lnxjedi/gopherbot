@@ -1,4 +1,4 @@
-FROM ghcr.io/lnxjedi/gopherbot-dev:latest as build
+FROM ghcr.io/lnxjedi/gopherbot-dev:latest AS build
 
 #######
 #
