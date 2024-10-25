@@ -216,7 +216,7 @@ class Robot:
         return self.PromptUserChannelThreadForReply(regex_id, self.user, self.channel, self.thread_id, prompt, format)
 
     def PromptUserForReply(self, regex_id, user, prompt, format=""):
-        return self.PromptUserChannelThreadForReply(regex_id, user, "", prompt, format)
+        return self.PromptUserChannelThreadForReply(regex_id, user, "", "", prompt, format)
 
     def PromptUserChannelThreadForReply(self, regex_id, user, channel, thread, prompt, format=""):
         for i in range(0, 3):
