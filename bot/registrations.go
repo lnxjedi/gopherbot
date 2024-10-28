@@ -1,4 +1,3 @@
-// File: bot/registration.go
 package bot
 
 import (
@@ -6,6 +5,15 @@ import (
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
+
+// addTask adds the registered task to the global list
+func (tl *taskList) addTask(t interface{}) {
+	task, _, _ := getTask(t)
+	idx := len(tl.t)
+	tl.t = append(tl.t, t)
+	tl.nameMap[task.name] = idx
+	tl.idMap[task.name] = idx
+}
 
 // ProcessRegistrations processes the plugin, job, and task registrations collected in the robot package.
 func ProcessRegistrations() {
