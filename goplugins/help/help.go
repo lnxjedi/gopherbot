@@ -7,12 +7,6 @@ import (
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"github.com/lnxjedi/gopherbot/v2/bot"
-)
-
-var (
-	gobot   bot.Robot
-	botName string
 )
 
 // Define the handler function

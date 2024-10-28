@@ -7,7 +7,6 @@ import (
 	"regexp"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"github.com/lnxjedi/gopherbot/v2/bot"
 )
 
 // DO NOT DISABLE THIS PLUGIN! ALL ROBAWTS MUST KNOW THE RULES
@@ -34,7 +33,7 @@ func extractID(u string) (string, bool) {
 
 // Define the handler function
 func ping(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
-	r := m.(bot.Robot)
+	r := m.GetMessage()
 	var cfg *config
 	// The plugin can handle multiple different commands
 	switch command {
@@ -42,18 +41,18 @@ func ping(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 	case "init":
 		// ignore
 	case "rules":
-		r.Say(rules)
+		m.Say(rules)
 	case "ignore":
 		// uh... ignore!
 	case "hello":
-		r.Reply("Howdy. Try 'help' if you want usage information.")
+		m.Reply("Howdy. Try 'help' if you want usage information.")
 	case "ping":
-		r.Fixed().Reply("PONG")
+		m.Fixed().Reply("PONG")
 	case "thread":
-		if ret := r.GetTaskConfig(&cfg); ret == robot.Ok {
-			r.ReplyThread(r.RandomString(cfg.Thread))
+		if ret := m.GetTaskConfig(&cfg); ret == robot.Ok {
+			m.ReplyThread(m.RandomString(cfg.Thread))
 		} else {
-			r.ReplyThread("Sure thing")
+			m.ReplyThread("Sure thing")
 		}
 	case "whoami":
 		u := r.User
@@ -61,19 +60,19 @@ func ping(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		c := r.Channel
 		cid, _ := extractID(r.ProtocolChannel)
 		p := r.Protocol
-		e := r.GetSenderAttribute("email")
+		e := m.GetSenderAttribute("email")
 		var msg string
 		if e.RetVal == robot.Ok {
 			msg = fmt.Sprintf("You are '%s' user '%s/%s', speaking in channel '%s/%s', email address: %s", p, u, uid, c, cid, e)
 		} else {
 			msg = fmt.Sprintf("You are '%s' user '%s/%s', speaking in channel '%s/%s'", p, u, uid, c, cid)
 		}
-		r.MessageFormat(robot.Variable).Say(msg)
+		m.MessageFormat(robot.Variable).Say(msg)
 	case "thanks":
-		if ret := r.GetTaskConfig(&cfg); ret == robot.Ok {
-			r.Reply(r.RandomString(cfg.Welcome))
+		if ret := m.GetTaskConfig(&cfg); ret == robot.Ok {
+			m.Reply(m.RandomString(cfg.Welcome))
 		} else {
-			r.Reply("I'm speechless. Please have somebody check my log file.")
+			m.Reply("I'm speechless. Please have somebody check my log file.")
 		}
 	}
 	return
