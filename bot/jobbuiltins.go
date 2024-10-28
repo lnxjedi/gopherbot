@@ -21,8 +21,8 @@ Job builtins are special:
 const histPageSize = 2048 // how much history to display at a time
 
 func init() {
-	RegisterPlugin("builtin-history", robot.PluginHandler{Handler: jobhistory})
-	RegisterPlugin("builtin-jobcmd", robot.PluginHandler{Handler: jobcommands})
+	robot.RegisterPlugin("builtin-history", robot.PluginHandler{Handler: jobhistory})
+	robot.RegisterPlugin("builtin-jobcmd", robot.PluginHandler{Handler: jobcommands})
 }
 
 func jobcommands(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {

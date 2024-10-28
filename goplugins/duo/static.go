@@ -1,7 +1,7 @@
 package duo
 
-import "github.com/lnxjedi/gopherbot/v2/bot"
+import "github.com/lnxjedi/gopherbot/robot"
 
 func init() {
-	bot.RegisterPlugin("duo", duohandler)
+	robot.RegisterPlugin("duo", duohandler)
 }

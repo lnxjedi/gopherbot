@@ -29,5 +29,5 @@ func pausenotifies(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 }
 
 func init() {
-	RegisterJob("pause-notifies", robot.JobHandler{Handler: pausenotifies})
+	robot.RegisterJob("pause-notifies", robot.JobHandler{Handler: pausenotifies})
 }

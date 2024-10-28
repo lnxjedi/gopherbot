@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"github.com/lnxjedi/gopherbot/v2/bot"
 )
 
 const datumName = "group"
@@ -258,7 +257,7 @@ func groups(r robot.Robot, command string, args ...string) (retval robot.TaskRet
 }
 
 func init() {
-	bot.RegisterPlugin("groups", robot.PluginHandler{
+	robot.RegisterPlugin("groups", robot.PluginHandler{
 		Handler: groups,
 		Config:  &config{},
 	})

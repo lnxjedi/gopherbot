@@ -80,7 +80,7 @@ func ping(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 }
 
 func init() {
-	bot.RegisterPlugin("ping", robot.PluginHandler{
+	robot.RegisterPlugin("ping", robot.PluginHandler{
 		Handler: ping,
 		Config:  &config{},
 	})

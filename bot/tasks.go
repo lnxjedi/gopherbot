@@ -2,7 +2,6 @@ package bot
 
 import (
 	"encoding/json"
-	"log"
 	"regexp"
 	"runtime"
 	"sync"
@@ -241,28 +240,6 @@ func initializePlugins() {
 	}
 }
 
-// registerTask centralizes the sanity checking logic for RegisterPlugin,
-// RegisterJob and RegisterTask
-func registerTask(name string) *Task {
-	if stopRegistrations {
-		return nil
-	}
-	if !identifierRe.MatchString(name) {
-		log.Fatalf("Name '%s' doesn't match name regex '%s'", name, identifierRe.String())
-	}
-	if name == "bot" {
-		log.Fatalf("Illegal name registration for 'bot'")
-	}
-	if _, ok := currentCfg.nameMap[name]; ok {
-		log.Fatalf("Go task '%s' name collision with other task/job/plugin/namespace", name)
-	}
-	task := &Task{
-		name:     name,
-		taskType: taskGo,
-	}
-	return task
-}
-
 // addTask adds the registered task to the global list
 func (tl *taskList) addTask(t interface{}) {
 	task, _, _ := getTask(t)
@@ -270,47 +247,4 @@ func (tl *taskList) addTask(t interface{}) {
 	tl.t = append(tl.t, t)
 	tl.nameMap[task.name] = idx
 	tl.idMap[task.name] = idx
-}
-
-// RegisterPlugin allows Go plugins to register a PluginHandler in a func init().
-// Also called for new plugins loaded with a loadable module.
-// When the bot initializes, it will call each plugin's handler with a command
-// "init", empty channel, the bot's username, and no arguments, so the plugin
-// can store this information for, e.g., scheduled jobs.
-// See robot/structs.go for the pluginHandlers definition.
-func RegisterPlugin(name string, plug robot.PluginHandler) {
-	task := registerTask(name)
-	if task == nil {
-		return
-	}
-	plugin := &Plugin{
-		Task: task,
-	}
-	currentCfg.addTask(plugin)
-	pluginHandlers[name] = plug
-}
-
-// RegisterJob registers a Go job
-func RegisterJob(name string, gojob robot.JobHandler) {
-	task := registerTask(name)
-	if task == nil {
-		return
-	}
-	job := &Job{
-		Task: task,
-	}
-	currentCfg.addTask(job)
-	jobHandlers[name] = gojob
-}
-
-// RegisterTask registers a Go task. If prevRequired is set, the task can
-// only be added to a privileged pipeline.
-func RegisterTask(name string, privRequired bool, gotask robot.TaskHandler) {
-	task := registerTask(name)
-	if task == nil {
-		return
-	}
-	task.Privileged = privRequired
-	currentCfg.addTask(task)
-	taskHandlers[name] = gotask
 }

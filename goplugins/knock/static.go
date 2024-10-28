@@ -1,7 +1,7 @@
 package knock
 
-import "github.com/lnxjedi/gopherbot/v2/bot"
+import "github.com/lnxjedi/gopherbot/robot"
 
 func init() {
-	bot.RegisterPlugin("knock", knockhandler)
+	robot.RegisterPlugin("knock", knockhandler)
 }

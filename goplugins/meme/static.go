@@ -1,7 +1,7 @@
 package meme
 
-import "github.com/lnxjedi/gopherbot/v2/bot"
+import "github.com/lnxjedi/gopherbot/robot"
 
 func init() {
-	bot.RegisterPlugin("memes", memehandler)
+	robot.RegisterPlugin("memes", memehandler)
 }

@@ -30,6 +30,10 @@ func init() {
 func Start(v VersionInfo) {
 	botVersion = v
 
+	// Collect all the Go Plugins, Jobs and Tasks
+	// registered by various init() functions.
+	ProcessRegistrations()
+
 	var configpath string
 
 	// Save args in case we need to spawn child

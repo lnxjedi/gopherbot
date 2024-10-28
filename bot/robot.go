@@ -363,7 +363,7 @@ When registering the plugin, you pass a pointer to an empty config template, whi
 robot will use to populate a struct when configuration is loaded:
 
 	func init() {
-		bot.RegisterPlugin("memes", bot.PluginHandler{
+		robot.RegisterPlugin("memes", bot.PluginHandler{
 			DefaultConfig: defaultConfig, // yaml string providing default configuration
 			Handler:       plugfunc, // callback function
 			Config:        &pConf{}, // pointer to empty config struct

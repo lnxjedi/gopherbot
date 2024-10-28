@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"github.com/lnxjedi/gopherbot/v2/bot"
 )
 
 const datumName = "listmap"
@@ -269,7 +268,7 @@ func lists(r robot.Robot, command string, args ...string) (retval robot.TaskRetV
 }
 
 func init() {
-	bot.RegisterPlugin("lists", robot.PluginHandler{
+	robot.RegisterPlugin("lists", robot.PluginHandler{
 		Handler: lists,
 		Config:  &config{},
 	})

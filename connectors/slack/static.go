@@ -1,8 +1,11 @@
 package slack
 
-import "github.com/lnxjedi/gopherbot/v2/bot"
+import (
+	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/gopherbot/v2/bot"
+)
 
 func init() {
-	bot.RegisterPlugin("slackutil", slackplugin)
+	robot.RegisterPlugin("slackutil", slackplugin)
 	bot.RegisterConnector("slack", Initialize)
 }

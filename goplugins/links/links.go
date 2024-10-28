@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"github.com/lnxjedi/gopherbot/v2/bot"
 )
 
 const datumNameDefault = "links"
@@ -182,7 +181,7 @@ func links(r robot.Robot, command string, args ...string) (retval robot.TaskRetV
 }
 
 func init() {
-	bot.RegisterPlugin("links", robot.PluginHandler{
+	robot.RegisterPlugin("links", robot.PluginHandler{
 		Handler: links,
 		Config:  &config{},
 	})

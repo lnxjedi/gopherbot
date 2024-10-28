@@ -20,11 +20,11 @@ import (
 const tooManyChannels = 4
 
 func init() {
-	RegisterPlugin("builtin-fallback", robot.PluginHandler{Handler: fallback})
-	RegisterPlugin("builtin-dmadmin", robot.PluginHandler{Handler: dmadmin})
-	RegisterPlugin("builtin-help", robot.PluginHandler{Handler: help})
-	RegisterPlugin("builtin-admin", robot.PluginHandler{Handler: admin})
-	RegisterPlugin("builtin-logging", robot.PluginHandler{Handler: logging})
+	robot.RegisterPlugin("builtin-fallback", robot.PluginHandler{Handler: fallback})
+	robot.RegisterPlugin("builtin-dmadmin", robot.PluginHandler{Handler: dmadmin})
+	robot.RegisterPlugin("builtin-help", robot.PluginHandler{Handler: help})
+	robot.RegisterPlugin("builtin-admin", robot.PluginHandler{Handler: admin})
+	robot.RegisterPlugin("builtin-logging", robot.PluginHandler{Handler: logging})
 }
 
 func defaultHelp() []string {

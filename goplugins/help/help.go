@@ -46,5 +46,5 @@ func help(bot robot.Robot, command string, args ...string) (retval robot.TaskRet
 }
 
 func init() {
-	bot.RegisterPlugin("help", robot.PluginHandler{Handler: help})
+	robot.RegisterPlugin("help", robot.PluginHandler{Handler: help})
 }
