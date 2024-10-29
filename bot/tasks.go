@@ -95,12 +95,6 @@ type TaskSettings struct {
 	Parameters                         []robot.Parameter
 }
 
-// LoadableModule struct for loading external modules.
-type LoadableModule struct {
-	Name, Path, Description string
-	Disabled                bool
-}
-
 // ScheduledTask items defined in robot.yaml, mostly for scheduled jobs
 type ScheduledTask struct {
 	Schedule string // timespec for https://godoc.org/github.com/robfig/cron

@@ -122,8 +122,7 @@ func setFormat(format string) robot.MessageFormat {
 	}
 }
 
-// getProtocol takes a string name of the protocol and returns the constant and
-// the name of the loadable module, if any.
+// getProtocol takes a string name of the protocol and returns the constant.
 func getProtocol(proto string) robot.Protocol {
 	proto = strings.ToLower(proto)
 	switch proto {

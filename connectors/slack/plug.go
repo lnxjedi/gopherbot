@@ -10,11 +10,6 @@ import (
 
 var idre = regexp.MustCompile(`slack id <@(.*)>`)
 
-var slackspec = robot.PluginSpec{
-	Name:    "slackutil",
-	Handler: slackplugin,
-}
-
 // Define the handler function
 func slackutil(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	m := r.GetMessage()

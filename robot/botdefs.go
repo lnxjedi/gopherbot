@@ -1,4 +1,4 @@
-// Package robot defines interfaces and constants for pluggable go modules
+// Package robot defines interfaces and constants for Go plugins, jobs and tasks
 package robot
 
 // RetVal is a integer type for returning error conditions from bot methods, or 0 for Ok
