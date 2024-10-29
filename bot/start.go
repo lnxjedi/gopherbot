@@ -27,6 +27,7 @@ func init() {
 }
 
 // Start gets the robot going
+// SEE ALSO: start_t.go
 func Start(v VersionInfo) {
 	botVersion = v
 

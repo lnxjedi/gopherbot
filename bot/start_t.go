@@ -17,6 +17,7 @@ import (
 )
 
 var testInstallPath string
+var registrationsProcessed bool
 
 func init() {
 	wd, _ := os.Getwd()
@@ -26,6 +27,15 @@ func init() {
 // StartTest will start a robot for testing, and return the exit / robot stopped channel
 func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, robot.Connector) {
 	botVersion = v
+
+	// Collect all the Go Plugins, Jobs and Tasks
+	// registered by various init() functions, but
+	// only once during tests.
+	if !registrationsProcessed {
+		registrationsProcessed = true
+		ProcessRegistrations()
+	}
+
 	configpath := filepath.Join(testInstallPath, cfgdir)
 	t.Logf("Initializing test bot with installpath: '%s', configpath: '%s' and logfile: %s", testInstallPath, configpath, logfile)
 
