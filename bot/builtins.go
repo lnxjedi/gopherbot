@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/lnxjedi/gopherbot/robot"
 	"golang.org/x/sys/unix"
+	"gopkg.in/yaml.v3"
 )
 
 // Cut off for listing channels after help text

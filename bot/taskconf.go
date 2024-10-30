@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"regexp"
 
-	"github.com/ghodss/yaml"
 	"github.com/lnxjedi/gopherbot/robot"
+	"gopkg.in/yaml.v3"
 )
 
 // loadTaskConfig() updates task/job/plugin configuration and namespaces/parametersets

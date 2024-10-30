@@ -12,8 +12,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/ghodss/yaml"
 	"github.com/lnxjedi/gopherbot/robot"
+	"gopkg.in/yaml.v3"
 )
 
 const appendPrefix = "Append"

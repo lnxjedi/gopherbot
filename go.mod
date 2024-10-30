@@ -8,7 +8,6 @@ require (
 	github.com/aws/aws-sdk-go v1.44.152
 	github.com/duosecurity/duo_api_golang v0.0.0-20221117185402-091daa09e19d
 	github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594
-	github.com/ghodss/yaml v1.0.0
 	github.com/joho/godotenv v1.4.0
 	github.com/jordan-wright/email v0.0.0-20200121133829-a0b5c5b58bb6
 	github.com/lnxjedi/gopherbot/robot v0.0.0-20221211204919-1966e9d9cfec
@@ -17,6 +16,7 @@ require (
 	github.com/robfig/cron v1.2.0
 	github.com/slack-go/slack v0.12.2
 	golang.org/x/sys v0.3.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
