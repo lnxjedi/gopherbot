@@ -1,3 +1,8 @@
+# v2.12 - Slack hidden command reflection
+While I completly love the new ability for Gopherbot Slack bots to respond to "hidden" (slash "/") commands, it has always bothered me that I can't see the command I just sent. This version of Gopherbot "reflects" those messages by default; to disable, add `DisableReflection: true` to your Slack protocol configuration.
+
+One other small issue, I can't believe it's taken so many years to see - keyword help is now case-insensitive, since `help GitHub` should match all commands that have "github" as a keyword.
+
 # v2.11.1 - Improved Slack "raw" Message Splitting
 On occasion the AI plugin could generate very long Slack messages containing one or more code blocks. The old message splitting algorithm just blindly split up the message and sent chunks, breaking on newlines when possible. The new algorithm now keeps track of code blocks, and closes and re-opens them between messages.
 
