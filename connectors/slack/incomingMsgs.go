@@ -135,6 +135,23 @@ func (s *slackConnector) processSlashCmdSocketMode(cmd *slack.SlashCommand) {
 		MessageObject: cmd,
 		Client:        s.api,
 	}
+
+	// Show the user what they typed
+	if s.reflectHidden {
+		reflect := cmd.Command + " " + cmd.Text
+		// For longer commands, show a truncated version
+		if len(reflect) > 140 {
+			reflect = reflect[:137] + " ..."
+		}
+		opts := []slack.MsgOption{
+			slack.MsgOptionText(reflect, false),
+			slack.MsgOptionAsUser(true),
+			slack.MsgOptionDisableLinkUnfurl(),
+			slack.MsgOptionPostEphemeral(userID),
+		}
+		s.api.PostMessage(chanID, opts...)	
+	}
+
 	userName, ok := s.userName(userID)
 	if !ok {
 		s.Log(robot.Debug, "Couldn't find user name for user ID", userID)

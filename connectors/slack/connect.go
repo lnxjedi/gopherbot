@@ -18,6 +18,7 @@ type config struct {
 	SlackToken         string // the 'bot token for connecting to Slack using RTM
 	AppToken, BotToken string // tokens used for connecting to Slack using the new SocketMode
 	MaxMessageSplit    int    // the maximum # of ~4000 byte messages to split a large message into
+	DisableReflection  bool   // turn off automatic reflection of hidden (slash "/") commands
 	Debug              bool   // Explicitly turn on Slack protocol debug output
 }
 
@@ -93,6 +94,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 			api:             api,
 			sock:            socketmode.New(api, sockOpts...),
 			maxMessageSplit: c.MaxMessageSplit,
+			reflectHidden:   !c.DisableReflection,
 			name:            "slack",
 		}
 		go sc.sock.Run()
@@ -101,6 +103,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 			api:             api,
 			conn:            api.NewRTM(),
 			maxMessageSplit: c.MaxMessageSplit,
+			reflectHidden:   !c.DisableReflection,
 			name:            "slack",
 		}
 		go sc.conn.ManageConnection()

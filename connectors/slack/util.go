@@ -23,6 +23,7 @@ type slackConnector struct {
 	sock            *socketmode.Client
 	maxMessageSplit int                       // The maximum # of ~4000 byte messages to send before truncating
 	running         bool                      // set on call to Run
+	reflectHidden   bool                      // reflect slash commands to the user
 	botName         string                    // human-readable name of bot
 	botFullName     string                    // human-readble full name of the bot
 	botID           string                    // slack internal bot ID
