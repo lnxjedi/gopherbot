@@ -13,5 +13,7 @@ func main() {
 		Version: Version,
 		Commit:  Commit,
 	}
+	// Finish loading all the stuff from Register* functions.
+	bot.ProcessRegistrations()
 	bot.Start(versionInfo)
 }
