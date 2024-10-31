@@ -3,6 +3,8 @@
 
 package main
 
+// modules.go - blank imports for all the modules that should be compiled in.
+
 import (
 	// Profiling
 	// _ "net/http/pprof"
