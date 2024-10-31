@@ -11,10 +11,10 @@ import (
 )
 
 type botMailer struct {
-	Mailhost string // host(:port) to send email through
-	Authtype string // none, plain
-	User     string // optional username for authenticated email
-	Password string // optional password for authenticated email
+	Mailhost string `yaml:"Mailhost"` // Host(:port) to send email through
+	Authtype string `yaml:"Authtype"` // Authentication type, e.g., none, plain
+	User     string `yaml:"User"`     // Optional username for authenticated email
+	Password string `yaml:"Password"` // Optional password for authenticated email
 }
 
 // Email provides a simple interface for sending the user an email from the

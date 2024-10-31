@@ -77,59 +77,62 @@ func (tl *taskList) isNamespace(name string) (ok bool) {
 
 // TaskSpec is the structure for ScheduledJobs (robot.yaml) and AddTask (robot method)
 type TaskSpec struct {
-	Name      string // name of the job or plugin
-	Command   string // plugins only
-	Arguments []string
-	task      interface{} // populated in AddTask
+	Name      string      `yaml:"Name"`      // Name of the job or plugin
+	Command   string      `yaml:"Command"`   // Plugins only
+	Arguments []string    `yaml:"Arguments"` // Arguments for the task
+	task      interface{} `yaml:"-"`         // Populated in AddTask
 }
 
 // TaskSettings struct used for configuration of: ExternalPlugins, ExternalJobs,
 // ExternalTasks, GoPlugins, GoJobs, GoTasks and NameSpaces in robot.yaml.
 // Not every field is used in every case.
 type TaskSettings struct {
-	Name, Path, Description, NameSpace string
-	ParameterSets                      []string
-	Disabled                           bool
-	Homed                              bool
-	Privileged                         *bool
-	Parameters                         []robot.Parameter
+	Name          string            `yaml:"Name"`          // Name of the task
+	Path          string            `yaml:"Path"`          // Path to the executable or script
+	Description   string            `yaml:"Description"`   // Description of the task
+	NameSpace     string            `yaml:"NameSpace"`     // Namespace for shared memory/parameters
+	ParameterSets []string          `yaml:"ParameterSets"` // Sets of parameters for this task
+	Disabled      bool              `yaml:"Disabled"`      // Indicates if the task is disabled
+	Homed         bool              `yaml:"Homed"`         // Runs in home directory context if true
+	Privileged    *bool             `yaml:"Privileged"`    // Indicates if the task requires elevated privileges
+	Parameters    []robot.Parameter `yaml:"Parameters"`    // Fixed parameters for the task
 }
 
 // ScheduledTask items defined in robot.yaml, mostly for scheduled jobs
 type ScheduledTask struct {
-	Schedule string // timespec for https://godoc.org/github.com/robfig/cron
-	TaskSpec
+	Schedule string           `yaml:"Schedule"` // Timespec for https://godoc.org/github.com/robfig/cron
+	TaskSpec `yaml:",inline"` // Inlines TaskSpec fields
 }
 
-// PluginHelp specifies keywords and help text for the 'bot help system
+// PluginHelp specifies keywords and help text for the bot help system
 type PluginHelp struct {
-	Keywords []string // match words for 'help XXX'
-	Helptext []string // help string to give for the keywords, conventionally starting with (bot) for commands or (hear) when the bot needn't be addressed directly
+	Keywords []string `yaml:"Keywords"` // Match words for 'help XXX'
+	Helptext []string `yaml:"Helptext"` // Help string for the keywords, conventionally starting with (bot) for commands or (hear) for general messages
 }
 
 // InputMatcher specifies the command or message to match for a plugin
 type InputMatcher struct {
-	Regex       string         // The regular expression string to match - bot adds ^\w* & \w*$
-	Command     string         // The name of the command to pass to the plugin with it's arguments
-	Label       string         // ReplyMatchers use "Label" instead of "Command"
-	ChannelOnly bool           // Whether this matcher only applies in the main channel (not a thread)
-	Contexts    []string       // label the contexts corresponding to capture groups, for supporting "it" & optional args
-	re          *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
+	Regex       string         `yaml:"Regex"`       // The regular expression string to match - bot adds ^\w* & \w*$
+	Command     string         `yaml:"Command"`     // The name of the command to pass to the plugin with its arguments
+	Label       string         `yaml:"Label"`       // ReplyMatchers use "Label" instead of "Command"
+	ChannelOnly bool           `yaml:"ChannelOnly"` // Whether this matcher only applies in the main channel (not a thread)
+	Contexts    []string       `yaml:"Contexts"`    // Labels for capture groups, for supporting "it" & optional args
+	re          *regexp.Regexp `yaml:"-"`           // The compiled regular expression, logged if compilation fails
 }
 
 // JobTrigger specifies a user and message to trigger a job
 type JobTrigger struct {
-	Regex   string         // The regular expression string to match - bot adds ^\w* & \w*$
-	User    string         // required user to trigger this job, normally git-activated webhook or integration
-	Channel string         // required channel for the trigger
-	re      *regexp.Regexp // The compiled regular expression. If the regex doesn't compile, the 'bot will log an error
+	Regex   string         `yaml:"Regex"`   // The regular expression string to match - bot adds ^\w* & \w*$
+	User    string         `yaml:"User"`    // Required user to trigger this job, typically a webhook or integration
+	Channel string         `yaml:"Channel"` // Required channel for the trigger
+	re      *regexp.Regexp `yaml:"-"`       // The compiled regular expression, logged if compilation fails
 }
 
 // ParameterSet just stores a name, description, and parameters - they cannot be run.
 type ParameterSet struct {
-	name        string            // name of the shared namespace
-	Description string            // optional description of the shared namespace
-	Parameters  []robot.Parameter // Parameters for the shared namespace
+	name        string            `yaml:"-"`           // Name of the shared namespace
+	Description string            `yaml:"Description"` // Optional description of the shared namespace
+	Parameters  []robot.Parameter `yaml:"Parameters"`  // Parameters for the shared namespace
 }
 
 // Task configuration is common to tasks, plugins, or jobs. Any task, plugin, or job can call bot methods.

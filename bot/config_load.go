@@ -199,7 +199,7 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 		}
 		if err = validate_yaml(path, cf); err != nil {
 			Log(robot.Error, "Validating installed/default configuration: %v", err)
-			// return err // later
+			return err
 		}
 		if err = yaml.Unmarshal(cf, &installed); err != nil {
 			err = fmt.Errorf("unmarshalling installed \"%s\": %v", filename, err)
@@ -225,7 +225,7 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 			}
 			if err = validate_yaml(path, cf); err != nil {
 				Log(robot.Error, "Validating configured/custom configuration: %v", err)
-				// return err // later
+				return err
 			}
 			if err = yaml.Unmarshal(cf, &configured); err != nil {
 				err = fmt.Errorf("unmarshalling configured \"%s\": %v", filename, err)

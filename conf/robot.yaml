@@ -242,7 +242,7 @@ ExternalTasks:
     Description: Send a DM to a user, generally as a FailTask
     Path: tasks/dmnotify.sh
   "status":
-    Decription: Trivial task that can be used to send status updates in a pipeline
+    Description: Trivial task that can be used to send status updates in a pipeline
     Path: tasks/status.sh
   "say":
     Description: Convenience synonym for 'status'
