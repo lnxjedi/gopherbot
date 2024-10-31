@@ -1,4 +1,10 @@
-# v2.12 - Slack hidden command reflection
+# v2.13.0 - Configuration file validation
+The major change here is something I've wanted for ages - configuration files should now be properly validated, preventing the kind of "typo misconfig" that I've dealt with so often.
+
+## GopherCI - Unlikely breaking change
+At one time I thought Gopherbot would be more Jenkins-like in building software - but, honestly, it was never very good at it where so many other projects are. Now Gopherbot focuses more on doing what it does best - secure DevOps automation in team chat. So long, GopherCI. (Note: I'm pretty sure I'm the only person who ever used this, and didn't much care for it)
+
+# v2.12.0 - Slack hidden command reflection
 While I completly love the new ability for Gopherbot Slack bots to respond to "hidden" (slash "/") commands, it has always bothered me that I can't see the command I just sent. This version of Gopherbot "reflects" those messages by default; to disable, add `DisableReflection: true` to your Slack protocol configuration.
 
 One other small issue, I can't believe it's taken so many years to see - keyword help is now case-insensitive, since `help GitHub` should match all commands that have "github" as a keyword.
