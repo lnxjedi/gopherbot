@@ -186,7 +186,7 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 		cfg = make(map[string]interface{})
 	}
 	path = filepath.Join(installPath, "conf", filename)
-	// Compatibility with old config file name
+	// compatibility with old config file name
 	if filename == "gopherbot.yaml" {
 		Log(robot.Warn, "Merging legacy custom gopherbot.yaml with installed robot.yaml")
 		path = filepath.Join(installPath, "conf", "robot.yaml")
@@ -201,9 +201,7 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 			Log(robot.Error, "Validating installed/default configuration: %v", err)
 			// return err // later
 		}
-		decoder := yaml.NewDecoder(strings.NewReader(string(cf)))
-		decoder.KnownFields(true) // Enable strict mode to catch unknown fields
-		if err = decoder.Decode(&installed); err != nil {
+		if err = yaml.Unmarshal(cf, &installed); err != nil {
 			err = fmt.Errorf("unmarshalling installed \"%s\": %v", filename, err)
 			Log(robot.Error, err.Error())
 			return err
@@ -229,12 +227,10 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 				Log(robot.Error, "Validating configured/custom configuration: %v", err)
 				// return err // later
 			}
-			decoder := yaml.NewDecoder(strings.NewReader(string(cf)))
-			decoder.KnownFields(true) // Enable strict mode here as well
-			if err = decoder.Decode(&configured); err != nil {
-				err = fmt.Errorf("unmarshalling configured/custom \"%s\": %v", filename, err)
+			if err = yaml.Unmarshal(cf, &configured); err != nil {
+				err = fmt.Errorf("unmarshalling configured \"%s\": %v", filename, err)
 				Log(robot.Error, err.Error())
-				return err // Return an error for badly formatted config
+				return err // If a badly-formatted config is loaded, we always return an error
 			}
 			if len(configured) == 0 {
 				Log(robot.Error, "Empty config hash loading %s", path)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
 	"gopkg.in/yaml.v3"
@@ -259,10 +258,7 @@ LoadLoop:
 					task.reason = msg
 					continue
 				}
-				// Use KnownFields to enforce strict YAML field validation
-				decoder := yaml.NewDecoder(strings.NewReader(string(*cfg)))
-				decoder.KnownFields(true)
-				if err := decoder.Decode(&tcfgdefault); err != nil {
+				if err := yaml.Unmarshal(*cfg, &tcfgdefault); err != nil {
 					msg := fmt.Sprintf("Unmarshalling default configuration, disabling: %v", err)
 					Log(robot.Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
 					task.Disabled = true
@@ -270,10 +266,7 @@ LoadLoop:
 					continue
 				}
 			} else {
-				// Similarly, apply KnownFields to catch typos in in-line configurations
-				decoder := yaml.NewDecoder(strings.NewReader(pluginHandlers[task.name].DefaultConfig))
-				decoder.KnownFields(true)
-				if err := decoder.Decode(&tcfgdefault); err != nil {
+				if err := yaml.Unmarshal([]byte(pluginHandlers[task.name].DefaultConfig), &tcfgdefault); err != nil {
 					msg := fmt.Sprintf("Unmarshalling default configuration, disabling: %v", err)
 					Log(robot.Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
 					task.Disabled = true
