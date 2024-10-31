@@ -47,9 +47,6 @@ type Robot interface {
 	RememberContext(context, value string)
 	RememberContextThread(context, value string)
 	Recall(key string, shared bool) string
-	// Primarily job/pipeline methods
-	GetRepoData() map[string]Repository
-	ExtendNamespace(string, int) bool
 	SpawnJob(string, ...string) RetVal
 	AddTask(string, ...string) RetVal
 	FinalTask(string, ...string) RetVal

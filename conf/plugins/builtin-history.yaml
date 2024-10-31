@@ -9,8 +9,6 @@ Help:
   - "(alias) link-log <ref> - get a URL for a log"
 - Keywords: [ "list", "job", "jobs", "log", "logs", "history", "joblogs" ]
   Helptext: [ "(alias) job-logs <jobname> - list logs for a given job" ]
-- Keywords: [ "list", "log", "logs", "history", "build", "builds", "buildlogs" ]
-  Helptext: [ "(alias) build-logs <repo> (branch) - list build logs matching a given repository / branch" ]
 CommandMatchers:
 - Command: maillog
   Regex: '(?i:(?:send|mail|email)[- ]?log ([A-Za-z0-9]+)(?: to (?:(?:user (.*))|([^@]+@[^@]+)))?)'
@@ -20,5 +18,3 @@ CommandMatchers:
   Regex: '(?i:(?:link|get)[- ]?log ([A-Za-z0-9]+))'
 - Command: joblogs
   Regex: '(?i:job[- ]?logs(?: ([A-Za-z][\w-]*)))'
-- Command: buildlogs
-  Regex: '(?i:build[- ]?logs(?: ([A-Za-z][\w-:./]*))(?: ([A-Za-z][\w-]*))?)'

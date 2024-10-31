@@ -165,7 +165,6 @@ type pipeContext struct {
 	nameSpaceParameters []robot.Parameter   // namespace shared parameters
 	parameterSets       []string            // parametersets for the pipeline for environment
 	pipeName, pipeDesc  string              // name and description of task that started pipeline
-	nsExtension         string              // extended namespace
 	currentTask         interface{}         // pointer to currently executing task
 	exclusive           bool                // indicates task was running exclusively
 }

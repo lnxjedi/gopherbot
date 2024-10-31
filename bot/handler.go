@@ -70,7 +70,6 @@ type worker struct {
 	id              int                         // integer worker ID used when being registered as an active pipeline
 	tasks           *taskList                   // Pointers to current task configuration at start of pipeline
 	maps            *userChanMaps               // Pointer to current user / channel maps struct
-	repositories    map[string]robot.Repository // Set of configured repositories
 	cfg             *configuration              // Active configuration when this context was created
 	BotUser         bool                        // set for bots/programs that should never match ambient messages
 	listedUser      bool                        // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
@@ -96,7 +95,6 @@ func (w *worker) clone() *worker {
 		cfg:             w.cfg,
 		tasks:           w.tasks,
 		maps:            w.maps,
-		repositories:    w.repositories,
 		automaticTask:   w.automaticTask,
 		Protocol:        w.Protocol,
 		Format:          w.Format,
@@ -263,10 +261,6 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	t := currentCfg.taskList
 	currentCfg.RUnlock()
 
-	confLock.RLock()
-	repolist := repositories
-	confLock.RUnlock()
-
 	// Create the worker and a goroutine to process the message and carry state,
 	// which may eventually run a pipeline.
 	w := &worker{
@@ -283,7 +277,6 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		BotUser:         BotUser,
 		listedUser:      listedUser,
 		id:              getWorkerID(),
-		repositories:    repolist,
 		isCommand:       isCommand,
 		cmdMode:         cmdMode,
 		msg:             message,

@@ -20,12 +20,11 @@ import (
 // callTask(...).
 type Robot struct {
 	*robot.Message
-	tid          int                         // task ID for looking up the *worker
-	*pipeContext                             // snapshot copy of pipeline context
-	cfg          *configuration              // convenience only; r.cfg shorter than r.worker.cfg
-	tasks        *taskList                   // same
-	maps         *userChanMaps               // same
-	repositories map[string]robot.Repository // same
+	tid          int            // task ID for looking up the *worker
+	*pipeContext                // snapshot copy of pipeline context
+	cfg          *configuration // convenience only; r.cfg shorter than r.worker.cfg
+	tasks        *taskList      // same
+	maps         *userChanMaps  // same
 }
 
 // Incrementing tid for individual tasks that run, so Go Robots
@@ -67,10 +66,9 @@ func (w *worker) makeRobot() Robot {
 			Protocol:        w.Protocol,
 			Incoming:        w.Incoming,
 		},
-		cfg:          w.cfg,
-		tasks:        w.tasks,
-		maps:         w.maps,
-		repositories: w.repositories,
+		cfg:   w.cfg,
+		tasks: w.tasks,
+		maps:  w.maps,
 	}
 	if w.pipeContext != nil {
 		r.pipeContext = &pipeContext{
@@ -85,7 +83,6 @@ func (w *worker) makeRobot() Robot {
 			nameSpace:      w.nameSpace,
 			pipeName:       w.pipeName,
 			pipeDesc:       w.pipeDesc,
-			nsExtension:    w.nsExtension,
 			currentTask:    w.currentTask,
 			exclusive:      w.exclusive,
 		}

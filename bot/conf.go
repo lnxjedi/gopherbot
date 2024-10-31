@@ -100,10 +100,9 @@ var currentUCMaps = struct {
 	sync.Mutex{},
 }
 
-// Protects the bot config and list of repositories
+// Protects the bot config
 var confLock sync.RWMutex
 var config *ConfigLoader
-var repositories map[string]robot.Repository
 
 // loadConfig loads the 'bot's yaml configuration files.
 func loadConfig(preConnect bool) error {
@@ -123,19 +122,6 @@ func loadConfig(preConnect bool) error {
 
 	if err := getConfigFile(robotConfigFileName, true, configload); err != nil {
 		return fmt.Errorf("Loading configuration file: %v", err)
-	}
-
-	reporaw := make(map[string]json.RawMessage)
-	getConfigFile("repositories.yaml", false, reporaw)
-	repolist := make(map[string]robot.Repository)
-	for k, repojson := range reporaw {
-		if strings.ContainsRune(k, ':') {
-			Log(robot.Error, "Invalid repository '%s' contains ':', ignoring", k)
-		} else {
-			var repository robot.Repository
-			json.Unmarshal(repojson, &repository)
-			repolist[k] = repository
-		}
 	}
 
 	explicitDefaultAllowDirect := false
@@ -558,12 +544,11 @@ func loadConfig(preConnect bool) error {
 	// Note we always take the locks on global values regardless
 	// of preConnect.
 
-	// Update structs supplied to "dump robot" and "GetRepositories"
-	// Note that GetRepositories blanks out Parameters, but dump
-	// commands are only allowed for the terminal connector.
+	// Update structs supplied to "dump robot"
+	// Note that dump commands are only allowed for the
+	// terminal connector.
 	confLock.Lock()
 	config = newconfig
-	repositories = repolist
 	confLock.Unlock()
 
 	currentCfg.Lock()

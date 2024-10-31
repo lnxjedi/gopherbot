@@ -267,9 +267,6 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 				td = " - " + finalDesc
 			}
 			jobName := c.pipeName
-			if len(c.nsExtension) > 0 {
-				jobName += ":" + c.nsExtension
-			}
 			if ret == robot.PipelineAborted {
 				r.Say("Job '%s', run number %d aborted, exclusive job '%s' already in progress", jobName, c.runIndex, c.exclusiveTag)
 			} else {

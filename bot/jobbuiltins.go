@@ -64,16 +64,6 @@ func jobcommands(m robot.Robot, command string, args ...string) (retval robot.Ta
 			return
 		}
 		r.Say(strings.Join(jl, "\n"))
-	case "builds":
-		rl := []string{"Here's a list of all the repositories I can build:"}
-		for repo := range r.repositories {
-			rl = append(rl, repo)
-		}
-		if len(rl) > 1 {
-			r.MessageFormat(robot.Variable).Say(strings.Join(rl, "\n"))
-		} else {
-			r.Say("I don't have any repositories in my repositories.yaml")
-		}
 	}
 	return
 }
@@ -114,7 +104,7 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 
-	var histRef, histSpec, jobName, buildSpec, branch, index, user, address string
+	var histRef, histSpec, jobName, index, user, address string
 	var idx int
 
 	switch command {
@@ -126,9 +116,6 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 		histRef = args[0]
 	case "joblogs":
 		jobName = args[0]
-	case "buildlogs":
-		buildSpec = args[0]
-		branch = args[1]
 	}
 
 	if len(index) > 0 {
@@ -158,48 +145,7 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 		idx = hl.Index
 	}
 
-	if len(buildSpec) > 0 {
-		found := false
-		var repospec robot.Repository
-		var reponame string
-		reponames := []string{}
-		for repo, spec := range r.repositories {
-			components := strings.Split(repo, "/")
-			if len(components) != 3 {
-				r.Log(robot.Warn, "Repository '%s' doesn't match <site>/<org>/<name>, skipping")
-				continue
-			}
-			org := components[1]
-			rname := components[2]
-			extname := strings.Join([]string{org, rname}, "/")
-			var compare string
-			switch len(strings.Split(buildSpec, "/")) {
-			case 1:
-				compare = rname
-			case 2:
-				compare = extname
-			case 3:
-				compare = repo
-			}
-			if buildSpec == compare {
-				found = true
-				repospec = spec
-				reponame = repo
-				reponames = append(reponames, reponame)
-			}
-		}
-		if !found {
-			r.Say("Repository matching '%s' not found", buildSpec)
-			return
-		}
-		if len(reponames) > 1 {
-			repos := strings.Join(reponames, ", ")
-			r.Say("Matched multiple repositories: %s", repos)
-			return
-		}
-		jobName = repospec.Type
-		histSpec = jobName + ":" + reponame
-	} else if len(jobName) > 0 {
+	if len(jobName) > 0 {
 		histSpec = jobName
 	}
 
@@ -220,10 +166,6 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 	_, _, ret := checkoutDatum(key, &jh, false)
 	if ret != robot.Ok {
 		r.Say("No logs found for '%s'", histSpec)
-		return
-	}
-	if len(jh.ExtendedNamespaces) > 0 {
-		r.Say("Job '%s' is a build job, use 'buildlogs' instead", jobName)
 		return
 	}
 	if len(jh.Histories) == 0 {
@@ -252,32 +194,13 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 			return
 		}
 		r.Say("Here you go: %s", url)
-	case "joblogs", "buildlogs":
+	case "joblogs":
 		var loglines []string
-		isBuild := command == "buildlogs"
-		checkBranch := len(branch) > 0
-		if !isBuild {
-			loglines = []string{fmt.Sprintf("Logs for job '%s':", jobName)}
-		} else if checkBranch {
-			loglines = []string{fmt.Sprintf("Build logs for '%s', branch '%s':", buildSpec, branch)}
-		} else {
-			loglines = []string{fmt.Sprintf("Build logs for '%s':", buildSpec)}
-		}
+		loglines = []string{fmt.Sprintf("Logs for job '%s':", jobName)}
 		for _, log := range jh.Histories {
-			if checkBranch && branch != log.Descriptor {
-				continue
-			}
 			var logline string
-			if isBuild {
-				logline = fmt.Sprintf("Run #%d, %s, branch '%s'; log %s", log.LogIndex, log.CreateTime, log.Descriptor, log.Ref)
-			} else {
-				logline = fmt.Sprintf("Run #%d, %s; log %s", log.LogIndex, log.CreateTime, log.Ref)
-			}
+			logline = fmt.Sprintf("Run #%d, %s; log %s", log.LogIndex, log.CreateTime, log.Ref)
 			loglines = append(loglines, logline)
-		}
-		if checkBranch && len(loglines) == 1 {
-			r.Say("No build logs found for '%s', '%s' branch", buildSpec, branch)
-			return
 		}
 		r.Say(strings.Join(loglines, "\n"))
 		return

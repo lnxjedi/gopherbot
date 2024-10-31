@@ -44,7 +44,7 @@ func validate_yaml(filePath string, yamldata []byte) error {
 	case "job":
 		targetStruct = &Job{}
 	default:
-		return fmt.Errorf("unknown file type for '%s'", filePath)
+		return nil
 	}
 
 	decoder := yaml.NewDecoder(bytes.NewReader(modifiedYAML))

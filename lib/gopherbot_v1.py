@@ -155,14 +155,8 @@ class Robot:
     def Exclusive(self, tag, queue_task=False):
         return self.Call(sys._getframe().f_code.co_name, { "Tag": tag, "QueueTask": queue_task })["Boolean"]
 
-    def ExtendNamespace(self, ns, hist):
-        return self.Call(sys._getframe().f_code.co_name, { "Extend": ns, "Histories": hist })["Boolean"]
-
     def SetWorkingDirectory(self, path):
         return self.Call(sys._getframe().f_code.co_name, { "Path": path })["Boolean"]
-
-    def GetRepoData(self):
-        return self.Call(sys._getframe().f_code.co_name, {})
 
     def Log(self, level, msg):
         self.Call(sys._getframe().f_code.co_name, { "Level": level, "Message": msg })

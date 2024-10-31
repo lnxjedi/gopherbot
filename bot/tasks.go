@@ -170,7 +170,7 @@ type Job struct {
 	KeepLogs  int            `yaml:"KeepLogs"`  // How many runs of this job/plugin to keep history for
 	Triggers  []JobTrigger   `yaml:"Triggers"`  // User/regex that triggers a job, e.g., a git-activated webhook or integration
 	Arguments []InputMatcher `yaml:"Arguments"` // List of arguments to prompt the user for
-	*Task
+	*Task     `yaml:",inline"`
 }
 
 // Plugin specifies the structure of a plugin configuration. Plugins should include an example/default config.
@@ -188,7 +188,7 @@ type Plugin struct {
 	AmbientMatchCommand      bool           `yaml:"AmbientMatchCommand"`      // Whether message matchers should also match when isCommand is true
 	CatchAll                 bool           `yaml:"CatchAll"`                 // Plugins with CatchAll=true get called with command="catchall" and argument=<full message text to robot>
 	MatchUnlisted            bool           `yaml:"MatchUnlisted"`            // Set to true if ambient message matches should be checked for users not listed in the UserRoster
-	*Task
+	*Task                    `yaml:",inline"`
 }
 
 var pluginHandlers = make(map[string]robot.PluginHandler)

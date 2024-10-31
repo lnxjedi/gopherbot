@@ -38,9 +38,6 @@ func scheduleTasks() {
 	cfg := currentCfg.configuration
 	tasks := currentCfg.taskList
 	currentCfg.RUnlock()
-	confLock.RLock()
-	repolist := repositories
-	confLock.RUnlock()
 	for _, st := range scheduled {
 		t := tasks.getTaskByName(st.Name)
 		if t == nil {
@@ -63,7 +60,7 @@ func scheduleTasks() {
 		ts := st.TaskSpec
 		if st.Schedule != "@init" {
 			Log(robot.Info, "Scheduling job '%s', args '%v' with schedule: %s", ts.Name, ts.Arguments, st.Schedule)
-			taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, ts, cfg, tasks, repolist, false) })
+			taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, ts, cfg, tasks, false) })
 		}
 	}
 	taskRunner.Start()
@@ -77,9 +74,6 @@ func initJobs() {
 	cfg := currentCfg.configuration
 	tasks := currentCfg.taskList
 	currentCfg.RUnlock()
-	confLock.RLock()
-	repolist := repositories
-	confLock.RUnlock()
 	for _, st := range scheduled {
 		ts := st.TaskSpec
 		if st.Schedule == "@init" {
@@ -97,12 +91,12 @@ func initJobs() {
 				Log(robot.Error, "Ignoring disabled job '%s' while running init jobs; reason: %s", st.Name, task.reason)
 				continue
 			}
-			runScheduledTask(t, ts, cfg, tasks, repolist, true)
+			runScheduledTask(t, ts, cfg, tasks, true)
 		}
 	}
 }
 
-func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *taskList, repolist map[string]robot.Repository, isInitJob bool) {
+func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *taskList, isInitJob bool) {
 	task, _, _ := getTask(t)
 	currentCfg.RLock()
 	protocol := currentCfg.protocol
@@ -124,7 +118,6 @@ func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *tas
 		cfg:           cfg,
 		id:            getWorkerID(),
 		tasks:         tasks,
-		repositories:  repolist,
 		automaticTask: true, // scheduled jobs don't get authorization / elevation checks
 	}
 	if isInitJob {

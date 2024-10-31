@@ -1,9 +1,0 @@
-## repositories.yaml - Gopherbot's list of repositories that are valid for extending
-## the namespace. Example:
-# "github.com/lnxjedi/gopherbot":
-#   Type: localbuild
-#   CloneURL: https://github.com/lnxjedi/gopherbot.git
-#   KeepLogs: 14
-#   Parameters:
-#   - Name: NOTIFY_USER
-#     Value: parsley

@@ -371,11 +371,7 @@ func (r Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken 
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	ns := w.getNameSpace(r.currentTask)
-	if len(r.nsExtension) > 0 {
-		key = ns + ":" + r.nsExtension + ":" + key
-	} else {
-		key = ns + ":" + key
-	}
+	key = ns + ":" + key
 	return checkoutDatum(key, datum, rw)
 }
 
@@ -390,11 +386,7 @@ func (r Robot) CheckinDatum(key, locktoken string) {
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	ns := w.getNameSpace(r.currentTask)
-	if len(r.nsExtension) > 0 {
-		key = ns + ":" + r.nsExtension + ":" + key
-	} else {
-		key = ns + ":" + key
-	}
+	key = ns + ":" + key
 	checkinDatum(key, locktoken)
 }
 
@@ -409,11 +401,7 @@ func (r Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	ns := w.getNameSpace(r.currentTask)
-	if len(r.nsExtension) > 0 {
-		key = ns + ":" + r.nsExtension + ":" + key
-	} else {
-		key = ns + ":" + key
-	}
+	key = ns + ":" + key
 	return updateDatum(key, locktoken, datum)
 }
 

@@ -36,18 +36,13 @@ type historyLookup struct {
 type pipeHistory struct {
 	NextIndex          int
 	Histories          []historyLog
-	ExtendedNamespaces []string
 }
 
 // start a new history log and manage memories
 /*
 Args:
-- tag: pipeline name or job:extended_namespace; newHistory prepends histPrefix
+- tag: pipeline name; newHistory prepends histPrefix
 - eid: 8 random hex digits generated in registerActive, for lookups
-- descriptor: usually the branch for a repo; differentiates logs for logs
-  aggregated with the same log tag, to prevent e.g. entirely separate log
-  histories for every feature branch of a build - currently only used
-  in ExtendNamespace
 - wid: w.id, fallback index when memory fails
 - keep: how many of this log to keep
 Returns:

@@ -56,8 +56,6 @@ NameSpaces:
   # Needed to prevent dangling reference; parameters need to be in
   # custom config.
   "ssh":
-  # github namespace for sharing memories
-  "github":
   "manage":
     Parameters:
     - Name: GOPHER_CUSTOM_REPOSITORY
@@ -73,8 +71,6 @@ NameSpaces:
       Value: {{ env "GOPHER_STATEDIR" | default "state" }}
 
 ParameterSets:
-  # Administrator needs to define a github-token parameterset with GITHUB_TOKEN set.
-  "github-token":
 
 {{ if env "GOPHER_UNCONFIGURED" | not }}
 EncryptBrain: true
@@ -99,10 +95,6 @@ ExternalPlugins:
     Privileged: true
     Path: plugins/theia.sh
   {{- end }}
-  "citools":
-    Description: Tools for interacting with gopherci
-    Privileged: true
-    Path: plugins/citools.py
   "ssh-admin":
     Description: Administrative plugin for managing the robot's ssh keypair
     Path: plugins/ssh-admin.sh
@@ -186,13 +178,6 @@ ExternalJobs:
     Description: A job for installing ruby gems and python packages
     Homed: true
     Path: jobs/install-libs.sh
-  "github-poller":
-    Description: "Job that polls github repositories and builds new/updated tags and branches"
-    Disabled: true
-    NameSpace: "github"
-    ParameterSets:
-    - github-token
-    Path: jobs/github-poller.py
   {{- if env "GOPHER_CONTAINER"}}
   "theia":
     Description: "Start theia interface; WARNING: UNAUTHENTICATED"
@@ -224,12 +209,6 @@ ExternalJobs:
   "ssh-job":
     Description: Wrapper for ssh jobs.
     Path: jobs/ssh-job.sh
-  "gopherci":
-    Description: A job for dispatching build jobs, triggered by commit notifications
-    Path: jobs/gopherci.py
-  "localbuild":
-    Description: Build job run by gopherci to just clone a repo locally and run .gopherci/pipeline.(sh|py|rb)
-    Path: jobs/localbuild.py
 
 ## ExternalTasks enumerate external executables that can be added to pipelines
 ## with AddTask <name>. Note the e.g. the update plugin requires ssh,
@@ -273,15 +252,6 @@ ExternalTasks:
   "remote":
     Description: Utility for running scripts and commands on a remote host
     Path: tasks/remote-exec.sh
-  "start-build":
-    Description: GopherCI utility task for telling the user a build started
-    Path: tasks/startbuild.sh
-  "finish-build":
-    Description: GopherCI utility task for telling the user a build finished
-    Path: tasks/finishbuild.sh
-  "run-pipeline":
-    Description: Detect one of pipeline.sh|py|rb and add to the pipeline
-    Path: tasks/runpipeline.sh
   "setworkdir":
     Description: Update working directory as a step in a pipeline
     Path: tasks/setworkdir.sh

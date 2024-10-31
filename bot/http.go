@@ -243,9 +243,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		bret := r.Unsubscribe()
 		sendReturn(rw, boolresponse{Boolean: bret})
 		return
-	case "GetRepoData":
-		sendReturn(rw, r.GetRepoData())
-		return
 	case "AddTask", "AddJob", "FinalTask", "FailTask", "SpawnJob":
 		var ts taskcall
 		if !getArgs(rw, &f.FuncArgs, &ts) {
@@ -303,13 +300,6 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		success := r.SetWorkingDirectory(wd.Path)
-		sendReturn(rw, boolresponse{Boolean: success})
-	case "ExtendNamespace":
-		var en extns
-		if !getArgs(rw, &f.FuncArgs, &en) {
-			return
-		}
-		success := r.ExtendNamespace(en.Extend, en.Histories)
 		sendReturn(rw, boolresponse{Boolean: success})
 	case "Exclusive":
 		var e exclusive

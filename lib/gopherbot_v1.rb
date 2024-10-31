@@ -147,16 +147,8 @@ class BaseBot
 		return callBotFunc(__method__, { "Tag" => tag, "QueueTask" => queue_task })["Boolean"]
 	end
 
-	def ExtendNamespace(ns, hist)
-		return callBotFunc(__method__, { "Extend" => ns, "Histories" => hist })["Boolean"]
-	end
-
 	def SetWorkingDirectory(path)
 		return callBotFunc(__method__, { "Path" => path })["Boolean"]
-	end
-
-	def GetRepoData()
-		return callBotFunc(__method__, {})
 	end
 
 	def CheckoutDatum(key, rw)
