@@ -197,6 +197,10 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 		if cf, err = expand(dir, false, cf); err != nil {
 			Log(robot.Error, "Expanding '%s': %v", path, err)
 		}
+		if err = validate_yaml(path, cf); err != nil {
+			Log(robot.Error, "Validating installed/default configuration: %v", err)
+			// return err // later
+		}
 		decoder := yaml.NewDecoder(strings.NewReader(string(cf)))
 		decoder.KnownFields(true) // Enable strict mode to catch unknown fields
 		if err = decoder.Decode(&installed); err != nil {
@@ -221,10 +225,14 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 			if cf, err = expand(dir, true, cf); err != nil {
 				Log(robot.Error, "Expanding '%s': %v", path, err)
 			}
+			if err = validate_yaml(path, cf); err != nil {
+				Log(robot.Error, "Validating configured/custom configuration: %v", err)
+				// return err // later
+			}
 			decoder := yaml.NewDecoder(strings.NewReader(string(cf)))
 			decoder.KnownFields(true) // Enable strict mode here as well
 			if err = decoder.Decode(&configured); err != nil {
-				err = fmt.Errorf("unmarshalling configured \"%s\": %v", filename, err)
+				err = fmt.Errorf("unmarshalling configured/custom \"%s\": %v", filename, err)
 				Log(robot.Error, err.Error())
 				return err // Return an error for badly formatted config
 			}

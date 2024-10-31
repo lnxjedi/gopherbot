@@ -132,64 +132,59 @@ type ParameterSet struct {
 	Parameters  []robot.Parameter // Parameters for the shared namespace
 }
 
-// Task configuration is common to tasks, plugins or jobs. Any task, plugin or job can call bot methods. Note that tasks are only defined
-// in robot.yaml, and no external configuration is read in.
+// Task configuration is common to tasks, plugins, or jobs. Any task, plugin, or job can call bot methods.
+// Tasks are only defined in robot.yaml, and no external configuration is read in.
 type Task struct {
-	name          string            // name of job or plugin; unique by type, but job & plugin can share
-	taskType      taskType          // taskGo or taskExternal
-	Path          string            // Path to the external executable for external scripts
-	NameSpace     string            // callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
-	Parameters    []robot.Parameter // Fixed parameters for a given job; many jobs will use the same script with differing parameters
-	ParameterSets []string          //
-	Description   string            // description of job or plugin
-	AllowDirect   bool              // Set this true if this plugin can be accessed via direct message
-	DirectOnly    bool              // Set this true if this plugin ONLY accepts direct messages
-	Channel       string            // channel where a job can be interracted with, channel where a scheduled task (job or plugin) runs
-	Channels      []string          // plugins only; Channels where the plugin is available - rifraf like "memes" should probably only be in random, but it's configurable. If empty uses DefaultChannels
-	AllChannels   bool              // If the Channels list is empty and AllChannels is true, the plugin should be active in all the channels the bot is in
-	RequireAdmin  bool              // Set to only allow administrators to access a plugin / run job
-	Users         []string          // If non-empty, list of all the users with access to this plugin
-	Elevator      string            // Use an elevator other than the DefaultElevator
-	Authorizer    string            // a plugin to call for authorizing users, should handle groups, etc.
-	AuthRequire   string            // an optional group/role name to be passed to the Authorizer plugin, for group/role-based authorization determination
-	// taskID        string            // 32-char random ID for identifying plugins/jobs
-	ReplyMatchers []InputMatcher  // store this here for prompt*reply methods
-	Config        json.RawMessage // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
-	config        interface{}     // A pointer to an empty struct that the bot can Unmarshal custom configuration into
-	Disabled      bool
-	reason        string // why this job/plugin is disabled
-	// Privileged jobs/plugins run with the privileged UID, privileged tasks
-	// require privileged pipelines.
-	Privileged bool
-	// Homed for jobs/plugins starts the pipeline with c.basePath = ".", Homed tasks
-	// always run in ".", e.g. "ssh-init"
-	Homed bool
+	name          string            `yaml:"-"`               // Name of job or plugin; unique by type, but job & plugin can share
+	taskType      taskType          `yaml:"-"`               // TaskGo or taskExternal
+	Path          string            `yaml:"Path"`            // Path to the external executable for external scripts
+	NameSpace     string            `yaml:"NameSpace"`       // Callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
+	Parameters    []robot.Parameter `yaml:"Parameters"`      // Fixed parameters for a given job; many jobs will use the same script with differing parameters
+	ParameterSets []string          `yaml:"ParameterSets"`   //
+	Description   string            `yaml:"Description"`     // Description of job or plugin
+	AllowDirect   bool              `yaml:"AllowDirect"`     // Set this true if this plugin can be accessed via direct message
+	DirectOnly    bool              `yaml:"DirectOnly"`      // Set this true if this plugin ONLY accepts direct messages
+	Channel       string            `yaml:"Channel"`         // Channel where a job can be interacted with, or a scheduled task (job or plugin) runs
+	Channels      []string          `yaml:"Channels"`        // Plugins only; Channels where the plugin is available. If empty, uses DefaultChannels
+	AllChannels   bool              `yaml:"AllChannels"`     // If the Channels list is empty and AllChannels is true, the plugin should be active in all channels the bot is in
+	RequireAdmin  bool              `yaml:"RequireAdmin"`    // Set to only allow administrators to access a plugin / run job
+	Users         []string          `yaml:"Users"`           // If non-empty, list of all users with access to this plugin
+	Elevator      string            `yaml:"Elevator"`        // Use an elevator other than the DefaultElevator
+	Authorizer    string            `yaml:"Authorizer"`      // A plugin to call for authorizing users, should handle groups, etc.
+	AuthRequire   string            `yaml:"AuthRequire"`     // An optional group/role name to be passed to the Authorizer plugin for group/role-based authorization
+	ReplyMatchers []InputMatcher    `yaml:"ReplyMatchers"`   // Store this here for prompt*reply methods
+	Config        json.RawMessage   `yaml:"Config"`          // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
+	config        interface{}       `yaml:"ConfigInterface"` // A pointer to an empty struct that the bot can Unmarshal custom configuration into
+	Disabled      bool              `yaml:"Disabled"`
+	reason        string            `yaml:"-"`          // Why this job/plugin is disabled
+	Privileged    bool              `yaml:"Privileged"` // Privileged jobs/plugins run with the privileged UID, privileged tasks require privileged pipelines
+	Homed         bool              `yaml:"Homed"`      // Homed jobs/plugins start the pipeline with c.basePath = ".", homed tasks always run in "."
 }
 
 // Job - configuration only applicable to jobs. Read in from conf/jobs/<job>.yaml, which can also include anything from a Task.
 type Job struct {
-	Quiet     bool           // whether to quash "job started/ended" messages
-	KeepLogs  int            // how many runs of this job/plugin to keep history for
-	Triggers  []JobTrigger   // user/regex that triggers a job, e.g. a git-activated webhook or integration
-	Arguments []InputMatcher // list of arguments to prompt the user for
+	Quiet     bool           `yaml:"Quiet"`     // Whether to quash "job started/ended" messages
+	KeepLogs  int            `yaml:"KeepLogs"`  // How many runs of this job/plugin to keep history for
+	Triggers  []JobTrigger   `yaml:"Triggers"`  // User/regex that triggers a job, e.g., a git-activated webhook or integration
+	Arguments []InputMatcher `yaml:"Arguments"` // List of arguments to prompt the user for
 	*Task
 }
 
-// Plugin specifies the structure of a plugin configuration - plugins should include an example / default config. Custom plugin configuration
-// will be loaded from conf/plugins/<plugin>.yaml, which can also include anything from a Task.
+// Plugin specifies the structure of a plugin configuration. Plugins should include an example/default config.
+// Custom plugin configuration will be loaded from conf/plugins/<plugin>.yaml, which can also include anything from a Task.
 type Plugin struct {
-	AdminCommands            []string       // A list of commands only a bot admin can use
-	ElevatedCommands         []string       // Commands that require elevation, usually via 2fa
-	ElevateImmediateCommands []string       // Commands that always require elevation promting, regardless of timeouts
-	AuthorizedCommands       []string       // Which commands to authorize
-	AllowedHiddenCommands    []string       // which commands are allowed to be hidden
-	AuthorizeAllCommands     bool           // when ALL commands need to be authorized
-	Help                     []PluginHelp   // All the keyword sets / help texts for this plugin
-	CommandMatchers          []InputMatcher // Input matchers for messages that need to be directed to the 'bot
-	MessageMatchers          []InputMatcher // Input matchers for messages the 'bot hears even when it's not being spoken to
-	AmbientMatchCommand      bool           // Whether message matchers should also match when isCommand is true
-	CatchAll                 bool           // Whenever the robot is spoken to, but no plugin matches, plugins with CatchAll=true get called with command="catchall" and argument=<full text of message to robot>
-	MatchUnlisted            bool           // Set to true if ambient messages matches should be checked for users not listed in the UserRoster
+	AdminCommands            []string       `yaml:"AdminCommands"`            // A list of commands only a bot admin can use
+	ElevatedCommands         []string       `yaml:"ElevatedCommands"`         // Commands that require elevation, usually via 2FA
+	ElevateImmediateCommands []string       `yaml:"ElevateImmediateCommands"` // Commands that always require elevation prompting, regardless of timeouts
+	AuthorizedCommands       []string       `yaml:"AuthorizedCommands"`       // Which commands to authorize
+	AllowedHiddenCommands    []string       `yaml:"AllowedHiddenCommands"`    // Which commands are allowed to be hidden
+	AuthorizeAllCommands     bool           `yaml:"AuthorizeAllCommands"`     // When ALL commands need to be authorized
+	Help                     []PluginHelp   `yaml:"Help"`                     // All the keyword sets/help texts for this plugin
+	CommandMatchers          []InputMatcher `yaml:"CommandMatchers"`          // Input matchers for messages that need to be directed to the bot
+	MessageMatchers          []InputMatcher `yaml:"MessageMatchers"`          // Input matchers for messages the bot hears even when it’s not being spoken to
+	AmbientMatchCommand      bool           `yaml:"AmbientMatchCommand"`      // Whether message matchers should also match when isCommand is true
+	CatchAll                 bool           `yaml:"CatchAll"`                 // Plugins with CatchAll=true get called with command="catchall" and argument=<full message text to robot>
+	MatchUnlisted            bool           `yaml:"MatchUnlisted"`            // Set to true if ambient message matches should be checked for users not listed in the UserRoster
 	*Task
 }
 
