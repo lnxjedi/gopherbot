@@ -21,6 +21,9 @@ import (
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/meme"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
 
+	// *** Included Go tasks external to the main engine
+	_ "github.com/lnxjedi/gopherbot/v2/gotasks/ssh-agent"
+
 	// *** Default Slack connector
 	_ "github.com/lnxjedi/gopherbot/v2/connectors/slack"
 
