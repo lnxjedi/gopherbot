@@ -42,6 +42,5 @@ bot.FailTask("status", [ "Updating configuration failed"])
 
 bot.AddTask("git-init", [ clone_url ])
 bot.AddTask("exec", [ "git", "pull" ])
-bot.AddTask("run-pipeline", [])
 bot.AddTask("status", [ "Custom configuration repository successfully updated" ])
 bot.AddCommand("builtin-admin", "reload")

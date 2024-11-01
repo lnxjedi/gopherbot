@@ -65,5 +65,4 @@ bot.AddTask("exec", [ "rm", "-f", tkey ])
 # backup and restore will check and exit
 bot.AddTask("exec", [ "touch", ".restore" ])
 bot.AddTask("git-clone", [ clone_url, clone_branch, cfgdir, "true" ])
-bot.AddTask("run-pipeline", [])
 bot.AddTask("restart-robot", [])

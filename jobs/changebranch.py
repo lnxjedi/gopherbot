@@ -38,5 +38,4 @@ bot.AddTask("exec", [ "git", "pull" ])
 bot.AddTask("exec", [ "git", "checkout", branch ])
 # Make sure we're on latest commit for the branch
 bot.AddTask("exec", [ "git", "pull" ])
-bot.AddTask("run-pipeline", [])
 bot.AddCommand("builtin-admin", "reload")
