@@ -107,10 +107,16 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 			return robot.Fail
 		}
 
+		id, err := sshagent.GetKeyID(handle)
+		if err != nil {
+			r.Log(robot.Error, "failure retrieving key ID: "+err.Error())
+			return robot.Fail
+		}
+
 		// Publish SSH_AUTH_SOCK for the pipeline
 		r.SetParameter("SSH_AUTH_SOCK", agentPath)
 		r.SetParameter("SSH_AGENT_HANDLE", handle)
-		r.Log(robot.Info, "SSH agent started successfully with handle "+handle)
+		r.Log(robot.Info, "SSH agent started successfully with key '%s' and handle "+handle, id)
 		r.FinalTask("ssh-agent", "stop")
 		return
 
@@ -156,10 +162,16 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 			return robot.Fail
 		}
 
+		id, err := sshagent.GetKeyID(handle)
+		if err != nil {
+			r.Log(robot.Error, "failure retrieving key ID: "+err.Error())
+			return robot.Fail
+		}
+
 		// Publish SSH_AUTH_SOCK for the pipeline
 		r.SetParameter("SSH_AUTH_SOCK", agentPath)
 		r.SetParameter("SSH_AGENT_HANDLE", handle)
-		r.Log(robot.Info, "SSH agent with deployment key started successfully with handle "+handle)
+		r.Log(robot.Info, "SSH agent with deployment key started successfully with key '%s' and handle "+handle, id)
 		r.FinalTask("ssh-agent", "stop")
 		return
 
