@@ -61,12 +61,13 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		return robot.Success
 
 	case "stop":
-		if len(args) < 2 {
-			r.Log(robot.Error, "missing handle for ssh-agent stop command")
+		// Retrieve the agent handle from the parameter
+		handle := r.GetParameter("SSH_AGENT_HANDLE")
+		if handle == "" {
+			r.Log(robot.Error, "no handle found in SSH_AGENT_HANDLE parameter for stopping the ssh-agent")
 			return robot.Fail
 		}
 
-		handle := args[1]
 		err := sshagent.Close(handle)
 		if err != nil {
 			r.Log(robot.Error, "failed to stop ssh-agent: "+err.Error())
@@ -105,6 +106,7 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		r.SetParameter("SSH_AUTH_SOCK", agentPath)
 		r.SetParameter("SSH_AGENT_HANDLE", handle)
 		r.Log(robot.Info, "SSH agent with deployment key started successfully with handle "+handle)
+		r.FinalTask("ssh-agent", "stop")
 		return robot.Success
 
 	default:
