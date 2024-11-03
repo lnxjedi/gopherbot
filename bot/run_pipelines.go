@@ -566,7 +566,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 		the pipeline.
 	*/
 	// NOTE: Even if the job/plugin that started the pipeline isn't privileged,
-	// it will still see the namespace and paramtersets parameters, since they're
+	// it will still see the namespace and parametersets parameters, since they're
 	// directly attached to the task.
 	if task.Privileged {
 		// Next lowest prio are inherited namespace params; task parameters can override
