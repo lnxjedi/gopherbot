@@ -3,6 +3,9 @@
 package sshagent
 
 import (
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"log"
@@ -17,6 +20,13 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
+
+const (
+	socketDirName = ".ssh-agent-sockets" // Constant for socket directory name
+)
+
+// Package-level variable for the absolute path of the socket directory
+var socketDirPath string
 
 // AgentManager holds agents and manages lifecycle functions.
 type AgentManager struct {
@@ -38,27 +48,27 @@ var manager = &AgentManager{
 }
 
 func init() {
-	// Attempt to create .ssh-agent-sockets in the current working directory
-	socketDir := filepath.Join(".", ".ssh-agent-sockets")
-	err := os.MkdirAll(socketDir, 0700)
+	// Try creating the socket directory in the current working directory
+	currentDir, err := os.Getwd()
 	if err == nil {
-		return // Successfully created in the current working directory
+		socketDirPath = filepath.Join(currentDir, socketDirName)
+		err = os.MkdirAll(socketDirPath, 0700)
+		if err == nil {
+			return // Successfully created in the current directory
+		}
 	}
 
-	// If the current working directory fails, attempt to create in the user's home directory
+	// If the current working directory fails, try the user's home directory
 	usr, userErr := user.Current()
 	if userErr != nil {
 		log.Fatalf("Failed to determine current user: %v", userErr)
 	}
 
-	socketDir = filepath.Join(usr.HomeDir, ".ssh-agent-sockets")
-	err = os.MkdirAll(socketDir, 0700)
-	if err == nil {
-		return // Successfully created in the home directory
+	socketDirPath = filepath.Join(usr.HomeDir, socketDirName)
+	err = os.MkdirAll(socketDirPath, 0700)
+	if err != nil {
+		log.Fatalf("Failed to create %s directory in both current and home directories: %v", socketDirName, err)
 	}
-
-	// Log fatal error if both attempts fail
-	log.Fatalf("Failed to create .ssh-agent-sockets directory in both current and home directories: %v", err)
 }
 
 // New starts a new SSH agent with a specified key file and timeout.
@@ -66,9 +76,9 @@ func New(keypath, passphrase string, timeoutMinutes int) (agentPath, handle stri
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
-	// Create a unique handle and socket path
+	// Create a unique handle and absolute socket path
 	handle = generateHandle()
-	socketPath := filepath.Join(getSocketDir(), handle)
+	socketPath := filepath.Join(socketDirPath, handle)
 
 	// Initialize agent keyring
 	keyring := agent.NewKeyring()
@@ -107,9 +117,9 @@ func NewWithDeployKey(deployKey string, timeoutMinutes int) (agentPath, handle s
 		return "", "", fmt.Errorf("failed to parse deployment key: %w", err)
 	}
 
-	// Create a unique handle and socket path
+	// Create a unique handle and absolute socket path
 	handle = generateHandle()
-	socketPath := filepath.Join(getSocketDir(), handle)
+	socketPath := filepath.Join(socketDirPath, handle)
 
 	// Create agent instance and load the key
 	keyring := agent.NewKeyring()
@@ -141,6 +151,67 @@ func Get(handle string) (agent.Agent, error) {
 		return nil, errors.New("agent handle not found")
 	}
 	return instance.keyring, nil
+}
+
+// GetKeyID retrieves the key ID (e.g., fingerprint or type and comment) from the agent for the given handle.
+// It returns an error if there is more than one key in the agent.
+func GetKeyID(handle string) (string, error) {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+
+	instance, exists := manager.agents[handle]
+	if !exists {
+		return "", errors.New("agent handle not found")
+	}
+
+	keys, err := instance.keyring.List()
+	if err != nil {
+		return "", fmt.Errorf("failed to list keys: %w", err)
+	}
+
+	if len(keys) == 0 {
+		return "", errors.New("no keys found in the agent")
+	}
+
+	if len(keys) > 1 {
+		return "", errors.New("multiple keys found in the agent; only one expected")
+	}
+
+	key := keys[0]
+
+	// Parse the public key
+	pubKey, err := ssh.ParsePublicKey(key.Blob)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse public key: %w", err)
+	}
+
+	// Compute the fingerprint
+	fingerprint := ssh.FingerprintSHA256(pubKey)
+
+	// Get the key type
+	keyType := pubKey.Type()
+
+	// Get the key length
+	var keyLen int
+
+	// Check if the public key implements CryptoPublicKey interface
+	if cryptoPubKey, ok := pubKey.(ssh.CryptoPublicKey); ok {
+		switch pk := cryptoPubKey.CryptoPublicKey().(type) {
+		case *rsa.PublicKey:
+			keyLen = pk.N.BitLen()
+		case *ecdsa.PublicKey:
+			keyLen = pk.Params().BitSize
+		case ed25519.PublicKey:
+			keyLen = 256
+		default:
+			return "", fmt.Errorf("unsupported key type %T", pk)
+		}
+	} else {
+		return "", fmt.Errorf("public key does not implement CryptoPublicKey interface")
+	}
+
+	// Format the output similar to ssh-add -l
+	return fmt.Sprintf("%d %s %s (%s)", keyLen, fingerprint, key.Comment, keyType), nil
 }
 
 // Close stops the SSH agent for a given handle and removes its socket.
@@ -203,10 +274,4 @@ func loadKey(keyring agent.Agent, keypath, passphrase string) error {
 // generateHandle generates a unique handle for each agent instance.
 func generateHandle() string {
 	return fmt.Sprintf("agent-%d", time.Now().UnixNano())
-}
-
-// getSocketDir returns the path to the `.ssh-agent-sockets` directory.
-func getSocketDir() string {
-	usr, _ := user.Current()
-	return filepath.Join(usr.HomeDir, ".ssh-agent-sockets")
 }
