@@ -30,11 +30,11 @@ const (
 	Fatal
 )
 
-// TaskRetVal is an integer type for return values from plugins, mainly for elevation & authorization
+// TaskRetVal is an integer type for return values from plugins, and tasks, mainly for elevation & authorization
 type TaskRetVal int
 
 const (
-	// Normal exit is for non-auth/non-elevating plugins; since this is the
+	// Normal exit is for non-auth/non-elevating plugins and pipeline tasks; since this is the
 	// default exit value, we don't use it to indicate successful authentication
 	// or elevation.
 	Normal TaskRetVal = iota

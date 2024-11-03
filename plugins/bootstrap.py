@@ -44,25 +44,29 @@ if len(clone_url) == 0:
 
 clone_branch = os.getenv("GOPHER_CUSTOM_BRANCH")
 
-if not clone_url.startswith("http"):
-    depkey = os.getenv("GOPHER_DEPLOY_KEY")
-    if len(depkey) == 0:
-        bot.Log("Error", "SSH required for bootstrapping and no GOPHER_DEPLOY_KEY set")
-        exit(1)
+depkey = os.getenv("GOPHER_DEPLOY_KEY")
+if len(depkey) == 0:
+    bot.Log("Error", "SSH required for bootstrapping and no GOPHER_DEPLOY_KEY set")
+    exit(1)
 
 bot.Log("Info", "Creating bootstrap pipeline for %s" % clone_url)
 bot.SetParameter("BOOTSTRAP", "true")
 bot.SetParameter("GOPHER_DEPLOY_KEY", depkey)
-bot.AddTask("git-init", [ clone_url ])
+
+# Add the ssh-agent task before git operations
+bot.AddTask("ssh-agent", ["deploy"])
+# Add ssh-init task to set SSH options
+bot.AddTask("ssh-init", [])
+bot.AddTask("git-init", [clone_url])
 
 tmp_key_name = "binary-encrypted-key"
 deploy_env = os.getenv("GOPHER_ENVIRONMENT")
 if deploy_env != "production":
     tmp_key_name += "." + deploy_env
 tkey = os.path.join(cfgdir, tmp_key_name)
-bot.AddTask("exec", [ "rm", "-f", tkey ])
+bot.AddTask("exec", ["rm", "-f", tkey])
 # touch restore even if GOPHER_BRAIN != file;
 # backup and restore will check and exit
-bot.AddTask("exec", [ "touch", ".restore" ])
-bot.AddTask("git-clone", [ clone_url, clone_branch, cfgdir, "true" ])
+bot.AddTask("exec", ["touch", ".restore"])
+bot.AddTask("git-clone", [clone_url, clone_branch, cfgdir, "true"])
 bot.AddTask("restart-robot", [])

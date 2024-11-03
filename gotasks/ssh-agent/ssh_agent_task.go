@@ -58,7 +58,8 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		r.SetParameter("SSH_AUTH_SOCK", agentPath)
 		r.SetParameter("SSH_AGENT_HANDLE", handle)
 		r.Log(robot.Info, "SSH agent started successfully with handle "+handle)
-		return robot.Success
+		r.FinalTask("ssh-agent", "stop")
+		return
 
 	case "stop":
 		// Retrieve the agent handle from the parameter
@@ -75,7 +76,7 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		}
 
 		r.Log(robot.Info, "SSH agent stopped successfully with handle "+handle)
-		return robot.Success
+		return
 
 	case "deploy":
 		// Retrieve deployment key
@@ -107,7 +108,7 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		r.SetParameter("SSH_AGENT_HANDLE", handle)
 		r.Log(robot.Info, "SSH agent with deployment key started successfully with handle "+handle)
 		r.FinalTask("ssh-agent", "stop")
-		return robot.Success
+		return
 
 	default:
 		r.Log(robot.Error, "unknown sub-command for ssh-agent task: "+subCommand)
