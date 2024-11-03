@@ -101,8 +101,8 @@ func NewWithDeployKey(deployKey string, timeoutMinutes int) (agentPath, handle s
 	deployKey = strings.ReplaceAll(deployKey, "_", " ")
 	deployKey = strings.ReplaceAll(deployKey, ":", "\n")
 
-	// Parse the deploy key to create an ssh.Signer
-	signer, err := ssh.ParsePrivateKey([]byte(deployKey))
+	// Parse the deploy key to create a private key object
+	privateKey, err := ssh.ParseRawPrivateKey([]byte(deployKey))
 	if err != nil {
 		return "", "", fmt.Errorf("failed to parse deployment key: %w", err)
 	}
@@ -113,7 +113,7 @@ func NewWithDeployKey(deployKey string, timeoutMinutes int) (agentPath, handle s
 
 	// Create agent instance and load the key
 	keyring := agent.NewKeyring()
-	err = keyring.Add(agent.AddedKey{PrivateKey: signer})
+	err = keyring.Add(agent.AddedKey{PrivateKey: privateKey})
 	if err != nil {
 		return "", "", fmt.Errorf("failed to add deployment key to agent: %w", err)
 	}
@@ -193,11 +193,11 @@ func loadKey(keyring agent.Agent, keypath, passphrase string) error {
 		return fmt.Errorf("error reading key file: %w", err)
 	}
 
-	signer, err := ssh.ParsePrivateKeyWithPassphrase(keyBytes, []byte(passphrase))
+	privateKey, err := ssh.ParseRawPrivateKeyWithPassphrase(keyBytes, []byte(passphrase))
 	if err != nil {
 		return fmt.Errorf("failed to parse private key: %w", err)
 	}
-	return keyring.Add(agent.AddedKey{PrivateKey: signer})
+	return keyring.Add(agent.AddedKey{PrivateKey: privateKey})
 }
 
 // generateHandle generates a unique handle for each agent instance.
