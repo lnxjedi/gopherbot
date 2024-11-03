@@ -65,6 +65,8 @@ then
 fi
 
 SetWorkingDirectory "$GOPHER_CONFIGDIR"
+AddTask ssh-agent start "${GOPHER_CONFIGDIR}/ssh/${KEYNAME}"
+AddTask ssh-init
 AddTask git-init "$GOPHER_CUSTOM_REPOSITORY"
 if [ "$NEWREPO" ]
 then
