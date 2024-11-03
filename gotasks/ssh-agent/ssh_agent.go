@@ -43,10 +43,11 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		// Retrieve passphrase from parameter
 		passphrase := r.GetParameter("BOT_SSH_PHRASE")
 		if passphrase == "" {
-			r.Log(robot.Warn, "empty BOT_SSH_PHRASE while initializing the ssh-agent task")
+			r.Log(robot.Error, "empty BOT_SSH_PHRASE while initializing the ssh-agent task")
+			return robot.Fail
 		}
 
-		// Start the SSH agent
+		// Start the SSH agent with a key path
 		agentPath, handle, err := sshagent.New(keyPath, passphrase, timeoutMinutes)
 		if err != nil {
 			r.Log(robot.Error, "failed to start ssh-agent: "+err.Error())
@@ -73,6 +74,37 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		}
 
 		r.Log(robot.Info, "SSH agent stopped successfully with handle "+handle)
+		return robot.Success
+
+	case "deploy":
+		// Retrieve deployment key
+		deployKey := r.GetParameter("GOPHER_DEPLOY_KEY")
+		if deployKey == "" {
+			r.Log(robot.Error, "empty GOPHER_DEPLOY_KEY while initializing ssh-agent deploy task")
+			return robot.Fail
+		}
+
+		timeoutMinutes := 7 // Default timeout
+		if len(args) > 1 {
+			parsedTimeout, err := strconv.Atoi(args[1])
+			if err == nil {
+				timeoutMinutes = parsedTimeout
+			} else {
+				r.Log(robot.Warn, "invalid timeout provided, defaulting to 7 minutes")
+			}
+		}
+
+		// Start the SSH agent with the deployment key
+		agentPath, handle, err := sshagent.NewWithDeployKey(deployKey, timeoutMinutes)
+		if err != nil {
+			r.Log(robot.Error, "failed to start ssh-agent with deployment key: "+err.Error())
+			return robot.Fail
+		}
+
+		// Publish SSH_AUTH_SOCK for the pipeline
+		r.SetParameter("SSH_AUTH_SOCK", agentPath)
+		r.SetParameter("SSH_AGENT_HANDLE", handle)
+		r.Log(robot.Info, "SSH agent with deployment key started successfully with handle "+handle)
 		return robot.Success
 
 	default:
