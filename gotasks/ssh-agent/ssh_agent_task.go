@@ -1,5 +1,58 @@
 package agent
 
+/*
+Package agent provides the Gopherbot 'ssh-agent' task for managing SSH agent processes within pipelines.
+This task is available only in privileged pipelines and allows for secure SSH authentication
+handling through agent management.
+
+### Usage
+
+The `ssh-agent` task supports the following sub-commands:
+
+- **start**: Starts an SSH agent, loads a key from a specified path, and sets the `SSH_AUTH_SOCK` environment variable for the pipeline.
+  - **Arguments**:
+    - `keyPath`: Path to the private key file.
+    - `timeoutMinutes` (optional): Number of minutes before the agent auto-expires. Defaults to 7 if not provided or invalid.
+  - **Paramters**:
+    - `BOT_SSH_PHRASE`: The passphrase for decrypting the key needs to be set here.
+  - **Example**:
+    ```yaml
+    AddTask("ssh-agent", "start", "/path/to/private_key", "10")
+    ```
+
+- **stop**: Stops the SSH agent using the handle stored in the `SSH_AGENT_HANDLE` parameter. This ensures the agent is cleaned up after use. **NOTE:** This is automatically added as a `FinalTask` by "start" and "deploy", and so isn't normally needed for user add-ons.
+  - **Example**:
+    ```yaml
+    AddTask("ssh-agent", "stop")
+    ```
+
+- **deploy**: Starts an SSH agent using a deployment key stored in the `GOPHER_DEPLOY_KEY` parameter, processes the key for loading, and sets the `SSH_AUTH_SOCK` environment variable.
+  - **Arguments**:
+    - `timeoutMinutes` (optional): Number of minutes before the agent auto-expires. Defaults to 7 if not provided or invalid.
+  - **Paramters**:
+    - `GOPHER_DEPLOY_KEY`: The unencrypted encoded deployment key obtained during initial configuration.
+  - **Example**:
+    ```yaml
+    AddTask("ssh-agent", "deploy", "15")
+    ```
+
+### Task Return Values
+
+- **Normal** (0): Indicates successful execution within a pipeline context.
+- **Fail**: Used for any errors that prevent successful execution.
+- **Success** (7): Special return value for Authorization plugins, not applicable to regular pipeline tasks.
+
+### Final Task
+
+The `start` and `deploy` sub-commands automatically add a `FinalTask("ssh-agent", "stop")` to ensure the agent is stopped and cleaned up after the pipeline completes.
+
+### Prerequisites
+
+- The task is only available in privileged pipelines.
+- Ensure the `BOT_SSH_PHRASE` and `GOPHER_DEPLOY_KEY` parameters are securely set when using `start` and `deploy`.
+
+*/
+
 import (
 	"strconv"
 

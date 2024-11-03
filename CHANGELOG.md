@@ -1,3 +1,8 @@
+# v???
+
+## New "ssh-agent" pipeline task
+Gopherbot now includes code for basic ssh-agent functionality for use in pipelines. See `gotasks/ssh-agent`.
+
 # v2.13.0 - Configuration file validation
 The major change here is something I've wanted for ages - configuration files should now be properly validated, preventing the kind of "typo misconfig" that I've dealt with so often.
 
