@@ -211,7 +211,7 @@ func GetKeyID(handle string) (string, error) {
 	}
 
 	// Format the output similar to ssh-add -l
-	return fmt.Sprintf("%d %s %s (%s)", keyLen, fingerprint, key.Comment, keyType), nil
+	return fmt.Sprintf("%d %s (%s)", keyLen, fingerprint, keyType), nil
 }
 
 // Close stops the SSH agent for a given handle and removes its socket.
