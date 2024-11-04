@@ -26,22 +26,6 @@ func (h handler) ExtractID(u string) (string, bool) {
 	return u, false
 }
 
-var hostName, binDirectory string
-
-func init() {
-	var err error
-	// Installpath is where the default config and stock external
-	// plugins are.
-	ex, err := os.Executable()
-	if err != nil {
-		panic(err)
-	}
-	binDirectory, err = filepath.Abs(filepath.Dir(ex))
-	if err != nil {
-		panic(err)
-	}
-}
-
 func bracket(s string) string {
 	return "<" + s + ">"
 }
