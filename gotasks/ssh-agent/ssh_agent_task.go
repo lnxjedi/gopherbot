@@ -101,24 +101,18 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		}
 
 		// Start the SSH agent with a key path
-		agentPath, handle, err := sshagent.New(keyPath, passphrase, timeoutMinutes)
+		agentPath, handle, keyID, err := sshagent.New(keyPath, passphrase, timeoutMinutes)
 		if err != nil {
 			r.Log(robot.Error, "failed to start ssh-agent: "+err.Error())
-			return robot.Fail
-		}
-
-		id, err := sshagent.GetKeyID(handle)
-		if err != nil {
-			r.Log(robot.Error, "failure retrieving key ID: "+err.Error())
 			return robot.Fail
 		}
 
 		// Publish SSH_AUTH_SOCK for the pipeline
 		r.SetParameter("SSH_AUTH_SOCK", agentPath)
 		r.SetParameter("SSH_AGENT_HANDLE", handle)
-		r.Log(robot.Info, "SSH agent started successfully with key '%s' and handle "+handle, id)
+		r.Log(robot.Info, "SSH agent started successfully with key '%s' and handle "+handle, keyID)
 		r.FinalTask("ssh-agent", "stop")
-		return
+		return robot.Normal
 
 	case "stop":
 		// Retrieve the agent handle from the parameter
@@ -135,7 +129,7 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		}
 
 		r.Log(robot.Info, "SSH agent stopped successfully with handle "+handle)
-		return
+		return robot.Normal
 
 	case "deploy":
 		// Retrieve deployment key
@@ -156,24 +150,18 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		}
 
 		// Start the SSH agent with the deployment key
-		agentPath, handle, err := sshagent.NewWithDeployKey(deployKey, timeoutMinutes)
+		agentPath, handle, keyID, err := sshagent.NewWithDeployKey(deployKey, timeoutMinutes)
 		if err != nil {
 			r.Log(robot.Error, "failed to start ssh-agent with deployment key: "+err.Error())
-			return robot.Fail
-		}
-
-		id, err := sshagent.GetKeyID(handle)
-		if err != nil {
-			r.Log(robot.Error, "failure retrieving key ID: "+err.Error())
 			return robot.Fail
 		}
 
 		// Publish SSH_AUTH_SOCK for the pipeline
 		r.SetParameter("SSH_AUTH_SOCK", agentPath)
 		r.SetParameter("SSH_AGENT_HANDLE", handle)
-		r.Log(robot.Info, "SSH agent with deployment key started successfully with key '%s' and handle "+handle, id)
+		r.Log(robot.Info, "SSH agent with deployment key started successfully with key '%s' and handle "+handle, keyID)
 		r.FinalTask("ssh-agent", "stop")
-		return
+		return robot.Normal
 
 	default:
 		r.Log(robot.Error, "unknown sub-command for ssh-agent task: "+subCommand)

@@ -73,7 +73,7 @@ func init() {
 }
 
 // New starts a new SSH agent with a specified key file and timeout.
-func New(keypath, passphrase string, timeoutMinutes int) (agentPath, handle string, err error) {
+func New(keypath, passphrase string, timeoutMinutes int) (agentPath, handle, keyID string, err error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
@@ -93,18 +93,21 @@ func New(keypath, passphrase string, timeoutMinutes int) (agentPath, handle stri
 	// Load the SSH key into the agent
 	err = loadKey(keyring, keypath, passphrase)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to load key: %w", err)
+		return "", "", "", fmt.Errorf("failed to load key: %w", err)
 	}
+
+	// Get the key ID (or an error string to display)
+	keyID = getKeyID(keyring)
 
 	// Start agent serving goroutine
 	go instance.serve(timeoutMinutes)
 	manager.agents[handle] = instance
 
-	return socketPath, handle, nil
+	return socketPath, handle, keyID, nil
 }
 
 // NewWithDeployKey initializes an SSH agent with a deployment key string and timeout.
-func NewWithDeployKey(deployKey string, timeoutMinutes int) (agentPath, handle string, err error) {
+func NewWithDeployKey(deployKey string, timeoutMinutes int) (agentPath, handle, keyID string, err error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
@@ -115,7 +118,7 @@ func NewWithDeployKey(deployKey string, timeoutMinutes int) (agentPath, handle s
 	// Parse the deploy key to create a private key object
 	privateKey, err := ssh.ParseRawPrivateKey([]byte(deployKey))
 	if err != nil {
-		return "", "", fmt.Errorf("failed to parse deployment key: %w", err)
+		return "", "", "", fmt.Errorf("failed to parse deployment key: %w", err)
 	}
 
 	// Create a unique handle and absolute socket path
@@ -126,8 +129,11 @@ func NewWithDeployKey(deployKey string, timeoutMinutes int) (agentPath, handle s
 	keyring := agent.NewKeyring()
 	err = keyring.Add(agent.AddedKey{PrivateKey: privateKey})
 	if err != nil {
-		return "", "", fmt.Errorf("failed to add deployment key to agent: %w", err)
+		return "", "", "", fmt.Errorf("failed to add deployment key to agent: %w", err)
 	}
+
+	// Get the key ID (or an error string to display)
+	keyID = getKeyID(keyring)
 
 	// Start agent serving goroutine
 	instance := &AgentInstance{
@@ -139,7 +145,7 @@ func NewWithDeployKey(deployKey string, timeoutMinutes int) (agentPath, handle s
 	go instance.serve(timeoutMinutes)
 	manager.agents[handle] = instance
 
-	return socketPath, handle, nil
+	return socketPath, handle, keyID, nil
 }
 
 // Get retrieves an agent instance for internal Go library usage.
@@ -152,67 +158,6 @@ func Get(handle string) (agent.Agent, error) {
 		return nil, errors.New("agent handle not found")
 	}
 	return instance.keyring, nil
-}
-
-// GetKeyID retrieves the key ID (e.g., fingerprint or type and comment) from the agent for the given handle.
-// It returns an error if there is more than one key in the agent.
-func GetKeyID(handle string) (string, error) {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
-
-	instance, exists := manager.agents[handle]
-	if !exists {
-		return "", errors.New("agent handle not found")
-	}
-
-	keys, err := instance.keyring.List()
-	if err != nil {
-		return "", fmt.Errorf("failed to list keys: %w", err)
-	}
-
-	if len(keys) == 0 {
-		return "", errors.New("no keys found in the agent")
-	}
-
-	if len(keys) > 1 {
-		return "", errors.New("multiple keys found in the agent; only one expected")
-	}
-
-	key := keys[0]
-
-	// Parse the public key
-	pubKey, err := ssh.ParsePublicKey(key.Blob)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse public key: %w", err)
-	}
-
-	// Compute the fingerprint
-	fingerprint := ssh.FingerprintSHA256(pubKey)
-
-	// Get the key type
-	keyType := pubKey.Type()
-
-	// Get the key length
-	var keyLen int
-
-	// Check if the public key implements CryptoPublicKey interface
-	if cryptoPubKey, ok := pubKey.(ssh.CryptoPublicKey); ok {
-		switch pk := cryptoPubKey.CryptoPublicKey().(type) {
-		case *rsa.PublicKey:
-			keyLen = pk.N.BitLen()
-		case *ecdsa.PublicKey:
-			keyLen = pk.Params().BitSize
-		case ed25519.PublicKey:
-			keyLen = 256
-		default:
-			return "", fmt.Errorf("unsupported key type %T", pk)
-		}
-	} else {
-		return "", fmt.Errorf("public key does not implement CryptoPublicKey interface")
-	}
-
-	// Format the output similar to ssh-add -l
-	return fmt.Sprintf("%d %s (%s)", keyLen, fingerprint, keyType), nil
 }
 
 // Close stops the SSH agent for a given handle and removes its socket.
@@ -283,4 +228,57 @@ func loadKey(keyring agent.Agent, keypath, passphrase string) error {
 // generateHandle generates a unique handle for each agent instance.
 func generateHandle() string {
 	return fmt.Sprintf("agent-%d", time.Now().UnixNano())
+}
+
+// getKeyID retrieves the key ID (e.g., fingerprint or type and comment) from the agent.
+// It returns an error if there is more than one key in the agent.
+func getKeyID(keyring agent.Agent) string {
+	keys, err := keyring.List()
+	if err != nil {
+		return fmt.Sprintf("(err: %v)", err)
+	}
+
+	if len(keys) == 0 {
+		return "(err: no keys found)"
+	}
+
+	if len(keys) > 1 {
+		return "(err: multiple keys found)"
+	}
+
+	key := keys[0]
+
+	// Parse the public key
+	pubKey, err := ssh.ParsePublicKey(key.Blob)
+	if err != nil {
+		return fmt.Sprintf("(err: %v)", err)
+	}
+
+	// Compute the fingerprint
+	fingerprint := ssh.FingerprintSHA256(pubKey)
+
+	// Get the key type
+	keyType := pubKey.Type()
+
+	// Get the key length
+	var keyLen int
+
+	// Check if the public key implements CryptoPublicKey interface
+	if cryptoPubKey, ok := pubKey.(ssh.CryptoPublicKey); ok {
+		switch pk := cryptoPubKey.CryptoPublicKey().(type) {
+		case *rsa.PublicKey:
+			keyLen = pk.N.BitLen()
+		case *ecdsa.PublicKey:
+			keyLen = pk.Params().BitSize
+		case ed25519.PublicKey:
+			keyLen = 256
+		default:
+			return fmt.Sprintf("(err: unsupported key type %T)", pk)
+		}
+	} else {
+		return "(err: public key does not implement CryptoPublicKey interface)"
+	}
+
+	// Format the output similar to ssh-add -l
+	return fmt.Sprintf("%d %s (%s)", keyLen, fingerprint, keyType)
 }
