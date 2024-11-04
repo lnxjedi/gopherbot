@@ -40,6 +40,7 @@ type AgentInstance struct {
 	socket   string
 	handle   string
 	stopChan chan struct{}
+	listener net.Listener
 }
 
 // Global agent manager instance.
@@ -221,9 +222,12 @@ func Close(handle string) error {
 
 	instance, exists := manager.agents[handle]
 	if !exists {
-		return nil // no error if the agent is already stopped or nonexistent
+		return nil // No error if the agent is already stopped or nonexistent
 	}
 	close(instance.stopChan)
+	if instance.listener != nil {
+		instance.listener.Close() // Close the listener to unblock Accept
+	}
 	delete(manager.agents, handle)
 	return nil
 }
@@ -236,20 +240,25 @@ func (a *AgentInstance) serve(timeoutMinutes int) {
 		fmt.Printf("Error creating socket for handle %s: %v\n", a.handle, err)
 		return
 	}
+	a.listener = socketListener // Store the listener
 	defer socketListener.Close()
-	defer os.Remove(a.socket) // cleanup socket on exit
+	defer os.Remove(a.socket) // Cleanup socket on exit
 
 	// Set up a timeout to close the agent if not manually stopped
 	timeout := time.After(time.Duration(timeoutMinutes) * time.Minute)
 	for {
 		select {
 		case <-a.stopChan:
-			return // manual stop
+			return // Manual stop
 		case <-timeout:
-			return // auto timeout
+			return // Auto timeout
 		default:
 			conn, err := socketListener.Accept()
 			if err != nil {
+				if opErr, ok := err.(*net.OpError); ok && opErr.Err.Error() == "use of closed network connection" {
+					// Listener was closed, exit the loop
+					return
+				}
 				continue
 			}
 			go agent.ServeAgent(a.keyring, conn)
