@@ -26,8 +26,15 @@ type VersionInfo struct {
 	Version, Commit string
 }
 
+// Standard for production robots, varies with 'make test'
+var configPath = "custom"
+
+const (
+	robotConfigFileName = "robot.yaml"
+)
+
 // global values for GOPHER_HOME, GOPHER_CONFIGDIR and GOPHER_INSTALLDIR
-var homePath, configPath, configFull, installPath string
+var homePath, configFull, installPath string
 
 var botVersion VersionInfo
 
@@ -133,7 +140,7 @@ var listenPort string // actual listening port
 // initBot sets up the global robot; when cli is false it also loads configuration.
 // cli indicates that a CLI command is being processed, as opposed to actually running
 // a robot.
-func initBot(cpath, epath string) {
+func initBot() {
 	// Initialize current config with an empty struct (to be loaded)
 	currentCfg.configuration = &configuration{}
 
@@ -143,16 +150,14 @@ func initBot(cpath, epath string) {
 		Log(robot.Warn, "Unable to get cwd")
 	}
 	h := handler{}
-	if err := h.GetDirectory(cpath); err != nil {
-		Log(robot.Fatal, "Unable to get/create config path: %s", cpath)
+	if err := h.GetDirectory(configPath); err != nil {
+		Log(robot.Fatal, "Unable to get/create config path: %s", configPath)
 	}
-	configPath = cpath
-	if filepath.IsAbs(cpath) {
-		configFull = cpath
+	if filepath.IsAbs(configPath) {
+		configFull = configPath
 	} else {
-		configFull = filepath.Join(homePath, cpath)
+		configFull = filepath.Join(homePath, configPath)
 	}
-	installPath = epath
 
 	state.shuttingDown = false
 

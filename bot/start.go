@@ -15,16 +15,37 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Information about privilege separation, set in runtasks_linux.go
-var privSep = false
+var (
+	// Information about privilege separation, set in runtasks_linux.go
+	privSep = false
 
-// Set for CLI commands
-var cliOp = false
-var fileLog = false
+	// Set for CLI commands
+	cliOp   = false
+	fileLog = false
 
-var hostName, binDirectory string
+	// CLI flags
+	logFile         string
+	overrideIDEMode bool
+	plainlog        bool
+	terminalmode    bool
+	helpRequested   bool
+
+	hostName string
+)
 
 func init() {
+	hostName = os.Getenv("HOSTNAME")
+
+	// loggers of last resort, initialize early and update in start.go
+	botStdErrLogger = log.New(os.Stderr, "", log.LstdFlags)
+	botStdOutLogger = log.New(os.Stdout, "", log.LstdFlags)
+}
+
+// Start gets the robot going
+// SEE ALSO: start_t.go for "make test"
+func Start(v VersionInfo) {
+	botVersion = v
+
 	var err error
 	// Installpath is where the default config and stock external
 	// plugins are.
@@ -32,54 +53,29 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	binDirectory, err = filepath.Abs(filepath.Dir(ex))
+	installPath, err = filepath.Abs(filepath.Dir(ex))
 	if err != nil {
 		panic(err)
 	}
-}
-
-func init() {
-	hostName = os.Getenv("HOSTNAME")
-}
-
-// Start gets the robot going
-// SEE ALSO: start_t.go
-func Start(v VersionInfo) {
-	botVersion = v
-
-	var configpath string
 
 	// Save args in case we need to spawn child
 	args := os.Args[1:]
 	// Process command-line flags
-	var explicitCfgPath string
-	cusage := "path to the configuration directory"
-	flag.StringVar(&explicitCfgPath, "config", "", cusage)
-	flag.StringVar(&explicitCfgPath, "c", "", "")
-	var daemonize bool
-	var dusage = "daemonize on startup"
-	flag.BoolVar(&daemonize, "daemonize", false, dusage)
-	flag.BoolVar(&daemonize, "d", false, "")
-	var logFile string
 	lusage := "path to robot's log file (or 'stderr')"
 	flag.StringVar(&logFile, "log", "", lusage)
 	flag.StringVar(&logFile, "l", "", "")
-	var overrideIDEMode bool
 	ovusage := "Override GOPHER_IDE mode"
 	flag.BoolVar(&overrideIDEMode, "override", false, ovusage)
 	flag.BoolVar(&overrideIDEMode, "o", false, "")
-	var plainlog bool
 	plusage := "omit timestamps from the log"
 	flag.BoolVar(&plainlog, "plainlog", false, plusage)
 	flag.BoolVar(&plainlog, "p", false, "")
-	var terminalmode bool
 	tmusage := "set 'GOPHER_PROTOCOL=terminal' and default logging to 'robot.log'"
 	flag.BoolVar(&terminalmode, "terminal", false, tmusage)
 	flag.BoolVar(&terminalmode, "t", false, "")
-	var help bool
 	husage := "help for gopherbot"
-	flag.BoolVar(&help, "help", false, husage)
-	flag.BoolVar(&help, "h", false, "")
+	flag.BoolVar(&helpRequested, "help", false, husage)
+	flag.BoolVar(&helpRequested, "h", false, "")
 	// TODO: Gopherbot CLI commands suck. Make them suck less.
 	flag.Parse()
 
@@ -169,7 +165,7 @@ func Start(v VersionInfo) {
 
   Common options:`
 
-	if help {
+	if helpRequested {
 		fmt.Println(usage)
 		flag.PrintDefaults()
 		os.Exit(0)
@@ -203,22 +199,6 @@ func Start(v VersionInfo) {
 		os.Setenv("GOPHER_ENVIRONMENT", "production")
 	}
 
-	// Configdir is where all user-supplied configuration and
-	// external plugins are.
-	if len(explicitCfgPath) != 0 {
-		configpath = explicitCfgPath
-	} else {
-		if _, ok := checkDirectory("custom"); ok {
-			configpath = "custom"
-		} else if _, ok := checkDirectory("conf"); ok {
-			configpath = "."
-		} else {
-			// If not explicitly set or cwd, use "custom" even if it
-			// doesn't exist.
-			configpath = "custom"
-		}
-	}
-
 	// support for setup and bootstrap plugins
 	var defaultProto, defaultLogfile bool
 
@@ -232,18 +212,14 @@ func Start(v VersionInfo) {
 	}
 
 	protoEnv, protoSet := os.LookupEnv("GOPHER_PROTOCOL")
-	testpath := filepath.Join(configpath, "conf", robotConfigFileName)
-	_, err := os.Stat(testpath)
-	if err != nil {
-		testpath = filepath.Join(configpath, "conf", "gopherbot.yaml")
-		_, err = os.Stat(testpath)
-		if err == nil {
-			robotConfigFileName = "gopherbot.yaml"
-		}
-	}
+	testpath := filepath.Join(configPath, "conf", robotConfigFileName)
+	_, err = os.Stat(testpath)
 	unconfigured := false
+	// If custom/conf/robot.yaml doesn't exist, look for repository
+	// environment variable.
 	if err != nil {
 		_, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
+		// This is true only when creating a new robot
 		if !ok {
 			unconfigured = true
 			os.Setenv("GOPHER_UNCONFIGURED", "unconfigured")
@@ -276,7 +252,8 @@ func Start(v VersionInfo) {
 		}
 		defaultProto = true
 	} else {
-		os.Unsetenv("GOPHER_UNCONFIGURED")
+		// TODO: shouldn't be needed, remove if no strange errors.
+		// os.Unsetenv("GOPHER_UNCONFIGURED")
 		if !protoSet || terminalmode {
 			termStart()
 		}
@@ -315,45 +292,6 @@ func Start(v VersionInfo) {
 		Log(robot.Info, "Starting in IDE mode, defaulting GOPHER_BRAIN to 'mem' and GOPHER_PROTOCOL to 'terminal'; override with '-o' flag")
 	}
 
-	if daemonize {
-		scrubargs := []string{}
-		skip := false
-		for _, arg := range args {
-			if arg == "-d" || arg == "-daemonize" {
-				continue
-			}
-			if arg == "-l" || arg == "-log" {
-				skip = true
-				continue
-			}
-			if skip {
-				skip = false
-				continue
-			}
-			scrubargs = append(scrubargs, arg)
-		}
-		bin, _ := os.Executable()
-		env := os.Environ()
-		if !fileLog {
-			Log(robot.Info, "Logging to robot.log")
-			env = append(env, "GOPHER_LOGFILE=robot.log")
-		} else {
-			env = append(env, fmt.Sprintf("GOPHER_LOGFILE=%s", logFile))
-		}
-		Log(robot.Info, "Forking in to background...")
-		cmd := exec.Command(bin, scrubargs...)
-		cmd.Env = env
-		cmd.Stdin = nil
-		cmd.Stdout = nil
-		cmd.Stderr = nil
-		raiseThreadPrivExternal("fork in to background")
-		err := cmd.Start()
-		if err != nil {
-			log.Fatal(err)
-		}
-		return
-	}
-
 	if !cliOp {
 		lle := os.Getenv("GOPHER_LOGLEVEL")
 		if len(lle) > 0 {
@@ -377,7 +315,7 @@ func Start(v VersionInfo) {
 		// When loading configuration, gopherbot first loads default configuration
 		// from internal config, then loads from configpath/conf/..., which
 		// overrides defaults.
-		logger.Printf("Starting up with config dir: %s, and install dir: %s\n", configpath, binDirectory)
+		logger.Printf("Starting up with config dir: %s, and install dir: %s\n", configPath, installPath)
 		checkprivsep(logger)
 	}
 
@@ -390,8 +328,6 @@ func Start(v VersionInfo) {
 		}
 		switch flag.Arg(1) {
 		case "installed", "configured":
-			configPath = configpath
-			installPath = binDirectory
 			initCrypt()
 			cliDump(flag.Arg(1), flag.Arg(2))
 		default:
@@ -402,7 +338,7 @@ func Start(v VersionInfo) {
 		}
 	}
 
-	initBot(configpath, binDirectory)
+	initBot()
 
 	if cliOp {
 		go runBrain()

@@ -15,8 +15,6 @@ import (
 
 var protocolConfig, brainConfig, historyConfig json.RawMessage
 
-var robotConfigFileName = "robot.yaml"
-
 // ConfigLoader defines 'bot configuration, and is read from conf/robot.yaml
 // Digested content ends up in currentCfg, see bot_process.go.
 // ConfigLoader represents the structure of robot.yaml for validation.

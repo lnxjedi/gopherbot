@@ -13,12 +13,6 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-// loggers of last resort, initialize early and update in start.go
-func init() {
-	botStdErrLogger = log.New(os.Stderr, "", log.LstdFlags)
-	botStdOutLogger = log.New(os.Stdout, "", log.LstdFlags)
-}
-
 // initialized in start.go
 var botStdErrLogger, botStdOutLogger *log.Logger
 

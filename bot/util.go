@@ -71,7 +71,7 @@ func getObjectPath(path string) (opath string, info fs.FileInfo, err error) {
 			Log(robot.Debug, "Using fully specified path to object: %s", opath)
 			return opath, info, nil
 		}
-		err = fmt.Errorf("Invalid path for object: %s (%v)", opath, err)
+		err = fmt.Errorf("invalid path for object: %s (%v)", opath, err)
 		Log(robot.Error, err.Error())
 		return "", nil, err
 	}

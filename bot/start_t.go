@@ -16,18 +16,14 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-var testInstallPath string
 var registrationsProcessed bool
-
-func init() {
-	wd, _ := os.Getwd()
-	testInstallPath = filepath.Dir(wd)
-}
 
 // StartTest will start a robot for testing, and return the exit / robot stopped channel
 func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, robot.Connector) {
 	botVersion = v
 
+	wd, _ := os.Getwd()
+	installPath = filepath.Dir(wd)
 	// Collect all the Go Plugins, Jobs and Tasks
 	// registered by various init() functions, but
 	// only once during tests.
@@ -36,8 +32,8 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 		ProcessRegistrations()
 	}
 
-	configpath := filepath.Join(testInstallPath, cfgdir)
-	t.Logf("Initializing test bot with installpath: '%s', configpath: '%s' and logfile: %s", testInstallPath, configpath, logfile)
+	configPath = filepath.Join(installPath, cfgdir)
+	t.Logf("Initializing test bot with installpath: '%s', configpath: '%s' and logfile: %s", installPath, configPath, logfile)
 
 	if botLogger.logger == nil {
 		var testLogger *log.Logger
@@ -59,7 +55,7 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 		}
 		botLogger.setOutputFile(lf)
 	}
-	initBot(configpath, testInstallPath)
+	initBot()
 
 	initializeConnector, ok := connectors[currentCfg.protocol]
 	if !ok {
@@ -76,7 +72,7 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 
 	run()
 
-	bk := filepath.Join(testInstallPath, cfgdir, "binary-encrypted-key")
+	bk := filepath.Join(installPath, cfgdir, "binary-encrypted-key")
 	if err := os.Remove(bk); err != nil {
 		fmt.Printf("Removing temporary key: %v\n", err)
 	}
