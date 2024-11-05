@@ -160,6 +160,7 @@ func Start(v VersionInfo) {
 	list - list robot memories
 	run - run the robot (default)
 	store - store a memory
+	validate [path/to/robot_repo] - syntax check a robot's repository
 	version - display the gopherbot version
   <command> -h for help on a given command
 
@@ -195,6 +196,7 @@ func Start(v VersionInfo) {
 	}
 	penvErr := godotenv.Overload(envFile)
 
+	// Support for dev environment with alternate encryption keys.
 	if _, ok := os.LookupEnv("GOPHER_ENVIRONMENT"); !ok {
 		os.Setenv("GOPHER_ENVIRONMENT", "production")
 	}
@@ -299,9 +301,7 @@ func Start(v VersionInfo) {
 			setLogLevel(loglevel)
 		}
 		logger.Println("Initialized logging ...")
-	}
 
-	if !cliOp {
 		if penvErr != nil {
 			logger.Printf("No private environment loaded from '.env': %v\n", penvErr)
 		} else {
@@ -319,23 +319,11 @@ func Start(v VersionInfo) {
 		checkprivsep(logger)
 	}
 
-	if cliCommand == "dump" {
-		setLogLevel(robot.Warn)
-		if len(flag.Args()) != 3 {
-			fmt.Println(usage)
-			flag.PrintDefaults()
-			os.Exit(1)
-		}
-		switch flag.Arg(1) {
-		case "installed", "configured":
-			initCrypt()
-			cliDump(flag.Arg(1), flag.Arg(2))
-		default:
-			fmt.Println("DEBUG default")
-			fmt.Println(usage)
-			flag.PrintDefaults()
-			os.Exit(1)
-		}
+	// Process CLI commands that don't need/want full initBot + brain
+	switch cliCommand {
+	case "dump", "validate":
+		processCLI(usage)
+		os.Exit(0)
 	}
 
 	initBot()
@@ -344,7 +332,7 @@ func Start(v VersionInfo) {
 		go runBrain()
 		processCLI(usage)
 		brainQuit()
-		return
+		os.Exit(0)
 	}
 	if currentCfg.protocol == "terminal" {
 		localTerm = true

@@ -30,5 +30,4 @@ func cliDump(which, file string) {
 		os.Exit(1)
 	}
 	fmt.Println(string(expanded))
-	os.Exit(0)
 }

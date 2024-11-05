@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"image/png"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -70,6 +71,20 @@ func processCLI(usage string) {
 			return
 		}
 		cliDecrypt(decFlags.Arg(0), fileName)
+	case "dump":
+		setLogLevel(robot.Warn)
+		if len(flag.Args()) != 3 {
+			fmt.Println(
+				`Usage: gopherbot dump (installed|configured) [path]
+  Where [path] is relative to 'conf/', e.g. "dump configured robot.yaml" "dump installed plugins/help.yaml"`)
+			os.Exit(1)
+		}
+		switch flag.Arg(1) {
+		case "installed", "configured":
+			initCrypt()
+			cliDump(flag.Arg(1), flag.Arg(2))
+			return
+		}
 	case "gentotp":
 		totpFlags.Parse(cliArgs[1:])
 		if len(totpFlags.Args()) == 0 || len(totpFlags.Arg(0)) == 0 {
@@ -138,6 +153,14 @@ func processCLI(usage string) {
 			return
 		}
 		cliDelete(cliArgs[1])
+	case "validate":
+		if len(cliArgs) != 2 {
+			fmt.Println(
+				`Usage: gopherbot validate [path]
+  Where [path] points to the root of a robot's git repository`)
+			return
+		}
+		cliValidate(cliArgs[1])
 	case "version":
 		fmt.Printf("Version %s, commit: %s\n", botVersion.Version, botVersion.Commit)
 	default:
@@ -340,4 +363,17 @@ func cliDelete(key string) {
 		return
 	}
 	fmt.Println("Deleted")
+}
+
+func cliValidate(path string) {
+	configPath = path
+	testpath := filepath.Join(configPath, "conf", robotConfigFileName)
+	_, err := os.Stat(testpath)
+	if err != nil {
+		log.Fatalf("Not found: %s", testpath)
+	}
+	botLogger.logger = log.New(os.Stdout, "", 0)
+	fmt.Println("Validating configuration")
+	initBot()
+	fmt.Println("Configuration valid")
 }
