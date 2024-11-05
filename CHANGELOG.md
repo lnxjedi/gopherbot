@@ -1,7 +1,33 @@
-# v???
+# v2.14.0 - New "validate" command
+The primary goal of this release was adding a new CLI "validate" command to check the configuration files for a repository. For instance, one of my most common typos:
+```
+[clu:~]$ gopherbot validate clu
+Validating configuration
+Error: Validating configured/custom configuration: validation error in 'clu/conf/robot.yaml': yaml: unmarshal errors:
+  line 72: field Paramters not found in type bot.TaskSettings
+Fatal: Loading initial configuration: Loading configuration file: validation error in 'clu/conf/robot.yaml': yaml: unmarshal errors:
+  line 72: field Paramters not found in type bot.TaskSettings
+# After fixing ...
+[clu:~]$ gopherbot validate clu
+Validating configuration
+Warning: Plugin 'groups' has custom config, but none is configured
+Info: Initialized brain provider 'mem'
+Configuration valid
+```
+
+The goal here, of course, is to allow robot administrators to check their robots before (re-)deploying them, to ensure they will start since configuration errors are fatal when the robot first starts. Note that updating the robot with invalid configuration will just throw an error on reload and leave the original configuration in place.
 
 ## New "ssh-agent" pipeline task
-Gopherbot now includes code for basic ssh-agent functionality for use in pipelines. See `gotasks/ssh-agent`.
+Gopherbot now includes code for basic ssh-agent functionality for use in pipelines. See `gotasks/ssh-agent`. The goal for v3.0.0 is to eliminate external dependencies for bootstrapping - this is the first step.
+
+## Potentially Breaking Changes
+Another goal for Gopherbot v3 is to clean up some of the code, and remove ugly cruft that makes development more painful with little gain - this means removing functionality I haven't used in years, and definitely don't test/think about when releasing new versions.
+
+### Removed 'daemonize'
+None of the modern deployment methods for a Gopherbot robot require gopherbot to daemonize itself, so that code has been removed. Instead, a process supervisor like systemd generally handles running gopherbot as a system service.
+
+### Fixed location for 'custom'
+Of all the robots I've deployed, I've never specified a path to a configuration directory, always letting it default to "custom". If a system needs to run more than one robot, you need to ensure they start with a unique initial working directory where the process can create/read/write the "custom/" directory.
 
 # v2.13.0 - Configuration file validation
 The major change here is something I've wanted for ages - configuration files should now be properly validated, preventing the kind of "typo misconfig" that I've dealt with so often.
