@@ -40,6 +40,11 @@ bot.SetWorkingDirectory(cfgdir)
 bot.FailTask("tail-log", [])
 bot.FailTask("status", [ "Updating configuration failed"])
 
+sshkey = os.getenv("KEYNAME")
+# Add the ssh-agent task before git operations
+bot.AddTask("ssh-agent", ["start", "ssh/%s" % sshkey])
+# Add ssh-init task to set SSH options
+bot.AddTask("ssh-init", [])
 bot.AddTask("git-init", [ clone_url ])
 bot.AddTask("exec", [ "git", "pull" ])
 bot.AddTask("status", [ "Custom configuration repository successfully updated" ])

@@ -54,6 +54,7 @@ The `start` and `deploy` sub-commands automatically add a `FinalTask("ssh-agent"
 */
 
 import (
+	"path/filepath"
 	"strconv"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -82,6 +83,8 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		}
 
 		keyPath := args[1]
+		configDir := r.GetParameter("GOPHER_CONFIGDIR")
+		fullKeyPath := filepath.Join(configDir, keyPath)
 		timeoutMinutes := 7 // Default timeout
 
 		if len(args) > 2 {
@@ -101,7 +104,7 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		}
 
 		// Start the SSH agent with a key path
-		agentPath, handle, keyID, err := sshagent.New(keyPath, passphrase, timeoutMinutes)
+		agentPath, handle, keyID, err := sshagent.New(fullKeyPath, passphrase, timeoutMinutes)
 		if err != nil {
 			r.Log(robot.Error, "failed to start ssh-agent: "+err.Error())
 			return robot.Fail

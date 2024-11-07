@@ -1,3 +1,8 @@
+# v2.14.1 - Fixes for restore, update
+Haha! This isn't the first time I've made a minor release with significant breakage, alas. So, I fired up Clu - "Okay, Clu, tonight we check everything in the right-hand column."
+
+So, as of now, Clu seems able to save and restore his memories, and the update job works. Since my production robots are having this problem, I'll fall back on the meme: "I don't always test my code, but when I do, I test in production."
+
 # v2.14.0 - New "validate" command
 The primary goal of this release was adding a new CLI "validate" command to check the configuration files for a repository. For instance, one of my most common typos:
 ```

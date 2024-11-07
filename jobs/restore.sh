@@ -95,6 +95,8 @@ then
     Say "Starting restore of robot state..."
 fi
 
+AddTask ssh-agent "start" "ssh/$KEYNAME"
+AddTask ssh-init
 AddTask git-init "$GOPHER_STATE_REPOSITORY"
 # Not certain this will all happen within lockMax, but *shrug*
 AddTask pause-brain
