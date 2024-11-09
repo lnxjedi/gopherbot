@@ -1,14 +1,47 @@
 #!/bin/bash -e
 
-# cbot.sh - Script to simplify running Gopherbot containers
+# cbot - Script to simplify running Gopherbot containers
 
 IMAGE_NAME="ghcr.io/lnxjedi/gopherbot"
 IMAGE_TAG="latest"
 
+# Completion sub-command
+if [[ "$1" == "completion" ]]; then
+    cat <<'EOF'
+# Bash completion for cbot
+_cbot_completion() {
+    local curr_arg commands options
+    curr_arg="${COMP_WORDS[COMP_CWORD]}"
+    commands="preview profile pull start stop remove terminal update list"
+    options="-h -f -k -p -r -u"
+
+    case "${COMP_WORDS[1]}" in
+        profile)
+            COMPREPLY=( $(compgen -W "$options" -- "$curr_arg") )
+            ;;
+        list|pull|update)
+            COMPREPLY=( $(compgen -W "-h" -- "$curr_arg") )
+            ;;
+        remove|stop|terminal)
+            COMPREPLY=( $(compgen -W "$options" -- "$curr_arg") )
+            ;;
+        preview|start)
+            COMPREPLY=( $(compgen -W "$options" -- "$curr_arg") )
+            ;;
+        *)
+            COMPREPLY=( $(compgen -W "$commands" -- "$curr_arg") )
+            ;;
+    esac
+}
+complete -F _cbot_completion ./cbot
+EOF
+    exit 0
+fi
+
 usage() {
     cat <<EOF
-Usage: ./cbot.sh <command> (options...) (arguments...)
-Use './cbot.sh <command> -h' for help on a given command.
+Usage: ./cbot <command> (options...) (arguments...)
+Use './cbot <command> -h' for help on a given command.
 Commands:
 - preview: launch the preview for a terminal interface to the default robot
 - profile <robotname> <fullname> <email>: generate a robot development profile
@@ -109,13 +142,13 @@ profile )
         case $OPT in
         h ) cat <<"EOF"
 Generate a profile for working with a gopherbot robot container:
-./cbot.sh profile (-k path/to/ssh/private/key) <container-name> "<full name>" <email>
+./cbot profile (-k path/to/ssh/private/key) <container-name> "<full name>" <email>
  -k (path) - Load an ssh private key when using this profile
  -f        - Forward the local ssh-agent when using this profile
 
 Example:
-$ ./cbot.sh profile -k ~/.ssh/id_rsa bishop "David Parsley" parsley@linuxjedi.org | tee bishop.env
-## Lines starting with #| are used by the cbot.sh script
+$ ./cbot profile -k ~/.ssh/id_rsa bishop "David Parsley" parsley@linuxjedi.org | tee bishop.env
+## Lines starting with #| are used by the cbot script
 GIT_AUTHOR_NAME="David Parsley"
 GIT_AUTHOR_EMAIL=parsley@linuxjedi.org
 GIT_COMMITTER_NAME="David Parsley"
@@ -154,7 +187,7 @@ EOF
     GIT_USER="$2"
     GIT_EMAIL="$3"
     cat <<EOF
-## Lines starting with #| are used by the cbot.sh script
+## Lines starting with #| are used by the cbot script
 GIT_AUTHOR_NAME="${GIT_USER}"
 GIT_AUTHOR_EMAIL=${GIT_EMAIL}
 GIT_COMMITTER_NAME="${GIT_USER}"
@@ -181,10 +214,10 @@ list | ls )
         case $OPT in
         h ) cat <<"EOF"
 List all robot containers:
-./cbot.sh list
+./cbot list
 
 Example:
-$ ./cbot.sh list
+$ ./cbot list
 CONTAINER ID   STATUS             NAMES        environment         access
 0f50a4ce6b2a   Up 37 seconds      bishop-dev   robot/development   http://localhost:7777/?workspace=/home/bot/gopherbot.code-workspace&tkn=XXXXXXX
 1c470fd80c31   Up About an hour   clu          robot/production
@@ -205,11 +238,11 @@ remove | rm )
         case $OPT in
         h ) cat <<"EOF"
 Stop and remove a container:
-./cbot.sh remove (path/to/profile)
+./cbot remove (path/to/profile)
  -p - remove a production robot
 
 Example:
-$ ./cbot.sh remove bishop.env
+$ ./cbot remove bishop.env
 EOF
             exit 0
             ;;
@@ -240,11 +273,11 @@ stop )
         case $OPT in
         h ) cat <<"EOF"
 Stop a robot container:
-./cbot.sh stop (-p) (path/to/profile)
+./cbot stop (-p) (path/to/profile)
  -p - stop a production robot
 
 Example:
-$ ./cbot.sh stop bishop.env
+$ ./cbot stop bishop.env
 EOF
             exit 0
             ;;
@@ -275,12 +308,12 @@ term | terminal )
         case $OPT in
         h ) cat <<"EOF"
 Shell in to a robot container:
-./cbot.sh term (-p) (-r) (path/to/profile)
+./cbot term (-p) (-r) (path/to/profile)
  -p - look for a production container
  -r - connect as the "root" user
 
 Example:
-$ ./cbot.sh term -r bishop.env
+$ ./cbot term -r bishop.env
 EOF
             exit 0
             ;;
@@ -313,10 +346,10 @@ pull )
         case $OPT in
         h ) cat <<"EOF"
 Pull the most recent development and production gopherbot containers:
-./cbot.sh pull
+./cbot pull
 
 Example:
-$ ./cbot.sh pull
+$ ./cbot pull
 latest: Pulling from lnxjedi/gopherbot-dev
 ...
 EOF
@@ -337,11 +370,11 @@ update )
     while getopts ":h" OPT; do
         case $OPT in
         h ) cat <<"EOF"
-Download the latest version of the cbot.sh script, replacing the current version:
-./cbot.sh update
+Download the latest version of the cbot script, replacing the current version:
+./cbot update
 
 Example:
-$ ./cbot.sh update
+$ ./cbot update
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100 12443  100 12443    0     0   276k      0 --:--:-- --:--:-- --:--:--  282k
@@ -359,7 +392,7 @@ EOF
     # This wasn't added by OpenAI, but it seemed like a good idea to me
     unlink ${BASH_SOURCE[0]}
     # Download the new version of the script directly to the script path
-    curl -L "https://raw.githubusercontent.com/lnxjedi/gopherbot/main/cbot.sh" -o ${BASH_SOURCE[0]}
+    curl -L "https://raw.githubusercontent.com/lnxjedi/gopherbot/main/cbot" -o ${BASH_SOURCE[0]}
 
     # Make the script executable
     chmod +x ${BASH_SOURCE[0]}
@@ -371,7 +404,7 @@ preview )
         case $OPT in
         h ) cat <<"EOF"
 Preview the Gopherbot IDE and Floyd, the default robot:
-./cbot.sh preview (-u) (-r)
+./cbot preview (-u) (-r)
  -u - pull the latest container version first
  -r - stop and remove the preview container
 (Note: you'll need to connect to the localhost interface, open a terminal,
@@ -447,12 +480,12 @@ start )
         case $OPT in
         h ) cat <<"EOF"
 Start a robot container:
-./cbot.sh start (-u) (-p) (path/to/profile)
+./cbot start (-u) (-p) (path/to/profile)
  -u - pull the latest container version first
  -p - start a production robot (minimal image)
 
 Example:
-$ ./cbot.sh start bishop.env
+$ ./cbot start bishop.env
 Running 'bishop':
 Unable to find image 'ghcr.io/lnxjedi/gopherbot-dev:latest' locally
 latest: Pulling from lnxjedi/gopherbot-dev
