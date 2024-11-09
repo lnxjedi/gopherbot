@@ -1,3 +1,11 @@
+# v2.14.2 -
+
+## Support for better local dev security
+To keep from storing unencrypted values for `GOPHER_ENCRYPTION_KEY` and `GOPHER_DEPLOY_KEY` in the `<robot>.env` file, you can remove these lines and instead:
+* Start your dev container as usual
+* `code $HOME/.env` and add the encryption key and deploy key, likely from a password manager secure note
+* Remove the container when finished to remove the file
+
 # v2.14.1 - Fixes for restore, update
 Haha! This isn't the first time I've made a minor release with significant breakage, alas. So, I fired up Clu - "Okay, Clu, tonight we check everything in the right-hand column."
 
