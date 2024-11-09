@@ -61,7 +61,6 @@ host_keys = os.getenv("GOPHER_HOST_KEYS")
 insecure_clone = os.getenv("GOPHER_INSECURE_CLONE") == "true"
 
 if host_keys:
-    bot.SetParameter("GOPHER_HOST_KEYS", host_keys)
     bot.AddTask("ssh-hostkeys", ["addhostkeys", host_keys])
 else:
     bot.SetParameter("GOPHER_INSECURE_CLONE", "true" if insecure_clone else "false")
