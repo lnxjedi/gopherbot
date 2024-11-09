@@ -140,6 +140,8 @@ func sshHostKeysTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 				r.Log(robot.Error, "failed to scan host key: "+err.Error())
 				return robot.Fail
 			}
+		} else {
+			r.Log(robot.Info, "Successfully fetched ssh hostkeys for: "+repoURL)
 		}
 
 		// Set SSH_OPTIONS and GIT_SSH_COMMAND
@@ -149,10 +151,10 @@ func sshHostKeysTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 			return robot.Fail
 		}
 
+		r.Log(robot.Info, "SSH known_hosts file created successfully with handle "+handle)
 		r.SetParameter("SSH_OPTIONS", sshOptions)
 		r.SetParameter("GIT_SSH_COMMAND", "ssh "+sshOptions)
 		r.SetParameter("HOSTKEYS_HANDLE", handle)
-		r.Log(robot.Info, "SSH known_hosts file created successfully with handle "+handle)
 		r.FinalTask("ssh-hostkeys", "delete")
 		return robot.Normal
 

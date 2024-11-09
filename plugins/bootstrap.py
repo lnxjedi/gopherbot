@@ -38,26 +38,40 @@ if hasconfig:
     exit(0)
 
 clone_url = os.getenv("GOPHER_CUSTOM_REPOSITORY")
-if len(clone_url) == 0:
+if not clone_url:
     bot.Log("Warn", "GOPHER_CUSTOM_REPOSITORY not set, not bootstrapping")
     exit(0)
 
 clone_branch = os.getenv("GOPHER_CUSTOM_BRANCH")
 
 depkey = os.getenv("GOPHER_DEPLOY_KEY")
-if len(depkey) == 0:
+if not depkey:
     bot.Log("Error", "SSH required for bootstrapping and no GOPHER_DEPLOY_KEY set")
     exit(1)
 
-bot.Log("Info", "Creating bootstrap pipeline for %s" % clone_url)
+bot.Log("Info", f"Creating bootstrap pipeline for {clone_url}")
 bot.SetParameter("BOOTSTRAP", "true")
 bot.SetParameter("GOPHER_DEPLOY_KEY", depkey)
 
 # Add the ssh-agent task before git operations
 bot.AddTask("ssh-agent", ["deploy"])
-# Add ssh-init task to set SSH options
-bot.AddTask("ssh-init", [])
-bot.AddTask("git-init", [clone_url])
+
+# Add ssh-hostkeys task to handle host key verification
+host_keys = os.getenv("GOPHER_HOST_KEYS")
+insecure_clone = os.getenv("GOPHER_INSECURE_CLONE") == "true"
+
+if host_keys:
+    bot.SetParameter("GOPHER_HOST_KEYS", host_keys)
+    bot.AddTask("ssh-hostkeys", ["addhostkeys", host_keys])
+else:
+    bot.SetParameter("GOPHER_INSECURE_CLONE", "true" if insecure_clone else "false")
+    bot.AddTask("ssh-hostkeys", ["loadhostkeys", clone_url])
+
+# Remove ssh-init task as SSH_OPTIONS are now set by ssh-hostkeys task
+# bot.AddTask("ssh-init", [])
+
+# Remove git-init task as it was primarily for ssh-scan
+# bot.AddTask("git-init", [clone_url])
 
 tmp_key_name = "binary-encrypted-key"
 deploy_env = os.getenv("GOPHER_ENVIRONMENT")
