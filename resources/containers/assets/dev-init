@@ -1,27 +1,3 @@
-check-load-ssh(){
-    [ ! -e $HOME/.ssh/id_ssh ] && return
-    if ! ssh-add -l >/dev/null && [ -e $HOME/.ssh/id_ssh ]
-    then
-        echo "Loading ssh private key ..."
-        ssh-add $HOME/.ssh/id_ssh
-    fi
-    if ssh-add -l >/dev/null && [ -e $HOME/.ssh/id_ssh ]
-    then
-        echo "Removing ssh private key ..."
-        rm -f $HOME/.ssh/id_ssh
-    fi
-}
-check-clone-robot(){
-    if [ "$GOPHER_DEPLOY_KEY" -a "$GOPHER_CUSTOM_REPOSITORY" -a ! -e ~/custom ]
-    then
-        echo "Cloning $GOPHER_CUSTOM_REPOSITORY to ~/custom ..."
-        echo $GOPHER_DEPLOY_KEY | tr ':_' '\n ' > /tmp/decoded_key.pem
-        chmod 600 /tmp/decoded_key.pem
-        GIT_SSH_COMMAND="ssh -i /tmp/decoded_key.pem -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-            git clone $GOPHER_CUSTOM_REPOSITORY ~/custom
-        rm -f /tmp/decoded_key.pem
-    fi
-}
 check-load-botkey(){
     ssh-add -l > /dev/null && return
     if [ "$SSH_AUTH_SOCK" == "/ssh-agent" ]
@@ -56,8 +32,6 @@ then
     export SSH_AUTH_SOCK=$(echo /tmp/ssh-*/*)
     export SSH_AGENT_PID=$(pgrep ssh-agent)
 fi
-check-load-ssh
-check-clone-robot
 check-load-botkey
 source $HOME/.git-completion.bash
 source $HOME/.git-prompt.sh

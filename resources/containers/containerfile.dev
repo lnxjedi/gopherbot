@@ -28,6 +28,8 @@ RUN echo "source /home/${USERNAME}/.dev-init" >> /home/${USERNAME}/.bashrc && \
     sed -i -e '/\[http/,+1d' .git/config && \
     make
 
+COPY --chown=${USERNAME}:${USERNAME} assets/sshconfig /home/${USERNAME}/.ssh/config
+
 # Note: PATH for dev gets set in assets/dev-init
 ENV RUBYLIB=/opt/gopherbot/lib:/home/${USERNAME}/custom/lib \
     GEM_HOME=/home/${USERNAME}/.local \
