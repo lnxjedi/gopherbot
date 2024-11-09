@@ -1,5 +1,12 @@
 # v2.14.2 -
 
+## `cbot` script completion
+If you add (or symlink) the `cbot` script somewhere in your `$PATH`, you can add this line to your `.bashrc` for tab completion:
+```
+source <(cbot completion)
+```
+It's a little frivolous, but I've come to expect tab completion for virtually every command I use.
+
 ## Support for better local dev security
 To keep from storing unencrypted values for `GOPHER_ENCRYPTION_KEY` and `GOPHER_DEPLOY_KEY` in the `<robot>.env` file, you can remove these lines and instead:
 * Start your dev container as usual
