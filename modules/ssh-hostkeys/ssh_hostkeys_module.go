@@ -101,33 +101,25 @@ func AddHostKeys(hostKeys string) (knownHostsPath, handle string, err error) {
 
 // LoadHostKeys loads host keys for known providers based on the repository URL.
 // Currently supports GitHub.
-func LoadHostKeys(repoURL string, insecureClone bool) (knownHostsPath, handle string, err error) {
+func LoadHostKeys(repoURL string) (knownHostsPath, handle string, err error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
 	// Parse the repo URL to determine the host
-	host, err := parseHostFromRepoURL(repoURL)
+	host, err := ParseHostFromRepoURL(repoURL)
 	if err != nil {
 		return "", "", err
 	}
 
 	// Currently only support GitHub
 	if host != "github.com" {
-		if insecureClone {
-			return "", "", nil // Proceed without host keys
-		} else {
-			return "", "", fmt.Errorf("host keys for %s not found and insecure clone not allowed", host)
-		}
+		return "", "", fmt.Errorf("host keys for %s not found", host)
 	}
 
 	// Fetch GitHub's host keys
 	hostKeys, err := getGitHubHostKeys()
 	if err != nil {
-		if insecureClone {
-			return "", "", nil // Proceed without host keys
-		} else {
-			return "", "", fmt.Errorf("failed to load GitHub host keys: %w", err)
-		}
+		return "", "", fmt.Errorf("failed to load GitHub host keys: %w", err)
 	}
 
 	handle = generateHandle()
@@ -240,8 +232,8 @@ func GetHostKeys(handle string) (string, error) {
 	return string(hostKeysBytes), nil
 }
 
-// Helper function to parse the host from the repository URL
-func parseHostFromRepoURL(repoURL string) (string, error) {
+// ParseHostFromRepoURL parses the host from the repository URL and is exported for use by other modules.
+func ParseHostFromRepoURL(repoURL string) (string, error) {
 	// Handle different URL formats
 	// e.g., git@github.com:user/repo.git
 	//       ssh://git@github.com/user/repo.git
