@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -73,7 +72,7 @@ func loadTaskConfig(processed *configuration, preConnect bool) (*taskList, error
 	}
 
 	// Return disabled, error
-	checkTaskSettings := func(ts TaskSettings, task *Task) (bool, error) {
+	copyTaskSettings := func(ts TaskSettings, task *Task) (bool, error) {
 		if ts.Disabled {
 			task.Disabled = true
 			task.reason = fmt.Sprintf("disabled in %s", robotConfigFileName)
@@ -107,7 +106,10 @@ func loadTaskConfig(processed *configuration, preConnect bool) (*taskList, error
 		if (ttype == typePlugin && plug == nil) || (ttype == typeJob && job == nil) || task == nil {
 			return fmt.Errorf("configuring Go task '%s' (type %s) - no task of that type registered with that name", ts.Name, ttype)
 		}
-		_, err := checkTaskSettings(ts, task)
+		if (ttype == typePlugin) || (ttype == typeJob) {
+			task.Privileged = *ts.Privileged
+		}
+		_, err := copyTaskSettings(ts, task)
 		return err
 	}
 
@@ -150,13 +152,11 @@ func loadTaskConfig(processed *configuration, preConnect bool) (*taskList, error
 			return nil, fmt.Errorf("external task '%s' duplicates name of other external task/plugin/job", ts.Name)
 		}
 		task := &Task{
-			name:        ts.Name,
-			taskType:    taskExternal,
-			Description: ts.Description,
-			Parameters:  ts.Parameters,
+			name:     ts.Name,
+			taskType: taskExternal,
 		}
 		// Note that disabled external tasks are skipped in conf.go
-		_, err := checkTaskSettings(ts, task)
+		_, err := copyTaskSettings(ts, task)
 		if err != nil {
 			return nil, err
 		}
@@ -238,7 +238,7 @@ LoadLoop:
 			continue
 		}
 		tcfgdefault := make(map[string]interface{})
-		tcfgload := make(map[string]json.RawMessage)
+		tcfgload := make(map[string]interface{})
 		if isPlugin {
 			Log(robot.Info, "Loading configuration for plugin '%s', type %s", task.name, task.taskType)
 		} else {
@@ -287,10 +287,18 @@ LoadLoop:
 			task.reason = msg
 			continue
 		}
-		if disjson, ok := tcfgload["Disabled"]; ok {
+		if disvalue, ok := tcfgload["Disabled"]; ok {
 			disabled := false
-			if err := json.Unmarshal(disjson, &disabled); err != nil {
-				msg := fmt.Sprintf("Problem unmarshalling value for 'Disabled' in plugin/job '%s', disabling: %v", task.name, err)
+			data, err := yaml.Marshal(disvalue)
+			if err != nil {
+				msg := fmt.Sprintf("Problem marshaling value for 'Disabled' in plugin/job '%s', disabling: %v", task.name, err)
+				Log(robot.Error, msg)
+				task.Disabled = true
+				task.reason = msg
+				continue
+			}
+			if err := yaml.Unmarshal(data, &disabled); err != nil {
+				msg := fmt.Sprintf("Problem unmarshaling value for 'Disabled' in plugin/job '%s', disabling: %v", task.name, err)
 				Log(robot.Error, msg)
 				task.Disabled = true
 				task.reason = msg
@@ -349,8 +357,16 @@ LoadLoop:
 			}
 
 			if !skip {
-				if err := json.Unmarshal(value, val); err != nil {
-					msg := fmt.Sprintf("Disabling plugin '%s' - error unmarshalling value '%s': %v", task.name, key, err)
+				data, err := yaml.Marshal(value)
+				if err != nil {
+					msg := fmt.Sprintf("Disabling plugin '%s' - error marshaling value '%s': %v", task.name, key, err)
+					Log(robot.Error, msg)
+					task.Disabled = true
+					task.reason = msg
+					continue LoadLoop
+				}
+				if err := yaml.Unmarshal(data, val); err != nil {
+					msg := fmt.Sprintf("Disabling plugin '%s' - error unmarshaling value '%s': %v", task.name, key, err)
 					Log(robot.Error, msg)
 					task.Disabled = true
 					task.reason = msg
@@ -730,10 +746,18 @@ LoadLoop:
 				pt := reflect.ValueOf(pluginHandlers[task.name].Config)
 				if pt.Kind() == reflect.Ptr {
 					if task.Config != nil {
-						// reflect magic: create a pointer to a new empty config struct for the plugin
+						// Reflect magic: create a pointer to a new empty config struct for the plugin
 						task.config = reflect.New(reflect.Indirect(pt).Type()).Interface()
-						if err := json.Unmarshal(task.Config, task.config); err != nil {
-							msg := fmt.Sprintf("Unmarshalling plugin config json to config, disabling: %v", err)
+						data, err := yaml.Marshal(task.Config)
+						if err != nil {
+							msg := fmt.Sprintf("Marshaling plugin config to YAML bytes, disabling: %v", err)
+							Log(robot.Error, msg)
+							task.Disabled = true
+							task.reason = msg
+							continue
+						}
+						if err := yaml.Unmarshal(data, task.config); err != nil {
+							msg := fmt.Sprintf("Unmarshaling plugin config YAML to config struct, disabling: %v", err)
 							Log(robot.Error, msg)
 							task.Disabled = true
 							task.reason = msg

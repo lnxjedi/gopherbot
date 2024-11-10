@@ -30,6 +30,7 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 			r.AddJob("restore")
 			return robot.Normal
 		}
+		r.Log(robot.Info, "go-bootstrap found existing config directory, exiting")
 		// Configuration directory exists, no further action needed
 		return robot.Normal
 	}
@@ -66,26 +67,28 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 		r.AddTask("ssh-git-helper", "loadhostkeys", cloneURL)
 	}
 
-	// Create the .restore file to indicate restore is needed
-	restoreFile := filepath.Join(repoDir, ".restore")
-	if err := os.WriteFile(restoreFile, []byte{}, 0644); err != nil {
+	// Create the .restore file in the current working directory to indicate restore is needed
+	if err := os.WriteFile(".restore", []byte{}, 0644); err != nil {
 		r.Log(robot.Error, "failed to create .restore file: "+err.Error())
 		return robot.Fail
 	}
 
+	// Remove any temporary binary encryption keys
+	tmpKeyName := "binary-encrypted-key"
+	deployEnv := r.GetParameter("GOPHER_ENVIRONMENT")
+	if deployEnv != "production" {
+		tmpKeyName = tmpKeyName + "." + deployEnv
+	}
+	tmpKeyPath := filepath.Join(repoDir, tmpKeyName)
+	if err := os.Remove(tmpKeyPath); err != nil && !os.IsNotExist(err) {
+		r.Log(robot.Error, "failed to remove temporary key: "+err.Error())
+		return robot.Fail
+	}
+	r.Log(robot.Audit, "removed temporary key: "+tmpKeyPath)
+
 	// Clone the repository to the config directory
 	cloneBranch := r.GetParameter("GOPHER_CUSTOM_BRANCH")
 	r.AddTask("git-command", "clone", cloneURL, cloneBranch, repoDir)
-
-	// Clean up temporary deployment key if not in production
-	deployEnv := r.GetParameter("GOPHER_ENVIRONMENT")
-	if deployEnv != "production" {
-		tmpKeyPath := filepath.Join(repoDir, "binary-encrypted-key."+deployEnv)
-		if err := os.Remove(tmpKeyPath); err != nil && !os.IsNotExist(err) {
-			r.Log(robot.Error, "failed to remove temporary key: "+err.Error())
-			return robot.Fail
-		}
-	}
 
 	// Restart robot to apply changes
 	r.AddTask("restart-robot")

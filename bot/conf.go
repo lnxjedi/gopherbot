@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -9,11 +8,12 @@ import (
 	"unicode/utf8"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"gopkg.in/yaml.v3"
 )
 
 /* conf.go - methods and types for reading and storing json configuration */
 
-var protocolConfig, brainConfig, historyConfig json.RawMessage
+var protocolConfig, brainConfig, historyConfig interface{}
 
 // ConfigLoader defines 'bot configuration, and is read from conf/robot.yaml
 // Digested content ends up in currentCfg, see bot_process.go.
@@ -22,16 +22,16 @@ type ConfigLoader struct {
 	AdminContact         string                  `yaml:"AdminContact"`         // Contact info for whomever administers the robot
 	MailConfig           botMailer               `yaml:"MailConfig"`           // Configuration for sending email
 	Protocol             string                  `yaml:"Protocol"`             // Name of the connector protocol to use, e.g., "slack"
-	ProtocolConfig       json.RawMessage         `yaml:"ProtocolConfig"`       // Protocol-specific configuration, for unmarshalling arbitrary config
+	ProtocolConfig       interface{}             `yaml:"ProtocolConfig"`       // Protocol-specific configuration, for unmarshalling arbitrary config
 	BotInfo              *UserInfo               `yaml:"BotInfo"`              // Information about the robot
 	UserRoster           []UserInfo              `yaml:"UserRoster"`           // List of users and related attributes
 	ChannelRoster        []ChannelInfo           `yaml:"ChannelRoster"`        // List of channels mapping names to IDs
 	Brain                string                  `yaml:"Brain"`                // Type of Brain to use
-	BrainConfig          json.RawMessage         `yaml:"BrainConfig"`          // Brain-specific configuration, for unmarshalling arbitrary config
+	BrainConfig          interface{}             `yaml:"BrainConfig"`          // Brain-specific configuration, for unmarshalling arbitrary config
 	EncryptBrain         bool                    `yaml:"EncryptBrain"`         // Whether the brain should be encrypted
 	EncryptionKey        string                  `yaml:"EncryptionKey"`        // Used to decrypt the "real" encryption key
 	HistoryProvider      string                  `yaml:"HistoryProvider"`      // Name of provider to use for storing and retrieving job/plugin histories
-	HistoryConfig        json.RawMessage         `yaml:"HistoryConfig"`        // History provider-specific configuration
+	HistoryConfig        interface{}             `yaml:"HistoryConfig"`        // History provider-specific configuration
 	WorkSpace            string                  `yaml:"WorkSpace"`            // Read/Write area the robot uses to do work
 	DefaultElevator      string                  `yaml:"DefaultElevator"`      // Elevator plugin for ElevatedCommands and ElevateImmediateCommands
 	DefaultAuthorizer    string                  `yaml:"DefaultAuthorizer"`    // Authorizer plugin for AuthorizedCommands, or when AuthorizeAllCommands = true
@@ -115,7 +115,7 @@ func loadConfig(preConnect bool) error {
 	newconfig.ExternalJobs = make(map[string]TaskSettings)
 	newconfig.ExternalPlugins = make(map[string]TaskSettings)
 	newconfig.ExternalTasks = make(map[string]TaskSettings)
-	configload := make(map[string]json.RawMessage)
+	configload := make(map[string]interface{})
 	processed := &configuration{}
 
 	if err := getConfigFile(robotConfigFileName, true, configload); err != nil {
@@ -166,8 +166,14 @@ func loadConfig(preConnect bool) error {
 			return err
 		}
 		if !skip {
-			if err := json.Unmarshal(value, val); err != nil {
-				err = fmt.Errorf("Unmarshalling bot config value \"%s\": %v", key, err)
+			data, err := yaml.Marshal(value)
+			if err != nil {
+				err = fmt.Errorf("marshalling bot config value \"%s\": %v", key, err)
+				Log(robot.Error, err.Error())
+				return err
+			}
+			if err := yaml.Unmarshal(data, val); err != nil {
+				err = fmt.Errorf("unmarshalling bot config value \"%s\": %v", key, err)
 				Log(robot.Error, err.Error())
 				return err
 			}
@@ -261,7 +267,7 @@ func loadConfig(preConnect bool) error {
 	if newconfig.Protocol != "" {
 		processed.protocol = newconfig.Protocol
 	} else {
-		return fmt.Errorf("Protocol not specified in %s", robotConfigFileName)
+		return fmt.Errorf("protocol not specified in %s", robotConfigFileName)
 	}
 	if newconfig.Brain != "" {
 		processed.brainProvider = newconfig.Brain
@@ -279,7 +285,7 @@ func loadConfig(preConnect bool) error {
 	if newconfig.Alias != "" {
 		alias, _ := utf8.DecodeRuneInString(newconfig.Alias)
 		if !strings.ContainsRune(string(aliases+escapeAliases), alias) {
-			return fmt.Errorf("Invalid alias specified, ignoring. Must be one of: %s%s", escapeAliases, aliases)
+			return fmt.Errorf("invalid alias specified, ignoring. Must be one of: %s%s", escapeAliases, aliases)
 		}
 		processed.alias = alias
 	}
@@ -345,6 +351,7 @@ func loadConfig(preConnect bool) error {
 				continue
 			}
 			task.Name = name
+			// Plugins default to unprivileged
 			if task.Privileged == nil {
 				p := false
 				task.Privileged = &p
@@ -360,6 +367,7 @@ func loadConfig(preConnect bool) error {
 				continue
 			}
 			task.Name = name
+			// Jobs default to privileged
 			if task.Privileged == nil {
 				p := true
 				task.Privileged = &p
@@ -398,6 +406,11 @@ func loadConfig(preConnect bool) error {
 		gt := make([]TaskSettings, 0, len(newconfig.GoPlugins))
 		for name, task := range newconfig.GoPlugins {
 			task.Name = name
+			// Plugins default to unprivileged
+			if task.Privileged == nil {
+				p := false
+				task.Privileged = &p
+			}
 			gt = append(gt, task)
 		}
 		processed.goPlugins = gt
@@ -406,6 +419,11 @@ func loadConfig(preConnect bool) error {
 		gt := make([]TaskSettings, 0, len(newconfig.GoJobs))
 		for name, task := range newconfig.GoJobs {
 			task.Name = name
+			// Jobs default to privileged
+			if task.Privileged == nil {
+				p := true
+				task.Privileged = &p
+			}
 			gt = append(gt, task)
 		}
 		processed.goJobs = gt

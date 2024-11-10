@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -168,7 +167,7 @@ func expand(dir string, custom bool, in []byte) (out []byte, err error) {
 
 // getConfigFile loads a config file first from installPath, then from configPath
 // if set. Required indicates whether to return an error if neither file is found.
-func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMessage, prev ...map[string]interface{}) error {
+func getConfigFile(filename string, required bool, yamlMap map[string]interface{}, prev ...map[string]interface{}) error {
 	var (
 		cf           []byte
 		err, realerr error
@@ -243,8 +242,16 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 			realerr = err
 		}
 	}
-	jsonData, _ := json.Marshal(cfg)
-	json.Unmarshal(jsonData, &jsonMap)
+	yamlData, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("marshaling merged config to YAML: %v", err)
+	}
+
+	// Unmarshal into map[string]interface{}
+	if err := yaml.Unmarshal(yamlData, &yamlMap); err != nil {
+		return fmt.Errorf("unmarshalling into yamlMap: %v", err)
+	}
+
 	if required && !loaded {
 		return realerr
 	}
