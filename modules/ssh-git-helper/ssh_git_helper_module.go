@@ -76,17 +76,17 @@ func generateHandle() string {
 }
 
 // AddHostKeys adds provided host keys to a new known_hosts file and returns the path and handle.
-func AddHostKeys(hostKeys string) (knownHostsPath, handle string, err error) {
+func AddHostKeys(hostKeys string) (handle string, err error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
 	handle = generateHandle()
-	knownHostsPath = filepath.Join(knownHostsDirPath, handle)
+	knownHostsPath := filepath.Join(knownHostsDirPath, handle)
 
 	// Write the host keys to the known_hosts file
 	err = os.WriteFile(knownHostsPath, []byte(hostKeys), 0600)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to write known_hosts file: %w", err)
+		return "", fmt.Errorf("failed to write known_hosts file: %w", err)
 	}
 
 	instance := &HostKeysInstance{
@@ -96,39 +96,39 @@ func AddHostKeys(hostKeys string) (knownHostsPath, handle string, err error) {
 
 	manager.hosts[handle] = instance
 
-	return knownHostsPath, handle, nil
+	return handle, nil
 }
 
 // LoadHostKeys loads host keys for known providers based on the repository URL.
 // Currently supports GitHub.
-func LoadHostKeys(repoURL string) (knownHostsPath, handle string, err error) {
+func LoadHostKeys(repoURL string) (handle string, err error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
 	// Parse the repo URL to determine the host
 	host, err := ParseHostFromRepoURL(repoURL)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 
 	// Currently only support GitHub
 	if host != "github.com" {
-		return "", "", fmt.Errorf("host keys for %s not found", host)
+		return "", fmt.Errorf("host keys for %s not found", host)
 	}
 
 	// Fetch GitHub's host keys
 	hostKeys, err := getGitHubHostKeys()
 	if err != nil {
-		return "", "", fmt.Errorf("failed to load GitHub host keys: %w", err)
+		return "", fmt.Errorf("failed to load GitHub host keys: %w", err)
 	}
 
 	handle = generateHandle()
-	knownHostsPath = filepath.Join(knownHostsDirPath, handle)
+	knownHostsPath := filepath.Join(knownHostsDirPath, handle)
 
 	// Write the host keys to the known_hosts file
 	err = os.WriteFile(knownHostsPath, []byte(hostKeys), 0600)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to write known_hosts file: %w", err)
+		return "", fmt.Errorf("failed to write known_hosts file: %w", err)
 	}
 
 	instance := &HostKeysInstance{
@@ -138,22 +138,22 @@ func LoadHostKeys(repoURL string) (knownHostsPath, handle string, err error) {
 
 	manager.hosts[handle] = instance
 
-	return knownHostsPath, handle, nil
+	return handle, nil
 }
 
 // ScanHost scans the host to retrieve its host key and writes it to a known_hosts file.
-func ScanHost(host string) (knownHostsPath, handle string, err error) {
+func ScanHost(host string) (handle string, err error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
 	handle = generateHandle()
-	knownHostsPath = filepath.Join(knownHostsDirPath, handle)
+	knownHostsPath := filepath.Join(knownHostsDirPath, handle)
 
 	// Use net.Dial to connect to the host's SSH port and retrieve the host key
 	addr := net.JoinHostPort(host, "22")
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to connect to %s: %w", addr, err)
+		return "", fmt.Errorf("failed to connect to %s: %w", addr, err)
 	}
 	defer conn.Close()
 
@@ -171,7 +171,7 @@ func ScanHost(host string) (knownHostsPath, handle string, err error) {
 	}
 	sshConn, _, _, err := ssh.NewClientConn(conn, host, config)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to perform SSH handshake with %s: %w", host, err)
+		return "", fmt.Errorf("failed to perform SSH handshake with %s: %w", host, err)
 	}
 	defer sshConn.Close()
 
@@ -181,7 +181,7 @@ func ScanHost(host string) (knownHostsPath, handle string, err error) {
 	// Write the known_hosts line to the file
 	err = os.WriteFile(knownHostsPath, []byte(hostKeyEntry+"\n"), 0600)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to write known_hosts file: %w", err)
+		return "", fmt.Errorf("failed to write known_hosts file: %w", err)
 	}
 
 	instance := &HostKeysInstance{
@@ -191,7 +191,7 @@ func ScanHost(host string) (knownHostsPath, handle string, err error) {
 
 	manager.hosts[handle] = instance
 
-	return knownHostsPath, handle, nil
+	return handle, nil
 }
 
 // Delete removes the known_hosts file associated with the handle.
@@ -230,6 +230,19 @@ func GetHostKeys(handle string) (string, error) {
 	}
 
 	return string(hostKeysBytes), nil
+}
+
+// GetKnownHostsPath returns the path to the known hosts file
+// associated with the handle.
+func GetKnownHostsPath(handle string) (string, error) {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+
+	instance, exists := manager.hosts[handle]
+	if !exists {
+		return "", errors.New("host keys handle not found")
+	}
+	return instance.knownHostsPath, nil
 }
 
 // ParseHostFromRepoURL parses the host from the repository URL and is exported for use by other modules.

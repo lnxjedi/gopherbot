@@ -8,7 +8,7 @@ This task is available only in privileged pipelines and allows for secure SSH ho
 
 The `ssh-git-helper` task supports the following sub-commands:
 
-- **addhostkeys**: Adds provided host keys to a known_hosts file and sets SSH_OPTIONS for the pipeline.
+- **addhostkeys**: Adds provided host keys to a known_hosts file.
   - **Arguments**:
     - `hostKeys`: Host keys provided as a single encoded string.
   - **Example**:
@@ -24,13 +24,22 @@ The `ssh-git-helper` task supports the following sub-commands:
     AddTask("ssh-git-helper", "loadhostkeys", "git@github.com:user/repo.git")
     ```
 
-- **scan**: Scans a host to retrieve its host key and sets SSH_OPTIONS for the pipeline.
+- **scan**: Scans a host to retrieve its host key and adds it to a known_hosts file.
   - **Arguments**:
     - `host`: The hostname to scan.
   - **Example**:
     ```yaml
     AddTask("ssh-git-helper", "scan", "example.com")
     ```
+
+- **publishenv**: Publishes environment variables needed for SSH and Git commands to recognize the created known_hosts file.
+  - **Example**:
+    ```yaml
+    AddTask("ssh-git-helper", "publishenv")
+    ```
+  - **Environment Variables Set**:
+    - `GIT_SSH_COMMAND`: Configures Git to use SSH with the options defined by `SSH_OPTIONS`.
+    - `SSH_OPTIONS`: Contains SSH options, including the path to the custom known_hosts file, for direct SSH commands in the pipeline.
 
 - **delete**: Deletes the known_hosts file associated with the handle.
   - **Example**:
@@ -51,7 +60,6 @@ The `addhostkeys`, `loadhostkeys`, and `scan` sub-commands automatically add a `
 
 - The task is only available in privileged pipelines.
 - Ensure the `GOPHER_HOSTKEYS` parameter is securely set when using `addhostkeys`.
-
 */
 
 import (
@@ -61,7 +69,7 @@ import (
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	sshhostkeys "github.com/lnxjedi/gopherbot/v2/modules/ssh-git-helper"
+	sshgithelper "github.com/lnxjedi/gopherbot/v2/modules/ssh-git-helper"
 )
 
 func init() {
@@ -79,134 +87,94 @@ func sshHostKeysTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	subCommand := args[0]
 
 	switch subCommand {
-	case "addhostkeys":
+	case "addhostkeys", "loadhostkeys", "scan":
+		// Handle host keys management sub-commands
 		if len(args) < 2 {
-			r.Log(robot.Error, "missing host keys for ssh-git-helper addhostkeys command")
+			r.Log(robot.Error, "missing required argument for "+subCommand+" command")
 			return robot.Fail
 		}
+		return handleHostKeysSubCommand(r, subCommand, args[1])
 
-		hostKeysEncoded := args[1]
-
-		// Decode hostKeysEncoded (spaces replaced by underscores, colons replaced by newlines)
-		hostKeys := decodeHostKeys(hostKeysEncoded)
-
-		knownHostsPath, handle, err := sshhostkeys.AddHostKeys(hostKeys)
-		if err != nil {
-			r.Log(robot.Error, "failed to add host keys: "+err.Error())
-			return robot.Fail
-		}
-
-		// Set SSH_OPTIONS and GIT_SSH_COMMAND
-		sshOptions, err := buildSSHOptions(r, knownHostsPath)
-		if err != nil {
-			r.Log(robot.Error, "failed to build SSH options: "+err.Error())
-			return robot.Fail
-		}
-
-		r.SetParameter("SSH_OPTIONS", sshOptions)
-		r.SetParameter("GIT_SSH_COMMAND", "ssh "+sshOptions)
-		r.SetParameter("HOSTKEYS_HANDLE", handle)
-		r.Log(robot.Info, "SSH known_hosts file created successfully with handle "+handle)
-		r.FinalTask("ssh-git-helper", "delete")
-		return robot.Normal
-
-	case "loadhostkeys":
-		if len(args) < 2 {
-			r.Log(robot.Error, "missing repository URL for ssh-git-helper loadhostkeys command")
-			return robot.Fail
-		}
-
-		repoURL := args[1]
-
-		insecureCloneStr := r.GetParameter("GOPHER_INSECURE_CLONE")
-		insecureClone := insecureCloneStr == "true"
-
-		knownHostsPath, handle, err := sshhostkeys.LoadHostKeys(repoURL)
-		if err != nil {
-			r.Log(robot.Warn, "failed to load host keys automatically: "+err.Error())
-			if !insecureClone {
-				r.Log(robot.Error, "host not recognized and GOPHER_INSECURE_CLONE is not set to 'true'; cannot proceed")
-				return robot.Fail
-			}
-			// Fallback to scanning the host
-			host, parseErr := sshhostkeys.ParseHostFromRepoURL(repoURL)
-			if parseErr != nil {
-				r.Log(robot.Error, "failed to parse repository URL: "+parseErr.Error())
-				return robot.Fail
-			}
-			r.Log(robot.Warn, "GOPHER_INSECURE_CLONE='true' - proceeding to scan host key for "+host+". This may expose the connection to security risks.")
-			knownHostsPath, handle, err = sshhostkeys.ScanHost(host)
-			if err != nil {
-				r.Log(robot.Error, "failed to scan host key: "+err.Error())
-				return robot.Fail
-			}
-		} else {
-			r.Log(robot.Info, "Successfully fetched ssh hostkeys for: "+repoURL)
-		}
-
-		// Set SSH_OPTIONS and GIT_SSH_COMMAND
-		sshOptions, err := buildSSHOptions(r, knownHostsPath)
-		if err != nil {
-			r.Log(robot.Error, "failed to build SSH options: "+err.Error())
-			return robot.Fail
-		}
-
-		r.Log(robot.Info, "SSH known_hosts file created successfully with handle "+handle)
-		r.SetParameter("SSH_OPTIONS", sshOptions)
-		r.SetParameter("GIT_SSH_COMMAND", "ssh "+sshOptions)
-		r.SetParameter("HOSTKEYS_HANDLE", handle)
-		r.FinalTask("ssh-git-helper", "delete")
-		return robot.Normal
-
-	case "scan":
-		if len(args) < 2 {
-			r.Log(robot.Error, "missing host for ssh-git-helper scan command")
-			return robot.Fail
-		}
-
-		host := args[1]
-
-		knownHostsPath, handle, err := sshhostkeys.ScanHost(host)
-		if err != nil {
-			r.Log(robot.Error, "failed to scan host key: "+err.Error())
-			return robot.Fail
-		}
-
-		// Set SSH_OPTIONS and GIT_SSH_COMMAND
-		sshOptions, err := buildSSHOptions(r, knownHostsPath)
-		if err != nil {
-			r.Log(robot.Error, "failed to build SSH options: "+err.Error())
-			return robot.Fail
-		}
-
-		r.SetParameter("SSH_OPTIONS", sshOptions)
-		r.SetParameter("GIT_SSH_COMMAND", "ssh "+sshOptions)
-		r.SetParameter("HOSTKEYS_HANDLE", handle)
-		r.Log(robot.Info, "SSH known_hosts file created successfully with handle "+handle)
-		r.FinalTask("ssh-git-helper", "delete")
-		return robot.Normal
+	case "publishenv":
+		// Publish environment variables for SSH and Git
+		return publishEnvVars(r)
 
 	case "delete":
-		// Retrieve the hostkeys handle from the parameter
-		handle := r.GetParameter("HOSTKEYS_HANDLE")
-		if handle == "" {
-			r.Log(robot.Error, "no handle found in HOSTKEYS_HANDLE parameter for deleting the known_hosts file")
-			return robot.Fail
-		}
-
-		err := sshhostkeys.Delete(handle)
-		if err != nil {
-			r.Log(robot.Error, "failed to delete known_hosts file: "+err.Error())
-			return robot.Fail
-		}
-
-		r.Log(robot.Info, "SSH known_hosts file deleted successfully with handle "+handle)
-		return robot.Normal
+		// Handle delete known_hosts file
+		return handleDelete(r)
 
 	default:
 		r.Log(robot.Error, "unknown sub-command for ssh-git-helper task: "+subCommand)
 		return robot.Fail
 	}
+}
+
+func handleHostKeysSubCommand(r robot.Robot, subCommand string, arg string) (retval robot.TaskRetVal) {
+
+	var (
+		handle string
+		err    error
+	)
+
+	switch subCommand {
+	case "addhostkeys":
+		hostKeysEncoded := arg
+		hostKeys := decodeHostKeys(hostKeysEncoded)
+		handle, err = sshgithelper.AddHostKeys(hostKeys)
+	case "loadhostkeys":
+		repoURL := arg
+		handle, err = sshgithelper.LoadHostKeys(repoURL)
+	case "scan":
+		host := arg
+		handle, err = sshgithelper.ScanHost(host)
+	}
+
+	if err != nil {
+		r.Log(robot.Error, "failed to process "+subCommand+": "+err.Error())
+		return robot.Fail
+	}
+
+	r.SetParameter("_HOSTKEYS_HANDLE", handle)
+	r.Log(robot.Info, "SSH known_hosts file created successfully with handle "+handle)
+	r.FinalTask("ssh-git-helper", "delete")
+	return robot.Normal
+}
+
+func publishEnvVars(r robot.Robot) robot.TaskRetVal {
+	knownHostsHandle := r.GetParameter("_HOSTKEYS_HANDLE")
+	knownHostsPath, err := sshgithelper.GetKnownHostsPath(knownHostsHandle)
+	if err != nil {
+		r.Log(robot.Error, "failed to obtain known_hosts path: "+err.Error())
+		return robot.Fail
+	}
+
+	sshOptions, err := buildSSHOptions(r, knownHostsPath)
+	if err != nil {
+		r.Log(robot.Error, "failed to build SSH options: "+err.Error())
+		return robot.Fail
+	}
+
+	r.SetParameter("SSH_OPTIONS", sshOptions)
+	r.SetParameter("GIT_SSH_COMMAND", "ssh "+sshOptions)
+	r.Log(robot.Info, "Environment variables published successfully for SSH and Git")
+	return robot.Normal
+}
+
+func handleDelete(r robot.Robot) robot.TaskRetVal {
+	handle := r.GetParameter("_HOSTKEYS_HANDLE")
+	if handle == "" {
+		r.Log(robot.Error, "no handle found in _HOSTKEYS_HANDLE parameter for deleting the known_hosts file")
+		return robot.Fail
+	}
+
+	err := sshgithelper.Delete(handle)
+	if err != nil {
+		r.Log(robot.Error, "failed to delete known_hosts file: "+err.Error())
+		return robot.Fail
+	}
+
+	r.Log(robot.Info, "SSH known_hosts file deleted successfully with handle "+handle)
+	return robot.Normal
 }
 
 // Helper function to decode host keys from encoded string
@@ -220,11 +188,9 @@ func decodeHostKeys(encoded string) string {
 func buildSSHOptions(r robot.Robot, knownHostsPath string) (string, error) {
 	sshOptions := "-o PasswordAuthentication=no"
 
-	// Check for $GOPHER_CONFIGDIR/ssh/config
 	configDir := r.GetParameter("GOPHER_CONFIGDIR")
 	sshConfigPath := filepath.Join(configDir, "ssh", "config")
 	if _, err := os.Stat(sshConfigPath); err == nil {
-		// File exists
 		err = os.Chmod(sshConfigPath, 0600)
 		if err != nil {
 			return "", fmt.Errorf("failed to set permissions on ssh config: %w", err)
@@ -233,6 +199,5 @@ func buildSSHOptions(r robot.Robot, knownHostsPath string) (string, error) {
 	}
 
 	sshOptions += fmt.Sprintf(" -o UserKnownHostsFile=%s", knownHostsPath)
-
 	return sshOptions, nil
 }

@@ -20,7 +20,7 @@ The `ssh-agent` task supports the following sub-commands:
     AddTask("ssh-agent", "start", "/path/to/private_key", "10")
     ```
 
-- **stop**: Stops the SSH agent using the handle stored in the `SSH_AGENT_HANDLE` parameter. This ensures the agent is cleaned up after use. **NOTE:** This is automatically added as a `FinalTask` by "start" and "deploy", and so isn't normally needed for user add-ons.
+- **stop**: Stops the SSH agent using the handle stored in the `_SSH_AGENT_HANDLE` parameter. This ensures the agent is cleaned up after use. **NOTE:** This is automatically added as a `FinalTask` by "start" and "deploy", and so isn't normally needed for user add-ons.
   - **Example**:
     ```yaml
     AddTask("ssh-agent", "stop")
@@ -112,16 +112,16 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 
 		// Publish SSH_AUTH_SOCK for the pipeline
 		r.SetParameter("SSH_AUTH_SOCK", agentPath)
-		r.SetParameter("SSH_AGENT_HANDLE", handle)
+		r.SetParameter("_SSH_AGENT_HANDLE", handle)
 		r.Log(robot.Info, "SSH agent started successfully with key '%s' and handle "+handle, keyID)
 		r.FinalTask("ssh-agent", "stop")
 		return robot.Normal
 
 	case "stop":
 		// Retrieve the agent handle from the parameter
-		handle := r.GetParameter("SSH_AGENT_HANDLE")
+		handle := r.GetParameter("_SSH_AGENT_HANDLE")
 		if handle == "" {
-			r.Log(robot.Error, "no handle found in SSH_AGENT_HANDLE parameter for stopping the ssh-agent")
+			r.Log(robot.Error, "no handle found in _SSH_AGENT_HANDLE parameter for stopping the ssh-agent")
 			return robot.Fail
 		}
 
@@ -161,7 +161,7 @@ func sshAgentTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 
 		// Publish SSH_AUTH_SOCK for the pipeline
 		r.SetParameter("SSH_AUTH_SOCK", agentPath)
-		r.SetParameter("SSH_AGENT_HANDLE", handle)
+		r.SetParameter("_SSH_AGENT_HANDLE", handle)
 		r.Log(robot.Info, "SSH agent with deployment key started successfully with key '%s' and handle "+handle, keyID)
 		r.FinalTask("ssh-agent", "stop")
 		return robot.Normal

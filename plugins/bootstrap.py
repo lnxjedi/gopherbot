@@ -66,6 +66,9 @@ else:
     bot.SetParameter("GOPHER_INSECURE_CLONE", "true" if insecure_clone else "false")
     bot.AddTask("ssh-git-helper", ["loadhostkeys", clone_url])
 
+# Set SSH_OPTIONS and GIT_SSH_COMMAND 
+bot.AddTask("ssh-git-helper", ["publishenv"])
+
 # Remove ssh-init task as SSH_OPTIONS are now set by ssh-git-helper task
 # bot.AddTask("ssh-init", [])
 
