@@ -22,6 +22,7 @@ import (
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
 
 	// *** Included Go tasks external to the main engine
+	_ "github.com/lnxjedi/gopherbot/v2/gotasks/git-command"
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/ssh-agent"
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/ssh-git-helper"
 

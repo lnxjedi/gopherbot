@@ -53,10 +53,10 @@ bot.Log("Info", f"Creating bootstrap pipeline for {clone_url}")
 bot.SetParameter("BOOTSTRAP", "true")
 bot.SetParameter("GOPHER_DEPLOY_KEY", depkey)
 
-# Add the ssh-agent task before git operations
+# Ensure that ssh-agent is running with the deployment key
 bot.AddTask("ssh-agent", ["deploy"])
 
-# Add ssh-git-helper task to handle host key verification
+# Handle host key verification
 host_keys = os.getenv("GOPHER_HOST_KEYS")
 insecure_clone = os.getenv("GOPHER_INSECURE_CLONE") == "true"
 
@@ -66,23 +66,23 @@ else:
     bot.SetParameter("GOPHER_INSECURE_CLONE", "true" if insecure_clone else "false")
     bot.AddTask("ssh-git-helper", ["loadhostkeys", clone_url])
 
-# Set SSH_OPTIONS and GIT_SSH_COMMAND 
-bot.AddTask("ssh-git-helper", ["publishenv"])
-
-# Remove ssh-init task as SSH_OPTIONS are now set by ssh-git-helper task
+# Remove ssh-init and git-init tasks as they are no longer needed
 # bot.AddTask("ssh-init", [])
-
-# Remove git-init task as it was primarily for ssh-scan
 # bot.AddTask("git-init", [clone_url])
 
+# Remove any temporary deployment keys
 tmp_key_name = "binary-encrypted-key"
 deploy_env = os.getenv("GOPHER_ENVIRONMENT")
 if deploy_env != "production":
     tmp_key_name += "." + deploy_env
 tkey = os.path.join(cfgdir, tmp_key_name)
 bot.AddTask("exec", ["rm", "-f", tkey])
-# touch restore even if GOPHER_BRAIN != file;
-# backup and restore will check and exit
+
+# Touch .restore to trigger restore if needed
 bot.AddTask("exec", ["touch", ".restore"])
-bot.AddTask("git-clone", [clone_url, clone_branch, cfgdir, "true"])
+
+# Use the new git-command task with the clone subcommand
+bot.AddTask("git-command", ["clone", clone_url, clone_branch, cfgdir])
+
+# Restart the robot to apply changes
 bot.AddTask("restart-robot", [])
