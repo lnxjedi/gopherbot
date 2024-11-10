@@ -67,11 +67,11 @@ fi
 SetWorkingDirectory "$GOPHER_CONFIGDIR"
 AddTask ssh-agent start "${GOPHER_CONFIGDIR}/ssh/${KEYNAME}"
 if [ -n "$GOPHER_HOST_KEYS" ]; then
-    AddTask "ssh-hostkeys" "addhostkeys" "$GOPHER_HOST_KEYS"
+    AddTask "ssh-git-helper" "addhostkeys" "$GOPHER_HOST_KEYS"
 else
     # Not needed but it clarifies behavior
     SetParameter "GOPHER_INSECURE_CLONE" "$GOPHER_INSECURE_CLONE"
-    AddTask "ssh-hostkeys" "loadhostkeys" "$GOPHER_CUSTOM_REPOSITORY"
+    AddTask "ssh-git-helper" "loadhostkeys" "$GOPHER_CUSTOM_REPOSITORY"
 fi
 if [ "$NEWREPO" ]
 then

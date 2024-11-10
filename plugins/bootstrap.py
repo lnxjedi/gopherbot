@@ -56,17 +56,17 @@ bot.SetParameter("GOPHER_DEPLOY_KEY", depkey)
 # Add the ssh-agent task before git operations
 bot.AddTask("ssh-agent", ["deploy"])
 
-# Add ssh-hostkeys task to handle host key verification
+# Add ssh-git-helper task to handle host key verification
 host_keys = os.getenv("GOPHER_HOST_KEYS")
 insecure_clone = os.getenv("GOPHER_INSECURE_CLONE") == "true"
 
 if host_keys:
-    bot.AddTask("ssh-hostkeys", ["addhostkeys", host_keys])
+    bot.AddTask("ssh-git-helper", ["addhostkeys", host_keys])
 else:
     bot.SetParameter("GOPHER_INSECURE_CLONE", "true" if insecure_clone else "false")
-    bot.AddTask("ssh-hostkeys", ["loadhostkeys", clone_url])
+    bot.AddTask("ssh-git-helper", ["loadhostkeys", clone_url])
 
-# Remove ssh-init task as SSH_OPTIONS are now set by ssh-hostkeys task
+# Remove ssh-init task as SSH_OPTIONS are now set by ssh-git-helper task
 # bot.AddTask("ssh-init", [])
 
 # Remove git-init task as it was primarily for ssh-scan

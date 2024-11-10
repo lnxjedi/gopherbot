@@ -23,7 +23,7 @@ import (
 
 	// *** Included Go tasks external to the main engine
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/ssh-agent"
-	_ "github.com/lnxjedi/gopherbot/v2/gotasks/ssh-hostkeys"
+	_ "github.com/lnxjedi/gopherbot/v2/gotasks/ssh-git-helper"
 
 	// *** Default Slack connector
 	_ "github.com/lnxjedi/gopherbot/v2/connectors/slack"

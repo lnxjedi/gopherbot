@@ -96,8 +96,13 @@ then
 fi
 
 AddTask ssh-agent "start" "ssh/$KEYNAME"
-AddTask ssh-init
-AddTask git-init "$GOPHER_STATE_REPOSITORY"
+if [ -n "$GOPHER_HOST_KEYS" ]; then
+    AddTask "ssh-git-helper" "addhostkeys" "$GOPHER_HOST_KEYS"
+else
+    # Not needed but it clarifies behavior
+    SetParameter "GOPHER_INSECURE_CLONE" "$GOPHER_INSECURE_CLONE"
+    AddTask "ssh-git-helper" "loadhostkeys" "$GOPHER_CUSTOM_REPOSITORY"
+fi
 # Not certain this will all happen within lockMax, but *shrug*
 AddTask pause-brain
 FailTask resume-brain

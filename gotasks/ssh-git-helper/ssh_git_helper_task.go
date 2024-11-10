@@ -1,19 +1,19 @@
 package hostkeys
 
 /*
-Package hostkeys provides the Gopherbot 'ssh-hostkeys' task for managing SSH known_hosts files within pipelines.
+Package hostkeys provides the Gopherbot 'ssh-git-helper' task for managing SSH known_hosts files within pipelines.
 This task is available only in privileged pipelines and allows for secure SSH host verification handling through known_hosts management.
 
 ### Usage
 
-The `ssh-hostkeys` task supports the following sub-commands:
+The `ssh-git-helper` task supports the following sub-commands:
 
 - **addhostkeys**: Adds provided host keys to a known_hosts file and sets SSH_OPTIONS for the pipeline.
   - **Arguments**:
     - `hostKeys`: Host keys provided as a single encoded string.
   - **Example**:
     ```yaml
-    AddTask("ssh-hostkeys", "addhostkeys", "<encoded-host-keys>")
+    AddTask("ssh-git-helper", "addhostkeys", "<encoded-host-keys>")
     ```
 
 - **loadhostkeys**: Loads host keys for known providers based on the repository URL.
@@ -21,7 +21,7 @@ The `ssh-hostkeys` task supports the following sub-commands:
     - `repoURL`: The repository URL to parse and load host keys for.
   - **Example**:
     ```yaml
-    AddTask("ssh-hostkeys", "loadhostkeys", "git@github.com:user/repo.git")
+    AddTask("ssh-git-helper", "loadhostkeys", "git@github.com:user/repo.git")
     ```
 
 - **scan**: Scans a host to retrieve its host key and sets SSH_OPTIONS for the pipeline.
@@ -29,13 +29,13 @@ The `ssh-hostkeys` task supports the following sub-commands:
     - `host`: The hostname to scan.
   - **Example**:
     ```yaml
-    AddTask("ssh-hostkeys", "scan", "example.com")
+    AddTask("ssh-git-helper", "scan", "example.com")
     ```
 
 - **delete**: Deletes the known_hosts file associated with the handle.
   - **Example**:
     ```yaml
-    AddTask("ssh-hostkeys", "delete")
+    AddTask("ssh-git-helper", "delete")
     ```
 
 ### Task Return Values
@@ -45,7 +45,7 @@ The `ssh-hostkeys` task supports the following sub-commands:
 
 ### Final Task
 
-The `addhostkeys`, `loadhostkeys`, and `scan` sub-commands automatically add a `FinalTask("ssh-hostkeys", "delete")` to ensure the known_hosts file is cleaned up after the pipeline completes.
+The `addhostkeys`, `loadhostkeys`, and `scan` sub-commands automatically add a `FinalTask("ssh-git-helper", "delete")` to ensure the known_hosts file is cleaned up after the pipeline completes.
 
 ### Prerequisites
 
@@ -61,18 +61,18 @@ import (
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	sshhostkeys "github.com/lnxjedi/gopherbot/v2/modules/ssh-hostkeys"
+	sshhostkeys "github.com/lnxjedi/gopherbot/v2/modules/ssh-git-helper"
 )
 
 func init() {
-	robot.RegisterTask("ssh-hostkeys", true, robot.TaskHandler{
+	robot.RegisterTask("ssh-git-helper", true, robot.TaskHandler{
 		Handler: sshHostKeysTask,
 	})
 }
 
 func sshHostKeysTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	if len(args) < 1 {
-		r.Log(robot.Error, "no sub-command provided to ssh-hostkeys task")
+		r.Log(robot.Error, "no sub-command provided to ssh-git-helper task")
 		return robot.Fail
 	}
 
@@ -81,7 +81,7 @@ func sshHostKeysTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	switch subCommand {
 	case "addhostkeys":
 		if len(args) < 2 {
-			r.Log(robot.Error, "missing host keys for ssh-hostkeys addhostkeys command")
+			r.Log(robot.Error, "missing host keys for ssh-git-helper addhostkeys command")
 			return robot.Fail
 		}
 
@@ -107,12 +107,12 @@ func sshHostKeysTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		r.SetParameter("GIT_SSH_COMMAND", "ssh "+sshOptions)
 		r.SetParameter("HOSTKEYS_HANDLE", handle)
 		r.Log(robot.Info, "SSH known_hosts file created successfully with handle "+handle)
-		r.FinalTask("ssh-hostkeys", "delete")
+		r.FinalTask("ssh-git-helper", "delete")
 		return robot.Normal
 
 	case "loadhostkeys":
 		if len(args) < 2 {
-			r.Log(robot.Error, "missing repository URL for ssh-hostkeys loadhostkeys command")
+			r.Log(robot.Error, "missing repository URL for ssh-git-helper loadhostkeys command")
 			return robot.Fail
 		}
 
@@ -155,12 +155,12 @@ func sshHostKeysTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		r.SetParameter("SSH_OPTIONS", sshOptions)
 		r.SetParameter("GIT_SSH_COMMAND", "ssh "+sshOptions)
 		r.SetParameter("HOSTKEYS_HANDLE", handle)
-		r.FinalTask("ssh-hostkeys", "delete")
+		r.FinalTask("ssh-git-helper", "delete")
 		return robot.Normal
 
 	case "scan":
 		if len(args) < 2 {
-			r.Log(robot.Error, "missing host for ssh-hostkeys scan command")
+			r.Log(robot.Error, "missing host for ssh-git-helper scan command")
 			return robot.Fail
 		}
 
@@ -183,7 +183,7 @@ func sshHostKeysTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		r.SetParameter("GIT_SSH_COMMAND", "ssh "+sshOptions)
 		r.SetParameter("HOSTKEYS_HANDLE", handle)
 		r.Log(robot.Info, "SSH known_hosts file created successfully with handle "+handle)
-		r.FinalTask("ssh-hostkeys", "delete")
+		r.FinalTask("ssh-git-helper", "delete")
 		return robot.Normal
 
 	case "delete":
@@ -204,7 +204,7 @@ func sshHostKeysTask(r robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		return robot.Normal
 
 	default:
-		r.Log(robot.Error, "unknown sub-command for ssh-hostkeys task: "+subCommand)
+		r.Log(robot.Error, "unknown sub-command for ssh-git-helper task: "+subCommand)
 		return robot.Fail
 	}
 }

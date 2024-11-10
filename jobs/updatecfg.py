@@ -43,15 +43,15 @@ bot.FailTask("status", [ "Updating configuration failed"])
 sshkey = os.getenv("KEYNAME")
 # Add the ssh-agent task before git operations
 bot.AddTask("ssh-agent", ["start", "ssh/%s" % sshkey])
-# Add ssh-hostkeys task to handle host key verification
+# Add ssh-git-helper task to handle host key verification
 host_keys = os.getenv("GOPHER_HOST_KEYS")
 insecure_clone = os.getenv("GOPHER_INSECURE_CLONE") == "true"
 
 if host_keys:
-    bot.AddTask("ssh-hostkeys", ["addhostkeys", host_keys])
+    bot.AddTask("ssh-git-helper", ["addhostkeys", host_keys])
 else:
     bot.SetParameter("GOPHER_INSECURE_CLONE", "true" if insecure_clone else "false")
-    bot.AddTask("ssh-hostkeys", ["loadhostkeys", clone_url])
+    bot.AddTask("ssh-git-helper", ["loadhostkeys", clone_url])
 bot.AddTask("exec", [ "git", "pull" ])
 bot.AddTask("status", [ "Custom configuration repository successfully updated" ])
 bot.AddCommand("builtin-admin", "reload")
