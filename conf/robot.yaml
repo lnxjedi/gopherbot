@@ -76,6 +76,12 @@ ParameterSets:
 EncryptBrain: true
 {{ end }}
 
+{{ if not (env "GOPHER_UNCONFIGURED") }}
+ScheduledJobs:
+- Name: go-bootstrap
+  Schedule: "@init"
+{{ end }}
+
 ## NOTE:
 ## External script jobs/tasks/plugins do NOT have direct access to
 ## environment variables, but instead get a combination of:
@@ -143,18 +149,30 @@ ExternalPlugins:
     - Name: ANS_ADMIN_SECRET
       Value: '{{ env "ANS_ADMIN_SECRET" }}'
     {{ end }}
-{{ else }}
-  "bootstrap":
+# {{ else }}
+#   "bootstrap":
+#     Description: A plugin to bootstrap an existing robot to a new container/directory
+#     Privileged: true
+#     Homed: true
+#     NameSpace: manage
+#     Path: plugins/bootstrap.py
+#     Parameters:
+#     - Name: GOPHER_DEPLOY_KEY
+#     # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
+#       Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
+{{ end }}
+
+## GoJobs provides configuration for the NameSpace, Parameters and ParameterSets
+## for jobs written in Go and compiled into the robot.
+GoJobs:
+  "go-bootstrap":
     Description: A plugin to bootstrap an existing robot to a new container/directory
-    Privileged: true
-    Homed: true
     NameSpace: manage
-    Path: plugins/bootstrap.py
+    Privileged: true
     Parameters:
     - Name: GOPHER_DEPLOY_KEY
     # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
       Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
-{{ end }}
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)
