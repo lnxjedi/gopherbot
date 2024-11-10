@@ -52,6 +52,8 @@ if host_keys:
 else:
     bot.SetParameter("GOPHER_INSECURE_CLONE", "true" if insecure_clone else "false")
     bot.AddTask("ssh-git-helper", ["loadhostkeys", clone_url])
+# Required for CLI git and/or ssh use
+bot.AddTask("ssh-git-helper", ["publishenv"])
 bot.AddTask("exec", [ "git", "pull" ])
 bot.AddTask("status", [ "Custom configuration repository successfully updated" ])
 bot.AddCommand("builtin-admin", "reload")

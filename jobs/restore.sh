@@ -103,6 +103,8 @@ else
     SetParameter "GOPHER_INSECURE_CLONE" "$GOPHER_INSECURE_CLONE"
     AddTask "ssh-git-helper" "loadhostkeys" "$GOPHER_CUSTOM_REPOSITORY"
 fi
+# Required for CLI git
+AddTask "ssh-git-helper" "publishenv"
 # Not certain this will all happen within lockMax, but *shrug*
 AddTask pause-brain
 FailTask resume-brain
