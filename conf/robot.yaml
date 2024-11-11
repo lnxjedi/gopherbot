@@ -247,19 +247,6 @@ ExternalTasks:
   "reply":
     Description: Trivial task to reply to the user with a message
     Path: tasks/reply.sh
-  "git-init":
-    Description: >
-      Check for and initialize ssh for a repository if needed, check for
-      GOPHER_CONFIGDIR/git/config and set XDG_CONFIG_HOME
-    Path: tasks/git-init.py
-    Homed: true
-    Privileged: true
-  "ssh-init":
-    Description: "Pipeline job for setting up ssh-agent for the 'bot"
-    Path: tasks/ssh-init.sh
-    Homed: true
-    Privileged: true
-    NameSpace: ssh
   "ssh-task":
     Description: Wrapper for ssh tasks
     Path: jobs/ssh-job.sh
@@ -276,13 +263,6 @@ ExternalTasks:
   "ansible-playbook":
     Description: Ansible playbook (ansible-playbook) runner with vault passphrase helper
     Path: tasks/ansible-playbook.sh
-  "ssh-scan":
-    Description: Helper script for adding ssh host keys to known_hosts
-    Homed: true
-    Path: tasks/ssh-scan.sh
-  "git-clone":
-    Description: Simple script to clone a repository and optionally set the working directory
-    Path: tasks/git-clone.sh
   "cleanup":
     Description: Task for cleaning a working directory before starting a job/build
     Privileged: true
