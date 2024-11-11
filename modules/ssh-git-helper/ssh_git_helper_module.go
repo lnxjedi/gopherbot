@@ -5,11 +5,9 @@
 package sshhostkeys
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -100,7 +98,7 @@ func AddHostKeys(hostKeys string) (handle string, err error) {
 }
 
 // LoadHostKeys loads host keys for known providers based on the repository URL.
-// Currently supports GitHub.
+// Currently supports GitHub and Bitbucket.
 func LoadHostKeys(repoURL string) (handle string, err error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
@@ -111,15 +109,19 @@ func LoadHostKeys(repoURL string) (handle string, err error) {
 		return "", err
 	}
 
-	// Currently only support GitHub
-	if host != "github.com" {
-		return "", fmt.Errorf("host keys for %s not found", host)
+	// Fetch the host keys based on the provider
+	var hostKeys string
+	switch host {
+	case "github.com":
+		hostKeys, err = getGitHubHostKeys()
+	case "bitbucket.org":
+		hostKeys, err = getBitbucketHostKeys()
+	default:
+		return "", fmt.Errorf("host keys for %s not supported", host)
 	}
 
-	// Fetch GitHub's host keys
-	hostKeys, err := getGitHubHostKeys()
 	if err != nil {
-		return "", fmt.Errorf("failed to load GitHub host keys: %w", err)
+		return "", fmt.Errorf("failed to load host keys for %s: %w", host, err)
 	}
 
 	handle = generateHandle()
@@ -282,35 +284,4 @@ func ParseHostFromRepoURL(repoURL string) (string, error) {
 	} else {
 		return "", fmt.Errorf("unsupported repository URL format")
 	}
-}
-
-// getGitHubHostKeys fetches GitHub's SSH host keys from the API
-func getGitHubHostKeys() (string, error) {
-	resp, err := http.Get("https://api.github.com/meta")
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch GitHub meta: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected HTTP status: %s", resp.Status)
-	}
-
-	var data struct {
-		SSHKeys []string `json:"ssh_keys"`
-	}
-
-	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(&data)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode GitHub meta JSON: %w", err)
-	}
-
-	// Construct the known_hosts entries for github.com
-	var knownHostsEntries strings.Builder
-	for _, key := range data.SSHKeys {
-		knownHostsEntries.WriteString(fmt.Sprintf("github.com %s\n", key))
-	}
-
-	return knownHostsEntries.String(), nil
 }
