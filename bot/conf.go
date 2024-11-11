@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -8,12 +9,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"gopkg.in/yaml.v3"
 )
 
 /* conf.go - methods and types for reading and storing json configuration */
 
-var protocolConfig, brainConfig, historyConfig interface{}
+var protocolConfig, brainConfig, historyConfig json.RawMessage
 
 // ConfigLoader defines 'bot configuration, and is read from conf/robot.yaml
 // Digested content ends up in currentCfg, see bot_process.go.
@@ -22,16 +22,16 @@ type ConfigLoader struct {
 	AdminContact         string                  `yaml:"AdminContact"`         // Contact info for whomever administers the robot
 	MailConfig           botMailer               `yaml:"MailConfig"`           // Configuration for sending email
 	Protocol             string                  `yaml:"Protocol"`             // Name of the connector protocol to use, e.g., "slack"
-	ProtocolConfig       interface{}             `yaml:"ProtocolConfig"`       // Protocol-specific configuration, for unmarshalling arbitrary config
+	ProtocolConfig       json.RawMessage         `yaml:"ProtocolConfig"`       // Protocol-specific configuration, for unmarshalling arbitrary config
 	BotInfo              *UserInfo               `yaml:"BotInfo"`              // Information about the robot
 	UserRoster           []UserInfo              `yaml:"UserRoster"`           // List of users and related attributes
 	ChannelRoster        []ChannelInfo           `yaml:"ChannelRoster"`        // List of channels mapping names to IDs
 	Brain                string                  `yaml:"Brain"`                // Type of Brain to use
-	BrainConfig          interface{}             `yaml:"BrainConfig"`          // Brain-specific configuration, for unmarshalling arbitrary config
+	BrainConfig          json.RawMessage         `yaml:"BrainConfig"`          // Brain-specific configuration, for unmarshalling arbitrary config
 	EncryptBrain         bool                    `yaml:"EncryptBrain"`         // Whether the brain should be encrypted
 	EncryptionKey        string                  `yaml:"EncryptionKey"`        // Used to decrypt the "real" encryption key
 	HistoryProvider      string                  `yaml:"HistoryProvider"`      // Name of provider to use for storing and retrieving job/plugin histories
-	HistoryConfig        interface{}             `yaml:"HistoryConfig"`        // History provider-specific configuration
+	HistoryConfig        json.RawMessage         `yaml:"HistoryConfig"`        // History provider-specific configuration
 	WorkSpace            string                  `yaml:"WorkSpace"`            // Read/Write area the robot uses to do work
 	DefaultElevator      string                  `yaml:"DefaultElevator"`      // Elevator plugin for ElevatedCommands and ElevateImmediateCommands
 	DefaultAuthorizer    string                  `yaml:"DefaultAuthorizer"`    // Authorizer plugin for AuthorizedCommands, or when AuthorizeAllCommands = true
@@ -115,11 +115,11 @@ func loadConfig(preConnect bool) error {
 	newconfig.ExternalJobs = make(map[string]TaskSettings)
 	newconfig.ExternalPlugins = make(map[string]TaskSettings)
 	newconfig.ExternalTasks = make(map[string]TaskSettings)
-	configload := make(map[string]interface{})
+	configload := make(map[string]json.RawMessage)
 	processed := &configuration{}
 
 	if err := getConfigFile(robotConfigFileName, true, configload); err != nil {
-		return fmt.Errorf("Loading configuration file: %v", err)
+		return fmt.Errorf("loading configuration file: %v", err)
 	}
 
 	explicitDefaultAllowDirect := false
@@ -161,18 +161,12 @@ func loadConfig(preConnect bool) error {
 		case "ProtocolConfig", "BrainConfig", "HistoryConfig":
 			skip = true
 		default:
-			err := fmt.Errorf("Invalid configuration key in %s: %s", robotConfigFileName, key)
+			err := fmt.Errorf("invalid configuration key in %s: %s", robotConfigFileName, key)
 			Log(robot.Error, err.Error())
 			return err
 		}
 		if !skip {
-			data, err := yaml.Marshal(value)
-			if err != nil {
-				err = fmt.Errorf("marshalling bot config value \"%s\": %v", key, err)
-				Log(robot.Error, err.Error())
-				return err
-			}
-			if err := yaml.Unmarshal(data, val); err != nil {
+			if err := json.Unmarshal(value, val); err != nil {
 				err = fmt.Errorf("unmarshalling bot config value \"%s\": %v", key, err)
 				Log(robot.Error, err.Error())
 				return err

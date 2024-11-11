@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"encoding/json"
 	"regexp"
 	"runtime"
 	"sync"
@@ -155,7 +156,7 @@ type Task struct {
 	Authorizer    string            `yaml:"Authorizer"`      // A plugin to call for authorizing users, should handle groups, etc.
 	AuthRequire   string            `yaml:"AuthRequire"`     // An optional group/role name to be passed to the Authorizer plugin for group/role-based authorization
 	ReplyMatchers []InputMatcher    `yaml:"ReplyMatchers"`   // Store this here for prompt*reply methods
-	Config        interface{}       `yaml:"Config"`          // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
+	Config        json.RawMessage   `yaml:"Config"`          // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
 	config        interface{}       `yaml:"ConfigInterface"` // A pointer to an empty struct that the bot can Unmarshal custom configuration into
 	Disabled      bool              `yaml:"Disabled"`
 	reason        string            `yaml:"-"`          // Why this job/plugin is disabled

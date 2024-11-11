@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"gopkg.in/yaml.v3"
 )
 
 // an empty object type for passing a Handler to the connector.
@@ -60,25 +60,25 @@ func (h handler) RaisePriv(reason string) {
 // up creating a new pipeline. Workers are also created by scheduled jobs
 // and Spawned jobs, in which case a pipeline is always created.
 type worker struct {
-	User            string                  // The user who sent the message; this can be modified for replying to an arbitrary user
-	Channel         string                  // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	ProtocolUser    string                  // The username or <userid> to be sent in connector methods
-	ProtocolChannel string                  // the channel name or <channelid> where the message originated
-	Protocol        robot.Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
-	Incoming        *robot.ConnectorMessage // raw struct of message sent by connector
-	Format          robot.MessageFormat     // robot's default message format
-	id              int                     // integer worker ID used when being registered as an active pipeline
-	tasks           *taskList               // Pointers to current task configuration at start of pipeline
-	maps            *userChanMaps           // Pointer to current user / channel maps struct
-	cfg             *configuration          // Active configuration when this context was created
-	BotUser         bool                    // set for bots/programs that should never match ambient messages
-	listedUser      bool                    // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
-	isCommand       bool                    // Was the message directed at the robot, dm or by mention
-	cmdMode         string                  // one of "alias", "name", "direct" - for disambiguation
-	msg, fmsg       string                  // the message text sent; without robot name/alias, and with for message matching
-	automaticTask   bool                    // set for scheduled & triggers jobs, where user security restrictions don't apply
-	*pipeContext                            // pointer to the pipeline context
-	sync.Mutex                              // Lock to protect the bot context when pipeline running
+	User            string                      // The user who sent the message; this can be modified for replying to an arbitrary user
+	Channel         string                      // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	ProtocolUser    string                      // The username or <userid> to be sent in connector methods
+	ProtocolChannel string                      // the channel name or <channelid> where the message originated
+	Protocol        robot.Protocol              // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
+	Incoming        *robot.ConnectorMessage     // raw struct of message sent by connector
+	Format          robot.MessageFormat         // robot's default message format
+	id              int                         // integer worker ID used when being registered as an active pipeline
+	tasks           *taskList                   // Pointers to current task configuration at start of pipeline
+	maps            *userChanMaps               // Pointer to current user / channel maps struct
+	cfg             *configuration              // Active configuration when this context was created
+	BotUser         bool                        // set for bots/programs that should never match ambient messages
+	listedUser      bool                        // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
+	isCommand       bool                        // Was the message directed at the robot, dm or by mention
+	cmdMode         string                      // one of "alias", "name", "direct" - for disambiguation
+	msg, fmsg       string                      // the message text sent; without robot name/alias, and with for message matching
+	automaticTask   bool                        // set for scheduled & triggers jobs, where user security restrictions don't apply
+	*pipeContext                                // pointer to the pipeline context
+	sync.Mutex                                  // Lock to protect the bot context when pipeline running
 }
 
 // clone a worker for a new execution context
@@ -297,44 +297,20 @@ we don't need to worry about locking. When absolutely necessary, there's always 
 
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct
 func (h handler) GetProtocolConfig(v interface{}) error {
-	if protocolConfig != nil {
-		data, err := yaml.Marshal(protocolConfig)
-		if err != nil {
-			return fmt.Errorf("marshaling ProtocolConfig: %v", err)
-		}
-		if err := yaml.Unmarshal(data, v); err != nil {
-			return fmt.Errorf("unmarshaling ProtocolConfig into provided struct: %v", err)
-		}
-	}
-	return nil
+	err := json.Unmarshal(protocolConfig, v)
+	return err
 }
 
 // GetBrainConfig unmarshals the brain's configuration data into a provided struct
 func (h handler) GetBrainConfig(v interface{}) error {
-	if brainConfig != nil {
-		data, err := yaml.Marshal(brainConfig)
-		if err != nil {
-			return fmt.Errorf("marshaling BrainConfig: %v", err)
-		}
-		if err := yaml.Unmarshal(data, v); err != nil {
-			return fmt.Errorf("unmarshaling BrainConfig into provided struct: %v", err)
-		}
-	}
-	return nil
+	err := json.Unmarshal(brainConfig, v)
+	return err
 }
 
 // GetHistoryConfig unmarshals the history provider's configuration data into a provided struct
 func (h handler) GetHistoryConfig(v interface{}) error {
-	if historyConfig != nil {
-		data, err := yaml.Marshal(historyConfig)
-		if err != nil {
-			return fmt.Errorf("marshaling HistoryConfig: %v", err)
-		}
-		if err := yaml.Unmarshal(data, v); err != nil {
-			return fmt.Errorf("unmarshaling HistoryConfig into provided struct: %v", err)
-		}
-	}
-	return nil
+	err := json.Unmarshal(historyConfig, v)
+	return err
 }
 
 // Log logs a message to the robot's log file (or stderr)
