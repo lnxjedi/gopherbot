@@ -57,6 +57,7 @@ Commands:
 - terminal <robot.env>: shell in to the robot's container
 - update: download the latest version of this script from github
 - list: generate a list of robot containers
+- completion: set up bash completion - add 'source <(cbot completion)' to ~/.bashrc
 EOF
 }
 
