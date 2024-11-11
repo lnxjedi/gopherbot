@@ -213,6 +213,18 @@ The email function call takes a byte slice for the email body, rather than an <c
 <li>plugins/samples/bootstrap.py - previous bootstrapping pipeline</li>
 </ul>
 <hr />
+<p><strong>ssh-git-helper</strong> - <em>privileged</em></p>
+<p>Usage:</p>
+<ul>
+<li><code>AddTask ssh-git-helper addhostkeys &lt;encoded-host-keys&gt;</code> - create a <code>known_hosts</code> file from the encoded keys</li>
+<li><code>AddTask ssh-git-helper scan &lt;host&gt;</code> - fallback sub-command to scan a remote host for the host keys</li>
+<li><code>AddTask ssh-git-helper loadhostkeys &lt;repo uri&gt;</code> - for github, bitbucket, retrieve host keys from a known https API endpoint</li>
+<li><code>AddTask ssh-git-helper publishenv</code> - set <code>SSH_OPTIONS</code> and <code>GIT_SSH_COMMAND</code> for external binary use</li>
+<li><code>AddTask ssh-git-helper delete</code> - delete the temporary hostkeys file; automatically added as a FinalTask</li>
+</ul>
+<p>The <code>addhostkeys</code>, <code>loadhostkeys</code> and <code>scan</code> sub-commands all create a <code>known_hosts</code> file that can be used with <code>git-command</code> and <code>ssh-agent</code> for working with git repositories authenticated with ssh. Each of these sub-commands also automatically adds a <code>FinalTask ssh-git-helper delete</code> to remove the temporary file. By using <code>publishenv</code>, the <code>SSH_OPTIONS</code> and <code>GIT_SSH_COMMAND</code> parameters (environment variables) are exported to the pipeline for use by e.g. bash-based tasks using the system ssh and/or git binaries.</p>
+<p>Note that <code>&lt;encoded-host-keys&gt;</code> is a single-line string encoded similarly to <code>GOPHER_DEPLOY_KEY</code>; all spaces are replaced with '_', and newlines are replaced with ':'; basically, <code>tr ' \n' '_:'</code>.</p>
+<hr />
 <p><strong>tail-log</strong></p>
 <p>Usage: <code>AddTask tail-log</code> or <code>FailTask tail-log</code></p>
 <p>Dump the last 2k chars (in even line increments) to the channel. Normally this is used as a <code>FailTask</code> to show the source of the failure.</p>
