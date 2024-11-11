@@ -22,10 +22,15 @@ _cbot_completion() {
         list|pull|update)
             COMPREPLY=( $(compgen -W "-h" -- "$curr_arg") )
             ;;
-        remove|stop|terminal)
-            COMPREPLY=( $(compgen -W "$options" -- "$curr_arg") )
+        remove|stop|terminal|start)
+            if [[ "$COMP_CWORD" -gt 1 && "${COMP_WORDS[COMP_CWORD-1]}" != -* ]]; then
+                # Complete only files ending in .env
+                COMPREPLY=( $(compgen -f "$curr_arg" | grep '\.env$') )
+            else
+                COMPREPLY=( $(compgen -W "$options" -- "$curr_arg") )
+            fi
             ;;
-        preview|start)
+        preview)
             COMPREPLY=( $(compgen -W "$options" -- "$curr_arg") )
             ;;
         *)
