@@ -47,6 +47,9 @@ import (
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
 	_ "github.com/lnxjedi/gopherbot/v2/history/file"
 
+	// Anything referred to robot.yaml has to be compiled in
+	_ "github.com/lnxjedi/gopherbot/v2/gojobs/go-bootstrap"
+
 	_ "net/http/pprof"
 )
 
@@ -269,7 +272,7 @@ func TestReload(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{aliceID, general, "reload, bender", []testc.TestMessage{{alice, general, "Configuration reloaded successfully"}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "reload, bender", []testc.TestMessage{{null, general, "Starting init job 'go-bootstrap'.*"}}, []Event{AdminCheckPassed, CommandTaskRan, GoPluginRan, ScheduledTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
 
