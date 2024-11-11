@@ -1,3 +1,4 @@
+github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/lnxjedi/slack v0.1.1 h1:BphYlC6wtIGAI1C610vt1jHIjY4WeYoXcSp1zHZWuzw=
 github.com/lnxjedi/slack v0.1.1/go.mod h1:hlGi5oXA+Gt+yWTPP0plCdRKmjsDxecdHxYQdlMQKOw=
 github.com/lnxjedi/slack v0.1.2-0.20230424204233-4dd1a1f9d9bd h1:xWgCcMFXAmBjEdRb4tFr3serk5Vt6rwBzkGxsG44j30=
