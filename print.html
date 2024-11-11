@@ -1,17 +1,17 @@
 <!DOCTYPE HTML>
-<html lang="en" class="sidebar-visible no-js light">
+<html lang="en" class="light sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
         <title>Gopherbot DevOps Chatbot</title>
-        <meta name="robots" content="noindex" />
+        <meta name="robots" content="noindex">
 
 
         <!-- Custom HTML head -->
-        
+
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="theme-color" content="#ffffff">
 
         <link rel="icon" href="favicon.svg">
         <link rel="shortcut icon" href="favicon.png">
@@ -31,15 +31,17 @@
 
         <!-- Custom theme stylesheets -->
 
-    </head>
-    <body>
-    <div id="body-container">
+
         <!-- Provide site root to javascript -->
         <script>
             var path_to_root = "";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
-
+        <!-- Start loading toc.js asap -->
+        <script src="toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
@@ -61,65 +63,49 @@
             var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
-            var html = document.querySelector('html');
-            html.classList.remove('no-js')
+            const html = document.documentElement;
             html.classList.remove('light')
             html.classList.add(theme);
-            html.classList.add('js');
+            html.classList.add("js");
         </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var html = document.querySelector('html');
             var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
             }
+            sidebar_toggle.checked = sidebar === 'visible';
             html.classList.remove('sidebar-visible');
             html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="Title.html">Title</a></li><li class="chapter-item expanded affix "><a href="Status.html">Status</a></li><li class="chapter-item expanded affix "><a href="Foreword.html">Foreword</a></li><li class="chapter-item expanded affix "><a href="Introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><a href="Terminology.html">Terminology</a></li><li class="chapter-item expanded affix "><li class="part-title">Part I - Getting Started</li><li class="chapter-item expanded "><a href="botdev/IDE.html"><strong aria-hidden="true">1.</strong> The Gopherbot IDE</a></li><li class="chapter-item expanded "><a href="Installation.html"><strong aria-hidden="true">2.</strong> Installing and Configuring a Gopherbot Robot</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="install/LinuxInstall.html"><strong aria-hidden="true">2.1.</strong> Installation on Linux</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="install/Requirements.html"><strong aria-hidden="true">2.1.1.</strong> Software Requirements</a></li><li class="chapter-item expanded "><a href="install/ManualInstall.html"><strong aria-hidden="true">2.1.2.</strong> Installing Gopherbot</a></li></ol></li><li class="chapter-item expanded "><a href="botsetup/credentials.html"><strong aria-hidden="true">2.2.</strong> Team Chat Credentials</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="botsetup/slacksock.html"><strong aria-hidden="true">2.2.1.</strong> Slack Socket Mode</a></li></ol></li><li class="chapter-item expanded "><a href="RobotSetup.html"><strong aria-hidden="true">2.3.</strong> Initial Robot Setup</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="botsetup/Requirements.html"><strong aria-hidden="true">2.3.1.</strong> Environment Requirements</a></li><li class="chapter-item expanded "><a href="botsetup/gopherhome.html"><strong aria-hidden="true">2.3.2.</strong> Robot Directory Structure</a></li><li class="chapter-item expanded "><a href="botsetup/Plugin.html"><strong aria-hidden="true">2.3.3.</strong> Quick Start with the Gopherbot IDE</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="RunRobot.html"><strong aria-hidden="true">3.</strong> Deploying and Running Your Robot</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="deploy/deploy-environment.html"><strong aria-hidden="true">3.1.</strong> Deployment Environment Variables</a></li><li class="chapter-item expanded "><a href="deploy/Container.html"><strong aria-hidden="true">3.2.</strong> Running in a Container</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="deploy/DockerDeploy.html"><strong aria-hidden="true">3.2.1.</strong> Docker Example</a></li><li class="chapter-item expanded "><a href="deploy/Kubernetes.html"><strong aria-hidden="true">3.2.2.</strong> Deploying to Kubernetes</a></li></ol></li><li class="chapter-item expanded "><a href="deploy/systemd.html"><strong aria-hidden="true">3.3.</strong> Running with Systemd</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Part II - Working with Your Robot</li><li class="chapter-item expanded "><a href="Basics.html"><strong aria-hidden="true">4.</strong> Robot Basics</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="basics/ping.html"><strong aria-hidden="true">4.1.</strong> Addressing your Robot</a></li><li class="chapter-item expanded "><a href="basics/matching.html"><strong aria-hidden="true">4.2.</strong> Command Matching</a></li><li class="chapter-item expanded "><a href="basics/channels.html"><strong aria-hidden="true">4.3.</strong> Availability by Channel</a></li><li class="chapter-item expanded "><a href="basics/help.html"><strong aria-hidden="true">4.4.</strong> The built-in Help System</a></li><li class="chapter-item expanded "><a href="basics/stdplugins.html"><strong aria-hidden="true">4.5.</strong> Standard Commands</a></li><li class="chapter-item expanded "><a href="basics/context.html"><strong aria-hidden="true">4.6.</strong> Context</a></li></ol></li><li class="chapter-item expanded "><a href="Admin.html"><strong aria-hidden="true">5.</strong> Managing Your Robot</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="usage/update.html"><strong aria-hidden="true">5.1.</strong> Updating from Git</a></li><li class="chapter-item expanded "><a href="extensiondev/devenv.html"><strong aria-hidden="true">5.2.</strong> Container Dev Environment</a></li><li class="chapter-item expanded "><a href="extensiondev/local.html"><strong aria-hidden="true">5.3.</strong> Local Install Dev Environment</a></li><li class="chapter-item expanded "><a href="extensiondev/CLI.html"><strong aria-hidden="true">5.4.</strong> CLI Operation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="extensiondev/secrets.html"><strong aria-hidden="true">5.4.1.</strong> Encrypting Secrets</a></li></ol></li><li class="chapter-item expanded "><a href="extensiondev/terminal.html"><strong aria-hidden="true">5.5.</strong> Using the Terminal Connector</a></li><li class="chapter-item expanded "><a href="usage/admin.html"><strong aria-hidden="true">5.6.</strong> Administrator Commands</a></li><li class="chapter-item expanded "><a href="usage/logging.html"><strong aria-hidden="true">5.7.</strong> Logging</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Part III - Worked Examples</li><li class="chapter-item expanded "><a href="customizing/first-plugin.html"><strong aria-hidden="true">6.</strong> Writing Your First Plugin</a></li><li class="chapter-item expanded "><a href="customizing.html"><strong aria-hidden="true">7.</strong> Writing Custom Extensions for Your Robot</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="customizing/style.html"><strong aria-hidden="true">7.1.</strong> Style Guide</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="customizing/syntax-help.html"><strong aria-hidden="true">7.1.1.</strong> Help for Invalid Command Syntax</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="pipelines/integrations.html"><strong aria-hidden="true">8.</strong> Gopherbot Tool Integrations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="pipelines/ssh.html"><strong aria-hidden="true">8.1.</strong> Integrating with SSH</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Part IV - Reference</li><li class="chapter-item expanded "><a href="Configuration.html"><strong aria-hidden="true">9.</strong> Gopherbot Configuration Reference</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="config/file.html"><strong aria-hidden="true">9.1.</strong> Configuration File Loading</a></li><li class="chapter-item expanded "><a href="config/job-plug.html"><strong aria-hidden="true">9.2.</strong> Job and Plugin Configuration</a></li><li class="chapter-item expanded "><a href="config/troubleshooting.html"><strong aria-hidden="true">9.3.</strong> Troubleshooting</a></li></ol></li><li class="chapter-item expanded "><a href="api/API-Introduction.html"><strong aria-hidden="true">10.</strong> Gopherbot Scripting API</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="Environment-Variables.html"><strong aria-hidden="true">10.1.</strong> Script Environment Variables</a></li><li class="chapter-item expanded "><a href="api/Languages.html"><strong aria-hidden="true">10.2.</strong> Language Templates</a></li><li class="chapter-item expanded "><a href="api/Attribute-Retrieval-API.html"><strong aria-hidden="true">10.3.</strong> Attribute Retrieval</a></li><li class="chapter-item expanded "><a href="api/Brain-API.html"><strong aria-hidden="true">10.4.</strong> Brain Methods</a></li><li class="chapter-item expanded "><a href="api/Message-Sending-API.html"><strong aria-hidden="true">10.5.</strong> Message Sending</a></li><li class="chapter-item expanded "><a href="api/Pipeline-API.html"><strong aria-hidden="true">10.6.</strong> Pipeline Construction</a></li><li class="chapter-item expanded "><a href="api/Response-Request-API.html"><strong aria-hidden="true">10.7.</strong> Requesting Responses</a></li><li class="chapter-item expanded "><a href="api/Utility-API.html"><strong aria-hidden="true">10.8.</strong> Utility</a></li></ol></li><li class="chapter-item expanded "><a href="pipelines/jobspipes.html"><strong aria-hidden="true">11.</strong> Pipelines, Plugins, Jobs and Tasks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="pipelines/primary.html"><strong aria-hidden="true">11.1.</strong> The Primary Pipeline</a></li><li class="chapter-item expanded "><a href="pipelines/final.html"><strong aria-hidden="true">11.2.</strong> The Final Pipeline</a></li><li class="chapter-item expanded "><a href="pipelines/fail.html"><strong aria-hidden="true">11.3.</strong> The Fail Pipeline</a></li><li class="chapter-item expanded "><a href="pipelines/TaskEnvironment.html"><strong aria-hidden="true">11.4.</strong> Task Environment Variables</a></li><li class="chapter-item expanded "><a href="pipelines/tasks.html"><strong aria-hidden="true">11.5.</strong> All Included Tasks</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Appendix</li><li class="chapter-item expanded "><a href="appendices/Appendix.html"><strong aria-hidden="true">12.</strong> Appendix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="appendices/InstallArchive.html"><strong aria-hidden="true">12.1.</strong> A - Gopherbot Install Archive</a></li><li class="chapter-item expanded "><a href="appendices/Protocols.html"><strong aria-hidden="true">12.2.</strong> B - Protocols</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="appendices/slack.html"><strong aria-hidden="true">12.2.1.</strong> B.1 - Slack</a></li><li class="chapter-item expanded "><a href="appendices/rocket.html"><strong aria-hidden="true">12.2.2.</strong> B.2 - Rocket.Chat</a></li><li class="chapter-item expanded "><a href="appendices/terminal.html"><strong aria-hidden="true">12.2.3.</strong> B.3 - Terminal</a></li><li class="chapter-item expanded "><a href="appendices/testproto.html"><strong aria-hidden="true">12.2.4.</strong> B.4 - Test</a></li><li class="chapter-item expanded "><a href="appendices/nullconn.html"><strong aria-hidden="true">12.2.5.</strong> B.5 - Nullconn</a></li></ol></li></ol></li></ol>
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
             </div>
-            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
-
-        <!-- Track and set sidebar scroll position -->
-        <script>
-            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
-            sidebarScrollbox.addEventListener('click', function(e) {
-                if (e.target.tagName === 'A') {
-                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
-                }
-            }, { passive: true });
-            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
-            sessionStorage.removeItem('sidebar-scroll');
-            if (sidebarScrollTop) {
-                // preserve sidebar scroll position when navigating via links within sidebar
-                sidebarScrollbox.scrollTop = sidebarScrollTop;
-            } else {
-                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
-                var activeSection = document.querySelector('#sidebar .active');
-                if (activeSection) {
-                    activeSection.scrollIntoView({ block: 'center' });
-                }
-            }
-        </script>
 
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
-                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
                             <i class="fa fa-bars"></i>
-                        </button>
+                        </label>
                         <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
                             <i class="fa fa-paint-brush"></i>
                         </button>
@@ -172,9 +158,9 @@
 <p>By David Parsley, <a href="mailto:parsley@linuxjedi.org">parsley@linuxjedi.org</a></p>
 <p>Gophers + Robot by Renee French (cropped) licensed under <a href="https://creativecommons.org/licenses/by/3.0/">Creative Commons License 3.0</a></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="status-of-the-gopherbot-software"><a class="header" href="#status-of-the-gopherbot-software">Status of the Gopherbot Software</a></h1>
-<p>The project as a whole is going on 7 years old, and the core v1 functionality is fairly robust. On the other hand, some of the original plugins (like duo two factor) have suffered from bit-rot and may not function correctly; good news, though - the &quot;knock knock joke&quot; plugin definitely works.</p>
+<p>The project as a whole is going on 7 years old, and the core v1 functionality is fairly robust. On the other hand, some of the original plugins (like duo two factor) have suffered from bit-rot and may not function correctly; good news, though - the "knock knock joke" plugin definitely works.</p>
 <p>The new job, task, pipeline and cron functionality for v2 is pretty heavily used and I have a good deal of confidence in it. The CI/CD functionality is unmaintained and not very functional. Similarly, the logging functionality and commands are not 100%.</p>
-<p>I'm a little sorry that the only currently supported team chat connector is <strong>Slack</strong>, because that's what my team uses. This is definitely a &quot;scratching my own itch&quot; kind of project, and it's hard to motivate myself to write connectors for protocols I don't use. I'd be happy to work with others on this, however.</p>
+<p>I'm a little sorry that the only currently supported team chat connector is <strong>Slack</strong>, because that's what my team uses. This is definitely a "scratching my own itch" kind of project, and it's hard to motivate myself to write connectors for protocols I don't use. I'd be happy to work with others on this, however.</p>
 <h1 id="status-of-this-manual"><a class="header" href="#status-of-this-manual">Status of this Manual</a></h1>
 <p><strong>December '22 / January '23 - The manual is being actively revised for the new Gopherbot IDE.</strong></p>
 <p>This manual is a work in progress; currently incomplete and partly outdated. This section will be removed when the manual is considered complete. For now, to help you make the most of the manual, this is the current state of the different sections:</p>
@@ -201,14 +187,14 @@
 <li>The shared-view nature of channels gives an added measure of security thanks to visibility, and also a simple means of training users to interact with a given application</li>
 <li>Like a CGI, applications can focus on functionality, with security and access control being configured in the server process</li>
 </ul>
-<p>It is my hope that this design will appeal to other engineers like myself, and that somewhere, somebody will exclaim &quot;Wait, what? I can write chat bot plugins <em><strong>in BASH</strong></em>?!?&quot;</p>
+<p>It is my hope that this design will appeal to other engineers like myself, and that somewhere, somebody will exclaim "Wait, what? I can write chat bot plugins <em><strong>in BASH</strong></em>?!?"</p>
 <p>David Parsley, March 2017 / September 2019</p>
 <pre><code class="language-bash">#!/bin/bash
 
 # echo.sh - trivial shell plugin example for Gopherbot
 
 # START Boilerplate
-[ -z &quot;$GOPHER_INSTALLDIR&quot; ] &amp;&amp; { echo &quot;GOPHER_INSTALLDIR not set&quot; &gt;&amp;2; exit 1; }
+[ -z "$GOPHER_INSTALLDIR" ] &amp;&amp; { echo "GOPHER_INSTALLDIR not set" &gt;&amp;2; exit 1; }
 source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 command=$1
@@ -216,30 +202,30 @@ shift
 # END Boilerplate
 
 configure(){
-	cat &lt;&lt;&quot;EOF&quot;
+	cat &lt;&lt;"EOF"
 ---
 Help:
-- Keywords: [ &quot;repeat&quot; ]
-  Helptext: [ &quot;(bot), repeat (me) - prompt for and trivially repeat a phrase&quot; ]
+- Keywords: [ "repeat" ]
+  Helptext: [ "(bot), repeat (me) - prompt for and trivially repeat a phrase" ]
 CommandMatchers:
-- Command: &quot;repeat&quot;
+- Command: "repeat"
   Regex: '(?i:repeat( me)?)'
 EOF
 }
 
-case &quot;$command&quot; in
-# NOTE: only &quot;configure&quot; should print anything to stdout
-	&quot;configure&quot;)
+case "$command" in
+# NOTE: only "configure" should print anything to stdout
+	"configure")
 		configure
 		;;
-	&quot;repeat&quot;)
-		REPEAT=$(PromptForReply SimpleString &quot;What do you want me to repeat?&quot;)
+	"repeat")
+		REPEAT=$(PromptForReply SimpleString "What do you want me to repeat?")
 		RETVAL=$?
 		if [ $RETVAL -ne $GBRET_Ok ]
 		then
-			Reply &quot;Sorry, I had a problem getting your reply: $RETVAL&quot;
+			Reply "Sorry, I had a problem getting your reply: $RETVAL"
 		else
-			Reply &quot;$REPEAT&quot;
+			Reply "$REPEAT"
 		fi
 		;;
 esac
@@ -257,10 +243,10 @@ esac
 </ul>
 <p>The primary strengths of <strong>Gopherbot</strong> stem from its simplicity and flexibility. It installs and bootstraps readily on a VM or in a container with just a few environment variables, and can be run behind a firewall where it can perform tasks like rebooting server hardware over IPMI. Simple command plugins can be written in <code>bash</code>, <code>python</code> or <code>ruby</code>, with easy to use encrypted secrets for accomplishing privileged tasks. Like any user, the robot can also have its own (encrypted, naturally) ssh key for performing remote work and interfacing with <em>git</em> services.</p>
 <p>The philosophy underlying <strong>Gopherbot</strong> is the idea of solving the most problems with the smallest set of general purpose tools, accomplishing a wide variety of tasks reasonably well. The interface is much closer to a CLI then a Web GUI, but it's remarkable what can be accomplished with a shared CLI for your team's infrastructure.</p>
-<p>The major design goals for <strong>Gopherbot</strong> are reliability and portability, leaning heavily on &quot;configuration as code&quot;. Ideally, custom add-on plugins and jobs that work for a robot instance in <a href="https://slack.com">Slack</a> should work just as well if your team moves, say, to <a href="https://rocket.chat">Rocket.Chat</a>. This goal ends up being a trade-off with supporting specialized features of a given platform, though the <strong>Gopherbot</strong> API enables platform-specific customizations if desired.</p>
+<p>The major design goals for <strong>Gopherbot</strong> are reliability and portability, leaning heavily on "configuration as code". Ideally, custom add-on plugins and jobs that work for a robot instance in <a href="https://slack.com">Slack</a> should work just as well if your team moves, say, to <a href="https://rocket.chat">Rocket.Chat</a>. This goal ends up being a trade-off with supporting specialized features of a given platform, though the <strong>Gopherbot</strong> API enables platform-specific customizations if desired.</p>
 <p>Secondary but important design goals are configurability and security. Individual commands can be constrained to a subset of channels and/or users, require external authorization or elevation plugins, and administrators can customize help and command matching patterns for stock plugins. <strong>Gopherbot</strong> has been built with security considerations in mind from the start; employing strong encryption, privilege separation, and a host of other measures to make your robot a difficult target for potential attackers.</p>
 <p>Version 2 for the most part assumes that your robot will employ encryption and get its configuration from a <em>git</em> repository. Other deployments are possible, but not well documented. This manual will focus on working with <strong>Gopherbot</strong> instances whose configuration is stored on <a href="https://github.com">GitHub</a>, but other <em>git</em> services are easy to use, as well.</p>
-<p>That's it for the &quot;marketing&quot; portion of this manual - by now you should have an idea whether <strong>Gopherbot</strong> would be a good addition to your DevOps tool set.</p>
+<p>That's it for the "marketing" portion of this manual - by now you should have an idea whether <strong>Gopherbot</strong> would be a good addition to your DevOps tool set.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="terminology"><a class="header" href="#terminology">Terminology</a></h1>
 <blockquote>
 <p>Up-to-date with v2.6</p>
@@ -284,14 +270,14 @@ esac
 <li><strong>authorizer</strong> - special plugin command used to determine whether a given user is authorized for a given command, normally checking some kind of group membership</li>
 <li><strong>elevator</strong> - special plugin command providing additional verification of user identity; this can be as simple as a totp token or <a href="https://duo.com">Duo</a> two-factor, or as complex as prompting another user before allowing a command to proceed</li>
 <li><strong>job</strong> - jobs are pieces of code that typically use the pipeline API for creating pipelines to perform complex scheduled tasks such as backups and monitoring, or for software builds that may be triggered by detected updates to git repositories; see the chapter on <a href="pipelines/jobspipes.html">jobs and pipelines</a></li>
-<li><strong>task</strong> - tasks are small pieces of code that generally form the parts of a pipeline, such as initializing (and tearing down) the <code>ssh-agent</code>, running pipeline scripts, or sending notifications; the task is also the base object for jobs and plugins, so &quot;task&quot; may refer to any entry in <code>ExternalPlugins</code>, <code>ExternalTasks</code>, <code>ExternalJobs</code>, etc.</li>
+<li><strong>task</strong> - tasks are small pieces of code that generally form the parts of a pipeline, such as initializing (and tearing down) the <code>ssh-agent</code>, running pipeline scripts, or sending notifications; the task is also the base object for jobs and plugins, so "task" may refer to any entry in <code>ExternalPlugins</code>, <code>ExternalTasks</code>, <code>ExternalJobs</code>, etc.</li>
 <li><strong>parameter</strong> - a name/value setting configurable for tasks, plugins, jobs and repositories, presented to external scripts as environment variables</li>
 </ul>
 <p>In addition, this manual may periodically reference four important robots:</p>
 <ul>
 <li><strong>Floyd</strong> - Floyd is a production robot in the <code>linuxjedi</code> Slack team, currently running on a <code>t2.nano</code> in AWS. Floyd was formerly responsible for building, testing and publishing the <strong>Gopherbot</strong> artifacts, but is now relegated to looking up recipes and telling jokes. The name is taken from Infocom's <strong>Planetfall</strong>, circa 1983. Also, as above, the <strong>Gopherbot</strong> default robot is named <em>Floyd</em>, but every other mention of <strong>Floyd</strong> refers to my production robot, whose repository can always be found <a href="https://github.com/parsley42/floyd-gopherbot">on Github</a>.</li>
 <li><strong>Data</strong> - Data was a production robot in my home Kubernetes cluster (both now retired), responsible for building and publishing <strong>Gopherbot</strong> containers and documentation, and is probably the best publicly-available example of a production robot. You can find his configuration <a href="https://github.com/parsley42/data-gopherbot">on Github</a>. The name is taken from Star Trek TNG.</li>
-<li><strong>Clu</strong> - Clu is &quot;the best program that's ever been written ... dogged and relentless&quot;; also, the development robot that changes frequently as I develop <strong>Gopherbot</strong>. Clu runs on workstations, chromebooks, containers, or wherever I happen to be doing development. If you've seen <strong>Tron: Legacy</strong> - it's not <strong>THAT</strong> Clu, but rather the short-lived <strong>Clu</strong> from the original <strong>TRON</strong>, circa 1982. <strong>Clu's</strong> repository is also always available <a href="https://github.com/parsley42/clu-gopherbot">on Github</a>, and generally has a pretty up-to-date README (not so much Floyd).</li>
+<li><strong>Clu</strong> - Clu is "the best program that's ever been written ... dogged and relentless"; also, the development robot that changes frequently as I develop <strong>Gopherbot</strong>. Clu runs on workstations, chromebooks, containers, or wherever I happen to be doing development. If you've seen <strong>Tron: Legacy</strong> - it's not <strong>THAT</strong> Clu, but rather the short-lived <strong>Clu</strong> from the original <strong>TRON</strong>, circa 1982. <strong>Clu's</strong> repository is also always available <a href="https://github.com/parsley42/clu-gopherbot">on Github</a>, and generally has a pretty up-to-date README (not so much Floyd).</li>
 <li><strong>Bishop</strong> - Bishop is used mainly for writing this documentation, and has his configuration repository wiped periodically when I test the <code>autosetup</code> plugin. You'll see lots of Bishop in the sections on managing your own robot. The repository may or may not be available at any given moment, and even if it is, it won't be very exciting. His name comes from <strong>Aliens</strong>, the <strong>Alien</strong> sequel, circa 1986.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-gopherbot-ide"><a class="header" href="#the-gopherbot-ide">The Gopherbot IDE</a></h1>
@@ -378,11 +364,11 @@ Usage: ./botc.sh profile|dev|start|stop|remove (options...) (arguments...)
 <ol start="3">
 <li>Generate a new profile for working on your robot; in the example command shown, you'll need to change the robot name, full name and email address (used for attributing git pushes):</li>
 </ol>
-<pre><code class="language-shell">$ ./cbot.sh profile -k ~/.ssh/id_rsa dolores &quot;David Parsley&quot; parsley@linuxjedi.org | tee dolores.env
+<pre><code class="language-shell">$ ./cbot.sh profile -k ~/.ssh/id_rsa dolores "David Parsley" parsley@linuxjedi.org | tee dolores.env
 ## Lines starting with #| are used by the cbot.sh script
-GIT_AUTHOR_NAME=&quot;David Parsley&quot;
+GIT_AUTHOR_NAME="David Parsley"
 GIT_AUTHOR_EMAIL=parsley@linuxjedi.org
-GIT_COMMITTER_NAME=&quot;David Parsley&quot;
+GIT_COMMITTER_NAME="David Parsley"
 GIT_COMMITTER_EMAIL=parsley@linuxjedi.org
 #|CONTAINERNAME=dolores
 #|SSH_KEY_PATH=/home/david/.ssh/id_rsa
@@ -411,7 +397,7 @@ Copy the URL provided and paste it in to your browser; note that VSCode server o
 <p>There are three distinct tasks involved in installing and running a <strong>Gopherbot</strong> robot:</p>
 <ol>
 <li>The first section discusses installing the <strong>Gopherbot</strong> from the pre-built distribution archive or source code, normally in <code>/opt/gopherbot</code>; this provides the <code>gopherbot</code> binary, default configuration, and an assortment of included batteries (libraries, plugins, jobs, tasks, helper scripts and more); if you're using a <a href="https://github.com/orgs/lnxjedi/packages">Gopherbot container</a>, installation is essentially a no-op.</li>
-<li>Configuring a runnable instance of a robot for your team; the included <strong>autosetup</strong> plugin should make this an &quot;easy button&quot; - discussed in the chapter on <a href="RobotInstall.html">Initial Configuration</a>.</li>
+<li>Configuring a runnable instance of a robot for your team; the included <strong>autosetup</strong> plugin should make this an "easy button" - discussed in the chapter on <a href="RobotInstall.html">Initial Configuration</a>.</li>
 <li>Deploying and running your robot on a server, VM, or in a container - covered in the chapter on <a href="RunRobot.html">Running your Robot</a>.</li>
 </ol>
 <h2 id="gopherbot-and-robots"><a class="header" href="#gopherbot-and-robots"><strong>Gopherbot</strong> and <em>Robots</em></a></h2>
@@ -561,7 +547,7 @@ settings:
   socket_mode_enabled: true
   is_hosted: false
 </code></pre>
-<p>You should change the display information and display name, and decide if you want your robot to respond to &quot;slash commands&quot;. Keep in mind:</p>
+<p>You should change the display information and display name, and decide if you want your robot to respond to "slash commands". Keep in mind:</p>
 <ul>
 <li>When a user sends a slash command, it doesn't echo to the channel; since one of the benefits of ChatOps is the ease of learning from other users by observation, you might lose some of this benefit (the robot will still respond to it's name, and also the 1-character <strong>alias</strong> that most users prefer)</li>
 <li>Slack slash commands are available in <em>every</em> channel, even if the robot hasn't joined or been invited to the channel; individual plugins will still adhere to channel restrictions, but plugins configured with <code>AllChannels: true</code> (like <strong>ping</strong>) will respond everywhere</li>
@@ -579,7 +565,7 @@ settings:
 <p>Now that you've created a Slack app for your robot, you'll need to generate and/or locate the credentials you'll need for configuration.</p>
 <ol>
 <li>From the app configuration <strong>Basic Information</strong> page, scroll down to <strong>App-Level Tokens</strong> and click the <strong>Generate Token and Scopes</strong> button</li>
-<li>Give the token a name (e.g. &quot;Token for Gopherbot&quot;), then add both the <strong>connections:write</strong> and <strong>authorizations:read</strong> scopes</li>
+<li>Give the token a name (e.g. "Token for Gopherbot"), then add both the <strong>connections:write</strong> and <strong>authorizations:read</strong> scopes</li>
 <li>Click <strong>Generate</strong>, then copy and save your app token (<code>xapp-*</code>) in a safe place for later</li>
 <li>Click <strong>Done</strong> to close the dialog</li>
 <li>Select the <strong>Install App</strong> or <strong>OAuth &amp; Permissions</strong> section on the left, then copy and save your Bot User OAuth token (<code>xoxb-*</code>) in a safe place for later</li>
@@ -696,7 +682,7 @@ The administrative contact for this robot is: David Parsley, &lt;parsley@linuxje
 <li><code>deploy_key.pub</code> (optional) - copy of the public key used for bootstrapping</li>
 <li><code>manage_key</code> (optional) - encrypted private key used by the robot to save it's configuration; can be removed after initial configuration</li>
 <li><code>manage_key.pub</code> (optional) - public key used as a read-write deploy key, allowing the private key to store the robot's initial configuration in git; can be removed</li>
-<li><code>robot_key</code> (optional, default) - the robot's &quot;personal&quot; encrypted ssh key for other ssh / git operations</li>
+<li><code>robot_key</code> (optional, default) - the robot's "personal" encrypted ssh key for other ssh / git operations</li>
 <li><code>robot_key.pub</code> (optional, default) - the robot's public key corresponding to <code>robot_key</code>; the robot will respond to <code>show pubkey</code> (or just <code>pubkey</code>) with the contents of this file</li>
 </ul>
 </li>
@@ -770,7 +756,7 @@ setup)
 <li>Follow the instructions to get your robot connected to your team chat, add yourself as a robot administrator, and save your robot to it's <em>git</em> repository.</li>
 </ol>
 <blockquote>
-<p>NOTE: the quickest way to open a second terminal is to click the &quot;Split Terminal&quot; box in the upper-right corner of your initial terminal. To access the public keys for configuring deployment keys, you can e.g. <code>cat custom/ssh/deploy_key.pub</code>, or open it from the file explorer</p>
+<p>NOTE: the quickest way to open a second terminal is to click the "Split Terminal" box in the upper-right corner of your initial terminal. To access the public keys for configuring deployment keys, you can e.g. <code>cat custom/ssh/deploy_key.pub</code>, or open it from the file explorer</p>
 </blockquote>
 <ol start="7">
 <li>
@@ -784,9 +770,9 @@ setup)
 david@penguin:~/botwork$ rm ~/Downloads/.env
 david@penguin:~/botwork$ cat bishop.env 
 ## Lines starting with #| are used by the cbot.sh script
-GIT_AUTHOR_NAME=&quot;David Parsley&quot;
+GIT_AUTHOR_NAME="David Parsley"
 GIT_AUTHOR_EMAIL=parsley@linuxjedi.org
-GIT_COMMITTER_NAME=&quot;David Parsley&quot;
+GIT_COMMITTER_NAME="David Parsley"
 GIT_COMMITTER_EMAIL=parsley@linuxjedi.org
 #|CONTAINERNAME=bishop
 #|SSH_KEY_PATH=/home/david/.ssh/id_rsa
@@ -862,9 +848,9 @@ GOPHER_DEPLOY_KEY=-----BEGIN_OPENSSH_PRIVATE_KEY-----:&lt;much junk removed&gt;:
 <h2 id="production-container"><a class="header" href="#production-container">Production Container</a></h2>
 <p>For the example, you'll need to create an empty directory named after your robot, copy the robot's <code>.env</code> file to <code>&lt;botname&gt;/environment</code>, and run your robot from that directory.</p>
 <p>A command similar to this is suitable for a Linux host OS using <code>journald</code> for logging. Using <code>Clu</code>:</p>
-<pre><code>$ docker container run --name &quot;clu&quot; --restart unless-stopped -d \
-	  --log-driver journald --log-opt tag=&quot;clu&quot; \
-	  --env-file environment -e HOSTNAME=&quot;my.host.name&quot; \
+<pre><code>$ docker container run --name "clu" --restart unless-stopped -d \
+	  --log-driver journald --log-opt tag="clu" \
+	  --env-file environment -e HOSTNAME="my.host.name" \
 	  quay.io/lnxjedi/gopherbot:latest
 </code></pre>
 <p>Then, to verify your robot is running:</p>
@@ -896,10 +882,10 @@ Info: Robot is initialized and running
 </ul>
 <p>That's it! Your robot should start and connect to your team chat.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="robot-basics"><a class="header" href="#robot-basics">Robot Basics</a></h1>
-<p>Central to the design of Gopherbot is the idea that once your robot connects to your team chat and joins one or more channels, the robot &quot;hears&quot; every message in those channels, just as a user would. Every time the robot hears a message<sup class="footnote-reference"><a href="#1">1</a></sup>:</p>
+<p>Central to the design of Gopherbot is the idea that once your robot connects to your team chat and joins one or more channels, the robot "hears" every message in those channels, just as a user would. Every time the robot hears a message<sup class="footnote-reference"><a href="#1">1</a></sup>:</p>
 <ul>
 <li>It checks to see if the message was directed to it by name</li>
-<li>It checks for &quot;ambient&quot; message matches</li>
+<li>It checks for "ambient" message matches</li>
 <li>It checks for matching job triggers</li>
 </ul>
 <p>This chapter focuses on the first case - sending commands directly to your robot.</p>
@@ -907,7 +893,7 @@ Info: Robot is initialized and running
 <p>Depending on the configured values for <code>IgnoreUnlistedUsers</code> and <code>IgnoreUsers</code>, messages may be dropped entirely without any processing. This would show up in the logs at log level <strong>Debug</strong>.</p>
 </div>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="addressing-your-robot-and-using-ping"><a class="header" href="#addressing-your-robot-and-using-ping">Addressing your Robot and using Ping</a></h1>
-<p>Most chat platforms provide some kind of capability for &quot;mentioning&quot; your robot using an <code>@...</code> syntax; normally, prefixing a message with your robot's mention name will cause it to process the message as a command. For maximum compatibility when switching chat platforms, <strong>Gopherbot</strong> robots all have a regular 'name' like 'Floyd' which they recognize, as well as a single-character 'alias'. To verify your robot &quot;hears&quot; messages, you would normally use the single &quot;ping&quot; command, which defaults to being available in all the channels where the robot is present. Here are some examples of using &quot;ping&quot; with <strong>Floyd</strong>, whose alias is <code>;</code>:</p>
+<p>Most chat platforms provide some kind of capability for "mentioning" your robot using an <code>@...</code> syntax; normally, prefixing a message with your robot's mention name will cause it to process the message as a command. For maximum compatibility when switching chat platforms, <strong>Gopherbot</strong> robots all have a regular 'name' like 'Floyd' which they recognize, as well as a single-character 'alias'. To verify your robot "hears" messages, you would normally use the single "ping" command, which defaults to being available in all the channels where the robot is present. Here are some examples of using "ping" with <strong>Floyd</strong>, whose alias is <code>;</code>:</p>
 <pre><code>c:general/u:alice -&gt; floyd, ping
 general: @alice PONG
 c:general/u:alice -&gt; ;ping
@@ -927,9 +913,9 @@ general: @alice PONG
 c:general/u:alice -&gt; ping floyd
 c:general/u:alice -&gt;
 </code></pre>
-<p>The last three examples are instructive: 1) if you type a command for your robot but forget to address the robot, typing the robot's name or alias alone as your next message will cause it to process your previous message as a command if done within a short period of time. 2) While &quot;&lt;command&gt;, &lt;botname&gt;&quot; is considered a command, &quot;&lt;command&gt; &lt;botname&gt;&quot; (without a comma) is not; this allows the robot to be discussed (e.g. &quot;try using floyd&quot;) without the robot parsing it as a command.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="command-matching-and-command-not-found"><a class="header" href="#command-matching-and-command-not-found">Command Matching and &quot;command not found&quot;</a></h1>
-<p>Like the UNIX command-line, your robot is sensitive to typos; more accurately, every robot command is checked against a set of regular expressions to see if a plugin is matched. It's not rocket science, and it's not AI - it's just good 'ol regexes. When you address your robot directly, but the message doesn't match a command regex, the robot's reply is a little more verbose than &quot;command not found&quot;:</p>
+<p>The last three examples are instructive: 1) if you type a command for your robot but forget to address the robot, typing the robot's name or alias alone as your next message will cause it to process your previous message as a command if done within a short period of time. 2) While "&lt;command&gt;, &lt;botname&gt;" is considered a command, "&lt;command&gt; &lt;botname&gt;" (without a comma) is not; this allows the robot to be discussed (e.g. "try using floyd") without the robot parsing it as a command.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="command-matching-and-command-not-found"><a class="header" href="#command-matching-and-command-not-found">Command Matching and "command not found"</a></h1>
+<p>Like the UNIX command-line, your robot is sensitive to typos; more accurately, every robot command is checked against a set of regular expressions to see if a plugin is matched. It's not rocket science, and it's not AI - it's just good 'ol regexes. When you address your robot directly, but the message doesn't match a command regex, the robot's reply is a little more verbose than "command not found":</p>
 <pre><code>general: @alice Sorry, that didn't match any commands I know,
 or may refer to a command that's not available in this channel;
 try 'floyd, help &lt;keyword&gt;'
@@ -953,13 +939,13 @@ c:general/u:alice -&gt; Weevil who?
 general: Weevil weevil rock you
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="availability-by-channel"><a class="header" href="#availability-by-channel">Availability by Channel</a></h1>
-<p>Individual <strong>Gopherbot</strong> robots normally limit commands to certain channels, contextually; for instance, the &quot;build&quot; command may be limited to a job channel, where developers can all &quot;see&quot; each other starting builds. Generally speaking, limiting commands to select channels is fairly common for a <strong>Gopherbot</strong> robot. By adding <code>Channels: [ &quot;foo&quot;, &quot;bar&quot; ]</code> to a plugin's <code>*.yaml</code> configuration file, an administrator can easily override the default channels for a given plugin.</p>
+<p>Individual <strong>Gopherbot</strong> robots normally limit commands to certain channels, contextually; for instance, the "build" command may be limited to a job channel, where developers can all "see" each other starting builds. Generally speaking, limiting commands to select channels is fairly common for a <strong>Gopherbot</strong> robot. By adding <code>Channels: [ "foo", "bar" ]</code> to a plugin's <code>*.yaml</code> configuration file, an administrator can easily override the default channels for a given plugin.</p>
 <h2 id="default-channels"><a class="header" href="#default-channels">Default Channels</a></h2>
 <p>Many of the robot's plugins aren't context-sensitive, and can be available anywhere. Practically, however, you might want to limit these to a small number of channels to prevent common channels from getting junked up with robot noise. The slack protocol configuration for the standard robot has:</p>
-<pre><code>DefaultChannels: [ &quot;general&quot;, &quot;random&quot; ]
+<pre><code>DefaultChannels: [ "general", "random" ]
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-built-in-help-system"><a class="header" href="#the-built-in-help-system">The Built-in Help System</a></h1>
-<p>For a quick intro to the robot, the ambient<sup class="footnote-reference"><a href="#1">1</a></sup> command &quot;help&quot;, by itself, will provide you with a quick overview of using the help system:</p>
+<p>For a quick intro to the robot, the ambient<sup class="footnote-reference"><a href="#1">1</a></sup> command "help", by itself, will provide you with a quick overview of using the help system:</p>
 <pre><code>c:chat/u:alice -&gt; help
 chat: @alice I've sent you a private message introducing myself
 (dm:alice): Hi, I'm Clu, a staff robot. I see you've asked for help.
@@ -975,12 +961,12 @@ Clu, help &lt;keyword&gt; - find help for commands matching &lt;keyword&gt;
 ...
 </code></pre>
 <p><strong>Gopherbot</strong> ships with a simple keyword-based help system. Each plugin specifies a set of help texts linked to keywords, and these can easily be added to by providing custom <code>AppendHelp: ...</code> for a given plugin. Since <strong>Gopherbot</strong> commands are commonly linked to channels, keyword help will list the channels where a command is available if it's not in the current channel.</p>
-<p>Additionally, some plugins may define custom &quot;help with &lt;foo&gt;&quot; commands that give extended help information about the plugin.</p>
+<p>Additionally, some plugins may define custom "help with &lt;foo&gt;" commands that give extended help information about the plugin.</p>
 <div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
-<p>&quot;ambient&quot; commands are matched against the entire message, every time. Once example of this is the &quot;Chuck Norris&quot; plugin; any time The Great One is mentioned, the robot will pipe up with an anecdote.</p>
+<p>"ambient" commands are matched against the entire message, every time. Once example of this is the "Chuck Norris" plugin; any time The Great One is mentioned, the robot will pipe up with an anecdote.</p>
 </div>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="standard-plugins-and-commands"><a class="header" href="#standard-plugins-and-commands">Standard Plugins and Commands</a></h1>
-<p>In addition to &quot;ping&quot;, and &quot;help&quot;, which we've already introduced, there are a few other standard commands normally available to all users:</p>
+<p>In addition to "ping", and "help", which we've already introduced, there are a few other standard commands normally available to all users:</p>
 <ul>
 <li><code>info</code> - provides basic information about the robot's software version and where it's running:</li>
 </ul>
@@ -997,18 +983,18 @@ The administrators for this robot are: alice
 The administrative contact for this robot is: David Parsley, &lt;parsley@linuxjedi.org&gt;
 </code></pre>
 <ul>
-<li><code>whoami</code> - gives information about how the robot &quot;sees&quot; you, with information useful for the <code>UserRoster</code>:</li>
+<li><code>whoami</code> - gives information about how the robot "sees" you, with information useful for the <code>UserRoster</code>:</li>
 </ul>
 <pre><code>c:chat/u:alice -&gt; !whoami
 chat: You are 'Terminal' user 'alice/u0001', speaking in channel 'chat/#chat',
 email address: alice@example.com
 </code></pre>
-<h2 id="the-links-plugin"><a class="header" href="#the-links-plugin">The &quot;links&quot; Plugin</a></h2>
-<p>To simplify sharing common bookmarks with the rest of your team, you can use the &quot;links&quot; plugin:</p>
+<h2 id="the-links-plugin"><a class="header" href="#the-links-plugin">The "links" Plugin</a></h2>
+<p>To simplify sharing common bookmarks with the rest of your team, you can use the "links" plugin:</p>
 <pre><code>c:general/u:alice -&gt; !link employee manual to https://example.com/hr.html
 general: Link added
 c:general/u:alice -&gt; !look up manual
-general: Here's what I have for &quot;manual&quot;:
+general: Here's what I have for "manual":
 https://example.com/hr.html: employee manual
 c:general/u:alice -&gt; !help with links
 general: The links plugin stores URLs and associates them with a text key that can
@@ -1017,8 +1003,8 @@ be words or phrases. The 'link' command stores a link and key in one command, an
 will return all links whose key contains the provided word or phrase,
 case insensitive. Links can be deleted with the 'remove' command.
 </code></pre>
-<h2 id="the-lists-plugin"><a class="header" href="#the-lists-plugin">The &quot;lists&quot; Plugin</a></h2>
-<p>Slightly less useful, the &quot;lists&quot; plugin can be used for keeping simple lists of items:</p>
+<h2 id="the-lists-plugin"><a class="header" href="#the-lists-plugin">The "lists" Plugin</a></h2>
+<p>Slightly less useful, the "lists" plugin can be used for keeping simple lists of items:</p>
 <pre><code>c:general/u:alice -&gt; !add beans to the grocery list
 general: Ok, I added beans to the grocery list
 c:general/u:alice -&gt; !add milk to the list
@@ -1036,10 +1022,10 @@ beans
 milk
 </code></pre>
 <blockquote>
-<p>Note that the last few commands simply referred to &quot;the list&quot;, instead of fully specifying &quot;the grocery list&quot;. Again, it's not AI; see the next section on &quot;context&quot;.</p>
+<p>Note that the last few commands simply referred to "the list", instead of fully specifying "the grocery list". Again, it's not AI; see the next section on "context".</p>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="context"><a class="header" href="#context">Context</a></h1>
-<p>Commands can be configured to store certain matched fields as labeled context items, e.g. &quot;item&quot; or &quot;list&quot;. This feature is somewhat experimental, but could occasionally be useful. A somewhat contrived example uses the &quot;list&quot; and &quot;item&quot; contexts with the aforementioned links and lists plugins:</p>
+<p>Commands can be configured to store certain matched fields as labeled context items, e.g. "item" or "list". This feature is somewhat experimental, but could occasionally be useful. A somewhat contrived example uses the "list" and "item" contexts with the aforementioned links and lists plugins:</p>
 <pre><code>c:general/u:alice -&gt; !link broiled salmon to https://cooking.com/salmon.html
 general: Link added
 c:general/u:alice -&gt; !add it to the dinner meals list
@@ -1059,17 +1045,17 @@ general: Ok, I added tuna casserole to the dinner meals list
 <li>The two primary ways to set up a dev environment</li>
 <li><strong>Gopherbot</strong> CLI commands</li>
 </ul>
-<p>You should have a robot deployed &quot;in production&quot; (connected to your team chat) to work the examples in the following sections.</p>
+<p>You should have a robot deployed "in production" (connected to your team chat) to work the examples in the following sections.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="updating-from-git"><a class="header" href="#updating-from-git">Updating from Git</a></h1>
 <p>The most trivial changes can be made by pushing updates directly to your robot's repository, and instructing your robot to update. For this exercise, we'll add your robot's job channel to the list of default channels, making many more plugins available there.</p>
 <blockquote>
 <p>Note: In the example dialogs, Bishop's alias, <code>-</code>, precedes most commands - you'll need to substitute your own robot's alias.</p>
 </blockquote>
 <p><strong>1.</strong> You can use the normal <code>git</code> CLI to clone the repository, or you can use your git provider's web interface to make changes. We're going to modify <code>conf/slack.yaml</code>; find the <code>DefaultChannels</code> line:</p>
-<pre><code class="language-yaml">DefaultChannels: [ &quot;general&quot;, &quot;random&quot; ]
+<pre><code class="language-yaml">DefaultChannels: [ "general", "random" ]
 </code></pre>
 <p>... then update the list, and add your robot's job channel; using <strong>bishop</strong> as an example:</p>
-<pre><code class="language-yaml">DefaultChannels: [ &quot;general&quot;, &quot;random&quot;, &quot;bishop-jobs&quot; ]
+<pre><code class="language-yaml">DefaultChannels: [ "general", "random", "bishop-jobs" ]
 </code></pre>
 <p><strong>2.</strong> Commit and push your changes</p>
 <p><strong>3.</strong> In your robot's job channel, verify that the <em>lists</em> plugin isn't available:</p>
@@ -1103,7 +1089,7 @@ I don't have any lists
 <blockquote>
 <p>I think I've repeated this at least a dozen times, but be sure <code>GOPHER_PROTOCOL</code> is commented out (or missing altogether) in the environment file. Not only does this prevent connecting a second robot with the same name and credentials to your team chat, but if you examine the default distributed configuration <code>yaml</code> files, you'll see that it disables certain scheduled jobs and modifies the robot's behavior in other ways more suitable for a dev environment.</p>
 </blockquote>
-<p><strong>2.</strong> From this directory, run the <code>gopherbot-dev</code> container, this time supplying the robot's environment. Using &quot;clu&quot; as an example:</p>
+<p><strong>2.</strong> From this directory, run the <code>gopherbot-dev</code> container, this time supplying the robot's environment. Using "clu" as an example:</p>
 <pre><code>$ docker run -p 127.0.0.1:3000:3000 --name clu-dev --rm --env-file environment quay.io/lnxjedi/gopherbot-dev:latest
 </code></pre>
 <blockquote>
@@ -1150,7 +1136,7 @@ c:general/u:alice -&gt;
 <h3 id="help"><a class="header" href="#help">Help</a></h3>
 <pre><code class="language-shell">$ ./gopherbot --help
 Usage: gopherbot [options] [command [command options] [command args]]
-  &quot;command&quot; can be one of:
+  "command" can be one of:
 	decrypt - decrypt a string or file
 	encrypt - encrypt a string or file
 ...
@@ -1185,10 +1171,10 @@ UK+T6/HocaR9AAD8Ty2giHdNR3r03pbffpah/rk+MZumPK4Y3A==
   Command: buildhelp
 </code></pre>
 <p>Then, add code to your plugin to handle the <code>buildhelp</code> command (ruby example):</p>
-<pre><code class="language-ruby">when &quot;buildhelp&quot;
-    bot_alias = bot.GetBotAttribute(&quot;alias&quot;)
-    bot.Say(&quot;Usage for build-app:&quot;)
-    bot.Say(&quot;#{bot_alias}build-app (branch) (--skip-checks)&quot;, &quot;fixed&quot;)
+<pre><code class="language-ruby">when "buildhelp"
+    bot_alias = bot.GetBotAttribute("alias")
+    bot.Say("Usage for build-app:")
+    bot.Say("#{bot_alias}build-app (branch) (--skip-checks)", "fixed")
 </code></pre>
 <p>The more complex forms of <code>build-app</code> should come first, if none of them match, it will fall-through to <code>buildhelp</code> command.</p>
 <p>NOTE:</p>
@@ -1203,10 +1189,10 @@ UK+T6/HocaR9AAD8Ty2giHdNR3r03pbffpah/rk+MZumPK4Y3A==
 <h2 id="configuring-ssh"><a class="header" href="#configuring-ssh">Configuring SSH</a></h2>
 <p>You start by choosing a passphrase for your robot's ssh keypair - make it something quite long; you shouldn't need to type it more than once. Use the <code>encrypt</code> command (normally with the terminal connector) to produce the encrypted value, and put it in a stanza like the following in your <code>robot.yaml</code>:</p>
 <pre><code class="language-yaml">ExternalTasks:
-  &quot;ssh-init&quot;:
+  "ssh-init":
     Parameters:
     - Name: BOT_SSH_PHRASE
-      Value: {{ decrypt &quot;xxxxx&quot; }}
+      Value: {{ decrypt "xxxxx" }}
 </code></pre>
 <h2 id="initializing"><a class="header" href="#initializing">Initializing</a></h2>
 <p>Once the robot knows it's passphrase, you can use the <code>generate keypair</code> administrator command to generate a new keypair, which will be stored in <code>$GOPHER_CONFIGDIR/ssh/</code>. The private key is encrypted with the robot's (also encrypted) passphrase, so this can be committed to the repository. The <code>pubkey</code> administrator command will display the robot's public key.</p>
@@ -1216,7 +1202,7 @@ UK+T6/HocaR9AAD8Ty2giHdNR3r03pbffpah/rk+MZumPK4Y3A==
 
 AddTask ssh-scan my.remote.host
 
-AddTask exec ssh $SSH_OPTIONS user@my.remote.host &quot;whoami&quot;
+AddTask exec ssh $SSH_OPTIONS user@my.remote.host "whoami"
 </code></pre>
 <ul>
 <li>The <code>ssh-init</code> task will:
@@ -1250,8 +1236,8 @@ AddTask exec ssh $SSH_OPTIONS user@my.remote.host &quot;whoami&quot;
   - general
   StartUser: alice
 UserRoster:
-- UserName: &quot;alice&quot;
-  UserID: &quot;u0001&quot;
+- UserName: "alice"
+  UserID: "u0001"
 </code></pre>
 <p>Custom local configuration:</p>
 <pre><code class="language-yaml">ProtocolConfig:
@@ -1260,8 +1246,8 @@ UserRoster:
   - jobs
   - general
 AppendUserRoster:
-- UserName: &quot;bob&quot;
-  UserID: &quot;u0002&quot;
+- UserName: "bob"
+  UserID: "u0002"
 </code></pre>
 <p>The resulting configuration would be:</p>
 <pre><code class="language-yaml">ProtocolConfig:
@@ -1271,24 +1257,24 @@ AppendUserRoster:
   - general
   StartUser: alice
 UserRoster:
-- UserName: &quot;alice&quot;
-  UserID: &quot;u0001&quot;
-- UserName: &quot;bob&quot;
-  UserID: &quot;u0002&quot;
+- UserName: "alice"
+  UserID: "u0001"
+- UserName: "bob"
+  UserID: "u0002"
 </code></pre>
 <h2 id="template-expansion"><a class="header" href="#template-expansion">Template Expansion</a></h2>
 <p><strong>Gopherbot</strong> uses standard <a href="https://golang.org/pkg/text/template">Go text templates</a> for expanding the configuration files it reads. In addition to the stock syntactic elements, the following functions and methods are available:</p>
 <h3 id="the-env-function"><a class="header" href="#the-env-function">The <code>env</code> function</a></h3>
-<pre><code>{{ env &quot;GOPHER_ALIAS&quot; }}
+<pre><code>{{ env "GOPHER_ALIAS" }}
 </code></pre>
 <p>This would expand to the value of the <code>GOPHER_ALIAS</code> environment variable.</p>
 <h3 id="the-default-function"><a class="header" href="#the-default-function">The <code>default</code> function</a></h3>
-<pre><code>{{ env &quot;GOPHER_ALIAS&quot; | default &quot;;&quot; }}
+<pre><code>{{ env "GOPHER_ALIAS" | default ";" }}
 </code></pre>
 <p>The <code>default</code> function takes two arguments, and returns the first argument if it's length is &gt; 0, the second argument otherwise. The example would expand to the value of the <code>GOPHER_ALIAS</code> environment variable if set, or <code>;</code> otherwise.</p>
 <h2 id="the-decrypt-function"><a class="header" href="#the-decrypt-function">The <code>decrypt</code> function</a></h2>
 <pre><code>ProtocolConfig:
-  SlackToken: xoxb-18000000000-470000000000-{{ decrypt &quot;xxxxx&quot; }}
+  SlackToken: xoxb-18000000000-470000000000-{{ decrypt "xxxxx" }}
 </code></pre>
 <p>To make it safe to store secret values in configuration, administrators can send a direct message to the robot requesting encryption, e.g.:</p>
 <pre><code>c:(direct)/u:alice -&gt; encrypt MyLousyPassword
@@ -1297,7 +1283,7 @@ UserRoster:
 <p>The encrypted value can then be pasted in to the <code>decrypt</code> function. See the section on <em>encryption</em> for more information.</p>
 <p><strong>NOTE:</strong> In the example, the common, low-entropy portion of a <em>slack</em> token is left as-is, and only the high-entropy portion of the token is encrypted, to prevent attacks where a portion of the encrypted value is known.</p>
 <h2 id="the-include-method"><a class="header" href="#the-include-method">The <code>.Include</code> method</a></h2>
-<pre><code>{{ .Include &quot;terminal.yaml&quot; }}
+<pre><code>{{ .Include "terminal.yaml" }}
 </code></pre>
 <p><code>.Include</code> is a <em>method</em> on the configuration file object, which is either an install file or a custom file. If the above example is present in the installed <code>conf/robot.yaml</code>, it will include <em>only</em> the installed <code>conf/terminal.yaml</code>, if present, and ignore that file if it's also present in the custom directory.</p>
 <p>Note that <code>.Include</code>'d files are also expanded as templates in the same manner.</p>
@@ -1339,10 +1325,10 @@ UserRoster:
 <h3 id="configuration-environment-variables"><a class="header" href="#configuration-environment-variables">Configuration Environment Variables</a></h3>
 <p><strong>Gopherbot</strong> normally takes almost all of it's configuration from the collection of <code>*.yaml</code> files in the custom configuration directory, but for easy flexibility, a collection of environment variables are referenced in the default configuration. These are some of the values that are expanded; the actual configuration files are the definitive reference.</p>
 <ul>
-<li><code>GOPHER_PROTOCOL</code> - used to select a non-default protocol (e.g. &quot;terminal&quot;)</li>
+<li><code>GOPHER_PROTOCOL</code> - used to select a non-default protocol (e.g. "terminal")</li>
 <li><code>GOPHER_LOGLEVEL</code> - error, warn, info, debug, trace</li>
-<li><code>GOPHER_BOTNAME</code> - the name the robot will answer to, e.g. &quot;floyd&quot;</li>
-<li><code>GOPHER_ALIAS</code> - the one-character alias for the robot, e.g. &quot;;&quot;</li>
+<li><code>GOPHER_BOTNAME</code> - the name the robot will answer to, e.g. "floyd"</li>
+<li><code>GOPHER_ALIAS</code> - the one-character alias for the robot, e.g. ";"</li>
 <li><code>GOPHER_BOTMAIL</code> - the robot's email address</li>
 <li><code>GOPHER_BOTFULLNAME</code> - the robot's full name</li>
 <li><code>GOPHER_HISTORYDIR</code> - directory for storing file-based historical job logs</li>
@@ -1351,7 +1337,7 @@ UserRoster:
 <li><code>GOPHER_STATEDIR</code> - default dir for storing state, normally just the brain</li>
 <li><code>GOPHER_BRAIN_DIRECTORY</code> - directory where file-based memories are stored, overrides above</li>
 <li><code>GOPHER_JOBCHANNEL</code> - where jobs run by default if not otherwise specified</li>
-<li><code>GOPHER_TIMEZONE</code> - UNIX tz, e.g. &quot;America/New_York&quot; (default)</li>
+<li><code>GOPHER_TIMEZONE</code> - UNIX tz, e.g. "America/New_York" (default)</li>
 </ul>
 <h2 id="external-script-environment"><a class="header" href="#external-script-environment">External Script Environment</a></h2>
 <p><strong>Gopherbot</strong> always scrubs the environment when executing tasks, so environment variables set on execution are not automatically passed to child processes. The only environment variables that are passed through from original execution are:</p>
@@ -1373,17 +1359,17 @@ UserRoster:
 <p>First, <strong>Gopherbot</strong> will check for custom configuration or the presence of a <code>GOPHER_CUSTOM_REPOSITORY</code> environment variable. In the absence of either, the following will be automatically set:</p>
 <ul>
 <li><code>GOPHER_UNCONFIGURED</code> - set true</li>
-<li><code>GOPHER_LOGFILE</code> - set to &quot;robot.log&quot; if not already set</li>
-<li><code>GOPHER_PROTOCOL</code> - set to &quot;terminal&quot; so the default robot will start</li>
+<li><code>GOPHER_LOGFILE</code> - set to "robot.log" if not already set</li>
+<li><code>GOPHER_PROTOCOL</code> - set to "terminal" so the default robot will start</li>
 </ul>
 <p>If no custom configuration is present but <code>GOPHER_CUSTOM_REPOSITORY</code> is set:</p>
 <ul>
-<li><code>GOPHER_PROTOCOL</code> - set to &quot;nullconn&quot;, the null connector, to allow the bootstrap plugin to bootstrap your robot</li>
+<li><code>GOPHER_PROTOCOL</code> - set to "nullconn", the null connector, to allow the bootstrap plugin to bootstrap your robot</li>
 </ul>
 <p>If the robot is configured but <code>GOPHER_PROTOCOL</code> isn't set:</p>
 <ul>
-<li><code>GOPHER_PROTOCOL</code> - set to &quot;terminal&quot; for local operations</li>
-<li><code>GOPHER_LOGFILE</code> - set to &quot;robot.log&quot; if not already set</li>
+<li><code>GOPHER_PROTOCOL</code> - set to "terminal" for local operations</li>
+<li><code>GOPHER_LOGFILE</code> - set to "robot.log" if not already set</li>
 </ul>
 <p>Finally, if encryption is initialized on start-up, <code>GOPHER_ENCRYPTION_INITIALIZED</code> will be set to <code>true</code>, regardless of whether the robot is configured.</p>
 <h2 id="pipeline-environment-variables"><a class="header" href="#pipeline-environment-variables">Pipeline Environment Variables</a></h2>
@@ -1393,11 +1379,11 @@ UserRoster:
 <li><code>GOPHER_CHANNEL_ID</code> - the protocol channel ID</li>
 <li><code>GOPHER_MESSAGE_ID</code> - the opaque message id of the matching message</li>
 <li><code>GOPHER_THREAD_ID</code> - an opaque string value identifying the conversation thread</li>
-<li><code>GOPHER_THREADED_MESSAGE</code> - set &quot;true&quot; if the message was received in a thread</li>
+<li><code>GOPHER_THREADED_MESSAGE</code> - set "true" if the message was received in a thread</li>
 <li><code>GOPHER_USER</code> - the user whose message created the pipeline (if any)</li>
-<li><code>GOPHER_PROTOCOL</code> - the name of the protocol in use, e.g. &quot;slack&quot;</li>
+<li><code>GOPHER_PROTOCOL</code> - the name of the protocol in use, e.g. "slack"</li>
 <li><code>GOPHER_BRAIN</code> - the type of brain in use</li>
-<li><code>GOPHER_ENVIRONMENT</code> - &quot;production&quot;, unless overridden</li>
+<li><code>GOPHER_ENVIRONMENT</code> - "production", unless overridden</li>
 <li><code>GOPHER_PIPE_NAME</code> - the name of the plugin or job that started the pipeline</li>
 <li><code>GOPHER_TASK_NAME</code> - the name of the running task</li>
 <li><code>GOPHER_PIPELINE_TYPE</code> - the event type that started the current pipeline, one of:
@@ -1426,8 +1412,8 @@ UserRoster:
 <p>The following are set at the end of the main pipeline, and can be referenced in final and fail tasks:</p>
 <ul>
 <li><code>GOPHER_FINAL_TASK</code> - name of final task that ran in the pipeline</li>
-<li><code>GOPHER_FINAL_TYPE</code> - type of last task to run, one of &quot;task&quot;, &quot;plugin&quot;, &quot;job&quot;</li>
-<li><code>GOPHER_FINAL_COMMAND</code> - if type == &quot;plugin&quot;, set to the plugin command</li>
+<li><code>GOPHER_FINAL_TYPE</code> - type of last task to run, one of "task", "plugin", "job"</li>
+<li><code>GOPHER_FINAL_COMMAND</code> - if type == "plugin", set to the plugin command</li>
 <li><code>GOPHER_FINAL_ARGS</code> - space-separated list of arguments to final task</li>
 <li><code>GOPHER_FINAL_DESC</code> - <code>Description:</code> of final task</li>
 <li><code>GOPHER_FAIL_CODE</code> - numeric return value if final task failed</li>
@@ -1443,10 +1429,10 @@ UserRoster:
 <p>In addition to the environment variables set by the <strong>Gopherbot</strong> engine, the <code>localbuild</code> GopherCI builder sets the following environment variables that can be used to modify pipelines:</p>
 <ul>
 <li><code>GOPHERCI_BRANCH</code> - the branch being built (<code>GOPHER_REPOSITORY</code> is set by <code>ExtendNamespace</code>)</li>
-<li><code>GOPHERCI_DEPBUILD</code> - set to &quot;true&quot; if the build was triggered by a dependency</li>
+<li><code>GOPHERCI_DEPBUILD</code> - set to "true" if the build was triggered by a dependency</li>
 <li><code>GOPHERCI_DEPREPO</code> - the updated repository that triggered this build</li>
 <li><code>GOPHERCI_DEPBRANCH</code> - the updated branch</li>
-<li><code>GOPHERCI_CUSTOM_PIPELINE</code> - pipeline being run if other than &quot;pipeline&quot;</li>
+<li><code>GOPHERCI_CUSTOM_PIPELINE</code> - pipeline being run if other than "pipeline"</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><p>Gopherbot's functionality can be easily extended by writing plugins in one of several different languages. A single plugin can provide:</p>
 <ul>
@@ -1542,7 +1528,7 @@ UserRoster:
 CommandMatchers:
 - Regex: (?i:remember ([-\w .,!?:\/]+))
   Command: remember
-  Contexts: [ &quot;item&quot; ]
+  Contexts: [ "item" ]
 </code></pre>
 <p>Whenever a <code>CommandMatcher</code> regex matches a command given to the robot, or a <code>MessageMatcher</code> matches an ambient message, the robot calls the plugin script with the first argument being the matched <code>Command</code>, and subsequent arguments corresponding to the regex capture groups (which may in some cases be an empty string). Command plugins should normally exit with status 0 (bot.Normal), or non-zero for unusual error conditions that may require an administrator to investigate. The robot will notify the user whenever a command plugin exits non-zero, or when it emits output to STDERR.</p>
 <h2 id="authorization-plugins"><a class="header" href="#authorization-plugins">Authorization Plugins</a></h2>
@@ -1559,7 +1545,7 @@ CommandMatchers:
 <li>bot.MechanismFail (3) - a technical issue prevented the robot from determining authorization</li>
 </ul>
 <p>Note that exiting with <code>bot.Normal</code> (0) or other values will result in an error and failed authentication.</p>
-<p>Additionally, authorization plugins may provide extra feedback to the user on <code>Fail</code> or <code>MechanismFail</code> so they can have the issue addressed, e.g. &quot;Authorization failed: user not a member of group 'foo'&quot;. In some cases, however, authorization plugins may not have a full Gopherbot API library; they could be written in C, and thus not be able to interact with the user.</p>
+<p>Additionally, authorization plugins may provide extra feedback to the user on <code>Fail</code> or <code>MechanismFail</code> so they can have the issue addressed, e.g. "Authorization failed: user not a member of group 'foo'". In some cases, however, authorization plugins may not have a full Gopherbot API library; they could be written in C, and thus not be able to interact with the user.</p>
 <h2 id="elevation-plugins"><a class="header" href="#elevation-plugins">Elevation Plugins</a></h2>
 <p>Elevation plugins provide the means to request additional authentication from the user for commands where higher assurance of identity is desired. The main <code>robot.yaml</code> can specify an elevation plugin as the <code>DefaultElevator</code>, which can be overridden by a given plugin specifying an <code>Elevator</code>. When the plugin lists commands as <code>ElevatedCommands</code> or <code>ElevateImmediateCommands</code>, the robot will call the appropriate elevator plugin with a command of <code>elevate</code> and a first argument of <code>true</code> or <code>false</code> for <code>immediate</code>. The elevator plugin should interpret <code>immediate == true</code> to mean MFA is required every time; when <code>immediate != true</code>, successful elevation may persist for a configured timeout period.</p>
 <p>Based on the result of the elevation determination, the plugin should have an exit status one of:</p>
@@ -1636,7 +1622,7 @@ c:general/u:alice -&gt; |crandom
 Changed current channel to: random
 c:random/u:alice -&gt; ;ruby me to the max!
 (dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: plugin is visible to user alice in channel random
-(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Checking 7 command matchers against message: &quot;ruby me to the max!&quot;
+(dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Checking 7 command matchers against message: "ruby me to the max!"
 (dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:bashecho ([.;!\d\w-, ]+))
 (dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:ruby( me)?!?)
 (dm:alice): 2018/04/18 03:43:44 DEBUG rubydemo: Not matched: (?i:listen( to me)?!?)
@@ -1647,7 +1633,7 @@ c:random/u:alice -&gt; ;ruby me to the max!
 random: @alice Sorry, that didn't match any commands I know, or may refer to a command that's not available in this channel; try 'floyd, help &lt;keyword&gt;'
 c:random/u:alice -&gt; ;ruby me!
 (dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: plugin is visible to user alice in channel random
-(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Checking 7 command matchers against message: &quot;ruby me!&quot;
+(dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Checking 7 command matchers against message: "ruby me!"
 (dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Not matched: (?i:bashecho ([.;!\d\w-, ]+))
 (dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Matched command regex '(?i:ruby( me)?!?)', command: ruby
 (dm:alice): 2018/04/18 03:43:49 DEBUG rubydemo: Running plugin with command 'ruby' and arguments: [ me]
@@ -1673,10 +1659,10 @@ c:(direct)/u:alice -&gt; dump plugin rubydemo
 (dm:alice): AdminCommands: null
 AllChannels: false
 AllowDirect: true
-AuthRequire: &quot;&quot;
+AuthRequire: ""
 AuthorizeAllCommands: false
 AuthorizedCommands: null
-Authorizer: &quot;&quot;
+Authorizer: ""
 CatchAll: false
 ... (MUCH more)
 </code></pre>
@@ -1689,12 +1675,12 @@ CatchAll: false
 <li>Enable your new plugin in <code>robot.yaml</code> and give it a descriptive <code>Name</code></li>
 </ul>
 <h2 id="using-boilerplate-code"><a class="header" href="#using-boilerplate-code">Using Boilerplate Code</a></h2>
-<p>Each supported scripting language has a certain amount of &quot;boilerplate&quot; code required in every command plugin; generally, the boilerplate code is responsible for:</p>
+<p>Each supported scripting language has a certain amount of "boilerplate" code required in every command plugin; generally, the boilerplate code is responsible for:</p>
 <ul>
 <li>Loading the appropriate version of the Gopherbot library from <code>$GOPHER_INSTALLDIR/lib</code></li>
 <li>Defining and providing the default config</li>
 <li>Instantiating a Robot object with a library call
-Normally this is followed by some form of case / switch statement that performs different functions based on the contents of the first argument, a.k.a. the &quot;command&quot;.</li>
+Normally this is followed by some form of case / switch statement that performs different functions based on the contents of the first argument, a.k.a. the "command".</li>
 </ul>
 <h3 id="bash-boilerplate"><a class="header" href="#bash-boilerplate">Bash Boilerplate</a></h3>
 <pre><code class="language-bash">#!/bin/bash -e
@@ -1705,13 +1691,13 @@ COMMAND=$1
 shift
 
 configure(){
-  cat &lt;&lt;&quot;EOF&quot;
+  cat &lt;&lt;"EOF"
 &lt;yaml config document&gt;
 EOF
 }
 
-case &quot;$COMMAND&quot; in
-	&quot;configure&quot;)
+case "$COMMAND" in
+	"configure")
 		configure
 		;;
 ...
@@ -1734,7 +1720,7 @@ default_config = '''
 executable = sys.argv.pop(0)
 command = sys.argv.pop(0)
 
-if command == &quot;configure&quot;:
+if command == "configure":
     print default_config
 ...
 </code></pre>
@@ -1753,7 +1739,7 @@ DEFCONFIG
 command = ARGV.shift()
 
 case command
-when &quot;configure&quot;
+when "configure"
 	puts defaultConfig
 	exit
 ...
@@ -1789,7 +1775,7 @@ end
 <li>fullName / realName</li>
 <li>contact / admin / adminContact</li>
 <li>email</li>
-<li>protocol (e.g. &quot;slack&quot;)</li>
+<li>protocol (e.g. "slack")</li>
 <li>internalID (protocol internal representation)</li>
 </ul>
 <p>Note: the values for most of these are configured in <code>conf/robot.yaml</code></p>
@@ -1798,28 +1784,28 @@ end
 <pre><code class="language-bash">USEREMAIL=$(GetSenderAttribute email)
 if [ $? -ne $GBRET_Ok ]
 then
-  Say &quot;I was unable to look up your email address&quot;
+  Say "I was unable to look up your email address"
 else
-  Say &quot;Your email address is $USEREMAIL&quot;
+  Say "Your email address is $USEREMAIL"
 fi
 </code></pre>
 <h2 id="python"><a class="header" href="#python">Python</a></h2>
 <pre><code class="language-python"># In some cases you might forego error checking
-bot.Say(&quot;You can send email to %s&quot; % bot.GetBotAttribte(&quot;email&quot;))
-botNameAttr = bot.GetBotAttribute(&quot;fullName&quot;)
+bot.Say("You can send email to %s" % bot.GetBotAttribte("email"))
+botNameAttr = bot.GetBotAttribute("fullName")
 if botNameAttr.ret == Robot.Ok:
-  bot.Say(&quot;My full name is %s&quot; % botNameAttr)
+  bot.Say("My full name is %s" % botNameAttr)
 else:
-  bot.Say(&quot;I don't even know what my name is!&quot;)
+  bot.Say("I don't even know what my name is!")
 </code></pre>
 <h2 id="ruby"><a class="header" href="#ruby">Ruby</a></h2>
 <pre><code class="language-ruby"># In some cases you might forego error checking
-bot.Say(&quot;You can send email to #{bot.GetBotAttribute(&quot;email&quot;)}&quot;)
-botNameAttr = bot.GetBotAttribute(&quot;fullName&quot;)
+bot.Say("You can send email to #{bot.GetBotAttribute("email")}")
+botNameAttr = bot.GetBotAttribute("fullName")
 if botNameAttr.ret == Robot::Ok
-  bot.Say(&quot;My full name is #{botNameAttr}&quot;)
+  bot.Say("My full name is #{botNameAttr}")
 else
-  bot.Say(&quot;I don't even know what my name is!&quot;)
+  bot.Say("I don't even know what my name is!")
 end
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><p><strong>Gopherbot</strong> comes with brain methods allowing plugin authors to store information long-term information like a <code>TODO</code> list, or short-term contextual
@@ -1862,47 +1848,47 @@ for each user/channel combination, and can be freely shared between plugins.</p>
 <p>The memory stored can be an arbitrarily complex data item; a hash, array, or combination - anything that can be serialized to/from
 JSON. The example plugins for <strong>Python</strong> and <strong>Ruby</strong> implement a <em>remember</em> function that remembers a list (array)
 of items. For the code examples, we'll start with a memory whose key is <code>memory</code>, and has two items defined by this snippet of JSON:</p>
-<pre><code class="language-json">[&quot;the Alamo&quot;, &quot;Ferris Bueller&quot;]
+<pre><code class="language-json">["the Alamo", "Ferris Bueller"]
 </code></pre>
-<p>The examples will check if the memory exists, add &quot;the answer is 42&quot;, and then update the memory.</p>
+<p>The examples will check if the memory exists, add "the answer is 42", and then update the memory.</p>
 <p>Note that long-term memory commands aren't current implemented for <code>bash</code>.</p>
 <h3 id="python-1"><a class="header" href="#python-1">Python</a></h3>
-<pre><code class="language-python">memory = bot.CheckoutDatum(&quot;memory&quot;, True)
+<pre><code class="language-python">memory = bot.CheckoutDatum("memory", True)
 if memory.exists:
-    memory.datum.append(&quot;the answer is 42&quot;)
+    memory.datum.append("the answer is 42")
 else:
     memory.datum = [ thing ]
 ret = bot.UpdateDatum(memory)
 if ret != Robot.Ok:
-    bot.Say(&quot;Uh-oh, I must be gettin' old - having memory problems!&quot;)
+    bot.Say("Uh-oh, I must be gettin' old - having memory problems!")
 </code></pre>
 <h3 id="ruby-1"><a class="header" href="#ruby-1">Ruby</a></h3>
 <p>Note: the Ruby example is a little more complicated; adapted from plugins/rubydemo.rb.</p>
-<pre><code class="language-ruby">memory = bot.CheckoutDatum(&quot;memory&quot;, true)
+<pre><code class="language-ruby">memory = bot.CheckoutDatum("memory", true)
 remembered = false
 if memory.exists
   if memory.datum.include?(thing)
-    bot.Say(&quot;That's already one of my fondest memories&quot;)
+    bot.Say("That's already one of my fondest memories")
     bot.CheckinDatum(memory)
   else
     remembered = true
-    memory.datum.push(&quot;the answer is 42&quot;)
+    memory.datum.push("the answer is 42")
   end
 else
   remembered = true
-  memory.datum = [ &quot;the answer is 42&quot; ]
+  memory.datum = [ "the answer is 42" ]
 end
 if remembered
   ret = bot.UpdateDatum(memory)
   if ret != Robot::Ok
-    bot.Say(&quot;Dang it, having problems with my memory&quot;)
+    bot.Say("Dang it, having problems with my memory")
   end
 end
 </code></pre>
 <h2 id="long-term-memory-sample-transcript"><a class="header" href="#long-term-memory-sample-transcript">Long-Term Memory Sample Transcript</a></h2>
 <p>Using the <code>terminal</code> connector, you can see the <code>remember</code> function in action:</p>
 <pre><code>c:general/u:alice -&gt; floyd, remember the answer is 42
-general: Ok, I'll remember &quot;the answer is 42&quot;
+general: Ok, I'll remember "the answer is 42"
 c:general/u:alice -&gt; |ubob
 Changed current user to: bob
 c:general/u:bob -&gt; floyd, recall
@@ -1928,7 +1914,7 @@ general: Yes?
 c:general/u:bob -&gt; floyd, pick a random item from the dinner meals list
 general: Here you go: tuna casserole
 c:general/u:bob -&gt; look it up, floyd
-general: Here's what I have for &quot;tuna casserole&quot;:
+general: Here's what I have for "tuna casserole":
 https://www.allrecipes.com/recipe/17219/best-tuna-casserole/: tuna casserole
 </code></pre>
 <p>Here, the robot is using short-term memories several times. When I forgot to address my command to the robot, the command
@@ -1951,15 +1937,15 @@ values.</p>
 <p>Note that the short-term memory API is super trivial, so I didn't go to great lengths to provide
 detailed examples. The <code>bash</code> example comes from the <code>bashdemo.sh</code> plugin.</p>
 <h3 id="bash-1"><a class="header" href="#bash-1">Bash</a></h3>
-<pre><code class="language-bash">Remember &quot;$1&quot; &quot;$2&quot;
-Say &quot;I'll remember \&quot;$1\&quot; is \&quot;$2\&quot; - but eventually I'll forget!&quot;
+<pre><code class="language-bash">Remember "$1" "$2"
+Say "I'll remember \"$1\" is \"$2\" - but eventually I'll forget!"
 </code></pre>
-<pre><code class="language-bash">MEMORY=$(Recall &quot;$1&quot;)
-if [ -z &quot;$MEMORY&quot; ]
+<pre><code class="language-bash">MEMORY=$(Recall "$1")
+if [ -z "$MEMORY" ]
 then
-	Reply &quot;Gosh, I have no idea - I'm so forgetful!&quot;
+	Reply "Gosh, I have no idea - I'm so forgetful!"
 else
-	Say &quot;$1 is $MEMORY&quot;
+	Say "$1 is $MEMORY"
 fi
 </code></pre>
 <h3 id="python-2"><a class="header" href="#python-2">Python</a></h3>
@@ -1978,7 +1964,7 @@ the <code>bashdemo.sh</code> plugin):</p>
 <pre><code>c:general/u:bob -&gt; floyd, what is Ferris Bueller
 general: @bob Gosh, I have no idea - I'm so forgetful!
 c:general/u:bob -&gt; floyd, store Ferris Bueller is a Righteous Dude
-general: I'll remember &quot;Ferris Bueller&quot; is &quot;a Righteous Dude&quot; - but eventually I'll forget!
+general: I'll remember "Ferris Bueller" is "a Righteous Dude" - but eventually I'll forget!
 c:general/u:bob -&gt; floyd, what is Ferris Bueller
 general: Ferris Bueller is a Righteous Dude
 c:general/u:bob -&gt; |ualice
@@ -2016,7 +2002,7 @@ remove important information. To provide the plugin author with the most flexibi
 <li><code>Fixed</code> - the protocol connector should render <code>Fixed</code> format messages in a fixed-width block format</li>
 </ul>
 <p>The <code>MessageFormat(raw|variable|fixed)</code> method returns a robot object with the specified format. A plugin can use
-<code>GetBotAttribute(&quot;protocol&quot;)</code> to determine the connector protocol (e.g. &quot;slack&quot;) to make intelligent decisions
+<code>GetBotAttribute("protocol")</code> to determine the connector protocol (e.g. "slack") to make intelligent decisions
 about the format to use, or modify the content of raw messages depending on the connection protocol.</p>
 <h1 id="saysaythread-and-replyreplythread"><a class="header" href="#saysaythread-and-replyreplythread">Say/SayThread and Reply/ReplyThread</a></h1>
 <p><code>Say</code> and <code>Reply</code> are the staples of message sending. Both are generally used for replying to the person who spoke to the robot, but <code>Reply</code> will also <em>mention</em> the user. Normally, <code>Say</code> is used when the robot responds immediately to the user, but <code>Reply</code> is used when the robot is performing a task that takes more than a few minutes, and the robot needs to direct the message to the user to update them with progress on the task. Both <code>Say</code> and <code>Reply</code> take a <code>message</code> argument, and an optional second <code>format</code> argument that can be <code>variable</code> (the default) for variable-width text, or <code>fixed</code> for fixed-width text. The <code>fixed</code> format is normally used with embedded newlines to create tabular output where the columns will line up. The return value is not normally checked, but can be one of <code>Ok</code>, <code>UserNotFound</code>, <code>ChannelNotFound</code>, or <code>FailedMessageSend</code>.</p>
@@ -2026,25 +2012,25 @@ about the format to use, or modify the content of raw messages depending on the 
 <h1 id="code-examples-1"><a class="header" href="#code-examples-1">Code Examples</a></h1>
 <h2 id="bash-2"><a class="header" href="#bash-2">Bash</a></h2>
 <pre><code class="language-bash"># Note that bash isn't object-oriented
-Say &quot;I'm sending a message to Bob in #general&quot;
-SendUserChannelMessage &quot;bob&quot; &quot;general&quot; &quot;Hi, Bob!&quot;
+Say "I'm sending a message to Bob in #general"
+SendUserChannelMessage "bob" "general" "Hi, Bob!"
 RETVAL = $?
 if [ $RETVAL -ne $GBRET_Ok ]
 then
-  Log &quot;Error&quot; &quot;Unable to message Bob in #general - return code $RETVAL&quot;
+  Log "Error" "Unable to message Bob in #general - return code $RETVAL"
 fi
 </code></pre>
 <h2 id="python-3"><a class="header" href="#python-3">Python</a></h2>
-<pre><code class="language-python">bot.Say(&quot;I'm sending a message to Bob in #general&quot;)
-retval = bot.SendUserChannelMessage(&quot;bob&quot;, &quot;general&quot;, &quot;Hi, Bob!&quot;)
+<pre><code class="language-python">bot.Say("I'm sending a message to Bob in #general")
+retval = bot.SendUserChannelMessage("bob", "general", "Hi, Bob!")
 if ( retval != Robot.Ok ):
-  bot.Log(&quot;Error&quot;, &quot;Unable to message Bob in #general - return code %d&quot; % retval)
+  bot.Log("Error", "Unable to message Bob in #general - return code %d" % retval)
 </code></pre>
 <h2 id="ruby-3"><a class="header" href="#ruby-3">Ruby</a></h2>
-<pre><code class="language-ruby">bot.Say(&quot;I'm sending a message to Bob in #general&quot;)
-retval = bot.SendUserChannelMessage(&quot;bob&quot;, &quot;general&quot;, &quot;Hi, Bob!&quot;)
+<pre><code class="language-ruby">bot.Say("I'm sending a message to Bob in #general")
+retval = bot.SendUserChannelMessage("bob", "general", "Hi, Bob!")
 if retval != Robot::Ok
-  bot.Log(&quot;Error&quot;, &quot;Unable to message Bob in #general - return code %d&quot; % retval)
+  bot.Log("Error", "Unable to message Bob in #general - return code %d" % retval)
 end
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><p><strong>Gopherbot</strong> takes a slightly different approach to creating pipelines; pipelines are created by Add/Fail/Final Job/Command/Task family of methods, rather than by fixed configuration directives. This allows flexible configuration of pipelines if desired for e.g. a CI/CD application, or dynamic generation of pipelines based on logic at runtime.</p>
@@ -2061,25 +2047,25 @@ end
 <h2 id="addtask"><a class="header" href="#addtask">AddTask</a></h2>
 <p>The <code>AddTask</code> method ... TODO: finish me!</p>
 <h3 id="bash-3"><a class="header" href="#bash-3">Bash</a></h3>
-<pre><code class="language-bash">AddTask &quot;echo&quot; &quot;hello, world&quot;
+<pre><code class="language-bash">AddTask "echo" "hello, world"
 </code></pre>
 <h3 id="python-4"><a class="header" href="#python-4">Python</a></h3>
-<pre><code class="language-python">ret = bot.AddTask(&quot;echo&quot;, [&quot;hello&quot;, &quot;world&quot;])
-bot.AddTask(&quot;robot-quit&quot;, [])
+<pre><code class="language-python">ret = bot.AddTask("echo", ["hello", "world"])
+bot.AddTask("robot-quit", [])
 </code></pre>
 <h3 id="ruby-4"><a class="header" href="#ruby-4">Ruby</a></h3>
-<pre><code class="language-ruby">ret = bot.AddTask(&quot;echo&quot;, [&quot;hello&quot;, &quot;world&quot;])
-bot.AddTask(&quot;robot-quit&quot;, [])
+<pre><code class="language-ruby">ret = bot.AddTask("echo", ["hello", "world"])
+bot.AddTask("robot-quit", [])
 </code></pre>
 <h2 id="setparameter"><a class="header" href="#setparameter">SetParameter</a></h2>
 <h3 id="bash-4"><a class="header" href="#bash-4">Bash</a></h3>
-<pre><code class="language-bash">SetParameter &quot;PING_LATENCY&quot; &quot;45ms&quot;
+<pre><code class="language-bash">SetParameter "PING_LATENCY" "45ms"
 </code></pre>
 <h3 id="python-5"><a class="header" href="#python-5">Python</a></h3>
-<pre><code class="language-python">bot.SetParameter(&quot;PING_LATENCY&quot;, &quot;45ms&quot;)
+<pre><code class="language-python">bot.SetParameter("PING_LATENCY", "45ms")
 </code></pre>
 <h3 id="ruby-5"><a class="header" href="#ruby-5">Ruby</a></h3>
-<pre><code class="language-ruby">bot.SetParameter(&quot;PING_LATENCY&quot;, &quot;45ms&quot;)
+<pre><code class="language-ruby">bot.SetParameter("PING_LATENCY", "45ms")
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><p>The <code>Prompt*ForReply</code> methods make it simple to write interactive plugins where the bot can request additional input from the user.</p>
 <h1 id="table-of-contents-4"><a class="header" href="#table-of-contents-4">Table of Contents</a></h1>
@@ -2149,40 +2135,40 @@ is the returned string in <code>Reply.reply</code> (if the <code>RetVal</code> w
 <h2 id="code-examples-2"><a class="header" href="#code-examples-2">Code Examples</a></h2>
 <h3 id="bash-5"><a class="header" href="#bash-5">Bash</a></h3>
 <pre><code class="language-bash"># Note that bash isn't object-oriented
-REPLY=$(PromptForReply &quot;YesNo&quot; &quot;Do you like kittens?&quot;)
+REPLY=$(PromptForReply "YesNo" "Do you like kittens?")
 if [ $? -ne 0 ]
 then
-	Reply &quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;
+	Reply "Eh, sorry bub, I'm having trouble hearing you - try typing faster?"
 else
   if [[ $REPLY == y* ]] || [[ $REPLY == Y* ]]
   then
-    Say &quot;No kidding! Me too!&quot;
+    Say "No kidding! Me too!"
   else
-    Say &quot;Oh, come on - you're kidding, right?!?&quot;
+    Say "Oh, come on - you're kidding, right?!?"
   fi
 fi
 </code></pre>
 <h3 id="python-6"><a class="header" href="#python-6">Python</a></h3>
-<pre><code class="language-python">rep = bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
+<pre><code class="language-python">rep = bot.PromptForReply("YesNo", "Do you like kittens?")
 if rep.ret != Robot.Ok:
-  bot.Say(&quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;)
+  bot.Say("Eh, sorry bub, I'm having trouble hearing you - try typing faster?")
 else:
   reply = rep.__str__()
-  if re.match(&quot;y.*&quot;, reply, flags=re.IGNORECASE):
-    bot.Say(&quot;No kidding! Me too!&quot;)
+  if re.match("y.*", reply, flags=re.IGNORECASE):
+    bot.Say("No kidding! Me too!")
   else:
-    bot.Say(&quot;Oh, come on - you're kidding, right?!?&quot;)
+    bot.Say("Oh, come on - you're kidding, right?!?")
 </code></pre>
 <h3 id="ruby-6"><a class="header" href="#ruby-6">Ruby</a></h3>
-<pre><code class="language-ruby">rep = bot.PromptForReply(&quot;YesNo&quot;, &quot;Do you like kittens?&quot;)
+<pre><code class="language-ruby">rep = bot.PromptForReply("YesNo", "Do you like kittens?")
 if rep.ret != Robot::Ok
-  bot.Say(&quot;Eh, sorry bub, I'm having trouble hearing you - try typing faster?&quot;)
+  bot.Say("Eh, sorry bub, I'm having trouble hearing you - try typing faster?")
 else
   reply = rep.to_s()
   if /y.*/i =~ reply
-    bot.Say(&quot;No kidding! Me too!&quot;)
+    bot.Say("No kidding! Me too!")
   else
-    bot.Say(&quot;Oh, come on - you're kidding, right?!?&quot;)
+    bot.Say("Oh, come on - you're kidding, right?!?")
   end
 end
 </code></pre>
@@ -2198,15 +2184,15 @@ end
 <li><code>Fatal</code> - emit fatal error and cause robot to exit(1)</li>
 </ul>
 <h2 id="bash-6"><a class="header" href="#bash-6">Bash</a></h2>
-<pre><code class="language-bash">Log &quot;Error&quot; &quot;The robot broke&quot;
+<pre><code class="language-bash">Log "Error" "The robot broke"
 </code></pre>
 <h2 id="python-7"><a class="header" href="#python-7">Python</a></h2>
-<pre><code class="language-python">bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
+<pre><code class="language-python">bot.Log("Error", "The robot broke")
 </code></pre>
 <h2 id="ruby-7"><a class="header" href="#ruby-7">Ruby</a></h2>
-<pre><code class="language-ruby">bot.Log(:error, &quot;The robot broke&quot;)
+<pre><code class="language-ruby">bot.Log(:error, "The robot broke")
 # or
-bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
+bot.Log("Error", "The robot broke")
 </code></pre>
 <blockquote>
 <p>Symbols look better and work just fine.</p>
@@ -2214,19 +2200,19 @@ bot.Log(&quot;Error&quot;, &quot;The robot broke&quot;)
 <h1 id="pause-method"><a class="header" href="#pause-method">Pause Method</a></h1>
 <p>Every language has some means of sleeping / pausing, and this method is provided as a convenience to plugin authors and implemented natively. It takes a single argument, time in seconds.</p>
 <h2 id="bash-7"><a class="header" href="#bash-7">Bash</a></h2>
-<pre><code class="language-bash">Say &quot;Be back soon!&quot;
+<pre><code class="language-bash">Say "Be back soon!"
 Pause 2
-Say &quot;... aaaand I'm back!&quot;
+Say "... aaaand I'm back!"
 </code></pre>
 <h2 id="python-8"><a class="header" href="#python-8">Python</a></h2>
-<pre><code class="language-python">bot.Say(&quot;Be back soon!&quot;)
+<pre><code class="language-python">bot.Say("Be back soon!")
 bot.Pause(2)
-bot.Say(&quot;... aaaand I'm back!&quot;)
+bot.Say("... aaaand I'm back!")
 </code></pre>
 <h2 id="ruby-8"><a class="header" href="#ruby-8">Ruby</a></h2>
-<pre><code class="language-ruby">bot.Say(&quot;Be back soon!&quot;)
+<pre><code class="language-ruby">bot.Say("Be back soon!")
 bot.Pause(2)
-bot.Say(&quot;... aaaand I'm back!&quot;)
+bot.Say("... aaaand I'm back!")
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="gopherbot-pipelines"><a class="header" href="#gopherbot-pipelines">Gopherbot Pipelines</a></h1>
 <p>Whenever a chat message matches a command plugin, or your robot runs a job, a new pipeline is created; or, more accurately, <em>three</em> pipelines are created:</p>
@@ -2236,7 +2222,7 @@ bot.Say(&quot;... aaaand I'm back!&quot;)
 <li>The <strong>fail</strong> pipeline runs only after a failure in the primary pipeline.</li>
 </ul>
 <blockquote>
-<p>NOTE: Jobs, plugins and simple tasks are all instances of a 'task'; the main differences are that 'simple' tasks are meant to be the &quot;worker bees&quot; for job and plugin tasks, which create new pipeline sets. A simple task never creates a new pipeline (though it may add tasks to the current set), it only serves as an element for pipelines created by jobs or plugins.</p>
+<p>NOTE: Jobs, plugins and simple tasks are all instances of a 'task'; the main differences are that 'simple' tasks are meant to be the "worker bees" for job and plugin tasks, which create new pipeline sets. A simple task never creates a new pipeline (though it may add tasks to the current set), it only serves as an element for pipelines created by jobs or plugins.</p>
 </blockquote>
 <h2 id="job-plugin-and-task-configuration"><a class="header" href="#job-plugin-and-task-configuration">Job, Plugin and Task Configuration</a></h2>
 <p>Every job, plugin and task needs to be listed in <code>robot.yaml</code> (or an included file). See the chapter on <a href="pipelines/../Configuration.html">robot configuration</a> for more about this topic.</p>
@@ -2258,7 +2244,7 @@ bot.Say(&quot;... aaaand I'm back!&quot;)
 <ul>
 <li><code>AddTask</code>, <code>FinalTask</code> and <code>FailTask</code> add simple tasks to the pipeline set.</li>
 <li><code>AddJob</code> adds another job to the pipeline, optionally with arguments; note, however, that this creates an entirely new child pipeline, with a new environment not inherited from the parent. If the child job pipeline fails, the parent pipeline also fails.</li>
-<li><code>AddCommand</code>, <code>FinalCommand</code> and <code>FailCommand</code> are mostly special-purpose and generally little used, they add plugin commands to the respective pipelines in the set. One use is in wrapping existing plugins with shortcut commands in another plugin - for instance, when I say to my robot &quot;dinner?&quot;, it calls <code>AddCommand &quot;lists&quot; &quot;pick a random item from the dinner meals list&quot;</code>; see <a href="https://github.com/parsley42/floyd-gopherbot/blob/master/plugins/util.sh">Floyd's util plugin</a>. Adding plugins to the pipeline does <em>not</em> create a new child pipeline.</li>
+<li><code>AddCommand</code>, <code>FinalCommand</code> and <code>FailCommand</code> are mostly special-purpose and generally little used, they add plugin commands to the respective pipelines in the set. One use is in wrapping existing plugins with shortcut commands in another plugin - for instance, when I say to my robot "dinner?", it calls <code>AddCommand "lists" "pick a random item from the dinner meals list"</code>; see <a href="https://github.com/parsley42/floyd-gopherbot/blob/master/plugins/util.sh">Floyd's util plugin</a>. Adding plugins to the pipeline does <em>not</em> create a new child pipeline.</li>
 </ul>
 <h2 id="order-of-task-execution"><a class="header" href="#order-of-task-execution">Order of Task Execution</a></h2>
 <p>The normal case is having an initial job or plugin task that fully populates the primary, final and fail pipelines. There are some tasks, however, that add one or more additional tasks to the pipeline set. The final and fail pipelines just grow in length, but the behavior of the primary pipeline is special:</p>
@@ -2279,16 +2265,16 @@ AddTask F
 <p>Assuming none of the other tasks add additional tasks, they will run in the order: A, B, C, E, F, D. This allows for slightly more complicated tasks that may, for instance, have several sub-steps in setting up the working directory, and need to all complete before the next task in the job proceeds.</p>
 <p>In the case of <strong>GopherCI</strong>, the <code>localbuild</code> job adds (among others) the following tasks:</p>
 <ul>
-<li>&quot;startbuild&quot; - a task to provide information about the build that is starting</li>
-<li>&quot;run-pipeline&quot; - a task that runs a pipeline specified in the repository</li>
-<li>&quot;finishbuild&quot; - a task to report on how the build ended</li>
+<li>"startbuild" - a task to provide information about the build that is starting</li>
+<li>"run-pipeline" - a task that runs a pipeline specified in the repository</li>
+<li>"finishbuild" - a task to report on how the build ended</li>
 </ul>
 <p>The contents of <code>&lt;repository&gt;/.gopherci/pipeline.sh</code> correspond most closely to the contents of e.g. <code>&lt;repository&gt;/.travis.yml</code> - they define the build, test and deploy tasks for the repository-specific pipeline. The task execution order for the primary pipeline insures that all the tasks in the repository pipeline are run before any other tasks added by the build job.</p>
 <blockquote>
-<p>NOTE: &quot;finishbuild&quot; is actually added to the final pipeline so it always runs, however the example still holds.</p>
+<p>NOTE: "finishbuild" is actually added to the final pipeline so it always runs, however the example still holds.</p>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-final-pipeline"><a class="header" href="#the-final-pipeline">The Final Pipeline</a></h1>
-<p>The final pipeline always runs after the primary pipeline, regardless of whether it failed, and every task in the pipeline runs, regardless of failures. Unlike the primary and fail pipelines, the tasks in the final pipeline run in <strong>FILO</strong> order - first in, last out. This creates a kind of &quot;bracketing&quot; behavior; the &quot;ssh-init&quot; task, for instance, adds a final task to kill the <code>ssh-agent</code> at the end of the pipeline. If the &quot;ssh-init&quot; task runs first, the &quot;kill&quot; task will run last; if a following task performs some kind of initialization / setup on a remote host, and adds a final task to clean up, this insures that the remote cleanup occurs before the ssh-agent is killed.</p>
+<p>The final pipeline always runs after the primary pipeline, regardless of whether it failed, and every task in the pipeline runs, regardless of failures. Unlike the primary and fail pipelines, the tasks in the final pipeline run in <strong>FILO</strong> order - first in, last out. This creates a kind of "bracketing" behavior; the "ssh-init" task, for instance, adds a final task to kill the <code>ssh-agent</code> at the end of the pipeline. If the "ssh-init" task runs first, the "kill" task will run last; if a following task performs some kind of initialization / setup on a remote host, and adds a final task to clean up, this insures that the remote cleanup occurs before the ssh-agent is killed.</p>
 <p>Note that there are several <a href="pipelines/../Environment-Variables.html">environment variables</a> that are set at the end of the primary pipeline that can be examined and used for reporting in the final pipeline. For an example of this, see the <a href="https://github.com/lnxjedi/gopherbot/blob/master/tasks/finishbuild.sh">finishbuild</a> task that runs in the final pipeline of a <strong>GopherCI</strong> build.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="the-fail-pipeline"><a class="header" href="#the-fail-pipeline">The Fail Pipeline</a></h1>
 <p>The fail pipeline is a straight-forward pipeline of actions to take in the event of a failure in the primary pipeline. There are a host of <a href="pipelines/../Environment-Variables.html">environment variables</a> that are set in the event of a primary pipeline failure, and fail tasks can use these for reporting the nature of the failure. Every task in the fail pipeline runs, regardless of individual task failures, in the order they were added.</p>
@@ -2350,13 +2336,27 @@ The email function call takes a byte slice for the email body, rather than an <c
 <p><strong>rotate-log</strong> - <em>privileged</em></p>
 <p>Usage: <code>AddTask rotate-log &lt;extension&gt;</code></p>
 <p>Useful for e.g. nightly log rotation jobs, when the robot has been started with e.g.: <code>gopherbot -d -l robot.log</code>. For example:</p>
-<pre><code>AddTask rotate-log &quot;log.$(date +%a)&quot;
+<pre><code>AddTask rotate-log "log.$(date +%a)"
 </code></pre>
 <p>This would keep daily logs of the form <code>robot.log.Mon</code>, etc.</p>
 <hr />
 <p><strong>send-message</strong></p>
 <p>Usage: <code>AddTask send-message &lt;str&gt; (...)</code></p>
 <p>Have the robot send a message in the channel, normally to report status of a build. Can be a single long string, or multiple strings; in the case of multiple strings they will be joined with a space separator.</p>
+<hr />
+<p><strong>ssh-agent</strong> (privileged)</p>
+<p>Usage:</p>
+<ul>
+<li><code>AddTask ssh-agent start &lt;path/to/key&gt; &lt;timeout&gt;</code> - requires <code>BOT_SSH_PHRASE</code> in parameters</li>
+<li><code>AddTask ssh-agent stop</code> - uses <code>_SSH_AGENT_HANDLE</code>, automatically added as <code>FinalTask</code> by start, deploy</li>
+<li><code>AddTask ssh-agent deploy &lt;timeout&gt;</code> - requires <code>GOPHER_DEPLOY_KEY</code> in parameters</li>
+</ul>
+<p>The <code>ssh-agent</code> task uses Go ssh-agent libraries to start a new Goroutine loaded with a deployment key, or regular encrypted key. The <code>start</code> and <code>deploy</code> sub-commands automatically add a <code>FinalTask ssh-agent stop</code> to the pipeline to ensure cleanup. This task can be used with <code>ssh-git-helper</code> and <code>git-command</code> to work with git repositories.</p>
+<p>The <code>start</code> and <code>deploy</code> sub-commands also create a socket in <code>$GOPHER_HOME</code> and sets the <code>SSH_AUTH_SOCK</code> parameter in the pipeline, so e.g. a "bash" task could use native ssh commands.</p>
+<p>See also:</p>
+<ul>
+<li>plugins/samples/bootstrap.py - previous bootstrapping pipeline</li>
+</ul>
 <hr />
 <p><strong>tail-log</strong></p>
 <p>Usage: <code>AddTask tail-log</code> or <code>FailTask tail-log</code></p>
@@ -2397,10 +2397,10 @@ The email function call takes a byte slice for the email body, rather than an <c
 <p><strong>Gopherbot</strong> communicates with users via different protocols, and extensions can modify their behavior and provide protocol-specific functionality based on values provided to the extension. For <strong>Go</strong> extensions, this is provided in the <code>robot.Message</code> struct provided by the <code>GetMessage()</code> method. For external scripts, this is provided in the <code>GOPHER_PROTOCOL</code> environment variable.</p>
 <p>The design of <strong>Gopherbot</strong> is meant for mainly protocol-agnostic functionality. Running jobs and querying infrastructure should operate in much the same way whether the protocol is <strong>Slack</strong> or <strong>Terminal</strong>. However, some teams may wish to create protocol-specific extensions, and accept the risk of a more difficult transition should the team switch their primary chat platform.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="a1-slack"><a class="header" href="#a1-slack">A.1 Slack</a></h1>
-<p>The first and best-supported protocol is <a href="https://slack.com">Slack</a>. Developers wishing to support new protocols should consider Slack the &quot;gold standard&quot;. <strong>Gopherbot</strong> uses the <a href="https://github.com/slack-go/slack">slack-go/slack</a> library.</p>
+<p>The first and best-supported protocol is <a href="https://slack.com">Slack</a>. Developers wishing to support new protocols should consider Slack the "gold standard". <strong>Gopherbot</strong> uses the <a href="https://github.com/slack-go/slack">slack-go/slack</a> library.</p>
 <p>The <code>Message</code> struct for Slack will have an <code>.Protocol</code> value of <code>robot.Slack</code>, and <code>.Incoming</code> pointer to a <code>robot.ConnectorMessage</code> struct:</p>
 <ul>
-<li><code>Protocol</code>: &quot;slack&quot;</li>
+<li><code>Protocol</code>: "slack"</li>
 <li><code>MessageObject</code>: <code>*slack.MessageEvent</code></li>
 <li><code>Client</code>: <code>*slack.Client</code></li>
 </ul>

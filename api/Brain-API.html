@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html lang="en" class="sidebar-visible no-js light">
+<html lang="en" class="light sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
@@ -7,10 +7,10 @@
 
 
         <!-- Custom HTML head -->
-        
+
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="theme-color" content="#ffffff" />
+        <meta name="theme-color" content="#ffffff">
 
         <link rel="icon" href="../favicon.svg">
         <link rel="shortcut icon" href="../favicon.png">
@@ -30,15 +30,17 @@
 
         <!-- Custom theme stylesheets -->
 
-    </head>
-    <body>
-    <div id="body-container">
+
         <!-- Provide site root to javascript -->
         <script>
             var path_to_root = "../";
             var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
-
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
@@ -60,65 +62,49 @@
             var theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
-            var html = document.querySelector('html');
-            html.classList.remove('no-js')
+            const html = document.documentElement;
             html.classList.remove('light')
             html.classList.add(theme);
-            html.classList.add('js');
+            html.classList.add("js");
         </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var html = document.querySelector('html');
             var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
             } else {
                 sidebar = 'hidden';
             }
+            sidebar_toggle.checked = sidebar === 'visible';
             html.classList.remove('sidebar-visible');
             html.classList.add("sidebar-" + sidebar);
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../Title.html">Title</a></li><li class="chapter-item expanded affix "><a href="../Status.html">Status</a></li><li class="chapter-item expanded affix "><a href="../Foreword.html">Foreword</a></li><li class="chapter-item expanded affix "><a href="../Introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><a href="../Terminology.html">Terminology</a></li><li class="chapter-item expanded affix "><li class="part-title">Part I - Getting Started</li><li class="chapter-item expanded "><a href="../botdev/IDE.html"><strong aria-hidden="true">1.</strong> The Gopherbot IDE</a></li><li class="chapter-item expanded "><a href="../Installation.html"><strong aria-hidden="true">2.</strong> Installing and Configuring a Gopherbot Robot</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../install/LinuxInstall.html"><strong aria-hidden="true">2.1.</strong> Installation on Linux</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../install/Requirements.html"><strong aria-hidden="true">2.1.1.</strong> Software Requirements</a></li><li class="chapter-item expanded "><a href="../install/ManualInstall.html"><strong aria-hidden="true">2.1.2.</strong> Installing Gopherbot</a></li></ol></li><li class="chapter-item expanded "><a href="../botsetup/credentials.html"><strong aria-hidden="true">2.2.</strong> Team Chat Credentials</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../botsetup/slacksock.html"><strong aria-hidden="true">2.2.1.</strong> Slack Socket Mode</a></li></ol></li><li class="chapter-item expanded "><a href="../RobotSetup.html"><strong aria-hidden="true">2.3.</strong> Initial Robot Setup</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../botsetup/Requirements.html"><strong aria-hidden="true">2.3.1.</strong> Environment Requirements</a></li><li class="chapter-item expanded "><a href="../botsetup/gopherhome.html"><strong aria-hidden="true">2.3.2.</strong> Robot Directory Structure</a></li><li class="chapter-item expanded "><a href="../botsetup/Plugin.html"><strong aria-hidden="true">2.3.3.</strong> Quick Start with the Gopherbot IDE</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../RunRobot.html"><strong aria-hidden="true">3.</strong> Deploying and Running Your Robot</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../deploy/deploy-environment.html"><strong aria-hidden="true">3.1.</strong> Deployment Environment Variables</a></li><li class="chapter-item expanded "><a href="../deploy/Container.html"><strong aria-hidden="true">3.2.</strong> Running in a Container</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../deploy/DockerDeploy.html"><strong aria-hidden="true">3.2.1.</strong> Docker Example</a></li><li class="chapter-item expanded "><a href="../deploy/Kubernetes.html"><strong aria-hidden="true">3.2.2.</strong> Deploying to Kubernetes</a></li></ol></li><li class="chapter-item expanded "><a href="../deploy/systemd.html"><strong aria-hidden="true">3.3.</strong> Running with Systemd</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Part II - Working with Your Robot</li><li class="chapter-item expanded "><a href="../Basics.html"><strong aria-hidden="true">4.</strong> Robot Basics</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../basics/ping.html"><strong aria-hidden="true">4.1.</strong> Addressing your Robot</a></li><li class="chapter-item expanded "><a href="../basics/matching.html"><strong aria-hidden="true">4.2.</strong> Command Matching</a></li><li class="chapter-item expanded "><a href="../basics/channels.html"><strong aria-hidden="true">4.3.</strong> Availability by Channel</a></li><li class="chapter-item expanded "><a href="../basics/help.html"><strong aria-hidden="true">4.4.</strong> The built-in Help System</a></li><li class="chapter-item expanded "><a href="../basics/stdplugins.html"><strong aria-hidden="true">4.5.</strong> Standard Commands</a></li><li class="chapter-item expanded "><a href="../basics/context.html"><strong aria-hidden="true">4.6.</strong> Context</a></li></ol></li><li class="chapter-item expanded "><a href="../Admin.html"><strong aria-hidden="true">5.</strong> Managing Your Robot</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../usage/update.html"><strong aria-hidden="true">5.1.</strong> Updating from Git</a></li><li class="chapter-item expanded "><a href="../extensiondev/devenv.html"><strong aria-hidden="true">5.2.</strong> Container Dev Environment</a></li><li class="chapter-item expanded "><a href="../extensiondev/local.html"><strong aria-hidden="true">5.3.</strong> Local Install Dev Environment</a></li><li class="chapter-item expanded "><a href="../extensiondev/CLI.html"><strong aria-hidden="true">5.4.</strong> CLI Operation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../extensiondev/secrets.html"><strong aria-hidden="true">5.4.1.</strong> Encrypting Secrets</a></li></ol></li><li class="chapter-item expanded "><a href="../extensiondev/terminal.html"><strong aria-hidden="true">5.5.</strong> Using the Terminal Connector</a></li><li class="chapter-item expanded "><a href="../usage/admin.html"><strong aria-hidden="true">5.6.</strong> Administrator Commands</a></li><li class="chapter-item expanded "><a href="../usage/logging.html"><strong aria-hidden="true">5.7.</strong> Logging</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Part III - Worked Examples</li><li class="chapter-item expanded "><a href="../customizing/first-plugin.html"><strong aria-hidden="true">6.</strong> Writing Your First Plugin</a></li><li class="chapter-item expanded "><a href="../customizing.html"><strong aria-hidden="true">7.</strong> Writing Custom Extensions for Your Robot</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../customizing/style.html"><strong aria-hidden="true">7.1.</strong> Style Guide</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../customizing/syntax-help.html"><strong aria-hidden="true">7.1.1.</strong> Help for Invalid Command Syntax</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../pipelines/integrations.html"><strong aria-hidden="true">8.</strong> Gopherbot Tool Integrations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../pipelines/ssh.html"><strong aria-hidden="true">8.1.</strong> Integrating with SSH</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Part IV - Reference</li><li class="chapter-item expanded "><a href="../Configuration.html"><strong aria-hidden="true">9.</strong> Gopherbot Configuration Reference</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../config/file.html"><strong aria-hidden="true">9.1.</strong> Configuration File Loading</a></li><li class="chapter-item expanded "><a href="../config/job-plug.html"><strong aria-hidden="true">9.2.</strong> Job and Plugin Configuration</a></li><li class="chapter-item expanded "><a href="../config/troubleshooting.html"><strong aria-hidden="true">9.3.</strong> Troubleshooting</a></li></ol></li><li class="chapter-item expanded "><a href="../api/API-Introduction.html"><strong aria-hidden="true">10.</strong> Gopherbot Scripting API</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../Environment-Variables.html"><strong aria-hidden="true">10.1.</strong> Script Environment Variables</a></li><li class="chapter-item expanded "><a href="../api/Languages.html"><strong aria-hidden="true">10.2.</strong> Language Templates</a></li><li class="chapter-item expanded "><a href="../api/Attribute-Retrieval-API.html"><strong aria-hidden="true">10.3.</strong> Attribute Retrieval</a></li><li class="chapter-item expanded "><a href="../api/Brain-API.html" class="active"><strong aria-hidden="true">10.4.</strong> Brain Methods</a></li><li class="chapter-item expanded "><a href="../api/Message-Sending-API.html"><strong aria-hidden="true">10.5.</strong> Message Sending</a></li><li class="chapter-item expanded "><a href="../api/Pipeline-API.html"><strong aria-hidden="true">10.6.</strong> Pipeline Construction</a></li><li class="chapter-item expanded "><a href="../api/Response-Request-API.html"><strong aria-hidden="true">10.7.</strong> Requesting Responses</a></li><li class="chapter-item expanded "><a href="../api/Utility-API.html"><strong aria-hidden="true">10.8.</strong> Utility</a></li></ol></li><li class="chapter-item expanded "><a href="../pipelines/jobspipes.html"><strong aria-hidden="true">11.</strong> Pipelines, Plugins, Jobs and Tasks</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../pipelines/primary.html"><strong aria-hidden="true">11.1.</strong> The Primary Pipeline</a></li><li class="chapter-item expanded "><a href="../pipelines/final.html"><strong aria-hidden="true">11.2.</strong> The Final Pipeline</a></li><li class="chapter-item expanded "><a href="../pipelines/fail.html"><strong aria-hidden="true">11.3.</strong> The Fail Pipeline</a></li><li class="chapter-item expanded "><a href="../pipelines/TaskEnvironment.html"><strong aria-hidden="true">11.4.</strong> Task Environment Variables</a></li><li class="chapter-item expanded "><a href="../pipelines/tasks.html"><strong aria-hidden="true">11.5.</strong> All Included Tasks</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Appendix</li><li class="chapter-item expanded "><a href="../appendices/Appendix.html"><strong aria-hidden="true">12.</strong> Appendix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../appendices/InstallArchive.html"><strong aria-hidden="true">12.1.</strong> A - Gopherbot Install Archive</a></li><li class="chapter-item expanded "><a href="../appendices/Protocols.html"><strong aria-hidden="true">12.2.</strong> B - Protocols</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../appendices/slack.html"><strong aria-hidden="true">12.2.1.</strong> B.1 - Slack</a></li><li class="chapter-item expanded "><a href="../appendices/rocket.html"><strong aria-hidden="true">12.2.2.</strong> B.2 - Rocket.Chat</a></li><li class="chapter-item expanded "><a href="../appendices/terminal.html"><strong aria-hidden="true">12.2.3.</strong> B.3 - Terminal</a></li><li class="chapter-item expanded "><a href="../appendices/testproto.html"><strong aria-hidden="true">12.2.4.</strong> B.4 - Test</a></li><li class="chapter-item expanded "><a href="../appendices/nullconn.html"><strong aria-hidden="true">12.2.5.</strong> B.5 - Nullconn</a></li></ol></li></ol></li></ol>
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
             </div>
-            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
-
-        <!-- Track and set sidebar scroll position -->
-        <script>
-            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
-            sidebarScrollbox.addEventListener('click', function(e) {
-                if (e.target.tagName === 'A') {
-                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
-                }
-            }, { passive: true });
-            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
-            sessionStorage.removeItem('sidebar-scroll');
-            if (sidebarScrollTop) {
-                // preserve sidebar scroll position when navigating via links within sidebar
-                sidebarScrollbox.scrollTop = sidebarScrollTop;
-            } else {
-                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
-                var activeSection = document.querySelector('#sidebar .active');
-                if (activeSection) {
-                    activeSection.scrollIntoView({ block: 'center' });
-                }
-            }
-        </script>
 
         <div id="page-wrapper" class="page-wrapper">
 
             <div class="page">
-                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar-hover-placeholder"></div>
                 <div id="menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
-                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
                             <i class="fa fa-bars"></i>
-                        </button>
+                        </label>
                         <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
                             <i class="fa fa-paint-brush"></i>
                         </button>
@@ -206,47 +192,47 @@ for each user/channel combination, and can be freely shared between plugins.</p>
 <p>The memory stored can be an arbitrarily complex data item; a hash, array, or combination - anything that can be serialized to/from
 JSON. The example plugins for <strong>Python</strong> and <strong>Ruby</strong> implement a <em>remember</em> function that remembers a list (array)
 of items. For the code examples, we'll start with a memory whose key is <code>memory</code>, and has two items defined by this snippet of JSON:</p>
-<pre><code class="language-json">[&quot;the Alamo&quot;, &quot;Ferris Bueller&quot;]
+<pre><code class="language-json">["the Alamo", "Ferris Bueller"]
 </code></pre>
-<p>The examples will check if the memory exists, add &quot;the answer is 42&quot;, and then update the memory.</p>
+<p>The examples will check if the memory exists, add "the answer is 42", and then update the memory.</p>
 <p>Note that long-term memory commands aren't current implemented for <code>bash</code>.</p>
 <h3 id="python"><a class="header" href="#python">Python</a></h3>
-<pre><code class="language-python">memory = bot.CheckoutDatum(&quot;memory&quot;, True)
+<pre><code class="language-python">memory = bot.CheckoutDatum("memory", True)
 if memory.exists:
-    memory.datum.append(&quot;the answer is 42&quot;)
+    memory.datum.append("the answer is 42")
 else:
     memory.datum = [ thing ]
 ret = bot.UpdateDatum(memory)
 if ret != Robot.Ok:
-    bot.Say(&quot;Uh-oh, I must be gettin' old - having memory problems!&quot;)
+    bot.Say("Uh-oh, I must be gettin' old - having memory problems!")
 </code></pre>
 <h3 id="ruby"><a class="header" href="#ruby">Ruby</a></h3>
 <p>Note: the Ruby example is a little more complicated; adapted from plugins/rubydemo.rb.</p>
-<pre><code class="language-ruby">memory = bot.CheckoutDatum(&quot;memory&quot;, true)
+<pre><code class="language-ruby">memory = bot.CheckoutDatum("memory", true)
 remembered = false
 if memory.exists
   if memory.datum.include?(thing)
-    bot.Say(&quot;That's already one of my fondest memories&quot;)
+    bot.Say("That's already one of my fondest memories")
     bot.CheckinDatum(memory)
   else
     remembered = true
-    memory.datum.push(&quot;the answer is 42&quot;)
+    memory.datum.push("the answer is 42")
   end
 else
   remembered = true
-  memory.datum = [ &quot;the answer is 42&quot; ]
+  memory.datum = [ "the answer is 42" ]
 end
 if remembered
   ret = bot.UpdateDatum(memory)
   if ret != Robot::Ok
-    bot.Say(&quot;Dang it, having problems with my memory&quot;)
+    bot.Say("Dang it, having problems with my memory")
   end
 end
 </code></pre>
 <h2 id="long-term-memory-sample-transcript"><a class="header" href="#long-term-memory-sample-transcript">Long-Term Memory Sample Transcript</a></h2>
 <p>Using the <code>terminal</code> connector, you can see the <code>remember</code> function in action:</p>
 <pre><code>c:general/u:alice -&gt; floyd, remember the answer is 42
-general: Ok, I'll remember &quot;the answer is 42&quot;
+general: Ok, I'll remember "the answer is 42"
 c:general/u:alice -&gt; |ubob
 Changed current user to: bob
 c:general/u:bob -&gt; floyd, recall
@@ -272,7 +258,7 @@ general: Yes?
 c:general/u:bob -&gt; floyd, pick a random item from the dinner meals list
 general: Here you go: tuna casserole
 c:general/u:bob -&gt; look it up, floyd
-general: Here's what I have for &quot;tuna casserole&quot;:
+general: Here's what I have for "tuna casserole":
 https://www.allrecipes.com/recipe/17219/best-tuna-casserole/: tuna casserole
 </code></pre>
 <p>Here, the robot is using short-term memories several times. When I forgot to address my command to the robot, the command
@@ -295,15 +281,15 @@ values.</p>
 <p>Note that the short-term memory API is super trivial, so I didn't go to great lengths to provide
 detailed examples. The <code>bash</code> example comes from the <code>bashdemo.sh</code> plugin.</p>
 <h3 id="bash"><a class="header" href="#bash">Bash</a></h3>
-<pre><code class="language-bash">Remember &quot;$1&quot; &quot;$2&quot;
-Say &quot;I'll remember \&quot;$1\&quot; is \&quot;$2\&quot; - but eventually I'll forget!&quot;
+<pre><code class="language-bash">Remember "$1" "$2"
+Say "I'll remember \"$1\" is \"$2\" - but eventually I'll forget!"
 </code></pre>
-<pre><code class="language-bash">MEMORY=$(Recall &quot;$1&quot;)
-if [ -z &quot;$MEMORY&quot; ]
+<pre><code class="language-bash">MEMORY=$(Recall "$1")
+if [ -z "$MEMORY" ]
 then
-	Reply &quot;Gosh, I have no idea - I'm so forgetful!&quot;
+	Reply "Gosh, I have no idea - I'm so forgetful!"
 else
-	Say &quot;$1 is $MEMORY&quot;
+	Say "$1 is $MEMORY"
 fi
 </code></pre>
 <h3 id="python-1"><a class="header" href="#python-1">Python</a></h3>
@@ -322,7 +308,7 @@ the <code>bashdemo.sh</code> plugin):</p>
 <pre><code>c:general/u:bob -&gt; floyd, what is Ferris Bueller
 general: @bob Gosh, I have no idea - I'm so forgetful!
 c:general/u:bob -&gt; floyd, store Ferris Bueller is a Righteous Dude
-general: I'll remember &quot;Ferris Bueller&quot; is &quot;a Righteous Dude&quot; - but eventually I'll forget!
+general: I'll remember "Ferris Bueller" is "a Righteous Dude" - but eventually I'll forget!
 c:general/u:bob -&gt; floyd, what is Ferris Bueller
 general: Ferris Bueller is a Righteous Dude
 c:general/u:bob -&gt; |ualice
@@ -343,7 +329,7 @@ general: Ferris Bueller is a Righteous Dude
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next" href="../api/Message-Sending-API.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../api/Message-Sending-API.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -357,7 +343,7 @@ general: Ferris Bueller is a Righteous Dude
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next" href="../api/Message-Sending-API.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../api/Message-Sending-API.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
