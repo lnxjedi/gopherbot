@@ -33,7 +33,7 @@ _cbot_completion() {
             ;;
     esac
 }
-complete -F _cbot_completion ./cbot
+complete -F _cbot_completion cbot
 EOF
     exit 0
 fi
