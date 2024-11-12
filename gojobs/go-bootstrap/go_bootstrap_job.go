@@ -45,6 +45,13 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 		return robot.Fail
 	}
 
+	if !r.Exclusive("configrepo", false) {
+		// Hard to imagine when this might happen, but we must protect the configrepo
+		// from access by parallel goroutines.
+		r.Log(robot.Error, "go-bootstrap couldn't obtain exclusive access to 'configrepo'")
+		return robot.Fail
+	}
+
 	// Begin bootstrapping
 	r.Log(robot.Info, "Starting bootstrap process for repository: "+cloneURL)
 
