@@ -151,6 +151,11 @@ ExternalPlugins:
     {{ end }}
 {{ end }}
 
+GoPlugins:
+  "builtin-help":
+    Description: A plugin providing help for commands
+    NameSpace: manage
+
 ## GoJobs provides configuration for the NameSpace, Parameters and ParameterSets
 ## for jobs written in Go and compiled into the robot.
 GoJobs:
@@ -168,15 +173,13 @@ GoJobs:
     - Name: GOPHER_DEPLOY_KEY
     # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
       Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
+  "updatecfg":
+    Description: Wrapper for go-update to be compatible with older robots
+    NameSpace: manage
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)
 ExternalJobs:
-  "updatecfg":
-    Description: A job that updates the robot's configuration from git
-    Homed: true
-    NameSpace: manage
-    Path: jobs/updatecfg.py
   "changebranch":
     Description: A job that lets the robot switch branches for development
     Homed: true

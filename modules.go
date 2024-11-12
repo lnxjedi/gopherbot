@@ -29,6 +29,8 @@ import (
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/git-command"
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/ssh-agent"
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/ssh-git-helper"
+	_ "github.com/lnxjedi/gopherbot/v2/gotasks/update-report"
+	_ "github.com/lnxjedi/gopherbot/v2/gotasks/fail-report"
 
 	// *** Default Slack connector
 	_ "github.com/lnxjedi/gopherbot/v2/connectors/slack"

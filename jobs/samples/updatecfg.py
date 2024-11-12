@@ -2,6 +2,14 @@
 
 # updatecfg.py - clone or update the robot's config repository.
 
+"""
+DEPRECATED updatecfg.py - this was the last version of the python-based updating job
+for robots. It has since been replaced by 'gojobs/go-update/go_update_job.go'.
+
+This example is kept here because it illustrates the use of the 'ssh-agent', 'ssh-git-helper'
+and 'git-clone' tasks.
+"""
+
 # With Gopherbot 2.0, there's a strong assumption that custom
 # configuration for the robot (jobs, plugins, yaml files) are stored
 # in a git repository specified in the GOPHER_CUSTOM_REPOSITORY

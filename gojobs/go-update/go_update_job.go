@@ -11,6 +11,9 @@ func init() {
 	robot.RegisterJob("go-update", robot.JobHandler{
 		Handler: updateHandler,
 	})
+	robot.RegisterJob("updatecfg", robot.JobHandler{
+		Handler: compatHandler,
+	})
 }
 
 func updateHandler(r robot.Robot, args ...string) robot.TaskRetVal {
@@ -38,7 +41,7 @@ func updateHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 
 	if !r.Exclusive("configrepo", true) {
 		r.Log(robot.Error, "go-update couldn't obtain exclusive access to 'configrepo', queueing ")
-		return robot.Fail
+		return robot.Normal
 	}
 
 	// Begin updateing
@@ -58,8 +61,14 @@ func updateHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	}
 
 	r.AddTask("git-command", "pull", repoDir)
-	// TODO: replace with a Go task that also reports the branch in GOPHER_CUSTOM_BRANCH
-	r.AddTask("status", "Custom configuration repository successfully updated")
+	r.AddTask("update-report")
+	r.FailTask("fail-report")
 	r.AddCommand("builtin-admin", "reload")
+	return robot.Normal
+}
+
+func compatHandler(r robot.Robot, args ...string) robot.TaskRetVal {
+	r.Log(robot.Warn, "Deprecated updatecfg job ran, adding job 'go-update'")
+	r.AddJob("go-update")
 	return robot.Normal
 }

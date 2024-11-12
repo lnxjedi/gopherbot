@@ -128,7 +128,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		w.Incoming.MessageID = ""
 		w.Incoming.ThreadedMessage = false
 	}
-	c.environment["GOPHER_PIPE_NAME"] = task.name
+	c.environment["GOPHER_PIPE_NAME"] = c.pipeName
 	// Once Active, we need to use the Mutex for access to some fields; see
 	// pipeContext/type pipeContext
 	w.registerActive(parent)
