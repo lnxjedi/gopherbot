@@ -16,10 +16,6 @@ func init() {
 func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	// Check if the configuration directory has been set up
 	repoDir := r.GetParameter("GOPHER_CONFIGDIR")
-	if repoDir == "" {
-		r.Log(robot.Error, "GOPHER_CONFIGDIR is not set")
-		return robot.Fail
-	}
 
 	confDir := filepath.Join(repoDir, "conf")
 	info, err := os.Stat(confDir)
@@ -30,7 +26,7 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 			r.AddJob("restore")
 			return robot.Normal
 		}
-		r.Log(robot.Info, "go-bootstrap found existing config directory, exiting")
+		r.Log(robot.Debug, "go-bootstrap found existing config directory, exiting")
 		// Configuration directory exists, no further action needed
 		return robot.Normal
 	}
@@ -51,10 +47,8 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 
 	// Begin bootstrapping
 	r.Log(robot.Info, "Starting bootstrap process for repository: "+cloneURL)
-	r.SetParameter("BOOTSTRAP", "true")
-	r.SetParameter("GOPHER_DEPLOY_KEY", deployKey)
 
-	// Start SSH agent using deploy key
+	// Start SSH agent using GOPHER_DEPLOY_KEY
 	r.AddTask("ssh-agent", "deploy")
 
 	// Host key verification handling
@@ -67,13 +61,14 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 		r.AddTask("ssh-git-helper", "loadhostkeys", cloneURL)
 	}
 
-	// Create the .restore file in the current working directory to indicate restore is needed
+	// Create the .restore file in the current working directory to indicate restore
+	// of file-based memories is needed.
 	if err := os.WriteFile(".restore", []byte{}, 0644); err != nil {
 		r.Log(robot.Error, "failed to create .restore file: "+err.Error())
 		return robot.Fail
 	}
 
-	// Remove any temporary binary encryption keys
+	// Remove any temporary binary encryption key created by unconfigured start-up.
 	tmpKeyName := "binary-encrypted-key"
 	deployEnv := r.GetParameter("GOPHER_ENVIRONMENT")
 	if deployEnv != "production" {
@@ -84,13 +79,14 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 		r.Log(robot.Error, "failed to remove temporary key: "+err.Error())
 		return robot.Fail
 	}
-	r.Log(robot.Audit, "removed temporary key: "+tmpKeyPath)
+	r.Log(robot.Debug, "removed temporary key: "+tmpKeyPath)
 
-	// Clone the repository to the config directory
+	// Clone the repository to the config directory using ssh-agent credentials
+	// and known_hosts for server validation.
 	cloneBranch := r.GetParameter("GOPHER_CUSTOM_BRANCH")
 	r.AddTask("git-command", "clone", cloneURL, cloneBranch, repoDir)
 
-	// Restart robot to apply changes
+	// Restart robot so it can start configured.
 	r.AddTask("restart-robot")
 
 	return robot.Normal

@@ -168,7 +168,6 @@ GoJobs:
   "go-bootstrap":
     Description: A plugin to bootstrap an existing robot to a new container/directory
     NameSpace: manage
-    Privileged: true
     Parameters:
     - Name: GOPHER_DEPLOY_KEY
     # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
