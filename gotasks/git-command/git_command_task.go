@@ -80,10 +80,11 @@ func gitCommandTask(r robot.Robot, args ...string) robot.TaskRetVal {
 		}
 
 		// Resolve absolute directory path
-		configDir := r.GetParameter("GOPHER_CONFIGDIR")
+		homeDir := r.GetParameter("GOPHER_HOME")
+		// If the provided directory isn't absolute, assume relative to GOPHER_HOME.
 		absDirectory := directory
 		if !filepath.IsAbs(directory) {
-			absDirectory = filepath.Join(configDir, directory)
+			absDirectory = filepath.Join(homeDir, directory)
 		}
 
 		cloneOpts := gitcommand.CloneOptions{
@@ -99,6 +100,44 @@ func gitCommandTask(r robot.Robot, args ...string) robot.TaskRetVal {
 		}
 
 		r.Log(robot.Info, "git clone successful to directory "+absDirectory)
+		return robot.Normal
+
+	case "pull":
+		if len(args) < 2 {
+			r.Log(robot.Error, "not enough arguments for pull command; usage: pull <directory>")
+			return robot.Fail
+		}
+		directory := args[1]
+
+		// Resolve absolute directory path
+		homeDir := r.GetParameter("GOPHER_HOME")
+		// If the provided directory isn't absolute, assume relative to GOPHER_HOME.
+		absDirectory := directory
+		if !filepath.IsAbs(directory) {
+			absDirectory = filepath.Join(homeDir, directory)
+		}
+
+		pullOpts := gitcommand.PullOptions{
+			Directory: absDirectory,
+			Auth:      authMethod,
+		}
+
+		if err := gitcommand.Pull(pullOpts); err != nil {
+			r.Log(robot.Error, "git pull failed: "+err.Error())
+			return robot.Fail
+		}
+
+		r.Log(robot.Info, "git pull successful in directory "+absDirectory)
+
+		// Attempt to get the current branch name
+		branchName, err := gitcommand.GetCurrentBranch(absDirectory)
+		if err != nil {
+			r.Log(robot.Warn, "unable to determine current branch name: "+err.Error())
+		} else {
+			r.SetParameter("GOPHER_CUSTOM_BRANCH", branchName)
+			r.Log(robot.Info, "current branch detected: "+branchName)
+		}
+
 		return robot.Normal
 
 	default:

@@ -51,6 +51,65 @@ func Clone(opts CloneOptions) error {
 	return nil
 }
 
+// PullOptions holds the parameters for pulling updates in a repository.
+type PullOptions struct {
+	Directory string
+	Auth      transport.AuthMethod
+}
+
+// Pull pulls the latest changes in the specified Git repository.
+func Pull(opts PullOptions) error {
+	// Open the existing repository
+	repo, err := git.PlainOpen(opts.Directory)
+	if err != nil {
+		return fmt.Errorf("failed to open repository at %s: %w", opts.Directory, err)
+	}
+
+	// Get the worktree
+	w, err := repo.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Perform the pull operation
+	pullOptions := &git.PullOptions{
+		Auth:       opts.Auth,
+		RemoteName: "origin",
+		Progress:   os.Stdout,
+	}
+
+	err = w.Pull(pullOptions)
+	if err != nil {
+		if err == git.NoErrAlreadyUpToDate {
+			// No changes to pull; consider this as a successful pull
+			return nil
+		}
+		return fmt.Errorf("failed to pull repository: %w", err)
+	}
+
+	return nil
+}
+
+// GetCurrentBranch returns the name of the current active branch in the repository.
+func GetCurrentBranch(directory string) (string, error) {
+	repo, err := git.PlainOpen(directory)
+	if err != nil {
+		return "", fmt.Errorf("failed to open repository at %s: %w", directory, err)
+	}
+
+	headRef, err := repo.Head()
+	if err != nil {
+		return "", fmt.Errorf("failed to get HEAD reference: %w", err)
+	}
+
+	if !headRef.Name().IsBranch() {
+		return "", fmt.Errorf("HEAD is not pointing to a branch")
+	}
+
+	branchName := headRef.Name().Short()
+	return branchName, nil
+}
+
 // prepareDirectory ensures that the target directory is empty or creates it.
 func prepareDirectory(dir string) error {
 	// Check if the directory exists

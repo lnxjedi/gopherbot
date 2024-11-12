@@ -14,7 +14,6 @@ func init() {
 }
 
 func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
-	// Check if the configuration directory has been set up
 	repoDir := r.GetParameter("GOPHER_CONFIGDIR")
 
 	confDir := filepath.Join(repoDir, "conf")
@@ -64,7 +63,7 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 		r.AddTask("ssh-git-helper", "addhostkeys", hostKeys)
 	} else {
 		// This could fail if the repository domain isn't supported,
-		// and GOPHER_INSECURE_CLONE isn't set "true".
+		// and GOPHER_INSECURE_SSH isn't set "true".
 		r.AddTask("ssh-git-helper", "loadhostkeys", cloneURL)
 	}
 

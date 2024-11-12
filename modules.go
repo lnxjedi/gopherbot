@@ -23,6 +23,7 @@ import (
 
 	// *** Included Go jobs external to the main engine
 	_ "github.com/lnxjedi/gopherbot/v2/gojobs/go-bootstrap"
+	_ "github.com/lnxjedi/gopherbot/v2/gojobs/go-update"
 
 	// *** Included Go tasks external to the main engine
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/git-command"

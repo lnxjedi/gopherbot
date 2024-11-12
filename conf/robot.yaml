@@ -155,7 +155,14 @@ ExternalPlugins:
 ## for jobs written in Go and compiled into the robot.
 GoJobs:
   "go-bootstrap":
-    Description: A plugin to bootstrap an existing robot to a new container/directory
+    Description: A job to bootstrap an existing robot to a new container/directory
+    NameSpace: manage
+    Parameters:
+    - Name: GOPHER_DEPLOY_KEY
+    # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
+      Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
+  "go-update":
+    Description: A to update the robot's configuration (git pull)
     NameSpace: manage
     Parameters:
     - Name: GOPHER_DEPLOY_KEY

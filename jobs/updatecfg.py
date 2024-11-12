@@ -45,12 +45,12 @@ sshkey = os.getenv("KEYNAME")
 bot.AddTask("ssh-agent", ["start", "ssh/%s" % sshkey])
 # Add ssh-git-helper task to handle host key verification
 host_keys = os.getenv("GOPHER_HOST_KEYS")
-insecure_clone = os.getenv("GOPHER_INSECURE_CLONE") == "true"
+insecure_clone = os.getenv("GOPHER_INSECURE_SSH") == "true"
 
 if host_keys:
     bot.AddTask("ssh-git-helper", ["addhostkeys", host_keys])
 else:
-    bot.SetParameter("GOPHER_INSECURE_CLONE", "true" if insecure_clone else "false")
+    bot.SetParameter("GOPHER_INSECURE_SSH", "true" if insecure_clone else "false")
     bot.AddTask("ssh-git-helper", ["loadhostkeys", clone_url])
 # Required for CLI git and/or ssh use
 bot.AddTask("ssh-git-helper", ["publishenv"])

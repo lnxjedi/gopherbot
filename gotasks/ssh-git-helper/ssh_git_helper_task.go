@@ -124,6 +124,21 @@ func handleHostKeysSubCommand(r robot.Robot, subCommand string, arg string) (ret
 	case "loadhostkeys":
 		repoURL := arg
 		handle, err = sshgithelper.LoadHostKeys(repoURL)
+		if err != nil {
+			insecure_ok := r.GetParameter("GOPHER_INSECURE_SSH") == "true"
+			if !insecure_ok {
+				r.Log(robot.Error, "unable to detect and load ssh hostkeys, and GOPHER_INSECURE_SSH not 'true', giving up")
+				return robot.Fail
+			}
+			host, err := sshgithelper.ParseHostFromRepoURL(repoURL)
+			if err != nil {
+				r.Log(robot.Error, "unable to parse the host name from repo URL, giving up: "+err.Error())
+			}
+			handle, err = sshgithelper.ScanHost(host)
+			if err != nil {
+				r.Log(robot.Error, "failed to scan hostkeys for host "+host)
+			}
+		}
 	case "scan":
 		host := arg
 		handle, err = sshgithelper.ScanHost(host)

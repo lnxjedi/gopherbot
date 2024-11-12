@@ -100,7 +100,7 @@ if [ -n "$GOPHER_HOST_KEYS" ]; then
     AddTask "ssh-git-helper" "addhostkeys" "$GOPHER_HOST_KEYS"
 else
     # Not needed but it clarifies behavior
-    SetParameter "GOPHER_INSECURE_CLONE" "$GOPHER_INSECURE_CLONE"
+    SetParameter "GOPHER_INSECURE_SSH" "$GOPHER_INSECURE_SSH"
     AddTask "ssh-git-helper" "loadhostkeys" "$GOPHER_CUSTOM_REPOSITORY"
 fi
 # Required for CLI git
