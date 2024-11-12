@@ -123,19 +123,16 @@ func (r Robot) makeMemoryContext(key string, forceThread, shared bool) memoryCon
 	}
 }
 
-// CheckAdmin returns true if the user is a configured administrator of the
-// robot, and true for automatic tasks. Should be used sparingly, when a single
-// plugin has multiple commands, some which require admin. Otherwise the plugin
-// should just configure RequireAdmin: true
+// see robot/robot.go
 func (r Robot) CheckAdmin() bool {
 	// Note that this does "the right thing", using the user from the worker;
 	// the user in the Robot is writeable.
 	w := getLockedWorker(r.tid)
 	w.Unlock()
-	return w.CheckAdmin()
+	return w.checkAdmin()
 }
 
-func (w *worker) CheckAdmin() bool {
+func (w *worker) checkAdmin() bool {
 	if w.automaticTask {
 		return true
 	}
@@ -154,14 +151,12 @@ func (w *worker) CheckAdmin() bool {
 	return false
 }
 
-// RaisePriv lets go plugins raise privilege for a thread, allowing filesystem
-// access in GOPHER_HOME.
+// see robot/robot.go
 func (r Robot) RaisePriv(reason string) {
 	raiseThreadPriv(reason)
 }
 
-// SetParameter sets a parameter for the current pipeline, useful only for
-// passing parameters (as environment variables) to tasks later in the pipeline.
+// see robot/robot.go
 func (r Robot) SetParameter(name, value string) bool {
 	if !identifierRe.MatchString(name) {
 		return false
@@ -173,18 +168,7 @@ func (r Robot) SetParameter(name, value string) bool {
 	return true
 }
 
-// SetWorkingDirectory sets the working directory of the pipeline for all scripts
-// executed. The value of path is interpreted as follows:
-//   - "/absolute/path" - tasks that follow will start with this workingDirectory;
-//     "cleanup" won't work, see tasks/cleanup.sh (unsafe)
-//   - "relative/path" - sets workingDirectory relative to baseDirectory;
-//     workSpace or $(pwd) depending on value of Homed for the job/plugin starting
-//     the pipeline
-//   - "./sub/directory" - appends to the current workingDirectory
-//   - "." - resets workingDirectory to baseDirectory
-//
-// Fails if the new working directory doesn't exist
-// See also: tasks/setworkdir.sh for updating working directory in a pipeline
+// see robot/robot.go
 func (r Robot) SetWorkingDirectory(path string) bool {
 	w := getLockedWorker(r.tid)
 	defer w.Unlock()
@@ -223,12 +207,7 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 	return ok
 }
 
-// GetParameter retrieves the value of a parameter for a namespace. Only useful
-// for Go plugins; external scripts have all parameters for the NameSpace stored
-// as environment variables. Note that runtasks.go populates the environment
-// with Stored parameters, too. So GetParameter is useful for both ephemeral
-// parameters in a pipeline, and for getting long-term parameters such as
-// credentials.
+// see robot/robot.go
 func (r Robot) GetParameter(key string) string {
 	value, ok := r.environment[key]
 	if ok {
@@ -237,20 +216,14 @@ func (r Robot) GetParameter(key string) string {
 	return ""
 }
 
-// Elevate lets a plugin request elevation on the fly. When immediate = true,
-// the elevator should always prompt for 2fa; otherwise a configured timeout
-// should apply.
+// see robot/robot.go
 func (r Robot) Elevate(immediate bool) bool {
 	task, _, _ := getTask(r.currentTask)
 	retval := r.elevate(task, immediate)
-	if retval == robot.Success {
-		return true
-	}
-	return false
+	return retval == robot.Success
 }
 
-// Fixed is a deprecated convenience function for sending a message with fixed width
-// font.
+// see robot/robot.go
 func (r Robot) Fixed() robot.Robot {
 	nr := r
 	m := *r.Message
@@ -259,8 +232,7 @@ func (r Robot) Fixed() robot.Robot {
 	return nr
 }
 
-// MessageFormat returns a robot object with the given format, most likely for a
-// plugin that will mostly use e.g. Variable format.
+// see robot/robot.go
 func (r Robot) MessageFormat(f robot.MessageFormat) robot.Robot {
 	nr := r
 	m := *r.Message
@@ -269,8 +241,7 @@ func (r Robot) MessageFormat(f robot.MessageFormat) robot.Robot {
 	return nr
 }
 
-// Direct is a convenience function for initiating a DM conversation with a
-// user. Created initially so a plugin could prompt for a password in a DM.
+// see robot/robot.go
 func (r Robot) Direct() robot.Robot {
 	nr := r
 	m := *r.Message
@@ -279,7 +250,7 @@ func (r Robot) Direct() robot.Robot {
 	return nr
 }
 
-// Threaded associates the robot with the thread of the incoming message.
+// see robot/robot.go
 func (r Robot) Threaded() robot.Robot {
 	nr := r
 	m := *r.Message
@@ -292,14 +263,13 @@ func (r Robot) Threaded() robot.Robot {
 	return nr
 }
 
-// Pause is a convenience function to pause some fractional number of seconds.
+// see robot/robot.go
 func (r Robot) Pause(s float64) {
 	ms := time.Duration(s * float64(1000))
 	time.Sleep(ms * time.Millisecond)
 }
 
-// RandomString is a convenience function for returning a random string
-// from a slice of strings, so that replies can vary.
+// see robot/robot.go
 func (r Robot) RandomString(s []string) string {
 	l := len(s)
 	if l == 0 {
@@ -308,14 +278,12 @@ func (r Robot) RandomString(s []string) string {
 	return s[random.Intn(l)]
 }
 
-// RandomInt uses the robot's seeded random to return a random int 0 <= retval < n
+// see robot/robot.go
 func (r Robot) RandomInt(n int) int {
 	return random.Intn(n)
 }
 
-// GetBotAttribute returns an attribute of the robot or "" if unknown.
-// Current attributes:
-// name, alias, fullName, contact
+// see robot/robot.go
 func (r Robot) GetBotAttribute(a string) *robot.AttrRet {
 	a = strings.ToLower(a)
 	ret := robot.Ok
@@ -341,40 +309,7 @@ func (r Robot) GetBotAttribute(a string) *robot.AttrRet {
 	return &robot.AttrRet{attr, ret}
 }
 
-/*
-GetTaskConfig sets a struct pointer to point to a config struct populated
-from configuration when plugins were loaded. To use, a plugin should define
-a struct for it's configuration data, e.g.:
-
-	type pConf struct {
-		Username, Password string
-	}
-
-In conf/plugins/<pluginname>.yaml, you would add a Config: stanza, e.g.:
-
-	Config:
-	  Username: foo
-	  Password: bar
-
-When registering the plugin, you pass a pointer to an empty config template, which the
-robot will use to populate a struct when configuration is loaded:
-
-	func init() {
-		robot.RegisterPlugin("memes", bot.PluginHandler{
-			DefaultConfig: defaultConfig, // yaml string providing default configuration
-			Handler:       plugfunc, // callback function
-			Config:        &pConf{}, // pointer to empty config struct
-		})
-	}
-
-Then, to get a current copy of configuration when the plugin runs, define a struct pointer
-and call GetTaskConfig with a double-pointer:
-
-	var c *pConf
-	r.GetTaskConfig(&c)
-
-... And voila! *pConf is populated with the contents from the configured Config: stanza
-*/
+// see robot/robot.go
 func (r Robot) GetTaskConfig(dptr interface{}) robot.RetVal {
 	task, _, _ := getTask(r.currentTask)
 	if task.config == nil {
@@ -399,8 +334,7 @@ func (r Robot) GetTaskConfig(dptr interface{}) robot.RetVal {
 	return robot.Ok
 }
 
-// Log logs a message to the robot's log file (or stderr) if the level
-// is lower than or equal to the robot's current log level
+// see robot/robot.go
 func (r Robot) Log(l robot.LogLevel, msg string, v ...interface{}) (logged bool) {
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)

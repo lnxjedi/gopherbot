@@ -38,9 +38,7 @@ func (w *worker) messageHeard() {
 	interfaces.MessageHeard(user, channel)
 }
 
-// SendChannelMessage lets a plugin easily send a message to an arbitrary
-// channel. Use Robot.Fixed().SendChannelMessage(...) for fixed-width
-// font.
+// see robot/robot.go
 func (r Robot) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal {
 	if len(msg) == 0 {
 		r.Log(robot.Warn, "Ignoring zero-length message in SendChannelMessage")
@@ -58,19 +56,7 @@ func (r Robot) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal
 	return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, r.Format, r.Incoming)
 }
 
-func (w *worker) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal {
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
-	}
-	var channel string
-	if ci, ok := w.maps.channel[ch]; ok {
-		channel = bracket(ci.ChannelID)
-	} else {
-		channel = ch
-	}
-	return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, w.Format, w.Incoming)
-}
-
+// see robot/robot.go
 func (r Robot) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
 	if len(msg) == 0 {
 		r.Log(robot.Warn, "Ignoring zero-length message in SendChannelMessage")
@@ -190,9 +176,7 @@ func (w *worker) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...inter
 	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, w.Format, w.Incoming)
 }
 
-// SendUserMessage lets a plugin easily send a DM to a user. If a DM
-// fails, an error should be returned, since DMs may be used for sending
-// secret/sensitive information.
+// see robot/robot.go
 func (r Robot) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
 	if len(msg) == 0 {
 		r.Log(robot.Warn, "Ignoring zero-length message in SendUserMessage")
@@ -210,20 +194,7 @@ func (r Robot) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
 	return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
 }
 
-func (w *worker) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
-	}
-	var user string
-	if ui, ok := w.maps.user[u]; ok {
-		user = bracket(ui.UserID)
-	} else {
-		user = u
-	}
-	return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
-}
-
-// Reply directs a message to the user
+// see robot/robot.go
 func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 	if len(msg) == 0 {
 		r.Log(robot.Warn, "Ignoring zero-length message in Reply")
@@ -256,7 +227,7 @@ func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 	return interfaces.SendProtocolUserChannelThreadMessage(user, r.User, r.Channel, thread, msg, r.Format, r.Incoming)
 }
 
-func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
+func (w *worker) reply(msg string, v ...interface{}) robot.RetVal {
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
@@ -268,10 +239,6 @@ func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
 	if w.Channel == "" {
 		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
 	}
-	channel := w.ProtocolChannel
-	if len(channel) == 0 {
-		channel = w.Channel
-	}
 	var thread string
 	if w.Incoming.ThreadedMessage {
 		thread = w.Incoming.ThreadID
@@ -282,7 +249,7 @@ func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
 	return interfaces.SendProtocolUserChannelThreadMessage(user, w.User, w.Channel, thread, msg, w.Format, w.Incoming)
 }
 
-// ReplyThread directs a message to the user, creating a new thread
+// see robot/robot.go
 func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 	if len(msg) == 0 {
 		r.Log(robot.Warn, "Ignoring zero-length message in Reply")
@@ -311,29 +278,7 @@ func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 	return interfaces.SendProtocolUserChannelThreadMessage(user, r.User, r.Channel, r.Incoming.ThreadID, msg, r.Format, r.Incoming)
 }
 
-func (w *worker) ReplyThread(msg string, v ...interface{}) robot.RetVal {
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
-	}
-	user := w.ProtocolUser
-	if len(user) == 0 {
-		user = w.User
-	}
-	// Support for Direct()
-	if w.Channel == "" {
-		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
-	}
-	channel := w.ProtocolChannel
-	if len(channel) == 0 {
-		channel = w.Channel
-	}
-	if w.BotUser {
-		return interfaces.SendProtocolChannelThreadMessage(w.Channel, w.Incoming.ThreadID, w.User+": "+msg, w.Format, w.Incoming)
-	}
-	return interfaces.SendProtocolUserChannelThreadMessage(user, w.User, w.Channel, w.Incoming.ThreadID, msg, w.Format, w.Incoming)
-}
-
-// Say just sends a message to the user or channel
+// see robot/robot.go
 func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 	if len(msg) == 0 {
 		r.Log(robot.Warn, "Ignoring zero-length message in Say")
@@ -361,7 +306,7 @@ func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 	return interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, r.Format, r.Incoming)
 }
 
-func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
+func (w *worker) say(msg string, v ...interface{}) robot.RetVal {
 	if len(msg) == 0 {
 		Log(robot.Warn, "Ignoring zero-length message in Say")
 		return robot.Ok
@@ -388,7 +333,7 @@ func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
 	return interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, w.Format, w.Incoming)
 }
 
-// SayThread creates a new thread if replying to an existing message
+// see robot/robot.go
 func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
 	if len(msg) == 0 {
 		r.Log(robot.Warn, "Ignoring zero-length message in SayThread")
@@ -410,27 +355,4 @@ func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
 		channel = r.Channel
 	}
 	return interfaces.SendProtocolChannelThreadMessage(channel, r.Incoming.ThreadID, msg, r.Format, r.Incoming)
-}
-
-func (w *worker) SayThread(msg string, v ...interface{}) robot.RetVal {
-	if len(msg) == 0 {
-		Log(robot.Warn, "Ignoring zero-length message in SayThread")
-		return robot.Ok
-	}
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
-	}
-	// Support for Direct()
-	if w.Channel == "" {
-		user := w.ProtocolUser
-		if len(user) == 0 {
-			user = w.User
-		}
-		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
-	}
-	channel := w.ProtocolChannel
-	if len(channel) == 0 {
-		channel = w.Channel
-	}
-	return interfaces.SendProtocolChannelThreadMessage(channel, w.Incoming.ThreadID, msg, w.Format, w.Incoming)
 }

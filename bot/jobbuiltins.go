@@ -216,13 +216,13 @@ func (w *worker) jobSecurityCheck(t interface{}, command string) bool {
 		return true
 	}
 	if w.Incoming.HiddenMessage {
-		w.Reply("Sorry, job commands cannot be run as hidden commands - use the robot's name or alias")
+		w.reply("Sorry, job commands cannot be run as hidden commands - use the robot's name or alias")
 		return false
 	}
 	task, _, _ := getTask(w.currentTask)
 	if task.RequireAdmin {
-		if !w.CheckAdmin() {
-			w.Say("Sorry, that command is only available to bot administrators")
+		if !w.checkAdmin() {
+			w.say("Sorry, that command is only available to bot administrators")
 			return false
 		}
 	}
@@ -294,13 +294,13 @@ func (r Robot) jobVisible(t interface{}, ignoreChannelRestrictions, disabledOk b
 func (w *worker) jobAvailable(taskName string) interface{} {
 	t := w.tasks.getTaskByName(taskName)
 	if t == nil {
-		w.Say("Sorry, I couldn't find a job named '%s' configured", taskName)
+		w.say("Sorry, I couldn't find a job named '%s' configured", taskName)
 		return nil
 	}
 	task, _, job := getTask(t)
 	isJob := job != nil
 	if !isJob {
-		w.Say("Sorry, '%s' isn't a job", taskName)
+		w.say("Sorry, '%s' isn't a job", taskName)
 		return nil
 	}
 	if w.automaticTask {
@@ -309,7 +309,7 @@ func (w *worker) jobAvailable(taskName string) interface{} {
 	// If there's already a job initialized, this is a pipeline task for that
 	// job, and should be available regardless of channel.
 	if w.pipeContext != nil && !w.jobInitialized && w.Channel != task.Channel {
-		w.Say("Sorry, job '%s' isn't available in this channel, try '%s'", taskName, task.Channel)
+		w.say("Sorry, job '%s' isn't available in this channel, try '%s'", taskName, task.Channel)
 		return nil
 	}
 	if task.RequireAdmin {
@@ -322,7 +322,7 @@ func (w *worker) jobAvailable(taskName string) interface{} {
 			}
 		}
 		if !isAdmin {
-			w.Say("Sorry, '%s' is only available to bot administrators", taskName)
+			w.say("Sorry, '%s' is only available to bot administrators", taskName)
 			return nil
 		}
 	}
@@ -335,7 +335,7 @@ func (w *worker) jobAvailable(taskName string) interface{} {
 			}
 		}
 		if !userOk {
-			w.Say("Sorry, you're not on the list of allowed users for that job")
+			w.say("Sorry, you're not on the list of allowed users for that job")
 			return nil
 		}
 	}

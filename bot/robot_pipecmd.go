@@ -113,63 +113,42 @@ func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, a
 	return robot.Ok
 }
 
-// SpawnJob creates a new pipeContext in a new goroutine to run a
-// job. It's primary use is for CI/CD applications where a single
-// triggered job may want to spawn several jobs when e.g. a dependency for
-// multiple projects is updated.
+// see robot/robot.go
 func (r Robot) SpawnJob(name string, args ...string) robot.RetVal {
 	return r.pipeTask(flavorSpawn, typeJob, name, args...)
 }
 
-// AddTask puts another task (job or plugin) in the queue for the pipeline. Unlike other
-// CI/CD tools, gopherbot pipelines are code generated, not configured; it is,
-// however, trivial to write code that reads an arbitrary configuration file
-// and uses AddTask to generate a pipeline. When the task is a plugin, cmdargs
-// should be a command followed by arguments. For jobs, cmdargs are just
-// arguments passed to the job.
+// see robot/robot.go
 func (r Robot) AddTask(name string, args ...string) robot.RetVal {
 	return r.pipeTask(flavorAdd, typeTask, name, args...)
 }
 
-// FinalTask adds a task that always runs when the pipeline ends, whether
-// it succeeded or failed. This can be used to ensure that cleanup tasks like
-// terminating a VM or stopping the ssh-agent will run, regardless of whether
-// the pipeline failed.
-// Note that unlike other tasks, final tasks are run in reverse of the order
-// they're added.
+// see robot/robot.go
 func (r Robot) FinalTask(name string, args ...string) robot.RetVal {
 	return r.pipeTask(flavorFinal, typeTask, name, args...)
 }
 
-// FailTask adds a task that runs only if the pipeline fails. This can be used
-// to e.g. notify a user / channel on failure.
+// see robot/robot.go
 func (r Robot) FailTask(name string, args ...string) robot.RetVal {
 	return r.pipeTask(flavorFail, typeTask, name, args...)
 }
 
-// AddJob puts another job in the queue for the pipeline. The added job
-// will run in a new separate context, and when it completes the current
-// pipeline will resume if the job succeeded.
+// see robot/robot.go
 func (r Robot) AddJob(name string, args ...string) robot.RetVal {
 	return r.pipeTask(flavorAdd, typeJob, name, args...)
 }
 
-// AddCommand adds a plugin command to the pipeline. The command string
-// argument should match a CommandMatcher for the given plugin.
+// see robot/robot.go
 func (r Robot) AddCommand(plugname, command string) robot.RetVal {
 	return r.pipeTask(flavorAdd, typePlugin, plugname, command)
 }
 
-// FinalCommand adds a plugin command that always runs when a pipeline
-// ends, for e.g. emailing the job history. The command string
-// argument should match a CommandMatcher for the given plugin.
+// see robot/robot.go
 func (r Robot) FinalCommand(plugname, command string) robot.RetVal {
 	return r.pipeTask(flavorFinal, typePlugin, plugname, command)
 }
 
-// FailCommand adds a plugin command that runs whenever a pipeline fails,
-// for e.g. emailing the job history. The command string
-// argument should match a CommandMatcher for the given plugin.
+// see robot/robot.go
 func (r Robot) FailCommand(plugname, command string) robot.RetVal {
 	return r.pipeTask(flavorFail, typePlugin, plugname, command)
 }

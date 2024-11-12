@@ -357,11 +357,7 @@ func (w *worker) getNameSpace(t interface{}) string {
 	return task.name
 }
 
-// CheckoutDatum gets a datum from the robot's brain and unmarshals it into
-// a struct. If rw is set, the datum is checked out read-write and a non-empty
-// lock token is returned that expires after lockTimeout (250ms). The bool
-// return indicates whether the datum exists. Datum must be a pointer to a
-// var.
+// see robot/robot.go
 func (r Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret robot.RetVal) {
 	if strings.ContainsRune(key, ':') {
 		ret = robot.InvalidDatumKey
@@ -375,7 +371,7 @@ func (r Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken 
 	return checkoutDatum(key, datum, rw)
 }
 
-// CheckinDatum unlocks a datum without updating it, it always succeeds
+// see robot/robot.go
 func (r Robot) CheckinDatum(key, locktoken string) {
 	if locktoken == "" {
 		return
@@ -390,9 +386,7 @@ func (r Robot) CheckinDatum(key, locktoken string) {
 	checkinDatum(key, locktoken)
 }
 
-// UpdateDatum tries to update a piece of data in the robot's brain, providing
-// a struct to marshall and a (hopefully good) lock token. If err != nil, the
-// update failed.
+// see robot/robot.go
 func (r Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.RetVal) {
 	if strings.ContainsRune(key, ':') {
 		Log(robot.Error, "Invalid memory key, ':' disallowed: %s", key)
@@ -405,11 +399,7 @@ func (r Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.
 	return updateDatum(key, locktoken, datum)
 }
 
-// Remember adds a ephemeral memory (with no backing store) to the robot's
-// brain. This is used internally for resolving the meaning of "it", but can
-// be used by plugins to remember other contextual facts. Since memories are
-// indexed by user and channel, but not plugin, these facts can be referenced
-// between plugins. This functionality is considered EXPERIMENTAL.
+// see robot/robot.go
 func (r Robot) Remember(key, value string, shared bool) {
 	timestamp := time.Now()
 	memory := ephemeralMemory{value, timestamp}
@@ -429,8 +419,7 @@ func (r Robot) Remember(key, value string, shared bool) {
 	ephemeralMemories.Unlock()
 }
 
-// RememberThread is identical to Remember, except that it forces the memory
-// to associate with the thread.
+// see robot/robot.go
 func (r Robot) RememberThread(key, value string, shared bool) {
 	timestamp := time.Now()
 	memory := ephemeralMemory{value, timestamp}
@@ -448,23 +437,17 @@ func (r Robot) RememberThread(key, value string, shared bool) {
 	ephemeralMemories.Unlock()
 }
 
-// RememberContext is a convenience function that stores a context reference in
-// short term memories. e.g. RememberContext("server", "web1.my.dom") means that
-// next time the user uses "it" in the context of a "server", the robot will
-// substitute "web1.my.dom".
+// see robot/robot.go
 func (r Robot) RememberContext(context, value string) {
 	r.Remember("context:"+context, value, false)
 }
 
-// RememberContextThread is identical to RememberContext, except that the memory
-// is forced to associate with the thread.
+// see robot/robot.go
 func (r Robot) RememberContextThread(context, value string) {
 	r.RememberThread("context:"+context, value, false)
 }
 
-// Recall recalls a short term memory, or the empty string if it doesn't exist.
-// Note that there are no RecallThread methods - Recall is always in the current
-// context.
+// see robot/robot.go
 func (r Robot) Recall(key string, shared bool) string {
 	context := r.makeMemoryContext(key, false, shared)
 	ephemeralMemories.Lock()

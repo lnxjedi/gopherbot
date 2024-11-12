@@ -14,23 +14,7 @@ var runQueues = struct {
 	sync.Mutex{},
 }
 
-// Exclusive lets a plugin or job pipeline request exclusive execution, to prevent
-// processes from stepping on each other when it's not safe.
-// The string argument ("" allowed) is appended to the pipeline namespace
-// to allow for greater granularity; e.g. two builds of different packages
-// could use the same pipeline and run safely together, but if it's the same
-// package the pipeline might want to queue or just abort. The queueTask
-// argument indicates whether the pipeline should queue up the task to be
-// restarted, or abort at the end of the current task. When Exclusive returns
-// false, the current task should exit. Note that a plugin should only
-// set queue to true under rare circumstances; most often it should use
-// false and emit an error on failure.
-// If the task requests queueing, it will either re-run (if the lock holder
-// has finished) or queue up (if not) when the current task exits. When it's
-// ready to run, the task will be started from the beginning with the same
-// arguments, holding the Exclusive lock, and the call to Exclusive will
-// always succeed.
-// The safest way to use Exclusive is near the beginning of a pipeline.
+// see robot/robot.go
 func (r Robot) Exclusive(tag string, queueTask bool) (success bool) {
 	if r.exclusive {
 		// TODO: make sure tag matches, or error! Note that it's legit and normal

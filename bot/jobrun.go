@@ -64,7 +64,7 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 	if messageMatched {
 		state.RLock()
 		if state.shuttingDown {
-			w.Say("Ignoring triggered job(s): shutting down")
+			w.say("Ignoring triggered job(s): shutting down")
 			state.RUnlock()
 			return
 		}
@@ -116,7 +116,7 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 			// REMOVE ME r := w.makeRobot()
 			task, _, job := getTask(t)
 			if task.Disabled {
-				w.Say("Job '%s' is disabled: %s", jname, task.reason)
+				w.say("Job '%s' is disabled: %s", jname, task.reason)
 				w.deregister()
 				return
 			}
@@ -136,14 +136,14 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 				args = strings.Split(matches[0][2], " ")
 				numargs := len(args)
 				if numargs > 0 && numargs < len(job.Arguments) {
-					w.Say("Too few arguments to job '%s', %d required but %d given", jname, len(job.Arguments), len(args))
+					w.say("Too few arguments to job '%s', %d required but %d given", jname, len(job.Arguments), len(args))
 					w.deregister()
 					return
 				}
 				// Check regexes for required arguments
 				for i, jobarg := range job.Arguments {
 					if !jobarg.re.MatchString(args[i]) {
-						w.Say("'%s' doesn't match the pattern for argument '%s': %s", args[i], jobarg.Label, jobarg.Regex)
+						w.say("'%s' doesn't match the pattern for argument '%s': %s", args[i], jobarg.Label, jobarg.Regex)
 						w.deregister()
 						return
 					}

@@ -95,32 +95,7 @@ func init() {
 	}
 }
 
-// PromptForReply lets a plugin direct a prompt string to a user and temporarily
-// register a regex for a reply expected to a multi-step command when the robot
-// needs more info. If the regular expression matches, it returns the matched
-// text and RetVal = Ok.
-// If there's an error getting the reply, it returns an empty string
-// with one of the following RetVals:
-//
-//	 UserNotFound
-//	 ChannelNotFound
-//		Interrupted - the user canceled with '-'
-//	 UseDefaultValue - user supplied a single "=", meaning "use the default value"
-//		ReplyNotMatched - didn't successfully match for any reason
-//		MatcherNotFound - the regexId didn't correspond to a valid regex
-//		TimeoutExpired - the user didn't respond within the timeout window
-//
-// Plugin authors can define regex's for regexId's in the plugin's JSON config,
-// with the restriction that the regexId must start with a lowercase letter.
-// A pre-definied regex from the following list can also be used:
-//
-//		Email
-//		Domain - an alpha-numeric domain name
-//		OTP - a 6-digit one-time password code
-//		IPAddr
-//		SimpleString - Characters commonly found in most english sentences, doesn't
-//	   include special characters like @, {, etc.
-//		YesNo
+// see robot/robot.go
 func (r Robot) PromptForReply(regexID string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	var rep string
 	var ret robot.RetVal
@@ -144,6 +119,7 @@ func (r Robot) PromptForReply(regexID string, prompt string, v ...interface{}) (
 	return rep, ret
 }
 
+// see robot/robot.go
 func (r Robot) PromptThreadForReply(regexID string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	var rep string
 	var ret robot.RetVal
@@ -163,8 +139,7 @@ func (r Robot) PromptThreadForReply(regexID string, prompt string, v ...interfac
 	return rep, ret
 }
 
-// PromptUserForReply is identical to PromptForReply, but prompts a specific
-// user with a DM.
+// see robot/robot.go
 func (r Robot) PromptUserForReply(regexID string, user string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	var rep string
 	var ret robot.RetVal
@@ -184,8 +159,7 @@ func (r Robot) PromptUserForReply(regexID string, user string, prompt string, v 
 	return rep, ret
 }
 
-// PromptUserChannelForReply is identical to PromptForReply, but prompts a
-// specific user in a given channel.
+// see robot/robot.go
 func (r Robot) PromptUserChannelForReply(regexID string, user string, channel string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	var rep string
 	var ret robot.RetVal

@@ -6,18 +6,12 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-// GetMessage returns a pointer to the message struct
+// see robot/robot.go
 func (r Robot) GetMessage() *robot.Message {
 	return r.Message
 }
 
-// GetUserAttribute returns a AttrRet with
-// - The string Attribute of a user, or "" if unknown/error
-// - A RetVal which is one of Ok, UserNotFound, AttributeNotFound
-// Current attributes:
-// name(handle), fullName, email, firstName, lastName, phone, internalID
-// TODO: supplement data with robot.yaml user's table, if an
-// admin wants to supplment whats available from the protocol.
+// see robot/robot.go
 func (r Robot) GetUserAttribute(u, a string) *robot.AttrRet {
 	a = strings.ToLower(a)
 	var user string
@@ -54,12 +48,7 @@ func (r Robot) GetUserAttribute(u, a string) *robot.AttrRet {
 	return &robot.AttrRet{attr, ret}
 }
 
-// GetSenderAttribute returns a AttrRet with
-// - The string Attribute of the sender, or "" if unknown/error
-// - A RetVal which is one of Ok, UserNotFound, AttributeNotFound
-// Current attributes:
-// name(handle), fullName, email, firstName, lastName, phone, internalID
-// TODO: (see above)
+// see robot/robot.go
 func (r Robot) GetSenderAttribute(a string) *robot.AttrRet {
 	a = strings.ToLower(a)
 	var ui *UserInfo
