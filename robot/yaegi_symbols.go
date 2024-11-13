@@ -10,8 +10,7 @@ import (
 var Symbols = map[string]map[string]reflect.Value{
 	"github.com/lnxjedi/gopherbot/robot": {
 		// ----- Types -----
-		// Expose the Robot interface
-		"Robot": reflect.ValueOf((*Robot)(nil)),
+		"Robot": reflect.ValueOf((*Robot)(nil)).Elem(),
 
 		// Expose structs
 		"AttrRet": reflect.ValueOf(AttrRet{}),
@@ -19,7 +18,7 @@ var Symbols = map[string]map[string]reflect.Value{
 
 		// Expose type definitions
 		"LogLevel":      reflect.ValueOf((*LogLevel)(nil)),
-		"TaskRetVal":    reflect.ValueOf((*TaskRetVal)(nil)),
+		"TaskRetVal":    reflect.ValueOf(TaskRetVal(0)), // To be discussed below
 		"Protocol":      reflect.ValueOf((*Protocol)(nil)),
 		"MessageFormat": reflect.ValueOf((*MessageFormat)(nil)),
 

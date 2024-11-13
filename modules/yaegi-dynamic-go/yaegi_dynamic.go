@@ -60,7 +60,6 @@ func init() {
 			return
 		}
 
-		os.Setenv("GOPATH", goPath)
 		log.Printf("Yaegi GOPATH set to: %s", goPath)
 	})
 }
