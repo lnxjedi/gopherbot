@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	yaegi "github.com/lnxjedi/gopherbot/v2/modules/yaegi-dynamic-go"
 	"golang.org/x/sys/unix"
 )
 
@@ -37,11 +38,17 @@ func getExtDefCfgThread(cchan chan<- getCfgReturn, task *Task) {
 	var taskPath string
 	var err error
 	var relpath bool
+	var cfg []byte
+	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
 	if taskPath, err = getTaskPath(task, "."); err != nil {
-		cchan <- getCfgReturn{nil, err}
+		if !isExternalGoTask && taskPath == "" {
+			cchan <- getCfgReturn{nil, err}
+			return
+		}
+		Log(robot.Warn, "skipping 'config' for external Go plugin '"+task.name+"'")
+		cchan <- getCfgReturn{&cfg, nil}
 		return
 	}
-	var cfg []byte
 	var cmd *exec.Cmd
 
 	// drop privileges when running external task; this thread will terminate
@@ -201,6 +208,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	r.environment = envhash
 
 	w.registerWorker(r.tid)
+
 	if isPlugin && plugin.taskType == taskGo {
 		if command != "init" {
 			emit(GoPluginRan)
@@ -235,17 +243,62 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	}()
 
 	var taskPath string // full path to the executable
+	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
 	var err error
 	if task.Homed {
 		taskPath, err = getTaskPath(task, ".")
 	} else {
 		taskPath, err = getTaskPath(task, workdir)
 	}
-	if err != nil {
+	if err != nil && !isExternalGoTask && taskPath != "" {
 		emit(ExternalTaskBadPath)
-		rchan <- taskReturn{fmt.Sprintf("Getting path for %s: %v", task.name, err), robot.MechanismFail}
+		rchan <- taskReturn{fmt.Sprintf("Getting the path for %s: %v", task.name, err), robot.MechanismFail}
 		return
 	}
+
+	// New Logic: Handle External Go Plugins/Tasks
+	if isExternalGoTask {
+		if isPlugin {
+			if command != "init" {
+				emit(GoPluginRan)
+			}
+			Log(robot.Debug, "Calling external Go plugin: '%s' with args: %q", task.name, args)
+			handler, err := yaegi.GetPluginHandler(taskPath)
+			if err != nil {
+				emit(ExternalTaskBadInterpreter)
+				rchan <- taskReturn{fmt.Sprintf("Loading plugin %s: %v", task.name, err), robot.MechanismFail}
+				return
+			}
+			ret := handler(r, command, args...)
+			deregisterWorker(r.tid)
+			rchan <- taskReturn{"", ret}
+			return
+		} else {
+			Log(robot.Debug, "Calling external Go task '%s' with args: %q", task.name, args)
+			var ret robot.TaskRetVal
+			if isJob {
+				handler, err := yaegi.GetJobHandler(taskPath)
+				if err != nil {
+					emit(ExternalTaskBadInterpreter)
+					rchan <- taskReturn{fmt.Sprintf("Loading job %s: %v", task.name, err), robot.MechanismFail}
+					return
+				}
+				ret = handler(r, args...)
+			} else {
+				handler, err := yaegi.GetTaskHandler(taskPath)
+				if err != nil {
+					emit(ExternalTaskBadInterpreter)
+					rchan <- taskReturn{fmt.Sprintf("Loading task %s: %v", task.name, err), robot.MechanismFail}
+					return
+				}
+				ret = handler(r, args...)
+			}
+			deregisterWorker(r.tid)
+			rchan <- taskReturn{"", ret}
+			return
+		}
+	}
+
 	var externalArgs []string
 	// jobs and tasks don't take a 'command' (it's just 'run', a dummy value)
 	if isPlugin {

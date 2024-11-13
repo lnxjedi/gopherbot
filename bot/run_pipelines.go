@@ -672,7 +672,7 @@ func getTaskPath(task *Task, workDir string) (tpath string, err error) {
 		}
 	}
 	if info.Mode()&0100 == 0 {
-		return "", fmt.Errorf("not executable: %s", tpath)
+		return tpath, fmt.Errorf("not executable: %s", tpath)
 	}
 	return
 }
