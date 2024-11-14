@@ -55,16 +55,14 @@ type ConnectorMessage struct {
 
 // PluginHandler is the struct a Go plugin registers for the Gopherbot plugin API.
 type PluginHandler struct {
-	DefaultConfig string /* A yaml-formatted multiline string defining the default Plugin configuration. It should be liberally commented for use in generating
-	custom configuration for the plugin. If a Config: section is defined, it should match the structure of the optional Config interface{} */
-	Handler func(r Robot, command string, args ...string) TaskRetVal // The callback function called by the robot whenever a Command is matched
-	Config  interface{}                                              // An optional empty struct defining custom configuration for the plugin
+	Handler   func(r Robot, command string, args ...string) TaskRetVal // The callback function called by the robot whenever a Command is matched
+	Configure func() *[]byte                                           // The callback for obtaining the default configuration
 }
 
 // JobHandler is the struct registered for a Go job
 type JobHandler struct {
-	Handler func(r Robot, args ...string) TaskRetVal // The callback function called by the robot when the job is run
-	Config  interface{}                              // An optional empty struct defining custom configuration for the job
+	Handler   func(r Robot, args ...string) TaskRetVal // The callback function called by the robot when the job is run
+	Configure func() *[]byte                           // The callback for obtaining the default configuration
 }
 
 // TaskHandler is the struct registered for a Go task

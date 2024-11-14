@@ -3,8 +3,9 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
+	"io/fs"
 	"regexp"
+	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
 	"gopkg.in/yaml.v3"
@@ -166,8 +167,16 @@ func loadTaskConfig(processed *configuration, preConnect bool) (*taskList, error
 		if len(ts.Path) == 0 {
 			return nil, fmt.Errorf("zero-length path for external task '%s'", ts.Name)
 		}
-		if _, _, err := getObjectPath(ts.Path); err != nil {
+		var opath string
+		var fileInfo fs.FileInfo
+		if opath, fileInfo, err = getObjectPath(ts.Path); err != nil {
 			return nil, fmt.Errorf("getting path '%s' for task '%s': %v", ts.Path, ts.Name, err)
+		}
+		if strings.HasSuffix(opath, ".go") && fileInfo.Mode()&0100 == 0 {
+			if !task.Homed {
+				task.Homed = true
+				Log(robot.Warn, "Setting 'Homed: true' for external Go task '%s'", task.name)
+			}
 		}
 		task.Path = ts.Path
 		return task, nil
@@ -251,31 +260,20 @@ LoadLoop:
 		// Don't get plugin external configuration during preconnect,
 		// since plugins may rely on stuff loaded by init jobs.
 		if isPlugin && !preConnect {
-			if plugin.taskType == taskExternal {
-				// External plugins spit their default config to stdout when called with command="configure"
-				cfg, err := getExtDefCfg(task)
-				if err != nil {
-					msg := fmt.Sprintf("Getting default configuration for external plugin, disabling: %v", err)
-					Log(robot.Error, msg)
-					task.Disabled = true
-					task.reason = msg
-					continue
-				}
-				if err := yaml.Unmarshal(*cfg, &tcfgdefault); err != nil {
-					msg := fmt.Sprintf("Unmarshalling default configuration, disabling: %v", err)
-					Log(robot.Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
-					task.Disabled = true
-					task.reason = msg
-					continue
-				}
-			} else {
-				if err := yaml.Unmarshal([]byte(pluginHandlers[task.name].DefaultConfig), &tcfgdefault); err != nil {
-					msg := fmt.Sprintf("Unmarshalling default configuration, disabling: %v", err)
-					Log(robot.Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
-					task.Disabled = true
-					task.reason = msg
-					continue
-				}
+			cfg, err := getDefCfg(task)
+			if err != nil {
+				msg := fmt.Sprintf("Getting default configuration for plugin, disabling: %v", err)
+				Log(robot.Error, msg)
+				task.Disabled = true
+				task.reason = msg
+				continue
+			}
+			if err := yaml.Unmarshal(*cfg, &tcfgdefault); err != nil {
+				msg := fmt.Sprintf("Unmarshalling default configuration, disabling: %v", err)
+				Log(robot.Error, "Problem unmarshalling plugin default config for '%s', disabling: %v", task.name, err)
+				task.Disabled = true
+				task.reason = msg
+				continue
 			}
 		}
 		// getConfigFile overlays the default config with configuration from the install path, then config path
@@ -720,40 +718,6 @@ LoadLoop:
 							task.reason = msg
 							continue LoadLoop
 						}
-					}
-				}
-			}
-			// For Go plugins, use the provided empty config struct to go ahead
-			// and unmarshall Config. The GetTaskConfig call just sets a pointer
-			// without unmshalling again.
-			if plugin.taskType == taskGo {
-				// Copy the pointer to the empty config struct / empty struct (when no config)
-				// pluginHandlers[name].Config is an empty struct for unmarshalling provided
-				// in RegisterPlugin.
-				pt := reflect.ValueOf(pluginHandlers[task.name].Config)
-				if pt.Kind() == reflect.Ptr {
-					if task.Config != nil {
-						// reflect magic: create a pointer to a new empty config struct for the plugin
-						task.config = reflect.New(reflect.Indirect(pt).Type()).Interface()
-						if err := json.Unmarshal(task.Config, task.config); err != nil {
-							msg := fmt.Sprintf("Unmarshalling plugin config json to config, disabling: %v", err)
-							Log(robot.Error, msg)
-							task.Disabled = true
-							task.reason = msg
-							continue
-						}
-					} else {
-						// Providing custom config not required (should it be?)
-						Log(robot.Warn, "Plugin '%s' has custom config, but none is configured", task.name)
-					}
-				} else {
-					if task.Config != nil {
-						msg := fmt.Sprintf("Custom configuration data provided for Go plugin '%s', but no config struct was registered; disabling", task.name)
-						Log(robot.Error, msg)
-						task.Disabled = true
-						task.reason = msg
-					} else {
-						Log(robot.Debug, "Config interface isn't a pointer, skipping unmarshal for Go plugin '%s'", task.name)
 					}
 				}
 			}

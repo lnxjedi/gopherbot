@@ -35,7 +35,7 @@ var totpCfg = &totp_config{}
 var totpUsers = make(map[string]string)
 
 func init() {
-	robot.RegisterPlugin("builtin-totp", robot.PluginHandler{Handler: totp_elevate, Config: totpCfg})
+	robot.RegisterPlugin("builtin-totp", robot.PluginHandler{Handler: totp_elevate})
 }
 
 func checkOTP(r robot.Robot, code string) (bool, robot.TaskRetVal) {

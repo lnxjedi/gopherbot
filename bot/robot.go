@@ -1,9 +1,9 @@
 package bot
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -310,27 +310,25 @@ func (r Robot) GetBotAttribute(a string) *robot.AttrRet {
 }
 
 // see robot/robot.go
-func (r Robot) GetTaskConfig(dptr interface{}) robot.RetVal {
+func (r Robot) GetTaskConfig(config interface{}) robot.RetVal {
 	task, _, _ := getTask(r.currentTask)
-	if task.config == nil {
+	if task.Config == nil {
 		Log(robot.Error, "Task \"%s\" called GetTaskConfig, but no config was found.", task.name)
 		return robot.NoConfigFound
 	}
-	tp := reflect.ValueOf(dptr)
-	if tp.Kind() != reflect.Ptr {
-		Log(robot.Error, "Task \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", task.name)
-		return robot.InvalidDblPtr
+
+	// Ensure config is a non-nil pointer
+	_, ok := config.(*interface{})
+	if !ok {
+		Log(robot.Error, "GetTaskConfig requires a pointer to a config struct")
+		return robot.InvalidConfigPointer
 	}
-	p := reflect.Indirect(tp)
-	if p.Kind() != reflect.Ptr {
-		Log(robot.Error, "Task \"%s\" called GetTaskConfig, but didn't pass a double-pointer to a struct", task.name)
-		return robot.InvalidDblPtr
+
+	if err := json.Unmarshal(task.Config, config); err != nil {
+		Log(robot.Error, "Failed to unmarshal config for task \"%s\": %v", task.name, err)
+		return robot.ConfigUnmarshalError
 	}
-	if p.Type() != reflect.ValueOf(task.config).Type() {
-		Log(robot.Error, "Task \"%s\" called GetTaskConfig with an invalid double-pointer", task.name)
-		return robot.InvalidCfgStruct
-	}
-	p.Set(reflect.ValueOf(task.config))
+
 	return robot.Ok
 }
 

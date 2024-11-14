@@ -14,11 +14,12 @@ func _() {
 	_ = x[ConfigurationError-3]
 	_ = x[PipelineAborted-4]
 	_ = x[RobotStopping-5]
+	_ = x[NotFound-6]
 }
 
-const _TaskRetVal_name = "NormalFailMechanismFailConfigurationErrorPipelineAbortedRobotStopping"
+const _TaskRetVal_name = "NormalFailMechanismFailConfigurationErrorPipelineAbortedRobotStoppingNotFound"
 
-var _TaskRetVal_index = [...]uint8{0, 6, 10, 23, 41, 56, 69}
+var _TaskRetVal_index = [...]uint8{0, 6, 10, 23, 41, 56, 69, 77}
 
 func (i TaskRetVal) String() string {
 	if i < 0 || i >= TaskRetVal(len(_TaskRetVal_index)-1) {

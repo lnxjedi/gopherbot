@@ -270,6 +270,5 @@ func lists(r robot.Robot, command string, args ...string) (retval robot.TaskRetV
 func init() {
 	robot.RegisterPlugin("lists", robot.PluginHandler{
 		Handler: lists,
-		Config:  &config{},
 	})
 }

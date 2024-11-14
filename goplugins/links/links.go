@@ -183,6 +183,5 @@ func links(r robot.Robot, command string, args ...string) (retval robot.TaskRetV
 func init() {
 	robot.RegisterPlugin("links", robot.PluginHandler{
 		Handler: links,
-		Config:  &config{},
 	})
 }

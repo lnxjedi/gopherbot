@@ -34,41 +34,8 @@ type Robot interface {
 	// name(handle), fullName, email, firstName, lastName, phone, internalID
 	// TODO: (see above)
 	GetSenderAttribute(a string) *AttrRet
-	/*
-		GetTaskConfig sets a struct pointer to point to a config struct populated
-		from configuration when plugins were loaded. To use, a plugin should define
-		a struct for it's configuration data, e.g.:
-
-			type pConf struct {
-				Username, Password string
-			}
-
-		In conf/plugins/<pluginname>.yaml, you would add a Config: stanza, e.g.:
-
-			Config:
-			  Username: foo
-			  Password: bar
-
-		When registering the plugin, you pass a pointer to an empty config template, which the
-		robot will use to populate a struct when configuration is loaded:
-
-			func init() {
-				robot.RegisterPlugin("memes", bot.PluginHandler{
-					DefaultConfig: defaultConfig, // yaml string providing default configuration
-					Handler:       plugfunc, // callback function
-					Config:        &pConf{}, // pointer to empty config struct
-				})
-			}
-
-		Then, to get a current copy of configuration when the plugin runs, define a struct pointer
-		and call GetTaskConfig with a double-pointer:
-
-			var c *pConf
-			r.GetTaskConfig(&c)
-
-		... And voila! *pConf is populated with the contents from the configured Config: stanza
-	*/
-	GetTaskConfig(dptr interface{}) RetVal
+	// GetTaskConfig unmarshals the job/plugin configuration into a struct.
+	GetTaskConfig(cfgptr interface{}) RetVal
 	// GetMessage returns a pointer to the robot.Message struct
 	GetMessage() *Message
 	// GetParameter retrieves the value of a parameter for a pipeline. Only useful

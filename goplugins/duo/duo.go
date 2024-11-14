@@ -470,7 +470,7 @@ func duocommands(r robot.Robot, command string, args ...string) (retval robot.Ta
 	return
 }
 
-const defaultConfig = `
+var defaultConfig = []byte(`
 AllChannels: true
 Help:
 - Keywords: [ "duo" ]
@@ -490,10 +490,13 @@ Config:
 #  DuoSKey: <YourSKey> # ... or set in DUO_SKEY
 #  DuoHost: <YourDuoHost> # ... or set in DUO_HOST
   DuoUserString: emailUser
-`
+`)
+
+func Configure() *[]byte {
+	return &defaultConfig
+}
 
 var duohandler = robot.PluginHandler{
-	DefaultConfig: defaultConfig,
-	Handler:       duocommands,
-	Config:        &config{},
+	Configure: Configure,
+	Handler:   duocommands,
 }

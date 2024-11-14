@@ -27,14 +27,14 @@ type getCfgReturn struct {
 	err     error
 }
 
-func getExtDefCfg(task *Task) (*[]byte, error) {
+func getDefCfg(task *Task) (*[]byte, error) {
 	cc := make(chan getCfgReturn)
-	go getExtDefCfgThread(cc, task)
+	go getDefCfgThread(cc, task)
 	ret := <-cc
 	return ret.buffptr, ret.err
 }
 
-func getExtDefCfgThread(cchan chan<- getCfgReturn, task *Task) {
+func getDefCfgThread(cchan chan<- getCfgReturn, task *Task) {
 	var taskPath string
 	var err error
 	var relpath bool

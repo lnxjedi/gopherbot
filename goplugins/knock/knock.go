@@ -24,7 +24,6 @@ type JokeConfig struct {
 
 var knockhandler = robot.PluginHandler{
 	Handler: knock,
-	Config:  &JokeConfig{},
 }
 
 func knock(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {

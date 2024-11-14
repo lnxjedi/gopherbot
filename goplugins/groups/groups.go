@@ -259,6 +259,5 @@ func groups(r robot.Robot, command string, args ...string) (retval robot.TaskRet
 func init() {
 	robot.RegisterPlugin("groups", robot.PluginHandler{
 		Handler: groups,
-		Config:  &config{},
 	})
 }

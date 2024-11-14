@@ -250,30 +250,26 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 		confLock.RUnlock()
 		r.Fixed().Say("Here's how I've been configured, irrespective of interactive changes:\n%s", c)
 	case "dumpplugdefault":
-		if plug, ok := pluginHandlers[args[0]]; ok {
-			r.Fixed().Say("Here's the default configuration for \"%s\":\n%s", args[0], plug.DefaultConfig)
-		} else { // look for an external plugin
-			found := false
-			for _, t := range r.tasks.t[1:] {
-				task, plugin, _ := getTask(t)
-				if args[0] == task.name {
-					if plugin == nil {
-						r.Say("No default configuration available for task type 'job'")
-						return
-					}
-					if plugin.taskType == taskExternal {
-						found = true
-						if cfg, err := getExtDefCfg(plugin.Task); err == nil {
-							r.Fixed().Say("Here's the default configuration for \"%s\":\n%s", args[0], *cfg)
-						} else {
-							r.Say("I had a problem looking that up - somebody should check my logs")
-						}
+		found := false
+		for _, t := range r.tasks.t[1:] {
+			task, plugin, _ := getTask(t)
+			if args[0] == task.name {
+				if plugin == nil {
+					r.Say("No default configuration available for task type 'job'")
+					return
+				}
+				if plugin.taskType == taskExternal {
+					found = true
+					if cfg, err := getDefCfg(plugin.Task); err == nil {
+						r.Fixed().Say("Here's the default configuration for \"%s\":\n%s", args[0], *cfg)
+					} else {
+						r.Say("I had a problem looking that up - somebody should check my logs")
 					}
 				}
 			}
-			if !found {
-				r.Say("Didn't find a plugin named " + args[0])
-			}
+		}
+		if !found {
+			r.Say("Didn't find a plugin named " + args[0])
 		}
 	case "dumpplugin":
 		if r.Protocol != robot.Terminal && r.Protocol != robot.Test {

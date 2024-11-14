@@ -88,10 +88,10 @@ const (
 
 	/* GetTaskConfig */
 
-	// InvalidDblPtr - GetTaskConfig wasn't called with a double-pointer to a config struct
-	InvalidDblPtr
-	// InvalidCfgStruct - The struct type in GetTaskConfig doesn't match the struct registered for the plugin
-	InvalidCfgStruct
+	// InvalidConfigPointer - GetTaskConfig requires a pointer to a config struct
+	InvalidConfigPointer
+	// ConfigUnmarshalError - Unmarshalling failed
+	ConfigUnmarshalError
 	// NoConfigFound - The plugin/job doesn't have any config data
 	NoConfigFound
 

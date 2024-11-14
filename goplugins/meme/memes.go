@@ -85,5 +85,4 @@ func createMeme(m *memeConfig, templateId, topText, bottomText string) (string, 
 
 var memehandler = robot.PluginHandler{
 	Handler: memegen,
-	Config:  &memeConfig{},
 }

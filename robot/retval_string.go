@@ -19,8 +19,8 @@ func _() {
 	_ = x[DataFormatError-8]
 	_ = x[BrainFailed-9]
 	_ = x[InvalidDatumKey-10]
-	_ = x[InvalidDblPtr-11]
-	_ = x[InvalidCfgStruct-12]
+	_ = x[InvalidConfigPointer-11]
+	_ = x[ConfigUnmarshalError-12]
 	_ = x[NoConfigFound-13]
 	_ = x[RetryPrompt-14]
 	_ = x[ReplyNotMatched-15]
@@ -40,9 +40,9 @@ func _() {
 	_ = x[PrivilegeViolation-29]
 }
 
-const _RetVal_name = "OkUserNotFoundChannelNotFoundAttributeNotFoundFailedMessageSendFailedChannelJoinDatumNotFoundDatumLockExpiredDataFormatErrorBrainFailedInvalidDatumKeyInvalidDblPtrInvalidCfgStructNoConfigFoundRetryPromptReplyNotMatchedUseDefaultValueTimeoutExpiredInterruptedMatcherNotFoundNoUserEmailNoBotEmailMailErrorTaskNotFoundMissingArgumentsInvalidStageInvalidTaskTypeCommandNotMatchedTaskDisabledPrivilegeViolation"
+const _RetVal_name = "OkUserNotFoundChannelNotFoundAttributeNotFoundFailedMessageSendFailedChannelJoinDatumNotFoundDatumLockExpiredDataFormatErrorBrainFailedInvalidDatumKeyInvalidConfigPointerConfigUnmarshalErrorNoConfigFoundRetryPromptReplyNotMatchedUseDefaultValueTimeoutExpiredInterruptedMatcherNotFoundNoUserEmailNoBotEmailMailErrorTaskNotFoundMissingArgumentsInvalidStageInvalidTaskTypeCommandNotMatchedTaskDisabledPrivilegeViolation"
 
-var _RetVal_index = [...]uint16{0, 2, 14, 29, 46, 63, 80, 93, 109, 124, 135, 150, 163, 179, 192, 203, 218, 233, 247, 258, 273, 284, 294, 303, 315, 331, 343, 358, 375, 387, 405}
+var _RetVal_index = [...]uint16{0, 2, 14, 29, 46, 63, 80, 93, 109, 124, 135, 150, 170, 190, 203, 214, 229, 244, 258, 269, 284, 295, 305, 314, 326, 342, 354, 369, 386, 398, 416}
 
 func (i RetVal) String() string {
 	if i < 0 || i >= RetVal(len(_RetVal_index)-1) {
