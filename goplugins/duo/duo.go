@@ -382,7 +382,7 @@ func duocommands(r robot.Robot, command string, args ...string) (retval robot.Ta
 		}
 	}
 	cfg := &config{}
-	r.GetTaskConfig(&cfg)
+	r.GetTaskConfig(cfg)
 	if cfg.TimeoutType == "absolute" {
 		cfg.tt = absolute
 	}

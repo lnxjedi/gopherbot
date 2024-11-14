@@ -36,7 +36,7 @@ func links(r robot.Robot, command string, args ...string) (retval robot.TaskRetV
 	scope := &config{}
 
 	datumKey := datumNameDefault // default global
-	ret := r.GetTaskConfig(&scope)
+	ret := r.GetTaskConfig(scope)
 	if ret == robot.Ok {
 		if strings.ToLower(scope.Scope) == "channel" {
 			datumKey = m.Channel + ":" + datumNameDefault

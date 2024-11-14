@@ -27,13 +27,14 @@ var knockhandler = robot.PluginHandler{
 }
 
 func knock(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
-	var j *JokeConfig // get access to a copy of the plugin's config
+	var j JokeConfig // get access to a copy of the plugin's config
 	switch command {
 	case "init":
 		// Ignore, this plugin has no start-up
 	case "knock":
 		if ret := r.GetTaskConfig(&j); ret != robot.Ok {
 			r.Reply("Sorry, I couldn't find my joke book")
+			return
 		}
 		if len(j.Jokes) == 0 {
 			r.Reply("Sorry, I don't know any jokes :-(")

@@ -17,7 +17,7 @@ type memeConfig struct {
 
 func memegen(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	m := &memeConfig{}
-	r.GetTaskConfig(&m) // make m point to a valid, thread-safe MemeConfig
+	r.GetTaskConfig(m) // make m point to a valid, thread-safe MemeConfig
 	if len(m.Password) == 0 {
 		m.Password = r.GetParameter("PASSWORD")
 	}

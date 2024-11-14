@@ -42,7 +42,7 @@ func lists(r robot.Robot, command string, args ...string) (retval robot.TaskRetV
 	scope := &config{}
 
 	datumKey := datumName // default global
-	ret = r.GetTaskConfig(&scope)
+	ret = r.GetTaskConfig(scope)
 	r.Log(robot.Debug, "Retrieved lists config: %v", scope)
 	if ret == robot.Ok {
 		if strings.ToLower(scope.Scope) == "channel" {

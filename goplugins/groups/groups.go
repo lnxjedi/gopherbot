@@ -55,7 +55,7 @@ func groups(r robot.Robot, command string, args ...string) (retval robot.TaskRet
 
 	groupCfg := &config{}
 
-	ret = r.GetTaskConfig(&groupCfg)
+	ret = r.GetTaskConfig(groupCfg)
 	if ret != robot.Ok {
 		r.Log(robot.Error, "Error loading groups config: %s")
 		return robot.Fail

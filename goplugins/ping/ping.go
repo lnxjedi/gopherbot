@@ -49,7 +49,7 @@ func ping(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 	case "ping":
 		m.Fixed().Reply("PONG")
 	case "thread":
-		if ret := m.GetTaskConfig(&cfg); ret == robot.Ok {
+		if ret := m.GetTaskConfig(cfg); ret == robot.Ok {
 			m.ReplyThread(m.RandomString(cfg.Thread))
 		} else {
 			m.ReplyThread("Sure thing")
@@ -69,7 +69,7 @@ func ping(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		}
 		m.MessageFormat(robot.Variable).Say(msg)
 	case "thanks":
-		if ret := m.GetTaskConfig(&cfg); ret == robot.Ok {
+		if ret := m.GetTaskConfig(cfg); ret == robot.Ok {
 			m.Reply(m.RandomString(cfg.Welcome))
 		} else {
 			m.Reply("I'm speechless. Please have somebody check my log file.")

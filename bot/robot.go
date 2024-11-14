@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -317,13 +318,21 @@ func (r Robot) GetTaskConfig(config interface{}) robot.RetVal {
 		return robot.NoConfigFound
 	}
 
-	// Ensure config is a non-nil pointer
-	_, ok := config.(*interface{})
-	if !ok {
-		Log(robot.Error, "GetTaskConfig requires a pointer to a config struct")
+	// Ensure 'config' is a non-nil pointer
+	ptrVal := reflect.ValueOf(config)
+	if ptrVal.Kind() != reflect.Ptr || ptrVal.IsNil() {
+		Log(robot.Error, "GetTaskConfig requires a non-nil pointer to a config struct")
 		return robot.InvalidConfigPointer
 	}
 
+	// Optionally, ensure it's pointing to a struct
+	elemKind := ptrVal.Elem().Kind()
+	if elemKind != reflect.Struct && elemKind != reflect.Map && elemKind != reflect.Slice {
+		Log(robot.Error, "GetTaskConfig requires a pointer to a struct, map, or slice")
+		return robot.InvalidConfigPointer
+	}
+
+	// Unmarshal the JSON into 'config'
 	if err := json.Unmarshal(task.Config, config); err != nil {
 		Log(robot.Error, "Failed to unmarshal config for task \"%s\": %v", task.name, err)
 		return robot.ConfigUnmarshalError

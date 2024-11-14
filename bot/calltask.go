@@ -52,22 +52,15 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		task = t.Task
 	}
 
-	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
-	if taskPath, err = getTaskPath(task, "."); err != nil {
-		if !isExternalGoTask && taskPath == "" {
-			cchan <- getCfgReturn{nil, err}
-			return
-		}
-		Log(robot.Warn, "skipping 'config' for external Go plugin '"+task.name+"'")
-		cchan <- getCfgReturn{&cfg, nil}
-		return
-	}
 	if task.taskType == taskGo {
 		if isJob {
 			jobHandler := jobHandlers[task.name]
 			if jobHandler.Configure != nil {
 				defConfig := jobHandler.Configure()
 				cchan <- getCfgReturn{defConfig, nil}
+				return
+			} else {
+				cchan <- getCfgReturn{&cfg, nil}
 				return
 			}
 		}
@@ -77,8 +70,22 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 				defConfig := plugHandler.Configure()
 				cchan <- getCfgReturn{defConfig, nil}
 				return
+			} else {
+				cchan <- getCfgReturn{&cfg, nil}
+				return
 			}
 		}
+		return
+	}
+
+	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
+	if taskPath, err = getTaskPath(task, "."); err != nil {
+		if !isExternalGoTask && taskPath == "" {
+			cchan <- getCfgReturn{nil, err}
+			return
+		}
+		Log(robot.Warn, "skipping 'config' for external Go plugin '"+task.name+"'")
+		cchan <- getCfgReturn{&cfg, nil}
 		return
 	}
 	var cmd *exec.Cmd
