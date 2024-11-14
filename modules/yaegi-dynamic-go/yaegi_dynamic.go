@@ -133,30 +133,36 @@ func initializeInterpreter() (*interp.Interpreter, error) {
 	if err := i.Use(stdlib.Symbols); err != nil {
 		return nil, fmt.Errorf("failed to load standard library: %w", err)
 	}
-	if err := i.Use(robot.Symbols); err != nil {
+	if err := i.Use(Symbols); err != nil {
 		return nil, fmt.Errorf("failed to load robot symbols: %w", err)
 	}
 	return i, nil
 }
 
-func GetPluginHandler(path string) (func(r robot.Robot, command string, args ...string) robot.TaskRetVal, error) {
+func RunPluginHandler(path, name string, r robot.Robot, command string, args ...string) (robot.TaskRetVal, error) {
 	i, err := initializeInterpreter()
 	if err != nil {
-		return nil, err
+		return robot.MechanismFail, err
 	}
 	_, err = i.CompilePath(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compile plugin: %w", err)
+		return robot.MechanismFail, fmt.Errorf("failed to compile plugin: %w", err)
 	}
 	v, err := i.Eval("PluginHandler")
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve PluginHandler: %w", err)
+		return robot.MechanismFail, fmt.Errorf("failed to retrieve PluginHandler: %w", err)
 	}
 	handler, ok := v.Interface().(func(robot.Robot, string, ...string) robot.TaskRetVal)
 	if !ok {
-		return nil, fmt.Errorf("PluginHandler has incorrect signature: got %T", v.Interface())
+		return robot.MechanismFail, fmt.Errorf("PluginHandler has incorrect signature: got %T", v.Interface())
 	}
-	return handler, nil
+	
+
+	r.Log(robot.Debug, "Calling external Go plugin: '%s' with args: %q", name, args)
+	ret := handler(r, command, args...)
+	r.Log(robot.Debug, "Return from '%s': %s", name, ret)
+
+	return ret, nil
 }
 
 func GetJobHandler(path string) (func(r robot.Robot, args ...string) robot.TaskRetVal, error) {
