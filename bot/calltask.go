@@ -27,18 +27,31 @@ type getCfgReturn struct {
 	err     error
 }
 
-func getDefCfg(task *Task) (*[]byte, error) {
+func getDefCfg(t interface{}) (*[]byte, error) {
 	cc := make(chan getCfgReturn)
-	go getDefCfgThread(cc, task)
+	go getDefCfgThread(cc, t)
 	ret := <-cc
 	return ret.buffptr, ret.err
 }
 
-func getDefCfgThread(cchan chan<- getCfgReturn, task *Task) {
+func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 	var taskPath string
 	var err error
 	var relpath bool
 	var cfg []byte
+	var task *Task
+	var isPlugin, isJob bool
+	switch t := ti.(type) {
+	case *Plugin:
+		isPlugin = true
+		task = t.Task
+		// Reset list of channels
+		task.Channels = []string{}
+	case *Job:
+		isJob = true
+		task = t.Task
+	}
+
 	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
 	if taskPath, err = getTaskPath(task, "."); err != nil {
 		if !isExternalGoTask && taskPath == "" {
@@ -47,6 +60,25 @@ func getDefCfgThread(cchan chan<- getCfgReturn, task *Task) {
 		}
 		Log(robot.Warn, "skipping 'config' for external Go plugin '"+task.name+"'")
 		cchan <- getCfgReturn{&cfg, nil}
+		return
+	}
+	if task.taskType == taskGo {
+		if isJob {
+			jobHandler := jobHandlers[task.name]
+			if jobHandler.Configure != nil {
+				defConfig := jobHandler.Configure()
+				cchan <- getCfgReturn{defConfig, nil}
+				return
+			}
+		}
+		if isPlugin {
+			plugHandler := pluginHandlers[task.name]
+			if plugHandler.Configure != nil {
+				defConfig := plugHandler.Configure()
+				cchan <- getCfgReturn{defConfig, nil}
+				return
+			}
+		}
 		return
 	}
 	var cmd *exec.Cmd

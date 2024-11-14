@@ -260,7 +260,7 @@ LoadLoop:
 		// Don't get plugin external configuration during preconnect,
 		// since plugins may rely on stuff loaded by init jobs.
 		if isPlugin && !preConnect {
-			cfg, err := getDefCfg(task)
+			cfg, err := getDefCfg(t)
 			if err != nil {
 				msg := fmt.Sprintf("Getting default configuration for plugin, disabling: %v", err)
 				Log(robot.Error, msg)
