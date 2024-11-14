@@ -144,9 +144,13 @@ func RunPluginHandler(path, name string, r robot.Robot, command string, args ...
 	if err != nil {
 		return robot.MechanismFail, err
 	}
-	_, err = i.CompilePath(path)
+	program, err := i.CompilePath(path)
 	if err != nil {
 		return robot.MechanismFail, fmt.Errorf("failed to compile plugin: %w", err)
+	}
+	_, err = i.Execute(program)
+	if err != nil {
+		return robot.MechanismFail, fmt.Errorf("failed to execute compiled code: %w", err)
 	}
 	v, err := i.Eval("PluginHandler")
 	if err != nil {
@@ -156,11 +160,9 @@ func RunPluginHandler(path, name string, r robot.Robot, command string, args ...
 	if !ok {
 		return robot.MechanismFail, fmt.Errorf("PluginHandler has incorrect signature: got %T", v.Interface())
 	}
-	
 
 	r.Log(robot.Debug, "Calling external Go plugin: '%s' with args: %q", name, args)
 	ret := handler(r, command, args...)
-	r.Log(robot.Debug, "Return from '%s': %s", name, ret)
 
 	return ret, nil
 }
