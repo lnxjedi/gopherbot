@@ -21,16 +21,12 @@ import (
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/meme"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
 
-	// *** Included Go jobs external to the main engine
-	_ "github.com/lnxjedi/gopherbot/v2/gojobs/go-bootstrap"
-	_ "github.com/lnxjedi/gopherbot/v2/gojobs/go-update"
-
 	// *** Included Go tasks external to the main engine
+	_ "github.com/lnxjedi/gopherbot/v2/gotasks/fail-report"
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/git-command"
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/ssh-agent"
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/ssh-git-helper"
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/update-report"
-	_ "github.com/lnxjedi/gopherbot/v2/gotasks/fail-report"
 
 	// *** Default Slack connector
 	_ "github.com/lnxjedi/gopherbot/v2/connectors/slack"

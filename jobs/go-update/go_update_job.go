@@ -1,4 +1,4 @@
-package update
+package main
 
 import (
 	"os"
@@ -7,16 +7,11 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-func init() {
-	robot.RegisterJob("go-update", robot.JobHandler{
-		Handler: updateHandler,
-	})
-	robot.RegisterJob("updatecfg", robot.JobHandler{
-		Handler: compatHandler,
-	})
-}
+/*
+go_update_job.go - This job is dynamically loaded, compiled and run by Yaegi (https://github.com/traefik/yaegi).
+*/
 
-func updateHandler(r robot.Robot, args ...string) robot.TaskRetVal {
+func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	repoDir := r.GetParameter("GOPHER_CONFIGDIR")
 
 	confDir := filepath.Join(repoDir, "conf")

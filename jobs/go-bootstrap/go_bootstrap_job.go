@@ -1,4 +1,4 @@
-package bootstrap
+package main
 
 import (
 	"os"
@@ -7,13 +7,11 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-func init() {
-	robot.RegisterJob("go-bootstrap", robot.JobHandler{
-		Handler: bootstrapHandler,
-	})
-}
+/*
+go_bootstrap_job.go - This job is dynamically loaded, compiled and run by Yaegi (https://github.com/traefik/yaegi).
+*/
 
-func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
+func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	repoDir := r.GetParameter("GOPHER_CONFIGDIR")
 
 	confDir := filepath.Join(repoDir, "conf")
@@ -52,7 +50,7 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	}
 
 	// Begin bootstrapping
-	r.Log(robot.Info, "Starting bootstrap process for repository: "+cloneURL)
+	r.Log(robot.Info, "Starting external go-bootstrap job for repository: "+cloneURL)
 
 	// Start SSH agent using GOPHER_DEPLOY_KEY
 	r.AddTask("ssh-agent", "deploy")

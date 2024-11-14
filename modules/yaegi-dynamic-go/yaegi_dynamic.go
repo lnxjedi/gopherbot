@@ -167,42 +167,58 @@ func RunPluginHandler(path, name string, r robot.Robot, command string, args ...
 	return ret, nil
 }
 
-func GetJobHandler(path string) (func(r robot.Robot, args ...string) robot.TaskRetVal, error) {
+func RunJobHandler(path, name string, r robot.Robot, args ...string) (robot.TaskRetVal, error) {
 	i, err := initializeInterpreter()
 	if err != nil {
-		return nil, err
+		return robot.MechanismFail, err
 	}
-	_, err = i.CompilePath(path)
+	program, err := i.CompilePath(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compile job: %w", err)
+		return robot.MechanismFail, fmt.Errorf("failed to compile job: %w", err)
+	}
+	_, err = i.Execute(program)
+	if err != nil {
+		return robot.MechanismFail, fmt.Errorf("failed to execute compiled code: %w", err)
 	}
 	v, err := i.Eval("JobHandler")
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve JobHandler: %w", err)
+		return robot.MechanismFail, fmt.Errorf("failed to retrieve JobHandler: %w", err)
 	}
 	handler, ok := v.Interface().(func(robot.Robot, ...string) robot.TaskRetVal)
 	if !ok {
-		return nil, fmt.Errorf("JobHandler has incorrect signature: got %T", v.Interface())
+		return robot.MechanismFail, fmt.Errorf("JobHandler has incorrect signature: got %T", v.Interface())
 	}
-	return handler, nil
+
+	r.Log(robot.Debug, "Calling external Go job: '%s' with args: %q", name, args)
+	ret := handler(r, args...)
+
+	return ret, nil
 }
 
-func GetTaskHandler(path string) (func(r robot.Robot, args ...string) robot.TaskRetVal, error) {
+func RunTaskHandler(path, name string, r robot.Robot, args ...string) (robot.TaskRetVal, error) {
 	i, err := initializeInterpreter()
 	if err != nil {
-		return nil, err
+		return robot.MechanismFail, err
 	}
-	_, err = i.CompilePath(path)
+	program, err := i.CompilePath(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compile task: %w", err)
+		return robot.MechanismFail, fmt.Errorf("failed to compile task: %w", err)
+	}
+	_, err = i.Execute(program)
+	if err != nil {
+		return robot.MechanismFail, fmt.Errorf("failed to execute compiled code: %w", err)
 	}
 	v, err := i.Eval("TaskHandler")
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve TaskHandler: %w", err)
+		return robot.MechanismFail, fmt.Errorf("failed to retrieve TaskHandler: %w", err)
 	}
 	handler, ok := v.Interface().(func(robot.Robot, ...string) robot.TaskRetVal)
 	if !ok {
-		return nil, fmt.Errorf("TaskHandler has incorrect signature: got %T", v.Interface())
+		return robot.MechanismFail, fmt.Errorf("TaskHandler has incorrect signature: got %T", v.Interface())
 	}
-	return handler, nil
+
+	r.Log(robot.Debug, "Calling external Go task: '%s' with args: %q", name, args)
+	ret := handler(r, args...)
+
+	return ret, nil
 }

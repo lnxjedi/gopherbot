@@ -156,30 +156,35 @@ GoPlugins:
     Description: A plugin providing help for commands
     NameSpace: manage
 
-## GoJobs provides configuration for the NameSpace, Parameters and ParameterSets
-## for jobs written in Go and compiled into the robot.
-GoJobs:
-  "go-bootstrap":
-    Description: A job to bootstrap an existing robot to a new container/directory
-    NameSpace: manage
-    Parameters:
-    - Name: GOPHER_DEPLOY_KEY
-    # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
-      Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
+## Only for compiled-in Go jobs, all current Go jobs are external and dynamic, see
+## below.
+# GoJobs:
+#   "updatecfg":
+#     Description: Wrapper for go-update to be compatible with older robots
+#     NameSpace: manage
+
+## ExternalJobs describe configurable jobs the robot knows about. Requires
+## config in conf/jobs/<jobname>.yaml (see sample files in dist)
+ExternalJobs:
   "go-update":
     Description: A to update the robot's configuration (git pull)
+    Path: jobs/go-update/go_update_job.go
     NameSpace: manage
     Parameters:
     - Name: GOPHER_DEPLOY_KEY
     # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
       Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
   "updatecfg":
-    Description: Wrapper for go-update to be compatible with older robots
+    Description: A compatibility job that only starts the go-update job
+    Path: jobs/updatecfg/updatecfg.go
+  "go-bootstrap":
+    Description: A job to bootstrap an existing robot to a new container/directory
+    Path: jobs/go-bootstrap/go_bootstrap_job.go
     NameSpace: manage
-
-## ExternalJobs describe configurable jobs the robot knows about. Requires
-## config in conf/jobs/<jobname>.yaml (see sample files in dist)
-ExternalJobs:
+    Parameters:
+    - Name: GOPHER_DEPLOY_KEY
+    # Deployment key with "tr '\n' ':'" - yaml parsing will fail if not quoted
+      Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
   "changebranch":
     Description: A job that lets the robot switch branches for development
     Homed: true

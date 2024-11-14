@@ -425,6 +425,9 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 			ret = child.startPipeline(w, t, ptype, command, args...)
 		} else {
 			errString, ret = w.callTask(t, command, args...)
+			if errString != "" {
+				Log(robot.Error, "failed task '%s' in pipeline '%s': %s", task.name, w.pipeName, errString)
+			}
 		}
 		if w.stage == finalTasks && ret != robot.Normal {
 			w.finalFailed = append(w.finalFailed, task.name)

@@ -256,7 +256,6 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		return
 	}
 
-	// New Logic: Handle External Go Plugins/Tasks
 	if isExternalGoTask {
 		if isPlugin {
 			if command != "init" {
@@ -274,24 +273,21 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		} else {
 			var ret robot.TaskRetVal
 			if isJob {
-				handler, err := yaegi.GetJobHandler(taskPath)
+				ret, err = yaegi.RunJobHandler(taskPath, task.name, r, args...)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
-					rchan <- taskReturn{fmt.Sprintf("Loading job %s: %v", task.name, err), robot.MechanismFail}
+					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
 					return
 				}
-				Log(robot.Debug, "Calling external Go task '%s' with args: %q", task.name, args)
-				ret = handler(r, args...)
-				Log(robot.Debug, "Got return value: %s", ret)
+				r.Log(robot.Debug, "External Go job '%s' executed with args: %q", task.name, args)
 			} else {
-				handler, err := yaegi.GetTaskHandler(taskPath)
+				ret, err = yaegi.RunTaskHandler(taskPath, task.name, r, args...)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
-					rchan <- taskReturn{fmt.Sprintf("Loading task %s: %v", task.name, err), robot.MechanismFail}
+					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}
 					return
 				}
-				Log(robot.Debug, "Calling external Go task '%s' with args: %q", task.name, args)
-				ret = handler(r, args...)
+				r.Log(robot.Debug, "External Go task '%s' executed with args: %q", task.name, args)
 			}
 			deregisterWorker(r.tid)
 			rchan <- taskReturn{"", ret}
