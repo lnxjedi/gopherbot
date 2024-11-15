@@ -17,6 +17,7 @@ ARG USER_GID=$USER_UID
 
 RUN dnf install -y \
         bash-completion \
+        diffutils \
         gcc \
         git-core \
         gzip \
