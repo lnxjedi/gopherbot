@@ -158,6 +158,8 @@ func loadTaskConfig(processed *configuration, preConnect bool) (*taskList, error
 			taskType:    taskExternal,
 			Description: ts.Description,
 			Parameters:  ts.Parameters,
+			Homed:       ts.Homed,
+			Privileged:  *ts.Privileged,
 		}
 		// Note that disabled external tasks are skipped in conf.go
 		_, err := checkTaskSettings(ts, task)
@@ -188,8 +190,6 @@ func loadTaskConfig(processed *configuration, preConnect bool) (*taskList, error
 		if task, err = addExternalTask(script, typePlugin); err != nil {
 			return newList, err
 		}
-		task.Privileged = *script.Privileged
-		task.Homed = script.Homed
 		p := &Plugin{
 			Task: task,
 		}
@@ -202,8 +202,6 @@ func loadTaskConfig(processed *configuration, preConnect bool) (*taskList, error
 		if task, err = addExternalTask(script, typeJob); err != nil {
 			return newList, err
 		}
-		task.Privileged = *script.Privileged
-		task.Homed = script.Homed
 		j := &Job{
 			Task: task,
 		}
@@ -216,8 +214,6 @@ func loadTaskConfig(processed *configuration, preConnect bool) (*taskList, error
 		if task, err = addExternalTask(script, typeTask); err != nil {
 			return newList, err
 		}
-		task.Privileged = *script.Privileged
-		task.Homed = script.Homed
 		newList.addTask(task)
 	}
 
