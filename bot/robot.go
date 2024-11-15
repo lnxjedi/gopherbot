@@ -314,27 +314,27 @@ func (r Robot) GetBotAttribute(a string) *robot.AttrRet {
 func (r Robot) GetTaskConfig(config interface{}) robot.RetVal {
 	task, _, _ := getTask(r.currentTask)
 	if task.Config == nil {
-		Log(robot.Error, "Task \"%s\" called GetTaskConfig, but no config was found.", task.name)
+		Log(robot.Error, "Task \"%s\" called GetTaskConfig, but no config was found; pipeline/task: %s/%s", r.pipeName, task.name)
 		return robot.NoConfigFound
 	}
 
 	// Ensure 'config' is a non-nil pointer
 	ptrVal := reflect.ValueOf(config)
 	if ptrVal.Kind() != reflect.Ptr || ptrVal.IsNil() {
-		Log(robot.Error, "GetTaskConfig requires a non-nil pointer to a config struct")
+		Log(robot.Error, "GetTaskConfig requires a non-nil pointer to a config struct; pipeline/task: %s/%s", r.pipeName, task.name)
 		return robot.InvalidConfigPointer
 	}
 
 	// Optionally, ensure it's pointing to a struct
 	elemKind := ptrVal.Elem().Kind()
 	if elemKind != reflect.Struct && elemKind != reflect.Map && elemKind != reflect.Slice {
-		Log(robot.Error, "GetTaskConfig requires a pointer to a struct, map, or slice")
+		Log(robot.Error, "GetTaskConfig requires a pointer to a struct, map, or slice; pipeline/task: %s/%s", r.pipeName, task.name)
 		return robot.InvalidConfigPointer
 	}
 
 	// Unmarshal the JSON into 'config'
 	if err := json.Unmarshal(task.Config, config); err != nil {
-		Log(robot.Error, "Failed to unmarshal config for task \"%s\": %v", task.name, err)
+		Log(robot.Error, "Failed to unmarshal config; pipeline/task: %s/%s; error: %s", r.pipeName, task.name, err.Error())
 		return robot.ConfigUnmarshalError
 	}
 
