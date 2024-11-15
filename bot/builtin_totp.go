@@ -31,7 +31,7 @@ type totp_config struct {
 	Users          []totp_user
 }
 
-var totpCfg = &totp_config{}
+var totpCfg = totp_config{}
 var totpUsers = make(map[string]string)
 
 func init() {
