@@ -139,6 +139,34 @@ func initializeInterpreter() (*interp.Interpreter, error) {
 	return i, nil
 }
 
+func GetJobPluginConfig(path, name string) (*[]byte, error) {
+	var nullcfg []byte
+	i, err := initializeInterpreter()
+	if err != nil {
+		return &nullcfg, err
+	}
+	program, err := i.CompilePath(path)
+	if err != nil {
+		return &nullcfg, fmt.Errorf("failed to compile plugin: %w", err)
+	}
+	_, err = i.Execute(program)
+	if err != nil {
+		return &nullcfg, fmt.Errorf("failed to execute compiled code: %w", err)
+	}
+	v, err := i.Eval("Configure")
+	if err != nil {
+		return &nullcfg, fmt.Errorf("failed to retrieve func Configure: %w", err)
+	}
+	cfgFunc, ok := v.Interface().(func() *[]byte)
+	if !ok {
+		return &nullcfg, fmt.Errorf("func Configure has incorrect signature: got %T", v.Interface())
+	}
+
+	cfg := cfgFunc()
+
+	return cfg, nil
+}
+
 func RunPluginHandler(path, name string, r robot.Robot, command string, args ...string) (robot.TaskRetVal, error) {
 	i, err := initializeInterpreter()
 	if err != nil {
@@ -154,7 +182,7 @@ func RunPluginHandler(path, name string, r robot.Robot, command string, args ...
 	}
 	v, err := i.Eval("PluginHandler")
 	if err != nil {
-		return robot.MechanismFail, fmt.Errorf("failed to retrieve PluginHandler: %w", err)
+		return robot.MechanismFail, fmt.Errorf("failed to retrieve func PluginHandler: %w", err)
 	}
 	handler, ok := v.Interface().(func(robot.Robot, string, ...string) robot.TaskRetVal)
 	if !ok {
@@ -182,7 +210,7 @@ func RunJobHandler(path, name string, r robot.Robot, args ...string) (robot.Task
 	}
 	v, err := i.Eval("JobHandler")
 	if err != nil {
-		return robot.MechanismFail, fmt.Errorf("failed to retrieve JobHandler: %w", err)
+		return robot.MechanismFail, fmt.Errorf("failed to retrieve func JobHandler: %w", err)
 	}
 	handler, ok := v.Interface().(func(robot.Robot, ...string) robot.TaskRetVal)
 	if !ok {

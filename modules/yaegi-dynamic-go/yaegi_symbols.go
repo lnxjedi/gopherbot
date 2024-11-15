@@ -264,7 +264,7 @@ func init() {
 			WGetMessage func() ( *robot.Message)
 			WGetParameter func(name string) ( string)
 			WGetSenderAttribute func(a string) ( *robot.AttrRet)
-			WGetTaskConfig func(dptr interface{}) ( robot.RetVal)
+			WGetTaskConfig func(cfgptr interface{}) ( robot.RetVal)
 			WGetUserAttribute func(u string, a string) ( *robot.AttrRet)
 			WLog func(l robot.LogLevel, m string, v ...interface{}) ( bool)
 			WMessageFormat func(f robot.MessageFormat) ( robot.Robot)
@@ -340,7 +340,7 @@ func init() {
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetSenderAttribute(a string) ( *robot.AttrRet) {return W.WGetSenderAttribute(a)
 			}
-	func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetTaskConfig(dptr interface{}) ( robot.RetVal) {return W.WGetTaskConfig(dptr)
+	func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetTaskConfig(cfgptr interface{}) ( robot.RetVal) {return W.WGetTaskConfig(cfgptr)
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) GetUserAttribute(u string, a string) ( *robot.AttrRet) {return W.WGetUserAttribute(u, a)
 			}

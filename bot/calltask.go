@@ -84,10 +84,16 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 			cchan <- getCfgReturn{nil, err}
 			return
 		}
-		Log(robot.Warn, "skipping 'config' for external Go plugin '"+task.name+"'")
-		cchan <- getCfgReturn{&cfg, nil}
-		return
+		Log(robot.Info, "Calling func Configure for external Go plugin '"+task.name+"'")
+		if defConfig, err := yaegi.GetJobPluginConfig(taskPath, task.name); err != nil {
+			cchan <- getCfgReturn{&cfg, err}
+			return
+		} else {
+			cchan <- getCfgReturn{defConfig, nil}
+			return
+		}
 	}
+
 	var cmd *exec.Cmd
 
 	// drop privileges when running external task; this thread will terminate
