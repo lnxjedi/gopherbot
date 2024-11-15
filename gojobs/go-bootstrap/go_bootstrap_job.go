@@ -52,7 +52,7 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	}
 
 	// Begin bootstrapping
-	r.Log(robot.Info, "Starting bootstrap process for repository: "+cloneURL)
+	r.Log(robot.Info, "Starting built-in go-bootstrap job for repository: "+cloneURL)
 
 	// Start SSH agent using GOPHER_DEPLOY_KEY
 	r.AddTask("ssh-agent", "deploy")

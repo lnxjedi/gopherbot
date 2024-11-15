@@ -21,6 +21,9 @@ import (
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/meme"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
 
+	// *** Built-in Go Job(s)
+	_ "github.com/lnxjedi/gopherbot/v2/gojobs/go-bootstrap"
+
 	// *** Included Go tasks external to the main engine
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/fail-report"
 	_ "github.com/lnxjedi/gopherbot/v2/gotasks/git-command"
