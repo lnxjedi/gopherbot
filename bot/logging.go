@@ -206,6 +206,7 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 	}
 	if nullConn && l >= errorThreshold {
 		botStdOutLogger.Print(msg)
+		return true
 	}
 	if l >= currlevel || l == robot.Audit {
 		if l == robot.Fatal {
