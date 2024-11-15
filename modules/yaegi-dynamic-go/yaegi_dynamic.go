@@ -123,12 +123,13 @@ func copyFile(src, dst string) error {
 	return nil
 }
 
-func initializeInterpreter() (*interp.Interpreter, error) {
+func initializeInterpreter(privileged bool) (*interp.Interpreter, error) {
 	if initErr != nil {
 		return nil, initErr
 	}
 	i := interp.New(interp.Options{
-		GoPath: goPath,
+		GoPath:       goPath,
+		Unrestricted: privileged,
 	})
 	if err := i.Use(stdlib.Symbols); err != nil {
 		return nil, fmt.Errorf("failed to load standard library: %w", err)
@@ -141,7 +142,7 @@ func initializeInterpreter() (*interp.Interpreter, error) {
 
 func GetJobPluginConfig(path, name string) (*[]byte, error) {
 	var nullcfg []byte
-	i, err := initializeInterpreter()
+	i, err := initializeInterpreter(false)
 	if err != nil {
 		return &nullcfg, err
 	}
@@ -167,8 +168,8 @@ func GetJobPluginConfig(path, name string) (*[]byte, error) {
 	return cfg, nil
 }
 
-func RunPluginHandler(path, name string, r robot.Robot, command string, args ...string) (robot.TaskRetVal, error) {
-	i, err := initializeInterpreter()
+func RunPluginHandler(path, name string, r robot.Robot, privileged bool, command string, args ...string) (robot.TaskRetVal, error) {
+	i, err := initializeInterpreter(privileged)
 	if err != nil {
 		return robot.MechanismFail, err
 	}
@@ -195,8 +196,8 @@ func RunPluginHandler(path, name string, r robot.Robot, command string, args ...
 	return ret, nil
 }
 
-func RunJobHandler(path, name string, r robot.Robot, args ...string) (robot.TaskRetVal, error) {
-	i, err := initializeInterpreter()
+func RunJobHandler(path, name string, r robot.Robot, privileged bool, args ...string) (robot.TaskRetVal, error) {
+	i, err := initializeInterpreter(privileged)
 	if err != nil {
 		return robot.MechanismFail, err
 	}
@@ -223,8 +224,8 @@ func RunJobHandler(path, name string, r robot.Robot, args ...string) (robot.Task
 	return ret, nil
 }
 
-func RunTaskHandler(path, name string, r robot.Robot, args ...string) (robot.TaskRetVal, error) {
-	i, err := initializeInterpreter()
+func RunTaskHandler(path, name string, r robot.Robot, privileged bool, args ...string) (robot.TaskRetVal, error) {
+	i, err := initializeInterpreter(privileged)
 	if err != nil {
 		return robot.MechanismFail, err
 	}

@@ -306,7 +306,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			if command != "init" {
 				emit(GoPluginRan)
 			}
-			ret, err := yaegi.RunPluginHandler(taskPath, task.name, r, command, args...)
+			ret, err := yaegi.RunPluginHandler(taskPath, task.name, r, task.Privileged, command, args...)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{fmt.Sprintf("Running plugin %s: %v", task.name, err), robot.MechanismFail}
@@ -318,7 +318,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		} else {
 			var ret robot.TaskRetVal
 			if isJob {
-				ret, err = yaegi.RunJobHandler(taskPath, task.name, r, args...)
+				ret, err = yaegi.RunJobHandler(taskPath, task.name, r, task.Privileged, args...)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
@@ -326,7 +326,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				}
 				r.Log(robot.Debug, "External Go job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = yaegi.RunTaskHandler(taskPath, task.name, r, args...)
+				ret, err = yaegi.RunTaskHandler(taskPath, task.name, r, task.Privileged, args...)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}
