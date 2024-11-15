@@ -10,35 +10,56 @@ if [[ "$1" == "completion" ]]; then
     cat <<'EOF'
 # Bash completion for cbot
 _cbot_completion() {
-    local curr_arg commands options
+    local curr_arg prev_arg command options
     curr_arg="${COMP_WORDS[COMP_CWORD]}"
-    commands="preview profile pull start stop remove terminal update list"
-    options="-h -f -k -p -r -u"
+    prev_arg="${COMP_WORDS[COMP_CWORD-1]}"
+    command="${COMP_WORDS[1]}"
 
-    case "${COMP_WORDS[1]}" in
+    # Define options for each command
+    case "$command" in
         profile)
-            COMPREPLY=( $(compgen -W "$options" -- "$curr_arg") )
+            options="-h -f -k"
             ;;
-        list|pull|update)
-            COMPREPLY=( $(compgen -W "-h" -- "$curr_arg") )
+        list|ls|pull|update)
+            options="-h"
             ;;
-        remove|stop|terminal|start)
-            if [[ "$curr_arg" == -* ]]; then
-                # If the current word starts with '-', suggest options
-                COMPREPLY=( $(compgen -W "$options" -- "$curr_arg") )
+        remove|rm|stop|terminal|start)
+            if [[ "$command" == "terminal" ]]; then
+                options="-h -p -r"
+            elif [[ "$command" == "start" ]]; then
+                options="-h -u -p"
             else
-                # Otherwise, suggest .env files
-                COMPREPLY=( $(compgen -f -- "$curr_arg" | grep '\.env$') )
+                options="-h -p"
             fi
             ;;
         preview)
-            COMPREPLY=( $(compgen -W "$options" -- "$curr_arg") )
+            options="-h -r -u"
             ;;
         *)
+            # Default to commands if no valid command is found
+            local commands="preview profile pull start stop remove terminal update list"
             COMPREPLY=( $(compgen -W "$commands" -- "$curr_arg") )
+            return 0
             ;;
     esac
+
+    # If the current word starts with '-', suggest options
+    if [[ "$curr_arg" == -* ]]; then
+        COMPREPLY=( $(compgen -W "$options" -- "$curr_arg") )
+    else
+        # Determine if the current position expects a file argument
+        case "$command" in
+            remove|rm|stop|terminal|start)
+                # Suggest .env files
+                COMPREPLY=( $(compgen -f -- "$curr_arg" | grep '\.env$') )
+                ;;
+            *)
+                # For other commands, no specific argument completion
+                ;;
+        esac
+    fi
 }
+
 complete -F _cbot_completion cbot
 EOF
     exit 0
