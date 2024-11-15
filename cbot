@@ -23,11 +23,12 @@ _cbot_completion() {
             COMPREPLY=( $(compgen -W "-h" -- "$curr_arg") )
             ;;
         remove|stop|terminal|start)
-            if [[ "$COMP_CWORD" -gt 1 && "${COMP_WORDS[COMP_CWORD-1]}" != -* ]]; then
-                # Complete only files ending in .env
-                COMPREPLY=( $(compgen -f "$curr_arg" | grep '\.env$') )
-            else
+            if [[ "$curr_arg" == -* ]]; then
+                # If the current word starts with '-', suggest options
                 COMPREPLY=( $(compgen -W "$options" -- "$curr_arg") )
+            else
+                # Otherwise, suggest .env files
+                COMPREPLY=( $(compgen -f -- "$curr_arg" | grep '\.env$') )
             fi
             ;;
         preview)
