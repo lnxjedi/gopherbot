@@ -94,8 +94,16 @@ func initializeInterpreter(privileged bool) (*interp.Interpreter, error) {
 	return i, nil
 }
 
-func GetJobPluginConfig(path, name string) (*[]byte, error) {
+func GetJobPluginConfig(path, name string) (cfg *[]byte, err error) {
 	var nullcfg []byte
+
+	defer func() {
+		if r := recover(); r != nil {
+			cfg = &nullcfg
+			err = fmt.Errorf("recovered from panic in GetJobPluginConfig for plugin '%s': %v", name, r)
+		}
+	}()
+
 	i, err := initializeInterpreter(false)
 	if err != nil {
 		return &nullcfg, err
@@ -117,12 +125,20 @@ func GetJobPluginConfig(path, name string) (*[]byte, error) {
 		return &nullcfg, fmt.Errorf("func Configure has incorrect signature: got %T", v.Interface())
 	}
 
-	cfg := cfgFunc()
+	cfg = cfgFunc()
 
 	return cfg, nil
 }
 
-func RunPluginHandler(path, name string, r robot.Robot, privileged bool, command string, args ...string) (robot.TaskRetVal, error) {
+func RunPluginHandler(path, name string, r robot.Robot, privileged bool, command string, args ...string) (ret robot.TaskRetVal, err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			ret = robot.MechanismFail
+			err = fmt.Errorf("recovered from panic in RunPluginHandler for plugin '%s': %v", name, p)
+			r.Log(robot.Error, err.Error())
+		}
+	}()
+
 	i, err := initializeInterpreter(privileged)
 	if err != nil {
 		return robot.MechanismFail, err
@@ -145,12 +161,20 @@ func RunPluginHandler(path, name string, r robot.Robot, privileged bool, command
 	}
 
 	r.Log(robot.Debug, "Calling external Go plugin: '%s' with command '%s' and args: %q", name, command, args)
-	ret := handler(r, command, args...)
+	ret = handler(r, command, args...)
 
-	return ret, nil
+	return
 }
 
-func RunJobHandler(path, name string, r robot.Robot, privileged bool, args ...string) (robot.TaskRetVal, error) {
+func RunJobHandler(path, name string, r robot.Robot, privileged bool, args ...string) (ret robot.TaskRetVal, err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			ret = robot.MechanismFail
+			err = fmt.Errorf("recovered from panic in RunJobHandler for job '%s': %v", name, p)
+			r.Log(robot.Error, err.Error())
+		}
+	}()
+
 	i, err := initializeInterpreter(privileged)
 	if err != nil {
 		return robot.MechanismFail, err
@@ -173,12 +197,20 @@ func RunJobHandler(path, name string, r robot.Robot, privileged bool, args ...st
 	}
 
 	r.Log(robot.Debug, "Calling external Go job: '%s' with args: %q", name, args)
-	ret := handler(r, args...)
+	ret = handler(r, args...)
 
-	return ret, nil
+	return
 }
 
-func RunTaskHandler(path, name string, r robot.Robot, privileged bool, args ...string) (robot.TaskRetVal, error) {
+func RunTaskHandler(path, name string, r robot.Robot, privileged bool, args ...string) (ret robot.TaskRetVal, err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			ret = robot.MechanismFail
+			err = fmt.Errorf("recovered from panic in RunTaskHandler for task '%s': %v", name, p)
+			r.Log(robot.Error, err.Error())
+		}
+	}()
+
 	i, err := initializeInterpreter(privileged)
 	if err != nil {
 		return robot.MechanismFail, err
@@ -201,7 +233,7 @@ func RunTaskHandler(path, name string, r robot.Robot, privileged bool, args ...s
 	}
 
 	r.Log(robot.Debug, "Calling external Go task: '%s' with args: %q", name, args)
-	ret := handler(r, args...)
+	ret = handler(r, args...)
 
-	return ret, nil
+	return
 }
