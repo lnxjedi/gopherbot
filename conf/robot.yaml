@@ -99,6 +99,18 @@ ExternalPlugins:
     Description: An external Go plugin demonstrating Prompting and custom configuration
     Path: plugins/go-knock/knock.go
     Homed: true
+  "lists":
+    Description: An external Go plugin for managing simple lists of strings
+    Path: plugins/go-lists/lists.go
+    Homed: true
+  "links":
+    Description: An external Go plugin for sharing bookmark links
+    Path: plugins/go-links/links.go
+    Homed: true
+  "memes":
+    Description: An external Go plugin demonstrating Prompting and custom configuration
+    Path: plugins/go-meme/memes.go
+    Homed: true
   {{- if env "GOPHER_CONTAINER" }}
   "theia-plugin":
     Description: A utility plugin for running the theia job, to start the container IDE

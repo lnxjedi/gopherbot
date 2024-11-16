@@ -1,4 +1,4 @@
-package meme
+package main
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ type memeConfig struct {
 	Password string
 }
 
-func memegen(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	m := &memeConfig{}
 	r.GetTaskConfig(m) // make m point to a valid, thread-safe MemeConfig
 	if len(m.Password) == 0 {
@@ -81,8 +81,4 @@ func createMeme(m *memeConfig, templateId, topText, bottomText string) (string, 
 	url := data["data"].(map[string]interface{})["url"].(string)
 
 	return url, nil
-}
-
-var memehandler = robot.PluginHandler{
-	Handler: memegen,
 }

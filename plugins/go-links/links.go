@@ -1,6 +1,6 @@
-// Package links implements a links demonstrator plugin showing how you
+// Package main implements a links demonstrator plugin showing how you
 // can use the robot's brain to remember things - like links of items.
-package links
+package main
 
 import (
 	"fmt"
@@ -9,6 +9,54 @@ import (
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
+
+var defaultConfig = []byte(`
+Help:
+- Keywords: [ "link", "links", "add" ]
+  Helptext: [ "(bot), link <word/phrase> to <http://...> - save a link with a single word/phrase key" ]
+- Keywords: [ "link", "links", "save", "add" ]
+  Helptext: [ "(bot), save link <http://...> - save a link and prompt for multiple word/phrase keys"]
+- Keywords: [ "link", "links", "find", "lookup", "search" ]
+  Helptext:
+  - "(bot), (find|lookup) <keyword/phrase> - find links with keys containing a keyword or phrase"
+  - "(bot), look <keyword/phrase> up"
+- Keywords: [ "link", "links", "remove" ]
+  Helptext: [ "(bot), remove <http://...> - remove a link" ]
+- Keywords: [ "link", "links" ]
+  Helptext: [ "(bot), help with links - give a description of the links plugin" ]
+- Keywords: [ "link", "links", "list", "show" ]
+  Helptext: [ "(bot), (list|show) links - list all the links the robot knows" ]
+CommandMatchers:
+- Command: 'help'
+  Regex: '(?i:help with links?)'
+- Command: 'add'
+  Regex: '(?i:link ([-\w ,''!."+=?&@#()/]+) to ((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
+  Contexts: [ "item:it", "link" ]
+- Command: 'add'
+  Regex: '(?i:link ([-\w ,''!."+=?&@#()/]+) to (it))'
+  Contexts: [ "item:it", "link:it" ]
+- Command: 'save'
+  Regex: '(?i:save (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
+  Contexts: [ "link" ]
+- Command: 'remove'
+  Regex: '(?i:(?:remove|delete) (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
+  Contexts: [ "link" ]
+- Command: 'find'
+  Regex: '(?i:(?:find|look ?up) ([-\w ,''!."+=?&@#()/]+))'
+  Contexts: [ "item:it" ]
+- Command: 'list'
+  Regex: '(?i:(?:show|list) links)'
+- Command: 'find'
+  Regex: '(?i:look ([-\w ,''!."+=?&@#()/]+) up)'
+  Contexts: [ "item:it" ]
+ReplyMatchers:
+- Regex: '([-\w ,''!."+=?&@#()/]+)'
+  Label: "lookup"
+`)
+
+func Configure() *[]byte {
+	return &defaultConfig
+}
 
 const datumNameDefault = "links"
 const maxLinkLen = 7
@@ -25,7 +73,7 @@ type config struct {
 }
 
 // Define the handler function
-func links(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	m := r.GetMessage()
 	if command == "init" { // ignore init
 		return
@@ -178,10 +226,4 @@ func links(r robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		updated = true
 	}
 	return
-}
-
-func init() {
-	robot.RegisterPlugin("links", robot.PluginHandler{
-		Handler: links,
-	})
 }

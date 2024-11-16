@@ -1,7 +1,7 @@
 ---
 # You can add your own Jokes, Openings, and "Phooey" lines (no response)
 # by re-defining "Config" in your local knock.yaml file, with new entries
-# in the arrays.
+# in the arrays. See also plugins/go-knock/knock.go for Help & CommandMatchers.
 Config:
   Jokes:
   - { First: "Interrupting Cow", Second: "*cough*" }

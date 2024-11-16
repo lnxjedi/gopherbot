@@ -12,15 +12,12 @@ import (
 	// *** Included Authorizer plugins
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/groups"
 
-	// *** Included Go plugins, of varying quality
+	// *** Included Go plugins, of varying quality; see also: plugin/go-*
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/duo"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/help"
-	_ "github.com/lnxjedi/gopherbot/v2/goplugins/links"
-	_ "github.com/lnxjedi/gopherbot/v2/goplugins/lists"
-	_ "github.com/lnxjedi/gopherbot/v2/goplugins/meme"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
 
-	// *** Built-in Go Job(s)
+	// *** Compiled-in Go Job(s); see also: jobs/go-*
 	_ "github.com/lnxjedi/gopherbot/v2/gojobs/go-bootstrap"
 
 	// *** Included Go tasks external to the main engine

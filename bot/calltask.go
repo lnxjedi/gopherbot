@@ -86,7 +86,9 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		}
 		Log(robot.Info, "Calling func Configure for external Go plugin '"+task.name+"'")
 		if defConfig, err := yaegi.GetJobPluginConfig(taskPath, task.name); err != nil {
-			cchan <- getCfgReturn{&cfg, err}
+			Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
+			// This error shouldn't disable an external Go plugin
+			cchan <- getCfgReturn{&cfg, nil}
 			return
 		} else {
 			cchan <- getCfgReturn{defConfig, nil}

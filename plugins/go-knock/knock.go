@@ -9,6 +9,8 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
+// The best place for help and regexes is with the plugin. See
+// conf/plugins/knock.yaml for other configuration that gets merged.
 var defaultConfig = []byte(`
 Help:
 - Keywords: [ "knock", "joke" ]
@@ -39,7 +41,6 @@ type JokeConfig struct {
 	Openings []string // Stuff the robot says before starting the joke
 	Phooey   []string // Ways the robot complains if the user doesn't respond correctly
 }
-
 
 func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	var j JokeConfig // get access to a copy of the plugin's config

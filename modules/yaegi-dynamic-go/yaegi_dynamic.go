@@ -190,7 +190,7 @@ func RunPluginHandler(path, name string, r robot.Robot, privileged bool, command
 		return robot.MechanismFail, fmt.Errorf("PluginHandler has incorrect signature: got %T", v.Interface())
 	}
 
-	r.Log(robot.Debug, "Calling external Go plugin: '%s' with args: %q", name, args)
+	r.Log(robot.Debug, "Calling external Go plugin: '%s' with command '%s' and args: %q", name, command, args)
 	ret := handler(r, command, args...)
 
 	return ret, nil
