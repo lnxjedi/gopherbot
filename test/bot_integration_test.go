@@ -42,8 +42,6 @@ import (
 	testc "github.com/lnxjedi/gopherbot/v2/connectors/test"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/groups"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/help"
-	_ "github.com/lnxjedi/gopherbot/v2/goplugins/links"
-	_ "github.com/lnxjedi/gopherbot/v2/goplugins/lists"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
 	_ "github.com/lnxjedi/gopherbot/v2/history/file"
 
