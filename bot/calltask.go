@@ -50,6 +50,8 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 	case *Job:
 		isJob = true
 		task = t.Task
+	default:
+		log.Panic("getDefCfg called with non-*Job non-*Plugin interface{}")
 	}
 
 	if task.taskType == taskGo {

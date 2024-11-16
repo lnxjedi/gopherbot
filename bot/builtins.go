@@ -260,7 +260,7 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 				}
 				if plugin.taskType == taskExternal {
 					found = true
-					if cfg, err := getDefCfg(plugin.Task); err == nil {
+					if cfg, err := getDefCfg(t); err == nil {
 						r.Fixed().Say("Here's the default configuration for \"%s\":\n%s", args[0], *cfg)
 					} else {
 						r.Say("I had a problem looking that up - somebody should check my logs")
