@@ -1,4 +1,4 @@
-package knock
+package main
 
 // knock implements a simple demonstrator plugin for using Gopherbot's
 // WaitForReply function to tell knock-knock jokes.
@@ -8,6 +8,24 @@ import (
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
+
+var defaultConfig = []byte(`
+Help:
+- Keywords: [ "knock", "joke" ]
+  Helptext: [ "(bot), tell me a (knock-knock) joke" ]
+CommandMatchers:
+- Command: knock
+  Regex: '(?i:tell me a(?:nother)?(?: knock[- ]knock)? joke)'
+ReplyMatchers:
+- Label: whosthere
+  Regex: '(?i:who.?s there\??|who is there\??)'
+- Label: who
+  Regex: '(?i:[\w ]+ who\??)'
+`)
+
+func Configure() *[]byte {
+	return &defaultConfig
+}
 
 // Joke holds a knock-knock joke
 type Joke struct {
@@ -22,11 +40,8 @@ type JokeConfig struct {
 	Phooey   []string // Ways the robot complains if the user doesn't respond correctly
 }
 
-var knockhandler = robot.PluginHandler{
-	Handler: knock,
-}
 
-func knock(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	var j JokeConfig // get access to a copy of the plugin's config
 	switch command {
 	case "init":

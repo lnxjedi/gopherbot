@@ -2,17 +2,6 @@
 # You can add your own Jokes, Openings, and "Phooey" lines (no response)
 # by re-defining "Config" in your local knock.yaml file, with new entries
 # in the arrays.
-Help:
-- Keywords: [ "knock", "joke" ]
-  Helptext: [ "(bot), tell me a (knock-knock) joke" ]
-CommandMatchers:
-- Command: knock
-  Regex: '(?i:tell me a(?:nother)?(?: knock[- ]knock)? joke)'
-ReplyMatchers:
-- Label: whosthere
-  Regex: '(?i:who.?s there\??|who is there\??)'
-- Label: who
-  Regex: '(?i:[\w ]+ who\??)'
 Config:
   Jokes:
   - { First: "Interrupting Cow", Second: "*cough*" }

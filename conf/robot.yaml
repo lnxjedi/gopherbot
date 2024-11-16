@@ -95,6 +95,10 @@ ExternalPlugins:
     Description: A plugin that triggers management jobs like update, save, backup, etc.
     Privileged: true
     Path: plugins/admin.sh
+  "knock":
+    Description: An external Go plugin demonstrating Prompting and custom configuration
+    Path: plugins/go-knock/knock.go
+    Homed: true
   {{- if env "GOPHER_CONTAINER" }}
   "theia-plugin":
     Description: A utility plugin for running the theia job, to start the container IDE
