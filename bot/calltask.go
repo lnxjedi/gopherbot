@@ -247,26 +247,37 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 
 	w.registerWorker(r.tid)
 
-	if isPlugin && plugin.taskType == taskGo {
-		if command != "init" {
-			emit(GoPluginRan)
-		}
-		Log(robot.Debug, "Calling go plugin: '%s' with args: %q", task.name, args)
-		ret := pluginHandlers[task.name].Handler(r, command, args...)
-		deregisterWorker(r.tid)
-		rchan <- taskReturn{"", ret}
-		return
-	} else if task.taskType == taskGo {
-		Log(robot.Debug, "Calling go task '%s' (type %s) with args: %q", task.name, task.taskType, args)
-		var ret robot.TaskRetVal
-		if isJob {
-			ret = jobHandlers[task.name].Handler(r, args...)
+	if task.taskType == taskGo {
+		defer func() {
+			if p := recover(); p != nil {
+				err := fmt.Errorf("recovered from panic in callTask for compiled-in Go %s '%s': %v", task.taskType, task.name, p)
+				Log(robot.Error, err.Error())
+				deregisterWorker(r.tid)
+				rchan <- taskReturn{err.Error(), robot.MechanismFail}
+			}
+		}()
+		if isPlugin {
+
+			if command != "init" {
+				emit(GoPluginRan)
+			}
+			Log(robot.Debug, "Calling go plugin: '%s' with args: %q", task.name, args)
+			ret := pluginHandlers[task.name].Handler(r, command, args...)
+			deregisterWorker(r.tid)
+			rchan <- taskReturn{"", ret}
+			return
 		} else {
-			ret = taskHandlers[task.name].Handler(r, args...)
+			Log(robot.Debug, "Calling go task '%s' (type %s) with args: %q", task.name, task.taskType, args)
+			var ret robot.TaskRetVal
+			if isJob {
+				ret = jobHandlers[task.name].Handler(r, args...)
+			} else {
+				ret = taskHandlers[task.name].Handler(r, args...)
+			}
+			deregisterWorker(r.tid)
+			rchan <- taskReturn{"", ret}
+			return
 		}
-		deregisterWorker(r.tid)
-		rchan <- taskReturn{"", ret}
-		return
 	}
 
 	// Task lookup; add lookup for http.go
