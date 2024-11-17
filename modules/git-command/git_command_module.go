@@ -6,6 +6,7 @@ import (
 	"os"
 
 	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
@@ -90,6 +91,115 @@ func Pull(opts PullOptions) error {
 	return nil
 }
 
+// CheckoutOptions holds the parameters for checking out a branch in a repository.
+type CheckoutOptions struct {
+	Directory string
+	Branch    string
+	Auth      transport.AuthMethod
+}
+
+// Checkout performs a branch checkout in the specified Git repository.
+// It fetches the latest changes, switches to the desired branch, sets up tracking, and pulls the latest commits.
+func Checkout(opts CheckoutOptions) error {
+	// Open the existing repository
+	repo, err := git.PlainOpen(opts.Directory)
+	if err != nil {
+		return fmt.Errorf("failed to open repository at %s: %w", opts.Directory, err)
+	}
+
+	// Fetch the latest changes from the remote
+	fetchOptions := &git.FetchOptions{
+		RemoteName: "origin",
+		Auth:       opts.Auth,
+		Progress:   os.Stdout,
+		Tags:       git.AllTags,
+		Force:      true,
+		// To avoid errors if the branch is already up to date
+		// Also, allow empty fetches
+		// No need to specify refspecs to fetch all
+	}
+	err = repo.Fetch(fetchOptions)
+	if err != nil && err != git.NoErrAlreadyUpToDate {
+		return fmt.Errorf("failed to fetch updates: %w", err)
+	}
+
+	// Get the worktree
+	w, err := repo.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Attempt to checkout the desired branch
+	branchRefName := plumbing.NewBranchReferenceName(opts.Branch)
+	checkoutOptions := &git.CheckoutOptions{
+		Branch: branchRefName,
+		Force:  true,
+	}
+
+	err = w.Checkout(checkoutOptions)
+	if err != nil {
+		// If the branch does not exist locally, attempt to create it tracking the remote branch
+		if err == plumbing.ErrReferenceNotFound || err.Error() == "reference not found" {
+			// Attempt to checkout the remote branch into a new local branch
+			checkoutOptions = &git.CheckoutOptions{
+				Branch: branchRefName,
+				Create: true,
+				// Set the starting point to origin/<branch>
+				Hash: plumbing.ZeroHash, // Use ZeroHash to indicate starting from HEAD after checkout
+			}
+			err = w.Checkout(checkoutOptions)
+			if err != nil {
+				return fmt.Errorf("failed to create and checkout branch %s: %w", opts.Branch, err)
+			}
+
+			// Manually set the branch to track origin/<branch>
+			cfg, err := repo.Config()
+			if err != nil {
+				return fmt.Errorf("failed to get repository config: %w", err)
+			}
+
+			branchConfig, ok := cfg.Branches[opts.Branch]
+			if !ok {
+				branchConfig = &config.Branch{
+					Name:   opts.Branch,
+					Remote: "origin",
+					Merge:  plumbing.ReferenceName("refs/heads/" + opts.Branch),
+				}
+			} else {
+				branchConfig.Remote = "origin"
+				branchConfig.Merge = plumbing.ReferenceName("refs/heads/" + opts.Branch)
+			}
+
+			cfg.Branches[opts.Branch] = branchConfig
+
+			err = repo.Storer.SetConfig(cfg)
+			if err != nil {
+				return fmt.Errorf("failed to set branch tracking for %s: %w", opts.Branch, err)
+			}
+		} else {
+			return fmt.Errorf("failed to checkout branch %s: %w", opts.Branch, err)
+		}
+	}
+
+	// After checkout, perform a pull to ensure the branch is up-to-date
+	pullOptions := &git.PullOptions{
+		Auth:       opts.Auth,
+		RemoteName: "origin",
+		Progress:   os.Stdout,
+	}
+
+	err = w.Pull(pullOptions)
+	if err != nil {
+		if err == git.NoErrAlreadyUpToDate {
+			// No changes to pull; consider this as a successful pull
+			return nil
+		}
+		return fmt.Errorf("failed to pull after checkout: %w", err)
+	}
+
+	return nil
+}
+
 // GetCurrentBranch returns the name of the current active branch in the repository.
 func GetCurrentBranch(directory string) (string, error) {
 	repo, err := git.PlainOpen(directory)
@@ -145,7 +255,7 @@ func isDirEmpty(dir string) (bool, error) {
 		// Directory is not empty
 		return false, nil
 	}
-	if err == io.EOF {
+	if err == os.ErrNotExist || err == io.EOF {
 		// Directory is empty
 		return true, nil
 	}

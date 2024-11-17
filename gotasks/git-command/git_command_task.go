@@ -140,6 +140,36 @@ func gitCommandTask(r robot.Robot, args ...string) robot.TaskRetVal {
 
 		return robot.Normal
 
+	case "checkout":
+		if len(args) < 3 {
+			r.Log(robot.Error, "not enough arguments for checkout command; usage: checkout <branch> <directory>")
+			return robot.Fail
+		}
+		branch := args[1]
+		directory := args[2]
+
+		// Resolve absolute directory path
+		homeDir := r.GetParameter("GOPHER_HOME")
+		// If the provided directory isn't absolute, assume relative to GOPHER_HOME.
+		absDirectory := directory
+		if !filepath.IsAbs(directory) {
+			absDirectory = filepath.Join(homeDir, directory)
+		}
+
+		checkoutOpts := gitcommand.CheckoutOptions{
+			Directory: absDirectory,
+			Branch:    branch,
+			Auth:      authMethod, // Assuming Auth is needed for checkout; remove if unnecessary
+		}
+
+		if err := gitcommand.Checkout(checkoutOpts); err != nil {
+			r.Log(robot.Error, "git checkout failed: "+err.Error())
+			return robot.Fail
+		}
+
+		r.Log(robot.Info, "git checkout to branch "+branch+" successful in directory "+absDirectory)
+		return robot.Normal
+
 	default:
 		r.Log(robot.Error, "unknown sub-command for git-command task: "+subCommand)
 		return robot.Fail
