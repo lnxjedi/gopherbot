@@ -159,7 +159,7 @@ func gitCommandTask(r robot.Robot, args ...string) robot.TaskRetVal {
 		checkoutOpts := gitcommand.CheckoutOptions{
 			Directory: absDirectory,
 			Branch:    branch,
-			Auth:      authMethod, // Assuming Auth is needed for checkout; remove if unnecessary
+			Auth:      authMethod,
 		}
 
 		if err := gitcommand.Checkout(checkoutOpts); err != nil {
@@ -168,6 +168,44 @@ func gitCommandTask(r robot.Robot, args ...string) robot.TaskRetVal {
 		}
 
 		r.Log(robot.Info, "git checkout to branch "+branch+" successful in directory "+absDirectory)
+		return robot.Normal
+
+	case "push":
+		if len(args) < 4 {
+			r.Log(robot.Error, "not enough arguments for push command; usage: push <branch-if-no-upstream> <commit_msg> <directory>")
+			return robot.Fail
+		}
+		branchIfNoUpstream := args[1]
+		commitMsg := args[2]
+		directory := args[3]
+
+		// Resolve absolute directory path
+		homeDir := r.GetParameter("GOPHER_HOME")
+		// If the provided directory isn't absolute, assume relative to GOPHER_HOME.
+		absDirectory := directory
+		if !filepath.IsAbs(directory) {
+			absDirectory = filepath.Join(homeDir, directory)
+		}
+
+		pushOpts := gitcommand.PushOptions{
+			Directory:          absDirectory,
+			BranchIfNoUpstream: branchIfNoUpstream,
+			CommitMsg:          commitMsg,
+			Auth:               authMethod,
+		}
+
+		err := gitcommand.Push(pushOpts)
+		if err != nil {
+			if err.Error() == "no changes to commit" {
+				// Non-fatal warning
+				r.Log(robot.Warn, "git push skipped: no changes to commit")
+				return robot.Normal
+			}
+			r.Log(robot.Error, "git push failed: "+err.Error())
+			return robot.Fail
+		}
+
+		r.Log(robot.Info, "git push successful in directory "+absDirectory)
 		return robot.Normal
 
 	default:

@@ -91,6 +91,105 @@ func Pull(opts PullOptions) error {
 	return nil
 }
 
+// PushOptions holds the parameters for pushing commits in a repository.
+type PushOptions struct {
+	Directory          string
+	BranchIfNoUpstream string
+	CommitMsg          string
+	Auth               transport.AuthMethod
+}
+
+// Push adds all changes, commits with the provided message, and pushes to the remote repository.
+// If the current branch has no upstream, it uses BranchIfNoUpstream as the remote branch name.
+func Push(opts PushOptions) error {
+	// Open the existing repository
+	repo, err := git.PlainOpen(opts.Directory)
+	if err != nil {
+		return fmt.Errorf("failed to open repository at %s: %w", opts.Directory, err)
+	}
+
+	// Get the worktree
+	w, err := repo.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Check the status to see if there are changes to commit
+	status, err := w.Status()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree status: %w", err)
+	}
+
+	if status.IsClean() {
+		// No changes to commit
+		return fmt.Errorf("no changes to commit")
+	}
+
+	// Add all changes
+	err = w.AddGlob(".")
+	if err != nil {
+		return fmt.Errorf("failed to add changes: %w", err)
+	}
+
+	// Commit changes
+	commitOptions := &git.CommitOptions{
+		All: true,
+	}
+	_, err = w.Commit(opts.CommitMsg, commitOptions)
+	if err != nil {
+		return fmt.Errorf("failed to commit changes: %w", err)
+	}
+
+	// Get the current branch name
+	branchName, err := GetCurrentBranch(opts.Directory)
+	if err != nil {
+		return fmt.Errorf("failed to get current branch: %w", err)
+	}
+
+	// Retrieve branch configuration
+	cfg, err := repo.Config()
+	if err != nil {
+		return fmt.Errorf("failed to get repository config: %w", err)
+	}
+
+	branchConfig, ok := cfg.Branches[branchName]
+	if !ok || branchConfig.Remote == "" || branchConfig.Merge == "" {
+		// No upstream set
+		remoteBranch := opts.BranchIfNoUpstream
+		pushOptions := &git.PushOptions{
+			Auth:     opts.Auth,
+			Progress: os.Stdout,
+			RefSpecs: []config.RefSpec{
+				config.RefSpec(fmt.Sprintf("refs/heads/%s:refs/heads/%s", branchName, remoteBranch)),
+			},
+		}
+
+		err = repo.Push(pushOptions)
+		if err != nil {
+			return fmt.Errorf("failed to push to remote branch %s: %w", remoteBranch, err)
+		}
+
+		return nil
+	}
+
+	// Upstream is set; push normally
+	pushOpts := &git.PushOptions{
+		Auth:     opts.Auth,
+		Progress: os.Stdout,
+	}
+
+	err = repo.Push(pushOpts)
+	if err != nil {
+		if err == git.NoErrAlreadyUpToDate {
+			// No changes to push; consider this as a successful push
+			return nil
+		}
+		return fmt.Errorf("failed to push to remote: %w", err)
+	}
+
+	return nil
+}
+
 // CheckoutOptions holds the parameters for checking out a branch in a repository.
 type CheckoutOptions struct {
 	Directory string
@@ -99,7 +198,7 @@ type CheckoutOptions struct {
 }
 
 // Checkout performs a branch checkout in the specified Git repository.
-// It fetches the latest changes, switches to the desired branch, sets up tracking, and pulls the latest commits.
+// It fetches the latest changes, switches to the desired branch, sets up tracking if necessary, and pulls the latest commits.
 func Checkout(opts CheckoutOptions) error {
 	// Open the existing repository
 	repo, err := git.PlainOpen(opts.Directory)
@@ -114,9 +213,6 @@ func Checkout(opts CheckoutOptions) error {
 		Progress:   os.Stdout,
 		Tags:       git.AllTags,
 		Force:      true,
-		// To avoid errors if the branch is already up to date
-		// Also, allow empty fetches
-		// No need to specify refspecs to fetch all
 	}
 	err = repo.Fetch(fetchOptions)
 	if err != nil && err != git.NoErrAlreadyUpToDate {
@@ -144,15 +240,14 @@ func Checkout(opts CheckoutOptions) error {
 			checkoutOptions = &git.CheckoutOptions{
 				Branch: branchRefName,
 				Create: true,
-				// Set the starting point to origin/<branch>
-				Hash: plumbing.ZeroHash, // Use ZeroHash to indicate starting from HEAD after checkout
+				Hash:   plumbing.ZeroHash, // Indicates branch creation from HEAD
 			}
 			err = w.Checkout(checkoutOptions)
 			if err != nil {
 				return fmt.Errorf("failed to create and checkout branch %s: %w", opts.Branch, err)
 			}
 
-			// Manually set the branch to track origin/<branch>
+			// Manually set the branch to track the remote branch
 			cfg, err := repo.Config()
 			if err != nil {
 				return fmt.Errorf("failed to get repository config: %w", err)
