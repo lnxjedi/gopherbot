@@ -1,11 +1,21 @@
-# v2.14.2 -
+# v2.15.0 - Dynamic Go Extensions
+
+The biggest, coolest, most exciting news for v2.15 (targeted for eventual release as v3.0.0) is the ability to write new tasks, jobs and plugins in Go that are loaded and interpreted from the filesystem - thus, you can now add Go extensions to your robot's repository. To demonstrate this, some of Gopherbot's core and included tasks were modified to run this way. See:
+* jobs/go-*
+* plugins/go-*
+* tasks/go-*
+
+The differences between compiled-in and dynamic go extensions (other than the obvious) are fairly minimal, code-wise. For comparison, examine the built-in Go tasks in `gotasks/`, `goplugins/` and `gojobs/` - these are added individually in `/modules.go`, whereas dynamic extensions, like other external scripts, are defined in `robot.yaml`.
+
+## Unlikely breaking change - update to Go `GetTaskConfig()`
+For better support of dynamic Go modules, and to bring the Go library more inline with the libraries for Ruby and Python, the Go `GetTaskConfig()` method was modified to simply unmarshal JSON into a struct pointer. New return values were also added. See the definitions under `robot/` for more information.
 
 ## `cbot` script completion
 If you add (or symlink) the `cbot` script somewhere in your `$PATH`, you can add this line to your `.bashrc` for tab completion:
 ```
 source <(cbot completion)
 ```
-It's a little frivolous, but I've come to expect tab completion for virtually every command I use.
+It's a little frivolous, but I've come to expect tab completion for virtually every command I use. Thanks to AI, it's amazingly ... complete.
 
 ## Support for better local dev security
 To keep from storing unencrypted values for `GOPHER_ENCRYPTION_KEY` and `GOPHER_DEPLOY_KEY` in the `<robot>.env` file, you can remove these lines and instead:
