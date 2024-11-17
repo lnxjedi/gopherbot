@@ -40,44 +40,33 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 	var relpath bool
 	var cfg []byte
 	var task *Task
-	var isPlugin, isJob bool
+
 	switch t := ti.(type) {
 	case *Plugin:
-		isPlugin = true
 		task = t.Task
 		// Reset list of channels
 		task.Channels = []string{}
-	case *Job:
-		isJob = true
-		task = t.Task
 	default:
-		log.Panic("getDefCfg called with non-*Job non-*Plugin interface{}")
+		log.Panic("getDefCfg called with non-*Plugin interface{}")
 	}
+	defer func() {
+		if p := recover(); p != nil {
+			err = fmt.Errorf("recovered from panic in getDefCfg for plugin '%s': %v", task.name, p)
+			Log(robot.Error, err.Error())
+			cchan <- getCfgReturn{&cfg, err}
+		}
+	}()
 
 	if task.taskType == taskGo {
-		if isJob {
-			jobHandler := jobHandlers[task.name]
-			if jobHandler.Configure != nil {
-				defConfig := jobHandler.Configure()
-				cchan <- getCfgReturn{defConfig, nil}
-				return
-			} else {
-				cchan <- getCfgReturn{&cfg, nil}
-				return
-			}
+		plugHandler := pluginHandlers[task.name]
+		if plugHandler.Configure != nil {
+			defConfig := plugHandler.Configure()
+			cchan <- getCfgReturn{defConfig, nil}
+			return
+		} else {
+			cchan <- getCfgReturn{&cfg, nil}
+			return
 		}
-		if isPlugin {
-			plugHandler := pluginHandlers[task.name]
-			if plugHandler.Configure != nil {
-				defConfig := plugHandler.Configure()
-				cchan <- getCfgReturn{defConfig, nil}
-				return
-			} else {
-				cchan <- getCfgReturn{&cfg, nil}
-				return
-			}
-		}
-		return
 	}
 
 	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
@@ -87,7 +76,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 			return
 		}
 		Log(robot.Info, "Calling func Configure for external Go plugin '"+task.name+"'")
-		if defConfig, err := yaegi.GetJobPluginConfig(taskPath, task.name); err != nil {
+		if defConfig, err := yaegi.GetPluginConfig(taskPath, task.name); err != nil {
 			Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 			// This error shouldn't disable an external Go plugin
 			cchan <- getCfgReturn{&cfg, nil}

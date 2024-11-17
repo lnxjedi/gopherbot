@@ -61,8 +61,7 @@ type PluginHandler struct {
 
 // JobHandler is the struct registered for a Go job
 type JobHandler struct {
-	Handler   func(r Robot, args ...string) TaskRetVal // The callback function called by the robot when the job is run
-	Configure func() *[]byte                           // The callback for obtaining the default configuration
+	Handler func(r Robot, args ...string) TaskRetVal // The callback function called by the robot when the job is run
 }
 
 // TaskHandler is the struct registered for a Go task

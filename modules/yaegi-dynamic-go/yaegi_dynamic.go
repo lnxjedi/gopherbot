@@ -94,13 +94,13 @@ func initializeInterpreter(privileged bool) (*interp.Interpreter, error) {
 	return i, nil
 }
 
-func GetJobPluginConfig(path, name string) (cfg *[]byte, err error) {
+func GetPluginConfig(path, name string) (cfg *[]byte, err error) {
 	var nullcfg []byte
 
 	defer func() {
 		if r := recover(); r != nil {
 			cfg = &nullcfg
-			err = fmt.Errorf("recovered from panic in GetJobPluginConfig for plugin '%s': %v", name, r)
+			err = fmt.Errorf("recovered from panic in GetPluginConfig for plugin '%s': %v", name, r)
 		}
 	}()
 
