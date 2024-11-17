@@ -2370,6 +2370,21 @@ The email function call takes a byte slice for the email body, rather than an <c
 <p>The <code>addhostkeys</code>, <code>loadhostkeys</code> and <code>scan</code> sub-commands all create a <code>known_hosts</code> file that can be used with <code>git-command</code> and <code>ssh-agent</code> for working with git repositories authenticated with ssh. Each of these sub-commands also automatically adds a <code>FinalTask ssh-git-helper delete</code> to remove the temporary file. By using <code>publishenv</code>, the <code>SSH_OPTIONS</code> and <code>GIT_SSH_COMMAND</code> parameters (environment variables) are exported to the pipeline for use by e.g. bash-based tasks using the system ssh and/or git binaries.</p>
 <p>Note that <code>&lt;encoded-host-keys&gt;</code> is a single-line string encoded similarly to <code>GOPHER_DEPLOY_KEY</code>; all spaces are replaced with '_', and newlines are replaced with ':'; basically, <code>tr ' \n' '_:'</code>.</p>
 <hr />
+<p><strong>git-command</strong> - <em>privileged</em></p>
+<p>Usage:</p>
+<ul>
+<li><code>AddTask git-command clone &lt;repoURL&gt; &lt;branch&gt; &lt;directory&gt;</code> - Clones a repository from <code>&lt;repoURL&gt;</code> into <code>&lt;directory&gt;</code>. If <code>&lt;branch&gt;</code> is specified, it clones that branch; otherwise, it clones the default branch.</li>
+<li><code>AddTask git-command pull &lt;directory&gt;</code> - Pulls the latest changes in the repository located at <code>&lt;directory&gt;</code>.</li>
+<li><code>AddTask git-command checkout &lt;branch&gt; &lt;directory&gt;</code> - Switches to <code>&lt;branch&gt;</code> in the repository at <code>&lt;directory&gt;</code>. If the branch does not exist locally, it creates it to track the remote branch.</li>
+<li><code>AddTask git-command push &lt;branch-if-no-upstream&gt; &lt;commit_msg&gt; &lt;directory&gt;</code> - Commits and pushes changes in the repository at <code>&lt;directory&gt;</code>. If the current branch has no upstream, it pushes to <code>origin/&lt;branch-if-no-upstream&gt;</code> with the provided <code>&lt;commit_msg&gt;</code>; otherwise, it pushes to the tracked remote branch.</li>
+</ul>
+<p>The <code>git-command</code> task provides essential Git operations within the pipeline, enabling actions such as cloning repositories, pulling updates, checking out branches, and pushing changes. It is designed for straightforward, non-development workflows to support regular robot operations without the complexity of full Git functionalities.</p>
+<p>This task integrates seamlessly with the <code>ssh-agent</code> and <code>ssh-git-helper</code> tasks to manage SSH authentication and host key verification, ensuring secure interactions with Git repositories.</p>
+<p><strong>See also:</strong></p>
+<ul>
+<li>plugins/samples/save.sh - previous job for pushing code to remote git repos</li>
+</ul>
+<hr />
 <p><strong>tail-log</strong></p>
 <p>Usage: <code>AddTask tail-log</code> or <code>FailTask tail-log</code></p>
 <p>Dump the last 2k chars (in even line increments) to the channel. Normally this is used as a <code>FailTask</code> to show the source of the failure.</p>
