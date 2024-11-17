@@ -2,6 +2,33 @@ package robot
 
 import "bytes"
 
+// AttrRet implements Stringer so it can be interpolated with fmt if
+// the plugin author is ok with ignoring the RetVal.
+type AttrRet struct {
+	Attribute string
+	RetVal
+}
+
+func (a AttrRet) String() string {
+	return a.Attribute
+}
+
+/*
+Message (in the engine) is passed to each task as it runs, initialized from the botContext.
+Tasks can copy and modify the Robot without affecting the botContext.
+
+Message is also the struct returned to Robot.GetMessage()
+*/
+type Message struct {
+	User            string            // The user who sent the message; this can be modified for replying to an arbitrary user
+	ProtocolUser    string            // the protocol internal ID of the user
+	Channel         string            // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	ProtocolChannel string            // the protocol internal channel ID
+	Protocol        Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
+	Incoming        *ConnectorMessage // raw IncomingMessage object
+	Format          MessageFormat     // The outgoing message format, one of Raw, Fixed, or Variable
+}
+
 // Robot defines the methods exposed by gopherbot.bot Robot struct, for
 // use by plugins/jobs/tasks. See bot/Robot for complete definitions.
 type Robot interface {

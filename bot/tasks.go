@@ -83,19 +83,25 @@ type TaskSpec struct {
 	task      interface{} `yaml:"-"`         // Populated in AddTask
 }
 
+// Parameter items are provided to jobs and plugins as environment variables
+type Parameter struct {
+	Name  string `yaml:"Name"`  // Name of the parameter
+	Value string `yaml:"Value"` // Value of the parameter
+}
+
 // TaskSettings struct used for configuration of: ExternalPlugins, ExternalJobs,
 // ExternalTasks, GoPlugins, GoJobs, GoTasks and NameSpaces in robot.yaml.
 // Not every field is used in every case.
 type TaskSettings struct {
-	Name          string            `yaml:"Name"`          // Name of the task
-	Path          string            `yaml:"Path"`          // Path to the executable or script
-	Description   string            `yaml:"Description"`   // Description of the task
-	NameSpace     string            `yaml:"NameSpace"`     // Namespace for shared memory/parameters
-	ParameterSets []string          `yaml:"ParameterSets"` // Sets of parameters for this task
-	Disabled      bool              `yaml:"Disabled"`      // Indicates if the task is disabled
-	Homed         bool              `yaml:"Homed"`         // Runs in home directory context if true
-	Privileged    *bool             `yaml:"Privileged"`    // Indicates if the task requires elevated privileges
-	Parameters    []robot.Parameter `yaml:"Parameters"`    // Fixed parameters for the task
+	Name          string      `yaml:"Name"`          // Name of the task
+	Path          string      `yaml:"Path"`          // Path to the executable or script
+	Description   string      `yaml:"Description"`   // Description of the task
+	NameSpace     string      `yaml:"NameSpace"`     // Namespace for shared memory/parameters
+	ParameterSets []string    `yaml:"ParameterSets"` // Sets of parameters for this task
+	Disabled      bool        `yaml:"Disabled"`      // Indicates if the task is disabled
+	Homed         bool        `yaml:"Homed"`         // Runs in home directory context if true
+	Privileged    *bool       `yaml:"Privileged"`    // Indicates if the task requires elevated privileges
+	Parameters    []Parameter `yaml:"Parameters"`    // Fixed parameters for the task
 }
 
 // ScheduledTask items defined in robot.yaml, mostly for scheduled jobs
@@ -130,38 +136,38 @@ type JobTrigger struct {
 
 // ParameterSet just stores a name, description, and parameters - they cannot be run.
 type ParameterSet struct {
-	name        string            `yaml:"-"`           // Name of the shared namespace
-	Description string            `yaml:"Description"` // Optional description of the shared namespace
-	Parameters  []robot.Parameter `yaml:"Parameters"`  // Parameters for the shared namespace
+	name        string      `yaml:"-"`           // Name of the shared namespace
+	Description string      `yaml:"Description"` // Optional description of the shared namespace
+	Parameters  []Parameter `yaml:"Parameters"`  // Parameters for the shared namespace
 }
 
 // Task configuration is common to tasks, plugins, or jobs. Any task, plugin, or job can call bot methods.
 // Tasks are only defined in robot.yaml, and no external configuration is read in.
 type Task struct {
-	name          string            `yaml:"-"`               // Name of job or plugin; unique by type, but job & plugin can share
-	taskType      taskType          `yaml:"-"`               // TaskGo or taskExternal
-	Path          string            `yaml:"Path"`            // Path to the external executable for external scripts
-	NameSpace     string            `yaml:"NameSpace"`       // Callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
-	Parameters    []robot.Parameter `yaml:"Parameters"`      // Fixed parameters for a given job; many jobs will use the same script with differing parameters
-	ParameterSets []string          `yaml:"ParameterSets"`   //
-	Description   string            `yaml:"Description"`     // Description of job or plugin
-	AllowDirect   bool              `yaml:"AllowDirect"`     // Set this true if this plugin can be accessed via direct message
-	DirectOnly    bool              `yaml:"DirectOnly"`      // Set this true if this plugin ONLY accepts direct messages
-	Channel       string            `yaml:"Channel"`         // Channel where a job can be interacted with, or a scheduled task (job or plugin) runs
-	Channels      []string          `yaml:"Channels"`        // Plugins only; Channels where the plugin is available. If empty, uses DefaultChannels
-	AllChannels   bool              `yaml:"AllChannels"`     // If the Channels list is empty and AllChannels is true, the plugin should be active in all channels the bot is in
-	RequireAdmin  bool              `yaml:"RequireAdmin"`    // Set to only allow administrators to access a plugin / run job
-	Users         []string          `yaml:"Users"`           // If non-empty, list of all users with access to this plugin
-	Elevator      string            `yaml:"Elevator"`        // Use an elevator other than the DefaultElevator
-	Authorizer    string            `yaml:"Authorizer"`      // A plugin to call for authorizing users, should handle groups, etc.
-	AuthRequire   string            `yaml:"AuthRequire"`     // An optional group/role name to be passed to the Authorizer plugin for group/role-based authorization
-	ReplyMatchers []InputMatcher    `yaml:"ReplyMatchers"`   // Store this here for prompt*reply methods
-	Config        json.RawMessage   `yaml:"Config"`          // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
-	config        interface{}       `yaml:"ConfigInterface"` // A pointer to an empty struct that the bot can Unmarshal custom configuration into
-	Disabled      bool              `yaml:"Disabled"`
-	reason        string            `yaml:"-"`          // Why this job/plugin is disabled
-	Privileged    bool              `yaml:"Privileged"` // Privileged jobs/plugins run with the privileged UID, privileged tasks require privileged pipelines
-	Homed         bool              `yaml:"Homed"`      // Homed jobs/plugins start the pipeline with c.basePath = ".", homed tasks always run in "."
+	name          string          `yaml:"-"`               // Name of job or plugin; unique by type, but job & plugin can share
+	taskType      taskType        `yaml:"-"`               // TaskGo or taskExternal
+	Path          string          `yaml:"Path"`            // Path to the external executable for external scripts
+	NameSpace     string          `yaml:"NameSpace"`       // Callers that share namespace share long-term memories and environment vars; defaults to name if not otherwise set
+	Parameters    []Parameter     `yaml:"Parameters"`      // Fixed parameters for a given job; many jobs will use the same script with differing parameters
+	ParameterSets []string        `yaml:"ParameterSets"`   //
+	Description   string          `yaml:"Description"`     // Description of job or plugin
+	AllowDirect   bool            `yaml:"AllowDirect"`     // Set this true if this plugin can be accessed via direct message
+	DirectOnly    bool            `yaml:"DirectOnly"`      // Set this true if this plugin ONLY accepts direct messages
+	Channel       string          `yaml:"Channel"`         // Channel where a job can be interacted with, or a scheduled task (job or plugin) runs
+	Channels      []string        `yaml:"Channels"`        // Plugins only; Channels where the plugin is available. If empty, uses DefaultChannels
+	AllChannels   bool            `yaml:"AllChannels"`     // If the Channels list is empty and AllChannels is true, the plugin should be active in all channels the bot is in
+	RequireAdmin  bool            `yaml:"RequireAdmin"`    // Set to only allow administrators to access a plugin / run job
+	Users         []string        `yaml:"Users"`           // If non-empty, list of all users with access to this plugin
+	Elevator      string          `yaml:"Elevator"`        // Use an elevator other than the DefaultElevator
+	Authorizer    string          `yaml:"Authorizer"`      // A plugin to call for authorizing users, should handle groups, etc.
+	AuthRequire   string          `yaml:"AuthRequire"`     // An optional group/role name to be passed to the Authorizer plugin for group/role-based authorization
+	ReplyMatchers []InputMatcher  `yaml:"ReplyMatchers"`   // Store this here for prompt*reply methods
+	Config        json.RawMessage `yaml:"Config"`          // Arbitrary Plugin configuration, will be stored and provided in a thread-safe manner via GetTaskConfig()
+	config        interface{}     `yaml:"ConfigInterface"` // A pointer to an empty struct that the bot can Unmarshal custom configuration into
+	Disabled      bool            `yaml:"Disabled"`
+	reason        string          `yaml:"-"`          // Why this job/plugin is disabled
+	Privileged    bool            `yaml:"Privileged"` // Privileged jobs/plugins run with the privileged UID, privileged tasks require privileged pipelines
+	Homed         bool            `yaml:"Homed"`      // Homed jobs/plugins start the pipeline with c.basePath = ".", homed tasks always run in "."
 }
 
 // Job - configuration only applicable to jobs. Read in from conf/jobs/<job>.yaml, which can also include anything from a Task.

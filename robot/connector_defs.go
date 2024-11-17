@@ -2,26 +2,50 @@ package robot
 
 import "io"
 
-// Logger is used by a Brain for logging errors
-type Logger interface {
-	Log(l LogLevel, m string, v ...interface{})
-}
+// Protocol - connector protocols
+type Protocol int
 
-// SimpleBrain is the simple interface for a configured brain, where the robot
-// handles all locking issues.
-type SimpleBrain interface {
-	// Store stores a blob of data with a string key, returns error
-	// if there's a problem storing the datum.
-	Store(key string, blob *[]byte) error
-	// Retrieve returns a blob of data (probably JSON) given a string key,
-	// and exists=true if the data blob was found, or error if the brain
-	// malfunctions.
-	Retrieve(key string) (blob *[]byte, exists bool, err error)
-	// List returns a list of all memories - Gopherbot isn't a database,
-	// so it _should_ be pretty short.
-	List() (keys []string, err error)
-	// Delete deletes a memory
-	Delete(key string) error
+const (
+	// Slack connector
+	Slack Protocol = iota
+	// Rocket for Rocket.Chat
+	Rocket
+	// Terminal connector
+	Terminal
+	// Test connector for automated test suites
+	Test
+	// Null connector for unconfigured robots
+	Null
+)
+
+// ConnectorMessage is passed in to the robot for every incoming message seen.
+// The *ID fields are required invariant internal representations that the
+// protocol accepts in it's interface methods.
+type ConnectorMessage struct {
+	// Protocol - string name of connector, e.g. "Slack"
+	Protocol string
+	// optional UserName and required internal UserID
+	UserName, UserID string
+	// optional / required channel values
+	ChannelName, ChannelID string
+	// Opaque values
+	ThreadID, MessageID string
+	ThreadedMessage     bool
+	// true when the incoming message originated from the robot itself
+	SelfMessage bool
+	// DirectMessage - whether the message should be considered private between user and robot
+	DirectMessage bool
+	// BotMessage - true when the connector is certain the message has been sent to the robot,
+	// e.g. for slack slash commands
+	BotMessage bool
+	// HiddenMessage - true when the user sent a message to the robot that can't be seen by
+	// other users, also true for slack slash commands
+	HiddenMessage bool
+	// MessageText - sanitized message text, with all protocol-added junk removed
+	MessageText string
+	// MessageObject, Client - interfaces for the raw objects; go extensions can use
+	// these with type switches/assertions to access object internals
+	MessageObject, Client interface{}
 }
 
 // Handler is the interface that defines the API for the handler object passed

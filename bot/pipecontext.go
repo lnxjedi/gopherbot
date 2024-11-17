@@ -162,7 +162,7 @@ type pipeContext struct {
 	jobInitialized      bool                // whether a job has started
 	jobName             string              // name of the running job
 	nameSpace           string              // namespace for the pipeline, used by exclusive, brain and environment
-	nameSpaceParameters []robot.Parameter   // namespace shared parameters
+	nameSpaceParameters []Parameter         // namespace shared parameters
 	parameterSets       []string            // parametersets for the pipeline for environment
 	pipeName, pipeDesc  string              // name and description of task that started pipeline
 	currentTask         interface{}         // pointer to currently executing task

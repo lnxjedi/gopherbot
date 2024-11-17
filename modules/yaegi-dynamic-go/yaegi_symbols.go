@@ -86,7 +86,6 @@ func init() {
 			"Logger": reflect.ValueOf((*robot.Logger)(nil)),
 			"Message": reflect.ValueOf((*robot.Message)(nil)),
 			"MessageFormat": reflect.ValueOf((*robot.MessageFormat)(nil)),
-			"Parameter": reflect.ValueOf((*robot.Parameter)(nil)),
 			"PluginHandler": reflect.ValueOf((*robot.PluginHandler)(nil)),
 			"Protocol": reflect.ValueOf((*robot.Protocol)(nil)),
 			"Registrations": reflect.ValueOf((*robot.Registrations)(nil)),

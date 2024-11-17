@@ -7,8 +7,28 @@ import (
 	"sync"
 )
 
-// Define the structures for plugin, job, and task handlers.
-// These should match the existing definitions in your codebase.
+/*
+Compiled-in Go tasks, jobs and plugins are added to the binary with blank imports
+in /modules.go. Each of these should use a Register* in an init() func to register
+itself. Start-up code in bot/ will process these registrations when the engine
+starts. 
+*/
+
+// PluginHandler is the struct a Go plugin registers for the Gopherbot plugin API.
+type PluginHandler struct {
+	Handler   func(r Robot, command string, args ...string) TaskRetVal // The callback function called by the robot whenever a Command is matched
+	Configure func() *[]byte                                           // The callback for obtaining the default configuration
+}
+
+// JobHandler is the struct registered for a Go job
+type JobHandler struct {
+	Handler func(r Robot, args ...string) TaskRetVal // The callback function called by the robot when the job is run
+}
+
+// TaskHandler is the struct registered for a Go task
+type TaskHandler struct {
+	Handler func(r Robot, args ...string) TaskRetVal // The callback for this Go task
+}
 
 // Registrations holds all the registered plugins, jobs, and tasks.
 type Registrations struct {

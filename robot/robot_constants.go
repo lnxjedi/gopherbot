@@ -1,9 +1,6 @@
 // Package robot defines interfaces and constants for Go plugins, jobs and tasks
 package robot
 
-// RetVal is a integer type for returning error conditions from bot methods, or 0 for Ok
-type RetVal int
-
 //go:generate stringer -type=TaskRetVal botdefs.go
 
 //go:generate stringer -type=RetVal botdefs.go
@@ -30,17 +27,24 @@ const (
 	Fatal
 )
 
-// TaskRetVal is an integer type for return values from plugins, and tasks, mainly for elevation & authorization
+/*
+	TaskRetVal is an integer type for return values from Go tasks, plugins and
+
+jobs. Handlers should return one of these.
+*/
 type TaskRetVal int
 
 const (
 	// Normal exit is for non-auth/non-elevating plugins and pipeline tasks; since this is the
 	// default exit value, we don't use it to indicate successful authentication
-	// or elevation.
+	// or elevation. Most tasks that complete successfully should return Normal.
 	Normal TaskRetVal = iota
-	// Fail indicates requested authorization or elevation failed
+	// Fail indicates requested authorization or elevation failed, or a Go task
+	// or Job failed or ended unsucesfully.
 	Fail
-	// MechanismFail indicates authorization or elevation couldn't be determined due to a technical issue that should be logged
+	// MechanismFail indicates authorization or elevation couldn't be determined
+	// due to a technical issue that should be logged. Should be returned by
+	// tasks, jobs and plugins for unusual errors, akin to http 500.
 	MechanismFail
 	// ConfigurationError indicates authorization or elevation failed due to misconfiguration
 	ConfigurationError
@@ -55,6 +59,9 @@ const (
 	// value
 	Success = 7
 )
+
+// RetVal is a integer type for returning error conditions from bot methods, or 0 for Ok
+type RetVal int
 
 const (
 	// Ok indicates a successful result
@@ -135,22 +142,6 @@ const (
 	TaskDisabled
 	// PrivilegeViolation - error adding a privileged job/command to an unprivileged pipeline
 	PrivilegeViolation
-)
-
-// Protocol - connector protocols
-type Protocol int
-
-const (
-	// Slack connector
-	Slack Protocol = iota
-	// Rocket for Rocket.Chat
-	Rocket
-	// Terminal connector
-	Terminal
-	// Test connector for automated test suites
-	Test
-	// Null connector for unconfigured robots
-	Null
 )
 
 // MessageFormat indicates how the connector should display the content of
