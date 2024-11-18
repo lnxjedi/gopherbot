@@ -1,6 +1,6 @@
 # v2.15.0 - Dynamic Go Extensions
 
-The biggest, coolest, most exciting news for v2.15 (targeted for eventual release as v3.0.0) is the ability to write new tasks, jobs and plugins in Go that are loaded and interpreted from the filesystem - thus, you can now add Go extensions to your robot's repository. To demonstrate this, some of Gopherbot's core and included tasks were modified to run this way. See:
+The biggest, coolest, most exciting news for v2.15 is the ability to write new tasks, jobs and plugins in Go that are loaded and interpreted from the filesystem - thus, you can now add Go extensions to your robot's repository. To demonstrate this, some of Gopherbot's core and included tasks were modified to run this way. See:
 * jobs/go-*
 * plugins/go-*
 * tasks/go-*
