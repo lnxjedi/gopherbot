@@ -1,40 +1,37 @@
-# Gopherbot DevOps Chatbot
+# Gopherbot ChatOps Engine
 
-Slack[^connectors] DevOps / ChatOps general purpose IT robot framework for Linux, supporting extensions in Bash, Python, Ruby, and Go[^go].
+Gopherbot is designed for flexible automation and orchestration of infrastructure and development tasks for Slack[^connectors] teams. It supports scripting and libraries in Bash[^bash], Python, Ruby, and Go[^go], with a dynamic pipeline-based architecture supporting complex multi-language workflows. The core engine bootstraps and updates individual team robots from a git repository containing configuration (mostly YAML), scripts and libraries used for automation, with a simple robot API for each language that drastically simplifies chat-based interactions, state tracking, and concurrency.
 
-[^connectors]: Gopherbot a modular interface for writing other protocol connectors in Go; currently only Slack and the Terminal connector are supported
-[^go]: Go extensions are the hardest to write, requiring custom forks/builds; Gopherbot is heavily optimized for extension with scripting
+[^connectors]: Gopherbot has a modular interface for writing other protocol connectors in Go; currently only Slack and the Terminal connector are supported
+[^bash]: The current bash library doesn't support long-term memories, though limited support is planned for v3
+[^go]: Since version 2.15, Gopherbot supports dynamicly loaded Go extensions via [Yaegi](https://github.com/traefik/yaegi), but only stdlib and the Gopherbot API are supported
 
 Slogans under consideration:
 * **The Co-worker that Never Sleeps**
 * **The DevOps Swiss-Army Chainsaw**
 
 ## What does Gopherbot *do*?
-**Gopherbot** runs as a process or container in your infrastructure and connects to your team chat. From there it can respond to CLI-like commands written in Bash, Ruby or Python, and perform any number of functions to provision resources, run reports and scheduled jobs, deploy software or interact with CI/CD - just about any functionality a DevOps engineer might want to provide in team chat. You can find a lot more information in the [introduction](https://lnxjedi.github.io/gopherbot/Introduction.html) of the online manual.
+**Gopherbot** runs as a Linux process on a server/VM or container in your infrastructure. On start-up it examines a few environment variables needed to retrieve your robot's git repository and encrypted credentials, then connects to your team chat. From there it can respond to CLI-like commands matching regular expressions whose capture groups are passed as command-line arguments to scripts written in Bash, Ruby, Python, or Go[^go_call]. These plugins can perform any number of functions to provision resources, run reports, deploy software or interact with CI/CD - just about any functionality a DevOps engineer might want to provide in team chat. Most robots also perform any number of automation "jobs", either scheduled with the built-in cron facility or triggered by specific external messages posted from other external automated tasks, such as a "build complete" notification from CI/CD or commit message from GitHub. You can find a lot more information in the [introduction](https://lnxjedi.github.io/gopherbot/Introduction.html) of the online manual.
+
+[^go_call]: Go is the exception to this pattern; instead, Go extensions define Handler functions that are passed a "robot" object and string arguments.
 
 ## Major Features
 * Self-deploying and updating with **GitOps**-style management
 * Threaded conversation support and thread-awareness
+* Support for hidden Slack "slash" commands to reduce channel noise and prevent sensitive information from leaking into team chat
 * Powerful pipeline-oriented engine for creating and combining reusable components in multiple scripting languages
 * Flexible support for encrypted secrets
 * Wide variety of security features including built-in Google Authenticator TOTP
 * Full-featured **IDE** and terminal connector for developing extensions
 * Highly configurable with Go-templated YAML
 
-## Software Overview
-**Gopherbot** uses a model similar to [Ansible](https://ansible.com), distributing a core robot with an array of built-in reusable components. Individual robots are configured and stored in a **git** repository that is cloned when you bootstrap your robot in your infrastructure; several example robot repositories are given below.
-
-Running a **Gopherbot** robot essentially means running the core robot (on a VM or in a container) with a handful of environment variables that tell the core robot how to clone and run *your* individual robot.
-
 ## Documentation
 The latest documentation can always be found at the GitHub-hosted [online manual](https://lnxjedi.github.io/gopherbot); the documentation source is in a [separate repository](https://github.com/lnxjedi/gopherbot-doc). Documentation automatically generated from the Go sources can be found at [pkg.go.dev](https://pkg.go.dev/github.com/lnxjedi/gopherbot/v2).
 
-The manual is still very incomplete; however, sometimes the best documentation is example code. To that end, the most powerful and complete robot I have is [Mr. Data](https://github.com/parsley42/data-gopherbot) (now retired) - the robot that ran my home Kubernetes cluster when I still had time for such things. [Clu](https://github.com/parsley42/clu-gopherbot) is the development robot used for development and writing documentation. Though **Clu** doesn't do any useful work, he has examples of most facets of **Gopherbot** functionality. [Floyd](https://github.com/parsley42/floyd-gopherbot) (a utility robot I share with my wife) is the oldest and longest-running robot instance - occasionally he does useful work, but mostly he just makes dinner meal suggestions.
+The manual is still very incomplete; however, sometimes the best documentation is example code. To that end, the most powerful and complete robot I have is [Mr. Data](https://github.com/parsley42/data-gopherbot) (now retired) - the robot that ran my home Kubernetes cluster when I still had time for such things. [Clu](https://github.com/parsley42/clu-gopherbot) is the development robot used for development and writing documentation. Though **Clu** doesn't do any useful work, he has examples of most facets of **Gopherbot** functionality. [Floyd](https://github.com/parsley42/floyd-gopherbot) (a utility robot I shared with my wife) is the oldest and longest-running robot instance, though he retired after AWS started charging for his IP address.
 
 ## Release Status
-Version 2 has been stable for me for over a year, and has finally been released. I've accepted that a fully up-to-date manual will lag significantly, but that is currently where the most work is being done.
-
-With the recent (2021) addition of `ParameterSets`, a container-based **IDE** and threaded conversation support (2022), there are no major updates in functionality currently planned.
+Version 2 has been stable for me for over a year, and has finally been released. I've accepted that a fully up-to-date manual will lag significantly, but that is currently where the most work is being done. Version 3 is expected Q1 2025, with the primary features being dynamic Go extension support (already available in v2.15.0) and having all core features migrated to dynamic Go extensions to reduce bootstrapping dependencies.
 
 ## Previewing
 If you have [Docker](https://www.docker.com/) available, you can kick the tires on the default robot running the **terminal** connector:
