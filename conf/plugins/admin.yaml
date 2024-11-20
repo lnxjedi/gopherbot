@@ -5,7 +5,7 @@ AllChannels: true
 Help:
 - Keywords: [ "config", "configuration", "update" ]
   Helptext: [ "(alias) update (configuration) - perform a git clone/pull of custom configuration and reload" ]
-- Keywords: [ "config", "configuration", "branch" ]
+- Keywords: [ "config", "configuration", "branch", "switch" ]
   Helptext: [ "(alias) switch-branch <branch> - switch branches in configuration repository" ]
 - Keywords: [ "config", "configuration", "save", "admin", "manage" ]
   Helptext: [ "(alias) save (configuration) - git push custom repository" ]
