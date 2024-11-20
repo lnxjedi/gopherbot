@@ -82,9 +82,10 @@ func Pull(r robot.Robot, opts PullOptions) error {
 
 	// Perform the pull operation
 	pullOptions := &git.PullOptions{
-		Auth:       opts.Auth,
-		RemoteName: "origin",
-		Progress:   nil,
+		Auth:          opts.Auth,
+		RemoteName:    "origin",
+		ReferenceName: headRef.Name(),
+		Progress:      nil,
 	}
 
 	err = w.Pull(pullOptions)
