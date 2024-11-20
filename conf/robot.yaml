@@ -181,7 +181,6 @@ GoJobs:
   "go-bootstrap":
     Description: A compiled-in job to bootstrap an existing robot to a new container/directory
     NameSpace: manage
-    Parameters:
 
 ## ExternalJobs describe configurable jobs the robot knows about. Requires
 ## config in conf/jobs/<jobname>.yaml (see sample files in dist)
