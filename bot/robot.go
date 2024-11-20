@@ -84,6 +84,7 @@ func (w *worker) makeRobot() Robot {
 			nameSpace:      w.nameSpace,
 			pipeName:       w.pipeName,
 			pipeDesc:       w.pipeDesc,
+			taskName:       w.taskName,
 			currentTask:    w.currentTask,
 			exclusive:      w.exclusive,
 		}
@@ -343,6 +344,16 @@ func (r Robot) GetTaskConfig(config interface{}) robot.RetVal {
 
 // see robot/robot.go
 func (r Robot) Log(l robot.LogLevel, msg string, v ...interface{}) (logged bool) {
+	pipeName := r.pipeName
+	currTask := r.taskName
+	var logTag string
+	if currTask == pipeName {
+		logTag = "(" + pipeName + ") "
+	} else {
+		logTag = "(" + pipeName + "/" + currTask + ") "
+	}
+	// Give extra context to log messages when called from a robot
+	msg = logTag + msg
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
