@@ -8,16 +8,23 @@ import (
 )
 
 /*
-go_update_job.go - This job is dynamically loaded, compiled and run by Yaegi (https://github.com/traefik/yaegi).
+switchbranches.go - This job is dynamically loaded, compiled and run by Yaegi (https://github.com/traefik/yaegi).
+
+Switch the robot to a different branch, for quick test/backout development.
 */
 
 func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
+	if len(args) != 1 {
+		r.Log(robot.Error, "wrong number of arguments, expected 1, got %d", len(args))
+		return robot.Fail
+	}
 	repoDir := r.GetParameter("GOPHER_CONFIGDIR")
+	branch := args[0]
 
 	confDir := filepath.Join(repoDir, "conf")
 	_, err := os.Stat(confDir)
 	if err != nil {
-		r.Log(robot.Error, "go-update error locating current config: "+err.Error())
+		r.Log(robot.Error, "go-switchbranch error locating current config: "+err.Error())
 		return robot.Fail
 	}
 
@@ -35,12 +42,9 @@ func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	}
 
 	if !r.Exclusive("configrepo", true) {
-		r.Log(robot.Error, "go-update couldn't obtain exclusive access to 'configrepo', queueing ")
+		r.Log(robot.Error, "go-switchbranch couldn't obtain exclusive access to 'configrepo', queueing ")
 		return robot.Normal
 	}
-
-	// Begin updating
-	r.Log(robot.Info, "Starting update process for robot configuration repository (git pull)")
 
 	// Start SSH agent using GOPHER_DEPLOY_KEY
 	r.AddTask("ssh-agent", "deploy")
@@ -54,16 +58,8 @@ func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 		// and GOPHER_INSECURE_SSH isn't set "true".
 		r.AddTask("ssh-git-helper", "loadhostkeys", cloneURL)
 	}
-
-	r.AddTask("git-command", "pull", repoDir)
-	r.AddTask("update-report")
-	r.FailTask("fail-report")
+	r.AddTask("git-command", "switch", branch, repoDir)
 	r.AddCommand("builtin-admin", "reload")
-	return robot.Normal
-}
 
-func compatHandler(r robot.Robot, args ...string) robot.TaskRetVal {
-	r.Log(robot.Warn, "Deprecated updatecfg job ran, adding job 'go-update'")
-	r.AddJob("go-update")
 	return robot.Normal
 }

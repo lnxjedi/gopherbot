@@ -190,16 +190,16 @@ func Push(opts PushOptions) error {
 	return nil
 }
 
-// CheckoutOptions holds the parameters for checking out a branch in a repository.
-type CheckoutOptions struct {
+// SwitchBranchOptions holds the parameters for switching branches in a repository.
+type SwitchBranchOptions struct {
 	Directory string
 	Branch    string
 	Auth      transport.AuthMethod
 }
 
-// Checkout performs a branch checkout in the specified Git repository.
-// It fetches the latest changes, switches to the desired branch, sets up tracking if necessary, and pulls the latest commits.
-func Checkout(opts CheckoutOptions) error {
+// SwitchBranch switches to the specified branch in the Git repository.
+// It checks if the branch exists on the remote, sets up tracking, and pulls the latest commits.
+func SwitchBranch(opts SwitchBranchOptions) error {
 	// Open the existing repository
 	repo, err := git.PlainOpen(opts.Directory)
 	if err != nil {
@@ -219,14 +219,22 @@ func Checkout(opts CheckoutOptions) error {
 		return fmt.Errorf("failed to fetch updates: %w", err)
 	}
 
+	// Check if the branch exists on the remote
+	remoteRefName := plumbing.NewRemoteReferenceName("origin", opts.Branch)
+	remoteBranchRef, err := repo.Reference(remoteRefName, true)
+	if err != nil {
+		return fmt.Errorf("branch '%s' does not exist on remote 'origin': %w", opts.Branch, err)
+	}
+
 	// Get the worktree
 	w, err := repo.Worktree()
 	if err != nil {
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 
-	// Attempt to checkout the desired branch
 	branchRefName := plumbing.NewBranchReferenceName(opts.Branch)
+
+	// Attempt to checkout the desired branch
 	checkoutOptions := &git.CheckoutOptions{
 		Branch: branchRefName,
 		Force:  true,
@@ -234,46 +242,39 @@ func Checkout(opts CheckoutOptions) error {
 
 	err = w.Checkout(checkoutOptions)
 	if err != nil {
-		// If the branch does not exist locally, attempt to create it tracking the remote branch
+		// If the branch does not exist locally, create it pointing to the remote branch
 		if err == plumbing.ErrReferenceNotFound || err.Error() == "reference not found" {
-			// Attempt to checkout the remote branch into a new local branch
 			checkoutOptions = &git.CheckoutOptions{
 				Branch: branchRefName,
 				Create: true,
-				Hash:   plumbing.ZeroHash, // Indicates branch creation from HEAD
+				Hash:   remoteBranchRef.Hash(), // Start from the remote branch's latest commit
 			}
 			err = w.Checkout(checkoutOptions)
 			if err != nil {
 				return fmt.Errorf("failed to create and checkout branch %s: %w", opts.Branch, err)
 			}
-
-			// Manually set the branch to track the remote branch
-			cfg, err := repo.Config()
-			if err != nil {
-				return fmt.Errorf("failed to get repository config: %w", err)
-			}
-
-			branchConfig, ok := cfg.Branches[opts.Branch]
-			if !ok {
-				branchConfig = &config.Branch{
-					Name:   opts.Branch,
-					Remote: "origin",
-					Merge:  plumbing.ReferenceName("refs/heads/" + opts.Branch),
-				}
-			} else {
-				branchConfig.Remote = "origin"
-				branchConfig.Merge = plumbing.ReferenceName("refs/heads/" + opts.Branch)
-			}
-
-			cfg.Branches[opts.Branch] = branchConfig
-
-			err = repo.Storer.SetConfig(cfg)
-			if err != nil {
-				return fmt.Errorf("failed to set branch tracking for %s: %w", opts.Branch, err)
-			}
 		} else {
 			return fmt.Errorf("failed to checkout branch %s: %w", opts.Branch, err)
 		}
+	}
+
+	// Set the branch to track the remote branch
+	cfg, err := repo.Config()
+	if err != nil {
+		return fmt.Errorf("failed to get repository config: %w", err)
+	}
+
+	branchConfig := &config.Branch{
+		Name:   opts.Branch,
+		Remote: "origin",
+		Merge:  plumbing.ReferenceName("refs/heads/" + opts.Branch),
+	}
+
+	cfg.Branches[opts.Branch] = branchConfig
+
+	err = repo.Storer.SetConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to set branch tracking for %s: %w", opts.Branch, err)
 	}
 
 	// After checkout, perform a pull to ensure the branch is up-to-date
@@ -281,14 +282,11 @@ func Checkout(opts CheckoutOptions) error {
 		Auth:       opts.Auth,
 		RemoteName: "origin",
 		Progress:   os.Stdout,
+		// ReferenceName: branchRefName, // Optional: specify if needed
 	}
 
 	err = w.Pull(pullOptions)
-	if err != nil {
-		if err == git.NoErrAlreadyUpToDate {
-			// No changes to pull; consider this as a successful pull
-			return nil
-		}
+	if err != nil && err != git.NoErrAlreadyUpToDate {
 		return fmt.Errorf("failed to pull after checkout: %w", err)
 	}
 
@@ -350,7 +348,7 @@ func isDirEmpty(dir string) (bool, error) {
 		// Directory is not empty
 		return false, nil
 	}
-	if err == os.ErrNotExist || err == io.EOF {
+	if err == io.EOF {
 		// Directory is empty
 		return true, nil
 	}

@@ -39,9 +39,10 @@ case "$COMMAND" in
     ;;
   "branch")
     BRANCH="$1"
-    AddJob changebranch "$BRANCH"
+    AddJob go-switchbranch "$BRANCH"
     FailTask say "Error switching branches - does '$BRANCH' exist?"
-    AddTask say "... switched to branch '$BRANCH'"
+    FailTask tail-log
+    AddTask send-message "... switched to branch '$BRANCH'"
     ;;
   "save")
     Say "Ok, I'll push my configuration and long-term memory store ..."

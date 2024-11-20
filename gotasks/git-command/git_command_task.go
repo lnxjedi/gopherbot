@@ -140,9 +140,9 @@ func gitCommandTask(r robot.Robot, args ...string) robot.TaskRetVal {
 
 		return robot.Normal
 
-	case "checkout":
+	case "switch":
 		if len(args) < 3 {
-			r.Log(robot.Error, "not enough arguments for checkout command; usage: checkout <branch> <directory>")
+			r.Log(robot.Error, "not enough arguments for switch command; usage: switch <branch> <directory>")
 			return robot.Fail
 		}
 		branch := args[1]
@@ -156,18 +156,18 @@ func gitCommandTask(r robot.Robot, args ...string) robot.TaskRetVal {
 			absDirectory = filepath.Join(homeDir, directory)
 		}
 
-		checkoutOpts := gitcommand.CheckoutOptions{
+		checkoutOpts := gitcommand.SwitchBranchOptions{
 			Directory: absDirectory,
 			Branch:    branch,
 			Auth:      authMethod,
 		}
 
-		if err := gitcommand.Checkout(checkoutOpts); err != nil {
+		if err := gitcommand.SwitchBranch(checkoutOpts); err != nil {
 			r.Log(robot.Error, "git checkout failed: "+err.Error())
 			return robot.Fail
 		}
 
-		r.Log(robot.Info, "git checkout to branch "+branch+" successful in directory "+absDirectory)
+		r.Log(robot.Info, "git switch to branch "+branch+" successful in directory "+absDirectory)
 		return robot.Normal
 
 	case "push":
