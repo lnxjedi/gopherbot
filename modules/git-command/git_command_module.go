@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/lnxjedi/gopherbot/robot"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -29,7 +31,7 @@ func Clone(opts CloneOptions) error {
 	cloneOptions := &git.CloneOptions{
 		URL:      opts.RepoURL,
 		Auth:     opts.Auth,
-		Progress: os.Stdout,
+		Progress: nil,
 	}
 
 	// Set reference name if a branch is specified
@@ -59,7 +61,7 @@ type PullOptions struct {
 }
 
 // Pull pulls the latest changes in the specified Git repository.
-func Pull(opts PullOptions) error {
+func Pull(r robot.Robot, opts PullOptions) error {
 	// Open the existing repository
 	repo, err := git.PlainOpen(opts.Directory)
 	if err != nil {
@@ -72,20 +74,32 @@ func Pull(opts PullOptions) error {
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 
+	headRef, err := repo.Head()
+	if err == nil {
+		r.Log(robot.Debug, "initiating pull of %s: hash %s, name %s, target %s, type %s",
+			filepath.Base(opts.Directory), headRef.Hash(), headRef.Name(), headRef.Target(), headRef.Type())
+	}
+
 	// Perform the pull operation
 	pullOptions := &git.PullOptions{
 		Auth:       opts.Auth,
 		RemoteName: "origin",
-		Progress:   os.Stdout,
+		Progress:   nil,
 	}
 
 	err = w.Pull(pullOptions)
 	if err != nil {
 		if err == git.NoErrAlreadyUpToDate {
 			// No changes to pull; consider this as a successful pull
+			r.Log(robot.Debug, "%s already up-to-date", filepath.Base(opts.Directory))
 			return nil
 		}
 		return fmt.Errorf("failed to pull repository: %w", err)
+	}
+	headRef, err = repo.Head()
+	if err == nil {
+		r.Log(robot.Debug, "completed pull of %s: hash %s, name %s, target %s, type %s",
+			filepath.Base(opts.Directory), headRef.Hash(), headRef.Name(), headRef.Target(), headRef.Type())
 	}
 
 	return nil

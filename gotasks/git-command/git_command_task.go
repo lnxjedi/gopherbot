@@ -122,7 +122,7 @@ func gitCommandTask(r robot.Robot, args ...string) robot.TaskRetVal {
 			Auth:      authMethod,
 		}
 
-		if err := gitcommand.Pull(pullOpts); err != nil {
+		if err := gitcommand.Pull(r, pullOpts); err != nil {
 			r.Log(robot.Error, "git pull failed: "+err.Error())
 			return robot.Fail
 		}
