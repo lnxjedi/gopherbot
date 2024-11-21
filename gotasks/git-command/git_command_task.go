@@ -94,7 +94,7 @@ func gitCommandTask(r robot.Robot, args ...string) robot.TaskRetVal {
 			Auth:      authMethod,
 		}
 
-		if err := gitcommand.Clone(cloneOpts); err != nil {
+		if err := gitcommand.Clone(r, cloneOpts); err != nil {
 			r.Log(robot.Error, "git clone failed: "+err.Error())
 			return robot.Fail
 		}
@@ -162,8 +162,8 @@ func gitCommandTask(r robot.Robot, args ...string) robot.TaskRetVal {
 			Auth:      authMethod,
 		}
 
-		if err := gitcommand.SwitchBranch(checkoutOpts); err != nil {
-			r.Log(robot.Error, "git checkout failed: "+err.Error())
+		if err := gitcommand.SwitchBranch(r, checkoutOpts); err != nil {
+			r.Log(robot.Error, "switch branch failed: "+err.Error())
 			return robot.Fail
 		}
 

@@ -26,7 +26,7 @@ type CloneOptions struct {
 }
 
 // Clone clones a Git repository based on the provided options.
-func Clone(opts CloneOptions) error {
+func Clone(r robot.Robot, opts CloneOptions) error {
 	// Prepare clone options
 	cloneOptions := &git.CloneOptions{
 		URL:      opts.RepoURL,
@@ -49,6 +49,18 @@ func Clone(opts CloneOptions) error {
 	_, err := git.PlainClone(opts.Directory, false, cloneOptions)
 	if err != nil {
 		return fmt.Errorf("failed to clone repository: %w", err)
+	}
+
+	repo, err := git.PlainOpen(opts.Directory)
+	if err != nil {
+		r.Log(robot.Error, "failed to open repository at %s: %s", opts.Directory, err.Error())
+		return nil
+	}
+
+	headRef, err := repo.Head()
+	if err == nil {
+		r.Log(robot.Info, "completed clone of %s: %s",
+			filepath.Base(opts.Directory), refInfo(headRef))
 	}
 
 	return nil
@@ -76,8 +88,8 @@ func Pull(r robot.Robot, opts PullOptions) error {
 
 	headRef, err := repo.Head()
 	if err == nil {
-		r.Log(robot.Debug, "initiating pull of %s: hash %s, name %s, target %s, type %s",
-			filepath.Base(opts.Directory), headRef.Hash(), headRef.Name(), headRef.Target(), headRef.Type())
+		r.Log(robot.Info, "initiating pull of %s: %s",
+			filepath.Base(opts.Directory), refInfo(headRef))
 	}
 
 	// Perform the pull operation
@@ -99,8 +111,8 @@ func Pull(r robot.Robot, opts PullOptions) error {
 	}
 	headRef, err = repo.Head()
 	if err == nil {
-		r.Log(robot.Debug, "completed pull of %s: hash %s, name %s, target %s, type %s",
-			filepath.Base(opts.Directory), headRef.Hash(), headRef.Name(), headRef.Target(), headRef.Type())
+		r.Log(robot.Info, "completed pull of %s: %s",
+			filepath.Base(opts.Directory), refInfo(headRef))
 	}
 
 	return nil
@@ -173,7 +185,7 @@ func Push(opts PushOptions) error {
 		remoteBranch := opts.BranchIfNoUpstream
 		pushOptions := &git.PushOptions{
 			Auth:     opts.Auth,
-			Progress: os.Stdout,
+			Progress: nil,
 			RefSpecs: []config.RefSpec{
 				config.RefSpec(fmt.Sprintf("refs/heads/%s:refs/heads/%s", branchName, remoteBranch)),
 			},
@@ -190,7 +202,7 @@ func Push(opts PushOptions) error {
 	// Upstream is set; push normally
 	pushOpts := &git.PushOptions{
 		Auth:     opts.Auth,
-		Progress: os.Stdout,
+		Progress: nil,
 	}
 
 	err = repo.Push(pushOpts)
@@ -212,97 +224,117 @@ type SwitchBranchOptions struct {
 	Auth      transport.AuthMethod
 }
 
-// SwitchBranch switches to the specified branch in the Git repository.
-// It checks if the branch exists on the remote, sets up tracking, and pulls the latest commits.
-func SwitchBranch(opts SwitchBranchOptions) error {
+// SwitchBranch changes the current branch to the specified branch, fetching from the remote if necessary and ensuring it is up to date.
+func SwitchBranch(r robot.Robot, opts SwitchBranchOptions) error {
 	// Open the existing repository
 	repo, err := git.PlainOpen(opts.Directory)
 	if err != nil {
-		return fmt.Errorf("failed to open repository at %s: %w", opts.Directory, err)
+		return fmt.Errorf("failed to open repository: %w", err)
 	}
 
-	// Fetch the latest changes from the remote
+	headRef, err := repo.Head()
+	if err == nil {
+		r.Log(robot.Info, "initiating switch branches to '%s' in %s: %s",
+			opts.Branch, filepath.Base(opts.Directory), refInfo(headRef))
+	}
+
+	// Fetch all branches from the remote to ensure up-to-date references
 	fetchOptions := &git.FetchOptions{
 		RemoteName: "origin",
 		Auth:       opts.Auth,
-		Progress:   os.Stdout,
-		Tags:       git.AllTags,
-		Force:      true,
+		RefSpecs: []config.RefSpec{
+			config.RefSpec("+refs/heads/*:refs/remotes/origin/*"),
+		},
+		Progress: nil,
 	}
 	err = repo.Fetch(fetchOptions)
 	if err != nil && err != git.NoErrAlreadyUpToDate {
-		return fmt.Errorf("failed to fetch updates: %w", err)
+		return fmt.Errorf("failed to fetch repository: %w", err)
 	}
+
+	// Define the remote branch reference name
+	remoteBranchRefName := plumbing.NewRemoteReferenceName("origin", opts.Branch)
 
 	// Check if the branch exists on the remote
-	remoteRefName := plumbing.NewRemoteReferenceName("origin", opts.Branch)
-	remoteBranchRef, err := repo.Reference(remoteRefName, true)
+	remoteBranchRef, err := repo.Reference(remoteBranchRefName, true)
 	if err != nil {
-		return fmt.Errorf("branch '%s' does not exist on remote 'origin': %w", opts.Branch, err)
+		return fmt.Errorf("branch '%s' does not exist on remote: %w", opts.Branch, err)
 	}
 
-	// Get the worktree
+	// Get the worktree for performing checkout and pull operations
 	w, err := repo.Worktree()
 	if err != nil {
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 
-	branchRefName := plumbing.NewBranchReferenceName(opts.Branch)
+	// Define the local branch reference name
+	localBranchRefName := plumbing.NewBranchReferenceName(opts.Branch)
 
-	// Attempt to checkout the desired branch
-	checkoutOptions := &git.CheckoutOptions{
-		Branch: branchRefName,
-		Force:  true,
-	}
+	// Attempt to checkout the branch locally
+	err = w.Checkout(&git.CheckoutOptions{
+		Branch: localBranchRefName,
+		Create: false, // Do not create a new branch yet
+	})
 
-	err = w.Checkout(checkoutOptions)
 	if err != nil {
-		// If the branch does not exist locally, create it pointing to the remote branch
-		if err == plumbing.ErrReferenceNotFound || err.Error() == "reference not found" {
-			checkoutOptions = &git.CheckoutOptions{
-				Branch: branchRefName,
-				Create: true,
+		// If the branch does not exist locally, create it tracking the remote branch
+		if err == plumbing.ErrReferenceNotFound {
+			err = w.Checkout(&git.CheckoutOptions{
+				Branch: localBranchRefName,
+				Create: true,                   // Create a new branch
+				Keep:   false,                  // Do not keep local changes
+				Force:  false,                  // Do not force checkout
 				Hash:   remoteBranchRef.Hash(), // Start from the remote branch's latest commit
-			}
-			err = w.Checkout(checkoutOptions)
+			})
 			if err != nil {
-				return fmt.Errorf("failed to create and checkout branch %s: %w", opts.Branch, err)
+				return fmt.Errorf("failed to create and checkout branch '%s': %w", opts.Branch, err)
 			}
+
+			// Configure the local branch to track the remote branch
+			cfg, err := repo.Config()
+			if err != nil {
+				return fmt.Errorf("failed to get repository config: %w", err)
+			}
+			cfg.Branches[opts.Branch] = &config.Branch{
+				Name:   opts.Branch,
+				Remote: "origin",
+				Merge:  remoteBranchRefName,
+			}
+			err = repo.SetConfig(cfg)
+			if err != nil {
+				return fmt.Errorf("failed to set branch config for '%s': %w", opts.Branch, err)
+			}
+
+			r.Log(robot.Debug, "created and switched to new branch '%s'", opts.Branch)
 		} else {
-			return fmt.Errorf("failed to checkout branch %s: %w", opts.Branch, err)
+			// An unexpected error occurred during checkout
+			return fmt.Errorf("failed to checkout branch '%s': %w", opts.Branch, err)
 		}
+	} else {
+		// Successfully switched to the existing local branch
+		r.Log(robot.Debug, "switched to existing branch '%s'", opts.Branch)
 	}
 
-	// Set the branch to track the remote branch
-	cfg, err := repo.Config()
-	if err != nil {
-		return fmt.Errorf("failed to get repository config: %w", err)
-	}
-
-	branchConfig := &config.Branch{
-		Name:   opts.Branch,
-		Remote: "origin",
-		Merge:  plumbing.ReferenceName("refs/heads/" + opts.Branch),
-	}
-
-	cfg.Branches[opts.Branch] = branchConfig
-
-	err = repo.Storer.SetConfig(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to set branch tracking for %s: %w", opts.Branch, err)
-	}
-
-	// After checkout, perform a pull to ensure the branch is up-to-date
+	// Pull the latest changes for the current branch to ensure it's up-to-date
 	pullOptions := &git.PullOptions{
-		Auth:       opts.Auth,
-		RemoteName: "origin",
-		Progress:   os.Stdout,
-		// ReferenceName: branchRefName, // Optional: specify if needed
+		Auth:          opts.Auth,
+		RemoteName:    "origin",
+		ReferenceName: localBranchRefName,
+		Progress:      nil,
+	}
+	err = w.Pull(pullOptions)
+	if err != nil {
+		if err == git.NoErrAlreadyUpToDate {
+			r.Log(robot.Debug, "branch '%s' is already up-to-date", opts.Branch)
+			return nil
+		}
+		return fmt.Errorf("failed to pull latest changes for branch '%s': %w", opts.Branch, err)
 	}
 
-	err = w.Pull(pullOptions)
-	if err != nil && err != git.NoErrAlreadyUpToDate {
-		return fmt.Errorf("failed to pull after checkout: %w", err)
+	// Retrieve and log the updated HEAD reference
+	headRef, err = repo.Head()
+	if err == nil {
+		r.Log(robot.Info, "completed switch to branch '%s' in %s: %s", opts.Branch, opts.Directory, refInfo(headRef))
 	}
 
 	return nil
@@ -326,6 +358,11 @@ func GetCurrentBranch(directory string) (string, error) {
 
 	branchName := headRef.Name().Short()
 	return branchName, nil
+}
+
+// refInfo generates a standard string from a git reference
+func refInfo(ref *plumbing.Reference) string {
+	return fmt.Sprintf("name %s, hash %s, type %s", ref.Name(), ref.Hash(), ref.Type())
 }
 
 // prepareDirectory ensures that the target directory is empty or creates it.
