@@ -161,12 +161,16 @@ func (s *slackConnector) startSendLoop() {
 
 func (s *slackConnector) sendMessages(msgs []string, userID, chanID, threadID string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) {
 	mtype := getMsgType(msgObject)
-	// NOTE: slash command replies are ALWAYS sent back to the user that sent the original message.
 	if mtype == msgSlashCmd {
 		slashCmd := msgObject.MessageObject.(*slack.SlashCommand)
-		userID = slashCmd.UserID
-		chanID = slashCmd.ChannelID
-		threadID = ""
+		if (userID == "" || userID == slashCmd.UserID) && chanID == slashCmd.ChannelID {
+			// Make sure a blank userID is replaced by the original userID
+			userID = slashCmd.UserID
+			threadID = ""
+		} else {
+			// If the user or channel has changed, don't send ephemeral/hidden reply
+			mtype = msgNone
+		}
 	}
 	for _, msg := range msgs {
 		messages <- &sendMessage{
