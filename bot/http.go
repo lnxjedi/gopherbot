@@ -212,6 +212,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	taskLookup.RLock()
 	r, ok := taskLookup.e[f.CallerID]
 	taskLookup.RUnlock()
+	r.Log(robot.Debug, "http received raw JSON: %s", data)
 	if !ok {
 		rw.WriteHeader(http.StatusBadRequest)
 		Log(robot.Error, "JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs)
