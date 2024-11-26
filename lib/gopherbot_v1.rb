@@ -54,8 +54,8 @@ class BaseBot
 	DataFormatError = 8
 	BrainFailed = 9
 	InvalidDatumKey = 10
-	InvalidDblPtr = 11
-	InvalidCfgStruct = 12
+	InvalidConfigPointer = 11
+	ConfigUnmarshalError = 12
 	NoConfigFound = 13
 	RetryPrompt = 14
 	ReplyNotMatched = 15
