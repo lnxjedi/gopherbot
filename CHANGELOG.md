@@ -1,3 +1,8 @@
+# v2.15.2 - Security Updates
+Mainly this updates a Go dependency. Note that "CodeQL" still has a few issues related to the external script API that could be exploitable by untrusted extensions. My recommendation on that is and always will be: "don't run untrusted extensions on important robots". Maybe someday I'll audit the code and see if there's some means of making it safer (though likely never completely safe) to run untrusted plugins. Given the very slight resource requirements of a Gopherbot robot, my official recommendation would be:
+* If you want silly third-party plugins, run them in a separate robot that doesn't have access to anything important
+* Remove that robot's "manage" key (the one with read-write git permissions)
+
 # v2.15.1 - Bug Fixes
 * Fixes the return values in the script libraries to match the new values in Go
 * Fixes the heuristic in the Slack connector for when to send an ephemeral message
