@@ -448,23 +448,8 @@ func CreateSSHAuthMethod(agentClient agent.Agent, hostKeyCallback ssh.HostKeyCal
 }
 
 // CreateHostKeyCallback creates a HostKeyCallback using the known hosts data.
-func CreateHostKeyCallback(knownHostsData string) (ssh.HostKeyCallback, error) {
-	// Write known hosts data to a temporary file
-	tmpFile, err := os.CreateTemp("", "known_hosts")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create temporary known_hosts file: %w", err)
-	}
-	defer os.Remove(tmpFile.Name()) // Clean up the file later
-
-	_, err = tmpFile.WriteString(knownHostsData)
-	if err != nil {
-		tmpFile.Close()
-		return nil, fmt.Errorf("failed to write known hosts data to temporary file: %w", err)
-	}
-	tmpFile.Close()
-
-	// Create a host key callback from the temporary known_hosts file
-	hostKeyCallback, err := knownhosts.New(tmpFile.Name())
+func CreateHostKeyCallback(knownHostsPath string) (ssh.HostKeyCallback, error) {
+	hostKeyCallback, err := knownhosts.New(knownHostsPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create host key callback: %w", err)
 	}

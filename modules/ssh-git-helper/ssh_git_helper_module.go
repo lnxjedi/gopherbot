@@ -216,8 +216,8 @@ func Delete(handle string) error {
 	return nil
 }
 
-// GetHostKeys returns the host keys associated with the handle.
-func GetHostKeys(handle string) (string, error) {
+// GetHostKeysPath returns the host keys associated with the handle.
+func GetHostKeysPath(handle string) (string, error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
@@ -225,13 +225,7 @@ func GetHostKeys(handle string) (string, error) {
 	if !exists {
 		return "", errors.New("host keys handle not found")
 	}
-
-	hostKeysBytes, err := os.ReadFile(instance.knownHostsPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read known_hosts file: %w", err)
-	}
-
-	return string(hostKeysBytes), nil
+	return instance.knownHostsPath, nil
 }
 
 // GetKnownHostsPath returns the path to the known hosts file

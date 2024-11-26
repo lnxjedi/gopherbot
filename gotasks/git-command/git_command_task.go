@@ -44,14 +44,14 @@ func gitCommandTask(r robot.Robot, args ...string) robot.TaskRetVal {
 	}
 
 	// Obtain the host keys
-	hostKeysData, err := sshgithelper.GetHostKeys(hostKeysHandle)
+	hostKeysPath, err := sshgithelper.GetHostKeysPath(hostKeysHandle)
 	if err != nil {
 		r.Log(robot.Error, "failed to get host keys: "+err.Error())
 		return robot.Fail
 	}
 
 	// Create HostKeyCallback
-	hostKeyCallback, err := gitcommand.CreateHostKeyCallback(hostKeysData)
+	hostKeyCallback, err := gitcommand.CreateHostKeyCallback(hostKeysPath)
 	if err != nil {
 		r.Log(robot.Error, "failed to create host key callback: "+err.Error())
 		return robot.Fail
