@@ -1,3 +1,8 @@
+# v2.15.1 - Bug Fixes
+* Fixes the return values in the script libraries to match the new values in Go
+* Fixes the heuristic in the Slack connector for when to send an ephemeral message
+* Fixes git pull and switch-branch to ensure the correct branch is pulled
+
 # v2.15.0 - Dynamic Go Extensions
 
 The biggest, coolest, most exciting news for v2.15 is the ability to write new tasks, jobs and plugins in Go that are loaded and interpreted from the filesystem - thus, you can now add Go extensions to your robot's repository. To demonstrate this, some of Gopherbot's core and included tasks were modified to run this way. See:
