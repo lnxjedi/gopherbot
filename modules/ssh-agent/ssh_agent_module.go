@@ -8,7 +8,6 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"os/user"
@@ -17,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lnxjedi/gopherbot/robot"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
@@ -48,9 +48,11 @@ var manager = &AgentManager{
 	agents: make(map[string]*AgentInstance),
 }
 
-func init() {
+func Initialize(r robot.Handler) (err error) {
 	defer func() {
-		log.Printf("ssh_agent socketDirPath set to: %s", socketDirPath)
+		if err == nil {
+			r.Log(robot.Info, "ssh_agent socketDirPath set to: %s", socketDirPath)
+		}
 	}()
 	// Try creating the socket directory in the current working directory
 	currentDir, err := os.Getwd()
@@ -63,16 +65,17 @@ func init() {
 	}
 
 	// If the current working directory fails, try the user's home directory
-	usr, userErr := user.Current()
-	if userErr != nil {
-		log.Fatalf("Failed to determine current user: %v", userErr)
+	usr, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("failed to determine current user: %w", err)
 	}
 
 	socketDirPath = filepath.Join(usr.HomeDir, socketDirName)
 	err = os.MkdirAll(socketDirPath, 0700)
 	if err != nil {
-		log.Fatalf("Failed to create %s directory in both current and home directories: %v", socketDirName, err)
+		return fmt.Errorf("failed to create %s directory in both current and home directories: %w", socketDirName, err)
 	}
+	return
 }
 
 // New starts a new SSH agent with a specified key file and timeout.

@@ -218,6 +218,8 @@ func initBot() {
 		return
 	}
 
+	initializeModules(handle)
+
 	if !listening {
 		listening = true
 		listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%s", currentCfg.port))

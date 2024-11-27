@@ -7,7 +7,6 @@ package sshhostkeys
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"os/user"
@@ -16,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lnxjedi/gopherbot/robot"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
@@ -43,69 +43,86 @@ var manager = &HostKeysManager{
 	hosts: make(map[string]*HostKeysInstance),
 }
 
-func init() {
+// Initialize sets up the known_hosts directory and ensures the known_hosts file exists.
+// It logs informational messages using the provided handler and returns any encountered errors.
+func Initialize(r robot.Handler) (err error) {
 	defer func() {
-		log.Printf("ssh_git_helper knownHostsDirPath set to: %s", knownHostsDirPath)
+		if err == nil {
+			r.Log(robot.Info, "ssh_git_helper knownHostsDirPath set to: %s", knownHostsDirPath)
+		}
 	}()
 
-	// Try creating the known_hosts directory in the current working directory
+	// Attempt to get the current working directory
 	currentDir, err := os.Getwd()
 	if err == nil {
 		knownHostsDirPath = filepath.Join(currentDir, knownHostsDirName)
 		err = os.MkdirAll(knownHostsDirPath, 0700)
 		if err == nil {
-			createKnownHostsFile(currentDir)
-			return // Successfully created in the current directory
+			// Successfully created the directory in the current working directory
+			if err := createKnownHostsFile(currentDir); err != nil {
+				return fmt.Errorf("failed to create known_hosts file in %s: %w", currentDir, err)
+			}
+			return nil
 		}
 	}
 
-	// If the current working directory fails, try the user's home directory
-	usr, userErr := user.Current()
-	if userErr != nil {
-		fmt.Printf("Failed to determine current user: %v\n", userErr)
-		os.Exit(1)
+	// If creating in the current directory failed, attempt to use the user's home directory
+	usr, err := user.Current()
+	if err != nil {
+		return fmt.Errorf("failed to determine current user: %w", err)
 	}
 
 	knownHostsDirPath = filepath.Join(usr.HomeDir, knownHostsDirName)
 	err = os.MkdirAll(knownHostsDirPath, 0700)
 	if err != nil {
-		fmt.Printf("Failed to create %s directory in both current and home directories: %v\n", knownHostsDirName, err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create %s directory in both current and home directories: %w", knownHostsDirName, err)
 	}
 
-	createKnownHostsFile(usr.HomeDir)
+	// Successfully created the directory in the user's home directory
+	if err := createKnownHostsFile(usr.HomeDir); err != nil {
+		return fmt.Errorf("failed to create known_hosts file in %s: %w", usr.HomeDir, err)
+	}
+
+	return nil
 }
 
-// createKnownHostsFile ensures the known_hosts file exists and has the correct permissions
-func createKnownHostsFile(basePath string) {
-	filePath := filepath.Join(basePath, ".ssh")
-	err := os.MkdirAll(filePath, 0700)
+// createKnownHostsFile ensures the known_hosts file exists and has the correct permissions.
+// It returns an error if any operation fails.
+func createKnownHostsFile(basePath string) error {
+	sshDir := filepath.Join(basePath, ".ssh")
+	err := os.MkdirAll(sshDir, 0700)
 	if err != nil {
-		fmt.Printf("Failed to create %s directory in both current and home directories: %v\n", filePath, err)
-		os.Exit(1)
-	}
-	hostsFile := filepath.Join(filePath, "known_hosts")
-	// Check if the file already exists
-	info, err := os.Stat(hostsFile)
-	if err == nil {
-		// File exists, ensure correct mode
-		if info.Mode().Perm() != 0600 {
-			err = os.Chmod(filePath, 0600)
-			if err != nil {
-				fmt.Printf("Failed to set permissions on %s: %v\n", filePath, err)
-				os.Exit(1)
-			}
-		}
-		return
+		return fmt.Errorf("failed to create %s directory: %w", sshDir, err)
 	}
 
-	// Create the file if it doesn't exist
+	hostsFile := filepath.Join(sshDir, "known_hosts")
+
+	// Check if the known_hosts file already exists
+	info, err := os.Stat(hostsFile)
+	if err == nil {
+		// File exists, ensure it has the correct permissions
+		if info.Mode().Perm() != 0600 {
+			err = os.Chmod(hostsFile, 0600)
+			if err != nil {
+				return fmt.Errorf("failed to set permissions on %s: %w", hostsFile, err)
+			}
+		}
+		return nil
+	}
+
+	if !os.IsNotExist(err) {
+		// An error other than "not exists" occurred
+		return fmt.Errorf("failed to stat %s: %w", hostsFile, err)
+	}
+
+	// Create the known_hosts file since it does not exist
 	file, err := os.OpenFile(hostsFile, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
-		fmt.Printf("Failed to create %s: %v\n", hostsFile, err)
-		os.Exit(1)
+		return fmt.Errorf("failed to create %s: %w", hostsFile, err)
 	}
 	defer file.Close()
+
+	return nil
 }
 
 // generateHandle generates a unique handle for each host keys instance.
