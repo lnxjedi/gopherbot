@@ -7,6 +7,7 @@ package sshhostkeys
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"os/user"
@@ -43,6 +44,9 @@ var manager = &HostKeysManager{
 }
 
 func init() {
+	defer func() {
+		log.Printf("ssh_git_helper knownHostsDirPath set to: %s", knownHostsDirPath)
+	}()
 	// Try creating the known_hosts directory in the current working directory
 	currentDir, err := os.Getwd()
 	if err == nil {

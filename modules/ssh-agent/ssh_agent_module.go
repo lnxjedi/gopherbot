@@ -49,6 +49,9 @@ var manager = &AgentManager{
 }
 
 func init() {
+	defer func() {
+		log.Printf("ssh_agent socketDirPath set to: %s", socketDirPath)
+	}()
 	// Try creating the socket directory in the current working directory
 	currentDir, err := os.Getwd()
 	if err == nil {
