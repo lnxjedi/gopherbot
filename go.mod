@@ -1,6 +1,6 @@
 module github.com/lnxjedi/gopherbot/v2
 
-go 1.23.2
+go 1.23.3
 
 replace github.com/lnxjedi/gopherbot/robot => ./robot
 
