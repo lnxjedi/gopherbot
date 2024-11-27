@@ -3,6 +3,7 @@ module github.com/lnxjedi/gopherbot/v2
 go 1.23.3
 
 replace github.com/lnxjedi/gopherbot/robot => ./robot
+// replace github.com/go-git/go-git/v5 => ./replacements/go-git
 
 require (
 	github.com/aws/aws-sdk-go v1.44.152

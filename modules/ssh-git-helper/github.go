@@ -37,3 +37,13 @@ func getGitHubHostKeys() (string, error) {
 
 	return knownHostsEntries.String(), nil
 }
+
+// getBogusGitHubHostKeys returns a known_hosts string with invalid SSH host keys for github.com
+func getBogusGitHubHostKeys() (string, error) {
+	var knownHostsEntries strings.Builder
+	// Adding a bogus RSA key (valid Base64, but not a real key)
+	knownHostsEntries.WriteString("github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFy+SstHHltLtIhGOxOvPQK9db1wAH9HA6Ebg+drGlXDqk4IZ9uv16CBliBqRh3pLa9T7GQvONCAkQaWKs44cCo=\n")
+	// Adding a bogus ED25519 key (valid Base64, but not a real key)
+	knownHostsEntries.WriteString("github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDD6BhVyBEZpINid9F5s3w+MsKvlqEi4NNIczWWpOITl\n")
+	return knownHostsEntries.String(), nil
+}

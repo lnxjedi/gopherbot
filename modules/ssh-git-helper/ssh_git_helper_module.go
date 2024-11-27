@@ -47,12 +47,14 @@ func init() {
 	defer func() {
 		log.Printf("ssh_git_helper knownHostsDirPath set to: %s", knownHostsDirPath)
 	}()
+
 	// Try creating the known_hosts directory in the current working directory
 	currentDir, err := os.Getwd()
 	if err == nil {
 		knownHostsDirPath = filepath.Join(currentDir, knownHostsDirName)
 		err = os.MkdirAll(knownHostsDirPath, 0700)
 		if err == nil {
+			createKnownHostsFile(currentDir)
 			return // Successfully created in the current directory
 		}
 	}
@@ -70,6 +72,40 @@ func init() {
 		fmt.Printf("Failed to create %s directory in both current and home directories: %v\n", knownHostsDirName, err)
 		os.Exit(1)
 	}
+
+	createKnownHostsFile(usr.HomeDir)
+}
+
+// createKnownHostsFile ensures the known_hosts file exists and has the correct permissions
+func createKnownHostsFile(basePath string) {
+	filePath := filepath.Join(basePath, ".ssh")
+	err := os.MkdirAll(filePath, 0700)
+	if err != nil {
+		fmt.Printf("Failed to create %s directory in both current and home directories: %v\n", filePath, err)
+		os.Exit(1)
+	}
+	hostsFile := filepath.Join(filePath, "known_hosts")
+	// Check if the file already exists
+	info, err := os.Stat(hostsFile)
+	if err == nil {
+		// File exists, ensure correct mode
+		if info.Mode().Perm() != 0600 {
+			err = os.Chmod(filePath, 0600)
+			if err != nil {
+				fmt.Printf("Failed to set permissions on %s: %v\n", filePath, err)
+				os.Exit(1)
+			}
+		}
+		return
+	}
+
+	// Create the file if it doesn't exist
+	file, err := os.OpenFile(hostsFile, os.O_RDWR|os.O_CREATE, 0600)
+	if err != nil {
+		fmt.Printf("Failed to create %s: %v\n", hostsFile, err)
+		os.Exit(1)
+	}
+	defer file.Close()
 }
 
 // generateHandle generates a unique handle for each host keys instance.
@@ -118,6 +154,7 @@ func LoadHostKeys(repoURL string) (handle string, err error) {
 	switch host {
 	case "github.com":
 		hostKeys, err = getGitHubHostKeys()
+		// hostKeys, err = getBogusGitHubHostKeys()
 	case "bitbucket.org":
 		hostKeys, err = getBitbucketHostKeys()
 	default:
