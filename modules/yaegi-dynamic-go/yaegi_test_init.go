@@ -1,6 +1,6 @@
 //go:build test
 
-package yaegidynamicgo_test
+package yaegidynamicgo
 
 import (
 	"fmt"
