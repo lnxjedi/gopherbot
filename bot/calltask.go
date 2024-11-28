@@ -306,6 +306,13 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	}
 
 	if isExternalGoTask {
+		if privSep {
+			if privileged {
+				raiseThreadPriv(fmt.Sprintf("privileged external Go task \"%s\"", task.name))
+			} else {
+				dropThreadPriv(fmt.Sprintf("unprivileged external Go task \"%s\"", task.name))
+			}
+		}
 		if isPlugin {
 			if command != "init" {
 				emit(GoPluginRan)

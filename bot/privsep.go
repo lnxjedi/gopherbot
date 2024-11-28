@@ -3,8 +3,6 @@
 package bot
 
 import (
-	"fmt"
-	"log"
 	"os"
 	"runtime"
 	"syscall"
@@ -48,6 +46,18 @@ func init() {
 	uid := unix.Getuid()
 	euid := unix.Geteuid()
 	if uid != euid {
+		privUID = uid
+		unprivUID = euid
+		unix.Umask(0022)
+		runtime.LockOSThread()
+
+		// Attempt to set real and effective UIDs using the raw syscall
+		err := setReuid(unprivUID, privUID)
+		if err != nil {
+			botStdOutLogger.Printf("PRIVSEP - error setting reuid in init: %v", err)
+			return
+		}
+
 		// Check and ensure the current working directory has permissions 0755
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -71,18 +81,6 @@ func init() {
 			botStdOutLogger.Printf("PRIVSEP - changed permissions of current working directory '%s' from %o to 0755", cwd, mode)
 		}
 
-		privUID = uid
-		unprivUID = euid
-		unix.Umask(0022)
-		runtime.LockOSThread()
-
-		// Attempt to set real and effective UIDs using the raw syscall
-		err = setReuid(unprivUID, privUID)
-		if err != nil {
-			botStdOutLogger.Printf("Error setting reuid in init: %v", err)
-			return
-		}
-
 		// Successfully initialized privilege separation
 		privSep = true
 	}
@@ -94,17 +92,17 @@ func raiseThreadPriv(reason string) {
 		euid := unix.Geteuid()
 		if euid == privUID {
 			tid := unix.Gettid()
-			Log(robot.Debug, "Successful privilege check for '%s'; r/e for thread %d: %d/%d", reason, tid, ruid, euid)
+			Log(robot.Debug, "PRIVSEP - successful privilege check for '%s'; r/e for thread %d: %d/%d", reason, tid, ruid, euid)
 		} else {
 			// Not privileged, create a new privileged thread
 			runtime.LockOSThread()
 			tid := unix.Gettid()
 			err := setReuid(unprivUID, privUID)
 			if err != nil {
-				botStdOutLogger.Printf("Error calling setReuid(%d, %d) in raiseThreadPriv: %v", unprivUID, privUID, err)
+				botStdOutLogger.Printf("PRIVSEP - error calling setReuid(%d, %d) in raiseThreadPriv: %v", unprivUID, privUID, err)
 				return
 			}
-			Log(robot.Debug, "Successfully raised privilege for '%s' thread %d; old r/euid %d/%d; new r/euid: %d/%d", reason, tid, ruid, euid, unprivUID, privUID)
+			Log(robot.Debug, "PRIVSEP - successfully raised privilege for '%s' thread %d; old r/euid %d/%d; new r/euid: %d/%d", reason, tid, ruid, euid, unprivUID, privUID)
 		}
 	}
 }
@@ -118,10 +116,10 @@ func raiseThreadPrivExternal(reason string) {
 		tid := unix.Gettid()
 		err := setReuid(privUID, privUID)
 		if err != nil {
-			botStdOutLogger.Printf("Error calling setReuid(%d, %d) in raiseThreadPrivExternal: %v", privUID, privUID, err)
+			botStdOutLogger.Printf("PRIVSEP - error calling setReuid(%d, %d) in raiseThreadPrivExternal: %v", privUID, privUID, err)
 			return
 		}
-		Log(robot.Debug, "Successfully raised privilege permanently for '%s' thread %d; new r/euid: %d/%d", reason, tid, privUID, privUID)
+		Log(robot.Debug, "PRIVSEP - successfully raised privilege permanently for '%s' thread %d; new r/euid: %d/%d", reason, tid, privUID, privUID)
 	}
 }
 
@@ -133,24 +131,24 @@ func dropThreadPriv(reason string) {
 		tid := unix.Gettid()
 		err := setReuid(unprivUID, unprivUID)
 		if err != nil {
-			botStdOutLogger.Printf("Error calling setReuid(%d, %d) in dropThreadPriv: %v", unprivUID, unprivUID, err)
+			botStdOutLogger.Printf("PRIVSEP - error calling setReuid(%d, %d) in dropThreadPriv: %v", unprivUID, unprivUID, err)
 			return
 		}
-		Log(robot.Debug, "Successfully dropped privileges for '%s' in thread %d; new r/euid: %d/%d", reason, tid, unprivUID, unprivUID)
+		Log(robot.Debug, "PRIVSEP - successfully dropped privileges for '%s' in thread %d; new r/euid: %d/%d", reason, tid, unprivUID, unprivUID)
 	}
 }
 
 // checkprivsep logs the current state of privilege separation.
 // It reports whether privilege separation is active and details the UIDs
 // associated with the daemon and the current thread.
-func checkprivsep(l *log.Logger) {
+func checkprivsep() {
 	if privSep {
 		runtime.LockOSThread()
 		ruid := unix.Getuid()
 		euid := unix.Geteuid()
 		tid := unix.Gettid()
-		l.Printf(fmt.Sprintf("Privilege separation initialized; daemon UID %d, unprivileged UID %d; thread %d r/euid: %d/%d\n", privUID, unprivUID, tid, ruid, euid))
+		botStdOutLogger.Printf("PRIVSEP - privilege separation initialized; daemon UID %d, unprivileged UID %d; thread %d r/euid: %d/%d\n", privUID, unprivUID, tid, ruid, euid)
 	} else {
-		l.Printf("Privilege separation not in use\n")
+		botStdOutLogger.Printf("PRIVSEP - Privilege separation not in use\n")
 	}
 }

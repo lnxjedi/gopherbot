@@ -13,8 +13,11 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-// initialized in start.go
-var botStdErrLogger, botStdOutLogger *log.Logger
+// re-initialized in start.go
+var (
+	botStdErrLogger = log.New(os.Stderr, "", 0)
+	botStdOutLogger = log.New(os.Stdout, "", 0)
+)
 
 // Set by terminal connector
 var terminalWriter io.Writer
@@ -219,7 +222,9 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 					botStdOutLogger.Print("LOG " + msg)
 				}
 			}
-			logger.Print(msg)
+			if fileLog {
+				logger.Print(msg)
+			}
 			tsMsg := fmt.Sprintf("%s %s\n", time.Now().Format("Jan 2 15:04:05"), msg)
 			botLogger.Lock()
 			botLogger.buffer[botLogger.buffLine] = tsMsg
