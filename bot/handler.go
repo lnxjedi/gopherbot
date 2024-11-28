@@ -60,25 +60,25 @@ func (h handler) RaisePriv(reason string) {
 // up creating a new pipeline. Workers are also created by scheduled jobs
 // and Spawned jobs, in which case a pipeline is always created.
 type worker struct {
-	User            string                      // The user who sent the message; this can be modified for replying to an arbitrary user
-	Channel         string                      // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
-	ProtocolUser    string                      // The username or <userid> to be sent in connector methods
-	ProtocolChannel string                      // the channel name or <channelid> where the message originated
-	Protocol        robot.Protocol              // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
-	Incoming        *robot.ConnectorMessage     // raw struct of message sent by connector
-	Format          robot.MessageFormat         // robot's default message format
-	id              int                         // integer worker ID used when being registered as an active pipeline
-	tasks           *taskList                   // Pointers to current task configuration at start of pipeline
-	maps            *userChanMaps               // Pointer to current user / channel maps struct
-	cfg             *configuration              // Active configuration when this context was created
-	BotUser         bool                        // set for bots/programs that should never match ambient messages
-	listedUser      bool                        // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
-	isCommand       bool                        // Was the message directed at the robot, dm or by mention
-	cmdMode         string                      // one of "alias", "name", "direct" - for disambiguation
-	msg, fmsg       string                      // the message text sent; without robot name/alias, and with for message matching
-	automaticTask   bool                        // set for scheduled & triggers jobs, where user security restrictions don't apply
-	*pipeContext                                // pointer to the pipeline context
-	sync.Mutex                                  // Lock to protect the bot context when pipeline running
+	User            string                  // The user who sent the message; this can be modified for replying to an arbitrary user
+	Channel         string                  // The channel where the message was received, or "" for a direct message. This can be modified to send a message to an arbitrary channel.
+	ProtocolUser    string                  // The username or <userid> to be sent in connector methods
+	ProtocolChannel string                  // the channel name or <channelid> where the message originated
+	Protocol        robot.Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
+	Incoming        *robot.ConnectorMessage // raw struct of message sent by connector
+	Format          robot.MessageFormat     // robot's default message format
+	id              int                     // integer worker ID used when being registered as an active pipeline
+	tasks           *taskList               // Pointers to current task configuration at start of pipeline
+	maps            *userChanMaps           // Pointer to current user / channel maps struct
+	cfg             *configuration          // Active configuration when this context was created
+	BotUser         bool                    // set for bots/programs that should never match ambient messages
+	listedUser      bool                    // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
+	isCommand       bool                    // Was the message directed at the robot, dm or by mention
+	cmdMode         string                  // one of "alias", "name", "direct" - for disambiguation
+	msg, fmsg       string                  // the message text sent; without robot name/alias, and with for message matching
+	automaticTask   bool                    // set for scheduled & triggers jobs, where user security restrictions don't apply
+	*pipeContext                            // pointer to the pipeline context
+	sync.Mutex                              // Lock to protect the bot context when pipeline running
 }
 
 // clone a worker for a new execution context
@@ -323,7 +323,7 @@ func (h handler) GetDirectory(p string) error {
 	if len(p) == 0 {
 		return errors.New("invalid 0-length path in GetDirectory")
 	}
-	dperm := os.FileMode(0750)
+	dperm := os.FileMode(0755)
 	if filepath.IsAbs(p) {
 		p = filepath.Clean(p)
 	}

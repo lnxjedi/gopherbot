@@ -16,9 +16,6 @@ import (
 )
 
 var (
-	// Information about privilege separation, set in runtasks_linux.go
-	privSep = false
-
 	// Set for CLI commands
 	cliOp   = false
 	fileLog = false
