@@ -157,7 +157,6 @@ func init() {
 			WGetProtocolConfig func(a0 interface{}) ( error)
 			WIncomingMessage func(a0 *robot.ConnectorMessage) ()
 			WLog func(l robot.LogLevel, m string, v ...interface{}) ()
-			WRaisePriv func(reason string) ()
 			WSetBotID func(id string) ()
 			WSetBotMention func(mention string) ()
 			WSetTerminalWriter func(a0 io.Writer) ()
@@ -184,8 +183,6 @@ func init() {
 	func (W _github_com_lnxjedi_gopherbot_robot_Handler) IncomingMessage(a0 *robot.ConnectorMessage) () { W.WIncomingMessage(a0)
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Handler) Log(l robot.LogLevel, m string, v ...interface{}) () { W.WLog(l, m, v...)
-			}
-	func (W _github_com_lnxjedi_gopherbot_robot_Handler) RaisePriv(reason string) () { W.WRaisePriv(reason)
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Handler) SetBotID(id string) () { W.WSetBotID(id)
 			}
@@ -273,7 +270,6 @@ func init() {
 			WPromptUserChannelForReply func(regexID string, user string, channel string, prompt string, v ...interface{}) ( string,  robot.RetVal)
 			WPromptUserChannelThreadForReply func(regexID string, user string, channel string, thread string, prompt string, v ...interface{}) ( string,  robot.RetVal)
 			WPromptUserForReply func(regexID string, user string, prompt string, v ...interface{}) ( string,  robot.RetVal)
-			WRaisePriv func(a0 string) ()
 			WRandomInt func(n int) ( int)
 			WRandomString func(s []string) ( string)
 			WRecall func(key string, shared bool) ( string)
@@ -358,8 +354,6 @@ func init() {
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) PromptUserChannelThreadForReply(regexID string, user string, channel string, thread string, prompt string, v ...interface{}) ( string,  robot.RetVal) {return W.WPromptUserChannelThreadForReply(regexID, user, channel, thread, prompt, v...)
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) PromptUserForReply(regexID string, user string, prompt string, v ...interface{}) ( string,  robot.RetVal) {return W.WPromptUserForReply(regexID, user, prompt, v...)
-			}
-	func (W _github_com_lnxjedi_gopherbot_robot_Robot) RaisePriv(a0 string) () { W.WRaisePriv(a0)
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) RandomInt(n int) ( int) {return W.WRandomInt(n)
 			}

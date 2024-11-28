@@ -68,7 +68,6 @@ func logRotate(extension string) robot.TaskRetVal {
 	if len(logFileName) == 0 {
 		return robot.Normal
 	}
-	raiseThreadPriv("rotating log")
 	if len(extension) > 0 {
 		oldext := filepath.Ext(logFileName)
 		barename := strings.TrimSuffix(logFileName, oldext)
@@ -219,7 +218,9 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 					botStdOutLogger.Print("LOG " + msg)
 				}
 			}
-			logger.Print(msg)
+			if fileLog {
+				logger.Print(msg)
+			}
 			tsMsg := fmt.Sprintf("%s %s\n", time.Now().Format("Jan 2 15:04:05"), msg)
 			botLogger.Lock()
 			botLogger.buffer[botLogger.buffLine] = tsMsg

@@ -228,7 +228,6 @@ func initBot() {
 		}
 		listenPort = listener.Addr().String()
 		go func() {
-			raiseThreadPriv("http handler")
 			apiServer := http.NewServeMux()
 			apiServer.Handle("/json", handle)
 			Log(robot.Info, "Listening for external plugin connections on http://%s", listenPort)
@@ -287,7 +286,6 @@ func initCrypt() bool {
 					return false
 				}
 				beks := base64.StdEncoding.EncodeToString(bek)
-				raiseThreadPriv("writing generated encrypted key")
 				err = os.WriteFile(keyFile, []byte(beks), 0444)
 				if err != nil {
 					Log(robot.Error, "Writing out generated key: %v", err)
@@ -337,7 +335,6 @@ func run() {
 
 	// connector loop
 	go func(conn robot.Connector, sigBreak chan<- struct{}) {
-		raiseThreadPriv("connector loop")
 		conn.Run(stopConnector)
 		close(sigBreak)
 		state.RLock()

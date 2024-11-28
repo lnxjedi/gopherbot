@@ -104,7 +104,6 @@ var config *ConfigLoader
 
 // loadConfig loads the 'bot's yaml configuration files.
 func loadConfig(preConnect bool) error {
-	raiseThreadPriv("loading configuration")
 	var loglevel robot.LogLevel
 	if preConnect {
 		Log(robot.Info, "Loading initial pre-connection configuration")

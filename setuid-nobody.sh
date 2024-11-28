@@ -11,6 +11,9 @@ fi
 
 INSTALLDIR=$(dirname $0)
 cd $INSTALLDIR
-chown nobody gopherbot
+chown nobody:nobody gopherbot
 chmod u+s gopherbot
+echo "Making 'privsep' helper setuid root"
+chown root:root privsep
+chmod 4755 privsep
 echo "Done."

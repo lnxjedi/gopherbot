@@ -1,5 +1,7 @@
 coverage.*
 gopherbot
+privsep
+!helpers/privsep
 gopherbot.exe
 gopherbot*zip
 gopherbot*tar.gz

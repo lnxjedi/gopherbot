@@ -92,7 +92,6 @@ func (fhc *historyConfig) NewLog(tag string, index, maxHistories int) (robot.His
 	tag = strings.Replace(tag, `/`, ":", -1)
 	dirPath := path.Join(fhc.Directory, tag)
 	filePath := path.Join(dirPath, fmt.Sprintf("run-%d.log", index))
-	handler.RaisePriv("creating new log for: " + tag)
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return nil, fmt.Errorf("Error creating history directory '%s': %v", dirPath, err)
 	}
@@ -173,7 +172,6 @@ func provider(r robot.Handler) robot.HistoryProvider {
 		return nil
 	}
 	historyPath = fhc.Directory
-	handler.RaisePriv("initializing file history")
 	if err := r.GetDirectory(historyPath); err != nil {
 		handler.Log(robot.Error, "Checking history directory '%s': %v", historyPath, err)
 		return nil

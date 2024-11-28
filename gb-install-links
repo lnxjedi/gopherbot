@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-# Trivial EXECUTABLE to symlink gb-* EXECUTABLEs in to $PATH
+# Trivial EXECUTABLE to Gopherbot EXECUTABLEs in to $PATH
 
 DEST="$1"
 
@@ -24,7 +24,7 @@ fi
 
 EXECUTABLE_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
 
-for EXECUTABLE in gopherbot cbot.sh
+for EXECUTABLE in gopherbot cbot privsep
 do
     ln -snf "$EXECUTABLE_DIR/$EXECUTABLE" "$DEST"
 done

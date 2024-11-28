@@ -94,9 +94,6 @@ type Handler interface {
 	// ExtractID is a convenience function for connectors, keeps 'import "regexp"
 	// out of robot.
 	ExtractID(u string) (string, bool)
-	// RaisePriv raises the privilege of the current thread, allowing
-	// filesystem access in GOPHER_HOME. Reason is informational.
-	RaisePriv(reason string)
 }
 
 // Connector is the interface defining methods that should be provided by

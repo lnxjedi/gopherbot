@@ -36,6 +36,7 @@ BUILDOS="linux"
 rm -rf "$ADIR/gopherbot"
 mkdir -p "$ADIR/gopherbot"
 cp -a gopherbot "$ADIR/gopherbot/gopherbot"
+cp -a privsep "$ADIR/gopherbot/privsep"
 cp -a --parents $CONTENTS "$ADIR/gopherbot"
 chmod -R a+rX $ADIR
 

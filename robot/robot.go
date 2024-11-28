@@ -268,9 +268,6 @@ type Robot interface {
 	// for e.g. emailing the job history. The command string
 	// argument should match a CommandMatcher for the given plugin.
 	FailCommand(string, string) RetVal
-	// RaisePriv lets go plugins raise privilege for a thread, allowing filesystem
-	// access in GOPHER_HOME.
-	RaisePriv(string)
 	// SetParameter sets a parameter for the current pipeline, useful only for
 	// passing parameters (as environment variables) to tasks later in the pipeline.
 	SetParameter(string, string) bool

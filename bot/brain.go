@@ -122,7 +122,6 @@ var brainLocks = struct {
 // runBrain is the select loop that serializes access to brain
 // functions and insures consistency.
 func runBrain() {
-	raiseThreadPriv("runBrain loop")
 	// map key to status
 	memories := make(map[string]*memstatus)
 	brainTicker := time.NewTicker(memCycle)

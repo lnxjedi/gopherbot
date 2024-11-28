@@ -479,7 +479,6 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			r.Say("No active process found for pipeline")
 			return
 		}
-		raiseThreadPriv(fmt.Sprintf("killing process %d", pid))
 		unix.Kill(-pid, unix.SIGKILL)
 		r.Say("Killed pid %d", pid)
 	case "pause":

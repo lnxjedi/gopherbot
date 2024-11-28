@@ -154,11 +154,6 @@ func (w *worker) checkAdmin() bool {
 }
 
 // see robot/robot.go
-func (r Robot) RaisePriv(reason string) {
-	raiseThreadPriv(reason)
-}
-
-// see robot/robot.go
 func (r Robot) SetParameter(name, value string) bool {
 	if !identifierRe.MatchString(name) {
 		return false
@@ -180,7 +175,6 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 		return true
 	}
 	if filepath.IsAbs(path) {
-		raiseThreadPriv("checking absolute path")
 		_, ok := checkDirectory(path)
 		if ok {
 			c.workingDirectory = path
