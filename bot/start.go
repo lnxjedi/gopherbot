@@ -54,6 +54,9 @@ func Start(v VersionInfo) {
 		panic(err)
 	}
 
+	// Go ahead and initialize privsep, needed for container support below
+	initializePrivsep()
+
 	// Save args in case we need to spawn child
 	args := os.Args[1:]
 	// Process command-line flags

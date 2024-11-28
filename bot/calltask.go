@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/lnxjedi/gopherbot/robot"
 	yaegi "github.com/lnxjedi/gopherbot/v2/modules/yaegi-dynamic-go"
@@ -90,16 +89,12 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 
 	var cmd *exec.Cmd
 
-	Log(robot.Debug, "calling '%s' with arg: configure", taskPath)
-	cmd = exec.Command(taskPath, "configure")
 	if privSep {
-		Log(robot.Debug, "PRIVSEP - dropping privileges to uid/gid %d/%d to call configure for '%s'", unprivUID, procGID, task.name)
-		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Credential: &syscall.Credential{
-				Uid: uint32(unprivUID),
-				Gid: uint32(procGID),
-			},
-		}
+		Log(robot.Debug, "PRIVSEP - calling '%s' for '%s' with arg: configure", helperPath, taskPath)
+		cmd = exec.Command(helperPath, taskPath, "configure")
+	} else {
+		Log(robot.Debug, "calling '%s' with arg: configure", taskPath)
+		cmd = exec.Command(taskPath, "configure")
 	}
 	if relpath {
 		cmd.Dir = configPath
@@ -191,9 +186,7 @@ func getLockedWorker(idx int) *worker {
 // the worker because it can be called within a task by the Elevate() method.
 func (w *worker) callTask(t interface{}, command string, args ...string) (errString string, retval robot.TaskRetVal) {
 	rc := make(chan taskReturn)
-	task, _, _ := getTask(t)
 	go w.callTaskThread(rc, t, command, args...)
-	debugPriv(fmt.Sprintf("calltask '%s'", task.name))
 	ret := <-rc
 	return ret.errString, ret.retval
 }
@@ -358,27 +351,15 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		externalArgs = append(externalArgs, command)
 	}
 	externalArgs = append(externalArgs, args...)
-	Log(robot.Debug, "Calling '%s' with args: %q", taskPath, externalArgs)
-	cmd := exec.Command(taskPath, externalArgs...)
 
-	if privSep {
-		if privileged {
-			Log(robot.Debug, "PRIVSEP - raising privileges to uid/gid/sgids %d/%d/%v to run privileged external task '%s'", privUID, procGID, extraGroups, task.name)
-			cmd.SysProcAttr = &syscall.SysProcAttr{
-				Credential: &syscall.Credential{
-					Uid: uint32(privUID),
-					Gid: uint32(procGID),
-				},
-			}
-		} else {
-			Log(robot.Debug, "PRIVSEP - dropping privileges to uid/gid %d/%d to run external task '%s'", unprivUID, procGID, task.name)
-			cmd.SysProcAttr = &syscall.SysProcAttr{
-				Credential: &syscall.Credential{
-					Uid: uint32(unprivUID),
-					Gid: uint32(procGID),
-				},
-			}
-		}
+	var cmd *exec.Cmd
+
+	if privSep && privileged {
+		Log(robot.Debug, "PRIVSEP - calling '%s' for '%s' with args: %q", helperPath, taskPath, externalArgs)
+		cmd = exec.Command(taskPath, externalArgs...)
+	} else {
+		Log(robot.Debug, "calling '%s' with args: %q", taskPath, externalArgs)
+		cmd = exec.Command(taskPath, externalArgs...)
 	}
 
 	// Homed tasks ALWAYS run in cwd, Homed pipelines may have modified the
