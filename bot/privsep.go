@@ -4,6 +4,8 @@
 package bot
 
 import (
+	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -11,9 +13,9 @@ import (
 )
 
 var (
-	privSep                     = false
-	privUID, unprivUID, procGID int
-	extraGroups                 []uint32
+	privSep                                = false
+	privUID, unprivUID, privGID, unprivGID int
+	helperPath                             string
 )
 
 /* NOTE on privsep and setuid gopherbot:
@@ -23,29 +25,48 @@ by the desired user, and installed setuid to a non-priviliged account like
 different uids on a single host with a single install.
 */
 
-func init() {
+func initializePrivsep() {
 	uid := unix.Getuid()
 	euid := unix.Geteuid()
 	gid := unix.Getgid()
-	groups, _ := unix.Getgroups()
-	extraGroups = convertIntToUint32(groups)
+	egid := unix.Getegid()
+	helperPath = filepath.Join(installPath, "privsep")
+
+	if euid == 0 {
+		Log(robot.Fatal, "PRIVSEP - gopherbot is running with EUID 0 (root), which is not allowed!!!")
+		os.Exit(1)
+	}
+
 	if uid != euid {
-		privUID = uid
-		unprivUID = euid
-		procGID = gid
+		if _, err := os.Stat("/proc/self/status"); os.IsNotExist(err) {
+			Log(robot.Error, "PRIVSEP - /proc/self/status not found, cannot proceed with privilege separation")
+			return
+		} else if err != nil {
+			Log(robot.Error, "PRIVSEP - error accessing /proc/self/status: %v", err)
+			return
+		}
+
+		privUID := uid    // Real UID
+		unprivUID := euid // Effective UID (unprivileged)
+		privGID := gid    // Real GID
+		unprivGID := egid // Effective GID (unprivileged)
+
 		unix.Umask(0022)
 		runtime.LockOSThread()
-		unix.Setreuid(unprivUID, privUID)
+
+		if err := unix.Setregid(unprivGID, privGID); err != nil {
+			Log(robot.Error, "Error setting GID to unprivileged GID (%d): %v", unprivGID, err)
+			return
+		}
+
+		if err := unix.Setreuid(unprivUID, privUID); err != nil {
+			Log(robot.Error, "Error setting UID to unprivileged UID (%d): %v", unprivUID, err)
+			return
+		}
+
+		Log(robot.Info, "Privilege separation initialized, running with EUID/GID %d/%d, RUID/GID %d/%d", euid, egid, uid, gid)
 		privSep = true
 	}
-}
-
-func convertIntToUint32(intSlice []int) []uint32 {
-	uint32Slice := make([]uint32, len(intSlice))
-	for i, v := range intSlice {
-		uint32Slice[i] = uint32(v)
-	}
-	return uint32Slice
 }
 
 // raisePriv only used to restart
@@ -61,19 +82,6 @@ func raisePrivPermanent(reason string) {
 			return
 		}
 		Log(robot.Debug, "PRIVSEP - Successfully raised privilege permanently for '%s' thread %d; new r/euid: %d/%d", reason, tid, privUID, privUID)
-	}
-}
-
-func debugPriv(reason string) {
-	if privSep {
-		ruid := unix.Getuid()
-		euid := unix.Geteuid()
-		tid := unix.Gettid()
-		if euid == privUID {
-			Log(robot.Debug, "PRIVSEP - Privilege separation check OK for \"%s\"; daemon UID %d, unprivileged UID %d; thread %d; want r/euid: %d/%d\n", reason, ruid, euid, tid, privUID, unprivUID)
-		} else {
-			Log(robot.Debug, "PRIVSEP - Privilege separation check FAILED for \"%s\"; daemon UID %d, unprivileged UID %d; thread %d; want r/euid: %d/%d\n", reason, ruid, euid, tid, privUID, unprivUID)
-		}
 	}
 }
 
