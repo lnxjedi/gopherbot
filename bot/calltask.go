@@ -256,8 +256,14 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				rchan <- taskReturn{err.Error(), robot.MechanismFail}
 			}
 		}()
+		if privSep {
+			if privileged {
+				raiseThreadPriv(fmt.Sprintf("privileged compiled-in Go task \"%s\"", task.name))
+			} else {
+				dropThreadPriv(fmt.Sprintf("unprivileged compiled-in Go task \"%s\"", task.name))
+			}
+		}
 		if isPlugin {
-
 			if command != "init" {
 				emit(GoPluginRan)
 			}
