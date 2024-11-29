@@ -23,14 +23,15 @@ by the desired user, and installed setuid to a non-privileged account like
 "nobody". This makes it possible to run several instances of gopherbot with
 different UIDs on a single host with a single install.
 
-Privilege separation is achieved by performing setreuid syscalls on individual
+Privilege separation is achieved by performing syscall.Setreuid(...) in an init
+func to initialize all the startup threads, then setReuid syscalls on individual
 OS threads to confine privilege changes to specific threads. This ensures that
 privilege escalation or demotion does not inadvertently affect other threads
 within the process.
 */
 
 // setReuid performs the setreuid syscall to change the real and effective user IDs
-// of the current OS thread. This confines the privilege changes to the thread
+// of the *CURRENT OS THREAD ONLY*. This confines the privilege changes to the thread
 // locked by runtime.LockOSThread().
 func setReuid(ruid, euid int) error {
 	// Perform the setreuid syscall using syscall.Syscall with predefined constants.
@@ -43,6 +44,11 @@ func setReuid(ruid, euid int) error {
 }
 
 func init() {
+	defer func() {
+		if !privSep {
+			runtime.UnlockOSThread()
+		}
+	}()
 	uid := unix.Getuid()
 	euid := unix.Geteuid()
 	if uid != euid {
@@ -51,8 +57,9 @@ func init() {
 		unix.Umask(0022)
 		runtime.LockOSThread()
 
-		// Attempt to set real and effective UIDs using the raw syscall
-		err := setReuid(unprivUID, privUID)
+		// Attempt to set real and effective UIDs using the raw syscall on ALL the startup
+		// threads.
+		err := syscall.Setreuid(unprivUID, privUID)
 		if err != nil {
 			botStdOutLogger.Printf("PRIVSEP - error setting reuid in init: %v", err)
 			return
@@ -90,8 +97,8 @@ func raiseThreadPriv(reason string) {
 	if privSep {
 		ruid := unix.Getuid()
 		euid := unix.Geteuid()
+		tid := unix.Gettid()
 		if euid == privUID {
-			tid := unix.Gettid()
 			Log(robot.Debug, "PRIVSEP - successful privilege check for '%s'; r/e for thread %d: %d/%d", reason, tid, ruid, euid)
 		} else {
 			// Not privileged, create a new privileged thread
@@ -99,10 +106,11 @@ func raiseThreadPriv(reason string) {
 			tid := unix.Gettid()
 			err := setReuid(unprivUID, privUID)
 			if err != nil {
-				botStdOutLogger.Printf("PRIVSEP - error calling setReuid(%d, %d) in raiseThreadPriv: %v", unprivUID, privUID, err)
+				Log(robot.Error, "PRIVSEP - error calling setReuid(%d, %d) from thread %d, r/euid: %d/%d in raiseThreadPriv for %s: %v", unprivUID, privUID, tid, ruid, euid, reason, err)
 				return
 			}
-			Log(robot.Debug, "PRIVSEP - successfully raised privilege for '%s' thread %d; old r/euid %d/%d; new r/euid: %d/%d", reason, tid, ruid, euid, unprivUID, privUID)
+			// Most of the time, new threads should already have euid == privUID
+			Log(robot.Warn, "PRIVSEP - successfully raised privilege for '%s' thread %d; old r/euid %d/%d; new r/euid: %d/%d", reason, tid, ruid, euid, unprivUID, privUID)
 		}
 	}
 }
@@ -112,11 +120,13 @@ func raiseThreadPriv(reason string) {
 // from spawning child threads with unprivileged UIDs.
 func raiseThreadPrivExternal(reason string) {
 	if privSep {
-		runtime.LockOSThread()
+		ruid := unix.Getuid()
+		euid := unix.Geteuid()
 		tid := unix.Gettid()
+		runtime.LockOSThread()
 		err := setReuid(privUID, privUID)
 		if err != nil {
-			botStdOutLogger.Printf("PRIVSEP - error calling setReuid(%d, %d) in raiseThreadPrivExternal: %v", privUID, privUID, err)
+			Log(robot.Error, "PRIVSEP - error calling setReuid(%d, %d) from thread %d, r/euid: %d/%d in raiseThreadPrivExternal for %s: %v", tid, ruid, euid, privUID, privUID, reason, err)
 			return
 		}
 		Log(robot.Debug, "PRIVSEP - successfully raised privilege permanently for '%s' thread %d; new r/euid: %d/%d", reason, tid, privUID, privUID)

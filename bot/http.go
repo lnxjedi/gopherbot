@@ -187,6 +187,17 @@ func sendReturn(rw http.ResponseWriter, ret interface{}) {
 	rw.Write(d)
 }
 
+func logJSON(r robot.Robot, d *[]byte) {
+	var obj map[string]interface{}
+	json.Unmarshal(*d, &obj)
+	formattedJSON, _ := json.Marshal(obj)
+	if len(formattedJSON) > 256 {
+		formattedJSON = formattedJSON[:242]
+		formattedJSON = append(formattedJSON, "... (truncated)"...)
+	}
+	r.Log(robot.Debug, "http received raw JSON: %s", formattedJSON)
+}
+
 func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	data, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -212,6 +223,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	taskLookup.RLock()
 	r, ok := taskLookup.e[f.CallerID]
 	taskLookup.RUnlock()
+	logJSON(r, &data)
 	r.Log(robot.Debug, "http received raw JSON: %s", data)
 	if !ok {
 		rw.WriteHeader(http.StatusBadRequest)
