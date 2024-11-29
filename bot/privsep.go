@@ -44,18 +44,12 @@ func setReuid(ruid, euid int) error {
 }
 
 func init() {
-	defer func() {
-		if !privSep {
-			runtime.UnlockOSThread()
-		}
-	}()
 	uid := unix.Getuid()
 	euid := unix.Geteuid()
 	if uid != euid {
 		privUID = uid
 		unprivUID = euid
 		unix.Umask(0022)
-		runtime.LockOSThread()
 
 		// Attempt to set real and effective UIDs using the raw syscall on ALL the startup
 		// threads.
@@ -101,8 +95,6 @@ func raiseThreadPriv(reason string) {
 		if euid == privUID {
 			Log(robot.Debug, "PRIVSEP - successful privilege check for '%s'; r/e for thread %d: %d/%d", reason, tid, ruid, euid)
 		} else {
-			// Not privileged, create a new privileged thread
-			runtime.LockOSThread()
 			tid := unix.Gettid()
 			err := setReuid(unprivUID, privUID)
 			if err != nil {
@@ -153,7 +145,6 @@ func dropThreadPriv(reason string) {
 // associated with the daemon and the current thread.
 func checkprivsep() {
 	if privSep {
-		runtime.LockOSThread()
 		ruid := unix.Getuid()
 		euid := unix.Geteuid()
 		tid := unix.Gettid()
