@@ -28,6 +28,17 @@ func to initialize all the startup threads, then setReuid syscalls on individual
 OS threads to confine privilege changes to specific threads. This ensures that
 privilege escalation or demotion does not inadvertently affect other threads
 within the process.
+
+The key to solving the privsep problem correctly is:
+* call syscall.Setreuid(unpriv, priv) in a func init() to initialize ALL the
+  original threads to privileged.
+* Always use runtime.LockOSThread() before calling
+  syscall.Syscall(SETREUID,unpriv,unpriv) (which only affects the *current* thread,
+  not all of them), and NEVER calling UnlockOSThread to ensure that the unpriv
+  thread never gets reused, and is destroyed when the goroutine finishes.
+
+See: https://pkg.go.dev/runtime#LockOSThread
+
 */
 
 // setReuid performs the setreuid syscall to change the real and effective user IDs
