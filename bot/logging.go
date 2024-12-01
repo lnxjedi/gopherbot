@@ -221,8 +221,7 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 				} else {
 					botStdOutLogger.Print("LOG " + msg)
 				}
-			}
-			if fileLog {
+			} else {
 				logger.Print(msg)
 			}
 			tsMsg := fmt.Sprintf("%s %s\n", time.Now().Format("Jan 2 15:04:05"), msg)
