@@ -208,7 +208,7 @@ func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f
 	return robot.ChannelNotFound
 }
 
-// SendProtocolChannelMessage sends a message to a channel
+// SendProtocolUserChannelMessage sends a message to a user in a channel
 func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	var userID, chanID string
 	var ok bool
@@ -230,7 +230,7 @@ func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, m
 	prefix := "<@" + userID + ">: "
 	msgs := s.slackifyMessage(prefix, msg, f, msgObject)
 	s.sendMessages(msgs, userID, chanID, thr, f, msgObject)
-	return
+	return robot.Ok
 }
 
 // SendProtocolUserMessage sends a direct message to a user
@@ -242,7 +242,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 	}
 	if !ok {
 		s.Log(robot.Error, "No slack user ID found for user: %s", u)
-		ret = robot.UserNotFound
+		return robot.UserNotFound
 	}
 	var userIMchanstr string
 	var userIMchan *slack.Channel
@@ -256,15 +256,11 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 			Users:     []string{userID},
 		}
 		userIMchan, _, _, err = s.api.OpenConversation(&ocParam)
-		userIMchanstr = userIMchan.Conversation.ID
-
 		if err != nil {
 			s.Log(robot.Error, "Unable to open a slack IM channel to user: %s, ID: %s", u, userID)
-			ret = robot.FailedMessageSend
+			return robot.FailedMessageSend
 		}
-	}
-	if ret != robot.Ok {
-		return
+		userIMchanstr = userIMchan.Conversation.ID
 	}
 	msgs := s.slackifyMessage("", msg, f, msgObject)
 	s.sendMessages(msgs, "", userIMchanstr, "", f, msgObject)
