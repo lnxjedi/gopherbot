@@ -10,7 +10,7 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-func (tc *termConnector) sendMessage(ch, thr, msg string, f robot.MessageFormat) (ret robot.RetVal) {
+func (tc *termConnector) sendMessage(user, ch, thr, msg string, f robot.MessageFormat, incomingMsg *robot.ConnectorMessage) (ret robot.RetVal) {
 	tc.checkSendSelf(ch, thr, msg, f)
 	found := false
 	tc.RLock()
@@ -35,6 +35,11 @@ func (tc *termConnector) sendMessage(ch, thr, msg string, f robot.MessageFormat)
 		tc.Lock()
 		tc.lastThread = thr
 		tc.Unlock()
+	}
+	user, _ = tc.ExtractID(user)
+	if incomingMsg.HiddenMessage &&
+		(user == "" || user == incomingMsg.UserID) {
+		msg = "(" + msg + ")"
 	}
 	output := fmt.Sprintf("%s%s: %s\n", ch, threadID, msg)
 	if f != robot.Fixed {

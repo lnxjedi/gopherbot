@@ -387,6 +387,11 @@ loop:
 					tc.reader.Write([]byte("Invalid terminal connector command\n"))
 				}
 			} else {
+				hiddenMsg := false
+				if input[0] == '/' {
+					hiddenMsg = true
+					input = input[1:]
+				}
 				var channelID string
 				direct := false
 				if len(tc.currentChannel) > 0 {
@@ -422,6 +427,7 @@ loop:
 					ThreadID:        threadID,
 					MessageText:     input,
 					DirectMessage:   direct,
+					HiddenMessage:   hiddenMsg,
 				}
 				tc.RLock()
 				tc.IncomingMessage(botMsg)
@@ -527,26 +533,26 @@ func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string,
 }
 
 // SendProtocolChannelThreadMessage sends a message to a channel
-func (tc *termConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+func (tc *termConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
-	return tc.sendMessage(channel, thr, msg, f)
+	return tc.sendMessage("", channel, thr, msg, f, msgObject)
 }
 
 // SendProtocolChannelMessage sends a message to a channel
-func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	msg = "@" + uname + " " + msg
-	return tc.sendMessage(channel, thr, msg, f)
+	return tc.sendMessage(uid, channel, thr, msg, f, msgObject)
 }
 
 // SendProtocolUserMessage sends a direct message to a user
-func (tc *termConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+func (tc *termConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	var user *termUser
 	var exists bool
 	if user, exists = tc.getUserInfo(u); !exists {
 		return robot.UserNotFound
 	}
-	return tc.sendMessage(fmt.Sprintf("(dm:%s)", user.Name), "", msg, f)
+	return tc.sendMessage(user.InternalID, fmt.Sprintf("(dm:%s)", user.Name), "", msg, f, msgObject)
 }
 
 // JoinChannel joins a channel given it's human-readable name, e.g. "general"

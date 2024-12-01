@@ -161,7 +161,7 @@ func (s *slackConnector) startSendLoop() {
 
 func (s *slackConnector) sendMessages(msgs []string, userID, chanID, threadID string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) {
 	mtype := getMsgType(msgObject)
-	if mtype == msgSlashCmd {
+	if mtype == msgSlashCmd { // could also check msgObject.Hidden
 		slashCmd := msgObject.MessageObject.(*slack.SlashCommand)
 		if (userID == "" || userID == slashCmd.UserID) && chanID == slashCmd.ChannelID {
 			// Make sure a blank userID is replaced by the original userID
