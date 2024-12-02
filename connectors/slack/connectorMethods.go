@@ -195,7 +195,7 @@ func (s *slackConnector) SetUserMap(umap map[string]string) {
 
 // SendProtocolChannelMessage sends a message to a channel
 func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
-	msgs := s.slackifyMessage("", msg, f, msgObject)
+	msgs := s.slackifyMessage("", "", msg, f, msgObject)
 	if chanID, ok := s.ExtractID(ch); ok {
 		s.sendMessages(msgs, "", chanID, thr, f, msgObject)
 		return
@@ -228,7 +228,7 @@ func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, m
 	}
 	// This gets converted to <@userID> in slackifyMessage
 	prefix := "<@" + userID + ">: "
-	msgs := s.slackifyMessage(prefix, msg, f, msgObject)
+	msgs := s.slackifyMessage(userID, prefix, msg, f, msgObject)
 	s.sendMessages(msgs, userID, chanID, thr, f, msgObject)
 	return robot.Ok
 }
@@ -262,7 +262,7 @@ func (s *slackConnector) SendProtocolUserMessage(u string, msg string, f robot.M
 		}
 		userIMchanstr = userIMchan.Conversation.ID
 	}
-	msgs := s.slackifyMessage("", msg, f, msgObject)
+	msgs := s.slackifyMessage(userID, "", msg, f, msgObject)
 	s.sendMessages(msgs, "", userIMchanstr, "", f, msgObject)
 	return robot.Ok
 }

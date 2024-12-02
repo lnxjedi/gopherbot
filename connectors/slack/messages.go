@@ -133,7 +133,7 @@ func (s *slackConnector) processRawMessage(msg string) string {
 
 // slackifyMessage replaces @username with the slack-internal representation, handles escaping,
 // takes care of formatting, and segments the message if needed.
-func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) []string {
+func (s *slackConnector) slackifyMessage(targetUserID, prefix, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) []string {
 	maxSize := slack.MaxMessageTextLength - 490
 
 	if f == robot.Raw {
@@ -152,7 +152,7 @@ func (s *slackConnector) slackifyMessage(prefix, msg string, f robot.MessageForm
 		}
 	}
 	mtype := getMsgType(msgObject)
-	if len(prefix) > 0 && mtype != msgSlashCmd {
+	if len(prefix) > 0 && (mtype != msgSlashCmd || (targetUserID != msgObject.UserID)) {
 		msg = prefix + msg
 	}
 	if f == robot.Fixed {
