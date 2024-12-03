@@ -1,3 +1,12 @@
+# v2.16.0 - Initial Support for Julia Extensions
+I knew that someday I would be able to take the existing support for Python and/or Ruby, feed it to an AI, and get a working Julia library. In short, check `plugins/samples/echo.jl` for the first mimimal working Julia plugin. Notes:
+* Julia, weighing in at a whopping 1G, hasn't been integrated into any prebuilt containers
+* If you want to do so yourself:
+  * Install a julia glibc tarball in e.g. `/opt/julia` and symlink `/usr/bin/julia` to `/opt/julia/bin/julia`
+  * In your container build, the robot user needs to: `using Pkg; Pkg.add("JSON"); Pkg.add("HTTP"); exit()` to install the required JSON and HTTP libraries to `$HOME/.julia`
+
+As with Ruby and Python, if your robot includes `lib/SomethingCool.jl`, your scripts should be able to `using SomethingCool` to load it as a library.
+
 # v2.15.5 - Updated PrivSep
 It appears that Gopherbot's ability to drop privileges to nobody stopped working some time ago. This version updates privsep.go to use `runtime.LockOSThread()` (as before) with `syscall.Sysscall(SYS_SETREUID, ...)` to drop privileges when running external scripts. See the [documentation](https://lnxjedi.github.io/gopherbot/install/ManualInstall.html#privilege-separation) for more information about privilege separation.
 

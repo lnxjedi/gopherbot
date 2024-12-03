@@ -1,4 +1,4 @@
-#!/usr/bin/env julia
+#!/usr/bin/julia
 
 using GopherbotV1
 
@@ -31,6 +31,8 @@ else
     if command == "configure"
         configure()
         exit(0)  # Exit after handling configure
+    elseif command == "init"
+        exit(0)
     elseif command == "echo"
         if isempty(args)
             GopherbotV1.reply(robot, "No message provided for echo.", "")
