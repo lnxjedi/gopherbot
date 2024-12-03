@@ -178,13 +178,21 @@ func getArgs(rw http.ResponseWriter, jsonargs *json.RawMessage, args interface{}
 	return true
 }
 
-func sendReturn(rw http.ResponseWriter, ret interface{}) {
+func sendReturn(r robot.Robot, rw http.ResponseWriter, ret interface{}) {
 	d, err := json.Marshal(ret)
 	if err != nil { // this should never happen
 		Log(robot.Fatal, "BUG in bot/http.go:sendReturn, error marshalling JSON: %v", err)
 	}
 	rw.WriteHeader(http.StatusOK)
 	rw.Write(d)
+	var respJSON []byte
+	if len(d) > 256 {
+		respJSON = d[:242]
+		respJSON = append(respJSON, "... (truncated)"...)
+	} else {
+		respJSON = d
+	}
+	r.Log(robot.Debug, "http sending JSON response: %s", respJSON)
 }
 
 func logJSON(r robot.Robot, d *[]byte) {
@@ -245,15 +253,15 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	switch f.FuncName {
 	case "CheckAdmin":
 		bret := r.CheckAdmin()
-		sendReturn(rw, boolresponse{Boolean: bret})
+		sendReturn(r, rw, boolresponse{Boolean: bret})
 		return
 	case "Subscribe":
 		bret := r.Subscribe()
-		sendReturn(rw, boolresponse{Boolean: bret})
+		sendReturn(r, rw, boolresponse{Boolean: bret})
 		return
 	case "Unsubscribe":
 		bret := r.Unsubscribe()
-		sendReturn(rw, boolresponse{Boolean: bret})
+		sendReturn(r, rw, boolresponse{Boolean: bret})
 		return
 	case "AddTask", "AddJob", "FinalTask", "FailTask", "SpawnJob":
 		var ts taskcall
@@ -275,7 +283,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		default:
 			return
 		}
-		sendReturn(rw, &botretvalresponse{int(ret)})
+		sendReturn(r, rw, &botretvalresponse{int(ret)})
 		return
 	case "AddCommand", "FinalCommand", "FailCommand":
 		var cc cmdcall
@@ -293,7 +301,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		default:
 			return
 		}
-		sendReturn(rw, &botretvalresponse{int(ret)})
+		sendReturn(r, rw, &botretvalresponse{int(ret)})
 		return
 	case "SetParameter":
 		var param paramcall
@@ -305,28 +313,28 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			param.Value = decode(param.Value)
 		}
 		success := r.SetParameter(param.Name, param.Value)
-		sendReturn(rw, boolresponse{Boolean: success})
+		sendReturn(r, rw, boolresponse{Boolean: success})
 	case "SetWorkingDirectory":
 		var wd wdcall
 		if !getArgs(rw, &f.FuncArgs, &wd) {
 			return
 		}
 		success := r.SetWorkingDirectory(wd.Path)
-		sendReturn(rw, boolresponse{Boolean: success})
+		sendReturn(r, rw, boolresponse{Boolean: success})
 	case "Exclusive":
 		var e exclusive
 		if !getArgs(rw, &f.FuncArgs, &e) {
 			return
 		}
 		success := r.Exclusive(e.Tag, e.QueueTask)
-		sendReturn(rw, boolresponse{Boolean: success})
+		sendReturn(r, rw, boolresponse{Boolean: success})
 	case "Elevate":
 		var e elevate
 		if !getArgs(rw, &f.FuncArgs, &e) {
 			return
 		}
 		success := r.Elevate(e.Immediate)
-		sendReturn(rw, boolresponse{Boolean: success})
+		sendReturn(r, rw, boolresponse{Boolean: success})
 		return
 	case "CheckoutDatum":
 		var rec recollection
@@ -335,7 +343,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		var datum interface{}
 		l, e, brv := r.CheckoutDatum(rec.Key, &datum, rec.RW)
-		sendReturn(rw, checkoutresponse{
+		sendReturn(r, rw, checkoutresponse{
 			LockToken: l,
 			Exists:    e,
 			Datum:     datum,
@@ -348,7 +356,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		r.CheckinDatum(m.Key, m.Token)
-		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
+		sendReturn(r, rw, &botretvalresponse{int(robot.Ok)})
 		return
 	case "UpdateDatum":
 		var m memory
@@ -363,7 +371,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		// Since we're getting raw JSON (=[]byte), we call update directly.
 		// See brain.go
 		ret = update(key, m.Token, (*[]byte)(&m.Datum))
-		sendReturn(rw, &botretvalresponse{int(ret)})
+		sendReturn(r, rw, &botretvalresponse{int(ret)})
 		return
 	case "Remember":
 		var m ephemeralmemory
@@ -375,7 +383,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			m.Value = decode(m.Value)
 		}
 		r.Remember(m.Key, m.Value, m.Shared)
-		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
+		sendReturn(r, rw, &botretvalresponse{int(robot.Ok)})
 		return
 	case "RememberThread":
 		var m ephemeralmemory
@@ -387,7 +395,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			m.Value = decode(m.Value)
 		}
 		r.RememberThread(m.Key, m.Value, m.Shared)
-		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
+		sendReturn(r, rw, &botretvalresponse{int(robot.Ok)})
 		return
 	case "Recall":
 		var m ephemeralrecollection
@@ -398,15 +406,15 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			m.Key = decode(m.Key)
 		}
 		s := r.Recall(m.Key, m.Shared)
-		sendReturn(rw, &stringresponse{s})
+		sendReturn(r, rw, &stringresponse{s})
 		return
 	case "GetTaskConfig":
 		if task.Config == nil {
 			Log(robot.Error, "GetTaskConfig called by external script '%s', but no config found.", task.name)
-			sendReturn(rw, handler{})
+			sendReturn(r, rw, handler{})
 			return
 		}
-		sendReturn(rw, task.Config)
+		sendReturn(r, rw, task.Config)
 		return
 	case "GetSenderAttribute", "GetBotAttribute":
 		var a attribute
@@ -418,7 +426,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		} else {
 			attr = r.GetSenderAttribute(a.Attribute)
 		}
-		sendReturn(rw, attr)
+		sendReturn(r, rw, attr)
 		return
 	case "GetUserAttribute":
 		var ua userattr
@@ -426,7 +434,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		attr = r.GetUserAttribute(ua.User, ua.Attribute)
-		sendReturn(rw, attr)
+		sendReturn(r, rw, attr)
 		return
 	case "Log":
 		var lm logmessage
@@ -438,7 +446,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			lm.Message = decode(lm.Message)
 		}
 		r.Log(l, lm.Message)
-		sendReturn(rw, &botretvalresponse{int(robot.Ok)})
+		sendReturn(r, rw, &botretvalresponse{int(robot.Ok)})
 		return
 	case "SendChannelThreadMessage":
 		var ctm channelthreadmessage
@@ -448,7 +456,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if ctm.Base64 {
 			ctm.Message = decode(ctm.Message)
 		}
-		sendReturn(rw, &botretvalresponse{
+		sendReturn(r, rw, &botretvalresponse{
 			int(r.SendChannelThreadMessage(ctm.Channel, ctm.Thread, ctm.Message)),
 		})
 		return
@@ -460,7 +468,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if uctm.Base64 {
 			uctm.Message = decode(uctm.Message)
 		}
-		sendReturn(rw, &botretvalresponse{
+		sendReturn(r, rw, &botretvalresponse{
 			int(r.SendUserChannelThreadMessage(uctm.User, uctm.Channel, uctm.Thread, uctm.Message)),
 		})
 		return
@@ -472,7 +480,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if um.Base64 {
 			um.Message = decode(um.Message)
 		}
-		sendReturn(rw, &botretvalresponse{
+		sendReturn(r, rw, &botretvalresponse{
 			int(r.SendUserMessage(um.User, um.Message)),
 		})
 		return
@@ -485,7 +493,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			rr.Prompt = decode(rr.Prompt)
 		}
 		reply, ret = r.promptInternal(rr.RegexID, rr.User, rr.Channel, rr.Thread, rr.Prompt)
-		sendReturn(rw, &replyresponse{reply, int(ret)})
+		sendReturn(r, rw, &replyresponse{reply, int(ret)})
 		return
 	// NOTE: "Say", "Reply", PromptForReply and PromptUserForReply are implemented
 	// in the scripting libraries
