@@ -624,39 +624,39 @@ end
 # =============================
 
 """
-    prompt_for_reply(robot::Robot, regex_id::Int, prompt::String) -> Reply
+    prompt_for_reply(robot::Robot, regex_id::String, prompt::String) -> Reply
 
 Prompts the user for a reply based on a regex pattern.
 """
-function prompt_for_reply(robot::Robot, regex_id::Int, prompt::String)::Reply
+function prompt_for_reply(robot::Robot, regex_id::String, prompt::String)::Reply
     thread = robot.threaded_message ? robot.thread_id : ""
     return prompt_user_channel_thread_for_reply(robot, regex_id, robot.user, robot.channel, thread, prompt)
 end
 
 """
-    prompt_thread_for_reply(robot::Robot, regex_id::Int, prompt::String) -> Reply
+    prompt_thread_for_reply(robot::Robot, regex_id::String, prompt::String) -> Reply
 
 Prompts the user for a reply in a threaded context based on a regex pattern.
 """
-function prompt_thread_for_reply(robot::Robot, regex_id::Int, prompt::String)::Reply
+function prompt_thread_for_reply(robot::Robot, regex_id::String, prompt::String)::Reply
     return prompt_user_channel_thread_for_reply(robot, regex_id, robot.user, robot.channel, robot.thread_id, prompt)
 end
 
 """
-    prompt_user_for_reply(robot::Robot, regex_id::Int, prompt::String) -> Reply
+    prompt_user_for_reply(robot::Robot, regex_id::String, prompt::String) -> Reply
 
 Prompts a specific user for a reply based on a regex pattern.
 """
-function prompt_user_for_reply(robot::Robot, regex_id::Int, prompt::String)::Reply
+function prompt_user_for_reply(robot::Robot, regex_id::String, prompt::String)::Reply
     return prompt_user_channel_thread_for_reply(robot, regex_id, robot.user, "", "", prompt)
 end
 
 """
-    prompt_user_channel_thread_for_reply(robot::Robot, regex_id::Int, user::String, channel::String, thread::String, prompt::String) -> Reply
+    prompt_user_channel_thread_for_reply(robot::Robot, regex_id::String, user::String, channel::String, thread::String, prompt::String) -> Reply
 
 Internal function to handle prompting the user for a reply.
 """
-function prompt_user_channel_thread_for_reply(robot::Robot, regex_id::Int, user::String, channel::String, thread::String, prompt::String)::Reply
+function prompt_user_channel_thread_for_reply(robot::Robot, regex_id::String, user::String, channel::String, thread::String, prompt::String)::Reply
     for _ in 1:3
         args = Dict{String, Any}("RegexID" => regex_id, "User" => user, "Channel" => channel, "Thread" => thread, "Prompt" => prompt)
         response = send_command(robot, "PromptUserChannelThreadForReply", args)
