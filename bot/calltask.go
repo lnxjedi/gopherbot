@@ -102,7 +102,8 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		fmt.Sprintf("GOPHER_INSTALLDIR=%s", installPath),
 		fmt.Sprintf("RUBYLIB=%s/lib:%s/custom/lib", installPath, homePath),
 		fmt.Sprintf("GEM_HOME=%s/.local", homePath),
-		fmt.Sprintf("JULIA_LOAD_PATH=%s/lib:%s/custom/lib:@:@v#.#:@stdlib", installPath, homePath),
+		// empty entry at the end for JULIA, see: https://docs.julialang.org/en/v1/manual/environment-variables/
+		fmt.Sprintf("JULIA_LOAD_PATH=%s/lib:%s/custom/lib:", installPath, homePath),
 		fmt.Sprintf("PYTHONPATH=%s/lib:%s/custom/lib", installPath, homePath),
 		fmt.Sprintf("GOPHER_CONFIGDIR=%s", configFull),
 		fmt.Sprintf("HOME=%s", homePath),

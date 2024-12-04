@@ -557,7 +557,8 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	envhash["GOPHER_INSTALLDIR"] = installPath
 	libPath := fmt.Sprintf("%s/lib:%s/lib", installPath, configFull)
 	envhash["RUBYLIB"] = libPath
-	envhash["JULIA_LOAD_PATH"] = fmt.Sprintf("%s/lib:%s/lib:@:@v#.#:@stdlib", installPath, configFull)
+	// empty entry at the end for JULIA, see: https://docs.julialang.org/en/v1/manual/environment-variables/
+	envhash["JULIA_LOAD_PATH"] = fmt.Sprintf("%s/lib:%s/lib:", installPath, configFull)
 	envhash["GEM_HOME"] = fmt.Sprintf("%s/.local", homePath)
 	envhash["PYTHONPATH"] = libPath
 	envhash["GOPHER_ENVIRONMENT"] = os.Getenv("GOPHER_ENVIRONMENT")
