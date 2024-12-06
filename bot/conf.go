@@ -32,6 +32,7 @@ type ConfigLoader struct {
 	EncryptionKey        string                  `yaml:"EncryptionKey"`        // Used to decrypt the "real" encryption key
 	HistoryProvider      string                  `yaml:"HistoryProvider"`      // Name of provider to use for storing and retrieving job/plugin histories
 	HistoryConfig        json.RawMessage         `yaml:"HistoryConfig"`        // History provider-specific configuration
+	HttpDebug            bool                    `yaml:"HttpDebug"`            // Whether to turn on debug logging of local http API calls
 	WorkSpace            string                  `yaml:"WorkSpace"`            // Read/Write area the robot uses to do work
 	DefaultElevator      string                  `yaml:"DefaultElevator"`      // Elevator plugin for ElevatedCommands and ElevateImmediateCommands
 	DefaultAuthorizer    string                  `yaml:"DefaultAuthorizer"`    // Authorizer plugin for AuthorizedCommands, or when AuthorizeAllCommands = true
@@ -140,7 +141,7 @@ func loadConfig(preConnect bool) error {
 		switch key {
 		case "AdminContact", "Email", "Protocol", "Brain", "EncryptionKey", "HistoryProvider", "WorkSpace", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
 			val = &strval
-		case "DefaultAllowDirect", "EncryptBrain", "IgnoreUnlistedUsers":
+		case "DefaultAllowDirect", "EncryptBrain", "HttpDebug", "IgnoreUnlistedUsers":
 			val = &boolval
 		case "BotInfo":
 			val = &bival
@@ -218,6 +219,8 @@ func loadConfig(preConnect bool) error {
 			newconfig.JoinChannels = *(val.(*[]string))
 		case "EncryptBrain":
 			newconfig.EncryptBrain = *(val.(*bool))
+		case "HttpDebug":
+			newconfig.HttpDebug = *(val.(*bool))
 		case "IgnoreUnlistedUsers":
 			newconfig.IgnoreUnlistedUsers = *(val.(*bool))
 		case "ExternalPlugins":
@@ -258,6 +261,7 @@ func loadConfig(preConnect bool) error {
 	}
 
 	processed.ignoreUnlistedUsers = newconfig.IgnoreUnlistedUsers
+	processed.httpDebug = newconfig.HttpDebug
 	if newconfig.Protocol != "" {
 		processed.protocol = newconfig.Protocol
 	} else {

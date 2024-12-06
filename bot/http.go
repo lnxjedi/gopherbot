@@ -178,7 +178,7 @@ func getArgs(rw http.ResponseWriter, jsonargs *json.RawMessage, args interface{}
 	return true
 }
 
-func sendReturn(r robot.Robot, rw http.ResponseWriter, ret interface{}) {
+func sendReturn(r Robot, rw http.ResponseWriter, ret interface{}) {
 	d, err := json.Marshal(ret)
 	if err != nil { // this should never happen
 		Log(robot.Fatal, "BUG in bot/http.go:sendReturn, error marshalling JSON: %v", err)
@@ -192,7 +192,9 @@ func sendReturn(r robot.Robot, rw http.ResponseWriter, ret interface{}) {
 	} else {
 		respJSON = d
 	}
-	r.Log(robot.Debug, "http sending JSON response: %s", respJSON)
+	if r.cfg.httpDebug {
+		r.Log(robot.Debug, "http sending JSON response: %s", respJSON)
+	}
 }
 
 func logJSON(r robot.Robot, d *[]byte) {
@@ -231,7 +233,9 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	taskLookup.RLock()
 	r, ok := taskLookup.e[f.CallerID]
 	taskLookup.RUnlock()
-	logJSON(r, &data)
+	if r.cfg.httpDebug {
+		logJSON(r, &data)
+	}
 	if !ok {
 		rw.WriteHeader(http.StatusBadRequest)
 		Log(robot.Error, "JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs)

@@ -20,21 +20,23 @@
 ## By default, automatically choose a port.
 LocalPort: {{ env "GOPHER_PORT" | default "0" }}
 
-{{ $proto := env "GOPHER_PROTOCOL" | default "nullconn" }}
+{{- $proto := env "GOPHER_PROTOCOL" | default "nullconn" }}
 Protocol: {{ $proto }}
 ## Trivial "terminal" connector config for a single admin user.
 ## This pulls in a basic default config for the terminal connector
 ## which can be overridden in custom if desired.
-{{ if eq $proto "terminal" }}
+{{- if eq $proto "terminal" }}
 {{ .Include "terminal.yaml" }}
-{{ end }}
+{{- end }}
 ## Dummy connector for bootstrapping & autosetup
-{{ if eq $proto "nullconn" }}
+{{- if eq $proto "nullconn" }}
 {{ .Include "nullconn.yaml" }}
-{{ end }}
+{{- end }}
 
 ## Configure log level
 LogLevel: {{ env "GOPHER_LOGLEVEL" | default "info" }}
+## Enable log level debug messages for localhost http JSON requests and replies
+HttpDebug: {{ eq (env "GOPHER_HTTP_DEBUG") "true" }}
 
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "mem" }}
@@ -75,15 +77,15 @@ NameSpaces:
 
 ParameterSets:
 
-{{ if env "GOPHER_UNCONFIGURED" | not }}
+{{- if env "GOPHER_UNCONFIGURED" | not }}
 EncryptBrain: true
-{{ end }}
+{{- end }}
 
-{{ if not (env "GOPHER_UNCONFIGURED") }}
+{{- if not (env "GOPHER_UNCONFIGURED") }}
 ScheduledJobs:
 - Name: go-bootstrap
   Schedule: "@init"
-{{ end }}
+{{- end }}
 
 ## NOTE:
 ## External script jobs/tasks/plugins do NOT have direct access to
@@ -114,18 +116,12 @@ ExternalPlugins:
     Description: An external Go plugin demonstrating Prompting and custom configuration
     Path: plugins/go-meme/memes.go
     Homed: true
-  {{- if env "GOPHER_CONTAINER" }}
-  "theia-plugin":
-    Description: A utility plugin for running the theia job, to start the container IDE
-    Privileged: true
-    Path: plugins/theia.sh
-  {{- end }}
   "ssh-admin":
     Description: Administrative plugin for managing the robot's ssh keypair
     Path: plugins/ssh-admin.sh
     Privileged: true
     NameSpace: ssh
-{{ if env "GOPHER_UNCONFIGURED" }}
+{{- if env "GOPHER_UNCONFIGURED" }}
   {{- if eq $proto "terminal" }}
   "welcome":
     Description: The welcome plugin provides a greeting when unconfigured
@@ -167,8 +163,8 @@ ExternalPlugins:
       Value: '{{ env "ANS_ROBOT_REPOSITORY" }}'
     - Name: ANS_ADMIN_SECRET
       Value: '{{ env "ANS_ADMIN_SECRET" }}'
-    {{ end }}
-{{ end }}
+    {{- end }}
+{{- end }}
 
 GoPlugins:
   "builtin-help":
@@ -208,21 +204,6 @@ ExternalJobs:
     Description: A job for installing ruby gems and python packages
     Homed: true
     Path: jobs/install-libs.sh
-  {{- if env "GOPHER_CONTAINER"}}
-  "theia":
-    Description: "Start theia interface; WARNING: UNAUTHENTICATED"
-    Path: jobs/theia.sh
-    Parameters:
-    # Allow "gopherbot encrypt/decrypt" to work
-    - Name: "GOPHER_ENCRYPTION_KEY"
-      Value: "{{ env "GOPHER_ENCRYPTION_KEY" }}"
-    - Name: GOPHER_CUSTOM_REPOSITORY
-      Value: "{{ env "GOPHER_CUSTOM_REPOSITORY" }}"
-    - Name: DEV_PRIVATE_KEY
-      Value: "{{ env "DEV_PRIVATE_KEY" }}"
-    - Name: DEV_KEY_NAME
-      Value: {{ env "DEV_KEY_NAME" }}
-  {{- end}}
   "backup":
     Description: A job for backing up the robot's state, normally just a file-based brain
     Homed: true
@@ -272,14 +253,3 @@ ExternalTasks:
   "setworkdir":
     Description: Update working directory as a step in a pipeline
     Path: tasks/setworkdir.sh
-  "ansible-playbook":
-    Description: Ansible playbook (ansible-playbook) runner with vault passphrase helper
-    Path: tasks/ansible-playbook.sh
-  "cleanup":
-    Description: Task for cleaning a working directory before starting a job/build
-    Privileged: true
-    Path: tasks/cleanup.sh
-  "run-theia":
-    Description: "Set up environment required for theia and run"
-    Path: tasks/run-theia.sh
-    Privileged: true
