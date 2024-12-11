@@ -259,6 +259,22 @@ func Start(v VersionInfo) {
 		// overrides defaults.
 		mode := detectStartupMode()
 		var shortDesc string
+		switch mode {
+		case "setup":
+			shortDesc = "processes answerfile.txt/ANS* env vars "
+		case "demo":
+			shortDesc = "no configuration or env vars, demo robot"
+		case "bootstrap":
+			shortDesc = "env vars set, need to clone config"
+		case "ide":
+			shortDesc = "local dev environment overriding protocol/brain"
+		case "ide-override":
+			shortDesc = "local dev environment with configured protocol/brain"
+		case "production":
+			shortDesc = "fully configured robot"
+		default:
+			shortDesc = "unknown"
+		}
 		logger.Printf("Startup mode '%s' (%s) with config dir: %s, and install dir: %s\n", mode, shortDesc, configPath, installPath)
 		checkprivsep()
 	}
