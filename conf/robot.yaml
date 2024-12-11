@@ -15,6 +15,16 @@
 ## .Include "<filename>":
 ##   Include and expand the contents of another file from the same
 ##   location (installed defaults or custom config)
+## GetStartupMode:
+##   Examine the execution environment to determine settings for protocol,
+##   brain and log destination. Possible values:
+##   * setup - no configuration but answerfile.txt/ANS* env present, setup plugin will process
+##   * demo - no configuration or env vars, starts the default robot
+##   * bootstrap - env vars (e.g. GOPHER_CUSTOM_REPOSITORY) set, but no config yet
+##   * cli - gopherbot CLI command, not starting a real robot
+##   * ide - running in the gopherbot IDE for local dev
+##   * ide-override - running in the IDE, but robot should connect to team chat
+##   * production - env vars set and config repo cloned, the most "normal" start-up
 
 ## Port to listen on for http/JSON api calls, for external plugins.
 ## By default, automatically choose a port.
@@ -33,8 +43,9 @@ Protocol: {{ $proto }}
 {{ .Include "nullconn.yaml" }}
 {{ end }}
 
-## Configure log level
+## Configure logging
 LogLevel: {{ env "GOPHER_LOGLEVEL" | default "info" }}
+LogDest: {{ env "GOPHER_LOGFILE" | default "stdout" }}
 
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "mem" }}
@@ -74,10 +85,6 @@ NameSpaces:
       Value: {{ env "GOPHER_STATEDIR" | default "state" }}
 
 ParameterSets:
-
-{{ if env "GOPHER_UNCONFIGURED" | not }}
-EncryptBrain: true
-{{ end }}
 
 {{ if not (env "GOPHER_UNCONFIGURED") }}
 ScheduledJobs:

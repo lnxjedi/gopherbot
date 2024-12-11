@@ -20,9 +20,6 @@ import (
 // Map of registered brains
 var brains = make(map[string]func(robot.Handler) robot.SimpleBrain)
 
-// Set on start-up
-var encryptBrain bool
-
 // For aes brain encryption
 var cryptKey = struct {
 	key                       []byte
@@ -474,7 +471,6 @@ func RegisterSimpleBrain(name string, provider func(robot.Handler) robot.SimpleB
 	brains[name] = provider
 }
 
-// When EncryptBrain is true, the brain needs to be initialized.
 // NOTE: All locking is done with the cryptKey mutex, bypassing
 // the brain loop.
 func initializeEncryptionFromBrain(key string) bool {
@@ -573,44 +569,41 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 	if !exists {
 		return token, nil, false, robot.Ok
 	}
-	if encryptBrain {
-		cryptKey.RLock()
-		initialized := cryptKey.initialized
-		initializing := cryptKey.initializing
-		key := cryptKey.key
-		cryptKey.RUnlock()
-		if initializing {
-			if dkey != botEncryptionKey {
-				Log(robot.Warn, "Retrieve called with uninitialized brain for '%s'", dkey)
-				return "", nil, false, robot.BrainFailed
-			}
-			decrypted, err = decrypt(*db, key)
-			if err != nil {
-				Log(robot.Error, "Failed to decrypt the encryption key, bad key provided?: %v", err)
-				return "", nil, false, robot.BrainFailed
-			}
-			db = &decrypted
-			return token, db, true, robot.Ok
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	initializing := cryptKey.initializing
+	key := cryptKey.key
+	cryptKey.RUnlock()
+	if initializing {
+		if dkey != botEncryptionKey {
+			Log(robot.Warn, "Retrieve called with uninitialized brain for '%s'", dkey)
+			return "", nil, false, robot.BrainFailed
 		}
-		if initialized {
-			decrypted, err = decrypt(*db, key)
-			if err != nil {
-				// This should only ever happen with the CLI, but could corrupt
-				// the binary key.
-				if dkey != botEncryptionKey {
-					Log(robot.Warn, "Decryption failed for '%s', assuming unencrypted and converting to encrypted", dkey)
-					// Calling storeDatum writes to storage without invalidating the lock token
-					storeDatum(dkey, db)
-				}
-			} else {
-				db = &decrypted
-			}
-			return token, db, true, robot.Ok
+		decrypted, err = decrypt(*db, key)
+		if err != nil {
+			Log(robot.Error, "Failed to decrypt the encryption key, bad key provided?: %v", err)
+			return "", nil, false, robot.BrainFailed
 		}
-		Log(robot.Warn, "Retrieve called on uninitialized brain for '%s'", dkey)
-		return "", nil, false, robot.BrainFailed
+		db = &decrypted
+		return token, db, true, robot.Ok
 	}
-	return token, db, true, robot.Ok
+	if initialized {
+		decrypted, err = decrypt(*db, key)
+		if err != nil {
+			// This should only ever happen with the CLI, but could corrupt
+			// the binary key.
+			if dkey != botEncryptionKey {
+				Log(robot.Warn, "Decryption failed for '%s', assuming unencrypted and converting to encrypted", dkey)
+				// Calling storeDatum writes to storage without invalidating the lock token
+				storeDatum(dkey, db)
+			}
+		} else {
+			db = &decrypted
+		}
+		return token, db, true, robot.Ok
+	}
+	Log(robot.Warn, "Retrieve called on uninitialized brain for '%s'", dkey)
+	return "", nil, false, robot.BrainFailed
 }
 
 // storeDatum takes a blob of bytes and optionally encrypts it before sending it
@@ -621,27 +614,25 @@ func storeDatum(dkey string, datum *[]byte) robot.RetVal {
 		Log(robot.Error, "Brain function called with no brain configured")
 		return robot.BrainFailed
 	}
-	if encryptBrain {
-		cryptKey.RLock()
-		initialized := cryptKey.initialized
-		initializing := cryptKey.initializing
-		key := cryptKey.key
-		cryptKey.RUnlock()
-		if !initialized {
-			// When re-keying, we store the 'real' key while uninitialized with a new key
-			if !(initializing && dkey == botEncryptionKey) {
-				Log(robot.Error, "StoreDatum called for '%s' with encryptBrain true, but encryption not initialized", key)
-				return robot.BrainFailed
-			}
-		}
-		encrypted, err := encrypt(*datum, key)
-		if err != nil {
-			Log(robot.Error, "Failed encrypting '%s': %v", dkey, err)
+	cryptKey.RLock()
+	initialized := cryptKey.initialized
+	initializing := cryptKey.initializing
+	key := cryptKey.key
+	cryptKey.RUnlock()
+	if !initialized {
+		// When re-keying, we store the 'real' key while uninitialized with a new key
+		if !(initializing && dkey == botEncryptionKey) {
+			Log(robot.Error, "StoreDatum called for '%s', but encryption not initialized", key)
 			return robot.BrainFailed
 		}
-		datum = &encrypted
 	}
-	err := brain.Store(dkey, datum)
+	encrypted, err := encrypt(*datum, key)
+	if err != nil {
+		Log(robot.Error, "Failed encrypting '%s': %v", dkey, err)
+		return robot.BrainFailed
+	}
+	datum = &encrypted
+	err = brain.Store(dkey, datum)
 	if err != nil {
 		Log(robot.Error, "Storing datum %s: %v", dkey, err)
 		return robot.BrainFailed

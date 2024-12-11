@@ -110,12 +110,15 @@ logging. Returns one of:
 * setup - no configuration but answerfile.txt/ANS* env present, setup plugin will process
 * demo - no configuration or env vars, starts the default robot
 * bootstrap - env vars (e.g. GOPHER_CUSTOM_REPOSITORY) set, but no config yet
+* cli - gopherbot CLI command, not starting a real robot
 * ide - running in the gopherbot IDE for local dev
 * ide-override - running in the IDE, but robot should connect to team chat
 * production - env vars set and config repo cloned, the most "normal" start-up
 */
 func detectStartupMode() (mode string) {
-	defer Log(robot.Info, "detected startup mode: %s", mode)
+	if cliOp {
+		return "cli"
+	}
 	_, robotConfigured := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
 	if !robotConfigured {
 		// NOTE that if GOPHER_IDE is set, we're always in $HOME when

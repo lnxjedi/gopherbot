@@ -28,6 +28,8 @@ var (
 
 	hostName string
 	ideMode  bool
+
+	deployEnvironment string
 )
 
 func init() {
@@ -50,17 +52,27 @@ func Start(v VersionInfo) {
 	if err != nil {
 		panic(err)
 	}
+	// See initBot for homePath
 	installPath, err = filepath.Abs(filepath.Dir(ex))
 	if err != nil {
 		panic(err)
 	}
 
+	var ok bool
+	if deployEnvironment, ok = os.LookupEnv("GOPHER_ENVIRONMENT"); !ok {
+		deployEnvironment = "production"
+	}
+
+	var overrideDevEnv string
 	// Save args in case we need to spawn child
 	args := os.Args[1:]
 	// Process command-line flags
-	lusage := "path to robot's log file (or 'stderr')"
+	lusage := "path to robot's log file (or 'stdout' or 'stderr')"
 	flag.StringVar(&logFile, "log", "", lusage)
 	flag.StringVar(&logFile, "l", "", "")
+	envusage := "alternate dev environment override (default GOPHER_ENVIRONMENT / production)"
+	flag.StringVar(&overrideDevEnv, "devenv", "", envusage)
+	flag.StringVar(&overrideDevEnv, "d", "", "")
 	ovusage := "Override GOPHER_IDE mode"
 	flag.BoolVar(&overrideIDEMode, "override", false, ovusage)
 	flag.BoolVar(&overrideIDEMode, "o", false, "")
@@ -72,6 +84,10 @@ func Start(v VersionInfo) {
 	flag.BoolVar(&helpRequested, "h", false, "")
 	// TODO: Gopherbot CLI commands suck. Make them suck less.
 	flag.Parse()
+
+	if len(overrideDevEnv) > 0 {
+		deployEnvironment = overrideDevEnv
+	}
 
 	/*
 		To prevent inadvertently bootstrapping a production
@@ -180,107 +196,54 @@ func Start(v VersionInfo) {
 	}
 	penvErr := godotenv.Overload(envFile)
 
-	// Support for dev environment with alternate encryption keys.
-	if _, ok := os.LookupEnv("GOPHER_ENVIRONMENT"); !ok {
-		os.Setenv("GOPHER_ENVIRONMENT", "production")
+	// Process CLI commands that don't need/want full initBot + brain
+	switch cliCommand {
+	case "dump", "validate":
+		processCLI(usage)
+		os.Exit(0)
 	}
 
-	// support for setup and bootstrap plugins
-	var defaultProto, defaultLogfile bool
-
-	termStart := func() {
-		defaultProto = true
-		os.Setenv("GOPHER_PROTOCOL", "terminal")
-	}
-
-	protoEnv, protoSet := os.LookupEnv("GOPHER_PROTOCOL")
-	testpath := filepath.Join(configPath, "conf", robotConfigFileName)
-	_, err = os.Stat(testpath)
-	unconfigured := false
-	// If custom/conf/robot.yaml doesn't exist, look for repository
-	// environment variable.
-	if err != nil {
-		_, ok := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
-		// This is true only when creating a new robot
-		if !ok {
-			unconfigured = true
-			os.Setenv("GOPHER_UNCONFIGURED", "unconfigured")
-			// Start a setup plugin; if answerfile.txt is present, or ANS_PROTOCOL is set,
-			// use the new-style, otherwise run the terminal connector for the interactive plugin.
-			setup := false
-			if _, err := os.Stat("answerfile.txt"); err == nil {
-				// true for CLI setup
-				setup = true
-			} else if _, ok := os.LookupEnv("ANS_PROTOCOL"); ok {
-				// true for container-based setup
-				setup = true
-			}
-			if setup {
-				defaultProto = true
-				os.Setenv("GOPHER_PROTOCOL", "nullconn")
-				if _, ok := os.LookupEnv("GOPHER_LOGFILE"); !ok {
-					os.Setenv("GOPHER_LOGFILE", "robot.log")
-					if !cliOp {
-						Log(robot.Info, "Logging to robot.log")
-					}
-					defaultLogfile = true
-				}
-			} else {
-				termStart()
-			}
-		} else {
-			// no robot.yaml, but GOPHER_CUSTOM_REPOSITORY set
-			os.Setenv("GOPHER_PROTOCOL", "nullconn")
-		}
-		defaultProto = true
-	} else {
-		// TODO: shouldn't be needed, remove if no strange errors.
-		// os.Unsetenv("GOPHER_UNCONFIGURED")
-		if !protoSet {
-			termStart()
-		}
-	}
+	initBot()
 
 	// Set up Logging
+	var logDest string
+	if cliOp {
+		logDest = "robot.log"
+	}
+	// Override from CLI --log / -l
+	if len(logFile) > 0 {
+		logDest = logFile
+	}
+	if len(logDest) == 0 {
+		logDest = currentCfg.logDest
+	}
+	// last ditch fallback - log to stdout
+	if len(logDest) == 0 {
+		logDest = "stdout"
+	}
+
 	var logger *log.Logger
-	logOut := os.Stdout
-	if len(logFile) == 0 {
-		logFile = os.Getenv("GOPHER_LOGFILE")
-	}
-	if len(logFile) == 0 && cliOp {
-		logFile = "robot.log"
-	}
-	if len(logFile) != 0 {
-		if logFile == "stderr" {
-			logOut = os.Stderr
-		} else {
-			lf, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			if err != nil {
-				log.Fatalf("Error creating log file: (%T %v)", err, err)
-			}
-			fileLog = true
-			logFileName = logFile
-			logOut = lf
+	var logOut *os.File
+
+	if logDest == "stderr" {
+		logOut = os.Stderr
+	} else if logDest == "stdout" {
+		logOut = os.Stdout
+	} else {
+		lf, err := os.OpenFile(logDest, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatalf("Error creating log file: (%T %v)", err, err)
 		}
+		fileLog = true
+		logFileName = logFile
+		logOut = lf
 	}
 
 	logger = log.New(logOut, "", logFlags)
 	botLogger.logger = logger
 
+	setLogLevel(currentCfg.logLevel)
 	if !cliOp {
-		if unconfigured {
-			Log(robot.Info, "Gopherbot starting unconfigured; no robot.yaml/gopherbot.yaml found")
-		} else if ideMode {
-			Log(robot.Info, "Gopherbot starting in IDE mode (GOPHER_IDE set); running in $HOME using 'mem' brain and 'terminal' connector")
-		} else {
-			Log(robot.Info, "Gopherbot starting up!")
-		}
-		lle := os.Getenv("GOPHER_LOGLEVEL")
-		if len(lle) > 0 {
-			loglevel := logStrToLevel(lle)
-			setLogLevel(loglevel)
-		}
-
 		if penvErr != nil {
 			Log(robot.Info, "No private environment loaded from '.env': %v\n", penvErr)
 		} else {
@@ -294,18 +257,11 @@ func Start(v VersionInfo) {
 		// When loading configuration, gopherbot first loads default configuration
 		// from internal config, then loads from configpath/conf/..., which
 		// overrides defaults.
-		logger.Printf("Starting up with config dir: %s, and install dir: %s\n", configPath, installPath)
+		mode := detectStartupMode()
+		var shortDesc string
+		logger.Printf("Startup mode '%s' (%s) with config dir: %s, and install dir: %s\n", mode, shortDesc, configPath, installPath)
 		checkprivsep()
 	}
-
-	// Process CLI commands that don't need/want full initBot + brain
-	switch cliCommand {
-	case "dump", "validate":
-		processCLI(usage)
-		os.Exit(0)
-	}
-
-	initBot()
 
 	if cliOp {
 		go runBrain()
@@ -315,9 +271,6 @@ func Start(v VersionInfo) {
 	}
 	if currentCfg.protocol == "terminal" {
 		localTerm = true
-		if defaultLogfile {
-			botStdOutLogger.Println("Logging to robot.log; warnings and errors duplicated to stdout")
-		}
 	}
 	if currentCfg.protocol == "nullconn" {
 		nullConn = true
@@ -342,16 +295,6 @@ func Start(v VersionInfo) {
 	time.Sleep(time.Second)
 	if restart {
 		raiseThreadPrivExternal("restart is set, re-exec'ing")
-		if defaultProto {
-			if protoSet {
-				os.Setenv("GOPHER_PROTOCOL", protoEnv)
-			} else {
-				os.Unsetenv("GOPHER_PROTOCOL")
-			}
-		}
-		if defaultLogfile {
-			os.Unsetenv("GOPHER_LOGFILE")
-		}
 		bin, _ := os.Executable()
 		env := os.Environ()
 		defer func() {

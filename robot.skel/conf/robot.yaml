@@ -33,7 +33,6 @@ Alias: '{{ $botalias }}'
 {{ $statedir := env "GOPHER_STATEDIR" | default "state" }}
 {{ $defbraindir := printf "%s/brain" $statedir }}
 Brain: {{ $brain }}
-#EncryptBrain: true # default
 {{ if eq $brain "file" }}
 BrainConfig:
   BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default $defbraindir }}

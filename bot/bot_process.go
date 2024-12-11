@@ -114,6 +114,8 @@ type configuration struct {
 	ScheduledJobs        []ScheduledTask     // List of scheduled tasks
 	port                 string              // Configured localhost port to listen on, or 0 for first open
 	timeZone             *time.Location      // for forcing the TimeZone, Unix only
+	logLevel             robot.LogLevel      // one of warn, audit, info, debug, trace, error
+	logDest              string              // log to stdout, stderr, or <filename>
 	defaultJobChannel    string              // where job statuses will post if not otherwise specified
 }
 
@@ -209,9 +211,6 @@ func initBot() {
 			Log(robot.Error, "Failed to initialize brain encryption with configured EncryptionKey")
 		}
 	}
-	if encryptBrain && !encryptionInitialized {
-		Log(robot.Warn, "Brain encryption specified but not initialized; use 'initialize brain <key>' to initialize the encrypted brain interactively")
-	}
 
 	// cli commands don't need an http listener
 	if cliOp {
@@ -247,7 +246,7 @@ var keyEnv = "GOPHER_ENCRYPTION_KEY"
 func initCrypt() bool {
 	// Initialize encryption (new style for v2)
 	keyFileName := encryptedKeyFile
-	deployEnvironment := os.Getenv("GOPHER_ENVIRONMENT")
+
 	if deployEnvironment != "production" {
 		Log(robot.Info, "Initializing encryption for the '%s' environment", deployEnvironment)
 		keyFileName += "." + deployEnvironment

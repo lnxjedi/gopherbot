@@ -28,7 +28,6 @@ type ConfigLoader struct {
 	ChannelRoster        []ChannelInfo           `yaml:"ChannelRoster"`        // List of channels mapping names to IDs
 	Brain                string                  `yaml:"Brain"`                // Type of Brain to use
 	BrainConfig          json.RawMessage         `yaml:"BrainConfig"`          // Brain-specific configuration, for unmarshalling arbitrary config
-	EncryptBrain         bool                    `yaml:"EncryptBrain"`         // Whether the brain should be encrypted
 	EncryptionKey        string                  `yaml:"EncryptionKey"`        // Used to decrypt the "real" encryption key
 	HistoryProvider      string                  `yaml:"HistoryProvider"`      // Name of provider to use for storing and retrieving job/plugin histories
 	HistoryConfig        json.RawMessage         `yaml:"HistoryConfig"`        // History provider-specific configuration
@@ -56,6 +55,7 @@ type ConfigLoader struct {
 	Alias                string                  `yaml:"Alias"`                // One-character alias for commands directed at the bot, e.g., ';open the pod bay doors'
 	LocalPort            int                     `yaml:"LocalPort"`            // Port number for localhost listening for CLI plugins
 	LogLevel             string                  `yaml:"LogLevel"`             // Initial log level, modifiable by plugins. Options: "trace," "debug," "info," "warn," "error"
+	LogDest              string                  `yaml:LogDest`                // one of stderr, stdout, <filename>
 }
 
 // UserInfo is listed in the UserRoster of robot.yaml to provide:
@@ -105,7 +105,6 @@ var config *ConfigLoader
 // loadConfig loads the 'bot's yaml configuration files.
 func loadConfig(preConnect bool) error {
 	raiseThreadPriv("loading configuration")
-	var loglevel robot.LogLevel
 	if preConnect {
 		Log(robot.Info, "Loading initial pre-connection configuration")
 	} else {
@@ -140,7 +139,7 @@ func loadConfig(preConnect bool) error {
 		switch key {
 		case "AdminContact", "Email", "Protocol", "Brain", "EncryptionKey", "HistoryProvider", "WorkSpace", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
 			val = &strval
-		case "DefaultAllowDirect", "EncryptBrain", "IgnoreUnlistedUsers":
+		case "DefaultAllowDirect", "IgnoreUnlistedUsers":
 			val = &boolval
 		case "BotInfo":
 			val = &bival
@@ -216,8 +215,6 @@ func loadConfig(preConnect bool) error {
 			newconfig.IgnoreUsers = *(val.(*[]string))
 		case "JoinChannels":
 			newconfig.JoinChannels = *(val.(*[]string))
-		case "EncryptBrain":
-			newconfig.EncryptBrain = *(val.(*bool))
 		case "IgnoreUnlistedUsers":
 			newconfig.IgnoreUnlistedUsers = *(val.(*bool))
 		case "ExternalPlugins":
@@ -246,15 +243,11 @@ func loadConfig(preConnect bool) error {
 			newconfig.LocalPort = *(val.(*int))
 		case "LogLevel":
 			newconfig.LogLevel = *(val.(*string))
+		case "LogDest":
+			newconfig.LogDest = *(val.(*string))
 		case "TimeZone":
 			newconfig.TimeZone = *(val.(*string))
 		}
-	}
-
-	// Leave loglevel at Warn for CLI operations
-	if !cliOp {
-		loglevel = logStrToLevel(newconfig.LogLevel)
-		setLogLevel(loglevel)
 	}
 
 	processed.ignoreUnlistedUsers = newconfig.IgnoreUnlistedUsers
@@ -504,9 +497,6 @@ func loadConfig(preConnect bool) error {
 			protocolConfig = newconfig.ProtocolConfig
 		}
 
-		if newconfig.EncryptBrain {
-			encryptBrain = true
-		}
 		if newconfig.EncryptionKey != "" {
 			processed.encryptionKey = newconfig.EncryptionKey
 			newconfig.EncryptionKey = "XXXXXX" // too short to be valid anyway
@@ -519,6 +509,11 @@ func loadConfig(preConnect bool) error {
 		if len(newconfig.HistoryProvider) == 0 {
 			newconfig.HistoryProvider = "mem"
 		}
+		if len(newconfig.LogDest) > 0 {
+			processed.logDest = newconfig.LogDest
+		}
+		// Defaults to robot.Error if not set
+		processed.logLevel = logStrToLevel(newconfig.LogLevel)
 		var hprovider func(robot.Handler) robot.HistoryProvider
 		var ok bool
 		if !cliOp { // CLI operations don't need a real history
