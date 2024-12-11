@@ -104,6 +104,45 @@ func decryptTpl(encval string) string {
 	return string(secret)
 }
 
+/*
+Used in robot.yaml to determine start-up settings for connector, brain, and
+logging. Returns one of:
+* setup - no configuration but answerfile.txt/ANS* env present, setup plugin will process
+* demo - no configuration or env vars, starts the default robot
+* bootstrap - env vars (e.g. GOPHER_CUSTOM_REPOSITORY) set, but no config yet
+* ide - running in the gopherbot IDE for local dev
+* ide-override - running in the IDE, but robot should connect to team chat
+* production - env vars set and config repo cloned, the most "normal" start-up
+*/
+func detectStartupMode() (mode string) {
+	defer Log(robot.Info, "detected startup mode: %s", mode)
+	_, robotConfigured := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
+	if !robotConfigured {
+		// NOTE that if GOPHER_IDE is set, we're always in $HOME when
+		// looking for "answerfile.txt". See start.go.
+		if _, err := os.Stat("answerfile.txt"); err == nil {
+			// true for CLI setup
+			return "setup"
+		} else if _, ok := os.LookupEnv("ANS_PROTOCOL"); ok {
+			// true for container-based setup
+			return "setup"
+		}
+		return "demo"
+	}
+	robotYamlFile := filepath.Join(configPath, "conf", robotConfigFileName)
+	if _, err := os.Stat(robotYamlFile); err != nil {
+		return "bootstrap"
+	}
+	// checked in start.go - GOPHER_IDE *always* imp
+	if ideMode {
+		if overrideIDEMode {
+			return "ide-override"
+		}
+		return "ide"
+	}
+	return "production"
+}
+
 type loadTpl struct {
 	dir      string
 	isCustom bool
@@ -151,9 +190,10 @@ func expand(dir string, custom bool, in []byte) (out []byte, err error) {
 		isCustom: custom,
 	}
 	tplFuncs := template.FuncMap{
-		"decrypt": decryptTpl,
-		"default": defval,
-		"env":     env,
+		"decrypt":        decryptTpl,
+		"default":        defval,
+		"env":            env,
+		"GetStartupMode": detectStartupMode,
 	}
 	var outBuff bytes.Buffer
 	tpl, err := template.New("").Funcs(tplFuncs).Parse(string(in))

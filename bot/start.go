@@ -27,6 +27,7 @@ var (
 	helpRequested   bool
 
 	hostName string
+	ideMode  bool
 )
 
 func init() {
@@ -83,22 +84,10 @@ func Start(v VersionInfo) {
 		brain is "mem" (in-memory); these can be overridden with the "-o"
 		CLI flag.
 	*/
-	_, ideMode := os.LookupEnv("GOPHER_IDE")
+	_, ideMode = os.LookupEnv("GOPHER_IDE")
 	if ideMode {
 		homeDir := os.Getenv("HOME")
 		os.Chdir(homeDir)
-		if overrideIDEMode {
-			ideMode = false
-		} else {
-			_, profileConfigured := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
-			termEnv := os.Getenv("GOPHER_PROTOCOL") == "terminal"
-			if profileConfigured && !termEnv {
-				os.Setenv("GOPHER_PROTOCOL", "terminal")
-				os.Setenv("GOPHER_BRAIN", "mem")
-			} else {
-				ideMode = false
-			}
-		}
 	}
 
 	logFlags := log.LstdFlags
