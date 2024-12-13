@@ -32,6 +32,8 @@ var (
 	deployEnvironment string
 )
 
+const defaultLogFile = "robot.log"
+
 func init() {
 	hostName = os.Getenv("HOSTNAME")
 
@@ -172,12 +174,6 @@ func Start(v VersionInfo) {
 		os.Exit(0)
 	}
 
-	cliOp = len(flag.Args()) > 0 && flag.Arg(0) != "run"
-	var cliCommand string
-	if cliOp {
-		cliCommand = flag.Arg(0)
-	}
-
 	var envFile string
 	var fixed = []string{}
 	for _, ef := range []string{"private/environment", ".env"} {
@@ -196,6 +192,59 @@ func Start(v VersionInfo) {
 	}
 	penvErr := godotenv.Overload(envFile)
 
+	var logger *log.Logger
+	var logOut *os.File
+
+	cliOp = len(flag.Args()) > 0 && flag.Arg(0) != "run"
+	var cliCommand string
+
+	// Get CLI command and set up pre-initBot logging
+	if cliOp {
+		cliCommand = flag.Arg(0)
+		logOut, err = os.OpenFile(defaultLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatalf("Error creating log file: (%T %v)\n", err, err)
+		}
+	} else {
+		logOut = os.Stdout
+	}
+	logger = log.New(logOut, "", logFlags)
+	botLogger.logger = logger
+	if elle, ok := os.LookupEnv("GOPHER_LOGLEVEL"); ok {
+		ele := logStrToLevel(elle)
+		setLogLevel(ele)
+	}
+	mode := detectStartupMode()
+	var shortDesc string
+	switch mode {
+	case "setup":
+		shortDesc = "processes answerfile.txt/ANS* env vars "
+	case "demo":
+		shortDesc = "no configuration or env vars, demo robot"
+	case "bootstrap":
+		shortDesc = "env vars set, need to clone config"
+	case "cli":
+		shortDesc = fmt.Sprintf("running CLI command '%s'", cliCommand)
+	case "ide":
+		shortDesc = "local dev environment overriding protocol/brain"
+	case "ide-override":
+		shortDesc = "local dev environment with configured protocol/brain"
+	case "production":
+		shortDesc = "fully configured robot"
+	default:
+		shortDesc = "unknown"
+	}
+	Log(robot.Info, "******* GOPHERBOT STARTING UP -> mode '%s' (%s) with config dir: %s, and install dir: %s\n", mode, shortDesc, configPath, installPath)
+	checkprivsep()
+	if penvErr != nil {
+		Log(robot.Info, "No private environment loaded from '.env': %v\n", penvErr)
+	} else {
+		Log(robot.Info, "Loaded initial private environment from '%s'\n", envFile)
+	}
+	if len(fixed) > 0 {
+		Log(robot.Warn, "Notice! Fixed invalid file modes for environment file(s): %s", strings.Join(fixed, ", "))
+	}
+
 	// Process CLI commands that don't need/want full initBot + brain
 	switch cliCommand {
 	case "dump", "validate":
@@ -203,6 +252,10 @@ func Start(v VersionInfo) {
 		os.Exit(0)
 	}
 
+	// Create the 'bot and load configuration, supplying configpath and installpath.
+	// When loading configuration, gopherbot first loads default configuration
+	// from internal config, then loads from configpath/conf/..., which
+	// overrides defaults.
 	initBot()
 
 	// Set up Logging
@@ -222,9 +275,6 @@ func Start(v VersionInfo) {
 		logDest = "stdout"
 	}
 
-	var logger *log.Logger
-	var logOut *os.File
-
 	if logDest == "stderr" {
 		logOut = os.Stderr
 	} else if logDest == "stdout" {
@@ -232,7 +282,7 @@ func Start(v VersionInfo) {
 	} else {
 		lf, err := os.OpenFile(logDest, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			log.Fatalf("Error creating log file: (%T %v)", err, err)
+			log.Fatalf("Error creating log file: (%T %v)\n", err, err)
 		}
 		fileLog = true
 		logFileName = logFile
@@ -243,41 +293,6 @@ func Start(v VersionInfo) {
 	botLogger.logger = logger
 
 	setLogLevel(currentCfg.logLevel)
-	if !cliOp {
-		if penvErr != nil {
-			Log(robot.Info, "No private environment loaded from '.env': %v\n", penvErr)
-		} else {
-			Log(robot.Info, "Loaded initial private environment from '%s'\n", envFile)
-		}
-		if len(fixed) > 0 {
-			Log(robot.Warn, "Notice! Fixed invalid file modes for environment file(s): %s", strings.Join(fixed, ", "))
-		}
-
-		// Create the 'bot and load configuration, supplying configpath and installpath.
-		// When loading configuration, gopherbot first loads default configuration
-		// from internal config, then loads from configpath/conf/..., which
-		// overrides defaults.
-		mode := detectStartupMode()
-		var shortDesc string
-		switch mode {
-		case "setup":
-			shortDesc = "processes answerfile.txt/ANS* env vars "
-		case "demo":
-			shortDesc = "no configuration or env vars, demo robot"
-		case "bootstrap":
-			shortDesc = "env vars set, need to clone config"
-		case "ide":
-			shortDesc = "local dev environment overriding protocol/brain"
-		case "ide-override":
-			shortDesc = "local dev environment with configured protocol/brain"
-		case "production":
-			shortDesc = "fully configured robot"
-		default:
-			shortDesc = "unknown"
-		}
-		logger.Printf("Startup mode '%s' (%s) with config dir: %s, and install dir: %s\n", mode, shortDesc, configPath, installPath)
-		checkprivsep()
-	}
 
 	if cliOp {
 		go runBrain()

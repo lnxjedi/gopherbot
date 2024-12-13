@@ -55,7 +55,7 @@ type ConfigLoader struct {
 	Alias                string                  `yaml:"Alias"`                // One-character alias for commands directed at the bot, e.g., ';open the pod bay doors'
 	LocalPort            int                     `yaml:"LocalPort"`            // Port number for localhost listening for CLI plugins
 	LogLevel             string                  `yaml:"LogLevel"`             // Initial log level, modifiable by plugins. Options: "trace," "debug," "info," "warn," "error"
-	LogDest              string                  `yaml:LogDest`                // one of stderr, stdout, <filename>
+	LogDest              string                  `yaml:"LogDest"`              // one of stderr, stdout, <filename>
 }
 
 // UserInfo is listed in the UserRoster of robot.yaml to provide:
@@ -137,7 +137,7 @@ func loadConfig(preConnect bool) error {
 		var val interface{}
 		skip := false
 		switch key {
-		case "AdminContact", "Email", "Protocol", "Brain", "EncryptionKey", "HistoryProvider", "WorkSpace", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogLevel", "TimeZone":
+		case "AdminContact", "Email", "Protocol", "Brain", "EncryptionKey", "HistoryProvider", "WorkSpace", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogDest", "LogLevel", "TimeZone":
 			val = &strval
 		case "DefaultAllowDirect", "IgnoreUnlistedUsers":
 			val = &boolval
@@ -322,6 +322,10 @@ func loadConfig(preConnect bool) error {
 	if newconfig.DefaultAuthorizer != "" {
 		processed.defaultAuthorizer = newconfig.DefaultAuthorizer
 	}
+
+	// Defaults to robot.Error if not set
+	processed.logLevel = logStrToLevel(newconfig.LogLevel)
+	setLogLevel(processed.logLevel)
 
 	if newconfig.AdminUsers != nil {
 		processed.adminUsers = newconfig.AdminUsers
@@ -512,8 +516,6 @@ func loadConfig(preConnect bool) error {
 		if len(newconfig.LogDest) > 0 {
 			processed.logDest = newconfig.LogDest
 		}
-		// Defaults to robot.Error if not set
-		processed.logLevel = logStrToLevel(newconfig.LogLevel)
 		var hprovider func(robot.Handler) robot.HistoryProvider
 		var ok bool
 		if !cliOp { // CLI operations don't need a real history

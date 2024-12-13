@@ -80,6 +80,18 @@ func defval(d, i string) string {
 	return i
 }
 
+// setEnvVar allows the default robot.yaml to override environment variables
+// seen when loading the custom robot.yaml - mainly just for IDE mode.
+func setEnvVar(k, v string) (err error) {
+	err = os.Setenv(k, v)
+	if err != nil {
+		Log(robot.Error, "failed override setting '%s' to '%s': %v", k, v, err.Error())
+	} else {
+		Log(robot.Warn, "environment variable override while loading configuration, setting '%s=%s'", k, v)
+	}
+	return
+}
+
 // decryptTpl takes an base64 encoded string, decodes and decrypts, and returns
 // the value.
 func decryptTpl(encval string) string {
@@ -197,6 +209,7 @@ func expand(dir string, custom bool, in []byte) (out []byte, err error) {
 		"default":        defval,
 		"env":            env,
 		"GetStartupMode": detectStartupMode,
+		"SetEnv":         setEnvVar,
 	}
 	var outBuff bytes.Buffer
 	tpl, err := template.New("").Funcs(tplFuncs).Parse(string(in))

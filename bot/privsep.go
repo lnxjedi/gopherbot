@@ -159,8 +159,8 @@ func checkprivsep() {
 		ruid := unix.Getuid()
 		euid := unix.Geteuid()
 		tid := unix.Gettid()
-		botStdOutLogger.Printf("PRIVSEP - privilege separation initialized; daemon UID %d, unprivileged UID %d; thread %d r/euid: %d/%d\n", privUID, unprivUID, tid, ruid, euid)
+		Log(robot.Info, "PRIVSEP - privilege separation initialized; daemon UID %d, unprivileged UID %d; thread %d r/euid: %d/%d", privUID, unprivUID, tid, ruid, euid)
 	} else {
-		botStdOutLogger.Printf("PRIVSEP - Privilege separation not in use\n")
+		Log(robot.Info, "PRIVSEP - Privilege separation not in use")
 	}
 }

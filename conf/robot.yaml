@@ -30,8 +30,39 @@
 ## By default, automatically choose a port.
 LocalPort: {{ env "GOPHER_PORT" | default "0" }}
 
-{{ $proto := env "GOPHER_PROTOCOL" | default "nullconn" }}
+{{- $mode := GetStartupMode }}
+
+## Defaults for "production" and "ide-override" modes
+{{- $proto := env "GOPHER_PROTOCOL" | default "terminal" }}
+{{- $brain := env "GOPHER_BRAIN" | default "file" }}
+{{- $logdest := env "GOPHER_LOGDEST" | default "robot.log" }}
+
+## No configuration, no environment variables - demo robot
+{{- if eq $mode "demo" }}
+  {{- $proto = "terminal" }}
+  {{- $brain = "mem"}}
+  {{- $logdest = "robot.log" }}
+## No configuration but GOPHER_CUSTOM_REPOSITORY set, need to clone
+{{- else if eq $mode "bootstrap" }}
+  {{- $proto = "nullconn" }}
+  {{- $brain = "mem"}}
+  {{- $logdest = "stdout" }}
+## IDE mode, override protocol, brain, logdest
+{{- else if eq $mode "ide" }}
+  {{- $proto = "terminal" }}
+  {{- $brain = "mem"}}
+  {{- $logdest = "robot.log" }}
+## Override environment variables that will affect a
+## robot's custom configuration loading
+  {{- SetEnv "GOPHER_PROTOCOL" "terminal" }}
+  {{- SetEnv "GOPHER_BRAIN" "mem" }}
+  {{- SetEnv "GOPHER_LOGDEST" "robot.log" }}
+{{- end }}
+
 Protocol: {{ $proto }}
+Brain: {{ $brain }}
+LogDest: {{ $logdest }}
+
 ## Trivial "terminal" connector config for a single admin user.
 ## This pulls in a basic default config for the terminal connector
 ## which can be overridden in custom if desired.
@@ -45,7 +76,6 @@ Protocol: {{ $proto }}
 
 ## Configure logging
 LogLevel: {{ env "GOPHER_LOGLEVEL" | default "info" }}
-LogDest: {{ env "GOPHER_LOGFILE" | default "stdout" }}
 
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "mem" }}
@@ -80,7 +110,7 @@ NameSpaces:
       Value: {{ env "GOPHER_STATE_REPOSITORY" }}
     - Name: GOPHER_STATE_BRANCH
       Value: {{ env "GOPHER_STATE_BRANCH" }}
-    # A default installed robot stores its brain in state/brain
+    # A default installed robot stores its memories in state/brain
     - Name: GOPHER_STATEDIR
       Value: {{ env "GOPHER_STATEDIR" | default "state" }}
 
