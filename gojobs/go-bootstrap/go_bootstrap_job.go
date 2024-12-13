@@ -77,15 +77,19 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	// Remove any temporary binary encryption key created by unconfigured start-up.
 	tmpKeyName := "binary-encrypted-key"
 	deployEnv := r.GetParameter("GOPHER_ENVIRONMENT")
-	if deployEnv != "production" {
+	if len(deployEnv) > 0 {
 		tmpKeyName = tmpKeyName + "." + deployEnv
 	}
 	tmpKeyPath := filepath.Join(repoDir, tmpKeyName)
-	if err := os.Remove(tmpKeyPath); err != nil && !os.IsNotExist(err) {
-		r.Log(robot.Error, "failed to remove temporary key: "+err.Error())
-		return robot.Fail
+	if err := os.Remove(tmpKeyPath); err != nil {
+		if !os.IsNotExist(err) {
+			r.Log(robot.Fatal, "failed to remove temporary key: "+err.Error())
+			return robot.Fail
+		}
+		r.Log(robot.Warn, "failed to remove temporary key - file not found: %s", tmpKeyPath)
+	} else {
+		r.Log(robot.Debug, "removed temporary key: "+tmpKeyPath)
 	}
-	r.Log(robot.Debug, "removed temporary key: "+tmpKeyPath)
 
 	// Clone the repository to the config directory using ssh-agent credentials
 	// and known_hosts for server validation.

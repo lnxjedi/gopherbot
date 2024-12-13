@@ -10,6 +10,10 @@
 ##   provide a default value if "" or unset is piped in
 ## env "ENV_VAR":
 ##   look a value up from the environment
+## SetEnv "ENV_VAR" "value"
+##   override an environment variable setting for IDE mode (see usage below)
+##   -> Note that this is really mainly useful in default configuration,
+##      since default is always loaded before custom config.
 ## decrypt "<encrypted string>":
 ##   decrypt a value encrypted with the 'encrypt <string>' command
 ## .Include "<filename>":
