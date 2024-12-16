@@ -3,6 +3,7 @@ module github.com/lnxjedi/gopherbot/v2
 go 1.23.3
 
 replace github.com/lnxjedi/gopherbot/robot => ./robot
+
 // replace github.com/go-git/go-git/v5 => ./replacements/go-git
 
 require (
@@ -44,6 +45,7 @@ require (
 	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/traefik/yaegi v0.16.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	golang.org/x/crypto v0.29.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.31.0 // indirect
