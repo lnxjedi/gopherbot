@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/gopherbot/v2/modules/linebuffer"
 )
 
 type memlogentry struct {
@@ -20,7 +21,7 @@ type memlogentry struct {
 
 type memlog struct {
 	entry memlogentry
-	log   *lineBuffer
+	log   *linebuffer.Buffer
 }
 
 type memHistLog struct {
@@ -40,17 +41,17 @@ var memHistories *memHistLog
 // Log writes a timestamped line to the buffer
 func (m memlog) Log(line string) {
 	tsLine := fmt.Sprintf("%s %s", time.Now().Format("Jan 2 15:04:05"), line)
-	m.log.writeLine(tsLine)
+	m.log.WriteLine(tsLine)
 }
 
 // Line writes a bare line to a buffer
 func (m memlog) Line(line string) {
-	m.log.writeLine(line)
+	m.log.WriteLine(line)
 }
 
 // Close closes the log against further writes
 func (m memlog) Close() {
-	m.log.close()
+	m.log.Close()
 }
 
 // Finalize removes the log from the lookup map
@@ -62,7 +63,7 @@ func (m memlog) Finalize() {
 
 // NewHistory returns a lineBuffer based history logger
 func (h *memHistLog) NewLog(tag string, index, maxHistories int) (robot.HistoryLogger, error) {
-	lb := newLineBuffer(mhc.BufferSize, mhc.MaxLineLength, mhc.Truncated)
+	lb := linebuffer.New(mhc.BufferSize, mhc.MaxLineLength, mhc.Truncated)
 	entry := memlogentry{tag, index}
 	ml := memlog{entry, lb}
 	memHistories.Lock()
@@ -90,9 +91,9 @@ func (h *memHistLog) GetLog(tag string, index int) (io.Reader, error) {
 	if !ok {
 		return nil, errors.New("not found")
 	}
-	mr, err := mh.log.getReader()
+	mr, err := mh.log.Reader()
 	if err != nil {
-		mr = mh.log.copyReader()
+		mr = mh.log.Snapshot()
 	}
 	return mr, nil
 }

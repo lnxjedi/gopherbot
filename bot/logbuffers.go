@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"github.com/lnxjedi/gopherbot/v2/modules/linebuffer"
 )
 
 // logbuffers.go - utility functions for pulling pipeline logs in to
@@ -41,14 +42,14 @@ func getLogBuffer(tag, trunc string, idx, buffsize, linesize int) (ret robot.Tas
 		ret = robot.NotFound
 		return
 	}
-	tail := newLineBuffer(buffsize, linesize, trunc)
+	tail := linebuffer.New(buffsize, linesize, trunc)
 	scanner := bufio.NewScanner(logReader)
 	for scanner.Scan() {
 		line := scanner.Text()
-		tail.writeLine(line)
+		tail.WriteLine(line)
 	}
-	tail.close()
-	tailReader, _ := tail.getReader()
+	tail.Close()
+	tailReader, _ := tail.Reader()
 	buff, _ = io.ReadAll(tailReader)
 
 	return
