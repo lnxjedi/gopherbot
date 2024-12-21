@@ -95,6 +95,7 @@ USER ${USER_UID}:${USER_GID}
 # Install language extensions
 RUN /home/.openvscode-server/bin/openvscode-server --install-extension golang.Go && \
     /home/.openvscode-server/bin/openvscode-server --install-extension shopify.ruby-lsp && \
+    /home/.openvscode-server/bin/openvscode-server --install-extension sumneko.lua && \
     /home/.openvscode-server/bin/openvscode-server --install-extension ms-python.python
 
 WORKDIR /home/${USERNAME}
