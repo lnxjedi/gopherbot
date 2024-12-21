@@ -305,7 +305,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	isExternalLuaTask := strings.HasSuffix(task.Path, ".lua")
 	isExternalInterpreterTask := isExternalGoTask || isExternalLuaTask
 	var err error
-	if task.Homed {
+	if task.Homed || isExternalInterpreterTask {
 		taskPath, err = getTaskPath(task, ".")
 	} else {
 		taskPath, err = getTaskPath(task, workdir)
