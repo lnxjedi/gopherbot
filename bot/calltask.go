@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	lua "github.com/lnxjedi/gopherbot/v2/modules/lua"
 	yaegi "github.com/lnxjedi/gopherbot/v2/modules/yaegi-dynamic-go"
 	"golang.org/x/sys/unix"
 )
@@ -301,13 +302,15 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 
 	var taskPath string // full path to the executable
 	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
+	isExternalLuaTask := strings.HasSuffix(task.Path, ".lua")
+	isExternalInterpreterTask := isExternalGoTask || isExternalLuaTask
 	var err error
 	if task.Homed {
 		taskPath, err = getTaskPath(task, ".")
 	} else {
 		taskPath, err = getTaskPath(task, workdir)
 	}
-	if err != nil && !isExternalGoTask && taskPath != "" {
+	if err != nil && !isExternalInterpreterTask && taskPath != "" {
 		emit(ExternalTaskBadPath)
 		rchan <- taskReturn{fmt.Sprintf("Getting the path for %s: %v", task.name, err), robot.MechanismFail}
 		return
@@ -352,6 +355,57 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 					return
 				}
 				r.Log(robot.Debug, "External Go task '%s' executed with args: %q", task.name, args)
+			}
+			deregisterWorker(r.tid)
+			rchan <- taskReturn{"", ret}
+			return
+		}
+	}
+
+	if isExternalLuaTask {
+		if privSep {
+			if privileged {
+				raiseThreadPriv(fmt.Sprintf("privileged external Lua task \"%s\"", task.name))
+			} else {
+				dropThreadPriv(fmt.Sprintf("unprivileged external Lua task \"%s\"", task.name))
+			}
+		}
+		if isPlugin {
+			// "init" usually doesn't count as an actual plugin invocation for stats
+			if command != "init" {
+				emit(ExternalTaskRan)
+			}
+			// Prepend the command to args, so Lua sees args[1] == <command>
+			allArgs := append([]string{command}, args...)
+
+			ret, err := lua.CallExtension(taskPath, task.name, r, task.Privileged, allArgs)
+			if err != nil {
+				emit(ExternalTaskBadInterpreter)
+				rchan <- taskReturn{fmt.Sprintf("Running plugin %s: %v", task.name, err), robot.MechanismFail}
+				return
+			}
+			deregisterWorker(r.tid)
+			rchan <- taskReturn{"", ret}
+			return
+		} else {
+			var ret robot.TaskRetVal
+			// For jobs/tasks, pass args directly; no "command" prepended.
+			if isJob {
+				ret, err = lua.CallExtension(taskPath, task.name, r, task.Privileged, args)
+				if err != nil {
+					emit(ExternalTaskBadInterpreter)
+					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
+					return
+				}
+				r.Log(robot.Debug, "External Lua job '%s' executed with args: %q", task.name, args)
+			} else {
+				ret, err = lua.CallExtension(taskPath, task.name, r, task.Privileged, args)
+				if err != nil {
+					emit(ExternalTaskBadInterpreter)
+					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}
+					return
+				}
+				r.Log(robot.Debug, "External Lua task '%s' executed with args: %q", task.name, args)
 			}
 			deregisterWorker(r.tid)
 			rchan <- taskReturn{"", ret}
