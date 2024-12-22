@@ -42,6 +42,7 @@ func CallExtension(taskPath, taskName string, env map[string]string, r robot.Rob
 	RegisterUtilMethods(L)
 	RegisterAttributeMethods(L)
 	RegisterPromptingMethods(L)
+	RegisterPipelineMethods(L)
 
 	// Create the robot userdata object and set it as "robot".
 	robotUD := L.NewUserData()
