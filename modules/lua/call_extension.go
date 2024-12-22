@@ -36,6 +36,8 @@ func CallExtension(taskPath, taskName string, env map[string]string, r robot.Rob
 	RegisterMessageMethods(L)
 	RegisterRobotModifiers(L)
 	RegisterLongtermMemoryMethods(L)
+	RegisterConfigMethod(L)
+	RegisterUtilMethods(L)
 	// RegisterLogMethods(L)
 
 	// Create the robot userdata object and set it as "robot".

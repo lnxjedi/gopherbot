@@ -76,10 +76,14 @@ if cmd == "lua" then
 
     -- Try direct message
     local directBot = robot:Direct()
-    directBot:Say("Hi from a DM; your name is " .. robot.user)
+    -- directBot:Say("Hi from a DM; your name is " .. robot.user)
+    directBot:Say("Hi from a DM!")
 
     -- Try reading an array from config
-    local configData = robot:GetTaskConfig()
+    local configData, ret = robot:GetTaskConfig()
+    if ret ~= retOk then
+        robot:Say("I wasn't able to find my configuration")
+    end
     if configData["Replies"] then
         local reply = robot:RandomString(configData["Replies"])
         robot:Say("Random reply: " .. reply)
