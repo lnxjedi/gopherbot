@@ -221,7 +221,7 @@ func RegisterMessageMethods(L *glua.LState) {
 		"SendUserChannelThreadMessage": robotSendUserChannelThreadMessage,
 	}
 
-	// Fetch the existing "robot" metatable. Typically set up in your CallExtension.go.
-	mt := L.NewTypeMetatable("robot")
-	L.SetField(mt, "__index", L.SetFuncs(L.NewTable(), messageMethods))
+	robotIndex := getRobotMethodTable(L)
+	// Merge in the new message methods
+	L.SetFuncs(robotIndex, messageMethods)
 }

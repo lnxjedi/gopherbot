@@ -5,7 +5,6 @@ import (
 
 	"github.com/lnxjedi/gopherbot/robot"
 	glua "github.com/yuin/gopher-lua"
-	lua "github.com/yuin/gopher-lua"
 )
 
 // luaRobot holds a reference to the robot.Robot interface, so we can
@@ -35,6 +34,7 @@ func CallExtension(taskPath, taskName string, env map[string]string, r robot.Rob
 
 	// Register additional sets (e.g., message methods):
 	RegisterMessageMethods(L)
+	RegisterRobotModifiers(L)
 	// RegisterLogMethods(L)
 	// RegisterMemoryMethods(L)
 
@@ -84,7 +84,7 @@ func modifyOSFunctions(L *glua.LState, r robot.Robot, envMap map[string]string) 
 	osVal := L.GetGlobal("os")
 	if osTable, ok := osVal.(*glua.LTable); ok {
 		// Replace os.getenv
-		osTable.RawSetString("getenv", L.NewFunction(func(L *lua.LState) int {
+		osTable.RawSetString("getenv", L.NewFunction(func(L *glua.LState) int {
 			key := L.CheckString(1)
 			if val, found := envMap[key]; found {
 				// Found in our map => return the string
@@ -98,7 +98,7 @@ func modifyOSFunctions(L *glua.LState, r robot.Robot, envMap map[string]string) 
 		}))
 
 		// Replace os.setenv
-		osTable.RawSetString("setenv", L.NewFunction(func(L *lua.LState) int {
+		osTable.RawSetString("setenv", L.NewFunction(func(L *glua.LState) int {
 			key := L.CheckString(1)
 			r.Log(robot.Warn, "lua script tried to call os.setenv; ignoring for key="+key)
 			// No return value
@@ -131,4 +131,28 @@ var robotMethods = map[string]glua.LGFunction{
 	// If you have base-level Robot methods, put them here.
 	// e.g. "CheckAdmin", "Elevate", etc.
 	// "Say" and "Reply" might already be in RegisterMessageMethods(L).
+}
+
+// helper to avoid overwriting all the functions when we add new ones
+func getRobotMethodTable(L *glua.LState) *glua.LTable {
+	// Retrieve the metatable associated with type "robot"
+	mt := L.GetTypeMetatable("robot")
+	if mt == glua.LNil {
+		// If for some reason "robot" isn't defined yet, create it
+		mt = L.NewTypeMetatable("robot")
+		L.SetMetatable(mt, mt)
+	}
+
+	// Now get the __index field from the metatable
+	idx := L.GetField(mt, "__index")
+
+	// If it’s already a table, we can just append
+	if idxTable, ok := idx.(*glua.LTable); ok {
+		return idxTable
+	}
+
+	// Otherwise, create a new table and set it as the __index
+	newTable := L.NewTable()
+	L.SetField(mt, "__index", newTable)
+	return newTable
 }
