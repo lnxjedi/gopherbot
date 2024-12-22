@@ -20,34 +20,35 @@ type luaRobot struct {
 //   - privileged: if true, we don't remove any functions; if false, we remove os.getenv, os.setenv
 //   - args: the script arguments
 func CallExtension(taskPath, taskName string, env map[string]string, r robot.Robot, privileged bool, args []string) (robot.TaskRetVal, error) {
-	// 1. Create a new Lua state.
 	L := glua.NewState()
 	defer L.Close()
 
-	// 2. Load all libraries, then selectively remove os.getenv and os.setenv if unprivileged.
+	// This is done automatically unless the SkipOpenLibs option is passed
 	// L.OpenLibs()
 
+	// Replace os.getenv with our version that uses the env map, replace
+	// os.setenv with a noop version that logs a warning.
 	modifyEnvFunctions(L, r, env)
 
-	// 3. Register the "robot" type and base methods.
+	// Register the "robot" type and any base methods.
 	registerRobotType(L)
 
-	// 3a. Register additional sets (e.g., message methods):
+	// Register additional sets (e.g., message methods):
 	RegisterMessageMethods(L)
-	// If you have other method groups (Log, Memory, etc.), register them here too.
 	// RegisterLogMethods(L)
 	// RegisterMemoryMethods(L)
 
-	// 4. Create the robot userdata object and set it as "robot".
+	// Create the robot userdata object and set it as "robot".
 	robotUD := L.NewUserData()
 	robotUD.Value = &luaRobot{r: r}
 	L.SetMetatable(robotUD, L.GetTypeMetatable("robot"))
 	L.SetGlobal("robot", robotUD)
 
-	// 5. Register constants (RetVal, TaskRetVal, etc.).
+	// Register constants (RetVal/ret, TaskRetVal/task, etc.).
 	registerConstants(L)
 
-	// 6. Provide the script arguments as a Lua table "args".
+	// Provide the script arguments as a Lua table "arg", similar to
+	// a standard Lua script.
 	argsTable := L.CreateTable(len(args), 0)
 	argsTable.RawSetInt(0, glua.LString(taskName))
 	for i, a := range args {
@@ -55,14 +56,7 @@ func CallExtension(taskPath, taskName string, env map[string]string, r robot.Rob
 	}
 	L.SetGlobal("arg", argsTable)
 
-	// 7. Create an "env" table from the provided env map and set it global.
-	envTable := L.CreateTable(0, len(env))
-	for k, v := range env {
-		envTable.RawSetString(k, glua.LString(v))
-	}
-	L.SetGlobal("env", envTable)
-
-	// 8. Compile and run the Lua file.
+	// Compile and run the Lua file.
 	if err := L.DoFile(taskPath); err != nil {
 		r.Log(robot.Error, fmt.Sprintf("Lua error in script '%s': %v", taskName, err))
 		return robot.MechanismFail, err
