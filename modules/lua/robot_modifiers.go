@@ -46,6 +46,20 @@ func robotThreaded(L *glua.LState) int {
 	return 1
 }
 
+func robotFixed(L *glua.LState) int {
+	ud := L.CheckUserData(1)
+	lr, ok := ud.Value.(*luaRobot)
+	if !ok {
+		L.RaiseError("invalid robot userdata")
+		return 0
+	}
+
+	newR := lr.r.Fixed()
+	newUD := newLuaRobot(L, newR)
+	L.Push(newUD)
+	return 1
+}
+
 func robotMessageFormat(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	formatVal := L.CheckNumber(2) // e.g., 0=Raw,1=Fixed,2=Variable, etc.
@@ -66,6 +80,7 @@ func robotMessageFormat(L *glua.LState) int {
 
 func RegisterRobotModifiers(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
+		"Fixed":         robotFixed,
 		"Direct":        robotDirect,
 		"Threaded":      robotThreaded,
 		"MessageFormat": robotMessageFormat,
