@@ -49,10 +49,11 @@ func CallExtension(taskPath, taskName string, env map[string]string, r robot.Rob
 
 	// 6. Provide the script arguments as a Lua table "args".
 	argsTable := L.CreateTable(len(args), 0)
+	argsTable.RawSetInt(0, glua.LString(taskName))
 	for i, a := range args {
 		argsTable.RawSetInt(i+1, glua.LString(a))
 	}
-	L.SetGlobal("args", argsTable)
+	L.SetGlobal("arg", argsTable)
 
 	// 7. Create an "env" table from the provided env map and set it global.
 	envTable := L.CreateTable(0, len(env))

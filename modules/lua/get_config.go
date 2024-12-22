@@ -16,8 +16,9 @@ func GetPluginConfig(taskPath, taskName string) (*[]byte, error) {
 
 	// Create the args global with a single element: "configure"
 	argsTable := L.CreateTable(1, 0)
+	argsTable.RawSetInt(0, glua.LString(taskName))
 	argsTable.RawSetInt(1, glua.LString("configure"))
-	L.SetGlobal("args", argsTable)
+	L.SetGlobal("arg", argsTable)
 
 	// Load + Run the script
 	if err := L.DoFile(taskPath); err != nil {
