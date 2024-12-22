@@ -10,7 +10,8 @@ import (
 // luaRobot holds a reference to the robot.Robot interface, so we can
 // call methods on the underlying Gopherbot Robot from Lua.
 type luaRobot struct {
-	r robot.Robot
+	r   robot.Robot
+	env map[string]string
 }
 
 // CallExtension loads and executes a Lua script at taskPath, passing in:
@@ -38,11 +39,12 @@ func CallExtension(taskPath, taskName string, env map[string]string, r robot.Rob
 	RegisterLongtermMemoryMethods(L)
 	RegisterConfigMethod(L)
 	RegisterUtilMethods(L)
+	RegisterAttributeMethods(L)
 	// RegisterLogMethods(L)
 
 	// Create the robot userdata object and set it as "robot".
 	robotUD := L.NewUserData()
-	robotUD.Value = &luaRobot{r: r}
+	robotUD.Value = &luaRobot{r: r, env: env}
 	L.SetMetatable(robotUD, L.GetTypeMetatable("robot"))
 	L.SetGlobal("robot", robotUD)
 

@@ -69,27 +69,56 @@ end
 --------------------------------------------------------------------------------
 
 if cmd == "lua" then
-    -- Echo a random message from the config's "Replies" plus some environment checks
-    local ret = robot:ReplyThread("Hello from Lua in a thread!", fmtFixed)
-    robot:Say("My home is: " .. (os.getenv("GOPHER_HOME") or "unknown"))
-    robot:Say("My plugin name is: " .. (arg[0] or "unknown"))
+    -- Start by replying in a thread with fixed formatting
+    local retThread = robot:ReplyThread("Hello from Lua in a thread!", fmtFixed)
 
-    -- Try direct message
+    -- Gather environment info
+    local home = os.getenv("GOPHER_HOME") or "unknown"
+    local pluginName = arg[0] or "unknown"
+
+    -- Call our attribute methods
+    local user        = robot:User()
+    local userID      = robot:UserID()
+    local channel     = robot:Channel()
+    local channelID   = robot:ChannelID()
+    local threadID    = robot:ThreadID()
+    local isThreaded  = robot:ThreadedMessage()
+
+    -- Combine them into one line
+    robot:Say(string.format(
+        "Home: %s | Plugin: %s | User: %s (%s) | Channel: %s (%s) | ThreadID: %s | Threaded: %s",
+        home, pluginName, user, userID, channel, channelID, threadID, tostring(isThreaded)
+    ))
+
+    -- Show the DM usage
     local directBot = robot:Direct()
-    -- directBot:Say("Hi from a DM; your name is " .. robot.user)
-    directBot:Say("Hi from a DM!")
+    directBot:Say("Hi from a DM; your name is " .. user)
 
-    -- Try reading an array from config
-    local configData, ret = robot:GetTaskConfig()
-    if ret ~= retOk then
+    -- Demonstrate GetSenderAttribute (e.g., "email")
+    local senderEmail, senderRet = robot:GetSenderAttribute("email")
+    if senderRet == retOk and senderEmail ~= "" then
+        robot:Say("I have your email attribute as: " .. senderEmail)
+    end
+
+    -- Demonstrate GetBotAttribute (e.g., "name")
+    local botName, botRet = robot:GetBotAttribute("name")
+    if botRet == retOk and botName ~= "" then
+        robot:Say("My bot name is: " .. botName)
+    end
+
+    -- Now try reading array from config
+    local configData, retCfg = robot:GetTaskConfig()
+    if retCfg ~= retOk then
         robot:Say("I wasn't able to find my configuration")
-    end
-    if configData["Replies"] then
-        local reply = robot:RandomString(configData["Replies"])
-        robot:Say("Random reply: " .. reply)
+    else
+        if configData["Replies"] then
+            local reply = robot:RandomString(configData["Replies"])
+            robot:Say("Random reply: " .. reply)
+        end
     end
 
-    if ret == retOk then
+    -- Decide final return based on config retrieval
+    if retCfg == retOk then
         return taskNormal
     else
         return taskFail
