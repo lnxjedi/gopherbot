@@ -331,6 +331,28 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		return
 	}
 
+	// Homed tasks ALWAYS run in cwd, Homed pipelines may have modified the
+	// working directory with SetWorkingDirectory.
+	if task.Privileged || task.Homed || isExternalInterpreterTask {
+		if task.Privileged && len(homePath) > 0 {
+			// May already be provided for a privileged pipeline
+			envhash["GOPHER_HOME"] = homePath
+		}
+		// Always set for homed, privileged and interpreted tasks
+		envhash["GOPHER_WORKSPACE"] = r.cfg.workSpace
+		envhash["GOPHER_CONFIGDIR"] = configFull
+	}
+	env := make([]string, 0, len(envhash))
+	keys := make([]string, 0, len(envhash))
+	for k, v := range envhash {
+		if len(k) == 0 {
+			Log(robot.Error, "Empty Name value while populating environment for '%s', skipping", task.name)
+			continue
+		}
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+		keys = append(keys, k)
+	}
+
 	if isExternalGoTask {
 		if privSep {
 			if privileged {
@@ -343,7 +365,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			if command != "init" {
 				emit(GoPluginRan)
 			}
-			ret, err := yaegi.RunPluginHandler(taskPath, task.name, r, task.Privileged, command, args...)
+			ret, err := yaegi.RunPluginHandler(taskPath, task.name, env, r, task.Privileged, command, args...)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{fmt.Sprintf("Running plugin %s: %v", task.name, err), robot.MechanismFail}
@@ -355,7 +377,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		} else {
 			var ret robot.TaskRetVal
 			if isJob {
-				ret, err = yaegi.RunJobHandler(taskPath, task.name, r, task.Privileged, args...)
+				ret, err = yaegi.RunJobHandler(taskPath, task.name, env, r, task.Privileged, args...)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
@@ -363,7 +385,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				}
 				r.Log(robot.Debug, "External Go job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = yaegi.RunTaskHandler(taskPath, task.name, r, task.Privileged, args...)
+				ret, err = yaegi.RunTaskHandler(taskPath, task.name, env, r, task.Privileged, args...)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}
@@ -393,7 +415,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			// Prepend the command to args, so Lua sees args[1] == <command>
 			allArgs := append([]string{command}, args...)
 
-			ret, err := lua.CallExtension(taskPath, task.name, r, task.Privileged, allArgs)
+			ret, err := lua.CallExtension(taskPath, task.name, envhash, r, task.Privileged, allArgs)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{fmt.Sprintf("Running plugin %s: %v", task.name, err), robot.MechanismFail}
@@ -406,7 +428,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			var ret robot.TaskRetVal
 			// For jobs/tasks, pass args directly; no "command" prepended.
 			if isJob {
-				ret, err = lua.CallExtension(taskPath, task.name, r, task.Privileged, args)
+				ret, err = lua.CallExtension(taskPath, task.name, envhash, r, task.Privileged, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
@@ -414,7 +436,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				}
 				r.Log(robot.Debug, "External Lua job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = lua.CallExtension(taskPath, task.name, r, task.Privileged, args)
+				ret, err = lua.CallExtension(taskPath, task.name, envhash, r, task.Privileged, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}
@@ -436,33 +458,12 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	externalArgs = append(externalArgs, args...)
 	Log(robot.Debug, "Calling '%s' with args: %q", taskPath, externalArgs)
 	cmd := exec.Command(taskPath, externalArgs...)
-
-	// Homed tasks ALWAYS run in cwd, Homed pipelines may have modified the
-	// working directory with SetWorkingDirectory.
 	if task.Homed {
 		cmd.Dir = "."
 	} else {
 		cmd.Dir = workdir
 	}
-	if task.Privileged || task.Homed {
-		if task.Privileged && len(homePath) > 0 {
-			// May already be provided for a privileged pipeline
-			envhash["GOPHER_HOME"] = homePath
-		}
-		// Always set for homed and privileged tasks
-		envhash["GOPHER_WORKSPACE"] = r.cfg.workSpace
-		envhash["GOPHER_CONFIGDIR"] = configFull
-	}
-	env := make([]string, 0, len(envhash))
-	keys := make([]string, 0, len(envhash))
-	for k, v := range envhash {
-		if len(k) == 0 {
-			Log(robot.Error, "Empty Name value while populating environment for '%s', skipping", task.name)
-			continue
-		}
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
-		keys = append(keys, k)
-	}
+
 	cmd.Env = env
 	Log(robot.Debug, "Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '"))
 	var stderr, stdout io.ReadCloser

@@ -77,13 +77,14 @@ func copyFile(src, dst string) error {
 	return nil
 }
 
-func initializeInterpreter(privileged bool) (*interp.Interpreter, error) {
+func initializeInterpreter(privileged bool, env []string) (*interp.Interpreter, error) {
 	if initErr != nil {
 		return nil, initErr
 	}
 	i := interp.New(interp.Options{
 		GoPath:       goPath,
 		Unrestricted: privileged,
+		Env:          env,
 	})
 	if err := i.Use(stdlib.Symbols); err != nil {
 		return nil, fmt.Errorf("failed to load standard library: %w", err)
@@ -104,7 +105,7 @@ func GetPluginConfig(path, name string) (cfg *[]byte, err error) {
 		}
 	}()
 
-	i, err := initializeInterpreter(false)
+	i, err := initializeInterpreter(false, []string{})
 	if err != nil {
 		return &nullcfg, err
 	}
@@ -130,7 +131,7 @@ func GetPluginConfig(path, name string) (cfg *[]byte, err error) {
 	return cfg, nil
 }
 
-func RunPluginHandler(path, name string, r robot.Robot, privileged bool, command string, args ...string) (ret robot.TaskRetVal, err error) {
+func RunPluginHandler(path, name string, env []string, r robot.Robot, privileged bool, command string, args ...string) (ret robot.TaskRetVal, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			ret = robot.MechanismFail
@@ -139,7 +140,7 @@ func RunPluginHandler(path, name string, r robot.Robot, privileged bool, command
 		}
 	}()
 
-	i, err := initializeInterpreter(privileged)
+	i, err := initializeInterpreter(privileged, env)
 	if err != nil {
 		return robot.MechanismFail, err
 	}
@@ -166,7 +167,7 @@ func RunPluginHandler(path, name string, r robot.Robot, privileged bool, command
 	return
 }
 
-func RunJobHandler(path, name string, r robot.Robot, privileged bool, args ...string) (ret robot.TaskRetVal, err error) {
+func RunJobHandler(path, name string, env []string, r robot.Robot, privileged bool, args ...string) (ret robot.TaskRetVal, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			ret = robot.MechanismFail
@@ -175,7 +176,7 @@ func RunJobHandler(path, name string, r robot.Robot, privileged bool, args ...st
 		}
 	}()
 
-	i, err := initializeInterpreter(privileged)
+	i, err := initializeInterpreter(privileged, env)
 	if err != nil {
 		return robot.MechanismFail, err
 	}
@@ -202,7 +203,7 @@ func RunJobHandler(path, name string, r robot.Robot, privileged bool, args ...st
 	return
 }
 
-func RunTaskHandler(path, name string, r robot.Robot, privileged bool, args ...string) (ret robot.TaskRetVal, err error) {
+func RunTaskHandler(path, name string, env []string, r robot.Robot, privileged bool, args ...string) (ret robot.TaskRetVal, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			ret = robot.MechanismFail
@@ -211,7 +212,7 @@ func RunTaskHandler(path, name string, r robot.Robot, privileged bool, args ...s
 		}
 	}()
 
-	i, err := initializeInterpreter(privileged)
+	i, err := initializeInterpreter(privileged, env)
 	if err != nil {
 		return robot.MechanismFail, err
 	}
