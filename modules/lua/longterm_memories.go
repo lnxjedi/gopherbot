@@ -8,9 +8,9 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
-// RegisterLongtermMemoryMethods adds CheckoutDatum, UpdateDatum, and CheckinDatum
+// RegisterLongTermMemoryMethods adds CheckoutDatum, UpdateDatum, and CheckinDatum
 // to the robot's metatable.
-func RegisterLongtermMemoryMethods(L *glua.LState) {
+func RegisterLongTermMemoryMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		"CheckoutDatum": robotCheckoutDatum,
 		"UpdateDatum":   robotUpdateDatum,

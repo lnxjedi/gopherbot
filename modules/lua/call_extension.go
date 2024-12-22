@@ -36,11 +36,12 @@ func CallExtension(taskPath, taskName string, env map[string]string, r robot.Rob
 	// Register additional sets (e.g., message methods):
 	RegisterMessageMethods(L)
 	RegisterRobotModifiers(L)
-	RegisterLongtermMemoryMethods(L)
+	RegisterLongTermMemoryMethods(L)
+	RegisterShortTermMemoryMethods(L)
 	RegisterConfigMethod(L)
 	RegisterUtilMethods(L)
 	RegisterAttributeMethods(L)
-	// RegisterLogMethods(L)
+	RegisterPromptingMethods(L)
 
 	// Create the robot userdata object and set it as "robot".
 	robotUD := L.NewUserData()
@@ -75,6 +76,15 @@ func CallExtension(taskPath, taskName string, env map[string]string, r robot.Rob
 		taskReturn = robot.TaskRetVal(ln)
 	}
 	return taskReturn, nil
+}
+
+// logErr logs an error if lr or lr.r is valid, otherwise prints to stdout.
+func logErr(lr *luaRobot, caller string) {
+	if lr != nil && lr.r != nil {
+		lr.r.Log(robot.Error, fmt.Sprintf("%s called with invalid robot userdata", caller))
+	} else {
+		fmt.Printf("[ERR] %s called but robot is nil\n", caller)
+	}
 }
 
 // modifyOSFunctions overrides os.getenv / os.setenv / os.setlocale in Lua:
