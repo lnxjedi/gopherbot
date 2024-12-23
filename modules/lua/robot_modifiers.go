@@ -13,11 +13,27 @@ func newLuaRobot(L *glua.LState, r robot.Robot) *glua.LUserData {
 	return newUD
 }
 
+// robotNew allows for a more natural bot = robot:New()
+func robotNew(L *glua.LState) int {
+	ud := L.CheckUserData(1)
+	lr, ok := ud.Value.(*luaRobot)
+	if !ok {
+		logErr(lr, "New")
+		return 0
+	}
+
+	newUD := newLuaRobot(L, lr.r)
+
+	// 3. Return that new userdata to Lua
+	L.Push(newUD)
+	return 1
+}
+
 func robotDirect(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		L.RaiseError("invalid robot userdata")
+		logErr(lr, "Direct")
 		return 0
 	}
 
@@ -36,7 +52,7 @@ func robotThreaded(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		L.RaiseError("invalid robot userdata")
+		logErr(lr, "Threaded")
 		return 0
 	}
 
@@ -50,7 +66,7 @@ func robotFixed(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		L.RaiseError("invalid robot userdata")
+		logErr(lr, "Fixed")
 		return 0
 	}
 
@@ -66,7 +82,7 @@ func robotMessageFormat(L *glua.LState) int {
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		L.RaiseError("invalid robot userdata")
+		logErr(lr, "MessageFormat")
 		return 0
 	}
 
@@ -80,6 +96,7 @@ func robotMessageFormat(L *glua.LState) int {
 
 func RegisterRobotModifiers(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
+		"New":           robotNew,
 		"Fixed":         robotFixed,
 		"Direct":        robotDirect,
 		"Threaded":      robotThreaded,
