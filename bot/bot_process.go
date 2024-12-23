@@ -169,7 +169,7 @@ func initBot() {
 
 	encryptionInitialized := initCrypt()
 	if encryptionInitialized {
-		os.Setenv("GOPHER_ENCRYPTION_INITIALIZED", "initialized")
+		setEnv("GOPHER_ENCRYPTION_INITIALIZED", "initialized")
 	}
 
 	// The pre-connect load is for initial configuration that doesn't
@@ -253,7 +253,7 @@ func initCrypt() bool {
 	}
 	keyFile := filepath.Join(configPath, keyFileName)
 	encryptionInitialized := false
-	if ek, ok := os.LookupEnv(keyEnv); ok {
+	if ek, ok := lookupEnv(keyEnv); ok {
 		ik := []byte(ek)[0:32]
 		if bkf, err := os.ReadFile(keyFile); err == nil {
 			if bke, err := base64.StdEncoding.DecodeString(string(bkf)); err == nil {

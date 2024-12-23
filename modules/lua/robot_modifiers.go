@@ -5,9 +5,9 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
-func newLuaRobot(L *glua.LState, r robot.Robot) *glua.LUserData {
+func newLuaRobot(L *glua.LState, r robot.Robot, env map[string]string) *glua.LUserData {
 	newUD := L.NewUserData()
-	newUD.Value = &luaRobot{r: r}
+	newUD.Value = &luaRobot{r: r, env: env}
 	// Set the same metatable so we can still call :Say, :Reply, etc.
 	L.SetMetatable(newUD, L.GetTypeMetatable("robot"))
 	return newUD
@@ -22,9 +22,7 @@ func robotNew(L *glua.LState) int {
 		return 0
 	}
 
-	newUD := newLuaRobot(L, lr.r)
-
-	// 3. Return that new userdata to Lua
+	newUD := newLuaRobot(L, lr.r, lr.env)
 	L.Push(newUD)
 	return 1
 }
@@ -37,11 +35,8 @@ func robotDirect(L *glua.LState) int {
 		return 0
 	}
 
-	// 1. Call Go's r.Direct() to get a new Robot
 	newR := lr.r.Direct()
-
-	// 2. Wrap it in new userdata
-	newUD := newLuaRobot(L, newR)
+	newUD := newLuaRobot(L, newR, lr.env)
 
 	// 3. Return that new userdata to Lua
 	L.Push(newUD)
@@ -57,7 +52,7 @@ func robotThreaded(L *glua.LState) int {
 	}
 
 	newR := lr.r.Threaded()
-	newUD := newLuaRobot(L, newR)
+	newUD := newLuaRobot(L, newR, lr.env)
 	L.Push(newUD)
 	return 1
 }
@@ -71,7 +66,7 @@ func robotFixed(L *glua.LState) int {
 	}
 
 	newR := lr.r.Fixed()
-	newUD := newLuaRobot(L, newR)
+	newUD := newLuaRobot(L, newR, lr.env)
 	L.Push(newUD)
 	return 1
 }
@@ -89,7 +84,7 @@ func robotMessageFormat(L *glua.LState) int {
 	format := robot.MessageFormat(int(formatVal))
 	newR := lr.r.MessageFormat(format)
 
-	newUD := newLuaRobot(L, newR)
+	newUD := newLuaRobot(L, newR, lr.env)
 	L.Push(newUD)
 	return 1
 }

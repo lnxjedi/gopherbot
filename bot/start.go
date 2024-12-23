@@ -61,7 +61,7 @@ func Start(v VersionInfo) {
 	}
 
 	var ok bool
-	if deployEnvironment, ok = os.LookupEnv("GOPHER_ENVIRONMENT"); !ok {
+	if deployEnvironment, ok = lookupEnv("GOPHER_ENVIRONMENT"); !ok {
 		deployEnvironment = "production"
 	}
 
@@ -102,7 +102,7 @@ func Start(v VersionInfo) {
 		brain is "mem" (in-memory); these can be overridden with the "-o"
 		CLI flag.
 	*/
-	_, ideMode = os.LookupEnv("GOPHER_IDE")
+	_, ideMode = lookupEnv("GOPHER_IDE")
 	if ideMode {
 		homeDir := os.Getenv("HOME")
 		os.Chdir(homeDir)
@@ -192,6 +192,11 @@ func Start(v VersionInfo) {
 	}
 	penvErr := godotenv.Overload(envFile)
 
+	// Remove all GOPHER_ variables from the environment; nearly everywhere else,
+	// os.Getenv|Setenv|LookupEnv are replaced with calls to getEnv, setEnv and lookupEnv -
+	// see config_load.go.
+	scrubEnvironment()
+
 	var logger *log.Logger
 	var logOut *os.File
 
@@ -210,7 +215,7 @@ func Start(v VersionInfo) {
 	}
 	logger = log.New(logOut, "", logFlags)
 	botLogger.logger = logger
-	if elle, ok := os.LookupEnv("GOPHER_LOGLEVEL"); ok {
+	if elle, ok := lookupEnv("GOPHER_LOGLEVEL"); ok {
 		ele := logStrToLevel(elle)
 		setLogLevel(ele)
 	}

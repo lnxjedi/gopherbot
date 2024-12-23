@@ -1,6 +1,5 @@
 -- demo.lua
 -- A plugin for integration testing of Lua robot extensions, mirroring the Ruby demo.
-
 local defaultConfig = [[
 ---
 Help:
@@ -51,8 +50,44 @@ Config:
 -- Gopherbot for a plugin command).
 --------------------------------------------------------------------------------
 local cmd = ""
-if #arg > 0 then
-    cmd = arg[1]
+if #arg > 0 then cmd = arg[1] end
+
+local function extractEnv(envVarName)
+  -- **Read /proc/self/environ and extract the specified environment variable**
+  local envValue = "(not found)"
+  local envFile = "/proc/self/environ"
+  local envHandle = io.open(envFile, "r")
+  if envHandle then
+    local envContent = envHandle:read("*a")
+    envHandle:close()
+    -- Iterate over each key=value pair separated by null character
+    for key, value in string.gmatch(envContent, "([^%z]+)=([^%z]*)") do
+      if key == envVarName then
+        envValue = value
+        break
+      end
+    end
+  else
+    -- Handle error if /proc/self/environ cannot be opened
+    print("Failed to open " .. envFile)
+    -- You could raise an error here instead or log it to your bot if available.
+  end
+  return envValue
+end
+
+local function extractEnvBash(envVarName)
+  -- **Execute 'bash -c "echo $(envVarName)"' and display its output**
+  local envVarHandle = io.popen('bash -c "echo $' .. envVarName .. '"')
+  if envVarHandle then
+    local result = envVarHandle:read("*a")
+    envVarHandle:close()
+    -- Trim any trailing whitespace or newline characters
+    envVarOutput = result:gsub("%s+", "")
+  end
+  if envVarOutput == "" then
+    return "(not found)"
+  end
+  return envVarOutput
 end
 
 --------------------------------------------------------------------------------
@@ -81,12 +116,12 @@ if cmd == "lua" then
     local pluginName = arg[0] or "unknown"
 
     -- Call our attribute methods
-    local user        = bot:User()
-    local userID      = bot:UserID()
-    local channel     = bot:Channel()
-    local channelID   = bot:ChannelID()
-    local threadID    = bot:ThreadID()
-    local isThreaded  = bot:ThreadedMessage()
+    local user = bot:User()
+    local userID = bot:UserID()
+    local channel = bot:Channel()
+    local channelID = bot:ChannelID()
+    local threadID = bot:ThreadID()
+    local isThreaded = bot:ThreadedMessage()
 
     -- **Execute the 'whoami' system command to get the current system user**
     local systemUser = "unknown"
@@ -102,60 +137,38 @@ if cmd == "lua" then
 
     -- Combine them into one line, including the system user
     bot:Say(string.format(
-        "Home: %s | Plugin: %s | User: %s (%s) | Channel: %s (%s) | ThreadID: %s | Threaded: %s | System User: %s",
-        home, pluginName, user, userID, channel, channelID, threadID, tostring(isThreaded), systemUser
-    ))
+      "Home: %s | Plugin: %s | User: %s (%s) | Channel: %s (%s) | ThreadID: %s | Threaded: %s | System User: %s",
+      home, pluginName, user, userID, channel, channelID, threadID,
+      tostring(isThreaded), systemUser))
 
     -- **Read /proc/self/environ and extract GOPHER_CUSTOM_REPOSITORY**
-    local gopherRepo = "not set"
-    local envFile = "/proc/self/environ"
-    local envHandle = io.open(envFile, "r")
-    if envHandle then
-        local envContent = envHandle:read("*a")
-        envHandle:close()
-        -- Iterate over each key=value pair separated by null character
-        for key, value in string.gmatch(envContent, "([^%z]+)=([^%z]*)") do
-            if key == "GOPHER_CUSTOM_REPOSITORY" then
-                gopherRepo = value
-                break
-            end
-        end
-    else
-        bot:Say("Failed to open " .. envFile)
-    end
+    local gopherRepo = extractEnv("GOPHER_CUSTOM_REPOSITORY")
 
     -- **Say the GOPHER_CUSTOM_REPOSITORY value**
     bot:Say("GOPHER_CUSTOM_REPOSITORY is set to: " .. gopherRepo)
 
-    -- **Execute 'bash -c "echo $PATH"' and display its output**
-    local pathOutput = "not available"
-    local pathHandle = io.popen('bash -c "echo $PATH"')
-    if pathHandle then
-        local result = pathHandle:read("*a")
-        pathHandle:close()
-        -- Trim any trailing whitespace or newline characters
-        pathOutput = result:gsub("%s+", "")
-    else
-        bot:Say("Failed to execute 'echo $PATH' command.")
-    end
+    -- **Read /proc/self/environ and extract GOPHER_CUSTOM_REPOSITORY**
+    local gopherSecret = extractEnv("GOPHER_NOTSECRET")
+
+    -- **Say the GOPHER_CUSTOM_REPOSITORY value**
+    bot:Say("GOPHER_NOTSECRET is set to: " .. gopherSecret)
+
+    pathOutput = extractEnvBash("PATH")
 
     -- **Say the PATH value**
-    bot:Say("PATH is set to: " .. pathOutput)
+    bot:Say("bash PATH is set to: " .. pathOutput)
+
+    secretOutput = extractEnvBash("GOPHER_NOTSECRET")
+
+    -- **Say the PATH value**
+    bot:Say("bash GOPHER_NOTSECRET is set to: " .. secretOutput)
 
     -- **Execute 'bash -c "echo $GOPHER_CUSTOM_REPOSITORY"' and display its output**
-    local gopherRepoOutput = "not available"
-    local gopherRepoHandle = io.popen('bash -c "echo $GOPHER_CUSTOM_REPOSITORY"')
-    if gopherRepoHandle then
-        local result = gopherRepoHandle:read("*a")
-        gopherRepoHandle:close()
-        -- Trim any trailing whitespace or newline characters
-        gopherRepoOutput = result:gsub("%s+", "")
-    else
-        bot:Say("Failed to execute 'echo $GOPHER_CUSTOM_REPOSITORY' command.")
-    end
+    local gopherRepoOutput = extractEnvBash("GOPHER_CUSTOM_REPOSITORY")
 
     -- **Say the GOPHER_CUSTOM_REPOSITORY value from bash**
-    bot:Say("GOPHER_CUSTOM_REPOSITORY (from bash) is set to: " .. gopherRepoOutput)
+    bot:Say("GOPHER_CUSTOM_REPOSITORY (from bash) is set to: " ..
+                gopherRepoOutput)
 
     -- Show the DM usage
     local directBot = bot:Direct()
@@ -199,22 +212,26 @@ elseif cmd == "thread" then
 
 elseif cmd == "askthread" then
     -- Prompt for user input in a thread
-    local rep, rcode = bot:PromptThreadForReply("SimpleString", "Tell me something - anything!")
+    local rep, rcode = bot:PromptThreadForReply("SimpleString",
+                                                "Tell me something - anything!")
     if rcode == retOk then
         bot:SayThread("I hear what you're saying: '" .. rep .. "'")
     else
-        bot:SayThread("Sorry, I'm not sure what you're trying to tell me. Maybe you used funny characters?")
+        bot:SayThread(
+            "Sorry, I'm not sure what you're trying to tell me. Maybe you used funny characters?")
     end
     return taskNormal
 
 elseif cmd == "listen" then
     -- Demonstrate a DM-based prompt
     local dbot = bot:Direct()
-    local rep, rcode = dbot:PromptForReply("SimpleString", "Ok, what do you want to tell me?")
+    local rep, rcode = dbot:PromptForReply("SimpleString",
+                                           "Ok, what do you want to tell me?")
     if rcode == retOk then
         dbot:Say("I hear what you're saying: '" .. rep .. "'")
     else
-        bot:Say("Sorry, I'm not sure I caught that. Maybe you used funny characters?")
+        bot:Say(
+            "Sorry, I'm not sure I caught that. Maybe you used funny characters?")
     end
     return taskNormal
 
@@ -246,9 +263,7 @@ elseif cmd == "remember" then
         bot:Say("That's already one of my fondest memories.")
         bot:CheckinDatum("memory", token)
     else
-        if not data then
-            data = {}
-        end
+        if not data then data = {} end
         table.insert(data, thing)
         if speed == "slowly" then
             bot:Say("Ok, I'll remember \"" .. thing .. "\" ... but sloooowly")
@@ -258,9 +273,7 @@ elseif cmd == "remember" then
         end
         local updRet = bot:UpdateDatum("memory", token, data)
         if updRet == retOk then
-            if speed ~= "slowly" then
-                bot:Say("committed to memory")
-            end
+            if speed ~= "slowly" then bot:Say("committed to memory") end
         else
             if speed ~= "slowly" then
                 bot:Say("Dang it, having problems with my memory")
@@ -314,7 +327,7 @@ elseif cmd == "forget" then
         bot:Say("I can't make out what you want me to forget.")
         return taskNormal
     end
-    i = i - 1  -- zero-based index
+    i = i - 1 -- zero-based index
 
     local retVal, data, token = bot:CheckoutDatum("memory", true)
     if retVal ~= retOk then
@@ -322,10 +335,10 @@ elseif cmd == "forget" then
         return taskFail
     end
 
-    if data and #data > 0 and data[i+1] then
-        local item = data[i+1]
+    if data and #data > 0 and data[i + 1] then
+        local item = data[i + 1]
         bot:Say("Ok, I'll forget \"" .. item .. "\"")
-        table.remove(data, i+1)
+        table.remove(data, i + 1)
         local updRet = bot:UpdateDatum("memory", token, data)
         if updRet ~= retOk then
             bot:Say("Hmm, having trouble forgetting that item for real, sorry.")
@@ -352,7 +365,9 @@ elseif cmd == "check" then
     else
         bot:Say("You failed to elevate, I'm calling the cops!")
     end
-    bot:Log(logInfo, "Checked out " .. robot.user .. ", admin: " .. tostring(isAdmin) .. ", elevate check: " .. tostring(success))
+    bot:Log(logInfo,
+            "Checked out " .. robot.user .. ", admin: " .. tostring(isAdmin) ..
+                ", elevate check: " .. tostring(success))
     return taskNormal
 end
 

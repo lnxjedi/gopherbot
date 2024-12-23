@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -17,6 +18,65 @@ import (
 )
 
 const appendPrefix = "Append"
+
+// Global gopherEnv map to store GOPHER_ environment variables
+var gopherEnv = make(map[string]string)
+var gopherEnvMutex sync.RWMutex
+
+// scrubEnvironment is called from start.go to scrub all GOPHER_ env vars so they don't propagate
+// to child processes.
+func scrubEnvironment() {
+	for _, envVar := range os.Environ() {
+		if strings.HasPrefix(envVar, "GOPHER_") {
+			parts := strings.SplitN(envVar, "=", 2)
+			if len(parts) == 2 {
+				key := parts[0]
+				value := parts[1]
+				gopherEnvMutex.Lock()
+				gopherEnv[key] = value
+				gopherEnvMutex.Unlock()
+				err := os.Unsetenv(key)
+				if err != nil {
+					botStdOutLogger.Printf("Failed to unset environment variable '%s': %v\n", key, err)
+				}
+			}
+		}
+	}
+}
+
+// Helper function to set environment variables
+func setEnv(key, value string) error {
+	if strings.HasPrefix(key, "GOPHER_") {
+		gopherEnvMutex.Lock()
+		gopherEnv[key] = value
+		gopherEnvMutex.Unlock()
+		Log(robot.Debug, "Set internal GOPHER_ environment variable '%s'", key)
+		return nil
+	}
+	return os.Setenv(key, value)
+}
+
+// Helper function to get environment variables
+func getEnv(key string) string {
+	gopherEnvMutex.RLock()
+	value, exists := gopherEnv[key]
+	gopherEnvMutex.RUnlock()
+	if exists {
+		return value
+	}
+	return os.Getenv(key)
+}
+
+// Helper function to lookup environment variables
+func lookupEnv(key string) (string, bool) {
+	gopherEnvMutex.RLock()
+	value, exists := gopherEnv[key]
+	gopherEnvMutex.RUnlock()
+	if exists {
+		return value, true
+	}
+	return os.LookupEnv(key)
+}
 
 // merge map merges maps and concatenates slices; values in m(erge) override values
 // in t(arget).
@@ -64,7 +124,7 @@ func mergemap(m, t map[string]interface{}) map[string]interface{} {
 // the given environment var if found. If required is set,
 // an Error-level log event is generated for empty vars.
 func env(envvar string) string {
-	val := os.Getenv(envvar)
+	val := getEnv(envvar)
 	if len(val) == 0 {
 		Log(robot.Debug, "Empty environment variable returned for '%s' in template expansion", envvar)
 	}
@@ -83,7 +143,7 @@ func defval(d, i string) string {
 // setEnvVar allows the default robot.yaml to override environment variables
 // seen when loading the custom robot.yaml - mainly just for IDE mode.
 func setEnvVar(k, v string) (err error) {
-	err = os.Setenv(k, v)
+	err = setEnv(k, v)
 	if err != nil {
 		Log(robot.Error, "failed override setting '%s' to '%s': %v", k, v, err.Error())
 	} else {
@@ -131,14 +191,14 @@ func detectStartupMode() (mode string) {
 	if cliOp {
 		return "cli"
 	}
-	_, robotConfigured := os.LookupEnv("GOPHER_CUSTOM_REPOSITORY")
+	_, robotConfigured := lookupEnv("GOPHER_CUSTOM_REPOSITORY")
 	if !robotConfigured {
 		// NOTE that if GOPHER_IDE is set, we're always in $HOME when
 		// looking for "answerfile.txt". See start.go.
 		if _, err := os.Stat("answerfile.txt"); err == nil {
 			// true for CLI setup
 			return "setup"
-		} else if _, ok := os.LookupEnv("ANS_PROTOCOL"); ok {
+		} else if _, ok := lookupEnv("ANS_PROTOCOL"); ok {
 			// true for container-based setup
 			return "setup"
 		}
@@ -248,11 +308,8 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 		path = filepath.Join(installPath, "conf", "robot.yaml")
 	}
 	dir := filepath.Dir(filepath.Join("conf", filename))
-	cf, err = os.ReadFile(path)
+	cf, err = getConfigFileContent(path, dir, false)
 	if err == nil {
-		if cf, err = expand(dir, false, cf); err != nil {
-			Log(robot.Error, "Expanding '%s': %v", path, err)
-		}
 		if err = validate_yaml(path, cf); err != nil {
 			Log(robot.Error, "Validating installed/default configuration: %v", err)
 			return err
@@ -274,11 +331,8 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 	}
 	if len(configPath) > 0 {
 		path = filepath.Join(configPath, "conf", filename)
-		cf, err = os.ReadFile(path)
+		cf, err = getConfigFileContent(path, dir, true)
 		if err == nil {
-			if cf, err = expand(dir, true, cf); err != nil {
-				Log(robot.Error, "Expanding '%s': %v", path, err)
-			}
 			if err = validate_yaml(path, cf); err != nil {
 				Log(robot.Error, "Validating configured/custom configuration: %v", err)
 				return err
@@ -305,4 +359,19 @@ func getConfigFile(filename string, required bool, jsonMap map[string]json.RawMe
 		return realerr
 	}
 	return nil
+}
+
+// getConfigFileContent is a helper function to read and expand config files
+func getConfigFileContent(path, dir string, isCustom bool) ([]byte, error) {
+	Log(robot.Debug, "Loading config file: %s", path)
+	cf, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	cf, err = expand(dir, isCustom, cf)
+	if err != nil {
+		Log(robot.Error, "Expanding '%s': %v", path, err)
+		return nil, err
+	}
+	return cf, nil
 }

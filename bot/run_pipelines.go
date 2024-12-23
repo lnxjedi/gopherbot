@@ -561,7 +561,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	envhash["JULIA_LOAD_PATH"] = fmt.Sprintf("%s/lib:%s/lib:", installPath, configFull)
 	envhash["GEM_HOME"] = fmt.Sprintf("%s/.local", homePath)
 	envhash["PYTHONPATH"] = libPath
-	envhash["GOPHER_ENVIRONMENT"] = os.Getenv("GOPHER_ENVIRONMENT")
+	envhash["GOPHER_ENVIRONMENT"] = getEnv("GOPHER_ENVIRONMENT")
 	envhash["GOPHER_BRAIN"] = w.cfg.brainProvider
 
 	/*
@@ -648,7 +648,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	for _, p := range envPassThrough {
 		_, exists := envhash[p]
 		if !exists {
-			if value, ok := os.LookupEnv(p); ok {
+			if value, ok := lookupEnv(p); ok {
 				envhash[p] = value
 			}
 		}

@@ -125,7 +125,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		fmt.Sprintf("HOME=%s", homePath),
 	}
 	for _, p := range envPassThrough {
-		if value, ok := os.LookupEnv(p); ok {
+		if value, ok := lookupEnv(p); ok {
 			env = append(env, fmt.Sprintf("%s=%s", p, value))
 		}
 	}
