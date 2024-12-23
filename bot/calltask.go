@@ -356,7 +356,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	if isExternalGoTask {
 		if privSep {
 			if privileged {
-				raiseThreadPriv(fmt.Sprintf("privileged external Go task \"%s\"", task.name))
+				raiseThreadPrivExternal(fmt.Sprintf("privileged external Go task \"%s\"", task.name))
 			} else {
 				dropThreadPriv(fmt.Sprintf("unprivileged external Go task \"%s\"", task.name))
 			}
@@ -402,7 +402,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	if isExternalLuaTask {
 		if privSep {
 			if privileged {
-				raiseThreadPriv(fmt.Sprintf("privileged external Lua task \"%s\"", task.name))
+				raiseThreadPrivExternal(fmt.Sprintf("privileged external Lua task \"%s\"", task.name))
 			} else {
 				dropThreadPriv(fmt.Sprintf("unprivileged external Lua task \"%s\"", task.name))
 			}
