@@ -64,56 +64,123 @@ elseif cmd == "configure" then
     return defaultConfig
 end
 
+bot = robot:New()
+-- for printing fixed-width
+fbot = robot:Fixed()
+
 --------------------------------------------------------------------------------
 -- The rest of the commands
 --------------------------------------------------------------------------------
 
 if cmd == "lua" then
     -- Start by replying in a thread with fixed formatting
-    local retThread = robot:ReplyThread("Hello from Lua in a thread!", fmtFixed)
+    local retThread = bot:ReplyThread("Hello from Lua in a thread!", fmtFixed)
 
     -- Gather environment info
     local home = os.getenv("GOPHER_HOME") or "unknown"
     local pluginName = arg[0] or "unknown"
 
     -- Call our attribute methods
-    local user        = robot:User()
-    local userID      = robot:UserID()
-    local channel     = robot:Channel()
-    local channelID   = robot:ChannelID()
-    local threadID    = robot:ThreadID()
-    local isThreaded  = robot:ThreadedMessage()
+    local user        = bot:User()
+    local userID      = bot:UserID()
+    local channel     = bot:Channel()
+    local channelID   = bot:ChannelID()
+    local threadID    = bot:ThreadID()
+    local isThreaded  = bot:ThreadedMessage()
 
-    -- Combine them into one line
-    robot:Say(string.format(
-        "Home: %s | Plugin: %s | User: %s (%s) | Channel: %s (%s) | ThreadID: %s | Threaded: %s",
-        home, pluginName, user, userID, channel, channelID, threadID, tostring(isThreaded)
+    -- **Execute the 'whoami' system command to get the current system user**
+    local systemUser = "unknown"
+    local handle = io.popen("whoami")
+    if handle then
+        local result = handle:read("*a")
+        handle:close()
+        -- Trim any trailing whitespace or newline characters
+        systemUser = result:gsub("%s+", "")
+    else
+        bot:Say("Failed to execute 'whoami' command.")
+    end
+
+    -- Combine them into one line, including the system user
+    bot:Say(string.format(
+        "Home: %s | Plugin: %s | User: %s (%s) | Channel: %s (%s) | ThreadID: %s | Threaded: %s | System User: %s",
+        home, pluginName, user, userID, channel, channelID, threadID, tostring(isThreaded), systemUser
     ))
 
+    -- **Read /proc/self/environ and extract GOPHER_CUSTOM_REPOSITORY**
+    local gopherRepo = "not set"
+    local envFile = "/proc/self/environ"
+    local envHandle = io.open(envFile, "r")
+    if envHandle then
+        local envContent = envHandle:read("*a")
+        envHandle:close()
+        -- Iterate over each key=value pair separated by null character
+        for key, value in string.gmatch(envContent, "([^%z]+)=([^%z]*)") do
+            if key == "GOPHER_CUSTOM_REPOSITORY" then
+                gopherRepo = value
+                break
+            end
+        end
+    else
+        bot:Say("Failed to open " .. envFile)
+    end
+
+    -- **Say the GOPHER_CUSTOM_REPOSITORY value**
+    bot:Say("GOPHER_CUSTOM_REPOSITORY is set to: " .. gopherRepo)
+
+    -- **Execute 'bash -c "echo $PATH"' and display its output**
+    local pathOutput = "not available"
+    local pathHandle = io.popen('bash -c "echo $PATH"')
+    if pathHandle then
+        local result = pathHandle:read("*a")
+        pathHandle:close()
+        -- Trim any trailing whitespace or newline characters
+        pathOutput = result:gsub("%s+", "")
+    else
+        bot:Say("Failed to execute 'echo $PATH' command.")
+    end
+
+    -- **Say the PATH value**
+    bot:Say("PATH is set to: " .. pathOutput)
+
+    -- **Execute 'bash -c "echo $GOPHER_CUSTOM_REPOSITORY"' and display its output**
+    local gopherRepoOutput = "not available"
+    local gopherRepoHandle = io.popen('bash -c "echo $GOPHER_CUSTOM_REPOSITORY"')
+    if gopherRepoHandle then
+        local result = gopherRepoHandle:read("*a")
+        gopherRepoHandle:close()
+        -- Trim any trailing whitespace or newline characters
+        gopherRepoOutput = result:gsub("%s+", "")
+    else
+        bot:Say("Failed to execute 'echo $GOPHER_CUSTOM_REPOSITORY' command.")
+    end
+
+    -- **Say the GOPHER_CUSTOM_REPOSITORY value from bash**
+    bot:Say("GOPHER_CUSTOM_REPOSITORY (from bash) is set to: " .. gopherRepoOutput)
+
     -- Show the DM usage
-    local directBot = robot:Direct()
+    local directBot = bot:Direct()
     directBot:Say("Hi from a DM; your name is " .. user)
 
     -- Demonstrate GetSenderAttribute (e.g., "email")
-    local senderEmail, senderRet = robot:GetSenderAttribute("email")
+    local senderEmail, senderRet = bot:GetSenderAttribute("email")
     if senderRet == retOk and senderEmail ~= "" then
-        robot:Say("I have your email attribute as: " .. senderEmail)
+        bot:Say("I have your email attribute as: " .. senderEmail)
     end
 
     -- Demonstrate GetBotAttribute (e.g., "name")
-    local botName, botRet = robot:GetBotAttribute("name")
+    local botName, botRet = bot:GetBotAttribute("name")
     if botRet == retOk and botName ~= "" then
-        robot:Say("My bot name is: " .. botName)
+        bot:Say("My bot name is: " .. botName)
     end
 
     -- Now try reading array from config
-    local configData, retCfg = robot:GetTaskConfig()
+    local configData, retCfg = bot:GetTaskConfig()
     if retCfg ~= retOk then
-        robot:Say("I wasn't able to find my configuration")
+        bot:Say("I wasn't able to find my configuration")
     else
         if configData["Replies"] then
-            local reply = robot:RandomString(configData["Replies"])
-            robot:Say("Random reply: " .. reply)
+            local reply = bot:RandomString(configData["Replies"])
+            bot:Say("Random reply: " .. reply)
         end
     end
 
@@ -126,28 +193,28 @@ if cmd == "lua" then
 
 elseif cmd == "thread" then
     -- Demonstrate replying in a new thread
-    local ret = robot:ReplyThread("Ok, let's chat here in a new thread")
-    robot:SayThread("... note that you still have to mention me by name for now.")
+    local ret = bot:ReplyThread("Ok, let's chat here in a new thread")
+    bot:SayThread("... note that you still have to mention me by name for now.")
     return taskNormal
 
 elseif cmd == "askthread" then
     -- Prompt for user input in a thread
-    local rep, rcode = robot:PromptThreadForReply("SimpleString", "Tell me something - anything!")
+    local rep, rcode = bot:PromptThreadForReply("SimpleString", "Tell me something - anything!")
     if rcode == retOk then
-        robot:SayThread("I hear what you're saying: '" .. rep .. "'")
+        bot:SayThread("I hear what you're saying: '" .. rep .. "'")
     else
-        robot:SayThread("Sorry, I'm not sure what you're trying to tell me. Maybe you used funny characters?")
+        bot:SayThread("Sorry, I'm not sure what you're trying to tell me. Maybe you used funny characters?")
     end
     return taskNormal
 
 elseif cmd == "listen" then
     -- Demonstrate a DM-based prompt
-    local dbot = robot:Direct()
+    local dbot = bot:Direct()
     local rep, rcode = dbot:PromptForReply("SimpleString", "Ok, what do you want to tell me?")
     if rcode == retOk then
         dbot:Say("I hear what you're saying: '" .. rep .. "'")
     else
-        robot:Say("Sorry, I'm not sure I caught that. Maybe you used funny characters?")
+        bot:Say("Sorry, I'm not sure I caught that. Maybe you used funny characters?")
     end
     return taskNormal
 
@@ -158,9 +225,9 @@ elseif cmd == "remember" then
     local thing = arg[3]
 
     -- Check out "memory" read/write
-    local retVal, data, token = robot:CheckoutDatum("memory", true)
+    local retVal, data, token = bot:CheckoutDatum("memory", true)
     if retVal ~= retOk then
-        robot:Say("Sorry, I'm having trouble checking out my memory.")
+        bot:Say("Sorry, I'm having trouble checking out my memory.")
         return taskFail
     end
 
@@ -176,27 +243,27 @@ elseif cmd == "remember" then
     end
 
     if found then
-        robot:Say("That's already one of my fondest memories.")
-        robot:CheckinDatum("memory", token)
+        bot:Say("That's already one of my fondest memories.")
+        bot:CheckinDatum("memory", token)
     else
         if not data then
             data = {}
         end
         table.insert(data, thing)
         if speed == "slowly" then
-            robot:Say("Ok, I'll remember \"" .. thing .. "\" ... but sloooowly")
-            robot:Pause(4)
+            bot:Say("Ok, I'll remember \"" .. thing .. "\" ... but sloooowly")
+            bot:Pause(4)
         else
-            robot:Say("Ok, I'll remember \"" .. thing .. "\"")
+            bot:Say("Ok, I'll remember \"" .. thing .. "\"")
         end
-        local updRet = robot:UpdateDatum("memory", token, data)
+        local updRet = bot:UpdateDatum("memory", token, data)
         if updRet == retOk then
             if speed ~= "slowly" then
-                robot:Say("committed to memory")
+                bot:Say("committed to memory")
             end
         else
             if speed ~= "slowly" then
-                robot:Say("Dang it, having problems with my memory")
+                bot:Say("Dang it, having problems with my memory")
             end
         end
     end
@@ -204,39 +271,39 @@ elseif cmd == "remember" then
 
 elseif cmd == "recall" then
     local which = arg[2] -- possibly a number
-    local retVal, data, token = robot:CheckoutDatum("memory", false)
+    local retVal, data, token = bot:CheckoutDatum("memory", false)
     if retVal ~= retOk then
-        robot:Say("Sorry - trouble checking memory!")
+        bot:Say("Sorry - trouble checking memory!")
         return taskFail
     end
     if data and #data > 0 then
         if which and which:len() > 0 then
             local idx = tonumber(which)
             if not idx or idx < 1 then
-                robot:Say("I can't make out what you want me to recall.")
-                robot:CheckinDatum("memory", token)
+                bot:Say("I can't make out what you want me to recall.")
+                bot:CheckinDatum("memory", token)
                 return taskNormal
             end
             if idx > #data then
-                robot:Say("I don't remember that many things!")
-                robot:CheckinDatum("memory", token)
+                bot:Say("I don't remember that many things!")
+                bot:CheckinDatum("memory", token)
                 return taskNormal
             end
             local item = data[idx]
-            robot:CheckinDatum("memory", token)
-            robot:Say(item)
+            bot:CheckinDatum("memory", token)
+            bot:Say(item)
         else
             -- If no index, list them all
             local reply = "Here's what I remember:\n"
             for i, mem in ipairs(data) do
                 reply = reply .. i .. ": " .. mem .. "\n"
             end
-            robot:CheckinDatum("memory", token)
-            robot:Say(reply)
+            bot:CheckinDatum("memory", token)
+            bot:Say(reply)
         end
     else
-        robot:CheckinDatum("memory", token)
-        robot:Say("Sorry - I don't remember anything!")
+        bot:CheckinDatum("memory", token)
+        bot:Say("Sorry - I don't remember anything!")
     end
     return taskNormal
 
@@ -244,48 +311,48 @@ elseif cmd == "forget" then
     local which = arg[2]
     local i = tonumber(which) or 0
     if i < 1 then
-        robot:Say("I can't make out what you want me to forget.")
+        bot:Say("I can't make out what you want me to forget.")
         return taskNormal
     end
     i = i - 1  -- zero-based index
 
-    local retVal, data, token = robot:CheckoutDatum("memory", true)
+    local retVal, data, token = bot:CheckoutDatum("memory", true)
     if retVal ~= retOk then
-        robot:Say("Sorry - trouble checking memory!")
+        bot:Say("Sorry - trouble checking memory!")
         return taskFail
     end
 
     if data and #data > 0 and data[i+1] then
         local item = data[i+1]
-        robot:Say("Ok, I'll forget \"" .. item .. "\"")
+        bot:Say("Ok, I'll forget \"" .. item .. "\"")
         table.remove(data, i+1)
-        local updRet = robot:UpdateDatum("memory", token, data)
+        local updRet = bot:UpdateDatum("memory", token, data)
         if updRet ~= retOk then
-            robot:Say("Hmm, having trouble forgetting that item for real, sorry.")
+            bot:Say("Hmm, having trouble forgetting that item for real, sorry.")
         end
     else
-        robot:CheckinDatum("memory", token)
-        robot:Say("Gosh, I guess I never remembered that in the first place!")
+        bot:CheckinDatum("memory", token)
+        bot:Say("Gosh, I guess I never remembered that in the first place!")
     end
     return taskNormal
 
 elseif cmd == "check" then
-    local isAdmin = robot:CheckAdmin()
+    local isAdmin = bot:CheckAdmin()
     if isAdmin then
-        robot:Say("It looks like you're an administrator.")
+        bot:Say("It looks like you're an administrator.")
     else
-        robot:Say("Well, you're not an administrator.")
+        bot:Say("Well, you're not an administrator.")
     end
-    robot:Pause(1)
-    robot:Say("Now I'll request elevation...")
+    bot:Pause(1)
+    bot:Say("Now I'll request elevation...")
 
-    local success = robot:Elevate(true)
+    local success = bot:Elevate(true)
     if success then
-        robot:Say("Everything looks good, mac!")
+        bot:Say("Everything looks good, mac!")
     else
-        robot:Say("You failed to elevate, I'm calling the cops!")
+        bot:Say("You failed to elevate, I'm calling the cops!")
     end
-    robot:Log(logInfo, "Checked out " .. robot.user .. ", admin: " .. tostring(isAdmin) .. ", elevate check: " .. tostring(success))
+    bot:Log(logInfo, "Checked out " .. robot.user .. ", admin: " .. tostring(isAdmin) .. ", elevate check: " .. tostring(success))
     return taskNormal
 end
 
