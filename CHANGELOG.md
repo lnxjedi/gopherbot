@@ -1,3 +1,11 @@
+# v2.17.0 - Lua Interpreter and Extensions, (SECURITY) Environment Scrubbing
+
+## Added Lua
+By far the biggest news for this release is the addition of the Lua interpreter and supporting code to allow Tasks, Plugins and Jobs to be written in Lua scripts, stored right alongside other plugins. See plugins/samples/*.lua for examples.
+
+## Environment Scrubbing
+One limitation of "privsep" security by itself is that child processes still inherit the environment of the parent process. For Ruby and Python this was fine, but the environment can't be changed for Lua scripts the way it can for fork/exec Ruby and Python scripts. To address this shortcoming, Gopherbot now scrubs all GOPHER_* environment variables on startup. All other secrets should be encrypted and configured in `robot.yaml`.
+
 # v2.16.0 - Initial Support for Julia Extensions
 I knew that someday I would be able to take the existing support for Python and/or Ruby, feed it to an AI, and get a working Julia library. In short, check `plugins/samples/echo.jl` for the first mimimal working Julia plugin. Notes:
 * Julia, weighing in at a whopping 1G, hasn't been integrated into any prebuilt containers
