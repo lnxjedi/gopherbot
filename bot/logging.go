@@ -221,6 +221,9 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 				} else {
 					botStdOutLogger.Print("LOG " + msg)
 				}
+				if fileLog { // avoid double-printing log lines in terminal
+					logger.Print(msg)
+				}
 			} else {
 				logger.Print(msg)
 			}

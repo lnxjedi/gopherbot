@@ -192,11 +192,6 @@ func Start(v VersionInfo) {
 	}
 	penvErr := godotenv.Overload(envFile)
 
-	// Remove all GOPHER_ variables from the environment; nearly everywhere else,
-	// os.Getenv|Setenv|LookupEnv are replaced with calls to getEnv, setEnv and lookupEnv -
-	// see config_load.go.
-	scrubEnvironment()
-
 	var logger *log.Logger
 	var logOut *os.File
 
@@ -263,6 +258,11 @@ func Start(v VersionInfo) {
 	// overrides defaults.
 	initBot()
 
+	// Remove all GOPHER_ variables from the environment; nearly everywhere else,
+	// os.Getenv|Setenv|LookupEnv are replaced with calls to getEnv, setEnv and lookupEnv -
+	// see config_load.go.
+	scrubEnvironment()
+
 	// Set up Logging
 	var logDest string
 	if cliOp {
@@ -279,7 +279,6 @@ func Start(v VersionInfo) {
 	if len(logDest) == 0 {
 		logDest = "stdout"
 	}
-
 	if logDest == "stderr" {
 		logOut = os.Stderr
 	} else if logDest == "stdout" {
@@ -331,6 +330,9 @@ func Start(v VersionInfo) {
 	time.Sleep(time.Second)
 	if restart {
 		raiseThreadPrivExternal("restart is set, re-exec'ing")
+		// Make sure all the GOPHER_* env vars are present for the
+		// new process.
+		restoreEnvironment()
 		bin, _ := os.Executable()
 		env := os.Environ()
 		defer func() {

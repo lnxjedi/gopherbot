@@ -37,10 +37,22 @@ func scrubEnvironment() {
 				gopherEnvMutex.Unlock()
 				err := os.Unsetenv(key)
 				if err != nil {
-					botStdOutLogger.Printf("Failed to unset environment variable '%s': %v\n", key, err)
+					Log(robot.Error, "Failed to unset environment variable '%s': %v\n", key, err)
+				} else {
+					Log(robot.Info, "scrubbed %s from the environment", key)
 				}
 			}
 		}
+	}
+}
+
+// needed before restarts
+func restoreEnvironment() {
+	gopherEnvMutex.Lock()
+	defer gopherEnvMutex.Unlock()
+	for key, value := range gopherEnv {
+		Log(robot.Info, "restoring '%s' to the environment", key)
+		os.Setenv(key, value)
 	}
 }
 
