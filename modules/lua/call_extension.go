@@ -26,8 +26,8 @@ func CallExtension(taskPath, taskName string, env map[string]string, r robot.Rob
 	// This is done automatically unless the SkipOpenLibs option is passed
 	// L.OpenLibs()
 
-	// Replace os.getenv with our version that uses the env map, replace
-	// os.setenv with a noop version that logs a warning.
+	// Replace replace os.setenv and os.setlocale with noop versions that
+	// log warnings.
 	modifyOSFunctions(L, r, env)
 
 	// Register the "robot" type and any base methods.
@@ -88,30 +88,12 @@ func logErr(lr *luaRobot, caller string) {
 	}
 }
 
-// modifyOSFunctions overrides os.getenv / os.setenv / os.setlocale in Lua:
-//   - "getenv": if the key is in envMap, return that string; otherwise return nil
+// modifyOSFunctions overrides os.setenv / os.setlocale in Lua:
 //   - "setenv": does nothing (and logs a warning)
 //   - "setlocale": does nothing (and logs a warning)
-//
-// We NEVER call the original os.getenv. This means real OS environment variables
-// are completely inaccessible via Lua's "os" table.
 func modifyOSFunctions(L *glua.LState, r robot.Robot, envMap map[string]string) {
 	osVal := L.GetGlobal("os")
 	if osTable, ok := osVal.(*glua.LTable); ok {
-		// Replace os.getenv
-		osTable.RawSetString("getenv", L.NewFunction(func(L *glua.LState) int {
-			key := L.CheckString(1)
-			if val, found := envMap[key]; found {
-				// Found in our map => return the string
-				L.Push(glua.LString(val))
-				return 1
-			} else {
-				// Not found => return nil
-				L.Push(glua.LNil)
-				return 1
-			}
-		}))
-
 		// Replace os.setenv
 		osTable.RawSetString("setenv", L.NewFunction(func(L *glua.LState) int {
 			key := L.CheckString(1)
