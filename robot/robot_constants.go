@@ -1,15 +1,15 @@
 // Package robot defines interfaces and constants for Go plugins, jobs and tasks
 package robot
 
-//go:generate stringer -type=TaskRetVal botdefs.go
+//go:generate stringer -type=TaskRetVal robot_constants.go
 
-//go:generate stringer -type=RetVal botdefs.go
+//go:generate stringer -type=RetVal robot_constants.go
 
-//go:generate stringer -type=Protocol botdefs.go
+//go:generate stringer -type=Protocol connector_defs.go
 
-//go:generate stringer -type=MessageFormat botdefs.go
+//go:generate stringer -type=MessageFormat robot_constants.go
 
-//go:generate stringer -type=LogLevel botdefs.go
+//go:generate stringer -type=LogLevel robot_constants.go
 
 // Generate String method with: go generate ./robot/
 
@@ -142,6 +142,9 @@ const (
 	TaskDisabled
 	// PrivilegeViolation - error adding a privileged job/command to an unprivileged pipeline
 	PrivilegeViolation
+	// Failed is a generic failure code for use when we don't want to return Ok;
+	// should be accompanied by a log.
+	Failed = 63
 )
 
 // MessageFormat indicates how the connector should display the content of

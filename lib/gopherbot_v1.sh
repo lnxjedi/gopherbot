@@ -27,6 +27,11 @@ GBRET_MailError=22
 GBRET_TaskNotFound=23
 GBRET_MissingArguments=24
 GBRET_InvalidStage=25
+GBRET_InvalidTaskType=26
+GBRET_CommandNotMatched=27
+GBRET_TaskDisabled=28
+GBRET_PrivilegeViolation=29
+GBRET_Failed=63
 
 # Plugin return values / exit codes
 PLUGRET_Normal=0

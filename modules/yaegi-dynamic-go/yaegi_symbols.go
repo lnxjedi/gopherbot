@@ -53,6 +53,7 @@ func init() {
 					"Ok": reflect.ValueOf(robot.Ok),
 					"PipelineAborted": reflect.ValueOf(robot.PipelineAborted),
 					"PrivilegeViolation": reflect.ValueOf(robot.PrivilegeViolation),
+					"Failed": reflect.ValueOf(robot.Failed),
 					"Raw": reflect.ValueOf(robot.Raw),
 					"RegisterJob": reflect.ValueOf(robot.RegisterJob),
 					"RegisterPlugin": reflect.ValueOf(robot.RegisterPlugin),

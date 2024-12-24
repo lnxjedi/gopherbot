@@ -51,6 +51,7 @@ func registerConstants(L *glua.LState) {
 	L.SetGlobal("retCommandNotMatched", glua.LNumber(robot.CommandNotMatched))
 	L.SetGlobal("retTaskDisabled", glua.LNumber(robot.TaskDisabled))
 	L.SetGlobal("retPrivilegeViolation", glua.LNumber(robot.PrivilegeViolation))
+	L.SetGlobal("retFailed", glua.LNumber(robot.Failed))
 
 	//----------------------------------------------------------------------
 	// 2. TaskRetVal (script return values) => "taskXYZ"

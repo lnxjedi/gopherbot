@@ -96,6 +96,11 @@ const MailError = 22
 const TaskNotFound = 23
 const MissingArguments = 24
 const InvalidStage = 25
+const InvalidTaskType = 26
+const CommandNotMatched = 27
+const TaskDisabled = 28
+const PrivilegeViolation = 29
+const Failed = 63
 
 # Plugin return values / exit codes
 const Normal = 0

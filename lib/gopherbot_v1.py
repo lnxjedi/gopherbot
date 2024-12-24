@@ -65,6 +65,11 @@ class Robot:
     TaskNotFound = 23
     MissingArguments = 24
     InvalidStage = 25
+    InvalidTaskType = 26
+    CommandNotMatched = 27
+    TaskDisabled = 28
+    PrivilegeViolation = 29
+    Failed = 63
 
     # Plugin return values / exit codes
     Normal = 0
