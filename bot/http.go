@@ -193,11 +193,13 @@ func sendReturn(r Robot, rw http.ResponseWriter, ret interface{}) {
 		respJSON = d
 	}
 	if r.cfg.httpDebug {
-		r.Log(robot.Debug, "http sending JSON response: %s", respJSON)
+		w := getLockedWorker(r.tid)
+		w.Unlock()
+		w.Log(robot.Debug, "http sending JSON response: %s", respJSON)
 	}
 }
 
-func logJSON(r robot.Robot, d *[]byte) {
+func logJSON(r Robot, d *[]byte) {
 	var obj map[string]interface{}
 	json.Unmarshal(*d, &obj)
 	formattedJSON, _ := json.Marshal(obj)
@@ -205,7 +207,9 @@ func logJSON(r robot.Robot, d *[]byte) {
 		formattedJSON = formattedJSON[:242]
 		formattedJSON = append(formattedJSON, "... (truncated)"...)
 	}
-	r.Log(robot.Debug, "http received raw JSON: %s", formattedJSON)
+	w := getLockedWorker(r.tid)
+	w.Unlock()
+	w.Log(robot.Debug, "http received raw JSON: %s", formattedJSON)
 }
 
 func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {

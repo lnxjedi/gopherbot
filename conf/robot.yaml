@@ -35,7 +35,9 @@ Protocol: {{ $proto }}
 
 ## Configure log level
 LogLevel: {{ env "GOPHER_LOGLEVEL" | default "info" }}
+
 ## Enable log level debug messages for localhost http JSON requests and replies
+## NOTE: For low-level debugging only - no scrubbing of secrets is performed!
 HttpDebug: {{ eq (env "GOPHER_HTTP_DEBUG") "true" }}
 
 ## Configure a history provider

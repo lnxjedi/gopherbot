@@ -342,6 +342,25 @@ func (r Robot) GetTaskConfig(config interface{}) robot.RetVal {
 	return robot.Ok
 }
 
+// worker logger for tagging log lines with pipe and task name
+func (w *worker) Log(l robot.LogLevel, msg string, v ...interface{}) (logged bool) {
+	pipeName := w.pipeName
+	currTask := w.taskName
+	var logTag string
+	if currTask == pipeName {
+		logTag = "(" + pipeName + ") "
+	} else {
+		logTag = "(" + pipeName + "/" + currTask + ") "
+	}
+	// Give extra context to log messages when called from a robot
+	msg = logTag + msg
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	Log(l, msg)
+	return
+}
+
 // see robot/robot.go
 func (r Robot) Log(l robot.LogLevel, msg string, v ...interface{}) (logged bool) {
 	pipeName := r.pipeName
