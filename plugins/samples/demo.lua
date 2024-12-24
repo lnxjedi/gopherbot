@@ -1,5 +1,6 @@
 -- demo.lua
 -- A plugin for integration testing of Lua robot extensions, mirroring the Ruby demo.
+
 local defaultConfig = [[
 ---
 Help:
@@ -58,26 +59,27 @@ local function extractEnv(envVarName)
   local envFile = "/proc/self/environ"
   local envHandle = io.open(envFile, "r")
   if envHandle then
-  local envContent = envHandle:read("*a")
-  envHandle:close()
-  -- Iterate over each key=value pair separated by null character
-  for key, value in string.gmatch(envContent, "([^%z]+)=([^%z]*)") do
-    if key == envVarName then
-    envValue = value
-    break
+    local envContent = envHandle:read("*a")
+    envHandle:close()
+    -- Iterate over each key=value pair separated by null character
+    for key, value in string.gmatch(envContent, "([^%z]+)=([^%z]*)") do
+      if key == envVarName then
+        envValue = value
+        break
+      end
     end
-  end
   else
-  -- Handle error if /proc/self/environ cannot be opened
-  print("Failed to open " .. envFile)
-  -- You could raise an error here instead or log it to your bot if available.
+    -- Handle error if /proc/self/environ cannot be opened
+    print("Failed to open " .. envFile)
+    -- You could raise an error here instead or log it to your bot if available.
   end
   return envValue
 end
 
 local function extractEnvBash(envVarName)
-  -- **Execute 'bash -c "echo $(envVarName)"' and display its output**
+  -- **Execute 'bash -c "echo $envVarName"' and display its output**
   local envVarHandle = io.popen('bash -c "echo $' .. envVarName .. '"')
+  local envVarOutput = "" -- Initialize the variable to prevent nil access
   if envVarHandle then
     local result = envVarHandle:read("*a")
     envVarHandle:close()
@@ -90,16 +92,19 @@ local function extractEnvBash(envVarName)
   return envVarOutput
 end
 
+-- Require the constants module
+local ret, task, log, fmt, proto = require "gopherbot_constants" ()
+
 --------------------------------------------------------------------------------
 -- Provide "configure" command
 --------------------------------------------------------------------------------
 if cmd == "init" then
-  return taskNormal
+  return task.Normal
 elseif cmd == "configure" then
   return defaultConfig
 end
 
-bot = robot:New()
+local bot = robot:New()
 
 --------------------------------------------------------------------------------
 -- The rest of the commands
@@ -107,7 +112,7 @@ bot = robot:New()
 
 if cmd == "lua" then
   -- Start by replying in a thread with fixed formatting
-  local retThread = bot:ReplyThread("Hello from Lua in a thread!", fmtFixed)
+  local retThread = bot:ReplyThread("Hello from Lua in a thread!", fmt.Fixed)
 
   -- Gather environment info
   local home = os.getenv("GOPHER_HOME") or "unknown"
@@ -145,7 +150,7 @@ if cmd == "lua" then
   -- **Say the GOPHER_CUSTOM_REPOSITORY value**
   bot:Say("GOPHER_CUSTOM_REPOSITORY is set to: " .. gopherRepo)
 
-  pathOutput = extractEnvBash("PATH")
+  local pathOutput = extractEnvBash("PATH")
 
   -- **Say the PATH value**
   bot:Say("bash PATH is set to: " .. pathOutput)
@@ -163,19 +168,19 @@ if cmd == "lua" then
 
   -- Demonstrate GetSenderAttribute (e.g., "email")
   local senderEmail, senderRet = bot:GetSenderAttribute("email")
-  if senderRet == retOk and senderEmail ~= "" then
+  if senderRet == ret.Ok and senderEmail ~= "" then
     bot:Say("I have your email attribute as: " .. senderEmail)
   end
 
   -- Demonstrate GetBotAttribute (e.g., "name")
   local botName, botRet = bot:GetBotAttribute("name")
-  if botRet == retOk and botName ~= "" then
+  if botRet == ret.Ok and botName ~= "" then
     bot:Say("My bot name is: " .. botName)
   end
 
   -- Now try reading array from config
   local configData, retCfg = bot:GetTaskConfig()
-  if retCfg ~= retOk then
+  if retCfg ~= ret.Ok then
     bot:Say("I wasn't able to find my configuration")
   else
     if configData["Replies"] then
@@ -185,41 +190,43 @@ if cmd == "lua" then
   end
 
   -- Decide final return based on config retrieval
-  if retCfg == retOk then
-    return taskNormal
+  if retThread == ret.Ok then
+    return task.Normal
+  elseif retThread == ret.Failed then
+    return task.Fail
   else
-    return taskFail
+    return task.MechanismFail
   end
 
 elseif cmd == "thread" then
   -- Demonstrate replying in a new thread
-  local ret = bot:ReplyThread("Ok, let's chat here in a new thread")
+  local retThread = bot:ReplyThread("Ok, let's chat here in a new thread")
   bot:SayThread("... note that you still have to mention me by name for now.")
-  return taskNormal
+  return task.Normal
 
 elseif cmd == "askthread" then
   -- Prompt for user input in a thread
   local rep, rcode = bot:PromptThreadForReply("SimpleString",
     "Tell me something - anything!")
-  if rcode == retOk then
+  if rcode == ret.Ok then
     bot:SayThread("I hear what you're saying: '" .. rep .. "'")
   else
     bot:SayThread(
       "Sorry, I'm not sure what you're trying to tell me. Maybe you used funny characters?")
   end
-  return taskNormal
+  return task.Normal
 
 elseif cmd == "listen" then
   -- Demonstrate a DM-based prompt
   local dbot = bot:Direct()
   local rep, rcode = dbot:PromptForReply("SimpleString",
     "Ok, what do you want to tell me?")
-  if rcode == retOk then
+  if rcode == ret.Ok then
     dbot:Say("I hear what you're saying: '" .. rep .. "'")
   else
     bot:Say("Sorry, I'm not sure I caught that. Maybe you used funny characters?")
   end
-  return taskNormal
+  return task.Normal
 
 elseif cmd == "remember" then
   -- ARGV: [ "slowly"? ], [ thing to remember ]
@@ -229,9 +236,9 @@ elseif cmd == "remember" then
 
   -- Check out "memory" read/write
   local retVal, data, token = bot:CheckoutDatum("memory", true)
-  if retVal ~= retOk then
+  if retVal ~= ret.Ok then
     bot:Say("Sorry, I'm having trouble checking out my memory.")
-    return taskFail
+    return task.Fail
   end
 
   local found = false
@@ -258,7 +265,7 @@ elseif cmd == "remember" then
       bot:Say("Ok, I'll remember \"" .. thing .. "\"")
     end
     local updRet = bot:UpdateDatum("memory", token, data)
-    if updRet == retOk then
+    if updRet == ret.Ok then
       if speed ~= "slowly" then bot:Say("committed to memory") end
     else
       if speed ~= "slowly" then
@@ -266,27 +273,27 @@ elseif cmd == "remember" then
       end
     end
   end
-  return taskNormal
+  return task.Normal
 
 elseif cmd == "recall" then
   local which = arg[2] -- possibly a number
   local retVal, data, token = bot:CheckoutDatum("memory", false)
-  if retVal ~= retOk then
+  if retVal ~= ret.Ok then
     bot:Say("Sorry - trouble checking memory!")
-    return taskFail
+    return task.Fail
   end
   if data and #data > 0 then
-    if which and which:len() > 0 then
+    if which and #which > 0 then -- Changed :len() to # since Lua uses # for string length
       local idx = tonumber(which)
       if not idx or idx < 1 then
         bot:Say("I can't make out what you want me to recall.")
         bot:CheckinDatum("memory", token)
-        return taskNormal
+        return task.Normal
       end
       if idx > #data then
         bot:Say("I don't remember that many things!")
         bot:CheckinDatum("memory", token)
-        return taskNormal
+        return task.Normal
       end
       local item = data[idx]
       bot:CheckinDatum("memory", token)
@@ -304,21 +311,21 @@ elseif cmd == "recall" then
     bot:CheckinDatum("memory", token)
     bot:Say("Sorry - I don't remember anything!")
   end
-  return taskNormal
+  return task.Normal
 
 elseif cmd == "forget" then
   local which = arg[2]
   local i = tonumber(which) or 0
   if i < 1 then
     bot:Say("I can't make out what you want me to forget.")
-    return taskNormal
+    return task.Normal
   end
   i = i - 1 -- zero-based index
 
   local retVal, data, token = bot:CheckoutDatum("memory", true)
-  if retVal ~= retOk then
+  if retVal ~= ret.Ok then
     bot:Say("Sorry - trouble checking memory!")
-    return taskFail
+    return task.Fail
   end
 
   if data and #data > 0 and data[i + 1] then
@@ -326,14 +333,14 @@ elseif cmd == "forget" then
     bot:Say("Ok, I'll forget \"" .. item .. "\"")
     table.remove(data, i + 1)
     local updRet = bot:UpdateDatum("memory", token, data)
-    if updRet ~= retOk then
+    if updRet ~= ret.Ok then
       bot:Say("Hmm, having trouble forgetting that item for real, sorry.")
     end
   else
     bot:CheckinDatum("memory", token)
     bot:Say("Gosh, I guess I never remembered that in the first place!")
   end
-  return taskNormal
+  return task.Normal
 
 elseif cmd == "check" then
   local isAdmin = bot:CheckAdmin()
@@ -351,11 +358,11 @@ elseif cmd == "check" then
   else
     bot:Say("You failed to elevate, I'm calling the cops!")
   end
-  bot:Log(logInfo,
-      "Checked out " .. robot.user .. ", admin: " .. tostring(isAdmin) ..
+  bot:Log(log.Info,
+      "Checked out " .. bot.user .. ", admin: " .. tostring(isAdmin) ..
         ", elevate check: " .. tostring(success))
-  return taskNormal
+  return task.Normal
 end
 
 -- If we reached this point, no recognized command => do nothing special.
-return taskNormal
+return task.Normal

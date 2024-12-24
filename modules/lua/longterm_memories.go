@@ -31,7 +31,7 @@ func robotCheckoutDatum(L *glua.LState) int {
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		L.RaiseError("invalid robot userdata")
+		logErr(lr, "robotCheckoutDatum")
 		return 0
 	}
 
@@ -79,7 +79,7 @@ func robotUpdateDatum(L *glua.LState) int {
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		L.RaiseError("invalid robot userdata")
+		logErr(lr, "robotUpdateDatum")
 		return 0
 	}
 
@@ -103,7 +103,7 @@ func robotCheckinDatum(L *glua.LState) int {
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		L.RaiseError("invalid robot userdata")
+		logErr(lr, "robotCheckinDatum")
 		return 0
 	}
 

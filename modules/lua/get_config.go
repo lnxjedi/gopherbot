@@ -8,17 +8,21 @@ import (
 
 // GetPluginConfig calls the given Lua script with the argument "configure".
 // We expect the script to return a YAML string that we convert to *[]byte.
-func GetPluginConfig(taskPath, taskName string) (*[]byte, error) {
+func GetPluginConfig(taskPath, taskName string, pkgPath []string) (*[]byte, error) {
 	L := glua.NewState()
 	defer L.Close()
-	// For now, load all standard libs
-	L.OpenLibs()
 
 	// Create the args global with a single element: "configure"
 	argsTable := L.CreateTable(1, 0)
 	argsTable.RawSetInt(0, glua.LString(taskName))
 	argsTable.RawSetInt(1, glua.LString("configure"))
 	L.SetGlobal("arg", argsTable)
+
+	// **Update package.path with additional directories and Lua patterns**
+	_, err := updatePkgPath(L, nil, pkgPath)
+	if err != nil {
+		return nil, err
+	}
 
 	// Load + Run the script
 	if err := L.DoFile(taskPath); err != nil {

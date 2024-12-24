@@ -90,8 +90,12 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 				return
 			}
 		} else if isExternalLuaTask {
+			pkgPath := []string{
+				fmt.Sprintf("%s/lib", installPath),
+				fmt.Sprintf("%s/custom/lib", homePath),
+			}
 			Log(robot.Info, "getting default configuration for external Lua plugin '"+task.name+"'")
-			if defConfig, err := lua.GetPluginConfig(taskPath, task.name); err != nil {
+			if defConfig, err := lua.GetPluginConfig(taskPath, task.name, pkgPath); err != nil {
 				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 				// This error shouldn't disable an external Lua plugin
 				cchan <- getCfgReturn{&cfg, nil}
@@ -400,6 +404,10 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	}
 
 	if isExternalLuaTask {
+		pkgPath := []string{
+			fmt.Sprintf("%s/lib", installPath),
+			fmt.Sprintf("%s/custom/lib", homePath),
+		}
 		if privSep {
 			if privileged {
 				raiseThreadPrivExternal(fmt.Sprintf("privileged external Lua task \"%s\"", task.name))
@@ -415,7 +423,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			// Prepend the command to args, so Lua sees args[1] == <command>
 			allArgs := append([]string{command}, args...)
 
-			ret, err := lua.CallExtension(taskPath, task.name, envhash, r, task.Privileged, allArgs)
+			ret, err := lua.CallExtension(taskPath, task.name, pkgPath, envhash, r, allArgs)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{fmt.Sprintf("Running plugin %s: %v", task.name, err), robot.MechanismFail}
@@ -428,7 +436,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			var ret robot.TaskRetVal
 			// For jobs/tasks, pass args directly; no "command" prepended.
 			if isJob {
-				ret, err = lua.CallExtension(taskPath, task.name, envhash, r, task.Privileged, args)
+				ret, err = lua.CallExtension(taskPath, task.name, pkgPath, envhash, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
@@ -436,7 +444,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				}
 				r.Log(robot.Debug, "External Lua job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = lua.CallExtension(taskPath, task.name, envhash, r, task.Privileged, args)
+				ret, err = lua.CallExtension(taskPath, task.name, pkgPath, envhash, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}
