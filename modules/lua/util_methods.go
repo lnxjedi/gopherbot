@@ -7,30 +7,32 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
-// RegisterUtilMethods adds RandomInt, RandomString, Pause, CheckAdmin, Elevate, and Log to the robot's metatable
-func RegisterUtilMethods(L *glua.LState) {
+// RegisterUtilMethods adds RandomInt, RandomString, Pause, CheckAdmin, Elevate, and Log to the robot's metatable.
+func (lctx luaContext) RegisterUtilMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
-		"RandomInt":    robotRandomInt,
-		"RandomString": robotRandomString,
-		"Pause":        robotPause,
-		"CheckAdmin":   robotCheckAdmin,
-		"Elevate":      robotElevate,
-		"Log":          robotLog,
+		"RandomInt":    lctx.robotRandomInt,
+		"RandomString": lctx.robotRandomString,
+		"Pause":        lctx.robotPause,
+		"CheckAdmin":   lctx.robotCheckAdmin,
+		"Elevate":      lctx.robotElevate,
+		"Log":          lctx.robotLog,
 	}
 	robotIndex := getRobotMethodTable(L)
 	L.SetFuncs(robotIndex, methods)
 }
 
-// robotRandomInt wraps r.RandomInt
-func robotRandomInt(L *glua.LState) int {
+// -------------------------------------------------------------------
+// 1) robot:RandomInt(n)
+// -------------------------------------------------------------------
+
+// robotRandomInt wraps r.RandomInt and returns a random integer up to n.
+func (lctx luaContext) robotRandomInt(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	nLua := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		if lr != nil && lr.r != nil {
-			lr.r.Log(robot.Error, "RandomInt called with invalid robot userdata")
-		}
+		lctx.logErr("RandomInt")
 		L.Push(glua.LNumber(0))
 		return 1
 	}
@@ -47,16 +49,18 @@ func robotRandomInt(L *glua.LState) int {
 	return 1
 }
 
-// robotRandomString implements r.RandomString(...)
-func robotRandomString(L *glua.LState) int {
+// -------------------------------------------------------------------
+// 2) robot:RandomString(array)
+// -------------------------------------------------------------------
+
+// robotRandomString implements r.RandomString(...) and returns a random string from the provided array.
+func (lctx luaContext) robotRandomString(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	arrLua := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		if lr != nil && lr.r != nil {
-			lr.r.Log(robot.Error, "RandomString called with invalid robot userdata")
-		}
+		lctx.logErr("RandomString")
 		L.Push(glua.LString(""))
 		return 1
 	}
@@ -91,37 +95,41 @@ func robotRandomString(L *glua.LState) int {
 	return 1
 }
 
-// robotPause wraps r.Pause(...)
-func robotPause(L *glua.LState) int {
+// -------------------------------------------------------------------
+// 3) robot:Pause(seconds)
+// -------------------------------------------------------------------
+
+// robotPause wraps r.Pause(...) and pauses execution for the specified number of seconds.
+func (lctx luaContext) robotPause(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	secLua := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		if lr != nil && lr.r != nil {
-			lr.r.Log(robot.Error, "Pause called with invalid robot userdata")
-		}
-		return 0
+		lctx.logErr("Pause")
+		return pushFail(L)
 	}
 
 	if secLua.Type() != glua.LTNumber {
 		lr.r.Log(robot.Error, fmt.Sprintf("Pause requires a numeric argument, got %s", secLua.Type().String()))
-		return 0
+		return pushFail(L)
 	}
 
 	sec := float64(secLua.(glua.LNumber))
 	lr.r.Pause(sec)
-	return 0
+	return pushFail(L)
 }
 
-// robot:CheckAdmin() -> bool
-func robotCheckAdmin(L *glua.LState) int {
+// -------------------------------------------------------------------
+// 4) robot:CheckAdmin() -> bool
+// -------------------------------------------------------------------
+
+// robotCheckAdmin checks if the current user has administrative privileges.
+func (lctx luaContext) robotCheckAdmin(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		if lr != nil && lr.r != nil {
-			lr.r.Log(robot.Error, "CheckAdmin called with invalid robot userdata")
-		}
+		lctx.logErr("CheckAdmin")
 		L.Push(glua.LBool(false))
 		return 1
 	}
@@ -131,17 +139,18 @@ func robotCheckAdmin(L *glua.LState) int {
 	return 1
 }
 
-// robot:Elevate(immediate) -> bool
-// immediate is a Lua boolean indicating whether to forcibly prompt for 2fa
-func robotElevate(L *glua.LState) int {
+// -------------------------------------------------------------------
+// 5) robot:Elevate(immediate) -> bool
+// -------------------------------------------------------------------
+
+// robotElevate elevates the current user's privileges, optionally forcing a 2FA prompt.
+func (lctx luaContext) robotElevate(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	immArg := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		if lr != nil && lr.r != nil {
-			lr.r.Log(robot.Error, "Elevate called with invalid robot userdata")
-		}
+		lctx.logErr("Elevate")
 		L.Push(glua.LBool(false))
 		return 1
 	}
@@ -159,20 +168,20 @@ func robotElevate(L *glua.LState) int {
 	return 1
 }
 
-// robot:Log(level, message) -> no return
-// level: numeric log level (logTrace=0, logDebug=1, logInfo=2, etc.)
-// message: string
-func robotLog(L *glua.LState) int {
+// -------------------------------------------------------------------
+// 6) robot:Log(level, message) -> no return
+// -------------------------------------------------------------------
+
+// robotLog logs a message at the specified log level.
+func (lctx luaContext) robotLog(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	levelArg := L.Get(2)
 	msgArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		if lr != nil && lr.r != nil {
-			lr.r.Log(robot.Error, "Log called with invalid robot userdata")
-		}
-		return 0
+		lctx.logErr("Log")
+		return pushFail(L)
 	}
 
 	var lvl robot.LogLevel = robot.Info // default
@@ -189,9 +198,9 @@ func robotLog(L *glua.LState) int {
 	} else {
 		msg = fmt.Sprintf("Log called with non-string message type: %s", msgArg.Type().String())
 		lr.r.Log(robot.Error, msg)
-		return 0
+		return pushFail(L)
 	}
 
 	lr.r.Log(lvl, msg)
-	return 0
+	return pushFail(L)
 }

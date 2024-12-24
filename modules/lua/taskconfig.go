@@ -11,16 +11,16 @@ import (
 //
 // Usage in Lua:
 //
-//	local cfg, ret = robot:GetTaskConfig()
-//	if ret == retOk then
+//	local cfg, retVal = robot:GetTaskConfig()
+//	if retVal == ret.Ok then
 //	  -- cfg is a Lua table (array or map) containing the plugin/job config
 //	end
-func robotGetTaskConfig(L *glua.LState) int {
+func (lctx luaContext) robotGetTaskConfig(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		L.RaiseError("invalid robot userdata")
-		return 0
+		lctx.logErr("robotGetTaskConfig")
+		return pushFail(L)
 	}
 
 	// 1) First, try to unmarshal into map[string]interface{}
@@ -67,9 +67,9 @@ func robotGetTaskConfig(L *glua.LState) int {
 }
 
 // RegisterConfigMethods adds the robot.GetTaskConfig -> robotGetTaskConfig binding
-func RegisterConfigMethod(L *glua.LState) {
+func (lctx luaContext) RegisterConfigMethod(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
-		"GetTaskConfig": robotGetTaskConfig,
+		"GetTaskConfig": lctx.robotGetTaskConfig,
 	}
 	robotIndex := getRobotMethodTable(L)
 	L.SetFuncs(robotIndex, methods)

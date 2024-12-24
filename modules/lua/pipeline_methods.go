@@ -6,41 +6,60 @@ import (
 )
 
 // RegisterPipelineMethods attaches pipeline-related functions to "robot".
-func RegisterPipelineMethods(L *glua.LState) {
+func (lctx luaContext) RegisterPipelineMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
-		"GetParameter": robotGetParameter,
-		"SetParameter": robotSetParameter,
-		"Exclusive":    robotExclusive,
-		"SpawnJob":     robotSpawnJob,
-		"AddTask":      robotAddTask,
-		"FinalTask":    robotFinalTask,
-		"FailTask":     robotFailTask,
-		"AddJob":       robotAddJob,
-		"AddCommand":   robotAddCommand,
-		"FinalCommand": robotFinalCommand,
-		"FailCommand":  robotFailCommand,
+		"GetParameter": lctx.robotGetParameter,
+		"SetParameter": lctx.robotSetParameter,
+		"Exclusive":    lctx.robotExclusive,
+		"SpawnJob":     lctx.robotSpawnJob,
+		"AddTask":      lctx.robotAddTask,
+		"FinalTask":    lctx.robotFinalTask,
+		"FailTask":     lctx.robotFailTask,
+		"AddJob":       lctx.robotAddJob,
+		"AddCommand":   lctx.robotAddCommand,
+		"FinalCommand": lctx.robotFinalCommand,
+		"FailCommand":  lctx.robotFailCommand,
 	}
+
 	robotIndex := getRobotMethodTable(L)
 	L.SetFuncs(robotIndex, methods)
 }
 
 // -------------------------------------------------------------------
+// Helper function to collect remaining stack arguments as strings
+// from index "start" to the top. Non-string arguments are ignored.
+// -------------------------------------------------------------------
+func parseStringArgs(L *glua.LState, start int) []string {
+	var args []string
+	top := L.GetTop()
+	for i := start; i <= top; i++ {
+		val := L.Get(i)
+		if val.Type() == glua.LTString {
+			args = append(args, val.String())
+		} else {
+			// Optionally log or skip
+			// Could do: lr.r.Log(robot.Error, "AddTask ignoring non-string argument")
+		}
+	}
+	return args
+}
+
+// -------------------------------------------------------------------
 // 1) robot:GetParameter(name) -> string
 // -------------------------------------------------------------------
-func robotGetParameter(L *glua.LState) int {
+func (lctx luaContext) robotGetParameter(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	name := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "GetParameter")
-		L.Push(glua.LString(""))
-		return 1
+		lctx.logErr("GetParameter")
+		return pushFail(L)
 	}
+
 	if name.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "GetParameter requires a string argument")
-		L.Push(glua.LString(""))
-		return 1
+		return pushFail(L)
 	}
 
 	val := lr.r.GetParameter(name.String())
@@ -51,22 +70,20 @@ func robotGetParameter(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 2) robot:SetParameter(name, value) -> bool
 // -------------------------------------------------------------------
-func robotSetParameter(L *glua.LState) int {
+func (lctx luaContext) robotSetParameter(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	nameArg := L.Get(2)
 	valArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "SetParameter")
-		L.Push(glua.LBool(false))
-		return 1
+		lctx.logErr("SetParameter")
+		return pushFail(L)
 	}
 
 	if nameArg.Type() != glua.LTString || valArg.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "SetParameter requires (string, string)")
-		L.Push(glua.LBool(false))
-		return 1
+		return pushFail(L)
 	}
 
 	okSet := lr.r.SetParameter(nameArg.String(), valArg.String())
@@ -77,16 +94,15 @@ func robotSetParameter(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 3) robot:Exclusive(tag, queueTask) -> bool
 // -------------------------------------------------------------------
-func robotExclusive(L *glua.LState) int {
+func (lctx luaContext) robotExclusive(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	tagArg := L.Get(2)
 	queueArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "Exclusive")
-		L.Push(glua.LBool(false))
-		return 1
+		lctx.logErr("Exclusive")
+		return pushFail(L)
 	}
 
 	var tag string
@@ -111,20 +127,19 @@ func robotExclusive(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 4) robot:SpawnJob(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func robotSpawnJob(L *glua.LState) int {
+func (lctx luaContext) robotSpawnJob(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	name := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "SpawnJob")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		lctx.logErr("SpawnJob")
+		return pushFail(L)
 	}
+
 	if name.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "SpawnJob requires at least (string name)")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		return pushFail(L)
 	}
 
 	// Collect extra args from stack positions 3..top
@@ -138,20 +153,19 @@ func robotSpawnJob(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 5) robot:AddTask(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func robotAddTask(L *glua.LState) int {
+func (lctx luaContext) robotAddTask(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	name := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "AddTask")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		lctx.logErr("AddTask")
+		return pushFail(L)
 	}
+
 	if name.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "AddTask requires at least (string name)")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		return pushFail(L)
 	}
 
 	extras := parseStringArgs(L, 3)
@@ -163,20 +177,19 @@ func robotAddTask(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 6) robot:FinalTask(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func robotFinalTask(L *glua.LState) int {
+func (lctx luaContext) robotFinalTask(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	name := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "FinalTask")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		lctx.logErr("FinalTask")
+		return pushFail(L)
 	}
+
 	if name.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "FinalTask requires at least (string name)")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		return pushFail(L)
 	}
 
 	extras := parseStringArgs(L, 3)
@@ -188,20 +201,19 @@ func robotFinalTask(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 7) robot:FailTask(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func robotFailTask(L *glua.LState) int {
+func (lctx luaContext) robotFailTask(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	name := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "FailTask")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		lctx.logErr("FailTask")
+		return pushFail(L)
 	}
+
 	if name.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "FailTask requires at least (string name)")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		return pushFail(L)
 	}
 
 	extras := parseStringArgs(L, 3)
@@ -213,20 +225,19 @@ func robotFailTask(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 8) robot:AddJob(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func robotAddJob(L *glua.LState) int {
+func (lctx luaContext) robotAddJob(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	name := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "AddJob")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		lctx.logErr("AddJob")
+		return pushFail(L)
 	}
+
 	if name.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "AddJob requires at least (string name)")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		return pushFail(L)
 	}
 
 	extras := parseStringArgs(L, 3)
@@ -238,22 +249,20 @@ func robotAddJob(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 9) robot:AddCommand(pluginName, command) -> RetVal
 // -------------------------------------------------------------------
-func robotAddCommand(L *glua.LState) int {
+func (lctx luaContext) robotAddCommand(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	pluginArg := L.Get(2)
 	cmdArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "AddCommand")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		lctx.logErr("AddCommand")
+		return pushFail(L)
 	}
 
 	if pluginArg.Type() != glua.LTString || cmdArg.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "AddCommand requires (plugin, command) as strings")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		return pushFail(L)
 	}
 
 	ret := lr.r.AddCommand(pluginArg.String(), cmdArg.String())
@@ -264,22 +273,20 @@ func robotAddCommand(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 10) robot:FinalCommand(pluginName, command) -> RetVal
 // -------------------------------------------------------------------
-func robotFinalCommand(L *glua.LState) int {
+func (lctx luaContext) robotFinalCommand(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	pluginArg := L.Get(2)
 	cmdArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "FinalCommand")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		lctx.logErr("FinalCommand")
+		return pushFail(L)
 	}
 
 	if pluginArg.Type() != glua.LTString || cmdArg.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "FinalCommand requires (plugin, command) as strings")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		return pushFail(L)
 	}
 
 	ret := lr.r.FinalCommand(pluginArg.String(), cmdArg.String())
@@ -290,44 +297,23 @@ func robotFinalCommand(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 11) robot:FailCommand(pluginName, command) -> RetVal
 // -------------------------------------------------------------------
-func robotFailCommand(L *glua.LState) int {
+func (lctx luaContext) robotFailCommand(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	pluginArg := L.Get(2)
 	cmdArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "FailCommand")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		lctx.logErr("FailCommand")
+		return pushFail(L)
 	}
 
 	if pluginArg.Type() != glua.LTString || cmdArg.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "FailCommand requires (plugin, command) as strings")
-		L.Push(glua.LNumber(robot.Fail))
-		return 1
+		return pushFail(L)
 	}
 
 	ret := lr.r.FailCommand(pluginArg.String(), cmdArg.String())
 	L.Push(glua.LNumber(ret))
 	return 1
-}
-
-// -------------------------------------------------------------------
-// Helper function to collect remaining stack arguments as strings
-// from index "start" to the top. Non-string arguments are ignored.
-// -------------------------------------------------------------------
-func parseStringArgs(L *glua.LState, start int) []string {
-	var args []string
-	top := L.GetTop()
-	for i := start; i <= top; i++ {
-		val := L.Get(i)
-		if val.Type() == glua.LTString {
-			args = append(args, val.String())
-		} else {
-			// Optionally log or skip
-			// Could do: lr.r.Log(robot.Error, "AddTask ignoring non-string argument")
-		}
-	}
-	return args
 }

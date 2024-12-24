@@ -5,6 +5,8 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
+// newLuaRobot creates a new Lua userdata for the robot.
+// This function remains unchanged as it serves as a helper.
 func newLuaRobot(L *glua.LState, r robot.Robot, env map[string]string) *glua.LUserData {
 	newUD := L.NewUserData()
 	newUD.Value = &luaRobot{r: r, env: env}
@@ -14,12 +16,12 @@ func newLuaRobot(L *glua.LState, r robot.Robot, env map[string]string) *glua.LUs
 }
 
 // robotNew allows for a more natural bot = robot:New()
-func robotNew(L *glua.LState) int {
+func (lctx luaContext) robotNew(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		logErr(lr, "New")
-		return 0
+		lctx.logErr("New")
+		return pushFail(L)
 	}
 
 	newUD := newLuaRobot(L, lr.r, lr.env)
@@ -27,28 +29,30 @@ func robotNew(L *glua.LState) int {
 	return 1
 }
 
-func robotDirect(L *glua.LState) int {
+// robotDirect creates a direct instance of the robot.
+func (lctx luaContext) robotDirect(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		logErr(lr, "Direct")
-		return 0
+		lctx.logErr("Direct")
+		return pushFail(L)
 	}
 
 	newR := lr.r.Direct()
 	newUD := newLuaRobot(L, newR, lr.env)
 
-	// 3. Return that new userdata to Lua
+	// Return the new userdata to Lua
 	L.Push(newUD)
 	return 1
 }
 
-func robotThreaded(L *glua.LState) int {
+// robotThreaded creates a threaded instance of the robot.
+func (lctx luaContext) robotThreaded(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		logErr(lr, "Threaded")
-		return 0
+		lctx.logErr("Threaded")
+		return pushFail(L)
 	}
 
 	newR := lr.r.Threaded()
@@ -57,12 +61,13 @@ func robotThreaded(L *glua.LState) int {
 	return 1
 }
 
-func robotFixed(L *glua.LState) int {
+// robotFixed creates a fixed instance of the robot.
+func (lctx luaContext) robotFixed(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		logErr(lr, "Fixed")
-		return 0
+		lctx.logErr("Fixed")
+		return pushFail(L)
 	}
 
 	newR := lr.r.Fixed()
@@ -71,14 +76,15 @@ func robotFixed(L *glua.LState) int {
 	return 1
 }
 
-func robotMessageFormat(L *glua.LState) int {
+// robotMessageFormat sets the message format for the robot.
+func (lctx luaContext) robotMessageFormat(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	formatVal := L.CheckNumber(2) // e.g., 0=Raw,1=Fixed,2=Variable, etc.
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		logErr(lr, "MessageFormat")
-		return 0
+		lctx.logErr("MessageFormat")
+		return pushFail(L)
 	}
 
 	format := robot.MessageFormat(int(formatVal))
@@ -89,13 +95,14 @@ func robotMessageFormat(L *glua.LState) int {
 	return 1
 }
 
-func RegisterRobotModifiers(L *glua.LState) {
+// RegisterRobotModifiers registers all robot modifier methods with Lua.
+func (lctx luaContext) RegisterRobotModifiers(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
-		"New":           robotNew,
-		"Fixed":         robotFixed,
-		"Direct":        robotDirect,
-		"Threaded":      robotThreaded,
-		"MessageFormat": robotMessageFormat,
+		"New":           lctx.robotNew,
+		"Fixed":         lctx.robotFixed,
+		"Direct":        lctx.robotDirect,
+		"Threaded":      lctx.robotThreaded,
+		"MessageFormat": lctx.robotMessageFormat,
 	}
 	robotIndex := getRobotMethodTable(L)
 	L.SetFuncs(robotIndex, methods)

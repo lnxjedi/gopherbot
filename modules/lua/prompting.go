@@ -8,13 +8,13 @@ import (
 // RegisterPromptingMethods adds the prompt methods to the robot's metatable:
 //
 //	PromptForReply, PromptThreadForReply, PromptUserForReply, etc.
-func RegisterPromptingMethods(L *glua.LState) {
+func (lctx luaContext) RegisterPromptingMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
-		"PromptForReply":                  robotPromptForReply,
-		"PromptThreadForReply":            robotPromptThreadForReply,
-		"PromptUserForReply":              robotPromptUserForReply,
-		"PromptUserChannelForReply":       robotPromptUserChannelForReply,
-		"PromptUserChannelThreadForReply": robotPromptUserChannelThreadForReply,
+		"PromptForReply":                  lctx.robotPromptForReply,
+		"PromptThreadForReply":            lctx.robotPromptThreadForReply,
+		"PromptUserForReply":              lctx.robotPromptUserForReply,
+		"PromptUserChannelForReply":       lctx.robotPromptUserChannelForReply,
+		"PromptUserChannelThreadForReply": lctx.robotPromptUserChannelThreadForReply,
 	}
 
 	robotIndex := getRobotMethodTable(L)
@@ -22,17 +22,18 @@ func RegisterPromptingMethods(L *glua.LState) {
 }
 
 // -------------------------------------------------------------------
-// 1) robot:PromptForReply(regexID, prompt) -> (replyString, retVal)
+// 1. Basic prompting methods
 // -------------------------------------------------------------------
-func robotPromptForReply(L *glua.LState) int {
+
+// robotPromptForReply prompts for a reply and returns the reply string and return value.
+func (lctx luaContext) robotPromptForReply(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	regexID := L.CheckString(2) // required
 	prompt := L.CheckString(3)  // required
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		// Log an error, return ("", some error code)
-		logErr(lr, "PromptForReply")
+		lctx.logErr("PromptForReply")
 		L.Push(glua.LString(""))
 		L.Push(glua.LNumber(robot.FailedMessageSend))
 		return 2
@@ -44,17 +45,15 @@ func robotPromptForReply(L *glua.LState) int {
 	return 2
 }
 
-// -------------------------------------------------------------------
-// 2) robot:PromptThreadForReply(regexID, prompt) -> (replyString, retVal)
-// -------------------------------------------------------------------
-func robotPromptThreadForReply(L *glua.LState) int {
+// robotPromptThreadForReply prompts for a reply in a threaded context and returns the reply string and return value.
+func (lctx luaContext) robotPromptThreadForReply(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	regexID := L.CheckString(2)
 	prompt := L.CheckString(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "PromptThreadForReply")
+		lctx.logErr("PromptThreadForReply")
 		L.Push(glua.LString(""))
 		L.Push(glua.LNumber(robot.FailedMessageSend))
 		return 2
@@ -66,10 +65,8 @@ func robotPromptThreadForReply(L *glua.LState) int {
 	return 2
 }
 
-// -------------------------------------------------------------------
-// 3) robot:PromptUserForReply(regexID, user, prompt) -> (replyString, retVal)
-// -------------------------------------------------------------------
-func robotPromptUserForReply(L *glua.LState) int {
+// robotPromptUserForReply prompts a specific user for a reply and returns the reply string and return value.
+func (lctx luaContext) robotPromptUserForReply(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	regexID := L.CheckString(2)
 	user := L.CheckString(3)
@@ -77,7 +74,7 @@ func robotPromptUserForReply(L *glua.LState) int {
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "PromptUserForReply")
+		lctx.logErr("PromptUserForReply")
 		L.Push(glua.LString(""))
 		L.Push(glua.LNumber(robot.FailedMessageSend))
 		return 2
@@ -89,10 +86,8 @@ func robotPromptUserForReply(L *glua.LState) int {
 	return 2
 }
 
-// -------------------------------------------------------------------
-// 4) robot:PromptUserChannelForReply(regexID, user, channel, prompt) -> (replyString, retVal)
-// -------------------------------------------------------------------
-func robotPromptUserChannelForReply(L *glua.LState) int {
+// robotPromptUserChannelForReply prompts a specific user in a specific channel for a reply and returns the reply string and return value.
+func (lctx luaContext) robotPromptUserChannelForReply(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	regexID := L.CheckString(2)
 	user := L.CheckString(3)
@@ -101,7 +96,7 @@ func robotPromptUserChannelForReply(L *glua.LState) int {
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "PromptUserChannelForReply")
+		lctx.logErr("PromptUserChannelForReply")
 		L.Push(glua.LString(""))
 		L.Push(glua.LNumber(robot.FailedMessageSend))
 		return 2
@@ -113,10 +108,8 @@ func robotPromptUserChannelForReply(L *glua.LState) int {
 	return 2
 }
 
-// -------------------------------------------------------------------
-// 5) robot:PromptUserChannelThreadForReply(regexID, user, channel, thread, prompt) -> (replyString, retVal)
-// -------------------------------------------------------------------
-func robotPromptUserChannelThreadForReply(L *glua.LState) int {
+// robotPromptUserChannelThreadForReply prompts a specific user in a specific channel and thread for a reply and returns the reply string and return value.
+func (lctx luaContext) robotPromptUserChannelThreadForReply(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	regexID := L.CheckString(2)
 	user := L.CheckString(3)
@@ -126,7 +119,7 @@ func robotPromptUserChannelThreadForReply(L *glua.LState) int {
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "PromptUserChannelThreadForReply")
+		lctx.logErr("PromptUserChannelThreadForReply")
 		L.Push(glua.LString(""))
 		L.Push(glua.LNumber(robot.FailedMessageSend))
 		return 2

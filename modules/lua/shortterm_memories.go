@@ -12,13 +12,13 @@ import (
 //	RememberContext(context, value)
 //	RememberContextThread(context, value)
 //	Recall(key, shared) -> string
-func RegisterShortTermMemoryMethods(L *glua.LState) {
+func (lctx luaContext) RegisterShortTermMemoryMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
-		"Remember":              robotRemember,
-		"RememberThread":        robotRememberThread,
-		"RememberContext":       robotRememberContext,
-		"RememberContextThread": robotRememberContextThread,
-		"Recall":                robotRecall,
+		"Remember":              lctx.robotRemember,
+		"RememberThread":        lctx.robotRememberThread,
+		"RememberContext":       lctx.robotRememberContext,
+		"RememberContextThread": lctx.robotRememberContextThread,
+		"Recall":                lctx.robotRecall,
 	}
 	robotIndex := getRobotMethodTable(L)
 	L.SetFuncs(robotIndex, methods)
@@ -27,7 +27,9 @@ func RegisterShortTermMemoryMethods(L *glua.LState) {
 // -------------------------------------------------------------------
 // 1) robot:Remember(key, value, shared)
 // -------------------------------------------------------------------
-func robotRemember(L *glua.LState) int {
+
+// robotRemember allows Lua scripts to remember a key-value pair with an optional shared flag.
+func (lctx luaContext) robotRemember(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	key := L.Get(2)
 	val := L.Get(3)
@@ -35,14 +37,14 @@ func robotRemember(L *glua.LState) int {
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "Remember")
-		return 0
+		lctx.logErr("Remember")
+		return pushFail(L)
 	}
 
 	// Validate arguments
 	if key.Type() != glua.LTString || val.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "Remember: key and value must be strings")
-		return 0
+		return pushFail(L)
 	}
 	var shared bool
 	if sharedArg.Type() == glua.LTBool {
@@ -53,13 +55,15 @@ func robotRemember(L *glua.LState) int {
 	}
 
 	lr.r.Remember(key.String(), val.String(), shared)
-	return 0
+	return pushFail(L)
 }
 
 // -------------------------------------------------------------------
 // 2) robot:RememberThread(key, value, shared)
 // -------------------------------------------------------------------
-func robotRememberThread(L *glua.LState) int {
+
+// robotRememberThread allows Lua scripts to remember a key-value pair in a threaded context with an optional shared flag.
+func (lctx luaContext) robotRememberThread(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	key := L.Get(2)
 	val := L.Get(3)
@@ -67,13 +71,14 @@ func robotRememberThread(L *glua.LState) int {
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "RememberThread")
-		return 0
+		lctx.logErr("RememberThread")
+		return pushFail(L)
 	}
 
+	// Validate arguments
 	if key.Type() != glua.LTString || val.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "RememberThread: key and value must be strings")
-		return 0
+		return pushFail(L)
 	}
 	var shared bool
 	if sharedArg.Type() == glua.LTBool {
@@ -83,70 +88,79 @@ func robotRememberThread(L *glua.LState) int {
 	}
 
 	lr.r.RememberThread(key.String(), val.String(), shared)
-	return 0
+	return pushFail(L)
 }
 
 // -------------------------------------------------------------------
 // 3) robot:RememberContext(context, value)
 // -------------------------------------------------------------------
-func robotRememberContext(L *glua.LState) int {
+
+// robotRememberContext allows Lua scripts to remember a value within a specific context.
+func (lctx luaContext) robotRememberContext(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	cArg := L.Get(2)
 	vArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "RememberContext")
-		return 0
+		lctx.logErr("RememberContext")
+		return pushFail(L)
 	}
 
+	// Validate arguments
 	if cArg.Type() != glua.LTString || vArg.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "RememberContext: context and value must be strings")
-		return 0
+		return pushFail(L)
 	}
 
 	lr.r.RememberContext(cArg.String(), vArg.String())
-	return 0
+	return pushFail(L)
 }
 
 // -------------------------------------------------------------------
 // 4) robot:RememberContextThread(context, value)
 // -------------------------------------------------------------------
-func robotRememberContextThread(L *glua.LState) int {
+
+// robotRememberContextThread allows Lua scripts to remember a value within a specific context in a threaded environment.
+func (lctx luaContext) robotRememberContextThread(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	cArg := L.Get(2)
 	vArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "RememberContextThread")
-		return 0
+		lctx.logErr("RememberContextThread")
+		return pushFail(L)
 	}
 
+	// Validate arguments
 	if cArg.Type() != glua.LTString || vArg.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "RememberContextThread: context and value must be strings")
-		return 0
+		return pushFail(L)
 	}
 
 	lr.r.RememberContextThread(cArg.String(), vArg.String())
-	return 0
+	return pushFail(L)
 }
 
 // -------------------------------------------------------------------
 // 5) robot:Recall(key, shared) -> string
 // -------------------------------------------------------------------
-func robotRecall(L *glua.LState) int {
+
+// robotRecall allows Lua scripts to recall a value by key with an optional shared flag.
+func (lctx luaContext) robotRecall(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	key := L.Get(2)
 	sharedArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		logErr(lr, "Recall")
+		lctx.logErr("Recall")
 		L.Push(glua.LString(""))
 		return 1
 	}
 
+	// Validate key argument
 	if key.Type() != glua.LTString {
 		lr.r.Log(robot.Error, "Recall: key must be a string")
 		L.Push(glua.LString(""))

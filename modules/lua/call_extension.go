@@ -8,11 +8,17 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
-// luaRobot holds a reference to the robot.Robot interface, so we can
-// call methods on the underlying Gopherbot Robot from Lua.
+// luaRobot get's passed in to the lua script
 type luaRobot struct {
 	r   robot.Robot
 	env map[string]string
+}
+
+// luaContext holds a reference to the robot.Robot interface, so we can
+// call methods on the underlying Gopherbot Robot from Lua.
+type luaContext struct {
+	luaRobot
+	L *glua.LState
 }
 
 // CallExtension loads and executes a Lua script:
@@ -25,6 +31,15 @@ func CallExtension(taskPath, taskName string, pkgPath []string, env map[string]s
 	L := glua.NewState()
 	defer L.Close()
 
+	lr := luaRobot{
+		r:   r,
+		env: env,
+	}
+
+	lctx := luaContext{
+		lr, L,
+	}
+
 	// This is done automatically unless the SkipOpenLibs option is passed
 	// L.OpenLibs()
 
@@ -35,15 +50,15 @@ func CallExtension(taskPath, taskName string, pkgPath []string, env map[string]s
 	registerRobotType(L)
 
 	// Register additional method sets
-	RegisterMessageMethods(L)
-	RegisterRobotModifiers(L)
-	RegisterLongTermMemoryMethods(L)
-	RegisterShortTermMemoryMethods(L)
-	RegisterConfigMethod(L)
-	RegisterUtilMethods(L)
-	RegisterAttributeMethods(L)
-	RegisterPromptingMethods(L)
-	RegisterPipelineMethods(L)
+	lctx.RegisterMessageMethods(L)
+	lctx.RegisterRobotModifiers(L)
+	lctx.RegisterLongTermMemoryMethods(L)
+	lctx.RegisterShortTermMemoryMethods(L)
+	lctx.RegisterConfigMethod(L)
+	lctx.RegisterUtilMethods(L)
+	lctx.RegisterAttributeMethods(L)
+	lctx.RegisterPromptingMethods(L)
+	lctx.RegisterPipelineMethods(L)
 
 	// Create the robot userdata object and set it as "robot"
 	robotUD := L.NewUserData()
@@ -111,6 +126,21 @@ func updatePkgPath(L *glua.LState, r robot.Robot, pkgPath []string) (robot.TaskR
 	return robot.Normal, nil
 }
 
+// logErr logs an error with the saved bot if non-nil, otherwise prints to stdout
+func (lctx luaContext) logErr(caller string) {
+	if lctx.r != nil {
+		lctx.r.Log(robot.Error, fmt.Sprintf("%s called with invalid robot userdata", caller))
+	} else {
+		fmt.Printf("[ERR] %s called but robot is nil\n", caller)
+	}
+}
+
+func pushFail(L *glua.LState) int {
+	L.Push(glua.LNumber(robot.Failed))
+	return 1
+}
+
+// TEMPORARY during refactoring; TODO: remove
 // logErr logs an error if lr or lr.r is valid, otherwise prints to stdout.
 func logErr(lr *luaRobot, caller string) {
 	if lr != nil && lr.r != nil {
@@ -131,7 +161,7 @@ func modifyOSFunctions(L *glua.LState, r robot.Robot, envMap map[string]string) 
 			key := L.CheckString(1)
 			r.Log(robot.Warn, "lua script tried to call os.setenv; ignoring for key="+key)
 			// No return value
-			return 0
+			return pushFail(L)
 		}))
 
 		// Replace os.setlocale
