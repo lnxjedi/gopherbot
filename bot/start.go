@@ -119,6 +119,7 @@ func Start(v VersionInfo) {
 	if pid == 1 {
 		Log(robot.Info, "PID == 1, spawning child")
 		bin, _ := os.Executable()
+		// Used by autosetup
 		os.Setenv("GOPHER_CONTAINER", "iscontainer")
 		env := os.Environ()
 		cmd := exec.Command(bin, args...)
@@ -260,7 +261,7 @@ func Start(v VersionInfo) {
 
 	// Remove all GOPHER_ variables from the environment; nearly everywhere else,
 	// os.Getenv|Setenv|LookupEnv are replaced with calls to getEnv, setEnv and lookupEnv -
-	// see config_load.go.
+	// see env_vars.go.
 	scrubEnvironment()
 
 	// Set up Logging
@@ -332,7 +333,7 @@ func Start(v VersionInfo) {
 		raiseThreadPrivExternal("restart is set, re-exec'ing")
 		// Make sure all the GOPHER_* env vars are present for the
 		// new process.
-		restoreEnvironment()
+		restoreGopherEnvironment()
 		bin, _ := os.Executable()
 		env := os.Environ()
 		defer func() {
