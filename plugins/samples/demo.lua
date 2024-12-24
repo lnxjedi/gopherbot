@@ -359,7 +359,7 @@ elseif cmd == "check" then
     bot:Say("You failed to elevate, I'm calling the cops!")
   end
   bot:Log(log.Info,
-      "Checked out " .. bot.user .. ", admin: " .. tostring(isAdmin) ..
+      "Checked out " .. bot:User() .. ", admin: " .. tostring(isAdmin) ..
         ", elevate check: " .. tostring(success))
   return task.Normal
 end
