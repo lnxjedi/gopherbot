@@ -532,26 +532,100 @@ func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string,
 	}
 }
 
+// getUserInfoByName retrieves a user by their Name
+func (tc *termConnector) getUserInfoByName(name string) (*termUser, bool) {
+	tc.RLock()
+	defer tc.RUnlock()
+	idx, exists := userMap[name]
+	if !exists || idx >= len(tc.users) {
+		return nil, false
+	}
+	return &tc.users[idx], true
+}
+
+// getUserInfoByID retrieves a user by their InternalID
+func (tc *termConnector) getUserInfoByID(uid string) (*termUser, bool) {
+	tc.RLock()
+	defer tc.RUnlock()
+	idx, exists := userIDMap[uid]
+	if !exists || idx >= len(tc.users) {
+		return nil, false
+	}
+	return &tc.users[idx], true
+}
+
+// isValidChannel checks if the provided channel exists
+func (tc *termConnector) isValidChannel(ch string) bool {
+	for _, channel := range tc.channels {
+		if channel == ch {
+			return true
+		}
+	}
+	return false
+}
+
 // SendProtocolChannelThreadMessage sends a message to a channel
 func (tc *termConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	return tc.sendMessage("", channel, thr, msg, f, msgObject)
 }
 
-// SendProtocolChannelMessage sends a message to a channel
+// SendProtocolUserChannelThreadMessage sends a message to a user's channel thread with validation by username
 func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
-	channel := tc.getChannel(ch)
-	msg = "@" + uname + " " + msg
-	return tc.sendMessage(uid, channel, thr, msg, f, msgObject)
+	var userID, chanID string
+	var ok bool
+	if chanID, ok = tc.ExtractID(ch); !ok {
+		chanID = ch
+	}
+	// Validate the channel exists
+	if !tc.isValidChannel(chanID) {
+		tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: Channel '%s' not found", ch))
+		return robot.ChannelNotFound // Ensure you have this constant defined
+	}
+	if userID, ok = tc.ExtractID(uid); !ok {
+		// If the userID is bad, try looking up by name
+		if userInfo, ok := tc.getUserInfoByName(uname); !ok {
+			tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: User '%s/%s' not found", uid, uname))
+			return robot.UserNotFound
+		} else {
+			userID = userInfo.InternalID
+		}
+	} else {
+		// we have a good userID
+		if _, ok := tc.getUserInfoByID(userID); !ok {
+			tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: User '%s/%s' not found", uid, uname))
+			return robot.UserNotFound
+		}
+		// ... but we still want to validate that the username exists
+		_, exists := tc.getUserInfoByName(uname)
+		if !exists {
+			tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: Username '%s' not found", uname))
+			return robot.UserNotFound
+		}
+	}
+
+	channel := tc.getChannel(chanID)
+	formattedMsg := "@" + uname + " " + msg
+
+	return tc.sendMessage(userID, channel, thr, formattedMsg, f, msgObject)
 }
 
-// SendProtocolUserMessage sends a direct message to a user
+// SendProtocolUserMessage sends a direct message to a user with enhanced validation
 func (tc *termConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
-	var user *termUser
-	var exists bool
-	if user, exists = tc.getUserInfo(u); !exists {
+	// Validate that the user exists by username
+	user, exists := tc.getUserInfoByName(u)
+	if !exists {
+		tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserMessage: Username '%s' not found", u))
 		return robot.UserNotFound
 	}
+
+	// Alternatively, if 'u' is meant to be the InternalID, use getUserInfoByID
+	// user, exists := tc.getUserInfoByID(u)
+	// if !exists {
+	//     tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserMessage: User ID '%s' not found.", u))
+	//     return robot.UserNotFound
+	// }
+
 	return tc.sendMessage(user.InternalID, fmt.Sprintf("(dm:%s)", user.Name), "", msg, f, msgObject)
 }
 
