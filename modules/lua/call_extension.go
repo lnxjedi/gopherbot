@@ -44,7 +44,7 @@ func CallExtension(taskPath, taskName string, pkgPath []string, env map[string]s
 	// L.OpenLibs()
 
 	// Modify OS functions to replace os.setenv and os.setlocale with no-ops
-	modifyOSFunctions(L, r, env)
+	modifyOSFunctions(L, r)
 
 	// Register the "robot" type and any base methods
 	registerRobotType(L)
@@ -153,7 +153,7 @@ func logErr(lr *luaRobot, caller string) {
 // modifyOSFunctions overrides os.setenv / os.setlocale in Lua:
 //   - "setenv": does nothing (and logs a warning)
 //   - "setlocale": does nothing (and logs a warning)
-func modifyOSFunctions(L *glua.LState, r robot.Robot, envMap map[string]string) {
+func modifyOSFunctions(L *glua.LState, r robot.Robot) {
 	osVal := L.GetGlobal("os")
 	if osTable, ok := osVal.(*glua.LTable); ok {
 		// Replace os.setenv
