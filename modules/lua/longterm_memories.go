@@ -9,35 +9,36 @@ import (
 )
 
 // RegisterLongTermMemoryMethods adds CheckoutDatum, UpdateDatum, and CheckinDatum
-// to the robot's metatable.
+// to the bot's metatable.
 func (lctx luaContext) RegisterLongTermMemoryMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
-		"CheckoutDatum": lctx.robotCheckoutDatum,
-		"UpdateDatum":   lctx.robotUpdateDatum,
-		"CheckinDatum":  lctx.robotCheckinDatum,
+		"CheckoutDatum": lctx.botCheckoutDatum,
+		"UpdateDatum":   lctx.botUpdateDatum,
+		"CheckinDatum":  lctx.botCheckinDatum,
 	}
-	robotIndex := getRobotMethodTable(L)
-	L.SetFuncs(robotIndex, methods)
+
+	mt := registerBotMetatableIfNeeded(L)
+	L.SetFuncs(mt, methods)
 }
 
 // -------------------------------------------------------------------
-// 1. robotCheckoutDatum, robotUpdateDatum, robotCheckinDatum
+// 1. botCheckoutDatum
 // -------------------------------------------------------------------
 
-// robotCheckoutDatum allows Lua scripts to checkout a datum by key.
-func (lctx luaContext) robotCheckoutDatum(L *glua.LState) int {
+// botCheckoutDatum allows Lua scripts to checkout a datum by key, optionally read/write.
+func (lctx luaContext) botCheckoutDatum(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	key := L.CheckString(2)
 	rwLua := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		lctx.logErr("robotCheckoutDatum")
+		lctx.logBotErr("CheckoutDatum")
 		return pushFail(L)
 	}
 
 	rw := false
-	if b, ok := rwLua.(glua.LBool); ok {
+	if b, isBool := rwLua.(glua.LBool); isBool {
 		rw = bool(b)
 	}
 
@@ -50,7 +51,7 @@ func (lctx luaContext) robotCheckoutDatum(L *glua.LState) int {
 		return 3
 	}
 	if !exists {
-		// Return empty table
+		// Return empty table if the key doesn't exist
 		L.Push(glua.LNumber(robot.Ok))
 		L.Push(L.CreateTable(0, 0))
 		L.Push(glua.LString(lockToken))
@@ -72,8 +73,12 @@ func (lctx luaContext) robotCheckoutDatum(L *glua.LState) int {
 	return 3
 }
 
-// robotUpdateDatum allows Lua scripts to update a datum by key and lockToken.
-func (lctx luaContext) robotUpdateDatum(L *glua.LState) int {
+// -------------------------------------------------------------------
+// 2. botUpdateDatum, botCheckinDatum
+// -------------------------------------------------------------------
+
+// botUpdateDatum allows Lua scripts to update a datum by key and lockToken.
+func (lctx luaContext) botUpdateDatum(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	key := L.CheckString(2)
 	lockToken := L.CheckString(3)
@@ -81,7 +86,7 @@ func (lctx luaContext) robotUpdateDatum(L *glua.LState) int {
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		lctx.logErr("robotUpdateDatum")
+		lctx.logBotErr("UpdateDatum")
 		return pushFail(L)
 	}
 
@@ -98,15 +103,15 @@ func (lctx luaContext) robotUpdateDatum(L *glua.LState) int {
 	return 1
 }
 
-// robotCheckinDatum allows Lua scripts to checkin a datum by key and lockToken.
-func (lctx luaContext) robotCheckinDatum(L *glua.LState) int {
+// botCheckinDatum allows Lua scripts to checkin a datum by key and lockToken.
+func (lctx luaContext) botCheckinDatum(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	key := L.CheckString(2)
 	lockToken := L.CheckString(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		lctx.logErr("robotCheckinDatum")
+		lctx.logBotErr("CheckinDatum")
 		return pushFail(L)
 	}
 
@@ -116,10 +121,9 @@ func (lctx luaContext) robotCheckinDatum(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 2. Converting Lua -> Go (cycle detection + array vs. map logic)
+// 3. Converting Lua -> Go (cycle detection + array vs. map logic)
 // -------------------------------------------------------------------
 
-// parseLuaValueToGo converts a Lua value to a Go value, handling cycles and distinguishing between arrays and maps.
 func parseLuaValueToGo(val glua.LValue, visited map[*glua.LTable]bool) (interface{}, error) {
 	switch converted := val.(type) {
 	case *glua.LNilType:
@@ -147,7 +151,6 @@ func parseLuaValueToGo(val glua.LValue, visited map[*glua.LTable]bool) (interfac
 	}
 }
 
-// parseLuaTableToGo converts a Lua table to a Go map or slice, depending on its structure.
 func parseLuaTableToGo(tbl *glua.LTable, visited map[*glua.LTable]bool) (interface{}, error) {
 	mappedPairs := make(map[glua.LValue]glua.LValue)
 	tbl.ForEach(func(k, v glua.LValue) {
@@ -189,11 +192,11 @@ func parseLuaTableToGo(tbl *glua.LTable, visited map[*glua.LTable]bool) (interfa
 		}
 		// Must start at 0 or 1, no holes
 		if minKey != 0 && minKey != 1 {
-			return nil, fmt.Errorf("not serializing complex Lua table: array must start at 0 or 1, got %d", minKey)
+			return nil, fmt.Errorf("array must start at 0 or 1, got %d", minKey)
 		}
 		expectedCount := (maxKey - minKey) + 1
 		if len(keys) != expectedCount {
-			return nil, fmt.Errorf("sparse array not handled: found holes in indexes")
+			return nil, fmt.Errorf("sparse array not handled: holes in indexes")
 		}
 
 		arr := make([]interface{}, expectedCount)
@@ -214,7 +217,7 @@ func parseLuaTableToGo(tbl *glua.LTable, visited map[*glua.LTable]bool) (interfa
 	// Otherwise, treat as map
 	result := make(map[string]interface{}, len(mappedPairs))
 	for kVal, vVal := range mappedPairs {
-		goKey := kVal.String() // safe, because kVal is a glua.LValue
+		goKey := kVal.String() // safe, because kVal is an LValue
 		goVal, err := parseLuaValueToGo(vVal, visited)
 		if err != nil {
 			return nil, err
@@ -225,10 +228,9 @@ func parseLuaTableToGo(tbl *glua.LTable, visited map[*glua.LTable]bool) (interfa
 }
 
 // -------------------------------------------------------------------
-// 3. Converting Go -> Lua
+// 4. Converting Go -> Lua
 // -------------------------------------------------------------------
 
-// parseGoValueToLua converts a Go value to a Lua value, handling various Go types.
 func parseGoValueToLua(L *glua.LState, data interface{}) (glua.LValue, error) {
 	switch val := data.(type) {
 	case nil:

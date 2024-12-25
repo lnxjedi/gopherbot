@@ -5,31 +5,32 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
-// RegisterShortTermMemoryMethods adds ephemeral memory methods to the robot's metatable:
+// RegisterShortTermMemoryMethods adds ephemeral memory methods to the bot's metatable:
 //
-//	Remember(key, value, shared)
-//	RememberThread(key, value, shared)
-//	RememberContext(context, value)
-//	RememberContextThread(context, value)
-//	Recall(key, shared) -> string
+//	bot:Remember(key, value, shared)
+//	bot:RememberThread(key, value, shared)
+//	bot:RememberContext(context, value)
+//	bot:RememberContextThread(context, value)
+//	bot:Recall(key, shared) -> string
 func (lctx luaContext) RegisterShortTermMemoryMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
-		"Remember":              lctx.robotRemember,
-		"RememberThread":        lctx.robotRememberThread,
-		"RememberContext":       lctx.robotRememberContext,
-		"RememberContextThread": lctx.robotRememberContextThread,
-		"Recall":                lctx.robotRecall,
+		"Remember":              lctx.botRemember,
+		"RememberThread":        lctx.botRememberThread,
+		"RememberContext":       lctx.botRememberContext,
+		"RememberContextThread": lctx.botRememberContextThread,
+		"Recall":                lctx.botRecall,
 	}
-	robotIndex := getRobotMethodTable(L)
-	L.SetFuncs(robotIndex, methods)
+
+	mt := registerBotMetatableIfNeeded(L)
+	L.SetFuncs(mt, methods)
 }
 
 // -------------------------------------------------------------------
-// 1) robot:Remember(key, value, shared)
+// 1) bot:Remember(key, value, shared)
 // -------------------------------------------------------------------
 
-// robotRemember allows Lua scripts to remember a key-value pair with an optional shared flag.
-func (lctx luaContext) robotRemember(L *glua.LState) int {
+// botRemember allows Lua scripts to remember a key-value pair with an optional shared flag.
+func (lctx luaContext) botRemember(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	key := L.Get(2)
 	val := L.Get(3)
@@ -37,7 +38,7 @@ func (lctx luaContext) robotRemember(L *glua.LState) int {
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("Remember")
+		lctx.logBotErr("Remember")
 		return pushFail(L)
 	}
 
@@ -50,7 +51,7 @@ func (lctx luaContext) robotRemember(L *glua.LState) int {
 	if sharedArg.Type() == glua.LTBool {
 		shared = bool(sharedArg.(glua.LBool))
 	} else {
-		// Default to false if argument is missing or not a bool
+		// Default to false
 		shared = false
 	}
 
@@ -59,11 +60,11 @@ func (lctx luaContext) robotRemember(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 2) robot:RememberThread(key, value, shared)
+// 2) bot:RememberThread(key, value, shared)
 // -------------------------------------------------------------------
 
-// robotRememberThread allows Lua scripts to remember a key-value pair in a threaded context with an optional shared flag.
-func (lctx luaContext) robotRememberThread(L *glua.LState) int {
+// botRememberThread remembers a key-value pair in a threaded context with an optional shared flag.
+func (lctx luaContext) botRememberThread(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	key := L.Get(2)
 	val := L.Get(3)
@@ -71,7 +72,7 @@ func (lctx luaContext) robotRememberThread(L *glua.LState) int {
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("RememberThread")
+		lctx.logBotErr("RememberThread")
 		return pushFail(L)
 	}
 
@@ -92,18 +93,18 @@ func (lctx luaContext) robotRememberThread(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 3) robot:RememberContext(context, value)
+// 3) bot:RememberContext(context, value)
 // -------------------------------------------------------------------
 
-// robotRememberContext allows Lua scripts to remember a value within a specific context.
-func (lctx luaContext) robotRememberContext(L *glua.LState) int {
+// botRememberContext remembers a value within a specific context.
+func (lctx luaContext) botRememberContext(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	cArg := L.Get(2)
 	vArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("RememberContext")
+		lctx.logBotErr("RememberContext")
 		return pushFail(L)
 	}
 
@@ -118,18 +119,18 @@ func (lctx luaContext) robotRememberContext(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 4) robot:RememberContextThread(context, value)
+// 4) bot:RememberContextThread(context, value)
 // -------------------------------------------------------------------
 
-// robotRememberContextThread allows Lua scripts to remember a value within a specific context in a threaded environment.
-func (lctx luaContext) robotRememberContextThread(L *glua.LState) int {
+// botRememberContextThread remembers a value within a specific context in a threaded environment.
+func (lctx luaContext) botRememberContextThread(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	cArg := L.Get(2)
 	vArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("RememberContextThread")
+		lctx.logBotErr("RememberContextThread")
 		return pushFail(L)
 	}
 
@@ -144,18 +145,18 @@ func (lctx luaContext) robotRememberContextThread(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 5) robot:Recall(key, shared) -> string
+// 5) bot:Recall(key, shared) -> string
 // -------------------------------------------------------------------
 
-// robotRecall allows Lua scripts to recall a value by key with an optional shared flag.
-func (lctx luaContext) robotRecall(L *glua.LState) int {
+// botRecall recalls a value by key with an optional shared flag.
+func (lctx luaContext) botRecall(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	key := L.Get(2)
 	sharedArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("Recall")
+		lctx.logBotErr("Recall")
 		L.Push(glua.LString(""))
 		return 1
 	}

@@ -56,7 +56,8 @@ func CallExtension(taskPath, taskName string, pkgPath []string, env map[string]s
 	// Register the "robot" type and its metamethods (only New method)
 	registerRobotType(&lctx)
 
-	// Register additional method sets
+	// Register additional method sets for "bot" userdatas
+	// (each function merges its methods into the "bot" metatable)
 	lctx.RegisterMessageMethods(L)
 	lctx.RegisterRobotModifiers(L)
 	lctx.RegisterLongTermMemoryMethods(L)
@@ -67,7 +68,7 @@ func CallExtension(taskPath, taskName string, pkgPath []string, env map[string]s
 	lctx.RegisterPromptingMethods(L)
 	lctx.RegisterPipelineMethods(L)
 
-	// Create the primary robot userdata object and set it as "robot"
+	// Create the primary robot userdata and set it as "robot"
 	robotUD := newLuaRobot(L, r, initialFields)
 	L.SetGlobal("robot", robotUD)
 
@@ -193,17 +194,15 @@ func modifyOSFunctions(L *glua.LState, r robot.Robot) {
 	}
 }
 
-// registerRobotType sets up the metatable for primary robot userdata with only the __index metamethod
+// registerRobotType sets up the metatable for the primary robot userdata with only the __index metamethod
 func registerRobotType(lctx *luaContext) {
 	L := lctx.L
 
 	// Create a new metatable for "robot"
 	mt := L.NewTypeMetatable("robot")
 
-	// Set the __index metamethod to access methods (only New)
+	// Set the __index metamethod to access methods (only "New")
 	L.SetField(mt, "__index", L.NewFunction(lctx.robotIndex))
-
-	// No __newindex for primary robot userdata to prevent direct field assignments
 
 	// Register the New method
 	methods := map[string]glua.LGFunction{
@@ -217,14 +216,14 @@ func registerRobotType(lctx *luaContext) {
 // robotIndex handles the __index metamethod for primary robot userdata
 func (lctx *luaContext) robotIndex(L *glua.LState) int {
 	// The userdata is at index 1
-	L.CheckUserData(1) // Ensure it's userdata, but not used
+	L.CheckUserData(1) // Ensure it's userdata
 
 	key := L.CheckString(2)
 
 	// Retrieve the metatable associated with "robot"
 	mt := L.GetTypeMetatable("robot")
 	if mt == glua.LNil {
-		lctx.logErr("__index")
+		lctx.logRobotErr("__index")
 		L.RaiseError("robot metatable not found")
 		return 0
 	}
@@ -233,7 +232,7 @@ func (lctx *luaContext) robotIndex(L *glua.LState) int {
 	methods := L.GetField(mt, "methods")
 	tbl, ok := methods.(*glua.LTable)
 	if !ok {
-		lctx.logErr("__index")
+		lctx.logRobotErr("__index")
 		L.RaiseError("methods table not found in robot metatable")
 		return 0
 	}
@@ -256,7 +255,7 @@ func (lctx *luaContext) robotNew(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		lctx.logErr("New")
+		lctx.logRobotErr("New")
 		L.RaiseError("Invalid robot userdata for New()")
 		return 0
 	}
@@ -301,8 +300,8 @@ func newLuaRobot(L *glua.LState, r robot.Robot, fields map[string]interface{}) *
 	return newUD
 }
 
-// logErr logs an error with the saved bot if non-nil, otherwise prints to stdout
-func (lctx *luaContext) logErr(caller string) {
+// logRobotErr logs an error specific to the primary robot userdata.
+func (lctx *luaContext) logRobotErr(caller string) {
 	if lctx.r != nil {
 		lctx.r.Log(robot.Error, fmt.Sprintf("%s called with invalid robot userdata", caller))
 	} else {

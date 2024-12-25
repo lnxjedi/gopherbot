@@ -119,12 +119,12 @@ if cmd == "lua" then
   local pluginName = arg[0] or "unknown"
 
   -- Call our attribute methods
-  local user = bot:User()
-  local userID = bot:UserID()
-  local channel = bot:Channel()
-  local channelID = bot:ChannelID()
-  local threadID = bot:ThreadID()
-  local isThreaded = bot:ThreadedMessage()
+  local user = bot.user
+  local userID = bot.user_id
+  local channel = bot.channel
+  local channelID = bot.channel_id
+  local threadID = bot.thread_id
+  local isThreaded = bot.threaded_message
 
   -- **Execute the 'whoami' system command to get the current system user**
   local systemUser = "unknown"

@@ -5,24 +5,36 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
-// RegisterPipelineMethods attaches pipeline-related functions to "robot".
+// RegisterPipelineMethods attaches pipeline-related functions to the bot metatable:
+//
+//	bot:GetParameter(name) -> string
+//	bot:SetParameter(name, value) -> bool
+//	bot:Exclusive(tag, queueTask) -> bool
+//	bot:SpawnJob(name, arg1, arg2, ...)
+//	bot:AddTask(name, arg1, arg2, ...)
+//	bot:FinalTask(name, arg1, arg2, ...)
+//	bot:FailTask(name, arg1, arg2, ...)
+//	bot:AddJob(name, arg1, arg2, ...)
+//	bot:AddCommand(pluginName, command) -> RetVal
+//	bot:FinalCommand(pluginName, command) -> RetVal
+//	bot:FailCommand(pluginName, command) -> RetVal
 func (lctx luaContext) RegisterPipelineMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
-		"GetParameter": lctx.robotGetParameter,
-		"SetParameter": lctx.robotSetParameter,
-		"Exclusive":    lctx.robotExclusive,
-		"SpawnJob":     lctx.robotSpawnJob,
-		"AddTask":      lctx.robotAddTask,
-		"FinalTask":    lctx.robotFinalTask,
-		"FailTask":     lctx.robotFailTask,
-		"AddJob":       lctx.robotAddJob,
-		"AddCommand":   lctx.robotAddCommand,
-		"FinalCommand": lctx.robotFinalCommand,
-		"FailCommand":  lctx.robotFailCommand,
+		"GetParameter": lctx.botGetParameter,
+		"SetParameter": lctx.botSetParameter,
+		"Exclusive":    lctx.botExclusive,
+		"SpawnJob":     lctx.botSpawnJob,
+		"AddTask":      lctx.botAddTask,
+		"FinalTask":    lctx.botFinalTask,
+		"FailTask":     lctx.botFailTask,
+		"AddJob":       lctx.botAddJob,
+		"AddCommand":   lctx.botAddCommand,
+		"FinalCommand": lctx.botFinalCommand,
+		"FailCommand":  lctx.botFailCommand,
 	}
 
-	robotIndex := getRobotMethodTable(L)
-	L.SetFuncs(robotIndex, methods)
+	mt := registerBotMetatableIfNeeded(L)
+	L.SetFuncs(mt, methods)
 }
 
 // -------------------------------------------------------------------
@@ -45,15 +57,15 @@ func parseStringArgs(L *glua.LState, start int) []string {
 }
 
 // -------------------------------------------------------------------
-// 1) robot:GetParameter(name) -> string
+// 1) bot:GetParameter(name) -> string
 // -------------------------------------------------------------------
-func (lctx luaContext) robotGetParameter(L *glua.LState) int {
+func (lctx luaContext) botGetParameter(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	name := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("GetParameter")
+		lctx.logBotErr("GetParameter")
 		return pushFail(L)
 	}
 
@@ -68,16 +80,16 @@ func (lctx luaContext) robotGetParameter(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 2) robot:SetParameter(name, value) -> bool
+// 2) bot:SetParameter(name, value) -> bool
 // -------------------------------------------------------------------
-func (lctx luaContext) robotSetParameter(L *glua.LState) int {
+func (lctx luaContext) botSetParameter(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	nameArg := L.Get(2)
 	valArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("SetParameter")
+		lctx.logBotErr("SetParameter")
 		return pushFail(L)
 	}
 
@@ -92,16 +104,16 @@ func (lctx luaContext) robotSetParameter(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 3) robot:Exclusive(tag, queueTask) -> bool
+// 3) bot:Exclusive(tag, queueTask) -> bool
 // -------------------------------------------------------------------
-func (lctx luaContext) robotExclusive(L *glua.LState) int {
+func (lctx luaContext) botExclusive(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	tagArg := L.Get(2)
 	queueArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("Exclusive")
+		lctx.logBotErr("Exclusive")
 		return pushFail(L)
 	}
 
@@ -125,15 +137,15 @@ func (lctx luaContext) robotExclusive(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 4) robot:SpawnJob(name, arg1, arg2, ... argN) -> RetVal
+// 4) bot:SpawnJob(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) robotSpawnJob(L *glua.LState) int {
+func (lctx luaContext) botSpawnJob(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	name := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("SpawnJob")
+		lctx.logBotErr("SpawnJob")
 		return pushFail(L)
 	}
 
@@ -151,15 +163,15 @@ func (lctx luaContext) robotSpawnJob(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 5) robot:AddTask(name, arg1, arg2, ... argN) -> RetVal
+// 5) bot:AddTask(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) robotAddTask(L *glua.LState) int {
+func (lctx luaContext) botAddTask(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	name := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("AddTask")
+		lctx.logBotErr("AddTask")
 		return pushFail(L)
 	}
 
@@ -175,15 +187,15 @@ func (lctx luaContext) robotAddTask(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 6) robot:FinalTask(name, arg1, arg2, ... argN) -> RetVal
+// 6) bot:FinalTask(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) robotFinalTask(L *glua.LState) int {
+func (lctx luaContext) botFinalTask(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	name := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("FinalTask")
+		lctx.logBotErr("FinalTask")
 		return pushFail(L)
 	}
 
@@ -199,15 +211,15 @@ func (lctx luaContext) robotFinalTask(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 7) robot:FailTask(name, arg1, arg2, ... argN) -> RetVal
+// 7) bot:FailTask(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) robotFailTask(L *glua.LState) int {
+func (lctx luaContext) botFailTask(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	name := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("FailTask")
+		lctx.logBotErr("FailTask")
 		return pushFail(L)
 	}
 
@@ -223,15 +235,15 @@ func (lctx luaContext) robotFailTask(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 8) robot:AddJob(name, arg1, arg2, ... argN) -> RetVal
+// 8) bot:AddJob(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) robotAddJob(L *glua.LState) int {
+func (lctx luaContext) botAddJob(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	name := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("AddJob")
+		lctx.logBotErr("AddJob")
 		return pushFail(L)
 	}
 
@@ -247,16 +259,16 @@ func (lctx luaContext) robotAddJob(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 9) robot:AddCommand(pluginName, command) -> RetVal
+// 9) bot:AddCommand(pluginName, command) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) robotAddCommand(L *glua.LState) int {
+func (lctx luaContext) botAddCommand(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	pluginArg := L.Get(2)
 	cmdArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("AddCommand")
+		lctx.logBotErr("AddCommand")
 		return pushFail(L)
 	}
 
@@ -271,16 +283,16 @@ func (lctx luaContext) robotAddCommand(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 10) robot:FinalCommand(pluginName, command) -> RetVal
+// 10) bot:FinalCommand(pluginName, command) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) robotFinalCommand(L *glua.LState) int {
+func (lctx luaContext) botFinalCommand(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	pluginArg := L.Get(2)
 	cmdArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("FinalCommand")
+		lctx.logBotErr("FinalCommand")
 		return pushFail(L)
 	}
 
@@ -295,16 +307,16 @@ func (lctx luaContext) robotFinalCommand(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 11) robot:FailCommand(pluginName, command) -> RetVal
+// 11) bot:FailCommand(pluginName, command) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) robotFailCommand(L *glua.LState) int {
+func (lctx luaContext) botFailCommand(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	pluginArg := L.Get(2)
 	cmdArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("FailCommand")
+		lctx.logBotErr("FailCommand")
 		return pushFail(L)
 	}
 

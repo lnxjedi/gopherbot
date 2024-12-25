@@ -7,19 +7,19 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
-// robotGetTaskConfig(luaState) -> (luaTableOrNil, retVal)
+// botGetTaskConfig(luaState) -> (luaTableOrNil, retVal)
 //
 // Usage in Lua:
 //
-//	local cfg, retVal = robot:GetTaskConfig()
+//	local cfg, retVal = bot:GetTaskConfig()
 //	if retVal == ret.Ok then
 //	  -- cfg is a Lua table (array or map) containing the plugin/job config
 //	end
-func (lctx luaContext) robotGetTaskConfig(L *glua.LState) int {
+func (lctx luaContext) botGetTaskConfig(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		lctx.logErr("robotGetTaskConfig")
+		lctx.logBotErr("botGetTaskConfig")
 		return pushFail(L)
 	}
 
@@ -66,11 +66,12 @@ func (lctx luaContext) robotGetTaskConfig(L *glua.LState) int {
 	return 2
 }
 
-// RegisterConfigMethods adds the robot.GetTaskConfig -> robotGetTaskConfig binding
+// RegisterConfigMethods adds the bot.GetTaskConfig -> botGetTaskConfig binding
 func (lctx luaContext) RegisterConfigMethod(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
-		"GetTaskConfig": lctx.robotGetTaskConfig,
+		"GetTaskConfig": lctx.botGetTaskConfig,
 	}
-	robotIndex := getRobotMethodTable(L)
-	L.SetFuncs(robotIndex, methods)
+
+	mt := registerBotMetatableIfNeeded(L)
+	L.SetFuncs(mt, methods)
 }

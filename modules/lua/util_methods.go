@@ -7,32 +7,33 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
-// RegisterUtilMethods adds RandomInt, RandomString, Pause, CheckAdmin, Elevate, and Log to the robot's metatable.
+// RegisterUtilMethods adds RandomInt, RandomString, Pause, CheckAdmin, Elevate, and Log to the bot's metatable.
 func (lctx luaContext) RegisterUtilMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
-		"RandomInt":    lctx.robotRandomInt,
-		"RandomString": lctx.robotRandomString,
-		"Pause":        lctx.robotPause,
-		"CheckAdmin":   lctx.robotCheckAdmin,
-		"Elevate":      lctx.robotElevate,
-		"Log":          lctx.robotLog,
+		"RandomInt":    lctx.botRandomInt,
+		"RandomString": lctx.botRandomString,
+		"Pause":        lctx.botPause,
+		"CheckAdmin":   lctx.botCheckAdmin,
+		"Elevate":      lctx.botElevate,
+		"Log":          lctx.botLog,
 	}
-	robotIndex := getRobotMethodTable(L)
-	L.SetFuncs(robotIndex, methods)
+
+	mt := registerBotMetatableIfNeeded(L)
+	L.SetFuncs(mt, methods)
 }
 
 // -------------------------------------------------------------------
-// 1) robot:RandomInt(n)
+// 1) bot:RandomInt(n)
 // -------------------------------------------------------------------
 
-// robotRandomInt wraps r.RandomInt and returns a random integer up to n.
-func (lctx luaContext) robotRandomInt(L *glua.LState) int {
+// botRandomInt wraps r.RandomInt and returns a random integer up to n.
+func (lctx luaContext) botRandomInt(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	nLua := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		lctx.logErr("RandomInt")
+		lctx.logBotErr("RandomInt")
 		L.Push(glua.LNumber(0))
 		return 1
 	}
@@ -50,17 +51,17 @@ func (lctx luaContext) robotRandomInt(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 2) robot:RandomString(array)
+// 2) bot:RandomString(array)
 // -------------------------------------------------------------------
 
-// robotRandomString implements r.RandomString(...) and returns a random string from the provided array.
-func (lctx luaContext) robotRandomString(L *glua.LState) int {
+// botRandomString implements r.RandomString(...) and returns a random string from the provided array.
+func (lctx luaContext) botRandomString(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	arrLua := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		lctx.logErr("RandomString")
+		lctx.logBotErr("RandomString")
 		L.Push(glua.LString(""))
 		return 1
 	}
@@ -96,17 +97,17 @@ func (lctx luaContext) robotRandomString(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 3) robot:Pause(seconds)
+// 3) bot:Pause(seconds)
 // -------------------------------------------------------------------
 
-// robotPause wraps r.Pause(...) and pauses execution for the specified number of seconds.
-func (lctx luaContext) robotPause(L *glua.LState) int {
+// botPause wraps r.Pause(...) and pauses execution for the specified number of seconds.
+func (lctx luaContext) botPause(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	secLua := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		lctx.logErr("Pause")
+		lctx.logBotErr("Pause")
 		return pushFail(L)
 	}
 
@@ -117,19 +118,19 @@ func (lctx luaContext) robotPause(L *glua.LState) int {
 
 	sec := float64(secLua.(glua.LNumber))
 	lr.r.Pause(sec)
-	return pushFail(L)
+	return pushFail(L) // returning a numeric retVal, e.g. 'Failed' if needed
 }
 
 // -------------------------------------------------------------------
-// 4) robot:CheckAdmin() -> bool
+// 4) bot:CheckAdmin() -> bool
 // -------------------------------------------------------------------
 
-// robotCheckAdmin checks if the current user has administrative privileges.
-func (lctx luaContext) robotCheckAdmin(L *glua.LState) int {
+// botCheckAdmin checks if the current user has administrative privileges.
+func (lctx luaContext) botCheckAdmin(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("CheckAdmin")
+		lctx.logBotErr("CheckAdmin")
 		L.Push(glua.LBool(false))
 		return 1
 	}
@@ -140,17 +141,17 @@ func (lctx luaContext) robotCheckAdmin(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 5) robot:Elevate(immediate) -> bool
+// 5) bot:Elevate(immediate) -> bool
 // -------------------------------------------------------------------
 
-// robotElevate elevates the current user's privileges, optionally forcing a 2FA prompt.
-func (lctx luaContext) robotElevate(L *glua.LState) int {
+// botElevate elevates the current user's privileges, optionally forcing a 2FA prompt.
+func (lctx luaContext) botElevate(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	immArg := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("Elevate")
+		lctx.logBotErr("Elevate")
 		L.Push(glua.LBool(false))
 		return 1
 	}
@@ -169,18 +170,18 @@ func (lctx luaContext) robotElevate(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 6) robot:Log(level, message) -> no return
+// 6) bot:Log(level, message) -> no return
 // -------------------------------------------------------------------
 
-// robotLog logs a message at the specified log level.
-func (lctx luaContext) robotLog(L *glua.LState) int {
+// botLog logs a message at the specified log level.
+func (lctx luaContext) botLog(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	levelArg := L.Get(2)
 	msgArg := L.Get(3)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.logErr("Log")
+		lctx.logBotErr("Log")
 		return pushFail(L)
 	}
 

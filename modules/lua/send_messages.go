@@ -1,29 +1,25 @@
+// send_messages.go
 package lua
 
 import (
-	"fmt"
-
 	"github.com/lnxjedi/gopherbot/robot"
 	glua "github.com/yuin/gopher-lua"
 )
 
-// getRobotWithOptionalFormat is a helper function to:
-// 1) Extract the luaRobot from stack index 1
-// 2) If present, parse a message format argument
-// Returns:
-//
-//	(robot.Robot, error string) - if errStr != "" then log error
-func (lctx luaContext) getRobotWithOptionalFormat(L *glua.LState, caller string, formatIndex int) (robot.Robot, bool) {
+// getBotWithOptionalFormat is a helper function to:
+// 1) Extract the luaRobot (ud.Value) from stack index 1
+// 2) If present, parse a numeric message format argument (stack index formatIndex)
+func (lctx luaContext) getBotWithOptionalFormat(L *glua.LState, caller string, formatIndex int) (robot.Robot, *luaRobot, bool) {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		lctx.r.Log(robot.Error, fmt.Sprintf("%s called with invalid robot userdata", caller))
-		return nil, false
+		lctx.logBotErr(caller)
+		return nil, nil, false
 	}
 
 	r := lr.r
 
-	// If the caller supplied an argument for format, parse it
+	// If the caller supplied a numeric argument for format, parse it
 	if L.GetTop() >= formatIndex {
 		fmtArg := L.Get(formatIndex)
 		if num, isNum := fmtArg.(glua.LNumber); isNum {
@@ -31,89 +27,124 @@ func (lctx luaContext) getRobotWithOptionalFormat(L *glua.LState, caller string,
 			r = r.MessageFormat(format)
 		}
 	}
-	return r, true
+	return r, lr, true
 }
 
-// robotSay(luaState) -> retVal
-// Usage in Lua:
-//
-//	local ret = robot:Say("Hello world", fmtRaw)
-func (lctx luaContext) robotSay(L *glua.LState) int {
-	// 2nd arg is the message string
+// botSay(luaState) -> retVal
+// Usage in Lua: local ret = bot:Say("Hello world", fmtRaw)
+func (lctx luaContext) botSay(L *glua.LState) int {
 	msg := L.CheckString(2)
-
-	// Setup Robot + optional format at stack index 3
-	r, ok := lctx.getRobotWithOptionalFormat(L, "robotSay", 3)
+	r, lr, ok := lctx.getBotWithOptionalFormat(L, "botSay", 3)
 	if !ok {
 		return pushFail(L)
 	}
 
-	ret := r.Say(msg)
+	// Extract fields from *this* bot
+	user, _ := lr.fields["user"].(string)
+	channel, _ := lr.fields["channel"].(string)
+	threadedMessage, _ := lr.fields["threaded_message"].(bool)
+	threadID, _ := lr.fields["thread_id"].(string)
+
+	if channel == "" {
+		// Send to user; if user = "" it'll return an error code
+		ret := r.SendUserMessage(user, msg)
+		L.Push(glua.LNumber(ret))
+		return 1
+	}
+
+	// If channel != "", possibly thread
+	thread := ""
+	if threadedMessage {
+		thread = threadID
+	}
+	ret := r.SendChannelThreadMessage(channel, thread, msg)
 	L.Push(glua.LNumber(ret))
 	return 1
 }
 
-// robotReply(luaState) -> retVal
-// Usage in Lua:
-//
-//	local ret = robot:Reply("Hello user", fmtVariable)
-func (lctx luaContext) robotReply(L *glua.LState) int {
+// botSayThread(luaState) -> retVal
+// Usage in Lua: local ret = bot:SayThread("Hello in a new thread", fmtRaw)
+func (lctx luaContext) botSayThread(L *glua.LState) int {
 	msg := L.CheckString(2)
-
-	r, ok := lctx.getRobotWithOptionalFormat(L, "robotReply", 3)
+	r, lr, ok := lctx.getBotWithOptionalFormat(L, "botSayThread", 3)
 	if !ok {
 		return pushFail(L)
 	}
 
-	ret := r.Reply(msg)
+	user, _ := lr.fields["user"].(string)
+	channel, _ := lr.fields["channel"].(string)
+	threadID, _ := lr.fields["thread_id"].(string)
+
+	if channel == "" {
+		ret := r.SendUserMessage(user, msg)
+		L.Push(glua.LNumber(ret))
+		return 1
+	}
+
+	ret := r.SendChannelThreadMessage(channel, threadID, msg)
 	L.Push(glua.LNumber(ret))
 	return 1
 }
 
-// robotSayThread(luaState) -> retVal
-// Usage in Lua:
-//
-//	local ret = robot:SayThread("Hello in a new thread", fmtRaw)
-func (lctx luaContext) robotSayThread(L *glua.LState) int {
+// botReply(luaState) -> retVal
+// Usage: local ret = bot:Reply("Hello user", fmtVariable)
+func (lctx luaContext) botReply(L *glua.LState) int {
 	msg := L.CheckString(2)
-
-	r, ok := lctx.getRobotWithOptionalFormat(L, "robotSayThread", 3)
+	r, lr, ok := lctx.getBotWithOptionalFormat(L, "botReply", 3)
 	if !ok {
 		return pushFail(L)
 	}
 
-	ret := r.SayThread(msg)
+	user, _ := lr.fields["user"].(string)
+	channel, _ := lr.fields["channel"].(string)
+	threadedMessage, _ := lr.fields["threaded_message"].(bool)
+	threadID, _ := lr.fields["thread_id"].(string)
+
+	if channel == "" {
+		ret := r.SendUserMessage(user, msg)
+		L.Push(glua.LNumber(ret))
+		return 1
+	}
+
+	thread := ""
+	if threadedMessage {
+		thread = threadID
+	}
+	ret := r.SendUserChannelThreadMessage(user, channel, thread, msg)
 	L.Push(glua.LNumber(ret))
 	return 1
 }
 
-// robotReplyThread(luaState) -> retVal
-// Usage in Lua:
-//
-//	local ret = robot:ReplyThread("Replying in a new thread", fmtFixed)
-func (lctx luaContext) robotReplyThread(L *glua.LState) int {
+// botReplyThread(luaState) -> retVal
+// Usage: local ret = bot:ReplyThread("Replying in a new thread", fmtFixed)
+func (lctx luaContext) botReplyThread(L *glua.LState) int {
 	msg := L.CheckString(2)
-
-	r, ok := lctx.getRobotWithOptionalFormat(L, "robotReplyThread", 3)
+	r, lr, ok := lctx.getBotWithOptionalFormat(L, "botReplyThread", 3)
 	if !ok {
 		return pushFail(L)
 	}
 
-	ret := r.ReplyThread(msg)
+	user, _ := lr.fields["user"].(string)
+	channel, _ := lr.fields["channel"].(string)
+	threadID, _ := lr.fields["thread_id"].(string)
+
+	if channel == "" {
+		ret := r.SendUserMessage(user, msg)
+		L.Push(glua.LNumber(ret))
+		return 1
+	}
+
+	ret := r.SendUserChannelThreadMessage(user, channel, threadID, msg)
 	L.Push(glua.LNumber(ret))
 	return 1
 }
 
-// robotSendChannelMessage(luaState) -> retVal
-// Usage in Lua:
-//
-//	local ret = robot:SendChannelMessage("my-channel", "Hello channel", fmtFixed)
-func (lctx luaContext) robotSendChannelMessage(L *glua.LState) int {
+// botSendChannelMessage(luaState) -> retVal
+// Usage: local ret = bot:SendChannelMessage("my-channel", "Hello channel", fmtFixed)
+func (lctx luaContext) botSendChannelMessage(L *glua.LState) int {
 	channel := L.CheckString(2)
 	msg := L.CheckString(3)
-
-	// Optional format is 4th arg
-	r, ok := lctx.getRobotWithOptionalFormat(L, "robotSendChannelMessage", 4)
+	r, _, ok := lctx.getBotWithOptionalFormat(L, "botSendChannelMessage", 4)
 	if !ok {
 		return pushFail(L)
 	}
@@ -123,17 +154,13 @@ func (lctx luaContext) robotSendChannelMessage(L *glua.LState) int {
 	return 1
 }
 
-// robotSendChannelThreadMessage(luaState) -> retVal
-// Usage in Lua:
-//
-//	local ret = robot:SendChannelThreadMessage("my-channel", "thread-id", "Hello thread", fmtRaw)
-func (lctx luaContext) robotSendChannelThreadMessage(L *glua.LState) int {
+// botSendChannelThreadMessage(luaState) -> retVal
+// Usage: local ret = bot:SendChannelThreadMessage("my-channel", "thread-id", "Hello thread", fmtRaw)
+func (lctx luaContext) botSendChannelThreadMessage(L *glua.LState) int {
 	channel := L.CheckString(2)
 	thread := L.CheckString(3)
 	msg := L.CheckString(4)
-
-	// Optional format is 5th arg
-	r, ok := lctx.getRobotWithOptionalFormat(L, "robotSendChannelThreadMessage", 5)
+	r, _, ok := lctx.getBotWithOptionalFormat(L, "botSendChannelThreadMessage", 5)
 	if !ok {
 		return pushFail(L)
 	}
@@ -143,16 +170,12 @@ func (lctx luaContext) robotSendChannelThreadMessage(L *glua.LState) int {
 	return 1
 }
 
-// robotSendUserMessage(luaState) -> retVal
-// Usage in Lua:
-//
-//	local ret = robot:SendUserMessage("some.user", "Hello user", fmtRaw)
-func (lctx luaContext) robotSendUserMessage(L *glua.LState) int {
+// botSendUserMessage(luaState) -> retVal
+// Usage: local ret = bot:SendUserMessage("some.user", "Hello user", fmtRaw)
+func (lctx luaContext) botSendUserMessage(L *glua.LState) int {
 	user := L.CheckString(2)
 	msg := L.CheckString(3)
-
-	// Optional format is 4th arg
-	r, ok := lctx.getRobotWithOptionalFormat(L, "robotSendUserMessage", 4)
+	r, _, ok := lctx.getBotWithOptionalFormat(L, "botSendUserMessage", 4)
 	if !ok {
 		return pushFail(L)
 	}
@@ -162,16 +185,13 @@ func (lctx luaContext) robotSendUserMessage(L *glua.LState) int {
 	return 1
 }
 
-// robotSendUserChannelMessage(luaState) -> retVal
-// Usage in Lua:
-//
-//	local ret = robot:SendUserChannelMessage("some.user", "some-channel", "Hello in channel", fmtVariable)
-func (lctx luaContext) robotSendUserChannelMessage(L *glua.LState) int {
+// botSendUserChannelMessage(luaState) -> retVal
+// Usage: local ret = bot:SendUserChannelMessage("some.user", "some-channel", "Hello in channel", fmtVariable)
+func (lctx luaContext) botSendUserChannelMessage(L *glua.LState) int {
 	user := L.CheckString(2)
 	channel := L.CheckString(3)
 	msg := L.CheckString(4)
-
-	r, ok := lctx.getRobotWithOptionalFormat(L, "robotSendUserChannelMessage", 5)
+	r, _, ok := lctx.getBotWithOptionalFormat(L, "botSendUserChannelMessage", 5)
 	if !ok {
 		return pushFail(L)
 	}
@@ -181,17 +201,14 @@ func (lctx luaContext) robotSendUserChannelMessage(L *glua.LState) int {
 	return 1
 }
 
-// robotSendUserChannelThreadMessage(luaState) -> retVal
-// Usage in Lua:
-//
-//	local ret = robot:SendUserChannelThreadMessage("some.user", "some-channel", "some-thread", "Hello in thread", fmtFixed)
-func (lctx luaContext) robotSendUserChannelThreadMessage(L *glua.LState) int {
+// botSendUserChannelThreadMessage(luaState) -> retVal
+// Usage: local ret = bot:SendUserChannelThreadMessage("some.user", "some-channel", "some-thread", "Hello in thread", fmtFixed)
+func (lctx luaContext) botSendUserChannelThreadMessage(L *glua.LState) int {
 	user := L.CheckString(2)
 	channel := L.CheckString(3)
 	thread := L.CheckString(4)
 	msg := L.CheckString(5)
-
-	r, ok := lctx.getRobotWithOptionalFormat(L, "robotSendUserChannelThreadMessage", 6)
+	r, _, ok := lctx.getBotWithOptionalFormat(L, "botSendUserChannelThreadMessage", 6)
 	if !ok {
 		return pushFail(L)
 	}
@@ -201,22 +218,20 @@ func (lctx luaContext) robotSendUserChannelThreadMessage(L *glua.LState) int {
 	return 1
 }
 
-// RegisterMessageMethods can be called from your "registerRobotType" logic
-// to add these methods into the robot's metatable.
+// RegisterMessageMethods merges message-related methods into the "bot" metatable
 func (lctx luaContext) RegisterMessageMethods(L *glua.LState) {
-	messageMethods := map[string]glua.LGFunction{
-		"Say":                          lctx.robotSay,
-		"SayThread":                    lctx.robotSayThread,
-		"ReplyThread":                  lctx.robotReplyThread,
-		"Reply":                        lctx.robotReply,
-		"SendChannelMessage":           lctx.robotSendChannelMessage,
-		"SendChannelThreadMessage":     lctx.robotSendChannelThreadMessage,
-		"SendUserMessage":              lctx.robotSendUserMessage,
-		"SendUserChannelMessage":       lctx.robotSendUserChannelMessage,
-		"SendUserChannelThreadMessage": lctx.robotSendUserChannelThreadMessage,
+	methods := map[string]glua.LGFunction{
+		"Say":                          lctx.botSay,
+		"SayThread":                    lctx.botSayThread,
+		"Reply":                        lctx.botReply,
+		"ReplyThread":                  lctx.botReplyThread,
+		"SendChannelMessage":           lctx.botSendChannelMessage,
+		"SendChannelThreadMessage":     lctx.botSendChannelThreadMessage,
+		"SendUserMessage":              lctx.botSendUserMessage,
+		"SendUserChannelMessage":       lctx.botSendUserChannelMessage,
+		"SendUserChannelThreadMessage": lctx.botSendUserChannelThreadMessage,
 	}
 
-	robotIndex := getRobotMethodTable(L)
-	// Merge in the new message methods
-	L.SetFuncs(robotIndex, messageMethods)
+	mt := registerBotMetatableIfNeeded(L)
+	L.SetFuncs(mt, methods)
 }
