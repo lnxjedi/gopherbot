@@ -115,7 +115,7 @@ if cmd == "lua" then
   local retThread = bot:ReplyThread("Hello from Lua in a thread!", fmt.Fixed)
 
   -- Gather environment info
-  local home = os.getenv("GOPHER_HOME") or "unknown"
+  local home = bot:GetParameter("GOPHER_HOME") or "unknown"
   local pluginName = arg[0] or "unknown"
 
   -- Call our attribute methods
