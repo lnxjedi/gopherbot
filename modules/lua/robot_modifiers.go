@@ -65,7 +65,7 @@ func (lctx *luaContext) botFixed(L *glua.LState) int {
 	}
 
 	newFields := copyFields(lr.fields)
-	newFields["format"] = "fixed"
+	newFields["format"] = "Fixed"
 	fixedBot := lr.r.Fixed()
 	newUD := newLuaBot(L, fixedBot, newFields)
 	L.Push(newUD)
@@ -106,22 +106,63 @@ func (lctx *luaContext) botThreaded(L *glua.LState) int {
 	return 1
 }
 
+// botMessageFormat updates the message format of the bot.
 func (lctx *luaContext) botMessageFormat(L *glua.LState) int {
 	ud := L.CheckUserData(1)
-	formatVal := L.CheckString(2)
+	formatArg := L.Get(2)
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
 		lctx.logBotErr("MessageFormat")
-		L.RaiseError("Invalid bot userdata for MessageFormat()")
 		return 0
 	}
 
+	// Validate that formatArg is a number
+	if formatArg.Type() != glua.LTNumber {
+		L.RaiseError("MessageFormat requires a numeric argument (use fmt.* constants)")
+		return 0
+	}
+
+	// Convert to integer
+	formatInt := int(formatArg.(glua.LNumber))
+
+	// Validate the format value
+	if !isValidMessageFormat(formatInt) {
+		L.RaiseError("Invalid MessageFormat value: %d. Must be Raw=0, Fixed=1, or Variable=2", formatInt)
+		return 0
+	}
+
+	// Update the robot's message format
+	updatedRobot := lr.r.MessageFormat(robot.MessageFormat(formatInt))
+
+	// Update the fields with the new format string
+	formatStr := ""
+	switch robot.MessageFormat(formatInt) {
+	case robot.Raw:
+		formatStr = "Raw"
+	case robot.Fixed:
+		formatStr = "Fixed"
+	case robot.Variable:
+		formatStr = "Variable"
+	}
+
 	newFields := copyFields(lr.fields)
-	newFields["format"] = formatVal
-	newUD := newLuaBot(L, lr.r, newFields)
+	newFields["format"] = formatStr
+
+	// Create a new Lua bot userdata with the updated robot and fields
+	newUD := newLuaBot(L, updatedRobot, newFields)
 	L.Push(newUD)
 	return 1
+}
+
+// isValidMessageFormat checks if the provided format is valid.
+func isValidMessageFormat(format int) bool {
+	switch robot.MessageFormat(format) {
+	case robot.Raw, robot.Fixed, robot.Variable:
+		return true
+	default:
+		return false
+	}
 }
 
 func copyFields(original map[string]interface{}) map[string]interface{} {

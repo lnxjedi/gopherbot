@@ -2,6 +2,8 @@
 package lua
 
 import (
+	"fmt"
+
 	"github.com/lnxjedi/gopherbot/robot"
 	glua "github.com/yuin/gopher-lua"
 )
@@ -9,7 +11,7 @@ import (
 // getBotWithOptionalFormat is a helper function to:
 // 1) Extract the luaRobot (ud.Value) from stack index 1
 // 2) If present, parse a numeric message format argument (stack index formatIndex)
-func (lctx luaContext) getBotWithOptionalFormat(L *glua.LState, caller string, formatIndex int) (robot.Robot, *luaRobot, bool) {
+func (lctx *luaContext) getBotWithOptionalFormat(L *glua.LState, caller string, formatIndex int) (robot.Robot, *luaRobot, bool) {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
@@ -19,14 +21,23 @@ func (lctx luaContext) getBotWithOptionalFormat(L *glua.LState, caller string, f
 
 	r := lr.r
 
-	// If the caller supplied a numeric argument for format, parse it
+	// If the caller supplied a numeric argument for format, parse and validate it
 	if L.GetTop() >= formatIndex {
 		fmtArg := L.Get(formatIndex)
-		if num, isNum := fmtArg.(glua.LNumber); isNum {
-			format := robot.MessageFormat(int(num))
-			r = r.MessageFormat(format)
+		if fmtArg.Type() != glua.LTNumber {
+			lr.r.Log(robot.Error, fmt.Sprintf("%s: MessageFormat argument must be a number (Raw=0, Fixed=1, Variable=2)", caller))
+			return nil, nil, false
 		}
+
+		formatInt := int(fmtArg.(glua.LNumber))
+		if !isValidMessageFormat(formatInt) {
+			lr.r.Log(robot.Error, fmt.Sprintf("%s: Invalid MessageFormat value: %d. Must be Raw=0, Fixed=1, or Variable=2", caller, formatInt))
+			return nil, nil, false
+		}
+
+		r = r.MessageFormat(robot.MessageFormat(formatInt))
 	}
+
 	return r, lr, true
 }
 
