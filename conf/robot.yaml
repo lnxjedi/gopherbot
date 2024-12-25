@@ -63,9 +63,24 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
   {{- SetEnv "GOPHER_LOGDEST" "robot.log" }}
 {{- end }}
 
+## Possibly modified by GOPHER_HTTP_DEBUG, see below
+{{- $loglevel := env "GOPHER_LOGLEVEL" | default "info" }}
+
+## Enable log level debug messages for localhost http JSON requests and replies
+## NOTE: For low-level debugging only - no scrubbing of secrets is performed!
+{{- $httpDebug := (eq (env "GOPHER_HTTP_DEBUG") "true") }}
+{{- if $httpDebug }}
+HttpDebug: true
+## These can be overridden by custom config, but this is sane for non-scrubbed
+## debugging output.
+  {{- $logdest = "robot.log" }}
+  {{- $loglevel = "debug" }}
+{{- end }}
+
 Protocol: {{ $proto }}
 Brain: {{ $brain }}
 LogDest: {{ $logdest }}
+LogLevel: {{ $loglevel }}
 
 ## Trivial "terminal" connector config for a single admin user.
 ## This pulls in a basic default config for the terminal connector
@@ -77,13 +92,6 @@ LogDest: {{ $logdest }}
 {{- if eq $proto "nullconn" }}
 {{ .Include "nullconn.yaml" }}
 {{- end }}
-
-## Configure logging
-LogLevel: {{ env "GOPHER_LOGLEVEL" | default "info" }}
-
-## Enable log level debug messages for localhost http JSON requests and replies
-## NOTE: For low-level debugging only - no scrubbing of secrets is performed!
-HttpDebug: {{ eq (env "GOPHER_HTTP_DEBUG") "true" }}
 
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "mem" }}
