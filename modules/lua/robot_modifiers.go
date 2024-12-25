@@ -1,109 +1,181 @@
+// robot_modifiers.go
 package lua
 
 import (
+	"fmt"
+
 	"github.com/lnxjedi/gopherbot/robot"
 	glua "github.com/yuin/gopher-lua"
 )
 
-// newLuaRobot creates a new Lua userdata for the robot.
-// This function remains unchanged as it serves as a helper.
-func newLuaRobot(L *glua.LState, r robot.Robot, env map[string]string) *glua.LUserData {
-	newUD := L.NewUserData()
-	newUD.Value = &luaRobot{r: r, env: env}
-	// Set the same metatable so we can still call :Say, :Reply, etc.
-	L.SetMetatable(newUD, L.GetTypeMetatable("robot"))
-	return newUD
+// RegisterRobotModifiers registers all bot modifier methods with the bot metatable.
+func (lctx *luaContext) RegisterRobotModifiers(L *glua.LState) {
+	methods := map[string]glua.LGFunction{
+		"Clone":         lctx.botClone,
+		"Fixed":         lctx.botFixed,
+		"Direct":        lctx.botDirect,
+		"Threaded":      lctx.botThreaded,
+		"MessageFormat": lctx.botMessageFormat,
+		// Add other bot methods here as needed
+	}
+	botIndex := getBotMethodTable(L)
+	L.SetFuncs(botIndex, methods)
 }
 
-// robotNew allows for a more natural bot = robot:New()
-func (lctx luaContext) robotNew(L *glua.LState) int {
+// getBotMethodTable retrieves the methods table from the bot metatable
+func getBotMethodTable(L *glua.LState) *glua.LTable {
+	// Retrieve the metatable associated with type "bot"
+	mt := L.GetTypeMetatable("bot")
+	if mt == glua.LNil {
+		// If "bot" metatable doesn't exist, create it
+		mt = L.NewTypeMetatable("bot")
+		L.SetMetatable(mt, mt)
+	}
+
+	// Get the "methods" table from the metatable
+	methods := L.GetField(mt, "methods")
+	if tbl, ok := methods.(*glua.LTable); ok {
+		return tbl
+	}
+
+	// If "methods" table doesn't exist, create it
+	tbl := L.NewTable()
+	L.SetField(mt, "methods", tbl)
+	return tbl
+}
+
+// botClone creates a new bot userdata instance by cloning the current bot's fields
+func (lctx *luaContext) botClone(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
-		lctx.logErr("New")
-		return pushFail(L)
+		lctx.logErr("Clone")
+		L.RaiseError("Invalid bot userdata for Clone()")
+		return 0
 	}
 
-	newUD := newLuaRobot(L, lr.r, lr.env)
+	// Copy existing fields
+	newFields := copyFields(lr.fields)
+
+	// Create a new bot userdata
+	newUD := newLuaBot(L, lr.r, newFields)
 	L.Push(newUD)
 	return 1
 }
 
-// robotDirect creates a direct instance of the robot.
-func (lctx luaContext) robotDirect(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok {
-		lctx.logErr("Direct")
-		return pushFail(L)
-	}
-
-	newR := lr.r.Direct()
-	newUD := newLuaRobot(L, newR, lr.env)
-
-	// Return the new userdata to Lua
-	L.Push(newUD)
-	return 1
-}
-
-// robotThreaded creates a threaded instance of the robot.
-func (lctx luaContext) robotThreaded(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok {
-		lctx.logErr("Threaded")
-		return pushFail(L)
-	}
-
-	newR := lr.r.Threaded()
-	newUD := newLuaRobot(L, newR, lr.env)
-	L.Push(newUD)
-	return 1
-}
-
-// robotFixed creates a fixed instance of the robot.
-func (lctx luaContext) robotFixed(L *glua.LState) int {
+// botFixed creates a fixed instance of the bot by copying existing fields and modifying 'format'
+func (lctx *luaContext) botFixed(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
 		lctx.logErr("Fixed")
-		return pushFail(L)
+		L.RaiseError("Invalid bot userdata for Fixed()")
+		return 0
 	}
 
-	newR := lr.r.Fixed()
-	newUD := newLuaRobot(L, newR, lr.env)
+	// Copy existing fields
+	newFields := copyFields(lr.fields)
+
+	// Modify the 'format' field as needed (example: set to "FixedFormat")
+	newFields["format"] = "FixedFormat"
+
+	// Create a new bot userdata
+	newUD := newLuaBot(L, lr.r, newFields)
 	L.Push(newUD)
 	return 1
 }
 
-// robotMessageFormat sets the message format for the robot.
-func (lctx luaContext) robotMessageFormat(L *glua.LState) int {
+// botDirect creates a direct instance of the bot by copying existing fields
+func (lctx *luaContext) botDirect(L *glua.LState) int {
 	ud := L.CheckUserData(1)
-	formatVal := L.CheckNumber(2) // e.g., 0=Raw,1=Fixed,2=Variable, etc.
+	lr, ok := ud.Value.(*luaRobot)
+	if !ok {
+		lctx.logErr("Direct")
+		L.RaiseError("Invalid bot userdata for Direct()")
+		return 0
+	}
+
+	// Copy existing fields
+	newFields := copyFields(lr.fields)
+
+	// Potentially modify fields specific to Direct() (example: set a specific flag)
+	// newFields["direct"] = true
+
+	// Create a new bot userdata
+	newUD := newLuaBot(L, lr.r, newFields)
+	L.Push(newUD)
+	return 1
+}
+
+// botThreaded creates a threaded instance of the bot by copying existing fields and setting threaded_message to true
+func (lctx *luaContext) botThreaded(L *glua.LState) int {
+	ud := L.CheckUserData(1)
+	lr, ok := ud.Value.(*luaRobot)
+	if !ok {
+		lctx.logErr("Threaded")
+		L.RaiseError("Invalid bot userdata for Threaded()")
+		return 0
+	}
+
+	// Copy existing fields
+	newFields := copyFields(lr.fields)
+
+	// Set 'threaded_message' to true
+	newFields["threaded_message"] = true
+
+	// Create a new bot userdata
+	newUD := newLuaBot(L, lr.r, newFields)
+	L.Push(newUD)
+	return 1
+}
+
+// botMessageFormat sets the message format for the bot by copying existing fields and modifying 'format'
+func (lctx *luaContext) botMessageFormat(L *glua.LState) int {
+	ud := L.CheckUserData(1)
+	formatVal := L.CheckString(2) // Expecting a string for format
 
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
 		lctx.logErr("MessageFormat")
-		return pushFail(L)
+		L.RaiseError("Invalid bot userdata for MessageFormat()")
+		return 0
 	}
 
-	format := robot.MessageFormat(int(formatVal))
-	newR := lr.r.MessageFormat(format)
+	// Copy existing fields
+	newFields := copyFields(lr.fields)
 
-	newUD := newLuaRobot(L, newR, lr.env)
+	// Set the new format
+	newFields["format"] = formatVal
+
+	// Create a new bot userdata
+	newUD := newLuaBot(L, lr.r, newFields)
 	L.Push(newUD)
 	return 1
 }
 
-// RegisterRobotModifiers registers all robot modifier methods with Lua.
-func (lctx luaContext) RegisterRobotModifiers(L *glua.LState) {
-	methods := map[string]glua.LGFunction{
-		"New":           lctx.robotNew,
-		"Fixed":         lctx.robotFixed,
-		"Direct":        lctx.robotDirect,
-		"Threaded":      lctx.robotThreaded,
-		"MessageFormat": lctx.robotMessageFormat,
+// copyFields creates a deep copy of the fields map
+func copyFields(original map[string]interface{}) map[string]interface{} {
+	newMap := make(map[string]interface{})
+	for k, v := range original {
+		newMap[k] = v
 	}
-	robotIndex := getRobotMethodTable(L)
-	L.SetFuncs(robotIndex, methods)
+	return newMap
+}
+
+// newLuaBot creates a new Lua userdata for the bot with initialized fields and appropriate metatable.
+func newLuaBot(L *glua.LState, r robot.Robot, fields map[string]interface{}) *glua.LUserData {
+	newUD := L.NewUserData()
+	newUD.Value = &luaRobot{r: r, fields: fields}
+	// Set the metatable so we can call methods like :Clone, :Say, etc.
+	L.SetMetatable(newUD, L.GetTypeMetatable("bot"))
+	return newUD
+}
+
+// logErr logs an error with the saved bot if non-nil, otherwise prints to stdout
+func (lctx *luaContext) logErr(caller string) {
+	if lctx.r != nil {
+		lctx.r.Log(robot.Error, fmt.Sprintf("%s called with invalid robot userdata", caller))
+	} else {
+		fmt.Printf("[ERR] %s called but robot is nil\n", caller)
+	}
 }
