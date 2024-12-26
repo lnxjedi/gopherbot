@@ -6,15 +6,17 @@ import (
 	"os"
 
 	"github.com/dop251/goja"
+	"github.com/dop251/goja_nodejs/require"
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // jsContext holds a reference to the robot.Robot interface, the environment fields,
 // and the goja.Runtime we'll execute the script in.
 type jsContext struct {
-	r   robot.Robot
-	env map[string]string
-	vm  *goja.Runtime
+	r            robot.Robot
+	env          map[string]string
+	vm           *goja.Runtime
+	requirePaths []string
 }
 
 // CallExtension loads and executes a JavaScript file with goja:
@@ -23,19 +25,23 @@ type jsContext struct {
 //   - env - env vars normally passed to external scripts, has thread info
 //   - r: the robot.Robot
 //   - args: the script arguments
-func CallExtension(taskPath, taskName string, pkgPath []string, env map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func CallExtension(taskPath, taskName string, requirePaths []string, env map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	// Create a new goja VM
 	vm := goja.New()
 
+	// Add the simple http interface
+	addHttpHandler(vm)
+
 	ctx := &jsContext{
-		r:   r,
-		env: env,
-		vm:  vm,
+		r:            r,
+		env:          env,
+		vm:           vm,
+		requirePaths: requirePaths,
 	}
 
 	// Stub for adding additional require paths or preloading modules
 	// (like the Lua version's updatePkgPath). The user will implement it.
-	retVal, err := addRequires(vm, r, pkgPath)
+	retVal, err := ctx.addRequires(vm)
 	if err != nil {
 		return retVal, err
 	}
@@ -58,37 +64,42 @@ func CallExtension(taskPath, taskName string, pkgPath []string, env map[string]s
 		return robot.MechanismFail, fmt.Errorf("JavaScript compile error in '%s': %w", taskName, compileErr)
 	}
 
-	runErr := ctx.runProgram(program)
+	ret, runErr := ctx.runProgram(program)
 	if runErr != nil {
 		return robot.MechanismFail, fmt.Errorf("JavaScript runtime error in '%s': %w", taskName, runErr)
 	}
-
-	// The script's return value is on top of the VM stack as the last value
-	// We treat it as a number or string if possible, default to Normal.
-	val := vm.Get("exports") // By convention, or you can do a final "return" from script
-	if val == nil || val == goja.Undefined() || val == goja.Null() {
-		return robot.Normal, nil
-	}
-
-	switch ret := val.Export().(type) {
-	case int64:
-		return robot.TaskRetVal(ret), nil
-	case float64:
-		return robot.TaskRetVal(int64(ret)), nil
-	case string:
-		// If you return a string, that’s not necessarily a TaskRetVal.
-		// Fallback to Normal or parse if you like.
-		r.Log(robot.Debug, fmt.Sprintf("JS script returned a string: %s", ret))
-		return robot.Normal, nil
-	default:
-		return robot.Normal, nil
-	}
+	return ret, nil
 }
 
-// runProgram runs a compiled *goja.Program.
-func (ctx *jsContext) runProgram(prog *goja.Program) error {
-	_, err := ctx.vm.RunProgram(prog)
-	return err
+// runProgram runs a compiled *goja.Program and returns the robot.TaskRetVal.
+func (ctx *jsContext) runProgram(prog *goja.Program) (robot.TaskRetVal, error) {
+	ret, err := ctx.vm.RunProgram(prog)
+	if err != nil {
+		return robot.MechanismFail, fmt.Errorf("JavaScript runtime error: %w", err)
+	}
+
+	// If the script didn't return a value, it's considered Normal
+	if ret == nil || ret == goja.Undefined() || ret == goja.Null() {
+		return robot.Normal, nil
+	}
+
+	// Attempt to convert the return value to a robot.TaskRetVal (int)
+	if retInt, ok := ret.Export().(int); ok {
+		return robot.TaskRetVal(retInt), nil
+	} else if retInt, ok := ret.Export().(int64); ok {
+		return robot.TaskRetVal(int(retInt)), nil
+	} else if retFloat, ok := ret.Export().(float64); ok {
+		return robot.TaskRetVal(int(retFloat)), nil
+	} else if retBool, ok := ret.Export().(bool); ok {
+		if retBool {
+			return robot.Normal, nil
+		} else {
+			return robot.Fail, nil
+		}
+	}
+
+	// Handle other return types or if the type assertion fails
+	return robot.MechanismFail, fmt.Errorf("JavaScript script did not return a valid status (int, bool, or nil)")
 }
 
 // setArgv creates the global "argv" array in JS so scripts can read arguments
@@ -104,11 +115,16 @@ func (ctx *jsContext) setArgv(taskName string, args []string) {
 	ctx.vm.Set("argv", argv)
 }
 
-// addRequires is a stub for the user to fill in, analogous to updatePkgPath in Lua.
-func addRequires(vm *goja.Runtime, r robot.Robot, pkgPath []string) (robot.TaskRetVal, error) {
-	// The user can implement custom require() logic, e.g. hooking into goja's Resolve, etc.
-	// Or add global / preloaded modules from these pkgPaths.
-	//
-	// NOTE: This is a placeholder. Return success by default.
+// addRequires sets up a require() function using goja_nodejs, allowing JavaScript
+// scripts to load other scripts/modules from the given paths.
+func (ctx *jsContext) addRequires(vm *goja.Runtime) (robot.TaskRetVal, error) {
+	registry := require.NewRegistry(
+		require.WithGlobalFolders(ctx.requirePaths...),
+	)
+
+	if err := registry.Enable(vm); err != nil {
+		return robot.Fail, fmt.Errorf("failed to enable 'require' for javascript: %w", err)
+	}
+
 	return robot.Normal, nil
 }

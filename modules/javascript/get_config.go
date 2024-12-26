@@ -13,14 +13,12 @@ import (
 func GetPluginConfig(taskPath, taskName string, pkgPath []string) (*[]byte, error) {
 	vm := goja.New()
 
-	// Stub for adding requires. We don’t have a robot here, pass nil if needed.
-	_, err := addRequires(vm, nil, pkgPath)
-	if err != nil {
-		return nil, err
-	}
+	// Create a "process" object with an "argv" array
+	processObj := vm.NewObject()
+	processObj.Set("argv", []string{"", taskName, "configure"}) // Add a dummy value at index 0
 
-	// Simulate `argv = [ taskName, "configure" ]`
-	vm.Set("argv", []interface{}{taskName, "configure"})
+	// Set the "process" object as a global variable
+	vm.Set("process", processObj)
 
 	scriptBytes, err := os.ReadFile(taskPath)
 	if err != nil {
@@ -32,18 +30,13 @@ func GetPluginConfig(taskPath, taskName string, pkgPath []string) (*[]byte, erro
 		return nil, fmt.Errorf("JavaScript compile error in '%s': %w", taskName, compileErr)
 	}
 
-	_, runErr := vm.RunProgram(prog)
+	retVal, runErr := vm.RunProgram(prog) // Capture the return value
 	if runErr != nil {
 		return nil, fmt.Errorf("JavaScript runtime error in '%s': %w", taskName, runErr)
 	}
 
-	// The script should return the config as a string, similar to the Lua version
-	val := vm.Get("exports") // or however you want to retrieve the "returned" value
-	if val == nil || val == goja.Undefined() || val == goja.Null() {
-		return nil, fmt.Errorf("JavaScript plugin %s did not return a YAML string from 'configure'", taskName)
-	}
-
-	cfgStr, ok := val.Export().(string)
+	// Check if the return value is a string
+	cfgStr, ok := retVal.Export().(string)
 	if !ok {
 		return nil, fmt.Errorf("JavaScript plugin %s did not return a string for 'configure'", taskName)
 	}
