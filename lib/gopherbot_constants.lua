@@ -49,6 +49,16 @@ local ret = {
     Failed = 63,                       -- robot.Failed
 }
 
+-- Add a string method to ret
+function ret:string(val)
+    for k, v in pairs(self) do
+        if v == val then
+            return k
+        end
+    end
+    return "UnknownRetVal"
+end
+
 -- 2. TaskRetVal (Script return values)
 local task = {
     Normal = 0,                 -- robot.Normal
@@ -61,6 +71,16 @@ local task = {
     Success = 7,                -- robot.Success
 }
 
+-- Add a string method to task
+function task:string(val)
+    for k, v in pairs(self) do
+        if v == val then
+            return k
+        end
+    end
+    return "UnknownTaskRetVal"
+end
+
 -- 3. LogLevel
 local log = {
     Trace = 0,  -- robot.Trace
@@ -72,12 +92,32 @@ local log = {
     Fatal = 6,  -- robot.Fatal
 }
 
+-- Add a string method to log
+function log:string(val)
+    for k, v in pairs(self) do
+        if v == val then
+            return k
+        end
+    end
+    return "UnknownLogLevel"
+end
+
 -- 4. MessageFormat
 local fmt = {
     Raw = 0,      -- robot.Raw
     Fixed = 1,    -- robot.Fixed
     Variable = 2, -- robot.Variable
 }
+
+-- Add a string method to fmt
+function fmt:string(val)
+    for k, v in pairs(self) do
+        if v == val then
+            return k
+        end
+    end
+    return "UnknownMessageFormat"
+end
 
 -- 5. Protocol
 local proto = {
@@ -87,6 +127,16 @@ local proto = {
     Test = 3,      -- robot.Test
     Null = 4,      -- robot.Null
 }
+
+-- Add a string method to proto
+function proto:string(val)
+    for k, v in pairs(self) do
+        if v == val then
+            return k
+        end
+    end
+    return "UnknownProtocol"
+end
 
 -- Return all tables using a function
 return function() return ret, task, log, fmt, proto end
