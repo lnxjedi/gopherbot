@@ -241,7 +241,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	}
 	if isPlugin && ret != robot.Normal {
 		if !w.automaticTask && errString != "" {
-			w.reply(errString)
+			w.Reply(errString)
 		}
 		plog, err := interfaces.history.GetLog(w.histName, w.runIndex)
 		if err == nil {

@@ -500,7 +500,11 @@ func (tc *termConnector) checkSendSelf(ch, thr, msg string, f robot.MessageForma
 	tc.RUnlock()
 }
 
-// SetUserMap lets Gopherbot provide a mapping of usernames to user IDs
+// SetUserMap lets Gopherbot provide a mapping of usernames to user IDs to the connector;
+// this allows the UserRoster to override the protocol mapping from username to userid, so that
+// a "parsley" in the UserRoster with id 12345 will always take precedence over the connector
+// user "parsley", which may be a total stranger with id 54321.
+// ... that is to say, the Terminal connector doesn't care.
 func (tc *termConnector) SetUserMap(map[string]string) {
 	return
 }

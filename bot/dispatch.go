@@ -127,7 +127,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 										ephemeralMemories.m[ctx] = s
 										modified = true
 									} else {
-										w.say("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel)
+										w.Say("Sorry, I don't remember which %s we were talking about - please re-enter your command and be more specific", contextLabel)
 										ephemeralMemories.Unlock()
 										return true
 									}
@@ -152,7 +152,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 				if messageMatched {
 					prevTask, _, _ := getTask(runTask)
 					Log(robot.Error, "Message '%s' matched multiple tasks: %s and %s", cmsg, prevTask.name, task.name)
-					w.say("Yikes! Your command matched multiple plugins, so I'm not doing ANYTHING")
+					w.Say("Yikes! Your command matched multiple plugins, so I'm not doing ANYTHING")
 					emit(MultipleMatchesNoAction)
 					return
 				}
@@ -176,7 +176,7 @@ func (w *worker) checkPluginMatchersAndRun(pipelineType pipelineType) (messageMa
 		}
 		state.RLock()
 		if state.shuttingDown && !allow {
-			w.say("Sorry, I'm shutting down and can't start any new tasks")
+			w.Say("Sorry, I'm shutting down and can't start any new tasks")
 			state.RUnlock()
 			return
 		}
@@ -259,7 +259,7 @@ func (w *worker) handleMessage() {
 				messageMatched = w.checkPluginMatchersAndRun(plugCommand)
 			} else {
 				messageMatched = true
-				w.say("Yes?")
+				w.Say("Yes?")
 			}
 		}
 	}

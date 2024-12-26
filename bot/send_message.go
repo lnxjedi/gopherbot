@@ -13,6 +13,65 @@ versions is that the Robot version uses it's local copy of the robot.Message,
 which may have been modified by e.g. r.Direct(), r.Fixed(), etc.
 */
 
+// tryResolveUser resolves the user to its internal ID wrapped in brackets if available.
+// If the user is not found in the internal map, it returns the original username.
+// This allows the chat connector to handle unresolved usernames appropriately.
+func (r *Robot) tryResolveUser(u string) string {
+	if ui, ok := r.maps.user[u]; ok {
+		return bracket(ui.UserID)
+	}
+	return u
+}
+
+func (w *worker) tryResolveUser(u string) string {
+	if ui, ok := w.maps.user[u]; ok {
+		return bracket(ui.UserID)
+	}
+	return u
+}
+
+// tryResolveChannel resolves the channel to its internal ID wrapped in brackets if available.
+// If the channel is not found in the internal map, it returns the original channel name.
+// This allows the chat connector to handle unresolved channels appropriately.
+func (r *Robot) tryResolveChannel(ch string) string {
+	if ci, ok := r.maps.channel[ch]; ok {
+		return bracket(ci.ChannelID)
+	}
+	return ch
+}
+
+func (w *worker) tryResolveChannel(ch string) string {
+	if ci, ok := w.maps.channel[ch]; ok {
+		return bracket(ci.ChannelID)
+	}
+	return ch
+}
+
+// prepareMessage validates and formats the message.
+// It returns the formatted message and a boolean indicating whether the message was empty.
+// If the message is empty, it logs a warning and returns true.
+func (r *Robot) prepareMessage(msg string, v ...interface{}) (string, bool) {
+	if len(msg) == 0 {
+		r.Log(robot.Warn, "Ignoring zero-length message")
+		return "", true
+	}
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	return msg, false
+}
+
+func (w *worker) prepareMessage(msg string, v ...interface{}) (string, bool) {
+	if len(msg) == 0 {
+		w.Log(robot.Warn, "Ignoring zero-length message")
+		return "", true
+	}
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	return msg, false
+}
+
 // messageHeard sends a typing notification
 func (r Robot) messageHeard() {
 	user := r.ProtocolUser
@@ -40,50 +99,30 @@ func (w *worker) messageHeard() {
 
 // see robot/robot.go
 func (r Robot) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal {
-	if len(msg) == 0 {
-		r.Log(robot.Warn, "Ignoring zero-length message in SendChannelMessage")
+	msg, empty := r.prepareMessage(msg, v...)
+	if empty {
 		return robot.Ok
 	}
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
-	}
-	var channel string
-	if ci, ok := r.maps.channel[ch]; ok {
-		channel = bracket(ci.ChannelID)
-	} else {
-		channel = ch
-	}
+	channel := r.tryResolveChannel(ch)
 	return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, r.Format, r.Incoming)
 }
 
 // see robot/robot.go
 func (r Robot) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
-	if len(msg) == 0 {
-		r.Log(robot.Warn, "Ignoring zero-length message in SendChannelMessage")
+	msg, empty := r.prepareMessage(msg, v...)
+	if empty {
 		return robot.Ok
 	}
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
-	}
-	var channel string
-	if ci, ok := r.maps.channel[ch]; ok {
-		channel = bracket(ci.ChannelID)
-	} else {
-		channel = ch
-	}
+	channel := r.tryResolveChannel(ch)
 	return interfaces.SendProtocolChannelThreadMessage(channel, thr, msg, r.Format, r.Incoming)
 }
 
 func (w *worker) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
+	msg, empty := w.prepareMessage(msg, v...)
+	if empty {
+		return robot.Ok
 	}
-	var channel string
-	if ci, ok := w.maps.channel[ch]; ok {
-		channel = bracket(ci.ChannelID)
-	} else {
-		channel = ch
-	}
+	channel := w.tryResolveChannel(ch)
 	return interfaces.SendProtocolChannelThreadMessage(channel, thr, msg, w.Format, w.Incoming)
 }
 
@@ -93,115 +132,60 @@ func (w *worker) SendChannelThreadMessage(ch, thr, msg string, v ...interface{})
 // can't resolve usernames, or the username isn't mapped to a user ID in
 // the UserRoster.
 func (r Robot) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot.RetVal {
-	if len(msg) == 0 {
-		r.Log(robot.Warn, "Ignoring zero-length message in SendUserChannelMessage")
+	msg, empty := r.prepareMessage(msg, v...)
+	if empty {
 		return robot.Ok
 	}
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
-	}
-	var user string
-	if ui, ok := r.maps.user[u]; ok {
-		user = bracket(ui.UserID)
-	} else {
-		user = u
-	}
-	var channel string
-	if ci, ok := r.maps.channel[ch]; ok {
-		channel = bracket(ci.ChannelID)
-	} else {
-		channel = ch
-	}
+	user := r.tryResolveUser(u)
+	channel := r.tryResolveChannel(ch)
 	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, r.Format, r.Incoming)
 }
 
 func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot.RetVal {
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
+	msg, empty := w.prepareMessage(msg, v...)
+	if empty {
+		return robot.Ok
 	}
-	var user string
-	if ui, ok := w.maps.user[u]; ok {
-		user = bracket(ui.UserID)
-	} else {
-		user = u
-	}
-	var channel string
-	if ci, ok := w.maps.channel[ch]; ok {
-		channel = bracket(ci.ChannelID)
-	} else {
-		channel = ch
-	}
+	user := w.tryResolveUser(u)
+	channel := w.tryResolveChannel(ch)
 	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, w.Format, w.Incoming)
 }
 
 func (r Robot) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
-	if len(msg) == 0 {
-		r.Log(robot.Warn, "Ignoring zero-length message in SendUserChannelMessage")
+	msg, empty := r.prepareMessage(msg, v...)
+	if empty {
 		return robot.Ok
 	}
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
-	}
-	var user string
-	if ui, ok := r.maps.user[u]; ok {
-		user = bracket(ui.UserID)
-	} else {
-		user = u
-	}
-	var channel string
-	if ci, ok := r.maps.channel[ch]; ok {
-		channel = bracket(ci.ChannelID)
-	} else {
-		channel = ch
-	}
+	user := r.tryResolveUser(u)
+	channel := r.tryResolveChannel(ch)
 	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, r.Format, r.Incoming)
 }
 
 func (w *worker) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
+	msg, empty := w.prepareMessage(msg, v...)
+	if empty {
+		return robot.Ok
 	}
-	var user string
-	if ui, ok := w.maps.user[u]; ok {
-		user = bracket(ui.UserID)
-	} else {
-		user = u
-	}
-	var channel string
-	if ci, ok := w.maps.channel[ch]; ok {
-		channel = bracket(ci.ChannelID)
-	} else {
-		channel = ch
-	}
+	user := w.tryResolveUser(u)
+	channel := w.tryResolveChannel(ch)
 	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, w.Format, w.Incoming)
 }
 
 // see robot/robot.go
 func (r Robot) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
-	if len(msg) == 0 {
-		r.Log(robot.Warn, "Ignoring zero-length message in SendUserMessage")
+	msg, empty := r.prepareMessage(msg, v...)
+	if empty {
 		return robot.Ok
 	}
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
-	}
-	var user string
-	if ui, ok := r.maps.user[u]; ok {
-		user = bracket(ui.UserID)
-	} else {
-		user = u
-	}
+	user := r.tryResolveUser(u)
 	return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
 }
 
 // see robot/robot.go
 func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
-	if len(msg) == 0 {
-		r.Log(robot.Warn, "Ignoring zero-length message in Reply")
+	msg, empty := r.prepareMessage(msg, v...)
+	if empty {
 		return robot.Ok
-	}
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
 	}
 	user := r.ProtocolUser
 	if len(user) == 0 {
@@ -227,9 +211,10 @@ func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 	return interfaces.SendProtocolUserChannelThreadMessage(user, r.User, r.Channel, thread, msg, r.Format, r.Incoming)
 }
 
-func (w *worker) reply(msg string, v ...interface{}) robot.RetVal {
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
+func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
+	msg, empty := w.prepareMessage(msg, v...)
+	if empty {
+		return robot.Ok
 	}
 	user := w.ProtocolUser
 	if len(user) == 0 {
@@ -251,12 +236,9 @@ func (w *worker) reply(msg string, v ...interface{}) robot.RetVal {
 
 // see robot/robot.go
 func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
-	if len(msg) == 0 {
-		r.Log(robot.Warn, "Ignoring zero-length message in Reply")
+	msg, empty := r.prepareMessage(msg, v...)
+	if empty {
 		return robot.Ok
-	}
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
 	}
 	user := r.ProtocolUser
 	if len(user) == 0 {
@@ -280,12 +262,9 @@ func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 
 // see robot/robot.go
 func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
-	if len(msg) == 0 {
-		r.Log(robot.Warn, "Ignoring zero-length message in Say")
+	msg, empty := r.prepareMessage(msg, v...)
+	if empty {
 		return robot.Ok
-	}
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
 	}
 	// Support for Direct()
 	if r.Channel == "" {
@@ -306,13 +285,10 @@ func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 	return interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, r.Format, r.Incoming)
 }
 
-func (w *worker) say(msg string, v ...interface{}) robot.RetVal {
-	if len(msg) == 0 {
-		Log(robot.Warn, "Ignoring zero-length message in Say")
+func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
+	msg, empty := r.prepareMessage(msg, v...)
+	if empty {
 		return robot.Ok
-	}
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
 	}
 	// Support for Direct()
 	if w.Channel == "" {
@@ -335,12 +311,9 @@ func (w *worker) say(msg string, v ...interface{}) robot.RetVal {
 
 // see robot/robot.go
 func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
-	if len(msg) == 0 {
-		r.Log(robot.Warn, "Ignoring zero-length message in SayThread")
+	msg, empty := r.prepareMessage(msg, v...)
+	if empty {
 		return robot.Ok
-	}
-	if len(v) > 0 {
-		msg = fmt.Sprintf(msg, v...)
 	}
 	// Support for Direct()
 	if r.Channel == "" {

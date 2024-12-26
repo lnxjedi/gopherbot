@@ -124,24 +124,26 @@ type Robot interface {
 	// v is an optional list of arguments for formatting the message (like fmt.Printf).
 	SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) RetVal
 	// SendUserChannelMessage sends a message to a user in a specific channel.
-	//
-	// u is the user ID.
-	// ch is the channel name (without the # prefix).
-	// msg is the message text to send.
-	// v is an optional list of arguments for formatting the message (like fmt.Printf).
+	// u - either an "<internalID>" or plain "username"
+	// ch - either an "<internalID>" or plain "channelname"
+	// msg - Go string with optional formatting
+	// v ... - optional extra arguments for the format string
 	SendUserChannelMessage(u, ch, msg string, v ...interface{}) RetVal
-	// SendUserChannelThreadMessage sends a message to a user in a specific
-	// thread within a channel.
-	//
-	// u is the user ID.
-	// ch is the channel name (without the # prefix).
-	// thr is the thread ID.
-	// msg is the message text to send.
-	// v is an optional list of arguments for formatting the message (like fmt.Printf).
+	// SendUserMessage lets a plugin easily send a DM to a user. If a DM
+	// fails, an error should be returned, since DMs may be used for sending
+	// secret/sensitive information.
+	// u - either an "<internalID>" or plain "username"
+	// ch - either an "<internalID>" or plain "channelname"
+	// thr - always the connector-provided threadID
+	// msg - Go string with optional formatting
+	// v ... - optional extra arguments for the format string
 	SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) RetVal
 	// SendUserMessage lets a plugin easily send a DM to a user. If a DM
 	// fails, an error should be returned, since DMs may be used for sending
 	// secret/sensitive information.
+	// u - either an "<internalID>" or plain "username"
+	// msg - Go string with optional formatting
+	// v ... - optional extra arguments for the format string
 	SendUserMessage(u, msg string, v ...interface{}) RetVal
 	// Reply directs a message to the user
 	Reply(msg string, v ...interface{}) RetVal
