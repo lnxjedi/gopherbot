@@ -50,9 +50,9 @@ func (w *worker) tryResolveChannel(ch string) string {
 // prepareMessage validates and formats the message.
 // It returns the formatted message and a boolean indicating whether the message was empty.
 // If the message is empty, it logs a warning and returns true.
-func (r *Robot) prepareMessage(msg string, v ...interface{}) (string, bool) {
+func (r *Robot) prepareMessage(fn, msg string, v ...interface{}) (string, bool) {
 	if len(msg) == 0 {
-		r.Log(robot.Warn, "Ignoring zero-length message")
+		r.Log(robot.Warn, "%s: Ignoring zero-length message", fn)
 		return "", true
 	}
 	if len(v) > 0 {
@@ -61,9 +61,9 @@ func (r *Robot) prepareMessage(msg string, v ...interface{}) (string, bool) {
 	return msg, false
 }
 
-func (w *worker) prepareMessage(msg string, v ...interface{}) (string, bool) {
+func (w *worker) prepareMessage(fn, msg string, v ...interface{}) (string, bool) {
 	if len(msg) == 0 {
-		w.Log(robot.Warn, "Ignoring zero-length message")
+		w.Log(robot.Warn, "%s: Ignoring zero-length message", fn)
 		return "", true
 	}
 	if len(v) > 0 {
@@ -99,7 +99,7 @@ func (w *worker) messageHeard() {
 
 // see robot/robot.go
 func (r Robot) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal {
-	msg, empty := r.prepareMessage(msg, v...)
+	msg, empty := r.prepareMessage("SendChannelMessage", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -109,7 +109,7 @@ func (r Robot) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal
 
 // see robot/robot.go
 func (r Robot) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
-	msg, empty := r.prepareMessage(msg, v...)
+	msg, empty := r.prepareMessage("SendChannelThreadMessage", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -118,7 +118,7 @@ func (r Robot) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) r
 }
 
 func (w *worker) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
-	msg, empty := w.prepareMessage(msg, v...)
+	msg, empty := w.prepareMessage("SendChannelThreadMessage", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -132,7 +132,7 @@ func (w *worker) SendChannelThreadMessage(ch, thr, msg string, v ...interface{})
 // can't resolve usernames, or the username isn't mapped to a user ID in
 // the UserRoster.
 func (r Robot) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot.RetVal {
-	msg, empty := r.prepareMessage(msg, v...)
+	msg, empty := r.prepareMessage("SendUserChannelMessage", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -142,7 +142,7 @@ func (r Robot) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot
 }
 
 func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot.RetVal {
-	msg, empty := w.prepareMessage(msg, v...)
+	msg, empty := w.prepareMessage("SendUserChannelMessage", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -152,7 +152,7 @@ func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) rob
 }
 
 func (r Robot) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
-	msg, empty := r.prepareMessage(msg, v...)
+	msg, empty := r.prepareMessage("SendUserChannelThreadMessage", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -162,7 +162,7 @@ func (r Robot) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interfa
 }
 
 func (w *worker) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
-	msg, empty := w.prepareMessage(msg, v...)
+	msg, empty := w.prepareMessage("SendUserChannelThreadMessage", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -173,7 +173,7 @@ func (w *worker) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...inter
 
 // see robot/robot.go
 func (r Robot) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
-	msg, empty := r.prepareMessage(msg, v...)
+	msg, empty := r.prepareMessage("SendUserMessage", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -183,7 +183,7 @@ func (r Robot) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
 
 // see robot/robot.go
 func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
-	msg, empty := r.prepareMessage(msg, v...)
+	msg, empty := r.prepareMessage("Reply", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -212,7 +212,7 @@ func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 }
 
 func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
-	msg, empty := w.prepareMessage(msg, v...)
+	msg, empty := w.prepareMessage("Reply", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -236,7 +236,7 @@ func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
 
 // see robot/robot.go
 func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
-	msg, empty := r.prepareMessage(msg, v...)
+	msg, empty := r.prepareMessage("ReplyThread", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -262,7 +262,7 @@ func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 
 // see robot/robot.go
 func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
-	msg, empty := r.prepareMessage(msg, v...)
+	msg, empty := r.prepareMessage("Say", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -286,7 +286,7 @@ func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 }
 
 func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
-	msg, empty := r.prepareMessage(msg, v...)
+	msg, empty := w.prepareMessage("Say", msg, v...)
 	if empty {
 		return robot.Ok
 	}
@@ -311,7 +311,7 @@ func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
 
 // see robot/robot.go
 func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
-	msg, empty := r.prepareMessage(msg, v...)
+	msg, empty := r.prepareMessage("SayThread", msg, v...)
 	if empty {
 		return robot.Ok
 	}
