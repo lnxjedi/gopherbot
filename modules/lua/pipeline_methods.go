@@ -38,25 +38,6 @@ func (lctx luaContext) RegisterPipelineMethods(L *glua.LState) {
 }
 
 // -------------------------------------------------------------------
-// Helper function to collect remaining stack arguments as strings
-// from index "start" to the top. Non-string arguments are ignored.
-// -------------------------------------------------------------------
-func parseStringArgs(L *glua.LState, start int) []string {
-	var args []string
-	top := L.GetTop()
-	for i := start; i <= top; i++ {
-		val := L.Get(i)
-		if val.Type() == glua.LTString {
-			args = append(args, val.String())
-		} else {
-			// Optionally log or skip
-			// Could do: lr.r.Log(robot.Error, "AddTask ignoring non-string argument")
-		}
-	}
-	return args
-}
-
-// -------------------------------------------------------------------
 // 1) bot:GetParameter(name) -> string
 // -------------------------------------------------------------------
 func (lctx luaContext) botGetParameter(L *glua.LState) int {

@@ -7,6 +7,21 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
+// We’ll define a global map of valid string fields
+var validStringFields = map[string]bool{
+	"user":       true,
+	"user_id":    true,
+	"channel":    true,
+	"channel_id": true,
+	"thread_id":  true,
+	"message_id": true,
+	"plugin_id":  true,
+	"protocol":   true,
+	"brain":      true,
+	"format":     true,
+	// Add more if needed
+}
+
 // registerBotMetatableIfNeeded returns the "bot" metatable, creating it if needed.
 func registerBotMetatableIfNeeded(L *glua.LState) *glua.LTable {
 	mtVal := L.GetTypeMetatable("bot")

@@ -1,26 +1,9 @@
 package lua
 
 import (
-	"fmt"
-
 	"github.com/lnxjedi/gopherbot/robot"
 	glua "github.com/yuin/gopher-lua"
 )
-
-// We’ll define a global map of valid string fields
-var validStringFields = map[string]bool{
-	"user":       true,
-	"user_id":    true,
-	"channel":    true,
-	"channel_id": true,
-	"thread_id":  true,
-	"message_id": true,
-	"plugin_id":  true,
-	"protocol":   true,
-	"brain":      true,
-	"format":     true,
-	// Add more if needed
-}
 
 // RegisterRobotModifiers registers all bot modifier methods with the "bot" metatable.
 func (lctx *luaContext) RegisterRobotModifiers(L *glua.LState) {
@@ -153,40 +136,4 @@ func (lctx *luaContext) botMessageFormat(L *glua.LState) int {
 	newUD := newLuaBot(L, updatedRobot, newFields)
 	L.Push(newUD)
 	return 1
-}
-
-// isValidMessageFormat checks if the provided format is valid.
-func isValidMessageFormat(format int) bool {
-	switch robot.MessageFormat(format) {
-	case robot.Raw, robot.Fixed, robot.Variable:
-		return true
-	default:
-		return false
-	}
-}
-
-func copyFields(original map[string]interface{}) map[string]interface{} {
-	newMap := make(map[string]interface{})
-	for k, v := range original {
-		newMap[k] = v
-	}
-	return newMap
-}
-
-// newLuaBot creates a new Lua userdata for the bot with initialized fields and the "bot" metatable
-func newLuaBot(L *glua.LState, r robot.Robot, fields map[string]interface{}) *glua.LUserData {
-	newUD := L.NewUserData()
-	newUD.Value = &luaRobot{r: r, fields: fields}
-	// Assign the "bot" metatable
-	L.SetMetatable(newUD, L.GetTypeMetatable("bot"))
-	return newUD
-}
-
-// logBotErr logs an error specific to the bot userdata.
-func (lctx *luaContext) logBotErr(caller string) {
-	if lctx.r != nil {
-		lctx.r.Log(robot.Error, fmt.Sprintf("%s called with invalid bot userdata", caller))
-	} else {
-		fmt.Printf("[ERR] %s called but robot is nil\n", caller)
-	}
 }

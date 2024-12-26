@@ -14,9 +14,9 @@ import (
 func (lctx luaContext) RegisterAttributeMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		// Bot/user attribute getters
-		"GetBotAttribute":    lctx.robotGetBotAttribute,
-		"GetUserAttribute":   lctx.robotGetUserAttribute,
-		"GetSenderAttribute": lctx.robotGetSenderAttribute,
+		"GetBotAttribute":    lctx.botGetBotAttribute,
+		"GetUserAttribute":   lctx.botGetUserAttribute,
+		"GetSenderAttribute": lctx.botGetSenderAttribute,
 	}
 
 	mt := registerBotMetatableIfNeeded(L)
@@ -24,24 +24,13 @@ func (lctx luaContext) RegisterAttributeMethods(L *glua.LState) {
 }
 
 // -------------------------------------------------------------------
-// Helper to remove leading/trailing < >
-// e.g. "<u0007>" -> "u0007", "<#lua>" -> "#lua"
-// -------------------------------------------------------------------
-func stripAngleBrackets(s string) string {
-	if len(s) >= 2 && s[0] == '<' && s[len(s)-1] == '>' {
-		return s[1 : len(s)-1]
-	}
-	return s
-}
-
-// -------------------------------------------------------------------
 // 2. Bot/user attribute getters
 //    => Returns (attrString, retVal) in Lua
 // -------------------------------------------------------------------
 
-// robotGetBotAttribute retrieves a bot attribute.
+// botGetBotAttribute retrieves a bot attribute.
 // Usage: local attr, ret = robot:GetBotAttribute("name")
-func (lctx luaContext) robotGetBotAttribute(L *glua.LState) int {
+func (lctx luaContext) botGetBotAttribute(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	attribute := L.CheckString(2) // e.g., "name", "alias", etc.
 
@@ -62,9 +51,9 @@ func (lctx luaContext) robotGetBotAttribute(L *glua.LState) int {
 	return 2
 }
 
-// robotGetUserAttribute retrieves a user attribute.
+// botGetUserAttribute retrieves a user attribute.
 // Usage: local attr, ret = robot:GetUserAttribute("user123", "role")
-func (lctx luaContext) robotGetUserAttribute(L *glua.LState) int {
+func (lctx luaContext) botGetUserAttribute(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	user := L.CheckString(2)
 	attribute := L.CheckString(3)
@@ -83,9 +72,9 @@ func (lctx luaContext) robotGetUserAttribute(L *glua.LState) int {
 	return 2
 }
 
-// robotGetSenderAttribute retrieves an attribute of the message sender.
+// botGetSenderAttribute retrieves an attribute of the message sender.
 // Usage: local attr, ret = robot:GetSenderAttribute("status")
-func (lctx luaContext) robotGetSenderAttribute(L *glua.LState) int {
+func (lctx luaContext) botGetSenderAttribute(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	attribute := L.CheckString(2)
 

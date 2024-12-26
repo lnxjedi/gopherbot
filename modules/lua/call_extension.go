@@ -313,3 +313,39 @@ func pushFail(L *glua.LState) int {
 	L.Push(glua.LNumber(robot.Failed))
 	return 1
 }
+
+// isValidMessageFormat checks if the provided format is valid.
+func isValidMessageFormat(format int) bool {
+	switch robot.MessageFormat(format) {
+	case robot.Raw, robot.Fixed, robot.Variable:
+		return true
+	default:
+		return false
+	}
+}
+
+func copyFields(original map[string]interface{}) map[string]interface{} {
+	newMap := make(map[string]interface{})
+	for k, v := range original {
+		newMap[k] = v
+	}
+	return newMap
+}
+
+// newLuaBot creates a new Lua userdata for the bot with initialized fields and the "bot" metatable
+func newLuaBot(L *glua.LState, r robot.Robot, fields map[string]interface{}) *glua.LUserData {
+	newUD := L.NewUserData()
+	newUD.Value = &luaRobot{r: r, fields: fields}
+	// Assign the "bot" metatable
+	L.SetMetatable(newUD, L.GetTypeMetatable("bot"))
+	return newUD
+}
+
+// logBotErr logs an error specific to the bot userdata.
+func (lctx *luaContext) logBotErr(caller string) {
+	if lctx.r != nil {
+		lctx.r.Log(robot.Error, fmt.Sprintf("%s called with invalid bot userdata", caller))
+	} else {
+		fmt.Printf("[ERR] %s called but robot is nil\n", caller)
+	}
+}
