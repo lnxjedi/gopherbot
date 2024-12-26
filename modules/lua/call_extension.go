@@ -88,8 +88,7 @@ func CallExtension(taskPath, taskName string, pkgPath []string, env map[string]s
 
 	// Compile and run the Lua file
 	if err := L.DoFile(taskPath); err != nil {
-		r.Log(robot.Error, fmt.Sprintf("Lua error in script '%s': %v", taskName, err))
-		return robot.MechanismFail, err
+		return robot.MechanismFail, fmt.Errorf("Lua error in script '%s': %w", taskName, err)
 	}
 
 	// Check the script’s return value (default to Normal)
