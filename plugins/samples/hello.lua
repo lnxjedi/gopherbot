@@ -20,22 +20,32 @@ ret, task, log, fmt, proto = require "gopherbot_constants" ()
 local cmd = ""
 if #arg > 0 then cmd = arg[1] end
 
+-- Command dispatch table
+local commands = {
+    lua = function(bot)
+        local retVal = bot:Say("Hello, Lua World!")
+        if retVal == ret.Ok then
+            return task.Normal
+        else
+            return task.Fail
+        end
+    end,
+    -- Add more commands here
+}
+
 if cmd == "init" then
     return task.Normal
 elseif cmd == "configure" then
     return defaultConfig
-end
-  
--- robot isn't available during "configure", so we initialize bot here.
-local bot = robot:New()
+else
+    -- robot isn't available during "configure", so we initialize bot here.
+    local bot = robot:New()
 
-if cmd == "lua" then
-    -- Call robot:Say and check the return code
-    local retVal = bot:Say("Hello, Lua World!")
-    if retVal == ret.Ok then
-        return task.Normal
+    local commandFunc = commands[cmd]
+    if commandFunc then
+        return commandFunc(bot)
     else
+        bot:Log(log.Error,"Lua plugin received unknown command: "..tostring(cmd))
         return task.Fail
     end
--- elseif cmd == "somethingelse" then ...
 end

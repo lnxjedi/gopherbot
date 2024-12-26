@@ -47,11 +47,8 @@ Config:
 ]]
 
 --------------------------------------------------------------------------------
--- Grab the first arg from the "arg" global table (i.e., what was passed in by
--- Gopherbot for a plugin command).
+-- Helper Functions
 --------------------------------------------------------------------------------
-local cmd = ""
-if #arg > 0 then cmd = arg[1] end
 
 local function extractEnv(envVarName)
   -- **Read /proc/self/environ and extract the specified environment variable**
@@ -69,9 +66,7 @@ local function extractEnv(envVarName)
       end
     end
   else
-    -- Handle error if /proc/self/environ cannot be opened
     print("Failed to open " .. envFile)
-    -- You could raise an error here instead or log it to your bot if available.
   end
   return envValue
 end
@@ -92,25 +87,14 @@ local function extractEnvBash(envVarName)
   return envVarOutput
 end
 
--- Require the constants module
+-- Require the constants module (concise form)
 local ret, task, log, fmt, proto = require "gopherbot_constants" ()
 
 --------------------------------------------------------------------------------
--- Provide "configure" command
---------------------------------------------------------------------------------
-if cmd == "init" then
-  return task.Normal
-elseif cmd == "configure" then
-  return defaultConfig
-end
-
-local bot = robot:New()
-
---------------------------------------------------------------------------------
--- The rest of the commands
+-- Command Functions
 --------------------------------------------------------------------------------
 
-if cmd == "lua" then
+local function luaCommand(bot)
   -- Start by replying in a thread with fixed formatting
   local retThread = bot:ReplyThread("Hello from Lua in a thread!", fmt.Fixed)
 
@@ -197,14 +181,16 @@ if cmd == "lua" then
   else
     return task.MechanismFail
   end
+end
 
-elseif cmd == "thread" then
+local function threadCommand(bot)
   -- Demonstrate replying in a new thread
   local retThread = bot:ReplyThread("Ok, let's chat here in a new thread")
   bot:SayThread("... note that you still have to mention me by name for now.")
   return task.Normal
+end
 
-elseif cmd == "askthread" then
+local function askThreadCommand(bot)
   -- Prompt for user input in a thread
   local rep, rcode = bot:PromptThreadForReply("SimpleString",
     "Tell me something - anything!")
@@ -215,8 +201,9 @@ elseif cmd == "askthread" then
       "Sorry, I'm not sure what you're trying to tell me. Maybe you used funny characters?")
   end
   return task.Normal
+end
 
-elseif cmd == "listen" then
+local function listenCommand(bot)
   -- Demonstrate a DM-based prompt
   local dbot = bot:Direct()
   local rep, rcode = dbot:PromptForReply("SimpleString",
@@ -227,8 +214,9 @@ elseif cmd == "listen" then
     bot:Say("Sorry, I'm not sure I caught that. Maybe you used funny characters?")
   end
   return task.Normal
+end
 
-elseif cmd == "remember" then
+local function rememberCommand(bot)
   -- ARGV: [ "slowly"? ], [ thing to remember ]
   -- Arg #2 might be "slowly"
   local speed = arg[2]
@@ -274,8 +262,9 @@ elseif cmd == "remember" then
     end
   end
   return task.Normal
+end
 
-elseif cmd == "recall" then
+local function recallCommand(bot)
   local which = arg[2] -- possibly a number
   local retVal, data, token = bot:CheckoutDatum("memory", false)
   if retVal ~= ret.Ok then
@@ -283,7 +272,7 @@ elseif cmd == "recall" then
     return task.Fail
   end
   if data and #data > 0 then
-    if which and #which > 0 then -- Changed :len() to # since Lua uses # for string length
+    if which and #which > 0 then
       local idx = tonumber(which)
       if not idx or idx < 1 then
         bot:Say("I can't make out what you want me to recall.")
@@ -312,8 +301,9 @@ elseif cmd == "recall" then
     bot:Say("Sorry - I don't remember anything!")
   end
   return task.Normal
+end
 
-elseif cmd == "forget" then
+local function forgetCommand(bot)
   local which = arg[2]
   local i = tonumber(which) or 0
   if i < 1 then
@@ -341,8 +331,9 @@ elseif cmd == "forget" then
     bot:Say("Gosh, I guess I never remembered that in the first place!")
   end
   return task.Normal
+end
 
-elseif cmd == "check" then
+local function checkCommand(bot)
   local isAdmin = bot:CheckAdmin()
   if isAdmin then
     bot:Say("It looks like you're an administrator.")
@@ -359,10 +350,44 @@ elseif cmd == "check" then
     bot:Say("You failed to elevate, I'm calling the cops!")
   end
   bot:Log(log.Info,
-      "Checked out " .. bot:User() .. ", admin: " .. tostring(isAdmin) ..
-        ", elevate check: " .. tostring(success))
+    "Checked out " .. bot:User() .. ", admin: " .. tostring(isAdmin) ..
+      ", elevate check: " .. tostring(success))
   return task.Normal
 end
 
--- If we reached this point, no recognized command => do nothing special.
-return task.Normal
+--------------------------------------------------------------------------------
+-- Command Dispatch Table
+--------------------------------------------------------------------------------
+
+local commands = {
+  lua = luaCommand,
+  thread = threadCommand,
+  askthread = askThreadCommand,
+  listen = listenCommand,
+  remember = rememberCommand,
+  recall = recallCommand,
+  forget = forgetCommand,
+  check = checkCommand,
+}
+
+--------------------------------------------------------------------------------
+-- Main Execution
+--------------------------------------------------------------------------------
+
+local cmd = ""
+if #arg > 0 then cmd = arg[1] end
+
+if cmd == "init" then
+  return task.Normal
+elseif cmd == "configure" then
+  return defaultConfig
+else
+  local bot = robot:New()
+  local commandFunc = commands[cmd]
+  if commandFunc then
+    return commandFunc(bot)
+  else
+    bot:Log(log.Error, "Lua plugin received unknown command: " .. tostring(cmd))
+    return task.Fail
+  end
+end
