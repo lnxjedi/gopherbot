@@ -55,7 +55,7 @@ var testInstallPath string
 
 // Environment setting(s) for expanding installed conf/robot.yaml
 func init() {
-	setEnv("GOPHER_PROTOCOL", "test")
+	os.Setenv("GOPHER_PROTOCOL", "test")
 	wd, _ := os.Getwd()
 	testInstallPath = filepath.Dir(wd)
 }
@@ -91,7 +91,7 @@ const bottest = "bottest"
 const deadzone = "deadzone"
 
 func setup(cfgdir, logfile string, t *testing.T) (<-chan bool, *testc.TestConnector) {
-	setEnv("GOPHER_ENCRYPTION_KEY", "gopherbot-integration-tests-brain-key")
+	os.Setenv("GOPHER_ENCRYPTION_KEY", "gopherbot-integration-tests-brain-key")
 	testVer := VersionInfo{"test", "(unknown)"}
 
 	testc.ExportTest.Lock()
