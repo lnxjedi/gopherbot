@@ -6,12 +6,16 @@ import (
 	"os"
 
 	"github.com/dop251/goja"
+	"github.com/dop251/goja_nodejs/require"
 )
 
 // GetPluginConfig calls the given JS script with the argument "configure".
 // We expect the script to return a YAML string that we convert to *[]byte.
 func GetPluginConfig(taskPath, taskName string, pkgPath []string) (*[]byte, error) {
 	vm := goja.New()
+
+	registry := new(require.Registry)
+	registry.Enable(vm)
 
 	// Create a "process" object with an "argv" array
 	processObj := vm.NewObject()
@@ -32,6 +36,9 @@ func GetPluginConfig(taskPath, taskName string, pkgPath []string) (*[]byte, erro
 
 	retVal, runErr := vm.RunProgram(prog) // Capture the return value
 	if runErr != nil {
+		if ex, ok := runErr.(*goja.Exception); ok {
+			return nil, fmt.Errorf("Javascript exception from %s: %s", taskName, ex.String())
+		}
 		return nil, fmt.Errorf("JavaScript runtime error in '%s': %w", taskName, runErr)
 	}
 

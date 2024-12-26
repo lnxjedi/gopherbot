@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	js "github.com/lnxjedi/gopherbot/v2/modules/javascript"
 	lua "github.com/lnxjedi/gopherbot/v2/modules/lua"
 	yaegi "github.com/lnxjedi/gopherbot/v2/modules/yaegi-dynamic-go"
 	"golang.org/x/sys/unix"
@@ -70,9 +71,14 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		}
 	}
 
+	// drop privileges when running external task; this thread will terminate
+	// when this goroutine finishes; see runtime.LockOSThread()
+	dropThreadPriv(fmt.Sprintf("task %s default configuration", task.name))
+
 	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
 	isExternalLuaTask := strings.HasSuffix(task.Path, ".lua")
-	isExternalInterpreterTask := isExternalGoTask || isExternalLuaTask
+	isExternalJsTask := strings.HasSuffix(task.Path, ".js")
+	isExternalInterpreterTask := isExternalGoTask || isExternalLuaTask || isExternalJsTask
 	if taskPath, err = getTaskPath(task, "."); err != nil {
 		if !isExternalInterpreterTask && taskPath == "" {
 			cchan <- getCfgReturn{nil, err}
@@ -104,14 +110,26 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 				cchan <- getCfgReturn{defConfig, nil}
 				return
 			}
+		} else if isExternalJsTask {
+			// Assuming you have a similar function for JavaScript
+			Log(robot.Info, "getting default configuration for external JavaScript plugin '"+task.name+"'")
+			requirePaths := []string{
+				fmt.Sprintf("%s/lib", installPath),
+				fmt.Sprintf("%s/custom/lib", homePath),
+			}
+			if defConfig, err := js.GetPluginConfig(taskPath, task.name, requirePaths); err != nil {
+				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
+				// This error shouldn't disable an external JS plugin
+				cchan <- getCfgReturn{&cfg, nil}
+				return
+			} else {
+				cchan <- getCfgReturn{defConfig, nil}
+				return
+			}
 		}
 	}
 
 	var cmd *exec.Cmd
-
-	// drop privileges when running external task; this thread will terminate
-	// when this goroutine finishes; see runtime.LockOSThread()
-	dropThreadPriv(fmt.Sprintf("task %s default configuration", task.name))
 
 	Log(robot.Debug, "Calling '%s' with arg: configure", taskPath)
 	cmd = exec.Command(taskPath, "configure")
