@@ -446,7 +446,7 @@ func (tc *termConnector) MessageHeard(u, c string) {
 	return
 }
 
-func (tc *termConnector) getUserInfo(u string) (*termUser, bool) {
+func (tc *termConnector) resolveTermUser(u string) (*termUser, bool) {
 	var i int
 	var exists bool
 	if id, ok := tc.ExtractID(u); ok {
@@ -514,7 +514,7 @@ func (tc *termConnector) SetUserMap(map[string]string) {
 func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string, ret robot.RetVal) {
 	var user *termUser
 	var exists bool
-	if user, exists = tc.getUserInfo(u); !exists {
+	if user, exists = tc.resolveTermUser(u); !exists {
 		return "", robot.UserNotFound
 	}
 	switch attr {
@@ -536,8 +536,8 @@ func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string,
 	}
 }
 
-// getUserInfoByName retrieves a user by their Name
-func (tc *termConnector) getUserInfoByName(name string) (*termUser, bool) {
+// resolveTermUserByName retrieves a user by their Name
+func (tc *termConnector) resolveTermUserByName(name string) (*termUser, bool) {
 	tc.RLock()
 	defer tc.RUnlock()
 	idx, exists := userMap[name]
@@ -547,8 +547,8 @@ func (tc *termConnector) getUserInfoByName(name string) (*termUser, bool) {
 	return &tc.users[idx], true
 }
 
-// getUserInfoByID retrieves a user by their InternalID
-func (tc *termConnector) getUserInfoByID(uid string) (*termUser, bool) {
+// resolveTermUserByID retrieves a user by their InternalID
+func (tc *termConnector) resolveTermUserByID(uid string) (*termUser, bool) {
 	tc.RLock()
 	defer tc.RUnlock()
 	idx, exists := userIDMap[uid]
@@ -588,7 +588,7 @@ func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, th
 	}
 	if userID, ok = tc.ExtractID(uid); !ok {
 		// If the userID is bad, try looking up by name
-		if userInfo, ok := tc.getUserInfoByName(uname); !ok {
+		if userInfo, ok := tc.resolveTermUserByName(uname); !ok {
 			tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: User '%s/%s' not found", uid, uname))
 			return robot.UserNotFound
 		} else {
@@ -596,12 +596,12 @@ func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, th
 		}
 	} else {
 		// we have a good userID
-		if _, ok := tc.getUserInfoByID(userID); !ok {
+		if _, ok := tc.resolveTermUserByID(userID); !ok {
 			tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: User '%s/%s' not found", uid, uname))
 			return robot.UserNotFound
 		}
 		// ... but we still want to validate that the username exists
-		_, exists := tc.getUserInfoByName(uname)
+		_, exists := tc.resolveTermUserByName(uname)
 		if !exists {
 			tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: Username '%s' not found", uname))
 			return robot.UserNotFound
@@ -616,19 +616,10 @@ func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, th
 
 // SendProtocolUserMessage sends a direct message to a user with enhanced validation
 func (tc *termConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
-	// Validate that the user exists by username
-	user, exists := tc.getUserInfoByName(u)
-	if !exists {
-		tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserMessage: Username '%s' not found", u))
+	user, ok := tc.resolveTermUser(u)
+	if !ok {
 		return robot.UserNotFound
 	}
-
-	// Alternatively, if 'u' is meant to be the InternalID, use getUserInfoByID
-	// user, exists := tc.getUserInfoByID(u)
-	// if !exists {
-	//     tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserMessage: User ID '%s' not found.", u))
-	//     return robot.UserNotFound
-	// }
 
 	return tc.sendMessage(user.InternalID, fmt.Sprintf("(dm:%s)", user.Name), "", msg, f, msgObject)
 }
