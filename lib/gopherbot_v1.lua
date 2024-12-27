@@ -138,5 +138,124 @@ function proto:string(val)
     return "UnknownProtocol"
 end
 
--- Return all tables using a function
-return function() return ret, task, log, fmt, proto end
+local robot = {}
+function robot.New()
+    local newBot = {}
+    newBot.BOT = BOT -- Keep a reference to the original Go BOT object
+    newBot.user = BOT.user
+    newBot.user_id = BOT.user_id
+    newBot.channel = BOT.channel
+    newBot.channel_id = BOT.channel_id
+    newBot.thread_id = BOT.thread_id
+    newBot.message_id = BOT.message_id
+    newBot.protocol = BOT.protocol
+    newBot.brain = BOT.brain
+    newBot.threaded_message = BOT.threaded_message
+
+    -- Send* methods (handling format with a formatted BOT object)
+
+    function newBot:SendChannelMessage(channel, message, format)
+        local fBOT = self.BOT
+        if format then
+            fBOT = self.BOT:MessageFormat(format)
+        end
+        return fBOT:SendChannelMessage(channel, message)
+    end
+
+    function newBot:SendChannelThreadMessage(channel, thread, message, format)
+        local fBOT = self.BOT
+        if format then
+            fBOT = self.BOT:MessageFormat(format)
+        end
+        return fBOT:SendChannelThreadMessage(channel, thread, message)
+    end
+
+    function newBot:SendUserMessage(user, message, format)
+        local fBOT = self.BOT
+        if format then
+            fBOT = self.BOT:MessageFormat(format)
+        end
+        return fBOT:SendUserMessage(user, message)
+    end
+
+    function newBot:SendUserChannelMessage(user, channel, message, format)
+        local fBOT = self.BOT
+        if format then
+            fBOT = self.BOT:MessageFormat(format)
+        end
+        return fBOT:SendUserChannelMessage(user, channel, message)
+    end
+
+    function newBot:SendUserChannelThreadMessage(user, channel, thread, message, format)
+        local fBOT = self.BOT
+        if format then
+            fBOT = self.BOT:MessageFormat(format)
+        end
+        return fBOT:SendUserChannelThreadMessage(user, channel, thread, message)
+    end
+
+    -- Say, SayThread, Reply, and ReplyThread methods (convenience wrappers)
+
+    function newBot:Say(message, format)
+        if self.channel == "" then
+            -- If channel is empty, send a user message
+            return self:SendUserMessage(self.user, message, format)
+        else
+            -- Otherwise, send a channel/thread message
+            local thread = ""
+            if self.threaded_message then
+                thread = self.thread_id
+            end
+            return self:SendChannelThreadMessage(self.channel, thread, message, format)
+        end
+    end
+
+    function newBot:SayThread(message, format)
+        if self.channel == "" then
+            -- If channel is empty, send a user message
+            return self:SendUserMessage(self.user, message, format)
+        else
+            -- Otherwise, send a channel/thread message with the current thread_id
+            return self:SendChannelThreadMessage(self.channel, self.thread_id, message, format)
+        end
+    end
+
+    function newBot:Reply(message, format)
+        if self.channel == "" then
+            -- If channel is empty, send a user message
+            return self:SendUserMessage(self.user, message, format)
+        else
+            -- Otherwise, send a user/channel/thread message
+            local thread = ""
+            if self.threaded_message then
+                thread = self.thread_id
+            end
+            return self:SendUserChannelThreadMessage(self.user, self.channel, thread, message, format)
+        end
+    end
+
+    function newBot:ReplyThread(message, format)
+        if self.channel == "" then
+            -- If channel is empty, send a user message
+            return self:SendUserMessage(self.user, message, format)
+        else
+            -- Otherwise, send a user/channel/thread message with the current thread_id
+            return self:SendUserChannelThreadMessage(self.user, self.channel, self.thread_id, message, format)
+        end
+    end
+
+    -- Add a Pause method - call the Go API
+    function newBot:Pause(seconds)
+        self.BOT:Pause(seconds)
+    end
+
+    return newBot
+end
+
+-- Create a function to return ret, task, log, fmt, proto, and the new robot
+local function getExports()
+  return robot, ret, task, log, fmt, proto
+end
+
+-- Return the function
+return getExports

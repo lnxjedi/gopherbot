@@ -14,8 +14,9 @@ CommandMatchers:
   Command: lua
 ]]
 
--- Require the constants module
-ret, task, log, fmt, proto = require "gopherbot_v1" ()
+-- Require the robot and all constants
+gopherbot_v1 = require "gopherbot_v1"
+robot, ret, task, log, fmt, proto = gopherbot_v1()
 
 local cmd = arg[1] or ""
 -- Command dispatch table
@@ -36,18 +37,13 @@ if cmd == "init" then
 elseif cmd == "configure" then
     return defaultConfig
 else
-    print("My command is: " .. cmd)
-    BOT:Say("Hello, World! User:" .. BOT.user .. " UserID:" .. BOT.user_id)
-    return task.Fail
-    -- return task.Normal
-    -- robot isn't available during "configure", so we initialize bot here.
-    -- local bot = robot:New()
+    local bot = robot:New()
 
-    -- local commandFunc = commands[cmd]
-    -- if commandFunc then
-    --     return commandFunc(bot)
-    -- else
-    --     bot:Log(log.Error,"Lua plugin received unknown command: "..tostring(cmd))
-    --     return task.Fail
-    -- end
+    local commandFunc = commands[cmd]
+    if commandFunc then
+        return commandFunc(bot)
+    else
+        bot:Log(log.Error,"Lua plugin received unknown command: "..tostring(cmd))
+        return task.Fail
+    end
 end
