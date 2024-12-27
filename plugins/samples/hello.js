@@ -8,7 +8,8 @@ Help:
     Helptext: [ "(bot), hello js - trigger JavaScript hello world" ]
 CommandMatchers:
   - Regex: (?i:hello js)
-    Command: js`;
+    Command: js
+`;
 
 // Require the Gopherbot JavaScript library
 const { ret, task, log, fmt, proto } = require('gopherbot_v1')();

@@ -29,6 +29,9 @@ func GetPluginConfig(execPath, taskPath, taskName string, emptyBot map[string]st
 	// Set the "process" object as a global variable
 	vm.Set("process", processObj)
 
+	// Add the BOT global object
+	ctx.registerBotObject()
+
 	scriptBytes, err := os.ReadFile(taskPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read JS config script '%s': %w", taskName, err)

@@ -8,18 +8,34 @@ import (
 
 // GetPluginConfig calls the given Lua script with the argument "configure".
 // We expect the script to return a YAML string that we convert to *[]byte.
-func GetPluginConfig(taskPath, taskName string, pkgPath []string) (*[]byte, error) {
+func GetPluginConfig(execPath, taskPath, taskName string, emptyBot map[string]string, pkgPath []string) (*[]byte, error) {
 	L := glua.NewState()
 	defer L.Close()
 
-	// Create the args global with a single element: "configure"
-	argsTable := L.CreateTable(1, 0)
-	argsTable.RawSetInt(0, glua.LString(taskName))
-	argsTable.RawSetInt(1, glua.LString("configure"))
-	L.SetGlobal("arg", argsTable)
+	// Initialize the luaRobot with fields from the bot map
+	botFields, err := initializeFields(emptyBot)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add the Lua arg table for "configure"
+	addArgTable(L, execPath, taskPath, "configure")
+
+	// Modify OS functions to replace os.setenv and os.setlocale with no-ops
+	modifyOSFunctions(L, nil)
+
+	// Well, the FIRST time it's called it definitely will - but not in all the
+	// component Register* functions below ...
+	registerBotMetatableIfNeeded(L)
+
+	// We don't register API methods for GetPluginConfig
+
+	// Create the primary robot userdata and set it as "robot"
+	robotUD := newLuaBot(L, nil, botFields)
+	L.SetGlobal("BOT", robotUD)
 
 	// **Update package.path with additional directories and Lua patterns**
-	_, err := updatePkgPath(L, nil, pkgPath)
+	_, err = updatePkgPath(L, nil, pkgPath)
 	if err != nil {
 		return nil, err
 	}

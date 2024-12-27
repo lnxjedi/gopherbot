@@ -17,8 +17,7 @@ CommandMatchers:
 -- Require the constants module
 ret, task, log, fmt, proto = require "gopherbot_v1" ()
 
-local cmd = ""
-if #arg > 0 then cmd = arg[1] end
+local cmd = arg[1] or ""
 
 -- Command dispatch table
 local commands = {

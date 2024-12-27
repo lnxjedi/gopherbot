@@ -32,7 +32,7 @@ type getCfgReturn struct {
 
 // Lua and JavaScript interpreters only need a subset of env
 // for their bots.
-func realScriptBot(env map[string]string) map[string]string {
+func scriptBot(env map[string]string) map[string]string {
 	bot := make(map[string]string) // Use make for initialization
 	keys := []string{
 		"user",
@@ -81,6 +81,11 @@ func libPaths() []string {
 		fmt.Sprintf("%s/custom/lib", homePath),
 	}
 	return libPaths
+}
+
+// Path to the Gopherbot executable
+func execPath() string {
+	return filepath.Join(installPath, "gopherbot")
 }
 
 func getDefCfg(t interface{}) (*[]byte, error) {
@@ -150,12 +155,8 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 				return
 			}
 		} else if isExternalLuaTask {
-			pkgPath := []string{
-				fmt.Sprintf("%s/lib", installPath),
-				fmt.Sprintf("%s/custom/lib", homePath),
-			}
 			Log(robot.Info, "getting default configuration for external Lua plugin '"+task.name+"'")
-			if defConfig, err := lua.GetPluginConfig(taskPath, task.name, pkgPath); err != nil {
+			if defConfig, err := lua.GetPluginConfig(execPath(), taskPath, task.name, emptyBot(), libPaths()); err != nil {
 				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 				// This error shouldn't disable an external Lua plugin
 				cchan <- getCfgReturn{&cfg, nil}
@@ -167,8 +168,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		} else if isExternalJsTask {
 			// Assuming you have a similar function for JavaScript
 			Log(robot.Info, "getting default configuration for external JavaScript plugin '"+task.name+"'")
-			if defConfig, err := js.GetPluginConfig(filepath.Join(installPath, "gopherbot"),
-				taskPath, task.name, emptyBot(), libPaths()); err != nil {
+			if defConfig, err := js.GetPluginConfig(execPath(), taskPath, task.name, emptyBot(), libPaths()); err != nil {
 				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 				// This error shouldn't disable an external JS plugin
 				cchan <- getCfgReturn{&cfg, nil}
@@ -473,10 +473,6 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	}
 
 	if isExternalLuaTask {
-		pkgPath := []string{
-			fmt.Sprintf("%s/lib", installPath),
-			fmt.Sprintf("%s/custom/lib", homePath),
-		}
 		if privSep {
 			if privileged {
 				raiseThreadPrivExternal(fmt.Sprintf("privileged external Lua task \"%s\"", task.name))
@@ -492,7 +488,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			// Prepend the command to args, so Lua sees args[1] == <command>
 			allArgs := append([]string{command}, args...)
 
-			ret, err := lua.CallExtension(taskPath, task.name, pkgPath, envhash, r, allArgs)
+			ret, err := lua.CallExtension(execPath(), taskPath, task.name, libPaths(), scriptBot(envhash), r, allArgs)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{fmt.Sprintf("Running plugin %s: %v", task.name, err), robot.MechanismFail}
@@ -505,7 +501,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			var ret robot.TaskRetVal
 			// For jobs/tasks, pass args directly; no "command" prepended.
 			if isJob {
-				ret, err = lua.CallExtension(taskPath, task.name, pkgPath, envhash, r, args)
+				ret, err = lua.CallExtension(execPath(), taskPath, task.name, libPaths(), scriptBot(envhash), r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
@@ -513,7 +509,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				}
 				r.Log(robot.Debug, "External Lua job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = lua.CallExtension(taskPath, task.name, pkgPath, envhash, r, args)
+				ret, err = lua.CallExtension(execPath(), taskPath, task.name, libPaths(), scriptBot(envhash), r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}

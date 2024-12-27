@@ -27,19 +27,19 @@ type luaContext struct {
 //   - env - env vars normally passed to external scripts, has thread info
 //   - r: the robot.Robot
 //   - args: the script arguments
-func CallExtension(taskPath, taskName string, pkgPath []string, env map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func CallExtension(execPath, taskPath, taskName string, pkgPath []string, bot map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	L := glua.NewState()
 	defer L.Close()
 
-	// Initialize the luaRobot with fields from envHash
-	initialFields, err := initializeFields(env)
+	// Initialize the luaRobot with fields from the bot map
+	botFields, err := initializeFields(bot)
 	if err != nil {
 		return robot.MechanismFail, err
 	}
 
 	lr := luaRobot{
 		r:      r,
-		fields: initialFields,
+		fields: botFields,
 	}
 
 	lctx := luaContext{
@@ -47,14 +47,15 @@ func CallExtension(taskPath, taskName string, pkgPath []string, env map[string]s
 		L:        L,
 	}
 
-	// Open standard libraries
-	L.OpenLibs()
+	// Create a Lua arg table
+	addArgTable(L, execPath, taskPath, args...)
 
 	// Modify OS functions to replace os.setenv and os.setlocale with no-ops
 	modifyOSFunctions(L, r)
 
-	// Register the "robot" type and its metamethods (only New method)
-	registerRobotType(&lctx)
+	// Well, the FIRST time it's called it definitely will - but not in all the
+	// component Register* functions below ...
+	registerBotMetatableIfNeeded(L)
 
 	// Register additional method sets for "bot" userdatas
 	// (each function merges its methods into the "bot" metatable)
@@ -69,16 +70,8 @@ func CallExtension(taskPath, taskName string, pkgPath []string, env map[string]s
 	lctx.RegisterPipelineMethods(L)
 
 	// Create the primary robot userdata and set it as "robot"
-	robotUD := newLuaRobot(L, r, initialFields)
-	L.SetGlobal("robot", robotUD)
-
-	// Provide the script arguments as a standard Lua "arg" table
-	argsTable := L.CreateTable(len(args)+1, 0)
-	argsTable.RawSetInt(0, glua.LString(taskName))
-	for i, a := range args {
-		argsTable.RawSetInt(i+1, glua.LString(a))
-	}
-	L.SetGlobal("arg", argsTable)
+	robotUD := newLuaBot(L, r, botFields)
+	L.SetGlobal("BOT", robotUD)
 
 	// Update package.path with additional directories and Lua patterns
 	ret, err := updatePkgPath(L, r, pkgPath)
@@ -102,7 +95,30 @@ func CallExtension(taskPath, taskName string, pkgPath []string, env map[string]s
 	return taskReturn, nil
 }
 
-// initializeFields initializes the robot fields from envHash.
+// addArgTable creates a Lua table named 'arg' and populates it.
+// The first two entries are special:
+//
+//	arg[-1] is the path to the interpreter (execPath)
+//	arg[0]  is the path to the script being run (taskPath)
+//
+// Following these are the actual command arguments.
+func addArgTable(L *glua.LState, execPath, taskPath string, args ...string) {
+	argTable := L.NewTable()
+
+	// Set special entries for interpreter and script path
+	L.SetTable(argTable, glua.LNumber(-1), glua.LString(execPath))
+	L.SetTable(argTable, glua.LNumber(0), glua.LString(taskPath))
+
+	// Add command arguments
+	for i, arg := range args {
+		L.SetTable(argTable, glua.LNumber(i+1), glua.LString(arg))
+	}
+
+	// Set the global 'arg' table
+	L.SetGlobal("arg", argTable)
+}
+
+// initializeFields initializes the robot fields from bot.
 func initializeFields(env map[string]string) (map[string]interface{}, error) {
 	fields := make(map[string]interface{})
 
@@ -114,10 +130,8 @@ func initializeFields(env map[string]string) (map[string]interface{}, error) {
 		"thread_id",
 		"user",
 		"user_id",
-		"plugin_id",
 		"protocol",
 		"brain",
-		"format",
 	}
 
 	for _, key := range stringFields {
@@ -130,7 +144,7 @@ func initializeFields(env map[string]string) (map[string]interface{}, error) {
 	}
 
 	// Handle threaded_message as boolean
-	threadedVal, exists := env["GOPHER_THREADED_MESSAGE"]
+	threadedVal, exists := env["threaded_message"]
 	if exists && strings.ToLower(threadedVal) == "true" {
 		fields["threaded_message"] = true
 	} else {
@@ -177,7 +191,9 @@ func modifyOSFunctions(L *glua.LState, r robot.Robot) {
 		// Replace os.setenv
 		osTable.RawSetString("setenv", L.NewFunction(func(L *glua.LState) int {
 			key := L.CheckString(1)
-			r.Log(robot.Warn, "Lua script tried to call os.setenv; ignoring for key="+key)
+			if r != nil {
+				r.Log(robot.Warn, "Lua script tried to call os.setenv; ignoring for key="+key)
+			}
 			// No return value
 			return 0
 		}))
@@ -185,126 +201,13 @@ func modifyOSFunctions(L *glua.LState, r robot.Robot) {
 		// Replace os.setlocale
 		osTable.RawSetString("setlocale", L.NewFunction(func(L *glua.LState) int {
 			locale := L.CheckString(1)
-			r.Log(robot.Warn, "Lua script tried to call os.setlocale; ignoring for locale="+locale)
+			if r != nil {
+				r.Log(robot.Warn, "Lua script tried to call os.setlocale; ignoring for locale="+locale)
+			}
 			// Return nil to mimic Lua's behavior
 			L.Push(glua.LNil)
 			return 1
 		}))
-	}
-}
-
-// registerRobotType sets up the metatable for the primary robot userdata with only the __index metamethod
-func registerRobotType(lctx *luaContext) {
-	L := lctx.L
-
-	// Create a new metatable for "robot"
-	mt := L.NewTypeMetatable("robot")
-
-	// Set the __index metamethod to access methods (only "New")
-	L.SetField(mt, "__index", L.NewFunction(lctx.robotIndex))
-
-	// Register the New method
-	methods := map[string]glua.LGFunction{
-		"New": lctx.robotNew,
-	}
-	methodTable := L.NewTable()
-	L.SetFuncs(methodTable, methods)
-	L.SetField(mt, "methods", methodTable)
-}
-
-// robotIndex handles the __index metamethod for primary robot userdata
-func (lctx *luaContext) robotIndex(L *glua.LState) int {
-	// The userdata is at index 1
-	L.CheckUserData(1) // Ensure it's userdata
-
-	key := L.CheckString(2)
-
-	// Retrieve the metatable associated with "robot"
-	mt := L.GetTypeMetatable("robot")
-	if mt == glua.LNil {
-		lctx.logRobotErr("__index")
-		L.RaiseError("robot metatable not found")
-		return 0
-	}
-
-	// Get the "methods" table from the metatable
-	methods := L.GetField(mt, "methods")
-	tbl, ok := methods.(*glua.LTable)
-	if !ok {
-		lctx.logRobotErr("__index")
-		L.RaiseError("methods table not found in robot metatable")
-		return 0
-	}
-
-	// Get the method named 'key' from the "methods" table
-	method := tbl.RawGetString(key)
-	if method != glua.LNil {
-		L.Push(method)
-		return 1
-	}
-
-	// If method not found, return nil
-	L.Push(glua.LNil)
-	return 1
-}
-
-// robotNew creates a new bot userdata instance with fields copied from envHash
-func (lctx *luaContext) robotNew(L *glua.LState) int {
-	// Retrieve the primary robot userdata
-	ud := L.CheckUserData(1)
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok {
-		lctx.logRobotErr("New")
-		L.RaiseError("Invalid robot userdata for New()")
-		return 0
-	}
-
-	// Initialize fields from envHash
-	newFields, err := initializeFields(lctx.fieldsFromEnv())
-	if err != nil {
-		L.RaiseError("Failed to initialize new robot: %v", err)
-		return 0
-	}
-
-	// Create a new bot userdata
-	newUD := newLuaBot(L, lr.r, newFields)
-	L.Push(newUD)
-	return 1
-}
-
-// fieldsFromEnv retrieves the original envHash used for initializing fields
-func (lr *luaRobot) fieldsFromEnv() map[string]string {
-	env := make(map[string]string)
-	for key, value := range lr.fields {
-		switch v := value.(type) {
-		case string:
-			env["GOPHER_"+strings.ToUpper(key)] = v
-		case bool:
-			if v {
-				env["GOPHER_"+strings.ToUpper(key)] = "true"
-			} else {
-				env["GOPHER_"+strings.ToUpper(key)] = "false"
-			}
-		}
-	}
-	return env
-}
-
-// newLuaRobot creates a new Lua userdata for the primary robot with only the New method.
-func newLuaRobot(L *glua.LState, r robot.Robot, fields map[string]interface{}) *glua.LUserData {
-	newUD := L.NewUserData()
-	newUD.Value = &luaRobot{r: r, fields: fields}
-	// Set the metatable for "robot"
-	L.SetMetatable(newUD, L.GetTypeMetatable("robot"))
-	return newUD
-}
-
-// logRobotErr logs an error specific to the primary robot userdata.
-func (lctx *luaContext) logRobotErr(caller string) {
-	if lctx.r != nil {
-		lctx.r.Log(robot.Error, fmt.Sprintf("%s called with invalid robot userdata", caller))
-	} else {
-		fmt.Printf("[ERR] %s called but robot is nil\n", caller)
 	}
 }
 
@@ -330,22 +233,4 @@ func copyFields(original map[string]interface{}) map[string]interface{} {
 		newMap[k] = v
 	}
 	return newMap
-}
-
-// newLuaBot creates a new Lua userdata for the bot with initialized fields and the "bot" metatable
-func newLuaBot(L *glua.LState, r robot.Robot, fields map[string]interface{}) *glua.LUserData {
-	newUD := L.NewUserData()
-	newUD.Value = &luaRobot{r: r, fields: fields}
-	// Assign the "bot" metatable
-	L.SetMetatable(newUD, L.GetTypeMetatable("bot"))
-	return newUD
-}
-
-// logBotErr logs an error specific to the bot userdata.
-func (lctx *luaContext) logBotErr(caller string) {
-	if lctx.r != nil {
-		lctx.r.Log(robot.Error, fmt.Sprintf("%s called with invalid bot userdata", caller))
-	} else {
-		fmt.Printf("[ERR] %s called but robot is nil\n", caller)
-	}
 }
