@@ -20,6 +20,29 @@ var validStringFields = map[string]bool{
 	"brain":      true,
 }
 
+// initializeFields initializes the robot fields from bot.
+func initializeFields(env map[string]string) (map[string]interface{}, error) {
+	fields := make(map[string]interface{})
+
+	for key := range validStringFields {
+		if val, exists := env[key]; exists {
+			fields[key] = val
+		} else {
+			fields[key] = "" // Default to empty string if not set
+		}
+	}
+
+	// Handle threaded_message as boolean
+	threadedVal, exists := env["threaded_message"]
+	if exists && strings.ToLower(threadedVal) == "true" {
+		fields["threaded_message"] = true
+	} else {
+		fields["threaded_message"] = false
+	}
+
+	return fields, nil
+}
+
 // newLuaBot creates a new Lua userdata for the bot with initialized fields and the "bot" metatable
 func newLuaBot(L *glua.LState, r robot.Robot, fields map[string]interface{}) *glua.LUserData {
 	newUD := L.NewUserData()

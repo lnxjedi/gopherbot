@@ -37,7 +37,7 @@ elseif cmd == "configure" then
     return defaultConfig
 else
     print("My command is: " .. cmd)
-    BOT:Say("Hello, World!")
+    BOT:Say("Hello, World! User:" .. BOT.user .. " UserID:" .. BOT.user_id)
     return task.Fail
     -- return task.Normal
     -- robot isn't available during "configure", so we initialize bot here.

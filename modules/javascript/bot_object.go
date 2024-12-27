@@ -16,9 +16,6 @@ func (ctx *jsContext) registerBotObject() {
 	keys := []string{"user", "user_id", "channel", "channel_id", "thread_id", "message_id", "protocol", "brain"}
 	for _, key := range keys {
 		if value, ok := ctx.bot[key]; ok {
-			if key == "user_id" || key == "channel_id" {
-				value = extractID(value)
-			}
 			botObj.Set(key, value)
 		}
 	}

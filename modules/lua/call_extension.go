@@ -118,42 +118,6 @@ func addArgTable(L *glua.LState, execPath, taskPath string, args ...string) {
 	L.SetGlobal("arg", argTable)
 }
 
-// initializeFields initializes the robot fields from bot.
-func initializeFields(env map[string]string) (map[string]interface{}, error) {
-	fields := make(map[string]interface{})
-
-	// List of predefined string fields
-	stringFields := []string{
-		"channel",
-		"channel_id",
-		"message_id",
-		"thread_id",
-		"user",
-		"user_id",
-		"protocol",
-		"brain",
-	}
-
-	for _, key := range stringFields {
-		envKey := "GOPHER_" + strings.ToUpper(key)
-		if val, exists := env[envKey]; exists {
-			fields[key] = val
-		} else {
-			fields[key] = "" // Default to empty string if not set
-		}
-	}
-
-	// Handle threaded_message as boolean
-	threadedVal, exists := env["threaded_message"]
-	if exists && strings.ToLower(threadedVal) == "true" {
-		fields["threaded_message"] = true
-	} else {
-		fields["threaded_message"] = false
-	}
-
-	return fields, nil
-}
-
 // updatePkgPath appends additional paths to Lua's package.path
 func updatePkgPath(L *glua.LState, r robot.Robot, pkgPath []string) (robot.TaskRetVal, error) {
 	var additionalPaths []string
@@ -225,12 +189,4 @@ func isValidMessageFormat(format int) bool {
 	default:
 		return false
 	}
-}
-
-func copyFields(original map[string]interface{}) map[string]interface{} {
-	newMap := make(map[string]interface{})
-	for k, v := range original {
-		newMap[k] = v
-	}
-	return newMap
 }

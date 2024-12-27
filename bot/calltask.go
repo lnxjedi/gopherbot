@@ -33,7 +33,7 @@ type getCfgReturn struct {
 // Lua and JavaScript interpreters only need a subset of env
 // for their bots.
 func scriptBot(env map[string]string) map[string]string {
-	bot := make(map[string]string) // Use make for initialization
+	bot := make(map[string]string)
 	keys := []string{
 		"user",
 		"user_id",
@@ -48,6 +48,12 @@ func scriptBot(env map[string]string) map[string]string {
 	for _, key := range keys {
 		upperKey := "GOPHER_" + strings.ToUpper(key)
 		if val, ok := env[upperKey]; ok {
+			// Unwrap user_id and channel_id if necessary
+			if key == "user_id" || key == "channel_id" {
+				if len(val) >= 2 && strings.HasPrefix(val, "<") && strings.HasSuffix(val, ">") {
+					val = val[1 : len(val)-1]
+				}
+			}
 			bot[key] = val
 		}
 	}

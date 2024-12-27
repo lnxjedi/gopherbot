@@ -19,6 +19,14 @@ func (lctx *luaContext) RegisterRobotModifiers(L *glua.LState) {
 	L.SetFuncs(mt, methods)
 }
 
+func copyFields(original map[string]interface{}) map[string]interface{} {
+	newMap := make(map[string]interface{})
+	for k, v := range original {
+		newMap[k] = v
+	}
+	return newMap
+}
+
 // -------------------------------------------------------------------
 // The rest: your existing bot modifiers (Clone, Fixed, etc.)
 // -------------------------------------------------------------------

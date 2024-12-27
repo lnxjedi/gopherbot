@@ -4,7 +4,6 @@ package javascript
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/dop251/goja"
 	"github.com/dop251/goja_nodejs/require"
@@ -123,12 +122,4 @@ func (ctx *jsContext) addRequires(vm *goja.Runtime) {
 	)
 
 	registry.Enable(vm)
-}
-
-// Pull the ears off of user and channel IDs
-func extractID(s string) string {
-	if len(s) >= 2 && strings.HasPrefix(s, "<") && strings.HasSuffix(s, ">") {
-		return s[1 : len(s)-1]
-	}
-	return s
 }
