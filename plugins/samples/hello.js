@@ -2,21 +2,22 @@
 // JavaScript plugin "Hello World" and boilerplate
 
 // Define the default configuration as a YAML string
-const defaultConfig = `
----
+const defaultConfig = `---
 Help:
   - Keywords: [ "js" ]
     Helptext: [ "(bot), hello js - trigger JavaScript hello world" ]
 CommandMatchers:
   - Regex: (?i:hello js)
-    Command: js
-`;
+    Command: js`;
 
-// Require the constants module
-const { ret, task, log, fmt, proto } = require('gopherbot_constants')();
+// Require the Gopherbot JavaScript library
+const { ret, task, log, fmt, proto } = require('gopherbot_v1')();
 
 function handler(argv) {
-  const cmd = argv.length > 0 ? argv[0] : '';
+  // 0: the path to gopherbot, the js interpreter
+  // 1: the path to the *.js source file
+  // 2+: arguments
+  const cmd = argv.length > 2 ? argv[2] : '';
 
   switch (cmd) {
     case 'init':
@@ -28,20 +29,21 @@ function handler(argv) {
       return defaultConfig;
 
     case 'js':
-      const bot = robot.New();
+      // const bot = robot.New();
       try {
-        bot.Say("Hello, JavaScript World!");
+        // bot.Say("Hello, JavaScript World!");
         return task.Normal;
       } catch (error) {
-        bot.Log(log.Error, `Error executing 'js' command: ${error.message}`);
+        // bot.Log(log.Error, `Error executing 'js' command: ${error.message}`);
         return task.Fail;
       }
 
     default:
-      const botDefault = robot.New();
-      botDefault.Log(log.Error, `JavaScript plugin received unknown command: ${cmd}`);
+      // const botDefault = robot.New();
+      // botDefault.Log(log.Error, `JavaScript plugin received unknown command: ${cmd}`);
       return task.Fail;
   }
 }
 
+// @ts-ignore - the "process" object is created by goja
 handler(process.argv || []); // Call the function with process.argv

@@ -4,6 +4,7 @@ package javascript
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/dop251/goja"
 	"github.com/dop251/goja_nodejs/require"
@@ -14,7 +15,7 @@ import (
 // and the goja.Runtime we'll execute the script in.
 type jsContext struct {
 	r            robot.Robot
-	env          map[string]string
+	bot          map[string]string
 	vm           *goja.Runtime
 	requirePaths []string
 }
@@ -25,7 +26,7 @@ type jsContext struct {
 //   - env - env vars normally passed to external scripts, has thread info
 //   - r: the robot.Robot
 //   - args: the script arguments
-func CallExtension(taskPath, taskName string, requirePaths []string, env map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func CallExtension(execPath, taskPath, taskName string, requirePaths []string, realBot map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	// Create a new goja VM
 	vm := goja.New()
 
@@ -34,21 +35,20 @@ func CallExtension(taskPath, taskName string, requirePaths []string, env map[str
 
 	ctx := &jsContext{
 		r:            r,
-		env:          env,
+		bot:          realBot,
 		vm:           vm,
 		requirePaths: requirePaths,
 	}
 
-	// Stub for adding additional require paths or preloading modules
-	// (like the Lua version's updatePkgPath). The user will implement it.
-	retVal, err := ctx.addRequires(vm)
-	if err != nil {
-		return retVal, err
-	}
+	ctx.addRequires(vm)
+
+	// Create a "process" object with an "argv" array
+	processObj := vm.NewObject()
+	processObj.Set("argv", []string{execPath, taskPath, "configure"}) // Add a dummy value at index 0
 
 	// Expose the "robot" object in JS with a .New() method returning a "bot" object
 	// Also set up standard constants from gopherbot
-	ctx.registerRobotObject()
+	ctx.registerBotObject()
 
 	// Provide the script arguments as an array "global.argv"
 	ctx.setArgv(taskName, args)
@@ -117,14 +117,18 @@ func (ctx *jsContext) setArgv(taskName string, args []string) {
 
 // addRequires sets up a require() function using goja_nodejs, allowing JavaScript
 // scripts to load other scripts/modules from the given paths.
-func (ctx *jsContext) addRequires(vm *goja.Runtime) (robot.TaskRetVal, error) {
+func (ctx *jsContext) addRequires(vm *goja.Runtime) {
 	registry := require.NewRegistry(
 		require.WithGlobalFolders(ctx.requirePaths...),
 	)
 
-	if err := registry.Enable(vm); err != nil {
-		return robot.Fail, fmt.Errorf("failed to enable 'require' for javascript: %w", err)
-	}
+	registry.Enable(vm)
+}
 
-	return robot.Normal, nil
+// Pull the ears off of user and channel IDs
+func extractID(s string) string {
+	if len(s) >= 2 && strings.HasPrefix(s, "<") && strings.HasSuffix(s, ">") {
+		return s[1 : len(s)-1]
+	}
+	return s
 }

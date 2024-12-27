@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -27,6 +28,59 @@ var nullConn bool
 type getCfgReturn struct {
 	buffptr *[]byte
 	err     error
+}
+
+// Lua and JavaScript interpreters only need a subset of env
+// for their bots.
+func realScriptBot(env map[string]string) map[string]string {
+	bot := make(map[string]string) // Use make for initialization
+	keys := []string{
+		"user",
+		"user_id",
+		"channel",
+		"channel_id",
+		"thread_id",
+		"threaded_message",
+		"message_id",
+		"protocol",
+		"brain",
+	}
+	for _, key := range keys {
+		upperKey := "GOPHER_" + strings.ToUpper(key)
+		if val, ok := env[upperKey]; ok {
+			bot[key] = val
+		}
+	}
+	return bot
+}
+
+// For loading config, an empty/blank bot will do
+func emptyBot() map[string]string {
+	var blank string
+	keys := []string{
+		"user",
+		"user_id",
+		"channel",
+		"channel_id",
+		"thread_id",
+		"message_id",
+		"protocol",
+		"brain",
+	}
+	bot := make(map[string]string, len(keys)) // Use make for initialization
+	for _, key := range keys {
+		bot[key] = blank
+	}
+	return bot
+}
+
+// Paths where libraries can be loaded
+func libPaths() []string {
+	libPaths := []string{
+		fmt.Sprintf("%s/lib", installPath),
+		fmt.Sprintf("%s/custom/lib", homePath),
+	}
+	return libPaths
 }
 
 func getDefCfg(t interface{}) (*[]byte, error) {
@@ -113,11 +167,8 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		} else if isExternalJsTask {
 			// Assuming you have a similar function for JavaScript
 			Log(robot.Info, "getting default configuration for external JavaScript plugin '"+task.name+"'")
-			requirePaths := []string{
-				fmt.Sprintf("%s/lib", installPath),
-				fmt.Sprintf("%s/custom/lib", homePath),
-			}
-			if defConfig, err := js.GetPluginConfig(taskPath, task.name, requirePaths); err != nil {
+			if defConfig, err := js.GetPluginConfig(filepath.Join(installPath, "gopherbot"),
+				taskPath, task.name, emptyBot(), libPaths()); err != nil {
 				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 				// This error shouldn't disable an external JS plugin
 				cchan <- getCfgReturn{&cfg, nil}

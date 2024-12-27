@@ -6,42 +6,35 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-// registerRobotObject exposes a global "robot" in JS with a .New() method
-// that returns a "bot" object. The "bot" object has direct access to fields
-// and methods for interacting with Gopherbot (Say, Log, Memory, etc.).
-func (ctx *jsContext) registerRobotObject() {
-	obj := ctx.vm.NewObject()
-
-	// Provide a "New()" function that returns a new "bot" object
-	obj.Set("New", func(call goja.FunctionCall) goja.Value {
-		botVal := ctx.newBotValue()
-		return botVal
-	})
-
-	// Expose "robot" as a global variable
-	ctx.vm.Set("robot", obj)
-}
-
-// newBotValue returns a goja.Value (object) with the fields and methods
-// that replicate the "bot" userdatas from the Lua integration.
-func (ctx *jsContext) newBotValue() goja.Value {
+// registerBotObject - exposes a global "bot" in JS with all the properties
+// we need to implement a proper bot in JavaScript, and all the methods needed
+// for the Gopherbot robot API.
+func (ctx *jsContext) registerBotObject() {
 	botObj := ctx.vm.NewObject()
 
-	// Set string fields directly from ctx.env
-	botObj.Set("user", ctx.env["GOPHER_USER"])
-	botObj.Set("user_id", ctx.env["GOPHER_USER_ID"])
-	botObj.Set("channel", ctx.env["GOPHER_CHANNEL"])
-	botObj.Set("channel_id", ctx.env["GOPHER_CHANNEL_ID"])
-	botObj.Set("thread_id", ctx.env["GOPHER_THREAD_ID"])
-	botObj.Set("message_id", ctx.env["GOPHER_MESSAGE_ID"])
-	botObj.Set("protocol", ctx.env["GOPHER_PROTOCOL"])
-	botObj.Set("brain", ctx.env["GOPHER_BRAIN"])
+	// Set string fields directly from ctx.bot
+	keys := []string{"user", "user_id", "channel", "channel_id", "thread_id", "message_id", "protocol", "brain"}
+	for _, key := range keys {
+		if value, ok := ctx.bot[key]; ok {
+			if key == "user_id" || key == "channel_id" {
+				value = extractID(value)
+			}
+			botObj.Set(key, value)
+		}
+	}
 
-	// Set threaded_message boolean based on ctx.env["GOPHER_THREADED_MESSAGE"]
-	if ctx.env["GOPHER_THREADED_MESSAGE"] == "true" {
+	// Set threaded_message boolean based on ctx.bot["GOPHER_THREADED_MESSAGE"]
+	if ctx.bot["threaded_message"] == "true" {
 		botObj.Set("threaded_message", true)
 	} else {
 		botObj.Set("threaded_message", false)
+	}
+
+	// Calling methods on a nil would cause a panic in Go, so we just stop with adding
+	// empty properties - mainly we want the 'require' to succeed.
+	if ctx.r == nil {
+		ctx.vm.Set("BOT", botObj)
+		return
 	}
 
 	// Attach "Say" method, capturing the return value
@@ -73,6 +66,6 @@ func (ctx *jsContext) newBotValue() goja.Value {
 	})
 
 	// ... other methods (Log, Memory, etc.) ...
-
-	return botObj
+	// Expose "BOT" as a global variable
+	ctx.vm.Set("BOT", botObj)
 }

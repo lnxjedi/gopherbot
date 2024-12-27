@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+      "module": "commonjs",
+      "target": "es5", // Target ECMAScript 5.1
+      "baseUrl": ".",
+      "paths": {
+        "*": [
+          "./lib/*"
+        ]
+      },
+      "checkJs": true  // Enable JavaScript checking
+    },
+    "include": [
+      "./**/*.js"
+    ]
+  }

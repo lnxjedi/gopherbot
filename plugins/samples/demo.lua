@@ -88,7 +88,7 @@ local function extractEnvBash(envVarName)
 end
 
 -- Require the constants module (concise form)
-local ret, task, log, fmt, proto = require "gopherbot_constants" ()
+local ret, task, log, fmt, proto = require "gopherbot_v1" ()
 
 --------------------------------------------------------------------------------
 -- Command Functions
