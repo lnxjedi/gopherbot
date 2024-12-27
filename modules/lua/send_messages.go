@@ -11,12 +11,12 @@ import (
 // getBotWithOptionalFormat is a helper function to:
 // 1) Extract the luaRobot (ud.Value) from stack index 1
 // 2) If present, parse a numeric message format argument (stack index formatIndex)
-func (lctx *luaContext) getBotWithOptionalFormat(L *glua.LState, caller string, formatIndex int) (robot.Robot, *luaRobot, bool) {
+func (lctx *luaContext) getBotWithOptionalFormat(L *glua.LState, caller string, formatIndex int) (robot.Robot, bool) {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
 		lctx.logBotErr(caller)
-		return nil, nil, false
+		return nil, false
 	}
 
 	r := lr.r
@@ -26,49 +26,31 @@ func (lctx *luaContext) getBotWithOptionalFormat(L *glua.LState, caller string, 
 		fmtArg := L.Get(formatIndex)
 		if fmtArg.Type() != glua.LTNumber {
 			lr.r.Log(robot.Error, fmt.Sprintf("%s: MessageFormat argument must be a number (Raw=0, Fixed=1, Variable=2)", caller))
-			return nil, nil, false
+			return nil, false
 		}
 
 		formatInt := int(fmtArg.(glua.LNumber))
 		if !isValidMessageFormat(formatInt) {
 			lr.r.Log(robot.Error, fmt.Sprintf("%s: Invalid MessageFormat value: %d. Must be Raw=0, Fixed=1, or Variable=2", caller, formatInt))
-			return nil, nil, false
+			return nil, false
 		}
 
 		r = r.MessageFormat(robot.MessageFormat(formatInt))
 	}
 
-	return r, lr, true
+	return r, true
 }
 
 // botSay(luaState) -> retVal
 // Usage in Lua: local ret = bot:Say("Hello world", fmtRaw)
 func (lctx luaContext) botSay(L *glua.LState) int {
 	msg := L.CheckString(2)
-	r, lr, ok := lctx.getBotWithOptionalFormat(L, "botSay", 3)
+	r, ok := lctx.getBotWithOptionalFormat(L, "botSay", 3)
 	if !ok {
 		return pushFail(L)
 	}
 
-	// Extract fields from *this* bot
-	user, _ := lr.fields["user"].(string)
-	channel, _ := lr.fields["channel"].(string)
-	threadedMessage, _ := lr.fields["threaded_message"].(bool)
-	threadID, _ := lr.fields["thread_id"].(string)
-
-	if channel == "" {
-		// Send to user; if user = "" it'll return an error code
-		ret := r.SendUserMessage(user, msg)
-		L.Push(glua.LNumber(ret))
-		return 1
-	}
-
-	// If channel != "", possibly thread
-	thread := ""
-	if threadedMessage {
-		thread = threadID
-	}
-	ret := r.SendChannelThreadMessage(channel, thread, msg)
+	ret := r.Say(msg)
 	L.Push(glua.LNumber(ret))
 	return 1
 }
@@ -77,22 +59,12 @@ func (lctx luaContext) botSay(L *glua.LState) int {
 // Usage in Lua: local ret = bot:SayThread("Hello in a new thread", fmtRaw)
 func (lctx luaContext) botSayThread(L *glua.LState) int {
 	msg := L.CheckString(2)
-	r, lr, ok := lctx.getBotWithOptionalFormat(L, "botSayThread", 3)
+	r, ok := lctx.getBotWithOptionalFormat(L, "botSayThread", 3)
 	if !ok {
 		return pushFail(L)
 	}
 
-	user, _ := lr.fields["user"].(string)
-	channel, _ := lr.fields["channel"].(string)
-	threadID, _ := lr.fields["thread_id"].(string)
-
-	if channel == "" {
-		ret := r.SendUserMessage(user, msg)
-		L.Push(glua.LNumber(ret))
-		return 1
-	}
-
-	ret := r.SendChannelThreadMessage(channel, threadID, msg)
+	ret := r.SayThread(msg)
 	L.Push(glua.LNumber(ret))
 	return 1
 }
@@ -101,27 +73,12 @@ func (lctx luaContext) botSayThread(L *glua.LState) int {
 // Usage: local ret = bot:Reply("Hello user", fmtVariable)
 func (lctx luaContext) botReply(L *glua.LState) int {
 	msg := L.CheckString(2)
-	r, lr, ok := lctx.getBotWithOptionalFormat(L, "botReply", 3)
+	r, ok := lctx.getBotWithOptionalFormat(L, "botReply", 3)
 	if !ok {
 		return pushFail(L)
 	}
 
-	user, _ := lr.fields["user"].(string)
-	channel, _ := lr.fields["channel"].(string)
-	threadedMessage, _ := lr.fields["threaded_message"].(bool)
-	threadID, _ := lr.fields["thread_id"].(string)
-
-	if channel == "" {
-		ret := r.SendUserMessage(user, msg)
-		L.Push(glua.LNumber(ret))
-		return 1
-	}
-
-	thread := ""
-	if threadedMessage {
-		thread = threadID
-	}
-	ret := r.SendUserChannelThreadMessage(user, channel, thread, msg)
+	ret := r.Reply(msg)
 	L.Push(glua.LNumber(ret))
 	return 1
 }
@@ -130,22 +87,12 @@ func (lctx luaContext) botReply(L *glua.LState) int {
 // Usage: local ret = bot:ReplyThread("Replying in a new thread", fmtFixed)
 func (lctx luaContext) botReplyThread(L *glua.LState) int {
 	msg := L.CheckString(2)
-	r, lr, ok := lctx.getBotWithOptionalFormat(L, "botReplyThread", 3)
+	r, ok := lctx.getBotWithOptionalFormat(L, "botReplyThread", 3)
 	if !ok {
 		return pushFail(L)
 	}
 
-	user, _ := lr.fields["user"].(string)
-	channel, _ := lr.fields["channel"].(string)
-	threadID, _ := lr.fields["thread_id"].(string)
-
-	if channel == "" {
-		ret := r.SendUserMessage(user, msg)
-		L.Push(glua.LNumber(ret))
-		return 1
-	}
-
-	ret := r.SendUserChannelThreadMessage(user, channel, threadID, msg)
+	ret := r.ReplyThread(msg)
 	L.Push(glua.LNumber(ret))
 	return 1
 }
@@ -155,7 +102,7 @@ func (lctx luaContext) botReplyThread(L *glua.LState) int {
 func (lctx luaContext) botSendChannelMessage(L *glua.LState) int {
 	channel := L.CheckString(2)
 	msg := L.CheckString(3)
-	r, _, ok := lctx.getBotWithOptionalFormat(L, "botSendChannelMessage", 4)
+	r, ok := lctx.getBotWithOptionalFormat(L, "botSendChannelMessage", 4)
 	if !ok {
 		return pushFail(L)
 	}
@@ -171,7 +118,7 @@ func (lctx luaContext) botSendChannelThreadMessage(L *glua.LState) int {
 	channel := L.CheckString(2)
 	thread := L.CheckString(3)
 	msg := L.CheckString(4)
-	r, _, ok := lctx.getBotWithOptionalFormat(L, "botSendChannelThreadMessage", 5)
+	r, ok := lctx.getBotWithOptionalFormat(L, "botSendChannelThreadMessage", 5)
 	if !ok {
 		return pushFail(L)
 	}
@@ -186,7 +133,7 @@ func (lctx luaContext) botSendChannelThreadMessage(L *glua.LState) int {
 func (lctx luaContext) botSendUserMessage(L *glua.LState) int {
 	user := L.CheckString(2)
 	msg := L.CheckString(3)
-	r, _, ok := lctx.getBotWithOptionalFormat(L, "botSendUserMessage", 4)
+	r, ok := lctx.getBotWithOptionalFormat(L, "botSendUserMessage", 4)
 	if !ok {
 		return pushFail(L)
 	}
@@ -202,7 +149,7 @@ func (lctx luaContext) botSendUserChannelMessage(L *glua.LState) int {
 	user := L.CheckString(2)
 	channel := L.CheckString(3)
 	msg := L.CheckString(4)
-	r, _, ok := lctx.getBotWithOptionalFormat(L, "botSendUserChannelMessage", 5)
+	r, ok := lctx.getBotWithOptionalFormat(L, "botSendUserChannelMessage", 5)
 	if !ok {
 		return pushFail(L)
 	}
@@ -219,7 +166,7 @@ func (lctx luaContext) botSendUserChannelThreadMessage(L *glua.LState) int {
 	channel := L.CheckString(3)
 	thread := L.CheckString(4)
 	msg := L.CheckString(5)
-	r, _, ok := lctx.getBotWithOptionalFormat(L, "botSendUserChannelThreadMessage", 6)
+	r, ok := lctx.getBotWithOptionalFormat(L, "botSendUserChannelThreadMessage", 6)
 	if !ok {
 		return pushFail(L)
 	}
