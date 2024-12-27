@@ -88,7 +88,10 @@ local function extractEnvBash(envVarName)
 end
 
 -- Require the constants module (concise form)
-local ret, task, log, fmt, proto = require "gopherbot_v1" ()
+local gopherbot_v1 = require "gopherbot_v1"
+local robot, ret, task, log, fmt, proto = require "gopherbot_v1" ()
+
+local bot = robot.New()
 
 --------------------------------------------------------------------------------
 -- Command Functions
@@ -192,6 +195,7 @@ end
 
 local function askThreadCommand(bot)
   -- Prompt for user input in a thread
+  bot:Say("I'm going to ask you a question...")
   local rep, rcode = bot:PromptThreadForReply("SimpleString",
     "Tell me something - anything!")
   if rcode == ret.Ok then

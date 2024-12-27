@@ -244,6 +244,48 @@ function robot.New()
         end
     end
 
+    -- Prompting methods
+
+    function newBot:PromptForReply(regex_id, prompt, format)
+        local thread = ""
+        if self.threaded_message then
+            thread = self.thread_id
+        end
+        return self:PromptUserChannelThreadForReply(regex_id, self.user, self.channel, thread, prompt, format)
+    end
+
+    function newBot:PromptThreadForReply(regex_id, prompt, format)
+        return self:PromptUserChannelThreadForReply(regex_id, self.user, self.channel, self.thread_id, prompt, format)
+    end
+
+    function newBot:PromptUserForReply(regex_id, prompt, format)
+        return self:PromptUserChannelThreadForReply(regex_id, self.user, "", "", prompt, format)
+    end
+
+    function newBot:PromptUserChannelForReply(regex_id, prompt, format)
+        return self:PromptUserChannelThreadForReply(regex_id, self.user, self.channel, "", prompt, format)
+    end
+
+    function newBot:PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format)
+        local fBOT = self.BOT
+        if format then
+            fBOT = self.BOT:MessageFormat(format)
+        end
+        local args = { regex_id, user, channel, thread, prompt }
+        local ret
+        for i = 1, 3 do
+            ret = fBOT:PromptUserChannelThreadForReply(unpack(args))
+            if ret.RetVal ~= ret.RetryPrompt then
+                return { Reply = ret.Reply, RetVal = ret.RetVal }
+            end
+        end
+        if ret.RetVal == ret.RetryPrompt then
+            return { Reply = ret.Reply, RetVal = ret.Interrupted }
+        else
+            return { Reply = ret.Reply, RetVal = ret.RetVal }
+        end
+    end
+
     -- Add a Pause method - call the Go API
     function newBot:Pause(seconds)
         self.BOT:Pause(seconds)
