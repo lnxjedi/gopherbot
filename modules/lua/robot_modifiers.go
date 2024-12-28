@@ -32,11 +32,9 @@ func copyFields(original map[string]interface{}) map[string]interface{} {
 // -------------------------------------------------------------------
 
 func (lctx *luaContext) botClone(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	lr, ok := ud.Value.(*luaRobot)
+	lr, ok := lctx.getRobotUD(L, "Clone")
 	if !ok {
-		lctx.logBotErr("Clone")
-		L.RaiseError("Invalid bot userdata for Clone()")
+		L.RaiseError("invalid robot userdata in Clone")
 		return 0
 	}
 
@@ -47,16 +45,13 @@ func (lctx *luaContext) botClone(L *glua.LState) int {
 }
 
 func (lctx *luaContext) botFixed(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	lr, ok := ud.Value.(*luaRobot)
+	lr, ok := lctx.getRobotUD(L, "Fixed")
 	if !ok {
-		lctx.logBotErr("Fixed")
-		L.RaiseError("Invalid bot userdata for Fixed()")
+		L.RaiseError("invalid robot userdata in Fixed")
 		return 0
 	}
 
 	newFields := copyFields(lr.fields)
-	newFields["format"] = "Fixed"
 	fixedBot := lr.r.Fixed()
 	newUD := newLuaBot(L, fixedBot, newFields)
 	L.Push(newUD)
@@ -64,16 +59,15 @@ func (lctx *luaContext) botFixed(L *glua.LState) int {
 }
 
 func (lctx *luaContext) botDirect(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	lr, ok := ud.Value.(*luaRobot)
+	lr, ok := lctx.getRobotUD(L, "Direct")
 	if !ok {
-		lctx.logBotErr("Direct")
-		L.RaiseError("Invalid bot userdata for Direct()")
+		L.RaiseError("invalid robot userdata in Direct")
 		return 0
 	}
 
 	newFields := copyFields(lr.fields)
 	newFields["channel"] = ""
+	newFields["channel_id"] = ""
 	newFields["thread_id"] = ""
 	newFields["threaded"] = false
 	newUD := newLuaBot(L, lr.r, newFields)
@@ -82,12 +76,15 @@ func (lctx *luaContext) botDirect(L *glua.LState) int {
 }
 
 func (lctx *luaContext) botThreaded(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	lr, ok := ud.Value.(*luaRobot)
+	lr, ok := lctx.getRobotUD(L, "Threaded")
 	if !ok {
-		lctx.logBotErr("Threaded")
-		L.RaiseError("Invalid bot userdata for Threaded()")
+		L.RaiseError("invalid robot userdata in Threaded")
 		return 0
+	}
+	// Technically an error, but *shrug*
+	if lr.fields["channel"] == "" {
+		L.Push(newLuaBot(L, lr.r, lr.fields))
+		return 1
 	}
 
 	newFields := copyFields(lr.fields)
@@ -99,14 +96,12 @@ func (lctx *luaContext) botThreaded(L *glua.LState) int {
 
 // botMessageFormat updates the message format of the bot.
 func (lctx *luaContext) botMessageFormat(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	formatArg := L.Get(2)
-
-	lr, ok := ud.Value.(*luaRobot)
+	lr, ok := lctx.getRobotUD(L, "MessageFormat")
 	if !ok {
-		lctx.logBotErr("MessageFormat")
+		L.RaiseError("invalid robot userdata in MessageFormat")
 		return 0
 	}
+	formatArg := L.Get(2)
 
 	// Validate that formatArg is a number
 	if formatArg.Type() != glua.LTNumber {
@@ -126,19 +121,7 @@ func (lctx *luaContext) botMessageFormat(L *glua.LState) int {
 	// Update the robot's message format
 	updatedRobot := lr.r.MessageFormat(robot.MessageFormat(formatInt))
 
-	// Update the fields with the new format string
-	formatStr := ""
-	switch robot.MessageFormat(formatInt) {
-	case robot.Raw:
-		formatStr = "Raw"
-	case robot.Fixed:
-		formatStr = "Fixed"
-	case robot.Variable:
-		formatStr = "Variable"
-	}
-
 	newFields := copyFields(lr.fields)
-	newFields["format"] = formatStr
 
 	// Create a new Lua bot userdata with the updated robot and fields
 	newUD := newLuaBot(L, updatedRobot, newFields)

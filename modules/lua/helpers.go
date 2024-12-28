@@ -20,6 +20,17 @@ func (lctx *luaContext) getRobot(L *glua.LState, caller string) (r robot.Robot, 
 	return lr.r, true
 }
 
+// getRobotUD - get the current validated luaRobot or log an error.
+func (lctx *luaContext) getRobotUD(L *glua.LState, caller string) (lr *luaRobot, ok bool) {
+	ud := L.CheckUserData(1)
+	lr, ok = ud.Value.(*luaRobot)
+	if !ok || lr == nil || lr.r == nil {
+		lctx.Log(robot.Error, fmt.Sprintf("%s called with invalid bot userdata", caller))
+		return nil, false
+	}
+	return lr, true
+}
+
 // getFormattedRobot does the same as above and also checks for the optional
 // format argument and returns a formatted robot if needed.
 // Returns:
