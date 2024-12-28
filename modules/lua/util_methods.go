@@ -39,7 +39,7 @@ func (lctx luaContext) botRandomInt(L *glua.LState) int {
 	}
 
 	if nLua.Type() != glua.LTNumber {
-		lr.r.Log(robot.Error, fmt.Sprintf("RandomInt requires a numeric argument, got %s", nLua.Type().String()))
+		lctx.Log(robot.Error, fmt.Sprintf("RandomInt requires a numeric argument, got %s", nLua.Type().String()))
 		L.Push(glua.LNumber(0))
 		return 1
 	}
@@ -67,7 +67,7 @@ func (lctx luaContext) botRandomString(L *glua.LState) int {
 	}
 
 	if arrLua.Type() != glua.LTTable {
-		lr.r.Log(robot.Error, "RandomString called with non-table argument")
+		lctx.Log(robot.Error, "RandomString called with non-table argument")
 		L.Push(glua.LString(""))
 		return 1
 	}
@@ -81,12 +81,12 @@ func (lctx luaContext) botRandomString(L *glua.LState) int {
 		if val.Type() == glua.LTString {
 			goSlice = append(goSlice, val.String())
 		} else {
-			lr.r.Log(robot.Error, fmt.Sprintf("RandomString: non-string element at index %d, ignoring", i))
+			lctx.Log(robot.Error, fmt.Sprintf("RandomString: non-string element at index %d, ignoring", i))
 		}
 	}
 
 	if len(goSlice) == 0 {
-		lr.r.Log(robot.Error, "RandomString found no valid strings, returning empty string")
+		lctx.Log(robot.Error, "RandomString found no valid strings, returning empty string")
 		L.Push(glua.LString(""))
 		return 1
 	}
@@ -112,7 +112,7 @@ func (lctx luaContext) botPause(L *glua.LState) int {
 	}
 
 	if secLua.Type() != glua.LTNumber {
-		lr.r.Log(robot.Error, fmt.Sprintf("Pause requires a numeric argument, got %s", secLua.Type().String()))
+		lctx.Log(robot.Error, fmt.Sprintf("Pause requires a numeric argument, got %s", secLua.Type().String()))
 		return pushFail(L)
 	}
 
@@ -161,7 +161,7 @@ func (lctx luaContext) botElevate(L *glua.LState) int {
 		immediate = bool(immArg.(glua.LBool))
 	} else {
 		// If user didn't pass a bool, log and treat it as false
-		lr.r.Log(robot.Error, fmt.Sprintf("Elevate called with non-boolean argument (%s), defaulting to false", immArg.Type().String()))
+		lctx.Log(robot.Error, fmt.Sprintf("Elevate called with non-boolean argument (%s), defaulting to false", immArg.Type().String()))
 	}
 
 	success := lr.r.Elevate(immediate)
@@ -190,7 +190,7 @@ func (lctx luaContext) botLog(L *glua.LState) int {
 		numLevel := int(levelArg.(glua.LNumber))
 		lvl = robot.LogLevel(numLevel)
 	} else {
-		lr.r.Log(robot.Error, fmt.Sprintf("Log: expected numeric level, got %s; defaulting to Info", levelArg.Type().String()))
+		lctx.Log(robot.Error, fmt.Sprintf("Log: expected numeric level, got %s; defaulting to Info", levelArg.Type().String()))
 	}
 
 	var msg string
@@ -198,10 +198,10 @@ func (lctx luaContext) botLog(L *glua.LState) int {
 		msg = msgArg.String()
 	} else {
 		msg = fmt.Sprintf("Log called with non-string message type: %s", msgArg.Type().String())
-		lr.r.Log(robot.Error, msg)
+		lctx.Log(robot.Error, msg)
 		return pushFail(L)
 	}
 
-	lr.r.Log(lvl, msg)
+	lctx.Log(lvl, msg)
 	return pushFail(L)
 }

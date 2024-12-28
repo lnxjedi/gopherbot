@@ -4,8 +4,54 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/lnxjedi/gopherbot/robot"
 	glua "github.com/yuin/gopher-lua"
 )
+
+// getRobot - get the current robot (possibly updated with e.g. MessageFormat)
+// or log an error.
+func (lctx *luaContext) getRobot(L *glua.LState, caller string) (r robot.Robot, ok bool) {
+	ud := L.CheckUserData(1)
+	lr, ok := ud.Value.(*luaRobot)
+	if !ok || lr == nil || lr.r == nil {
+		lctx.Log(robot.Error, fmt.Sprintf("%s called with invalid bot userdata", caller))
+		return nil, false
+	}
+	return lr.r, true
+}
+
+// getFormattedRobot does the same as above and also checks for the optional
+// format argument and returns a formatted robot if needed.
+// Returns:
+// r - robot object, optionally with format applied
+// ok - false if the userdata didn't contain a valid robot.Robot
+func (lctx *luaContext) getOptionalFormattedRobot(L *glua.LState, caller string, idx int) (r robot.Robot, ok bool) {
+	// First validate the userData
+	ud := L.CheckUserData(1)
+	lr, ok := ud.Value.(*luaRobot)
+	if !ok || lr == nil || lr.r == nil {
+		lctx.Log(robot.Error, fmt.Sprintf("%s called with invalid bot userdata", caller))
+		return nil, false
+	}
+	r = lr.r
+	// If the caller supplied a numeric argument for format, parse and validate it
+	if L.GetTop() >= idx {
+		fmtArg := L.Get(idx)
+		if fmtArg.Type() != glua.LTNumber {
+			lctx.Log(robot.Error, fmt.Sprintf("%s: MessageFormat argument must be a number (Raw=0, Fixed=1, Variable=2)", caller))
+			return r, true
+		}
+
+		formatInt := int(fmtArg.(glua.LNumber))
+		if !isValidMessageFormat(formatInt) {
+			lctx.Log(robot.Error, fmt.Sprintf("%s: Invalid MessageFormat value: %d. Must be Raw=0, Fixed=1, or Variable=2", caller, formatInt))
+			return r, true
+		}
+
+		return r.MessageFormat(robot.MessageFormat(formatInt)), true
+	}
+	return r, true
+}
 
 // -------------------------------------------------------------------
 // Helper function to collect remaining stack arguments as strings
@@ -20,7 +66,7 @@ func parseStringArgs(L *glua.LState, start int) []string {
 			args = append(args, val.String())
 		} else {
 			// Optionally log or skip
-			// Could do: lr.r.Log(robot.Error, "AddTask ignoring non-string argument")
+			// Could do: lctx.Log(robot.Error, "AddTask ignoring non-string argument")
 		}
 	}
 	return args

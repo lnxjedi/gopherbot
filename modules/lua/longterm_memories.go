@@ -26,15 +26,12 @@ func (lctx luaContext) RegisterLongTermMemoryMethods(L *glua.LState) {
 
 // botCheckoutDatum allows Lua scripts to checkout a datum by key, optionally read/write.
 func (lctx luaContext) botCheckoutDatum(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	key := L.CheckString(2)
-	rwLua := L.Get(3)
-
-	lr, ok := ud.Value.(*luaRobot)
+	r, ok := lctx.getRobot(L, "CheckoutDatum")
 	if !ok {
-		lctx.logBotErr("CheckoutDatum")
 		return pushFail(L)
 	}
+	key := L.CheckString(2)
+	rwLua := L.Get(3)
 
 	rw := false
 	if b, isBool := rwLua.(glua.LBool); isBool {
@@ -42,7 +39,7 @@ func (lctx luaContext) botCheckoutDatum(L *glua.LState) int {
 	}
 
 	var datum interface{}
-	lockToken, exists, ret := lr.r.CheckoutDatum(key, &datum, rw)
+	lockToken, exists, ret := r.CheckoutDatum(key, &datum, rw)
 	if ret != robot.Ok {
 		L.Push(glua.LNumber(ret))
 		L.Push(glua.LNil)
@@ -59,7 +56,7 @@ func (lctx luaContext) botCheckoutDatum(L *glua.LState) int {
 
 	luaValue, err := parseGoValueToLua(L, datum)
 	if err != nil {
-		lr.r.Log(robot.Error, fmt.Sprintf("Lua error in CheckoutDatum '%s': %v", key, err))
+		lctx.Log(robot.Error, fmt.Sprintf("Lua error in CheckoutDatum '%s': %v", key, err))
 		L.Push(glua.LNumber(robot.DataFormatError))
 		L.Push(glua.LNil)
 		L.Push(glua.LString(lockToken))
@@ -92,7 +89,7 @@ func (lctx luaContext) botUpdateDatum(L *glua.LState) int {
 	visited := make(map[*glua.LTable]bool)
 	goDatum, err := parseLuaValueToGo(luaDataVal, visited)
 	if err != nil {
-		lr.r.Log(robot.Error, fmt.Sprintf("Error serializing Lua object for key '%s': %v", key, err))
+		lctx.Log(robot.Error, fmt.Sprintf("Error serializing Lua object for key '%s': %v", key, err))
 		L.Push(glua.LNumber(robot.DataFormatError))
 		return 1
 	}

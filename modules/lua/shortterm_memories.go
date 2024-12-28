@@ -44,7 +44,7 @@ func (lctx luaContext) botRemember(L *glua.LState) int {
 
 	// Validate arguments
 	if key.Type() != glua.LTString || val.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "Remember: key and value must be strings")
+		lctx.Log(robot.Error, "Remember: key and value must be strings")
 		return pushFail(L)
 	}
 	var shared bool
@@ -78,7 +78,7 @@ func (lctx luaContext) botRememberThread(L *glua.LState) int {
 
 	// Validate arguments
 	if key.Type() != glua.LTString || val.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "RememberThread: key and value must be strings")
+		lctx.Log(robot.Error, "RememberThread: key and value must be strings")
 		return pushFail(L)
 	}
 	var shared bool
@@ -110,7 +110,7 @@ func (lctx luaContext) botRememberContext(L *glua.LState) int {
 
 	// Validate arguments
 	if cArg.Type() != glua.LTString || vArg.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "RememberContext: context and value must be strings")
+		lctx.Log(robot.Error, "RememberContext: context and value must be strings")
 		return pushFail(L)
 	}
 
@@ -136,7 +136,7 @@ func (lctx luaContext) botRememberContextThread(L *glua.LState) int {
 
 	// Validate arguments
 	if cArg.Type() != glua.LTString || vArg.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "RememberContextThread: context and value must be strings")
+		lctx.Log(robot.Error, "RememberContextThread: context and value must be strings")
 		return pushFail(L)
 	}
 
@@ -163,7 +163,7 @@ func (lctx luaContext) botRecall(L *glua.LState) int {
 
 	// Validate key argument
 	if key.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "Recall: key must be a string")
+		lctx.Log(robot.Error, "Recall: key must be a string")
 		L.Push(glua.LString(""))
 		return 1
 	}

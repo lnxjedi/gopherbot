@@ -31,7 +31,7 @@ func (lctx luaContext) botGetTaskConfig(L *glua.LState) int {
 		luaVal, err := parseGoValueToLua(L, mapConfig)
 		if err != nil {
 			// This is unusual (bad JSON?), log and return DataFormatError
-			lr.r.Log(robot.Error, fmt.Sprintf("Error converting map config to Lua: %v", err))
+			lctx.Log(robot.Error, fmt.Sprintf("Error converting map config to Lua: %v", err))
 			L.Push(glua.LNil) // no config
 			L.Push(glua.LNumber(robot.DataFormatError))
 			return 2
@@ -48,7 +48,7 @@ func (lctx luaContext) botGetTaskConfig(L *glua.LState) int {
 		if retVal == robot.Ok {
 			luaVal, err := parseGoValueToLua(L, sliceConfig)
 			if err != nil {
-				lr.r.Log(robot.Error, fmt.Sprintf("Error converting slice config to Lua: %v", err))
+				lctx.Log(robot.Error, fmt.Sprintf("Error converting slice config to Lua: %v", err))
 				L.Push(glua.LNil)
 				L.Push(glua.LNumber(robot.DataFormatError))
 				return 2

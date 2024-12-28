@@ -18,6 +18,7 @@ type luaRobot struct {
 // luaContext holds a reference to the robot.Robot interface and the Lua state.
 type luaContext struct {
 	luaRobot
+	robot.Logger
 	L *glua.LState
 }
 
@@ -27,7 +28,8 @@ type luaContext struct {
 //   - env - env vars normally passed to external scripts, has thread info
 //   - r: the robot.Robot
 //   - args: the script arguments
-func CallExtension(execPath, taskPath, taskName string, pkgPath []string, bot map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func CallExtension(execPath, taskPath, taskName string, pkgPath []string, logger robot.Logger,
+	bot map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	L := glua.NewState()
 	defer L.Close()
 
@@ -43,8 +45,9 @@ func CallExtension(execPath, taskPath, taskName string, pkgPath []string, bot ma
 	}
 
 	lctx := luaContext{
-		luaRobot: lr,
-		L:        L,
+		lr,
+		logger,
+		L, // LState
 	}
 
 	// Create a Lua arg table
@@ -119,7 +122,7 @@ func addArgTable(L *glua.LState, execPath, taskPath string, args ...string) {
 }
 
 // updatePkgPath appends additional paths to Lua's package.path
-func updatePkgPath(L *glua.LState, r robot.Robot, pkgPath []string) (robot.TaskRetVal, error) {
+func updatePkgPath(L *glua.LState, l robot.Logger, pkgPath []string) (robot.TaskRetVal, error) {
 	var additionalPaths []string
 	for _, dir := range pkgPath {
 		// Ensure no trailing slash
@@ -138,26 +141,20 @@ func updatePkgPath(L *glua.LState, r robot.Robot, pkgPath []string) (robot.TaskR
 
 	// Execute the Lua code to update package.path
 	if err := L.DoString(luaPathUpdate); err != nil {
-		if r != nil {
-			r.Log(robot.Error, fmt.Sprintf("Failed to update package.path: %v", err))
-		} else {
-			fmt.Println("failed to update package.path in modules/lua")
-		}
+		l.Log(robot.Error, fmt.Sprintf("Failed to update package.path: %v", err))
 		return robot.MechanismFail, err
 	}
 	return robot.Normal, nil
 }
 
 // modifyOSFunctions overrides os.setenv and os.setlocale in Lua to prevent modifications
-func modifyOSFunctions(L *glua.LState, r robot.Robot) {
+func modifyOSFunctions(L *glua.LState, l robot.Logger) {
 	osVal := L.GetGlobal("os")
 	if osTable, ok := osVal.(*glua.LTable); ok {
 		// Replace os.setenv
 		osTable.RawSetString("setenv", L.NewFunction(func(L *glua.LState) int {
 			key := L.CheckString(1)
-			if r != nil {
-				r.Log(robot.Warn, "Lua script tried to call os.setenv; ignoring for key="+key)
-			}
+			l.Log(robot.Warn, "Lua script tried to call os.setenv; ignoring for key="+key)
 			// No return value
 			return 0
 		}))
@@ -165,9 +162,7 @@ func modifyOSFunctions(L *glua.LState, r robot.Robot) {
 		// Replace os.setlocale
 		osTable.RawSetString("setlocale", L.NewFunction(func(L *glua.LState) int {
 			locale := L.CheckString(1)
-			if r != nil {
-				r.Log(robot.Warn, "Lua script tried to call os.setlocale; ignoring for locale="+locale)
-			}
+			l.Log(robot.Warn, "Lua script tried to call os.setlocale; ignoring for locale="+locale)
 			// Return nil to mimic Lua's behavior
 			L.Push(glua.LNil)
 			return 1

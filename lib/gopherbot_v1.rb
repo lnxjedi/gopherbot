@@ -300,23 +300,27 @@ class BaseBot
 		end
 	end
 
-	def PromptForReply(regex_id, prompt)
+	def PromptForReply(regex_id, prompt, format="")
 		thread = @threaded_message ? @thread_id : ""
-		return PromptUserChannelThreadForReply(regex_id, @user, @channel, thread, prompt)
+		return PromptUserChannelThreadForReply(regex_id, @user, @channel, thread, prompt, format)
 	end
 
-	def PromptThreadForReply(regex_id, prompt)
-		return PromptUserChannelThreadForReply(regex_id, @user, @channel, @thread_id, prompt)
+	def PromptThreadForReply(regex_id, prompt, format="")
+		return PromptUserChannelThreadForReply(regex_id, @user, @channel, @thread_id, prompt, format)
 	end
 
-	def PromptUserForReply(regex_id, prompt)
-		return PromptUserChannelThreadForReply(regex_id, @user, "", "", prompt)
+	def PromptUserForReply(regex_id, user, prompt, format="")
+		return PromptUserChannelThreadForReply(regex_id, user, "", "", prompt, format)
 	end
 
-	def PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt)
+	def PromptUserChannelForReply(regex_id, user, channel, prompt, format="")
+		return PromptUserChannelThreadForReply(regex_id, user, channel, "", prompt, format)
+	end
+
+	def PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format="")
 		args = { "RegexID" => regex_id, "User" => user, "Channel" => channel, "Thread" => thread, "Prompt" => prompt }
 		for i in 1..3
-			ret = callBotFunc(__method__, args)
+			ret = callBotFunc(__method__, args, format)
 			next if ret["RetVal"] == RetryPrompt
 			return Reply.new(ret["Reply"], ret["RetVal"])
 		end

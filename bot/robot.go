@@ -357,8 +357,7 @@ func (w *worker) Log(l robot.LogLevel, msg string, v ...interface{}) (logged boo
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
-	Log(l, msg)
-	return
+	return Log(l, msg)
 }
 
 // see robot/robot.go

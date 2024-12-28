@@ -51,7 +51,7 @@ func (lctx luaContext) botGetParameter(L *glua.LState) int {
 	}
 
 	if name.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "GetParameter requires a string argument")
+		lctx.Log(robot.Error, "GetParameter requires a string argument")
 		return pushFail(L)
 	}
 
@@ -75,7 +75,7 @@ func (lctx luaContext) botSetParameter(L *glua.LState) int {
 	}
 
 	if nameArg.Type() != glua.LTString || valArg.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "SetParameter requires (string, string)")
+		lctx.Log(robot.Error, "SetParameter requires (string, string)")
 		return pushFail(L)
 	}
 
@@ -131,7 +131,7 @@ func (lctx luaContext) botSpawnJob(L *glua.LState) int {
 	}
 
 	if name.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "SpawnJob requires at least (string name)")
+		lctx.Log(robot.Error, "SpawnJob requires at least (string name)")
 		return pushFail(L)
 	}
 
@@ -157,7 +157,7 @@ func (lctx luaContext) botAddTask(L *glua.LState) int {
 	}
 
 	if name.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "AddTask requires at least (string name)")
+		lctx.Log(robot.Error, "AddTask requires at least (string name)")
 		return pushFail(L)
 	}
 
@@ -181,7 +181,7 @@ func (lctx luaContext) botFinalTask(L *glua.LState) int {
 	}
 
 	if name.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "FinalTask requires at least (string name)")
+		lctx.Log(robot.Error, "FinalTask requires at least (string name)")
 		return pushFail(L)
 	}
 
@@ -205,7 +205,7 @@ func (lctx luaContext) botFailTask(L *glua.LState) int {
 	}
 
 	if name.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "FailTask requires at least (string name)")
+		lctx.Log(robot.Error, "FailTask requires at least (string name)")
 		return pushFail(L)
 	}
 
@@ -229,7 +229,7 @@ func (lctx luaContext) botAddJob(L *glua.LState) int {
 	}
 
 	if name.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "AddJob requires at least (string name)")
+		lctx.Log(robot.Error, "AddJob requires at least (string name)")
 		return pushFail(L)
 	}
 
@@ -254,7 +254,7 @@ func (lctx luaContext) botAddCommand(L *glua.LState) int {
 	}
 
 	if pluginArg.Type() != glua.LTString || cmdArg.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "AddCommand requires (plugin, command) as strings")
+		lctx.Log(robot.Error, "AddCommand requires (plugin, command) as strings")
 		return pushFail(L)
 	}
 
@@ -278,7 +278,7 @@ func (lctx luaContext) botFinalCommand(L *glua.LState) int {
 	}
 
 	if pluginArg.Type() != glua.LTString || cmdArg.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "FinalCommand requires (plugin, command) as strings")
+		lctx.Log(robot.Error, "FinalCommand requires (plugin, command) as strings")
 		return pushFail(L)
 	}
 
@@ -302,7 +302,7 @@ func (lctx luaContext) botFailCommand(L *glua.LState) int {
 	}
 
 	if pluginArg.Type() != glua.LTString || cmdArg.Type() != glua.LTString {
-		lr.r.Log(robot.Error, "FailCommand requires (plugin, command) as strings")
+		lctx.Log(robot.Error, "FailCommand requires (plugin, command) as strings")
 		return pushFail(L)
 	}
 

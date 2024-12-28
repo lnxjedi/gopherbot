@@ -258,8 +258,8 @@ function robot.New()
         return self:PromptUserChannelThreadForReply(regex_id, self.user, self.channel, self.thread_id, prompt, format)
     end
 
-    function newBot:PromptUserForReply(regex_id, prompt, format)
-        return self:PromptUserChannelThreadForReply(regex_id, self.user, "", "", prompt, format)
+    function newBot:PromptUserForReply(regex_id, user, prompt, format)
+        return self:PromptUserChannelThreadForReply(regex_id, user, "", "", prompt, format)
     end
 
     function newBot:PromptUserChannelForReply(regex_id, prompt, format)

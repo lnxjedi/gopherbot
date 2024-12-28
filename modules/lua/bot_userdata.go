@@ -54,11 +54,7 @@ func newLuaBot(L *glua.LState, r robot.Robot, fields map[string]interface{}) *gl
 
 // logBotErr logs an error specific to the bot userdata.
 func (lctx *luaContext) logBotErr(caller string) {
-	if lctx.r != nil {
-		lctx.r.Log(robot.Error, fmt.Sprintf("%s called with invalid bot userdata", caller))
-	} else {
-		fmt.Printf("[ERR] %s called but robot is nil\n", caller)
-	}
+	lctx.Log(robot.Error, fmt.Sprintf("%s called with invalid bot userdata", caller))
 }
 
 // registerBotMetatableIfNeeded returns the "bot" metatable, creating it if needed.
