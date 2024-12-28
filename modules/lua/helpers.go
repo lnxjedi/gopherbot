@@ -48,11 +48,13 @@ func (lctx *luaContext) getOptionalFormattedRobot(L *glua.LState, caller string,
 	// If the caller supplied a numeric argument for format, parse and validate it
 	if L.GetTop() >= idx {
 		fmtArg := L.Get(idx)
-		if fmtArg.Type() != glua.LTNumber {
+		if fmtArg.Type() == glua.LTNil {
+			// Convenience functions always pass a nil
+			return r, true
+		} else if fmtArg.Type() != glua.LTNumber {
 			lctx.Log(robot.Error, fmt.Sprintf("%s: MessageFormat argument must be a number (Raw=0, Fixed=1, Variable=2)", caller))
 			return r, true
 		}
-
 		formatInt := int(fmtArg.(glua.LNumber))
 		if !isValidMessageFormat(formatInt) {
 			lctx.Log(robot.Error, fmt.Sprintf("%s: Invalid MessageFormat value: %d. Must be Raw=0, Fixed=1, or Variable=2", caller, formatInt))

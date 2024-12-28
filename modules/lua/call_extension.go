@@ -74,7 +74,7 @@ func CallExtension(execPath, taskPath, taskName string, pkgPath []string, logger
 
 	// Create the primary robot userdata and set it as "robot"
 	robotUD := newLuaBot(L, r, botFields)
-	L.SetGlobal("BOT", robotUD)
+	L.SetGlobal("GBOT", robotUD)
 
 	// Update package.path with additional directories and Lua patterns
 	ret, err := updatePkgPath(L, r, pkgPath)

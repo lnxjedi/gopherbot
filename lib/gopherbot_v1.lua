@@ -141,57 +141,37 @@ end
 local robot = {}
 function robot.New()
     local newBot = {}
-    newBot.BOT = BOT -- Keep a reference to the original Go BOT object
-    newBot.user = BOT.user
-    newBot.user_id = BOT.user_id
-    newBot.channel = BOT.channel
-    newBot.channel_id = BOT.channel_id
-    newBot.thread_id = BOT.thread_id
-    newBot.message_id = BOT.message_id
-    newBot.protocol = BOT.protocol
-    newBot.brain = BOT.brain
-    newBot.threaded_message = BOT.threaded_message
+    newBot.GBOT = GBOT -- Keep a reference to the original Go GBOT object
+    newBot.user = GBOT.user
+    newBot.user_id = GBOT.user_id
+    newBot.channel = GBOT.channel
+    newBot.channel_id = GBOT.channel_id
+    newBot.thread_id = GBOT.thread_id
+    newBot.message_id = GBOT.message_id
+    newBot.protocol = GBOT.protocol
+    newBot.brain = GBOT.brain
+    newBot.threaded_message = GBOT.threaded_message
 
-    -- Send* methods (handling format with a formatted BOT object)
+    -- Send* methods (handling format with a formatted GBOT object)
 
     function newBot:SendChannelMessage(channel, message, format)
-        local fBOT = self.BOT
-        if format then
-            fBOT = self.BOT:MessageFormat(format)
-        end
-        return fBOT:SendChannelMessage(channel, message)
+        return self.GBOT:SendChannelMessage(channel, message, format)
     end
 
     function newBot:SendChannelThreadMessage(channel, thread, message, format)
-        local fBOT = self.BOT
-        if format then
-            fBOT = self.BOT:MessageFormat(format)
-        end
-        return fBOT:SendChannelThreadMessage(channel, thread, message)
+        return self.GBOT:SendChannelThreadMessage(channel, thread, message, format)
     end
 
     function newBot:SendUserMessage(user, message, format)
-        local fBOT = self.BOT
-        if format then
-            fBOT = self.BOT:MessageFormat(format)
-        end
-        return fBOT:SendUserMessage(user, message)
+        return self.GBOT:SendUserMessage(user, message, format)
     end
 
     function newBot:SendUserChannelMessage(user, channel, message, format)
-        local fBOT = self.BOT
-        if format then
-            fBOT = self.BOT:MessageFormat(format)
-        end
-        return fBOT:SendUserChannelMessage(user, channel, message)
+        return self.GBOT:SendUserChannelMessage(user, channel, message, format)
     end
 
     function newBot:SendUserChannelThreadMessage(user, channel, thread, message, format)
-        local fBOT = self.BOT
-        if format then
-            fBOT = self.BOT:MessageFormat(format)
-        end
-        return fBOT:SendUserChannelThreadMessage(user, channel, thread, message)
+        return self.GBOT:SendUserChannelThreadMessage(user, channel, thread, message, format)
     end
 
     -- Say, SayThread, Reply, and ReplyThread methods (convenience wrappers)
@@ -267,28 +247,12 @@ function robot.New()
     end
 
     function newBot:PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format)
-        local fBOT = self.BOT
-        if format then
-            fBOT = self.BOT:MessageFormat(format)
-        end
-        local args = { regex_id, user, channel, thread, prompt }
-        local ret
-        for i = 1, 3 do
-            ret = fBOT:PromptUserChannelThreadForReply(unpack(args))
-            if ret.RetVal ~= ret.RetryPrompt then
-                return { Reply = ret.Reply, RetVal = ret.RetVal }
-            end
-        end
-        if ret.RetVal == ret.RetryPrompt then
-            return { Reply = ret.Reply, RetVal = ret.Interrupted }
-        else
-            return { Reply = ret.Reply, RetVal = ret.RetVal }
-        end
+        return self.GBOT:PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format)
     end
 
     -- Add a Pause method - call the Go API
     function newBot:Pause(seconds)
-        self.BOT:Pause(seconds)
+        self.GBOT:Pause(seconds)
     end
 
     return newBot

@@ -32,7 +32,7 @@ func GetPluginConfig(execPath, taskPath, taskName string, emptyBot map[string]st
 
 	// Create the primary robot userdata and set it as "robot"
 	robotUD := newLuaBot(L, nil, botFields)
-	L.SetGlobal("BOT", robotUD)
+	L.SetGlobal("GBOT", robotUD)
 
 	// **Update package.path with additional directories and Lua patterns**
 	_, err = updatePkgPath(L, nil, pkgPath)
