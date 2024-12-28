@@ -38,6 +38,7 @@ type termconfig struct {
 	StartUser        string // the initial userid
 	EOF              string // command to send on EOF (ctrl-D), default ";quit"
 	Abort            string // command to send on ctrl-c
+	MockFormatting   bool   // whether to simulate FIXED and variable message formatting
 	BotName          string // the bot's name, required for the robot to hear it's own messages
 	Users            []termUser
 	Channels         []string
@@ -56,6 +57,7 @@ type termConnector struct {
 	botName          string             // see above
 	eof              string             // command to send on ctrl-d (EOF)
 	abort            string             // command to send on ctrl-c (interrupt)
+	mockFormat       bool               // whether to simulate FIXED and variable message formats
 	running          bool               // set on call to Run
 	width            int                // width of terminal
 	users            []termUser         // configured users
@@ -169,6 +171,7 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		currentUser:      c.StartUser,
 		generateNewlines: c.GenerateNewlines,
 		botName:          c.BotName,
+		mockFormat:       c.MockFormatting,
 		eof:              eof,
 		abort:            abort,
 		channels:         c.Channels,

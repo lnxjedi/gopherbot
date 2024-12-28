@@ -41,6 +41,14 @@ func (tc *termConnector) sendMessage(user, ch, thr, msg string, f robot.MessageF
 		(user == "" || user == incomingMsg.UserID) {
 		msg = "(" + msg + ")"
 	}
+	if tc.mockFormat {
+		switch f {
+		case robot.Fixed:
+			msg = strings.ToUpper(msg)
+		case robot.Variable:
+			msg = strings.ToLower(msg)
+		}
+	}
 	output := fmt.Sprintf("%s%s: %s\n", ch, threadID, msg)
 	if f != robot.Fixed {
 		output = Wrap(output, tc.width)
