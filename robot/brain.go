@@ -1,8 +1,8 @@
 package robot
 
-// Logger is used by a Brain for logging errors
+// Logger is used in various modules for logging errors
 type Logger interface {
-	Log(l LogLevel, m string, v ...interface{})
+	Log(l LogLevel, m string, v ...interface{}) bool
 }
 
 // SimpleBrain is the simple interface for a configured brain, where the robot
