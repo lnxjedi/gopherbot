@@ -211,29 +211,26 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 		botStdOutLogger.Print(msg)
 		return true
 	}
+	// Log Audit, Warning and Error messages straight to the terminal
+	if localTerm && l >= robot.Audit && fileLog {
+		if terminalWriter != nil {
+			terminalWriter.Write([]byte("LOG " + msg + "\n"))
+		} else {
+			botStdOutLogger.Print("LOG " + msg)
+		}
+	}
 	if l >= currlevel || l == robot.Audit {
 		if l == robot.Fatal {
 			logger.Fatal(msg)
 		} else {
-			if localTerm {
-				if terminalWriter != nil {
-					terminalWriter.Write([]byte("LOG " + msg + "\n"))
-				} else {
-					botStdOutLogger.Print("LOG " + msg)
-				}
-				if fileLog { // avoid double-printing log lines in terminal
-					logger.Print(msg)
-				}
-			} else {
-				logger.Print(msg)
-			}
-			tsMsg := fmt.Sprintf("%s %s\n", time.Now().Format("Jan 2 15:04:05"), msg)
-			botLogger.Lock()
-			botLogger.buffer[botLogger.buffLine] = tsMsg
-			botLogger.buffLine = (botLogger.buffLine + 1) % (buffLines - 1)
-			botLogger.totLines++
-			botLogger.Unlock()
+			logger.Print(msg)
 		}
+		tsMsg := fmt.Sprintf("%s %s\n", time.Now().Format("Jan 2 15:04:05"), msg)
+		botLogger.Lock()
+		botLogger.buffer[botLogger.buffLine] = tsMsg
+		botLogger.buffLine = (botLogger.buffLine + 1) % (buffLines - 1)
+		botLogger.totLines++
+		botLogger.Unlock()
 		return true
 	}
 	return false
