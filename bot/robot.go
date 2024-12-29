@@ -249,6 +249,7 @@ func (r Robot) Direct() robot.Robot {
 	m := *r.Message
 	nr.Message = &m
 	nr.Channel = ""
+	nr.ProtocolChannel = ""
 	return nr
 }
 

@@ -104,7 +104,7 @@ func (w *worker) messageHeard() {
 func (r Robot) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal {
 	msg, empty := r.prepareMessage("SendChannelMessage", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	channel := r.tryResolveChannel(ch)
 	return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, r.Format, r.Incoming)
@@ -114,7 +114,7 @@ func (r Robot) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal
 func (r Robot) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
 	msg, empty := r.prepareMessage("SendChannelThreadMessage", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	channel := r.tryResolveChannel(ch)
 	return interfaces.SendProtocolChannelThreadMessage(channel, thr, msg, r.Format, r.Incoming)
@@ -123,7 +123,7 @@ func (r Robot) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) r
 func (w *worker) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) robot.RetVal {
 	msg, empty := w.prepareMessage("SendChannelThreadMessage", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	channel := w.tryResolveChannel(ch)
 	return interfaces.SendProtocolChannelThreadMessage(channel, thr, msg, w.Format, w.Incoming)
@@ -137,7 +137,7 @@ func (w *worker) SendChannelThreadMessage(ch, thr, msg string, v ...interface{})
 func (r Robot) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot.RetVal {
 	msg, empty := r.prepareMessage("SendUserChannelMessage", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	user := r.tryResolveUser(u)
 	channel := r.tryResolveChannel(ch)
@@ -147,7 +147,7 @@ func (r Robot) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot
 func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot.RetVal {
 	msg, empty := w.prepareMessage("SendUserChannelMessage", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	user := w.tryResolveUser(u)
 	channel := w.tryResolveChannel(ch)
@@ -157,7 +157,7 @@ func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) rob
 func (r Robot) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
 	msg, empty := r.prepareMessage("SendUserChannelThreadMessage", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	user := r.tryResolveUser(u)
 	channel := r.tryResolveChannel(ch)
@@ -167,7 +167,7 @@ func (r Robot) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interfa
 func (w *worker) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {
 	msg, empty := w.prepareMessage("SendUserChannelThreadMessage", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	user := w.tryResolveUser(u)
 	channel := w.tryResolveChannel(ch)
@@ -178,7 +178,7 @@ func (w *worker) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...inter
 func (r Robot) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
 	msg, empty := r.prepareMessage("SendUserMessage", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	user := r.tryResolveUser(u)
 	return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
@@ -188,7 +188,7 @@ func (r Robot) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
 func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 	msg, empty := r.prepareMessage("Reply", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	user := r.ProtocolUser
 	if len(user) == 0 {
@@ -217,7 +217,7 @@ func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
 	msg, empty := w.prepareMessage("Reply", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	user := w.ProtocolUser
 	if len(user) == 0 {
@@ -241,7 +241,7 @@ func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
 func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 	msg, empty := r.prepareMessage("ReplyThread", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	user := r.ProtocolUser
 	if len(user) == 0 {
@@ -267,7 +267,7 @@ func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 	msg, empty := r.prepareMessage("Say", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	// Support for Direct()
 	if r.Channel == "" {
@@ -291,7 +291,7 @@ func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
 	msg, empty := w.prepareMessage("Say", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	// Support for Direct()
 	if w.Channel == "" {
@@ -316,7 +316,7 @@ func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
 func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
 	msg, empty := r.prepareMessage("SayThread", msg, v...)
 	if empty {
-		return robot.Ok
+		return robot.Failed
 	}
 	// Support for Direct()
 	if r.Channel == "" {

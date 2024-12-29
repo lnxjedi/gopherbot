@@ -124,7 +124,7 @@ var chanLoggers = struct {
 	channels: make(map[string]*log.Logger),
 }
 
-// ChannelMessage accepts an incoming channel message from the connector.
+// IncomingMessage accepts an incoming channel message from the connector.
 // func (h handler) IncomingMessage(channelName, userName, messageFull string, raw interface{}) {
 func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	// Note: zero-len channel name and ID is valid; true of direct messages for some connectors
