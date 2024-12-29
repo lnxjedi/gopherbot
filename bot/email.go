@@ -48,9 +48,12 @@ func (r Robot) EmailAddress(address, subject string, messageBody *bytes.Buffer, 
 func (r Robot) realEmail(subject, mailTo string, messageBody *bytes.Buffer, html ...bool) (ret robot.RetVal) {
 	var mailFrom, botName string
 
+	w := getLockedWorker(r.tid)
+	w.Unlock()
+
 	mailAttr := r.GetBotAttribute("email")
 	if mailAttr.RetVal != robot.Ok || mailAttr.Attribute == "" {
-		r.Log(robot.Error, "Email send requested but robot has no Email set in config")
+		w.Log(robot.Error, "Email send requested but robot has no Email set in config")
 		return robot.NoBotEmail
 	}
 	mailFrom = mailAttr.Attribute
@@ -66,7 +69,7 @@ func (r Robot) realEmail(subject, mailTo string, messageBody *bytes.Buffer, html
 		if userMailAttr.RetVal == robot.Ok {
 			mailTo = userMailAttr.Attribute
 		} else {
-			r.Log(robot.Error, "Unable to look up email address for: %s", mailTo)
+			w.Log(robot.Error, "Unable to look up email address for: %s", mailTo)
 			return robot.AttributeNotFound
 		}
 	}

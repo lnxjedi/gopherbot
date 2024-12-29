@@ -132,13 +132,13 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 		_, _, lret := checkoutDatum(histLookup, &lmap, false)
 		if lret != robot.Ok {
 			r.Say("There was a memory error looking up that log")
-			r.Log(robot.Error, "Looking up '%s': %s", histLookup, lret)
+			w.Log(robot.Error, "Looking up '%s': %s", histLookup, lret)
 			return
 		}
 		hl, ok := lmap[histRef]
 		if !ok {
 			r.Say("Log ref '%s' not found, possibly expired?", histRef)
-			r.Log(robot.Warn, "Log ref '%s' not found: %s", histRef)
+			w.Log(robot.Warn, "Log ref '%s' not found: %s", histRef)
 			return
 		}
 		histSpec = hl.Tag

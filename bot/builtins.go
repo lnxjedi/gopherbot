@@ -57,6 +57,8 @@ var botRegex = regexp.MustCompile(`^([^(]*)\(bot\)(,?) *`)
 var aliasRegex = regexp.MustCompile(`^\(alias\) *`)
 
 func (r Robot) formatHelpLine(input string) (ret string) {
+	w := getLockedWorker(r.tid)
+	w.Unlock()
 	botName := r.cfg.botinfo.UserName
 	botAlias := string(r.cfg.alias)
 	if len(botName) == 0 && len(botAlias) == 0 {
@@ -65,7 +67,7 @@ func (r Robot) formatHelpLine(input string) (ret string) {
 		if botRegex.MatchString(input) {
 			if len(botName) > 0 {
 				ret = botRegex.ReplaceAllString(input, "${1}"+botName+"${2} ")
-				r.Log(robot.Debug, "Sending '%s' to FormatHelp", ret)
+				w.Log(robot.Debug, "Sending '%s' to FormatHelp", ret)
 			} else {
 				ret = botRegex.ReplaceAllString(input, botAlias)
 			}
@@ -395,6 +397,8 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		return // ignore init
 	}
 	r := m.(Robot)
+	w := getLockedWorker(r.tid)
+	w.Unlock()
 	switch command {
 	case "reload":
 		err := loadConfig(false)
@@ -405,7 +409,7 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			return
 		}
 		r.Reply("Configuration reloaded successfully")
-		r.Log(robot.Info, "Configuration successfully reloaded by a request from: %s", r.User)
+		w.Log(robot.Info, "Configuration successfully reloaded by a request from: %s", r.User)
 	case "abort":
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)

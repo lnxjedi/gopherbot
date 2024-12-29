@@ -131,12 +131,12 @@ func GetPluginConfig(path, name string) (cfg *[]byte, err error) {
 	return cfg, nil
 }
 
-func RunPluginHandler(path, name string, env []string, r robot.Robot, privileged bool, command string, args ...string) (ret robot.TaskRetVal, err error) {
+func RunPluginHandler(path, name string, env []string, r robot.Robot, l robot.Logger, privileged bool, command string, args ...string) (ret robot.TaskRetVal, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			ret = robot.MechanismFail
 			err = fmt.Errorf("recovered from panic in RunPluginHandler for plugin '%s': %v", name, p)
-			r.Log(robot.Error, err.Error())
+			l.Log(robot.Error, err.Error())
 		}
 	}()
 
@@ -161,18 +161,18 @@ func RunPluginHandler(path, name string, env []string, r robot.Robot, privileged
 		return robot.MechanismFail, fmt.Errorf("PluginHandler has incorrect signature: got %T", v.Interface())
 	}
 
-	r.Log(robot.Debug, "Calling external Go plugin: '%s' with command '%s' and args: %q", name, command, args)
+	l.Log(robot.Debug, "Calling external Go plugin: '%s' with command '%s' and args: %q", name, command, args)
 	ret = handler(r, command, args...)
 
 	return
 }
 
-func RunJobHandler(path, name string, env []string, r robot.Robot, privileged bool, args ...string) (ret robot.TaskRetVal, err error) {
+func RunJobHandler(path, name string, env []string, r robot.Robot, l robot.Logger, privileged bool, args ...string) (ret robot.TaskRetVal, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			ret = robot.MechanismFail
 			err = fmt.Errorf("recovered from panic in RunJobHandler for job '%s': %v", name, p)
-			r.Log(robot.Error, err.Error())
+			l.Log(robot.Error, err.Error())
 		}
 	}()
 
@@ -197,18 +197,18 @@ func RunJobHandler(path, name string, env []string, r robot.Robot, privileged bo
 		return robot.MechanismFail, fmt.Errorf("JobHandler has incorrect signature: got %T", v.Interface())
 	}
 
-	r.Log(robot.Debug, "Calling external Go job: '%s' with args: %q", name, args)
+	l.Log(robot.Debug, "Calling external Go job: '%s' with args: %q", name, args)
 	ret = handler(r, args...)
 
 	return
 }
 
-func RunTaskHandler(path, name string, env []string, r robot.Robot, privileged bool, args ...string) (ret robot.TaskRetVal, err error) {
+func RunTaskHandler(path, name string, env []string, r robot.Robot, l robot.Logger, privileged bool, args ...string) (ret robot.TaskRetVal, err error) {
 	defer func() {
 		if p := recover(); p != nil {
 			ret = robot.MechanismFail
 			err = fmt.Errorf("recovered from panic in RunTaskHandler for task '%s': %v", name, p)
-			r.Log(robot.Error, err.Error())
+			l.Log(robot.Error, err.Error())
 		}
 	}()
 
@@ -233,7 +233,7 @@ func RunTaskHandler(path, name string, env []string, r robot.Robot, privileged b
 		return robot.MechanismFail, fmt.Errorf("TaskHandler has incorrect signature: got %T", v.Interface())
 	}
 
-	r.Log(robot.Debug, "Calling external Go task: '%s' with args: %q", name, args)
+	l.Log(robot.Debug, "Calling external Go task: '%s' with args: %q", name, args)
 	ret = handler(r, args...)
 
 	return

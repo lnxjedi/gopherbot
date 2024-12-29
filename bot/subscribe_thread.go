@@ -134,7 +134,7 @@ func (r Robot) Subscribe() (success bool) {
 	defer w.Unlock()
 	task, plugin, _ := getTask(r.currentTask)
 	if plugin == nil {
-		r.Log(robot.Error, "Subscribe called by non-plugin task '%s'", task.name)
+		w.Log(robot.Error, "Subscribe called by non-plugin task '%s'", task.name)
 		return false
 	}
 	subscriptionSpec := subscriptionMatcher{w.Channel, w.Incoming.ThreadID}
@@ -142,10 +142,10 @@ func (r Robot) Subscribe() (success bool) {
 	defer subscriptions.Unlock()
 	if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
 		if task.name != subscription.Plugin {
-			r.Log(robot.Error, "Subscribe - plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription already held by plugin '%s'", task.name, w.Incoming.ThreadID, w.Channel, subscription.Plugin)
+			w.Log(robot.Error, "Subscribe - plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription already held by plugin '%s'", task.name, w.Incoming.ThreadID, w.Channel, subscription.Plugin)
 			return false
 		} else {
-			r.Log(robot.Debug, "Subscribe - already subscribed; plugin '%s' subscribing to thread '%s' in channel '%s'", task.name, w.Incoming.ThreadID, w.Channel)
+			w.Log(robot.Debug, "Subscribe - already subscribed; plugin '%s' subscribing to thread '%s' in channel '%s'", task.name, w.Incoming.ThreadID, w.Channel)
 			return true
 		}
 	}
@@ -154,7 +154,7 @@ func (r Robot) Subscribe() (success bool) {
 		Timestamp: time.Now(),
 	}
 	subscriptions.dirty = true
-	r.Log(robot.Debug, "Subscribe - plugin '%s' successfully subscribed to thread '%s' in channel '%s'", task.name, w.Incoming.ThreadID, w.Channel)
+	w.Log(robot.Debug, "Subscribe - plugin '%s' successfully subscribed to thread '%s' in channel '%s'", task.name, w.Incoming.ThreadID, w.Channel)
 	return true
 }
 
@@ -166,7 +166,7 @@ func (r Robot) Unsubscribe() (success bool) {
 	defer w.Unlock()
 	task, plugin, _ := getTask(r.currentTask)
 	if plugin == nil {
-		r.Log(robot.Error, "Unsubscribe called by non-plugin task '%s'", task.name)
+		w.Log(robot.Error, "Unsubscribe called by non-plugin task '%s'", task.name)
 		return false
 	}
 	subscriptionSpec := subscriptionMatcher{w.Channel, w.Incoming.ThreadID}
@@ -174,16 +174,16 @@ func (r Robot) Unsubscribe() (success bool) {
 	defer subscriptions.Unlock()
 	if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
 		if task.name != subscription.Plugin {
-			r.Log(robot.Error, "Unsubscribe - plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription held by other plugin '%s'", task.name, w.Incoming.ThreadID, w.Channel, subscription.Plugin)
+			w.Log(robot.Error, "Unsubscribe - plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription held by other plugin '%s'", task.name, w.Incoming.ThreadID, w.Channel, subscription.Plugin)
 			return false
 		} else {
-			r.Log(robot.Debug, "Unsubscribe - plugin '%s' unsubscribing from thread '%s' in channel '%s'", task.name, w.Incoming.ThreadID, w.Channel)
+			w.Log(robot.Debug, "Unsubscribe - plugin '%s' unsubscribing from thread '%s' in channel '%s'", task.name, w.Incoming.ThreadID, w.Channel)
 			delete(subscriptions.m, subscriptionSpec)
 			subscriptions.dirty = true
 			return true
 		}
 	}
-	r.Log(robot.Warn, "Unsubscribe - plugin '%s' not subscribed to thread '%s' in channel '%s'", task.name, w.Incoming.ThreadID, w.Channel)
+	w.Log(robot.Warn, "Unsubscribe - plugin '%s' not subscribed to thread '%s' in channel '%s'", task.name, w.Incoming.ThreadID, w.Channel)
 	return true
 }
 

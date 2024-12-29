@@ -9,47 +9,49 @@ import (
 // pipeTask does all the real work of adding tasks to pipelines or spawning
 // new tasks.
 func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, args ...string) robot.RetVal {
+	w := getLockedWorker(r.tid)
+	w.Unlock()
 	if r.stage != primaryTasks {
 		task, _, _ := getTask(r.currentTask)
-		r.Log(robot.Error, "Request to modify pipeline outside of initial pipeline in task '%s'", task.name)
+		w.Log(robot.Error, "Request to modify pipeline outside of initial pipeline in task '%s'", task.name)
 		return robot.InvalidStage
 	}
 	t := r.tasks.getTaskByName(name)
 	if t == nil {
 		task, _, _ := getTask(r.currentTask)
-		r.Log(robot.Error, "Task '%s' not found updating pipeline from task '%s'", name, task.name)
+		w.Log(robot.Error, "Task '%s' not found updating pipeline from task '%s'", name, task.name)
 		return robot.TaskNotFound
 	}
 	task, plugin, job := getTask(t)
 	isPlugin := plugin != nil
 	isJob := job != nil
 	if task.Disabled {
-		r.Log(robot.Error, "Attempt to add disabled task '%s' to pipeline", name)
+		w.Log(robot.Error, "Attempt to add disabled task '%s' to pipeline", name)
 		return robot.TaskDisabled
 	}
 	if ptype == typePlugin && !isPlugin {
-		r.Log(robot.Error, "Adding command to pipeline - not a plugin: %s", name)
+		w.Log(robot.Error, "Adding command to pipeline - not a plugin: %s", name)
 		return robot.InvalidTaskType
 	}
 	if ptype == typeJob && !isJob {
-		r.Log(robot.Error, "Adding job to pipeline - not a job: %s", name)
+		w.Log(robot.Error, "Adding job to pipeline - not a job: %s", name)
 		return robot.InvalidTaskType
 	}
 	if ptype == typeTask && (isJob || isPlugin) {
-		r.Log(robot.Error, "Adding task to pipeline - not a task: %s", name)
+		w.Log(robot.Error, "Adding task to pipeline - not a task: %s", name)
 		return robot.InvalidTaskType
 	}
 	if !r.privileged {
 		if isJob && job.Privileged {
-			r.Log(robot.Error, "PrivilegeViolation adding privileged job '%s' to unprivileged pipeline", name)
+			w.Log(robot.Error, "PrivilegeViolation adding privileged job '%s' to unprivileged pipeline", name)
 			return robot.PrivilegeViolation
 		}
 		if isPlugin && plugin.Privileged {
-			r.Log(robot.Error, "PrivilegeViolation adding privileged plugin '%s' to unprivileged pipeline", name)
+			w.Log(robot.Error, "PrivilegeViolation adding privileged plugin '%s' to unprivileged pipeline", name)
 			return robot.PrivilegeViolation
 		}
 		if !isJob && !isPlugin && task.Privileged {
-			r.Log(robot.Error, "PrivilegeViolation adding privileged task '%s' to unprivileged pipeline", name)
+			w.Log(robot.Error, "PrivilegeViolation adding privileged task '%s' to unprivileged pipeline", name)
 			return robot.PrivilegeViolation
 		}
 	}
@@ -57,11 +59,11 @@ func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, a
 	var cmdargs []string
 	if isPlugin {
 		if len(args) == 0 {
-			r.Log(robot.Error, "Added plugin '%s' to pipeline with no command", name)
+			w.Log(robot.Error, "Added plugin '%s' to pipeline with no command", name)
 			return robot.MissingArguments
 		}
 		if len(args[0]) == 0 {
-			r.Log(robot.Error, "Added plugin '%s' to pipeline with no command", name)
+			w.Log(robot.Error, "Added plugin '%s' to pipeline with no command", name)
 			return robot.MissingArguments
 		}
 		cmsg := args[0]
@@ -78,7 +80,7 @@ func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, a
 			}
 		}
 		if !matched {
-			r.Log(robot.Error, "Command '%s' didn't match any CommandMatchers while adding plugin '%s' to pipeline", cmsg, name)
+			w.Log(robot.Error, "Command '%s' didn't match any CommandMatchers while adding plugin '%s' to pipeline", cmsg, name)
 			return robot.CommandNotMatched
 		}
 	} else {
@@ -92,8 +94,8 @@ func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, a
 		task:      t,
 	}
 	argstr := strings.Join(args, " ")
-	r.Log(robot.Debug, "Adding pipeline task %s/%s: %s %s", pflavor, ptype, name, argstr)
-	w := getLockedWorker(r.tid)
+	w.Log(robot.Debug, "Adding pipeline task %s/%s: %s %s", pflavor, ptype, name, argstr)
+	w.Lock()
 	switch pflavor {
 	case flavorAdd:
 		w.nextTasks = append(w.nextTasks, ts)

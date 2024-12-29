@@ -260,10 +260,12 @@ func deregisterWorker(tid int) {
 // this a method on the Robot, since copying the whole robot for a single
 // int is senseless.
 func getLockedWorker(idx int) *worker {
+	dummy := &worker{}
 	if idx == 0 { // illegal value
 		_, file, line, _ := runtime.Caller(1)
 		Log(robot.Error, "Illegal call to getLockedWorker with tid = 0 in '%s', line %d", file, line)
-		return nil
+		dummy.Lock()
+		return dummy
 	}
 	taskLookup.RLock()
 	w, ok := taskLookup.i[idx]
@@ -271,7 +273,8 @@ func getLockedWorker(idx int) *worker {
 	if !ok {
 		_, file, line, _ := runtime.Caller(2)
 		Log(robot.Error, "Illegal call to getLockedWorker for inactive worker in '%s', line %d", file, line)
-		return nil
+		dummy.Lock()
+		return dummy
 	}
 	w.Lock()
 	return w
@@ -444,7 +447,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			if command != "init" {
 				emit(GoPluginRan)
 			}
-			ret, err := yaegi.RunPluginHandler(taskPath, task.name, env, r, task.Privileged, command, args...)
+			ret, err := yaegi.RunPluginHandler(taskPath, task.name, env, r, w, task.Privileged, command, args...)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{fmt.Sprintf("Running plugin %s: %v", task.name, err), robot.MechanismFail}
@@ -456,21 +459,21 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		} else {
 			var ret robot.TaskRetVal
 			if isJob {
-				ret, err = yaegi.RunJobHandler(taskPath, task.name, env, r, task.Privileged, args...)
+				ret, err = yaegi.RunJobHandler(taskPath, task.name, env, r, w, task.Privileged, args...)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
 					return
 				}
-				r.Log(robot.Debug, "External Go job '%s' executed with args: %q", task.name, args)
+				w.Log(robot.Debug, "External Go job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = yaegi.RunTaskHandler(taskPath, task.name, env, r, task.Privileged, args...)
+				ret, err = yaegi.RunTaskHandler(taskPath, task.name, env, r, w, task.Privileged, args...)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}
 					return
 				}
-				r.Log(robot.Debug, "External Go task '%s' executed with args: %q", task.name, args)
+				w.Log(robot.Debug, "External Go task '%s' executed with args: %q", task.name, args)
 			}
 			deregisterWorker(r.tid)
 			rchan <- taskReturn{"", ret}
@@ -513,7 +516,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
 					return
 				}
-				r.Log(robot.Debug, "External Lua job '%s' executed with args: %q", task.name, args)
+				w.Log(robot.Debug, "External Lua job '%s' executed with args: %q", task.name, args)
 			} else {
 				ret, err = lua.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, args)
 				if err != nil {
@@ -521,7 +524,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}
 					return
 				}
-				r.Log(robot.Debug, "External Lua task '%s' executed with args: %q", task.name, args)
+				w.Log(robot.Debug, "External Lua task '%s' executed with args: %q", task.name, args)
 			}
 			deregisterWorker(r.tid)
 			rchan <- taskReturn{"", ret}

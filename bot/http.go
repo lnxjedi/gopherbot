@@ -453,6 +453,7 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		if lm.Base64 {
 			lm.Message = decode(lm.Message)
 		}
+		// This is a script calling Log, so definitely r.Log
 		r.Log(l, lm.Message)
 		sendReturn(r, rw, &botretvalresponse{int(robot.Ok)})
 		return

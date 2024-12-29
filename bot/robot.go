@@ -185,7 +185,7 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 		if ok {
 			c.workingDirectory = path
 		} else {
-			r.Log(robot.Error, "Invalid path '%s' in SetWorkingDirectory", path)
+			w.Log(robot.Error, "Invalid path '%s' in SetWorkingDirectory", path)
 		}
 		return ok
 	}
@@ -195,7 +195,7 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 		if ok {
 			c.workingDirectory = checkPath
 		} else {
-			r.Log(robot.Error, "Invalid path '%s'(%s) in SetWorkingDirectory", path, checkPath)
+			w.Log(robot.Error, "Invalid path '%s'(%s) in SetWorkingDirectory", path, checkPath)
 		}
 		return ok
 	}
@@ -204,7 +204,7 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 	if ok {
 		c.workingDirectory = checkPath
 	} else {
-		r.Log(robot.Error, "Invalid path '%s'(%s) in SetWorkingDirectory", path, checkPath)
+		w.Log(robot.Error, "Invalid path '%s'(%s) in SetWorkingDirectory", path, checkPath)
 	}
 	return ok
 }
@@ -347,10 +347,12 @@ func (w *worker) Log(l robot.LogLevel, msg string, v ...interface{}) (logged boo
 	pipeName := w.pipeName
 	currTask := w.taskName
 	var logTag string
-	if currTask == pipeName {
-		logTag = "(" + pipeName + ") "
-	} else {
-		logTag = "(" + pipeName + "/" + currTask + ") "
+	if currTask != "" && pipeName != "" {
+		if currTask == pipeName {
+			logTag = "(" + pipeName + ") "
+		} else {
+			logTag = "(" + pipeName + "/" + currTask + ") "
+		}
 	}
 	// Give extra context to log messages when called from a robot
 	msg = logTag + msg

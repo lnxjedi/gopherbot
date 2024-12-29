@@ -398,16 +398,18 @@ func (r Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.
 
 // see robot/robot.go
 func (r Robot) Remember(key, value string, shared bool) {
+	w := getLockedWorker(r.tid)
+	w.Unlock()
 	timestamp := time.Now()
 	memory := ephemeralMemory{value, timestamp}
 	context := r.makeMemoryContext(key, false, shared)
 	Log(robot.Trace, "Storing ephemeral memory \"%s\" -> \"%s\"", key, value)
 	ephemeralMemories.Lock()
 	if len(value) > 0 {
-		r.Log(robot.Debug, "Storing ephemeral memory for '%s'", key)
+		w.Log(robot.Debug, "Storing ephemeral memory for '%s'", key)
 		ephemeralMemories.m[context] = memory
 	} else {
-		r.Log(robot.Debug, "Deleting ephemeral memory '%s'", key)
+		w.Log(robot.Debug, "Deleting ephemeral memory '%s'", key)
 		delete(ephemeralMemories.m, context)
 	}
 	if len(context.thread) > 0 {
@@ -418,16 +420,18 @@ func (r Robot) Remember(key, value string, shared bool) {
 
 // see robot/robot.go
 func (r Robot) RememberThread(key, value string, shared bool) {
+	w := getLockedWorker(r.tid)
+	w.Unlock()
 	timestamp := time.Now()
 	memory := ephemeralMemory{value, timestamp}
 	context := r.makeMemoryContext(key, true, shared)
 	Log(robot.Trace, "Storing ephemeral memory \"%s\" -> \"%s\"", key, value)
 	ephemeralMemories.Lock()
 	if len(value) > 0 {
-		r.Log(robot.Debug, "Storing ephemeral memory for '%s'", key)
+		w.Log(robot.Debug, "Storing ephemeral memory for '%s'", key)
 		ephemeralMemories.m[context] = memory
 	} else {
-		r.Log(robot.Debug, "Deleting ephemeral memory '%s'", key)
+		w.Log(robot.Debug, "Deleting ephemeral memory '%s'", key)
 		delete(ephemeralMemories.m, context)
 	}
 	ephemeralMemories.dirty = true

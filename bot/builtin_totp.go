@@ -38,7 +38,9 @@ func init() {
 	robot.RegisterPlugin("builtin-totp", robot.PluginHandler{Handler: totp_elevate})
 }
 
-func checkOTP(r robot.Robot, code string) (bool, robot.TaskRetVal) {
+func checkOTP(r Robot, code string) (bool, robot.TaskRetVal) {
+	w := getLockedWorker(r.tid)
+	w.Unlock()
 	m := r.GetMessage()
 	secret, exists := totpUsers[m.User]
 	if !exists {
@@ -47,7 +49,7 @@ func checkOTP(r robot.Robot, code string) (bool, robot.TaskRetVal) {
 	m.Channel = ""
 	lastValid := r.Recall("lastTOTP", false)
 	if lastValid == code {
-		r.Log(robot.Warn, "User %s attempted to re-use a TOTP code", m.User)
+		w.Log(robot.Warn, "User %s attempted to re-use a TOTP code", m.User)
 		return false, robot.Fail
 	}
 	valid := totp.Validate(code, secret)
@@ -57,9 +59,10 @@ func checkOTP(r robot.Robot, code string) (bool, robot.TaskRetVal) {
 	return valid, robot.Success
 }
 
-func getcode(gr robot.Robot, immediate bool) (retval robot.TaskRetVal) {
-	m := gr.GetMessage()
-	r := gr.(Robot)
+func getcode(r Robot, immediate bool) (retval robot.TaskRetVal) {
+	w := getLockedWorker(r.tid)
+	w.Unlock()
+	m := r.GetMessage()
 	botFull := r.cfg.botinfo.FullName
 	var prompt string
 	if immediate {
@@ -83,11 +86,14 @@ func getcode(gr robot.Robot, immediate bool) (retval robot.TaskRetVal) {
 		r.Say("Invalid code")
 		return robot.Fail
 	}
-	r.Log(robot.Error, "User \"%s\" failed to respond to TOTP token prompt", m.User)
+	w.Log(robot.Error, "User \"%s\" failed to respond to TOTP token prompt", m.User)
 	return robot.Fail
 }
 
-func totp_elevate(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+func totp_elevate(gr robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
+	r := gr.(Robot)
+	w := getLockedWorker(r.tid)
+	w.Unlock()
 	m := r.GetMessage()
 	switch command {
 	case "init":

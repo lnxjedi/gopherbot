@@ -110,7 +110,7 @@ func logmail(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 		}
 	}
 	if ret != robot.Ok {
-		r.Log(robot.Error, "There was a problem emailing one or more pipeline logs, contact an administrator: %s", ret)
+		w.Log(robot.Error, "There was a problem emailing one or more pipeline logs, contact an administrator: %s", ret)
 		return robot.Fail
 	}
 	return
@@ -118,6 +118,8 @@ func logmail(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 
 func restart(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
+	w := getLockedWorker(r.tid)
+	w.Unlock()
 	pn := r.pipeName
 	state.Lock()
 	if state.shuttingDown {
@@ -129,13 +131,15 @@ func restart(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	state.shuttingDown = true
 	state.restart = true
 	state.Unlock()
-	r.Log(robot.Info, "Restart triggered in pipeline '%s' with %d pipelines running (including this one)", pn, running)
+	w.Log(robot.Info, "Restart triggered in pipeline '%s' with %d pipelines running (including this one)", pn, running)
 	go stop()
 	return
 }
 
 func quit(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	r := m.(Robot)
+	w := getLockedWorker(r.tid)
+	w.Unlock()
 	pn := r.pipeName
 	state.Lock()
 	if state.shuttingDown {
@@ -146,7 +150,7 @@ func quit(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	running := state.pipelinesRunning - 1
 	state.shuttingDown = true
 	state.Unlock()
-	r.Log(robot.Info, "Quit triggered in pipeline '%s' with %d pipelines running (including this one)", pn, running)
+	w.Log(robot.Info, "Quit triggered in pipeline '%s' with %d pipelines running (including this one)", pn, running)
 	go stop()
 	return
 }

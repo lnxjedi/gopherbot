@@ -51,8 +51,10 @@ func (w *worker) tryResolveChannel(ch string) string {
 // It returns the formatted message and a boolean indicating whether the message was empty.
 // If the message is empty, it logs a warning and returns true.
 func (r *Robot) prepareMessage(fn, msg string, v ...interface{}) (string, bool) {
+	w := getLockedWorker(r.tid)
+	w.Unlock()
 	if len(msg) == 0 {
-		r.Log(robot.Warn, "%s: Ignoring zero-length message", fn)
+		w.Log(robot.Warn, "%s: Ignoring zero-length message", fn)
 		return "", true
 	}
 	if len(v) > 0 {
