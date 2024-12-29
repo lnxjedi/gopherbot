@@ -191,8 +191,10 @@ func getLogLevel() robot.LogLevel {
 }
 
 // Log logs messages whenever the connector log level is
-// less than the given level
-func Log(l robot.LogLevel, m string, v ...interface{}) bool {
+// less than the given level.
+// Return value:
+// logged: true if logged to the terminal
+func Log(l robot.LogLevel, m string, v ...interface{}) (logged bool) {
 	botLogger.Lock()
 	currlevel := botLogger.level
 	logger := botLogger.logger
@@ -218,6 +220,7 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 		} else {
 			botStdOutLogger.Print("LOG " + msg)
 		}
+		logged = true
 	}
 	if l >= currlevel || l == robot.Audit {
 		if l == robot.Fatal {
@@ -231,7 +234,9 @@ func Log(l robot.LogLevel, m string, v ...interface{}) bool {
 		botLogger.buffLine = (botLogger.buffLine + 1) % (buffLines - 1)
 		botLogger.totLines++
 		botLogger.Unlock()
-		return true
+		if !fileLog {
+			logged = true
+		}
 	}
-	return false
+	return
 }

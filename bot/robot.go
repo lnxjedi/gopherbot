@@ -384,6 +384,7 @@ func (r Robot) Log(l robot.LogLevel, msg string, v ...interface{}) (logged bool)
 			botStdOutLogger.Print("LOG " + logLevelToStr(l) + ": " + msg)
 		}
 	}
+	// Robot logs are also recorded in the history log.
 	if r.logger != nil {
 		line := "LOG " + logLevelToStr(l) + ": " + msg
 		r.logger.Log(strings.TrimSpace(line))
