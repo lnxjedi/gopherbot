@@ -152,8 +152,7 @@ function robot.New()
     newBot.brain = GBOT.brain
     newBot.threaded_message = GBOT.threaded_message
 
-    -- Send* methods (handling format with a formatted GBOT object)
-
+    -- For the "Send*" methods, we still just proxy to the Go methods directly:
     function newBot:SendChannelMessage(channel, message, format)
         return self.GBOT:SendChannelMessage(channel, message, format)
     end
@@ -174,54 +173,25 @@ function robot.New()
         return self.GBOT:SendUserChannelThreadMessage(user, channel, thread, message, format)
     end
 
-    -- Say, SayThread, Reply, and ReplyThread methods (convenience wrappers)
+    ----------------------------------------------------------------
+    -- Now we map directly to the underlying "Say", "Reply", etc.
+    ----------------------------------------------------------------
 
     function newBot:Say(message, format)
-        if self.channel == "" then
-            -- If channel is empty, send a user message
-            return self:SendUserMessage(self.user, message, format)
-        else
-            -- Otherwise, send a channel/thread message
-            local thread = ""
-            if self.threaded_message then
-                thread = self.thread_id
-            end
-            return self:SendChannelThreadMessage(self.channel, thread, message, format)
-        end
+        -- Let the Go code handle whether channel is empty => DM, or channel => public message
+        return self.GBOT:Say(message, format)
     end
 
     function newBot:SayThread(message, format)
-        if self.channel == "" then
-            -- If channel is empty, send a user message
-            return self:SendUserMessage(self.user, message, format)
-        else
-            -- Otherwise, send a channel/thread message with the current thread_id
-            return self:SendChannelThreadMessage(self.channel, self.thread_id, message, format)
-        end
+        return self.GBOT:SayThread(message, format)
     end
 
     function newBot:Reply(message, format)
-        if self.channel == "" then
-            -- If channel is empty, send a user message
-            return self:SendUserMessage(self.user, message, format)
-        else
-            -- Otherwise, send a user/channel/thread message
-            local thread = ""
-            if self.threaded_message then
-                thread = self.thread_id
-            end
-            return self:SendUserChannelThreadMessage(self.user, self.channel, thread, message, format)
-        end
+        return self.GBOT:Reply(message, format)
     end
 
     function newBot:ReplyThread(message, format)
-        if self.channel == "" then
-            -- If channel is empty, send a user message
-            return self:SendUserMessage(self.user, message, format)
-        else
-            -- Otherwise, send a user/channel/thread message with the current thread_id
-            return self:SendUserChannelThreadMessage(self.user, self.channel, self.thread_id, message, format)
-        end
+        return self.GBOT:ReplyThread(message, format)
     end
 
     -- Prompting methods

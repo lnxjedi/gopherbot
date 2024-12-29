@@ -169,19 +169,3 @@ func modifyOSFunctions(L *glua.LState, l robot.Logger) {
 		}))
 	}
 }
-
-// pushFail is a helper to push a failure code onto the Lua stack
-func pushFail(L *glua.LState) int {
-	L.Push(glua.LNumber(robot.Failed))
-	return 1
-}
-
-// isValidMessageFormat checks if the provided format is valid.
-func isValidMessageFormat(format int) bool {
-	switch robot.MessageFormat(format) {
-	case robot.Raw, robot.Fixed, robot.Variable:
-		return true
-	default:
-		return false
-	}
-}
