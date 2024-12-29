@@ -199,12 +199,12 @@ function robot.New(bot)
     end
 
     function newBot:Fixed()
-        fbot = self.gbot.Fixed()
+        fbot = self.gbot:Fixed()
         return robot.New(fbot)
     end
 
     function newBot:Threaded()
-        tbot = self.gbot.Threaded()
+        tbot = self.gbot:Threaded()
         return robot.New(tbot)
     end
 
@@ -216,23 +216,19 @@ function robot.New(bot)
     -- Prompting methods
 
     function newBot:PromptForReply(regex_id, prompt, format)
-        local thread = ""
-        if self.threaded_message then
-            thread = self.thread_id
-        end
-        return self:PromptUserChannelThreadForReply(regex_id, self.user, self.channel, thread, prompt, format)
+        return self.gbot:PromptForReply(regex_id, prompt, format)
     end
 
     function newBot:PromptThreadForReply(regex_id, prompt, format)
-        return self:PromptUserChannelThreadForReply(regex_id, self.user, self.channel, self.thread_id, prompt, format)
+        return self.gbot:PromptThreadForReply(regex_id, prompt, format)
     end
 
     function newBot:PromptUserForReply(regex_id, user, prompt, format)
-        return self:PromptUserChannelThreadForReply(regex_id, user, "", "", prompt, format)
+        return self.gbot:PromptUserForReply(regex_id, user, prompt, format)
     end
 
-    function newBot:PromptUserChannelForReply(regex_id, prompt, format)
-        return self:PromptUserChannelThreadForReply(regex_id, self.user, self.channel, "", prompt, format)
+    function newBot:PromptUserChannelForReply(regex_id, user, channel, prompt, format)
+        return self.gbot:PromptUserChannelForReply(regex_id, user, channel, prompt, format)
     end
 
     function newBot:PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format)
