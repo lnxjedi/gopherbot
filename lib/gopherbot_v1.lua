@@ -139,59 +139,78 @@ function proto:string(val)
 end
 
 local robot = {}
-function robot.New()
+function robot.New(bot)
+    gbot = bot or GBOT
     local newBot = {}
-    newBot.GBOT = GBOT -- Keep a reference to the original Go GBOT object
-    newBot.user = GBOT.user
-    newBot.user_id = GBOT.user_id
-    newBot.channel = GBOT.channel
-    newBot.channel_id = GBOT.channel_id
-    newBot.thread_id = GBOT.thread_id
-    newBot.message_id = GBOT.message_id
-    newBot.protocol = GBOT.protocol
-    newBot.brain = GBOT.brain
-    newBot.threaded_message = GBOT.threaded_message
+    newBot.gbot = gbot -- Keep a reference to the original Go gbot object
+    newBot.user = gbot.user
+    newBot.user_id = gbot.user_id
+    newBot.channel = gbot.channel
+    newBot.channel_id = gbot.channel_id
+    newBot.thread_id = gbot.thread_id
+    newBot.message_id = gbot.message_id
+    newBot.protocol = gbot.protocol
+    newBot.brain = gbot.brain
+    newBot.type = "native"
+    newBot.threaded_message = gbot.threaded_message
 
     -- For the "Send*" methods, we still just proxy to the Go methods directly:
     function newBot:SendChannelMessage(channel, message, format)
-        return self.GBOT:SendChannelMessage(channel, message, format)
+        return self.gbot:SendChannelMessage(channel, message, format)
     end
 
     function newBot:SendChannelThreadMessage(channel, thread, message, format)
-        return self.GBOT:SendChannelThreadMessage(channel, thread, message, format)
+        return self.gbot:SendChannelThreadMessage(channel, thread, message, format)
     end
 
     function newBot:SendUserMessage(user, message, format)
-        return self.GBOT:SendUserMessage(user, message, format)
+        return self.gbot:SendUserMessage(user, message, format)
     end
 
     function newBot:SendUserChannelMessage(user, channel, message, format)
-        return self.GBOT:SendUserChannelMessage(user, channel, message, format)
+        return self.gbot:SendUserChannelMessage(user, channel, message, format)
     end
 
     function newBot:SendUserChannelThreadMessage(user, channel, thread, message, format)
-        return self.GBOT:SendUserChannelThreadMessage(user, channel, thread, message, format)
+        return self.gbot:SendUserChannelThreadMessage(user, channel, thread, message, format)
     end
-
-    ----------------------------------------------------------------
-    -- Now we map directly to the underlying "Say", "Reply", etc.
-    ----------------------------------------------------------------
 
     function newBot:Say(message, format)
         -- Let the Go code handle whether channel is empty => DM, or channel => public message
-        return self.GBOT:Say(message, format)
+        return self.gbot:Say(message, format)
     end
 
     function newBot:SayThread(message, format)
-        return self.GBOT:SayThread(message, format)
+        return self.gbot:SayThread(message, format)
     end
 
     function newBot:Reply(message, format)
-        return self.GBOT:Reply(message, format)
+        return self.gbot:Reply(message, format)
     end
 
     function newBot:ReplyThread(message, format)
-        return self.GBOT:ReplyThread(message, format)
+        return self.gbot:ReplyThread(message, format)
+    end
+
+    -- Robot modifier methods
+    function newBot:Direct()
+        dbot = self.gbot:Direct()
+        return robot.New(dbot)
+    end
+
+    function newBot:Fixed()
+        fbot = self.gbot.Fixed()
+        return robot.New(fbot)
+    end
+
+    function newBot:Threaded()
+        tbot = self.gbot.Threaded()
+        return robot.New(tbot)
+    end
+
+    function newBot:MessageFormat(fmt)
+        mbot = self.gbot:MessageFormat(fmt)
+        return robot.New(mbot)
     end
 
     -- Prompting methods
@@ -217,12 +236,12 @@ function robot.New()
     end
 
     function newBot:PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format)
-        return self.GBOT:PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format)
+        return self.gbot:PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format)
     end
 
     -- Add a Pause method - call the Go API
     function newBot:Pause(seconds)
-        self.GBOT:Pause(seconds)
+        self.gbot:Pause(seconds)
     end
 
     return newBot

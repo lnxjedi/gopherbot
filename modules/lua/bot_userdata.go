@@ -21,7 +21,7 @@ var validStringFields = map[string]bool{
 }
 
 // initializeFields initializes the robot fields from bot.
-func initializeFields(env map[string]string) (map[string]interface{}, error) {
+func initializeFields(env map[string]string) (map[string]interface{}) {
 	fields := make(map[string]interface{})
 
 	for key := range validStringFields {
@@ -40,12 +40,13 @@ func initializeFields(env map[string]string) (map[string]interface{}, error) {
 		fields["threaded_message"] = false
 	}
 
-	return fields, nil
+	return fields
 }
 
 // newLuaBot creates a new Lua userdata for the bot with initialized fields and the "bot" metatable
-func newLuaBot(L *glua.LState, r robot.Robot, fields map[string]interface{}) *glua.LUserData {
+func (lctx *luaContext) newLuaBot(L *glua.LState, r robot.Robot) *glua.LUserData {
 	newUD := L.NewUserData()
+	fields := initializeFields(lctx.bot)
 	newUD.Value = &luaRobot{r: r, fields: fields}
 	// Assign the "bot" metatable
 	L.SetMetatable(newUD, L.GetTypeMetatable("bot"))

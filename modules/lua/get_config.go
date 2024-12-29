@@ -12,10 +12,10 @@ func GetPluginConfig(execPath, taskPath, taskName string, emptyBot map[string]st
 	L := glua.NewState()
 	defer L.Close()
 
-	// Initialize the luaRobot with fields from the bot map
-	botFields, err := initializeFields(emptyBot)
-	if err != nil {
-		return nil, err
+	lctx := luaContext{
+		nil,
+		L,
+		emptyBot,
 	}
 
 	// Add the Lua arg table for "configure"
@@ -31,11 +31,11 @@ func GetPluginConfig(execPath, taskPath, taskName string, emptyBot map[string]st
 	// We don't register API methods for GetPluginConfig
 
 	// Create the primary robot userdata and set it as "robot"
-	robotUD := newLuaBot(L, nil, botFields)
+	robotUD := lctx.newLuaBot(L, nil)
 	L.SetGlobal("GBOT", robotUD)
 
 	// **Update package.path with additional directories and Lua patterns**
-	_, err = updatePkgPath(L, nil, pkgPath)
+	_, err := updatePkgPath(L, nil, pkgPath)
 	if err != nil {
 		return nil, err
 	}

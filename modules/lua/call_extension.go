@@ -17,9 +17,9 @@ type luaRobot struct {
 
 // luaContext holds a reference to the robot.Robot interface and the Lua state.
 type luaContext struct {
-	luaRobot
 	robot.Logger
-	L *glua.LState
+	L   *glua.LState
+	bot map[string]string
 }
 
 // CallExtension loads and executes a Lua script:
@@ -33,21 +33,10 @@ func CallExtension(execPath, taskPath, taskName string, pkgPath []string, logger
 	L := glua.NewState()
 	defer L.Close()
 
-	// Initialize the luaRobot with fields from the bot map
-	botFields, err := initializeFields(bot)
-	if err != nil {
-		return robot.MechanismFail, err
-	}
-
-	lr := luaRobot{
-		r:      r,
-		fields: botFields,
-	}
-
 	lctx := luaContext{
-		lr,
 		logger,
 		L, // LState
+		bot,
 	}
 
 	// Create a Lua arg table
@@ -73,7 +62,7 @@ func CallExtension(execPath, taskPath, taskName string, pkgPath []string, logger
 	lctx.RegisterPipelineMethods(L)
 
 	// Create the primary robot userdata and set it as "robot"
-	robotUD := newLuaBot(L, r, botFields)
+	robotUD := lctx.newLuaBot(L, r)
 	L.SetGlobal("GBOT", robotUD)
 
 	// Update package.path with additional directories and Lua patterns
