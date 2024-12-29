@@ -10,25 +10,25 @@ import (
 
 // getRobot - get the current robot (possibly updated with e.g. MessageFormat)
 // or log an error.
-func (lctx *luaContext) getRobot(L *glua.LState, caller string) (r robot.Robot, ok bool) {
+func (lctx *luaContext) getRobot(L *glua.LState, caller string) (r robot.Robot) {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
 		lctx.Log(robot.Error, fmt.Sprintf("%s called with invalid bot userdata", caller))
-		return nil, false
+		return nil
 	}
-	return lr.r, true
+	return lr.r
 }
 
 // getRobotUD - get the current validated luaRobot or log an error.
-func (lctx *luaContext) getRobotUD(L *glua.LState, caller string) (lr *luaRobot, ok bool) {
+func (lctx *luaContext) getRobotUD(L *glua.LState, caller string) (lr *luaRobot) {
 	ud := L.CheckUserData(1)
-	lr, ok = ud.Value.(*luaRobot)
+	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.Log(robot.Error, fmt.Sprintf("%s called with invalid bot userdata", caller))
-		return nil, false
+		L.RaiseError("%s called with invalid bot userdata", caller)
+		return nil
 	}
-	return lr, true
+	return lr
 }
 
 // getFormattedRobot does the same as above and also checks for the optional
@@ -36,13 +36,13 @@ func (lctx *luaContext) getRobotUD(L *glua.LState, caller string) (lr *luaRobot,
 // Returns:
 // r - robot object, optionally with format applied
 // ok - false if the userdata didn't contain a valid robot.Robot
-func (lctx *luaContext) getOptionalFormattedRobot(L *glua.LState, caller string, idx int) (r robot.Robot, ok bool) {
+func (lctx *luaContext) getOptionalFormattedRobot(L *glua.LState, caller string, idx int) (r robot.Robot) {
 	// First validate the userData
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
-		lctx.Log(robot.Error, fmt.Sprintf("%s called with invalid bot userdata", caller))
-		return nil, false
+		L.RaiseError("%s called with invalid bot userdata", caller)
+		return nil
 	}
 	r = lr.r
 	// If the caller supplied a numeric argument for format, parse and validate it
@@ -50,20 +50,20 @@ func (lctx *luaContext) getOptionalFormattedRobot(L *glua.LState, caller string,
 		fmtArg := L.Get(idx)
 		if fmtArg.Type() == glua.LTNil {
 			// Convenience functions always pass a nil
-			return r, true
+			return r
 		} else if fmtArg.Type() != glua.LTNumber {
 			lctx.Log(robot.Error, fmt.Sprintf("%s: MessageFormat argument must be a number (Raw=0, Fixed=1, Variable=2)", caller))
-			return r, true
+			return r
 		}
 		formatInt := int(fmtArg.(glua.LNumber))
 		if !isValidMessageFormat(formatInt) {
 			lctx.Log(robot.Error, fmt.Sprintf("%s: Invalid MessageFormat value: %d. Must be Raw=0, Fixed=1, or Variable=2", caller, formatInt))
-			return r, true
+			return r
 		}
 
-		return r.MessageFormat(robot.MessageFormat(formatInt)), true
+		return r.MessageFormat(robot.MessageFormat(formatInt))
 	}
-	return r, true
+	return r
 }
 
 // -------------------------------------------------------------------

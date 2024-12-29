@@ -26,10 +26,7 @@ func (lctx luaContext) RegisterLongTermMemoryMethods(L *glua.LState) {
 
 // botCheckoutDatum allows Lua scripts to checkout a datum by key, optionally read/write.
 func (lctx luaContext) botCheckoutDatum(L *glua.LState) int {
-	r, ok := lctx.getRobot(L, "CheckoutDatum")
-	if !ok {
-		return pushFail(L)
-	}
+	r := lctx.getRobot(L, "CheckoutDatum")
 	key := L.CheckString(2)
 	rwLua := L.Get(3)
 

@@ -19,11 +19,7 @@ func (lctx *luaContext) RegisterRobotModifiers(L *glua.LState) {
 }
 
 func (lctx *luaContext) botFixed(L *glua.LState) int {
-	lr, ok := lctx.getRobotUD(L, "Fixed")
-	if !ok {
-		L.RaiseError("invalid robot userdata in Fixed")
-		return 0
-	}
+	lr := lctx.getRobotUD(L, "Fixed")
 
 	fixedBot := lr.r.Fixed()
 	newUD := lctx.newLuaBot(L, fixedBot)
@@ -32,11 +28,7 @@ func (lctx *luaContext) botFixed(L *glua.LState) int {
 }
 
 func (lctx *luaContext) botDirect(L *glua.LState) int {
-	lr, ok := lctx.getRobotUD(L, "Direct")
-	if !ok {
-		L.RaiseError("invalid robot userdata in Direct")
-		return 0
-	}
+	lr := lctx.getRobotUD(L, "Direct")
 
 	directBot := lr.r.Direct()
 	newUD := lctx.newLuaBot(L, directBot)
@@ -48,11 +40,7 @@ func (lctx *luaContext) botDirect(L *glua.LState) int {
 }
 
 func (lctx *luaContext) botThreaded(L *glua.LState) int {
-	lr, ok := lctx.getRobotUD(L, "Threaded")
-	if !ok {
-		L.RaiseError("invalid robot userdata in Threaded")
-		return 0
-	}
+	lr := lctx.getRobotUD(L, "Threaded")
 
 	threadedBot := lr.r.Threaded()
 	newUD := lctx.newLuaBot(L, threadedBot)
@@ -64,11 +52,7 @@ func (lctx *luaContext) botThreaded(L *glua.LState) int {
 
 // botMessageFormat updates the message format of the bot.
 func (lctx *luaContext) botMessageFormat(L *glua.LState) int {
-	lr, ok := lctx.getRobotUD(L, "MessageFormat")
-	if !ok {
-		L.RaiseError("invalid robot userdata in MessageFormat")
-		return 0
-	}
+	lr := lctx.getRobotUD(L, "MessageFormat")
 	formatArg := L.Get(2)
 
 	// Validate that formatArg is a number

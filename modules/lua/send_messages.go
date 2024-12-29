@@ -7,11 +7,7 @@ import (
 // botSendChannelMessage(luaState) -> retVal
 // Usage: local ret = bot:SendChannelMessage("my-channel", "Hello channel", fmtFixed)
 func (lctx luaContext) botSendChannelMessage(L *glua.LState) int {
-	r, ok := lctx.getOptionalFormattedRobot(L, "SendChannelMessage", 4)
-	if !ok {
-		// Invalid robot or userData. We already logged an error in getOptionalFormattedRobot.
-		return 0
-	}
+	r := lctx.getOptionalFormattedRobot(L, "SendChannelMessage", 4)
 
 	channel := L.CheckString(2)
 	msg := L.CheckString(3)
@@ -31,10 +27,7 @@ func (lctx luaContext) botSendChannelMessage(L *glua.LState) int {
 // botSendChannelThreadMessage(luaState) -> retVal
 // Usage: local ret = bot:SendChannelThreadMessage("my-channel", "thread-id", "Hello thread", fmtRaw)
 func (lctx luaContext) botSendChannelThreadMessage(L *glua.LState) int {
-	r, ok := lctx.getOptionalFormattedRobot(L, "SendChannelThreadMessage", 5)
-	if !ok {
-		return 0
-	}
+	r := lctx.getOptionalFormattedRobot(L, "SendChannelThreadMessage", 5)
 
 	channel := L.CheckString(2)
 	thread := L.CheckString(3)
@@ -55,10 +48,7 @@ func (lctx luaContext) botSendChannelThreadMessage(L *glua.LState) int {
 // botSendUserMessage(luaState) -> retVal
 // Usage: local ret = bot:SendUserMessage("some.user", "Hello user", fmtRaw)
 func (lctx luaContext) botSendUserMessage(L *glua.LState) int {
-	r, ok := lctx.getOptionalFormattedRobot(L, "SendUserMessage", 4)
-	if !ok {
-		return 0
-	}
+	r := lctx.getOptionalFormattedRobot(L, "SendUserMessage", 4)
 
 	user := L.CheckString(2)
 	msg := L.CheckString(3)
@@ -77,10 +67,7 @@ func (lctx luaContext) botSendUserMessage(L *glua.LState) int {
 // botSendUserChannelMessage(luaState) -> retVal
 // Usage: local ret = bot:SendUserChannelMessage("some.user", "some-channel", "Hello in channel", fmtVariable)
 func (lctx luaContext) botSendUserChannelMessage(L *glua.LState) int {
-	r, ok := lctx.getOptionalFormattedRobot(L, "SendUserChannelMessage", 5)
-	if !ok {
-		return 0
-	}
+	r := lctx.getOptionalFormattedRobot(L, "SendUserChannelMessage", 5)
 
 	user := L.CheckString(2)
 	channel := L.CheckString(3)
@@ -103,10 +90,7 @@ func (lctx luaContext) botSendUserChannelMessage(L *glua.LState) int {
 // botSendUserChannelThreadMessage(luaState) -> retVal
 // Usage: local ret = bot:SendUserChannelThreadMessage("some.user", "some-channel", "some-thread", "Hello", fmtFixed)
 func (lctx luaContext) botSendUserChannelThreadMessage(L *glua.LState) int {
-	r, ok := lctx.getOptionalFormattedRobot(L, "SendUserChannelThreadMessage", 6)
-	if !ok {
-		return 0
-	}
+	r := lctx.getOptionalFormattedRobot(L, "SendUserChannelThreadMessage", 6)
 
 	user := L.CheckString(2)
 	channel := L.CheckString(3)
@@ -132,10 +116,7 @@ func (lctx luaContext) botSendUserChannelThreadMessage(L *glua.LState) int {
 // botSay(luaState) -> retVal
 // Usage: local ret = bot:Say("some text", fmtRaw)
 func (lctx luaContext) botSay(L *glua.LState) int {
-	r, ok := lctx.getOptionalFormattedRobot(L, "Say", 3)
-	if !ok {
-		return 0
-	}
+	r := lctx.getOptionalFormattedRobot(L, "Say", 3)
 	msg := L.CheckString(2)
 	// Let the engine handle empty messages => returns robot.Fail
 	ret := r.Say(msg)
@@ -146,10 +127,7 @@ func (lctx luaContext) botSay(L *glua.LState) int {
 // botSayThread(luaState) -> retVal
 // Usage: local ret = bot:SayThread("some text", fmtFixed)
 func (lctx luaContext) botSayThread(L *glua.LState) int {
-	r, ok := lctx.getOptionalFormattedRobot(L, "SayThread", 3)
-	if !ok {
-		return 0
-	}
+	r := lctx.getOptionalFormattedRobot(L, "SayThread", 3)
 	msg := L.CheckString(2)
 	ret := r.SayThread(msg)
 	L.Push(glua.LNumber(ret))
@@ -159,10 +137,7 @@ func (lctx luaContext) botSayThread(L *glua.LState) int {
 // botReply(luaState) -> retVal
 // Usage: local ret = bot:Reply("some text", fmtVariable)
 func (lctx luaContext) botReply(L *glua.LState) int {
-	r, ok := lctx.getOptionalFormattedRobot(L, "Reply", 3)
-	if !ok {
-		return 0
-	}
+	r := lctx.getOptionalFormattedRobot(L, "Reply", 3)
 	msg := L.CheckString(2)
 	ret := r.Reply(msg)
 	L.Push(glua.LNumber(ret))
@@ -172,10 +147,7 @@ func (lctx luaContext) botReply(L *glua.LState) int {
 // botReplyThread(luaState) -> retVal
 // Usage: local ret = bot:ReplyThread("some text", fmtRaw)
 func (lctx luaContext) botReplyThread(L *glua.LState) int {
-	r, ok := lctx.getOptionalFormattedRobot(L, "ReplyThread", 3)
-	if !ok {
-		return 0
-	}
+	r := lctx.getOptionalFormattedRobot(L, "ReplyThread", 3)
 	msg := L.CheckString(2)
 	ret := r.ReplyThread(msg)
 	L.Push(glua.LNumber(ret))
