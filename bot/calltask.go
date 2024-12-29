@@ -263,16 +263,15 @@ func getLockedWorker(idx int) *worker {
 	dummy := &worker{}
 	if idx == 0 { // illegal value
 		_, file, line, _ := runtime.Caller(1)
-		Log(robot.Error, "Illegal call to getLockedWorker with tid = 0 in '%s', line %d", file, line)
-		dummy.Lock()
-		return dummy
+		Log(robot.Error, "illegal call to getLockedWorker with tid = 0 in '%s', line %d", file, line)
+		return nil
 	}
 	taskLookup.RLock()
 	w, ok := taskLookup.i[idx]
 	taskLookup.RUnlock()
 	if !ok {
 		_, file, line, _ := runtime.Caller(2)
-		Log(robot.Error, "Illegal call to getLockedWorker for inactive worker in '%s', line %d", file, line)
+		Log(robot.Warn, "call to getLockedWorker for inactive worker in '%s', line %d; returning dummy", file, line)
 		dummy.Lock()
 		return dummy
 	}
