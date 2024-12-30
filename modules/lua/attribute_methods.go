@@ -1,7 +1,6 @@
 package lua
 
 import (
-	"github.com/lnxjedi/gopherbot/robot"
 	glua "github.com/yuin/gopher-lua"
 )
 
@@ -31,19 +30,14 @@ func (lctx luaContext) RegisterAttributeMethods(L *glua.LState) {
 // botGetBotAttribute retrieves a bot attribute.
 // Usage: local attr, ret = robot:GetBotAttribute("name")
 func (lctx luaContext) botGetBotAttribute(L *glua.LState) int {
-	ud := L.CheckUserData(1)
+	r := lctx.getRobot(L, "GetBotAttribute")
 	attribute := L.CheckString(2) // e.g., "name", "alias", etc.
 
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok {
-		lctx.logBotErr("GetBotAttribute")
-		// Return "", robot.AttributeNotFound
-		L.Push(glua.LString(""))
-		L.Push(glua.LNumber(robot.AttributeNotFound))
-		return 2
+	if attribute == "" {
+		L.RaiseError("GetBotAttribute: attribute must not be empty")
 	}
 
-	ret := lr.r.GetBotAttribute(attribute)
+	ret := r.GetBotAttribute(attribute)
 	// ret.Attribute is the string
 	// ret.RetVal is e.g., Ok / UserNotFound / ...
 	L.Push(glua.LString(ret.Attribute))
@@ -54,19 +48,18 @@ func (lctx luaContext) botGetBotAttribute(L *glua.LState) int {
 // botGetUserAttribute retrieves a user attribute.
 // Usage: local attr, ret = robot:GetUserAttribute("user123", "role")
 func (lctx luaContext) botGetUserAttribute(L *glua.LState) int {
-	ud := L.CheckUserData(1)
+	r := lctx.getRobot(L, "GetUserAttribute")
 	user := L.CheckString(2)
 	attribute := L.CheckString(3)
 
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok {
-		lctx.logBotErr("GetUserAttribute")
-		L.Push(glua.LString(""))
-		L.Push(glua.LNumber(robot.AttributeNotFound))
-		return 2
+	if user == "" {
+		L.RaiseError("GetUserAttribute: user must not be empty")
+	}
+	if attribute == "" {
+		L.RaiseError("GetUserAttribute: attribute must not be empty")
 	}
 
-	ret := lr.r.GetUserAttribute(user, attribute)
+	ret := r.GetUserAttribute(user, attribute)
 	L.Push(glua.LString(ret.Attribute))
 	L.Push(glua.LNumber(ret.RetVal))
 	return 2
@@ -75,18 +68,14 @@ func (lctx luaContext) botGetUserAttribute(L *glua.LState) int {
 // botGetSenderAttribute retrieves an attribute of the message sender.
 // Usage: local attr, ret = robot:GetSenderAttribute("status")
 func (lctx luaContext) botGetSenderAttribute(L *glua.LState) int {
-	ud := L.CheckUserData(1)
+	r := lctx.getRobot(L, "GetSenderAttribute")
 	attribute := L.CheckString(2)
 
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok {
-		lctx.logBotErr("GetSenderAttribute")
-		L.Push(glua.LString(""))
-		L.Push(glua.LNumber(robot.AttributeNotFound))
-		return 2
+	if attribute == "" {
+		L.RaiseError("GetSenderAttribute: attribute must not be empty")
 	}
 
-	ret := lr.r.GetSenderAttribute(attribute)
+	ret := r.GetSenderAttribute(attribute)
 	L.Push(glua.LString(ret.Attribute))
 	L.Push(glua.LNumber(ret.RetVal))
 	return 2

@@ -307,6 +307,9 @@ func (r Robot) GetBotAttribute(a string) *robot.AttrRet {
 	case "id", "internalid", "protocolid":
 		attr = fmt.Sprintf("<%s>", r.cfg.botinfo.UserID)
 	default:
+		w := getLockedWorker(r.tid)
+		w.Unlock()
+		w.Log(robot.Error, "invalid attribute in call to GetBotAttribute: '%s'", a)
 		ret = robot.AttributeNotFound
 	}
 	return &robot.AttrRet{attr, ret}

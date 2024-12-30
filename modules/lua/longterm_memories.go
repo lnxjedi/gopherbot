@@ -33,6 +33,9 @@ func (lctx luaContext) botCheckoutDatum(L *glua.LState) int {
 	rw := false
 	if b, isBool := rwLua.(glua.LBool); isBool {
 		rw = bool(b)
+	} else if _, isNil := rwLua.(*glua.LNilType); !isNil {
+		L.RaiseError("invalid value for rw in CheckoutDatum")
+		return 0
 	}
 
 	var datum interface{}
@@ -72,16 +75,10 @@ func (lctx luaContext) botCheckoutDatum(L *glua.LState) int {
 
 // botUpdateDatum allows Lua scripts to update a datum by key and lockToken.
 func (lctx luaContext) botUpdateDatum(L *glua.LState) int {
-	ud := L.CheckUserData(1)
+	r := lctx.getRobot(L, "UpdateDatum")
 	key := L.CheckString(2)
 	lockToken := L.CheckString(3)
 	luaDataVal := L.Get(4)
-
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok {
-		lctx.logBotErr("UpdateDatum")
-		return pushFail(L)
-	}
 
 	visited := make(map[*glua.LTable]bool)
 	goDatum, err := parseLuaValueToGo(luaDataVal, visited)
@@ -91,24 +88,18 @@ func (lctx luaContext) botUpdateDatum(L *glua.LState) int {
 		return 1
 	}
 
-	retVal := lr.r.UpdateDatum(key, lockToken, goDatum)
+	retVal := r.UpdateDatum(key, lockToken, goDatum)
 	L.Push(glua.LNumber(retVal))
 	return 1
 }
 
 // botCheckinDatum allows Lua scripts to checkin a datum by key and lockToken.
 func (lctx luaContext) botCheckinDatum(L *glua.LState) int {
-	ud := L.CheckUserData(1)
+	r := lctx.getRobot(L, "CheckinDatum")
 	key := L.CheckString(2)
 	lockToken := L.CheckString(3)
 
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok {
-		lctx.logBotErr("CheckinDatum")
-		return pushFail(L)
-	}
-
-	lr.r.CheckinDatum(key, lockToken)
+	r.CheckinDatum(key, lockToken)
 	L.Push(glua.LNumber(robot.Ok))
 	return 1
 }

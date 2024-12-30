@@ -39,6 +39,11 @@ func (r Robot) GetUserAttribute(u, a string) *robot.AttrRet {
 			attr = ui.LastName
 		case "phone":
 			attr = ui.Phone
+		case "":
+			w := getLockedWorker(r.tid)
+			w.Unlock()
+			w.Log(robot.Error, "empty attribute in call to GetUserAttribute")
+			return &robot.AttrRet{"", robot.AttributeNotFound}
 		}
 		if len(attr) > 0 {
 			return &robot.AttrRet{attr, robot.Ok}
@@ -72,6 +77,11 @@ func (r Robot) GetSenderAttribute(a string) *robot.AttrRet {
 			attr = ui.LastName
 		case "phone":
 			attr = ui.Phone
+		case "":
+			w := getLockedWorker(r.tid)
+			w.Unlock()
+			w.Log(robot.Error, "empty attribute in call to GetUserAttribute")
+			return &robot.AttrRet{"", robot.AttributeNotFound}
 		}
 		if len(attr) > 0 {
 			return &robot.AttrRet{attr, robot.Ok}
