@@ -2,7 +2,8 @@ package bot
 
 import (
 	"crypto/rand"
-	"fmt"
+	"encoding/base64"
+	"log"
 	"os/exec"
 	"sync"
 	"time"
@@ -92,14 +93,21 @@ func (w *worker) registerActive(parent *worker) {
 	if len(w.eid) == 0 {
 		var eid string
 		for {
-			// 4 bytes of entropy per pipeline
-			b := make([]byte, 4)
-			rand.Read(b)
-			eid = fmt.Sprintf("%02x%02x%02x%02x", b[0], b[1], b[2], b[3])
-			if _, ok := activePipelines.eids[eid]; !ok {
+			// 18 bytes of entropy (144 bits)
+			b := make([]byte, 18)
+			if _, err := rand.Read(b); err != nil {
+				log.Printf("Error generating random bytes: %v", err)
+				continue // Optionally handle the error differently
+			}
+
+			// Convert to a URL/base64 string
+			eid = base64.RawURLEncoding.EncodeToString(b)
+
+			if _, exists := activePipelines.eids[eid]; !exists {
 				activePipelines.eids[eid] = struct{}{}
 				break
 			}
+			// In the *EXTREMELY* unlikely event of a collision, retry
 		}
 		w.eid = eid
 	}
