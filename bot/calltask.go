@@ -142,8 +142,8 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 
 	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
 	isExternalLuaTask := strings.HasSuffix(task.Path, ".lua")
-	isExternalJsTask := strings.HasSuffix(task.Path, ".js")
-	isExternalInterpreterTask := isExternalGoTask || isExternalLuaTask || isExternalJsTask
+	isExternalJSTask := strings.HasSuffix(task.Path, ".js")
+	isExternalInterpreterTask := isExternalGoTask || isExternalLuaTask || isExternalJSTask
 	if taskPath, err = getTaskPath(task, "."); err != nil {
 		if !isExternalInterpreterTask && taskPath == "" {
 			cchan <- getCfgReturn{nil, err}
@@ -171,7 +171,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 				cchan <- getCfgReturn{defConfig, nil}
 				return
 			}
-		} else if isExternalJsTask {
+		} else if isExternalJSTask {
 			// Assuming you have a similar function for JavaScript
 			Log(robot.Info, "getting default configuration for external JavaScript plugin '"+task.name+"'")
 			if defConfig, err := js.GetPluginConfig(execPath(), taskPath, task.name, emptyBot(), libPaths()); err != nil {
@@ -341,8 +341,9 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	}
 
 	// Set up the per-task environment, getEnvironment takes lock & releases
-	envhash := w.getEnvironment(t)
+	envhash, paramhash := w.getEnvironment(t)
 	r.environment = envhash
+	r.parameters = paramhash
 
 	w.registerWorker(r.tid)
 
@@ -399,7 +400,8 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	var taskPath string // full path to the executable
 	isExternalGoTask := strings.HasSuffix(task.Path, ".go")
 	isExternalLuaTask := strings.HasSuffix(task.Path, ".lua")
-	isExternalInterpreterTask := isExternalGoTask || isExternalLuaTask
+	isExternalJSTask := strings.HasSuffix(task.Path, ".js")
+	isExternalInterpreterTask := isExternalGoTask || isExternalJSTask || isExternalLuaTask
 	var err error
 	if task.Homed || isExternalInterpreterTask {
 		taskPath, err = getTaskPath(task, ".")
@@ -425,7 +427,23 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	}
 	env := make([]string, 0, len(envhash))
 	keys := make([]string, 0, len(envhash))
+	exists := make(map[string]struct{})
+	// If we're loading parameters in the environment, we load them first
+	if !w.cfg.secureParamRetrieve {
+		for k, v := range paramhash {
+			if len(k) == 0 {
+				Log(robot.Error, "Empty Name value while populating environment parameters for '%s', skipping", task.name)
+				continue
+			}
+			env = append(env, fmt.Sprintf("%s=%s", k, v))
+			exists[k] = struct{}{}
+			keys = append(keys, k)
+		}
+	}
 	for k, v := range envhash {
+		if _, ok := exists[k]; ok {
+			continue
+		}
 		if len(k) == 0 {
 			Log(robot.Error, "Empty Name value while populating environment for '%s', skipping", task.name)
 			continue
@@ -545,6 +563,15 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		cmd.Dir = workdir
 	}
 
+	// We send the caller ID secret over stdin
+	stdinPipe, err := cmd.StdinPipe()
+	if err != nil {
+		w.Log(robot.Error, "Creating stdin pipe for external command '%s': %v", taskPath, err)
+		errString = fmt.Sprintf("Pipeline failed in external task '%s', writing fail log in GOPHER_HOME", task.name)
+		rchan <- taskReturn{errString, robot.MechanismFail}
+		return
+	}
+
 	cmd.Env = env
 	Log(robot.Debug, "Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '"))
 	var stderr, stdout io.ReadCloser
@@ -607,6 +634,14 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		solog = log.New(os.Stdout, "", 0)
 		selog = log.New(os.Stderr, "ERR: ", 0)
 	}
+	go func() {
+		defer stdinPipe.Close()
+		_, writeErr := io.WriteString(stdinPipe, w.eid+"\n")
+		if writeErr != nil {
+			w.Log(robot.Error, "Writing EID to stdin for task '%s': %v", w.taskName, writeErr)
+			// Handle the error as needed
+		}
+	}()
 	go func() {
 		logging := logger != nil
 		scanner := bufio.NewScanner(stdout)

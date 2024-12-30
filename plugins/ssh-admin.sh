@@ -21,6 +21,9 @@ CommandMatchers:
 EOF
 }
 
+[ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
+source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
+
 if [ "$command" = "configure" ]
 then
 	configure
@@ -39,9 +42,6 @@ trap_handler()
     exit $ERRVAL
 }
 trap 'trap_handler ${LINENO} $?' ERR
-
-[ -z "$GOPHER_INSTALLDIR" ] && { echo "GOPHER_INSTALLDIR not set" >&2; exit 1; }
-source $GOPHER_INSTALLDIR/lib/gopherbot_v1.sh
 
 for REQUIRED in git jq ssh
 do

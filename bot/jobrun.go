@@ -107,6 +107,7 @@ func (w *worker) checkJobMatchersAndRun() (messageMatched bool) {
 			}
 			c := &pipeContext{
 				environment: make(map[string]string),
+				parameters: make(map[string]string),
 			}
 			w.pipeContext = c
 			c.currentTask = t

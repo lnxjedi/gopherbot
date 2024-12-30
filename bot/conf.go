@@ -19,44 +19,45 @@ var protocolConfig, brainConfig, historyConfig json.RawMessage
 // Digested content ends up in currentCfg, see bot_process.go.
 // ConfigLoader represents the structure of robot.yaml for validation.
 type ConfigLoader struct {
-	AdminContact         string                  `yaml:"AdminContact"`         // Contact info for whomever administers the robot
-	MailConfig           botMailer               `yaml:"MailConfig"`           // Configuration for sending email
-	Protocol             string                  `yaml:"Protocol"`             // Name of the connector protocol to use, e.g., "slack"
-	ProtocolConfig       json.RawMessage         `yaml:"ProtocolConfig"`       // Protocol-specific configuration, for unmarshalling arbitrary config
-	BotInfo              *UserInfo               `yaml:"BotInfo"`              // Information about the robot
-	UserRoster           []UserInfo              `yaml:"UserRoster"`           // List of users and related attributes
-	ChannelRoster        []ChannelInfo           `yaml:"ChannelRoster"`        // List of channels mapping names to IDs
-	Brain                string                  `yaml:"Brain"`                // Type of Brain to use
-	BrainConfig          json.RawMessage         `yaml:"BrainConfig"`          // Brain-specific configuration, for unmarshalling arbitrary config
-	EncryptionKey        string                  `yaml:"EncryptionKey"`        // Used to decrypt the "real" encryption key
-	HistoryProvider      string                  `yaml:"HistoryProvider"`      // Name of provider to use for storing and retrieving job/plugin histories
-	HistoryConfig        json.RawMessage         `yaml:"HistoryConfig"`        // History provider-specific configuration
-	HttpDebug            bool                    `yaml:"HttpDebug"`            // Whether to turn on debug logging of local http API calls
-	WorkSpace            string                  `yaml:"WorkSpace"`            // Read/Write area the robot uses to do work
-	DefaultElevator      string                  `yaml:"DefaultElevator"`      // Elevator plugin for ElevatedCommands and ElevateImmediateCommands
-	DefaultAuthorizer    string                  `yaml:"DefaultAuthorizer"`    // Authorizer plugin for AuthorizedCommands, or when AuthorizeAllCommands = true
-	DefaultMessageFormat string                  `yaml:"DefaultMessageFormat"` // How the robot formats outgoing messages; default: Raw
-	DefaultAllowDirect   bool                    `yaml:"DefaultAllowDirect"`   // Whether plugins are available in a DM by default
-	IgnoreUnlistedUsers  bool                    `yaml:"IgnoreUnlistedUsers"`  // Drop all messages from ID not in the UserRoster
-	DefaultChannels      []string                `yaml:"DefaultChannels"`      // Channels where plugins are active by default, e.g., ["general", "random"]
-	IgnoreUsers          []string                `yaml:"IgnoreUsers"`          // Users the bot never talks to - like other bots
-	JoinChannels         []string                `yaml:"JoinChannels"`         // Channels the bot should join on login (not supported by all protocols)
-	DefaultJobChannel    string                  `yaml:"DefaultJobChannel"`    // Where job status is posted by default
-	TimeZone             string                  `yaml:"TimeZone"`             // For evaluating the hour in a job schedule
-	ExternalJobs         map[string]TaskSettings `yaml:"ExternalJobs"`         // List of available jobs; config in conf/jobs/<jobname>.yaml
-	ExternalPlugins      map[string]TaskSettings `yaml:"ExternalPlugins"`      // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
-	ExternalTasks        map[string]TaskSettings `yaml:"ExternalTasks"`        // List executables for pipeline addition (not as starters)
-	GoJobs               map[string]TaskSettings `yaml:"GoJobs"`               // Settings for Go jobs; config in conf/jobs/<jobname>.yaml
-	GoPlugins            map[string]TaskSettings `yaml:"GoPlugins"`            // Settings for Go plugins; config in conf/plugins/<plugname>.yaml
-	GoTasks              map[string]TaskSettings `yaml:"GoTasks"`              // Settings for Go tasks
-	NameSpaces           map[string]TaskSettings `yaml:"NameSpaces"`           // Namespaces for shared parameters & memory sharing
-	ParameterSets        map[string]TaskSettings `yaml:"ParameterSets"`        // Named sets of parameters, e.g., GITHUB_TOKEN used multiple places
-	ScheduledJobs        []ScheduledTask         `yaml:"ScheduledJobs"`        // See tasks.go
-	AdminUsers           []string                `yaml:"AdminUsers"`           // List of users with access to administrative commands
-	Alias                string                  `yaml:"Alias"`                // One-character alias for commands directed at the bot, e.g., ';open the pod bay doors'
-	LocalPort            int                     `yaml:"LocalPort"`            // Port number for localhost listening for CLI plugins
-	LogLevel             string                  `yaml:"LogLevel"`             // Initial log level, modifiable by plugins. Options: "trace," "debug," "info," "warn," "error"
-	LogDest              string                  `yaml:"LogDest"`              // one of stderr, stdout, <filename>
+	AdminContact             string                  `yaml:"AdminContact"`             // Contact info for whomever administers the robot
+	MailConfig               botMailer               `yaml:"MailConfig"`               // Configuration for sending email
+	Protocol                 string                  `yaml:"Protocol"`                 // Name of the connector protocol to use, e.g., "slack"
+	ProtocolConfig           json.RawMessage         `yaml:"ProtocolConfig"`           // Protocol-specific configuration, for unmarshalling arbitrary config
+	BotInfo                  *UserInfo               `yaml:"BotInfo"`                  // Information about the robot
+	UserRoster               []UserInfo              `yaml:"UserRoster"`               // List of users and related attributes
+	ChannelRoster            []ChannelInfo           `yaml:"ChannelRoster"`            // List of channels mapping names to IDs
+	Brain                    string                  `yaml:"Brain"`                    // Type of Brain to use
+	BrainConfig              json.RawMessage         `yaml:"BrainConfig"`              // Brain-specific configuration, for unmarshalling arbitrary config
+	EncryptionKey            string                  `yaml:"EncryptionKey"`            // Used to decrypt the "real" encryption key
+	HistoryProvider          string                  `yaml:"HistoryProvider"`          // Name of provider to use for storing and retrieving job/plugin histories
+	HistoryConfig            json.RawMessage         `yaml:"HistoryConfig"`            // History provider-specific configuration
+	HttpDebug                bool                    `yaml:"HttpDebug"`                // Whether to turn on debug logging of local http API calls
+	WorkSpace                string                  `yaml:"WorkSpace"`                // Read/Write area the robot uses to do work
+	DefaultElevator          string                  `yaml:"DefaultElevator"`          // Elevator plugin for ElevatedCommands and ElevateImmediateCommands
+	DefaultAuthorizer        string                  `yaml:"DefaultAuthorizer"`        // Authorizer plugin for AuthorizedCommands, or when AuthorizeAllCommands = true
+	DefaultMessageFormat     string                  `yaml:"DefaultMessageFormat"`     // How the robot formats outgoing messages; default: Raw
+	DefaultAllowDirect       bool                    `yaml:"DefaultAllowDirect"`       // Whether plugins are available in a DM by default
+	IgnoreUnlistedUsers      bool                    `yaml:"IgnoreUnlistedUsers"`      // Drop all messages from ID not in the UserRoster
+	SecureParameterRetrieval bool                    `yaml:"SecureParameterRetrieval"` // Don't publish parameters as environment variables
+	DefaultChannels          []string                `yaml:"DefaultChannels"`          // Channels where plugins are active by default, e.g., ["general", "random"]
+	IgnoreUsers              []string                `yaml:"IgnoreUsers"`              // Users the bot never talks to - like other bots
+	JoinChannels             []string                `yaml:"JoinChannels"`             // Channels the bot should join on login (not supported by all protocols)
+	DefaultJobChannel        string                  `yaml:"DefaultJobChannel"`        // Where job status is posted by default
+	TimeZone                 string                  `yaml:"TimeZone"`                 // For evaluating the hour in a job schedule
+	ExternalJobs             map[string]TaskSettings `yaml:"ExternalJobs"`             // List of available jobs; config in conf/jobs/<jobname>.yaml
+	ExternalPlugins          map[string]TaskSettings `yaml:"ExternalPlugins"`          // List of non-Go plugins to load; config in conf/plugins/<plugname>.yaml
+	ExternalTasks            map[string]TaskSettings `yaml:"ExternalTasks"`            // List executables for pipeline addition (not as starters)
+	GoJobs                   map[string]TaskSettings `yaml:"GoJobs"`                   // Settings for Go jobs; config in conf/jobs/<jobname>.yaml
+	GoPlugins                map[string]TaskSettings `yaml:"GoPlugins"`                // Settings for Go plugins; config in conf/plugins/<plugname>.yaml
+	GoTasks                  map[string]TaskSettings `yaml:"GoTasks"`                  // Settings for Go tasks
+	NameSpaces               map[string]TaskSettings `yaml:"NameSpaces"`               // Namespaces for shared parameters & memory sharing
+	ParameterSets            map[string]TaskSettings `yaml:"ParameterSets"`            // Named sets of parameters, e.g., GITHUB_TOKEN used multiple places
+	ScheduledJobs            []ScheduledTask         `yaml:"ScheduledJobs"`            // See tasks.go
+	AdminUsers               []string                `yaml:"AdminUsers"`               // List of users with access to administrative commands
+	Alias                    string                  `yaml:"Alias"`                    // One-character alias for commands directed at the bot, e.g., ';open the pod bay doors'
+	LocalPort                int                     `yaml:"LocalPort"`                // Port number for localhost listening for CLI plugins
+	LogLevel                 string                  `yaml:"LogLevel"`                 // Initial log level, modifiable by plugins. Options: "trace," "debug," "info," "warn," "error"
+	LogDest                  string                  `yaml:"LogDest"`                  // one of stderr, stdout, <filename>
 }
 
 // UserInfo is listed in the UserRoster of robot.yaml to provide:
@@ -140,7 +141,7 @@ func loadConfig(preConnect bool) error {
 		switch key {
 		case "AdminContact", "Email", "Protocol", "Brain", "EncryptionKey", "HistoryProvider", "WorkSpace", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogDest", "LogLevel", "TimeZone":
 			val = &strval
-		case "DefaultAllowDirect", "HttpDebug", "IgnoreUnlistedUsers":
+		case "DefaultAllowDirect", "HttpDebug", "IgnoreUnlistedUsers", "SecureParameterRetrieval":
 			val = &boolval
 		case "BotInfo":
 			val = &bival
@@ -220,6 +221,8 @@ func loadConfig(preConnect bool) error {
 			newconfig.HttpDebug = *(val.(*bool))
 		case "IgnoreUnlistedUsers":
 			newconfig.IgnoreUnlistedUsers = *(val.(*bool))
+		case "SecureParameterRetrieval":
+			newconfig.SecureParameterRetrieval = *(val.(*bool))
 		case "ExternalPlugins":
 			newconfig.ExternalPlugins = *(val.(*map[string]TaskSettings))
 		case "ExternalJobs":
@@ -254,6 +257,7 @@ func loadConfig(preConnect bool) error {
 	}
 
 	processed.ignoreUnlistedUsers = newconfig.IgnoreUnlistedUsers
+	processed.secureParamRetrieve = newconfig.SecureParameterRetrieval
 	processed.httpDebug = newconfig.HttpDebug
 	if newconfig.Protocol != "" {
 		processed.protocol = newconfig.Protocol

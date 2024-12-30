@@ -78,21 +78,35 @@ class Robot:
     NotFound = 6
     Success = 7
 
+    # **Class-level attribute to store eid**
+    _eid = None
+
     def __init__(self):
         random.seed()
         self.channel = os.getenv("GOPHER_CHANNEL")
         self.thread_id = os.getenv("GOPHER_THREAD_ID")
         self.threaded_message = os.getenv("GOPHER_THREADED_MESSAGE")
         self.user = os.getenv("GOPHER_USER")
-        self.plugin_id = os.getenv("GOPHER_CALLER_ID")
         self.format = ""
         self.protocol = os.getenv("GOPHER_PROTOCOL")
+
+        if Robot._eid is None:
+            caller_id = os.getenv("GOPHER_CALLER_ID")
+            if caller_id == "stdin":
+                # Read the eid from stdin
+                Robot._eid = sys.stdin.readline().strip()
+                # Update the environment variable to indicate consumption
+                os.environ["GOPHER_CALLER_ID"] = "read"
+            else:
+                Robot._eid = caller_id
+
+        self.caller_id = Robot._eid
 
     def Call(self, func_name, func_args, format=""):
         if len(format) == 0:
             format = self.format
         func_call = { "FuncName": func_name, "Format": format,
-                    "CallerID": self.plugin_id,
+                    "CallerID": self.caller_id,
                     "FuncArgs": func_args }
         data = json.dumps(func_call)
         data = bytes(data, 'utf-8')
@@ -299,7 +313,7 @@ class DirectBot(Robot):
         self.user = bot.user
         self.protocol = bot.protocol
         self.format = bot.format
-        self.plugin_id = bot.plugin_id
+        self.caller_id = bot.caller_id
 
 class FormattedBot(Robot):
     "Instantiate a robot with a non-default message format"
@@ -310,7 +324,7 @@ class FormattedBot(Robot):
         self.user = bot.user
         self.protocol = bot.protocol
         self.format = format
-        self.plugin_id = bot.plugin_id
+        self.caller_id = bot.caller_id
 
 class ThreadedBot(Robot):
     "Instantiate a robot with a non-default message format"
@@ -324,4 +338,4 @@ class ThreadedBot(Robot):
         self.user = bot.user
         self.protocol = bot.protocol
         self.format = bot.format
-        self.plugin_id = bot.plugin_id
+        self.caller_id = bot.caller_id

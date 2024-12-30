@@ -1,5 +1,10 @@
 #!/bin/bash
 # shellLib.sh - bash plugins should source this with 'source $GOPHER_INSTALLDIR/util/shellLib.sh'
+
+if [[ $GOPHER_CALLER_ID == "stdin" ]]; then
+	read -r CALLER_ID
+fi
+
 # Return values for robot method calls
 GBRET_Ok=0
 GBRET_UserNotFound=1
@@ -58,7 +63,7 @@ gbPostJSON(){
 {
 	"FuncName": "$GB_FUNCNAME",
 	"Format": "$FORMAT",
-	"CallerID": "$GOPHER_CALLER_ID",
+	"CallerID": "$CALLER_ID",
 	"FuncArgs": $GB_FUNCARGS
 }
 EOF

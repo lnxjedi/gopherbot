@@ -94,6 +94,7 @@ type configuration struct {
 	joinChannels         []string            // list of channels to join
 	defaultAllowDirect   bool                // whether plugins are available in DM by default
 	ignoreUnlistedUsers  bool                // ignore users not listed in the UserRoster
+	secureParamRetrieve  bool                // don't publish parameters as environment variables
 	httpDebug            bool                // whether http API debug logging is enabled
 	defaultMessageFormat robot.MessageFormat // Raw unless set to Variable or Fixed
 	plugChannels         []string            // list of channels where plugins are available by default

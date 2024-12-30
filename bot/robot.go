@@ -166,7 +166,7 @@ func (r Robot) SetParameter(name, value string) bool {
 	w := getLockedWorker(r.tid)
 	defer w.Unlock()
 	c := w.pipeContext
-	c.environment[name] = value
+	c.parameters[name] = value
 	return true
 }
 
@@ -211,7 +211,11 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 
 // see robot/robot.go
 func (r Robot) GetParameter(key string) string {
-	value, ok := r.environment[key]
+	value, ok := r.parameters[key]
+	if ok {
+		return value
+	}
+	value, ok = r.environment[key]
 	if ok {
 		return value
 	}

@@ -44,6 +44,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	// NOTE: we don't need to worry about locking until the pipeline actually starts
 	c := &pipeContext{
 		environment: make(map[string]string),
+		parameters: make(map[string]string),
 	}
 	w.pipeContext = c
 	c.pipeName = task.name
@@ -512,23 +513,11 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 
 // getEnvironment generates the environment for each task run.
 // See callTask for the definition of pipeInit.
-func (w *worker) getEnvironment(t interface{}) map[string]string {
+func (w *worker) getEnvironment(t interface{}) (env, parameters map[string]string) {
 	task, plugin, _ := getTask(t)
 	isPlugin := plugin != nil
 	c := w.pipeContext
 	envhash := make(map[string]string)
-	// Start with the pipeline environment; values configured for the job,
-	// or set with SetParameter(name, value). Unprivileged plugins don't
-	// get pipe env.
-	pipeEnv := true
-	if isPlugin && !task.Privileged {
-		pipeEnv = false
-	}
-	if pipeEnv && len(c.environment) > 0 {
-		for k, v := range c.environment {
-			envhash[k] = v
-		}
-	}
 	// These values are always fixed
 	if len(homePath) > 0 {
 		envhash["HOME"] = homePath
@@ -552,7 +541,8 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	envhash["GOPHER_PROTOCOL"] = strings.ToLower(w.Protocol.String())
 	envhash["GOPHER_TASK_NAME"] = c.taskName
 	envhash["GOPHER_PIPELINE_TYPE"] = c.ptype.String()
-	envhash["GOPHER_CALLER_ID"] = w.eid
+	// envhash["GOPHER_CALLER_ID"] = w.eid // now this is read from STDIN
+	envhash["GOPHER_CALLER_ID"] = "stdin" // allows eventually loading libraries at the CLI for testing
 	envhash["GOPHER_HTTP_POST"] = "http://" + listenPort
 	envhash["GOPHER_INSTALLDIR"] = installPath
 	libPath := fmt.Sprintf("%s/lib:%s/lib", installPath, configFull)
@@ -573,14 +563,27 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	// NOTE: Even if the job/plugin that started the pipeline isn't privileged,
 	// it will still see the namespace and parametersets parameters, since they're
 	// directly attached to the task.
+	paramhash := make(map[string]string)
+	// Start with the pipeline environment; values configured for the job,
+	// or set with SetParameter(name, value). Unprivileged plugins don't
+	// get pipe env.
+	pipeEnv := true
+	if isPlugin && !task.Privileged {
+		pipeEnv = false
+	}
+	if pipeEnv && len(c.parameters) > 0 {
+		for k, v := range c.parameters {
+			paramhash[k] = v
+		}
+	}
 	if task.Privileged {
 		// Next lowest prio are inherited namespace params; task parameters can override
 		// parameters from the namespace.
 		if len(c.nameSpaceParameters) > 0 {
 			for _, p := range c.nameSpaceParameters {
-				_, exists := envhash[p.Name]
+				_, exists := paramhash[p.Name]
 				if !exists {
-					envhash[p.Name] = p.Value
+					paramhash[p.Name] = p.Value
 				}
 			}
 		}
@@ -589,9 +592,9 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 			for _, set := range c.parameterSets {
 				if ps, ok := w.tasks.parameterSets[set]; ok {
 					for _, p := range ps.Parameters {
-						_, exists := envhash[p.Name]
+						_, exists := paramhash[p.Name]
 						if !exists {
-							envhash[p.Name] = p.Value
+							paramhash[p.Name] = p.Value
 						}
 					}
 				}
@@ -608,9 +611,9 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	if len(task.NameSpace) > 0 {
 		if ns, ok := w.tasks.nameSpaces[task.NameSpace]; ok {
 			for _, p := range ns.Parameters {
-				_, exists := envhash[p.Name]
+				_, exists := paramhash[p.Name]
 				if !exists {
-					envhash[p.Name] = p.Value
+					paramhash[p.Name] = p.Value
 				}
 			}
 		}
@@ -620,9 +623,9 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 		for _, set := range task.ParameterSets {
 			if ps, ok := w.tasks.parameterSets[set]; ok {
 				for _, p := range ps.Parameters {
-					_, exists := envhash[p.Name]
+					_, exists := paramhash[p.Name]
 					if !exists {
-						envhash[p.Name] = p.Value
+						paramhash[p.Name] = p.Value
 					}
 				}
 			}
@@ -638,9 +641,9 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 	// task parameters are effectively default values if not otherwise
 	// provided by the pipeline or attached parameter sets.
 	for _, p := range task.Parameters {
-		_, exists := envhash[p.Name]
+		_, exists := paramhash[p.Name]
 		if !exists {
-			envhash[p.Name] = p.Value
+			paramhash[p.Name] = p.Value
 		}
 	}
 
@@ -653,7 +656,7 @@ func (w *worker) getEnvironment(t interface{}) map[string]string {
 			}
 		}
 	}
-	return envhash
+	return envhash, paramhash
 }
 
 // getTaskPath searches configPath and installPath and returns the full path

@@ -5,6 +5,13 @@
 ## UserRoster.
 # IgnoreUnlistedUsers: true
 
+## Improved security for secrets - if SecureParameterRetrieval is true,
+## Jobs, Plugins and Tasks will need to use the GetParameter(secret_name)
+## API call to retrieve secrets, instead of getting them from environment
+## variables. This may require some jobs to load the library where formerly
+## it wasn't needed.
+# SecureParameterRetrieval: true
+
 ## Configure the robot connection protocol; modifying this could
 ## break `gopherbot -t`
 {{ $proto := env "GOPHER_PROTOCOL" | default "terminal" }}

@@ -109,6 +109,7 @@ func (w *worker) clone() *worker {
 			ptype:       w.ptype,
 			elevated:    w.elevated,
 			environment: make(map[string]string),
+			parameters:  make(map[string]string),
 		}
 		w.Unlock()
 	}

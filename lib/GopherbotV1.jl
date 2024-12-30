@@ -7,6 +7,13 @@ using HTTP
 using Random
 
 # =============================
+# Module-Level Variables
+# =============================
+
+# Ref to store the caller_id once it's read
+const global_caller_id = Ref{String}("")
+
+# =============================
 # Struct Definitions
 # =============================
 
@@ -45,7 +52,7 @@ end
 
 """
     Robot(channel::String, channel_id::String, message_id::String, thread_id::String,
-          threaded_message::Bool, user::String, user_id::String, plugin_id::String,
+          threaded_message::Bool, user::String, user_id::String, caller_id::String,
           protocol::String, brain::String, format::String, prng::MersenneTwister)
 
 Represents the Robot instance initialized with environment variables.
@@ -58,7 +65,7 @@ mutable struct Robot
     threaded_message::Bool
     user::String
     user_id::String
-    plugin_id::String
+    caller_id::String
     protocol::String
     brain::String
     format::String
@@ -118,8 +125,25 @@ const Success = 7
     initialize_robot() -> Robot
 
 Initializes a Robot instance by reading environment variables.
+Handles secure retrieval of caller_id from stdin if required.
 """
 function initialize_robot()::Robot
+    # Check if global_caller_id has already been set
+    if isempty(global_caller_id[])  # [] dereferences the Ref
+        plugin_id = get(ENV, "GOPHER_CALLER_ID", "")
+        if plugin_id == "stdin"
+            # Read the caller_id from stdin
+            println("Please enter the caller ID:")
+            input = readline(stdin)
+            global_caller_id[] = strip(input)  # Store in module-level variable
+
+            # Update the environment variable to indicate consumption
+            ENV["GOPHER_CALLER_ID"] = "read"
+        else
+            global_caller_id[] = plugin_id
+        end
+    end
+
     channel = get(ENV, "GOPHER_CHANNEL", "")
     channel_id = get(ENV, "GOPHER_CHANNEL_ID", "")
     message_id = get(ENV, "GOPHER_MESSAGE_ID", "")
@@ -128,13 +152,12 @@ function initialize_robot()::Robot
     threaded_message = threaded_message_str == "true"
     user = get(ENV, "GOPHER_USER", "")
     user_id = get(ENV, "GOPHER_USER_ID", "")
-    plugin_id = get(ENV, "GOPHER_CALLER_ID", "")
     protocol = get(ENV, "GOPHER_PROTOCOL", "")
     brain = get(ENV, "GOPHER_BRAIN", "")
     format = ""
     prng = MersenneTwister()
     return Robot(channel, channel_id, message_id, thread_id, threaded_message,
-                 user, user_id, plugin_id, protocol, brain, format, prng)
+                 user, user_id, global_caller_id[], protocol, brain, format, prng)
 end
 
 # =============================
@@ -153,7 +176,7 @@ function send_command(robot::Robot, funcname::String, args::Dict{String, Any}=Di
     payload = Dict(
         "FuncName" => funcname,
         "Format" => format,
-        "CallerID" => robot.plugin_id,
+        "CallerID" => robot.caller_id,
         "FuncArgs" => args
     )
     json_payload = JSON.json(payload)
@@ -657,6 +680,15 @@ function prompt_user_for_reply(robot::Robot, regex_id::String, prompt::String)::
 end
 
 """
+    prompt_user_channel_for_reply(robot::Robot, regex_id::String, user::String, channel::String, prompt::String) -> Reply
+
+Prompts a specific user in a specific channel for a reply based on a regex pattern.
+"""
+function prompt_user_channel_for_reply(robot::Robot, regex_id::String, user::String, channel::String, prompt::String)::Reply
+    return prompt_user_channel_thread_for_reply(robot, regex_id, user, channel, "", prompt)
+end
+
+"""
     prompt_user_channel_thread_for_reply(robot::Robot, regex_id::String, user::String, channel::String, thread::String, prompt::String) -> Reply
 
 Internal function to handle prompting the user for a reply.
@@ -675,6 +707,98 @@ function prompt_user_channel_thread_for_reply(robot::Robot, regex_id::String, us
     else
         return Reply(get(response, "Reply", ""), get(response, "RetVal", Fail))
     end
+end
+
+# =============================
+# Subclass Definitions
+# =============================
+
+# Define DirectBot as a subtype of Robot
+mutable struct DirectBot <: Robot
+    # Inherits all fields from Robot
+end
+
+"""
+    DirectBot() -> DirectBot
+
+Creates a new DirectBot instance with modified channel settings.
+"""
+function DirectBot()::DirectBot
+    parent_robot = initialize_robot()
+    new_direct_bot = DirectBot(
+        "",                      # channel
+        "",                      # channel_id
+        parent_robot.message_id, # message_id
+        "",                      # thread_id
+        false,                   # threaded_message
+        parent_robot.user,       # user
+        parent_robot.user_id,    # user_id
+        parent_robot.caller_id,  # caller_id
+        parent_robot.protocol,   # protocol
+        parent_robot.brain,      # brain
+        parent_robot.format,     # format
+        parent_robot.prng        # prng
+    )
+    return new_direct_bot
+end
+
+# Similarly, define ThreadedBot
+mutable struct ThreadedBot <: Robot
+    # Inherits all fields from Robot
+end
+
+"""
+    ThreadedBot() -> ThreadedBot
+
+Creates a new ThreadedBot instance with threaded message settings.
+"""
+function ThreadedBot()::ThreadedBot
+    parent_robot = initialize_robot()
+    threaded_message = parent_robot.channel != "" ? true : false
+    new_threaded_bot = ThreadedBot(
+        parent_robot.channel,       # channel
+        parent_robot.channel_id,    # channel_id
+        parent_robot.message_id,    # message_id
+        parent_robot.thread_id,     # thread_id
+        threaded_message,           # threaded_message
+        parent_robot.user,          # user
+        parent_robot.user_id,       # user_id
+        parent_robot.caller_id,     # caller_id
+        parent_robot.protocol,      # protocol
+        parent_robot.brain,         # brain
+        parent_robot.format,        # format
+        parent_robot.prng           # prng
+    )
+    return new_threaded_bot
+end
+
+# Define FormattedBot
+mutable struct FormattedBot <: Robot
+    # Inherits all fields from Robot
+end
+
+"""
+    FormattedBot(format::String) -> FormattedBot
+
+Creates a new FormattedBot instance with a specified message format.
+"""
+function FormattedBot(format::String)::FormattedBot
+    parent_robot = initialize_robot()
+    new_formatted_bot = FormattedBot(
+        parent_robot.channel,        # channel
+        parent_robot.channel_id,     # channel_id
+        parent_robot.message_id,     # message_id
+        parent_robot.thread_id,      # thread_id
+        parent_robot.threaded_message, # threaded_message
+        parent_robot.user,           # user
+        parent_robot.user_id,        # user_id
+        parent_robot.caller_id,      # caller_id
+        parent_robot.protocol,       # protocol
+        parent_robot.brain,          # brain
+        format,                      # format
+        parent_robot.prng            # prng
+    )
+    return new_formatted_bot
 end
 
 # =============================

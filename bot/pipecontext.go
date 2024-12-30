@@ -143,6 +143,7 @@ type pipeContext struct {
 	eid              string            // unique ID for external tasks
 	active           bool              // whether this context has been registered as active
 	environment      map[string]string // environment vars set for each job/plugin in the pipeline
+	parameters       map[string]string // parameters (often secrets) for the pipeline
 	runIndex         int               // run number of a job
 	histName         string            // GetLog(histName, index) can be used in final/fail pipes
 	verbose          bool              // flag if initializing job was verbose
