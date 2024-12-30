@@ -1,10 +1,17 @@
-# v2.17.0 - Lua Interpreter and Extensions, (SECURITY) Environment Scrubbing
+# v2.17.0 - Lua/JavaScript Interpreters and Extensions, Security Enhancements
+Security note - environment variables, by and large, are leaky - at the very least, they propagate to child processes unless scrubbed. Even though I still disagree with Systemd leaking the contents of a system file with `0600` permissions, I'll go ahead and admit that, for the most part, [Lennart Poettering was right](https://systemd-devel.freedesktop.narkive.com/ibRtoqPS/environment-variable-security).
 
-## Added Lua
-By far the biggest news for this release is the addition of the Lua interpreter and supporting code to allow Tasks, Plugins and Jobs to be written in Lua scripts, stored right alongside other plugins. See plugins/samples/*.lua for examples.
+## Added Interpreters for Lua and JavaScript (ECMAScript 5.1)
+By far the biggest news for this release is the addition of additional interpreters and supporting code to allow Tasks, Plugins and Jobs to be written in JavaScript and Lua, stored right alongside other plugins. See `plugins/samples/(*.lua|*.js)` for examples, and `lib/gopherbot_v1.lua` and `lib/gopherbot_v1.js`.
 
 ## Environment Scrubbing
-One limitation of "privsep" security by itself is that child processes still inherit the environment of the parent process. For Ruby and Python this was fine, but the environment can't be changed for Lua scripts the way it can for fork/exec Ruby and Python scripts. To address this shortcoming, Gopherbot now scrubs all GOPHER_* environment variables on startup. All other secrets should be encrypted and configured in `robot.yaml`.
+One limitation of "privsep" security by itself is that child processes still inherit the environment of the parent process. For Ruby and Python this was fine since their environments were pre-set and limited, but the environment can't be changed for Lua scripts the way it can for fork/exec Ruby and Python scripts. To address this shortcoming, Gopherbot now scrubs all GOPHER_* environment variables on startup. All other secrets should be encrypted and configured in `robot.yaml`.
+
+## Secure/Unguessable Caller ID + Secure Caller ID Passing
+External interpreter scripts use JSON-over-http for making API calls. Previously they utilized a 4-byte (!!) "caller ID" to identify themselves, which is very guessable in a short amount of time. This update increases the size of this value to 144 bits (> 10^42), and also uses the script libraries to read this value from STDIN instead of using the `GOPHER_CALLER_ID` environment variable.
+
+## Better Parameter Security
+Along the same lines, robot owners can now set `SecureParameterRetrieval: true` at the top-level of their `robot.yaml`, which stops publishing configured parameters as environment variables - so your extensions will need to use the `GetParameter` API call.
 
 # v2.16.0 - Initial Support for Julia Extensions
 I knew that someday I would be able to take the existing support for Python and/or Ruby, feed it to an AI, and get a working Julia library. In short, check `plugins/samples/echo.jl` for the first mimimal working Julia plugin. Notes:
