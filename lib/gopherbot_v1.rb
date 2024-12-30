@@ -148,6 +148,11 @@ class BaseBot
 		return callBotFunc(__method__, { "Name" => name, "Value" => value })["Boolean"]
 	end
 
+	def GetParameter(name)
+		args = { "Parameter" => name }
+		return callBotFunc(__method__, args)["StrVal"]
+	end
+
 	def Exclusive(tag, queue_task=false)
 		return callBotFunc(__method__, { "Tag" => tag, "QueueTask" => queue_task })["Boolean"]
 	end
@@ -197,7 +202,7 @@ class BaseBot
 
 	def Recall(k, shared = false)
 		args = { "Key" => k, "Shared" => shared }
-		ret = callBotFunc(__method__, args)["StrVal"]
+		return callBotFunc(__method__, args)["StrVal"]
 	end
 
 	def GetTaskConfig()

@@ -26,6 +26,10 @@ type attribute struct {
 	Attribute string
 }
 
+type parameter struct {
+	Parameter string
+}
+
 type elevate struct {
 	Immediate bool
 }
@@ -414,6 +418,14 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			m.Key = decode(m.Key)
 		}
 		s := r.Recall(m.Key, m.Shared)
+		sendReturn(r, rw, &stringresponse{s})
+		return
+	case "GetParameter":
+		var p parameter
+		if !getArgs(rw, &f.FuncArgs, &p) {
+			return
+		}
+		s := r.GetParameter(p.Parameter)
 		sendReturn(r, rw, &stringresponse{s})
 		return
 	case "GetTaskConfig":

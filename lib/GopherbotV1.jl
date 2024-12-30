@@ -366,6 +366,17 @@ function set_parameter(robot::Robot, name::String, value::String)::Bool
 end
 
 """
+    get_parameter(robot::Robot, name::String) -> String
+
+Gets a parameter from the pipeline.
+"""
+function get_parameter(robot::Robot, name::String)::String
+    args = Dict{String, Any}("Parameter" => name)
+    response = send_command(robot, "GetParameter", args)
+    return get(response, "StrVal", "")
+end
+
+"""
     exclusive(robot::Robot, tag::String, queue_task::Bool=false) -> Bool
 
 Sets an exclusive tag for the robot.

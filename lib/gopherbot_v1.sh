@@ -229,6 +229,19 @@ EOF
 	echo -n "$RETVAL"
 }
 
+GetParameter() {
+	local PARAM="$1"
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Parameter": "$PARAM"
+}
+EOF
+)
+	local GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	local RETVAL=$(echo "$GB_RET" | jq -r .StrVal)
+	echo -n "$RETVAL"
+}
+
 SetParameter() {
 	local NAME=$(base64_encode "$1")
 	local VALUE=$(base64_encode "$2")

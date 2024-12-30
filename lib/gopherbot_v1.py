@@ -171,6 +171,10 @@ class Robot:
     def SetParameter(self, name, value):
         return self.Call(sys._getframe().f_code.co_name, { "Name": name, "Value": value })["Boolean"]
 
+    def GetParameter(self, name):
+        ret = self.Call(sys._getframe().f_code.co_name, { "Parameter": name })
+        return ret["StrVal"]
+
     def Exclusive(self, tag, queue_task=False):
         return self.Call(sys._getframe().f_code.co_name, { "Tag": tag, "QueueTask": queue_task })["Boolean"]
 
