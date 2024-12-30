@@ -350,7 +350,57 @@ function robot.New(...)
     end
 
     -- -------------------------------------------------------------------
-    -- 9. Other Methods
+    -- 9. Long-Term Memory Methods
+    -- -------------------------------------------------------------------
+
+    -- bot:CheckoutDatum(key, rw) -> memory table, retVal
+    function newBot:CheckoutDatum(key, rw)
+        -- Call the underlying Go method
+        local retVal, datum, token = self.gbot:CheckoutDatum(key, rw)
+
+        -- Determine if the datum exists based on the return value and presence of data
+        local exists = (retVal == ret.Ok and datum ~= nil)
+
+        -- Create the memory table to return to Lua
+        local memory = {
+            key = key,
+            exists = exists,
+            datum = datum,       -- Initialize as empty table if nil
+            token = token or "",       -- Initialize as empty string if nil
+            retVal = retVal
+        }
+
+        return memory, retVal
+    end
+
+    -- bot:UpdateDatum(memory) -> retVal
+    function newBot:UpdateDatum(memory)
+        -- Validate that the memory table contains the necessary fields
+        if not memory or not memory.key or not memory.token then
+            error("UpdateDatum requires a memory table with 'key' and 'token' fields")
+        end
+
+        -- Call the underlying Go method with extracted fields
+        local retVal = self.gbot:UpdateDatum(memory.key, memory.token, memory.datum)
+
+        return retVal
+    end
+
+    -- bot:CheckinDatum(memory) -> retVal
+    function newBot:CheckinDatum(memory)
+        -- Validate that the memory table contains the necessary fields
+        if not memory or not memory.key or not memory.token then
+            error("CheckinDatum requires a memory table with 'key' and 'token' fields")
+        end
+
+        -- Call the underlying Go method with extracted fields
+        local retVal = self.gbot:CheckinDatum(memory.key, memory.token)
+
+        return retVal
+end
+
+    -- -------------------------------------------------------------------
+    -- 10. Other Methods
     -- -------------------------------------------------------------------
 
     -- bot:GetTaskConfig() -> (table, retVal)

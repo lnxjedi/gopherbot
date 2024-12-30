@@ -227,11 +227,17 @@ local function rememberCommand(bot)
   local thing = arg[3]
 
   -- Check out "memory" read/write
-  local retVal, data, token = bot:CheckoutDatum("memory", true)
+  local memory, retVal = bot:CheckoutDatum("memory", true)
   if retVal ~= ret.Ok then
     bot:Say("Sorry, I'm having trouble checking out my memory.")
     return task.Fail
   end
+
+  if not memory.exists then
+    memory.datum = {}
+  end
+
+  local data = memory.datum
 
   local found = false
   if data and #data > 0 then
@@ -246,7 +252,7 @@ local function rememberCommand(bot)
 
   if found then
     bot:Say("That's already one of my fondest memories.")
-    bot:CheckinDatum("memory", token)
+    bot:CheckinDatum(memory)
   else
     if not data then data = {} end
     table.insert(data, thing)
@@ -256,7 +262,7 @@ local function rememberCommand(bot)
     else
       bot:Say("Ok, I'll remember \"" .. thing .. "\"")
     end
-    local updRet = bot:UpdateDatum("memory", token, data)
+    local updRet = bot:UpdateDatum(memory)
     if updRet == ret.Ok then
       if speed ~= "slowly" then bot:Say("committed to memory") end
     else
@@ -270,26 +276,27 @@ end
 
 local function recallCommand(bot)
   local which = arg[2] -- possibly a number
-  local retVal, data, token = bot:CheckoutDatum("memory", false)
+  local memory, retVal = bot:CheckoutDatum("memory", false)
   if retVal ~= ret.Ok then
     bot:Say("Sorry - trouble checking memory!")
     return task.Fail
   end
+  local data = memory.datum
   if data and #data > 0 then
     if which and #which > 0 then
       local idx = tonumber(which)
       if not idx or idx < 1 then
         bot:Say("I can't make out what you want me to recall.")
-        bot:CheckinDatum("memory", token)
+        bot:CheckinDatum(memory)
         return task.Normal
       end
       if idx > #data then
         bot:Say("I don't remember that many things!")
-        bot:CheckinDatum("memory", token)
+        bot:CheckinDatum(memory)
         return task.Normal
       end
       local item = data[idx]
-      bot:CheckinDatum("memory", token)
+      bot:CheckinDatum(memory)
       bot:Say(item)
     else
       -- If no index, list them all
@@ -297,11 +304,11 @@ local function recallCommand(bot)
       for i, mem in ipairs(data) do
         reply = reply .. i .. ": " .. mem .. "\n"
       end
-      bot:CheckinDatum("memory", token)
+      bot:CheckinDatum(memory)
       bot:Say(reply)
     end
   else
-    bot:CheckinDatum("memory", token)
+    bot:CheckinDatum(memory)
     bot:Say("Sorry - I don't remember anything!")
   end
   return task.Normal
@@ -316,22 +323,23 @@ local function forgetCommand(bot)
   end
   i = i - 1 -- zero-based index
 
-  local retVal, data, token = bot:CheckoutDatum("memory", true)
+  local memory, retVal = bot:CheckoutDatum("memory", true)
   if retVal ~= ret.Ok then
     bot:Say("Sorry - trouble checking memory!")
     return task.Fail
   end
+  local data = memory.datum
 
   if data and #data > 0 and data[i + 1] then
     local item = data[i + 1]
     bot:Say("Ok, I'll forget \"" .. item .. "\"")
     table.remove(data, i + 1)
-    local updRet = bot:UpdateDatum("memory", token, data)
+    local updRet = bot:UpdateDatum(memory)
     if updRet ~= ret.Ok then
       bot:Say("Hmm, having trouble forgetting that item for real, sorry.")
     end
   else
-    bot:CheckinDatum("memory", token)
+    bot:CheckinDatum(memory)
     bot:Say("Gosh, I guess I never remembered that in the first place!")
   end
   return task.Normal
