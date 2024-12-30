@@ -6,7 +6,7 @@ import (
 
 // botSendChannelMessage(luaState) -> retVal
 // Usage: local ret = bot:SendChannelMessage("my-channel", "Hello channel", fmtFixed)
-func (lctx luaContext) botSendChannelMessage(L *glua.LState) int {
+func (lctx *luaContext) botSendChannelMessage(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "SendChannelMessage", 4)
 
 	channel := L.CheckString(2)
@@ -26,7 +26,7 @@ func (lctx luaContext) botSendChannelMessage(L *glua.LState) int {
 
 // botSendChannelThreadMessage(luaState) -> retVal
 // Usage: local ret = bot:SendChannelThreadMessage("my-channel", "thread-id", "Hello thread", fmtRaw)
-func (lctx luaContext) botSendChannelThreadMessage(L *glua.LState) int {
+func (lctx *luaContext) botSendChannelThreadMessage(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "SendChannelThreadMessage", 5)
 
 	channel := L.CheckString(2)
@@ -47,7 +47,7 @@ func (lctx luaContext) botSendChannelThreadMessage(L *glua.LState) int {
 
 // botSendUserMessage(luaState) -> retVal
 // Usage: local ret = bot:SendUserMessage("some.user", "Hello user", fmtRaw)
-func (lctx luaContext) botSendUserMessage(L *glua.LState) int {
+func (lctx *luaContext) botSendUserMessage(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "SendUserMessage", 4)
 
 	user := L.CheckString(2)
@@ -66,7 +66,7 @@ func (lctx luaContext) botSendUserMessage(L *glua.LState) int {
 
 // botSendUserChannelMessage(luaState) -> retVal
 // Usage: local ret = bot:SendUserChannelMessage("some.user", "some-channel", "Hello in channel", fmtVariable)
-func (lctx luaContext) botSendUserChannelMessage(L *glua.LState) int {
+func (lctx *luaContext) botSendUserChannelMessage(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "SendUserChannelMessage", 5)
 
 	user := L.CheckString(2)
@@ -89,7 +89,7 @@ func (lctx luaContext) botSendUserChannelMessage(L *glua.LState) int {
 
 // botSendUserChannelThreadMessage(luaState) -> retVal
 // Usage: local ret = bot:SendUserChannelThreadMessage("some.user", "some-channel", "some-thread", "Hello", fmtFixed)
-func (lctx luaContext) botSendUserChannelThreadMessage(L *glua.LState) int {
+func (lctx *luaContext) botSendUserChannelThreadMessage(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "SendUserChannelThreadMessage", 6)
 
 	user := L.CheckString(2)
@@ -115,7 +115,7 @@ func (lctx luaContext) botSendUserChannelThreadMessage(L *glua.LState) int {
 
 // botSay(luaState) -> retVal
 // Usage: local ret = bot:Say("some text", fmtRaw)
-func (lctx luaContext) botSay(L *glua.LState) int {
+func (lctx *luaContext) botSay(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "Say", 3)
 	msg := L.CheckString(2)
 	// Let the engine handle empty messages => returns robot.Fail
@@ -126,7 +126,7 @@ func (lctx luaContext) botSay(L *glua.LState) int {
 
 // botSayThread(luaState) -> retVal
 // Usage: local ret = bot:SayThread("some text", fmtFixed)
-func (lctx luaContext) botSayThread(L *glua.LState) int {
+func (lctx *luaContext) botSayThread(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "SayThread", 3)
 	msg := L.CheckString(2)
 	ret := r.SayThread(msg)
@@ -136,7 +136,7 @@ func (lctx luaContext) botSayThread(L *glua.LState) int {
 
 // botReply(luaState) -> retVal
 // Usage: local ret = bot:Reply("some text", fmtVariable)
-func (lctx luaContext) botReply(L *glua.LState) int {
+func (lctx *luaContext) botReply(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "Reply", 3)
 	msg := L.CheckString(2)
 	ret := r.Reply(msg)
@@ -146,7 +146,7 @@ func (lctx luaContext) botReply(L *glua.LState) int {
 
 // botReplyThread(luaState) -> retVal
 // Usage: local ret = bot:ReplyThread("some text", fmtRaw)
-func (lctx luaContext) botReplyThread(L *glua.LState) int {
+func (lctx *luaContext) botReplyThread(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "ReplyThread", 3)
 	msg := L.CheckString(2)
 	ret := r.ReplyThread(msg)
@@ -155,7 +155,7 @@ func (lctx luaContext) botReplyThread(L *glua.LState) int {
 }
 
 // RegisterMessageMethods merges message-related methods into the "bot" metatable
-func (lctx luaContext) RegisterMessageMethods(L *glua.LState) {
+func (lctx *luaContext) RegisterMessageMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		// Existing “Send*” methods
 		"SendChannelMessage":           lctx.botSendChannelMessage,

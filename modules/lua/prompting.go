@@ -5,7 +5,7 @@ import (
 )
 
 // RegisterPromptingMethods attaches all PromptForReply methods to the "bot" metatable
-func (lctx luaContext) RegisterPromptingMethods(L *glua.LState) {
+func (lctx *luaContext) RegisterPromptingMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		"PromptForReply":                  lctx.botPromptForReply,
 		"PromptThreadForReply":            lctx.botPromptThreadForReply,
@@ -21,7 +21,7 @@ func (lctx luaContext) RegisterPromptingMethods(L *glua.LState) {
 // 1) botPromptForReply(luaState)
 // Usage in Lua: local reply, retVal = bot:PromptForReply("someRegexID", "Please reply")
 // -------------------------------------------------------------------
-func (lctx luaContext) botPromptForReply(L *glua.LState) int {
+func (lctx *luaContext) botPromptForReply(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "PromptForReply", 4)
 	regexID := L.CheckString(2)
 	prompt := L.CheckString(3)
@@ -43,7 +43,7 @@ func (lctx luaContext) botPromptForReply(L *glua.LState) int {
 // 2) botPromptThreadForReply(luaState)
 // Usage: local reply, retVal = bot:PromptThreadForReply("someRegexID", "Please reply in thread")
 // -------------------------------------------------------------------
-func (lctx luaContext) botPromptThreadForReply(L *glua.LState) int {
+func (lctx *luaContext) botPromptThreadForReply(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "PromptThreadForReply", 4)
 
 	regexID := L.CheckString(2)
@@ -64,7 +64,7 @@ func (lctx luaContext) botPromptThreadForReply(L *glua.LState) int {
 // 3) botPromptUserForReply(luaState)
 // Usage: local reply, retVal = bot:PromptUserForReply("someRegexID", "someUser", "Hello user")
 // -------------------------------------------------------------------
-func (lctx luaContext) botPromptUserForReply(L *glua.LState) int {
+func (lctx *luaContext) botPromptUserForReply(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "PromptUserForReply", 5)
 
 	regexID := L.CheckString(2)
@@ -91,7 +91,7 @@ func (lctx luaContext) botPromptUserForReply(L *glua.LState) int {
 // 4) botPromptUserChannelForReply(luaState)
 // Usage: local reply, retVal = bot:PromptUserChannelForReply("someRegexID", "someUser", "someChannel", "Prompt text")
 // -------------------------------------------------------------------
-func (lctx luaContext) botPromptUserChannelForReply(L *glua.LState) int {
+func (lctx *luaContext) botPromptUserChannelForReply(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "PromptUserChannelForReply", 6)
 
 	regexID := L.CheckString(2)
@@ -126,7 +126,7 @@ func (lctx luaContext) botPromptUserChannelForReply(L *glua.LState) int {
 //	an empty string to promptInternal. If you later fix that in Go, it'll use "thread" properly.
 //
 // -------------------------------------------------------------------
-func (lctx luaContext) botPromptUserChannelThreadForReply(L *glua.LState) int {
+func (lctx *luaContext) botPromptUserChannelThreadForReply(L *glua.LState) int {
 	r := lctx.getOptionalFormattedRobot(L, "PromptUserChannelThreadForReply", 7)
 
 	regexID := L.CheckString(2)

@@ -1,7 +1,6 @@
 package lua
 
 import (
-	"github.com/lnxjedi/gopherbot/robot"
 	glua "github.com/yuin/gopher-lua"
 )
 
@@ -12,7 +11,7 @@ import (
 //	bot:RememberContext(context, value)
 //	bot:RememberContextThread(context, value)
 //	bot:Recall(key, shared) -> string
-func (lctx luaContext) RegisterShortTermMemoryMethods(L *glua.LState) {
+func (lctx *luaContext) RegisterShortTermMemoryMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		"Remember":              lctx.botRemember,
 		"RememberThread":        lctx.botRememberThread,
@@ -30,33 +29,25 @@ func (lctx luaContext) RegisterShortTermMemoryMethods(L *glua.LState) {
 // -------------------------------------------------------------------
 
 // botRemember allows Lua scripts to remember a key-value pair with an optional shared flag.
-func (lctx luaContext) botRemember(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	key := L.Get(2)
-	val := L.Get(3)
-	sharedArg := L.Get(4)
+func (lctx *luaContext) botRemember(L *glua.LState) int {
+	r := lctx.getRobot(L, "Remember")
+	key := L.CheckString(2)
+	value := L.CheckString(3)
+	shared := lctx.GetDefaultBool(4, false)
 
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok || lr == nil || lr.r == nil {
-		lctx.logBotErr("Remember")
-		return pushFail(L)
+	if key == "" {
+		L.RaiseError("Remember: key must not be empty")
+		return 0
 	}
 
-	// Validate arguments
-	if key.Type() != glua.LTString || val.Type() != glua.LTString {
-		lctx.Log(robot.Error, "Remember: key and value must be strings")
-		return pushFail(L)
-	}
-	var shared bool
-	if sharedArg.Type() == glua.LTBool {
-		shared = bool(sharedArg.(glua.LBool))
-	} else {
-		// Default to false
-		shared = false
+	if value == "" {
+		L.RaiseError("Remember: value must not be empty")
+		return 0
 	}
 
-	lr.r.Remember(key.String(), val.String(), shared)
-	return pushFail(L)
+	r.Remember(key, value, shared)
+	L.Push(glua.LBool(true))
+	return 1
 }
 
 // -------------------------------------------------------------------
@@ -64,32 +55,25 @@ func (lctx luaContext) botRemember(L *glua.LState) int {
 // -------------------------------------------------------------------
 
 // botRememberThread remembers a key-value pair in a threaded context with an optional shared flag.
-func (lctx luaContext) botRememberThread(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	key := L.Get(2)
-	val := L.Get(3)
-	sharedArg := L.Get(4)
+func (lctx *luaContext) botRememberThread(L *glua.LState) int {
+	r := lctx.getRobot(L, "RememberThread")
+	key := L.CheckString(2)
+	value := L.CheckString(3)
+	shared := lctx.GetDefaultBool(4, false)
 
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok || lr == nil || lr.r == nil {
-		lctx.logBotErr("RememberThread")
-		return pushFail(L)
+	if key == "" {
+		L.RaiseError("RememberThread: key must not be empty")
+		return 0
 	}
 
-	// Validate arguments
-	if key.Type() != glua.LTString || val.Type() != glua.LTString {
-		lctx.Log(robot.Error, "RememberThread: key and value must be strings")
-		return pushFail(L)
-	}
-	var shared bool
-	if sharedArg.Type() == glua.LTBool {
-		shared = bool(sharedArg.(glua.LBool))
-	} else {
-		shared = false
+	if value == "" {
+		L.RaiseError("RememberThread: value must not be empty")
+		return 0
 	}
 
-	lr.r.RememberThread(key.String(), val.String(), shared)
-	return pushFail(L)
+	r.RememberThread(key, value, shared)
+	L.Push(glua.LBool(true))
+	return 1
 }
 
 // -------------------------------------------------------------------
@@ -97,25 +81,24 @@ func (lctx luaContext) botRememberThread(L *glua.LState) int {
 // -------------------------------------------------------------------
 
 // botRememberContext remembers a value within a specific context.
-func (lctx luaContext) botRememberContext(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	cArg := L.Get(2)
-	vArg := L.Get(3)
+func (lctx *luaContext) botRememberContext(L *glua.LState) int {
+	r := lctx.getRobot(L, "RememberContext")
+	context := L.CheckString(2)
+	value := L.CheckString(3)
 
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok || lr == nil || lr.r == nil {
-		lctx.logBotErr("RememberContext")
-		return pushFail(L)
+	if context == "" {
+		L.RaiseError("RememberContext: context must not be empty")
+		return 0
 	}
 
-	// Validate arguments
-	if cArg.Type() != glua.LTString || vArg.Type() != glua.LTString {
-		lctx.Log(robot.Error, "RememberContext: context and value must be strings")
-		return pushFail(L)
+	if value == "" {
+		L.RaiseError("RememberContext: value must not be empty")
+		return 0
 	}
 
-	lr.r.RememberContext(cArg.String(), vArg.String())
-	return pushFail(L)
+	r.RememberContext(context, value)
+	L.Push(glua.LBool(true))
+	return 1
 }
 
 // -------------------------------------------------------------------
@@ -123,25 +106,24 @@ func (lctx luaContext) botRememberContext(L *glua.LState) int {
 // -------------------------------------------------------------------
 
 // botRememberContextThread remembers a value within a specific context in a threaded environment.
-func (lctx luaContext) botRememberContextThread(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	cArg := L.Get(2)
-	vArg := L.Get(3)
+func (lctx *luaContext) botRememberContextThread(L *glua.LState) int {
+	r := lctx.getRobot(L, "RememberContextThread")
+	context := L.CheckString(2)
+	value := L.CheckString(3)
 
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok || lr == nil || lr.r == nil {
-		lctx.logBotErr("RememberContextThread")
-		return pushFail(L)
+	if context == "" {
+		L.RaiseError("RememberContextThread: context must not be empty")
+		return 0
 	}
 
-	// Validate arguments
-	if cArg.Type() != glua.LTString || vArg.Type() != glua.LTString {
-		lctx.Log(robot.Error, "RememberContextThread: context and value must be strings")
-		return pushFail(L)
+	if value == "" {
+		L.RaiseError("RememberContextThread: value must not be empty")
+		return 0
 	}
 
-	lr.r.RememberContextThread(cArg.String(), vArg.String())
-	return pushFail(L)
+	r.RememberContextThread(context, value)
+	L.Push(glua.LBool(true))
+	return 1
 }
 
 // -------------------------------------------------------------------
@@ -149,33 +131,26 @@ func (lctx luaContext) botRememberContextThread(L *glua.LState) int {
 // -------------------------------------------------------------------
 
 // botRecall recalls a value by key with an optional shared flag.
-func (lctx luaContext) botRecall(L *glua.LState) int {
-	ud := L.CheckUserData(1)
-	key := L.Get(2)
-	sharedArg := L.Get(3)
+func (lctx *luaContext) botRecall(L *glua.LState) int {
+	r := lctx.getRobot(L, "Recall")
+	key := L.CheckString(2)
+	shared := lctx.GetDefaultBool(3, false)
 
-	lr, ok := ud.Value.(*luaRobot)
-	if !ok || lr == nil || lr.r == nil {
-		lctx.logBotErr("Recall")
-		L.Push(glua.LString(""))
-		return 1
+	if key == "" {
+		L.RaiseError("Recall: key must not be empty")
+		return 0
 	}
 
-	// Validate key argument
-	if key.Type() != glua.LTString {
-		lctx.Log(robot.Error, "Recall: key must be a string")
-		L.Push(glua.LString(""))
-		return 1
-	}
-
-	var shared bool
-	if sharedArg.Type() == glua.LTBool {
-		shared = bool(sharedArg.(glua.LBool))
-	} else {
-		shared = false
-	}
-
-	value := lr.r.Recall(key.String(), shared)
+	value := r.Recall(key, shared)
 	L.Push(glua.LString(value))
 	return 1
+}
+
+// GetDefaultBool retrieves a boolean argument from the Lua stack with a default value.
+// If the argument at the given index is not a boolean, it returns the provided default.
+func (lctx *luaContext) GetDefaultBool(index int, defaultVal bool) bool {
+	if lctx.L.Get(index).Type() == glua.LTBool {
+		return bool(lctx.L.CheckBool(index))
+	}
+	return defaultVal
 }

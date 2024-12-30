@@ -9,7 +9,7 @@ import (
 
 // RegisterLongTermMemoryMethods adds CheckoutDatum, UpdateDatum, and CheckinDatum
 // to the bot's metatable.
-func (lctx luaContext) RegisterLongTermMemoryMethods(L *glua.LState) {
+func (lctx *luaContext) RegisterLongTermMemoryMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		"CheckoutDatum": lctx.botCheckoutDatum,
 		"UpdateDatum":   lctx.botUpdateDatum,
@@ -25,7 +25,7 @@ func (lctx luaContext) RegisterLongTermMemoryMethods(L *glua.LState) {
 // -------------------------------------------------------------------
 
 // botCheckoutDatum allows Lua scripts to checkout a datum by key, optionally read/write.
-func (lctx luaContext) botCheckoutDatum(L *glua.LState) int {
+func (lctx *luaContext) botCheckoutDatum(L *glua.LState) int {
 	r := lctx.getRobot(L, "CheckoutDatum")
 	key := L.CheckString(2)
 	rwLua := L.Get(3)
@@ -74,7 +74,7 @@ func (lctx luaContext) botCheckoutDatum(L *glua.LState) int {
 // -------------------------------------------------------------------
 
 // botUpdateDatum allows Lua scripts to update a datum by key and lockToken.
-func (lctx luaContext) botUpdateDatum(L *glua.LState) int {
+func (lctx *luaContext) botUpdateDatum(L *glua.LState) int {
 	r := lctx.getRobot(L, "UpdateDatum")
 	key := L.CheckString(2)
 	lockToken := L.CheckString(3)
@@ -94,7 +94,7 @@ func (lctx luaContext) botUpdateDatum(L *glua.LState) int {
 }
 
 // botCheckinDatum allows Lua scripts to checkin a datum by key and lockToken.
-func (lctx luaContext) botCheckinDatum(L *glua.LState) int {
+func (lctx *luaContext) botCheckinDatum(L *glua.LState) int {
 	r := lctx.getRobot(L, "CheckinDatum")
 	key := L.CheckString(2)
 	lockToken := L.CheckString(3)

@@ -17,7 +17,7 @@ import (
 //	bot:AddCommand(pluginName, command) -> RetVal
 //	bot:FinalCommand(pluginName, command) -> RetVal
 //	bot:FailCommand(pluginName, command) -> RetVal
-func (lctx luaContext) RegisterPipelineMethods(L *glua.LState) {
+func (lctx *luaContext) RegisterPipelineMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		"GetParameter": lctx.botGetParameter,
 		"SetParameter": lctx.botSetParameter,
@@ -39,7 +39,7 @@ func (lctx luaContext) RegisterPipelineMethods(L *glua.LState) {
 // -------------------------------------------------------------------
 // 1) bot:GetParameter(name) -> string
 // -------------------------------------------------------------------
-func (lctx luaContext) botGetParameter(L *glua.LState) int {
+func (lctx *luaContext) botGetParameter(L *glua.LState) int {
 	r := lctx.getRobot(L, "GetParameter")
 	name := L.CheckString(2)
 
@@ -56,7 +56,7 @@ func (lctx luaContext) botGetParameter(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 2) bot:SetParameter(name, value) -> bool
 // -------------------------------------------------------------------
-func (lctx luaContext) botSetParameter(L *glua.LState) int {
+func (lctx *luaContext) botSetParameter(L *glua.LState) int {
 	r := lctx.getRobot(L, "SetParameter")
 	name := L.CheckString(2)
 	value := L.CheckString(3)
@@ -74,7 +74,7 @@ func (lctx luaContext) botSetParameter(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 3) bot:Exclusive(tag, queueTask) -> bool
 // -------------------------------------------------------------------
-func (lctx luaContext) botExclusive(L *glua.LState) int {
+func (lctx *luaContext) botExclusive(L *glua.LState) int {
 	r := lctx.getRobot(L, "Exclusive")
 	tag := L.CheckString(2)
 	queue := L.CheckBool(3)
@@ -92,7 +92,7 @@ func (lctx luaContext) botExclusive(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 4) bot:SpawnJob(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) botSpawnJob(L *glua.LState) int {
+func (lctx *luaContext) botSpawnJob(L *glua.LState) int {
 	r := lctx.getRobot(L, "SpawnJob")
 	name := L.CheckString(2)
 
@@ -110,7 +110,7 @@ func (lctx luaContext) botSpawnJob(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 5) bot:AddTask(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) botAddTask(L *glua.LState) int {
+func (lctx *luaContext) botAddTask(L *glua.LState) int {
 	r := lctx.getRobot(L, "AddTask")
 	name := L.CheckString(2)
 
@@ -128,7 +128,7 @@ func (lctx luaContext) botAddTask(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 6) bot:FinalTask(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) botFinalTask(L *glua.LState) int {
+func (lctx *luaContext) botFinalTask(L *glua.LState) int {
 	r := lctx.getRobot(L, "FinalTask")
 	name := L.CheckString(2)
 
@@ -146,7 +146,7 @@ func (lctx luaContext) botFinalTask(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 7) bot:FailTask(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) botFailTask(L *glua.LState) int {
+func (lctx *luaContext) botFailTask(L *glua.LState) int {
 	r := lctx.getRobot(L, "FailTask")
 	name := L.CheckString(2)
 
@@ -164,7 +164,7 @@ func (lctx luaContext) botFailTask(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 8) bot:AddJob(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) botAddJob(L *glua.LState) int {
+func (lctx *luaContext) botAddJob(L *glua.LState) int {
 	r := lctx.getRobot(L, "AddJob")
 	name := L.CheckString(2)
 
@@ -182,7 +182,7 @@ func (lctx luaContext) botAddJob(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 9) bot:AddCommand(pluginName, command) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) botAddCommand(L *glua.LState) int {
+func (lctx *luaContext) botAddCommand(L *glua.LState) int {
 	r := lctx.getRobot(L, "AddCommand")
 	pluginName := L.CheckString(2)
 	command := L.CheckString(3)
@@ -204,7 +204,7 @@ func (lctx luaContext) botAddCommand(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 10) bot:FinalCommand(pluginName, command) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) botFinalCommand(L *glua.LState) int {
+func (lctx *luaContext) botFinalCommand(L *glua.LState) int {
 	r := lctx.getRobot(L, "FinalCommand")
 	pluginName := L.CheckString(2)
 	command := L.CheckString(3)
@@ -226,7 +226,7 @@ func (lctx luaContext) botFinalCommand(L *glua.LState) int {
 // -------------------------------------------------------------------
 // 11) bot:FailCommand(pluginName, command) -> RetVal
 // -------------------------------------------------------------------
-func (lctx luaContext) botFailCommand(L *glua.LState) int {
+func (lctx *luaContext) botFailCommand(L *glua.LState) int {
 	r := lctx.getRobot(L, "FailCommand")
 	pluginName := L.CheckString(2)
 	command := L.CheckString(3)

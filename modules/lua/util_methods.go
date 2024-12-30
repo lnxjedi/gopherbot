@@ -8,7 +8,7 @@ import (
 )
 
 // RegisterUtilMethods adds RandomInt, RandomString, Pause, CheckAdmin, Elevate, and Log to the bot's metatable.
-func (lctx luaContext) RegisterUtilMethods(L *glua.LState) {
+func (lctx *luaContext) RegisterUtilMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		"RandomInt":    lctx.botRandomInt,
 		"RandomString": lctx.botRandomString,
@@ -27,7 +27,7 @@ func (lctx luaContext) RegisterUtilMethods(L *glua.LState) {
 // -------------------------------------------------------------------
 
 // botRandomInt wraps r.RandomInt and returns a random integer up to n.
-func (lctx luaContext) botRandomInt(L *glua.LState) int {
+func (lctx *luaContext) botRandomInt(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	nLua := L.Get(2)
 
@@ -55,7 +55,7 @@ func (lctx luaContext) botRandomInt(L *glua.LState) int {
 // -------------------------------------------------------------------
 
 // botRandomString implements r.RandomString(...) and returns a random string from the provided array.
-func (lctx luaContext) botRandomString(L *glua.LState) int {
+func (lctx *luaContext) botRandomString(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	arrLua := L.Get(2)
 
@@ -101,7 +101,7 @@ func (lctx luaContext) botRandomString(L *glua.LState) int {
 // -------------------------------------------------------------------
 
 // botPause wraps r.Pause(...) and pauses execution for the specified number of seconds.
-func (lctx luaContext) botPause(L *glua.LState) int {
+func (lctx *luaContext) botPause(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	secLua := L.Get(2)
 
@@ -126,7 +126,7 @@ func (lctx luaContext) botPause(L *glua.LState) int {
 // -------------------------------------------------------------------
 
 // botCheckAdmin checks if the current user has administrative privileges.
-func (lctx luaContext) botCheckAdmin(L *glua.LState) int {
+func (lctx *luaContext) botCheckAdmin(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
@@ -145,7 +145,7 @@ func (lctx luaContext) botCheckAdmin(L *glua.LState) int {
 // -------------------------------------------------------------------
 
 // botElevate elevates the current user's privileges, optionally forcing a 2FA prompt.
-func (lctx luaContext) botElevate(L *glua.LState) int {
+func (lctx *luaContext) botElevate(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	immArg := L.Get(2)
 
@@ -174,7 +174,7 @@ func (lctx luaContext) botElevate(L *glua.LState) int {
 // -------------------------------------------------------------------
 
 // botLog logs a message at the specified log level.
-func (lctx luaContext) botLog(L *glua.LState) int {
+func (lctx *luaContext) botLog(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	levelArg := L.Get(2)
 	msgArg := L.Get(3)

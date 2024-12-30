@@ -15,7 +15,7 @@ import (
 //	if retVal == ret.Ok then
 //	  -- cfg is a Lua table (array or map) containing the plugin/job config
 //	end
-func (lctx luaContext) botGetTaskConfig(L *glua.LState) int {
+func (lctx *luaContext) botGetTaskConfig(L *glua.LState) int {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok {
@@ -67,7 +67,7 @@ func (lctx luaContext) botGetTaskConfig(L *glua.LState) int {
 }
 
 // RegisterConfigMethods adds the bot.GetTaskConfig -> botGetTaskConfig binding
-func (lctx luaContext) RegisterConfigMethod(L *glua.LState) {
+func (lctx *luaContext) RegisterConfigMethod(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		"GetTaskConfig": lctx.botGetTaskConfig,
 	}

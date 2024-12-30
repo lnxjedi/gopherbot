@@ -1,5 +1,5 @@
--- gopherbot_constants.lua
--- This module defines constants from the Go 'robot' package for use in Lua scripts.
+-- gopherbot_v1.lua
+-- This module defines constants and robot/bot methods required for Lua extensions.
 
 -- 1. RetVal (Robot method return values)
 local ret = {
@@ -37,16 +37,16 @@ local ret = {
     MailError = 22,                  -- robot.MailError
 
     -- Pipeline Errors
-    TaskNotFound = 23,                -- robot.TaskNotFound
-    MissingArguments = 24,            -- robot.MissingArguments
-    InvalidStage = 25,                -- robot.InvalidStage
-    InvalidTaskType = 26,             -- robot.InvalidTaskType
-    CommandNotMatched = 27,           -- robot.CommandNotMatched
-    TaskDisabled = 28,                -- robot.TaskDisabled
-    PrivilegeViolation = 29,          -- robot.PrivilegeViolation
+    TaskNotFound = 23,               -- robot.TaskNotFound
+    MissingArguments = 24,           -- robot.MissingArguments
+    InvalidStage = 25,               -- robot.InvalidStage
+    InvalidTaskType = 26,            -- robot.InvalidTaskType
+    CommandNotMatched = 27,          -- robot.CommandNotMatched
+    TaskDisabled = 28,               -- robot.TaskDisabled
+    PrivilegeViolation = 29,         -- robot.PrivilegeViolation
 
     -- General Failure
-    Failed = 63,                       -- robot.Failed
+    Failed = 63,                     -- robot.Failed
 }
 
 -- Add a string method to ret
@@ -139,8 +139,16 @@ function proto:string(val)
 end
 
 local robot = {}
-function robot.New(bot)
-    gbot = bot or GBOT
+function robot.New(...)
+    local args = {...}
+    local bot
+    -- Go easy on script authors, allow robot:New() or robot.New()
+    if type(args[1]) == "table" then -- called as robot:New()
+        bot = args[2]
+    else
+        bot = args[1]
+    end
+    local gbot = bot or GBOT
     local newBot = {}
     newBot.gbot = gbot -- Keep a reference to the original Go gbot object
     newBot.user = gbot.user
@@ -154,7 +162,7 @@ function robot.New(bot)
     newBot.type = "native"
     newBot.threaded_message = gbot.threaded_message
 
-    -- For the "Send*" methods, we still just proxy to the Go methods directly:
+    -- Send*/Say*/Reply* Methods
     function newBot:SendChannelMessage(channel, message, format)
         return self.gbot:SendChannelMessage(channel, message, format)
     end
@@ -192,29 +200,28 @@ function robot.New(bot)
         return self.gbot:ReplyThread(message, format)
     end
 
-    -- Robot modifier methods
+    -- Robot Modifier Methods
     function newBot:Direct()
-        dbot = self.gbot:Direct()
+        local dbot = self.gbot:Direct()
         return robot.New(dbot)
     end
 
     function newBot:Fixed()
-        fbot = self.gbot:Fixed()
+        local fbot = self.gbot:Fixed()
         return robot.New(fbot)
     end
 
     function newBot:Threaded()
-        tbot = self.gbot:Threaded()
+        local tbot = self.gbot:Threaded()
         return robot.New(tbot)
     end
 
     function newBot:MessageFormat(fmt)
-        mbot = self.gbot:MessageFormat(fmt)
+        local mbot = self.gbot:MessageFormat(fmt)
         return robot.New(mbot)
     end
 
-    -- Prompting methods
-
+    -- Prompting Methods
     function newBot:PromptForReply(regex_id, prompt, format)
         return self.gbot:PromptForReply(regex_id, prompt, format)
     end
@@ -235,9 +242,150 @@ function robot.New(bot)
         return self.gbot:PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format)
     end
 
-    -- Add a Pause method - call the Go API
+    -- -------------------------------------------------------------------
+    -- 6. Short Term Memory Methods
+    -- -------------------------------------------------------------------
+
+    -- bot:Remember(key, value, shared)
+    function newBot:Remember(key, value, shared)
+        return self.gbot:Remember(key, value, shared)
+    end
+
+    -- bot:RememberThread(key, value, shared)
+    function newBot:RememberThread(key, value, shared)
+        return self.gbot:RememberThread(key, value, shared)
+    end
+
+    -- bot:RememberContext(context, value)
+    function newBot:RememberContext(context, value)
+        return self.gbot:RememberContext(context, value)
+    end
+
+    -- bot:RememberContextThread(context, value)
+    function newBot:RememberContextThread(context, value)
+        return self.gbot:RememberContextThread(context, value)
+    end
+
+    -- bot:Recall(key, shared) -> string
+    function newBot:Recall(key, shared)
+        return self.gbot:Recall(key, shared)
+    end
+
+    -- -------------------------------------------------------------------
+    -- 7. Pipeline Methods
+    -- -------------------------------------------------------------------
+
+    -- bot:GetParameter(name) -> string
+    function newBot:GetParameter(name)
+        return self.gbot:GetParameter(name)
+    end
+
+    -- bot:SetParameter(name, value) -> bool
+    function newBot:SetParameter(name, value)
+        return self.gbot:SetParameter(name, value)
+    end
+
+    -- bot:Exclusive(tag, queueTask) -> bool
+    function newBot:Exclusive(tag, queueTask)
+        return self.gbot:Exclusive(tag, queueTask)
+    end
+
+    -- bot:SpawnJob(name, arg1, arg2, ...) -> RetVal
+    function newBot:SpawnJob(name, ...)
+        return self.gbot:SpawnJob(name, ...)
+    end
+
+    -- bot:AddTask(name, arg1, arg2, ...) -> RetVal
+    function newBot:AddTask(name, ...)
+        return self.gbot:AddTask(name, ...)
+    end
+
+    -- bot:FinalTask(name, arg1, arg2, ...) -> RetVal
+    function newBot:FinalTask(name, ...)
+        return self.gbot:FinalTask(name, ...)
+    end
+
+    -- bot:FailTask(name, arg1, arg2, ...) -> RetVal
+    function newBot:FailTask(name, ...)
+        return self.gbot:FailTask(name, ...)
+    end
+
+    -- bot:AddJob(name, arg1, arg2, ...) -> RetVal
+    function newBot:AddJob(name, ...)
+        return self.gbot:AddJob(name, ...)
+    end
+
+    -- bot:AddCommand(pluginName, command) -> RetVal
+    function newBot:AddCommand(pluginName, command)
+        return self.gbot:AddCommand(pluginName, command)
+    end
+
+    -- bot:FinalCommand(pluginName, command) -> RetVal
+    function newBot:FinalCommand(pluginName, command)
+        return self.gbot:FinalCommand(pluginName, command)
+    end
+
+    -- bot:FailCommand(pluginName, command) -> RetVal
+    function newBot:FailCommand(pluginName, command)
+        return self.gbot:FailCommand(pluginName, command)
+    end
+
+    -- -------------------------------------------------------------------
+    -- 8. Attribute Methods
+    -- -------------------------------------------------------------------
+
+    -- bot:GetBotAttribute(attr) -> (stringVal, retVal)
+    function newBot:GetBotAttribute(attr)
+        return self.gbot:GetBotAttribute(attr)
+    end
+
+    -- bot:GetUserAttribute(user, attr) -> (stringVal, retVal)
+    function newBot:GetUserAttribute(user, attr)
+        return self.gbot:GetUserAttribute(user, attr)
+    end
+
+    -- bot:GetSenderAttribute(attr) -> (stringVal, retVal)
+    function newBot:GetSenderAttribute(attr)
+        return self.gbot:GetSenderAttribute(attr)
+    end
+
+    -- -------------------------------------------------------------------
+    -- 9. Other Methods
+    -- -------------------------------------------------------------------
+
+    -- bot:GetTaskConfig() -> (table, retVal)
+    function newBot:GetTaskConfig()
+        return self.gbot:GetTaskConfig()
+    end
+
+    -- bot:RandomInt(n) -> number
+    function newBot:RandomInt(n)
+        return self.gbot:RandomInt(n)
+    end
+
+    -- bot:RandomString(array) -> string
+    function newBot:RandomString(array)
+        return self.gbot:RandomString(array)
+    end
+
+    -- bot:Pause(seconds) -> no return
     function newBot:Pause(seconds)
-        self.gbot:Pause(seconds)
+        return self.gbot:Pause(seconds)
+    end
+
+    -- bot:CheckAdmin() -> bool
+    function newBot:CheckAdmin()
+        return self.gbot:CheckAdmin()
+    end
+
+    -- bot:Elevate(immediate) -> bool
+    function newBot:Elevate(immediate)
+        return self.gbot:Elevate(immediate)
+    end
+
+    -- bot:Log(level, message) -> no return
+    function newBot:Log(level, message)
+        return self.gbot:Log(level, message)
     end
 
     return newBot
