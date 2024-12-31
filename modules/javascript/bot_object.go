@@ -37,30 +37,18 @@ func (jr *jsBot) createBotObject() *goja.Object {
 		return botObj
 	}
 
-	// Attach "Say" method, capturing the return value
+	botObj.Set("SendChannelMessage", jr.botSendChannelMessage)
+	botObj.Set("SendChannelThreadMessage", jr.botSendChannelThreadMessage)
+	botObj.Set("SendUserMessage", jr.botSendUserMessage)
+	botObj.Set("SendUserChannelMessage", jr.botSendUserChannelMessage)
+	botObj.Set("SendUserChannelThreadMessage", jr.botSendUserChannelThreadMessage)
 	botObj.Set("Say", jr.botSay)
+	botObj.Set("SayThread", jr.botSayThread)
 	botObj.Set("Reply", jr.botReply)
-	botObj.Set("Direct", jr.botDirect)
+	botObj.Set("ReplyThread", jr.botReplyThread)
+	botObj.Set("Direct", jr.r.Direct)
 
 	return botObj
-}
-
-func (jr *jsBot) botSay(call goja.FunctionCall) goja.Value {
-	if len(call.Arguments) < 1 {
-		return jr.ctx.vm.ToValue(int(robot.Failed)) // Return status Invalid if no args
-	}
-	msg := call.Arguments[0].String()
-	retVal := jr.r.Say(msg)
-	return jr.ctx.vm.ToValue(int(retVal)) // Convert robot.ReturnCode to int
-}
-
-func (jr *jsBot) botReply(call goja.FunctionCall) goja.Value {
-	if len(call.Arguments) < 1 {
-		return jr.ctx.vm.ToValue(int(robot.Failed)) // Return status Invalid if no args
-	}
-	msg := call.Arguments[0].String()
-	retVal := jr.r.Reply(msg)
-	return jr.ctx.vm.ToValue(int(retVal)) // Convert robot.ReturnCode to int
 }
 
 func (jr *jsBot) botDirect(call goja.FunctionCall) goja.Value {

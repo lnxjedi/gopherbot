@@ -1,6 +1,8 @@
 package javascript
 
 import (
+	"fmt"
+
 	"github.com/dop251/goja"
 	"github.com/dop251/goja_nodejs/require"
 )
@@ -40,4 +42,28 @@ func (ctx *jsContext) addRequires(vm *goja.Runtime) {
 	)
 
 	registry.Enable(vm)
+}
+
+// requireStringArg generates a js exception if we didn't get a string argument
+func (ctx *jsContext) requireStringArg(methodName string, call goja.FunctionCall, index int) string {
+	// Make sure we actually have enough arguments
+	if len(call.Arguments) <= index {
+		panic(ctx.vm.ToValue(fmt.Sprintf(
+			"%s: missing argument #%d", methodName, index+1,
+		)))
+	}
+
+	// Export the goja.Value to a Go interface{}
+	rawVal := call.Arguments[index].Export()
+
+	// Try asserting that interface{} is a string
+	s, ok := rawVal.(string)
+	if !ok {
+		panic(ctx.vm.ToValue(fmt.Sprintf(
+			"%s: argument #%d must be a string, got %T",
+			methodName, index+1, rawVal,
+		)))
+	}
+
+	return s
 }
