@@ -22,15 +22,15 @@ func GetPluginConfig(execPath, taskPath, taskName string, emptyBot map[string]st
 
 	ctx.addRequires(vm)
 
-	// Create a "process" object with an "argv" array
-	processObj := vm.NewObject()
-	processObj.Set("argv", []string{execPath, taskPath, "configure"}) // Add a dummy value at index 0
+	// Create the first robot object and the global "GBOT"
+	firstRobot := &jsBot{
+		r:   nil,
+		ctx: ctx,
+	}
+	firstBotObj := firstRobot.createBotObject()
+	vm.Set("GBOT", firstBotObj)
 
-	// Set the "process" object as a global variable
-	vm.Set("process", processObj)
-
-	// Add the BOT global object
-	ctx.registerBotObject()
+	ctx.setProcessArgv(execPath, taskPath, "configure")
 
 	scriptBytes, err := os.ReadFile(taskPath)
 	if err != nil {
@@ -45,7 +45,7 @@ func GetPluginConfig(execPath, taskPath, taskName string, emptyBot map[string]st
 	cfg, runErr := vm.RunProgram(prog) // Capture the return value
 	if runErr != nil {
 		if ex, ok := runErr.(*goja.Exception); ok {
-			return nil, fmt.Errorf("Javascript exception from %s: %s", taskName, ex.String())
+			return nil, fmt.Errorf("JavaScript exception from %s: %s", taskName, ex.String())
 		}
 		return nil, fmt.Errorf("JavaScript runtime error in '%s': %w", taskName, runErr)
 	}

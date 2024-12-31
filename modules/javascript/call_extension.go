@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/dop251/goja"
-	"github.com/dop251/goja_nodejs/require"
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
@@ -14,6 +13,7 @@ import (
 // and the goja.Runtime we'll execute the script in.
 type jsContext struct {
 	r            robot.Robot
+	l            robot.Logger
 	bot          map[string]string
 	vm           *goja.Runtime
 	requirePaths []string
@@ -25,7 +25,8 @@ type jsContext struct {
 //   - env - env vars normally passed to external scripts, has thread info
 //   - r: the robot.Robot
 //   - args: the script arguments
-func CallExtension(execPath, taskPath, taskName string, requirePaths []string, realBot map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func CallExtension(execPath, taskPath, taskName string, requirePaths []string, logger robot.Logger,
+	realBot map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	// Create a new goja VM
 	vm := goja.New()
 
@@ -34,6 +35,7 @@ func CallExtension(execPath, taskPath, taskName string, requirePaths []string, r
 
 	ctx := &jsContext{
 		r:            r,
+		l:            logger,
 		bot:          realBot,
 		vm:           vm,
 		requirePaths: requirePaths,
@@ -41,16 +43,15 @@ func CallExtension(execPath, taskPath, taskName string, requirePaths []string, r
 
 	ctx.addRequires(vm)
 
-	// Create a "process" object with an "argv" array
-	processObj := vm.NewObject()
-	processObj.Set("argv", []string{execPath, taskPath, "configure"}) // Add a dummy value at index 0
+	// Create the first robot object and the global "GBOT"
+	firstRobot := &jsBot{
+		r:   r,
+		ctx: ctx,
+	}
+	firstBotObj := firstRobot.createBotObject()
+	vm.Set("GBOT", firstBotObj)
 
-	// Expose the "robot" object in JS with a .New() method returning a "bot" object
-	// Also set up standard constants from gopherbot
-	ctx.registerBotObject()
-
-	// Provide the script arguments as an array "global.argv"
-	ctx.setArgv(taskName, args)
+	ctx.setProcessArgv(execPath, taskPath, args...)
 
 	// Read and run the JS file
 	scriptBytes, err := os.ReadFile(taskPath)
@@ -99,27 +100,4 @@ func (ctx *jsContext) runProgram(prog *goja.Program) (robot.TaskRetVal, error) {
 
 	// Handle other return types or if the type assertion fails
 	return robot.MechanismFail, fmt.Errorf("JavaScript script did not return a valid status (int, bool, or nil)")
-}
-
-// setArgv creates the global "argv" array in JS so scripts can read arguments
-// similarly to process.argv in Node.
-func (ctx *jsContext) setArgv(taskName string, args []string) {
-	// e.g. argv[0] = "taskName"
-	//      argv[1..n] = the rest
-	argv := make([]interface{}, 0, len(args)+1)
-	argv = append(argv, taskName)
-	for _, a := range args {
-		argv = append(argv, a)
-	}
-	ctx.vm.Set("argv", argv)
-}
-
-// addRequires sets up a require() function using goja_nodejs, allowing JavaScript
-// scripts to load other scripts/modules from the given paths.
-func (ctx *jsContext) addRequires(vm *goja.Runtime) {
-	registry := require.NewRegistry(
-		require.WithGlobalFolders(ctx.requirePaths...),
-	)
-
-	registry.Enable(vm)
 }

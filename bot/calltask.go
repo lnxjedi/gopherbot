@@ -517,7 +517,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			ret, err := lua.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, allArgs)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
-				rchan <- taskReturn{fmt.Sprintf("Running plugin %s: %v", task.name, err), robot.MechanismFail}
+				rchan <- taskReturn{fmt.Sprintf("Running Lua plugin %s: %v", task.name, err), robot.MechanismFail}
 				return
 			}
 			deregisterWorker(r.tid)
@@ -530,7 +530,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				ret, err = lua.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
-					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
+					rchan <- taskReturn{fmt.Sprintf("Running Lua job %s: %v", task.name, err), robot.MechanismFail}
 					return
 				}
 				w.Log(robot.Debug, "External Lua job '%s' executed with args: %q", task.name, args)
@@ -538,10 +538,61 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				ret, err = lua.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
-					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}
+					rchan <- taskReturn{fmt.Sprintf("Running Lua task %s: %v", task.name, err), robot.MechanismFail}
 					return
 				}
 				w.Log(robot.Debug, "External Lua task '%s' executed with args: %q", task.name, args)
+			}
+			deregisterWorker(r.tid)
+			rchan <- taskReturn{"", ret}
+			return
+		}
+	}
+
+	if isExternalJSTask {
+		if privSep {
+			if privileged {
+				raiseThreadPrivExternal(fmt.Sprintf("privileged external JavaScript task \"%s\"", task.name))
+			} else {
+				dropThreadPriv(fmt.Sprintf("unprivileged external JavaScript task \"%s\"", task.name))
+			}
+		}
+		if isPlugin {
+			// "init" usually doesn't count as an actual plugin invocation for stats
+			if command != "init" {
+				emit(ExternalTaskRan)
+			}
+			// Prepend the command to args, so JavaScript sees args[1] == <command>
+			allArgs := append([]string{command}, args...)
+
+			ret, err := js.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, allArgs)
+			if err != nil {
+				emit(ExternalTaskBadInterpreter)
+				rchan <- taskReturn{fmt.Sprintf("Running JavaScript plugin %s: %v", task.name, err), robot.MechanismFail}
+				return
+			}
+			deregisterWorker(r.tid)
+			rchan <- taskReturn{"", ret}
+			return
+		} else {
+			var ret robot.TaskRetVal
+			// For jobs/tasks, pass args directly; no "command" prepended.
+			if isJob {
+				ret, err = js.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, args)
+				if err != nil {
+					emit(ExternalTaskBadInterpreter)
+					rchan <- taskReturn{fmt.Sprintf("Running JavaScript job %s: %v", task.name, err), robot.MechanismFail}
+					return
+				}
+				w.Log(robot.Debug, "External JavaScript job '%s' executed with args: %q", task.name, args)
+			} else {
+				ret, err = js.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, args)
+				if err != nil {
+					emit(ExternalTaskBadInterpreter)
+					rchan <- taskReturn{fmt.Sprintf("Running JavaScript task %s: %v", task.name, err), robot.MechanismFail}
+					return
+				}
+				w.Log(robot.Debug, "External JavaScript task '%s' executed with args: %q", task.name, args)
 			}
 			deregisterWorker(r.tid)
 			rchan <- taskReturn{"", ret}
