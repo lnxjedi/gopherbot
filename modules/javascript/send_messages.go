@@ -10,8 +10,8 @@ import (
 func (jr *jsBot) botSendChannelMessage(call goja.FunctionCall) goja.Value {
 	const methodName = "SendChannelMessage"
 
-	channel := jr.ctx.requireStringArg(methodName, call, 0)
-	msg := jr.ctx.requireStringArg(methodName, call, 1)
+	channel := jr.requireStringArg(methodName, call, 0)
+	msg := jr.requireStringArg(methodName, call, 1)
 
 	// Hard fail on empty channel
 	if channel == "" {
@@ -27,9 +27,9 @@ func (jr *jsBot) botSendChannelMessage(call goja.FunctionCall) goja.Value {
 func (jr *jsBot) botSendChannelThreadMessage(call goja.FunctionCall) goja.Value {
 	const methodName = "SendChannelThreadMessage"
 
-	channel := jr.ctx.requireStringArg(methodName, call, 0)
-	thread := jr.ctx.requireStringArg(methodName, call, 1)
-	msg := jr.ctx.requireStringArg(methodName, call, 2)
+	channel := jr.requireStringArg(methodName, call, 0)
+	thread := jr.requireStringArg(methodName, call, 1)
+	msg := jr.requireStringArg(methodName, call, 2)
 
 	if channel == "" {
 		panic(jr.ctx.vm.ToValue("SendChannelThreadMessage: channel must not be empty"))
@@ -44,8 +44,8 @@ func (jr *jsBot) botSendChannelThreadMessage(call goja.FunctionCall) goja.Value 
 func (jr *jsBot) botSendUserMessage(call goja.FunctionCall) goja.Value {
 	const methodName = "SendUserMessage"
 
-	user := jr.ctx.requireStringArg(methodName, call, 0)
-	msg := jr.ctx.requireStringArg(methodName, call, 1)
+	user := jr.requireStringArg(methodName, call, 0)
+	msg := jr.requireStringArg(methodName, call, 1)
 
 	if user == "" {
 		panic(jr.ctx.vm.ToValue("SendUserMessage: user argument must not be empty"))
@@ -60,9 +60,9 @@ func (jr *jsBot) botSendUserMessage(call goja.FunctionCall) goja.Value {
 func (jr *jsBot) botSendUserChannelMessage(call goja.FunctionCall) goja.Value {
 	const methodName = "SendUserChannelMessage"
 
-	user := jr.ctx.requireStringArg(methodName, call, 0)
-	channel := jr.ctx.requireStringArg(methodName, call, 1)
-	msg := jr.ctx.requireStringArg(methodName, call, 2)
+	user := jr.requireStringArg(methodName, call, 0)
+	channel := jr.requireStringArg(methodName, call, 1)
+	msg := jr.requireStringArg(methodName, call, 2)
 
 	if user == "" {
 		panic(jr.ctx.vm.ToValue("SendUserChannelMessage: user must not be empty"))
@@ -81,10 +81,10 @@ func (jr *jsBot) botSendUserChannelMessage(call goja.FunctionCall) goja.Value {
 func (jr *jsBot) botSendUserChannelThreadMessage(call goja.FunctionCall) goja.Value {
 	const methodName = "SendUserChannelThreadMessage"
 
-	user := jr.ctx.requireStringArg(methodName, call, 0)
-	channel := jr.ctx.requireStringArg(methodName, call, 1)
-	thread := jr.ctx.requireStringArg(methodName, call, 2)
-	msg := jr.ctx.requireStringArg(methodName, call, 3)
+	user := jr.requireStringArg(methodName, call, 0)
+	channel := jr.requireStringArg(methodName, call, 1)
+	thread := jr.requireStringArg(methodName, call, 2)
+	msg := jr.requireStringArg(methodName, call, 3)
 
 	if user == "" {
 		panic(jr.ctx.vm.ToValue("SendUserChannelThreadMessage: user must not be empty"))
@@ -102,7 +102,7 @@ func (jr *jsBot) botSendUserChannelThreadMessage(call goja.FunctionCall) goja.Va
 func (jr *jsBot) botSay(call goja.FunctionCall) goja.Value {
 	const methodName = "Say"
 
-	msg := jr.ctx.requireStringArg(methodName, call, 0)
+	msg := jr.requireStringArg(methodName, call, 0)
 	ret := jr.r.Say(msg)
 	return jr.ctx.vm.ToValue(int(ret))
 }
@@ -112,7 +112,7 @@ func (jr *jsBot) botSay(call goja.FunctionCall) goja.Value {
 func (jr *jsBot) botSayThread(call goja.FunctionCall) goja.Value {
 	const methodName = "SayThread"
 
-	msg := jr.ctx.requireStringArg(methodName, call, 0)
+	msg := jr.requireStringArg(methodName, call, 0)
 	ret := jr.r.SayThread(msg)
 	return jr.ctx.vm.ToValue(int(ret))
 }
@@ -122,7 +122,7 @@ func (jr *jsBot) botSayThread(call goja.FunctionCall) goja.Value {
 func (jr *jsBot) botReply(call goja.FunctionCall) goja.Value {
 	const methodName = "Reply"
 
-	msg := jr.ctx.requireStringArg(methodName, call, 0)
+	msg := jr.requireStringArg(methodName, call, 0)
 	ret := jr.r.Reply(msg)
 	return jr.ctx.vm.ToValue(int(ret))
 }
@@ -132,7 +132,7 @@ func (jr *jsBot) botReply(call goja.FunctionCall) goja.Value {
 func (jr *jsBot) botReplyThread(call goja.FunctionCall) goja.Value {
 	const methodName = "ReplyThread"
 
-	msg := jr.ctx.requireStringArg(methodName, call, 0)
+	msg := jr.requireStringArg(methodName, call, 0)
 	ret := jr.r.ReplyThread(msg)
 	return jr.ctx.vm.ToValue(int(ret))
 }

@@ -53,6 +53,15 @@ func (jr *jsBot) createBotObject() *goja.Object {
 	botObj.Set("CheckoutDatum", jr.botCheckoutDatum)
 	botObj.Set("UpdateDatum", jr.botUpdateDatum)
 	botObj.Set("CheckinDatum", jr.botCheckinDatum)
+	botObj.Set("GetBotAttribute", jr.botGetBotAttribute)
+	botObj.Set("GetUserAttribute", jr.botGetUserAttribute)
+	botObj.Set("GetSenderAttribute", jr.botGetSenderAttribute)
+	botObj.Set("RandomInt", jr.botRandomInt)
+	botObj.Set("RandomString", jr.botRandomString)
+	botObj.Set("Pause", jr.botPause)
+	botObj.Set("CheckAdmin", jr.botCheckAdmin)
+	botObj.Set("Elevate", jr.botElevate)
+	botObj.Set("Log", jr.botLog)
 
 	return botObj
 }

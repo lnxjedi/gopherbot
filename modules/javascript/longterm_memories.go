@@ -21,7 +21,7 @@ func (jr *jsBot) botCheckoutDatum(call goja.FunctionCall) goja.Value {
 	const methodName = "CheckoutDatum"
 
 	// 1) Validate arguments
-	key := jr.ctx.requireStringArg(methodName, call, 0)
+	key := jr.requireStringArg(methodName, call, 0)
 
 	// Arg #1 (rw) is optional; if missing or not a bool, default false
 	var rw bool

@@ -5,6 +5,7 @@ import (
 
 	"github.com/dop251/goja"
 	"github.com/dop251/goja_nodejs/require"
+	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // setProcessArgv creates the global "process.argv" array in JS so scripts can read arguments
@@ -45,10 +46,10 @@ func (ctx *jsContext) addRequires(vm *goja.Runtime) {
 }
 
 // requireStringArg generates a js exception if we didn't get a string argument
-func (ctx *jsContext) requireStringArg(methodName string, call goja.FunctionCall, index int) string {
+func (jr *jsBot) requireStringArg(methodName string, call goja.FunctionCall, index int) string {
 	// Make sure we actually have enough arguments
 	if len(call.Arguments) <= index {
-		panic(ctx.vm.ToValue(fmt.Sprintf(
+		panic(jr.ctx.vm.ToValue(fmt.Sprintf(
 			"%s: missing argument #%d", methodName, index+1,
 		)))
 	}
@@ -59,11 +60,29 @@ func (ctx *jsContext) requireStringArg(methodName string, call goja.FunctionCall
 	// Try asserting that interface{} is a string
 	s, ok := rawVal.(string)
 	if !ok {
-		panic(ctx.vm.ToValue(fmt.Sprintf(
+		panic(jr.ctx.vm.ToValue(fmt.Sprintf(
 			"%s: argument #%d must be a string, got %T",
 			methodName, index+1, rawVal,
 		)))
 	}
 
 	return s
+}
+
+// requireNumberArg ensures the argument at the specified index is a number.
+func (jr *jsBot) requireNumberArg(methodName string, call goja.FunctionCall, index int) float64 {
+	if len(call.Arguments) <= index {
+		panic(jr.ctx.vm.ToValue(fmt.Sprintf("%s: missing argument at position %d", methodName, index)))
+	}
+	arg := call.Arguments[index]
+	num, ok := arg.Export().(float64)
+	if !ok {
+		panic(jr.ctx.vm.ToValue(fmt.Sprintf("%s: argument at position %d must be a number", methodName, index)))
+	}
+	return num
+}
+
+// logMessage logs messages at various levels.
+func (jr *jsBot) log(level robot.LogLevel, message string) {
+	jr.ctx.l.Log(level, message)
 }
