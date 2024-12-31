@@ -46,17 +46,10 @@ func (jr *jsBot) createBotObject() *goja.Object {
 	botObj.Set("SayThread", jr.botSayThread)
 	botObj.Set("Reply", jr.botReply)
 	botObj.Set("ReplyThread", jr.botReplyThread)
-	botObj.Set("Direct", jr.r.Direct)
+	botObj.Set("Fixed", jr.botFixed)
+	botObj.Set("Direct", jr.botDirect)
+	botObj.Set("Threaded", jr.botThreaded)
+	botObj.Set("MessageFormat", jr.botMessageFormat)
 
 	return botObj
-}
-
-func (jr *jsBot) botDirect(call goja.FunctionCall) goja.Value {
-	dbot := jr.r.Direct()
-	jdb := &jsBot{
-		r:   dbot,
-		ctx: jr.ctx,
-	}
-	dbobj := jdb.createBotObject()
-	return dbobj
 }
