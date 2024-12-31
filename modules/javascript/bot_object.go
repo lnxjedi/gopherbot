@@ -50,6 +50,9 @@ func (jr *jsBot) createBotObject() *goja.Object {
 	botObj.Set("Direct", jr.botDirect)
 	botObj.Set("Threaded", jr.botThreaded)
 	botObj.Set("MessageFormat", jr.botMessageFormat)
+	botObj.Set("CheckoutDatum", jr.botCheckoutDatum)
+	botObj.Set("UpdateDatum", jr.botUpdateDatum)
+	botObj.Set("CheckinDatum", jr.botCheckinDatum)
 
 	return botObj
 }
