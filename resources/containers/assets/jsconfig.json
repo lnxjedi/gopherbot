@@ -2,7 +2,7 @@
     "compilerOptions": {
       "module": "commonjs",
       "target": "es5",
-      "baseUrl": "./custom", // Key change: Base is now custom
+      "baseUrl": "./custom",
       "paths": {
         "*": [
           "./lib/*",
@@ -12,9 +12,9 @@
       "checkJs": true
     },
     "include": [
-      "./custom/**/*.js" // Include JS files from custom
+      "./custom/**/*.js"
     ],
     "exclude": [
-      "node_modules" // Exclude node_modules globally
+      "node_modules"
     ]
   }
