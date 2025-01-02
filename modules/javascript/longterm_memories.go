@@ -60,7 +60,7 @@ func (jr *jsBot) botCheckoutDatum(call goja.FunctionCall) goja.Value {
 	datumVal, err := parseGoValueToJS(jr.ctx.vm, goDatum)
 	if err != nil {
 		// If we can’t parse, return DataFormatError
-		jr.ctx.l.Log(robot.Error, fmt.Sprintf("JavaScript error in CheckoutDatum for key '%s': %v", key, err))
+		jr.log(robot.Error, fmt.Sprintf("JavaScript error in CheckoutDatum for key '%s': %v", key, err))
 		resultObj := jr.ctx.vm.NewObject()
 		resultObj.Set("retVal", int(robot.DataFormatError))
 		resultObj.Set("exists", false)
