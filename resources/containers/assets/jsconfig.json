@@ -6,7 +6,7 @@
       "paths": {
         "*": [
           "./lib/*",
-          "./plugins/*"
+          "/opt/gopherbot/lib/*"
         ]
       },
       "checkJs": true
