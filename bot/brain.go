@@ -613,6 +613,10 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 // storeDatum takes a blob of bytes and optionally encrypts it before sending it
 // to the brain provider
 func storeDatum(dkey string, datum *[]byte) robot.RetVal {
+	if strings.Contains(dkey, "\\") || strings.Contains(dkey, "..") {
+		Log(robot.Error, "datum key contains invalid string sequences: %s", dkey)
+		return robot.InvalidDatumKey
+	}
 	brain := interfaces.brain
 	if brain == nil {
 		Log(robot.Error, "Brain function called with no brain configured")
