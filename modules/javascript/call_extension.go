@@ -51,7 +51,10 @@ func CallExtension(execPath, taskPath, taskName string, requirePaths []string, l
 	firstBotObj := firstRobot.createBotObject()
 	vm.Set("GBOT", firstBotObj)
 
-	ctx.setProcessArgv(execPath, taskPath, args...)
+	err := ctx.setProcessArgv(execPath, taskPath, args...)
+	if err != nil {
+		return robot.MechanismFail, fmt.Errorf("failed to set args: %w", err)
+	}
 
 	// Read and run the JS file
 	scriptBytes, err := os.ReadFile(taskPath)

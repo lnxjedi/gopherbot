@@ -10,10 +10,13 @@ import (
 
 // setProcessArgv creates the global "process.argv" array in JS so scripts can read arguments
 // similarly to process.argv in Node.
-func (ctx *jsContext) setProcessArgv(execPath, taskPath string, args ...string) {
+func (ctx *jsContext) setProcessArgv(execPath, taskPath string, args ...string) error {
 	// e.g. process.argv[0] = "/path/to/gopherbot"
 	//      process.argv[1] = "/path/to/script.js"
 	//      process.argv[2..n] = the rest
+	if len(args) > 16384 { // 16384 is an INSANE number of args
+		return fmt.Errorf("too many arguments passed to JS extension: %d", len(args))
+	}
 	argv := make([]interface{}, 0, len(args)+2)
 
 	argv = append(argv, execPath) // argv[0]: The binary name
@@ -33,6 +36,7 @@ func (ctx *jsContext) setProcessArgv(execPath, taskPath string, args ...string) 
 
 	// Set the "argv" property on the "process" object
 	processObj.Set("argv", argv)
+	return nil
 }
 
 // addRequires sets up a require() function using goja_nodejs, allowing JavaScript
