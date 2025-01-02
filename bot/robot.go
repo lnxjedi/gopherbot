@@ -179,6 +179,10 @@ func (r Robot) SetWorkingDirectory(path string) bool {
 		c.workingDirectory = c.baseDirectory
 		return true
 	}
+	if strings.Contains(path, "/") || strings.Contains(path, "\\") || strings.Contains(path, "..") {
+		w.Log(robot.Error, "invalid path in SetWorkingDirectory")
+		return false
+	}
 	if filepath.IsAbs(path) {
 		raiseThreadPriv("checking absolute path")
 		_, ok := checkDirectory(path)
