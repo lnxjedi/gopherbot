@@ -106,13 +106,13 @@ class Robot:
         if len(format) == 0:
             format = self.format
         func_call = { "FuncName": func_name, "Format": format,
-                    "CallerID": self.caller_id,
                     "FuncArgs": func_args }
         data = json.dumps(func_call)
         data = bytes(data, 'utf-8')
         req = urllib.request.Request(url="%s/json" % os.getenv("GOPHER_HTTP_POST"),
             data=data)
         req.add_header('Content-Type', 'application/json')
+        req.add_header('X-Caller-ID', self.caller_id)
         # sys.stderr.write("Sending: %s\n" % func_json)
         res = urllib.request.urlopen(req)
         body = res.read()

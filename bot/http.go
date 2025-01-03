@@ -5,6 +5,7 @@ package bot
 */
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -16,7 +17,6 @@ import (
 type jsonFunction struct {
 	FuncName string
 	Format   string
-	CallerID string
 	FuncArgs json.RawMessage
 }
 
@@ -127,11 +127,6 @@ type replyrequest struct {
 	Base64  bool
 }
 
-type extns struct {
-	Extend    string
-	Histories int
-}
-
 // These are only for json marshalling
 type boolresponse struct {
 	Boolean bool
@@ -139,11 +134,6 @@ type boolresponse struct {
 
 type stringresponse struct {
 	StrVal string
-}
-
-type boolretresponse struct {
-	Boolean bool
-	RetVal  int
 }
 
 type botretvalresponse struct {
@@ -217,43 +207,68 @@ func logJSON(r Robot, d *[]byte) {
 }
 
 func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// Retrieve the X-Caller-ID header first
+	callerID := req.Header.Get("X-Caller-ID")
+	if callerID == "" {
+		rw.WriteHeader(http.StatusBadRequest)
+		Log(robot.Error, "HTTP request called with empty X-Caller-ID header")
+		return
+	}
+
+	// Look up the Robot using callerID from the header
+	taskLookup.RLock()
+	r, ok := taskLookup.e[callerID]
+	taskLookup.RUnlock()
+	if !ok {
+		rw.WriteHeader(http.StatusBadRequest)
+		Log(robot.Error, "HTTP request called with invalid CallerID '%s'", callerID)
+		return
+	}
+
+	// Optional: Log the request body only if HTTP debugging is enabled
+	if r.cfg.httpDebug {
+		// Read the body for logging purposes
+		data, err := io.ReadAll(req.Body)
+		if err != nil {
+			Log(robot.Fatal, err.Error())
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		logJSON(r, &data)
+
+		// Reset the request body so it can be read again
+		req.Body = io.NopCloser(bytes.NewBuffer(data))
+	}
+
+	// Read the request body
 	data, err := io.ReadAll(req.Body)
 	if err != nil {
 		Log(robot.Fatal, err.Error())
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	defer req.Body.Close()
 
+	// Unmarshal JSON payload
 	var f jsonFunction
 	err = json.Unmarshal(data, &f)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)
-		Log(robot.Error, "Couldn't decipher JSON command: ", err)
+		Log(robot.Error, "Couldn't decipher JSON command: %v", err)
 		return
 	}
 
-	if f.CallerID == "" {
-		rw.WriteHeader(http.StatusBadRequest)
-		Log(robot.Error, "JSON function '%s' called with empty CallerID; args: %v", f.FuncName, f.FuncArgs)
-		return
-	}
+	// At this point, 'caller_id' in JSON is no longer required
+	// Proceed with processing 'f'
 
-	// Look up the Robot
-	taskLookup.RLock()
-	r, ok := taskLookup.e[f.CallerID]
-	taskLookup.RUnlock()
-	if r.cfg.httpDebug {
-		logJSON(r, &data)
-	}
-	if !ok {
-		rw.WriteHeader(http.StatusBadRequest)
-		Log(robot.Error, "JSON function '%s' called with invalid CallerID '%s'; args: %s", f.FuncName, f.CallerID, f.FuncArgs)
-		return
-	}
+	// Set the message format
 	if len(f.Format) > 0 {
 		r.Format = setFormat(f.Format)
 	} else {
 		r.Format = r.cfg.defaultMessageFormat
 	}
+
+	// Retrieve the current task
 	task, _, _ := getTask(r.currentTask)
 	Log(robot.Trace, "Task '%s' calling function '%s' in channel '%s' for user '%s'", task.name, f.FuncName, r.Channel, r.User)
 
@@ -262,6 +277,8 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		reply string
 		ret   robot.RetVal
 	)
+
+	// Handle the function call
 	switch f.FuncName {
 	case "CheckAdmin":
 		bret := r.CheckAdmin()

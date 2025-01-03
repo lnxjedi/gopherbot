@@ -54,32 +54,22 @@ base64_encode(){
 
 # Create the full JSON string and post it
 gbPostJSON(){
-	local GB_FUNCNAME=$1
-	local GB_FUNCARGS="$2"
-	local FORMAT=${3:-$GB_FORMAT}
-	local JSON JSONRET
-	#local GB_DEBUG="true"
-	JSON=$(cat <<EOF
+    local GB_FUNCNAME=$1
+    local GB_FUNCARGS="$2"
+    local FORMAT=${3:-$GB_FORMAT}
+    local JSON JSONRET
+    JSON=$(cat <<EOF
 {
-	"FuncName": "$GB_FUNCNAME",
-	"Format": "$FORMAT",
-	"CallerID": "$CALLER_ID",
-	"FuncArgs": $GB_FUNCARGS
+    "FuncName": "$GB_FUNCNAME",
+    "Format": "$FORMAT",
+    "FuncArgs": $GB_FUNCARGS
 }
 EOF
 )
-	if [ "$GB_DEBUG" = "true" ]
-	then
-		echo "Sending:" >&2
-		echo "$JSON" >&2
-	fi
-	JSONRET=$(echo "$JSON" | curl -f -X POST -d @- $GOPHER_HTTP_POST/json 2>/dev/null)
-	if [ "$GB_DEBUG" = "true" ]
-	then
-		echo "Got back:" >&2
-		echo "$JSONRET" >&2
-	fi
-	echo "$JSONRET"
+    JSONRET=$(echo "$JSON" | curl -f -X POST -d @- \
+        -H "X-Caller-ID: $CALLER_ID" \
+        $GOPHER_HTTP_POST/json 2>/dev/null)
+    echo "$JSONRET"
 }
 
 gbBotRet() {

@@ -337,22 +337,24 @@ class BaseBot
 	end
 
 	def callBotFunc(funcname, args, format="")
-		if format.size == 0
-			format = @format
-		end
-		func = {
-			"FuncName" => funcname,
-			"Format" => format,
-			"CallerID" => @caller_id,
-			"FuncArgs" => args
-		}
-		uri = URI.parse(ENV["GOPHER_HTTP_POST"] + "/json")
-		http = Net::HTTP.new(uri.host, uri.port)
-		req = Net::HTTP::Post.new(uri, initheader = {'Content-Type' =>'application/json'})
-		req.body = func.to_json
-		res = http.request(req)
-		body = res.body()
-		return JSON.parse(body)
+    if format.size == 0
+        format = @format
+    end
+    func = {
+        "FuncName" => funcname,
+        "Format" => format,
+        "FuncArgs" => args
+    }
+    uri = URI.parse(ENV["GOPHER_HTTP_POST"] + "/json")
+    http = Net::HTTP.new(uri.host, uri.port)
+    req = Net::HTTP::Post.new(uri, 
+        'Content-Type' => 'application/json',
+        'X-Caller-ID' => @caller_id
+    )
+    req.body = func.to_json
+    res = http.request(req)
+    body = res.body()
+    return JSON.parse(body)
 	end
 	private :callBotFunc
 end

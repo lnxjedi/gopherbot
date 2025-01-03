@@ -169,6 +169,9 @@ end
 
 Sends a command to the Gopherbot engine via HTTP POST and returns the parsed JSON response.
 """
+using HTTP
+using JSON
+
 function send_command(robot::Robot, funcname::String, args::Dict{String, Any}=Dict(), format::String="")::Dict
     if isempty(format)
         format = robot.format
@@ -176,14 +179,17 @@ function send_command(robot::Robot, funcname::String, args::Dict{String, Any}=Di
     payload = Dict(
         "FuncName" => funcname,
         "Format" => format,
-        "CallerID" => robot.caller_id,
         "FuncArgs" => args
     )
     json_payload = JSON.json(payload)
     url = "$(get(ENV, "GOPHER_HTTP_POST", "http://localhost:8000"))/json"
 
     try
-        response = HTTP.post(url, ["Content-Type" => "application/json"], json_payload)
+        headers = [
+            "Content-Type" => "application/json",
+            "X-Caller-ID" => robot.caller_id
+        ]
+        response = HTTP.post(url, headers, json_payload)
         if response.status == 200
             return JSON.parse(String(response.body))
         else
