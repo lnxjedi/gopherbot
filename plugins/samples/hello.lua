@@ -1,49 +1,85 @@
+--------------------------------------------------------------------------------
 -- hello.lua
--- Lua plugin "Hello World" and boilerplate
+--
+-- A "Hello World" plugin for Gopherbot in Lua, using idiomatic Lua structures:
+--   - Local constants/variables for plugin config
+--   - A command dispatch table
+--   - An "init/configure" pattern plus dispatch for other commands
+--   - EmmyLua-style annotations for a better IDE experience
+--------------------------------------------------------------------------------
 
--- By convention, plugins provide their own help and regular expressions
--- for matching commands. Other configuration, like which channel a plugin
--- is active in, is normally configured by the individual robot.
+-- Load our gopherbot library module (gopherbot_v1.lua).
+local gopherbot = require "gopherbot_v1"
+
+local ret, task, log, fmt, proto, Robot =
+    gopherbot.ret,   -- returns a table of API return-value constants
+    gopherbot.task,  -- returns a table of task return-value constants
+    gopherbot.log,   -- log levels
+    gopherbot.fmt,   -- message formats
+    gopherbot.proto, -- chat protocols
+    gopherbot.Robot  -- the Robot class for Robot:new()
+
+--- Default YAML configuration for this plugin
 local defaultConfig = [[
 ---
 Help:
-- Keywords: [ "lua" ]
-  Helptext: [ "(bot), hello lua - trigger lua hello world" ]
+  - Keywords: [ "lua" ]
+    Helptext: [ "(bot), hello lua - trigger lua hello world" ]
 CommandMatchers:
-- Regex: (?i:hello lua)
-  Command: lua
+  - Regex: (?i:hello lua)
+    Command: lua
 ]]
 
--- Require the robot and all constants
-gopherbot_v1 = require "gopherbot_v1"
-robot, ret, task, log, fmt, proto = gopherbot_v1()
+--------------------------------------------------------------------------------
+-- Command Dispatch
+--------------------------------------------------------------------------------
 
-local cmd = arg[1] or ""
--- Command dispatch table
-local commands = {
-    lua = function(bot)
-        local retVal = bot:Say("Hello, Lua World!")
-        if retVal == ret.Ok then
-            return task.Normal
-        else
-            return task.Fail
-        end
-    end,
-    -- Add more commands here
-}
+-- We define a Lua table mapping command names to handler functions.
+-- Each handler receives a Robot instance and must return a `task.*` constant.
+local commands = {}
 
-if cmd == "init" then
+--- Handler for the "lua" command.
+---@param bot Robot
+---@return number taskRetVal
+function commands.lua(bot)
+  local sendRet = bot:Say("Hello, Lua World!")
+  if sendRet == ret.Ok then
     return task.Normal
-elseif cmd == "configure" then
-    return defaultConfig
-else
-    local bot = robot:New()
+  else
+    bot:Log(log.Error, "Failed sending 'Hello, Lua World!'")
+    return task.Fail
+  end
+end
 
-    local commandFunc = commands[cmd]
-    if commandFunc then
-        return commandFunc(bot)
-    else
-        bot:Log(log.Error,"Lua plugin received unknown command: "..tostring(cmd))
-        return task.Fail
-    end
+--------------------------------------------------------------------------------
+-- Main Plugin Logic
+--------------------------------------------------------------------------------
+
+-- Gopherbot calls this script with arg[1] set to a command like:
+--   "init", "configure", or a user-defined command ("lua" in this case).
+---@type string
+local cmd = arg and arg[1] or ""
+
+-- Handle init and configure first. If it’s not one of those, dispatch.
+if cmd == "init" then
+  -- Perform any plugin initialization (if needed).
+  return task.Normal
+
+elseif cmd == "configure" then
+  -- Return our YAML config so Gopherbot can incorporate it.
+  return defaultConfig
+
+else
+  -- For other commands, create a new Robot instance and dispatch.
+  local bot = Robot:new()
+  local handler = commands[cmd]
+
+  if handler then
+    -- Execute the corresponding handler function.
+    return handler(bot)
+  else
+    -- Unknown command: log an error and fail the task.
+    bot:Log(log.Error, "Lua plugin received unknown command: " .. tostring(cmd))
+    return task.Fail
+  end
 end

@@ -1,56 +1,76 @@
+--------------------------------------------------------------------------------
 -- gopherbot_v1.lua
--- This module defines constants and robot/bot methods required for Lua extensions.
+--
+-- This module defines constants and a "Robot" class for Lua-based Gopherbot
+-- plugins. It aims to provide an idiomatic Lua OOP style, plus EmmyLua-style
+-- annotations for a better experience in VSCode or other Lua IDEs.
+--------------------------------------------------------------------------------
 
+---@class GopherbotExports
+---@field ret table<string, number>   # Return value constants
+---@field task table<string, number>  # Script/pipeline task return constants
+---@field log table<string, number>   # Log level constants
+---@field fmt table<string, number>   # Message format constants
+---@field proto table<string, number> # Protocol constants
+---@field Robot RobotClass           # The Robot "class" constructor
+
+local M = {} -- Our module table
+
+--------------------------------------------------------------------------------
 -- 1. RetVal (Robot method return values)
-local ret = {
+--------------------------------------------------------------------------------
+
+M.ret = {
     -- Connector Issues
-    Ok = 0,                          -- robot.Ok
-    UserNotFound = 1,                -- robot.UserNotFound
-    ChannelNotFound = 2,             -- robot.ChannelNotFound
-    AttributeNotFound = 3,           -- robot.AttributeNotFound
-    FailedMessageSend = 4,           -- robot.FailedMessageSend
-    FailedChannelJoin = 5,           -- robot.FailedChannelJoin
+    Ok = 0,
+    UserNotFound = 1,
+    ChannelNotFound = 2,
+    AttributeNotFound = 3,
+    FailedMessageSend = 4,
+    FailedChannelJoin = 5,
 
     -- Brain Maladies
-    DatumNotFound = 6,               -- robot.DatumNotFound
-    DatumLockExpired = 7,            -- robot.DatumLockExpired
-    DataFormatError = 8,             -- robot.DataFormatError
-    BrainFailed = 9,                 -- robot.BrainFailed
-    InvalidDatumKey = 10,            -- robot.InvalidDatumKey
+    DatumNotFound = 6,
+    DatumLockExpired = 7,
+    DataFormatError = 8,
+    BrainFailed = 9,
+    InvalidDatumKey = 10,
 
     -- GetTaskConfig
-    InvalidConfigPointer = 11,       -- robot.InvalidConfigPointer
-    ConfigUnmarshalError = 12,       -- robot.ConfigUnmarshalError
-    NoConfigFound = 13,              -- robot.NoConfigFound
+    InvalidConfigPointer = 11,
+    ConfigUnmarshalError = 12,
+    NoConfigFound = 13,
 
     -- PromptForReply
-    RetryPrompt = 14,                -- robot.RetryPrompt
-    ReplyNotMatched = 15,            -- robot.ReplyNotMatched
-    UseDefaultValue = 16,            -- robot.UseDefaultValue
-    TimeoutExpired = 17,             -- robot.TimeoutExpired
-    Interrupted = 18,                -- robot.Interrupted
-    MatcherNotFound = 19,            -- robot.MatcherNotFound
+    RetryPrompt = 14,
+    ReplyNotMatched = 15,
+    UseDefaultValue = 16,
+    TimeoutExpired = 17,
+    Interrupted = 18,
+    MatcherNotFound = 19,
 
     -- Email
-    NoUserEmail = 20,                -- robot.NoUserEmail
-    NoBotEmail = 21,                 -- robot.NoBotEmail
-    MailError = 22,                  -- robot.MailError
+    NoUserEmail = 20,
+    NoBotEmail = 21,
+    MailError = 22,
 
     -- Pipeline Errors
-    TaskNotFound = 23,               -- robot.TaskNotFound
-    MissingArguments = 24,           -- robot.MissingArguments
-    InvalidStage = 25,               -- robot.InvalidStage
-    InvalidTaskType = 26,            -- robot.InvalidTaskType
-    CommandNotMatched = 27,          -- robot.CommandNotMatched
-    TaskDisabled = 28,               -- robot.TaskDisabled
-    PrivilegeViolation = 29,         -- robot.PrivilegeViolation
+    TaskNotFound = 23,
+    MissingArguments = 24,
+    InvalidStage = 25,
+    InvalidTaskType = 26,
+    CommandNotMatched = 27,
+    TaskDisabled = 28,
+    PrivilegeViolation = 29,
 
     -- General Failure
-    Failed = 63,                     -- robot.Failed
+    Failed = 63,
 }
 
--- Add a string method to ret
-function ret:string(val)
+---Convert a ret constant to its string name.
+---@param val number
+---@return string
+function M.ret:string(val)
     for k, v in pairs(self) do
         if v == val then
             return k
@@ -59,20 +79,25 @@ function ret:string(val)
     return "UnknownRetVal"
 end
 
+--------------------------------------------------------------------------------
 -- 2. TaskRetVal (Script return values)
-local task = {
-    Normal = 0,                 -- robot.Normal
-    Fail = 1,                   -- robot.Fail
-    MechanismFail = 2,          -- robot.MechanismFail
-    ConfigurationError = 3,     -- robot.ConfigurationError
-    PipelineAborted = 4,        -- robot.PipelineAborted
-    RobotStopping = 5,          -- robot.RobotStopping
-    NotFound = 6,               -- robot.NotFound
-    Success = 7,                -- robot.Success
+--------------------------------------------------------------------------------
+
+M.task = {
+    Normal = 0,
+    Fail = 1,
+    MechanismFail = 2,
+    ConfigurationError = 3,
+    PipelineAborted = 4,
+    RobotStopping = 5,
+    NotFound = 6,
+    Success = 7,
 }
 
--- Add a string method to task
-function task:string(val)
+---Convert a task constant to its string name.
+---@param val number
+---@return string
+function M.task:string(val)
     for k, v in pairs(self) do
         if v == val then
             return k
@@ -81,19 +106,24 @@ function task:string(val)
     return "UnknownTaskRetVal"
 end
 
+--------------------------------------------------------------------------------
 -- 3. LogLevel
-local log = {
-    Trace = 0,  -- robot.Trace
-    Debug = 1,  -- robot.Debug
-    Info = 2,   -- robot.Info
-    Audit = 3,  -- robot.Audit
-    Warn = 4,   -- robot.Warn
-    Error = 5,  -- robot.Error
-    Fatal = 6,  -- robot.Fatal
+--------------------------------------------------------------------------------
+
+M.log = {
+    Trace = 0,
+    Debug = 1,
+    Info = 2,
+    Audit = 3,
+    Warn = 4,
+    Error = 5,
+    Fatal = 6,
 }
 
--- Add a string method to log
-function log:string(val)
+---Convert a log constant to its string name.
+---@param val number
+---@return string
+function M.log:string(val)
     for k, v in pairs(self) do
         if v == val then
             return k
@@ -102,15 +132,20 @@ function log:string(val)
     return "UnknownLogLevel"
 end
 
+--------------------------------------------------------------------------------
 -- 4. MessageFormat
-local fmt = {
-    Raw = 0,      -- robot.Raw
-    Fixed = 1,    -- robot.Fixed
-    Variable = 2, -- robot.Variable
+--------------------------------------------------------------------------------
+
+M.fmt = {
+    Raw = 0,
+    Fixed = 1,
+    Variable = 2,
 }
 
--- Add a string method to fmt
-function fmt:string(val)
+---Convert a fmt constant to its string name.
+---@param val number
+---@return string
+function M.fmt:string(val)
     for k, v in pairs(self) do
         if v == val then
             return k
@@ -119,17 +154,22 @@ function fmt:string(val)
     return "UnknownMessageFormat"
 end
 
+--------------------------------------------------------------------------------
 -- 5. Protocol
-local proto = {
-    Slack = 0,     -- robot.Slack
-    Rocket = 1,    -- robot.Rocket
-    Terminal = 2,  -- robot.Terminal
-    Test = 3,      -- robot.Test
-    Null = 4,      -- robot.Null
+--------------------------------------------------------------------------------
+
+M.proto = {
+    Slack = 0,
+    Rocket = 1,
+    Terminal = 2,
+    Test = 3,
+    Null = 4,
 }
 
--- Add a string method to proto
-function proto:string(val)
+---Convert a protocol constant to its string name.
+---@param val number
+---@return string
+function M.proto:string(val)
     for k, v in pairs(self) do
         if v == val then
             return k
@@ -138,313 +178,505 @@ function proto:string(val)
     return "UnknownProtocol"
 end
 
-local robot = {}
-function robot.New(...)
-    local args = {...}
-    local bot
-    -- Go easy on script authors, allow robot:New() or robot.New()
-    if type(args[1]) == "table" then -- called as robot:New()
-        bot = args[2]
-    else
-        bot = args[1]
-    end
-    local gbot = bot or GBOT
-    local newBot = {}
-    newBot.gbot = gbot -- Keep a reference to the original Go gbot object
-    newBot.user = gbot.user
-    newBot.user_id = gbot.user_id
-    newBot.channel = gbot.channel
-    newBot.channel_id = gbot.channel_id
-    newBot.thread_id = gbot.thread_id
-    newBot.message_id = gbot.message_id
-    newBot.protocol = gbot.protocol
-    newBot.brain = gbot.brain
-    newBot.type = "native"
-    newBot.threaded_message = gbot.threaded_message
+--------------------------------------------------------------------------------
+-- Robot Class Definition
+--------------------------------------------------------------------------------
 
-    -- Send*/Say*/Reply* Methods
-    function newBot:SendChannelMessage(channel, message, format)
-        return self.gbot:SendChannelMessage(channel, message, format)
-    end
+---@class Robot
+---@field gbot any            # Underlying Go "gbot" object
+---@field user string
+---@field user_id string
+---@field channel string
+---@field channel_id string
+---@field thread_id string
+---@field message_id string
+---@field protocol number
+---@field brain string|any
+---@field type string
+---@field threaded_message boolean
+local Robot = {}
+Robot.__index = Robot
 
-    function newBot:SendChannelThreadMessage(channel, thread, message, format)
-        return self.gbot:SendChannelThreadMessage(channel, thread, message, format)
-    end
+--------------------------------------------------------------------------------
+-- Constructor
+--------------------------------------------------------------------------------
 
-    function newBot:SendUserMessage(user, message, format)
-        return self.gbot:SendUserMessage(user, message, format)
+---Create a new Lua-level Robot instance wrapping a GBOT or the global `GBOT`.
+---@param gbot? any Optional underlying Go robot object
+---@return Robot
+function Robot:new(gbot)
+    local actualGBot = gbot or GBOT
+    if not actualGBot then
+        error("No valid bot object provided, and no global GBOT available.")
     end
 
-    function newBot:SendUserChannelMessage(user, channel, message, format)
-        return self.gbot:SendUserChannelMessage(user, channel, message, format)
-    end
-
-    function newBot:SendUserChannelThreadMessage(user, channel, thread, message, format)
-        return self.gbot:SendUserChannelThreadMessage(user, channel, thread, message, format)
-    end
-
-    function newBot:Say(message, format)
-        -- Let the Go code handle whether channel is empty => DM, or channel => public message
-        return self.gbot:Say(message, format)
-    end
-
-    function newBot:SayThread(message, format)
-        return self.gbot:SayThread(message, format)
-    end
-
-    function newBot:Reply(message, format)
-        return self.gbot:Reply(message, format)
-    end
-
-    function newBot:ReplyThread(message, format)
-        return self.gbot:ReplyThread(message, format)
-    end
-
-    -- Robot Modifier Methods
-    function newBot:Direct()
-        local dbot = self.gbot:Direct()
-        return robot.New(dbot)
-    end
-
-    function newBot:Fixed()
-        local fbot = self.gbot:Fixed()
-        return robot.New(fbot)
-    end
-
-    function newBot:Threaded()
-        local tbot = self.gbot:Threaded()
-        return robot.New(tbot)
-    end
-
-    function newBot:MessageFormat(fmt)
-        local mbot = self.gbot:MessageFormat(fmt)
-        return robot.New(mbot)
-    end
-
-    -- Prompting Methods
-    function newBot:PromptForReply(regex_id, prompt, format)
-        return self.gbot:PromptForReply(regex_id, prompt, format)
-    end
-
-    function newBot:PromptThreadForReply(regex_id, prompt, format)
-        return self.gbot:PromptThreadForReply(regex_id, prompt, format)
-    end
-
-    function newBot:PromptUserForReply(regex_id, user, prompt, format)
-        return self.gbot:PromptUserForReply(regex_id, user, prompt, format)
-    end
-
-    function newBot:PromptUserChannelForReply(regex_id, user, channel, prompt, format)
-        return self.gbot:PromptUserChannelForReply(regex_id, user, channel, prompt, format)
-    end
-
-    function newBot:PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format)
-        return self.gbot:PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format)
-    end
-
-    -- -------------------------------------------------------------------
-    -- 6. Short Term Memory Methods
-    -- -------------------------------------------------------------------
-
-    -- bot:Remember(key, value, shared)
-    function newBot:Remember(key, value, shared)
-        return self.gbot:Remember(key, value, shared)
-    end
-
-    -- bot:RememberThread(key, value, shared)
-    function newBot:RememberThread(key, value, shared)
-        return self.gbot:RememberThread(key, value, shared)
-    end
-
-    -- bot:RememberContext(context, value)
-    function newBot:RememberContext(context, value)
-        return self.gbot:RememberContext(context, value)
-    end
-
-    -- bot:RememberContextThread(context, value)
-    function newBot:RememberContextThread(context, value)
-        return self.gbot:RememberContextThread(context, value)
-    end
-
-    -- bot:Recall(key, shared) -> string
-    function newBot:Recall(key, shared)
-        return self.gbot:Recall(key, shared)
-    end
-
-    -- -------------------------------------------------------------------
-    -- 7. Pipeline Methods
-    -- -------------------------------------------------------------------
-
-    -- bot:GetParameter(name) -> string
-    function newBot:GetParameter(name)
-        return self.gbot:GetParameter(name)
-    end
-
-    -- bot:SetParameter(name, value) -> bool
-    function newBot:SetParameter(name, value)
-        return self.gbot:SetParameter(name, value)
-    end
-
-    -- bot:Exclusive(tag, queueTask) -> bool
-    function newBot:Exclusive(tag, queueTask)
-        return self.gbot:Exclusive(tag, queueTask)
-    end
-
-    -- bot:SpawnJob(name, arg1, arg2, ...) -> RetVal
-    function newBot:SpawnJob(name, ...)
-        return self.gbot:SpawnJob(name, ...)
-    end
-
-    -- bot:AddTask(name, arg1, arg2, ...) -> RetVal
-    function newBot:AddTask(name, ...)
-        return self.gbot:AddTask(name, ...)
-    end
-
-    -- bot:FinalTask(name, arg1, arg2, ...) -> RetVal
-    function newBot:FinalTask(name, ...)
-        return self.gbot:FinalTask(name, ...)
-    end
-
-    -- bot:FailTask(name, arg1, arg2, ...) -> RetVal
-    function newBot:FailTask(name, ...)
-        return self.gbot:FailTask(name, ...)
-    end
-
-    -- bot:AddJob(name, arg1, arg2, ...) -> RetVal
-    function newBot:AddJob(name, ...)
-        return self.gbot:AddJob(name, ...)
-    end
-
-    -- bot:AddCommand(pluginName, command) -> RetVal
-    function newBot:AddCommand(pluginName, command)
-        return self.gbot:AddCommand(pluginName, command)
-    end
-
-    -- bot:FinalCommand(pluginName, command) -> RetVal
-    function newBot:FinalCommand(pluginName, command)
-        return self.gbot:FinalCommand(pluginName, command)
-    end
-
-    -- bot:FailCommand(pluginName, command) -> RetVal
-    function newBot:FailCommand(pluginName, command)
-        return self.gbot:FailCommand(pluginName, command)
-    end
-
-    -- -------------------------------------------------------------------
-    -- 8. Attribute Methods
-    -- -------------------------------------------------------------------
-
-    -- bot:GetBotAttribute(attr) -> (stringVal, retVal)
-    function newBot:GetBotAttribute(attr)
-        return self.gbot:GetBotAttribute(attr)
-    end
-
-    -- bot:GetUserAttribute(user, attr) -> (stringVal, retVal)
-    function newBot:GetUserAttribute(user, attr)
-        return self.gbot:GetUserAttribute(user, attr)
-    end
-
-    -- bot:GetSenderAttribute(attr) -> (stringVal, retVal)
-    function newBot:GetSenderAttribute(attr)
-        return self.gbot:GetSenderAttribute(attr)
-    end
-
-    -- -------------------------------------------------------------------
-    -- 9. Long-Term Memory Methods
-    -- -------------------------------------------------------------------
-
-    -- bot:CheckoutDatum(key, rw) -> memory table, retVal
-    function newBot:CheckoutDatum(key, rw)
-        -- Call the underlying Go method
-        local retVal, datum, token = self.gbot:CheckoutDatum(key, rw)
-
-        -- Determine if the datum exists based on the return value and presence of data
-        local exists = (retVal == ret.Ok and datum ~= nil)
-
-        -- Create the memory table to return to Lua
-        local memory = {
-            key = key,
-            exists = exists,
-            datum = datum,       -- Initialize as empty table if nil
-            token = token or "",       -- Initialize as empty string if nil
-            retVal = retVal
-        }
-
-        return memory, retVal
-    end
-
-    -- bot:UpdateDatum(memory) -> retVal
-    function newBot:UpdateDatum(memory)
-        -- Validate that the memory table contains the necessary fields
-        if not memory or not memory.key or not memory.token then
-            error("UpdateDatum requires a memory table with 'key' and 'token' fields")
-        end
-
-        -- Call the underlying Go method with extracted fields
-        local retVal = self.gbot:UpdateDatum(memory.key, memory.token, memory.datum)
-
-        return retVal
-    end
-
-    -- bot:CheckinDatum(memory) -> retVal
-    function newBot:CheckinDatum(memory)
-        -- Validate that the memory table contains the necessary fields
-        if not memory or not memory.key or not memory.token then
-            error("CheckinDatum requires a memory table with 'key' and 'token' fields")
-        end
-
-        -- Call the underlying Go method with extracted fields
-        local retVal = self.gbot:CheckinDatum(memory.key, memory.token)
-
-        return retVal
+    local o = {
+        gbot = actualGBot,
+        user = actualGBot.user,
+        user_id = actualGBot.user_id,
+        channel = actualGBot.channel,
+        channel_id = actualGBot.channel_id,
+        thread_id = actualGBot.thread_id,
+        message_id = actualGBot.message_id,
+        protocol = actualGBot.protocol,
+        brain = actualGBot.brain,
+        type = "native",
+        threaded_message = actualGBot.threaded_message
+    }
+    setmetatable(o, self)
+    return o
 end
 
-    -- -------------------------------------------------------------------
-    -- 10. Other Methods
-    -- -------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- Robot Methods (Message Sending, Prompting, etc.)
+--------------------------------------------------------------------------------
 
-    -- bot:GetTaskConfig() -> (table, retVal)
-    function newBot:GetTaskConfig()
-        return self.gbot:GetTaskConfig()
-    end
-
-    -- bot:RandomInt(n) -> number
-    function newBot:RandomInt(n)
-        return self.gbot:RandomInt(n)
-    end
-
-    -- bot:RandomString(array) -> string
-    function newBot:RandomString(array)
-        return self.gbot:RandomString(array)
-    end
-
-    -- bot:Pause(seconds) -> no return
-    function newBot:Pause(seconds)
-        return self.gbot:Pause(seconds)
-    end
-
-    -- bot:CheckAdmin() -> bool
-    function newBot:CheckAdmin()
-        return self.gbot:CheckAdmin()
-    end
-
-    -- bot:Elevate(immediate) -> bool
-    function newBot:Elevate(immediate)
-        return self.gbot:Elevate(immediate)
-    end
-
-    -- bot:Log(level, message) -> no return
-    function newBot:Log(level, message)
-        return self.gbot:Log(level, message)
-    end
-
-    return newBot
+---Send a channel message.
+---@param channel string
+---@param message string
+---@param format? number
+---@return number retVal
+function Robot:SendChannelMessage(channel, message, format)
+    return self.gbot:SendChannelMessage(channel, message, format)
 end
 
--- Create a function to return ret, task, log, fmt, proto, and the new robot
-local function getExports()
-  return robot, ret, task, log, fmt, proto
+---Send a thread message in a channel.
+---@param channel string
+---@param thread string
+---@param message string
+---@param format? number
+---@return number retVal
+function Robot:SendChannelThreadMessage(channel, thread, message, format)
+    return self.gbot:SendChannelThreadMessage(channel, thread, message, format)
 end
 
--- Return the function
-return getExports
+---Send a direct user message.
+---@param user string
+---@param message string
+---@param format? number
+---@return number retVal
+function Robot:SendUserMessage(user, message, format)
+    return self.gbot:SendUserMessage(user, message, format)
+end
+
+---Send a message to a user within a specific channel.
+---@param user string
+---@param channel string
+---@param message string
+---@param format? number
+---@return number retVal
+function Robot:SendUserChannelMessage(user, channel, message, format)
+    return self.gbot:SendUserChannelMessage(user, channel, message, format)
+end
+
+---Send a message to a user within a channel thread.
+---@param user string
+---@param channel string
+---@param thread string
+---@param message string
+---@param format? number
+---@return number retVal
+function Robot:SendUserChannelThreadMessage(user, channel, thread, message, format)
+    return self.gbot:SendUserChannelThreadMessage(user, channel, thread, message, format)
+end
+
+---Send a message in the current context (channel or DM).
+---@param message string
+---@param format? number
+---@return number retVal
+function Robot:Say(message, format)
+    return self.gbot:Say(message, format)
+end
+
+---Send a threaded message in the current channel thread.
+---@param message string
+---@param format? number
+---@return number retVal
+function Robot:SayThread(message, format)
+    return self.gbot:SayThread(message, format)
+end
+
+---Reply to the current message (channel or DM).
+---@param message string
+---@param format? number
+---@return number retVal
+function Robot:Reply(message, format)
+    return self.gbot:Reply(message, format)
+end
+
+---Reply in the same thread as the current message.
+---@param message string
+---@param format? number
+---@return number retVal
+function Robot:ReplyThread(message, format)
+    return self.gbot:ReplyThread(message, format)
+end
+
+--------------------------------------------------------------------------------
+-- Robot Modifier Methods (Direct, Fixed, Threaded, MessageFormat)
+--------------------------------------------------------------------------------
+
+---Return a Robot configured to send direct (DM) messages by default.
+---@return Robot
+function Robot:Direct()
+    local dbot = self.gbot:Direct()
+    return Robot:new(dbot)
+end
+
+---Return a Robot configured for fixed-format messages.
+---@return Robot
+function Robot:Fixed()
+    local fbot = self.gbot:Fixed()
+    return Robot:new(fbot)
+end
+
+---Return a Robot configured for threaded messages by default.
+---@return Robot
+function Robot:Threaded()
+    local tbot = self.gbot:Threaded()
+    return Robot:new(tbot)
+end
+
+---Return a Robot with a specified message format (e.g. fmt.Raw, fmt.Fixed, fmt.Variable).
+---@param fmtVal number
+---@return Robot
+function Robot:MessageFormat(fmtVal)
+    local mbot = self.gbot:MessageFormat(fmtVal)
+    return Robot:new(mbot)
+end
+
+--------------------------------------------------------------------------------
+-- Prompting Methods
+--------------------------------------------------------------------------------
+
+---Prompt for a reply matching a regex.
+---@param regex_id string
+---@param prompt string
+---@param format? number
+---@return string reply
+---@return number retVal
+function Robot:PromptForReply(regex_id, prompt, format)
+    return self.gbot:PromptForReply(regex_id, prompt, format)
+end
+
+---Prompt in a thread for a reply matching a regex.
+---@param regex_id string
+---@param prompt string
+---@param format? number
+---@return string reply
+---@return number retVal
+function Robot:PromptThreadForReply(regex_id, prompt, format)
+    return self.gbot:PromptThreadForReply(regex_id, prompt, format)
+end
+
+---Prompt a specific user for a reply matching a regex.
+---@param regex_id string
+---@param user string
+---@param prompt string
+---@param format? number
+---@return string reply
+---@return number retVal
+function Robot:PromptUserForReply(regex_id, user, prompt, format)
+    return self.gbot:PromptUserForReply(regex_id, user, prompt, format)
+end
+
+---Prompt a user in a channel for a reply matching a regex.
+---@param regex_id string
+---@param user string
+---@param channel string
+---@param prompt string
+---@param format? number
+---@return string reply
+---@return number retVal
+function Robot:PromptUserChannelForReply(regex_id, user, channel, prompt, format)
+    return self.gbot:PromptUserChannelForReply(regex_id, user, channel, prompt, format)
+end
+
+---Prompt a user in a channel thread for a reply matching a regex.
+---@param regex_id string
+---@param user string
+---@param channel string
+---@param thread string
+---@param prompt string
+---@param format? number
+---@return string reply
+---@return number retVal
+function Robot:PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format)
+    return self.gbot:PromptUserChannelThreadForReply(regex_id, user, channel, thread, prompt, format)
+end
+
+--------------------------------------------------------------------------------
+-- Short-Term Memory Methods
+--------------------------------------------------------------------------------
+
+---Remember a key-value pair in short-term memory.
+---@param key string
+---@param value string
+---@param shared? boolean
+---@return number retVal
+function Robot:Remember(key, value, shared)
+    return self.gbot:Remember(key, value, shared)
+end
+
+---Remember a key-value pair in a thread's short-term memory.
+---@param key string
+---@param value string
+---@param shared? boolean
+---@return number retVal
+function Robot:RememberThread(key, value, shared)
+    return self.gbot:RememberThread(key, value, shared)
+end
+
+---Remember a context value (for referencing "it" in subsequent commands).
+---@param context string
+---@param value string
+---@return number retVal
+function Robot:RememberContext(context, value)
+    return self.gbot:RememberContext(context, value)
+end
+
+---Remember a context value in a thread's short-term memory.
+---@param context string
+---@param value string
+---@return number retVal
+function Robot:RememberContextThread(context, value)
+    return self.gbot:RememberContextThread(context, value)
+end
+
+---Recall a value from short-term memory.
+---@param key string
+---@param shared? boolean
+---@return string
+function Robot:Recall(key, shared)
+    return self.gbot:Recall(key, shared)
+end
+
+--------------------------------------------------------------------------------
+-- Pipeline Methods
+--------------------------------------------------------------------------------
+
+---Get a pipeline parameter.
+---@param name string
+---@return string
+function Robot:GetParameter(name)
+    return self.gbot:GetParameter(name)
+end
+
+---Set a pipeline parameter.
+---@param name string
+---@param value any
+---@return boolean
+function Robot:SetParameter(name, value)
+    return self.gbot:SetParameter(name, value)
+end
+
+---Obtain exclusive access to a resource for this task.
+---@param tag string
+---@param queueTask boolean
+---@return boolean
+function Robot:Exclusive(tag, queueTask)
+    return self.gbot:Exclusive(tag, queueTask)
+end
+
+---Spawn a new job in the pipeline.
+---@param name string
+---@vararg any
+---@return number retVal
+function Robot:SpawnJob(name, ...)
+    return self.gbot:SpawnJob(name, ...)
+end
+
+---Add a new task to the pipeline.
+---@param name string
+---@vararg any
+---@return number retVal
+function Robot:AddTask(name, ...)
+    return self.gbot:AddTask(name, ...)
+end
+
+---Add a final task to the pipeline.
+---@param name string
+---@vararg any
+---@return number retVal
+function Robot:FinalTask(name, ...)
+    return self.gbot:FinalTask(name, ...)
+end
+
+---Add a fail task to the pipeline.
+---@param name string
+---@vararg any
+---@return number retVal
+function Robot:FailTask(name, ...)
+    return self.gbot:FailTask(name, ...)
+end
+
+---Add a new job to the pipeline (alias for spawning).
+---@param name string
+---@vararg any
+---@return number retVal
+function Robot:AddJob(name, ...)
+    return self.gbot:AddJob(name, ...)
+end
+
+---Add a command to the pipeline.
+---@param pluginName string
+---@param command string
+---@return number retVal
+function Robot:AddCommand(pluginName, command)
+    return self.gbot:AddCommand(pluginName, command)
+end
+
+---Add a final command to the pipeline.
+---@param pluginName string
+---@param command string
+---@return number retVal
+function Robot:FinalCommand(pluginName, command)
+    return self.gbot:FinalCommand(pluginName, command)
+end
+
+---Add a fail command to the pipeline.
+---@param pluginName string
+---@param command string
+---@return number retVal
+function Robot:FailCommand(pluginName, command)
+    return self.gbot:FailCommand(pluginName, command)
+end
+
+--------------------------------------------------------------------------------
+-- Attribute Methods
+--------------------------------------------------------------------------------
+
+---Get a bot attribute.
+---@param attr string
+---@return string attribute
+---@return number retVal
+function Robot:GetBotAttribute(attr)
+    return self.gbot:GetBotAttribute(attr)
+end
+
+---Get a user attribute.
+---@param user string
+---@param attr string
+---@return string attribute
+---@return number retVal
+function Robot:GetUserAttribute(user, attr)
+    return self.gbot:GetUserAttribute(user, attr)
+end
+
+---Get an attribute of the message sender.
+---@param attr string
+---@return string attribute
+---@return number retVal
+function Robot:GetSenderAttribute(attr)
+    return self.gbot:GetSenderAttribute(attr)
+end
+
+--------------------------------------------------------------------------------
+-- Long-Term Memory Methods
+--------------------------------------------------------------------------------
+
+---Check out a datum from long-term memory.
+---@param key string
+---@param rw? boolean
+---@return table memory
+---@return number retVal
+function Robot:CheckoutDatum(key, rw)
+    local retVal, datum, token = self.gbot:CheckoutDatum(key, rw)
+    local exists = (retVal == M.ret.Ok and datum ~= nil)
+    local memory = {
+        key = key,
+        exists = exists,
+        datum = datum or {},
+        token = token or "",
+        retVal = retVal
+    }
+    return memory, retVal
+end
+
+---Update a previously checked-out datum in long-term memory.
+---@param memory table
+---@return number retVal
+function Robot:UpdateDatum(memory)
+    if not memory or not memory.key or not memory.token then
+        error("UpdateDatum requires a table with 'key' and 'token'")
+    end
+    local retVal = self.gbot:UpdateDatum(memory.key, memory.token, memory.datum)
+    return retVal
+end
+
+---Check in a previously checked-out datum.
+---@param memory table
+---@return number retVal
+function Robot:CheckinDatum(memory)
+    if not memory or not memory.key or not memory.token then
+        error("CheckinDatum requires a table with 'key' and 'token'")
+    end
+    local retVal = self.gbot:CheckinDatum(memory.key, memory.token)
+    return retVal
+end
+
+--------------------------------------------------------------------------------
+-- Other Methods
+--------------------------------------------------------------------------------
+
+---Get the current task configuration.
+---@return table config
+---@return number retVal
+function Robot:GetTaskConfig()
+    return self.gbot:GetTaskConfig()
+end
+
+---Generate a random integer in [0, n-1].
+---@param n number
+---@return number
+function Robot:RandomInt(n)
+    return self.gbot:RandomInt(n)
+end
+
+---Select a random string from an array of strings.
+---@param array string[]
+---@return string
+function Robot:RandomString(array)
+    return self.gbot:RandomString(array)
+end
+
+---Pause execution for the specified number of seconds.
+---@param seconds number
+function Robot:Pause(seconds)
+    return self.gbot:Pause(seconds)
+end
+
+---Check if the current user has administrative privileges.
+---@return boolean
+function Robot:CheckAdmin()
+    return self.gbot:CheckAdmin()
+end
+
+---Elevate the current user's privileges (e.g., require 2FA).
+---@param immediate? boolean
+---@return boolean
+function Robot:Elevate(immediate)
+    return self.gbot:Elevate(immediate)
+end
+
+---Log a message at the specified log level.
+---@param level number
+---@param message string
+function Robot:Log(level, message)
+    return self.gbot:Log(level, message)
+end
+
+--------------------------------------------------------------------------------
+-- Module Exports
+--------------------------------------------------------------------------------
+
+-- We export:
+--   - M.ret, M.task, M.log, M.fmt, M.proto
+--   - M.Robot => the Robot class table
+--   - M.New   => a helper that mimics old usage: local bot = robot.New(...)
+--------------------------------------------------------------------------------
+
+M.Robot = Robot
+
+---Return the module table.
+return M

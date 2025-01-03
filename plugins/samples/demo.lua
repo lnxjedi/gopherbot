@@ -87,11 +87,18 @@ local function extractEnvBash(envVarName)
   return envVarOutput
 end
 
--- Require the constants module (concise form)
-local gopherbot_v1 = require "gopherbot_v1"
-local robot, ret, task, log, fmt, proto = require "gopherbot_v1" ()
+-- Load our gopherbot library module (gopherbot_v1.lua).
+local gopherbot = require "gopherbot_v1"
 
-local bot = robot.New()
+local ret, task, log, fmt, proto, Robot =
+    gopherbot.ret,   -- returns a table of API return-value constants
+    gopherbot.task,  -- returns a table of task return-value constants
+    gopherbot.log,   -- log levels
+    gopherbot.fmt,   -- message formats
+    gopherbot.proto, -- chat protocols
+    gopherbot.Robot  -- the Robot class for Robot:new()
+
+local bot = Robot:new()
 
 --------------------------------------------------------------------------------
 -- Command Functions
