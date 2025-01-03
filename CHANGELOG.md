@@ -10,8 +10,10 @@ One limitation of "privsep" security by itself is that child processes still inh
 ## Secure/Unguessable Caller ID + Secure Caller ID Passing
 External interpreter scripts use JSON-over-http for making API calls. Previously they utilized a 4-byte (!!) "caller ID" to identify themselves, which is very guessable in a short amount of time. This update increases the size of this value to 144 bits (> 10^42), and also uses the script libraries to read this value from STDIN instead of using the `GOPHER_CALLER_ID` environment variable.
 
+Additionally, the caller ID was formerly part of the JSON body, requiring JSON parsing to authenticate the caller; now the value is passed as the `X-Caller-ID` header, so bad connections are rejected earlier, before the body is loaded and parsed.
+
 ## Better Parameter Security
-Along the same lines, robot owners can now set `SecureParameterRetrieval: true` at the top-level of their `robot.yaml`, which stops publishing configured parameters as environment variables - so your extensions will need to use the `GetParameter` API call.
+Along the same lines, robot owners can now set `SecureParameters: true` at the top-level of their `robot.yaml`, which stops publishing configured parameters as environment variables - so your extensions will need to use the `GetParameter` API call.
 
 # v2.16.0 - Initial Support for Julia Extensions
 I knew that someday I would be able to take the existing support for Python and/or Ruby, feed it to an AI, and get a working Julia library. In short, check `plugins/samples/echo.jl` for the first mimimal working Julia plugin. Notes:
