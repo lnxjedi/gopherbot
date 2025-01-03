@@ -12,7 +12,7 @@ CommandMatchers:
 `;
 
 // Require the Gopherbot JavaScript library
-const { robot, ret, task, log, fmt, proto } = require('gopherbot_v1')();
+const { Robot, ret, task, log, fmt, proto } = require('gopherbot_v1')();
 
 function handler(argv) {
   // 0: the path to gopherbot, the js interpreter
@@ -30,7 +30,7 @@ function handler(argv) {
       return defaultConfig;
 
     case 'js':
-      const bot = robot.New();
+      const bot = new Robot();
       try {
         bot.Say("Hello, JavaScript World!");
         return task.Normal;
