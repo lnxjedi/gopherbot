@@ -195,7 +195,7 @@ end
 
 local function threadCommand(bot)
   -- Demonstrate replying in a new thread
-  local retThread = bot:ReplyThread("Ok, let's chat here in a new thread")
+  bot:ReplyThread("Ok, let's chat here in a new thread")
   bot:SayThread("... note that you still have to mention me by name for now.")
   return task.Normal
 end
