@@ -56,6 +56,7 @@ func (jr *jsBot) createBotObject() *goja.Object {
 	botObj.Set("GetBotAttribute", jr.botGetBotAttribute)
 	botObj.Set("GetUserAttribute", jr.botGetUserAttribute)
 	botObj.Set("GetSenderAttribute", jr.botGetSenderAttribute)
+	botObj.Set("GetTaskConfig", jr.botGetTaskConfig)
 	botObj.Set("RandomInt", jr.botRandomInt)
 	botObj.Set("RandomString", jr.botRandomString)
 	botObj.Set("Pause", jr.botPause)

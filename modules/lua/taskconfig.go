@@ -30,10 +30,10 @@ func (lctx *luaContext) botGetTaskConfig(L *glua.LState) int {
 		// success -> parse to Lua
 		luaVal, err := parseGoValueToLua(L, mapConfig)
 		if err != nil {
-			// This is unusual (bad JSON?), log and return DataFormatError
+			// This is unusual (bad JSON?), log and return ConfigUnmarshalError
 			lctx.Log(robot.Error, fmt.Sprintf("Error converting map config to Lua: %v", err))
 			L.Push(glua.LNil) // no config
-			L.Push(glua.LNumber(robot.DataFormatError))
+			L.Push(glua.LNumber(robot.ConfigUnmarshalError))
 			return 2
 		}
 		L.Push(luaVal)
@@ -50,7 +50,7 @@ func (lctx *luaContext) botGetTaskConfig(L *glua.LState) int {
 			if err != nil {
 				lctx.Log(robot.Error, fmt.Sprintf("Error converting slice config to Lua: %v", err))
 				L.Push(glua.LNil)
-				L.Push(glua.LNumber(robot.DataFormatError))
+				L.Push(glua.LNumber(robot.ConfigUnmarshalError))
 				return 2
 			}
 			L.Push(luaVal)
