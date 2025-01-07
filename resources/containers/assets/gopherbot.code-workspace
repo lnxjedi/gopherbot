@@ -15,6 +15,10 @@
             "/.cache": true,
             "/.openvscode*": true,
             "/go/pkg": true
-        }
+        },
+        "Lua.workspace.library": [
+            "/opt/gopherbot/lib",
+            "custom/lib"
+        ]
     }
 }
