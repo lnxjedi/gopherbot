@@ -202,6 +202,6 @@ func (lctx *luaContext) botLog(L *glua.LState) int {
 		return pushFail(L)
 	}
 
-	lctx.Log(lvl, msg)
-	return pushFail(L)
+	lr.r.Log(lvl, msg)
+	return 0
 }
