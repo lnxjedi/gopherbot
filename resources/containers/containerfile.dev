@@ -16,6 +16,7 @@ RUN curl -o .git-completion.bash https://raw.githubusercontent.com/git/git/maste
 COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot/ /opt/gopherbot/
 COPY --chown=${USERNAME}:${USERNAME} tmp/gopherbot-doc/ /opt/gopherbot-doc/
 COPY --chown=${USERNAME}:${USERNAME} assets/gopherbot.code-workspace /home/${USERNAME}/gopherbot.code-workspace
+COPY --chown=${USERNAME}:${USERNAME} assets/jsconfig.json /home/${USERNAME}/jsconfig.json
 COPY --chown=${USERNAME}:${USERNAME} assets/dev-init /home/${USERNAME}/.dev-init
 COPY --chown=${USERNAME}:${USERNAME} assets/gitconfig /home/${USERNAME}/.gitconfig
 
