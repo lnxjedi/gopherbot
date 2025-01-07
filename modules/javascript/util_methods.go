@@ -17,7 +17,7 @@ func (jr *jsBot) botRandomInt(call goja.FunctionCall) goja.Value {
 	const methodName = "RandomInt"
 
 	// Validate and retrieve the 'n' argument
-	n := jr.requireNumberArg(methodName, call, 0)
+	n := jr.requireFloatArg(methodName, call, 0)
 	nInt := int(n)
 
 	// Call the Go method
@@ -87,7 +87,7 @@ func (jr *jsBot) botPause(call goja.FunctionCall) goja.Value {
 	const methodName = "Pause"
 
 	// Validate and retrieve the 'seconds' argument
-	sec := jr.requireNumberArg(methodName, call, 0)
+	sec := jr.requireFloatArg(methodName, call, 0)
 
 	// Call the Go method
 	jr.r.Pause(sec)

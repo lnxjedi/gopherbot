@@ -575,10 +575,18 @@ end
 -- Long-Term Memory Methods
 --------------------------------------------------------------------------------
 
+-- Class definition for memories
+---@class MemoryObject
+---@field key string The key passed to CheckoutDatum
+---@field exists boolean True if the datum was found
+---@field datum table The actual stored data (could be any Lua table)
+---@field token string The lock token, returned only for read/write checkouts
+---@field retVal number The underlying ret.* code (e.g. ret.Ok, etc.)
+
 ---Check out a datum from long-term memory.
 ---@param key string
 ---@param rw? boolean
----@return table memory
+---@return MemoryObject
 ---@return number retVal
 function Robot:CheckoutDatum(key, rw)
     local retVal, datum, token = self.gbot:CheckoutDatum(key, rw)
@@ -594,7 +602,7 @@ function Robot:CheckoutDatum(key, rw)
 end
 
 ---Update a previously checked-out datum in long-term memory.
----@param memory table
+---@param memory MemoryObject
 ---@return number retVal
 function Robot:UpdateDatum(memory)
     if not memory or not memory.key or not memory.token then
@@ -605,7 +613,7 @@ function Robot:UpdateDatum(memory)
 end
 
 ---Check in a previously checked-out datum.
----@param memory table
+---@param memory MemoryObject
 ---@return number retVal
 function Robot:CheckinDatum(memory)
     if not memory or not memory.key or not memory.token then

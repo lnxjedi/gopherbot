@@ -276,6 +276,7 @@ function commands.recall(bot)
       for i, mem in ipairs(data) do
         reply = reply .. i .. ": " .. mem .. "\n"
       end
+      bot:Log(log.Info, "Memory key: " .. memory.key .. "; token: " .. memory.token)
       bot:CheckinDatum(memory)
       bot:Say(reply)
     end

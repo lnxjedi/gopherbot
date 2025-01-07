@@ -143,9 +143,9 @@ func (jr *jsBot) botCheckinDatum(call goja.FunctionCall) goja.Value {
 
 	keyStr, okKey := keyVal.(string)
 	tokenStr, okTok := tokenVal.(string)
-	if !okKey || !okTok || keyStr == "" || tokenStr == "" {
+	if !okKey || !okTok || keyStr == "" {
 		panic(jr.ctx.vm.ToValue(
-			"CheckinDatum requires a memory object with non-empty 'key' and 'token' fields",
+			"CheckinDatum requires a memory object with non-empty 'key' field",
 		))
 	}
 

@@ -74,13 +74,17 @@ func (jr *jsBot) requireStringArg(methodName string, call goja.FunctionCall, ind
 }
 
 // requireNumberArg ensures the argument at the specified index is a number.
-func (jr *jsBot) requireNumberArg(methodName string, call goja.FunctionCall, index int) float64 {
+func (jr *jsBot) requireFloatArg(methodName string, call goja.FunctionCall, index int) float64 {
 	if len(call.Arguments) <= index {
 		panic(jr.ctx.vm.ToValue(fmt.Sprintf("%s: missing argument at position %d", methodName, index)))
 	}
 	arg := call.Arguments[index]
 	num, ok := arg.Export().(float64)
 	if !ok {
+		inum, ok := arg.Export().(int64)
+		if ok {
+			return float64(inum)
+		}
 		panic(jr.ctx.vm.ToValue(fmt.Sprintf("%s: argument at position %d must be a number", methodName, index)))
 	}
 	return num
