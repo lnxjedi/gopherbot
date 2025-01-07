@@ -45,7 +45,7 @@ func (jr *jsBot) botGetTaskConfig(call goja.FunctionCall) goja.Value {
 				cfgObject.Set("retVal", robot.ConfigUnmarshalError)
 				cfgObject.Set("config", goja.Null())
 				// This is unusual (bad JSON?), log and return ConfigUnmarshalError
-				jr.log(robot.Error, fmt.Sprintf("Error converting map config to JS: %v", err))
+				jr.log(robot.Error, fmt.Sprintf("Error converting slice config to JS: %v", err))
 				return cfgObject
 			}
 			cfgObject.Set("config", configVal)
