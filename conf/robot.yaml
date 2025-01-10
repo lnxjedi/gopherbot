@@ -37,9 +37,13 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
 {{- $mode := GetStartupMode }}
 
 ## Defaults for "production" and "ide-override" modes
+## Protocol - almost always overriden by GOPHER_PROTOCOL
 {{- $proto := env "GOPHER_PROTOCOL" | default "terminal" }}
+## Brain - normally configured in a robot's custom
+## conf/robot.yaml
 {{- $brain := env "GOPHER_BRAIN" | default "file" }}
-{{- $logdest := env "GOPHER_LOGDEST" | default "robot.log" }}
+## Rarely overridden.
+{{- $logdest := env "GOPHER_LOGDEST" | default "stdout" }}
 
 ## No configuration, no environment variables - demo robot
 {{- if eq $mode "demo" }}
