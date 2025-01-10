@@ -69,6 +69,9 @@ func (fb *fbConfig) Delete(key string) (err error) {
 	return
 }
 
+func (fb *fbConfig) Shutdown() {
+}
+
 // The file brain doesn't need the logger, but other brains might
 func fbprovider(r robot.Handler) robot.SimpleBrain {
 	fbhandler = r

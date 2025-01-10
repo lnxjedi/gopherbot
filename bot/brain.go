@@ -261,6 +261,8 @@ func brainQuit() {
 	reply := make(chan struct{})
 	brainChanEvents <- quitRequest{reply}
 	Log(robot.Debug, "Brain exiting on quit")
+	// Stop any goroutines and finish any remaining writes.
+	interfaces.brain.Shutdown()
 	<-reply
 }
 

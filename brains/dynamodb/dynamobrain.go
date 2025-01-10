@@ -150,6 +150,10 @@ func (db *brainConfig) List() ([]string, error) {
 	return keys, nil
 }
 
+func (db *brainConfig) Shutdown() {
+	// nothing to do, everything is synchronous
+}
+
 func provider(r robot.Handler) robot.SimpleBrain {
 	handler = r
 	handler.GetBrainConfig(&dynamocfg)

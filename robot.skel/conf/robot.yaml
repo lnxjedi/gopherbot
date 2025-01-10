@@ -50,6 +50,12 @@ BrainConfig:
   Region: {{ env "GOPHER_BRAIN_REGION" | default "us-east-1" }}
   AccessKeyID: "replace with encrypted value"
   SecretAccessKey: "replace with encrypted value"
+{{ else if eq $brain "cloudflare" }}
+BrainConfig:
+    AccountID: "youraccountID"
+    NamespaceID: "yournamespaceID"
+    MaxAgeHours: 7
+    APIToken: "replace with encrypted value"
 {{ end }}
 # End brain config
 

@@ -20,4 +20,7 @@ type SimpleBrain interface {
 	List() (keys []string, err error)
 	// Delete deletes a memory
 	Delete(key string) error
+	// Shutdown should stop any goroutines (if any) and return after all
+	// delayed writes complete (if any).
+	Shutdown()
 }
