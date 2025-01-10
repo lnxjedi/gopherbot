@@ -209,7 +209,7 @@ function handler(argv) {
         // The user might specify a number to recall a specific index
         const which = argv[3] || "";
         const memObj = bot.CheckoutDatum("memory", false);
-        bot.Log(log.Info, "Checking in: " + JSON.stringify(memObj))
+        bot.Log(log.Info, "JSDemo checking in: " + JSON.stringify(memObj))
         if (memObj.retVal != ret.Ok) {
           bot.Say("Sorry - trouble checking memory!");
           return task.Fail;
