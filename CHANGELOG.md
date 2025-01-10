@@ -15,6 +15,9 @@ Additionally, the caller ID was formerly part of the JSON body, requiring JSON p
 ## Better Parameter Security
 Along the same lines, robot owners can now set `SecureParameters: true` at the top-level of their `robot.yaml`, which stops publishing configured parameters as environment variables - so your extensions will need to use the `GetParameter` API call.
 
+## Addition of Cloudflare Workers KV Brain
+The API for this was trivial enough that it's written in straight Go/http, so very little change to binary size. It's not very fast when being accessed outside of the Cloudflare edge, but it keeps an in-memory cache and queues writes to make performance acceptable. See `robot.skel/conf/robot.yaml` for example configuration.
+
 # v2.16.0 - Initial Support for Julia Extensions
 I knew that someday I would be able to take the existing support for Python and/or Ruby, feed it to an AI, and get a working Julia library. In short, check `plugins/samples/echo.jl` for the first mimimal working Julia plugin. Notes:
 * Julia, weighing in at a whopping 1G, hasn't been integrated into any prebuilt containers
