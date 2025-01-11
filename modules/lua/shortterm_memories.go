@@ -24,10 +24,6 @@ func (lctx *luaContext) RegisterShortTermMemoryMethods(L *glua.LState) {
 	L.SetFuncs(mt, methods)
 }
 
-// -------------------------------------------------------------------
-// 1) bot:Remember(key, value, shared)
-// -------------------------------------------------------------------
-
 // botRemember allows Lua scripts to remember a key-value pair with an optional shared flag.
 func (lctx *luaContext) botRemember(L *glua.LState) int {
 	r := lctx.getRobot(L, "Remember")
@@ -46,13 +42,8 @@ func (lctx *luaContext) botRemember(L *glua.LState) int {
 	}
 
 	r.Remember(key, value, shared)
-	L.Push(glua.LBool(true))
-	return 1
+	return 0
 }
-
-// -------------------------------------------------------------------
-// 2) bot:RememberThread(key, value, shared)
-// -------------------------------------------------------------------
 
 // botRememberThread remembers a key-value pair in a threaded context with an optional shared flag.
 func (lctx *luaContext) botRememberThread(L *glua.LState) int {
@@ -72,13 +63,8 @@ func (lctx *luaContext) botRememberThread(L *glua.LState) int {
 	}
 
 	r.RememberThread(key, value, shared)
-	L.Push(glua.LBool(true))
-	return 1
+	return 0
 }
-
-// -------------------------------------------------------------------
-// 3) bot:RememberContext(context, value)
-// -------------------------------------------------------------------
 
 // botRememberContext remembers a value within a specific context.
 func (lctx *luaContext) botRememberContext(L *glua.LState) int {
@@ -97,13 +83,8 @@ func (lctx *luaContext) botRememberContext(L *glua.LState) int {
 	}
 
 	r.RememberContext(context, value)
-	L.Push(glua.LBool(true))
-	return 1
+	return 0
 }
-
-// -------------------------------------------------------------------
-// 4) bot:RememberContextThread(context, value)
-// -------------------------------------------------------------------
 
 // botRememberContextThread remembers a value within a specific context in a threaded environment.
 func (lctx *luaContext) botRememberContextThread(L *glua.LState) int {
@@ -122,13 +103,8 @@ func (lctx *luaContext) botRememberContextThread(L *glua.LState) int {
 	}
 
 	r.RememberContextThread(context, value)
-	L.Push(glua.LBool(true))
-	return 1
+	return 0
 }
-
-// -------------------------------------------------------------------
-// 5) bot:Recall(key, shared) -> string
-// -------------------------------------------------------------------
 
 // botRecall recalls a value by key with an optional shared flag.
 func (lctx *luaContext) botRecall(L *glua.LState) int {

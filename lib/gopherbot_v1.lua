@@ -413,34 +413,30 @@ end
 ---@param key string
 ---@param value string
 ---@param shared? boolean
----@return number retVal
 function Robot:Remember(key, value, shared)
-    return self.gbot:Remember(key, value, shared)
+    self.gbot:Remember(key, value, shared)
 end
 
 ---Remember a key-value pair in a thread's short-term memory.
 ---@param key string
 ---@param value string
 ---@param shared? boolean
----@return number retVal
 function Robot:RememberThread(key, value, shared)
-    return self.gbot:RememberThread(key, value, shared)
+    self.gbot:RememberThread(key, value, shared)
 end
 
 ---Remember a context value (for referencing "it" in subsequent commands).
 ---@param context string
 ---@param value string
----@return number retVal
 function Robot:RememberContext(context, value)
-    return self.gbot:RememberContext(context, value)
+    self.gbot:RememberContext(context, value)
 end
 
 ---Remember a context value in a thread's short-term memory.
 ---@param context string
 ---@param value string
----@return number retVal
 function Robot:RememberContextThread(context, value)
-    return self.gbot:RememberContextThread(context, value)
+    self.gbot:RememberContextThread(context, value)
 end
 
 ---Recall a value from short-term memory.
@@ -614,13 +610,11 @@ end
 
 ---Check in a previously checked-out datum.
 ---@param memory MemoryObject
----@return number retVal
 function Robot:CheckinDatum(memory)
     if not memory or not memory.key or not memory.token then
         error("CheckinDatum requires a table with 'key' and 'token'")
     end
-    local retVal = self.gbot:CheckinDatum(memory.key, memory.token)
-    return retVal
+    self.gbot:CheckinDatum(memory.key, memory.token)
 end
 
 --------------------------------------------------------------------------------
@@ -651,7 +645,7 @@ end
 ---Pause execution for the specified number of seconds.
 ---@param seconds number
 function Robot:Pause(seconds)
-    return self.gbot:Pause(seconds)
+    self.gbot:Pause(seconds)
 end
 
 ---Check if the current user has administrative privileges.

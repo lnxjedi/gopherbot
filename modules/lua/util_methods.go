@@ -118,7 +118,7 @@ func (lctx *luaContext) botPause(L *glua.LState) int {
 
 	sec := float64(secLua.(glua.LNumber))
 	lr.r.Pause(sec)
-	return pushFail(L) // returning a numeric retVal, e.g. 'Failed' if needed
+	return 0
 }
 
 // -------------------------------------------------------------------
