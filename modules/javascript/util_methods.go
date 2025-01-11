@@ -173,6 +173,6 @@ func (jr *jsBot) botLog(call goja.FunctionCall) goja.Value {
 	// Call the Go method
 	jr.r.Log(robot.LogLevel(level), msg)
 
-	// Assuming Log doesn't fail, return robot.Ok
-	return jr.ctx.vm.ToValue(robot.Ok)
+	// No real/sensible return value.
+	return goja.Undefined()
 }
