@@ -40,7 +40,7 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	// Ensure deploy key exists for SSH access
 	deployKey := r.GetParameter("GOPHER_DEPLOY_KEY")
 	if deployKey == "" {
-		r.Log(robot.Error, "No GOPHER_DEPLOY_KEY provided for SSH access")
+		r.Log(robot.Fatal, "No GOPHER_DEPLOY_KEY provided for SSH access")
 		return robot.Fail
 	}
 

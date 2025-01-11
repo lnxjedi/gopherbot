@@ -224,6 +224,9 @@ func Start(v VersionInfo) {
 		shortDesc = "no configuration or env vars, demo robot"
 	case "bootstrap":
 		shortDesc = "env vars set, need to clone config"
+		if _, ok := lookupEnv("GOPHER_DEPLOY_KEY"); !ok {
+			Log(robot.Fatal, "unable to start in bootstrap mode with no GOPHER_DEPLOY_KEY in the environment (or .env)")
+		}
 	case "cli":
 		shortDesc = fmt.Sprintf("running CLI command '%s'", cliCommand)
 	case "ide":

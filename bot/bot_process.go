@@ -172,6 +172,12 @@ func initBot() {
 	encryptionInitialized := initCrypt()
 	if encryptionInitialized {
 		setEnv("GOPHER_ENCRYPTION_INITIALIZED", "initialized")
+	} else {
+		mode := detectStartupMode()
+		switch mode {
+		case "cli", "bootstrap", "production":
+			Log(robot.Fatal, "unable to initialize encryption for startup mode '%s', no GOPHER_ENCRYPTION_KEY set in environment (or .env)", mode)
+		}
 	}
 
 	// The pre-connect load is for initial configuration that doesn't
