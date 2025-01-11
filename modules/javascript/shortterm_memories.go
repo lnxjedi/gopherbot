@@ -7,10 +7,6 @@ import (
 	"github.com/dop251/goja"
 )
 
-// -------------------------------------------------------------------
-// 1. bot:Remember(key, value, shared)
-// -------------------------------------------------------------------
-
 // botRemember allows JavaScript scripts to remember a key-value pair with an optional shared flag.
 func (jr *jsBot) botRemember(call goja.FunctionCall) goja.Value {
 	const methodName = "Remember"
@@ -46,13 +42,10 @@ func (jr *jsBot) botRemember(call goja.FunctionCall) goja.Value {
 	// Call the underlying Go method
 	jr.r.Remember(key, value, shared)
 
-	// Return true to indicate success
-	return jr.ctx.vm.ToValue(true)
+	// Return undefined because we have to return *something*, even though
+	// the Go method doesn't return anything.
+	return goja.Undefined()
 }
-
-// -------------------------------------------------------------------
-// 2. bot:RememberThread(key, value, shared)
-// -------------------------------------------------------------------
 
 // botRememberThread remembers a key-value pair in a threaded context with an optional shared flag.
 func (jr *jsBot) botRememberThread(call goja.FunctionCall) goja.Value {
@@ -89,13 +82,10 @@ func (jr *jsBot) botRememberThread(call goja.FunctionCall) goja.Value {
 	// Call the underlying Go method
 	jr.r.RememberThread(key, value, shared)
 
-	// Return true to indicate success
-	return jr.ctx.vm.ToValue(true)
+	// Return undefined because we have to return *something*, even though
+	// the Go method doesn't return anything.
+	return goja.Undefined()
 }
-
-// -------------------------------------------------------------------
-// 3. bot:RememberContext(context, value)
-// -------------------------------------------------------------------
 
 // botRememberContext remembers a value within a specific context.
 func (jr *jsBot) botRememberContext(call goja.FunctionCall) goja.Value {
@@ -118,13 +108,10 @@ func (jr *jsBot) botRememberContext(call goja.FunctionCall) goja.Value {
 	// Call the underlying Go method
 	jr.r.RememberContext(context, value)
 
-	// Return true to indicate success
-	return jr.ctx.vm.ToValue(true)
+	// Return undefined because we have to return *something*, even though
+	// the Go method doesn't return anything.
+	return goja.Undefined()
 }
-
-// -------------------------------------------------------------------
-// 4. bot:RememberContextThread(context, value)
-// -------------------------------------------------------------------
 
 // botRememberContextThread remembers a value within a specific context in a threaded environment.
 func (jr *jsBot) botRememberContextThread(call goja.FunctionCall) goja.Value {
@@ -147,13 +134,10 @@ func (jr *jsBot) botRememberContextThread(call goja.FunctionCall) goja.Value {
 	// Call the underlying Go method
 	jr.r.RememberContextThread(context, value)
 
-	// Return true to indicate success
-	return jr.ctx.vm.ToValue(true)
+	// Return undefined because we have to return *something*, even though
+	// the Go method doesn't return anything.
+	return goja.Undefined()
 }
-
-// -------------------------------------------------------------------
-// 5. bot:Recall(key, shared) -> string
-// -------------------------------------------------------------------
 
 // botRecall recalls a value by key with an optional shared flag.
 func (jr *jsBot) botRecall(call goja.FunctionCall) goja.Value {

@@ -151,8 +151,10 @@ func (jr *jsBot) botCheckinDatum(call goja.FunctionCall) goja.Value {
 
 	// Just call CheckinDatum
 	jr.r.CheckinDatum(keyStr, tokenStr)
-	// Return robot.Ok as an int
-	return jr.ctx.vm.ToValue(int(robot.Ok))
+
+	// Return undefined because we have to return *something*, even though
+	// the Go method doesn't return anything.
+	return goja.Undefined()
 }
 
 // parseGoValueToJS converts a Go interface{} into a goja.Value. If you have cyclical

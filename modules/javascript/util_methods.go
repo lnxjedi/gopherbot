@@ -92,8 +92,9 @@ func (jr *jsBot) botPause(call goja.FunctionCall) goja.Value {
 	// Call the Go method
 	jr.r.Pause(sec)
 
-	// Return the retVal as a JS number
-	return goja.Null()
+	// Return undefined because we have to return *something*, even though
+	// the Go method doesn't return anything.
+	return goja.Undefined()
 }
 
 // botCheckAdmin checks if the current user has administrative privileges.
