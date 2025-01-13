@@ -36,7 +36,7 @@ func TestBotName(t *testing.T) {
 		{aliceID, general, "@bender ping", false, []testc.TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ping, @bender", false, []testc.TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ping;", false, []testc.TestMessage{}, []Event{}, 0},
-		{bobID, general, "bender: echo hello world", false, []testc.TestMessage{{null, general, "Sure thing: hello world", false}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{bobID, general, "bender: echo hello world", false, []testc.TestMessage{{null, general, "Sure thing: hello world", true}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		// When you forget to address the robot, you can say it's name
 		{aliceID, general, "ping", false, []testc.TestMessage{}, []Event{}, 300},
 		{aliceID, general, "bender", false, []testc.TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
@@ -56,7 +56,7 @@ func TestBotNoName(t *testing.T) {
 		{aliceID, null, "ping", false, []testc.TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";ping", false, []testc.TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ping;", false, []testc.TestMessage{}, []Event{}, 0},
-		{bobID, general, "bender: echo hello world", false, []testc.TestMessage{{null, general, "hello world", false}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{bobID, general, "bender: echo hello world", false, []testc.TestMessage{{null, general, "hello world", true}}, []Event{CommandTaskRan, ExternalTaskRan}, 0},
 		// When you forget to address the robot, you can say it's name
 		{aliceID, general, "ping", false, []testc.TestMessage{}, []Event{}, 500},
 		{aliceID, general, ";", false, []testc.TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
@@ -128,10 +128,10 @@ func TestVisibility(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		{aliceID, general, "help ruby, bender", false, []testc.TestMessage{{null, general, `bender, ruby .*random\)`, false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "ruby me, bender", false, []testc.TestMessage{{null, general, "No command matched in channel.*", false}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
-		{bobID, general, ";ping", false, []testc.TestMessage{{null, general, "No command matched in channel.*", false}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
-		{bobID, general, ";reload", false, []testc.TestMessage{{null, general, "No command matched in channel.*", false}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "help ruby, bender", false, []testc.TestMessage{{null, general, `bender, ruby .*random\)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "ruby me, bender", false, []testc.TestMessage{{null, general, "No command matched in channel.*", true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+		{bobID, general, ";ping", false, []testc.TestMessage{{null, general, "No command matched in channel.*", true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
+		{bobID, general, ";reload", false, []testc.TestMessage{{null, general, "No command matched in channel.*", true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 
@@ -142,12 +142,12 @@ func TestBuiltins(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest-builtins.log", t)
 
 	tests := []testItem{
-		{aliceID, general, ";help log", false, []testc.TestMessage{{null, general, "direct message only", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";help log", false, []testc.TestMessage{{null, general, "direct message only", true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log lines to 0", false, []testc.TestMessage{{alice, null, "Lines per page of log output set to: 1", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log lines to 3", false, []testc.TestMessage{{alice, null, "Lines per page of log output set to: 3", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, ";help info", false, []testc.TestMessage{{null, general, `;.*admins.*`, false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, random, ";help ruby", false, []testc.TestMessage{{null, random, `prove that ruby plugins work \(channels: random\)`, false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, "help", false, []testc.TestMessage{{null, general, "Hi,.*", false}}, []Event{AmbientTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";help info", false, []testc.TestMessage{{null, general, `;.*admins.*`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, random, ";help ruby", false, []testc.TestMessage{{null, random, `prove that ruby plugins work \(channels: random\)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "help", false, []testc.TestMessage{{null, general, "Hi,.*", true}}, []Event{AmbientTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";whoami", false, []testc.TestMessage{{null, general, "you are 'test' user 'alice/u0001', speaking in channel 'general/#general', email address: alice@example.com", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		// NOTE: Dumps are all format = Fixed, which for the test connector is ALL CAPS
 		{aliceID, null, "dump robot", false, []testc.TestMessage{{alice, null, "HERE'S HOW I'VE BEEN CONFIGURED.*", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
@@ -203,9 +203,9 @@ func TestHelp(t *testing.T) {
 	tests := []testItem{
 		// Took a while to get the regex right; should be # of help msgs * 2 - 1; e.g. 10 lines -> 19
 		// NOTE: the default 'help' output is now too long for in-channel reply
-		{aliceID, deadzone, ";help", false, []testc.TestMessage{{null, deadzone, `(?s:Command\(s\) available in this channel:\n;help <keyword> - get help for the provided <keyword>\n\n;help-all - help for all commands available in this channel, including global commands)`, false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";help-all", false, []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){39}[^\n]*$)`, false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";help help", false, []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){5}[^\n]*$)`, false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help", false, []testc.TestMessage{{null, deadzone, `(?s:Command\(s\) available in this channel:\n;help <keyword> - get help for the provided <keyword>\n\n;help-all - help for all commands available in this channel, including global commands)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help-all", false, []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){39}[^\n]*$)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help help", false, []testc.TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){5}[^\n]*$)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 

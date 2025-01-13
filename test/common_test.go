@@ -156,8 +156,8 @@ func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
 					if !re.MatchString(got.Message) {
 						t.Errorf("FAILED message regex match; want: \"%s\", got: \"%s\"", want.Message, got.Message)
 					} else {
-						if got.User != want.User || got.Channel != want.Channel {
-							t.Errorf("FAILED user/channel match; want u:%s, c:%s; got u:%s,c:%s", want.User, want.Channel, got.User, got.Channel)
+						if got.User != want.User || got.Channel != want.Channel || got.Threaded != want.Threaded {
+							t.Errorf("FAILED user/channel match; want u:%s,c:%s,t:%t; got u:%s,c:%s,t:%t", want.User, want.Channel, want.Threaded, got.User, got.Channel, got.Threaded)
 						}
 					}
 				}

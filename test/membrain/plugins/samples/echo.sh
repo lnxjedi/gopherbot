@@ -33,7 +33,7 @@ case "$command" in
 		;;
 	"echo")
 		Pause 1 # because the robot knows how to "type"
-		Say "Sure thing: $1"
+		SayThread "Sure thing: $1"
 		;;
 	"repeat")
 		REPEAT=$(PromptForReply SimpleString "What do you want me to repeat?")

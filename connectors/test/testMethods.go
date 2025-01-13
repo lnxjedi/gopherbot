@@ -52,7 +52,7 @@ func (tc *TestConnector) GetBotMessage() (*TestMessage, error) {
 		if len(incoming.Message) > 16 {
 			message = incoming.Message[0:16] + " ..."
 		}
-		tc.test.Logf("Reply received from robot: u:%s, c:%s, m:%s", incoming.User, incoming.Channel, message)
+		tc.test.Logf("Reply received from robot: u:%s, c:%s, m:%s, t:%t", incoming.User, incoming.Channel, message, incoming.Threaded)
 		time.Sleep(100 * time.Millisecond)
 		return incoming, nil
 	case <-time.After(4 * time.Second):
