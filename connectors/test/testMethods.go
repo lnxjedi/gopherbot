@@ -38,7 +38,7 @@ func (tc *TestConnector) SendBotMessage(msg *TestMessage) {
 	tc.RUnlock()
 	select {
 	case tc.listener <- msg:
-		tc.test.Logf("Message sent to robot: %v", msg)
+		tc.test.Logf("Message sent to robot: %#v", msg)
 	case <-time.After(200 * time.Millisecond):
 		tc.test.Errorf("Timed out sending; user: \"%s\", channel: \"%s\", message: \"%s\"", msg.User, msg.Channel, msg.Message)
 	}

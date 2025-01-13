@@ -14,7 +14,7 @@ import (
 // TestMessage is for sending messages to the robot
 type TestMessage struct {
 	User, Channel, Message string
-	Threaded               bool
+	Threaded, Hidden       bool
 }
 
 // TestConnector holds all the relevant data about a connection
@@ -66,6 +66,7 @@ loop:
 				ThreadedMessage: msg.Threaded,
 				DirectMessage:   direct,
 				MessageText:     msg.Message,
+				HiddenMessage:   msg.Hidden,
 				MessageObject:   msg,
 				Client:          tc,
 			}
@@ -80,7 +81,12 @@ func (tc *TestConnector) sendMessage(msg *BotMessage) (ret robot.RetVal) {
 		tc.test.Errorf("Invalid empty user and channel")
 		return robot.ChannelNotFound
 	}
-	if msg.Channel != "" { // direct message
+	tc.RLock()
+	hidden := msg.Hidden
+	channel := msg.Channel
+	user := msg.User
+	tc.RUnlock()
+	if channel != "" { // direct message
 		found := false
 		tc.RLock()
 		for _, channel := range tc.channels {
@@ -95,7 +101,7 @@ func (tc *TestConnector) sendMessage(msg *BotMessage) (ret robot.RetVal) {
 			return robot.ChannelNotFound
 		}
 	}
-	if msg.User != "" { // speaking in channel, not talking to user
+	if user != "" { // speaking in channel, not talking to user
 		found := false
 		tc.RLock()
 		for _, user := range tc.users {
@@ -122,6 +128,9 @@ func (tc *TestConnector) sendMessage(msg *BotMessage) (ret robot.RetVal) {
 		spoken.Message = strings.ToLower(msg.Message)
 	case robot.Raw:
 		spoken.Message = msg.Message
+	}
+	if hidden {
+		spoken.Message = "(" + spoken.Message + ")"
 	}
 	select {
 	case tc.speaking <- spoken:

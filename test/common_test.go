@@ -59,10 +59,16 @@ func init() {
 	testInstallPath = filepath.Dir(wd)
 }
 
+// TestMessage is for sending messages to the robot
+type TestMessage struct {
+	User, Channel, Message string
+	Threaded               bool
+}
+
 type testItem struct {
 	user, channel, message string
-	threaded               bool                // if true the message is sent in a thread
-	replies                []testc.TestMessage // note: TestMessage.Message -> regex
+	threaded               bool          // if true the message is sent in a thread
+	replies                []TestMessage // note: TestMessage.Message -> regex
 	events                 []Event
 	pause                  int // time in milliseconds to pause after test item
 }
@@ -106,7 +112,7 @@ func setup(cfgdir, logfile string, t *testing.T) (<-chan bool, *testc.TestConnec
 
 func teardown(t *testing.T, done <-chan bool, conn *testc.TestConnector) {
 	// Alice is a bot admin who can order the bot to quit in #general
-	conn.SendBotMessage(&testc.TestMessage{aliceID, null, "quit", false})
+	conn.SendBotMessage(&testc.TestMessage{aliceID, null, "quit", false, false})
 
 	// Now we wait for the connection to finish
 	<-done
@@ -144,7 +150,13 @@ func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
 	for _, test := range tests {
 		// Clear out start-up events
 		GetEvents()
-		conn.SendBotMessage(&testc.TestMessage{test.user, test.channel, test.message, test.threaded})
+		hidden := false
+		message := test.message
+		if strings.HasPrefix(message, "/") {
+			hidden = true
+			message = strings.TrimPrefix(message, "/")
+		}
+		conn.SendBotMessage(&testc.TestMessage{test.user, test.channel, message, test.threaded, hidden})
 		for _, want := range test.replies {
 			if re, err := regexp.Compile(want.Message); err != nil {
 				t.Errorf("FAILED: regex \"%s\" didn't compile: %v", want.Message, err)

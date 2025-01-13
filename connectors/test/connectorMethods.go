@@ -9,7 +9,7 @@ import (
 // BotMessage is for receiving messages from the robot
 type BotMessage struct {
 	User, Channel, Message string
-	Threaded               bool
+	Threaded, Hidden       bool
 	Format                 robot.MessageFormat
 }
 
@@ -79,6 +79,7 @@ func (tc *TestConnector) SendProtocolChannelThreadMessage(ch, thr, mesg string, 
 		Channel:  channel,
 		Message:  mesg,
 		Threaded: threaded,
+		Hidden:   dummyMsgObject.HiddenMessage,
 		Format:   f,
 	}
 	return tc.sendMessage(msg)
@@ -93,6 +94,7 @@ func (tc *TestConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, th
 		Channel:  channel,
 		Message:  mesg,
 		Threaded: threaded,
+		Hidden:   dummyMsgObject.HiddenMessage,
 		Format:   f,
 	}
 	return tc.sendMessage(msg)
@@ -109,6 +111,7 @@ func (tc *TestConnector) SendProtocolUserMessage(u string, mesg string, f robot.
 		User:    user.Name,
 		Channel: "",
 		Message: mesg,
+		Hidden:  dummyMsgObject.HiddenMessage,
 		Format:  f,
 	}
 	return tc.sendMessage(msg)

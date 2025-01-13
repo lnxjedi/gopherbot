@@ -23,6 +23,8 @@ CommandMatchers:
   Regex: '(?i:repeat( me)?)'
 - Command: "echo"
   Regex: '(?i:echo (.*))'
+AllowedHiddenCommands:
+- echo
 EOF
 }
 
