@@ -9,6 +9,7 @@ import (
 // BotMessage is for receiving messages from the robot
 type BotMessage struct {
 	User, Channel, Message string
+	Threaded               bool
 	Format                 robot.MessageFormat
 }
 
@@ -36,12 +37,10 @@ func (tc *TestConnector) getChannel(c string) string {
 // MessageHeard indicates to the user a message was heard;
 // for test/terminal it's a noop.
 func (tc *TestConnector) MessageHeard(u, c string) {
-	return
 }
 
 // SetUserMap lets Gopherbot provide a mapping of usernames to user IDs
 func (tc *TestConnector) SetUserMap(map[string]string) {
-	return
 }
 
 // GetProtocolUserAttribute returns a string attribute or nil if slack doesn't
@@ -74,11 +73,13 @@ func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string,
 // SendProtocolChannelMessage sends a message to a channel
 func (tc *TestConnector) SendProtocolChannelThreadMessage(ch, thr, mesg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
+	threaded := thr != ""
 	msg := &BotMessage{
-		User:    "",
-		Channel: channel,
-		Message: mesg,
-		Format:  f,
+		User:     "",
+		Channel:  channel,
+		Message:  mesg,
+		Threaded: threaded,
+		Format:   f,
 	}
 	return tc.sendMessage(msg)
 }
@@ -86,11 +87,13 @@ func (tc *TestConnector) SendProtocolChannelThreadMessage(ch, thr, mesg string, 
 // SendProtocolUserChannelMessage sends a message to a user in a channel
 func (tc *TestConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, mesg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
+	threaded := thr != ""
 	msg := &BotMessage{
-		User:    uname,
-		Channel: channel,
-		Message: mesg,
-		Format:  f,
+		User:     uname,
+		Channel:  channel,
+		Message:  mesg,
+		Threaded: threaded,
+		Format:   f,
 	}
 	return tc.sendMessage(msg)
 }

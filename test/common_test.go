@@ -61,6 +61,7 @@ func init() {
 
 type testItem struct {
 	user, channel, message string
+	threaded               bool                // if true the message is sent in a thread
 	replies                []testc.TestMessage // note: TestMessage.Message -> regex
 	events                 []Event
 	pause                  int // time in milliseconds to pause after test item
@@ -105,7 +106,7 @@ func setup(cfgdir, logfile string, t *testing.T) (<-chan bool, *testc.TestConnec
 
 func teardown(t *testing.T, done <-chan bool, conn *testc.TestConnector) {
 	// Alice is a bot admin who can order the bot to quit in #general
-	conn.SendBotMessage(&testc.TestMessage{aliceID, null, "quit"})
+	conn.SendBotMessage(&testc.TestMessage{aliceID, null, "quit", false})
 
 	// Now we wait for the connection to finish
 	<-done
@@ -143,7 +144,7 @@ func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
 	for _, test := range tests {
 		// Clear out start-up events
 		GetEvents()
-		conn.SendBotMessage(&testc.TestMessage{test.user, test.channel, test.message})
+		conn.SendBotMessage(&testc.TestMessage{test.user, test.channel, test.message, test.threaded})
 		for _, want := range test.replies {
 			if re, err := regexp.Compile(want.Message); err != nil {
 				t.Errorf("FAILED: regex \"%s\" didn't compile: %v", want.Message, err)

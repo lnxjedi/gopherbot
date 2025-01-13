@@ -14,6 +14,7 @@ import (
 // TestMessage is for sending messages to the robot
 type TestMessage struct {
 	User, Channel, Message string
+	Threaded               bool
 }
 
 // TestConnector holds all the relevant data about a connection
@@ -29,6 +30,9 @@ type TestConnector struct {
 	robot.Handler                   // bot API for connectors
 	sync.RWMutex                    // shared mutex for locking connector data structures
 }
+
+// Threaded messages in tests are all in the same thread
+const static_thread_id = "0xDEADBEEF"
 
 // Run starts the main loop for the test connector
 func (tc *TestConnector) Run(stop <-chan struct{}) {
@@ -53,15 +57,17 @@ loop:
 				direct = true
 			}
 			botMsg := &robot.ConnectorMessage{
-				Protocol:      "test",
-				UserName:      userName,
-				UserID:        msg.User,
-				ChannelName:   msg.Channel,
-				ChannelID:     channelID,
-				DirectMessage: direct,
-				MessageText:   msg.Message,
-				MessageObject: msg,
-				Client:        tc,
+				Protocol:        "test",
+				UserName:        userName,
+				UserID:          msg.User,
+				ChannelName:     msg.Channel,
+				ChannelID:       channelID,
+				ThreadID:        static_thread_id,
+				ThreadedMessage: msg.Threaded,
+				DirectMessage:   direct,
+				MessageText:     msg.Message,
+				MessageObject:   msg,
+				Client:          tc,
 			}
 			tc.IncomingMessage(botMsg)
 		}
@@ -105,8 +111,9 @@ func (tc *TestConnector) sendMessage(msg *BotMessage) (ret robot.RetVal) {
 		}
 	}
 	spoken := &TestMessage{
-		User:    msg.User,
-		Channel: msg.Channel,
+		User:     msg.User,
+		Channel:  msg.Channel,
+		Threaded: msg.Threaded,
 	}
 	switch msg.Format {
 	case robot.Fixed:
