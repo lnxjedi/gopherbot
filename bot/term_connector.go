@@ -274,8 +274,8 @@ loop:
 			break loop
 		case input := <-tc.heard:
 			if len(input) == 0 {
-				evs := tc.GetEventStrings()
-				if len(*evs) > 0 {
+				if startMode == "test-dev" {
+					evs := tc.GetEventStrings()
 					events := fmt.Sprintf("[]Event{%s}", strings.Join(*evs, ", "))
 					Log(robot.Info, "TEST/EVENTS: %s", events)
 					tc.reader.Write([]byte(fmt.Sprintf("Events gathered: %s\n", events)))

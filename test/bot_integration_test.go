@@ -198,6 +198,18 @@ func TestFormatting(t *testing.T) {
 	teardown(t, done, conn)
 }
 
+func TestDevel(t *testing.T) {
+	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
+
+	tests := []testItem{
+		{aliceID, general, ";add bananas to the grocery list", false, []TestMessage{{alice, general, "I don't have a 'grocery' list, do you want to create it?", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, "yes", false, []TestMessage{{null, general, "Ok, I created a new grocery list and added bananas to it", false}}, []Event{}, 0},
+	}
+	testcases(t, conn, tests)
+
+	teardown(t, done, conn)
+}
+
 func TestHelp(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
 

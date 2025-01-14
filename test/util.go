@@ -2,31 +2,18 @@ package tbot
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
 // NOTE: Keep in sync with common_test.go:
 // Cast of Users
-const alice = "alice"
-const bob = "bob"
-const carol = "carol"
-const david = "david"
-const erin = "erin"
 const aliceID = "u0001"
 const bobID = "u0002"
 const carolID = "u0003"
 const davidID = "u0004"
 const erinID = "u0005"
-
-// When the robot doesn't address the user specifically, or sends a DM
-const null = ""
-
-// ... and the Channels they play in
-const general = "general"
-const random = "random"
-const bottest = "bottest"
-const deadzone = "deadzone"
 
 func FormatIncoming(msg *robot.ConnectorMessage) string {
 	uid := msg.UserID
@@ -35,13 +22,34 @@ func FormatIncoming(msg *robot.ConnectorMessage) string {
 		uid = "aliceID"
 	case bobID:
 		uid = "bobID"
+	case carolID:
+		uid = "carolID"
+	case davidID:
+		uid = "davidID"
+	case erinID:
+		uid = "erinID"
 	}
 	return fmt.Sprintf("%s, %s, \"%s\", %t", uid, msg.ChannelName, msg.MessageText, msg.ThreadedMessage)
 }
 
 func FormatOutgoing(user, channel, message, thread string) string {
+	printUser := user
 	if user == "" {
-		user = "null"
+		printUser = "null"
+	} else {
+		switch user {
+		case aliceID:
+			printUser = "alice"
+		case bobID:
+			printUser = "bob"
+		case carolID:
+			printUser = "carol"
+		case davidID:
+			printUser = "david"
+		case erinID:
+			printUser = "erin"
+		}
+		message = strings.TrimPrefix(message, "@"+printUser+" ")
 	}
 	if channel == "" {
 		channel = "null"
@@ -50,5 +58,5 @@ func FormatOutgoing(user, channel, message, thread string) string {
 	if thread != "" {
 		threaded = true
 	}
-	return fmt.Sprintf("{%s, %s, \"%s\", %t}", user, channel, message, threaded)
+	return fmt.Sprintf("{%s, %s, \"%s\", %t}", printUser, channel, message, threaded)
 }
