@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package bot_test
+package tbot_test
 
 import (
 	"testing"

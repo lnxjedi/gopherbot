@@ -12,6 +12,7 @@ import (
 	"unicode"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	tbot "github.com/lnxjedi/gopherbot/test"
 	"github.com/lnxjedi/readline"
 )
 
@@ -222,6 +223,7 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 				line = strings.TrimSpace(line)
 				if len(line) == 0 {
 					tc.reader.Write([]byte(terminalConnectorHelpLine))
+					tc.heard <- line
 				} else {
 					if line == "help" {
 						tc.reader.Write([]byte(terminalConnectorHelpLine))
@@ -274,7 +276,9 @@ loop:
 			if len(input) == 0 {
 				evs := tc.GetEventStrings()
 				if len(*evs) > 0 {
-					tc.reader.Write([]byte(fmt.Sprintf("Events gathered: %s\n", strings.Join(*evs, ", "))))
+					events := fmt.Sprintf("[]Event{%s}", strings.Join(*evs, ", "))
+					Log(robot.Info, "TEST/EVENTS: %s", events)
+					tc.reader.Write([]byte(fmt.Sprintf("Events gathered: %s\n", events)))
 				}
 				continue
 			}
@@ -433,6 +437,9 @@ loop:
 					HiddenMessage:   hiddenMsg,
 				}
 				tc.RLock()
+				if startMode == "test-dev" {
+					Log(robot.Info, "TEST/INCOMING: %s", tbot.FormatIncoming(botMsg))
+				}
 				tc.IncomingMessage(botMsg)
 				tc.RUnlock()
 			}
@@ -446,7 +453,6 @@ loop:
 }
 
 func (tc *termConnector) MessageHeard(u, c string) {
-	return
 }
 
 func (tc *termConnector) resolveTermUser(u string) (*termUser, bool) {
@@ -509,7 +515,6 @@ func (tc *termConnector) checkSendSelf(ch, thr, msg string, f robot.MessageForma
 // user "parsley", which may be a total stranger with id 54321.
 // ... that is to say, the Terminal connector doesn't care.
 func (tc *termConnector) SetUserMap(map[string]string) {
-	return
 }
 
 // GetUserAttribute returns a string attribute or nil if slack doesn't

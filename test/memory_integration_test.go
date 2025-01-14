@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package bot_test
+package tbot_test
 
 // memory_integration_test.go - tests that stress the robot's memory functions.
 

@@ -121,6 +121,7 @@ Used in robot.yaml to determine start-up settings for connector, brain, and
 logging. Returns one of:
 * setup - no configuration but answerfile.txt/ANS* env present, setup plugin will process
 * demo - no configuration or env vars, starts the default robot
+* test-dev - using config dir in gopherbot/test for creating integration tests
 * bootstrap - env vars (e.g. GOPHER_CUSTOM_REPOSITORY) set, but no config yet
 * cli - gopherbot CLI command, not starting a real robot
 * ide - running in the gopherbot IDE for local dev
@@ -130,6 +131,15 @@ logging. Returns one of:
 func detectStartupMode() (mode string) {
 	if cliOp {
 		return "cli"
+	}
+	if _, err := os.Stat(filepath.Join("conf", robotConfigFileName)); err == nil {
+		cwd, err := os.Getwd()
+		if err != nil {
+			panic("Unable to get current directory")
+		}
+		if !strings.HasSuffix(cwd, "/custom") {
+			return "test-dev"
+		}
 	}
 	_, robotConfigured := lookupEnv("GOPHER_CUSTOM_REPOSITORY")
 	if !robotConfigured {
@@ -148,7 +158,7 @@ func detectStartupMode() (mode string) {
 	if _, err := os.Stat(robotYamlFile); err != nil {
 		return "bootstrap"
 	}
-	// checked in start.go - GOPHER_IDE *always* imp
+	// checked in start.go
 	if ideMode {
 		if overrideIDEMode {
 			return "ide-override"

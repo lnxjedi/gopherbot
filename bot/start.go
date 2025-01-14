@@ -26,8 +26,9 @@ var (
 	plainlog        bool
 	helpRequested   bool
 
-	hostName string
-	ideMode  bool
+	hostName  string
+	ideMode   bool
+	startMode string
 
 	deployEnvironment string
 )
@@ -103,9 +104,13 @@ func Start(v VersionInfo) {
 		CLI flag.
 	*/
 	_, ideMode = lookupEnv("GOPHER_IDE")
-	if ideMode {
+	startMode = detectStartupMode()
+	if strings.HasPrefix(startMode, "ide") {
 		homeDir := os.Getenv("HOME")
 		os.Chdir(homeDir)
+	} else if startMode == "test-dev" {
+		cwd, _ := os.Getwd()
+		configPath = cwd
 	}
 
 	logFlags := log.LstdFlags
@@ -215,13 +220,14 @@ func Start(v VersionInfo) {
 		ele := logStrToLevel(elle)
 		setLogLevel(ele)
 	}
-	mode := detectStartupMode()
 	var shortDesc string
-	switch mode {
+	switch startMode {
 	case "setup":
 		shortDesc = "processes answerfile.txt/ANS* env vars "
 	case "demo":
 		shortDesc = "no configuration or env vars, demo robot"
+	case "test-dev":
+		shortDesc = "found existing configuration outside of 'custom/'"
 	case "bootstrap":
 		shortDesc = "env vars set, need to clone config"
 		if _, ok := lookupEnv("GOPHER_DEPLOY_KEY"); !ok {
@@ -238,7 +244,7 @@ func Start(v VersionInfo) {
 	default:
 		shortDesc = "unknown"
 	}
-	Log(robot.Info, "******* GOPHERBOT STARTING UP -> mode '%s' (%s) with config dir: %s, and install dir: %s\n", mode, shortDesc, configPath, installPath)
+	Log(robot.Info, "******* GOPHERBOT STARTING UP -> mode '%s' (%s) with config dir: %s, and install dir: %s\n", startMode, shortDesc, configPath, installPath)
 	checkprivsep()
 	if penvErr != nil {
 		Log(robot.Info, "No private environment loaded from '.env': %v\n", penvErr)

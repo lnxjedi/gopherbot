@@ -24,6 +24,7 @@
 ##   brain and log destination. Possible values:
 ##   * setup - no configuration but answerfile.txt/ANS* env present, setup plugin will process
 ##   * demo - no configuration or env vars, starts the default robot
+##   * test-dev - using config dir in gopherbot/test for creating integration tests
 ##   * bootstrap - env vars (e.g. GOPHER_CUSTOM_REPOSITORY) set, but no config yet
 ##   * cli - gopherbot CLI command, not starting a real robot
 ##   * ide - running in the gopherbot IDE for local dev
@@ -56,7 +57,7 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
   {{- $brain = "mem"}}
   {{- $logdest = "stdout" }}
 ## IDE mode, override protocol, brain, logdest
-{{- else if eq $mode "ide" }}
+{{- else if or (eq $mode "ide") (eq $mode "test-dev") }}
   {{- $proto = "terminal" }}
   {{- $brain = "mem"}}
   {{- $logdest = "robot.log" }}

@@ -1,6 +1,6 @@
 //go:build integration
 
-package bot_test
+package tbot_test
 
 /*
 common_test.go - setup and initialization of "black box" integration testing.
@@ -74,7 +74,7 @@ type testItem struct {
 }
 
 // NOTE: integration tests are closely tied to the configuration in test/...
-
+// NOTE: Keep these in sync with util.go:
 // Cast of Users
 const alice = "alice"
 const bob = "bob"
