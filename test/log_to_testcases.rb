@@ -95,7 +95,7 @@ ARGF.each_line do |line|
     if outgoing_user.downcase == 'null'
       outgoing_user_formatted = 'null'
     else
-      outgoing_user_formatted = "#{escape_go_string(outgoing_user)}"
+      outgoing_user_formatted = escape_go_string(outgoing_user)
     end
 
     # Escape message
