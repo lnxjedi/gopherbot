@@ -113,8 +113,6 @@ func provider(r robot.Handler) robot.SimpleBrain {
 		r.Log(robot.Fatal, "Unable to create Firestore client: %v", err)
 	}
 
-	r.Log(robot.Au)
-
 	// Return our fsBrain that implements SimpleBrain
 	return &fsBrain{
 		handler: r,
