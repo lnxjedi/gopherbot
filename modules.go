@@ -34,8 +34,9 @@ import (
 	_ "github.com/lnxjedi/gopherbot/v2/history/file"
 
 	// *** A couple of fantastic brains
-	_ "github.com/lnxjedi/gopherbot/v2/brains/dynamodb"
 	_ "github.com/lnxjedi/gopherbot/v2/brains/cloudflarekv"
+	_ "github.com/lnxjedi/gopherbot/v2/brains/dynamodb"
+	_ "github.com/lnxjedi/gopherbot/v2/brains/gcpfirestore"
 )
 
 /* Uncomment under Profiling above to enable profiling. This inflates
