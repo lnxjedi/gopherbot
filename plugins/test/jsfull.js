@@ -4,11 +4,14 @@
 // Define the default configuration as a YAML string
 const defaultConfig = `---
 Help:
-  - Keywords: [ "say" ]
-    Helptext: [ "(bot), say everything - full test of Say*/Reply*/Send* methods" ]
+- Keywords: [ "say", "ask" ]
+  Helptext:
+  - "(bot), say everything - full test of Say*/Reply*/Send* methods"
 CommandMatchers:
-  - Regex: (?i:say everything)
-    Command: sendmsg
+- Regex: (?i:say everything)
+  Command: sendmsg
+AllowedHiddenCommands:
+- sendmsg
 `;
 
 // Require the Gopherbot JavaScript library

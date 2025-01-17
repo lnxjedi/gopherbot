@@ -29,7 +29,11 @@ func FormatIncoming(msg *robot.ConnectorMessage) string {
 	case erinID:
 		uid = "erinID"
 	}
-	return fmt.Sprintf("%s, %s, \"%s\", %t", uid, msg.ChannelName, msg.MessageText, msg.ThreadedMessage)
+	logMsg := msg.MessageText
+	if msg.HiddenMessage {
+		logMsg = "/" + msg.MessageText
+	}
+	return fmt.Sprintf("%s, %s, \"%s\", %t", uid, msg.ChannelName, logMsg, msg.ThreadedMessage)
 }
 
 func FormatOutgoing(user, channel, message, thread string) string {
@@ -49,7 +53,17 @@ func FormatOutgoing(user, channel, message, thread string) string {
 		case erinID:
 			printUser = "erin"
 		}
+		// Adjust for the difference in the terminal and test connectors - the
+		// terminal connector applies "@user ..." when a message is sent to a user,
+		// the test connector indicates who the message was sent to in a separate field.
+		msgHidden := strings.HasPrefix(message, "(") && strings.HasSuffix(message, ")")
+		if msgHidden {
+			message = message[1 : len(message)-1]
+		}
 		message = strings.TrimPrefix(message, "@"+printUser+" ")
+		if msgHidden {
+			message = "(" + message + ")"
+		}
 	}
 	if channel == "" {
 		channel = "null"
