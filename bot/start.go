@@ -105,7 +105,7 @@ func Start(v VersionInfo) {
 	*/
 	_, ideMode = lookupEnv("GOPHER_IDE")
 	startMode = detectStartupMode()
-	if strings.HasPrefix(startMode, "ide") {
+	if ideMode && (startMode != "test-dev") {
 		homeDir := os.Getenv("HOME")
 		os.Chdir(homeDir)
 	} else if startMode == "test-dev" {
