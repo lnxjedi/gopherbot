@@ -54,6 +54,9 @@ func FormatOutgoing(user, channel, message, thread string) string {
 	if channel == "" {
 		channel = "null"
 	}
+	if strings.HasPrefix(channel, "(dm:") {
+		channel = "null"
+	}
 	threaded := false
 	if thread != "" {
 		threaded = true

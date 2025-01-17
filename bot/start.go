@@ -182,6 +182,7 @@ func Start(v VersionInfo) {
 
 	var envFile string
 	var fixed = []string{}
+	// NOTE: the subdirectories in test/ all use private/environment
 	for _, ef := range []string{"private/environment", ".env"} {
 		if es, err := os.Stat(ef); err == nil {
 			em := es.Mode()
