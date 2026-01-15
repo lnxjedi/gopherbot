@@ -177,6 +177,19 @@ func initBot() {
 		switch mode {
 		case "cli", "bootstrap", "production":
 			Log(robot.Fatal, "unable to initialize encryption for startup mode '%s', no GOPHER_ENCRYPTION_KEY set in environment (or .env)", mode)
+		default:
+			// For demo, setup, ide, test-dev modes: create a temporary random key
+			bk := make([]byte, 32)
+			_, err := crand.Read(bk)
+			if err != nil {
+				Log(robot.Fatal, "Generating temporary encryption key: %v", err)
+			}
+			cryptKey.Lock()
+			cryptKey.key = bk
+			cryptKey.initialized = true
+			cryptKey.Unlock()
+			Log(robot.Info, "Initialized temporary encryption key for '%s' mode", mode)
+			encryptionInitialized = true
 		}
 	}
 

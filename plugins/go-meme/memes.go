@@ -10,6 +10,13 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
+// No default configuration - memes plugin requires external config
+var defaultConfig = []byte(``)
+
+func Configure() *[]byte {
+	return &defaultConfig
+}
+
 type memeConfig struct {
 	Username string
 	Password string

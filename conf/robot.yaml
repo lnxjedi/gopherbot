@@ -137,7 +137,7 @@ NameSpaces:
 
 ParameterSets:
 
-{{ if not (env "GOPHER_UNCONFIGURED") }}
+{{- if not (or (eq $mode "demo") (eq $mode "setup")) }}
 ScheduledJobs:
 - Name: go-bootstrap
   Schedule: "@init"
@@ -177,12 +177,12 @@ ExternalPlugins:
     Path: plugins/ssh-admin.sh
     Privileged: true
     NameSpace: ssh
-{{- if env "GOPHER_UNCONFIGURED" }}
+{{- if or (eq $mode "demo") (eq $mode "setup") }}
   {{- if eq $proto "terminal" }}
   "welcome":
     Description: The welcome plugin provides a greeting when unconfigured
     Privileged: true
-    Path: plugins/welcome.sh
+    Path: plugins/welcome.lua
   {{- end }}
   "autosetup":
     Description: Setup plugin for creating a new robot from an answerfile

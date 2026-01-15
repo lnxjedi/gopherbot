@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# DEFUNCT - this is the original welcome plugin in bash, now replaced
+# by welcome.lua
+
 # welcome.sh - let the default robot greet the user
 
 # START Boilerplate
