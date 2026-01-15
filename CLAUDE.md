@@ -111,7 +111,7 @@ We are working on the **v3_wip** branch. Key v3 goals:
 
 | Script | Lines | Status | Notes |
 |--------|-------|--------|-------|
-| `plugins/welcome.sh` | 42 | TODO | Trivial - just messaging |
+| `plugins/welcome.lua` | 30 | **DONE** | Converted from welcome.sh |
 | `plugins/autosetup.sh` | 358 | TODO | Main challenge - full setup wizard |
 | `plugins/addadmin.sh` | ~100 | TODO | Adding initial admin |
 
@@ -140,6 +140,8 @@ We are working on the **v3_wip** branch. Key v3 goals:
 **Note**: backup/restore are deprecated. CloudFlare KV (and DynamoDB) provide persistent memory without git ugliness.
 
 ### Priority 4: Documentation
+
+Internal developer documentation in `devdocs/` needs to be created as needed and kept up-to-date to allow for rapidly getting up-to-speed when starting work.
 
 The documentation at `../gopherbot-doc/` needs updates for v3:
 - New JS/Lua interpreters and APIs
@@ -189,3 +191,64 @@ Current direct dependencies (go.mod):
 - `github.com/aws/aws-sdk-go` - DynamoDB brain
 
 Some dependencies are 2+ years old and should be updated as part of v3 work.
+
+## Startup Modes
+
+The robot detects its startup mode via `detectStartupMode()` in `bot/config_load.go`. This affects configuration, logging, and which plugins load.
+
+| Mode | Trigger | Protocol | Brain | LogDest | Notes |
+|------|---------|----------|-------|---------|-------|
+| `demo` | No config, no env vars | terminal | mem | robot.log | Default robot Floyd, welcome plugin loads |
+| `setup` | answerfile.txt or ANS_* env | varies | mem | varies | autosetup plugin processes answerfile |
+| `bootstrap` | GOPHER_CUSTOM_REPOSITORY set, no config yet | nullconn | mem | stdout | go-bootstrap job clones config repo |
+| `production` | Config exists, not IDE | from config | from config | robot.log (terminal) or stdout | Normal operation |
+| `ide` | GOPHER_IDE set | terminal | mem | robot.log | Local development |
+| `test-dev` | conf/robot.yaml exists outside custom/ | terminal | mem | robot.log | Integration testing |
+| `cli` | CLI operation (-l, encrypt, etc.) | N/A | N/A | N/A | Not a running robot |
+
+**Key template variable**: `$mode := GetStartupMode` in conf/robot.yaml controls conditional configuration.
+
+## Plugin/Script Contracts
+
+### Lua Plugins
+- **configure command**: Must return a YAML string (use `""` for no config), NOT a task return value
+- **init command**: Return `robot.task.Normal`
+- **Arguments**: Available via `arg[1]`, `arg[2]`, etc.
+- **See**: `plugins/samples/hello.lua` and `plugins/samples/demo.lua` for examples
+
+### Dynamic Go Plugins (Yaegi)
+- Must have `func Configure() *[]byte` that returns default YAML config
+- Must have `func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetVal`
+- **See**: `plugins/go-knock/knock.go` for example
+
+### External Scripts (bash, python, ruby)
+- First argument is command ("configure", "init", or user command)
+- For configure: print YAML to stdout, exit 0
+- Source the appropriate library file (e.g., `gopherbot_v1.sh`)
+
+## Logging Architecture
+
+Two distinct logging paths:
+
+1. **Internal logging** (`Log()` in bot/logging.go)
+   - Used by core bot code
+   - Goes to configured LogDest (file or stdout)
+   - Terminal protocol auto-redirects stdout → robot.log
+
+2. **Script/Robot logging** (`Robot.Log()` in bot/robot.go)
+   - Used by plugins/tasks via the Robot API
+   - Always visible on terminal (for development)
+   - Also recorded in pipeline history
+   - Has `(pipeline/task)` prefix for context
+
+**Key flags**:
+- `fileLog`: true when logging to a file
+- `localTerm`: true when using terminal connector
+
+## Recent Fixes (v3_wip)
+
+1. **Encryption initialization** (`bot/bot_process.go`): Demo/setup/ide modes now generate a temporary random encryption key instead of failing
+2. **Mode-based config** (`conf/robot.yaml`): Replaced `GOPHER_UNCONFIGURED` env var checks with `$mode` checks - the env var was never set
+3. **Terminal logging** (`conf/robot.yaml`): Terminal protocol now forces `LogDest: robot.log` to prevent log noise in the UI
+4. **welcome.lua**: Converted from shell, removed jq/git/ssh dependency checks
+5. **memes.go**: Added missing `Configure()` function for Yaegi interpreter
