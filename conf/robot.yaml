@@ -82,6 +82,11 @@ HttpDebug: true
   {{- $loglevel = "debug" }}
 {{- end }}
 
+## Terminal protocol should never log to stdout - it interferes with the UI
+{{- if and (eq $proto "terminal") (eq $logdest "stdout") }}
+  {{- $logdest = "robot.log" }}
+{{- end }}
+
 Protocol: {{ $proto }}
 Brain: {{ $brain }}
 LogDest: {{ $logdest }}
