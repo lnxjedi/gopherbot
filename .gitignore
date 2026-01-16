@@ -20,3 +20,4 @@ robot.log
 *fail.log
 tmp/
 binary-encrypted-key*
+.ssh
