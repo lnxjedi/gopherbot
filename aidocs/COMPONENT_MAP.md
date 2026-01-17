@@ -17,7 +17,8 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## bot/
 
 - Engine entrypoints: `bot/start.go` (func `Start`), `bot/bot_process.go` (funcs `initBot`, `run`).
-- Startup mode logic: `bot/config_load.go` (func `detectStartupMode` referenced in `aidocs/STARTUP_FLOW.md`).
+- Startup mode and config loading: `bot/config_load.go` (funcs `detectStartupMode`, `loadConfig`, `getConfigFile`).
+- Internal module initialization: `bot/modules_init.go` (func `initializeModules`) — initializes ssh-agent, ssh-git-helper, and yaegi interpreter modules.
 
 ## brains/
 

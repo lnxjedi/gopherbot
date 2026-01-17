@@ -4,9 +4,9 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 
 ## Entry Points (call graph)
 
-- Connector → `handler.IncomingMessage` (normalizes user/channel/message, spawns worker): `bot/handler.go:IncomingMessage`.
-- Worker → `handleMessage` (message routing, matcher evaluation): `bot/dispatch.go:handleMessage`.
-- Match → pipeline start via `startPipeline`: `bot/dispatch.go:checkPluginMatchersAndRun`, `bot/run_pipelines.go:startPipeline`.
+- Connector → `handler.IncomingMessage` (normalizes user/channel/message, spawns worker): `bot/handler.go` (method `IncomingMessage` on type `handler`).
+- Worker → `handleMessage` (message routing, matcher evaluation): `bot/dispatch.go` (method `handleMessage` on type `*worker`).
+- Match → pipeline start via `startPipeline`: `bot/dispatch.go` (method `checkPluginMatchersAndRun`), `bot/run_pipelines.go` (method `startPipeline`).
 
 ## Key Data Structures (what to inspect)
 
@@ -40,13 +40,13 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 
 ## Fast Debug Pointers (AI use)
 
-- If a message never starts a pipeline, trace `bot/handler.go:IncomingMessage` → `bot/dispatch.go:handleMessage` and verify matcher config in `conf/plugins/*.yaml`.
-- If a pipeline starts but tasks don’t run, inspect `bot/run_pipelines.go:startPipeline` and `bot/robot_pipecmd.go` (AddTask/AddJob/AddCommand validation).
+- If a message never starts a pipeline, trace `bot/handler.go` (func `IncomingMessage`) → `bot/dispatch.go` (func `handleMessage`) and verify matcher config in `conf/plugins/*.yaml`.
+- If a pipeline starts but tasks don't run, inspect `bot/run_pipelines.go` (func `startPipeline`) and `bot/robot_pipecmd.go` (AddTask/AddJob/AddCommand validation).
 
 ## AI Checklist (verified entrypoints)
 
-- Locate the message entrypoint: `bot/handler.go:IncomingMessage`.
-- Confirm routing order: `bot/dispatch.go:handleMessage`.
+- Locate the message entrypoint: `bot/handler.go` (method `IncomingMessage`).
+- Confirm routing order: `bot/dispatch.go` (method `handleMessage`).
 - Confirm matcher definitions: `bot/tasks.go` type `Plugin` fields `CommandMatchers`, `MessageMatchers`.
 - Confirm matcher config source: `conf/plugins/*.yaml` (example `conf/plugins/ping.yaml`).
-- Confirm pipeline start: `bot/dispatch.go:checkPluginMatchersAndRun` → `bot/run_pipelines.go:startPipeline`.
+- Confirm pipeline start: `bot/dispatch.go` (method `checkPluginMatchersAndRun`) → `bot/run_pipelines.go` (method `startPipeline`).

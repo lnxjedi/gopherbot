@@ -41,13 +41,13 @@ Scripts run as separate processes. Robot API calls are **HTTP POST requests** to
 2. Script receives `GOPHER_HTTP_POST` environment variable (e.g., `http://127.0.0.1:35479`)
 3. Script sources/imports the library
 4. API calls become JSON POST to `$GOPHER_HTTP_POST/json`
-5. Robot's HTTP handler (`bot/http.go:209`) processes requests
+5. Robot's HTTP handler (`bot/http.go`, method `ServeHTTP` on type `handler`) processes requests
 
 **File extensions:** Any executable (`.sh`, `.py`, `.rb`, etc.)
 
 ## Invocation Flow
 
-### Where: `bot/calltask.go:282-620`
+### Where: `bot/calltask.go` (funcs `callTask`, `callTaskThread`)
 
 ```
 callTask()
@@ -328,7 +328,7 @@ Configuration loaded by:
 2. Capturing stdout
 3. Parsing as YAML
 
-See: `bot/calltask.go:140-180` for config loading logic.
+See: `bot/calltask.go` (func `getDefCfgThread`) for external script config loading.
 
 ## API Parity
 

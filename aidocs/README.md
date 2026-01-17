@@ -4,6 +4,8 @@ Gopherbot is an extensible automation framework designed as a persistent, Go-bas
 
 Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 
+**Navigation note**: Documentation references use function and type names (e.g., `bot/handler.go` func `IncomingMessage`) rather than line numbers. Use grep or your editor's symbol search to locate referenced code.
+
 ## Table of contents
 
 - `aidocs/COMPONENT_MAP.md` - top-level directory map with entrypoints and representative files.

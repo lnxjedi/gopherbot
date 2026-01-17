@@ -10,8 +10,8 @@ Focus: integration test harness under `test/` and how tests are executed.
 
 ## Harness entrypoints
 
-- `setup()` in `test/common_test.go` configures `GOPHER_PROTOCOL=test` (via `init()` in the same file) and starts the bot via `StartTest()` in `bot/start_t.go`.
-- `StartTest()` initializes the bot, selects the connector from `currentCfg.protocol`, and runs `run()` (see `bot/start_t.go` and `bot/bot_process.go`).
+- `setup()` in `test/common_test.go` configures `GOPHER_PROTOCOL=test` (via `init()` in the same file) and starts the bot via `StartTest()`.
+- `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It initializes the bot, selects the connector from `currentCfg.protocol`, and runs `run()` (see also `bot/bot_process.go`).
 - The test connector is registered in `connectors/test/init.go` (`bot.RegisterConnector("test", Initialize)`), and its runtime loop lives in `connectors/test/connector.go` (`(*TestConnector).Run`).
 
 ## setup / teardown / testcases flow

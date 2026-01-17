@@ -129,7 +129,7 @@ The default `robot.yaml` uses Go templates to derive configuration values from s
 
 ## Encryption Initialization
 
-### Where: `bot/bot_process.go:172–194`
+### Where: `bot/bot_process.go` — within func `initBot()`, encryption initialization block
 
 ```go
 encryptionInitialized := initCrypt()
@@ -153,7 +153,7 @@ if encryptionInitialized {
 }
 ```
 
-### `initCrypt()` Flow (`bot/bot_process.go:254–316`)
+### `initCrypt()` Flow — `bot/bot_process.go` (func `initCrypt`)
 
 1. Look for `GOPHER_ENCRYPTION_KEY` in environment
 2. If found, try to decrypt the binary key file (`binary-encrypted-key[.environment]`)

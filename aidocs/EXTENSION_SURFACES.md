@@ -62,6 +62,6 @@ Concise map of extension types, where they live, and how they register/discover.
 - Examples: Lua `plugins/samples/hello.lua`, JavaScript `plugins/samples/hello.js`, dynamic Go `plugins/go-lists/lists.go` (funcs `Configure`, `PluginHandler`).
 - See also: `aidocs/INTERPRETERS.md`.
 
-## TODO (verify)
+## Build Mechanics Note
 
-- TODO (verify): whether non-test builds also use `modules.go`-style blank imports to link compiled extensions; the only observed file is `modules.go` with `//go:build test`.
+The file `modules.go` carries a `//go:build test` constraint, but production builds still include it because the Makefile explicitly names it on the build command line (`go build ... main.go modules.go`), which overrides build tags. This pattern exists so that `go test ./...` doesn't double-import extensions that test files already import directly.
