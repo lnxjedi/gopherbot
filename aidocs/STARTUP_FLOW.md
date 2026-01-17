@@ -1,26 +1,27 @@
 # Gopherbot Startup Flow
-This document is intended as a control-flow trace, not a conceptual overview. It details how Gopherbot starts up, detects its operating mode, and loads configuration.
+
+This document is intended as a **control-flow trace**, not a conceptual or tutorial overview. Its purpose is to make startup behavior explicit and verifiable for contributors working on the core engine (human or AI).
 
 ## Overview
 
-Gopherbot's startup is a multi-phase process:
+Startup proceeds through the following phases **in order**:
 
-1. **CLI parsing** - Process command-line flags
-2. **Mode detection** - Determine startup mode from environment and filesystem
-3. **Encryption initialization** - Set up brain encryption
-4. **Pre-connect config load** - Load basic configuration without running scripts
-5. **Brain initialization** - Start the brain provider
-6. **Connector startup** - Start the chat protocol connector
-7. **Post-connect config load** - Full configuration with plugin initialization
+1. **CLI parsing** – Process command-line flags
+2. **Mode detection** – Determine startup mode from environment and filesystem
+3. **Encryption initialization** – Set up brain encryption
+4. **Pre-connect configuration load** – Load basic configuration without running scripts
+5. **Brain initialization** – Start the brain provider
+6. **Connector startup** – Start the chat protocol connector
+7. **Post-connect configuration load** – Full configuration with plugin initialization
 
 ## Entry Points
 
-- `main.go` → `bot.Start()` in `bot/start.go`
-- `bot.Start()` → `initBot()` → `run()` in `bot/bot_process.go`
+* `main.go` → `bot.Start()` in `bot/start.go`
+* `bot.Start()` → `initBot()` → `run()` in `bot/bot_process.go`
 
 ## Mode Detection
 
-### Where: `bot/config_load.go` - `detectStartupMode()`
+### Where: `bot/config_load.go` – `detectStartupMode()`
 
 The startup mode determines protocol, brain, logging, and which plugins load.
 
@@ -42,19 +43,19 @@ func detectStartupMode() (mode string) {
     // 3. Check if robot is "configured" (has GOPHER_CUSTOM_REPOSITORY)
     _, robotConfigured := lookupEnv("GOPHER_CUSTOM_REPOSITORY")
     if !robotConfigured {
-        // No custom repo - check for answerfile
+        // No custom repo – check for answerfile
         if _, err := os.Stat("answerfile.txt"); err == nil {
             return "setup"
         } else if _, ok := lookupEnv("ANS_PROTOCOL"); ok {
-            return "setup"  // Container-based setup
+            return "setup" // Container-based setup
         }
-        return "demo"  // No config at all
+        return "demo" // No config at all
     }
 
-    // 4. Has GOPHER_CUSTOM_REPOSITORY - check if config exists
+    // 4. Has GOPHER_CUSTOM_REPOSITORY – check if config exists
     robotYamlFile := filepath.Join(configPath, "conf", "robot.yaml")
     if _, err := os.Stat(robotYamlFile); err != nil {
-        return "bootstrap"  // Need to clone config
+        return "bootstrap" // Need to clone config
     }
 
     // 5. IDE mode checks
@@ -71,22 +72,22 @@ func detectStartupMode() (mode string) {
 
 ### Mode Summary
 
-| Mode | Conditions | Purpose |
-|------|------------|---------|
-| `cli` | `cliOp` flag set | Running a CLI command, not a robot |
-| `test-dev` | `conf/robot.yaml` exists, not in `custom/` dir | Integration testing and engine development |
-| `demo` | No config, no `GOPHER_CUSTOM_REPOSITORY`, no answerfile | Try the default robot (Floyd) |
-| `setup` | `answerfile.txt` exists OR `ANS_*` env vars | Process setup wizard |
-| `bootstrap` | `GOPHER_CUSTOM_REPOSITORY` set but no config yet | Clone custom config repo |
-| `ide` | `GOPHER_IDE` env var set | Local development |
-| `ide-override` | `GOPHER_IDE` set + override flag | IDE but connect to real chat |
-| `production` | Config exists, not IDE | Normal operation |
+| Mode           | Conditions                                              | Purpose                                    |
+| -------------- | ------------------------------------------------------- | ------------------------------------------ |
+| `cli`          | `cliOp` flag set                                        | Running a CLI command, not a robot         |
+| `test-dev`     | `conf/robot.yaml` exists, not in `custom/` dir          | Integration testing and engine development |
+| `demo`         | No config, no `GOPHER_CUSTOM_REPOSITORY`, no answerfile | Run the default demo robot                 |
+| `setup`        | `answerfile.txt` exists OR `ANS_*` env vars             | Process setup wizard                       |
+| `bootstrap`    | `GOPHER_CUSTOM_REPOSITORY` set but no config yet        | Clone custom config repo                   |
+| `ide`          | `GOPHER_IDE` env var set                                | Local development                          |
+| `ide-override` | IDE mode with override flag                             | IDE but connect to real chat               |
+| `production`   | Config exists, not IDE                                  | Normal operation                           |
 
 ## Configuration Template Processing
 
 ### Where: `conf/robot.yaml`
 
-The default robot.yaml uses Go templates to set configuration based on mode:
+The default `robot.yaml` uses Go templates to derive configuration values from startup mode and environment.
 
 ```yaml
 {{- $mode := GetStartupMode }}
@@ -117,18 +118,18 @@ The default robot.yaml uses Go templates to set configuration based on mode:
 
 ### Template Functions
 
-| Function | Purpose | Example |
-|----------|---------|---------|
-| `GetStartupMode` | Returns current mode string | `{{- $mode := GetStartupMode }}` |
-| `env "VAR"` | Read environment variable | `{{ env "GOPHER_PROTOCOL" }}` |
-| `default "val"` | Provide default if empty | `{{ env "X" \| default "y" }}` |
-| `decrypt "..."` | Decrypt an encrypted value | `{{ decrypt "base64..." }}` |
-| `.Include "file"` | Include another YAML file | `{{ .Include "slack.yaml" }}` |
+| Function             | Purpose                        | Example                             |
+| -------------------- | ------------------------------ | ----------------------------------- |
+| `GetStartupMode`     | Returns current mode string    | `{{- $mode := GetStartupMode }}`    |
+| `env "VAR"`          | Read environment variable      | `{{ env "GOPHER_PROTOCOL" }}`       |
+| `default "val"`      | Provide default if empty       | `{{ env "X" \| default "y" }}`      |
+| `decrypt "..."`      | Decrypt an encrypted value     | `{{ decrypt "base64..." }}`         |
+| `.Include "file"`    | Include another YAML file      | `{{ .Include "slack.yaml" }}`       |
 | `SetEnv "VAR" "val"` | Override env for custom config | `{{ SetEnv "GOPHER_BRAIN" "mem" }}` |
 
 ## Encryption Initialization
 
-### Where: `bot/bot_process.go:172-194`
+### Where: `bot/bot_process.go:172–194`
 
 ```go
 encryptionInitialized := initCrypt()
@@ -152,35 +153,39 @@ if encryptionInitialized {
 }
 ```
 
-### `initCrypt()` Flow (`bot/bot_process.go:254-316`)
+### `initCrypt()` Flow (`bot/bot_process.go:254–316`)
 
 1. Look for `GOPHER_ENCRYPTION_KEY` in environment
 2. If found, try to decrypt the binary key file (`binary-encrypted-key[.environment]`)
-3. If key file doesn't exist but env key does, generate new binary key
-4. If no env key, check for legacy `EncryptionKey` in config (old style)
+3. If key file does not exist but env key does, generate a new binary key
+4. If no env key exists, check for legacy `EncryptionKey` in config
 
 ## Configuration Loading
+
+**Invariant:** the chat connector must be running before post-connect configuration is loaded.
 
 ### Two-Phase Loading
 
 **Pre-connect load** (`loadConfig(true)`):
-- Basic configuration only
-- No external scripts run
-- No plugin configuration loaded
-- Happens before connector starts
+
+* Basic configuration only
+* No external scripts run
+* No plugin configuration loaded
+* Occurs before connector startup
 
 **Post-connect load** (`loadConfig(false)`):
-- Full configuration
-- External plugin configs loaded (calls "configure" command)
-- Scheduled jobs registered
-- Plugins initialized (calls "init" command)
+
+* Full configuration
+* External plugin configs loaded (calls `configure` command)
+* Scheduled jobs registered
+* Plugins initialized (calls `init` command)
 
 ### Config Merge Order
 
 1. Default config (`$GOPHER_INSTALLDIR/conf/robot.yaml`)
-2. Custom config (`$GOPHER_CONFIGDIR/conf/robot.yaml`) - merges/overrides
+2. Custom config (`$GOPHER_CONFIGDIR/conf/robot.yaml`) – merges and overrides
 
-## Plugin/Job Loading Based on Mode
+## Plugin and Job Loading Based on Mode
 
 ### Conditional Loading in `conf/robot.yaml`
 
@@ -205,43 +210,46 @@ ScheduledJobs:
 
 ## Goroutine Startup
 
-### Where: `bot/bot_process.go` - `run()`
+### Where: `bot/bot_process.go` – `run()`
 
 ```
 run()
   │
-  ├─> go runBrain()           // Brain event loop (single goroutine)
+  ├─> go runBrain()        // Brain event loop (single goroutine)
   │
-  ├─> go sigHandle()          // Signal handler (SIGINT, SIGTERM, etc.)
+  ├─> go sigHandle()       // Signal handler (SIGINT, SIGTERM, etc.)
   │
-  └─> go conn.Run()           // Connector main loop
+  └─> go conn.Run()        // Connector main loop
         │
         └─> (after connector ready)
               │
-              ├─> loadConfig(false)    // Full config load
+              ├─> loadConfig(false)   // Full config load
               └─> Log("Robot is initialized and running")
 ```
 
 ## Key Files
 
-- `bot/start.go` - Entry point, CLI parsing, log setup
-- `bot/bot_process.go` - `initBot()`, `run()`, encryption init
-- `bot/config_load.go` - `detectStartupMode()`, `loadConfig()`
-- `conf/robot.yaml` - Default config with template logic
+* `bot/start.go` – Entry point, CLI parsing, log setup
+* `bot/bot_process.go` – `initBot()`, `run()`, encryption initialization
+* `bot/config_load.go` – `detectStartupMode()`, `loadConfig()`
+* `conf/robot.yaml` – Default config with template logic
 
-## Debugging Startup
+## Debugging Startup (Human-Oriented Notes)
 
-1. Check what mode is detected:
+1. Log detected startup mode:
+
    ```go
    Log(robot.Info, "Startup mode: %s", detectStartupMode())
    ```
 
-2. Check template variable values by adding to robot.yaml:
+2. Inspect template variable values by adding to `robot.yaml`:
+
    ```yaml
    ## Debug: {{ $mode }} / {{ $proto }} / {{ $logdest }}
    ```
 
 3. Run with debug logging:
+
    ```bash
    GOPHER_LOGLEVEL=debug ./gopherbot
    ```
