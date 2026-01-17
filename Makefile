@@ -32,9 +32,14 @@ $(TAR_ARCHIVE): static
 
 dist: $(TAR_ARCHIVE)
 
+unittest:
+	go test ./...
+
 # Run test suite without coverage (see .gopherci/pipeline.sh)
 test:
-	go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test
+	GOPHER_IDE= go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test
+
+test-all: unittest test
 
 # Generate Stringer methods
 generate:

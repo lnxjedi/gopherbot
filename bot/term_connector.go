@@ -252,7 +252,9 @@ func (tc *termConnector) Run(stop <-chan struct{}) {
 		}
 	}(tc)
 
-	tc.reader.Write([]byte("Terminal connector running; Type '|c?' to list channels, '|u?' to list users\n"))
+	if startMode != "test-dev" {
+		tc.reader.Write([]byte("Terminal connector running; Type '|c?' to list channels, '|u?' to list users\n"))
+	}
 
 	kbquit := false
 

@@ -669,6 +669,40 @@ function Robot:Log(level, message)
 end
 
 --------------------------------------------------------------------------------
+-- HTTP Client
+--------------------------------------------------------------------------------
+
+---@class HttpClient
+---@field get fun(self: HttpClient, path: string, options: table|nil, callback: function)
+---@field post fun(self: HttpClient, path: string, body: string, options: table|nil, callback: function)
+---@field put fun(self: HttpClient, path: string, body: string, options: table|nil, callback: function)
+---@field delete fun(self: HttpClient, path: string, options: table|nil, callback: function)
+local HttpClient = {}
+
+---@class HttpModule
+---@field new fun(baseURI: string, options: table):HttpClient
+local http = {}
+
+---
+-- The http global table provides a simple HTTP client for making web requests.
+--
+-- Usage:
+--   local http = require("http") -- if not globally available
+--   local client = http.new("https://api.example.com", {
+--     headers = { ["Authorization"] = "Bearer mytoken" },
+--     timeout = 10
+--   })
+--
+--   client:get("/data", nil, function(resp, err)
+--     if err then
+--       bot:Log(log.Error, "HTTP request failed: " .. err)
+--       return
+--     end
+--     bot:Say("Got response: " .. resp.body)
+--   end)
+--
+
+--------------------------------------------------------------------------------
 -- Module Exports
 --------------------------------------------------------------------------------
 

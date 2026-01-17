@@ -33,6 +33,9 @@ func CallExtension(execPath, taskPath, taskName string, pkgPath []string, logger
 	L := glua.NewState()
 	defer L.Close()
 
+	// Add the simple http interface
+	addHttpHandler(L)
+
 	lctx := luaContext{
 		logger,
 		L, // LState

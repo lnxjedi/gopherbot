@@ -4,6 +4,7 @@ DefaultJobChannel: general
 JoinChannels: [ ]
 AdminUsers: [ "alice" ]
 Alias: ";"
+Protocol: test
 
 {{ $botname := env "GOPHER_BOTNAME" | default "bender" }}
 {{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Bender Rodriguez" }}

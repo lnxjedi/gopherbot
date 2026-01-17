@@ -57,7 +57,7 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
   {{- $brain = "mem"}}
   {{- $logdest = "stdout" }}
 ## IDE mode, override protocol, brain, logdest
-{{- else if or (eq $mode "ide") (eq $mode "test-dev") }}
+{{- else if eq $mode "ide" }}
   {{- $proto = "terminal" }}
   {{- $brain = "mem"}}
   {{- $logdest = "robot.log" }}
