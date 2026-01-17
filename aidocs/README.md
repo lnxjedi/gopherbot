@@ -6,6 +6,7 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 
 - `aidocs/COMPONENT_MAP.md` - top-level directory map with entrypoints and representative files.
 - `aidocs/EXTENSION_SURFACES.md` - extension types and registration/discovery touchpoints.
+- `aidocs/TESTING_CURRENT.md` - current integration test harness and test case structure.
 
 ## Routing guide
 
@@ -16,3 +17,4 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - Go compiled-in extension registrations: `robot/registrations.go` (funcs `RegisterPlugin`, `RegisterJob`, `RegisterTask`).
 - Script plugin examples: `plugins/README.txt`, `plugins/welcome.lua`, `plugins/samples/`.
 - Extension surface map: `aidocs/EXTENSION_SURFACES.md`.
+- Testing harness notes: `aidocs/TESTING_CURRENT.md`.
