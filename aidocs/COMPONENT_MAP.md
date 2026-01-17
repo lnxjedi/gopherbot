@@ -11,6 +11,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Interpreter notes: `aidocs/INTERPRETERS.md`.
 - Extension surface map: `aidocs/EXTENSION_SURFACES.md`.
 - Test harness overview: `aidocs/TESTING_CURRENT.md`.
+- Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
 
 ## bot/
 

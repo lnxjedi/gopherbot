@@ -7,6 +7,7 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - `aidocs/COMPONENT_MAP.md` - top-level directory map with entrypoints and representative files.
 - `aidocs/EXTENSION_SURFACES.md` - extension types and registration/discovery touchpoints.
 - `aidocs/TESTING_CURRENT.md` - current integration test harness and test case structure.
+- `aidocs/PIPELINE_LIFECYCLE.md` - incoming message to pipeline start flow.
 
 ## Routing guide
 
@@ -18,3 +19,4 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - Script plugin examples: `plugins/README.txt`, `plugins/welcome.lua`, `plugins/samples/`.
 - Extension surface map: `aidocs/EXTENSION_SURFACES.md`.
 - Testing harness notes: `aidocs/TESTING_CURRENT.md`.
+- Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
