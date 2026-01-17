@@ -3,7 +3,7 @@
 
 package tbot_test
 
-// lists_integration_test.go - verification of the 'lists' plugin functionality.
+// groups_lists_integration_tests.go - verification of the 'lists' plugin functionality.
 
 import (
 	"testing"
