@@ -54,6 +54,9 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 
 (When starting a focused task or feature branch, add a short section here describing what is being worked on *today*, any constraints, and what success looks like. Remove or replace this section once the task is complete.)
 
+### Post-Task
+* Review and update the documentation in `aidocs/` as needed to reflect changes made.
+
 ---
 
 ## Change Hygiene
