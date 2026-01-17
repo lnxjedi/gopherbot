@@ -5,6 +5,7 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 ## Table of contents
 
 - `aidocs/COMPONENT_MAP.md` - top-level directory map with entrypoints and representative files.
+- `aidocs/EXTENSION_SURFACES.md` - extension types and registration/discovery touchpoints.
 
 ## Routing guide
 
@@ -14,3 +15,4 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - Initial configuration templates for user robots: `robot.skel/README.md`, `robot.skel/conf/robot.yaml`
 - Go compiled-in extension registrations: `robot/registrations.go` (funcs `RegisterPlugin`, `RegisterJob`, `RegisterTask`).
 - Script plugin examples: `plugins/README.txt`, `plugins/welcome.lua`, `plugins/samples/`.
+- Extension surface map: `aidocs/EXTENSION_SURFACES.md`.

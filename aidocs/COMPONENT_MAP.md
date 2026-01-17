@@ -9,6 +9,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Startup flow narrative: `aidocs/STARTUP_FLOW.md`
 - High-level v3 goals: `aidocs/GOALS_v3.md`
 - Interpreter notes: `aidocs/INTERPRETERS.md`.
+- Extension surface map: `aidocs/EXTENSION_SURFACES.md`.
 
 ## bot/
 

@@ -164,6 +164,14 @@ if encryptionInitialized {
 
 **Invariant:** the chat connector must be running before post-connect configuration is loaded.
 
+## Extension Loading
+
+**Go extensions (compiled)** are registered at init time and wired before startup: `main.go` calls `bot.ProcessRegistrations()` before `bot.Start()`, which consumes registrations collected via `robot/registrations.go` (funcs `RegisterPlugin`, `RegisterJob`, `RegisterTask`).
+
+**External extensions (scripts)** are discovered during config load: `conf/robot.yaml` defines `ExternalPlugins`, `ExternalJobs`, and `ExternalTasks` (see `bot/conf.go` fields), and `bot/taskconf.go` (func `addExternalTask`) converts them into runtime tasks during `loadConfig(true/false)`. Post-connect `loadConfig(false)` loads external plugin config (`configure`) and runs plugin init.
+
+Related map: `aidocs/EXTENSION_SURFACES.md`.
+
 ### Two-Phase Loading
 
 **Pre-connect load** (`loadConfig(true)`):
