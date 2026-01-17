@@ -1,6 +1,5 @@
 # Gopherbot Startup Flow
-
-This document details how Gopherbot starts up, detects its operating mode, and loads configuration.
+This document is intended as a control-flow trace, not a conceptual overview. It details how Gopherbot starts up, detects its operating mode, and loads configuration.
 
 ## Overview
 
@@ -21,7 +20,7 @@ Gopherbot's startup is a multi-phase process:
 
 ## Mode Detection
 
-### Where: `bot/config_load.go:131` - `detectStartupMode()`
+### Where: `bot/config_load.go` - `detectStartupMode()`
 
 The startup mode determines protocol, brain, logging, and which plugins load.
 
@@ -75,7 +74,7 @@ func detectStartupMode() (mode string) {
 | Mode | Conditions | Purpose |
 |------|------------|---------|
 | `cli` | `cliOp` flag set | Running a CLI command, not a robot |
-| `test-dev` | `conf/robot.yaml` exists, not in `custom/` dir | Integration testing |
+| `test-dev` | `conf/robot.yaml` exists, not in `custom/` dir | Integration testing and engine development |
 | `demo` | No config, no `GOPHER_CUSTOM_REPOSITORY`, no answerfile | Try the default robot (Floyd) |
 | `setup` | `answerfile.txt` exists OR `ANS_*` env vars | Process setup wizard |
 | `bootstrap` | `GOPHER_CUSTOM_REPOSITORY` set but no config yet | Clone custom config repo |
@@ -206,14 +205,12 @@ ScheduledJobs:
 
 ## Goroutine Startup
 
-### Where: `bot/bot_process.go:321-366` - `run()`
+### Where: `bot/bot_process.go` - `run()`
 
 ```
 run()
   │
   ├─> go runBrain()           // Brain event loop (single goroutine)
-  │
-  ├─> go featureScan()        // Initial feature extraction
   │
   ├─> go sigHandle()          // Signal handler (SIGINT, SIGTERM, etc.)
   │
@@ -224,24 +221,6 @@ run()
               ├─> loadConfig(false)    // Full config load
               └─> Log("Robot is initialized and running")
 ```
-
-## Common Startup Issues
-
-### "encryption not initialized"
-- **Cause**: Mode requires encryption but no `GOPHER_ENCRYPTION_KEY` set
-- **Fix**: Set the env var, or ensure you're in a mode that creates temp keys (demo/setup/ide)
-
-### Plugins not loading
-- **Cause**: Mode-based conditionals in robot.yaml excluding them
-- **Check**: What mode is detected? Does the conditional match?
-
-### Logs going to terminal
-- **Cause**: `LogDest` set to `stdout` with terminal connector
-- **Fix**: Automatic now (terminal forces `robot.log`), but can override in custom config
-
-### go-bootstrap running when it shouldn't
-- **Cause**: Mode detection returning wrong value
-- **Check**: Is `GOPHER_CUSTOM_REPOSITORY` set? Does config exist?
 
 ## Key Files
 
