@@ -4,14 +4,16 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## aidocs/
 
-- AI-focused docbase root: `aidocs/README.md`, `aidocs/COMPONENT_MAP.md`, etc.
-- Startup flow narrative: `aidocs/STARTUP_FLOW.md`.
-- Interpreter notes: `devdocs/INTERPRETERS.md`.
+- AI-focused docbase root: `aidocs/README.md`
+- Top-level component map: `aidocs/COMPONENT_MAP.md`
+- Startup flow narrative: `aidocs/STARTUP_FLOW.md`
+- High-level v3 goals: `aidocs/GOALS_v3.md`
+- Interpreter notes: `aidocs/INTERPRETERS.md`.
 
 ## bot/
 
 - Engine entrypoints: `bot/start.go` (func `Start`), `bot/bot_process.go` (funcs `initBot`, `run`).
-- Startup mode logic: `bot/config_load.go` (func `detectStartupMode` referenced in `devdocs/startup-flow.md`).
+- Startup mode logic: `bot/config_load.go` (func `detectStartupMode` referenced in `aidocs/STARTUP_FLOW.md`).
 
 ## brains/
 

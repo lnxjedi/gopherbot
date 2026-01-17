@@ -158,7 +158,7 @@ if encryptionInitialized {
 1. Look for `GOPHER_ENCRYPTION_KEY` in environment
 2. If found, try to decrypt the binary key file (`binary-encrypted-key[.environment]`)
 3. If key file does not exist but env key does, generate a new binary key
-4. If no env key exists, check for legacy `EncryptionKey` in config
+4. If no env key exists, `initCrypt` finishes. A final check for a legacy `EncryptionKey` in `robot.yaml` is performed by `initBot()` after `initCrypt()` returns.
 
 ## Configuration Loading
 
@@ -219,12 +219,11 @@ run()
   │
   ├─> go sigHandle()       // Signal handler (SIGINT, SIGTERM, etc.)
   │
-  └─> go conn.Run()        // Connector main loop
+  ├─> go conn.Run()        // Connector main loop runs concurrently
+  │
+  └─> loadConfig(false)    // Run full config load in the main thread
         │
-        └─> (after connector ready)
-              │
-              ├─> loadConfig(false)   // Full config load
-              └─> Log("Robot is initialized and running")
+        └─> Log("Robot is initialized and running")
 ```
 
 ## Key Files
