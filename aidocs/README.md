@@ -1,3 +1,5 @@
+Gopherbot is an extensible automation framework designed as a persistent, Go-based chatbot ("robot"). It connects to chat platforms (or the terminal) and executes automation "pipelines" triggered by chat messages, scheduled events, or internal calls. Pipelines consist of compiled Go, interpreted scripts (Lua, JavaScript, dynamic Go), or external executables. A key v3 goal is self-containment, minimizing external tool dependencies. The robot features a pluggable "brain" for persistence and a flexible, template-based configuration system.
+
 # AI Docs (Gopherbot)
 
 Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
@@ -8,6 +10,7 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - `aidocs/EXTENSION_SURFACES.md` - extension types and registration/discovery touchpoints.
 - `aidocs/TESTING_CURRENT.md` - current integration test harness and test case structure.
 - `aidocs/PIPELINE_LIFECYCLE.md` - incoming message to pipeline start flow.
+- `aidocs/SCHEDULER_FLOW.md` - cron scheduler to pipeline start flow.
 
 ## Routing guide
 
@@ -20,3 +23,4 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - Extension surface map: `aidocs/EXTENSION_SURFACES.md`.
 - Testing harness notes: `aidocs/TESTING_CURRENT.md`.
 - Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
+- Scheduled job pipeline flow: `aidocs/SCHEDULER_FLOW.md`.
