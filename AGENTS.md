@@ -38,6 +38,7 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 * **Cite anchors.** When explaining or justifying a change, reference concrete file paths and functions.
 * **Preserve invariants.** If a change affects startup, configuration loading, or execution order, verify it against `aidocs/STARTUP_FLOW.md`.
 * **Be conservative by default.** Prefer minimal, well-scoped changes over large refactors unless explicitly instructed.
+* **Clarify ambiguity.** If you encounter an unexpected situation or ambiguity (e.g. a missing git branch, an unclear instruction), do not make a decision on my behalf. Stop, explain the situation, and ask for clarification.
 * **Ask when uncertain.** Insert `TODO (verify): ...` notes instead of inventing behavior.
 
 ---
@@ -50,9 +51,9 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 
 ---
 
-## Task-Specific Instructions (Temporary)
+## Task-Specific Instructions
 
-(When starting a focused task or feature branch, add a short section here describing what is being worked on *today*, any constraints, and what success looks like. Remove or replace this section once the task is complete.)
+The first task is to get integration tests working, and update `aidocs/` to reflect how the integrated test suite works. Generally: `make test` starts this test suite from the Makefile, and each block of tests starts the "test" connector, sends some commands to a test robot, and expects certain replies and events. At the end of the block, the exit (or quit?) command is sent.
 
 ### Post-Task
 * Review and update the documentation in `aidocs/` as needed to reflect changes made.
