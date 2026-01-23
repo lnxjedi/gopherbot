@@ -10,8 +10,8 @@ Focus: integration test harness under `test/` and how tests are executed.
 
 ## Harness entrypoints
 
-- `setup()` in `test/common_test.go` configures `GOPHER_PROTOCOL=test` (via `init()` in the same file) and starts the bot via `StartTest()`.
-- `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It initializes the bot, selects the connector from `currentCfg.protocol`, and runs `run()` (see also `bot/bot_process.go`).
+- `setup()` in `test/common_test.go` starts the bot via `StartTest()` and relies on the test configs to choose the `test` protocol.
+- `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It locates the repo root by walking up until `conf/robot.yaml` is found, `chdir`s there so startup mode resolves to `test-dev`, then initializes the bot, selects the connector from `currentCfg.protocol`, and runs `run()` (see also `bot/bot_process.go`).
 - The test connector is registered in `connectors/test/init.go` (`bot.RegisterConnector("test", Initialize)`), and its runtime loop lives in `connectors/test/connector.go` (`(*TestConnector).Run`).
 
 ## setup / teardown / testcases flow
@@ -32,6 +32,16 @@ Focus: integration test harness under `test/` and how tests are executed.
   - `events []Event` expected for the interaction (type `Event` in `bot/events.go`).
   - `pause` (milliseconds) to sleep between cases (see `test/common_test.go`).
 - Hidden messages are signaled by a leading `/` in `message` and transformed before sending (see `test/common_test.go`).
+
+## Protocol selection for tests
+
+- The integration configs under `test/*/conf/robot.yaml` set `Protocol: {{ env "GOPHER_PROTOCOL" | default "test" }}` so tests use the test connector by default without setting env vars in Go code.
+- When running a config interactively (e.g., `cd test/membrain` + `gopherbot`), set `GOPHER_PROTOCOL=terminal` (via `private/environment`) to exercise the terminal connector.
+
+## `make testbot` (interactive test helper)
+
+- `make testbot` builds `gopherbot` with the `test` build tag, enabling test-only behavior like event capture (`bot/emit_testing.go`) and terminal send formatting (`bot/term_sendmessage_tbot.go`).
+- In the terminal connector, pressing `<enter>` with no input prints buffered events from `GetEventStrings()` (see `bot/term_connector.go` and `bot/emit_testing.go`).
 
 ## Representative test suites
 

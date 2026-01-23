@@ -23,7 +23,20 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 	botVersion = v
 
 	wd, _ := os.Getwd()
-	installPath = filepath.Dir(wd)
+	installPath = wd
+	for {
+		if _, err := os.Stat(filepath.Join(installPath, "conf", robotConfigFileName)); err == nil {
+			break
+		}
+		parent := filepath.Dir(installPath)
+		if parent == installPath {
+			break
+		}
+		installPath = parent
+	}
+	if err := os.Chdir(installPath); err != nil {
+		log.Fatalf("Error changing to install path '%s': %v", installPath, err)
+	}
 	// Collect all the Go Plugins, Jobs and Tasks
 	// registered by various init() functions, but
 	// only once during tests.

@@ -61,11 +61,13 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
   {{- $proto = "terminal" }}
   {{- $brain = "mem"}}
   {{- $logdest = "robot.log" }}
+{{- if eq $mode "ide" }}
 ## Override environment variables that will affect a
 ## robot's custom configuration loading
   {{- SetEnv "GOPHER_PROTOCOL" "terminal" }}
   {{- SetEnv "GOPHER_BRAIN" "mem" }}
   {{- SetEnv "GOPHER_LOGDEST" "robot.log" }}
+{{- end }}
 {{- end }}
 
 ## Possibly modified by GOPHER_HTTP_DEBUG, see below

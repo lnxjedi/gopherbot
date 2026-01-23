@@ -17,6 +17,8 @@ Before making any code changes, you must read the following documents **in order
 
 Do not skip this step. If a proposed change conflicts with these documents, the documents take precedence unless explicitly updated.
 
+For integration test harness and testbot behavior, see `aidocs/TESTING_CURRENT.md`.
+
 ---
 
 ## Scope and Intent

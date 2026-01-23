@@ -54,7 +54,6 @@ var testInstallPath string
 
 // Environment setting(s) for expanding installed conf/robot.yaml
 func init() {
-	os.Setenv("GOPHER_PROTOCOL", "test")
 	wd, _ := os.Getwd()
 	testInstallPath = filepath.Dir(wd)
 }
