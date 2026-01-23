@@ -132,7 +132,7 @@ func detectStartupMode() (mode string) {
 	if cliOp {
 		return "cli"
 	}
-	if _, err := os.Stat(filepath.Join("conf", robotConfigFileName)); err == nil {
+	if _, err := os.Stat(filepath.Join(installPath, "conf", robotConfigFileName)); err == nil {
 		cwd, err := os.Getwd()
 		if err != nil {
 			panic("Unable to get current directory")

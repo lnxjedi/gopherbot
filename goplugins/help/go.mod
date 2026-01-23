@@ -1,4 +1,4 @@
-module github.com/lnxjedi/gopherbot/testutil
+module github.com/lnxjedi/gopherbot/goplugins/help
 
 go 1.24.0
 

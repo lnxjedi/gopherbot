@@ -2,7 +2,10 @@ go 1.24.0
 
 use (
 	.
+	./connectors/test
+	./goplugins/help
+	./goplugins/ping
+	./history/file
 	./robot
-	./test
 	./testutil
 )

@@ -10,32 +10,32 @@ import (
 	// _ "net/http/pprof"
 
 	// *** Included Authorizer plugins
-	_ "github.com/lnxjedi/gopherbot/v2/goplugins/groups"
+	_ "github.com/lnxjedi/gopherbot/goplugins/groups"
 
 	// *** Included Go plugins, of varying quality; see also: plugin/go-*
-	_ "github.com/lnxjedi/gopherbot/v2/goplugins/duo"
-	_ "github.com/lnxjedi/gopherbot/v2/goplugins/help"
-	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
+	_ "github.com/lnxjedi/gopherbot/goplugins/duo"
+	_ "github.com/lnxjedi/gopherbot/goplugins/help"
+	_ "github.com/lnxjedi/gopherbot/goplugins/ping"
 
 	// *** Compiled-in Go Job(s); see also: jobs/go-*
-	_ "github.com/lnxjedi/gopherbot/v2/gojobs/go-bootstrap"
+	_ "github.com/lnxjedi/gopherbot/gojobs/go-bootstrap"
 
 	// *** Included Go tasks external to the main engine
-	_ "github.com/lnxjedi/gopherbot/v2/gotasks/fail-report"
-	_ "github.com/lnxjedi/gopherbot/v2/gotasks/git-command"
-	_ "github.com/lnxjedi/gopherbot/v2/gotasks/ssh-agent"
-	_ "github.com/lnxjedi/gopherbot/v2/gotasks/ssh-git-helper"
-	_ "github.com/lnxjedi/gopherbot/v2/gotasks/update-report"
+	_ "github.com/lnxjedi/gopherbot/gotasks/fail-report"
+	_ "github.com/lnxjedi/gopherbot/gotasks/git-command"
+	_ "github.com/lnxjedi/gopherbot/gotasks/ssh-agent"
+	_ "github.com/lnxjedi/gopherbot/gotasks/ssh-git-helper"
+	_ "github.com/lnxjedi/gopherbot/gotasks/update-report"
 
 	// *** Default Slack connector
-	_ "github.com/lnxjedi/gopherbot/v2/connectors/slack"
+	_ "github.com/lnxjedi/gopherbot/connectors/slack"
 
 	// *** Default file history
-	_ "github.com/lnxjedi/gopherbot/v2/history/file"
+	_ "github.com/lnxjedi/gopherbot/history/file"
 
 	// *** A couple of fantastic brains
-	_ "github.com/lnxjedi/gopherbot/v2/brains/dynamodb"
-	_ "github.com/lnxjedi/gopherbot/v2/brains/cloudflarekv"
+	_ "github.com/lnxjedi/gopherbot/brains/dynamodb"
+	_ "github.com/lnxjedi/gopherbot/brains/cloudflarekv"
 )
 
 /* Uncomment under Profiling above to enable profiling. This inflates

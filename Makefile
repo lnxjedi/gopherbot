@@ -43,4 +43,4 @@ generate:
 
 # Terminal robot that emits events gathered, for developing integration tests
 testbot:
-	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -mod readonly -tags 'netgo osusergo static_build test' -o gopherbot
+	CGO_ENABLED=0 GOOS=${GOOS} GOARCH=amd64 go build -tags 'netgo osusergo static_build test' -o gopherbot

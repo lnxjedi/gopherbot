@@ -38,6 +38,7 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 * **Cite anchors.** When explaining or justifying a change, reference concrete file paths and functions.
 * **Preserve invariants.** If a change affects startup, configuration loading, or execution order, verify it against `aidocs/STARTUP_FLOW.md`.
 * **Be conservative by default.** Prefer minimal, well-scoped changes over large refactors unless explicitly instructed.
+* **Clarify ambiguity.** If you encounter an unexpected situation or ambiguity (e.g. a missing git branch, an unclear instruction), do not make a decision on my behalf. Stop, explain the situation, and ask for clarification.
 * **Ask when uncertain.** Insert `TODO (verify): ...` notes instead of inventing behavior.
 
 ---

@@ -1,3 +1,6 @@
+//go:build !test
+// +build !test
+
 package main
 
 import "github.com/lnxjedi/gopherbot/v2/bot"
