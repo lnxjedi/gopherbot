@@ -106,7 +106,7 @@ type TaskSettings struct {
 
 // ScheduledTask items defined in robot.yaml, mostly for scheduled jobs
 type ScheduledTask struct {
-	Schedule string           `yaml:"Schedule"` // Timespec for https://godoc.org/github.com/robfig/cron
+	Schedule string           `yaml:"Schedule"` // Timespec for https://pkg.go.dev/github.com/robfig/cron/v3
 	TaskSpec `yaml:",inline"` // Inlines TaskSpec fields
 }
 

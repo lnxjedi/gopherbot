@@ -3,17 +3,21 @@
 package dynamobrain
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"context"
+	"errors"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/smithy-go"
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
 var handler robot.Handler
-var svc *dynamodb.DynamoDB
+var svc *dynamodb.Client
 
 type brainConfig struct {
 	TableName, Region, AccessKeyID, SecretAccessKey string
@@ -27,40 +31,23 @@ type dynaMemory struct {
 var dynamocfg brainConfig
 
 func (db *brainConfig) Store(k string, b *[]byte) error {
+	item, err := attributevalue.MarshalMap(dynaMemory{
+		Memory:  k,
+		Content: *b,
+	})
+	if err != nil {
+		handler.Log(robot.Error, "Error storing memory: %v", err)
+		return err
+	}
+
 	input := &dynamodb.PutItemInput{
-		Item: map[string]*dynamodb.AttributeValue{
-			"Memory": {
-				S: aws.String(k),
-			},
-			"Content": {
-				B: *b,
-			},
-		},
+		Item:      item,
 		TableName: aws.String(dynamocfg.TableName),
 	}
 
-	_, err := svc.PutItem(input)
+	_, err = svc.PutItem(context.Background(), input)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case dynamodb.ErrCodeConditionalCheckFailedException:
-				handler.Log(robot.Error, "Error storing memory: %v, %v", dynamodb.ErrCodeConditionalCheckFailedException, aerr.Error())
-			case dynamodb.ErrCodeProvisionedThroughputExceededException:
-				handler.Log(robot.Error, "Error storing memory: %v, %v", dynamodb.ErrCodeProvisionedThroughputExceededException, aerr.Error())
-			case dynamodb.ErrCodeResourceNotFoundException:
-				handler.Log(robot.Error, "Error storing memory: %v, %v", dynamodb.ErrCodeResourceNotFoundException, aerr.Error())
-			case dynamodb.ErrCodeItemCollectionSizeLimitExceededException:
-				handler.Log(robot.Error, "Error storing memory: %v, %v", dynamodb.ErrCodeItemCollectionSizeLimitExceededException, aerr.Error())
-			case dynamodb.ErrCodeInternalServerError:
-				handler.Log(robot.Error, "Error storing memory: %v, %v", dynamodb.ErrCodeInternalServerError, aerr.Error())
-			default:
-				handler.Log(robot.Error, "Error storing memory: %v", aerr.Error())
-			}
-			return aerr
-		}
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		handler.Log(robot.Error, "Error storing memory: %v", err.Error())
+		logDynamoError("storing memory", err)
 		return err
 	}
 
@@ -69,37 +56,20 @@ func (db *brainConfig) Store(k string, b *[]byte) error {
 
 func (db *brainConfig) Retrieve(k string) (datum *[]byte, exists bool, err error) {
 	consistent := true
-	result, err := svc.GetItem(&dynamodb.GetItemInput{
-		TableName: aws.String(dynamocfg.TableName),
-		Key: map[string]*dynamodb.AttributeValue{
-			"Memory": {
-				S: aws.String(k),
-			},
-		},
+	result, err := svc.GetItem(context.Background(), &dynamodb.GetItemInput{
+		TableName:      aws.String(dynamocfg.TableName),
+		Key:            map[string]types.AttributeValue{"Memory": &types.AttributeValueMemberS{Value: k}},
 		ConsistentRead: &consistent,
 	})
 
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case dynamodb.ErrCodeProvisionedThroughputExceededException:
-				handler.Log(robot.Error, "Error retrieving memory: %v, %v", dynamodb.ErrCodeProvisionedThroughputExceededException, aerr.Error())
-			case dynamodb.ErrCodeResourceNotFoundException:
-				handler.Log(robot.Error, "Error retrieving memory: %v, %v", dynamodb.ErrCodeResourceNotFoundException, aerr.Error())
-			case dynamodb.ErrCodeInternalServerError:
-				handler.Log(robot.Error, "Error retrieving memory: %v, %v", dynamodb.ErrCodeInternalServerError, aerr.Error())
-			default:
-				handler.Log(robot.Error, "Error retrieving memory: %v", aerr.Error())
-			}
-			return nil, false, aerr
-		}
-		handler.Log(robot.Error, "Error retrieving memory: %v", err.Error())
+		logDynamoError("retrieving memory", err)
 		return nil, false, err
 	}
 
 	m := dynaMemory{}
 
-	err = dynamodbattribute.UnmarshalMap(result.Item, &m)
+	err = attributevalue.UnmarshalMap(result.Item, &m)
 
 	if err != nil {
 		handler.Log(robot.Error, "Failed to unmarshal Record, %v", err)
@@ -115,14 +85,10 @@ func (db *brainConfig) Retrieve(k string) (datum *[]byte, exists bool, err error
 
 func (db *brainConfig) Delete(key string) error {
 	delete := &dynamodb.DeleteItemInput{
-		Key: map[string]*dynamodb.AttributeValue{
-			"Memory": {
-				S: aws.String(key),
-			},
-		},
+		Key:       map[string]types.AttributeValue{"Memory": &types.AttributeValueMemberS{Value: key}},
 		TableName: aws.String(dynamocfg.TableName),
 	}
-	_, err := svc.DeleteItem(delete)
+	_, err := svc.DeleteItem(context.Background(), delete)
 	return err
 }
 
@@ -133,14 +99,14 @@ func (db *brainConfig) List() ([]string, error) {
 		ProjectionExpression: &keyName,
 		TableName:            aws.String(dynamocfg.TableName),
 	}
-	res, err := svc.Scan(scan)
+	res, err := svc.Scan(context.Background(), scan)
 	if err != nil {
 		return keys, err
 	}
 	for _, av := range res.Items {
 		for _, item := range av {
 			var m string
-			err := dynamodbattribute.Unmarshal(item, &m)
+			err := attributevalue.Unmarshal(item, &m)
 			if err != nil {
 				return keys, err
 			}
@@ -157,47 +123,69 @@ func (db *brainConfig) Shutdown() {
 func provider(r robot.Handler) robot.SimpleBrain {
 	handler = r
 	handler.GetBrainConfig(&dynamocfg)
-	var sess *session.Session
+	ctx := context.Background()
+	accessKeyID := dynamocfg.AccessKeyID
+	secretAccessKey := dynamocfg.SecretAccessKey
+	var cfg aws.Config
 	var err error
-	AccessKeyID := dynamocfg.AccessKeyID
-	SecretAccessKey := dynamocfg.SecretAccessKey
-	// ec2 provided credentials
-	if len(AccessKeyID) == 0 {
-		sess, err = session.NewSession(&aws.Config{
-			Region: aws.String(dynamocfg.Region),
-		})
+	if len(accessKeyID) == 0 {
+		cfg, err = config.LoadDefaultConfig(ctx, config.WithRegion(dynamocfg.Region))
 		if err != nil {
 			handler.Log(robot.Fatal, "Unable to establish AWS session: %v", err)
 		}
 	} else {
-		sess, err = session.NewSession(&aws.Config{
-			Region:      aws.String(dynamocfg.Region),
-			Credentials: credentials.NewStaticCredentials(AccessKeyID, SecretAccessKey, ""),
-		})
+		creds := credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, "")
+		cfg, err = config.LoadDefaultConfig(ctx, config.WithRegion(dynamocfg.Region), config.WithCredentialsProvider(creds))
 		if err != nil {
 			handler.Log(robot.Fatal, "Unable to establish AWS session: %v", err)
 		}
 	}
 	// Create DynamoDB client
-	svc = dynamodb.New(sess)
+	svc = dynamodb.NewFromConfig(cfg)
 	input := &dynamodb.DescribeTableInput{
 		TableName: aws.String(dynamocfg.TableName),
 	}
-	_, err = svc.DescribeTable(input)
+	_, err = svc.DescribeTable(ctx, input)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			case dynamodb.ErrCodeResourceNotFoundException:
-				handler.Log(robot.Fatal, "Error describing table '%s': %v, %v", dynamocfg.TableName, dynamodb.ErrCodeResourceNotFoundException, aerr.Error())
-			case dynamodb.ErrCodeInternalServerError:
-				handler.Log(robot.Fatal, "Error describing table '%s': %v, %v", dynamocfg.TableName, dynamodb.ErrCodeInternalServerError, aerr.Error())
-			default:
-				handler.Log(robot.Fatal, "Error describing table '%s': %v", dynamocfg.TableName, aerr.Error())
-			}
-		} else {
-			handler.Log(robot.Fatal, "Error describing table '%s': %v", dynamocfg.TableName, err.Error())
-		}
+		logDynamoError("describing table", err)
+		handler.Log(robot.Fatal, "Error describing table '%s': %v", dynamocfg.TableName, err)
 	}
 
 	return &dynamocfg
+}
+
+func logDynamoError(action string, err error) {
+	var apiErr smithy.APIError
+	if errors.As(err, &apiErr) {
+		handler.Log(robot.Error, "Error %s: %s, %s", action, apiErr.ErrorCode(), apiErr.ErrorMessage())
+		return
+	}
+
+	var resourceNotFound *types.ResourceNotFoundException
+	if errors.As(err, &resourceNotFound) {
+		handler.Log(robot.Error, "Error %s: %v", action, resourceNotFound)
+		return
+	}
+	var throughput *types.ProvisionedThroughputExceededException
+	if errors.As(err, &throughput) {
+		handler.Log(robot.Error, "Error %s: %v", action, throughput)
+		return
+	}
+	var internal *types.InternalServerError
+	if errors.As(err, &internal) {
+		handler.Log(robot.Error, "Error %s: %v", action, internal)
+		return
+	}
+	var itemSize *types.ItemCollectionSizeLimitExceededException
+	if errors.As(err, &itemSize) {
+		handler.Log(robot.Error, "Error %s: %v", action, itemSize)
+		return
+	}
+	var cond *types.ConditionalCheckFailedException
+	if errors.As(err, &cond) {
+		handler.Log(robot.Error, "Error %s: %v", action, cond)
+		return
+	}
+
+	handler.Log(robot.Error, "Error %s: %v", action, err)
 }

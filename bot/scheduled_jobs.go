@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 )
 
 var taskRunner *cron.Cron
@@ -29,7 +29,7 @@ func scheduleTasks() {
 	currentCfg.RUnlock()
 	if tz != nil {
 		Log(robot.Info, "Scheduling tasks in TimeZone: %s", tz)
-		taskRunner = cron.NewWithLocation(tz)
+		taskRunner = cron.New(cron.WithLocation(tz))
 	} else {
 		Log(robot.Info, "Scheduling tasks in system default timezone")
 		taskRunner = cron.New()
@@ -60,7 +60,9 @@ func scheduleTasks() {
 		ts := st.TaskSpec
 		if st.Schedule != "@init" {
 			Log(robot.Info, "Scheduling job '%s', args '%v' with schedule: %s", ts.Name, ts.Arguments, st.Schedule)
-			taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, ts, cfg, tasks, false) })
+			if _, err := taskRunner.AddFunc(st.Schedule, func() { runScheduledTask(t, ts, cfg, tasks, false) }); err != nil {
+				Log(robot.Error, "Failed scheduling job '%s' with schedule '%s': %v", ts.Name, st.Schedule, err)
+			}
 		}
 	}
 	taskRunner.Start()
