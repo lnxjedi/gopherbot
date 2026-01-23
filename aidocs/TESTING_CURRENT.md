@@ -4,14 +4,16 @@ Focus: integration test harness under `test/` and how tests are executed.
 
 ## How tests are discovered and run
 
-- Integration tests are gated by build tags like `//go:build integration` in files such as `test/common_test.go` and `test/bot_integration_test.go`.
+- Integration tests are gated by build tags like `//go:build integration` in files such as `test/common_test.go` and `test/core_integration_test.go`.
 - `make test` runs `go test ... ./test` with tags `test integration netgo osusergo static_build` and optional `TEST` filter (see `Makefile` target `test`).
 - The test harness depends on test-only event emission: `bot/emit_testing.go` is built with `//go:build test`, while `bot/emit_noop.go` is used when the `test` tag is not set.
+- The tests run in `test-dev` startup mode, which is detected by the presence of `conf/robot.yaml` in the project root.
+- The protocol is set to `test` in the test-specific `robot.yaml` files, e.g., `test/membrain/conf/robot.yaml`.
 
 ## Harness entrypoints
 
-- `setup()` in `test/common_test.go` configures `GOPHER_PROTOCOL=test` (via `init()` in the same file) and starts the bot via `StartTest()`.
-- `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It initializes the bot, selects the connector from `currentCfg.protocol`, and runs `run()` (see also `bot/bot_process.go`).
+- `setup()` in `test/common_test.go` starts the bot via `StartTest()`.
+- `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It initializes the bot, selects the connector from `currentCfg.protocol`, and runs `run()` (see also `bot/bot_process.go`). `start_t.go` is a simplified version of `bot/start.go` that is tailored for testing. It changes the working directory to the project root to ensure that the `test-dev` startup mode is correctly detected.
 - The test connector is registered in `connectors/test/init.go` (`bot.RegisterConnector("test", Initialize)`), and its runtime loop lives in `connectors/test/connector.go` (`(*TestConnector).Run`).
 
 ## setup / teardown / testcases flow
@@ -33,9 +35,13 @@ Focus: integration test harness under `test/` and how tests are executed.
   - `pause` (milliseconds) to sleep between cases (see `test/common_test.go`).
 - Hidden messages are signaled by a leading `/` in `message` and transformed before sending (see `test/common_test.go`).
 
+## Test Utilities
+
+- The `testutil` package contains helper functions for formatting test messages. It is used by the `bot` package to log incoming and outgoing messages in `test-dev` mode.
+
 ## Representative test suites
 
-- Core bot behavior and message matching: `test/bot_integration_test.go` (e.g., `TestBotName`, `TestMessageMatch`).
+- Core bot behavior and message matching: `test/core_integration_test.go` (e.g., `TestBotName`, `TestMessageMatch`).
 - Memory tests: `test/memory_integration_test.go`.
 - Lists plugin behavior: `test/lists_integration_test.go`.
 
