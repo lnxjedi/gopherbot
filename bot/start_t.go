@@ -24,6 +24,8 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 
 	wd, _ := os.Getwd()
 	installPath = filepath.Dir(wd)
+	os.Chdir(installPath)
+	t.Cleanup(func() { os.Chdir(wd) })
 	// Collect all the Go Plugins, Jobs and Tasks
 	// registered by various init() functions, but
 	// only once during tests.

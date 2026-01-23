@@ -12,7 +12,6 @@ import (
 	"unicode"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	tbot "github.com/lnxjedi/gopherbot/test"
 	"github.com/lnxjedi/readline"
 )
 
@@ -438,7 +437,7 @@ loop:
 				}
 				tc.RLock()
 				if startMode == "test-dev" {
-					Log(robot.Info, "TEST/INCOMING: %s", tbot.FormatIncoming(botMsg))
+					// Log(robot.Info, "TEST/INCOMING: %s", tbot.FormatIncoming(botMsg))
 				}
 				tc.IncomingMessage(botMsg)
 				tc.RUnlock()

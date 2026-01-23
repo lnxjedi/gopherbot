@@ -12,6 +12,7 @@ BotInfo:
   UserName: {{ $botname }}
   FullName: {{ $botfullname }}
 
+Protocol: test
 ProtocolConfig:
   StartChannel: general
   StartUser: alice

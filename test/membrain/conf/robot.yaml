@@ -5,6 +5,7 @@ JoinChannels: [ ]
 AdminUsers: [ "alice" ]
 Alias: ";"
 LogLevel: debug
+Protocol: test
 
 {{ $botname := env "GOPHER_BOTNAME" | default "bender" }}
 {{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Bender Rodriguez" }}

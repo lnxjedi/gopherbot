@@ -50,9 +50,9 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 
 ---
 
-## Task-Specific Instructions (Temporary)
+## Task-Specific Instructions
 
-(When starting a focused task or feature branch, add a short section here describing what is being worked on *today*, any constraints, and what success looks like. Remove or replace this section once the task is complete.)
+The first task is to get integration tests working, and update `aidocs/` to reflect how the integrated test suite works. Generally: `make test` starts this test suite from the Makefile, and each block of tests starts the "test" connector, sends some commands to a test robot, and expects certain replies and events. At the end of the block, the exit (or quit?) command is sent.
 
 ### Post-Task
 * Review and update the documentation in `aidocs/` as needed to reflect changes made.

@@ -7,14 +7,6 @@ import (
 	"github.com/lnxjedi/gopherbot/robot"
 )
 
-// NOTE: Keep in sync with common_test.go:
-// Cast of Users
-const aliceID = "u0001"
-const bobID = "u0002"
-const carolID = "u0003"
-const davidID = "u0004"
-const erinID = "u0005"
-
 func FormatIncoming(msg *robot.ConnectorMessage) string {
 	uid := msg.UserID
 	switch msg.UserID {

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	tbot "github.com/lnxjedi/gopherbot/test"
 )
 
 func (tc *termConnector) sendMessage(user, ch, thr, msg string, f robot.MessageFormat, incomingMsg *robot.ConnectorMessage) (ret robot.RetVal) {
@@ -49,7 +48,7 @@ func (tc *termConnector) sendMessage(user, ch, thr, msg string, f robot.MessageF
 		msg = strings.ToLower(msg)
 	}
 	if startMode == "test-dev" {
-		Log(robot.Info, "TEST/OUTGOING: %s", tbot.FormatOutgoing(user, ch, msg, thr))
+		// Log(robot.Info, "TEST/OUTGOING: %s", tbot.FormatOutgoing(user, ch, msg, thr))
 	}
 	tc.reader.Write([]byte(fmt.Sprintf("%s%s: %s\n", ch, threadID, msg)))
 	return robot.Ok

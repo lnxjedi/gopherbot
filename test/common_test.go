@@ -1,6 +1,6 @@
 //go:build integration
 
-package tbot_test
+package tbot
 
 /*
 common_test.go - setup and initialization of "black box" integration testing.

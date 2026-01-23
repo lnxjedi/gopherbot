@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package tbot_test
+package tbot
 
 // lists_integration_test.go - verification of the 'lists' plugin functionality.
 
