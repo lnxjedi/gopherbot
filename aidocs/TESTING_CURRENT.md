@@ -52,3 +52,11 @@ Focus: integration test harness under `test/` and how tests are executed.
 ## Test Harness Scope
 
 All test files (`*_test.go`) within the `test/` directory are gated by the `integration` build tag and leverage the single test harness defined in `test/common_test.go`. No other test harnesses have been identified in the codebase.
+
+## Full Test Gating (JS/Lua/Go)
+
+Large language-specific suites are gated by `RUN_FULL` so they do not run in the default `make test` path.
+
+- To run a full suite: `RUN_FULL=js make test` (or `RUN_FULL=all` to allow all full suites).
+- `make test` sets `-run Test.*Full` when `RUN_FULL` is present to avoid running the entire suite.
+- `TEST=JSFull make test` remains a shortcut for the JS full test.

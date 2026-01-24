@@ -15,6 +15,14 @@ CTAG ?= latest
 ifdef TEST
 TESTARGS = -run ${TEST}
 endif
+ifeq ($(TEST),JSFull)
+TESTARGS = -run TestJSFull
+TESTENV = RUN_FULL=js
+endif
+ifneq ($(strip $(RUN_FULL)),)
+TESTARGS = -run Test.*Full
+TESTENV = RUN_FULL=$(RUN_FULL)
+endif
 
 static: gopherbot
 
@@ -33,8 +41,10 @@ $(TAR_ARCHIVE): static
 dist: $(TAR_ARCHIVE)
 
 # Run test suite without coverage (see .gopherci/pipeline.sh)
+# Full suites are opt-in: use RUN_FULL=js (or RUN_FULL=all) and only Test.*Full runs.
+# Shortcut: TEST=JSFull make test
 test:
-	go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test
+	${TESTENV} go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test
 
 # Generate Stringer methods
 generate:

@@ -3,15 +3,16 @@
 
 package tbot_test
 
-// lists_integration_test.go - verification of the 'lists' plugin functionality.
-
 import (
 	"testing"
 
 	. "github.com/lnxjedi/gopherbot/v2/bot"
 )
 
-func TestJSSendMsg(t *testing.T) {
+func TestJSFull(t *testing.T) {
+	if !wantFull("js") {
+		t.Skip("skipping JS full test; set RUN_FULL=js (or RUN_JSFULL=1)")
+	}
 	done, conn := setup("test/jsfull", "/tmp/bottest.log", t)
 
 	tests := []testItem{

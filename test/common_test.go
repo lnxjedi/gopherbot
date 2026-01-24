@@ -201,3 +201,30 @@ func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
 		}
 	}
 }
+
+func wantFull(name string) bool {
+	name = strings.ToLower(strings.TrimSpace(name))
+	if len(name) == 0 {
+		return false
+	}
+	if os.Getenv("RUN_"+strings.ToUpper(name)+"FULL") != "" {
+		return true
+	}
+	full := strings.ToLower(strings.TrimSpace(os.Getenv("RUN_FULL")))
+	if len(full) == 0 {
+		return false
+	}
+	for _, item := range strings.FieldsFunc(full, func(r rune) bool {
+		switch r {
+		case ',', ' ', '\t', ';', ':', '|':
+			return true
+		default:
+			return false
+		}
+	}) {
+		if item == "all" || item == name {
+			return true
+		}
+	}
+	return false
+}

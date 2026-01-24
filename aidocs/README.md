@@ -10,6 +10,8 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 
 - `aidocs/COMPONENT_MAP.md` - top-level directory map with entrypoints and representative files.
 - `aidocs/EXTENSION_SURFACES.md` - extension types and registration/discovery touchpoints.
+- `aidocs/EXTENSION_API.md` - extension language method surface (Robot API).
+- `aidocs/JS_METHOD_CHECKLIST.md` - JavaScript extension parity checklist.
 - `aidocs/TESTING_CURRENT.md` - current integration test harness and test case structure.
 - `aidocs/PIPELINE_LIFECYCLE.md` - incoming message to pipeline start flow.
 - `aidocs/SCHEDULER_FLOW.md` - cron scheduler to pipeline start flow.
@@ -23,6 +25,8 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - Go compiled-in extension registrations: `robot/registrations.go` (funcs `RegisterPlugin`, `RegisterJob`, `RegisterTask`).
 - Script plugin examples: `plugins/README.txt`, `plugins/welcome.lua`, `plugins/samples/`.
 - Extension surface map: `aidocs/EXTENSION_SURFACES.md`.
+- Extension language method surface: `aidocs/EXTENSION_API.md`.
+- JavaScript method checklist: `aidocs/JS_METHOD_CHECKLIST.md`.
 - Testing harness notes: `aidocs/TESTING_CURRENT.md`.
 - Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
 - Scheduled job pipeline flow: `aidocs/SCHEDULER_FLOW.md`.

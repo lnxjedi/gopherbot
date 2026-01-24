@@ -24,6 +24,8 @@ Scripts are executed within the Go process using embedded interpreters. Robot AP
 
 **File extensions:** `.lua`, `.js`, `.go`
 
+See `aidocs/EXTENSION_API.md` for the per-language Robot method surface and parity notes.
+
 ### 2. External Interpreters (JSON over HTTP)
 
 Scripts run as separate processes. Robot API calls are **HTTP POST requests** to a localhost JSON endpoint.

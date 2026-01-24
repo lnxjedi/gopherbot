@@ -57,6 +57,8 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 
 The first task is to get integration tests working, and update `aidocs/` to reflect how the integrated test suite works. Generally: `make test` starts this test suite from the Makefile, and each block of tests starts the "test" connector, sends some commands to a test robot, and expects certain replies and events. At the end of the block, the exit (or quit?) command is sent.
 
+Current task: make JavaScript a first-class extension language by closing Robot API gaps, adding DevOps-focused helpers (HTTP, files, exec), and adding a large JS test extension. The JS full test should not run under default `make test`; it must be opt-in (e.g., `TEST=JSFull make test` or `RUN_FULL=js make test`).
+
 ### Post-Task
 * Review and update the documentation in `aidocs/` as needed to reflect changes made.
 
