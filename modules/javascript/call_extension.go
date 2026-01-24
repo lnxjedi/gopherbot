@@ -30,9 +30,6 @@ func CallExtension(execPath, taskPath, taskName string, requirePaths []string, l
 	// Create a new goja VM
 	vm := goja.New()
 
-	// Add the simple http interface
-	addHttpHandler(vm)
-
 	ctx := &jsContext{
 		r:            r,
 		l:            logger,

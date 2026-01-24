@@ -4,6 +4,7 @@ package javascript
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/dop251/goja"
 	"github.com/lnxjedi/gopherbot/robot"
@@ -47,20 +48,30 @@ func (jr *jsBot) botRandomString(call goja.FunctionCall) goja.Value {
 		panic(jr.ctx.vm.ToValue(fmt.Sprintf("%s: argument must be an array, got %s", methodName, exportedType.Kind().String())))
 	}
 
-	// Type assert the exported value to []interface{}
-	exportedSlice, ok := arrayArg.Export().([]interface{})
-	if !ok {
-		panic(jr.ctx.vm.ToValue(fmt.Sprintf("%s: failed to convert argument to []interface{}", methodName)))
-	}
+	exported := arrayArg.Export()
+	exportedSlice, ok := exported.([]interface{})
 
 	// Iterate over the slice and collect string elements
 	var goSlice []string
-	for i, elem := range exportedSlice {
-		str, ok := elem.(string)
-		if ok {
-			goSlice = append(goSlice, str)
-		} else {
-			jr.log(robot.Error, fmt.Sprintf("RandomString: non-string element at index %d, ignoring", i))
+	if ok {
+		for i, elem := range exportedSlice {
+			if s, ok := toString(elem); ok {
+				goSlice = append(goSlice, s)
+			} else {
+				jr.log(robot.Error, fmt.Sprintf("RandomString: non-string element at index %d, ignoring", i))
+			}
+		}
+	} else {
+		// Fallback: iterate the JS array directly.
+		obj := arrayArg.ToObject(jr.ctx.vm)
+		length := int(obj.Get("length").ToInteger())
+		for i := 0; i < length; i++ {
+			elem := obj.Get(strconv.Itoa(i))
+			if s, ok := toString(elem); ok {
+				goSlice = append(goSlice, s)
+			} else {
+				jr.log(robot.Error, fmt.Sprintf("RandomString: non-string element at index %d, ignoring", i))
+			}
 		}
 	}
 
@@ -77,6 +88,29 @@ func (jr *jsBot) botRandomString(call goja.FunctionCall) goja.Value {
 
 	// Return the random string as a JS string
 	return jr.ctx.vm.ToValue(str)
+}
+
+func toString(value interface{}) (string, bool) {
+	if value == nil {
+		return "", false
+	}
+	switch v := value.(type) {
+	case string:
+		return v, true
+	case []byte:
+		return string(v), true
+	case goja.Value:
+		exported := v.Export()
+		if exported == nil {
+			return "", false
+		}
+		if s, ok := exported.(string); ok {
+			return s, true
+		}
+		return "", false
+	default:
+		return "", false
+	}
 }
 
 // botPause wraps r.Pause(...) and pauses execution for the specified number of seconds.

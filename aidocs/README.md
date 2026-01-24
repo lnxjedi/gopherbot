@@ -12,6 +12,9 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - `aidocs/EXTENSION_SURFACES.md` - extension types and registration/discovery touchpoints.
 - `aidocs/EXTENSION_API.md` - extension language method surface (Robot API).
 - `aidocs/JS_METHOD_CHECKLIST.md` - JavaScript extension parity checklist.
+- `aidocs/JS_HTTP_API.md` - JavaScript HTTP API design notes.
+- `aidocs/SLACK_CONNECTOR.md` - Slack connector dependency/API notes.
+- `aidocs/DEV_CONTAINER.md` - dev container build + editor tooling notes.
 - `aidocs/TESTING_CURRENT.md` - current integration test harness and test case structure.
 - `aidocs/PIPELINE_LIFECYCLE.md` - incoming message to pipeline start flow.
 - `aidocs/SCHEDULER_FLOW.md` - cron scheduler to pipeline start flow.
@@ -27,6 +30,8 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - Extension surface map: `aidocs/EXTENSION_SURFACES.md`.
 - Extension language method surface: `aidocs/EXTENSION_API.md`.
 - JavaScript method checklist: `aidocs/JS_METHOD_CHECKLIST.md`.
+- JavaScript HTTP API notes: `aidocs/JS_HTTP_API.md`.
+- Dev container and editor tooling: `aidocs/DEV_CONTAINER.md`.
 - Testing harness notes: `aidocs/TESTING_CURRENT.md`.
 - Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
 - Scheduled job pipeline flow: `aidocs/SCHEDULER_FLOW.md`.

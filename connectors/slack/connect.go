@@ -168,7 +168,10 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	sc.botName = info.User
 	sc.teamID = info.TeamID
 	r.Log(robot.Info, "Set team ID to %s", sc.teamID)
-	botInfo, err := api.GetBotInfo(sc.botID)
+	botInfo, err := api.GetBotInfo(slack.GetBotInfoParameters{
+		Bot:    sc.botID,
+		TeamID: sc.teamID,
+	})
 	if err != nil {
 		r.Log(robot.Fatal, "Error getting bot info: %v", err)
 	}

@@ -81,6 +81,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - Deployment and service artifacts: `resources/deploy-gopherbot.yaml`, `resources/robot.service`, `resources/user-robot.service`.
 - Container build assets: `resources/containers/build-dev.sh`, `resources/containers/build-base.sh`, `resources/containers/build-min.sh`.
+- Dev container specs + IDE assets: `resources/containers/containerfile.base`, `resources/containers/containerfile.dev`, `resources/containers/assets/jsconfig.json`, `resources/containers/assets/gopherbot.code-workspace`.
 
 ## robot/
 

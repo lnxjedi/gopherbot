@@ -46,6 +46,8 @@ func (ctx *jsContext) addRequires(vm *goja.Runtime) {
 		require.WithGlobalFolders(ctx.requirePaths...),
 	)
 
+	registerHttpModule(registry)
+
 	registry.Enable(vm)
 }
 

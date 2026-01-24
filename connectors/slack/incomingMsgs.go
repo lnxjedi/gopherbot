@@ -18,14 +18,17 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 	chanID := msg.Channel
 	var userID string
 	timestamp := time.Now()
-	var message slackevents.MessageEvent
+	if msg.Message == nil {
+		s.Log(robot.Warn, "Slack message event missing message payload: %+v", msg)
+		return
+	}
+	message := *msg.Message
 	ci, ok := s.getChannelInfo(chanID)
 	if !ok {
 		s.Log(robot.Error, "Couldn't find channel info for channel ID", chanID)
 		return
 	}
 	if msg.SubType == "message_changed" {
-		message = *msg.Message
 		userID = message.User
 		if userID == "" {
 			if message.BotID != "" {
@@ -48,7 +51,6 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 		s.Log(robot.Warn, "Ignoring message with unknown/unhandled subtype '%s'", msg.SubType)
 		return
 	} else {
-		message = *msg
 		userID = message.User
 		if len(userID) == 0 {
 			if message.BotID != "" {
@@ -67,9 +69,9 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 		return
 	}
 	text := message.Text
-	messageID := message.TimeStamp
-	ts := message.TimeStamp
-	tts := message.ThreadTimeStamp
+	messageID := message.Timestamp
+	ts := message.Timestamp
+	tts := message.ThreadTimestamp
 	threadID := tts
 	threadedMessage := false
 	if len(tts) == 0 {
@@ -78,8 +80,8 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 		threadedMessage = true
 	}
 	// some bot messages don't have any text, so check for a fallback
-	if text == "" && len(msg.Attachments) > 0 {
-		text = msg.Attachments[0].Fallback
+	if text == "" && len(message.Attachments) > 0 {
+		text = message.Attachments[0].Fallback
 	}
 	text = s.processText(text)
 	botMsg := &robot.ConnectorMessage{
@@ -149,7 +151,7 @@ func (s *slackConnector) processSlashCmdSocketMode(cmd *slack.SlashCommand) {
 			slack.MsgOptionDisableLinkUnfurl(),
 			slack.MsgOptionPostEphemeral(userID),
 		}
-		s.api.PostMessage(chanID, opts...)	
+		s.api.PostMessage(chanID, opts...)
 	}
 
 	userName, ok := s.userName(userID)

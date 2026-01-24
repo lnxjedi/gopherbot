@@ -40,7 +40,7 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 * **Cite anchors.** When explaining or justifying a change, reference concrete file paths and functions.
 * **Preserve invariants.** If a change affects startup, configuration loading, or execution order, verify it against `aidocs/STARTUP_FLOW.md`.
 * **Be conservative by default.** Prefer minimal, well-scoped changes over large refactors unless explicitly instructed.
-* **Clarify ambiguity.** If you encounter an unexpected situation or ambiguity (e.g. a missing git branch, an unclear instruction), do not make a decision on my behalf. Stop, explain the situation, and ask for clarification.
+* **Clarify ambiguity.** If you encounter an unexpected situation or ambiguity (e.g. a missing git branch, an unclear instruction, or multiple plausible behavior-affecting choices), do not make a decision on my behalf. Stop, explain the options and their implications, and ask for clarification.
 * **Ask when uncertain.** Insert `TODO (verify): ...` notes instead of inventing behavior.
 
 ---
@@ -58,6 +58,8 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 The first task is to get integration tests working, and update `aidocs/` to reflect how the integrated test suite works. Generally: `make test` starts this test suite from the Makefile, and each block of tests starts the "test" connector, sends some commands to a test robot, and expects certain replies and events. At the end of the block, the exit (or quit?) command is sent.
 
 Current task: make JavaScript a first-class extension language by closing Robot API gaps, adding DevOps-focused helpers (HTTP, files, exec), and adding a large JS test extension. The JS full test should not run under default `make test`; it must be opt-in (e.g., `TEST=JSFull make test` or `RUN_FULL=js make test`).
+
+Immediate focus: design the *right* JavaScript HTTP API (not constrained by backward compatibility). See `aidocs/JS_HTTP_API.md` for the current runtime critique and design goals.
 
 ### Post-Task
 * Review and update the documentation in `aidocs/` as needed to reflect changes made.

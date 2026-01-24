@@ -81,8 +81,8 @@ Sources:
 ## JS add-on helpers (DevOps focus)
 
 ### HTTP / remote APIs
-- [ ] `HttpRequest(options)` – request method, URL, headers, body, timeout; returns status, headers, body.
-- [ ] `GetJSON(url, options)` / `PostJSON(url, payload, options)` – JSON helpers.
+- [x] `gopherbot_http.createClient(...).request(options)` – method, URL/path, headers, body, timeout; returns status, headers, body.
+- [x] `client.getJSON(path, options)` / `client.postJSON(path, payload, options)` – JSON helpers.
 
 ### Local file access (workspace-safe)
 - [ ] `ReadFile(path, options)` – respects workspace/current working dir.
