@@ -60,3 +60,9 @@ Large language-specific suites are gated by `RUN_FULL` so they do not run in the
 - To run a full suite: `RUN_FULL=js make test` (or `RUN_FULL=all` to allow all full suites).
 - `make test` sets `-run Test.*Full` when `RUN_FULL` is present to avoid running the entire suite.
 - `TEST=JSFull make test` remains a shortcut for the JS full test.
+
+## Local HTTP test server
+
+- `test/http_test_server.go` starts a local `httptest` server for JS/Lua HTTP coverage.
+- `TestJSFull` sets `GBOT_TEST_HTTP_BASEURL` so test plugins can call the local server via config.
+- The server provides JSON endpoints for GET/POST/PUT plus error and timeout cases.

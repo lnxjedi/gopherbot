@@ -31,6 +31,7 @@ func registerHttpModule(registry *require.Registry) {
 			_ = obj.Set("request", client.request)
 			_ = obj.Set("getJSON", client.getJSON)
 			_ = obj.Set("postJSON", client.postJSON)
+			_ = obj.Set("putJSON", client.putJSON)
 			return obj
 		}
 		_ = exports.Set("createClient", clientFactory)
@@ -140,6 +141,40 @@ func (c *httpClient) postJSON(call goja.FunctionCall) goja.Value {
 
 	req := requestOptions{
 		Method: "POST",
+		Path:   path,
+		Body:   bodyBytes,
+		Opts:   opts,
+	}
+
+	bodyVal, err := c.doRequestJSON(req)
+	if err != nil {
+		panic(c.jsError(err))
+	}
+	return bodyVal
+}
+
+func (c *httpClient) putJSON(call goja.FunctionCall) goja.Value {
+	if len(call.Arguments) < 2 {
+		panic(c.vm.NewTypeError("putJSON: path and payload are required"))
+	}
+	path := call.Arguments[0].String()
+	payload := call.Arguments[1].Export()
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		panic(c.vm.NewTypeError(fmt.Sprintf("putJSON: unable to serialize payload: %s", err)))
+	}
+	var opts map[string]interface{}
+	if len(call.Arguments) > 2 && !isUndefinedOrNull(call.Arguments[2]) {
+		raw := call.Arguments[2].Export()
+		var ok bool
+		opts, ok = raw.(map[string]interface{})
+		if !ok {
+			panic(c.vm.NewTypeError("putJSON: options must be an object"))
+		}
+	}
+
+	req := requestOptions{
+		Method: "PUT",
 		Path:   path,
 		Body:   bodyBytes,
 		Opts:   opts,

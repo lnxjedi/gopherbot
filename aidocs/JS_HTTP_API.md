@@ -69,6 +69,7 @@ const created = client.postJSON("/v1/items", { name: "foo" });
 **JSON helpers:**
 - `client.getJSON(path, options)` returns parsed JSON.
 - `client.postJSON(path, payload, options)` sends JSON and returns parsed JSON.
+- `client.putJSON(path, payload, options)` sends JSON and returns parsed JSON.
 
 **Errors:**
 - Network errors throw `Error` with message + optional cause.

@@ -4,6 +4,7 @@
 package tbot_test
 
 import (
+	"os"
 	"testing"
 
 	. "github.com/lnxjedi/gopherbot/v2/bot"
@@ -13,6 +14,10 @@ func TestJSFull(t *testing.T) {
 	if !wantFull("js") {
 		t.Skip("skipping JS full test; set RUN_FULL=js (or RUN_JSFULL=1)")
 	}
+	baseURL, closeServer := startTestHTTPServer(t)
+	defer closeServer()
+	os.Setenv("GBOT_TEST_HTTP_BASEURL", baseURL)
+	defer os.Unsetenv("GBOT_TEST_HTTP_BASEURL")
 	done, conn := setup("test/jsfull", "/tmp/bottest.log", t)
 
 	tests := []testItem{
@@ -37,6 +42,16 @@ func TestJSFull(t *testing.T) {
 			{alice, general, "(Sending to user 'alice' in channel: general)", false},
 			{null, general, "(Sending to channel 'general' in thread: 0xDEADBEEF)", true},
 			{alice, general, "(Sending to user 'alice' in channel 'general' in thread: 0xDEADBEEF)", true}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";js-config", false, []TestMessage{
+			{null, general, "Not completely random.*", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";js-http", false, []TestMessage{
+			{null, general, "HTTP GET ok: GET", false},
+			{null, general, "HTTP POST ok: alpha", false},
+			{null, general, "HTTP PUT ok: bravo", false},
+			{null, general, "HTTP ERROR ok: 500", false},
+			{null, general, "HTTP TIMEOUT ok", false}},
 			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
