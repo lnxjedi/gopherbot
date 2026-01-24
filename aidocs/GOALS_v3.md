@@ -31,6 +31,7 @@ These goals are intended to unblock and accelerate later v3 work. Changes that a
 * Update project dependencies to modern, supported versions.
 * Restore and fix the development and test workflow, including making `make test` reliable and meaningful.
 * Remove the git-based file brain backup/restore scripts and other related code
+* Expand extension-language integration tests (JS/Lua) to cover messaging, config, HTTP, and core Robot API surface.
 
 ## Core v3 Goals
 
@@ -57,6 +58,11 @@ Writing new extensions should be straightforward, well-documented, and achievabl
 The system should explicitly support AI-assisted workflows for creating plugins, tasks, and jobs, including clear contracts, examples, and scaffolding.
 
 Ideally, a new developer, after reading some initial documentation, should be able to ask an AI e.g. "based on the documentation and examples in `writing-extensions/`, please create a new (plugin, job) that does (something)."
+
+Progress notes:
+- JS and Lua full integration tests exist and are gated via `RUN_FULL`/`TEST` (see `test/` and `aidocs/TESTING_CURRENT.md`).
+- Local HTTP test server exists for deterministic JS/Lua HTTP coverage.
+- JS and Lua HTTP helper modules are available for extension authors (see `aidocs/JS_HTTP_API.md`, `aidocs/LUA_HTTP_API.md`).
 
 ### Strengthen and Integrate the Groups and Help Systems
 

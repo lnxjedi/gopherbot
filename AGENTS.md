@@ -55,11 +55,7 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 
 ## Task-Specific Instructions
 
-The first task is to get integration tests working, and update `aidocs/` to reflect how the integrated test suite works. Generally: `make test` starts this test suite from the Makefile, and each block of tests starts the "test" connector, sends some commands to a test robot, and expects certain replies and events. At the end of the block, the exit (or quit?) command is sent.
-
-Current task: make JavaScript a first-class extension language by closing Robot API gaps, adding DevOps-focused helpers (HTTP, files, exec), and adding a large JS test extension. The JS full test should not run under default `make test`; it must be opt-in (e.g., `TEST=JSFull make test` or `RUN_FULL=js make test`).
-
-Immediate focus: design the *right* JavaScript HTTP API (not constrained by backward compatibility). See `aidocs/JS_HTTP_API.md` for the current runtime critique and design goals.
+Our current task is to implement DevOps helpers for JS/Lua (workspace-safe file ops + local exec wrappers, plus tests) — see checklists in `aidocs/JS_METHOD_CHECKLIST.md` and `aidocs/LUA_METHOD_CHECKLIST.md`. These are the basic methods needed by DevOps engineers to do most common automation tasks.
 
 ### Post-Task
 * Review and update the documentation in `aidocs/` as needed to reflect changes made.
