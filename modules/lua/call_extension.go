@@ -71,6 +71,9 @@ func CallExtension(execPath, taskPath, taskName string, pkgPath []string, logger
 		return ret, err
 	}
 
+	// Register native HTTP module for require("gopherbot_http")
+	registerHttpModule(L)
+
 	// Compile and run the Lua file
 	if err := L.DoFile(taskPath); err != nil {
 		return robot.MechanismFail, fmt.Errorf("Lua error in script '%s': %w", taskName, err)

@@ -207,6 +207,10 @@ func wantFull(name string) bool {
 	if len(name) == 0 {
 		return false
 	}
+	testFilter := strings.ToLower(strings.TrimSpace(os.Getenv("TEST")))
+	if strings.Contains(testFilter, name+"full") {
+		return true
+	}
 	if os.Getenv("RUN_"+strings.ToUpper(name)+"FULL") != "" {
 		return true
 	}

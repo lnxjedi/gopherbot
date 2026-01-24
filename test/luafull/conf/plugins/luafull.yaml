@@ -1,0 +1,3 @@
+---
+Config:
+  HttpBaseURL: {{ env "GBOT_TEST_HTTP_BASEURL" }}

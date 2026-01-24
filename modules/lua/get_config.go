@@ -40,6 +40,9 @@ func GetPluginConfig(execPath, taskPath, taskName string, emptyBot map[string]st
 		return nil, err
 	}
 
+	// Register native HTTP module for require("gopherbot_http")
+	registerHttpModule(L)
+
 	// Load + Run the script
 	if err := L.DoFile(taskPath); err != nil {
 		return nil, fmt.Errorf("error loading Lua config for %s: %v", taskName, err)

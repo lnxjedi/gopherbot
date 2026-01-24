@@ -12,7 +12,9 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - `aidocs/EXTENSION_SURFACES.md` - extension types and registration/discovery touchpoints.
 - `aidocs/EXTENSION_API.md` - extension language method surface (Robot API).
 - `aidocs/JS_METHOD_CHECKLIST.md` - JavaScript extension parity checklist.
+- `aidocs/LUA_METHOD_CHECKLIST.md` - Lua extension parity checklist.
 - `aidocs/JS_HTTP_API.md` - JavaScript HTTP API design notes.
+- `aidocs/LUA_HTTP_API.md` - Lua HTTP API design notes.
 - `aidocs/SLACK_CONNECTOR.md` - Slack connector dependency/API notes.
 - `aidocs/DEV_CONTAINER.md` - dev container build + editor tooling notes.
 - `aidocs/TESTING_CURRENT.md` - current integration test harness and test case structure.

@@ -57,12 +57,14 @@ All test files (`*_test.go`) within the `test/` directory are gated by the `inte
 
 Large language-specific suites are gated by `RUN_FULL` so they do not run in the default `make test` path.
 
-- To run a full suite: `RUN_FULL=js make test` (or `RUN_FULL=all` to allow all full suites).
+- To run a full suite: `RUN_FULL=js make test`, `RUN_FULL=lua make test` (or `RUN_FULL=all` to allow all full suites).
 - `make test` sets `-run Test.*Full` when `RUN_FULL` is present to avoid running the entire suite.
-- `TEST=JSFull make test` remains a shortcut for the JS full test.
+- `TEST=JSFull make test` runs the JS full test without needing `RUN_FULL`.
+- `TEST=LuaFull make test` runs the Lua full test without needing `RUN_FULL`.
 
 ## Local HTTP test server
 
-- `test/http_test_server.go` starts a local `httptest` server for JS/Lua HTTP coverage.
+- `test/http_test_server_test.go` starts a local `httptest` server for JS/Lua HTTP coverage.
 - `TestJSFull` sets `GBOT_TEST_HTTP_BASEURL` so test plugins can call the local server via config.
 - The server provides JSON endpoints for GET/POST/PUT plus error and timeout cases.
+- The file must use the `_test.go` suffix because the `test/` directory mixes `tbot` and `tbot_test` packages; non-test files must all share one package name to compile.
