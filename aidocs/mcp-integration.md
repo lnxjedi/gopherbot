@@ -19,12 +19,12 @@ Status: Draft design notes for the "--aidev" mode. This doc captures the intende
 ## Activation + Guardrails
 
 - Add a CLI flag in `bot/start.go` (func `Start`) to enable the interface.
-- The secret is **ephemeral per run** and provided via CLI; it is not persisted.
-- When `--aidev` is set, gopherbot **auto-spawns** `gopherbot-mcp` and waits for a hello handshake.
+- The secret is **ephemeral per run** and generated when `--aidev` is set; it is not persisted.
+- When `--aidev` is set, gopherbot starts the HTTP listener, logs the exact MCP start command, and **waits for a `start` control action** before starting the connector.
 - When the flag is present, start a streamable HTTP server (SSE) on `127.0.0.1` by reusing the existing HTTP listener in `bot/bot_process.go` (same mux as `/json`).
 - Require a shared secret header for every request/stream.
   - Header: `X-AIDEV-KEY`
-  - Optional envs for auto-spawn: `GOPHER_AIDEV_MCP_CONFIG`, `GOPHER_AIDEV_MCP_PROTOCOL`
+  - Optional envs for MCP start command: `GOPHER_AIDEV_MCP_CONFIG`, `GOPHER_AIDEV_MCP_PROTOCOL`
 
 Anchors:
 - CLI flag parsing: `bot/start.go` (func `Start`).
@@ -142,16 +142,19 @@ The mapping file lives with the MCP shim and supplies user_id; the engine uses i
 - `POST /aidev/inject`
 - Requires `X-AIDEV-KEY` header matching `--aidev` secret.
 - Returns `202 Accepted` on success, `400/401` otherwise.
+- Returns `409 Conflict` if the robot has not completed post-connect initialization.
 
 ### Control endpoint
 
 - `POST /aidev/control`
 - Requires `X-AIDEV-KEY` header matching `--aidev` secret.
-- Payload: `{ "action": "exit" | "force_exit" | "stack_dump" }`
+- Payload: `{ "action": "hello" | "ready" | "start" | "exit" | "force_exit" | "stack_dump" }`
 - `exit` triggers graceful shutdown (`stop()`).
 - `force_exit` triggers a SIGUSR1 stack dump + panic (see `bot/signal.go`).
 - `stack_dump` logs a runtime stack dump without exiting.
-- `hello` is used by `gopherbot-mcp` to confirm startup; gopherbot waits for it when `--aidev` is set.
+- `hello` is used by `gopherbot-mcp` to confirm it can reach the control endpoint.
+- `ready` is sent after the MCP connects to the SSE stream.
+- `start` tells gopherbot to continue startup (connector + post-connect config).
 
 ## Pending Injection Tracking
 

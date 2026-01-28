@@ -269,14 +269,6 @@ func initBot() {
 			go func() {
 				Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, apiServer))
 			}()
-			if aidevEnabled() {
-				if err := startAidevMCP(listenPort); err != nil {
-					Log(robot.Fatal, "Starting gopherbot-mcp: %v", err)
-				}
-				if err := waitForAidevHello(5 * time.Second); err != nil {
-					Log(robot.Fatal, "Timed out waiting for gopherbot-mcp hello: %v", err)
-				}
-			}
 		}()
 	}
 }
@@ -379,6 +371,19 @@ func run() {
 	sigBreak := make(chan struct{})
 	go sigHandle(sigBreak)
 
+	if aidevEnabled() {
+		bin, err := findAidevMCPBinary()
+		if err != nil {
+			Log(robot.Fatal, "AIDEV enabled but gopherbot-mcp not found: %v", err)
+		}
+		cmd := aidevStartCommand(listenPort, bin)
+		Log(robot.Info, "AIDEV started; start MCP with: %s", cmd)
+		botStdErrLogger.Printf("AIDEV: start MCP with: %s", cmd)
+		if err := waitForAidevStart(60 * time.Second); err != nil {
+			Log(robot.Fatal, "Timed out waiting for AIDEV start: %v", err)
+		}
+	}
+
 	// connector loop
 	go func(conn robot.Connector, sigBreak chan<- struct{}) {
 		raiseThreadPriv("connector loop")
@@ -398,6 +403,11 @@ func run() {
 	// (post-connect) initializes plugins and may send messages.
 	if err := loadConfig(false); err != nil {
 		Log(robot.Fatal, "Loading full/post-connect configuration: %v", err)
+	}
+	if aidevEnabled() {
+		aidevInitialized.Lock()
+		aidevInitialized.ready = true
+		aidevInitialized.Unlock()
 	}
 	Log(robot.Info, "Robot is initialized and running")
 }

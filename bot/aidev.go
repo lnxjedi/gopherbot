@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -101,6 +100,27 @@ var aidevHello = struct {
 	ch chan struct{}
 }{
 	ch: make(chan struct{}, 1),
+}
+
+var aidevReady = struct {
+	sync.Mutex
+	ch chan struct{}
+}{
+	ch: make(chan struct{}, 1),
+}
+
+var aidevStart = struct {
+	sync.Mutex
+	ch chan struct{}
+}{
+	ch: make(chan struct{}, 1),
+}
+
+var aidevInitialized = struct {
+	sync.RWMutex
+	ready bool
+}{
+	ready: false,
 }
 
 func aidevEnabled() bool {
@@ -241,12 +261,39 @@ func markAidevHello() {
 	aidevHello.Unlock()
 }
 
+func markAidevReady() {
+	aidevReady.Lock()
+	select {
+	case aidevReady.ch <- struct{}{}:
+	default:
+	}
+	aidevReady.Unlock()
+}
+
+func markAidevStart() {
+	aidevStart.Lock()
+	select {
+	case aidevStart.ch <- struct{}{}:
+	default:
+	}
+	aidevStart.Unlock()
+}
+
 func waitForAidevHello(timeout time.Duration) error {
 	select {
 	case <-aidevHello.ch:
 		return nil
 	case <-time.After(timeout):
 		return errors.New("aidev hello timeout")
+	}
+}
+
+func waitForAidevStart(timeout time.Duration) error {
+	select {
+	case <-aidevStart.ch:
+		return nil
+	case <-time.After(timeout):
+		return errors.New("aidev start timeout")
 	}
 }
 
@@ -263,29 +310,16 @@ func findAidevMCPBinary() (string, error) {
 	return "", fmt.Errorf("gopherbot-mcp binary not found under %s", installPath)
 }
 
-func startAidevMCP(listenAddr string) error {
-	if !aidevEnabled() {
-		return nil
-	}
-	bin, err := findAidevMCPBinary()
-	if err != nil {
-		return err
-	}
+func aidevStartCommand(listenAddr string, bin string) string {
 	url := "http://" + listenAddr
-	args := []string{
-		"--aidev-url", url,
-		"--aidev-key", aidev.cfg.secret,
-	}
+	cmd := fmt.Sprintf("%s --aidev-url %s --aidev-key %s", bin, url, aidev.cfg.secret)
 	if cfg := os.Getenv("GOPHER_AIDEV_MCP_CONFIG"); cfg != "" {
-		args = append(args, "--config", cfg)
+		cmd += " --config " + cfg
 	}
 	if proto := os.Getenv("GOPHER_AIDEV_MCP_PROTOCOL"); proto != "" {
-		args = append(args, "--protocol", proto)
+		cmd += " --protocol " + proto
 	}
-	cmd := exec.Command(bin, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Start()
+	return cmd
 }
 
 func aidevStreamHandler(w http.ResponseWriter, r *http.Request) {
@@ -339,8 +373,20 @@ func aidevInjectHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing user, user_id, or message", http.StatusBadRequest)
 		return
 	}
+	botStdErrLogger.Printf("AIDEV inject: user=%s user_id=%s channel=%s direct=%t message=%q", req.User, req.UserID, req.Channel, req.Direct, req.Message)
 	if !req.Direct && req.Channel == "" {
 		http.Error(w, "missing channel", http.StatusBadRequest)
+		return
+	}
+	aidevInitialized.RLock()
+	ready := aidevInitialized.ready
+	aidevInitialized.RUnlock()
+	if !ready {
+		http.Error(w, "robot not initialized", http.StatusConflict)
+		return
+	}
+	if interfaces.Connector == nil {
+		http.Error(w, "connector not ready", http.StatusServiceUnavailable)
 		return
 	}
 	nonce, err := newAidevNonce()
@@ -364,17 +410,40 @@ func aidevInjectHandler(w http.ResponseWriter, r *http.Request) {
 	thread := req.Thread
 	currentCfg.RLock()
 	format := currentCfg.defaultMessageFormat
+	protocol := currentCfg.protocol
 	currentCfg.RUnlock()
 	var ret robot.RetVal
+	msgObj := &robot.ConnectorMessage{
+		Protocol:      protocol,
+		UserID:        req.UserID,
+		UserName:      req.User,
+		ChannelName:   req.Channel,
+		ThreadID:      req.Thread,
+		HiddenMessage: req.Hidden,
+		DirectMessage: req.Direct,
+	}
 	if req.Direct {
-		ret = interfaces.SendProtocolUserMessage(bracket(req.UserID), msg, format, nil)
+		ret = interfaces.SendProtocolUserMessage(bracket(req.UserID), msg, format, msgObj)
 	} else {
-		ret = interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, format, nil)
+		ret = interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, format, msgObj)
 	}
 	if ret != robot.Ok {
 		consumeInjection(nonce)
 		http.Error(w, fmt.Sprintf("send error: %d", ret), http.StatusBadRequest)
 		return
+	}
+	if protocol == "terminal" {
+		h := handler{}
+		h.IncomingMessage(&robot.ConnectorMessage{
+			Protocol:      protocol,
+			UserName:      "aidev",
+			UserID:        "aidev",
+			ChannelName:   req.Channel,
+			ThreadID:      req.Thread,
+			DirectMessage: req.Direct,
+			SelfMessage:   true,
+			MessageText:   msg,
+		})
 	}
 	w.WriteHeader(http.StatusAccepted)
 }
@@ -396,7 +465,19 @@ func aidevControlHandler(w http.ResponseWriter, r *http.Request) {
 	switch req.Action {
 	case "hello":
 		markAidevHello()
+		Log(robot.Info, "AIDEV MCP hello received")
+		botStdErrLogger.Printf("AIDEV control: hello")
 		w.WriteHeader(http.StatusOK)
+	case "ready":
+		markAidevReady()
+		Log(robot.Info, "AIDEV MCP ready received")
+		botStdErrLogger.Printf("AIDEV control: ready")
+		w.WriteHeader(http.StatusOK)
+	case "start":
+		markAidevStart()
+		Log(robot.Info, "AIDEV MCP start received")
+		botStdErrLogger.Printf("AIDEV control: start")
+		w.WriteHeader(http.StatusAccepted)
 	case "exit":
 		go stop()
 		w.WriteHeader(http.StatusAccepted)

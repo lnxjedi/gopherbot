@@ -24,16 +24,19 @@ TESTARGS = -run Test.*Full
 TESTENV = RUN_FULL=$(RUN_FULL)
 endif
 
-static: gopherbot
+static: gopherbot gopherbot-mcp
 
 gopherbot: main.go modules.go bot/* brains/*/* connectors/*/* gojobs/*/* goplugins/*/* history/*/* robot/* gotasks/*/* modules/*/*
 	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod readonly -ldflags "-s -w $(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot main.go modules.go
+
+gopherbot-mcp: cmd/gopherbot-mcp/main.go
+	go build -mod readonly -o gopherbot-mcp ./cmd/gopherbot-mcp
 
 debug:
 	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod readonly -ldflags "$(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot
 
 clean:
-	rm -f gopherbot $(TAR_ARCHIVE) $(ZIP_ARCHIVE)
+	rm -f gopherbot gopherbot-mcp $(TAR_ARCHIVE) $(ZIP_ARCHIVE)
 
 $(TAR_ARCHIVE): static
 	./mkdist.sh

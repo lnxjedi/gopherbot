@@ -253,6 +253,11 @@ func (s *server) handleRequest(req jsonRPCRequest) jsonRPCResponse {
 						Description: "Force exit with stack dump (SIGUSR1)",
 						InputSchema: map[string]interface{}{"type": "object"},
 					},
+					{
+						Name:        "start_robot",
+						Description: "Tell gopherbot to continue startup after aidev wait",
+						InputSchema: map[string]interface{}{"type": "object"},
+					},
 				},
 			},
 		}
@@ -284,6 +289,8 @@ func (s *server) handleToolCall(req jsonRPCRequest) jsonRPCResponse {
 		return s.toolControl(req.ID, "exit")
 	case "control_force_exit":
 		return s.toolControl(req.ID, "force_exit")
+	case "start_robot":
+		return s.toolControl(req.ID, "start")
 	default:
 		return jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Error: &jsonRPCError{Code: -32601, Message: "tool not found"}}
 	}
@@ -424,6 +431,7 @@ func (s *server) consumeSSE() {
 			}
 			continue
 		}
+		_ = s.postJSON("/aidev/control", map[string]interface{}{"action": "ready"})
 		backoff = 250 * time.Millisecond
 		reader := bufio.NewReader(resp.Body)
 		var buf strings.Builder
