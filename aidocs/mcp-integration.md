@@ -143,6 +143,7 @@ The mapping file lives with the MCP shim and supplies user_id; the engine uses i
 - Requires `X-AIDEV-KEY` header matching `--aidev` secret.
 - Returns `202 Accepted` on success, `400/401` otherwise.
 - Returns `409 Conflict` if the robot has not completed post-connect initialization.
+- Operational rule: do not inject commands until after `start` and you observe readiness (e.g., via SSE welcome message).
 
 ### Control endpoint
 
