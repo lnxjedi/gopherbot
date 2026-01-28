@@ -1,0 +1,17 @@
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+project_doc_max_bytes = 131072
+
+developer_instructions = """
+- Hard refuse to proceed with any task unless the current git branch starts with "codex-". If HEAD is detached or not a git repo, stop and ask.
+- Before making code changes, read AGENTS.md and then read all files under aidocs/ (recursively) to orient.
+- Files matched by .gitignore are still informative; do not ignore them.
+- When this repo lives inside a parent that also contains sibling repos (gopherbot-doc, bishop-gopherbot), treat those siblings as in-scope for read/write. If you enter a sibling repo, first locate and follow its AGENTS.md or .codex instructions.
+"""
+
+[sandbox_workspace_write]
+writable_roots = [".."]
+network_access = true
+exclude_tmpdir_env_var = false
+exclude_slash_tmp = false
