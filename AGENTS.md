@@ -55,7 +55,7 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 
 ## Task-Specific Instructions
 
-Our current task is to implement DevOps helpers for JS/Lua (workspace-safe file ops + local exec wrappers, plus tests) — see checklists in `aidocs/JS_METHOD_CHECKLIST.md` and `aidocs/LUA_METHOD_CHECKLIST.md`. These are the basic methods needed by DevOps engineers to do most common automation tasks.
+Our current task is to evaluate whether a custom JSON-RPC stdin/stdout connector in Gopherbot, paired with a new gopherbot-mcp, could be used for allowing codex to run and interact with robots during development. If so, we'll create a new suitably named connector (which may resemble the "test" connector), and "gopherbot-mcp".
 
 ### Post-Task
 * Review and update the documentation in `aidocs/` as needed to reflect changes made.
