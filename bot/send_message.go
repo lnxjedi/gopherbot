@@ -100,6 +100,27 @@ func (w *worker) messageHeard() {
 	interfaces.MessageHeard(user, channel)
 }
 
+func emitOutboundTap(protocol, userName, userID, channelName, channelID, threadID, text string, direct bool) {
+	if !aidevEnabled() {
+		return
+	}
+	emitTapEvent(tapEvent{
+		Direction:   "outbound",
+		Protocol:    protocol,
+		UserName:    userName,
+		UserID:      unbracketID(userID),
+		ChannelName: channelName,
+		ChannelID:   unbracketID(channelID),
+		ThreadID:    threadID,
+		MessageID:   "",
+		SelfMessage: false,
+		BotMessage:  false,
+		Hidden:      false,
+		Direct:      direct,
+		Text:        text,
+	})
+}
+
 // see robot/robot.go
 func (r Robot) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal {
 	msg, empty := r.prepareMessage("SendChannelMessage", msg, v...)
@@ -107,6 +128,7 @@ func (r Robot) SendChannelMessage(ch, msg string, v ...interface{}) robot.RetVal
 		return robot.Failed
 	}
 	channel := r.tryResolveChannel(ch)
+	emitOutboundTap(r.Incoming.Protocol, r.User, r.Incoming.UserID, ch, channel, "", msg, false)
 	return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, r.Format, r.Incoming)
 }
 
@@ -117,6 +139,7 @@ func (r Robot) SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) r
 		return robot.Failed
 	}
 	channel := r.tryResolveChannel(ch)
+	emitOutboundTap(r.Incoming.Protocol, r.User, r.Incoming.UserID, ch, channel, thr, msg, false)
 	return interfaces.SendProtocolChannelThreadMessage(channel, thr, msg, r.Format, r.Incoming)
 }
 
@@ -126,6 +149,7 @@ func (w *worker) SendChannelThreadMessage(ch, thr, msg string, v ...interface{})
 		return robot.Failed
 	}
 	channel := w.tryResolveChannel(ch)
+	emitOutboundTap(w.Incoming.Protocol, w.User, w.Incoming.UserID, ch, channel, thr, msg, false)
 	return interfaces.SendProtocolChannelThreadMessage(channel, thr, msg, w.Format, w.Incoming)
 }
 
@@ -141,6 +165,7 @@ func (r Robot) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot
 	}
 	user := r.tryResolveUser(u)
 	channel := r.tryResolveChannel(ch)
+	emitOutboundTap(r.Incoming.Protocol, u, user, ch, channel, "", msg, false)
 	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, r.Format, r.Incoming)
 }
 
@@ -151,6 +176,7 @@ func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) rob
 	}
 	user := w.tryResolveUser(u)
 	channel := w.tryResolveChannel(ch)
+	emitOutboundTap(w.Incoming.Protocol, u, user, ch, channel, "", msg, false)
 	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, w.Format, w.Incoming)
 }
 
@@ -161,6 +187,7 @@ func (r Robot) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interfa
 	}
 	user := r.tryResolveUser(u)
 	channel := r.tryResolveChannel(ch)
+	emitOutboundTap(r.Incoming.Protocol, u, user, ch, channel, thr, msg, false)
 	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, r.Format, r.Incoming)
 }
 
@@ -171,6 +198,7 @@ func (w *worker) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...inter
 	}
 	user := w.tryResolveUser(u)
 	channel := w.tryResolveChannel(ch)
+	emitOutboundTap(w.Incoming.Protocol, u, user, ch, channel, thr, msg, false)
 	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, thr, msg, w.Format, w.Incoming)
 }
 
@@ -181,6 +209,7 @@ func (r Robot) SendUserMessage(u, msg string, v ...interface{}) robot.RetVal {
 		return robot.Failed
 	}
 	user := r.tryResolveUser(u)
+	emitOutboundTap(r.Incoming.Protocol, u, user, "", "", "", msg, true)
 	return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
 }
 
@@ -190,6 +219,15 @@ func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 	if empty {
 		return robot.Failed
 	}
+	channel := r.ProtocolChannel
+	if len(channel) == 0 {
+		channel = r.Channel
+	}
+	thread := ""
+	if r.Incoming.ThreadedMessage {
+		thread = r.Incoming.ThreadID
+	}
+	emitOutboundTap(r.Incoming.Protocol, r.User, r.Incoming.UserID, r.Channel, channel, thread, msg, r.Channel == "")
 	user := r.ProtocolUser
 	if len(user) == 0 {
 		user = r.User
@@ -219,6 +257,15 @@ func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
 	if empty {
 		return robot.Failed
 	}
+	channel := w.ProtocolChannel
+	if len(channel) == 0 {
+		channel = w.Channel
+	}
+	thread := ""
+	if w.Incoming.ThreadedMessage {
+		thread = w.Incoming.ThreadID
+	}
+	emitOutboundTap(w.Incoming.Protocol, w.User, w.Incoming.UserID, w.Channel, channel, thread, msg, w.Channel == "")
 	user := w.ProtocolUser
 	if len(user) == 0 {
 		user = w.User
@@ -243,6 +290,11 @@ func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 	if empty {
 		return robot.Failed
 	}
+	channel := r.ProtocolChannel
+	if len(channel) == 0 {
+		channel = r.Channel
+	}
+	emitOutboundTap(r.Incoming.Protocol, r.User, r.Incoming.UserID, r.Channel, channel, r.Incoming.ThreadID, msg, r.Channel == "")
 	user := r.ProtocolUser
 	if len(user) == 0 {
 		user = r.User
@@ -269,6 +321,15 @@ func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 	if empty {
 		return robot.Failed
 	}
+	channel := r.ProtocolChannel
+	if len(channel) == 0 {
+		channel = r.Channel
+	}
+	thread := ""
+	if r.Incoming.ThreadedMessage {
+		thread = r.Incoming.ThreadID
+	}
+	emitOutboundTap(r.Incoming.Protocol, r.User, r.Incoming.UserID, r.Channel, channel, thread, msg, r.Channel == "")
 	// Support for Direct()
 	if r.Channel == "" {
 		user := r.ProtocolUser
@@ -293,6 +354,15 @@ func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
 	if empty {
 		return robot.Failed
 	}
+	channel := w.ProtocolChannel
+	if len(channel) == 0 {
+		channel = w.Channel
+	}
+	thread := ""
+	if w.Incoming.ThreadedMessage {
+		thread = w.Incoming.ThreadID
+	}
+	emitOutboundTap(w.Incoming.Protocol, w.User, w.Incoming.UserID, w.Channel, channel, thread, msg, w.Channel == "")
 	// Support for Direct()
 	if w.Channel == "" {
 		user := w.ProtocolUser
@@ -318,6 +388,11 @@ func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
 	if empty {
 		return robot.Failed
 	}
+	channel := r.ProtocolChannel
+	if len(channel) == 0 {
+		channel = r.Channel
+	}
+	emitOutboundTap(r.Incoming.Protocol, r.User, r.Incoming.UserID, r.Channel, channel, r.Incoming.ThreadID, msg, r.Channel == "")
 	// Support for Direct()
 	if r.Channel == "" {
 		user := r.ProtocolUser
@@ -331,4 +406,25 @@ func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
 		channel = r.Channel
 	}
 	return interfaces.SendProtocolChannelThreadMessage(channel, r.Incoming.ThreadID, msg, r.Format, r.Incoming)
+}
+
+func (w *worker) SayThread(msg string, v ...interface{}) robot.RetVal {
+	msg, empty := w.prepareMessage("SayThread", msg, v...)
+	if empty {
+		return robot.Failed
+	}
+	channel := w.ProtocolChannel
+	if len(channel) == 0 {
+		channel = w.Channel
+	}
+	emitOutboundTap(w.Incoming.Protocol, w.User, w.Incoming.UserID, w.Channel, channel, w.Incoming.ThreadID, msg, w.Channel == "")
+	// Support for Direct()
+	if w.Channel == "" {
+		user := w.ProtocolUser
+		if len(user) == 0 {
+			user = w.User
+		}
+		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
+	}
+	return interfaces.SendProtocolChannelThreadMessage(channel, w.Incoming.ThreadID, msg, w.Format, w.Incoming)
 }

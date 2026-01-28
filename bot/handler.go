@@ -133,6 +133,45 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		Log(robot.Error, "Incoming message with no username or user ID")
 		return
 	}
+	injected := false
+	if aidevEnabled() && inc.SelfMessage {
+		if nonce, user, stripped, ok := parseAidevPrefix(inc.MessageText); ok {
+			if pending, found := consumeInjection(nonce); found {
+				if pending.user != "" && pending.user != user {
+					Log(robot.Debug, "AIDEV rewrite: prefix user '%s' does not match pending user '%s'", user, pending.user)
+				}
+				if pending.user != "" {
+					inc.UserName = pending.user
+				} else {
+					inc.UserName = user
+				}
+				inc.UserID = pending.userID
+				inc.SelfMessage = false
+				inc.MessageText = stripped
+				injected = true
+				Log(robot.Debug, "AIDEV rewrite: injected message as '%s' (%s) in channel '%s'", user, pending.userID, inc.ChannelID)
+			} else {
+				Log(robot.Debug, "AIDEV rewrite: no pending injection for nonce '%s'", nonce)
+			}
+		}
+	}
+	if aidevEnabled() {
+		emitTapEvent(tapEvent{
+			Direction:   "inbound",
+			Protocol:    inc.Protocol,
+			UserName:    inc.UserName,
+			UserID:      inc.UserID,
+			ChannelName: inc.ChannelName,
+			ChannelID:   inc.ChannelID,
+			ThreadID:    inc.ThreadID,
+			MessageID:   inc.MessageID,
+			SelfMessage: inc.SelfMessage,
+			BotMessage:  inc.BotMessage,
+			Hidden:      inc.HiddenMessage,
+			Direct:      inc.DirectMessage,
+			Text:        inc.MessageText,
+		})
+	}
 	currentUCMaps.Lock()
 	maps := currentUCMaps.ucmap
 	currentUCMaps.Unlock()
@@ -184,7 +223,11 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	botAlias := currentCfg.alias
 	currentCfg.RUnlock()
 	if !listedUser && ignoreUnlisted {
-		Log(robot.Debug, "IgnoreUnlistedUsers - ignoring: %s / %s", inc.UserID, userName)
+		if injected {
+			Log(robot.Info, "AIDEV injected message ignored by IgnoreUnlistedUsers: %s / %s", inc.UserID, userName)
+		} else {
+			Log(robot.Debug, "IgnoreUnlistedUsers - ignoring: %s / %s", inc.UserID, userName)
+		}
 		emit(IgnoredUser)
 		return
 	}

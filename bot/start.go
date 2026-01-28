@@ -25,6 +25,7 @@ var (
 	overrideIDEMode bool
 	plainlog        bool
 	helpRequested   bool
+	aidevSecret     string
 
 	hostName  string
 	ideMode   bool
@@ -85,11 +86,18 @@ func Start(v VersionInfo) {
 	husage := "help for gopherbot"
 	flag.BoolVar(&helpRequested, "help", false, husage)
 	flag.BoolVar(&helpRequested, "h", false, "")
+	aidevUsage := "enable aidev interface; value is shared secret"
+	flag.StringVar(&aidevSecret, "aidev", "", aidevUsage)
 	// TODO: Gopherbot CLI commands suck. Make them suck less.
 	flag.Parse()
 
 	if len(overrideDevEnv) > 0 {
 		deployEnvironment = overrideDevEnv
+	}
+
+	if len(aidevSecret) > 0 {
+		aidev.cfg.enabled = true
+		aidev.cfg.secret = aidevSecret
 	}
 
 	/*

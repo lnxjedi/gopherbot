@@ -251,6 +251,19 @@ func initBot() {
 			raiseThreadPriv("http handler")
 			apiServer := http.NewServeMux()
 			apiServer.Handle("/json", handle)
+			if aidevEnabled() {
+				apiServer.HandleFunc("/aidev/stream", aidevStreamHandler)
+				apiServer.HandleFunc("/aidev/inject", aidevInjectHandler)
+			}
+			if aidevEnabled() {
+				go func() {
+					ticker := time.NewTicker(10 * time.Second)
+					defer ticker.Stop()
+					for range ticker.C {
+						pruneExpiredInjections()
+					}
+				}()
+			}
 			Log(robot.Info, "Listening for external plugin connections on http://%s", listenPort)
 			Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, apiServer))
 		}()

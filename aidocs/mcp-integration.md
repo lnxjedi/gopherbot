@@ -19,8 +19,10 @@ Status: Draft design notes for the "--aidev" mode. This doc captures the intende
 ## Activation + Guardrails
 
 - Add a CLI flag in `bot/start.go` (func `Start`) to enable the interface.
-- When the flag is present, start a streamable HTTP server (SSE or websocket) on `127.0.0.1`.
+- The secret is **ephemeral per run** and provided via CLI; it is not persisted.
+- When the flag is present, start a streamable HTTP server (SSE) on `127.0.0.1` by reusing the existing HTTP listener in `bot/bot_process.go` (same mux as `/json`).
 - Require a shared secret header for every request/stream.
+  - Header: `X-AIDEV-KEY`
 
 Anchors:
 - CLI flag parsing: `bot/start.go` (func `Start`).
@@ -46,9 +48,9 @@ Injection should round-trip through the active connector so we capture real chan
 
 ### Flow (any connector)
 
-1. AI client posts an inject request to the local aidev server (includes protocol, username, and userID).
+1. AI client posts an inject request to the local aidev server (includes username and userID).
 2. Server formats a message like:
-   - `(#<nonce> as: <username>) <message>`
+   - `(#<nonce> as: <username>) <message>` where `<nonce>` is **7 hex chars**.
 3. Server calls the real connector Send* method to send the message.
 4. The connector delivers the bot-authored message back into the engine.
 5. `handler.IncomingMessage` sees `SelfMessage=true` and the special prefix, then:
@@ -79,7 +81,7 @@ Anchors:
 
 The AI dev interface should emit both inbound and outbound events, regardless of connector.
 
-- Inbound tap: at the start of `handler.IncomingMessage` (`bot/handler.go`).
+- Inbound tap: in `handler.IncomingMessage` after any loopback rewrite but before ignore checks (`bot/handler.go`).
 - Outbound tap: wrap `interfaces.SendProtocol*` calls in `bot/send_message.go`, or wrap the connector in `bot/bot_process.go` when `setConnector` is called.
 
 Event payload should include:
@@ -90,13 +92,38 @@ Event payload should include:
 - flags (direct, hidden, botMessage, selfMessage)
 - text
 
-## Injection API (high-level + mapping)
+### SSE endpoint
 
-Injection requests MUST include the protocol + userID from the MCP mapping. The server should refuse injections without a mapping entry. Example payload:
+- `GET /aidev/stream`
+- Requires `X-AIDEV-KEY` header matching `--aidev` secret.
+- Streams JSON events as SSE `data:` lines.
+
+Example event (shape only):
 
 ```
 {
-  "protocol": "slack",
+  "Direction": "inbound",
+  "Protocol": "slack",
+  "UserName": "david",
+  "UserID": "U0123ABCDE",
+  "ChannelName": "general",
+  "ChannelID": "C0ABCDEF",
+  "ThreadID": "1700000000.000100",
+  "MessageID": "1700000000.000100",
+  "SelfMessage": false,
+  "BotMessage": false,
+  "Hidden": false,
+  "Direct": false,
+  "Text": "hello"
+}
+```
+
+## Injection API (high-level + mapping)
+
+Injection requests MUST include the userID from the MCP mapping. The server should refuse injections without a mapping entry. The engine **trusts** the shim-provided userID (no engine-side cross-check).
+
+```
+{
   "user": "david",
   "user_id": "U0123ABCDE",
   "channel": "general",
@@ -108,6 +135,12 @@ Injection requests MUST include the protocol + userID from the MCP mapping. The 
 
 The mapping file lives with the MCP shim and supplies user_id; the engine uses it only for loopback rewrite.
 
+### Inject endpoint
+
+- `POST /aidev/inject`
+- Requires `X-AIDEV-KEY` header matching `--aidev` secret.
+- Returns `202 Accepted` on success, `400/401` otherwise.
+
 ## Pending Injection Tracking
 
 A minimal pending queue is needed to correlate loopback messages when multiple injections are in flight.
@@ -116,7 +149,7 @@ Suggested key:
 - nonce (hex string) embedded in the prefix.
 
 Suggested structure:
-- map[nonce]pendingInjection{protocol, user, userID, channel, thread, sentAt}
+- map[nonce]pendingInjection{user, userID, channel, thread, sentAt}
 - TTL cleanup (short window, e.g., 30s)
 
 ## Prefix Format
@@ -134,7 +167,7 @@ Constraints:
 - Should the prefix include channel/thread hints, or only user + nonce?
 - Should loopback rewriting be allowed only when `--aidev` is set? (Yes.)
 - Should there be a raw injection mode for tests, or only high-level payloads?
-- Should injected messages bypass `IgnoreUnlistedUsers` in `bot/handler.go`? (Probably yes, since mappings are explicit.)
+- Should injected messages bypass `IgnoreUnlistedUsers` in `bot/handler.go`? (No: evaluate after rewrite; log when ignored.)
 
 ## Related Files (entrypoints)
 

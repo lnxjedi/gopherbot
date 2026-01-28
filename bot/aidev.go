@@ -1,0 +1,299 @@
+package bot
+
+import (
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"regexp"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/lnxjedi/gopherbot/robot"
+)
+
+type aidevConfig struct {
+	enabled bool
+	secret  string
+}
+
+var aidev = struct {
+	cfg aidevConfig
+}{
+	cfg: aidevConfig{},
+}
+
+type pendingInjection struct {
+	nonce   string
+	user    string
+	userID  string
+	channel string
+	thread  string
+	created time.Time
+}
+
+var pendingInjections = struct {
+	sync.Mutex
+	m map[string]pendingInjection
+}{
+	m: make(map[string]pendingInjection),
+}
+
+const (
+	aidevNonceLen = 7
+	aidevTTL      = 30 * time.Second
+)
+
+var aidevPrefixRe = regexp.MustCompile(`^\(#([0-9a-fA-F]{7}) as: ([^)]+)\)\s*`)
+
+type tapEvent struct {
+	Direction   string
+	Protocol    string
+	UserName    string
+	UserID      string
+	ChannelName string
+	ChannelID   string
+	ThreadID    string
+	MessageID   string
+	SelfMessage bool
+	BotMessage  bool
+	Hidden      bool
+	Direct      bool
+	Text        string
+}
+
+type aidevInjectRequest struct {
+	User    string `json:"user"`
+	UserID  string `json:"user_id"`
+	Channel string `json:"channel"`
+	Thread  string `json:"thread"`
+	Message string `json:"message"`
+	Direct  bool   `json:"direct"`
+	Hidden  bool   `json:"hidden"`
+}
+
+type tapListener struct {
+	ch chan tapEvent
+}
+
+var aidevTaps = struct {
+	sync.Mutex
+	list map[*tapListener]struct{}
+}{
+	list: make(map[*tapListener]struct{}),
+}
+
+func aidevEnabled() bool {
+	return aidev.cfg.enabled
+}
+
+func aidevSecret() string {
+	return aidev.cfg.secret
+}
+
+func newAidevNonce() (string, error) {
+	buf := make([]byte, (aidevNonceLen+1)/2)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	nonce := hex.EncodeToString(buf)
+	if len(nonce) > aidevNonceLen {
+		nonce = nonce[:aidevNonceLen]
+	}
+	return nonce, nil
+}
+
+func aidevPrefix(nonce, user string) string {
+	return fmt.Sprintf("(#%s as: %s) ", nonce, user)
+}
+
+func parseAidevPrefix(msg string) (nonce, user, stripped string, ok bool) {
+	matches := aidevPrefixRe.FindStringSubmatch(msg)
+	if len(matches) != 3 {
+		return "", "", msg, false
+	}
+	nonce = strings.ToLower(matches[1])
+	user = matches[2]
+	stripped = strings.TrimSpace(msg[len(matches[0]):])
+	return nonce, user, stripped, true
+}
+
+func unbracketID(v string) string {
+	h := handler{}
+	if id, ok := h.ExtractID(v); ok {
+		return id
+	}
+	return v
+}
+
+func enqueueInjection(p pendingInjection) error {
+	if !aidevEnabled() {
+		return errors.New("aidev disabled")
+	}
+	if p.nonce == "" {
+		return errors.New("missing nonce")
+	}
+	p.created = time.Now()
+	pendingInjections.Lock()
+	pendingInjections.m[p.nonce] = p
+	pendingInjections.Unlock()
+	return nil
+}
+
+func consumeInjection(nonce string) (pendingInjection, bool) {
+	pendingInjections.Lock()
+	defer pendingInjections.Unlock()
+	p, ok := pendingInjections.m[nonce]
+	if ok {
+		delete(pendingInjections.m, nonce)
+	}
+	return p, ok
+}
+
+func pruneExpiredInjections() {
+	if !aidevEnabled() {
+		return
+	}
+	cutoff := time.Now().Add(-aidevTTL)
+	pendingInjections.Lock()
+	for nonce, pending := range pendingInjections.m {
+		if pending.created.Before(cutoff) {
+			delete(pendingInjections.m, nonce)
+		}
+	}
+	pendingInjections.Unlock()
+}
+
+func aidevAuthOK(r *http.Request) bool {
+	if !aidevEnabled() {
+		return false
+	}
+	secret := aidevSecret()
+	if secret == "" {
+		return false
+	}
+	return r.Header.Get("X-AIDEV-KEY") == secret
+}
+
+func addTapListener() *tapListener {
+	l := &tapListener{ch: make(chan tapEvent, 64)}
+	aidevTaps.Lock()
+	aidevTaps.list[l] = struct{}{}
+	aidevTaps.Unlock()
+	return l
+}
+
+func removeTapListener(l *tapListener) {
+	aidevTaps.Lock()
+	delete(aidevTaps.list, l)
+	aidevTaps.Unlock()
+	close(l.ch)
+}
+
+func emitTapEvent(evt tapEvent) {
+	if !aidevEnabled() {
+		return
+	}
+	aidevTaps.Lock()
+	for l := range aidevTaps.list {
+		select {
+		case l.ch <- evt:
+		default:
+		}
+	}
+	aidevTaps.Unlock()
+}
+
+func aidevStreamHandler(w http.ResponseWriter, r *http.Request) {
+	if !aidevAuthOK(r) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	l := addTapListener()
+	defer removeTapListener(l)
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case evt, ok := <-l.ch:
+			if !ok {
+				return
+			}
+			data, err := json.Marshal(evt)
+			if err != nil {
+				continue
+			}
+			fmt.Fprintf(w, "data: %s\n\n", data)
+			flusher.Flush()
+		}
+	}
+}
+
+func aidevInjectHandler(w http.ResponseWriter, r *http.Request) {
+	if !aidevAuthOK(r) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req aidevInjectRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if req.User == "" || req.UserID == "" || req.Message == "" {
+		http.Error(w, "missing user, user_id, or message", http.StatusBadRequest)
+		return
+	}
+	if !req.Direct && req.Channel == "" {
+		http.Error(w, "missing channel", http.StatusBadRequest)
+		return
+	}
+	nonce, err := newAidevNonce()
+	if err != nil {
+		http.Error(w, "nonce error", http.StatusInternalServerError)
+		return
+	}
+	p := pendingInjection{
+		nonce:   nonce,
+		user:    req.User,
+		userID:  req.UserID,
+		channel: req.Channel,
+		thread:  req.Thread,
+	}
+	if err := enqueueInjection(p); err != nil {
+		http.Error(w, "enqueue error", http.StatusInternalServerError)
+		return
+	}
+	msg := aidevPrefix(nonce, req.User) + req.Message
+	channel := req.Channel
+	thread := req.Thread
+	currentCfg.RLock()
+	format := currentCfg.defaultMessageFormat
+	currentCfg.RUnlock()
+	var ret robot.RetVal
+	if req.Direct {
+		ret = interfaces.SendProtocolUserMessage(bracket(req.UserID), msg, format, nil)
+	} else {
+		ret = interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, format, nil)
+	}
+	if ret != robot.Ok {
+		consumeInjection(nonce)
+		http.Error(w, fmt.Sprintf("send error: %d", ret), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusAccepted)
+}
