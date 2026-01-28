@@ -254,6 +254,7 @@ func initBot() {
 			if aidevEnabled() {
 				apiServer.HandleFunc("/aidev/stream", aidevStreamHandler)
 				apiServer.HandleFunc("/aidev/inject", aidevInjectHandler)
+				apiServer.HandleFunc("/aidev/control", aidevControlHandler)
 			}
 			if aidevEnabled() {
 				go func() {

@@ -141,6 +141,15 @@ The mapping file lives with the MCP shim and supplies user_id; the engine uses i
 - Requires `X-AIDEV-KEY` header matching `--aidev` secret.
 - Returns `202 Accepted` on success, `400/401` otherwise.
 
+### Control endpoint
+
+- `POST /aidev/control`
+- Requires `X-AIDEV-KEY` header matching `--aidev` secret.
+- Payload: `{ "action": "exit" | "force_exit" | "stack_dump" }`
+- `exit` triggers graceful shutdown (`stop()`).
+- `force_exit` triggers a SIGUSR1 stack dump + panic (see `bot/signal.go`).
+- `stack_dump` logs a runtime stack dump without exiting.
+
 ## Pending Injection Tracking
 
 A minimal pending queue is needed to correlate loopback messages when multiple injections are in flight.

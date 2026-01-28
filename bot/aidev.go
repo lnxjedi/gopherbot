@@ -6,13 +6,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	"golang.org/x/sys/unix"
 )
 
 type aidevConfig struct {
@@ -75,6 +79,10 @@ type aidevInjectRequest struct {
 	Hidden  bool   `json:"hidden"`
 }
 
+type aidevControlRequest struct {
+	Action string `json:"action"`
+}
+
 type tapListener struct {
 	ch chan tapEvent
 }
@@ -90,7 +98,7 @@ func aidevEnabled() bool {
 	return aidev.cfg.enabled
 }
 
-func aidevSecret() string {
+func aidevSecretValue() string {
 	return aidev.cfg.secret
 }
 
@@ -171,7 +179,7 @@ func aidevAuthOK(r *http.Request) bool {
 	if !aidevEnabled() {
 		return false
 	}
-	secret := aidevSecret()
+	secret := aidevSecretValue()
 	if secret == "" {
 		return false
 	}
@@ -296,4 +304,40 @@ func aidevInjectHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func aidevControlHandler(w http.ResponseWriter, r *http.Request) {
+	if !aidevAuthOK(r) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req aidevControlRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	switch req.Action {
+	case "exit":
+		go stop()
+		w.WriteHeader(http.StatusAccepted)
+	case "force_exit":
+		w.WriteHeader(http.StatusAccepted)
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			if p, err := os.FindProcess(os.Getpid()); err == nil {
+				_ = p.Signal(unix.SIGUSR1)
+			}
+		}()
+	case "stack_dump":
+		buf := make([]byte, 65536)
+		n := runtime.Stack(buf, true)
+		log.Printf("%s", buf[:n])
+		w.WriteHeader(http.StatusOK)
+	default:
+		http.Error(w, "unknown action", http.StatusBadRequest)
+	}
 }

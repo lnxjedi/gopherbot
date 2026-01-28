@@ -236,14 +236,6 @@ func (r Robot) Reply(msg string, v ...interface{}) robot.RetVal {
 	if r.Channel == "" {
 		return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
 	}
-	channel := r.ProtocolChannel
-	if len(channel) == 0 {
-		channel = r.Channel
-	}
-	var thread string
-	if r.Incoming.ThreadedMessage {
-		thread = r.Incoming.ThreadID
-	}
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	if w.BotUser {
@@ -274,10 +266,6 @@ func (w *worker) Reply(msg string, v ...interface{}) robot.RetVal {
 	if w.Channel == "" {
 		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
 	}
-	var thread string
-	if w.Incoming.ThreadedMessage {
-		thread = w.Incoming.ThreadID
-	}
 	if w.BotUser {
 		return interfaces.SendProtocolChannelThreadMessage(w.Channel, thread, w.User+": "+msg, w.Format, w.Incoming)
 	}
@@ -302,10 +290,6 @@ func (r Robot) ReplyThread(msg string, v ...interface{}) robot.RetVal {
 	// Support for Direct()
 	if r.Channel == "" {
 		return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
-	}
-	channel := r.ProtocolChannel
-	if len(channel) == 0 {
-		channel = r.Channel
 	}
 	w := getLockedWorker(r.tid)
 	w.Unlock()
@@ -338,14 +322,6 @@ func (r Robot) Say(msg string, v ...interface{}) robot.RetVal {
 		}
 		return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
 	}
-	channel := r.ProtocolChannel
-	if len(channel) == 0 {
-		channel = r.Channel
-	}
-	var thread string
-	if r.Incoming.ThreadedMessage {
-		thread = r.Incoming.ThreadID
-	}
 	return interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, r.Format, r.Incoming)
 }
 
@@ -371,14 +347,6 @@ func (w *worker) Say(msg string, v ...interface{}) robot.RetVal {
 		}
 		return interfaces.SendProtocolUserMessage(user, msg, w.Format, w.Incoming)
 	}
-	channel := w.ProtocolChannel
-	if len(channel) == 0 {
-		channel = w.Channel
-	}
-	var thread string
-	if w.Incoming.ThreadedMessage {
-		thread = w.Incoming.ThreadID
-	}
 	return interfaces.SendProtocolChannelThreadMessage(channel, thread, msg, w.Format, w.Incoming)
 }
 
@@ -400,10 +368,6 @@ func (r Robot) SayThread(msg string, v ...interface{}) robot.RetVal {
 			user = r.User
 		}
 		return interfaces.SendProtocolUserMessage(user, msg, r.Format, r.Incoming)
-	}
-	channel := r.ProtocolChannel
-	if len(channel) == 0 {
-		channel = r.Channel
 	}
 	return interfaces.SendProtocolChannelThreadMessage(channel, r.Incoming.ThreadID, msg, r.Format, r.Incoming)
 }
