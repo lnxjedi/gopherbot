@@ -20,9 +20,11 @@ Status: Draft design notes for the "--aidev" mode. This doc captures the intende
 
 - Add a CLI flag in `bot/start.go` (func `Start`) to enable the interface.
 - The secret is **ephemeral per run** and provided via CLI; it is not persisted.
+- When `--aidev` is set, gopherbot **auto-spawns** `gopherbot-mcp` and waits for a hello handshake.
 - When the flag is present, start a streamable HTTP server (SSE) on `127.0.0.1` by reusing the existing HTTP listener in `bot/bot_process.go` (same mux as `/json`).
 - Require a shared secret header for every request/stream.
   - Header: `X-AIDEV-KEY`
+  - Optional envs for auto-spawn: `GOPHER_AIDEV_MCP_CONFIG`, `GOPHER_AIDEV_MCP_PROTOCOL`
 
 Anchors:
 - CLI flag parsing: `bot/start.go` (func `Start`).
@@ -149,6 +151,7 @@ The mapping file lives with the MCP shim and supplies user_id; the engine uses i
 - `exit` triggers graceful shutdown (`stop()`).
 - `force_exit` triggers a SIGUSR1 stack dump + panic (see `bot/signal.go`).
 - `stack_dump` logs a runtime stack dump without exiting.
+- `hello` is used by `gopherbot-mcp` to confirm startup; gopherbot waits for it when `--aidev` is set.
 
 ## Pending Injection Tracking
 
@@ -183,6 +186,7 @@ Constraints:
 - `bot/start.go` (func `Start`) — CLI flags.
 - `bot/handler.go` (func `IncomingMessage`) — inbound tap.
 - `bot/send_message.go` — outbound tap.
+- `cmd/gopherbot-mcp/main.go` — MCP bridge, hello handshake.
 - `connectors/slack/incomingMsgs.go` — SelfMessage flagging (Slack).
 - `connectors/slack/connect.go` — bot ID init (Slack).
 - `connectors/slack/messages.go` — edit dedup window.

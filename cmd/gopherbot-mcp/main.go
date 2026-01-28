@@ -117,6 +117,7 @@ func main() {
 		client:   &http.Client{Timeout: 0},
 	}
 
+	go s.sendHelloLoop()
 	go s.consumeSSE()
 	s.serveStdio()
 }
@@ -400,38 +401,64 @@ func (s *server) postJSON(path string, payload interface{}) error {
 }
 
 func (s *server) consumeSSE() {
-	req, err := http.NewRequest(http.MethodGet, s.baseURL+"/aidev/stream", nil)
-	if err != nil {
-		return
-	}
-	req.Header.Set("X-AIDEV-KEY", s.secret)
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-	reader := bufio.NewReader(resp.Body)
-	var buf strings.Builder
+	backoff := 250 * time.Millisecond
 	for {
-		line, err := reader.ReadString('\n')
+		req, err := http.NewRequest(http.MethodGet, s.baseURL+"/aidev/stream", nil)
 		if err != nil {
 			return
 		}
-		line = strings.TrimRight(line, "\r\n")
-		if line == "" {
-			if buf.Len() > 0 {
-				var evt tapEvent
-				if err := json.Unmarshal([]byte(buf.String()), &evt); err == nil {
-					s.events <- evt
-				}
-				buf.Reset()
+		req.Header.Set("X-AIDEV-KEY", s.secret)
+		resp, err := s.client.Do(req)
+		if err != nil {
+			time.Sleep(backoff)
+			if backoff < 2*time.Second {
+				backoff *= 2
 			}
 			continue
 		}
-		if strings.HasPrefix(line, "data:") {
-			data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
-			buf.WriteString(data)
+		if resp.StatusCode != http.StatusOK {
+			_ = resp.Body.Close()
+			time.Sleep(backoff)
+			if backoff < 2*time.Second {
+				backoff *= 2
+			}
+			continue
 		}
+		backoff = 250 * time.Millisecond
+		reader := bufio.NewReader(resp.Body)
+		var buf strings.Builder
+		for {
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				_ = resp.Body.Close()
+				break
+			}
+			line = strings.TrimRight(line, "\r\n")
+			if line == "" {
+				if buf.Len() > 0 {
+					var evt tapEvent
+					if err := json.Unmarshal([]byte(buf.String()), &evt); err == nil {
+						s.events <- evt
+					}
+					buf.Reset()
+				}
+				continue
+			}
+			if strings.HasPrefix(line, "data:") {
+				data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+				buf.WriteString(data)
+			}
+		}
+	}
+}
+
+func (s *server) sendHelloLoop() {
+	payload := map[string]interface{}{"action": "hello"}
+	for {
+		if err := s.postJSON("/aidev/control", payload); err == nil {
+			return
+		}
+		time.Sleep(250 * time.Millisecond)
 	}
 }
 

@@ -26,6 +26,7 @@ var (
 	plainlog        bool
 	helpRequested   bool
 	aidevSecret     string
+	aidevRequested  bool
 
 	hostName  string
 	ideMode   bool
@@ -35,6 +36,20 @@ var (
 )
 
 const defaultLogFile = "robot.log"
+
+func normalizeAidevArgs(args []string) []string {
+	for i, a := range args {
+		if a == "--aidev" {
+			aidevRequested = true
+			args[i] = "--aidev="
+			continue
+		}
+		if strings.HasPrefix(a, "--aidev=") {
+			aidevRequested = true
+		}
+	}
+	return args
+}
 
 func init() {
 	hostName = os.Getenv("HOSTNAME")
@@ -69,7 +84,7 @@ func Start(v VersionInfo) {
 
 	var overrideDevEnv string
 	// Save args in case we need to spawn child
-	args := os.Args[1:]
+	args := normalizeAidevArgs(os.Args[1:])
 	// Process command-line flags
 	lusage := "path to robot's log file (or 'stdout' or 'stderr')"
 	flag.StringVar(&logFile, "log", "", lusage)
@@ -89,13 +104,16 @@ func Start(v VersionInfo) {
 	aidevUsage := "enable aidev interface; value is shared secret"
 	flag.StringVar(&aidevSecret, "aidev", "", aidevUsage)
 	// TODO: Gopherbot CLI commands suck. Make them suck less.
-	flag.Parse()
+	_ = flag.CommandLine.Parse(args)
 
 	if len(overrideDevEnv) > 0 {
 		deployEnvironment = overrideDevEnv
 	}
 
-	if len(aidevSecret) > 0 {
+	if aidevRequested {
+		if len(aidevSecret) == 0 {
+			aidevSecret = newAidevToken()
+		}
 		aidev.cfg.enabled = true
 		aidev.cfg.secret = aidevSecret
 	}

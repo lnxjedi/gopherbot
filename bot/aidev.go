@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -94,6 +96,13 @@ var aidevTaps = struct {
 	list: make(map[*tapListener]struct{}),
 }
 
+var aidevHello = struct {
+	sync.Mutex
+	ch chan struct{}
+}{
+	ch: make(chan struct{}, 1),
+}
+
 func aidevEnabled() bool {
 	return aidev.cfg.enabled
 }
@@ -112,6 +121,14 @@ func newAidevNonce() (string, error) {
 		nonce = nonce[:aidevNonceLen]
 	}
 	return nonce, nil
+}
+
+func newAidevToken() string {
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		return ""
+	}
+	return hex.EncodeToString(buf)
 }
 
 func aidevPrefix(nonce, user string) string {
@@ -213,6 +230,62 @@ func emitTapEvent(evt tapEvent) {
 		}
 	}
 	aidevTaps.Unlock()
+}
+
+func markAidevHello() {
+	aidevHello.Lock()
+	select {
+	case aidevHello.ch <- struct{}{}:
+	default:
+	}
+	aidevHello.Unlock()
+}
+
+func waitForAidevHello(timeout time.Duration) error {
+	select {
+	case <-aidevHello.ch:
+		return nil
+	case <-time.After(timeout):
+		return errors.New("aidev hello timeout")
+	}
+}
+
+func findAidevMCPBinary() (string, error) {
+	candidates := []string{
+		filepath.Join(installPath, "gopherbot-mcp"),
+		filepath.Join(installPath, "cmd", "gopherbot-mcp", "gopherbot-mcp"),
+	}
+	for _, candidate := range candidates {
+		if st, err := os.Stat(candidate); err == nil && !st.IsDir() {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("gopherbot-mcp binary not found under %s", installPath)
+}
+
+func startAidevMCP(listenAddr string) error {
+	if !aidevEnabled() {
+		return nil
+	}
+	bin, err := findAidevMCPBinary()
+	if err != nil {
+		return err
+	}
+	url := "http://" + listenAddr
+	args := []string{
+		"--aidev-url", url,
+		"--aidev-key", aidev.cfg.secret,
+	}
+	if cfg := os.Getenv("GOPHER_AIDEV_MCP_CONFIG"); cfg != "" {
+		args = append(args, "--config", cfg)
+	}
+	if proto := os.Getenv("GOPHER_AIDEV_MCP_PROTOCOL"); proto != "" {
+		args = append(args, "--protocol", proto)
+	}
+	cmd := exec.Command(bin, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Start()
 }
 
 func aidevStreamHandler(w http.ResponseWriter, r *http.Request) {
@@ -321,6 +394,9 @@ func aidevControlHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch req.Action {
+	case "hello":
+		markAidevHello()
+		w.WriteHeader(http.StatusOK)
 	case "exit":
 		go stop()
 		w.WriteHeader(http.StatusAccepted)

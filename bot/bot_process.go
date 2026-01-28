@@ -266,7 +266,17 @@ func initBot() {
 				}()
 			}
 			Log(robot.Info, "Listening for external plugin connections on http://%s", listenPort)
-			Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, apiServer))
+			go func() {
+				Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, apiServer))
+			}()
+			if aidevEnabled() {
+				if err := startAidevMCP(listenPort); err != nil {
+					Log(robot.Fatal, "Starting gopherbot-mcp: %v", err)
+				}
+				if err := waitForAidevHello(5 * time.Second); err != nil {
+					Log(robot.Fatal, "Timed out waiting for gopherbot-mcp hello: %v", err)
+				}
+			}
 		}()
 	}
 }
