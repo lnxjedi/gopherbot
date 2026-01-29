@@ -253,6 +253,7 @@ func initBot() {
 			apiServer.Handle("/json", handle)
 			if aidevEnabled() {
 				apiServer.HandleFunc("/aidev/stream", aidevStreamHandler)
+				apiServer.HandleFunc("/aidev/events", aidevEventsHandler)
 				apiServer.HandleFunc("/aidev/inject", aidevInjectHandler)
 				apiServer.HandleFunc("/aidev/control", aidevControlHandler)
 			}
@@ -262,6 +263,7 @@ func initBot() {
 					defer ticker.Stop()
 					for range ticker.C {
 						pruneExpiredInjections()
+						pruneAidevEvents()
 					}
 				}()
 			}
@@ -372,16 +374,14 @@ func run() {
 	go sigHandle(sigBreak)
 
 	if aidevEnabled() {
-		bin, err := findAidevMCPBinary()
+		_, err := findAidevMCPBinary()
 		if err != nil {
 			Log(robot.Fatal, "AIDEV enabled but gopherbot-mcp not found: %v", err)
 		}
-		cmd := aidevStartCommand(listenPort, bin)
-		Log(robot.Info, "AIDEV started; start MCP with: %s", cmd)
-		botStdErrLogger.Printf("AIDEV: start MCP with: %s", cmd)
-		if err := waitForAidevStart(60 * time.Second); err != nil {
-			Log(robot.Fatal, "Timed out waiting for AIDEV start: %v", err)
+		if err := writeAidevConnectFile(listenPort); err != nil {
+			Log(robot.Fatal, "Failed to write AIDEV connect file: %v", err)
 		}
+		Log(robot.Info, "AIDEV enabled; wrote .mcp-connect")
 	}
 
 	// connector loop

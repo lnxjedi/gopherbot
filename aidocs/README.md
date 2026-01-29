@@ -20,6 +20,8 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - `aidocs/TESTING_CURRENT.md` - current integration test harness and test case structure.
 - `aidocs/PIPELINE_LIFECYCLE.md` - incoming message to pipeline start flow.
 - `aidocs/SCHEDULER_FLOW.md` - cron scheduler to pipeline start flow.
+- `aidocs/AI_OPERATOR_MODEL.md` - AI operator mental model (robot/session/state).
+- `aidocs/mcp-integration.md` - AIDEV/MCP design notes + operator workflow summary (see `devdocs/aidev-mcp.md` for the practical runbook).
 
 ## Routing guide
 

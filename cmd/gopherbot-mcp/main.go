@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -46,6 +48,7 @@ type mcpTool struct {
 }
 
 type tapEvent struct {
+	ID          string `json:"ID"`
 	Direction   string `json:"Direction"`
 	Protocol    string `json:"Protocol"`
 	UserName    string `json:"UserName"`
@@ -61,33 +64,69 @@ type tapEvent struct {
 	Text        string `json:"Text"`
 }
 
+type connectInfo struct {
+	URL      string `json:"url"`
+	Key      string `json:"key"`
+	Config   string `json:"config"`
+	Protocol string `json:"protocol"`
+}
+
 type server struct {
-	baseURL  string
-	secret   string
-	protocol string
-	cfg      config
-	events   chan tapEvent
-	client   *http.Client
+	baseURL     string
+	secret      string
+	protocol    string
+	cfg         config
+	events      chan tapEvent
+	client      *http.Client
+	lastEventMu sync.Mutex
+	lastEventID string
 }
 
 func main() {
 	var (
-		aidevURL   string
-		aidevKey   string
-		configPath string
-		protocol   string
-		noDefaults bool
+		aidevURL    string
+		aidevKey    string
+		configPath  string
+		protocol    string
+		connectFile string
+		noDefaults  bool
 	)
 	flag.StringVar(&aidevURL, "aidev-url", "", "base URL for gopherbot aidev (e.g. http://127.0.0.1:12345)")
 	flag.StringVar(&aidevKey, "aidev-key", "", "shared secret for aidev")
 	flag.StringVar(&configPath, "config", "", "path to YAML config with usermaps")
-	flag.StringVar(&protocol, "protocol", "terminal", "protocol key to select from usermaps")
+	flag.StringVar(&protocol, "protocol", "", "protocol key to select from usermaps (default \"terminal\" or connect file)")
+	flag.StringVar(&connectFile, "connect-file", "", "path to .mcp-connect JSON")
 	flag.BoolVar(&noDefaults, "no-defaults", false, "disable built-in terminal user defaults")
 	flag.Parse()
 
+	if connectFile != "" {
+		path := connectFile
+		info, err := loadConnectFile(path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "read connect file: %v\n", err)
+			os.Exit(2)
+		}
+		if aidevURL == "" {
+			aidevURL = info.URL
+		}
+		if aidevKey == "" {
+			aidevKey = info.Key
+		}
+		if configPath == "" && info.Config != "" {
+			configPath = info.Config
+		}
+		if protocol == "" && info.Protocol != "" {
+			protocol = info.Protocol
+		}
+	}
+
 	if aidevURL == "" || aidevKey == "" {
-		fmt.Fprintln(os.Stderr, "missing --aidev-url or --aidev-key")
+		fmt.Fprintln(os.Stderr, "missing --aidev-url or --aidev-key (or --connect-file)")
 		os.Exit(2)
+	}
+
+	if protocol == "" {
+		protocol = "terminal"
 	}
 
 	cfg := config{}
@@ -154,6 +193,21 @@ func mergeUserMaps(base, override config) config {
 		}
 	}
 	return out
+}
+
+func loadConnectFile(path string) (connectInfo, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return connectInfo{}, err
+	}
+	var info connectInfo
+	if err := json.Unmarshal(data, &info); err != nil {
+		return connectInfo{}, err
+	}
+	if info.URL == "" || info.Key == "" {
+		return connectInfo{}, fmt.Errorf("missing url or key in %s", path)
+	}
+	return info, nil
 }
 
 func (s *server) serveStdio() {
@@ -244,6 +298,16 @@ func (s *server) handleRequest(req jsonRPCRequest) jsonRPCResponse {
 						},
 					},
 					{
+						Name:        "fetch_events",
+						Description: "Fetch queued aidev events since the last fetch",
+						InputSchema: map[string]interface{}{
+							"type": "object",
+							"properties": map[string]interface{}{
+								"since": map[string]interface{}{"type": "string"},
+							},
+						},
+					},
+					{
 						Name:        "control_exit",
 						Description: "Request a graceful robot exit",
 						InputSchema: map[string]interface{}{"type": "object"},
@@ -251,11 +315,6 @@ func (s *server) handleRequest(req jsonRPCRequest) jsonRPCResponse {
 					{
 						Name:        "control_force_exit",
 						Description: "Force exit with stack dump (SIGUSR1)",
-						InputSchema: map[string]interface{}{"type": "object"},
-					},
-					{
-						Name:        "start_robot",
-						Description: "Tell gopherbot to continue startup after aidev wait",
 						InputSchema: map[string]interface{}{"type": "object"},
 					},
 				},
@@ -285,12 +344,12 @@ func (s *server) handleToolCall(req jsonRPCRequest) jsonRPCResponse {
 		return s.toolSendMessage(req.ID, payload.Arguments)
 	case "wait_for_event":
 		return s.toolWaitForEvent(req.ID, payload.Arguments)
+	case "fetch_events":
+		return s.toolFetchEvents(req.ID, payload.Arguments)
 	case "control_exit":
 		return s.toolControl(req.ID, "exit")
 	case "control_force_exit":
 		return s.toolControl(req.ID, "force_exit")
-	case "start_robot":
-		return s.toolControl(req.ID, "start")
 	default:
 		return jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Error: &jsonRPCError{Code: -32601, Message: "tool not found"}}
 	}
@@ -350,12 +409,40 @@ func (s *server) toolWaitForEvent(id json.RawMessage, args json.RawMessage) json
 			if req.Channel != "" && evt.ChannelName != req.Channel {
 				continue
 			}
+			s.setLastEventID(evt.ID)
 			data, _ := json.Marshal(evt)
 			return jsonRPCResponse{JSONRPC: "2.0", ID: id, Result: mcpTextResult(string(data))}
 		case <-timeout.C:
 			return jsonRPCResponse{JSONRPC: "2.0", ID: id, Error: &jsonRPCError{Code: -32002, Message: "timeout"}}
 		}
 	}
+}
+
+func (s *server) toolFetchEvents(id json.RawMessage, args json.RawMessage) jsonRPCResponse {
+	var req struct {
+		Since string `json:"since"`
+	}
+	_ = json.Unmarshal(args, &req)
+	since := strings.TrimSpace(req.Since)
+	if since == "" {
+		since = s.getLastEventID()
+	}
+	path := "/aidev/events"
+	if since != "" {
+		path += "?since=" + url.QueryEscape(since)
+	}
+	var resp struct {
+		Events []tapEvent `json:"events"`
+		LastID string     `json:"last_id"`
+	}
+	if err := s.getJSON(path, &resp); err != nil {
+		return jsonRPCResponse{JSONRPC: "2.0", ID: id, Error: &jsonRPCError{Code: -32004, Message: err.Error()}}
+	}
+	if resp.LastID != "" {
+		s.setLastEventID(resp.LastID)
+	}
+	data, _ := json.Marshal(resp)
+	return jsonRPCResponse{JSONRPC: "2.0", ID: id, Result: mcpTextResult(string(data))}
 }
 
 func (s *server) toolControl(id json.RawMessage, action string) jsonRPCResponse {
@@ -407,6 +494,24 @@ func (s *server) postJSON(path string, payload interface{}) error {
 	return nil
 }
 
+func (s *server) getJSON(path string, target interface{}) error {
+	req, err := http.NewRequest(http.MethodGet, s.baseURL+path, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("X-AIDEV-KEY", s.secret)
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("http %d: %s", resp.StatusCode, strings.TrimSpace(string(b)))
+	}
+	return json.NewDecoder(resp.Body).Decode(target)
+}
+
 func (s *server) consumeSSE() {
 	backoff := 250 * time.Millisecond
 	for {
@@ -446,6 +551,7 @@ func (s *server) consumeSSE() {
 				if buf.Len() > 0 {
 					var evt tapEvent
 					if err := json.Unmarshal([]byte(buf.String()), &evt); err == nil {
+						s.setLastEventID(evt.ID)
 						s.events <- evt
 					}
 					buf.Reset()
@@ -468,6 +574,21 @@ func (s *server) sendHelloLoop() {
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
+}
+
+func (s *server) setLastEventID(id string) {
+	if id == "" {
+		return
+	}
+	s.lastEventMu.Lock()
+	s.lastEventID = id
+	s.lastEventMu.Unlock()
+}
+
+func (s *server) getLastEventID() string {
+	s.lastEventMu.Lock()
+	defer s.lastEventMu.Unlock()
+	return s.lastEventID
 }
 
 func mcpTextResult(text string) map[string]interface{} {

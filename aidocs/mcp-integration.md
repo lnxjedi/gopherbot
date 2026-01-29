@@ -1,6 +1,27 @@
 # MCP Integration (AI Dev Tap + Inject)
 
-Status: Draft design notes for the "--aidev" mode. This doc captures the intended behavior, anchor points, and open questions for an AI-facing tap/inject interface.
+Status: Draft design notes for the `--aidev` mode. This doc captures intended
+behavior, anchor points, and operator expectations for the AI-facing tap/inject
+interface.
+
+## Operator workflow (summary)
+
+For AI/Codex operation, use **one-shot** MCP runs and treat each run like a
+single `make` invocation: run once, inspect output, decide next step. Do not
+script MCP interactions.
+
+Standard patterns:
+- History check: `fetch_events` and stop to think.
+- Send + wait (single run): `send_message`, then `wait_for_event` with a short
+  timeout (<= 14s), then stop to think.
+
+In short runs, outbound `wait_for_event` can be brittle; use the backlog
+(`fetch_events`) as the source of truth. See `devdocs/aidev-mcp.md` for the
+operator playbook and prompting guidance (channel selection, etc.).
+
+Important: avoid running `wait_for_event` as a standalone one-shot. It should
+only be used immediately after `send_message` in the *same* MCP invocation.
+If you reconnect later, use `fetch_events` instead.
 
 ## Goals
 
@@ -9,6 +30,7 @@ Status: Draft design notes for the "--aidev" mode. This doc captures the intende
 - Require a **protocol-specific username→userID mapping** for impersonation; injection is denied if the mapping is missing.
 - Gate all functionality behind an explicit CLI flag (e.g., `--aidev <secret>`).
 - Keep the interface local-only (localhost) and dev-only.
+- Align AI operations to a session model; see `aidocs/AI_OPERATOR_MODEL.md`.
 
 ## Non-Goals
 
@@ -20,7 +42,8 @@ Status: Draft design notes for the "--aidev" mode. This doc captures the intende
 
 - Add a CLI flag in `bot/start.go` (func `Start`) to enable the interface.
 - The secret is **ephemeral per run** and generated when `--aidev` is set; it is not persisted.
-- When `--aidev` is set, gopherbot starts the HTTP listener, logs the exact MCP start command, and **waits for a `start` control action** before starting the connector.
+- When `--aidev` is set, gopherbot starts the HTTP listener, writes `.mcp-connect` in the current working directory, and immediately proceeds with normal startup.
+- AI operators should treat the `.mcp-connect` token as the **session identity**; do not mix tokens across robots/sessions (see `aidocs/AI_OPERATOR_MODEL.md`).
 - When the flag is present, start a streamable HTTP server (SSE) on `127.0.0.1` by reusing the existing HTTP listener in `bot/bot_process.go` (same mux as `/json`).
 - Require a shared secret header for every request/stream.
   - Header: `X-AIDEV-KEY`
@@ -87,6 +110,7 @@ The AI dev interface should emit both inbound and outbound events, regardless of
 - Outbound tap: wrap `interfaces.SendProtocol*` calls in `bot/send_message.go`, or wrap the connector in `bot/bot_process.go` when `setConnector` is called.
 
 Event payload should include:
+- event ID (monotonic + timestamp)
 - direction: `inbound` | `outbound`
 - protocol
 - user/channel names + IDs
@@ -104,6 +128,7 @@ Example event (shape only):
 
 ```
 {
+  "ID": "000123/12:34:56",
   "Direction": "inbound",
   "Protocol": "slack",
   "UserName": "david",
@@ -119,6 +144,15 @@ Example event (shape only):
   "Text": "hello"
 }
 ```
+
+### Event backlog endpoint
+
+- `GET /aidev/events?since=<event_id>`
+- Requires `X-AIDEV-KEY` header matching `--aidev` secret.
+- Returns `{ "events": [...], "last_id": "<event_id>" }`
+- Event IDs are formatted as `<NNNNNN>/<HH:MM:SS>` (monotonic sequence + local time).
+- Queue is capped at 1024 events and drops entries older than 7 minutes.
+- `since` is optional; when omitted, returns all currently queued events.
 
 ## Injection API (high-level + mapping)
 
@@ -143,19 +177,23 @@ The mapping file lives with the MCP shim and supplies user_id; the engine uses i
 - Requires `X-AIDEV-KEY` header matching `--aidev` secret.
 - Returns `202 Accepted` on success, `400/401` otherwise.
 - Returns `409 Conflict` if the robot has not completed post-connect initialization.
-- Operational rule: do not inject commands until after `start` and you observe readiness (e.g., via SSE welcome message).
+- Operational rule: do not inject commands until you observe readiness (e.g., via SSE welcome message).
 
 ### Control endpoint
 
 - `POST /aidev/control`
 - Requires `X-AIDEV-KEY` header matching `--aidev` secret.
-- Payload: `{ "action": "hello" | "ready" | "start" | "exit" | "force_exit" | "stack_dump" }`
+- Payload: `{ "action": "hello" | "ready" | "exit" | "force_exit" | "stack_dump" }`
 - `exit` triggers graceful shutdown (`stop()`).
 - `force_exit` triggers a SIGUSR1 stack dump + panic (see `bot/signal.go`).
 - `stack_dump` logs a runtime stack dump without exiting.
 - `hello` is used by `gopherbot-mcp` to confirm it can reach the control endpoint.
 - `ready` is sent after the MCP connects to the SSE stream.
-- `start` tells gopherbot to continue startup (connector + post-connect config).
+
+## Logging (AIDEV)
+
+- AIDEV activity logs go to the normal robot log (`robot.log` in demo/terminal modes).
+- The MCP connection details are written to `.mcp-connect` in the working directory (JSON with `url`, `key`, optional `config`/`protocol`).
 
 ## Pending Injection Tracking
 

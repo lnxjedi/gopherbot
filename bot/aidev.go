@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -52,9 +53,15 @@ const (
 	aidevTTL      = 30 * time.Second
 )
 
+const (
+	aidevMaxEvents = 1024
+	aidevEventTTL  = 7 * time.Minute
+)
+
 var aidevPrefixRe = regexp.MustCompile(`^\(#([0-9a-fA-F]{7}) as: ([^)]+)\)\s*`)
 
 type tapEvent struct {
+	ID          string
 	Direction   string
 	Protocol    string
 	UserName    string
@@ -88,11 +95,22 @@ type tapListener struct {
 	ch chan tapEvent
 }
 
+type tapEventQueue struct {
+	sync.Mutex
+	events []tapEvent
+}
+
 var aidevTaps = struct {
 	sync.Mutex
 	list map[*tapListener]struct{}
 }{
 	list: make(map[*tapListener]struct{}),
+}
+
+var aidevEventSeq uint64
+
+var aidevEvents = tapEventQueue{
+	events: make([]tapEvent, 0, 1024),
 }
 
 var aidevHello = struct {
@@ -242,6 +260,8 @@ func emitTapEvent(evt tapEvent) {
 	if !aidevEnabled() {
 		return
 	}
+	evt.ID = newAidevEventID()
+	appendAidevEvent(evt)
 	aidevTaps.Lock()
 	for l := range aidevTaps.list {
 		select {
@@ -250,6 +270,65 @@ func emitTapEvent(evt tapEvent) {
 		}
 	}
 	aidevTaps.Unlock()
+}
+
+func newAidevEventID() string {
+	seq := atomic.AddUint64(&aidevEventSeq, 1)
+	return fmt.Sprintf("%06d/%s", seq, time.Now().Format("15:04:05"))
+}
+
+func parseAidevEventID(id string) (uint64, bool) {
+	parts := strings.SplitN(id, "/", 2)
+	if len(parts) == 0 || parts[0] == "" {
+		return 0, false
+	}
+	var seq uint64
+	_, err := fmt.Sscanf(parts[0], "%d", &seq)
+	if err != nil {
+		return 0, false
+	}
+	return seq, true
+}
+
+func appendAidevEvent(evt tapEvent) {
+	aidevEvents.Lock()
+	defer aidevEvents.Unlock()
+	aidevEvents.events = append(aidevEvents.events, evt)
+	if len(aidevEvents.events) > aidevMaxEvents {
+		aidevEvents.events = aidevEvents.events[len(aidevEvents.events)-aidevMaxEvents:]
+	}
+	pruneAidevEventsLocked()
+}
+
+func pruneAidevEvents() {
+	aidevEvents.Lock()
+	pruneAidevEventsLocked()
+	aidevEvents.Unlock()
+}
+
+func pruneAidevEventsLocked() {
+	cutoff := time.Now().Add(-aidevEventTTL)
+	keep := aidevEvents.events[:0]
+	for _, evt := range aidevEvents.events {
+		if evtTime, ok := eventTimeFromID(evt.ID); ok && evtTime.Before(cutoff) {
+			continue
+		}
+		keep = append(keep, evt)
+	}
+	aidevEvents.events = keep
+}
+
+func eventTimeFromID(id string) (time.Time, bool) {
+	parts := strings.SplitN(id, "/", 2)
+	if len(parts) != 2 {
+		return time.Time{}, false
+	}
+	t, err := time.Parse("15:04:05", parts[1])
+	if err != nil {
+		return time.Time{}, false
+	}
+	now := time.Now()
+	return time.Date(now.Year(), now.Month(), now.Day(), t.Hour(), t.Minute(), t.Second(), 0, now.Location()), true
 }
 
 func markAidevHello() {
@@ -288,15 +367,6 @@ func waitForAidevHello(timeout time.Duration) error {
 	}
 }
 
-func waitForAidevStart(timeout time.Duration) error {
-	select {
-	case <-aidevStart.ch:
-		return nil
-	case <-time.After(timeout):
-		return errors.New("aidev start timeout")
-	}
-}
-
 func findAidevMCPBinary() (string, error) {
 	candidates := []string{
 		filepath.Join(installPath, "gopherbot-mcp"),
@@ -320,6 +390,42 @@ func aidevStartCommand(listenAddr string, bin string) string {
 		cmd += " --protocol " + proto
 	}
 	return cmd
+}
+
+func writeAidevConnectFile(listenAddr string) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	payload := map[string]string{
+		"url": "http://" + listenAddr,
+		"key": aidev.cfg.secret,
+	}
+	if cfg := os.Getenv("GOPHER_AIDEV_MCP_CONFIG"); cfg != "" {
+		payload["config"] = cfg
+	}
+	if proto := os.Getenv("GOPHER_AIDEV_MCP_PROTOCOL"); proto != "" {
+		payload["protocol"] = proto
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(wd, ".mcp-connect-*")
+	if err != nil {
+		return err
+	}
+	_, werr := tmp.Write(data)
+	cerr := tmp.Close()
+	if werr != nil {
+		_ = os.Remove(tmp.Name())
+		return werr
+	}
+	if cerr != nil {
+		_ = os.Remove(tmp.Name())
+		return cerr
+	}
+	return os.Rename(tmp.Name(), filepath.Join(wd, ".mcp-connect"))
 }
 
 func aidevStreamHandler(w http.ResponseWriter, r *http.Request) {
@@ -355,6 +461,57 @@ func aidevStreamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func aidevEventsHandler(w http.ResponseWriter, r *http.Request) {
+	if !aidevAuthOK(r) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var sinceSeq uint64
+	if since := r.URL.Query().Get("since"); since != "" {
+		var ok bool
+		sinceSeq, ok = parseAidevEventID(since)
+		if !ok {
+			http.Error(w, "invalid since", http.StatusBadRequest)
+			return
+		}
+	}
+	aidevEvents.Lock()
+	pruneAidevEventsLocked()
+	events := make([]tapEvent, 0, len(aidevEvents.events))
+	lastID := ""
+	if len(aidevEvents.events) > 0 {
+		lastID = aidevEvents.events[len(aidevEvents.events)-1].ID
+	}
+	for _, evt := range aidevEvents.events {
+		if sinceSeq > 0 {
+			if seq, ok := parseAidevEventID(evt.ID); ok && seq <= sinceSeq {
+				continue
+			}
+		}
+		events = append(events, evt)
+	}
+	aidevEvents.Unlock()
+	resp := struct {
+		Events []tapEvent `json:"events"`
+		LastID string     `json:"last_id"`
+	}{
+		Events: events,
+		LastID: lastID,
+	}
+	data, err := json.Marshal(resp)
+	if err != nil {
+		http.Error(w, "encode error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
+}
+
 func aidevInjectHandler(w http.ResponseWriter, r *http.Request) {
 	if !aidevAuthOK(r) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -373,7 +530,7 @@ func aidevInjectHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing user, user_id, or message", http.StatusBadRequest)
 		return
 	}
-	botStdErrLogger.Printf("AIDEV inject: user=%s user_id=%s channel=%s direct=%t message=%q", req.User, req.UserID, req.Channel, req.Direct, req.Message)
+	Log(robot.Info, "AIDEV inject: user=%s user_id=%s channel=%s direct=%t message=%q", req.User, req.UserID, req.Channel, req.Direct, req.Message)
 	if !req.Direct && req.Channel == "" {
 		http.Error(w, "missing channel", http.StatusBadRequest)
 		return
@@ -466,17 +623,14 @@ func aidevControlHandler(w http.ResponseWriter, r *http.Request) {
 	case "hello":
 		markAidevHello()
 		Log(robot.Info, "AIDEV MCP hello received")
-		botStdErrLogger.Printf("AIDEV control: hello")
 		w.WriteHeader(http.StatusOK)
 	case "ready":
 		markAidevReady()
 		Log(robot.Info, "AIDEV MCP ready received")
-		botStdErrLogger.Printf("AIDEV control: ready")
 		w.WriteHeader(http.StatusOK)
 	case "start":
 		markAidevStart()
 		Log(robot.Info, "AIDEV MCP start received")
-		botStdErrLogger.Printf("AIDEV control: start")
 		w.WriteHeader(http.StatusAccepted)
 	case "exit":
 		go stop()
