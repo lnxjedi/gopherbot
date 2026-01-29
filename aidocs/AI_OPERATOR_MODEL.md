@@ -28,9 +28,18 @@ This document captures the **conceptual model** that an AI operator (Codex) shou
 
 - Confirm the `.mcp-connect` token is from the **current** running robot session (new token == new session).
 - Start MCP with the explicit URL/key from `.mcp-connect` (do not assume).
-- Call `fetch_events` first to drain the backlog and confirm the robot is running.
-- Use `wait_for_event` with a short timeout; on timeout, call `fetch_events` again.
+- Call `fetch_events` first to drain the backlog and confirm the robot is running; this is the required first step for any new interaction.
+- Use `send_and_fetch` for back-and-forth; it waits for an inbound event from a different user (excluding the `aidev` loopback) before returning. If you suspect more messages are coming, call `fetch_events` again (each call drains the queue).
 - Proceed with `send_message` only after you see recent events (e.g., welcome/help output).
+- If the first reply is a preamble, partial answer, or otherwise not directly actionable, **wait and `fetch_events` again** before responding. Treat “sounds like more is coming” as a cue to pause and drain the queue.
+- AIDEV event delivery is **delete-on-read** and assumes a **single consumer**; do not run multiple MCP clients against the same robot session.
+
+## Addressing the Robot (AI)
+
+- Default assumption: commands must be addressed to the robot by **name or alias** (e.g., `floyd, ...` or `;help`).
+- A bare `help` is often implemented as an ambient matcher and may be answered by **all robots** in the channel; use it to discover names/aliases when unsure.
+- Bare commands like `help list` only work when there are **ambient message matchers**, which are uncommon; do not assume they exist.
+- If a help response explicitly shows the correct addressing format, follow it exactly for subsequent commands.
 
 ## One-shot MCP Runs (Recommended)
 
@@ -45,15 +54,13 @@ Two standard patterns:
 - Run MCP once to `fetch_events`.
 - Stop and decide the next action.
 
-**Send + wait**
+**Send + fetch**
 - Re-read `.mcp-connect` to confirm the active session.
-- Run MCP once to `send_message`, then `wait_for_event` with a short timeout
-  (<= 14s).
+- Run MCP once to `send_and_fetch` with a short timeout (<= 14s).
 - Stop and decide the next action based on what you received.
 
-Do not run `wait_for_event` in a separate one-shot. If you need to wait, do it
-immediately after `send_message` in the same MCP invocation. Later polling
-should use `fetch_events`.
+Do not run `send_message` then wait separately. If you need a reply, use
+`send_and_fetch`. Later polling should use `fetch_events`.
 
 Avoid writing expect-style scripts; treat each MCP run like a single "make"
 invocation: run it, inspect output, decide the next run.

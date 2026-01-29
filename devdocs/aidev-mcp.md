@@ -4,6 +4,23 @@ This doc explains how to run the AIDEV interface and operate `gopherbot-mcp` in
 **one-shot** runs. Treat MCP like `make`: run once, inspect output, decide the
 next run. Do not script or keep MCP running.
 
+## Fresh Session Checklist
+
+1) Re-read `.mcp-connect` to confirm the active session token.
+2) Run a one-shot `fetch_events` to establish context and readiness (this drains the queue).
+3) Proceed with `send_and_fetch` for back-and-forth.
+
+## Quoting-safe one-shot pattern
+
+When invoking `gopherbot-mcp` from a shell, avoid quote-escaping failures by
+feeding JSON via a here-doc:
+
+```bash
+cat <<'JSON' | ./gopherbot-mcp --connect-file ../empty-test/.mcp-connect
+{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"send_and_fetch","arguments":{"user":"david","channel":"general","message":"floyd, help","direct":false,"timeout_ms":12000}}}
+JSON
+```
+
 ## Build
 
 ```
@@ -42,12 +59,13 @@ gopherbot-mcp --connect-file .mcp-connect
 
 The MCP process sends:
 - `hello` to `/aidev/control`
-- `ready` once it connects to `/aidev/stream`
+- `ready` to `/aidev/control`
 
 ### 3) Confirm readiness
 
 Use `fetch_events` to see the recent event history and confirm the robot is
-running.
+running. This endpoint uses delete-on-read semantics, so each fetch drains
+the queue.
 
 ## Run (AI operator / Codex)
 
@@ -79,27 +97,23 @@ There are two standard patterns:
 
 **A) History check**
 - Re-read `.mcp-connect` to confirm the active session.
-- Run MCP once and call `fetch_events`.
+- Run MCP once and call `fetch_events` (optionally `wait_ms` to wait briefly).
 - Stop and decide whether to act.
 
-**B) Send + wait**
+**B) Send + fetch (preferred)**
 - Re-read `.mcp-connect` to confirm the active session.
-- Run MCP once, call `send_message`, then `wait_for_event` with a short timeout
-  (<= 14s).
-- Stop and decide the next action.
-
-In short one-shot runs, outbound events can be missed by `wait_for_event`.
-Treat the backlog (`fetch_events`) as the consistent source of truth.
-
-Important: `wait_for_event` should **not** be run by itself in a separate
-one-shot invocation. If you need to wait, do it in the same MCP run as the
-`send_message` that triggered the response. If you reconnect later, use
-`fetch_events` to pick up what already happened.
+- Always start a new interaction by running the History check first.
+- Run MCP once and call `send_and_fetch` with a short timeout (<= 14s).
+- Stop and decide the next action. If the first reply is a preamble, partial
+  answer, or otherwise not directly actionable, **wait and `fetch_events` again**
+  before responding. If you suspect more messages are coming, use `fetch_events`
+  with `wait_ms` after. If `send_and_fetch` times out, **do not resend
+  immediately**—run `fetch_events` first to avoid duplicate replies.
 
 ## MCP Tools (minimal)
 
 ### send_message
-Inject a message as a mapped user.
+Inject a message as a mapped user (use sparingly; prefer `send_and_fetch`).
 
 Arguments:
 - `user` (string) — must exist in MCP user map
@@ -108,20 +122,34 @@ Arguments:
 - `direct` (bool)
 - `thread` (string, optional)
 
-### wait_for_event
-Wait for the next AIDEV tap event (inbound/outbound).
+### send_and_fetch
+Send a message and return events fetched during the call (delete-on-read),
+waiting until at least one inbound event from a different user than the sender
+(excluding the `aidev` loopback user), or timeout.
+
+Note: `send_and_fetch` may return a preamble before the bot’s next prompt. If
+the reply sounds incomplete, run `fetch_events` with `wait_ms` before replying.
 
 Arguments:
-- `timeout_ms` (number, optional)
-- `direction` (string, optional)
-- `user` (string, optional)
+- `user` (string)
 - `channel` (string, optional)
+- `thread` (string, optional)
+- `message` (string)
+- `direct` (bool, optional)
+- `timeout_ms` (number, optional, default 14000)
+
+Example (one-shot JSON-RPC):
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"send_and_fetch","arguments":{"user":"david","channel":"general","message":"floyd, tell me a knock-knock joke","direct":false,"timeout_ms":12000}}}
+```
 
 ### fetch_events
-Fetch queued AIDEV events since the last fetch (backlog queue).
+Fetch all queued AIDEV events (delete-on-read), optionally waiting for at least
+one event.
 
 Arguments:
-- `since` (string, optional event ID). If omitted, uses the last event ID seen by MCP.
+- `wait_ms` (number, optional) to wait for at least one event.
 
 ### control_exit / control_force_exit
 Request graceful exit or a forced exit with stack dump.
@@ -151,6 +179,7 @@ Optional environment variables (gopherbot side) that are written into `.mcp-conn
   inbound user message plus the loopback injection message. Use the backlog to
   confirm ordering.
 - `fetch_events` returns event IDs formatted as `<NNNNNN>/<HH:MM:SS>`; the queue is
-  capped at 1024 items and expires after ~7 minutes.
+  capped at 1024 items and expires after ~7 minutes. Each fetch drains the queue.
+- AIDEV event delivery is delete-on-read; run only one MCP client per robot session.
 - AIDEV logs go to the normal robot log; `.mcp-connect` contains the URL/token
   for MCP.

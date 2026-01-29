@@ -11,17 +11,14 @@ single `make` invocation: run once, inspect output, decide next step. Do not
 script MCP interactions.
 
 Standard patterns:
-- History check: `fetch_events` and stop to think.
-- Send + wait (single run): `send_message`, then `wait_for_event` with a short
-  timeout (<= 14s), then stop to think.
+- History check: `fetch_events` and stop to think (drains the queue).
+- Send + fetch (single run): `send_and_fetch` with a short timeout (<= 14s),
+  which waits for an inbound event from a different user (excluding the `aidev`
+  loopback) before returning, then stop to think.
 
-In short runs, outbound `wait_for_event` can be brittle; use the backlog
-(`fetch_events`) as the source of truth. See `devdocs/aidev-mcp.md` for the
-operator playbook and prompting guidance (channel selection, etc.).
-
-Important: avoid running `wait_for_event` as a standalone one-shot. It should
-only be used immediately after `send_message` in the *same* MCP invocation.
-If you reconnect later, use `fetch_events` instead.
+In short runs, a direct wait can be brittle; use the backlog (`fetch_events`)
+as the source of truth. See `devdocs/aidev-mcp.md` for the operator playbook
+and prompting guidance (channel selection, etc.).
 
 ## Goals
 
@@ -44,8 +41,8 @@ If you reconnect later, use `fetch_events` instead.
 - The secret is **ephemeral per run** and generated when `--aidev` is set; it is not persisted.
 - When `--aidev` is set, gopherbot starts the HTTP listener, writes `.mcp-connect` in the current working directory, and immediately proceeds with normal startup.
 - AI operators should treat the `.mcp-connect` token as the **session identity**; do not mix tokens across robots/sessions (see `aidocs/AI_OPERATOR_MODEL.md`).
-- When the flag is present, start a streamable HTTP server (SSE) on `127.0.0.1` by reusing the existing HTTP listener in `bot/bot_process.go` (same mux as `/json`).
-- Require a shared secret header for every request/stream.
+- When the flag is present, start the AIDEV HTTP server on `127.0.0.1` by reusing the existing HTTP listener in `bot/bot_process.go` (same mux as `/json`).
+- Require a shared secret header for every request.
   - Header: `X-AIDEV-KEY`
   - Optional envs for MCP start command: `GOPHER_AIDEV_MCP_CONFIG`, `GOPHER_AIDEV_MCP_PROTOCOL`
 
@@ -118,7 +115,7 @@ Event payload should include:
 - flags (direct, hidden, botMessage, selfMessage)
 - text
 
-### SSE endpoint
+### SSE endpoint (engine-only; MCP does not use)
 
 - `GET /aidev/stream`
 - Requires `X-AIDEV-KEY` header matching `--aidev` secret.
@@ -145,14 +142,15 @@ Example event (shape only):
 }
 ```
 
-### Event backlog endpoint
+### Event backlog endpoint (delete-on-read)
 
-- `GET /aidev/events?since=<event_id>`
+- `GET /aidev/events`
 - Requires `X-AIDEV-KEY` header matching `--aidev` secret.
 - Returns `{ "events": [...], "last_id": "<event_id>" }`
 - Event IDs are formatted as `<NNNNNN>/<HH:MM:SS>` (monotonic sequence + local time).
 - Queue is capped at 1024 events and drops entries older than 7 minutes.
-- `since` is optional; when omitted, returns all currently queued events.
+- Each request drains the queue (single consumer semantics).
+  - Do not attach multiple MCP clients to the same session.
 
 ## Injection API (high-level + mapping)
 
@@ -177,7 +175,7 @@ The mapping file lives with the MCP shim and supplies user_id; the engine uses i
 - Requires `X-AIDEV-KEY` header matching `--aidev` secret.
 - Returns `202 Accepted` on success, `400/401` otherwise.
 - Returns `409 Conflict` if the robot has not completed post-connect initialization.
-- Operational rule: do not inject commands until you observe readiness (e.g., via SSE welcome message).
+- Operational rule: do not inject commands until you observe readiness (e.g., via backlog of welcome/help output).
 
 ### Control endpoint
 
@@ -188,7 +186,7 @@ The mapping file lives with the MCP shim and supplies user_id; the engine uses i
 - `force_exit` triggers a SIGUSR1 stack dump + panic (see `bot/signal.go`).
 - `stack_dump` logs a runtime stack dump without exiting.
 - `hello` is used by `gopherbot-mcp` to confirm it can reach the control endpoint.
-- `ready` is sent after the MCP connects to the SSE stream.
+- `ready` is sent after the MCP establishes contact.
 
 ## Logging (AIDEV)
 

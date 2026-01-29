@@ -470,15 +470,6 @@ func aidevEventsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	var sinceSeq uint64
-	if since := r.URL.Query().Get("since"); since != "" {
-		var ok bool
-		sinceSeq, ok = parseAidevEventID(since)
-		if !ok {
-			http.Error(w, "invalid since", http.StatusBadRequest)
-			return
-		}
-	}
 	aidevEvents.Lock()
 	pruneAidevEventsLocked()
 	events := make([]tapEvent, 0, len(aidevEvents.events))
@@ -486,14 +477,9 @@ func aidevEventsHandler(w http.ResponseWriter, r *http.Request) {
 	if len(aidevEvents.events) > 0 {
 		lastID = aidevEvents.events[len(aidevEvents.events)-1].ID
 	}
-	for _, evt := range aidevEvents.events {
-		if sinceSeq > 0 {
-			if seq, ok := parseAidevEventID(evt.ID); ok && seq <= sinceSeq {
-				continue
-			}
-		}
-		events = append(events, evt)
-	}
+	events = append(events, aidevEvents.events...)
+	// Delete-on-read semantics: clear queue after delivery.
+	aidevEvents.events = aidevEvents.events[:0]
 	aidevEvents.Unlock()
 	resp := struct {
 		Events []tapEvent `json:"events"`

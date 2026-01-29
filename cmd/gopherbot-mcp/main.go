@@ -9,10 +9,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -72,14 +70,12 @@ type connectInfo struct {
 }
 
 type server struct {
-	baseURL     string
-	secret      string
-	protocol    string
-	cfg         config
-	events      chan tapEvent
-	client      *http.Client
-	lastEventMu sync.Mutex
-	lastEventID string
+	baseURL  string
+	secret   string
+	protocol string
+	cfg      config
+	client   *http.Client
+	debug    bool
 }
 
 func main() {
@@ -152,12 +148,11 @@ func main() {
 		secret:   aidevKey,
 		protocol: protocol,
 		cfg:      cfg,
-		events:   make(chan tapEvent, 256),
 		client:   &http.Client{Timeout: 0},
+		debug:    os.Getenv("GOPHER_AIDEV_MCP_DEBUG") != "",
 	}
 
 	go s.sendHelloLoop()
-	go s.consumeSSE()
 	s.serveStdio()
 }
 
@@ -285,25 +280,28 @@ func (s *server) handleRequest(req jsonRPCRequest) jsonRPCResponse {
 						},
 					},
 					{
-						Name:        "wait_for_event",
-						Description: "Wait for the next aidev tap event",
+						Name:        "send_and_fetch",
+						Description: "Send a message and return events until a reply arrives (delete-on-read queue)",
 						InputSchema: map[string]interface{}{
 							"type": "object",
 							"properties": map[string]interface{}{
-								"timeout_ms": map[string]interface{}{"type": "number"},
-								"direction":  map[string]interface{}{"type": "string"},
 								"user":       map[string]interface{}{"type": "string"},
 								"channel":    map[string]interface{}{"type": "string"},
+								"thread":     map[string]interface{}{"type": "string"},
+								"message":    map[string]interface{}{"type": "string"},
+								"direct":     map[string]interface{}{"type": "boolean"},
+								"timeout_ms": map[string]interface{}{"type": "number"},
 							},
+							"required": []string{"user", "message"},
 						},
 					},
 					{
 						Name:        "fetch_events",
-						Description: "Fetch queued aidev events since the last fetch",
+						Description: "Fetch queued aidev events (delete-on-read; optionally wait for at least one event)",
 						InputSchema: map[string]interface{}{
 							"type": "object",
 							"properties": map[string]interface{}{
-								"since": map[string]interface{}{"type": "string"},
+								"wait_ms": map[string]interface{}{"type": "number"},
 							},
 						},
 					},
@@ -342,8 +340,8 @@ func (s *server) handleToolCall(req jsonRPCRequest) jsonRPCResponse {
 	switch payload.Name {
 	case "send_message":
 		return s.toolSendMessage(req.ID, payload.Arguments)
-	case "wait_for_event":
-		return s.toolWaitForEvent(req.ID, payload.Arguments)
+	case "send_and_fetch":
+		return s.toolSendAndFetch(req.ID, payload.Arguments)
 	case "fetch_events":
 		return s.toolFetchEvents(req.ID, payload.Arguments)
 	case "control_exit":
@@ -384,65 +382,27 @@ func (s *server) toolSendMessage(id json.RawMessage, args json.RawMessage) jsonR
 	return jsonRPCResponse{JSONRPC: "2.0", ID: id, Result: mcpTextResult("sent")}
 }
 
-func (s *server) toolWaitForEvent(id json.RawMessage, args json.RawMessage) jsonRPCResponse {
-	var req struct {
-		TimeoutMS int    `json:"timeout_ms"`
-		Direction string `json:"direction"`
-		User      string `json:"user"`
-		Channel   string `json:"channel"`
-	}
-	_ = json.Unmarshal(args, &req)
-	if req.TimeoutMS <= 0 {
-		req.TimeoutMS = 30000
-	}
-	timeout := time.NewTimer(time.Duration(req.TimeoutMS) * time.Millisecond)
-	defer timeout.Stop()
-	for {
-		select {
-		case evt := <-s.events:
-			if req.Direction != "" && evt.Direction != req.Direction {
-				continue
-			}
-			if req.User != "" && evt.UserName != req.User {
-				continue
-			}
-			if req.Channel != "" && evt.ChannelName != req.Channel {
-				continue
-			}
-			s.setLastEventID(evt.ID)
-			data, _ := json.Marshal(evt)
-			return jsonRPCResponse{JSONRPC: "2.0", ID: id, Result: mcpTextResult(string(data))}
-		case <-timeout.C:
-			return jsonRPCResponse{JSONRPC: "2.0", ID: id, Error: &jsonRPCError{Code: -32002, Message: "timeout"}}
-		}
-	}
-}
-
 func (s *server) toolFetchEvents(id json.RawMessage, args json.RawMessage) jsonRPCResponse {
 	var req struct {
-		Since string `json:"since"`
+		WaitMS int `json:"wait_ms"`
 	}
 	_ = json.Unmarshal(args, &req)
-	since := strings.TrimSpace(req.Since)
-	if since == "" {
-		since = s.getLastEventID()
+	waitDeadline := time.Now().Add(time.Duration(req.WaitMS) * time.Millisecond)
+	for {
+		path := "/aidev/events"
+		var resp struct {
+			Events []tapEvent `json:"events"`
+			LastID string     `json:"last_id"`
+		}
+		if err := s.getJSON(path, &resp); err != nil {
+			return jsonRPCResponse{JSONRPC: "2.0", ID: id, Error: &jsonRPCError{Code: -32004, Message: err.Error()}}
+		}
+		if req.WaitMS <= 0 || len(resp.Events) > 0 || time.Now().After(waitDeadline) {
+			data, _ := json.Marshal(resp)
+			return jsonRPCResponse{JSONRPC: "2.0", ID: id, Result: mcpTextResult(string(data))}
+		}
+		time.Sleep(200 * time.Millisecond)
 	}
-	path := "/aidev/events"
-	if since != "" {
-		path += "?since=" + url.QueryEscape(since)
-	}
-	var resp struct {
-		Events []tapEvent `json:"events"`
-		LastID string     `json:"last_id"`
-	}
-	if err := s.getJSON(path, &resp); err != nil {
-		return jsonRPCResponse{JSONRPC: "2.0", ID: id, Error: &jsonRPCError{Code: -32004, Message: err.Error()}}
-	}
-	if resp.LastID != "" {
-		s.setLastEventID(resp.LastID)
-	}
-	data, _ := json.Marshal(resp)
-	return jsonRPCResponse{JSONRPC: "2.0", ID: id, Result: mcpTextResult(string(data))}
 }
 
 func (s *server) toolControl(id json.RawMessage, action string) jsonRPCResponse {
@@ -451,6 +411,99 @@ func (s *server) toolControl(id json.RawMessage, action string) jsonRPCResponse 
 		return jsonRPCResponse{JSONRPC: "2.0", ID: id, Error: &jsonRPCError{Code: -32003, Message: err.Error()}}
 	}
 	return jsonRPCResponse{JSONRPC: "2.0", ID: id, Result: mcpTextResult("ok")}
+}
+
+func (s *server) toolSendAndFetch(id json.RawMessage, args json.RawMessage) jsonRPCResponse {
+	var req struct {
+		User      string `json:"user"`
+		Channel   string `json:"channel"`
+		Thread    string `json:"thread"`
+		Message   string `json:"message"`
+		Direct    bool   `json:"direct"`
+		TimeoutMS int    `json:"timeout_ms"`
+	}
+	if err := json.Unmarshal(args, &req); err != nil {
+		return jsonRPCResponse{JSONRPC: "2.0", ID: id, Error: &jsonRPCError{Code: -32602, Message: "invalid args"}}
+	}
+	if req.TimeoutMS <= 0 {
+		req.TimeoutMS = 14000
+	}
+	userID, err := s.lookupUserID(req.User)
+	if err != nil {
+		return jsonRPCResponse{JSONRPC: "2.0", ID: id, Error: &jsonRPCError{Code: -32000, Message: err.Error()}}
+	}
+	if req.Message == "" {
+		return jsonRPCResponse{JSONRPC: "2.0", ID: id, Error: &jsonRPCError{Code: -32602, Message: "missing message"}}
+	}
+	if !req.Direct && req.Channel == "" {
+		return jsonRPCResponse{JSONRPC: "2.0", ID: id, Error: &jsonRPCError{Code: -32602, Message: "missing channel"}}
+	}
+	payload := map[string]interface{}{
+		"user":    req.User,
+		"user_id": userID,
+		"channel": req.Channel,
+		"thread":  req.Thread,
+		"message": req.Message,
+		"direct":  req.Direct,
+	}
+	if err := s.postJSON("/aidev/inject", payload); err != nil {
+		return jsonRPCResponse{JSONRPC: "2.0", ID: id, Error: &jsonRPCError{Code: -32001, Message: err.Error()}}
+	}
+	waitDeadline := time.Now().Add(time.Duration(req.TimeoutMS) * time.Millisecond)
+	seen := make([]tapEvent, 0, 8)
+	for {
+		path := "/aidev/events"
+		var resp struct {
+			Events []tapEvent `json:"events"`
+			LastID string     `json:"last_id"`
+		}
+		if err := s.getJSON(path, &resp); err != nil {
+			return jsonRPCResponse{JSONRPC: "2.0", ID: id, Error: &jsonRPCError{Code: -32004, Message: err.Error()}}
+		}
+		if len(resp.Events) > 0 {
+			seen = append(seen, resp.Events...)
+		}
+		if s.debug && len(resp.Events) > 0 {
+			fmt.Fprintf(os.Stderr, "send_and_fetch: %d events received\n", len(resp.Events))
+			for i, evt := range resp.Events {
+				fmt.Fprintf(os.Stderr, "  %d: id=%s dir=%s user=%s self=%t chan=%s thr=%s text=%q\n", i, evt.ID, evt.Direction, evt.UserName, evt.SelfMessage, evt.ChannelName, evt.ThreadID, evt.Text)
+			}
+		}
+		nonSenderInbound := false
+		for _, evt := range seen {
+			if evt.Direction != "inbound" {
+				continue
+			}
+			if evt.UserName == "" {
+				continue
+			}
+			if evt.UserName == req.User || evt.UserName == "aidev" {
+				continue
+			}
+			if req.Channel != "" && evt.ChannelName != req.Channel {
+				continue
+			}
+			if req.Thread != "" && evt.ThreadID != req.Thread {
+				continue
+			}
+			nonSenderInbound = true
+			break
+		}
+		if nonSenderInbound || time.Now().After(waitDeadline) {
+			if s.debug {
+				fmt.Fprintf(os.Stderr, "send_and_fetch: returning (nonSenderInbound=%t timeout=%t)\n", nonSenderInbound, time.Now().After(waitDeadline))
+			}
+			data, _ := json.Marshal(struct {
+				Events []tapEvent `json:"events"`
+				LastID string     `json:"last_id"`
+			}{
+				Events: seen,
+				LastID: resp.LastID,
+			})
+			return jsonRPCResponse{JSONRPC: "2.0", ID: id, Result: mcpTextResult(string(data))}
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
 }
 
 func (s *server) lookupUserID(user string) (string, error) {
@@ -512,83 +565,15 @@ func (s *server) getJSON(path string, target interface{}) error {
 	return json.NewDecoder(resp.Body).Decode(target)
 }
 
-func (s *server) consumeSSE() {
-	backoff := 250 * time.Millisecond
-	for {
-		req, err := http.NewRequest(http.MethodGet, s.baseURL+"/aidev/stream", nil)
-		if err != nil {
-			return
-		}
-		req.Header.Set("X-AIDEV-KEY", s.secret)
-		resp, err := s.client.Do(req)
-		if err != nil {
-			time.Sleep(backoff)
-			if backoff < 2*time.Second {
-				backoff *= 2
-			}
-			continue
-		}
-		if resp.StatusCode != http.StatusOK {
-			_ = resp.Body.Close()
-			time.Sleep(backoff)
-			if backoff < 2*time.Second {
-				backoff *= 2
-			}
-			continue
-		}
-		_ = s.postJSON("/aidev/control", map[string]interface{}{"action": "ready"})
-		backoff = 250 * time.Millisecond
-		reader := bufio.NewReader(resp.Body)
-		var buf strings.Builder
-		for {
-			line, err := reader.ReadString('\n')
-			if err != nil {
-				_ = resp.Body.Close()
-				break
-			}
-			line = strings.TrimRight(line, "\r\n")
-			if line == "" {
-				if buf.Len() > 0 {
-					var evt tapEvent
-					if err := json.Unmarshal([]byte(buf.String()), &evt); err == nil {
-						s.setLastEventID(evt.ID)
-						s.events <- evt
-					}
-					buf.Reset()
-				}
-				continue
-			}
-			if strings.HasPrefix(line, "data:") {
-				data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
-				buf.WriteString(data)
-			}
-		}
-	}
-}
-
 func (s *server) sendHelloLoop() {
 	payload := map[string]interface{}{"action": "hello"}
 	for {
 		if err := s.postJSON("/aidev/control", payload); err == nil {
+			_ = s.postJSON("/aidev/control", map[string]interface{}{"action": "ready"})
 			return
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
-}
-
-func (s *server) setLastEventID(id string) {
-	if id == "" {
-		return
-	}
-	s.lastEventMu.Lock()
-	s.lastEventID = id
-	s.lastEventMu.Unlock()
-}
-
-func (s *server) getLastEventID() string {
-	s.lastEventMu.Lock()
-	defer s.lastEventMu.Unlock()
-	return s.lastEventID
 }
 
 func mcpTextResult(text string) map[string]interface{} {
