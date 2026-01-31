@@ -91,23 +91,35 @@ The default `robot.yaml` uses Go templates to derive configuration values from s
 
 ```yaml
 {{- $mode := GetStartupMode }}
-{{- $proto := env "GOPHER_PROTOCOL" | default "terminal" }}
+{{- $proto := env "GOPHER_PROTOCOL" | default "ssh" }}
 {{- $brain := env "GOPHER_BRAIN" | default "file" }}
 {{- $logdest := env "GOPHER_LOGDEST" | default "stdout" }}
 
 ## Mode-specific overrides
 {{- if eq $mode "demo" }}
-  {{- $proto = "terminal" }}
+  {{- $proto = "ssh" }}
   {{- $brain = "mem" }}
-  {{- $logdest = "robot.log" }}
+  {{- $logdest = "stdout" }}
 {{- else if eq $mode "bootstrap" }}
   {{- $proto = "nullconn" }}
   {{- $brain = "mem" }}
   {{- $logdest = "stdout" }}
 {{- else if or (eq $mode "ide") (eq $mode "test-dev") }}
+  {{- if eq $mode "test-dev" }}
+    {{- if IsTestBuild }}
   {{- $proto = "terminal" }}
+    {{- else }}
+  {{- $proto = "ssh" }}
+    {{- end }}
+  {{- else }}
+  {{- $proto = "ssh" }}
+  {{- end }}
   {{- $brain = "mem" }}
+  {{- if eq $mode "test-dev" }}
   {{- $logdest = "robot.log" }}
+  {{- else }}
+  {{- $logdest = "stdout" }}
+  {{- end }}
 {{- end }}
 
 ## Terminal should never log to stdout (interferes with UI)

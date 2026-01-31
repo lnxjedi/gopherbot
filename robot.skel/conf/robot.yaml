@@ -14,7 +14,7 @@
 
 ## Configure the robot connection protocol; modifying this could
 ## break `gopherbot -t`
-{{ $proto := env "GOPHER_PROTOCOL" | default "terminal" }}
+{{ $proto := env "GOPHER_PROTOCOL" | default "ssh" }}
 Protocol: {{ $proto }}
 
 ## Include protocol-specific configuration

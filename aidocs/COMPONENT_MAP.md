@@ -34,6 +34,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - Slack connector registration + init: `connectors/slack/static.go` (calls `bot.RegisterConnector("slack", Initialize)`), `connectors/slack/connect.go` (func `Initialize`).
 - Test connector registration + runtime: `connectors/test/init.go` (calls `bot.RegisterConnector("test", Initialize)`), `connectors/test/connector.go` (method `(*TestConnector).Run`).
+- SSH connector registration + runtime: `connectors/ssh/static.go` (calls `bot.RegisterConnector("ssh", Initialize)`), `connectors/ssh/connector.go` (method `(*sshConnector).Run`).
 
 ## gojobs/
 

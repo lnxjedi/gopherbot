@@ -16,6 +16,8 @@ const (
 	Test
 	// Null connector for unconfigured robots
 	Null
+	// SSH connector for local development
+	SSH
 )
 
 // ConnectorMessage is passed in to the robot for every incoming message seen.

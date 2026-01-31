@@ -1,0 +1,62 @@
+## ssh.yaml - stock configuration for the SSH connector
+{{ $botname := env "GOPHER_BOTNAME" | default "floyd" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot"}}
+{{ $botalias := env "GOPHER_ALIAS" | default ";"}}
+
+AdminUsers: [ "alice" ]
+DefaultChannels: [ "general", "random" ]
+
+BotInfo:
+  UserName: {{ $botname }}
+  FullName: {{ $botfullname }}
+
+Alias: {{ $botalias }}
+
+ProtocolConfig:
+  ListenHost: {{ env "GOPHER_SSH_HOST" | default "localhost" }}
+  DefaultChannel: general
+  BotName: {{ $botname }}
+  Channels:
+  - random
+  - general
+  - deadzone
+
+UserRoster:
+- UserName: "alice"
+  UserID: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM/4Ld4ZWcUBhlRCoSm7EmGTyYAQZ/JJoI+zBzeGx7Yr"
+  Email: "alice@example.com"
+  FullName: "Alice User"
+  FirstName: "Alice"
+  LastName: "User"
+  Phone: "(555)765-0001"
+- UserName: "bob"
+  UserID: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH4HG8pJKWu/X3bWmeE+/kiv+bFz59iPlviGblL575bG"
+  Email: "bob@example.com"
+  FullName: "Bob User"
+  FirstName: "Robert"
+  LastName: "User"
+  Phone: "(555)765-0002"
+- UserName: "carol"
+  UserID: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHRB9wUy9A1Xh7fGUw+DkFHe4OTlyTtL+Gs0tpLgKPJn"
+  Email: "carol@example.com"
+  FullName: "Carol User"
+  FirstName: "Carol"
+  LastName: "User"
+  Phone: "(555)765-0003"
+- UserName: "david"
+  UserID: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGK46mlcwaujg5h2gVYYmPpMcKbN8i9HtWO728xkbYTa"
+  Email: "david@example.com"
+  FullName: "David User"
+  FirstName: "David"
+  LastName: "User"
+  Phone: "(555)765-0004"
+- UserName: "erin"
+  UserID: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO9Ql2OpNDensa9uEaKC2iz/HUNyeuVZxfykeVuAwjLX"
+  Email: "erin@example.com"
+  FullName: "Erin User"
+  FirstName: "Erin"
+  LastName: "User"
+  Phone: "(555)765-0005"
+
+{{ $defaultjobchannel := "general" }}
+DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}

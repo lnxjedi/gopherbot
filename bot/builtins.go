@@ -243,8 +243,8 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 	}
 	switch command {
 	case "dumprobot":
-		if r.Protocol != robot.Terminal && r.Protocol != robot.Test {
-			r.Say("This command is only valid with the 'terminal' connector")
+		if r.Protocol != robot.Terminal && r.Protocol != robot.Test && r.Protocol != robot.SSH {
+			r.Say("This command is only valid with the 'terminal' or 'ssh' connector")
 			return
 		}
 		confLock.RLock()
@@ -274,8 +274,8 @@ func dmadmin(m robot.Robot, command string, args ...string) (retval robot.TaskRe
 			r.Say("Didn't find a plugin named " + args[0])
 		}
 	case "dumpplugin":
-		if r.Protocol != robot.Terminal && r.Protocol != robot.Test {
-			r.Say("This command is only valid with the 'terminal' connector")
+		if r.Protocol != robot.Terminal && r.Protocol != robot.Test && r.Protocol != robot.SSH {
+			r.Say("This command is only valid with the 'terminal' or 'ssh' connector")
 			return
 		}
 		found := false

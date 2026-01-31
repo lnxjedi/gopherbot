@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: ./bot-ssh <user>"
+  exit 2
+fi
+
+user="$1"
+key="resources/ssh-default/${user}.key"
+connect_file=".ssh-connect"
+
+if [[ ! -f "$key" ]]; then
+  echo "Missing key: $key"
+  exit 1
+fi
+
+if [[ ! -f "$connect_file" ]]; then
+  echo "Missing $connect_file; start gopherbot first"
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+source "$connect_file"
+
+hostport="${BOT_SSH_PORT:-127.0.0.1:4221}"
+host="${hostport%:*}"
+port="${hostport##*:}"
+known_hosts="[${host}]:${port} ${BOT_SERVER_PUBKEY}"
+
+ssh \
+  -i "$key" \
+  -p "$port" \
+  -o IdentitiesOnly=yes \
+  -o UserKnownHostsFile=/dev/null \
+  -o StrictHostKeyChecking=yes \
+  -o "KnownHostsCommand=printf '%s\\n' '$known_hosts'" \
+  "${user}@${host}"

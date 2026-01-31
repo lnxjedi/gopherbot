@@ -1,9 +1,9 @@
-//go:build test
-// +build test
+//go:build !test
+// +build !test
 
 package main
 
-// modules.go - blank imports for all the modules that should be compiled in.
+// modules_default.go - blank imports for all the modules that should be compiled in.
 
 import (
 	// Profiling
@@ -39,15 +39,3 @@ import (
 	_ "github.com/lnxjedi/gopherbot/v2/brains/cloudflarekv"
 	_ "github.com/lnxjedi/gopherbot/v2/brains/dynamodb"
 )
-
-/* Uncomment under Profiling above to enable profiling. This inflates
-the binary when enabled, but if the robot ever stops responding for any
-reason, it's handy for getting a dump of all goroutines. Example usage:
-
-$ go tool pprof http://localhost:8888/debug/pprof/goroutine
-...
-Entering interactive mode (type "help" for commands, "o" for options)
-(pprof) list lnxjedi
-Total: 11
-ROUTINE ======================== github.com/lnxjedi/gopherbot/v2/bot...
-*/

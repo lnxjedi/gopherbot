@@ -116,6 +116,10 @@ func decryptTpl(encval string) string {
 	return string(secret)
 }
 
+func isTestBuildTpl() bool {
+	return isTestBuild
+}
+
 /*
 Used in robot.yaml to determine start-up settings for connector, brain, and
 logging. Returns one of:
@@ -220,6 +224,7 @@ func expand(dir string, custom bool, in []byte) (out []byte, err error) {
 		"env":            env,
 		"GetStartupMode": detectStartupMode,
 		"SetEnv":         setEnvVar,
+		"IsTestBuild":    isTestBuildTpl,
 	}
 	var outBuff bytes.Buffer
 	tpl, err := template.New("").Funcs(tplFuncs).Parse(string(in))

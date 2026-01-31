@@ -1,0 +1,954 @@
+package ssh
+
+import (
+	"bufio"
+	"bytes"
+	"crypto/ed25519"
+	"crypto/rand"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"net"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"golang.org/x/crypto/ssh"
+
+	"github.com/lnxjedi/gopherbot/robot"
+)
+
+type filterMode int
+
+const (
+	filterAll filterMode = iota
+	filterChannel
+	filterThread
+)
+
+const (
+	defaultListenHost = "localhost"
+	defaultListenPort = 4221
+	defaultReplaySize = 42
+	defaultMaxMsg     = 16384
+	defaultChannel    = "general"
+	maxBufferBytes    = 4096
+)
+
+const (
+	pasteStart = "\x1b[200~"
+	pasteEnd   = "\x1b[201~"
+	pasteOn    = "\x1b[?2004h"
+	pasteOff   = "\x1b[?2004l"
+)
+
+type userKeyInfo struct {
+	userName string
+	userID   string
+}
+
+type bufferMsg struct {
+	timestamp time.Time
+	userName  string
+	isBot     bool
+	channel   string
+	threadID  string
+	threaded  bool
+	text      string
+}
+
+type sshConfig struct {
+	ListenHost       string
+	ListenPort       int
+	HostKey          string
+	ReplayBufferSize int
+	MaxMsgBytes      int
+	DefaultChannel   string
+	BotName          string
+	Channels         []string
+}
+
+type sshConnector struct {
+	cfg     sshConfig
+	handler robot.Handler
+	logger  *log.Logger
+
+	botName string
+	botID   string
+
+	mu        sync.RWMutex
+	clients   map[*sshClient]struct{}
+	userKeys  map[string]userKeyInfo
+	threads   map[string]int
+	buffer    []bufferMsg
+	bufIndex  int
+	bufFilled bool
+}
+
+type sshClient struct {
+	userName string
+	userID   string
+
+	channel        string
+	threadID       string
+	typingInThread bool
+	filter         filterMode
+	lastThread     map[string]string
+
+	ch     ssh.Channel
+	conn   *ssh.ServerConn
+	writer io.Writer
+	wmu    sync.Mutex
+}
+
+// Initialize sets up the SSH connector and returns a connector object.
+func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
+	var cfg sshConfig
+	if err := handler.GetProtocolConfig(&cfg); err != nil {
+		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
+	}
+	if portEnv := os.Getenv("GOPHER_SSH_PORT"); portEnv != "" {
+		if p, err := strconv.Atoi(portEnv); err == nil && p > 0 {
+			cfg.ListenPort = p
+		}
+	}
+	if cfg.ListenHost == "" {
+		cfg.ListenHost = defaultListenHost
+	}
+	if cfg.ListenPort == 0 {
+		cfg.ListenPort = defaultListenPort
+	}
+	if cfg.ReplayBufferSize == 0 {
+		cfg.ReplayBufferSize = defaultReplaySize
+	}
+	if cfg.MaxMsgBytes == 0 {
+		cfg.MaxMsgBytes = defaultMaxMsg
+	}
+	if cfg.DefaultChannel == "" {
+		cfg.DefaultChannel = defaultChannel
+	}
+	if cfg.BotName == "" {
+		cfg.BotName = "gopherbot"
+	}
+
+	sc := &sshConnector{
+		cfg:      cfg,
+		handler:  handler,
+		logger:   l,
+		botName:  cfg.BotName,
+		clients:  make(map[*sshClient]struct{}),
+		userKeys: make(map[string]userKeyInfo),
+		threads:  make(map[string]int),
+		buffer:   make([]bufferMsg, cfg.ReplayBufferSize),
+	}
+
+	return robot.Connector(sc)
+}
+
+func (sc *sshConnector) Run(stop <-chan struct{}) {
+	signer, pubLine := sc.loadHostKey()
+	sc.botID = pubLine
+	sc.handler.SetBotID(pubLine)
+
+	serverConfig := &ssh.ServerConfig{
+		PublicKeyCallback: sc.authorizeKey,
+	}
+	serverConfig.AddHostKey(signer)
+
+	listeners, listenHost := sc.listenAll()
+	if len(listeners) == 0 {
+		sc.handler.Log(robot.Fatal, "SSH connector failed to bind")
+		return
+	}
+	sc.handler.Log(robot.Info, "SSH connector listening on %s:%d", listenHost, sc.cfg.ListenPort)
+	defer func() {
+		for _, ln := range listeners {
+			_ = ln.Close()
+		}
+	}()
+
+	sc.writeConnectFile(listenHost, sc.cfg.ListenPort, pubLine)
+
+	stopOnce := sync.Once{}
+	stopFn := func() {
+		stopOnce.Do(func() {
+			for _, ln := range listeners {
+				_ = ln.Close()
+			}
+			sc.closeAllClients()
+		})
+	}
+
+	go func() {
+		<-stop
+		sc.handler.Log(robot.Info, "Received stop in SSH connector")
+		stopFn()
+	}()
+
+	var wg sync.WaitGroup
+	for _, ln := range listeners {
+		ln := ln
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sc.acceptLoop(ln, serverConfig, stop)
+		}()
+	}
+	wg.Wait()
+}
+
+func (sc *sshConnector) acceptLoop(ln net.Listener, cfg *ssh.ServerConfig, stop <-chan struct{}) {
+	for {
+		nc, err := ln.Accept()
+		if err != nil {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+				continue
+			}
+			return
+		}
+		go sc.handleConn(nc, cfg)
+	}
+}
+
+func (sc *sshConnector) handleConn(nc net.Conn, cfg *ssh.ServerConfig) {
+	sshConn, chans, reqs, err := ssh.NewServerConn(nc, cfg)
+	if err != nil {
+		return
+	}
+	go ssh.DiscardRequests(reqs)
+
+	userName := sshConn.Permissions.Extensions["user"]
+	userID := sshConn.Permissions.Extensions["userid"]
+	if userName == "" || userID == "" {
+		_ = sshConn.Close()
+		return
+	}
+
+	client := &sshClient{
+		userName:   userName,
+		userID:     userID,
+		channel:    sc.cfg.DefaultChannel,
+		filter:     filterThread,
+		lastThread: make(map[string]string),
+		conn:       sshConn,
+		writer:     nc,
+	}
+
+	sc.addClient(client)
+	defer sc.removeClient(client)
+
+	for newChannel := range chans {
+		if newChannel.ChannelType() != "session" {
+			_ = newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
+			continue
+		}
+		ch, requests, err := newChannel.Accept()
+		if err != nil {
+			continue
+		}
+		client.ch = ch
+		client.writer = ch
+		go sc.handleSession(client, ch, requests)
+	}
+}
+
+func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, requests <-chan *ssh.Request) {
+	defer func() {
+		client.writeString(pasteOff)
+		_ = ch.Close()
+	}()
+
+	ptyCh := make(chan struct{}, 1)
+	shellReady := make(chan struct{})
+
+	go func() {
+		for req := range requests {
+			switch req.Type {
+			case "pty-req":
+				select {
+				case ptyCh <- struct{}{}:
+				default:
+				}
+				req.Reply(true, nil)
+			case "shell":
+				req.Reply(true, nil)
+				close(shellReady)
+			default:
+				req.Reply(false, nil)
+			}
+		}
+	}()
+
+	<-shellReady
+	select {
+	case <-ptyCh:
+		client.writeString(pasteOn)
+	default:
+	}
+
+	client.writeString("Select filter: (A)ll, (C)hannel, (T)hread [T]: ")
+	inputCh := make(chan string)
+	go sc.readInput(ch, inputCh)
+
+	input, ok := <-inputCh
+	if !ok {
+		return
+	}
+	client.filter = parseFilter(input)
+	client.writeString("\n")
+
+	sc.replayBuffer(client)
+	client.writeString(sshConnectorHelpLine)
+	client.writePrompt()
+
+	for line := range inputCh {
+		if len(line) == 0 {
+			client.writeString(sshConnectorHelpLine)
+			client.writePrompt()
+			continue
+		}
+		if strings.HasPrefix(line, "|") {
+			sc.handleCommand(client, strings.TrimSpace(line))
+			client.writePrompt()
+			continue
+		}
+		sc.handleUserInput(client, line)
+		client.writePrompt()
+	}
+}
+
+func (sc *sshConnector) handleCommand(client *sshClient, input string) {
+	if len(input) < 2 {
+		return
+	}
+	switch input[1] {
+	case 'C', 'c':
+		arg := strings.TrimSpace(input[2:])
+		if arg == "?" {
+			client.writeString("Available channels:\n")
+			for _, ch := range sc.cfg.Channels {
+				client.writeString(fmt.Sprintf("'%s'; type: '|c%s'\n", ch, ch))
+			}
+			return
+		}
+		if arg == "" {
+			client.writeString("Invalid 0-length channel\n")
+			return
+		}
+		if !sc.isValidChannel(arg) {
+			client.writeString("Invalid channel\n")
+			return
+		}
+		client.channel = arg
+		client.typingInThread = false
+		client.writeString(fmt.Sprintf("Changed current channel to: %s\n", arg))
+	case 'T', 't':
+		arg := strings.TrimSpace(input[2:])
+		if arg == "?" {
+			client.writeString("Use '|t' to toggle typing in a thread, '|t<string>' to set the current thread ID, or '|j' to join the last thread seen\n")
+			return
+		}
+		if arg == "" {
+			client.typingInThread = !client.typingInThread
+			if client.typingInThread {
+				client.threadID = sc.nextThreadID(client.channel)
+			}
+		} else {
+			client.typingInThread = true
+			client.threadID = arg
+		}
+		if client.typingInThread {
+			client.writeString(fmt.Sprintf("(now typing in thread: %s)\n", client.threadID))
+		} else {
+			client.writeString("(typing in channel now)\n")
+		}
+	case 'J', 'j':
+		last, ok := client.lastThread[client.channel]
+		if !ok || last == "" {
+			client.writeString("(sorry, I don't see a thread to join)\n")
+			return
+		}
+		client.typingInThread = true
+		client.threadID = last
+		client.writeString(fmt.Sprintf("(now typing in thread: %s)\n", client.threadID))
+	case 'F', 'f':
+		arg := strings.TrimSpace(input[2:])
+		if arg == "" || arg == "?" {
+			client.writeString("Available filters:\n")
+			client.writeString("'All' - type: '|fA'\n")
+			client.writeString("'Channel' - type: '|fC'\n")
+			client.writeString("'Thread' - type: '|fT'\n")
+			return
+		}
+		client.filter = parseFilter(arg)
+		client.writeString(fmt.Sprintf("Filter set to: %s\n", filterLabel(client.filter)))
+	default:
+		client.writeString("Invalid SSH connector command\n")
+	}
+}
+
+func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
+	now := time.Now()
+	client.writeString(fmt.Sprintf("(%s)\n", now.Format("15:04:05")))
+
+	if len(line) > sc.cfg.MaxMsgBytes {
+		client.writeString("(ERROR: message too long; > 16k - dropped)\n")
+		return
+	}
+
+	if len(line) > maxBufferBytes {
+		client.writeString("(WARNING: message truncated to 4k in buffer)\n")
+	}
+
+	trimmed := strings.TrimSpace(line)
+	if strings.HasPrefix(trimmed, "/") {
+		if strings.HasPrefix(trimmed, "/ ") || trimmed == "/" {
+			client.writeString("(INFO: '/' note to self message not sent to other users)\n")
+			return
+		}
+		if sc.isBotHiddenMessage(trimmed) {
+			payload := strings.TrimSpace(trimmed[1+len(sc.botName):])
+			sc.sendIncoming(client, payload, true)
+			return
+		}
+	}
+
+	sc.sendIncoming(client, line, false)
+	sc.broadcastUserMessage(client, line, now)
+}
+
+func (sc *sshConnector) sendIncoming(client *sshClient, line string, hidden bool) {
+	threaded := client.typingInThread
+	threadID := ""
+	messageID := ""
+	if threaded {
+		messageID = sc.nextThreadID(client.channel)
+		threadID = client.threadID
+	} else {
+		threadID = sc.nextThreadID(client.channel)
+		messageID = threadID
+	}
+
+	msg := &robot.ConnectorMessage{
+		Protocol:        "ssh",
+		UserName:        client.userName,
+		UserID:          client.userID,
+		ChannelName:     client.channel,
+		ChannelID:       "#" + client.channel,
+		MessageID:       messageID,
+		ThreadedMessage: threaded,
+		ThreadID:        threadID,
+		MessageText:     line,
+		HiddenMessage:   hidden,
+		DirectMessage:   false,
+	}
+	sc.handler.IncomingMessage(msg)
+}
+
+func (sc *sshConnector) MessageHeard(u, c string) {}
+
+func (sc *sshConnector) SetUserMap(m map[string]string) {
+	keys := make(map[string]userKeyInfo)
+	for name, id := range m {
+		norm := normalizeKeyLine(id)
+		if norm == "" {
+			continue
+		}
+		keys[norm] = userKeyInfo{userName: name, userID: id}
+	}
+	sc.mu.Lock()
+	sc.userKeys = keys
+	sc.mu.Unlock()
+}
+
+func (sc *sshConnector) GetProtocolUserAttribute(u, attr string) (value string, ret robot.RetVal) {
+	return "", robot.AttributeNotFound
+}
+
+func (sc *sshConnector) FormatHelp(input string) string {
+	arr := strings.SplitN(input, " - ", 2)
+	if len(arr) != 2 {
+		return "*" + input + "*"
+	}
+	return "*" + arr[0] + "* - " + arr[1]
+}
+
+func (sc *sshConnector) DefaultHelp() []string {
+	return []string{}
+}
+
+func (sc *sshConnector) JoinChannel(c string) (ret robot.RetVal) {
+	return robot.Ok
+}
+
+func (sc *sshConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	threaded := len(thr) > 0
+	evt := bufferMsg{
+		timestamp: time.Now(),
+		userName:  sc.botName,
+		isBot:     true,
+		channel:   ch,
+		threadID:  thr,
+		threaded:  threaded,
+		text:      msg,
+	}
+	sc.broadcast(evt, msgObject)
+	return robot.Ok
+}
+
+func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	formatted := "@" + uname + " " + msg
+	threaded := len(thr) > 0
+	evt := bufferMsg{
+		timestamp: time.Now(),
+		userName:  sc.botName,
+		isBot:     true,
+		channel:   ch,
+		threadID:  thr,
+		threaded:  threaded,
+		text:      formatted,
+	}
+	sc.broadcast(evt, msgObject)
+	return robot.Ok
+}
+
+func (sc *sshConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	clients := sc.clientsForUser(u)
+	if len(clients) == 0 {
+		return robot.UserNotFound
+	}
+
+	evt := bufferMsg{
+		timestamp: time.Now(),
+		userName:  sc.botName,
+		isBot:     true,
+		channel:   "(direct)",
+		threadID:  "",
+		threaded:  false,
+		text:      msg,
+	}
+	for _, client := range clients {
+		client.writeLine(sc.formatMessage(evt, false))
+	}
+	return robot.Ok
+}
+
+func (sc *sshConnector) broadcastUserMessage(client *sshClient, line string, ts time.Time) {
+	threaded := client.typingInThread
+	threadID := client.threadID
+	evt := bufferMsg{
+		timestamp: ts,
+		userName:  client.userName,
+		isBot:     false,
+		channel:   client.channel,
+		threadID:  threadID,
+		threaded:  threaded,
+		text:      line,
+	}
+	sc.broadcast(evt, &robot.ConnectorMessage{UserID: client.userID, HiddenMessage: false})
+}
+
+func (sc *sshConnector) broadcast(evt bufferMsg, msgObject *robot.ConnectorMessage) {
+	private := msgObject != nil && msgObject.HiddenMessage
+	var hiddenUser string
+	if msgObject != nil && msgObject.HiddenMessage {
+		hiddenUser = msgObject.UserID
+	}
+
+	if !private {
+		sc.appendBuffer(evt)
+	}
+
+	sc.mu.RLock()
+	clients := make([]*sshClient, 0, len(sc.clients))
+	for client := range sc.clients {
+		clients = append(clients, client)
+	}
+	sc.mu.RUnlock()
+
+	for _, client := range clients {
+		if private {
+			if client.userID != hiddenUser {
+				continue
+			}
+			client.writeLine(sc.formatMessage(evt, true))
+			continue
+		}
+		if client.userName == evt.userName {
+			continue
+		}
+		if !client.matchFilter(evt) {
+			continue
+		}
+		client.writeLine(sc.formatMessage(evt, false))
+		if evt.threaded {
+			client.lastThread[evt.channel] = evt.threadID
+		}
+	}
+}
+
+func (sc *sshConnector) formatMessage(evt bufferMsg, private bool) string {
+	stamp := evt.timestamp.Format("15:04:05")
+	prefix := "@" + evt.userName
+	if evt.isBot {
+		prefix = "=@" + evt.userName
+	}
+	thread := ""
+	if evt.threaded && evt.threadID != "" {
+		thread = fmt.Sprintf("(%s)", evt.threadID)
+	}
+	channel := "#" + evt.channel
+	if evt.channel == "" {
+		channel = "#(direct)"
+	}
+	if private {
+		return fmt.Sprintf("(private/%s)%s/%s%s: %s", stamp, prefix, channel, thread, evt.text)
+	}
+	return fmt.Sprintf("(%s)%s/%s%s: %s", stamp, prefix, channel, thread, evt.text)
+}
+
+func (sc *sshConnector) appendBuffer(evt bufferMsg) {
+	msg := evt.text
+	if len(msg) > maxBufferBytes {
+		msg = msg[:maxBufferBytes]
+	}
+	evt.text = msg
+
+	sc.mu.Lock()
+	sc.buffer[sc.bufIndex] = evt
+	sc.bufIndex = (sc.bufIndex + 1) % len(sc.buffer)
+	if sc.bufIndex == 0 {
+		sc.bufFilled = true
+	}
+	sc.mu.Unlock()
+}
+
+func (sc *sshConnector) replayBuffer(client *sshClient) {
+	msgs := sc.snapshotBuffer()
+	for _, evt := range msgs {
+		if !client.matchFilter(evt) {
+			continue
+		}
+		client.writeLine(sc.formatMessage(evt, false))
+		if evt.threaded {
+			client.lastThread[evt.channel] = evt.threadID
+		}
+	}
+}
+
+func (sc *sshConnector) snapshotBuffer() []bufferMsg {
+	sc.mu.RLock()
+	defer sc.mu.RUnlock()
+	if len(sc.buffer) == 0 {
+		return nil
+	}
+	var out []bufferMsg
+	if sc.bufFilled {
+		out = append(out, sc.buffer[sc.bufIndex:]...)
+	}
+	out = append(out, sc.buffer[:sc.bufIndex]...)
+	return out
+}
+
+func (sc *sshConnector) clientsForUser(u string) []*sshClient {
+	sc.mu.RLock()
+	defer sc.mu.RUnlock()
+	clients := make([]*sshClient, 0, len(sc.clients))
+	for c := range sc.clients {
+		if c.userID == u || c.userName == u {
+			clients = append(clients, c)
+		}
+	}
+	return clients
+}
+
+func (sc *sshConnector) addClient(c *sshClient) {
+	sc.mu.Lock()
+	sc.clients[c] = struct{}{}
+	sc.mu.Unlock()
+}
+
+func (sc *sshConnector) removeClient(c *sshClient) {
+	sc.mu.Lock()
+	delete(sc.clients, c)
+	sc.mu.Unlock()
+}
+
+func (sc *sshConnector) closeAllClients() {
+	sc.mu.RLock()
+	clients := make([]*sshClient, 0, len(sc.clients))
+	for c := range sc.clients {
+		clients = append(clients, c)
+	}
+	sc.mu.RUnlock()
+	for _, c := range clients {
+		_ = c.conn.Close()
+	}
+}
+
+func (sc *sshConnector) authorizeKey(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
+	normalized := normalizeKeyLine(string(ssh.MarshalAuthorizedKey(key)))
+	sc.mu.RLock()
+	info, ok := sc.userKeys[normalized]
+	sc.mu.RUnlock()
+	if !ok {
+		return nil, errors.New("unknown public key")
+	}
+	perms := &ssh.Permissions{Extensions: map[string]string{
+		"user":   info.userName,
+		"userid": info.userID,
+	}}
+	return perms, nil
+}
+
+func normalizeKeyLine(line string) string {
+	line = strings.TrimSpace(line)
+	parts := strings.Fields(line)
+	if len(parts) < 2 {
+		return ""
+	}
+	return parts[0] + " " + parts[1]
+}
+
+func (sc *sshConnector) listenAll() ([]net.Listener, string) {
+	addr := sc.cfg.ListenHost
+	port := sc.cfg.ListenPort
+
+	if port == 0 {
+		port = defaultListenPort
+	}
+
+	var listeners []net.Listener
+	var listenHost string
+	if addr == "all" {
+		ln4, err4 := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", port))
+		if err4 == nil {
+			listeners = append(listeners, ln4)
+			listenHost = "0.0.0.0"
+		}
+		ln6, err6 := net.Listen("tcp6", fmt.Sprintf("[::]:%d", port))
+		if err6 == nil {
+			listeners = append(listeners, ln6)
+			if listenHost == "" {
+				listenHost = "[::]"
+			}
+		}
+		if len(listeners) == 0 {
+			sc.handler.Log(robot.Fatal, "Unable to bind to 0.0.0.0 or [::]: %v / %v", err4, err6)
+		}
+		return listeners, listenHost
+	}
+
+	if addr == "localhost" {
+		addr = "127.0.0.1"
+	}
+	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", addr, port))
+	if err != nil {
+		sc.handler.Log(robot.Fatal, "Unable to bind SSH connector on %s:%d: %v", addr, port, err)
+		return nil, addr
+	}
+	return []net.Listener{ln}, addr
+}
+
+func (sc *sshConnector) writeConnectFile(host string, port int, pubKey string) {
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	path := ".ssh-connect"
+	content := fmt.Sprintf("BOT_SSH_PORT=%s:%d\nBOT_SERVER_PUBKEY='%s'\n", host, port, pubKey)
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		sc.handler.Log(robot.Error, "Writing .ssh-connect: %v", err)
+	}
+}
+
+func (sc *sshConnector) loadHostKey() (ssh.Signer, string) {
+	if sc.cfg.HostKey != "" {
+		signer, err := ssh.ParsePrivateKey([]byte(sc.cfg.HostKey))
+		if err != nil {
+			sc.handler.Log(robot.Fatal, "Parsing configured SSH host key: %v", err)
+		}
+		pub := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(signer.PublicKey())))
+		return signer, pub
+	}
+
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		sc.handler.Log(robot.Fatal, "Generating SSH host key: %v", err)
+	}
+	signer, err := ssh.NewSignerFromKey(priv)
+	if err != nil {
+		sc.handler.Log(robot.Fatal, "Creating SSH host key signer: %v", err)
+	}
+	pub := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(signer.PublicKey())))
+	sc.handler.Log(robot.Info, "Generated ephemeral SSH host key: %s", pub)
+	return signer, pub
+}
+
+func (sc *sshConnector) isValidChannel(ch string) bool {
+	if len(sc.cfg.Channels) == 0 {
+		return true
+	}
+	for _, c := range sc.cfg.Channels {
+		if ch == c {
+			return true
+		}
+	}
+	return false
+}
+
+func (sc *sshConnector) nextThreadID(channel string) string {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	sc.threads[channel]++
+	return fmt.Sprintf("%04x", sc.threads[channel]%65536)
+}
+
+func (sc *sshConnector) isBotHiddenMessage(line string) bool {
+	if !strings.HasPrefix(line, "/") {
+		return false
+	}
+	trimmed := strings.TrimPrefix(line, "/")
+	if !strings.HasPrefix(trimmed, sc.botName) {
+		return false
+	}
+	if len(trimmed) == len(sc.botName) {
+		return false
+	}
+	if trimmed[len(sc.botName)] != ' ' {
+		return false
+	}
+	remainder := strings.TrimSpace(trimmed[len(sc.botName):])
+	return remainder != ""
+}
+
+func parseFilter(input string) filterMode {
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return filterThread
+	}
+	switch strings.ToUpper(input[:1]) {
+	case "A":
+		return filterAll
+	case "C":
+		return filterChannel
+	case "T":
+		return filterThread
+	default:
+		return filterThread
+	}
+}
+
+func filterLabel(f filterMode) string {
+	switch f {
+	case filterAll:
+		return "All"
+	case filterChannel:
+		return "Channel"
+	case filterThread:
+		return "Thread"
+	default:
+		return "Thread"
+	}
+}
+
+const sshConnectorHelpLine = "SSH connector: Type '|c?' to list channels, '|t?' for thread help, '|j' to join last thread, '|f?' to list/change filter\n"
+
+func (c *sshClient) writePrompt() {
+	thread := ""
+	if c.typingInThread && c.threadID != "" {
+		thread = fmt.Sprintf("(%s)", c.threadID)
+	}
+	prompt := fmt.Sprintf("@%s/#%s%s -> ", c.userName, c.channel, thread)
+	c.writeString(prompt)
+}
+
+func (c *sshClient) writeString(s string) {
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
+	_, _ = c.writer.Write([]byte(s))
+}
+
+func (c *sshClient) writeLine(s string) {
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
+	_, _ = c.writer.Write([]byte(s + "\n"))
+}
+
+func (c *sshClient) matchFilter(evt bufferMsg) bool {
+	if c.filter == filterAll {
+		return true
+	}
+	if c.filter == filterChannel {
+		return evt.channel == c.channel
+	}
+	if c.filter == filterThread {
+		if c.typingInThread {
+			return evt.channel == c.channel && evt.threaded && evt.threadID == c.threadID
+		}
+		return evt.channel == c.channel && !evt.threaded
+	}
+	return false
+}
+
+func (sc *sshConnector) readInput(ch ssh.Channel, out chan<- string) {
+	defer close(out)
+	reader := bufio.NewReader(ch)
+	var buf bytes.Buffer
+	var pending bytes.Buffer
+	inPaste := false
+	lastWasCR := false
+
+	for {
+		b, err := reader.ReadByte()
+		if err != nil {
+			return
+		}
+
+		if inPaste {
+			pending.WriteByte(b)
+			if strings.HasPrefix(pasteEnd, pending.String()) {
+				if pending.Len() == len(pasteEnd) {
+					inPaste = false
+					pending.Reset()
+					out <- buf.String()
+					buf.Reset()
+				}
+				continue
+			}
+			buf.Write(pending.Bytes())
+			pending.Reset()
+			continue
+		}
+
+		if b == '\r' || b == '\n' {
+			if b == '\n' && lastWasCR {
+				lastWasCR = false
+				continue
+			}
+			lastWasCR = b == '\r'
+			out <- buf.String()
+			buf.Reset()
+			continue
+		}
+		lastWasCR = false
+
+		pending.WriteByte(b)
+		if strings.HasPrefix(pasteStart, pending.String()) {
+			if pending.Len() == len(pasteStart) {
+				inPaste = true
+				pending.Reset()
+			}
+			continue
+		}
+		buf.Write(pending.Bytes())
+		pending.Reset()
+	}
+}

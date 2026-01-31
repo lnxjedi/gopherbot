@@ -25,6 +25,7 @@ var (
 	overrideIDEMode bool
 	plainlog        bool
 	helpRequested   bool
+	sshPortOverride int
 
 	hostName  string
 	ideMode   bool
@@ -85,11 +86,16 @@ func Start(v VersionInfo) {
 	husage := "help for gopherbot"
 	flag.BoolVar(&helpRequested, "help", false, husage)
 	flag.BoolVar(&helpRequested, "h", false, "")
+	spusage := "override SSH listen port for the local connector"
+	flag.IntVar(&sshPortOverride, "ssh-port", 0, spusage)
 	// TODO: Gopherbot CLI commands suck. Make them suck less.
 	flag.Parse()
 
 	if len(overrideDevEnv) > 0 {
 		deployEnvironment = overrideDevEnv
+	}
+	if sshPortOverride > 0 {
+		os.Setenv("GOPHER_SSH_PORT", fmt.Sprintf("%d", sshPortOverride))
 	}
 
 	/*
@@ -99,7 +105,7 @@ func Start(v VersionInfo) {
 		unsetting GOPHER_IDE in the terminal before invoking gopherbot.
 		(`unset GOPHER_IDE; gopherbot`).
 
-		IDE mode also ensures that the protocol is "terminal" and the
+		IDE mode also ensures that the protocol is "ssh" and the
 		brain is "mem" (in-memory); these can be overridden with the "-o"
 		CLI flag.
 	*/

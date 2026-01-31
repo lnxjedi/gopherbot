@@ -376,6 +376,9 @@ func run() {
 		Log(robot.Fatal, "Loading full/post-connect configuration: %v", err)
 	}
 	Log(robot.Info, "Robot is initialized and running")
+	if startMode == "test-dev" && currentCfg.protocol == "ssh" {
+		Log(robot.Info, "Default robot running in test-dev mode with ssh-connector; connect with e.g. 'bot-ssh alice'")
+	}
 }
 
 // stop is called whenever the robot needs to shut down gracefully. All callers

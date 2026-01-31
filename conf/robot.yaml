@@ -39,7 +39,7 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
 
 ## Defaults for "production" and "ide-override" modes
 ## Protocol - almost always overriden by GOPHER_PROTOCOL
-{{- $proto := env "GOPHER_PROTOCOL" | default "terminal" }}
+{{- $proto := env "GOPHER_PROTOCOL" | default "ssh" }}
 ## Brain - normally configured in a robot's custom
 ## conf/robot.yaml
 {{- $brain := env "GOPHER_BRAIN" | default "file" }}
@@ -48,9 +48,9 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
 
 ## No configuration, no environment variables - demo robot
 {{- if eq $mode "demo" }}
-  {{- $proto = "terminal" }}
+  {{- $proto = "ssh" }}
   {{- $brain = "mem"}}
-  {{- $logdest = "robot.log" }}
+  {{- $logdest = "stdout" }}
 ## No configuration but GOPHER_CUSTOM_REPOSITORY set, need to clone
 {{- else if eq $mode "bootstrap" }}
   {{- $proto = "nullconn" }}
@@ -58,15 +58,27 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
   {{- $logdest = "stdout" }}
 ## IDE mode, override protocol, brain, logdest
 {{- else if or (eq $mode "ide") (eq $mode "test-dev") }}
+  {{- if eq $mode "test-dev" }}
+    {{- if IsTestBuild }}
   {{- $proto = "terminal" }}
+    {{- else }}
+  {{- $proto = "ssh" }}
+    {{- end }}
+  {{- else }}
+  {{- $proto = "ssh" }}
+  {{- end }}
   {{- $brain = "mem"}}
+  {{- if eq $mode "test-dev" }}
   {{- $logdest = "robot.log" }}
+  {{- else }}
+  {{- $logdest = "stdout" }}
+  {{- end }}
 {{- if eq $mode "ide" }}
 ## Override environment variables that will affect a
 ## robot's custom configuration loading
-  {{- SetEnv "GOPHER_PROTOCOL" "terminal" }}
+  {{- SetEnv "GOPHER_PROTOCOL" "ssh" }}
   {{- SetEnv "GOPHER_BRAIN" "mem" }}
-  {{- SetEnv "GOPHER_LOGDEST" "robot.log" }}
+  {{- SetEnv "GOPHER_LOGDEST" "stdout" }}
 {{- end }}
 {{- end }}
 
@@ -99,6 +111,10 @@ LogLevel: {{ $loglevel }}
 ## which can be overridden in custom if desired.
 {{- if eq $proto "terminal" }}
 {{ .Include "terminal.yaml" }}
+{{- end }}
+## Default SSH connector config for local development
+{{- if eq $proto "ssh" }}
+{{ .Include "ssh.yaml" }}
 {{- end }}
 ## Dummy connector for bootstrapping & autosetup
 {{- if eq $proto "nullconn" }}
@@ -185,7 +201,7 @@ ExternalPlugins:
     Privileged: true
     NameSpace: ssh
 {{- if or (eq $mode "demo") (eq $mode "setup") }}
-  {{- if eq $proto "terminal" }}
+  {{- if or (eq $proto "terminal") (eq $proto "ssh") }}
   "welcome":
     Description: The welcome plugin provides a greeting when unconfigured
     Privileged: true

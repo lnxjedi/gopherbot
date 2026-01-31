@@ -118,6 +118,8 @@ func getProtocol(proto string) robot.Protocol {
 		return robot.Null
 	case "rocket":
 		return robot.Rocket
+	case "ssh":
+		return robot.SSH
 	default:
 		return robot.Test
 	}
