@@ -115,7 +115,7 @@ The default `robot.yaml` uses Go templates to derive configuration values from s
   {{- $proto = "ssh" }}
   {{- end }}
   {{- $brain = "mem" }}
-  {{- if eq $mode "test-dev" }}
+  {{- if and (eq $mode "test-dev") (eq $proto "terminal") }}
   {{- $logdest = "robot.log" }}
   {{- else }}
   {{- $logdest = "stdout" }}

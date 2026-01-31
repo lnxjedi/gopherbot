@@ -1,6 +1,3 @@
-//go:build test
-// +build test
-
 package main
 
 // modules.go - blank imports for all the modules that should be compiled in.

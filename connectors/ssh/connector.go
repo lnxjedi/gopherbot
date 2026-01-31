@@ -97,6 +97,9 @@ type sshClient struct {
 	typingInThread bool
 	filter         filterMode
 	lastThread     map[string]string
+	echo           bool
+	inputBuf       bytes.Buffer
+	bufMu          sync.Mutex
 
 	ch     ssh.Channel
 	conn   *ssh.ServerConn
@@ -236,7 +239,7 @@ func (sc *sshConnector) handleConn(nc net.Conn, cfg *ssh.ServerConfig) {
 		userName:   userName,
 		userID:     userID,
 		channel:    sc.cfg.DefaultChannel,
-		filter:     filterThread,
+		filter:     filterChannel,
 		lastThread: make(map[string]string),
 		conn:       sshConn,
 		writer:     nc,
@@ -273,6 +276,7 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 		for req := range requests {
 			switch req.Type {
 			case "pty-req":
+				client.echo = true
 				select {
 				case ptyCh <- struct{}{}:
 				default:
@@ -294,9 +298,9 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 	default:
 	}
 
-	client.writeString("Select filter: (A)ll, (C)hannel, (T)hread [T]: ")
+	client.writeString("Select filter: (A)ll, (C)hannel, (T)hread [C]: ")
 	inputCh := make(chan string)
-	go sc.readInput(ch, inputCh)
+	go sc.readInput(client, inputCh)
 
 	input, ok := <-inputCh
 	if !ok {
@@ -579,7 +583,7 @@ func (sc *sshConnector) broadcast(evt bufferMsg, msgObject *robot.ConnectorMessa
 			if client.userID != hiddenUser {
 				continue
 			}
-			client.writeLine(sc.formatMessage(evt, true))
+			client.writeAsyncMessage(sc.formatMessage(evt, true))
 			continue
 		}
 		if client.userName == evt.userName {
@@ -588,7 +592,7 @@ func (sc *sshConnector) broadcast(evt bufferMsg, msgObject *robot.ConnectorMessa
 		if !client.matchFilter(evt) {
 			continue
 		}
-		client.writeLine(sc.formatMessage(evt, false))
+		client.writeAsyncMessage(sc.formatMessage(evt, false))
 		if evt.threaded {
 			client.lastThread[evt.channel] = evt.threadID
 		}
@@ -832,7 +836,7 @@ func (sc *sshConnector) isBotHiddenMessage(line string) bool {
 func parseFilter(input string) filterMode {
 	input = strings.TrimSpace(input)
 	if input == "" {
-		return filterThread
+		return filterChannel
 	}
 	switch strings.ToUpper(input[:1]) {
 	case "A":
@@ -842,7 +846,7 @@ func parseFilter(input string) filterMode {
 	case "T":
 		return filterThread
 	default:
-		return filterThread
+		return filterChannel
 	}
 }
 
@@ -873,13 +877,32 @@ func (c *sshClient) writePrompt() {
 func (c *sshClient) writeString(s string) {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
-	_, _ = c.writer.Write([]byte(s))
+	_, _ = c.writer.Write([]byte(normalizeNewlines(s)))
 }
 
 func (c *sshClient) writeLine(s string) {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
-	_, _ = c.writer.Write([]byte(s + "\n"))
+	_, _ = c.writer.Write([]byte(normalizeNewlines(s + "\n")))
+}
+
+func (c *sshClient) writeAsyncMessage(msg string) {
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
+	// Clear current input line, print message, then redraw prompt + buffer.
+	_, _ = c.writer.Write([]byte("\r\033[2K"))
+	_, _ = c.writer.Write([]byte(normalizeNewlines(msg + "\n")))
+	thread := ""
+	if c.typingInThread && c.threadID != "" {
+		thread = fmt.Sprintf("(%s)", c.threadID)
+	}
+	prompt := fmt.Sprintf("@%s/#%s%s -> ", c.userName, c.channel, thread)
+	_, _ = c.writer.Write([]byte(prompt))
+	c.bufMu.Lock()
+	if c.inputBuf.Len() > 0 {
+		_, _ = c.writer.Write(c.inputBuf.Bytes())
+	}
+	c.bufMu.Unlock()
 }
 
 func (c *sshClient) matchFilter(evt bufferMsg) bool {
@@ -898,13 +921,50 @@ func (c *sshClient) matchFilter(evt bufferMsg) bool {
 	return false
 }
 
-func (sc *sshConnector) readInput(ch ssh.Channel, out chan<- string) {
+func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 	defer close(out)
-	reader := bufio.NewReader(ch)
+	reader := bufio.NewReader(client.ch)
 	var buf bytes.Buffer
 	var pending bytes.Buffer
 	inPaste := false
 	lastWasCR := false
+
+	appendBuf := func(b byte) {
+		client.bufMu.Lock()
+		defer client.bufMu.Unlock()
+		_ = client.inputBuf.WriteByte(b)
+	}
+	backspaceBuf := func() {
+		client.bufMu.Lock()
+		defer client.bufMu.Unlock()
+		if client.inputBuf.Len() == 0 {
+			return
+		}
+		data := client.inputBuf.Bytes()
+		client.inputBuf.Reset()
+		_, _ = client.inputBuf.Write(data[:len(data)-1])
+	}
+	clearBuf := func() {
+		client.bufMu.Lock()
+		client.inputBuf.Reset()
+		client.bufMu.Unlock()
+	}
+
+	echoByte := func(b byte) {
+		if !client.echo {
+			return
+		}
+		client.wmu.Lock()
+		defer client.wmu.Unlock()
+		switch b {
+		case '\r', '\n':
+			return
+		case 0x7f, '\b':
+			_, _ = client.writer.Write([]byte("\b \b"))
+		default:
+			_, _ = client.writer.Write([]byte{b})
+		}
+	}
 
 	for {
 		b, err := reader.ReadByte()
@@ -913,17 +973,20 @@ func (sc *sshConnector) readInput(ch ssh.Channel, out chan<- string) {
 		}
 
 		if inPaste {
+			echoByte(b)
 			pending.WriteByte(b)
 			if strings.HasPrefix(pasteEnd, pending.String()) {
 				if pending.Len() == len(pasteEnd) {
 					inPaste = false
 					pending.Reset()
 					out <- buf.String()
+					clearBuf()
 					buf.Reset()
 				}
 				continue
 			}
 			buf.Write(pending.Bytes())
+			appendBuf(pending.Bytes()[0])
 			pending.Reset()
 			continue
 		}
@@ -935,6 +998,7 @@ func (sc *sshConnector) readInput(ch ssh.Channel, out chan<- string) {
 			}
 			lastWasCR = b == '\r'
 			out <- buf.String()
+			clearBuf()
 			buf.Reset()
 			continue
 		}
@@ -948,7 +1012,17 @@ func (sc *sshConnector) readInput(ch ssh.Channel, out chan<- string) {
 			}
 			continue
 		}
+		if pending.Bytes()[0] == 0x7f || pending.Bytes()[0] == '\b' {
+			backspaceBuf()
+		} else {
+			appendBuf(pending.Bytes()[0])
+		}
+		echoByte(pending.Bytes()[0])
 		buf.Write(pending.Bytes())
 		pending.Reset()
 	}
+}
+
+func normalizeNewlines(s string) string {
+	return strings.ReplaceAll(s, "\n", "\r\n")
 }

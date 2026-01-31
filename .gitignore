@@ -21,3 +21,4 @@ robot.log
 tmp/
 binary-encrypted-key*
 .ssh
+.ssh-connect
