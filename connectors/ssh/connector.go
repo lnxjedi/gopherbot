@@ -423,6 +423,11 @@ func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
 			sc.sendIncoming(client, payload, true)
 			return
 		}
+		payload := strings.TrimSpace(trimmed[1:])
+		if payload != "" {
+			sc.sendIncoming(client, payload, true)
+		}
+		return
 	}
 
 	sc.sendIncoming(client, line, false)
