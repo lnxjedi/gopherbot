@@ -62,6 +62,7 @@ We're implementing multi-protocol support; instead of starting a *single* connec
 * Additional protocols should mainly have the same channels; if a plugin is only available in #foo, and a protocol doesn't have #foo, the plugin won't be available for that protocol.
 * If a user connects via secondary protocol and runs ";info" in #general, the robot will indicate this in the #general channel for the primary protocol - this maintains the security concept of channel/command visibility, preventing unintentionally hiding commands run in general. Basically, the robot will just "Say" in primary/#general `(from @david/ssh/#general[optional thread id]): 'info'`
 * An administrator will be able to change the primary protocol on-the-fly, in the event of a network outage affecting the primary protocol
+* Cron / job output will be sent only to the primary protocol
 
 ### Questions
 1) How do we sensibly include slack.yaml, ssh.yaml, etc. to establish per-protocol rosters?
