@@ -934,6 +934,14 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 		defer client.bufMu.Unlock()
 		_ = client.inputBuf.WriteByte(b)
 	}
+	backspaceMsg := func() {
+		if buf.Len() == 0 {
+			return
+		}
+		data := buf.Bytes()
+		buf.Reset()
+		buf.Write(data[:len(data)-1])
+	}
 	backspaceBuf := func() {
 		client.bufMu.Lock()
 		defer client.bufMu.Unlock()
@@ -991,6 +999,12 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 			continue
 		}
 
+		if b == 0x04 {
+			if buf.Len() == 0 {
+				return
+			}
+			continue
+		}
 		if b == '\r' || b == '\n' {
 			if b == '\n' && lastWasCR {
 				lastWasCR = false
@@ -1005,6 +1019,13 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 		lastWasCR = false
 
 		pending.WriteByte(b)
+		if pending.Bytes()[0] == 0x7f || pending.Bytes()[0] == '\b' {
+			backspaceBuf()
+			backspaceMsg()
+			echoByte(pending.Bytes()[0])
+			pending.Reset()
+			continue
+		}
 		if strings.HasPrefix(pasteStart, pending.String()) {
 			if pending.Len() == len(pasteStart) {
 				inPaste = true
@@ -1012,11 +1033,7 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 			}
 			continue
 		}
-		if pending.Bytes()[0] == 0x7f || pending.Bytes()[0] == '\b' {
-			backspaceBuf()
-		} else {
-			appendBuf(pending.Bytes()[0])
-		}
+		appendBuf(pending.Bytes()[0])
 		echoByte(pending.Bytes()[0])
 		buf.Write(pending.Bytes())
 		pending.Reset()
