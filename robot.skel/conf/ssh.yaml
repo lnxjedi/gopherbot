@@ -5,3 +5,14 @@ ProtocolConfig:
   ListenPort: {{ env "GOPHER_SSH_PORT" | default "4221" }}
   DefaultChannel: general
   BotName: '<botname>'
+  Color: true
+  ColorScheme:
+    prompt: 39
+    timestamp: 244
+    bot: 81
+    user: 114
+    system: 220
+    info: 45
+    warning: 214
+    error: 196
+    private: 129

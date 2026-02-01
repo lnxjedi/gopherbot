@@ -16,6 +16,17 @@ ProtocolConfig:
   ListenHost: {{ env "GOPHER_SSH_HOST" | default "localhost" }}
   DefaultChannel: general
   BotName: {{ $botname }}
+  Color: true
+  ColorScheme:
+    prompt: 39
+    timestamp: 244
+    bot: 81
+    user: 114
+    system: 220
+    info: 45
+    warning: 214
+    error: 196
+    private: 129
   Channels:
   - random
   - general

@@ -28,6 +28,8 @@ This document records the intended SSH connector behavior, control flow, and int
 - `DefaultChannel` (default: `general`)
 - `BotName` (default: `gopherbot`)
 - `Channels` (optional list of valid channel names)
+- `Color` (default: `true` in stock config)
+- `ColorScheme` (ANSI 256 color map; keys: `prompt`, `timestamp`, `bot`, `user`, `system`, `info`, `warning`, `error`, `private`)
 
 `ListenPort` can be overridden by CLI `--ssh-port` and env `GOPHER_SSH_PORT`.
 
@@ -67,6 +69,8 @@ Hidden replies:
 ```
 (private/09:15:45)=@floyd/#general(0005): msg
 ```
+
+Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot/user messages, and system lines are colorized via `ColorScheme`. Message headers (timestamp/user/channel) are colorized per segment.
 
 ### User input
 

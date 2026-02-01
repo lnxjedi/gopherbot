@@ -45,6 +45,7 @@ const (
 	pasteEnd   = "\x1b[201~"
 	pasteOn    = "\x1b[?2004h"
 	pasteOff   = "\x1b[?2004l"
+	ansiReset  = "\x1b[0m"
 )
 
 type userKeyInfo struct {
@@ -73,6 +74,8 @@ type sshConfig struct {
 	Channels         []string
 	WrapWidth        int
 	UserHistoryLines int
+	Color            bool
+	ColorScheme      map[string]int
 }
 
 type sshConnector struct {
@@ -114,6 +117,8 @@ type sshClient struct {
 	histPos        int
 	histSaved      string
 	cursor         int
+	color          bool
+	colorScheme    map[string]int
 
 	ch     ssh.Channel
 	conn   *ssh.ServerConn
@@ -152,6 +157,19 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	}
 	if cfg.UserHistoryLines == 0 {
 		cfg.UserHistoryLines = 14
+	}
+	if cfg.ColorScheme == nil {
+		cfg.ColorScheme = map[string]int{
+			"prompt":    39,
+			"timestamp": 244,
+			"bot":       81,
+			"user":      114,
+			"system":    220,
+			"info":      45,
+			"warning":   214,
+			"error":     196,
+			"private":   129,
+		}
 	}
 
 	sc := &sshConnector{
@@ -260,8 +278,19 @@ func (sc *sshConnector) handleConn(nc net.Conn, cfg *ssh.ServerConfig) {
 		filter:     filterChannel,
 		lastThread: make(map[string]string),
 		histPos:    -1,
-		conn:       sshConn,
-		writer:     nc,
+		color:      sc.cfg.Color,
+		colorScheme: func() map[string]int {
+			if sc.cfg.ColorScheme == nil {
+				return nil
+			}
+			cpy := make(map[string]int, len(sc.cfg.ColorScheme))
+			for k, v := range sc.cfg.ColorScheme {
+				cpy[strings.ToLower(k)] = v
+			}
+			return cpy
+		}(),
+		conn:   sshConn,
+		writer: nc,
 	}
 	client.history = sc.getHistory(client.userID)
 
@@ -330,7 +359,7 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 	default:
 	}
 
-	client.writeString("Select filter: (A)ll, (C)hannel, (T)hread [C]: ")
+	client.writeStringKind("system", "Select filter: (A)ll, (C)hannel, (T)hread [C]: ")
 	inputCh := make(chan string)
 	go sc.readInput(client, inputCh)
 
@@ -342,12 +371,12 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 	client.writeString("\n")
 
 	sc.replayBuffer(client)
-	client.writeString(sshConnectorHelpLine)
+	client.writeLineKind("system", sshConnectorHelpLine)
 	client.writePrompt()
 
 	for line := range inputCh {
 		if len(line) == 0 {
-			client.writeString(sshConnectorHelpLine)
+			client.writeLineKind("system", sshConnectorHelpLine)
 			client.writePrompt()
 			continue
 		}
@@ -369,27 +398,27 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 	case 'C', 'c':
 		arg := strings.TrimSpace(input[2:])
 		if arg == "?" {
-			client.writeString("Available channels:\n")
+			client.writeLineKind("system", "Available channels:")
 			for _, ch := range sc.cfg.Channels {
-				client.writeString(fmt.Sprintf("'%s'; type: '|c%s'\n", ch, ch))
+				client.writeLineKind("system", fmt.Sprintf("'%s'; type: '|c%s'", ch, ch))
 			}
 			return
 		}
 		if arg == "" {
-			client.writeString("Invalid 0-length channel\n")
+			client.writeLineKind("error", "Invalid 0-length channel")
 			return
 		}
 		if !sc.isValidChannel(arg) {
-			client.writeString("Invalid channel\n")
+			client.writeLineKind("error", "Invalid channel")
 			return
 		}
 		client.channel = arg
 		client.typingInThread = false
-		client.writeString(fmt.Sprintf("Changed current channel to: %s\n", arg))
+		client.writeLineKind("info", fmt.Sprintf("Changed current channel to: %s", arg))
 	case 'T', 't':
 		arg := strings.TrimSpace(input[2:])
 		if arg == "?" {
-			client.writeString("Use '|t' to toggle typing in a thread, '|t<string>' to set the current thread ID, or '|j' to join the last thread seen\n")
+			client.writeLineKind("system", "Use '|t' to toggle typing in a thread, '|t<string>' to set the current thread ID, or '|j' to join the last thread seen")
 			return
 		}
 		if arg == "" {
@@ -402,46 +431,46 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 			client.threadID = arg
 		}
 		if client.typingInThread {
-			client.writeString(fmt.Sprintf("(now typing in thread: %s)\n", client.threadID))
+			client.writeLineKind("info", fmt.Sprintf("(now typing in thread: %s)", client.threadID))
 		} else {
-			client.writeString("(typing in channel now)\n")
+			client.writeLineKind("info", "(typing in channel now)")
 		}
 	case 'J', 'j':
 		last, ok := client.lastThread[client.channel]
 		if !ok || last == "" {
-			client.writeString("(sorry, I don't see a thread to join)\n")
+			client.writeLineKind("warning", "(sorry, I don't see a thread to join)")
 			return
 		}
 		client.typingInThread = true
 		client.threadID = last
-		client.writeString(fmt.Sprintf("(now typing in thread: %s)\n", client.threadID))
+		client.writeLineKind("info", fmt.Sprintf("(now typing in thread: %s)", client.threadID))
 	case 'F', 'f':
 		arg := strings.TrimSpace(input[2:])
 		if arg == "" || arg == "?" {
-			client.writeString("Available filters:\n")
-			client.writeString("'All' - type: '|fA'\n")
-			client.writeString("'Channel' - type: '|fC'\n")
-			client.writeString("'Thread' - type: '|fT'\n")
+			client.writeLineKind("system", "Available filters:")
+			client.writeLineKind("system", "'All' - type: '|fA'")
+			client.writeLineKind("system", "'Channel' - type: '|fC'")
+			client.writeLineKind("system", "'Thread' - type: '|fT'")
 			return
 		}
 		client.filter = parseFilter(arg)
-		client.writeString(fmt.Sprintf("Filter set to: %s\n", filterLabel(client.filter)))
+		client.writeLineKind("info", fmt.Sprintf("Filter set to: %s", filterLabel(client.filter)))
 	default:
-		client.writeString("Invalid SSH connector command\n")
+		client.writeLineKind("error", "Invalid SSH connector command")
 	}
 }
 
 func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
 	now := time.Now()
-	client.writeString(fmt.Sprintf(" (%s)\n", now.Format("15:04:05")))
+	client.writeStringKind("timestamp", fmt.Sprintf(" (%s)\n", now.Format("15:04:05")))
 
 	if len(line) > sc.cfg.MaxMsgBytes {
-		client.writeString("(ERROR: message too long; > 16k - dropped)\n")
+		client.writeLineKind("error", "(ERROR: message too long; > 16k - dropped)")
 		return
 	}
 
 	if len(line) > maxBufferBytes {
-		client.writeString("(WARNING: message truncated to 4k in buffer)\n")
+		client.writeLineKind("warning", "(WARNING: message truncated to 4k in buffer)")
 	}
 
 	client.recordHistory(line, sc.cfg.UserHistoryLines)
@@ -449,7 +478,7 @@ func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
 	trimmed := strings.TrimSpace(line)
 	if strings.HasPrefix(trimmed, "/") {
 		if strings.HasPrefix(trimmed, "/ ") || trimmed == "/" {
-			client.writeString("(INFO: '/' note to self message not sent to other users)\n")
+			client.writeLineKind("info", "(INFO: '/' note to self message not sent to other users)")
 			return
 		}
 		if sc.isBotHiddenMessage(trimmed) {
@@ -582,7 +611,7 @@ func (sc *sshConnector) SendProtocolUserMessage(u string, msg string, f robot.Me
 		text:      msg,
 	}
 	for _, client := range clients {
-		client.writeLine(sc.formatMessage(evt, false))
+		client.writeMessage(evt, false)
 	}
 	return robot.Ok
 }
@@ -625,7 +654,7 @@ func (sc *sshConnector) broadcast(evt bufferMsg, msgObject *robot.ConnectorMessa
 			if client.userID != hiddenUser {
 				continue
 			}
-			client.writeAsyncMessage(sc.formatMessage(evt, true))
+			client.writeMessageAsync(evt, true)
 			continue
 		}
 		if client.userName == evt.userName {
@@ -634,32 +663,11 @@ func (sc *sshConnector) broadcast(evt bufferMsg, msgObject *robot.ConnectorMessa
 		if !client.matchFilter(evt) {
 			continue
 		}
-		client.writeAsyncMessage(sc.formatMessage(evt, false))
+		client.writeMessageAsync(evt, false)
 		if evt.threaded {
 			client.lastThread[evt.channel] = evt.threadID
 		}
 	}
-}
-
-func (sc *sshConnector) formatMessage(evt bufferMsg, private bool) string {
-	stamp := evt.timestamp.Format("15:04:05")
-	prefix := "@" + evt.userName
-	if evt.isBot {
-		prefix = "=@" + evt.userName
-	}
-	thread := ""
-	if evt.threaded && evt.threadID != "" {
-		thread = fmt.Sprintf("(%s)", evt.threadID)
-	}
-	channel := "#" + evt.channel
-	if evt.channel == "" {
-		channel = "#(direct)"
-	}
-	line := fmt.Sprintf("(%s)%s/%s%s: %s", stamp, prefix, channel, thread, evt.text)
-	if private {
-		line = fmt.Sprintf("(private/%s)%s/%s%s: %s", stamp, prefix, channel, thread, evt.text)
-	}
-	return sc.wrap(line)
 }
 
 func (sc *sshConnector) appendBuffer(evt bufferMsg) {
@@ -684,7 +692,7 @@ func (sc *sshConnector) replayBuffer(client *sshClient) {
 		if !client.matchFilter(evt) {
 			continue
 		}
-		client.writeLine(sc.formatMessage(evt, false))
+		client.writeMessage(evt, false)
 		if evt.threaded {
 			client.lastThread[evt.channel] = evt.threadID
 		}
@@ -941,7 +949,7 @@ func filterLabel(f filterMode) string {
 	}
 }
 
-const sshConnectorHelpLine = "SSH connector: Type '|c?' to list channels, '|t?' for thread help, '|j' to join last thread, '|f?' to list/change filter\n"
+const sshConnectorHelpLine = "SSH connector: Type '|c?' to list channels, '|t?' for thread help, '|j' to join last thread, '|f?' to list/change filter"
 
 func (c *sshClient) writePrompt() {
 	thread := ""
@@ -949,27 +957,61 @@ func (c *sshClient) writePrompt() {
 		thread = fmt.Sprintf("(%s)", c.threadID)
 	}
 	prompt := fmt.Sprintf("@%s/#%s%s -> ", c.userName, c.channel, thread)
-	c.writeString(prompt)
+	c.writeString(c.colorize("prompt", prompt))
 }
 
 func (c *sshClient) writeString(s string) {
+	c.writeStringKind("", s)
+}
+
+func (c *sshClient) writeStringKind(kind, s string) {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
-	_, _ = c.writer.Write([]byte(normalizeNewlines(s)))
+	out := c.colorizeLines(kind, s)
+	_, _ = c.writer.Write([]byte(normalizeNewlines(out)))
 }
 
 func (c *sshClient) writeLine(s string) {
+	c.writeLineKind("", s)
+}
+
+func (c *sshClient) writeLineKind(kind, s string) {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
-	_, _ = c.writer.Write([]byte(normalizeNewlines(c.wrapLine(s) + "\n")))
+	wrapped := c.wrapLine(s)
+	wrapped = c.colorizeLines(kind, wrapped)
+	_, _ = c.writer.Write([]byte(normalizeNewlines(wrapped + "\n")))
 }
 
 func (c *sshClient) writeAsyncMessage(msg string) {
+	c.writeAsyncMessageKind("", msg)
+}
+
+func (c *sshClient) writeAsyncMessageKind(kind, msg string) {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
 	// Clear current input line, print message, then redraw prompt + buffer.
 	_, _ = c.writer.Write([]byte("\r\033[2K"))
-	_, _ = c.writer.Write([]byte(normalizeNewlines(c.wrapLine(msg) + "\n")))
+	wrapped := c.wrapLine(msg)
+	wrapped = c.colorizeLines(kind, wrapped)
+	_, _ = c.writer.Write([]byte(normalizeNewlines(wrapped + "\n")))
+	c.redrawInputLineLocked()
+}
+
+func (c *sshClient) writeMessage(evt bufferMsg, private bool) {
+	msg := c.formatMessage(evt, private)
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
+	_, _ = c.writer.Write([]byte(normalizeNewlines(msg + "\n")))
+}
+
+func (c *sshClient) writeMessageAsync(evt bufferMsg, private bool) {
+	msg := c.formatMessage(evt, private)
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
+	// Clear current input line, print message, then redraw prompt + buffer.
+	_, _ = c.writer.Write([]byte("\r\033[2K"))
+	_, _ = c.writer.Write([]byte(normalizeNewlines(msg + "\n")))
 	c.redrawInputLineLocked()
 }
 
@@ -986,7 +1028,7 @@ func (c *sshClient) redrawInputLineLocked() {
 		thread = fmt.Sprintf("(%s)", c.threadID)
 	}
 	prompt := fmt.Sprintf("@%s/#%s%s -> ", c.userName, c.channel, thread)
-	_, _ = c.writer.Write([]byte(prompt))
+	_, _ = c.writer.Write([]byte(c.colorize("prompt", prompt)))
 	c.bufMu.Lock()
 	buf := append([]byte(nil), c.inputBuf.Bytes()...)
 	cursor := c.cursor
@@ -1004,6 +1046,107 @@ func (c *sshClient) redrawInputLineLocked() {
 	if len(buf)-cursor > 0 {
 		_, _ = c.writer.Write([]byte(fmt.Sprintf("\033[%dD", len(buf)-cursor)))
 	}
+}
+
+func (c *sshClient) formatMessage(evt bufferMsg, private bool) string {
+	stamp := evt.timestamp.Format("15:04:05")
+	prefix := "@" + evt.userName
+	if evt.isBot {
+		prefix = "=@" + evt.userName
+	}
+	thread := ""
+	if evt.threaded && evt.threadID != "" {
+		thread = fmt.Sprintf("(%s)", evt.threadID)
+	}
+	channel := "#" + evt.channel
+	if evt.channel == "" {
+		channel = "#(direct)"
+	}
+
+	header := fmt.Sprintf("(%s)%s/%s%s:", stamp, prefix, channel, thread)
+	if private {
+		header = fmt.Sprintf("(private/%s)%s/%s%s:", stamp, prefix, channel, thread)
+	}
+	body := " " + evt.text
+	wrapped := c.wrapLine(header + body)
+	if !c.color {
+		return wrapped
+	}
+
+	headerColored := c.colorizeHeader(stamp, prefix, channel, thread, evt.isBot, private)
+	bodyKind := "user"
+	if evt.isBot {
+		bodyKind = "bot"
+	}
+
+	lines := strings.Split(wrapped, "\n")
+	if len(lines) == 0 {
+		return wrapped
+	}
+	if strings.HasPrefix(lines[0], header) {
+		remainder := lines[0][len(header):]
+		lines[0] = headerColored + c.colorize(bodyKind, remainder)
+		for i := 1; i < len(lines); i++ {
+			lines[i] = c.colorize(bodyKind, lines[i])
+		}
+		return strings.Join(lines, "\n")
+	}
+	for i := 0; i < len(lines); i++ {
+		lines[i] = c.colorize(bodyKind, lines[i])
+	}
+	return strings.Join(lines, "\n")
+}
+
+func (c *sshClient) colorize(kind, s string) string {
+	if !c.color || s == "" {
+		return s
+	}
+	if c.colorScheme == nil {
+		return s
+	}
+	code, ok := c.colorScheme[strings.ToLower(kind)]
+	if !ok {
+		return s
+	}
+	return fmt.Sprintf("\x1b[38;5;%dm%s%s", code, s, ansiReset)
+}
+
+func (c *sshClient) colorizeHeader(stamp, prefix, channel, thread string, isBot, private bool) string {
+	var b strings.Builder
+	b.WriteString("(")
+	if private {
+		b.WriteString(c.colorize("private", "private"))
+		b.WriteString("/")
+	}
+	b.WriteString(c.colorize("timestamp", stamp))
+	b.WriteString(")")
+
+	userKind := "user"
+	if isBot {
+		userKind = "bot"
+	}
+	b.WriteString(c.colorize(userKind, prefix))
+	b.WriteString("/")
+	b.WriteString(c.colorize("prompt", channel))
+	if thread != "" {
+		b.WriteString(c.colorize("prompt", thread))
+	}
+	b.WriteString(":")
+	return b.String()
+}
+
+func (c *sshClient) colorizeLines(kind, s string) string {
+	if !c.color || s == "" {
+		return s
+	}
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		if line == "" {
+			continue
+		}
+		lines[i] = c.colorize(kind, line)
+	}
+	return strings.Join(lines, "\n")
 }
 
 func (c *sshClient) matchFilter(evt bufferMsg) bool {

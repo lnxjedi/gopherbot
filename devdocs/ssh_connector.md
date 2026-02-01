@@ -48,10 +48,18 @@ Any startup modes that currently force `nullconn` remain unchanged.
 - `DefaultChannel` (default: `general`)
 - `BotName` (default: `gopherbot`)
 - `Channels` (optional list of valid channel names)
+- `Color` (default: `true` in stock config)
+- `ColorScheme` (ANSI 256 color map; keys: `prompt`, `timestamp`, `bot`, `user`, `system`, `info`, `warning`, `error`, `private`)
 
 ### Defaults
 
 The default SSH connector configuration should exist in `conf/ssh.yaml` (where no port is specified, and the engine defaults to 4221) and `robot.skel/conf/ssh.yaml` (with `ListenPort` using env default `GOPHER_SSH_PORT` or `4221`). The default roster includes alice/bob/carol/david/erin with their ed25519 public keys.
+
+### Color
+
+The stock config enables ANSI 256 colors. User input stays in the terminal default color; prompts, system lines, and bot/user output are colorized based on `ColorScheme`.
+
+Message headers (timestamp/user/channel) are colorized per segment to improve scanability.
 
 ## CLI and Environment Overrides
 
