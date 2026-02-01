@@ -72,6 +72,7 @@ type sshConfig struct {
 	BotName          string
 	Channels         []string
 	WrapWidth        int
+	UserHistoryLines int
 }
 
 type sshConnector struct {
@@ -89,6 +90,11 @@ type sshConnector struct {
 	buffer    []bufferMsg
 	bufIndex  int
 	bufFilled bool
+	histories map[string]*userHistory
+}
+
+type userHistory struct {
+	lines []string
 }
 
 type sshClient struct {
@@ -104,6 +110,10 @@ type sshClient struct {
 	inputBuf       bytes.Buffer
 	bufMu          sync.Mutex
 	width          int
+	history        *userHistory
+	histPos        int
+	histSaved      string
+	cursor         int
 
 	ch     ssh.Channel
 	conn   *ssh.ServerConn
@@ -140,16 +150,20 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	if cfg.BotName == "" {
 		cfg.BotName = "gopherbot"
 	}
+	if cfg.UserHistoryLines == 0 {
+		cfg.UserHistoryLines = 14
+	}
 
 	sc := &sshConnector{
-		cfg:      cfg,
-		handler:  handler,
-		logger:   l,
-		botName:  cfg.BotName,
-		clients:  make(map[*sshClient]struct{}),
-		userKeys: make(map[string]userKeyInfo),
-		threads:  make(map[string]int),
-		buffer:   make([]bufferMsg, cfg.ReplayBufferSize),
+		cfg:       cfg,
+		handler:   handler,
+		logger:    l,
+		botName:   cfg.BotName,
+		clients:   make(map[*sshClient]struct{}),
+		userKeys:  make(map[string]userKeyInfo),
+		threads:   make(map[string]int),
+		buffer:    make([]bufferMsg, cfg.ReplayBufferSize),
+		histories: make(map[string]*userHistory),
 	}
 
 	return robot.Connector(sc)
@@ -245,9 +259,11 @@ func (sc *sshConnector) handleConn(nc net.Conn, cfg *ssh.ServerConfig) {
 		channel:    sc.cfg.DefaultChannel,
 		filter:     filterChannel,
 		lastThread: make(map[string]string),
+		histPos:    -1,
 		conn:       sshConn,
 		writer:     nc,
 	}
+	client.history = sc.getHistory(client.userID)
 
 	sc.addClient(client)
 	defer sc.removeClient(client)
@@ -427,6 +443,8 @@ func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
 	if len(line) > maxBufferBytes {
 		client.writeString("(WARNING: message truncated to 4k in buffer)\n")
 	}
+
+	client.recordHistory(line, sc.cfg.UserHistoryLines)
 
 	trimmed := strings.TrimSpace(line)
 	if strings.HasPrefix(trimmed, "/") {
@@ -699,6 +717,18 @@ func (sc *sshConnector) clientsForUser(u string) []*sshClient {
 	return clients
 }
 
+func (sc *sshConnector) getHistory(userID string) *userHistory {
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+	hist, ok := sc.histories[userID]
+	if ok {
+		return hist
+	}
+	hist = &userHistory{}
+	sc.histories[userID] = hist
+	return hist
+}
+
 func (sc *sshConnector) normalizeChannel(ch string) string {
 	if ch == "" {
 		return ch
@@ -940,6 +970,17 @@ func (c *sshClient) writeAsyncMessage(msg string) {
 	// Clear current input line, print message, then redraw prompt + buffer.
 	_, _ = c.writer.Write([]byte("\r\033[2K"))
 	_, _ = c.writer.Write([]byte(normalizeNewlines(c.wrapLine(msg) + "\n")))
+	c.redrawInputLineLocked()
+}
+
+func (c *sshClient) redrawInputLine() {
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
+	c.redrawInputLineLocked()
+}
+
+func (c *sshClient) redrawInputLineLocked() {
+	_, _ = c.writer.Write([]byte("\r\033[2K"))
 	thread := ""
 	if c.typingInThread && c.threadID != "" {
 		thread = fmt.Sprintf("(%s)", c.threadID)
@@ -947,10 +988,22 @@ func (c *sshClient) writeAsyncMessage(msg string) {
 	prompt := fmt.Sprintf("@%s/#%s%s -> ", c.userName, c.channel, thread)
 	_, _ = c.writer.Write([]byte(prompt))
 	c.bufMu.Lock()
-	if c.inputBuf.Len() > 0 {
-		_, _ = c.writer.Write(c.inputBuf.Bytes())
-	}
+	buf := append([]byte(nil), c.inputBuf.Bytes()...)
+	cursor := c.cursor
 	c.bufMu.Unlock()
+	if len(buf) > 0 {
+		_, _ = c.writer.Write(buf)
+	}
+	if cursor < 0 {
+		cursor = 0
+	}
+	if cursor > len(buf) {
+		cursor = len(buf)
+	}
+	// Move cursor left if needed.
+	if len(buf)-cursor > 0 {
+		_, _ = c.writer.Write([]byte(fmt.Sprintf("\033[%dD", len(buf)-cursor)))
+	}
 }
 
 func (c *sshClient) matchFilter(evt bufferMsg) bool {
@@ -972,7 +1025,6 @@ func (c *sshClient) matchFilter(evt bufferMsg) bool {
 func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 	defer close(out)
 	reader := bufio.NewReader(client.ch)
-	var buf bytes.Buffer
 	var pending bytes.Buffer
 	inPaste := false
 	lastWasCR := false
@@ -980,46 +1032,85 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 	appendBuf := func(b byte) {
 		client.bufMu.Lock()
 		defer client.bufMu.Unlock()
-		_ = client.inputBuf.WriteByte(b)
-	}
-	backspaceMsg := func() {
-		if buf.Len() == 0 {
-			return
+		data := client.inputBuf.Bytes()
+		if client.cursor < 0 {
+			client.cursor = 0
 		}
-		data := buf.Bytes()
-		buf.Reset()
-		buf.Write(data[:len(data)-1])
+		if client.cursor > len(data) {
+			client.cursor = len(data)
+		}
+		tmp := make([]byte, 0, len(data)+1)
+		tmp = append(tmp, data[:client.cursor]...)
+		tmp = append(tmp, b)
+		tmp = append(tmp, data[client.cursor:]...)
+		client.inputBuf.Reset()
+		_, _ = client.inputBuf.Write(tmp)
+		client.cursor++
 	}
 	backspaceBuf := func() {
 		client.bufMu.Lock()
 		defer client.bufMu.Unlock()
-		if client.inputBuf.Len() == 0 {
+		if client.inputBuf.Len() == 0 || client.cursor == 0 {
 			return
 		}
 		data := client.inputBuf.Bytes()
+		if client.cursor > len(data) {
+			client.cursor = len(data)
+		}
+		tmp := make([]byte, 0, len(data)-1)
+		tmp = append(tmp, data[:client.cursor-1]...)
+		tmp = append(tmp, data[client.cursor:]...)
 		client.inputBuf.Reset()
-		_, _ = client.inputBuf.Write(data[:len(data)-1])
+		_, _ = client.inputBuf.Write(tmp)
+		client.cursor--
 	}
 	clearBuf := func() {
 		client.bufMu.Lock()
 		client.inputBuf.Reset()
+		client.histPos = -1
+		client.histSaved = ""
+		client.cursor = 0
 		client.bufMu.Unlock()
 	}
-
-	echoByte := func(b byte) {
-		if !client.echo {
+	deleteAtCursor := func() {
+		client.bufMu.Lock()
+		defer client.bufMu.Unlock()
+		data := client.inputBuf.Bytes()
+		if client.cursor < 0 {
+			client.cursor = 0
+		}
+		if client.cursor >= len(data) {
 			return
 		}
-		client.wmu.Lock()
-		defer client.wmu.Unlock()
-		switch b {
-		case '\r', '\n':
-			return
-		case 0x7f, '\b':
-			_, _ = client.writer.Write([]byte("\b \b"))
-		default:
-			_, _ = client.writer.Write([]byte{b})
+		tmp := make([]byte, 0, len(data)-1)
+		tmp = append(tmp, data[:client.cursor]...)
+		tmp = append(tmp, data[client.cursor+1:]...)
+		client.inputBuf.Reset()
+		_, _ = client.inputBuf.Write(tmp)
+	}
+	moveLeft := func() {
+		client.bufMu.Lock()
+		if client.cursor > 0 {
+			client.cursor--
 		}
+		client.bufMu.Unlock()
+	}
+	moveRight := func() {
+		client.bufMu.Lock()
+		if client.cursor < client.inputBuf.Len() {
+			client.cursor++
+		}
+		client.bufMu.Unlock()
+	}
+	moveHome := func() {
+		client.bufMu.Lock()
+		client.cursor = 0
+		client.bufMu.Unlock()
+	}
+	moveEnd := func() {
+		client.bufMu.Lock()
+		client.cursor = client.inputBuf.Len()
+		client.bufMu.Unlock()
 	}
 
 	for {
@@ -1028,29 +1119,130 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 			return
 		}
 
+		if pending.Len() > 0 && pending.Bytes()[0] == 0x1b {
+			pending.WriteByte(b)
+			if strings.HasPrefix(pasteStart, pending.String()) {
+				if pending.Len() == len(pasteStart) {
+					inPaste = true
+					pending.Reset()
+				}
+				continue
+			}
+			if pending.Len() == 2 && pending.Bytes()[1] == '[' {
+				continue
+			}
+			if pending.Len() == 3 && pending.Bytes()[1] == '[' {
+				switch pending.Bytes()[2] {
+				case 'A':
+					client.historyUp()
+					pending.Reset()
+					continue
+				case 'B':
+					client.historyDown()
+					pending.Reset()
+					continue
+				case 'C':
+					moveRight()
+					client.redrawInputLine()
+					pending.Reset()
+					continue
+				case 'D':
+					moveLeft()
+					client.redrawInputLine()
+					pending.Reset()
+					continue
+				case 'H':
+					moveHome()
+					client.redrawInputLine()
+					pending.Reset()
+					continue
+				case 'F':
+					moveEnd()
+					client.redrawInputLine()
+					pending.Reset()
+					continue
+				}
+			}
+			if pending.Len() == 4 && pending.Bytes()[1] == '[' && pending.Bytes()[3] == '~' {
+				switch pending.Bytes()[2] {
+				case '1':
+					moveHome()
+					client.redrawInputLine()
+					pending.Reset()
+					continue
+				case '4':
+					moveEnd()
+					client.redrawInputLine()
+					pending.Reset()
+					continue
+				case '3':
+					deleteAtCursor()
+					client.redrawInputLine()
+					pending.Reset()
+					continue
+				}
+			}
+			if pending.Len() == 3 && pending.Bytes()[1] == 'O' {
+				switch pending.Bytes()[2] {
+				case 'H':
+					moveHome()
+					client.redrawInputLine()
+					pending.Reset()
+					continue
+				case 'F':
+					moveEnd()
+					client.redrawInputLine()
+					pending.Reset()
+					continue
+				}
+			}
+			// Unhandled escape sequence; flush bytes into input buffer.
+			for pending.Len() > 0 {
+				peek := pending.Bytes()[0]
+				pending.ReadByte()
+				appendBuf(peek)
+				client.redrawInputLine()
+			}
+			continue
+		}
+
 		if inPaste {
-			echoByte(b)
 			pending.WriteByte(b)
 			if strings.HasPrefix(pasteEnd, pending.String()) {
 				if pending.Len() == len(pasteEnd) {
 					inPaste = false
 					pending.Reset()
-					out <- buf.String()
+					client.bufMu.Lock()
+					out <- client.inputBuf.String()
+					client.bufMu.Unlock()
 					clearBuf()
-					buf.Reset()
+					client.redrawInputLine()
 				}
 				continue
 			}
-			buf.Write(pending.Bytes())
 			appendBuf(pending.Bytes()[0])
 			pending.Reset()
+			client.redrawInputLine()
 			continue
 		}
 
 		if b == 0x04 {
-			if buf.Len() == 0 {
+			client.bufMu.Lock()
+			empty := client.inputBuf.Len() == 0
+			client.bufMu.Unlock()
+			if empty {
 				return
 			}
+			continue
+		}
+		if b == 0x01 { // Ctrl-A
+			moveHome()
+			client.redrawInputLine()
+			continue
+		}
+		if b == 0x05 { // Ctrl-E
+			moveEnd()
+			client.redrawInputLine()
 			continue
 		}
 		if b == '\r' || b == '\n' {
@@ -1059,18 +1251,23 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 				continue
 			}
 			lastWasCR = b == '\r'
-			out <- buf.String()
+			client.bufMu.Lock()
+			out <- client.inputBuf.String()
+			client.bufMu.Unlock()
 			clearBuf()
-			buf.Reset()
 			continue
 		}
 		lastWasCR = false
 
+		if b == 0x1b {
+			pending.WriteByte(b)
+			continue
+		}
+
 		pending.WriteByte(b)
 		if pending.Bytes()[0] == 0x7f || pending.Bytes()[0] == '\b' {
 			backspaceBuf()
-			backspaceMsg()
-			echoByte(pending.Bytes()[0])
+			client.redrawInputLine()
 			pending.Reset()
 			continue
 		}
@@ -1082,8 +1279,7 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 			continue
 		}
 		appendBuf(pending.Bytes()[0])
-		echoByte(pending.Bytes()[0])
-		buf.Write(pending.Bytes())
+		client.redrawInputLine()
 		pending.Reset()
 	}
 }
@@ -1138,4 +1334,69 @@ func (c *sshClient) wrapLine(s string) string {
 
 func (sc *sshConnector) wrap(s string) string {
 	return s
+}
+
+func (c *sshClient) recordHistory(line string, limit int) {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" {
+		return
+	}
+	if c.history == nil {
+		return
+	}
+	c.bufMu.Lock()
+	c.history.lines = append(c.history.lines, trimmed)
+	if limit > 0 && len(c.history.lines) > limit {
+		c.history.lines = c.history.lines[len(c.history.lines)-limit:]
+	}
+	c.histPos = -1
+	c.histSaved = ""
+	c.bufMu.Unlock()
+}
+
+func (c *sshClient) historyUp() {
+	if c.history == nil || len(c.history.lines) == 0 {
+		return
+	}
+	c.bufMu.Lock()
+	if c.histPos == -1 {
+		c.histSaved = c.inputBuf.String()
+		c.histPos = len(c.history.lines) - 1
+	} else if c.histPos > 0 {
+		c.histPos--
+	}
+	entry := c.history.lines[c.histPos]
+	c.inputBuf.Reset()
+	_, _ = c.inputBuf.WriteString(entry)
+	c.cursor = c.inputBuf.Len()
+	c.bufMu.Unlock()
+	c.redrawInputLine()
+}
+
+func (c *sshClient) historyDown() {
+	if c.history == nil || len(c.history.lines) == 0 {
+		return
+	}
+	c.bufMu.Lock()
+	if c.histPos == -1 {
+		c.bufMu.Unlock()
+		return
+	}
+	if c.histPos < len(c.history.lines)-1 {
+		c.histPos++
+		entry := c.history.lines[c.histPos]
+		c.inputBuf.Reset()
+		_, _ = c.inputBuf.WriteString(entry)
+		c.cursor = c.inputBuf.Len()
+		c.bufMu.Unlock()
+		c.redrawInputLine()
+		return
+	}
+	c.histPos = -1
+	entry := c.histSaved
+	c.inputBuf.Reset()
+	_, _ = c.inputBuf.WriteString(entry)
+	c.cursor = c.inputBuf.Len()
+	c.bufMu.Unlock()
+	c.redrawInputLine()
 }
