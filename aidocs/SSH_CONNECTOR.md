@@ -83,7 +83,7 @@ Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot
 - Initial filter: `Thread`.
 - `A`: all messages.
 - `C`: channel messages in current channel (including threads).
-- `T`: thread-only when in a thread; otherwise channel-level only.
+- `T`: thread-only when in a thread; otherwise channel-level plus the first message of each thread (rendered as `(+0005)` to indicate a new thread).
 
 ## Buffer and Size Limits
 

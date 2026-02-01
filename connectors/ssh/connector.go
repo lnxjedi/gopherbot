@@ -109,6 +109,7 @@ type sshClient struct {
 	typingInThread bool
 	filter         filterMode
 	lastThread     map[string]string
+	threadSeen     map[string]map[string]struct{}
 	echo           bool
 	inputBuf       bytes.Buffer
 	bufMu          sync.Mutex
@@ -119,6 +120,8 @@ type sshClient struct {
 	cursor         int
 	color          bool
 	colorScheme    map[string]int
+	promptOverride string
+	promptSingle   bool
 
 	ch     ssh.Channel
 	conn   *ssh.ServerConn
@@ -277,6 +280,7 @@ func (sc *sshConnector) handleConn(nc net.Conn, cfg *ssh.ServerConfig) {
 		channel:    sc.cfg.DefaultChannel,
 		filter:     filterChannel,
 		lastThread: make(map[string]string),
+		threadSeen: make(map[string]map[string]struct{}),
 		histPos:    -1,
 		color:      sc.cfg.Color,
 		colorScheme: func() map[string]int {
@@ -360,6 +364,10 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 	}
 
 	client.writeStringKind("system", "Select filter: (A)ll, (C)hannel, (T)hread [C]: ")
+	client.bufMu.Lock()
+	client.promptOverride = "Select filter: (A)ll, (C)hannel, (T)hread [C]: "
+	client.promptSingle = true
+	client.bufMu.Unlock()
 	inputCh := make(chan string)
 	go sc.readInput(client, inputCh)
 
@@ -368,9 +376,16 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 		return
 	}
 	client.filter = parseFilter(input)
+	client.bufMu.Lock()
+	client.promptOverride = ""
+	client.promptSingle = false
+	client.bufMu.Unlock()
 	client.writeString("\n")
 
-	sc.replayBuffer(client)
+	replayed := sc.replayBuffer(client)
+	if replayed == 0 {
+		client.writeLineKind("info", "(INFO: no recent messages matched the selected filter)")
+	}
 	client.writeLineKind("system", sshConnectorHelpLine)
 	client.writePrompt()
 
@@ -611,7 +626,7 @@ func (sc *sshConnector) SendProtocolUserMessage(u string, msg string, f robot.Me
 		text:      msg,
 	}
 	for _, client := range clients {
-		client.writeMessage(evt, false)
+		client.writeMessage(evt, false, false)
 	}
 	return robot.Ok
 }
@@ -654,16 +669,17 @@ func (sc *sshConnector) broadcast(evt bufferMsg, msgObject *robot.ConnectorMessa
 			if client.userID != hiddenUser {
 				continue
 			}
-			client.writeMessageAsync(evt, true)
+			client.writeMessageAsync(evt, true, false)
 			continue
 		}
 		if client.userName == evt.userName {
 			continue
 		}
-		if !client.matchFilter(evt) {
+		send, announceThread := client.shouldSend(evt)
+		if !send {
 			continue
 		}
-		client.writeMessageAsync(evt, false)
+		client.writeMessageAsync(evt, false, announceThread)
 		if evt.threaded {
 			client.lastThread[evt.channel] = evt.threadID
 		}
@@ -686,17 +702,21 @@ func (sc *sshConnector) appendBuffer(evt bufferMsg) {
 	sc.mu.Unlock()
 }
 
-func (sc *sshConnector) replayBuffer(client *sshClient) {
+func (sc *sshConnector) replayBuffer(client *sshClient) int {
 	msgs := sc.snapshotBuffer()
+	count := 0
 	for _, evt := range msgs {
-		if !client.matchFilter(evt) {
+		send, announceThread := client.shouldSend(evt)
+		if !send {
 			continue
 		}
-		client.writeMessage(evt, false)
+		client.writeMessage(evt, false, announceThread)
+		count++
 		if evt.threaded {
 			client.lastThread[evt.channel] = evt.threadID
 		}
 	}
+	return count
 }
 
 func (sc *sshConnector) snapshotBuffer() []bufferMsg {
@@ -952,6 +972,13 @@ func filterLabel(f filterMode) string {
 const sshConnectorHelpLine = "SSH connector: Type '|c?' to list channels, '|t?' for thread help, '|j' to join last thread, '|f?' to list/change filter"
 
 func (c *sshClient) writePrompt() {
+	c.bufMu.Lock()
+	override := c.promptOverride
+	c.bufMu.Unlock()
+	if override != "" {
+		c.writeString(c.colorize("system", override))
+		return
+	}
 	thread := ""
 	if c.typingInThread && c.threadID != "" {
 		thread = fmt.Sprintf("(%s)", c.threadID)
@@ -998,15 +1025,15 @@ func (c *sshClient) writeAsyncMessageKind(kind, msg string) {
 	c.redrawInputLineLocked()
 }
 
-func (c *sshClient) writeMessage(evt bufferMsg, private bool) {
-	msg := c.formatMessage(evt, private)
+func (c *sshClient) writeMessage(evt bufferMsg, private, announceThread bool) {
+	msg := c.formatMessage(evt, private, announceThread)
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
 	_, _ = c.writer.Write([]byte(normalizeNewlines(msg + "\n")))
 }
 
-func (c *sshClient) writeMessageAsync(evt bufferMsg, private bool) {
-	msg := c.formatMessage(evt, private)
+func (c *sshClient) writeMessageAsync(evt bufferMsg, private, announceThread bool) {
+	msg := c.formatMessage(evt, private, announceThread)
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
 	// Clear current input line, print message, then redraw prompt + buffer.
@@ -1023,12 +1050,17 @@ func (c *sshClient) redrawInputLine() {
 
 func (c *sshClient) redrawInputLineLocked() {
 	_, _ = c.writer.Write([]byte("\r\033[2K"))
-	thread := ""
-	if c.typingInThread && c.threadID != "" {
-		thread = fmt.Sprintf("(%s)", c.threadID)
+	override := c.promptOverride
+	if override != "" {
+		_, _ = c.writer.Write([]byte(c.colorize("system", override)))
+	} else {
+		thread := ""
+		if c.typingInThread && c.threadID != "" {
+			thread = fmt.Sprintf("(%s)", c.threadID)
+		}
+		prompt := fmt.Sprintf("@%s/#%s%s -> ", c.userName, c.channel, thread)
+		_, _ = c.writer.Write([]byte(c.colorize("prompt", prompt)))
 	}
-	prompt := fmt.Sprintf("@%s/#%s%s -> ", c.userName, c.channel, thread)
-	_, _ = c.writer.Write([]byte(c.colorize("prompt", prompt)))
 	c.bufMu.Lock()
 	buf := append([]byte(nil), c.inputBuf.Bytes()...)
 	cursor := c.cursor
@@ -1048,7 +1080,7 @@ func (c *sshClient) redrawInputLineLocked() {
 	}
 }
 
-func (c *sshClient) formatMessage(evt bufferMsg, private bool) string {
+func (c *sshClient) formatMessage(evt bufferMsg, private, announceThread bool) string {
 	stamp := evt.timestamp.Format("15:04:05")
 	prefix := "@" + evt.userName
 	if evt.isBot {
@@ -1056,7 +1088,11 @@ func (c *sshClient) formatMessage(evt bufferMsg, private bool) string {
 	}
 	thread := ""
 	if evt.threaded && evt.threadID != "" {
-		thread = fmt.Sprintf("(%s)", evt.threadID)
+		if announceThread {
+			thread = fmt.Sprintf("(+%s)", evt.threadID)
+		} else {
+			thread = fmt.Sprintf("(%s)", evt.threadID)
+		}
 	}
 	channel := "#" + evt.channel
 	if evt.channel == "" {
@@ -1149,20 +1185,58 @@ func (c *sshClient) colorizeLines(kind, s string) string {
 	return strings.Join(lines, "\n")
 }
 
-func (c *sshClient) matchFilter(evt bufferMsg) bool {
-	if c.filter == filterAll {
-		return true
-	}
-	if c.filter == filterChannel {
-		return evt.channel == c.channel
-	}
-	if c.filter == filterThread {
+func (c *sshClient) shouldSend(evt bufferMsg) (bool, bool) {
+	switch c.filter {
+	case filterAll:
+		return true, false
+	case filterChannel:
+		return evt.channel == c.channel, false
+	case filterThread:
 		if c.typingInThread {
-			return evt.channel == c.channel && evt.threaded && evt.threadID == c.threadID
+			return evt.channel == c.channel && evt.threaded && evt.threadID == c.threadID, false
 		}
-		return evt.channel == c.channel && !evt.threaded
+		if evt.channel != c.channel {
+			return false, false
+		}
+		if !evt.threaded {
+			return true, false
+		}
+		if c.seenThread(evt.channel, evt.threadID) {
+			return false, false
+		}
+		c.markThreadSeen(evt.channel, evt.threadID)
+		return true, true
+	default:
+		return false, false
 	}
-	return false
+}
+
+func (c *sshClient) seenThread(channel, threadID string) bool {
+	if channel == "" || threadID == "" {
+		return false
+	}
+	c.bufMu.Lock()
+	defer c.bufMu.Unlock()
+	seen, ok := c.threadSeen[channel]
+	if !ok {
+		return false
+	}
+	_, ok = seen[threadID]
+	return ok
+}
+
+func (c *sshClient) markThreadSeen(channel, threadID string) {
+	if channel == "" || threadID == "" {
+		return
+	}
+	c.bufMu.Lock()
+	defer c.bufMu.Unlock()
+	seen, ok := c.threadSeen[channel]
+	if !ok {
+		seen = make(map[string]struct{})
+		c.threadSeen[channel] = seen
+	}
+	seen[threadID] = struct{}{}
 }
 
 func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
@@ -1423,6 +1497,23 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 		}
 		appendBuf(pending.Bytes()[0])
 		client.redrawInputLine()
+		client.bufMu.Lock()
+		if client.promptSingle && client.inputBuf.Len() == 1 {
+			ch := client.inputBuf.Bytes()[0]
+			if ch == 'A' || ch == 'a' || ch == 'C' || ch == 'c' || ch == 'T' || ch == 't' {
+				client.promptSingle = false
+				out <- client.inputBuf.String()
+				client.inputBuf.Reset()
+				client.histPos = -1
+				client.histSaved = ""
+				client.cursor = 0
+				client.bufMu.Unlock()
+				pending.Reset()
+				client.redrawInputLine()
+				continue
+			}
+		}
+		client.bufMu.Unlock()
 		pending.Reset()
 	}
 }

@@ -131,7 +131,7 @@ Initial filter defaults to Thread (`T`).
 
 - `A` (All): all messages from all channels/threads
 - `C` (Channel): all messages in current channel (including threads)
-- `T` (Thread): thread-only when in a thread; otherwise channel-level only
+- `T` (Thread): thread-only when in a thread; otherwise channel-level plus the first message of each thread (rendered as `(+0005)` to indicate a new thread)
 
 ### Message Size
 
