@@ -433,7 +433,7 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 
 func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
 	now := time.Now()
-	client.writeString(fmt.Sprintf("(%s)\n", now.Format("15:04:05")))
+	client.writeString(fmt.Sprintf(" (%s)\n", now.Format("15:04:05")))
 
 	if len(line) > sc.cfg.MaxMsgBytes {
 		client.writeString("(ERROR: message too long; > 16k - dropped)\n")
@@ -1329,7 +1329,9 @@ func (c *sshClient) wrapLine(s string) string {
 	if width <= 0 {
 		return s
 	}
-	return botwrap.Wrap(s, width)
+	wrapper := botwrap.NewWrapper()
+	wrapper.StripTrailingNewline = true
+	return wrapper.Wrap(s, width)
 }
 
 func (sc *sshConnector) wrap(s string) string {
