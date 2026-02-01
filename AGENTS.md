@@ -55,7 +55,7 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 
 ## Task-Specific Instructions
 
-We're implementing multi-protocol support; instead of starting a *single* connector, a robot will start all configured connectors.
+We're implementing multi-protocol support; instead of starting a *single* connector, a robot will start all configured connectors. Connectors will be able to be added on the fly, and an admin can start/stop secondary connectors from the primary connector (to make setup and testing of new protocols easier). Eventually, there will be an AI-specific secondary connector to be used with a "gopherbot-mcp".
 
 ### Concepts and Behaviors
 * A running robot will always have a _primary_ protocol; for backwards compatibility, the primary protocol will be configured as it is currently, and we'll introduce a new "SecondaryProtocols" section.
