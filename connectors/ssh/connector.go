@@ -494,6 +494,7 @@ func (sc *sshConnector) JoinChannel(c string) (ret robot.RetVal) {
 }
 
 func (sc *sshConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	ch = sc.normalizeChannel(ch)
 	threaded := len(thr) > 0
 	evt := bufferMsg{
 		timestamp: time.Now(),
@@ -509,6 +510,7 @@ func (sc *sshConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f 
 }
 
 func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	ch = sc.normalizeChannel(ch)
 	formatted := "@" + uname + " " + msg
 	threaded := len(thr) > 0
 	evt := bufferMsg{
@@ -525,6 +527,7 @@ func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr
 }
 
 func (sc *sshConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	u = sc.normalizeUser(u)
 	clients := sc.clientsForUser(u)
 	if len(clients) == 0 {
 		return robot.UserNotFound
@@ -672,6 +675,29 @@ func (sc *sshConnector) clientsForUser(u string) []*sshClient {
 		}
 	}
 	return clients
+}
+
+func (sc *sshConnector) normalizeChannel(ch string) string {
+	if ch == "" {
+		return ch
+	}
+	if id, ok := sc.handler.ExtractID(ch); ok {
+		ch = id
+	}
+	if strings.HasPrefix(ch, "#") {
+		return strings.TrimPrefix(ch, "#")
+	}
+	return ch
+}
+
+func (sc *sshConnector) normalizeUser(u string) string {
+	if u == "" {
+		return u
+	}
+	if id, ok := sc.handler.ExtractID(u); ok {
+		return id
+	}
+	return u
 }
 
 func (sc *sshConnector) addClient(c *sshClient) {
