@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +20,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/lnxjedi/gopherbot/robot"
+	botwrap "github.com/lnxjedi/gopherbot/v2/bot"
 )
 
 type filterMode int
@@ -69,6 +71,7 @@ type sshConfig struct {
 	DefaultChannel   string
 	BotName          string
 	Channels         []string
+	WrapWidth        int
 }
 
 type sshConnector struct {
@@ -100,6 +103,7 @@ type sshClient struct {
 	echo           bool
 	inputBuf       bytes.Buffer
 	bufMu          sync.Mutex
+	width          int
 
 	ch     ssh.Channel
 	conn   *ssh.ServerConn
@@ -277,9 +281,21 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 			switch req.Type {
 			case "pty-req":
 				client.echo = true
+				if w := parsePtyWidth(req.Payload); w > 0 {
+					if w > 0 {
+						client.setWidth(w)
+					}
+				}
 				select {
 				case ptyCh <- struct{}{}:
 				default:
+				}
+				req.Reply(true, nil)
+			case "window-change":
+				if w := parseWindowWidth(req.Payload); w > 0 {
+					if w > 0 {
+						client.setWidth(w)
+					}
 				}
 				req.Reply(true, nil)
 			case "shell":
@@ -621,10 +637,11 @@ func (sc *sshConnector) formatMessage(evt bufferMsg, private bool) string {
 	if evt.channel == "" {
 		channel = "#(direct)"
 	}
+	line := fmt.Sprintf("(%s)%s/%s%s: %s", stamp, prefix, channel, thread, evt.text)
 	if private {
-		return fmt.Sprintf("(private/%s)%s/%s%s: %s", stamp, prefix, channel, thread, evt.text)
+		line = fmt.Sprintf("(private/%s)%s/%s%s: %s", stamp, prefix, channel, thread, evt.text)
 	}
-	return fmt.Sprintf("(%s)%s/%s%s: %s", stamp, prefix, channel, thread, evt.text)
+	return sc.wrap(line)
 }
 
 func (sc *sshConnector) appendBuffer(evt bufferMsg) {
@@ -914,7 +931,7 @@ func (c *sshClient) writeString(s string) {
 func (c *sshClient) writeLine(s string) {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
-	_, _ = c.writer.Write([]byte(normalizeNewlines(s + "\n")))
+	_, _ = c.writer.Write([]byte(normalizeNewlines(c.wrapLine(s) + "\n")))
 }
 
 func (c *sshClient) writeAsyncMessage(msg string) {
@@ -922,7 +939,7 @@ func (c *sshClient) writeAsyncMessage(msg string) {
 	defer c.wmu.Unlock()
 	// Clear current input line, print message, then redraw prompt + buffer.
 	_, _ = c.writer.Write([]byte("\r\033[2K"))
-	_, _ = c.writer.Write([]byte(normalizeNewlines(msg + "\n")))
+	_, _ = c.writer.Write([]byte(normalizeNewlines(c.wrapLine(msg) + "\n")))
 	thread := ""
 	if c.typingInThread && c.threadID != "" {
 		thread = fmt.Sprintf("(%s)", c.threadID)
@@ -1073,4 +1090,52 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 
 func normalizeNewlines(s string) string {
 	return strings.ReplaceAll(s, "\n", "\r\n")
+}
+
+func parsePtyWidth(payload []byte) int {
+	if len(payload) < 4 {
+		return 0
+	}
+	termLen := int(binary.BigEndian.Uint32(payload[0:4]))
+	if termLen < 0 || len(payload) < 4+termLen+4 {
+		return 0
+	}
+	offset := 4 + termLen
+	if len(payload) < offset+4 {
+		return 0
+	}
+	return int(binary.BigEndian.Uint32(payload[offset : offset+4]))
+}
+
+func parseWindowWidth(payload []byte) int {
+	if len(payload) < 4 {
+		return 0
+	}
+	return int(binary.BigEndian.Uint32(payload[0:4]))
+}
+
+func (c *sshClient) setWidth(w int) {
+	if w <= 0 {
+		return
+	}
+	if w < 20 {
+		return
+	}
+	c.bufMu.Lock()
+	c.width = w
+	c.bufMu.Unlock()
+}
+
+func (c *sshClient) wrapLine(s string) string {
+	c.bufMu.Lock()
+	width := c.width
+	c.bufMu.Unlock()
+	if width <= 0 {
+		return s
+	}
+	return botwrap.Wrap(s, width)
+}
+
+func (sc *sshConnector) wrap(s string) string {
+	return s
 }
