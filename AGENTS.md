@@ -55,41 +55,16 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 
 ## Task-Specific Instructions
 
--> We're adding a new ssh connector that will be the future default instead of terminal.
-* New default ssh connector default to replace terminal connector; this allows a local robot to run in the background and log to stdout, so a future gopherbot-mcp can start a local robot that the developer can connect to.
-    * On connect, select initial filter:
-        * A(ll) messages - you see every message from every channel and thread
-        * C(hannel) messages - you see every message in the channel, including messages in every channel thread
-        * T(hread) messages - if you've joined a thread, you see only messages in that thread, if you're in a channel, you only see messages sent to the channel without a thread
-    * The built-in ssh connector keeps the 42 most recent messages in a buffer (8k max message size); when a user connects and selects a filter, the connector replays the buffer and sends in order of arrival every message that matches the filter with a timestamp prefix, so the user sees the recent history
-### Text rendering
-Current (terminal):
-```
-c:general/u:alice -> ;ping
-general: @alice PONG
-c:general/u:alice -> ;help ping
-general(0005): Command(s) matching keyword: ping
-*;ping* - see if the bot is alive
-c:general/u:alice -> |j0005
-(now typing in thread: 0005)
-c:general(0005)/u:alice -> hello world
-c:general(0005)/u:alice -> ;ping
-general(0005): @alice PONG
-```
-Future (ssh):
-```
-(09:15:43)@alice/#general -> ;ping
-(09:15:45)@alice/#general(0005) ->;ping
-```
-### Default configuration
-Just as the Terminal Connector has Alice, Bob, Carol, David and Erin, so too will the default ssh connector configuration. The user internal unique ID will be the ssh authorized key hash, like you might find in .ssh/authorized_keys (there can be only one). The default users will have unencrypted keys in resources/ssh-default/alice.key, etc., corresponding to the public key in the default roster. To simplify local dev, `gopherbot/bot-ssh <user>` is a bash wrapper for ssh so the dev can just e.g. "./bot-ssh alice" and connect to the local robot as user alice.
+We're implementing multi-protocol support; instead of starting a *single* connector, a robot will start all configured connectors.
 
-### Listening port
-Gopherbot will default to host localhost and port 4221, and exit with error if unable to bind. `--ssh-port NNNN` can override this. When the ssh goroutine binds to the port, it will write a trivial shell env file to $CWD/.ssh-connect:
-```
-BOT_SSH_PORT=127.0.0.1:4221 (or e.g. 0.0.0.0:4221)
-BOT_SERVER_PUBKEY=(...)
-```
+### Concepts and Behaviors
+* A running robot will always have a _primary_ protocol; for backwards compatibility, the primary protocol will be configured as it is currently, and we'll introduce a new "SecondaryProtocols" section.
+* Additional protocols should mainly have the same channels; if a plugin is only available in #foo, and a protocol doesn't have #foo, the plugin won't be available for that protocol.
+* If a user connects via secondary protocol and runs ";info" in #general, the robot will indicate this in the #general channel for the primary protocol - this maintains the security concept of channel/command visibility, preventing unintentionally hiding commands run in general. Basically, the robot will just "Say" in primary/#general `(from @david/ssh/#general[optional thread id]): 'info'`
+* An administrator will be able to change the primary protocol on-the-fly, in the event of a network outage affecting the primary protocol
+
+### Questions
+1) How do we sensibly include slack.yaml, ssh.yaml, etc. to establish per-protocol rosters?
 
 ### Post-Task
 * Review and update the documentation in `aidocs/` as needed to reflect changes made.
