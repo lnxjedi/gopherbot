@@ -12,10 +12,13 @@ import (
 	"log"
 	"net"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"golang.org/x/crypto/ssh"
 
@@ -53,14 +56,23 @@ type userKeyInfo struct {
 	userID   string
 }
 
+type userListing struct {
+	name  string
+	isBot bool
+}
+
 type bufferMsg struct {
 	timestamp time.Time
 	userName  string
+	userID    string
 	isBot     bool
 	channel   string
 	threadID  string
 	threaded  bool
 	text      string
+	isDM      bool
+	dmPeer    string
+	dmPeerID  string
 }
 
 type sshConfig struct {
@@ -83,12 +95,15 @@ type sshConnector struct {
 	handler robot.Handler
 	logger  *log.Logger
 
-	botName string
-	botID   string
+	botName      string
+	botNameLower string
+	botID        string
 
 	mu        sync.RWMutex
 	clients   map[*sshClient]struct{}
 	userKeys  map[string]userKeyInfo
+	userNames map[string]userKeyInfo
+	userIDs   map[string]userKeyInfo
 	threads   map[string]int
 	buffer    []bufferMsg
 	bufIndex  int
@@ -104,24 +119,29 @@ type sshClient struct {
 	userName string
 	userID   string
 
-	channel        string
-	threadID       string
-	typingInThread bool
-	filter         filterMode
-	lastThread     map[string]string
-	threadSeen     map[string]map[string]struct{}
-	echo           bool
-	inputBuf       bytes.Buffer
-	bufMu          sync.Mutex
-	width          int
-	history        *userHistory
-	histPos        int
-	histSaved      string
-	cursor         int
-	color          bool
-	colorScheme    map[string]int
-	promptOverride string
-	promptSingle   bool
+	channel         string
+	threadID        string
+	typingInThread  bool
+	filter          filterMode
+	lastThread      map[string]string
+	threadSeen      map[string]map[string]struct{}
+	echo            bool
+	inputBuf        bytes.Buffer
+	bufMu           sync.Mutex
+	width           int
+	history         *userHistory
+	histPos         int
+	histSaved       string
+	cursor          int
+	color           bool
+	colorScheme     map[string]int
+	promptOverride  string
+	promptSingle    bool
+	dmPeer          string
+	dmPeerID        string
+	dmIsBot         bool
+	lastRenderLines int
+	lastCursorLine  int
 
 	ch     ssh.Channel
 	conn   *ssh.ServerConn
@@ -176,15 +196,18 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	}
 
 	sc := &sshConnector{
-		cfg:       cfg,
-		handler:   handler,
-		logger:    l,
-		botName:   cfg.BotName,
-		clients:   make(map[*sshClient]struct{}),
-		userKeys:  make(map[string]userKeyInfo),
-		threads:   make(map[string]int),
-		buffer:    make([]bufferMsg, cfg.ReplayBufferSize),
-		histories: make(map[string]*userHistory),
+		cfg:          cfg,
+		handler:      handler,
+		logger:       l,
+		botName:      cfg.BotName,
+		botNameLower: strings.ToLower(cfg.BotName),
+		clients:      make(map[*sshClient]struct{}),
+		userKeys:     make(map[string]userKeyInfo),
+		userNames:    make(map[string]userKeyInfo),
+		userIDs:      make(map[string]userKeyInfo),
+		threads:      make(map[string]int),
+		buffer:       make([]bufferMsg, cfg.ReplayBufferSize),
+		histories:    make(map[string]*userHistory),
 	}
 
 	return robot.Connector(sc)
@@ -409,18 +432,42 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 	if len(input) < 2 {
 		return
 	}
+	client.writeString("\n")
 	switch input[1] {
 	case 'C', 'c':
 		arg := strings.TrimSpace(input[2:])
 		if arg == "?" {
 			client.writeLineKind("system", "Available channels:")
+			client.writeLineKind("system", "(direct message to bot); type: '|c'")
+			client.writeLineKind("system", "(direct message to user); type: '|c @user'")
 			for _, ch := range sc.cfg.Channels {
 				client.writeLineKind("system", fmt.Sprintf("'%s'; type: '|c%s'", ch, ch))
 			}
 			return
 		}
 		if arg == "" {
-			client.writeLineKind("error", "Invalid 0-length channel")
+			sc.setDMTarget(client, sc.botName, sc.botID, true)
+			client.writeLineKind("info", "Changed current channel to: direct message")
+			return
+		}
+		if strings.HasPrefix(arg, "@") {
+			target := normalizeUserName(strings.TrimPrefix(arg, "@"))
+			if target == "" {
+				client.writeLineKind("error", "Invalid 0-length user")
+				return
+			}
+			if target == sc.botNameLower {
+				sc.setDMTarget(client, sc.botName, sc.botID, true)
+				client.writeLineKind("info", "Changed current channel to: direct message")
+				return
+			}
+			info, ok := sc.lookupUser(target)
+			if !ok {
+				client.writeLineKind("error", "Unknown user")
+				return
+			}
+			sc.setDMTarget(client, info.userName, info.userID, false)
+			client.writeLineKind("info", fmt.Sprintf("Changed current channel to: direct message with @%s", info.userName))
 			return
 		}
 		if !sc.isValidChannel(arg) {
@@ -429,8 +476,16 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 		}
 		client.channel = arg
 		client.typingInThread = false
+		client.threadID = ""
+		client.dmPeer = ""
+		client.dmPeerID = ""
+		client.dmIsBot = false
 		client.writeLineKind("info", fmt.Sprintf("Changed current channel to: %s", arg))
 	case 'T', 't':
+		if client.dmPeer != "" {
+			client.writeLineKind("warning", "(threads are not supported in direct messages)")
+			return
+		}
 		arg := strings.TrimSpace(input[2:])
 		if arg == "?" {
 			client.writeLineKind("system", "Use '|t' to toggle typing in a thread, '|t<string>' to set the current thread ID, or '|j' to join the last thread seen")
@@ -451,6 +506,10 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 			client.writeLineKind("info", "(typing in channel now)")
 		}
 	case 'J', 'j':
+		if client.dmPeer != "" {
+			client.writeLineKind("warning", "(threads are not supported in direct messages)")
+			return
+		}
 		last, ok := client.lastThread[client.channel]
 		if !ok || last == "" {
 			client.writeLineKind("warning", "(sorry, I don't see a thread to join)")
@@ -470,6 +529,25 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 		}
 		client.filter = parseFilter(arg)
 		client.writeLineKind("info", fmt.Sprintf("Filter set to: %s", filterLabel(client.filter)))
+	case 'L', 'l':
+		client.writeLineKind("system", "Available users:")
+		for _, entry := range sc.listUsers() {
+			label := fmt.Sprintf("'%s'", entry.name)
+			if entry.isBot {
+				label = fmt.Sprintf("'%s' (bot)", entry.name)
+			}
+			client.writeLineKind("system", label)
+		}
+	case '?':
+		client.writeLineKind("system", "SSH connector help:")
+		client.writeLineKind("system", "|c? - list channels and DM shortcuts")
+		client.writeLineKind("system", "|c - direct message with bot")
+		client.writeLineKind("system", "|c @user - direct message with user")
+		client.writeLineKind("system", "/@user <message> - one-shot direct message to user or bot")
+		client.writeLineKind("system", "|t? - thread help (threads disabled in DMs)")
+		client.writeLineKind("system", "|j - join last thread")
+		client.writeLineKind("system", "|f? - list/change filter")
+		client.writeLineKind("system", "|l - list users")
 	default:
 		client.writeLineKind("error", "Invalid SSH connector command")
 	}
@@ -491,36 +569,90 @@ func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
 	client.recordHistory(line, sc.cfg.UserHistoryLines)
 
 	trimmed := strings.TrimSpace(line)
+	if client.dmPeer != "" && !client.dmIsBot && strings.HasPrefix(trimmed, "/") {
+		client.writeLineKind("warning", "(input dropped: '/' commands are disabled in user-to-user DMs)")
+		return
+	}
+	if strings.HasPrefix(trimmed, "/@") {
+		sc.handleDirectAt(client, trimmed, now)
+		return
+	}
 	if strings.HasPrefix(trimmed, "/") {
 		if strings.HasPrefix(trimmed, "/ ") || trimmed == "/" {
 			client.writeLineKind("info", "(INFO: '/' note to self message not sent to other users)")
 			return
 		}
-		if sc.isBotHiddenMessage(trimmed) {
-			payload := strings.TrimSpace(trimmed[1+len(sc.botName):])
-			sc.sendIncoming(client, payload, true)
+		if payload, ok := sc.botHiddenPayload(trimmed); ok {
+			sc.sendIncoming(client, payload, true, client.dmPeer != "")
 			return
 		}
 		payload := strings.TrimSpace(trimmed[1:])
 		if payload != "" {
-			sc.sendIncoming(client, payload, true)
+			sc.sendIncoming(client, payload, true, client.dmPeer != "")
 		}
 		return
 	}
 
-	sc.sendIncoming(client, line, false)
+	if client.dmPeer != "" {
+		if client.dmIsBot {
+			sc.sendIncoming(client, line, false, true)
+			sc.appendDirectBuffer(client, sc.botName, sc.botID, false, now, line)
+		} else {
+			sc.sendDirectUserMessage(client, line, now)
+		}
+		return
+	}
+
+	sc.sendIncoming(client, line, false, false)
 	sc.broadcastUserMessage(client, line, now)
 }
 
-func (sc *sshConnector) sendIncoming(client *sshClient, line string, hidden bool) {
-	threaded := client.typingInThread
+func (sc *sshConnector) handleDirectAt(client *sshClient, trimmed string, ts time.Time) {
+	rest := strings.TrimSpace(strings.TrimPrefix(trimmed, "/@"))
+	if rest == "" {
+		client.writeLineKind("error", "Missing user for direct message")
+		return
+	}
+	parts := strings.Fields(rest)
+	targetRaw := parts[0]
+	message := strings.TrimSpace(strings.TrimPrefix(rest, targetRaw))
+	if message == "" {
+		client.writeLineKind("error", "Direct message requires text")
+		return
+	}
+	target := normalizeUserName(targetRaw)
+	if target == "" {
+		client.writeLineKind("error", "Invalid user")
+		return
+	}
+	if target == sc.botNameLower {
+		sc.sendIncoming(client, message, client.dmIsBot, true)
+		sc.appendDirectBuffer(client, sc.botName, sc.botID, false, ts, message)
+		return
+	}
+	info, ok := sc.lookupUser(target)
+	if !ok {
+		client.writeLineKind("error", "Unknown user")
+		return
+	}
+	sc.sendDirectUserMessageTo(client, info, message, ts)
+}
+
+func (sc *sshConnector) sendIncoming(client *sshClient, line string, hidden bool, direct bool) {
+	threaded := client.typingInThread && !direct
 	threadID := ""
 	messageID := ""
+	channelName := client.channel
+	channelID := "#" + client.channel
+	if direct {
+		channelName = ""
+		channelID = ""
+	}
 	if threaded {
-		messageID = sc.nextThreadID(client.channel)
+		messageID = sc.nextThreadID(channelName)
 		threadID = client.threadID
 	} else {
-		threadID = sc.nextThreadID(client.channel)
+		threadID = sc.nextThreadID(channelName)
 		messageID = threadID
 	}
 
@@ -528,14 +660,14 @@ func (sc *sshConnector) sendIncoming(client *sshClient, line string, hidden bool
 		Protocol:        "ssh",
 		UserName:        client.userName,
 		UserID:          client.userID,
-		ChannelName:     client.channel,
-		ChannelID:       "#" + client.channel,
+		ChannelName:     channelName,
+		ChannelID:       channelID,
 		MessageID:       messageID,
 		ThreadedMessage: threaded,
 		ThreadID:        threadID,
 		MessageText:     line,
 		HiddenMessage:   hidden,
-		DirectMessage:   false,
+		DirectMessage:   direct,
 	}
 	sc.handler.IncomingMessage(msg)
 }
@@ -544,15 +676,30 @@ func (sc *sshConnector) MessageHeard(u, c string) {}
 
 func (sc *sshConnector) SetUserMap(m map[string]string) {
 	keys := make(map[string]userKeyInfo)
+	names := make(map[string]userKeyInfo)
+	ids := make(map[string]userKeyInfo)
 	for name, id := range m {
+		if strings.ToLower(name) != name {
+			sc.handler.Log(robot.Error, "SSH connector: rejecting username with uppercase letters: %q", name)
+			continue
+		}
 		norm := normalizeKeyLine(id)
 		if norm == "" {
 			continue
 		}
-		keys[norm] = userKeyInfo{userName: name, userID: id}
+		if _, exists := names[name]; exists {
+			sc.handler.Log(robot.Error, "SSH connector: duplicate username in roster: %q", name)
+			continue
+		}
+		info := userKeyInfo{userName: name, userID: id}
+		keys[norm] = info
+		names[name] = info
+		ids[id] = info
 	}
 	sc.mu.Lock()
 	sc.userKeys = keys
+	sc.userNames = names
+	sc.userIDs = ids
 	sc.mu.Unlock()
 }
 
@@ -582,6 +729,7 @@ func (sc *sshConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f 
 	evt := bufferMsg{
 		timestamp: time.Now(),
 		userName:  sc.botName,
+		userID:    sc.botID,
 		isBot:     true,
 		channel:   ch,
 		threadID:  thr,
@@ -599,6 +747,7 @@ func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr
 	evt := bufferMsg{
 		timestamp: time.Now(),
 		userName:  sc.botName,
+		userID:    sc.botID,
 		isBot:     true,
 		channel:   ch,
 		threadID:  thr,
@@ -610,23 +759,19 @@ func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr
 }
 
 func (sc *sshConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
-	u = sc.normalizeUser(u)
-	clients := sc.clientsForUser(u)
+	info, ok := sc.resolveUser(sc.normalizeUser(u))
+	if !ok {
+		return robot.UserNotFound
+	}
+	clients := sc.clientsForUser(info.userID)
 	if len(clients) == 0 {
 		return robot.UserNotFound
 	}
 
-	evt := bufferMsg{
-		timestamp: time.Now(),
-		userName:  sc.botName,
-		isBot:     true,
-		channel:   "(direct)",
-		threadID:  "",
-		threaded:  false,
-		text:      msg,
-	}
+	evt := sc.directEvent(sc.botName, sc.botID, true, info.userName, info.userID, msg, time.Now())
+	sc.appendBuffer(evt)
 	for _, client := range clients {
-		client.writeMessage(evt, false, false)
+		client.writeMessageAsync(evt, false, false)
 	}
 	return robot.Ok
 }
@@ -637,6 +782,7 @@ func (sc *sshConnector) broadcastUserMessage(client *sshClient, line string, ts 
 	evt := bufferMsg{
 		timestamp: ts,
 		userName:  client.userName,
+		userID:    client.userID,
 		isBot:     false,
 		channel:   client.channel,
 		threadID:  threadID,
@@ -644,6 +790,45 @@ func (sc *sshConnector) broadcastUserMessage(client *sshClient, line string, ts 
 		text:      line,
 	}
 	sc.broadcast(evt, &robot.ConnectorMessage{UserID: client.userID, HiddenMessage: false})
+}
+
+func (sc *sshConnector) directEvent(senderName, senderID string, senderIsBot bool, peerName, peerID, text string, ts time.Time) bufferMsg {
+	return bufferMsg{
+		timestamp: ts,
+		userName:  senderName,
+		userID:    senderID,
+		isBot:     senderIsBot,
+		text:      text,
+		isDM:      true,
+		dmPeer:    peerName,
+		dmPeerID:  peerID,
+	}
+}
+
+func (sc *sshConnector) appendDirectBuffer(sender *sshClient, peerName, peerID string, senderIsBot bool, ts time.Time, text string) {
+	evt := sc.directEvent(sender.userName, sender.userID, senderIsBot, peerName, peerID, text, ts)
+	sc.appendBuffer(evt)
+}
+
+func (sc *sshConnector) sendDirectUserMessage(sender *sshClient, text string, ts time.Time) {
+	if sender.dmPeer == "" || sender.dmPeerID == "" {
+		sender.writeLineKind("error", "No direct message target")
+		return
+	}
+	peer := userKeyInfo{userName: sender.dmPeer, userID: sender.dmPeerID}
+	sc.sendDirectUserMessageTo(sender, peer, text, ts)
+}
+
+func (sc *sshConnector) sendDirectUserMessageTo(sender *sshClient, peer userKeyInfo, text string, ts time.Time) {
+	evt := sc.directEvent(sender.userName, sender.userID, false, peer.userName, peer.userID, text, ts)
+	sc.appendBuffer(evt)
+	clients := sc.clientsForUser(peer.userID)
+	for _, client := range clients {
+		if client.userID == sender.userID {
+			continue
+		}
+		client.writeMessageAsync(evt, false, false)
+	}
 }
 
 func (sc *sshConnector) broadcast(evt bufferMsg, msgObject *robot.ConnectorMessage) {
@@ -778,6 +963,74 @@ func (sc *sshConnector) normalizeUser(u string) string {
 		return id
 	}
 	return u
+}
+
+func normalizeUserName(name string) string {
+	name = strings.TrimSpace(name)
+	name = strings.TrimPrefix(name, "@")
+	return strings.ToLower(name)
+}
+
+func (sc *sshConnector) lookupUser(name string) (userKeyInfo, bool) {
+	sc.mu.RLock()
+	defer sc.mu.RUnlock()
+	info, ok := sc.userNames[name]
+	return info, ok
+}
+
+func (sc *sshConnector) lookupUserByID(id string) (userKeyInfo, bool) {
+	sc.mu.RLock()
+	defer sc.mu.RUnlock()
+	info, ok := sc.userIDs[id]
+	return info, ok
+}
+
+func (sc *sshConnector) resolveUser(u string) (userKeyInfo, bool) {
+	if u == "" {
+		return userKeyInfo{}, false
+	}
+	if info, ok := sc.lookupUserByID(u); ok {
+		return info, true
+	}
+	name := normalizeUserName(u)
+	if name == "" {
+		return userKeyInfo{}, false
+	}
+	return sc.lookupUser(name)
+}
+
+func (sc *sshConnector) listUsers() []userListing {
+	sc.mu.RLock()
+	names := make([]userListing, 0, len(sc.userNames)+1)
+	for name := range sc.userNames {
+		names = append(names, userListing{name: name})
+	}
+	sc.mu.RUnlock()
+	if sc.botName != "" {
+		found := false
+		for _, entry := range names {
+			if entry.name == sc.botName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			names = append(names, userListing{name: sc.botName, isBot: true})
+		}
+	}
+	sort.Slice(names, func(i, j int) bool {
+		return names[i].name < names[j].name
+	})
+	return names
+}
+
+func (sc *sshConnector) setDMTarget(client *sshClient, peerName, peerID string, isBot bool) {
+	client.dmPeer = peerName
+	client.dmPeerID = peerID
+	client.dmIsBot = isBot
+	client.channel = peerName
+	client.typingInThread = false
+	client.threadID = ""
 }
 
 func (sc *sshConnector) addClient(c *sshClient) {
@@ -921,22 +1174,30 @@ func (sc *sshConnector) nextThreadID(channel string) string {
 	return fmt.Sprintf("%04x", sc.threads[channel]%65536)
 }
 
-func (sc *sshConnector) isBotHiddenMessage(line string) bool {
+func (sc *sshConnector) botHiddenPayload(line string) (string, bool) {
 	if !strings.HasPrefix(line, "/") {
-		return false
+		return "", false
 	}
 	trimmed := strings.TrimPrefix(line, "/")
-	if !strings.HasPrefix(trimmed, sc.botName) {
-		return false
+	if trimmed == "" {
+		return "", false
 	}
-	if len(trimmed) == len(sc.botName) {
-		return false
+	lower := strings.ToLower(trimmed)
+	if !strings.HasPrefix(lower, sc.botNameLower) {
+		return "", false
 	}
-	if trimmed[len(sc.botName)] != ' ' {
-		return false
+	if len(trimmed) == len(sc.botNameLower) {
+		return "", false
 	}
-	remainder := strings.TrimSpace(trimmed[len(sc.botName):])
-	return remainder != ""
+	if trimmed[len(sc.botNameLower)] != ' ' {
+		return "", false
+	}
+	remainder := strings.TrimSpace(trimmed[len(sc.botNameLower):])
+	if remainder == "" {
+		return "", false
+	}
+	payload := strings.TrimSpace(sc.botName + " " + remainder)
+	return payload, true
 }
 
 func parseFilter(input string) filterMode {
@@ -969,22 +1230,17 @@ func filterLabel(f filterMode) string {
 	}
 }
 
-const sshConnectorHelpLine = "SSH connector: Type '|c?' to list channels, '|t?' for thread help, '|j' to join last thread, '|f?' to list/change filter"
+const sshConnectorHelpLine = "SSH connector: Type '|?' for help, '|c?' to list channels, '|l' to list users, '|t?' for thread help, '|j' to join last thread, '|f?' to list/change filter"
+
+func (c *sshClient) promptTarget() string {
+	if c.dmPeer != "" {
+		return fmt.Sprintf("dm:@%s", c.dmPeer)
+	}
+	return fmt.Sprintf("#%s", c.channel)
+}
 
 func (c *sshClient) writePrompt() {
-	c.bufMu.Lock()
-	override := c.promptOverride
-	c.bufMu.Unlock()
-	if override != "" {
-		c.writeString(c.colorize("system", override))
-		return
-	}
-	thread := ""
-	if c.typingInThread && c.threadID != "" {
-		thread = fmt.Sprintf("(%s)", c.threadID)
-	}
-	prompt := fmt.Sprintf("@%s/#%s%s -> ", c.userName, c.channel, thread)
-	c.writeString(c.colorize("prompt", prompt))
+	c.redrawInputLine()
 }
 
 func (c *sshClient) writeString(s string) {
@@ -1018,7 +1274,7 @@ func (c *sshClient) writeAsyncMessageKind(kind, msg string) {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
 	// Clear current input line, print message, then redraw prompt + buffer.
-	_, _ = c.writer.Write([]byte("\r\033[2K"))
+	c.clearInputLinesLocked()
 	wrapped := c.wrapLine(msg)
 	wrapped = c.colorizeLines(kind, wrapped)
 	_, _ = c.writer.Write([]byte(normalizeNewlines(wrapped + "\n")))
@@ -1037,7 +1293,7 @@ func (c *sshClient) writeMessageAsync(evt bufferMsg, private, announceThread boo
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
 	// Clear current input line, print message, then redraw prompt + buffer.
-	_, _ = c.writer.Write([]byte("\r\033[2K"))
+	c.clearInputLinesLocked()
 	_, _ = c.writer.Write([]byte(normalizeNewlines(msg + "\n")))
 	c.redrawInputLineLocked()
 }
@@ -1049,35 +1305,92 @@ func (c *sshClient) redrawInputLine() {
 }
 
 func (c *sshClient) redrawInputLineLocked() {
-	_, _ = c.writer.Write([]byte("\r\033[2K"))
-	override := c.promptOverride
-	if override != "" {
-		_, _ = c.writer.Write([]byte(c.colorize("system", override)))
-	} else {
-		thread := ""
-		if c.typingInThread && c.threadID != "" {
-			thread = fmt.Sprintf("(%s)", c.threadID)
-		}
-		prompt := fmt.Sprintf("@%s/#%s%s -> ", c.userName, c.channel, thread)
-		_, _ = c.writer.Write([]byte(c.colorize("prompt", prompt)))
-	}
+	c.renderInputLineLocked()
+}
+
+type inputRenderState struct {
+	rawPrompt     string
+	coloredPrompt string
+	buf           []byte
+	cursor        int
+	width         int
+	bufRunes      []rune
+	cursorRunes   int
+	promptLen     int
+}
+
+func (c *sshClient) inputRenderState() inputRenderState {
 	c.bufMu.Lock()
+	override := c.promptOverride
+	threadID := c.threadID
+	typingInThread := c.typingInThread
+	dmPeer := c.dmPeer
 	buf := append([]byte(nil), c.inputBuf.Bytes()...)
 	cursor := c.cursor
+	width := c.width
 	c.bufMu.Unlock()
-	if len(buf) > 0 {
-		_, _ = c.writer.Write(buf)
+
+	rawPrompt := override
+	coloredPrompt := c.colorize("system", override)
+	if override == "" {
+		thread := ""
+		if dmPeer == "" && typingInThread && threadID != "" {
+			thread = fmt.Sprintf("(%s)", threadID)
+		}
+		rawPrompt = fmt.Sprintf("@%s/%s%s -> ", c.userName, c.promptTarget(), thread)
+		coloredPrompt = c.colorize("prompt", rawPrompt)
 	}
+
+	bufRunes := []rune(string(buf))
 	if cursor < 0 {
 		cursor = 0
 	}
 	if cursor > len(buf) {
 		cursor = len(buf)
 	}
-	// Move cursor left if needed.
-	if len(buf)-cursor > 0 {
-		_, _ = c.writer.Write([]byte(fmt.Sprintf("\033[%dD", len(buf)-cursor)))
+	cursorRunes := runeIndexFromByte(buf, cursor)
+	if cursorRunes > len(bufRunes) {
+		cursorRunes = len(bufRunes)
 	}
+	promptLen := runesWidthAll([]rune(rawPrompt))
+
+	return inputRenderState{
+		rawPrompt:     rawPrompt,
+		coloredPrompt: coloredPrompt,
+		buf:           buf,
+		cursor:        cursor,
+		width:         width,
+		bufRunes:      bufRunes,
+		cursorRunes:   cursorRunes,
+		promptLen:     promptLen,
+	}
+}
+
+func idxLine(start, screenWidth int, rs []rune) int {
+	if screenWidth <= 0 {
+		return 0
+	}
+	sp := splitByLine(start, screenWidth, rs)
+	if len(sp) == 0 {
+		return 0
+	}
+	return len(sp) - 1
+}
+
+func (c *sshClient) clearInputLinesLocked() {
+	if c.width <= 0 {
+		_, _ = c.writer.Write([]byte("\r\033[2K"))
+		return
+	}
+	_, _ = c.writer.Write([]byte("\033[J"))
+	if c.lastCursorLine == 0 {
+		_, _ = c.writer.Write([]byte("\033[2K\r"))
+		return
+	}
+	for i := 0; i < c.lastCursorLine; i++ {
+		_, _ = c.writer.Write([]byte("\033[2K\r\033[A"))
+	}
+	_, _ = c.writer.Write([]byte("\033[2K\r"))
 }
 
 func (c *sshClient) formatMessage(evt bufferMsg, private, announceThread bool) string {
@@ -1087,14 +1400,28 @@ func (c *sshClient) formatMessage(evt bufferMsg, private, announceThread bool) s
 		prefix = "=@" + evt.userName
 	}
 	thread := ""
-	if evt.threaded && evt.threadID != "" {
+	if !evt.isDM && evt.threaded && evt.threadID != "" {
 		if announceThread {
 			thread = fmt.Sprintf("(+%s)", evt.threadID)
 		} else {
 			thread = fmt.Sprintf("(%s)", evt.threadID)
 		}
 	}
-	channel := "#" + evt.channel
+	channel := ""
+	if evt.isDM {
+		label := c.dmLabel(evt)
+		channel = label
+		header := fmt.Sprintf("(%s)%s:", stamp, label)
+		if private {
+			header = fmt.Sprintf("(private/%s)%s:", stamp, label)
+		}
+		if !c.color {
+			return c.formatMessageBodyWithHeader(header, "", evt)
+		}
+		headerColored := c.colorizeDMHeader(stamp, label, private)
+		return c.formatMessageBodyWithHeader(header, headerColored, evt)
+	}
+	channel = "#" + evt.channel
 	if evt.channel == "" {
 		channel = "#(direct)"
 	}
@@ -1103,34 +1430,11 @@ func (c *sshClient) formatMessage(evt bufferMsg, private, announceThread bool) s
 	if private {
 		header = fmt.Sprintf("(private/%s)%s/%s%s:", stamp, prefix, channel, thread)
 	}
-	body := " " + evt.text
-	wrapped := c.wrapLine(header + body)
-	if !c.color {
-		return wrapped
+	headerColored := ""
+	if c.color {
+		headerColored = c.colorizeHeader(stamp, prefix, channel, thread, evt.isBot, private)
 	}
-
-	headerColored := c.colorizeHeader(stamp, prefix, channel, thread, evt.isBot, private)
-	bodyKind := "user"
-	if evt.isBot {
-		bodyKind = "bot"
-	}
-
-	lines := strings.Split(wrapped, "\n")
-	if len(lines) == 0 {
-		return wrapped
-	}
-	if strings.HasPrefix(lines[0], header) {
-		remainder := lines[0][len(header):]
-		lines[0] = headerColored + c.colorize(bodyKind, remainder)
-		for i := 1; i < len(lines); i++ {
-			lines[i] = c.colorize(bodyKind, lines[i])
-		}
-		return strings.Join(lines, "\n")
-	}
-	for i := 0; i < len(lines); i++ {
-		lines[i] = c.colorize(bodyKind, lines[i])
-	}
-	return strings.Join(lines, "\n")
+	return c.formatMessageBodyWithHeader(header, headerColored, evt)
 }
 
 func (c *sshClient) colorize(kind, s string) string {
@@ -1171,6 +1475,222 @@ func (c *sshClient) colorizeHeader(stamp, prefix, channel, thread string, isBot,
 	return b.String()
 }
 
+func (c *sshClient) colorizeDMHeader(stamp, channel string, private bool) string {
+	var b strings.Builder
+	b.WriteString("(")
+	if private {
+		b.WriteString(c.colorize("private", "private"))
+		b.WriteString("/")
+	}
+	b.WriteString(c.colorize("timestamp", stamp))
+	b.WriteString(")")
+	b.WriteString(c.colorize("prompt", channel))
+	b.WriteString(":")
+	return b.String()
+}
+
+// Portions of the line-wrapping helpers below are adapted from the
+// MIT-licensed github.com/chzyer/readline library (by chzyer).
+// The logic is tuned for single-line editing with terminal wrapping.
+
+const tabWidth = 4
+
+var zeroWidth = []*unicode.RangeTable{
+	unicode.Mn,
+	unicode.Me,
+	unicode.Cc,
+	unicode.Cf,
+}
+
+var doubleWidth = []*unicode.RangeTable{
+	unicode.Han,
+	unicode.Hangul,
+	unicode.Hiragana,
+	unicode.Katakana,
+}
+
+func runeWidth(r rune) int {
+	if r == '\t' {
+		return tabWidth
+	}
+	if unicode.IsOneOf(zeroWidth, r) {
+		return 0
+	}
+	if unicode.IsOneOf(doubleWidth, r) {
+		return 2
+	}
+	return 1
+}
+
+func runesWidthAll(rs []rune) (length int) {
+	for i := 0; i < len(rs); i++ {
+		length += runeWidth(rs[i])
+	}
+	return
+}
+
+func splitByLine(start, screenWidth int, rs []rune) []string {
+	var ret []string
+	buf := bytes.NewBuffer(nil)
+	currentWidth := start
+	for _, r := range rs {
+		w := runeWidth(r)
+		currentWidth += w
+		buf.WriteRune(r)
+		if currentWidth >= screenWidth {
+			ret = append(ret, buf.String())
+			buf.Reset()
+			currentWidth = 0
+		}
+	}
+	ret = append(ret, buf.String())
+	return ret
+}
+
+func lineCount(start, screenWidth int, rs []rune) int {
+	if screenWidth <= 0 {
+		return 1
+	}
+	width := runesWidthAll(rs) + start
+	if width <= 0 {
+		return 1
+	}
+	lines := width / screenWidth
+	if width%screenWidth != 0 {
+		lines++
+	}
+	if lines <= 0 {
+		return 1
+	}
+	return lines
+}
+
+func isInLineEdge(start, screenWidth int, rs []rune) bool {
+	if screenWidth <= 0 {
+		return false
+	}
+	sp := splitByLine(start, screenWidth, rs)
+	return len(sp[len(sp)-1]) == 0
+}
+
+func backspaceSequence(start, screenWidth int, rs []rune, idx int) []byte {
+	if screenWidth <= 0 {
+		return bytes.Repeat([]byte{'\b'}, len(rs)-idx)
+	}
+	sep := map[int]bool{}
+	var i int
+	for {
+		if i >= runesWidthAll(rs) {
+			break
+		}
+		if i == 0 {
+			i -= start
+		}
+		i += screenWidth
+		sep[i] = true
+	}
+	var buf []byte
+	for i := len(rs); i > idx; i-- {
+		buf = append(buf, '\b')
+		if sep[i] {
+			buf = append(buf, "\033[A\r"...)
+			buf = append(buf, []byte("\033["+strconv.Itoa(screenWidth)+"C")...)
+		}
+	}
+	return buf
+}
+
+func runeIndexFromByte(b []byte, byteIdx int) int {
+	if byteIdx <= 0 {
+		return 0
+	}
+	if byteIdx >= len(b) {
+		return utf8.RuneCount(b)
+	}
+	return utf8.RuneCount(b[:byteIdx])
+}
+
+func (c *sshClient) renderInputLineLocked() {
+	state := c.inputRenderState()
+	c.clearInputLinesLocked()
+
+	_, _ = c.writer.Write([]byte(state.coloredPrompt))
+	if len(state.buf) > 0 {
+		_, _ = c.writer.Write(state.buf)
+	}
+
+	if state.width <= 0 {
+		if len(state.buf)-state.cursor > 0 {
+			_, _ = c.writer.Write([]byte(fmt.Sprintf("\033[%dD", len(state.buf)-state.cursor)))
+		}
+		c.lastRenderLines = 1
+		return
+	}
+
+	if isInLineEdge(state.promptLen, state.width, state.bufRunes) {
+		_, _ = c.writer.Write([]byte(" \b"))
+	}
+	if state.cursorRunes < len(state.bufRunes) {
+		_, _ = c.writer.Write(backspaceSequence(state.promptLen, state.width, state.bufRunes, state.cursorRunes))
+	}
+	c.lastCursorLine = idxLine(state.promptLen, state.width, state.bufRunes[:state.cursorRunes])
+	c.lastRenderLines = lineCount(state.promptLen, state.width, state.bufRunes)
+}
+
+func (c *sshClient) dmLabel(evt bufferMsg) string {
+	isSelf := false
+	if evt.userID != "" && c.userID != "" {
+		isSelf = evt.userID == c.userID
+	} else {
+		isSelf = evt.userName == c.userName
+	}
+	if isSelf {
+		peer := evt.dmPeer
+		if peer == "" {
+			peer = "(direct)"
+		}
+		return "to:@" + peer
+	}
+	sender := evt.userName
+	if sender == "" {
+		sender = "(direct)"
+	}
+	if c.dmPeer != "" && normalizeUserName(c.dmPeer) == normalizeUserName(sender) {
+		return "@" + sender
+	}
+	return "from:@" + sender
+}
+
+func (c *sshClient) formatMessageBodyWithHeader(header, headerColored string, evt bufferMsg) string {
+	body := " " + evt.text
+	wrapped := c.wrapLine(header + body)
+	if !c.color || headerColored == "" {
+		return wrapped
+	}
+
+	bodyKind := "user"
+	if evt.isBot {
+		bodyKind = "bot"
+	}
+
+	lines := strings.Split(wrapped, "\n")
+	if len(lines) == 0 {
+		return wrapped
+	}
+	if strings.HasPrefix(lines[0], header) {
+		remainder := lines[0][len(header):]
+		lines[0] = headerColored + c.colorize(bodyKind, remainder)
+		for i := 1; i < len(lines); i++ {
+			lines[i] = c.colorize(bodyKind, lines[i])
+		}
+		return strings.Join(lines, "\n")
+	}
+	for i := 0; i < len(lines); i++ {
+		lines[i] = c.colorize(bodyKind, lines[i])
+	}
+	return strings.Join(lines, "\n")
+}
+
 func (c *sshClient) colorizeLines(kind, s string) string {
 	if !c.color || s == "" {
 		return s
@@ -1186,6 +1706,12 @@ func (c *sshClient) colorizeLines(kind, s string) string {
 }
 
 func (c *sshClient) shouldSend(evt bufferMsg) (bool, bool) {
+	if evt.isDM {
+		if evt.userID != "" && c.userID != "" {
+			return evt.userID == c.userID || evt.dmPeerID == c.userID, false
+		}
+		return evt.userName == c.userName || evt.dmPeer == c.userName, false
+	}
 	switch c.filter {
 	case filterAll:
 		return true, false
@@ -1243,8 +1769,34 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 	defer close(out)
 	reader := bufio.NewReader(client.ch)
 	var pending bytes.Buffer
+	pasteBuf := make([]byte, 0, 256)
 	inPaste := false
 	lastWasCR := false
+	pasteLastWasCR := false
+	pastePrefix := ""
+	pasteMatch := 0
+	pasteEndBytes := []byte(pasteEnd)
+
+	appendPaste := func(b byte) (ended bool) {
+		if b == pasteEndBytes[pasteMatch] {
+			pasteMatch++
+			if pasteMatch == len(pasteEndBytes) {
+				pasteMatch = 0
+				return true
+			}
+			return false
+		}
+		if pasteMatch > 0 {
+			pasteBuf = append(pasteBuf, pasteEndBytes[:pasteMatch]...)
+			pasteMatch = 0
+			if b == pasteEndBytes[0] {
+				pasteMatch = 1
+				return false
+			}
+		}
+		pasteBuf = append(pasteBuf, b)
+		return false
+	}
 
 	appendBuf := func(b byte) {
 		client.bufMu.Lock()
@@ -1282,12 +1834,30 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 		client.cursor--
 	}
 	clearBuf := func() {
+		client.wmu.Lock()
+		client.lastRenderLines = 0
+		client.lastCursorLine = 0
+		client.wmu.Unlock()
 		client.bufMu.Lock()
 		client.inputBuf.Reset()
 		client.histPos = -1
 		client.histSaved = ""
 		client.cursor = 0
 		client.bufMu.Unlock()
+	}
+	takeLine := func() string {
+		client.wmu.Lock()
+		client.bufMu.Lock()
+		line := client.inputBuf.String()
+		client.inputBuf.Reset()
+		client.histPos = -1
+		client.histSaved = ""
+		client.cursor = 0
+		client.lastRenderLines = 0
+		client.lastCursorLine = 0
+		client.bufMu.Unlock()
+		client.wmu.Unlock()
+		return line
 	}
 	deleteAtCursor := func() {
 		client.bufMu.Lock()
@@ -1424,22 +1994,32 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 		}
 
 		if inPaste {
-			pending.WriteByte(b)
-			if strings.HasPrefix(pasteEnd, pending.String()) {
-				if pending.Len() == len(pasteEnd) {
-					inPaste = false
-					pending.Reset()
-					client.bufMu.Lock()
-					out <- client.inputBuf.String()
-					client.bufMu.Unlock()
-					clearBuf()
-					client.redrawInputLine()
-				}
+			ch := b
+			if ch == '\r' {
+				pasteLastWasCR = true
+				_ = appendPaste('\n')
 				continue
 			}
-			appendBuf(pending.Bytes()[0])
-			pending.Reset()
-			client.redrawInputLine()
+			if ch == '\n' {
+				if pasteLastWasCR {
+					pasteLastWasCR = false
+					continue
+				}
+				_ = appendPaste('\n')
+				continue
+			}
+			pasteLastWasCR = false
+			if appendPaste(ch) {
+				inPaste = false
+				pasteLastWasCR = false
+				if len(pasteBuf) > 0 || pastePrefix != "" {
+					out <- pastePrefix + string(pasteBuf)
+				}
+				pasteBuf = pasteBuf[:0]
+				pastePrefix = ""
+				clearBuf()
+				client.redrawInputLine()
+			}
 			continue
 		}
 
@@ -1468,10 +2048,7 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 				continue
 			}
 			lastWasCR = b == '\r'
-			client.bufMu.Lock()
-			out <- client.inputBuf.String()
-			client.bufMu.Unlock()
-			clearBuf()
+			out <- takeLine()
 			continue
 		}
 		lastWasCR = false
@@ -1492,6 +2069,9 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 			if pending.Len() == len(pasteStart) {
 				inPaste = true
 				pending.Reset()
+				client.bufMu.Lock()
+				pastePrefix = client.inputBuf.String()
+				client.bufMu.Unlock()
 			}
 			continue
 		}
@@ -1502,12 +2082,8 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 			ch := client.inputBuf.Bytes()[0]
 			if ch == 'A' || ch == 'a' || ch == 'C' || ch == 'c' || ch == 'T' || ch == 't' {
 				client.promptSingle = false
-				out <- client.inputBuf.String()
-				client.inputBuf.Reset()
-				client.histPos = -1
-				client.histSaved = ""
-				client.cursor = 0
 				client.bufMu.Unlock()
+				out <- takeLine()
 				pending.Reset()
 				client.redrawInputLine()
 				continue
@@ -1554,6 +2130,10 @@ func (c *sshClient) setWidth(w int) {
 	c.bufMu.Lock()
 	c.width = w
 	c.bufMu.Unlock()
+	c.wmu.Lock()
+	c.lastRenderLines = 0
+	c.lastCursorLine = 0
+	c.wmu.Unlock()
 }
 
 func (c *sshClient) wrapLine(s string) string {

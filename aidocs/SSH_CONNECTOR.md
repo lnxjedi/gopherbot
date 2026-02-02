@@ -56,6 +56,24 @@ Other user:
 (09:15:45)@alice/#general(0005): msg
 ```
 
+Direct message (channel view, inbound):
+
+```
+(09:15:45)from:@bob: msg
+```
+
+Direct message (replay, outbound):
+
+```
+(09:15:45)to:@bob: msg
+```
+
+Direct message (DM view, inbound):
+
+```
+(09:15:45)@bob: msg
+```
+
 Bot message:
 
 ```
@@ -75,15 +93,17 @@ Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot
 ### User input
 
 - PTY input; prompt is `@alice/#general -> ` or `@alice/#general(0005) -> `.
+- Direct-message prompt: `@alice/dm:@bob -> ` (threads disabled in DMs).
 - Input echoed normally by PTY.
 - On Enter, append `(timestamp)\n`.
 
 ### Filters
 
-- Initial filter: `Thread`.
+- Initial filter: `Channel`.
 - `A`: all messages.
 - `C`: channel messages in current channel (including threads).
 - `T`: thread-only when in a thread; otherwise channel-level plus the first message of each thread (rendered as `(+0005)` to indicate a new thread).
+- Direct messages to/from the user are delivered regardless of filter.
 
 ## Buffer and Size Limits
 
@@ -97,6 +117,7 @@ Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot
   - Buffer truncated 4k copy.
 
 Hidden messages are never buffered.
+Direct messages are buffered and replayed only to the sender/recipient.
 
 ## Hidden Messages
 
@@ -104,12 +125,24 @@ Hidden messages are never buffered.
 - `/ foo` sends nothing to others; emit `(INFO: '/' note to self message not sent to other users)`.
 - Hidden replies are prefixed with `private/` in the timestamp segment.
 
+## Direct Messages
+
+- `/@user <message>` sends a one-shot DM to a user or the bot.
+- `|c` switches to a DM channel with the bot; `|c @user` switches to a DM channel with that user.
+- User-to-user DMs are local to the SSH connector and **not** forwarded to the engine.
+- In user-to-user DMs, `/` commands are rejected with a warning.
+- User names in the roster must be lower-case; uppercase roster entries are rejected with an error log.
+- Threads are disabled in DMs.
+
 ## Commands
 
 - `|c?` list channels; `|c<name>` switch channel
+- `|c` direct message with bot; `|c @user` direct message with user
 - `|t?` thread help; `|t` toggle thread; `|t<id>` set thread id
 - `|j` join last thread seen
 - `|f?` or `|f` list filters; `|fA|fC|fT` set filter
+- `|l` list users
+- `|?` connector help
 
 No `|u`.
 
