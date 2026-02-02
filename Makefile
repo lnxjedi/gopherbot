@@ -1,6 +1,6 @@
 # Makefile - just builds the binary, for dev mainly
 
-.PHONY: clean test generate testbot static dist containers debug
+.PHONY: clean test fulltest unit integration integration-full generate testbot static dist containers debug
 
 commit := -X main.Commit=$(shell git rev-parse --short HEAD)
 version := $(shell ./get-version.sh)
@@ -42,9 +42,19 @@ dist: $(TAR_ARCHIVE)
 
 # Run test suite without coverage (see .gopherci/pipeline.sh)
 # Full suites are opt-in: use RUN_FULL=js (or RUN_FULL=all) and only Test.*Full runs.
-# Shortcut: TEST=JSFull make test
-test:
+# Shortcut: TEST=JSFull make integration
+unit:
+	go test -mod readonly ./...
+
+integration:
 	${TESTENV} go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test
+
+integration-full:
+	RUN_FULL=all $(MAKE) integration
+
+test: unit integration
+
+fulltest: unit integration-full
 
 # Generate Stringer methods
 generate:
