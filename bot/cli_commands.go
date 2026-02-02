@@ -45,7 +45,7 @@ func processCLI(usage string) {
 
 	totpFlags := flag.NewFlagSet("gentotp", flag.ExitOnError)
 	totpFlags.Usage = func() {
-		fmt.Println("Usage: gopherbot gentotp <username>\n")
+		fmt.Print("Usage: gopherbot gentotp <username>\n")
 	}
 
 	fetchFlags := flag.NewFlagSet("fetch", flag.ExitOnError)
