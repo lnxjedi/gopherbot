@@ -2048,6 +2048,8 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 				continue
 			}
 			lastWasCR = b == '\r'
+			moveEnd()
+			client.redrawInputLine()
 			out <- takeLine()
 			continue
 		}

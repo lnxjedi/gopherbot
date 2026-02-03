@@ -95,7 +95,7 @@ Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot
 - PTY input; prompt is `@alice/#general -> ` or `@alice/#general(0005) -> `.
 - Direct-message prompt: `@alice/dm:@bob -> ` (threads disabled in DMs).
 - Input echoed normally by PTY.
-- On Enter, append `(timestamp)\n`.
+- On Enter, move cursor to end before appending `(timestamp)\n`.
 
 ### Filters
 
