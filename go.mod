@@ -6,6 +6,8 @@ replace github.com/lnxjedi/gopherbot/robot => ./robot
 
 replace github.com/lnxjedi/gopherbot/test => ./test
 
+replace github.com/chzyer/readline => ./golib/readline
+
 // replace github.com/go-git/go-git/v5 => ./replacements/go-git
 
 require (
