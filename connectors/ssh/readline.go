@@ -444,7 +444,7 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 			}
 			if errors.Is(err, io.EOF) {
 				// Commit the current line so the disconnect message prints on the next line.
-				client.writeOutput("\n")
+				client.writeOutput("\r")
 				client.writeLineKind("system", "disconnecting ...")
 			}
 			return
