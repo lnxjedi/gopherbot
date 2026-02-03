@@ -132,10 +132,11 @@ type sshClient struct {
 	wmu    sync.Mutex
 	rl     *readline.Instance
 
-	pasteMu    sync.Mutex
-	pasteMode  bool
-	pasteDone  bool
-	pasteLines []string
+	pasteMu       sync.Mutex
+	pasteMode     bool
+	pasteDone     bool
+	pasteLines    []string
+	restorePrompt bool
 }
 
 // Initialize sets up the SSH connector and returns a connector object.
@@ -543,6 +544,7 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 }
 
 func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
+	defer client.maybeRestorePrompt()
 	now := time.Now()
 	client.echoInputWithTimestamp(line, now)
 
@@ -1320,6 +1322,24 @@ func (c *sshClient) clearPromptLine() {
 	c.rl.Clean()
 }
 
+func (c *sshClient) setContinuationPrompt() {
+	if c.rl == nil {
+		return
+	}
+	c.rl.SetPrompt("> ")
+	c.rl.Refresh()
+}
+
+func (c *sshClient) maybeRestorePrompt() {
+	c.pasteMu.Lock()
+	restore := c.restorePrompt
+	c.restorePrompt = false
+	c.pasteMu.Unlock()
+	if restore {
+		c.setPrompt()
+	}
+}
+
 func (c *sshClient) beginPaste() {
 	c.pasteMu.Lock()
 	defer c.pasteMu.Unlock()
@@ -1344,6 +1364,7 @@ func (c *sshClient) handlePasteLine(line string, out chan<- string) bool {
 	if c.pasteMode {
 		c.pasteLines = append(c.pasteLines, line)
 		c.pasteMu.Unlock()
+		c.writeContinuationLine(line)
 		return true
 	}
 	if line != "" {
@@ -1352,9 +1373,21 @@ func (c *sshClient) handlePasteLine(line string, out chan<- string) bool {
 	payload := strings.Join(c.pasteLines, "\n")
 	c.pasteLines = c.pasteLines[:0]
 	c.pasteDone = false
+	c.restorePrompt = true
 	c.pasteMu.Unlock()
 	out <- payload
 	return true
+}
+
+func (c *sshClient) writeContinuationLine(line string) {
+	if c.rl == nil {
+		return
+	}
+	out := "> " + line + "\n"
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
+	c.rl.Clean()
+	_, _ = c.rl.Write([]byte(normalizeNewlines(out)))
 }
 
 func (c *sshClient) echoInputWithTimestamp(line string, ts time.Time) {
@@ -1663,6 +1696,7 @@ func (sc *sshConnector) initReadline(client *sshClient, ch ssh.Channel) error {
 			switch r {
 			case readline.CharPasteStart:
 				client.beginPaste()
+				client.setContinuationPrompt()
 				return 0, false
 			case readline.CharPasteEnd:
 				client.endPaste()
