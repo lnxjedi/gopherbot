@@ -457,6 +457,7 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 			return
 		}
 		if strings.HasSuffix(line, "\\") {
+			line = strings.TrimSuffix(line, "\\")
 			buf.WriteString(line)
 			buf.WriteString("\n")
 			if !continuing {
