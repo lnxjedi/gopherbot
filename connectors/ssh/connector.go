@@ -132,11 +132,12 @@ type sshClient struct {
 	wmu    sync.Mutex
 	rl     *readline.Instance
 
-	pasteMu       sync.Mutex
-	pasteMode     bool
-	pasteDone     bool
-	pasteLines    []string
-	restorePrompt bool
+	pasteMu        sync.Mutex
+	pasteMode      bool
+	pasteDone      bool
+	pasteLines     []string
+	restorePrompt  bool
+	pasteFirstLine bool
 }
 
 // Initialize sets up the SSH connector and returns a connector object.
@@ -1346,6 +1347,7 @@ func (c *sshClient) beginPaste() {
 	c.pasteMode = true
 	c.pasteDone = false
 	c.pasteLines = c.pasteLines[:0]
+	c.pasteFirstLine = true
 }
 
 func (c *sshClient) endPaste() {
@@ -1363,8 +1365,14 @@ func (c *sshClient) handlePasteLine(line string, out chan<- string) bool {
 	}
 	if c.pasteMode {
 		c.pasteLines = append(c.pasteLines, line)
+		firstLine := c.pasteFirstLine
+		c.pasteFirstLine = false
 		c.pasteMu.Unlock()
-		c.writeContinuationLine(line)
+		if firstLine {
+			c.writeContinuationFirstLine(line)
+		} else {
+			c.writeContinuationLine(line)
+		}
 		return true
 	}
 	if line != "" {
@@ -1384,6 +1392,17 @@ func (c *sshClient) writeContinuationLine(line string) {
 		return
 	}
 	out := "> " + line + "\n"
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
+	c.rl.Clean()
+	_, _ = c.rl.Write([]byte(normalizeNewlines(out)))
+}
+
+func (c *sshClient) writeContinuationFirstLine(line string) {
+	if c.rl == nil {
+		return
+	}
+	out := c.promptColored() + line + "\n"
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
 	c.rl.Clean()
