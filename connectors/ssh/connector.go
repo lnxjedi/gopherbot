@@ -1319,8 +1319,20 @@ func (c *sshClient) echoInputWithTimestamp(line string, ts time.Time) {
 	if c.rl == nil {
 		return
 	}
-	stamp := c.colorize("timestamp", fmt.Sprintf(" (%s)", ts.Format("15:04:05")))
-	out := c.promptColored() + line + stamp + "\n"
+	stampRaw := fmt.Sprintf(" (%s)", ts.Format("15:04:05"))
+	stamp := c.colorize("timestamp", stampRaw)
+	padding := ""
+	width := c.getWidth()
+	if width > 0 {
+		promptWidth := readline.Runes{}.WidthAll([]rune(c.promptString()))
+		lineWidth := readline.Runes{}.WidthAll([]rune(line))
+		stampWidth := readline.Runes{}.WidthAll([]rune(stampRaw))
+		col := (promptWidth + lineWidth) % width
+		if col > 0 && col+stampWidth > width {
+			padding = strings.Repeat(" ", width-col)
+		}
+	}
+	out := c.promptColored() + line + padding + stamp + "\n"
 
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
