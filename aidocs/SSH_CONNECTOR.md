@@ -13,6 +13,7 @@ This document records the intended SSH connector behavior, control flow, and int
 - `connectors/ssh/connector.go`: connector interface surface, message routing, buffer logic.
 - `connectors/ssh/server.go`: SSH listener, auth, and session lifecycle.
 - `connectors/ssh/readline.go`: readline-based input/output, prompts, formatting.
+- `golib/readline/`: local fork of `github.com/chzyer/readline` (see Bracketed Paste Support below).
 
 ## Startup Integration
 
@@ -158,6 +159,35 @@ No `|u`.
 - Enable bracketed paste mode on connect; disable on disconnect.
 - Bracketed paste payloads are read line-by-line by readline; multi-line paste yields multiple messages.
 - For non-bracketed input, line-based input is used.
+
+## Bracketed Paste Support (Readline Fork)
+
+We maintain a local fork of `github.com/chzyer/readline` under `golib/readline/` and use a `go.mod` replace to point at it. The fork adds a callback hook to detect bracketed paste mode transitions:
+
+- `readline.Config` includes `FuncSetPasteMode func(bool)`.
+- The terminal escape parser (`golib/readline/terminal.go`) recognizes `ESC [ 200 ~` (paste start) and `ESC [ 201 ~` (paste end), and invokes `FuncSetPasteMode(true/false)`.
+- The escape sequences themselves are still filtered out of the input stream.
+
+This hook is wired in `connectors/ssh/readline.go` via `FuncSetPasteMode: client.setPasteActive`, which sets `sshClient.pasteActive`.
+
+### Multiline Input Behavior
+
+Multiline input in the SSH connector now continues when **either**:
+- The user ends a line with `\` (manual continuation), or
+- Bracketed paste mode is active (paste continuation).
+
+When a multiline input completes:
+- A standalone timestamp line is emitted locally.
+- The combined text is sent as a single message (joined with `\n`).
+
+### Readline `UniqueEditLine` Interaction
+
+Readline’s `UniqueEditLine` must be set **before** Enter is processed. To keep local echo correct:
+
+- For normal single-line input: `UniqueEditLine = true` (line is cleared; we print a timestamped echo).
+- For continuation lines (manual `\` or pasteActive): `UniqueEditLine = false` (line remains visible).
+
+This is controlled in `connectors/ssh/readline.go` via `FuncFilterInputRune`, which toggles `UniqueEditLine` based on the current buffer and `pasteActive`. Toggling in the readline listener is **too late** and causes duplication.
 
 ## Logging
 
