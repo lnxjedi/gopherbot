@@ -96,6 +96,7 @@ Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot
 - Direct-message prompt: `@alice/dm:@bob -> ` (threads disabled in DMs).
 - Input echoed normally by PTY.
 - On Enter, move cursor to end before appending `(timestamp)\n`.
+- Input line editing uses `github.com/chzyer/readline`; history is per-session only (no persistence).
 
 ### Filters
 
@@ -149,7 +150,7 @@ No `|u`.
 ## Paste Handling
 
 - Enable bracketed paste mode on connect; disable on disconnect.
-- Treat bracketed paste payload (may include newlines) as a single message.
+- Bracketed paste payloads are read line-by-line by readline; multi-line paste yields multiple messages.
 - For non-bracketed input, line-based input is used.
 
 ## Logging

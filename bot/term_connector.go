@@ -13,7 +13,7 @@ import (
 
 	"github.com/lnxjedi/gopherbot/robot"
 	tbot "github.com/lnxjedi/gopherbot/test"
-	"github.com/lnxjedi/readline"
+	"github.com/chzyer/readline"
 )
 
 func init() {

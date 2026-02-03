@@ -1,8 +1,6 @@
 package ssh
 
 import (
-	"bufio"
-	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/binary"
@@ -17,9 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
-	"unicode/utf8"
 
+	"github.com/chzyer/readline"
 	"golang.org/x/crypto/ssh"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -108,11 +105,6 @@ type sshConnector struct {
 	buffer    []bufferMsg
 	bufIndex  int
 	bufFilled bool
-	histories map[string]*userHistory
-}
-
-type userHistory struct {
-	lines []string
 }
 
 type sshClient struct {
@@ -126,27 +118,19 @@ type sshClient struct {
 	lastThread      map[string]string
 	threadSeen      map[string]map[string]struct{}
 	echo            bool
-	inputBuf        bytes.Buffer
 	bufMu           sync.Mutex
 	width           int
-	history         *userHistory
-	histPos         int
-	histSaved       string
-	cursor          int
 	color           bool
 	colorScheme     map[string]int
-	promptOverride  string
-	promptSingle    bool
 	dmPeer          string
 	dmPeerID        string
 	dmIsBot         bool
-	lastRenderLines int
-	lastCursorLine  int
 
 	ch     ssh.Channel
 	conn   *ssh.ServerConn
 	writer io.Writer
 	wmu    sync.Mutex
+	rl     *readline.Instance
 }
 
 // Initialize sets up the SSH connector and returns a connector object.
@@ -207,7 +191,6 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		userIDs:      make(map[string]userKeyInfo),
 		threads:      make(map[string]int),
 		buffer:       make([]bufferMsg, cfg.ReplayBufferSize),
-		histories:    make(map[string]*userHistory),
 	}
 
 	return robot.Connector(sc)
@@ -304,7 +287,6 @@ func (sc *sshConnector) handleConn(nc net.Conn, cfg *ssh.ServerConfig) {
 		filter:     filterChannel,
 		lastThread: make(map[string]string),
 		threadSeen: make(map[string]map[string]struct{}),
-		histPos:    -1,
 		color:      sc.cfg.Color,
 		colorScheme: func() map[string]int {
 			if sc.cfg.ColorScheme == nil {
@@ -319,7 +301,6 @@ func (sc *sshConnector) handleConn(nc net.Conn, cfg *ssh.ServerConfig) {
 		conn:   sshConn,
 		writer: nc,
 	}
-	client.history = sc.getHistory(client.userID)
 
 	sc.addClient(client)
 	defer sc.removeClient(client)
@@ -386,45 +367,44 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 	default:
 	}
 
-	client.writeStringKind("system", "Select filter: (A)ll, (C)hannel, (T)hread [C]: ")
-	client.bufMu.Lock()
-	client.promptOverride = "Select filter: (A)ll, (C)hannel, (T)hread [C]: "
-	client.promptSingle = true
-	client.bufMu.Unlock()
-	inputCh := make(chan string)
-	go sc.readInput(client, inputCh)
-
-	input, ok := <-inputCh
-	if !ok {
+	if err := sc.initReadline(client, ch); err != nil {
 		return
 	}
+	defer func() {
+		_ = client.rl.Close()
+	}()
+
+	client.setPromptText("Select filter: (A)ll, (C)hannel, (T)hread [C]: ")
+	input, err := client.rl.Readline()
+	if err != nil {
+		if !errors.Is(err, readline.ErrInterrupt) {
+			return
+		}
+		input = ""
+	}
 	client.filter = parseFilter(input)
-	client.bufMu.Lock()
-	client.promptOverride = ""
-	client.promptSingle = false
-	client.bufMu.Unlock()
-	client.writeString("\n")
+	client.clearPromptLine()
 
 	replayed := sc.replayBuffer(client)
 	if replayed == 0 {
 		client.writeLineKind("info", "(INFO: no recent messages matched the selected filter)")
 	}
 	client.writeLineKind("system", sshConnectorHelpLine)
-	client.writePrompt()
+	client.setPrompt()
+
+	inputCh := make(chan string)
+	go sc.readInput(client, inputCh)
 
 	for line := range inputCh {
 		if len(line) == 0 {
 			client.writeLineKind("system", sshConnectorHelpLine)
-			client.writePrompt()
 			continue
 		}
 		if strings.HasPrefix(line, "|") {
 			sc.handleCommand(client, strings.TrimSpace(line))
-			client.writePrompt()
 			continue
 		}
 		sc.handleUserInput(client, line)
-		client.writePrompt()
 	}
 }
 
@@ -457,10 +437,10 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 				return
 			}
 			if target == sc.botNameLower {
-				sc.setDMTarget(client, sc.botName, sc.botID, true)
-				client.writeLineKind("info", "Changed current channel to: direct message")
-				return
-			}
+			sc.setDMTarget(client, sc.botName, sc.botID, true)
+			client.writeLineKind("info", "Changed current channel to: direct message")
+			return
+		}
 			info, ok := sc.lookupUser(target)
 			if !ok {
 				client.writeLineKind("error", "Unknown user")
@@ -480,6 +460,7 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 		client.dmPeer = ""
 		client.dmPeerID = ""
 		client.dmIsBot = false
+		client.setPrompt()
 		client.writeLineKind("info", fmt.Sprintf("Changed current channel to: %s", arg))
 	case 'T', 't':
 		if client.dmPeer != "" {
@@ -501,8 +482,10 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 			client.threadID = arg
 		}
 		if client.typingInThread {
+			client.setPrompt()
 			client.writeLineKind("info", fmt.Sprintf("(now typing in thread: %s)", client.threadID))
 		} else {
+			client.setPrompt()
 			client.writeLineKind("info", "(typing in channel now)")
 		}
 	case 'J', 'j':
@@ -517,6 +500,7 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 		}
 		client.typingInThread = true
 		client.threadID = last
+		client.setPrompt()
 		client.writeLineKind("info", fmt.Sprintf("(now typing in thread: %s)", client.threadID))
 	case 'F', 'f':
 		arg := strings.TrimSpace(input[2:])
@@ -565,8 +549,6 @@ func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
 	if len(line) > maxBufferBytes {
 		client.writeLineKind("warning", "(WARNING: message truncated to 4k in buffer)")
 	}
-
-	client.recordHistory(line, sc.cfg.UserHistoryLines)
 
 	trimmed := strings.TrimSpace(line)
 	if client.dmPeer != "" && !client.dmIsBot && strings.HasPrefix(trimmed, "/") {
@@ -930,18 +912,6 @@ func (sc *sshConnector) clientsForUser(u string) []*sshClient {
 	return clients
 }
 
-func (sc *sshConnector) getHistory(userID string) *userHistory {
-	sc.mu.Lock()
-	defer sc.mu.Unlock()
-	hist, ok := sc.histories[userID]
-	if ok {
-		return hist
-	}
-	hist = &userHistory{}
-	sc.histories[userID] = hist
-	return hist
-}
-
 func (sc *sshConnector) normalizeChannel(ch string) string {
 	if ch == "" {
 		return ch
@@ -1031,6 +1001,7 @@ func (sc *sshConnector) setDMTarget(client *sshClient, peerName, peerID string, 
 	client.channel = peerName
 	client.typingInThread = false
 	client.threadID = ""
+	client.setPrompt()
 }
 
 func (sc *sshConnector) addClient(c *sshClient) {
@@ -1240,7 +1211,14 @@ func (c *sshClient) promptTarget() string {
 }
 
 func (c *sshClient) writePrompt() {
-	c.redrawInputLine()
+	c.refreshPrompt()
+}
+
+func (c *sshClient) refreshPrompt() {
+	if c.rl == nil {
+		return
+	}
+	c.rl.Refresh()
 }
 
 func (c *sshClient) writeString(s string) {
@@ -1248,10 +1226,7 @@ func (c *sshClient) writeString(s string) {
 }
 
 func (c *sshClient) writeStringKind(kind, s string) {
-	c.wmu.Lock()
-	defer c.wmu.Unlock()
-	out := c.colorizeLines(kind, s)
-	_, _ = c.writer.Write([]byte(normalizeNewlines(out)))
+	c.writeOutputKind(kind, s, false)
 }
 
 func (c *sshClient) writeLine(s string) {
@@ -1259,11 +1234,7 @@ func (c *sshClient) writeLine(s string) {
 }
 
 func (c *sshClient) writeLineKind(kind, s string) {
-	c.wmu.Lock()
-	defer c.wmu.Unlock()
-	wrapped := c.wrapLine(s)
-	wrapped = c.colorizeLines(kind, wrapped)
-	_, _ = c.writer.Write([]byte(normalizeNewlines(wrapped + "\n")))
+	c.writeOutputKind(kind, s, true)
 }
 
 func (c *sshClient) writeAsyncMessage(msg string) {
@@ -1271,126 +1242,77 @@ func (c *sshClient) writeAsyncMessage(msg string) {
 }
 
 func (c *sshClient) writeAsyncMessageKind(kind, msg string) {
-	c.wmu.Lock()
-	defer c.wmu.Unlock()
-	// Clear current input line, print message, then redraw prompt + buffer.
-	c.clearInputLinesLocked()
-	wrapped := c.wrapLine(msg)
-	wrapped = c.colorizeLines(kind, wrapped)
-	_, _ = c.writer.Write([]byte(normalizeNewlines(wrapped + "\n")))
-	c.redrawInputLineLocked()
+	c.writeOutputKind(kind, msg, true)
 }
 
 func (c *sshClient) writeMessage(evt bufferMsg, private, announceThread bool) {
 	msg := c.formatMessage(evt, private, announceThread)
-	c.wmu.Lock()
-	defer c.wmu.Unlock()
-	_, _ = c.writer.Write([]byte(normalizeNewlines(msg + "\n")))
+	c.writeOutput(msg + "\n")
 }
 
 func (c *sshClient) writeMessageAsync(evt bufferMsg, private, announceThread bool) {
 	msg := c.formatMessage(evt, private, announceThread)
+	c.writeOutput(msg + "\n")
+}
+
+func (c *sshClient) writeOutputKind(kind, s string, addNewline bool) {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
-	// Clear current input line, print message, then redraw prompt + buffer.
-	c.clearInputLinesLocked()
-	_, _ = c.writer.Write([]byte(normalizeNewlines(msg + "\n")))
-	c.redrawInputLineLocked()
+	out := s
+	if addNewline {
+		out = c.wrapLine(out)
+	}
+	out = c.colorizeLines(kind, out)
+	if addNewline {
+		out += "\n"
+	}
+	c.writeOutputLocked(out)
 }
 
-func (c *sshClient) redrawInputLine() {
+func (c *sshClient) writeOutput(s string) {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
-	c.redrawInputLineLocked()
+	c.writeOutputLocked(s)
 }
 
-func (c *sshClient) redrawInputLineLocked() {
-	c.renderInputLineLocked()
+func (c *sshClient) writeOutputLocked(s string) {
+	writer := c.writer
+	if c.rl != nil {
+		writer = c.rl
+	}
+	_, _ = writer.Write([]byte(normalizeNewlines(s)))
 }
 
-type inputRenderState struct {
-	rawPrompt     string
-	coloredPrompt string
-	buf           []byte
-	cursor        int
-	width         int
-	bufRunes      []rune
-	cursorRunes   int
-	promptLen     int
+func (c *sshClient) promptString() string {
+	thread := ""
+	if c.dmPeer == "" && c.typingInThread && c.threadID != "" {
+		thread = fmt.Sprintf("(%s)", c.threadID)
+	}
+	return fmt.Sprintf("@%s/%s%s -> ", c.userName, c.promptTarget(), thread)
 }
 
-func (c *sshClient) inputRenderState() inputRenderState {
-	c.bufMu.Lock()
-	override := c.promptOverride
-	threadID := c.threadID
-	typingInThread := c.typingInThread
-	dmPeer := c.dmPeer
-	buf := append([]byte(nil), c.inputBuf.Bytes()...)
-	cursor := c.cursor
-	width := c.width
-	c.bufMu.Unlock()
-
-	rawPrompt := override
-	coloredPrompt := c.colorize("system", override)
-	if override == "" {
-		thread := ""
-		if dmPeer == "" && typingInThread && threadID != "" {
-			thread = fmt.Sprintf("(%s)", threadID)
-		}
-		rawPrompt = fmt.Sprintf("@%s/%s%s -> ", c.userName, c.promptTarget(), thread)
-		coloredPrompt = c.colorize("prompt", rawPrompt)
-	}
-
-	bufRunes := []rune(string(buf))
-	if cursor < 0 {
-		cursor = 0
-	}
-	if cursor > len(buf) {
-		cursor = len(buf)
-	}
-	cursorRunes := runeIndexFromByte(buf, cursor)
-	if cursorRunes > len(bufRunes) {
-		cursorRunes = len(bufRunes)
-	}
-	promptLen := runesWidthAll([]rune(rawPrompt))
-
-	return inputRenderState{
-		rawPrompt:     rawPrompt,
-		coloredPrompt: coloredPrompt,
-		buf:           buf,
-		cursor:        cursor,
-		width:         width,
-		bufRunes:      bufRunes,
-		cursorRunes:   cursorRunes,
-		promptLen:     promptLen,
-	}
+func (c *sshClient) promptColored() string {
+	return c.colorize("prompt", c.promptString())
 }
 
-func idxLine(start, screenWidth int, rs []rune) int {
-	if screenWidth <= 0 {
-		return 0
-	}
-	sp := splitByLine(start, screenWidth, rs)
-	if len(sp) == 0 {
-		return 0
-	}
-	return len(sp) - 1
+func (c *sshClient) setPrompt() {
+	c.setPromptText(c.promptColored())
 }
 
-func (c *sshClient) clearInputLinesLocked() {
-	if c.width <= 0 {
-		_, _ = c.writer.Write([]byte("\r\033[2K"))
+func (c *sshClient) setPromptText(prompt string) {
+	if c.rl == nil {
 		return
 	}
-	_, _ = c.writer.Write([]byte("\033[J"))
-	if c.lastCursorLine == 0 {
-		_, _ = c.writer.Write([]byte("\033[2K\r"))
+	c.rl.SetPrompt(prompt)
+	c.rl.Refresh()
+}
+
+func (c *sshClient) clearPromptLine() {
+	if c.rl == nil {
 		return
 	}
-	for i := 0; i < c.lastCursorLine; i++ {
-		_, _ = c.writer.Write([]byte("\033[2K\r\033[A"))
-	}
-	_, _ = c.writer.Write([]byte("\033[2K\r"))
+	c.rl.SetPrompt("")
+	c.rl.Clean()
 }
 
 func (c *sshClient) formatMessage(evt bufferMsg, private, announceThread bool) string {
@@ -1487,154 +1409,6 @@ func (c *sshClient) colorizeDMHeader(stamp, channel string, private bool) string
 	b.WriteString(c.colorize("prompt", channel))
 	b.WriteString(":")
 	return b.String()
-}
-
-// Portions of the line-wrapping helpers below are adapted from the
-// MIT-licensed github.com/chzyer/readline library (by chzyer).
-// The logic is tuned for single-line editing with terminal wrapping.
-
-const tabWidth = 4
-
-var zeroWidth = []*unicode.RangeTable{
-	unicode.Mn,
-	unicode.Me,
-	unicode.Cc,
-	unicode.Cf,
-}
-
-var doubleWidth = []*unicode.RangeTable{
-	unicode.Han,
-	unicode.Hangul,
-	unicode.Hiragana,
-	unicode.Katakana,
-}
-
-func runeWidth(r rune) int {
-	if r == '\t' {
-		return tabWidth
-	}
-	if unicode.IsOneOf(zeroWidth, r) {
-		return 0
-	}
-	if unicode.IsOneOf(doubleWidth, r) {
-		return 2
-	}
-	return 1
-}
-
-func runesWidthAll(rs []rune) (length int) {
-	for i := 0; i < len(rs); i++ {
-		length += runeWidth(rs[i])
-	}
-	return
-}
-
-func splitByLine(start, screenWidth int, rs []rune) []string {
-	var ret []string
-	buf := bytes.NewBuffer(nil)
-	currentWidth := start
-	for _, r := range rs {
-		w := runeWidth(r)
-		currentWidth += w
-		buf.WriteRune(r)
-		if currentWidth >= screenWidth {
-			ret = append(ret, buf.String())
-			buf.Reset()
-			currentWidth = 0
-		}
-	}
-	ret = append(ret, buf.String())
-	return ret
-}
-
-func lineCount(start, screenWidth int, rs []rune) int {
-	if screenWidth <= 0 {
-		return 1
-	}
-	width := runesWidthAll(rs) + start
-	if width <= 0 {
-		return 1
-	}
-	lines := width / screenWidth
-	if width%screenWidth != 0 {
-		lines++
-	}
-	if lines <= 0 {
-		return 1
-	}
-	return lines
-}
-
-func isInLineEdge(start, screenWidth int, rs []rune) bool {
-	if screenWidth <= 0 {
-		return false
-	}
-	sp := splitByLine(start, screenWidth, rs)
-	return len(sp[len(sp)-1]) == 0
-}
-
-func backspaceSequence(start, screenWidth int, rs []rune, idx int) []byte {
-	if screenWidth <= 0 {
-		return bytes.Repeat([]byte{'\b'}, len(rs)-idx)
-	}
-	sep := map[int]bool{}
-	var i int
-	for {
-		if i >= runesWidthAll(rs) {
-			break
-		}
-		if i == 0 {
-			i -= start
-		}
-		i += screenWidth
-		sep[i] = true
-	}
-	var buf []byte
-	for i := len(rs); i > idx; i-- {
-		buf = append(buf, '\b')
-		if sep[i] {
-			buf = append(buf, "\033[A\r"...)
-			buf = append(buf, []byte("\033["+strconv.Itoa(screenWidth)+"C")...)
-		}
-	}
-	return buf
-}
-
-func runeIndexFromByte(b []byte, byteIdx int) int {
-	if byteIdx <= 0 {
-		return 0
-	}
-	if byteIdx >= len(b) {
-		return utf8.RuneCount(b)
-	}
-	return utf8.RuneCount(b[:byteIdx])
-}
-
-func (c *sshClient) renderInputLineLocked() {
-	state := c.inputRenderState()
-	c.clearInputLinesLocked()
-
-	_, _ = c.writer.Write([]byte(state.coloredPrompt))
-	if len(state.buf) > 0 {
-		_, _ = c.writer.Write(state.buf)
-	}
-
-	if state.width <= 0 {
-		if len(state.buf)-state.cursor > 0 {
-			_, _ = c.writer.Write([]byte(fmt.Sprintf("\033[%dD", len(state.buf)-state.cursor)))
-		}
-		c.lastRenderLines = 1
-		return
-	}
-
-	if isInLineEdge(state.promptLen, state.width, state.bufRunes) {
-		_, _ = c.writer.Write([]byte(" \b"))
-	}
-	if state.cursorRunes < len(state.bufRunes) {
-		_, _ = c.writer.Write(backspaceSequence(state.promptLen, state.width, state.bufRunes, state.cursorRunes))
-	}
-	c.lastCursorLine = idxLine(state.promptLen, state.width, state.bufRunes[:state.cursorRunes])
-	c.lastRenderLines = lineCount(state.promptLen, state.width, state.bufRunes)
 }
 
 func (c *sshClient) dmLabel(evt bufferMsg) string {
@@ -1767,332 +1541,15 @@ func (c *sshClient) markThreadSeen(channel, threadID string) {
 
 func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 	defer close(out)
-	reader := bufio.NewReader(client.ch)
-	var pending bytes.Buffer
-	pasteBuf := make([]byte, 0, 256)
-	inPaste := false
-	lastWasCR := false
-	pasteLastWasCR := false
-	pastePrefix := ""
-	pasteMatch := 0
-	pasteEndBytes := []byte(pasteEnd)
-
-	appendPaste := func(b byte) (ended bool) {
-		if b == pasteEndBytes[pasteMatch] {
-			pasteMatch++
-			if pasteMatch == len(pasteEndBytes) {
-				pasteMatch = 0
-				return true
-			}
-			return false
-		}
-		if pasteMatch > 0 {
-			pasteBuf = append(pasteBuf, pasteEndBytes[:pasteMatch]...)
-			pasteMatch = 0
-			if b == pasteEndBytes[0] {
-				pasteMatch = 1
-				return false
-			}
-		}
-		pasteBuf = append(pasteBuf, b)
-		return false
-	}
-
-	appendBuf := func(b byte) {
-		client.bufMu.Lock()
-		defer client.bufMu.Unlock()
-		data := client.inputBuf.Bytes()
-		if client.cursor < 0 {
-			client.cursor = 0
-		}
-		if client.cursor > len(data) {
-			client.cursor = len(data)
-		}
-		tmp := make([]byte, 0, len(data)+1)
-		tmp = append(tmp, data[:client.cursor]...)
-		tmp = append(tmp, b)
-		tmp = append(tmp, data[client.cursor:]...)
-		client.inputBuf.Reset()
-		_, _ = client.inputBuf.Write(tmp)
-		client.cursor++
-	}
-	backspaceBuf := func() {
-		client.bufMu.Lock()
-		defer client.bufMu.Unlock()
-		if client.inputBuf.Len() == 0 || client.cursor == 0 {
-			return
-		}
-		data := client.inputBuf.Bytes()
-		if client.cursor > len(data) {
-			client.cursor = len(data)
-		}
-		tmp := make([]byte, 0, len(data)-1)
-		tmp = append(tmp, data[:client.cursor-1]...)
-		tmp = append(tmp, data[client.cursor:]...)
-		client.inputBuf.Reset()
-		_, _ = client.inputBuf.Write(tmp)
-		client.cursor--
-	}
-	clearBuf := func() {
-		client.wmu.Lock()
-		client.lastRenderLines = 0
-		client.lastCursorLine = 0
-		client.wmu.Unlock()
-		client.bufMu.Lock()
-		client.inputBuf.Reset()
-		client.histPos = -1
-		client.histSaved = ""
-		client.cursor = 0
-		client.bufMu.Unlock()
-	}
-	takeLine := func() string {
-		client.wmu.Lock()
-		client.bufMu.Lock()
-		line := client.inputBuf.String()
-		client.inputBuf.Reset()
-		client.histPos = -1
-		client.histSaved = ""
-		client.cursor = 0
-		client.lastRenderLines = 0
-		client.lastCursorLine = 0
-		client.bufMu.Unlock()
-		client.wmu.Unlock()
-		return line
-	}
-	deleteAtCursor := func() {
-		client.bufMu.Lock()
-		defer client.bufMu.Unlock()
-		data := client.inputBuf.Bytes()
-		if client.cursor < 0 {
-			client.cursor = 0
-		}
-		if client.cursor >= len(data) {
-			return
-		}
-		tmp := make([]byte, 0, len(data)-1)
-		tmp = append(tmp, data[:client.cursor]...)
-		tmp = append(tmp, data[client.cursor+1:]...)
-		client.inputBuf.Reset()
-		_, _ = client.inputBuf.Write(tmp)
-	}
-	moveLeft := func() {
-		client.bufMu.Lock()
-		if client.cursor > 0 {
-			client.cursor--
-		}
-		client.bufMu.Unlock()
-	}
-	moveRight := func() {
-		client.bufMu.Lock()
-		if client.cursor < client.inputBuf.Len() {
-			client.cursor++
-		}
-		client.bufMu.Unlock()
-	}
-	moveHome := func() {
-		client.bufMu.Lock()
-		client.cursor = 0
-		client.bufMu.Unlock()
-	}
-	moveEnd := func() {
-		client.bufMu.Lock()
-		client.cursor = client.inputBuf.Len()
-		client.bufMu.Unlock()
-	}
-
 	for {
-		b, err := reader.ReadByte()
+		line, err := client.rl.Readline()
 		if err != nil {
+			if errors.Is(err, readline.ErrInterrupt) {
+				continue
+			}
 			return
 		}
-
-		if pending.Len() > 0 && pending.Bytes()[0] == 0x1b {
-			pending.WriteByte(b)
-			if strings.HasPrefix(pasteStart, pending.String()) {
-				if pending.Len() == len(pasteStart) {
-					inPaste = true
-					pending.Reset()
-				}
-				continue
-			}
-			if pending.Len() == 2 && pending.Bytes()[1] == '[' {
-				continue
-			}
-			if pending.Len() == 3 && pending.Bytes()[1] == '[' {
-				switch pending.Bytes()[2] {
-				case 'A':
-					client.historyUp()
-					pending.Reset()
-					continue
-				case 'B':
-					client.historyDown()
-					pending.Reset()
-					continue
-				case 'C':
-					moveRight()
-					client.redrawInputLine()
-					pending.Reset()
-					continue
-				case 'D':
-					moveLeft()
-					client.redrawInputLine()
-					pending.Reset()
-					continue
-				case 'H':
-					moveHome()
-					client.redrawInputLine()
-					pending.Reset()
-					continue
-				case 'F':
-					moveEnd()
-					client.redrawInputLine()
-					pending.Reset()
-					continue
-				}
-			}
-			if pending.Len() == 4 && pending.Bytes()[1] == '[' && pending.Bytes()[3] == '~' {
-				switch pending.Bytes()[2] {
-				case '1':
-					moveHome()
-					client.redrawInputLine()
-					pending.Reset()
-					continue
-				case '4':
-					moveEnd()
-					client.redrawInputLine()
-					pending.Reset()
-					continue
-				case '3':
-					deleteAtCursor()
-					client.redrawInputLine()
-					pending.Reset()
-					continue
-				}
-			}
-			if pending.Len() == 3 && pending.Bytes()[1] == 'O' {
-				switch pending.Bytes()[2] {
-				case 'H':
-					moveHome()
-					client.redrawInputLine()
-					pending.Reset()
-					continue
-				case 'F':
-					moveEnd()
-					client.redrawInputLine()
-					pending.Reset()
-					continue
-				}
-			}
-			// Unhandled escape sequence; flush bytes into input buffer.
-			for pending.Len() > 0 {
-				peek := pending.Bytes()[0]
-				pending.ReadByte()
-				appendBuf(peek)
-				client.redrawInputLine()
-			}
-			continue
-		}
-
-		if inPaste {
-			ch := b
-			if ch == '\r' {
-				pasteLastWasCR = true
-				_ = appendPaste('\n')
-				continue
-			}
-			if ch == '\n' {
-				if pasteLastWasCR {
-					pasteLastWasCR = false
-					continue
-				}
-				_ = appendPaste('\n')
-				continue
-			}
-			pasteLastWasCR = false
-			if appendPaste(ch) {
-				inPaste = false
-				pasteLastWasCR = false
-				if len(pasteBuf) > 0 || pastePrefix != "" {
-					out <- pastePrefix + string(pasteBuf)
-				}
-				pasteBuf = pasteBuf[:0]
-				pastePrefix = ""
-				clearBuf()
-				client.redrawInputLine()
-			}
-			continue
-		}
-
-		if b == 0x04 {
-			client.bufMu.Lock()
-			empty := client.inputBuf.Len() == 0
-			client.bufMu.Unlock()
-			if empty {
-				return
-			}
-			continue
-		}
-		if b == 0x01 { // Ctrl-A
-			moveHome()
-			client.redrawInputLine()
-			continue
-		}
-		if b == 0x05 { // Ctrl-E
-			moveEnd()
-			client.redrawInputLine()
-			continue
-		}
-		if b == '\r' || b == '\n' {
-			if b == '\n' && lastWasCR {
-				lastWasCR = false
-				continue
-			}
-			lastWasCR = b == '\r'
-			moveEnd()
-			client.redrawInputLine()
-			out <- takeLine()
-			continue
-		}
-		lastWasCR = false
-
-		if b == 0x1b {
-			pending.WriteByte(b)
-			continue
-		}
-
-		pending.WriteByte(b)
-		if pending.Bytes()[0] == 0x7f || pending.Bytes()[0] == '\b' {
-			backspaceBuf()
-			client.redrawInputLine()
-			pending.Reset()
-			continue
-		}
-		if strings.HasPrefix(pasteStart, pending.String()) {
-			if pending.Len() == len(pasteStart) {
-				inPaste = true
-				pending.Reset()
-				client.bufMu.Lock()
-				pastePrefix = client.inputBuf.String()
-				client.bufMu.Unlock()
-			}
-			continue
-		}
-		appendBuf(pending.Bytes()[0])
-		client.redrawInputLine()
-		client.bufMu.Lock()
-		if client.promptSingle && client.inputBuf.Len() == 1 {
-			ch := client.inputBuf.Bytes()[0]
-			if ch == 'A' || ch == 'a' || ch == 'C' || ch == 'c' || ch == 'T' || ch == 't' {
-				client.promptSingle = false
-				client.bufMu.Unlock()
-				out <- takeLine()
-				pending.Reset()
-				client.redrawInputLine()
-				continue
-			}
-		}
-		client.bufMu.Unlock()
-		pending.Reset()
+		out <- line
 	}
 }
 
@@ -2122,6 +1579,31 @@ func parseWindowWidth(payload []byte) int {
 	return int(binary.BigEndian.Uint32(payload[0:4]))
 }
 
+func (sc *sshConnector) initReadline(client *sshClient, ch ssh.Channel) error {
+	historyLimit := sc.cfg.UserHistoryLines
+	cfg := &readline.Config{
+		Prompt:                "",
+		HistoryLimit:          historyLimit,
+		DisableAutoSaveHistory: false,
+		HistorySearchFold:     true,
+		Stdin:                 ch,
+		Stdout:                ch,
+		Stderr:                ch,
+		ForceUseInteractive:   true,
+		FuncGetWidth:          client.getWidth,
+		FuncIsTerminal:        func() bool { return true },
+		FuncMakeRaw:           func() error { return nil },
+		FuncExitRaw:           func() error { return nil },
+		FuncOnWidthChanged:    func(func()) {},
+	}
+	rl, err := readline.NewEx(cfg)
+	if err != nil {
+		return err
+	}
+	client.rl = rl
+	return nil
+}
+
 func (c *sshClient) setWidth(w int) {
 	if w <= 0 {
 		return
@@ -2132,10 +1614,16 @@ func (c *sshClient) setWidth(w int) {
 	c.bufMu.Lock()
 	c.width = w
 	c.bufMu.Unlock()
-	c.wmu.Lock()
-	c.lastRenderLines = 0
-	c.lastCursorLine = 0
-	c.wmu.Unlock()
+	c.refreshPrompt()
+}
+
+func (c *sshClient) getWidth() int {
+	c.bufMu.Lock()
+	defer c.bufMu.Unlock()
+	if c.width <= 0 {
+		return 80
+	}
+	return c.width
 }
 
 func (c *sshClient) wrapLine(s string) string {
@@ -2152,69 +1640,4 @@ func (c *sshClient) wrapLine(s string) string {
 
 func (sc *sshConnector) wrap(s string) string {
 	return s
-}
-
-func (c *sshClient) recordHistory(line string, limit int) {
-	trimmed := strings.TrimSpace(line)
-	if trimmed == "" {
-		return
-	}
-	if c.history == nil {
-		return
-	}
-	c.bufMu.Lock()
-	c.history.lines = append(c.history.lines, trimmed)
-	if limit > 0 && len(c.history.lines) > limit {
-		c.history.lines = c.history.lines[len(c.history.lines)-limit:]
-	}
-	c.histPos = -1
-	c.histSaved = ""
-	c.bufMu.Unlock()
-}
-
-func (c *sshClient) historyUp() {
-	if c.history == nil || len(c.history.lines) == 0 {
-		return
-	}
-	c.bufMu.Lock()
-	if c.histPos == -1 {
-		c.histSaved = c.inputBuf.String()
-		c.histPos = len(c.history.lines) - 1
-	} else if c.histPos > 0 {
-		c.histPos--
-	}
-	entry := c.history.lines[c.histPos]
-	c.inputBuf.Reset()
-	_, _ = c.inputBuf.WriteString(entry)
-	c.cursor = c.inputBuf.Len()
-	c.bufMu.Unlock()
-	c.redrawInputLine()
-}
-
-func (c *sshClient) historyDown() {
-	if c.history == nil || len(c.history.lines) == 0 {
-		return
-	}
-	c.bufMu.Lock()
-	if c.histPos == -1 {
-		c.bufMu.Unlock()
-		return
-	}
-	if c.histPos < len(c.history.lines)-1 {
-		c.histPos++
-		entry := c.history.lines[c.histPos]
-		c.inputBuf.Reset()
-		_, _ = c.inputBuf.WriteString(entry)
-		c.cursor = c.inputBuf.Len()
-		c.bufMu.Unlock()
-		c.redrawInputLine()
-		return
-	}
-	c.histPos = -1
-	entry := c.histSaved
-	c.inputBuf.Reset()
-	_, _ = c.inputBuf.WriteString(entry)
-	c.cursor = c.inputBuf.Len()
-	c.bufMu.Unlock()
-	c.redrawInputLine()
 }

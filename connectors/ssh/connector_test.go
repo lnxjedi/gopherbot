@@ -128,7 +128,6 @@ func TestHandleUserInputDirectToBot(t *testing.T) {
 		buffer:       make([]bufferMsg, 4),
 		clients:      make(map[*sshClient]struct{}),
 		threads:      make(map[string]int),
-		histories:    make(map[string]*userHistory),
 	}
 	client := &sshClient{
 		userName: "alice",
@@ -174,7 +173,6 @@ func TestHandleUserInputDirectUserBypassEngine(t *testing.T) {
 		cfg:       sshConfig{MaxMsgBytes: defaultMaxMsg, UserHistoryLines: 5},
 		buffer:    make([]bufferMsg, 4),
 		clients:   make(map[*sshClient]struct{}),
-		histories: make(map[string]*userHistory),
 	}
 	client := &sshClient{
 		userName: "alice",
@@ -203,7 +201,6 @@ func TestHandleUserInputHiddenInUserDMIsDropped(t *testing.T) {
 		cfg:       sshConfig{MaxMsgBytes: defaultMaxMsg, UserHistoryLines: 5},
 		buffer:    make([]bufferMsg, 2),
 		clients:   make(map[*sshClient]struct{}),
-		histories: make(map[string]*userHistory),
 	}
 	client := &sshClient{
 		userName: "alice",
@@ -236,7 +233,6 @@ func TestHandleUserInputHiddenToBotDirect(t *testing.T) {
 		buffer:       make([]bufferMsg, 2),
 		clients:      make(map[*sshClient]struct{}),
 		threads:      make(map[string]int),
-		histories:    make(map[string]*userHistory),
 	}
 	client := &sshClient{
 		userName: "alice",
@@ -272,7 +268,6 @@ func TestHandleUserInputDirectAtUserBypassEngine(t *testing.T) {
 		cfg:       sshConfig{MaxMsgBytes: defaultMaxMsg, UserHistoryLines: 5},
 		buffer:    make([]bufferMsg, 4),
 		clients:   make(map[*sshClient]struct{}),
-		histories: make(map[string]*userHistory),
 		userNames: map[string]userKeyInfo{"bob": {userName: "bob", userID: "bobid"}},
 	}
 	client := &sshClient{
