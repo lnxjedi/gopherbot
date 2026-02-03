@@ -61,10 +61,6 @@ func (c *sshClient) promptTarget() string {
 	return fmt.Sprintf("#%s", c.channel)
 }
 
-func (c *sshClient) writePrompt() {
-	c.refreshPrompt()
-}
-
 func (c *sshClient) refreshPrompt() {
 	if c.rl == nil {
 		return
@@ -80,16 +76,8 @@ func (c *sshClient) writeStringKind(kind, s string) {
 	c.writeOutputKind(kind, s, false)
 }
 
-func (c *sshClient) writeLine(s string) {
-	c.writeLineKind("", s)
-}
-
 func (c *sshClient) writeLineKind(kind, s string) {
 	c.writeOutputKind(kind, s, true)
-}
-
-func (c *sshClient) writeAsyncMessage(msg string) {
-	c.writeAsyncMessageKind("", msg)
 }
 
 func (c *sshClient) writeAsyncMessageKind(kind, msg string) {
@@ -447,20 +435,22 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 		client.rl.Config.Listener = origListener
 	}()
 	for {
+		// Default behavior between inputs: keep the current line visible unless Enter toggles it.
+		client.rl.Config.UniqueEditLine = false
 		line, err := client.rl.Readline()
 		if err != nil {
 			if errors.Is(err, readline.ErrInterrupt) {
 				continue
 			}
 			if errors.Is(err, io.EOF) {
+				// Commit the current line so the disconnect message prints on the next line.
+				client.writeOutput("\n")
 				client.writeLineKind("system", "disconnecting ...")
 			}
 			return
 		}
 		if strings.HasSuffix(line, "\\") || client.pasteActive {
-			if strings.HasSuffix(line, "\\") {
-				line = strings.TrimSuffix(line, "\\")
-			}
+			line = strings.TrimSuffix(line, "\\")
 			buf.WriteString(line)
 			buf.WriteString("\n")
 			if !continuing {
