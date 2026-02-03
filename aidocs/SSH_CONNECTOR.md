@@ -189,6 +189,8 @@ Readline’s `UniqueEditLine` must be set **before** Enter is processed. To keep
 
 This is controlled in `connectors/ssh/readline.go` via `FuncFilterInputRune`, which toggles `UniqueEditLine` based on the current buffer and `pasteActive`. Toggling in the readline listener is **too late** and causes duplication.
 
+**Default state between inputs:** `UniqueEditLine` is reset to `false` before each `Readline()` call. This makes EOF (`^D`) behavior consistent (the prompt/`^D` line remains visible), while Enter-time logic still flips it to `true` for normal single-line input.
+
 ## Logging
 
 - SSH connector should not call `SetTerminalWriter` (logs go to stdout/robot.log).
