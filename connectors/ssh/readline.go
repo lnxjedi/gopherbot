@@ -468,6 +468,10 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 		}
 		if continuing {
 			buf.WriteString(line)
+			// Line continuation uses UniqueEditLine=false, which leaves cursor at EOL on the next line.
+			// Move to column 0 before emitting the standalone timestamp.
+			client.writeOutput("\r")
+			client.writeLineKind("timestamp", fmt.Sprintf("(%s)", time.Now().Format("15:04:05")))
 			out <- inputEvent{line: buf.String(), multiline: true}
 			buf.Reset()
 			continuing = false
