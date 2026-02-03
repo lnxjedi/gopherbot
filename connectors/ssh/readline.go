@@ -427,7 +427,7 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 		}
 		switch r {
 		case readline.CharEnter, readline.CharCtrlJ:
-			if continuing || (len(lineBuf) > 0 && lineBuf[len(lineBuf)-1] == '\\') {
+			if continuing || client.pasteActive || (len(lineBuf) > 0 && lineBuf[len(lineBuf)-1] == '\\') {
 				client.rl.Config.UniqueEditLine = false
 			} else {
 				client.rl.Config.UniqueEditLine = true
@@ -457,8 +457,10 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 			}
 			return
 		}
-		if strings.HasSuffix(line, "\\") {
-			line = strings.TrimSuffix(line, "\\")
+		if strings.HasSuffix(line, "\\") || client.pasteActive {
+			if strings.HasSuffix(line, "\\") {
+				line = strings.TrimSuffix(line, "\\")
+			}
 			buf.WriteString(line)
 			buf.WriteString("\n")
 			if !continuing {
