@@ -48,6 +48,11 @@ type sshClient struct {
 	rl     *readline.Instance
 }
 
+type inputEvent struct {
+	line      string
+	multiline bool
+}
+
 func (c *sshClient) promptTarget() string {
 	if c.dmPeer != "" {
 		return fmt.Sprintf("dm:@%s", c.dmPeer)
@@ -403,8 +408,43 @@ func (c *sshClient) markThreadSeen(channel, threadID string) {
 	seen[threadID] = struct{}{}
 }
 
-func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
+func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 	defer close(out)
+	var buf strings.Builder
+	continuing := false
+	var lineBuf []rune
+	origUnique := client.rl.Config.UniqueEditLine
+	origFilter := client.rl.Config.FuncFilterInputRune
+	origListener := client.rl.Config.Listener
+	client.rl.Config.FuncFilterInputRune = func(r rune) (rune, bool) {
+		if origFilter != nil {
+			var ok bool
+			r, ok = origFilter(r)
+			if !ok {
+				return r, false
+			}
+		}
+		switch r {
+		case readline.CharEnter, readline.CharCtrlJ:
+			if continuing || (len(lineBuf) > 0 && lineBuf[len(lineBuf)-1] == '\\') {
+				client.rl.Config.UniqueEditLine = false
+			} else {
+				client.rl.Config.UniqueEditLine = true
+			}
+			return r, true
+		default:
+			return r, true
+		}
+	}
+	client.rl.Config.SetListener(func(line []rune, _ int, _ rune) (newLine []rune, newPos int, ok bool) {
+		lineBuf = append(lineBuf[:0], line...)
+		return nil, 0, false
+	})
+	defer func() {
+		client.rl.Config.UniqueEditLine = origUnique
+		client.rl.Config.FuncFilterInputRune = origFilter
+		client.rl.Config.Listener = origListener
+	}()
 	for {
 		line, err := client.rl.Readline()
 		if err != nil {
@@ -416,7 +456,24 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 			}
 			return
 		}
-		out <- line
+		if strings.HasSuffix(line, "\\") {
+			buf.WriteString(line)
+			buf.WriteString("\n")
+			if !continuing {
+				client.setPromptText("")
+				continuing = true
+			}
+			continue
+		}
+		if continuing {
+			buf.WriteString(line)
+			out <- inputEvent{line: buf.String(), multiline: true}
+			buf.Reset()
+			continuing = false
+			client.setPrompt()
+			continue
+		}
+		out <- inputEvent{line: line}
 	}
 }
 

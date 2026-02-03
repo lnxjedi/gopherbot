@@ -335,9 +335,11 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 	}
 }
 
-func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
+func (sc *sshConnector) handleUserInput(client *sshClient, line string, echo bool) {
 	now := time.Now()
-	client.echoInputWithTimestamp(line, now)
+	if echo {
+		client.echoInputWithTimestamp(line, now)
+	}
 
 	if len(line) > sc.cfg.MaxMsgBytes {
 		client.writeLineKind("error", "(ERROR: message too long; > 16k - dropped)")

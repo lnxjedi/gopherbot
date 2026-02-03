@@ -180,19 +180,23 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 	client.writeLineKind("system", sshConnectorHelpLine)
 	client.setPrompt()
 
-	inputCh := make(chan string)
+	inputCh := make(chan inputEvent)
 	go sc.readInput(client, inputCh)
 
-	for line := range inputCh {
+	for evt := range inputCh {
+		line := evt.line
 		if len(line) == 0 {
+			if evt.multiline {
+				continue
+			}
 			client.writeLineKind("system", sshConnectorHelpLine)
 			continue
 		}
-		if strings.HasPrefix(line, "|") {
+		if !evt.multiline && strings.HasPrefix(line, "|") {
 			sc.handleCommand(client, strings.TrimSpace(line))
 			continue
 		}
-		sc.handleUserInput(client, line)
+		sc.handleUserInput(client, line, !evt.multiline)
 	}
 }
 
