@@ -40,6 +40,7 @@ type sshClient struct {
 	dmPeer         string
 	dmPeerID       string
 	dmIsBot        bool
+	pasteActive    bool
 
 	ch     ssh.Channel
 	conn   *ssh.ServerConn
@@ -499,6 +500,7 @@ func (sc *sshConnector) initReadline(client *sshClient, ch ssh.Channel) error {
 		Stderr:                 ch,
 		ForceUseInteractive:    true,
 		FuncGetWidth:           client.getWidth,
+		FuncSetPasteMode:       client.setPasteActive,
 		FuncIsTerminal:         func() bool { return true },
 		FuncMakeRaw:            func() error { return nil },
 		FuncExitRaw:            func() error { return nil },
@@ -523,6 +525,12 @@ func (c *sshClient) setWidth(w int) {
 	c.width = w
 	c.bufMu.Unlock()
 	c.refreshPrompt()
+}
+
+func (c *sshClient) setPasteActive(on bool) {
+	c.bufMu.Lock()
+	c.pasteActive = on
+	c.bufMu.Unlock()
 }
 
 func (c *sshClient) getWidth() int {

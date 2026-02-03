@@ -167,6 +167,13 @@ func (t *Terminal) ioloop() {
 		} else if isEscapeEx {
 			isEscapeEx = false
 			if key := readEscKey(r, buf); key != nil {
+				if key.typ == '~' && (key.attr == "200" || key.attr == "201") {
+					if t.cfg.FuncSetPasteMode != nil {
+						t.cfg.FuncSetPasteMode(key.attr == "200")
+					}
+					expectNextChar = true
+					continue
+				}
 				r = escapeExKey(key)
 				// offset
 				if key.typ == 'R' {

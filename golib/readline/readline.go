@@ -1,20 +1,20 @@
 // Readline is a pure go implementation for GNU-Readline kind library.
 //
 // example:
-// 	rl, err := readline.New("> ")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	defer rl.Close()
 //
-// 	for {
-// 		line, err := rl.Readline()
-// 		if err != nil { // io.EOF
-// 			break
-// 		}
-// 		println(line)
-// 	}
+//	rl, err := readline.New("> ")
+//	if err != nil {
+//		panic(err)
+//	}
+//	defer rl.Close()
 //
+//	for {
+//		line, err := rl.Readline()
+//		if err != nil { // io.EOF
+//			break
+//		}
+//		println(line)
+//	}
 package readline
 
 import (
@@ -71,6 +71,9 @@ type Config struct {
 	// filter input runes (may be used to disable CtrlZ or for translating some keys to different actions)
 	// -> output = new (translated) rune and true/false if continue with processing this one
 	FuncFilterInputRune func(rune) (rune, bool)
+
+	// notify bracketed paste mode on/off (ESC [ 200 ~ / ESC [ 201 ~)
+	FuncSetPasteMode func(bool)
 
 	// force use interactive even stdout is not a tty
 	FuncIsTerminal      func() bool
@@ -301,9 +304,10 @@ func (i *Instance) Write(b []byte) (int, error) {
 // WriteStdin prefill the next Stdin fetch
 // Next time you call ReadLine() this value will be writen before the user input
 // ie :
-//  i := readline.New()
-//  i.WriteStdin([]byte("test"))
-//  _, _= i.Readline()
+//
+//	i := readline.New()
+//	i.WriteStdin([]byte("test"))
+//	_, _= i.Readline()
 //
 // gives
 //
