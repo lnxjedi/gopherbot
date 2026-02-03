@@ -8,6 +8,12 @@ This document records the intended SSH connector behavior, control flow, and int
 - Default connector for local development and IDE mode when no protocol is set.
 - Terminal connector remains default for `test-dev` (testbot).
 
+## Source Layout
+
+- `connectors/ssh/connector.go`: connector interface surface, message routing, buffer logic.
+- `connectors/ssh/server.go`: SSH listener, auth, and session lifecycle.
+- `connectors/ssh/readline.go`: readline-based input/output, prompts, formatting.
+
 ## Startup Integration
 
 - Connector registration via `bot.RegisterConnector("ssh", Initialize)` from `connectors/ssh/static.go`.
