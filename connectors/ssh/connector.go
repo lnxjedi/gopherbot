@@ -111,26 +111,31 @@ type sshClient struct {
 	userName string
 	userID   string
 
-	channel         string
-	threadID        string
-	typingInThread  bool
-	filter          filterMode
-	lastThread      map[string]string
-	threadSeen      map[string]map[string]struct{}
-	echo            bool
-	bufMu           sync.Mutex
-	width           int
-	color           bool
-	colorScheme     map[string]int
-	dmPeer          string
-	dmPeerID        string
-	dmIsBot         bool
+	channel        string
+	threadID       string
+	typingInThread bool
+	filter         filterMode
+	lastThread     map[string]string
+	threadSeen     map[string]map[string]struct{}
+	echo           bool
+	bufMu          sync.Mutex
+	width          int
+	color          bool
+	colorScheme    map[string]int
+	dmPeer         string
+	dmPeerID       string
+	dmIsBot        bool
 
 	ch     ssh.Channel
 	conn   *ssh.ServerConn
 	writer io.Writer
 	wmu    sync.Mutex
 	rl     *readline.Instance
+
+	pasteMu    sync.Mutex
+	pasteMode  bool
+	pasteDone  bool
+	pasteLines []string
 }
 
 // Initialize sets up the SSH connector and returns a connector object.
@@ -437,10 +442,10 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 				return
 			}
 			if target == sc.botNameLower {
-			sc.setDMTarget(client, sc.botName, sc.botID, true)
-			client.writeLineKind("info", "Changed current channel to: direct message")
-			return
-		}
+				sc.setDMTarget(client, sc.botName, sc.botID, true)
+				client.writeLineKind("info", "Changed current channel to: direct message")
+				return
+			}
 			info, ok := sc.lookupUser(target)
 			if !ok {
 				client.writeLineKind("error", "Unknown user")
@@ -1315,6 +1320,43 @@ func (c *sshClient) clearPromptLine() {
 	c.rl.Clean()
 }
 
+func (c *sshClient) beginPaste() {
+	c.pasteMu.Lock()
+	defer c.pasteMu.Unlock()
+	c.pasteMode = true
+	c.pasteDone = false
+	c.pasteLines = c.pasteLines[:0]
+}
+
+func (c *sshClient) endPaste() {
+	c.pasteMu.Lock()
+	defer c.pasteMu.Unlock()
+	c.pasteMode = false
+	c.pasteDone = true
+}
+
+func (c *sshClient) handlePasteLine(line string, out chan<- string) bool {
+	c.pasteMu.Lock()
+	if !c.pasteMode && !c.pasteDone {
+		c.pasteMu.Unlock()
+		return false
+	}
+	if c.pasteMode {
+		c.pasteLines = append(c.pasteLines, line)
+		c.pasteMu.Unlock()
+		return true
+	}
+	if line != "" {
+		c.pasteLines = append(c.pasteLines, line)
+	}
+	payload := strings.Join(c.pasteLines, "\n")
+	c.pasteLines = c.pasteLines[:0]
+	c.pasteDone = false
+	c.pasteMu.Unlock()
+	out <- payload
+	return true
+}
+
 func (c *sshClient) echoInputWithTimestamp(line string, ts time.Time) {
 	if c.rl == nil {
 		return
@@ -1576,6 +1618,9 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- string) {
 			}
 			return
 		}
+		if client.handlePasteLine(line, out) {
+			continue
+		}
 		out <- line
 	}
 }
@@ -1609,20 +1654,32 @@ func parseWindowWidth(payload []byte) int {
 func (sc *sshConnector) initReadline(client *sshClient, ch ssh.Channel) error {
 	historyLimit := sc.cfg.UserHistoryLines
 	cfg := &readline.Config{
-		Prompt:                "",
-		HistoryLimit:          historyLimit,
+		Prompt:                 "",
+		HistoryLimit:           historyLimit,
 		DisableAutoSaveHistory: false,
-		HistorySearchFold:     true,
-		UniqueEditLine:        true,
-		Stdin:                 ch,
-		Stdout:                ch,
-		Stderr:                ch,
-		ForceUseInteractive:   true,
-		FuncGetWidth:          client.getWidth,
-		FuncIsTerminal:        func() bool { return true },
-		FuncMakeRaw:           func() error { return nil },
-		FuncExitRaw:           func() error { return nil },
-		FuncOnWidthChanged:    func(func()) {},
+		HistorySearchFold:      true,
+		UniqueEditLine:         true,
+		FuncFilterInputRune: func(r rune) (rune, bool) {
+			switch r {
+			case readline.CharPasteStart:
+				client.beginPaste()
+				return 0, false
+			case readline.CharPasteEnd:
+				client.endPaste()
+				return 0, false
+			default:
+				return r, true
+			}
+		},
+		Stdin:               ch,
+		Stdout:              ch,
+		Stderr:              ch,
+		ForceUseInteractive: true,
+		FuncGetWidth:        client.getWidth,
+		FuncIsTerminal:      func() bool { return true },
+		FuncMakeRaw:         func() error { return nil },
+		FuncExitRaw:         func() error { return nil },
+		FuncOnWidthChanged:  func(func()) {},
 	}
 	rl, err := readline.NewEx(cfg)
 	if err != nil {

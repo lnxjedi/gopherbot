@@ -1,0 +1,14 @@
+# golib
+
+## readline
+
+Local fork of `github.com/chzyer/readline` (v1.5.1).
+
+Changes from upstream:
+- Emit synthetic rune markers for bracketed paste start/end (ESC[200~/ESC[201~) so connectors can detect paste mode without reimplementing terminal parsing.
+
+Rationale:
+- The SSH connector needs to detect bracketed paste boundaries to implement paste-aware multi-line input while still relying on readline's rendering/line editing.
+
+Upstream source:
+- Copied from module cache at `/home/david/go/pkg/mod/github.com/chzyer/readline@v1.5.1`.

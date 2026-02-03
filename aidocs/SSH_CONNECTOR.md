@@ -150,7 +150,8 @@ No `|u`.
 ## Paste Handling
 
 - Enable bracketed paste mode on connect; disable on disconnect.
-- Bracketed paste payloads are read line-by-line by readline; multi-line paste yields multiple messages.
+- Bracketed paste start/end markers are detected; lines are collected during paste mode.
+- After paste end, the next Enter submits the collected payload as a single message (joined with newlines).
 - For non-bracketed input, line-based input is used.
 
 ## Logging
