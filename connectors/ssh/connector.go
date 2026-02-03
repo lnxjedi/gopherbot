@@ -539,7 +539,7 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 
 func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
 	now := time.Now()
-	client.writeStringKind("timestamp", fmt.Sprintf(" (%s)\n", now.Format("15:04:05")))
+	client.echoInputWithTimestamp(line, now)
 
 	if len(line) > sc.cfg.MaxMsgBytes {
 		client.writeLineKind("error", "(ERROR: message too long; > 16k - dropped)")
@@ -1315,6 +1315,19 @@ func (c *sshClient) clearPromptLine() {
 	c.rl.Clean()
 }
 
+func (c *sshClient) echoInputWithTimestamp(line string, ts time.Time) {
+	if c.rl == nil {
+		return
+	}
+	stamp := c.colorize("timestamp", fmt.Sprintf(" (%s)", ts.Format("15:04:05")))
+	out := c.promptColored() + line + stamp + "\n"
+
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
+	c.rl.Clean()
+	_, _ = c.rl.Write([]byte(normalizeNewlines(out)))
+}
+
 func (c *sshClient) formatMessage(evt bufferMsg, private, announceThread bool) string {
 	stamp := evt.timestamp.Format("15:04:05")
 	prefix := "@" + evt.userName
@@ -1586,6 +1599,7 @@ func (sc *sshConnector) initReadline(client *sshClient, ch ssh.Channel) error {
 		HistoryLimit:          historyLimit,
 		DisableAutoSaveHistory: false,
 		HistorySearchFold:     true,
+		UniqueEditLine:        true,
 		Stdin:                 ch,
 		Stdout:                ch,
 		Stderr:                ch,
