@@ -42,6 +42,7 @@ type sshClient struct {
 	dmIsBot        bool
 	pasteActive    bool
 	continuing     bool
+	stampColor     bool
 
 	ch     ssh.Channel
 	conn   *ssh.ServerConn
@@ -133,6 +134,51 @@ func (c *sshClient) promptString() string {
 
 func (c *sshClient) promptColored() string {
 	return c.colorize("prompt", c.promptString())
+}
+
+type inlineStampPainter struct {
+	client *sshClient
+}
+
+func (p *inlineStampPainter) Paint(line []rune, _ int) []rune {
+	if p == nil || p.client == nil || !p.client.isStampColor() {
+		return line
+	}
+	if len(line) < 10 {
+		return line
+	}
+	hasNL := line[len(line)-1] == '\n'
+	base := line
+	if hasNL {
+		line = line[:len(line)-1]
+		if len(line) < 10 {
+			return base
+		}
+	}
+	if line[len(line)-1] != ')' {
+		return base
+	}
+	start := len(line) - 10
+	if line[start] != '(' || line[start+3] != ':' || line[start+6] != ':' {
+		return base
+	}
+	for _, idx := range []int{start + 1, start + 2, start + 4, start + 5, start + 7, start + 8} {
+		if line[idx] < '0' || line[idx] > '9' {
+			return base
+		}
+	}
+	stamp := string(line[start:])
+	colored := p.client.colorize("timestamp", stamp)
+	if colored == stamp {
+		return base
+	}
+	out := make([]rune, 0, start+len([]rune(colored))+1)
+	out = append(out, line[:start]...)
+	out = append(out, []rune(colored)...)
+	if hasNL {
+		out = append(out, '\n')
+	}
+	return out
 }
 
 func (c *sshClient) setPrompt() {
@@ -378,6 +424,7 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 	client.setContinuing(false)
 	for {
 		line, err := client.rl.Readline()
+		client.clearStampColor()
 		if err != nil {
 			if errors.Is(err, readline.ErrInterrupt) {
 				continue
@@ -394,7 +441,7 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 			buf.WriteString(line)
 			buf.WriteString("\n")
 			if !continuing {
-				client.setPromptText("")
+				client.setPromptText("> ")
 				continuing = true
 				client.setContinuing(true)
 			}
@@ -437,6 +484,7 @@ func (sc *sshConnector) initReadline(client *sshClient, ch ssh.Channel) error {
 		FuncMakeRaw:            func() error { return nil },
 		FuncExitRaw:            func() error { return nil },
 		FuncOnWidthChanged:     func(func()) {},
+		Painter:                &inlineStampPainter{client: client},
 		FuncBeforeSubmit: func(line []rune) ([]rune, int) {
 			return client.stampSuffixWrapSmart(line, time.Now())
 		},
@@ -486,14 +534,33 @@ func (c *sshClient) isContinuing() bool {
 	return c.continuing
 }
 
+func (c *sshClient) setStampColor(on bool) {
+	c.bufMu.Lock()
+	c.stampColor = on
+	c.bufMu.Unlock()
+}
+
+func (c *sshClient) clearStampColor() {
+	c.setStampColor(false)
+}
+
+func (c *sshClient) isStampColor() bool {
+	c.bufMu.Lock()
+	defer c.bufMu.Unlock()
+	return c.stampColor
+}
+
 func (c *sshClient) stampSuffixWrapSmart(line []rune, ts time.Time) ([]rune, int) {
 	if len(line) == 0 {
+		c.clearStampColor()
 		return nil, 0
 	}
 	if c.isContinuing() || c.isPasteActive() {
+		c.clearStampColor()
 		return nil, 0
 	}
 	if line[len(line)-1] == '\\' {
+		c.clearStampColor()
 		return nil, 0
 	}
 	stamp := fmt.Sprintf(" (%s)", ts.Format("15:04:05"))
@@ -515,6 +582,11 @@ func (c *sshClient) stampSuffixWrapSmart(line []rune, ts time.Time) ([]rune, int
 		}
 	}
 	suffix := []rune(stamp)
+	if len(suffix) == 0 {
+		c.clearStampColor()
+		return nil, 0
+	}
+	c.setStampColor(true)
 	return suffix, len(suffix)
 }
 

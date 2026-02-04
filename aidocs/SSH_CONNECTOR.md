@@ -102,7 +102,7 @@ Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot
 - PTY input; prompt is `@alice/#general -> ` or `@alice/#general(0005) -> `.
 - Direct-message prompt: `@alice/dm:@bob -> ` (threads disabled in DMs).
 - Input echoed normally by PTY.
-- On Enter, append an inline ` (HH:MM:SS)` timestamp via the readline submit hook; if it would split across the line boundary, pad so `(` starts at the next line.
+- On Enter, append an inline ` (HH:MM:SS)` timestamp via the readline submit hook; if it would split across the line boundary, pad so `(` starts at the next line. The inline timestamp is colorized using the `timestamp` color.
 - Input line editing uses `github.com/chzyer/readline`; history is per-session only (no persistence).
 
 ### Filters
@@ -187,7 +187,7 @@ When a multiline input completes:
 
 ### Readline Timestamp Rendering
 
-The SSH connector does not toggle `UniqueEditLine`. Instead it uses `FuncBeforeSubmit` in the readline fork to append an inline timestamp at submit time.
+The SSH connector does not toggle `UniqueEditLine`. Instead it uses `FuncBeforeSubmit` in the readline fork to append an inline timestamp at submit time, and a painter to colorize just the inline timestamp.
 
 - On Enter, `FuncBeforeSubmit` appends ` (HH:MM:SS)` to the buffer for display and strips it from the submitted line/history.
 - If the stamp would split across the line boundary, the connector pads with spaces so `(` starts at the next line; because it is part of the buffer, readline handles the wrapping correctly.
