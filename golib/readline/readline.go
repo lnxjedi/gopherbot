@@ -48,6 +48,11 @@ type Config struct {
 
 	Painter Painter
 
+	// FuncBeforeSubmit is called on Enter/Submit before the line is finalized.
+	// It may return a suffix to append for display and a strip length to remove
+	// from the returned line/history (useful for transient UI annotations).
+	FuncBeforeSubmit func(line []rune) (suffix []rune, strip int)
+
 	// If VimMode is true, readline will in vim.insert mode by default
 	VimMode bool
 

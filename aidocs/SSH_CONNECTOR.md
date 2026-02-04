@@ -160,13 +160,18 @@ No `|u`.
 - Bracketed paste payloads are read line-by-line by readline; multi-line paste yields multiple messages.
 - For non-bracketed input, line-based input is used.
 
-## Bracketed Paste Support (Readline Fork)
+## Readline Fork Extensions
 
 We maintain a local fork of `github.com/chzyer/readline` under `golib/readline/` and use a `go.mod` replace to point at it. The fork adds a callback hook to detect bracketed paste mode transitions:
 
 - `readline.Config` includes `FuncSetPasteMode func(bool)`.
 - The terminal escape parser (`golib/readline/terminal.go`) recognizes `ESC [ 200 ~` (paste start) and `ESC [ 201 ~` (paste end), and invokes `FuncSetPasteMode(true/false)`.
 - The escape sequences themselves are still filtered out of the input stream.
+
+We also add a submission hook to support inline timestamps without violating readline's width accounting:
+
+- `readline.Config` includes `FuncBeforeSubmit func(line []rune) (suffix []rune, strip int)`.
+- The hook runs on Enter before the line is finalized, allowing a transient suffix to be appended for display while stripping it from the returned line and history.
 
 This hook is wired in `connectors/ssh/readline.go` via `FuncSetPasteMode: client.setPasteActive`, which sets `sshClient.pasteActive`.
 
@@ -182,10 +187,10 @@ When a multiline input completes:
 
 ### Readline Timestamp Rendering
 
-The SSH connector no longer toggles `UniqueEditLine`. Instead it uses a custom readline `Painter` (`timestampPainter` in `connectors/ssh/readline.go`) to append a timestamp to the rendered input line **only** at Enter time.
+The SSH connector does not toggle `UniqueEditLine`. Instead it uses `FuncBeforeSubmit` in the readline fork to append an inline timestamp at submit time.
 
-- On Enter, `FuncFilterInputRune` calls `setStampIfFits` to decide if the timestamp fits on the same line (no additional wrapping). If it fits, the painter appends ` (HH:MM:SS)` and a refresh is triggered.
-- When the line is submitted, the stamp is cleared so normal editing behavior resumes without cursor distortion.
+- On Enter, `FuncBeforeSubmit` appends ` (HH:MM:SS)` to the buffer for display and strips it from the submitted line/history.
+- If the line is long enough, the timestamp may wrap to the next line; because it is part of the buffer, readline handles the wrapping correctly.
 - Multiline continuation (manual `\` or bracketed paste) bypasses the inline timestamp and uses the standalone timestamp line after the multiline block completes.
 
 ## Logging

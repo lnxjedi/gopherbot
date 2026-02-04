@@ -41,8 +41,7 @@ type sshClient struct {
 	dmPeerID       string
 	dmIsBot        bool
 	pasteActive    bool
-	stampActive    bool
-	stampText      string
+	continuing     bool
 
 	ch     ssh.Channel
 	conn   *ssh.ServerConn
@@ -134,31 +133,6 @@ func (c *sshClient) promptString() string {
 
 func (c *sshClient) promptColored() string {
 	return c.colorize("prompt", c.promptString())
-}
-
-type timestampPainter struct {
-	client *sshClient
-}
-
-func (p *timestampPainter) Paint(line []rune, _ int) []rune {
-	if p == nil || p.client == nil {
-		return line
-	}
-	stamp := p.client.currentStamp()
-	if stamp == "" {
-		return line
-	}
-	if len(line) > 0 && line[len(line)-1] == '\n' {
-		out := make([]rune, 0, len(line)+len(stamp))
-		out = append(out, line[:len(line)-1]...)
-		out = append(out, []rune(stamp)...)
-		out = append(out, '\n')
-		return out
-	}
-	out := make([]rune, 0, len(line)+len(stamp))
-	out = append(out, line...)
-	out = append(out, []rune(stamp)...)
-	return out
 }
 
 func (c *sshClient) setPrompt() {
@@ -401,47 +375,9 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 	defer close(out)
 	var buf strings.Builder
 	continuing := false
-	var lineBuf []rune
-	origFilter := client.rl.Config.FuncFilterInputRune
-	origListener := client.rl.Config.Listener
-	client.rl.Config.FuncFilterInputRune = func(r rune) (rune, bool) {
-		if origFilter != nil {
-			var ok bool
-			r, ok = origFilter(r)
-			if !ok {
-				return r, false
-			}
-		}
-		switch r {
-		case readline.CharEnter, readline.CharCtrlJ:
-			hasLine := len(lineBuf) > 0
-			hasContinuation := hasLine && lineBuf[len(lineBuf)-1] == '\\'
-			if !continuing && !client.pasteActive && hasLine && !hasContinuation {
-				if client.setStampIfFits(lineBuf, time.Now()) {
-					client.refreshPrompt()
-				}
-			} else {
-				client.clearStamp()
-			}
-			return r, true
-		default:
-			return r, true
-		}
-	}
-	client.rl.Config.SetListener(func(line []rune, _ int, key rune) (newLine []rune, newPos int, ok bool) {
-		if key == readline.CharEnter || key == readline.CharCtrlJ {
-			return nil, 0, false
-		}
-		lineBuf = append(lineBuf[:0], line...)
-		return nil, 0, false
-	})
-	defer func() {
-		client.rl.Config.FuncFilterInputRune = origFilter
-		client.rl.Config.Listener = origListener
-	}()
+	client.setContinuing(false)
 	for {
 		line, err := client.rl.Readline()
-		client.clearStamp()
 		if err != nil {
 			if errors.Is(err, readline.ErrInterrupt) {
 				continue
@@ -453,13 +389,14 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 			}
 			return
 		}
-		if strings.HasSuffix(line, "\\") || client.pasteActive {
+		if strings.HasSuffix(line, "\\") || client.isPasteActive() {
 			line = strings.TrimSuffix(line, "\\")
 			buf.WriteString(line)
 			buf.WriteString("\n")
 			if !continuing {
 				client.setPromptText("")
 				continuing = true
+				client.setContinuing(true)
 			}
 			continue
 		}
@@ -471,6 +408,7 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 			out <- inputEvent{line: buf.String(), multiline: true}
 			buf.Reset()
 			continuing = false
+			client.setContinuing(false)
 			client.setPrompt()
 			continue
 		}
@@ -499,7 +437,9 @@ func (sc *sshConnector) initReadline(client *sshClient, ch ssh.Channel) error {
 		FuncMakeRaw:            func() error { return nil },
 		FuncExitRaw:            func() error { return nil },
 		FuncOnWidthChanged:     func(func()) {},
-		Painter:                &timestampPainter{client: client},
+		FuncBeforeSubmit: func(line []rune) ([]rune, int) {
+			return client.stampSuffixIfFits(line, time.Now())
+		},
 	}
 	rl, err := readline.NewEx(cfg)
 	if err != nil {
@@ -528,42 +468,37 @@ func (c *sshClient) setPasteActive(on bool) {
 	c.bufMu.Unlock()
 }
 
-func (c *sshClient) currentStamp() string {
+func (c *sshClient) isPasteActive() bool {
 	c.bufMu.Lock()
 	defer c.bufMu.Unlock()
-	if !c.stampActive {
-		return ""
-	}
-	return c.stampText
+	return c.pasteActive
 }
 
-func (c *sshClient) clearStamp() {
+func (c *sshClient) setContinuing(on bool) {
 	c.bufMu.Lock()
-	c.stampActive = false
-	c.stampText = ""
+	c.continuing = on
 	c.bufMu.Unlock()
 }
 
-func (c *sshClient) setStampIfFits(line []rune, ts time.Time) bool {
-	width := c.getWidth()
-	if width <= 0 {
-		c.clearStamp()
-		return false
+func (c *sshClient) isContinuing() bool {
+	c.bufMu.Lock()
+	defer c.bufMu.Unlock()
+	return c.continuing
+}
+
+func (c *sshClient) stampSuffixIfFits(line []rune, ts time.Time) ([]rune, int) {
+	if len(line) == 0 {
+		return nil, 0
+	}
+	if c.isContinuing() || c.isPasteActive() {
+		return nil, 0
+	}
+	if line[len(line)-1] == '\\' {
+		return nil, 0
 	}
 	stamp := fmt.Sprintf(" (%s)", ts.Format("15:04:05"))
-	promptWidth := readline.Runes{}.WidthAll([]rune(c.promptString()))
-	lineWidth := readline.Runes{}.WidthAll(line)
-	stampWidth := readline.Runes{}.WidthAll([]rune(stamp))
-	col := (promptWidth + lineWidth) % width
-	if col == 0 || col+stampWidth > width {
-		c.clearStamp()
-		return false
-	}
-	c.bufMu.Lock()
-	c.stampActive = true
-	c.stampText = stamp
-	c.bufMu.Unlock()
-	return true
+	suffix := []rune(stamp)
+	return suffix, len(suffix)
 }
 
 func (c *sshClient) getWidth() int {

@@ -245,13 +245,38 @@ func (o *Operation) ioloop() {
 			}
 			o.buf.MoveToLineEnd()
 			var data []rune
+			trimSuffix := 0
+			if hook := o.GetConfig().FuncBeforeSubmit; hook != nil {
+				buf := o.buf.Runes()
+				suffix, strip := hook(buf)
+				if len(suffix) > 0 {
+					o.buf.WriteRunes(suffix)
+					if strip <= 0 {
+						trimSuffix = len(suffix)
+					} else {
+						trimSuffix = strip
+					}
+				}
+			}
 			if !o.GetConfig().UniqueEditLine {
 				o.buf.WriteRune('\n')
 				data = o.buf.Reset()
-				data = data[:len(data)-1] // trim \n
+				total := len(data)
+				if total > 0 {
+					total--
+				}
+				if trimSuffix > total {
+					trimSuffix = total
+				}
+				data = data[:total-trimSuffix]
 			} else {
 				o.buf.Clean()
 				data = o.buf.Reset()
+				total := len(data)
+				if trimSuffix > total {
+					trimSuffix = total
+				}
+				data = data[:total-trimSuffix]
 			}
 			o.outchan <- data
 			if !o.GetConfig().DisableAutoSaveHistory {
