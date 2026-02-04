@@ -41,6 +41,8 @@ type sshClient struct {
 	dmPeerID       string
 	dmIsBot        bool
 	pasteActive    bool
+	stampActive    bool
+	stampText      string
 
 	ch     ssh.Channel
 	conn   *ssh.ServerConn
@@ -134,6 +136,24 @@ func (c *sshClient) promptColored() string {
 	return c.colorize("prompt", c.promptString())
 }
 
+type timestampPainter struct {
+	client *sshClient
+}
+
+func (p *timestampPainter) Paint(line []rune, _ int) []rune {
+	if p == nil || p.client == nil {
+		return line
+	}
+	stamp := p.client.currentStamp()
+	if stamp == "" {
+		return line
+	}
+	out := make([]rune, 0, len(line)+len(stamp))
+	out = append(out, line...)
+	out = append(out, []rune(stamp)...)
+	return out
+}
+
 func (c *sshClient) setPrompt() {
 	c.setPromptText(c.promptColored())
 }
@@ -144,33 +164,6 @@ func (c *sshClient) setPromptText(prompt string) {
 	}
 	c.rl.SetPrompt(prompt)
 	c.rl.Refresh()
-}
-
-func (c *sshClient) echoInputWithTimestamp(line string, ts time.Time) {
-	if c.rl == nil {
-		return
-	}
-	stampRaw := fmt.Sprintf(" (%s)", ts.Format("15:04:05"))
-	stampRawNoLead := strings.TrimPrefix(stampRaw, " ")
-	stamp := c.colorize("timestamp", stampRaw)
-	padding := ""
-	width := c.getWidth()
-	if width > 0 {
-		promptWidth := readline.Runes{}.WidthAll([]rune(c.promptString()))
-		lineWidth := readline.Runes{}.WidthAll([]rune(line))
-		stampWidth := readline.Runes{}.WidthAll([]rune(stampRawNoLead))
-		col := (promptWidth + lineWidth) % width
-		if col > 0 && col+stampWidth > width {
-			padding = strings.Repeat(" ", width-col)
-			stamp = c.colorize("timestamp", stampRawNoLead)
-		}
-	}
-	out := c.promptColored() + line + padding + stamp + "\n"
-
-	c.wmu.Lock()
-	defer c.wmu.Unlock()
-	c.rl.Clean()
-	_, _ = c.rl.Write([]byte(normalizeNewlines(out)))
 }
 
 func (c *sshClient) formatMessage(evt bufferMsg, private, announceThread bool) string {
@@ -402,7 +395,6 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 	var buf strings.Builder
 	continuing := false
 	var lineBuf []rune
-	origUnique := client.rl.Config.UniqueEditLine
 	origFilter := client.rl.Config.FuncFilterInputRune
 	origListener := client.rl.Config.Listener
 	client.rl.Config.FuncFilterInputRune = func(r rune) (rune, bool) {
@@ -415,10 +407,14 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 		}
 		switch r {
 		case readline.CharEnter, readline.CharCtrlJ:
-			if continuing || client.pasteActive || (len(lineBuf) > 0 && lineBuf[len(lineBuf)-1] == '\\') {
-				client.rl.Config.UniqueEditLine = false
+			hasLine := len(lineBuf) > 0
+			hasContinuation := hasLine && lineBuf[len(lineBuf)-1] == '\\'
+			if !continuing && !client.pasteActive && hasLine && !hasContinuation {
+				if client.setStampIfFits(lineBuf, time.Now()) {
+					client.refreshPrompt()
+				}
 			} else {
-				client.rl.Config.UniqueEditLine = true
+				client.clearStamp()
 			}
 			return r, true
 		default:
@@ -430,14 +426,12 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 		return nil, 0, false
 	})
 	defer func() {
-		client.rl.Config.UniqueEditLine = origUnique
 		client.rl.Config.FuncFilterInputRune = origFilter
 		client.rl.Config.Listener = origListener
 	}()
 	for {
-		// Default behavior between inputs: keep the current line visible unless Enter toggles it.
-		client.rl.Config.UniqueEditLine = false
 		line, err := client.rl.Readline()
+		client.clearStamp()
 		if err != nil {
 			if errors.Is(err, readline.ErrInterrupt) {
 				continue
@@ -461,7 +455,6 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 		}
 		if continuing {
 			buf.WriteString(line)
-			// Line continuation uses UniqueEditLine=false, which leaves cursor at EOL on the next line.
 			// Move to column 0 before emitting the standalone timestamp.
 			client.writeOutput("\r")
 			client.writeLineKind("timestamp", fmt.Sprintf("(%s)", time.Now().Format("15:04:05")))
@@ -486,7 +479,6 @@ func (sc *sshConnector) initReadline(client *sshClient, ch ssh.Channel) error {
 		HistoryLimit:           historyLimit,
 		DisableAutoSaveHistory: false,
 		HistorySearchFold:      true,
-		UniqueEditLine:         true,
 		Stdin:                  ch,
 		Stdout:                 ch,
 		Stderr:                 ch,
@@ -497,6 +489,7 @@ func (sc *sshConnector) initReadline(client *sshClient, ch ssh.Channel) error {
 		FuncMakeRaw:            func() error { return nil },
 		FuncExitRaw:            func() error { return nil },
 		FuncOnWidthChanged:     func(func()) {},
+		Painter:                &timestampPainter{client: client},
 	}
 	rl, err := readline.NewEx(cfg)
 	if err != nil {
@@ -523,6 +516,44 @@ func (c *sshClient) setPasteActive(on bool) {
 	c.bufMu.Lock()
 	c.pasteActive = on
 	c.bufMu.Unlock()
+}
+
+func (c *sshClient) currentStamp() string {
+	c.bufMu.Lock()
+	defer c.bufMu.Unlock()
+	if !c.stampActive {
+		return ""
+	}
+	return c.stampText
+}
+
+func (c *sshClient) clearStamp() {
+	c.bufMu.Lock()
+	c.stampActive = false
+	c.stampText = ""
+	c.bufMu.Unlock()
+}
+
+func (c *sshClient) setStampIfFits(line []rune, ts time.Time) bool {
+	width := c.getWidth()
+	if width <= 0 {
+		c.clearStamp()
+		return false
+	}
+	stamp := fmt.Sprintf(" (%s)", ts.Format("15:04:05"))
+	promptWidth := readline.Runes{}.WidthAll([]rune(c.promptString()))
+	lineWidth := readline.Runes{}.WidthAll(line)
+	stampWidth := readline.Runes{}.WidthAll([]rune(stamp))
+	col := (promptWidth + lineWidth) % width
+	if col == 0 || col+stampWidth > width {
+		c.clearStamp()
+		return false
+	}
+	c.bufMu.Lock()
+	c.stampActive = true
+	c.stampText = stamp
+	c.bufMu.Unlock()
+	return true
 }
 
 func (c *sshClient) getWidth() int {

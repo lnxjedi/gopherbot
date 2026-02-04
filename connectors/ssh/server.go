@@ -144,8 +144,6 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 	}()
 
 	client.setPromptText("Select filter: (A)ll, (C)hannel, (T)hread [C]: ")
-	origUnique := client.rl.Config.UniqueEditLine
-	client.rl.Config.UniqueEditLine = false
 	origFilter := client.rl.Config.FuncFilterInputRune
 	client.rl.Config.FuncFilterInputRune = func(r rune) (rune, bool) {
 		switch r {
@@ -162,7 +160,6 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 	}
 	input, err := client.rl.Readline()
 	client.rl.Config.FuncFilterInputRune = origFilter
-	client.rl.Config.UniqueEditLine = origUnique
 	if err != nil {
 		if !errors.Is(err, readline.ErrInterrupt) {
 			return
@@ -170,7 +167,7 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 		input = ""
 	}
 	client.filter = parseFilter(input)
-	// Readline emits a LF without CR when UniqueEditLine is false; move to column 0 on the next line.
+	// Readline emits a LF without CR here; move to column 0 on the next line.
 	client.writeOutput("\r")
 
 	replayed := sc.replayBuffer(client)
@@ -180,24 +177,30 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 	client.writeLineKind("system", sshConnectorHelpLine)
 	client.setPrompt()
 
-	inputCh := make(chan inputEvent)
+	inputCh := make(chan inputEvent, 8)
 	go sc.readInput(client, inputCh)
 
-	for evt := range inputCh {
-		line := evt.line
-		if len(line) == 0 {
-			if evt.multiline {
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for evt := range inputCh {
+			line := evt.line
+			if len(line) == 0 {
+				if evt.multiline {
+					continue
+				}
+				client.writeLineKind("system", sshConnectorHelpLine)
 				continue
 			}
-			client.writeLineKind("system", sshConnectorHelpLine)
-			continue
+			if !evt.multiline && strings.HasPrefix(line, "|") {
+				sc.handleCommand(client, strings.TrimSpace(line))
+				continue
+			}
+			sc.handleUserInput(client, line)
 		}
-		if !evt.multiline && strings.HasPrefix(line, "|") {
-			sc.handleCommand(client, strings.TrimSpace(line))
-			continue
-		}
-		sc.handleUserInput(client, line, !evt.multiline)
-	}
+	}()
+
+	<-done
 }
 
 func (sc *sshConnector) addClient(c *sshClient) {

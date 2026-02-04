@@ -210,7 +210,6 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 	if len(input) < 2 {
 		return
 	}
-	client.writeString("\n")
 	switch input[1] {
 	case 'C', 'c':
 		arg := strings.TrimSpace(input[2:])
@@ -335,12 +334,8 @@ func (sc *sshConnector) handleCommand(client *sshClient, input string) {
 	}
 }
 
-func (sc *sshConnector) handleUserInput(client *sshClient, line string, echo bool) {
+func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
 	now := time.Now()
-	if echo {
-		client.echoInputWithTimestamp(line, now)
-	}
-
 	if len(line) > sc.cfg.MaxMsgBytes {
 		client.writeLineKind("error", "(ERROR: message too long; > 16k - dropped)")
 		return

@@ -139,7 +139,7 @@ func TestHandleUserInputDirectToBot(t *testing.T) {
 		writer:   io.Discard,
 	}
 
-	sc.handleUserInput(client, "ping", true)
+	sc.handleUserInput(client, "ping")
 
 	if len(h.msgs) != 1 {
 		t.Fatalf("expected 1 incoming message, got %d", len(h.msgs))
@@ -184,7 +184,7 @@ func TestHandleUserInputDirectUserBypassEngine(t *testing.T) {
 		writer:   io.Discard,
 	}
 
-	sc.handleUserInput(client, "hello", true)
+	sc.handleUserInput(client, "hello")
 
 	if len(h.msgs) != 0 {
 		t.Fatalf("expected no incoming message for user-user DM, got %d", len(h.msgs))
@@ -212,7 +212,7 @@ func TestHandleUserInputHiddenInUserDMIsDropped(t *testing.T) {
 		writer:   io.Discard,
 	}
 
-	sc.handleUserInput(client, "/ping", true)
+	sc.handleUserInput(client, "/ping")
 
 	if len(h.msgs) != 0 {
 		t.Fatalf("expected hidden command in user DM to be dropped")
@@ -244,7 +244,7 @@ func TestHandleUserInputHiddenToBotDirect(t *testing.T) {
 		writer:   io.Discard,
 	}
 
-	sc.handleUserInput(client, "/floyd ping", true)
+	sc.handleUserInput(client, "/floyd ping")
 
 	if len(h.msgs) != 1 {
 		t.Fatalf("expected 1 incoming message, got %d", len(h.msgs))
@@ -277,7 +277,7 @@ func TestHandleUserInputDirectAtUserBypassEngine(t *testing.T) {
 		writer:   io.Discard,
 	}
 
-	sc.handleUserInput(client, "/@bob hi", true)
+	sc.handleUserInput(client, "/@bob hi")
 
 	if len(h.msgs) != 0 {
 		t.Fatalf("expected no incoming message for one-shot user DM, got %d", len(h.msgs))

@@ -102,7 +102,7 @@ Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot
 - PTY input; prompt is `@alice/#general -> ` or `@alice/#general(0005) -> `.
 - Direct-message prompt: `@alice/dm:@bob -> ` (threads disabled in DMs).
 - Input echoed normally by PTY.
-- On Enter, move cursor to end before appending `(timestamp)\n`.
+- On Enter, if the timestamp fits on the same line, append ` (HH:MM:SS)` via the readline painter; otherwise no inline timestamp is shown.
 - Input line editing uses `github.com/chzyer/readline`; history is per-session only (no persistence).
 
 ### Filters
@@ -180,16 +180,13 @@ When a multiline input completes:
 - A standalone timestamp line is emitted locally.
 - The combined text is sent as a single message (joined with `\n`).
 
-### Readline `UniqueEditLine` Interaction
+### Readline Timestamp Rendering
 
-Readline’s `UniqueEditLine` must be set **before** Enter is processed. To keep local echo correct:
+The SSH connector no longer toggles `UniqueEditLine`. Instead it uses a custom readline `Painter` (`timestampPainter` in `connectors/ssh/readline.go`) to append a timestamp to the rendered input line **only** at Enter time.
 
-- For normal single-line input: `UniqueEditLine = true` (line is cleared; we print a timestamped echo).
-- For continuation lines (manual `\` or pasteActive): `UniqueEditLine = false` (line remains visible).
-
-This is controlled in `connectors/ssh/readline.go` via `FuncFilterInputRune`, which toggles `UniqueEditLine` based on the current buffer and `pasteActive`. Toggling in the readline listener is **too late** and causes duplication.
-
-**Default state between inputs:** `UniqueEditLine` is reset to `false` before each `Readline()` call. This makes EOF (`^D`) behavior consistent (the prompt/`^D` line remains visible), while Enter-time logic still flips it to `true` for normal single-line input.
+- On Enter, `FuncFilterInputRune` calls `setStampIfFits` to decide if the timestamp fits on the same line (no additional wrapping). If it fits, the painter appends ` (HH:MM:SS)` and a refresh is triggered.
+- When the line is submitted, the stamp is cleared so normal editing behavior resumes without cursor distortion.
+- Multiline continuation (manual `\` or bracketed paste) bypasses the inline timestamp and uses the standalone timestamp line after the multiline block completes.
 
 ## Logging
 
