@@ -148,6 +148,13 @@ func (p *timestampPainter) Paint(line []rune, _ int) []rune {
 	if stamp == "" {
 		return line
 	}
+	if len(line) > 0 && line[len(line)-1] == '\n' {
+		out := make([]rune, 0, len(line)+len(stamp))
+		out = append(out, line[:len(line)-1]...)
+		out = append(out, []rune(stamp)...)
+		out = append(out, '\n')
+		return out
+	}
 	out := make([]rune, 0, len(line)+len(stamp))
 	out = append(out, line...)
 	out = append(out, []rune(stamp)...)
@@ -421,7 +428,10 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 			return r, true
 		}
 	}
-	client.rl.Config.SetListener(func(line []rune, _ int, _ rune) (newLine []rune, newPos int, ok bool) {
+	client.rl.Config.SetListener(func(line []rune, _ int, key rune) (newLine []rune, newPos int, ok bool) {
+		if key == readline.CharEnter || key == readline.CharCtrlJ {
+			return nil, 0, false
+		}
 		lineBuf = append(lineBuf[:0], line...)
 		return nil, 0, false
 	})
