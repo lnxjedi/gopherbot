@@ -441,7 +441,7 @@ func (sc *sshConnector) readInput(client *sshClient, out chan<- inputEvent) {
 			buf.WriteString(line)
 			buf.WriteString("\n")
 			if !continuing {
-				client.setPromptText("> ")
+				client.setPromptText(client.colorize("prompt", "> "))
 				continuing = true
 				client.setContinuing(true)
 			}
