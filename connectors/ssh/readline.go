@@ -438,7 +438,7 @@ func (sc *sshConnector) initReadline(client *sshClient, ch ssh.Channel) error {
 		FuncExitRaw:            func() error { return nil },
 		FuncOnWidthChanged:     func(func()) {},
 		FuncBeforeSubmit: func(line []rune) ([]rune, int) {
-			return client.stampSuffixIfFits(line, time.Now())
+			return client.stampSuffixWrapSmart(line, time.Now())
 		},
 	}
 	rl, err := readline.NewEx(cfg)
@@ -486,7 +486,7 @@ func (c *sshClient) isContinuing() bool {
 	return c.continuing
 }
 
-func (c *sshClient) stampSuffixIfFits(line []rune, ts time.Time) ([]rune, int) {
+func (c *sshClient) stampSuffixWrapSmart(line []rune, ts time.Time) ([]rune, int) {
 	if len(line) == 0 {
 		return nil, 0
 	}
@@ -497,6 +497,23 @@ func (c *sshClient) stampSuffixIfFits(line []rune, ts time.Time) ([]rune, int) {
 		return nil, 0
 	}
 	stamp := fmt.Sprintf(" (%s)", ts.Format("15:04:05"))
+	width := c.getWidth()
+	if width > 0 {
+		promptWidth := readline.Runes{}.WidthAll([]rune(c.promptString()))
+		lineWidth := readline.Runes{}.WidthAll(line)
+		col := (promptWidth + lineWidth) % width
+		if col == 0 {
+			stamp = strings.TrimPrefix(stamp, " ")
+		} else {
+			stampWidth := len(stamp)
+			if col+stampWidth > width {
+				padding := width - col
+				if padding > 1 {
+					stamp = strings.Repeat(" ", padding-1) + stamp
+				}
+			}
+		}
+	}
 	suffix := []rune(stamp)
 	return suffix, len(suffix)
 }

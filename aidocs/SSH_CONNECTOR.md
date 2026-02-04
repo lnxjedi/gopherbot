@@ -102,7 +102,7 @@ Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot
 - PTY input; prompt is `@alice/#general -> ` or `@alice/#general(0005) -> `.
 - Direct-message prompt: `@alice/dm:@bob -> ` (threads disabled in DMs).
 - Input echoed normally by PTY.
-- On Enter, if the timestamp fits on the same line, append ` (HH:MM:SS)` via the readline painter; otherwise no inline timestamp is shown.
+- On Enter, append an inline ` (HH:MM:SS)` timestamp via the readline submit hook; if it would split across the line boundary, pad so `(` starts at the next line.
 - Input line editing uses `github.com/chzyer/readline`; history is per-session only (no persistence).
 
 ### Filters
@@ -173,7 +173,7 @@ We also add a submission hook to support inline timestamps without violating rea
 - `readline.Config` includes `FuncBeforeSubmit func(line []rune) (suffix []rune, strip int)`.
 - The hook runs on Enter before the line is finalized, allowing a transient suffix to be appended for display while stripping it from the returned line and history.
 
-This hook is wired in `connectors/ssh/readline.go` via `FuncSetPasteMode: client.setPasteActive`, which sets `sshClient.pasteActive`.
+This hook is wired in `connectors/ssh/readline.go` via `FuncBeforeSubmit`, which appends the timestamp suffix and strips it from the submitted line/history.
 
 ### Multiline Input Behavior
 
@@ -190,7 +190,7 @@ When a multiline input completes:
 The SSH connector does not toggle `UniqueEditLine`. Instead it uses `FuncBeforeSubmit` in the readline fork to append an inline timestamp at submit time.
 
 - On Enter, `FuncBeforeSubmit` appends ` (HH:MM:SS)` to the buffer for display and strips it from the submitted line/history.
-- If the line is long enough, the timestamp may wrap to the next line; because it is part of the buffer, readline handles the wrapping correctly.
+- If the stamp would split across the line boundary, the connector pads with spaces so `(` starts at the next line; because it is part of the buffer, readline handles the wrapping correctly.
 - Multiline continuation (manual `\` or bracketed paste) bypasses the inline timestamp and uses the standalone timestamp line after the multiline block completes.
 
 ## Logging

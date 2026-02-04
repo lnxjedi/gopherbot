@@ -42,6 +42,7 @@ If you are unsure whether a change advances these goals, stop and explain the tr
 * **Be conservative by default.** Prefer minimal, well-scoped changes over large refactors unless explicitly instructed.
 * **Clarify ambiguity.** If you encounter an unexpected situation or ambiguity (e.g. a missing git branch, an unclear instruction, or multiple plausible behavior-affecting choices), do not make a decision on my behalf. Stop, explain the options and their implications, and ask for clarification.
 * **Ask when uncertain.** Insert `TODO (verify): ...` notes instead of inventing behavior.
+* **Think-o to avoid:** When padding for terminal output, remember `make([]rune, n)` yields zero-value runes (NUL), not spaces. Use `strings.Repeat(" ", n)` or explicitly fill with `' '` when visual spacing is required.
 
 ---
 
