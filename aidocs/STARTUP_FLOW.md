@@ -83,6 +83,26 @@ func detectStartupMode() (mode string) {
 | `ide-override` | IDE mode with override flag                             | IDE but connect to real chat               |
 | `production`   | Config exists, not IDE                                  | Normal operation                           |
 
+## Robot Identity and Bootstrap Model
+
+For contributors, "robot" is best understood as:
+
+- A running Gopherbot process
+- Backed by one custom configuration repository (`GOPHER_CUSTOM_REPOSITORY`)
+- Initialized from environment (`.env` or process environment) and config templates
+
+Bootstrap path (first configured start):
+
+1. Startup mode resolves to `bootstrap` when `GOPHER_CUSTOM_REPOSITORY` is set but local config is absent (`detectStartupMode` in `bot/config_load.go`).
+2. Default config selects `nullconn` for bootstrap mode and schedules `go-bootstrap` at `@init` (see `conf/robot.yaml`).
+3. `go-bootstrap` (`gojobs/go-bootstrap/go_bootstrap_job.go`) validates required parameters (notably `GOPHER_CUSTOM_REPOSITORY`, `GOPHER_DEPLOY_KEY`), clones the custom repo, and queues `restart-robot`.
+4. Process restarts and startup mode becomes `production` (or `ide`/`ide-override` depending on env).
+
+Connector config implication:
+
+- Installed defaults under `gopherbot/conf/` include only stock connector templates shipped with the engine.
+- Connectors like Slack are normally configured in the custom robot repository's `conf/` and merged through custom `conf/robot.yaml` includes.
+
 ## Configuration Template Processing
 
 ### Where: `conf/robot.yaml`

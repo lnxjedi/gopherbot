@@ -1,0 +1,5 @@
+interface:
+  display_name: "Gopherbot Multi-Protocol"
+  short_description: "Guide simultaneous multi-protocol migration work"
+  default_prompt: "Use this skill for Gopherbot multi-protocol migration slices."
+

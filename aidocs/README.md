@@ -1,5 +1,17 @@
 Gopherbot is an extensible automation framework designed as a persistent, Go-based chatbot ("robot"). It connects to chat platforms (or the terminal) and executes automation "pipelines" triggered by chat messages, scheduled events, or internal calls. Pipelines consist of compiled Go, interpreted scripts (Lua, JavaScript, dynamic Go), or external executables. A key v3 goal is self-containment, minimizing external tool dependencies. The robot features a pluggable "brain" for persistence and a flexible, template-based configuration system.
 
+## What "Robot" Means (Operationally)
+
+In operational terms, a "robot" is one deployed Gopherbot instance bound to one custom configuration repository and its runtime environment.
+
+- The robot process starts from local environment variables (for example via `.env` or orchestrator-provided env).
+- `GOPHER_CUSTOM_REPOSITORY` identifies the robot's config repository; this repository defines the robot's behavior (`conf/robot.yaml`, plugin/job/task config, etc.).
+- When startup detects a configured repository but local config is missing, it enters bootstrap mode and clones that repository, then restarts as a configured robot (see `aidocs/STARTUP_FLOW.md` and `gojobs/go-bootstrap/go_bootstrap_job.go`).
+- Secrets in the robot repository can be encrypted and resolved during config expansion with `decrypt`, using the active encryption key initialization flow.
+- Connector-specific config like `conf/slack.yaml` is typically part of the custom robot repository, not an installed default under `gopherbot/conf/`.
+
+This means "Clu" (or any named robot) is not just "a connector account"; it is the full config-repo-backed automation unit plus its env/bootstrap lifecycle.
+
 # AI Docs (Gopherbot)
 
 Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
