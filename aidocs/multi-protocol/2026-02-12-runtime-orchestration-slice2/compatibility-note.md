@@ -56,7 +56,7 @@
   - Remove entries from `SecondaryProtocols` and reload.
   - If needed, revert to single protocol by keeping only primary protocol config.
 - Known temporary limitations:
-  - Some connector packages may not support stop/start/restart repeatedly in one process due package-global state.
+  - SSH connector does not currently disconnect active sessions when a roster entry is removed on reload.
 
 ## Validation
 

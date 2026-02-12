@@ -44,8 +44,8 @@
 ## Sign-Off
 
 - Residual risks:
-  - Slack connector package-global `started` guard may reject re-initialize after stop/restart in-process.
+  - SSH connector currently does not disconnect active sessions when a user is removed from roster on reload.
   - If two protocols share identical raw internal IDs, merged `UserRoster` ID lookup remains ambiguous until protocol-scoped ID maps land.
 - Follow-up items:
   - Add focused runtime-manager unit tests with fake connectors.
-  - Resolve connector restartability constraints where package-global state exists.
+  - Consider protocol-scoping `maps.userID` lookups to eliminate same-ID ambiguity across protocols.
