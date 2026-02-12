@@ -61,14 +61,23 @@ func (w *worker) tryResolveUser(u string) string {
 // If the channel is not found in the internal map, it returns the original channel name.
 // This allows the chat connector to handle unresolved channels appropriately.
 func (r *Robot) tryResolveChannel(ch string) string {
-	if ci, ok := r.maps.channel[ch]; ok {
+	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
+	if ci, ok := getProtocolChannelByName(r.maps, protocol, ch); ok {
+		return bracket(ci.ChannelID)
+	}
+	return ch
+}
+
+func (r *Robot) tryResolveChannelForProtocol(protocol, ch string) string {
+	if ci, ok := getProtocolChannelByName(r.maps, protocol, ch); ok {
 		return bracket(ci.ChannelID)
 	}
 	return ch
 }
 
 func (w *worker) tryResolveChannel(ch string) string {
-	if ci, ok := w.maps.channel[ch]; ok {
+	protocol := protocolFromIncoming(w.Incoming, w.Protocol)
+	if ci, ok := getProtocolChannelByName(w.maps, protocol, ch); ok {
 		return bracket(ci.ChannelID)
 	}
 	return ch
@@ -224,7 +233,7 @@ func (r Robot) SendProtocolUserChannelMessage(protocol, u, ch, msg string, v ...
 		user := r.tryResolveUserForProtocol(p, u)
 		return interfaces.SendProtocolUserMessage(user, msg, r.Format, msgObject)
 	}
-	channel := r.tryResolveChannel(ch)
+	channel := r.tryResolveChannelForProtocol(p, ch)
 	if u == "" {
 		return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, r.Format, msgObject)
 	}

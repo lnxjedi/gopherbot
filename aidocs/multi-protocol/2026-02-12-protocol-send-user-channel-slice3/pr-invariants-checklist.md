@@ -44,7 +44,6 @@
 ## Sign-Off
 
 - Residual risks:
-  - channel resolution remains global map-based; protocol-specific channel ambiguity is unchanged from current behavior.
   - unknown protocol targeting returns `Failed` (not a more specific return code).
 - Follow-up items:
-  - consider protocol-scoped channel lookup once per-protocol channel identity collisions become a practical issue.
+  - none from this slice; protocol-scoped channel lookup risk closed in `channel-maps-protocol-slice4`.

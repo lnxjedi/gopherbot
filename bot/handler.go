@@ -164,12 +164,13 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	currentUCMaps.Unlock()
 	var channelName, userName, ProtocolChannel, ProtocolUser string
 	var BotUser bool
+	incomingProtocol := normalizeProtocolName(inc.Protocol)
 
 	/* Make sure some form of User and Channel are set
 	 */
 	ProtocolChannel = bracket(inc.ChannelID)
 	if !inc.DirectMessage {
-		if cn, ok := maps.channelID[inc.ChannelID]; ok {
+		if cn, ok := getProtocolChannelByID(maps, incomingProtocol, inc.ChannelID); ok {
 			channelName = cn.ChannelName
 		} else if len(inc.ChannelName) > 0 {
 			channelName = inc.ChannelName

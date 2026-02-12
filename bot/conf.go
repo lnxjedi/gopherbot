@@ -225,11 +225,13 @@ type ChannelInfo struct {
 }
 
 type userChanMaps struct {
-	userID    map[string]*UserInfo // Current map of userID to UserInfo struct
-	user      map[string]*UserInfo // Current map of username to UserInfo struct
-	userProto map[string]map[string]*UserInfo
-	channelID map[string]*ChannelInfo // Current map of channel ID to ChannelInfo struct
-	channel   map[string]*ChannelInfo // Current map of channel name to ChannelInfo struct
+	userID         map[string]*UserInfo // Current map of userID to UserInfo struct
+	user           map[string]*UserInfo // Current map of username to UserInfo struct
+	userProto      map[string]map[string]*UserInfo
+	channelID      map[string]*ChannelInfo // Current map of channel ID to ChannelInfo struct
+	channel        map[string]*ChannelInfo // Current map of channel name to ChannelInfo struct
+	channelIDProto map[string]map[string]*ChannelInfo
+	channelProto   map[string]map[string]*ChannelInfo
 }
 
 var currentUCMaps = struct {
@@ -651,11 +653,13 @@ func loadConfig(preConnect bool) error {
 	}
 
 	ucmaps := userChanMaps{
-		make(map[string]*UserInfo),
-		make(map[string]*UserInfo),
-		make(map[string]map[string]*UserInfo),
-		make(map[string]*ChannelInfo),
-		make(map[string]*ChannelInfo),
+		userID:         make(map[string]*UserInfo),
+		user:           make(map[string]*UserInfo),
+		userProto:      make(map[string]map[string]*UserInfo),
+		channelID:      make(map[string]*ChannelInfo),
+		channel:        make(map[string]*ChannelInfo),
+		channelIDProto: make(map[string]map[string]*ChannelInfo),
+		channelProto:   make(map[string]map[string]*ChannelInfo),
 	}
 	usermap := make(map[string]string)
 	userMapByProtocol := make(map[string]map[string]string)
@@ -705,6 +709,18 @@ func loadConfig(preConnect bool) error {
 					p = processed.protocol
 				}
 				c.protocol = p
+				protoNameMap, ok := ucmaps.channelProto[p]
+				if !ok {
+					protoNameMap = map[string]*ChannelInfo{}
+					ucmaps.channelProto[p] = protoNameMap
+				}
+				protoNameMap[c.ChannelName] = c
+				protoIDMap, ok := ucmaps.channelIDProto[p]
+				if !ok {
+					protoIDMap = map[string]*ChannelInfo{}
+					ucmaps.channelIDProto[p] = protoIDMap
+				}
+				protoIDMap[c.ChannelID] = c
 				if _, ok := ucmaps.channel[c.ChannelName]; !ok {
 					ucmaps.channel[c.ChannelName] = c
 				}

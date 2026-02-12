@@ -103,10 +103,10 @@ func (fc *fakeRuntimeConnector) metrics() (runs, stops int) {
 	return fc.runCount, fc.stopCount
 }
 
-func (fc *fakeRuntimeConnector) sendMetrics() (channelCalls, userChannelCalls, userCalls int, protocol string) {
+func (fc *fakeRuntimeConnector) sendMetrics() (channelCalls, userChannelCalls, userCalls int, protocol, channel string) {
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
-	return fc.channelCalls, fc.userChannelCalls, fc.userCalls, fc.lastProtocolOnSend
+	return fc.channelCalls, fc.userChannelCalls, fc.userCalls, fc.lastProtocolOnSend, fc.lastChannel
 }
 
 type runtimeHarness struct {
@@ -337,7 +337,12 @@ func TestSendProtocolUserChannelMessageRouting(t *testing.T) {
 				},
 			},
 			channel: map[string]*ChannelInfo{
-				"general": &ChannelInfo{ChannelName: "general", ChannelID: "sec-general"},
+				"general": &ChannelInfo{ChannelName: "general", ChannelID: "prime-general"},
+			},
+			channelProto: map[string]map[string]*ChannelInfo{
+				"secondary": {
+					"general": &ChannelInfo{ChannelName: "general", ChannelID: "sec-general"},
+				},
 			},
 		},
 	}
@@ -345,22 +350,22 @@ func TestSendProtocolUserChannelMessageRouting(t *testing.T) {
 	if ret := r.SendProtocolUserChannelMessage("secondary", "alice", "general", "hello"); ret != robot.Ok {
 		t.Fatalf("SendProtocolUserChannelMessage(user+channel) ret = %v, want %v", ret, robot.Ok)
 	}
-	if channelCalls, userChannelCalls, userCalls, protocol := h.instances["secondary"].sendMetrics(); channelCalls != 0 || userChannelCalls != 1 || userCalls != 0 || protocol != "secondary" {
-		t.Fatalf("secondary send metrics = channel:%d userChannel:%d user:%d protocol:%q", channelCalls, userChannelCalls, userCalls, protocol)
+	if channelCalls, userChannelCalls, userCalls, protocol, channel := h.instances["secondary"].sendMetrics(); channelCalls != 0 || userChannelCalls != 1 || userCalls != 0 || protocol != "secondary" || channel != "<sec-general>" {
+		t.Fatalf("secondary send metrics = channel:%d userChannel:%d user:%d protocol:%q channelArg:%q", channelCalls, userChannelCalls, userCalls, protocol, channel)
 	}
 
 	if ret := r.SendProtocolUserChannelMessage("secondary", "alice", "", "dm"); ret != robot.Ok {
 		t.Fatalf("SendProtocolUserChannelMessage(dm) ret = %v, want %v", ret, robot.Ok)
 	}
-	if channelCalls, userChannelCalls, userCalls, protocol := h.instances["secondary"].sendMetrics(); channelCalls != 0 || userChannelCalls != 1 || userCalls != 1 || protocol != "secondary" {
+	if channelCalls, userChannelCalls, userCalls, protocol, _ := h.instances["secondary"].sendMetrics(); channelCalls != 0 || userChannelCalls != 1 || userCalls != 1 || protocol != "secondary" {
 		t.Fatalf("secondary send metrics after dm = channel:%d userChannel:%d user:%d protocol:%q", channelCalls, userChannelCalls, userCalls, protocol)
 	}
 
 	if ret := r.SendProtocolUserChannelMessage("secondary", "", "general", "chan"); ret != robot.Ok {
 		t.Fatalf("SendProtocolUserChannelMessage(channel) ret = %v, want %v", ret, robot.Ok)
 	}
-	if channelCalls, userChannelCalls, userCalls, protocol := h.instances["secondary"].sendMetrics(); channelCalls != 1 || userChannelCalls != 1 || userCalls != 1 || protocol != "secondary" {
-		t.Fatalf("secondary send metrics after channel send = channel:%d userChannel:%d user:%d protocol:%q", channelCalls, userChannelCalls, userCalls, protocol)
+	if channelCalls, userChannelCalls, userCalls, protocol, channel := h.instances["secondary"].sendMetrics(); channelCalls != 1 || userChannelCalls != 1 || userCalls != 1 || protocol != "secondary" || channel != "<sec-general>" {
+		t.Fatalf("secondary send metrics after channel send = channel:%d userChannel:%d user:%d protocol:%q channelArg:%q", channelCalls, userChannelCalls, userCalls, protocol, channel)
 	}
 
 	if ret := r.SendProtocolUserChannelMessage("secondary", "", "", "bad"); ret != robot.MissingArguments {
@@ -368,5 +373,35 @@ func TestSendProtocolUserChannelMessageRouting(t *testing.T) {
 	}
 	if ret := r.SendProtocolUserChannelMessage("unknown", "alice", "general", "bad"); ret != robot.Failed {
 		t.Fatalf("SendProtocolUserChannelMessage(unknown protocol) ret = %v, want %v", ret, robot.Failed)
+	}
+}
+
+func TestProtocolChannelLookupPrefersProtocolScopedMaps(t *testing.T) {
+	maps := &userChanMaps{
+		channel: map[string]*ChannelInfo{
+			"general": {ChannelName: "general", ChannelID: "prime-general"},
+		},
+		channelID: map[string]*ChannelInfo{
+			"C-shared": {ChannelName: "prime-general", ChannelID: "C-shared"},
+		},
+		channelProto: map[string]map[string]*ChannelInfo{
+			"secondary": {
+				"general": {ChannelName: "general", ChannelID: "sec-general"},
+			},
+		},
+		channelIDProto: map[string]map[string]*ChannelInfo{
+			"secondary": {
+				"C-shared": {ChannelName: "sec-general", ChannelID: "C-shared"},
+			},
+		},
+	}
+
+	byName, ok := getProtocolChannelByName(maps, "secondary", "general")
+	if !ok || byName.ChannelID != "sec-general" {
+		t.Fatalf("getProtocolChannelByName() = (%v, %t), want sec-general,true", byName, ok)
+	}
+	byID, ok := getProtocolChannelByID(maps, "secondary", "C-shared")
+	if !ok || byID.ChannelName != "sec-general" {
+		t.Fatalf("getProtocolChannelByID() = (%v, %t), want sec-general,true", byID, ok)
 	}
 }

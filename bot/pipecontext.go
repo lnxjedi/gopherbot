@@ -82,7 +82,7 @@ func (w *worker) registerActive(parent *worker) {
 	if len(w.ProtocolChannel) == 0 && len(w.Channel) > 0 {
 		if idRegex.MatchString(w.Channel) {
 			w.ProtocolChannel = w.Channel
-		} else if ci, ok := w.maps.channel[w.Channel]; ok {
+		} else if ci, ok := getProtocolChannelByName(w.maps, protocolNameFromEnum(w.Protocol), w.Channel); ok {
 			w.ProtocolChannel = bracket(ci.ChannelID)
 		} else {
 			w.ProtocolChannel = w.Channel
