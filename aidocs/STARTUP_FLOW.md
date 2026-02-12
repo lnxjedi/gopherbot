@@ -161,6 +161,7 @@ If both are set and differ, `PrimaryProtocol` wins and a warning is logged.
 
 - startup attempts the primary connector and all configured secondaries
 - secondary startup failures are logged and do not abort startup
+- `terminal` is not supported as a secondary protocol; if listed it is ignored with a warning
 - reload reconciles secondary runtime (removed secondaries stop; configured secondaries are re-attempted)
 - changing primary protocol on reload is rejected and logged; active primary remains unchanged
 

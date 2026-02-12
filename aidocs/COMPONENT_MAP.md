@@ -20,6 +20,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Runtime connector orchestration: `bot/connector_runtime.go` (runtime manager, protocol routing, lifecycle controls).
 - Startup mode and config loading: `bot/config_load.go` (funcs `detectStartupMode`, `getConfigFile`), `bot/conf.go` (func `loadConfig`).
 - Internal module initialization: `bot/modules_init.go` (func `initializeModules`) — initializes ssh-agent, ssh-git-helper, and yaegi interpreter modules.
+- Built-in connectors (not under `connectors/`): `bot/term_connector.go` (registers `"terminal"`), `bot/null_connector.go` (registers `"nullconn"`).
 
 ## brains/
 

@@ -77,6 +77,8 @@ func TestNormalizeSecondaryProtocols(t *testing.T) {
 		"ssh",
 		"  test  ",
 		"SLACK",
+		"terminal",
+		" TERMINAL ",
 		"",
 		"   ",
 		"rocket",
@@ -87,6 +89,86 @@ func TestNormalizeSecondaryProtocols(t *testing.T) {
 	want := []string{"slack", "test", "rocket"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("normalizeSecondaryProtocols() = %#v, want %#v", got, want)
+	}
+}
+
+func TestSecondaryIncludesPrimary(t *testing.T) {
+	tests := []struct {
+		name      string
+		primary   string
+		secondary []string
+		want      bool
+	}{
+		{
+			name:      "direct match",
+			primary:   "ssh",
+			secondary: []string{"slack", "ssh"},
+			want:      true,
+		},
+		{
+			name:      "case-insensitive with spaces",
+			primary:   "ssh",
+			secondary: []string{" SLACK ", "  SSh "},
+			want:      true,
+		},
+		{
+			name:      "no match",
+			primary:   "ssh",
+			secondary: []string{"slack", "terminal"},
+			want:      false,
+		},
+		{
+			name:      "empty primary",
+			primary:   "",
+			secondary: []string{"ssh"},
+			want:      false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := secondaryIncludesPrimary(tc.primary, tc.secondary)
+			if got != tc.want {
+				t.Fatalf("secondaryIncludesPrimary(%q, %#v) = %t, want %t", tc.primary, tc.secondary, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestSecondaryIncludesProtocol(t *testing.T) {
+	tests := []struct {
+		name      string
+		protocol  string
+		secondary []string
+		want      bool
+	}{
+		{
+			name:      "direct match",
+			protocol:  "terminal",
+			secondary: []string{"terminal", "ssh"},
+			want:      true,
+		},
+		{
+			name:      "case-insensitive match",
+			protocol:  "terminal",
+			secondary: []string{"TeRmiNal"},
+			want:      true,
+		},
+		{
+			name:      "no match",
+			protocol:  "terminal",
+			secondary: []string{"ssh", "slack"},
+			want:      false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := secondaryIncludesProtocol(tc.protocol, tc.secondary)
+			if got != tc.want {
+				t.Fatalf("secondaryIncludesProtocol(%q, %#v) = %t, want %t", tc.protocol, tc.secondary, got, tc.want)
+			}
+		})
 	}
 }
 

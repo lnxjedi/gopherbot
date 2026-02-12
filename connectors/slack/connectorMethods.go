@@ -63,7 +63,7 @@ type sendMessage struct {
 	mtype                          msgType
 }
 
-var messages = make(chan *sendMessage)
+const sendQueueSize = 256
 
 // Send a typing notifier letting the user know the message has been heard by
 // the robot.
@@ -71,7 +71,7 @@ func (s *slackConnector) MessageHeard(user, channel string) {
 	var chanID string
 	var ok bool
 	if chanID, ok = s.ExtractID(channel); ok {
-		if socketmodeEnabled {
+		if s.socketMode {
 			// TODO someday - socketmode doesn't support typing notifications :-(
 			// Two problems with what's below:
 			// - doesn't show up in thread
@@ -85,18 +85,55 @@ func (s *slackConnector) MessageHeard(user, channel string) {
 			// 	s.api.PostEphemeral(chanID, userID, opts...)
 			// }
 		} else {
-			s.conn.SendMessage(s.conn.NewTypingMessage(chanID))
+			s.RLock()
+			conn := s.conn
+			s.RUnlock()
+			if conn == nil {
+				s.Log(robot.Warn, "Skipping typing indicator before Slack RTM connection is ready")
+				return
+			}
+			conn.SendMessage(conn.NewTypingMessage(chanID))
 		}
 	}
 }
 
-func (s *slackConnector) startSendLoop() {
+func (s *slackConnector) queueSendMessage(send *sendMessage) bool {
+	s.RLock()
+	q := s.sendQueue
+	running := s.running
+	s.RUnlock()
+	if !running || q == nil {
+		s.Log(robot.Warn, "Dropping Slack outbound message while connector is stopped")
+		return false
+	}
+	select {
+	case q <- send:
+		return true
+	default:
+		s.Log(robot.Warn, "Slack outbound queue is full; dropping message for channel '%s'", send.channel)
+		return false
+	}
+}
+
+func (s *slackConnector) startSendLoop(stop <-chan struct{}) {
+	s.RLock()
+	q := s.sendQueue
+	s.RUnlock()
+	if q == nil {
+		s.Log(robot.Error, "Slack send loop started without queue")
+		return
+	}
 	// See bursting constants above.
 	var burstTime time.Time
 	mtimes := make([]time.Time, burstMessages)
 	current := 0 // index of the current message send time
 	for {
-		send := <-messages
+		var send *sendMessage
+		select {
+		case <-stop:
+			return
+		case send = <-q:
+		}
 		msgTime := time.Now()
 		mtimes[current] = msgTime
 		windowStartMsg := current + 1
@@ -138,12 +175,19 @@ func (s *slackConnector) startSendLoop() {
 			}
 		}
 		if !sent {
-			if socketmodeEnabled {
+			if s.socketMode {
 				s.Log(robot.Error, "Failed sending slack message '%s' to channel '%s' after 3 tries", send.message, send.channel)
 				// There doesn't appear to be a fallback available with socket mode
 			} else {
 				s.Log(robot.Error, "Failed sending slack message '%s' to channel '%s' after 3 tries, attempting fallback to RTM", send.message, send.channel)
-				s.conn.SendMessage(s.conn.NewOutgoingMessage(send.message, send.channel))
+				s.RLock()
+				conn := s.conn
+				s.RUnlock()
+				if conn == nil {
+					s.Log(robot.Error, "Slack RTM fallback unavailable: no active RTM client")
+				} else {
+					conn.SendMessage(conn.NewOutgoingMessage(send.message, send.channel))
+				}
 			}
 		}
 		timeSinceBurst := msgTime.Sub(burstTime)
@@ -173,14 +217,14 @@ func (s *slackConnector) sendMessages(msgs []string, userID, chanID, threadID st
 		}
 	}
 	for _, msg := range msgs {
-		messages <- &sendMessage{
+		s.queueSendMessage(&sendMessage{
 			message: msg,
 			user:    userID,
 			channel: chanID,
 			thread:  threadID,
 			format:  f,
 			mtype:   mtype,
-		}
+		})
 	}
 }
 
@@ -274,7 +318,7 @@ func (s *slackConnector) JoinChannel(c string) (ret robot.RetVal) {
 		s.Log(robot.Error, "Slack channel ID not found for: %s", c)
 		return robot.ChannelNotFound
 	}
-	if socketmodeEnabled {
+	if s.socketMode {
 		_, _, _, err := s.api.JoinConversation(chanID)
 		if err != nil {
 			s.Log(robot.Error, "Joining channel '%s': %v", c, err)

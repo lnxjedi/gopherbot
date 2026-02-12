@@ -452,6 +452,8 @@ func (sc *sshConnector) sendIncoming(client *sshClient, line string, hidden bool
 func (sc *sshConnector) MessageHeard(u, c string) {}
 
 func (sc *sshConnector) SetUserMap(m map[string]string) {
+	// TODO(v3 multi-protocol): On roster reload, disconnect active sessions whose
+	// key/identity is no longer present in the updated map.
 	keys := make(map[string]userKeyInfo)
 	names := make(map[string]userKeyInfo)
 	ids := make(map[string]userKeyInfo)

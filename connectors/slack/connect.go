@@ -3,10 +3,9 @@
 package slack
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"strings"
-	"sync"
 
 	"github.com/lnxjedi/gopherbot/robot"
 	"github.com/slack-go/slack"
@@ -22,23 +21,12 @@ type config struct {
 	Debug              bool   // Explicitly turn on Slack protocol debug output
 }
 
-var lock sync.Mutex        // package var lock
-var started bool           // set when connector is started
-var socketmodeEnabled bool // set when using socketmode to connect, duh
-var slackDebug bool        // set to enable debugging output in slack lib
-
-// Initialize starts the connection, sets up and returns the connector object
+// Initialize validates config, sets up and returns the connector object.
 func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
-	lock.Lock()
-	if started {
-		lock.Unlock()
-		return nil
-	}
-	started = true
-	lock.Unlock()
-
 	var c config
 	var tok string
+	socketMode := false
+	enableDebug := false
 
 	slackOpts := []slack.Option{
 		slack.OptionLog(l),
@@ -52,7 +40,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	// explicitly configured.
 	if c.Debug || r.GetLogLevel() == robot.Trace {
 		slackOpts = append(slackOpts, slack.OptionDebug(true))
-		slackDebug = true
+		enableDebug = true
 	}
 
 	if c.MaxMessageSplit == 0 {
@@ -67,7 +55,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 			r.Log(robot.Fatal, "AppToken must have the prefix \"xapp-\".")
 		}
 		tok = c.BotToken
-		socketmodeEnabled = true
+		socketMode = true
 		slackOpts = append(slackOpts, slack.OptionAppLevelToken(c.AppToken))
 	} else {
 		if len(c.SlackToken) == 0 {
@@ -83,78 +71,25 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 
 	api := slack.New(tok, slackOpts...)
 
-	var sc *slackConnector
-
-	if socketmodeEnabled {
+	sc := &slackConnector{
+		api:             api,
+		maxMessageSplit: c.MaxMessageSplit,
+		reflectHidden:   !c.DisableReflection,
+		name:            "slack",
+		socketMode:      socketMode,
+		sendQueue:       nil,
+	}
+	if socketMode {
 		sockOpts := []socketmode.Option{
 			socketmode.OptionLog(l),
-			socketmode.OptionDebug(slackDebug),
+			socketmode.OptionDebug(enableDebug),
 		}
-		sc = &slackConnector{
-			api:             api,
-			sock:            socketmode.New(api, sockOpts...),
-			maxMessageSplit: c.MaxMessageSplit,
-			reflectHidden:   !c.DisableReflection,
-			name:            "slack",
-		}
-		go sc.sock.Run()
+		sc.sock = socketmode.New(api, sockOpts...)
 	} else {
-		sc = &slackConnector{
-			api:             api,
-			conn:            api.NewRTM(),
-			maxMessageSplit: c.MaxMessageSplit,
-			reflectHidden:   !c.DisableReflection,
-			name:            "slack",
-		}
-		go sc.conn.ManageConnection()
+		sc.conn = api.NewRTM()
 	}
 
 	sc.Handler = r
-
-	if socketmodeEnabled {
-	SOCKInitLoop:
-		for evt := range sc.sock.Events {
-			switch evt.Type {
-			case socketmode.EventTypeConnected:
-				connectEvent, ok := evt.Data.(*socketmode.ConnectedEvent)
-				if !ok {
-					r.Log(robot.Warn, "Ignoring %+v", evt)
-				} else {
-					r.Log(robot.Debug, "Socket mode connected to '%s', count: %d",
-						connectEvent.Info.URL,
-						connectEvent.ConnectionCount)
-				}
-			case socketmode.EventTypeHello:
-				r.Log(robot.Debug, "Received hello event for app_id '%s', slack host '%s', build number: %d",
-					evt.Request.ConnectionInfo.AppID,
-					evt.Request.DebugInfo.Host,
-					evt.Request.DebugInfo.BuildNumber)
-				sc.appID = evt.Request.ConnectionInfo.AppID
-				break SOCKInitLoop
-			case socketmode.EventTypeInvalidAuth:
-				r.Log(robot.Fatal, "Invalid credentials")
-			default:
-				if evt.Request == nil {
-					r.Log(robot.Debug, "Unhandled event type '%s' (nil request)", evt.Type)
-				} else {
-					r.Log(robot.Debug, "Unhandled event type '%s':\n%v", evt.Type, evt.Request)
-				}
-			}
-		}
-	} else {
-	RTMInitLoop:
-		for msg := range sc.conn.IncomingEvents {
-			switch ev := msg.Data.(type) {
-
-			case *slack.ConnectedEvent:
-				r.Log(robot.Debug, "Slack infos: %T %v\n", ev, *ev.Info.User)
-				r.Log(robot.Debug, "Slack connection counter: %d", ev.ConnectionCount)
-				break RTMInitLoop
-			case *slack.InvalidAuthEvent:
-				r.Log(robot.Fatal, "Invalid credentials")
-			}
-		}
-	}
 
 	info, err := api.AuthTest()
 	if err != nil {
@@ -181,8 +116,6 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	// This should trigger from the engine calling SetUserMap
 	// sc.updateUserList("")
 
-	go sc.startSendLoop()
-
 	return robot.Connector(sc)
 }
 
@@ -194,16 +127,62 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 		return
 	}
 	sc.running = true
+	sc.sendQueue = make(chan *sendMessage, sendQueueSize)
+	sc.lastMsgTime = nil
 	sc.Unlock()
-	if socketmodeEnabled {
+
+	sendStop := make(chan struct{})
+	go sc.startSendLoop(sendStop)
+
+	defer func() {
+		close(sendStop)
+		sc.Lock()
+		sc.running = false
+		sc.sendQueue = nil
+		sc.Unlock()
+	}()
+
+	if sc.socketMode {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go func() {
+			if err := sc.sock.RunContext(ctx); err != nil && ctx.Err() == nil {
+				sc.Log(robot.Error, "Slack socket mode runtime failed: %v", err)
+			}
+		}()
 	SOCKRunLoop:
 		for {
 			select {
 			case <-stop:
 				sc.Log(robot.Debug, "Received stop in connector")
+				cancel()
 				break SOCKRunLoop
-			case evt := <-sc.sock.Events:
+			case evt, ok := <-sc.sock.Events:
+				if !ok {
+					sc.Log(robot.Error, "Slack socket mode event channel closed")
+					break SOCKRunLoop
+				}
 				switch evt.Type {
+				case socketmode.EventTypeConnected:
+					connectEvent, ok := evt.Data.(*socketmode.ConnectedEvent)
+					if !ok {
+						sc.Log(robot.Warn, "Ignoring %+v", evt)
+					} else {
+						sc.Log(robot.Debug, "Socket mode connected to '%s', count: %d",
+							connectEvent.Info.URL,
+							connectEvent.ConnectionCount)
+					}
+				case socketmode.EventTypeHello:
+					if evt.Request != nil {
+						sc.Log(robot.Debug, "Received hello event for app_id '%s', slack host '%s', build number: %d",
+							evt.Request.ConnectionInfo.AppID,
+							evt.Request.DebugInfo.Host,
+							evt.Request.DebugInfo.BuildNumber)
+						sc.appID = evt.Request.ConnectionInfo.AppID
+					}
+				case socketmode.EventTypeInvalidAuth:
+					sc.Log(robot.Error, "Invalid Slack credentials")
+					break SOCKRunLoop
 				case socketmode.EventTypeEventsAPI:
 					eventsAPIEvent, ok := evt.Data.(slackevents.EventsAPIEvent)
 					if !ok {
@@ -211,7 +190,9 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 						continue
 					}
 					sc.Log(robot.Trace, "Event received: %+v", eventsAPIEvent)
-					sc.sock.Ack(*evt.Request)
+					if evt.Request != nil {
+						sc.sock.Ack(*evt.Request)
+					}
 
 					switch eventsAPIEvent.Type {
 					case slackevents.CallbackEvent:
@@ -226,7 +207,11 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 							"im_close":
 							sc.updateChannelMaps("")
 						case "message":
-							mevt := innerEvent.Data.(*slackevents.MessageEvent)
+							mevt, ok := innerEvent.Data.(*slackevents.MessageEvent)
+							if !ok {
+								sc.Log(robot.Warn, "Ignoring message event with unexpected type: %T", innerEvent.Data)
+								continue
+							}
 							go sc.processMessageSocketMode(mevt)
 						default:
 							sc.Log(robot.Debug, "Ignored CallbackEvent type: %s", innerEvent.Type)
@@ -237,26 +222,45 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 				case socketmode.EventTypeSlashCommand:
 					cmd, ok := evt.Data.(slack.SlashCommand)
 					if !ok {
-						fmt.Printf("Ignored %+v\n", evt)
+						sc.Log(robot.Warn, "Ignored %+v", evt)
 						continue
 					}
-					sc.sock.Ack(*evt.Request)
+					if evt.Request != nil {
+						sc.sock.Ack(*evt.Request)
+					}
 					go sc.processSlashCmdSocketMode(&cmd)
 				case socketmode.EventTypeInteractive:
-					sc.sock.Ack(*evt.Request)
+					if evt.Request != nil {
+						sc.sock.Ack(*evt.Request)
+					}
 				default:
 					sc.Log(robot.Debug, "Ignoring event type: %s", evt.Type)
 				}
 			}
 		}
 	} else {
+		sc.Lock()
+		sc.conn = sc.api.NewRTM()
+		sc.Unlock()
+		go sc.conn.ManageConnection()
+		defer func() {
+			if sc.conn != nil {
+				if err := sc.conn.Disconnect(); err != nil {
+					sc.Log(robot.Warn, "Slack RTM disconnect failed: %v", err)
+				}
+			}
+		}()
 	RTMRunLoop:
 		for {
 			select {
 			case <-stop:
 				sc.Log(robot.Debug, "Received stop in connector")
 				break RTMRunLoop
-			case msg := <-sc.conn.IncomingEvents:
+			case msg, ok := <-sc.conn.IncomingEvents:
+				if !ok {
+					sc.Log(robot.Error, "Slack RTM event channel closed")
+					break RTMRunLoop
+				}
 				sc.Log(robot.Trace, "Event Received (msg, data, type): %v; %v; %T", msg, msg.Data, msg.Data)
 				switch ev := msg.Data.(type) {
 				case *slack.ChannelArchiveEvent, *slack.ChannelUnarchiveEvent,
@@ -266,6 +270,11 @@ func (sc *slackConnector) Run(stop <-chan struct{}) {
 					*slack.GroupRenameEvent, *slack.IMCloseEvent,
 					*slack.IMCreatedEvent, *slack.IMOpenEvent:
 					sc.updateChannelMaps("")
+				case *slack.ConnectedEvent:
+					sc.Log(robot.Debug, "Slack connected, count: %d", ev.ConnectionCount)
+				case *slack.InvalidAuthEvent:
+					sc.Log(robot.Error, "Invalid Slack credentials")
+					break RTMRunLoop
 
 				case *slack.MessageEvent:
 					// Message processing is done concurrently

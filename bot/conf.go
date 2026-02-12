@@ -115,13 +115,39 @@ func normalizeSecondaryProtocols(primary string, secondary []string) []string {
 			continue
 		}
 		key := strings.ToLower(name)
-		if key == p || seen[key] {
+		if key == p || key == "terminal" || seen[key] {
 			continue
 		}
 		seen[key] = true
 		out = append(out, name)
 	}
 	return out
+}
+
+func secondaryIncludesPrimary(primary string, secondary []string) bool {
+	p := strings.ToLower(strings.TrimSpace(primary))
+	if p == "" {
+		return false
+	}
+	for _, s := range secondary {
+		if strings.ToLower(strings.TrimSpace(s)) == p {
+			return true
+		}
+	}
+	return false
+}
+
+func secondaryIncludesProtocol(protocol string, secondary []string) bool {
+	p := strings.ToLower(strings.TrimSpace(protocol))
+	if p == "" {
+		return false
+	}
+	for _, s := range secondary {
+		if strings.ToLower(strings.TrimSpace(s)) == p {
+			return true
+		}
+	}
+	return false
 }
 
 func isValidRosterUserName(name string) bool {
@@ -383,7 +409,6 @@ func loadConfig(preConnect bool) error {
 		if legacyConflict {
 			Log(robot.Warn, "Both PrimaryProtocol ('%s') and Protocol ('%s') are set and differ; using PrimaryProtocol", newconfig.PrimaryProtocol, newconfig.Protocol)
 		}
-		processed.secondaryProtocols = normalizeSecondaryProtocols(processed.protocol, newconfig.SecondaryProtocols)
 	} else {
 		return fmt.Errorf("protocol not specified in %s (set PrimaryProtocol or Protocol)", robotConfigFileName)
 	}
@@ -391,9 +416,15 @@ func loadConfig(preConnect bool) error {
 		if runtimePrimary, ok := getRuntimePrimaryProtocol(); ok && runtimePrimary != "" && !strings.EqualFold(runtimePrimary, processed.protocol) {
 			Log(robot.Error, "PrimaryProtocol change on reload ignored (configured: '%s', active: '%s')", processed.protocol, runtimePrimary)
 			processed.protocol = runtimePrimary
-			processed.secondaryProtocols = normalizeSecondaryProtocols(runtimePrimary, newconfig.SecondaryProtocols)
 		}
 	}
+	if secondaryIncludesPrimary(processed.protocol, newconfig.SecondaryProtocols) {
+		Log(robot.Warn, "SecondaryProtocols includes primary protocol '%s'; ignoring duplicate entry", processed.protocol)
+	}
+	if secondaryIncludesProtocol("terminal", newconfig.SecondaryProtocols) {
+		Log(robot.Warn, "SecondaryProtocols includes unsupported protocol 'terminal'; ignoring it")
+	}
+	processed.secondaryProtocols = normalizeSecondaryProtocols(processed.protocol, newconfig.SecondaryProtocols)
 
 	for i := range newconfig.UserRoster {
 		newconfig.UserRoster[i].protocol = processed.protocol

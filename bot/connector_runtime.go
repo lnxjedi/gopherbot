@@ -338,6 +338,7 @@ func startConnectorRuntime(protocol string, required bool) error {
 			Log(robot.Info, "Connector '%s' stopped", protocol)
 		}
 	}(p, conn, stop, done)
+	Log(robot.Info, "Connector '%s' started", p)
 	return nil
 }
 
