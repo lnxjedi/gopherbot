@@ -571,6 +571,31 @@ SendUserChannelMessage(){
 	SendUserChannelThreadMessage "$SEND_USER" "$SEND_CHANNEL" "" "$@"
 }
 
+SendProtocolUserChannelMessage(){
+	local FORMAT
+	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi
+	local GB_FUNCARGS GB_RET
+	local SPUCM_PROTOCOL="$1"
+	local SPUCM_USER="$2"
+	local SPUCM_CHANNEL="$3"
+	shift 3
+	local MESSAGE="$*"
+	MESSAGE=$(base64_encode "$MESSAGE")
+
+	GB_FUNCARGS=$(cat <<EOF
+{
+	"Protocol": "$SPUCM_PROTOCOL",
+	"User": "$SPUCM_USER",
+	"Channel": "$SPUCM_CHANNEL",
+	"Message": "$MESSAGE",
+	"Base64" : true
+}
+EOF
+)
+	GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS" $FORMAT)
+	gbBotRet "$GB_RET"
+}
+
 SendUserChannelThreadMessage(){
 	local FORMAT
 	if [[ $1 = -? ]]; then FORMAT=$(getFormat $1); shift; fi

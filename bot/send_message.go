@@ -29,6 +29,21 @@ func (r *Robot) tryResolveUser(u string) string {
 	return u
 }
 
+func (r *Robot) tryResolveUserForProtocol(protocol, u string) string {
+	p := normalizeProtocolName(protocol)
+	if p != "" {
+		if pm, ok := r.maps.userProto[p]; ok {
+			if ui, ok := pm[u]; ok {
+				return bracket(ui.UserID)
+			}
+		}
+	}
+	if ui, ok := r.maps.user[u]; ok {
+		return bracket(ui.UserID)
+	}
+	return u
+}
+
 func (w *worker) tryResolveUser(u string) string {
 	protocol := protocolFromIncoming(w.Incoming, w.Protocol)
 	if pm, ok := w.maps.userProto[protocol]; ok {
@@ -85,6 +100,16 @@ func (w *worker) prepareMessage(fn, msg string, v ...interface{}) (string, bool)
 		msg = fmt.Sprintf(msg, v...)
 	}
 	return msg, false
+}
+
+func protocolIncoming(in *robot.ConnectorMessage, protocol string) *robot.ConnectorMessage {
+	p := normalizeProtocolName(protocol)
+	if in == nil {
+		return &robot.ConnectorMessage{Protocol: p}
+	}
+	msg := *in
+	msg.Protocol = p
+	return &msg
 }
 
 // messageHeard sends a typing notification
@@ -170,6 +195,41 @@ func (w *worker) SendUserChannelMessage(u, ch, msg string, v ...interface{}) rob
 	user := w.tryResolveUser(u)
 	channel := w.tryResolveChannel(ch)
 	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, w.Format, w.Incoming)
+}
+
+func (r Robot) SendProtocolUserChannelMessage(protocol, u, ch, msg string, v ...interface{}) robot.RetVal {
+	msg, empty := r.prepareMessage("SendProtocolUserChannelMessage", msg, v...)
+	if empty {
+		return robot.Failed
+	}
+	p := normalizeProtocolName(protocol)
+	if p == "" {
+		Log(robot.Error, "SendProtocolUserChannelMessage: protocol is required")
+		return robot.MissingArguments
+	}
+	if u == "" && ch == "" {
+		Log(robot.Error, "SendProtocolUserChannelMessage: either user or channel is required")
+		return robot.MissingArguments
+	}
+	if _, ok := getRuntimePrimaryProtocol(); ok {
+		if p != runtimeConnectorsPrimary() {
+			if _, exists := getRuntimeConnector(p); !exists {
+				Log(robot.Error, "SendProtocolUserChannelMessage: protocol '%s' is not active", p)
+				return robot.Failed
+			}
+		}
+	}
+	msgObject := protocolIncoming(r.Incoming, p)
+	if u != "" && ch == "" {
+		user := r.tryResolveUserForProtocol(p, u)
+		return interfaces.SendProtocolUserMessage(user, msg, r.Format, msgObject)
+	}
+	channel := r.tryResolveChannel(ch)
+	if u == "" {
+		return interfaces.SendProtocolChannelThreadMessage(channel, "", msg, r.Format, msgObject)
+	}
+	user := r.tryResolveUserForProtocol(p, u)
+	return interfaces.SendProtocolUserChannelThreadMessage(user, u, channel, "", msg, r.Format, msgObject)
 }
 
 func (r Robot) SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) robot.RetVal {

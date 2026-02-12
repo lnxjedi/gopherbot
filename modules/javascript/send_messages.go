@@ -75,6 +75,24 @@ func (jr *jsBot) botSendUserChannelMessage(call goja.FunctionCall) goja.Value {
 	return jr.ctx.vm.ToValue(int(ret))
 }
 
+// botSendProtocolUserChannelMessage(bot:SendProtocolUserChannelMessage("ssh", "some.user", "some-channel", "message"))
+// The engine handles user/channel routing semantics and validation.
+func (jr *jsBot) botSendProtocolUserChannelMessage(call goja.FunctionCall) goja.Value {
+	const methodName = "SendProtocolUserChannelMessage"
+
+	protocol := jr.requireStringArg(methodName, call, 0)
+	user := jr.requireStringArg(methodName, call, 1)
+	channel := jr.requireStringArg(methodName, call, 2)
+	msg := jr.requireStringArg(methodName, call, 3)
+
+	if protocol == "" {
+		panic(jr.ctx.vm.ToValue("SendProtocolUserChannelMessage: protocol must not be empty"))
+	}
+
+	ret := jr.r.SendProtocolUserChannelMessage(protocol, user, channel, msg)
+	return jr.ctx.vm.ToValue(int(ret))
+}
+
 // botSendUserChannelThreadMessage(bot:SendUserChannelThreadMessage("some.user", "some-channel", "thread", "message"))
 // The engine handles empty messages, logs warnings, etc.
 // Must not have empty user or channel; thread can be empty => top-level.

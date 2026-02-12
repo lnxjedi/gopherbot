@@ -256,6 +256,13 @@ class BaseBot
 		return SendUserChannelThreadMessage(user, channel, "", message, format)
 	end
 
+	def SendProtocolUserChannelMessage(protocol, user, channel, message, format="")
+		format = format.to_s if format.class == Symbol
+		args = { "Protocol" => protocol, "User" => user, "Channel" => channel, "Message" => message }
+		ret = callBotFunc(__method__, args, format)
+		return ret["RetVal"]
+	end
+
 	def SendUserChannelThreadMessage(user, channel, thread, message, format="")
 		format = format.to_s if format.class == Symbol
 		args = { "User" => user, "Channel" => channel, "Thread" => thread, "Message" => message }

@@ -41,6 +41,7 @@ func (jr *jsBot) createBotObject() *goja.Object {
 	botObj.Set("SendChannelThreadMessage", jr.botSendChannelThreadMessage)
 	botObj.Set("SendUserMessage", jr.botSendUserMessage)
 	botObj.Set("SendUserChannelMessage", jr.botSendUserChannelMessage)
+	botObj.Set("SendProtocolUserChannelMessage", jr.botSendProtocolUserChannelMessage)
 	botObj.Set("SendUserChannelThreadMessage", jr.botSendUserChannelThreadMessage)
 	botObj.Set("Say", jr.botSay)
 	botObj.Set("SayThread", jr.botSayThread)

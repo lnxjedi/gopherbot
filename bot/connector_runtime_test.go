@@ -12,9 +12,19 @@ import (
 )
 
 type fakeRuntimeConnector struct {
-	mu        sync.Mutex
-	runCount  int
-	stopCount int
+	mu                 sync.Mutex
+	runCount           int
+	stopCount          int
+	channelCalls       int
+	userChannelCalls   int
+	userCalls          int
+	lastChannel        string
+	lastThread         string
+	lastMessage        string
+	lastUser           string
+	lastUserID         string
+	lastUserName       string
+	lastProtocolOnSend string
 }
 
 func (fc *fakeRuntimeConnector) SetUserMap(map[string]string) {}
@@ -37,15 +47,43 @@ func (fc *fakeRuntimeConnector) JoinChannel(string) robot.RetVal {
 	return robot.Ok
 }
 
-func (fc *fakeRuntimeConnector) SendProtocolChannelThreadMessage(string, string, string, robot.MessageFormat, *robot.ConnectorMessage) robot.RetVal {
+func (fc *fakeRuntimeConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, _ robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	fc.channelCalls++
+	fc.lastChannel = ch
+	fc.lastThread = thr
+	fc.lastMessage = msg
+	if msgObject != nil {
+		fc.lastProtocolOnSend = msgObject.Protocol
+	}
 	return robot.Ok
 }
 
-func (fc *fakeRuntimeConnector) SendProtocolUserChannelThreadMessage(string, string, string, string, string, robot.MessageFormat, *robot.ConnectorMessage) robot.RetVal {
+func (fc *fakeRuntimeConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, _ robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	fc.userChannelCalls++
+	fc.lastUserID = uid
+	fc.lastUserName = uname
+	fc.lastChannel = ch
+	fc.lastThread = thr
+	fc.lastMessage = msg
+	if msgObject != nil {
+		fc.lastProtocolOnSend = msgObject.Protocol
+	}
 	return robot.Ok
 }
 
-func (fc *fakeRuntimeConnector) SendProtocolUserMessage(string, string, robot.MessageFormat, *robot.ConnectorMessage) robot.RetVal {
+func (fc *fakeRuntimeConnector) SendProtocolUserMessage(u, msg string, _ robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	fc.userCalls++
+	fc.lastUser = u
+	fc.lastMessage = msg
+	if msgObject != nil {
+		fc.lastProtocolOnSend = msgObject.Protocol
+	}
 	return robot.Ok
 }
 
@@ -63,6 +101,12 @@ func (fc *fakeRuntimeConnector) metrics() (runs, stops int) {
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
 	return fc.runCount, fc.stopCount
+}
+
+func (fc *fakeRuntimeConnector) sendMetrics() (channelCalls, userChannelCalls, userCalls int, protocol string) {
+	fc.mu.Lock()
+	defer fc.mu.Unlock()
+	return fc.channelCalls, fc.userChannelCalls, fc.userCalls, fc.lastProtocolOnSend
 }
 
 type runtimeHarness struct {
@@ -258,5 +302,71 @@ func TestProtocolForMessageFallsBackToPrimary(t *testing.T) {
 	}
 	if got := protocolForMessage(nil); got != "prime" {
 		t.Fatalf("protocolForMessage(nil) = %q, want %q", got, "prime")
+	}
+}
+
+func TestSendProtocolUserChannelMessageRouting(t *testing.T) {
+	h := newRuntimeHarness(t)
+	h.registerFake("prime")
+	h.registerFake("secondary")
+	h.setConfig("prime", "secondary")
+
+	if err := initializeConnectorRuntime(log.New(io.Discard, "", 0)); err != nil {
+		t.Fatalf("initializeConnectorRuntime() error = %v", err)
+	}
+	if err := startConnectorRuntimes(); err != nil {
+		t.Fatalf("startConnectorRuntimes() error = %v", err)
+	}
+	waitFor(t, "prime+secondary running", func() bool {
+		sm := statusMap()
+		return sm["prime"].state == "running" && sm["secondary"].state == "running"
+	})
+
+	r := Robot{
+		Message: &robot.Message{
+			Incoming: &robot.ConnectorMessage{Protocol: "prime"},
+			Format:   robot.Variable,
+		},
+		maps: &userChanMaps{
+			user: map[string]*UserInfo{
+				"alice": &UserInfo{UserName: "alice", UserID: "prime-alice"},
+			},
+			userProto: map[string]map[string]*UserInfo{
+				"secondary": {
+					"alice": &UserInfo{UserName: "alice", UserID: "sec-alice"},
+				},
+			},
+			channel: map[string]*ChannelInfo{
+				"general": &ChannelInfo{ChannelName: "general", ChannelID: "sec-general"},
+			},
+		},
+	}
+
+	if ret := r.SendProtocolUserChannelMessage("secondary", "alice", "general", "hello"); ret != robot.Ok {
+		t.Fatalf("SendProtocolUserChannelMessage(user+channel) ret = %v, want %v", ret, robot.Ok)
+	}
+	if channelCalls, userChannelCalls, userCalls, protocol := h.instances["secondary"].sendMetrics(); channelCalls != 0 || userChannelCalls != 1 || userCalls != 0 || protocol != "secondary" {
+		t.Fatalf("secondary send metrics = channel:%d userChannel:%d user:%d protocol:%q", channelCalls, userChannelCalls, userCalls, protocol)
+	}
+
+	if ret := r.SendProtocolUserChannelMessage("secondary", "alice", "", "dm"); ret != robot.Ok {
+		t.Fatalf("SendProtocolUserChannelMessage(dm) ret = %v, want %v", ret, robot.Ok)
+	}
+	if channelCalls, userChannelCalls, userCalls, protocol := h.instances["secondary"].sendMetrics(); channelCalls != 0 || userChannelCalls != 1 || userCalls != 1 || protocol != "secondary" {
+		t.Fatalf("secondary send metrics after dm = channel:%d userChannel:%d user:%d protocol:%q", channelCalls, userChannelCalls, userCalls, protocol)
+	}
+
+	if ret := r.SendProtocolUserChannelMessage("secondary", "", "general", "chan"); ret != robot.Ok {
+		t.Fatalf("SendProtocolUserChannelMessage(channel) ret = %v, want %v", ret, robot.Ok)
+	}
+	if channelCalls, userChannelCalls, userCalls, protocol := h.instances["secondary"].sendMetrics(); channelCalls != 1 || userChannelCalls != 1 || userCalls != 1 || protocol != "secondary" {
+		t.Fatalf("secondary send metrics after channel send = channel:%d userChannel:%d user:%d protocol:%q", channelCalls, userChannelCalls, userCalls, protocol)
+	}
+
+	if ret := r.SendProtocolUserChannelMessage("secondary", "", "", "bad"); ret != robot.MissingArguments {
+		t.Fatalf("SendProtocolUserChannelMessage(empty targets) ret = %v, want %v", ret, robot.MissingArguments)
+	}
+	if ret := r.SendProtocolUserChannelMessage("unknown", "alice", "general", "bad"); ret != robot.Failed {
+		t.Fatalf("SendProtocolUserChannelMessage(unknown protocol) ret = %v, want %v", ret, robot.Failed)
 	}
 }

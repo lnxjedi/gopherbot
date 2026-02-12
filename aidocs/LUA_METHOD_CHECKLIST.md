@@ -25,6 +25,7 @@ Sources:
 - [ ] `SendChannelMessage(channel, message, format?)`
 - [ ] `SendChannelThreadMessage(channel, thread, message, format?)`
 - [ ] `SendUserChannelMessage(user, channel, message, format?)`
+- [ ] `SendProtocolUserChannelMessage(protocol, user, channel, message, format?)`
 - [ ] `SendUserChannelThreadMessage(user, channel, thread, message, format?)`
 - [ ] `SendUserMessage(user, message, format?)`
 - [ ] `Say(message, format?)`

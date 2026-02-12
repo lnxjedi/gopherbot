@@ -129,6 +129,19 @@ type Robot interface {
 	// msg - Go string with optional formatting
 	// v ... - optional extra arguments for the format string
 	SendUserChannelMessage(u, ch, msg string, v ...interface{}) RetVal
+	// SendProtocolUserChannelMessage sends a message to a specific protocol and target.
+	// protocol - connector name like "ssh" or "slack"
+	// u - either an "<internalID>" or plain "username", or empty for channel send
+	// ch - either an "<internalID>" or plain "channelname", or empty for DM
+	// msg - Go string with optional formatting
+	// v ... - optional extra arguments for the format string
+	//
+	// Semantics:
+	// - non-empty u + empty ch => DM to user
+	// - empty u + non-empty ch => message to channel
+	// - non-empty u + non-empty ch => directed user-in-channel message
+	// - empty u + empty ch => MissingArguments
+	SendProtocolUserChannelMessage(protocol, u, ch, msg string, v ...interface{}) RetVal
 	// SendUserMessage lets a plugin easily send a DM to a user. If a DM
 	// fails, an error should be returned, since DMs may be used for sending
 	// secret/sensitive information.

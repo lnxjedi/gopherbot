@@ -288,6 +288,7 @@ func init() {
 			WSayThread func(msg string, v ...interface{}) ( robot.RetVal)
 			WSendChannelMessage func(ch string, msg string, v ...interface{}) ( robot.RetVal)
 			WSendChannelThreadMessage func(ch string, thr string, msg string, v ...interface{}) ( robot.RetVal)
+			WSendProtocolUserChannelMessage func(protocol string, u string, ch string, msg string, v ...interface{}) ( robot.RetVal)
 			WSendUserChannelMessage func(u string, ch string, msg string, v ...interface{}) ( robot.RetVal)
 			WSendUserChannelThreadMessage func(u string, ch string, thr string, msg string, v ...interface{}) ( robot.RetVal)
 			WSendUserMessage func(u string, msg string, v ...interface{}) ( robot.RetVal)
@@ -387,6 +388,8 @@ func init() {
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) SendChannelMessage(ch string, msg string, v ...interface{}) ( robot.RetVal) {return W.WSendChannelMessage(ch, msg, v...)
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) SendChannelThreadMessage(ch string, thr string, msg string, v ...interface{}) ( robot.RetVal) {return W.WSendChannelThreadMessage(ch, thr, msg, v...)
+			}
+	func (W _github_com_lnxjedi_gopherbot_robot_Robot) SendProtocolUserChannelMessage(protocol string, u string, ch string, msg string, v ...interface{}) ( robot.RetVal) {return W.WSendProtocolUserChannelMessage(protocol, u, ch, msg, v...)
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) SendUserChannelMessage(u string, ch string, msg string, v ...interface{}) ( robot.RetVal) {return W.WSendUserChannelMessage(u, ch, msg, v...)
 			}

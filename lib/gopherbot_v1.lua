@@ -269,6 +269,17 @@ function Robot:SendUserChannelMessage(user, channel, message, format)
     return self.gbot:SendUserChannelMessage(user, channel, message, format)
 end
 
+---Send a message to a specific protocol with user/channel routing semantics.
+---@param protocol string
+---@param user string
+---@param channel string
+---@param message string
+---@param format? number
+---@return number retVal
+function Robot:SendProtocolUserChannelMessage(protocol, user, channel, message, format)
+    return self.gbot:SendProtocolUserChannelMessage(protocol, user, channel, message, format)
+end
+
 ---Send a message to a user within a channel thread.
 ---@param user string
 ---@param channel string
