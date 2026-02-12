@@ -17,8 +17,34 @@ import (
 // an empty object type for passing a Handler to the connector.
 type handler struct{}
 
+type connectorHandler struct {
+	handler
+	protocol         string
+	allowBotIdentity bool
+}
+
 // dummy var to pass a handler
 var handle = handler{}
+
+func (h connectorHandler) GetProtocolConfig(v interface{}) error {
+	cfg := getProtocolConfigFor(h.protocol)
+	if cfg == nil {
+		return fmt.Errorf("no ProtocolConfig loaded for protocol '%s'", h.protocol)
+	}
+	return json.Unmarshal(cfg, v)
+}
+
+func (h connectorHandler) SetBotID(id string) {
+	if h.allowBotIdentity {
+		h.handler.SetBotID(id)
+	}
+}
+
+func (h connectorHandler) SetBotMention(m string) {
+	if h.allowBotIdentity {
+		h.handler.SetBotMention(m)
+	}
+}
 
 /* Handle incoming messages and other callbacks from the connector. */
 
@@ -129,8 +155,12 @@ var chanLoggers = struct {
 // func (h handler) IncomingMessage(channelName, userName, messageFull string, raw interface{}) {
 func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	// Note: zero-len channel name and ID is valid; true of direct messages for some connectors
+	incomingProtocol := normalizeProtocolName(inc.Protocol)
+	if incomingProtocol == "" {
+		incomingProtocol = "unknown"
+	}
 	if len(inc.UserName) == 0 && len(inc.UserID) == 0 {
-		Log(robot.Error, "Incoming message with no username or user ID")
+		Log(robot.Error, "Incoming message with no username or user ID (protocol: %s)", incomingProtocol)
 		return
 	}
 	currentUCMaps.Lock()
@@ -138,12 +168,11 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	currentUCMaps.Unlock()
 	var channelName, userName, ProtocolChannel, ProtocolUser string
 	var BotUser bool
-
 	/* Make sure some form of User and Channel are set
 	 */
 	ProtocolChannel = bracket(inc.ChannelID)
 	if !inc.DirectMessage {
-		if cn, ok := maps.channelID[inc.ChannelID]; ok {
+		if cn, ok := getProtocolChannelByID(maps, incomingProtocol, inc.ChannelID); ok {
 			channelName = cn.ChannelName
 		} else if len(inc.ChannelName) > 0 {
 			channelName = inc.ChannelName
@@ -184,13 +213,13 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	botAlias := currentCfg.alias
 	currentCfg.RUnlock()
 	if !listedUser && ignoreUnlisted {
-		Log(robot.Debug, "IgnoreUnlistedUsers - ignoring: %s / %s", inc.UserID, userName)
+		Log(robot.Debug, "IgnoreUnlistedUsers - ignoring protocol '%s': %s / %s", incomingProtocol, inc.UserID, userName)
 		emit(IgnoredUser)
 		return
 	}
 	for _, user := range ignoreUsers {
 		if strings.EqualFold(userName, user) {
-			Log(robot.Debug, "User listed in IgnoreUsers, ignoring: %s", userName)
+			Log(robot.Debug, "User listed in IgnoreUsers, ignoring protocol '%s': %s", incomingProtocol, userName)
 			emit(IgnoredUser)
 			return
 		}
@@ -284,9 +313,9 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		fmsg:            messageFull,
 	}
 	if w.Incoming.DirectMessage {
-		Log(robot.Debug, "Received private message from user '%s'", userName)
+		Log(robot.Debug, "Received private message on protocol '%s' from user '%s'", incomingProtocol, userName)
 	} else {
-		Log(robot.Debug, "Message '%s'/id '%s' from user '%s' in channel '%s'/thread '%s' (threaded: %t); isCommand: %t; cmdMode: %s", message, inc.MessageID, userName, logChannel, inc.ThreadID, inc.ThreadedMessage, isCommand, cmdMode)
+		Log(robot.Debug, "Message on protocol '%s': '%s'/id '%s' from user '%s' in channel '%s'/thread '%s' (threaded: %t); isCommand: %t; cmdMode: %s", incomingProtocol, message, inc.MessageID, userName, logChannel, inc.ThreadID, inc.ThreadedMessage, isCommand, cmdMode)
 	}
 	go w.handleMessage()
 }
@@ -298,8 +327,14 @@ we don't need to worry about locking. When absolutely necessary, there's always 
 
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct
 func (h handler) GetProtocolConfig(v interface{}) error {
-	err := json.Unmarshal(protocolConfig, v)
-	return err
+	currentCfg.RLock()
+	protocol := currentCfg.protocol
+	currentCfg.RUnlock()
+	cfg := getProtocolConfigFor(protocol)
+	if cfg == nil {
+		return fmt.Errorf("no ProtocolConfig loaded for primary protocol '%s'", protocol)
+	}
+	return json.Unmarshal(cfg, v)
 }
 
 // GetBrainConfig unmarshals the brain's configuration data into a provided struct
@@ -317,6 +352,17 @@ func (h handler) GetHistoryConfig(v interface{}) error {
 // Log logs a message to the robot's log file (or stderr)
 func (h handler) Log(l robot.LogLevel, m string, v ...interface{}) {
 	Log(l, m, v...)
+}
+
+// Log logs connector messages and tags them with protocol context.
+func (h connectorHandler) Log(l robot.LogLevel, m string, v ...interface{}) {
+	p := normalizeProtocolName(h.protocol)
+	if p == "" {
+		h.handler.Log(l, m, v...)
+		return
+	}
+	m = "[" + p + "] " + m
+	h.handler.Log(l, m, v...)
 }
 
 // GetDirectory verfies or creates a directory with perms 0750, returning an error on failure.

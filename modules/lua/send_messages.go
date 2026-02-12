@@ -87,6 +87,26 @@ func (lctx *luaContext) botSendUserChannelMessage(L *glua.LState) int {
 	return 1
 }
 
+// botSendProtocolUserChannelMessage(luaState) -> retVal
+// Usage: local ret = bot:SendProtocolUserChannelMessage("ssh", "some.user", "some-channel", "Hello", fmtRaw)
+func (lctx *luaContext) botSendProtocolUserChannelMessage(L *glua.LState) int {
+	r := lctx.getOptionalFormattedRobot(L, "SendProtocolUserChannelMessage", 6)
+
+	protocol := L.CheckString(2)
+	user := L.CheckString(3)
+	channel := L.CheckString(4)
+	msg := L.CheckString(5)
+
+	if protocol == "" {
+		L.RaiseError("SendProtocolUserChannelMessage: protocol must not be empty")
+		return 0
+	}
+
+	ret := r.SendProtocolUserChannelMessage(protocol, user, channel, msg)
+	L.Push(glua.LNumber(ret))
+	return 1
+}
+
 // botSendUserChannelThreadMessage(luaState) -> retVal
 // Usage: local ret = bot:SendUserChannelThreadMessage("some.user", "some-channel", "some-thread", "Hello", fmtFixed)
 func (lctx *luaContext) botSendUserChannelThreadMessage(L *glua.LState) int {
@@ -158,15 +178,16 @@ func (lctx *luaContext) botReplyThread(L *glua.LState) int {
 func (lctx *luaContext) RegisterMessageMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		// Existing “Send*” methods
-		"SendChannelMessage":           lctx.botSendChannelMessage,
-		"SendChannelThreadMessage":     lctx.botSendChannelThreadMessage,
-		"SendUserMessage":              lctx.botSendUserMessage,
-		"SendUserChannelMessage":       lctx.botSendUserChannelMessage,
-		"SendUserChannelThreadMessage": lctx.botSendUserChannelThreadMessage,
-		"Say":                          lctx.botSay,
-		"SayThread":                    lctx.botSayThread,
-		"Reply":                        lctx.botReply,
-		"ReplyThread":                  lctx.botReplyThread,
+		"SendChannelMessage":             lctx.botSendChannelMessage,
+		"SendChannelThreadMessage":       lctx.botSendChannelThreadMessage,
+		"SendUserMessage":                lctx.botSendUserMessage,
+		"SendUserChannelMessage":         lctx.botSendUserChannelMessage,
+		"SendProtocolUserChannelMessage": lctx.botSendProtocolUserChannelMessage,
+		"SendUserChannelThreadMessage":   lctx.botSendUserChannelThreadMessage,
+		"Say":                            lctx.botSay,
+		"SayThread":                      lctx.botSayThread,
+		"Reply":                          lctx.botReply,
+		"ReplyThread":                    lctx.botReplyThread,
 	}
 
 	mt := registerBotMetatableIfNeeded(L)

@@ -5,3 +5,4 @@ Documentation here is meant for human consumption, as opposed to `aidocs/`, mean
 ## Contents
 
 - `devdocs/testing.md` - how to run tests and what they cover
+- `devdocs/UPGRADING-v3.md` - migration notes for existing robots moving to v3 multi-protocol behavior

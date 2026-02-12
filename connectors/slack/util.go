@@ -21,6 +21,7 @@ type slackConnector struct {
 	api             *slack.Client
 	conn            *slack.RTM
 	sock            *socketmode.Client
+	socketMode      bool
 	maxMessageSplit int                       // The maximum # of ~4000 byte messages to send before truncating
 	running         bool                      // set on call to Run
 	reflectHidden   bool                      // reflect slash commands to the user
@@ -42,6 +43,9 @@ type slackConnector struct {
 	userIDMap       map[string]string         // map from user ID to engine-provided username, for resolving @foo
 	userIDToIM      map[string]string         // map from user ID to IM channel ID
 	imToUserID      map[string]string         // map from IM channel ID to user ID
+	sendQueue       chan *sendMessage         // outbound message queue, initialized per Run lifecycle
+	lastMsgTime     map[userlast]time.Time    // edited-message dedupe tracking
+	lastMsgLock     sync.Mutex
 }
 
 type msgType int
@@ -65,6 +69,25 @@ func getMsgType(msgObject *robot.ConnectorMessage) (mtype msgType) {
 		mtype = msgNone
 	}
 	return
+}
+
+func (s *slackConnector) getLastMessageTime(key userlast) (time.Time, bool) {
+	s.lastMsgLock.Lock()
+	defer s.lastMsgLock.Unlock()
+	if s.lastMsgTime == nil {
+		return time.Time{}, false
+	}
+	t, ok := s.lastMsgTime[key]
+	return t, ok
+}
+
+func (s *slackConnector) setLastMessageTime(key userlast, t time.Time) {
+	s.lastMsgLock.Lock()
+	if s.lastMsgTime == nil {
+		s.lastMsgTime = make(map[userlast]time.Time)
+	}
+	s.lastMsgTime[key] = t
+	s.lastMsgLock.Unlock()
 }
 
 // updateUserList gets an updated list of users from Slack and creates

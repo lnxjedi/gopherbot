@@ -5,6 +5,14 @@ RequireAdmin: true
 Help:
 - Keywords: [ "reload" ]
   Helptext: [ "(alias) reload - have the robot reload configuration files" ]
+- Keywords: [ "protocol", "status", "list" ]
+  Helptext: [ "(alias) protocol-list - list configured protocol runtimes and states" ]
+- Keywords: [ "protocol", "start" ]
+  Helptext: [ "(alias) protocol-start <name> - start a configured secondary protocol" ]
+- Keywords: [ "protocol", "stop" ]
+  Helptext: [ "(alias) protocol-stop <name> - stop a configured secondary protocol" ]
+- Keywords: [ "protocol", "restart" ]
+  Helptext: [ "(alias) protocol-restart <name> - restart a configured secondary protocol" ]
 - Keywords: [ "quit" ]
   Helptext: [ "(alias) quit - request a graceful shutdown, waiting for all plugins to finish" ]
 - Keywords: [ "restart" ]
@@ -28,6 +36,14 @@ Help:
 CommandMatchers:
 - Command: reload
   Regex: '(?i:reload)'
+- Command: protocollist
+  Regex: '(?i:protocol[ -]list)'
+- Command: protocolstart
+  Regex: '(?i:protocol[ -]start ([A-Za-z][\w-]*))'
+- Command: protocolstop
+  Regex: '(?i:protocol[ -]stop ([A-Za-z][\w-]*))'
+- Command: protocolrestart
+  Regex: '(?i:protocol[ -]restart ([A-Za-z][\w-]*))'
 - Command: quit
   Regex: '(?i:quit|exit)'
 - Command: restart

@@ -36,9 +36,7 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 			}
 		}
 		lastlookup := userlast{userID, chanID}
-		lastmsgtime.Lock()
-		msgtime, exists := lastmsgtime.m[lastlookup]
-		lastmsgtime.Unlock()
+		msgtime, exists := s.getLastMessageTime(lastlookup)
 		if exists && timestamp.Sub(msgtime) < ignorewindow {
 			s.Log(robot.Debug, "Ignoring edited message \"%s\" arriving within the ignorewindow: %v", msg.Message.Text, ignorewindow)
 			return
@@ -60,9 +58,7 @@ func (s *slackConnector) processMessageSocketMode(msg *slackevents.MessageEvent)
 			}
 		}
 		lastlookup := userlast{userID, chanID}
-		lastmsgtime.Lock()
-		lastmsgtime.m[lastlookup] = timestamp
-		lastmsgtime.Unlock()
+		s.setLastMessageTime(lastlookup, timestamp)
 	}
 	if len(userID) == 0 {
 		s.Log(robot.Debug, "Zero-length userID, ignoring message")
@@ -191,9 +187,7 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 			}
 		}
 		lastlookup := userlast{userID, chanID}
-		lastmsgtime.Lock()
-		msgtime, exists := lastmsgtime.m[lastlookup]
-		lastmsgtime.Unlock()
+		msgtime, exists := s.getLastMessageTime(lastlookup)
 		if exists && timestamp.Sub(msgtime) < ignorewindow {
 			s.Log(robot.Debug, "Ignoring edited message \"%s\" arriving within the ignorewindow: %v", msg.SubMessage.Text, ignorewindow)
 			return
@@ -213,9 +207,7 @@ func (s *slackConnector) processMessageRTM(msg *slack.MessageEvent) {
 			}
 		}
 		lastlookup := userlast{userID, chanID}
-		lastmsgtime.Lock()
-		lastmsgtime.m[lastlookup] = timestamp
-		lastmsgtime.Unlock()
+		s.setLastMessageTime(lastlookup, timestamp)
 	}
 	if len(userID) == 0 {
 		s.Log(robot.Debug, "Zero-length userID, ignoring message")

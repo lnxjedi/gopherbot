@@ -11,9 +11,9 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/chzyer/readline"
 	"github.com/lnxjedi/gopherbot/robot"
 	tbot "github.com/lnxjedi/gopherbot/test"
-	"github.com/chzyer/readline"
 )
 
 func init() {
@@ -23,10 +23,6 @@ func init() {
 const termBotID = "u0000"
 const threadIDMax = 65536
 const terminalConnectorHelpLine = "Terminal connector: Type '|c?' to list channels, '|u?' to list users, '|t?' for thread help\n"
-
-// Global persistent map of user name to user index
-var userIDMap = make(map[string]int)
-var userMap = make(map[string]int)
 
 type termUser struct {
 	Name                                        string // username / handle
@@ -63,6 +59,8 @@ type termConnector struct {
 	width            int                // width of terminal
 	users            []termUser         // configured users
 	channels         []string           // the channels the robot is in
+	userNameToIndex  map[string]int     // map from user name to index in users slice
+	userIDToIndex    map[string]int     // map from connector internal user ID to index in users slice
 	heard            chan string        // when the user speaks
 	reader           *readline.Instance // readline for speaking
 	robot.Handler                       // bot API for connectors
@@ -109,9 +107,11 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		abort = c.Abort
 	}
 	found := false
+	userNameToIndex := make(map[string]int, len(c.Users)+1)
+	userIDToIndex := make(map[string]int, len(c.Users)+1)
 	for i, u := range c.Users {
-		userMap[u.Name] = i
-		userIDMap[u.InternalID] = i
+		userNameToIndex[u.Name] = i
+		userIDToIndex[u.InternalID] = i
 		if c.StartUser == u.Name {
 			found = true
 		}
@@ -119,7 +119,7 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	if !found {
 		handler.Log(robot.Fatal, "Start user \"%s\" not listed in Users array", c.StartUser)
 	}
-	if _, ok := userIDMap[termBotID]; !ok {
+	if _, ok := userIDToIndex[termBotID]; !ok {
 		firstRunes := []rune(c.BotName)
 		firstRunes[0] = unicode.ToUpper(firstRunes[0])
 		botUser := termUser{
@@ -133,8 +133,8 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		}
 		c.Users = append(c.Users, botUser)
 		idx := len(c.Users) - 1
-		userMap[c.BotName] = idx
-		userIDMap[termBotID] = idx
+		userNameToIndex[c.BotName] = idx
+		userIDToIndex[termBotID] = idx
 	}
 
 	found = false
@@ -164,7 +164,8 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		EOFPrompt:         "exit",
 	})
 	if err != nil {
-		panic(err)
+		handler.Log(robot.Fatal, "Creating terminal connector readline: %v", err)
+		return nil
 	}
 
 	tc := &termConnector{
@@ -181,6 +182,8 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		users:            c.Users,
 		heard:            make(chan string),
 		reader:           rl,
+		userNameToIndex:  userNameToIndex,
+		userIDToIndex:    userIDToIndex,
 	}
 
 	tc.Handler = handler
@@ -406,7 +409,13 @@ loop:
 				} else {
 					direct = true
 				}
-				i := userMap[tc.currentUser]
+				tc.RLock()
+				i, exists := tc.userNameToIndex[tc.currentUser]
+				tc.RUnlock()
+				if !exists || i < 0 || i >= len(tc.users) {
+					tc.Log(robot.Error, "Terminal user '%s' not found in user map, ignoring input", tc.currentUser)
+					continue
+				}
 				ui := tc.users[i]
 				var threadID, messageID string
 				tc.Lock()
@@ -458,12 +467,14 @@ func (tc *termConnector) MessageHeard(u, c string) {
 func (tc *termConnector) resolveTermUser(u string) (*termUser, bool) {
 	var i int
 	var exists bool
+	tc.RLock()
+	defer tc.RUnlock()
 	if id, ok := tc.ExtractID(u); ok {
-		i, exists = userIDMap[id]
+		i, exists = tc.userIDToIndex[id]
 	} else {
-		i, exists = userMap[u]
+		i, exists = tc.userNameToIndex[u]
 	}
-	if exists {
+	if exists && i >= 0 && i < len(tc.users) {
 		return &tc.users[i], true
 	}
 	return nil, false
@@ -548,7 +559,7 @@ func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string,
 func (tc *termConnector) resolveTermUserByName(name string) (*termUser, bool) {
 	tc.RLock()
 	defer tc.RUnlock()
-	idx, exists := userMap[name]
+	idx, exists := tc.userNameToIndex[name]
 	if !exists || idx >= len(tc.users) {
 		return nil, false
 	}
@@ -559,7 +570,7 @@ func (tc *termConnector) resolveTermUserByName(name string) (*termUser, bool) {
 func (tc *termConnector) resolveTermUserByID(uid string) (*termUser, bool) {
 	tc.RLock()
 	defer tc.RUnlock()
-	idx, exists := userIDMap[uid]
+	idx, exists := tc.userIDToIndex[uid]
 	if !exists || idx >= len(tc.users) {
 		return nil, false
 	}

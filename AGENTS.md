@@ -1,108 +1,124 @@
 # AGENTS.md — Gopherbot
 
-This file provides **persistent instructions** for AI coding agents working in this repository. It defines how to orient yourself, what documents have authority, and how to behave when making changes.
+This file defines the authoritative operating procedure for AI agents working in this repository.
 
-This file is intentionally short and stable. Task-specific instructions should be added temporarily (near the top) and removed once the task is complete.
+It governs orientation, architectural invariants, planning requirements, and change discipline.
+
+If any ad-hoc instruction conflicts with this file, this file wins.
 
 ---
 
-## Required Orientation (Read First)
+## Phase 0 — Mandatory Orientation
 
-Before making any code changes, you must read the following documents **in order**:
+Before proposing changes, you must read, in order:
 
-1. `aidocs/README.md` — routing guide for the codebase
-2. `aidocs/COMPONENT_MAP.md` — top-level component and directory map
-3. `aidocs/STARTUP_FLOW.md` — authoritative startup and initialization control flow
-4. `aidocs/GOALS_v3.md` — intent and evaluation criteria for Gopherbot v3
-
-Do not skip this step. If a proposed change conflicts with these documents, the documents take precedence unless explicitly updated.
+1. `aidocs/README.md`
+2. `aidocs/COMPONENT_MAP.md`
+3. `aidocs/STARTUP_FLOW.md`
+4. `aidocs/GOALS_v3.md`
 
 For integration test harness and testbot behavior, see `aidocs/TESTING_CURRENT.md`.
 
+Then summarize in your own words:
+
+* Core architectural invariants
+* Startup ordering constraints
+* Connector assumptions
+* Message routing model
+* Identity model
+
+Do not proceed until this summary is complete.
+
 ---
 
-## Scope and Intent
+## Phase 1 — Impact Analysis (Required for Non-Trivial Changes)
 
-This repository contains the core Gopherbot engine. Changes should prioritize:
+For any change affecting connectors, routing, startup, configuration, or identity:
 
-* Internal coherence and explicit control flow
-* Reducing reliance on fragile external tools and interpreters
-* Improving the extension authoring experience
-* Lowering onboarding and re-orientation costs
+You must produce an Impact Surface Report before modifying code.
 
-If you are unsure whether a change advances these goals, stop and explain the tradeoffs before proceeding.
+This report must include:
+
+1. Subsystems affected (with file paths)
+2. Current invariants that may break
+3. Cross-cutting concerns (startup order, config loading, execution ordering)
+4. Concurrency implications
+5. Backward compatibility concerns
+6. Documentation updates required
+
+Do not implement non-trivial changes until this report is written and shared in the task context, unless explicitly waived by the user.
+
+---
+
+## Architectural Invariants
+
+Unless explicitly updated in `aidocs/`, these invariants must hold:
+
+* Startup sequence is deterministic and traceable.
+* Control flow is explicit, not implicit.
+* Shared authorization and business policy logic must remain in engine flows, not connectors.
+* Identity resolution is deterministic and stable.
+* Permission and policy decisions must be based on protocol-agnostic usernames, not raw transport IDs.
+* Message routing order is preserved within a connector.
+* Configuration precedence rules remain explicit and documented.
+* When multiple connectors are enabled, cross-connector isolation prevents cascading failure.
+
+If a change violates any invariant, update the documentation and explain why.
+
+---
+
+## Connector Rules (Critical for Multi-Protocol)
+
+* Connectors own transport concerns and protocol-local interaction behavior.
+* Connector-local behavior must not bypass shared authorization, policy, or business rules enforced by engine flows.
+* Connectors must normalize engine-bound inbound messages into a canonical internal representation.
+* Protocol-local commands and rendering are allowed when documented and isolated to that connector.
+* Transport-specific internal user IDs are expected and allowed.
+* Each protocol must map internal user IDs to a protocol-agnostic username via its roster.
+* Cross-protocol identity equivalence must be explicit via roster mapping, never inferred heuristically.
+* Replay buffers must define ordering guarantees explicitly.
+* When multiple connectors are enabled, failure in one connector must not terminate others.
 
 ---
 
 ## Rules of Engagement
 
-* **Do not guess architecture.** Every claim about behavior must be traceable to specific files, functions, or symbols.
-* **Cite anchors.** When explaining or justifying a change, reference concrete file paths and functions.
-* **Preserve invariants.** If a change affects startup, configuration loading, or execution order, verify it against `aidocs/STARTUP_FLOW.md`.
-* **Be conservative by default.** Prefer minimal, well-scoped changes over large refactors unless explicitly instructed.
-* **Clarify ambiguity.** If you encounter an unexpected situation or ambiguity (e.g. a missing git branch, an unclear instruction, or multiple plausible behavior-affecting choices), do not make a decision on my behalf. Stop, explain the options and their implications, and ask for clarification.
-* **Ask when uncertain.** Insert `TODO (verify): ...` notes instead of inventing behavior.
-* **Think-o to avoid:** When padding for terminal output, remember `make([]rune, n)` yields zero-value runes (NUL), not spaces. Use `strings.Repeat(" ", n)` or explicitly fill with `' '` when visual spacing is required.
+* Do not guess architecture. Trace behavior to concrete symbols.
+* Cite file paths and functions.
+* Prefer explicit state machines over implicit sequencing.
+* When ambiguity exists, stop and present options with tradeoffs.
+* For speculative behavior, insert `TODO (verify):`.
 
 ---
 
-## Where to Add Documentation
+## Documentation Discipline
 
-* Agent-oriented orientation, control-flow traces, and system maps belong in `aidocs/`.
-* Human-oriented development notes, build instructions, and contributor guidance belong in `devdocs/`.
-* Do not mix purposes across these directories.
+* Agent-facing system maps belong in `aidocs/`.
+* Human development notes belong in `devdocs/`.
+* Architectural changes require updating `aidocs/STARTUP_FLOW.md`.
+* Connector changes require updating `aidocs/COMPONENT_MAP.md`.
+* Identity or routing changes require documenting invariants explicitly.
 
----
-
-## Task-Specific Instructions
-
--> We're adding a new ssh connector that will be the future default instead of terminal.
-* New default ssh connector default to replace terminal connector; this allows a local robot to run in the background and log to stdout, so a future gopherbot-mcp can start a local robot that the developer can connect to.
-    * On connect, select initial filter:
-        * A(ll) messages - you see every message from every channel and thread
-        * C(hannel) messages - you see every message in the channel, including messages in every channel thread
-        * T(hread) messages - if you've joined a thread, you see only messages in that thread, if you're in a channel, you only see messages sent to the channel without a thread
-    * The built-in ssh connector keeps the 42 most recent messages in a buffer (8k max message size); when a user connects and selects a filter, the connector replays the buffer and sends in order of arrival every message that matches the filter with a timestamp prefix, so the user sees the recent history
-### Text rendering
-Current (terminal):
-```
-c:general/u:alice -> ;ping
-general: @alice PONG
-c:general/u:alice -> ;help ping
-general(0005): Command(s) matching keyword: ping
-*;ping* - see if the bot is alive
-c:general/u:alice -> |j0005
-(now typing in thread: 0005)
-c:general(0005)/u:alice -> hello world
-c:general(0005)/u:alice -> ;ping
-general(0005): @alice PONG
-```
-Future (ssh):
-```
-(09:15:43)@alice/#general -> ;ping
-(09:15:45)@alice/#general(0005) ->;ping
-```
-### Default configuration
-Just as the Terminal Connector has Alice, Bob, Carol, David and Erin, so too will the default ssh connector configuration. The user internal unique ID will be the ssh authorized key hash, like you might find in .ssh/authorized_keys (there can be only one). The default users will have unencrypted keys in resources/ssh-default/alice.key, etc., corresponding to the public key in the default roster. To simplify local dev, `gopherbot/bot-ssh <user>` is a bash wrapper for ssh so the dev can just e.g. "./bot-ssh alice" and connect to the local robot as user alice.
-
-### Listening port
-Gopherbot will default to host localhost and port 4221, and exit with error if unable to bind. `--ssh-port NNNN` can override this. When the ssh goroutine binds to the port, it will write a trivial shell env file to $CWD/.ssh-connect:
-```
-BOT_SSH_PORT=127.0.0.1:4221 (or e.g. 0.0.0.0:4221)
-BOT_SERVER_PUBKEY=(...)
-```
-
-### Post-Task
-* Review and update the documentation in `aidocs/` as needed to reflect changes made.
+Stale documentation is considered a defect.
 
 ---
 
 ## Change Hygiene
 
-* Prefer one logical change per branch.
-* Keep documentation changes in the same branch as the code they describe.
-* Update agent docs when behavior or structure changes; stale documentation is worse than missing documentation.
+* One logical change per branch.
+* Planning before implementation for cross-cutting changes.
+* No silent refactors.
+* Preserve behavior unless explicitly redefining it.
+* If redefining behavior, document migration strategy.
 
 ---
 
-If these instructions conflict with ad-hoc prompts or assumptions, **this file wins**.
+## Post-Task Requirements
+
+After implementation:
+
+1. Re-validate architectural invariants.
+2. Update all affected documentation.
+3. Confirm startup sequence integrity.
+4. Confirm connector isolation.
+5. Confirm message ordering guarantees.

@@ -6,7 +6,6 @@ most of the internal methods. */
 import (
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -18,14 +17,6 @@ const escapePad = "\u00AD"
 
 type userlast struct {
 	user, channel string
-}
-
-var lastmsgtime = struct {
-	m map[userlast]time.Time
-	sync.Mutex
-}{
-	make(map[userlast]time.Time),
-	sync.Mutex{},
 }
 
 // If we get back an edited message from a user in a channel within the

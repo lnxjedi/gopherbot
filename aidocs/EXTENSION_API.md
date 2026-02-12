@@ -24,6 +24,7 @@ The authoritative API surface for compiled Go and Yaegi-based extensions is the 
 - `SendChannelMessage(ch, msg string, v ...interface{}) RetVal`
 - `SendChannelThreadMessage(ch, thr, msg string, v ...interface{}) RetVal`
 - `SendUserChannelMessage(u, ch, msg string, v ...interface{}) RetVal`
+- `SendProtocolUserChannelMessage(protocol, u, ch, msg string, v ...interface{}) RetVal`
 - `SendUserChannelThreadMessage(u, ch, thr, msg string, v ...interface{}) RetVal`
 - `SendUserMessage(u, msg string, v ...interface{}) RetVal`
 - `Say(msg string, v ...interface{}) RetVal`, `SayThread(msg string, v ...interface{}) RetVal`
@@ -82,7 +83,7 @@ Supported `FuncName` values in `bot/http.go`:
 - `GetParameter`, `GetTaskConfig`
 - `GetSenderAttribute`, `GetBotAttribute`, `GetUserAttribute`
 - `Log`
-- `SendChannelThreadMessage`, `SendUserChannelThreadMessage`, `SendUserMessage`
+- `SendChannelThreadMessage`, `SendUserChannelThreadMessage`, `SendProtocolUserChannelMessage`, `SendUserMessage`
 - `PromptUserChannelThreadForReply`
 
 Notes:

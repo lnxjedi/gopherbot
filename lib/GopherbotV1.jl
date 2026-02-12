@@ -600,6 +600,17 @@ function send_user_channel_message(robot::Robot, user::String, channel::String, 
 end
 
 """
+    send_protocol_user_channel_message(robot::Robot, protocol::String, user::String, channel::String, message::String, format::String="") -> Int
+
+Sends a message to a specific protocol using user/channel routing semantics.
+"""
+function send_protocol_user_channel_message(robot::Robot, protocol::String, user::String, channel::String, message::String, format::String="")::Int
+    args = Dict{String, Any}("Protocol" => protocol, "User" => user, "Channel" => channel, "Message" => message)
+    response = send_command(robot, "SendProtocolUserChannelMessage", args, format)
+    return get(response, "RetVal", Fail)
+end
+
+"""
     send_user_channel_thread_message(robot::Robot, user::String, channel::String, thread::String, message::String, format::String="") -> Int
 
 Sends a threaded message to a specific user within a channel.

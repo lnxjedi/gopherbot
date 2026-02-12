@@ -118,6 +118,14 @@ type userchannelthreadmessage struct {
 	Base64  bool
 }
 
+type protocoluserchannelmessage struct {
+	Protocol string
+	User     string
+	Channel  string
+	Message  string
+	Base64   bool
+}
+
 type replyrequest struct {
 	RegexID string
 	User    string
@@ -508,6 +516,18 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		sendReturn(r, rw, &botretvalresponse{
 			int(r.SendUserChannelThreadMessage(uctm.User, uctm.Channel, uctm.Thread, uctm.Message)),
+		})
+		return
+	case "SendProtocolUserChannelMessage":
+		var pucm protocoluserchannelmessage
+		if !getArgs(rw, &f.FuncArgs, &pucm) {
+			return
+		}
+		if pucm.Base64 {
+			pucm.Message = decode(pucm.Message)
+		}
+		sendReturn(r, rw, &botretvalresponse{
+			int(r.SendProtocolUserChannelMessage(pucm.Protocol, pucm.User, pucm.Channel, pucm.Message)),
 		})
 		return
 	case "SendUserMessage":

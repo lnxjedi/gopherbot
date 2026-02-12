@@ -261,6 +261,10 @@ class Robot:
     def SendUserChannelMessage(self, user, channel, message, format=""):
         return self.SendUserChannelThreadMessage(user, channel, "", message, format)
 
+    def SendProtocolUserChannelMessage(self, protocol, user, channel, message, format=""):
+        ret = self.Call(sys._getframe().f_code.co_name, { "Protocol": protocol, "User": user, "Channel": channel, "Message": message }, format)
+        return ret["RetVal"]
+
     def SendUserChannelThreadMessage(self, user, channel, thread, message, format=""):
         ret = self.Call(sys._getframe().f_code.co_name, { "User": user,
         "Channel": channel, "Thread": thread, "Message": message }, format)
