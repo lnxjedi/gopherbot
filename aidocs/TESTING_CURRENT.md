@@ -11,7 +11,7 @@ Focus: integration test harness under `test/` and how tests are executed.
 ## Harness entrypoints
 
 - `setup()` in `test/common_test.go` starts the bot via `StartTest()` and relies on the test configs to choose the `test` protocol.
-- `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It locates the repo root by walking up until `conf/robot.yaml` is found, `chdir`s there so startup mode resolves to `test-dev`, then initializes the bot, selects the connector from `currentCfg.protocol`, and runs `run()` (see also `bot/bot_process.go`).
+- `StartTest()` is defined in `bot/start_t.go` (only built with `test` tag). It locates the repo root by walking up until `conf/robot.yaml` is found, `chdir`s there so startup mode resolves to `test-dev`, initializes connector runtime via `initializeConnectorRuntime`, and then runs `run()` (see also `bot/bot_process.go` and `bot/connector_runtime.go`).
 - The test connector is registered in `connectors/test/init.go` (`bot.RegisterConnector("test", Initialize)`), and its runtime loop lives in `connectors/test/connector.go` (`(*TestConnector).Run`).
 
 ## setup / teardown / testcases flow
@@ -35,7 +35,7 @@ Focus: integration test harness under `test/` and how tests are executed.
 
 ## Protocol selection for tests
 
-- The integration configs under `test/*/conf/robot.yaml` set `Protocol: {{ env "GOPHER_PROTOCOL" | default "test" }}` so tests use the test connector by default without setting env vars in Go code.
+- The integration configs under `test/*/conf/robot.yaml` set `Protocol: {{ env "GOPHER_PROTOCOL" | default "test" }}` so tests use the test connector by default without setting env vars in Go code. (`PrimaryProtocol` is also accepted by the loader as the preferred modern key.)
 - When running a config interactively (e.g., `cd test/membrain` + `gopherbot`), set `GOPHER_PROTOCOL=terminal` (via `private/environment`) to exercise the terminal connector.
 
 ## `make testbot` (interactive test helper)

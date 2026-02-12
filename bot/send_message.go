@@ -17,6 +17,12 @@ which may have been modified by e.g. r.Direct(), r.Fixed(), etc.
 // If the user is not found in the internal map, it returns the original username.
 // This allows the chat connector to handle unresolved usernames appropriately.
 func (r *Robot) tryResolveUser(u string) string {
+	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
+	if pm, ok := r.maps.userProto[protocol]; ok {
+		if ui, ok := pm[u]; ok {
+			return bracket(ui.UserID)
+		}
+	}
 	if ui, ok := r.maps.user[u]; ok {
 		return bracket(ui.UserID)
 	}
@@ -24,6 +30,12 @@ func (r *Robot) tryResolveUser(u string) string {
 }
 
 func (w *worker) tryResolveUser(u string) string {
+	protocol := protocolFromIncoming(w.Incoming, w.Protocol)
+	if pm, ok := w.maps.userProto[protocol]; ok {
+		if ui, ok := pm[u]; ok {
+			return bracket(ui.UserID)
+		}
+	}
 	if ui, ok := w.maps.user[u]; ok {
 		return bracket(ui.UserID)
 	}
@@ -85,7 +97,10 @@ func (r Robot) messageHeard() {
 	if len(channel) == 0 {
 		channel = r.Channel
 	}
-	interfaces.MessageHeard(user, channel)
+	conn := getConnectorForProtocol(protocolFromIncoming(r.Incoming, r.Protocol))
+	if conn != nil {
+		conn.MessageHeard(user, channel)
+	}
 }
 
 func (w *worker) messageHeard() {
@@ -97,7 +112,10 @@ func (w *worker) messageHeard() {
 	if len(channel) == 0 {
 		channel = w.Channel
 	}
-	interfaces.MessageHeard(user, channel)
+	conn := getConnectorForProtocol(protocolFromIncoming(w.Incoming, w.Protocol))
+	if conn != nil {
+		conn.MessageHeard(user, channel)
+	}
 }
 
 // see robot/robot.go

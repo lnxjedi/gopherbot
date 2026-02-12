@@ -79,7 +79,11 @@ func (r Robot) formatHelpLine(input string) (ret string) {
 			}
 		}
 	}
-	return interfaces.FormatHelp(ret)
+	conn := getConnectorForProtocol(protocolFromIncoming(r.Incoming, r.Protocol))
+	if conn == nil {
+		return ret
+	}
+	return conn.FormatHelp(ret)
 }
 
 func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
@@ -143,7 +147,11 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		helpLines := make([]string, 0, 14)
 		if command == "help" {
 			if !hasKeyword {
-				defaultHelpLines := interfaces.DefaultHelp()
+				conn := getConnectorForProtocol(protocolFromIncoming(r.Incoming, r.Protocol))
+				var defaultHelpLines []string
+				if conn != nil {
+					defaultHelpLines = conn.DefaultHelp()
+				}
 				if len(defaultHelpLines) == 0 {
 					defaultHelpLines = defaultHelp()
 				}
@@ -410,6 +418,79 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		}
 		r.Reply("Configuration reloaded successfully")
 		w.Log(robot.Info, "Configuration successfully reloaded by a request from: %s", r.User)
+	case "protocollist":
+		sourceProtocol := protocolFromIncoming(r.Incoming, r.Protocol)
+		primaryProtocol, _ := getRuntimePrimaryProtocol()
+		if !isPrimaryProtocolSource(sourceProtocol) {
+			r.Say("This command is only available from the primary protocol '%s'", primaryProtocol)
+			return
+		}
+		statuses := listConnectorProtocolStatus()
+		if len(statuses) == 0 {
+			r.Say("No protocol runtimes are configured")
+			return
+		}
+		lines := make([]string, 0, len(statuses)+1)
+		lines = append(lines, "Protocol runtime status:")
+		for _, status := range statuses {
+			line := fmt.Sprintf("%s (%s): %s", status.protocol, status.role, status.state)
+			if status.err != "" {
+				line += " (" + status.err + ")"
+			}
+			lines = append(lines, line)
+		}
+		r.Say(strings.Join(lines, "\n"))
+	case "protocolstart":
+		sourceProtocol := protocolFromIncoming(r.Incoming, r.Protocol)
+		primaryProtocol, _ := getRuntimePrimaryProtocol()
+		if !isPrimaryProtocolSource(sourceProtocol) {
+			r.Say("This command is only available from the primary protocol '%s'", primaryProtocol)
+			return
+		}
+		if len(args) == 0 || len(strings.TrimSpace(args[0])) == 0 {
+			r.Say("Usage: protocol-start <protocol>")
+			return
+		}
+		protocol := normalizeProtocolName(args[0])
+		if err := startSecondaryConnectorRuntime(protocol); err != nil {
+			r.Say("Unable to start protocol '%s': %v", protocol, err)
+			return
+		}
+		r.Say("Started protocol '%s'", protocol)
+	case "protocolstop":
+		sourceProtocol := protocolFromIncoming(r.Incoming, r.Protocol)
+		primaryProtocol, _ := getRuntimePrimaryProtocol()
+		if !isPrimaryProtocolSource(sourceProtocol) {
+			r.Say("This command is only available from the primary protocol '%s'", primaryProtocol)
+			return
+		}
+		if len(args) == 0 || len(strings.TrimSpace(args[0])) == 0 {
+			r.Say("Usage: protocol-stop <protocol>")
+			return
+		}
+		protocol := normalizeProtocolName(args[0])
+		if err := stopSecondaryConnectorRuntime(protocol); err != nil {
+			r.Say("Unable to stop protocol '%s': %v", protocol, err)
+			return
+		}
+		r.Say("Stopped protocol '%s'", protocol)
+	case "protocolrestart":
+		sourceProtocol := protocolFromIncoming(r.Incoming, r.Protocol)
+		primaryProtocol, _ := getRuntimePrimaryProtocol()
+		if !isPrimaryProtocolSource(sourceProtocol) {
+			r.Say("This command is only available from the primary protocol '%s'", primaryProtocol)
+			return
+		}
+		if len(args) == 0 || len(strings.TrimSpace(args[0])) == 0 {
+			r.Say("Usage: protocol-restart <protocol>")
+			return
+		}
+		protocol := normalizeProtocolName(args[0])
+		if err := restartSecondaryConnectorRuntime(protocol); err != nil {
+			r.Say("Unable to restart protocol '%s': %v", protocol, err)
+			return
+		}
+		r.Say("Restarted protocol '%s'", protocol)
 	case "abort":
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)

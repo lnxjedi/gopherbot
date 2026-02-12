@@ -62,8 +62,11 @@ var interfaces struct {
 	history         robot.HistoryProvider // Provider for storing and retrieving job / plugin histories
 }
 
-var done = make(chan bool)              // shutdown channel, true to restart
-var stopConnector = make(chan struct{}) // stop channel for stopping the connector
+var done = make(chan bool) // shutdown channel, true to restart
+var signalBreak = struct {
+	sync.Mutex
+	ch chan struct{}
+}{}
 
 // internal state tracking
 var state struct {
@@ -98,7 +101,8 @@ type configuration struct {
 	httpDebug            bool                // whether http API debug logging is enabled
 	defaultMessageFormat robot.MessageFormat // Raw unless set to Variable or Fixed
 	plugChannels         []string            // list of channels where plugins are available by default
-	protocol             string              // Name of the protocol, e.g. "slack"
+	protocol             string              // Name of the primary protocol, e.g. "slack"
+	secondaryProtocols   []string            // Additional protocols configured for future multi-protocol runtime
 	brainProvider        string              // Type of Brain provider to use
 	encryptionKey        string              // Key for encrypting data (unlocks "real" key in brain)
 	historyProvider      string              // Name of the history provider to use
@@ -353,21 +357,14 @@ func run() {
 
 	// signal handler
 	sigBreak := make(chan struct{})
+	signalBreak.Lock()
+	signalBreak.ch = sigBreak
+	signalBreak.Unlock()
 	go sigHandle(sigBreak)
 
-	// connector loop
-	go func(conn robot.Connector, sigBreak chan<- struct{}) {
-		raiseThreadPriv("connector loop")
-		conn.Run(stopConnector)
-		close(sigBreak)
-		state.RLock()
-		restart := state.restart
-		state.RUnlock()
-		if restart {
-			Log(robot.Info, "Restarting...")
-		}
-		done <- restart
-	}(interfaces.Connector, sigBreak)
+	if err := startConnectorRuntimes(); err != nil {
+		Log(robot.Fatal, "Starting connector runtime: %v", err)
+	}
 
 	// The first run through is for configuring and running init
 	// jobs (which can't send messages), the second run through
@@ -391,5 +388,18 @@ func stop() {
 	Log(robot.Info, "Stop called with %d pipelines running", pr)
 	state.Wait()
 	brainQuit()
-	stopConnector <- struct{}{}
+	shutdownConnectorRuntimes()
+	signalBreak.Lock()
+	if signalBreak.ch != nil {
+		close(signalBreak.ch)
+		signalBreak.ch = nil
+	}
+	signalBreak.Unlock()
+	state.RLock()
+	restart := state.restart
+	state.RUnlock()
+	if restart {
+		Log(robot.Info, "Restarting...")
+	}
+	done <- restart
 }

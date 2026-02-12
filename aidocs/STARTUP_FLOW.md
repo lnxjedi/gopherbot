@@ -11,7 +11,7 @@ Startup proceeds through the following phases **in order**:
 3. **Encryption initialization** – Set up brain encryption
 4. **Pre-connect configuration load** – Load basic configuration without running scripts
 5. **Brain initialization** – Start the brain provider
-6. **Connector startup** – Start the chat protocol connector
+6. **Connector runtime initialization** – Initialize primary + configured secondary connectors
 7. **Post-connect configuration load** – Full configuration with plugin initialization
 
 ## Entry Points
@@ -148,6 +148,22 @@ The default `robot.yaml` uses Go templates to derive configuration values from s
 {{- end }}
 ```
 
+### Protocol Key Compatibility
+
+`bot/conf.go` now accepts both:
+
+- `PrimaryProtocol` (preferred)
+- `Protocol` (legacy alias for backward compatibility)
+
+If both are set and differ, `PrimaryProtocol` wins and a warning is logged.
+
+`SecondaryProtocols` is accepted in `robot.yaml` and now drives active runtime orchestration:
+
+- startup attempts the primary connector and all configured secondaries
+- secondary startup failures are logged and do not abort startup
+- reload reconciles secondary runtime (removed secondaries stop; configured secondaries are re-attempted)
+- changing primary protocol on reload is rejected and logged; active primary remains unchanged
+
 ### Template Functions
 
 | Function             | Purpose                        | Example                             |
@@ -194,7 +210,7 @@ if encryptionInitialized {
 
 ## Configuration Loading
 
-**Invariant:** the chat connector must be running before post-connect configuration is loaded.
+**Invariant:** connector runtime startup must complete (primary required, secondaries best effort) before post-connect configuration is loaded.
 
 ## Extension Loading
 
@@ -259,18 +275,33 @@ run()
   │
   ├─> go sigHandle()       // Signal handler (SIGINT, SIGTERM, etc.)
   │
-  ├─> go conn.Run()        // Connector main loop runs concurrently
+  ├─> startConnectorRuntimes()
+  │     ├─> primary connector run loop (required)
+  │     └─> secondary connector run loops (best effort)
   │
   └─> loadConfig(false)    // Run full config load in the main thread
         │
         └─> Log("Robot is initialized and running")
 ```
 
+## Runtime Protocol Controls
+
+Built-in admin commands now expose protocol runtime lifecycle controls from the primary protocol:
+
+- `protocol-list` / `protocol list`
+- `protocol-start <name>` / `protocol start <name>`
+- `protocol-stop <name>` / `protocol stop <name>`
+- `protocol-restart <name>` / `protocol restart <name>`
+
+These commands operate on configured secondary protocols only. Primary protocol changes remain startup-only.
+
 ## Key Files
 
 * `bot/start.go` – Entry point, CLI parsing, log setup
 * `bot/bot_process.go` – `initBot()`, `run()`, encryption initialization
-* `bot/config_load.go` – `detectStartupMode()`, `loadConfig()`
+* `bot/config_load.go` – `detectStartupMode()`, config-file merge/template expansion
+* `bot/conf.go` – `loadConfig()` and reload reconciliation hooks for `SecondaryProtocols`
+* `bot/connector_runtime.go` – multi-connector runtime manager, routing, lifecycle controls
 * `conf/robot.yaml` – Default config with template logic
 
 ## Debugging Startup (Human-Oriented Notes)

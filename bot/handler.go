@@ -17,8 +17,34 @@ import (
 // an empty object type for passing a Handler to the connector.
 type handler struct{}
 
+type connectorHandler struct {
+	handler
+	protocol         string
+	allowBotIdentity bool
+}
+
 // dummy var to pass a handler
 var handle = handler{}
+
+func (h connectorHandler) GetProtocolConfig(v interface{}) error {
+	cfg := getProtocolConfigFor(h.protocol)
+	if cfg == nil {
+		return fmt.Errorf("no ProtocolConfig loaded for protocol '%s'", h.protocol)
+	}
+	return json.Unmarshal(cfg, v)
+}
+
+func (h connectorHandler) SetBotID(id string) {
+	if h.allowBotIdentity {
+		h.handler.SetBotID(id)
+	}
+}
+
+func (h connectorHandler) SetBotMention(m string) {
+	if h.allowBotIdentity {
+		h.handler.SetBotMention(m)
+	}
+}
 
 /* Handle incoming messages and other callbacks from the connector. */
 
@@ -298,8 +324,14 @@ we don't need to worry about locking. When absolutely necessary, there's always 
 
 // GetProtocolConfig unmarshals the connector's configuration data into a provided struct
 func (h handler) GetProtocolConfig(v interface{}) error {
-	err := json.Unmarshal(protocolConfig, v)
-	return err
+	currentCfg.RLock()
+	protocol := currentCfg.protocol
+	currentCfg.RUnlock()
+	cfg := getProtocolConfigFor(protocol)
+	if cfg == nil {
+		return fmt.Errorf("no ProtocolConfig loaded for primary protocol '%s'", protocol)
+	}
+	return json.Unmarshal(cfg, v)
 }
 
 // GetBrainConfig unmarshals the brain's configuration data into a provided struct

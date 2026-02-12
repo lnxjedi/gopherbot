@@ -70,18 +70,15 @@ func StartTest(v VersionInfo, cfgdir, logfile string, t *testing.T) (chan bool, 
 	}
 	initBot()
 
-	initializeConnector, ok := connectors[currentCfg.protocol]
-	if !ok {
-		Log(robot.Fatal, "No connector registered with name: %s", currentCfg.protocol)
+	if err := initializeConnectorRuntime(botLogger.logger); err != nil {
+		Log(robot.Fatal, "Initializing connector runtime: %v", err)
 	}
 	Log(robot.Info, "Starting new test with cfgdir: %s\n", cfgdir)
 
-	// handler{} is just a placeholder struct for implementing the Handler interface
-	conn := initializeConnector(handle, botLogger.logger)
-
-	// NOTE: we use setConnector instead of passing the connector to run()
-	// because of the way Windows services were run. Maybe remove eventually?
-	setConnector(conn)
+	conn := getPrimaryConnector()
+	if conn == nil {
+		Log(robot.Fatal, "Primary connector for protocol '%s' is not initialized", currentCfg.protocol)
+	}
 
 	run()
 

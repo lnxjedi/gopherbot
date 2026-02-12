@@ -1,12 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 1 ]]; then
-  echo "Usage: ./bot-ssh <user> | ./bot-ssh -k"
-  exit 2
-fi
+usage() {
+  echo "Usage: ./bot-ssh <user> | ./bot-ssh -l <user> | ./bot-ssh -k"
+}
 
-if [[ "$1" == "-k" ]]; then
+local_key=false
+print_known_hosts=false
+
+while getopts ":kl" opt; do
+  case "$opt" in
+    k)
+      print_known_hosts=true
+      ;;
+    l)
+      local_key=true
+      ;;
+    \?)
+      usage
+      exit 2
+      ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+if [[ "$print_known_hosts" == "true" ]]; then
+  if [[ $# -ne 0 ]]; then
+    usage
+    exit 2
+  fi
   if [[ ! -f ".ssh-connect" ]]; then
     exit 1
   fi
@@ -19,16 +41,13 @@ if [[ "$1" == "-k" ]]; then
   exit 0
 fi
 
-user="$1"
-key="resources/ssh-default/${user}.key"
-connect_file=".ssh-connect"
-
-if [[ ! -f "$key" ]]; then
-  echo "Missing key: $key"
-  exit 1
+if [[ $# -ne 1 ]]; then
+  usage
+  exit 2
 fi
 
-chmod 600 "$key" 2>/dev/null || true
+user="$1"
+connect_file=".ssh-connect"
 
 if [[ ! -f "$connect_file" ]]; then
   echo "Missing $connect_file; start gopherbot first"
@@ -43,11 +62,28 @@ host="${hostport%:*}"
 port="${hostport##*:}"
 bot_ssh_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/bot-ssh"
 
-ssh \
-  -i "$key" \
-  -p "$port" \
-  -o IdentitiesOnly=yes \
-  -o UserKnownHostsFile=/dev/null \
-  -o StrictHostKeyChecking=yes \
-  -o "KnownHostsCommand=$bot_ssh_path -k" \
-  "${user}@${host}"
+if [[ "$local_key" == "true" ]]; then
+  ssh \
+    -p "$port" \
+    -o UserKnownHostsFile=/dev/null \
+    -o StrictHostKeyChecking=yes \
+    -o "KnownHostsCommand=$bot_ssh_path -k" \
+    "${user}@${host}"
+else
+  key="resources/ssh-default/${user}.key"
+  if [[ ! -f "$key" ]]; then
+    echo "Missing key: $key"
+    exit 1
+  fi
+
+  chmod 600 "$key" 2>/dev/null || true
+
+  ssh \
+    -i "$key" \
+    -p "$port" \
+    -o IdentitiesOnly=yes \
+    -o UserKnownHostsFile=/dev/null \
+    -o StrictHostKeyChecking=yes \
+    -o "KnownHostsCommand=$bot_ssh_path -k" \
+    "${user}@${host}"
+fi

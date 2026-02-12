@@ -14,13 +14,21 @@ func (r Robot) GetMessage() *robot.Message {
 // see robot/robot.go
 func (r Robot) GetUserAttribute(u, a string) *robot.AttrRet {
 	a = strings.ToLower(a)
+	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
 	var user string
 	var ui *UserInfo
 	var ok bool
-	if ui, ok = r.maps.user[u]; ok {
-		user = "<" + ui.UserID + ">"
-	} else {
-		user = u
+	if pm, exists := r.maps.userProto[protocol]; exists {
+		if ui, ok = pm[u]; ok {
+			user = "<" + ui.UserID + ">"
+		}
+	}
+	if ui == nil {
+		if ui, ok = r.maps.user[u]; ok {
+			user = "<" + ui.UserID + ">"
+		} else {
+			user = u
+		}
 	}
 	if ui != nil {
 		var attr string
@@ -49,15 +57,25 @@ func (r Robot) GetUserAttribute(u, a string) *robot.AttrRet {
 			return &robot.AttrRet{attr, robot.Ok}
 		}
 	}
-	attr, ret := interfaces.GetProtocolUserAttribute(user, a)
+	conn := getConnectorForProtocol(protocol)
+	if conn == nil {
+		return &robot.AttrRet{"", robot.Failed}
+	}
+	attr, ret := conn.GetProtocolUserAttribute(user, a)
 	return &robot.AttrRet{attr, ret}
 }
 
 // see robot/robot.go
 func (r Robot) GetSenderAttribute(a string) *robot.AttrRet {
 	a = strings.ToLower(a)
+	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
 	var ui *UserInfo
-	ui, _ = r.maps.user[r.User]
+	if pm, exists := r.maps.userProto[protocol]; exists {
+		ui = pm[r.User]
+	}
+	if ui == nil {
+		ui, _ = r.maps.user[r.User]
+	}
 	switch a {
 	case "name", "username", "handle", "user":
 		return &robot.AttrRet{r.User, robot.Ok}
@@ -91,6 +109,10 @@ func (r Robot) GetSenderAttribute(a string) *robot.AttrRet {
 	if len(user) == 0 {
 		user = r.User
 	}
-	attr, ret := interfaces.GetProtocolUserAttribute(user, a)
+	conn := getConnectorForProtocol(protocol)
+	if conn == nil {
+		return &robot.AttrRet{"", robot.Failed}
+	}
+	attr, ret := conn.GetProtocolUserAttribute(user, a)
 	return &robot.AttrRet{attr, ret}
 }
