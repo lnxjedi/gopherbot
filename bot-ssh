@@ -7,6 +7,8 @@ usage() {
 
 local_key=false
 print_known_hosts=false
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+bot_ssh_path="${script_dir}/bot-ssh"
 
 while getopts ":kl" opt; do
   case "$opt" in
@@ -60,7 +62,6 @@ source "$connect_file"
 hostport="${BOT_SSH_PORT:-127.0.0.1:4221}"
 host="${hostport%:*}"
 port="${hostport##*:}"
-bot_ssh_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/bot-ssh"
 
 if [[ "$local_key" == "true" ]]; then
   ssh \
@@ -70,7 +71,7 @@ if [[ "$local_key" == "true" ]]; then
     -o "KnownHostsCommand=$bot_ssh_path -k" \
     "${user}@${host}"
 else
-  key="resources/ssh-default/${user}.key"
+  key="${script_dir}/resources/ssh-default/${user}.key"
   if [[ ! -f "$key" ]]; then
     echo "Missing key: $key"
     exit 1
