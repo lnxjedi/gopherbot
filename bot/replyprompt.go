@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,12 +17,15 @@ Why retryPrompt is sent to all waiters, instead of just the head of a queue
 After spending a good deal of one morning re-writing waiters as a proper queue,
 I realized the problem with that implementation. Each script plugin is
 posting JSON to a port and waiting for a reply, and most script libraries will
-timeout waiting after no more than a minute (which is why the replyTimeout is
-45 seconds). If we queue up all waiters, and the user doesn't reply to the first
+timeout waiting after no more than a minute (which is why the default replyTimeout
+is 45 seconds). If we queue up all waiters, and the user doesn't reply to the first
 waiter (or second), then the second waiter in the queue might not get a reply
 for a 90 seconds - by which time the script would crash. To be certain that
 every waiting plugin gets some kind of return value within 60 seconds, we just
 send retryPrompt to all waiters, and let them race to be first.
+
+Long-running interactive prompts on local connectors (ssh/terminal) can opt
+into a longer timeout, but the queueing model remains unchanged.
 
 Realize this isn't as bad as it might seem; the list of waiters is per
 user/channel combination, so this kind of thing only happens if a single user
@@ -33,6 +37,16 @@ and think hard before doing things any differently.
 */
 
 const replyTimeout = 45 * time.Second
+const interactivePromptTimeout = 42 * time.Minute
+
+var promptShutdown = struct {
+	sync.Mutex
+	ch     chan struct{}
+	closed bool
+}{
+	ch:     make(chan struct{}),
+	closed: false,
+}
 
 type replyDisposition int
 
@@ -50,7 +64,7 @@ type replyWaiter struct {
 
 // a reply matcher is used as the key in the replies map
 type replyMatcher struct {
-	user, channel, thread string // Only one reply at a time can be requested for a given user/channel/thread combination
+	protocol, user, channel, thread string // Only one reply at a time can be requested for a given protocol/user/channel/thread combination
 }
 
 // a reply is sent over the replyWaiter channel when a user replies
@@ -93,6 +107,61 @@ func init() {
 	for _, sr := range stockReplyList {
 		stockReplies[sr.repTag] = regexp.MustCompile(`^\s*` + sr.repRegex + `\s*$`)
 	}
+}
+
+func resetPromptShutdownSignal() {
+	promptShutdown.Lock()
+	promptShutdown.ch = make(chan struct{})
+	promptShutdown.closed = false
+	promptShutdown.Unlock()
+}
+
+func triggerPromptShutdownSignal() {
+	promptShutdown.Lock()
+	if !promptShutdown.closed && promptShutdown.ch != nil {
+		close(promptShutdown.ch)
+		promptShutdown.closed = true
+	}
+	promptShutdown.Unlock()
+}
+
+func getPromptShutdownSignal() <-chan struct{} {
+	promptShutdown.Lock()
+	defer promptShutdown.Unlock()
+	return promptShutdown.ch
+}
+
+func isInteractivePromptProtocol(protocol string) bool {
+	switch normalizeProtocolName(protocol) {
+	case "ssh", "terminal":
+		return true
+	}
+	return false
+}
+
+func isInterpreterTask(task *Task) bool {
+	if task == nil {
+		return false
+	}
+	if task.taskType == taskGo {
+		return true
+	}
+	if task.taskType != taskExternal {
+		return false
+	}
+	path := strings.ToLower(strings.TrimSpace(task.Path))
+	return strings.HasSuffix(path, ".go") || strings.HasSuffix(path, ".lua") || strings.HasSuffix(path, ".js")
+}
+
+func promptTimeoutForContext(r Robot, task *Task) time.Duration {
+	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
+	if !isInteractivePromptProtocol(protocol) {
+		return replyTimeout
+	}
+	if !isInterpreterTask(task) {
+		return replyTimeout
+	}
+	return interactivePromptTimeout
 }
 
 // see robot/robot.go
@@ -202,14 +271,23 @@ func (r Robot) PromptUserChannelThreadForReply(regexID string, user, channel, th
 
 // promptInternal can return 'RetryPrompt'
 func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (string, robot.RetVal) {
+	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
 	matcher := replyMatcher{
-		user:    user,
-		channel: channel,
-		thread:  thread,
+		protocol: protocol,
+		user:     user,
+		channel:  channel,
+		thread:   thread,
 	}
 	var rep replyWaiter
 	task, _, job := getTask(r.currentTask)
 	isJob := job != nil
+	waitTimeout := promptTimeoutForContext(r, task)
+	shutdownSignal := getPromptShutdownSignal()
+	select {
+	case <-shutdownSignal:
+		return "", robot.Interrupted
+	default:
+	}
 	if stockRepliesRe.MatchString(regexID) {
 		rep.re = stockReplies[regexID]
 	} else {
@@ -233,7 +311,7 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 		Log(robot.Error, "Unable to resolve a reply matcher for plugin %s, regexID %s", task.name, regexID)
 		return "", robot.MatcherNotFound
 	}
-	rep.replyChannel = make(chan reply)
+	rep.replyChannel = make(chan reply, 1)
 
 	replies.Lock()
 	// See if there's already a continuation in progress for this Robot:user,channel,
@@ -246,12 +324,7 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 		replies.Unlock()
 	} else {
 		Log(robot.Debug, "Prompting for \"%s\" and creating reply waiters list and prompting for matcher: %q", prompt, matcher)
-		var puser string
-		if ui, ok := r.maps.user[user]; ok {
-			puser = bracket(ui.UserID)
-		} else {
-			puser = user
-		}
+		puser := (&r).tryResolveUser(user)
 		var ret robot.RetVal
 		if channel == "" {
 			ret = interfaces.SendProtocolUserMessage(puser, prompt, r.Format, r.Incoming)
@@ -269,8 +342,8 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 	}
 	var replied reply
 	select {
-	case <-time.After(replyTimeout):
-		Log(robot.Warn, "Timed out waiting for a reply to regex \"%s\" in channel: %s", regexID, channel)
+	case <-time.After(waitTimeout):
+		Log(robot.Warn, "Timed out waiting for a reply to regex \"%s\" in channel: %s (timeout: %s)", regexID, channel, waitTimeout)
 		replies.Lock()
 		waitlist, found := replies.m[matcher]
 		if found {
@@ -293,6 +366,13 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 		// expired.
 		replies.Unlock()
 		replied = <-rep.replyChannel
+	case <-shutdownSignal:
+		replies.Lock()
+		if _, found := replies.m[matcher]; found {
+			delete(replies.m, matcher)
+		}
+		replies.Unlock()
+		return "", robot.Interrupted
 	case replied = <-rep.replyChannel:
 	}
 	if replied.disposition == replyInterrupted {

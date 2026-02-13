@@ -37,6 +37,11 @@ The authoritative API surface for compiled Go and Yaegi-based extensions is the 
 - `PromptUserChannelForReply(regexID, user, channel, prompt string, v ...interface{}) (string, RetVal)`
 - `PromptUserChannelThreadForReply(regexID, user, channel, thread, prompt string, v ...interface{}) (string, RetVal)`
 
+Prompt timeout semantics:
+- Default timeout: `45s`.
+- Extended timeout: `42m` for `ssh`/`terminal` when the calling task is compiled Go or interpreter-backed (`.go`, `.lua`, `.js`).
+- On robot shutdown, in-progress prompt waits return `Interrupted` immediately.
+
 ### Memory (brain + ephemeral)
 - `CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal)`
 - `CheckinDatum(key, locktoken string)`

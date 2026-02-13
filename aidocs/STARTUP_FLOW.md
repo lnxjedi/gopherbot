@@ -296,6 +296,20 @@ Built-in admin commands now expose protocol runtime lifecycle controls from the 
 
 These commands operate on configured secondary protocols only. Primary protocol changes remain startup-only.
 
+## Shutdown Sequence (Control-Flow)
+
+Shutdown can be triggered by admin commands, pipeline tasks, or process signals. The shutdown flow is:
+
+1. Set `state.shuttingDown = true` (prevents new non-allowed pipelines).
+2. Call `stop()` in `bot/bot_process.go`.
+3. `stop()` first triggers prompt shutdown signaling so in-progress `Prompt*` waits return `Interrupted` immediately.
+4. `stop()` waits for running pipelines (`state.Wait()`).
+5. Stop brain loop (`brainQuit()`), then stop connector runtimes.
+6. Stop signal handler goroutine.
+7. Emit restart flag on `done` channel.
+
+This keeps shutdown deterministic even when interactive prompts are using long timeout windows.
+
 ## Key Files
 
 * `bot/start.go` – Entry point, CLI parsing, log setup

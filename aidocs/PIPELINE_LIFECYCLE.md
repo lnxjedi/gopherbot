@@ -22,6 +22,15 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 - Job triggers / `run job`: `bot/dispatch.go:handleMessage`, `bot/jobrun.go:checkJobMatchersAndRun`.
 - Catch‑alls (only when directly addressed and nothing matched): `bot/dispatch.go:handleMessage`.
 
+## Prompt Waiter Lifecycle (Prompt* APIs)
+
+- Prompt waiters are keyed by `protocol/user/channel/thread` and checked before command/message matcher routing: `bot/dispatch.go:handleMessage`, `bot/replyprompt.go`.
+- Default prompt timeout is `45s`.
+- Extended prompt timeout is `42m` only when both are true:
+  - Incoming protocol is `ssh` or `terminal`.
+  - Current task is compiled Go or interpreter-backed (`.go`, `.lua`, `.js`).
+- During shutdown, in-progress prompt waits are interrupted immediately (returning `Interrupted`) instead of waiting for timeout, so long prompt windows do not block shutdown completion.
+
 ## Config → Matcher Data (where matchers come from)
 
 - YAML source: `conf/plugins/*.yaml` (example `conf/plugins/ping.yaml` `CommandMatchers`).

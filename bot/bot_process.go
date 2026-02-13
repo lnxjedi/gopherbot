@@ -168,6 +168,7 @@ func initBot() {
 	}
 
 	state.shuttingDown = false
+	resetPromptShutdownSignal()
 
 	if cliOp {
 		setLogLevel(robot.Warn)
@@ -386,6 +387,7 @@ func stop() {
 	pr := state.pipelinesRunning
 	state.RUnlock()
 	Log(robot.Info, "Stop called with %d pipelines running", pr)
+	triggerPromptShutdownSignal()
 	state.Wait()
 	brainQuit()
 	shutdownConnectorRuntimes()

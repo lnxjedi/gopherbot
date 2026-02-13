@@ -46,6 +46,11 @@ This document records the intended SSH connector behavior, control flow, and int
 - One goroutine per client session.
 - Client sessions share a global message broadcaster and replay buffer.
 
+## Prompt Behavior
+
+- Prompt* waits from ssh sessions use the engine's extended interactive timeout (`42m`) when the caller is a compiled Go or interpreter-backed (`.go`, `.lua`, `.js`) task.
+- Prompt* waits are canceled immediately during robot shutdown so pending interactive prompts do not delay stop/restart.
+
 ## Identity Mapping
 
 - Users are configured in `UserRoster` with `UserID` equal to a full public key line (`ssh-ed25519 AAAA...`).

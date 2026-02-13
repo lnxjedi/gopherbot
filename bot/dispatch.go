@@ -210,7 +210,13 @@ func (w *worker) handleMessage() {
 	if w.Incoming.ThreadedMessage {
 		threadID = w.Incoming.ThreadID
 	}
-	matcher := replyMatcher{w.User, w.Channel, threadID}
+	incomingProtocol := protocolFromIncoming(w.Incoming, w.Protocol)
+	matcher := replyMatcher{
+		protocol: incomingProtocol,
+		user:     w.User,
+		channel:  w.Channel,
+		thread:   threadID,
+	}
 	Log(robot.Trace, "Checking replies for matcher: %q", matcher)
 	replies.Lock()
 	waiters, waitingForReply = replies.m[matcher]
