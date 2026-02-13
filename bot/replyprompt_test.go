@@ -226,8 +226,8 @@ func TestPromptInternalUsesProtocolScopedUserResolution(t *testing.T) {
 			Incoming: &robot.ConnectorMessage{Protocol: "slack"},
 		},
 		maps: &userChanMaps{
-			user: map[string]*UserInfo{
-				"alice": {UserName: "alice", UserID: "ssh-ed25519 AAAAold"},
+			user: map[string]*DirectoryUser{
+				"alice": {UserName: "alice"},
 			},
 			userProto: map[string]map[string]*UserInfo{
 				"slack": {

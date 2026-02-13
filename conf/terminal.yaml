@@ -71,17 +71,19 @@ ProtocolConfig:
     LastName: "User"
     Phone: "(555)765-0005"
   
+UserMap:
+  alice: "u0001"
+  bob: "u0002"
+  carol: "u0003"
+  david: "u0004"
+  erin: "u0005"
+
 UserRoster:
 - UserName: "alice"
-  UserID: "u0001"
 - UserName: "bob"
-  UserID: "u0002"
 - UserName: "carol"
-  UserID: "u0003"
 - UserName: "david"
-  UserID: "u0004"
 - UserName: "erin"
-  UserID: "u0005"
 
 {{ $defaultjobchannel := "general" }}
 DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}

@@ -237,10 +237,10 @@ func (w *worker) handleMessage() {
 				} else {
 					matched = rep.re.MatchString(cmsg)
 				}
-				Log(robot.Debug, "Found replyWaiter for user '%s' in channel '%s'/thread '%s', checking if message '%s' matches '%s': %t", w.User, w.Channel, w.Incoming.ThreadID, cmsg, rep.re.String(), matched)
+				Log(robot.Debug, "Found replyWaiter for user '%s' on protocol '%s' in channel '%s'/thread '%s', checking if message '%s' matches '%s': %t", w.User, incomingProtocol, w.Channel, w.Incoming.ThreadID, cmsg, rep.re.String(), matched)
 				rep.replyChannel <- reply{matched, replied, cmsg}
 			} else {
-				Log(robot.Debug, "Sending retry to next reply waiter")
+				Log(robot.Debug, "Sending retry to next reply waiter (protocol: %s)", incomingProtocol)
 				rep.replyChannel <- reply{false, retryPrompt, ""}
 			}
 		}
@@ -327,7 +327,7 @@ func (w *worker) handleMessage() {
 			} else {
 				if specificCatchAll != nil {
 					task, _, _ := getTask(specificCatchAll)
-					Log(robot.Debug, "Unmatched command, calling specific catchall '%s' in channel '%s'", task.name, w.Channel)
+					Log(robot.Debug, "Unmatched command, calling specific catchall '%s' on protocol '%s' in channel '%s'", task.name, incomingProtocol, w.Channel)
 					catchAllMatched = true
 					w.startPipeline(nil, specificCatchAll, catchAll, "catchall", w.fmsg)
 				} else if fallbackCatchAll != nil {
@@ -335,7 +335,7 @@ func (w *worker) handleMessage() {
 						Log(robot.Error, "More than one fallback catch-all matched, none will be called")
 					} else {
 						task, _, _ := getTask(fallbackCatchAll)
-						Log(robot.Debug, "Unmatched command, calling fallback catchall '%s' in channel '%s'", task.name, w.Channel)
+						Log(robot.Debug, "Unmatched command, calling fallback catchall '%s' on protocol '%s' in channel '%s'", task.name, incomingProtocol, w.Channel)
 						catchAllMatched = true
 						w.startPipeline(nil, fallbackCatchAll, catchAll, "catchall", w.fmsg)
 					}
@@ -350,17 +350,18 @@ func (w *worker) handleMessage() {
 	}
 	// Last of all, check for thread subscriptions
 	if !messageMatched && !w.Incoming.SelfMessage && (w.isCommand && !catchAllMatched || !w.isCommand) {
-		subscriptionSpec := subscriptionMatcher{w.Channel, w.Incoming.ThreadID}
 		subscriptions.Lock()
-		if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
+		subscriptionSpec, subscription, ok := lookupSubscriptionLocked(incomingProtocol, w.Channel, w.Incoming.ThreadID)
+		if ok {
 			subscription.Timestamp = time.Now()
+			subscriptions.m[subscriptionSpec] = subscription
 			subscriptions.Unlock()
 			t := w.tasks.getTaskByName(subscription.Plugin)
 			if w.Incoming.UserID != w.cfg.botinfo.UserID {
-				Log(robot.Debug, "Unmatched message being routed to thread subscriber '%s' in thread '%s', channel '%s'", subscription.Plugin, w.Incoming.ThreadID, w.Channel)
+				Log(robot.Debug, "Unmatched message being routed to thread subscriber '%s' on protocol '%s' in thread '%s', channel '%s'", subscription.Plugin, incomingProtocol, w.Incoming.ThreadID, w.Channel)
 				w.startPipeline(nil, t, plugThreadSubscription, "subscribed", w.fmsg)
 			} else {
-				Log(robot.Debug, "Ignoring message from the robot after subscription matched for thread subscriber '%s' in thread '%s', channel '%s'")
+				Log(robot.Debug, "Ignoring message from the robot after subscription matched for thread subscriber '%s' on protocol '%s' in thread '%s', channel '%s'", subscription.Plugin, incomingProtocol, w.Incoming.ThreadID, w.Channel)
 			}
 		} else {
 			subscriptions.Unlock()

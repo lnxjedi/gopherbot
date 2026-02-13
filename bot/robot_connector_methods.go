@@ -15,38 +15,63 @@ func (r Robot) GetMessage() *robot.Message {
 func (r Robot) GetUserAttribute(u, a string) *robot.AttrRet {
 	a = strings.ToLower(a)
 	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
-	var user string
-	var ui *UserInfo
-	var ok bool
+	user := u
+	var pui *UserInfo
+	var dui *DirectoryUser
+	protocolMapped := false
 	if pm, exists := r.maps.userProto[protocol]; exists {
-		if ui, ok = pm[u]; ok {
-			user = "<" + ui.UserID + ">"
+		if pu, ok := pm[u]; ok {
+			pui = pu
+			user = "<" + pu.UserID + ">"
+			protocolMapped = true
 		}
 	}
-	if ui == nil {
-		if ui, ok = r.maps.user[u]; ok {
-			user = "<" + ui.UserID + ">"
-		} else {
-			user = u
-		}
+	if d, ok := r.maps.user[u]; ok {
+		dui = d
 	}
-	if ui != nil {
+	if pui != nil || dui != nil {
 		var attr string
 		switch a {
 		case "name", "username", "handle", "user":
-			attr = ui.UserName
+			if pui != nil {
+				attr = pui.UserName
+			} else {
+				attr = dui.UserName
+			}
 		case "id", "internalid", "protocolid":
-			attr = ui.UserID
+			if protocolMapped {
+				attr = pui.UserID
+			}
 		case "mail", "email":
-			attr = ui.Email
+			if pui != nil {
+				attr = pui.Email
+			} else {
+				attr = dui.Email
+			}
 		case "fullname", "realname":
-			attr = ui.FullName
+			if pui != nil {
+				attr = pui.FullName
+			} else {
+				attr = dui.FullName
+			}
 		case "firstname", "givenname":
-			attr = ui.FirstName
+			if pui != nil {
+				attr = pui.FirstName
+			} else {
+				attr = dui.FirstName
+			}
 		case "lastname", "surname":
-			attr = ui.LastName
+			if pui != nil {
+				attr = pui.LastName
+			} else {
+				attr = dui.LastName
+			}
 		case "phone":
-			attr = ui.Phone
+			if pui != nil {
+				attr = pui.Phone
+			} else {
+				attr = dui.Phone
+			}
 		case "":
 			w := getLockedWorker(r.tid)
 			w.Unlock()
@@ -69,32 +94,51 @@ func (r Robot) GetUserAttribute(u, a string) *robot.AttrRet {
 func (r Robot) GetSenderAttribute(a string) *robot.AttrRet {
 	a = strings.ToLower(a)
 	protocol := protocolFromIncoming(r.Incoming, r.Protocol)
-	var ui *UserInfo
+	var pui *UserInfo
+	var dui *DirectoryUser
 	if pm, exists := r.maps.userProto[protocol]; exists {
-		ui = pm[r.User]
+		pui = pm[r.User]
 	}
-	if ui == nil {
-		ui, _ = r.maps.user[r.User]
-	}
+	dui, _ = r.maps.user[r.User]
 	switch a {
 	case "name", "username", "handle", "user":
 		return &robot.AttrRet{r.User, robot.Ok}
 	case "id", "internalid", "protocolid":
 		return &robot.AttrRet{r.ProtocolUser, robot.Ok}
 	}
-	if ui != nil {
+	if pui != nil || dui != nil {
 		var attr string
 		switch a {
 		case "mail", "email":
-			attr = ui.Email
+			if pui != nil {
+				attr = pui.Email
+			} else {
+				attr = dui.Email
+			}
 		case "fullname", "realname":
-			attr = ui.FullName
+			if pui != nil {
+				attr = pui.FullName
+			} else {
+				attr = dui.FullName
+			}
 		case "firstname", "givenname":
-			attr = ui.FirstName
+			if pui != nil {
+				attr = pui.FirstName
+			} else {
+				attr = dui.FirstName
+			}
 		case "lastname", "surname":
-			attr = ui.LastName
+			if pui != nil {
+				attr = pui.LastName
+			} else {
+				attr = dui.LastName
+			}
 		case "phone":
-			attr = ui.Phone
+			if pui != nil {
+				attr = pui.Phone
+			} else {
+				attr = dui.Phone
+			}
 		case "":
 			w := getLockedWorker(r.tid)
 			w.Unlock()

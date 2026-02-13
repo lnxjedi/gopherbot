@@ -308,7 +308,7 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 		}
 	}
 	if rep.re == nil {
-		Log(robot.Error, "Unable to resolve a reply matcher for plugin %s, regexID %s", task.name, regexID)
+		Log(robot.Error, "Unable to resolve a reply matcher for plugin %s, regexID %s (protocol: %s)", task.name, regexID, protocol)
 		return "", robot.MatcherNotFound
 	}
 	rep.replyChannel = make(chan reply, 1)
@@ -318,12 +318,12 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 	// and if so append to the list of waiters.
 	waiters, exists := replies.m[matcher]
 	if exists {
-		Log(robot.Debug, "Delaying prompt \"%s\" and appending to the list of waiters for matcher: %q", prompt, matcher)
+		Log(robot.Debug, "Delaying prompt \"%s\" and appending to the list of waiters for matcher: %q (protocol: %s)", prompt, matcher, protocol)
 		waiters = append(waiters, rep)
 		replies.m[matcher] = waiters
 		replies.Unlock()
 	} else {
-		Log(robot.Debug, "Prompting for \"%s\" and creating reply waiters list and prompting for matcher: %q", prompt, matcher)
+		Log(robot.Debug, "Prompting for \"%s\" and creating reply waiters list and prompting for matcher: %q (protocol: %s)", prompt, matcher, protocol)
 		puser := (&r).tryResolveUser(user)
 		var ret robot.RetVal
 		if channel == "" {
@@ -343,18 +343,18 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 	var replied reply
 	select {
 	case <-time.After(waitTimeout):
-		Log(robot.Warn, "Timed out waiting for a reply to regex \"%s\" in channel: %s (timeout: %s)", regexID, channel, waitTimeout)
+		Log(robot.Warn, "Timed out waiting for a reply to regex \"%s\" on protocol '%s' in channel '%s' (timeout: %s)", regexID, protocol, channel, waitTimeout)
 		replies.Lock()
 		waitlist, found := replies.m[matcher]
 		if found {
 			// reply timed out, free up this matcher for later reply requests
 			delete(replies.m, matcher)
 			replies.Unlock()
-			Log(robot.Debug, "Timeout expired waiting for reply to: %s", prompt)
+			Log(robot.Debug, "Timeout expired waiting for reply to: %s (protocol: %s)", prompt, protocol)
 			// let other waiters know to retry
 			for i, rep := range waitlist {
 				if i != 0 {
-					Log(robot.Debug, "Sending retryPrompt to waiters on primary waiter timeout")
+					Log(robot.Debug, "Sending retryPrompt to waiters on primary waiter timeout (protocol: %s)", protocol)
 					rep.replyChannel <- reply{false, retryPrompt, ""}
 				}
 			}

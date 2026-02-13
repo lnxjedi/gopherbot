@@ -193,3 +193,44 @@ func TestIsValidRosterUserName(t *testing.T) {
 		})
 	}
 }
+
+func TestRoleLabel(t *testing.T) {
+	tests := []struct {
+		in   string
+		want string
+	}{
+		{in: "", want: "Protocol"},
+		{in: "primary", want: "Primary"},
+		{in: "secondary", want: "Secondary"},
+	}
+	for _, tc := range tests {
+		if got := roleLabel(tc.in); got != tc.want {
+			t.Fatalf("roleLabel(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestMergeUserMapsWithOverride(t *testing.T) {
+	base := map[string]string{
+		"alice": "U001",
+		"bob":   "U002",
+	}
+	override := map[string]string{
+		"bob":   "U099",
+		"carol": "U003",
+	}
+
+	got := mergeUserMapsWithOverride("slack", base, override, "test")
+
+	want := map[string]string{
+		"alice": "U001",
+		"bob":   "U099",
+		"carol": "U003",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("mergeUserMapsWithOverride() = %#v, want %#v", got, want)
+	}
+	if base["bob"] != "U002" {
+		t.Fatalf("mergeUserMapsWithOverride() mutated base map, base[bob]=%q", base["bob"])
+	}
+}

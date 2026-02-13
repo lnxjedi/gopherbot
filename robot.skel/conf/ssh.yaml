@@ -1,5 +1,6 @@
 ## ssh.yaml - sample configuration for the SSH connector
-## Add your authorized users and keys to UserRoster in conf/robot.yaml
+## Add your authorized users and keys to UserMap in conf/robot.yaml
+## and optional user attributes to UserRoster.
 ProtocolConfig:
   ListenHost: {{ env "GOPHER_SSH_HOST" | default "localhost" }}
   ListenPort: {{ env "GOPHER_SSH_PORT" | default "4221" }}

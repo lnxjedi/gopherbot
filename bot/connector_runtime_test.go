@@ -156,7 +156,6 @@ func (h *runtimeHarness) resetRuntimeState() {
 	runtimeConnectors.runtimes = map[string]*managedConnector{}
 	runtimeConnectors.desiredSecondary = map[string]bool{}
 	runtimeConnectors.userMaps = map[string]map[string]string{}
-	runtimeConnectors.fallbackUserMap = map[string]string{}
 	runtimeConnectors.Unlock()
 }
 
@@ -328,8 +327,8 @@ func TestSendProtocolUserChannelMessageRouting(t *testing.T) {
 			Format:   robot.Variable,
 		},
 		maps: &userChanMaps{
-			user: map[string]*UserInfo{
-				"alice": &UserInfo{UserName: "alice", UserID: "prime-alice"},
+			user: map[string]*DirectoryUser{
+				"alice": {UserName: "alice"},
 			},
 			userProto: map[string]map[string]*UserInfo{
 				"secondary": {

@@ -72,11 +72,17 @@ func (w *worker) registerActive(parent *worker) {
 	if len(w.ProtocolUser) == 0 && len(w.User) > 0 {
 		if idRegex.MatchString(w.User) {
 			w.ProtocolUser = w.User
-		} else if ui, ok := w.maps.user[w.User]; ok {
-			w.ProtocolUser = bracket(ui.UserID)
-			w.BotUser = ui.BotUser
 		} else {
-			w.ProtocolUser = w.User
+			protocol := protocolNameFromEnum(w.Protocol)
+			if pm, ok := w.maps.userProto[protocol]; ok {
+				if ui, exists := pm[w.User]; exists && ui.UserID != "" {
+					w.ProtocolUser = bracket(ui.UserID)
+					w.BotUser = ui.BotUser
+				}
+			}
+			if len(w.ProtocolUser) == 0 {
+				w.ProtocolUser = w.User
+			}
 		}
 	}
 	if len(w.ProtocolChannel) == 0 && len(w.Channel) > 0 {

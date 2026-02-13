@@ -53,8 +53,11 @@ This document records the intended SSH connector behavior, control flow, and int
 
 ## Identity Mapping
 
-- Users are configured in `UserRoster` with `UserID` equal to a full public key line (`ssh-ed25519 AAAA...`).
-- Comments are ignored for matching; user name is taken from roster.
+- Preferred mapping config is `UserMap` (`username -> internal ssh key line`).
+- `UserRoster` is the user directory (email/name/phone/etc.).
+- Legacy compatibility: `UserRoster.UserID` can populate missing SSH mappings, but logs migration warnings.
+- If both are present for the same username, `UserMap` wins over `UserRoster.UserID`.
+- Comments are ignored for matching; user name is taken from mapping/roster.
 - One key per user.
 - Bot user is auto-added, using the server host public key line as `UserID`.
 

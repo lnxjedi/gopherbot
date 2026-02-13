@@ -24,6 +24,23 @@ Focus: integration test harness under `test/` and how tests are executed.
   - Matching expected replies using regex on `TestMessage.Message` and strict equality on user/channel/threaded fields (see `test/common_test.go`).
   - Comparing observed `[]Event` from `GetEvents()` with expected events (event type `Event` in `bot/events.go`).
 
+## Integration Failure Triage
+
+When `make test` fails in the `integration` target, check these first:
+
+1. The failing test name and first fatal line in `go test -v` output.
+2. The bot runtime log file used by the harness:
+   - usually `/tmp/bottest.log`
+   - builtins suite uses `/tmp/bottest-builtins.log`
+3. The config path printed by `StartTest()` (for example `test/membrain`, `test/jsfull`, `test/luafull`).
+
+Log file paths are passed explicitly by integration tests through `setup(..., logfile, ...)` in `test/common_test.go`.
+
+Common symptom:
+
+- `Fatal: Listening on tcp4 port 127.0.0.1:0 ... operation not permitted`
+  - means the test process could not open a localhost listener in the current execution environment (sandbox/permissions issue), not necessarily a bot logic regression.
+
 ## Test case structure
 
 - `testItem` in `test/common_test.go` defines a case as:

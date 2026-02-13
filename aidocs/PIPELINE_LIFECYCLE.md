@@ -21,6 +21,7 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 - Ambient messages → `MessageMatchers`: `bot/dispatch.go:handleMessage`, `bot/dispatch.go:checkPluginMatchersAndRun`.
 - Job triggers / `run job`: `bot/dispatch.go:handleMessage`, `bot/jobrun.go:checkJobMatchersAndRun`.
 - Catch‑alls (only when directly addressed and nothing matched): `bot/dispatch.go:handleMessage`.
+- Thread subscriptions last (`Subscribe`/`Unsubscribe`) keyed by `protocol/channel/thread`, with legacy fallback for restored pre-protocol keys: `bot/dispatch.go:handleMessage`, `bot/subscribe_thread.go`.
 
 ## Prompt Waiter Lifecycle (Prompt* APIs)
 

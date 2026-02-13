@@ -98,13 +98,32 @@ type worker struct {
 	maps            *userChanMaps           // Pointer to current user / channel maps struct
 	cfg             *configuration          // Active configuration when this context was created
 	BotUser         bool                    // set for bots/programs that should never match ambient messages
-	listedUser      bool                    // set for users listed in the UserRoster; ambient messages don't match unlisted users by default
+	listedUser      bool                    // set for users listed in global UserRoster and mapped in protocol UserMap
 	isCommand       bool                    // Was the message directed at the robot, dm or by mention
 	cmdMode         string                  // one of "alias", "name", "direct" - for disambiguation
 	msg, fmsg       string                  // the message text sent; without robot name/alias, and with for message matching
 	automaticTask   bool                    // set for scheduled & triggers jobs, where user security restrictions don't apply
 	*pipeContext                            // pointer to the pipeline context
 	sync.Mutex                              // Lock to protect the bot context when pipeline running
+}
+
+func resolveIncomingUser(maps *userChanMaps, protocol, userID, connectorUser string) (userName string, botUser bool, protocolMapped bool, directoryListed bool) {
+	if pm, ok := maps.userIDProto[protocol]; ok {
+		if un, exists := pm[userID]; exists {
+			userName = un.UserName
+			botUser = un.BotUser
+			protocolMapped = true
+		}
+	}
+	if userName == "" {
+		if connectorUser != "" {
+			userName = connectorUser
+		} else {
+			userName = bracket(userID)
+		}
+	}
+	_, directoryListed = maps.directoryUser[userName]
+	return userName, botUser, protocolMapped, directoryListed
 }
 
 // clone a worker for a new execution context
@@ -181,16 +200,8 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		}
 	} // ProtocolChannel / channelName should be "" for DM
 	ProtocolUser = bracket(inc.UserID)
-	listedUser := false
-	if un, ok := maps.userID[inc.UserID]; ok {
-		userName = un.UserName
-		BotUser = un.BotUser
-		listedUser = true
-	} else if len(inc.UserName) > 0 {
-		userName = inc.UserName
-	} else {
-		userName = bracket(inc.UserID)
-	}
+	userName, BotUser, protocolMapped, directoryListed := resolveIncomingUser(maps, incomingProtocol, inc.UserID, inc.UserName)
+	listedUser := protocolMapped && directoryListed
 	protocol := getProtocol(inc.Protocol)
 
 	messageFull := inc.MessageText
@@ -213,7 +224,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	botAlias := currentCfg.alias
 	currentCfg.RUnlock()
 	if !listedUser && ignoreUnlisted {
-		Log(robot.Debug, "IgnoreUnlistedUsers - ignoring protocol '%s': %s / %s", incomingProtocol, inc.UserID, userName)
+		Log(robot.Debug, "IgnoreUnlistedUsers - ignoring protocol '%s': %s / %s (protocolMapped=%t directoryListed=%t)", incomingProtocol, inc.UserID, userName, protocolMapped, directoryListed)
 		emit(IgnoredUser)
 		return
 	}

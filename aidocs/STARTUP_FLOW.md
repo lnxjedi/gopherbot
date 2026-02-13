@@ -157,6 +157,28 @@ The default `robot.yaml` uses Go templates to derive configuration values from s
 
 If both are set and differ, `PrimaryProtocol` wins and a warning is logged.
 
+### Primary Protocol Config Source
+
+Primary connector configuration now has explicit source precedence:
+
+- Compatibility path: if `ProtocolConfig` is present in `robot.yaml`, it is used for the primary protocol and a warning is logged.
+- Preferred path: if `ProtocolConfig` is absent in `robot.yaml`, engine loads `conf/<PrimaryProtocol>.yaml` and requires `ProtocolConfig` there.
+- If preferred-path primary config file is missing or has no `ProtocolConfig`, startup/reload config load fails.
+
+### Identity Mapping Key Compatibility
+
+Identity mapping is explicit per-protocol `UserMap`.
+
+- Preferred: `UserMap` (username -> protocol internal ID), typically in `conf/<protocol>.yaml`.
+- `UserRoster` remains the user directory (email/name/phone/etc.).
+- Legacy compatibility: `UserRoster.UserID` is still parsed to populate missing protocol mappings, with migration warnings.
+- Precedence: explicit `UserMap` entries override legacy `UserRoster.UserID` entries on conflict.
+- When primary config is auto-loaded from `conf/<primary>.yaml`, that file's `UserRoster` is ignored; attributes still come from `robot.yaml` `UserRoster`.
+- For secondary protocol files, `UserRoster` attributes are ignored; use main `robot.yaml` `UserRoster` + protocol `UserMap`.
+- With `IgnoreUnlistedUsers: true`, inbound users must satisfy both checks:
+  - present in global `UserRoster` directory
+  - mapped in protocol-specific identity mapping (`UserMap`)
+
 `SecondaryProtocols` is accepted in `robot.yaml` and now drives active runtime orchestration:
 
 - startup attempts the primary connector and all configured secondaries

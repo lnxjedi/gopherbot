@@ -33,12 +33,10 @@ var runtimeConnectors = struct {
 	runtimes         map[string]*managedConnector
 	desiredSecondary map[string]bool
 	userMaps         map[string]map[string]string
-	fallbackUserMap  map[string]string
 }{
 	runtimes:         map[string]*managedConnector{},
 	desiredSecondary: map[string]bool{},
 	userMaps:         map[string]map[string]string{},
-	fallbackUserMap:  map[string]string{},
 }
 
 type runtimeConnectorRouter struct{}
@@ -144,17 +142,10 @@ func userMapForProtocolLocked(protocol string) map[string]string {
 		}
 		return c
 	}
-	if len(runtimeConnectors.fallbackUserMap) == 0 {
-		return nil
-	}
-	c := make(map[string]string, len(runtimeConnectors.fallbackUserMap))
-	for k, v := range runtimeConnectors.fallbackUserMap {
-		c[k] = v
-	}
-	return c
+	return nil
 }
 
-func setConnectorUserMaps(perProtocol map[string]map[string]string, fallback map[string]string) {
+func setConnectorUserMaps(perProtocol map[string]map[string]string) {
 	runtimeConnectors.Lock()
 	runtimeConnectors.userMaps = make(map[string]map[string]string, len(perProtocol))
 	for protocol, users := range perProtocol {
@@ -167,10 +158,6 @@ func setConnectorUserMaps(perProtocol map[string]map[string]string, fallback map
 			um[u] = id
 		}
 		runtimeConnectors.userMaps[p] = um
-	}
-	runtimeConnectors.fallbackUserMap = make(map[string]string, len(fallback))
-	for u, id := range fallback {
-		runtimeConnectors.fallbackUserMap[u] = id
 	}
 	runtimes := make([]*managedConnector, 0, len(runtimeConnectors.runtimes))
 	for _, mc := range runtimeConnectors.runtimes {
@@ -540,7 +527,11 @@ func isPrimaryProtocolSource(protocol string) bool {
 }
 
 func (rc *runtimeConnectorRouter) SetUserMap(m map[string]string) {
-	setConnectorUserMaps(nil, m)
+	primary, ok := getRuntimePrimaryProtocol()
+	if !ok || primary == "" {
+		return
+	}
+	setConnectorUserMaps(map[string]map[string]string{primary: m})
 }
 
 func (rc *runtimeConnectorRouter) GetProtocolUserAttribute(user, attr string) (string, robot.RetVal) {

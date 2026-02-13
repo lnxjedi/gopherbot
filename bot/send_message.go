@@ -23,9 +23,6 @@ func (r *Robot) tryResolveUser(u string) string {
 			return bracket(ui.UserID)
 		}
 	}
-	if ui, ok := r.maps.user[u]; ok {
-		return bracket(ui.UserID)
-	}
 	return u
 }
 
@@ -38,9 +35,6 @@ func (r *Robot) tryResolveUserForProtocol(protocol, u string) string {
 			}
 		}
 	}
-	if ui, ok := r.maps.user[u]; ok {
-		return bracket(ui.UserID)
-	}
 	return u
 }
 
@@ -50,9 +44,6 @@ func (w *worker) tryResolveUser(u string) string {
 		if ui, ok := pm[u]; ok {
 			return bracket(ui.UserID)
 		}
-	}
-	if ui, ok := w.maps.user[u]; ok {
-		return bracket(ui.UserID)
 	}
 	return u
 }
@@ -185,7 +176,7 @@ func (w *worker) SendChannelThreadMessage(ch, thr, msg string, v ...interface{})
 // a specific user in a specific channel without fiddling with the robot
 // object. Note that this will fail with UserNotFound if the connector
 // can't resolve usernames, or the username isn't mapped to a user ID in
-// the UserRoster.
+// the protocol's UserMap.
 func (r Robot) SendUserChannelMessage(u, ch, msg string, v ...interface{}) robot.RetVal {
 	msg, empty := r.prepareMessage("SendUserChannelMessage", msg, v...)
 	if empty {

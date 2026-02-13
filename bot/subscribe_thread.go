@@ -28,7 +28,7 @@ const subscriptionMemKey = "bot:_subscriptions"
 // Plugins can subscribe to a thread in a channel. This struct is used as the
 // key in the subscriptions map.
 type subscriptionMatcher struct {
-	channel, thread string
+	protocol, channel, thread string
 }
 
 type subscriber struct {
@@ -50,7 +50,7 @@ var subscriptions = tSubs{
 func (s tSubs) MarshalJSON() ([]byte, error) {
 	tempMap := make(map[string]subscriber)
 	for k, v := range s.m {
-		keyString := fmt.Sprintf("%s{|}%s", k.channel, k.thread)
+		keyString := fmt.Sprintf("%s{|}%s{|}%s", k.protocol, k.channel, k.thread)
 		tempMap[keyString] = v
 	}
 	return json.Marshal(tempMap)
@@ -68,12 +68,18 @@ func (s *tSubs) UnmarshalJSON(data []byte) error {
 
 	s.m = make(map[subscriptionMatcher]subscriber)
 	for k, v := range tempMap {
-		parts := strings.SplitN(k, "{|}", 2)
-		if len(parts) != 2 {
+		parts := strings.SplitN(k, "{|}", 3)
+		switch len(parts) {
+		case 2:
+			// Legacy format: channel{|}thread
+			key := subscriptionMatcher{protocol: "", channel: parts[0], thread: parts[1]}
+			s.m[key] = v
+		case 3:
+			key := subscriptionMatcher{protocol: normalizeProtocolName(parts[0]), channel: parts[1], thread: parts[2]}
+			s.m[key] = v
+		default:
 			return fmt.Errorf("invalid key string format: %s", k)
 		}
-		key := subscriptionMatcher{channel: parts[0], thread: parts[1]}
-		s.m[key] = v
 	}
 
 	return nil
@@ -87,8 +93,9 @@ func restoreSubscriptions() {
 			if len(storedSubscriptions.m) > 0 {
 				Log(robot.Info, "Restored '%d' subscriptions from long-term memory", len(storedSubscriptions.m))
 				now := time.Now()
-				for _, s := range storedSubscriptions.m {
+				for key, s := range storedSubscriptions.m {
 					s.Timestamp = now
+					storedSubscriptions.m[key] = s
 				}
 				subscriptions.m = storedSubscriptions.m
 			} else {
@@ -132,20 +139,39 @@ func saveSubscriptions() {
 func (r Robot) Subscribe() (success bool) {
 	w := getLockedWorker(r.tid)
 	defer w.Unlock()
+	protocol := protocolFromIncoming(w.Incoming, w.Protocol)
 	task, plugin, _ := getTask(r.currentTask)
 	if plugin == nil {
 		w.Log(robot.Error, "Subscribe called by non-plugin task '%s'", task.name)
 		return false
 	}
-	subscriptionSpec := subscriptionMatcher{w.Channel, w.Incoming.ThreadID}
+	subscriptionSpec := subscriptionMatcher{protocol: protocol, channel: w.Channel, thread: w.Incoming.ThreadID}
+	legacySpec := subscriptionMatcher{channel: w.Channel, thread: w.Incoming.ThreadID}
 	subscriptions.Lock()
 	defer subscriptions.Unlock()
 	if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
 		if task.name != subscription.Plugin {
-			w.Log(robot.Error, "Subscribe - plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription already held by plugin '%s'", task.name, w.Incoming.ThreadID, w.Channel, subscription.Plugin)
+			w.Log(robot.Error, "Subscribe - plugin '%s' failed subscribing on protocol '%s' to thread '%s' in channel '%s', subscription already held by plugin '%s'", task.name, protocol, w.Incoming.ThreadID, w.Channel, subscription.Plugin)
 			return false
 		} else {
-			w.Log(robot.Debug, "Subscribe - already subscribed; plugin '%s' subscribing to thread '%s' in channel '%s'", task.name, w.Incoming.ThreadID, w.Channel)
+			w.Log(robot.Debug, "Subscribe - already subscribed; plugin '%s' subscribing on protocol '%s' to thread '%s' in channel '%s'", task.name, protocol, w.Incoming.ThreadID, w.Channel)
+			return true
+		}
+	}
+	// Backward-compatibility path for restored pre-protocol keys.
+	if protocol != "" {
+		if subscription, ok := subscriptions.m[legacySpec]; ok {
+			if task.name != subscription.Plugin {
+				w.Log(robot.Error, "Subscribe - plugin '%s' failed subscribing on protocol '%s' to thread '%s' in channel '%s', legacy subscription held by plugin '%s'", task.name, protocol, w.Incoming.ThreadID, w.Channel, subscription.Plugin)
+				return false
+			}
+			delete(subscriptions.m, legacySpec)
+			subscriptions.m[subscriptionSpec] = subscriber{
+				Plugin:    task.name,
+				Timestamp: time.Now(),
+			}
+			subscriptions.dirty = true
+			w.Log(robot.Debug, "Subscribe - migrated legacy subscription for plugin '%s' onto protocol '%s' to thread '%s' in channel '%s'", task.name, protocol, w.Incoming.ThreadID, w.Channel)
 			return true
 		}
 	}
@@ -154,7 +180,7 @@ func (r Robot) Subscribe() (success bool) {
 		Timestamp: time.Now(),
 	}
 	subscriptions.dirty = true
-	w.Log(robot.Debug, "Subscribe - plugin '%s' successfully subscribed to thread '%s' in channel '%s'", task.name, w.Incoming.ThreadID, w.Channel)
+	w.Log(robot.Debug, "Subscribe - plugin '%s' successfully subscribed on protocol '%s' to thread '%s' in channel '%s'", task.name, protocol, w.Incoming.ThreadID, w.Channel)
 	return true
 }
 
@@ -164,27 +190,55 @@ func (r Robot) Subscribe() (success bool) {
 func (r Robot) Unsubscribe() (success bool) {
 	w := getLockedWorker(r.tid)
 	defer w.Unlock()
+	protocol := protocolFromIncoming(w.Incoming, w.Protocol)
 	task, plugin, _ := getTask(r.currentTask)
 	if plugin == nil {
 		w.Log(robot.Error, "Unsubscribe called by non-plugin task '%s'", task.name)
 		return false
 	}
-	subscriptionSpec := subscriptionMatcher{w.Channel, w.Incoming.ThreadID}
+	subscriptionSpec := subscriptionMatcher{protocol: protocol, channel: w.Channel, thread: w.Incoming.ThreadID}
+	legacySpec := subscriptionMatcher{channel: w.Channel, thread: w.Incoming.ThreadID}
 	subscriptions.Lock()
 	defer subscriptions.Unlock()
 	if subscription, ok := subscriptions.m[subscriptionSpec]; ok {
 		if task.name != subscription.Plugin {
-			w.Log(robot.Error, "Unsubscribe - plugin '%s' failed subscribing to thread '%s' in channel '%s', subscription held by other plugin '%s'", task.name, w.Incoming.ThreadID, w.Channel, subscription.Plugin)
+			w.Log(robot.Error, "Unsubscribe - plugin '%s' failed unsubscribing on protocol '%s' from thread '%s' in channel '%s', subscription held by other plugin '%s'", task.name, protocol, w.Incoming.ThreadID, w.Channel, subscription.Plugin)
 			return false
 		} else {
-			w.Log(robot.Debug, "Unsubscribe - plugin '%s' unsubscribing from thread '%s' in channel '%s'", task.name, w.Incoming.ThreadID, w.Channel)
+			w.Log(robot.Debug, "Unsubscribe - plugin '%s' unsubscribing on protocol '%s' from thread '%s' in channel '%s'", task.name, protocol, w.Incoming.ThreadID, w.Channel)
 			delete(subscriptions.m, subscriptionSpec)
 			subscriptions.dirty = true
 			return true
 		}
 	}
-	w.Log(robot.Warn, "Unsubscribe - plugin '%s' not subscribed to thread '%s' in channel '%s'", task.name, w.Incoming.ThreadID, w.Channel)
+	if protocol != "" {
+		if subscription, ok := subscriptions.m[legacySpec]; ok {
+			if task.name != subscription.Plugin {
+				w.Log(robot.Error, "Unsubscribe - plugin '%s' failed unsubscribing on protocol '%s' from thread '%s' in channel '%s', legacy subscription held by other plugin '%s'", task.name, protocol, w.Incoming.ThreadID, w.Channel, subscription.Plugin)
+				return false
+			}
+			w.Log(robot.Debug, "Unsubscribe - plugin '%s' unsubscribing legacy entry on protocol '%s' from thread '%s' in channel '%s'", task.name, protocol, w.Incoming.ThreadID, w.Channel)
+			delete(subscriptions.m, legacySpec)
+			subscriptions.dirty = true
+			return true
+		}
+	}
+	w.Log(robot.Warn, "Unsubscribe - plugin '%s' not subscribed on protocol '%s' to thread '%s' in channel '%s'", task.name, protocol, w.Incoming.ThreadID, w.Channel)
 	return true
+}
+
+func lookupSubscriptionLocked(protocol, channel, thread string) (subscriptionMatcher, subscriber, bool) {
+	spec := subscriptionMatcher{protocol: normalizeProtocolName(protocol), channel: channel, thread: thread}
+	if subscription, ok := subscriptions.m[spec]; ok {
+		return spec, subscription, true
+	}
+	legacy := subscriptionMatcher{channel: channel, thread: thread}
+	if spec.protocol != "" {
+		if subscription, ok := subscriptions.m[legacy]; ok {
+			return legacy, subscription, true
+		}
+	}
+	return subscriptionMatcher{}, subscriber{}, false
 }
 
 // expireSubscriptions is called by the brainTicker
@@ -194,7 +248,11 @@ func expireSubscriptions(now time.Time) bool {
 		if now.Sub(subscriber.Timestamp) > threadMemoryDuration {
 			delete(subscriptions.m, subscription)
 			subscriptions.dirty = true
-			Log(robot.Debug, "Subscribe - expiring subscription for plugin '%s' to thread '%s' in channel '%s'", subscriber.Plugin, subscription.thread, subscription.channel)
+			protocol := subscription.protocol
+			if protocol == "" {
+				protocol = "unknown"
+			}
+			Log(robot.Debug, "Subscribe - expiring subscription for plugin '%s' on protocol '%s' to thread '%s' in channel '%s'", subscriber.Plugin, protocol, subscription.thread, subscription.channel)
 		}
 	}
 	updated := subscriptions.dirty

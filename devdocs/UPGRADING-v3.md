@@ -1,112 +1,137 @@
 # Upgrading Existing Robots to v3 (Multi-Protocol)
 
-This guide covers config changes needed when moving an existing robot to the v3 multi-protocol model.
+This guide describes user-facing config changes for robots moving from the old single-protocol model to v3 multi-protocol.
 
-## Summary of What Changed
+## Quick Checklist
 
-- `PrimaryProtocol` is now the preferred key in `conf/robot.yaml`.
-- `Protocol` is still accepted as a legacy alias.
-- `SecondaryProtocols` enables additional connectors to run at the same time.
-- Secondary connector roster/config is loaded from `conf/<protocol>.yaml` (for example `conf/ssh.yaml`, `conf/slack.yaml`).
+1. Set `PrimaryProtocol` in `conf/robot.yaml`.
+2. Add `SecondaryProtocols` for additional connectors.
+3. Make sure the primary protocol has a valid `ProtocolConfig` source.
+4. Move shared policy/config keys (especially `AdminUsers`) to `conf/robot.yaml`.
+5. Use global `UserRoster` for directory attributes and per-protocol `UserMap` for connector IDs.
+6. Reload and verify runtime with `protocol-list` (or `protocol list`).
 
-## Safe Migration Pattern
+## Primary/Secondary Protocol Keys
 
-1. Keep your current protocol as primary.
-2. Add `SecondaryProtocols` one protocol at a time.
-3. Add `conf/<protocol>.yaml` for each secondary.
-4. Reload and verify with `protocol-list`.
-5. Only then consider switching primary protocol.
+- Preferred key: `PrimaryProtocol`.
+- Legacy alias: `Protocol` (still accepted).
+- If both are set and differ, `PrimaryProtocol` wins and a warning is logged.
 
-## Required Config Checks
-
-## 1) Primary protocol selection
-
-In `conf/robot.yaml`, use:
+Example:
 
 ```yaml
 PrimaryProtocol: slack
-```
-
-`Protocol` still works, but `PrimaryProtocol` should be used going forward.
-
-If both are set and differ, `PrimaryProtocol` wins and a warning is logged.
-
-## 2) Secondary list
-
-Example:
-
-```yaml
 SecondaryProtocols: [ "ssh" ]
 ```
 
-If `SecondaryProtocols` includes the current primary protocol, it is ignored with a warning.
-If `SecondaryProtocols` includes `terminal`, it is ignored with a warning (terminal is not supported as a secondary protocol).
+Notes:
 
-## 3) Per-protocol config files
+- If `SecondaryProtocols` includes the primary protocol, it is ignored with a warning.
+- If `SecondaryProtocols` includes `terminal`, it is ignored with a warning (`terminal` is not supported as a secondary protocol).
 
-For each secondary, create a matching file:
+## Two Supported Config Styles
 
-- `SecondaryProtocols: [ "ssh" ]` -> `conf/ssh.yaml`
-- `SecondaryProtocols: [ "slack" ]` -> `conf/slack.yaml`
+### 1) Compatibility Style (old include-driven robots)
 
-Include at least:
+If your `conf/robot.yaml` still includes connector files (for example `{{ .Include "slack.yaml" }}`), it continues to work.
 
-- `UserRoster`
-- `ProtocolConfig`
+Behavior:
 
-Do not rely on `AdminUsers` inside protocol files for v3 multi-protocol behavior.
+- Primary protocol config is taken from merged `robot.yaml` `ProtocolConfig`.
+- Engine logs a compatibility warning and recommends the new style.
 
-## 4) Admin users are global (robot.yaml)
+### 2) Recommended Style (new v3 layout)
 
-`AdminUsers` should be defined in `conf/robot.yaml`, not in `conf/<protocol>.yaml`.
+Use `conf/robot.yaml` for shared/global config and let the engine load per-protocol files directly:
 
-Example:
+- `conf/<PrimaryProtocol>.yaml` is auto-loaded for primary when `robot.yaml` does not define `ProtocolConfig`.
+- each secondary listed in `SecondaryProtocols` is loaded from `conf/<secondary>.yaml`.
+
+In per-protocol files (`conf/<protocol>.yaml`), keep connector-local keys:
+
+- `ProtocolConfig` (required for active connector startup)
+- `UserMap` (recommended for all real users)
+- optional protocol-local `ChannelRoster`
+
+Do not rely on these keys in `conf/<protocol>.yaml` in recommended style:
+
+- `AdminUsers`
+- `BotInfo`
+- `Alias`
+- `DefaultChannels`
+- `DefaultJobChannel`
+
+Those belong in `conf/robot.yaml`.
+
+## Identity Model Changes (`UserRoster` vs `UserMap`)
+
+- `UserRoster` is now the global user directory (username + attributes).
+- `UserMap` is per-protocol mapping: `username -> protocol internal user ID`.
+- Username rules are strict: lowercase only; uppercase entries are rejected.
+
+`IgnoreUnlistedUsers: true` now requires both:
+
+- user exists in global `UserRoster`
+- user exists in that protocol's `UserMap`
+
+### Legacy compatibility bridge
+
+`UserRoster.UserID` is still parsed for backward compatibility, but only as a mapping bridge:
+
+- if `UserMap` is missing an entry, legacy `UserRoster.UserID` can fill it
+- if both exist, `UserMap` wins and a warning is logged
+
+For migration, keep attributes in `UserRoster` and move all IDs to `UserMap`.
+
+SSH example (recommended):
 
 ```yaml
-# conf/robot.yaml
+UserMap:
+  parsley: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA..."
+
+UserRoster:
+- UserName: parsley
+  Email: parsley@example.com
+```
+
+## Admin Users Are Global
+
+`AdminUsers` should be defined in `conf/robot.yaml`, not in protocol files.
+
+```yaml
 AdminUsers: [ "david" ]
 ```
 
-Reason: admin authorization is shared engine policy and applies across protocols.
+Reason: authorization policy is shared across protocols.
 
-## 5) Primary protocol gotcha when switching
+## Reload and Runtime Semantics
 
-If you switch the primary protocol, make sure your merged `robot.yaml` still provides the primary protocol's `ProtocolConfig`.
-
-Common failure mode:
-
-- old `robot.yaml` only includes `terminal.yaml`/`slack.yaml` conditionally
-- primary changed to `ssh`
-- no `ProtocolConfig` provided for ssh in merged config
-- connector fails on startup.
-
-## 6) Username rules
-
-Usernames in rosters must be lowercase. Uppercase names are rejected.
-
-For SSH connector, `UserRoster.UserID` must be the normalized public key line (`<type> <base64>`), for example:
-
-```yaml
-UserRoster:
-- UserName: parsley
-  UserID: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA..."
-```
-
-## Runtime Behavior Notes
-
-- Primary connector failure at startup is fatal.
-- Secondary connector failure is logged and does not stop the robot.
+- Primary connector startup failure is fatal.
+- Secondary connector startup failure is logged and does not stop the robot.
 - On reload:
   - removed secondaries are stopped
   - configured secondaries are retried
-  - primary protocol change is rejected (logged and ignored).
-- Slack connector lifecycle state is connector-scoped in v3 multi-protocol work, so
-  `protocol-stop slack`, `protocol-start slack`, `protocol-restart slack`, and
-  secondary remove/add on reload are expected to work without relying on process restart.
+  - primary protocol change is rejected (logged and ignored)
 
-## Admin Commands (Primary Protocol Only)
+Secondary retries happen when:
 
-- `protocol-list` / `protocol list`
-- `protocol-start <name>` / `protocol start <name>`
-- `protocol-stop <name>` / `protocol stop <name>`
-- `protocol-restart <name>` / `protocol restart <name>`
+- config reload occurs
+- admin starts/restarts protocol explicitly
+
+## Primary Protocol Gotcha When Switching
+
+If you switch primary protocol, the new primary must have `ProtocolConfig` available via one of:
+
+- compatibility style: merged `robot.yaml` contains `ProtocolConfig`
+- recommended style: `conf/<primary>.yaml` exists and contains `ProtocolConfig`
+
+If neither is true, startup/reload fails for the primary connector.
+
+## Primary-Protocol Admin Commands
+
+These commands are available from the primary protocol:
+
+- `protocol-list` or `protocol list`
+- `protocol-start <name>` or `protocol start <name>`
+- `protocol-stop <name>` or `protocol stop <name>`
+- `protocol-restart <name>` or `protocol restart <name>`

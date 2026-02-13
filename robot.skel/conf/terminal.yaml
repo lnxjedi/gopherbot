@@ -8,5 +8,6 @@ ProtocolConfig:
   BotName: '<botname>'
 AppendUserRoster:
 - UserName: '<botname>'
-  UserID: 'u0000'
   BotUser: true
+AppendUserMap:
+  '<botname>': 'u0000'
