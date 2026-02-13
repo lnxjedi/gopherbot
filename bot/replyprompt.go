@@ -179,8 +179,8 @@ func (r Robot) PromptUserChannelForReply(regexID string, user string, channel st
 	return rep, ret
 }
 
-// PromptUserChannelForReply is identical to PromptForReply, but prompts a
-// specific user in a given channel.
+// PromptUserChannelThreadForReply prompts a specific user in a given channel
+// and thread.
 func (r Robot) PromptUserChannelThreadForReply(regexID string, user, channel, thread string, prompt string, v ...interface{}) (string, robot.RetVal) {
 	var rep string
 	var ret robot.RetVal
@@ -188,7 +188,7 @@ func (r Robot) PromptUserChannelThreadForReply(regexID string, user, channel, th
 		prompt = fmt.Sprintf(prompt, v...)
 	}
 	for i := 0; i < 3; i++ {
-		rep, ret = r.promptInternal(regexID, user, channel, "", prompt)
+		rep, ret = r.promptInternal(regexID, user, channel, thread, prompt)
 		if ret == robot.RetryPrompt {
 			continue
 		}

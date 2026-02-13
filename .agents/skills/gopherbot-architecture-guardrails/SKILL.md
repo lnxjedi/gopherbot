@@ -1,19 +1,20 @@
 ---
-name: gopherbot-multi-protocol-migration
-description: Use when implementing or reviewing Gopherbot's simultaneous multi-protocol migration work across identity, routing, startup/configuration, connector behavior, and compatibility. Enforces strict pre-change impact analysis plus per-change invariants/testing/documentation checks.
+name: gopherbot-architecture-guardrails
+description: Use when implementing or reviewing cross-cutting Gopherbot architecture changes that touch connectors, routing, startup/configuration, identity/authorization, or compatibility. Enforces strict pre-change impact analysis plus per-change invariants/testing/documentation checks.
 ---
 
-# Gopherbot Multi-Protocol Migration
+# Gopherbot Architecture Guardrails
 
 ## When To Use
 
-Use this skill for changes that touch one or more of:
+Use this skill for non-trivial changes that touch one or more of:
 
 - Simultaneous multi-protocol runtime behavior
 - Connector fan-in/fan-out routing
 - Identity mapping and authorization decisions
 - Startup flow, protocol selection, or configuration precedence
 - Cross-connector failure isolation and ordering guarantees
+- Robot bootstrap/setup workflow that affects startup, config loading, or connector semantics
 
 Do not use this skill for small isolated plugin/job/task changes that do not affect connector, identity, routing, startup, or config behavior.
 
@@ -95,4 +96,3 @@ This skill assumes no MCP dependency for current work. Ignore MCP setup unless a
 - `references/pr-invariants-checklist-template.md`
 - `references/compatibility-note-template.md`
 - `scripts/scaffold-change-docs.sh`
-
