@@ -93,12 +93,22 @@ func Start(v VersionInfo) {
 	flag.StringVar(&aidevFlagToken, "aidev", "", adusage)
 	// TODO: Gopherbot CLI commands suck. Make them suck less.
 	flag.Parse()
-	if flag.NArg() > 0 && flag.Arg(0) == pipelineChildExecCommand {
-		code := runPipelineChildExec()
-		if code != 0 {
-			os.Exit(code)
+	if flag.NArg() > 0 {
+		var code int
+		switch flag.Arg(0) {
+		case pipelineChildExecCommand:
+			code = runPipelineChildExec()
+		case pipelineChildRPCCommand:
+			code = runPipelineChildRPC()
+		default:
+			code = -1
 		}
-		return
+		if code >= 0 {
+			if code != 0 {
+				os.Exit(code)
+			}
+			return
+		}
 	}
 
 	if len(overrideDevEnv) > 0 {

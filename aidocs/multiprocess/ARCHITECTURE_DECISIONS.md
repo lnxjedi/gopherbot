@@ -42,3 +42,16 @@ Implication:
 
 Follow-up:
 - Define explicit pipeline-level working-directory semantics and operator-facing behavior in a dedicated slice.
+
+## 2026-02-14: RPC Scaffold Strategy (Slice 4)
+
+Decision:
+- Introduce a minimal versioned stdio protocol scaffold before interpreter migration.
+- Keep the initial protocol surface very small (`hello` handshake + `shutdown`) and internal-only.
+
+Rationale:
+- De-risks the interpreter migration by validating process startup and protocol framing independently.
+- Preserves small-slice safety: no runtime task-path behavior change in scaffold slice.
+
+Follow-up:
+- Expand request/response methods incrementally as interpreter-backed task execution moves to child processes.

@@ -16,6 +16,7 @@ Startup proceeds through the following phases **in order**:
 
 Internal exception:
 - `pipeline-child-exec` is an internal command used by multiprocess task execution; it exits after one child-task run and bypasses normal robot startup phases.
+- `pipeline-child-rpc` is an internal command used for multiprocess RPC scaffolding; it runs a minimal stdio protocol loop and bypasses normal robot startup phases.
 
 ## Entry Points
 
@@ -29,7 +30,8 @@ CLI note:
 Internal child-runner note:
 
 - `gopherbot pipeline-child-exec` is parsed immediately after flag parsing in `Start(...)`.
-- When this command is detected, startup calls the child runner path and returns without loading config, brain, connectors, or HTTP listeners.
+- `gopherbot pipeline-child-rpc` is parsed in the same early dispatch block in `Start(...)`.
+- When either command is detected, startup calls the internal child path and returns without loading config, brain, connectors, or HTTP listeners.
 
 ## Mode Detection
 

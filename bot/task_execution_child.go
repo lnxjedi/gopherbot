@@ -13,6 +13,7 @@ import (
 
 const (
 	pipelineChildExecCommand    = "pipeline-child-exec"
+	pipelineChildRPCCommand     = "pipeline-child-rpc"
 	pipelineChildExecRequestEnv = "GOPHER_PIPE_CHILD_EXEC_REQUEST"
 )
 
