@@ -16,7 +16,7 @@ Startup proceeds through the following phases **in order**:
 
 Internal exception:
 - `pipeline-child-exec` is an internal command used by multiprocess task execution; it exits after one child-task run and bypasses normal robot startup phases.
-- `pipeline-child-rpc` is an internal command used by multiprocess RPC execution; it runs a versioned stdio RPC loop (including Lua execution/config methods) and bypasses normal robot startup phases.
+- `pipeline-child-rpc` is an internal command used by multiprocess RPC execution; it runs a versioned stdio RPC loop (including Lua/JavaScript execution and configure methods) and bypasses normal robot startup phases.
 
 ## Entry Points
 

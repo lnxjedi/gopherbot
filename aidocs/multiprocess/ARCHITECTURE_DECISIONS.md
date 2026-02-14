@@ -71,3 +71,19 @@ Rationale:
 Follow-up:
 - Add Go and JavaScript interpreter bindings onto the same RPC contract.
 - Expand protocol docs/test coverage around timeouts, cancellation, and richer error typing.
+
+## 2026-02-14: JavaScript Binding on Generic RPC (Slice 6)
+
+Decision:
+- Add JavaScript as the second interpreter binding on the same generic child RPC contract.
+- Keep parent-owned `robot_call` as the single Robot API execution authority for child interpreters.
+- Keep external Go (`.go` via yaegi) in-process for now; migrate in a dedicated follow-up slice.
+
+Rationale:
+- Reuses the same protocol shape validated by Lua, reducing risk and duplicate transport logic.
+- Keeps behavior decomposition clear: transport/protocol is generic, interpreter handlers are language-specific.
+- Preserves thin slices and fast fault isolation while maintaining backward-compatible extension behavior.
+
+Follow-up:
+- Migrate external Go/yaegi path to generic RPC in its own slice.
+- Consider protocol-level cancellation/timeouts and richer error classification once all interpreters are migrated.

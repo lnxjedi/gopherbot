@@ -23,7 +23,7 @@ This document describes how pipeline execution and privilege separation currentl
 - Tasks within a single pipeline are sequenced by `runPipeline` (exclusive queueing can defer some tasks), but each task body executes in a dedicated task goroutine via `callTask`.
 - Global counters/waiting for shutdown are tracked with `state.pipelinesRunning` + `state.WaitGroup` (`bot/run_pipelines.go`, `bot/bot_process.go`).
 
-## Execution Boundary (Slice 5 State)
+## Execution Boundary (Slice 6 State)
 
 - `runPipeline` delegates task invocation through `worker.executeTask(...)` (`bot/task_execution.go`).
 - Explicit invariant for the multiprocess epic: `taskGo` tasks (compiled-in handlers implemented in `bot/*`) remain in-process.
@@ -31,10 +31,12 @@ This document describes how pipeline execution and privilege separation currentl
   - `taskGo` -> in-process `callTask`.
   - interpreter-backed external:
     - `.lua` -> child RPC process (`gopherbot pipeline-child-rpc`) via parent-managed `lua_run` / `robot_call`.
-    - `.go` / `.js` -> in-process `callTask` (not migrated yet).
+    - `.js` -> child RPC process (`gopherbot pipeline-child-rpc`) via parent-managed `js_run` / `robot_call`.
+    - `.go` -> in-process `callTask` (not migrated yet).
   - external executable (non-interpreter path) -> child process runner (`gopherbot pipeline-child-exec`) via `callTask` options.
   - external executable plugin default-config (`configure`) -> child process runner from `getDefCfgThread`.
   - external Lua plugin default-config -> child RPC process via `lua_get_config`.
+  - external JavaScript plugin default-config -> child RPC process via `js_get_config`.
 
 ## Privilege Separation Bootstrap
 
@@ -71,8 +73,8 @@ Key invariant in current model: dropping/raising privilege for task execution re
   - `raiseThreadPriv` if pipeline/task is privileged, else `dropThreadPriv`.
   - Handler runs in-process.
 - External interpreted tasks (`.go` via yaegi, `.lua`, `.js`):
-  - `.lua` now executes in a child RPC process; parent keeps policy/routing/identity authority and services Robot API calls over RPC.
-  - `.go` via yaegi and `.js` remain in-process and still use thread-scoped privilege operations.
+  - `.lua` and `.js` now execute in child RPC processes; parent keeps policy/routing/identity authority and services Robot API calls over RPC.
+  - `.go` via yaegi remains in-process and still uses thread-scoped privilege operations.
 - External executable tasks:
   - parent path still applies privilege drop/raise before starting execution.
   - parent starts an internal child runner process (`gopherbot pipeline-child-exec`) with separate process group (`Setpgid: true`).
@@ -90,8 +92,8 @@ Key invariant in current model: dropping/raising privilege for task execution re
 ## Practical Limitations (Current)
 
 - This is not yet a strict multi-process sandbox model for all task types.
-- Compiled-in tasks and some interpreter-backed tasks (`.go`/`.js`) still execute in the engine process.
-- Lua interpreter-backed tasks now gain process isolation via parent/child RPC.
+- Compiled-in tasks and some interpreter-backed tasks (`.go`) still execute in the engine process.
+- Lua and JavaScript interpreter-backed tasks now gain process isolation via parent/child RPC.
 - Long-lived correctness depends on careful `LockOSThread` usage and goroutine/thread lifecycle.
 
 TODO (verify): if non-Unix builds are targeted in future, document the explicit fallback behavior when `bot/privsep.go` is excluded by build tags.

@@ -87,6 +87,14 @@ func runPipelineChildRPCWithIO(r io.Reader, w io.Writer) int {
 			if err := handlePipelineRPCLuaGetConfig(enc, msg); err != nil {
 				return 2
 			}
+		case "js_run":
+			if err := handlePipelineRPCJSRun(dec, enc, msg); err != nil {
+				return 2
+			}
+		case "js_get_config":
+			if err := handlePipelineRPCJSGetConfig(enc, msg); err != nil {
+				return 2
+			}
 		default:
 			_ = writePipelineRPCError(enc, msg.ID, "method_not_found", fmt.Sprintf("unsupported method '%s'", msg.Method))
 		}

@@ -3,11 +3,10 @@ package javascript
 
 import (
 	"github.com/dop251/goja"
-	"github.com/lnxjedi/gopherbot/robot"
 )
 
 type jsBot struct {
-	r   robot.Robot
+	r   BotAPI
 	ctx *jsContext
 }
 
