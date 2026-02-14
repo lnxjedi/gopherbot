@@ -95,7 +95,7 @@ func initializeInterpreter(privileged bool, env []string) (*interp.Interpreter, 
 	return i, nil
 }
 
-func GetPluginConfig(path, name string) (cfg *[]byte, err error) {
+func GetPluginConfig(path, name string, privileged bool) (cfg *[]byte, err error) {
 	var nullcfg []byte
 
 	defer func() {
@@ -105,7 +105,7 @@ func GetPluginConfig(path, name string) (cfg *[]byte, err error) {
 		}
 	}()
 
-	i, err := initializeInterpreter(false, []string{})
+	i, err := initializeInterpreter(privileged, []string{})
 	if err != nil {
 		return &nullcfg, err
 	}

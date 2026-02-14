@@ -1,6 +1,6 @@
 # New Robot Onboarding Epic (Planning)
 
-Status: planning notes + slice 1/2 implementation tracking
+Status: planning notes + slice 1/2/3 implementation tracking
 
 ## Why this exists
 
@@ -138,6 +138,22 @@ Acceptance:
 - Guide user through creating remote repo + deploy key upload.
 - Collect clone URL and update `.env` (`GOPHER_CUSTOM_REPOSITORY`, deploy key material/vars).
 - Explicitly avoid robot-driven git push.
+
+Implementation notes (current):
+- `new robot` now continues directly from scaffold apply into repository handoff.
+- New `new robot repo` command resumes repo handoff without rerunning the earlier scaffold prompts.
+- Slice-2 completed sessions (`stage=scaffolded`) are migrated forward automatically on resume.
+- Repo URL is validated, then `.env` is updated with:
+  - `GOPHER_CUSTOM_REPOSITORY=<repo-url>`
+  - `GOPHER_DEPLOY_KEY=<encoded private deploy key>`
+- Deploy keypair is generated during handoff; private key is stored only in parent `.env`
+  (encoded for bootstrap), not in `custom/`.
+- Public deploy key is written to `custom/ssh/deploy_key.pub` for easy admin copy/paste.
+- `custom/ssh/` now keeps only `robot_key[.pub]`; legacy `manage_key` is not generated.
+- Deploy key encoding uses legacy bootstrap-compatible format (`space -> _`, `newline -> :`).
+- Wizard replies include the deploy public key plus explicit next-step commands for:
+  - manual `git init/add/commit/remote/push`
+  - bootstrap verification by restarting from `.env` only.
 
 Acceptance:
 - User can manually commit/push `custom/` to remote.

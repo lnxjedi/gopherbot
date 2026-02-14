@@ -208,6 +208,7 @@ ExternalPlugins:
     Path: plugins/welcome.lua
   "new-robot":
     Description: Interactive shell for onboarding a new robot
+    Privileged: true
     Homed: true
     Path: plugins/go-new-robot/new_robot.go
   {{- end }}

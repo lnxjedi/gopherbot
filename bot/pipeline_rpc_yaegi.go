@@ -24,8 +24,9 @@ type pipelineRPCGoRunResponse struct {
 }
 
 type pipelineRPCGoGetConfigRequest struct {
-	TaskPath string `json:"task_path"`
-	TaskName string `json:"task_name"`
+	TaskPath   string `json:"task_path"`
+	TaskName   string `json:"task_name"`
+	Privileged bool   `json:"privileged"`
 }
 
 type pipelineRPCGoGetConfigResponse struct {
@@ -85,10 +86,11 @@ func runGoViaRPCMethod(method string, params pipelineRPCGoRunRequest, w *worker,
 	return robot.TaskRetVal(res.RetVal), nil
 }
 
-func runGoGetConfigViaRPC(taskPath, taskName string) (*[]byte, error) {
+func runGoGetConfigViaRPC(taskPath, taskName string, privileged bool) (*[]byte, error) {
 	params := pipelineRPCGoGetConfigRequest{
-		TaskPath: taskPath,
-		TaskName: taskName,
+		TaskPath:   taskPath,
+		TaskName:   taskName,
+		Privileged: privileged,
 	}
 	resRaw, err := runPipelineRPCRequest("go_get_config", params, nil, nil)
 	if err != nil {
@@ -158,7 +160,7 @@ func handlePipelineRPCGoGetConfig(enc *json.Encoder, msg pipelineRPCMessage) err
 	if err := json.Unmarshal(msg.Params, &req); err != nil {
 		return writePipelineRPCError(enc, msg.ID, "invalid_params", fmt.Sprintf("invalid go_get_config params: %v", err))
 	}
-	cfg, err := yaegi.GetPluginConfig(req.TaskPath, req.TaskName)
+	cfg, err := yaegi.GetPluginConfig(req.TaskPath, req.TaskName, req.Privileged)
 	res := pipelineRPCGoGetConfigResponse{}
 	if err != nil {
 		res.Error = err.Error()
