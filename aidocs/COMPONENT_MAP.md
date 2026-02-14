@@ -35,6 +35,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## cmd/
 
 - MCP lifecycle helper binary: `cmd/gopherbot-mcp/main.go` (stdio MCP server with robot start/stop/status tools plus `send_message` / `get_messages` AI-dev tools).
+- Privilege-separation helper binary: `cmd/gopherbot-privsep/main.go` (setuid-root helper that marks the `gopherbot` binary setuid to user `nobody` for privsep testing).
 
 ## conf/
 

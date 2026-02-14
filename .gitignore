@@ -1,6 +1,8 @@
 coverage.*
-gopherbot
-gopherbot.exe
+/gopherbot
+/gopherbot-mcp
+/gopherbot-privsep
+/gopherbot.exe
 gopherbot*zip
 gopherbot*tar.gz
 *.pyc
@@ -22,3 +24,4 @@ tmp/
 binary-encrypted-key*
 .ssh
 .ssh-connect
+.gopath

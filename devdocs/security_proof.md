@@ -9,6 +9,26 @@ The prior concern about missing-authorizer detection has been addressed in this 
 
 Load-time validation is implemented in `bot/taskconf.go`, and runtime validation remains in `bot/authorize.go`.
 
+Privsep hardening status in this slice:
+
+- Startup now panics with an explicit tamper message if a setuid-`nobody` `gopherbot` binary has unsafe mode bits or owner mismatch.
+- The binary encryption key file is validated (no symlink / regular file) before read and permissions are enforced to owner-only (`0600`).
+- Child-runner process launches now explicitly strip high-sensitivity `GOPHER_*` secrets (`GOPHER_ENCRYPTION_KEY`, `GOPHER_DEPLOY_KEY`, `GOPHER_HOST_KEYS`) from inherited environment.
+
+## Privsep Caveats and Residual Risk
+
+1. Environment inheritance is still broad by design for non-sensitive variables.
+
+We now strip high-risk secrets from child runner environments, but child processes still inherit most parent environment entries. This is acceptable under the current model (operators should not place secrets in generic process env), but it remains a defense-in-depth consideration.
+
+2. Robot code/config readability tradeoff is intentional.
+
+Unprivileged plugin execution needs read/execute access to plugin files and libraries, so we cannot make all of `custom/` unreadable to the unprivileged execution UID. This means privsep protects process privileges, not confidentiality of plugin source/config from code running as the unprivileged plugin user.
+
+3. Untrusted plugins remain out of scope for trust guarantees.
+
+Privsep reduces blast radius for privilege escalation, but does not make untrusted extension code safe in an absolute sense. Operators should still treat plugin provenance and review as a core security boundary.
+
 ## Scope
 
 This proof covers engine security controls exercised through:

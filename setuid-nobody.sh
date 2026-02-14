@@ -11,6 +11,6 @@ fi
 
 INSTALLDIR=$(dirname $0)
 cd $INSTALLDIR
-chown nobody gopherbot
-chmod u+s gopherbot
+chown nobody:nobody gopherbot
+chmod 4755 gopherbot
 echo "Done."
