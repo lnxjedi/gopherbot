@@ -819,6 +819,18 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 			return nil, err
 		}
 		return map[string]interface{}{"bool": r.SetParameter(name, value)}, nil
+	case "Subscribe":
+		subscriber, ok := base.(interface{ Subscribe() bool })
+		if !ok {
+			return nil, fmt.Errorf("Subscribe unsupported by current robot implementation")
+		}
+		return map[string]interface{}{"bool": subscriber.Subscribe()}, nil
+	case "Unsubscribe":
+		subscriber, ok := base.(interface{ Unsubscribe() bool })
+		if !ok {
+			return nil, fmt.Errorf("Unsubscribe unsupported by current robot implementation")
+		}
+		return map[string]interface{}{"bool": subscriber.Unsubscribe()}, nil
 	case "RaisePriv":
 		reason, err := pipelineRPCArgString(args, 0)
 		if err != nil {
@@ -1311,6 +1323,22 @@ func (c *pipelineRPCLuaRobotClient) FailCommand(plugin, command string) robot.Re
 
 func (c *pipelineRPCLuaRobotClient) SetParameter(name, value string) bool {
 	res, err := c.call("SetParameter", name, value)
+	if err != nil {
+		return false
+	}
+	return pipelineRPCMapBool(res, "bool")
+}
+
+func (c *pipelineRPCLuaRobotClient) Subscribe() bool {
+	res, err := c.call("Subscribe")
+	if err != nil {
+		return false
+	}
+	return pipelineRPCMapBool(res, "bool")
+}
+
+func (c *pipelineRPCLuaRobotClient) Unsubscribe() bool {
+	res, err := c.call("Unsubscribe")
 	if err != nil {
 		return false
 	}

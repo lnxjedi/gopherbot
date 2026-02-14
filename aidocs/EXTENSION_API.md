@@ -65,6 +65,7 @@ Prompt timeout semantics:
 
 ### Admin, logging, utilities
 - `CheckAdmin() bool`
+- `Subscribe() bool`, `Unsubscribe() bool`
 - `Elevate(immediate bool) bool`
 - `Log(l LogLevel, m string, v ...interface{}) bool`
 - `RandomInt(n int) int`, `RandomString(s []string) string`, `Pause(s float64)`
@@ -114,7 +115,7 @@ External interpreters call the HTTP API and wrap it in language-appropriate help
 
 ## Parity notes and known gaps
 
-- `Subscribe` / `Unsubscribe` exist in the engine (`bot/subscribe_thread.go`) and are exposed in the HTTP handler (`bot/http.go`), but they are not listed on the `robot.Robot` interface in `robot/robot.go`. TODO (verify): decide whether the Go interface should include these.
+- `Subscribe` / `Unsubscribe` are now part of the canonical Go interface (`robot/robot.go`) and are exercised for external yaegi plugins via `test/go_full_test.go` + `plugins/test/gofull.go`.
 - `SetWorkingDirectory` exists in the Go interface and external libraries (`lib/gopherbot_v1.sh`, `lib/gopherbot_v2.py`, `lib/gopherbot_v1.rb`), but it is not present in the Lua/JS wrappers as of `lib/gopherbot_v1.lua` / `lib/gopherbot_v1.js`.
 - `RaisePriv` is Go-only (`robot/robot.go`); there is no wrapper in external language libraries.
 

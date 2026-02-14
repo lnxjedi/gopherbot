@@ -53,4 +53,6 @@ type BotAPI interface {
 	FinalCommand(string, string) robot.RetVal
 	FailCommand(string, string) robot.RetVal
 	SetParameter(string, string) bool
+	Subscribe() bool
+	Unsubscribe() bool
 }

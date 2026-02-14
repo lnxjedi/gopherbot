@@ -53,6 +53,9 @@ func TestLuaFull(t *testing.T) {
 			{null, general, "HTTP ERROR ok: 500", false},
 			{null, general, "HTTP TIMEOUT ok", false}},
 			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";lua-subscribe", false, []TestMessage{
+			{null, general, "SUBSCRIBE FLOW: true/true", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
 

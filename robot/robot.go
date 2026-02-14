@@ -37,6 +37,10 @@ type Robot interface {
 	// plugin has multiple commands, some which require admin. Otherwise the plugin
 	// should just configure RequireAdmin: true
 	CheckAdmin() bool
+	// Subscribe subscribes the current plugin to the active thread context.
+	Subscribe() bool
+	// Unsubscribe removes the current plugin subscription from the active thread context.
+	Unsubscribe() bool
 	// Elevate lets a plugin request elevation on the fly. When immediate = true,
 	// the elevator should always prompt for 2fa; otherwise a configured timeout
 	// should apply. Elevate is similar to "sudo" in functionality, requiring the

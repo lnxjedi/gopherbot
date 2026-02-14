@@ -49,6 +49,18 @@ func (jr *jsBot) botSetParameter(call goja.FunctionCall) goja.Value {
 	return jr.ctx.vm.ToValue(okSet)
 }
 
+// botSubscribe(bot:Subscribe() -> bool)
+func (jr *jsBot) botSubscribe(call goja.FunctionCall) goja.Value {
+	success := jr.r.Subscribe()
+	return jr.ctx.vm.ToValue(success)
+}
+
+// botUnsubscribe(bot:Unsubscribe() -> bool)
+func (jr *jsBot) botUnsubscribe(call goja.FunctionCall) goja.Value {
+	success := jr.r.Unsubscribe()
+	return jr.ctx.vm.ToValue(success)
+}
+
 // botExclusive(bot:Exclusive(tag, queueTask) -> bool)
 func (jr *jsBot) botExclusive(call goja.FunctionCall) goja.Value {
 	const methodName = "Exclusive"

@@ -13,6 +13,9 @@ Help:
 - Keywords: [ "http" ]
   Helptext:
   - "(bot), js-http - exercise HTTP GET/POST/PUT"
+- Keywords: [ "subscribe" ]
+  Helptext:
+  - "(bot), js-subscribe - exercise Subscribe/Unsubscribe"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -20,6 +23,8 @@ CommandMatchers:
   Command: configtest
 - Regex: (?i:js-http)
   Command: http
+- Regex: (?i:js-subscribe)
+  Command: subscribe
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -110,6 +115,14 @@ function handler(argv) {
         } catch (err) {
           bot.Say("HTTP TIMEOUT ok");
         }
+        return task.Normal;
+      }
+    case 'subscribe':
+      {
+        const bot = new Robot();
+        const sub = bot.Subscribe();
+        const unsub = bot.Unsubscribe();
+        bot.Say(`SUBSCRIBE FLOW: ${sub}/${unsub}`);
         return task.Normal;
       }
 

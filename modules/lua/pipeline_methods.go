@@ -8,6 +8,8 @@ import (
 //
 //	bot:GetParameter(name) -> string
 //	bot:SetParameter(name, value) -> bool
+//	bot:Subscribe() -> bool
+//	bot:Unsubscribe() -> bool
 //	bot:Exclusive(tag, queueTask) -> bool
 //	bot:SpawnJob(name, arg1, arg2, ...)
 //	bot:AddTask(name, arg1, arg2, ...)
@@ -21,6 +23,8 @@ func (lctx *luaContext) RegisterPipelineMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		"GetParameter": lctx.botGetParameter,
 		"SetParameter": lctx.botSetParameter,
+		"Subscribe":    lctx.botSubscribe,
+		"Unsubscribe":  lctx.botUnsubscribe,
 		"Exclusive":    lctx.botExclusive,
 		"SpawnJob":     lctx.botSpawnJob,
 		"AddTask":      lctx.botAddTask,
@@ -72,7 +76,27 @@ func (lctx *luaContext) botSetParameter(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 3) bot:Exclusive(tag, queueTask) -> bool
+// 3) bot:Subscribe() -> bool
+// -------------------------------------------------------------------
+func (lctx *luaContext) botSubscribe(L *glua.LState) int {
+	r := lctx.getRobot(L, "Subscribe")
+	success := r.Subscribe()
+	L.Push(glua.LBool(success))
+	return 1
+}
+
+// -------------------------------------------------------------------
+// 4) bot:Unsubscribe() -> bool
+// -------------------------------------------------------------------
+func (lctx *luaContext) botUnsubscribe(L *glua.LState) int {
+	r := lctx.getRobot(L, "Unsubscribe")
+	success := r.Unsubscribe()
+	L.Push(glua.LBool(success))
+	return 1
+}
+
+// -------------------------------------------------------------------
+// 5) bot:Exclusive(tag, queueTask) -> bool
 // -------------------------------------------------------------------
 func (lctx *luaContext) botExclusive(L *glua.LState) int {
 	r := lctx.getRobot(L, "Exclusive")
@@ -90,7 +114,7 @@ func (lctx *luaContext) botExclusive(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 4) bot:SpawnJob(name, arg1, arg2, ... argN) -> RetVal
+// 6) bot:SpawnJob(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
 func (lctx *luaContext) botSpawnJob(L *glua.LState) int {
 	r := lctx.getRobot(L, "SpawnJob")
@@ -108,7 +132,7 @@ func (lctx *luaContext) botSpawnJob(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 5) bot:AddTask(name, arg1, arg2, ... argN) -> RetVal
+// 7) bot:AddTask(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
 func (lctx *luaContext) botAddTask(L *glua.LState) int {
 	r := lctx.getRobot(L, "AddTask")
@@ -126,7 +150,7 @@ func (lctx *luaContext) botAddTask(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 6) bot:FinalTask(name, arg1, arg2, ... argN) -> RetVal
+// 8) bot:FinalTask(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
 func (lctx *luaContext) botFinalTask(L *glua.LState) int {
 	r := lctx.getRobot(L, "FinalTask")
@@ -144,7 +168,7 @@ func (lctx *luaContext) botFinalTask(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 7) bot:FailTask(name, arg1, arg2, ... argN) -> RetVal
+// 9) bot:FailTask(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
 func (lctx *luaContext) botFailTask(L *glua.LState) int {
 	r := lctx.getRobot(L, "FailTask")
@@ -162,7 +186,7 @@ func (lctx *luaContext) botFailTask(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 8) bot:AddJob(name, arg1, arg2, ... argN) -> RetVal
+// 10) bot:AddJob(name, arg1, arg2, ... argN) -> RetVal
 // -------------------------------------------------------------------
 func (lctx *luaContext) botAddJob(L *glua.LState) int {
 	r := lctx.getRobot(L, "AddJob")
@@ -180,7 +204,7 @@ func (lctx *luaContext) botAddJob(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 9) bot:AddCommand(pluginName, command) -> RetVal
+// 11) bot:AddCommand(pluginName, command) -> RetVal
 // -------------------------------------------------------------------
 func (lctx *luaContext) botAddCommand(L *glua.LState) int {
 	r := lctx.getRobot(L, "AddCommand")
@@ -202,7 +226,7 @@ func (lctx *luaContext) botAddCommand(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 10) bot:FinalCommand(pluginName, command) -> RetVal
+// 12) bot:FinalCommand(pluginName, command) -> RetVal
 // -------------------------------------------------------------------
 func (lctx *luaContext) botFinalCommand(L *glua.LState) int {
 	r := lctx.getRobot(L, "FinalCommand")
@@ -224,7 +248,7 @@ func (lctx *luaContext) botFinalCommand(L *glua.LState) int {
 }
 
 // -------------------------------------------------------------------
-// 11) bot:FailCommand(pluginName, command) -> RetVal
+// 13) bot:FailCommand(pluginName, command) -> RetVal
 // -------------------------------------------------------------------
 func (lctx *luaContext) botFailCommand(L *glua.LState) int {
 	r := lctx.getRobot(L, "FailCommand")

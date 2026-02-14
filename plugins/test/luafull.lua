@@ -13,6 +13,9 @@ Help:
 - Keywords: [ "http" ]
   Helptext:
   - "(bot), lua-http - exercise HTTP GET/POST/PUT"
+- Keywords: [ "subscribe" ]
+  Helptext:
+  - "(bot), lua-subscribe - exercise Subscribe/Unsubscribe"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -20,6 +23,8 @@ CommandMatchers:
   Command: configtest
 - Regex: (?i:lua-http)
   Command: http
+- Regex: (?i:lua-subscribe)
+  Command: subscribe
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -114,6 +119,13 @@ function commands.http(bot)
   else
     bot:Say("HTTP TIMEOUT unexpected")
   end
+  return task.Normal
+end
+
+function commands.subscribe(bot)
+  local sub = bot:Subscribe()
+  local unsub = bot:Unsubscribe()
+  bot:Say("SUBSCRIBE FLOW: " .. tostring(sub) .. "/" .. tostring(unsub))
   return task.Normal
 end
 

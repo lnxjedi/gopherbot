@@ -76,8 +76,8 @@ Sources:
 - [ ] `RaisePriv(path)` (if Lua should expose it)
 
 ### Thread subscription (engine support)
-- [ ] `Subscribe()`
-- [ ] `Unsubscribe()`
+- [x] `Subscribe()`
+- [x] `Unsubscribe()`
 
 ## Lua add-on helpers (DevOps focus)
 
@@ -98,6 +98,9 @@ Sources:
 
 Track coverage for the Lua full test extension under `test/`.
 
+- Deferred beyond this epic:
+  - `SetWorkingDirectory(path)` (track as long-term; not in current JS/Lua full coverage slices)
+
 - [x] Messaging: Say/Reply/Send* variants + format wrappers
 - [x] Config: GetTaskConfig + RandomString
 - [x] HTTP helpers (status, error, timeout)
@@ -105,6 +108,6 @@ Track coverage for the Lua full test extension under `test/`.
 - [ ] Memory: Checkout/Update/Recall + Remember* context
 - [ ] Pipeline control: Add/Final/Fail task/job/command, SpawnJob
 - [ ] Admin + Elevate
-- [ ] Subscribe/Unsubscribe
-- [ ] SetWorkingDirectory + file helpers
+- [x] Subscribe/Unsubscribe
+- [ ] File helpers
 - [ ] Exec helpers (success + failure + timeout)
