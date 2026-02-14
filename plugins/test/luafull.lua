@@ -19,6 +19,9 @@ Help:
 - Keywords: [ "prompt" ]
   Helptext:
   - "(bot), lua-prompts - exercise Prompt* methods (user/channel/thread variants)"
+- Keywords: [ "memory" ]
+  Helptext:
+  - "(bot), lua-memory-seed/lua-memory-check/lua-memory-thread-check - exercise Remember*/Recall context behavior"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -30,6 +33,12 @@ CommandMatchers:
   Command: subscribe
 - Regex: (?i:lua-prompts)
   Command: prompts
+- Regex: (?i:lua-memory-seed)
+  Command: memoryseed
+- Regex: (?i:lua-memory-check)
+  Command: memorycheck
+- Regex: (?i:lua-memory-thread-check)
+  Command: memorythreadcheck
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -48,6 +57,12 @@ local ret, task, log, fmt, proto, Robot =
     gopherbot.Robot
 
 local commands = {}
+local function showMemory(v)
+  if v == nil or v == "" then
+    return "<empty>"
+  end
+  return tostring(v)
+end
 
 function commands.sendmsg(bot)
   bot:Say("Regular Say")
@@ -161,6 +176,44 @@ function commands.prompts(bot)
     return task.Fail
   end
   bot:Say("PROMPT FLOW OK: " .. p1 .. " | " .. p2 .. " | " .. p3 .. " | " .. p4 .. " | " .. p5)
+  return task.Normal
+end
+
+function commands.memoryseed(bot)
+  bot:Remember("launch_snack", "saffron noodles", false)
+  bot:Remember("launch_snack", "solar soup", true)
+  bot:RememberContext("pad", "orbital-7")
+  bot:RememberThread("thread_note", "delta thread", false)
+  bot:RememberContextThread("mission", "aurora mission")
+  bot:Say("MEMORY SEED: done")
+  return task.Normal
+end
+
+function commands.memorycheck(bot)
+  local localMem = bot:Recall("launch_snack", false)
+  local sharedMem = bot:Recall("launch_snack", true)
+  local ctx = bot:Recall("context:pad", false)
+  local threadMem = bot:Recall("thread_note", false)
+  local threadCtx = bot:Recall("context:mission", false)
+  bot:Say("MEMORY CHECK: local=" .. showMemory(localMem) ..
+    " shared=" .. showMemory(sharedMem) ..
+    " ctx=" .. showMemory(ctx) ..
+    " thread=" .. showMemory(threadMem) ..
+    " threadctx=" .. showMemory(threadCtx))
+  return task.Normal
+end
+
+function commands.memorythreadcheck(bot)
+  local localMem = bot:Recall("launch_snack", false)
+  local sharedMem = bot:Recall("launch_snack", true)
+  local ctx = bot:Recall("context:pad", false)
+  local threadMem = bot:Recall("thread_note", false)
+  local threadCtx = bot:Recall("context:mission", false)
+  bot:Say("MEMORY THREAD CHECK: local=" .. showMemory(localMem) ..
+    " shared=" .. showMemory(sharedMem) ..
+    " ctx=" .. showMemory(ctx) ..
+    " thread=" .. showMemory(threadMem) ..
+    " threadctx=" .. showMemory(threadCtx))
   return task.Normal
 end
 

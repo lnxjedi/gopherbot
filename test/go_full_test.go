@@ -62,6 +62,18 @@ func TestGoFull(t *testing.T) {
 		{aliceID, general, "ember fox", true, []TestMessage{
 			{null, general, "PROMPT FLOW OK: Nova Sparrow \\| spicy popcorn \\| io station nine \\| aurora clear \\| ember fox", false}},
 			[]Event{}, 0},
+		{aliceID, general, ";go-memory-seed", false, []TestMessage{
+			{null, general, "MEMORY SEED: done", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";go-memory-check", false, []TestMessage{
+			{null, general, "MEMORY CHECK: local=saffron noodles shared=solar soup ctx=orbital-7 thread=<empty> threadctx=<empty>", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{bobID, general, ";go-memory-check", false, []TestMessage{
+			{null, general, "MEMORY CHECK: local=<empty> shared=solar soup ctx=<empty> thread=<empty> threadctx=<empty>", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";go-memory-thread-check", true, []TestMessage{
+			{null, general, "MEMORY THREAD CHECK: local=<empty> shared=<empty> ctx=<empty> thread=delta thread threadctx=aurora mission", true}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 

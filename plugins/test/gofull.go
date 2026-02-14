@@ -21,6 +21,9 @@ Help:
 - Keywords: [ "prompt" ]
   Helptext:
   - "(bot), go-prompts - exercise Prompt* methods (user/channel/thread variants)"
+- Keywords: [ "memory" ]
+  Helptext:
+  - "(bot), go-memory-seed/go-memory-check/go-memory-thread-check - exercise Remember*/Recall context behavior"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -30,6 +33,12 @@ CommandMatchers:
   Command: subscribe
 - Regex: (?i:go-prompts)
   Command: prompts
+- Regex: (?i:go-memory-seed)
+  Command: memoryseed
+- Regex: (?i:go-memory-check)
+  Command: memorycheck
+- Regex: (?i:go-memory-thread-check)
+  Command: memorythreadcheck
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -40,6 +49,13 @@ Config:
 
 type goFullConfig struct {
 	Openings []string
+}
+
+func showMemory(v string) string {
+	if v == "" {
+		return "<empty>"
+	}
+	return v
 }
 
 func Configure() *[]byte {
@@ -113,6 +129,32 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 			return robot.Fail
 		}
 		r.Say("PROMPT FLOW OK: %s | %s | %s | %s | %s", p1, p2, p3, p4, p5)
+		return robot.Normal
+	case "memoryseed":
+		r.Remember("launch_snack", "saffron noodles", false)
+		r.Remember("launch_snack", "solar soup", true)
+		r.RememberContext("pad", "orbital-7")
+		r.RememberThread("thread_note", "delta thread", false)
+		r.RememberContextThread("mission", "aurora mission")
+		r.Say("MEMORY SEED: done")
+		return robot.Normal
+	case "memorycheck":
+		localMem := r.Recall("launch_snack", false)
+		sharedMem := r.Recall("launch_snack", true)
+		ctx := r.Recall("context:pad", false)
+		threadMem := r.Recall("thread_note", false)
+		threadCtx := r.Recall("context:mission", false)
+		r.Say("MEMORY CHECK: local=%s shared=%s ctx=%s thread=%s threadctx=%s",
+			showMemory(localMem), showMemory(sharedMem), showMemory(ctx), showMemory(threadMem), showMemory(threadCtx))
+		return robot.Normal
+	case "memorythreadcheck":
+		localMem := r.Recall("launch_snack", false)
+		sharedMem := r.Recall("launch_snack", true)
+		ctx := r.Recall("context:pad", false)
+		threadMem := r.Recall("thread_note", false)
+		threadCtx := r.Recall("context:mission", false)
+		r.Say("MEMORY THREAD CHECK: local=%s shared=%s ctx=%s thread=%s threadctx=%s",
+			showMemory(localMem), showMemory(sharedMem), showMemory(ctx), showMemory(threadMem), showMemory(threadCtx))
 		return robot.Normal
 	default:
 		return robot.Fail

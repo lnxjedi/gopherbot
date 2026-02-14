@@ -19,6 +19,9 @@ Help:
 - Keywords: [ "prompt" ]
   Helptext:
   - "(bot), js-prompts - exercise Prompt* methods (user/channel/thread variants)"
+- Keywords: [ "memory" ]
+  Helptext:
+  - "(bot), js-memory-seed/js-memory-check/js-memory-thread-check - exercise Remember*/Recall context behavior"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -30,6 +33,12 @@ CommandMatchers:
   Command: subscribe
 - Regex: (?i:js-prompts)
   Command: prompts
+- Regex: (?i:js-memory-seed)
+  Command: memoryseed
+- Regex: (?i:js-memory-check)
+  Command: memorycheck
+- Regex: (?i:js-memory-thread-check)
+  Command: memorythreadcheck
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -46,6 +55,7 @@ function handler(argv) {
   // 1: the path to the *.js source file
   // 2+: arguments
   const cmd = argv.length > 2 ? argv[2] : '';
+  const showMemory = (v) => (v && v.length > 0 ? v : "<empty>");
 
   switch (cmd) {
     case 'init':
@@ -159,6 +169,43 @@ function handler(argv) {
           return task.Fail;
         }
         bot.Say(`PROMPT FLOW OK: ${p1.reply} | ${p2.reply} | ${p3.reply} | ${p4.reply} | ${p5.reply}`);
+        return task.Normal;
+      }
+    case 'memoryseed':
+      {
+        const bot = new Robot();
+        bot.Remember("launch_snack", "saffron noodles", false);
+        bot.Remember("launch_snack", "solar soup", true);
+        bot.RememberContext("pad", "orbital-7");
+        bot.RememberThread("thread_note", "delta thread", false);
+        bot.RememberContextThread("mission", "aurora mission");
+        bot.Say("MEMORY SEED: done");
+        return task.Normal;
+      }
+    case 'memorycheck':
+      {
+        const bot = new Robot();
+        const local = bot.Recall("launch_snack", false);
+        const shared = bot.Recall("launch_snack", true);
+        const ctx = bot.Recall("context:pad", false);
+        const thread = bot.Recall("thread_note", false);
+        const threadctx = bot.Recall("context:mission", false);
+        bot.Say(
+          `MEMORY CHECK: local=${showMemory(local)} shared=${showMemory(shared)} ctx=${showMemory(ctx)} thread=${showMemory(thread)} threadctx=${showMemory(threadctx)}`
+        );
+        return task.Normal;
+      }
+    case 'memorythreadcheck':
+      {
+        const bot = new Robot();
+        const local = bot.Recall("launch_snack", false);
+        const shared = bot.Recall("launch_snack", true);
+        const ctx = bot.Recall("context:pad", false);
+        const thread = bot.Recall("thread_note", false);
+        const threadctx = bot.Recall("context:mission", false);
+        bot.Say(
+          `MEMORY THREAD CHECK: local=${showMemory(local)} shared=${showMemory(shared)} ctx=${showMemory(ctx)} thread=${showMemory(thread)} threadctx=${showMemory(threadctx)}`
+        );
         return task.Normal;
       }
 
