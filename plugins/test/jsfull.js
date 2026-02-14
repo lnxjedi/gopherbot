@@ -23,6 +23,9 @@ Help:
   Helptext:
   - "(bot), js-memory-seed/js-memory-check/js-memory-thread-check - exercise Remember*/Recall context behavior"
   - "(bot), js-memory-datum-seed/js-memory-datum-check/js-memory-datum-checkin - exercise CheckoutDatum/UpdateDatum/CheckinDatum"
+- Keywords: [ "identity", "parameter" ]
+  Helptext:
+  - "(bot), js-identity - exercise Get*Attribute + Set/GetParameter"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -46,6 +49,8 @@ CommandMatchers:
   Command: memorydatumcheck
 - Regex: (?i:js-memory-datum-checkin)
   Command: memorydatumcheckin
+- Regex: (?i:js-identity)
+  Command: identity
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -267,6 +272,19 @@ function handler(argv) {
         const checkin = bot.CheckinDatum(out);
         const checkinRet = checkin === undefined ? ret.Ok : checkin;
         bot.Say(`MEMORY DATUM CHECKIN: exists=${out.exists} token=${tokenPresent} ret=${ret.string(checkinRet)}`);
+        return task.Normal;
+      }
+    case 'identity':
+      {
+        const bot = new Robot();
+        const botName = bot.GetBotAttribute("name");
+        const sender = bot.GetSenderAttribute("firstName");
+        const otherUser = bot.GetUserAttribute("bob", "firstName");
+        const setOK = bot.SetParameter("launch_phase", "phase-amber");
+        const phase = bot.GetParameter("definitely_missing_param");
+        bot.Say(
+          `IDENTITY CHECK: bot=${showMemory(botName.attribute)}/${ret.string(botName.retVal)} sender=${showMemory(sender.attribute)}/${ret.string(sender.retVal)} bob=${showMemory(otherUser.attribute)}/${ret.string(otherUser.retVal)} set=${setOK} param=${showMemory(phase)}`
+        );
         return task.Normal;
       }
 

@@ -23,6 +23,9 @@ Help:
   Helptext:
   - "(bot), lua-memory-seed/lua-memory-check/lua-memory-thread-check - exercise Remember*/Recall context behavior"
   - "(bot), lua-memory-datum-seed/lua-memory-datum-check/lua-memory-datum-checkin - exercise CheckoutDatum/UpdateDatum/CheckinDatum"
+- Keywords: [ "identity", "parameter" ]
+  Helptext:
+  - "(bot), lua-identity - exercise Get*Attribute + Set/GetParameter"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -46,6 +49,8 @@ CommandMatchers:
   Command: memorydatumcheck
 - Regex: (?i:lua-memory-datum-checkin)
   Command: memorydatumcheckin
+- Regex: (?i:lua-identity)
+  Command: identity
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -273,6 +278,19 @@ function commands.memorydatumcheckin(bot)
   bot:CheckinDatum(memory)
   bot:Say("MEMORY DATUM CHECKIN: exists=" .. tostring(memory.exists) ..
     " token=" .. tostring(hasToken) .. " ret=Ok")
+  return task.Normal
+end
+
+function commands.identity(bot)
+  local botName, botRet = bot:GetBotAttribute("name")
+  local senderFirst, senderRet = bot:GetSenderAttribute("firstName")
+  local bobFirst, bobRet = bot:GetUserAttribute("bob", "firstName")
+  local setOK = bot:SetParameter("launch_phase", "phase-amber")
+  local phase = bot:GetParameter("definitely_missing_param")
+  bot:Say("IDENTITY CHECK: bot=" .. showMemory(botName) .. "/" .. ret:string(botRet) ..
+    " sender=" .. showMemory(senderFirst) .. "/" .. ret:string(senderRet) ..
+    " bob=" .. showMemory(bobFirst) .. "/" .. ret:string(bobRet) ..
+    " set=" .. tostring(setOK) .. " param=" .. showMemory(phase))
   return task.Normal
 end
 

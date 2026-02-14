@@ -25,6 +25,9 @@ Help:
   Helptext:
   - "(bot), go-memory-seed/go-memory-check/go-memory-thread-check - exercise Remember*/Recall context behavior"
   - "(bot), go-memory-datum-seed/go-memory-datum-check/go-memory-datum-checkin - exercise CheckoutDatum/UpdateDatum/CheckinDatum"
+- Keywords: [ "identity", "parameter" ]
+  Helptext:
+  - "(bot), go-identity - exercise Get*Attribute + Set/GetParameter"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -46,6 +49,8 @@ CommandMatchers:
   Command: memorydatumcheck
 - Regex: (?i:go-memory-datum-checkin)
   Command: memorydatumcheckin
+- Regex: (?i:go-identity)
+  Command: identity
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -213,6 +218,18 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 		tokenPresent := lockToken != ""
 		r.CheckinDatum("launch_manifest", lockToken)
 		r.Say("MEMORY DATUM CHECKIN: exists=%t token=%t ret=Ok", exists, tokenPresent)
+		return robot.Normal
+	case "identity":
+		botName := r.GetBotAttribute("name")
+		senderFirst := r.GetSenderAttribute("firstName")
+		bobFirst := r.GetUserAttribute("bob", "firstName")
+		setOK := r.SetParameter("launch_phase", "phase-amber")
+		phase := r.GetParameter("definitely_missing_param")
+		r.Say("IDENTITY CHECK: bot=%s/%s sender=%s/%s bob=%s/%s set=%t param=%s",
+			showMemory(botName.Attribute), botName.RetVal,
+			showMemory(senderFirst.Attribute), senderFirst.RetVal,
+			showMemory(bobFirst.Attribute), bobFirst.RetVal,
+			setOK, showMemory(phase))
 		return robot.Normal
 	default:
 		return robot.Fail

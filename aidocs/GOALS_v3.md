@@ -63,6 +63,7 @@ Progress notes:
 - JS and Lua full integration tests exist and are gated via `RUN_FULL`/`TEST` (see `test/` and `aidocs/TESTING_CURRENT.md`).
 - Local HTTP test server exists for deterministic JS/Lua HTTP coverage.
 - JS and Lua HTTP helper modules are available for extension authors (see `aidocs/JS_HTTP_API.md`, `aidocs/LUA_HTTP_API.md`).
+- Long-term TODO: add a Bash Full integration suite with emphasis on formatting behavior parity (including `-f` fixed-format handling). The Bash library (`lib/gopherbot_v1.sh`) likely needs a cleanup/rewrite.
 
 ### Strengthen and Integrate the Groups and Help Systems
 

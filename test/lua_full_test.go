@@ -95,6 +95,9 @@ func TestLuaFull(t *testing.T) {
 		{aliceID, general, ";lua-memory-datum-checkin", false, []TestMessage{
 			{null, general, "MEMORY DATUM CHECKIN: exists=true token=true ret=Ok", false}},
 			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";lua-identity", false, []TestMessage{
+			{null, general, "IDENTITY CHECK: bot=bender/Ok sender=Alice/Ok bob=Robert/Ok set=true param=<empty>", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
 
