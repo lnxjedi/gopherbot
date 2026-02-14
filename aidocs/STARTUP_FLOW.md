@@ -354,12 +354,15 @@ This keeps shutdown deterministic even when interactive prompts are using long t
 
 * `bot/start.go` – Entry point, CLI parsing, log setup
 * `bot/bot_process.go` – `initBot()`, `run()`, encryption initialization
+* `bot/privsep.go` – privilege-separation bootstrap + thread-scoped uid transitions
 * `bot/aidev.go` – AI-dev startup state (`--aidev`) and `.aiport` write helper
 * `bot/aidev_http.go` – authenticated AI-dev message endpoints and connector capability routing
 * `bot/config_load.go` – `detectStartupMode()`, config-file merge/template expansion
 * `bot/conf.go` – `loadConfig()` and reload reconciliation hooks for `SecondaryProtocols`
 * `bot/connector_runtime.go` – multi-connector runtime manager, routing, lifecycle controls
 * `conf/robot.yaml` – Default config with template logic
+
+Related execution model reference: `aidocs/EXECUTION_SECURITY_MODEL.md`.
 
 ## Debugging Startup (Human-Oriented Notes)
 

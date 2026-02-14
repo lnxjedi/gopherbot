@@ -1,0 +1,88 @@
+# Execution And Security Model (Current)
+
+This document describes how pipeline execution and privilege separation currently work in the engine, with concrete code anchors.
+
+## Scope
+
+- Message/job-triggered pipeline execution model.
+- Per-task execution threading model.
+- Current privilege-separation behavior (`setreuid` + thread pinning).
+
+## High-Level Flow
+
+1. Connector submits `ConnectorMessage` to `handler.IncomingMessage` (`bot/handler.go`).
+2. Engine creates a `worker` and starts `go w.handleMessage()` (`bot/handler.go`).
+3. Matcher routing eventually calls `w.startPipeline(...)` (`bot/dispatch.go`, `bot/run_pipelines.go`).
+4. Pipeline tasks are run via `w.runPipeline(...)` -> `w.executeTask(...)` -> `w.callTask(...)` (`bot/run_pipelines.go`, `bot/task_execution.go`, `bot/calltask.go`).
+5. `callTask` runs each task in `go w.callTaskThread(...)` and waits on a return channel (`bot/calltask.go`).
+
+## Pipeline Concurrency Semantics
+
+- A pipeline is represented by one `worker` + `pipeContext` (`bot/pipecontext.go`).
+- Pipelines run concurrently with each other (message handlers each run in their own goroutines).
+- Tasks within a single pipeline are sequenced by `runPipeline` (exclusive queueing can defer some tasks), but each task body executes in a dedicated task goroutine via `callTask`.
+- Global counters/waiting for shutdown are tracked with `state.pipelinesRunning` + `state.WaitGroup` (`bot/run_pipelines.go`, `bot/bot_process.go`).
+
+## Execution Boundary (Slice 1 Foundation)
+
+- `runPipeline` now delegates task invocation through `worker.executeTask(...)` (`bot/task_execution.go`).
+- Current behavior remains unchanged: all tasks still execute through the existing in-process `callTask` path.
+- Explicit invariant for the multiprocess epic: `taskGo` tasks (compiled-in handlers implemented in `bot/*`) remain in-process.
+- Non-Go task process execution is planned in future slices behind this boundary.
+
+## Privilege Separation Bootstrap
+
+On supported Unix platforms (`bot/privsep.go` build tag: linux/bsd), privilege separation is initialized in `init()`:
+
+- If `uid != euid`, engine treats:
+  - `privUID = uid` (invoking user)
+  - `unprivUID = euid` (setuid account, commonly `nobody`)
+- Startup calls `syscall.Setreuid(unprivUID, privUID)` to initialize startup threads.
+- `privSep` is enabled only when this initialization succeeds.
+
+Runtime visibility is logged through `checkprivsep()` in startup (`bot/start.go`).
+
+## Thread-Scoped Privilege Switching
+
+Privilege changes are intentionally scoped to the current OS thread:
+
+- `dropThreadPriv(reason)`:
+  - `runtime.LockOSThread()`
+  - `setReuid(unprivUID, unprivUID)`
+- `raiseThreadPriv(reason)`:
+  - ensure effective uid is `privUID` for current thread.
+- `raiseThreadPrivExternal(reason)`:
+  - `runtime.LockOSThread()`
+  - `setReuid(privUID, privUID)` permanently for that locked thread.
+
+Key invariant in current model: dropping/raising privilege for task execution relies on locked thread lifetime, not process isolation.
+
+## Task-Type Execution Behavior
+
+`callTaskThread` (`bot/calltask.go`) applies privilege operations before task execution:
+
+- Compiled-in Go tasks/plugins:
+  - `raiseThreadPriv` if pipeline/task is privileged, else `dropThreadPriv`.
+  - Handler runs in-process.
+- External interpreted tasks (`.go` via yaegi, `.lua`, `.js`):
+  - same pattern, often using `raiseThreadPrivExternal` for privileged interpreter runs.
+  - Interpreter execution still runs in-process.
+- External executable tasks:
+  - privilege drop/raise performed before `cmd.Start()`.
+  - command runs as child process (`exec.Command`), with separate process group (`Setpgid: true`).
+
+`getDefCfgThread` (plugin configure/default-config path) also drops privilege before external configure calls (`bot/calltask.go`).
+
+## Engine-Level Security Controls Around Pipelines
+
+- Pipeline privilege starts from starter task (`Plugin.Privileged` or `Job.Privileged`) in `startPipeline` (`bot/run_pipelines.go`).
+- Adding privileged tasks/plugins/jobs to unprivileged pipelines is blocked (`bot/robot_pipecmd.go`).
+- Some pipeline parameters/secrets are gated by privilege checks in environment assembly (`bot/run_pipelines.go` comments + logic around inherited params).
+
+## Practical Limitations (Current)
+
+- This is not a strict multi-process sandbox model for all task types.
+- Compiled and interpreter-backed tasks execute in the engine process; isolation is mainly via thread-scoped UID changes.
+- Long-lived correctness depends on careful `LockOSThread` usage and goroutine/thread lifecycle.
+
+TODO (verify): if non-Unix builds are targeted in future, document the explicit fallback behavior when `bot/privsep.go` is excluded by build tags.
