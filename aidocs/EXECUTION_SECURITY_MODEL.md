@@ -23,12 +23,14 @@ This document describes how pipeline execution and privilege separation currentl
 - Tasks within a single pipeline are sequenced by `runPipeline` (exclusive queueing can defer some tasks), but each task body executes in a dedicated task goroutine via `callTask`.
 - Global counters/waiting for shutdown are tracked with `state.pipelinesRunning` + `state.WaitGroup` (`bot/run_pipelines.go`, `bot/bot_process.go`).
 
-## Execution Boundary (Slice 1 Foundation)
+## Execution Boundary (Slice 2 State)
 
-- `runPipeline` now delegates task invocation through `worker.executeTask(...)` (`bot/task_execution.go`).
-- Current behavior remains unchanged: all tasks still execute through the existing in-process `callTask` path.
+- `runPipeline` delegates task invocation through `worker.executeTask(...)` (`bot/task_execution.go`).
 - Explicit invariant for the multiprocess epic: `taskGo` tasks (compiled-in handlers implemented in `bot/*`) remain in-process.
-- Non-Go task process execution is planned in future slices behind this boundary.
+- Current routing by task class:
+  - `taskGo` -> in-process `callTask`.
+  - interpreter-backed external (`.go`, `.lua`, `.js`) -> in-process `callTask`.
+  - external executable (non-interpreter path) -> child process runner (`gopherbot pipeline-child-exec`) via `callTask` options.
 
 ## Privilege Separation Bootstrap
 
@@ -68,8 +70,10 @@ Key invariant in current model: dropping/raising privilege for task execution re
   - same pattern, often using `raiseThreadPrivExternal` for privileged interpreter runs.
   - Interpreter execution still runs in-process.
 - External executable tasks:
-  - privilege drop/raise performed before `cmd.Start()`.
-  - command runs as child process (`exec.Command`), with separate process group (`Setpgid: true`).
+  - parent path still applies privilege drop/raise before starting execution.
+  - parent starts an internal child runner process (`gopherbot pipeline-child-exec`) with separate process group (`Setpgid: true`).
+  - child runner executes exactly one external command, streams stdout/stderr, exits with command status.
+  - parent tracks child pid in `worker.osCmd` for admin `ps`/`kill`.
 
 `getDefCfgThread` (plugin configure/default-config path) also drops privilege before external configure calls (`bot/calltask.go`).
 

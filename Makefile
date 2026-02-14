@@ -51,7 +51,7 @@ dist: $(TAR_ARCHIVE)
 unit:
 	go test -mod readonly ./...
 
-integration:
+integration: gopherbot
 	${TESTENV} go test ${TESTARGS} -v --tags 'test integration netgo osusergo static_build' -mod readonly -race ./test
 
 integration-full:

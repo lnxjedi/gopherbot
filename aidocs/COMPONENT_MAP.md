@@ -15,12 +15,13 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
 - Scheduled job pipeline flow: `aidocs/SCHEDULER_FLOW.md`.
 - Multiprocess epic artifacts: `aidocs/multiprocess/`.
+- Multiprocess architecture decisions: `aidocs/multiprocess/ARCHITECTURE_DECISIONS.md`.
 
 ## bot/
 
 - Engine entrypoints: `bot/start.go` (func `Start`), `bot/bot_process.go` (funcs `initBot`, `run`, `stop`).
 - Runtime connector orchestration: `bot/connector_runtime.go` (runtime manager, protocol routing, lifecycle controls).
-- Pipeline execution + privilege separation internals: `bot/run_pipelines.go`, `bot/task_execution.go`, `bot/calltask.go`, `bot/privsep.go`.
+- Pipeline execution + privilege separation internals: `bot/run_pipelines.go`, `bot/task_execution.go`, `bot/task_execution_child.go`, `bot/calltask.go`, `bot/privsep.go`.
 - Startup mode and config loading: `bot/config_load.go` (funcs `detectStartupMode`, `getConfigFile`), `bot/conf.go` (func `loadConfig`).
 - AI-dev endpoint/auth helpers: `bot/aidev.go` (token + `.aiport`) and `bot/aidev_http.go` (authenticated `send_message` / `get_messages` routing).
 - Internal module initialization: `bot/modules_init.go` (func `initializeModules`) — initializes ssh-agent, ssh-git-helper, and yaegi interpreter modules.

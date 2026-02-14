@@ -27,11 +27,11 @@ func TestSelectTaskExecutionRunnerAlwaysInProcessForGo(t *testing.T) {
 	}
 }
 
-func TestSelectTaskExecutionRunnerDefaultsExternalToInProcessInSlice1(t *testing.T) {
+func TestSelectTaskExecutionRunnerUsesProcessForExternalExecutables(t *testing.T) {
 	w := &worker{}
-	externalTask := &Task{name: "external-script", taskType: taskExternal}
-	externalPlugin := &Plugin{Task: &Task{name: "external-plugin", taskType: taskExternal}}
-	externalJob := &Job{Task: &Task{name: "external-job", taskType: taskExternal}}
+	externalTask := &Task{name: "external-script", taskType: taskExternal, Path: "tasks/thing.sh"}
+	externalPlugin := &Plugin{Task: &Task{name: "external-plugin", taskType: taskExternal, Path: "plugins/thing.py"}}
+	externalJob := &Job{Task: &Task{name: "external-job", taskType: taskExternal, Path: "jobs/thing.rb"}}
 
 	cases := []struct {
 		name string
@@ -42,6 +42,30 @@ func TestSelectTaskExecutionRunnerDefaultsExternalToInProcessInSlice1(t *testing
 		{name: "external job", task: externalJob},
 	}
 
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			runner := w.selectTaskExecutionRunner(tc.task)
+			if _, ok := runner.(externalProcessTaskRunner); !ok {
+				t.Fatalf("selectTaskExecutionRunner() runner type = %T, want externalProcessTaskRunner", runner)
+			}
+		})
+	}
+}
+
+func TestSelectTaskExecutionRunnerKeepsInterpretersInProcess(t *testing.T) {
+	w := &worker{}
+	luaTask := &Task{name: "lua-task", taskType: taskExternal, Path: "plugins/thing.lua"}
+	jsTask := &Task{name: "js-task", taskType: taskExternal, Path: "plugins/thing.js"}
+	goTask := &Task{name: "yaegi-task", taskType: taskExternal, Path: "plugins/thing.go"}
+
+	cases := []struct {
+		name string
+		task interface{}
+	}{
+		{name: "lua", task: luaTask},
+		{name: "js", task: jsTask},
+		{name: "go", task: goTask},
+	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			runner := w.selectTaskExecutionRunner(tc.task)

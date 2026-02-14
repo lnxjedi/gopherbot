@@ -35,6 +35,7 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - `aidocs/SCHEDULER_FLOW.md` - cron scheduler to pipeline start flow.
 - `aidocs/EXECUTION_SECURITY_MODEL.md` - task execution/threading + privilege separation model.
 - `aidocs/multiprocess/...` - slice-by-slice design/impact artifacts for the multiprocess execution epic.
+- `aidocs/multiprocess/ARCHITECTURE_DECISIONS.md` - cross-slice decisions for multiprocess execution.
 
 ## Routing guide
 

@@ -14,6 +14,9 @@ Startup proceeds through the following phases **in order**:
 6. **Connector runtime initialization** – Initialize primary + configured secondary connectors
 7. **Post-connect configuration load** – Full configuration with plugin initialization
 
+Internal exception:
+- `pipeline-child-exec` is an internal command used by multiprocess task execution; it exits after one child-task run and bypasses normal robot startup phases.
+
 ## Entry Points
 
 * `main.go` → `bot.Start()` in `bot/start.go`
@@ -22,6 +25,11 @@ Startup proceeds through the following phases **in order**:
 CLI note:
 
 - `--aidev <token>` enables AI development mode for the process (used by MCP automation flows).
+
+Internal child-runner note:
+
+- `gopherbot pipeline-child-exec` is parsed immediately after flag parsing in `Start(...)`.
+- When this command is detected, startup calls the child runner path and returns without loading config, brain, connectors, or HTTP listeners.
 
 ## Mode Detection
 
