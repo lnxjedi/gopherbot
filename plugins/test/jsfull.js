@@ -22,6 +22,7 @@ Help:
 - Keywords: [ "memory" ]
   Helptext:
   - "(bot), js-memory-seed/js-memory-check/js-memory-thread-check - exercise Remember*/Recall context behavior"
+  - "(bot), js-memory-datum-seed/js-memory-datum-check/js-memory-datum-checkin - exercise CheckoutDatum/UpdateDatum/CheckinDatum"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -39,6 +40,12 @@ CommandMatchers:
   Command: memorycheck
 - Regex: (?i:js-memory-thread-check)
   Command: memorythreadcheck
+- Regex: (?i:js-memory-datum-seed)
+  Command: memorydatumseed
+- Regex: (?i:js-memory-datum-check)
+  Command: memorydatumcheck
+- Regex: (?i:js-memory-datum-checkin)
+  Command: memorydatumcheckin
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -206,6 +213,60 @@ function handler(argv) {
         bot.Say(
           `MEMORY THREAD CHECK: local=${showMemory(local)} shared=${showMemory(shared)} ctx=${showMemory(ctx)} thread=${showMemory(thread)} threadctx=${showMemory(threadctx)}`
         );
+        return task.Normal;
+      }
+    case 'memorydatumseed':
+      {
+        const bot = new Robot();
+        const out = bot.CheckoutDatum("launch_manifest", true);
+        if (out.retVal !== ret.Ok) {
+          bot.Say(`MEMORY DATUM SEED FAILED: ${ret.string(out.retVal)}`);
+          return task.Fail;
+        }
+        if (!out.exists || !out.datum || typeof out.datum !== "object" || Array.isArray(out.datum)) {
+          out.datum = {};
+        }
+        out.datum.mission = "opal-orbit";
+        out.datum.vehicle = "heron-7";
+        out.datum.status = "go";
+        const upd = bot.UpdateDatum(out);
+        if (upd !== ret.Ok) {
+          bot.Say(`MEMORY DATUM SEED FAILED: ${ret.string(upd)}`);
+          return task.Fail;
+        }
+        bot.Say(`MEMORY DATUM SEED: update=${ret.string(upd)}`);
+        return task.Normal;
+      }
+    case 'memorydatumcheck':
+      {
+        const bot = new Robot();
+        const out = bot.CheckoutDatum("launch_manifest", false);
+        if (out.retVal !== ret.Ok) {
+          bot.Say(`MEMORY DATUM CHECK FAILED: ${ret.string(out.retVal)}`);
+          return task.Fail;
+        }
+        if (!out.exists || !out.datum || typeof out.datum !== "object") {
+          bot.Say("MEMORY DATUM CHECK: mission=<empty> vehicle=<empty> status=<empty>");
+          return task.Normal;
+        }
+        const d = out.datum;
+        bot.Say(
+          `MEMORY DATUM CHECK: mission=${showMemory(d.mission)} vehicle=${showMemory(d.vehicle)} status=${showMemory(d.status)}`
+        );
+        return task.Normal;
+      }
+    case 'memorydatumcheckin':
+      {
+        const bot = new Robot();
+        const out = bot.CheckoutDatum("launch_manifest", true);
+        if (out.retVal !== ret.Ok) {
+          bot.Say(`MEMORY DATUM CHECKIN FAILED: ${ret.string(out.retVal)}`);
+          return task.Fail;
+        }
+        const tokenPresent = !!(out.token && out.token.length > 0);
+        const checkin = bot.CheckinDatum(out);
+        const checkinRet = checkin === undefined ? ret.Ok : checkin;
+        bot.Say(`MEMORY DATUM CHECKIN: exists=${out.exists} token=${tokenPresent} ret=${ret.string(checkinRet)}`);
         return task.Normal;
       }
 

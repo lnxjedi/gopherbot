@@ -22,6 +22,7 @@ Help:
 - Keywords: [ "memory" ]
   Helptext:
   - "(bot), lua-memory-seed/lua-memory-check/lua-memory-thread-check - exercise Remember*/Recall context behavior"
+  - "(bot), lua-memory-datum-seed/lua-memory-datum-check/lua-memory-datum-checkin - exercise CheckoutDatum/UpdateDatum/CheckinDatum"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -39,6 +40,12 @@ CommandMatchers:
   Command: memorycheck
 - Regex: (?i:lua-memory-thread-check)
   Command: memorythreadcheck
+- Regex: (?i:lua-memory-datum-seed)
+  Command: memorydatumseed
+- Regex: (?i:lua-memory-datum-check)
+  Command: memorydatumcheck
+- Regex: (?i:lua-memory-datum-checkin)
+  Command: memorydatumcheckin
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -214,6 +221,58 @@ function commands.memorythreadcheck(bot)
     " ctx=" .. showMemory(ctx) ..
     " thread=" .. showMemory(threadMem) ..
     " threadctx=" .. showMemory(threadCtx))
+  return task.Normal
+end
+
+function commands.memorydatumseed(bot)
+  local memory, retVal = bot:CheckoutDatum("launch_manifest", true)
+  if retVal ~= ret.Ok then
+    bot:Say("MEMORY DATUM SEED FAILED: " .. ret:string(retVal))
+    return task.Fail
+  end
+  if not memory.exists or type(memory.datum) ~= "table" then
+    memory.datum = {}
+  end
+  memory.datum.mission = "opal-orbit"
+  memory.datum.vehicle = "heron-7"
+  memory.datum.status = "go"
+  local updateRet = bot:UpdateDatum(memory)
+  if updateRet ~= ret.Ok then
+    bot:Say("MEMORY DATUM SEED FAILED: " .. ret:string(updateRet))
+    return task.Fail
+  end
+  bot:Say("MEMORY DATUM SEED: update=" .. ret:string(updateRet))
+  return task.Normal
+end
+
+function commands.memorydatumcheck(bot)
+  local memory, retVal = bot:CheckoutDatum("launch_manifest", false)
+  if retVal ~= ret.Ok then
+    bot:Say("MEMORY DATUM CHECK FAILED: " .. ret:string(retVal))
+    return task.Fail
+  end
+  local mission = "<empty>"
+  local vehicle = "<empty>"
+  local status = "<empty>"
+  if memory.exists and type(memory.datum) == "table" then
+    mission = showMemory(memory.datum.mission)
+    vehicle = showMemory(memory.datum.vehicle)
+    status = showMemory(memory.datum.status)
+  end
+  bot:Say("MEMORY DATUM CHECK: mission=" .. mission .. " vehicle=" .. vehicle .. " status=" .. status)
+  return task.Normal
+end
+
+function commands.memorydatumcheckin(bot)
+  local memory, retVal = bot:CheckoutDatum("launch_manifest", true)
+  if retVal ~= ret.Ok then
+    bot:Say("MEMORY DATUM CHECKIN FAILED: " .. ret:string(retVal))
+    return task.Fail
+  end
+  local hasToken = memory.token and memory.token ~= ""
+  bot:CheckinDatum(memory)
+  bot:Say("MEMORY DATUM CHECKIN: exists=" .. tostring(memory.exists) ..
+    " token=" .. tostring(hasToken) .. " ret=Ok")
   return task.Normal
 end
 

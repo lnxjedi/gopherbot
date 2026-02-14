@@ -24,6 +24,7 @@ Help:
 - Keywords: [ "memory" ]
   Helptext:
   - "(bot), go-memory-seed/go-memory-check/go-memory-thread-check - exercise Remember*/Recall context behavior"
+  - "(bot), go-memory-datum-seed/go-memory-datum-check/go-memory-datum-checkin - exercise CheckoutDatum/UpdateDatum/CheckinDatum"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -39,6 +40,12 @@ CommandMatchers:
   Command: memorycheck
 - Regex: (?i:go-memory-thread-check)
   Command: memorythreadcheck
+- Regex: (?i:go-memory-datum-seed)
+  Command: memorydatumseed
+- Regex: (?i:go-memory-datum-check)
+  Command: memorydatumcheck
+- Regex: (?i:go-memory-datum-checkin)
+  Command: memorydatumcheckin
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -155,6 +162,57 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 		threadCtx := r.Recall("context:mission", false)
 		r.Say("MEMORY THREAD CHECK: local=%s shared=%s ctx=%s thread=%s threadctx=%s",
 			showMemory(localMem), showMemory(sharedMem), showMemory(ctx), showMemory(threadMem), showMemory(threadCtx))
+		return robot.Normal
+	case "memorydatumseed":
+		memory := map[string]interface{}{}
+		lockToken, _, retVal := r.CheckoutDatum("launch_manifest", &memory, true)
+		if retVal != robot.Ok {
+			r.Say("MEMORY DATUM SEED FAILED: %s", retVal)
+			return robot.Fail
+		}
+		memory["mission"] = "opal-orbit"
+		memory["vehicle"] = "heron-7"
+		memory["status"] = "go"
+		updateRet := r.UpdateDatum("launch_manifest", lockToken, memory)
+		if updateRet != robot.Ok {
+			r.Say("MEMORY DATUM SEED FAILED: %s", updateRet)
+			return robot.Fail
+		}
+		r.Say("MEMORY DATUM SEED: update=%s", updateRet)
+		return robot.Normal
+	case "memorydatumcheck":
+		memory := map[string]interface{}{}
+		_, exists, retVal := r.CheckoutDatum("launch_manifest", &memory, false)
+		if retVal != robot.Ok {
+			r.Say("MEMORY DATUM CHECK FAILED: %s", retVal)
+			return robot.Fail
+		}
+		mission := "<empty>"
+		vehicle := "<empty>"
+		status := "<empty>"
+		if exists {
+			if v, ok := memory["mission"]; ok {
+				mission = fmt.Sprintf("%v", v)
+			}
+			if v, ok := memory["vehicle"]; ok {
+				vehicle = fmt.Sprintf("%v", v)
+			}
+			if v, ok := memory["status"]; ok {
+				status = fmt.Sprintf("%v", v)
+			}
+		}
+		r.Say("MEMORY DATUM CHECK: mission=%s vehicle=%s status=%s", mission, vehicle, status)
+		return robot.Normal
+	case "memorydatumcheckin":
+		memory := map[string]interface{}{}
+		lockToken, exists, retVal := r.CheckoutDatum("launch_manifest", &memory, true)
+		if retVal != robot.Ok {
+			r.Say("MEMORY DATUM CHECKIN FAILED: %s", retVal)
+			return robot.Fail
+		}
+		tokenPresent := lockToken != ""
+		r.CheckinDatum("launch_manifest", lockToken)
+		r.Say("MEMORY DATUM CHECKIN: exists=%t token=%t ret=Ok", exists, tokenPresent)
 		return robot.Normal
 	default:
 		return robot.Fail

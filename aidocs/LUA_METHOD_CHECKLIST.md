@@ -107,7 +107,7 @@ Track coverage for the Lua full test extension under `test/`.
 - [x] Prompting: all Prompt* variants including thread/user/channel
 - [x] Prompting core trio: `PromptForReply` + `PromptThreadForReply` + `PromptUserForReply`
 - [x] Prompting remaining: `PromptUserChannelForReply` + `PromptUserChannelThreadForReply`
-- [ ] Memory datum flows: `CheckoutDatum` + `UpdateDatum` (+ `CheckinDatum`)
+- [x] Memory datum flows: `CheckoutDatum` + `UpdateDatum` (+ `CheckinDatum`)
 - [x] Memory context flows: `Remember`/`RememberThread`/`RememberContext`/`RememberContextThread` + `Recall`
 - [ ] Pipeline control: Add/Final/Fail task/job/command, SpawnJob
 - [ ] Admin + Elevate

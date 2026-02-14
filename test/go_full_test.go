@@ -74,6 +74,15 @@ func TestGoFull(t *testing.T) {
 		{aliceID, general, ";go-memory-thread-check", true, []TestMessage{
 			{null, general, "MEMORY THREAD CHECK: local=<empty> shared=<empty> ctx=<empty> thread=delta thread threadctx=aurora mission", true}},
 			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";go-memory-datum-seed", false, []TestMessage{
+			{null, general, "MEMORY DATUM SEED: update=Ok", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";go-memory-datum-check", false, []TestMessage{
+			{null, general, "MEMORY DATUM CHECK: mission=opal-orbit vehicle=heron-7 status=go", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";go-memory-datum-checkin", false, []TestMessage{
+			{null, general, "MEMORY DATUM CHECKIN: exists=true token=true ret=Ok", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 
