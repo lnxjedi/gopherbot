@@ -79,6 +79,16 @@ ExternalPlugins:
     Path: plugins/samples/bashdemo.sh
   "pythondemo":
     Path: plugins/samples/pythondemo.py
+  "pysec":
+    Path: plugins/test/pysec.py
+  "pysec-authall":
+    Path: plugins/test/pysec.py
+  "pysec-adminonly":
+    Path: plugins/test/pysec.py
+  "pysec-users":
+    Path: plugins/test/pysec.py
+  "pysec-misconfig":
+    Path: plugins/test/pysec.py
   "rubydemo":
     Path: plugins/samples/rubydemo.rb
   "echo":

@@ -403,6 +403,56 @@ function commands.elevatecheck(bot)
   return task.Normal
 end
 
+function commands.secopen(bot)
+  bot:Say("SECURITY CHECK: secopen")
+  return task.Normal
+end
+
+function commands.secadmincmd(bot)
+  bot:Say("SECURITY CHECK: secadmincmd")
+  return task.Normal
+end
+
+function commands.secauthz(bot)
+  bot:Say("SECURITY CHECK: secauthz")
+  return task.Normal
+end
+
+function commands.secauthall(bot)
+  bot:Say("SECURITY CHECK: secauthall")
+  return task.Normal
+end
+
+function commands.secelevated(bot)
+  bot:Say("SECURITY CHECK: secelevated")
+  return task.Normal
+end
+
+function commands.secimmediate(bot)
+  bot:Say("SECURITY CHECK: secimmediate")
+  return task.Normal
+end
+
+function commands.sechiddenok(bot)
+  bot:Say("SECURITY CHECK: sechiddenok")
+  return task.Normal
+end
+
+function commands.sechiddendenied(bot)
+  bot:Say("SECURITY CHECK: sechiddendenied")
+  return task.Normal
+end
+
+function commands.secadminonly(bot)
+  bot:Say("SECURITY CHECK: secadminonly")
+  return task.Normal
+end
+
+function commands.secusersonly(bot)
+  bot:Say("SECURITY CHECK: secusersonly")
+  return task.Normal
+end
+
 local cmd = arg and arg[1] or ""
 
 if cmd == "init" then

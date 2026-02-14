@@ -717,6 +717,47 @@ LoadLoop:
 					}
 				}
 			}
+
+			authRequired := plugin.AuthorizeAllCommands || len(plugin.AuthorizedCommands) > 0
+			localAuthorizerSet := strings.TrimSpace(task.Authorizer) != ""
+			effectiveAuthorizer := strings.TrimSpace(task.Authorizer)
+			if effectiveAuthorizer == "" {
+				effectiveAuthorizer = strings.TrimSpace(processed.defaultAuthorizer)
+			}
+
+			// Fail fast for obvious authorization misconfiguration while preserving
+			// runtime checks as defense in depth.
+			if authRequired {
+				if effectiveAuthorizer == "" {
+					msg := fmt.Sprintf("Disabling %s, authorization is required but no Authorizer or DefaultAuthorizer is configured", task.name)
+					Log(robot.Error, msg)
+					task.Disabled = true
+					task.reason = msg
+					continue LoadLoop
+				}
+				authTask := newList.getTaskByName(effectiveAuthorizer)
+				if authTask == nil {
+					msg := fmt.Sprintf("Disabling %s, configured authorizer '%s' was not found", task.name, effectiveAuthorizer)
+					Log(robot.Error, msg)
+					task.Disabled = true
+					task.reason = msg
+					continue LoadLoop
+				}
+				_, authPlugin, _ := getTask(authTask)
+				if authPlugin == nil {
+					msg := fmt.Sprintf("Disabling %s, configured authorizer '%s' is not a plugin", task.name, effectiveAuthorizer)
+					Log(robot.Error, msg)
+					task.Disabled = true
+					task.reason = msg
+					continue LoadLoop
+				}
+			} else if localAuthorizerSet {
+				msg := fmt.Sprintf("Disabling %s, Authorizer is configured but no authorized commands are set", task.name)
+				Log(robot.Error, msg)
+				task.Disabled = true
+				task.reason = msg
+				continue LoadLoop
+			}
 		}
 
 		Log(robot.Debug, "Configured task '%s'", task.name)

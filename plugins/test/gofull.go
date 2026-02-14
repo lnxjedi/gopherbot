@@ -320,6 +320,9 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 	case "elevatecheck":
 		r.Say("ELEVATE CHECK: %t", r.Elevate(true))
 		return robot.Normal
+	case "secopen", "secadmincmd", "secauthz", "secauthall", "secelevated", "secimmediate", "sechiddenok", "sechiddendenied", "secadminonly", "secusersonly":
+		r.Say("SECURITY CHECK: %s", command)
+		return robot.Normal
 	default:
 		return robot.Fail
 	}

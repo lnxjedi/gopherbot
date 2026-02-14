@@ -76,6 +76,14 @@ LocalPort: 0
 ExternalPlugins:
   "jsfull":
     Path: plugins/test/jsfull.js
+  "jssec":
+    Path: plugins/test/jsfull.js
+  "jssec-authall":
+    Path: plugins/test/jsfull.js
+  "jssec-adminonly":
+    Path: plugins/test/jsfull.js
+  "jssec-users":
+    Path: plugins/test/jsfull.js
 ExternalTasks:
   "param-show":
     Path: test/tasks/param_show.sh
@@ -92,4 +100,5 @@ ExternalJobs:
 WorkSpace: workspace
 
 Brain: mem
+DefaultAuthorizer: groups
 DefaultElevator: builtin-totp

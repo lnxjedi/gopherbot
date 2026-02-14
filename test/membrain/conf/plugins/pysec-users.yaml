@@ -1,0 +1,15 @@
+---
+AllChannels: true
+AllowDirect: true
+Users:
+- alice
+Authorizer: ""
+AuthRequire: ""
+AdminCommands: []
+AuthorizedCommands: []
+ElevatedCommands: []
+ElevateImmediateCommands: []
+AllowedHiddenCommands: []
+CommandMatchers:
+- Regex: (?i:python-sec-usersonly)
+  Command: secusersonly

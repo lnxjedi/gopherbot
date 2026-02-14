@@ -1,0 +1,29 @@
+---
+AllChannels: true
+AllowDirect: true
+AdminCommands:
+- secadmincmd
+AuthorizedCommands:
+- secauthz
+AuthRequire: Helpdesk
+ElevatedCommands:
+- secelevated
+ElevateImmediateCommands:
+- secimmediate
+AllowedHiddenCommands:
+- sechiddenok
+CommandMatchers:
+- Regex: (?i:lua-sec-open)
+  Command: secopen
+- Regex: (?i:lua-sec-admincmd)
+  Command: secadmincmd
+- Regex: (?i:lua-sec-authz)
+  Command: secauthz
+- Regex: (?i:lua-sec-elevated)
+  Command: secelevated
+- Regex: (?i:lua-sec-immediate)
+  Command: secimmediate
+- Regex: (?i:lua-sec-hidden-ok)
+  Command: sechiddenok
+- Regex: (?i:lua-sec-hidden-denied)
+  Command: sechiddendenied

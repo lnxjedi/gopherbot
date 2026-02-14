@@ -138,3 +138,57 @@ func TestGoFullPipelineAdmin(t *testing.T) {
 
 	teardown(t, done, conn)
 }
+
+func TestGoFullSecurity(t *testing.T) {
+	if !wantFull("go") {
+		t.Skip("skipping Go full security test; set RUN_FULL=go (or RUN_GOFULL=1)")
+	}
+	done, conn := setup("test/gofull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		{aliceID, general, ";go-sec-open", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secopen", false}}, nil, 0},
+		{bobID, general, ";go-sec-open", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secopen", false}}, nil, 0},
+		{aliceID, general, ";go-sec-admincmd", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secadmincmd", false}}, nil, 0},
+		{bobID, general, ";go-sec-admincmd", false, []TestMessage{
+			{null, general, "Sorry, 'gosec/secadmincmd' is only available to bot administrators", false}}, nil, 0},
+		{bobID, general, ";go-sec-authz", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secauthz", false}}, nil, 0},
+		{davidID, general, ";go-sec-authz", false, []TestMessage{
+			{null, general, "Sorry, you're not authorized for that command", false}}, nil, 0},
+		{bobID, general, ";go-sec-authall", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secauthall", false}}, nil, 0},
+		{davidID, general, ";go-sec-authall", false, []TestMessage{
+			{null, general, "Sorry, you're not authorized for that command", false}}, nil, 0},
+		{aliceID, general, ";go-sec-elevated", false, []TestMessage{
+			{alice, general, "This command requires.*elevation.*TOTP code.*", false}}, nil, 150},
+		{aliceID, general, "123456", false, []TestMessage{
+			{null, general, "There were technical issues validating your code.*", false},
+			{null, general, "Sorry, elevation failed due to a problem with the elevation service", false}}, nil, 0},
+		{aliceID, general, ";go-sec-immediate", false, []TestMessage{
+			{alice, general, "This command requires immediate elevation.*TOTP code.*", false}}, nil, 150},
+		{aliceID, general, "123456", false, []TestMessage{
+			{null, general, "There were technical issues validating your code.*", false},
+			{null, general, "Sorry, elevation failed due to a problem with the elevation service", false}}, nil, 0},
+		{aliceID, general, "/;go-sec-hidden-ok", false, []TestMessage{
+			{null, general, "\\(SECURITY CHECK: sechiddenok\\)", false}}, nil, 0},
+		{aliceID, general, "/;go-sec-hidden-denied", false, []TestMessage{
+			{alice, general, "\\(?Sorry, 'gosec/sechiddendenied' cannot be run as a hidden command - use the robot's name or alias\\)?", false}}, nil, 0},
+		{aliceID, general, ";go-sec-adminonly", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secadminonly", false}}, nil, 0},
+		{bobID, general, ";go-sec-adminonly", false, []TestMessage{
+			{null, general, "No command matched in channel.*", true}}, nil, 0},
+		{aliceID, general, ";go-sec-usersonly", false, []TestMessage{
+			{null, general, "SECURITY CHECK: secusersonly", false}}, nil, 0},
+		{bobID, general, ";go-sec-usersonly", false, []TestMessage{
+			{null, general, "No command matched in channel.*", true}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}
