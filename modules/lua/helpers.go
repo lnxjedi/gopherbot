@@ -10,7 +10,7 @@ import (
 
 // getRobot - get the current robot (possibly updated with e.g. MessageFormat)
 // or log an error.
-func (lctx *luaContext) getRobot(L *glua.LState, caller string) (r robot.Robot) {
+func (lctx *luaContext) getRobot(L *glua.LState, caller string) (r BotAPI) {
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)
 	if !ok || lr == nil || lr.r == nil {
@@ -36,7 +36,7 @@ func (lctx *luaContext) getRobotUD(L *glua.LState, caller string) (lr *luaRobot)
 // Returns:
 // r - robot object, optionally with format applied
 // ok - false if the userdata didn't contain a valid robot.Robot
-func (lctx *luaContext) getOptionalFormattedRobot(L *glua.LState, caller string, idx int) (r robot.Robot) {
+func (lctx *luaContext) getOptionalFormattedRobot(L *glua.LState, caller string, idx int) (r BotAPI) {
 	// First validate the userData
 	ud := L.CheckUserData(1)
 	lr, ok := ud.Value.(*luaRobot)

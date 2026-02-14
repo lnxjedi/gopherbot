@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -541,6 +542,10 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		sort.Sort(psl)
 		r.Fixed().Say(strings.Join(psl.pslines, "\n"))
 	case "kill":
+		if len(args) == 0 {
+			r.Say("Usage: kill <wid>")
+			return
+		}
 		wid := args[0]
 		widx, err := strconv.ParseInt(wid, 10, 0)
 		if err != nil {
@@ -555,17 +560,28 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			return
 		}
 		var pid int
+		var activeTaskTID int
+		var rpcCancel context.CancelFunc
 		worker.Lock()
 		if worker.osCmd != nil {
 			pid = worker.osCmd.Process.Pid
 		}
+		activeTaskTID = worker.activeTaskTID
+		rpcCancel = worker.rpcCancel
 		worker.Unlock()
+		if rpcCancel != nil {
+			rpcCancel()
+		}
+		_ = interruptReplyWaitersForTask(activeTaskTID)
 		if pid == 0 {
 			r.Say("No active process found for pipeline")
 			return
 		}
 		raiseThreadPriv(fmt.Sprintf("killing process %d", pid))
-		unix.Kill(-pid, unix.SIGKILL)
+		if err := unix.Kill(-pid, unix.SIGKILL); err != nil {
+			r.Say("Unable to kill pid %d: %v", pid, err)
+			return
+		}
 		r.Say("Killed pid %d", pid)
 	case "pause":
 		name := args[0]

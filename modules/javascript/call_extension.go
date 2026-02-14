@@ -12,7 +12,7 @@ import (
 // jsContext holds a reference to the robot.Robot interface, the environment fields,
 // and the goja.Runtime we'll execute the script in.
 type jsContext struct {
-	r            robot.Robot
+	r            BotAPI
 	l            robot.Logger
 	bot          map[string]string
 	vm           *goja.Runtime
@@ -23,10 +23,10 @@ type jsContext struct {
 //   - taskPath, taskName - the path to script and its name
 //   - pkgPath - directories the script should search for requires
 //   - env - env vars normally passed to external scripts, has thread info
-//   - r: the robot.Robot
+//   - r: the JavaScript BotAPI
 //   - args: the script arguments
 func CallExtension(execPath, taskPath, taskName string, requirePaths []string, logger robot.Logger,
-	realBot map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+	realBot map[string]string, r BotAPI, args []string) (robot.TaskRetVal, error) {
 	// Create a new goja VM
 	vm := goja.New()
 

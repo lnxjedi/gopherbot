@@ -33,6 +33,9 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - `aidocs/TESTING_CURRENT.md` - current integration test harness and test case structure.
 - `aidocs/PIPELINE_LIFECYCLE.md` - incoming message to pipeline start flow.
 - `aidocs/SCHEDULER_FLOW.md` - cron scheduler to pipeline start flow.
+- `aidocs/EXECUTION_SECURITY_MODEL.md` - task execution/threading + privilege separation model.
+- `aidocs/multiprocess/...` - slice-by-slice design/impact artifacts for the multiprocess execution epic.
+- `aidocs/multiprocess/ARCHITECTURE_DECISIONS.md` - cross-slice decisions for multiprocess execution.
 
 ## Routing guide
 
@@ -50,3 +53,4 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - Testing harness notes: `aidocs/TESTING_CURRENT.md`.
 - Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
 - Scheduled job pipeline flow: `aidocs/SCHEDULER_FLOW.md`.
+- Execution/threading/privsep model: `aidocs/EXECUTION_SECURITY_MODEL.md`.

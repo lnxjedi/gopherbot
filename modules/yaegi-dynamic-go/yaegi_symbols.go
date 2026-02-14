@@ -247,6 +247,8 @@ func init() {
 			WAddJob func(a0 string, a1 ...string) ( robot.RetVal)
 			WAddTask func(a0 string, a1 ...string) ( robot.RetVal)
 			WCheckAdmin func() ( bool)
+			WSubscribe func() ( bool)
+			WUnsubscribe func() ( bool)
 			WCheckinDatum func(key string, locktoken string) ()
 			WCheckoutDatum func(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret robot.RetVal)
 			WDirect func() ( robot.Robot)
@@ -306,6 +308,10 @@ func init() {
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) AddTask(a0 string, a1 ...string) ( robot.RetVal) {return W.WAddTask(a0, a1...)
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) CheckAdmin() ( bool) {return W.WCheckAdmin()
+			}
+	func (W _github_com_lnxjedi_gopherbot_robot_Robot) Subscribe() ( bool) {return W.WSubscribe()
+			}
+	func (W _github_com_lnxjedi_gopherbot_robot_Robot) Unsubscribe() ( bool) {return W.WUnsubscribe()
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) CheckinDatum(key string, locktoken string) () { W.WCheckinDatum(key, locktoken)
 			}

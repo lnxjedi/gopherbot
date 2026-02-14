@@ -43,6 +43,15 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 - Plugin match → `startPipeline(..., plugCommand|plugMessage, ...)`: `bot/dispatch.go:checkPluginMatchersAndRun`, `bot/constants.go` `pipelineType`.
 - Job trigger / command → `startPipeline(..., jobTrigger|jobCommand, ...)`: `bot/jobrun.go:checkJobMatchersAndRun`, `bot/constants.go` `pipelineType`.
 
+## Task Execution + Privilege Anchors
+
+- Each task invocation uses `executeTask` -> `callTask` -> `go callTaskThread(...)` + return channel wait: `bot/task_execution.go`, `bot/calltask.go`.
+- Privilege separation primitives are in `bot/privsep.go` (`dropThreadPriv`, `raiseThreadPriv`, `raiseThreadPrivExternal`) and rely on thread pinning (`runtime.LockOSThread`).
+- `startPipeline` sets pipeline privilege context (`pipeContext.privileged`) from the starter task: `bot/run_pipelines.go`.
+- Adding privileged work to unprivileged pipelines is blocked in pipeline mutation APIs: `bot/robot_pipecmd.go`.
+
+For a full execution/security walkthrough, see `aidocs/EXECUTION_SECURITY_MODEL.md`.
+
 ## Pipeline Assembly (tasks/jobs/plugins)
 
 - API surface: `robot/robot.go` methods `AddTask`, `AddJob`, `AddCommand`.

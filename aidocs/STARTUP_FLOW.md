@@ -14,6 +14,10 @@ Startup proceeds through the following phases **in order**:
 6. **Connector runtime initialization** – Initialize primary + configured secondary connectors
 7. **Post-connect configuration load** – Full configuration with plugin initialization
 
+Internal exception:
+- `pipeline-child-exec` is an internal command used by multiprocess task execution; it exits after one child-task run and bypasses normal robot startup phases.
+- `pipeline-child-rpc` is an internal command used by multiprocess RPC execution; it runs a versioned stdio RPC loop (including Lua/JavaScript/Go execution and configure methods) and bypasses normal robot startup phases.
+
 ## Entry Points
 
 * `main.go` → `bot.Start()` in `bot/start.go`
@@ -22,6 +26,12 @@ Startup proceeds through the following phases **in order**:
 CLI note:
 
 - `--aidev <token>` enables AI development mode for the process (used by MCP automation flows).
+
+Internal child-runner note:
+
+- `gopherbot pipeline-child-exec` is parsed immediately after flag parsing in `Start(...)`.
+- `gopherbot pipeline-child-rpc` is parsed in the same early dispatch block in `Start(...)`.
+- When either command is detected, startup calls the internal child path and returns without loading config, brain, connectors, or HTTP listeners.
 
 ## Mode Detection
 
@@ -354,12 +364,15 @@ This keeps shutdown deterministic even when interactive prompts are using long t
 
 * `bot/start.go` – Entry point, CLI parsing, log setup
 * `bot/bot_process.go` – `initBot()`, `run()`, encryption initialization
+* `bot/privsep.go` – privilege-separation bootstrap + thread-scoped uid transitions
 * `bot/aidev.go` – AI-dev startup state (`--aidev`) and `.aiport` write helper
 * `bot/aidev_http.go` – authenticated AI-dev message endpoints and connector capability routing
 * `bot/config_load.go` – `detectStartupMode()`, config-file merge/template expansion
 * `bot/conf.go` – `loadConfig()` and reload reconciliation hooks for `SecondaryProtocols`
 * `bot/connector_runtime.go` – multi-connector runtime manager, routing, lifecycle controls
 * `conf/robot.yaml` – Default config with template logic
+
+Related execution model reference: `aidocs/EXECUTION_SECURITY_MODEL.md`.
 
 ## Debugging Startup (Human-Oriented Notes)
 

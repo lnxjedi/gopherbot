@@ -12,10 +12,10 @@ Sources:
 ### Identity, attributes, config
 - [ ] `GetMessage()`
 - [ ] `GetTaskConfig()`
-- [ ] `GetParameter(name)`
-- [ ] `GetBotAttribute(attr)`
-- [ ] `GetUserAttribute(user, attr)`
-- [ ] `GetSenderAttribute(attr)`
+- [x] `GetParameter(name)`
+- [x] `GetBotAttribute(attr)`
+- [x] `GetUserAttribute(user, attr)`
+- [x] `GetSenderAttribute(attr)`
 
 ### Messaging and formatting
 - [ ] `Direct()`
@@ -71,13 +71,13 @@ Sources:
 - [ ] `Email(...)` / `EmailUser(...)` / `EmailAddress(...)`
 
 ### Workspace + privilege
-- [ ] `SetParameter(name, value)`
+- [x] `SetParameter(name, value)`
 - [ ] `SetWorkingDirectory(path)`
 - [ ] `RaisePriv(path)` (if JS should expose it)
 
 ### Thread subscription (engine support)
-- [ ] `Subscribe()`
-- [ ] `Unsubscribe()`
+- [x] `Subscribe()`
+- [x] `Unsubscribe()`
 
 ## JS add-on helpers (DevOps focus)
 
@@ -98,12 +98,20 @@ Sources:
 
 Track coverage for the JS full test extension under `test/` once it exists.
 
+- Deferred beyond this epic:
+  - `SetWorkingDirectory(path)` (track as long-term; not in current JS/Lua full coverage slices)
+
 - [ ] Messaging: Say/Reply/Send* variants + format wrappers
-- [ ] Prompting: all Prompt* variants including thread/user/channel
-- [ ] Memory: Checkout/Update/Recall + Remember* context
-- [ ] Pipeline control: Add/Final/Fail task/job/command, SpawnJob
-- [ ] Admin + Elevate
-- [ ] Subscribe/Unsubscribe
-- [ ] SetWorkingDirectory + file helpers
+- [x] Prompting: all Prompt* variants including thread/user/channel
+- [x] Prompting core trio: `PromptForReply` + `PromptThreadForReply` + `PromptUserForReply`
+- [x] Prompting remaining: `PromptUserChannelForReply` + `PromptUserChannelThreadForReply`
+- [x] Memory datum flows: `CheckoutDatum` + `UpdateDatum` (+ `CheckinDatum`)
+- [x] Memory context flows: `Remember`/`RememberThread`/`RememberContext`/`RememberContextThread` + `Recall`
+- [x] Identity + parameters: `GetBotAttribute`/`GetUserAttribute`/`GetSenderAttribute` + `SetParameter`/`GetParameter`
+  - Verified: next-task pipeline visibility works (`SetParameter` -> `AddTask`), while immediate same-task `GetParameter` is not the primary contract.
+- [x] Pipeline control: Add/Final/Fail task/job/command, SpawnJob
+- [x] Admin + Elevate
+- [x] Subscribe/Unsubscribe
+- [ ] File helpers
 - [ ] Exec helpers (success + failure + timeout)
 - [ ] HTTP helpers (status, JSON parse error, timeout)

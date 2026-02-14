@@ -32,7 +32,7 @@ When `make test` fails in the `integration` target, check these first:
 2. The bot runtime log file used by the harness:
    - usually `/tmp/bottest.log`
    - builtins suite uses `/tmp/bottest-builtins.log`
-3. The config path printed by `StartTest()` (for example `test/membrain`, `test/jsfull`, `test/luafull`).
+3. The config path printed by `StartTest()` (for example `test/membrain`, `test/jsfull`, `test/luafull`, `test/gofull`).
 
 Log file paths are passed explicitly by integration tests through `setup(..., logfile, ...)` in `test/common_test.go`.
 
@@ -65,6 +65,7 @@ Common symptom:
 - Core bot behavior and message matching: `test/bot_integration_test.go` (e.g., `TestBotName`, `TestMessageMatch`).
 - Memory tests: `test/memory_integration_test.go`.
 - Lists plugin behavior: `test/lists_integration_test.go`.
+- External yaegi Go full coverage: `test/go_full_test.go`.
 
 ## Test Harness Scope
 
@@ -75,6 +76,7 @@ All test files (`*_test.go`) within the `test/` directory are gated by the `inte
 Large language-specific suites are gated by `RUN_FULL` so they do not run in the default `make test` path.
 
 - To run a full suite: `RUN_FULL=js make test`, `RUN_FULL=lua make test` (or `RUN_FULL=all` to allow all full suites).
+- To run Go full coverage: `RUN_FULL=go make test` or `TEST=GoFull make test`.
 - `make test` sets `-run Test.*Full` when `RUN_FULL` is present to avoid running the entire suite.
 - `TEST=JSFull make test` runs the JS full test without needing `RUN_FULL`.
 - `TEST=LuaFull make test` runs the Lua full test without needing `RUN_FULL`.

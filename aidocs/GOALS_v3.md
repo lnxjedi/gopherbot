@@ -63,6 +63,7 @@ Progress notes:
 - JS and Lua full integration tests exist and are gated via `RUN_FULL`/`TEST` (see `test/` and `aidocs/TESTING_CURRENT.md`).
 - Local HTTP test server exists for deterministic JS/Lua HTTP coverage.
 - JS and Lua HTTP helper modules are available for extension authors (see `aidocs/JS_HTTP_API.md`, `aidocs/LUA_HTTP_API.md`).
+- Long-term TODO: add a Bash Full integration suite with emphasis on formatting behavior parity (including `-f` fixed-format handling). The Bash library (`lib/gopherbot_v1.sh`) likely needs a cleanup/rewrite.
 
 ### Strengthen and Integrate the Groups and Help Systems
 
@@ -85,6 +86,17 @@ The documentation should only instruct the user in how to start a demo robot in 
 ### Make Sure Robots have Brains
 
 Since we're getting rid of the default backup/restore to git for the file brain, we need good documentation/process for helping the user establish a persistent brain, maybe via CloudFlare KV.
+
+### Improve Robustness and Security by running Multi-Process
+In Gopherbot v3, compiled-in plugins and jobs will continue to run in in-process threads, but extensions loaded from file will run in separate gopherbot child processes. This isolates the main engine from any panics or freezes for most of the work a robot does, and also makes for a cleaner means of implementing privilege separation. It also paves the way for better support of the working directory method(s).
+
+### Make Good Use of AI with Included Components
+The current ruby AI implementation should be replaced with a native implementation, making better use of memories. The full-name fallback should be the same; "Floyd, what is the meaning of life?" should go straight to the AI (with the regular, normal system prompt additions). We should update the alias fallback (robot addressed with alias, but no command matched) to be an ai-augmented help - the robot should reply in a thread with something reasonable based on the robot's configuration; for instance "Oops, you typed that in the wrong channel - try that in #devops or #chatops", or "It looks like you're trying to start a remote dev environment, but you didn't supply a valid type ...".
+
+So, AI should be fully integrated if desired, but the AI integration will never actually *do* anything, even with confirmation (at least at this stage) - it'll only ever help the user perform operations. Gopherbot remains a deterministic automation framework - when you ask for a cup of coffee, it just makes the damned coffee the same way every time, without futzing with AI.
+
+### Stretch Goal: Enable a persistent AI engine with support for MCPs
+Just imagine: "Astro, the app is really slow - can you see what's going on?" - using RedHat's kubernetes mcp server and maybe Grafana Loki mcp.
 
 ## Non-Goals for v3
 

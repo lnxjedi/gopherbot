@@ -13,6 +13,24 @@ Help:
 - Keywords: [ "http" ]
   Helptext:
   - "(bot), lua-http - exercise HTTP GET/POST/PUT"
+- Keywords: [ "subscribe" ]
+  Helptext:
+  - "(bot), lua-subscribe - exercise Subscribe/Unsubscribe"
+- Keywords: [ "prompt" ]
+  Helptext:
+  - "(bot), lua-prompts - exercise Prompt* methods (user/channel/thread variants)"
+- Keywords: [ "memory" ]
+  Helptext:
+  - "(bot), lua-memory-seed/lua-memory-check/lua-memory-thread-check - exercise Remember*/Recall context behavior"
+  - "(bot), lua-memory-datum-seed/lua-memory-datum-check/lua-memory-datum-checkin - exercise CheckoutDatum/UpdateDatum/CheckinDatum"
+- Keywords: [ "identity", "parameter" ]
+  Helptext:
+  - "(bot), lua-identity - exercise Get*Attribute + Set/GetParameter"
+  - "(bot), lua-parameter-addtask - verify SetParameter value in next AddTask"
+- Keywords: [ "pipeline", "admin", "elevate" ]
+  Helptext:
+  - "(bot), lua-pipeline-ok/lua-pipeline-fail/lua-spawn-job - exercise pipeline-control methods"
+  - "(bot), lua-admin-check/lua-elevate-check - exercise CheckAdmin + Elevate"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -20,6 +38,42 @@ CommandMatchers:
   Command: configtest
 - Regex: (?i:lua-http)
   Command: http
+- Regex: (?i:lua-subscribe)
+  Command: subscribe
+- Regex: (?i:lua-prompts)
+  Command: prompts
+- Regex: (?i:lua-memory-seed)
+  Command: memoryseed
+- Regex: (?i:lua-memory-check)
+  Command: memorycheck
+- Regex: (?i:lua-memory-thread-check)
+  Command: memorythreadcheck
+- Regex: (?i:lua-memory-datum-seed)
+  Command: memorydatumseed
+- Regex: (?i:lua-memory-datum-check)
+  Command: memorydatumcheck
+- Regex: (?i:lua-memory-datum-checkin)
+  Command: memorydatumcheckin
+- Regex: (?i:lua-identity)
+  Command: identity
+- Regex: (?i:lua-parameter-addtask)
+  Command: parameteraddtask
+- Regex: (?i:lua-pipeline-ok)
+  Command: pipelineok
+- Regex: (?i:lua-pipeline-fail)
+  Command: pipelinefail
+- Regex: (?i:lua-spawn-job)
+  Command: spawnjob
+- Regex: (?i:lua-admin-check)
+  Command: admincheck
+- Regex: (?i:lua-elevate-check)
+  Command: elevatecheck
+- Regex: (?i:pc-add-cmd)
+  Command: pipeaddcmd
+- Regex: (?i:pc-final-cmd)
+  Command: pipefinalcmd
+- Regex: (?i:pc-fail-cmd)
+  Command: pipefailcmd
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -38,6 +92,12 @@ local ret, task, log, fmt, proto, Robot =
     gopherbot.Robot
 
 local commands = {}
+local function showMemory(v)
+  if v == nil or v == "" then
+    return "<empty>"
+  end
+  return tostring(v)
+end
 
 function commands.sendmsg(bot)
   bot:Say("Regular Say")
@@ -114,6 +174,232 @@ function commands.http(bot)
   else
     bot:Say("HTTP TIMEOUT unexpected")
   end
+  return task.Normal
+end
+
+function commands.subscribe(bot)
+  local sub = bot:Subscribe()
+  local unsub = bot:Unsubscribe()
+  bot:Say("SUBSCRIBE FLOW: " .. tostring(sub) .. "/" .. tostring(unsub))
+  return task.Normal
+end
+
+function commands.prompts(bot)
+  local p1, r1 = bot:PromptForReply("SimpleString", "Codename check: pick a mission codename.")
+  if r1 ~= ret.Ok then
+    bot:Say("PROMPT FLOW FAILED 1:" .. tostring(r1))
+    return task.Fail
+  end
+  local p2, r2 = bot:PromptThreadForReply("SimpleString", "Thread check: pick a favorite snack for launch.")
+  if r2 ~= ret.Ok then
+    bot:Say("PROMPT FLOW FAILED 2:" .. tostring(r2))
+    return task.Fail
+  end
+  local p3, r3 = bot:PromptUserForReply("SimpleString", bot.user, "DM check: name a secret moon base.")
+  if r3 ~= ret.Ok then
+    bot:Say("PROMPT FLOW FAILED 3:" .. tostring(r3))
+    return task.Fail
+  end
+  local p4, r4 = bot:PromptUserChannelForReply("SimpleString", bot.user, bot.channel, "Channel check: describe launch weather in two words.")
+  if r4 ~= ret.Ok then
+    bot:Say("PROMPT FLOW FAILED 4:" .. tostring(r4))
+    return task.Fail
+  end
+  local p5, r5 = bot:PromptUserChannelThreadForReply("SimpleString", bot.user, bot.channel, bot.thread_id, "Thread rally: choose a backup call sign.")
+  if r5 ~= ret.Ok then
+    bot:Say("PROMPT FLOW FAILED 5:" .. tostring(r5))
+    return task.Fail
+  end
+  bot:Say("PROMPT FLOW OK: " .. p1 .. " | " .. p2 .. " | " .. p3 .. " | " .. p4 .. " | " .. p5)
+  return task.Normal
+end
+
+function commands.memoryseed(bot)
+  bot:Remember("launch_snack", "saffron noodles", false)
+  bot:Remember("launch_snack", "solar soup", true)
+  bot:RememberContext("pad", "orbital-7")
+  bot:RememberThread("thread_note", "delta thread", false)
+  bot:RememberContextThread("mission", "aurora mission")
+  bot:Say("MEMORY SEED: done")
+  return task.Normal
+end
+
+function commands.memorycheck(bot)
+  local localMem = bot:Recall("launch_snack", false)
+  local sharedMem = bot:Recall("launch_snack", true)
+  local ctx = bot:Recall("context:pad", false)
+  local threadMem = bot:Recall("thread_note", false)
+  local threadCtx = bot:Recall("context:mission", false)
+  bot:Say("MEMORY CHECK: local=" .. showMemory(localMem) ..
+    " shared=" .. showMemory(sharedMem) ..
+    " ctx=" .. showMemory(ctx) ..
+    " thread=" .. showMemory(threadMem) ..
+    " threadctx=" .. showMemory(threadCtx))
+  return task.Normal
+end
+
+function commands.memorythreadcheck(bot)
+  local localMem = bot:Recall("launch_snack", false)
+  local sharedMem = bot:Recall("launch_snack", true)
+  local ctx = bot:Recall("context:pad", false)
+  local threadMem = bot:Recall("thread_note", false)
+  local threadCtx = bot:Recall("context:mission", false)
+  bot:Say("MEMORY THREAD CHECK: local=" .. showMemory(localMem) ..
+    " shared=" .. showMemory(sharedMem) ..
+    " ctx=" .. showMemory(ctx) ..
+    " thread=" .. showMemory(threadMem) ..
+    " threadctx=" .. showMemory(threadCtx))
+  return task.Normal
+end
+
+function commands.memorydatumseed(bot)
+  local memory, retVal = bot:CheckoutDatum("launch_manifest", true)
+  if retVal ~= ret.Ok then
+    bot:Say("MEMORY DATUM SEED FAILED: " .. ret:string(retVal))
+    return task.Fail
+  end
+  if not memory.exists or type(memory.datum) ~= "table" then
+    memory.datum = {}
+  end
+  memory.datum.mission = "opal-orbit"
+  memory.datum.vehicle = "heron-7"
+  memory.datum.status = "go"
+  local updateRet = bot:UpdateDatum(memory)
+  if updateRet ~= ret.Ok then
+    bot:Say("MEMORY DATUM SEED FAILED: " .. ret:string(updateRet))
+    return task.Fail
+  end
+  bot:Say("MEMORY DATUM SEED: update=" .. ret:string(updateRet))
+  return task.Normal
+end
+
+function commands.memorydatumcheck(bot)
+  local memory, retVal = bot:CheckoutDatum("launch_manifest", false)
+  if retVal ~= ret.Ok then
+    bot:Say("MEMORY DATUM CHECK FAILED: " .. ret:string(retVal))
+    return task.Fail
+  end
+  local mission = "<empty>"
+  local vehicle = "<empty>"
+  local status = "<empty>"
+  if memory.exists and type(memory.datum) == "table" then
+    mission = showMemory(memory.datum.mission)
+    vehicle = showMemory(memory.datum.vehicle)
+    status = showMemory(memory.datum.status)
+  end
+  bot:Say("MEMORY DATUM CHECK: mission=" .. mission .. " vehicle=" .. vehicle .. " status=" .. status)
+  return task.Normal
+end
+
+function commands.memorydatumcheckin(bot)
+  local memory, retVal = bot:CheckoutDatum("launch_manifest", true)
+  if retVal ~= ret.Ok then
+    bot:Say("MEMORY DATUM CHECKIN FAILED: " .. ret:string(retVal))
+    return task.Fail
+  end
+  local hasToken = memory.token and memory.token ~= ""
+  bot:CheckinDatum(memory)
+  bot:Say("MEMORY DATUM CHECKIN: exists=" .. tostring(memory.exists) ..
+    " token=" .. tostring(hasToken) .. " ret=Ok")
+  return task.Normal
+end
+
+function commands.identity(bot)
+  local botName, botRet = bot:GetBotAttribute("name")
+  local senderFirst, senderRet = bot:GetSenderAttribute("firstName")
+  local bobFirst, bobRet = bot:GetUserAttribute("bob", "firstName")
+  local setOK = bot:SetParameter("launch_phase", "phase-amber")
+  local phase = bot:GetParameter("definitely_missing_param")
+  bot:Say("IDENTITY CHECK: bot=" .. showMemory(botName) .. "/" .. ret:string(botRet) ..
+    " sender=" .. showMemory(senderFirst) .. "/" .. ret:string(senderRet) ..
+    " bob=" .. showMemory(bobFirst) .. "/" .. ret:string(bobRet) ..
+    " set=" .. tostring(setOK) .. " param=" .. showMemory(phase))
+  return task.Normal
+end
+
+function commands.parameteraddtask(bot)
+  local setOK = bot:SetParameter("PIPELINE_SENTINEL", "nebula-42")
+  if not setOK then
+    bot:Say("SETPARAM ADDTASK: set=false")
+    return task.Fail
+  end
+  local addRet = bot:AddTask("param-show")
+  if addRet ~= ret.Ok then
+    bot:Say("SETPARAM ADDTASK: queue=false")
+    return task.Fail
+  end
+  bot:Say("SETPARAM ADDTASK: queued")
+  return task.Normal
+end
+
+function commands.pipeaddcmd(bot)
+  bot:Say("PIPE ADD COMMAND: ran")
+  return task.Normal
+end
+
+function commands.pipefinalcmd(bot)
+  bot:Say("PIPE FINAL COMMAND: ran")
+  return task.Normal
+end
+
+function commands.pipefailcmd(bot)
+  bot:Say("PIPE FAIL COMMAND: ran")
+  return task.Normal
+end
+
+function commands.pipelineok(bot)
+  if bot:AddTask("pipeline-note", "add-task") ~= ret.Ok then
+    bot:Say("PIPELINE OK: addtask failed")
+    return task.Fail
+  end
+  if bot:AddJob("pipe-job", "job-step") ~= ret.Ok then
+    bot:Say("PIPELINE OK: addjob failed")
+    return task.Fail
+  end
+  if bot:AddCommand("luafull", "pc-add-cmd") ~= ret.Ok then
+    bot:Say("PIPELINE OK: addcommand failed")
+    return task.Fail
+  end
+  if bot:FinalTask("pipeline-note", "final-task") ~= ret.Ok then
+    bot:Say("PIPELINE OK: finaltask failed")
+    return task.Fail
+  end
+  if bot:FinalCommand("luafull", "pc-final-cmd") ~= ret.Ok then
+    bot:Say("PIPELINE OK: finalcommand failed")
+    return task.Fail
+  end
+  bot:Say("PIPELINE OK: queued")
+  return task.Normal
+end
+
+function commands.pipelinefail(bot)
+  if bot:FailTask("pipeline-note", "fail-task") ~= ret.Ok then
+    bot:Say("PIPELINE FAIL: failtask failed")
+    return task.Fail
+  end
+  if bot:FailCommand("luafull", "pc-fail-cmd") ~= ret.Ok then
+    bot:Say("PIPELINE FAIL: failcommand failed")
+    return task.Fail
+  end
+  bot:Say("PIPELINE FAIL: armed")
+  return task.Fail
+end
+
+function commands.spawnjob(bot)
+  if bot:SpawnJob("pipe-spawn-job", "spawn-step") ~= ret.Ok then
+    bot:Say("SPAWN JOB: queue=false")
+    return task.Fail
+  end
+  return task.Normal
+end
+
+function commands.admincheck(bot)
+  bot:Say("ADMIN CHECK: " .. tostring(bot:CheckAdmin()))
+  return task.Normal
+end
+
+function commands.elevatecheck(bot)
+  bot:Say("ELEVATE CHECK: " .. tostring(bot:Elevate(true)))
   return task.Normal
 end
 

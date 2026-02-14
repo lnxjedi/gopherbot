@@ -3,11 +3,10 @@ package javascript
 
 import (
 	"github.com/dop251/goja"
-	"github.com/lnxjedi/gopherbot/robot"
 )
 
 type jsBot struct {
-	r   robot.Robot
+	r   BotAPI
 	ctx *jsContext
 }
 
@@ -80,6 +79,8 @@ func (jr *jsBot) createBotObject() *goja.Object {
 	botObj.Set("AddCommand", jr.botAddCommand)
 	botObj.Set("FinalCommand", jr.botFinalCommand)
 	botObj.Set("FailCommand", jr.botFailCommand)
+	botObj.Set("Subscribe", jr.botSubscribe)
+	botObj.Set("Unsubscribe", jr.botUnsubscribe)
 	botObj.Set("PromptForReply", jr.botPromptForReply)
 	botObj.Set("PromptThreadForReply", jr.botPromptThreadForReply)
 	botObj.Set("PromptUserForReply", jr.botPromptUserForReply)

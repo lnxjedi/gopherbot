@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"log"
@@ -144,29 +145,31 @@ func (w *worker) deregister() {
 type pipeContext struct {
 	// Parent and child values protected by the activePipelines lock
 	_parent, _child  *worker
-	workingDirectory string            // directory where tasks run relative to $(pwd)
-	baseDirectory    string            // base for this pipeline relative to $(pwd), depends on `Homed`, affects SetWorkingDirectory
-	eid              string            // unique ID for external tasks
-	active           bool              // whether this context has been registered as active
-	environment      map[string]string // environment vars set for each job/plugin in the pipeline
-	parameters       map[string]string // parameters (often secrets) for the pipeline
-	runIndex         int               // run number of a job
-	histName         string            // GetLog(histName, index) can be used in final/fail pipes
-	verbose          bool              // flag if initializing job was verbose
-	nextTasks        []TaskSpec        // tasks in the pipeline
-	finalTasks       []TaskSpec        // clean-up tasks that always run when the pipeline ends
-	failTasks        []TaskSpec        // clean-up tasks that run when a pipeline fails
-	finalFailed      []string          // list of task names of final tasks that failed
-	taskName         string            // name of current task
-	taskDesc         string            // description for same
-	taskType         string            // one of task, plugin, job
-	taskClass        string            // one of Go, Ext
-	plugCommand      string            // plugin command if type=plugin, else blank
-	taskArgs         []string          // args for current task
-	osCmd            *exec.Cmd         // running Command, for aborting a pipeline
-	exclusiveTag     string            // tasks with the same exclusiveTag never run at the same time
-	queueTask        bool              // whether to queue up if Exclusive call failed
-	abortPipeline    bool              // Exclusive request failed w/o queueTask
+	workingDirectory string             // directory where tasks run relative to $(pwd)
+	baseDirectory    string             // base for this pipeline relative to $(pwd), depends on `Homed`, affects SetWorkingDirectory
+	eid              string             // unique ID for external tasks
+	active           bool               // whether this context has been registered as active
+	environment      map[string]string  // environment vars set for each job/plugin in the pipeline
+	parameters       map[string]string  // parameters (often secrets) for the pipeline
+	runIndex         int                // run number of a job
+	histName         string             // GetLog(histName, index) can be used in final/fail pipes
+	verbose          bool               // flag if initializing job was verbose
+	nextTasks        []TaskSpec         // tasks in the pipeline
+	finalTasks       []TaskSpec         // clean-up tasks that always run when the pipeline ends
+	failTasks        []TaskSpec         // clean-up tasks that run when a pipeline fails
+	finalFailed      []string           // list of task names of final tasks that failed
+	taskName         string             // name of current task
+	taskDesc         string             // description for same
+	taskType         string             // one of task, plugin, job
+	taskClass        string             // one of Go, Ext
+	plugCommand      string             // plugin command if type=plugin, else blank
+	taskArgs         []string           // args for current task
+	osCmd            *exec.Cmd          // running Command, for aborting a pipeline
+	activeTaskTID    int                // active task TID for targeted prompt interruption on kill
+	rpcCancel        context.CancelFunc // cancel hook for in-flight RPC child request
+	exclusiveTag     string             // tasks with the same exclusiveTag never run at the same time
+	queueTask        bool               // whether to queue up if Exclusive call failed
+	abortPipeline    bool               // Exclusive request failed w/o queueTask
 	// Stuff we want to copy in makeRobot
 	privileged          bool                // privileged jobs flip this flag, causing tasks in the pipeline to run in cfgdir
 	timeZone            *time.Location      // for history timestamping

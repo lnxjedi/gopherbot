@@ -477,6 +477,18 @@ function Robot:SetParameter(name, value)
     return self.gbot:SetParameter(name, value)
 end
 
+---Subscribe the current plugin invocation to the current thread.
+---@return boolean
+function Robot:Subscribe()
+    return self.gbot:Subscribe()
+end
+
+---Unsubscribe the current plugin invocation from the current thread.
+---@return boolean
+function Robot:Unsubscribe()
+    return self.gbot:Unsubscribe()
+end
+
 ---Obtain exclusive access to a resource for this task.
 ---@param tag string
 ---@param queueTask boolean

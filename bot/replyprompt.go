@@ -60,6 +60,7 @@ const (
 type replyWaiter struct {
 	re           *regexp.Regexp // The regular expression the reply needs to match
 	replyChannel chan reply     // The channel to send the reply to when it is received
+	tid          int            // task ID associated with this waiter
 }
 
 // a reply matcher is used as the key in the replies map
@@ -80,6 +81,46 @@ var replies = struct {
 }{
 	make(map[replyMatcher][]replyWaiter),
 	sync.Mutex{},
+}
+
+// interruptReplyWaitersForTask removes any waiters associated with the
+// provided task ID and interrupts those prompt calls. If there are other
+// waiters on the same matcher, they receive retry signals.
+func interruptReplyWaitersForTask(tid int) bool {
+	if tid == 0 {
+		return false
+	}
+	replies.Lock()
+	interrupted := false
+	for matcher, waiters := range replies.m {
+		found := false
+		for _, rep := range waiters {
+			if rep.tid == tid {
+				found = true
+				break
+			}
+		}
+		if !found {
+			continue
+		}
+		interrupted = true
+		delete(replies.m, matcher)
+		for _, rep := range waiters {
+			if rep.tid == tid {
+				select {
+				case rep.replyChannel <- reply{false, replyInterrupted, ""}:
+				default:
+				}
+			} else {
+				select {
+				case rep.replyChannel <- reply{false, retryPrompt, ""}:
+				default:
+				}
+			}
+		}
+	}
+	replies.Unlock()
+	return interrupted
 }
 
 type stockReply struct {
@@ -312,6 +353,7 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 		return "", robot.MatcherNotFound
 	}
 	rep.replyChannel = make(chan reply, 1)
+	rep.tid = r.tid
 
 	replies.Lock()
 	// See if there's already a continuation in progress for this Robot:user,channel,

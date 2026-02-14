@@ -260,3 +260,53 @@ func TestPromptInternalUsesProtocolScopedUserResolution(t *testing.T) {
 		t.Fatal("timed out waiting for promptInternal to return after shutdown signal")
 	}
 }
+
+func TestInterruptReplyWaitersForTask(t *testing.T) {
+	replies.Lock()
+	replies.m = make(map[replyMatcher][]replyWaiter)
+	replies.Unlock()
+	t.Cleanup(func() {
+		replies.Lock()
+		replies.m = make(map[replyMatcher][]replyWaiter)
+		replies.Unlock()
+	})
+
+	matcher := replyMatcher{protocol: "ssh", user: "alice", channel: "general", thread: ""}
+	firstCh := make(chan reply, 1)
+	secondCh := make(chan reply, 1)
+	replies.Lock()
+	replies.m[matcher] = []replyWaiter{
+		{re: stockReplies["YesNo"], replyChannel: firstCh, tid: 101},
+		{re: stockReplies["YesNo"], replyChannel: secondCh, tid: 202},
+	}
+	replies.Unlock()
+
+	if !interruptReplyWaitersForTask(101) {
+		t.Fatal("interruptReplyWaitersForTask(101) = false, want true")
+	}
+
+	select {
+	case got := <-firstCh:
+		if got.disposition != replyInterrupted {
+			t.Fatalf("first waiter disposition = %v, want %v", got.disposition, replyInterrupted)
+		}
+	default:
+		t.Fatal("first waiter did not receive interruption reply")
+	}
+
+	select {
+	case got := <-secondCh:
+		if got.disposition != retryPrompt {
+			t.Fatalf("second waiter disposition = %v, want %v", got.disposition, retryPrompt)
+		}
+	default:
+		t.Fatal("second waiter did not receive retry prompt")
+	}
+
+	replies.Lock()
+	_, exists := replies.m[matcher]
+	replies.Unlock()
+	if exists {
+		t.Fatal("matcher should be removed after targeted interruption")
+	}
+}

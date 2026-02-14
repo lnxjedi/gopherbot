@@ -13,9 +13,6 @@ import (
 	"sync"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	js "github.com/lnxjedi/gopherbot/v2/modules/javascript"
-	lua "github.com/lnxjedi/gopherbot/v2/modules/lua"
-	yaegi "github.com/lnxjedi/gopherbot/v2/modules/yaegi-dynamic-go"
 	"golang.org/x/sys/unix"
 )
 
@@ -151,7 +148,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		}
 		if isExternalGoTask {
 			Log(robot.Info, "Calling func Configure for external Go plugin '"+task.name+"'")
-			if defConfig, err := yaegi.GetPluginConfig(taskPath, task.name); err != nil {
+			if defConfig, err := runGoGetConfigViaRPC(taskPath, task.name); err != nil {
 				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 				// This error shouldn't disable an external Go plugin
 				cchan <- getCfgReturn{&cfg, nil}
@@ -162,7 +159,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 			}
 		} else if isExternalLuaTask {
 			Log(robot.Info, "getting default configuration for external Lua plugin '"+task.name+"'")
-			if defConfig, err := lua.GetPluginConfig(execPath(), taskPath, task.name, emptyBot(), libPaths()); err != nil {
+			if defConfig, err := runLuaGetConfigViaRPC(taskPath, task.name, libPaths(), emptyBot()); err != nil {
 				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 				// This error shouldn't disable an external Lua plugin
 				cchan <- getCfgReturn{&cfg, nil}
@@ -174,7 +171,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		} else if isExternalJSTask {
 			// Assuming you have a similar function for JavaScript
 			Log(robot.Info, "getting default configuration for external JavaScript plugin '"+task.name+"'")
-			if defConfig, err := js.GetPluginConfig(execPath(), taskPath, task.name, emptyBot(), libPaths()); err != nil {
+			if defConfig, err := runJSGetConfigViaRPC(taskPath, task.name, libPaths(), emptyBot()); err != nil {
 				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 				// This error shouldn't disable an external JS plugin
 				cchan <- getCfgReturn{&cfg, nil}
@@ -186,13 +183,25 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		}
 	}
 
-	var cmd *exec.Cmd
-
-	Log(robot.Debug, "Calling '%s' with arg: configure", taskPath)
-	cmd = exec.Command(taskPath, "configure")
+	childTaskDir := ""
 	if relpath {
-		cmd.Dir = configPath
+		childTaskDir = configPath
+	} else {
+		childTaskDir, err = os.Getwd()
+		if err != nil {
+			cchan <- getCfgReturn{nil, fmt.Errorf("getting current working directory for external plugin '%s': %v", taskPath, err)}
+			return
+		}
 	}
+	if !filepath.IsAbs(childTaskDir) {
+		absDir, absErr := filepath.Abs(childTaskDir)
+		if absErr != nil {
+			cchan <- getCfgReturn{nil, fmt.Errorf("resolving external plugin configure directory '%s': %v", childTaskDir, absErr)}
+			return
+		}
+		childTaskDir = absDir
+	}
+	Log(robot.Debug, "Calling '%s' with arg: configure (child runner)", taskPath)
 	env := []string{
 		fmt.Sprintf("GOPHER_INSTALLDIR=%s", installPath),
 		fmt.Sprintf("RUBYLIB=%s/lib:%s/custom/lib", installPath, homePath),
@@ -208,7 +217,19 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 			env = append(env, fmt.Sprintf("%s=%s", p, value))
 		}
 	}
-	cmd.Env = env
+	req := pipelineChildExecRequest{
+		TaskPath: taskPath,
+		Dir:      childTaskDir,
+		Args:     []string{"configure"},
+		Env:      env,
+		NullConn: true,
+	}
+	cmd, cmdErr := newPipelineChildExecCommand(req)
+	if cmdErr != nil {
+		cchan <- getCfgReturn{nil, fmt.Errorf("creating external plugin configure child command for '%s': %v", taskPath, cmdErr)}
+		return
+	}
+	cmd.Dir = childTaskDir
 	cfg, err = cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -226,6 +247,10 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 type taskReturn struct {
 	errString string
 	retval    robot.TaskRetVal
+}
+
+type taskCallOptions struct {
+	externalExecutableProcess bool
 }
 
 // Maps populated by callTaskThread, so external tasks can get their Robot
@@ -283,13 +308,17 @@ func getLockedWorker(idx int) *worker {
 // arguments. Note that callTask(Thread) has to concern itself with locking of
 // the worker because it can be called within a task by the Elevate() method.
 func (w *worker) callTask(t interface{}, command string, args ...string) (errString string, retval robot.TaskRetVal) {
+	return w.callTaskWithOptions(taskCallOptions{}, t, command, args...)
+}
+
+func (w *worker) callTaskWithOptions(opts taskCallOptions, t interface{}, command string, args ...string) (errString string, retval robot.TaskRetVal) {
 	rc := make(chan taskReturn)
-	go w.callTaskThread(rc, t, command, args...)
+	go w.callTaskThread(rc, opts, t, command, args...)
 	ret := <-rc
 	return ret.errString, ret.retval
 }
 
-func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command string, args ...string) {
+func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t interface{}, command string, args ...string) {
 	var errString string
 	var retval robot.TaskRetVal
 	task, plugin, job := getTask(t)
@@ -346,6 +375,16 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 	r.parameters = paramhash
 
 	w.registerWorker(r.tid)
+	w.Lock()
+	w.activeTaskTID = r.tid
+	w.Unlock()
+	defer func() {
+		w.Lock()
+		if w.activeTaskTID == r.tid {
+			w.activeTaskTID = 0
+		}
+		w.Unlock()
+	}()
 
 	if task.taskType == taskGo {
 		defer func() {
@@ -464,7 +503,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			if command != "init" {
 				emit(GoPluginRan)
 			}
-			ret, err := yaegi.RunPluginHandler(taskPath, task.name, env, r, w, task.Privileged, command, args...)
+			ret, err := runGoPluginViaRPC(taskPath, task.name, env, task.Privileged, w, r, append([]string{command}, args...))
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{fmt.Sprintf("Running plugin %s: %v", task.name, err), robot.MechanismFail}
@@ -476,7 +515,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		} else {
 			var ret robot.TaskRetVal
 			if isJob {
-				ret, err = yaegi.RunJobHandler(taskPath, task.name, env, r, w, task.Privileged, args...)
+				ret, err = runGoJobViaRPC(taskPath, task.name, env, task.Privileged, w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
@@ -484,7 +523,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				}
 				w.Log(robot.Debug, "External Go job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = yaegi.RunTaskHandler(taskPath, task.name, env, r, w, task.Privileged, args...)
+				ret, err = runGoTaskViaRPC(taskPath, task.name, env, task.Privileged, w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}
@@ -514,7 +553,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			// Prepend the command to args, so Lua sees args[1] == <command>
 			allArgs := append([]string{command}, args...)
 
-			ret, err := lua.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, allArgs)
+			ret, err := runLuaExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, allArgs)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{fmt.Sprintf("Running Lua plugin %s: %v", task.name, err), robot.MechanismFail}
@@ -527,7 +566,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			var ret robot.TaskRetVal
 			// For jobs/tasks, pass args directly; no "command" prepended.
 			if isJob {
-				ret, err = lua.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, args)
+				ret, err = runLuaExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running Lua job %s: %v", task.name, err), robot.MechanismFail}
@@ -535,7 +574,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				}
 				w.Log(robot.Debug, "External Lua job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = lua.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, args)
+				ret, err = runLuaExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running Lua task %s: %v", task.name, err), robot.MechanismFail}
@@ -565,7 +604,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			// Prepend the command to args, so JavaScript sees args[1] == <command>
 			allArgs := append([]string{command}, args...)
 
-			ret, err := js.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, allArgs)
+			ret, err := runJSExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, allArgs)
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{fmt.Sprintf("Running JavaScript plugin %s: %v", task.name, err), robot.MechanismFail}
@@ -578,7 +617,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 			var ret robot.TaskRetVal
 			// For jobs/tasks, pass args directly; no "command" prepended.
 			if isJob {
-				ret, err = js.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, args)
+				ret, err = runJSExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running JavaScript job %s: %v", task.name, err), robot.MechanismFail}
@@ -586,7 +625,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 				}
 				w.Log(robot.Debug, "External JavaScript job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = js.CallExtension(execPath(), taskPath, task.name, libPaths(), w, scriptBot(envhash), r, args)
+				ret, err = runJSExtensionViaRPC(taskPath, task.name, libPaths(), scriptBot(envhash), w, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running JavaScript task %s: %v", task.name, err), robot.MechanismFail}
@@ -606,48 +645,75 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		externalArgs = append(externalArgs, command)
 	}
 	externalArgs = append(externalArgs, args...)
+	taskDir := workdir
+	if task.Homed {
+		taskDir = "."
+	}
+	errString, retval = w.runExternalExecutableTask(task, plugin, command, taskPath, taskDir, externalArgs, env, keys, logger, privileged, opts, eid)
+	rchan <- taskReturn{errString, retval}
+}
+
+func (w *worker) runExternalExecutableTask(task *Task, plugin *Plugin, command, taskPath, taskDir string, externalArgs, env, keys []string, logger robot.HistoryLogger, privileged bool, opts taskCallOptions, eid string) (string, robot.TaskRetVal) {
+	const failFmt = "Pipeline failed in external task '%s', writing fail log in GOPHER_HOME"
+	if opts.externalExecutableProcess {
+		childTaskDir := taskDir
+		if !filepath.IsAbs(childTaskDir) {
+			absDir, err := filepath.Abs(childTaskDir)
+			if err != nil {
+				Log(robot.Error, "Resolving absolute task directory for '%s': %v", task.name, err)
+				return fmt.Sprintf(failFmt, task.name), robot.MechanismFail
+			}
+			childTaskDir = absDir
+		}
+		req := pipelineChildExecRequest{
+			TaskPath: taskPath,
+			Dir:      childTaskDir,
+			Args:     externalArgs,
+			Env:      env,
+			EID:      eid,
+			NullConn: nullConn,
+		}
+		cmd, err := newPipelineChildExecCommand(req)
+		if err != nil {
+			Log(robot.Error, "Creating child runner command for task '%s': %v", task.name, err)
+			return fmt.Sprintf(failFmt, task.name), robot.MechanismFail
+		}
+		cmd.Dir = childTaskDir
+		Log(robot.Debug, "Calling child runner for '%s' with args: %q", taskPath, externalArgs)
+		return w.runExternalCommand(cmd, nil, "", task, plugin, command, taskPath, keys, logger, privileged)
+	}
 	Log(robot.Debug, "Calling '%s' with args: %q", taskPath, externalArgs)
 	cmd := exec.Command(taskPath, externalArgs...)
-	if task.Homed {
-		cmd.Dir = "."
-	} else {
-		cmd.Dir = workdir
-	}
+	cmd.Dir = taskDir
 
-	// We send the caller ID secret over stdin
+	// We send the caller ID secret over stdin.
 	stdinPipe, err := cmd.StdinPipe()
 	if err != nil {
 		w.Log(robot.Error, "Creating stdin pipe for external command '%s': %v", taskPath, err)
-		errString = fmt.Sprintf("Pipeline failed in external task '%s', writing fail log in GOPHER_HOME", task.name)
-		rchan <- taskReturn{errString, robot.MechanismFail}
-		return
+		return fmt.Sprintf(failFmt, task.name), robot.MechanismFail
 	}
 
 	cmd.Env = env
 	Log(robot.Debug, "Running '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '"))
-	var stderr, stdout io.ReadCloser
-	// hold on to stderr in case we need to log an error
-	stderr, err = cmd.StderrPipe()
-	if err != nil {
-		Log(robot.Error, "Creating stderr pipe for external command '%s': %v", taskPath, err)
-		errString = fmt.Sprintf("Pipeline failed in external task '%s', writing fail log in GOPHER_HOME", task.name)
-		rchan <- taskReturn{errString, robot.MechanismFail}
-		return
-	}
 	// Null connector can read from stdin
 	if nullConn {
 		cmd.Stdin = os.Stdin
 	}
-	stdout, err = cmd.StdoutPipe()
-	if err != nil {
-		Log(robot.Error, "Creating stdout pipe for external command '%s': %v", taskPath, err)
-		errString = fmt.Sprintf("Pipeline failed in external task '%s', writing fail log in GOPHER_HOME", task.name)
-		rchan <- taskReturn{errString, robot.MechanismFail}
-		return
+	var scriptInput io.WriteCloser
+	if !nullConn {
+		scriptInput = stdinPipe
 	}
+	retvalErrString, retval := w.runExternalCommand(cmd, scriptInput, eid, task, plugin, command, taskPath, keys, logger, privileged)
+	return retvalErrString, retval
+}
 
+func (w *worker) runExternalCommand(cmd *exec.Cmd, stdinPipe io.WriteCloser, eid string, task *Task, plugin *Plugin, command, taskPath string, keys []string, logger robot.HistoryLogger, privileged bool) (string, robot.TaskRetVal) {
+	const failFmt = "Pipeline failed in external task '%s', writing fail log in GOPHER_HOME"
+	errString := ""
+	retval := robot.Normal
+	var err error
 	if privileged {
-		if isPlugin && !plugin.Privileged {
+		if plugin != nil && !plugin.Privileged {
 			dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
 		} else {
 			raiseThreadPrivExternal(fmt.Sprintf("task %s / %s", task.name, command))
@@ -656,13 +722,33 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		dropThreadPriv(fmt.Sprintf("task %s / %s", task.name, command))
 	}
 
+	var stderr, stdout io.ReadCloser
+	stderr, err = cmd.StderrPipe()
+	if err != nil {
+		Log(robot.Error, "Creating stderr pipe for external command '%s': %v", taskPath, err)
+		return fmt.Sprintf(failFmt, task.name), robot.MechanismFail
+	}
+	stdout, err = cmd.StdoutPipe()
+	if err != nil {
+		Log(robot.Error, "Creating stdout pipe for external command '%s': %v", taskPath, err)
+		return fmt.Sprintf(failFmt, task.name), robot.MechanismFail
+	}
+
+	Log(robot.Debug, "Running external command '%s' in '%s' with environment vars: '%s'", taskPath, cmd.Dir, strings.Join(keys, "', '"))
 	// Create separate process group to enable killing the process group
 	cmd.SysProcAttr = &unix.SysProcAttr{Setpgid: true}
 	if err = cmd.Start(); err != nil {
 		Log(robot.Error, "Starting command '%s': %v", taskPath, err)
-		errString = fmt.Sprintf("Pipeline failed in external task '%s', writing fail log in GOPHER_HOME", task.name)
-		rchan <- taskReturn{errString, robot.MechanismFail}
-		return
+		return fmt.Sprintf(failFmt, task.name), robot.MechanismFail
+	}
+	if stdinPipe != nil {
+		go func() {
+			defer stdinPipe.Close()
+			_, writeErr := io.WriteString(stdinPipe, eid+"\n")
+			if writeErr != nil {
+				w.Log(robot.Error, "Writing EID to stdin for task '%s': %v", w.taskName, writeErr)
+			}
+		}()
 	}
 	w.Lock()
 	w.osCmd = cmd
@@ -685,14 +771,6 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, t interface{}, command 
 		solog = log.New(os.Stdout, "", 0)
 		selog = log.New(os.Stderr, "ERR: ", 0)
 	}
-	go func() {
-		defer stdinPipe.Close()
-		_, writeErr := io.WriteString(stdinPipe, w.eid+"\n")
-		if writeErr != nil {
-			w.Log(robot.Error, "Writing EID to stdin for task '%s': %v", w.taskName, writeErr)
-			// Handle the error as needed
-		}
-	}()
 	go func() {
 		logging := logger != nil
 		scanner := bufio.NewScanner(stdout)
@@ -745,9 +823,9 @@ closeLoop:
 		}
 		if !success {
 			Log(robot.Error, "Waiting on external command '%s': %v", taskPath, err)
-			errString = fmt.Sprintf("Pipeline failed in external task '%s', writing fail log in GOPHER_HOME", task.name)
+			errString = fmt.Sprintf(failFmt, task.name)
 			emit(ExternalTaskErrExit)
 		}
 	}
-	rchan <- taskReturn{errString, retval}
+	return errString, retval
 }

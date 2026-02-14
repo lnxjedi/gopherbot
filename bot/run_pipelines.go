@@ -44,7 +44,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 	// NOTE: we don't need to worry about locking until the pipeline actually starts
 	c := &pipeContext{
 		environment: make(map[string]string),
-		parameters: make(map[string]string),
+		parameters:  make(map[string]string),
 	}
 	w.pipeContext = c
 	c.pipeName = task.name
@@ -425,7 +425,7 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 			child := w.clone()
 			ret = child.startPipeline(w, t, ptype, command, args...)
 		} else {
-			errString, ret = w.callTask(t, command, args...)
+			errString, ret = w.executeTask(t, command, args...)
 			if errString != "" {
 				Log(robot.Error, "failed task '%s' in pipeline '%s': %s", task.name, w.pipeName, errString)
 			}

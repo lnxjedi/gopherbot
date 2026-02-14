@@ -13,6 +13,24 @@ Help:
 - Keywords: [ "http" ]
   Helptext:
   - "(bot), js-http - exercise HTTP GET/POST/PUT"
+- Keywords: [ "subscribe" ]
+  Helptext:
+  - "(bot), js-subscribe - exercise Subscribe/Unsubscribe"
+- Keywords: [ "prompt" ]
+  Helptext:
+  - "(bot), js-prompts - exercise Prompt* methods (user/channel/thread variants)"
+- Keywords: [ "memory" ]
+  Helptext:
+  - "(bot), js-memory-seed/js-memory-check/js-memory-thread-check - exercise Remember*/Recall context behavior"
+  - "(bot), js-memory-datum-seed/js-memory-datum-check/js-memory-datum-checkin - exercise CheckoutDatum/UpdateDatum/CheckinDatum"
+- Keywords: [ "identity", "parameter" ]
+  Helptext:
+  - "(bot), js-identity - exercise Get*Attribute + Set/GetParameter"
+  - "(bot), js-parameter-addtask - verify SetParameter value in next AddTask"
+- Keywords: [ "pipeline", "admin", "elevate" ]
+  Helptext:
+  - "(bot), js-pipeline-ok/js-pipeline-fail/js-spawn-job - exercise pipeline-control methods"
+  - "(bot), js-admin-check/js-elevate-check - exercise CheckAdmin + Elevate"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -20,6 +38,42 @@ CommandMatchers:
   Command: configtest
 - Regex: (?i:js-http)
   Command: http
+- Regex: (?i:js-subscribe)
+  Command: subscribe
+- Regex: (?i:js-prompts)
+  Command: prompts
+- Regex: (?i:js-memory-seed)
+  Command: memoryseed
+- Regex: (?i:js-memory-check)
+  Command: memorycheck
+- Regex: (?i:js-memory-thread-check)
+  Command: memorythreadcheck
+- Regex: (?i:js-memory-datum-seed)
+  Command: memorydatumseed
+- Regex: (?i:js-memory-datum-check)
+  Command: memorydatumcheck
+- Regex: (?i:js-memory-datum-checkin)
+  Command: memorydatumcheckin
+- Regex: (?i:js-identity)
+  Command: identity
+- Regex: (?i:js-parameter-addtask)
+  Command: parameteraddtask
+- Regex: (?i:js-pipeline-ok)
+  Command: pipelineok
+- Regex: (?i:js-pipeline-fail)
+  Command: pipelinefail
+- Regex: (?i:js-spawn-job)
+  Command: spawnjob
+- Regex: (?i:js-admin-check)
+  Command: admincheck
+- Regex: (?i:js-elevate-check)
+  Command: elevatecheck
+- Regex: (?i:pc-add-cmd)
+  Command: pipeaddcmd
+- Regex: (?i:pc-final-cmd)
+  Command: pipefinalcmd
+- Regex: (?i:pc-fail-cmd)
+  Command: pipefailcmd
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -36,6 +90,7 @@ function handler(argv) {
   // 1: the path to the *.js source file
   // 2+: arguments
   const cmd = argv.length > 2 ? argv[2] : '';
+  const showMemory = (v) => (v && v.length > 0 ? v : "<empty>");
 
   switch (cmd) {
     case 'init':
@@ -110,6 +165,244 @@ function handler(argv) {
         } catch (err) {
           bot.Say("HTTP TIMEOUT ok");
         }
+        return task.Normal;
+      }
+    case 'subscribe':
+      {
+        const bot = new Robot();
+        const sub = bot.Subscribe();
+        const unsub = bot.Unsubscribe();
+        bot.Say(`SUBSCRIBE FLOW: ${sub}/${unsub}`);
+        return task.Normal;
+      }
+    case 'prompts':
+      {
+        const bot = new Robot();
+        const p1 = bot.PromptForReply("SimpleString", "Codename check: pick a mission codename.");
+        if (p1.retVal !== ret.Ok) {
+          bot.Say(`PROMPT FLOW FAILED 1:${p1.retVal}`);
+          return task.Fail;
+        }
+        const p2 = bot.PromptThreadForReply("SimpleString", "Thread check: pick a favorite snack for launch.");
+        if (p2.retVal !== ret.Ok) {
+          bot.Say(`PROMPT FLOW FAILED 2:${p2.retVal}`);
+          return task.Fail;
+        }
+        const p3 = bot.PromptUserForReply("SimpleString", bot.user, "DM check: name a secret moon base.");
+        if (p3.retVal !== ret.Ok) {
+          bot.Say(`PROMPT FLOW FAILED 3:${p3.retVal}`);
+          return task.Fail;
+        }
+        const p4 = bot.PromptUserChannelForReply("SimpleString", bot.user, bot.channel, "Channel check: describe launch weather in two words.");
+        if (p4.retVal !== ret.Ok) {
+          bot.Say(`PROMPT FLOW FAILED 4:${p4.retVal}`);
+          return task.Fail;
+        }
+        const p5 = bot.PromptUserChannelThreadForReply("SimpleString", bot.user, bot.channel, bot.thread_id, "Thread rally: choose a backup call sign.");
+        if (p5.retVal !== ret.Ok) {
+          bot.Say(`PROMPT FLOW FAILED 5:${p5.retVal}`);
+          return task.Fail;
+        }
+        bot.Say(`PROMPT FLOW OK: ${p1.reply} | ${p2.reply} | ${p3.reply} | ${p4.reply} | ${p5.reply}`);
+        return task.Normal;
+      }
+    case 'memoryseed':
+      {
+        const bot = new Robot();
+        bot.Remember("launch_snack", "saffron noodles", false);
+        bot.Remember("launch_snack", "solar soup", true);
+        bot.RememberContext("pad", "orbital-7");
+        bot.RememberThread("thread_note", "delta thread", false);
+        bot.RememberContextThread("mission", "aurora mission");
+        bot.Say("MEMORY SEED: done");
+        return task.Normal;
+      }
+    case 'memorycheck':
+      {
+        const bot = new Robot();
+        const local = bot.Recall("launch_snack", false);
+        const shared = bot.Recall("launch_snack", true);
+        const ctx = bot.Recall("context:pad", false);
+        const thread = bot.Recall("thread_note", false);
+        const threadctx = bot.Recall("context:mission", false);
+        bot.Say(
+          `MEMORY CHECK: local=${showMemory(local)} shared=${showMemory(shared)} ctx=${showMemory(ctx)} thread=${showMemory(thread)} threadctx=${showMemory(threadctx)}`
+        );
+        return task.Normal;
+      }
+    case 'memorythreadcheck':
+      {
+        const bot = new Robot();
+        const local = bot.Recall("launch_snack", false);
+        const shared = bot.Recall("launch_snack", true);
+        const ctx = bot.Recall("context:pad", false);
+        const thread = bot.Recall("thread_note", false);
+        const threadctx = bot.Recall("context:mission", false);
+        bot.Say(
+          `MEMORY THREAD CHECK: local=${showMemory(local)} shared=${showMemory(shared)} ctx=${showMemory(ctx)} thread=${showMemory(thread)} threadctx=${showMemory(threadctx)}`
+        );
+        return task.Normal;
+      }
+    case 'memorydatumseed':
+      {
+        const bot = new Robot();
+        const out = bot.CheckoutDatum("launch_manifest", true);
+        if (out.retVal !== ret.Ok) {
+          bot.Say(`MEMORY DATUM SEED FAILED: ${ret.string(out.retVal)}`);
+          return task.Fail;
+        }
+        if (!out.exists || !out.datum || typeof out.datum !== "object" || Array.isArray(out.datum)) {
+          out.datum = {};
+        }
+        out.datum.mission = "opal-orbit";
+        out.datum.vehicle = "heron-7";
+        out.datum.status = "go";
+        const upd = bot.UpdateDatum(out);
+        if (upd !== ret.Ok) {
+          bot.Say(`MEMORY DATUM SEED FAILED: ${ret.string(upd)}`);
+          return task.Fail;
+        }
+        bot.Say(`MEMORY DATUM SEED: update=${ret.string(upd)}`);
+        return task.Normal;
+      }
+    case 'memorydatumcheck':
+      {
+        const bot = new Robot();
+        const out = bot.CheckoutDatum("launch_manifest", false);
+        if (out.retVal !== ret.Ok) {
+          bot.Say(`MEMORY DATUM CHECK FAILED: ${ret.string(out.retVal)}`);
+          return task.Fail;
+        }
+        if (!out.exists || !out.datum || typeof out.datum !== "object") {
+          bot.Say("MEMORY DATUM CHECK: mission=<empty> vehicle=<empty> status=<empty>");
+          return task.Normal;
+        }
+        const d = out.datum;
+        bot.Say(
+          `MEMORY DATUM CHECK: mission=${showMemory(d.mission)} vehicle=${showMemory(d.vehicle)} status=${showMemory(d.status)}`
+        );
+        return task.Normal;
+      }
+    case 'memorydatumcheckin':
+      {
+        const bot = new Robot();
+        const out = bot.CheckoutDatum("launch_manifest", true);
+        if (out.retVal !== ret.Ok) {
+          bot.Say(`MEMORY DATUM CHECKIN FAILED: ${ret.string(out.retVal)}`);
+          return task.Fail;
+        }
+        const tokenPresent = !!(out.token && out.token.length > 0);
+        const checkin = bot.CheckinDatum(out);
+        const checkinRet = checkin === undefined ? ret.Ok : checkin;
+        bot.Say(`MEMORY DATUM CHECKIN: exists=${out.exists} token=${tokenPresent} ret=${ret.string(checkinRet)}`);
+        return task.Normal;
+      }
+    case 'identity':
+      {
+        const bot = new Robot();
+        const botName = bot.GetBotAttribute("name");
+        const sender = bot.GetSenderAttribute("firstName");
+        const otherUser = bot.GetUserAttribute("bob", "firstName");
+        const setOK = bot.SetParameter("launch_phase", "phase-amber");
+        const phase = bot.GetParameter("definitely_missing_param");
+        bot.Say(
+          `IDENTITY CHECK: bot=${showMemory(botName.attribute)}/${ret.string(botName.retVal)} sender=${showMemory(sender.attribute)}/${ret.string(sender.retVal)} bob=${showMemory(otherUser.attribute)}/${ret.string(otherUser.retVal)} set=${setOK} param=${showMemory(phase)}`
+        );
+        return task.Normal;
+      }
+    case 'parameteraddtask':
+      {
+        const bot = new Robot();
+        const setOK = bot.SetParameter("PIPELINE_SENTINEL", "nebula-42");
+        if (!setOK) {
+          bot.Say("SETPARAM ADDTASK: set=false");
+          return task.Fail;
+        }
+        const addRet = bot.AddTask("param-show");
+        if (addRet !== ret.Ok) {
+          bot.Say("SETPARAM ADDTASK: queue=false");
+          return task.Fail;
+        }
+        bot.Say("SETPARAM ADDTASK: queued");
+        return task.Normal;
+      }
+    case 'pipeaddcmd':
+      {
+        const bot = new Robot();
+        bot.Say("PIPE ADD COMMAND: ran");
+        return task.Normal;
+      }
+    case 'pipefinalcmd':
+      {
+        const bot = new Robot();
+        bot.Say("PIPE FINAL COMMAND: ran");
+        return task.Normal;
+      }
+    case 'pipefailcmd':
+      {
+        const bot = new Robot();
+        bot.Say("PIPE FAIL COMMAND: ran");
+        return task.Normal;
+      }
+    case 'pipelineok':
+      {
+        const bot = new Robot();
+        if (bot.AddTask("pipeline-note", "add-task") !== ret.Ok) {
+          bot.Say("PIPELINE OK: addtask failed");
+          return task.Fail;
+        }
+        if (bot.AddJob("pipe-job", "job-step") !== ret.Ok) {
+          bot.Say("PIPELINE OK: addjob failed");
+          return task.Fail;
+        }
+        if (bot.AddCommand("jsfull", "pc-add-cmd") !== ret.Ok) {
+          bot.Say("PIPELINE OK: addcommand failed");
+          return task.Fail;
+        }
+        if (bot.FinalTask("pipeline-note", "final-task") !== ret.Ok) {
+          bot.Say("PIPELINE OK: finaltask failed");
+          return task.Fail;
+        }
+        if (bot.FinalCommand("jsfull", "pc-final-cmd") !== ret.Ok) {
+          bot.Say("PIPELINE OK: finalcommand failed");
+          return task.Fail;
+        }
+        bot.Say("PIPELINE OK: queued");
+        return task.Normal;
+      }
+    case 'pipelinefail':
+      {
+        const bot = new Robot();
+        if (bot.FailTask("pipeline-note", "fail-task") !== ret.Ok) {
+          bot.Say("PIPELINE FAIL: failtask failed");
+          return task.Fail;
+        }
+        if (bot.FailCommand("jsfull", "pc-fail-cmd") !== ret.Ok) {
+          bot.Say("PIPELINE FAIL: failcommand failed");
+          return task.Fail;
+        }
+        bot.Say("PIPELINE FAIL: armed");
+        return task.Fail;
+      }
+    case 'spawnjob':
+      {
+        const bot = new Robot();
+        if (bot.SpawnJob("pipe-spawn-job", "spawn-step") !== ret.Ok) {
+          bot.Say("SPAWN JOB: queue=false");
+          return task.Fail;
+        }
+        return task.Normal;
+      }
+    case 'admincheck':
+      {
+        const bot = new Robot();
+        bot.Say(`ADMIN CHECK: ${bot.CheckAdmin()}`);
+        return task.Normal;
+      }
+    case 'elevatecheck':
+      {
+        const bot = new Robot();
+        bot.Say(`ELEVATE CHECK: ${bot.Elevate(true)}`);
         return task.Normal;
       }
 

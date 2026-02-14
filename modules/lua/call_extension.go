@@ -9,13 +9,13 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
-// luaRobot encapsulates the Go robot.Robot interface and its fields.
+// luaRobot encapsulates the Lua BotAPI interface and its fields.
 type luaRobot struct {
-	r      robot.Robot
+	r      BotAPI
 	fields map[string]interface{}
 }
 
-// luaContext holds a reference to the robot.Robot interface and the Lua state.
+// luaContext holds a reference to the Lua runtime state and logger.
 type luaContext struct {
 	robot.Logger
 	L   *glua.LState
@@ -26,10 +26,10 @@ type luaContext struct {
 //   - taskPath, taskName - the path to script and its name
 //   - pkgPath - directories the script should search for requires
 //   - env - env vars normally passed to external scripts, has thread info
-//   - r: the robot.Robot
+//   - r: the Lua BotAPI
 //   - args: the script arguments
 func CallExtension(execPath, taskPath, taskName string, pkgPath []string, logger robot.Logger,
-	bot map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+	bot map[string]string, r BotAPI, args []string) (robot.TaskRetVal, error) {
 	L := glua.NewState()
 	defer L.Close()
 

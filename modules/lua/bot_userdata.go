@@ -21,7 +21,7 @@ var validStringFields = map[string]bool{
 }
 
 // initializeFields initializes the robot fields from bot.
-func initializeFields(env map[string]string) (map[string]interface{}) {
+func initializeFields(env map[string]string) map[string]interface{} {
 	fields := make(map[string]interface{})
 
 	for key := range validStringFields {
@@ -44,7 +44,7 @@ func initializeFields(env map[string]string) (map[string]interface{}) {
 }
 
 // newLuaBot creates a new Lua userdata for the bot with initialized fields and the "bot" metatable
-func (lctx *luaContext) newLuaBot(L *glua.LState, r robot.Robot) *glua.LUserData {
+func (lctx *luaContext) newLuaBot(L *glua.LState, r BotAPI) *glua.LUserData {
 	newUD := L.NewUserData()
 	fields := initializeFields(lctx.bot)
 	newUD.Value = &luaRobot{r: r, fields: fields}

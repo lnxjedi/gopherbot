@@ -76,6 +76,18 @@ LocalPort: 0
 ExternalPlugins:
   "luafull":
     Path: plugins/test/luafull.lua
+ExternalTasks:
+  "param-show":
+    Path: test/tasks/param_show.sh
+  "pipeline-note":
+    Path: test/tasks/pipeline_note.sh
+ExternalJobs:
+  "pipe-job":
+    Path: test/tasks/pipeline_note.sh
+    Privileged: false
+  "pipe-spawn-job":
+    Path: test/tasks/pipeline_note.sh
+    Privileged: false
 
 WorkSpace: workspace
 
