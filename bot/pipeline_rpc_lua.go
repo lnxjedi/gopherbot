@@ -321,12 +321,89 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 			}
 		}
 		return map[string]interface{}{"ret_val": int(ret), "config": nil}, nil
+	case "GetMessage":
+		msg := r.GetMessage()
+		if msg == nil {
+			return map[string]interface{}{"message": nil}, nil
+		}
+		return map[string]interface{}{
+			"message": map[string]interface{}{
+				"user":             msg.User,
+				"protocol_user":    msg.ProtocolUser,
+				"channel":          msg.Channel,
+				"protocol_channel": msg.ProtocolChannel,
+				"protocol":         int(msg.Protocol),
+				"format":           int(msg.Format),
+			},
+		}, nil
 	case "GetParameter":
 		name, err := pipelineRPCArgString(args, 0)
 		if err != nil {
 			return nil, err
 		}
 		return map[string]interface{}{"string": r.GetParameter(name)}, nil
+	case "Email":
+		subject, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		body, err := pipelineRPCArgString(args, 1)
+		if err != nil {
+			return nil, err
+		}
+		html := false
+		if len(args) > 2 {
+			html, err = pipelineRPCArgBool(args, 2)
+			if err != nil {
+				return nil, err
+			}
+		}
+		buf := bytes.NewBufferString(body)
+		return map[string]interface{}{"ret_val": int(r.Email(subject, buf, html))}, nil
+	case "EmailUser":
+		user, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		subject, err := pipelineRPCArgString(args, 1)
+		if err != nil {
+			return nil, err
+		}
+		body, err := pipelineRPCArgString(args, 2)
+		if err != nil {
+			return nil, err
+		}
+		html := false
+		if len(args) > 3 {
+			html, err = pipelineRPCArgBool(args, 3)
+			if err != nil {
+				return nil, err
+			}
+		}
+		buf := bytes.NewBufferString(body)
+		return map[string]interface{}{"ret_val": int(r.EmailUser(user, subject, buf, html))}, nil
+	case "EmailAddress":
+		address, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		subject, err := pipelineRPCArgString(args, 1)
+		if err != nil {
+			return nil, err
+		}
+		body, err := pipelineRPCArgString(args, 2)
+		if err != nil {
+			return nil, err
+		}
+		html := false
+		if len(args) > 3 {
+			html, err = pipelineRPCArgBool(args, 3)
+			if err != nil {
+				return nil, err
+			}
+		}
+		buf := bytes.NewBufferString(body)
+		return map[string]interface{}{"ret_val": int(r.EmailAddress(address, subject, buf, html))}, nil
 	case "Exclusive":
 		tag, err := pipelineRPCArgString(args, 0)
 		if err != nil {
@@ -742,6 +819,19 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 			return nil, err
 		}
 		return map[string]interface{}{"bool": r.SetParameter(name, value)}, nil
+	case "RaisePriv":
+		reason, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		r.RaisePriv(reason)
+		return map[string]interface{}{"ok": true}, nil
+	case "SetWorkingDirectory":
+		path, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{"bool": r.SetWorkingDirectory(path)}, nil
 	default:
 		return nil, fmt.Errorf("unsupported robot call '%s'", req.Method)
 	}

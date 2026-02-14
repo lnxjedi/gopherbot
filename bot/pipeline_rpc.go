@@ -95,6 +95,22 @@ func runPipelineChildRPCWithIO(r io.Reader, w io.Writer) int {
 			if err := handlePipelineRPCJSGetConfig(enc, msg); err != nil {
 				return 2
 			}
+		case "go_plugin_run":
+			if err := handlePipelineRPCGoPluginRun(dec, enc, msg); err != nil {
+				return 2
+			}
+		case "go_job_run":
+			if err := handlePipelineRPCGoJobRun(dec, enc, msg); err != nil {
+				return 2
+			}
+		case "go_task_run":
+			if err := handlePipelineRPCGoTaskRun(dec, enc, msg); err != nil {
+				return 2
+			}
+		case "go_get_config":
+			if err := handlePipelineRPCGoGetConfig(enc, msg); err != nil {
+				return 2
+			}
 		default:
 			_ = writePipelineRPCError(enc, msg.ID, "method_not_found", fmt.Sprintf("unsupported method '%s'", msg.Method))
 		}

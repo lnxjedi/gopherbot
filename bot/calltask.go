@@ -13,7 +13,6 @@ import (
 	"sync"
 
 	"github.com/lnxjedi/gopherbot/robot"
-	yaegi "github.com/lnxjedi/gopherbot/v2/modules/yaegi-dynamic-go"
 	"golang.org/x/sys/unix"
 )
 
@@ -149,7 +148,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		}
 		if isExternalGoTask {
 			Log(robot.Info, "Calling func Configure for external Go plugin '"+task.name+"'")
-			if defConfig, err := yaegi.GetPluginConfig(taskPath, task.name); err != nil {
+			if defConfig, err := runGoGetConfigViaRPC(taskPath, task.name); err != nil {
 				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 				// This error shouldn't disable an external Go plugin
 				cchan <- getCfgReturn{&cfg, nil}
@@ -494,7 +493,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 			if command != "init" {
 				emit(GoPluginRan)
 			}
-			ret, err := yaegi.RunPluginHandler(taskPath, task.name, env, r, w, task.Privileged, command, args...)
+			ret, err := runGoPluginViaRPC(taskPath, task.name, env, task.Privileged, r, append([]string{command}, args...))
 			if err != nil {
 				emit(ExternalTaskBadInterpreter)
 				rchan <- taskReturn{fmt.Sprintf("Running plugin %s: %v", task.name, err), robot.MechanismFail}
@@ -506,7 +505,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 		} else {
 			var ret robot.TaskRetVal
 			if isJob {
-				ret, err = yaegi.RunJobHandler(taskPath, task.name, env, r, w, task.Privileged, args...)
+				ret, err = runGoJobViaRPC(taskPath, task.name, env, task.Privileged, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running job %s: %v", task.name, err), robot.MechanismFail}
@@ -514,7 +513,7 @@ func (w *worker) callTaskThread(rchan chan<- taskReturn, opts taskCallOptions, t
 				}
 				w.Log(robot.Debug, "External Go job '%s' executed with args: %q", task.name, args)
 			} else {
-				ret, err = yaegi.RunTaskHandler(taskPath, task.name, env, r, w, task.Privileged, args...)
+				ret, err = runGoTaskViaRPC(taskPath, task.name, env, task.Privileged, r, args)
 				if err != nil {
 					emit(ExternalTaskBadInterpreter)
 					rchan <- taskReturn{fmt.Sprintf("Running task %s: %v", task.name, err), robot.MechanismFail}

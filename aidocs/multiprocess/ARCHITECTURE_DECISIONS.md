@@ -87,3 +87,23 @@ Rationale:
 Follow-up:
 - Migrate external Go/yaegi path to generic RPC in its own slice.
 - Consider protocol-level cancellation/timeouts and richer error classification once all interpreters are migrated.
+
+## 2026-02-14: External Go (yaegi) Binding on Generic RPC (Slice 7)
+
+Decision:
+- Add external Go/yaegi execution to the same generic child RPC contract used by Lua and JavaScript.
+- Keep `robot_call` parent-served, preserving parent ownership of policy/authorization/identity/routing decisions.
+- Add Go-specific method bindings on the generic protocol surface:
+  - `go_plugin_run`
+  - `go_job_run`
+  - `go_task_run`
+  - `go_get_config`
+
+Rationale:
+- Completes interpreter migration for external file-backed interpreters in this epic stage.
+- Preserves one transport/protocol shape while allowing interpreter-specific handlers.
+- Maintains consistent operator behavior: no new config flag or compatibility toggle in this branch.
+
+Follow-up:
+- Add protocol-level cancellation/timeout semantics once migration stabilizes under full suites.
+- Evaluate worker-pool reuse only if measured one-shot child overhead becomes material.
