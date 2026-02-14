@@ -104,9 +104,9 @@ Track coverage for the Lua full test extension under `test/`.
 - [x] Messaging: Say/Reply/Send* variants + format wrappers
 - [x] Config: GetTaskConfig + RandomString
 - [x] HTTP helpers (status, error, timeout)
-- [ ] Prompting: all Prompt* variants including thread/user/channel
+- [x] Prompting: all Prompt* variants including thread/user/channel
 - [x] Prompting core trio: `PromptForReply` + `PromptThreadForReply` + `PromptUserForReply`
-- [ ] Prompting remaining: `PromptUserChannelForReply` + `PromptUserChannelThreadForReply`
+- [x] Prompting remaining: `PromptUserChannelForReply` + `PromptUserChannelThreadForReply`
 - [ ] Memory: Checkout/Update/Recall + Remember* context
 - [ ] Pipeline control: Add/Final/Fail task/job/command, SpawnJob
 - [ ] Admin + Elevate

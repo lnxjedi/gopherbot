@@ -102,9 +102,9 @@ Track coverage for the JS full test extension under `test/` once it exists.
   - `SetWorkingDirectory(path)` (track as long-term; not in current JS/Lua full coverage slices)
 
 - [ ] Messaging: Say/Reply/Send* variants + format wrappers
-- [ ] Prompting: all Prompt* variants including thread/user/channel
+- [x] Prompting: all Prompt* variants including thread/user/channel
 - [x] Prompting core trio: `PromptForReply` + `PromptThreadForReply` + `PromptUserForReply`
-- [ ] Prompting remaining: `PromptUserChannelForReply` + `PromptUserChannelThreadForReply`
+- [x] Prompting remaining: `PromptUserChannelForReply` + `PromptUserChannelThreadForReply`
 - [ ] Memory: Checkout/Update/Recall + Remember* context
 - [ ] Pipeline control: Add/Final/Fail task/job/command, SpawnJob
 - [ ] Admin + Elevate

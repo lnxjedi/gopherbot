@@ -18,7 +18,7 @@ Help:
   - "(bot), js-subscribe - exercise Subscribe/Unsubscribe"
 - Keywords: [ "prompt" ]
   Helptext:
-  - "(bot), js-prompts - exercise PromptForReply + PromptThreadForReply + PromptUserForReply"
+  - "(bot), js-prompts - exercise Prompt* methods (user/channel/thread variants)"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -148,7 +148,17 @@ function handler(argv) {
           bot.Say(`PROMPT FLOW FAILED 3:${p3.retVal}`);
           return task.Fail;
         }
-        bot.Say(`PROMPT FLOW OK: ${p1.reply} | ${p2.reply} | ${p3.reply}`);
+        const p4 = bot.PromptUserChannelForReply("SimpleString", bot.user, bot.channel, "Channel check: describe launch weather in two words.");
+        if (p4.retVal !== ret.Ok) {
+          bot.Say(`PROMPT FLOW FAILED 4:${p4.retVal}`);
+          return task.Fail;
+        }
+        const p5 = bot.PromptUserChannelThreadForReply("SimpleString", bot.user, bot.channel, bot.thread_id, "Thread rally: choose a backup call sign.");
+        if (p5.retVal !== ret.Ok) {
+          bot.Say(`PROMPT FLOW FAILED 5:${p5.retVal}`);
+          return task.Fail;
+        }
+        bot.Say(`PROMPT FLOW OK: ${p1.reply} | ${p2.reply} | ${p3.reply} | ${p4.reply} | ${p5.reply}`);
         return task.Normal;
       }
 

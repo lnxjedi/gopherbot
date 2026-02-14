@@ -54,8 +54,14 @@ func TestGoFull(t *testing.T) {
 			{alice, null, "DM check: name a secret moon base\\.", false}},
 			[]Event{}, 150},
 		{aliceID, null, "io station nine", false, []TestMessage{
-			{null, general, "PROMPT FLOW OK: Nova Sparrow \\| spicy popcorn \\| io station nine", false}},
-			[]Event{BotDirectMessage}, 0},
+			{alice, general, "Channel check: describe launch weather in two words\\.", false}},
+			[]Event{BotDirectMessage}, 150},
+		{aliceID, general, "aurora clear", false, []TestMessage{
+			{alice, general, "Thread rally: choose a backup call sign\\.", true}},
+			[]Event{}, 150},
+		{aliceID, general, "ember fox", true, []TestMessage{
+			{null, general, "PROMPT FLOW OK: Nova Sparrow \\| spicy popcorn \\| io station nine \\| aurora clear \\| ember fox", false}},
+			[]Event{}, 0},
 	}
 	testcases(t, conn, tests)
 

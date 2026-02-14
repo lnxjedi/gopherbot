@@ -18,7 +18,7 @@ Help:
   - "(bot), lua-subscribe - exercise Subscribe/Unsubscribe"
 - Keywords: [ "prompt" ]
   Helptext:
-  - "(bot), lua-prompts - exercise PromptForReply + PromptThreadForReply + PromptUserForReply"
+  - "(bot), lua-prompts - exercise Prompt* methods (user/channel/thread variants)"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -150,7 +150,17 @@ function commands.prompts(bot)
     bot:Say("PROMPT FLOW FAILED 3:" .. tostring(r3))
     return task.Fail
   end
-  bot:Say("PROMPT FLOW OK: " .. p1 .. " | " .. p2 .. " | " .. p3)
+  local p4, r4 = bot:PromptUserChannelForReply("SimpleString", bot.user, bot.channel, "Channel check: describe launch weather in two words.")
+  if r4 ~= ret.Ok then
+    bot:Say("PROMPT FLOW FAILED 4:" .. tostring(r4))
+    return task.Fail
+  end
+  local p5, r5 = bot:PromptUserChannelThreadForReply("SimpleString", bot.user, bot.channel, bot.thread_id, "Thread rally: choose a backup call sign.")
+  if r5 ~= ret.Ok then
+    bot:Say("PROMPT FLOW FAILED 5:" .. tostring(r5))
+    return task.Fail
+  end
+  bot:Say("PROMPT FLOW OK: " .. p1 .. " | " .. p2 .. " | " .. p3 .. " | " .. p4 .. " | " .. p5)
   return task.Normal
 end
 

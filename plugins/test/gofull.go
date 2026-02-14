@@ -20,7 +20,7 @@ Help:
   - "(bot), go-subscribe - exercise Subscribe/Unsubscribe"
 - Keywords: [ "prompt" ]
   Helptext:
-  - "(bot), go-prompts - exercise PromptForReply + PromptThreadForReply + PromptUserForReply"
+  - "(bot), go-prompts - exercise Prompt* methods (user/channel/thread variants)"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -98,7 +98,21 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 			r.Say("PROMPT FLOW FAILED 3:%s", ret3)
 			return robot.Fail
 		}
-		r.Say("PROMPT FLOW OK: %s | %s | %s", p1, p2, p3)
+		p4, ret4 := r.PromptUserChannelForReply("SimpleString", msg.User, msg.Channel, "Channel check: describe launch weather in two words.")
+		if ret4 != robot.Ok {
+			r.Say("PROMPT FLOW FAILED 4:%s", ret4)
+			return robot.Fail
+		}
+		threadID := "0xDEADBEEF"
+		if msg.Incoming != nil && msg.Incoming.ThreadID != "" {
+			threadID = msg.Incoming.ThreadID
+		}
+		p5, ret5 := r.PromptUserChannelThreadForReply("SimpleString", msg.User, msg.Channel, threadID, "Thread rally: choose a backup call sign.")
+		if ret5 != robot.Ok {
+			r.Say("PROMPT FLOW FAILED 5:%s", ret5)
+			return robot.Fail
+		}
+		r.Say("PROMPT FLOW OK: %s | %s | %s | %s | %s", p1, p2, p3, p4, p5)
 		return robot.Normal
 	default:
 		return robot.Fail
