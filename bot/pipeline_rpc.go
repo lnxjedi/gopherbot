@@ -79,6 +79,14 @@ func runPipelineChildRPCWithIO(r io.Reader, w io.Writer) int {
 				Result:  result,
 			})
 			return 0
+		case "lua_run":
+			if err := handlePipelineRPCLuaRun(dec, enc, msg); err != nil {
+				return 2
+			}
+		case "lua_get_config":
+			if err := handlePipelineRPCLuaGetConfig(enc, msg); err != nil {
+				return 2
+			}
 		default:
 			_ = writePipelineRPCError(enc, msg.ID, "method_not_found", fmt.Sprintf("unsupported method '%s'", msg.Method))
 		}

@@ -55,3 +55,19 @@ Rationale:
 
 Follow-up:
 - Expand request/response methods incrementally as interpreter-backed task execution moves to child processes.
+
+## 2026-02-14: Generic RPC Protocol, Lua-First Binding (Slice 5)
+
+Decision:
+- Keep the RPC transport/protocol generic (request/response envelope plus method dispatch), not Lua-specific.
+- Implement Lua as the first interpreter binding on that protocol (`lua_run`, `lua_get_config`, parent-served `robot_call`), and keep `.go`/`.js` migration for later slices.
+- Switch Lua execution/config to RPC child mode by default (no fallback flag in this epic branch).
+
+Rationale:
+- Preserves one protocol contract for future interpreter migrations.
+- Reduces implementation risk by migrating one interpreter first while validating end-to-end behavior under real integration tests.
+- Keeps engine policy, authorization, identity mapping, connector routing, and brain operations in the parent process.
+
+Follow-up:
+- Add Go and JavaScript interpreter bindings onto the same RPC contract.
+- Expand protocol docs/test coverage around timeouts, cancellation, and richer error typing.
