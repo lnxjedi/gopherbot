@@ -76,6 +76,9 @@ LocalPort: 0
 ExternalPlugins:
   "jsfull":
     Path: plugins/test/jsfull.js
+ExternalTasks:
+  "param-show":
+    Path: test/tasks/param_show.sh
 
 WorkSpace: workspace
 

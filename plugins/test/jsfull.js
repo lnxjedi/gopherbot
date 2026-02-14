@@ -26,6 +26,7 @@ Help:
 - Keywords: [ "identity", "parameter" ]
   Helptext:
   - "(bot), js-identity - exercise Get*Attribute + Set/GetParameter"
+  - "(bot), js-parameter-addtask - verify SetParameter value in next AddTask"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -51,6 +52,8 @@ CommandMatchers:
   Command: memorydatumcheckin
 - Regex: (?i:js-identity)
   Command: identity
+- Regex: (?i:js-parameter-addtask)
+  Command: parameteraddtask
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -285,6 +288,22 @@ function handler(argv) {
         bot.Say(
           `IDENTITY CHECK: bot=${showMemory(botName.attribute)}/${ret.string(botName.retVal)} sender=${showMemory(sender.attribute)}/${ret.string(sender.retVal)} bob=${showMemory(otherUser.attribute)}/${ret.string(otherUser.retVal)} set=${setOK} param=${showMemory(phase)}`
         );
+        return task.Normal;
+      }
+    case 'parameteraddtask':
+      {
+        const bot = new Robot();
+        const setOK = bot.SetParameter("PIPELINE_SENTINEL", "nebula-42");
+        if (!setOK) {
+          bot.Say("SETPARAM ADDTASK: set=false");
+          return task.Fail;
+        }
+        const addRet = bot.AddTask("param-show");
+        if (addRet !== ret.Ok) {
+          bot.Say("SETPARAM ADDTASK: queue=false");
+          return task.Fail;
+        }
+        bot.Say("SETPARAM ADDTASK: queued");
         return task.Normal;
       }
 

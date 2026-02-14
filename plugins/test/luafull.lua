@@ -26,6 +26,7 @@ Help:
 - Keywords: [ "identity", "parameter" ]
   Helptext:
   - "(bot), lua-identity - exercise Get*Attribute + Set/GetParameter"
+  - "(bot), lua-parameter-addtask - verify SetParameter value in next AddTask"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -51,6 +52,8 @@ CommandMatchers:
   Command: memorydatumcheckin
 - Regex: (?i:lua-identity)
   Command: identity
+- Regex: (?i:lua-parameter-addtask)
+  Command: parameteraddtask
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -291,6 +294,21 @@ function commands.identity(bot)
     " sender=" .. showMemory(senderFirst) .. "/" .. ret:string(senderRet) ..
     " bob=" .. showMemory(bobFirst) .. "/" .. ret:string(bobRet) ..
     " set=" .. tostring(setOK) .. " param=" .. showMemory(phase))
+  return task.Normal
+end
+
+function commands.parameteraddtask(bot)
+  local setOK = bot:SetParameter("PIPELINE_SENTINEL", "nebula-42")
+  if not setOK then
+    bot:Say("SETPARAM ADDTASK: set=false")
+    return task.Fail
+  end
+  local addRet = bot:AddTask("param-show")
+  if addRet ~= ret.Ok then
+    bot:Say("SETPARAM ADDTASK: queue=false")
+    return task.Fail
+  end
+  bot:Say("SETPARAM ADDTASK: queued")
   return task.Normal
 end
 

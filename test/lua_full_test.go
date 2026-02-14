@@ -98,6 +98,10 @@ func TestLuaFull(t *testing.T) {
 		{aliceID, general, ";lua-identity", false, []TestMessage{
 			{null, general, "IDENTITY CHECK: bot=bender/Ok sender=Alice/Ok bob=Robert/Ok set=true param=<empty>", false}},
 			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";lua-parameter-addtask", false, []TestMessage{
+			{null, general, "SETPARAM ADDTASK: queued", false},
+			{null, general, "PARAM-SHOW: PIPELINE_SENTINEL=nebula-42", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan, ExternalTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
 
