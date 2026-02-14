@@ -4,6 +4,7 @@ import (
 	"io"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
 )
@@ -300,5 +301,142 @@ func TestSetUserMapRejectsUppercase(t *testing.T) {
 	}
 	if _, ok := sc.userNames["bob"]; !ok {
 		t.Fatalf("expected lowercase username to be accepted")
+	}
+}
+
+func TestInjectMessageReturnsCursorAndThreadMetadata(t *testing.T) {
+	h := &testHandler{}
+	sc := &sshConnector{
+		handler:      h,
+		cfg:          sshConfig{DefaultChannel: "general", MaxMsgBytes: defaultMaxMsg},
+		botName:      "floyd",
+		botNameLower: "floyd",
+		botID:        "botid",
+		clients:      make(map[*sshClient]struct{}),
+		userNames:    map[string]userKeyInfo{"alice": {userName: "alice", userID: "aliceid"}},
+		userIDs:      map[string]userKeyInfo{"aliceid": {userName: "alice", userID: "aliceid"}},
+		threads:      make(map[string]int),
+		buffer:       make([]bufferMsg, 8),
+		waiters:      make(map[chan struct{}]struct{}),
+	}
+
+	res, err := sc.InjectMessage(robot.InjectMessageRequest{
+		AsUser: "alice",
+		Text:   "status",
+	})
+	if err != nil {
+		t.Fatalf("InjectMessage returned error: %v", err)
+	}
+	if len(h.msgs) != 1 {
+		t.Fatalf("expected 1 incoming message, got %d", len(h.msgs))
+	}
+	if res.Cursor == 0 {
+		t.Fatalf("expected non-zero cursor")
+	}
+	if res.ThreadID == "" {
+		t.Fatalf("expected thread ID in response")
+	}
+	if res.MessageID == "" {
+		t.Fatalf("expected message ID in response")
+	}
+}
+
+func TestGetMessagesHiddenVisibilityScopedToViewer(t *testing.T) {
+	h := &testHandler{}
+	sc := &sshConnector{
+		handler:      h,
+		cfg:          sshConfig{DefaultChannel: "general"},
+		botName:      "floyd",
+		botNameLower: "floyd",
+		botID:        "botid",
+		clients:      make(map[*sshClient]struct{}),
+		userNames: map[string]userKeyInfo{
+			"alice": {userName: "alice", userID: "aliceid"},
+			"bob":   {userName: "bob", userID: "bobid"},
+		},
+		userIDs: map[string]userKeyInfo{
+			"aliceid": {userName: "alice", userID: "aliceid"},
+			"bobid":   {userName: "bob", userID: "bobid"},
+		},
+		threads: make(map[string]int),
+		buffer:  make([]bufferMsg, 8),
+		waiters: make(map[chan struct{}]struct{}),
+	}
+
+	evt := bufferMsg{
+		timestamp: time.Now(),
+		userName:  sc.botName,
+		userID:    sc.botID,
+		isBot:     true,
+		channel:   "general",
+		threadID:  "0001",
+		threaded:  true,
+		text:      "private reply",
+	}
+	sc.broadcast(evt, &robot.ConnectorMessage{HiddenMessage: true, UserID: "aliceid"})
+
+	aliceBatch, err := sc.GetMessages(robot.MessageQuery{Viewer: "alice", All: true})
+	if err != nil {
+		t.Fatalf("alice GetMessages error: %v", err)
+	}
+	if len(aliceBatch.Messages) != 1 {
+		t.Fatalf("expected alice to receive 1 hidden message, got %d", len(aliceBatch.Messages))
+	}
+	if !aliceBatch.Messages[0].Hidden {
+		t.Fatalf("expected hidden message flag for alice")
+	}
+
+	bobBatch, err := sc.GetMessages(robot.MessageQuery{Viewer: "bob", All: true})
+	if err != nil {
+		t.Fatalf("bob GetMessages error: %v", err)
+	}
+	if len(bobBatch.Messages) != 0 {
+		t.Fatalf("expected bob to receive 0 hidden messages, got %d", len(bobBatch.Messages))
+	}
+}
+
+func TestGetMessagesWaitsForNewMessage(t *testing.T) {
+	sc := &sshConnector{
+		cfg: sshConfig{DefaultChannel: "general"},
+		userNames: map[string]userKeyInfo{
+			"alice": {userName: "alice", userID: "aliceid"},
+		},
+		userIDs: map[string]userKeyInfo{
+			"aliceid": {userName: "alice", userID: "aliceid"},
+		},
+		buffer:  make([]bufferMsg, 8),
+		waiters: make(map[chan struct{}]struct{}),
+	}
+
+	after := sc.latestCursor()
+	done := make(chan robot.MessageBatch, 1)
+	go func() {
+		batch, _ := sc.GetMessages(robot.MessageQuery{
+			Viewer:      "alice",
+			AfterCursor: after,
+			TimeoutMS:   200,
+		})
+		done <- batch
+	}()
+
+	time.Sleep(30 * time.Millisecond)
+	sc.appendBuffer(bufferMsg{
+		timestamp: time.Now(),
+		userName:  "carol",
+		userID:    "carolid",
+		channel:   "general",
+		text:      "hello",
+	})
+
+	select {
+	case batch := <-done:
+		if batch.TimedOut {
+			t.Fatalf("expected message arrival, got timed out response")
+		}
+		if len(batch.Messages) == 0 {
+			t.Fatalf("expected at least one message in batch")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatalf("timed out waiting for GetMessages result")
 	}
 }

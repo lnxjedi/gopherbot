@@ -14,6 +14,7 @@ Alias: {{ $botalias }}
 
 ProtocolConfig:
   ListenHost: {{ env "GOPHER_SSH_HOST" | default "localhost" }}
+  ListenPort: {{ env "GOPHER_SSH_PORT" | default "4221" }}
   DefaultChannel: general
   BotName: {{ $botname }}
   Color: true

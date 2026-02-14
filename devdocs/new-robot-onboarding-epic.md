@@ -1,19 +1,19 @@
 # New Robot Onboarding Epic (Planning)
 
-Status: planning-only notes (no engine changes in this session)
+Status: planning notes + slice 1/2 implementation tracking
 
 ## Why this exists
 
-`setup slack`/answerfile works, but it is old, high-friction, and tied to manual file editing plus legacy assumptions.  
+The old answerfile-based setup path works, but it is high-friction and tied to manual file editing plus legacy assumptions.  
 v3 goal is a cleaner, guided path from empty directory to a real robot using normal developer git workflow.
 
 ## Confirmed product decisions
 
-- Keep old flow available initially; build new flow first.
+- Legacy setup flow does not need to be preserved for new-robot onboarding.
 - Add `;new robot` and `;new-robot` entrypoint (same behavior).
 - In demo mode, docs should steer user to start and connect as `alice` (or equivalent simple default).
 - Ask the user for their canonical username (chat identity), and use that for local ssh login (`bot-ssh -l <username>`).
-- Use a persistent file brain for onboarding workflow state.
+- For slice 1, persist onboarding workflow state in local `.setup-state` (not brain).
 - Newly created robot should start with a persistent file brain by default.
 - Use one confirmation gate before applying scaffold changes and triggering restart.
 - Do not have robot push git changes on user’s behalf in the new workflow.
@@ -25,9 +25,10 @@ v3 goal is a cleaner, guided path from empty directory to a real robot using nor
 
 ## Current behavior anchor (what exists now)
 
-- `plugins/welcome.lua` tells users to run `setup slack`.
+- `plugins/welcome.lua` now tells users to run `new robot`.
+- `plugins/go-new-robot/new_robot.go` handles onboarding state + slice 2 scaffold apply.
 - `plugins/autosetup.sh` implements setup logic.
-- `setup slack`/`gopherbot init slack` copies `resources/answerfiles/slack.txt` to `answerfile.txt`.
+- `gopherbot init slack` copies `resources/answerfiles/slack.txt` to `answerfile.txt`.
 - Running `gopherbot` in setup mode parses answerfile/env values and copies `robot.skel/*` into `custom/`, writes `.env`, generates keys, then restarts.
 
 Relevant files:
@@ -46,7 +47,6 @@ Relevant files:
 - Out of scope:
   - engine/core connector refactors
   - MCP implementation
-  - removing legacy setup path in v3.0
 
 ### 2) Subsystems Affected (expected)
 
@@ -87,15 +87,14 @@ Relevant files:
 
 ### 6) Backward compatibility
 
-- Keep `setup slack` and answerfile flow working in v3.0.
-- Introduce new flow as preferred path; mark legacy path as compatibility.
-- Add migration notes to `devdocs/UPGRADING-v3.md` before deprecating/removing legacy behavior.
+- No backward-compatibility requirement for legacy setup in new-robot onboarding.
+- Prefer guided `new robot` flow as the supported path.
+- Add migration notes to `devdocs/UPGRADING-v3.md` if legacy commands are removed.
 
 ### 7) Documentation updates required
 
 - `../gopherbot-doc` onboarding chapters (`botsetup`, `RunRobot`, directory structure references).
 - Add "new robot from empty directory" walkthrough using `;new-robot`.
-- Preserve legacy appendix while migration window is open.
 
 ## Proposed phased slices
 
@@ -106,7 +105,7 @@ Relevant files:
   - start wizard
   - resume wizard
   - cancel wizard
-- Persist wizard state in file brain-backed memory keys.
+- Persist wizard state in a local `.setup-state` file in robot home.
 - No scaffold write yet, just interaction plumbing and state handling.
 
 Acceptance:
@@ -120,7 +119,15 @@ Acceptance:
   - generate required keys/secrets
   - create/update `.env` with generated encryption key and placeholders
 - Prompt for canonical username and configure local ssh access accordingly.
-- Keep brain default as persistent file brain.
+- Keep demo mode on in-memory brain for initial onboarding; move to file brain after scaffold is created.
+
+Implementation notes (current):
+- `new robot` / `new robot resume` captures canonical username, resolves SSH public key
+  (auto-detect `~/.ssh/*.pub` first, prompt fallback), then uses one yes/no confirmation gate.
+- Apply step now writes scaffold files and local identity config for SSH `UserMap`,
+  plus `.env` defaults (`GOPHER_ENCRYPTION_KEY`, `GOPHER_CUSTOM_REPOSITORY=local`,
+  `GOPHER_PROTOCOL=ssh`, `GOPHER_BRAIN=file`).
+- Existing legacy `autosetup` remains available for reference only and is marked for later retirement.
 
 Acceptance:
 - From empty directory, wizard creates usable scaffold.
@@ -146,15 +153,15 @@ Acceptance:
 Acceptance:
 - User can progressively configure protocol/brain without manual YAML edits for common cases.
 
-### Slice 5: Legacy path deprecation plan (v3.1+)
+### Slice 5: Legacy setup retirement and cleanup
 
-- Add warnings and docs migration timeline.
-- Keep removal deferred until adoption signal is clear.
+- Remove legacy setup command references from user-facing docs and welcome text.
+- Update migration notes for teams still using answerfile-based setup.
 
 ## Open questions to resolve before coding
 
 - Confirm exact prompt list for slice 1+2 (minimum viable questions).
-- Decide where wizard lock/state metadata lives (brain-only vs lock file + brain).
+- Refine `.setup-state` locking semantics if parallel onboarding commands become common.
 - Decide explicit safety policy for non-empty directories:
   - default: abort with guidance unless user confirms clean/overwrite path.
 

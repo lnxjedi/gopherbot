@@ -41,9 +41,30 @@ func getProtocolConfigFor(protocol string) json.RawMessage {
 	cfg, ok := protocolConfigs.m[p]
 	protocolConfigs.RUnlock()
 	if ok {
-		return cfg
+		return applyProtocolRuntimeOverrides(p, cfg)
 	}
-	return protocolConfig
+	return applyProtocolRuntimeOverrides(p, protocolConfig)
+}
+
+func applyProtocolRuntimeOverrides(protocol string, cfg json.RawMessage) json.RawMessage {
+	if cfg == nil {
+		return nil
+	}
+	if protocol == "ssh" && sshPortOverride > 0 {
+		var protocolCfg map[string]interface{}
+		if err := json.Unmarshal(cfg, &protocolCfg); err != nil {
+			Log(robot.Error, "Unable to apply SSH listen port override to protocol config: %v", err)
+			return cfg
+		}
+		protocolCfg["ListenPort"] = sshPortOverride
+		overridden, err := json.Marshal(protocolCfg)
+		if err != nil {
+			Log(robot.Error, "Unable to serialize protocol config with SSH listen port override: %v", err)
+			return cfg
+		}
+		return overridden
+	}
+	return cfg
 }
 
 // ConfigLoader defines 'bot configuration, and is read from conf/robot.yaml

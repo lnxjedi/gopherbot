@@ -40,6 +40,6 @@ configuration was detected, you're connected to '$NAME', the default robot."
     SendChannelMessage "general" "If you've started the robot by mistake, just hit ctrl-D \
 to exit and try 'gopherbot --help'; otherwise feel free to play around with the default robot - \
 you can start by typing 'help'. If you'd like to start configuring a new robot, \
-type: '${ALIAS}setup slack'."
+type: '${ALIAS}new robot'."
     exit 0
 fi

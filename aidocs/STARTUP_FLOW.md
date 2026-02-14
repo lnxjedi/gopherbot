@@ -19,6 +19,10 @@ Startup proceeds through the following phases **in order**:
 * `main.go` → `bot.Start()` in `bot/start.go`
 * `bot.Start()` → `initBot()` → `run()` in `bot/bot_process.go`
 
+CLI note:
+
+- `--aidev <token>` enables AI development mode for the process (used by MCP automation flows).
+
 ## Mode Detection
 
 ### Where: `bot/config_load.go` – `detectStartupMode()`
@@ -187,6 +191,20 @@ Identity mapping is explicit per-protocol `UserMap`.
 - reload reconciles secondary runtime (removed secondaries stop; configured secondaries are re-attempted)
 - changing primary protocol on reload is rejected and logged; active primary remains unchanged
 
+### AI Development Mode (`--aidev`)
+
+When `--aidev <token>` is supplied at startup:
+
+- startup forces `logDest` to `robot.log` (in the process working directory)
+- after the local HTTP listener binds, startup writes the listener port to `<working-directory>/.aiport`
+- the token is startup state for follow-on authenticated AI-dev endpoint work
+- local authenticated endpoints are enabled on the existing localhost listener:
+  - `POST /aidev/send_message`
+  - `POST /aidev/get_messages`
+  - each requires `Authorization: Bearer <token>`
+
+This mode is additive: connector startup and config merge ordering are unchanged.
+
 ### Template Functions
 
 | Function             | Purpose                        | Example                             |
@@ -336,6 +354,8 @@ This keeps shutdown deterministic even when interactive prompts are using long t
 
 * `bot/start.go` – Entry point, CLI parsing, log setup
 * `bot/bot_process.go` – `initBot()`, `run()`, encryption initialization
+* `bot/aidev.go` – AI-dev startup state (`--aidev`) and `.aiport` write helper
+* `bot/aidev_http.go` – authenticated AI-dev message endpoints and connector capability routing
 * `bot/config_load.go` – `detectStartupMode()`, config-file merge/template expansion
 * `bot/conf.go` – `loadConfig()` and reload reconciliation hooks for `SecondaryProtocols`
 * `bot/connector_runtime.go` – multi-connector runtime manager, routing, lifecycle controls

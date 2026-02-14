@@ -26,6 +26,7 @@ var (
 	plainlog        bool
 	helpRequested   bool
 	sshPortOverride int
+	aidevFlagToken  string
 
 	hostName  string
 	ideMode   bool
@@ -88,15 +89,15 @@ func Start(v VersionInfo) {
 	flag.BoolVar(&helpRequested, "h", false, "")
 	spusage := "override SSH listen port for the local connector"
 	flag.IntVar(&sshPortOverride, "ssh-port", 0, spusage)
+	adusage := "enable AI development mode with an auth token"
+	flag.StringVar(&aidevFlagToken, "aidev", "", adusage)
 	// TODO: Gopherbot CLI commands suck. Make them suck less.
 	flag.Parse()
 
 	if len(overrideDevEnv) > 0 {
 		deployEnvironment = overrideDevEnv
 	}
-	if sshPortOverride > 0 {
-		os.Setenv("GOPHER_SSH_PORT", fmt.Sprintf("%d", sshPortOverride))
-	}
+	setAIDevToken(aidevFlagToken)
 
 	/*
 		To prevent inadvertently bootstrapping a production
@@ -295,6 +296,9 @@ func Start(v VersionInfo) {
 	// last ditch fallback - log to stdout
 	if len(logDest) == 0 {
 		logDest = "stdout"
+	}
+	if isAIDevMode() && !cliOp {
+		logDest = defaultLogFile
 	}
 	if logDest == "stderr" {
 		logOut = os.Stderr

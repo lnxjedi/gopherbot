@@ -3,9 +3,7 @@ package ssh
 import (
 	"fmt"
 	"log"
-	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -43,17 +41,21 @@ type userListing struct {
 }
 
 type bufferMsg struct {
+	seq       uint64
 	timestamp time.Time
 	userName  string
 	userID    string
 	isBot     bool
 	channel   string
 	threadID  string
+	messageID string
 	threaded  bool
 	text      string
 	isDM      bool
 	dmPeer    string
 	dmPeerID  string
+	hidden    bool
+	visibleTo string
 }
 
 type sshConfig struct {
@@ -89,6 +91,8 @@ type sshConnector struct {
 	buffer    []bufferMsg
 	bufIndex  int
 	bufFilled bool
+	nextSeq   uint64
+	waiters   map[chan struct{}]struct{}
 }
 
 // Initialize sets up the SSH connector and returns a connector object.
@@ -96,11 +100,6 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	var cfg sshConfig
 	if err := handler.GetProtocolConfig(&cfg); err != nil {
 		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
-	}
-	if portEnv := os.Getenv("GOPHER_SSH_PORT"); portEnv != "" {
-		if p, err := strconv.Atoi(portEnv); err == nil && p > 0 {
-			cfg.ListenPort = p
-		}
 	}
 	if cfg.ListenHost == "" {
 		cfg.ListenHost = defaultListenHost
@@ -149,6 +148,7 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		userIDs:      make(map[string]userKeyInfo),
 		threads:      make(map[string]int),
 		buffer:       make([]bufferMsg, cfg.ReplayBufferSize),
+		waiters:      make(map[chan struct{}]struct{}),
 	}
 
 	return robot.Connector(sc)
@@ -204,6 +204,126 @@ func (sc *sshConnector) Run(stop <-chan struct{}) {
 		}()
 	}
 	wg.Wait()
+}
+
+func (sc *sshConnector) ConnectorAPI() interface{} {
+	return sc
+}
+
+func (sc *sshConnector) InjectMessage(req robot.InjectMessageRequest) (robot.InjectMessageResult, error) {
+	var empty robot.InjectMessageResult
+	text := strings.TrimSpace(req.Text)
+	if text == "" {
+		return empty, fmt.Errorf("text is required")
+	}
+	userRaw := strings.TrimSpace(req.AsUser)
+	if userRaw == "" {
+		return empty, fmt.Errorf("as_user is required")
+	}
+	if req.Direct {
+		return empty, fmt.Errorf("direct message injection is not supported yet")
+	}
+	info, ok := sc.resolveUser(sc.normalizeUser(userRaw))
+	if !ok {
+		return empty, fmt.Errorf("unknown user: %s", userRaw)
+	}
+
+	channel := sc.normalizeChannel(strings.TrimSpace(req.Channel))
+	if channel == "" {
+		channel = sc.cfg.DefaultChannel
+	}
+	if !sc.isValidChannel(channel) {
+		return empty, fmt.Errorf("invalid channel: %s", channel)
+	}
+
+	now := time.Now()
+	client := &sshClient{
+		userName:       info.userName,
+		userID:         info.userID,
+		channel:        channel,
+		threadID:       strings.TrimSpace(req.Thread),
+		typingInThread: strings.TrimSpace(req.Thread) != "",
+		lastThread:     make(map[string]string),
+		threadSeen:     make(map[string]map[string]struct{}),
+		dmPeer:         "",
+		dmPeerID:       "",
+		dmIsBot:        false,
+		continuing:     false,
+		pasteActive:    false,
+		stampColor:     false,
+	}
+
+	msg := sc.sendIncoming(client, text, req.Hidden, false)
+	cursor := sc.latestCursor()
+	if !req.Hidden {
+		cursor = sc.broadcastUserMessage(client, text, now)
+	}
+
+	result := robot.InjectMessageResult{
+		Protocol:  "ssh",
+		UserName:  info.userName,
+		UserID:    info.userID,
+		Channel:   channel,
+		MessageID: msg.MessageID,
+		ThreadID:  msg.ThreadID,
+		Hidden:    req.Hidden,
+		Direct:    false,
+		Cursor:    cursor,
+		Timestamp: now.UTC().Format(time.RFC3339Nano),
+	}
+	return result, nil
+}
+
+func (sc *sshConnector) GetMessages(req robot.MessageQuery) (robot.MessageBatch, error) {
+	viewerRaw := strings.TrimSpace(req.Viewer)
+	if viewerRaw == "" {
+		return robot.MessageBatch{}, fmt.Errorf("viewer is required")
+	}
+	viewerInfo, ok := sc.resolveUser(sc.normalizeUser(viewerRaw))
+	if !ok {
+		return robot.MessageBatch{}, fmt.Errorf("unknown viewer: %s", viewerRaw)
+	}
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 128
+	}
+	if limit > 512 {
+		limit = 512
+	}
+
+	collect := func() robot.MessageBatch {
+		return sc.collectMessages(viewerInfo, req.AfterCursor, req.All, limit)
+	}
+
+	batch := collect()
+	if req.All || len(batch.Messages) > 0 || req.TimeoutMS <= 0 {
+		return batch, nil
+	}
+
+	wait := time.Duration(req.TimeoutMS) * time.Millisecond
+	if wait <= 0 {
+		wait = 1400 * time.Millisecond
+	}
+	ch := sc.registerWaiter()
+	defer sc.unregisterWaiter(ch)
+
+	// Avoid races where messages arrive between initial collect and waiter registration.
+	batch = collect()
+	if len(batch.Messages) > 0 {
+		return batch, nil
+	}
+
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+
+	select {
+	case <-ch:
+		batch = collect()
+	case <-timer.C:
+		batch = collect()
+		batch.TimedOut = len(batch.Messages) == 0
+	}
+	return batch, nil
 }
 
 func (sc *sshConnector) handleCommand(client *sshClient, input string) {
@@ -415,7 +535,7 @@ func (sc *sshConnector) handleDirectAt(client *sshClient, trimmed string, ts tim
 	sc.sendDirectUserMessageTo(client, info, message, ts)
 }
 
-func (sc *sshConnector) sendIncoming(client *sshClient, line string, hidden bool, direct bool) {
+func (sc *sshConnector) sendIncoming(client *sshClient, line string, hidden bool, direct bool) *robot.ConnectorMessage {
 	threaded := client.typingInThread && !direct
 	threadID := ""
 	messageID := ""
@@ -447,6 +567,7 @@ func (sc *sshConnector) sendIncoming(client *sshClient, line string, hidden bool
 		DirectMessage:   direct,
 	}
 	sc.handler.IncomingMessage(msg)
+	return msg
 }
 
 func (sc *sshConnector) MessageHeard(u, c string) {}
@@ -555,9 +676,13 @@ func (sc *sshConnector) SendProtocolUserMessage(u string, msg string, f robot.Me
 	return robot.Ok
 }
 
-func (sc *sshConnector) broadcastUserMessage(client *sshClient, line string, ts time.Time) {
+func (sc *sshConnector) broadcastUserMessage(client *sshClient, line string, ts time.Time) uint64 {
 	threaded := client.typingInThread
 	threadID := client.threadID
+	msgID := threadID
+	if threaded {
+		msgID = sc.nextThreadID(client.channel)
+	}
 	evt := bufferMsg{
 		timestamp: ts,
 		userName:  client.userName,
@@ -565,10 +690,11 @@ func (sc *sshConnector) broadcastUserMessage(client *sshClient, line string, ts 
 		isBot:     false,
 		channel:   client.channel,
 		threadID:  threadID,
+		messageID: msgID,
 		threaded:  threaded,
 		text:      line,
 	}
-	sc.broadcast(evt, &robot.ConnectorMessage{UserID: client.userID, HiddenMessage: false})
+	return sc.broadcast(evt, &robot.ConnectorMessage{UserID: client.userID, HiddenMessage: false})
 }
 
 func (sc *sshConnector) directEvent(senderName, senderID string, senderIsBot bool, peerName, peerID, text string, ts time.Time) bufferMsg {
@@ -610,15 +736,22 @@ func (sc *sshConnector) sendDirectUserMessageTo(sender *sshClient, peer userKeyI
 	}
 }
 
-func (sc *sshConnector) broadcast(evt bufferMsg, msgObject *robot.ConnectorMessage) {
+func (sc *sshConnector) broadcast(evt bufferMsg, msgObject *robot.ConnectorMessage) uint64 {
 	private := msgObject != nil && msgObject.HiddenMessage
 	var hiddenUser string
 	if msgObject != nil && msgObject.HiddenMessage {
 		hiddenUser = msgObject.UserID
 	}
 
-	if !private {
-		sc.appendBuffer(evt)
+	cursor := uint64(0)
+	if private {
+		if hiddenUser != "" {
+			evt.hidden = true
+			evt.visibleTo = hiddenUser
+			cursor = sc.appendBuffer(evt)
+		}
+	} else {
+		cursor = sc.appendBuffer(evt)
 	}
 
 	sc.mu.RLock()
@@ -648,9 +781,10 @@ func (sc *sshConnector) broadcast(evt bufferMsg, msgObject *robot.ConnectorMessa
 			client.lastThread[evt.channel] = evt.threadID
 		}
 	}
+	return cursor
 }
 
-func (sc *sshConnector) appendBuffer(evt bufferMsg) {
+func (sc *sshConnector) appendBuffer(evt bufferMsg) uint64 {
 	msg := evt.text
 	if len(msg) > maxBufferBytes {
 		msg = msg[:maxBufferBytes]
@@ -658,12 +792,21 @@ func (sc *sshConnector) appendBuffer(evt bufferMsg) {
 	evt.text = msg
 
 	sc.mu.Lock()
+	sc.nextSeq++
+	evt.seq = sc.nextSeq
 	sc.buffer[sc.bufIndex] = evt
 	sc.bufIndex = (sc.bufIndex + 1) % len(sc.buffer)
 	if sc.bufIndex == 0 {
 		sc.bufFilled = true
 	}
+	for ch := range sc.waiters {
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
+	}
 	sc.mu.Unlock()
+	return evt.seq
 }
 
 func (sc *sshConnector) replayBuffer(client *sshClient) int {
@@ -697,6 +840,99 @@ func (sc *sshConnector) snapshotBuffer() []bufferMsg {
 	return out
 }
 
+func (sc *sshConnector) latestCursor() uint64 {
+	sc.mu.RLock()
+	defer sc.mu.RUnlock()
+	return sc.nextSeq
+}
+
+func (sc *sshConnector) registerWaiter() chan struct{} {
+	ch := make(chan struct{}, 1)
+	sc.mu.Lock()
+	if sc.waiters == nil {
+		sc.waiters = make(map[chan struct{}]struct{})
+	}
+	sc.waiters[ch] = struct{}{}
+	sc.mu.Unlock()
+	return ch
+}
+
+func (sc *sshConnector) unregisterWaiter(ch chan struct{}) {
+	sc.mu.Lock()
+	delete(sc.waiters, ch)
+	sc.mu.Unlock()
+}
+
+func (sc *sshConnector) collectMessages(viewer userKeyInfo, after uint64, all bool, limit int) robot.MessageBatch {
+	snap := sc.snapshotBuffer()
+	batch := robot.MessageBatch{
+		Protocol: "ssh",
+		Viewer:   viewer.userName,
+		Latest:   sc.latestCursor(),
+	}
+	if len(snap) == 0 {
+		batch.NextCursor = after
+		return batch
+	}
+	oldest := snap[0].seq
+	if after > 0 && oldest > 0 && after < oldest-1 {
+		batch.Overflow = true
+	}
+	startAfter := after
+	if all {
+		startAfter = 0
+	}
+
+	out := make([]robot.MessageEvent, 0, len(snap))
+	for _, evt := range snap {
+		if evt.seq <= startAfter {
+			continue
+		}
+		if !sc.visibleToViewer(evt, viewer) {
+			continue
+		}
+		out = append(out, robot.MessageEvent{
+			Cursor:    evt.seq,
+			Timestamp: evt.timestamp.UTC().Format(time.RFC3339Nano),
+			UserName:  evt.userName,
+			UserID:    evt.userID,
+			IsBot:     evt.isBot,
+			Channel:   evt.channel,
+			ThreadID:  evt.threadID,
+			MessageID: evt.messageID,
+			Threaded:  evt.threaded,
+			Text:      evt.text,
+			Direct:    evt.isDM,
+			Hidden:    evt.hidden,
+		})
+	}
+
+	if len(out) == 0 {
+		batch.NextCursor = after
+		return batch
+	}
+	if limit <= 0 {
+		limit = 128
+	}
+	if len(out) > limit {
+		batch.HasMore = true
+		out = out[:limit]
+	}
+	batch.Messages = out
+	batch.NextCursor = out[len(out)-1].Cursor
+	return batch
+}
+
+func (sc *sshConnector) visibleToViewer(evt bufferMsg, viewer userKeyInfo) bool {
+	if evt.hidden {
+		return evt.visibleTo != "" && evt.visibleTo == viewer.userID
+	}
+	if evt.isDM {
+		return viewer.userID != "" && (evt.userID == viewer.userID || evt.dmPeerID == viewer.userID)
+	}
+	return true
+}
+
 func (sc *sshConnector) clientsForUser(u string) []*sshClient {
 	sc.mu.RLock()
 	defer sc.mu.RUnlock()
@@ -713,8 +949,10 @@ func (sc *sshConnector) normalizeChannel(ch string) string {
 	if ch == "" {
 		return ch
 	}
-	if id, ok := sc.handler.ExtractID(ch); ok {
-		ch = id
+	if sc.handler != nil {
+		if id, ok := sc.handler.ExtractID(ch); ok {
+			ch = id
+		}
 	}
 	if strings.HasPrefix(ch, "#") {
 		return strings.TrimPrefix(ch, "#")
@@ -726,8 +964,10 @@ func (sc *sshConnector) normalizeUser(u string) string {
 	if u == "" {
 		return u
 	}
-	if id, ok := sc.handler.ExtractID(u); ok {
-		return id
+	if sc.handler != nil {
+		if id, ok := sc.handler.ExtractID(u); ok {
+			return id
+		}
 	}
 	return u
 }

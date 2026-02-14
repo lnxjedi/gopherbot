@@ -19,6 +19,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Engine entrypoints: `bot/start.go` (func `Start`), `bot/bot_process.go` (funcs `initBot`, `run`, `stop`).
 - Runtime connector orchestration: `bot/connector_runtime.go` (runtime manager, protocol routing, lifecycle controls).
 - Startup mode and config loading: `bot/config_load.go` (funcs `detectStartupMode`, `getConfigFile`), `bot/conf.go` (func `loadConfig`).
+- AI-dev endpoint/auth helpers: `bot/aidev.go` (token + `.aiport`) and `bot/aidev_http.go` (authenticated `send_message` / `get_messages` routing).
 - Internal module initialization: `bot/modules_init.go` (func `initializeModules`) — initializes ssh-agent, ssh-git-helper, and yaegi interpreter modules.
 - Built-in connectors (not under `connectors/`): `bot/term_connector.go` (registers `"terminal"`), `bot/null_connector.go` (registers `"nullconn"`).
 
@@ -26,6 +27,10 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - SimpleBrain providers are registered via `bot.RegisterSimpleBrain` in `brains/dynamodb/static.go` and `brains/cloudflarekv/static.go`.
 - Provider implementations: `brains/dynamodb/dynamobrain.go` (func `provider`, methods `Store`, `Retrieve`) and `brains/cloudflarekv/cloudflarekvbrain.go` (func `provider`).
+
+## cmd/
+
+- MCP lifecycle helper binary: `cmd/gopherbot-mcp/main.go` (stdio MCP server with robot start/stop/status tools plus `send_message` / `get_messages` AI-dev tools).
 
 ## conf/
 
@@ -89,6 +94,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## robot/
 
 - Go extension API: `robot/README.md`, `robot/registrations.go` (funcs `RegisterPlugin`, `RegisterJob`, `RegisterTask`).
+- Connector contracts and optional connector capability interfaces: `robot/connector_defs.go` (`Connector`, `ConnectorAPIProvider`, `Injector`, `MessageSource`).
 
 ## robot.skel/
 

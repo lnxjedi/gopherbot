@@ -7,7 +7,7 @@ usage() {
 
 local_key=false
 print_known_hosts=false
-script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+script_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 bot_ssh_path="${script_dir}/bot-ssh"
 
 while getopts ":kl" opt; do
@@ -31,11 +31,11 @@ if [[ "$print_known_hosts" == "true" ]]; then
     usage
     exit 2
   fi
-  if [[ ! -f ".ssh-connect" ]]; then
+  if [[ ! -f "./.ssh-connect" ]]; then
     exit 1
   fi
   # shellcheck disable=SC1091
-  source ".ssh-connect"
+  source "./.ssh-connect"
   hostport="${BOT_SSH_PORT:-127.0.0.1:4221}"
   host="${hostport%:*}"
   port="${hostport##*:}"
@@ -49,7 +49,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 user="$1"
-connect_file=".ssh-connect"
+connect_file="./.ssh-connect"
 
 if [[ ! -f "$connect_file" ]]; then
   echo "Missing $connect_file; start gopherbot first"

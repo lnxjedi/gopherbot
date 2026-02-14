@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 )
@@ -232,5 +233,24 @@ func TestMergeUserMapsWithOverride(t *testing.T) {
 	}
 	if base["bob"] != "U002" {
 		t.Fatalf("mergeUserMapsWithOverride() mutated base map, base[bob]=%q", base["bob"])
+	}
+}
+
+func TestApplyProtocolRuntimeOverridesSSHPort(t *testing.T) {
+	original := sshPortOverride
+	defer func() {
+		sshPortOverride = original
+	}()
+	sshPortOverride = 60231
+
+	cfg := json.RawMessage(`{"ListenHost":"localhost","ListenPort":4221}`)
+	got := applyProtocolRuntimeOverrides("ssh", cfg)
+
+	var parsed map[string]interface{}
+	if err := json.Unmarshal(got, &parsed); err != nil {
+		t.Fatalf("json.Unmarshal() error: %v", err)
+	}
+	if lp, ok := parsed["ListenPort"].(float64); !ok || int(lp) != 60231 {
+		t.Fatalf("ListenPort override = %#v, want 60231", parsed["ListenPort"])
 	}
 }

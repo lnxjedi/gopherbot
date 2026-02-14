@@ -206,7 +206,12 @@ ExternalPlugins:
     Description: The welcome plugin provides a greeting when unconfigured
     Privileged: true
     Path: plugins/welcome.lua
+  "new-robot":
+    Description: Interactive shell for onboarding a new robot
+    Homed: true
+    Path: plugins/go-new-robot/new_robot.go
   {{- end }}
+  ## TODO (later): retire autosetup after new-robot onboarding slices are complete.
   "autosetup":
     Description: Setup plugin for creating a new robot from an answerfile
     Privileged: true

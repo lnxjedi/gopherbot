@@ -124,6 +124,7 @@ Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot
 ## Buffer and Size Limits
 
 - Replay buffer size: `ReplayBufferSize` (default 42).
+- Buffered messages include a monotonic connector cursor (`seq`) for polling/catch-up APIs.
 - Each buffered message truncated to 4k; if truncation occurs, append `(WARNING: message truncated to 4k in buffer)` line to the connected client.
 - User input size:
   - Accept up to 16k; drop if >16k with `(ERROR: message too long; > 16k - dropped)`.
@@ -132,7 +133,7 @@ Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot
   - Send full output to connected clients.
   - Buffer truncated 4k copy.
 
-Hidden messages are never buffered.
+Hidden bot replies are buffered with viewer-scoped visibility (only the target user can retrieve/replay them).
 Direct messages are buffered and replayed only to the sender/recipient.
 
 ## Hidden Messages
@@ -140,6 +141,37 @@ Direct messages are buffered and replayed only to the sender/recipient.
 - `/botname ...` sends a hidden message to the bot and returns hidden replies only to that user.
 - `/ foo` sends nothing to others; emit `(INFO: '/' note to self message not sent to other users)`.
 - Hidden replies are prefixed with `private/` in the timestamp segment.
+
+## AI-Dev Injection and Retrieval
+
+When the connector is running under `--aidev`, SSH exposes optional connector API capabilities used by engine endpoints:
+
+- `InjectMessage(...)` injects an inbound SSH message as a mapped roster user, then routes through `handler.IncomingMessage` (engine auth/business logic still applies).
+- `GetMessages(...)` returns viewer-visible messages with cursor semantics:
+  - `all=true`: visible buffer snapshot (oldest -> newest)
+  - `after_cursor=N`: messages with `seq > N`
+  - if none are available, optional long-poll wait up to `timeout_ms`
+
+Visibility rules for retrieval:
+
+- public channel messages: visible to all viewers
+- direct messages: visible only to participants
+- hidden bot replies: visible only to the scoped hidden recipient
+
+Recommended MCP usage pattern for fresh/unknown robots:
+
+- after `start_robot`, call `send_message` in `#general` with `help` (or `info`) and then poll `get_messages`
+- do not assume the bot name matches directory name (for example `../bishop` may still identify as `floyd`)
+- extract the active bot name/alias from the help/intro text, then address follow-up commands accordingly
+- continue with cursor polling (`after_cursor`, default `timeout_ms=1400`) to capture multi-message workflows
+
+Conversation notes from live MCP interaction:
+
+- command replies may be multi-message and staggered in time (poll until quiet, not just one response)
+- `send_message` returns injected thread/message metadata, but bot replies are plugin-dependent and may be unthreaded
+- if a natural-language addressed message returns `No command matched ...; try ';help'`, pivot to `;help <keyword>` to discover accepted syntax
+- plain non-addressed chat in channel can be used for commentary/rating when no matching command exists
+- a `get_messages` response with `TimedOut=true` and unchanged cursor is the expected "no new messages yet" signal
 
 ## Direct Messages
 

@@ -1,6 +1,6 @@
 # Makefile - just builds the binary, for dev mainly
 
-.PHONY: clean test fulltest unit integration integration-full generate testbot static dist containers debug
+.PHONY: clean test fulltest unit integration integration-full generate testbot static dist containers debug mcp
 
 commit := -X main.Commit=$(shell git rev-parse --short HEAD)
 version := $(shell ./get-version.sh)
@@ -29,11 +29,16 @@ static: gopherbot
 gopherbot: main.go modules.go bot/* brains/*/* connectors/*/* gojobs/*/* goplugins/*/* history/*/* robot/* gotasks/*/* modules/*/*
 	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod readonly -ldflags "-s -w $(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot main.go modules.go
 
+mcp: gopherbot-mcp
+
+gopherbot-mcp: cmd/gopherbot-mcp/*.go
+	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod readonly -ldflags "-s -w $(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot-mcp ./cmd/gopherbot-mcp
+
 debug:
 	CGO_ENABLED=${CGO} GOOS=${GOOS} GOARCH=amd64 go build -mod readonly -ldflags "$(commit) $(version)" -tags "netgo osusergo static_build" -o gopherbot
 
 clean:
-	rm -f gopherbot $(TAR_ARCHIVE) $(ZIP_ARCHIVE)
+	rm -f gopherbot gopherbot-mcp $(TAR_ARCHIVE) $(ZIP_ARCHIVE)
 
 $(TAR_ARCHIVE): static
 	./mkdist.sh

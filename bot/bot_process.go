@@ -252,10 +252,15 @@ func initBot() {
 			Log(robot.Fatal, "Listening on tcp4 port 127.0.0.1:%s: %v", currentCfg.port, err)
 		}
 		listenPort = listener.Addr().String()
+		if err := writeAIPortFile(listenPort); err != nil {
+			Log(robot.Error, "Writing .aiport for aidev mode: %v", err)
+		}
 		go func() {
 			raiseThreadPriv("http handler")
 			apiServer := http.NewServeMux()
 			apiServer.Handle("/json", handle)
+			apiServer.HandleFunc("/aidev/send_message", serveAIDevSendMessage)
+			apiServer.HandleFunc("/aidev/get_messages", serveAIDevGetMessages)
 			Log(robot.Info, "Listening for external plugin connections on http://%s", listenPort)
 			Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, apiServer))
 		}()

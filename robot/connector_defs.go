@@ -148,3 +148,80 @@ type Connector interface {
 	// The Run method starts the main loop and takes a channel for stopping it.
 	Run(stopchannel <-chan struct{})
 }
+
+// ConnectorAPIProvider allows a connector to expose optional connector-specific
+// APIs without widening the base Connector interface.
+type ConnectorAPIProvider interface {
+	ConnectorAPI() interface{}
+}
+
+// InjectMessageRequest describes an injected inbound message for connector API users.
+type InjectMessageRequest struct {
+	AsUser  string
+	Text    string
+	Channel string
+	Thread  string
+	Hidden  bool
+	Direct  bool
+}
+
+// InjectMessageResult describes the connector's accepted/injected message.
+type InjectMessageResult struct {
+	Protocol  string
+	UserName  string
+	UserID    string
+	Channel   string
+	MessageID string
+	ThreadID  string
+	Hidden    bool
+	Direct    bool
+	Cursor    uint64
+	Timestamp string
+}
+
+// MessageQuery requests connector messages for a viewer/cursor.
+type MessageQuery struct {
+	Viewer      string
+	AfterCursor uint64
+	Limit       int
+	TimeoutMS   int
+	All         bool
+}
+
+// MessageEvent is a connector message item suitable for polling/cursor retrieval.
+type MessageEvent struct {
+	Cursor    uint64
+	Timestamp string
+	UserName  string
+	UserID    string
+	IsBot     bool
+	Channel   string
+	ThreadID  string
+	MessageID string
+	Threaded  bool
+	Text      string
+	Direct    bool
+	Hidden    bool
+}
+
+// MessageBatch is a batch response for message polling/cursor retrieval.
+type MessageBatch struct {
+	Protocol   string
+	Viewer     string
+	Messages   []MessageEvent
+	NextCursor uint64
+	Latest     uint64
+	TimedOut   bool
+	Overflow   bool
+	HasMore    bool
+}
+
+// Injector is an optional connector API for injecting inbound messages.
+type Injector interface {
+	InjectMessage(req InjectMessageRequest) (InjectMessageResult, error)
+}
+
+// MessageSource is an optional connector API for cursor-based message retrieval.
+type MessageSource interface {
+	GetMessages(req MessageQuery) (MessageBatch, error)
+}
