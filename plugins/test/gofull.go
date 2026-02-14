@@ -28,6 +28,7 @@ Help:
 - Keywords: [ "identity", "parameter" ]
   Helptext:
   - "(bot), go-identity - exercise Get*Attribute + Set/GetParameter"
+  - "(bot), go-parameter-addtask - SetParameter + AddTask pipeline visibility"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -51,6 +52,8 @@ CommandMatchers:
   Command: memorydatumcheckin
 - Regex: (?i:go-identity)
   Command: identity
+- Regex: (?i:go-parameter-addtask)
+  Command: parameteraddtask
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -230,6 +233,17 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 			showMemory(senderFirst.Attribute), senderFirst.RetVal,
 			showMemory(bobFirst.Attribute), bobFirst.RetVal,
 			setOK, showMemory(phase))
+		return robot.Normal
+	case "parameteraddtask":
+		if !r.SetParameter("PIPELINE_SENTINEL", "nebula-42") {
+			r.Say("SETPARAM ADDTASK: set=false")
+			return robot.Fail
+		}
+		if r.AddTask("param-show") != robot.Ok {
+			r.Say("SETPARAM ADDTASK: queue=false")
+			return robot.Fail
+		}
+		r.Say("SETPARAM ADDTASK: queued")
 		return robot.Normal
 	default:
 		return robot.Fail

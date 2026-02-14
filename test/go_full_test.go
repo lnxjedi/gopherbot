@@ -86,6 +86,10 @@ func TestGoFull(t *testing.T) {
 		{aliceID, general, ";go-identity", false, []TestMessage{
 			{null, general, "IDENTITY CHECK: bot=bender/Ok sender=Alice/Ok bob=Robert/Ok set=true param=<empty>", false}},
 			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";go-parameter-addtask", false, []TestMessage{
+			{null, general, "SETPARAM ADDTASK: queued", false},
+			{null, general, "PARAM-SHOW: PIPELINE_SENTINEL=nebula-42", false}},
+			[]Event{CommandTaskRan, GoPluginRan, ExternalTaskRan}, 0},
 	}
 	testcases(t, conn, tests)
 

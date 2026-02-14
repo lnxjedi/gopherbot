@@ -76,6 +76,9 @@ LocalPort: 0
 ExternalPlugins:
   "gofull":
     Path: plugins/test/gofull.go
+ExternalTasks:
+  "param-show":
+    Path: test/tasks/param_show.sh
 
 WorkSpace: workspace
 
