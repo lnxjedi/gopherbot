@@ -30,3 +30,15 @@ Deferred optimization path (only if needed):
 - Add optional unprivileged worker pooling later.
 - If pooling is added: enforce strict recycle policies (TTL / max jobs / health checks).
 - Keep privileged execution one-shot unless a compelling requirement emerges.
+
+## 2026-02-14: Working Directory Semantics Opportunity
+
+Observation:
+- Process-isolated pipeline execution provides a clean path to implement per-pipeline working-directory operations safely.
+
+Implication:
+- Child processes can change current working directory (`cwd`) without affecting engine-global process state.
+- This avoids the long-standing in-process limitation where thread-local pipeline logic cannot safely mutate process `cwd`.
+
+Follow-up:
+- Define explicit pipeline-level working-directory semantics and operator-facing behavior in a dedicated slice.

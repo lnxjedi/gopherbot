@@ -186,13 +186,25 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		}
 	}
 
-	var cmd *exec.Cmd
-
-	Log(robot.Debug, "Calling '%s' with arg: configure", taskPath)
-	cmd = exec.Command(taskPath, "configure")
+	childTaskDir := ""
 	if relpath {
-		cmd.Dir = configPath
+		childTaskDir = configPath
+	} else {
+		childTaskDir, err = os.Getwd()
+		if err != nil {
+			cchan <- getCfgReturn{nil, fmt.Errorf("getting current working directory for external plugin '%s': %v", taskPath, err)}
+			return
+		}
 	}
+	if !filepath.IsAbs(childTaskDir) {
+		absDir, absErr := filepath.Abs(childTaskDir)
+		if absErr != nil {
+			cchan <- getCfgReturn{nil, fmt.Errorf("resolving external plugin configure directory '%s': %v", childTaskDir, absErr)}
+			return
+		}
+		childTaskDir = absDir
+	}
+	Log(robot.Debug, "Calling '%s' with arg: configure (child runner)", taskPath)
 	env := []string{
 		fmt.Sprintf("GOPHER_INSTALLDIR=%s", installPath),
 		fmt.Sprintf("RUBYLIB=%s/lib:%s/custom/lib", installPath, homePath),
@@ -208,7 +220,19 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 			env = append(env, fmt.Sprintf("%s=%s", p, value))
 		}
 	}
-	cmd.Env = env
+	req := pipelineChildExecRequest{
+		TaskPath: taskPath,
+		Dir:      childTaskDir,
+		Args:     []string{"configure"},
+		Env:      env,
+		NullConn: true,
+	}
+	cmd, cmdErr := newPipelineChildExecCommand(req)
+	if cmdErr != nil {
+		cchan <- getCfgReturn{nil, fmt.Errorf("creating external plugin configure child command for '%s': %v", taskPath, cmdErr)}
+		return
+	}
+	cmd.Dir = childTaskDir
 	cfg, err = cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -642,15 +666,12 @@ func (w *worker) runExternalExecutableTask(task *Task, plugin *Plugin, command, 
 			EID:      eid,
 			NullConn: nullConn,
 		}
-		reqEncoded, err := encodePipelineChildExecRequest(req)
+		cmd, err := newPipelineChildExecCommand(req)
 		if err != nil {
-			Log(robot.Error, "Encoding pipeline child request for task '%s': %v", task.name, err)
+			Log(robot.Error, "Creating child runner command for task '%s': %v", task.name, err)
 			return fmt.Sprintf(failFmt, task.name), robot.MechanismFail
 		}
-		childEnv := append(os.Environ(), pipelineChildExecRequestEnv+"="+reqEncoded)
-		cmd := exec.Command(execPath(), pipelineChildExecCommand)
 		cmd.Dir = childTaskDir
-		cmd.Env = childEnv
 		Log(robot.Debug, "Calling child runner for '%s' with args: %q", taskPath, externalArgs)
 		return w.runExternalCommand(cmd, nil, "", task, plugin, command, taskPath, keys, logger, privileged)
 	}

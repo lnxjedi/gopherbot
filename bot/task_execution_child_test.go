@@ -1,6 +1,9 @@
 package bot
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestPipelineChildExecRequestRoundTrip(t *testing.T) {
 	original := pipelineChildExecRequest{
@@ -64,5 +67,40 @@ func TestValidatePipelineChildExecRequest(t *testing.T) {
 	}
 	if err := validatePipelineChildExecRequest(nullConnAllowed); err != nil {
 		t.Fatalf("validatePipelineChildExecRequest(nullConnAllowed) error = %v", err)
+	}
+}
+
+func TestNewPipelineChildExecCommand(t *testing.T) {
+	req := pipelineChildExecRequest{
+		TaskPath: "/tmp/task.sh",
+		Dir:      "/tmp",
+		Args:     []string{"run"},
+		Env:      []string{"A=B"},
+		EID:      "abc123",
+		NullConn: false,
+	}
+	cmd, err := newPipelineChildExecCommand(req)
+	if err != nil {
+		t.Fatalf("newPipelineChildExecCommand() error = %v", err)
+	}
+	if len(cmd.Args) < 2 || cmd.Args[1] != pipelineChildExecCommand {
+		t.Fatalf("child command args = %#v, want second arg %q", cmd.Args, pipelineChildExecCommand)
+	}
+	found := ""
+	for _, e := range cmd.Env {
+		if strings.HasPrefix(e, pipelineChildExecRequestEnv+"=") {
+			found = strings.TrimPrefix(e, pipelineChildExecRequestEnv+"=")
+			break
+		}
+	}
+	if found == "" {
+		t.Fatalf("child command env does not include %s", pipelineChildExecRequestEnv)
+	}
+	decoded, err := decodePipelineChildExecRequest(found)
+	if err != nil {
+		t.Fatalf("decodePipelineChildExecRequest() error = %v", err)
+	}
+	if decoded.TaskPath != req.TaskPath || decoded.Dir != req.Dir || decoded.EID != req.EID || decoded.NullConn != req.NullConn {
+		t.Fatalf("decoded request mismatch: got %#v want %#v", decoded, req)
 	}
 }

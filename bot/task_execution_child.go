@@ -61,6 +61,20 @@ func validatePipelineChildExecRequest(req pipelineChildExecRequest) error {
 	return nil
 }
 
+func newPipelineChildExecCommand(req pipelineChildExecRequest) (*exec.Cmd, error) {
+	if err := validatePipelineChildExecRequest(req); err != nil {
+		return nil, err
+	}
+	reqEncoded, err := encodePipelineChildExecRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	childEnv := append(os.Environ(), pipelineChildExecRequestEnv+"="+reqEncoded)
+	cmd := exec.Command(execPath(), pipelineChildExecCommand)
+	cmd.Env = childEnv
+	return cmd, nil
+}
+
 func runPipelineChildExec() int {
 	encoded, ok := os.LookupEnv(pipelineChildExecRequestEnv)
 	if !ok || strings.TrimSpace(encoded) == "" {
