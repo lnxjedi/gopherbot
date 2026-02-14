@@ -56,6 +56,18 @@ func TestJSFull(t *testing.T) {
 		{aliceID, general, ";js-subscribe", false, []TestMessage{
 			{null, general, "SUBSCRIBE FLOW: true/true", false}},
 			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";js-prompts", false, []TestMessage{
+			{alice, general, "Codename check: pick a mission codename\\.", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 150},
+		{aliceID, general, "Nova Sparrow", false, []TestMessage{
+			{alice, general, "Thread check: pick a favorite snack for launch\\.", true}},
+			[]Event{}, 150},
+		{aliceID, general, "spicy popcorn", true, []TestMessage{
+			{alice, null, "DM check: name a secret moon base\\.", false}},
+			[]Event{}, 150},
+		{aliceID, null, "io station nine", false, []TestMessage{
+			{null, general, "PROMPT FLOW OK: Nova Sparrow \\| spicy popcorn \\| io station nine", false}},
+			[]Event{BotDirectMessage}, 0},
 	}
 	testcases(t, conn, tests)
 

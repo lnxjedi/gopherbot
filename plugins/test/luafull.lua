@@ -16,6 +16,9 @@ Help:
 - Keywords: [ "subscribe" ]
   Helptext:
   - "(bot), lua-subscribe - exercise Subscribe/Unsubscribe"
+- Keywords: [ "prompt" ]
+  Helptext:
+  - "(bot), lua-prompts - exercise PromptForReply + PromptThreadForReply + PromptUserForReply"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -25,6 +28,8 @@ CommandMatchers:
   Command: http
 - Regex: (?i:lua-subscribe)
   Command: subscribe
+- Regex: (?i:lua-prompts)
+  Command: prompts
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -126,6 +131,26 @@ function commands.subscribe(bot)
   local sub = bot:Subscribe()
   local unsub = bot:Unsubscribe()
   bot:Say("SUBSCRIBE FLOW: " .. tostring(sub) .. "/" .. tostring(unsub))
+  return task.Normal
+end
+
+function commands.prompts(bot)
+  local p1, r1 = bot:PromptForReply("SimpleString", "Codename check: pick a mission codename.")
+  if r1 ~= ret.Ok then
+    bot:Say("PROMPT FLOW FAILED 1:" .. tostring(r1))
+    return task.Fail
+  end
+  local p2, r2 = bot:PromptThreadForReply("SimpleString", "Thread check: pick a favorite snack for launch.")
+  if r2 ~= ret.Ok then
+    bot:Say("PROMPT FLOW FAILED 2:" .. tostring(r2))
+    return task.Fail
+  end
+  local p3, r3 = bot:PromptUserForReply("SimpleString", bot.user, "DM check: name a secret moon base.")
+  if r3 ~= ret.Ok then
+    bot:Say("PROMPT FLOW FAILED 3:" .. tostring(r3))
+    return task.Fail
+  end
+  bot:Say("PROMPT FLOW OK: " .. p1 .. " | " .. p2 .. " | " .. p3)
   return task.Normal
 end
 

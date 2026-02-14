@@ -16,6 +16,9 @@ Help:
 - Keywords: [ "subscribe" ]
   Helptext:
   - "(bot), js-subscribe - exercise Subscribe/Unsubscribe"
+- Keywords: [ "prompt" ]
+  Helptext:
+  - "(bot), js-prompts - exercise PromptForReply + PromptThreadForReply + PromptUserForReply"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -25,6 +28,8 @@ CommandMatchers:
   Command: http
 - Regex: (?i:js-subscribe)
   Command: subscribe
+- Regex: (?i:js-prompts)
+  Command: prompts
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -123,6 +128,27 @@ function handler(argv) {
         const sub = bot.Subscribe();
         const unsub = bot.Unsubscribe();
         bot.Say(`SUBSCRIBE FLOW: ${sub}/${unsub}`);
+        return task.Normal;
+      }
+    case 'prompts':
+      {
+        const bot = new Robot();
+        const p1 = bot.PromptForReply("SimpleString", "Codename check: pick a mission codename.");
+        if (p1.retVal !== ret.Ok) {
+          bot.Say(`PROMPT FLOW FAILED 1:${p1.retVal}`);
+          return task.Fail;
+        }
+        const p2 = bot.PromptThreadForReply("SimpleString", "Thread check: pick a favorite snack for launch.");
+        if (p2.retVal !== ret.Ok) {
+          bot.Say(`PROMPT FLOW FAILED 2:${p2.retVal}`);
+          return task.Fail;
+        }
+        const p3 = bot.PromptUserForReply("SimpleString", bot.user, "DM check: name a secret moon base.");
+        if (p3.retVal !== ret.Ok) {
+          bot.Say(`PROMPT FLOW FAILED 3:${p3.retVal}`);
+          return task.Fail;
+        }
+        bot.Say(`PROMPT FLOW OK: ${p1.reply} | ${p2.reply} | ${p3.reply}`);
         return task.Normal;
       }
 

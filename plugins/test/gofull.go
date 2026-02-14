@@ -18,6 +18,9 @@ Help:
 - Keywords: [ "subscribe" ]
   Helptext:
   - "(bot), go-subscribe - exercise Subscribe/Unsubscribe"
+- Keywords: [ "prompt" ]
+  Helptext:
+  - "(bot), go-prompts - exercise PromptForReply + PromptThreadForReply + PromptUserForReply"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -25,6 +28,8 @@ CommandMatchers:
   Command: configtest
 - Regex: (?i:go-subscribe)
   Command: subscribe
+- Regex: (?i:go-prompts)
+  Command: prompts
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -72,6 +77,28 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 		sub := r.Subscribe()
 		unsub := r.Unsubscribe()
 		r.Say(fmt.Sprintf("SUBSCRIBE FLOW: %t/%t", sub, unsub))
+		return robot.Normal
+	case "prompts":
+		msg := r.GetMessage()
+		if msg == nil {
+			return robot.Fail
+		}
+		p1, ret1 := r.PromptForReply("SimpleString", "Codename check: pick a mission codename.")
+		if ret1 != robot.Ok {
+			r.Say("PROMPT FLOW FAILED 1:%s", ret1)
+			return robot.Fail
+		}
+		p2, ret2 := r.PromptThreadForReply("SimpleString", "Thread check: pick a favorite snack for launch.")
+		if ret2 != robot.Ok {
+			r.Say("PROMPT FLOW FAILED 2:%s", ret2)
+			return robot.Fail
+		}
+		p3, ret3 := r.PromptUserForReply("SimpleString", msg.User, "DM check: name a secret moon base.")
+		if ret3 != robot.Ok {
+			r.Say("PROMPT FLOW FAILED 3:%s", ret3)
+			return robot.Fail
+		}
+		r.Say("PROMPT FLOW OK: %s | %s | %s", p1, p2, p3)
 		return robot.Normal
 	default:
 		return robot.Fail

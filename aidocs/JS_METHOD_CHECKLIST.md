@@ -103,6 +103,8 @@ Track coverage for the JS full test extension under `test/` once it exists.
 
 - [ ] Messaging: Say/Reply/Send* variants + format wrappers
 - [ ] Prompting: all Prompt* variants including thread/user/channel
+- [x] Prompting core trio: `PromptForReply` + `PromptThreadForReply` + `PromptUserForReply`
+- [ ] Prompting remaining: `PromptUserChannelForReply` + `PromptUserChannelThreadForReply`
 - [ ] Memory: Checkout/Update/Recall + Remember* context
 - [ ] Pipeline control: Add/Final/Fail task/job/command, SpawnJob
 - [ ] Admin + Elevate
