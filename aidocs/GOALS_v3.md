@@ -86,6 +86,11 @@ The documentation should only instruct the user in how to start a demo robot in 
 
 Since we're getting rid of the default backup/restore to git for the file brain, we need good documentation/process for helping the user establish a persistent brain, maybe via CloudFlare KV.
 
+### Make Good Use of AI with Included Components
+The current ruby AI implementation should be replaced with a native implementation, making better use of memories. The full-name fallback should be the same; "Floyd, what is the meaning of life?" should go straight to the AI (with the regular, normal system prompt additions). We should update the alias fallback (robot addressed with alias, but no command matched) to be an ai-augmented help - the robot should reply in a thread with something reasonable based on the robot's configuration; for instance "Oops, you typed that in the wrong channel - try that in #devops or #chatops", or "It looks like you're trying to start a remote dev environment, but you didn't supply a valid type ...".
+
+So, AI should be fully integrated if desired, but the AI integration will never actually *do* anything, even with confirmation (at least at this stage) - it'll only ever help the user perform operations. Gopherbot remains a deterministic automation framework - when you ask for a cup of coffee, it just makes the damned coffee the same way every time, without futzing with AI.
+
 ## Non-Goals for v3
 
 The following items are explicitly *not* required for v3 and should not block release unless this document is updated to say otherwise.
