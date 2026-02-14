@@ -86,6 +86,9 @@ The documentation should only instruct the user in how to start a demo robot in 
 
 Since we're getting rid of the default backup/restore to git for the file brain, we need good documentation/process for helping the user establish a persistent brain, maybe via CloudFlare KV.
 
+### Improve Robustness and Security by running Multi-Process
+In Gopherbot v3, compiled-in plugins and jobs will continue to run in in-process threads, but extensions loaded from file will run in separate gopherbot child processes. This isolates the main engine from any panics or freezes for most of the work a robot does, and also makes for a cleaner means of implementing privilege separation. It also paves the way for better support of the working directory method(s).
+
 ### Make Good Use of AI with Included Components
 The current ruby AI implementation should be replaced with a native implementation, making better use of memories. The full-name fallback should be the same; "Floyd, what is the meaning of life?" should go straight to the AI (with the regular, normal system prompt additions). We should update the alias fallback (robot addressed with alias, but no command matched) to be an ai-augmented help - the robot should reply in a thread with something reasonable based on the robot's configuration; for instance "Oops, you typed that in the wrong channel - try that in #devops or #chatops", or "It looks like you're trying to start a remote dev environment, but you didn't supply a valid type ...".
 
