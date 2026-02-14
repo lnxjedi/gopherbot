@@ -33,7 +33,7 @@ type pipelineRPCGoGetConfigResponse struct {
 	Error  string `json:"error,omitempty"`
 }
 
-func runGoPluginViaRPC(taskPath, taskName string, env []string, privileged bool, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func runGoPluginViaRPC(taskPath, taskName string, env []string, privileged bool, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	params := pipelineRPCGoRunRequest{
 		TaskPath:   taskPath,
 		TaskName:   taskName,
@@ -41,10 +41,10 @@ func runGoPluginViaRPC(taskPath, taskName string, env []string, privileged bool,
 		Privileged: privileged,
 		Args:       args,
 	}
-	return runGoViaRPCMethod("go_plugin_run", params, r)
+	return runGoViaRPCMethod("go_plugin_run", params, w, r)
 }
 
-func runGoJobViaRPC(taskPath, taskName string, env []string, privileged bool, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func runGoJobViaRPC(taskPath, taskName string, env []string, privileged bool, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	params := pipelineRPCGoRunRequest{
 		TaskPath:   taskPath,
 		TaskName:   taskName,
@@ -52,10 +52,10 @@ func runGoJobViaRPC(taskPath, taskName string, env []string, privileged bool, r 
 		Privileged: privileged,
 		Args:       args,
 	}
-	return runGoViaRPCMethod("go_job_run", params, r)
+	return runGoViaRPCMethod("go_job_run", params, w, r)
 }
 
-func runGoTaskViaRPC(taskPath, taskName string, env []string, privileged bool, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func runGoTaskViaRPC(taskPath, taskName string, env []string, privileged bool, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	params := pipelineRPCGoRunRequest{
 		TaskPath:   taskPath,
 		TaskName:   taskName,
@@ -63,11 +63,11 @@ func runGoTaskViaRPC(taskPath, taskName string, env []string, privileged bool, r
 		Privileged: privileged,
 		Args:       args,
 	}
-	return runGoViaRPCMethod("go_task_run", params, r)
+	return runGoViaRPCMethod("go_task_run", params, w, r)
 }
 
-func runGoViaRPCMethod(method string, params pipelineRPCGoRunRequest, r robot.Robot) (robot.TaskRetVal, error) {
-	resRaw, err := runPipelineRPCRequest(method, params, r)
+func runGoViaRPCMethod(method string, params pipelineRPCGoRunRequest, w *worker, r robot.Robot) (robot.TaskRetVal, error) {
+	resRaw, err := runPipelineRPCRequest(method, params, w, r)
 	if err != nil {
 		return robot.MechanismFail, err
 	}
@@ -90,7 +90,7 @@ func runGoGetConfigViaRPC(taskPath, taskName string) (*[]byte, error) {
 		TaskPath: taskPath,
 		TaskName: taskName,
 	}
-	resRaw, err := runPipelineRPCRequest("go_get_config", params, nil)
+	resRaw, err := runPipelineRPCRequest("go_get_config", params, nil, nil)
 	if err != nil {
 		return nil, err
 	}

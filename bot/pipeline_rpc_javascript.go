@@ -36,7 +36,7 @@ type pipelineRPCJSGetConfigResponse struct {
 	Error  string `json:"error,omitempty"`
 }
 
-func runJSExtensionViaRPC(taskPath, taskName string, requirePaths []string, bot map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func runJSExtensionViaRPC(taskPath, taskName string, requirePaths []string, bot map[string]string, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	params := pipelineRPCJSRunRequest{
 		ExecPath:     execPath(),
 		TaskPath:     taskPath,
@@ -45,7 +45,7 @@ func runJSExtensionViaRPC(taskPath, taskName string, requirePaths []string, bot 
 		Bot:          bot,
 		Args:         args,
 	}
-	resRaw, err := runPipelineRPCRequest("js_run", params, r)
+	resRaw, err := runPipelineRPCRequest("js_run", params, w, r)
 	if err != nil {
 		return robot.MechanismFail, err
 	}
@@ -71,7 +71,7 @@ func runJSGetConfigViaRPC(taskPath, taskName string, requirePaths []string, bot 
 		RequirePaths: requirePaths,
 		Bot:          bot,
 	}
-	resRaw, err := runPipelineRPCRequest("js_get_config", params, nil)
+	resRaw, err := runPipelineRPCRequest("js_get_config", params, nil, nil)
 	if err != nil {
 		return nil, err
 	}

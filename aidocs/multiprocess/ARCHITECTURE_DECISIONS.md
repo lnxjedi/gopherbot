@@ -107,3 +107,24 @@ Rationale:
 Follow-up:
 - Add protocol-level cancellation/timeout semantics once migration stabilizes under full suites.
 - Evaluate worker-pool reuse only if measured one-shot child overhead becomes material.
+
+## 2026-02-14: RPC Lifecycle Hardening + Admin Kill Parity (Slice 8)
+
+Decision:
+- Track active RPC child process handles in worker pipeline state (`osCmd`) the same way external executable child runners are tracked.
+- Add per-request cancellation hooks (`rpcCancel`) so admin termination can interrupt in-flight RPC request loops.
+- Add targeted reply-waiter interruption by task ID when a pipeline is killed, so prompt waits unwind immediately.
+- Add bounded RPC lifecycle timeouts:
+  - hello handshake timeout
+  - request timeout (long horizon for `*_run`, short for `*_get_config`)
+  - shutdown ack timeout
+  - child-exit wait timeout
+
+Rationale:
+- Restores expected operator behavior: `admin ps/kill` should work for active Go/Lua/JS interpreter tasks, including prompt-blocked flows.
+- Prevents indefinite hangs in malformed/half-open RPC child states.
+- Improves diagnostics via explicit RPC error classes (timeout, canceled, child_exit, protocol_error, etc.).
+
+Follow-up:
+- Tune timeout values with production telemetry if needed.
+- Expand cancellation semantics to finer-grained, protocol-native task cancellation if future slices require it.

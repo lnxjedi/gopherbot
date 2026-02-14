@@ -2,15 +2,19 @@ package bot
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
 	luamod "github.com/lnxjedi/gopherbot/v2/modules/lua"
+	"golang.org/x/sys/unix"
 )
 
 type pipelineRPCRobotOptions struct {
@@ -52,7 +56,7 @@ type pipelineRPCLuaGetConfigResponse struct {
 	Error  string `json:"error,omitempty"`
 }
 
-func runLuaExtensionViaRPC(taskPath, taskName string, pkgPath []string, bot map[string]string, r robot.Robot, args []string) (robot.TaskRetVal, error) {
+func runLuaExtensionViaRPC(taskPath, taskName string, pkgPath []string, bot map[string]string, w *worker, r robot.Robot, args []string) (robot.TaskRetVal, error) {
 	params := pipelineRPCLuaRunRequest{
 		ExecPath: execPath(),
 		TaskPath: taskPath,
@@ -61,7 +65,7 @@ func runLuaExtensionViaRPC(taskPath, taskName string, pkgPath []string, bot map[
 		Bot:      bot,
 		Args:     args,
 	}
-	resRaw, err := runPipelineRPCRequest("lua_run", params, r)
+	resRaw, err := runPipelineRPCRequest("lua_run", params, w, r)
 	if err != nil {
 		return robot.MechanismFail, err
 	}
@@ -87,7 +91,7 @@ func runLuaGetConfigViaRPC(taskPath, taskName string, pkgPath []string, bot map[
 		PkgPath:  pkgPath,
 		Bot:      bot,
 	}
-	resRaw, err := runPipelineRPCRequest("lua_get_config", params, nil)
+	resRaw, err := runPipelineRPCRequest("lua_get_config", params, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -102,24 +106,143 @@ func runLuaGetConfigViaRPC(taskPath, taskName string, pkgPath []string, bot map[
 	return &cfg, nil
 }
 
-func runPipelineRPCRequest(method string, params interface{}, r robot.Robot) (json.RawMessage, error) {
+const (
+	pipelineRPCHelloTimeout     = 5 * time.Second
+	pipelineRPCShutdownTimeout  = 3 * time.Second
+	pipelineRPCGetConfigTimeout = 20 * time.Second
+	pipelineRPCRunTimeout       = 24 * time.Hour
+	pipelineRPCChildWaitTimeout = 3 * time.Second
+)
+
+type pipelineRPCError struct {
+	Code   string
+	Method string
+	Detail string
+	Cause  error
+}
+
+func (e *pipelineRPCError) Error() string {
+	label := "pipeline rpc"
+	if e.Method != "" {
+		label += " (" + e.Method + ")"
+	}
+	if e.Code != "" {
+		label += " [" + e.Code + "]"
+	}
+	if e.Detail == "" && e.Cause != nil {
+		return label + ": " + e.Cause.Error()
+	}
+	if e.Cause != nil {
+		return label + ": " + e.Detail + ": " + e.Cause.Error()
+	}
+	if e.Detail != "" {
+		return label + ": " + e.Detail
+	}
+	return label
+}
+
+func (e *pipelineRPCError) Unwrap() error {
+	return e.Cause
+}
+
+func newPipelineRPCError(code, method, detail string, cause error) error {
+	return &pipelineRPCError{
+		Code:   code,
+		Method: method,
+		Detail: detail,
+		Cause:  cause,
+	}
+}
+
+func rpcMethodTimeout(method string) time.Duration {
+	if strings.HasSuffix(method, "_run") {
+		return pipelineRPCRunTimeout
+	}
+	return pipelineRPCGetConfigTimeout
+}
+
+func readPipelineRPCMessageWithContext(dec *json.Decoder, ctx context.Context, method string) (pipelineRPCMessage, error) {
+	type msgResult struct {
+		msg pipelineRPCMessage
+		err error
+	}
+	ch := make(chan msgResult, 1)
+	go func() {
+		msg, err := readPipelineRPCMessage(dec)
+		ch <- msgResult{msg: msg, err: err}
+	}()
+	select {
+	case <-ctx.Done():
+		switch ctx.Err() {
+		case context.Canceled:
+			return pipelineRPCMessage{}, newPipelineRPCError("canceled", method, "rpc request canceled", ctx.Err())
+		case context.DeadlineExceeded:
+			return pipelineRPCMessage{}, newPipelineRPCError("timeout", method, "rpc response timed out", ctx.Err())
+		default:
+			return pipelineRPCMessage{}, newPipelineRPCError("context_error", method, "rpc context error", ctx.Err())
+		}
+	case res := <-ch:
+		if res.err != nil {
+			if errors.Is(res.err, io.EOF) {
+				return pipelineRPCMessage{}, newPipelineRPCError("child_exit", method, "rpc child closed stream", res.err)
+			}
+			return pipelineRPCMessage{}, newPipelineRPCError("io_error", method, "reading rpc message", res.err)
+		}
+		return res.msg, nil
+	}
+}
+
+func terminatePipelineRPCChild(cmd *exec.Cmd) {
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	pid := cmd.Process.Pid
+	if pid <= 0 {
+		return
+	}
+	if err := unix.Kill(-pid, unix.SIGKILL); err != nil && !errors.Is(err, unix.ESRCH) {
+		_ = cmd.Process.Kill()
+	}
+}
+
+func runPipelineRPCRequest(method string, params interface{}, w *worker, r robot.Robot) (json.RawMessage, error) {
 	cmd := newPipelineChildRPCCommand()
+	cmd.SysProcAttr = &unix.SysProcAttr{Setpgid: true}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, fmt.Errorf("creating rpc stdin pipe: %v", err)
+		return nil, newPipelineRPCError("io_error", method, "creating rpc stdin pipe", err)
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("creating rpc stdout pipe: %v", err)
+		return nil, newPipelineRPCError("io_error", method, "creating rpc stdout pipe", err)
 	}
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		return nil, fmt.Errorf("creating rpc stderr pipe: %v", err)
+		return nil, newPipelineRPCError("io_error", method, "creating rpc stderr pipe", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("starting rpc child: %v", err)
+		return nil, newPipelineRPCError("child_start", method, "starting rpc child", err)
 	}
 	defer stdin.Close()
+
+	reqCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if w != nil {
+		w.Lock()
+		w.osCmd = cmd
+		w.rpcCancel = cancel
+		w.Unlock()
+		defer func() {
+			w.Lock()
+			if w.osCmd == cmd {
+				w.osCmd = nil
+			}
+			if w.rpcCancel != nil {
+				w.rpcCancel = nil
+			}
+			w.Unlock()
+		}()
+	}
 
 	var stderrBuf bytes.Buffer
 	stderrDone := make(chan struct{}, 1)
@@ -127,52 +250,117 @@ func runPipelineRPCRequest(method string, params interface{}, r robot.Robot) (js
 		_, _ = io.Copy(&stderrBuf, stderr)
 		stderrDone <- struct{}{}
 	}()
+	waitCh := make(chan error, 1)
+	go func() {
+		waitCh <- cmd.Wait()
+	}()
 
 	enc := json.NewEncoder(stdin)
 	dec := json.NewDecoder(stdout)
 
 	if err := enc.Encode(pipelineRPCMessage{Version: pipelineRPCProtocolVersion, ID: "hello", Type: "hello"}); err != nil {
-		return nil, fmt.Errorf("sending rpc hello: %v", err)
+		terminatePipelineRPCChild(cmd)
+		<-waitCh
+		<-stderrDone
+		return nil, newPipelineRPCError("protocol_error", method, "sending rpc hello", err)
 	}
-	if _, err := waitPipelineRPCResponse(dec, enc, "hello", r); err != nil {
-		return nil, fmt.Errorf("rpc hello failed: %v", err)
+	helloCtx, helloCancel := context.WithTimeout(reqCtx, pipelineRPCHelloTimeout)
+	_, helloErr := waitPipelineRPCResponse(dec, enc, "hello", r, helloCtx, method)
+	helloCancel()
+	if helloErr != nil {
+		terminatePipelineRPCChild(cmd)
+		<-waitCh
+		<-stderrDone
+		stderrOut := strings.TrimSpace(stderrBuf.String())
+		if stderrOut != "" {
+			return nil, newPipelineRPCError("protocol_error", method, "rpc hello failed (child stderr: "+stderrOut+")", helloErr)
+		}
+		return nil, newPipelineRPCError("protocol_error", method, "rpc hello failed", helloErr)
 	}
 
 	paramsRaw, err := json.Marshal(params)
 	if err != nil {
-		return nil, fmt.Errorf("encoding rpc request params for %s: %v", method, err)
+		terminatePipelineRPCChild(cmd)
+		<-waitCh
+		<-stderrDone
+		return nil, newPipelineRPCError("encoding_error", method, "encoding rpc request params", err)
 	}
 	requestID := "req-1"
 	if err := enc.Encode(pipelineRPCMessage{Version: pipelineRPCProtocolVersion, ID: requestID, Type: "request", Method: method, Params: paramsRaw}); err != nil {
-		return nil, fmt.Errorf("sending rpc request %s: %v", method, err)
+		terminatePipelineRPCChild(cmd)
+		<-waitCh
+		<-stderrDone
+		return nil, newPipelineRPCError("protocol_error", method, "sending rpc request", err)
 	}
-	result, reqErr := waitPipelineRPCResponse(dec, enc, requestID, r)
 
-	_ = enc.Encode(pipelineRPCMessage{Version: pipelineRPCProtocolVersion, ID: "shutdown", Type: "request", Method: "shutdown"})
-	_, _ = waitPipelineRPCResponse(dec, enc, "shutdown", r)
+	reqTimeout := rpcMethodTimeout(method)
+	reqWaitCtx := reqCtx
+	var reqCancel context.CancelFunc
+	if reqTimeout > 0 {
+		reqWaitCtx, reqCancel = context.WithTimeout(reqCtx, reqTimeout)
+	} else {
+		reqWaitCtx, reqCancel = context.WithCancel(reqCtx)
+	}
+	result, reqErr := waitPipelineRPCResponse(dec, enc, requestID, r, reqWaitCtx, method)
+	reqCancel()
 
-	waitErr := cmd.Wait()
+	shutdownErr := error(nil)
+	if reqErr == nil {
+		if err := enc.Encode(pipelineRPCMessage{Version: pipelineRPCProtocolVersion, ID: "shutdown", Type: "request", Method: "shutdown"}); err != nil {
+			shutdownErr = newPipelineRPCError("protocol_error", method, "sending rpc shutdown", err)
+		} else {
+			shutdownCtx, shutdownCancel := context.WithTimeout(reqCtx, pipelineRPCShutdownTimeout)
+			_, shutdownErr = waitPipelineRPCResponse(dec, enc, "shutdown", r, shutdownCtx, method)
+			shutdownCancel()
+			if shutdownErr != nil {
+				shutdownErr = newPipelineRPCError("protocol_error", method, "waiting for rpc shutdown", shutdownErr)
+			}
+		}
+	}
+	if reqErr != nil || shutdownErr != nil {
+		terminatePipelineRPCChild(cmd)
+	}
+	var waitErr error
+	select {
+	case waitErr = <-waitCh:
+	case <-time.After(pipelineRPCChildWaitTimeout):
+		terminatePipelineRPCChild(cmd)
+		select {
+		case waitErr = <-waitCh:
+		case <-time.After(pipelineRPCChildWaitTimeout):
+			waitErr = context.DeadlineExceeded
+		}
+	}
 	<-stderrDone
 	stderrOut := strings.TrimSpace(stderrBuf.String())
 
 	if reqErr != nil {
-		if stderrOut != "" {
-			return nil, fmt.Errorf("%v (child stderr: %s)", reqErr, stderrOut)
+		if stderrOut == "" {
+			return nil, reqErr
 		}
-		return nil, reqErr
+		return nil, newPipelineRPCError("request_failed", method, "rpc request failed (child stderr: "+stderrOut+")", reqErr)
+	}
+	if shutdownErr != nil {
+		if stderrOut == "" {
+			return nil, shutdownErr
+		}
+		return nil, newPipelineRPCError("shutdown_failed", method, "rpc shutdown failed (child stderr: "+stderrOut+")", shutdownErr)
 	}
 	if waitErr != nil {
-		if stderrOut != "" {
-			return nil, fmt.Errorf("rpc child exit: %v (stderr: %s)", waitErr, stderrOut)
+		if errors.Is(waitErr, context.DeadlineExceeded) {
+			return nil, newPipelineRPCError("child_timeout", method, "rpc child did not exit in time", waitErr)
 		}
-		return nil, fmt.Errorf("rpc child exit: %v", waitErr)
+		if stderrOut != "" {
+			return nil, newPipelineRPCError("child_exit", method, "rpc child exit (stderr: "+stderrOut+")", waitErr)
+		}
+		return nil, newPipelineRPCError("child_exit", method, "rpc child exit", waitErr)
 	}
 	return result, nil
 }
 
-func waitPipelineRPCResponse(dec *json.Decoder, enc *json.Encoder, targetID string, r robot.Robot) (json.RawMessage, error) {
+func waitPipelineRPCResponse(dec *json.Decoder, enc *json.Encoder, targetID string, r robot.Robot, ctx context.Context, method string) (json.RawMessage, error) {
 	for {
-		msg, err := readPipelineRPCMessage(dec)
+		msg, err := readPipelineRPCMessageWithContext(dec, ctx, method)
 		if err != nil {
 			return nil, err
 		}
@@ -184,9 +372,9 @@ func waitPipelineRPCResponse(dec *json.Decoder, enc *json.Encoder, targetID stri
 		case "error":
 			if msg.ID == targetID {
 				if msg.Error == nil {
-					return nil, fmt.Errorf("rpc error with empty payload")
+					return nil, newPipelineRPCError("protocol_error", method, "rpc error with empty payload", nil)
 				}
-				return nil, fmt.Errorf("%s: %s", msg.Error.Code, msg.Error.Message)
+				return nil, newPipelineRPCError(msg.Error.Code, method, msg.Error.Message, nil)
 			}
 		case "request":
 			if msg.Method != "robot_call" {
@@ -203,7 +391,7 @@ func waitPipelineRPCResponse(dec *json.Decoder, enc *json.Encoder, targetID stri
 				continue
 			}
 			if err := writePipelineRPCResponse(enc, msg.ID, res); err != nil {
-				return nil, err
+				return nil, newPipelineRPCError("protocol_error", method, "writing rpc response", err)
 			}
 		default:
 			// Ignore unexpected message types.
