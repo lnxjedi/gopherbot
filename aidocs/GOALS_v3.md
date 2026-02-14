@@ -94,6 +94,9 @@ The current ruby AI implementation should be replaced with a native implementati
 
 So, AI should be fully integrated if desired, but the AI integration will never actually *do* anything, even with confirmation (at least at this stage) - it'll only ever help the user perform operations. Gopherbot remains a deterministic automation framework - when you ask for a cup of coffee, it just makes the damned coffee the same way every time, without futzing with AI.
 
+### Stretch Goal: Enable a persistent AI engine with support for MCPs
+Just imagine: "Astro, the app is really slow - can you see what's going on?" - using RedHat's kubernetes mcp server and maybe Grafana Loki mcp.
+
 ## Non-Goals for v3
 
 The following items are explicitly *not* required for v3 and should not block release unless this document is updated to say otherwise.
