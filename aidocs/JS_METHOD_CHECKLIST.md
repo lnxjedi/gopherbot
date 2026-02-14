@@ -108,9 +108,9 @@ Track coverage for the JS full test extension under `test/` once it exists.
 - [x] Memory datum flows: `CheckoutDatum` + `UpdateDatum` (+ `CheckinDatum`)
 - [x] Memory context flows: `Remember`/`RememberThread`/`RememberContext`/`RememberContextThread` + `Recall`
 - [x] Identity + parameters: `GetBotAttribute`/`GetUserAttribute`/`GetSenderAttribute` + `SetParameter`/`GetParameter`
-  - TODO (verify): `SetParameter` + immediate same-task `GetParameter` visibility vs. next-task pipeline visibility; expected contract is primarily cross-task.
-- [ ] Pipeline control: Add/Final/Fail task/job/command, SpawnJob
-- [ ] Admin + Elevate
+  - Verified: next-task pipeline visibility works (`SetParameter` -> `AddTask`), while immediate same-task `GetParameter` is not the primary contract.
+- [x] Pipeline control: Add/Final/Fail task/job/command, SpawnJob
+- [x] Admin + Elevate
 - [x] Subscribe/Unsubscribe
 - [ ] File helpers
 - [ ] Exec helpers (success + failure + timeout)

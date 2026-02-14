@@ -29,6 +29,10 @@ Help:
   Helptext:
   - "(bot), go-identity - exercise Get*Attribute + Set/GetParameter"
   - "(bot), go-parameter-addtask - SetParameter + AddTask pipeline visibility"
+- Keywords: [ "pipeline", "admin", "elevate" ]
+  Helptext:
+  - "(bot), go-pipeline-ok/go-pipeline-fail/go-spawn-job - exercise pipeline-control methods"
+  - "(bot), go-admin-check/go-elevate-check - exercise CheckAdmin + Elevate"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -54,6 +58,22 @@ CommandMatchers:
   Command: identity
 - Regex: (?i:go-parameter-addtask)
   Command: parameteraddtask
+- Regex: (?i:go-pipeline-ok)
+  Command: pipelineok
+- Regex: (?i:go-pipeline-fail)
+  Command: pipelinefail
+- Regex: (?i:go-spawn-job)
+  Command: spawnjob
+- Regex: (?i:go-admin-check)
+  Command: admincheck
+- Regex: (?i:go-elevate-check)
+  Command: elevatecheck
+- Regex: (?i:pc-add-cmd)
+  Command: pipeaddcmd
+- Regex: (?i:pc-final-cmd)
+  Command: pipefinalcmd
+- Regex: (?i:pc-fail-cmd)
+  Command: pipefailcmd
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -244,6 +264,61 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 			return robot.Fail
 		}
 		r.Say("SETPARAM ADDTASK: queued")
+		return robot.Normal
+	case "pipeaddcmd":
+		r.Say("PIPE ADD COMMAND: ran")
+		return robot.Normal
+	case "pipefinalcmd":
+		r.Say("PIPE FINAL COMMAND: ran")
+		return robot.Normal
+	case "pipefailcmd":
+		r.Say("PIPE FAIL COMMAND: ran")
+		return robot.Normal
+	case "pipelineok":
+		if r.AddTask("pipeline-note", "add-task") != robot.Ok {
+			r.Say("PIPELINE OK: addtask failed")
+			return robot.Fail
+		}
+		if r.AddJob("pipe-job", "job-step") != robot.Ok {
+			r.Say("PIPELINE OK: addjob failed")
+			return robot.Fail
+		}
+		if r.AddCommand("gofull", "pc-add-cmd") != robot.Ok {
+			r.Say("PIPELINE OK: addcommand failed")
+			return robot.Fail
+		}
+		if r.FinalTask("pipeline-note", "final-task") != robot.Ok {
+			r.Say("PIPELINE OK: finaltask failed")
+			return robot.Fail
+		}
+		if r.FinalCommand("gofull", "pc-final-cmd") != robot.Ok {
+			r.Say("PIPELINE OK: finalcommand failed")
+			return robot.Fail
+		}
+		r.Say("PIPELINE OK: queued")
+		return robot.Normal
+	case "pipelinefail":
+		if r.FailTask("pipeline-note", "fail-task") != robot.Ok {
+			r.Say("PIPELINE FAIL: failtask failed")
+			return robot.Fail
+		}
+		if r.FailCommand("gofull", "pc-fail-cmd") != robot.Ok {
+			r.Say("PIPELINE FAIL: failcommand failed")
+			return robot.Fail
+		}
+		r.Say("PIPELINE FAIL: armed")
+		return robot.Fail
+	case "spawnjob":
+		if r.SpawnJob("pipe-spawn-job", "spawn-step") != robot.Ok {
+			r.Say("SPAWN JOB: queue=false")
+			return robot.Fail
+		}
+		return robot.Normal
+	case "admincheck":
+		r.Say("ADMIN CHECK: %t", r.CheckAdmin())
+		return robot.Normal
+	case "elevatecheck":
+		r.Say("ELEVATE CHECK: %t", r.Elevate(true))
 		return robot.Normal
 	default:
 		return robot.Fail

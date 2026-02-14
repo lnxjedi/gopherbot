@@ -202,6 +202,46 @@ func testcases(t *testing.T, conn *testc.TestConnector, tests []testItem) {
 	}
 }
 
+// testcaseRepliesOnly is for cases where asynchronous behavior makes
+// event ordering intentionally non-deterministic (e.g. SpawnJob).
+func testcaseRepliesOnly(t *testing.T, conn *testc.TestConnector, test testItem) {
+	// Clear any emitted events from the previous step.
+	GetEvents()
+
+	hidden := false
+	message := test.message
+	if strings.HasPrefix(message, "/") {
+		hidden = true
+		message = strings.TrimPrefix(message, "/")
+	}
+	conn.SendBotMessage(&testc.TestMessage{test.user, test.channel, message, test.threaded, hidden})
+	for _, want := range test.replies {
+		re, err := regexp.Compile(want.Message)
+		if err != nil {
+			t.Errorf("FAILED: regex \"%s\" didn't compile: %v", want.Message, err)
+			continue
+		}
+		got, err := conn.GetBotMessage()
+		if err != nil {
+			t.Errorf("FAILED timeout waiting for reply from robot; want: \"%s\"", want.Message)
+			continue
+		}
+		if !re.MatchString(got.Message) {
+			t.Errorf("FAILED message regex match; want: \"%s\", got: \"%s\"", want.Message, got.Message)
+			continue
+		}
+		if got.User != want.User || got.Channel != want.Channel || got.Threaded != want.Threaded {
+			t.Errorf("FAILED user/channel match; want u:%s,c:%s,t:%t; got u:%s,c:%s,t:%t", want.User, want.Channel, want.Threaded, got.User, got.Channel, got.Threaded)
+		}
+	}
+	if test.pause > 0 {
+		time.Sleep(time.Millisecond * time.Duration(test.pause))
+	}
+
+	// Clear events from this step so teardown sees only quit-path events.
+	GetEvents()
+}
+
 func wantFull(name string) bool {
 	name = strings.ToLower(strings.TrimSpace(name))
 	if len(name) == 0 {

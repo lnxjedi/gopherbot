@@ -27,6 +27,10 @@ Help:
   Helptext:
   - "(bot), js-identity - exercise Get*Attribute + Set/GetParameter"
   - "(bot), js-parameter-addtask - verify SetParameter value in next AddTask"
+- Keywords: [ "pipeline", "admin", "elevate" ]
+  Helptext:
+  - "(bot), js-pipeline-ok/js-pipeline-fail/js-spawn-job - exercise pipeline-control methods"
+  - "(bot), js-admin-check/js-elevate-check - exercise CheckAdmin + Elevate"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -54,6 +58,22 @@ CommandMatchers:
   Command: identity
 - Regex: (?i:js-parameter-addtask)
   Command: parameteraddtask
+- Regex: (?i:js-pipeline-ok)
+  Command: pipelineok
+- Regex: (?i:js-pipeline-fail)
+  Command: pipelinefail
+- Regex: (?i:js-spawn-job)
+  Command: spawnjob
+- Regex: (?i:js-admin-check)
+  Command: admincheck
+- Regex: (?i:js-elevate-check)
+  Command: elevatecheck
+- Regex: (?i:pc-add-cmd)
+  Command: pipeaddcmd
+- Regex: (?i:pc-final-cmd)
+  Command: pipefinalcmd
+- Regex: (?i:pc-fail-cmd)
+  Command: pipefailcmd
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -304,6 +324,85 @@ function handler(argv) {
           return task.Fail;
         }
         bot.Say("SETPARAM ADDTASK: queued");
+        return task.Normal;
+      }
+    case 'pipeaddcmd':
+      {
+        const bot = new Robot();
+        bot.Say("PIPE ADD COMMAND: ran");
+        return task.Normal;
+      }
+    case 'pipefinalcmd':
+      {
+        const bot = new Robot();
+        bot.Say("PIPE FINAL COMMAND: ran");
+        return task.Normal;
+      }
+    case 'pipefailcmd':
+      {
+        const bot = new Robot();
+        bot.Say("PIPE FAIL COMMAND: ran");
+        return task.Normal;
+      }
+    case 'pipelineok':
+      {
+        const bot = new Robot();
+        if (bot.AddTask("pipeline-note", "add-task") !== ret.Ok) {
+          bot.Say("PIPELINE OK: addtask failed");
+          return task.Fail;
+        }
+        if (bot.AddJob("pipe-job", "job-step") !== ret.Ok) {
+          bot.Say("PIPELINE OK: addjob failed");
+          return task.Fail;
+        }
+        if (bot.AddCommand("jsfull", "pc-add-cmd") !== ret.Ok) {
+          bot.Say("PIPELINE OK: addcommand failed");
+          return task.Fail;
+        }
+        if (bot.FinalTask("pipeline-note", "final-task") !== ret.Ok) {
+          bot.Say("PIPELINE OK: finaltask failed");
+          return task.Fail;
+        }
+        if (bot.FinalCommand("jsfull", "pc-final-cmd") !== ret.Ok) {
+          bot.Say("PIPELINE OK: finalcommand failed");
+          return task.Fail;
+        }
+        bot.Say("PIPELINE OK: queued");
+        return task.Normal;
+      }
+    case 'pipelinefail':
+      {
+        const bot = new Robot();
+        if (bot.FailTask("pipeline-note", "fail-task") !== ret.Ok) {
+          bot.Say("PIPELINE FAIL: failtask failed");
+          return task.Fail;
+        }
+        if (bot.FailCommand("jsfull", "pc-fail-cmd") !== ret.Ok) {
+          bot.Say("PIPELINE FAIL: failcommand failed");
+          return task.Fail;
+        }
+        bot.Say("PIPELINE FAIL: armed");
+        return task.Fail;
+      }
+    case 'spawnjob':
+      {
+        const bot = new Robot();
+        if (bot.SpawnJob("pipe-spawn-job", "spawn-step") !== ret.Ok) {
+          bot.Say("SPAWN JOB: queue=false");
+          return task.Fail;
+        }
+        return task.Normal;
+      }
+    case 'admincheck':
+      {
+        const bot = new Robot();
+        bot.Say(`ADMIN CHECK: ${bot.CheckAdmin()}`);
+        return task.Normal;
+      }
+    case 'elevatecheck':
+      {
+        const bot = new Robot();
+        bot.Say(`ELEVATE CHECK: ${bot.Elevate(true)}`);
         return task.Normal;
       }
 

@@ -27,6 +27,10 @@ Help:
   Helptext:
   - "(bot), lua-identity - exercise Get*Attribute + Set/GetParameter"
   - "(bot), lua-parameter-addtask - verify SetParameter value in next AddTask"
+- Keywords: [ "pipeline", "admin", "elevate" ]
+  Helptext:
+  - "(bot), lua-pipeline-ok/lua-pipeline-fail/lua-spawn-job - exercise pipeline-control methods"
+  - "(bot), lua-admin-check/lua-elevate-check - exercise CheckAdmin + Elevate"
 CommandMatchers:
 - Regex: (?i:say everything)
   Command: sendmsg
@@ -54,6 +58,22 @@ CommandMatchers:
   Command: identity
 - Regex: (?i:lua-parameter-addtask)
   Command: parameteraddtask
+- Regex: (?i:lua-pipeline-ok)
+  Command: pipelineok
+- Regex: (?i:lua-pipeline-fail)
+  Command: pipelinefail
+- Regex: (?i:lua-spawn-job)
+  Command: spawnjob
+- Regex: (?i:lua-admin-check)
+  Command: admincheck
+- Regex: (?i:lua-elevate-check)
+  Command: elevatecheck
+- Regex: (?i:pc-add-cmd)
+  Command: pipeaddcmd
+- Regex: (?i:pc-final-cmd)
+  Command: pipefinalcmd
+- Regex: (?i:pc-fail-cmd)
+  Command: pipefailcmd
 AllowedHiddenCommands:
 - sendmsg
 Config:
@@ -309,6 +329,77 @@ function commands.parameteraddtask(bot)
     return task.Fail
   end
   bot:Say("SETPARAM ADDTASK: queued")
+  return task.Normal
+end
+
+function commands.pipeaddcmd(bot)
+  bot:Say("PIPE ADD COMMAND: ran")
+  return task.Normal
+end
+
+function commands.pipefinalcmd(bot)
+  bot:Say("PIPE FINAL COMMAND: ran")
+  return task.Normal
+end
+
+function commands.pipefailcmd(bot)
+  bot:Say("PIPE FAIL COMMAND: ran")
+  return task.Normal
+end
+
+function commands.pipelineok(bot)
+  if bot:AddTask("pipeline-note", "add-task") ~= ret.Ok then
+    bot:Say("PIPELINE OK: addtask failed")
+    return task.Fail
+  end
+  if bot:AddJob("pipe-job", "job-step") ~= ret.Ok then
+    bot:Say("PIPELINE OK: addjob failed")
+    return task.Fail
+  end
+  if bot:AddCommand("luafull", "pc-add-cmd") ~= ret.Ok then
+    bot:Say("PIPELINE OK: addcommand failed")
+    return task.Fail
+  end
+  if bot:FinalTask("pipeline-note", "final-task") ~= ret.Ok then
+    bot:Say("PIPELINE OK: finaltask failed")
+    return task.Fail
+  end
+  if bot:FinalCommand("luafull", "pc-final-cmd") ~= ret.Ok then
+    bot:Say("PIPELINE OK: finalcommand failed")
+    return task.Fail
+  end
+  bot:Say("PIPELINE OK: queued")
+  return task.Normal
+end
+
+function commands.pipelinefail(bot)
+  if bot:FailTask("pipeline-note", "fail-task") ~= ret.Ok then
+    bot:Say("PIPELINE FAIL: failtask failed")
+    return task.Fail
+  end
+  if bot:FailCommand("luafull", "pc-fail-cmd") ~= ret.Ok then
+    bot:Say("PIPELINE FAIL: failcommand failed")
+    return task.Fail
+  end
+  bot:Say("PIPELINE FAIL: armed")
+  return task.Fail
+end
+
+function commands.spawnjob(bot)
+  if bot:SpawnJob("pipe-spawn-job", "spawn-step") ~= ret.Ok then
+    bot:Say("SPAWN JOB: queue=false")
+    return task.Fail
+  end
+  return task.Normal
+end
+
+function commands.admincheck(bot)
+  bot:Say("ADMIN CHECK: " .. tostring(bot:CheckAdmin()))
+  return task.Normal
+end
+
+function commands.elevatecheck(bot)
+  bot:Say("ELEVATE CHECK: " .. tostring(bot:Elevate(true)))
   return task.Normal
 end
 

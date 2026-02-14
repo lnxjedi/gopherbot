@@ -107,3 +107,46 @@ func TestJSFull(t *testing.T) {
 
 	teardown(t, done, conn)
 }
+
+func TestJSFullPipelineAdmin(t *testing.T) {
+	if !wantFull("js") {
+		t.Skip("skipping JS full pipeline/admin test; set RUN_FULL=js (or RUN_JSFULL=1)")
+	}
+	done, conn := setup("test/jsfull", "/tmp/bottest.log", t)
+
+	flow := []testItem{
+		{aliceID, general, ";js-admin-check", false, []TestMessage{
+			{null, general, "ADMIN CHECK: true", false}}, nil, 0},
+		{bobID, general, ";js-admin-check", false, []TestMessage{
+			{null, general, "ADMIN CHECK: false", false}}, nil, 0},
+		{aliceID, general, ";js-elevate-check", false, []TestMessage{
+			{alice, general, "This command requires immediate elevation.*TOTP code.*", false}}, nil, 150},
+		{aliceID, general, "123456", false, []TestMessage{
+			{null, general, "There were technical issues validating your code.*", false},
+			{null, general, "Sorry, elevation failed due to a problem with the elevation service", false},
+			{null, general, "ELEVATE CHECK: false", false}}, nil, 0},
+		{aliceID, general, ";js-pipeline-ok", false, []TestMessage{
+			{null, general, "PIPELINE OK: queued", false},
+			{null, general, "PIPE NOTE: add-task", false},
+			{null, general, "Starting job 'pipe-job job-step', run [0-9]+", false},
+			{null, general, "PIPE NOTE: job-step", false},
+			{null, general, "Finished job 'pipe-job', run [0-9]+, final task 'pipe-job', status: normal", false},
+			{null, general, "PIPE ADD COMMAND: ran", false},
+			{null, general, "PIPE FINAL COMMAND: ran", false},
+			{null, general, "PIPE NOTE: final-task", false}}, nil, 0},
+		{aliceID, general, ";js-pipeline-fail", false, []TestMessage{
+			{null, general, "PIPELINE FAIL: armed", false},
+			{null, general, "PIPE NOTE: fail-task", false},
+			{null, general, "PIPE FAIL COMMAND: ran", false}}, nil, 0},
+		{aliceID, general, ";js-spawn-job", false, []TestMessage{
+			{null, general, "Starting job 'pipe-spawn-job spawn-step', run [0-9]+ - spawned by pipeline .*", false},
+			{null, general, "PIPE NOTE: spawn-step", false},
+			{null, general, "Finished job 'pipe-spawn-job', run [0-9]+, final task 'pipe-spawn-job', status: normal", false}}, nil, 0},
+	}
+
+	for _, step := range flow {
+		testcaseRepliesOnly(t, conn, step)
+	}
+
+	teardown(t, done, conn)
+}
