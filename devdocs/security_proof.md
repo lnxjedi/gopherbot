@@ -29,6 +29,77 @@ Unprivileged plugin execution needs read/execute access to plugin files and libr
 
 Privsep reduces blast radius for privilege escalation, but does not make untrusted extension code safe in an absolute sense. Operators should still treat plugin provenance and review as a core security boundary.
 
+## Manual Privsep Probe Plan (Bishop)
+
+The integration harness does not currently provide reliable setuid execution semantics for this workflow, so privsep behavior was exercised manually against a live robot in `../bishop` via MCP.
+
+### Probe Assets
+
+- External interpreter probe: `plugins/samples/privsep_probe.py`
+- Built-in interpreter probe: `plugins/samples/privsep_probe.lua`
+- Example overlays:
+  - `conf/plugins/privsep-external-priv.yaml.sample`
+  - `conf/plugins/privsep-external-unpriv.yaml.sample`
+  - `conf/plugins/privsep-lua-priv.yaml.sample`
+  - `conf/plugins/privsep-lua-unpriv.yaml.sample`
+
+### Manual Steps
+
+1. Configure the same probe script twice:
+   - privileged plugin in `#general`
+   - unprivileged plugin in `#random`
+2. Start robot in `../bishop`.
+3. Send probe commands as `alice`:
+   - `;privsep external priv` (general)
+   - `;privsep external unpriv` (random)
+   - `;privsep lua priv` (general)
+   - `;privsep lua unpriv` (random)
+4. Ensure `gopherbot` is installed setuid to `nobody` and restart robot.
+
+### Results
+
+#### Phase A (before setuid gopherbot)
+
+Observed on February 14, 2026 before setuid was active:
+
+- External privileged (`#general`): `uid=1000 | euid=1000 | envread=ok(...) | ...KEY=unset`
+- External unprivileged (`#random`): `uid=1000 | euid=1000 | envread=ok(...) | ...KEY=unset`
+- Lua privileged (`#general`): `envread=ok(...) | ...KEY=unset`
+- Lua unprivileged (`#random`): `envread=ok(...) | ...KEY=unset`
+
+Interpretation:
+
+- Secret scrubbing worked (`GOPHER_ENCRYPTION_KEY`, `GOPHER_DEPLOY_KEY`, `GOPHER_HOST_KEYS` all unset).
+- No privilege split was visible yet (both paths effectively same uid behavior).
+
+#### Phase B (after setuid gopherbot)
+
+`gopherbot` mode/owner during this phase:
+
+- `4755 -rwsr-xr-x nobody:nogroup`
+
+Runtime startup evidence:
+
+- `PRIVSEP - privilege separation initialized; daemon UID 1000, unprivileged UID 65534`
+
+Observed probe replies after restart under setuid `gopherbot`:
+
+- External privileged (`#general`):
+  - `probe=external-python | uid=65534 | euid=1000 | envread=ok(...) | ...KEY=unset`
+- External unprivileged (`#random`):
+  - `probe=external-python | uid=65534 | euid=65534 | envread=deny | error=Permission denied ... | ...KEY=unset`
+- Lua privileged (`#general`):
+  - `probe=builtin-lua | envread=ok(...) | ...KEY=unset`
+- Lua unprivileged (`#random`):
+  - `probe=builtin-lua | envread=deny | error=open .env: permission denied | ...KEY=unset`
+
+Interpretation:
+
+- Privileged vs unprivileged split is functioning as designed.
+- Unprivileged code cannot read `.env` (permission denied).
+- Privileged code can read `.env` when required.
+- Secret env scrub remains effective in both interpreters.
+
 ## Scope
 
 This proof covers engine security controls exercised through:
