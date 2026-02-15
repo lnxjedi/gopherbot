@@ -255,12 +255,10 @@ func continueWizard(r robot.Robot, state *setupStateFile, userKey string, sessio
 	}
 
 	scaffoldReady := session.Stage == stageScaffolded || session.Stage == stageAwaitingRepoURL || session.Stage == stageRepoReady
-	defaultBotName := preferredBotName(r, session)
-	defaultAlias := preferredBotAlias(r, session)
 	defaultJobChannel := preferredJobChannel(session)
 
 	if !scaffoldReady && (session.BotName == "" || session.Stage == stageAwaitingBotName) {
-		name, ok := promptBotName(r, defaultBotName)
+		name, ok := promptBotName(r)
 		if !ok {
 			session.Stage = stageAwaitingBotName
 			session.UpdatedAtUTC = nowUTC()
@@ -273,12 +271,11 @@ func continueWizard(r robot.Robot, state *setupStateFile, userKey string, sessio
 		if !persist("I couldn't save onboarding progress to %s") {
 			return
 		}
-		defaultAlias = preferredBotAlias(r, session)
 		defaultJobChannel = preferredJobChannel(session)
 	}
 
 	if !scaffoldReady && (session.BotAlias == "" || session.Stage == stageAwaitingBotAlias) {
-		alias, ok := promptBotAlias(r, defaultAlias)
+		alias, ok := promptBotAlias(r)
 		if !ok {
 			session.Stage = stageAwaitingBotAlias
 			session.UpdatedAtUTC = nowUTC()
@@ -425,14 +422,11 @@ func continueWizard(r robot.Robot, state *setupStateFile, userKey string, sessio
 	r.Say("Bootstrap test: stop robot, keep only .env, start gopherbot; bootstrap should clone %s.", session.RepositoryURL)
 }
 
-func promptBotName(r robot.Robot, fallback string) (string, bool) {
-	if !botNameRe.MatchString(canonicalUserKey(fallback)) {
-		fallback = "floyd"
-	}
+func promptBotName(r robot.Robot) (string, bool) {
+	r.Say("The robot's name is the given name your robot will recognize.")
+	r.Say("For maximum compatibility and portability across chat platforms, the robot will also look for messages addressed to it, for example 'floyd, ping'.")
 	for i := 0; i < 3; i++ {
-		rep, ret := r.PromptForReply("botname",
-			"What should your robot's name be? Default '%s'; reply '=' to use default.",
-			fallback)
+		rep, ret := r.PromptForReply("botname", "What name would you like to give your robot?")
 		switch ret {
 		case robot.Interrupted:
 			r.Reply("Setup paused. Use 'new robot resume' to continue.")
@@ -440,8 +434,6 @@ func promptBotName(r robot.Robot, fallback string) (string, bool) {
 		case robot.TimeoutExpired:
 			r.Reply("Timed out waiting for robot name. Use 'new robot resume' when ready.")
 			return "", false
-		case robot.UseDefaultValue:
-			rep = fallback
 		case robot.Ok:
 			// use provided response
 		default:
@@ -458,12 +450,11 @@ func promptBotName(r robot.Robot, fallback string) (string, bool) {
 	return "", false
 }
 
-func promptBotAlias(r robot.Robot, fallback string) (string, bool) {
-	fallback = canonicalBotAlias(fallback)
+func promptBotAlias(r robot.Robot) (string, bool) {
+	r.Say("Your robot alias is a one-character shorthand name for concise commands, for example ';ping'.")
+	r.Say("Choose one character from ! ; - %% ~ * + ^ $ ? [ ] { } or \\.")
 	for i := 0; i < 3; i++ {
-		rep, ret := r.PromptForReply("botalias",
-			"What one-character alias should your robot use for commands (for example ';help')? Default '%s'; reply '=' to use default.",
-			fallback)
+		rep, ret := r.PromptForReply("botalias", "What one-character alias should your robot use?")
 		switch ret {
 		case robot.Interrupted:
 			r.Reply("Setup paused. Use 'new robot resume' to continue.")
@@ -471,8 +462,6 @@ func promptBotAlias(r robot.Robot, fallback string) (string, bool) {
 		case robot.TimeoutExpired:
 			r.Reply("Timed out waiting for robot alias. Use 'new robot resume' when ready.")
 			return "", false
-		case robot.UseDefaultValue:
-			rep = fallback
 		case robot.Ok:
 			// use provided response
 		default:
@@ -494,9 +483,11 @@ func promptJobChannel(r robot.Robot, fallback string) (string, bool) {
 	if !channelRe.MatchString(fallback) {
 		fallback = "general"
 	}
+	r.Say("Your robot may run scheduled jobs periodically, for example to rotate logs or perform maintenance.")
+	r.Say("Any output from these jobs goes to a default job channel. A common convention is '<robotname>-jobs'.")
 	for i := 0; i < 3; i++ {
 		rep, ret := r.PromptForReply("jobchannel",
-			"What channel should receive scheduled job status messages? Suggested '%s'; reply '=' to use default.",
+			"What channel should receive scheduled job status messages? Suggested '%s'; reply '=' to use suggested.",
 			fallback)
 		switch ret {
 		case robot.Interrupted:
@@ -610,6 +601,8 @@ func promptRepositoryURL(r robot.Robot, current, targetUser, targetChannel strin
 	if defaultRepo == "" || defaultRepo == defaultCustomRepository {
 		defaultRepo = ""
 	}
+	r.Say("The standard workflow is to store robot configuration and scripts in a single git repository for bootstrap and deployment.")
+	r.Say("This value should be a clone URL using SSH credentials. An empty repository is recommended.")
 	prompt := "Let's get this robot ready for the first deployment - what's the repository clone URL? (e.g. 'git@github.com:owner/repo.git')"
 	if defaultRepo != "" {
 		prompt = fmt.Sprintf("%s Reply '=' to keep '%s'.", prompt, defaultRepo)
