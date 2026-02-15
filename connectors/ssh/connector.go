@@ -61,6 +61,7 @@ type bufferMsg struct {
 type sshConfig struct {
 	ListenHost       string
 	ListenPort       int
+	HearSelf         bool
 	HostKey          string
 	ReplayBufferSize int
 	MaxMsgBytes      int
@@ -695,6 +696,67 @@ func (sc *sshConnector) broadcastUserMessage(client *sshClient, line string, ts 
 		text:      line,
 	}
 	return sc.broadcast(evt, &robot.ConnectorMessage{UserID: client.userID, HiddenMessage: false})
+}
+
+func (sc *sshConnector) announceJoin(client *sshClient) {
+	channel := client.channel
+	if channel == "" {
+		channel = sc.cfg.DefaultChannel
+	}
+	if channel == "" {
+		channel = defaultChannel
+	}
+	ts := time.Now()
+	text := fmt.Sprintf("@%s has joined #%s", client.userName, channel)
+	msgID := sc.nextThreadID(channel)
+	evt := bufferMsg{
+		timestamp: ts,
+		userName:  sc.botName,
+		userID:    sc.botID,
+		isBot:     true,
+		channel:   channel,
+		threadID:  "",
+		messageID: msgID,
+		threaded:  false,
+		text:      text,
+	}
+	sc.appendBuffer(evt)
+
+	sc.mu.RLock()
+	clients := make([]*sshClient, 0, len(sc.clients))
+	for c := range sc.clients {
+		clients = append(clients, c)
+	}
+	sc.mu.RUnlock()
+
+	for _, c := range clients {
+		if c.userID == client.userID {
+			continue
+		}
+		send, announceThread := c.shouldSend(evt)
+		if !send {
+			continue
+		}
+		c.writeMessageAsync(evt, false, announceThread)
+	}
+
+	if sc.cfg.HearSelf {
+		sc.handler.IncomingMessage(&robot.ConnectorMessage{
+			Protocol:        "ssh",
+			UserName:        sc.botName,
+			UserID:          sc.botID,
+			ChannelName:     channel,
+			ChannelID:       "#" + channel,
+			MessageID:       msgID,
+			ThreadID:        msgID,
+			ThreadedMessage: false,
+			SelfMessage:     true,
+			DirectMessage:   false,
+			BotMessage:      false,
+			HiddenMessage:   false,
+			MessageText:     text,
+		})
+	}
 }
 
 func (sc *sshConnector) directEvent(senderName, senderID string, senderIsBot bool, peerName, peerID, text string, ts time.Time) bufferMsg {

@@ -30,6 +30,9 @@ This document records the intended SSH connector behavior, control flow, and int
   - Accepts `localhost`, IPv4, IPv6, `all`.
 - `ListenPort` (default: `4221`)
 - `HostKey` (encrypted private key, optional)
+- `HearSelf` (default recommended: `true` for SSH)  
+  - when true, connector-injected bot-authored events (such as join announcements)
+    are forwarded back through `IncomingMessage` as `SelfMessage=true`
 - `ReplayBufferSize` (default: `42`)
 - `MaxMsgBytes` (default: `16384`)
 - `DefaultChannel` (default: `general`)
@@ -62,6 +65,26 @@ This document records the intended SSH connector behavior, control flow, and int
 - Bot user is auto-added, using the server host public key line as `UserID`.
 
 ## Message Model
+
+### Presence join announcement
+
+- After an authenticated SSH client is added, the connector emits a bot-authored
+  channel message in the client's current channel:
+  - `@<username> has joined #<channel>`
+- This message is appended to the SSH replay buffer in normal sequence order.
+- Live broadcast excludes the joining user's own active session(s); other users
+  in matching views/filters see the announcement.
+- The connector also forwards a canonical SSH inbound message for the same
+  event through `handler.IncomingMessage(...)` when `HearSelf` is enabled.
+  The forwarded event is marked `SelfMessage=true`.
+
+### Self-hear note
+
+- SSH now supports `ProtocolConfig.HearSelf` for connector-originated
+  bot-authored events (for example join announcements).
+- Engine routing behavior for `SelfMessage=true` is important:
+  - plugin command/message matching is skipped
+  - job triggers still run (see `aidocs/PIPELINE_LIFECYCLE.md`)
 
 ### Outgoing formatting
 

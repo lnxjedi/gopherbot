@@ -23,6 +23,14 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 - Catch‑alls (only when directly addressed and nothing matched): `bot/dispatch.go:handleMessage`.
 - Thread subscriptions last (`Subscribe`/`Unsubscribe`) keyed by `protocol/channel/thread`, with legacy fallback for restored pre-protocol keys: `bot/dispatch.go:handleMessage`, `bot/subscribe_thread.go`.
 
+## Self-Message Routing Nuance (HearSelf-style flows)
+
+- `ConnectorMessage.SelfMessage=true` is treated specially.
+- Normal plugin paths (`CommandMatchers`, `MessageMatchers`, catch-alls, thread subscriptions) are gated behind `!w.Incoming.SelfMessage` checks in `bot/dispatch.go:handleMessage`.
+- Job triggers are checked first in `bot/jobrun.go:checkJobMatchersAndRun`, before the self-message early return:
+  - This enables a pattern where a robot emits a formatted message and then reacts to that same message via a trigger job (for example, to capture a started thread ID from `GOPHER_START_THREAD_ID`).
+- Practical implication: if you need plugin `MessageMatchers` to react, do not mark the inbound event as `SelfMessage=true`; if you need trigger-job reaction, `SelfMessage=true` is compatible.
+
 ## Prompt Waiter Lifecycle (Prompt* APIs)
 
 - Prompt waiters are keyed by `protocol/user/channel/thread` and checked before command/message matcher routing: `bot/dispatch.go:handleMessage`, `bot/replyprompt.go`.

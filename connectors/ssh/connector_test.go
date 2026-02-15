@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"bytes"
 	"io"
 	"sync"
 	"testing"
@@ -41,6 +42,119 @@ func (t *testHandler) ExtractID(_ string) (string, bool) {
 	return "", false
 }
 func (t *testHandler) RaisePriv(_ string) {}
+
+func TestAnnounceJoinBroadcastsToOtherUsersOnlyAndForwardsIncoming(t *testing.T) {
+	h := &testHandler{}
+	joiningOut := &bytes.Buffer{}
+	otherOut := &bytes.Buffer{}
+	joining := &sshClient{
+		userName: "alice",
+		userID:   "aliceid",
+		channel:  "general",
+		filter:   filterChannel,
+		writer:   joiningOut,
+	}
+	other := &sshClient{
+		userName: "bob",
+		userID:   "bobid",
+		channel:  "general",
+		filter:   filterChannel,
+		writer:   otherOut,
+	}
+	sc := &sshConnector{
+		handler: h,
+		cfg: sshConfig{
+			DefaultChannel: "general",
+			HearSelf:       true,
+		},
+		botName: "floyd",
+		botID:   "botid",
+		buffer:  make([]bufferMsg, 8),
+		clients: map[*sshClient]struct{}{
+			joining: {},
+			other:   {},
+		},
+		threads: make(map[string]int),
+		waiters: make(map[chan struct{}]struct{}),
+	}
+
+	sc.announceJoin(joining)
+
+	if got := sc.latestCursor(); got != 1 {
+		t.Fatalf("expected cursor=1 after join announcement, got %d", got)
+	}
+	snap := sc.snapshotBuffer()
+	if len(snap) != 1 {
+		t.Fatalf("expected one buffered join announcement, got %d", len(snap))
+	}
+	evt := snap[0]
+	if evt.userName != "floyd" || !evt.isBot {
+		t.Fatalf("expected bot-authored announcement, got user=%q isBot=%t", evt.userName, evt.isBot)
+	}
+	if evt.channel != "general" {
+		t.Fatalf("expected join announcement in #general, got %q", evt.channel)
+	}
+	if evt.text != "@alice has joined #general" {
+		t.Fatalf("unexpected announcement text: %q", evt.text)
+	}
+
+	if joiningOut.Len() != 0 {
+		t.Fatalf("joining user should not receive self join announcement, got %q", joiningOut.String())
+	}
+	if otherOut.Len() == 0 {
+		t.Fatalf("other user should receive join announcement")
+	}
+	if len(h.msgs) != 1 {
+		t.Fatalf("expected one forwarded incoming message, got %d", len(h.msgs))
+	}
+	msg := h.msgs[0]
+	if msg.Protocol != "ssh" {
+		t.Fatalf("expected protocol ssh, got %q", msg.Protocol)
+	}
+	if msg.UserName != "floyd" || msg.UserID != "botid" {
+		t.Fatalf("expected message from bot identity, got %s/%s", msg.UserName, msg.UserID)
+	}
+	if msg.ChannelName != "general" || msg.ChannelID != "#general" {
+		t.Fatalf("expected channel general/#general, got %q/%q", msg.ChannelName, msg.ChannelID)
+	}
+	if msg.MessageText != "@alice has joined #general" {
+		t.Fatalf("unexpected incoming message text: %q", msg.MessageText)
+	}
+	if !msg.SelfMessage {
+		t.Fatalf("join announcement must be marked SelfMessage when HearSelf is enabled")
+	}
+	if msg.BotMessage {
+		t.Fatalf("join announcement should not force BotMessage command semantics")
+	}
+}
+
+func TestAnnounceJoinDoesNotForwardIncomingWhenHearSelfDisabled(t *testing.T) {
+	h := &testHandler{}
+	sc := &sshConnector{
+		handler: h,
+		cfg: sshConfig{
+			DefaultChannel: "general",
+			HearSelf:       false,
+		},
+		botName: "floyd",
+		botID:   "botid",
+		buffer:  make([]bufferMsg, 8),
+		clients: map[*sshClient]struct{}{},
+		threads: make(map[string]int),
+		waiters: make(map[chan struct{}]struct{}),
+	}
+	client := &sshClient{
+		userName: "alice",
+		userID:   "aliceid",
+		channel:  "general",
+	}
+
+	sc.announceJoin(client)
+
+	if len(h.msgs) != 0 {
+		t.Fatalf("expected no incoming self-forward when HearSelf is disabled, got %d", len(h.msgs))
+	}
+}
 
 func TestShouldSendDMRoutesToSenderAndRecipient(t *testing.T) {
 	evt := bufferMsg{
