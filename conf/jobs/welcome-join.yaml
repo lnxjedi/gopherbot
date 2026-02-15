@@ -1,0 +1,7 @@
+---
+Quiet: true
+KeepLogs: 2
+Triggers:
+- User: {{ env "GOPHER_BOTNAME" | default "floyd" }}
+  Channel: general
+  Regex: '(?i:^@([a-z][a-z0-9_-]{0,31}) has joined #([a-z0-9_-]+)$)'

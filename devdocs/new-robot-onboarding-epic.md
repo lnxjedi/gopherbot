@@ -27,6 +27,8 @@ v3 goal is a cleaner, guided path from empty directory to a real robot using nor
 
 - `plugins/welcome.lua` now tells users to run `new robot`.
 - `plugins/go-new-robot/new_robot.go` handles onboarding state + slice 2 scaffold apply.
+- `jobs/go-welcome-join/welcome_join.go` now drives unconfigured SSH welcome messaging from
+  join announcements (triggered job path), so startup no longer emits welcome chat lines.
 - `plugins/autosetup.sh` implements setup logic.
 - `gopherbot init slack` copies `resources/answerfiles/slack.txt` to `answerfile.txt`.
 - Running `gopherbot` in setup mode parses answerfile/env values and copies `robot.skel/*` into `custom/`, writes `.env`, generates keys, then restarts.
@@ -126,7 +128,7 @@ Implementation notes (current):
   (auto-detect `~/.ssh/*.pub` first, prompt fallback), then uses one yes/no confirmation gate.
 - Apply step now writes scaffold files and local identity config for SSH `UserMap`,
   plus `.env` defaults (`GOPHER_ENCRYPTION_KEY`, `GOPHER_CUSTOM_REPOSITORY=local`,
-  `GOPHER_PROTOCOL=ssh`, `GOPHER_BRAIN=file`).
+  `GOPHER_ENVIRONMENT=development`).
 - Existing legacy `autosetup` remains available for reference only and is marked for later retirement.
 
 Acceptance:

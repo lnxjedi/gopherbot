@@ -101,25 +101,25 @@ HttpDebug: true
   {{- $logdest = "robot.log" }}
 {{- end }}
 
-Protocol: {{ $proto }}
+PrimaryProtocol: {{ $proto }}
+DefaultProtocol: {{ env "GOPHER_DEFAULT_PROTOCOL" | default $proto }}
 Brain: {{ $brain }}
 LogDest: {{ $logdest }}
 LogLevel: {{ $loglevel }}
 
-## Trivial "terminal" connector config for a single admin user.
-## This pulls in a basic default config for the terminal connector
-## which can be overridden in custom if desired.
-{{- if eq $proto "terminal" }}
-{{ .Include "terminal.yaml" }}
-{{- end }}
-## Default SSH connector config for local development
-{{- if eq $proto "ssh" }}
-{{ .Include "ssh.yaml" }}
-{{- end }}
-## Dummy connector for bootstrapping & autosetup
-{{- if eq $proto "nullconn" }}
-{{ .Include "nullconn.yaml" }}
-{{- end }}
+{{ $botname := env "GOPHER_BOTNAME" | default "floyd" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot"}}
+{{ $botalias := env "GOPHER_ALIAS" | default ";"}}
+
+AdminUsers: [ "alice" ]
+DefaultChannels: [ "general", "random" ]
+DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default "general" }}
+
+BotInfo:
+  UserName: {{ $botname }}
+  FullName: {{ $botfullname }}
+
+Alias: {{ $botalias }}
 
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "mem" }}
@@ -203,7 +203,7 @@ ExternalPlugins:
 {{- if or (eq $mode "demo") (eq $mode "setup") }}
   {{- if or (eq $proto "terminal") (eq $proto "ssh") }}
   "welcome":
-    Description: The welcome plugin provides a greeting when unconfigured
+    Description: Reserved onboarding hooks for unconfigured mode (startup stays quiet)
     Privileged: true
     Path: plugins/welcome.lua
   "new-robot":
@@ -305,6 +305,12 @@ ExternalJobs:
   "ssh-job":
     Description: Wrapper for ssh jobs.
     Path: jobs/ssh-job.sh
+{{- if and (or (eq $mode "demo") (eq $mode "setup")) (eq $proto "ssh") }}
+  "welcome-join":
+    Description: Welcome users when they join the default SSH channel in unconfigured mode
+    Path: jobs/go-welcome-join/welcome_join.go
+    Homed: true
+{{- end }}
 
 ## ExternalTasks enumerate external executables that can be added to pipelines
 ## with AddTask <name>. Note the e.g. the update plugin requires ssh,

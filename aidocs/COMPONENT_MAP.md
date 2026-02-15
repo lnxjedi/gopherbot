@@ -35,11 +35,10 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## cmd/
 
 - MCP lifecycle helper binary: `cmd/gopherbot-mcp/main.go` (stdio MCP server with robot start/stop/status tools plus `send_message` / `get_messages` AI-dev tools).
-- Privilege-separation helper binary: `cmd/gopherbot-privsep/main.go` (setuid-root helper that marks the `gopherbot` binary setuid to user `nobody` for privsep testing).
 
 ## conf/
 
-- Default configuration: `conf/README.md`, `conf/robot.yaml`, `conf/terminal.yaml`.
+- Default configuration: `conf/README.md`, `conf/robot.yaml`, `conf/protocols/terminal.yaml`.
 - Default job/plugin config examples live under `conf/jobs/` and `conf/plugins/` (e.g., `conf/jobs/backup.yaml`, `conf/plugins/builtin-help.yaml`).
 
 ## connectors/
@@ -73,6 +72,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - Shell job scripts: `jobs/backup.sh`, `jobs/restore.sh`.
 - Go job entrypoint example: `jobs/updatecfg/updatecfg.go` (func `JobHandler`).
+- SSH demo welcome trigger job: `jobs/go-welcome-join/welcome_join.go` (func `JobHandler`).
 
 ## lib/
 
@@ -103,7 +103,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## robot.skel/
 
-- Default robot skeleton: `robot.skel/README.md`, `robot.skel/conf/robot.yaml`, `robot.skel/conf/terminal.yaml`, `robot.skel/conf/slack.yaml`, `robot.skel/jobs/hello.sh`.
+- Default robot skeleton: `robot.skel/README.md`, `robot.skel/conf/robot.yaml`, `robot.skel/conf/environments/development.yaml`, `robot.skel/conf/protocols/ssh.yaml`, `robot.skel/jobs/hello.sh`.
 
 ## tasks/
 
