@@ -3,14 +3,14 @@
 ## "BIG HAMMER" security - if IgnoreUnlistedUsers is set, your
 ## robot will drop all messages from users that don't appear in the
 ## UserRoster.
-# IgnoreUnlistedUsers: true
+IgnoreUnlistedUsers: true
 
 ## Improved security for secrets - if SecureParameters is true,
 ## Jobs, Plugins and Tasks will need to use the GetParameter(secret_name)
 ## API call to retrieve secrets, instead of getting them from environment
 ## variables. This may require some jobs to load the library where formerly
 ## it wasn't needed.
-# SecureParameters: true
+SecureParameters: true
 
 {{ $environment := env "GOPHER_ENVIRONMENT" | default "development" }}
 ## Environment-specific startup defaults (protocol/brain/log destination).

@@ -26,7 +26,7 @@ import (
 
 const (
 	stateFileName     = ".setup-state"
-	stateFileVersion  = 2
+	stateFileVersion  = 4
 	stateExclusiveTag = "new-robot-state"
 
 	commandStart  = "new-robot"
@@ -37,17 +37,22 @@ const (
 	statusActive    = "active"
 	statusCompleted = "completed"
 
-	stageShell              = "wizard-shell" // slice-1 compatibility
-	stageAwaitingUsername   = "awaiting-username"
-	stageAwaitingConfirm    = "awaiting-confirmation" // backward compatibility
-	stageAwaitingSSHKey     = "awaiting-ssh-key"
-	stageScaffolded         = "scaffolded"
-	stageAwaitingRepoURL    = "awaiting-repository-url"
-	stageRepoReady          = "repository-ready"
+	stageShell            = "wizard-shell" // slice-1 compatibility
+	stageAwaitingBotName  = "awaiting-bot-name"
+	stageAwaitingBotAlias = "awaiting-bot-alias"
+	stageAwaitingJobChan  = "awaiting-job-channel"
+	stageAwaitingUsername = "awaiting-username"
+	stageAwaitingConfirm  = "awaiting-confirmation" // backward compatibility
+	stageAwaitingSSHKey   = "awaiting-ssh-key"
+	stageScaffolded       = "scaffolded"
+	stageAwaitingRepoURL  = "awaiting-repository-url"
+	stageRepoReady        = "repository-ready"
+
 	defaultScaffoldPath     = "custom"
 	defaultEnvironment      = "development"
 	defaultCustomRepository = "local"
 	binaryKeyFileName       = "binary-encrypted-key"
+	defaultBotAlias         = ";"
 
 	paramOnboardingUser     = "GOPHER_ONBOARDING_USER"
 	paramOnboardingChannel  = "GOPHER_ONBOARDING_CHANNEL"
@@ -61,6 +66,8 @@ const (
 
 var (
 	usernameRe  = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,31}$`)
+	botNameRe   = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,31}$`)
+	channelRe   = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
 	sshPubKeyRe = regexp.MustCompile(`^ssh-(?:ed25519|rsa|ecdsa|dss)\s+[A-Za-z0-9+/=]+(?:\s+[-._@A-Za-z0-9]+)?$`)
 	envKeyRe    = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
@@ -87,6 +94,12 @@ CommandMatchers:
 - Command: "new-robot-repo"
   Regex: '(?i:new(?:-|[[:space:]]+)robot[[:space:]]+(?:repo|repository)|(?:repo|repository)[[:space:]]+new(?:-|[[:space:]]+)robot)$'
 ReplyMatchers:
+- Label: botname
+  Regex: '(?i:[a-z][a-z0-9_-]{0,31})'
+- Label: botalias
+  Regex: '[^[:space:]]'
+- Label: jobchannel
+  Regex: '(?i:#?[a-z0-9][a-z0-9_-]{0,63})'
 - Label: username
   Regex: '(?i:[a-z][a-z0-9_-]{0,31})'
 - Label: sshpubkey
@@ -110,6 +123,9 @@ type setupSession struct {
 	LastCommand        string `json:"lastCommand"`
 	LastChannel        string `json:"lastChannel"`
 	LastProtocol       string `json:"lastProtocol"`
+	BotName            string `json:"botName,omitempty"`
+	BotAlias           string `json:"botAlias,omitempty"`
+	JobChannel         string `json:"jobChannel,omitempty"`
 	CanonicalUser      string `json:"canonicalUser,omitempty"`
 	SSHPublicKey       string `json:"sshPublicKey,omitempty"`
 	SSHPublicKeySource string `json:"sshPublicKeySource,omitempty"`
@@ -181,7 +197,7 @@ func handleStateCommand(r robot.Robot, command string) {
 		}
 		session = setupSession{
 			Status:       statusActive,
-			Stage:        stageAwaitingUsername,
+			Stage:        stageAwaitingBotName,
 			StartedAtUTC: now,
 			StartedBy:    userKey,
 		}
@@ -203,7 +219,7 @@ func handleStateCommand(r robot.Robot, command string) {
 	session.LastProtocol = protocol
 	session.UpdatedAtUTC = now
 	if session.Stage == "" || session.Stage == stageShell {
-		session.Stage = stageAwaitingUsername
+		session.Stage = stageAwaitingBotName
 	}
 
 	state.Sessions[userKey] = session
@@ -239,6 +255,60 @@ func continueWizard(r robot.Robot, state *setupStateFile, userKey string, sessio
 	}
 
 	scaffoldReady := session.Stage == stageScaffolded || session.Stage == stageAwaitingRepoURL || session.Stage == stageRepoReady
+	defaultBotName := preferredBotName(r, session)
+	defaultAlias := preferredBotAlias(r, session)
+	defaultJobChannel := preferredJobChannel(session)
+
+	if !scaffoldReady && (session.BotName == "" || session.Stage == stageAwaitingBotName) {
+		name, ok := promptBotName(r, defaultBotName)
+		if !ok {
+			session.Stage = stageAwaitingBotName
+			session.UpdatedAtUTC = nowUTC()
+			persist("I couldn't save onboarding progress to %s")
+			return
+		}
+		session.BotName = name
+		session.Stage = stageAwaitingBotAlias
+		session.UpdatedAtUTC = nowUTC()
+		if !persist("I couldn't save onboarding progress to %s") {
+			return
+		}
+		defaultAlias = preferredBotAlias(r, session)
+		defaultJobChannel = preferredJobChannel(session)
+	}
+
+	if !scaffoldReady && (session.BotAlias == "" || session.Stage == stageAwaitingBotAlias) {
+		alias, ok := promptBotAlias(r, defaultAlias)
+		if !ok {
+			session.Stage = stageAwaitingBotAlias
+			session.UpdatedAtUTC = nowUTC()
+			persist("I couldn't save onboarding progress to %s")
+			return
+		}
+		session.BotAlias = alias
+		session.Stage = stageAwaitingJobChan
+		session.UpdatedAtUTC = nowUTC()
+		if !persist("I couldn't save onboarding progress to %s") {
+			return
+		}
+	}
+
+	if !scaffoldReady && (session.JobChannel == "" || session.Stage == stageAwaitingJobChan) {
+		channel, ok := promptJobChannel(r, defaultJobChannel)
+		if !ok {
+			session.Stage = stageAwaitingJobChan
+			session.UpdatedAtUTC = nowUTC()
+			persist("I couldn't save onboarding progress to %s")
+			return
+		}
+		session.JobChannel = channel
+		session.Stage = stageAwaitingUsername
+		session.UpdatedAtUTC = nowUTC()
+		if !persist("I couldn't save onboarding progress to %s") {
+			return
+		}
+	}
+
 	if !scaffoldReady && (session.CanonicalUser == "" || session.Stage == stageAwaitingUsername) {
 		user, ok := promptCanonicalUser(r, defaultUser)
 		if !ok {
@@ -353,6 +423,104 @@ func continueWizard(r robot.Robot, state *setupStateFile, userKey string, sessio
 	r.Say("From '%s', run:", defaultScaffoldPath)
 	r.Fixed().Say("git init\ngit add .\ngit branch -m main\ngit commit -m \"New robot!\"\ngit remote add origin %s\ngit push -u origin main", session.RepositoryURL)
 	r.Say("Bootstrap test: stop robot, keep only .env, start gopherbot; bootstrap should clone %s.", session.RepositoryURL)
+}
+
+func promptBotName(r robot.Robot, fallback string) (string, bool) {
+	if !botNameRe.MatchString(canonicalUserKey(fallback)) {
+		fallback = "floyd"
+	}
+	for i := 0; i < 3; i++ {
+		rep, ret := r.PromptForReply("botname",
+			"What should your robot's name be? Default '%s'; reply '=' to use default.",
+			fallback)
+		switch ret {
+		case robot.Interrupted:
+			r.Reply("Setup paused. Use 'new robot resume' to continue.")
+			return "", false
+		case robot.TimeoutExpired:
+			r.Reply("Timed out waiting for robot name. Use 'new robot resume' when ready.")
+			return "", false
+		case robot.UseDefaultValue:
+			rep = fallback
+		case robot.Ok:
+			// use provided response
+		default:
+			r.Reply("I couldn't read your robot name response (%s).", ret)
+			continue
+		}
+		name := canonicalBotName(rep)
+		if botNameRe.MatchString(name) {
+			return name, true
+		}
+		r.Reply("'%s' isn't valid. Use lowercase letters, digits, '_' or '-', starting with a letter.", strings.TrimSpace(rep))
+	}
+	r.Reply("Too many invalid robot name attempts. Use 'new robot resume' to try again.")
+	return "", false
+}
+
+func promptBotAlias(r robot.Robot, fallback string) (string, bool) {
+	fallback = canonicalBotAlias(fallback)
+	for i := 0; i < 3; i++ {
+		rep, ret := r.PromptForReply("botalias",
+			"What one-character alias should your robot use for commands (for example ';help')? Default '%s'; reply '=' to use default.",
+			fallback)
+		switch ret {
+		case robot.Interrupted:
+			r.Reply("Setup paused. Use 'new robot resume' to continue.")
+			return "", false
+		case robot.TimeoutExpired:
+			r.Reply("Timed out waiting for robot alias. Use 'new robot resume' when ready.")
+			return "", false
+		case robot.UseDefaultValue:
+			rep = fallback
+		case robot.Ok:
+			// use provided response
+		default:
+			r.Reply("I couldn't read your alias response (%s).", ret)
+			continue
+		}
+		alias := canonicalBotAlias(rep)
+		if validBotAlias(alias) {
+			return alias, true
+		}
+		r.Reply("'%s' isn't a supported alias. Choose one character from ! ; - %% ~ * + ^ $ ? [ ] { } or \\\\.", strings.TrimSpace(rep))
+	}
+	r.Reply("Too many invalid alias attempts. Use 'new robot resume' to try again.")
+	return "", false
+}
+
+func promptJobChannel(r robot.Robot, fallback string) (string, bool) {
+	fallback = canonicalChannelName(fallback)
+	if !channelRe.MatchString(fallback) {
+		fallback = "general"
+	}
+	for i := 0; i < 3; i++ {
+		rep, ret := r.PromptForReply("jobchannel",
+			"What channel should receive scheduled job status messages? Suggested '%s'; reply '=' to use default.",
+			fallback)
+		switch ret {
+		case robot.Interrupted:
+			r.Reply("Setup paused. Use 'new robot resume' to continue.")
+			return "", false
+		case robot.TimeoutExpired:
+			r.Reply("Timed out waiting for job channel. Use 'new robot resume' when ready.")
+			return "", false
+		case robot.UseDefaultValue:
+			rep = fallback
+		case robot.Ok:
+			// use provided response
+		default:
+			r.Reply("I couldn't read your job channel response (%s).", ret)
+			continue
+		}
+		channel := canonicalChannelName(rep)
+		if channelRe.MatchString(channel) {
+			return channel, true
+		}
+		r.Reply("'%s' isn't valid. Use letters/digits with optional '-' or '_', and no spaces.", strings.TrimSpace(rep))
+	}
+	r.Reply("Too many invalid job channel attempts. Use 'new robot resume' to try again.")
+	return "", false
 }
 
 func promptCanonicalUser(r robot.Robot, fallback string) (string, bool) {
@@ -509,7 +677,7 @@ func applyRepositoryHandoff(s setupSession) (deployPubKey string, err error) {
 	if !validRepositoryURL(repo) {
 		return "", fmt.Errorf("invalid repository URL '%s'", repo)
 	}
-	deployPrivatePEM, deployPub, err := generateDeployKeyPair(robotMetaFromUser(s.CanonicalUser).botName)
+	deployPrivatePEM, deployPub, err := generateDeployKeyPair(robotMetaFromSession(s).botName)
 	if err != nil {
 		return "", fmt.Errorf("generating deploy keypair: %w", err)
 	}
@@ -589,7 +757,7 @@ func applyScaffold(s setupSession) error {
 	if err != nil {
 		return fmt.Errorf("encrypting ssh phrase: %w", err)
 	}
-	meta := robotMetaFromUser(s.CanonicalUser)
+	meta := robotMetaFromSession(s)
 	hostPrivatePEM, hostPubKey, err := generateDeployKeyPair(meta.botName)
 	if err != nil {
 		return fmt.Errorf("generating SSH host keypair: %w", err)
@@ -627,9 +795,6 @@ func applyScaffold(s setupSession) error {
 	if err := enableOnboardingHooks(filepath.Join(defaultScaffoldPath, "conf", "robot.yaml")); err != nil {
 		return err
 	}
-	if err := writeOnboardingJobConfig(filepath.Join(defaultScaffoldPath, "conf", "jobs", "welcome-join.yaml"), meta.botName); err != nil {
-		return err
-	}
 
 	if err := generateSSHKeyMaterial(filepath.Join(defaultScaffoldPath, "ssh"), sshPhrase, meta.botName); err != nil {
 		return err
@@ -643,6 +808,7 @@ func applyScaffold(s setupSession) error {
 		filepath.Join(defaultScaffoldPath, "conf", "protocols", "ssh.yaml"),
 		s.CanonicalUser,
 		s.SSHPublicKey,
+		s.JobChannel,
 		meta.userEmail,
 		meta.userDisplayName,
 		meta.userFirstName,
@@ -650,7 +816,7 @@ func applyScaffold(s setupSession) error {
 		return err
 	}
 
-	if err := writeOrUpdateEnv(encryptionKey); err != nil {
+	if err := writeOrUpdateEnv(encryptionKey, meta.botName); err != nil {
 		return err
 	}
 	if err := writeBinaryEncryptedKeyFile(filepath.Join(defaultScaffoldPath, binaryKeyFileName), []byte(encryptionKey), binaryKey); err != nil {
@@ -670,15 +836,16 @@ type generatedMeta struct {
 	userFirstName   string
 }
 
-func robotMetaFromUser(user string) generatedMeta {
-	clean := canonicalUserKey(user)
+func robotMetaFromSession(s setupSession) generatedMeta {
+	clean := canonicalUserKey(s.CanonicalUser)
 	if clean == "" {
 		clean = "alice"
 	}
-	botName := detectBotName(clean)
-	if len(botName) > 24 {
-		botName = botName[:24]
+	botName := canonicalBotName(s.BotName)
+	if !botNameRe.MatchString(botName) {
+		botName = "floyd"
 	}
+	botAlias := canonicalBotAlias(s.BotAlias)
 	botLabel := strings.Title(strings.ReplaceAll(botName, "_", " "))
 	botLabel = strings.Title(strings.ReplaceAll(botLabel, "-", " "))
 	botParts := strings.Fields(botLabel)
@@ -697,29 +864,29 @@ func robotMetaFromUser(user string) generatedMeta {
 		botName:         botName,
 		botEmail:        fmt.Sprintf("%s@example.com", botName),
 		botFullName:     fmt.Sprintf("%s Gopherbot", botShort),
-		botAlias:        ";",
+		botAlias:        botAlias,
 		userEmail:       fmt.Sprintf("%s@example.com", clean),
 		userDisplayName: fmt.Sprintf("%s User", userShort),
 		userFirstName:   userShort,
 	}
 }
 
-func detectBotName(fallbackUser string) string {
-	if cwd, err := os.Getwd(); err == nil {
-		base := strings.ToLower(strings.TrimSpace(filepath.Base(cwd)))
-		if base != "" && base != "." && base != "custom" && usernameRe.MatchString(base) {
-			return base
-		}
-	}
-	return fallbackUser + "bot"
-}
-
-func appendIdentityConfig(robotConfig, sshConfig, user, sshKey, email, fullName, firstName string) error {
+func appendIdentityConfig(robotConfig, sshConfig, user, sshKey, jobChannel, email, fullName, firstName string) error {
 	escapedKey := yamlDoubleQuoteEscape(sshKey)
 	escapedUser := yamlDoubleQuoteEscape(user)
 	escapedMail := yamlDoubleQuoteEscape(email)
 	escapedFull := yamlDoubleQuoteEscape(fullName)
 	escapedFirst := yamlDoubleQuoteEscape(firstName)
+	jobChannel = canonicalChannelName(jobChannel)
+	if !channelRe.MatchString(jobChannel) {
+		jobChannel = "general"
+	}
+	escapedJobChannel := yamlDoubleQuoteEscape(jobChannel)
+	channelList := yamlQuotedList(uniqueChannels("general", "random", jobChannel))
+
+	if err := ensureSSHProtocolChannels(sshConfig, []string{"general", "random", jobChannel}); err != nil {
+		return fmt.Errorf("updating %s protocol channels: %w", sshConfig, err)
+	}
 
 	sshBlock := fmt.Sprintf(`
 # Added by new-robot onboarding
@@ -733,15 +900,15 @@ UserMap:
 	robotBlock := fmt.Sprintf(`
 # Added by new-robot onboarding
 AdminUsers: [ "%s" ]
-DefaultChannels: [ "general", "random" ]
-DefaultJobChannel: general
+DefaultChannels: [ %s ]
+DefaultJobChannel: %s
 UserRoster:
 - UserName: "%s"
   Email: "%s"
   FullName: "%s"
   FirstName: "%s"
   LastName: "User"
-`, escapedUser, escapedUser, escapedMail, escapedFull, escapedFirst)
+`, escapedUser, channelList, escapedJobChannel, escapedUser, escapedMail, escapedFull, escapedFirst)
 	if err := appendFile(robotConfig, robotBlock); err != nil {
 		return fmt.Errorf("updating %s: %w", robotConfig, err)
 	}
@@ -749,7 +916,7 @@ UserRoster:
 	return nil
 }
 
-func writeOrUpdateEnv(encryptionKey string) error {
+func writeOrUpdateEnv(encryptionKey, botName string) error {
 	path := ".env"
 	original, err := os.ReadFile(path)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -759,6 +926,9 @@ func writeOrUpdateEnv(encryptionKey string) error {
 	required := map[string]string{
 		"GOPHER_ENCRYPTION_KEY":    encryptionKey,
 		"GOPHER_CUSTOM_REPOSITORY": defaultCustomRepository,
+	}
+	if bot := canonicalBotName(botName); botNameRe.MatchString(bot) {
+		required["GOPHER_BOTNAME"] = bot
 	}
 
 	lines := []string{}
@@ -848,7 +1018,7 @@ func writeOrUpdateEnvRepository(repositoryURL, deployKey string) error {
 			seen[key] = true
 			continue
 		}
-		if key == "GOPHER_CUSTOM_BRANCH" {
+		if key == "GOPHER_CUSTOM_BRANCH" || key == "GOPHER_BOTNAME" {
 			continue
 		}
 		newLines = append(newLines, line)
@@ -979,28 +1149,6 @@ func replaceTokensInFile(path string, replacements map[string]string) error {
 	return nil
 }
 
-func writeOnboardingJobConfig(path, botName string) error {
-	botName = canonicalUserKey(botName)
-	if botName == "" {
-		botName = "floyd"
-	}
-	content := fmt.Sprintf(`---
-Quiet: true
-KeepLogs: 2
-Triggers:
-- User: %s
-  Channel: general
-  Regex: '(?i:^@([a-z][a-z0-9_-]{0,31}) has joined #([a-z0-9_-]+)$)'
-`, botName)
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return fmt.Errorf("creating onboarding jobs directory for %s: %w", path, err)
-	}
-	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
-		return fmt.Errorf("writing onboarding job config %s: %w", path, err)
-	}
-	return nil
-}
-
 func enableOnboardingHooks(robotConfigPath string) error {
 	body, err := os.ReadFile(robotConfigPath)
 	if err != nil {
@@ -1122,6 +1270,9 @@ func copyTreeNoOverwrite(src, dst string) error {
 		}
 		if rel == "." {
 			return os.MkdirAll(dst, 0755)
+		}
+		if rel == "README.md" {
+			return nil
 		}
 		target := filepath.Join(dst, rel)
 		info, err := d.Info()
@@ -1424,6 +1575,154 @@ func yamlDoubleQuoteEscape(v string) string {
 
 func canonicalUserKey(user string) string {
 	return strings.ToLower(strings.TrimSpace(user))
+}
+
+func canonicalBotName(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
+}
+
+func validBotAlias(alias string) bool {
+	if len(alias) != 1 {
+		return false
+	}
+	return strings.ContainsAny(alias, `!;-%~*+^$?[]{}\`)
+}
+
+func canonicalBotAlias(alias string) string {
+	alias = strings.TrimSpace(alias)
+	if validBotAlias(alias) {
+		return alias
+	}
+	return defaultBotAlias
+}
+
+func canonicalChannelName(channel string) string {
+	channel = strings.TrimSpace(channel)
+	channel = strings.TrimPrefix(channel, "#")
+	return strings.ToLower(channel)
+}
+
+func preferredJobChannel(session *setupSession) string {
+	if ch := canonicalChannelName(session.JobChannel); channelRe.MatchString(ch) {
+		return ch
+	}
+	botName := canonicalBotName(session.BotName)
+	if !botNameRe.MatchString(botName) {
+		botName = "floyd"
+	}
+	suggested := botName + "-jobs"
+	if channelRe.MatchString(suggested) {
+		return suggested
+	}
+	return "general"
+}
+
+func uniqueChannels(values ...string) []string {
+	out := make([]string, 0, len(values))
+	seen := make(map[string]bool)
+	for _, raw := range values {
+		ch := canonicalChannelName(raw)
+		if !channelRe.MatchString(ch) || seen[ch] {
+			continue
+		}
+		seen[ch] = true
+		out = append(out, ch)
+	}
+	return out
+}
+
+func yamlQuotedList(values []string) string {
+	if len(values) == 0 {
+		return `"general", "random"`
+	}
+	quoted := make([]string, 0, len(values))
+	for _, v := range values {
+		quoted = append(quoted, fmt.Sprintf(`"%s"`, yamlDoubleQuoteEscape(v)))
+	}
+	return strings.Join(quoted, ", ")
+}
+
+func ensureSSHProtocolChannels(sshConfigPath string, channels []string) error {
+	body, err := os.ReadFile(sshConfigPath)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(strings.ReplaceAll(string(body), "\r\n", "\n"), "\n")
+	channelLine := fmt.Sprintf("  Channels: [ %s ]", yamlQuotedList(uniqueChannels(channels...)))
+
+	foundProtocol := false
+	inProtocol := false
+	inserted := false
+	out := make([]string, 0, len(lines)+1)
+	for _, line := range lines {
+		trim := strings.TrimSpace(line)
+		if trim == "ProtocolConfig:" {
+			foundProtocol = true
+			inProtocol = true
+			out = append(out, line)
+			continue
+		}
+		if inProtocol {
+			if trim != "" && !strings.HasPrefix(line, "  ") {
+				if !inserted {
+					out = append(out, channelLine)
+					inserted = true
+				}
+				inProtocol = false
+			} else if strings.HasPrefix(trim, "Channels:") {
+				continue
+			}
+		}
+		out = append(out, line)
+		if inProtocol && strings.HasPrefix(trim, "DefaultChannel:") {
+			out = append(out, channelLine)
+			inserted = true
+		}
+	}
+	if inProtocol && !inserted {
+		out = append(out, channelLine)
+		inserted = true
+	}
+	if !foundProtocol {
+		return fmt.Errorf("ProtocolConfig block not found")
+	}
+	if !inserted {
+		return fmt.Errorf("could not set ProtocolConfig Channels")
+	}
+	content := strings.TrimRight(strings.Join(out, "\n"), "\n") + "\n"
+	return os.WriteFile(sshConfigPath, []byte(content), 0600)
+}
+
+func preferredBotName(r robot.Robot, session *setupSession) string {
+	candidates := []string{
+		session.BotName,
+		r.GetParameter("GOPHER_BOTNAME"),
+		r.GetBotAttribute("name").String(),
+		"floyd",
+	}
+	for _, raw := range candidates {
+		name := canonicalBotName(raw)
+		if botNameRe.MatchString(name) {
+			return name
+		}
+	}
+	return "floyd"
+}
+
+func preferredBotAlias(r robot.Robot, session *setupSession) string {
+	candidates := []string{
+		session.BotAlias,
+		r.GetParameter("GOPHER_ALIAS"),
+		r.GetBotAttribute("alias").String(),
+		defaultBotAlias,
+	}
+	for _, raw := range candidates {
+		alias := strings.TrimSpace(raw)
+		if validBotAlias(alias) {
+			return alias
+		}
+	}
+	return defaultBotAlias
 }
 
 func onboardingContext(r robot.Robot, m *robot.Message) (userName, channelName, protocol string) {
