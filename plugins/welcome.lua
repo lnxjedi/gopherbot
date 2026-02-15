@@ -9,13 +9,13 @@ if command == "configure" then
     return ""  -- No default configuration
 end
 
--- Note that this plugin is only active when unconfigured and proto == terminal.
+-- Note that this plugin is only active when unconfigured.
 if command == "init" then
     bot:Pause(1)
 
     local name = bot:GetBotAttribute("name")
     bot:SendChannelMessage("general", "*******")
-    bot:SendChannelMessage("general", "Welcome to the *Gopherbot* terminal connector. Since no " ..
+    bot:SendChannelMessage("general", "Welcome to the *Gopherbot* ssh connector. Since no " ..
         "configuration was detected, you're connected to '" .. name .. "', the default robot.")
 
     bot:Pause(2)

@@ -44,9 +44,9 @@ const (
 	stageAwaitingRepoURL    = "awaiting-repository-url"
 	stageRepoReady          = "repository-ready"
 	defaultScaffoldPath     = "custom"
-	defaultProtocol         = "ssh"
-	defaultBrain            = "file"
+	defaultEnvironment      = "development"
 	defaultCustomRepository = "local"
+	binaryKeyFileName       = "binary-encrypted-key"
 )
 
 var (
@@ -213,7 +213,9 @@ func handleStateCommand(r robot.Robot, command string) {
 }
 
 func continueWizard(r robot.Robot, state *setupStateFile, userKey string, session *setupSession) {
-	now := time.Now().UTC().Format(time.RFC3339)
+	nowUTC := func() string {
+		return time.Now().UTC().Format(time.RFC3339)
+	}
 	persist := func(saveErrorMsg string) bool {
 		state.Sessions[userKey] = *session
 		if err := saveState(*state); err != nil {
@@ -224,25 +226,20 @@ func continueWizard(r robot.Robot, state *setupStateFile, userKey string, sessio
 		return true
 	}
 
-	defaultUser := canonicalUserKey(session.StartedBy)
-	if defaultUser == "" {
-		if m := r.GetMessage(); m != nil {
-			defaultUser = canonicalUserKey(m.User)
-		}
-	}
+	defaultUser := preferredOnboardingUser(session.StartedBy, r.GetMessage())
 
 	scaffoldReady := session.Stage == stageScaffolded || session.Stage == stageAwaitingRepoURL || session.Stage == stageRepoReady
 	if !scaffoldReady && (session.CanonicalUser == "" || session.Stage == stageAwaitingUsername) {
 		user, ok := promptCanonicalUser(r, defaultUser)
 		if !ok {
 			session.Stage = stageAwaitingUsername
-			session.UpdatedAtUTC = now
+			session.UpdatedAtUTC = nowUTC()
 			persist("I couldn't save onboarding progress to %s")
 			return
 		}
 		session.CanonicalUser = user
 		session.Stage = stageAwaitingConfirm
-		session.UpdatedAtUTC = now
+		session.UpdatedAtUTC = nowUTC()
 		if !persist("I couldn't save onboarding progress to %s") {
 			return
 		}
@@ -252,14 +249,14 @@ func continueWizard(r robot.Robot, state *setupStateFile, userKey string, sessio
 		key, source, ok := resolveSSHPublicKey(r)
 		if !ok {
 			session.Stage = stageAwaitingConfirm
-			session.UpdatedAtUTC = now
+			session.UpdatedAtUTC = nowUTC()
 			persist("I couldn't save onboarding progress to %s")
 			return
 		}
 		session.SSHPublicKey = key
 		session.SSHPublicKeySource = source
 		session.Stage = stageAwaitingConfirm
-		session.UpdatedAtUTC = now
+		session.UpdatedAtUTC = nowUTC()
 		if !persist("I couldn't save onboarding progress to %s") {
 			return
 		}
@@ -269,13 +266,13 @@ func continueWizard(r robot.Robot, state *setupStateFile, userKey string, sessio
 		proceed, ok := promptForConfirmation(r, session)
 		if !ok {
 			session.Stage = stageAwaitingConfirm
-			session.UpdatedAtUTC = now
+			session.UpdatedAtUTC = nowUTC()
 			persist("I couldn't save onboarding progress to %s")
 			return
 		}
 		if !proceed {
 			session.Stage = stageAwaitingConfirm
-			session.UpdatedAtUTC = now
+			session.UpdatedAtUTC = nowUTC()
 			persist("I couldn't save onboarding progress to %s")
 			r.Reply("No changes were applied. Use 'new robot resume' when you're ready.")
 			return
@@ -292,12 +289,13 @@ func continueWizard(r robot.Robot, state *setupStateFile, userKey string, sessio
 			}
 		} else {
 			r.Reply("Scaffold created under '%s' and local identity configured for '%s'.", defaultScaffoldPath, session.CanonicalUser)
+			r.Say("Saved SSH server public key to '%s/robot-ssh.pub'.", defaultScaffoldPath)
 			r.Say("Restart gopherbot, then connect with: bot-ssh -l %s", session.CanonicalUser)
 		}
 		session.Status = statusActive
 		session.Stage = stageScaffolded
 		session.CompletedAtUTC = ""
-		session.UpdatedAtUTC = now
+		session.UpdatedAtUTC = nowUTC()
 		if !persist("I couldn't save onboarding progress to %s") {
 			return
 		}
@@ -307,13 +305,13 @@ func continueWizard(r robot.Robot, state *setupStateFile, userKey string, sessio
 		repoURL, ok := promptRepositoryURL(r, session.RepositoryURL)
 		if !ok {
 			session.Stage = stageAwaitingRepoURL
-			session.UpdatedAtUTC = now
+			session.UpdatedAtUTC = nowUTC()
 			persist("I couldn't save onboarding progress to %s")
 			return
 		}
 		session.RepositoryURL = repoURL
 		session.Stage = stageAwaitingRepoURL
-		session.UpdatedAtUTC = now
+		session.UpdatedAtUTC = nowUTC()
 		if !persist("I couldn't save onboarding progress to %s") {
 			return
 		}
@@ -329,8 +327,8 @@ func continueWizard(r robot.Robot, state *setupStateFile, userKey string, sessio
 
 	session.Status = statusCompleted
 	session.Stage = stageRepoReady
-	session.CompletedAtUTC = now
-	session.UpdatedAtUTC = now
+	session.CompletedAtUTC = nowUTC()
+	session.UpdatedAtUTC = session.CompletedAtUTC
 	if !persist("Repository handoff succeeded but I couldn't persist final state in %s") {
 		return
 	}
@@ -348,7 +346,8 @@ func promptCanonicalUser(r robot.Robot, fallback string) (string, bool) {
 	}
 	for i := 0; i < 3; i++ {
 		rep, ret := r.PromptForReply("username",
-			"Choose your canonical username for local ssh login (bot-ssh -l <username>). Default '%s'; reply '=' to use default.", fallback)
+			"Choose your canonical username for local ssh login (bot-ssh -l <username>). For team-chat robots, use your team-chat username. Default '%s'; reply '=' to use default.",
+			fallback)
 		switch ret {
 		case robot.Interrupted:
 			r.Reply("Setup paused. Use 'new robot resume' to continue.")
@@ -505,7 +504,7 @@ func applyRepositoryHandoff(s setupSession) (deployPubKey string, err error) {
 		return "", fmt.Errorf("generated deploy public key is empty")
 	}
 	deployPublicPath := filepath.Join(defaultScaffoldPath, "ssh", "deploy_key.pub")
-	if err := writeDeployPublicKey(deployPublicPath, deployPubKey); err != nil {
+	if err := writePublicKey(deployPublicPath, deployPubKey); err != nil {
 		return "", err
 	}
 
@@ -557,29 +556,46 @@ func applyScaffold(s setupSession) error {
 	if err != nil {
 		return fmt.Errorf("generating encryption key: %w", err)
 	}
+	binaryKey, err := randomBytes(32)
+	if err != nil {
+		return fmt.Errorf("generating binary encryption key: %w", err)
+	}
 	sshPhrase, err := randomBase64String(24)
 	if err != nil {
 		return fmt.Errorf("generating ssh phrase: %w", err)
 	}
-	sshEncrypted, err := encryptSecretForConfig(encryptionKey, sshPhrase)
+	sshEncrypted, err := encryptSecretForConfig(binaryKey, sshPhrase)
 	if err != nil {
 		return fmt.Errorf("encrypting ssh phrase: %w", err)
+	}
+	hostPrivatePEM, hostPubKey, err := generateDeployKeyPair("robot-server")
+	if err != nil {
+		return fmt.Errorf("generating SSH host keypair: %w", err)
+	}
+	hostKeyTemplateLiteral, err := jsonString(hostPrivatePEM)
+	if err != nil {
+		return fmt.Errorf("encoding SSH host private key for template: %w", err)
+	}
+	hostKeyEncrypted, err := encryptSecretForConfig(binaryKey, hostKeyTemplateLiteral)
+	if err != nil {
+		return fmt.Errorf("encrypting SSH host private key: %w", err)
 	}
 
 	meta := robotMetaFromUser(s.CanonicalUser)
 	replace := map[string]string{
-		"<botname>":      meta.botName,
-		"<botemail>":     meta.botEmail,
-		"<botfullname>":  meta.botFullName,
-		"<botalias>":     meta.botAlias,
-		"<sshencrypted>": sshEncrypted,
+		"<botname>":             meta.botName,
+		"<botemail>":            meta.botEmail,
+		"<botfullname>":         meta.botFullName,
+		"<botalias>":            meta.botAlias,
+		"<sshencrypted>":        sshEncrypted,
+		"<sshhostkeyencrypted>": hostKeyEncrypted,
 	}
 
 	for _, rel := range []string{
 		"conf/robot.yaml",
-		"conf/ssh.yaml",
-		"conf/terminal.yaml",
-		"conf/slack.yaml",
+		"conf/protocols/ssh.yaml",
+		"conf/protocols/terminal.yaml",
+		"conf/protocols/slack.yaml",
 		"git/config",
 	} {
 		fp := filepath.Join(defaultScaffoldPath, rel)
@@ -587,17 +603,17 @@ func applyScaffold(s setupSession) error {
 			return err
 		}
 	}
-	if err := rewriteManageKeyReference(filepath.Join(defaultScaffoldPath, "conf", "robot.yaml")); err != nil {
-		return err
-	}
 
 	if err := generateSSHKeyMaterial(filepath.Join(defaultScaffoldPath, "ssh"), sshPhrase, meta.botEmail); err != nil {
 		return err
 	}
+	if err := writePublicKey(filepath.Join(defaultScaffoldPath, "robot-ssh.pub"), hostPubKey); err != nil {
+		return fmt.Errorf("writing robot ssh public key: %w", err)
+	}
 
 	if err := appendIdentityConfig(
 		filepath.Join(defaultScaffoldPath, "conf", "robot.yaml"),
-		filepath.Join(defaultScaffoldPath, "conf", "ssh.yaml"),
+		filepath.Join(defaultScaffoldPath, "conf", "protocols", "ssh.yaml"),
 		s.CanonicalUser,
 		s.SSHPublicKey,
 		meta.userEmail,
@@ -608,6 +624,9 @@ func applyScaffold(s setupSession) error {
 	}
 
 	if err := writeOrUpdateEnv(encryptionKey); err != nil {
+		return err
+	}
+	if err := writeBinaryEncryptedKeyFile(filepath.Join(defaultScaffoldPath, binaryKeyFileName), []byte(encryptionKey), binaryKey); err != nil {
 		return err
 	}
 
@@ -676,7 +695,7 @@ func appendIdentityConfig(robotConfig, sshConfig, user, sshKey, email, fullName,
 	escapedFirst := yamlDoubleQuoteEscape(firstName)
 
 	sshBlock := fmt.Sprintf(`
-# Added by new-robot onboarding (Slice 2)
+# Added by new-robot onboarding
 UserMap:
   %s: "%s"
 `, escapedUser, escapedKey)
@@ -685,7 +704,7 @@ UserMap:
 	}
 
 	robotBlock := fmt.Sprintf(`
-# Added by new-robot onboarding (Slice 2)
+# Added by new-robot onboarding
 AdminUsers: [ "%s" ]
 DefaultChannels: [ "general", "random" ]
 DefaultJobChannel: general
@@ -713,8 +732,6 @@ func writeOrUpdateEnv(encryptionKey string) error {
 	required := map[string]string{
 		"GOPHER_ENCRYPTION_KEY":    encryptionKey,
 		"GOPHER_CUSTOM_REPOSITORY": defaultCustomRepository,
-		"GOPHER_PROTOCOL":          defaultProtocol,
-		"GOPHER_BRAIN":             defaultBrain,
 	}
 
 	lines := []string{}
@@ -737,7 +754,13 @@ func writeOrUpdateEnv(encryptionKey string) error {
 			seen[key] = true
 			continue
 		}
-		if key == "GOPHER_CUSTOM_BRANCH" {
+		if key == "GOPHER_CUSTOM_BRANCH" || key == "GOPHER_PROTOCOL" || key == "GOPHER_BRAIN" || key == "GOPHER_DEFAULT_PROTOCOL" {
+			lines[i] = ""
+			continue
+		}
+		// Explicitly setting development is redundant because startup defaults
+		// to development when GOPHER_ENVIRONMENT is not set.
+		if key == "GOPHER_ENVIRONMENT" && strings.EqualFold(strings.TrimSpace(strings.Trim(valueForEnvLine(line), `"'`)), defaultEnvironment) {
 			lines[i] = ""
 		}
 	}
@@ -748,6 +771,7 @@ func writeOrUpdateEnv(encryptionKey string) error {
 		}
 		lines = append(lines, fmt.Sprintf("%s=%s", key, val))
 	}
+	lines = ensureEnvironmentGuidanceComment(lines)
 	lines = compactLines(lines)
 	content := strings.TrimRight(strings.Join(lines, "\n"), "\n") + "\n"
 	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
@@ -832,6 +856,42 @@ func parseEnvLine(line string) (key, value string, ok bool) {
 	return k, strings.TrimSpace(trim[i+1:]), true
 }
 
+func valueForEnvLine(line string) string {
+	_, value, ok := parseEnvLine(line)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(value)
+}
+
+func ensureEnvironmentGuidanceComment(lines []string) []string {
+	hasComment := false
+	for _, line := range lines {
+		if strings.Contains(line, "GOPHER_ENVIRONMENT=production") {
+			hasComment = true
+			break
+		}
+	}
+	if hasComment {
+		return lines
+	}
+	comment := []string{
+		"# For a robot running in production, set:",
+		"# GOPHER_ENVIRONMENT=production",
+		"# (default is development)",
+	}
+	if len(lines) == 0 {
+		return comment
+	}
+	out := make([]string, 0, len(lines)+len(comment)+1)
+	out = append(out, lines...)
+	if strings.TrimSpace(out[len(out)-1]) != "" {
+		out = append(out, "")
+	}
+	out = append(out, comment...)
+	return out
+}
+
 func stripSetupPlaceholderLines(lines []string) []string {
 	out := make([]string, 0, len(lines))
 	for _, line := range lines {
@@ -839,7 +899,8 @@ func stripSetupPlaceholderLines(lines []string) []string {
 		switch trim {
 		case "# Optional for later remote bootstrap",
 			"# GOPHER_DEPLOY_KEY=<set this in slice 3>",
-			"# GOPHER_CUSTOM_BRANCH=.":
+			"# GOPHER_CUSTOM_BRANCH=.",
+			"# GOPHER_ENVIRONMENT=development":
 			continue
 		default:
 			out = append(out, line)
@@ -887,18 +948,6 @@ func replaceTokensInFile(path string, replacements map[string]string) error {
 	}
 	if err := os.WriteFile(path, []byte(txt), 0600); err != nil {
 		return fmt.Errorf("writing %s: %w", path, err)
-	}
-	return nil
-}
-
-func rewriteManageKeyReference(robotConfigPath string) error {
-	body, err := os.ReadFile(robotConfigPath)
-	if err != nil {
-		return fmt.Errorf("reading %s: %w", robotConfigPath, err)
-	}
-	updated := strings.ReplaceAll(string(body), `Value: "manage_key"`, `Value: "robot_key"`)
-	if err := os.WriteFile(robotConfigPath, []byte(updated), 0600); err != nil {
-		return fmt.Errorf("writing %s: %w", robotConfigPath, err)
 	}
 	return nil
 }
@@ -962,27 +1011,56 @@ func copyFile(src, dst string, mode fs.FileMode) error {
 	return nil
 }
 
-func encryptSecretForConfig(envKey, plaintext string) (string, error) {
-	key := []byte(strings.TrimSpace(envKey))
+func encryptSecretForConfig(binaryKey []byte, plaintext string) (string, error) {
+	switch len(binaryKey) {
+	case 16, 24, 32:
+	default:
+		return "", fmt.Errorf("invalid encryption key length %d", len(binaryKey))
+	}
+	ct, err := encryptBytes(binaryKey, []byte(plaintext))
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(ct), nil
+}
+
+func encryptBytes(key []byte, plaintext []byte) ([]byte, error) {
 	switch len(key) {
 	case 16, 24, 32:
 	default:
-		return "", fmt.Errorf("invalid encryption key length %d", len(key))
+		return nil, fmt.Errorf("invalid encryption key length %d", len(key))
 	}
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", err
+		return nil, err
 	}
-	ct := gcm.Seal(nonce, nonce, []byte(plaintext), nil)
-	return base64.StdEncoding.EncodeToString(ct), nil
+	return gcm.Seal(nonce, nonce, plaintext, nil), nil
+}
+
+func writeBinaryEncryptedKeyFile(path string, envKey []byte, binaryKey []byte) error {
+	if len(envKey) < 32 {
+		return fmt.Errorf("invalid environment key length %d", len(envKey))
+	}
+	if len(binaryKey) != 32 {
+		return fmt.Errorf("invalid binary key length %d", len(binaryKey))
+	}
+	ct, err := encryptBytes(envKey[:32], binaryKey)
+	if err != nil {
+		return fmt.Errorf("encrypting binary key: %w", err)
+	}
+	b64 := base64.StdEncoding.EncodeToString(ct)
+	if err := os.WriteFile(path, []byte(b64), 0600); err != nil {
+		return fmt.Errorf("writing binary key file %s: %w", path, err)
+	}
+	return nil
 }
 
 func generateSSHKeyMaterial(sshDir, passphrase, comment string) error {
@@ -1053,17 +1131,26 @@ func generateDeployKeyPair(comment string) (privatePEM string, publicLine string
 	return privatePEM, publicLine, nil
 }
 
-func writeDeployPublicKey(path, deployPubKey string) error {
-	if strings.TrimSpace(deployPubKey) == "" {
-		return fmt.Errorf("deploy public key is empty")
+func writePublicKey(path, pubKey string) error {
+	pubKey = strings.TrimSpace(pubKey)
+	if pubKey == "" {
+		return fmt.Errorf("public key is empty")
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return fmt.Errorf("creating deploy key directory for %s: %w", path, err)
 	}
-	if err := os.WriteFile(path, []byte(strings.TrimSpace(deployPubKey)+"\n"), 0644); err != nil {
-		return fmt.Errorf("writing deploy public key %s: %w", path, err)
+	if err := os.WriteFile(path, []byte(pubKey+"\n"), 0644); err != nil {
+		return fmt.Errorf("writing public key %s: %w", path, err)
 	}
 	return nil
+}
+
+func jsonString(v string) (string, error) {
+	b, err := json.Marshal(strings.TrimSpace(v))
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 func formatSSHEd25519PublicKey(pub ed25519.PublicKey, comment string) (string, error) {
@@ -1169,6 +1256,17 @@ func randomBase64String(rawBytes int) (string, error) {
 	return base64.RawStdEncoding.EncodeToString(b), nil
 }
 
+func randomBytes(length int) ([]byte, error) {
+	if length <= 0 {
+		return nil, fmt.Errorf("invalid length %d", length)
+	}
+	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
 func yamlDoubleQuoteEscape(v string) string {
 	v = strings.ReplaceAll(v, `\\`, `\\\\`)
 	v = strings.ReplaceAll(v, `"`, `\\"`)
@@ -1177,6 +1275,30 @@ func yamlDoubleQuoteEscape(v string) string {
 
 func canonicalUserKey(user string) string {
 	return strings.ToLower(strings.TrimSpace(user))
+}
+
+func preferredOnboardingUser(startedBy string, m *robot.Message) string {
+	candidates := []string{
+		os.Getenv("USER"),
+		os.Getenv("LOGNAME"),
+		startedBy,
+	}
+	if m != nil {
+		candidates = append(candidates, m.User)
+	}
+	for _, raw := range candidates {
+		user := canonicalUserKey(raw)
+		if usernameRe.MatchString(user) {
+			return user
+		}
+	}
+	for _, raw := range candidates {
+		user := canonicalUserKey(raw)
+		if user != "" {
+			return user
+		}
+	}
+	return ""
 }
 
 func protocolName(m *robot.Message) string {
@@ -1189,7 +1311,27 @@ func protocolName(m *robot.Message) string {
 	if m == nil {
 		return "unknown"
 	}
+	switch m.Protocol {
+	case robot.Slack:
+		return "slack"
+	case robot.Rocket:
+		return "rocket"
+	case robot.Terminal:
+		return "terminal"
+	case robot.Test:
+		return "test"
+	case robot.Null:
+		return "nullconn"
+	}
+	// Legacy plugin import path github.com/lnxjedi/gopherbot/robot may not
+	// define robot.SSH, but the enum value still arrives as protocol(5).
+	if int(m.Protocol) == 5 {
+		return "ssh"
+	}
 	p := strings.ToLower(strings.TrimSpace(m.Protocol.String()))
+	if p == "protocol(5)" {
+		return "ssh"
+	}
 	if p == "" {
 		return "unknown"
 	}
