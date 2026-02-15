@@ -8,7 +8,7 @@ In operational terms, a "robot" is one deployed Gopherbot instance bound to one 
 - `GOPHER_CUSTOM_REPOSITORY` identifies the robot's config repository; this repository defines the robot's behavior (`conf/robot.yaml`, plugin/job/task config, etc.).
 - When startup detects a configured repository but local config is missing, it enters bootstrap mode and clones that repository, then restarts as a configured robot (see `aidocs/STARTUP_FLOW.md` and `gojobs/go-bootstrap/go_bootstrap_job.go`).
 - Secrets in the robot repository can be encrypted and resolved during config expansion with `decrypt`, using the active encryption key initialization flow.
-- Connector-specific config like `conf/slack.yaml` is typically part of the custom robot repository, not an installed default under `gopherbot/conf/`.
+- Connector-specific config like `conf/protocols/slack.yaml` is typically part of the custom robot repository, not an installed default under `gopherbot/conf/`.
 
 This means "Clu" (or any named robot) is not just "a connector account"; it is the full config-repo-backed automation unit plus its env/bootstrap lifecycle.
 

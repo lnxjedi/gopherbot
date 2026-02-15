@@ -15,7 +15,7 @@ v3 goal is a cleaner, guided path from empty directory to a real robot using nor
 - Ask the user for their canonical username (chat identity), and use that for local ssh login (`bot-ssh -l <username>`).
 - For slice 1, persist onboarding workflow state in local `.setup-state` (not brain).
 - Newly created robot should start with a persistent file brain by default.
-- Use one confirmation gate before applying scaffold changes and triggering restart.
+- After scaffold creation, restart automatically and continue repository handoff after reconnect.
 - Do not have robot push git changes on user’s behalf in the new workflow.
 - Plugin should guide user through:
   - create/push repo manually
@@ -125,10 +125,11 @@ Acceptance:
 
 Implementation notes (current):
 - `new robot` / `new robot resume` captures canonical username, resolves SSH public key
-  (auto-detect `~/.ssh/*.pub` first, prompt fallback), then uses one yes/no confirmation gate.
+  (auto-detect `~/.ssh/*.pub` first with y/n confirmation, prompt fallback).
 - Apply step now writes scaffold files and local identity config for SSH `UserMap`,
   plus `.env` defaults (`GOPHER_ENCRYPTION_KEY`, `GOPHER_CUSTOM_REPOSITORY=local`,
   `GOPHER_ENVIRONMENT=development`).
+- After scaffold apply, onboarding queues `restart-robot` and defers repo handoff to post-reconnect.
 - Existing legacy `autosetup` remains available for reference only and is marked for later retirement.
 
 Acceptance:
@@ -142,9 +143,9 @@ Acceptance:
 - Explicitly avoid robot-driven git push.
 
 Implementation notes (current):
-- `new robot` now continues directly from scaffold apply into repository handoff.
-- New `new robot repo` command resumes repo handoff without rerunning the earlier scaffold prompts.
-- Slice-2 completed sessions (`stage=scaffolded`) are migrated forward automatically on resume.
+- `new robot repo` resumes repository handoff without rerunning scaffold prompts.
+- After reconnect in SSH, the join-trigger onboarding job can resume repo handoff automatically for
+  the active onboarding user.
 - Repo URL is validated, then `.env` is updated with:
   - `GOPHER_CUSTOM_REPOSITORY=<repo-url>`
   - `GOPHER_DEPLOY_KEY=<encoded private deploy key>`
@@ -153,6 +154,8 @@ Implementation notes (current):
 - Public deploy key is written to `custom/ssh/deploy_key.pub` for easy admin copy/paste.
 - `custom/ssh/` now keeps only `robot_key[.pub]`; legacy `manage_key` is not generated.
 - Deploy key encoding uses legacy bootstrap-compatible format (`space -> _`, `newline -> :`).
+- Temporary onboarding welcome hooks are enabled during scaffold and commented out when repository
+  handoff completes.
 - Wizard replies include the deploy public key plus explicit next-step commands for:
   - manual `git init/add/commit/remote/push`
   - bootstrap verification by restarting from `.env` only.

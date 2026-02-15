@@ -3,6 +3,7 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -74,9 +75,8 @@ type ConfigLoader struct {
 	AdminContact         string                  `yaml:"AdminContact"`         // Contact info for whomever administers the robot
 	MailConfig           botMailer               `yaml:"MailConfig"`           // Configuration for sending email
 	PrimaryProtocol      string                  `yaml:"PrimaryProtocol"`      // Name of the primary connector protocol to use
-	Protocol             string                  `yaml:"Protocol"`             // Name of the connector protocol to use, e.g., "slack"
+	DefaultProtocol      string                  `yaml:"DefaultProtocol"`      // Protocol used when outbound message flow has no inbound protocol context
 	SecondaryProtocols   []string                `yaml:"SecondaryProtocols"`   // Additional connector protocols to initialize when multi-protocol runtime is enabled
-	ProtocolConfig       json.RawMessage         `yaml:"ProtocolConfig"`       // Protocol-specific configuration, for unmarshalling arbitrary config
 	BotInfo              *UserInfo               `yaml:"BotInfo"`              // Information about the robot
 	UserMap              map[string]string       `yaml:"UserMap"`              // Mapping of username to protocol-specific internal ID
 	UserRoster           []UserRosterEntry       `yaml:"UserRoster"`           // Global user directory entries; UserID accepted for legacy compatibility parsing
@@ -113,18 +113,6 @@ type ConfigLoader struct {
 	LocalPort            int                     `yaml:"LocalPort"`            // Port number for localhost listening for CLI plugins
 	LogLevel             string                  `yaml:"LogLevel"`             // Initial log level, modifiable by plugins. Options: "trace," "debug," "info," "warn," "error"
 	LogDest              string                  `yaml:"LogDest"`              // one of stderr, stdout, <filename>
-}
-
-func resolvePrimaryProtocol(primary, legacy string) (selected string, legacyConflict bool) {
-	p := strings.TrimSpace(primary)
-	l := strings.TrimSpace(legacy)
-	if len(p) > 0 {
-		if len(l) > 0 && !strings.EqualFold(p, l) {
-			return p, true
-		}
-		return p, false
-	}
-	return l, false
 }
 
 func normalizeSecondaryProtocols(primary string, secondary []string) []string {
@@ -273,7 +261,7 @@ func loadProtocolFileData(newconfig *ConfigLoader, protocol, role string, requir
 	if p == "" {
 		return protocolFileConfig{}, false, fmt.Errorf("invalid %s protocol name: %q", role, protocol)
 	}
-	configFile := p + ".yaml"
+	configFile := filepath.Join("protocols", p+".yaml")
 	protocolConfig := make(map[string]json.RawMessage)
 	if err := getConfigFile(configFile, required, protocolConfig); err != nil {
 		if required {
@@ -295,7 +283,7 @@ func loadProtocolFileData(newconfig *ConfigLoader, protocol, role string, requir
 		if err := json.Unmarshal(raw, &parsed); err != nil {
 			Log(robot.Error, "Unmarshalling UserMap from conf/%s: %v", configFile, err)
 		} else {
-			userMap = normalizeUserMapForProtocol(p, parsed, "conf/"+configFile)
+			userMap = normalizeUserMapForProtocol(p, parsed, "conf/"+filepath.ToSlash(configFile))
 		}
 	}
 	legacyUserMap := map[string]string{}
@@ -307,8 +295,9 @@ func loadProtocolFileData(newconfig *ConfigLoader, protocol, role string, requir
 			if len(roster) > 0 {
 				Log(robot.Warn, "%s protocol '%s' defines UserRoster in conf/%s; attribute fields are ignored in protocol config UserRoster (use main UserRoster + UserMap)", label, p, configFile)
 			}
-			legacyUserMap = normalizeUserMapForProtocol(p, extractLegacyRosterIDs(raw), "conf/"+configFile+" UserRoster.UserID")
-			if used := mergeLegacyUserMapForProtocol(p, userMap, legacyUserMap, "conf/"+configFile); used > 0 {
+			source := "conf/" + filepath.ToSlash(configFile)
+			legacyUserMap = normalizeUserMapForProtocol(p, extractLegacyRosterIDs(raw), source+" UserRoster.UserID")
+			if used := mergeLegacyUserMapForProtocol(p, userMap, legacyUserMap, source); used > 0 {
 				Log(robot.Warn, "%s protocol '%s' is using legacy UserRoster.UserID compatibility from conf/%s (%d entries); migrate to UserMap", label, p, configFile, used)
 			}
 		}
@@ -461,7 +450,7 @@ func loadConfig(preConnect bool) error {
 		var val interface{}
 		skip := false
 		switch key {
-		case "AdminContact", "Email", "PrimaryProtocol", "Protocol", "Brain", "EncryptionKey", "HistoryProvider", "WorkSpace", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogDest", "LogLevel", "TimeZone":
+		case "AdminContact", "Email", "PrimaryProtocol", "DefaultProtocol", "Brain", "EncryptionKey", "HistoryProvider", "WorkSpace", "DefaultJobChannel", "DefaultElevator", "DefaultAuthorizer", "DefaultMessageFormat", "Name", "Alias", "LogDest", "LogLevel", "TimeZone":
 			val = &strval
 		case "DefaultAllowDirect", "HttpDebug", "IgnoreUnlistedUsers", "SecureParameters":
 			val = &boolval
@@ -483,7 +472,7 @@ func loadConfig(preConnect bool) error {
 			val = &sarrval
 		case "MailConfig":
 			val = &mailval
-		case "ProtocolConfig", "BrainConfig", "HistoryConfig":
+		case "BrainConfig", "HistoryConfig":
 			skip = true
 		default:
 			err := fmt.Errorf("invalid configuration key in %s: %s", robotConfigFileName, key)
@@ -506,10 +495,8 @@ func loadConfig(preConnect bool) error {
 			newconfig.MailConfig = *(val.(*botMailer))
 		case "PrimaryProtocol":
 			newconfig.PrimaryProtocol = *(val.(*string))
-		case "Protocol":
-			newconfig.Protocol = *(val.(*string))
-		case "ProtocolConfig":
-			newconfig.ProtocolConfig = value
+		case "DefaultProtocol":
+			newconfig.DefaultProtocol = *(val.(*string))
 		case "Brain":
 			newconfig.Brain = *(val.(*string))
 		case "EncryptionKey":
@@ -589,15 +576,10 @@ func loadConfig(preConnect bool) error {
 	processed.ignoreUnlistedUsers = newconfig.IgnoreUnlistedUsers
 	processed.secureParamRetrieve = newconfig.SecureParameters
 	processed.httpDebug = newconfig.HttpDebug
-	primaryProtocol, legacyConflict := resolvePrimaryProtocol(newconfig.PrimaryProtocol, newconfig.Protocol)
-	if primaryProtocol != "" {
-		processed.protocol = normalizeProtocolName(primaryProtocol)
-		if legacyConflict {
-			Log(robot.Warn, "Both PrimaryProtocol ('%s') and Protocol ('%s') are set and differ; using PrimaryProtocol", newconfig.PrimaryProtocol, newconfig.Protocol)
-		}
-	} else {
-		return fmt.Errorf("protocol not specified in %s (set PrimaryProtocol or Protocol)", robotConfigFileName)
+	if strings.TrimSpace(newconfig.PrimaryProtocol) == "" {
+		return fmt.Errorf("PrimaryProtocol not specified in %s", robotConfigFileName)
 	}
+	processed.protocol = normalizeProtocolName(newconfig.PrimaryProtocol)
 	if !preConnect {
 		if runtimePrimary, ok := getRuntimePrimaryProtocol(); ok && runtimePrimary != "" && !strings.EqualFold(runtimePrimary, processed.protocol) {
 			Log(robot.Error, "PrimaryProtocol change on reload ignored (configured: '%s', active: '%s')", processed.protocol, runtimePrimary)
@@ -611,6 +593,13 @@ func loadConfig(preConnect bool) error {
 		Log(robot.Warn, "SecondaryProtocols includes unsupported protocol 'terminal'; ignoring it")
 	}
 	processed.secondaryProtocols = normalizeSecondaryProtocols(processed.protocol, newconfig.SecondaryProtocols)
+	processed.defaultProtocol = normalizeProtocolName(newconfig.DefaultProtocol)
+	if processed.defaultProtocol == "" {
+		processed.defaultProtocol = processed.protocol
+	} else if processed.defaultProtocol != processed.protocol && !secondaryIncludesProtocol(processed.defaultProtocol, processed.secondaryProtocols) {
+		Log(robot.Warn, "DefaultProtocol '%s' is not primary or in SecondaryProtocols; falling back to PrimaryProtocol '%s'", newconfig.DefaultProtocol, processed.protocol)
+		processed.defaultProtocol = processed.protocol
+	}
 
 	for i := range newconfig.ChannelRoster {
 		newconfig.ChannelRoster[i].protocol = processed.protocol
@@ -622,40 +611,32 @@ func loadConfig(preConnect bool) error {
 		robotConfigFileName+" UserRoster.UserID",
 	)
 	primaryUserMap := map[string]string{}
-	if newconfig.ProtocolConfig != nil {
-		Log(robot.Warn, "Primary protocol '%s' is using ProtocolConfig from %s (compatibility path); prefer conf/%s.yaml", processed.protocol, robotConfigFileName, processed.protocol)
-		perProtocolConfigs[processed.protocol] = newconfig.ProtocolConfig
-		primaryUserMap = normalizeUserMapForProtocol(processed.protocol, newconfig.UserMap, robotConfigFileName)
-		if used := mergeLegacyUserMapForProtocol(processed.protocol, primaryUserMap, legacyPrimaryUserMap, robotConfigFileName); used > 0 {
-			Log(robot.Warn, "Primary protocol '%s' is using legacy UserRoster.UserID compatibility from %s (%d entries); migrate to UserMap", processed.protocol, robotConfigFileName, used)
-		}
-	} else {
-		// Load primary protocol config from conf/<primary>.yaml and then re-append
-		// robot.yaml channels so robot.yaml remains the override layer.
-		robotPrimaryChannels := append([]ChannelInfo(nil), newconfig.ChannelRoster...)
-		newconfig.ChannelRoster = make([]ChannelInfo, 0, len(robotPrimaryChannels))
-		primaryProtocolConfigFile, loaded, err := loadProtocolFileData(newconfig, processed.protocol, "primary", true)
-		if err != nil {
-			return err
-		}
-		if !loaded {
-			return fmt.Errorf("primary protocol '%s' configured but conf/%s.yaml did not load", processed.protocol, processed.protocol)
-		}
-		newconfig.ChannelRoster = append(newconfig.ChannelRoster, robotPrimaryChannels...)
-		rawPrimaryProtocolConfig, ok := primaryProtocolConfigFile.config["ProtocolConfig"]
-		if !ok || rawPrimaryProtocolConfig == nil {
-			return fmt.Errorf("primary protocol '%s' has no ProtocolConfig in conf/%s.yaml", processed.protocol, processed.protocol)
-		}
-		perProtocolConfigs[processed.protocol] = rawPrimaryProtocolConfig
-		primaryUserMap = mergeUserMapsWithOverride(
-			processed.protocol,
-			primaryProtocolConfigFile.userMap,
-			normalizeUserMapForProtocol(processed.protocol, newconfig.UserMap, robotConfigFileName),
-			robotConfigFileName,
-		)
-		if used := mergeLegacyUserMapForProtocol(processed.protocol, primaryUserMap, legacyPrimaryUserMap, robotConfigFileName); used > 0 {
-			Log(robot.Warn, "Primary protocol '%s' is using legacy UserRoster.UserID compatibility from %s (%d entries); migrate to UserMap", processed.protocol, robotConfigFileName, used)
-		}
+	// Load primary protocol config from conf/protocols/<primary>.yaml and then
+	// re-append robot.yaml channels so robot.yaml remains the override layer.
+	robotPrimaryChannels := append([]ChannelInfo(nil), newconfig.ChannelRoster...)
+	newconfig.ChannelRoster = make([]ChannelInfo, 0, len(robotPrimaryChannels))
+	primaryProtocolConfigFile, loaded, err := loadProtocolFileData(newconfig, processed.protocol, "primary", true)
+	if err != nil {
+		return err
+	}
+	primaryConfigPath := filepath.Join("protocols", processed.protocol+".yaml")
+	if !loaded {
+		return fmt.Errorf("primary protocol '%s' configured but conf/%s did not load", processed.protocol, filepath.ToSlash(primaryConfigPath))
+	}
+	newconfig.ChannelRoster = append(newconfig.ChannelRoster, robotPrimaryChannels...)
+	rawPrimaryProtocolConfig, ok := primaryProtocolConfigFile.config["ProtocolConfig"]
+	if !ok || rawPrimaryProtocolConfig == nil {
+		return fmt.Errorf("primary protocol '%s' has no ProtocolConfig in conf/%s", processed.protocol, filepath.ToSlash(primaryConfigPath))
+	}
+	perProtocolConfigs[processed.protocol] = rawPrimaryProtocolConfig
+	primaryUserMap = mergeUserMapsWithOverride(
+		processed.protocol,
+		primaryProtocolConfigFile.userMap,
+		normalizeUserMapForProtocol(processed.protocol, newconfig.UserMap, robotConfigFileName),
+		robotConfigFileName,
+	)
+	if used := mergeLegacyUserMapForProtocol(processed.protocol, primaryUserMap, legacyPrimaryUserMap, robotConfigFileName); used > 0 {
+		Log(robot.Warn, "Primary protocol '%s' is using legacy UserRoster.UserID compatibility from %s (%d entries); migrate to UserMap", processed.protocol, robotConfigFileName, used)
 	}
 	secondaryConfigByProtocol := make(map[string]protocolFileConfig, len(processed.secondaryProtocols))
 	for _, secondary := range processed.secondaryProtocols {
@@ -673,7 +654,7 @@ func loadConfig(preConnect bool) error {
 		if raw, ok := secondaryConfig.config["ProtocolConfig"]; ok {
 			perProtocolConfigs[normalizeProtocolName(secondary)] = raw
 		} else {
-			Log(robot.Warn, "Secondary protocol '%s' has no ProtocolConfig in conf/%s.yaml", secondary, normalizeProtocolName(secondary))
+			Log(robot.Warn, "Secondary protocol '%s' has no ProtocolConfig in conf/protocols/%s.yaml", secondary, normalizeProtocolName(secondary))
 		}
 	}
 	setProtocolConfigs(perProtocolConfigs)
@@ -988,8 +969,6 @@ func loadConfig(preConnect bool) error {
 	if preConnect {
 		if cfg, ok := perProtocolConfigs[processed.protocol]; ok {
 			protocolConfig = cfg
-		} else if newconfig.ProtocolConfig != nil {
-			protocolConfig = newconfig.ProtocolConfig
 		}
 
 		if newconfig.EncryptionKey != "" {

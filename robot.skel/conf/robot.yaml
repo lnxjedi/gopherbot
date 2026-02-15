@@ -12,13 +12,9 @@
 ## it wasn't needed.
 # SecureParameters: true
 
-## Configure the robot connection protocol; modifying this could
-## break `gopherbot -t`
-{{ $proto := env "GOPHER_PROTOCOL" | default "ssh" }}
-Protocol: {{ $proto }}
-
-## Include protocol-specific configuration
-{{ printf "%s.yaml" $proto | .Include }}
+{{ $environment := env "GOPHER_ENVIRONMENT" | default "development" }}
+## Environment-specific startup defaults (protocol/brain/log destination).
+{{ printf "environments/%s.yaml" $environment | .Include }}
 
 {{ $botname := env "GOPHER_BOTNAME" | default "<botname>" }}
 {{ $botemail := env "GOPHER_BOTMAIL" | default "<botemail>" }}
@@ -39,7 +35,6 @@ Alias: '{{ $botalias }}'
 {{ $brain := env "GOPHER_BRAIN" | default "file" }}
 {{ $statedir := env "GOPHER_STATEDIR" | default "state" }}
 {{ $defbraindir := printf "%s/brain" $statedir }}
-Brain: {{ $brain }}
 {{ if eq $brain "file" }}
 BrainConfig:
   BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default $defbraindir }}
@@ -94,10 +89,6 @@ ExternalJobs:
 #     - Name: NONCE
 #       Value: "No way, Jack!"
 
-## Most often you don't want your robot to run scheduled jobs
-## with the "terminal" connector, normally used for testing and
-## development.
-{{ if ne $proto "terminal" }}
 ## Jobs are scheduled with github.com/robfig/cron; includes seconds.
 ## Note that pause-notifies and backup are scheduled by default in
 ## a standard robot.
@@ -120,7 +111,6 @@ ScheduledJobs:
 #   Schedule: "@every 30s"
 #   Arguments: # an array of strings; up to the job to parse numbers & bools
 #   - "Hello, World !!!"
-{{ end }}
 
 ## After adding an initial administrator, you should disable the setup
 ## plugin by uncommenting the next three lines.
@@ -176,7 +166,7 @@ NameSpaces:
     # so here we use AppendParameters
     AppendParameters:
     - Name: "KEYNAME"
-      Value: "manage_key"
+      Value: "robot_key"
     - Name: BOT_SSH_PHRASE
       Value: {{ decrypt "<sshencrypted>" }}
 

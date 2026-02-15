@@ -1,6 +1,6 @@
 ## The terminal connector can mirror the actual team/users/channels for
-## devel. See the installed `terminal.yaml`
-## (normally in /opt/gopherbot/conf/terminal.yaml) for a full example.
+## devel. See the installed `conf/protocols/terminal.yaml`
+## (normally in /opt/gopherbot/conf/protocols/terminal.yaml) for a full example.
 ProtocolConfig:
   EOF: '<botalias>quit'
   Abort: '<botalias>abort'

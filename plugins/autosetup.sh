@@ -231,15 +231,15 @@ EOF
 
 # Create configuration
 cp -r $GOPHER_INSTALLDIR/robot.skel/* "$GOPHER_CONFIGDIR"
-substitute "<slackappencrypted>" "$SLACK_APP_ENCRYPTED" "conf/slack.yaml"
-substitute "<slackbotencrypted>" "$SLACK_BOT_ENCRYPTED" "conf/slack.yaml"
+substitute "<slackappencrypted>" "$SLACK_APP_ENCRYPTED" "conf/protocols/slack.yaml"
+substitute "<slackbotencrypted>" "$SLACK_BOT_ENCRYPTED" "conf/protocols/slack.yaml"
 substitute "<sshencrypted>" "$SSH_ENCRYPTED"
-substitute "<jobchannel>" "$JOBCHANNEL" "conf/slack.yaml"
+substitute "<jobchannel>" "$JOBCHANNEL" "conf/protocols/slack.yaml"
 substitute "<botname>" "$BOTNAME"
-substitute "<botname>" "$BOTNAME" "conf/slack.yaml"
-substitute "<botname>" "$BOTNAME" "conf/terminal.yaml"
+substitute "<botname>" "$BOTNAME" "conf/protocols/slack.yaml"
+substitute "<botname>" "$BOTNAME" "conf/protocols/terminal.yaml"
 substitute "<botalias>" "$BOTALIAS"
-substitute "<botalias>" "$BOTALIAS" "conf/terminal.yaml"
+substitute "<botalias>" "$BOTALIAS" "conf/protocols/terminal.yaml"
 substitute "<botfullname>" "$BOTFULLNAME"
 substitute "<botfullname>" "$BOTFULLNAME" "git/config"
 substitute "<botemail>" "$BOTMAIL"
@@ -300,7 +300,7 @@ host or VM with the *Gopherbot* software archive installed.
 your robot to team chat.
 5) Open a direct message (DM) channel to your robot, and give this command to add yourself \
 as an administrator: \"add administrator $SETUPKEY\"; your robot will then update \
-'custom/conf/slack.yaml' to make you an administrator, and reload it's configuration. \
+'custom/conf/protocols/slack.yaml' to make you an administrator, and reload it's configuration. \
 (You can find your new bot in ${JOBCHANNEL}).
 6) Once that completes, you can instruct the robot to store it's configuration in it's git \
 repository by issuing the 'save' command.
@@ -332,7 +332,7 @@ repository during bootstrapping.
 arguments. Your robot should connect to your team chat.
 5) Open a direct message (DM) channel to your robot, and give this command to add yourself \
 as an administrator: \"add administrator $SETUPKEY\"; your robot will then update \
-'custom/conf/slack.yaml' to make you an administrator, and reload it's configuration. \
+'custom/conf/protocols/slack.yaml' to make you an administrator, and reload it's configuration. \
 (You can find your new bot in ${JOBCHANNEL}).
 6) Once that completes, you can instruct the robot to store it's configuration in it's git \
 repository by issuing the 'save' command.

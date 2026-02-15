@@ -101,7 +101,10 @@ func initJobs() {
 func runScheduledTask(t interface{}, ts TaskSpec, cfg *configuration, tasks *taskList, isInitJob bool) {
 	task, _, _ := getTask(t)
 	currentCfg.RLock()
-	protocol := currentCfg.protocol
+	protocol := currentCfg.defaultProtocol
+	if protocol == "" {
+		protocol = currentCfg.protocol
+	}
 	currentCfg.RUnlock()
 	pausedJobs.Lock()
 	if user, ok := pausedJobs.jobs[task.name]; ok {

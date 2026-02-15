@@ -111,9 +111,9 @@ USERNAME=$(getMatching "SimpleString" \
     "What username do you want the robot to know you by?")
 checkReply $?
 Say "Detected User ID $USERID for $USERNAME, and ID $BOTID for $BOTNAME"
-substitute "<adminusername>" "$USERNAME" "conf/slack.yaml"
-substitute "<adminuserid>" "$USERID" "conf/slack.yaml"
-substitute "<botid>" "$BOTID" "conf/slack.yaml"
+substitute "<adminusername>" "$USERNAME" "conf/protocols/slack.yaml"
+substitute "<adminuserid>" "$USERID" "conf/protocols/slack.yaml"
+substitute "<botid>" "$BOTID" "conf/protocols/slack.yaml"
 
 AddTask say "You've been successfully added as an administrator. \
 If you've configured 'manage_key.pub' as a read-write deploy key \

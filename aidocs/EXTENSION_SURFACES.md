@@ -6,7 +6,7 @@ Concise map of extension types, where they live, and how they register/discover.
 
 - Where: protocol connectors under `connectors/`, plus built-ins like `bot/term_connector.go` and `bot/null_connector.go`.
 - Registration: `bot/bot_process.go` (func `RegisterConnector`) called from connector init (e.g., `connectors/slack/static.go` calls `bot.RegisterConnector("slack", Initialize)`).
-- Selection: `bot/conf.go` (type `ConfigLoader` field `Protocol`) reads `conf/robot.yaml`.
+- Selection: `bot/conf.go` (type `ConfigLoader` fields `PrimaryProtocol`/`DefaultProtocol`) reads `conf/robot.yaml`; connector-specific `ProtocolConfig` is loaded from `conf/protocols/<protocol>.yaml`.
 - Examples: `connectors/slack/connect.go` (func `Initialize`), `connectors/test/init.go` (func `Initialize`), `bot/term_connector.go` (calls `RegisterConnector("terminal", Initialize)`).
 
 ## Brains (SimpleBrain providers)

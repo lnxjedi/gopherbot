@@ -1,7 +1,6 @@
 coverage.*
 /gopherbot
 /gopherbot-mcp
-/gopherbot-privsep
 /gopherbot.exe
 gopherbot*zip
 gopherbot*tar.gz

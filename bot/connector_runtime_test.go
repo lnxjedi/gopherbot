@@ -153,6 +153,7 @@ func (h *runtimeHarness) cleanup() {
 func (h *runtimeHarness) resetRuntimeState() {
 	runtimeConnectors.Lock()
 	runtimeConnectors.primary = ""
+	runtimeConnectors.defaultProtocol = ""
 	runtimeConnectors.runtimes = map[string]*managedConnector{}
 	runtimeConnectors.desiredSecondary = map[string]bool{}
 	runtimeConnectors.userMaps = map[string]map[string]string{}
@@ -163,6 +164,7 @@ func (h *runtimeHarness) setConfig(primary string, secondaries ...string) {
 	currentCfg.Lock()
 	currentCfg.configuration = &configuration{
 		protocol:           primary,
+		defaultProtocol:    primary,
 		secondaryProtocols: secondaries,
 	}
 	currentCfg.Unlock()
@@ -290,15 +292,28 @@ func TestStartSecondaryValidation(t *testing.T) {
 	}
 }
 
-func TestProtocolForMessageFallsBackToPrimary(t *testing.T) {
+func TestProtocolForMessageFallsBackToDefaultProtocol(t *testing.T) {
 	newRuntimeHarness(t)
 	runtimeConnectors.Lock()
 	runtimeConnectors.primary = "prime"
+	runtimeConnectors.defaultProtocol = "secondary"
 	runtimeConnectors.Unlock()
 
 	if got := protocolForMessage(&robot.ConnectorMessage{Protocol: "secondary"}); got != "secondary" {
 		t.Fatalf("protocolForMessage(with msg protocol) = %q, want %q", got, "secondary")
 	}
+	if got := protocolForMessage(nil); got != "secondary" {
+		t.Fatalf("protocolForMessage(nil) = %q, want %q", got, "secondary")
+	}
+}
+
+func TestProtocolForMessageFallsBackToPrimaryWhenDefaultUnset(t *testing.T) {
+	newRuntimeHarness(t)
+	runtimeConnectors.Lock()
+	runtimeConnectors.primary = "prime"
+	runtimeConnectors.defaultProtocol = ""
+	runtimeConnectors.Unlock()
+
 	if got := protocolForMessage(nil); got != "prime" {
 		t.Fatalf("protocolForMessage(nil) = %q, want %q", got, "prime")
 	}

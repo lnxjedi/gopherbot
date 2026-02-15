@@ -52,7 +52,7 @@ Common symptom:
 
 ## Protocol selection for tests
 
-- The integration configs under `test/*/conf/robot.yaml` set `Protocol: {{ env "GOPHER_PROTOCOL" | default "test" }}` so tests use the test connector by default without setting env vars in Go code. (`PrimaryProtocol` is also accepted by the loader as the preferred modern key.)
+- The integration configs under `test/*/conf/robot.yaml` set `PrimaryProtocol: {{ env "GOPHER_PROTOCOL" | default "test" }}` so tests use the test connector by default without setting env vars in Go code.
 - When running a config interactively (e.g., `cd test/membrain` + `gopherbot`), set `GOPHER_PROTOCOL=terminal` (via `private/environment`) to exercise the terminal connector.
 
 ## `make testbot` (interactive test helper)

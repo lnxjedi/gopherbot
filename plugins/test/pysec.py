@@ -46,6 +46,8 @@ command = sys.argv.pop(0)
 if command == "configure":
   print(default_config)
   sys.exit(0)
+if command == "init":
+  sys.exit(0)
 
 bot = Robot()
 

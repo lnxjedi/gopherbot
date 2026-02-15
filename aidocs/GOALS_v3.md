@@ -64,6 +64,7 @@ Progress notes:
 - Local HTTP test server exists for deterministic JS/Lua HTTP coverage.
 - JS and Lua HTTP helper modules are available for extension authors (see `aidocs/JS_HTTP_API.md`, `aidocs/LUA_HTTP_API.md`).
 - Long-term TODO: add a Bash Full integration suite with emphasis on formatting behavior parity (including `-f` fixed-format handling). The Bash library (`lib/gopherbot_v1.sh`) likely needs a cleanup/rewrite.
+- Long-term TODO: document `AddCommand` as a pipeline-composition API (not a user-message injection API), and evaluate a separate user-scoped resume primitive for reconnect/onboarding workflows.
 
 ### Strengthen and Integrate the Groups and Help Systems
 
@@ -74,6 +75,8 @@ Help and discovery mechanisms should be group-aware and provide clear, contextua
 * The help sections of plugin configuration should have a new format that generates more easily readable help
 * Robot startup should use more than a simple author-provided keyword list; we'll need to come up with a new design
 * When users ask for help, they should only be shown commands which they are able to run
+* Stretch direction: help output should be generated from command-linked help metadata (rather than loose text blocks), so help content and executable commands stay naturally aligned
+* Stretch direction: extend the authorizer plugin contract with a `usergroups` command (for example `usergroups david`) that returns a JSON array of groups for that user; help rendering can then filter command visibility to only commands available to that user
 
 ### Improve Configuration Clarity and Bootstrapping
 

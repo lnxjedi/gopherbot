@@ -64,6 +64,12 @@ For a full execution/security walkthrough, see `aidocs/EXECUTION_SECURITY_MODEL.
 
 - API surface: `robot/robot.go` methods `AddTask`, `AddJob`, `AddCommand`.
 - Enforcement + mutation: `bot/robot_pipecmd.go` (e.g., `pipeTask`, `Robot.AddTask`).
+- `AddCommand` composes plugin work into the current pipeline; it does not inject a transport/user-originated inbound message.
+- `AddCommand` only succeeds when:
+  - it runs during the primary task stage (`primaryTasks`)
+  - the provided command text matches the target plugin's `CommandMatchers`
+- Operational implication: jobs should not treat `AddCommand` as "resume as user" behavior. For reconnect/onboarding flows, prefer explicit user prompts/instructions and let the user invoke the next command.
+- TODO (long-term): document and evaluate whether a dedicated user-scoped resume/injection primitive is needed, distinct from pipeline composition APIs.
 
 ## Fast Debug Pointers (AI use)
 
