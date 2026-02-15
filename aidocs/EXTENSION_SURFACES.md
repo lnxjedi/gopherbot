@@ -25,10 +25,10 @@ Concise map of extension types, where they live, and how they register/discover.
 
 ## External jobs (scripted)
 
-- Where: job scripts live under `jobs/` (e.g., `jobs/backup.sh`, `jobs/restore.sh`).
+- Where: job scripts live under `jobs/` (e.g., `jobs/save.sh`, `jobs/logrotate.sh`).
 - Discovery: `conf/robot.yaml` defines `ExternalJobs`, loaded into `bot/conf.go` (type `ConfigLoader` field `ExternalJobs`), then turned into tasks in `bot/taskconf.go` (func `addExternalTask`).
 - Execution: external jobs run via `exec.Command` in `bot/calltask.go` (external branch after `.go/.lua/.js` checks).
-- Examples: `jobs/backup.sh`, `jobs/restore.sh`.
+- Examples: `jobs/save.sh`, `jobs/logrotate.sh`.
 
 ## External tasks (scripted)
 

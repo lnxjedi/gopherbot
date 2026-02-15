@@ -19,12 +19,6 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	confDir := filepath.Join(repoDir, "conf")
 	info, err := os.Stat(confDir)
 	if err == nil && info.IsDir() {
-		// If "conf" exists and is a directory, check for ".restore" to trigger restore job
-		restoreFile := filepath.Join(repoDir, ".restore")
-		if _, err := os.Stat(restoreFile); err == nil {
-			r.AddJob("restore")
-			return robot.Normal
-		}
 		r.Log(robot.Debug, "go-bootstrap found existing config directory, exiting")
 		// Configuration directory exists, no further action needed
 		return robot.Normal
@@ -65,13 +59,6 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 		// This could fail if the repository domain isn't supported,
 		// and GOPHER_INSECURE_SSH isn't set "true".
 		r.AddTask("ssh-git-helper", "loadhostkeys", cloneURL)
-	}
-
-	// Create the .restore file in the current working directory to indicate restore
-	// of file-based memories is needed.
-	if err := os.WriteFile(".restore", []byte{}, 0644); err != nil {
-		r.Log(robot.Error, "failed to create .restore file: "+err.Error())
-		return robot.Fail
 	}
 
 	// Remove any temporary binary encryption key created by unconfigured start-up.

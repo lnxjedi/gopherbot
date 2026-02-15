@@ -86,6 +86,9 @@ Bootstrapping a new robot should be significantly easier than in v2, with fewer 
 
 The documentation should only instruct the user in how to start a demo robot in a container or empty directory, and the built-in "welcome" plugin should tell the user they can run e.g. ";new robot". That command should start a well-documented process entirely in the terminal window, at the end of which the new robot is stored in a remote git repository, and the user is given clear instructions on what is needed to start their robot running in a container, ec2 instance, etc. (mainly, here are the environment variables you need to define when launching the "gopherbot" executable in production in order to start your robot). The process should end with a reference for where to configure a persistent brain.
 
+Desired workflow note:
+- Keep an admin-friendly branch-switch workflow for fast development/testing rollback (switch to a test branch, verify behavior, and quickly switch back).
+
 ### Make Sure Robots have Brains
 
 Since we're getting rid of the default backup/restore to git for the file brain, we need good documentation/process for helping the user establish a persistent brain, maybe via CloudFlare KV.

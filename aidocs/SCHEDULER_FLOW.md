@@ -17,6 +17,7 @@ AI‑onboarding view: config source, scheduler setup, and the exact pipeline ent
 
 - The scheduler is created in `scheduleTasks()` using `robfig/cron`: `bot/scheduled_jobs.go` (func `scheduleTasks`).
 - The scheduler uses `currentCfg.timeZone` if set, otherwise system timezone.
+- The scheduler parser accepts both 5-field and 6-field (seconds-first) cron specs, plus descriptors like `@every`.
 - Jobs with `Schedule == "@init"` are not added to cron; they run once via `initJobs()` which is called from `loadConfig(false)` in `bot/conf.go`.
 
 ## Cron Tick → Pipeline

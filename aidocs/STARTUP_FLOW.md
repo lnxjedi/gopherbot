@@ -94,7 +94,7 @@ func detectStartupMode() (mode string) {
 | `cli`          | `cliOp` flag set                                        | Running a CLI command, not a robot         |
 | `test-dev`     | `conf/robot.yaml` exists, not in `custom/` dir          | Integration testing and engine development |
 | `demo`         | No config, no `GOPHER_CUSTOM_REPOSITORY`, no answerfile | Run the default demo robot                 |
-| `setup`        | `answerfile.txt` exists OR `ANS_*` env vars             | Process setup wizard                       |
+| `setup`        | `answerfile.txt` exists OR `ANS_*` env vars             | Run unconfigured onboarding shell          |
 | `bootstrap`    | `GOPHER_CUSTOM_REPOSITORY` set but no config yet        | Clone custom config repo                   |
 | `ide`          | `GOPHER_IDE` env var set                                | Local development                          |
 | `ide-override` | IDE mode with override flag                             | IDE but connect to real chat               |
@@ -307,14 +307,14 @@ ScheduledJobs:
   Schedule: "@init"
 {{- end }}
 
-## welcome and autosetup only load in demo/setup mode
+## welcome/onboarding hooks only load in demo/setup mode
 {{- if or (eq $mode "demo") (eq $mode "setup") }}
-  {{- if eq $proto "terminal" }}
+  {{- if or (eq $proto "terminal") (eq $proto "ssh") }}
   "welcome":
     Path: plugins/welcome.lua
+  "new-robot":
+    Path: plugins/go-new-robot/new_robot.go
   {{- end }}
-  "autosetup":
-    Path: plugins/autosetup.sh
 {{- end }}
 ```
 

@@ -39,7 +39,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## conf/
 
 - Default configuration: `conf/README.md`, `conf/robot.yaml`, `conf/protocols/terminal.yaml`.
-- Default job/plugin config examples live under `conf/jobs/` and `conf/plugins/` (e.g., `conf/jobs/backup.yaml`, `conf/plugins/builtin-help.yaml`).
+- Default job/plugin config examples live under `conf/jobs/` and `conf/plugins/` (e.g., `conf/jobs/pause-notifies.yaml`, `conf/plugins/builtin-help.yaml`).
 
 ## connectors/
 
@@ -70,7 +70,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## jobs/
 
-- Shell job scripts: `jobs/backup.sh`, `jobs/restore.sh`.
+- Shell job scripts: `jobs/save.sh`, `jobs/logrotate.sh`.
 - Go job entrypoint example: `jobs/updatecfg/updatecfg.go` (func `JobHandler`).
 - SSH demo welcome trigger job: `jobs/go-welcome-join/welcome_join.go` (func `JobHandler`).
 
@@ -103,7 +103,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## robot.skel/
 
-- Default robot skeleton: `robot.skel/README.md`, `robot.skel/conf/robot.yaml`, `robot.skel/conf/environments/development.yaml`, `robot.skel/conf/protocols/ssh.yaml`, `robot.skel/jobs/hello.sh`.
+- Default robot skeleton: `robot.skel/README.md`, `robot.skel/conf/robot.yaml`, `robot.skel/conf/environments/development.yaml`, `robot.skel/conf/protocols/ssh.yaml`.
 
 ## tasks/
 

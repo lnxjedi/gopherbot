@@ -17,7 +17,7 @@
 {{ printf "environments/%s.yaml" $environment | .Include }}
 
 {{ $botname := env "GOPHER_BOTNAME" | default "<botname>" }}
-{{ $botemail := env "GOPHER_BOTMAIL" | default "<botemail>" }}
+{{ $botemail := env "GOPHER_BOTEMAIL" | default "<botemail>" }}
 {{ $botfullname := env "GOPHER_BOTFULLNAME" | default "<botfullname>" }}
 {{ $botalias := env "GOPHER_ALIAS" | default "<botalias>" }}
 
@@ -81,24 +81,20 @@ HistoryConfig:
 # DefaultMessageFormat: Variable # 'Raw' if not specified
 
 ExternalJobs:
-#   "hello":
-#     Description: Trivial hello world job for testing
-#     Path: jobs/hello.sh
+#   "sample-job":
+#     Description: Example scheduled job for testing
+#     Path: jobs/your-job.sh
 #     Privileged: true
 #     Parameters:
 #     - Name: NONCE
 #       Value: "No way, Jack!"
 
 ## Jobs are scheduled with github.com/robfig/cron; includes seconds.
-## Note that pause-notifies and backup are scheduled by default in
+## Note that pause-notifies is scheduled by default in
 ## a standard robot.
 ScheduledJobs:
 - Name: pause-notifies
   Schedule: "0 0 8 * * *"
-{{ if eq $brain "file" }}
-- Name: backup
-  Schedule: "@every 1m"
-{{ end }}
 ## If you have a Gemfile or requirements.txt, you can install library
 ## dependencies with this init job.
 # - Name: install-libs
@@ -112,19 +108,7 @@ ScheduledJobs:
 #   Arguments: # an array of strings; up to the job to parse numbers & bools
 #   - "Hello, World !!!"
 
-## After adding an initial administrator, you should disable the setup
-## plugin by uncommenting the next three lines.
 ExternalPlugins:
-{{ if env "GOPHER_SETUP_TOKEN" }}
-  "addadmin":
-    Description: Setup plugin allowing an initial administrator to be added
-    Path: plugins/addadmin.sh
-    Privileged: true
-    Homed: true
-    Parameters:
-    - Name: GOPHER_SETUP_TOKEN
-      Value: {{ env "GOPHER_SETUP_TOKEN" }}
-{{ end }}
 #   "weather":
 #     Description: A plugin that uses OpenWeatherMap to report the weather
 #     Path: plugins/weather.rb
@@ -138,9 +122,9 @@ ExternalPlugins:
 #   "chuck":
 #     Description: A plugin that pipes up whenever The Man's name is mentioned
 #     Path: plugins/chuck.rb
-#   "echo":
-#     Description: Trivial bash plugin
-#     Path: plugins/echo.sh
+#   "sample-plugin":
+#     Description: Example plugin
+#     Path: plugins/your-plugin.sh
 #   "pythondemo":
 #     Description: Sample python plugin
 #     Path: plugins/samples/pythondemo.py

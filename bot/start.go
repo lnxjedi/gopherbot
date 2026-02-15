@@ -143,7 +143,7 @@ func Start(v VersionInfo) {
 	if pid == 1 {
 		Log(robot.Info, "PID == 1, spawning child")
 		bin, _ := os.Executable()
-		// Used by autosetup
+		// Available to startup/setup flows running in container mode
 		os.Setenv("GOPHER_CONTAINER", "iscontainer")
 		env := os.Environ()
 		cmd := exec.Command(bin, args...)

@@ -10,6 +10,16 @@ import (
 var taskRunner *cron.Cron
 var schedMutex sync.Mutex
 
+var scheduleParser = cron.NewParser(
+	cron.SecondOptional |
+		cron.Minute |
+		cron.Hour |
+		cron.Dom |
+		cron.Month |
+		cron.Dow |
+		cron.Descriptor,
+)
+
 var pausedJobs = struct {
 	jobs map[string]string
 	sync.Mutex
@@ -29,10 +39,10 @@ func scheduleTasks() {
 	currentCfg.RUnlock()
 	if tz != nil {
 		Log(robot.Info, "Scheduling tasks in TimeZone: %s", tz)
-		taskRunner = cron.New(cron.WithLocation(tz))
+		taskRunner = cron.New(cron.WithLocation(tz), cron.WithParser(scheduleParser))
 	} else {
 		Log(robot.Info, "Scheduling tasks in system default timezone")
-		taskRunner = cron.New()
+		taskRunner = cron.New(cron.WithParser(scheduleParser))
 	}
 	currentCfg.RLock()
 	cfg := currentCfg.configuration

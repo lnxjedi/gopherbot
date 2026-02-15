@@ -29,15 +29,11 @@ v3 goal is a cleaner, guided path from empty directory to a real robot using nor
 - `plugins/go-new-robot/new_robot.go` handles onboarding state + slice 2 scaffold apply.
 - `jobs/go-welcome-join/welcome_join.go` now drives unconfigured SSH welcome messaging from
   join announcements (triggered job path), so startup no longer emits welcome chat lines.
-- `plugins/autosetup.sh` implements setup logic.
-- `gopherbot init slack` copies `resources/answerfiles/slack.txt` to `answerfile.txt`.
-- Running `gopherbot` in setup mode parses answerfile/env values and copies `robot.skel/*` into `custom/`, writes `.env`, generates keys, then restarts.
+- Legacy answerfile setup automation has been removed from default onboarding flow.
 
 Relevant files:
 - `plugins/welcome.lua`
-- `plugins/autosetup.sh`
 - `bot/cli_commands.go`
-- `resources/answerfiles/slack.txt`
 - `robot.skel/`
 
 ## Impact Surface Report (Slice 0/Planning)
@@ -56,7 +52,6 @@ Relevant files:
   - `plugins/welcome.lua`
   - new onboarding plugin (likely Go external plugin path under `plugins/`)
 - Setup/bootstrapping compatibility:
-  - `plugins/autosetup.sh` (kept, possibly reduced later)
   - `bot/cli_commands.go` (`init` command messaging)
 - Templates/config skeleton:
   - `robot.skel/conf/*.yaml`
@@ -130,7 +125,7 @@ Implementation notes (current):
   plus `.env` defaults (`GOPHER_ENCRYPTION_KEY`, `GOPHER_CUSTOM_REPOSITORY=local`,
   `GOPHER_ENVIRONMENT=development`).
 - After scaffold apply, onboarding queues `restart-robot` and defers repo handoff to post-reconnect.
-- Existing legacy `autosetup` remains available for reference only and is marked for later retirement.
+- Legacy answerfile/autosetup flow has been retired.
 
 Acceptance:
 - From empty directory, wizard creates usable scaffold.
@@ -177,7 +172,7 @@ Acceptance:
 ### Slice 5: Legacy setup retirement and cleanup
 
 - Remove legacy setup command references from user-facing docs and welcome text.
-- Update migration notes for teams still using answerfile-based setup.
+- Document migration notes for teams still using answerfile-based setup.
 
 ## Open questions to resolve before coding
 

@@ -123,7 +123,7 @@ func isTestBuildTpl() bool {
 /*
 Used in robot.yaml to determine start-up settings for connector, brain, and
 logging. Returns one of:
-* setup - no configuration but answerfile.txt/ANS* env present, setup plugin will process
+* setup - no configuration but answerfile.txt/ANS* env present
 * demo - no configuration or env vars, starts the default robot
 * test-dev - using config dir in gopherbot/test for creating integration tests
 * bootstrap - env vars (e.g. GOPHER_CUSTOM_REPOSITORY) set, but no config yet
