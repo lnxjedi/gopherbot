@@ -7,12 +7,14 @@ This document is intended as a **control-flow trace**, not a conceptual or tutor
 Startup proceeds through the following phases **in order**:
 
 1. **CLI parsing** – Process command-line flags
-2. **Mode detection** – Determine startup mode from environment and filesystem
-3. **Encryption initialization** – Set up brain encryption
-4. **Pre-connect configuration load** – Load basic configuration without running scripts
-5. **Brain initialization** – Start the brain provider
-6. **Connector runtime initialization** – Initialize primary + configured secondary connectors
-7. **Post-connect configuration load** – Full configuration with plugin initialization
+2. **Initial mode probe** – Evaluate startup mode for early IDE working-directory behavior
+3. **Private environment load** – Load `private/environment` or `.env` when present
+4. **Effective mode detection** – Re-evaluate startup mode using process env plus loaded private env
+5. **Encryption initialization** – Set up brain encryption
+6. **Pre-connect configuration load** – Load basic configuration without running scripts
+7. **Brain initialization** – Start the brain provider
+8. **Connector runtime initialization** – Initialize primary + configured secondary connectors
+9. **Post-connect configuration load** – Full configuration with plugin initialization
 
 Internal exception:
 - `pipeline-child-exec` is an internal command used by multiprocess task execution; it exits after one child-task run and bypasses normal robot startup phases.
@@ -38,6 +40,7 @@ Internal child-runner note:
 ### Where: `bot/config_load.go` – `detectStartupMode()`
 
 The startup mode determines protocol, brain, logging, and which plugins load.
+`Start(...)` in `bot/start.go` calls `detectStartupMode()` twice: an early probe before private env loading (for IDE cwd handling), then a second pass after private env loading that becomes the effective startup mode.
 
 ```go
 func detectStartupMode() (mode string) {
@@ -115,7 +118,7 @@ Bootstrap path (first configured start):
 Connector config implication:
 
 - Installed defaults under `gopherbot/conf/` include only stock connector templates shipped with the engine.
-- Connectors like Slack are normally configured in the custom robot repository's `conf/` and merged through custom `conf/robot.yaml` includes.
+- Connectors like Slack are normally configured in the custom robot repository under `conf/protocols/`.
 
 ## Configuration Template Processing
 
@@ -162,32 +165,32 @@ The default `robot.yaml` uses Go templates to derive configuration values from s
 {{- end }}
 ```
 
-### Protocol Key Compatibility
+### Protocol Selection Keys
 
-`bot/conf.go` now accepts both:
+`bot/conf.go` requires:
 
-- `PrimaryProtocol` (preferred)
-- `Protocol` (legacy alias for backward compatibility)
+- `PrimaryProtocol` in `robot.yaml` (required)
+- `DefaultProtocol` in `robot.yaml` (optional; defaults to `PrimaryProtocol`)
 
-If both are set and differ, `PrimaryProtocol` wins and a warning is logged.
+If `DefaultProtocol` is set, it must be the primary protocol or one of `SecondaryProtocols`; otherwise startup logs a warning and falls back to `PrimaryProtocol`.
 
 ### Primary Protocol Config Source
 
-Primary connector configuration now has explicit source precedence:
+Primary connector configuration is always loaded from:
 
-- Compatibility path: if `ProtocolConfig` is present in `robot.yaml`, it is used for the primary protocol and a warning is logged.
-- Preferred path: if `ProtocolConfig` is absent in `robot.yaml`, engine loads `conf/<PrimaryProtocol>.yaml` and requires `ProtocolConfig` there.
-- If preferred-path primary config file is missing or has no `ProtocolConfig`, startup/reload config load fails.
+- `conf/protocols/<PrimaryProtocol>.yaml`
+
+`ProtocolConfig` is expected there (not in `robot.yaml`). If that file is missing, or missing `ProtocolConfig`, startup/reload config load fails.
 
 ### Identity Mapping Key Compatibility
 
 Identity mapping is explicit per-protocol `UserMap`.
 
-- Preferred: `UserMap` (username -> protocol internal ID), typically in `conf/<protocol>.yaml`.
+- Preferred: `UserMap` (username -> protocol internal ID), typically in `conf/protocols/<protocol>.yaml`.
 - `UserRoster` remains the user directory (email/name/phone/etc.).
 - Legacy compatibility: `UserRoster.UserID` is still parsed to populate missing protocol mappings, with migration warnings.
 - Precedence: explicit `UserMap` entries override legacy `UserRoster.UserID` entries on conflict.
-- When primary config is auto-loaded from `conf/<primary>.yaml`, that file's `UserRoster` is ignored; attributes still come from `robot.yaml` `UserRoster`.
+- When primary config is auto-loaded from `conf/protocols/<primary>.yaml`, that file's `UserRoster` is ignored; attributes still come from `robot.yaml` `UserRoster`.
 - For secondary protocol files, `UserRoster` attributes are ignored; use main `robot.yaml` `UserRoster` + protocol `UserMap`.
 - With `IgnoreUnlistedUsers: true`, inbound users must satisfy both checks:
   - present in global `UserRoster` directory

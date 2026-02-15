@@ -64,9 +64,6 @@ func Start(v VersionInfo) {
 	}
 
 	var ok bool
-	if deployEnvironment, ok = lookupEnv("GOPHER_ENVIRONMENT"); !ok {
-		deployEnvironment = "production"
-	}
 
 	var overrideDevEnv string
 	// Save args in case we need to spawn child
@@ -110,10 +107,8 @@ func Start(v VersionInfo) {
 			return
 		}
 	}
+	cliOp = len(flag.Args()) > 0 && flag.Arg(0) != "run"
 
-	if len(overrideDevEnv) > 0 {
-		deployEnvironment = overrideDevEnv
-	}
 	setAIDevToken(aidevFlagToken)
 
 	/*
@@ -222,11 +217,19 @@ func Start(v VersionInfo) {
 		}
 	}
 	penvErr := godotenv.Overload(envFile)
+	if deployEnvironment, ok = lookupEnv("GOPHER_ENVIRONMENT"); !ok {
+		deployEnvironment = "production"
+	}
+	if len(overrideDevEnv) > 0 {
+		deployEnvironment = overrideDevEnv
+	}
+	// Re-evaluate startup mode after private environment loading so
+	// bootstrap/setup decisions include values from process env or .env.
+	startMode = detectStartupMode()
 
 	var logger *log.Logger
 	var logOut *os.File
 
-	cliOp = len(flag.Args()) > 0 && flag.Arg(0) != "run"
 	var cliCommand string
 
 	// Get CLI command and set up pre-initBot logging
