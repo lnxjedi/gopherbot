@@ -40,7 +40,7 @@ Internal child-runner note:
 ### Where: `bot/config_load.go` – `detectStartupMode()`
 
 The startup mode determines protocol, brain, logging, and which plugins load.
-`Start(...)` in `bot/start.go` calls `detectStartupMode()` twice: an early probe before private env loading (for IDE cwd handling), then a second pass after private env loading that becomes the effective startup mode.
+`Start(...)` in `bot/start.go` calls `detectStartupMode()` twice: an early probe before private env loading, then a second pass after private env loading that becomes the effective startup mode.
 
 ```go
 func detectStartupMode() (mode string) {
@@ -60,12 +60,6 @@ func detectStartupMode() (mode string) {
     // 3. Check if robot is "configured" (has GOPHER_CUSTOM_REPOSITORY)
     _, robotConfigured := lookupEnv("GOPHER_CUSTOM_REPOSITORY")
     if !robotConfigured {
-        // No custom repo – check for answerfile
-        if _, err := os.Stat("answerfile.txt"); err == nil {
-            return "setup"
-        } else if _, ok := lookupEnv("ANS_PROTOCOL"); ok {
-            return "setup" // Container-based setup
-        }
         return "demo" // No config at all
     }
 
@@ -73,14 +67,6 @@ func detectStartupMode() (mode string) {
     robotYamlFile := filepath.Join(configPath, "conf", "robot.yaml")
     if _, err := os.Stat(robotYamlFile); err != nil {
         return "bootstrap" // Need to clone config
-    }
-
-    // 5. IDE mode checks
-    if ideMode {
-        if overrideIDEMode {
-            return "ide-override"
-        }
-        return "ide"
     }
 
     return "production"
@@ -93,12 +79,9 @@ func detectStartupMode() (mode string) {
 | -------------- | ------------------------------------------------------- | ------------------------------------------ |
 | `cli`          | `cliOp` flag set                                        | Running a CLI command, not a robot         |
 | `test-dev`     | `conf/robot.yaml` exists, not in `custom/` dir          | Integration testing and engine development |
-| `demo`         | No config, no `GOPHER_CUSTOM_REPOSITORY`, no answerfile | Run the default demo robot                 |
-| `setup`        | `answerfile.txt` exists OR `ANS_*` env vars             | Run unconfigured onboarding shell          |
+| `demo`         | No config, no `GOPHER_CUSTOM_REPOSITORY`                | Run the default demo robot                 |
 | `bootstrap`    | `GOPHER_CUSTOM_REPOSITORY` set but no config yet        | Clone custom config repo                   |
-| `ide`          | `GOPHER_IDE` env var set                                | Local development                          |
-| `ide-override` | IDE mode with override flag                             | IDE but connect to real chat               |
-| `production`   | Config exists, not IDE                                  | Normal operation                           |
+| `production`   | Config exists for configured robot                      | Normal operation                           |
 
 ## Robot Identity and Bootstrap Model
 
@@ -113,12 +96,29 @@ Bootstrap path (first configured start):
 1. Startup mode resolves to `bootstrap` when `GOPHER_CUSTOM_REPOSITORY` is set but local config is absent (`detectStartupMode` in `bot/config_load.go`).
 2. Default config selects `nullconn` for bootstrap mode and schedules `go-bootstrap` at `@init` (see `conf/robot.yaml`).
 3. `go-bootstrap` (`gojobs/go-bootstrap/go_bootstrap_job.go`) validates required parameters (notably `GOPHER_CUSTOM_REPOSITORY`, `GOPHER_DEPLOY_KEY`), clones the custom repo, and queues `restart-robot`.
-4. Process restarts and startup mode becomes `production` (or `ide`/`ide-override` depending on env).
+4. Process restarts and startup mode becomes `production`.
 
 Connector config implication:
 
 - Installed defaults under `gopherbot/conf/` include only stock connector templates shipped with the engine.
 - Connectors like Slack are normally configured in the custom robot repository under `conf/protocols/`.
+
+### Custom Robot Environment Selection (`GOPHER_ENVIRONMENT`)
+
+For robots created from `robot.skel`, custom configuration is environment-driven:
+
+- `custom/conf/robot.yaml` includes `conf/environments/<environment>.yaml`.
+- `GOPHER_ENVIRONMENT` selects the environment file (default `development`).
+- Environment files define runtime defaults for that robot environment (for example protocol, brain, log destination).
+
+Representative custom robot template pattern:
+
+```yaml
+{{ $environment := env "GOPHER_ENVIRONMENT" | default "development" }}
+{{ printf "environments/%s.yaml" $environment | .Include }}
+```
+
+This is distinct from installed engine defaults (`gopherbot/conf/robot.yaml`), which still use startup mode logic to bootstrap/demo/test behavior before or without a custom robot repository.
 
 ## Configuration Template Processing
 
@@ -141,13 +141,9 @@ The default `robot.yaml` uses Go templates to derive configuration values from s
   {{- $proto = "nullconn" }}
   {{- $brain = "mem" }}
   {{- $logdest = "stdout" }}
-{{- else if or (eq $mode "ide") (eq $mode "test-dev") }}
-  {{- if eq $mode "test-dev" }}
-    {{- if IsTestBuild }}
+{{- else if eq $mode "test-dev" }}
+  {{- if IsTestBuild }}
   {{- $proto = "terminal" }}
-    {{- else }}
-  {{- $proto = "ssh" }}
-    {{- end }}
   {{- else }}
   {{- $proto = "ssh" }}
   {{- end }}
@@ -244,7 +240,7 @@ if encryptionInitialized {
         // These modes REQUIRE encryption
         Log(robot.Fatal, "unable to initialize encryption...")
     default:
-        // demo, setup, ide, test-dev: create temporary key
+        // demo and test-dev: create temporary key
         bk := make([]byte, 32)
         crand.Read(bk)
         cryptKey.Lock()
@@ -300,15 +296,15 @@ Related map: `aidocs/EXTENSION_SURFACES.md`.
 ### Conditional Loading in `conf/robot.yaml`
 
 ```yaml
-## go-bootstrap only runs when NOT in demo/setup mode
-{{- if not (or (eq $mode "demo") (eq $mode "setup")) }}
+## go-bootstrap only runs when NOT in demo mode
+{{- if ne $mode "demo" }}
 ScheduledJobs:
 - Name: go-bootstrap
   Schedule: "@init"
 {{- end }}
 
-## welcome/onboarding hooks only load in demo/setup mode
-{{- if or (eq $mode "demo") (eq $mode "setup") }}
+## welcome/onboarding hooks only load in demo mode
+{{- if eq $mode "demo" }}
   {{- if or (eq $proto "terminal") (eq $proto "ssh") }}
   "welcome":
     Path: plugins/welcome.lua

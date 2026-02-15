@@ -11,7 +11,7 @@
 ## env "ENV_VAR":
 ##   look a value up from the environment
 ## SetEnv "ENV_VAR" "value"
-##   override an environment variable setting for IDE mode (see usage below)
+##   override an environment variable setting during template expansion
 ##   -> Note that this is really mainly useful in default configuration,
 ##      since default is always loaded before custom config.
 ## decrypt "<encrypted string>":
@@ -22,13 +22,10 @@
 ## GetStartupMode:
 ##   Examine the execution environment to determine settings for protocol,
 ##   brain and log destination. Possible values:
-##   * setup - no configuration but setup markers present (answerfile/ANS env)
 ##   * demo - no configuration or env vars, starts the default robot
 ##   * test-dev - using config dir in gopherbot/test for creating integration tests
 ##   * bootstrap - env vars (e.g. GOPHER_CUSTOM_REPOSITORY) set, but no config yet
 ##   * cli - gopherbot CLI command, not starting a real robot
-##   * ide - running in the gopherbot IDE for local dev
-##   * ide-override - running in the IDE, but robot should connect to team chat
 ##   * production - env vars set and config repo cloned, the most "normal" start-up
 
 ## Port to listen on for http/JSON api calls, for external plugins.
@@ -37,7 +34,7 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
 
 {{- $mode := GetStartupMode }}
 
-## Defaults for "production" and "ide-override" modes
+## Defaults for "production" mode
 ## Protocol - almost always overriden by GOPHER_PROTOCOL
 {{- $proto := env "GOPHER_PROTOCOL" | default "ssh" }}
 ## Brain - normally configured in a robot's custom
@@ -56,14 +53,10 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
   {{- $proto = "nullconn" }}
   {{- $brain = "mem"}}
   {{- $logdest = "stdout" }}
-## IDE mode, override protocol, brain, logdest
-{{- else if or (eq $mode "ide") (eq $mode "test-dev") }}
-  {{- if eq $mode "test-dev" }}
-    {{- if IsTestBuild }}
+## test-dev mode, override protocol, brain, logdest
+{{- else if eq $mode "test-dev" }}
+  {{- if IsTestBuild }}
   {{- $proto = "terminal" }}
-    {{- else }}
-  {{- $proto = "ssh" }}
-    {{- end }}
   {{- else }}
   {{- $proto = "ssh" }}
   {{- end }}
@@ -73,13 +66,6 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
   {{- else }}
   {{- $logdest = "stdout" }}
   {{- end }}
-{{- if eq $mode "ide" }}
-## Override environment variables that will affect a
-## robot's custom configuration loading
-  {{- SetEnv "GOPHER_PROTOCOL" "ssh" }}
-  {{- SetEnv "GOPHER_BRAIN" "mem" }}
-  {{- SetEnv "GOPHER_LOGDEST" "stdout" }}
-{{- end }}
 {{- end }}
 
 ## Possibly modified by GOPHER_HTTP_DEBUG, see below
@@ -153,7 +139,7 @@ NameSpaces:
 
 ParameterSets:
 
-{{- if not (or (eq $mode "demo") (eq $mode "setup")) }}
+{{- if ne $mode "demo" }}
 ScheduledJobs:
 - Name: go-bootstrap
   Schedule: "@init"
@@ -193,7 +179,7 @@ ExternalPlugins:
     Path: plugins/ssh-admin.sh
     Privileged: true
     NameSpace: ssh
-{{- if or (eq $mode "demo") (eq $mode "setup") }}
+{{- if eq $mode "demo" }}
   {{- if or (eq $proto "terminal") (eq $proto "ssh") }}
   "welcome":
     Description: Reserved onboarding hooks for unconfigured mode (startup stays quiet)
@@ -251,7 +237,7 @@ ExternalJobs:
   "ssh-job":
     Description: Wrapper for ssh jobs.
     Path: jobs/ssh-job.sh
-{{- if and (or (eq $mode "demo") (eq $mode "setup")) (eq $proto "ssh") }}
+{{- if and (eq $mode "demo") (eq $proto "ssh") }}
   "welcome-join":
     Description: Welcome users when they join the default SSH channel in unconfigured mode
     Path: jobs/go-welcome-join/welcome_join.go
