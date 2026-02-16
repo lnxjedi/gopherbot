@@ -3,6 +3,6 @@ AllChannels: true
 AllowDirect: true
 AuthorizeAllCommands: true
 AuthRequire: Helpdesk
-CommandMatchers:
+Commands:
 - Regex: (?i:go-sec-authall)
   Command: secauthall

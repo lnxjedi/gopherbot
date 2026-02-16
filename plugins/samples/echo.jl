@@ -9,10 +9,7 @@ robot = GopherbotV1.initialize_robot()
 function configure()
     yaml = raw"""
 ---
-Help:
-- Keywords: [ "echo" ]
-  Helptext: [ "(bot), echo <something> - tell the bot to say <something>" ]
-CommandMatchers:
+Commands:
 - Command: "echo"
   Regex: '(?i:echo ([^\n]*))'
 AllowedHiddenCommands:

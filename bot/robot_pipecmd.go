@@ -68,7 +68,7 @@ func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, a
 		}
 		cmsg := args[0]
 		matched := false
-		for _, matcher := range plugin.CommandMatchers {
+		for _, matcher := range plugin.Commands {
 			Log(robot.Trace, "Checking '%s' against '%s'", cmsg, matcher.Regex)
 			matches := matcher.re.FindAllStringSubmatch(cmsg, -1)
 			if matches != nil {
@@ -80,7 +80,7 @@ func (r Robot) pipeTask(pflavor pipeAddFlavor, ptype pipeAddType, name string, a
 			}
 		}
 		if !matched {
-			w.Log(robot.Error, "Command '%s' didn't match any CommandMatchers while adding plugin '%s' to pipeline", cmsg, name)
+			w.Log(robot.Error, "Command '%s' didn't match any Commands while adding plugin '%s' to pipeline", cmsg, name)
 			return robot.CommandNotMatched
 		}
 	} else {

@@ -161,9 +161,13 @@ Direct messages are buffered and replayed only to the sender/recipient.
 
 ## Hidden Messages
 
-- `/botname ...` sends a hidden message to the bot and returns hidden replies only to that user.
+- `/botname ...` sends a hidden message addressed by robot name and returns hidden replies only to that user.
+- `/...` (without bot name) is still hidden from other SSH users, but is not considered a name-addressed hidden command by engine policy.
 - `/ foo` sends nothing to others; emit `(INFO: '/' note to self message not sent to other users)`.
 - Hidden replies are prefixed with `private/` in the timestamp segment.
+- Engine-side hidden policy still applies:
+  - command must be listed in plugin `AllowedHiddenCommands`
+  - and hidden message must be robot-addressed (`/<botname> ...` for SSH, or connector-routed `BotMessage=true` in protocols like Slack slash commands).
 
 ## AI-Dev Injection and Retrieval
 
@@ -200,6 +204,7 @@ Conversation notes from live MCP interaction:
 
 - `/@user <message>` sends a one-shot DM to a user or the bot.
 - `|c` switches to a DM channel with the bot; `|c @user` switches to a DM channel with that user.
+- DMs with the bot are forwarded to engine as canonical `ConnectorMessage` events (`DirectMessage=true`).
 - User-to-user DMs are local to the SSH connector and **not** forwarded to the engine.
 - In user-to-user DMs, `/` commands are rejected with a warning.
 - User names in the roster must be lower-case; uppercase roster entries are rejected with an error log.

@@ -1,10 +1,13 @@
 ---
-Help:
-- Keywords: [ "*", "help" ]
-  Helptext: [ "(alias) help with robot - give general help on the help system and using the robot" ]
-CommandMatchers:
+Commands:
 - Command: help
   Regex: '(?i:help with (?:help|robot))'
+  Keywords: [ "*", "help" ]
+  Usage: "(alias) help with robot"
+  Summary: "give general help on the help system and using the robot"
+  Examples:
+  - "(alias) help with robot"
+  Helptext: [ "(alias) help with robot - give general help on the help system and using the robot" ]
 MessageMatchers:
 - Command: help
   Regex: '^(?i:help)$'

@@ -609,6 +609,12 @@ func (sc *sshConnector) GetProtocolUserAttribute(u, attr string) (value string, 
 }
 
 func (sc *sshConnector) FormatHelp(input string) string {
+	for _, prefix := range []string{"Usage: ", "Example: ", "Try: "} {
+		if strings.HasPrefix(input, prefix) {
+			rest := strings.TrimSpace(strings.TrimPrefix(input, prefix))
+			return prefix + "*" + rest + "*"
+		}
+	}
 	arr := strings.SplitN(input, " - ", 2)
 	if len(arr) != 2 {
 		return "*" + input + "*"

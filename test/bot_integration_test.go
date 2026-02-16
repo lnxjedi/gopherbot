@@ -4,9 +4,11 @@
 package tbot_test
 
 import (
+	"strings"
 	"testing"
 
 	. "github.com/lnxjedi/gopherbot/v2/bot"
+	testc "github.com/lnxjedi/gopherbot/v2/connectors/test"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/groups"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/help"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
@@ -24,6 +26,7 @@ func TestBotName(t *testing.T) {
 	tests := []testItem{
 		{aliceID, null, "ping, bender", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";ping", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, null, "/ping", false, []TestMessage{{alice, null, "Sorry, hidden commands must be addressed as '/bender <command>'", false}}, []Event{BotDirectMessage}, 0},
 		{aliceID, null, "bender ping", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, "ping", false, []TestMessage{{alice, null, "PONG", false}}, []Event{BotDirectMessage, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "ping, bender", false, []TestMessage{{alice, general, "PONG", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
@@ -143,11 +146,11 @@ func TestBuiltins(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest-builtins.log", t)
 
 	tests := []testItem{
-		{aliceID, general, ";help log", false, []TestMessage{{null, general, "direct message only", true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";help log", false, []TestMessage{{null, general, `(?s:Command matches for keyword: log.*Availability: direct message only)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log lines to 0", false, []TestMessage{{alice, null, "Lines per page of log output set to: 1", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, null, ";set log lines to 3", false, []TestMessage{{alice, null, "Lines per page of log output set to: 3", false}}, []Event{BotDirectMessage, AdminCheckPassed, CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, general, ";help info", false, []TestMessage{{null, general, `;.*admins.*`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, random, ";help ruby", false, []TestMessage{{null, random, `prove that ruby plugins work \(channels: random\)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";help info", false, []TestMessage{{null, general, `(?s:Command matches for keyword: info.*Summary: .*admins.*)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, random, ";help ruby", false, []TestMessage{{null, random, `(?s:Command matches for keyword: ruby.*Availability: channels: random)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "help", false, []TestMessage{{null, general, "Hi,.*", true}}, []Event{AmbientTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";whoami", false, []TestMessage{{null, general, "you are 'test' user 'alice/u0001', speaking in channel 'general/#general', email address: alice@example.com", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		// NOTE: Dumps are all format = Fixed, which for the test connector is ALL CAPS
@@ -202,6 +205,7 @@ func TestDevel(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
+		{aliceID, general, ";create a new grocery list", false, []TestMessage{{null, general, `(?s:No command matched in channel 'general'.*Closest matches.*\[lists\] add.*Usage: ;add <item> to the <type> list)`, true}}, []Event{CatchAllsRan, CatchAllTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";add bananas to the grocery list", false, []TestMessage{{alice, general, "I don't have a 'grocery' list, do you want to create it?", false}}, []Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, "yes", false, []TestMessage{{null, general, "Ok, I created a new grocery list and added bananas to it", false}}, []Event{}, 0},
 	}
@@ -214,13 +218,44 @@ func TestHelp(t *testing.T) {
 	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
 
 	tests := []testItem{
-		// Took a while to get the regex right; should be # of help msgs * 2 - 1; e.g. 10 lines -> 19
-		// NOTE: the default 'help' output is now too long for in-channel reply
-		{aliceID, deadzone, ";help", false, []TestMessage{{null, deadzone, `(?s:Command\(s\) available in this channel:\n;help <keyword> - get help for the provided <keyword>\n\n;help-all - help for all commands available in this channel, including global commands)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";help-all", false, []TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){39}[^\n]*$)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";help help", false, []TestMessage{{null, deadzone, `(?s:^Command(?:[^\n]*\n){5}[^\n]*$)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help", false, []TestMessage{{null, deadzone, `(?s:Quick help:\n;help <keyword> - get help for the provided <keyword>\n;commands - browse command groups available in this channel\n;help-all - help for all commands available in this channel, including global commands)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";commands", false, []TestMessage{{null, deadzone, `(?s:Command groups available in this channel:.*Try: ;help <plugin\|command\|keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help-all", false, []TestMessage{{null, deadzone, `(?s:Commands available in this channel \(including global\):.*\[builtin-help\] help.*Usage: ;help <keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help help", false, []TestMessage{{null, deadzone, `(?s:Command matches for keyword: help.*\[builtin-help\] help.*Usage: ;help <keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 
 	teardown(t, done, conn)
+}
+
+func TestHelpGroupFiltering(t *testing.T) {
+	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
+	defer teardown(t, done, conn)
+
+	getHelpReply := func(user string) string {
+		GetEvents()
+		conn.SendBotMessage(&testc.TestMessage{User: user, Channel: general, Message: ";help lists", Threaded: false, Hidden: false})
+		reply, err := conn.GetBotMessage()
+		if err != nil {
+			t.Fatalf("timeout waiting for help reply: %v", err)
+		}
+		if reply.Channel != general || !reply.Threaded {
+			t.Fatalf("expected threaded help reply in #%s, got channel=%q threaded=%t", general, reply.Channel, reply.Threaded)
+		}
+		GetEvents()
+		return reply.Message
+	}
+
+	aliceHelp := getHelpReply(aliceID)
+	if !strings.Contains(aliceHelp, "[lists] add") {
+		t.Fatalf("expected lists help output for alice to include at least one lists command, got: %q", aliceHelp)
+	}
+	if strings.Contains(aliceHelp, "[lists] send") {
+		t.Fatalf("expected help to hide unauthorized command '[lists] send' for alice, got: %q", aliceHelp)
+	}
+
+	bobHelp := getHelpReply(bobID)
+	if !strings.Contains(bobHelp, "[lists] send") {
+		t.Fatalf("expected help to include authorized command '[lists] send' for bob, got: %q", bobHelp)
+	}
 }

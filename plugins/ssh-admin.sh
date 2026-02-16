@@ -8,16 +8,27 @@ shift
 
 configure(){
 	cat <<"EOF"
-Help:
-- Keywords: [ "ssh", "keygen", "key", "replace", "keypair" ]
-  Helptext: [ "(bot), generate|replace keypair - create an ssh keypair for the robot" ]
-- Keywords: [ "ssh", "pubkey", "public", "key" ]
-  Helptext: [ "(bot), (show) pubkey - show the robot's public key" ]
-CommandMatchers:
+Commands:
 - Command: keypair
   Regex: '(?i:(generate|replace) keypair)'
+  Keywords: [ "ssh", "keygen", "key", "replace", "keypair" ]
+  Usage: "(bot), generate keypair"
+  Summary: "Creates or replaces the robot's SSH keypair."
+  Examples:
+  - ";generate keypair"
+  - "robot, replace keypair"
+  Helptext:
+  - "(bot), generate|replace keypair - create an ssh keypair for the robot"
 - Command: pubkey
   Regex: '(?i:(show[ -])?pubkey)'
+  Keywords: [ "ssh", "pubkey", "public", "key" ]
+  Usage: "(bot), show pubkey"
+  Summary: "Displays the robot's SSH public key."
+  Examples:
+  - ";pubkey"
+  - "robot, show pubkey"
+  Helptext:
+  - "(bot), (show) pubkey - show the robot's public key"
 EOF
 }
 

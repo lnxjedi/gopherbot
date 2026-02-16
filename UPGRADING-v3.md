@@ -135,3 +135,56 @@ These commands are available from the primary protocol:
 - `protocol-start <name>` or `protocol start <name>`
 - `protocol-stop <name>` or `protocol stop <name>`
 - `protocol-restart <name>` or `protocol restart <name>`
+
+## Plugin Command/Help Metadata Migration
+
+v3 help/discovery uses command-linked metadata under each command matcher.
+
+- Directed-command key in plugin config: `Commands`.
+- Legacy directed-command key `CommandMatchers` is no longer supported.
+- Legacy top-level plugin `Help` is no longer supported.
+
+Recommended command entry fields:
+
+- `Command`, `Regex`
+- `Usage`, `Summary`
+- optional `Examples`, `Keywords`, `Helptext`
+
+## Built-in Help and Fallback Behavior
+
+Built-in help commands are now metadata-driven:
+
+- `(alias) help <keyword>`: ranked command search
+- `(alias) commands`: command groups available in current channel
+- `(alias) help-all`: detailed command list including global commands
+
+Built-in unmatched-command fallback now returns algorithmic closest matches using the same command metadata and ranking logic.
+
+## Authorizer `usergroups` Contract (Help Filtering)
+
+For group-aware help visibility, authorizer plugins can implement an optional:
+
+- `usergroups <username> <result_parameter>`
+
+Expected behavior:
+
+- return `Success` and set `result_parameter` via `SetParameter(...)` to a JSON array of group names, e.g. `["Helpdesk","Ops"]`
+- return `NotFound` when group membership is intentionally unknown/indeterminate (for example, slow external policy checks)
+- errors are treated the same as indeterminate membership for help filtering
+
+Help/fallback filtering behavior:
+
+- if `usergroups` returns usable groups, commands requiring auth are filtered by `AuthRequire`
+- if `usergroups` is not implemented, returns `NotFound`, or errors, help output is not group-filtered (no-filter fallback)
+
+## Hidden Command Addressing
+
+Hidden command execution now requires both:
+
+- command is listed in plugin `AllowedHiddenCommands`
+- hidden message is robot-addressed:
+  - connector-routed bot message (`BotMessage=true`, e.g. Slack slash command), or
+  - name-addressed hidden message (`/<botname> <command>` in connectors like SSH)
+
+Practical migration note:
+- plain hidden `/<command>` is not treated as a robot-addressed hidden command by default.

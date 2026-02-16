@@ -30,12 +30,7 @@ local Robot = gopherbot.Robot
 
 local default_config = [[
 ---
-Help:
-- Keywords: [ "privsep", "lua" ]
-  Helptext:
-  - "(bot), privsep lua priv - run built-in lua privsep probe in #general"
-  - "(bot), privsep lua unpriv - run built-in lua privsep probe in #random"
-CommandMatchers: []
+Commands: []
 ]]
 
 local sensitive_keys = {

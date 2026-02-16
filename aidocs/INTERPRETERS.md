@@ -69,6 +69,8 @@ callTask()
 
 ## Plugin Contract by Language
 
+Config key note: in v3 plugin config, directed command matchers must be under `Commands`. Legacy `CommandMatchers` and top-level `Help` are no longer accepted.
+
 ### Lua Plugins
 
 **Entry point:** Script is executed directly; check `arg[1]` for command.
@@ -82,10 +84,7 @@ local command = arg[1]
 if command == "configure" then
     -- MUST return a string (YAML config or empty "")
     return [[
-Help:
-- Keywords: [ "example" ]
-  Helptext: [ "(bot), example - do something" ]
-CommandMatchers:
+Commands:
 - Regex: '(?i:example)'
   Command: example
 ]]
@@ -128,10 +127,7 @@ const command = argv[1];
 if (command === "configure") {
     // Return YAML config string
     return `
-Help:
-- Keywords: [ "example" ]
-  Helptext: [ "(bot), example - do something" ]
-CommandMatchers:
+Commands:
 - Regex: '(?i:example)'
   Command: example
 `;
@@ -171,10 +167,7 @@ package main
 import "github.com/lnxjedi/gopherbot/robot"
 
 var defaultConfig = []byte(`
-Help:
-- Keywords: [ "example" ]
-  Helptext: [ "(bot), example - do something" ]
-CommandMatchers:
+Commands:
 - Regex: '(?i:example)'
   Command: example
 `)
@@ -220,10 +213,7 @@ shift
 case "$command" in
     "configure")
         cat << 'EOF'
-Help:
-- Keywords: [ "example" ]
-  Helptext: [ "(bot), example - do something" ]
-CommandMatchers:
+Commands:
 - Regex: '(?i:example)'
   Command: example
 EOF
@@ -251,10 +241,7 @@ command = sys.argv[1]
 
 if command == "configure":
     print("""
-Help:
-- Keywords: [ "example" ]
-  Helptext: [ "(bot), example - do something" ]
-CommandMatchers:
+Commands:
 - Regex: '(?i:example)'
   Command: example
 """)
@@ -276,10 +263,7 @@ command = ARGV[0]
 case command
 when "configure"
     puts <<~EOF
-Help:
-- Keywords: [ "example" ]
-  Helptext: [ "(bot), example - do something" ]
-CommandMatchers:
+Commands:
 - Regex: '(?i:example)'
   Command: example
 EOF

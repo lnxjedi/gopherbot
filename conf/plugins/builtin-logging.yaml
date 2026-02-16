@@ -1,21 +1,37 @@
 ---
 DirectOnly: true
 RequireAdmin: true
-Help:
-- Keywords: [ "log", "logs", "level" ]
-  Helptext: [ "(alias) set-loglevel to <trace|debug|info|warning|error> - adjust the logging verbosity" ]
-- Keywords: [ "show", "log", "logs" ]
-  Helptext: [ "(alias) show-log (page X) - display the last or Xth previous page of log output" ]
-- Keywords: [ "show", "log", "logs", "level" ]
-  Helptext: [ "(alias) show-loglevel - show the current logging level" ]
-- Keywords: [ "log", "page", "lines" ]
-  Helptext: [ "(alias) set-loglines to <number> - set the number of lines returned by show log"]
-CommandMatchers:
+Commands:
 - Command: "level"
   Regex: '(?i:set[- ]log ?level(?: to)? (trace|debug|info|warn|error))'
+  Keywords: [ "log", "logs", "level" ]
+  Usage: "(alias) set-loglevel to <trace|debug|info|warning|error>"
+  Summary: "adjust the logging verbosity"
+  Examples:
+  - "(alias) set-loglevel debug"
+  Helptext: [ "(alias) set-loglevel to <trace|debug|info|warning|error> - adjust the logging verbosity" ]
 - Command: "show"
   Regex: '(?i:show[- ]logs?(?: page (\d+))?)'
+  Keywords: [ "show", "log", "logs" ]
+  Usage: "(alias) show-log (page X)"
+  Summary: "display the last or Xth previous page of log output"
+  Examples:
+  - "(alias) show-log"
+  - "(alias) show-log page 2"
+  Helptext: [ "(alias) show-log (page X) - display the last or Xth previous page of log output" ]
 - Command: "showlevel"
   Regex: '(?i:show[- ](?:log[- ]?)?level)'
+  Keywords: [ "show", "log", "logs", "level" ]
+  Usage: "(alias) show-loglevel"
+  Summary: "show the current logging level"
+  Examples:
+  - "(alias) show-loglevel"
+  Helptext: [ "(alias) show-loglevel - show the current logging level" ]
 - Command: "setlines"
   Regex: '(?i:set[- ]log[- ]?lines(?: to)? (\d+))'
+  Keywords: [ "log", "page", "lines" ]
+  Usage: "(alias) set-loglines to <number>"
+  Summary: "set the number of lines returned by show log"
+  Examples:
+  - "(alias) set-loglines to 200"
+  Helptext: [ "(alias) set-loglines to <number> - set the number of lines returned by show log" ]

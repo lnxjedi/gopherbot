@@ -2,7 +2,7 @@
 # Sample overlay for plugins/samples/privsep_probe.py
 # Requires robot.yaml entry name: "privsep-external-unpriv"
 Channels: [ "random" ]
-CommandMatchers:
+Commands:
 - Regex: (?i:privsep external unpriv)
   Command: probe
 

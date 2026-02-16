@@ -13,24 +13,7 @@
 -- Default YAML configuration for this plugin
 local defaultConfig = [[
 ---
-Help:
-- Keywords: [ "lua" ]
-  Helptext: [ "(bot), lua (me!) - prove that lua plugins work" ]
-- Keywords: [ "listen" ]
-  Helptext: [ "(bot), listen (to me?) - ask a question" ]
-- Keywords: [ "thread" ]
-  Helptext: [ "(bot), lua-thread - ask the robot to start a new thread" ]
-- Keywords: [ "thread" ]
-  Helptext: [ "(bot), lua-ask-thread - ask a question in a thread" ]
-- Keywords: [ "remember", "memory" ]
-  Helptext: [ "(bot), remember <anything> - prove the robot has a brain(tm)" ]
-- Keywords: [ "recall", "memory" ]
-  Helptext: [ "(bot), recall - list or recall a certain memory" ]
-- Keywords: [ "forget", "memory" ]
-  Helptext: [ "(bot), forget <#> - ask the robot to forget one of its remembered 'facts'" ]
-- Keywords: [ "check" ]
-  Helptext: [ "(bot), check me - get the bot to check you out" ]
-CommandMatchers:
+Commands:
 - Regex: (?i:lua( me)?!?)
   Command: lua
 - Regex: (?i:lua-thread)

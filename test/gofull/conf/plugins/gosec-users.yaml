@@ -3,6 +3,6 @@ AllChannels: true
 AllowDirect: true
 Users:
 - alice
-CommandMatchers:
+Commands:
 - Regex: (?i:go-sec-usersonly)
   Command: secusersonly

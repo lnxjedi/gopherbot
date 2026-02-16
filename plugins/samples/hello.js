@@ -3,10 +3,7 @@
 
 // Define the default configuration as a YAML string
 const defaultConfig = `---
-Help:
-  - Keywords: [ "js" ]
-    Helptext: [ "(bot), hello js - trigger JavaScript hello world" ]
-CommandMatchers:
+Commands:
   - Regex: (?i:hello js)
     Command: js
 `;

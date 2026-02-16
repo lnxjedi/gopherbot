@@ -110,16 +110,15 @@ type ScheduledTask struct {
 	TaskSpec `yaml:",inline"` // Inlines TaskSpec fields
 }
 
-// PluginHelp specifies keywords and help text for the bot help system
-type PluginHelp struct {
-	Keywords []string `yaml:"Keywords"` // Match words for 'help XXX'
-	Helptext []string `yaml:"Helptext"` // Help string for the keywords, conventionally starting with (bot) for commands or (hear) for general messages
-}
-
 // InputMatcher specifies the command or message to match for a plugin
 type InputMatcher struct {
 	Regex       string         `yaml:"Regex"`       // The regular expression string to match - bot adds ^\w* & \w*$
 	Command     string         `yaml:"Command"`     // The name of the command to pass to the plugin with its arguments
+	Usage       string         `yaml:"Usage"`       // Canonical usage text for help output
+	Summary     string         `yaml:"Summary"`     // Short command description for help output
+	Examples    []string       `yaml:"Examples"`    // Optional examples for this command
+	Keywords    []string       `yaml:"Keywords"`    // Optional help search keywords tied to this command matcher
+	Helptext    []string       `yaml:"Helptext"`    // Optional help lines tied to this command matcher
 	Label       string         `yaml:"Label"`       // ReplyMatchers use "Label" instead of "Command"
 	ChannelOnly bool           `yaml:"ChannelOnly"` // Whether this matcher only applies in the main channel (not a thread)
 	Contexts    []string       `yaml:"Contexts"`    // Labels for capture groups, for supporting "it" & optional args
@@ -188,8 +187,7 @@ type Plugin struct {
 	AuthorizedCommands       []string       `yaml:"AuthorizedCommands"`       // Which commands to authorize
 	AllowedHiddenCommands    []string       `yaml:"AllowedHiddenCommands"`    // Which commands are allowed to be hidden
 	AuthorizeAllCommands     bool           `yaml:"AuthorizeAllCommands"`     // When ALL commands need to be authorized
-	Help                     []PluginHelp   `yaml:"Help"`                     // All the keyword sets/help texts for this plugin
-	CommandMatchers          []InputMatcher `yaml:"CommandMatchers"`          // Input matchers for messages that need to be directed to the bot
+	Commands                 []InputMatcher `yaml:"Commands"`                 // Input matchers for messages that need to be directed to the bot
 	MessageMatchers          []InputMatcher `yaml:"MessageMatchers"`          // Input matchers for messages the bot hears even when it’s not being spoken to
 	AmbientMatchCommand      bool           `yaml:"AmbientMatchCommand"`      // Whether message matchers should also match when isCommand is true
 	CatchAll                 bool           `yaml:"CatchAll"`                 // Plugins with CatchAll=true get called with command="catchall" and argument=<full message text to robot>

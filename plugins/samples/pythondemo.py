@@ -7,24 +7,7 @@ bot = Robot()
 
 default_config = '''
 ---
-Help:
-- Keywords: [ "python" ]
-  Helptext: [ "(bot), python (me!) - prove that python plugins work" ]
-- Keywords: [ "listen" ]
-  Helptext: [ "(bot), listen (to me!) - ask a question" ]
-- Keywords: [ "thread" ]
-  Helptext: [ "(bot), python-thread - ask the robot to start a new thread" ]
-- Keywords: [ "thread" ]
-  Helptext: [ "(bot), python-ask-thread - ask a question in a thread" ]
-- Keywords: [ "remember", "memory" ]
-  Helptext: [ "(bot), remember <anything> - prove the robot has a brain(tm)" ]
-- Keywords: [ "recall", "memory" ]
-  Helptext: [ "(bot), recall - prove the robot has a brain(tm)" ]
-- Keywords: [ "forget", "memory" ]
-  Helptext: [ "(bot), forget <#> - ask the robot to forget one of it's remembered 'facts'" ]
-- Keywords: [ "check" ]
-  Helptext: [ "(bot), check me - get the bot to check you out" ]
-CommandMatchers:
+Commands:
 - Regex: (?i:python( me)?!?)
   Command: python
 - Regex: (?i:python-ask-thread)

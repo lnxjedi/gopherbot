@@ -472,17 +472,22 @@ func duocommands(r robot.Robot, command string, args ...string) (retval robot.Ta
 
 var defaultConfig = []byte(`
 AllChannels: true
-Help:
-- Keywords: [ "duo" ]
-  Helptext: [ "(bot), configure duo - remember a duo device and method to always use" ]
+Commands:
+- Command: duoconf
+  Regex: (?i:config(?:ure)? duo)
+  Keywords: [ "duo" ]
+  Usage: "(bot), configure duo"
+  Summary: "Prompts for preferred Duo device/method and remembers it for approvals."
+  Examples:
+  - ";configure duo"
+  - "robot, config duo"
+  Helptext:
+  - "(bot), configure duo - remember a duo device and method to always use"
 ReplyMatchers:
 - Label: singleDigit
   Regex: '\d'
 - Label: multiDigit
   Regex: '\d+'
-CommandMatchers:
-- Command: duoconf
-  Regex: (?i:config(?:ure)? duo)
 Config:
   TimeoutSeconds: 7200
   TimeoutType: idle # or absolute

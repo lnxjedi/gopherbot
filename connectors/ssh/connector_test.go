@@ -232,6 +232,16 @@ func TestDMLabelVariants(t *testing.T) {
 	}
 }
 
+func TestFormatHelp(t *testing.T) {
+	sc := &sshConnector{}
+	if got := sc.FormatHelp("(alias) help <keyword> - find help"); got != "*(alias) help <keyword>* - find help" {
+		t.Fatalf("FormatHelp() dash format = %q", got)
+	}
+	if got := sc.FormatHelp("Usage: (alias) help <keyword>"); got != "Usage: *(alias) help <keyword>*" {
+		t.Fatalf("FormatHelp() usage format = %q", got)
+	}
+}
+
 func TestHandleUserInputDirectToBot(t *testing.T) {
 	h := &testHandler{}
 	sc := &sshConnector{

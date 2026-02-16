@@ -3,6 +3,6 @@ AllChannels: true
 AllowDirect: true
 Users:
 - alice
-CommandMatchers:
+Commands:
 - Regex: (?i:js-sec-usersonly)
   Command: secusersonly

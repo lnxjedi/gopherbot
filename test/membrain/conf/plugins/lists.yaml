@@ -1,0 +1,7 @@
+---
+# Keep defaults from plugins/go-lists/lists.go and only add auth constraints
+# for integration testing help filtering.
+Authorizer: groups
+AuthRequire: Helpdesk
+AuthorizedCommands:
+- send

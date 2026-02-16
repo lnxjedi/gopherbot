@@ -3,7 +3,9 @@
 package groups
 
 import (
+	"encoding/json"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -43,6 +45,25 @@ func addnew(list []string, item string) ([]string, bool) {
 	return list, add
 }
 
+func userInGroup(user string, cfgspec, memspec groupSpec) bool {
+	for _, member := range cfgspec.Administrators {
+		if user == member {
+			return true
+		}
+	}
+	for _, member := range cfgspec.Users {
+		if user == member {
+			return true
+		}
+	}
+	for _, member := range memspec.Users {
+		if user == member {
+			return true
+		}
+	}
+	return false
+}
+
 // Define the handler function
 func groups(r robot.Robot, command string, args ...string) (retval robot.TaskRetVal) {
 	m := r.GetMessage()
@@ -62,6 +83,45 @@ func groups(r robot.Robot, command string, args ...string) (retval robot.TaskRet
 	}
 
 	updated := false
+
+	if command == "usergroups" {
+		if len(args) < 2 {
+			r.Log(robot.Error, "groups/usergroups requires <username> and <parameter-key>")
+			return robot.ConfigurationError
+		}
+		user := strings.TrimSpace(args[0])
+		paramName := strings.TrimSpace(args[1])
+		if user == "" || paramName == "" {
+			r.Log(robot.Error, "groups/usergroups requires non-empty <username> and <parameter-key>")
+			return robot.ConfigurationError
+		}
+
+		userGroups := make([]string, 0, len(groupCfg.Groups))
+		for groupName, cfg := range groupCfg.Groups {
+			var dynamic groupSpec
+			_, _, checkoutRet := r.CheckoutDatum(groupName, &dynamic, false)
+			if checkoutRet != robot.Ok {
+				// For help filtering, this is treated as an indeterminate lookup.
+				r.Log(robot.Warn, "groups/usergroups couldn't load dynamic group '%s': %s", groupName, checkoutRet)
+				return robot.NotFound
+			}
+			if userInGroup(user, cfg, dynamic) {
+				userGroups = append(userGroups, groupName)
+			}
+		}
+		sort.Strings(userGroups)
+
+		payload, err := json.Marshal(userGroups)
+		if err != nil {
+			r.Log(robot.Error, "groups/usergroups couldn't marshal group list: %s", err)
+			return robot.MechanismFail
+		}
+		if !r.SetParameter(paramName, string(payload)) {
+			r.Log(robot.Error, "groups/usergroups couldn't set result parameter '%s'", paramName)
+			return robot.ConfigurationError
+		}
+		return robot.Success
+	}
 
 	// Get the group name from arguments
 	switch command {
@@ -214,23 +274,7 @@ func groups(r robot.Robot, command string, args ...string) (retval robot.TaskRet
 		}
 		r.Say("The %s group has the following members:\n%s", group, strings.Join(members, "\n"))
 	case "authorize":
-		isMember := false
-		for _, member := range cfgspec.Administrators {
-			if m.User == member {
-				isMember = true
-			}
-		}
-		for _, member := range cfgspec.Users {
-			if m.User == member {
-				isMember = true
-			}
-		}
-		for _, member := range memspec.Users {
-			if m.User == member {
-				isMember = true
-			}
-		}
-		if isMember {
+		if userInGroup(m.User, cfgspec, memspec) {
 			return robot.Success
 		}
 		return robot.Fail

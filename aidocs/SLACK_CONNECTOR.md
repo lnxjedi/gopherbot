@@ -1,13 +1,42 @@
 # Slack Connector Notes
 
-This file captures recent dependency-driven API shifts for the Slack connector.
+This file captures Slack connector behavior relevant to routing, hidden commands, and help rendering.
 
-## slack-go v0.17.x changes observed
+## Source Anchors
 
-- `api.GetBotInfo` now requires `slack.GetBotInfoParameters` (bot + team ID).
-- `slackevents.MessageEvent` no longer exposes attachments/timestamps directly;
-  use the embedded `Message` payload (`*slack.Msg`) for `Attachments`, `Timestamp`,
-  and `ThreadTimestamp`.
+- Registration/init: `connectors/slack/static.go`, `connectors/slack/connect.go`
+- Incoming message normalization: `connectors/slack/incomingMsgs.go`
+- Outgoing + help formatting hooks: `connectors/slack/connectorMethods.go`
+
+## Inbound Message Normalization
+
+- Standard channel/DM messages are passed as canonical `ConnectorMessage` values with:
+  - `BotMessage=false`
+  - `HiddenMessage=false`
+  - `DirectMessage` set from Slack channel type (`IM` vs channel).
+- Slash command events routed to this app are passed as:
+  - `BotMessage=true`
+  - `HiddenMessage=true`
+  - `MessageText=<slash payload text>`
+  - no thread metadata (slash commands are non-threaded inbound).
+
+## Hidden Command Semantics
+
+- Slack slash commands are platform-routed to one bot app, so connector sets `BotMessage=true`.
+- Engine hidden-command policy then treats slash payload as addressed-to-robot without requiring an explicit robot name in text.
+- Command still must be explicitly allowed by plugin `AllowedHiddenCommands`.
+
+## Help Rendering Hooks
+
+- Slack connector implements:
+  - `FormatHelp(string) string` for line-level Slack-friendly formatting
+  - `DefaultHelp() []string` to override no-keyword quick-help lines.
+- Built-in help plugin (`builtin-help`) uses these hooks so `help`, `commands`, and `help-all` output remains readable in Slack formatting.
+
+## slack-go v0.17.x Notes
+
+- `api.GetBotInfo` requires `slack.GetBotInfoParameters` (bot + team ID).
+- `slackevents.MessageEvent` no longer exposes attachments/timestamps directly; use embedded `Message` payload (`*slack.Msg`) for attachments and timestamps.
 
 ## Runtime Lifecycle Notes
 

@@ -15,24 +15,7 @@ override.
 =end
 defaultConfig = <<'DEFCONFIG'
 ---
-Help:
-- Keywords: [ "ruby" ]
-  Helptext: [ "(bot), ruby (me!) - prove that ruby plugins work" ]
-- Keywords: [ "listen" ]
-  Helptext: [ "(bot), listen (to me!) - ask a question" ]
-- Keywords: [ "thread" ]
-  Helptext: [ "(bot), ruby-thread - ask the robot to start a new thread" ]
-- Keywords: [ "thread" ]
-  Helptext: [ "(bot), ruby-ask-thread - ask a question in a thread" ]
-- Keywords: [ "remember", "memory" ]
-  Helptext: [ "(bot), remember <anything> - prove the robot has a brain(tm)" ]
-- Keywords: [ "recall", "memory" ]
-  Helptext: [ "(bot), recall - prove the robot has a brain(tm)" ]
-- Keywords: [ "forget", "memory" ]
-  Helptext: [ "(bot), forget <#> - ask the robot to forget one of it's remembered 'facts'" ]
-- Keywords: [ "check" ]
-  Helptext: [ "(bot), check me - get the bot to check you out" ]
-CommandMatchers:
+Commands:
 - Regex: (?i:ruby( me)?!?)
   Command: ruby
 - Regex: (?i:ruby-thread)

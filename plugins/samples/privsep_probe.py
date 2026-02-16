@@ -32,12 +32,7 @@ import sys
 from gopherbot_v2 import Robot
 
 DEFAULT_CONFIG = """---
-Help:
-- Keywords: [ "privsep", "external" ]
-  Helptext:
-  - "(bot), privsep external priv - run external privsep probe in #general"
-  - "(bot), privsep external unpriv - run external privsep probe in #random"
-CommandMatchers: []
+Commands: []
 """
 
 SENSITIVE_KEYS = [

@@ -9,10 +9,7 @@ defaultConfig = <<'DEFCONFIG'
 Channels:
 - botdev
 AllowDirect: false
-Help:
-- Keywords: [ "format", "world" ]
-  Helptext: [ "(bot), format world - exercise formatting options" ]
-CommandMatchers:
+Commands:
 - Regex: '(?i:format world)'
   Command: "format"
 DEFCONFIG

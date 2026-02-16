@@ -97,12 +97,11 @@ require 'gopherbot_v1'
 bot = Robot.new()
 
 defaultConfig = <<'DEFCONFIG'
-Help:
-- Keywords: [ "weather" ]
-  Helptext: [ "(bot), weather in <city(,country) or zip code> - fetch the weather from OpenWeatherMap" ]
-CommandMatchers:
+Commands:
 - Command: weather
   Regex: '(?i:weather (?:in|for) (.+))'
+  Usage: "(bot), weather in <city(,country) or zip code>"
+  Summary: "fetch the weather from OpenWeatherMap"
 DEFCONFIG
 
 # NOTE: the required environment variables need to be supplied as

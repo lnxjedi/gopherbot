@@ -7,10 +7,7 @@ shift
 
 configure(){
   cat <<"EOF"
-Help:
-- Keywords: [ "hello", "world" ]
-  Helptext: [ "(bot), hello world - the usual first program" ]
-CommandMatchers:
+Commands:
 - Regex: '(?i:hello world)'
   Command: "hello"
 AmbientMatchCommand: true

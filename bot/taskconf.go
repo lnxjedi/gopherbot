@@ -311,7 +311,6 @@ LoadLoop:
 			var intval int
 			var boolval bool
 			var sarrval []string
-			var hval []PluginHelp
 			var mval []InputMatcher
 			var tval []JobTrigger
 			var val interface{}
@@ -327,9 +326,7 @@ LoadLoop:
 				val = &boolval
 			case "Channels", "ElevatedCommands", "ElevateImmediateCommands", "Users", "AuthorizedCommands", "AllowedHiddenCommands", "AdminCommands", "ParameterSets":
 				val = &sarrval
-			case "Help":
-				val = &hval
-			case "CommandMatchers", "ReplyMatchers", "MessageMatchers", "Arguments":
+			case "Commands", "ReplyMatchers", "MessageMatchers", "Arguments":
 				val = &mval
 			case "Triggers":
 				val = &tval
@@ -432,15 +429,9 @@ LoadLoop:
 				} else {
 					mismatch = true
 				}
-			case "Help":
+			case "Commands":
 				if isPlugin {
-					plugin.Help = *(val.(*[]PluginHelp))
-				} else {
-					mismatch = true
-				}
-			case "CommandMatchers":
-				if isPlugin {
-					plugin.CommandMatchers = *(val.(*[]InputMatcher))
+					plugin.Commands = *(val.(*[]InputMatcher))
 				} else {
 					mismatch = true
 				}
@@ -579,8 +570,8 @@ LoadLoop:
 
 		// Compile the regex's
 		if isPlugin {
-			for i := range plugin.CommandMatchers {
-				command := &plugin.CommandMatchers[i]
+			for i := range plugin.Commands {
+				command := &plugin.Commands[i]
 				regex := `^(?s:\s*` + command.Regex + `\s*)$`
 				re, err := regexp.Compile(regex)
 				if err != nil {
@@ -693,7 +684,7 @@ LoadLoop:
 				if len(cmd.clist) > 0 {
 					for _, i := range cmd.clist {
 						cmdfound := false
-						for _, j := range plugin.CommandMatchers {
+						for _, j := range plugin.Commands {
 							if i == j.Command {
 								cmdfound = true
 								break
@@ -708,7 +699,7 @@ LoadLoop:
 							}
 						}
 						if !cmdfound {
-							msg := fmt.Sprintf("Disabling %s, %s command %s didn't match a command from CommandMatchers or MessageMatchers", task.name, cmd.ctype, i)
+							msg := fmt.Sprintf("Disabling %s, %s command %s didn't match a command from Commands or MessageMatchers", task.name, cmd.ctype, i)
 							Log(robot.Error, msg)
 							task.Disabled = true
 							task.reason = msg

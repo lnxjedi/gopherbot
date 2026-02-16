@@ -10,10 +10,7 @@ configure(){
 Channels:
 - random
 AllowDirect: false
-Help:
-- Keywords: [ "hello", "world" ]
-  Helptext: [ "(bot), hello world - the usual first program" ]
-CommandMatchers:
+Commands:
 - Regex: '(?i:hello robot)'
   Command: "hello"
 EOF

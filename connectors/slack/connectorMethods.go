@@ -331,8 +331,14 @@ func (s *slackConnector) JoinChannel(c string) (ret robot.RetVal) {
 	return robot.Ok
 }
 
-// FormatHelp returns a helpline formatted for the terminal connector.
+// FormatHelp applies light Slack-friendly formatting to help lines.
 func (s *slackConnector) FormatHelp(input string) string {
+	for _, prefix := range []string{"Usage: ", "Example: ", "Try: "} {
+		if strings.HasPrefix(input, prefix) {
+			rest := strings.TrimSpace(strings.TrimPrefix(input, prefix))
+			return prefix + "`" + rest + "`"
+		}
+	}
 	arr := strings.SplitN(input, " - ", 2)
 	if len(arr) != 2 {
 		return "`" + input + "`"
@@ -343,6 +349,7 @@ func (s *slackConnector) FormatHelp(input string) string {
 func (s *slackConnector) DefaultHelp() []string {
 	return []string{
 		"/(bot) help <keyword> - get help for the provided <keyword>",
+		"/(bot) commands - browse command groups available in this channel",
 		"/(bot) help-all - help for all commands available in this channel, including global commands",
 	}
 }

@@ -1,20 +1,44 @@
 ---
 AllChannels: true
-Help:
-- Keywords: [ "info", "information", "robot", "admin", "administrators" ]
-  Helptext: [ "(alias) info | tell me about yourself - provide useful information for admins, or a list of admins" ]
-- Keywords: [ "*", "help" ]
+Commands:
+- Command: help
+  Regex: '(?i:help(?:\s+(.+))?)'
+  Keywords: [ "*", "help" ]
+  Usage: "(alias) help <keyword>"
+  Summary: "find help for commands matching <keyword>"
+  Examples:
+  - "(alias) help ping"
+  - "(alias) help"
   Helptext:
   - "(alias) help <keyword> - find help for commands matching <keyword>"
-  - "(alias) help - help for commands specific to this channel"
-CommandMatchers:
-- Command: help
-  Regex: '(?i:help(?: ([^\s]+))?)'
+  - "(alias) help - quick help and discovery pointers"
+- Command: commands
+  Regex: '(?i:commands?)'
+  Keywords: [ "help", "commands", "list", "browse" ]
+  Usage: "(alias) commands"
+  Summary: "browse command groups available in this channel"
+  Examples:
+  - "(alias) commands"
+  Helptext:
+  - "(alias) commands - browse command groups available in this channel"
 - Command: help-all
   Regex: '(?i:help-all)'
+  Keywords: [ "help", "all" ]
+  Usage: "(alias) help-all"
+  Summary: "help for all commands available in this channel, including global commands"
+  Examples:
+  - "(alias) help-all"
 - Command: info
   Regex: '(?i:info|tell me about yourself|about|information)'
+  Keywords: [ "info", "information", "robot", "admin", "administrators" ]
+  Usage: "(alias) info | tell me about yourself"
+  Summary: "provide useful information for admins, or a list of admins"
+  Examples:
+  - "(alias) info"
+  - "(alias) tell me about yourself"
+  Helptext: [ "(alias) info | tell me about yourself - provide useful information for admins, or a list of admins" ]
 AllowedHiddenCommands:
 - help
+- commands
 - help-all
 - info

@@ -19,7 +19,7 @@ ElevateImmediateCommands:
 - secimmediate
 AllowedHiddenCommands:
 - sechiddenok
-CommandMatchers:
+Commands:
 - Regex: (?i:python-sec-open)
   Command: secopen
 - Regex: (?i:python-sec-admincmd)

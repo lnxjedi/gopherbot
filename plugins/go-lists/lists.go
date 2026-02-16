@@ -12,51 +12,98 @@ import (
 
 var defaultConfig = []byte(`
 # For keeping simple shared lists of things
-Help:
-- Keywords: [ "list", "lists" ]
-  Helptext: [ "(bot), help with lists - give general help for using lists"]
-- Keywords: [ "list", "lists", "add" ]
-  Helptext: [ "(bot), add <item> to the <type> list - add something to a list" ]
-- Keywords: [ "list", "lists", "remove" ]
-  Helptext: [ "(bot), remove <item> from the <type> list - remove something from a list" ]
-- Keywords: [ "list", "lists", "empty" ]
-  Helptext: [ "(bot), empty the <type> list - remove all items from a list" ]
-- Keywords: [ "list", "lists", "delete" ]
-  Helptext: [ "(bot), delete the <type> list - remove the list altogether" ]
-- Keywords: [ "list", "lists" ]
-  Helptext: [ "(bot), list lists - give a list of all the lists the robot knows about" ]
-- Keywords: [ "list", "lists", "email", "send" ]
-  Helptext: [ "(bot), send me the <type> list - send a copy of the list by email" ]
-- Keywords: [ "list", "lists", "show", "view" ]
-  Helptext: [ "(bot), show the <type> list - show the contents of a list" ]
-- Keywords: [ "pick", "random", "lists", "list" ]
-  Helptext: [ "(bot), pick a random item from the <type> list"]
-CommandMatchers:
+Commands:
 - Command: 'help'
   Regex: '(?i:help with lists?)'
+  Keywords: [ "list", "lists", "help" ]
+  Usage: "(bot), help with lists"
+  Summary: "Shows detailed guidance for using the lists plugin."
+  Examples:
+  - ";help with lists"
+  - "robot, help with lists"
+  Helptext:
+  - "(bot), help with lists - give general help for using lists"
 - Command: 'add'
   Regex: '(?i:add ([-\w .,!?:\/''’"]+) to (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "item:it", "list" ]
+  Keywords: [ "list", "lists", "add" ]
+  Usage: "(bot), add <item> to the <type> list"
+  Summary: "Adds an item to a named list, prompting to create the list if needed."
+  Examples:
+  - ";add milk to the grocery list"
+  - "robot, add deploy checklist to the runbook list"
+  Helptext:
+  - "(bot), add <item> to the <type> list - add something to a list"
 - Command: 'list'
   Regex: '(?i:list lists)'
+  Keywords: [ "list", "lists" ]
+  Usage: "(bot), list lists"
+  Summary: "Lists all list names currently stored."
+  Examples:
+  - ";list lists"
+  Helptext:
+  - "(bot), list lists - give a list of all the lists the robot knows about"
 - Command: 'remove'
   Regex: '(?i:(?:remove|delete) ([-\w .,!?:\/''’"]+) from (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "item:it", "list" ]
+  Keywords: [ "list", "lists", "remove" ]
+  Usage: "(bot), remove <item> from the <type> list"
+  Summary: "Removes one item from a named list."
+  Examples:
+  - ";remove milk from the grocery list"
+  Helptext:
+  - "(bot), remove <item> from the <type> list - remove something from a list"
 - Command: 'empty'
   Regex: '(?i:(?:empty|clear) (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "list" ]
+  Keywords: [ "list", "lists", "empty" ]
+  Usage: "(bot), empty the <type> list"
+  Summary: "Clears all items from a list but keeps the list name."
+  Examples:
+  - ";empty the grocery list"
+  Helptext:
+  - "(bot), empty the <type> list - remove all items from a list"
 - Command: 'delete'
   Regex: '(?i:delete (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "list" ]
+  Keywords: [ "list", "lists", "delete" ]
+  Usage: "(bot), delete the <type> list"
+  Summary: "Deletes the entire list."
+  Examples:
+  - ";delete the grocery list"
+  Helptext:
+  - "(bot), delete the <type> list - remove the list altogether"
 - Command: 'show'
   Regex: '(?i:show (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "list" ]
+  Keywords: [ "list", "lists", "show", "view" ]
+  Usage: "(bot), show the <type> list"
+  Summary: "Displays all items in a list."
+  Examples:
+  - ";show the grocery list"
+  Helptext:
+  - "(bot), show the <type> list - show the contents of a list"
 - Command: 'pick'
   Regex: '(?i:(?:pick )(?:an? )?random (?:item )?(?:from )(?:the )?([-\w .,!?:\/''’"]+)?(?: list))'
   Contexts: [ "list" ]
+  Keywords: [ "pick", "random", "lists", "list" ]
+  Usage: "(bot), pick a random item from the <type> list"
+  Summary: "Picks one random item from a list."
+  Examples:
+  - ";pick a random item from the lunch list"
+  Helptext:
+  - "(bot), pick a random item from the <type> list"
 - Command: 'send'
   Regex: '(?i:(?:send me|email) (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
   Contexts: [ "list" ]
+  Keywords: [ "list", "lists", "email", "send" ]
+  Usage: "(bot), send me the <type> list"
+  Summary: "Emails a copy of a list to the requesting user."
+  Examples:
+  - ";send me the grocery list"
+  - "robot, email the oncall list"
+  Helptext:
+  - "(bot), send me the <type> list - send a copy of the list by email"
 `)
 
 func Configure() *[]byte {
