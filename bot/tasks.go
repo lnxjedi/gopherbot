@@ -189,6 +189,7 @@ type Plugin struct {
 	AllowedHiddenCommands    []string       `yaml:"AllowedHiddenCommands"`    // Which commands are allowed to be hidden
 	AuthorizeAllCommands     bool           `yaml:"AuthorizeAllCommands"`     // When ALL commands need to be authorized
 	Help                     []PluginHelp   `yaml:"Help"`                     // All the keyword sets/help texts for this plugin
+	Commands                 []InputMatcher `yaml:"Commands"`                 // Preferred key for directed command matchers
 	CommandMatchers          []InputMatcher `yaml:"CommandMatchers"`          // Input matchers for messages that need to be directed to the bot
 	MessageMatchers          []InputMatcher `yaml:"MessageMatchers"`          // Input matchers for messages the bot hears even when it’s not being spoken to
 	AmbientMatchCommand      bool           `yaml:"AmbientMatchCommand"`      // Whether message matchers should also match when isCommand is true

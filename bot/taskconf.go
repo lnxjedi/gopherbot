@@ -11,6 +11,22 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// normalizePluginCommandMatcherKeys keeps matcher key precedence deterministic while
+// supporting the v3 migration from "CommandMatchers" to "Commands".
+func normalizePluginCommandMatcherKeys(taskName string, tcfgload map[string]json.RawMessage) {
+	commands, hasCommands := tcfgload["Commands"]
+	if !hasCommands {
+		return
+	}
+	if legacy, hasLegacy := tcfgload["CommandMatchers"]; hasLegacy {
+		if strings.TrimSpace(string(commands)) != strings.TrimSpace(string(legacy)) {
+			Log(robot.Warn, "Plugin '%s' specifies both Commands and CommandMatchers; preferring Commands", taskName)
+		}
+	}
+	tcfgload["CommandMatchers"] = commands
+	delete(tcfgload, "Commands")
+}
+
 // loadTaskConfig() updates task/job/plugin configuration and namespaces/parametersets
 // from robot.yaml and external configuration, then updates the
 // globalTasks struct.
@@ -300,6 +316,9 @@ LoadLoop:
 				task.reason = msg
 				continue
 			}
+		}
+		if isPlugin {
+			normalizePluginCommandMatcherKeys(task.name, tcfgload)
 		}
 		// Boolean false values can be explicitly false, or default to false
 		// when not specified. In some cases that matters.
@@ -708,7 +727,7 @@ LoadLoop:
 							}
 						}
 						if !cmdfound {
-							msg := fmt.Sprintf("Disabling %s, %s command %s didn't match a command from CommandMatchers or MessageMatchers", task.name, cmd.ctype, i)
+							msg := fmt.Sprintf("Disabling %s, %s command %s didn't match a command from Commands/CommandMatchers or MessageMatchers", task.name, cmd.ctype, i)
 							Log(robot.Error, msg)
 							task.Disabled = true
 							task.reason = msg
