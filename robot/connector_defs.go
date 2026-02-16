@@ -121,8 +121,8 @@ type Connector interface {
 	// the message has been heard and is being responded to. The connector
 	// can then e.g. send a typing notifier.
 	MessageHeard(user, channel string)
-	// FormatHelp takes a (bot)/(alias) (command) - (description) string, and
-	// returns a protocol-specific string formatted for display in the protocol.
+	// FormatHelp takes a help/display line (for example command-summary, usage,
+	// or examples) and returns a protocol-specific string formatted for display.
 	FormatHelp(string) string
 	// DefaultHelp allows a connector to override the default help lines when
 	// there is no keyword.
