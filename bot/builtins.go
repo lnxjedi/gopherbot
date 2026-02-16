@@ -275,6 +275,12 @@ func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetad
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 
+	type authorizerGroupLookup struct {
+		groups map[string]struct{}
+		known  bool
+	}
+	groupCache := make(map[string]authorizerGroupLookup)
+
 	byCommand := make(map[string]*helpCommandMetadata)
 	for _, t := range r.tasks.t[1:] {
 		task, plugin, _ := getTask(t)
@@ -292,6 +298,18 @@ func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetad
 			command := strings.TrimSpace(strings.ToLower(matcher.Command))
 			if len(command) == 0 {
 				continue
+			}
+			if commandRequiresAuthorization(plugin, command) && strings.TrimSpace(task.AuthRequire) != "" {
+				authorizer := effectiveAuthorizerName(task, w.cfg.defaultAuthorizer)
+				cached, ok := groupCache[authorizer]
+				if !ok {
+					groups, known := r.getAuthorizerUserGroups(w, authorizer, w.User)
+					cached = authorizerGroupLookup{groups: groups, known: known}
+					groupCache[authorizer] = cached
+				}
+				if cached.known && !userHasRequiredGroup(cached.groups, task.AuthRequire) {
+					continue
+				}
 			}
 			key := task.name + "|" + command
 			entry, ok := byCommand[key]

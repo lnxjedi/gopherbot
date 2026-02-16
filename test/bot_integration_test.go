@@ -4,9 +4,11 @@
 package tbot_test
 
 import (
+	"strings"
 	"testing"
 
 	. "github.com/lnxjedi/gopherbot/v2/bot"
+	testc "github.com/lnxjedi/gopherbot/v2/connectors/test"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/groups"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/help"
 	_ "github.com/lnxjedi/gopherbot/v2/goplugins/ping"
@@ -217,11 +219,43 @@ func TestHelp(t *testing.T) {
 
 	tests := []testItem{
 		{aliceID, deadzone, ";help", false, []TestMessage{{null, deadzone, `(?s:Quick help:\n;help <keyword> - get help for the provided <keyword>\n;commands - browse command groups available in this channel\n;help-all - help for all commands available in this channel, including global commands)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";commands", false, []TestMessage{{null, deadzone, `(?s:Command groups available in this channel:.*Try: ;help <plugin\|command\|keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";help-all", false, []TestMessage{{null, deadzone, `(?s:Commands available in this channel \(including global\):.*\[builtin-help\] help.*Usage: ;help <keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
-		{aliceID, deadzone, ";help help", false, []TestMessage{{null, deadzone, `(?s:Command matches for keyword: help.*\[builtin-help\] help.*Usage: ;help <keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";commands", false, []TestMessage{{null, deadzone, `(?s:Command groups available in this channel:.*Try: ;help <plugin\|command\|keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help-all", false, []TestMessage{{null, deadzone, `(?s:Commands available in this channel \(including global\):.*\[builtin-help\] help.*Usage: ;help <keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan, GoPluginRan}, 0},
+		{aliceID, deadzone, ";help help", false, []TestMessage{{null, deadzone, `(?s:Command matches for keyword: help.*\[builtin-help\] help.*Usage: ;help <keyword>)`, true}}, []Event{CommandTaskRan, GoPluginRan, GoPluginRan}, 0},
 	}
 	testcases(t, conn, tests)
 
 	teardown(t, done, conn)
+}
+
+func TestHelpGroupFiltering(t *testing.T) {
+	done, conn := setup("test/membrain", "/tmp/bottest.log", t)
+	defer teardown(t, done, conn)
+
+	getHelpReply := func(user string) string {
+		GetEvents()
+		conn.SendBotMessage(&testc.TestMessage{User: user, Channel: general, Message: ";help lists", Threaded: false, Hidden: false})
+		reply, err := conn.GetBotMessage()
+		if err != nil {
+			t.Fatalf("timeout waiting for help reply: %v", err)
+		}
+		if reply.Channel != general || !reply.Threaded {
+			t.Fatalf("expected threaded help reply in #%s, got channel=%q threaded=%t", general, reply.Channel, reply.Threaded)
+		}
+		GetEvents()
+		return reply.Message
+	}
+
+	aliceHelp := getHelpReply(aliceID)
+	if !strings.Contains(aliceHelp, "[lists] add") {
+		t.Fatalf("expected lists help output for alice to include at least one lists command, got: %q", aliceHelp)
+	}
+	if strings.Contains(aliceHelp, "[lists] send") {
+		t.Fatalf("expected help to hide unauthorized command '[lists] send' for alice, got: %q", aliceHelp)
+	}
+
+	bobHelp := getHelpReply(bobID)
+	if !strings.Contains(bobHelp, "[lists] send") {
+		t.Fatalf("expected help to include authorized command '[lists] send' for bob, got: %q", bobHelp)
+	}
 }

@@ -160,6 +160,23 @@ Built-in help commands are now metadata-driven:
 
 Built-in unmatched-command fallback now returns algorithmic closest matches using the same command metadata and ranking logic.
 
+## Authorizer `usergroups` Contract (Help Filtering)
+
+For group-aware help visibility, authorizer plugins can implement an optional:
+
+- `usergroups <username> <result_parameter>`
+
+Expected behavior:
+
+- return `Success` and set `result_parameter` via `SetParameter(...)` to a JSON array of group names, e.g. `["Helpdesk","Ops"]`
+- return `NotFound` when group membership is intentionally unknown/indeterminate (for example, slow external policy checks)
+- errors are treated the same as indeterminate membership for help filtering
+
+Help/fallback filtering behavior:
+
+- if `usergroups` returns usable groups, commands requiring auth are filtered by `AuthRequire`
+- if `usergroups` is not implemented, returns `NotFound`, or errors, help output is not group-filtered (no-filter fallback)
+
 ## Hidden Command Addressing
 
 Hidden command execution now requires both:
