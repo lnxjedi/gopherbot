@@ -1,13 +1,21 @@
 ---
 AllChannels: true
 AllowDirect: false
-Help:
-- Keywords: [ "jobs", "list", "job" ]
-  Helptext: [ "(alias) list-jobs (all) - list the jobs you have access to, optionally in all channels" ]
-- Keywords: [ "job", "jobs", "run" ]
-  Helptext: [ "(alias) run-job <name> (args...) - manually start a job run" ]
 Commands:
 - Command: jobs
   Regex: '(?i:list (all )?jobs)'
+  Keywords: [ "jobs", "list", "job" ]
+  Usage: "(alias) list-jobs (all)"
+  Summary: "list the jobs you have access to, optionally in all channels"
+  Examples:
+  - "(alias) list-jobs"
+  - "(alias) list-jobs --all"
+  Helptext: [ "(alias) list-jobs (all) - list the jobs you have access to, optionally in all channels" ]
 - Command: jobs
   Regex: '(?i:list[- ]jobs( -?-?all)?)'
+  Keywords: [ "job", "jobs", "run" ]
+  Usage: "(alias) run-job <name> (args...)"
+  Summary: "manually start a job run"
+  Examples:
+  - "(alias) run-job go-update"
+  Helptext: [ "(alias) run-job <name> (args...) - manually start a job run" ]

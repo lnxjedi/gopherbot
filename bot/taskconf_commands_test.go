@@ -55,3 +55,36 @@ Commands:
 		t.Fatalf("validate_yaml() rejected Commands key: %v", err)
 	}
 }
+
+func TestBuildLegacyHelpFromCommandMetadata(t *testing.T) {
+	matchers := []InputMatcher{
+		{
+			Command:  "ping",
+			Keywords: []string{"ping", "latency"},
+			Helptext: []string{"(alias) ping - see if the bot is alive"},
+		},
+		{
+			Command:  "help",
+			Helptext: []string{"(alias) help <keyword> - find help"},
+		},
+		{
+			Command: "ignore",
+		},
+		{
+			Command: "info",
+			Usage:   "(alias) info",
+			Summary: "show robot info",
+		},
+	}
+
+	help := buildLegacyHelpFromCommandMetadata(matchers)
+	if len(help) != 2 {
+		t.Fatalf("buildLegacyHelpFromCommandMetadata() len = %d, want 2", len(help))
+	}
+	if len(help[0].Keywords) != 2 || help[0].Keywords[0] != "ping" || help[0].Keywords[1] != "latency" {
+		t.Fatalf("buildLegacyHelpFromCommandMetadata() first keywords = %#v", help[0].Keywords)
+	}
+	if len(help[1].Keywords) != 1 || help[1].Keywords[0] != "help" {
+		t.Fatalf("buildLegacyHelpFromCommandMetadata() second keywords = %#v, want fallback [help]", help[1].Keywords)
+	}
+}

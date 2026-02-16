@@ -8,8 +8,9 @@
 #    'encrypt xxx', then use decrypt in the template for the Password
 #
 # To add your own memes, create conf/plugins/memes.yaml in the custom
-# configuration repository, with new entries for "Help:" and "Commands:"
-# following the format shown, where the "Command" is the template ID.
+# configuration repository, with new entries in "Commands:" including
+# command regex plus per-command Keywords/Helptext metadata.
+# The "Command" value is the template ID.
 # See: https://api.imgflip.com/
 # For stock memes template ID: https://imgflip.com/memetemplate/<name>
 Config:
@@ -19,62 +20,116 @@ Config:
 {{ if not (env "GOPHER_MEMES_USER" | default (env "GOPHER_MEMES_PASSWORD")) }}
 Disabled: true
 {{ end }}
-Help:
-- Keywords: [ "meme", "picard", "omg" ]
-  Helptext: [ "(bot), picard omg <something>(/<something>) - Picard facepalm" ]
-- Keywords: [ "meme", "picard", "wth", "wtf" ]
-  Helptext: [ "(bot), picard wth <something>(/<something>) - Picard WTH" ]
-- Keywords: [ "meme", "farnsworth", "news" ]
-  Helptext:
-  - "(bot), Good news everyone (<something>) - let Professor Farnsworth deliver the good news"
-  - "(bot), farnsworth <something>/<something> - Professor Farnsworth expounds"
-- Keywords: [ "meme", "roy", "phone" ]
-  Helptext: [ "(bot), roy phone <something>(/<something>) - Roy provides phone support" ]
-- Keywords: [ "meme", "gosh" ]
-  Helptext: [ "(bot), <something>, gosh! - Let Napoleon Dynamite express your indignation" ]
-- Keywords: [ "meme", "best", "worst" ]
-  Helptext: [ "(bot), this is pretty much the best/worst <something> - Napoleon expresses his opinion" ]
-- Keywords: [ "meme", "skill", "skills" ]
-  Helptext: [ "(bot), <something> skill(s) with <something> - Hear about Napoleon's incredible skills" ]
-- Keywords: [ "meme", "simply" ]
-  Helptext: [ "(bot), one does not simply <do something> - Summon Boromir to make your point" ]
-- Keywords: [ "meme", "prepare" ]
-  Helptext: [ "(bot), you <did something>, prepare to die - Let Inigo threaten your friends" ]
-- Keywords: [ "meme", "brace" ]
-  Helptext: [ "(bot), brace yourselves, <something> - Boromir warns your" ]
-- Keywords: [ "meme" ]
-  Helptext: [ "(bot), Y U no <something> - express your angst" ]
-- Keywords: [ "meme", "matrix" ]
-  Helptext: [ "(bot), What if I told you <something> - let Morpheus blow their minds" ]
-- Keywords: [ "meme", "matrix" ]
-  Helptext: [ "(bot), morpheus <something>/<something>" ]
-
 Commands:
 - Command: "1509839"
   Regex: '(?i:picard omg ([^/]+)(?:/([^/]+))?)'
+  Keywords: [ "meme", "picard", "omg" ]
+  Usage: "(bot), picard omg <something>(/<something>)"
+  Summary: "Picard facepalm"
+  Examples:
+  - "(bot), picard omg this deploy"
+  Helptext: [ "(bot), picard omg <something>(/<something>) - Picard facepalm" ]
 - Command: "245898"
   Regex: '(?i:picard wt[hf] ([^/]+)(?:/([^/]+))?)'
+  Keywords: [ "meme", "picard", "wth", "wtf" ]
+  Usage: "(bot), picard wth <something>(/<something>)"
+  Summary: "Picard WTH"
+  Examples:
+  - "(bot), picard wth this queue"
+  Helptext: [ "(bot), picard wth <something>(/<something>) - Picard WTH" ]
 - Command: "29106534"
   Regex: '(?i:roy phone ([^/]+)(?:/([^/]+))?)'
+  Keywords: [ "meme", "roy", "phone" ]
+  Usage: "(bot), roy phone <something>(/<something>)"
+  Summary: "Roy provides phone support"
+  Examples:
+  - "(bot), roy phone production/on fire"
+  Helptext: [ "(bot), roy phone <something>(/<something>) - Roy provides phone support" ]
 - Command: "7163250"
   Regex: '(?i:((?:good|great) news,? (?:everyone|everybody)),? (.+))'
+  Keywords: [ "meme", "farnsworth", "news" ]
+  Usage: "(bot), Good news everyone (<something>)"
+  Summary: "let Professor Farnsworth deliver the good news"
+  Examples:
+  - "(bot), good news everyone, we fixed it"
+  Helptext: [ "(bot), Good news everyone (<something>) - let Professor Farnsworth deliver the good news" ]
 - Command: "7163250"
   Regex: '(?i:farnsworth ([^/]+)(?:/([^/]+))?)'
+  Keywords: [ "meme", "farnsworth", "news" ]
+  Usage: "(bot), farnsworth <something>/<something>"
+  Summary: "Professor Farnsworth expounds"
+  Examples:
+  - "(bot), farnsworth roadmap/chaos"
+  Helptext: [ "(bot), farnsworth <something>/<something> - Professor Farnsworth expounds" ]
 - Command: "18304105"
   Regex: '(?i:(.+,?) (gosh!?))'
+  Keywords: [ "meme", "gosh" ]
+  Usage: "(bot), <something>, gosh!"
+  Summary: "Let Napoleon Dynamite express your indignation"
+  Examples:
+  - "(bot), this incident report, gosh!"
+  Helptext: [ "(bot), <something>, gosh! - Let Napoleon Dynamite express your indignation" ]
 - Command: "8070362"
   Regex: '(?i:(.+ pretty much the) ((?:best|worst) .+))'
+  Keywords: [ "meme", "best", "worst" ]
+  Usage: "(bot), this is pretty much the best/worst <something>"
+  Summary: "Napoleon expresses his opinion"
+  Examples:
+  - "(bot), this is pretty much the worst deploy ever"
+  Helptext: [ "(bot), this is pretty much the best/worst <something> - Napoleon expresses his opinion" ]
 - Command: "20509936"
   Regex: '(?i:(.+ skills?) ((?:with|in) .+))'
+  Keywords: [ "meme", "skill", "skills" ]
+  Usage: "(bot), <something> skill(s) with <something>"
+  Summary: "Hear about Napoleon's incredible skills"
+  Examples:
+  - "(bot), coding skills with vim"
+  Helptext: [ "(bot), <something> skill(s) with <something> - Hear about Napoleon's incredible skills" ]
 - Command: "61579"
   Regex: '(?i:(one does not simply) (.+))'
+  Keywords: [ "meme", "simply" ]
+  Usage: "(bot), one does not simply <do something>"
+  Summary: "Summon Boromir to make your point"
+  Examples:
+  - "(bot), one does not simply deploy on friday"
+  Helptext: [ "(bot), one does not simply <do something> - Summon Boromir to make your point" ]
 - Command: "47779539"
   Regex: '(?i:(you .+) (prepare to die!?))'
+  Keywords: [ "meme", "prepare" ]
+  Usage: "(bot), you <did something>, prepare to die"
+  Summary: "Let Inigo threaten your friends"
+  Examples:
+  - "(bot), you restarted prod, prepare to die"
+  Helptext: [ "(bot), you <did something>, prepare to die - Let Inigo threaten your friends" ]
 - Command: "61546"
   Regex: '(?i:(brace yourselves,?) (.+))'
+  Keywords: [ "meme", "brace" ]
+  Usage: "(bot), brace yourselves, <something>"
+  Summary: "Boromir warns your"
+  Examples:
+  - "(bot), brace yourselves, incidents are coming"
+  Helptext: [ "(bot), brace yourselves, <something> - Boromir warns your" ]
 - Command: "61527"
   Regex: '(?i:(y u no) (.+))'
+  Keywords: [ "meme" ]
+  Usage: "(bot), Y U no <something>"
+  Summary: "express your angst"
+  Examples:
+  - "(bot), Y U no ship tests"
+  Helptext: [ "(bot), Y U no <something> - express your angst" ]
 - Command: "33301480"
   Regex: '(?i:(what if I told you) (.+))'
+  Keywords: [ "meme", "matrix" ]
+  Usage: "(bot), What if I told you <something>"
+  Summary: "let Morpheus blow their minds"
+  Examples:
+  - "(bot), what if I told you this is staging"
+  Helptext: [ "(bot), What if I told you <something> - let Morpheus blow their minds" ]
 - Command: "33301480"
   Regex: '(?i:morpheus ([^/]+)(?:/([^/]+))?)'
+  Keywords: [ "meme", "matrix" ]
+  Usage: "(bot), morpheus <something>/<something>"
+  Summary: "Morpheus-style split caption meme"
+  Examples:
+  - "(bot), morpheus deploy/rollback"
+  Helptext: [ "(bot), morpheus <something>/<something>" ]

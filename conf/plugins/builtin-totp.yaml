@@ -1,10 +1,13 @@
 ---
-Help:
-- Keywords: [ "totp", "launch", "missiles" ]
-  Helptext: [ "(alias) validate <code> - check that your TOTP codes are working" ]
 Commands:
 - Command: "check"
   Regex: '(?i:(?:validate|launch missiles:) (\d{6}))'
+  Keywords: [ "totp", "launch", "missiles" ]
+  Usage: "(alias) validate <code>"
+  Summary: "check that your TOTP codes are working"
+  Examples:
+  - "(alias) validate 123456"
+  Helptext: [ "(alias) validate <code> - check that your TOTP codes are working" ]
 Config:
   # How long elevation lasts
   TimeoutSeconds: 7200

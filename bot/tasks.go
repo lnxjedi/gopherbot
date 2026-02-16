@@ -120,6 +120,11 @@ type PluginHelp struct {
 type InputMatcher struct {
 	Regex       string         `yaml:"Regex"`       // The regular expression string to match - bot adds ^\w* & \w*$
 	Command     string         `yaml:"Command"`     // The name of the command to pass to the plugin with its arguments
+	Usage       string         `yaml:"Usage"`       // Canonical usage text for help output
+	Summary     string         `yaml:"Summary"`     // Short command description for help output
+	Examples    []string       `yaml:"Examples"`    // Optional examples for this command
+	Keywords    []string       `yaml:"Keywords"`    // Optional help search keywords tied to this command matcher
+	Helptext    []string       `yaml:"Helptext"`    // Optional help lines tied to this command matcher
 	Label       string         `yaml:"Label"`       // ReplyMatchers use "Label" instead of "Command"
 	ChannelOnly bool           `yaml:"ChannelOnly"` // Whether this matcher only applies in the main channel (not a thread)
 	Contexts    []string       `yaml:"Contexts"`    // Labels for capture groups, for supporting "it" & optional args
@@ -188,7 +193,7 @@ type Plugin struct {
 	AuthorizedCommands       []string       `yaml:"AuthorizedCommands"`       // Which commands to authorize
 	AllowedHiddenCommands    []string       `yaml:"AllowedHiddenCommands"`    // Which commands are allowed to be hidden
 	AuthorizeAllCommands     bool           `yaml:"AuthorizeAllCommands"`     // When ALL commands need to be authorized
-	Help                     []PluginHelp   `yaml:"Help"`                     // All the keyword sets/help texts for this plugin
+	Help                     []PluginHelp   `yaml:"Help"`                     // Legacy top-level help metadata (v3 migration compatibility)
 	Commands                 []InputMatcher `yaml:"Commands"`                 // Preferred key for directed command matchers
 	CommandMatchers          []InputMatcher `yaml:"CommandMatchers"`          // Input matchers for messages that need to be directed to the bot
 	MessageMatchers          []InputMatcher `yaml:"MessageMatchers"`          // Input matchers for messages the bot hears even when it’s not being spoken to

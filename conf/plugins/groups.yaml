@@ -1,35 +1,58 @@
 ---
 # For authorizing users by group
-Help:
-- Keywords: [ "group", "groups" ]
-  Helptext: [ "(alias) help with groups - give general help for using groups"]
-- Keywords: [ "group", "groups", "add" ]
-  Helptext: [ "(alias) add <user> to the <groupname> group - add a user to a group" ]
-- Keywords: [ "group", "groups", "remove" ]
-  Helptext: [ "(alias) remove <user> from the <groupname> group - remove a dynamic user from a group" ]
-- Keywords: [ "group", "groups", "empty" ]
-  Helptext: [ "(alias) empty the <groupname> group - remove all dynamic users from a group" ]
-- Keywords: [ "list", "group", "groups" ]
-  Helptext: [ "(alias) list groups - give a list of all the groups the robot knows about (bot administrators only)" ]
-- Keywords: [ "group", "groups", "show", "view" ]
-  Helptext: [ "(alias) show the <groupname> group - show the members of a group" ]
 Commands:
 - Command: 'help'
   Regex: '(?i:help with groups?)'
+  Keywords: [ "group", "groups" ]
+  Usage: "(alias) help with groups"
+  Summary: "give general help for using groups"
+  Examples:
+  - "(alias) help with groups"
+  Helptext: [ "(alias) help with groups - give general help for using groups" ]
 - Command: 'add'
   Regex: '(?i:add ([\w-.:]+) to (?:the )?(?:([~\w-'' ]+) )?group)'
   Contexts: [ "user", "group" ]
+  Keywords: [ "group", "groups", "add" ]
+  Usage: "(alias) add <user> to the <groupname> group"
+  Summary: "add a user to a group"
+  Examples:
+  - "(alias) add alice to the Helpdesk group"
+  Helptext: [ "(alias) add <user> to the <groupname> group - add a user to a group" ]
 - Command: 'list'
   Regex: '(?i:list groups)'
+  Keywords: [ "list", "group", "groups" ]
+  Usage: "(alias) list groups"
+  Summary: "give a list of all the groups the robot knows about (bot administrators only)"
+  Examples:
+  - "(alias) list groups"
+  Helptext: [ "(alias) list groups - give a list of all the groups the robot knows about (bot administrators only)" ]
 - Command: 'remove'
   Regex: '(?i:(?:remove|delete) ([\w-.:]+) from (?:the )?(?:([~\w-'' ]+) )?group)'
   Contexts: [ "user", "group" ]
+  Keywords: [ "group", "groups", "remove" ]
+  Usage: "(alias) remove <user> from the <groupname> group"
+  Summary: "remove a dynamic user from a group"
+  Examples:
+  - "(alias) remove alice from the Helpdesk group"
+  Helptext: [ "(alias) remove <user> from the <groupname> group - remove a dynamic user from a group" ]
 - Command: 'empty'
   Regex: '(?i:(?:empty|clear) (?:the )?(?:([~\w-'' ]+) )?group)'
   Contexts: [ "group" ]
+  Keywords: [ "group", "groups", "empty" ]
+  Usage: "(alias) empty the <groupname> group"
+  Summary: "remove all dynamic users from a group"
+  Examples:
+  - "(alias) empty the Helpdesk group"
+  Helptext: [ "(alias) empty the <groupname> group - remove all dynamic users from a group" ]
 - Command: 'show'
   Regex: '(?i:show (?:the )?(?:([~\w-'' ]+) )?group)'
   Contexts: [ "group" ]
+  Keywords: [ "group", "groups", "show", "view" ]
+  Usage: "(alias) show the <groupname> group"
+  Summary: "show the members of a group"
+  Examples:
+  - "(alias) show the Helpdesk group"
+  Helptext: [ "(alias) show the <groupname> group - show the members of a group" ]
 Disabled: true
 ## The groups authorizer plugin is disabled by default; you can use the example
 ## config below to configure your own robot.

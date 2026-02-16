@@ -27,6 +27,28 @@ func normalizePluginCommandMatcherKeys(taskName string, tcfgload map[string]json
 	delete(tcfgload, "Commands")
 }
 
+func buildLegacyHelpFromCommandMetadata(matchers []InputMatcher) []PluginHelp {
+	help := make([]PluginHelp, 0, len(matchers))
+	for _, matcher := range matchers {
+		lines := append([]string{}, matcher.Helptext...)
+		if len(lines) == 0 {
+			continue
+		}
+		phelp := PluginHelp{
+			Keywords: append([]string{}, matcher.Keywords...),
+			Helptext: lines,
+		}
+		if len(phelp.Keywords) == 0 {
+			cmd := strings.TrimSpace(strings.ToLower(matcher.Command))
+			if len(cmd) > 0 {
+				phelp.Keywords = []string{cmd}
+			}
+		}
+		help = append(help, phelp)
+	}
+	return help
+}
+
 // loadTaskConfig() updates task/job/plugin configuration and namespaces/parametersets
 // from robot.yaml and external configuration, then updates the
 // globalTasks struct.
@@ -528,6 +550,9 @@ LoadLoop:
 			}
 		}
 		// End of reading configuration keys
+		if isPlugin && len(plugin.Help) == 0 {
+			plugin.Help = buildLegacyHelpFromCommandMetadata(plugin.CommandMatchers)
+		}
 
 		// Start sanity checking of configuration
 		if task.DirectOnly {

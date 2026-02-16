@@ -1,7 +1,10 @@
 ---
-Help:
-- Keywords: [ "identify", "id", "slack", "whois" ]
-  Helptext: [ "(alias) slack id <@user> - get the slack internal ID for @user" ]
 Commands:
 - Command: "identify"
   Regex: '(?i:slack id ([@\w]+))'
+  Keywords: [ "identify", "id", "slack", "whois" ]
+  Usage: "(alias) slack id <@user>"
+  Summary: "get the slack internal ID for @user"
+  Examples:
+  - "(alias) slack id @david"
+  Helptext: [ "(alias) slack id <@user> - get the slack internal ID for @user" ]

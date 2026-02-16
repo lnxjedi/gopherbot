@@ -2,17 +2,28 @@
 RequireAdmin: true
 AllowDirect: true
 AllChannels: true
-Help:
-- Keywords: [ "config", "configuration", "update" ]
-  Helptext: [ "(alias) update (configuration) - perform a git clone/pull of custom configuration and reload" ]
-- Keywords: [ "config", "configuration", "branch", "switch" ]
-  Helptext: [ "(alias) switch-branch <branch> - switch branches in configuration repository" ]
-- Keywords: [ "config", "configuration", "save", "admin", "manage" ]
-  Helptext: [ "(alias) save (configuration) - git push custom repository" ]
 Commands:
 - Command: "update"
   Regex: '(?i:update(?:[ -]config(?:uration)?)?)'
+  Keywords: [ "config", "configuration", "update" ]
+  Usage: "(alias) update (configuration)"
+  Summary: "perform a git clone/pull of custom configuration and reload"
+  Examples:
+  - "(alias) update"
+  Helptext: [ "(alias) update (configuration) - perform a git clone/pull of custom configuration and reload" ]
 - Command: "branch"
   Regex: '(?i:(?:switch|change)[ -]branch ([^\s]+))'
+  Keywords: [ "config", "configuration", "branch", "switch" ]
+  Usage: "(alias) switch-branch <branch>"
+  Summary: "switch branches in configuration repository"
+  Examples:
+  - "(alias) switch-branch main"
+  Helptext: [ "(alias) switch-branch <branch> - switch branches in configuration repository" ]
 - Command: "save"
   Regex: '(?i:save(?:[ -]config(?:uration)?)?)'
+  Keywords: [ "config", "configuration", "save", "admin", "manage" ]
+  Usage: "(alias) save (configuration)"
+  Summary: "git push custom repository"
+  Examples:
+  - "(alias) save"
+  Helptext: [ "(alias) save (configuration) - git push custom repository" ]

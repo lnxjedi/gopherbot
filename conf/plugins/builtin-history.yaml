@@ -1,20 +1,37 @@
 ---
 AllChannels: true
 AllowDirect: false
-Help:
-- Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
-  Helptext:
-  - "(alias) email-log <ref> (to (user foo|user@my.domain)) - email a log to the user given the log ref"
-  - "(alias) tail-log <ref> - view the end of a log given the log ref"
-  - "(alias) link-log <ref> - get a URL for a log"
-- Keywords: [ "list", "job", "jobs", "log", "logs", "history", "joblogs" ]
-  Helptext: [ "(alias) job-logs <jobname> - list logs for a given job" ]
 Commands:
 - Command: maillog
   Regex: '(?i:(?:send|mail|email)[- ]?log ([A-Za-z0-9]+)(?: to (?:(?:user (.*))|([^@]+@[^@]+)))?)'
+  Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
+  Usage: "(alias) email-log <ref> (to (user foo|user@my.domain))"
+  Summary: "email a log to the user given the log ref"
+  Examples:
+  - "(alias) email-log ab12cd"
+  - "(alias) email-log ab12cd to user alice"
+  Helptext: [ "(alias) email-log <ref> (to (user foo|user@my.domain)) - email a log to the user given the log ref" ]
 - Command: taillog
   Regex: '(?i:(?:tail|view|show)[- ]?log ([A-Za-z0-9]+))'
+  Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
+  Usage: "(alias) tail-log <ref>"
+  Summary: "view the end of a log given the log ref"
+  Examples:
+  - "(alias) tail-log ab12cd"
+  Helptext: [ "(alias) tail-log <ref> - view the end of a log given the log ref" ]
 - Command: linklog
   Regex: '(?i:(?:link|get)[- ]?log ([A-Za-z0-9]+))'
+  Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
+  Usage: "(alias) link-log <ref>"
+  Summary: "get a URL for a log"
+  Examples:
+  - "(alias) link-log ab12cd"
+  Helptext: [ "(alias) link-log <ref> - get a URL for a log" ]
 - Command: joblogs
   Regex: '(?i:job[- ]?logs(?: ([A-Za-z][\w-]*)))'
+  Keywords: [ "list", "job", "jobs", "log", "logs", "history", "joblogs" ]
+  Usage: "(alias) job-logs <jobname>"
+  Summary: "list logs for a given job"
+  Examples:
+  - "(alias) job-logs go-update"
+  Helptext: [ "(alias) job-logs <jobname> - list logs for a given job" ]
