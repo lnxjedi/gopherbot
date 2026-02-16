@@ -78,12 +78,5 @@ UserMap:
   david: "u0004"
   erin: "u0005"
 
-UserRoster:
-- UserName: "alice"
-- UserName: "bob"
-- UserName: "carol"
-- UserName: "david"
-- UserName: "erin"
-
 {{ $defaultjobchannel := "general" }}
 DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}
