@@ -2,7 +2,7 @@
 AllChannels: true
 Commands:
 - Command: help
-  Regex: '(?i:help(?: ([^\s]+))?)'
+  Regex: '(?i:help(?:\s+(.+))?)'
   Keywords: [ "*", "help" ]
   Usage: "(alias) help <keyword>"
   Summary: "find help for commands matching <keyword>"
@@ -11,7 +11,16 @@ Commands:
   - "(alias) help"
   Helptext:
   - "(alias) help <keyword> - find help for commands matching <keyword>"
-  - "(alias) help - help for commands specific to this channel"
+  - "(alias) help - quick help and discovery pointers"
+- Command: commands
+  Regex: '(?i:commands?)'
+  Keywords: [ "help", "commands", "list", "browse" ]
+  Usage: "(alias) commands"
+  Summary: "browse command groups available in this channel"
+  Examples:
+  - "(alias) commands"
+  Helptext:
+  - "(alias) commands - browse command groups available in this channel"
 - Command: help-all
   Regex: '(?i:help-all)'
   Keywords: [ "help", "all" ]
@@ -30,5 +39,6 @@ Commands:
   Helptext: [ "(alias) info | tell me about yourself - provide useful information for admins, or a list of admins" ]
 AllowedHiddenCommands:
 - help
+- commands
 - help-all
 - info
