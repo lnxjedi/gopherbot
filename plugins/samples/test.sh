@@ -14,7 +14,7 @@ shift
 configure(){
 	cat <<"EOF"
 ---
-CommandMatchers:
+Commands:
 - Command: "waitask"
   Regex: '(?i:waitask)'
 - Command: "asknow"

@@ -3,35 +3,7 @@
 
 // Define the default configuration as a YAML string
 const defaultConfig = `---
-Help:
-- Keywords: [ "say", "ask" ]
-  Helptext:
-  - "(bot), say everything - full test of Say*/Reply*/Send* methods"
-- Keywords: [ "config" ]
-  Helptext:
-  - "(bot), js-config - exercise GetTaskConfig + RandomString"
-- Keywords: [ "http" ]
-  Helptext:
-  - "(bot), js-http - exercise HTTP GET/POST/PUT"
-- Keywords: [ "subscribe" ]
-  Helptext:
-  - "(bot), js-subscribe - exercise Subscribe/Unsubscribe"
-- Keywords: [ "prompt" ]
-  Helptext:
-  - "(bot), js-prompts - exercise Prompt* methods (user/channel/thread variants)"
-- Keywords: [ "memory" ]
-  Helptext:
-  - "(bot), js-memory-seed/js-memory-check/js-memory-thread-check - exercise Remember*/Recall context behavior"
-  - "(bot), js-memory-datum-seed/js-memory-datum-check/js-memory-datum-checkin - exercise CheckoutDatum/UpdateDatum/CheckinDatum"
-- Keywords: [ "identity", "parameter" ]
-  Helptext:
-  - "(bot), js-identity - exercise Get*Attribute + Set/GetParameter"
-  - "(bot), js-parameter-addtask - verify SetParameter value in next AddTask"
-- Keywords: [ "pipeline", "admin", "elevate" ]
-  Helptext:
-  - "(bot), js-pipeline-ok/js-pipeline-fail/js-spawn-job - exercise pipeline-control methods"
-  - "(bot), js-admin-check/js-elevate-check - exercise CheckAdmin + Elevate"
-CommandMatchers:
+Commands:
 - Regex: (?i:say everything)
   Command: sendmsg
 - Regex: (?i:js-config)

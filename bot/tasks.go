@@ -110,12 +110,6 @@ type ScheduledTask struct {
 	TaskSpec `yaml:",inline"` // Inlines TaskSpec fields
 }
 
-// PluginHelp specifies keywords and help text for the bot help system
-type PluginHelp struct {
-	Keywords []string `yaml:"Keywords"` // Match words for 'help XXX'
-	Helptext []string `yaml:"Helptext"` // Help string for the keywords, conventionally starting with (bot) for commands or (hear) for general messages
-}
-
 // InputMatcher specifies the command or message to match for a plugin
 type InputMatcher struct {
 	Regex       string         `yaml:"Regex"`       // The regular expression string to match - bot adds ^\w* & \w*$
@@ -193,9 +187,7 @@ type Plugin struct {
 	AuthorizedCommands       []string       `yaml:"AuthorizedCommands"`       // Which commands to authorize
 	AllowedHiddenCommands    []string       `yaml:"AllowedHiddenCommands"`    // Which commands are allowed to be hidden
 	AuthorizeAllCommands     bool           `yaml:"AuthorizeAllCommands"`     // When ALL commands need to be authorized
-	Help                     []PluginHelp   `yaml:"Help"`                     // Legacy top-level help metadata (v3 migration compatibility)
-	Commands                 []InputMatcher `yaml:"Commands"`                 // Preferred key for directed command matchers
-	CommandMatchers          []InputMatcher `yaml:"CommandMatchers"`          // Input matchers for messages that need to be directed to the bot
+	Commands                 []InputMatcher `yaml:"Commands"`                 // Input matchers for messages that need to be directed to the bot
 	MessageMatchers          []InputMatcher `yaml:"MessageMatchers"`          // Input matchers for messages the bot hears even when it’s not being spoken to
 	AmbientMatchCommand      bool           `yaml:"AmbientMatchCommand"`      // Whether message matchers should also match when isCommand is true
 	CatchAll                 bool           `yaml:"CatchAll"`                 // Plugins with CatchAll=true get called with command="catchall" and argument=<full message text to robot>

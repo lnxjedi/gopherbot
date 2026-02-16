@@ -138,19 +138,17 @@ These commands are available from the primary protocol:
 
 ## Plugin Command/Help Metadata Migration
 
-v3 help/discovery now prefers command-linked metadata under each command matcher.
+v3 help/discovery uses command-linked metadata under each command matcher.
 
-- Preferred directed-command key in plugin config: `Commands`.
-- Legacy directed-command key still accepted: `CommandMatchers`.
-- If both keys are present and differ, `Commands` wins and a warning is logged.
+- Directed-command key in plugin config: `Commands`.
+- Legacy directed-command key `CommandMatchers` is no longer supported.
+- Legacy top-level plugin `Help` is no longer supported.
 
 Recommended command entry fields:
 
 - `Command`, `Regex`
 - `Usage`, `Summary`
 - optional `Examples`, `Keywords`, `Helptext`
-
-Legacy top-level plugin `Help` blocks are still accepted for compatibility, but new help output is generated from command-linked metadata when present.
 
 ## Built-in Help and Fallback Behavior
 

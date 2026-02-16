@@ -4,24 +4,7 @@
 
 // Define the default configuration as a YAML string
 const defaultConfig = `---
-Help:
-- Keywords: [ "js" ]
-  Helptext: [ "(bot), js (me!) - prove that JavaScript plugins work" ]
-- Keywords: [ "listen" ]
-  Helptext: [ "(bot), listen (to me?) - ask a question" ]
-- Keywords: [ "thread" ]
-  Helptext: [ "(bot), js-thread - ask the robot to start a new thread" ]
-- Keywords: [ "thread" ]
-  Helptext: [ "(bot), js-ask-thread - ask a question in a thread" ]
-- Keywords: [ "remember", "memory" ]
-  Helptext: [ "(bot), remember <anything> - prove the robot has a brain(tm)" ]
-- Keywords: [ "recall", "memory" ]
-  Helptext: [ "(bot), recall - list or recall a certain memory" ]
-- Keywords: [ "forget", "memory" ]
-  Helptext: [ "(bot), forget <#> - ask the robot to forget one of its remembered 'facts'" ]
-- Keywords: [ "check" ]
-  Helptext: [ "(bot), check me - get the bot to check you out" ]
-CommandMatchers:
+Commands:
 - Regex: (?i:js( me)?!?)
   Command: js
 - Regex: (?i:js-thread)

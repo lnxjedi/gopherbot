@@ -9,10 +9,7 @@ configure(){
   cat <<"EOF"
 Channels:
 - general
-Help:
-- Keywords: [ "format", "world" ]
-  Helptext: [ "(bot), format world - exercise formatting options" ]
-CommandMatchers:
+Commands:
 - Regex: '(?i:format world)'
   Command: "format"
 - Regex: '(?i:format fixed)'

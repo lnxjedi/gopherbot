@@ -3,35 +3,7 @@
 
 local defaultConfig = [[
 ---
-Help:
-- Keywords: [ "say" ]
-  Helptext:
-  - "(bot), say everything - full test of Say*/Reply*/Send* methods"
-- Keywords: [ "config" ]
-  Helptext:
-  - "(bot), lua-config - exercise GetTaskConfig + RandomString"
-- Keywords: [ "http" ]
-  Helptext:
-  - "(bot), lua-http - exercise HTTP GET/POST/PUT"
-- Keywords: [ "subscribe" ]
-  Helptext:
-  - "(bot), lua-subscribe - exercise Subscribe/Unsubscribe"
-- Keywords: [ "prompt" ]
-  Helptext:
-  - "(bot), lua-prompts - exercise Prompt* methods (user/channel/thread variants)"
-- Keywords: [ "memory" ]
-  Helptext:
-  - "(bot), lua-memory-seed/lua-memory-check/lua-memory-thread-check - exercise Remember*/Recall context behavior"
-  - "(bot), lua-memory-datum-seed/lua-memory-datum-check/lua-memory-datum-checkin - exercise CheckoutDatum/UpdateDatum/CheckinDatum"
-- Keywords: [ "identity", "parameter" ]
-  Helptext:
-  - "(bot), lua-identity - exercise Get*Attribute + Set/GetParameter"
-  - "(bot), lua-parameter-addtask - verify SetParameter value in next AddTask"
-- Keywords: [ "pipeline", "admin", "elevate" ]
-  Helptext:
-  - "(bot), lua-pipeline-ok/lua-pipeline-fail/lua-spawn-job - exercise pipeline-control methods"
-  - "(bot), lua-admin-check/lua-elevate-check - exercise CheckAdmin + Elevate"
-CommandMatchers:
+Commands:
 - Regex: (?i:say everything)
   Command: sendmsg
 - Regex: (?i:lua-config)

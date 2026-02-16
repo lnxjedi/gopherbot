@@ -9,10 +9,7 @@ shift
 
 configure(){
 	cat <<"EOF"
-Help:
-- Keywords: [ "whoami" ]
-  Helptext: [ "(bot), whoami - get the bot to tell you a little about yourself" ]
-CommandMatchers:
+Commands:
 - Command: "whoami"
   Regex: '(?i:whoami)'
 EOF

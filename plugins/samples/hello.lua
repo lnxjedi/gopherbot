@@ -22,10 +22,7 @@ local ret, task, log, fmt, proto, Robot =
 --- Default YAML configuration for this plugin
 local defaultConfig = [[
 ---
-Help:
-  - Keywords: [ "lua" ]
-    Helptext: [ "(bot), hello lua - trigger lua hello world" ]
-CommandMatchers:
+Commands:
   - Regex: (?i:hello lua)
     Command: lua
 ]]

@@ -288,7 +288,7 @@ func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetad
 		if !includeGlobal && !specific {
 			continue
 		}
-		for _, matcher := range plugin.CommandMatchers {
+		for _, matcher := range plugin.Commands {
 			command := strings.TrimSpace(strings.ToLower(matcher.Command))
 			if len(command) == 0 {
 				continue

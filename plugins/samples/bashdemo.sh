@@ -13,14 +13,7 @@ shift
 
 configure(){
 	cat <<"EOF"
-Help:
-- Keywords: [ "hear" ]
-  Helptext: [ "(bot), hear me out - let the robot prove it's really listening" ]
-- Keywords: [ "store", "remember" ]
-  Helptext: [ "(bot), store <something> is <something> - store a fact in short-term memory" ]
-- Keywords: [ "remember", "recall" ]
-  Helptext: [ "(bot), what is <something> - recall a fact / context from short-term memory" ]
-CommandMatchers:
+Commands:
 - Regex: '(?i:hear me out)'
   Command: "hear"
 - Regex: '(?i:store ([-\w :\/]+) is ([-\w .,!?:\/]+))'

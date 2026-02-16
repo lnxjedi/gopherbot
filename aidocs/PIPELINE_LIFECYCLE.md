@@ -12,7 +12,7 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 
 - Worker context: `bot/handler.go` type `worker` (fields `msg`, `fmsg`, `isCommand`, `cmdMode`, `Incoming`, `Channel`, `User`).
 - Matcher definitions: `bot/tasks.go` type `Plugin` fields:
-  - directed command matchers in `Commands` (preferred YAML key) / `CommandMatchers` (legacy key)
+  - directed command matchers in `Commands`
   - ambient matchers in `MessageMatchers`
   - both use `InputMatcher` metadata (`Usage`, `Summary`, `Examples`, `Keywords`, `Helptext`) from the same file.
 - Pipeline type enum: `bot/constants.go` type `pipelineType` (`plugCommand`, `plugMessage`, `catchAll`, `jobCommand`, etc.).
@@ -20,7 +20,7 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 ## Decision Points (routing order)
 
 - Reply waiters first (prompt/reply): `bot/dispatch.go:handleMessage`.
-- Direct commands → `CommandMatchers`: `bot/dispatch.go:handleMessage`, `bot/dispatch.go:checkPluginMatchersAndRun`.
+- Direct commands → `Commands`: `bot/dispatch.go:handleMessage`, `bot/dispatch.go:checkPluginMatchersAndRun`.
 - Ambient messages → `MessageMatchers`: `bot/dispatch.go:handleMessage`, `bot/dispatch.go:checkPluginMatchersAndRun`.
 - Job triggers / `run job`: `bot/dispatch.go:handleMessage`, `bot/jobrun.go:checkJobMatchersAndRun`.
 - Catch‑alls (only when directly addressed and nothing matched): `bot/dispatch.go:handleMessage`.
@@ -39,7 +39,7 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 ## Self-Message Routing Nuance (HearSelf-style flows)
 
 - `ConnectorMessage.SelfMessage=true` is treated specially.
-- Normal plugin paths (`CommandMatchers`, `MessageMatchers`, catch-alls, thread subscriptions) are gated behind `!w.Incoming.SelfMessage` checks in `bot/dispatch.go:handleMessage`.
+- Normal plugin paths (`Commands`, `MessageMatchers`, catch-alls, thread subscriptions) are gated behind `!w.Incoming.SelfMessage` checks in `bot/dispatch.go:handleMessage`.
 - Job triggers are checked first in `bot/jobrun.go:checkJobMatchersAndRun`, before the self-message early return:
   - This enables a pattern where a robot emits a formatted message and then reacts to that same message via a trigger job (for example, to capture a started thread ID from `GOPHER_START_THREAD_ID`).
 - Practical implication: if you need plugin `MessageMatchers` to react, do not mark the inbound event as `SelfMessage=true`; if you need trigger-job reaction, `SelfMessage=true` is compatible.
@@ -55,10 +55,9 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 
 ## Config → Matcher Data (where matchers come from)
 
-- YAML source: `conf/plugins/*.yaml` (example `conf/plugins/ping.yaml` now using `Commands`).
-- Preferred key for directed command matchers: `Commands`.
-- Legacy key still accepted: `CommandMatchers`.
-- During config load, `bot/taskconf.go` `normalizePluginCommandMatcherKeys` maps `Commands` into runtime `Plugin.CommandMatchers` with deterministic precedence (`Commands` wins if both are present).
+- YAML source: `conf/plugins/*.yaml` (example `conf/plugins/ping.yaml`).
+- Directed command matcher key: `Commands`.
+- `CommandMatchers` and top-level `Help` are rejected in v3 plugin config validation.
 - Ambient matchers continue to load from `MessageMatchers`.
 
 ## Pipeline Start (what gets called)
@@ -82,7 +81,7 @@ For a full execution/security walkthrough, see `aidocs/EXECUTION_SECURITY_MODEL.
 - `AddCommand` composes plugin work into the current pipeline; it does not inject a transport/user-originated inbound message.
 - `AddCommand` only succeeds when:
   - it runs during the primary task stage (`primaryTasks`)
-  - the provided command text matches the target plugin's `CommandMatchers`
+  - the provided command text matches the target plugin's `Commands`
 - Operational implication: jobs should not treat `AddCommand` as "resume as user" behavior. For reconnect/onboarding flows, prefer explicit user prompts/instructions and let the user invoke the next command.
 - TODO (long-term): document and evaluate whether a dedicated user-scoped resume/injection primitive is needed, distinct from pipeline composition APIs.
 
@@ -95,6 +94,6 @@ For a full execution/security walkthrough, see `aidocs/EXECUTION_SECURITY_MODEL.
 
 - Locate the message entrypoint: `bot/handler.go` (method `IncomingMessage`).
 - Confirm routing order: `bot/dispatch.go` (method `handleMessage`).
-- Confirm matcher definitions: `bot/tasks.go` type `Plugin` fields `Commands`/`CommandMatchers`, `MessageMatchers`.
+- Confirm matcher definitions: `bot/tasks.go` type `Plugin` fields `Commands`, `MessageMatchers`.
 - Confirm matcher config source: `conf/plugins/*.yaml` (example `conf/plugins/ping.yaml`).
 - Confirm pipeline start: `bot/dispatch.go` (method `checkPluginMatchersAndRun`) → `bot/run_pipelines.go` (method `startPipeline`).

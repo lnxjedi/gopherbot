@@ -8,32 +8,7 @@ import (
 
 var defaultConfig = []byte(`
 ---
-Help:
-- Keywords: [ "say", "ask" ]
-  Helptext:
-  - "(bot), say everything - full test of Say*/Reply*/Send* methods"
-- Keywords: [ "config" ]
-  Helptext:
-  - "(bot), go-config - exercise GetTaskConfig + RandomString"
-- Keywords: [ "subscribe" ]
-  Helptext:
-  - "(bot), go-subscribe - exercise Subscribe/Unsubscribe"
-- Keywords: [ "prompt" ]
-  Helptext:
-  - "(bot), go-prompts - exercise Prompt* methods (user/channel/thread variants)"
-- Keywords: [ "memory" ]
-  Helptext:
-  - "(bot), go-memory-seed/go-memory-check/go-memory-thread-check - exercise Remember*/Recall context behavior"
-  - "(bot), go-memory-datum-seed/go-memory-datum-check/go-memory-datum-checkin - exercise CheckoutDatum/UpdateDatum/CheckinDatum"
-- Keywords: [ "identity", "parameter" ]
-  Helptext:
-  - "(bot), go-identity - exercise Get*Attribute + Set/GetParameter"
-  - "(bot), go-parameter-addtask - SetParameter + AddTask pipeline visibility"
-- Keywords: [ "pipeline", "admin", "elevate" ]
-  Helptext:
-  - "(bot), go-pipeline-ok/go-pipeline-fail/go-spawn-job - exercise pipeline-control methods"
-  - "(bot), go-admin-check/go-elevate-check - exercise CheckAdmin + Elevate"
-CommandMatchers:
+Commands:
 - Regex: (?i:say everything)
   Command: sendmsg
 - Regex: (?i:go-config)
