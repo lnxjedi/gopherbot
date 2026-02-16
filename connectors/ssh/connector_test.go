@@ -386,42 +386,6 @@ func TestHandleUserInputHiddenToBotDirect(t *testing.T) {
 	}
 }
 
-func TestHandleUserInputHiddenWithoutBotNameIsDropped(t *testing.T) {
-	h := &testHandler{}
-	sc := &sshConnector{
-		handler:      h,
-		cfg:          sshConfig{MaxMsgBytes: defaultMaxMsg, UserHistoryLines: 5},
-		botName:      "floyd",
-		botNameLower: "floyd",
-		botID:        "botid",
-		buffer:       make([]bufferMsg, 2),
-		clients:      make(map[*sshClient]struct{}),
-		threads:      make(map[string]int),
-	}
-	client := &sshClient{
-		userName: "alice",
-		userID:   "aliceid",
-		channel:  "general",
-		dmPeer:   "floyd",
-		dmPeerID: "botid",
-		dmIsBot:  true,
-		writer:   io.Discard,
-	}
-
-	sc.handleUserInput(client, "/ping")
-	if len(h.msgs) != 0 {
-		t.Fatalf("expected hidden /ping to be dropped")
-	}
-
-	sc.handleUserInput(client, "/floyd: ping")
-	if len(h.msgs) != 1 {
-		t.Fatalf("expected '/floyd: ping' to be accepted, got %d messages", len(h.msgs))
-	}
-	if got := h.msgs[0].MessageText; got != "floyd ping" {
-		t.Fatalf("expected normalized payload 'floyd ping', got %q", got)
-	}
-}
-
 func TestHandleUserInputDirectAtUserBypassEngine(t *testing.T) {
 	h := &testHandler{}
 	sc := &sshConnector{
