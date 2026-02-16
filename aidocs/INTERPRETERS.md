@@ -69,6 +69,8 @@ callTask()
 
 ## Plugin Contract by Language
 
+Config key note: examples below use legacy `CommandMatchers` and `Help` for compatibility readability. In v3, prefer command-linked metadata under `Commands` (legacy keys are still accepted).
+
 ### Lua Plugins
 
 **Entry point:** Script is executed directly; check `arg[1]` for command.

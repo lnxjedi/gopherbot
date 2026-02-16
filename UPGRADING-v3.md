@@ -135,3 +135,41 @@ These commands are available from the primary protocol:
 - `protocol-start <name>` or `protocol start <name>`
 - `protocol-stop <name>` or `protocol stop <name>`
 - `protocol-restart <name>` or `protocol restart <name>`
+
+## Plugin Command/Help Metadata Migration
+
+v3 help/discovery now prefers command-linked metadata under each command matcher.
+
+- Preferred directed-command key in plugin config: `Commands`.
+- Legacy directed-command key still accepted: `CommandMatchers`.
+- If both keys are present and differ, `Commands` wins and a warning is logged.
+
+Recommended command entry fields:
+
+- `Command`, `Regex`
+- `Usage`, `Summary`
+- optional `Examples`, `Keywords`, `Helptext`
+
+Legacy top-level plugin `Help` blocks are still accepted for compatibility, but new help output is generated from command-linked metadata when present.
+
+## Built-in Help and Fallback Behavior
+
+Built-in help commands are now metadata-driven:
+
+- `(alias) help <keyword>`: ranked command search
+- `(alias) commands`: command groups available in current channel
+- `(alias) help-all`: detailed command list including global commands
+
+Built-in unmatched-command fallback now returns algorithmic closest matches using the same command metadata and ranking logic.
+
+## Hidden Command Addressing
+
+Hidden command execution now requires both:
+
+- command is listed in plugin `AllowedHiddenCommands`
+- hidden message is robot-addressed:
+  - connector-routed bot message (`BotMessage=true`, e.g. Slack slash command), or
+  - name-addressed hidden message (`/<botname> <command>` in connectors like SSH)
+
+Practical migration note:
+- plain hidden `/<command>` is not treated as a robot-addressed hidden command by default.
