@@ -484,10 +484,7 @@ func (sc *sshConnector) handleUserInput(client *sshClient, line string) {
 			sc.sendIncoming(client, payload, true, client.dmPeer != "")
 			return
 		}
-		payload := strings.TrimSpace(trimmed[1:])
-		if payload != "" {
-			sc.sendIncoming(client, payload, true, client.dmPeer != "")
-		}
+		client.writeLineKind("warning", "(input dropped: hidden commands must be '/<robotname> <command>')")
 		return
 	}
 
@@ -1132,7 +1129,7 @@ func (sc *sshConnector) botHiddenPayload(line string) (string, bool) {
 	if !strings.HasPrefix(line, "/") {
 		return "", false
 	}
-	trimmed := strings.TrimPrefix(line, "/")
+	trimmed := strings.TrimSpace(strings.TrimPrefix(line, "/"))
 	if trimmed == "" {
 		return "", false
 	}
@@ -1143,10 +1140,11 @@ func (sc *sshConnector) botHiddenPayload(line string) (string, bool) {
 	if len(trimmed) == len(sc.botNameLower) {
 		return "", false
 	}
-	if trimmed[len(sc.botNameLower)] != ' ' {
+	next := trimmed[len(sc.botNameLower)]
+	if next != ' ' && next != ':' && next != ',' {
 		return "", false
 	}
-	remainder := strings.TrimSpace(trimmed[len(sc.botNameLower):])
+	remainder := strings.TrimSpace(trimmed[len(sc.botNameLower)+1:])
 	if remainder == "" {
 		return "", false
 	}

@@ -399,8 +399,13 @@ loop:
 			} else {
 				hiddenMsg := false
 				if input[0] == '/' {
+					payload, ok := termBotHiddenPayload(input, tc.botName)
+					if !ok {
+						tc.reader.Write([]byte("(input dropped: hidden commands must be '/<robotname> <command>')\n"))
+						continue
+					}
 					hiddenMsg = true
-					input = input[1:]
+					input = payload
 				}
 				var channelID string
 				direct := false
@@ -462,6 +467,34 @@ loop:
 }
 
 func (tc *termConnector) MessageHeard(u, c string) {
+}
+
+func termBotHiddenPayload(line, botName string) (string, bool) {
+	if !strings.HasPrefix(line, "/") {
+		return "", false
+	}
+	trimmed := strings.TrimSpace(strings.TrimPrefix(line, "/"))
+	if trimmed == "" {
+		return "", false
+	}
+	botLower := strings.ToLower(strings.TrimSpace(botName))
+	lower := strings.ToLower(trimmed)
+	if botLower == "" || !strings.HasPrefix(lower, botLower) {
+		return "", false
+	}
+	if len(trimmed) == len(botLower) {
+		return "", false
+	}
+	next := trimmed[len(botLower)]
+	if next != ' ' && next != ':' && next != ',' {
+		return "", false
+	}
+	remainder := strings.TrimSpace(trimmed[len(botLower)+1:])
+	if remainder == "" {
+		return "", false
+	}
+	payload := strings.TrimSpace(botName + " " + remainder)
+	return payload, true
 }
 
 func (tc *termConnector) resolveTermUser(u string) (*termUser, bool) {
