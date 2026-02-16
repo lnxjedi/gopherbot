@@ -10,7 +10,7 @@ Help:
   Helptext: [ "(alias) list (disabled) plugins - list all known plugins, or list disabled plugins with the reason disabled" ]
 - Keywords: [ "dump", "robot" ]
   Helptext: [ "(alias) dump robot - dump the current configuration for the robot" ]
-CommandMatchers:
+Commands:
 - Command: "listplugins"
   Regex: '(?i:list(?:[- ](disabled))?[- ]plugins?)'
 - Command: "dumpplugdefault"

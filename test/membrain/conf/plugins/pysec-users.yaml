@@ -10,6 +10,6 @@ AuthorizedCommands: []
 ElevatedCommands: []
 ElevateImmediateCommands: []
 AllowedHiddenCommands: []
-CommandMatchers:
+Commands:
 - Regex: (?i:python-sec-usersonly)
   Command: secusersonly

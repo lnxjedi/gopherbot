@@ -2,7 +2,7 @@
 Help:
 - Keywords: [ "*", "help" ]
   Helptext: [ "(alias) help with robot - give general help on the help system and using the robot" ]
-CommandMatchers:
+Commands:
 - Command: help
   Regex: '(?i:help with (?:help|robot))'
 MessageMatchers:

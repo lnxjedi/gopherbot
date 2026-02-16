@@ -9,7 +9,7 @@ Help:
   Helptext: [ "(alias) switch-branch <branch> - switch branches in configuration repository" ]
 - Keywords: [ "config", "configuration", "save", "admin", "manage" ]
   Helptext: [ "(alias) save (configuration) - git push custom repository" ]
-CommandMatchers:
+Commands:
 - Command: "update"
   Regex: '(?i:update(?:[ -]config(?:uration)?)?)'
 - Command: "branch"

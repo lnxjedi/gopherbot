@@ -7,7 +7,7 @@ Help:
   Helptext:
   - "(alias) help <keyword> - find help for commands matching <keyword>"
   - "(alias) help - help for commands specific to this channel"
-CommandMatchers:
+Commands:
 - Command: help
   Regex: '(?i:help(?: ([^\s]+))?)'
 - Command: help-all

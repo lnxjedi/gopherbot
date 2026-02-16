@@ -12,7 +12,7 @@ ElevateImmediateCommands:
 - secimmediate
 AllowedHiddenCommands:
 - sechiddenok
-CommandMatchers:
+Commands:
 - Regex: (?i:js-sec-open)
   Command: secopen
 - Regex: (?i:js-sec-admincmd)

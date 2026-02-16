@@ -12,7 +12,7 @@ ElevateImmediateCommands:
 - secimmediate
 AllowedHiddenCommands:
 - sechiddenok
-CommandMatchers:
+Commands:
 - Regex: (?i:go-sec-open)
   Command: secopen
 - Regex: (?i:go-sec-admincmd)

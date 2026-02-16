@@ -8,7 +8,7 @@
 #    'encrypt xxx', then use decrypt in the template for the Password
 #
 # To add your own memes, create conf/plugins/memes.yaml in the custom
-# configuration repository, with new entries for "Help:" and "CommandMatchers:"
+# configuration repository, with new entries for "Help:" and "Commands:"
 # following the format shown, where the "Command" is the template ID.
 # See: https://api.imgflip.com/
 # For stock memes template ID: https://imgflip.com/memetemplate/<name>
@@ -49,7 +49,7 @@ Help:
 - Keywords: [ "meme", "matrix" ]
   Helptext: [ "(bot), morpheus <something>/<something>" ]
 
-CommandMatchers:
+Commands:
 - Command: "1509839"
   Regex: '(?i:picard omg ([^/]+)(?:/([^/]+))?)'
 - Command: "245898"

@@ -13,7 +13,7 @@ Help:
   Helptext: [ "(alias) list groups - give a list of all the groups the robot knows about (bot administrators only)" ]
 - Keywords: [ "group", "groups", "show", "view" ]
   Helptext: [ "(alias) show the <groupname> group - show the members of a group" ]
-CommandMatchers:
+Commands:
 - Command: 'help'
   Regex: '(?i:help with groups?)'
 - Command: 'add'

@@ -9,6 +9,6 @@ AuthorizedCommands: []
 ElevatedCommands: []
 ElevateImmediateCommands: []
 AllowedHiddenCommands: []
-CommandMatchers:
+Commands:
 - Regex: (?i:python-sec-authall)
   Command: secauthall

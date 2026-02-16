@@ -9,7 +9,7 @@ Help:
   - "(alias) link-log <ref> - get a URL for a log"
 - Keywords: [ "list", "job", "jobs", "log", "logs", "history", "joblogs" ]
   Helptext: [ "(alias) job-logs <jobname> - list logs for a given job" ]
-CommandMatchers:
+Commands:
 - Command: maillog
   Regex: '(?i:(?:send|mail|email)[- ]?log ([A-Za-z0-9]+)(?: to (?:(?:user (.*))|([^@]+@[^@]+)))?)'
 - Command: taillog

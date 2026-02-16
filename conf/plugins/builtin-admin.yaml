@@ -33,7 +33,7 @@ Help:
   Helptext:
   - "(alias) log-channel (channel) - start a log of the current or given channel"
   - "(alias) stop-channel-logging - stop all channel logging"
-CommandMatchers:
+Commands:
 - Command: reload
   Regex: '(?i:reload)'
 - Command: protocollist

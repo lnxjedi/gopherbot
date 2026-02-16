@@ -10,7 +10,7 @@ Help:
   Helptext: [ "(alias) show-loglevel - show the current logging level" ]
 - Keywords: [ "log", "page", "lines" ]
   Helptext: [ "(alias) set-loglines to <number> - set the number of lines returned by show log"]
-CommandMatchers:
+Commands:
 - Command: "level"
   Regex: '(?i:set[- ]log ?level(?: to)? (trace|debug|info|warn|error))'
 - Command: "show"
