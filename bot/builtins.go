@@ -46,6 +46,50 @@ func fallback(m robot.Robot, command string, args ...string) (retval robot.TaskR
 	botAlias := r.GetBotAttribute("alias").String()
 	if command == "catchall" {
 		channelName := r.GetMessage().Channel
+		term := ""
+		if len(args) > 0 {
+			term = strings.TrimSpace(args[0])
+		}
+		term = normalizeFallbackTerm(term, botAlias, r.GetBotAttribute("name").String())
+
+		entries := r.collectHelpCommandMetadata(true)
+		matches := rankHelpMatches(entries, term)
+		if len(matches) > 0 {
+			limit := 4
+			display := matches
+			if len(display) > limit {
+				display = display[:limit]
+			}
+			lines := make([]string, 0, len(display)*3+4)
+			if len(channelName) > 0 {
+				lines = append(lines, fmt.Sprintf("No command matched in channel '%s'.", channelName))
+			} else {
+				lines = append(lines, "Command not found.")
+			}
+			if len(term) > 0 {
+				lines = append(lines, fmt.Sprintf("Closest matches for \"%s\":", term))
+			} else {
+				lines = append(lines, "Closest command matches:")
+			}
+			for i, match := range display {
+				entry := match.Entry
+				lines = append(lines, fmt.Sprintf("%d) [%s] %s", i+1, entry.PluginName, entry.Command))
+				if len(entry.Usage) > 0 {
+					lines = append(lines, "   Usage: "+r.formatHelpLine(entry.Usage))
+				}
+				if len(entry.Summary) > 0 {
+					lines = append(lines, "   Summary: "+entry.Summary)
+				}
+			}
+			top := display[0].Entry
+			lines = append(lines, "Try: "+r.formatHelpLine("(alias) help "+top.PluginName))
+			if len(channelName) > 0 {
+				r.SayThread(strings.Join(lines, "\n"))
+			} else {
+				r.Say(strings.Join(lines, "\n"))
+			}
+			return
+		}
 		if len(channelName) > 0 {
 			r.SayThread("No command matched in channel '%s'; try '%shelp'", channelName, botAlias)
 		} else {
@@ -175,6 +219,34 @@ func helpTokenEquivalent(a, b string) bool {
 		return true
 	}
 	return singularizeHelpToken(a) == singularizeHelpToken(b)
+}
+
+func normalizeFallbackTerm(input, alias, botName string) string {
+	term := strings.TrimSpace(input)
+	if len(term) == 0 {
+		return term
+	}
+	if len(alias) > 0 && strings.HasPrefix(term, alias) {
+		term = strings.TrimSpace(strings.TrimPrefix(term, alias))
+	}
+	if len(botName) > 0 {
+		lower := strings.ToLower(term)
+		name := strings.ToLower(strings.TrimSpace(botName))
+		trimNamePrefix := func(sep string) {
+			prefix := name + sep
+			if strings.HasPrefix(lower, prefix) {
+				term = strings.TrimSpace(term[len(prefix):])
+				lower = strings.ToLower(term)
+			}
+		}
+		trimNamePrefix(",")
+		trimNamePrefix(":")
+		trimNamePrefix(" ")
+		if strings.HasPrefix(lower, "@"+name+" ") {
+			term = strings.TrimSpace(term[len(name)+2:])
+		}
+	}
+	return strings.TrimSpace(term)
 }
 
 func helpScopeText(task *Task) string {
@@ -347,6 +419,26 @@ func scoreHelpCommandMatch(entry helpCommandMetadata, term string) int {
 	return score
 }
 
+func rankHelpMatches(entries []helpCommandMetadata, term string) []rankedHelpMatch {
+	matches := make([]rankedHelpMatch, 0, len(entries))
+	for _, entry := range entries {
+		score := scoreHelpCommandMatch(entry, term)
+		if score > 0 {
+			matches = append(matches, rankedHelpMatch{Entry: entry, Score: score})
+		}
+	}
+	sort.Slice(matches, func(i, j int) bool {
+		if matches[i].Score == matches[j].Score {
+			if matches[i].Entry.PluginName == matches[j].Entry.PluginName {
+				return matches[i].Entry.Command < matches[j].Entry.Command
+			}
+			return matches[i].Entry.PluginName < matches[j].Entry.PluginName
+		}
+		return matches[i].Score > matches[j].Score
+	})
+	return matches
+}
+
 func (r Robot) renderHelpEntry(entry helpCommandMetadata, includeExamples, includeScope bool) string {
 	lines := []string{fmt.Sprintf("[%s] %s", entry.PluginName, entry.Command)}
 	if len(entry.Usage) > 0 {
@@ -507,26 +599,11 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			sendOutput("Commands available in this channel (including global):\n" + strings.Join(helpLines, lineSeparator))
 		case "help":
 			entries := r.collectHelpCommandMetadata(true)
-			matches := make([]rankedHelpMatch, 0, len(entries))
-			for _, entry := range entries {
-				score := scoreHelpCommandMatch(entry, term)
-				if score > 0 {
-					matches = append(matches, rankedHelpMatch{Entry: entry, Score: score})
-				}
-			}
+			matches := rankHelpMatches(entries, term)
 			if len(matches) == 0 {
 				sendOutput("Sorry, I didn't find any commands matching your keyword")
 				return
 			}
-			sort.Slice(matches, func(i, j int) bool {
-				if matches[i].Score == matches[j].Score {
-					if matches[i].Entry.PluginName == matches[j].Entry.PluginName {
-						return matches[i].Entry.Command < matches[j].Entry.Command
-					}
-					return matches[i].Entry.PluginName < matches[j].Entry.PluginName
-				}
-				return matches[i].Score > matches[j].Score
-			})
 
 			limit := 12
 			display := matches
