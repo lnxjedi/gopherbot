@@ -75,24 +75,47 @@ var (
 )
 
 var defaultConfig = []byte(`
-Help:
-- Keywords: [ "new", "robot", "setup", "onboarding" ]
-  Helptext: [ "(bot), new robot - start guided setup for a new robot" ]
-- Keywords: [ "new", "robot", "resume", "onboarding" ]
-  Helptext: [ "(bot), new robot resume - resume your onboarding session" ]
-- Keywords: [ "new", "robot", "cancel", "onboarding" ]
-  Helptext: [ "(bot), new robot cancel - cancel your onboarding session" ]
-- Keywords: [ "new", "robot", "repo", "repository", "onboarding" ]
-  Helptext: [ "(bot), new robot repo - continue repository handoff and .env bootstrap setup" ]
-CommandMatchers:
+Commands:
 - Command: "new-robot"
   Regex: '(?i:new(?:-|[[:space:]]+)robot)$'
+  Keywords: [ "new", "robot", "setup", "onboarding" ]
+  Usage: "(bot), new robot"
+  Summary: "Starts guided onboarding for creating a new robot repository and config."
+  Examples:
+  - ";new robot"
+  - "robot, new robot"
+  Helptext:
+  - "(bot), new robot - start guided setup for a new robot"
 - Command: "new-robot-resume"
   Regex: '(?i:(?:resume|continue)[[:space:]]+new(?:-|[[:space:]]+)robot|new(?:-|[[:space:]]+)robot[[:space:]]+(?:resume|continue))$'
+  Keywords: [ "new", "robot", "resume", "onboarding" ]
+  Usage: "(bot), new robot resume"
+  Summary: "Resumes your in-progress onboarding session."
+  Examples:
+  - ";new robot resume"
+  - "robot, continue new robot"
+  Helptext:
+  - "(bot), new robot resume - resume your onboarding session"
 - Command: "new-robot-cancel"
   Regex: '(?i:(?:cancel|abort|stop)[[:space:]]+new(?:-|[[:space:]]+)robot|new(?:-|[[:space:]]+)robot[[:space:]]+(?:cancel|abort|stop))$'
+  Keywords: [ "new", "robot", "cancel", "onboarding" ]
+  Usage: "(bot), new robot cancel"
+  Summary: "Cancels and removes your onboarding session state."
+  Examples:
+  - ";new robot cancel"
+  - "robot, stop new robot"
+  Helptext:
+  - "(bot), new robot cancel - cancel your onboarding session"
 - Command: "new-robot-repo"
   Regex: '(?i:new(?:-|[[:space:]]+)robot[[:space:]]+(?:repo|repository)|(?:repo|repository)[[:space:]]+new(?:-|[[:space:]]+)robot)$'
+  Keywords: [ "new", "robot", "repo", "repository", "onboarding" ]
+  Usage: "(bot), new robot repo"
+  Summary: "Continues repository handoff and .env bootstrap setup."
+  Examples:
+  - ";new robot repo"
+  - "robot, repository new robot"
+  Helptext:
+  - "(bot), new robot repo - continue repository handoff and .env bootstrap setup"
 ReplyMatchers:
 - Label: botname
   Regex: '(?i:[a-z][a-z0-9_-]{0,31})'

@@ -12,12 +12,17 @@ import (
 // The best place for help and regexes is with the plugin. See
 // conf/plugins/knock.yaml for other configuration that gets merged.
 var defaultConfig = []byte(`
-Help:
-- Keywords: [ "knock", "joke" ]
-  Helptext: [ "(bot), tell me a (knock-knock) joke" ]
-CommandMatchers:
+Commands:
 - Command: knock
   Regex: '(?i:tell me a(?:nother)?(?: knock[- ]knock)? joke)'
+  Keywords: [ "knock", "joke" ]
+  Usage: "(bot), tell me a knock-knock joke"
+  Summary: "Starts an interactive knock-knock joke."
+  Examples:
+  - ";tell me a knock-knock joke"
+  - "robot, tell me another joke"
+  Helptext:
+  - "(bot), tell me a (knock-knock) joke"
 ReplyMatchers:
 - Label: whosthere
   Regex: '(?i:who.?s there\??|who is there\??)'

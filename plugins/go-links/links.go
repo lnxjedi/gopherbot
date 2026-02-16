@@ -11,44 +11,84 @@ import (
 )
 
 var defaultConfig = []byte(`
-Help:
-- Keywords: [ "link", "links", "add" ]
-  Helptext: [ "(bot), link <word/phrase> to <http://...> - save a link with a single word/phrase key" ]
-- Keywords: [ "link", "links", "save", "add" ]
-  Helptext: [ "(bot), save link <http://...> - save a link and prompt for multiple word/phrase keys"]
-- Keywords: [ "link", "links", "find", "lookup", "search" ]
-  Helptext:
-  - "(bot), (find|lookup) <keyword/phrase> - find links with keys containing a keyword or phrase"
-  - "(bot), look <keyword/phrase> up"
-- Keywords: [ "link", "links", "remove" ]
-  Helptext: [ "(bot), remove <http://...> - remove a link" ]
-- Keywords: [ "link", "links" ]
-  Helptext: [ "(bot), help with links - give a description of the links plugin" ]
-- Keywords: [ "link", "links", "list", "show" ]
-  Helptext: [ "(bot), (list|show) links - list all the links the robot knows" ]
-CommandMatchers:
+Commands:
 - Command: 'help'
   Regex: '(?i:help with links?)'
+  Keywords: [ "link", "links", "help" ]
+  Usage: "(bot), help with links"
+  Summary: "Shows detailed guidance for the links plugin."
+  Examples:
+  - ";help with links"
+  - "robot, help with links"
+  Helptext:
+  - "(bot), help with links - give a description of the links plugin"
 - Command: 'add'
   Regex: '(?i:link ([-\w ,''!."+=?&@#()/]+) to ((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
   Contexts: [ "item:it", "link" ]
+  Keywords: [ "link", "links", "add" ]
+  Usage: "(bot), link <word/phrase> to <http://...>"
+  Summary: "Saves a link with a single keyword or phrase."
+  Examples:
+  - ";link gopherbot docs to https://github.com/lnxjedi/gopherbot"
+  - "robot, link status page to https://status.example.com"
+  Helptext:
+  - "(bot), link <word/phrase> to <http://...> - save a link with a single word/phrase key"
 - Command: 'add'
   Regex: '(?i:link ([-\w ,''!."+=?&@#()/]+) to (it))'
   Contexts: [ "item:it", "link:it" ]
+  Usage: "(bot), link <word/phrase> to it"
+  Summary: "Saves a keyword by reusing a previously remembered link."
+  Examples:
+  - ";link deployment guide to it"
 - Command: 'save'
   Regex: '(?i:save (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
   Contexts: [ "link" ]
+  Keywords: [ "link", "links", "save", "add" ]
+  Usage: "(bot), save link <http://...>"
+  Summary: "Saves a link, then prompts for one or more lookup keywords."
+  Examples:
+  - ";save link https://pkg.go.dev"
+  Helptext:
+  - "(bot), save link <http://...> - save a link and prompt for multiple word/phrase keys"
 - Command: 'remove'
   Regex: '(?i:(?:remove|delete) (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
   Contexts: [ "link" ]
+  Keywords: [ "link", "links", "remove" ]
+  Usage: "(bot), remove <http://...>"
+  Summary: "Deletes a saved link entry."
+  Examples:
+  - ";remove https://status.example.com"
+  Helptext:
+  - "(bot), remove <http://...> - remove a link"
 - Command: 'find'
   Regex: '(?i:(?:find|look ?up) ([-\w ,''!."+=?&@#()/]+))'
   Contexts: [ "item:it" ]
+  Keywords: [ "link", "links", "find", "lookup", "search" ]
+  Usage: "(bot), find <keyword/phrase>"
+  Summary: "Finds saved links whose keys contain the given phrase."
+  Examples:
+  - ";find gopherbot"
+  - "robot, lookup status"
+  Helptext:
+  - "(bot), (find|lookup) <keyword/phrase> - find links with keys containing a keyword or phrase"
+  - "(bot), look <keyword/phrase> up"
 - Command: 'list'
   Regex: '(?i:(?:show|list) links)'
+  Keywords: [ "link", "links", "list", "show" ]
+  Usage: "(bot), list links"
+  Summary: "Lists all links currently saved by the plugin."
+  Examples:
+  - ";show links"
+  - "robot, list links"
+  Helptext:
+  - "(bot), (list|show) links - list all the links the robot knows"
 - Command: 'find'
   Regex: '(?i:look ([-\w ,''!."+=?&@#()/]+) up)'
   Contexts: [ "item:it" ]
+  Usage: "(bot), look <keyword/phrase> up"
+  Summary: "Alternate phrasing for finding saved links."
+  Examples:
+  - ";look gopherbot up"
 ReplyMatchers:
 - Regex: '([-\w ,''!."+=?&@#()/]+)'
   Label: "lookup"
