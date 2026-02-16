@@ -148,7 +148,7 @@ func getDefCfgThread(cchan chan<- getCfgReturn, ti interface{}) {
 		}
 		if isExternalGoTask {
 			Log(robot.Info, "Calling func Configure for external Go plugin '"+task.name+"'")
-			if defConfig, err := runGoGetConfigViaRPC(taskPath, task.name); err != nil {
+			if defConfig, err := runGoGetConfigViaRPC(taskPath, task.name, task.Privileged); err != nil {
 				Log(robot.Warn, "unable to retrieve plugin default configuration for '%s': %s", task.name, err.Error())
 				// This error shouldn't disable an external Go plugin
 				cchan <- getCfgReturn{&cfg, nil}

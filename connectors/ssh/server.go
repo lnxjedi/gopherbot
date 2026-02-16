@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -67,7 +68,7 @@ func (sc *sshConnector) handleConn(nc net.Conn, cfg *ssh.ServerConfig) {
 			return cpy
 		}(),
 		conn:   sshConn,
-		writer: nc,
+		writer: io.Discard,
 	}
 
 	sc.addClient(client)
@@ -175,6 +176,7 @@ func (sc *sshConnector) handleSession(client *sshClient, ch ssh.Channel, request
 		client.writeLineKind("info", "(INFO: no recent messages matched the selected filter)")
 	}
 	client.writeLineKind("system", sshConnectorHelpLine)
+	sc.announceJoin(client)
 	client.setPrompt()
 
 	inputCh := make(chan inputEvent, 8)

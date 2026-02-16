@@ -30,6 +30,7 @@ type connectorStatus struct {
 var runtimeConnectors = struct {
 	sync.RWMutex
 	primary          string
+	defaultProtocol  string
 	runtimes         map[string]*managedConnector
 	desiredSecondary map[string]bool
 	userMaps         map[string]map[string]string
@@ -82,6 +83,18 @@ func getRuntimePrimaryProtocol() (string, bool) {
 	return runtimeConnectors.primary, true
 }
 
+func getRuntimeDefaultProtocol() (string, bool) {
+	runtimeConnectors.RLock()
+	defer runtimeConnectors.RUnlock()
+	if runtimeConnectors.defaultProtocol != "" {
+		return runtimeConnectors.defaultProtocol, true
+	}
+	if runtimeConnectors.primary != "" {
+		return runtimeConnectors.primary, true
+	}
+	return "", false
+}
+
 func getRuntimeConnector(protocol string) (robot.Connector, bool) {
 	p := normalizeProtocolName(protocol)
 	runtimeConnectors.RLock()
@@ -117,21 +130,25 @@ func protocolForMessage(msgObject *robot.ConnectorMessage) string {
 			return p
 		}
 	}
-	if primary, ok := getRuntimePrimaryProtocol(); ok {
-		return primary
+	if p, ok := getRuntimeDefaultProtocol(); ok {
+		return p
 	}
 	return ""
 }
 
-func configuredProtocols() (string, []string) {
+func configuredProtocols() (string, string, []string) {
 	currentCfg.RLock()
 	defer currentCfg.RUnlock()
 	primary := normalizeProtocolName(currentCfg.protocol)
+	defaultProtocol := normalizeProtocolName(currentCfg.defaultProtocol)
+	if defaultProtocol == "" {
+		defaultProtocol = primary
+	}
 	secondary := normalizeSecondaryProtocols(primary, currentCfg.secondaryProtocols)
 	for i := range secondary {
 		secondary[i] = normalizeProtocolName(secondary[i])
 	}
-	return primary, secondary
+	return primary, defaultProtocol, secondary
 }
 
 func userMapForProtocolLocked(protocol string) map[string]string {
@@ -182,13 +199,14 @@ func userMapForProtocol(protocol string) map[string]string {
 }
 
 func initializeConnectorRuntime(logger *log.Logger) error {
-	primary, secondaries := configuredProtocols()
+	primary, defaultProtocol, secondaries := configuredProtocols()
 	if primary == "" {
 		return fmt.Errorf("primary protocol not configured")
 	}
 
 	runtimeConnectors.Lock()
 	runtimeConnectors.primary = primary
+	runtimeConnectors.defaultProtocol = defaultProtocol
 	runtimeConnectors.runtimes = map[string]*managedConnector{}
 	runtimeConnectors.desiredSecondary = map[string]bool{}
 	for _, protocol := range secondaries {
@@ -351,7 +369,7 @@ func stopConnectorRuntime(protocol string) error {
 }
 
 func startConnectorRuntimes() error {
-	primary, secondaries := configuredProtocols()
+	primary, _, secondaries := configuredProtocols()
 	if primary == "" {
 		return fmt.Errorf("primary protocol not configured")
 	}

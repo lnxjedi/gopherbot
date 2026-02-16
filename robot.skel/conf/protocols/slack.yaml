@@ -1,0 +1,14 @@
+## protocols/slack.yaml - sample configuration for the Slack connector
+## Keep user directory/admin settings in conf/robot.yaml
+## and map usernames to Slack IDs in UserMap here.
+
+ProtocolConfig:
+  MaxMessageSplit: {{ env "GOPHER_SLACK_MAX_MSGS" | default "2" }}
+  AppToken: xapp-{{ decrypt "<slackappencrypted>" }}
+  BotToken: xoxb-{{ decrypt "<slackbotencrypted>" }}
+  HearSelf: false
+
+## Example:
+# UserMap:
+#   alice: U12345
+#   <botname>: U67890

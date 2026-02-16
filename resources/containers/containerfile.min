@@ -55,10 +55,6 @@ RUN useradd -d ${HOME} -r -c "Gopherbot Robot" -u ${ROBOT_UID} robot && \
 
 COPY --from=build /tmp/gopherbot /opt/gopherbot
 
-# USER root
-# RUN cd /opt/gopherbot && \
-#     ./setuid-nobody.sh
-
 USER ${ROBOT_UID}:${ROBOT_UID}
 
 WORKDIR ${HOME}

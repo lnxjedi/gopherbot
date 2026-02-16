@@ -81,7 +81,7 @@ func defval(d, i string) string {
 }
 
 // setEnvVar allows the default robot.yaml to override environment variables
-// seen when loading the custom robot.yaml - mainly just for IDE mode.
+// seen when loading the custom robot.yaml.
 func setEnvVar(k, v string) (err error) {
 	err = setEnv(k, v)
 	if err != nil {
@@ -123,13 +123,10 @@ func isTestBuildTpl() bool {
 /*
 Used in robot.yaml to determine start-up settings for connector, brain, and
 logging. Returns one of:
-* setup - no configuration but answerfile.txt/ANS* env present, setup plugin will process
 * demo - no configuration or env vars, starts the default robot
 * test-dev - using config dir in gopherbot/test for creating integration tests
 * bootstrap - env vars (e.g. GOPHER_CUSTOM_REPOSITORY) set, but no config yet
 * cli - gopherbot CLI command, not starting a real robot
-* ide - running in the gopherbot IDE for local dev
-* ide-override - running in the IDE, but robot should connect to team chat
 * production - env vars set and config repo cloned, the most "normal" start-up
 */
 func detectStartupMode() (mode string) {
@@ -147,27 +144,11 @@ func detectStartupMode() (mode string) {
 	}
 	_, robotConfigured := lookupEnv("GOPHER_CUSTOM_REPOSITORY")
 	if !robotConfigured {
-		// NOTE that if GOPHER_IDE is set, we're always in $HOME when
-		// looking for "answerfile.txt". See start.go.
-		if _, err := os.Stat("answerfile.txt"); err == nil {
-			// true for CLI setup
-			return "setup"
-		} else if _, ok := lookupEnv("ANS_PROTOCOL"); ok {
-			// true for container-based setup
-			return "setup"
-		}
 		return "demo"
 	}
 	robotYamlFile := filepath.Join(configPath, "conf", robotConfigFileName)
 	if _, err := os.Stat(robotYamlFile); err != nil {
 		return "bootstrap"
-	}
-	// checked in start.go
-	if ideMode {
-		if overrideIDEMode {
-			return "ide-override"
-		}
-		return "ide"
 	}
 	return "production"
 }

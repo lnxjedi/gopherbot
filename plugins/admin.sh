@@ -45,9 +45,8 @@ case "$COMMAND" in
     AddTask send-message "... switched to branch '$BRANCH'"
     ;;
   "save")
-    Say "Ok, I'll push my configuration and long-term memory store ..."
+    Say "Ok, I'll push my configuration ..."
     AddJob save
-    AddJob backup
     FailTask say "Job failed!"
     AddTask say "... done"
     ;;
@@ -61,17 +60,5 @@ case "$COMMAND" in
     AddJob theia
     FailTask say "Starting theia failed! (are you using the gopherbot-theia image?)"
     AddTask say "... Theia finished"
-    ;;
-  "backup")
-    Say "Ok, I'll start the backup job to push my state..."
-    AddJob backup
-    FailTask say "Job failed!"
-    AddTask say "... done"
-    ;;
-  "restore")
-    Say "Ok, I'll start a restore of my state from the remote repository..."
-    AddJob restore "$1"
-    FailTask say "Job failed!"
-    AddTask say "... done"
     ;;
 esac

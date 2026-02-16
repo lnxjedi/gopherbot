@@ -9,23 +9,9 @@ if command == "configure" then
     return ""  -- No default configuration
 end
 
--- Note that this plugin is only active when unconfigured and proto == terminal.
+-- Welcome messaging for SSH now runs through the welcome-join trigger job.
+-- Keep init quiet so startup doesn't emit chat lines before a user connects.
 if command == "init" then
-    bot:Pause(1)
-
-    local name = bot:GetBotAttribute("name")
-    bot:SendChannelMessage("general", "*******")
-    bot:SendChannelMessage("general", "Welcome to the *Gopherbot* terminal connector. Since no " ..
-        "configuration was detected, you're connected to '" .. name .. "', the default robot.")
-
-    bot:Pause(2)
-
-    local alias = bot:GetBotAttribute("alias")
-    bot:SendChannelMessage("general", "If you've started the robot by mistake, just hit ctrl-D " ..
-        "to exit and try 'gopherbot --help'; otherwise feel free to play around with the default robot - " ..
-        "you can start by typing 'help'. If you'd like to start configuring a new robot, " ..
-        "type: '" .. alias .. "new robot'.")
-
     return robot.task.Normal
 end
 

@@ -1,0 +1,8 @@
+---
+# Sample overlay for plugins/samples/privsep_probe.lua
+# Requires robot.yaml entry name: "privsep-lua-unpriv"
+Channels: [ "random" ]
+CommandMatchers:
+- Regex: (?i:privsep lua unpriv)
+  Command: probe
+

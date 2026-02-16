@@ -53,7 +53,7 @@ Any startup modes that currently force `nullconn` remain unchanged.
 
 ### Defaults
 
-The default SSH connector configuration should exist in `conf/ssh.yaml` (where no port is specified, and the engine defaults to 4221) and `robot.skel/conf/ssh.yaml` (with `ListenPort` using env default `GOPHER_SSH_PORT` or `4221`). The default roster includes alice/bob/carol/david/erin with their ed25519 public keys.
+The default SSH connector configuration should exist in `conf/protocols/ssh.yaml` (where no port is specified, and the engine defaults to 4221). For newly scaffolded robots, protocol config lives in `robot.skel/conf/protocols/ssh.yaml` (with `ListenPort` using env default `GOPHER_SSH_PORT` or `4221`).
 
 ### Color
 

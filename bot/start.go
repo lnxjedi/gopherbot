@@ -22,14 +22,12 @@ var (
 
 	// CLI flags
 	logFile         string
-	overrideIDEMode bool
 	plainlog        bool
 	helpRequested   bool
 	sshPortOverride int
 	aidevFlagToken  string
 
 	hostName  string
-	ideMode   bool
 	startMode string
 
 	deployEnvironment string
@@ -64,9 +62,6 @@ func Start(v VersionInfo) {
 	}
 
 	var ok bool
-	if deployEnvironment, ok = lookupEnv("GOPHER_ENVIRONMENT"); !ok {
-		deployEnvironment = "production"
-	}
 
 	var overrideDevEnv string
 	// Save args in case we need to spawn child
@@ -78,9 +73,6 @@ func Start(v VersionInfo) {
 	envusage := "alternate dev environment override (default GOPHER_ENVIRONMENT / production)"
 	flag.StringVar(&overrideDevEnv, "devenv", "", envusage)
 	flag.StringVar(&overrideDevEnv, "d", "", "")
-	ovusage := "Override GOPHER_IDE mode"
-	flag.BoolVar(&overrideIDEMode, "override", false, ovusage)
-	flag.BoolVar(&overrideIDEMode, "o", false, "")
 	plusage := "omit timestamps from the log"
 	flag.BoolVar(&plainlog, "plainlog", false, plusage)
 	flag.BoolVar(&plainlog, "p", false, "")
@@ -110,29 +102,12 @@ func Start(v VersionInfo) {
 			return
 		}
 	}
+	cliOp = len(flag.Args()) > 0 && flag.Arg(0) != "run"
 
-	if len(overrideDevEnv) > 0 {
-		deployEnvironment = overrideDevEnv
-	}
 	setAIDevToken(aidevFlagToken)
 
-	/*
-		To prevent inadvertently bootstrapping a production
-		robot in a random directory, we force it to run in $HOME
-		when in IDE mode. This behavior can only be overridden by
-		unsetting GOPHER_IDE in the terminal before invoking gopherbot.
-		(`unset GOPHER_IDE; gopherbot`).
-
-		IDE mode also ensures that the protocol is "ssh" and the
-		brain is "mem" (in-memory); these can be overridden with the "-o"
-		CLI flag.
-	*/
-	_, ideMode = lookupEnv("GOPHER_IDE")
 	startMode = detectStartupMode()
-	if ideMode && (startMode != "test-dev") {
-		homeDir := os.Getenv("HOME")
-		os.Chdir(homeDir)
-	} else if startMode == "test-dev" {
+	if startMode == "test-dev" {
 		cwd, _ := os.Getwd()
 		configPath = cwd
 	}
@@ -148,7 +123,7 @@ func Start(v VersionInfo) {
 	if pid == 1 {
 		Log(robot.Info, "PID == 1, spawning child")
 		bin, _ := os.Executable()
-		// Used by autosetup
+		// Available to startup/bootstrap flows running in container mode
 		os.Setenv("GOPHER_CONTAINER", "iscontainer")
 		env := os.Environ()
 		cmd := exec.Command(bin, args...)
@@ -222,11 +197,19 @@ func Start(v VersionInfo) {
 		}
 	}
 	penvErr := godotenv.Overload(envFile)
+	if deployEnvironment, ok = lookupEnv("GOPHER_ENVIRONMENT"); !ok {
+		deployEnvironment = "production"
+	}
+	if len(overrideDevEnv) > 0 {
+		deployEnvironment = overrideDevEnv
+	}
+	// Re-evaluate startup mode after private environment loading so
+	// bootstrap decisions include values from process env or .env.
+	startMode = detectStartupMode()
 
 	var logger *log.Logger
 	var logOut *os.File
 
-	cliOp = len(flag.Args()) > 0 && flag.Arg(0) != "run"
 	var cliCommand string
 
 	// Get CLI command and set up pre-initBot logging
@@ -247,8 +230,6 @@ func Start(v VersionInfo) {
 	}
 	var shortDesc string
 	switch startMode {
-	case "setup":
-		shortDesc = "processes answerfile.txt/ANS* env vars "
 	case "demo":
 		shortDesc = "no configuration or env vars, demo robot"
 	case "test-dev":
@@ -260,10 +241,6 @@ func Start(v VersionInfo) {
 		}
 	case "cli":
 		shortDesc = fmt.Sprintf("running CLI command '%s'", cliCommand)
-	case "ide":
-		shortDesc = "local dev environment overriding protocol/brain"
-	case "ide-override":
-		shortDesc = "local dev environment with configured protocol/brain"
 	case "production":
 		shortDesc = "fully configured robot"
 	default:

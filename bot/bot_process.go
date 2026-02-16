@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -102,6 +103,7 @@ type configuration struct {
 	defaultMessageFormat robot.MessageFormat // Raw unless set to Variable or Fixed
 	plugChannels         []string            // list of channels where plugins are available by default
 	protocol             string              // Name of the primary protocol, e.g. "slack"
+	defaultProtocol      string              // Protocol used for outbound messages without an inbound protocol context
 	secondaryProtocols   []string            // Additional protocols configured for future multi-protocol runtime
 	brainProvider        string              // Type of Brain provider to use
 	encryptionKey        string              // Key for encrypting data (unlocks "real" key in brain)
@@ -183,7 +185,7 @@ func initBot() {
 		case "cli", "bootstrap", "production":
 			Log(robot.Fatal, "unable to initialize encryption for startup mode '%s', no GOPHER_ENCRYPTION_KEY set in environment (or .env)", mode)
 		default:
-			// For demo, setup, ide, test-dev modes: create a temporary random key
+			// For demo and test-dev modes: create a temporary random key
 			bk := make([]byte, 32)
 			_, err := crand.Read(bk)
 			if err != nil {
@@ -274,6 +276,30 @@ func setConnector(c robot.Connector) {
 
 var keyEnv = "GOPHER_ENCRYPTION_KEY"
 
+const encryptedKeyFileMode os.FileMode = 0600
+
+func enforceEncryptedKeyFilePermissions(keyFile string) error {
+	info, err := os.Lstat(keyFile)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("refusing symbolic link for encrypted key file '%s'", keyFile)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("encrypted key path '%s' is not a regular file", keyFile)
+	}
+	if info.Mode().Perm() == encryptedKeyFileMode {
+		return nil
+	}
+	raiseThreadPriv("securing encrypted key file permissions")
+	if err := os.Chmod(keyFile, encryptedKeyFileMode); err != nil {
+		return err
+	}
+	Log(robot.Warn, "Adjusted permissions for encrypted key file '%s' to %o", keyFile, encryptedKeyFileMode)
+	return nil
+}
+
 func initCrypt() bool {
 	// Initialize encryption (new style for v2)
 	keyFileName := encryptedKeyFile
@@ -286,20 +312,28 @@ func initCrypt() bool {
 	encryptionInitialized := false
 	if ek, ok := lookupEnv(keyEnv); ok {
 		ik := []byte(ek)[0:32]
-		if bkf, err := os.ReadFile(keyFile); err == nil {
-			if bke, err := base64.StdEncoding.DecodeString(string(bkf)); err == nil {
-				if key, err := decrypt(bke, ik); err == nil {
-					cryptKey.Lock()
-					cryptKey.key = key
-					cryptKey.initialized = true
-					cryptKey.Unlock()
-					encryptionInitialized = true
-					Log(robot.Info, "Successfully decrypted binary encryption key '%s'", keyFile)
+		if _, err := os.Stat(keyFile); err == nil {
+			if err := enforceEncryptedKeyFilePermissions(keyFile); err != nil {
+				Log(robot.Error, "Securing encrypted key file '%s': %v", keyFile, err)
+				return false
+			}
+			if bkf, err := os.ReadFile(keyFile); err == nil {
+				if bke, err := base64.StdEncoding.DecodeString(string(bkf)); err == nil {
+					if key, err := decrypt(bke, ik); err == nil {
+						cryptKey.Lock()
+						cryptKey.key = key
+						cryptKey.initialized = true
+						cryptKey.Unlock()
+						encryptionInitialized = true
+						Log(robot.Info, "Successfully decrypted binary encryption key '%s'", keyFile)
+					} else {
+						Log(robot.Error, "Decrypting binary encryption key '%s' from environment key '%s': %v", keyFile, keyEnv, err)
+					}
 				} else {
-					Log(robot.Error, "Decrypting binary encryption key '%s' from environment key '%s': %v", keyFile, keyEnv, err)
+					Log(robot.Error, "Base64 decoding '%s': %v", keyFile, err)
 				}
 			} else {
-				Log(robot.Error, "Base64 decoding '%s': %v", keyFile, err)
+				Log(robot.Error, "Reading binary encryption key '%s': %v", keyFile, err)
 			}
 		} else {
 			Log(robot.Warn, "Binary encryption key not loaded from '%s': %v", keyFile, err)
@@ -318,9 +352,13 @@ func initCrypt() bool {
 				}
 				beks := base64.StdEncoding.EncodeToString(bek)
 				raiseThreadPriv("writing generated encrypted key")
-				err = os.WriteFile(keyFile, []byte(beks), 0444)
+				err = os.WriteFile(keyFile, []byte(beks), encryptedKeyFileMode)
 				if err != nil {
 					Log(robot.Error, "Writing out generated key: %v", err)
+					return false
+				}
+				if err := enforceEncryptedKeyFilePermissions(keyFile); err != nil {
+					Log(robot.Error, "Securing generated encrypted key file '%s': %v", keyFile, err)
 					return false
 				}
 				Log(robot.Info, "Successfully wrote new binary encryption key to '%s'", keyFile)
@@ -379,8 +417,29 @@ func run() {
 		Log(robot.Fatal, "Loading full/post-connect configuration: %v", err)
 	}
 	Log(robot.Info, "Robot is initialized and running")
-	if startMode == "test-dev" && currentCfg.protocol == "ssh" {
-		Log(robot.Info, "Default robot running in test-dev mode with ssh-connector; connect with e.g. 'bot-ssh alice'")
+	if hint := startupSSHHint(startMode, currentCfg.protocol, currentCfg.adminUsers); hint != "" {
+		Log(robot.Info, "%s", hint)
+	}
+}
+
+func startupSSHHint(mode, protocol string, adminUsers []string) string {
+	if protocol != "ssh" {
+		return ""
+	}
+	loginUser := "alice"
+	if len(adminUsers) > 0 {
+		u := strings.TrimSpace(adminUsers[0])
+		if u != "" {
+			loginUser = u
+		}
+	}
+	switch mode {
+	case "demo":
+		return fmt.Sprintf("Running in DEMO mode; in another terminal window, connect as %s with 'bot-ssh -l %s'", loginUser, loginUser)
+	case "test-dev":
+		return fmt.Sprintf("Default robot running in test-dev mode with ssh-connector; connect with e.g. 'bot-ssh -l %s'", loginUser)
+	default:
+		return ""
 	}
 }
 

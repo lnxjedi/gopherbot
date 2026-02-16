@@ -11,7 +11,7 @@
 ## env "ENV_VAR":
 ##   look a value up from the environment
 ## SetEnv "ENV_VAR" "value"
-##   override an environment variable setting for IDE mode (see usage below)
+##   override an environment variable setting during template expansion
 ##   -> Note that this is really mainly useful in default configuration,
 ##      since default is always loaded before custom config.
 ## decrypt "<encrypted string>":
@@ -22,13 +22,10 @@
 ## GetStartupMode:
 ##   Examine the execution environment to determine settings for protocol,
 ##   brain and log destination. Possible values:
-##   * setup - no configuration but answerfile.txt/ANS* env present, setup plugin will process
 ##   * demo - no configuration or env vars, starts the default robot
 ##   * test-dev - using config dir in gopherbot/test for creating integration tests
 ##   * bootstrap - env vars (e.g. GOPHER_CUSTOM_REPOSITORY) set, but no config yet
 ##   * cli - gopherbot CLI command, not starting a real robot
-##   * ide - running in the gopherbot IDE for local dev
-##   * ide-override - running in the IDE, but robot should connect to team chat
 ##   * production - env vars set and config repo cloned, the most "normal" start-up
 
 ## Port to listen on for http/JSON api calls, for external plugins.
@@ -37,7 +34,7 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
 
 {{- $mode := GetStartupMode }}
 
-## Defaults for "production" and "ide-override" modes
+## Defaults for "production" mode
 ## Protocol - almost always overriden by GOPHER_PROTOCOL
 {{- $proto := env "GOPHER_PROTOCOL" | default "ssh" }}
 ## Brain - normally configured in a robot's custom
@@ -56,14 +53,10 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
   {{- $proto = "nullconn" }}
   {{- $brain = "mem"}}
   {{- $logdest = "stdout" }}
-## IDE mode, override protocol, brain, logdest
-{{- else if or (eq $mode "ide") (eq $mode "test-dev") }}
-  {{- if eq $mode "test-dev" }}
-    {{- if IsTestBuild }}
+## test-dev mode, override protocol, brain, logdest
+{{- else if eq $mode "test-dev" }}
+  {{- if IsTestBuild }}
   {{- $proto = "terminal" }}
-    {{- else }}
-  {{- $proto = "ssh" }}
-    {{- end }}
   {{- else }}
   {{- $proto = "ssh" }}
   {{- end }}
@@ -73,13 +66,6 @@ LocalPort: {{ env "GOPHER_PORT" | default "0" }}
   {{- else }}
   {{- $logdest = "stdout" }}
   {{- end }}
-{{- if eq $mode "ide" }}
-## Override environment variables that will affect a
-## robot's custom configuration loading
-  {{- SetEnv "GOPHER_PROTOCOL" "ssh" }}
-  {{- SetEnv "GOPHER_BRAIN" "mem" }}
-  {{- SetEnv "GOPHER_LOGDEST" "stdout" }}
-{{- end }}
 {{- end }}
 
 ## Possibly modified by GOPHER_HTTP_DEBUG, see below
@@ -101,25 +87,25 @@ HttpDebug: true
   {{- $logdest = "robot.log" }}
 {{- end }}
 
-Protocol: {{ $proto }}
+PrimaryProtocol: {{ $proto }}
+DefaultProtocol: {{ env "GOPHER_DEFAULT_PROTOCOL" | default $proto }}
 Brain: {{ $brain }}
 LogDest: {{ $logdest }}
 LogLevel: {{ $loglevel }}
 
-## Trivial "terminal" connector config for a single admin user.
-## This pulls in a basic default config for the terminal connector
-## which can be overridden in custom if desired.
-{{- if eq $proto "terminal" }}
-{{ .Include "terminal.yaml" }}
-{{- end }}
-## Default SSH connector config for local development
-{{- if eq $proto "ssh" }}
-{{ .Include "ssh.yaml" }}
-{{- end }}
-## Dummy connector for bootstrapping & autosetup
-{{- if eq $proto "nullconn" }}
-{{ .Include "nullconn.yaml" }}
-{{- end }}
+{{ $botname := env "GOPHER_BOTNAME" | default "floyd" }}
+{{ $botfullname := env "GOPHER_BOTFULLNAME" | default "Floyd Gopherbot"}}
+{{ $botalias := env "GOPHER_ALIAS" | default ";"}}
+
+AdminUsers: [ "alice" ]
+DefaultChannels: [ "general", "random" ]
+DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default "general" }}
+
+BotInfo:
+  UserName: {{ $botname }}
+  FullName: {{ $botfullname }}
+
+Alias: {{ $botalias }}
 
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "mem" }}
@@ -150,17 +136,10 @@ NameSpaces:
       Value: "{{ env "GOPHER_DEPLOY_KEY" }}"
     - Name: GOPHER_CUSTOM_BRANCH
       Value: {{ env "GOPHER_CUSTOM_BRANCH" | default "." }}
-    - Name: GOPHER_STATE_REPOSITORY
-      Value: {{ env "GOPHER_STATE_REPOSITORY" }}
-    - Name: GOPHER_STATE_BRANCH
-      Value: {{ env "GOPHER_STATE_BRANCH" }}
-    # A default installed robot stores its memories in state/brain
-    - Name: GOPHER_STATEDIR
-      Value: {{ env "GOPHER_STATEDIR" | default "state" }}
 
 ParameterSets:
 
-{{- if not (or (eq $mode "demo") (eq $mode "setup")) }}
+{{- if ne $mode "demo" }}
 ScheduledJobs:
 - Name: go-bootstrap
   Schedule: "@init"
@@ -176,7 +155,7 @@ ExternalPlugins:
 ## Useful and/or entertaining plugins; disable by setting 'Disabled: true' in
 ## custom configuration.
   "admin":
-    Description: A plugin that triggers management jobs like update, save, backup, etc.
+    Description: A plugin that triggers management jobs like update and save
     Privileged: true
     Path: plugins/admin.sh
   "knock":
@@ -200,54 +179,18 @@ ExternalPlugins:
     Path: plugins/ssh-admin.sh
     Privileged: true
     NameSpace: ssh
-{{- if or (eq $mode "demo") (eq $mode "setup") }}
+{{- if eq $mode "demo" }}
   {{- if or (eq $proto "terminal") (eq $proto "ssh") }}
   "welcome":
-    Description: The welcome plugin provides a greeting when unconfigured
+    Description: Reserved onboarding hooks for unconfigured mode (startup stays quiet)
     Privileged: true
     Path: plugins/welcome.lua
   "new-robot":
     Description: Interactive shell for onboarding a new robot
+    Privileged: true
     Homed: true
     Path: plugins/go-new-robot/new_robot.go
   {{- end }}
-  ## TODO (later): retire autosetup after new-robot onboarding slices are complete.
-  "autosetup":
-    Description: Setup plugin for creating a new robot from an answerfile
-    Privileged: true
-    Homed: true
-    NameSpace: manage
-    Path: plugins/autosetup.sh
-    Parameters:
-    - Name: GOPHER_ENCRYPTION_INITIALIZED
-      Value: {{ env "GOPHER_ENCRYPTION_INITIALIZED" }}
-    - Name: GOPHER_CONTAINER
-      Value: {{ env "GOPHER_CONTAINER" }}
-    {{- if env "GOPHER_CONTAINER" }}
-    # pass-through all ANS_ vars...
-    - Name: ANS_PROTOCOL
-      Value: '{{ env "ANS_PROTOCOL" }}'
-    - Name: ANS_ENCRYPTION_KEY
-      Value: '{{ env "ANS_ENCRYPTION_KEY" }}'
-    - Name: ANS_SLACK_TOKEN
-      Value: '{{ env "ANS_SLACK_TOKEN" }}'
-    - Name: ANS_ROBOT_NAME
-      Value: '{{ env "ANS_ROBOT_NAME" }}'
-    - Name: ANS_ROBOT_ALIAS
-      Value: '{{ env "ANS_ROBOT_ALIAS" }}'
-    - Name: ANS_JOB_CHANNEL
-      Value: '{{ env "ANS_JOB_CHANNEL" }}'
-    - Name: ANS_ROBOT_EMAIL
-      Value: '{{ env "ANS_ROBOT_EMAIL" }}'
-    - Name: ANS_SSH_PHRASE
-      Value: '{{ env "ANS_SSH_PHRASE" }}'
-    - Name: ANS_KEY_TYPE
-      Value: '{{ env "ANS_KEY_TYPE" }}'
-    - Name: ANS_ROBOT_REPOSITORY
-      Value: '{{ env "ANS_ROBOT_REPOSITORY" }}'
-    - Name: ANS_ADMIN_SECRET
-      Value: '{{ env "ANS_ADMIN_SECRET" }}'
-    {{- end }}
 {{- end }}
 
 GoPlugins:
@@ -288,22 +231,18 @@ ExternalJobs:
     Description: A job for installing ruby gems and python packages
     Homed: true
     Path: jobs/install-libs.sh
-  "backup":
-    Description: A job for backing up the robot's state, normally just a file-based brain
-    Homed: true
-    NameSpace: manage
-    Path: jobs/backup.sh
-  "restore":
-    Description: A job for restoring the robot's state from git
-    Homed: true
-    NameSpace: manage
-    Path: jobs/restore.sh
   "logrotate":
     Description: Log rotation for file logging, schedule daily
     Path: jobs/logrotate.sh
   "ssh-job":
     Description: Wrapper for ssh jobs.
     Path: jobs/ssh-job.sh
+{{- if and (eq $mode "demo") (eq $proto "ssh") }}
+  "welcome-join":
+    Description: Welcome users when they join the default SSH channel in unconfigured mode
+    Path: jobs/go-welcome-join/welcome_join.go
+    Homed: true
+{{- end }}
 
 ## ExternalTasks enumerate external executables that can be added to pipelines
 ## with AddTask <name>. Note the e.g. the update plugin requires ssh,

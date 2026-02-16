@@ -26,7 +26,9 @@ type pipelineRPCErr struct {
 }
 
 func newPipelineChildRPCCommand() *exec.Cmd {
-	return exec.Command(execPath(), pipelineChildRPCCommand)
+	cmd := exec.Command(execPath(), pipelineChildRPCCommand)
+	cmd.Env = sanitizedChildEnvironment()
+	return cmd
 }
 
 func runPipelineChildRPC() int {

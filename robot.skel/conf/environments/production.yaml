@@ -1,0 +1,7 @@
+## Production defaults.
+## Copy this to e.g. conf/environments/staging.yaml or conf/environments/prod.yaml
+## and customize protocol/brain/logging per environment.
+PrimaryProtocol: ssh
+DefaultProtocol: ssh
+Brain: file
+LogDest: stdout

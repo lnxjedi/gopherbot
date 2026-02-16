@@ -1,0 +1,13 @@
+## The terminal connector can mirror the actual team/users/channels for
+## devel. See the installed `conf/protocols/terminal.yaml`
+## (normally in /opt/gopherbot/conf/protocols/terminal.yaml) for a full example.
+ProtocolConfig:
+  EOF: '<botalias>quit'
+  Abort: '<botalias>abort'
+  HearSelf: false # set true for the robot to hear it's own messages
+  BotName: '<botname>'
+AppendUserRoster:
+- UserName: '<botname>'
+  BotUser: true
+AppendUserMap:
+  '<botname>': 'u0000'

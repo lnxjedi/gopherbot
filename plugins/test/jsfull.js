@@ -405,6 +405,21 @@ function handler(argv) {
         bot.Say(`ELEVATE CHECK: ${bot.Elevate(true)}`);
         return task.Normal;
       }
+    case 'secopen':
+    case 'secadmincmd':
+    case 'secauthz':
+    case 'secauthall':
+    case 'secelevated':
+    case 'secimmediate':
+    case 'sechiddenok':
+    case 'sechiddendenied':
+    case 'secadminonly':
+    case 'secusersonly':
+      {
+        const bot = new Robot();
+        bot.Say(`SECURITY CHECK: ${cmd}`);
+        return task.Normal;
+      }
 
     default:
       // const botDefault = robot.New();

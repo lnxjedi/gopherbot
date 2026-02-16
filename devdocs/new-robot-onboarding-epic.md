@@ -1,6 +1,6 @@
 # New Robot Onboarding Epic (Planning)
 
-Status: planning notes + slice 1/2 implementation tracking
+Status: planning notes + slice 1/2/3 implementation tracking
 
 ## Why this exists
 
@@ -15,7 +15,7 @@ v3 goal is a cleaner, guided path from empty directory to a real robot using nor
 - Ask the user for their canonical username (chat identity), and use that for local ssh login (`bot-ssh -l <username>`).
 - For slice 1, persist onboarding workflow state in local `.setup-state` (not brain).
 - Newly created robot should start with a persistent file brain by default.
-- Use one confirmation gate before applying scaffold changes and triggering restart.
+- After scaffold creation, restart automatically and continue repository handoff after reconnect.
 - Do not have robot push git changes on user’s behalf in the new workflow.
 - Plugin should guide user through:
   - create/push repo manually
@@ -27,15 +27,13 @@ v3 goal is a cleaner, guided path from empty directory to a real robot using nor
 
 - `plugins/welcome.lua` now tells users to run `new robot`.
 - `plugins/go-new-robot/new_robot.go` handles onboarding state + slice 2 scaffold apply.
-- `plugins/autosetup.sh` implements setup logic.
-- `gopherbot init slack` copies `resources/answerfiles/slack.txt` to `answerfile.txt`.
-- Running `gopherbot` in setup mode parses answerfile/env values and copies `robot.skel/*` into `custom/`, writes `.env`, generates keys, then restarts.
+- `jobs/go-welcome-join/welcome_join.go` now drives unconfigured SSH welcome messaging from
+  join announcements (triggered job path), so startup no longer emits welcome chat lines.
+- Legacy answerfile setup automation has been removed from default onboarding flow.
 
 Relevant files:
 - `plugins/welcome.lua`
-- `plugins/autosetup.sh`
 - `bot/cli_commands.go`
-- `resources/answerfiles/slack.txt`
 - `robot.skel/`
 
 ## Impact Surface Report (Slice 0/Planning)
@@ -54,7 +52,6 @@ Relevant files:
   - `plugins/welcome.lua`
   - new onboarding plugin (likely Go external plugin path under `plugins/`)
 - Setup/bootstrapping compatibility:
-  - `plugins/autosetup.sh` (kept, possibly reduced later)
   - `bot/cli_commands.go` (`init` command messaging)
 - Templates/config skeleton:
   - `robot.skel/conf/*.yaml`
@@ -123,11 +120,12 @@ Acceptance:
 
 Implementation notes (current):
 - `new robot` / `new robot resume` captures canonical username, resolves SSH public key
-  (auto-detect `~/.ssh/*.pub` first, prompt fallback), then uses one yes/no confirmation gate.
+  (auto-detect `~/.ssh/*.pub` first with y/n confirmation, prompt fallback).
 - Apply step now writes scaffold files and local identity config for SSH `UserMap`,
   plus `.env` defaults (`GOPHER_ENCRYPTION_KEY`, `GOPHER_CUSTOM_REPOSITORY=local`,
-  `GOPHER_PROTOCOL=ssh`, `GOPHER_BRAIN=file`).
-- Existing legacy `autosetup` remains available for reference only and is marked for later retirement.
+  `GOPHER_ENVIRONMENT=development`).
+- After scaffold apply, onboarding queues `restart-robot` and defers repo handoff to post-reconnect.
+- Legacy answerfile/autosetup flow has been retired.
 
 Acceptance:
 - From empty directory, wizard creates usable scaffold.
@@ -138,6 +136,24 @@ Acceptance:
 - Guide user through creating remote repo + deploy key upload.
 - Collect clone URL and update `.env` (`GOPHER_CUSTOM_REPOSITORY`, deploy key material/vars).
 - Explicitly avoid robot-driven git push.
+
+Implementation notes (current):
+- `new robot repo` resumes repository handoff without rerunning scaffold prompts.
+- After reconnect in SSH, the join-trigger onboarding job can resume repo handoff automatically for
+  the active onboarding user.
+- Repo URL is validated, then `.env` is updated with:
+  - `GOPHER_CUSTOM_REPOSITORY=<repo-url>`
+  - `GOPHER_DEPLOY_KEY=<encoded private deploy key>`
+- Deploy keypair is generated during handoff; private key is stored only in parent `.env`
+  (encoded for bootstrap), not in `custom/`.
+- Public deploy key is written to `custom/ssh/deploy_key.pub` for easy admin copy/paste.
+- `custom/ssh/` now keeps only `robot_key[.pub]`; legacy `manage_key` is not generated.
+- Deploy key encoding uses legacy bootstrap-compatible format (`space -> _`, `newline -> :`).
+- Temporary onboarding welcome hooks are enabled during scaffold and commented out when repository
+  handoff completes.
+- Wizard replies include the deploy public key plus explicit next-step commands for:
+  - manual `git init/add/commit/remote/push`
+  - bootstrap verification by restarting from `.env` only.
 
 Acceptance:
 - User can manually commit/push `custom/` to remote.
@@ -156,7 +172,7 @@ Acceptance:
 ### Slice 5: Legacy setup retirement and cleanup
 
 - Remove legacy setup command references from user-facing docs and welcome text.
-- Update migration notes for teams still using answerfile-based setup.
+- Document migration notes for teams still using answerfile-based setup.
 
 ## Open questions to resolve before coding
 

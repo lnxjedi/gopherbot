@@ -1,0 +1,29 @@
+---
+AllChannels: true
+AllowDirect: true
+AdminCommands:
+- secadmincmd
+AuthorizedCommands:
+- secauthz
+AuthRequire: Helpdesk
+ElevatedCommands:
+- secelevated
+ElevateImmediateCommands:
+- secimmediate
+AllowedHiddenCommands:
+- sechiddenok
+CommandMatchers:
+- Regex: (?i:js-sec-open)
+  Command: secopen
+- Regex: (?i:js-sec-admincmd)
+  Command: secadmincmd
+- Regex: (?i:js-sec-authz)
+  Command: secauthz
+- Regex: (?i:js-sec-elevated)
+  Command: secelevated
+- Regex: (?i:js-sec-immediate)
+  Command: secimmediate
+- Regex: (?i:js-sec-hidden-ok)
+  Command: sechiddenok
+- Regex: (?i:js-sec-hidden-denied)
+  Command: sechiddendenied

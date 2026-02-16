@@ -336,7 +336,6 @@ func SwitchBranch(r robot.Robot, opts SwitchBranchOptions) error {
 	if err == nil {
 		r.Log(robot.Info, "completed switch to branch '%s' in %s: %s", opts.Branch, opts.Directory, refInfo(headRef))
 	}
-
 	return nil
 }
 

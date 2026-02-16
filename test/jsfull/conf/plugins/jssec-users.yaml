@@ -1,0 +1,8 @@
+---
+AllChannels: true
+AllowDirect: true
+Users:
+- alice
+CommandMatchers:
+- Regex: (?i:js-sec-usersonly)
+  Command: secusersonly

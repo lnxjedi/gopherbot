@@ -1,0 +1,7 @@
+---
+AllChannels: true
+AllowDirect: true
+RequireAdmin: true
+CommandMatchers:
+- Regex: (?i:js-sec-adminonly)
+  Command: secadminonly

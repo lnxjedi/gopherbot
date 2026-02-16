@@ -1,0 +1,14 @@
+---
+AllChannels: true
+AllowDirect: true
+Authorizer: groups
+AuthRequire: Helpdesk
+AuthorizeAllCommands: true
+AdminCommands: []
+AuthorizedCommands: []
+ElevatedCommands: []
+ElevateImmediateCommands: []
+AllowedHiddenCommands: []
+CommandMatchers:
+- Regex: (?i:python-sec-authall)
+  Command: secauthall

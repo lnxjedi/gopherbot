@@ -70,7 +70,7 @@ func newPipelineChildExecCommand(req pipelineChildExecRequest) (*exec.Cmd, error
 	if err != nil {
 		return nil, err
 	}
-	childEnv := append(os.Environ(), pipelineChildExecRequestEnv+"="+reqEncoded)
+	childEnv := sanitizedChildEnvironment(pipelineChildExecRequestEnv + "=" + reqEncoded)
 	cmd := exec.Command(execPath(), pipelineChildExecCommand)
 	cmd.Env = childEnv
 	return cmd, nil

@@ -1,0 +1,5 @@
+## Development defaults for new robots.
+PrimaryProtocol: ssh
+DefaultProtocol: ssh
+Brain: file
+LogDest: stdout

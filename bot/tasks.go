@@ -209,7 +209,10 @@ func initializePlugins() {
 	currentCfg.RLock()
 	cfg := currentCfg.configuration
 	tasks := currentCfg.taskList
-	protocol := currentCfg.protocol
+	protocol := currentCfg.defaultProtocol
+	if protocol == "" {
+		protocol = currentCfg.protocol
+	}
 	currentCfg.RUnlock()
 	state.Lock()
 	if !state.shuttingDown {

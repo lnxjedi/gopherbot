@@ -4,7 +4,9 @@ package bot
 
 import (
 	"os"
+	"os/user"
 	"runtime"
+	"strconv"
 	"syscall"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -54,12 +56,58 @@ func setReuid(ruid, euid int) error {
 	return nil
 }
 
+func nobodyAccountUID() (int, error) {
+	nobody, err := user.Lookup("nobody")
+	if err != nil {
+		return -1, err
+	}
+	return strconv.Atoi(nobody.Uid)
+}
+
+func panicIfSetuidBinaryTampered(unprivUID int) {
+	nobodyUID, err := nobodyAccountUID()
+	if err != nil {
+		panic("binary could be tampered! unable to resolve nobody uid")
+	}
+	if unprivUID != nobodyUID {
+		return
+	}
+	execPath, err := os.Executable()
+	if err != nil {
+		panic("binary could be tampered! unable to resolve executable path")
+	}
+	info, err := os.Lstat(execPath)
+	if err != nil {
+		panic("binary could be tampered! unable to stat executable")
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		panic("binary could be tampered! executable path is a symlink")
+	}
+	if !info.Mode().IsRegular() {
+		panic("binary could be tampered! executable path is not a regular file")
+	}
+	if info.Mode()&os.ModeSetuid == 0 {
+		panic("binary could be tampered! expected setuid bit on executable")
+	}
+	if info.Mode().Perm()&0o022 != 0 {
+		panic("binary could be tampered! setuid executable is group/world writable")
+	}
+	st, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		panic("binary could be tampered! unable to verify executable owner")
+	}
+	if int(st.Uid) != nobodyUID {
+		panic("binary could be tampered! setuid executable owner mismatch")
+	}
+}
+
 func init() {
 	uid := unix.Getuid()
 	euid := unix.Geteuid()
 	if uid != euid {
 		privUID = uid
 		unprivUID = euid
+		panicIfSetuidBinaryTampered(unprivUID)
 		unix.Umask(0022)
 
 		// Attempt to set real and effective UIDs using the raw syscall on ALL the startup

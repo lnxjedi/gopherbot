@@ -64,6 +64,7 @@ Progress notes:
 - Local HTTP test server exists for deterministic JS/Lua HTTP coverage.
 - JS and Lua HTTP helper modules are available for extension authors (see `aidocs/JS_HTTP_API.md`, `aidocs/LUA_HTTP_API.md`).
 - Long-term TODO: add a Bash Full integration suite with emphasis on formatting behavior parity (including `-f` fixed-format handling). The Bash library (`lib/gopherbot_v1.sh`) likely needs a cleanup/rewrite.
+- Long-term TODO: document `AddCommand` as a pipeline-composition API (not a user-message injection API), and evaluate a separate user-scoped resume primitive for reconnect/onboarding workflows.
 
 ### Strengthen and Integrate the Groups and Help Systems
 
@@ -74,6 +75,8 @@ Help and discovery mechanisms should be group-aware and provide clear, contextua
 * The help sections of plugin configuration should have a new format that generates more easily readable help
 * Robot startup should use more than a simple author-provided keyword list; we'll need to come up with a new design
 * When users ask for help, they should only be shown commands which they are able to run
+* Stretch direction: help output should be generated from command-linked help metadata (rather than loose text blocks), so help content and executable commands stay naturally aligned
+* Stretch direction: extend the authorizer plugin contract with a `usergroups` command (for example `usergroups david`) that returns a JSON array of groups for that user; help rendering can then filter command visibility to only commands available to that user
 
 ### Improve Configuration Clarity and Bootstrapping
 
@@ -82,6 +85,15 @@ The relationship between default configuration and user customization should be 
 Bootstrapping a new robot should be significantly easier than in v2, with fewer hidden assumptions and clearer initial structure.
 
 The documentation should only instruct the user in how to start a demo robot in a container or empty directory, and the built-in "welcome" plugin should tell the user they can run e.g. ";new robot". That command should start a well-documented process entirely in the terminal window, at the end of which the new robot is stored in a remote git repository, and the user is given clear instructions on what is needed to start their robot running in a container, ec2 instance, etc. (mainly, here are the environment variables you need to define when launching the "gopherbot" executable in production in order to start your robot). The process should end with a reference for where to configure a persistent brain.
+
+Environment model note:
+- Custom robot behavior should be selected through `GOPHER_ENVIRONMENT` (default `development`) with environment-specific files under `custom/conf/environments/`.
+- Environment selection should control protocol defaults, brain choice, and logging for that robot environment.
+- Legacy environment toggles such as treating `GOPHER_PROTOCOL` as the primary dev/prod switch should be phased out of onboarding and user-facing guidance.
+- Installed defaults in `gopherbot/conf/` are baseline engine behavior; robot-specific behavior belongs in the robot repository under `custom/conf/`.
+
+Desired workflow note:
+- Keep an admin-friendly branch-switch workflow for fast development/testing rollback (switch to a test branch, verify behavior, and quickly switch back).
 
 ### Make Sure Robots have Brains
 
