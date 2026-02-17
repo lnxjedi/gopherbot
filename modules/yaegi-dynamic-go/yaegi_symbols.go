@@ -280,6 +280,8 @@ func init() {
 			WRandomInt func(n int) ( int)
 			WRandomString func(s []string) ( string)
 			WRecall func(key string, shared bool) ( string)
+			WDeleteMemory func(key string, shared bool) ()
+			WDeleteDatum func(key string) (ret robot.RetVal)
 			WRemember func(key string, value string, shared bool) ()
 			WRememberContext func(context string, value string) ()
 			WRememberContextThread func(context string, value string) ()
@@ -374,6 +376,10 @@ func init() {
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) RandomString(s []string) ( string) {return W.WRandomString(s)
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) Recall(key string, shared bool) ( string) {return W.WRecall(key, shared)
+			}
+	func (W _github_com_lnxjedi_gopherbot_robot_Robot) DeleteMemory(key string, shared bool) () { W.WDeleteMemory(key, shared)
+			}
+	func (W _github_com_lnxjedi_gopherbot_robot_Robot) DeleteDatum(key string) (ret robot.RetVal) {return W.WDeleteDatum(key)
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Robot) Remember(key string, value string, shared bool) () { W.WRemember(key, value, shared)
 			}

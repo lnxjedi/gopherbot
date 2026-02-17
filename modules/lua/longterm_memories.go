@@ -7,13 +7,14 @@ import (
 	glua "github.com/yuin/gopher-lua"
 )
 
-// RegisterLongTermMemoryMethods adds CheckoutDatum, UpdateDatum, and CheckinDatum
-// to the bot's metatable.
+// RegisterLongTermMemoryMethods adds CheckoutDatum, UpdateDatum, CheckinDatum,
+// and DeleteDatum to the bot's metatable.
 func (lctx *luaContext) RegisterLongTermMemoryMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		"CheckoutDatum": lctx.botCheckoutDatum,
 		"UpdateDatum":   lctx.botUpdateDatum,
 		"CheckinDatum":  lctx.botCheckinDatum,
+		"DeleteDatum":   lctx.botDeleteDatum,
 	}
 
 	mt := registerBotMetatableIfNeeded(L)
@@ -101,5 +102,13 @@ func (lctx *luaContext) botCheckinDatum(L *glua.LState) int {
 
 	r.CheckinDatum(key, lockToken)
 	L.Push(glua.LNumber(robot.Ok))
+	return 1
+}
+
+// botDeleteDatum allows Lua scripts to delete a datum by key.
+func (lctx *luaContext) botDeleteDatum(L *glua.LState) int {
+	r := lctx.getRobot(L, "DeleteDatum")
+	key := L.CheckString(2)
+	L.Push(glua.LNumber(r.DeleteDatum(key)))
 	return 1
 }

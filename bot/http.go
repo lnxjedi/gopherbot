@@ -98,6 +98,11 @@ type recollection struct {
 	RW  bool
 }
 
+// Request to delete a long-term memory datum
+type datumdelete struct {
+	Key string
+}
+
 // Request for exclusive execution
 type exclusive struct {
 	Tag       string
@@ -410,6 +415,13 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		ret = update(key, m.Token, (*[]byte)(&m.Datum))
 		sendReturn(r, rw, &botretvalresponse{int(ret)})
 		return
+	case "DeleteDatum":
+		var d datumdelete
+		if !getArgs(rw, &f.FuncArgs, &d) {
+			return
+		}
+		sendReturn(r, rw, &botretvalresponse{int(r.DeleteDatum(d.Key))})
+		return
 	case "Remember":
 		var m ephemeralmemory
 		if !getArgs(rw, &f.FuncArgs, &m) {
@@ -444,6 +456,17 @@ func (h handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		s := r.Recall(m.Key, m.Shared)
 		sendReturn(r, rw, &stringresponse{s})
+		return
+	case "DeleteMemory":
+		var m ephemeralrecollection
+		if !getArgs(rw, &f.FuncArgs, &m) {
+			return
+		}
+		if m.Base64 {
+			m.Key = decode(m.Key)
+		}
+		r.DeleteMemory(m.Key, m.Shared)
+		sendReturn(r, rw, &botretvalresponse{int(robot.Ok)})
 		return
 	case "GetParameter":
 		var p parameter

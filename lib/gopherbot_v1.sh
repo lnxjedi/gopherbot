@@ -219,6 +219,43 @@ EOF
 	echo -n "$RETVAL"
 }
 
+DeleteMemory(){
+	if [ -z "$1" ]
+	then
+		return 1
+	fi
+	if [ "$2" ]
+	then
+		SHARED=', "Shared": true'
+	fi
+	local R_KEY=$(base64_encode "$1")
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Key": "$R_KEY",
+	"Base64": true$SHARED
+}
+EOF
+)
+	gbPostJSON $FUNCNAME "$GB_FUNCARGS"
+	return 0
+}
+
+DeleteDatum(){
+	if [ -z "$1" ]
+	then
+		return 1
+	fi
+	local GB_FUNCARGS=$(cat <<EOF
+{
+	"Key": "$1"
+}
+EOF
+)
+	local GB_RET=$(gbPostJSON $FUNCNAME "$GB_FUNCARGS")
+	local RETVAL=$(echo "$GB_RET" | jq -r .RetVal)
+	echo -n "$RETVAL"
+}
+
 GetParameter() {
 	local PARAM="$1"
 	local GB_FUNCARGS=$(cat <<EOF

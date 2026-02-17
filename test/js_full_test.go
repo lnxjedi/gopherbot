@@ -86,6 +86,21 @@ func TestJSFull(t *testing.T) {
 		{aliceID, general, ";js-memory-thread-check", true, []TestMessage{
 			{null, general, "MEMORY THREAD CHECK: local=<empty> shared=<empty> ctx=<empty> thread=delta thread threadctx=aurora mission", true}},
 			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";js-memory-delete", false, []TestMessage{
+			{null, general, "MEMORY DELETE: done", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";js-memory-check", false, []TestMessage{
+			{null, general, "MEMORY CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{bobID, general, ";js-memory-check", false, []TestMessage{
+			{null, general, "MEMORY CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";js-memory-thread-delete", true, []TestMessage{
+			{null, general, "MEMORY THREAD DELETE: done", true}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";js-memory-thread-check", true, []TestMessage{
+			{null, general, "MEMORY THREAD CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>", true}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
 		{aliceID, general, ";js-memory-datum-seed", false, []TestMessage{
 			{null, general, "MEMORY DATUM SEED: update=Ok", false}},
 			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
@@ -94,6 +109,12 @@ func TestJSFull(t *testing.T) {
 			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
 		{aliceID, general, ";js-memory-datum-checkin", false, []TestMessage{
 			{null, general, "MEMORY DATUM CHECKIN: exists=true token=true ret=Ok", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";js-memory-datum-delete", false, []TestMessage{
+			{null, general, "MEMORY DATUM DELETE: ret=Ok", false}},
+			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
+		{aliceID, general, ";js-memory-datum-check", false, []TestMessage{
+			{null, general, "MEMORY DATUM CHECK: mission=<empty> vehicle=<empty> status=<empty>", false}},
 			[]Event{CommandTaskRan, ExternalTaskRan}, 0},
 		{aliceID, general, ";js-identity", false, []TestMessage{
 			{null, general, "IDENTITY CHECK: bot=bender/Ok sender=Alice/Ok bob=Robert/Ok set=true param=<empty>", false}},

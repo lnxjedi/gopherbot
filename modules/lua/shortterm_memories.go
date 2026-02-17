@@ -11,6 +11,7 @@ import (
 //	bot:RememberContext(context, value)
 //	bot:RememberContextThread(context, value)
 //	bot:Recall(key, shared) -> string
+//	bot:DeleteMemory(key, shared)
 func (lctx *luaContext) RegisterShortTermMemoryMethods(L *glua.LState) {
 	methods := map[string]glua.LGFunction{
 		"Remember":              lctx.botRemember,
@@ -18,6 +19,7 @@ func (lctx *luaContext) RegisterShortTermMemoryMethods(L *glua.LState) {
 		"RememberContext":       lctx.botRememberContext,
 		"RememberContextThread": lctx.botRememberContextThread,
 		"Recall":                lctx.botRecall,
+		"DeleteMemory":          lctx.botDeleteMemory,
 	}
 
 	mt := registerBotMetatableIfNeeded(L)
@@ -120,6 +122,21 @@ func (lctx *luaContext) botRecall(L *glua.LState) int {
 	value := r.Recall(key, shared)
 	L.Push(glua.LString(value))
 	return 1
+}
+
+// botDeleteMemory deletes a memory key from the current context.
+func (lctx *luaContext) botDeleteMemory(L *glua.LState) int {
+	r := lctx.getRobot(L, "DeleteMemory")
+	key := L.CheckString(2)
+	shared := lctx.GetDefaultBool(3, false)
+
+	if key == "" {
+		L.RaiseError("DeleteMemory: key must not be empty")
+		return 0
+	}
+
+	r.DeleteMemory(key, shared)
+	return 0
 }
 
 // GetDefaultBool retrieves a boolean argument from the Lua stack with a default value.

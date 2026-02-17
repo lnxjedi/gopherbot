@@ -228,6 +228,9 @@ type Robot interface {
 	// a struct to marshall and a (hopefully good) lock token. If err != nil, the
 	// update failed.
 	UpdateDatum(key, locktoken string, datum interface{}) (ret RetVal)
+	// DeleteDatum deletes a long-term memory datum from the robot's brain.
+	// This is idempotent: deleting a non-existent key should still return Ok.
+	DeleteDatum(key string) (ret RetVal)
 	// Remember adds a ephemeral memory (with no backing store) to the robot's
 	// brain. This is used internally for resolving the meaning of "it", but can
 	// be used by plugins to remember other contextual facts. Since memories are
@@ -249,6 +252,9 @@ type Robot interface {
 	// Note that there are no RecallThread methods - Recall is always in the current
 	// context.
 	Recall(key string, shared bool) string
+	// DeleteMemory deletes a short term memory key from the current context.
+	// The shared flag uses the same semantics as Remember/Recall.
+	DeleteMemory(key string, shared bool)
 	// SpawnJob creates a new pipeContext in a new goroutine to run a
 	// job. It's primary use is for CI/CD applications where a single
 	// triggered job may want to spawn several jobs when e.g. a dependency for

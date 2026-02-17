@@ -171,3 +171,33 @@ func (jr *jsBot) botRecall(call goja.FunctionCall) goja.Value {
 	// Return the recalled value as a string
 	return jr.ctx.vm.ToValue(value)
 }
+
+// botDeleteMemory deletes a memory key from the current context.
+func (jr *jsBot) botDeleteMemory(call goja.FunctionCall) goja.Value {
+	const methodName = "DeleteMemory"
+
+	// Argument #0: key (string)
+	key := jr.requireStringArg(methodName, call, 0)
+
+	// Argument #1: shared (boolean, optional, default false)
+	shared := false
+	if len(call.Arguments) > 1 {
+		rawVal := call.Arguments[1].Export()
+		if b, ok := rawVal.(bool); ok {
+			shared = b
+		} else if rawVal != nil {
+			panic(jr.ctx.vm.ToValue(fmt.Sprintf(
+				"%s: invalid value for 'shared' (must be boolean or omitted)",
+				methodName,
+			)))
+		}
+	}
+
+	// Validate non-empty key
+	if key == "" {
+		panic(jr.ctx.vm.ToValue("DeleteMemory: key must not be empty"))
+	}
+
+	jr.r.DeleteMemory(key, shared)
+	return goja.Undefined()
+}

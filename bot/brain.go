@@ -266,14 +266,14 @@ func brainQuit() {
 	<-reply
 }
 
-const keyRegex = `[\w:]+` // keys can ony be word chars + separator (:)
+const keyRegex = `[\w:]+` // keys can only be word chars + separator (:)
 var keyRe = regexp.MustCompile(keyRegex)
 
 // checkout returns the []byte from the brain, with a lock token granting
 // ownership for a limited time
 func checkout(d string, rw bool) (string, *[]byte, bool, robot.RetVal) {
 	if !keyRe.MatchString(d) {
-		Log(robot.Error, "Invalid memory key, ':' disallowed: %s", d)
+		Log(robot.Error, "Invalid memory key: %s", d)
 		return "", nil, false, robot.InvalidDatumKey
 	}
 	reply := make(chan checkOutReply)
@@ -336,6 +336,26 @@ func updateDatum(key, locktoken string, datum interface{}) (ret robot.RetVal) {
 	return update(key, locktoken, &dbytes)
 }
 
+// deleteDatum is the internal version of DeleteDatum that uses the key as-is
+func deleteDatum(key string) (ret robot.RetVal) {
+	locktoken, _, _, ret := checkout(key, true)
+	if ret != robot.Ok {
+		return ret
+	}
+	defer checkinDatum(key, locktoken)
+	brain := interfaces.brain
+	if brain == nil {
+		Log(robot.Error, "DeleteDatum called with no brain configured")
+		return robot.BrainFailed
+	}
+	err := brain.Delete(key)
+	if err != nil && !os.IsNotExist(err) {
+		Log(robot.Error, "Deleting datum %s: %v", key, err)
+		return robot.BrainFailed
+	}
+	return robot.Ok
+}
+
 func (w *worker) getNameSpace(t interface{}) string {
 	task, plugin, _ := getTask(t)
 	// A configured NameSpace always takes precedence
@@ -358,11 +378,6 @@ func (w *worker) getNameSpace(t interface{}) string {
 
 // see robot/robot.go
 func (r Robot) CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret robot.RetVal) {
-	if strings.ContainsRune(key, ':') {
-		ret = robot.InvalidDatumKey
-		Log(robot.Error, "Invalid memory key, ':' disallowed: %s", key)
-		return
-	}
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	ns := w.getNameSpace(r.currentTask)
@@ -375,9 +390,6 @@ func (r Robot) CheckinDatum(key, locktoken string) {
 	if locktoken == "" {
 		return
 	}
-	if strings.ContainsRune(key, ':') {
-		return
-	}
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	ns := w.getNameSpace(r.currentTask)
@@ -387,15 +399,20 @@ func (r Robot) CheckinDatum(key, locktoken string) {
 
 // see robot/robot.go
 func (r Robot) UpdateDatum(key, locktoken string, datum interface{}) (ret robot.RetVal) {
-	if strings.ContainsRune(key, ':') {
-		Log(robot.Error, "Invalid memory key, ':' disallowed: %s", key)
-		return robot.InvalidDatumKey
-	}
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	ns := w.getNameSpace(r.currentTask)
 	key = ns + ":" + key
 	return updateDatum(key, locktoken, datum)
+}
+
+// see robot/robot.go
+func (r Robot) DeleteDatum(key string) (ret robot.RetVal) {
+	w := getLockedWorker(r.tid)
+	w.Unlock()
+	ns := w.getNameSpace(r.currentTask)
+	key = ns + ":" + key
+	return deleteDatum(key)
 }
 
 // see robot/robot.go
@@ -461,6 +478,21 @@ func (r Robot) Recall(key string, shared bool) string {
 		return ""
 	}
 	return memory.Memory
+}
+
+// see robot/robot.go
+func (r Robot) DeleteMemory(key string, shared bool) {
+	w := getLockedWorker(r.tid)
+	w.Unlock()
+	context := r.makeMemoryContext(key, false, shared)
+	Log(robot.Trace, "Deleting ephemeral memory \"%s\"", key)
+	ephemeralMemories.Lock()
+	w.Log(robot.Debug, "Deleting ephemeral memory '%s'", key)
+	delete(ephemeralMemories.m, context)
+	if len(context.thread) > 0 {
+		ephemeralMemories.dirty = true
+	}
+	ephemeralMemories.Unlock()
 }
 
 // RegisterSimpleBrain allows brain implementations to register a function with a named
@@ -551,7 +583,7 @@ func getDatum(dkey string, rw bool) (token string, databytes *[]byte, exists boo
 	var decrypted []byte
 
 	if !keyRe.MatchString(dkey) {
-		Log(robot.Error, "Invalid memory key, ':' disallowed: %s", dkey)
+		Log(robot.Error, "Invalid memory key: %s", dkey)
 		return "", nil, false, robot.InvalidDatumKey
 	}
 	brain := interfaces.brain

@@ -458,6 +458,13 @@ function Robot:Recall(key, shared)
     return self.gbot:Recall(key, shared)
 end
 
+---Delete a value from short-term memory in the current context.
+---@param key string
+---@param shared? boolean
+function Robot:DeleteMemory(key, shared)
+    self.gbot:DeleteMemory(key, shared)
+end
+
 --------------------------------------------------------------------------------
 -- Pipeline Methods
 --------------------------------------------------------------------------------
@@ -638,6 +645,13 @@ function Robot:CheckinDatum(memory)
         error("CheckinDatum requires a table with 'key' and 'token'")
     end
     self.gbot:CheckinDatum(memory.key, memory.token)
+end
+
+---Delete a datum from long-term memory.
+---@param key string
+---@return number retVal
+function Robot:DeleteDatum(key)
+    return self.gbot:DeleteDatum(key)
 end
 
 --------------------------------------------------------------------------------
