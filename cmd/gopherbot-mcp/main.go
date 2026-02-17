@@ -31,7 +31,7 @@ const (
 	maxMCPSSHPort      = 4229
 )
 
-var awayBackoffSchedule = []int{2, 5, 10, 20, 30, 60, 120, 300, 600, 900, 1200, 1800, 2520}
+var awayBackoffSchedule = []int{2, 5, 10, 20, 30, 60, 120, 180, 240, 300, 360, 420}
 
 type jsonRPCRequest struct {
 	JSONRPC string          `json:"jsonrpc"`
@@ -577,79 +577,79 @@ func (s *mcpServer) tools() []mcpTool {
 				"required": []string{"robot_dir", "viewer"},
 			},
 		},
-			{
-				Name:        "get_commands",
-				Description: "Fetch normalized queued commands for one robot using away-mode cursor semantics.",
-				InputSchema: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"robot_dir": map[string]interface{}{
-							"type":        "string",
-							"description": "Robot directory.",
-						},
-						"mode": map[string]interface{}{
-							"type":        "string",
-							"description": "Polling mode: peek or idle.",
-							"enum":        []string{"peek", "idle"},
-						},
-						"wait_sec": map[string]interface{}{
-							"type":        "integer",
-							"description": "Wait duration in seconds. Must be 0 for peek; max 2520 for idle.",
-						},
-						"cursor": map[string]interface{}{
-							"type":        "string",
-							"description": "Optional previously returned cursor token.",
-						},
-						"max_commands": map[string]interface{}{
-							"type":        "integer",
-							"description": "Maximum commands to return (default 1).",
+		{
+			Name:        "get_commands",
+			Description: "Fetch normalized queued commands for one robot using away-mode cursor semantics.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"robot_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Robot directory.",
+					},
+					"mode": map[string]interface{}{
+						"type":        "string",
+						"description": "Polling mode: peek or idle.",
+						"enum":        []string{"peek", "idle"},
+					},
+					"wait_sec": map[string]interface{}{
+						"type":        "integer",
+						"description": "Wait duration in seconds. Must be 0 for peek; max 420 for idle.",
+					},
+					"cursor": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional previously returned cursor token.",
+					},
+					"max_commands": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum commands to return (default 1).",
+					},
+				},
+				"required": []string{"robot_dir", "mode", "wait_sec"},
+			},
+		},
+		{
+			Name:        "ack_commands",
+			Description: "Acknowledge handled command ids for one robot so they are not reprocessed.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"robot_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Robot directory.",
+					},
+					"command_ids": map[string]interface{}{
+						"type":        "array",
+						"description": "Command ids returned by get_commands.",
+						"items": map[string]interface{}{
+							"type": "string",
 						},
 					},
-					"required": []string{"robot_dir", "mode", "wait_sec"},
 				},
+				"required": []string{"robot_dir", "command_ids"},
 			},
-			{
-				Name:        "ack_commands",
-				Description: "Acknowledge handled command ids for one robot so they are not reprocessed.",
-				InputSchema: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"robot_dir": map[string]interface{}{
-							"type":        "string",
-							"description": "Robot directory.",
-						},
-						"command_ids": map[string]interface{}{
-							"type":        "array",
-							"description": "Command ids returned by get_commands.",
-							"items": map[string]interface{}{
-								"type": "string",
-							},
-						},
+		},
+		{
+			Name:        "tell_user",
+			Description: "Send a message as robot to the currently active away command context (protocol/channel/thread).",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"robot_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Robot directory.",
 					},
-					"required": []string{"robot_dir", "command_ids"},
-				},
-			},
-			{
-				Name:        "tell_user",
-				Description: "Send a message as robot to the currently active away command context (protocol/channel/thread).",
-				InputSchema: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"robot_dir": map[string]interface{}{
-							"type":        "string",
-							"description": "Robot directory.",
-						},
-						"text": map[string]interface{}{
-							"type":        "string",
-							"description": "Message text.",
-						},
+					"text": map[string]interface{}{
+						"type":        "string",
+						"description": "Message text.",
 					},
-					"required": []string{"robot_dir", "text"},
 				},
+				"required": []string{"robot_dir", "text"},
 			},
-			{
-				Name:        "send_as_robot",
-				Description: "Send a message as the robot on a target protocol/channel/thread (optionally direct to a user).",
+		},
+		{
+			Name:        "send_as_robot",
+			Description: "Send a message as the robot on a target protocol/channel/thread (optionally direct to a user).",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -731,70 +731,70 @@ func (s *mcpServer) tools() []mcpTool {
 				"required": []string{"text", "command"},
 			},
 		},
-			{
-				Name:        "set_away",
-				Description: "Enable or disable away mode for one robot and optionally configure command conduit.",
-				InputSchema: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"robot_dir": map[string]interface{}{
-							"type":        "string",
-							"description": "Directory where the robot is running.",
-						},
-						"enabled": map[string]interface{}{
-							"type":        "boolean",
-							"description": "When true, enable away mode. When false, disable away mode.",
-						},
-						"note": map[string]interface{}{
-							"type":        "string",
-							"description": "Optional operator note.",
-						},
-						"conduit_user": map[string]interface{}{
-							"type":        "string",
-							"description": "Username allowed to issue command conduit messages.",
-						},
-						"enable_conduit": map[string]interface{}{
-							"type":        "boolean",
-							"description": "When enabling away, restart robot to ensure command conduit is configured (default true).",
-						},
+		{
+			Name:        "set_away",
+			Description: "Enable or disable away mode for one robot and optionally configure command conduit.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"robot_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Directory where the robot is running.",
 					},
-					"required": []string{"robot_dir", "enabled"},
+					"enabled": map[string]interface{}{
+						"type":        "boolean",
+						"description": "When true, enable away mode. When false, disable away mode.",
+					},
+					"note": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional operator note.",
+					},
+					"conduit_user": map[string]interface{}{
+						"type":        "string",
+						"description": "Username allowed to issue command conduit messages.",
+					},
+					"enable_conduit": map[string]interface{}{
+						"type":        "boolean",
+						"description": "When enabling away, restart robot to ensure command conduit is configured (default true).",
+					},
 				},
+				"required": []string{"robot_dir", "enabled"},
 			},
-			{
-				Name:        "away_start",
-				Description: "Deprecated: use set_away.",
-				InputSchema: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
+		},
+		{
+			Name:        "away_start",
+			Description: "Deprecated: use set_away.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
 					"robot_dir": map[string]interface{}{
 						"type":        "string",
 						"description": "Directory where the robot is running.",
 					},
 				},
-					"required": []string{"robot_dir"},
-				},
+				"required": []string{"robot_dir"},
 			},
-			{
-				Name:        "away_status",
-				Description: "Deprecated: use set_away/get_commands.",
-				InputSchema: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"robot_dir": map[string]interface{}{
-							"type":        "string",
-							"description": "Directory where the robot is running.",
-						},
+		},
+		{
+			Name:        "away_status",
+			Description: "Deprecated: use set_away/get_commands.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"robot_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Directory where the robot is running.",
 					},
-					"required": []string{"robot_dir"},
 				},
+				"required": []string{"robot_dir"},
 			},
-			{
-				Name:        "away_stop",
-				Description: "Deprecated: use set_away.",
-				InputSchema: map[string]interface{}{
-					"type": "object",
-					"properties": map[string]interface{}{
+		},
+		{
+			Name:        "away_stop",
+			Description: "Deprecated: use set_away.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
 					"robot_dir": map[string]interface{}{
 						"type":        "string",
 						"description": "Directory where the robot is running.",
@@ -1684,8 +1684,8 @@ func (s *mcpServer) toolGetCommands(args map[string]interface{}) (map[string]int
 			return nil, newToolError("INVALID_ARGUMENT", "wait_sec must be 0 in peek mode", map[string]interface{}{"argument": "wait_sec"})
 		}
 	case "idle":
-		if waitSec < 0 || waitSec > 2520 {
-			return nil, newToolError("INVALID_ARGUMENT", "wait_sec must be between 0 and 2520 in idle mode", map[string]interface{}{"argument": "wait_sec"})
+		if waitSec < 0 || waitSec > 420 {
+			return nil, newToolError("INVALID_ARGUMENT", "wait_sec must be between 0 and 420 in idle mode", map[string]interface{}{"argument": "wait_sec"})
 		}
 	default:
 		return nil, newToolError("INVALID_ARGUMENT", "mode must be one of: peek, idle", map[string]interface{}{"argument": "mode"})
@@ -1720,14 +1720,12 @@ func (s *mcpServer) toolGetCommands(args map[string]interface{}) (map[string]int
 
 	if !awayEnabled {
 		return map[string]interface{}{
-			"away":            false,
-			"keep_polling":    false,
-			"recommended_use": "stop_polling",
-			"reason":          "away mode is disabled",
-			"next_wait_sec":   0,
-			"cursor":          formatCursor(cursorBefore),
-			"heartbeat":       s.bumpHeartbeat(client.robotDir),
-			"commands":        []interface{}{},
+			"away":          false,
+			"keep_polling":  false,
+			"next_wait_sec": 0,
+			"cursor":        formatCursor(cursorBefore),
+			"heartbeat":     s.bumpHeartbeat(client.robotDir),
+			"commands":      []interface{}{},
 		}, nil
 	}
 	if commandUser == "" {
@@ -1799,20 +1797,12 @@ func (s *mcpServer) toolGetCommands(args map[string]interface{}) (map[string]int
 		session.BackoffIdx++
 	}
 	nextWait := 0
-	recommended := "continue_work"
-	reason := "ready for cooperative work polling"
 	shouldPoll := session.Enabled
 	if !session.Enabled {
-		recommended = "stop_polling"
-		reason = "away mode is disabled"
 		shouldPoll = false
 	} else if mode == "idle" {
 		if len(commands) == 0 {
-			recommended = "idle_wait"
-			reason = "no commands available"
 			nextWait = awayBackoffSchedule[session.BackoffIdx]
-		} else {
-			reason = "commands available"
 		}
 	}
 	heartbeat := session.bumpHeartbeat()
@@ -1820,14 +1810,12 @@ func (s *mcpServer) toolGetCommands(args map[string]interface{}) (map[string]int
 	s.mu.Unlock()
 
 	return map[string]interface{}{
-		"away":            awayEnabled,
-		"keep_polling":    shouldPoll,
-		"recommended_use": recommended,
-		"reason":          reason,
-		"next_wait_sec":   nextWait,
-		"cursor":          cursor,
-		"heartbeat":       heartbeat,
-		"commands":        awayCommandsToOutput(commands),
+		"away":          awayEnabled,
+		"keep_polling":  shouldPoll,
+		"next_wait_sec": nextWait,
+		"cursor":        cursor,
+		"heartbeat":     heartbeat,
+		"commands":      awayCommandsToOutput(commands),
 	}, nil
 }
 
