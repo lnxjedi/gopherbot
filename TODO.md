@@ -1,10 +1,7 @@
 # Upcoming tasks:
 
 ### Focused help system
-Already documented in GOALS, the help system needs to be more helpful.
-
-### Brain "Delete" method for deleting outdated methods
-This has been missing *forever*.
+Already documented in GOALS, the help system needs to be more helpful. Needs QA.
 
 ### Make built-in interpreters more powerful
 Most functionality should be achievable with Lua, JavaScript or Go (yaegi) - certainly all *included* functionality, like protocol setup.
