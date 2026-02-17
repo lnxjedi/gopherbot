@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -39,12 +40,21 @@ type aidevCommandBatch struct {
 	HasMore    bool                `json:"has_more"`
 }
 
+type aidevCommandThreadRef struct {
+	set      bool
+	protocol string
+	user     string
+	channel  string
+	threadID string
+}
+
 var aidevCommands = struct {
 	sync.RWMutex
 	enabled bool
 	user    string
 	prefix  byte
 	consume bool
+	active  aidevCommandThreadRef
 	buffer  []aidevCommandEvent
 	bufIdx  int
 	filled  bool
@@ -67,6 +77,7 @@ func configureAIDevCommandConduitFromEnv() {
 	aidevCommands.user = user
 	aidevCommands.prefix = prefix
 	aidevCommands.consume = defaultAIDevCommandConsume()
+	aidevCommands.active = aidevCommandThreadRef{}
 	aidevCommands.buffer = make([]aidevCommandEvent, defaultAIDevCommandBufferSize)
 	aidevCommands.bufIdx = 0
 	aidevCommands.filled = false
@@ -117,36 +128,73 @@ func aidevCommandConduitInfo() (enabled bool, user string, prefix string, consum
 }
 
 func captureAIDevCommandIfMatched(resolvedUser string, inc *robot.ConnectorMessage, isCommand bool, parsedMessage string) bool {
-	if inc == nil || !isCommand {
+	if inc == nil {
 		return false
 	}
 	msg := strings.TrimSpace(parsedMessage)
 	if msg == "" {
 		return false
 	}
+	conduitUser := normalizeAIDevCommandUser(resolvedUser)
+	protocol := normalizeProtocolName(inc.Protocol)
+	channel := strings.TrimSpace(inc.ChannelName)
+	threadID := strings.TrimSpace(inc.ThreadID)
+	var closedThreadNotice *aidevCommandThreadRef
+	var newThreadNotice *aidevCommandThreadRef
 
 	aidevCommands.Lock()
-	defer aidevCommands.Unlock()
 	if !aidevCommands.enabled {
+		aidevCommands.Unlock()
 		return false
 	}
-	if !strings.EqualFold(strings.TrimSpace(resolvedUser), aidevCommands.user) {
-		return false
-	}
-	if msg[0] != aidevCommands.prefix {
+	if conduitUser != aidevCommands.user {
+		aidevCommands.Unlock()
 		return false
 	}
 
-	command := strings.TrimSpace(msg[1:])
+	prefixedCommand := isCommand && msg[0] == aidevCommands.prefix
+	threadFollowup := aidevCommands.active.set &&
+		aidevCommands.active.protocol == protocol &&
+		aidevCommands.active.user == conduitUser &&
+		aidevCommands.active.channel == channel &&
+		aidevCommands.active.threadID == threadID
+	if !prefixedCommand && !threadFollowup {
+		aidevCommands.Unlock()
+		return false
+	}
+
+	command := msg
+	if prefixedCommand {
+		command = strings.TrimSpace(msg[1:])
+		if !inc.DirectMessage {
+			newActive := aidevCommandThreadRef{
+				set:      true,
+				protocol: protocol,
+				user:     conduitUser,
+				channel:  channel,
+				threadID: threadID,
+			}
+			if aidevCommands.active.set &&
+				(aidevCommands.active.protocol != newActive.protocol ||
+					aidevCommands.active.user != newActive.user ||
+					aidevCommands.active.channel != newActive.channel ||
+					aidevCommands.active.threadID != newActive.threadID) {
+				prev := aidevCommands.active
+				closedThreadNotice = &prev
+				newThreadNotice = &newActive
+			}
+			aidevCommands.active = newActive
+		}
+	}
 	aidevCommands.nextSeq++
 	event := aidevCommandEvent{
 		Cursor:    aidevCommands.nextSeq,
 		Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
-		Protocol:  normalizeProtocolName(inc.Protocol),
-		UserName:  strings.TrimSpace(resolvedUser),
+		Protocol:  protocol,
+		UserName:  conduitUser,
 		UserID:    strings.TrimSpace(inc.UserID),
-		Channel:   strings.TrimSpace(inc.ChannelName),
-		ThreadID:  strings.TrimSpace(inc.ThreadID),
+		Channel:   channel,
+		ThreadID:  threadID,
 		MessageID: strings.TrimSpace(inc.MessageID),
 		Text:      msg,
 		Command:   command,
@@ -166,7 +214,25 @@ func captureAIDevCommandIfMatched(resolvedUser string, inc *robot.ConnectorMessa
 		default:
 		}
 	}
+	aidevCommands.Unlock()
+
+	if closedThreadNotice != nil && newThreadNotice != nil {
+		notifyClosedAIDevCommandThread(*closedThreadNotice, *newThreadNotice)
+	}
 	return true
+}
+
+func notifyClosedAIDevCommandThread(oldThread, newThread aidevCommandThreadRef) {
+	conn := getConnectorForProtocol(oldThread.protocol)
+	if conn == nil {
+		return
+	}
+	msgObject := &robot.ConnectorMessage{Protocol: oldThread.protocol}
+	text := fmt.Sprintf("(thread closed, now active in new thread from %s/%s)", newThread.protocol, newThread.channel)
+	ret := conn.SendProtocolChannelThreadMessage(oldThread.channel, oldThread.threadID, text, robot.Raw, msgObject)
+	if ret != robot.Ok {
+		Log(robot.Warn, "Unable to send AI-dev thread closed notice to '%s/%s' thread '%s': %s", oldThread.protocol, oldThread.channel, oldThread.threadID, ret.String())
+	}
 }
 
 func aidevCommandConduitConsumes() bool {

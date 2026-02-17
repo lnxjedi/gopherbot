@@ -14,6 +14,7 @@ func resetAIDevCommandsForTest(user string, prefix byte, consume bool) {
 	aidevCommands.user = user
 	aidevCommands.prefix = prefix
 	aidevCommands.consume = consume
+	aidevCommands.active = aidevCommandThreadRef{}
 	aidevCommands.buffer = make([]aidevCommandEvent, defaultAIDevCommandBufferSize)
 	aidevCommands.bufIdx = 0
 	aidevCommands.filled = false
@@ -87,5 +88,91 @@ func TestAIDevCommandConsumeFlag(t *testing.T) {
 	resetAIDevCommandsForTest("david", '>', false)
 	if aidevCommandConduitConsumes() {
 		t.Fatal("expected consume=false")
+	}
+}
+
+func TestAIDevCommandCaptureFollowsActiveThread(t *testing.T) {
+	resetAIDevCommandsForTest("david", '>', true)
+	msg := &robot.ConnectorMessage{
+		Protocol:    "slack",
+		ChannelName: "general",
+		ThreadID:    "thread-1",
+	}
+	if captured := captureAIDevCommandIfMatched("david", msg, true, ">start status"); !captured {
+		t.Fatal("expected initial prefixed command to be captured")
+	}
+	if captured := captureAIDevCommandIfMatched("david", msg, false, "still waiting on deploy"); !captured {
+		t.Fatal("expected follow-up in active thread to be captured")
+	}
+
+	all := getAIDevCommands(aidevCommandQuery{All: true, Limit: 10, TimeoutMS: 0})
+	if len(all.Commands) != 2 {
+		t.Fatalf("expected 2 captured commands, got %d", len(all.Commands))
+	}
+	if all.Commands[1].Command != "still waiting on deploy" {
+		t.Fatalf("unexpected follow-up command payload: %q", all.Commands[1].Command)
+	}
+}
+
+func TestAIDevCommandCaptureUpdatesActiveThreadOnNewPrefix(t *testing.T) {
+	resetAIDevCommandsForTest("david", '>', true)
+	msgThread1 := &robot.ConnectorMessage{
+		Protocol:    "slack",
+		ChannelName: "general",
+		ThreadID:    "thread-1",
+	}
+	msgThread2 := &robot.ConnectorMessage{
+		Protocol:    "slack",
+		ChannelName: "general",
+		ThreadID:    "thread-2",
+	}
+
+	if captured := captureAIDevCommandIfMatched("david", msgThread1, true, ">watch this thread"); !captured {
+		t.Fatal("expected initial prefixed command in thread-1 to be captured")
+	}
+	if captured := captureAIDevCommandIfMatched("david", msgThread1, false, "follow-up one"); !captured {
+		t.Fatal("expected follow-up in thread-1 to be captured")
+	}
+	if captured := captureAIDevCommandIfMatched("david", msgThread2, false, "not active yet"); captured {
+		t.Fatal("expected no capture for non-active thread follow-up")
+	}
+	if captured := captureAIDevCommandIfMatched("david", msgThread2, true, ">switch to this thread"); !captured {
+		t.Fatal("expected prefixed command in thread-2 to be captured")
+	}
+	if captured := captureAIDevCommandIfMatched("david", msgThread1, false, "old thread now inactive"); captured {
+		t.Fatal("expected no capture for old thread after switch")
+	}
+	if captured := captureAIDevCommandIfMatched("david", msgThread2, false, "new thread follow-up"); !captured {
+		t.Fatal("expected follow-up in new active thread to be captured")
+	}
+}
+
+func TestAIDevCommandCaptureHasSingleActiveThreadAcrossProtocols(t *testing.T) {
+	resetAIDevCommandsForTest("david", '>', true)
+	slackThread := &robot.ConnectorMessage{
+		Protocol:    "slack",
+		ChannelName: "deploy",
+		ThreadID:    "s-1",
+	}
+	mmThread := &robot.ConnectorMessage{
+		Protocol:    "mattermost",
+		ChannelName: "incident-room",
+		ThreadID:    "m-1",
+	}
+
+	if captured := captureAIDevCommandIfMatched("david", slackThread, true, ">start in slack"); !captured {
+		t.Fatal("expected prefixed command in slack to be captured")
+	}
+	if captured := captureAIDevCommandIfMatched("david", slackThread, false, "slack follow-up"); !captured {
+		t.Fatal("expected slack follow-up to be captured while active")
+	}
+	if captured := captureAIDevCommandIfMatched("david", mmThread, true, ">switch to mattermost"); !captured {
+		t.Fatal("expected prefixed command in mattermost to be captured")
+	}
+	if captured := captureAIDevCommandIfMatched("david", slackThread, false, "old slack thread now inactive"); captured {
+		t.Fatal("expected old slack thread to be ignored after cross-protocol switch")
+	}
+	if captured := captureAIDevCommandIfMatched("david", mmThread, false, "mattermost follow-up"); !captured {
+		t.Fatal("expected mattermost follow-up to be captured after switch")
 	}
 }
