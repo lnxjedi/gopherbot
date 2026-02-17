@@ -1752,10 +1752,26 @@ func (s *mcpServer) toolGetCommands(args map[string]interface{}) (map[string]int
 	if err != nil {
 		return nil, err
 	}
+	streamLatest := extractUint64Field(res, "latest", 0)
+	resyncedCursor := shouldResyncAIDevCursor(streamLatest, cursorBefore)
+	if resyncedCursor {
+		// The robot command stream was reset (for example, process restart), so
+		// replay from cursor 0 to avoid silently dropping fresh commands.
+		payload["after_cursor"] = uint64(0)
+		payload["timeout_ms"] = 0
+		res, err = callAIDevEndpoint(client, "/aidev/get_commands", payload, 2*time.Second)
+		if err != nil {
+			return nil, err
+		}
+	}
 	rawCommands, _ := res["commands"].([]interface{})
 
 	s.mu.Lock()
 	session = s.ensureAwaySession(client.robotDir)
+	if resyncedCursor && session.Cursor > streamLatest {
+		session.Cursor = 0
+		session.Pending = map[uint64]awayCommand{}
+	}
 	for _, raw := range rawCommands {
 		cmd, ok := raw.(map[string]interface{})
 		if !ok {
@@ -2210,6 +2226,10 @@ func normalizeCommandText(in string) string {
 		text = strings.TrimSpace(strings.TrimPrefix(text, ">"))
 	}
 	return text
+}
+
+func shouldResyncAIDevCursor(streamLatest, sessionCursor uint64) bool {
+	return streamLatest < sessionCursor
 }
 
 func parseCursorString(in string) (uint64, error) {

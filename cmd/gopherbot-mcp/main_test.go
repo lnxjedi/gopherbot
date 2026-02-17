@@ -86,3 +86,26 @@ func TestFirstCommandTimestampParsesRFC3339Nano(t *testing.T) {
 		t.Fatal("expected parsed timestamp")
 	}
 }
+
+func TestShouldResyncAIDevCursor(t *testing.T) {
+	tests := []struct {
+		name          string
+		streamLatest  uint64
+		sessionCursor uint64
+		want          bool
+	}{
+		{name: "no prior cursor", streamLatest: 0, sessionCursor: 0, want: false},
+		{name: "normal forward progress", streamLatest: 7, sessionCursor: 3, want: false},
+		{name: "equal cursor", streamLatest: 3, sessionCursor: 3, want: false},
+		{name: "stream reset to zero", streamLatest: 0, sessionCursor: 3, want: true},
+		{name: "stream reset to lower non-zero", streamLatest: 2, sessionCursor: 9, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := shouldResyncAIDevCursor(tt.streamLatest, tt.sessionCursor)
+			if got != tt.want {
+				t.Fatalf("shouldResyncAIDevCursor(%d,%d)=%t want %t", tt.streamLatest, tt.sessionCursor, got, tt.want)
+			}
+		})
+	}
+}
