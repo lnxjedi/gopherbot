@@ -31,6 +31,22 @@ type aidevGetMessagesRequest struct {
 	TimeoutMS   int    `json:"timeout_ms"`
 }
 
+type aidevGetCommandsRequest struct {
+	AfterCursor uint64 `json:"after_cursor"`
+	All         bool   `json:"all"`
+	Limit       int    `json:"limit"`
+	TimeoutMS   int    `json:"timeout_ms"`
+}
+
+type aidevSendAsRobotRequest struct {
+	Protocol string `json:"protocol"`
+	Text     string `json:"text"`
+	Channel  string `json:"channel"`
+	ThreadID string `json:"thread_id"`
+	User     string `json:"user"`
+	Direct   bool   `json:"direct"`
+}
+
 func serveAIDevSendMessage(rw http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		rw.WriteHeader(http.StatusMethodNotAllowed)
@@ -126,6 +142,138 @@ func serveAIDevGetMessages(rw http.ResponseWriter, req *http.Request) {
 		res.Protocol = protocol
 	}
 	writeAIDevJSON(rw, res)
+}
+
+func serveAIDevGetCommands(rw http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		rw.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	if err := authorizeAIDevRequest(req); err != nil {
+		writeAIDevError(rw, http.StatusUnauthorized, err)
+		return
+	}
+	var in aidevGetCommandsRequest
+	if err := decodeAIDevJSON(req.Body, &in); err != nil {
+		writeAIDevError(rw, http.StatusBadRequest, err)
+		return
+	}
+	enabled, user, prefix, consume := aidevCommandConduitInfo()
+	if !enabled {
+		writeAIDevError(rw, http.StatusBadRequest, errors.New("aidev command conduit is not enabled"))
+		return
+	}
+	res := getAIDevCommands(aidevCommandQuery{
+		AfterCursor: in.AfterCursor,
+		All:         in.All,
+		Limit:       in.Limit,
+		TimeoutMS:   in.TimeoutMS,
+	})
+	payload := map[string]interface{}{
+		"user":        user,
+		"prefix":      prefix,
+		"consume":     consume,
+		"commands":    res.Commands,
+		"next_cursor": res.NextCursor,
+		"latest":      res.Latest,
+		"timed_out":   res.TimedOut,
+		"has_more":    res.HasMore,
+	}
+	writeAIDevJSON(rw, payload)
+}
+
+func serveAIDevSendAsRobot(rw http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		rw.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	if err := authorizeAIDevRequest(req); err != nil {
+		writeAIDevError(rw, http.StatusUnauthorized, err)
+		return
+	}
+	var in aidevSendAsRobotRequest
+	if err := decodeAIDevJSON(req.Body, &in); err != nil {
+		writeAIDevError(rw, http.StatusBadRequest, err)
+		return
+	}
+	text := strings.TrimSpace(in.Text)
+	if text == "" {
+		writeAIDevError(rw, http.StatusBadRequest, errors.New("text is required"))
+		return
+	}
+	protocol, err := resolveAIDevProtocol(in.Protocol)
+	if err != nil {
+		writeAIDevError(rw, http.StatusBadRequest, err)
+		return
+	}
+	conn := getConnectorForProtocol(protocol)
+	if conn == nil {
+		writeAIDevError(rw, http.StatusBadRequest, fmt.Errorf("protocol '%s' is not active", protocol))
+		return
+	}
+
+	channel := strings.TrimSpace(in.Channel)
+	threadID := strings.TrimSpace(in.ThreadID)
+	user := strings.TrimSpace(in.User)
+	resolvedUser := resolveAIDevUserForProtocol(protocol, user)
+	msgObject := &robot.ConnectorMessage{Protocol: protocol}
+
+	var ret robot.RetVal
+	switch {
+	case in.Direct:
+		if user == "" {
+			writeAIDevError(rw, http.StatusBadRequest, errors.New("user is required when direct is true"))
+			return
+		}
+		ret = conn.SendProtocolUserMessage(resolvedUser, text, robot.Raw, msgObject)
+	case user != "":
+		if channel == "" {
+			writeAIDevError(rw, http.StatusBadRequest, errors.New("channel is required when user is set and direct is false"))
+			return
+		}
+		ret = conn.SendProtocolUserChannelThreadMessage(resolvedUser, user, channel, threadID, text, robot.Raw, msgObject)
+	default:
+		if channel == "" {
+			writeAIDevError(rw, http.StatusBadRequest, errors.New("channel is required for non-direct send_as_robot"))
+			return
+		}
+		ret = conn.SendProtocolChannelThreadMessage(channel, threadID, text, robot.Raw, msgObject)
+	}
+	if ret != robot.Ok {
+		writeAIDevError(rw, http.StatusBadRequest, fmt.Errorf("connector send failed: %s", ret.String()))
+		return
+	}
+	writeAIDevJSON(rw, map[string]interface{}{
+		"protocol":  protocol,
+		"channel":   channel,
+		"thread_id": threadID,
+		"user":      user,
+		"direct":    in.Direct,
+		"text":      text,
+	})
+}
+
+func resolveAIDevUserForProtocol(protocol, user string) string {
+	trimmed := strings.TrimSpace(user)
+	if trimmed == "" {
+		return trimmed
+	}
+	if _, ok := handle.ExtractID(trimmed); ok {
+		return trimmed
+	}
+	name := strings.ToLower(trimmed)
+	currentUCMaps.Lock()
+	maps := currentUCMaps.ucmap
+	currentUCMaps.Unlock()
+	if maps == nil {
+		return trimmed
+	}
+	if pm, ok := maps.userProto[protocol]; ok {
+		if ui, ok := pm[name]; ok && ui != nil && ui.UserID != "" {
+			return bracket(ui.UserID)
+		}
+	}
+	return trimmed
 }
 
 func decodeAIDevJSON(body io.ReadCloser, v interface{}) error {

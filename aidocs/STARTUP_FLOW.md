@@ -210,9 +210,20 @@ When `--aidev <token>` is supplied at startup:
 - local authenticated endpoints are enabled on the existing localhost listener:
   - `POST /aidev/send_message`
   - `POST /aidev/get_messages`
+  - `POST /aidev/get_commands` (when command conduit is enabled)
+  - `POST /aidev/send_as_robot`
   - each requires `Authorization: Bearer <token>`
+- optional command-conduit env controls:
+  - `GOPHER_AIDEV_COMMAND_USER` enables addressed-command capture for that resolved username
+  - `GOPHER_AIDEV_COMMAND_PREFIX` selects the first-character trigger (default `>`)
+  - `GOPHER_AIDEV_COMMAND_CONSUME` controls whether captured conduit commands are consumed before normal plugin matching (default `true`)
 
 This mode is additive: connector startup and config merge ordering are unchanged.
+
+Command-conduit polling notes:
+- `get_commands` supports `timeout_ms: -1` for indefinite wait.
+- For multi-robot loops, use `after_by_robot` input and persist returned `next_by_robot`.
+- `aggregate: true` returns command events from all currently polled conduit robots in one call.
 
 ### Template Functions
 

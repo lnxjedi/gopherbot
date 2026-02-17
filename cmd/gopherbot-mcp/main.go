@@ -8,10 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -23,6 +27,8 @@ const (
 	mcpServerName      = "gopherbot-mcp"
 	mcpServerVersion   = "0.1.0"
 	stateFileName      = ".gopherbot-mcp-state.json"
+	minMCPSSHPort      = 4222
+	maxMCPSSHPort      = 4229
 )
 
 type jsonRPCRequest struct {
@@ -56,18 +62,43 @@ type toolsCallParams struct {
 }
 
 type processState struct {
-	PID          int      `json:"pid"`
-	RobotDir     string   `json:"robot_dir"`
-	GopherbotBin string   `json:"gopherbot_binary"`
-	AuthToken    string   `json:"auth_token"`
-	LogPath      string   `json:"log_path"`
-	StartedAt    string   `json:"started_at"`
-	CommandArgs  []string `json:"command_args"`
+	PID            int      `json:"pid"`
+	RobotDir       string   `json:"robot_dir"`
+	GopherbotBin   string   `json:"gopherbot_binary"`
+	AuthToken      string   `json:"auth_token"`
+	CommandUser    string   `json:"command_user,omitempty"`
+	CommandPrefix  string   `json:"command_prefix,omitempty"`
+	CommandConsume bool     `json:"command_consume"`
+	LogPath        string   `json:"log_path"`
+	StartedAt      string   `json:"started_at"`
+	CommandArgs    []string `json:"command_args"`
+}
+
+type mcpToolError struct {
+	Code    string                 `json:"code"`
+	Message string                 `json:"message"`
+	Details map[string]interface{} `json:"details,omitempty"`
+}
+
+func (e *mcpToolError) Error() string {
+	return e.Message
 }
 
 type mcpServer struct {
 	rootDir string
 	mu      sync.Mutex
+}
+
+type replyCommandContext struct {
+	RobotDir    string
+	Text        string
+	Protocol    string
+	Channel     string
+	ThreadID    string
+	User        string
+	Direct      bool
+	MentionUser bool
+	Command     map[string]interface{}
 }
 
 func main() {
@@ -180,6 +211,180 @@ func (s *mcpServer) handleRequest(req jsonRPCRequest) jsonRPCResponse {
 func (s *mcpServer) tools() []mcpTool {
 	return []mcpTool{
 		{
+			Name:        "list_robots",
+			Description: "List robot state files in target directories and report running/stale status.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"roots": map[string]interface{}{
+						"type":        "array",
+						"description": "Optional directories to search recursively. Defaults to MCP working directory.",
+						"items": map[string]interface{}{
+							"type": "string",
+						},
+					},
+					"max_depth": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum recursive depth under each root (default 8).",
+					},
+					"include_not_running": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Include robots with stale/dead pid state (default true).",
+					},
+				},
+			},
+		},
+		{
+			Name:        "cleanup_stale_state",
+			Description: "Remove stale robot state files where pid is no longer running.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"roots": map[string]interface{}{
+						"type":        "array",
+						"description": "Optional directories to search recursively. Defaults to MCP working directory.",
+						"items": map[string]interface{}{
+							"type": "string",
+						},
+					},
+					"max_depth": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum recursive depth under each root (default 8).",
+					},
+					"dry_run": map[string]interface{}{
+						"type":        "boolean",
+						"description": "When true, report stale files without removing them.",
+					},
+				},
+			},
+		},
+		{
+			Name:        "wait_robot_ready",
+			Description: "Wait until a robot has a live process and reachable AI-dev listener.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"robot_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Directory where the robot is running.",
+					},
+					"timeout_ms": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum wait time in milliseconds (default 15000).",
+					},
+					"poll_ms": map[string]interface{}{
+						"type":        "integer",
+						"description": "Polling interval in milliseconds (default 200).",
+					},
+				},
+				"required": []string{"robot_dir"},
+			},
+		},
+		{
+			Name:        "restart_robot",
+			Description: "Restart a robot via stop + start, preserving prior binary/token/extra args when omitted.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"robot_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Directory where the robot is running.",
+					},
+					"auth_token": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional auth token override. Defaults to previous token when available.",
+					},
+					"gopherbot_binary": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional binary override. Defaults to previous binary when available.",
+					},
+					"extra_args": map[string]interface{}{
+						"type":        "array",
+						"description": "Optional extra args inserted before 'run'. Defaults to previous extras when available.",
+						"items": map[string]interface{}{
+							"type": "string",
+						},
+					},
+					"env": map[string]interface{}{
+						"type":        "object",
+						"description": "Optional environment variables to set for the new process.",
+						"additionalProperties": map[string]interface{}{
+							"type": "string",
+						},
+					},
+					"command_user": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional conduit username override; defaults to prior state when available.",
+					},
+					"command_prefix": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional conduit prefix override; defaults to prior state when available.",
+					},
+					"command_consume": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Whether command-conduit messages are consumed and not routed to plugins (default true).",
+					},
+					"wait_ready": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Wait for readiness after start (default true).",
+					},
+					"timeout_ms": map[string]interface{}{
+						"type":        "integer",
+						"description": "Readiness timeout when wait_ready is true (default 15000).",
+					},
+					"poll_ms": map[string]interface{}{
+						"type":        "integer",
+						"description": "Readiness poll interval when wait_ready is true (default 200).",
+					},
+				},
+				"required": []string{"robot_dir"},
+			},
+		},
+		{
+			Name:        "tail_robot_log",
+			Description: "Read the last N lines from a robot log file.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"robot_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Directory where the robot is running.",
+					},
+					"lines": map[string]interface{}{
+						"type":        "integer",
+						"description": "Number of lines to return from the end of the log (default 120).",
+					},
+					"max_bytes": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum bytes to read from the end of the log file (default 262144).",
+					},
+				},
+				"required": []string{"robot_dir"},
+			},
+		},
+		{
+			Name:        "read_robot_log",
+			Description: "Read a byte range from a robot log file for paged log retrieval.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"robot_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Directory where the robot is running.",
+					},
+					"offset": map[string]interface{}{
+						"type":        "integer",
+						"description": "Starting byte offset into the log file (default 0).",
+					},
+					"max_bytes": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum bytes to read from offset (default 65536).",
+					},
+				},
+				"required": []string{"robot_dir"},
+			},
+		},
+		{
 			Name:        "start_robot",
 			Description: "Start a gopherbot robot in a target directory with --aidev <auth_token>.",
 			InputSchema: map[string]interface{}{
@@ -210,6 +415,26 @@ func (s *mcpServer) tools() []mcpTool {
 						"additionalProperties": map[string]interface{}{
 							"type": "string",
 						},
+					},
+					"command_user": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional username that can issue addressed '>' commands captured by get_commands.",
+					},
+					"command_prefix": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional command prefix character for conduit capture (default '>').",
+					},
+					"command_consume": map[string]interface{}{
+						"type":        "boolean",
+						"description": "When true, conduit commands are consumed and not dispatched to normal plugin matching (default true).",
+					},
+					"ssh_port_min": map[string]interface{}{
+						"type":        "integer",
+						"description": "Minimum auto-assigned SSH port when GOPHER_SSH_PORT is unset (default 4222).",
+					},
+					"ssh_port_max": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum auto-assigned SSH port when GOPHER_SSH_PORT is unset (default 4229).",
 					},
 				},
 				"required": []string{"robot_dir"},
@@ -319,6 +544,141 @@ func (s *mcpServer) tools() []mcpTool {
 				"required": []string{"robot_dir", "viewer"},
 			},
 		},
+		{
+			Name:        "get_commands",
+			Description: "Poll command-conduit robots for addressed '>' commands from the configured conduit user.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"robot_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional robot directory. When omitted, polls all conduit-enabled robots.",
+					},
+					"roots": map[string]interface{}{
+						"type":        "array",
+						"description": "Optional search roots when robot_dir is omitted. Defaults to MCP working directory.",
+						"items": map[string]interface{}{
+							"type": "string",
+						},
+					},
+					"max_depth": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum recursive depth under each root (default 8).",
+					},
+					"after_cursor": map[string]interface{}{
+						"type":        "integer",
+						"description": "Optional cursor; return commands strictly after this value.",
+					},
+					"after_by_robot": map[string]interface{}{
+						"type":        "object",
+						"description": "Optional per-robot cursor map keyed by robot_dir path.",
+						"additionalProperties": map[string]interface{}{
+							"type": "integer",
+						},
+					},
+					"all": map[string]interface{}{
+						"type":        "boolean",
+						"description": "When true, return conduit buffer snapshot (ignores after_cursor).",
+					},
+					"aggregate": map[string]interface{}{
+						"type":        "boolean",
+						"description": "When polling multiple robots, return available commands aggregated across all robots.",
+					},
+					"timeout_ms": map[string]interface{}{
+						"type":        "integer",
+						"description": "Long-poll timeout in ms (default 1400). Use -1 to wait indefinitely.",
+					},
+					"limit": map[string]interface{}{
+						"type":        "integer",
+						"description": "Maximum commands per robot call (default 64).",
+					},
+				},
+			},
+		},
+		{
+			Name:        "send_as_robot",
+			Description: "Send a message as the robot on a target protocol/channel/thread (optionally direct to a user).",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"robot_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Directory where the robot is running.",
+					},
+					"text": map[string]interface{}{
+						"type":        "string",
+						"description": "Message text to send as the robot.",
+					},
+					"protocol": map[string]interface{}{
+						"type":        "string",
+						"description": "Protocol name, defaults to active primary protocol.",
+					},
+					"channel": map[string]interface{}{
+						"type":        "string",
+						"description": "Channel to post in (required unless direct=true).",
+					},
+					"thread_id": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional thread target.",
+					},
+					"user": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional user target for directed/DM sends.",
+					},
+					"direct": map[string]interface{}{
+						"type":        "boolean",
+						"description": "When true, send as direct message to user.",
+					},
+				},
+				"required": []string{"robot_dir", "text"},
+			},
+		},
+		{
+			Name:        "reply_command",
+			Description: "Reply to a get_commands event in the same protocol/channel/thread as the command.",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"robot_dir": map[string]interface{}{
+						"type":        "string",
+						"description": "Directory where the robot is running. Optional if command.robot_dir is present.",
+					},
+					"text": map[string]interface{}{
+						"type":        "string",
+						"description": "Reply text to send.",
+					},
+					"command": map[string]interface{}{
+						"type":        "object",
+						"description": "Command event object returned by get_commands.",
+					},
+					"mention_user": map[string]interface{}{
+						"type":        "boolean",
+						"description": "When true, prepend '@user_name ' from the command event.",
+					},
+					"protocol": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional protocol override.",
+					},
+					"channel": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional channel override.",
+					},
+					"thread_id": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional thread override.",
+					},
+					"user": map[string]interface{}{
+						"type":        "string",
+						"description": "Optional user override for direct replies.",
+					},
+					"direct": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Optional direct-message override.",
+					},
+				},
+				"required": []string{"text", "command"},
+			},
+		},
 	}
 }
 
@@ -333,6 +693,18 @@ func (s *mcpServer) callTool(params toolsCallParams) map[string]interface{} {
 		err    error
 	)
 	switch params.Name {
+	case "list_robots":
+		result, err = s.toolListRobots(args)
+	case "cleanup_stale_state":
+		result, err = s.toolCleanupStaleState(args)
+	case "wait_robot_ready":
+		result, err = s.toolWaitRobotReady(args)
+	case "restart_robot":
+		result, err = s.toolRestartRobot(args)
+	case "tail_robot_log":
+		result, err = s.toolTailRobotLog(args)
+	case "read_robot_log":
+		result, err = s.toolReadRobotLog(args)
 	case "start_robot":
 		result, err = s.toolStartRobot(args)
 	case "stop_robot":
@@ -343,13 +715,413 @@ func (s *mcpServer) callTool(params toolsCallParams) map[string]interface{} {
 		result, err = s.toolSendMessage(args)
 	case "get_messages":
 		result, err = s.toolGetMessages(args)
+	case "get_commands":
+		result, err = s.toolGetCommands(args)
+	case "send_as_robot":
+		result, err = s.toolSendAsRobot(args)
+	case "reply_command":
+		result, err = s.toolReplyCommand(args)
 	default:
-		return toolErrorResult(fmt.Errorf("unknown tool: %s", params.Name))
+		return toolErrorResult(newToolError("UNKNOWN_TOOL", fmt.Sprintf("unknown tool: %s", params.Name), map[string]interface{}{
+			"tool_name": params.Name,
+		}))
 	}
 	if err != nil {
 		return toolErrorResult(err)
 	}
 	return toolSuccessResult(result)
+}
+
+func (s *mcpServer) toolListRobots(args map[string]interface{}) (map[string]interface{}, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	roots, err := optionalRootsArg(s.rootDir, args, "roots")
+	if err != nil {
+		return nil, err
+	}
+	maxDepth, err := optionalIntArg(args, "max_depth", 8)
+	if err != nil {
+		return nil, err
+	}
+	if maxDepth < 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument max_depth must be >= 0", map[string]interface{}{"argument": "max_depth"})
+	}
+	includeNotRunning, err := optionalBoolArg(args, "include_not_running", true)
+	if err != nil {
+		return nil, err
+	}
+
+	stateFiles, warnings, err := discoverStateFiles(roots, maxDepth)
+	if err != nil {
+		return nil, err
+	}
+	robots := make([]map[string]interface{}, 0, len(stateFiles))
+	for _, statePath := range stateFiles {
+		robotDir := filepath.Dir(statePath)
+		state, exists, readErr := readStateFile(statePath)
+		if readErr != nil {
+			warnings = append(warnings, map[string]interface{}{
+				"state_file": statePath,
+				"error":      readErr.Error(),
+			})
+			continue
+		}
+		if !exists {
+			continue
+		}
+		running := isProcessRunning(state.PID)
+		if !includeNotRunning && !running {
+			continue
+		}
+
+		aiportPath := filepath.Join(robotDir, ".aiport")
+		aiport := ""
+		if data, err := os.ReadFile(aiportPath); err == nil {
+			aiport = strings.TrimSpace(string(data))
+		}
+		robots = append(robots, map[string]interface{}{
+			"robot_dir":        robotDir,
+			"running":          running,
+			"stale":            !running,
+			"pid":              state.PID,
+			"gopherbot_binary": state.GopherbotBin,
+			"log_path":         state.LogPath,
+			"state_file":       statePath,
+			"started_at":       state.StartedAt,
+			"command_args":     state.CommandArgs,
+			"command_user":     strings.TrimSpace(state.CommandUser),
+			"command_prefix":   strings.TrimSpace(state.CommandPrefix),
+			"command_consume":  state.CommandConsume,
+			"command_conduit":  strings.TrimSpace(state.CommandUser) != "",
+			"aiport_file":      aiportPath,
+			"aiport":           aiport,
+		})
+	}
+
+	sort.Slice(robots, func(i, j int) bool {
+		left, _ := robots[i]["robot_dir"].(string)
+		right, _ := robots[j]["robot_dir"].(string)
+		return left < right
+	})
+
+	return map[string]interface{}{
+		"roots":    roots,
+		"count":    len(robots),
+		"robots":   robots,
+		"warnings": warnings,
+	}, nil
+}
+
+func (s *mcpServer) toolCleanupStaleState(args map[string]interface{}) (map[string]interface{}, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	roots, err := optionalRootsArg(s.rootDir, args, "roots")
+	if err != nil {
+		return nil, err
+	}
+	maxDepth, err := optionalIntArg(args, "max_depth", 8)
+	if err != nil {
+		return nil, err
+	}
+	if maxDepth < 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument max_depth must be >= 0", map[string]interface{}{"argument": "max_depth"})
+	}
+	dryRun, err := optionalBoolArg(args, "dry_run", false)
+	if err != nil {
+		return nil, err
+	}
+
+	stateFiles, warnings, err := discoverStateFiles(roots, maxDepth)
+	if err != nil {
+		return nil, err
+	}
+
+	removed := make([]map[string]interface{}, 0)
+	skipped := make([]map[string]interface{}, 0)
+	for _, statePath := range stateFiles {
+		state, exists, readErr := readStateFile(statePath)
+		if readErr != nil {
+			warnings = append(warnings, map[string]interface{}{
+				"state_file": statePath,
+				"error":      readErr.Error(),
+			})
+			continue
+		}
+		if !exists {
+			continue
+		}
+		if isProcessRunning(state.PID) {
+			skipped = append(skipped, map[string]interface{}{
+				"state_file": statePath,
+				"pid":        state.PID,
+				"reason":     "process_running",
+			})
+			continue
+		}
+		if dryRun {
+			removed = append(removed, map[string]interface{}{
+				"state_file": statePath,
+				"pid":        state.PID,
+				"dry_run":    true,
+			})
+			continue
+		}
+		if err := removeStateFile(statePath); err != nil {
+			warnings = append(warnings, map[string]interface{}{
+				"state_file": statePath,
+				"error":      err.Error(),
+			})
+			continue
+		}
+		removed = append(removed, map[string]interface{}{
+			"state_file": statePath,
+			"pid":        state.PID,
+			"dry_run":    false,
+		})
+	}
+
+	return map[string]interface{}{
+		"roots":         roots,
+		"dry_run":       dryRun,
+		"removed_count": len(removed),
+		"removed":       removed,
+		"skipped_count": len(skipped),
+		"skipped":       skipped,
+		"warnings":      warnings,
+	}, nil
+}
+
+func (s *mcpServer) toolWaitRobotReady(args map[string]interface{}) (map[string]interface{}, error) {
+	robotDir, err := requiredStringArg(args, "robot_dir")
+	if err != nil {
+		return nil, err
+	}
+	timeoutMS, err := optionalIntArg(args, "timeout_ms", 15000)
+	if err != nil {
+		return nil, err
+	}
+	pollMS, err := optionalIntArg(args, "poll_ms", 200)
+	if err != nil {
+		return nil, err
+	}
+	if timeoutMS < 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument timeout_ms must be >= 0", map[string]interface{}{"argument": "timeout_ms"})
+	}
+	if pollMS <= 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument poll_ms must be > 0", map[string]interface{}{"argument": "poll_ms"})
+	}
+
+	start := time.Now()
+	deadline := start.Add(time.Duration(timeoutMS) * time.Millisecond)
+	for {
+		probe, ready, err := s.probeRobotReady(robotDir)
+		if err != nil {
+			return nil, err
+		}
+		if ready {
+			probe["ready"] = true
+			probe["waited_ms"] = time.Since(start).Milliseconds()
+			return probe, nil
+		}
+		if timeoutMS == 0 || time.Now().After(deadline) {
+			probe["ready"] = false
+			probe["waited_ms"] = time.Since(start).Milliseconds()
+			return nil, newToolError("ROBOT_NOT_READY_TIMEOUT", fmt.Sprintf("robot '%s' was not ready within %dms", probe["robot_dir"], timeoutMS), probe)
+		}
+		time.Sleep(time.Duration(pollMS) * time.Millisecond)
+	}
+}
+
+func (s *mcpServer) toolRestartRobot(args map[string]interface{}) (map[string]interface{}, error) {
+	robotDir, err := requiredStringArg(args, "robot_dir")
+	if err != nil {
+		return nil, err
+	}
+	waitReady, err := optionalBoolArg(args, "wait_ready", true)
+	if err != nil {
+		return nil, err
+	}
+
+	prevState, _, _ := s.readStateForRobotDir(robotDir)
+	startArgs := map[string]interface{}{"robot_dir": robotDir}
+
+	gopherbotBin, err := optionalStringArg(args, "gopherbot_binary")
+	if err != nil {
+		return nil, err
+	}
+	if gopherbotBin == "" && prevState != nil {
+		gopherbotBin = strings.TrimSpace(prevState.GopherbotBin)
+	}
+	if gopherbotBin != "" {
+		startArgs["gopherbot_binary"] = gopherbotBin
+	}
+
+	authToken, err := optionalStringArg(args, "auth_token")
+	if err != nil {
+		return nil, err
+	}
+	if authToken == "" && prevState != nil {
+		authToken = strings.TrimSpace(prevState.AuthToken)
+	}
+	if authToken != "" {
+		startArgs["auth_token"] = authToken
+	}
+
+	if rawExtraArgs, ok := args["extra_args"]; ok {
+		startArgs["extra_args"] = rawExtraArgs
+	} else if prevState != nil {
+		prevExtraArgs := extractExtraArgs(prevState.CommandArgs)
+		if len(prevExtraArgs) > 0 {
+			startArgs["extra_args"] = prevExtraArgs
+		}
+	}
+	if rawEnv, ok := args["env"]; ok {
+		startArgs["env"] = rawEnv
+	}
+	if rawCommandUser, ok := args["command_user"]; ok {
+		startArgs["command_user"] = rawCommandUser
+	} else if prevState != nil && strings.TrimSpace(prevState.CommandUser) != "" {
+		startArgs["command_user"] = strings.TrimSpace(prevState.CommandUser)
+	}
+	if rawCommandPrefix, ok := args["command_prefix"]; ok {
+		startArgs["command_prefix"] = rawCommandPrefix
+	} else if prevState != nil && strings.TrimSpace(prevState.CommandPrefix) != "" {
+		startArgs["command_prefix"] = strings.TrimSpace(prevState.CommandPrefix)
+	}
+	if rawCommandConsume, ok := args["command_consume"]; ok {
+		startArgs["command_consume"] = rawCommandConsume
+	} else if prevState != nil && strings.TrimSpace(prevState.CommandUser) != "" {
+		startArgs["command_consume"] = prevState.CommandConsume
+	}
+	if rawPortMin, ok := args["ssh_port_min"]; ok {
+		startArgs["ssh_port_min"] = rawPortMin
+	}
+	if rawPortMax, ok := args["ssh_port_max"]; ok {
+		startArgs["ssh_port_max"] = rawPortMax
+	}
+
+	stopResult, err := s.toolStopRobot(map[string]interface{}{"robot_dir": robotDir})
+	if err != nil {
+		return nil, newToolError("RESTART_STOP_FAILED", err.Error(), map[string]interface{}{"robot_dir": resolvePath(s.rootDir, robotDir)})
+	}
+	startResult, err := s.toolStartRobot(startArgs)
+	if err != nil {
+		return nil, newToolError("RESTART_START_FAILED", err.Error(), map[string]interface{}{
+			"robot_dir": resolvePath(s.rootDir, robotDir),
+			"stop":      stopResult,
+		})
+	}
+
+	result := map[string]interface{}{
+		"robot_dir": resolvePath(s.rootDir, robotDir),
+		"stop":      stopResult,
+		"start":     startResult,
+	}
+
+	if waitReady {
+		waitArgs := map[string]interface{}{"robot_dir": robotDir}
+		if timeoutMS, ok := args["timeout_ms"]; ok {
+			waitArgs["timeout_ms"] = timeoutMS
+		}
+		if pollMS, ok := args["poll_ms"]; ok {
+			waitArgs["poll_ms"] = pollMS
+		}
+		readyResult, err := s.toolWaitRobotReady(waitArgs)
+		if err != nil {
+			return nil, newToolError("RESTART_WAIT_FAILED", err.Error(), map[string]interface{}{
+				"robot_dir": resolvePath(s.rootDir, robotDir),
+				"stop":      stopResult,
+				"start":     startResult,
+			})
+		}
+		result["ready"] = readyResult
+	}
+
+	return result, nil
+}
+
+func (s *mcpServer) toolTailRobotLog(args map[string]interface{}) (map[string]interface{}, error) {
+	robotDir, err := requiredStringArg(args, "robot_dir")
+	if err != nil {
+		return nil, err
+	}
+	lines, err := optionalIntArg(args, "lines", 120)
+	if err != nil {
+		return nil, err
+	}
+	maxBytes, err := optionalIntArg(args, "max_bytes", 262144)
+	if err != nil {
+		return nil, err
+	}
+	if lines <= 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument lines must be > 0", map[string]interface{}{"argument": "lines"})
+	}
+	if maxBytes <= 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument max_bytes must be > 0", map[string]interface{}{"argument": "max_bytes"})
+	}
+
+	logPath, err := s.resolveRobotLogPath(robotDir)
+	if err != nil {
+		return nil, err
+	}
+	chunk, fileSize, readStart, err := readTailBytes(logPath, int64(maxBytes))
+	if err != nil {
+		return nil, err
+	}
+	logText, lineCount := tailLinesFromChunk(chunk, lines)
+	return map[string]interface{}{
+		"robot_dir":              resolvePath(s.rootDir, robotDir),
+		"log_path":               logPath,
+		"text":                   logText,
+		"line_count":             lineCount,
+		"requested_lines":        lines,
+		"max_bytes":              maxBytes,
+		"file_size":              fileSize,
+		"read_start_offset":      readStart,
+		"truncated_by_max_bytes": readStart > 0,
+	}, nil
+}
+
+func (s *mcpServer) toolReadRobotLog(args map[string]interface{}) (map[string]interface{}, error) {
+	robotDir, err := requiredStringArg(args, "robot_dir")
+	if err != nil {
+		return nil, err
+	}
+	offset, err := optionalIntArg(args, "offset", 0)
+	if err != nil {
+		return nil, err
+	}
+	maxBytes, err := optionalIntArg(args, "max_bytes", 65536)
+	if err != nil {
+		return nil, err
+	}
+	if offset < 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument offset must be >= 0", map[string]interface{}{"argument": "offset"})
+	}
+	if maxBytes <= 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument max_bytes must be > 0", map[string]interface{}{"argument": "max_bytes"})
+	}
+
+	logPath, err := s.resolveRobotLogPath(robotDir)
+	if err != nil {
+		return nil, err
+	}
+	text, fileSize, nextOffset, eof, err := readLogRange(logPath, int64(offset), int64(maxBytes))
+	if err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"robot_dir":   resolvePath(s.rootDir, robotDir),
+		"log_path":    logPath,
+		"text":        text,
+		"offset":      offset,
+		"next_offset": nextOffset,
+		"max_bytes":   maxBytes,
+		"file_size":   fileSize,
+		"eof":         eof,
+	}, nil
 }
 
 func (s *mcpServer) toolStartRobot(args map[string]interface{}) (map[string]interface{}, error) {
@@ -409,6 +1181,51 @@ func (s *mcpServer) toolStartRobot(args map[string]interface{}) (map[string]inte
 	if err != nil {
 		return nil, err
 	}
+	commandUser, err := optionalStringArg(args, "command_user")
+	if err != nil {
+		return nil, err
+	}
+	commandPrefix, err := optionalStringArg(args, "command_prefix")
+	if err != nil {
+		return nil, err
+	}
+	commandConsume, err := optionalBoolArg(args, "command_consume", true)
+	if err != nil {
+		return nil, err
+	}
+	if commandPrefix == "" {
+		commandPrefix = ">"
+	}
+	if len(commandPrefix) > 1 {
+		commandPrefix = commandPrefix[:1]
+	}
+	if strings.TrimSpace(commandUser) != "" {
+		if extraEnv == nil {
+			extraEnv = map[string]string{}
+		}
+		extraEnv["GOPHER_AIDEV_COMMAND_USER"] = strings.TrimSpace(commandUser)
+		extraEnv["GOPHER_AIDEV_COMMAND_PREFIX"] = commandPrefix
+		extraEnv["GOPHER_AIDEV_COMMAND_CONSUME"] = strconv.FormatBool(commandConsume)
+	}
+	sshPortMin, err := optionalIntArg(args, "ssh_port_min", minMCPSSHPort)
+	if err != nil {
+		return nil, err
+	}
+	sshPortMax, err := optionalIntArg(args, "ssh_port_max", maxMCPSSHPort)
+	if err != nil {
+		return nil, err
+	}
+	if sshPortMin <= 0 || sshPortMax <= 0 || sshPortMin > sshPortMax {
+		return nil, newToolError("INVALID_ARGUMENT", "invalid ssh_port_min/ssh_port_max range", map[string]interface{}{
+			"ssh_port_min": sshPortMin,
+			"ssh_port_max": sshPortMax,
+		})
+	}
+	assignedSSHPort := ""
+	extraEnv, assignedSSHPort, err = ensureSSHPortEnv(extraEnv, sshPortMin, sshPortMax)
+	if err != nil {
+		return nil, err
+	}
 
 	logPath := filepath.Join(robotDir, "robot.log")
 	logFile, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -437,13 +1254,16 @@ func (s *mcpServer) toolStartRobot(args map[string]interface{}) (map[string]inte
 	}()
 
 	state := processState{
-		PID:          cmd.Process.Pid,
-		RobotDir:     robotDir,
-		GopherbotBin: gopherbotBin,
-		AuthToken:    authToken,
-		LogPath:      logPath,
-		StartedAt:    time.Now().UTC().Format(time.RFC3339),
-		CommandArgs:  cmdArgs,
+		PID:            cmd.Process.Pid,
+		RobotDir:       robotDir,
+		GopherbotBin:   gopherbotBin,
+		AuthToken:      authToken,
+		CommandUser:    strings.TrimSpace(commandUser),
+		CommandPrefix:  commandPrefix,
+		CommandConsume: commandConsume,
+		LogPath:        logPath,
+		StartedAt:      time.Now().UTC().Format(time.RFC3339),
+		CommandArgs:    cmdArgs,
 	}
 	if err := writeStateFile(statePath, state); err != nil {
 		return nil, err
@@ -458,6 +1278,11 @@ func (s *mcpServer) toolStartRobot(args map[string]interface{}) (map[string]inte
 		"log_path":         state.LogPath,
 		"state_file":       statePath,
 		"command_args":     state.CommandArgs,
+		"command_user":     state.CommandUser,
+		"command_prefix":   state.CommandPrefix,
+		"command_consume":  state.CommandConsume,
+		"command_conduit":  state.CommandUser != "",
+		"ssh_port":         assignedSSHPort,
 	}, nil
 }
 
@@ -553,6 +1378,10 @@ func (s *mcpServer) toolRobotStatus(args map[string]interface{}) (map[string]int
 		"pid":              state.PID,
 		"gopherbot_binary": state.GopherbotBin,
 		"auth_token":       state.AuthToken,
+		"command_user":     strings.TrimSpace(state.CommandUser),
+		"command_prefix":   strings.TrimSpace(state.CommandPrefix),
+		"command_consume":  state.CommandConsume,
+		"command_conduit":  strings.TrimSpace(state.CommandUser) != "",
 		"log_path":         state.LogPath,
 		"state_file":       statePath,
 		"started_at":       state.StartedAt,
@@ -682,18 +1511,493 @@ func (s *mcpServer) toolGetMessages(args map[string]interface{}) (map[string]int
 	return res, nil
 }
 
+func (s *mcpServer) toolGetCommands(args map[string]interface{}) (map[string]interface{}, error) {
+	robotDir, err := optionalStringArg(args, "robot_dir")
+	if err != nil {
+		return nil, err
+	}
+	afterByRobot, err := optionalUint64MapArg(args, "after_by_robot")
+	if err != nil {
+		return nil, err
+	}
+	all, err := optionalBoolArg(args, "all", false)
+	if err != nil {
+		return nil, err
+	}
+	aggregate, err := optionalBoolArg(args, "aggregate", false)
+	if err != nil {
+		return nil, err
+	}
+	after, err := optionalUint64Arg(args, "after_cursor", 0)
+	if err != nil {
+		return nil, err
+	}
+	timeoutMS, err := optionalIntArg(args, "timeout_ms", 1400)
+	if err != nil {
+		return nil, err
+	}
+	waitForever := timeoutMS < 0
+	limit, err := optionalIntArg(args, "limit", 64)
+	if err != nil {
+		return nil, err
+	}
+	if limit <= 0 {
+		limit = 64
+	}
+
+	start := time.Now()
+	if strings.TrimSpace(robotDir) != "" {
+		client, err := s.loadAIDevClient(robotDir)
+		if err != nil {
+			return nil, err
+		}
+		if strings.TrimSpace(client.state.CommandUser) == "" {
+			return nil, newToolError("COMMAND_CONDUIT_DISABLED", "robot does not have command conduit enabled", map[string]interface{}{
+				"robot_dir": resolvePath(s.rootDir, robotDir),
+			})
+		}
+		perRobotAfter := after
+		if mapped, ok := afterByRobot[client.robotDir]; ok {
+			perRobotAfter = mapped
+		}
+		payload := map[string]interface{}{
+			"all":          all,
+			"after_cursor": perRobotAfter,
+			"timeout_ms":   timeoutMS,
+			"limit":        limit,
+		}
+		httpTimeout := time.Duration(timeoutMS+1500) * time.Millisecond
+		if waitForever {
+			httpTimeout = 0
+		} else if httpTimeout < 2*time.Second {
+			httpTimeout = 2 * time.Second
+		}
+		res, err := callAIDevEndpoint(client, "/aidev/get_commands", payload, httpTimeout)
+		if err != nil {
+			return nil, err
+		}
+		res["robot_dir"] = client.robotDir
+		res["next_by_robot"] = map[string]uint64{
+			client.robotDir: extractUint64Field(res, "next_cursor", perRobotAfter),
+		}
+		res["waited_ms"] = time.Since(start).Milliseconds()
+		return res, nil
+	}
+
+	roots, err := optionalRootsArg(s.rootDir, args, "roots")
+	if err != nil {
+		return nil, err
+	}
+	maxDepth, err := optionalIntArg(args, "max_depth", 8)
+	if err != nil {
+		return nil, err
+	}
+	if maxDepth < 0 {
+		return nil, newToolError("INVALID_ARGUMENT", "argument max_depth must be >= 0", map[string]interface{}{"argument": "max_depth"})
+	}
+
+	targets, err := s.listRunningCommandConduitRobots(roots, maxDepth)
+	if err != nil {
+		return nil, err
+	}
+	if len(targets) == 0 {
+		return nil, newToolError("NO_COMMAND_CONDUITS", "no running command-conduit robots found", map[string]interface{}{
+			"roots": roots,
+		})
+	}
+
+	deadline := start.Add(time.Duration(timeoutMS) * time.Millisecond)
+	pollEvery := 200 * time.Millisecond
+	for {
+		aggregated := make([]interface{}, 0)
+		nextByRobot := copyCursorMap(afterByRobot)
+		var best map[string]interface{}
+		bestTime := time.Time{}
+		bestRobot := ""
+		for _, target := range targets {
+			client, err := s.loadAIDevClient(target)
+			if err != nil {
+				continue
+			}
+			perRobotAfter := after
+			if mapped, ok := afterByRobot[client.robotDir]; ok {
+				perRobotAfter = mapped
+			}
+			payload := map[string]interface{}{
+				"all":          all,
+				"after_cursor": perRobotAfter,
+				"timeout_ms":   0,
+				"limit":        limit,
+			}
+			res, err := callAIDevEndpoint(client, "/aidev/get_commands", payload, 2*time.Second)
+			if err != nil {
+				continue
+			}
+			nextByRobot[client.robotDir] = extractUint64Field(res, "next_cursor", perRobotAfter)
+			if aggregate {
+				aggregated = append(aggregated, commandsWithRobot(res, client.robotDir)...)
+				continue
+			}
+			if countCommands(res) > 0 {
+				candidateTime := firstCommandTimestamp(res)
+				if best == nil || candidateTime.Before(bestTime) || (candidateTime.Equal(bestTime) && client.robotDir < bestRobot) {
+					best = res
+					bestTime = candidateTime
+					bestRobot = client.robotDir
+				}
+			}
+		}
+		if aggregate && len(aggregated) > 0 {
+			return map[string]interface{}{
+				"commands":      aggregated,
+				"timed_out":     false,
+				"robot_dir":     "",
+				"polled":        targets,
+				"waited_ms":     time.Since(start).Milliseconds(),
+				"after_cursor":  after,
+				"next_by_robot": nextByRobot,
+			}, nil
+		}
+		if !aggregate && best != nil {
+			best["robot_dir"] = bestRobot
+			best["timed_out"] = false
+			best["waited_ms"] = time.Since(start).Milliseconds()
+			best["next_by_robot"] = nextByRobot
+			return best, nil
+		}
+		if timeoutMS == 0 || (!waitForever && time.Now().After(deadline)) {
+			return map[string]interface{}{
+				"timed_out":     true,
+				"commands":      []interface{}{},
+				"robot_dir":     "",
+				"polled":        targets,
+				"waited_ms":     time.Since(start).Milliseconds(),
+				"after_cursor":  after,
+				"next_by_robot": nextByRobot,
+			}, nil
+		}
+		time.Sleep(pollEvery)
+	}
+}
+
+func (s *mcpServer) toolSendAsRobot(args map[string]interface{}) (map[string]interface{}, error) {
+	robotDir, err := requiredStringArg(args, "robot_dir")
+	if err != nil {
+		return nil, err
+	}
+	text, err := requiredStringArg(args, "text")
+	if err != nil {
+		return nil, err
+	}
+	protocol, err := optionalStringArg(args, "protocol")
+	if err != nil {
+		return nil, err
+	}
+	channel, err := optionalStringArg(args, "channel")
+	if err != nil {
+		return nil, err
+	}
+	threadID, err := optionalStringArg(args, "thread_id")
+	if err != nil {
+		return nil, err
+	}
+	user, err := optionalStringArg(args, "user")
+	if err != nil {
+		return nil, err
+	}
+	direct, err := optionalBoolArg(args, "direct", false)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := s.loadAIDevClient(robotDir)
+	if err != nil {
+		return nil, err
+	}
+	payload := map[string]interface{}{
+		"text":      text,
+		"channel":   channel,
+		"thread_id": threadID,
+		"user":      user,
+		"direct":    direct,
+	}
+	if protocol != "" {
+		payload["protocol"] = protocol
+	}
+	res, err := callAIDevEndpoint(client, "/aidev/send_as_robot", payload, 4*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (s *mcpServer) toolReplyCommand(args map[string]interface{}) (map[string]interface{}, error) {
+	ctx, err := parseReplyCommandContext(args)
+	if err != nil {
+		return nil, err
+	}
+	replyText := ctx.Text
+	if ctx.MentionUser {
+		if u := mapString(ctx.Command, "user_name"); u != "" {
+			replyText = "@" + u + " " + replyText
+		}
+	}
+	sendArgs := map[string]interface{}{
+		"robot_dir": ctx.RobotDir,
+		"text":      replyText,
+		"protocol":  ctx.Protocol,
+		"channel":   ctx.Channel,
+		"thread_id": ctx.ThreadID,
+	}
+	if ctx.Direct {
+		sendArgs["direct"] = true
+		sendArgs["user"] = ctx.User
+	}
+	res, err := s.toolSendAsRobot(sendArgs)
+	if err != nil {
+		return nil, err
+	}
+	res["reply_context"] = map[string]interface{}{
+		"protocol":  ctx.Protocol,
+		"channel":   ctx.Channel,
+		"thread_id": ctx.ThreadID,
+		"user":      ctx.User,
+		"direct":    ctx.Direct,
+	}
+	return res, nil
+}
+
+func (s *mcpServer) listRunningCommandConduitRobots(roots []string, maxDepth int) ([]string, error) {
+	stateFiles, _, err := discoverStateFiles(roots, maxDepth)
+	if err != nil {
+		return nil, err
+	}
+	seen := map[string]struct{}{}
+	out := make([]string, 0)
+	for _, statePath := range stateFiles {
+		state, exists, err := readStateFile(statePath)
+		if err != nil || !exists {
+			continue
+		}
+		if strings.TrimSpace(state.CommandUser) == "" {
+			continue
+		}
+		if !isProcessRunning(state.PID) {
+			continue
+		}
+		robotDir := filepath.Dir(statePath)
+		if _, ok := seen[robotDir]; ok {
+			continue
+		}
+		seen[robotDir] = struct{}{}
+		out = append(out, robotDir)
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
+func countCommands(res map[string]interface{}) int {
+	raw, ok := res["commands"]
+	if !ok || raw == nil {
+		return 0
+	}
+	list, ok := raw.([]interface{})
+	if !ok {
+		return 0
+	}
+	return len(list)
+}
+
+func mapString(m map[string]interface{}, key string) string {
+	raw, ok := m[key]
+	if !ok || raw == nil {
+		return ""
+	}
+	s, ok := raw.(string)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(s)
+}
+
+func parseReplyCommandContext(args map[string]interface{}) (replyCommandContext, error) {
+	ctx := replyCommandContext{}
+	var err error
+
+	ctx.RobotDir, err = optionalStringArg(args, "robot_dir")
+	if err != nil {
+		return ctx, err
+	}
+	ctx.Text, err = requiredStringArg(args, "text")
+	if err != nil {
+		return ctx, err
+	}
+	rawCommand, ok := args["command"]
+	if !ok || rawCommand == nil {
+		return ctx, newToolError("INVALID_ARGUMENT", "missing required argument: command", map[string]interface{}{"argument": "command"})
+	}
+	command, ok := rawCommand.(map[string]interface{})
+	if !ok {
+		return ctx, newToolError("INVALID_ARGUMENT", "argument command must be an object", map[string]interface{}{"argument": "command"})
+	}
+	ctx.Command = command
+	if ctx.RobotDir == "" {
+		ctx.RobotDir = mapString(command, "robot_dir")
+	}
+	if strings.TrimSpace(ctx.RobotDir) == "" {
+		return ctx, newToolError("INVALID_ARGUMENT", "robot_dir is required (argument or command.robot_dir)", map[string]interface{}{
+			"argument": "robot_dir",
+		})
+	}
+	ctx.MentionUser, err = optionalBoolArg(args, "mention_user", false)
+	if err != nil {
+		return ctx, err
+	}
+	ctx.Protocol, err = optionalStringArg(args, "protocol")
+	if err != nil {
+		return ctx, err
+	}
+	ctx.Channel, err = optionalStringArg(args, "channel")
+	if err != nil {
+		return ctx, err
+	}
+	ctx.ThreadID, err = optionalStringArg(args, "thread_id")
+	if err != nil {
+		return ctx, err
+	}
+	ctx.User, err = optionalStringArg(args, "user")
+	if err != nil {
+		return ctx, err
+	}
+	ctx.Direct, err = optionalBoolArg(args, "direct", false)
+	if err != nil {
+		return ctx, err
+	}
+
+	if ctx.Protocol == "" {
+		ctx.Protocol = mapString(command, "protocol")
+	}
+	if ctx.Channel == "" {
+		ctx.Channel = mapString(command, "channel")
+	}
+	if ctx.ThreadID == "" {
+		ctx.ThreadID = mapString(command, "thread_id")
+	}
+	if ctx.User == "" {
+		ctx.User = mapString(command, "user_name")
+	}
+	if !ctx.Direct && ctx.User != "" && ctx.Channel == "" {
+		ctx.Direct = true
+	}
+	if ctx.Direct && ctx.User == "" {
+		return ctx, newToolError("INVALID_ARGUMENT", "direct reply requires a user (argument user or command.user_name)", map[string]interface{}{
+			"argument": "user",
+		})
+	}
+	if !ctx.Direct && ctx.Channel == "" {
+		return ctx, newToolError("INVALID_ARGUMENT", "channel is required for non-direct reply (argument channel or command.channel)", map[string]interface{}{
+			"argument": "channel",
+		})
+	}
+	return ctx, nil
+}
+
+func commandsWithRobot(res map[string]interface{}, robotDir string) []interface{} {
+	raw, ok := res["commands"]
+	if !ok || raw == nil {
+		return nil
+	}
+	list, ok := raw.([]interface{})
+	if !ok || len(list) == 0 {
+		return nil
+	}
+	out := make([]interface{}, 0, len(list))
+	for _, item := range list {
+		m, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		cp := make(map[string]interface{}, len(m)+1)
+		for k, v := range m {
+			cp[k] = v
+		}
+		cp["robot_dir"] = robotDir
+		out = append(out, cp)
+	}
+	return out
+}
+
+func firstCommandTimestamp(res map[string]interface{}) time.Time {
+	raw, ok := res["commands"]
+	if !ok || raw == nil {
+		return time.Time{}
+	}
+	list, ok := raw.([]interface{})
+	if !ok || len(list) == 0 {
+		return time.Time{}
+	}
+	first, ok := list[0].(map[string]interface{})
+	if !ok {
+		return time.Time{}
+	}
+	tsRaw, ok := first["timestamp"]
+	if !ok || tsRaw == nil {
+		return time.Time{}
+	}
+	ts, ok := tsRaw.(string)
+	if !ok || strings.TrimSpace(ts) == "" {
+		return time.Time{}
+	}
+	parsed, err := time.Parse(time.RFC3339Nano, ts)
+	if err != nil {
+		return time.Time{}
+	}
+	return parsed
+}
+
+func copyCursorMap(in map[string]uint64) map[string]uint64 {
+	out := make(map[string]uint64, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func extractUint64Field(res map[string]interface{}, key string, def uint64) uint64 {
+	raw, ok := res[key]
+	if !ok || raw == nil {
+		return def
+	}
+	switch v := raw.(type) {
+	case float64:
+		if v < 0 {
+			return def
+		}
+		return uint64(v)
+	case int:
+		if v < 0 {
+			return def
+		}
+		return uint64(v)
+	case uint64:
+		return v
+	default:
+		return def
+	}
+}
+
 func requiredStringArg(args map[string]interface{}, key string) (string, error) {
 	val, ok := args[key]
 	if !ok {
-		return "", fmt.Errorf("missing required argument: %s", key)
+		return "", newToolError("INVALID_ARGUMENT", fmt.Sprintf("missing required argument: %s", key), map[string]interface{}{"argument": key})
 	}
 	str, ok := val.(string)
 	if !ok {
-		return "", fmt.Errorf("argument %s must be a string", key)
+		return "", newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be a string", key), map[string]interface{}{"argument": key})
 	}
 	str = strings.TrimSpace(str)
 	if str == "" {
-		return "", fmt.Errorf("argument %s cannot be empty", key)
+		return "", newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s cannot be empty", key), map[string]interface{}{"argument": key})
 	}
 	return str, nil
 }
@@ -705,7 +2009,7 @@ func optionalStringArg(args map[string]interface{}, key string) (string, error) 
 	}
 	str, ok := val.(string)
 	if !ok {
-		return "", fmt.Errorf("argument %s must be a string", key)
+		return "", newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be a string", key), map[string]interface{}{"argument": key})
 	}
 	return strings.TrimSpace(str), nil
 }
@@ -717,13 +2021,13 @@ func optionalStringSliceArg(args map[string]interface{}, key string) ([]string, 
 	}
 	raw, ok := val.([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("argument %s must be an array of strings", key)
+		return nil, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be an array of strings", key), map[string]interface{}{"argument": key})
 	}
 	out := make([]string, 0, len(raw))
 	for i, item := range raw {
 		str, ok := item.(string)
 		if !ok {
-			return nil, fmt.Errorf("argument %s[%d] must be a string", key, i)
+			return nil, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s[%d] must be a string", key, i), map[string]interface{}{"argument": key, "index": i})
 		}
 		out = append(out, str)
 	}
@@ -737,13 +2041,13 @@ func optionalStringMapArg(args map[string]interface{}, key string) (map[string]s
 	}
 	raw, ok := val.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("argument %s must be an object with string values", key)
+		return nil, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be an object with string values", key), map[string]interface{}{"argument": key})
 	}
 	out := make(map[string]string, len(raw))
 	for k, v := range raw {
 		vs, ok := v.(string)
 		if !ok {
-			return nil, fmt.Errorf("argument %s[%s] must be a string", key, k)
+			return nil, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s[%s] must be a string", key, k), map[string]interface{}{"argument": key, "map_key": k})
 		}
 		out[k] = vs
 	}
@@ -757,7 +2061,7 @@ func optionalBoolArg(args map[string]interface{}, key string, def bool) (bool, e
 	}
 	b, ok := val.(bool)
 	if !ok {
-		return false, fmt.Errorf("argument %s must be a boolean", key)
+		return false, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be a boolean", key), map[string]interface{}{"argument": key})
 	}
 	return b, nil
 }
@@ -773,7 +2077,7 @@ func optionalIntArg(args map[string]interface{}, key string, def int) (int, erro
 	case int:
 		return v, nil
 	default:
-		return 0, fmt.Errorf("argument %s must be an integer", key)
+		return 0, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be an integer", key), map[string]interface{}{"argument": key})
 	}
 }
 
@@ -785,19 +2089,307 @@ func optionalUint64Arg(args map[string]interface{}, key string, def uint64) (uin
 	switch v := val.(type) {
 	case float64:
 		if v < 0 {
-			return 0, fmt.Errorf("argument %s must be >= 0", key)
+			return 0, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be >= 0", key), map[string]interface{}{"argument": key})
 		}
 		return uint64(v), nil
 	case int:
 		if v < 0 {
-			return 0, fmt.Errorf("argument %s must be >= 0", key)
+			return 0, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be >= 0", key), map[string]interface{}{"argument": key})
 		}
 		return uint64(v), nil
 	case uint64:
 		return v, nil
 	default:
-		return 0, fmt.Errorf("argument %s must be an integer", key)
+		return 0, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be an integer", key), map[string]interface{}{"argument": key})
 	}
+}
+
+func optionalUint64MapArg(args map[string]interface{}, key string) (map[string]uint64, error) {
+	val, ok := args[key]
+	if !ok || val == nil {
+		return map[string]uint64{}, nil
+	}
+	raw, ok := val.(map[string]interface{})
+	if !ok {
+		return nil, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be an object with integer values", key), map[string]interface{}{"argument": key})
+	}
+	out := make(map[string]uint64, len(raw))
+	for k, v := range raw {
+		switch n := v.(type) {
+		case float64:
+			if n < 0 {
+				return nil, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s[%s] must be >= 0", key, k), map[string]interface{}{"argument": key, "map_key": k})
+			}
+			out[k] = uint64(n)
+		case int:
+			if n < 0 {
+				return nil, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s[%s] must be >= 0", key, k), map[string]interface{}{"argument": key, "map_key": k})
+			}
+			out[k] = uint64(n)
+		case uint64:
+			out[k] = n
+		default:
+			return nil, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s[%s] must be an integer", key, k), map[string]interface{}{"argument": key, "map_key": k})
+		}
+	}
+	return out, nil
+}
+
+func optionalRootsArg(base string, args map[string]interface{}, key string) ([]string, error) {
+	rootsRaw, err := optionalStringSliceArg(args, key)
+	if err != nil {
+		return nil, err
+	}
+	if len(rootsRaw) == 0 {
+		return []string{base}, nil
+	}
+
+	seen := make(map[string]struct{}, len(rootsRaw))
+	roots := make([]string, 0, len(rootsRaw))
+	for _, root := range rootsRaw {
+		resolved := resolvePath(base, root)
+		if _, ok := seen[resolved]; ok {
+			continue
+		}
+		seen[resolved] = struct{}{}
+		roots = append(roots, resolved)
+	}
+	sort.Strings(roots)
+	return roots, nil
+}
+
+func (s *mcpServer) readStateForRobotDir(robotDir string) (*processState, string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	resolvedDir := resolvePath(s.rootDir, robotDir)
+	statePath := filepath.Join(resolvedDir, stateFileName)
+	state, exists, err := readStateFile(statePath)
+	if err != nil {
+		return nil, statePath, err
+	}
+	if !exists {
+		return nil, statePath, nil
+	}
+	return &state, statePath, nil
+}
+
+func (s *mcpServer) probeRobotReady(robotDir string) (map[string]interface{}, bool, error) {
+	s.mu.Lock()
+	resolvedDir := resolvePath(s.rootDir, robotDir)
+	statePath := filepath.Join(resolvedDir, stateFileName)
+	state, exists, err := readStateFile(statePath)
+	s.mu.Unlock()
+	if err != nil {
+		return nil, false, err
+	}
+
+	probe := map[string]interface{}{
+		"robot_dir":  resolvedDir,
+		"state_file": statePath,
+	}
+	if !exists {
+		probe["reason"] = "no_state_file"
+		return probe, false, nil
+	}
+	probe["pid"] = state.PID
+	running := isProcessRunning(state.PID)
+	probe["running"] = running
+	if !running {
+		probe["reason"] = "process_not_running"
+		return probe, false, nil
+	}
+
+	aiportPath := filepath.Join(resolvedDir, ".aiport")
+	probe["aiport_file"] = aiportPath
+	data, err := os.ReadFile(aiportPath)
+	if err != nil {
+		probe["reason"] = "aiport_unavailable"
+		probe["error"] = err.Error()
+		return probe, false, nil
+	}
+	aiport := strings.TrimSpace(string(data))
+	probe["aiport"] = aiport
+	if aiport == "" {
+		probe["reason"] = "aiport_empty"
+		return probe, false, nil
+	}
+
+	if _, err := strconv.Atoi(aiport); err != nil {
+		probe["reason"] = "aiport_invalid"
+		probe["error"] = err.Error()
+		return probe, false, nil
+	}
+	conn, err := net.DialTimeout("tcp", "127.0.0.1:"+aiport, 300*time.Millisecond)
+	if err != nil {
+		probe["reason"] = "listener_unreachable"
+		probe["error"] = err.Error()
+		return probe, false, nil
+	}
+	_ = conn.Close()
+	probe["reason"] = "ready"
+	return probe, true, nil
+}
+
+func extractExtraArgs(commandArgs []string) []string {
+	if len(commandArgs) < 3 {
+		return nil
+	}
+	if commandArgs[0] != "--aidev" {
+		return nil
+	}
+	if commandArgs[len(commandArgs)-1] != "run" {
+		return nil
+	}
+	if len(commandArgs) == 3 {
+		return nil
+	}
+	out := make([]string, 0, len(commandArgs)-3)
+	out = append(out, commandArgs[2:len(commandArgs)-1]...)
+	return out
+}
+
+func ensureSSHPortEnv(env map[string]string, portMin, portMax int) (map[string]string, string, error) {
+	if env == nil {
+		env = map[string]string{}
+	}
+	protocol := strings.TrimSpace(strings.ToLower(env["GOPHER_PROTOCOL"]))
+	if protocol != "" && protocol != "ssh" {
+		return env, "", nil
+	}
+	if existing := strings.TrimSpace(env["GOPHER_SSH_PORT"]); existing != "" {
+		return env, existing, nil
+	}
+	port, err := findAvailableTCPPort("127.0.0.1", portMin, portMax)
+	if err != nil {
+		return nil, "", newToolError("NO_AVAILABLE_SSH_PORT", err.Error(), map[string]interface{}{
+			"ssh_port_min": portMin,
+			"ssh_port_max": portMax,
+		})
+	}
+	env["GOPHER_SSH_PORT"] = strconv.Itoa(port)
+	return env, env["GOPHER_SSH_PORT"], nil
+}
+
+func findAvailableTCPPort(host string, portMin, portMax int) (int, error) {
+	for port := portMin; port <= portMax; port++ {
+		addr := net.JoinHostPort(host, strconv.Itoa(port))
+		listener, err := net.Listen("tcp", addr)
+		if err != nil {
+			continue
+		}
+		_ = listener.Close()
+		return port, nil
+	}
+	return 0, fmt.Errorf("no available TCP ports in range %d-%d", portMin, portMax)
+}
+
+func (s *mcpServer) resolveRobotLogPath(robotDir string) (string, error) {
+	resolvedDir := resolvePath(s.rootDir, robotDir)
+	logPath := filepath.Join(resolvedDir, "robot.log")
+
+	state, _, err := s.readStateForRobotDir(robotDir)
+	if err != nil {
+		return "", err
+	}
+	if state != nil && strings.TrimSpace(state.LogPath) != "" {
+		logPath = state.LogPath
+	}
+	if !filepath.IsAbs(logPath) {
+		logPath = resolvePath(s.rootDir, logPath)
+	}
+	info, err := os.Stat(logPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", newToolError("LOG_NOT_FOUND", fmt.Sprintf("log file not found: %s", logPath), map[string]interface{}{
+				"robot_dir": resolvedDir,
+				"log_path":  logPath,
+			})
+		}
+		return "", fmt.Errorf("checking log file '%s': %w", logPath, err)
+	}
+	if info.IsDir() {
+		return "", newToolError("INVALID_LOG_PATH", fmt.Sprintf("log path is a directory: %s", logPath), map[string]interface{}{
+			"robot_dir": resolvedDir,
+			"log_path":  logPath,
+		})
+	}
+	return logPath, nil
+}
+
+func readTailBytes(path string, maxBytes int64) ([]byte, int64, int64, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, 0, 0, fmt.Errorf("opening log file '%s': %w", path, err)
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return nil, 0, 0, fmt.Errorf("stat log file '%s': %w", path, err)
+	}
+	fileSize := info.Size()
+	if fileSize == 0 {
+		return []byte{}, 0, 0, nil
+	}
+	start := int64(0)
+	if fileSize > maxBytes {
+		start = fileSize - maxBytes
+	}
+	if _, err := file.Seek(start, io.SeekStart); err != nil {
+		return nil, 0, 0, fmt.Errorf("seek log file '%s': %w", path, err)
+	}
+	chunk, err := io.ReadAll(file)
+	if err != nil {
+		return nil, 0, 0, fmt.Errorf("reading log file '%s': %w", path, err)
+	}
+	return chunk, fileSize, start, nil
+}
+
+func tailLinesFromChunk(chunk []byte, lines int) (string, int) {
+	if len(chunk) == 0 {
+		return "", 0
+	}
+	raw := string(chunk)
+	parts := strings.Split(raw, "\n")
+	if len(parts) > 0 && parts[len(parts)-1] == "" {
+		parts = parts[:len(parts)-1]
+	}
+	if len(parts) == 0 {
+		return "", 0
+	}
+	start := len(parts) - lines
+	if start < 0 {
+		start = 0
+	}
+	selected := parts[start:]
+	return strings.Join(selected, "\n"), len(selected)
+}
+
+func readLogRange(path string, offset, maxBytes int64) (string, int64, int64, bool, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", 0, 0, false, fmt.Errorf("opening log file '%s': %w", path, err)
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil {
+		return "", 0, 0, false, fmt.Errorf("stat log file '%s': %w", path, err)
+	}
+	fileSize := info.Size()
+	if offset > fileSize {
+		return "", fileSize, fileSize, true, nil
+	}
+	if _, err := file.Seek(offset, io.SeekStart); err != nil {
+		return "", 0, 0, false, fmt.Errorf("seek log file '%s': %w", path, err)
+	}
+	reader := io.LimitReader(file, maxBytes)
+	chunk, err := io.ReadAll(reader)
+	if err != nil {
+		return "", 0, 0, false, fmt.Errorf("reading log file '%s': %w", path, err)
+	}
+	nextOffset := offset + int64(len(chunk))
+	return string(chunk), fileSize, nextOffset, nextOffset >= fileSize, nil
 }
 
 type aidevClientInfo struct {
@@ -979,6 +2571,61 @@ func waitForExit(pid int, timeout time.Duration) bool {
 	return !isProcessRunning(pid)
 }
 
+func discoverStateFiles(roots []string, maxDepth int) ([]string, []map[string]interface{}, error) {
+	files := make([]string, 0)
+	warnings := make([]map[string]interface{}, 0)
+	for _, root := range roots {
+		rootInfo, err := os.Stat(root)
+		if err != nil {
+			warnings = append(warnings, map[string]interface{}{
+				"root":  root,
+				"error": fmt.Sprintf("checking root: %v", err),
+			})
+			continue
+		}
+		if !rootInfo.IsDir() {
+			warnings = append(warnings, map[string]interface{}{
+				"root":  root,
+				"error": "not a directory",
+			})
+			continue
+		}
+		walkErr := filepath.WalkDir(root, func(path string, d fs.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				warnings = append(warnings, map[string]interface{}{
+					"root":  root,
+					"path":  path,
+					"error": walkErr.Error(),
+				})
+				return nil
+			}
+			if d.IsDir() && relativeDepth(root, path) > maxDepth {
+				return filepath.SkipDir
+			}
+			if !d.IsDir() && d.Name() == stateFileName {
+				files = append(files, path)
+			}
+			return nil
+		})
+		if walkErr != nil {
+			return nil, nil, fmt.Errorf("walking root '%s': %w", root, walkErr)
+		}
+	}
+	sort.Strings(files)
+	return files, warnings, nil
+}
+
+func relativeDepth(root, path string) int {
+	if root == path {
+		return 0
+	}
+	rel, err := filepath.Rel(root, path)
+	if err != nil || rel == "." {
+		return 0
+	}
+	return strings.Count(rel, string(os.PathSeparator)) + 1
+}
+
 func hasRequestID(id json.RawMessage) bool {
 	trimmed := bytes.TrimSpace(id)
 	return len(trimmed) > 0 && string(trimmed) != "null"
@@ -996,15 +2643,40 @@ func toolSuccessResult(payload interface{}) map[string]interface{} {
 }
 
 func toolErrorResult(err error) map[string]interface{} {
+	toolErr := extractToolError(err)
 	return map[string]interface{}{
 		"isError": true,
+		"error": map[string]interface{}{
+			"code":    toolErr.Code,
+			"message": toolErr.Message,
+			"details": toolErr.Details,
+		},
 		"content": []map[string]string{
 			{
 				"type": "text",
-				"text": err.Error(),
+				"text": toolErr.Message,
 			},
 		},
 	}
+}
+
+func newToolError(code, message string, details map[string]interface{}) *mcpToolError {
+	return &mcpToolError{
+		Code:    code,
+		Message: message,
+		Details: details,
+	}
+}
+
+func extractToolError(err error) *mcpToolError {
+	if err == nil {
+		return newToolError("INTERNAL_ERROR", "unknown error", nil)
+	}
+	var toolErr *mcpToolError
+	if errors.As(err, &toolErr) && toolErr != nil {
+		return toolErr
+	}
+	return newToolError("INTERNAL_ERROR", err.Error(), nil)
 }
 
 func formatPayload(payload interface{}) string {

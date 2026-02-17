@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -141,20 +142,43 @@ func logLevelToStr(l robot.LogLevel) string {
 // logPage returns a slice of log strings of length pageLines. If p = 0,
 // it returns the most recent page, for p>0 it goes back
 func logPage(p int) ([]string, bool) {
-	wrapped := false
+	if p < 0 {
+		p = 0
+	}
 	botLogger.Lock()
-	page := p % botLogger.buffPages
-	if page != p {
+	pageLines := botLogger.pageLines
+	if pageLines <= 0 {
+		pageLines = 1
+	}
+	storedLines := botLogger.totLines
+	if storedLines > buffLines {
+		storedLines = buffLines
+	}
+	if storedLines <= 0 {
+		botLogger.Unlock()
+		return []string{}, false
+	}
+	totalPages := int(math.Ceil(float64(storedLines) / float64(pageLines)))
+	page := p
+	wrapped := false
+	if totalPages > 0 && p >= totalPages {
+		page = p % totalPages
 		wrapped = true
 	}
-	pageSlice := make([]string, botLogger.pageLines)
-	start := (botLogger.buffLine + buffLines - ((page + 1) * botLogger.pageLines))
-	start = (botLogger.totLines - start) % buffLines
-	if start+botLogger.pageLines > buffLines {
-		copy(pageSlice, botLogger.buffer[start:buffLines])
-		copy(pageSlice[buffLines-start:], botLogger.buffer[0:])
-	} else {
-		copy(pageSlice, botLogger.buffer[start:start+botLogger.pageLines])
+	endOffset := page * pageLines
+	endPos := storedLines - endOffset
+	startPos := endPos - pageLines
+	if startPos < 0 {
+		startPos = 0
+	}
+	if endPos < 0 {
+		endPos = 0
+	}
+	pageSlice := make([]string, 0, endPos-startPos)
+	oldestIdx := (botLogger.buffLine - storedLines + buffLines) % buffLines
+	for i := startPos; i < endPos; i++ {
+		idx := (oldestIdx + i) % buffLines
+		pageSlice = append(pageSlice, botLogger.buffer[idx])
 	}
 	botLogger.Unlock()
 	return pageSlice, wrapped
@@ -166,12 +190,12 @@ func setLogPageLines(l int) int {
 	if l > maxLines {
 		lines = maxLines
 	}
-	if l == 0 {
+	if l <= 0 {
 		lines = 1
 	}
 	botLogger.Lock()
 	botLogger.pageLines = lines
-	botLogger.buffPages = buffLines / botLogger.pageLines
+	botLogger.buffPages = int(math.Ceil(float64(buffLines) / float64(botLogger.pageLines)))
 	botLogger.Unlock()
 	return lines
 }
@@ -231,7 +255,7 @@ func Log(l robot.LogLevel, m string, v ...interface{}) (logged bool) {
 		tsMsg := fmt.Sprintf("%s %s\n", time.Now().Format("Jan 2 15:04:05"), msg)
 		botLogger.Lock()
 		botLogger.buffer[botLogger.buffLine] = tsMsg
-		botLogger.buffLine = (botLogger.buffLine + 1) % (buffLines - 1)
+		botLogger.buffLine = (botLogger.buffLine + 1) % buffLines
 		botLogger.totLines++
 		botLogger.Unlock()
 		if !fileLog {

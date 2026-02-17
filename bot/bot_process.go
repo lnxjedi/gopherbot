@@ -171,6 +171,7 @@ func initBot() {
 
 	state.shuttingDown = false
 	resetPromptShutdownSignal()
+	configureAIDevCommandConduitFromEnv()
 
 	if cliOp {
 		setLogLevel(robot.Warn)
@@ -263,6 +264,8 @@ func initBot() {
 			apiServer.Handle("/json", handle)
 			apiServer.HandleFunc("/aidev/send_message", serveAIDevSendMessage)
 			apiServer.HandleFunc("/aidev/get_messages", serveAIDevGetMessages)
+			apiServer.HandleFunc("/aidev/get_commands", serveAIDevGetCommands)
+			apiServer.HandleFunc("/aidev/send_as_robot", serveAIDevSendAsRobot)
 			Log(robot.Info, "Listening for external plugin connections on http://%s", listenPort)
 			Log(robot.Fatal, "Error serving '/json': %s", http.Serve(listener, apiServer))
 		}()
