@@ -1721,7 +1721,7 @@ func (s *mcpServer) toolGetCommands(args map[string]interface{}) (map[string]int
 	if !awayEnabled {
 		return map[string]interface{}{
 			"away":            false,
-			"should_poll":     false,
+			"keep_polling":    false,
 			"recommended_use": "stop_polling",
 			"reason":          "away mode is disabled",
 			"next_wait_sec":   0,
@@ -1821,7 +1821,7 @@ func (s *mcpServer) toolGetCommands(args map[string]interface{}) (map[string]int
 
 	return map[string]interface{}{
 		"away":            awayEnabled,
-		"should_poll":     shouldPoll,
+		"keep_polling":    shouldPoll,
 		"recommended_use": recommended,
 		"reason":          reason,
 		"next_wait_sec":   nextWait,
