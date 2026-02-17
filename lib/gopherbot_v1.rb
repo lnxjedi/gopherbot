@@ -179,6 +179,11 @@ class BaseBot
 		return ret["RetVal"]
 	end
 
+	def DeleteDatum(key)
+		ret = callBotFunc(__method__, { "Key" => key })
+		return ret["RetVal"]
+	end
+
 	def Remember(k, v, shared = false)
 		funcName = @threaded_message ? "RememberThread" : "Remember"
 		args = { "Key" => k, "Value" => v, "Shared" => shared }
@@ -203,6 +208,11 @@ class BaseBot
 	def Recall(k, shared = false)
 		args = { "Key" => k, "Shared" => shared }
 		return callBotFunc(__method__, args)["StrVal"]
+	end
+
+	def DeleteMemory(k, shared = false)
+		args = { "Key" => k, "Shared" => shared }
+		return callBotFunc(__method__, args)["RetVal"]
 	end
 
 	def GetTaskConfig()

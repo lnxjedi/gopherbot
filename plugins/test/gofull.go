@@ -23,12 +23,18 @@ Commands:
   Command: memorycheck
 - Regex: (?i:go-memory-thread-check)
   Command: memorythreadcheck
+- Regex: (?i:go-memory-delete)
+  Command: memorydelete
+- Regex: (?i:go-memory-thread-delete)
+  Command: memorythreaddelete
 - Regex: (?i:go-memory-datum-seed)
   Command: memorydatumseed
 - Regex: (?i:go-memory-datum-check)
   Command: memorydatumcheck
 - Regex: (?i:go-memory-datum-checkin)
   Command: memorydatumcheckin
+- Regex: (?i:go-memory-datum-delete)
+  Command: memorydatumdelete
 - Regex: (?i:go-identity)
   Command: identity
 - Regex: (?i:go-parameter-addtask)
@@ -166,6 +172,17 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 		r.Say("MEMORY THREAD CHECK: local=%s shared=%s ctx=%s thread=%s threadctx=%s",
 			showMemory(localMem), showMemory(sharedMem), showMemory(ctx), showMemory(threadMem), showMemory(threadCtx))
 		return robot.Normal
+	case "memorydelete":
+		r.DeleteMemory("launch_snack", false)
+		r.DeleteMemory("launch_snack", true)
+		r.DeleteMemory("context:pad", false)
+		r.Say("MEMORY DELETE: done")
+		return robot.Normal
+	case "memorythreaddelete":
+		r.DeleteMemory("thread_note", false)
+		r.DeleteMemory("context:mission", false)
+		r.Say("MEMORY THREAD DELETE: done")
+		return robot.Normal
 	case "memorydatumseed":
 		memory := map[string]interface{}{}
 		lockToken, _, retVal := r.CheckoutDatum("launch_manifest", &memory, true)
@@ -216,6 +233,10 @@ func PluginHandler(r robot.Robot, command string, args ...string) (retval robot.
 		tokenPresent := lockToken != ""
 		r.CheckinDatum("launch_manifest", lockToken)
 		r.Say("MEMORY DATUM CHECKIN: exists=%t token=%t ret=Ok", exists, tokenPresent)
+		return robot.Normal
+	case "memorydatumdelete":
+		ret := r.DeleteDatum("launch_manifest")
+		r.Say("MEMORY DATUM DELETE: ret=%s", ret)
 		return robot.Normal
 	case "identity":
 		botName := r.GetBotAttribute("name")

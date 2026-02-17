@@ -192,6 +192,10 @@ class Robot:
         "Datum": m.datum })
         return ret["RetVal"]
 
+    def DeleteDatum(self, key):
+        ret = self.Call(sys._getframe().f_code.co_name, { "Key": key })
+        return ret["RetVal"]
+
     def GetSenderAttribute(self, attr):
         ret = self.Call(sys._getframe().f_code.co_name, { "Attribute": attr })
         return Attribute(ret)
@@ -222,6 +226,10 @@ class Robot:
     def Recall(self, memory, shared=False):
         ret = self.Call(sys._getframe().f_code.co_name, { "Key": memory, "Shared": shared })
         return ret["StrVal"]
+
+    def DeleteMemory(self, memory, shared=False):
+        ret = self.Call(sys._getframe().f_code.co_name, { "Key": memory, "Shared": shared })
+        return ret["RetVal"]
 
     def PromptForReply(self, regex_id, prompt, format=""):
         thread = ""

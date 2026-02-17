@@ -447,6 +447,17 @@ function update_datum(robot::Robot, m::Memory)::Int
     return get(response, "RetVal", Fail)
 end
 
+"""
+    delete_datum(robot::Robot, key::String) -> Int
+
+Deletes a datum by key.
+"""
+function delete_datum(robot::Robot, key::String)::Int
+    args = Dict{String, Any}("Key" => key)
+    response = send_command(robot, "DeleteDatum", args)
+    return get(response, "RetVal", Fail)
+end
+
 # =============================
 # Memory Operations
 # =============================
@@ -501,6 +512,17 @@ function recall(robot::Robot, memory::String, shared::Bool=false)::String
     args = Dict{String, Any}("Key" => memory, "Shared" => shared)
     response = send_command(robot, "Recall", args)
     return get(response, "StrVal", "")
+end
+
+"""
+    delete_memory(robot::Robot, memory::String, shared::Bool=false) -> Int
+
+Deletes the value associated with a short-term memory key.
+"""
+function delete_memory(robot::Robot, memory::String, shared::Bool=false)::Int
+    args = Dict{String, Any}("Key" => memory, "Shared" => shared)
+    response = send_command(robot, "DeleteMemory", args)
+    return get(response, "RetVal", Fail)
 end
 
 # =============================

@@ -74,6 +74,21 @@ func TestGoFull(t *testing.T) {
 		{aliceID, general, ";go-memory-thread-check", true, []TestMessage{
 			{null, general, "MEMORY THREAD CHECK: local=<empty> shared=<empty> ctx=<empty> thread=delta thread threadctx=aurora mission", true}},
 			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";go-memory-delete", false, []TestMessage{
+			{null, general, "MEMORY DELETE: done", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";go-memory-check", false, []TestMessage{
+			{null, general, "MEMORY CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{bobID, general, ";go-memory-check", false, []TestMessage{
+			{null, general, "MEMORY CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";go-memory-thread-delete", true, []TestMessage{
+			{null, general, "MEMORY THREAD DELETE: done", true}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";go-memory-thread-check", true, []TestMessage{
+			{null, general, "MEMORY THREAD CHECK: local=<empty> shared=<empty> ctx=<empty> thread=<empty> threadctx=<empty>", true}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";go-memory-datum-seed", false, []TestMessage{
 			{null, general, "MEMORY DATUM SEED: update=Ok", false}},
 			[]Event{CommandTaskRan, GoPluginRan}, 0},
@@ -82,6 +97,12 @@ func TestGoFull(t *testing.T) {
 			[]Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";go-memory-datum-checkin", false, []TestMessage{
 			{null, general, "MEMORY DATUM CHECKIN: exists=true token=true ret=Ok", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";go-memory-datum-delete", false, []TestMessage{
+			{null, general, "MEMORY DATUM DELETE: ret=Ok", false}},
+			[]Event{CommandTaskRan, GoPluginRan}, 0},
+		{aliceID, general, ";go-memory-datum-check", false, []TestMessage{
+			{null, general, "MEMORY DATUM CHECK: mission=<empty> vehicle=<empty> status=<empty>", false}},
 			[]Event{CommandTaskRan, GoPluginRan}, 0},
 		{aliceID, general, ";go-identity", false, []TestMessage{
 			{null, general, "IDENTITY CHECK: bot=bender/Ok sender=Alice/Ok bob=Robert/Ok set=true param=<empty>", false}},

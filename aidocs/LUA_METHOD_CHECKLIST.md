@@ -44,11 +44,13 @@ Sources:
 - [ ] `CheckoutDatum(key, rw)`
 - [ ] `CheckinDatum(memory)`
 - [ ] `UpdateDatum(memory)`
+- [ ] `DeleteDatum(key)`
 - [ ] `Remember(key, value, shared)`
 - [ ] `RememberThread(key, value, shared)`
 - [ ] `RememberContext(context, value)`
 - [ ] `RememberContextThread(context, value)`
 - [ ] `Recall(key, shared)`
+- [ ] `DeleteMemory(key, shared)`
 
 ### Pipeline control
 - [ ] `Exclusive(tag, queueTask)`
@@ -107,8 +109,8 @@ Track coverage for the Lua full test extension under `test/`.
 - [x] Prompting: all Prompt* variants including thread/user/channel
 - [x] Prompting core trio: `PromptForReply` + `PromptThreadForReply` + `PromptUserForReply`
 - [x] Prompting remaining: `PromptUserChannelForReply` + `PromptUserChannelThreadForReply`
-- [x] Memory datum flows: `CheckoutDatum` + `UpdateDatum` (+ `CheckinDatum`)
-- [x] Memory context flows: `Remember`/`RememberThread`/`RememberContext`/`RememberContextThread` + `Recall`
+- [x] Memory datum flows: `CheckoutDatum` + `UpdateDatum` (+ `CheckinDatum`) + `DeleteDatum`
+- [x] Memory context flows: `Remember`/`RememberThread`/`RememberContext`/`RememberContextThread` + `Recall` + `DeleteMemory`
 - [x] Identity + parameters: `GetBotAttribute`/`GetUserAttribute`/`GetSenderAttribute` + `SetParameter`/`GetParameter`
   - Verified: next-task pipeline visibility works (`SetParameter` -> `AddTask`), while immediate same-task `GetParameter` is not the primary contract.
 - [x] Pipeline control: Add/Final/Fail task/job/command, SpawnJob

@@ -39,11 +39,13 @@ type BotAPI interface {
 	CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret robot.RetVal)
 	CheckinDatum(key, locktoken string)
 	UpdateDatum(key, locktoken string, datum interface{}) (ret robot.RetVal)
+	DeleteDatum(key string) (ret robot.RetVal)
 	Remember(key, value string, shared bool)
 	RememberThread(key, value string, shared bool)
 	RememberContext(context, value string)
 	RememberContextThread(context, value string)
 	Recall(key string, shared bool) string
+	DeleteMemory(key string, shared bool)
 	SpawnJob(string, ...string) robot.RetVal
 	AddTask(string, ...string) robot.RetVal
 	FinalTask(string, ...string) robot.RetVal

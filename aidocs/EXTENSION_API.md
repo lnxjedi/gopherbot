@@ -46,11 +46,13 @@ Prompt timeout semantics:
 - `CheckoutDatum(key string, datum interface{}, rw bool) (locktoken string, exists bool, ret RetVal)`
 - `CheckinDatum(key, locktoken string)`
 - `UpdateDatum(key, locktoken string, datum interface{}) RetVal`
+- `DeleteDatum(key string) RetVal`
 - `Remember(key, value string, shared bool)`
 - `RememberThread(key, value string, shared bool)`
 - `RememberContext(context, value string)`
 - `RememberContextThread(context, value string)`
 - `Recall(key string, shared bool) string`
+- `DeleteMemory(key string, shared bool)`
 
 ### Pipeline control
 - `Exclusive(tag string, queueTask bool) bool`
@@ -84,8 +86,8 @@ Supported `FuncName` values in `bot/http.go`:
 - `AddCommand`, `FinalCommand`, `FailCommand`
 - `SetParameter`, `SetWorkingDirectory`
 - `Exclusive`, `Elevate`
-- `CheckoutDatum`, `CheckinDatum`, `UpdateDatum`
-- `Remember`, `RememberThread`, `Recall`
+- `CheckoutDatum`, `CheckinDatum`, `UpdateDatum`, `DeleteDatum`
+- `Remember`, `RememberThread`, `Recall`, `DeleteMemory`
 - `GetParameter`, `GetTaskConfig`
 - `GetSenderAttribute`, `GetBotAttribute`, `GetUserAttribute`
 - `Log`

@@ -20,12 +20,18 @@ Commands:
   Command: memorycheck
 - Regex: (?i:lua-memory-thread-check)
   Command: memorythreadcheck
+- Regex: (?i:lua-memory-delete)
+  Command: memorydelete
+- Regex: (?i:lua-memory-thread-delete)
+  Command: memorythreaddelete
 - Regex: (?i:lua-memory-datum-seed)
   Command: memorydatumseed
 - Regex: (?i:lua-memory-datum-check)
   Command: memorydatumcheck
 - Regex: (?i:lua-memory-datum-checkin)
   Command: memorydatumcheckin
+- Regex: (?i:lua-memory-datum-delete)
+  Command: memorydatumdelete
 - Regex: (?i:lua-identity)
   Command: identity
 - Regex: (?i:lua-parameter-addtask)
@@ -224,6 +230,21 @@ function commands.memorythreadcheck(bot)
   return task.Normal
 end
 
+function commands.memorydelete(bot)
+  bot:DeleteMemory("launch_snack", false)
+  bot:DeleteMemory("launch_snack", true)
+  bot:DeleteMemory("context:pad", false)
+  bot:Say("MEMORY DELETE: done")
+  return task.Normal
+end
+
+function commands.memorythreaddelete(bot)
+  bot:DeleteMemory("thread_note", false)
+  bot:DeleteMemory("context:mission", false)
+  bot:Say("MEMORY THREAD DELETE: done")
+  return task.Normal
+end
+
 function commands.memorydatumseed(bot)
   local memory, retVal = bot:CheckoutDatum("launch_manifest", true)
   if retVal ~= ret.Ok then
@@ -273,6 +294,12 @@ function commands.memorydatumcheckin(bot)
   bot:CheckinDatum(memory)
   bot:Say("MEMORY DATUM CHECKIN: exists=" .. tostring(memory.exists) ..
     " token=" .. tostring(hasToken) .. " ret=Ok")
+  return task.Normal
+end
+
+function commands.memorydatumdelete(bot)
+  local delRet = bot:DeleteDatum("launch_manifest")
+  bot:Say("MEMORY DATUM DELETE: ret=" .. ret:string(delRet))
   return task.Normal
 end
 

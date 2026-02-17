@@ -20,12 +20,18 @@ Commands:
   Command: memorycheck
 - Regex: (?i:js-memory-thread-check)
   Command: memorythreadcheck
+- Regex: (?i:js-memory-delete)
+  Command: memorydelete
+- Regex: (?i:js-memory-thread-delete)
+  Command: memorythreaddelete
 - Regex: (?i:js-memory-datum-seed)
   Command: memorydatumseed
 - Regex: (?i:js-memory-datum-check)
   Command: memorydatumcheck
 - Regex: (?i:js-memory-datum-checkin)
   Command: memorydatumcheckin
+- Regex: (?i:js-memory-datum-delete)
+  Command: memorydatumdelete
 - Regex: (?i:js-identity)
   Command: identity
 - Regex: (?i:js-parameter-addtask)
@@ -215,6 +221,23 @@ function handler(argv) {
         );
         return task.Normal;
       }
+    case 'memorydelete':
+      {
+        const bot = new Robot();
+        bot.DeleteMemory("launch_snack", false);
+        bot.DeleteMemory("launch_snack", true);
+        bot.DeleteMemory("context:pad", false);
+        bot.Say("MEMORY DELETE: done");
+        return task.Normal;
+      }
+    case 'memorythreaddelete':
+      {
+        const bot = new Robot();
+        bot.DeleteMemory("thread_note", false);
+        bot.DeleteMemory("context:mission", false);
+        bot.Say("MEMORY THREAD DELETE: done");
+        return task.Normal;
+      }
     case 'memorydatumseed':
       {
         const bot = new Robot();
@@ -267,6 +290,13 @@ function handler(argv) {
         const checkin = bot.CheckinDatum(out);
         const checkinRet = checkin === undefined ? ret.Ok : checkin;
         bot.Say(`MEMORY DATUM CHECKIN: exists=${out.exists} token=${tokenPresent} ret=${ret.string(checkinRet)}`);
+        return task.Normal;
+      }
+    case 'memorydatumdelete':
+      {
+        const bot = new Robot();
+        const del = bot.DeleteDatum("launch_manifest");
+        bot.Say(`MEMORY DATUM DELETE: ret=${ret.string(del)}`);
         return task.Normal;
       }
     case 'identity':

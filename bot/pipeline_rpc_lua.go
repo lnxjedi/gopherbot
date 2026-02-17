@@ -855,6 +855,12 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 			return nil, err
 		}
 		return map[string]interface{}{"ret_val": int(r.UpdateDatum(key, lockToken, datum))}, nil
+	case "DeleteDatum":
+		key, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]interface{}{"ret_val": int(r.DeleteDatum(key))}, nil
 	case "Remember":
 		key, err := pipelineRPCArgString(args, 0)
 		if err != nil {
@@ -917,6 +923,17 @@ func handlePipelineRPCRobotCall(paramsRaw json.RawMessage, base robot.Robot) (ma
 			return nil, err
 		}
 		return map[string]interface{}{"string": r.Recall(key, shared)}, nil
+	case "DeleteMemory":
+		key, err := pipelineRPCArgString(args, 0)
+		if err != nil {
+			return nil, err
+		}
+		shared, err := pipelineRPCArgBool(args, 1)
+		if err != nil {
+			return nil, err
+		}
+		r.DeleteMemory(key, shared)
+		return map[string]interface{}{"ok": true}, nil
 	case "SpawnJob":
 		name, err := pipelineRPCArgString(args, 0)
 		if err != nil {
@@ -1401,6 +1418,14 @@ func (c *pipelineRPCLuaRobotClient) UpdateDatum(key, locktoken string, datum int
 	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
 }
 
+func (c *pipelineRPCLuaRobotClient) DeleteDatum(key string) (ret robot.RetVal) {
+	res, err := c.call("DeleteDatum", key)
+	if err != nil {
+		return robot.Failed
+	}
+	return robot.RetVal(pipelineRPCMapInt(res, "ret_val"))
+}
+
 func (c *pipelineRPCLuaRobotClient) Remember(key, value string, shared bool) {
 	_, _ = c.call("Remember", key, value, shared)
 }
@@ -1423,6 +1448,10 @@ func (c *pipelineRPCLuaRobotClient) Recall(key string, shared bool) string {
 		return ""
 	}
 	return pipelineRPCMapString(res, "string")
+}
+
+func (c *pipelineRPCLuaRobotClient) DeleteMemory(key string, shared bool) {
+	_, _ = c.call("DeleteMemory", key, shared)
 }
 
 func (c *pipelineRPCLuaRobotClient) SpawnJob(name string, args ...string) robot.RetVal {

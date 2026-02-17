@@ -157,6 +157,17 @@ func (jr *jsBot) botCheckinDatum(call goja.FunctionCall) goja.Value {
 	return goja.Undefined()
 }
 
+// botDeleteDatum(bot:DeleteDatum(key))
+func (jr *jsBot) botDeleteDatum(call goja.FunctionCall) goja.Value {
+	const methodName = "DeleteDatum"
+	key := jr.requireStringArg(methodName, call, 0)
+	if key == "" {
+		panic(jr.ctx.vm.ToValue("DeleteDatum: key must not be empty"))
+	}
+	retVal := jr.r.DeleteDatum(key)
+	return jr.ctx.vm.ToValue(int(retVal))
+}
+
 // parseGoValueToJS converts a Go interface{} into a goja.Value. If you have cyclical
 // data structures, you’d need extra checks. For now, we just do a naive approach.
 func parseGoValueToJS(rt *goja.Runtime, data interface{}) (goja.Value, error) {
