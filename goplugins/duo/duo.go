@@ -476,11 +476,11 @@ Commands:
 - Command: duoconf
   Regex: (?i:config(?:ure)? duo)
   Keywords: [ "duo" ]
-  Usage: "(bot), configure duo"
+  Usage: "configure duo"
   Summary: "Prompts for preferred Duo device/method and remembers it for approvals."
   Examples:
-  - ";configure duo"
-  - "robot, config duo"
+  - "(alias) configure duo"
+  - "(bot) config duo"
   Helptext:
   - "(bot), configure duo - remember a duo device and method to always use"
 ReplyMatchers:

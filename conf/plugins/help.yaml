@@ -3,7 +3,7 @@ Commands:
 - Command: help
   Regex: '(?i:help with (?:help|robot))'
   Keywords: [ "*", "help" ]
-  Usage: "(alias) help with robot"
+  Usage: "help with robot"
   Summary: "give general help on the help system and using the robot"
   Examples:
   - "(alias) help with robot"

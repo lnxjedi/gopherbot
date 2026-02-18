@@ -16,11 +16,11 @@ Commands:
 - Command: knock
   Regex: '(?i:tell me a(?:nother)?(?: knock[- ]knock)? joke)'
   Keywords: [ "knock", "joke" ]
-  Usage: "(bot), tell me a knock-knock joke"
+  Usage: "tell me a knock-knock joke"
   Summary: "Starts an interactive knock-knock joke."
   Examples:
-  - ";tell me a knock-knock joke"
-  - "robot, tell me another joke"
+  - "(alias) tell me a knock-knock joke"
+  - "(bot) tell me another joke"
   Helptext:
   - "(bot), tell me a (knock-knock) joke"
 ReplyMatchers:

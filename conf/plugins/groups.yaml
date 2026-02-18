@@ -4,7 +4,7 @@ Commands:
 - Command: 'help'
   Regex: '(?i:help with groups?)'
   Keywords: [ "group", "groups" ]
-  Usage: "(alias) help with groups"
+  Usage: "help with groups"
   Summary: "give general help for using groups"
   Examples:
   - "(alias) help with groups"
@@ -13,7 +13,7 @@ Commands:
   Regex: '(?i:add ([\w-.:]+) to (?:the )?(?:([~\w-'' ]+) )?group)'
   Contexts: [ "user", "group" ]
   Keywords: [ "group", "groups", "add" ]
-  Usage: "(alias) add <user> to the <groupname> group"
+  Usage: "add <user> to the <groupname> group"
   Summary: "add a user to a group"
   Examples:
   - "(alias) add alice to the Helpdesk group"
@@ -21,7 +21,7 @@ Commands:
 - Command: 'list'
   Regex: '(?i:list groups)'
   Keywords: [ "list", "group", "groups" ]
-  Usage: "(alias) list groups"
+  Usage: "list groups"
   Summary: "give a list of all the groups the robot knows about (bot administrators only)"
   Examples:
   - "(alias) list groups"
@@ -30,7 +30,7 @@ Commands:
   Regex: '(?i:(?:remove|delete) ([\w-.:]+) from (?:the )?(?:([~\w-'' ]+) )?group)'
   Contexts: [ "user", "group" ]
   Keywords: [ "group", "groups", "remove" ]
-  Usage: "(alias) remove <user> from the <groupname> group"
+  Usage: "remove <user> from the <groupname> group"
   Summary: "remove a dynamic user from a group"
   Examples:
   - "(alias) remove alice from the Helpdesk group"
@@ -39,7 +39,7 @@ Commands:
   Regex: '(?i:(?:empty|clear) (?:the )?(?:([~\w-'' ]+) )?group)'
   Contexts: [ "group" ]
   Keywords: [ "group", "groups", "empty" ]
-  Usage: "(alias) empty the <groupname> group"
+  Usage: "empty the <groupname> group"
   Summary: "remove all dynamic users from a group"
   Examples:
   - "(alias) empty the Helpdesk group"
@@ -48,7 +48,7 @@ Commands:
   Regex: '(?i:show (?:the )?(?:([~\w-'' ]+) )?group)'
   Contexts: [ "group" ]
   Keywords: [ "group", "groups", "show", "view" ]
-  Usage: "(alias) show the <groupname> group"
+  Usage: "show the <groupname> group"
   Summary: "show the members of a group"
   Examples:
   - "(alias) show the Helpdesk group"

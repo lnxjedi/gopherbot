@@ -5,7 +5,7 @@ Commands:
 - Command: maillog
   Regex: '(?i:(?:send|mail|email)[- ]?log ([A-Za-z0-9]+)(?: to (?:(?:user (.*))|([^@]+@[^@]+)))?)'
   Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
-  Usage: "(alias) email-log <ref> (to (user foo|user@my.domain))"
+  Usage: "email-log <ref> (to (user foo|user@my.domain))"
   Summary: "email a log to the user given the log ref"
   Examples:
   - "(alias) email-log ab12cd"
@@ -14,7 +14,7 @@ Commands:
 - Command: taillog
   Regex: '(?i:(?:tail|view|show)[- ]?log ([A-Za-z0-9]+))'
   Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
-  Usage: "(alias) tail-log <ref>"
+  Usage: "tail-log <ref>"
   Summary: "view the end of a log given the log ref"
   Examples:
   - "(alias) tail-log ab12cd"
@@ -22,7 +22,7 @@ Commands:
 - Command: linklog
   Regex: '(?i:(?:link|get)[- ]?log ([A-Za-z0-9]+))'
   Keywords: [ "history", "job", "mail", "email", "send", "log", "logs" ]
-  Usage: "(alias) link-log <ref>"
+  Usage: "link-log <ref>"
   Summary: "get a URL for a log"
   Examples:
   - "(alias) link-log ab12cd"
@@ -30,7 +30,7 @@ Commands:
 - Command: joblogs
   Regex: '(?i:job[- ]?logs(?: ([A-Za-z][\w-]*)))'
   Keywords: [ "list", "job", "jobs", "log", "logs", "history", "joblogs" ]
-  Usage: "(alias) job-logs <jobname>"
+  Usage: "job-logs <jobname>"
   Summary: "list logs for a given job"
   Examples:
   - "(alias) job-logs go-update"

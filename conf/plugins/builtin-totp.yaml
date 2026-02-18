@@ -3,7 +3,7 @@ Commands:
 - Command: "check"
   Regex: '(?i:(?:validate|launch missiles:) (\d{6}))'
   Keywords: [ "totp", "launch", "missiles" ]
-  Usage: "(alias) validate <code>"
+  Usage: "validate <code>"
   Summary: "check that your TOTP codes are working"
   Examples:
   - "(alias) validate 123456"

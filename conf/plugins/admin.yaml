@@ -6,7 +6,7 @@ Commands:
 - Command: "update"
   Regex: '(?i:update(?:[ -]config(?:uration)?)?)'
   Keywords: [ "config", "configuration", "update" ]
-  Usage: "(alias) update (configuration)"
+  Usage: "update (configuration)"
   Summary: "perform a git clone/pull of custom configuration and reload"
   Examples:
   - "(alias) update"
@@ -14,7 +14,7 @@ Commands:
 - Command: "branch"
   Regex: '(?i:(?:switch|change)[ -]branch ([^\s]+))'
   Keywords: [ "config", "configuration", "branch", "switch" ]
-  Usage: "(alias) switch-branch <branch>"
+  Usage: "switch-branch <branch>"
   Summary: "switch branches in configuration repository"
   Examples:
   - "(alias) switch-branch main"
@@ -22,7 +22,7 @@ Commands:
 - Command: "save"
   Regex: '(?i:save(?:[ -]config(?:uration)?)?)'
   Keywords: [ "config", "configuration", "save", "admin", "manage" ]
-  Usage: "(alias) save (configuration)"
+  Usage: "save (configuration)"
   Summary: "git push custom repository"
   Examples:
   - "(alias) save"

@@ -225,6 +225,19 @@ Recommended command entry fields:
 - `Usage`, `Summary`
 - optional `Examples`, `Keywords`, `Helptext`
 
+Field semantics and authoring conventions:
+
+- `Usage` is command-body syntax only (no bot name or alias prefix).
+  - Good: `Usage: "list lists"`
+  - Avoid: `Usage: "(alias) list lists"` or `Usage: "(bot), list lists"`
+- `Examples` should use placeholders, not hardcoded names/aliases:
+  - Use `(alias)` for concise CLI-like commands (for example `(alias) reboot-server Omega`).
+  - Use `(bot)` for conversational commands (for example `(bot) tell me a joke`).
+- Hidden-capable command examples:
+  - When a command is listed in plugin `AllowedHiddenCommands`, built-in help may render `(bot)` examples as slash-addressed forms (for example `/(bot) whoami` rendered as `/Clu whoami`).
+- `Keywords` are used for help/fallback search relevance scoring.
+- `Helptext` is used for search relevance and as fallback source for `Usage`/`Summary` if those fields are missing.
+
 ## Built-in Help and Fallback Behavior
 
 Built-in help commands are now metadata-driven:

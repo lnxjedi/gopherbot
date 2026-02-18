@@ -4,7 +4,7 @@ Commands:
 - Command: help
   Regex: '(?i:help(?:\s+(.+))?)'
   Keywords: [ "*", "help" ]
-  Usage: "(alias) help <keyword>"
+  Usage: "help <keyword>"
   Summary: "find help for commands matching <keyword>"
   Examples:
   - "(alias) help ping"
@@ -15,7 +15,7 @@ Commands:
 - Command: commands
   Regex: '(?i:commands?)'
   Keywords: [ "help", "commands", "list", "browse" ]
-  Usage: "(alias) commands"
+  Usage: "commands"
   Summary: "browse command groups available in this channel"
   Examples:
   - "(alias) commands"
@@ -24,14 +24,14 @@ Commands:
 - Command: help-all
   Regex: '(?i:help-all)'
   Keywords: [ "help", "all" ]
-  Usage: "(alias) help-all"
+  Usage: "help-all"
   Summary: "help for all commands available in this channel, including global commands"
   Examples:
   - "(alias) help-all"
 - Command: info
   Regex: '(?i:info|tell me about yourself|about|information)'
   Keywords: [ "info", "information", "robot", "admin", "administrators" ]
-  Usage: "(alias) info | tell me about yourself"
+  Usage: "info | tell me about yourself"
   Summary: "provide useful information for admins, or a list of admins"
   Examples:
   - "(alias) info"

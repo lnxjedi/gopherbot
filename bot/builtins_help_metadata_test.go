@@ -84,3 +84,50 @@ func TestRankHelpMatches(t *testing.T) {
 		t.Fatalf("rankHelpMatches() top plugin = %q, want %q", matches[0].Entry.PluginName, "lists")
 	}
 }
+
+func TestStripHelpAddressPrefix(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"(alias) ping", "ping"},
+		{"(bot), whoami", "whoami"},
+		{"/(bot) help ping", "help ping"},
+		{"help-all", "help-all"},
+	}
+	for _, tc := range cases {
+		if got := stripHelpAddressPrefix(tc.in); got != tc.want {
+			t.Fatalf("stripHelpAddressPrefix(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestHiddenSlashBotExample(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"(bot) list lists", "/(bot) list lists"},
+		{"(bot), list lists", "/(bot) list lists"},
+		{"(alias) ping", "(alias) ping"},
+		{"ping", "ping"},
+	}
+	for _, tc := range cases {
+		if got := hiddenSlashBotExample(tc.in); got != tc.want {
+			t.Fatalf("hiddenSlashBotExample(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestCommandAllowsHidden(t *testing.T) {
+	plugin := &Plugin{AllowedHiddenCommands: []string{"help", "*"}}
+	if !commandAllowsHidden(plugin, "help") {
+		t.Fatalf("expected explicit hidden command match")
+	}
+	if !commandAllowsHidden(plugin, "whoami") {
+		t.Fatalf("expected wildcard hidden command match")
+	}
+	if commandAllowsHidden(&Plugin{}, "help") {
+		t.Fatalf("expected false for plugin with no hidden commands")
+	}
+}

@@ -16,11 +16,11 @@ Commands:
 - Command: weather
   Regex: '(?i:weather (?:in|for) (.+))'
   Keywords: [ "weather" ]
-  Usage: "(bot), weather in <city(,country) or zip code>"
+  Usage: "weather in <city(,country) or zip code>"
   Summary: "Fetches current weather from OpenWeatherMap."
   Examples:
-  - ";weather in denver"
-  - "robot, weather for 98101"
+  - "(alias) weather in denver"
+  - "(bot) weather for 98101"
   Helptext:
   - "(bot), weather in <city(,country) or zip code> - fetch the weather from OpenWeatherMap"
 DEFCONFIG

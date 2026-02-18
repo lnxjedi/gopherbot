@@ -3,7 +3,7 @@ Commands:
 - Command: "identify"
   Regex: '(?i:slack id ([@\w]+))'
   Keywords: [ "identify", "id", "slack", "whois" ]
-  Usage: "(alias) slack id <@user>"
+  Usage: "slack id <@user>"
   Summary: "get the slack internal ID for @user"
   Examples:
   - "(alias) slack id @david"

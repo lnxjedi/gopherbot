@@ -13,21 +13,21 @@ Commands:
 - Command: hosts
   Regex: '(?i:hosts?|lookup|dig|nslookup) ([\w-. ]+)'
   Keywords: [ "hosts", "lookup", "dig", "nslookup" ]
-  Usage: "(bot), hosts <hostname|ip> ..."
+  Usage: "hosts <hostname|ip> ..."
   Summary: "Looks up one or more hostnames/IPs and returns IP-to-name results."
   Examples:
-  - ";hosts github.com 8.8.8.8"
-  - "robot, dig api.example.com"
+  - "(alias) hosts github.com 8.8.8.8"
+  - "(bot) dig api.example.com"
   Helptext:
   - "(bot), dig <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
   - "(bot), hosts <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
 - Command: hostname
   Regex: '(?i:hostname)'
   Keywords: [ "hosts", "hostname" ]
-  Usage: "(bot), hostname"
+  Usage: "hostname"
   Summary: "Reports the host name where the robot process is running."
   Examples:
-  - ";hostname"
+  - "(alias) hostname"
   Helptext:
   - "(bot), hostname - report the $HOSTNAME where the bot is running"
 EOF

@@ -75,7 +75,7 @@ func fallback(m robot.Robot, command string, args ...string) (retval robot.TaskR
 				entry := match.Entry
 				lines = append(lines, fmt.Sprintf("%d) [%s] %s", i+1, entry.PluginName, entry.Command))
 				if len(entry.Usage) > 0 {
-					lines = append(lines, "   Usage: "+r.formatHelpLine(entry.Usage))
+					lines = append(lines, "   Usage: "+r.formatHelpLine(stripHelpAddressPrefix(entry.Usage)))
 				}
 				if len(entry.Summary) > 0 {
 					lines = append(lines, "   Summary: "+entry.Summary)
@@ -102,10 +102,13 @@ func fallback(m robot.Robot, command string, args ...string) (retval robot.TaskR
 var botRegex = regexp.MustCompile(`^([^(]*)\(bot\)(,?) *`)
 var aliasRegex = regexp.MustCompile(`^\(alias\) *`)
 var helpTokenRegex = regexp.MustCompile(`[A-Za-z0-9_-]+`)
+var helpAddressPrefixRegex = regexp.MustCompile(`^\s*/?\((?:alias|bot)\)(?:[,:])?\s*`)
+var botAddressPrefixRegex = regexp.MustCompile(`^\s*/?\(bot\)(?:[,:])?\s*`)
 
 func (r Robot) formatHelpLine(input string) (ret string) {
 	w := getLockedWorker(r.tid)
 	w.Unlock()
+	ret = input
 	botName := r.cfg.botinfo.UserName
 	botAlias := string(r.cfg.alias)
 	if len(botName) == 0 && len(botAlias) == 0 {
@@ -133,6 +136,30 @@ func (r Robot) formatHelpLine(input string) (ret string) {
 	return conn.FormatHelp(ret)
 }
 
+func stripHelpAddressPrefix(input string) string {
+	trimmed := strings.TrimSpace(input)
+	if len(trimmed) == 0 {
+		return trimmed
+	}
+	stripped := strings.TrimSpace(helpAddressPrefixRegex.ReplaceAllString(trimmed, ""))
+	if len(stripped) == 0 {
+		return trimmed
+	}
+	return stripped
+}
+
+func hiddenSlashBotExample(input string) string {
+	trimmed := strings.TrimSpace(input)
+	if len(trimmed) == 0 || !botAddressPrefixRegex.MatchString(trimmed) {
+		return trimmed
+	}
+	rest := strings.TrimSpace(botAddressPrefixRegex.ReplaceAllString(trimmed, ""))
+	if len(rest) == 0 {
+		return "/(bot)"
+	}
+	return "/(bot) " + rest
+}
+
 type helpCommandMetadata struct {
 	PluginName string
 	Command    string
@@ -142,6 +169,7 @@ type helpCommandMetadata struct {
 	Keywords   []string
 	Helptext   []string
 	Scope      string
+	HiddenOK   bool
 }
 
 type rankedHelpMatch struct {
@@ -271,6 +299,20 @@ func helpScopeText(task *Task) string {
 	return "channel scoped"
 }
 
+func commandAllowsHidden(plugin *Plugin, command string) bool {
+	if plugin == nil || len(plugin.AllowedHiddenCommands) == 0 {
+		return false
+	}
+	command = strings.TrimSpace(strings.ToLower(command))
+	for _, allowed := range plugin.AllowedHiddenCommands {
+		key := strings.TrimSpace(strings.ToLower(allowed))
+		if key == "*" || key == command {
+			return true
+		}
+	}
+	return false
+}
+
 func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetadata {
 	w := getLockedWorker(r.tid)
 	w.Unlock()
@@ -326,6 +368,9 @@ func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetad
 			}
 			if len(entry.Summary) == 0 && len(strings.TrimSpace(matcher.Summary)) > 0 {
 				entry.Summary = strings.TrimSpace(matcher.Summary)
+			}
+			if commandAllowsHidden(plugin, command) {
+				entry.HiddenOK = true
 			}
 			entry.Examples = appendUniqueStrings(entry.Examples, matcher.Examples...)
 			entry.Keywords = appendUniqueStrings(entry.Keywords, matcher.Keywords...)
@@ -457,16 +502,44 @@ func rankHelpMatches(entries []helpCommandMetadata, term string) []rankedHelpMat
 	return matches
 }
 
-func (r Robot) renderHelpEntry(entry helpCommandMetadata, includeExamples, includeScope bool) string {
+func (r Robot) formatHelpExample(entry helpCommandMetadata, example string) string {
+	line := strings.TrimSpace(example)
+	if len(line) == 0 {
+		return ""
+	}
+	if entry.HiddenOK {
+		line = hiddenSlashBotExample(line)
+	}
+	return r.formatHelpLine(line)
+}
+
+func (r Robot) renderHelpEntry(entry helpCommandMetadata, includeExamples, includeScope bool, exampleLimit int) string {
 	lines := []string{fmt.Sprintf("[%s] %s", entry.PluginName, entry.Command)}
 	if len(entry.Usage) > 0 {
-		lines = append(lines, "Usage: "+r.formatHelpLine(entry.Usage))
+		lines = append(lines, "Usage: "+r.formatHelpLine(stripHelpAddressPrefix(entry.Usage)))
 	}
 	if len(entry.Summary) > 0 {
 		lines = append(lines, "Summary: "+entry.Summary)
 	}
 	if includeExamples && len(entry.Examples) > 0 {
-		lines = append(lines, "Example: "+r.formatHelpLine(entry.Examples[0]))
+		examples := entry.Examples
+		if exampleLimit > 0 && len(examples) > exampleLimit {
+			examples = examples[:exampleLimit]
+		}
+		rendered := make([]string, 0, len(examples))
+		for _, example := range examples {
+			line := r.formatHelpExample(entry, example)
+			if len(strings.TrimSpace(line)) == 0 {
+				continue
+			}
+			rendered = append(rendered, line)
+		}
+		if len(rendered) > 0 {
+			lines = append(lines, "Examples:")
+			for _, example := range rendered {
+				lines = append(lines, "- "+example)
+			}
+		}
 	}
 	if includeScope && len(entry.Scope) > 0 {
 		lines = append(lines, "Availability: "+entry.Scope)
@@ -501,7 +574,7 @@ func (r Robot) renderCommandsOverview(entries []helpCommandMetadata) string {
 			seen[entry.Command] = struct{}{}
 			commands = append(commands, entry.Command)
 			if len(firstUsage) == 0 && len(entry.Usage) > 0 {
-				firstUsage = r.formatHelpLine(entry.Usage)
+				firstUsage = r.formatHelpLine(stripHelpAddressPrefix(entry.Usage))
 			}
 		}
 		lines = append(lines, fmt.Sprintf("- %s: %s", plugin, strings.Join(commands, ", ")))
@@ -615,7 +688,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			})
 			helpLines := make([]string, 0, len(entries))
 			for _, entry := range entries {
-				helpLines = append(helpLines, r.renderHelpEntry(entry, true, true))
+				helpLines = append(helpLines, r.renderHelpEntry(entry, true, true, 0))
 			}
 			sendOutput("Commands available in this channel (including global):\n" + strings.Join(helpLines, lineSeparator))
 		case "help":
@@ -633,7 +706,7 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 			}
 			helpLines := make([]string, 0, len(display))
 			for _, match := range display {
-				helpLines = append(helpLines, r.renderHelpEntry(match.Entry, true, true))
+				helpLines = append(helpLines, r.renderHelpEntry(match.Entry, true, true, 2))
 			}
 			header := fmt.Sprintf("Command matches for keyword: %s", strings.ToLower(term))
 			if len(matches) > len(display) {

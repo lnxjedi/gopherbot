@@ -24,7 +24,7 @@ Commands:
 - Command: "1509839"
   Regex: '(?i:picard omg ([^/]+)(?:/([^/]+))?)'
   Keywords: [ "meme", "picard", "omg" ]
-  Usage: "(bot), picard omg <something>(/<something>)"
+  Usage: "picard omg <something>(/<something>)"
   Summary: "Picard facepalm"
   Examples:
   - "(bot), picard omg this deploy"
@@ -32,7 +32,7 @@ Commands:
 - Command: "245898"
   Regex: '(?i:picard wt[hf] ([^/]+)(?:/([^/]+))?)'
   Keywords: [ "meme", "picard", "wth", "wtf" ]
-  Usage: "(bot), picard wth <something>(/<something>)"
+  Usage: "picard wth <something>(/<something>)"
   Summary: "Picard WTH"
   Examples:
   - "(bot), picard wth this queue"
@@ -40,7 +40,7 @@ Commands:
 - Command: "29106534"
   Regex: '(?i:roy phone ([^/]+)(?:/([^/]+))?)'
   Keywords: [ "meme", "roy", "phone" ]
-  Usage: "(bot), roy phone <something>(/<something>)"
+  Usage: "roy phone <something>(/<something>)"
   Summary: "Roy provides phone support"
   Examples:
   - "(bot), roy phone production/on fire"
@@ -48,7 +48,7 @@ Commands:
 - Command: "7163250"
   Regex: '(?i:((?:good|great) news,? (?:everyone|everybody)),? (.+))'
   Keywords: [ "meme", "farnsworth", "news" ]
-  Usage: "(bot), Good news everyone (<something>)"
+  Usage: "Good news everyone (<something>)"
   Summary: "let Professor Farnsworth deliver the good news"
   Examples:
   - "(bot), good news everyone, we fixed it"
@@ -56,7 +56,7 @@ Commands:
 - Command: "7163250"
   Regex: '(?i:farnsworth ([^/]+)(?:/([^/]+))?)'
   Keywords: [ "meme", "farnsworth", "news" ]
-  Usage: "(bot), farnsworth <something>/<something>"
+  Usage: "farnsworth <something>/<something>"
   Summary: "Professor Farnsworth expounds"
   Examples:
   - "(bot), farnsworth roadmap/chaos"
@@ -64,7 +64,7 @@ Commands:
 - Command: "18304105"
   Regex: '(?i:(.+,?) (gosh!?))'
   Keywords: [ "meme", "gosh" ]
-  Usage: "(bot), <something>, gosh!"
+  Usage: "<something>, gosh!"
   Summary: "Let Napoleon Dynamite express your indignation"
   Examples:
   - "(bot), this incident report, gosh!"
@@ -72,7 +72,7 @@ Commands:
 - Command: "8070362"
   Regex: '(?i:(.+ pretty much the) ((?:best|worst) .+))'
   Keywords: [ "meme", "best", "worst" ]
-  Usage: "(bot), this is pretty much the best/worst <something>"
+  Usage: "this is pretty much the best/worst <something>"
   Summary: "Napoleon expresses his opinion"
   Examples:
   - "(bot), this is pretty much the worst deploy ever"
@@ -80,7 +80,7 @@ Commands:
 - Command: "20509936"
   Regex: '(?i:(.+ skills?) ((?:with|in) .+))'
   Keywords: [ "meme", "skill", "skills" ]
-  Usage: "(bot), <something> skill(s) with <something>"
+  Usage: "<something> skill(s) with <something>"
   Summary: "Hear about Napoleon's incredible skills"
   Examples:
   - "(bot), coding skills with vim"
@@ -88,7 +88,7 @@ Commands:
 - Command: "61579"
   Regex: '(?i:(one does not simply) (.+))'
   Keywords: [ "meme", "simply" ]
-  Usage: "(bot), one does not simply <do something>"
+  Usage: "one does not simply <do something>"
   Summary: "Summon Boromir to make your point"
   Examples:
   - "(bot), one does not simply deploy on friday"
@@ -96,7 +96,7 @@ Commands:
 - Command: "47779539"
   Regex: '(?i:(you .+) (prepare to die!?))'
   Keywords: [ "meme", "prepare" ]
-  Usage: "(bot), you <did something>, prepare to die"
+  Usage: "you <did something>, prepare to die"
   Summary: "Let Inigo threaten your friends"
   Examples:
   - "(bot), you restarted prod, prepare to die"
@@ -104,7 +104,7 @@ Commands:
 - Command: "61546"
   Regex: '(?i:(brace yourselves,?) (.+))'
   Keywords: [ "meme", "brace" ]
-  Usage: "(bot), brace yourselves, <something>"
+  Usage: "brace yourselves, <something>"
   Summary: "Boromir warns your"
   Examples:
   - "(bot), brace yourselves, incidents are coming"
@@ -112,7 +112,7 @@ Commands:
 - Command: "61527"
   Regex: '(?i:(y u no) (.+))'
   Keywords: [ "meme" ]
-  Usage: "(bot), Y U no <something>"
+  Usage: "Y U no <something>"
   Summary: "express your angst"
   Examples:
   - "(bot), Y U no ship tests"
@@ -120,7 +120,7 @@ Commands:
 - Command: "33301480"
   Regex: '(?i:(what if I told you) (.+))'
   Keywords: [ "meme", "matrix" ]
-  Usage: "(bot), What if I told you <something>"
+  Usage: "What if I told you <something>"
   Summary: "let Morpheus blow their minds"
   Examples:
   - "(bot), what if I told you this is staging"
@@ -128,7 +128,7 @@ Commands:
 - Command: "33301480"
   Regex: '(?i:morpheus ([^/]+)(?:/([^/]+))?)'
   Keywords: [ "meme", "matrix" ]
-  Usage: "(bot), morpheus <something>/<something>"
+  Usage: "morpheus <something>/<something>"
   Summary: "Morpheus-style split caption meme"
   Examples:
   - "(bot), morpheus deploy/rollback"

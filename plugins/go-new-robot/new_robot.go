@@ -79,41 +79,41 @@ Commands:
 - Command: "new-robot"
   Regex: '(?i:new(?:-|[[:space:]]+)robot)$'
   Keywords: [ "new", "robot", "setup", "onboarding" ]
-  Usage: "(bot), new robot"
+  Usage: "new robot"
   Summary: "Starts guided onboarding for creating a new robot repository and config."
   Examples:
-  - ";new robot"
-  - "robot, new robot"
+  - "(alias) new robot"
+  - "(bot) new robot"
   Helptext:
   - "(bot), new robot - start guided setup for a new robot"
 - Command: "new-robot-resume"
   Regex: '(?i:(?:resume|continue)[[:space:]]+new(?:-|[[:space:]]+)robot|new(?:-|[[:space:]]+)robot[[:space:]]+(?:resume|continue))$'
   Keywords: [ "new", "robot", "resume", "onboarding" ]
-  Usage: "(bot), new robot resume"
+  Usage: "new robot resume"
   Summary: "Resumes your in-progress onboarding session."
   Examples:
-  - ";new robot resume"
-  - "robot, continue new robot"
+  - "(alias) new robot resume"
+  - "(bot) continue new robot"
   Helptext:
   - "(bot), new robot resume - resume your onboarding session"
 - Command: "new-robot-cancel"
   Regex: '(?i:(?:cancel|abort|stop)[[:space:]]+new(?:-|[[:space:]]+)robot|new(?:-|[[:space:]]+)robot[[:space:]]+(?:cancel|abort|stop))$'
   Keywords: [ "new", "robot", "cancel", "onboarding" ]
-  Usage: "(bot), new robot cancel"
+  Usage: "new robot cancel"
   Summary: "Cancels and removes your onboarding session state."
   Examples:
-  - ";new robot cancel"
-  - "robot, stop new robot"
+  - "(alias) new robot cancel"
+  - "(bot) stop new robot"
   Helptext:
   - "(bot), new robot cancel - cancel your onboarding session"
 - Command: "new-robot-repo"
   Regex: '(?i:new(?:-|[[:space:]]+)robot[[:space:]]+(?:repo|repository)|(?:repo|repository)[[:space:]]+new(?:-|[[:space:]]+)robot)$'
   Keywords: [ "new", "robot", "repo", "repository", "onboarding" ]
-  Usage: "(bot), new robot repo"
+  Usage: "new robot repo"
   Summary: "Continues repository handoff and .env bootstrap setup."
   Examples:
-  - ";new robot repo"
-  - "robot, repository new robot"
+  - "(alias) new robot repo"
+  - "(bot) repository new robot"
   Helptext:
   - "(bot), new robot repo - continue repository handoff and .env bootstrap setup"
 ReplyMatchers:
