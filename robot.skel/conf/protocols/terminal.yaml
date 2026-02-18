@@ -9,5 +9,5 @@ ProtocolConfig:
 AppendUserRoster:
 - UserName: '<botname>'
   BotUser: true
-AppendUserMap:
-  '<botname>': 'u0000'
+## Terminal connector user IDs are connector-local via ProtocolConfig.Users
+## in terminal.yaml; do not use UserMap keys in v3 config.

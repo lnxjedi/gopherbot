@@ -118,9 +118,8 @@ func init() {
 			WMessageHeard func(user string, channel string) ()
 			WRun func(stopchannel <-chan struct{}) ()
 			WSendProtocolChannelThreadMessage func(channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) ( robot.RetVal)
-			WSendProtocolUserChannelThreadMessage func(userid string, username string, channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) ( robot.RetVal)
+			WSendProtocolUserChannelThreadMessage func(username string, channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) ( robot.RetVal)
 			WSendProtocolUserMessage func(user string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) ( robot.RetVal)
-			WSetUserMap func(a0 map[string]string) ()
 
 	}
 	func (W _github_com_lnxjedi_gopherbot_robot_Connector) DefaultHelp() ( []string) {return W.WDefaultHelp()
@@ -137,11 +136,9 @@ func init() {
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Connector) SendProtocolChannelThreadMessage(channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) ( robot.RetVal) {return W.WSendProtocolChannelThreadMessage(channelname, threadid, msg, format, msgObject)
 			}
-	func (W _github_com_lnxjedi_gopherbot_robot_Connector) SendProtocolUserChannelThreadMessage(userid string, username string, channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) ( robot.RetVal) {return W.WSendProtocolUserChannelThreadMessage(userid, username, channelname, threadid, msg, format, msgObject)
+	func (W _github_com_lnxjedi_gopherbot_robot_Connector) SendProtocolUserChannelThreadMessage(username string, channelname string, threadid string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) ( robot.RetVal) {return W.WSendProtocolUserChannelThreadMessage(username, channelname, threadid, msg, format, msgObject)
 			}
 	func (W _github_com_lnxjedi_gopherbot_robot_Connector) SendProtocolUserMessage(user string, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) ( robot.RetVal) {return W.WSendProtocolUserMessage(user, msg, format, msgObject)
-			}
-	func (W _github_com_lnxjedi_gopherbot_robot_Connector) SetUserMap(a0 map[string]string) () { W.WSetUserMap(a0)
 			}
 
 // _github_com_lnxjedi_gopherbot_robot_Handler is an interface wrapper for Handler type

@@ -74,8 +74,8 @@ If a change violates any invariant, update the documentation and explain why.
 * Connectors must normalize engine-bound inbound messages into a canonical internal representation.
 * Protocol-local commands and rendering are allowed when documented and isolated to that connector.
 * Transport-specific internal user IDs are expected and allowed.
-* Each protocol must map internal user IDs to a protocol-agnostic username via its roster.
-* Cross-protocol identity equivalence must be explicit via roster mapping, never inferred heuristically.
+* Each protocol must deterministically map transport identity to canonical username via connector-local identity rules/config.
+* Cross-protocol identity equivalence is by canonical username emitted by connectors, not by heuristic transport-ID matching.
 * Replay buffers must define ordering guarantees explicitly.
 * When multiple connectors are enabled, failure in one connector must not terminate others.
 
@@ -98,8 +98,22 @@ If a change violates any invariant, update the documentation and explain why.
 * Architectural changes require updating `aidocs/STARTUP_FLOW.md`.
 * Connector changes require updating `aidocs/COMPONENT_MAP.md`.
 * Identity or routing changes require documenting invariants explicitly.
+* Any change that requires migration for existing v2 robots must update root `UPGRADING-v3.md` in the same change.
 
 Stale documentation is considered a defect.
+
+---
+
+## v3 Compatibility Contract
+
+Follow `aidocs/V3_COMPATIBILITY_CONTRACT.md` for v3 compatibility decisions.
+
+Required stance:
+
+* Old plugin/job/task scripts and extension API behavior are compatibility-priority surfaces.
+* Username-based security behavior and brain compatibility remain priority surfaces.
+* Configuration compatibility is not a required v3 guarantee; config migration is acceptable when documented.
+* For config-breaking changes, update defaults/templates and `UPGRADING-v3.md` in the same change.
 
 ---
 

@@ -8,6 +8,12 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 - Incoming message normalization: `connectors/slack/incomingMsgs.go`
 - Outgoing + help formatting hooks: `connectors/slack/connectorMethods.go`
 
+## Identity Mapping
+
+- Slack connector identity mapping is connector-local in `ProtocolConfig.UserMap` (`username -> Slack user ID`).
+- Connector config mapping is treated as canonical when username/ID collisions exist.
+- Engine policy checks remain username-based against global `UserRoster`.
+
 ## Inbound Message Normalization
 
 - Standard channel/DM messages are passed as canonical `ConnectorMessage` values with:

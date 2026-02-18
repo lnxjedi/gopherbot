@@ -244,10 +244,10 @@ func TestPromptInternalUsesProtocolScopedUserResolution(t *testing.T) {
 		resCh <- ret
 	}()
 
-	waitFor(t, "prompt sent with protocol-specific user id", func() bool {
+	waitFor(t, "prompt sent with protocol-specific username", func() bool {
 		fc.mu.Lock()
 		defer fc.mu.Unlock()
-		return fc.userCalls > 0 && fc.lastUser == "<U123SLACK>"
+		return fc.userCalls > 0 && fc.lastUser == "alice"
 	})
 
 	triggerPromptShutdownSignal()

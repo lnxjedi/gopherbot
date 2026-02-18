@@ -35,9 +35,7 @@ func (h connectorHandler) GetProtocolConfig(v interface{}) error {
 }
 
 func (h connectorHandler) SetBotID(id string) {
-	if h.allowBotIdentity {
-		h.handler.SetBotID(id)
-	}
+	h.handler.setProtocolBotID(h.protocol, id)
 }
 
 func (h connectorHandler) SetBotMention(m string) {
@@ -98,7 +96,7 @@ type worker struct {
 	maps            *userChanMaps           // Pointer to current user / channel maps struct
 	cfg             *configuration          // Active configuration when this context was created
 	BotUser         bool                    // set for bots/programs that should never match ambient messages
-	listedUser      bool                    // set for users listed in global UserRoster and mapped in protocol UserMap
+	listedUser      bool                    // set for users listed in global UserRoster
 	isCommand       bool                    // Was the message directed at the robot, dm or by mention
 	cmdMode         string                  // one of "alias", "name", "direct" - for disambiguation
 	msg, fmsg       string                  // the message text sent; without robot name/alias, and with for message matching
@@ -108,19 +106,26 @@ type worker struct {
 }
 
 func resolveIncomingUser(maps *userChanMaps, protocol, userID, connectorUser string) (userName string, botUser bool, protocolMapped bool, directoryListed bool) {
-	if pm, ok := maps.userIDProto[protocol]; ok {
-		if un, exists := pm[userID]; exists {
-			userName = un.UserName
-			botUser = un.BotUser
-			protocolMapped = true
-		}
-	}
-	if userName == "" {
-		if connectorUser != "" {
+	if connectorUser != "" {
+		userName = strings.ToLower(strings.TrimSpace(connectorUser))
+		if userName == "" {
 			userName = connectorUser
-		} else {
+		}
+		protocolMapped = true
+	} else {
+		if pm, ok := maps.userIDProto[protocol]; ok {
+			if un, exists := pm[userID]; exists {
+				userName = un.UserName
+				botUser = un.BotUser
+				protocolMapped = true
+			}
+		}
+		if userName == "" {
 			userName = bracket(userID)
 		}
+	}
+	if du, ok := maps.user[userName]; ok {
+		botUser = du.BotUser
 	}
 	_, directoryListed = maps.directoryUser[userName]
 	return userName, botUser, protocolMapped, directoryListed
@@ -199,9 +204,9 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 			channelName = bracket(inc.ChannelID)
 		}
 	} // ProtocolChannel / channelName should be "" for DM
-	ProtocolUser = bracket(inc.UserID)
 	userName, BotUser, protocolMapped, directoryListed := resolveIncomingUser(maps, incomingProtocol, inc.UserID, inc.UserName)
-	listedUser := protocolMapped && directoryListed
+	ProtocolUser = userName
+	listedUser := directoryListed
 	protocol := getProtocol(inc.Protocol)
 
 	messageFull := inc.MessageText
@@ -224,7 +229,7 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 	botAlias := currentCfg.alias
 	currentCfg.RUnlock()
 	if !listedUser && ignoreUnlisted {
-		Log(robot.Debug, "IgnoreUnlistedUsers - ignoring protocol '%s': %s / %s (protocolMapped=%t directoryListed=%t)", incomingProtocol, inc.UserID, userName, protocolMapped, directoryListed)
+		Log(robot.Debug, "IgnoreUnlistedUsers - ignoring protocol '%s': %s / %s (identityResolved=%t directoryListed=%t)", incomingProtocol, inc.UserID, userName, protocolMapped, directoryListed)
 		emit(IgnoredUser)
 		return
 	}
@@ -401,11 +406,14 @@ func (h handler) GetDirectory(p string) error {
 	return nil
 }
 
-// SetBotID let's the connector set the bot's internal ID
+func (h handler) setProtocolBotID(protocol, id string) {
+	setRuntimeBotID(protocol, id)
+}
+
+// SetBotID lets the connector set the bot's internal ID.
+// When protocol context is unavailable, this applies to the primary protocol.
 func (h handler) SetBotID(id string) {
-	currentCfg.Lock()
-	currentCfg.botinfo.UserID = id
-	currentCfg.Unlock()
+	h.setProtocolBotID("", id)
 }
 
 // SetBotMention set's the @(mention) string, for regexes

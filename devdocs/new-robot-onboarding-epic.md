@@ -121,7 +121,7 @@ Acceptance:
 Implementation notes (current):
 - `new robot` / `new robot resume` captures canonical username, resolves SSH public key
   (auto-detect `~/.ssh/*.pub` first with y/n confirmation, prompt fallback).
-- Apply step now writes scaffold files and local identity config for SSH `UserMap`,
+- Apply step now writes scaffold files and local identity config for SSH `ProtocolConfig.UserKeys`,
   plus `.env` defaults (`GOPHER_ENCRYPTION_KEY`, `GOPHER_CUSTOM_REPOSITORY=local`,
   `GOPHER_ENVIRONMENT=development`).
 - After scaffold apply, onboarding queues `restart-robot` and defers repo handoff to post-reconnect.

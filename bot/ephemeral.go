@@ -19,7 +19,7 @@ type ephemeralMemory struct {
 }
 
 type memoryContext struct {
-	key, user, channel, thread string
+	key, user, channel, thread, protocol string
 }
 
 type eMemories struct {
@@ -40,7 +40,7 @@ func (em eMemories) MarshalJSON() ([]byte, error) {
 		if k.key == lastMsgKey {
 			continue
 		}
-		keyString := fmt.Sprintf("%s{|}%s{|}%s{|}%s", k.key, k.user, k.channel, k.thread)
+		keyString := fmt.Sprintf("%s{|}%s{|}%s{|}%s{|}%s", k.key, k.user, k.channel, k.thread, k.protocol)
 		tempMap[keyString] = v
 	}
 	return json.Marshal(tempMap)
@@ -55,15 +55,20 @@ func (e *eMemories) UnmarshalJSON(data []byte) error {
 	}
 	e.m = make(map[memoryContext]ephemeralMemory)
 	for k, v := range tempMap {
-		parts := strings.SplitN(k, "{|}", 4)
-		if len(parts) != 4 {
+		parts := strings.Split(k, "{|}")
+		if len(parts) != 4 && len(parts) != 5 {
 			return fmt.Errorf("invalid key string format: %s", k)
 		}
+		protocol := ""
+		if len(parts) == 5 {
+			protocol = parts[4]
+		}
 		key := memoryContext{
-			key:     parts[0],
-			user:    parts[1],
-			channel: parts[2],
-			thread:  parts[3],
+			key:      parts[0],
+			user:     parts[1],
+			channel:  parts[2],
+			thread:   parts[3],
+			protocol: protocol,
 		}
 		e.m[key] = v
 	}

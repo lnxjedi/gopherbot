@@ -366,12 +366,11 @@ func (r Robot) promptInternal(regexID, user, channel, thread, prompt string) (st
 		replies.Unlock()
 	} else {
 		Log(robot.Debug, "Prompting for \"%s\" and creating reply waiters list and prompting for matcher: %q (protocol: %s)", prompt, matcher, protocol)
-		puser := (&r).tryResolveUser(user)
 		var ret robot.RetVal
 		if channel == "" {
-			ret = interfaces.SendProtocolUserMessage(puser, prompt, r.Format, r.Incoming)
+			ret = interfaces.SendProtocolUserMessage(user, prompt, r.Format, r.Incoming)
 		} else {
-			ret = interfaces.SendProtocolUserChannelThreadMessage(puser, user, channel, thread, prompt, r.Format, r.Incoming)
+			ret = interfaces.SendProtocolUserChannelThreadMessage(user, channel, thread, prompt, r.Format, r.Incoming)
 		}
 		if ret != robot.Ok {
 			replies.Unlock()

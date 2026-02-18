@@ -32,6 +32,7 @@ Start here to orient yourself in the repo; read aidocs/COMPONENT_MAP.md first.
 - `aidocs/SSH_CONNECTOR.md` - SSH connector behavior and protocol notes.
 - `aidocs/DEV_CONTAINER.md` - dev container build + editor tooling notes.
 - `aidocs/TESTING_CURRENT.md` - current integration test harness and test case structure.
+- `aidocs/V3_COMPATIBILITY_CONTRACT.md` - v3 compatibility priorities and config migration policy.
 - `aidocs/PIPELINE_LIFECYCLE.md` - incoming message to pipeline start flow.
 - `aidocs/SCHEDULER_FLOW.md` - cron scheduler to pipeline start flow.
 - `aidocs/EXECUTION_SECURITY_MODEL.md` - task execution/threading + privilege separation model.

@@ -146,31 +146,6 @@ func TestRoleLabel(t *testing.T) {
 	}
 }
 
-func TestMergeUserMapsWithOverride(t *testing.T) {
-	base := map[string]string{
-		"alice": "U001",
-		"bob":   "U002",
-	}
-	override := map[string]string{
-		"bob":   "U099",
-		"carol": "U003",
-	}
-
-	got := mergeUserMapsWithOverride("slack", base, override, "test")
-
-	want := map[string]string{
-		"alice": "U001",
-		"bob":   "U099",
-		"carol": "U003",
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("mergeUserMapsWithOverride() = %#v, want %#v", got, want)
-	}
-	if base["bob"] != "U002" {
-		t.Fatalf("mergeUserMapsWithOverride() mutated base map, base[bob]=%q", base["bob"])
-	}
-}
-
 func TestApplyProtocolRuntimeOverridesSSHPort(t *testing.T) {
 	original := sshPortOverride
 	defer func() {

@@ -47,16 +47,12 @@ func (nc nullConnector) SendProtocolChannelThreadMessage(ch string, thr, msg str
 	return nc.sendMessage(msg, f)
 }
 
-func (nc nullConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+func (nc nullConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, msg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	return nc.sendMessage(msg, f)
 }
 
 func (nc nullConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	return nc.sendMessage(msg, f)
-}
-
-func (nc nullConnector) SetUserMap(map[string]string) {
-	return
 }
 
 func (nc nullConnector) sendMessage(msg string, f robot.MessageFormat) (ret robot.RetVal) {

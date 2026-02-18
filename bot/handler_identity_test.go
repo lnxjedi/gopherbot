@@ -62,8 +62,8 @@ func TestResolveIncomingUserNoProtocolMapNotListed(t *testing.T) {
 	if name != "alice" {
 		t.Fatalf("resolveIncomingUser() name=%q, want %q", name, "alice")
 	}
-	if protocolMapped {
-		t.Fatal("resolveIncomingUser() protocolMapped=true, want false")
+	if !protocolMapped {
+		t.Fatal("resolveIncomingUser() protocolMapped=false, want true")
 	}
 	if !directoryListed {
 		t.Fatal("resolveIncomingUser() directoryListed=false, want true")

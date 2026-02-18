@@ -228,15 +228,6 @@ func (s *slackConnector) sendMessages(msgs []string, userID, chanID, threadID st
 	}
 }
 
-// SetUserMap takes a map of username to userID mappings, built from the UserRoster
-// of robot.yaml
-func (s *slackConnector) SetUserMap(umap map[string]string) {
-	s.Lock()
-	s.botUserMap = umap
-	s.Unlock()
-	s.updateUserList("")
-}
-
 // SendProtocolChannelMessage sends a message to a channel
 func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	msgs := s.slackifyMessage("", "", msg, f, msgObject)
@@ -253,7 +244,7 @@ func (s *slackConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f
 }
 
 // SendProtocolUserChannelMessage sends a message to a user in a channel
-func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+func (s *slackConnector) SendProtocolUserChannelThreadMessage(u, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	var userID, chanID string
 	var ok bool
 	if chanID, ok = s.ExtractID(ch); !ok {
@@ -263,11 +254,9 @@ func (s *slackConnector) SendProtocolUserChannelThreadMessage(uid, u, ch, thr, m
 		s.Log(robot.Error, "Slack channel ID not found for: %s", ch)
 		return robot.ChannelNotFound
 	}
-	if userID, ok = s.ExtractID(uid); !ok {
-		userID, ok = s.userID(u, false)
-	}
+	userID, ok = s.userID(u, false)
 	if !ok {
-		s.Log(robot.Error, "Slack user ID not found for: %s", uid)
+		s.Log(robot.Error, "Slack user ID not found for username: %s", u)
 		return robot.UserNotFound
 	}
 	// This gets converted to <@userID> in slackifyMessage

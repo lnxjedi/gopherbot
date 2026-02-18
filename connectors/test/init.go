@@ -13,6 +13,17 @@ import (
 var userIDMap = make(map[string]int)
 var userMap = make(map[string]int)
 
+func rebuildUserIndexes(users []testUser) {
+	nextUserIDMap := make(map[string]int, len(users))
+	nextUserMap := make(map[string]int, len(users))
+	for i, u := range users {
+		nextUserIDMap[u.InternalID] = i
+		nextUserMap[u.Name] = i
+	}
+	userIDMap = nextUserIDMap
+	userMap = nextUserMap
+}
+
 // ExportTest lets bot_integration_test safely supply the *testing.T
 var ExportTest = struct {
 	Test *testing.T
@@ -45,10 +56,7 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		handler.Log(robot.Fatal, "Unable to retrieve protocol configuration: %v", err)
 	}
 
-	for i, u := range c.Users {
-		userIDMap[u.InternalID] = i
-		userMap[u.Name] = i
-	}
+	rebuildUserIndexes(c.Users)
 
 	ExportTest.Lock()
 	t := ExportTest.Test

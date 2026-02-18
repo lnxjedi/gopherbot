@@ -78,7 +78,6 @@ type ConfigLoader struct {
 	DefaultProtocol      string                  `yaml:"DefaultProtocol"`      // Protocol used when outbound message flow has no inbound protocol context
 	SecondaryProtocols   []string                `yaml:"SecondaryProtocols"`   // Additional connector protocols to initialize when multi-protocol runtime is enabled
 	BotInfo              *UserInfo               `yaml:"BotInfo"`              // Information about the robot
-	UserMap              map[string]string       `yaml:"UserMap"`              // Mapping of username to protocol-specific internal ID
 	UserRoster           []UserRosterEntry       `yaml:"UserRoster"`           // Global user directory entries; UserID accepted for legacy compatibility parsing
 	ChannelRoster        []ChannelInfo           `yaml:"ChannelRoster"`        // List of channels mapping names to IDs
 	Brain                string                  `yaml:"Brain"`                // Type of Brain to use
@@ -92,7 +91,7 @@ type ConfigLoader struct {
 	DefaultAuthorizer    string                  `yaml:"DefaultAuthorizer"`    // Authorizer plugin for AuthorizedCommands, or when AuthorizeAllCommands = true
 	DefaultMessageFormat string                  `yaml:"DefaultMessageFormat"` // How the robot formats outgoing messages; default: Raw
 	DefaultAllowDirect   bool                    `yaml:"DefaultAllowDirect"`   // Whether plugins are available in a DM by default
-	IgnoreUnlistedUsers  bool                    `yaml:"IgnoreUnlistedUsers"`  // Drop messages unless user is in global UserRoster and protocol-specific mapping
+	IgnoreUnlistedUsers  bool                    `yaml:"IgnoreUnlistedUsers"`  // Drop messages unless user is in global UserRoster
 	SecureParameters     bool                    `yaml:"SecureParameters"`     // Don't publish parameters as environment variables
 	DefaultChannels      []string                `yaml:"DefaultChannels"`      // Channels where plugins are active by default, e.g., ["general", "random"]
 	IgnoreUsers          []string                `yaml:"IgnoreUsers"`          // Users the bot never talks to - like other bots
@@ -167,85 +166,8 @@ func isValidRosterUserName(name string) bool {
 	return strings.ToLower(name) == name
 }
 
-func normalizeUserMapForProtocol(protocol string, userMap map[string]string, source string) map[string]string {
-	p := normalizeProtocolName(protocol)
-	out := make(map[string]string, len(userMap))
-	for user, id := range userMap {
-		uname := strings.TrimSpace(user)
-		uid := strings.TrimSpace(id)
-		if !isValidRosterUserName(uname) {
-			Log(robot.Error, "Invalid username in UserMap from %s for protocol '%s': %q", source, p, user)
-			continue
-		}
-		if uid == "" {
-			Log(robot.Error, "Empty ID for user '%s' in UserMap from %s for protocol '%s'", uname, source, p)
-			continue
-		}
-		out[uname] = uid
-	}
-	return out
-}
-
-type legacyRosterUser struct {
-	UserName string `json:"UserName"`
-	UserID   string `json:"UserID"`
-}
-
-func extractLegacyRosterIDs(raw json.RawMessage) map[string]string {
-	legacy := map[string]string{}
-	if raw == nil {
-		return legacy
-	}
-	var roster []legacyRosterUser
-	if err := json.Unmarshal(raw, &roster); err != nil {
-		return legacy
-	}
-	for _, user := range roster {
-		uname := strings.TrimSpace(user.UserName)
-		uid := strings.TrimSpace(user.UserID)
-		if uname == "" || uid == "" {
-			continue
-		}
-		legacy[uname] = uid
-	}
-	return legacy
-}
-
-func mergeLegacyUserMapForProtocol(protocol string, userMap, legacyMap map[string]string, source string) int {
-	p := normalizeProtocolName(protocol)
-	used := 0
-	for uname, uid := range legacyMap {
-		if existing, ok := userMap[uname]; ok {
-			if existing != uid {
-				Log(robot.Warn, "UserMap ID '%s' overrides legacy UserRoster.UserID '%s' for user '%s' in protocol '%s' from %s", existing, uid, uname, p, source)
-			}
-			continue
-		}
-		userMap[uname] = uid
-		used++
-	}
-	return used
-}
-
 type protocolFileConfig struct {
-	config        map[string]json.RawMessage
-	userMap       map[string]string
-	legacyUserMap map[string]string
-}
-
-func mergeUserMapsWithOverride(protocol string, base, override map[string]string, overrideSource string) map[string]string {
-	p := normalizeProtocolName(protocol)
-	out := make(map[string]string, len(base)+len(override))
-	for user, id := range base {
-		out[user] = id
-	}
-	for user, id := range override {
-		if existing, ok := out[user]; ok && existing != id {
-			Log(robot.Warn, "UserMap conflict for user '%s' in protocol '%s': overriding '%s' with '%s' from %s", user, p, existing, id, overrideSource)
-		}
-		out[user] = id
-	}
-	return out
+	config map[string]json.RawMessage
 }
 
 func roleLabel(role string) string {
@@ -277,30 +199,8 @@ func loadProtocolFileData(newconfig *ConfigLoader, protocol, role string, requir
 		Log(robot.Warn, "%s protocol '%s' configured but no conf/%s found", label, p, configFile)
 		return protocolFileConfig{}, false, nil
 	}
-	userMap := make(map[string]string)
-	if raw, ok := protocolConfig["UserMap"]; ok {
-		var parsed map[string]string
-		if err := json.Unmarshal(raw, &parsed); err != nil {
-			Log(robot.Error, "Unmarshalling UserMap from conf/%s: %v", configFile, err)
-		} else {
-			userMap = normalizeUserMapForProtocol(p, parsed, "conf/"+filepath.ToSlash(configFile))
-		}
-	}
-	legacyUserMap := map[string]string{}
-	var roster []UserRosterEntry
-	if raw, ok := protocolConfig["UserRoster"]; ok {
-		if err := json.Unmarshal(raw, &roster); err != nil {
-			Log(robot.Error, "Unmarshalling UserRoster from conf/%s: %v", configFile, err)
-		} else {
-			if len(roster) > 0 {
-				Log(robot.Warn, "%s protocol '%s' defines UserRoster in conf/%s; attribute fields are ignored in protocol config UserRoster (use main UserRoster + UserMap)", label, p, configFile)
-			}
-			source := "conf/" + filepath.ToSlash(configFile)
-			legacyUserMap = normalizeUserMapForProtocol(p, extractLegacyRosterIDs(raw), source+" UserRoster.UserID")
-			if used := mergeLegacyUserMapForProtocol(p, userMap, legacyUserMap, source); used > 0 {
-				Log(robot.Warn, "%s protocol '%s' is using legacy UserRoster.UserID compatibility from conf/%s (%d entries); migrate to UserMap", label, p, configFile, used)
-			}
-		}
+	if _, ok := protocolConfig["UserMap"]; ok {
+		return protocolFileConfig{}, false, fmt.Errorf("invalid configuration key in conf/%s for %s protocol '%s': UserMap", filepath.ToSlash(configFile), role, p)
 	}
 	var channels []ChannelInfo
 	if raw, ok := protocolConfig["ChannelRoster"]; ok {
@@ -314,9 +214,7 @@ func loadProtocolFileData(newconfig *ConfigLoader, protocol, role string, requir
 		}
 	}
 	return protocolFileConfig{
-		config:        protocolConfig,
-		userMap:       userMap,
-		legacyUserMap: legacyUserMap,
+		config: protocolConfig,
 	}, true, nil
 }
 
@@ -333,10 +231,10 @@ type DirectoryUser struct {
 }
 
 // UserRosterEntry is used only for configuration loading compatibility.
-// UserID is accepted for legacy configs but ignored for directory storage.
+// UserID is accepted for legacy configs but ignored by the engine.
 type UserRosterEntry struct {
 	UserName  string `yaml:"UserName"`  // Name used for authorization and identity decisions
-	UserID    string `yaml:"UserID"`    // Legacy parse-only field used for compatibility mapping extraction
+	UserID    string `yaml:"UserID"`    // Legacy parse-only field kept for config compatibility
 	Email     string `yaml:"Email"`     // For Get*Attribute()
 	Phone     string `yaml:"Phone"`     // For Get*Attribute()
 	FullName  string `yaml:"FullName"`  // For Get*Attribute()
@@ -361,7 +259,7 @@ func (u UserRosterEntry) toDirectoryUser() *DirectoryUser {
 // user maps and bot identity state.
 type UserInfo struct {
 	UserName     string `yaml:"UserName"`  // Name that refers to the user in bot config files
-	UserID       string `yaml:"UserID"`    // Internal protocol ID resolved from protocol UserMap (or legacy UserRoster.UserID compatibility)
+	UserID       string `yaml:"UserID"`    // Internal protocol ID (connector-local metadata/provenance)
 	Email        string `yaml:"Email"`     // For Get*Attribute()
 	Phone        string `yaml:"Phone"`     // For Get*Attribute()
 	FullName     string `yaml:"FullName"`  // For Get*Attribute()
@@ -439,7 +337,6 @@ func loadConfig(preConnect bool) error {
 		var strval string
 		var sarrval []string
 		var urval []UserRosterEntry
-		var umval map[string]string
 		var bival *UserInfo
 		var crval []ChannelInfo
 		var tval map[string]TaskSettings
@@ -458,8 +355,6 @@ func loadConfig(preConnect bool) error {
 			val = &bival
 		case "UserRoster":
 			val = &urval
-		case "UserMap":
-			val = &umval
 		case "ChannelRoster":
 			val = &crval
 		case "LocalPort":
@@ -519,8 +414,6 @@ func loadConfig(preConnect bool) error {
 			newconfig.DefaultMessageFormat = *(val.(*string))
 		case "UserRoster":
 			newconfig.UserRoster = *(val.(*[]UserRosterEntry))
-		case "UserMap":
-			newconfig.UserMap = *(val.(*map[string]string))
 		case "ChannelRoster":
 			newconfig.ChannelRoster = *(val.(*[]ChannelInfo))
 		case "DefaultAllowDirect":
@@ -605,12 +498,6 @@ func loadConfig(preConnect bool) error {
 		newconfig.ChannelRoster[i].protocol = processed.protocol
 	}
 	perProtocolConfigs := make(map[string]json.RawMessage, len(processed.secondaryProtocols)+1)
-	legacyPrimaryUserMap := normalizeUserMapForProtocol(
-		processed.protocol,
-		extractLegacyRosterIDs(configload["UserRoster"]),
-		robotConfigFileName+" UserRoster.UserID",
-	)
-	primaryUserMap := map[string]string{}
 	// Load primary protocol config from conf/protocols/<primary>.yaml and then
 	// re-append robot.yaml channels so robot.yaml remains the override layer.
 	robotPrimaryChannels := append([]ChannelInfo(nil), newconfig.ChannelRoster...)
@@ -629,15 +516,6 @@ func loadConfig(preConnect bool) error {
 		return fmt.Errorf("primary protocol '%s' has no ProtocolConfig in conf/%s", processed.protocol, filepath.ToSlash(primaryConfigPath))
 	}
 	perProtocolConfigs[processed.protocol] = rawPrimaryProtocolConfig
-	primaryUserMap = mergeUserMapsWithOverride(
-		processed.protocol,
-		primaryProtocolConfigFile.userMap,
-		normalizeUserMapForProtocol(processed.protocol, newconfig.UserMap, robotConfigFileName),
-		robotConfigFileName,
-	)
-	if used := mergeLegacyUserMapForProtocol(processed.protocol, primaryUserMap, legacyPrimaryUserMap, robotConfigFileName); used > 0 {
-		Log(robot.Warn, "Primary protocol '%s' is using legacy UserRoster.UserID compatibility from %s (%d entries); migrate to UserMap", processed.protocol, robotConfigFileName, used)
-	}
 	secondaryConfigByProtocol := make(map[string]protocolFileConfig, len(processed.secondaryProtocols))
 	for _, secondary := range processed.secondaryProtocols {
 		if cfg, ok, err := loadProtocolFileData(newconfig, secondary, "secondary", false); err != nil {
@@ -863,15 +741,6 @@ func loadConfig(preConnect bool) error {
 		channelIDProto: make(map[string]map[string]*ChannelInfo),
 		channelProto:   make(map[string]map[string]*ChannelInfo),
 	}
-	userMapByProtocol := make(map[string]map[string]string, len(processed.secondaryProtocols)+1)
-	if len(primaryUserMap) > 0 {
-		userMapByProtocol[processed.protocol] = primaryUserMap
-	}
-	for protocol, cfg := range secondaryConfigByProtocol {
-		if len(cfg.userMap) > 0 {
-			userMapByProtocol[protocol] = cfg.userMap
-		}
-	}
 	if len(newconfig.UserRoster) > 0 {
 		for i, user := range newconfig.UserRoster {
 			if len(strings.TrimSpace(user.UserName)) == 0 {
@@ -885,38 +754,6 @@ func loadConfig(preConnect bool) error {
 				}
 				ucmaps.directoryUser[du.UserName] = true
 			}
-		}
-	}
-	for protocol, pMap := range userMapByProtocol {
-		p := normalizeProtocolName(protocol)
-		if p == "" {
-			continue
-		}
-		protoNameMap, ok := ucmaps.userProto[p]
-		if !ok {
-			protoNameMap = map[string]*UserInfo{}
-			ucmaps.userProto[p] = protoNameMap
-		}
-		protoIDMap, ok := ucmaps.userIDProto[p]
-		if !ok {
-			protoIDMap = map[string]*UserInfo{}
-			ucmaps.userIDProto[p] = protoIDMap
-		}
-		for uname, uid := range pMap {
-			ui, exists := protoNameMap[uname]
-			if !exists {
-				ui = &UserInfo{
-					UserName: uname,
-					protocol: p,
-				}
-				if du, ok := ucmaps.user[uname]; ok {
-					applyDirectoryUserToUserInfo(ui, du)
-				}
-				protoNameMap[uname] = ui
-			}
-			ui.protocol = p
-			ui.UserID = uid
-			protoIDMap[uid] = ui
 		}
 	}
 	if len(newconfig.ChannelRoster) > 0 {
@@ -1002,9 +839,6 @@ func loadConfig(preConnect bool) error {
 			}
 		}
 	} else {
-		if len(userMapByProtocol) > 0 {
-			setConnectorUserMaps(userMapByProtocol)
-		}
 		// We should never dump the brain key
 		newconfig.EncryptionKey = "XXXXXX"
 		// initJobs need to run before post-connect loadTaskConfig
@@ -1029,7 +863,6 @@ func loadConfig(preConnect bool) error {
 	confLock.Unlock()
 
 	currentCfg.Lock()
-	processed.botinfo.UserID = currentCfg.botinfo.UserID
 	processed.botinfo.protoMention = currentCfg.botinfo.protoMention
 	currentCfg.configuration = processed
 	currentCfg.taskList = newList

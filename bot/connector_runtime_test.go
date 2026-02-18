@@ -22,12 +22,9 @@ type fakeRuntimeConnector struct {
 	lastThread         string
 	lastMessage        string
 	lastUser           string
-	lastUserID         string
 	lastUserName       string
 	lastProtocolOnSend string
 }
-
-func (fc *fakeRuntimeConnector) SetUserMap(map[string]string) {}
 
 func (fc *fakeRuntimeConnector) GetProtocolUserAttribute(string, string) (string, robot.RetVal) {
 	return "", robot.AttributeNotFound
@@ -60,11 +57,10 @@ func (fc *fakeRuntimeConnector) SendProtocolChannelThreadMessage(ch, thr, msg st
 	return robot.Ok
 }
 
-func (fc *fakeRuntimeConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, _ robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
+func (fc *fakeRuntimeConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, msg string, _ robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
 	fc.userChannelCalls++
-	fc.lastUserID = uid
 	fc.lastUserName = uname
 	fc.lastChannel = ch
 	fc.lastThread = thr
@@ -154,9 +150,9 @@ func (h *runtimeHarness) resetRuntimeState() {
 	runtimeConnectors.Lock()
 	runtimeConnectors.primary = ""
 	runtimeConnectors.defaultProtocol = ""
+	runtimeConnectors.botIDs = map[string]string{}
 	runtimeConnectors.runtimes = map[string]*managedConnector{}
 	runtimeConnectors.desiredSecondary = map[string]bool{}
-	runtimeConnectors.userMaps = map[string]map[string]string{}
 	runtimeConnectors.Unlock()
 }
 

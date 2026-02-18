@@ -8,6 +8,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Top-level component map: `aidocs/COMPONENT_MAP.md`
 - Startup flow narrative: `aidocs/STARTUP_FLOW.md`
 - High-level v3 goals: `aidocs/GOALS_v3.md`
+- v3 compatibility priorities and migration policy: `aidocs/V3_COMPATIBILITY_CONTRACT.md`
 - Execution/threading/security model: `aidocs/EXECUTION_SECURITY_MODEL.md`
 - Interpreter notes: `aidocs/INTERPRETERS.md`.
 - Extension surface map: `aidocs/EXTENSION_SURFACES.md`.
@@ -43,9 +44,9 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## connectors/
 
-- Slack connector registration + init: `connectors/slack/static.go` (calls `bot.RegisterConnector("slack", Initialize)`), `connectors/slack/connect.go` (func `Initialize`).
-- Test connector registration + runtime: `connectors/test/init.go` (calls `bot.RegisterConnector("test", Initialize)`), `connectors/test/connector.go` (method `(*TestConnector).Run`).
-- SSH connector registration + runtime: `connectors/ssh/static.go` (calls `bot.RegisterConnector("ssh", Initialize)`), `connectors/ssh/connector.go` (method `(*sshConnector).Run`).
+- Slack connector registration + init: `connectors/slack/static.go` (calls `bot.RegisterConnector("slack", Initialize)`), `connectors/slack/connect.go` (func `Initialize`; connector-local `ProtocolConfig.UserMap` identity mapping).
+- Test connector registration + runtime: `connectors/test/init.go` (calls `bot.RegisterConnector("test", Initialize)`; connector-local `ProtocolConfig.Users` identity mapping), `connectors/test/connector.go` (method `(*TestConnector).Run`).
+- SSH connector registration + runtime: `connectors/ssh/static.go` (calls `bot.RegisterConnector("ssh", Initialize)`), `connectors/ssh/connector.go` (method `(*sshConnector).Run`; connector-local `ProtocolConfig.UserKeys` list identity mapping).
 
 ## gojobs/
 

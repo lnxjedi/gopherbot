@@ -186,7 +186,7 @@ func serveAIDevSendAsRobot(rw http.ResponseWriter, req *http.Request) {
 			writeAIDevError(rw, http.StatusBadRequest, errors.New("channel is required when user is set and direct is false"))
 			return
 		}
-		ret = conn.SendProtocolUserChannelThreadMessage(resolvedUser, user, channel, threadID, text, robot.Raw, msgObject)
+		ret = conn.SendProtocolUserChannelThreadMessage(resolvedUser, channel, threadID, text, robot.Raw, msgObject)
 	default:
 		if channel == "" {
 			writeAIDevError(rw, http.StatusBadRequest, errors.New("channel is required for non-direct send_as_robot"))
@@ -213,22 +213,8 @@ func resolveAIDevUserForProtocol(protocol, user string) string {
 	if trimmed == "" {
 		return trimmed
 	}
-	if _, ok := handle.ExtractID(trimmed); ok {
-		return trimmed
-	}
-	name := strings.ToLower(trimmed)
-	currentUCMaps.Lock()
-	maps := currentUCMaps.ucmap
-	currentUCMaps.Unlock()
-	if maps == nil {
-		return trimmed
-	}
-	if pm, ok := maps.userProto[protocol]; ok {
-		if ui, ok := pm[name]; ok && ui != nil && ui.UserID != "" {
-			return bracket(ui.UserID)
-		}
-	}
-	return trimmed
+	_ = protocol
+	return strings.ToLower(trimmed)
 }
 
 func decodeAIDevJSON(body io.ReadCloser, v interface{}) error {

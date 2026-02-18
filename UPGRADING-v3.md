@@ -2,14 +2,59 @@
 
 This guide describes user-facing config changes for robots moving from the old single-protocol model to v3 multi-protocol.
 
+Compatibility scope for this guide:
+- Existing plugin/job/task scripts are expected to keep working across v2 -> v3.
+- Configuration is expected to require migration as v3 architecture evolves.
+
 ## Quick Checklist
 
 1. Set `PrimaryProtocol` in `conf/robot.yaml`.
 2. Add `SecondaryProtocols` for additional connectors.
 3. Make sure the primary protocol has a valid `ProtocolConfig` source.
 4. Move shared policy/config keys (especially `AdminUsers`) to `conf/robot.yaml`.
-5. Use global `UserRoster` for directory attributes and per-protocol `UserMap` for connector IDs.
-6. Reload and verify runtime with `protocol-list` (or `protocol list`).
+5. Use global `UserRoster` for canonical usernames and directory attributes.
+6. Ensure connector-emitted usernames match global `UserRoster` entries (especially with `IgnoreUnlistedUsers: true`).
+7. Confirm connector-specific identity mapping config is correct inside each connector `ProtocolConfig` (for example Slack `ProtocolConfig.UserMap`, SSH `ProtocolConfig.UserKeys`).
+8. Reload and verify runtime with `protocol-list` (or `protocol list`).
+
+## 2026-02-18 Username Identity Update (Slices 1 + 2 + 3 + 3b)
+
+These slices changed runtime behavior in ways that matter for upgrades:
+
+- Outbound engine-to-connector user sends are now username-based.
+- `IgnoreUnlistedUsers` now gates on trusted connector username membership in global `UserRoster`.
+- Inbound `UserID` remains metadata/provenance, but is no longer required for engine policy checks.
+- Engine no longer owns/distributes per-protocol `UserMap`; mapping is connector-local inside `ProtocolConfig`.
+- Bot internal IDs are protocol-scoped in engine runtime state (`protocol -> botID`).
+- `GetBotAttribute("id")` now resolves by context:
+  - plugins/messages: triggering protocol bot ID
+  - jobs/init/scheduled: `DefaultProtocol` bot ID
+
+Upgrade actions:
+
+1. Verify each connector emits canonical usernames that match `UserRoster.UserName`.
+2. If `IgnoreUnlistedUsers: true`, ensure each allowed user exists in global `UserRoster`.
+3. Validate user-targeted replies/DMs by username in each active connector.
+
+Slack-specific notes:
+
+1. Move any top-level Slack `UserMap` entries into `ProtocolConfig.UserMap`.
+2. Slack connector now treats `ProtocolConfig.UserMap` as canonical username-to-ID mapping.
+3. Top-level `UserMap` keys are invalid and now fail config load.
+
+Terminal/Test-specific notes:
+
+1. Connector-local user IDs come from each connector's `ProtocolConfig.Users` entries.
+2. Do not use legacy top-level `UserMap`/`AppendUserMap` keys in terminal/test protocol config files.
+
+Global note:
+- Top-level `UserMap` in `conf/robot.yaml` is also invalid and fails config load.
+
+Memory keying note:
+- Ephemeral user-scoped memory is now keyed by canonical username (not connector `UserID`).
+- Thread-scoped ephemeral memory now includes protocol context with thread ID.
+- Existing persisted ephemeral-memory entries keyed by old `UserID` semantics may not be recalled after upgrade.
+- `GetBotAttribute("id")` is runtime protocol-scoped and no longer falls back to legacy global `BotInfo.UserID` state.
 
 ## Primary/Secondary Protocol Keys
 
@@ -50,8 +95,11 @@ Use `conf/robot.yaml` for shared/global config and let the engine load per-proto
 In per-protocol files (`conf/<protocol>.yaml`), keep connector-local keys:
 
 - `ProtocolConfig` (required for active connector startup)
-- `UserMap` (recommended for all real users)
 - optional protocol-local `ChannelRoster`
+
+Connector identity mapping now lives inside `ProtocolConfig`, for example:
+- Slack: `ProtocolConfig.UserMap`
+- SSH: `ProtocolConfig.UserKeys` as a list of `{UserName, PublicKeys}` entries (supports multiple keys per username)
 
 Do not rely on these keys in `conf/<protocol>.yaml` in recommended style:
 
@@ -63,35 +111,44 @@ Do not rely on these keys in `conf/<protocol>.yaml` in recommended style:
 
 Those belong in `conf/robot.yaml`.
 
-## Identity Model Changes (`UserRoster` vs `UserMap`)
+Validation note:
+- Top-level `UserMap` is invalid in both `conf/robot.yaml` and `conf/<protocol>.yaml`.
+- Move mapping data into connector-specific `ProtocolConfig` fields.
 
-- `UserRoster` is now the global user directory (username + attributes).
-- `UserMap` is per-protocol mapping: `username -> protocol internal user ID`.
+## Identity Model Changes (`UserRoster` and Connector-Local Mapping)
+
+- `UserRoster` is now the global user directory (canonical username + attributes).
 - Username rules are strict: lowercase only; uppercase entries are rejected.
+- Connector-local identity mapping format is protocol-specific and configured in each connector's `ProtocolConfig`.
 
-`IgnoreUnlistedUsers: true` now requires both:
+`IgnoreUnlistedUsers: true` requires:
 
-- user exists in global `UserRoster`
-- user exists in that protocol's `UserMap`
+- connector-authenticated canonical username exists in global `UserRoster`
 
-### Legacy compatibility bridge
+Notes:
 
-`UserRoster.UserID` is still parsed for backward compatibility, but only as a mapping bridge:
-
-- if `UserMap` is missing an entry, legacy `UserRoster.UserID` can fill it
-- if both exist, `UserMap` wins and a warning is logged
-
-For migration, keep attributes in `UserRoster` and move all IDs to `UserMap`.
+- Engine policy decisions are username-based.
 
 SSH example (recommended):
 
 ```yaml
-UserMap:
-  parsley: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA..."
+ProtocolConfig:
+  UserKeys:
+  - UserName: parsley
+    PublicKeys:
+    - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA...key1"
+    - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA...key2"
 
 UserRoster:
 - UserName: parsley
   Email: parsley@example.com
+```
+
+If you want to intentionally start with no SSH users, set:
+
+```yaml
+ProtocolConfig:
+  UserKeys: []
 ```
 
 ## Admin Users Are Global

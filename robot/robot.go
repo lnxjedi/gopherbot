@@ -234,8 +234,8 @@ type Robot interface {
 	// Remember adds a ephemeral memory (with no backing store) to the robot's
 	// brain. This is used internally for resolving the meaning of "it", but can
 	// be used by plugins to remember other contextual facts. Since memories are
-	// indexed by user and channel, but not plugin, these facts can be referenced
-	// between plugins.
+	// indexed by canonical username and channel (and thread for threaded memory),
+	// but not plugin, these facts can be referenced between plugins.
 	Remember(key, value string, shared bool)
 	// RememberThread is identical to Remember, except that it forces the memory
 	// to associate with the thread.
