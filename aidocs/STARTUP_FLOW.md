@@ -178,6 +178,17 @@ Primary connector configuration is always loaded from:
 
 `ProtocolConfig` is expected there (not in `robot.yaml`). If that file is missing, or missing `ProtocolConfig`, startup/reload config load fails.
 
+### Brain/History Provider Config Sources
+
+Provider-specific configuration is loaded by selected provider name:
+
+- brain settings: `conf/brains/<Brain>.yaml` with top-level `BrainConfig`
+- history settings: `conf/history/<HistoryProvider>.yaml` with top-level `HistoryConfig`
+
+`BrainConfig` and `HistoryConfig` are invalid top-level keys in `robot.yaml`.
+
+If a selected provider file is missing, or missing its required top-level key, startup/reload config load fails.
+
 ### Config Merge Semantics (Installed Defaults + Custom Overrides)
 
 `bot/config_load.go` merges installed defaults with custom config using these rules:

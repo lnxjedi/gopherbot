@@ -244,7 +244,7 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		if !w.automaticTask && errString != "" {
 			w.Reply(errString)
 		}
-		plog, err := interfaces.history.GetLog(w.histName, w.runIndex)
+		plog, err := getHistoryProvider().GetLog(w.histName, w.runIndex)
 		if err == nil {
 			raiseThreadPriv("writing plugin fail log for " + w.pipeName)
 			fname := w.pipeName + "-fail.log"

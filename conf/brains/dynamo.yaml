@@ -1,0 +1,5 @@
+BrainConfig:
+  TableName: "your table name here"
+  Region: {{ env "GOPHER_BRAIN_REGION" | default "us-east-1" }}
+  AccessKeyID: "replace with encrypted value"
+  SecretAccessKey: "replace with encrypted value"

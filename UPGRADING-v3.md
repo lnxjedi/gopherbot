@@ -17,6 +17,24 @@ Compatibility scope for this guide:
 7. Confirm connector-specific identity mapping config is correct inside each connector `ProtocolConfig` (for example Slack `ProtocolConfig.UserMap`, SSH `ProtocolConfig.UserKeys`).
 8. Reload and verify runtime with `protocol-list` (or `protocol list`).
 
+## 2026-02-18 Provider Config Layout Update (Slice 1)
+
+Provider-specific configuration moved out of `conf/robot.yaml`:
+
+- brain provider config now lives in `conf/brains/<Brain>.yaml` under top-level `BrainConfig`
+- history provider config now lives in `conf/history/<HistoryProvider>.yaml` under top-level `HistoryConfig`
+
+Breaking config change:
+
+- top-level `BrainConfig` and `HistoryConfig` keys in `conf/robot.yaml` are invalid and fail config load
+
+Upgrade actions:
+
+1. Keep only provider selectors in `conf/robot.yaml` (for example `Brain`, `HistoryProvider`).
+2. Move old `BrainConfig` block to `conf/brains/<provider>.yaml`.
+3. Move old `HistoryConfig` block to `conf/history/<provider>.yaml`.
+4. Verify selected provider files exist and contain the required top-level key (`BrainConfig` or `HistoryConfig`).
+
 ## 2026-02-18 Username Identity Update (Slices 1 + 2 + 3 + 3b)
 
 These slices changed runtime behavior in ways that matter for upgrades:

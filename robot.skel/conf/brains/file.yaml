@@ -1,0 +1,5 @@
+{{ $statedir := env "GOPHER_STATEDIR" | default "state" }}
+{{ $defbraindir := printf "%s/brain" $statedir }}
+BrainConfig:
+  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default $defbraindir }}
+  Encode: true

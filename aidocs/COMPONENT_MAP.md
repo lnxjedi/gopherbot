@@ -40,6 +40,8 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## conf/
 
 - Default configuration: `conf/README.md`, `conf/robot.yaml`, `conf/protocols/terminal.yaml`.
+- Brain provider defaults: `conf/brains/*.yaml` (`BrainConfig`).
+- History provider defaults: `conf/history/*.yaml` (`HistoryConfig`).
 - Default job/plugin config examples live under `conf/jobs/` and `conf/plugins/` (e.g., `conf/jobs/pause-notifies.yaml`, `conf/plugins/builtin-help.yaml`).
 
 ## connectors/

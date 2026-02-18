@@ -81,10 +81,8 @@ type ConfigLoader struct {
 	UserRoster           []UserRosterEntry       `yaml:"UserRoster"`           // Global user directory entries; UserID accepted for legacy compatibility parsing
 	ChannelRoster        []ChannelInfo           `yaml:"ChannelRoster"`        // List of channels mapping names to IDs
 	Brain                string                  `yaml:"Brain"`                // Type of Brain to use
-	BrainConfig          json.RawMessage         `yaml:"BrainConfig"`          // Brain-specific configuration, for unmarshalling arbitrary config
 	EncryptionKey        string                  `yaml:"EncryptionKey"`        // Used to decrypt the "real" encryption key
 	HistoryProvider      string                  `yaml:"HistoryProvider"`      // Name of provider to use for storing and retrieving job/plugin histories
-	HistoryConfig        json.RawMessage         `yaml:"HistoryConfig"`        // History provider-specific configuration
 	HttpDebug            bool                    `yaml:"HttpDebug"`            // Whether to turn on debug logging of local http API calls
 	WorkSpace            string                  `yaml:"WorkSpace"`            // Read/Write area the robot uses to do work
 	DefaultElevator      string                  `yaml:"DefaultElevator"`      // Elevator plugin for ElevatedCommands and ElevateImmediateCommands
@@ -170,11 +168,64 @@ type protocolFileConfig struct {
 	config map[string]json.RawMessage
 }
 
+func normalizeProviderName(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
+}
+
+func providerConfigDirectoryForKey(key string) (string, bool) {
+	switch key {
+	case "BrainConfig":
+		return "brains", true
+	case "HistoryConfig":
+		return "history", true
+	default:
+		return "", false
+	}
+}
+
 func roleLabel(role string) string {
 	if role == "" {
 		return "Protocol"
 	}
 	return strings.ToUpper(role[:1]) + role[1:]
+}
+
+func loadProviderFileData(providerType, providerName string, required bool) (json.RawMessage, bool, error) {
+	p := normalizeProviderName(providerName)
+	if p == "" {
+		return nil, false, fmt.Errorf("invalid %s provider name: %q", providerType, providerName)
+	}
+	dir := strings.ToLower(strings.TrimSpace(providerType))
+	expectedKey := ""
+	switch dir {
+	case "brains":
+		expectedKey = "BrainConfig"
+	case "history":
+		expectedKey = "HistoryConfig"
+	default:
+		return nil, false, fmt.Errorf("invalid provider type: %q", providerType)
+	}
+	configFile := filepath.Join(dir, p+".yaml")
+	cfg := make(map[string]json.RawMessage)
+	if err := getConfigFile(configFile, required, cfg); err != nil {
+		if required {
+			return nil, false, fmt.Errorf("loading %s provider '%s' config from conf/%s: %v", providerType, p, configFile, err)
+		}
+		Log(robot.Warn, "Loading %s provider '%s' config from conf/%s: %v", providerType, p, configFile, err)
+		return nil, false, nil
+	}
+	if len(cfg) == 0 {
+		if required {
+			return nil, false, fmt.Errorf("%s provider '%s' configured but no conf/%s found", providerType, p, configFile)
+		}
+		Log(robot.Warn, "%s provider '%s' configured but no conf/%s found", providerType, p, configFile)
+		return nil, false, nil
+	}
+	raw, ok := cfg[expectedKey]
+	if !ok || raw == nil {
+		return nil, false, fmt.Errorf("%s provider '%s' has no %s in conf/%s", providerType, p, expectedKey, filepath.ToSlash(configFile))
+	}
+	return raw, true, nil
 }
 
 func loadProtocolFileData(newconfig *ConfigLoader, protocol, role string, required bool) (protocolFileConfig, bool, error) {
@@ -368,7 +419,10 @@ func loadConfig(preConnect bool) error {
 		case "MailConfig":
 			val = &mailval
 		case "BrainConfig", "HistoryConfig":
-			skip = true
+			targetDir, _ := providerConfigDirectoryForKey(key)
+			err := fmt.Errorf("invalid configuration key in %s: %s (move to conf/%s/<provider>.yaml)", robotConfigFileName, key, targetDir)
+			Log(robot.Error, err.Error())
+			return err
 		default:
 			err := fmt.Errorf("invalid configuration key in %s: %s", robotConfigFileName, key)
 			Log(robot.Error, err.Error())
@@ -396,12 +450,8 @@ func loadConfig(preConnect bool) error {
 			newconfig.Brain = *(val.(*string))
 		case "EncryptionKey":
 			newconfig.EncryptionKey = *(val.(*string))
-		case "BrainConfig":
-			newconfig.BrainConfig = value
 		case "HistoryProvider":
 			newconfig.HistoryProvider = *(val.(*string))
-		case "HistoryConfig":
-			newconfig.HistoryConfig = value
 		case "WorkSpace":
 			newconfig.WorkSpace = *(val.(*string))
 		case "DefaultJobChannel":
@@ -538,15 +588,26 @@ func loadConfig(preConnect bool) error {
 	setProtocolConfigs(perProtocolConfigs)
 	if newconfig.Brain != "" {
 		processed.brainProvider = newconfig.Brain
+		if cfg, loaded, err := loadProviderFileData("brains", newconfig.Brain, true); err != nil {
+			return err
+		} else if loaded {
+			brainConfig = cfg
+		} else {
+			brainConfig = nil
+		}
+	} else {
+		brainConfig = nil
 	}
-	if newconfig.BrainConfig != nil {
-		brainConfig = newconfig.BrainConfig
+	if newconfig.HistoryProvider == "" {
+		newconfig.HistoryProvider = "mem"
 	}
-	if newconfig.HistoryProvider != "" {
-		processed.historyProvider = newconfig.HistoryProvider
-	}
-	if newconfig.HistoryConfig != nil {
-		historyConfig = newconfig.HistoryConfig
+	processed.historyProvider = newconfig.HistoryProvider
+	if cfg, loaded, err := loadProviderFileData("history", newconfig.HistoryProvider, true); err != nil {
+		return err
+	} else if loaded {
+		historyConfig = cfg
+	} else {
+		historyConfig = nil
 	}
 
 	if newconfig.Alias != "" {
@@ -817,9 +878,6 @@ func loadConfig(preConnect bool) error {
 		} else {
 			processed.port = "0"
 		}
-		if len(newconfig.HistoryProvider) == 0 {
-			newconfig.HistoryProvider = "mem"
-		}
 		if len(newconfig.LogDest) > 0 {
 			processed.logDest = newconfig.LogDest
 		}
@@ -829,9 +887,19 @@ func loadConfig(preConnect bool) error {
 			if hprovider, ok = historyProviders[newconfig.HistoryProvider]; !ok {
 				Log(robot.Error, "No provider registered for history type: \"%s\", falling back to 'mem'", processed.historyProvider)
 				newconfig.HistoryProvider = "mem"
+				processed.historyProvider = "mem"
 				hprovider = historyProviders["mem"]
 			}
 			hp := hprovider(handler{})
+			if hp == nil {
+				Log(robot.Error, "History provider '%s' initialization returned nil, falling back to 'mem'", newconfig.HistoryProvider)
+				newconfig.HistoryProvider = "mem"
+				processed.historyProvider = "mem"
+				hp = mhprovider(handler{})
+			}
+			if hp == nil {
+				return fmt.Errorf("unable to initialize history provider")
+			}
 			interfaces.history = hp
 			if newconfig.HistoryProvider != "mem" {
 				// Initialize the memory provider as a last-ditch fallback

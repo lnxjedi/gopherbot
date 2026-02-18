@@ -185,9 +185,10 @@ func jobhistory(m robot.Robot, command string, args ...string) (retval robot.Tas
 			r.Say("Log for '%s', run %d not available", histSpec, idx)
 		}
 	case "linklog":
-		url, found := interfaces.history.GetLogURL(histSpec, idx)
+		hprovider := getHistoryProvider()
+		url, found := hprovider.GetLogURL(histSpec, idx)
 		if !found {
-			url, found = interfaces.history.MakeLogURL(histSpec, idx)
+			url, found = hprovider.MakeLogURL(histSpec, idx)
 		}
 		if !found {
 			r.Say("URL for '%s', run %d not available", histSpec, idx)

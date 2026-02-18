@@ -38,6 +38,4 @@ ExternalPlugins:
 WorkSpace: workspace
 
 Brain: file
-BrainConfig:
-  BrainDirectory: brain
 DefaultElevator: builtin-totp
