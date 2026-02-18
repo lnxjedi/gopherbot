@@ -34,7 +34,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## cmd/
 
-- MCP lifecycle helper binary: `cmd/gopherbot-mcp/main.go` (stdio MCP server with robot lifecycle/status/inventory/readiness/log tools (`start_robot`, `stop_robot`, `restart_robot`, `robot_status`, `wait_robot_ready`, `list_robots`, `cleanup_stale_state`, `tail_robot_log`, `read_robot_log`) plus AI-dev interaction tools (`send_message`, `get_messages`, `get_commands`, `send_as_robot`, `reply_command`). `get_commands` supports per-robot cursors (`after_by_robot` / `next_by_robot`), aggregate multi-robot polling (`aggregate`), and indefinite wait (`timeout_ms: -1`). `reply_command` can derive `robot_dir` from `command.robot_dir`).
+- MCP lifecycle helper binary: `cmd/gopherbot-mcp/main.go` (stdio MCP server with robot lifecycle/status/inventory/readiness/log tools (`start_robot`, `stop_robot`, `restart_robot`, `robot_status`, `wait_robot_ready`, `list_robots`, `cleanup_stale_state`, `tail_robot_log`, `read_robot_log`) plus AI-dev interaction tools (`send_message`, `get_messages`, `send_as_robot`)).
 
 ## conf/
 

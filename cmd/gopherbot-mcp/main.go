@@ -31,8 +31,6 @@ const (
 	maxMCPSSHPort      = 4229
 )
 
-var awayBackoffSchedule = []int{2, 5, 10, 20, 30, 60, 120, 180, 240, 300, 360, 420}
-
 type jsonRPCRequest struct {
 	JSONRPC string          `json:"jsonrpc"`
 	ID      json.RawMessage `json:"id,omitempty"`
@@ -64,16 +62,13 @@ type toolsCallParams struct {
 }
 
 type processState struct {
-	PID            int      `json:"pid"`
-	RobotDir       string   `json:"robot_dir"`
-	GopherbotBin   string   `json:"gopherbot_binary"`
-	AuthToken      string   `json:"auth_token"`
-	CommandUser    string   `json:"command_user,omitempty"`
-	CommandPrefix  string   `json:"command_prefix,omitempty"`
-	CommandConsume bool     `json:"command_consume"`
-	LogPath        string   `json:"log_path"`
-	StartedAt      string   `json:"started_at"`
-	CommandArgs    []string `json:"command_args"`
+	PID          int      `json:"pid"`
+	RobotDir     string   `json:"robot_dir"`
+	GopherbotBin string   `json:"gopherbot_binary"`
+	AuthToken    string   `json:"auth_token"`
+	LogPath      string   `json:"log_path"`
+	StartedAt    string   `json:"started_at"`
+	CommandArgs  []string `json:"command_args"`
 }
 
 type mcpToolError struct {
@@ -87,48 +82,8 @@ func (e *mcpToolError) Error() string {
 }
 
 type mcpServer struct {
-	rootDir      string
-	mu           sync.Mutex
-	awaySessions map[string]*awaySession
-}
-
-type replyCommandContext struct {
-	RobotDir    string
-	Text        string
-	Protocol    string
-	Channel     string
-	ThreadID    string
-	User        string
-	Direct      bool
-	MentionUser bool
-	Command     map[string]interface{}
-}
-
-type awaySession struct {
-	Enabled       bool
-	Note          string
-	Cursor        uint64
-	ConduitUser   string
-	ActiveContext awayContext
-	Pending       map[uint64]awayCommand
-	SeenCursor    uint64
-	BackoffIdx    int
-	Heartbeat     uint64
-}
-
-type awayContext struct {
-	Protocol string
-	Channel  string
-	ThreadID string
-}
-
-type awayCommand struct {
-	ID      string
-	Cursor  uint64
-	Text    string
-	User    string
-	TS      string
-	Context awayContext
+	rootDir string
+	mu      sync.Mutex
 }
 
 func main() {
@@ -138,8 +93,7 @@ func main() {
 		os.Exit(1)
 	}
 	s := &mcpServer{
-		rootDir:      rootDir,
-		awaySessions: map[string]*awaySession{},
+		rootDir: rootDir,
 	}
 	if err := s.serve(); err != nil {
 		fmt.Fprintf(os.Stderr, "mcp server error: %v\n", err)
@@ -345,18 +299,6 @@ func (s *mcpServer) tools() []mcpTool {
 							"type": "string",
 						},
 					},
-					"command_user": map[string]interface{}{
-						"type":        "string",
-						"description": "Optional conduit username override; defaults to prior state when available.",
-					},
-					"command_prefix": map[string]interface{}{
-						"type":        "string",
-						"description": "Optional conduit prefix override; defaults to prior state when available.",
-					},
-					"command_consume": map[string]interface{}{
-						"type":        "boolean",
-						"description": "Whether command-conduit messages are consumed and not routed to plugins (default true).",
-					},
 					"wait_ready": map[string]interface{}{
 						"type":        "boolean",
 						"description": "Wait for readiness after start (default true).",
@@ -448,18 +390,6 @@ func (s *mcpServer) tools() []mcpTool {
 						"additionalProperties": map[string]interface{}{
 							"type": "string",
 						},
-					},
-					"command_user": map[string]interface{}{
-						"type":        "string",
-						"description": "Optional username that can issue addressed '>' commands captured by get_commands.",
-					},
-					"command_prefix": map[string]interface{}{
-						"type":        "string",
-						"description": "Optional command prefix character for conduit capture (default '>').",
-					},
-					"command_consume": map[string]interface{}{
-						"type":        "boolean",
-						"description": "When true, conduit commands are consumed and not dispatched to normal plugin matching (default true).",
 					},
 					"ssh_port_min": map[string]interface{}{
 						"type":        "integer",
@@ -578,76 +508,6 @@ func (s *mcpServer) tools() []mcpTool {
 			},
 		},
 		{
-			Name:        "get_commands",
-			Description: "Fetch normalized queued commands for one robot using away-mode cursor semantics.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"robot_dir": map[string]interface{}{
-						"type":        "string",
-						"description": "Robot directory.",
-					},
-					"mode": map[string]interface{}{
-						"type":        "string",
-						"description": "Polling mode: peek or idle.",
-						"enum":        []string{"peek", "idle"},
-					},
-					"wait_sec": map[string]interface{}{
-						"type":        "integer",
-						"description": "Wait duration in seconds. Must be 0 for peek; max 420 for idle.",
-					},
-					"cursor": map[string]interface{}{
-						"type":        "string",
-						"description": "Optional previously returned cursor token.",
-					},
-					"max_commands": map[string]interface{}{
-						"type":        "integer",
-						"description": "Maximum commands to return (default 1).",
-					},
-				},
-				"required": []string{"robot_dir", "mode", "wait_sec"},
-			},
-		},
-		{
-			Name:        "ack_commands",
-			Description: "Acknowledge handled command ids for one robot so they are not reprocessed.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"robot_dir": map[string]interface{}{
-						"type":        "string",
-						"description": "Robot directory.",
-					},
-					"command_ids": map[string]interface{}{
-						"type":        "array",
-						"description": "Command ids returned by get_commands.",
-						"items": map[string]interface{}{
-							"type": "string",
-						},
-					},
-				},
-				"required": []string{"robot_dir", "command_ids"},
-			},
-		},
-		{
-			Name:        "tell_user",
-			Description: "Send a message as robot to the currently active away command context (protocol/channel/thread).",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"robot_dir": map[string]interface{}{
-						"type":        "string",
-						"description": "Robot directory.",
-					},
-					"text": map[string]interface{}{
-						"type":        "string",
-						"description": "Message text.",
-					},
-				},
-				"required": []string{"robot_dir", "text"},
-			},
-		},
-		{
 			Name:        "send_as_robot",
 			Description: "Send a message as the robot on a target protocol/channel/thread (optionally direct to a user).",
 			InputSchema: map[string]interface{}{
@@ -683,132 +543,6 @@ func (s *mcpServer) tools() []mcpTool {
 					},
 				},
 				"required": []string{"robot_dir", "text"},
-			},
-		},
-		{
-			Name:        "reply_command",
-			Description: "Reply to a get_commands event in the same protocol/channel/thread as the command.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"robot_dir": map[string]interface{}{
-						"type":        "string",
-						"description": "Directory where the robot is running. Optional if command.robot_dir is present.",
-					},
-					"text": map[string]interface{}{
-						"type":        "string",
-						"description": "Reply text to send.",
-					},
-					"command": map[string]interface{}{
-						"type":        "object",
-						"description": "Command event object returned by get_commands.",
-					},
-					"mention_user": map[string]interface{}{
-						"type":        "boolean",
-						"description": "When true, prepend '@user_name ' from the command event.",
-					},
-					"protocol": map[string]interface{}{
-						"type":        "string",
-						"description": "Optional protocol override.",
-					},
-					"channel": map[string]interface{}{
-						"type":        "string",
-						"description": "Optional channel override.",
-					},
-					"thread_id": map[string]interface{}{
-						"type":        "string",
-						"description": "Optional thread override.",
-					},
-					"user": map[string]interface{}{
-						"type":        "string",
-						"description": "Optional user override for direct replies.",
-					},
-					"direct": map[string]interface{}{
-						"type":        "boolean",
-						"description": "Optional direct-message override.",
-					},
-				},
-				"required": []string{"text", "command"},
-			},
-		},
-		{
-			Name:        "set_away",
-			Description: "Enable or disable away mode for one robot and optionally configure command conduit.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"robot_dir": map[string]interface{}{
-						"type":        "string",
-						"description": "Directory where the robot is running.",
-					},
-					"enabled": map[string]interface{}{
-						"type":        "boolean",
-						"description": "When true, enable away mode. When false, disable away mode.",
-					},
-					"note": map[string]interface{}{
-						"type":        "string",
-						"description": "Optional operator note.",
-					},
-					"conduit_user": map[string]interface{}{
-						"type":        "string",
-						"description": "Username allowed to issue command conduit messages.",
-					},
-					"enable_conduit": map[string]interface{}{
-						"type":        "boolean",
-						"description": "When enabling away, restart robot to ensure command conduit is configured (default true).",
-					},
-				},
-				"required": []string{"robot_dir", "enabled"},
-			},
-		},
-		{
-			Name:        "away_start",
-			Description: "Deprecated: use set_away.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"robot_dir": map[string]interface{}{
-						"type":        "string",
-						"description": "Directory where the robot is running.",
-					},
-				},
-				"required": []string{"robot_dir"},
-			},
-		},
-		{
-			Name:        "away_status",
-			Description: "Deprecated: use set_away/get_commands.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"robot_dir": map[string]interface{}{
-						"type":        "string",
-						"description": "Directory where the robot is running.",
-					},
-				},
-				"required": []string{"robot_dir"},
-			},
-		},
-		{
-			Name:        "away_stop",
-			Description: "Deprecated: use set_away.",
-			InputSchema: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"robot_dir": map[string]interface{}{
-						"type":        "string",
-						"description": "Directory where the robot is running.",
-					},
-					"disable_conduit": map[string]interface{}{
-						"type":        "boolean",
-						"description": "When true, disable command conduit via restart_robot after stopping worker (default true).",
-					},
-					"timeout_ms": map[string]interface{}{
-						"type":        "integer",
-						"description": "Wait timeout for worker stop (default 5000).",
-					},
-				},
-				"required": []string{"robot_dir"},
 			},
 		},
 	}
@@ -847,24 +581,8 @@ func (s *mcpServer) callTool(params toolsCallParams) map[string]interface{} {
 		result, err = s.toolSendMessage(args)
 	case "get_messages":
 		result, err = s.toolGetMessages(args)
-	case "get_commands":
-		result, err = s.toolGetCommands(args)
-	case "ack_commands":
-		result, err = s.toolAckCommands(args)
-	case "tell_user":
-		result, err = s.toolTellUser(args)
 	case "send_as_robot":
 		result, err = s.toolSendAsRobot(args)
-	case "reply_command":
-		result, err = s.toolReplyCommand(args)
-	case "set_away":
-		result, err = s.toolSetAway(args)
-	case "away_start":
-		result, err = s.toolAwayDeprecated("away_start")
-	case "away_status":
-		result, err = s.toolAwayDeprecated("away_status")
-	case "away_stop":
-		result, err = s.toolAwayDeprecated("away_stop")
 	default:
 		return toolErrorResult(newToolError("UNKNOWN_TOOL", fmt.Sprintf("unknown tool: %s", params.Name), map[string]interface{}{
 			"tool_name": params.Name,
@@ -934,10 +652,6 @@ func (s *mcpServer) toolListRobots(args map[string]interface{}) (map[string]inte
 			"state_file":       statePath,
 			"started_at":       state.StartedAt,
 			"command_args":     state.CommandArgs,
-			"command_user":     strings.TrimSpace(state.CommandUser),
-			"command_prefix":   strings.TrimSpace(state.CommandPrefix),
-			"command_consume":  state.CommandConsume,
-			"command_conduit":  strings.TrimSpace(state.CommandUser) != "",
 			"aiport_file":      aiportPath,
 			"aiport":           aiport,
 		})
@@ -1123,21 +837,6 @@ func (s *mcpServer) toolRestartRobot(args map[string]interface{}) (map[string]in
 	}
 	if rawEnv, ok := args["env"]; ok {
 		startArgs["env"] = rawEnv
-	}
-	if rawCommandUser, ok := args["command_user"]; ok {
-		startArgs["command_user"] = rawCommandUser
-	} else if prevState != nil && strings.TrimSpace(prevState.CommandUser) != "" {
-		startArgs["command_user"] = strings.TrimSpace(prevState.CommandUser)
-	}
-	if rawCommandPrefix, ok := args["command_prefix"]; ok {
-		startArgs["command_prefix"] = rawCommandPrefix
-	} else if prevState != nil && strings.TrimSpace(prevState.CommandPrefix) != "" {
-		startArgs["command_prefix"] = strings.TrimSpace(prevState.CommandPrefix)
-	}
-	if rawCommandConsume, ok := args["command_consume"]; ok {
-		startArgs["command_consume"] = rawCommandConsume
-	} else if prevState != nil && strings.TrimSpace(prevState.CommandUser) != "" {
-		startArgs["command_consume"] = prevState.CommandConsume
 	}
 	if rawPortMin, ok := args["ssh_port_min"]; ok {
 		startArgs["ssh_port_min"] = rawPortMin
@@ -1325,32 +1024,6 @@ func (s *mcpServer) toolStartRobot(args map[string]interface{}) (map[string]inte
 	if err != nil {
 		return nil, err
 	}
-	commandUser, err := optionalStringArg(args, "command_user")
-	if err != nil {
-		return nil, err
-	}
-	commandPrefix, err := optionalStringArg(args, "command_prefix")
-	if err != nil {
-		return nil, err
-	}
-	commandConsume, err := optionalBoolArg(args, "command_consume", true)
-	if err != nil {
-		return nil, err
-	}
-	if commandPrefix == "" {
-		commandPrefix = ">"
-	}
-	if len(commandPrefix) > 1 {
-		commandPrefix = commandPrefix[:1]
-	}
-	if strings.TrimSpace(commandUser) != "" {
-		if extraEnv == nil {
-			extraEnv = map[string]string{}
-		}
-		extraEnv["GOPHER_AIDEV_COMMAND_USER"] = strings.TrimSpace(commandUser)
-		extraEnv["GOPHER_AIDEV_COMMAND_PREFIX"] = commandPrefix
-		extraEnv["GOPHER_AIDEV_COMMAND_CONSUME"] = strconv.FormatBool(commandConsume)
-	}
 	sshPortMin, err := optionalIntArg(args, "ssh_port_min", minMCPSSHPort)
 	if err != nil {
 		return nil, err
@@ -1398,16 +1071,13 @@ func (s *mcpServer) toolStartRobot(args map[string]interface{}) (map[string]inte
 	}()
 
 	state := processState{
-		PID:            cmd.Process.Pid,
-		RobotDir:       robotDir,
-		GopherbotBin:   gopherbotBin,
-		AuthToken:      authToken,
-		CommandUser:    strings.TrimSpace(commandUser),
-		CommandPrefix:  commandPrefix,
-		CommandConsume: commandConsume,
-		LogPath:        logPath,
-		StartedAt:      time.Now().UTC().Format(time.RFC3339),
-		CommandArgs:    cmdArgs,
+		PID:          cmd.Process.Pid,
+		RobotDir:     robotDir,
+		GopherbotBin: gopherbotBin,
+		AuthToken:    authToken,
+		LogPath:      logPath,
+		StartedAt:    time.Now().UTC().Format(time.RFC3339),
+		CommandArgs:  cmdArgs,
 	}
 	if err := writeStateFile(statePath, state); err != nil {
 		return nil, err
@@ -1422,10 +1092,6 @@ func (s *mcpServer) toolStartRobot(args map[string]interface{}) (map[string]inte
 		"log_path":         state.LogPath,
 		"state_file":       statePath,
 		"command_args":     state.CommandArgs,
-		"command_user":     state.CommandUser,
-		"command_prefix":   state.CommandPrefix,
-		"command_consume":  state.CommandConsume,
-		"command_conduit":  state.CommandUser != "",
 		"ssh_port":         assignedSSHPort,
 	}, nil
 }
@@ -1522,10 +1188,6 @@ func (s *mcpServer) toolRobotStatus(args map[string]interface{}) (map[string]int
 		"pid":              state.PID,
 		"gopherbot_binary": state.GopherbotBin,
 		"auth_token":       state.AuthToken,
-		"command_user":     strings.TrimSpace(state.CommandUser),
-		"command_prefix":   strings.TrimSpace(state.CommandPrefix),
-		"command_consume":  state.CommandConsume,
-		"command_conduit":  strings.TrimSpace(state.CommandUser) != "",
 		"log_path":         state.LogPath,
 		"state_file":       statePath,
 		"started_at":       state.StartedAt,
@@ -1655,350 +1317,6 @@ func (s *mcpServer) toolGetMessages(args map[string]interface{}) (map[string]int
 	return res, nil
 }
 
-func (s *mcpServer) toolGetCommands(args map[string]interface{}) (map[string]interface{}, error) {
-	robotDir, err := requiredStringArg(args, "robot_dir")
-	if err != nil {
-		return nil, err
-	}
-	mode, err := requiredStringArg(args, "mode")
-	if err != nil {
-		return nil, err
-	}
-	waitSec, err := optionalIntArg(args, "wait_sec", 0)
-	if err != nil {
-		return nil, err
-	}
-	maxCommands, err := optionalIntArg(args, "max_commands", 1)
-	if err != nil {
-		return nil, err
-	}
-	if maxCommands <= 0 {
-		maxCommands = 1
-	}
-	if maxCommands > 64 {
-		maxCommands = 64
-	}
-	switch mode {
-	case "peek":
-		if waitSec != 0 {
-			return nil, newToolError("INVALID_ARGUMENT", "wait_sec must be 0 in peek mode", map[string]interface{}{"argument": "wait_sec"})
-		}
-	case "idle":
-		if waitSec < 0 || waitSec > 420 {
-			return nil, newToolError("INVALID_ARGUMENT", "wait_sec must be between 0 and 420 in idle mode", map[string]interface{}{"argument": "wait_sec"})
-		}
-	default:
-		return nil, newToolError("INVALID_ARGUMENT", "mode must be one of: peek, idle", map[string]interface{}{"argument": "mode"})
-	}
-
-	client, err := s.loadAIDevClient(robotDir)
-	if err != nil {
-		return nil, err
-	}
-	s.mu.Lock()
-	session := s.ensureAwaySession(client.robotDir)
-	if cursorRaw, ok := args["cursor"]; ok && cursorRaw != nil {
-		cursorStr, ok := cursorRaw.(string)
-		if !ok {
-			s.mu.Unlock()
-			return nil, newToolError("INVALID_ARGUMENT", "argument cursor must be a string", map[string]interface{}{"argument": "cursor"})
-		}
-		parsedCursor, err := parseCursorString(cursorStr)
-		if err != nil {
-			s.mu.Unlock()
-			return nil, err
-		}
-		if parsedCursor != session.Cursor {
-			session.Cursor = parsedCursor
-			session.Pending = map[uint64]awayCommand{}
-		}
-	}
-	awayEnabled := session.Enabled
-	commandUser := strings.TrimSpace(client.state.CommandUser)
-	cursorBefore := session.Cursor
-	s.mu.Unlock()
-
-	if !awayEnabled {
-		return map[string]interface{}{
-			"away":          false,
-			"keep_polling":  false,
-			"next_wait_sec": 0,
-			"cursor":        formatCursor(cursorBefore),
-			"heartbeat":     s.bumpHeartbeat(client.robotDir),
-			"commands":      []interface{}{},
-		}, nil
-	}
-	if commandUser == "" {
-		return nil, newToolError("COMMAND_CONDUIT_DISABLED", "robot does not have command conduit enabled", map[string]interface{}{
-			"robot_dir": client.robotDir,
-		})
-	}
-
-	timeoutMS := 0
-	if mode == "idle" {
-		timeoutMS = waitSec * 1000
-	}
-	payload := map[string]interface{}{
-		"all":          false,
-		"after_cursor": cursorBefore,
-		"timeout_ms":   timeoutMS,
-		"limit":        maxCommands,
-	}
-	httpTimeout := 2 * time.Second
-	if timeoutMS > 0 {
-		httpTimeout = time.Duration(timeoutMS+1500) * time.Millisecond
-	}
-	res, err := callAIDevEndpoint(client, "/aidev/get_commands", payload, httpTimeout)
-	if err != nil {
-		return nil, err
-	}
-	streamLatest := extractUint64Field(res, "latest", 0)
-	resyncedCursor := shouldResyncAIDevCursor(streamLatest, cursorBefore)
-	if resyncedCursor {
-		// The robot command stream was reset (for example, process restart), so
-		// replay from cursor 0 to avoid silently dropping fresh commands.
-		payload["after_cursor"] = uint64(0)
-		payload["timeout_ms"] = 0
-		res, err = callAIDevEndpoint(client, "/aidev/get_commands", payload, 2*time.Second)
-		if err != nil {
-			return nil, err
-		}
-	}
-	rawCommands, _ := res["commands"].([]interface{})
-
-	s.mu.Lock()
-	session = s.ensureAwaySession(client.robotDir)
-	if resyncedCursor && session.Cursor > streamLatest {
-		session.Cursor = 0
-		session.Pending = map[uint64]awayCommand{}
-	}
-	for _, raw := range rawCommands {
-		cmd, ok := raw.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		cursor := extractUint64Field(cmd, "cursor", 0)
-		if cursor == 0 || cursor <= session.Cursor {
-			continue
-		}
-		text := normalizeCommandText(mapString(cmd, "command"))
-		if text == "" {
-			continue
-		}
-		normalized := awayCommand{
-			ID:     formatCursor(cursor),
-			Cursor: cursor,
-			Text:   text,
-			User:   mapString(cmd, "user_name"),
-			TS:     mapString(cmd, "timestamp"),
-			Context: awayContext{
-				Protocol: mapString(cmd, "protocol"),
-				Channel:  mapString(cmd, "channel"),
-				ThreadID: mapString(cmd, "thread_id"),
-			},
-		}
-		if normalized.Context.Protocol == "" {
-			normalized.Context.Protocol = "slack"
-		}
-		session.Pending[cursor] = normalized
-		if cursor > session.SeenCursor {
-			session.SeenCursor = cursor
-		}
-		session.ActiveContext = normalized.Context
-	}
-	commands := session.pendingCommands(maxCommands)
-	if len(commands) > 0 {
-		session.BackoffIdx = 0
-	} else if mode == "idle" && session.BackoffIdx < len(awayBackoffSchedule)-1 {
-		session.BackoffIdx++
-	}
-	nextWait := 0
-	shouldPoll := session.Enabled
-	if !session.Enabled {
-		shouldPoll = false
-	} else if mode == "idle" {
-		if len(commands) == 0 {
-			nextWait = awayBackoffSchedule[session.BackoffIdx]
-		}
-	}
-	heartbeat := session.bumpHeartbeat()
-	cursor := formatCursor(session.Cursor)
-	s.mu.Unlock()
-
-	return map[string]interface{}{
-		"away":          awayEnabled,
-		"keep_polling":  shouldPoll,
-		"next_wait_sec": nextWait,
-		"cursor":        cursor,
-		"heartbeat":     heartbeat,
-		"commands":      awayCommandsToOutput(commands),
-	}, nil
-}
-
-func (s *mcpServer) toolAckCommands(args map[string]interface{}) (map[string]interface{}, error) {
-	robotDir, err := requiredStringArg(args, "robot_dir")
-	if err != nil {
-		return nil, err
-	}
-	rawIDs, ok := args["command_ids"]
-	if !ok || rawIDs == nil {
-		return nil, newToolError("INVALID_ARGUMENT", "missing required argument: command_ids", map[string]interface{}{"argument": "command_ids"})
-	}
-	idListRaw, ok := rawIDs.([]interface{})
-	if !ok {
-		return nil, newToolError("INVALID_ARGUMENT", "argument command_ids must be an array of strings", map[string]interface{}{"argument": "command_ids"})
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	robotDir = resolvePath(s.rootDir, robotDir)
-	session := s.ensureAwaySession(robotDir)
-	for _, raw := range idListRaw {
-		id, ok := raw.(string)
-		if !ok {
-			return nil, newToolError("INVALID_ARGUMENT", "argument command_ids must be an array of strings", map[string]interface{}{"argument": "command_ids"})
-		}
-		cursor, err := parseCursorString(id)
-		if err != nil {
-			return nil, err
-		}
-		delete(session.Pending, cursor)
-		if cursor > session.Cursor {
-			session.Cursor = cursor
-		}
-	}
-	session.trimPendingBeforeCursor()
-	return map[string]interface{}{
-		"ok":     true,
-		"cursor": formatCursor(session.Cursor),
-	}, nil
-}
-
-func (s *mcpServer) toolTellUser(args map[string]interface{}) (map[string]interface{}, error) {
-	robotDir, err := requiredStringArg(args, "robot_dir")
-	if err != nil {
-		return nil, err
-	}
-	text, err := requiredStringArg(args, "text")
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := s.loadAIDevClient(robotDir)
-	if err != nil {
-		return nil, err
-	}
-	s.mu.Lock()
-	session := s.ensureAwaySession(client.robotDir)
-	ctx := session.ActiveContext
-	s.mu.Unlock()
-	if strings.TrimSpace(ctx.Channel) == "" {
-		return map[string]interface{}{"ok": false}, nil
-	}
-	protocol := strings.TrimSpace(ctx.Protocol)
-	if protocol == "" {
-		protocol = "slack"
-	}
-	res, err := s.toolSendAsRobot(map[string]interface{}{
-		"robot_dir": client.robotDir,
-		"text":      text,
-		"protocol":  protocol,
-		"channel":   ctx.Channel,
-		"thread_id": ctx.ThreadID,
-		"direct":    false,
-	})
-	if err != nil {
-		return nil, err
-	}
-	_ = res
-	return map[string]interface{}{"ok": true}, nil
-}
-
-func (s *mcpServer) toolSetAway(args map[string]interface{}) (map[string]interface{}, error) {
-	robotDir, err := requiredStringArg(args, "robot_dir")
-	if err != nil {
-		return nil, err
-	}
-	enabled, err := requiredBoolArg(args, "enabled")
-	if err != nil {
-		return nil, err
-	}
-	note, err := optionalStringArg(args, "note")
-	if err != nil {
-		return nil, err
-	}
-	conduitUser, err := optionalStringArg(args, "conduit_user")
-	if err != nil {
-		return nil, err
-	}
-	if conduitUser == "" {
-		conduitUser = "parsley"
-	}
-	enableConduit, err := optionalBoolArg(args, "enable_conduit", true)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := s.loadAIDevClient(robotDir)
-	if err != nil {
-		return nil, err
-	}
-	if enabled && enableConduit {
-		if _, err := s.toolRestartRobot(map[string]interface{}{
-			"robot_dir":       client.robotDir,
-			"command_user":    conduitUser,
-			"command_prefix":  ">",
-			"command_consume": true,
-			"wait_ready":      true,
-			"timeout_ms":      15000,
-			"poll_ms":         200,
-		}); err != nil {
-			return nil, err
-		}
-		client, err = s.loadAIDevClient(client.robotDir)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if enabled && strings.TrimSpace(client.state.CommandUser) == "" {
-		return nil, newToolError("COMMAND_CONDUIT_DISABLED", "robot does not have command conduit enabled", map[string]interface{}{
-			"robot_dir": client.robotDir,
-		})
-	}
-
-	s.mu.Lock()
-	session := s.ensureAwaySession(client.robotDir)
-	session.Enabled = enabled
-	session.Note = note
-	session.ConduitUser = conduitUser
-	session.bumpHeartbeat()
-	if !enabled {
-		session.BackoffIdx = 0
-		session.Pending = map[uint64]awayCommand{}
-	}
-	cursor := formatCursor(session.Cursor)
-	s.mu.Unlock()
-
-	msg := "away mode disabled"
-	if enabled {
-		msg = "away mode enabled"
-	}
-	if strings.TrimSpace(note) != "" {
-		msg = msg + ": " + strings.TrimSpace(note)
-	}
-	return map[string]interface{}{
-		"away":    enabled,
-		"cursor":  cursor,
-		"message": msg,
-	}, nil
-}
-
-func (s *mcpServer) toolAwayDeprecated(toolName string) (map[string]interface{}, error) {
-	return nil, newToolError("DEPRECATED_TOOL", fmt.Sprintf("%s is deprecated; use set_away/get_commands/ack_commands/tell_user", toolName), map[string]interface{}{
-		"tool_name": toolName,
-	})
-}
-
 func (s *mcpServer) toolSendAsRobot(args map[string]interface{}) (map[string]interface{}, error) {
 	robotDir, err := requiredStringArg(args, "robot_dir")
 	if err != nil {
@@ -2050,311 +1368,6 @@ func (s *mcpServer) toolSendAsRobot(args map[string]interface{}) (map[string]int
 	return res, nil
 }
 
-func (s *mcpServer) toolReplyCommand(args map[string]interface{}) (map[string]interface{}, error) {
-	ctx, err := parseReplyCommandContext(args)
-	if err != nil {
-		return nil, err
-	}
-	replyText := ctx.Text
-	if ctx.MentionUser {
-		if u := mapString(ctx.Command, "user_name"); u != "" {
-			replyText = "@" + u + " " + replyText
-		}
-	}
-	sendArgs := map[string]interface{}{
-		"robot_dir": ctx.RobotDir,
-		"text":      replyText,
-		"protocol":  ctx.Protocol,
-		"channel":   ctx.Channel,
-		"thread_id": ctx.ThreadID,
-	}
-	if ctx.Direct {
-		sendArgs["direct"] = true
-		sendArgs["user"] = ctx.User
-	}
-	res, err := s.toolSendAsRobot(sendArgs)
-	if err != nil {
-		return nil, err
-	}
-	res["reply_context"] = map[string]interface{}{
-		"protocol":  ctx.Protocol,
-		"channel":   ctx.Channel,
-		"thread_id": ctx.ThreadID,
-		"user":      ctx.User,
-		"direct":    ctx.Direct,
-	}
-	return res, nil
-}
-
-func mapString(m map[string]interface{}, key string) string {
-	raw, ok := m[key]
-	if !ok || raw == nil {
-		return ""
-	}
-	s, ok := raw.(string)
-	if !ok {
-		return ""
-	}
-	return strings.TrimSpace(s)
-}
-
-func (s *mcpServer) ensureAwaySession(robotDir string) *awaySession {
-	session, ok := s.awaySessions[robotDir]
-	if !ok {
-		session = &awaySession{
-			Pending: map[uint64]awayCommand{},
-		}
-		s.awaySessions[robotDir] = session
-	}
-	if session.Pending == nil {
-		session.Pending = map[uint64]awayCommand{}
-	}
-	return session
-}
-
-func (s *mcpServer) bumpHeartbeat(robotDir string) uint64 {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	session := s.ensureAwaySession(robotDir)
-	return session.bumpHeartbeat()
-}
-
-func (s *awaySession) bumpHeartbeat() uint64 {
-	s.Heartbeat++
-	return s.Heartbeat
-}
-
-func (s *awaySession) pendingCommands(limit int) []awayCommand {
-	cursors := make([]uint64, 0, len(s.Pending))
-	for c := range s.Pending {
-		if c <= s.Cursor {
-			continue
-		}
-		cursors = append(cursors, c)
-	}
-	sort.Slice(cursors, func(i, j int) bool {
-		return cursors[i] < cursors[j]
-	})
-	if limit > 0 && len(cursors) > limit {
-		cursors = cursors[:limit]
-	}
-	out := make([]awayCommand, 0, len(cursors))
-	for _, c := range cursors {
-		out = append(out, s.Pending[c])
-	}
-	return out
-}
-
-func (s *awaySession) trimPendingBeforeCursor() {
-	for c := range s.Pending {
-		if c <= s.Cursor {
-			delete(s.Pending, c)
-		}
-	}
-}
-
-func awayCommandsToOutput(commands []awayCommand) []interface{} {
-	out := make([]interface{}, 0, len(commands))
-	for _, cmd := range commands {
-		entry := map[string]interface{}{
-			"id":   cmd.ID,
-			"text": cmd.Text,
-		}
-		if strings.TrimSpace(cmd.User) != "" {
-			entry["user"] = cmd.User
-		}
-		if strings.TrimSpace(cmd.TS) != "" {
-			entry["ts"] = cmd.TS
-		}
-		out = append(out, entry)
-	}
-	return out
-}
-
-func commandsWithRobot(res map[string]interface{}, robotDir string) []interface{} {
-	raw, ok := res["commands"]
-	if !ok || raw == nil {
-		return nil
-	}
-	list, ok := raw.([]interface{})
-	if !ok || len(list) == 0 {
-		return nil
-	}
-	out := make([]interface{}, 0, len(list))
-	for _, item := range list {
-		m, ok := item.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		cp := make(map[string]interface{}, len(m)+1)
-		for k, v := range m {
-			cp[k] = v
-		}
-		cp["robot_dir"] = robotDir
-		out = append(out, cp)
-	}
-	return out
-}
-
-func firstCommandTimestamp(res map[string]interface{}) time.Time {
-	raw, ok := res["commands"]
-	if !ok || raw == nil {
-		return time.Time{}
-	}
-	list, ok := raw.([]interface{})
-	if !ok || len(list) == 0 {
-		return time.Time{}
-	}
-	first, ok := list[0].(map[string]interface{})
-	if !ok {
-		return time.Time{}
-	}
-	ts := mapString(first, "timestamp")
-	if ts == "" {
-		return time.Time{}
-	}
-	parsed, err := time.Parse(time.RFC3339Nano, ts)
-	if err != nil {
-		return time.Time{}
-	}
-	return parsed
-}
-
-func normalizeCommandText(in string) string {
-	text := strings.TrimSpace(in)
-	for strings.HasPrefix(text, ">") {
-		text = strings.TrimSpace(strings.TrimPrefix(text, ">"))
-	}
-	return text
-}
-
-func shouldResyncAIDevCursor(streamLatest, sessionCursor uint64) bool {
-	return streamLatest < sessionCursor
-}
-
-func parseCursorString(in string) (uint64, error) {
-	trimmed := strings.TrimSpace(in)
-	if trimmed == "" {
-		return 0, nil
-	}
-	parsed, err := strconv.ParseUint(trimmed, 10, 64)
-	if err != nil {
-		return 0, newToolError("INVALID_ARGUMENT", "cursor must be a base-10 unsigned integer string", map[string]interface{}{
-			"argument": "cursor",
-		})
-	}
-	return parsed, nil
-}
-
-func formatCursor(v uint64) string {
-	return strconv.FormatUint(v, 10)
-}
-
-func parseReplyCommandContext(args map[string]interface{}) (replyCommandContext, error) {
-	ctx := replyCommandContext{}
-	var err error
-
-	ctx.RobotDir, err = optionalStringArg(args, "robot_dir")
-	if err != nil {
-		return ctx, err
-	}
-	ctx.Text, err = requiredStringArg(args, "text")
-	if err != nil {
-		return ctx, err
-	}
-	rawCommand, ok := args["command"]
-	if !ok || rawCommand == nil {
-		return ctx, newToolError("INVALID_ARGUMENT", "missing required argument: command", map[string]interface{}{"argument": "command"})
-	}
-	command, ok := rawCommand.(map[string]interface{})
-	if !ok {
-		return ctx, newToolError("INVALID_ARGUMENT", "argument command must be an object", map[string]interface{}{"argument": "command"})
-	}
-	ctx.Command = command
-	if ctx.RobotDir == "" {
-		ctx.RobotDir = mapString(command, "robot_dir")
-	}
-	if strings.TrimSpace(ctx.RobotDir) == "" {
-		return ctx, newToolError("INVALID_ARGUMENT", "robot_dir is required (argument or command.robot_dir)", map[string]interface{}{
-			"argument": "robot_dir",
-		})
-	}
-	ctx.MentionUser, err = optionalBoolArg(args, "mention_user", false)
-	if err != nil {
-		return ctx, err
-	}
-	ctx.Protocol, err = optionalStringArg(args, "protocol")
-	if err != nil {
-		return ctx, err
-	}
-	ctx.Channel, err = optionalStringArg(args, "channel")
-	if err != nil {
-		return ctx, err
-	}
-	ctx.ThreadID, err = optionalStringArg(args, "thread_id")
-	if err != nil {
-		return ctx, err
-	}
-	ctx.User, err = optionalStringArg(args, "user")
-	if err != nil {
-		return ctx, err
-	}
-	ctx.Direct, err = optionalBoolArg(args, "direct", false)
-	if err != nil {
-		return ctx, err
-	}
-
-	if ctx.Protocol == "" {
-		ctx.Protocol = mapString(command, "protocol")
-	}
-	if ctx.Channel == "" {
-		ctx.Channel = mapString(command, "channel")
-	}
-	if ctx.ThreadID == "" {
-		ctx.ThreadID = mapString(command, "thread_id")
-	}
-	if ctx.User == "" {
-		ctx.User = mapString(command, "user_name")
-	}
-	if !ctx.Direct && ctx.User != "" && ctx.Channel == "" {
-		ctx.Direct = true
-	}
-	if ctx.Direct && ctx.User == "" {
-		return ctx, newToolError("INVALID_ARGUMENT", "direct reply requires a user (argument user or command.user_name)", map[string]interface{}{
-			"argument": "user",
-		})
-	}
-	if !ctx.Direct && ctx.Channel == "" {
-		return ctx, newToolError("INVALID_ARGUMENT", "channel is required for non-direct reply (argument channel or command.channel)", map[string]interface{}{
-			"argument": "channel",
-		})
-	}
-	return ctx, nil
-}
-
-func extractUint64Field(res map[string]interface{}, key string, def uint64) uint64 {
-	raw, ok := res[key]
-	if !ok || raw == nil {
-		return def
-	}
-	switch v := raw.(type) {
-	case float64:
-		if v < 0 {
-			return def
-		}
-		return uint64(v)
-	case int:
-		if v < 0 {
-			return def
-		}
-		return uint64(v)
-	case uint64:
-		return v
-	default:
-		return def
-	}
-}
-
 func requiredStringArg(args map[string]interface{}, key string) (string, error) {
 	val, ok := args[key]
 	if !ok {
@@ -2369,18 +1382,6 @@ func requiredStringArg(args map[string]interface{}, key string) (string, error) 
 		return "", newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s cannot be empty", key), map[string]interface{}{"argument": key})
 	}
 	return str, nil
-}
-
-func requiredBoolArg(args map[string]interface{}, key string) (bool, error) {
-	val, ok := args[key]
-	if !ok {
-		return false, newToolError("INVALID_ARGUMENT", fmt.Sprintf("missing required argument: %s", key), map[string]interface{}{"argument": key})
-	}
-	b, ok := val.(bool)
-	if !ok {
-		return false, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be a boolean", key), map[string]interface{}{"argument": key})
-	}
-	return b, nil
 }
 
 func optionalStringArg(args map[string]interface{}, key string) (string, error) {
@@ -2483,37 +1484,6 @@ func optionalUint64Arg(args map[string]interface{}, key string, def uint64) (uin
 	default:
 		return 0, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be an integer", key), map[string]interface{}{"argument": key})
 	}
-}
-
-func optionalUint64MapArg(args map[string]interface{}, key string) (map[string]uint64, error) {
-	val, ok := args[key]
-	if !ok || val == nil {
-		return map[string]uint64{}, nil
-	}
-	raw, ok := val.(map[string]interface{})
-	if !ok {
-		return nil, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s must be an object with integer values", key), map[string]interface{}{"argument": key})
-	}
-	out := make(map[string]uint64, len(raw))
-	for k, v := range raw {
-		switch n := v.(type) {
-		case float64:
-			if n < 0 {
-				return nil, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s[%s] must be >= 0", key, k), map[string]interface{}{"argument": key, "map_key": k})
-			}
-			out[k] = uint64(n)
-		case int:
-			if n < 0 {
-				return nil, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s[%s] must be >= 0", key, k), map[string]interface{}{"argument": key, "map_key": k})
-			}
-			out[k] = uint64(n)
-		case uint64:
-			out[k] = n
-		default:
-			return nil, newToolError("INVALID_ARGUMENT", fmt.Sprintf("argument %s[%s] must be an integer", key, k), map[string]interface{}{"argument": key, "map_key": k})
-		}
-	}
-	return out, nil
 }
 
 func optionalRootsArg(base string, args map[string]interface{}, key string) ([]string, error) {

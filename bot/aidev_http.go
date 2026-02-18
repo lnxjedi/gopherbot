@@ -31,13 +31,6 @@ type aidevGetMessagesRequest struct {
 	TimeoutMS   int    `json:"timeout_ms"`
 }
 
-type aidevGetCommandsRequest struct {
-	AfterCursor uint64 `json:"after_cursor"`
-	All         bool   `json:"all"`
-	Limit       int    `json:"limit"`
-	TimeoutMS   int    `json:"timeout_ms"`
-}
-
 type aidevSendAsRobotRequest struct {
 	Protocol string `json:"protocol"`
 	Text     string `json:"text"`
@@ -142,44 +135,6 @@ func serveAIDevGetMessages(rw http.ResponseWriter, req *http.Request) {
 		res.Protocol = protocol
 	}
 	writeAIDevJSON(rw, res)
-}
-
-func serveAIDevGetCommands(rw http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodPost {
-		rw.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-	if err := authorizeAIDevRequest(req); err != nil {
-		writeAIDevError(rw, http.StatusUnauthorized, err)
-		return
-	}
-	var in aidevGetCommandsRequest
-	if err := decodeAIDevJSON(req.Body, &in); err != nil {
-		writeAIDevError(rw, http.StatusBadRequest, err)
-		return
-	}
-	enabled, user, prefix, consume := aidevCommandConduitInfo()
-	if !enabled {
-		writeAIDevError(rw, http.StatusBadRequest, errors.New("aidev command conduit is not enabled"))
-		return
-	}
-	res := getAIDevCommands(aidevCommandQuery{
-		AfterCursor: in.AfterCursor,
-		All:         in.All,
-		Limit:       in.Limit,
-		TimeoutMS:   in.TimeoutMS,
-	})
-	payload := map[string]interface{}{
-		"user":        user,
-		"prefix":      prefix,
-		"consume":     consume,
-		"commands":    res.Commands,
-		"next_cursor": res.NextCursor,
-		"latest":      res.Latest,
-		"timed_out":   res.TimedOut,
-		"has_more":    res.HasMore,
-	}
-	writeAIDevJSON(rw, payload)
 }
 
 func serveAIDevSendAsRobot(rw http.ResponseWriter, req *http.Request) {

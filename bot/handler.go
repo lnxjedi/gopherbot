@@ -297,12 +297,6 @@ func (h handler) IncomingMessage(inc *robot.ConnectorMessage) {
 		inc.ThreadID = ""
 	}
 
-	capturedAIDevCommand := captureAIDevCommandIfMatched(userName, inc, isCommand, message)
-	if capturedAIDevCommand && aidevCommandConduitConsumes() {
-		Log(robot.Debug, "Consumed AI-dev conduit command from user '%s' on protocol '%s'", userName, incomingProtocol)
-		return
-	}
-
 	currentCfg.RLock()
 	cfg := currentCfg.configuration
 	t := currentCfg.taskList
