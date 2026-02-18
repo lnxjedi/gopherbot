@@ -70,13 +70,6 @@ ProtocolConfig:
     FirstName: "Erin"
     LastName: "User"
     Phone: "(555)765-0005"
-  
-UserMap:
-  alice: "u0001"
-  bob: "u0002"
-  carol: "u0003"
-  david: "u0004"
-  erin: "u0005"
 
 {{ $defaultjobchannel := "general" }}
 DefaultJobChannel: {{ env "GOPHER_JOBCHANNEL" | default $defaultjobchannel }}

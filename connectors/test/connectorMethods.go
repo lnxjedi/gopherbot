@@ -39,10 +39,6 @@ func (tc *TestConnector) getChannel(c string) string {
 func (tc *TestConnector) MessageHeard(u, c string) {
 }
 
-// SetUserMap lets Gopherbot provide a mapping of usernames to user IDs
-func (tc *TestConnector) SetUserMap(map[string]string) {
-}
-
 // GetProtocolUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
 func (tc *TestConnector) GetProtocolUserAttribute(u, attr string) (value string, ret robot.RetVal) {
@@ -86,7 +82,7 @@ func (tc *TestConnector) SendProtocolChannelThreadMessage(ch, thr, mesg string, 
 }
 
 // SendProtocolUserChannelMessage sends a message to a user in a channel
-func (tc *TestConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, mesg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+func (tc *TestConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, mesg string, f robot.MessageFormat, dummyMsgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	channel := tc.getChannel(ch)
 	threaded := thr != ""
 	msg := &BotMessage{

@@ -39,6 +39,14 @@ func validate_yaml(filePath string, yamldata []byte) error {
 	switch fileType {
 	case "robot":
 		targetStruct = &ConfigLoader{}
+	case "brain":
+		targetStruct = &struct {
+			BrainConfig interface{} `yaml:"BrainConfig"`
+		}{}
+	case "history":
+		targetStruct = &struct {
+			HistoryConfig interface{} `yaml:"HistoryConfig"`
+		}{}
 	case "plugin":
 		targetStruct = &Plugin{}
 	case "job":
@@ -67,6 +75,10 @@ func getFileType(filePath string) string {
 		return "plugin"
 	case "jobs":
 		return "job"
+	case "brains":
+		return "brain"
+	case "history":
+		return "history"
 	default:
 		return "robot"
 	}
@@ -76,9 +88,11 @@ func getFileType(filePath string) string {
 func processNode(fileType string, node *yaml.Node) error {
 	// Define free-form sections to exclude based on file type.
 	freeFormSections := map[string][]string{
-		"robot":  {"ProtocolConfig", "BrainConfig", "HistoryConfig"},
-		"plugin": {"Config"},
-		"job":    {"Config"},
+		"robot":   {"ProtocolConfig"},
+		"brain":   {"BrainConfig"},
+		"history": {"HistoryConfig"},
+		"plugin":  {"Config"},
+		"job":     {"Config"},
 	}
 
 	freeFormKeys := freeFormSections[fileType]

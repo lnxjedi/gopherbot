@@ -38,7 +38,7 @@ type slackConnector struct {
 	channelToID     map[string]string         // map from channel names to channel IDs
 	idToChannel     map[string]string         // map from channel ID to channel name
 	userIDInfo      map[string]*slack.User    // map from user ID to slack.User - everything Slack knows about the user
-	botUserMap      map[string]string         // gopherbot-engine provided mappings of username to userID
+	botUserMap      map[string]string         // connector-local configured mappings of username to userID
 	userMap         map[string]string         // map from user name to user ID
 	userIDMap       map[string]string         // map from user ID to engine-provided username, for resolving @foo
 	userIDToIM      map[string]string         // map from user ID to IM channel ID
@@ -110,7 +110,7 @@ func (s *slackConnector) updateUserList(want string) (ret string) {
 		botUserMap = s.botUserMap
 	}
 	s.RUnlock()
-	// Mapping information provided by the engine is canonical;
+	// Connector configuration mapping is canonical;
 	// we only take info from Slack if it's not already provided.
 	for name, id := range botUserMap {
 		userMap[name] = id

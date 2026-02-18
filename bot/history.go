@@ -11,6 +11,7 @@ package bot
 
 import (
 	"log"
+	"sync"
 	"time"
 
 	"github.com/lnxjedi/gopherbot/robot"
@@ -20,6 +21,8 @@ const histPrefix = "bot:histories:"
 
 // Memory that holds a Ref -> historyLookup record
 const histLookup = "bot:histories-lookup"
+
+var historyProviderFallbackLock sync.Mutex
 
 type historyLog struct {
 	LogIndex   int
@@ -34,8 +37,8 @@ type historyLookup struct {
 }
 
 type pipeHistory struct {
-	NextIndex          int
-	Histories          []historyLog
+	NextIndex int
+	Histories []historyLog
 }
 
 // start a new history log and manage memories
@@ -123,18 +126,41 @@ func newLogger(tag, eid, descriptor string, wid, keep int) (logger robot.History
 		}
 	}
 	var err error
-	logger, err = interfaces.history.NewLog(tag, idx, keep)
+	hprovider := getHistoryProvider()
+	logger, err = hprovider.NewLog(tag, idx, keep)
 	if err != nil {
 		Log(robot.Error, "Starting history for '%s' failed (%v) - falling back to memory log", tag, err)
 		idx = wid
 		ref = ""
+		if memHistories == nil {
+			mhprovider(handler{})
+		}
 		logger, _ = memHistories.NewLog(tag, idx, 0)
 	} else {
 		if keep > 0 {
-			url, _ = interfaces.history.GetLogURL(tag, idx)
+			url, _ = hprovider.GetLogURL(tag, idx)
 		}
 	}
 	return
+}
+
+func getHistoryProvider() robot.HistoryProvider {
+	hprovider := interfaces.history
+	if hprovider != nil {
+		return hprovider
+	}
+	historyProviderFallbackLock.Lock()
+	defer historyProviderFallbackLock.Unlock()
+	if interfaces.history != nil {
+		return interfaces.history
+	}
+	Log(robot.Error, "History provider not initialized; falling back to in-memory history provider")
+	if memHistories == nil {
+		interfaces.history = mhprovider(handler{})
+	} else {
+		interfaces.history = memHistories
+	}
+	return interfaces.history
 }
 
 // Map of registered history providers

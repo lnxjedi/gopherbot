@@ -525,7 +525,10 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 		if len(name) == 0 {
 			name = "(unknown)"
 		}
-		ID := r.cfg.botinfo.UserID
+		ID, ok := getRuntimeBotIDForContext(r.Incoming, r.Protocol)
+		if !ok {
+			ID = ""
+		}
 		if len(ID) == 0 {
 			ID = "(unknown)"
 		}

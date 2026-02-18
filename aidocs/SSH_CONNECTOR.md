@@ -56,13 +56,17 @@ This document records the intended SSH connector behavior, control flow, and int
 
 ## Identity Mapping
 
-- Preferred mapping config is `UserMap` (`username -> internal ssh key line`).
-- `UserRoster` is the user directory (email/name/phone/etc.).
-- Legacy compatibility: `UserRoster.UserID` can populate missing SSH mappings, but logs migration warnings.
-- If both are present for the same username, `UserMap` wins over `UserRoster.UserID`.
+- SSH connector identity mapping is connector-local in `ProtocolConfig`.
+- `ProtocolConfig.UserKeys` is a list of entries with:
+  - `UserName`
+  - `PublicKeys` (`[]string`)
+- This list shape is intentional: config load merges maps by key, while list values are replaced unless explicitly using `Append*` keys. Using a list prevents default SSH users from merging into custom robot identity config.
+- Custom robots that want to clear installed defaults should set `ProtocolConfig.UserKeys: []` (empty list) before adding their own entries.
+- `UserRoster` remains the global user directory (email/name/phone/etc.) and policy membership list.
 - Comments are ignored for matching; user name is taken from mapping/roster.
-- One key per user.
+- Multiple keys per user are supported.
 - Bot user is auto-added, using the server host public key line as `UserID`.
+- Engine outbound user-targeting is username-based; SSH resolves connector-local user IDs internally.
 
 ## Message Model
 

@@ -30,48 +30,14 @@ BotInfo:
 
 Alias: '{{ $botalias }}'
 
-# Brain configuration; this can all be replaced with static configuration
-# and encrypted secrets for most robots.
-{{ $brain := env "GOPHER_BRAIN" | default "file" }}
-{{ $statedir := env "GOPHER_STATEDIR" | default "state" }}
-{{ $defbraindir := printf "%s/brain" $statedir }}
-{{ if eq $brain "file" }}
-BrainConfig:
-  BrainDirectory: {{ env "GOPHER_BRAIN_DIRECTORY" | default $defbraindir }}
-  Encode: true
-{{ else if eq $brain "dynamo" }}
-BrainConfig:
-  TableName: "your table name here"
-  Region: {{ env "GOPHER_BRAIN_REGION" | default "us-east-1" }}
-  AccessKeyID: "replace with encrypted value"
-  SecretAccessKey: "replace with encrypted value"
-{{ else if eq $brain "cloudflare" }}
-BrainConfig:
-    AccountID: "youraccountID"
-    NamespaceID: "yournamespaceID"
-    MaxAgeHours: 7
-    APIToken: "replace with encrypted value"
-{{ end }}
-# End brain config
-
 # Defaults for history and workspace directories, relative to the
 # process working directory.
-{{ $histdir := env "GOPHER_HISTORYDIR" | default "history" }}
 {{ $workdir := env "GOPHER_WORKSPACE" | default "workspace" }}
 {{ if $workdir -}} WorkSpace: {{ $workdir }} {{- end }}
 
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "file" }}
 HistoryProvider: {{ $history }}
-
-{{ if eq $history "file" }}
-HistoryConfig:
-  Directory: {{ $histdir }}
-  ## LocalPort here is the full string passed in to ListenAndServe(...)
-  #LocalPort: ':9000' # Start http fileserver
-  #URLPrefix: 'http://localhost:9000'
-{{ end }}
-## End history config
 
 ## If the plugin doesn't specify an outgoing message format, what's the default?
 ## This will be 'Raw' (unmodified, subject to protocol-specific formatting) if

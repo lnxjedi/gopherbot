@@ -104,11 +104,6 @@ type Handler interface {
 // Connector is the interface defining methods that should be provided by
 // the connector for use by bot
 type Connector interface {
-	// SetUserMap provides the connector with a map from usernames to userIDs,
-	// the protocol-internal ID for a user. The connector can use this map
-	// to replace @name mentions in messages, and/or build a map of userIDs
-	// to configured usernames.
-	SetUserMap(map[string]string)
 	// GetProtocolUserAttribute retrieves a piece of information about a user
 	// from the connector protocol, or "",!ok if the connector doesn't have the
 	// information. Plugins should normally call GetUserAttribute, which
@@ -138,12 +133,10 @@ type Connector interface {
 	// protocol, it just sends a message to the channel.
 	SendProtocolChannelThreadMessage(channelname, threadid, msg string, format MessageFormat, msgObject *ConnectorMessage) RetVal
 	// SendProtocolUserChannelThreadMessage directs a message to a user in a channel/thread.
-	// This method also supplies what the bot engine believes to be the username.
-	SendProtocolUserChannelThreadMessage(userid, username, channelname, threadid, msg string, format MessageFormat, msgObject *ConnectorMessage) RetVal
+	// The value of username is the engine's canonical user identity.
+	SendProtocolUserChannelThreadMessage(username, channelname, threadid, msg string, format MessageFormat, msgObject *ConnectorMessage) RetVal
 	// SendProtocolUserMessage sends a direct message to a user if supported.
-	// The value of user will be either "<userid>", the connector internal
-	// userID in brackets, or "username", a string name the connector associates
-	// with the user.
+	// The value of user is the engine's canonical username identity.
 	SendProtocolUserMessage(user, msg string, format MessageFormat, msgObject *ConnectorMessage) RetVal
 	// The Run method starts the main loop and takes a channel for stopping it.
 	Run(stopchannel <-chan struct{})

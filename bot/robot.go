@@ -94,34 +94,48 @@ func (w *worker) makeRobot() Robot {
 
 func (w *worker) makeMemoryContext(key string) memoryContext {
 	var threadID string
-	if w.Incoming.ThreadedMessage {
+	if w.Incoming != nil && w.Incoming.ThreadedMessage {
 		threadID = w.Incoming.ThreadID
 	}
+	user := strings.ToLower(strings.TrimSpace(w.User))
+	protocol := ""
+	if threadID != "" {
+		protocol = protocolFromIncoming(w.Incoming, w.Protocol)
+	}
 	return memoryContext{
-		key:     key,
-		user:    w.Incoming.UserID,
-		channel: w.Channel,
-		thread:  threadID,
+		key:      key,
+		user:     user,
+		channel:  w.Channel,
+		thread:   threadID,
+		protocol: protocol,
 	}
 }
 
 func (r Robot) makeMemoryContext(key string, forceThread, shared bool) memoryContext {
 	var threadID string
-	if r.Incoming.ThreadedMessage || forceThread {
+	if r.Incoming != nil && (r.Incoming.ThreadedMessage || forceThread) {
 		threadID = r.Incoming.ThreadID
 	}
-	user := r.Incoming.UserID
+	user := strings.ToLower(strings.TrimSpace(r.User))
+	if user == "" && r.Incoming != nil {
+		user = strings.ToLower(strings.TrimSpace(r.Incoming.UserName))
+	}
 	// if len(r.Channel) == 0, it's a direct message to the robot
-	// and the idea of shared is meaningless - plus we NEED the user ID
+	// and the idea of shared is meaningless - plus we NEED the username
 	// to differentiate between different user's DM memories
 	if shared && len(r.Channel) > 0 {
 		user = ""
 	}
+	protocol := ""
+	if threadID != "" {
+		protocol = protocolFromIncoming(r.Incoming, r.Protocol)
+	}
 	return memoryContext{
-		key:     key,
-		user:    user,
-		channel: r.Channel,
-		thread:  threadID,
+		key:      key,
+		user:     user,
+		channel:  r.Channel,
+		thread:   threadID,
+		protocol: protocol,
 	}
 }
 
@@ -313,7 +327,11 @@ func (r Robot) GetBotAttribute(a string) *robot.AttrRet {
 	case "protocol":
 		attr = r.Protocol.String()
 	case "id", "internalid", "protocolid":
-		attr = fmt.Sprintf("<%s>", r.cfg.botinfo.UserID)
+		if id, ok := getRuntimeBotIDForContext(r.Incoming, r.Protocol); ok {
+			attr = fmt.Sprintf("<%s>", id)
+		} else {
+			attr = "<>"
+		}
 	default:
 		w := getLockedWorker(r.tid)
 		w.Unlock()

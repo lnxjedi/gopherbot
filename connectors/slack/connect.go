@@ -19,6 +19,31 @@ type config struct {
 	MaxMessageSplit    int    // the maximum # of ~4000 byte messages to split a large message into
 	DisableReflection  bool   // turn off automatic reflection of hidden (slash "/") commands
 	Debug              bool   // Explicitly turn on Slack protocol debug output
+	UserMap            map[string]string
+}
+
+func normalizeConfiguredUserMap(in map[string]string, h robot.Handler) map[string]string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(in))
+	for user, id := range in {
+		name := strings.TrimSpace(user)
+		uid := strings.TrimSpace(id)
+		if name == "" || uid == "" {
+			h.Log(robot.Warn, "Ignoring invalid Slack UserMap entry (empty username or user ID): %q -> %q", user, id)
+			continue
+		}
+		if strings.ToLower(name) != name {
+			h.Log(robot.Warn, "Ignoring Slack UserMap entry with uppercase username: %q", user)
+			continue
+		}
+		out[name] = uid
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // Initialize validates config, sets up and returns the connector object.
@@ -78,6 +103,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 		name:            "slack",
 		socketMode:      socketMode,
 		sendQueue:       nil,
+		botUserMap:      normalizeConfiguredUserMap(c.UserMap, r),
 	}
 	if socketMode {
 		sockOpts := []socketmode.Option{
@@ -113,8 +139,7 @@ func Initialize(r robot.Handler, l *log.Logger) robot.Connector {
 	sc.botFullName = botInfo.Name
 
 	sc.updateChannelMaps("")
-	// This should trigger from the engine calling SetUserMap
-	// sc.updateUserList("")
+	sc.updateUserList("")
 
 	return robot.Connector(sc)
 }

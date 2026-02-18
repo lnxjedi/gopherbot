@@ -412,12 +412,18 @@ func TestHandleUserInputDirectAtUserBypassEngine(t *testing.T) {
 	}
 }
 
-func TestSetUserMapRejectsUppercase(t *testing.T) {
+func TestConfigureUsersRejectsUppercase(t *testing.T) {
 	h := &testHandler{}
 	sc := &sshConnector{handler: h}
-	sc.SetUserMap(map[string]string{
-		"Alice": "ssh-ed25519 AAAA",
-		"bob":   "ssh-ed25519 BBBB",
+	sc.configureUsers([]userKeysEntry{
+		{
+			UserName:   "Alice",
+			PublicKeys: []string{"ssh-ed25519 AAAA"},
+		},
+		{
+			UserName:   "bob",
+			PublicKeys: []string{"ssh-ed25519 BBBB"},
+		},
 	})
 
 	if _, ok := sc.userNames["Alice"]; ok {
@@ -425,6 +431,33 @@ func TestSetUserMapRejectsUppercase(t *testing.T) {
 	}
 	if _, ok := sc.userNames["bob"]; !ok {
 		t.Fatalf("expected lowercase username to be accepted")
+	}
+}
+
+func TestConfigureUsersSupportsMultipleKeysPerUser(t *testing.T) {
+	h := &testHandler{}
+	sc := &sshConnector{handler: h}
+	sc.configureUsers([]userKeysEntry{
+		{
+			UserName: "parsley",
+			PublicKeys: []string{
+				"ssh-ed25519 AAAA1111",
+				"ssh-ed25519 BBBB2222",
+			},
+		},
+	})
+
+	if len(sc.userKeys) != 2 {
+		t.Fatalf("expected 2 configured public keys, got %d", len(sc.userKeys))
+	}
+	if info, ok := sc.userNames["parsley"]; !ok || info.userName != "parsley" {
+		t.Fatalf("expected parsley in userNames map, got %+v (ok=%t)", info, ok)
+	}
+	if _, ok := sc.userIDs["ssh-ed25519 AAAA1111"]; !ok {
+		t.Fatalf("expected first key in userIDs map")
+	}
+	if _, ok := sc.userIDs["ssh-ed25519 BBBB2222"]; !ok {
+		t.Fatalf("expected second key in userIDs map")
 	}
 }
 

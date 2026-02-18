@@ -40,6 +40,11 @@ type userListing struct {
 	isBot bool
 }
 
+type userKeysEntry struct {
+	UserName   string
+	PublicKeys []string
+}
+
 type bufferMsg struct {
 	seq       uint64
 	timestamp time.Time
@@ -72,6 +77,7 @@ type sshConfig struct {
 	UserHistoryLines int
 	Color            bool
 	ColorScheme      map[string]int
+	UserKeys         []userKeysEntry
 }
 
 type sshConnector struct {
@@ -150,6 +156,10 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 		threads:      make(map[string]int),
 		buffer:       make([]bufferMsg, cfg.ReplayBufferSize),
 		waiters:      make(map[chan struct{}]struct{}),
+	}
+	sc.configureUsers(cfg.UserKeys)
+	if len(sc.userKeys) == 0 {
+		handler.Log(robot.Warn, "SSH connector started with no configured user keys; no SSH user can authenticate until UserKeys is configured in ProtocolConfig")
 	}
 
 	return robot.Connector(sc)
@@ -573,29 +583,44 @@ func (sc *sshConnector) sendIncoming(client *sshClient, line string, hidden bool
 
 func (sc *sshConnector) MessageHeard(u, c string) {}
 
-func (sc *sshConnector) SetUserMap(m map[string]string) {
-	// TODO(v3 multi-protocol): On roster reload, disconnect active sessions whose
-	// key/identity is no longer present in the updated map.
+func (sc *sshConnector) configureUsers(entries []userKeysEntry) {
 	keys := make(map[string]userKeyInfo)
 	names := make(map[string]userKeyInfo)
 	ids := make(map[string]userKeyInfo)
-	for name, id := range m {
-		if strings.ToLower(name) != name {
-			sc.handler.Log(robot.Error, "SSH connector: rejecting username with uppercase letters: %q", name)
-			continue
+
+	addUserKey := func(rawName, rawKey string) {
+		name := normalizeUserName(rawName)
+		if name == "" {
+			sc.handler.Log(robot.Error, "SSH connector: rejecting empty username in UserKeys")
+			return
 		}
-		norm := normalizeKeyLine(id)
+		if strings.TrimSpace(rawName) != name {
+			sc.handler.Log(robot.Error, "SSH connector: rejecting username with uppercase or invalid formatting: %q", rawName)
+			return
+		}
+		norm := normalizeKeyLine(rawKey)
 		if norm == "" {
-			continue
+			sc.handler.Log(robot.Error, "SSH connector: rejecting invalid SSH public key for user %q", rawName)
+			return
 		}
-		if _, exists := names[name]; exists {
-			sc.handler.Log(robot.Error, "SSH connector: duplicate username in roster: %q", name)
-			continue
+		if existing, exists := keys[norm]; exists {
+			if existing.userName != name {
+				sc.handler.Log(robot.Error, "SSH connector: rejecting duplicate key mapped to different users: %q and %q", existing.userName, name)
+			}
+			return
 		}
-		info := userKeyInfo{userName: name, userID: id}
+		info := userKeyInfo{userName: name, userID: norm}
 		keys[norm] = info
-		names[name] = info
-		ids[id] = info
+		ids[norm] = info
+		if _, exists := names[name]; !exists {
+			names[name] = info
+		}
+	}
+
+	for _, entry := range entries {
+		for _, key := range entry.PublicKeys {
+			addUserKey(entry.UserName, key)
+		}
 	}
 	sc.mu.Lock()
 	sc.userKeys = keys
@@ -647,7 +672,7 @@ func (sc *sshConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f 
 	return robot.Ok
 }
 
-func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
 	ch = sc.normalizeChannel(ch)
 	formatted := "@" + uname + " " + msg
 	threaded := len(thr) > 0
@@ -670,7 +695,7 @@ func (sc *sshConnector) SendProtocolUserMessage(u string, msg string, f robot.Me
 	if !ok {
 		return robot.UserNotFound
 	}
-	clients := sc.clientsForUser(info.userID)
+	clients := sc.clientsForUser(info.userName)
 	if len(clients) == 0 {
 		return robot.UserNotFound
 	}
@@ -795,7 +820,7 @@ func (sc *sshConnector) sendDirectUserMessage(sender *sshClient, text string, ts
 func (sc *sshConnector) sendDirectUserMessageTo(sender *sshClient, peer userKeyInfo, text string, ts time.Time) {
 	evt := sc.directEvent(sender.userName, sender.userID, false, peer.userName, peer.userID, text, ts)
 	sc.appendBuffer(evt)
-	clients := sc.clientsForUser(peer.userID)
+	clients := sc.clientsForUser(peer.userName)
 	for _, client := range clients {
 		if client.userID == sender.userID {
 			continue
@@ -996,7 +1021,10 @@ func (sc *sshConnector) visibleToViewer(evt bufferMsg, viewer userKeyInfo) bool 
 		return evt.visibleTo != "" && evt.visibleTo == viewer.userID
 	}
 	if evt.isDM {
-		return viewer.userID != "" && (evt.userID == viewer.userID || evt.dmPeerID == viewer.userID)
+		if viewer.userID != "" && (evt.userID == viewer.userID || evt.dmPeerID == viewer.userID) {
+			return true
+		}
+		return viewer.userName != "" && (evt.userName == viewer.userName || evt.dmPeer == viewer.userName)
 	}
 	return true
 }
@@ -1066,6 +1094,11 @@ func (sc *sshConnector) resolveUser(u string) (userKeyInfo, bool) {
 	}
 	if info, ok := sc.lookupUserByID(u); ok {
 		return info, true
+	}
+	if norm := normalizeKeyLine(u); norm != "" {
+		if info, ok := sc.lookupUserByID(norm); ok {
+			return info, true
+		}
 	}
 	name := normalizeUserName(u)
 	if name == "" {

@@ -27,8 +27,9 @@ func getLogMail(tag string, idx int) (ret robot.TaskRetVal, buff []byte) {
 }
 
 func getLogBuffer(tag, trunc string, idx, buffsize, linesize int) (ret robot.TaskRetVal, buff []byte) {
-	logReader, err := interfaces.history.GetLog(tag, idx)
-	if err != nil && interfaces.history == memHistories {
+	hprovider := getHistoryProvider()
+	logReader, err := hprovider.GetLog(tag, idx)
+	if err != nil && hprovider == memHistories {
 		Log(robot.Error, "Failed getting log reader in tail-log for history %s, index: %d", tag, idx)
 		ret = robot.NotFound
 		return

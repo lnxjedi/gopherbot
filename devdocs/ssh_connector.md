@@ -13,7 +13,10 @@ This document describes the planned SSH connector that replaces the terminal con
 
 - The connector runs an SSH server (Go `x/crypto/ssh`).
 - Each connection is authenticated by public key.
-- Each user has exactly one authorized key. The key line is stored in the roster as a full `ssh-ed25519 ...` line (comment ignored for matching).
+- Each user can have multiple authorized keys via `ProtocolConfig.UserKeys` list entries:
+  - `UserName`
+  - `PublicKeys` (`[]string`)
+- Key lines are stored as full `ssh-ed25519 ...` values (comment ignored for matching).
 - A bot user is auto-added using the server public key as its UserID.
 - One goroutine accepts connections; each client runs in its own goroutine.
 - Messages are sent to all connected clients based on each client’s current filter.

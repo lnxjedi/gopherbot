@@ -31,13 +31,13 @@ var runtimeConnectors = struct {
 	sync.RWMutex
 	primary          string
 	defaultProtocol  string
+	botIDs           map[string]string
 	runtimes         map[string]*managedConnector
 	desiredSecondary map[string]bool
-	userMaps         map[string]map[string]string
 }{
+	botIDs:           map[string]string{},
 	runtimes:         map[string]*managedConnector{},
 	desiredSecondary: map[string]bool{},
-	userMaps:         map[string]map[string]string{},
 }
 
 type runtimeConnectorRouter struct{}
@@ -91,6 +91,62 @@ func getRuntimeDefaultProtocol() (string, bool) {
 	}
 	if runtimeConnectors.primary != "" {
 		return runtimeConnectors.primary, true
+	}
+	return "", false
+}
+
+func setRuntimeBotID(protocol, id string) {
+	p := normalizeProtocolName(protocol)
+	i := strings.TrimSpace(id)
+	if i == "" {
+		return
+	}
+	if p == "" {
+		if primary, ok := getRuntimePrimaryProtocol(); ok {
+			p = primary
+		}
+	}
+	if p == "" {
+		currentCfg.RLock()
+		p = normalizeProtocolName(currentCfg.protocol)
+		currentCfg.RUnlock()
+	}
+	if p == "" {
+		return
+	}
+
+	runtimeConnectors.Lock()
+	if runtimeConnectors.botIDs == nil {
+		runtimeConnectors.botIDs = map[string]string{}
+	}
+	runtimeConnectors.botIDs[p] = i
+	runtimeConnectors.Unlock()
+}
+
+func getRuntimeBotID(protocol string) (string, bool) {
+	p := normalizeProtocolName(protocol)
+	if p == "" {
+		return "", false
+	}
+	runtimeConnectors.RLock()
+	id, ok := runtimeConnectors.botIDs[p]
+	runtimeConnectors.RUnlock()
+	if !ok || strings.TrimSpace(id) == "" {
+		return "", false
+	}
+	return id, true
+}
+
+func getRuntimeBotIDForContext(msgObject *robot.ConnectorMessage, fallback robot.Protocol) (string, bool) {
+	if p := protocolFromIncoming(msgObject, fallback); p != "" {
+		if id, ok := getRuntimeBotID(p); ok {
+			return id, true
+		}
+	}
+	if p, ok := getRuntimeDefaultProtocol(); ok {
+		if id, ok := getRuntimeBotID(p); ok {
+			return id, true
+		}
 	}
 	return "", false
 }
@@ -151,53 +207,6 @@ func configuredProtocols() (string, string, []string) {
 	return primary, defaultProtocol, secondary
 }
 
-func userMapForProtocolLocked(protocol string) map[string]string {
-	if m, ok := runtimeConnectors.userMaps[protocol]; ok && len(m) > 0 {
-		c := make(map[string]string, len(m))
-		for k, v := range m {
-			c[k] = v
-		}
-		return c
-	}
-	return nil
-}
-
-func setConnectorUserMaps(perProtocol map[string]map[string]string) {
-	runtimeConnectors.Lock()
-	runtimeConnectors.userMaps = make(map[string]map[string]string, len(perProtocol))
-	for protocol, users := range perProtocol {
-		p := normalizeProtocolName(protocol)
-		if p == "" {
-			continue
-		}
-		um := make(map[string]string, len(users))
-		for u, id := range users {
-			um[u] = id
-		}
-		runtimeConnectors.userMaps[p] = um
-	}
-	runtimes := make([]*managedConnector, 0, len(runtimeConnectors.runtimes))
-	for _, mc := range runtimeConnectors.runtimes {
-		if mc != nil && mc.connector != nil {
-			runtimes = append(runtimes, mc)
-		}
-	}
-	runtimeConnectors.Unlock()
-
-	for _, mc := range runtimes {
-		if um := userMapForProtocol(mc.protocol); len(um) > 0 {
-			mc.connector.SetUserMap(um)
-		}
-	}
-}
-
-func userMapForProtocol(protocol string) map[string]string {
-	p := normalizeProtocolName(protocol)
-	runtimeConnectors.RLock()
-	defer runtimeConnectors.RUnlock()
-	return userMapForProtocolLocked(p)
-}
-
 func initializeConnectorRuntime(logger *log.Logger) error {
 	primary, defaultProtocol, secondaries := configuredProtocols()
 	if primary == "" {
@@ -207,6 +216,7 @@ func initializeConnectorRuntime(logger *log.Logger) error {
 	runtimeConnectors.Lock()
 	runtimeConnectors.primary = primary
 	runtimeConnectors.defaultProtocol = defaultProtocol
+	runtimeConnectors.botIDs = map[string]string{}
 	runtimeConnectors.runtimes = map[string]*managedConnector{}
 	runtimeConnectors.desiredSecondary = map[string]bool{}
 	for _, protocol := range secondaries {
@@ -261,10 +271,6 @@ func ensureConnectorInitialized(protocol string, allowBotIdentity bool, logger *
 	}, logger)
 	if conn == nil {
 		return fmt.Errorf("connector '%s' returned nil from initializer", p)
-	}
-
-	if um := userMapForProtocol(p); len(um) > 0 {
-		conn.SetUserMap(um)
 	}
 
 	runtimeConnectors.Lock()
@@ -544,14 +550,6 @@ func isPrimaryProtocolSource(protocol string) bool {
 	return ok && p == primary
 }
 
-func (rc *runtimeConnectorRouter) SetUserMap(m map[string]string) {
-	primary, ok := getRuntimePrimaryProtocol()
-	if !ok || primary == "" {
-		return
-	}
-	setConnectorUserMaps(map[string]map[string]string{primary: m})
-}
-
 func (rc *runtimeConnectorRouter) GetProtocolUserAttribute(user, attr string) (string, robot.RetVal) {
 	conn := getPrimaryConnector()
 	if conn == nil {
@@ -610,12 +608,12 @@ func (rc *runtimeConnectorRouter) SendProtocolChannelThreadMessage(channelname, 
 	return conn.SendProtocolChannelThreadMessage(channelname, threadid, msg, format, msgObject)
 }
 
-func (rc *runtimeConnectorRouter) SendProtocolUserChannelThreadMessage(userid, username, channelname, threadid, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
+func (rc *runtimeConnectorRouter) SendProtocolUserChannelThreadMessage(username, channelname, threadid, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {
 	conn := getConnectorForProtocol(protocolForMessage(msgObject))
 	if conn == nil {
 		return robot.Failed
 	}
-	return conn.SendProtocolUserChannelThreadMessage(userid, username, channelname, threadid, msg, format, msgObject)
+	return conn.SendProtocolUserChannelThreadMessage(username, channelname, threadid, msg, format, msgObject)
 }
 
 func (rc *runtimeConnectorRouter) SendProtocolUserMessage(user, msg string, format robot.MessageFormat, msgObject *robot.ConnectorMessage) robot.RetVal {

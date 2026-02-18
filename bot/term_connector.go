@@ -187,6 +187,7 @@ func Initialize(handler robot.Handler, l *log.Logger) robot.Connector {
 	}
 
 	tc.Handler = handler
+	tc.SetBotID(termBotID)
 	tc.SetTerminalWriter(tc.reader)
 	return robot.Connector(tc)
 }
@@ -520,14 +521,6 @@ func (tc *termConnector) checkSendSelf(ch, thr, msg string, f robot.MessageForma
 	tc.RUnlock()
 }
 
-// SetUserMap lets Gopherbot provide a mapping of usernames to user IDs to the connector;
-// this allows the UserRoster to override the protocol mapping from username to userid, so that
-// a "parsley" in the UserRoster with id 12345 will always take precedence over the connector
-// user "parsley", which may be a total stranger with id 54321.
-// ... that is to say, the Terminal connector doesn't care.
-func (tc *termConnector) SetUserMap(map[string]string) {
-}
-
 // GetUserAttribute returns a string attribute or nil if slack doesn't
 // have that information
 func (tc *termConnector) GetProtocolUserAttribute(u, attr string) (value string, ret robot.RetVal) {
@@ -594,8 +587,8 @@ func (tc *termConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f
 }
 
 // SendProtocolUserChannelThreadMessage sends a message to a user's channel thread with validation by username
-func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
-	var userID, chanID string
+func (tc *termConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	var chanID string
 	var ok bool
 	if chanID, ok = tc.ExtractID(ch); !ok {
 		chanID = ch
@@ -605,27 +598,12 @@ func (tc *termConnector) SendProtocolUserChannelThreadMessage(uid, uname, ch, th
 		tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: Channel '%s' not found", ch))
 		return robot.ChannelNotFound // Ensure you have this constant defined
 	}
-	if userID, ok = tc.ExtractID(uid); !ok {
-		// If the userID is bad, try looking up by name
-		if userInfo, ok := tc.resolveTermUserByName(uname); !ok {
-			tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: User '%s/%s' not found", uid, uname))
-			return robot.UserNotFound
-		} else {
-			userID = userInfo.InternalID
-		}
-	} else {
-		// we have a good userID
-		if _, ok := tc.resolveTermUserByID(userID); !ok {
-			tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: User '%s/%s' not found", uid, uname))
-			return robot.UserNotFound
-		}
-		// ... but we still want to validate that the username exists
-		_, exists := tc.resolveTermUserByName(uname)
-		if !exists {
-			tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: Username '%s' not found", uname))
-			return robot.UserNotFound
-		}
+	userInfo, ok := tc.resolveTermUserByName(uname)
+	if !ok {
+		tc.Log(robot.Error, fmt.Sprintf("SendProtocolUserChannelThreadMessage: Username '%s' not found", uname))
+		return robot.UserNotFound
 	}
+	userID := userInfo.InternalID
 
 	channel := tc.getChannel(chanID)
 	formattedMsg := "@" + uname + " " + msg

@@ -357,12 +357,8 @@ func (w *worker) handleMessage() {
 			subscriptions.m[subscriptionSpec] = subscription
 			subscriptions.Unlock()
 			t := w.tasks.getTaskByName(subscription.Plugin)
-			if w.Incoming.UserID != w.cfg.botinfo.UserID {
-				Log(robot.Debug, "Unmatched message being routed to thread subscriber '%s' on protocol '%s' in thread '%s', channel '%s'", subscription.Plugin, incomingProtocol, w.Incoming.ThreadID, w.Channel)
-				w.startPipeline(nil, t, plugThreadSubscription, "subscribed", w.fmsg)
-			} else {
-				Log(robot.Debug, "Ignoring message from the robot after subscription matched for thread subscriber '%s' on protocol '%s' in thread '%s', channel '%s'", subscription.Plugin, incomingProtocol, w.Incoming.ThreadID, w.Channel)
-			}
+			Log(robot.Debug, "Unmatched message being routed to thread subscriber '%s' on protocol '%s' in thread '%s', channel '%s'", subscription.Plugin, incomingProtocol, w.Incoming.ThreadID, w.Channel)
+			w.startPipeline(nil, t, plugThreadSubscription, "subscribed", w.fmsg)
 		} else {
 			subscriptions.Unlock()
 		}

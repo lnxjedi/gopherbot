@@ -178,19 +178,52 @@ Primary connector configuration is always loaded from:
 
 `ProtocolConfig` is expected there (not in `robot.yaml`). If that file is missing, or missing `ProtocolConfig`, startup/reload config load fails.
 
+### Brain/History Provider Config Sources
+
+Provider-specific configuration is loaded by selected provider name:
+
+- brain settings: `conf/brains/<Brain>.yaml` with top-level `BrainConfig`
+- history settings: `conf/history/<HistoryProvider>.yaml` with top-level `HistoryConfig`
+
+`BrainConfig` and `HistoryConfig` are invalid top-level keys in `robot.yaml`.
+
+If a selected provider file is missing, or missing its required top-level key, startup/reload config load fails.
+
+### Config Merge Semantics (Installed Defaults + Custom Overrides)
+
+`bot/config_load.go` merges installed defaults with custom config using these rules:
+
+- map values merge by key recursively
+- scalar values are overridden by custom values
+- slice values are replaced by custom values unless the key uses `Append*` prefix
+
+Design implication:
+
+- protocol identity config that must fully replace defaults should prefer list entries over map keys where practical
+- SSH `ProtocolConfig.UserKeys` is a list of `{UserName, PublicKeys}` entries to avoid default-user key bleed-through during map merge
+- to clear installed default SSH users in custom robots, set `ProtocolConfig.UserKeys: []` (or provide explicit entries)
+
 ### Identity Mapping Key Compatibility
 
-Identity mapping is explicit per-protocol `UserMap`.
+Identity policy is username-authoritative in engine flows.
 
-- Preferred: `UserMap` (username -> protocol internal ID), typically in `conf/protocols/<protocol>.yaml`.
-- `UserRoster` remains the user directory (email/name/phone/etc.).
-- Legacy compatibility: `UserRoster.UserID` is still parsed to populate missing protocol mappings, with migration warnings.
-- Precedence: explicit `UserMap` entries override legacy `UserRoster.UserID` entries on conflict.
-- When primary config is auto-loaded from `conf/protocols/<primary>.yaml`, that file's `UserRoster` is ignored; attributes still come from `robot.yaml` `UserRoster`.
-- For secondary protocol files, `UserRoster` attributes are ignored; use main `robot.yaml` `UserRoster` + protocol `UserMap`.
-- With `IgnoreUnlistedUsers: true`, inbound users must satisfy both checks:
-  - present in global `UserRoster` directory
-  - mapped in protocol-specific identity mapping (`UserMap`)
+- `UserRoster` is the global user directory (email/name/phone/etc.) and policy membership list.
+- Inbound security identity uses connector-provided canonical username.
+- `IgnoreUnlistedUsers: true` gates on username membership in global `UserRoster` (connector username trust boundary).
+- Outbound engine-to-connector user sends are username-based; connectors resolve protocol-local IDs internally.
+- Connector-reported bot IDs are stored per protocol (`protocol -> botID`) via `SetBotID(...)`.
+- `GetBotAttribute("id")` resolves to:
+  - the triggering protocol's bot ID for inbound plugin/message pipelines
+  - `DefaultProtocol` bot ID for job/init/scheduled pipelines without inbound protocol context
+  - no fallback to a legacy single global bot ID field
+- Top-level `UserMap` is an invalid key in `robot.yaml` and protocol files (config load fails fast).
+- Connector-local identity mapping belongs in each connector's `ProtocolConfig`.
+- Slack identity mapping: `ProtocolConfig.UserMap`.
+- SSH identity mapping: `ProtocolConfig.UserKeys` list entries (`UserName` + `PublicKeys`).
+- Terminal/test identity mapping: connector-local `ProtocolConfig.Users` tables.
+- `UserRoster.UserID` is accepted for config compatibility but ignored by engine identity policy.
+- Ephemeral user-scoped memory keys are username-based (not `UserID`-based).
+- Thread-scoped ephemeral memory keys include protocol context (`protocol + threadID`) to avoid cross-protocol thread key collisions.
 
 `SecondaryProtocols` is accepted in `robot.yaml` and now drives active runtime orchestration:
 
