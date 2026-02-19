@@ -14,16 +14,6 @@ func TestHelpTokenEquivalentSingularPlural(t *testing.T) {
 	}
 }
 
-func TestFirstHelpLineUsageAndSummary(t *testing.T) {
-	lines := []string{"(alias) add <item> to the <type> list - add something to a list"}
-	if got := firstHelpLineAsUsage(lines); got != "(alias) add <item> to the <type> list" {
-		t.Fatalf("firstHelpLineAsUsage() = %q", got)
-	}
-	if got := firstHelpLineSummary(lines); got != "add something to a list" {
-		t.Fatalf("firstHelpLineSummary() = %q", got)
-	}
-}
-
 func TestScoreHelpCommandMatch(t *testing.T) {
 	entry := helpCommandMetadata{
 		PluginName: "lists",
@@ -31,7 +21,6 @@ func TestScoreHelpCommandMatch(t *testing.T) {
 		Usage:      "(alias) add <item> to the <type> list",
 		Summary:    "Adds an item to a named list.",
 		Keywords:   []string{"list", "lists", "add"},
-		Helptext:   []string{"(alias) add <item> to the <type> list - add something to a list"},
 	}
 
 	scoreList := scoreHelpCommandMatch(entry, "list")
@@ -45,6 +34,33 @@ func TestScoreHelpCommandMatch(t *testing.T) {
 	}
 	if scoreNone != 0 {
 		t.Fatalf("scoreHelpCommandMatch() expected 0 for non-match, got %d", scoreNone)
+	}
+}
+
+func TestScoreHelpCommandMatchWithoutKeywords(t *testing.T) {
+	entry := helpCommandMetadata{
+		PluginName: "links",
+		Command:    "find",
+		Usage:      "(alias) find <keyword/phrase>",
+		Summary:    "Finds saved links whose keys contain the given phrase.",
+	}
+	if got := scoreHelpCommandMatch(entry, "phrase"); got <= 0 {
+		t.Fatalf("scoreHelpCommandMatch() expected positive score without explicit keywords, got %d", got)
+	}
+}
+
+func TestScoreHelpCommandMatchKeywordOutranksSummaryToken(t *testing.T) {
+	entry := helpCommandMetadata{
+		PluginName: "lists",
+		Command:    "show",
+		Usage:      "(alias) show the <type> list",
+		Summary:    "Displays all items in a list.",
+		Keywords:   []string{"view"},
+	}
+	scoreKeyword := scoreHelpCommandMatch(entry, "view")
+	scoreSummaryToken := scoreHelpCommandMatch(entry, "displays")
+	if scoreKeyword <= scoreSummaryToken {
+		t.Fatalf("scoreHelpCommandMatch() expected explicit keyword score (%d) > summary token score (%d)", scoreKeyword, scoreSummaryToken)
 	}
 }
 

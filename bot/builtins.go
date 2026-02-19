@@ -167,7 +167,6 @@ type helpCommandMetadata struct {
 	Summary    string
 	Examples   []string
 	Keywords   []string
-	Helptext   []string
 	Scope      string
 	HiddenOK   bool
 }
@@ -196,37 +195,35 @@ func appendUniqueStrings(dst []string, src ...string) []string {
 	return dst
 }
 
-func firstHelpLineAsUsage(lines []string) string {
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if len(trimmed) == 0 {
-			continue
-		}
-		parts := strings.SplitN(trimmed, " - ", 2)
-		return strings.TrimSpace(parts[0])
-	}
-	return ""
-}
-
-func firstHelpLineSummary(lines []string) string {
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if len(trimmed) == 0 {
-			continue
-		}
-		parts := strings.SplitN(trimmed, " - ", 2)
-		if len(parts) == 2 {
-			return strings.TrimSpace(parts[1])
-		}
-	}
-	return ""
-}
-
 func normalizeHelpPhrase(input string) string {
 	normalized := strings.ToLower(strings.TrimSpace(input))
 	normalized = strings.ReplaceAll(normalized, "-", " ")
 	normalized = strings.Join(strings.Fields(normalized), " ")
 	return normalized
+}
+
+func collectHelpSearchTokens(entry helpCommandMetadata) []string {
+	haystack := strings.Join([]string{
+		entry.PluginName,
+		entry.Command,
+		strings.Join(entry.Keywords, " "),
+		entry.Usage,
+		entry.Summary,
+	}, " ")
+	parsed := helpTokenRegex.FindAllString(normalizeHelpPhrase(haystack), -1)
+	unique := make([]string, 0, len(parsed))
+	seen := make(map[string]struct{}, len(parsed))
+	for _, token := range parsed {
+		if len(token) == 0 {
+			continue
+		}
+		if _, ok := seen[token]; ok {
+			continue
+		}
+		seen[token] = struct{}{}
+		unique = append(unique, token)
+	}
+	return unique
 }
 
 func singularizeHelpToken(token string) string {
@@ -374,20 +371,13 @@ func (r Robot) collectHelpCommandMetadata(includeGlobal bool) []helpCommandMetad
 			}
 			entry.Examples = appendUniqueStrings(entry.Examples, matcher.Examples...)
 			entry.Keywords = appendUniqueStrings(entry.Keywords, matcher.Keywords...)
-			entry.Helptext = appendUniqueStrings(entry.Helptext, matcher.Helptext...)
 		}
 	}
 
 	results := make([]helpCommandMetadata, 0, len(byCommand))
 	for _, entry := range byCommand {
 		if len(entry.Usage) == 0 {
-			entry.Usage = firstHelpLineAsUsage(entry.Helptext)
-		}
-		if len(entry.Usage) == 0 {
 			entry.Usage = "(alias) " + entry.Command
-		}
-		if len(entry.Summary) == 0 {
-			entry.Summary = firstHelpLineSummary(entry.Helptext)
 		}
 		results = append(results, *entry)
 	}
@@ -422,6 +412,13 @@ func scoreHelpCommandMatch(entry helpCommandMetadata, term string) int {
 		}
 	}
 
+	searchTokens := collectHelpSearchTokens(entry)
+	for _, token := range searchTokens {
+		if helpTokenEquivalent(termPhrase, token) && score < 70 {
+			score = 70
+		}
+	}
+
 	if strings.Contains(commandPhrase, termPhrase) && score < 84 {
 		score = 84
 	}
@@ -431,35 +428,22 @@ func scoreHelpCommandMatch(entry helpCommandMetadata, term string) int {
 
 	usage := normalizeHelpPhrase(entry.Usage)
 	summary := normalizeHelpPhrase(entry.Summary)
-	helpLines := normalizeHelpPhrase(strings.Join(entry.Helptext, " "))
 	if strings.Contains(usage, termPhrase) && score < 65 {
 		score = 65
 	}
 	if strings.Contains(summary, termPhrase) && score < 62 {
 		score = 62
 	}
-	if strings.Contains(helpLines, termPhrase) && score < 58 {
-		score = 58
-	}
 
 	termTokens := helpTokenRegex.FindAllString(termPhrase, -1)
 	if len(termTokens) == 0 {
 		return score
 	}
-	haystack := strings.Join([]string{
-		entry.PluginName,
-		entry.Command,
-		strings.Join(entry.Keywords, " "),
-		entry.Usage,
-		entry.Summary,
-		strings.Join(entry.Helptext, " "),
-	}, " ")
-	hayTokens := helpTokenRegex.FindAllString(normalizeHelpPhrase(haystack), -1)
-	if len(hayTokens) == 0 {
+	if len(searchTokens) == 0 {
 		return score
 	}
-	tokenSet := make(map[string]struct{}, len(hayTokens))
-	for _, token := range hayTokens {
+	tokenSet := make(map[string]struct{}, len(searchTokens)*2)
+	for _, token := range searchTokens {
 		tokenSet[token] = struct{}{}
 		tokenSet[singularizeHelpToken(token)] = struct{}{}
 	}
