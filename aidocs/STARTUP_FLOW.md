@@ -395,7 +395,7 @@ Shutdown can be triggered by admin commands, pipeline tasks, or process signals.
 2. Call `stop()` in `bot/bot_process.go`.
 3. `stop()` first triggers prompt shutdown signaling so in-progress `Prompt*` waits return `Interrupted` immediately.
 4. `stop()` waits for running pipelines (`state.Wait()`).
-5. Stop brain loop (`brainQuit()`), then stop connector runtimes.
+5. Stop brain loop (`brainQuit()`), then stop active Codex thread-session runtimes, then stop connector runtimes.
 6. Stop signal handler goroutine.
 7. Emit restart flag on `done` channel.
 
@@ -408,6 +408,7 @@ This keeps shutdown deterministic even when interactive prompts are using long t
 * `bot/privsep.go` – privilege-separation bootstrap + thread-scoped uid transitions
 * `bot/aidev.go` – AI-dev startup state (`--aidev`) and `.aiport` write helper
 * `bot/aidev_http.go` – authenticated AI-dev message endpoints and connector capability routing
+* `bot/codex_session.go` – Codex app-server thread-session runtime manager and shutdown cleanup hooks
 * `bot/config_load.go` – `detectStartupMode()`, config-file merge/template expansion
 * `bot/conf.go` – `loadConfig()` and reload reconciliation hooks for `SecondaryProtocols`
 * `bot/connector_runtime.go` – multi-connector runtime manager, routing, lifecycle controls
