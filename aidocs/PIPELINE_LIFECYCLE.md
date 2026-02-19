@@ -14,7 +14,7 @@ AI‑onboarding view: entrypoints, decision points, and data flow for message‑
 - Matcher definitions: `bot/tasks.go` type `Plugin` fields:
   - directed command matchers in `Commands`
   - ambient matchers in `MessageMatchers`
-  - both use `InputMatcher` metadata (`Usage`, `Summary`, `Examples`, `Keywords`, `Helptext`) from the same file.
+  - both use `InputMatcher` metadata (`Usage`, `Summary`, `Examples`, `Keywords`) from the same file.
 - Pipeline type enum: `bot/constants.go` type `pipelineType` (`plugCommand`, `plugMessage`, `catchAll`, `jobCommand`, etc.).
 
 ## Decision Points (routing order)

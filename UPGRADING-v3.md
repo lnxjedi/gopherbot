@@ -223,7 +223,11 @@ Recommended command entry fields:
 
 - `Command`, `Regex`
 - `Usage`, `Summary`
-- optional `Examples`, `Keywords`, `Helptext`
+- optional `Examples`, `Keywords`
+
+Removed field:
+
+- `Helptext` is no longer supported in command entries and now fails validation.
 
 Field semantics and authoring conventions:
 
@@ -235,8 +239,8 @@ Field semantics and authoring conventions:
   - Use `(bot)` for conversational commands (for example `(bot) tell me a joke`).
 - Hidden-capable command examples:
   - When a command is listed in plugin `AllowedHiddenCommands`, built-in help may render `(bot)` examples as slash-addressed forms (for example `/(bot) whoami` rendered as `/Clu whoami`).
-- `Keywords` are used for help/fallback search relevance scoring.
-- `Helptext` is used for search relevance and as fallback source for `Usage`/`Summary` if those fields are missing.
+- `Keywords` are optional and used for explicit help/fallback relevance boosts.
+- Help search automatically indexes command metadata (`plugin`, `command`, `usage`, `summary`) even when `Keywords` are omitted.
 
 ## Built-in Help and Fallback Behavior
 
