@@ -26,6 +26,7 @@ func init() {
 	robot.RegisterPlugin("builtin-help", robot.PluginHandler{Handler: help})
 	robot.RegisterPlugin("builtin-admin", robot.PluginHandler{Handler: admin})
 	robot.RegisterPlugin("builtin-logging", robot.PluginHandler{Handler: logging})
+	robot.RegisterPlugin("builtin-codex", robot.PluginHandler{Handler: codex})
 }
 
 func defaultHelp() []string {

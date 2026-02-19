@@ -1,0 +1,40 @@
+---
+AllChannels: true
+AllowDirect: true
+Commands:
+- Command: link
+  Regex: '(?i:link[- ]codex)'
+  Keywords: [ "codex", "link", "auth", "login" ]
+  Usage: "link-codex"
+  Summary: "start a Codex device-auth login flow for your user"
+  Examples:
+  - "/(bot) link-codex"
+- Command: unlink
+  Regex: '(?i:unlink[- ]codex)'
+  Keywords: [ "codex", "unlink", "auth", "logout" ]
+  Usage: "unlink-codex"
+  Summary: "remove your linked Codex credentials"
+  Examples:
+  - "/(bot) unlink-codex"
+- Command: admin-unlink
+  Regex: '(?i:unlink[- ]codex ([A-Za-z0-9_.-]+))'
+  Keywords: [ "codex", "unlink", "admin" ]
+  Usage: "unlink-codex <user>"
+  Summary: "remove Codex credentials for another user (admin)"
+- Command: status
+  Regex: '(?i:codex[- ]link[- ]status|codex[- ]status)'
+  Keywords: [ "codex", "status", "link" ]
+  Usage: "codex-status"
+  Summary: "show whether your user has linked Codex credentials"
+- Command: admin-list
+  Regex: '(?i:codex[- ]users)'
+  Keywords: [ "codex", "users", "list", "admin" ]
+  Usage: "codex-users"
+  Summary: "list users with linked Codex credentials (admin)"
+AdminCommands:
+- admin-unlink
+- admin-list
+AllowedHiddenCommands:
+- link
+- unlink
+- status
