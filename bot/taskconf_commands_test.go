@@ -51,3 +51,20 @@ Commands:
 		t.Fatalf("validate_yaml() error %q did not reference Help", err)
 	}
 }
+
+func TestValidateYAMLPluginRejectsHelptextInCommands(t *testing.T) {
+	yml := []byte(`
+---
+Commands:
+- Command: ping
+  Regex: '(?i:ping)'
+  Helptext: [ "(alias) ping - test" ]
+`)
+	err := validate_yaml("conf/plugins/example.yaml", yml)
+	if err == nil {
+		t.Fatalf("validate_yaml() accepted Helptext in Commands")
+	}
+	if !strings.Contains(err.Error(), "Helptext") {
+		t.Fatalf("validate_yaml() error %q did not reference Helptext", err)
+	}
+}

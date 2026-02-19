@@ -118,7 +118,6 @@ type InputMatcher struct {
 	Summary     string         `yaml:"Summary"`     // Short command description for help output
 	Examples    []string       `yaml:"Examples"`    // Optional examples for this command
 	Keywords    []string       `yaml:"Keywords"`    // Optional help search keywords tied to this command matcher
-	Helptext    []string       `yaml:"Helptext"`    // Optional help lines tied to this command matcher
 	Label       string         `yaml:"Label"`       // ReplyMatchers use "Label" instead of "Command"
 	ChannelOnly bool           `yaml:"ChannelOnly"` // Whether this matcher only applies in the main channel (not a thread)
 	Contexts    []string       `yaml:"Contexts"`    // Labels for capture groups, for supporting "it" & optional args
