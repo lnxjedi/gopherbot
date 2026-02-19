@@ -456,6 +456,7 @@ func stop() {
 	triggerPromptShutdownSignal()
 	state.Wait()
 	brainQuit()
+	codexStopAllSessions()
 	shutdownConnectorRuntimes()
 	signalBreak.Lock()
 	if signalBreak.ch != nil {

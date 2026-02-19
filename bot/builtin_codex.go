@@ -52,9 +52,15 @@ func codex(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 		}
 		codexUnlink(r, target)
 	case "status":
-		codexStatus(r)
+		codexStatusWithSession(r)
 	case "admin-list":
 		codexList(r)
+	case "start":
+		codexStartSessionCommand(r, args)
+	case "end":
+		codexEndSessionCommand(r)
+	case "subscribed":
+		codexHandleSubscribedMessage(r, args)
 	default:
 		r.Say("Unsupported codex command '%s'", command)
 	}
@@ -151,29 +157,6 @@ func codexUnlink(r Robot, target string) {
 		return
 	}
 	r.Say("Unlinked Codex credentials for '%s'", user)
-}
-
-func codexStatus(r Robot) {
-	user := codexCanonicalUser(r.User)
-	if user == "" {
-		r.Say("Unable to determine your user identity")
-		return
-	}
-	_, exists, record, ret := codexGetAuthRecord(r, user)
-	if ret != robot.Ok {
-		r.Say("Unable to retrieve Codex auth status (%s)", ret)
-		return
-	}
-	if !exists || strings.TrimSpace(record.AuthJSON) == "" {
-		r.Say("You do not have linked Codex credentials; run '/%s link-codex'", r.GetBotAttribute("name"))
-		return
-	}
-	ts := strings.TrimSpace(record.UpdatedAt)
-	if ts == "" {
-		r.Say("Codex is linked for '%s'", user)
-		return
-	}
-	r.Say("Codex is linked for '%s' (updated %s)", user, ts)
 }
 
 func codexList(r Robot) {

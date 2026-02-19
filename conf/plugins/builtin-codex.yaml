@@ -25,12 +25,25 @@ Commands:
   Regex: '(?i:codex[- ]link[- ]status|codex[- ]status)'
   Keywords: [ "codex", "status", "link" ]
   Usage: "codex-status"
-  Summary: "show whether your user has linked Codex credentials"
+  Summary: "show your Codex auth status and thread session status"
 - Command: admin-list
   Regex: '(?i:codex[- ]users)'
   Keywords: [ "codex", "users", "list", "admin" ]
   Usage: "codex-users"
   Summary: "list users with linked Codex credentials (admin)"
+- Command: start
+  Regex: '(?i:start[- ]codex(?:\s+(.+))?)'
+  Keywords: [ "codex", "start", "session", "thread" ]
+  Usage: "start-codex <directory>"
+  Summary: "start a Codex session in this thread rooted at <directory> (relative to robot startup dir)"
+  Examples:
+  - "(alias) start-codex ."
+  - "(alias) start-codex custom/plugins"
+- Command: end
+  Regex: '(?i:end[- ]session|stop[- ]codex)'
+  Keywords: [ "codex", "stop", "session", "end" ]
+  Usage: "end-session"
+  Summary: "stop the active Codex session in this thread"
 AdminCommands:
 - admin-unlink
 - admin-list
