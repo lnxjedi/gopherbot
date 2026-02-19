@@ -18,9 +18,6 @@ Commands:
   Examples:
   - "(alias) hosts github.com 8.8.8.8"
   - "(bot) dig api.example.com"
-  Helptext:
-  - "(bot), dig <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
-  - "(bot), hosts <hostname|ip> ... - lookup a list of hosts and reply with a table of results"
 - Command: hostname
   Regex: '(?i:hostname)'
   Keywords: [ "hosts", "hostname" ]
@@ -28,8 +25,6 @@ Commands:
   Summary: "Reports the host name where the robot process is running."
   Examples:
   - "(alias) hostname"
-  Helptext:
-  - "(bot), hostname - report the $HOSTNAME where the bot is running"
 EOF
 }
 

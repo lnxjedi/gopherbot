@@ -43,8 +43,6 @@ Commands:
   Summary: "Search plugin metadata for an item"
   Examples:
   - "(bot), search metadata deploy"
-  Helptext:
-  - (bot), search metadata <item> - Search plugin metadata for an item
 - Regex: '(?i:open the pod bay doors)'
   Command: open
   Keywords: [ "open", "pod" ]
@@ -52,8 +50,6 @@ Commands:
   Summary: "Opens the doors to the pod bay, if you're in space"
   Examples:
   - "(bot), open the pod bay doors"
-  Helptext:
-  - (bot), open the pod bay doors - Opens the doors to the pod bay, if you're in space
 ## If a plugin wants to specify custom matchers for the WaitForReply API
 ## call, they can be specified here. In this case, the "Command" is just
 ## a tag identifying the specific matcher in the call; it should be all

@@ -17,8 +17,6 @@ Commands:
   Examples:
   - "(alias) generate keypair"
   - "(bot) replace keypair"
-  Helptext:
-  - "(bot), generate|replace keypair - create an ssh keypair for the robot"
 - Command: pubkey
   Regex: '(?i:(show[ -])?pubkey)'
   Keywords: [ "ssh", "pubkey", "public", "key" ]
@@ -27,8 +25,6 @@ Commands:
   Examples:
   - "(alias) pubkey"
   - "(bot) show pubkey"
-  Helptext:
-  - "(bot), (show) pubkey - show the robot's public key"
 EOF
 }
 

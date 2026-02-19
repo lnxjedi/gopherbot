@@ -21,8 +21,6 @@ Commands:
   Examples:
   - "(alias) weather in denver"
   - "(bot) weather for 98101"
-  Helptext:
-  - "(bot), weather in <city(,country) or zip code> - fetch the weather from OpenWeatherMap"
 DEFCONFIG
 
 command = ARGV.shift()

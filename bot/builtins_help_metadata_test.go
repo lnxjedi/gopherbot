@@ -101,6 +101,54 @@ func TestRankHelpMatches(t *testing.T) {
 	}
 }
 
+func TestRankHelpMatchesRegressionTable(t *testing.T) {
+	entries := []helpCommandMetadata{
+		{
+			PluginName: "links",
+			Command:    "find",
+			Usage:      "(alias) find <keyword/phrase>",
+			Summary:    "Finds saved links whose keys contain the given phrase.",
+			Keywords:   []string{"link", "links", "find"},
+		},
+		{
+			PluginName: "lists",
+			Command:    "add",
+			Usage:      "(alias) add <item> to the <type> list",
+			Summary:    "Adds an item to a named list.",
+			Keywords:   []string{"list", "lists", "add"},
+		},
+		{
+			PluginName: "lists",
+			Command:    "show",
+			Usage:      "(alias) show the <type> list",
+			Summary:    "Displays all items in a list.",
+			Keywords:   []string{"view"},
+		},
+	}
+
+	cases := []struct {
+		query      string
+		wantPlugin string
+		wantCmd    string
+	}{
+		{"create a new grocery list", "lists", "add"},
+		{"find links", "links", "find"},
+		{"view", "lists", "show"},
+		{"phrase", "links", "find"},
+	}
+
+	for _, tc := range cases {
+		matches := rankHelpMatches(entries, tc.query)
+		if len(matches) == 0 {
+			t.Fatalf("rankHelpMatches(%q) returned no matches", tc.query)
+		}
+		got := matches[0].Entry
+		if got.PluginName != tc.wantPlugin || got.Command != tc.wantCmd {
+			t.Fatalf("rankHelpMatches(%q) top = [%s] %s, want [%s] %s", tc.query, got.PluginName, got.Command, tc.wantPlugin, tc.wantCmd)
+		}
+	}
+}
+
 func TestStripHelpAddressPrefix(t *testing.T) {
 	cases := []struct {
 		in   string
