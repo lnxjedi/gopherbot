@@ -100,6 +100,10 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		c.parameterSets = task.ParameterSets
 	}
 	if isJob {
+		startProtocol := protocolFromIncoming(w.Incoming, w.Protocol)
+		if startProtocol == "" {
+			startProtocol = protocolNameFromEnum(w.Protocol)
+		}
 		// Job parameters are available to the whole pipeline, plugin
 		// parameters are not.
 		for _, p := range task.Parameters {
@@ -114,13 +118,31 @@ func (w *worker) startPipeline(parent *worker, t interface{}, ptype pipelineType
 		// Only a Job pipeline sets a nameSpace that simple tasks in the
 		// pipeline can inherit.
 		c.nameSpace = w.getNameSpace(t)
+		// GOPHER_START_* captures immutable origin context for this job pipeline.
+		// These values are informational (non-sensitive) and intentionally separate
+		// from mutable GOPHER_* runtime values (for example GOPHER_CHANNEL or
+		// GOPHER_MESSAGE_ID), which may change after switching to task.Channel.
+		// GOPHER_START_MESSAGE_ID is the connector-provided opaque message ID for
+		// the inbound event that started this job; it can be empty for scheduled
+		// or init jobs where no inbound message exists.
 		c.environment["GOPHER_JOB_NAME"] = c.jobName
+		c.environment["GOPHER_START_PROTOCOL"] = startProtocol
+		c.environment["GOPHER_START_USER"] = w.User
+		c.environment["GOPHER_START_USER_ID"] = w.ProtocolUser
 		c.environment["GOPHER_START_CHANNEL"] = w.Channel
 		c.environment["GOPHER_START_CHANNEL_ID"] = w.ProtocolChannel
 		c.environment["GOPHER_START_THREAD_ID"] = w.Incoming.ThreadID
 		c.environment["GOPHER_START_MESSAGE_ID"] = w.Incoming.MessageID
+		c.parameters["GOPHER_START_PROTOCOL"] = startProtocol
+		c.parameters["GOPHER_START_USER"] = w.User
+		c.parameters["GOPHER_START_USER_ID"] = w.ProtocolUser
+		c.parameters["GOPHER_START_CHANNEL"] = w.Channel
+		c.parameters["GOPHER_START_CHANNEL_ID"] = w.ProtocolChannel
+		c.parameters["GOPHER_START_THREAD_ID"] = w.Incoming.ThreadID
+		c.parameters["GOPHER_START_MESSAGE_ID"] = w.Incoming.MessageID
 		if w.Incoming.ThreadedMessage {
 			c.environment["GOPHER_START_THREADED_MESSAGE"] = "true"
+			c.parameters["GOPHER_START_THREADED_MESSAGE"] = "true"
 		}
 		// To change the channel to the job channel, we need to clear the ProcotolChannel
 		w.Channel = task.Channel
@@ -423,6 +445,7 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 		}
 		if isJob && i != 0 {
 			child := w.clone()
+			inheritChildJobProtocol(w, child)
 			ret = child.startPipeline(w, t, ptype, command, args...)
 		} else {
 			errString, ret = w.executeTask(t, command, args...)
@@ -509,6 +532,18 @@ func (w *worker) runPipeline(stage pipeStage, ptype pipelineType, initialRun boo
 		}
 	}
 	return
+}
+
+func inheritChildJobProtocol(parent, child *worker) {
+	if parent == nil || child == nil {
+		return
+	}
+	protocol := normalizeProtocolName(protocolFromIncoming(parent.Incoming, parent.Protocol))
+	if protocol == "" {
+		return
+	}
+	child.Protocol = getProtocol(protocol)
+	child.Incoming = protocolIncoming(child.Incoming, protocol)
 }
 
 // getEnvironment generates the environment for each task run.

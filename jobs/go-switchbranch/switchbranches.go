@@ -14,17 +14,27 @@ Switch the robot to a different branch, for quick test/backout development.
 */
 
 func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
+	_ = r.SetParameter("GIT_OPERATION", "switch")
+	_ = r.SetParameter("GIT_TARGET_BRANCH", "")
+	_ = r.SetParameter("GIT_ERROR", "")
+	r.FailTask("fail-report")
+
 	if len(args) != 1 {
-		r.Log(robot.Error, "wrong number of arguments, expected 1, got %d", len(args))
+		msg := "wrong number of arguments, expected 1"
+		_ = r.SetParameter("GIT_ERROR", msg)
+		r.Log(robot.Error, "%s, got %d", msg, len(args))
 		return robot.Fail
 	}
 	repoDir := r.GetParameter("GOPHER_CONFIGDIR")
 	branch := args[0]
+	_ = r.SetParameter("GIT_TARGET_BRANCH", branch)
 
 	confDir := filepath.Join(repoDir, "conf")
 	_, err := os.Stat(confDir)
 	if err != nil {
-		r.Log(robot.Error, "go-switchbranch error locating current config: "+err.Error())
+		msg := "go-switchbranch error locating current config: " + err.Error()
+		_ = r.SetParameter("GIT_ERROR", msg)
+		r.Log(robot.Error, msg)
 		return robot.Fail
 	}
 
@@ -37,7 +47,9 @@ func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	// Ensure deploy key exists for SSH access
 	deployKey := r.GetParameter("GOPHER_DEPLOY_KEY")
 	if deployKey == "" {
-		r.Log(robot.Error, "No GOPHER_DEPLOY_KEY provided for SSH access")
+		msg := "No GOPHER_DEPLOY_KEY provided for SSH access"
+		_ = r.SetParameter("GIT_ERROR", msg)
+		r.Log(robot.Error, msg)
 		return robot.Fail
 	}
 
@@ -59,6 +71,8 @@ func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 		r.AddTask("ssh-git-helper", "loadhostkeys", cloneURL)
 	}
 	r.AddTask("git-command", "switch", branch, repoDir)
+	r.AddTask("git-sync-state", repoDir)
+	r.AddTask("update-report")
 	r.AddCommand("builtin-admin", "reload")
 
 	return robot.Normal

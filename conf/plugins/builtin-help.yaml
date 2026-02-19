@@ -32,11 +32,11 @@ Commands:
   Regex: '(?i:info|tell me about yourself|about|information)'
   Keywords: [ "info", "information", "robot", "admin", "administrators" ]
   Usage: "info | tell me about yourself"
-  Summary: "provide useful information for admins, or a list of admins"
+  Summary: "provide useful information for admins, including git branch status"
   Examples:
   - "(alias) info"
   - "(alias) tell me about yourself"
-  Helptext: [ "(alias) info | tell me about yourself - provide useful information for admins, or a list of admins" ]
+  Helptext: [ "(alias) info | tell me about yourself - provide useful information for admins, including git branch status" ]
 AllowedHiddenCommands:
 - help
 - commands

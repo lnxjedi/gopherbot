@@ -24,6 +24,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Runtime connector orchestration: `bot/connector_runtime.go` (runtime manager, protocol routing, lifecycle controls).
 - Pipeline execution + privilege separation internals: `bot/run_pipelines.go`, `bot/task_execution.go`, `bot/task_execution_child.go`, `bot/pipeline_rpc.go`, `bot/pipeline_rpc_lua.go`, `bot/pipeline_rpc_javascript.go`, `bot/pipeline_rpc_yaegi.go`, `bot/calltask.go`, `bot/privsep.go`.
 - Startup mode and config loading: `bot/config_load.go` (funcs `detectStartupMode`, `getConfigFile`), `bot/conf.go` (func `loadConfig`).
+- Runtime git branch observability: `bot/git_runtime.go` (startup capture + runtime snapshot for info/admin commands), with privileged sync task registration in `bot/pipe_tasks.go` (`git-sync-state`).
 - AI-dev endpoint/auth helpers: `bot/aidev.go` (token + `.aiport`) and `bot/aidev_http.go` (authenticated `send_message` / `get_messages` routing).
 - Internal module initialization: `bot/modules_init.go` (func `initializeModules`) — initializes ssh-agent, ssh-git-helper, and yaegi interpreter modules.
 - Built-in connectors (not under `connectors/`): `bot/term_connector.go` (registers `"terminal"`), `bot/null_connector.go` (registers `"nullconn"`).
@@ -73,7 +74,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 ## jobs/
 
-- Shell job scripts: `jobs/save.sh`, `jobs/logrotate.sh`.
+- Shell job scripts: `jobs/logrotate.sh`.
 - Go job entrypoint example: `jobs/updatecfg/updatecfg.go` (func `JobHandler`).
 - SSH demo welcome trigger job: `jobs/go-welcome-join/welcome_join.go` (func `JobHandler`).
 

@@ -15,6 +15,7 @@ Startup proceeds through the following phases **in order**:
 7. **Brain initialization** – Start the brain provider
 8. **Connector runtime initialization** – Initialize primary + configured secondary connectors
 9. **Post-connect configuration load** – Full configuration with plugin initialization
+10. **Runtime git branch capture** – Best-effort detection of current/default startup branch for admin observability
 
 Internal exception:
 - `pipeline-child-exec` is an internal command used by multiprocess task execution; it exits after one child-task run and bypasses normal robot startup phases.
@@ -295,6 +296,13 @@ if encryptionInitialized {
 ## Configuration Loading
 
 **Invariant:** connector runtime startup must complete (primary required, secondaries best effort) before post-connect configuration is loaded.
+
+After post-connect configuration load, startup performs a best-effort runtime git branch capture (`initializeRuntimeGitState` in `bot/git_runtime.go`). This records:
+- current branch (`HEAD`)
+- startup branch (branch active at process startup)
+- default branch from local git metadata (`refs/remotes/origin/HEAD`, local-only, no network fallback)
+
+This updates in-memory runtime state and `GOPHER_CUSTOM_BRANCH`-family internal env values for observability, but does not affect configuration precedence or startup mode decisions.
 
 ## Extension Loading
 

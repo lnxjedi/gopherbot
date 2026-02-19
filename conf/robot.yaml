@@ -181,7 +181,7 @@ ExternalPlugins:
 ## Useful and/or entertaining plugins; disable by setting 'Disabled: true' in
 ## custom configuration.
   "admin":
-    Description: A plugin that triggers management jobs like update and save
+    Description: A plugin for legacy admin workflows
     Privileged: true
     Path: plugins/admin.sh
   "knock":
@@ -220,6 +220,10 @@ ExternalPlugins:
 {{- end }}
 
 GoPlugins:
+  "builtin-admin":
+    Description: Built-in administrative plugin
+    NameSpace: manage
+    Privileged: true
   "builtin-help":
     Description: A plugin providing help for commands
     NameSpace: manage
@@ -248,11 +252,6 @@ ExternalJobs:
     Homed: true
     NameSpace: manage
     Path: jobs/go-switchbranch/switchbranches.go
-  "save":
-    Description: A job for saving up the robot's configuration
-    Homed: true
-    NameSpace: manage
-    Path: jobs/save.sh
   "install-libs":
     Description: A job for installing ruby gems and python packages
     Homed: true

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -59,6 +60,13 @@ func Clone(r robot.Robot, opts CloneOptions) error {
 
 	headRef, err := repo.Head()
 	if err == nil {
+		if headRef.Name().IsBranch() && opts.Branch == "" {
+			if err := setLocalOriginHead(repo, headRef.Name().Short()); err != nil {
+				r.Log(robot.Warn, "unable to set local origin HEAD after clone: %v", err)
+			} else {
+				r.Log(robot.Debug, "set local origin HEAD to origin/%s after clone", headRef.Name().Short())
+			}
+		}
 		r.Log(robot.Info, "completed clone of %s: %s",
 			filepath.Base(opts.Directory), refInfo(headRef))
 	}
@@ -298,7 +306,7 @@ func SwitchBranch(r robot.Robot, opts SwitchBranchOptions) error {
 			cfg.Branches[opts.Branch] = &config.Branch{
 				Name:   opts.Branch,
 				Remote: "origin",
-				Merge:  remoteBranchRefName,
+				Merge:  localBranchRefName,
 			}
 			err = repo.SetConfig(cfg)
 			if err != nil {
@@ -359,9 +367,56 @@ func GetCurrentBranch(directory string) (string, error) {
 	return branchName, nil
 }
 
+// GetLocalDefaultBranch returns the default branch from local git metadata only.
+// It does not perform any network operations.
+func GetLocalDefaultBranch(directory string) (string, error) {
+	repo, err := git.PlainOpen(directory)
+	if err != nil {
+		return "", fmt.Errorf("failed to open repository at %s: %w", directory, err)
+	}
+
+	originHeadRefName := plumbing.ReferenceName("refs/remotes/origin/HEAD")
+	originHeadRef, err := repo.Reference(originHeadRefName, false)
+	if err != nil {
+		return "", fmt.Errorf("failed to read local origin HEAD reference: %w", err)
+	}
+
+	if originHeadRef.Type() != plumbing.SymbolicReference {
+		return "", fmt.Errorf("local origin HEAD reference is not symbolic")
+	}
+
+	target := originHeadRef.Target().String()
+	target = strings.TrimSpace(target)
+	const originBranchPrefix = "refs/remotes/origin/"
+	if !strings.HasPrefix(target, originBranchPrefix) {
+		return "", fmt.Errorf("local origin HEAD target has unexpected format: %s", target)
+	}
+
+	branch := strings.TrimPrefix(target, originBranchPrefix)
+	branch = strings.TrimSpace(branch)
+	if branch == "" {
+		return "", fmt.Errorf("local origin HEAD target did not include a branch name")
+	}
+
+	return branch, nil
+}
+
 // refInfo generates a standard string from a git reference
 func refInfo(ref *plumbing.Reference) string {
 	return fmt.Sprintf("name %s, hash %s, type %s", ref.Name(), ref.Hash(), ref.Type())
+}
+
+func setLocalOriginHead(repo *git.Repository, branch string) error {
+	branch = strings.TrimSpace(branch)
+	if branch == "" {
+		return fmt.Errorf("empty branch name for local origin HEAD")
+	}
+	target := plumbing.ReferenceName(fmt.Sprintf("refs/remotes/origin/%s", branch))
+	ref := plumbing.NewSymbolicReference(plumbing.ReferenceName("refs/remotes/origin/HEAD"), target)
+	if err := repo.Storer.SetReference(ref); err != nil {
+		return fmt.Errorf("setting refs/remotes/origin/HEAD to %s: %w", target, err)
+	}
+	return nil
 }
 
 // prepareDirectory ensures that the target directory is empty or creates it.

@@ -624,6 +624,12 @@ func help(m robot.Robot, command string, args ...string) (retval robot.TaskRetVa
 				msg = append(msg, fmt.Sprintf("My git repository is: %s", custom))
 			}
 		}
+		gitSnapshot := getRuntimeGitSnapshot()
+		if refreshed, err := refreshRuntimeGitStateFromConfig(false); err == nil {
+			gitSnapshot = refreshed
+			persistRuntimeGitSnapshotToEnv(gitSnapshot)
+		}
+		msg = append(msg, runtimeGitSummaryLine(gitSnapshot))
 		msg = append(msg, fmt.Sprintf("My software version is: Gopherbot %s, commit: %s", botVersion.Version, botVersion.Commit))
 		msg = append(msg, fmt.Sprintf("The administrators for this robot are: %s", admins))
 		adminContact := r.GetBotAttribute("contact")
@@ -861,6 +867,53 @@ type psList struct {
 	wids    []int
 }
 
+func formatReloadOutcome(r Robot, reloadErr error) string {
+	op := strings.ToLower(strings.TrimSpace(r.GetParameter("GIT_OPERATION")))
+	targetBranch := strings.TrimSpace(r.GetParameter("GIT_TARGET_BRANCH"))
+	activeBranch := strings.TrimSpace(r.GetParameter("GOPHER_CUSTOM_BRANCH"))
+	if activeBranch != "" {
+		targetBranch = activeBranch
+	}
+	var status string
+	switch op {
+	case "update":
+		if reloadErr == nil {
+			status = "Reload completed successfully after git update."
+		} else {
+			status = "Reload failed after git update; continuing with previous configuration."
+		}
+	case "switch":
+		if targetBranch != "" {
+			if reloadErr == nil {
+				status = fmt.Sprintf("Reload completed successfully after switching to branch '%s'.", targetBranch)
+			} else {
+				status = fmt.Sprintf("Reload failed after switching to branch '%s'; continuing with previous configuration.", targetBranch)
+			}
+		} else if reloadErr == nil {
+			status = "Reload completed successfully after git branch switch."
+		} else {
+			status = "Reload failed after git branch switch; continuing with previous configuration."
+		}
+	default:
+		if reloadErr == nil {
+			status = "Configuration reload completed successfully."
+		} else {
+			status = "Configuration reload failed; continuing with previous configuration."
+		}
+	}
+	if reloadErr == nil {
+		return status
+	}
+	msg := strings.Join(strings.Fields(reloadErr.Error()), " ")
+	if msg == "" {
+		return status
+	}
+	if len(msg) > 320 {
+		msg = msg[:320] + "..."
+	}
+	return status + " Error: " + msg
+}
+
 func (p *psList) Len() int {
 	return len(p.pslines)
 }
@@ -882,16 +935,57 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 	w := getLockedWorker(r.tid)
 	w.Unlock()
 	switch command {
+	case "update":
+		if ret := r.AddJob("go-update"); ret != robot.Ok {
+			r.Say("Unable to start go-update: %s", ret)
+			return
+		}
+		r.Say("Ok, I'll run go-update to pull configuration changes and reload.")
+	case "defaultbranch":
+		snapshot := getRuntimeGitSnapshot()
+		if refreshed, err := refreshRuntimeGitStateFromConfig(false); err == nil {
+			snapshot = refreshed
+			persistRuntimeGitSnapshotToEnv(snapshot)
+		}
+		defaultBranch := strings.TrimSpace(snapshot.DefaultBranch)
+		if defaultBranch == "" {
+			r.Say("I don't currently know the repository default branch from local metadata; run git-info and verify repository status.")
+			return
+		}
+		if ret := r.AddJob("go-switchbranch", defaultBranch); ret != robot.Ok {
+			r.Say("Unable to start go-switchbranch for default branch '%s': %s", defaultBranch, ret)
+			return
+		}
+		r.Say("Ok, I'll switch to default branch '%s', pull latest changes, and reload.", defaultBranch)
+	case "branch":
+		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+			r.Say("Usage: switch-branch <branch>")
+			return
+		}
+		branch := strings.TrimSpace(args[0])
+		if ret := r.AddJob("go-switchbranch", branch); ret != robot.Ok {
+			r.Say("Unable to start go-switchbranch for '%s': %s", branch, ret)
+			return
+		}
+		r.Say("Ok, I'll switch to branch '%s', pull latest changes, and reload.", branch)
 	case "reload":
 		err := loadConfig(false)
 		if err != nil {
 			r.Reply("Error encountered during reload:")
 			r.Fixed().Say("%v", err)
 			Log(robot.Error, "Reloading configuration, requested by %s: %v", r.User, err)
+			status := formatReloadOutcome(r, err)
+			if attempted, ret := notifyPipelineStartContext(r, status); attempted && ret != robot.Ok {
+				Log(robot.Warn, "Unable to send reload-failed origin notification for user '%s': %s", r.User, ret)
+			}
 			return
 		}
 		r.Reply("Configuration reloaded successfully")
 		w.Log(robot.Info, "Configuration successfully reloaded by a request from: %s", r.User)
+		status := formatReloadOutcome(r, nil)
+		if attempted, ret := notifyPipelineStartContext(r, status); attempted && ret != robot.Ok {
+			Log(robot.Warn, "Unable to send reload-success origin notification for user '%s': %s", r.User, ret)
+		}
 	case "protocollist":
 		sourceProtocol := protocolFromIncoming(r.Incoming, r.Protocol)
 		primaryProtocol, _ := getRuntimePrimaryProtocol()
@@ -965,6 +1059,15 @@ func admin(m robot.Robot, command string, args ...string) (retval robot.TaskRetV
 			return
 		}
 		r.Say("Restarted protocol '%s'", protocol)
+	case "gitinfo":
+		snapshot := getRuntimeGitSnapshot()
+		if refreshed, err := refreshRuntimeGitStateFromConfig(false); err == nil {
+			snapshot = refreshed
+			persistRuntimeGitSnapshotToEnv(snapshot)
+		} else {
+			w.Log(robot.Debug, "Unable to refresh runtime git state from info command: %v", err)
+		}
+		r.Say(strings.Join(runtimeGitDetailLines(snapshot), "\n"))
 	case "abort":
 		buf := make([]byte, 32768)
 		runtime.Stack(buf, true)

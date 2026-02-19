@@ -65,6 +65,12 @@ Prompt timeout semantics:
 - `FinalCommand(pluginName, command string) RetVal`
 - `FailCommand(pluginName, command string) RetVal`
 
+Pipeline behavior notes:
+- `AddJob` starts a child pipeline when the added job runs; it does not share parent `SetParameter` values by default.
+- For job pipelines, `startPipeline` exposes origin metadata in environment/parameters such as `GOPHER_START_PROTOCOL`, `GOPHER_START_CHANNEL`, `GOPHER_START_THREAD_ID`, and `GOPHER_START_USER`.
+- `GOPHER_START_MESSAGE_ID` is the connector-provided opaque message ID for the inbound event that started the job (when available); it may be empty for scheduled/init jobs.
+- Job status output normally targets the configured job channel, but extension tasks can use `GOPHER_START_*` metadata to additionally notify the command-origin context when needed.
+
 ### Admin, logging, utilities
 - `CheckAdmin() bool`
 - `Subscribe() bool`, `Unsubscribe() bool`

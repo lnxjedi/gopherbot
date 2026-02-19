@@ -82,6 +82,7 @@ func bootstrapHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	// and known_hosts for server validation.
 	cloneBranch := r.GetParameter("GOPHER_CUSTOM_BRANCH")
 	r.AddTask("git-command", "clone", cloneURL, cloneBranch, repoDir)
+	r.AddTask("git-sync-state", repoDir, "startup")
 
 	// Restart robot so it can start configured.
 	r.AddTask("restart-robot")

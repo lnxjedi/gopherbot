@@ -180,8 +180,53 @@ func resume(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
 	return
 }
 
+func syncGitStateTask(m robot.Robot, args ...string) (retval robot.TaskRetVal) {
+	repoDir := strings.TrimSpace(m.GetParameter("GOPHER_CONFIGDIR"))
+	if len(args) > 0 {
+		override := strings.TrimSpace(args[0])
+		if override != "" {
+			repoDir = override
+		}
+	}
+	if repoDir == "" {
+		m.Log(robot.Warn, "git-sync-state could not determine repository directory")
+		return robot.Normal
+	}
+
+	captureStartup := false
+	if len(args) > 1 {
+		mode := strings.ToLower(strings.TrimSpace(args[1]))
+		captureStartup = mode == "startup" || mode == "true" || mode == "1"
+	}
+
+	snapshot, err := syncRuntimeGitState(repoDir, captureStartup)
+	if err != nil {
+		m.Log(robot.Warn, "git-sync-state unable to refresh branch state from '%s': %v", repoDir, err)
+	} else if snapshot.CurrentBranch != "" {
+		m.Log(robot.Debug, "git-sync-state refreshed branch '%s'", snapshot.CurrentBranch)
+	}
+
+	persistRuntimeGitSnapshotToEnv(snapshot)
+
+	if snapshot.CurrentBranch != "" {
+		m.SetParameter("GOPHER_CUSTOM_BRANCH", snapshot.CurrentBranch)
+	}
+	if snapshot.DefaultBranch != "" {
+		m.SetParameter("GOPHER_CUSTOM_DEFAULT_BRANCH", snapshot.DefaultBranch)
+	}
+	if snapshot.StartupBranch != "" {
+		m.SetParameter("GOPHER_CUSTOM_STARTUP_BRANCH", snapshot.StartupBranch)
+	}
+	if snapshot.CurrentBranch != "" && snapshot.DefaultBranch != "" {
+		_ = m.SetParameter("GOPHER_CUSTOM_BRANCH_IS_DEFAULT", strconv.FormatBool(snapshot.CurrentBranch == snapshot.DefaultBranch))
+	}
+
+	return robot.Normal
+}
+
 func init() {
 	robot.RegisterTask("email-log", true, robot.TaskHandler{Handler: logmail})
+	robot.RegisterTask("git-sync-state", true, robot.TaskHandler{Handler: syncGitStateTask})
 	robot.RegisterTask("pause-brain", true, robot.TaskHandler{Handler: pauseBrainTask})
 	robot.RegisterTask("pause", false, robot.TaskHandler{Handler: pause})
 	robot.RegisterTask("restart-robot", true, robot.TaskHandler{Handler: restart})

@@ -133,12 +133,17 @@ func resolveIncomingUser(maps *userChanMaps, protocol, userID, connectorUser str
 
 // clone a worker for a new execution context
 func (w *worker) clone() *worker {
+	var incoming *robot.ConnectorMessage
+	if w.Incoming != nil {
+		msg := *w.Incoming
+		incoming = &msg
+	}
 	clone := &worker{
 		User:            w.User,
 		ProtocolUser:    w.ProtocolUser,
 		Channel:         w.Channel,
 		ProtocolChannel: w.ProtocolChannel,
-		Incoming:        w.Incoming,
+		Incoming:        incoming,
 		BotUser:         w.BotUser,
 		listedUser:      w.listedUser,
 		id:              getWorkerID(),

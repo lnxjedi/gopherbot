@@ -12,12 +12,19 @@ go_update_job.go - This job is dynamically loaded, compiled and run by Yaegi (ht
 */
 
 func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
+	_ = r.SetParameter("GIT_OPERATION", "update")
+	_ = r.SetParameter("GIT_TARGET_BRANCH", "")
+	_ = r.SetParameter("GIT_ERROR", "")
+	r.FailTask("fail-report")
+
 	repoDir := r.GetParameter("GOPHER_CONFIGDIR")
 
 	confDir := filepath.Join(repoDir, "conf")
 	_, err := os.Stat(confDir)
 	if err != nil {
-		r.Log(robot.Error, "go-update error locating current config: "+err.Error())
+		msg := "go-update error locating current config: " + err.Error()
+		_ = r.SetParameter("GIT_ERROR", msg)
+		r.Log(robot.Error, msg)
 		return robot.Fail
 	}
 
@@ -30,7 +37,9 @@ func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	// Ensure deploy key exists for SSH access
 	deployKey := r.GetParameter("GOPHER_DEPLOY_KEY")
 	if deployKey == "" {
-		r.Log(robot.Error, "No GOPHER_DEPLOY_KEY provided for SSH access")
+		msg := "No GOPHER_DEPLOY_KEY provided for SSH access"
+		_ = r.SetParameter("GIT_ERROR", msg)
+		r.Log(robot.Error, msg)
 		return robot.Fail
 	}
 
@@ -56,8 +65,8 @@ func JobHandler(r robot.Robot, args ...string) robot.TaskRetVal {
 	}
 
 	r.AddTask("git-command", "pull", repoDir)
+	r.AddTask("git-sync-state", repoDir)
 	r.AddTask("update-report")
-	r.FailTask("fail-report")
 	r.AddCommand("builtin-admin", "reload")
 	return robot.Normal
 }

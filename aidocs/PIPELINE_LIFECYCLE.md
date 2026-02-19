@@ -78,10 +78,19 @@ For a full execution/security walkthrough, see `aidocs/EXECUTION_SECURITY_MODEL.
 
 - API surface: `robot/robot.go` methods `AddTask`, `AddJob`, `AddCommand`.
 - Enforcement + mutation: `bot/robot_pipecmd.go` (e.g., `pipeTask`, `Robot.AddTask`).
+- `AddJob` appends a job task to the current primary pipeline; when executed it runs as a child pipeline context (`bot/run_pipelines.go`, `worker.runPipeline` with `child.startPipeline(...)`).
+- Child job pipelines started via `AddJob` do not inherit parent pipeline `SetParameter` state; pass required data as explicit job args or use the built-in `GOPHER_START_*` environment metadata exposed by `startPipeline`.
+- Child job outbound protocol context is inherited from the parent pipeline context (not implicit default-protocol fallback), so command-origin protocol and `AddJob`-spawned status routing remain aligned.
+- Tail-pipeline APIs: `robot/robot.go` methods `FinalTask`, `FailTask`, `FinalCommand`, `FailCommand`.
+- Runtime stage ordering: primary tasks run first, then `Final*` tasks always run, and `Fail*` tasks run only when primary pipeline status is non-normal (`bot/run_pipelines.go`, `worker.startPipeline` + `worker.runPipeline`).
+- `FinalTask` ordering is LIFO/FILO by design (cleanup stack behavior): `bot/robot_pipecmd.go`, `pipeTask` (`flavorFinal` prepends to `w.finalTasks`).
+- `FailTask` ordering is append/in-order (FIFO): `bot/robot_pipecmd.go`, `pipeTask` (`flavorFail` appends to `w.failTasks`).
+- Operational pattern: pair acquisition/setup in `AddTask` with cleanup in `FinalTask` (for example, `ssh-agent deploy` auto-registers `FinalTask("ssh-agent", "stop")` and `ssh-git-helper` host-key setup auto-registers `FinalTask("ssh-git-helper", "delete")`).
 - `AddCommand` composes plugin work into the current pipeline; it does not inject a transport/user-originated inbound message.
 - `AddCommand` only succeeds when:
   - it runs during the primary task stage (`primaryTasks`)
   - the provided command text matches the target plugin's `Commands`
+- Built-in admin git flows (`update`, `switch-branch`, `default-branch`) call `AddCommand("builtin-admin", "reload")`; reload success/failure is mirrored to `GOPHER_START_*` origin context when available, while detailed pipeline output can still go to the job channel.
 - Operational implication: jobs should not treat `AddCommand` as "resume as user" behavior. For reconnect/onboarding flows, prefer explicit user prompts/instructions and let the user invoke the next command.
 - TODO (long-term): document and evaluate whether a dedicated user-scoped resume/injection primitive is needed, distinct from pipeline composition APIs.
 

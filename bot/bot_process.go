@@ -417,6 +417,7 @@ func run() {
 	if err := loadConfig(false); err != nil {
 		Log(robot.Fatal, "Loading full/post-connect configuration: %v", err)
 	}
+	initializeRuntimeGitState()
 	Log(robot.Info, "Robot is initialized and running")
 	if hint := startupSSHHint(startMode, currentCfg.protocol, currentCfg.adminUsers); hint != "" {
 		Log(robot.Info, "%s", hint)
