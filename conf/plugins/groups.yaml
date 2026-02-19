@@ -8,7 +8,6 @@ Commands:
   Summary: "give general help for using groups"
   Examples:
   - "(alias) help with groups"
-  Helptext: [ "(alias) help with groups - give general help for using groups" ]
 - Command: 'add'
   Regex: '(?i:add ([\w-.:]+) to (?:the )?(?:([~\w-'' ]+) )?group)'
   Contexts: [ "user", "group" ]
@@ -17,7 +16,6 @@ Commands:
   Summary: "add a user to a group"
   Examples:
   - "(alias) add alice to the Helpdesk group"
-  Helptext: [ "(alias) add <user> to the <groupname> group - add a user to a group" ]
 - Command: 'list'
   Regex: '(?i:list groups)'
   Keywords: [ "list", "group", "groups" ]
@@ -25,7 +23,6 @@ Commands:
   Summary: "give a list of all the groups the robot knows about (bot administrators only)"
   Examples:
   - "(alias) list groups"
-  Helptext: [ "(alias) list groups - give a list of all the groups the robot knows about (bot administrators only)" ]
 - Command: 'remove'
   Regex: '(?i:(?:remove|delete) ([\w-.:]+) from (?:the )?(?:([~\w-'' ]+) )?group)'
   Contexts: [ "user", "group" ]
@@ -34,7 +31,6 @@ Commands:
   Summary: "remove a dynamic user from a group"
   Examples:
   - "(alias) remove alice from the Helpdesk group"
-  Helptext: [ "(alias) remove <user> from the <groupname> group - remove a dynamic user from a group" ]
 - Command: 'empty'
   Regex: '(?i:(?:empty|clear) (?:the )?(?:([~\w-'' ]+) )?group)'
   Contexts: [ "group" ]
@@ -43,7 +39,6 @@ Commands:
   Summary: "remove all dynamic users from a group"
   Examples:
   - "(alias) empty the Helpdesk group"
-  Helptext: [ "(alias) empty the <groupname> group - remove all dynamic users from a group" ]
 - Command: 'show'
   Regex: '(?i:show (?:the )?(?:([~\w-'' ]+) )?group)'
   Contexts: [ "group" ]
@@ -52,7 +47,6 @@ Commands:
   Summary: "show the members of a group"
   Examples:
   - "(alias) show the Helpdesk group"
-  Helptext: [ "(alias) show the <groupname> group - show the members of a group" ]
 Disabled: true
 ## The groups authorizer plugin is disabled by default; you can use the example
 ## config below to configure your own robot.

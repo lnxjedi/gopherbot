@@ -7,4 +7,3 @@ Commands:
   Summary: "get the slack internal ID for @user"
   Examples:
   - "(alias) slack id @david"
-  Helptext: [ "(alias) slack id <@user> - get the slack internal ID for @user" ]

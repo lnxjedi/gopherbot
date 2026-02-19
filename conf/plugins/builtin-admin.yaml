@@ -8,116 +8,93 @@ Commands:
   Keywords: [ "reload" ]
   Usage: "reload"
   Summary: "have the robot reload configuration files"
-  Helptext: [ "(alias) reload - have the robot reload configuration files" ]
 - Command: update
   Regex: '(?i:update(?:[ -]config(?:uration)?)?)'
   Keywords: [ "config", "configuration", "update", "git" ]
   Usage: "update (configuration)"
   Summary: "perform a git pull of custom configuration and reload"
-  Helptext: [ "(alias) update (configuration) - perform a git pull of custom configuration and reload" ]
 - Command: branch
   Regex: '(?i:(?:switch|change)[ -]branch ([^\s]+))'
   Keywords: [ "config", "configuration", "branch", "switch", "git" ]
   Usage: "switch-branch <branch>"
   Summary: "switch branches in configuration repository, pull latest, and reload"
-  Helptext:
-  - "(alias) switch-branch <branch> - switch branches in configuration repository, pull latest, and reload"
 - Command: defaultbranch
   Regex: '(?i:default[ -]branch)'
   Keywords: [ "config", "configuration", "branch", "default", "git" ]
   Usage: "default-branch"
   Summary: "switch to repository default branch, pull latest, and reload"
-  Helptext:
-  - "(alias) default-branch - switch to repository default branch, pull latest, and reload"
 - Command: protocollist
   Regex: '(?i:protocol[ -]list)'
   Keywords: [ "protocol", "status", "list" ]
   Usage: "protocol-list"
   Summary: "list configured protocol runtimes and states"
-  Helptext: [ "(alias) protocol-list - list configured protocol runtimes and states" ]
 - Command: protocolstart
   Regex: '(?i:protocol[ -]start ([A-Za-z][\w-]*))'
   Keywords: [ "protocol", "start" ]
   Usage: "protocol-start <name>"
   Summary: "start a configured secondary protocol"
-  Helptext: [ "(alias) protocol-start <name> - start a configured secondary protocol" ]
 - Command: protocolstop
   Regex: '(?i:protocol[ -]stop ([A-Za-z][\w-]*))'
   Keywords: [ "protocol", "stop" ]
   Usage: "protocol-stop <name>"
   Summary: "stop a configured secondary protocol"
-  Helptext: [ "(alias) protocol-stop <name> - stop a configured secondary protocol" ]
 - Command: protocolrestart
   Regex: '(?i:protocol[ -]restart ([A-Za-z][\w-]*))'
   Keywords: [ "protocol", "restart" ]
   Usage: "protocol-restart <name>"
   Summary: "restart a configured secondary protocol"
-  Helptext: [ "(alias) protocol-restart <name> - restart a configured secondary protocol" ]
 - Command: gitinfo
   Regex: '(?i:(?:git|branch)[ -]info|show[ -]branch)'
   Keywords: [ "git", "branch", "status", "config" ]
   Usage: "git-info | show-branch"
   Summary: "show current/default/startup branch for the config repository"
-  Helptext:
-  - "(alias) git-info - show current/default/startup branch for the config repository"
-  - "(alias) show-branch - alias for git-info"
 - Command: quit
   Regex: '(?i:quit|exit)'
   Keywords: [ "quit" ]
   Usage: "quit"
   Summary: "request a graceful shutdown, waiting for all plugins to finish"
-  Helptext: [ "(alias) quit - request a graceful shutdown, waiting for all plugins to finish" ]
 - Command: restart
   Regex: '(?i:restart)'
   Keywords: [ "restart" ]
   Usage: "restart"
   Summary: "request a graceful shutdown and restart"
-  Helptext: [ "(alias) restart - request a graceful shutdown and restart" ]
 - Command: abort
   Regex: '(?i:abort)'
   Keywords: [ "abort" ]
   Usage: "abort"
   Summary: "request an immediate shutdown without waiting for plugins to finish"
-  Helptext: [ "(alias) abort - request an immediate shutdown without waiting for plugins to finish" ]
 - Command: ps
   Regex: '(?i:ps)'
   Keywords: [ "process", "processes", "ps", "pipeline", "pipelines" ]
   Usage: "ps"
   Summary: "list running pipelines"
-  Helptext: [ "(alias) ps - list running pipelines" ]
 - Command: "kill"
   Regex: '(?i:kill(?:[- ](?:job|pipeline|process))? ([\d]+))'
   Keywords: [ "kill", "process", "job" ]
   Usage: "kill-pipeline <wid>"
   Summary: "kill the current process for the pipeline identified by <wid>"
-  Helptext: [ "(alias) kill-pipeline <wid> - kill the current process for the pipeline identified by <wid>" ]
 - Command: "pause"
   Regex: '(?i:pause(?:[- ]job)? ([A-Za-z][\w-]*))'
   Keywords: [ "pause", "job", "jobs" ]
   Usage: "pause-job <job>"
   Summary: "pause running of <job> as a scheduled task"
-  Helptext: [ "(alias) pause-job <job> - pause running of <job> as a scheduled task" ]
 - Command: "resume"
   Regex: '(?i:resume(?:[- ]job)? ([A-Za-z][\w-]*))'
   Keywords: [ "pause", "resume", "job", "jobs", "unpause", "un-pause" ]
   Usage: "resume-job <job>"
   Summary: "resume running of <job> as a scheduled task"
-  Helptext: [ "(alias) resume-job <job> - resume running of <job> as a scheduled task" ]
 - Command: pauselist
   Regex: '(?i:(list[- ])?paused[- ]jobs)'
   Keywords: [ "pause", "resume", "job", "jobs" ]
   Usage: "paused-jobs"
   Summary: "list the paused jobs"
-  Helptext: [ "(alias) paused-jobs - list the paused jobs" ]
 - Command: "chanlog"
   Regex: '(?i:log[- ]channel(?: ([A-Za-z][\w-]*))?)'
   Keywords: [ "debug", "log", "channel" ]
   Usage: "log-channel (channel)"
   Summary: "start a log of the current or given channel"
-  Helptext: [ "(alias) log-channel (channel) - start a log of the current or given channel" ]
 - Command: "stopchanlog"
   Regex: '(?i:stop[- ]channel[- ]logging)'
   Keywords: [ "debug", "log", "channel" ]
   Usage: "stop-channel-logging"
   Summary: "stop all channel logging"
-  Helptext: [ "(alias) stop-channel-logging - stop all channel logging" ]

@@ -21,7 +21,6 @@ Commands:
   Examples:
   - "(alias) tell me a knock-knock joke"
   - "(bot) tell me another joke"
-  Helptext:
   - "(bot), tell me a (knock-knock) joke"
 ReplyMatchers:
 - Label: whosthere

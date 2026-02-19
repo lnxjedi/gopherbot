@@ -7,7 +7,6 @@ Commands:
   Summary: "give general help on the help system and using the robot"
   Examples:
   - "(alias) help with robot"
-  Helptext: [ "(alias) help with robot - give general help on the help system and using the robot" ]
 MessageMatchers:
 - Command: help
   Regex: '^(?i:help)$'

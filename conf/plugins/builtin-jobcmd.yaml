@@ -10,7 +10,6 @@ Commands:
   Examples:
   - "(alias) list-jobs"
   - "(alias) list-jobs --all"
-  Helptext: [ "(alias) list-jobs (all) - list the jobs you have access to, optionally in all channels" ]
 - Command: jobs
   Regex: '(?i:list[- ]jobs( -?-?all)?)'
   Keywords: [ "job", "jobs", "run" ]
@@ -18,4 +17,3 @@ Commands:
   Summary: "manually start a job run"
   Examples:
   - "(alias) run-job go-update"
-  Helptext: [ "(alias) run-job <name> (args...) - manually start a job run" ]

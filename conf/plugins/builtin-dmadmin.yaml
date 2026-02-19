@@ -12,7 +12,6 @@ Commands:
   Examples:
   - "(alias) list plugins"
   - "(alias) list disabled plugins"
-  Helptext: [ "(alias) list (disabled) plugins - list all known plugins, or list disabled plugins with the reason disabled" ]
 - Command: "dumpplugdefault"
   Regex: '(?i:dump[- ]plugin[- ]default ([\d\w-.]+))'
   Keywords: [ "dump", "plugin" ]
@@ -20,7 +19,6 @@ Commands:
   Summary: "dump the current or default configuration for the plugin"
   Examples:
   - "(alias) dump plugin default ping"
-  Helptext: [ "(alias) dump plugin (default) <plugname> - dump the current or default configuration for the plugin" ]
 - Command: "dumpplugin"
   Regex: '(?i:dump[- ]plugin ([\d\w-.]+))'
   Keywords: [ "dump", "plugin" ]
@@ -28,7 +26,6 @@ Commands:
   Summary: "dump the current or default configuration for the plugin"
   Examples:
   - "(alias) dump plugin ping"
-  Helptext: [ "(alias) dump plugin (default) <plugname> - dump the current or default configuration for the plugin" ]
 - Command: "dumprobot"
   Regex: "(?i:dump[- ]robot)"
   Keywords: [ "dump", "robot" ]
@@ -36,4 +33,3 @@ Commands:
   Summary: "dump the current configuration for the robot"
   Examples:
   - "(alias) dump robot"
-  Helptext: [ "(alias) dump robot - dump the current configuration for the robot" ]

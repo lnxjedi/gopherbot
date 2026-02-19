@@ -10,4 +10,3 @@ Commands:
   Summary: "start theia IDE (requires gopherbot-theia image)"
   Examples:
   - "(alias) start-ide"
-  Helptext: [ "(alias) start-ide - start theia IDE (requires gopherbot-theia image)" ]

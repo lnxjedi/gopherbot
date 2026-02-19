@@ -481,7 +481,6 @@ Commands:
   Examples:
   - "(alias) configure duo"
   - "(bot) config duo"
-  Helptext:
   - "(bot), configure duo - remember a duo device and method to always use"
 ReplyMatchers:
 - Label: singleDigit

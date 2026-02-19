@@ -21,7 +21,6 @@ Commands:
   Examples:
   - "(alias) help with lists"
   - "(bot) help with lists"
-  Helptext:
   - "(bot), help with lists - give general help for using lists"
 - Command: 'add'
   Regex: '(?i:add ([-\w .,!?:\/''’"]+) to (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
@@ -32,7 +31,6 @@ Commands:
   Examples:
   - "(alias) add milk to the grocery list"
   - "(bot) add deploy checklist to the runbook list"
-  Helptext:
   - "(bot), add <item> to the <type> list - add something to a list"
 - Command: 'list'
   Regex: '(?i:list lists)'
@@ -41,7 +39,6 @@ Commands:
   Summary: "Lists all list names currently stored."
   Examples:
   - "(alias) list lists"
-  Helptext:
   - "(bot), list lists - give a list of all the lists the robot knows about"
 - Command: 'remove'
   Regex: '(?i:(?:remove|delete) ([-\w .,!?:\/''’"]+) from (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
@@ -51,7 +48,6 @@ Commands:
   Summary: "Removes one item from a named list."
   Examples:
   - "(alias) remove milk from the grocery list"
-  Helptext:
   - "(bot), remove <item> from the <type> list - remove something from a list"
 - Command: 'empty'
   Regex: '(?i:(?:empty|clear) (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
@@ -61,7 +57,6 @@ Commands:
   Summary: "Clears all items from a list but keeps the list name."
   Examples:
   - "(alias) empty the grocery list"
-  Helptext:
   - "(bot), empty the <type> list - remove all items from a list"
 - Command: 'delete'
   Regex: '(?i:delete (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
@@ -71,7 +66,6 @@ Commands:
   Summary: "Deletes the entire list."
   Examples:
   - "(alias) delete the grocery list"
-  Helptext:
   - "(bot), delete the <type> list - remove the list altogether"
 - Command: 'show'
   Regex: '(?i:show (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
@@ -81,7 +75,6 @@ Commands:
   Summary: "Displays all items in a list."
   Examples:
   - "(alias) show the grocery list"
-  Helptext:
   - "(bot), show the <type> list - show the contents of a list"
 - Command: 'pick'
   Regex: '(?i:(?:pick )(?:an? )?random (?:item )?(?:from )(?:the )?([-\w .,!?:\/''’"]+)?(?: list))'
@@ -91,7 +84,6 @@ Commands:
   Summary: "Picks one random item from a list."
   Examples:
   - "(alias) pick a random item from the lunch list"
-  Helptext:
   - "(bot), pick a random item from the <type> list"
 - Command: 'send'
   Regex: '(?i:(?:send me|email) (?:the )?(?:([-\w .,!?:\/''’"]+) )?list)'
@@ -102,7 +94,6 @@ Commands:
   Examples:
   - "(alias) send me the grocery list"
   - "(bot) email the oncall list"
-  Helptext:
   - "(bot), send me the <type> list - send a copy of the list by email"
 `)
 

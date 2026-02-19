@@ -9,7 +9,6 @@ Commands:
   Summary: "adjust the logging verbosity"
   Examples:
   - "(alias) set-loglevel debug"
-  Helptext: [ "(alias) set-loglevel to <trace|debug|info|warning|error> - adjust the logging verbosity" ]
 - Command: "show"
   Regex: '(?i:show[- ]logs?(?: page (\d+))?)'
   Keywords: [ "show", "log", "logs" ]
@@ -18,7 +17,6 @@ Commands:
   Examples:
   - "(alias) show-log"
   - "(alias) show-log page 2"
-  Helptext: [ "(alias) show-log (page X) - display the last or Xth previous page of log output" ]
 - Command: "showlevel"
   Regex: '(?i:show[- ](?:log[- ]?)?level)'
   Keywords: [ "show", "log", "logs", "level" ]
@@ -26,7 +24,6 @@ Commands:
   Summary: "show the current logging level"
   Examples:
   - "(alias) show-loglevel"
-  Helptext: [ "(alias) show-loglevel - show the current logging level" ]
 - Command: "setlines"
   Regex: '(?i:set[- ]log[- ]?lines(?: to)? (\d+))'
   Keywords: [ "log", "page", "lines" ]
@@ -34,4 +31,3 @@ Commands:
   Summary: "set the number of lines returned by show log"
   Examples:
   - "(alias) set-loglines to 200"
-  Helptext: [ "(alias) set-loglines to <number> - set the number of lines returned by show log" ]

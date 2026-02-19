@@ -20,7 +20,6 @@ Commands:
   Examples:
   - "(alias) help with links"
   - "(bot) help with links"
-  Helptext:
   - "(bot), help with links - give a description of the links plugin"
 - Command: 'add'
   Regex: '(?i:link ([-\w ,''!."+=?&@#()/]+) to ((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
@@ -31,7 +30,6 @@ Commands:
   Examples:
   - "(alias) link gopherbot docs to https://github.com/lnxjedi/gopherbot"
   - "(bot) link status page to https://status.example.com"
-  Helptext:
   - "(bot), link <word/phrase> to <http://...> - save a link with a single word/phrase key"
 - Command: 'add'
   Regex: '(?i:link ([-\w ,''!."+=?&@#()/]+) to (it))'
@@ -48,7 +46,6 @@ Commands:
   Summary: "Saves a link, then prompts for one or more lookup keywords."
   Examples:
   - "(alias) save link https://pkg.go.dev"
-  Helptext:
   - "(bot), save link <http://...> - save a link and prompt for multiple word/phrase keys"
 - Command: 'remove'
   Regex: '(?i:(?:remove|delete) (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
@@ -58,7 +55,6 @@ Commands:
   Summary: "Deletes a saved link entry."
   Examples:
   - "(alias) remove https://status.example.com"
-  Helptext:
   - "(bot), remove <http://...> - remove a link"
 - Command: 'find'
   Regex: '(?i:(?:find|look ?up) ([-\w ,''!."+=?&@#()/]+))'
@@ -69,7 +65,6 @@ Commands:
   Examples:
   - "(alias) find gopherbot"
   - "(bot) lookup status"
-  Helptext:
   - "(bot), (find|lookup) <keyword/phrase> - find links with keys containing a keyword or phrase"
   - "(bot), look <keyword/phrase> up"
 - Command: 'list'
@@ -80,7 +75,6 @@ Commands:
   Examples:
   - "(alias) show links"
   - "(bot) list links"
-  Helptext:
   - "(bot), (list|show) links - list all the links the robot knows"
 - Command: 'find'
   Regex: '(?i:look ([-\w ,''!."+=?&@#()/]+) up)'

@@ -7,7 +7,6 @@ Commands:
   Summary: "check that your TOTP codes are working"
   Examples:
   - "(alias) validate 123456"
-  Helptext: [ "(alias) validate <code> - check that your TOTP codes are working" ]
 Config:
   # How long elevation lasts
   TimeoutSeconds: 7200

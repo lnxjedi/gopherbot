@@ -12,7 +12,6 @@ Commands:
   Summary: "see if the bot is alive"
   Examples:
   - "(alias) ping"
-  Helptext: [ "(alias) ping - see if the bot is alive" ]
 - Command: "ignore"
   # NOTE: We don't match 'I <something>' - otherwise users couldn't say
   # "Floyd, I love you" (or "Floyd, I think you're a nimrod")
@@ -22,7 +21,6 @@ Commands:
   Summary: "ignore a chat message, useful in channels that match all messages"
   Examples:
   - "(alias) ignore this"
-  Helptext: [ "(alias) i(gnore) <anything> - ignore a chat message, useful in channels that match all messages" ]
 - Command: "thanks"
   Regex: "(?i:thanks?( you)?!?)"
 - Command: "rules"
@@ -32,7 +30,6 @@ Commands:
   Summary: "Be sure the robot knows how to conduct his/herself."
   Examples:
   - "(bot), what are the rules?"
-  Helptext: [ "(bot), what are the rules? - Be sure the robot knows how to conduct his/herself." ]
 - Command: "thread"
   Regex: "(?:(?i:(?:(?:new|start|create)[ -])?thread)(?: .*)?)"
   Keywords: [ "thread" ]
@@ -41,7 +38,6 @@ Commands:
   Examples:
   - "(alias) new thread"
   - "(alias) thread db-migration"
-  Helptext: [ "(alias) new thread (topic) - start a new thread with the robot; informational topic optional" ]
 - Command: "whoami"
   Regex: "(?i:whoami)"
   Keywords: [ "whoami", "user", "identity", "handle", "username" ]
@@ -49,7 +45,6 @@ Commands:
   Summary: "Get the robot to tell you a little bit about yourself."
   Examples:
   - "(bot), whoami"
-  Helptext: [ "(bot), whoami - Get the robot to tell you a little bit about yourself." ]
 - Command: "hello"
   Regex: "(?i:(?:hi|hello|howdy)[.!]?)"
 # These can be supplemented by adding a Config: section to conf/plugins/ping.yaml
