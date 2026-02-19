@@ -107,6 +107,7 @@ type codexRPCClient struct {
 
 	events chan codexRPCEvent
 	closed chan struct{}
+	once   sync.Once
 }
 
 func codexStartSessionCommand(r Robot, args []string) {
@@ -692,27 +693,17 @@ func newCodexRPCClient(in io.WriteCloser, out io.Reader) *codexRPCClient {
 }
 
 func (c *codexRPCClient) Close() {
-	c.mu.Lock()
-	select {
-	case <-c.closed:
-		c.mu.Unlock()
-		return
-	default:
+	c.once.Do(func() {
 		close(c.closed)
-	}
-	for id, ch := range c.pending {
-		delete(c.pending, id)
-		ch <- codexRPCResult{Err: errors.New("rpc client closed")}
-		close(ch)
-	}
-	c.mu.Unlock()
-	close(c.events)
-	if c.in != nil {
-		_ = c.in.Close()
-	}
+		if c.in != nil {
+			_ = c.in.Close()
+		}
+		c.failPending(errors.New("rpc client closed"))
+	})
 }
 
 func (c *codexRPCClient) readLoop() {
+	defer close(c.events)
 	for {
 		var env codexRPCEnvelope
 		if err := c.dec.Decode(&env); err != nil {
