@@ -20,7 +20,6 @@ Commands:
   Examples:
   - "(alias) help with links"
   - "(bot) help with links"
-  - "(bot), help with links - give a description of the links plugin"
 - Command: 'add'
   Regex: '(?i:link ([-\w ,''!."+=?&@#()/]+) to ((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
   Contexts: [ "item:it", "link" ]
@@ -30,7 +29,6 @@ Commands:
   Examples:
   - "(alias) link gopherbot docs to https://github.com/lnxjedi/gopherbot"
   - "(bot) link status page to https://status.example.com"
-  - "(bot), link <word/phrase> to <http://...> - save a link with a single word/phrase key"
 - Command: 'add'
   Regex: '(?i:link ([-\w ,''!."+=?&@#()/]+) to (it))'
   Contexts: [ "item:it", "link:it" ]
@@ -46,7 +44,7 @@ Commands:
   Summary: "Saves a link, then prompts for one or more lookup keywords."
   Examples:
   - "(alias) save link https://pkg.go.dev"
-  - "(bot), save link <http://...> - save a link and prompt for multiple word/phrase keys"
+  - "(bot) save link <http://...>"
 - Command: 'remove'
   Regex: '(?i:(?:remove|delete) (?:link )?((?:http(?:s)?:\/\/)?(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)))'
   Contexts: [ "link" ]
@@ -55,7 +53,7 @@ Commands:
   Summary: "Deletes a saved link entry."
   Examples:
   - "(alias) remove https://status.example.com"
-  - "(bot), remove <http://...> - remove a link"
+  - "(bot) remove <http://...>"
 - Command: 'find'
   Regex: '(?i:(?:find|look ?up) ([-\w ,''!."+=?&@#()/]+))'
   Contexts: [ "item:it" ]
@@ -65,7 +63,6 @@ Commands:
   Examples:
   - "(alias) find gopherbot"
   - "(bot) lookup status"
-  - "(bot), (find|lookup) <keyword/phrase> - find links with keys containing a keyword or phrase"
   - "(bot), look <keyword/phrase> up"
 - Command: 'list'
   Regex: '(?i:(?:show|list) links)'
@@ -75,7 +72,6 @@ Commands:
   Examples:
   - "(alias) show links"
   - "(bot) list links"
-  - "(bot), (list|show) links - list all the links the robot knows"
 - Command: 'find'
   Regex: '(?i:look ([-\w ,''!."+=?&@#()/]+) up)'
   Contexts: [ "item:it" ]

@@ -9,8 +9,6 @@ Commands:
   Examples:
   - "(alias) help ping"
   - "(alias) help"
-  - "(alias) help <keyword> - find help for commands matching <keyword>"
-  - "(alias) help - quick help and discovery pointers"
 - Command: commands
   Regex: '(?i:commands?)'
   Keywords: [ "help", "commands", "list", "browse" ]
@@ -18,7 +16,6 @@ Commands:
   Summary: "browse command groups available in this channel"
   Examples:
   - "(alias) commands"
-  - "(alias) commands - browse command groups available in this channel"
 - Command: help-all
   Regex: '(?i:help-all)'
   Keywords: [ "help", "all" ]

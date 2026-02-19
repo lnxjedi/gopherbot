@@ -84,7 +84,6 @@ Commands:
   Examples:
   - "(alias) new robot"
   - "(bot) new robot"
-  - "(bot), new robot - start guided setup for a new robot"
 - Command: "new-robot-resume"
   Regex: '(?i:(?:resume|continue)[[:space:]]+new(?:-|[[:space:]]+)robot|new(?:-|[[:space:]]+)robot[[:space:]]+(?:resume|continue))$'
   Keywords: [ "new", "robot", "resume", "onboarding" ]
@@ -93,7 +92,6 @@ Commands:
   Examples:
   - "(alias) new robot resume"
   - "(bot) continue new robot"
-  - "(bot), new robot resume - resume your onboarding session"
 - Command: "new-robot-cancel"
   Regex: '(?i:(?:cancel|abort|stop)[[:space:]]+new(?:-|[[:space:]]+)robot|new(?:-|[[:space:]]+)robot[[:space:]]+(?:cancel|abort|stop))$'
   Keywords: [ "new", "robot", "cancel", "onboarding" ]
@@ -102,7 +100,6 @@ Commands:
   Examples:
   - "(alias) new robot cancel"
   - "(bot) stop new robot"
-  - "(bot), new robot cancel - cancel your onboarding session"
 - Command: "new-robot-repo"
   Regex: '(?i:new(?:-|[[:space:]]+)robot[[:space:]]+(?:repo|repository)|(?:repo|repository)[[:space:]]+new(?:-|[[:space:]]+)robot)$'
   Keywords: [ "new", "robot", "repo", "repository", "onboarding" ]
@@ -111,7 +108,6 @@ Commands:
   Examples:
   - "(alias) new robot repo"
   - "(bot) repository new robot"
-  - "(bot), new robot repo - continue repository handoff and .env bootstrap setup"
 ReplyMatchers:
 - Label: botname
   Regex: '(?i:[a-z][a-z0-9_-]{0,31})'
