@@ -17,12 +17,12 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.31
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.54.0
 	github.com/aws/smithy-go v1.24.0
+	github.com/chzyer/readline v1.5.1
 	github.com/dop251/goja v0.0.0-20260106131823-651366fbe6e3
 	github.com/dop251/goja_nodejs v0.0.0-20251015164255-5e94316bedaf
 	github.com/duosecurity/duo_api_golang v0.0.0-20250430191550-ac36954387e7
 	github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594
-	github.com/chzyer/readline v1.5.1
-	github.com/go-git/go-git/v5 v5.16.4
+	github.com/go-git/go-git/v5 v5.16.5
 	github.com/joho/godotenv v1.5.1
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
 	github.com/lnxjedi/gopherbot/robot v0.0.0-20221211204919-1966e9d9cfec
