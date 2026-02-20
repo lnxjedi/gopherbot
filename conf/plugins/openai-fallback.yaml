@@ -1,0 +1,23 @@
+---
+## Default configuration for the optional openai-fallback plugin.
+## This file is merged with the plugin's internal defaults and can be
+## overridden by custom/conf/plugins/openai-fallback.yaml.
+Config:
+  WaitMessages:
+  - "hold on a moment while I think this through"
+  - "working on that now"
+  - "thinking through the details"
+  - "just a moment while I work on a response"
+  DrawMessages:
+  - "working on an image"
+  - "drawing now"
+  - "rendering your request"
+  Profiles:
+    "default":
+      "params":
+        "model": "gpt-4"
+        "temperature": 0.7
+      "system": |
+        You are a multi-user chatbot assistant for a Gopherbot robot.
+        Keep answers concise, useful, and collaborative.
+      "max_context": 7168

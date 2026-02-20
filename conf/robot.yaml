@@ -205,6 +205,16 @@ ExternalPlugins:
     Path: plugins/ssh-admin.sh
     Privileged: true
     NameSpace: ssh
+  "openai-fallback":
+    Description: OpenAI-backed multi-user conversational fallback plugin
+    Path: plugins/go-openai-fallback/ai.go
+    Homed: true
+    Disabled: true
+    Parameters:
+    - Name: OPENAI_KEY
+      Value: ""
+    - Name: OPENAI_ORGANIZATION_ID
+      Value: ""
 {{- if eq $mode "demo" }}
   {{- if or (eq $proto "terminal") (eq $proto "ssh") }}
   "welcome":

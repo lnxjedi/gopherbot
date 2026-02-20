@@ -94,6 +94,16 @@ ExternalPlugins:
 #   "pythondemo":
 #     Description: Sample python plugin
 #     Path: plugins/samples/pythondemo.py
+#   "openai-fallback":
+#     Description: OpenAI-backed multi-user conversational fallback plugin
+#     Path: plugins/go-openai-fallback/ai.go
+#     Homed: true
+#     ## Configure per-robot behavior in custom/conf/plugins/openai-fallback.yaml
+#     Parameters:
+#     - Name: OPENAI_KEY
+#       Value: replace with encrypted string
+#     - Name: OPENAI_ORGANIZATION_ID
+#       Value: optional organization ID
 
 ## Note that modules for connectors, brains and history providers load automatically
 # LoadableModules:
