@@ -27,6 +27,16 @@ const (
 	defaultChunkHardLimit      = 620
 )
 
+const (
+	defaultStandardSystemPrompt = `You are an AI assistant participating in a multi-user chat conversation.
+Messages are provided with speaker prefixes like "username says: ...".
+Use these prefixes to identify who is speaking.
+When replying to a specific person, address them as "@username" naturally.
+If users are mainly talking to each other and no bot response is needed, keep your response minimal and non-intrusive, or reply with "(no response)".
+Do not echo speaker prefixes unless it helps clarity.`
+	defaultCustomSystemPrompt = "You are helpful, concise, and collaborative."
+)
+
 var defaultConfig = []byte(`
 ---
 AllowDirect: true
@@ -68,16 +78,28 @@ Config:
       "params":
         "model": "gpt-4"
         "temperature": 0.7
-      "system": |
-        You are a multi-user chatbot assistant for a Gopherbot robot.
-        Keep answers concise, useful, and collaborative.
+      "SystemPrompt":
+        "Standard": |
+          You are an AI assistant participating in a multi-user chat conversation.
+          Messages are provided with speaker prefixes like "username says: ...".
+          Use these prefixes to identify who is speaking.
+          When replying to a specific person, address them as "@username" naturally.
+          If users are mainly talking to each other and no bot response is needed, keep your response minimal and non-intrusive, or reply with "(no response)".
+          Do not echo speaker prefixes unless it helps clarity.
+        "Custom": |
+          You are helpful, concise, and collaborative.
       "max_context": 7168
 `)
 
+type systemPromptConfig struct {
+	Standard string `json:"Standard"`
+	Custom   string `json:"Custom"`
+}
+
 type aiProfile struct {
-	Params     map[string]interface{} `json:"params"`
-	System     string                 `json:"system"`
-	MaxContext int                    `json:"max_context"`
+	Params       map[string]interface{} `json:"params"`
+	SystemPrompt systemPromptConfig     `json:"SystemPrompt"`
+	MaxContext   int                    `json:"max_context"`
 }
 
 type aiConfig struct {
@@ -571,9 +593,10 @@ func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, sta
 	}
 
 	profile := resolveProfile(state.Profile, cfg)
+	systemPrompt := buildSystemPrompt(profile)
 	queued := pendingForContext(state.Pending, ctx.MessageID, state.Processed)
-	trimmedExchanges := trimExchangesForContext(profile.System, state.Exchanges, queued, ctx.Prompt, profile.MaxContext)
-	messages := buildMessages(profile.System, trimmedExchanges, queued, ctx)
+	trimmedExchanges := trimExchangesForContext(systemPrompt, state.Exchanges, queued, ctx.Prompt, profile.MaxContext)
+	messages := buildMessages(systemPrompt, trimmedExchanges, queued, ctx)
 	payload := map[string]interface{}{
 		"messages": messages,
 		"stream":   true,
@@ -636,7 +659,10 @@ func resolveProfile(profileName string, cfg aiConfig) aiProfile {
 				"model":       "gpt-4",
 				"temperature": 0.7,
 			},
-			System: "You are a helpful multi-user chatbot assistant.",
+			SystemPrompt: systemPromptConfig{
+				Standard: defaultStandardSystemPrompt,
+				Custom:   defaultCustomSystemPrompt,
+			},
 		}
 	}
 	if profileName != "" {
@@ -655,13 +681,28 @@ func resolveProfile(profileName string, cfg aiConfig) aiProfile {
 			"model":       "gpt-4",
 			"temperature": 0.7,
 		},
-		System: "You are a helpful multi-user chatbot assistant.",
+		SystemPrompt: systemPromptConfig{
+			Standard: defaultStandardSystemPrompt,
+			Custom:   defaultCustomSystemPrompt,
+		},
 	}
+}
+
+func buildSystemPrompt(profile aiProfile) string {
+	standard := strings.TrimSpace(profile.SystemPrompt.Standard)
+	custom := strings.TrimSpace(profile.SystemPrompt.Custom)
+	if standard == "" {
+		standard = defaultStandardSystemPrompt
+	}
+	if custom == "" {
+		custom = defaultCustomSystemPrompt
+	}
+	return strings.TrimSpace(standard + "\n\n" + custom)
 }
 
 func buildMessages(system string, exchanges []conversationExchange, pending []pendingMessage, ctx conversationContext) []map[string]string {
 	if strings.TrimSpace(system) == "" {
-		system = "You are a helpful multi-user chatbot assistant."
+		system = strings.TrimSpace(defaultStandardSystemPrompt + "\n\n" + defaultCustomSystemPrompt)
 	}
 	messages := []map[string]string{
 		{
