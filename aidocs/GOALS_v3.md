@@ -35,8 +35,21 @@ These goals are intended to unblock and accelerate later v3 work. Changes that a
 
 ## Core v3 Goals
 
-### Backward Compatibility
-To the greatest extent possible, v3 should be fully backwards-compatible with existing robots created from the original `robot.skel`.
+### Backward Compatibility with v2 Custom Extensions, but Not Configuration
+To the greatest extent possible, custom extensions written to the robot API from v2 should continue to function unmodified. To support greater functionality, `robot.yaml` and other configuration will be changed, no longer supporting v2 configuration syntax. `UPGRADING-v3.md` will be the definitely guide for upgrading v2 robots to v3 robots.
+
+### Multi-Protocol Support and a Common Outgoing Message Format
+Gopherbot v3 will support multiple simultaneous chat protocols, and will support more team chat platforms.
+
+For v3, we will try to support:
+* Slack
+* Google Chat
+* SSH
+* Mattermost
+* Rocket.Chat
+* Zulip
+
+In addition, Gopherbot will implement a new default outgoing message format for use by custom extensions, `BasicMarkdown` (see devdocs/BasicMarkdown.md).
 
 ### Reduce Dependence on External Tools and Interpreters
 
@@ -114,7 +127,7 @@ Just imagine: "Astro, the app is really slow - can you see what's going on?" - u
 
 The following items are explicitly *not* required for v3 and should not block release unless this document is updated to say otherwise.
 
-* Perfect backward compatibility with all v2 robots - when breaking changes are required to meet the above goals, we will document what the user needs to know in an `Upgrading_to_v3.md` document.
+* Configuration compatibility with v2 robots - when breaking changes are required to meet the above goals, we will document what the user needs to know in an `Upgrading_to_v3.md` document.
 
 ## How We Decide v3 Is Ready
 
