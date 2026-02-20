@@ -130,6 +130,8 @@ func (s *slackConnector) slackifyMessage(targetUserID, prefix, msg string, f rob
 	if f == robot.Raw {
 		msg = normalizeBackticks(msg)
 		msg = s.processRawMessage(msg)
+	} else if f == robot.BasicMarkdown {
+		msg = s.renderBasicMarkdown(msg)
 	} else {
 		msg = strings.Replace(msg, "&", "&amp;", -1)
 		msg = strings.Replace(msg, "<", "&lt;", -1)
