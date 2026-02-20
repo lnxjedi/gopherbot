@@ -35,9 +35,23 @@ func (s *slackConnector) renderBasicMarkdown(msg string) string {
 		out.WriteString("```")
 		inFence = !inFence
 		msg = msg[idx+3:]
+		if inFence {
+			msg = stripBasicMarkdownFenceLanguage(msg)
+		}
 	}
 
 	return out.String()
+}
+
+func stripBasicMarkdownFenceLanguage(msg string) string {
+	if msg == "" || msg[0] == '\n' {
+		return msg
+	}
+	lineEnd := strings.IndexByte(msg, '\n')
+	if lineEnd == -1 {
+		return ""
+	}
+	return msg[lineEnd:]
 }
 
 func (s *slackConnector) renderBasicMarkdownInline(msg string) string {
@@ -93,11 +107,96 @@ func (s *slackConnector) renderBasicMarkdownPlain(msg string) string {
 
 	msg = replaceBasicMarkdownLinks(msg, reserveMD)
 	msg = s.replaceBasicMarkdownMentions(msg, reserveMD)
+	msg = replaceBasicMarkdownEmphasis(msg, reserveMD)
 	msg = slackPlainEscapeReplacer.Replace(msg)
 	msg = restoreEscapedLiterals(msg, escapedLiterals)
 	msg = restoreMarkdownPlaceholders(msg, mdTokens)
 
 	return msg
+}
+
+func replaceBasicMarkdownEmphasis(msg string, reserveMD func(string) string) string {
+	msg = replaceBasicMarkdownBold(msg, reserveMD)
+	msg = replaceBasicMarkdownItalic(msg)
+	return msg
+}
+
+func replaceBasicMarkdownBold(msg string, reserveMD func(string) string) string {
+	var out strings.Builder
+
+	for len(msg) > 0 {
+		start := strings.Index(msg, "**")
+		if start == -1 {
+			out.WriteString(msg)
+			break
+		}
+
+		out.WriteString(msg[:start])
+		msg = msg[start+2:]
+
+		end := strings.Index(msg, "**")
+		if end == -1 {
+			out.WriteString("**")
+			out.WriteString(msg)
+			break
+		}
+
+		inner := msg[:end]
+		if inner == "" {
+			out.WriteString("****")
+		} else {
+			out.WriteString(reserveMD("*" + inner + "*"))
+		}
+		msg = msg[end+2:]
+	}
+
+	return out.String()
+}
+
+func replaceBasicMarkdownItalic(msg string) string {
+	var out strings.Builder
+
+	for i := 0; i < len(msg); {
+		if msg[i] != '*' || isAdjacentAsterisk(msg, i) {
+			out.WriteByte(msg[i])
+			i++
+			continue
+		}
+
+		end := findNextSingleAsterisk(msg, i+1)
+		if end == -1 {
+			out.WriteByte(msg[i])
+			i++
+			continue
+		}
+
+		inner := msg[i+1 : end]
+		if inner == "" {
+			out.WriteString("**")
+			i = end + 1
+			continue
+		}
+
+		out.WriteByte('_')
+		out.WriteString(inner)
+		out.WriteByte('_')
+		i = end + 1
+	}
+
+	return out.String()
+}
+
+func findNextSingleAsterisk(msg string, start int) int {
+	for i := start; i < len(msg); i++ {
+		if msg[i] == '*' && !isAdjacentAsterisk(msg, i) {
+			return i
+		}
+	}
+	return -1
+}
+
+func isAdjacentAsterisk(msg string, idx int) bool {
+	return (idx > 0 && msg[idx-1] == '*') || (idx+1 < len(msg) && msg[idx+1] == '*')
 }
 
 func protectBasicMarkdownEscapes(msg string) (string, []string) {
@@ -303,9 +402,18 @@ func markdownPlaceholder(idx int) string {
 func restoreEscapedLiterals(msg string, literals []string) string {
 	out := msg
 	for i, literal := range literals {
-		out = strings.ReplaceAll(out, escapedPlaceholder(i), literal)
+		out = strings.ReplaceAll(out, escapedPlaceholder(i), slackEscapedLiteral(literal))
 	}
 	return out
+}
+
+func slackEscapedLiteral(literal string) string {
+	switch literal {
+	case "*", "`", "_":
+		return escapePad + literal
+	default:
+		return literal
+	}
 }
 
 func restoreMarkdownPlaceholders(msg string, tokens []string) string {

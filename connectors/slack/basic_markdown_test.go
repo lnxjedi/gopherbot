@@ -26,7 +26,7 @@ func TestRenderBasicMarkdownCodeBoundaries(t *testing.T) {
 
 	in := "inline `@alice` and block:\n```text\n@alice :white_check_mark:\n```\noutside @alice"
 	got := s.renderBasicMarkdown(in)
-	want := "inline `@alice` and block:\n```text\n@alice :white_check_mark:\n```\noutside <@U111>"
+	want := "inline `@alice` and block:\n```\n@alice :white_check_mark:\n```\noutside <@U111>"
 	if got != want {
 		t.Fatalf("renderBasicMarkdown() = %q, want %q", got, want)
 	}
@@ -80,6 +80,31 @@ func TestRenderBasicMarkdownAmbiguousCaseMentionStaysLiteral(t *testing.T) {
 	in := "Please review @AlIcE"
 	got := s.renderBasicMarkdown(in)
 	want := "Please review @AlIcE"
+	if got != want {
+		t.Fatalf("renderBasicMarkdown() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderBasicMarkdownEmphasisToSlack(t *testing.T) {
+	s := &slackConnector{}
+	in := "**Deploy status:** *rollback in progress*"
+	got := s.renderBasicMarkdown(in)
+	want := "*Deploy status:* _rollback in progress_"
+	if got != want {
+		t.Fatalf("renderBasicMarkdown() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderBasicMarkdownEscapedFormattingStaysLiteral(t *testing.T) {
+	s := &slackConnector{
+		userMap: map[string]string{
+			"alice": "U111",
+		},
+	}
+
+	in := "Escaping: \\*not bold\\* and \\`not code\\` and \\@alice and [label](https://example.com)"
+	got := s.renderBasicMarkdown(in)
+	want := "Escaping: " + escapePad + "*not bold" + escapePad + "* and " + escapePad + "`not code" + escapePad + "` and @alice and <https://example.com|label>"
 	if got != want {
 		t.Fatalf("renderBasicMarkdown() = %q, want %q", got, want)
 	}
