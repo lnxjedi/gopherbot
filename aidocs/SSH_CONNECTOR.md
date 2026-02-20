@@ -132,6 +132,17 @@ Hidden replies:
 
 Color output uses ANSI 256 sequences. User input remains uncolored; prompts, bot/user messages, and system lines are colorized via `ColorScheme`. Message headers (timestamp/user/channel) are colorized per segment.
 
+Message format behavior:
+
+- `Raw` / `Fixed` / `Variable`: preserved as-is (same connector behavior as before).
+- `BasicMarkdown`: rendered to plain-text-safe output for SSH:
+  - bold/italic markers removed
+  - inline code/backticks removed, keeping inner text
+  - fenced code fences removed (including optional language hint), preserving code lines
+  - markdown links degraded to `label (https://...)`
+  - escaped literals (for example `\*`, ``\` ``, `\@`) unescaped
+  - mentions and emoji pass through as literal text
+
 ### User input
 
 - PTY input; prompt is `@alice/#general -> ` or `@alice/#general(0005) -> `.
