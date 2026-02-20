@@ -171,6 +171,14 @@ The default `robot.yaml` uses Go templates to derive configuration values from s
 
 If `DefaultProtocol` is set, it must be the primary protocol or one of `SecondaryProtocols`; otherwise startup logs a warning and falls back to `PrimaryProtocol`.
 
+### Default Outgoing Message Format
+
+`DefaultMessageFormat` in `robot.yaml` is optional.
+
+- Supported values: `Raw`, `Fixed`, `Variable`, `BasicMarkdown`
+- If unset, startup defaults to `BasicMarkdown`
+- Unknown values log an error and fall back to `BasicMarkdown`
+
 ### Primary Protocol Config Source
 
 Primary connector configuration is always loaded from:

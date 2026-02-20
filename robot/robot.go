@@ -26,7 +26,7 @@ type Message struct {
 	ProtocolChannel string            // the protocol internal channel ID
 	Protocol        Protocol          // slack, terminal, test, others; used for interpreting rawmsg or sending messages with Format = 'Raw'
 	Incoming        *ConnectorMessage // raw IncomingMessage object
-	Format          MessageFormat     // The outgoing message format, one of Raw, Fixed, or Variable
+	Format          MessageFormat     // The outgoing message format, one of Raw, Fixed, Variable, or BasicMarkdown
 }
 
 // Robot defines the methods exposed by gopherbot.bot Robot struct, for

@@ -140,6 +140,7 @@ M.fmt = {
     Raw = 0,
     Fixed = 1,
     Variable = 2,
+    BasicMarkdown = 3,
 }
 
 ---Convert a fmt constant to its string name.

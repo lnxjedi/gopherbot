@@ -100,7 +100,7 @@ type configuration struct {
 	ignoreUnlistedUsers  bool                // ignore users not listed in the UserRoster
 	secureParamRetrieve  bool                // don't publish parameters as environment variables
 	httpDebug            bool                // whether http API debug logging is enabled
-	defaultMessageFormat robot.MessageFormat // Raw unless set to Variable or Fixed
+	defaultMessageFormat robot.MessageFormat // BasicMarkdown unless set to another supported format
 	plugChannels         []string            // list of channels where plugins are available by default
 	protocol             string              // Name of the primary protocol, e.g. "slack"
 	defaultProtocol      string              // Protocol used for outbound messages without an inbound protocol context

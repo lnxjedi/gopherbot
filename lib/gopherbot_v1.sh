@@ -577,6 +577,9 @@ getFormat(){
 	"-v")
 		echo "Variable"
 		;;
+	"-m"|"-b")
+		echo "BasicMarkdown"
+		;;
 	esac
 }
 

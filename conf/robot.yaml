@@ -144,6 +144,10 @@ UserRoster:
 ## Configure a history provider
 {{ $history := env "GOPHER_HISTORY_PROVIDER" | default "mem" }}
 HistoryProvider: {{ $history }}
+## Outgoing message format for plugins/jobs that do not override format explicitly.
+## BasicMarkdown is the v3 default portable format. Legacy robots that need
+## protocol-native behavior can set this to Raw.
+DefaultMessageFormat: {{ env "GOPHER_MESSAGE_FORMAT" | default "BasicMarkdown" }}
 
 TimeZone: {{ env "GOPHER_TIMEZONE" | default "America/New_York" }}
 

@@ -6,14 +6,14 @@ BasicMarkdown is a **portable, minimal formatting format** for Gopherbot outgoin
 
 It is designed to:
 
-- Let plugins and core bot logic produce one message format
-- Let each connector render that format for its target platform
-- Avoid connector-specific formatting syntax in shared code
-- Degrade safely when a platform cannot render a feature exactly
+* Let plugins and core bot logic produce one message format
+* Let each connector render that format for its target platform
+* Avoid connector-specific formatting syntax in shared code
+* Degrade safely when a platform cannot render a feature exactly
 
 BasicMarkdown is intentionally a **small subset of Markdown**, with one Gopherbot extension:
 
-- `@username` is interpreted as a reference to a given username from the UserRoster, and if supported by the platform should "mention" the user (some platforms support user notifications if a user is mentioned).
+* `@username` user mention tokens (connector-resolved)
 
 This spec is the **contract** that all connectors must follow for messages sent in `BasicMarkdown` mode.
 
@@ -68,8 +68,8 @@ Use double asterisks:
 
 #### Requirements
 
-- Connectors MUST render bold if supported.
-- If unsupported, connectors MUST emit the text without markers.
+* Connectors MUST render bold if supported.
+* If unsupported, connectors MUST emit the text without markers.
 
 ---
 
@@ -81,8 +81,8 @@ Use single asterisks:
 
 #### Requirements
 
-- Connectors MUST render italic if supported.
-- If unsupported, connectors MUST emit the text without markers.
+* Connectors MUST render italic if supported.
+* If unsupported, connectors MUST emit the text without markers.
 
 ---
 
@@ -94,9 +94,9 @@ Use backticks:
 
 #### Requirements
 
-- Connectors MUST preserve inline code semantics if supported.
-- If unsupported, connectors MUST emit the inner text as plain text (without backticks) or a safe equivalent.
-- Connectors SHOULD preserve exact characters inside inline code as much as possible.
+* Connectors MUST preserve inline code semantics if supported.
+* If unsupported, connectors MUST emit the inner text as plain text (without backticks) or a safe equivalent.
+* Connectors SHOULD preserve exact characters inside inline code as much as possible.
 
 ---
 
@@ -217,6 +217,71 @@ A mention token is recognized only when:
 
 ---
 
+### 10) Emoji (Gopherbot extension)
+
+BasicMarkdown supports emoji in two forms:
+
+1. **Shortcode emoji**: `:emoji_name:`
+2. **Raw Unicode emoji**: e.g. `😂`, `✅`, `🔥`
+
+Shortcode emoji is a Gopherbot semantic token, similar to mentions. It is not guaranteed to map identically across all platforms.
+
+#### Intent
+
+Connectors SHOULD render shortcode emoji as platform-native emoji syntax or as Unicode emoji when supported by the target platform.
+
+Raw Unicode emoji SHOULD be passed through unchanged.
+
+Shortcode-to-Unicode translation, when done, is connector-local rendering behavior.
+The core engine MUST NOT rewrite shortcode emoji tokens into Unicode.
+
+#### Requirements
+
+* Connectors MUST accept shortcode emoji tokens in the form `:emoji_name:`.
+* Connectors SHOULD render supported shortcode emoji as native/platform-recognized emoji.
+* If a shortcode is unknown or unsupported, connectors MUST leave the literal `:emoji_name:` text unchanged.
+* Connectors MUST pass through raw Unicode emoji unchanged unless the target platform requires escaping.
+* Connectors MUST NOT parse emoji shortcode inside inline code or fenced code blocks.
+
+#### Parsing rules for shortcode emoji
+
+A shortcode emoji token is recognized only when:
+
+* It matches `:name:` where `name` contains one or more of: `A-Z`, `a-z`, `0-9`, `_`, `+`, `-`
+* It is not inside inline code or fenced code blocks
+* It is not part of a URL scheme or other malformed token
+
+#### Recommended core emoji set (SHOULD)
+
+Connectors SHOULD support a common core set of shortcodes when the platform allows shortcode rendering or translation:
+
+* `:white_check_mark:`
+* `:warning:`
+* `:x:`
+* `:rocket:`
+* `:fire:`
+* `:joy:`
+* `:thinking_face:`
+* `:eyes:`
+* `:thumbsup:`
+* `:thumbsdown:`
+
+#### Non-standard and platform-specific shortcodes
+
+* Connectors SHOULD accept shortcodes beyond the recommended core set.
+* If the target platform supports additional/custom shortcodes (including workspace-specific emoji), connectors MAY resolve them.
+* BasicMarkdown does not require a universal emoji dictionary.
+* If a connector cannot resolve a shortcode, it MUST preserve the original literal token.
+
+#### Examples
+
+* `Build passed :white_check_mark:` → render if supported, else leave literal
+* `That log line 😂` → preserve Unicode emoji
+* `` `:joy:` `` → not parsed as emoji (inline code)
+* Code block content → not parsed for emoji
+
+---
+
 ## Unsupported features (v1)
 
 The following are intentionally out of scope for BasicMarkdown v1:
@@ -269,8 +334,9 @@ Connectors (or shared formatting code) SHOULD parse BasicMarkdown in this order:
 2. Inline code
 3. Links
 4. Mentions
-5. Bold / italic
-6. Block quotes / lists / paragraphs
+5. Emoji shortcode
+6. Bold / italic
+7. Block quotes / lists / paragraphs
 
 This order avoids accidental formatting inside code and reduces ambiguity.
 
