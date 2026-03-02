@@ -19,6 +19,9 @@ import (
 const (
 	shortTermMemoryPrefix      = "openai-fallback-conversation"
 	shortTermMemoryDebugPrefix = "openai-fallback-debug"
+	conversationDatumPrefix    = "openaifallback:conversation:v2"
+	conversationIndexDatumKey  = "openaifallback:conversation:index:v1"
+	conversationIndexVersion   = 1
 	defaultProfile             = "default"
 	maxPendingMessages         = 24
 	maxProcessedMessages       = 48
@@ -155,16 +158,28 @@ type conversationState struct {
 }
 
 type conversationContext struct {
-	Direct       bool
-	Threaded     bool
-	User         string
-	Channel      string
-	ThreadID     string
-	MessageID    string
-	Prompt       string
-	MemoryKey    string
-	DebugKey     string
-	ExclusiveTag string
+	Direct          bool
+	Threaded        bool
+	User            string
+	Channel         string
+	ThreadID        string
+	MessageID       string
+	Prompt          string
+	ConversationID  string
+	ConversationKey string
+	LegacyMemoryKey string
+	DebugKey        string
+	ExclusiveTag    string
+}
+
+type conversationIndexEntry struct {
+	Key       string `json:"key"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+type conversationIndex struct {
+	Version       int                               `json:"version"`
+	Conversations map[string]conversationIndexEntry `json:"conversations"`
 }
 
 func Configure() *[]byte {
@@ -207,7 +222,7 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 		return robot.Normal
 	}
 
-	state, _ := loadConversationState(r, ctx.MemoryKey)
+	state, _ := loadConversationState(r, ctx)
 	ensureConversationDefaults(&state, ctx)
 	if wasProcessed(state.Processed, ctx.MessageID) {
 		return robot.Normal
@@ -221,7 +236,7 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 			At:        nowString(),
 		})
 		state.UpdatedAt = nowString()
-		saveConversationState(r, ctx.MemoryKey, state)
+		saveConversationState(r, ctx, state)
 		r.ReplyThread("(I hear you and queued this while I finish the current reply)")
 		return robot.Normal
 	}
@@ -230,7 +245,7 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 	state.Processed = appendProcessed(state.Processed, ctx.MessageID)
 	state.InProgress = true
 	state.UpdatedAt = nowString()
-	saveConversationState(r, ctx.MemoryKey, state)
+	saveConversationState(r, ctx, state)
 
 	tbot := r
 	if !ctx.Direct {
@@ -250,7 +265,7 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 			tbot.Say("Sorry, there was an error contacting the AI: %s", err)
 			state.InProgress = false
 			state.UpdatedAt = nowString()
-			saveConversationState(r, ctx.MemoryKey, state)
+			saveConversationState(r, ctx, state)
 			return robot.Normal
 		}
 		state.Exchanges = append(state.Exchanges, conversationExchange{
@@ -267,7 +282,7 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 	}
 	state.InProgress = false
 	state.UpdatedAt = nowString()
-	saveConversationState(r, ctx.MemoryKey, state)
+	saveConversationState(r, ctx, state)
 	return robot.Normal
 }
 
@@ -278,7 +293,7 @@ func handleStatus(r robot.Robot) robot.TaskRetVal {
 		return robot.Normal
 	}
 
-	state, ok := loadConversationState(r, ctx.MemoryKey)
+	state, ok := loadConversationState(r, ctx)
 	if !ok || len(state.Exchanges) == 0 {
 		r.Reply("I hear you, but I have no memory of a conversation in this context.")
 		return robot.Normal
@@ -297,10 +312,9 @@ func handleStatus(r robot.Robot) robot.TaskRetVal {
 
 func handleClose(r robot.Robot) robot.TaskRetVal {
 	ctx := makeConversationContext(r)
-	state, ok := loadConversationState(r, ctx.MemoryKey)
+	state, ok := loadConversationState(r, ctx)
 	if ok && len(state.Exchanges) > 0 {
-		r.Remember(ctx.MemoryKey, "", true)
-		r.Remember(ctx.DebugKey, "", true)
+		deleteConversationState(r, ctx)
 		if !ctx.Direct {
 			r.Unsubscribe()
 		}
@@ -424,14 +438,17 @@ func makeConversationContext(r robot.Robot, args ...string) conversationContext 
 	}
 
 	if direct {
-		ctx.MemoryKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(user))
+		ctx.ConversationID = fmt.Sprintf("dm:%s:%s", strings.ToLower(protocol), strings.ToLower(user))
+		ctx.LegacyMemoryKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(user))
 		ctx.DebugKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryDebugPrefix, strings.ToLower(protocol), strings.ToLower(user))
 		ctx.ExclusiveTag = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(user))
 	} else {
-		ctx.MemoryKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(channel), threadID)
+		ctx.ConversationID = fmt.Sprintf("thread:%s:%s:%s", strings.ToLower(protocol), strings.ToLower(channel), threadID)
+		ctx.LegacyMemoryKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(channel), threadID)
 		ctx.DebugKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryDebugPrefix, strings.ToLower(protocol), strings.ToLower(channel), threadID)
 		ctx.ExclusiveTag = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(channel), threadID)
 	}
+	ctx.ConversationKey = conversationDatumKey(ctx.ConversationID)
 
 	if ctx.ExclusiveTag == "" {
 		ctx.ExclusiveTag = shortTermMemoryPrefix + ":fallback"
@@ -439,8 +456,14 @@ func makeConversationContext(r robot.Robot, args ...string) conversationContext 
 	return ctx
 }
 
-func loadConversationState(r robot.Robot, key string) (conversationState, bool) {
-	encoded := strings.TrimSpace(r.Recall(key, true))
+func loadConversationState(r robot.Robot, ctx conversationContext) (conversationState, bool) {
+	state := conversationState{}
+	_, exists, ret := r.CheckoutDatum(ctx.ConversationKey, &state, false)
+	if ret == robot.Ok && exists {
+		return state, true
+	}
+
+	encoded := strings.TrimSpace(r.Recall(ctx.LegacyMemoryKey, true))
 	if encoded == "" {
 		return conversationState{}, false
 	}
@@ -448,12 +471,17 @@ func loadConversationState(r robot.Robot, key string) (conversationState, bool) 
 	if err != nil {
 		return conversationState{}, false
 	}
+	saveConversationState(r, ctx, state)
+	r.Remember(ctx.LegacyMemoryKey, "", true)
 	return state, true
 }
 
-func saveConversationState(r robot.Robot, key string, state conversationState) {
+func saveConversationState(r robot.Robot, ctx conversationContext, state conversationState) {
 	state.UpdatedAt = nowString()
-	r.Remember(key, encodeConversationState(state), true)
+	if !storeConversationStateDatum(r, ctx.ConversationKey, state) {
+		return
+	}
+	upsertConversationIndex(r, ctx.ConversationID, ctx.ConversationKey, state.UpdatedAt)
 }
 
 func decodeConversationState(encoded string) (conversationState, error) {
@@ -473,12 +501,86 @@ func decodeConversationState(encoded string) (conversationState, error) {
 	return state, nil
 }
 
-func encodeConversationState(state conversationState) string {
-	buf, err := json.Marshal(state)
-	if err != nil {
-		return ""
+func storeConversationStateDatum(r robot.Robot, key string, state conversationState) bool {
+	existing := conversationState{}
+	locktoken, _, ret := r.CheckoutDatum(key, &existing, true)
+	if ret != robot.Ok {
+		return false
 	}
-	return base64.StdEncoding.EncodeToString(buf)
+	if ret = r.UpdateDatum(key, locktoken, state); ret != robot.Ok {
+		r.CheckinDatum(key, locktoken)
+		return false
+	}
+	return true
+}
+
+func ensureConversationIndexDefaults(idx *conversationIndex) {
+	if idx.Version == 0 {
+		idx.Version = conversationIndexVersion
+	}
+	if idx.Conversations == nil {
+		idx.Conversations = make(map[string]conversationIndexEntry)
+	}
+}
+
+func upsertConversationIndexEntry(idx *conversationIndex, conversationID, key, updatedAt string) {
+	ensureConversationIndexDefaults(idx)
+	idx.Conversations[conversationID] = conversationIndexEntry{
+		Key:       key,
+		UpdatedAt: updatedAt,
+	}
+}
+
+func deleteConversationIndexEntry(idx *conversationIndex, conversationID string) {
+	if idx == nil || idx.Conversations == nil {
+		return
+	}
+	delete(idx.Conversations, conversationID)
+}
+
+func upsertConversationIndex(r robot.Robot, conversationID, key, updatedAt string) {
+	idx := conversationIndex{}
+	locktoken, _, ret := r.CheckoutDatum(conversationIndexDatumKey, &idx, true)
+	if ret != robot.Ok {
+		return
+	}
+	upsertConversationIndexEntry(&idx, conversationID, key, updatedAt)
+	if ret = r.UpdateDatum(conversationIndexDatumKey, locktoken, idx); ret != robot.Ok {
+		r.CheckinDatum(conversationIndexDatumKey, locktoken)
+	}
+}
+
+func removeConversationIndex(r robot.Robot, conversationID string) {
+	idx := conversationIndex{}
+	locktoken, exists, ret := r.CheckoutDatum(conversationIndexDatumKey, &idx, true)
+	if ret != robot.Ok {
+		return
+	}
+	if !exists {
+		r.CheckinDatum(conversationIndexDatumKey, locktoken)
+		return
+	}
+	deleteConversationIndexEntry(&idx, conversationID)
+	if ret = r.UpdateDatum(conversationIndexDatumKey, locktoken, idx); ret != robot.Ok {
+		r.CheckinDatum(conversationIndexDatumKey, locktoken)
+	}
+}
+
+func deleteConversationState(r robot.Robot, ctx conversationContext) {
+	r.DeleteDatum(ctx.ConversationKey)
+	removeConversationIndex(r, ctx.ConversationID)
+	if ctx.LegacyMemoryKey != "" {
+		r.Remember(ctx.LegacyMemoryKey, "", true)
+	}
+	r.Remember(ctx.DebugKey, "", true)
+}
+
+func conversationDatumKey(conversationID string) string {
+	base := strings.ToLower(strings.TrimSpace(conversationID))
+	if base == "" {
+		base = "unknown"
+	}
+	return fmt.Sprintf("%s:%s", conversationDatumPrefix, sha1String(base))
 }
 
 func ensureConversationDefaults(state *conversationState, ctx conversationContext) {
@@ -636,7 +738,7 @@ func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, sta
 		payload[k] = v
 	}
 	if _, ok := payload["model"]; !ok {
-		payload["model"] = "gpt-4"
+		payload["model"] = "gpt-5.2-chat-latest"
 	}
 	if userID := strings.TrimSpace(r.GetParameter("GOPHER_USER_ID")); userID != "" {
 		payload["user"] = sha1String(userID)
