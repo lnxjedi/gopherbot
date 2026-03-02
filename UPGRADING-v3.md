@@ -15,7 +15,26 @@ Compatibility scope for this guide:
 5. Use global `UserRoster` for canonical usernames and directory attributes.
 6. Ensure connector-emitted usernames match global `UserRoster` entries (especially with `IgnoreUnlistedUsers: true`).
 7. Confirm connector-specific identity mapping config is correct inside each connector `ProtocolConfig` (for example Slack `ProtocolConfig.UserMap`, SSH `ProtocolConfig.UserKeys`).
-8. Reload and verify runtime with `protocol-list` (or `protocol list`).
+8. Confirm your preferred `DefaultMessageFormat` (v3 default is now `BasicMarkdown`; set `Raw` explicitly to preserve legacy protocol-native output).
+9. Reload and verify runtime with `protocol-list` (or `protocol list`).
+
+## 2026-02-20 BasicMarkdown Default Format Update
+
+`DefaultMessageFormat` now defaults to `BasicMarkdown` for v3.
+
+Behavior change:
+
+- If `DefaultMessageFormat` is omitted, outgoing messages now use `BasicMarkdown`.
+- Existing robots that rely on connector-native `Raw` behavior should set:
+
+```yaml
+DefaultMessageFormat: Raw
+```
+
+Notes:
+
+- `Raw`, `Fixed`, and `Variable` remain supported.
+- `BasicMarkdown` is additive and does not renumber existing format values.
 
 ## 2026-02-18 Provider Config Layout Update (Slice 1)
 

@@ -40,11 +40,11 @@ Alias: '{{ $botalias }}'
 HistoryProvider: {{ $history }}
 
 ## If the plugin doesn't specify an outgoing message format, what's the default?
-## This will be 'Raw' (unmodified, subject to protocol-specific formatting) if
-## not set. 'Variable' will escape special characters like #, @, _, `, etc. so
-## those characters can appear in replies. 'Fixed' will send everything in a
-## fixed-width font.
-# DefaultMessageFormat: Variable # 'Raw' if not specified
+## BasicMarkdown is the v3 default portable format. 'Raw' is unmodified,
+## subject to protocol-specific formatting. 'Variable' will escape special
+## characters like #, @, _, `, etc. so those characters can appear in replies.
+## 'Fixed' will send everything in a fixed-width font.
+# DefaultMessageFormat: Raw # BasicMarkdown if not specified
 
 ExternalJobs:
 #   "sample-job":
@@ -94,6 +94,16 @@ ExternalPlugins:
 #   "pythondemo":
 #     Description: Sample python plugin
 #     Path: plugins/samples/pythondemo.py
+#   "openai-fallback":
+#     Description: OpenAI-backed multi-user conversational fallback plugin
+#     Path: plugins/go-openai-fallback/ai.go
+#     Homed: true
+#     ## Configure per-robot behavior in custom/conf/plugins/openai-fallback.yaml
+#     Parameters:
+#     - Name: OPENAI_KEY
+#       Value: replace with encrypted string
+#     - Name: OPENAI_ORGANIZATION_ID
+#       Value: optional organization ID
 
 ## Note that modules for connectors, brains and history providers load automatically
 # LoadableModules:
@@ -120,7 +130,7 @@ NameSpaces:
     - Name: BOT_SSH_PHRASE
       Value: {{ decrypt "<sshencrypted>" }}
 
-DefaultMessageFormat: Raw
+DefaultMessageFormat: BasicMarkdown
 # Users the bot should never listen to
 #IgnoreUsers: [ "otherbot", "slackbot" ]
 

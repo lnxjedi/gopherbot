@@ -38,6 +38,9 @@ func (tc *termConnector) sendMessage(user, ch, thr, msg string, f robot.MessageF
 		tc.Unlock()
 	}
 	user, _ = tc.ExtractID(user)
+	if f == robot.BasicMarkdown {
+		msg = renderBasicMarkdownPlain(msg)
+	}
 	if incomingMsg.HiddenMessage &&
 		(user == "" || user == incomingMsg.UserID) {
 		msg = "(" + msg + ")"

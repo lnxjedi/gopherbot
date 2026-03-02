@@ -98,11 +98,13 @@ func setFormat(format string) robot.MessageFormat {
 		return robot.Fixed
 	case "variable":
 		return robot.Variable
+	case "basicmarkdown", "basic_markdown", "basic-markdown":
+		return robot.BasicMarkdown
 	case "raw":
 		return robot.Raw
 	default:
-		Log(robot.Error, "Unknown message format '%s', defaulting to 'raw'", format)
-		return robot.Raw
+		Log(robot.Error, "Unknown message format '%s', defaulting to 'basicmarkdown'", format)
+		return robot.BasicMarkdown
 	}
 }
 
