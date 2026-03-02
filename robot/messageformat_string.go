@@ -11,11 +11,12 @@ func _() {
 	_ = x[Raw-0]
 	_ = x[Fixed-1]
 	_ = x[Variable-2]
+	_ = x[BasicMarkdown-3]
 }
 
-const _MessageFormat_name = "RawFixedVariable"
+const _MessageFormat_name = "RawFixedVariableBasicMarkdown"
 
-var _MessageFormat_index = [...]uint8{0, 3, 8, 16}
+var _MessageFormat_index = [...]uint8{0, 3, 8, 16, 29}
 
 func (i MessageFormat) String() string {
 	if i < 0 || i >= MessageFormat(len(_MessageFormat_index)-1) {

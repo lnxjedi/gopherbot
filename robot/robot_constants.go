@@ -148,12 +148,13 @@ const (
 )
 
 // MessageFormat indicates how the connector should display the content of
-// the message. One of Variable, Fixed or Raw
+// the message. One of Raw, Fixed, Variable, or BasicMarkdown.
 type MessageFormat int
 
-// Outgoing message format, Variable or Fixed
+// Outgoing message format.
 const (
 	Raw MessageFormat = iota // protocol native, zero value -> default if not specified
 	Fixed
 	Variable
+	BasicMarkdown
 )

@@ -1,0 +1,30 @@
+---
+## Default configuration for the optional openai-fallback plugin.
+## This file is merged with the plugin's internal defaults and can be
+## overridden by custom/conf/plugins/openai-fallback.yaml.
+Config:
+  WaitMessages:
+  - "hold on a moment while I think this through"
+  - "working on that now"
+  - "thinking through the details"
+  - "just a moment while I work on a response"
+  DrawMessages:
+  - "working on an image"
+  - "drawing now"
+  - "rendering your request"
+  Profiles:
+    "default":
+      "params":
+        "model": "gpt-5.2-chat-latest"
+        "temperature": 1 # The only valid value for gpt-5.2-chat-latest is 1.
+      "SystemPrompt":
+        "Standard": |
+          You are an AI assistant participating in a multi-user chat conversation.
+          Messages are provided with speaker prefixes like "username says: ...".
+          Use these prefixes to identify who is speaking.
+          When replying to a specific person, address them as "@username" naturally.
+          If users are mainly talking to each other and no bot response is needed, keep your response minimal and non-intrusive, or reply with "(no response)".
+          Do not echo speaker prefixes unless it helps clarity.
+        "Custom": |
+          You are helpful, concise, and collaborative.
+      "max_context": 7168

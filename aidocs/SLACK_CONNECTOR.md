@@ -32,6 +32,18 @@ This file captures Slack connector behavior relevant to routing, hidden commands
 - Engine hidden-command policy then treats slash payload as addressed-to-robot without requiring an explicit robot name in text.
 - Command still must be explicitly allowed by plugin `AllowedHiddenCommands`.
 
+## Outgoing Format Behavior
+
+- `Raw` keeps legacy Slack-native behavior (including connector-local `@username` handling outside fenced blocks).
+- `Variable` disables Slack markdown parsing and escapes reserved text characters.
+- `Fixed` wraps output in fenced code blocks.
+- `BasicMarkdown` is rendered with connector-local translation rules:
+  - Markdown links `[label](https://...)` are converted to Slack link tokens.
+  - `@username` mention tokens are resolved against connector user maps when unambiguous.
+  - Mention parsing is skipped inside inline code and fenced code blocks.
+  - Emoji shortcodes (for example `:white_check_mark:`) are passed through as shortcodes.
+  - Unicode emoji are passed through unchanged.
+
 ## Help Rendering Hooks
 
 - Slack connector implements:

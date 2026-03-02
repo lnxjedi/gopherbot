@@ -87,7 +87,7 @@ type ConfigLoader struct {
 	WorkSpace            string                  `yaml:"WorkSpace"`            // Read/Write area the robot uses to do work
 	DefaultElevator      string                  `yaml:"DefaultElevator"`      // Elevator plugin for ElevatedCommands and ElevateImmediateCommands
 	DefaultAuthorizer    string                  `yaml:"DefaultAuthorizer"`    // Authorizer plugin for AuthorizedCommands, or when AuthorizeAllCommands = true
-	DefaultMessageFormat string                  `yaml:"DefaultMessageFormat"` // How the robot formats outgoing messages; default: Raw
+	DefaultMessageFormat string                  `yaml:"DefaultMessageFormat"` // How the robot formats outgoing messages; default: BasicMarkdown
 	DefaultAllowDirect   bool                    `yaml:"DefaultAllowDirect"`   // Whether plugins are available in a DM by default
 	IgnoreUnlistedUsers  bool                    `yaml:"IgnoreUnlistedUsers"`  // Drop messages unless user is in global UserRoster
 	SecureParameters     bool                    `yaml:"SecureParameters"`     // Don't publish parameters as environment variables
@@ -619,7 +619,7 @@ func loadConfig(preConnect bool) error {
 	}
 
 	if len(newconfig.DefaultMessageFormat) == 0 {
-		processed.defaultMessageFormat = robot.Raw
+		processed.defaultMessageFormat = robot.BasicMarkdown
 	} else {
 		processed.defaultMessageFormat = setFormat(newconfig.DefaultMessageFormat)
 	}

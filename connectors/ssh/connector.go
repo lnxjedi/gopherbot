@@ -656,6 +656,9 @@ func (sc *sshConnector) JoinChannel(c string) (ret robot.RetVal) {
 }
 
 func (sc *sshConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	if f == robot.BasicMarkdown {
+		msg = renderBasicMarkdownPlain(msg)
+	}
 	ch = sc.normalizeChannel(ch)
 	threaded := len(thr) > 0
 	evt := bufferMsg{
@@ -673,6 +676,9 @@ func (sc *sshConnector) SendProtocolChannelThreadMessage(ch, thr, msg string, f 
 }
 
 func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	if f == robot.BasicMarkdown {
+		msg = renderBasicMarkdownPlain(msg)
+	}
 	ch = sc.normalizeChannel(ch)
 	formatted := "@" + uname + " " + msg
 	threaded := len(thr) > 0
@@ -691,6 +697,9 @@ func (sc *sshConnector) SendProtocolUserChannelThreadMessage(uname, ch, thr, msg
 }
 
 func (sc *sshConnector) SendProtocolUserMessage(u string, msg string, f robot.MessageFormat, msgObject *robot.ConnectorMessage) (ret robot.RetVal) {
+	if f == robot.BasicMarkdown {
+		msg = renderBasicMarkdownPlain(msg)
+	}
 	info, ok := sc.resolveUser(sc.normalizeUser(u))
 	if !ok {
 		return robot.UserNotFound
