@@ -15,8 +15,8 @@ Config:
   Profiles:
     "default":
       "params":
-        "model": "gpt-4"
-        "temperature": 0.7
+        "model": "gpt-5.2-chat-latest"
+        "temperature": 1 # The only valid value for gpt-5.2-chat-latest is 1.
       "SystemPrompt":
         "Standard": |
           You are an AI assistant participating in a multi-user chat conversation.

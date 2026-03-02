@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -25,6 +26,8 @@ const (
 	openAIChatCompletionsURL   = "https://api.openai.com/v1/chat/completions"
 	defaultChunkSoftLimit      = 420
 	defaultChunkHardLimit      = 620
+	delayedWaitNoticeDelay     = 900 * time.Millisecond
+	streamProgressNoticeDelay  = 1300 * time.Millisecond
 )
 
 const (
@@ -35,6 +38,13 @@ When replying to a specific person, address them as "@username" naturally.
 If users are mainly talking to each other and no bot response is needed, keep your response minimal and non-intrusive, or reply with "(no response)".
 Do not echo speaker prefixes unless it helps clarity.`
 	defaultCustomSystemPrompt = "You are helpful, concise, and collaborative."
+	// See OpenAI reasoning best practices: "Formatting re-enabled" should be the first
+	// line when markdown formatting is desired from reasoning-capable models.
+	basicMarkdownSystemPrefix = "Formatting re-enabled\n" +
+		"Respond using BasicMarkdown v1-compatible output only.\n" +
+		"Allowed constructs: paragraphs, bold (**), italic (*), inline code (`), fenced code blocks (```), " +
+		"block quotes (>), unordered lists (-), links [label](url), @username mentions, and :emoji: shortcodes.\n" +
+		"Avoid headings (#), ordered lists (1.), tables, HTML tags, and platform-specific markdown."
 )
 
 var defaultConfig = []byte(`
@@ -76,7 +86,7 @@ Config:
   Profiles:
     "default":
       "params":
-        "model": "gpt-4"
+        "model": "gpt-5.2-chat-latest"
         "temperature": 0.7
       "SystemPrompt":
         "Standard": |
@@ -111,6 +121,19 @@ type aiConfig struct {
 type conversationExchange struct {
 	Human string `json:"human"`
 	AI    string `json:"ai"`
+}
+
+type streamUIHints struct {
+	WaitNotice      string
+	WaitNoticeReply bool
+	QueuedNotice    string
+}
+
+type streamProgressState struct {
+	startedAt      time.Time
+	lastOutputAt   time.Time
+	firstOutputSet bool
+	waitShown      bool
 }
 
 type pendingMessage struct {
@@ -217,22 +240,12 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 		r.Subscribe()
 	}
 
-	hold := randomWaitMessage(r)
-	if hold != "" && len(state.Exchanges) == 0 {
-		tbot.Reply("( %s )", hold)
-	} else if len(state.Exchanges) > 0 {
-		tbot.Say("(%s)", r.RandomString([]string{"pondering", "working", "thinking", "cogitating", "processing", "analyzing"}))
-	} else {
-		tbot.Reply("(thinking...)")
-	}
-	if len(state.Pending) > 0 {
-		tbot.Say("(I picked up %d queued messages for context)", len(state.Pending))
-	}
+	uiHints := makeStreamUIHints(r, state)
 
 	reply := ""
 	if strings.TrimSpace(ctx.Prompt) != "" {
 		var err error
-		reply, err = queryOpenAI(tbot, r, ctx, state, loadConfig(r))
+		reply, err = queryOpenAI(tbot.MessageFormat(robot.BasicMarkdown), r, ctx, state, loadConfig(r), uiHints)
 		if err != nil {
 			tbot.Say("Sorry, there was an error contacting the AI: %s", err)
 			state.InProgress = false
@@ -336,6 +349,24 @@ func randomWaitMessage(r robot.Robot) string {
 		return ""
 	}
 	return r.RandomString(cfg.WaitMessages)
+}
+
+func makeStreamUIHints(r robot.Robot, state conversationState) streamUIHints {
+	hints := streamUIHints{}
+	hold := randomWaitMessage(r)
+	if hold != "" && len(state.Exchanges) == 0 {
+		hints.WaitNotice = fmt.Sprintf("( %s )", hold)
+		hints.WaitNoticeReply = true
+	} else if len(state.Exchanges) > 0 {
+		hints.WaitNotice = fmt.Sprintf("(%s)", r.RandomString([]string{"pondering", "working", "thinking", "cogitating", "processing", "analyzing"}))
+	} else {
+		hints.WaitNotice = "(thinking...)"
+		hints.WaitNoticeReply = true
+	}
+	if len(state.Pending) > 0 {
+		hints.QueuedNotice = fmt.Sprintf("(I picked up %d queued messages for context)", len(state.Pending))
+	}
+	return hints
 }
 
 func loadConfig(r robot.Robot) aiConfig {
@@ -586,7 +617,7 @@ func nowString() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
 
-func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, state conversationState, cfg aiConfig) (string, error) {
+func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, state conversationState, cfg aiConfig, uiHints streamUIHints) (string, error) {
 	token := strings.TrimSpace(r.GetParameter("OPENAI_KEY"))
 	if token == "" {
 		return "", fmt.Errorf("no OPENAI_KEY set")
@@ -642,7 +673,7 @@ func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, sta
 		return "", fmt.Errorf("%s", friendlyOpenAIError(resp.StatusCode, resp.Status, body))
 	}
 
-	reply, err := consumeSSEAndEmit(outBot, resp.Body)
+	reply, err := consumeSSEAndEmit(outBot, resp.Body, uiHints)
 	if err != nil {
 		return "", err
 	}
@@ -656,7 +687,7 @@ func resolveProfile(profileName string, cfg aiConfig) aiProfile {
 	if cfg.Profiles == nil {
 		return aiProfile{
 			Params: map[string]interface{}{
-				"model":       "gpt-4",
+				"model":       "gpt-5.2-chat-latest",
 				"temperature": 0.7,
 			},
 			SystemPrompt: systemPromptConfig{
@@ -678,7 +709,7 @@ func resolveProfile(profileName string, cfg aiConfig) aiProfile {
 	}
 	return aiProfile{
 		Params: map[string]interface{}{
-			"model":       "gpt-4",
+			"model":       "gpt-5.2-chat-latest",
 			"temperature": 0.7,
 		},
 		SystemPrompt: systemPromptConfig{
@@ -697,7 +728,7 @@ func buildSystemPrompt(profile aiProfile) string {
 	if custom == "" {
 		custom = defaultCustomSystemPrompt
 	}
-	return strings.TrimSpace(standard + "\n\n" + custom)
+	return strings.TrimSpace(basicMarkdownSystemPrefix + "\n\n" + standard + "\n\n" + custom)
 }
 
 func buildMessages(system string, exchanges []conversationExchange, pending []pendingMessage, ctx conversationContext) []map[string]string {
@@ -747,10 +778,11 @@ func buildMessages(system string, exchanges []conversationExchange, pending []pe
 	return messages
 }
 
-func consumeSSEAndEmit(outBot robot.Robot, body io.Reader) (string, error) {
+func consumeSSEAndEmit(outBot robot.Robot, body io.Reader, uiHints streamUIHints) (string, error) {
 	reader := bufio.NewReader(body)
 	var pending strings.Builder
 	var full strings.Builder
+	progress := &streamProgressState{startedAt: time.Now()}
 
 	for {
 		line, err := reader.ReadString('\n')
@@ -770,7 +802,7 @@ func consumeSSEAndEmit(outBot robot.Robot, body io.Reader) (string, error) {
 			if chunk != "" {
 				full.WriteString(chunk)
 				pending.WriteString(chunk)
-				emitAvailableChunks(outBot, &pending)
+				emitAvailableChunks(outBot, &pending, progress, uiHints)
 			}
 		}
 		if err == io.EOF {
@@ -780,9 +812,9 @@ func consumeSSEAndEmit(outBot robot.Robot, body io.Reader) (string, error) {
 
 	rest := strings.TrimSpace(normalizeChunkText(pending.String()))
 	if rest != "" {
-		outBot.Say(rest)
+		emitStreamChunk(outBot, progress, uiHints, rest)
 	}
-	return strings.TrimSpace(full.String()), nil
+	return strings.TrimSpace(normalizeChunkText(full.String())), nil
 }
 
 func extractDeltaContent(payload string) (string, string) {
@@ -817,21 +849,54 @@ func extractDeltaContent(payload string) (string, string) {
 	return content, ""
 }
 
-func emitAvailableChunks(outBot robot.Robot, pending *strings.Builder) {
+func emitAvailableChunks(outBot robot.Robot, pending *strings.Builder, progress *streamProgressState, uiHints streamUIHints) {
 	text := pending.String()
 	for {
 		cut := chunkBoundary(text)
 		if cut < 0 {
 			break
 		}
+		if hasUnbalancedFences(text[:cut]) {
+			break
+		}
 		chunk := strings.TrimSpace(normalizeChunkText(text[:cut]))
 		if chunk != "" {
-			outBot.Say(chunk + " (...)")
+			emitStreamChunk(outBot, progress, uiHints, chunk)
 		}
 		text = text[cut:]
 	}
 	pending.Reset()
 	pending.WriteString(text)
+}
+
+func emitStreamChunk(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints, chunk string) {
+	chunk = strings.TrimSpace(chunk)
+	if chunk == "" {
+		return
+	}
+
+	now := time.Now()
+	if !progress.firstOutputSet {
+		if !progress.waitShown && now.Sub(progress.startedAt) >= delayedWaitNoticeDelay {
+			if uiHints.WaitNotice != "" {
+				if uiHints.WaitNoticeReply {
+					outBot.Reply(uiHints.WaitNotice)
+				} else {
+					outBot.Say(uiHints.WaitNotice)
+				}
+			}
+			if uiHints.QueuedNotice != "" {
+				outBot.Say(uiHints.QueuedNotice)
+			}
+			progress.waitShown = true
+		}
+	} else if now.Sub(progress.lastOutputAt) >= streamProgressNoticeDelay {
+		outBot.Say("(...)")
+	}
+
+	outBot.Say(chunk)
+	progress.lastOutputAt = now
+	progress.firstOutputSet = true
 }
 
 func chunkBoundary(text string) int {
@@ -874,35 +939,110 @@ func normalizeChunkText(text string) string {
 	if text == "" {
 		return text
 	}
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	text = strings.ReplaceAll(text, "\r", "\n")
+	text = basicMarkdownBreakTagRE.ReplaceAllString(text, "\n")
 	if strings.EqualFold(strings.TrimSpace(text), "```") {
 		return ""
 	}
 	if strings.TrimSpace(text) == "" {
 		return ""
 	}
-	if strings.Contains(text, "```") {
-		replaced := text
-		for {
-			start := strings.Index(replaced, "```")
-			if start < 0 {
-				break
-			}
-			endLine := strings.Index(replaced[start:], "\n")
-			if endLine < 0 {
-				break
-			}
-			end := start + endLine
-			prefix := replaced[:start]
-			header := strings.TrimSpace(strings.TrimPrefix(replaced[start:end], "```"))
-			suffix := replaced[end+1:]
-			if header == "" {
-				replaced = prefix + "```\n" + suffix
-			} else {
-				replaced = prefix + header + ":\n```\n" + suffix
-			}
-		}
-		return replaced
+	return normalizeAIResponseToBasicMarkdown(text)
+}
+
+func hasUnbalancedFences(text string) bool {
+	if text == "" {
+		return false
 	}
+	return strings.Count(text, "```")%2 != 0
+}
+
+var (
+	basicMarkdownHeadingRE      = regexp.MustCompile(`^\s{0,3}#{1,6}\s+(.+?)\s*$`)
+	basicMarkdownOrderedListRE  = regexp.MustCompile(`^\s*\d+[.)]\s+(.+)$`)
+	basicMarkdownBulletListRE   = regexp.MustCompile(`^\s*[\*\+]\s+(.+)$`)
+	basicMarkdownTaskListRE     = regexp.MustCompile(`^\s*[-*+]\s+\[(?: |x|X)\]\s+(.+)$`)
+	basicMarkdownLabeledLinkRE  = regexp.MustCompile(`<((?:https?|mailto):[^>|]+)\|([^>]+)>`)
+	basicMarkdownBareLinkRE     = regexp.MustCompile(`<((?:https?|mailto):[^>]+)>`)
+	basicMarkdownStrongHTMLRE   = regexp.MustCompile(`(?i)<(?:strong|b)>(.*?)</(?:strong|b)>`)
+	basicMarkdownEmphasisHTMLRE = regexp.MustCompile(`(?i)<(?:em|i)>(.*?)</(?:em|i)>`)
+	basicMarkdownCodeHTMLRE     = regexp.MustCompile(`(?i)<code>(.*?)</code>`)
+	basicMarkdownTagRE          = regexp.MustCompile(`(?i)</?[a-z][^>]*>`)
+	basicMarkdownBreakTagRE     = regexp.MustCompile(`(?i)<br\s*/?>`)
+	basicMarkdownBoldUndersRE   = regexp.MustCompile(`__([^_\n]+?)__`)
+	basicMarkdownItalicUndersRE = regexp.MustCompile(`(^|[\s(\[{])_([^_\n]+?)_($|[\s)\]},.!?:;])`)
+	basicMarkdownStrikeRE       = regexp.MustCompile(`~~([^~\n]+?)~~`)
+)
+
+func normalizeAIResponseToBasicMarkdown(text string) string {
+	lines := strings.Split(text, "\n")
+	out := make([]string, 0, len(lines))
+	inFence := false
+
+	for _, line := range lines {
+		line = strings.TrimRight(line, " \t")
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "```") {
+			// Preserve optional language hint; BasicMarkdown v1 allows it.
+			out = append(out, trimmed)
+			inFence = !inFence
+			continue
+		}
+		if inFence {
+			out = append(out, line)
+			continue
+		}
+		out = append(out, normalizeBasicMarkdownLine(line))
+	}
+	return strings.Join(out, "\n")
+}
+
+func normalizeBasicMarkdownLine(line string) string {
+	if line == "" {
+		return line
+	}
+	if m := basicMarkdownHeadingRE.FindStringSubmatch(line); len(m) == 2 {
+		line = "**" + strings.TrimSpace(m[1]) + "**"
+	}
+
+	trimmedLeft := strings.TrimLeft(line, " \t")
+	switch {
+	case strings.HasPrefix(trimmedLeft, "\u2022 "):
+		line = "- " + strings.TrimSpace(strings.TrimPrefix(trimmedLeft, "\u2022 "))
+	default:
+		if m := basicMarkdownTaskListRE.FindStringSubmatch(line); len(m) == 2 {
+			line = "- " + strings.TrimSpace(m[1])
+		} else if m := basicMarkdownOrderedListRE.FindStringSubmatch(line); len(m) == 2 {
+			line = "- " + strings.TrimSpace(m[1])
+		} else if m := basicMarkdownBulletListRE.FindStringSubmatch(line); len(m) == 2 {
+			line = "- " + strings.TrimSpace(m[1])
+		}
+	}
+
+	line = normalizeBasicMarkdownInline(line)
+	return line
+}
+
+func normalizeBasicMarkdownInline(text string) string {
+	if text == "" {
+		return text
+	}
+	text = basicMarkdownLabeledLinkRE.ReplaceAllString(text, "[$2]($1)")
+	text = basicMarkdownBareLinkRE.ReplaceAllString(text, "$1")
+	text = basicMarkdownStrongHTMLRE.ReplaceAllString(text, "**$1**")
+	text = basicMarkdownEmphasisHTMLRE.ReplaceAllString(text, "*$1*")
+	text = basicMarkdownCodeHTMLRE.ReplaceAllString(text, "`$1`")
+	text = basicMarkdownBoldUndersRE.ReplaceAllString(text, "**$1**")
+	for {
+		next := basicMarkdownItalicUndersRE.ReplaceAllString(text, "$1*$2*$3")
+		if next == text {
+			break
+		}
+		text = next
+	}
+	text = basicMarkdownStrikeRE.ReplaceAllString(text, "$1")
+	text = basicMarkdownTagRE.ReplaceAllString(text, "")
 	return text
 }
 

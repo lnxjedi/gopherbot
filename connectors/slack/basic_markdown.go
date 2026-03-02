@@ -327,7 +327,12 @@ func (s *slackConnector) replaceBasicMarkdownMentions(msg string, reserveMD func
 			continue
 		}
 
-		mention := msg[start+1 : i]
+		mentionToken := msg[start+1 : i]
+		mention, suffix := splitMentionCandidate(mentionToken)
+		if mention == "" {
+			out.WriteString(msg[start:i])
+			continue
+		}
 		if start > 0 && isEmailLocalChar(msg[start-1]) {
 			out.WriteString(msg[start:i])
 			continue
@@ -335,9 +340,12 @@ func (s *slackConnector) replaceBasicMarkdownMentions(msg string, reserveMD func
 
 		if userID, ok := s.resolveBasicMarkdownMentionID(mention); ok {
 			out.WriteString(reserveMD("<@" + userID + ">"))
+			out.WriteString(suffix)
 			continue
 		}
-		out.WriteString(msg[start:i])
+		out.WriteByte('@')
+		out.WriteString(mention)
+		out.WriteString(suffix)
 	}
 
 	return out.String()
@@ -382,6 +390,24 @@ func isMentionTokenChar(ch byte) bool {
 		(ch >= 'a' && ch <= 'z') ||
 		(ch >= '0' && ch <= '9') ||
 		ch == '_' || ch == '-' || ch == '.'
+}
+
+func splitMentionCandidate(token string) (mention string, suffix string) {
+	if token == "" {
+		return "", ""
+	}
+	cut := len(token)
+	for cut > 0 && !isMentionTerminalChar(token[cut-1]) {
+		cut--
+	}
+	return token[:cut], token[cut:]
+}
+
+func isMentionTerminalChar(ch byte) bool {
+	return (ch >= 'A' && ch <= 'Z') ||
+		(ch >= 'a' && ch <= 'z') ||
+		(ch >= '0' && ch <= '9') ||
+		ch == '_'
 }
 
 func isEmailLocalChar(ch byte) bool {

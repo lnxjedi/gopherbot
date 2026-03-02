@@ -70,6 +70,34 @@ func TestRenderBasicMarkdownCaseInsensitiveMention(t *testing.T) {
 	}
 }
 
+func TestRenderBasicMarkdownMentionWithTrailingPeriod(t *testing.T) {
+	s := &slackConnector{
+		userMap: map[string]string{
+			"alice": "U111",
+		},
+	}
+	in := "It is strange, @alice."
+	got := s.renderBasicMarkdown(in)
+	want := "It is strange, <@U111>."
+	if got != want {
+		t.Fatalf("renderBasicMarkdown() = %q, want %q", got, want)
+	}
+}
+
+func TestRenderBasicMarkdownDottedUsernameWithTrailingPeriod(t *testing.T) {
+	s := &slackConnector{
+		userMap: map[string]string{
+			"alice.smith": "U111",
+		},
+	}
+	in := "Please check this, @alice.smith."
+	got := s.renderBasicMarkdown(in)
+	want := "Please check this, <@U111>."
+	if got != want {
+		t.Fatalf("renderBasicMarkdown() = %q, want %q", got, want)
+	}
+}
+
 func TestRenderBasicMarkdownAmbiguousCaseMentionStaysLiteral(t *testing.T) {
 	s := &slackConnector{
 		userMap: map[string]string{
