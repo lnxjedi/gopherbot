@@ -383,16 +383,11 @@ func codexRunStreamingCommand(ctx context.Context, binary string, args []string,
 }
 
 func codexNormalizeOutputLine(line string) string {
-	trimmed := strings.TrimSpace(line)
+	trimmed := strings.TrimSpace(codexNormalizeForBasicMarkdown(line))
 	if trimmed == "" {
 		return ""
 	}
-	return strings.Map(func(r rune) rune {
-		if r < 32 && r != '\t' {
-			return -1
-		}
-		return r
-	}, trimmed)
+	return trimmed
 }
 
 func codexSanitizePathPart(value string) string {

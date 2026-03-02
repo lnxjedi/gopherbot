@@ -663,7 +663,8 @@ func codexStopAllSessions() {
 }
 
 func codexSendThreadMessage(key codexSessionKey, msg string) {
-	trimmed := strings.TrimSpace(msg)
+	normalized := codexNormalizeForBasicMarkdown(msg)
+	trimmed := strings.TrimSpace(normalized)
 	if trimmed == "" {
 		return
 	}
@@ -673,7 +674,7 @@ func codexSendThreadMessage(key codexSessionKey, msg string) {
 		return
 	}
 	msgObject := &robot.ConnectorMessage{Protocol: key.Protocol}
-	ret := conn.SendProtocolChannelThreadMessage(key.Channel, key.ThreadID, trimmed, robot.Variable, msgObject)
+	ret := conn.SendProtocolChannelThreadMessage(key.Channel, key.ThreadID, trimmed, robot.BasicMarkdown, msgObject)
 	if ret != robot.Ok {
 		Log(robot.Error, "Sending codex session message failed (%s)", ret)
 	}
@@ -857,33 +858,48 @@ func codexIsApprovalRequest(method string) bool {
 }
 
 func codexExtractEventText(raw json.RawMessage) string {
-	text := codexJSONPathString(raw, "delta")
+	text := codexJSONPathText(raw, "delta", "text")
 	if text != "" {
-		return text
+		return codexNormalizeForBasicMarkdown(text)
 	}
-	text = codexJSONPathString(raw, "text")
+	text = codexJSONPathText(raw, "delta")
 	if text != "" {
-		return text
+		return codexNormalizeForBasicMarkdown(text)
 	}
-	text = codexJSONPathString(raw, "message")
+	text = codexJSONPathText(raw, "text")
 	if text != "" {
-		return text
+		return codexNormalizeForBasicMarkdown(text)
 	}
-	return codexJSONPathString(raw, "content", "text")
+	text = codexJSONPathText(raw, "message")
+	if text != "" {
+		return codexNormalizeForBasicMarkdown(text)
+	}
+	text = codexExtractTextFromContent(codexJSONPath(raw, "content"))
+	if text != "" {
+		return codexNormalizeForBasicMarkdown(text)
+	}
+	return codexNormalizeForBasicMarkdown(codexJSONPathText(raw, "content", "text"))
 }
 
 func codexExtractCompletedAgentText(raw json.RawMessage) string {
-	itemType := codexJSONPathString(raw, "item", "type")
-	if itemType == "" || itemType == "agentMessage" {
-		if text := codexJSONPathString(raw, "item", "text"); text != "" {
-			return text
-		}
-		if text := codexJSONPathString(raw, "item", "content", "text"); text != "" {
-			return text
-		}
-		if text := codexJSONPathString(raw, "item", "message"); text != "" {
-			return text
-		}
+	itemType := strings.ToLower(codexJSONPathString(raw, "item", "type"))
+	if itemType != "" && itemType != "agentmessage" && itemType != "agent_message" {
+		return ""
+	}
+	if text := codexExtractTextFromItemOutput(codexJSONPath(raw, "item", "output")); text != "" {
+		return codexNormalizeForBasicMarkdown(text)
+	}
+	if text := codexExtractTextFromContent(codexJSONPath(raw, "item", "content")); text != "" {
+		return codexNormalizeForBasicMarkdown(text)
+	}
+	if text := codexJSONPathText(raw, "item", "text"); text != "" {
+		return codexNormalizeForBasicMarkdown(text)
+	}
+	if text := codexJSONPathText(raw, "item", "content", "text"); text != "" {
+		return codexNormalizeForBasicMarkdown(text)
+	}
+	if text := codexJSONPathText(raw, "item", "message"); text != "" {
+		return codexNormalizeForBasicMarkdown(text)
 	}
 	return ""
 }
@@ -928,6 +944,14 @@ func codexJSONPathString(raw json.RawMessage, path ...string) string {
 	}
 }
 
+func codexJSONPathText(raw json.RawMessage, path ...string) string {
+	value := codexJSONPath(raw, path...)
+	if value == nil {
+		return ""
+	}
+	return codexValueToString(value)
+}
+
 func codexJSONPathBool(raw json.RawMessage, path ...string) bool {
 	value := codexJSONPath(raw, path...)
 	if value == nil {
@@ -943,4 +967,141 @@ func codexJSONPathBool(raw json.RawMessage, path ...string) bool {
 		}
 	}
 	return false
+}
+
+func codexValueToString(value interface{}) string {
+	switch v := value.(type) {
+	case string:
+		return v
+	case json.Number:
+		return v.String()
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	default:
+		return ""
+	}
+}
+
+func codexExtractTextFromItemOutput(value interface{}) string {
+	items, ok := value.([]interface{})
+	if !ok {
+		return ""
+	}
+	var out strings.Builder
+	for _, item := range items {
+		part, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		partType := strings.ToLower(strings.TrimSpace(codexValueToString(part["type"])))
+		if partType != "" && partType != "output_text" && partType != "outputtext" && partType != "text" {
+			continue
+		}
+		text := codexValueToString(part["text"])
+		if text == "" {
+			text = codexExtractTextFromContent(part["content"])
+		}
+		if text != "" {
+			out.WriteString(text)
+		}
+	}
+	return out.String()
+}
+
+func codexExtractTextFromContent(value interface{}) string {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		if text := codexValueToString(typed["text"]); text != "" {
+			return text
+		}
+	case []interface{}:
+		var out strings.Builder
+		for _, item := range typed {
+			part, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			partType := strings.ToLower(strings.TrimSpace(codexValueToString(part["type"])))
+			if partType != "" && partType != "text" && partType != "output_text" && partType != "outputtext" {
+				continue
+			}
+			if text := codexValueToString(part["text"]); text != "" {
+				out.WriteString(text)
+			}
+		}
+		return out.String()
+	}
+	return ""
+}
+
+func codexNormalizeForBasicMarkdown(text string) string {
+	if text == "" {
+		return ""
+	}
+	normalized := strings.ReplaceAll(text, "\r\n", "\n")
+	normalized = strings.ReplaceAll(normalized, "\r", "\n")
+	normalized = codexStripANSISequences(normalized)
+	return codexFilterControlRunes(normalized)
+}
+
+func codexStripANSISequences(text string) string {
+	if text == "" || !strings.ContainsRune(text, '\x1b') {
+		return text
+	}
+	var out strings.Builder
+	out.Grow(len(text))
+	for i := 0; i < len(text); {
+		if text[i] != 0x1b {
+			out.WriteByte(text[i])
+			i++
+			continue
+		}
+		if i+1 >= len(text) {
+			i++
+			continue
+		}
+		switch text[i+1] {
+		case '[':
+			i += 2
+			for i < len(text) {
+				if text[i] >= 0x40 && text[i] <= 0x7e {
+					i++
+					break
+				}
+				i++
+			}
+		case ']':
+			i += 2
+			for i < len(text) {
+				if text[i] == 0x07 {
+					i++
+					break
+				}
+				if text[i] == 0x1b && i+1 < len(text) && text[i+1] == '\\' {
+					i += 2
+					break
+				}
+				i++
+			}
+		default:
+			i += 2
+		}
+	}
+	return out.String()
+}
+
+func codexFilterControlRunes(text string) string {
+	var out strings.Builder
+	out.Grow(len(text))
+	for _, r := range text {
+		if r == '\n' || r == '\t' {
+			out.WriteRune(r)
+			continue
+		}
+		if r < 0x20 || r == 0x7f {
+			continue
+		}
+		out.WriteRune(r)
+	}
+	return out.String()
 }

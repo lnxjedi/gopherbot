@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -45,7 +46,7 @@ func TestCodexPathWithin(t *testing.T) {
 func TestCodexSessionKeyFromRobot(t *testing.T) {
 	r := Robot{
 		Message: &robot.Message{
-			Channel: "general",
+			Channel:  "general",
 			Protocol: robot.SSH,
 			Incoming: &robot.ConnectorMessage{
 				Protocol: "ssh",
@@ -103,5 +104,59 @@ func TestCodexResolveWorkspaceDirRejectsEscape(t *testing.T) {
 
 	if _, _, err := codexResolveWorkspaceDir("../outside"); err == nil {
 		t.Fatalf("expected escape path to be rejected")
+	}
+}
+
+func TestCodexNormalizeForBasicMarkdown(t *testing.T) {
+	in := "pre \x1b[31mred\x1b[0m mid\r\nline\tok\x00 end\x1b]8;;https://example.com\x07link\x1b]8;;\x07"
+	got := codexNormalizeForBasicMarkdown(in)
+	want := "pre red mid\nline\tok endlink"
+	if got != want {
+		t.Fatalf("codexNormalizeForBasicMarkdown() = %q, want %q", got, want)
+	}
+}
+
+func TestCodexExtractEventTextDeltaObjectPreservesWhitespace(t *testing.T) {
+	raw := json.RawMessage(`{"delta":{"type":"output_text_delta","text":" hello  world\n"}}`)
+	got := codexExtractEventText(raw)
+	want := " hello  world\n"
+	if got != want {
+		t.Fatalf("codexExtractEventText() = %q, want %q", got, want)
+	}
+}
+
+func TestCodexExtractCompletedAgentTextFromOutputParts(t *testing.T) {
+	raw := json.RawMessage(`{
+		"item":{
+			"type":"agent_message",
+			"output":[
+				{"type":"output_text","text":"first "},
+				{"type":"output_text","text":"second"},
+				{"type":"function_call","name":"ignored_tool"}
+			]
+		}
+	}`)
+	got := codexExtractCompletedAgentText(raw)
+	want := "first second"
+	if got != want {
+		t.Fatalf("codexExtractCompletedAgentText() = %q, want %q", got, want)
+	}
+}
+
+func TestCodexExtractCompletedAgentTextFromContentArray(t *testing.T) {
+	raw := json.RawMessage(`{
+		"item":{
+			"type":"agentMessage",
+			"content":[
+				{"type":"text","text":"alpha"},
+				{"type":"image","text":"ignored"},
+				{"type":"text","text":" beta"}
+			]
+		}
+	}`)
+	got := codexExtractCompletedAgentText(raw)
+	want := "alpha beta"
+	if got != want {
+		t.Fatalf("codexExtractCompletedAgentText() = %q, want %q", got, want)
 	}
 }
