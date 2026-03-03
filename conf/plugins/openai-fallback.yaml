@@ -12,6 +12,10 @@ Config:
   - "working on an image"
   - "drawing now"
   - "rendering your request"
+  CompactionTriggerTokens: 6144
+  MaxRecentExchanges: 12
+  SummaryBudgetTokens: 768
+  EnableModelCompaction: false
   Profiles:
     "default":
       "params":

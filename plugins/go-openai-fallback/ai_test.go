@@ -91,3 +91,82 @@ func TestConversationIndexEntryHelpers(t *testing.T) {
 		t.Fatalf("index size after delete = %d, want 0", len(idx.Conversations))
 	}
 }
+
+func TestDeterministicCompactionPreservesRecentWindow(t *testing.T) {
+	state := conversationState{
+		Profile: defaultProfile,
+		Exchanges: []conversationExchange{
+			{Human: "alice says: one", AI: "ai: one"},
+			{Human: "alice says: two", AI: "ai: two"},
+			{Human: "alice says: three", AI: "ai: three"},
+			{Human: "alice says: four", AI: "ai: four"},
+			{Human: "alice says: five", AI: "ai: five"},
+		},
+	}
+	state.Tokens = estimateConversationTokens(state.Exchanges)
+
+	cfg := aiConfig{
+		CompactionTriggerTokens: 1,
+		MaxRecentExchanges:      2,
+		SummaryBudgetTokens:     200,
+	}
+	compacted := maybeCompactConversationDeterministic(state, cfg)
+	if len(compacted.Exchanges) != 2 {
+		t.Fatalf("recent exchanges kept = %d, want 2", len(compacted.Exchanges))
+	}
+	if compacted.Exchanges[0].Human != "alice says: four" {
+		t.Fatalf("unexpected first kept exchange: %q", compacted.Exchanges[0].Human)
+	}
+	if compacted.Exchanges[1].Human != "alice says: five" {
+		t.Fatalf("unexpected second kept exchange: %q", compacted.Exchanges[1].Human)
+	}
+	if compacted.Summary == "" {
+		t.Fatal("expected deterministic summary to be populated")
+	}
+}
+
+func TestDeterministicCompactionNoopBelowTrigger(t *testing.T) {
+	state := conversationState{
+		Profile: defaultProfile,
+		Exchanges: []conversationExchange{
+			{Human: "alice says: one", AI: "ai: one"},
+			{Human: "alice says: two", AI: "ai: two"},
+			{Human: "alice says: three", AI: "ai: three"},
+		},
+	}
+	state.Tokens = estimateConversationTokens(state.Exchanges)
+	cfg := aiConfig{
+		CompactionTriggerTokens: state.Tokens + 1000,
+		MaxRecentExchanges:      2,
+		SummaryBudgetTokens:     200,
+	}
+	compacted := maybeCompactConversationDeterministic(state, cfg)
+	if len(compacted.Exchanges) != 3 {
+		t.Fatalf("expected no compaction, exchanges = %d", len(compacted.Exchanges))
+	}
+	if compacted.Summary != "" {
+		t.Fatalf("expected empty summary on no-op compaction, got %q", compacted.Summary)
+	}
+}
+
+func TestBuildMessagesIncludesSummaryAfterSystem(t *testing.T) {
+	messages := buildMessages(
+		"system prompt",
+		"older summary",
+		[]conversationExchange{{Human: "alice says: hi", AI: "hello"}},
+		nil,
+		conversationContext{User: "alice", Prompt: "next"},
+	)
+	if len(messages) < 4 {
+		t.Fatalf("messages len = %d, expected at least 4", len(messages))
+	}
+	if messages[0]["role"] != "system" || messages[0]["content"] != "system prompt" {
+		t.Fatalf("unexpected first message: %#v", messages[0])
+	}
+	if messages[1]["role"] != "system" {
+		t.Fatalf("expected summary as system message, got %#v", messages[1])
+	}
+	if !regexp.MustCompile(`Conversation summary`).MatchString(messages[1]["content"]) {
+		t.Fatalf("expected summary marker, got %q", messages[1]["content"])
+	}
+}

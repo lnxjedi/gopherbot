@@ -26,6 +26,8 @@ const (
 	maxPendingMessages         = 24
 	maxProcessedMessages       = 48
 	maxStoredExchanges         = 48
+	defaultMaxRecentExchanges  = 12
+	defaultSummaryBudgetTokens = 768
 	openAIChatCompletionsURL   = "https://api.openai.com/v1/chat/completions"
 	defaultChunkSoftLimit      = 420
 	defaultChunkHardLimit      = 620
@@ -86,6 +88,10 @@ Config:
   - "working on an image"
   - "drawing now"
   - "rendering your request"
+  CompactionTriggerTokens: 6144
+  MaxRecentExchanges: 12
+  SummaryBudgetTokens: 768
+  EnableModelCompaction: false
   Profiles:
     "default":
       "params":
@@ -116,9 +122,13 @@ type aiProfile struct {
 }
 
 type aiConfig struct {
-	WaitMessages []string             `json:"WaitMessages"`
-	DrawMessages []string             `json:"DrawMessages"`
-	Profiles     map[string]aiProfile `json:"Profiles"`
+	WaitMessages            []string             `json:"WaitMessages"`
+	DrawMessages            []string             `json:"DrawMessages"`
+	Profiles                map[string]aiProfile `json:"Profiles"`
+	CompactionTriggerTokens int                  `json:"CompactionTriggerTokens"`
+	MaxRecentExchanges      int                  `json:"MaxRecentExchanges"`
+	SummaryBudgetTokens     int                  `json:"SummaryBudgetTokens"`
+	EnableModelCompaction   bool                 `json:"EnableModelCompaction"`
 }
 
 type conversationExchange struct {
@@ -150,6 +160,7 @@ type conversationState struct {
 	Profile    string                 `json:"profile"`
 	Tokens     int                    `json:"tokens"`
 	Owner      string                 `json:"owner"`
+	Summary    string                 `json:"summary,omitempty"`
 	Exchanges  []conversationExchange `json:"exchanges"`
 	Pending    []pendingMessage       `json:"pending"`
 	Processed  []string               `json:"processed"`
@@ -208,6 +219,7 @@ func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetV
 func handleConversationEntry(r robot.Robot, command string, args ...string) robot.TaskRetVal {
 	cmdMode := strings.TrimSpace(r.GetParameter("GOPHER_CMDMODE"))
 	ctx := makeConversationContext(r, args...)
+	cfg := loadConfig(r)
 	direct := ctx.Direct
 	botAlias := strings.TrimSpace(r.GetBotAttribute("alias").Attribute)
 	channel := ctx.Channel
@@ -243,6 +255,7 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 
 	state.Pending = removePendingMessage(state.Pending, ctx.MessageID)
 	state.Processed = appendProcessed(state.Processed, ctx.MessageID)
+	state = maybeCompactConversationDeterministic(state, cfg)
 	state.InProgress = true
 	state.UpdatedAt = nowString()
 	saveConversationState(r, ctx, state)
@@ -255,12 +268,12 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 		r.Subscribe()
 	}
 
-	uiHints := makeStreamUIHints(r, state)
+	uiHints := makeStreamUIHints(r, state, cfg)
 
 	reply := ""
 	if strings.TrimSpace(ctx.Prompt) != "" {
 		var err error
-		reply, err = queryOpenAI(tbot.MessageFormat(robot.BasicMarkdown), r, ctx, state, loadConfig(r), uiHints)
+		reply, err = queryOpenAI(tbot.MessageFormat(robot.BasicMarkdown), r, ctx, state, cfg, uiHints)
 		if err != nil {
 			tbot.Say("Sorry, there was an error contacting the AI: %s", err)
 			state.InProgress = false
@@ -275,10 +288,11 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 		if len(state.Exchanges) > maxStoredExchanges {
 			state.Exchanges = state.Exchanges[len(state.Exchanges)-maxStoredExchanges:]
 		}
-		state.Tokens = estimateConversationTokens(state.Exchanges)
+		state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
 		if len(state.Pending) > 0 {
 			state.Pending = nil
 		}
+		state = maybeCompactConversationDeterministic(state, cfg)
 	}
 	state.InProgress = false
 	state.UpdatedAt = nowString()
@@ -294,26 +308,30 @@ func handleStatus(r robot.Robot) robot.TaskRetVal {
 	}
 
 	state, ok := loadConversationState(r, ctx)
-	if !ok || len(state.Exchanges) == 0 {
+	if !ok || (len(state.Exchanges) == 0 && strings.TrimSpace(state.Summary) == "") {
 		r.Reply("I hear you, but I have no memory of a conversation in this context.")
 		return robot.Normal
 	}
 	tokens := state.Tokens
 	if tokens <= 0 {
-		tokens = estimateConversationTokens(state.Exchanges)
+		tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
+	}
+	summaryPart := ""
+	if strings.TrimSpace(state.Summary) != "" {
+		summaryPart = ", compact summary present"
 	}
 	if state.InProgress {
-		r.Reply("I hear you and remember an AI conversation in progress (%d exchanges, ~%d tokens, %d queued).", len(state.Exchanges), tokens, len(state.Pending))
+		r.Reply("I hear you and remember an AI conversation in progress (%d exchanges, ~%d tokens, %d queued%s).", len(state.Exchanges), tokens, len(state.Pending), summaryPart)
 		return robot.Normal
 	}
-	r.Reply("I hear you and remember an AI conversation (%d exchanges, ~%d tokens, %d queued).", len(state.Exchanges), tokens, len(state.Pending))
+	r.Reply("I hear you and remember an AI conversation (%d exchanges, ~%d tokens, %d queued%s).", len(state.Exchanges), tokens, len(state.Pending), summaryPart)
 	return robot.Normal
 }
 
 func handleClose(r robot.Robot) robot.TaskRetVal {
 	ctx := makeConversationContext(r)
 	state, ok := loadConversationState(r, ctx)
-	if ok && len(state.Exchanges) > 0 {
+	if ok && (len(state.Exchanges) > 0 || strings.TrimSpace(state.Summary) != "") {
 		deleteConversationState(r, ctx)
 		if !ctx.Direct {
 			r.Unsubscribe()
@@ -357,17 +375,16 @@ func isDirectMessage(r robot.Robot) bool {
 	return strings.TrimSpace(msg.Channel) == ""
 }
 
-func randomWaitMessage(r robot.Robot) string {
-	cfg := loadConfig(r)
+func randomWaitMessage(r robot.Robot, cfg aiConfig) string {
 	if len(cfg.WaitMessages) == 0 {
 		return ""
 	}
 	return r.RandomString(cfg.WaitMessages)
 }
 
-func makeStreamUIHints(r robot.Robot, state conversationState) streamUIHints {
+func makeStreamUIHints(r robot.Robot, state conversationState, cfg aiConfig) streamUIHints {
 	hints := streamUIHints{}
-	hold := randomWaitMessage(r)
+	hold := randomWaitMessage(r, cfg)
 	if hold != "" && len(state.Exchanges) == 0 {
 		hints.WaitNotice = fmt.Sprintf("( %s )", hold)
 		hints.WaitNoticeReply = true
@@ -664,6 +681,118 @@ func estimateConversationTokens(exchanges []conversationExchange) int {
 	return total
 }
 
+func maybeCompactConversationDeterministic(state conversationState, cfg aiConfig) conversationState {
+	maxRecent := cfg.MaxRecentExchanges
+	if maxRecent <= 0 {
+		maxRecent = defaultMaxRecentExchanges
+	}
+	if len(state.Exchanges) <= maxRecent {
+		if state.Tokens <= 0 {
+			state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
+		}
+		return state
+	}
+
+	trigger := cfg.CompactionTriggerTokens
+	if trigger <= 0 {
+		trigger = resolveCompactionTriggerTokens(resolveProfile(state.Profile, cfg))
+	}
+	if trigger <= 0 {
+		trigger = 6144
+	}
+
+	if state.Tokens <= 0 {
+		state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
+	}
+	if state.Tokens < trigger {
+		return state
+	}
+
+	split := len(state.Exchanges) - maxRecent
+	older := state.Exchanges[:split]
+	recent := state.Exchanges[split:]
+	state.Summary = mergeDeterministicSummary(state.Summary, older, cfg.SummaryBudgetTokens)
+	state.Exchanges = append([]conversationExchange(nil), recent...)
+	state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
+	return state
+}
+
+func resolveCompactionTriggerTokens(profile aiProfile) int {
+	if profile.MaxContext <= 0 {
+		return 6144
+	}
+	trigger := profile.MaxContext - 1024
+	if trigger < 1024 {
+		return profile.MaxContext
+	}
+	return trigger
+}
+
+func mergeDeterministicSummary(existing string, older []conversationExchange, summaryBudgetTokens int) string {
+	if len(older) == 0 {
+		return strings.TrimSpace(existing)
+	}
+	if summaryBudgetTokens <= 0 {
+		summaryBudgetTokens = defaultSummaryBudgetTokens
+	}
+	maxChars := summaryBudgetTokens * 4
+	if maxChars < 400 {
+		maxChars = 400
+	}
+
+	lines := make([]string, 0, 8)
+	if prior := strings.TrimSpace(existing); prior != "" {
+		lines = append(lines, "Previous summary:")
+		lines = append(lines, clipText(prior, maxChars/2))
+	}
+	lines = append(lines, fmt.Sprintf("Compacted %d earlier exchange(s):", len(older)))
+
+	firstIntent := ""
+	for _, item := range older {
+		if text := strings.TrimSpace(item.Human); text != "" {
+			firstIntent = text
+			break
+		}
+	}
+	if firstIntent != "" {
+		lines = append(lines, "Initial intent: "+clipText(firstIntent, 180))
+	}
+
+	tail := older
+	if len(tail) > 4 {
+		tail = tail[len(tail)-4:]
+	}
+	for _, item := range tail {
+		h := clipText(strings.TrimSpace(item.Human), 140)
+		a := clipText(strings.TrimSpace(item.AI), 180)
+		switch {
+		case h != "" && a != "":
+			lines = append(lines, fmt.Sprintf("- %s -> %s", h, a))
+		case h != "":
+			lines = append(lines, fmt.Sprintf("- %s", h))
+		case a != "":
+			lines = append(lines, fmt.Sprintf("- AI: %s", a))
+		}
+	}
+
+	return clipText(strings.Join(lines, "\n"), maxChars)
+}
+
+func clipText(text string, maxChars int) string {
+	text = strings.TrimSpace(text)
+	if maxChars <= 0 || len([]rune(text)) <= maxChars {
+		return text
+	}
+	runes := []rune(text)
+	if maxChars <= 1 {
+		return string(runes[:maxChars])
+	}
+	if maxChars <= 3 {
+		return string(runes[:maxChars])
+	}
+	return strings.TrimSpace(string(runes[:maxChars-3])) + "..."
+}
+
 func pendingForContext(pending []pendingMessage, currentMessageID string, processed []string) []pendingMessage {
 	if len(pending) == 0 {
 		return nil
@@ -684,14 +813,14 @@ func pendingForContext(pending []pendingMessage, currentMessageID string, proces
 	return out
 }
 
-func trimExchangesForContext(system string, exchanges []conversationExchange, pending []pendingMessage, prompt string, maxContext int) []conversationExchange {
+func trimExchangesForContext(system, summary string, exchanges []conversationExchange, pending []pendingMessage, prompt string, maxContext int) []conversationExchange {
 	if len(exchanges) == 0 {
 		return nil
 	}
 	if maxContext <= 0 {
 		maxContext = 4096
 	}
-	budget := maxContext - estimateTokens(system) - estimateTokens(prompt) - 64
+	budget := maxContext - estimateTokens(system) - estimateTokens(summary) - estimateTokens(prompt) - 64
 	for _, item := range pending {
 		budget -= estimateTokens(fmt.Sprintf("%s says: %s", item.User, item.Text)) + 4
 	}
@@ -728,8 +857,8 @@ func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, sta
 	profile := resolveProfile(state.Profile, cfg)
 	systemPrompt := buildSystemPrompt(profile)
 	queued := pendingForContext(state.Pending, ctx.MessageID, state.Processed)
-	trimmedExchanges := trimExchangesForContext(systemPrompt, state.Exchanges, queued, ctx.Prompt, profile.MaxContext)
-	messages := buildMessages(systemPrompt, trimmedExchanges, queued, ctx)
+	trimmedExchanges := trimExchangesForContext(systemPrompt, state.Summary, state.Exchanges, queued, ctx.Prompt, profile.MaxContext)
+	messages := buildMessages(systemPrompt, state.Summary, trimmedExchanges, queued, ctx)
 	payload := map[string]interface{}{
 		"messages": messages,
 		"stream":   true,
@@ -833,7 +962,7 @@ func buildSystemPrompt(profile aiProfile) string {
 	return strings.TrimSpace(basicMarkdownSystemPrefix + "\n\n" + standard + "\n\n" + custom)
 }
 
-func buildMessages(system string, exchanges []conversationExchange, pending []pendingMessage, ctx conversationContext) []map[string]string {
+func buildMessages(system, summary string, exchanges []conversationExchange, pending []pendingMessage, ctx conversationContext) []map[string]string {
 	if strings.TrimSpace(system) == "" {
 		system = strings.TrimSpace(defaultStandardSystemPrompt + "\n\n" + defaultCustomSystemPrompt)
 	}
@@ -842,6 +971,12 @@ func buildMessages(system string, exchanges []conversationExchange, pending []pe
 			"role":    "system",
 			"content": system,
 		},
+	}
+	if summary = strings.TrimSpace(summary); summary != "" {
+		messages = append(messages, map[string]string{
+			"role":    "system",
+			"content": "Conversation summary (older context):\n" + summary,
+		})
 	}
 	for _, exchange := range exchanges {
 		if strings.TrimSpace(exchange.Human) != "" {
