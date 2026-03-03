@@ -292,7 +292,7 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 		if len(state.Pending) > 0 {
 			state.Pending = nil
 		}
-		state = maybeCompactConversationDeterministic(state, cfg)
+		state = maybeCompactConversationWithModel(r, state, cfg)
 	}
 	state.InProgress = false
 	state.UpdatedAt = nowString()
@@ -682,6 +682,37 @@ func estimateConversationTokens(exchanges []conversationExchange) int {
 }
 
 func maybeCompactConversationDeterministic(state conversationState, cfg aiConfig) conversationState {
+	compacted, _ := compactConversationDeterministic(state, cfg)
+	return compacted
+}
+
+func maybeCompactConversationWithModel(r robot.Robot, state conversationState, cfg aiConfig) conversationState {
+	return maybeCompactConversationWithRefiner(state, cfg, func(existing string, older []conversationExchange, cfg aiConfig) (string, error) {
+		return modelAssistSummary(r, state.Profile, existing, older, cfg)
+	})
+}
+
+type summaryRefiner func(existing string, older []conversationExchange, cfg aiConfig) (string, error)
+
+func maybeCompactConversationWithRefiner(state conversationState, cfg aiConfig, refiner summaryRefiner) conversationState {
+	compacted, older := compactConversationDeterministic(state, cfg)
+	if len(older) == 0 || !cfg.EnableModelCompaction || refiner == nil {
+		return compacted
+	}
+	refined, err := refiner(compacted.Summary, older, cfg)
+	if err != nil {
+		return compacted
+	}
+	refined = strings.TrimSpace(refined)
+	if refined == "" {
+		return compacted
+	}
+	compacted.Summary = clipText(refined, summaryBudgetChars(cfg.SummaryBudgetTokens))
+	compacted.Tokens = estimateConversationTokens(compacted.Exchanges) + estimateTokens(compacted.Summary)
+	return compacted
+}
+
+func compactConversationDeterministic(state conversationState, cfg aiConfig) (conversationState, []conversationExchange) {
 	maxRecent := cfg.MaxRecentExchanges
 	if maxRecent <= 0 {
 		maxRecent = defaultMaxRecentExchanges
@@ -690,7 +721,7 @@ func maybeCompactConversationDeterministic(state conversationState, cfg aiConfig
 		if state.Tokens <= 0 {
 			state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
 		}
-		return state
+		return state, nil
 	}
 
 	trigger := cfg.CompactionTriggerTokens
@@ -705,7 +736,7 @@ func maybeCompactConversationDeterministic(state conversationState, cfg aiConfig
 		state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
 	}
 	if state.Tokens < trigger {
-		return state
+		return state, nil
 	}
 
 	split := len(state.Exchanges) - maxRecent
@@ -714,7 +745,7 @@ func maybeCompactConversationDeterministic(state conversationState, cfg aiConfig
 	state.Summary = mergeDeterministicSummary(state.Summary, older, cfg.SummaryBudgetTokens)
 	state.Exchanges = append([]conversationExchange(nil), recent...)
 	state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
-	return state
+	return state, append([]conversationExchange(nil), older...)
 }
 
 func resolveCompactionTriggerTokens(profile aiProfile) int {
@@ -735,10 +766,7 @@ func mergeDeterministicSummary(existing string, older []conversationExchange, su
 	if summaryBudgetTokens <= 0 {
 		summaryBudgetTokens = defaultSummaryBudgetTokens
 	}
-	maxChars := summaryBudgetTokens * 4
-	if maxChars < 400 {
-		maxChars = 400
-	}
+	maxChars := summaryBudgetChars(summaryBudgetTokens)
 
 	lines := make([]string, 0, 8)
 	if prior := strings.TrimSpace(existing); prior != "" {
@@ -776,6 +804,17 @@ func mergeDeterministicSummary(existing string, older []conversationExchange, su
 	}
 
 	return clipText(strings.Join(lines, "\n"), maxChars)
+}
+
+func summaryBudgetChars(summaryBudgetTokens int) int {
+	if summaryBudgetTokens <= 0 {
+		summaryBudgetTokens = defaultSummaryBudgetTokens
+	}
+	maxChars := summaryBudgetTokens * 4
+	if maxChars < 400 {
+		maxChars = 400
+	}
+	return maxChars
 }
 
 func clipText(text string, maxChars int) string {
@@ -846,6 +885,115 @@ func trimExchangesForContext(system, summary string, exchanges []conversationExc
 
 func nowString() string {
 	return time.Now().UTC().Format(time.RFC3339)
+}
+
+func modelAssistSummary(r robot.Robot, profileName, deterministic string, older []conversationExchange, cfg aiConfig) (string, error) {
+	token := strings.TrimSpace(r.GetParameter("OPENAI_KEY"))
+	if token == "" {
+		return "", fmt.Errorf("OPENAI_KEY not set")
+	}
+
+	profile := resolveProfile(profileName, cfg)
+	model := "gpt-5.2-chat-latest"
+	if raw, ok := profile.Params["model"]; ok {
+		if asString := strings.TrimSpace(fmt.Sprintf("%v", raw)); asString != "" {
+			model = asString
+		}
+	}
+
+	payload := map[string]interface{}{
+		"model":  model,
+		"stream": false,
+		"messages": []map[string]string{
+			{
+				"role": "system",
+				"content": "You condense older chat history into a concise, factual summary for future context. " +
+					"Keep key user goals, decisions, constraints, and unresolved questions. " +
+					"Avoid headings and tables. Keep output compact and actionable.",
+			},
+			{
+				"role":    "user",
+				"content": modelCompactionSource(deterministic, older, cfg.SummaryBudgetTokens),
+			},
+		},
+	}
+	if cfg.SummaryBudgetTokens > 0 {
+		payload["max_tokens"] = cfg.SummaryBudgetTokens
+	}
+	if userID := strings.TrimSpace(r.GetParameter("GOPHER_USER_ID")); userID != "" {
+		payload["user"] = sha1String(userID)
+	}
+
+	reqBody, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, openAIChatCompletionsURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	if org := strings.TrimSpace(r.GetParameter("OPENAI_ORGANIZATION_ID")); org != "" {
+		req.Header.Set("OpenAI-Organization", org)
+	}
+
+	client := &http.Client{Timeout: 12 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode >= 400 {
+		return "", fmt.Errorf("%s", friendlyOpenAIError(resp.StatusCode, resp.Status, body))
+	}
+
+	var parsed struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return "", err
+	}
+	if len(parsed.Choices) == 0 {
+		return "", fmt.Errorf("no choices returned for model-assisted compaction")
+	}
+	content := strings.TrimSpace(parsed.Choices[0].Message.Content)
+	if content == "" {
+		return "", fmt.Errorf("empty model-assisted compaction summary")
+	}
+	return clipText(normalizeChunkText(content), summaryBudgetChars(cfg.SummaryBudgetTokens)), nil
+}
+
+func modelCompactionSource(deterministic string, older []conversationExchange, summaryBudgetTokens int) string {
+	maxChars := summaryBudgetChars(summaryBudgetTokens)
+	sample := older
+	if len(sample) > 12 {
+		sample = sample[len(sample)-12:]
+	}
+	var b strings.Builder
+	if prior := strings.TrimSpace(deterministic); prior != "" {
+		b.WriteString("Current deterministic summary:\n")
+		b.WriteString(clipText(prior, maxChars/2))
+		b.WriteString("\n\n")
+	}
+	b.WriteString(fmt.Sprintf("Older exchanges to compact (%d shown):\n", len(sample)))
+	for i, item := range sample {
+		h := clipText(strings.TrimSpace(item.Human), 220)
+		a := clipText(strings.TrimSpace(item.AI), 220)
+		b.WriteString(fmt.Sprintf("%d. Human: %s\n", i+1, h))
+		b.WriteString(fmt.Sprintf("   AI: %s\n", a))
+	}
+	return clipText(strings.TrimSpace(b.String()), maxChars*2)
 }
 
 func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, state conversationState, cfg aiConfig, uiHints streamUIHints) (string, error) {

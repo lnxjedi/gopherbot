@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"regexp"
 	"testing"
 )
@@ -168,5 +169,92 @@ func TestBuildMessagesIncludesSummaryAfterSystem(t *testing.T) {
 	}
 	if !regexp.MustCompile(`Conversation summary`).MatchString(messages[1]["content"]) {
 		t.Fatalf("expected summary marker, got %q", messages[1]["content"])
+	}
+}
+
+func TestModelCompactionUsesRefinerWhenEnabled(t *testing.T) {
+	state := conversationState{
+		Profile: defaultProfile,
+		Exchanges: []conversationExchange{
+			{Human: "alice says: one", AI: "ai: one"},
+			{Human: "alice says: two", AI: "ai: two"},
+			{Human: "alice says: three", AI: "ai: three"},
+			{Human: "alice says: four", AI: "ai: four"},
+		},
+	}
+	state.Tokens = estimateConversationTokens(state.Exchanges)
+	cfg := aiConfig{
+		CompactionTriggerTokens: 1,
+		MaxRecentExchanges:      2,
+		SummaryBudgetTokens:     200,
+		EnableModelCompaction:   true,
+	}
+	got := maybeCompactConversationWithRefiner(state, cfg, func(existing string, older []conversationExchange, cfg aiConfig) (string, error) {
+		if len(older) != 2 {
+			t.Fatalf("older len = %d, want 2", len(older))
+		}
+		return "model refined summary", nil
+	})
+	if got.Summary != "model refined summary" {
+		t.Fatalf("summary = %q, want model refined summary", got.Summary)
+	}
+	if len(got.Exchanges) != 2 {
+		t.Fatalf("recent exchanges kept = %d, want 2", len(got.Exchanges))
+	}
+}
+
+func TestModelCompactionFallsBackOnRefinerError(t *testing.T) {
+	state := conversationState{
+		Profile: defaultProfile,
+		Exchanges: []conversationExchange{
+			{Human: "alice says: one", AI: "ai: one"},
+			{Human: "alice says: two", AI: "ai: two"},
+			{Human: "alice says: three", AI: "ai: three"},
+			{Human: "alice says: four", AI: "ai: four"},
+		},
+	}
+	state.Tokens = estimateConversationTokens(state.Exchanges)
+	cfg := aiConfig{
+		CompactionTriggerTokens: 1,
+		MaxRecentExchanges:      2,
+		SummaryBudgetTokens:     200,
+		EnableModelCompaction:   true,
+	}
+	deterministic := maybeCompactConversationDeterministic(state, cfg)
+	got := maybeCompactConversationWithRefiner(state, cfg, func(existing string, older []conversationExchange, cfg aiConfig) (string, error) {
+		return "", errors.New("synthetic failure")
+	})
+	if got.Summary != deterministic.Summary {
+		t.Fatalf("fallback summary mismatch: got %q want %q", got.Summary, deterministic.Summary)
+	}
+}
+
+func TestModelCompactionDisabledDoesNotCallRefiner(t *testing.T) {
+	state := conversationState{
+		Profile: defaultProfile,
+		Exchanges: []conversationExchange{
+			{Human: "alice says: one", AI: "ai: one"},
+			{Human: "alice says: two", AI: "ai: two"},
+			{Human: "alice says: three", AI: "ai: three"},
+			{Human: "alice says: four", AI: "ai: four"},
+		},
+	}
+	state.Tokens = estimateConversationTokens(state.Exchanges)
+	cfg := aiConfig{
+		CompactionTriggerTokens: 1,
+		MaxRecentExchanges:      2,
+		SummaryBudgetTokens:     200,
+		EnableModelCompaction:   false,
+	}
+	called := false
+	got := maybeCompactConversationWithRefiner(state, cfg, func(existing string, older []conversationExchange, cfg aiConfig) (string, error) {
+		called = true
+		return "should-not-happen", nil
+	})
+	if called {
+		t.Fatal("refiner should not be called when model compaction is disabled")
+	}
+	if got.Summary == "" {
+		t.Fatal("expected deterministic summary to still be produced")
 	}
 }
