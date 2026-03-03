@@ -50,6 +50,7 @@ For v3, we will try to support:
 * Zulip
 
 In addition, Gopherbot will implement a new default outgoing message format for use by custom extensions, `BasicMarkdown` (see devdocs/BasicMarkdown.md).
+* Slack Variable and Fixed support should be updated to use BlockKit it possible
 
 ### Reduce Dependence on External Tools and Interpreters
 
