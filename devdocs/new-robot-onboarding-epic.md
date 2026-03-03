@@ -57,9 +57,9 @@ Relevant files:
   - `robot.skel/conf/*.yaml`
   - `.env` generation semantics
 - Documentation:
-  - `aidocs/GOALS_v3.md` alignment references
+  - root `GOALS_v3.md` alignment references
   - user docs in `../gopherbot-doc`
-  - `devdocs/UPGRADING-v3.md` when behavior shifts
+  - root `UPGRADING-v3.md` when behavior shifts
 
 ### 3) Current invariants potentially impacted
 
@@ -86,7 +86,7 @@ Relevant files:
 
 - No backward-compatibility requirement for legacy setup in new-robot onboarding.
 - Prefer guided `new robot` flow as the supported path.
-- Add migration notes to `devdocs/UPGRADING-v3.md` if legacy commands are removed.
+- Add migration notes to root `UPGRADING-v3.md` if legacy commands are removed.
 
 ### 7) Documentation updates required
 

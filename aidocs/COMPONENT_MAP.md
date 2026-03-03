@@ -7,7 +7,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - AI-focused docbase root: `aidocs/README.md`
 - Top-level component map: `aidocs/COMPONENT_MAP.md`
 - Startup flow narrative: `aidocs/STARTUP_FLOW.md`
-- High-level v3 goals: `aidocs/GOALS_v3.md`
+- High-level v3 goals (project-level): `GOALS_v3.md`
 - v3 compatibility priorities and migration policy: `aidocs/V3_COMPATIBILITY_CONTRACT.md`
 - Execution/threading/security model: `aidocs/EXECUTION_SECURITY_MODEL.md`
 - Interpreter notes: `aidocs/INTERPRETERS.md`.
@@ -15,8 +15,9 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 - Test harness overview: `aidocs/TESTING_CURRENT.md`.
 - Incoming message pipeline flow: `aidocs/PIPELINE_LIFECYCLE.md`.
 - Scheduled job pipeline flow: `aidocs/SCHEDULER_FLOW.md`.
-- Multiprocess epic artifacts: `aidocs/multiprocess/`.
-- Multiprocess architecture decisions: `aidocs/multiprocess/ARCHITECTURE_DECISIONS.md`.
+- AI-maintained backlog: `aidocs/TODO.md`.
+- Active workstream indexes: `aidocs/multi-protocol/README.md`, `aidocs/multiprocess/README.md`.
+- Archived historical slice artifacts: `aidocs/archive/` (reference only).
 
 ## bot/
 

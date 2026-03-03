@@ -1,138 +1,141 @@
 # AGENTS.md — Gopherbot
 
-This file defines the authoritative operating procedure for AI agents working in this repository.
-
-It governs orientation, architectural invariants, planning requirements, and change discipline.
+This file is the authoritative operating procedure for AI agents working in this repository.
 
 If any ad-hoc instruction conflicts with this file, this file wins.
 
----
+## Authority Boundary
 
-## Phase 0 — Mandatory Orientation
+- `AGENTS.md` is the single source of policy and required process.
+- Skills may provide workflows/templates, but must not redefine repository policy.
 
-Before proposing changes, you must read, in order:
+## Phase 0 — Orientation (Two-Tier Model)
 
+### Tier A: Default Orientation (required for all tasks)
+
+Before proposing or implementing changes, read:
+1. `aidocs/README.md`
+2. `aidocs/COMPONENT_MAP.md`
+3. root `GOALS_v3.md`
+
+Then load only the canonical docs needed for the task scope.
+
+### Tier B: Escalated Orientation (hard requirement when triggered)
+
+You must run full architecture preflight before coding when **any** trigger applies.
+
+Read in order:
 1. `aidocs/README.md`
 2. `aidocs/COMPONENT_MAP.md`
 3. `aidocs/STARTUP_FLOW.md`
-4. `aidocs/GOALS_v3.md`
-
-For integration test harness and testbot behavior, see `aidocs/TESTING_CURRENT.md`.
+4. root `GOALS_v3.md`
+5. `aidocs/TESTING_CURRENT.md`
 
 Then summarize in your own words:
+- core architectural invariants
+- startup ordering constraints
+- connector assumptions
+- message routing model
+- identity model
 
-* Core architectural invariants
-* Startup ordering constraints
-* Connector assumptions
-* Message routing model
-* Identity model
+### Escalation Triggers (hard)
 
-Do not proceed until this summary is complete.
+Escalated orientation is mandatory if a change touches or may affect:
+- startup/config load order (`bot/start.go`, `bot/bot_process.go`, `bot/config_load.go`, `bot/conf.go`)
+- message routing/pipeline ordering (`bot/dispatch.go`, `bot/run_pipelines.go`, scheduler flow)
+- connector runtime/behavior (`connectors/*`, connector runtime orchestration)
+- identity/authz semantics (username mapping, roster gates, authorization/elevation)
+- root/default robot config structure (`conf/robot.yaml`, `robot.skel/conf/robot.yaml`)
+- cross-protocol behavior/contracts
 
----
+If uncertain, escalate.
 
-## Phase 1 — Impact Analysis (Required for Non-Trivial Changes)
+## Phase 1 — Impact Analysis (Required for Cross-Cutting Changes)
 
-For any change affecting connectors, routing, startup, configuration, or identity:
-
-You must produce an Impact Surface Report before modifying code.
-
-This report must include:
-
-1. Subsystems affected (with file paths)
-2. Current invariants that may break
-3. Cross-cutting concerns (startup order, config loading, execution ordering)
-4. Concurrency implications
-5. Backward compatibility concerns
-6. Documentation updates required
-
-Do not implement non-trivial changes until this report is written and shared in the task context, unless explicitly waived by the user.
-
----
+For changes affecting connectors, routing, startup, configuration, identity, or compatibility:
+- produce an Impact Surface Report before modifying code
+- include subsystems, invariants, cross-cutting concerns, concurrency, compatibility, docs updates
+- do not implement until report is shared, unless explicitly waived by user
 
 ## Architectural Invariants
 
-Unless explicitly updated in `aidocs/`, these invariants must hold:
-
-* Startup sequence is deterministic and traceable.
-* Control flow is explicit, not implicit.
-* Shared authorization and business policy logic must remain in engine flows, not connectors.
-* Identity resolution is deterministic and stable.
-* Permission and policy decisions must be based on protocol-agnostic usernames, not raw transport IDs.
-* Message routing order is preserved within a connector.
-* Configuration precedence rules remain explicit and documented.
-* When multiple connectors are enabled, cross-connector isolation prevents cascading failure.
-
-If a change violates any invariant, update the documentation and explain why.
-
----
+Unless explicitly updated in canonical docs, these must hold:
+- startup sequence is deterministic and traceable
+- control flow is explicit, not implicit
+- shared authorization/business policy remains in engine flows, not connectors
+- permission/policy decisions are username-authoritative
+- message routing order is preserved within a connector
+- configuration precedence is explicit and documented
+- multi-connector isolation prevents cascading failure
 
 ## Connector Rules (Critical for Multi-Protocol)
 
-* Connectors own transport concerns and protocol-local interaction behavior.
-* Connector-local behavior must not bypass shared authorization, policy, or business rules enforced by engine flows.
-* Connectors must normalize engine-bound inbound messages into a canonical internal representation.
-* Protocol-local commands and rendering are allowed when documented and isolated to that connector.
-* Transport-specific internal user IDs are expected and allowed.
-* Each protocol must deterministically map transport identity to canonical username via connector-local identity rules/config.
-* Cross-protocol identity equivalence is by canonical username emitted by connectors, not by heuristic transport-ID matching.
-* Replay buffers must define ordering guarantees explicitly.
-* When multiple connectors are enabled, failure in one connector must not terminate others.
+- connectors own transport concerns and protocol-local behavior
+- connectors must not bypass shared engine policy/authorization logic
+- connectors map transport identity to canonical username deterministically
+- cross-protocol identity equivalence is canonical username, not heuristic transport-ID matching
+- connector failure isolation must be preserved when multiple connectors are enabled
 
----
+## Documentation Discipline (Hard Mapping)
 
-## Rules of Engagement
+When behavior changes, update canonical docs in the same change:
 
-* Do not guess architecture. Trace behavior to concrete symbols.
-* Cite file paths and functions.
-* Prefer explicit state machines over implicit sequencing.
-* When ambiguity exists, stop and present options with tradeoffs.
-* For speculative behavior, insert `TODO (verify):`.
+- startup/config loading/order
+  - `aidocs/STARTUP_FLOW.md`
+- pipeline routing/execution ordering
+  - `aidocs/PIPELINE_LIFECYCLE.md`
+- scheduled job behavior
+  - `aidocs/SCHEDULER_FLOW.md`
+- connector behavior/identity mapping
+  - connector-specific docs (`aidocs/SSH_CONNECTOR.md`, `aidocs/SLACK_CONNECTOR.md`, etc.)
+  - `aidocs/COMPONENT_MAP.md` if component ownership/boundaries moved
+- execution security / privilege separation behavior
+  - `aidocs/EXECUTION_SECURITY_MODEL.md`
+- extension API/runtime semantics
+  - `aidocs/EXTENSION_API.md` and/or `aidocs/EXTENSION_SURFACES.md`
+- compatibility/config migration behavior
+  - `aidocs/V3_COMPATIBILITY_CONTRACT.md`
+  - root `UPGRADING-v3.md`
+  - corresponding defaults/templates in `conf/` and `robot.skel/`
+- test harness assumptions
+  - `aidocs/TESTING_CURRENT.md`
 
----
+Additional rules:
+- archive docs under `aidocs/archive/` are reference-only and non-canonical
+- roadmap remains root `GOALS_v3.md` (human-maintained)
+- AI "what's left" backlog remains `aidocs/TODO.md` (AI-maintained)
 
-## Documentation Discipline
+## Docs Hygiene Gate
 
-* Agent-facing system maps belong in `aidocs/`.
-* Human development notes belong in `devdocs/`.
-* Architectural changes require updating `aidocs/STARTUP_FLOW.md`.
-* Connector changes require updating `aidocs/COMPONENT_MAP.md`.
-* Identity or routing changes require documenting invariants explicitly.
-* Any change that requires migration for existing v2 robots must update root `UPGRADING-v3.md` in the same change.
+For any change touching `aidocs/`, `devdocs/`, `AGENTS.md`, or `UPGRADING-v3.md`:
+- run `helpers/check-docs-hygiene.sh`
+- fix reported stale references/markers before completion
 
-Stale documentation is considered a defect.
-
----
+Stale documentation is a defect.
 
 ## v3 Compatibility Contract
 
-Follow `aidocs/V3_COMPATIBILITY_CONTRACT.md` for v3 compatibility decisions.
+Follow `aidocs/V3_COMPATIBILITY_CONTRACT.md`.
 
 Required stance:
-
-* Old plugin/job/task scripts and extension API behavior are compatibility-priority surfaces.
-* Username-based security behavior and brain compatibility remain priority surfaces.
-* Configuration compatibility is not a required v3 guarantee; config migration is acceptable when documented.
-* For config-breaking changes, update defaults/templates and `UPGRADING-v3.md` in the same change.
-
----
+- extension API behavior compatibility is priority
+- username-based security behavior is priority
+- persistent brain compatibility is prioritized where feasible
+- config backward compatibility is not required; migration is acceptable when documented
 
 ## Change Hygiene
 
-* One logical change per branch.
-* Planning before implementation for cross-cutting changes.
-* No silent refactors.
-* Preserve behavior unless explicitly redefining it.
-* If redefining behavior, document migration strategy.
-
----
+- one logical change per branch
+- planning before implementation for cross-cutting changes
+- no silent refactors
+- preserve behavior unless explicitly redefining it
+- if redefining behavior, document migration strategy
 
 ## Post-Task Requirements
 
 After implementation:
-
-1. Re-validate architectural invariants.
-2. Update all affected documentation.
-3. Confirm startup sequence integrity.
-4. Confirm connector isolation.
-5. Confirm message ordering guarantees.
+1. re-validate architectural invariants
+2. update all required canonical docs
+3. confirm startup sequence integrity
+4. confirm connector isolation and ordering guarantees
+5. run applicable tests and docs hygiene checks
