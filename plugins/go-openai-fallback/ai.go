@@ -63,6 +63,16 @@ Commands:
   Keywords: [ "ai", "debug" ]
   Usage: "(bot), debug-ai"
   Summary: "enable debug output during AI interactions"
+- Command: "compact-model"
+  Regex: '(?i:(?:compact|summarize)[ -]ai[ -](?:model|api))'
+  Keywords: [ "ai", "compact", "model" ]
+  Usage: "(bot), compact-ai-model"
+  Summary: "admin-only: force deterministic + model-assisted compaction for this AI context"
+- Command: "compact"
+  Regex: '(?i:(?:compact|summarize)[ -]ai)'
+  Keywords: [ "ai", "compact" ]
+  Usage: "(bot), compact-ai"
+  Summary: "admin-only: force deterministic compaction for this AI context"
 - Command: "close"
   Regex: '(?i:(?:dismiss|banish|close|stop|deactivate|disengage|dispel|reset)[ -]ai)'
   Keywords: [ "ai", "stop" ]
@@ -78,6 +88,9 @@ Commands:
   Keywords: [ "ai", "status" ]
   Usage: "(bot), ai-status"
   Summary: "show AI conversation status in thread"
+AdminCommands:
+- compact
+- compact-model
 Config:
   WaitMessages:
   - "hold on a moment while I think this through"
@@ -203,6 +216,10 @@ func PluginHandler(r robot.Robot, command string, args ...string) robot.TaskRetV
 		return robot.Normal
 	case "debug":
 		return handleDebug(r)
+	case "compact":
+		return handleManualCompaction(r, false)
+	case "compact-model":
+		return handleManualCompaction(r, true)
 	case "close":
 		return handleClose(r)
 	case "status":
@@ -360,6 +377,90 @@ func handleDebug(r robot.Robot) robot.TaskRetVal {
 	r.Remember(ctx.DebugKey, "true", true)
 	r.SayThread("(ok, debugging output is enabled for this conversation)")
 	return robot.Normal
+}
+
+func handleManualCompaction(r robot.Robot, withModel bool) robot.TaskRetVal {
+	ctx := makeConversationContext(r)
+	if !ctx.Direct && !ctx.Threaded {
+		r.Reply("This command only applies in a direct message or conversation thread.")
+		return robot.Normal
+	}
+
+	state, ok := loadConversationState(r, ctx)
+	if !ok || (len(state.Exchanges) == 0 && strings.TrimSpace(state.Summary) == "") {
+		r.Reply("I have no AI conversation memory to compact in this context.")
+		return robot.Normal
+	}
+	cfg := loadConfig(r)
+
+	beforeExchanges := len(state.Exchanges)
+	beforeSummary := strings.TrimSpace(state.Summary)
+	beforeTokens := state.Tokens
+	if beforeTokens <= 0 {
+		beforeTokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
+	}
+
+	compacted, older := forceCompactConversationDeterministic(state, cfg)
+	deterministicApplied := len(older) > 0
+	modelApplied := false
+	var modelErr error
+
+	if withModel && deterministicApplied {
+		refined, err := modelAssistSummary(r, compacted.Profile, compacted.Summary, older, cfg)
+		if err != nil {
+			modelErr = err
+			r.Log(robot.Warn, "openai-fallback: manual model compaction failed conversation=%s older=%d: %v", ctx.ConversationID, len(older), err)
+		} else if trimmed := strings.TrimSpace(refined); trimmed != "" {
+			compacted.Summary = clipText(trimmed, summaryBudgetChars(cfg.SummaryBudgetTokens))
+			compacted.Tokens = estimateConversationTokens(compacted.Exchanges) + estimateTokens(compacted.Summary)
+			modelApplied = true
+		}
+	}
+
+	changed := deterministicApplied || (compacted.Summary != beforeSummary)
+	if changed {
+		compacted.UpdatedAt = nowString()
+		saveConversationState(r, ctx, compacted)
+	}
+
+	afterTokens := compacted.Tokens
+	if afterTokens <= 0 {
+		afterTokens = estimateConversationTokens(compacted.Exchanges) + estimateTokens(compacted.Summary)
+	}
+	r.Log(robot.Info, "openai-fallback: manual compaction mode=%s conversation=%s deterministic=%t model=%t older=%d exchanges=%d->%d tokens=%d->%d",
+		manualCompactionMode(withModel), ctx.ConversationID, deterministicApplied, modelApplied, len(older), beforeExchanges, len(compacted.Exchanges), beforeTokens, afterTokens)
+
+	if !deterministicApplied {
+		r.Reply("No compaction was needed in this context (%d exchanges currently stored).", len(compacted.Exchanges))
+		return robot.Normal
+	}
+
+	if withModel && modelErr != nil {
+		r.Reply("Model-assisted compaction failed (%s), but deterministic compaction succeeded (%d -> %d exchanges).", modelErr.Error(), beforeExchanges, len(compacted.Exchanges))
+		return robot.Normal
+	}
+
+	if withModel {
+		r.Reply("Model-assisted compaction succeeded (%d -> %d exchanges, summary %s).", beforeExchanges, len(compacted.Exchanges), compactSummaryState(compacted.Summary))
+		return robot.Normal
+	}
+
+	r.Reply("Deterministic compaction succeeded (%d -> %d exchanges, summary %s).", beforeExchanges, len(compacted.Exchanges), compactSummaryState(compacted.Summary))
+	return robot.Normal
+}
+
+func manualCompactionMode(withModel bool) string {
+	if withModel {
+		return "api"
+	}
+	return "deterministic"
+}
+
+func compactSummaryState(summary string) string {
+	if strings.TrimSpace(summary) == "" {
+		return "absent"
+	}
+	return "present"
 }
 
 func handleImage(r robot.Robot, args ...string) robot.TaskRetVal {
@@ -691,10 +792,35 @@ func maybeCompactConversationDeterministic(state conversationState, cfg aiConfig
 	return compacted
 }
 
+func forceCompactConversationDeterministic(state conversationState, cfg aiConfig) (conversationState, []conversationExchange) {
+	return compactConversationDeterministicInternal(state, cfg, true)
+}
+
 func maybeCompactConversationWithModel(r robot.Robot, state conversationState, cfg aiConfig) conversationState {
-	return maybeCompactConversationWithRefiner(state, cfg, func(existing string, older []conversationExchange, cfg aiConfig) (string, error) {
-		return modelAssistSummary(r, state.Profile, existing, older, cfg)
-	})
+	compacted, older := compactConversationDeterministic(state, cfg)
+	if len(older) == 0 {
+		return compacted
+	}
+
+	r.Log(robot.Info, "openai-fallback: automatic deterministic compaction applied older=%d exchanges_now=%d", len(older), len(compacted.Exchanges))
+	if !cfg.EnableModelCompaction {
+		return compacted
+	}
+
+	refined, err := modelAssistSummary(r, state.Profile, compacted.Summary, older, cfg)
+	if err != nil {
+		r.Log(robot.Warn, "openai-fallback: automatic model-assisted compaction failed; keeping deterministic summary: %v", err)
+		return compacted
+	}
+	refined = strings.TrimSpace(refined)
+	if refined == "" {
+		r.Log(robot.Warn, "openai-fallback: automatic model-assisted compaction returned empty summary; keeping deterministic summary")
+		return compacted
+	}
+	compacted.Summary = clipText(refined, summaryBudgetChars(cfg.SummaryBudgetTokens))
+	compacted.Tokens = estimateConversationTokens(compacted.Exchanges) + estimateTokens(compacted.Summary)
+	r.Log(robot.Info, "openai-fallback: automatic model-assisted compaction applied exchanges_now=%d", len(compacted.Exchanges))
+	return compacted
 }
 
 type summaryRefiner func(existing string, older []conversationExchange, cfg aiConfig) (string, error)
@@ -718,6 +844,10 @@ func maybeCompactConversationWithRefiner(state conversationState, cfg aiConfig, 
 }
 
 func compactConversationDeterministic(state conversationState, cfg aiConfig) (conversationState, []conversationExchange) {
+	return compactConversationDeterministicInternal(state, cfg, false)
+}
+
+func compactConversationDeterministicInternal(state conversationState, cfg aiConfig, force bool) (conversationState, []conversationExchange) {
 	maxRecent := cfg.MaxRecentExchanges
 	if maxRecent <= 0 {
 		maxRecent = defaultMaxRecentExchanges
@@ -740,7 +870,7 @@ func compactConversationDeterministic(state conversationState, cfg aiConfig) (co
 	if state.Tokens <= 0 {
 		state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
 	}
-	if state.Tokens < trigger {
+	if !force && state.Tokens < trigger {
 		return state, nil
 	}
 

@@ -150,6 +150,37 @@ func TestDeterministicCompactionNoopBelowTrigger(t *testing.T) {
 	}
 }
 
+func TestForceDeterministicCompactionIgnoresTrigger(t *testing.T) {
+	state := conversationState{
+		Profile: defaultProfile,
+		Exchanges: []conversationExchange{
+			{Human: "alice says: one", AI: "ai: one"},
+			{Human: "alice says: two", AI: "ai: two"},
+			{Human: "alice says: three", AI: "ai: three"},
+		},
+	}
+	state.Tokens = estimateConversationTokens(state.Exchanges)
+	cfg := aiConfig{
+		CompactionTriggerTokens: state.Tokens + 10000, // would block normal compaction
+		MaxRecentExchanges:      1,
+		SummaryBudgetTokens:     200,
+	}
+	normal := maybeCompactConversationDeterministic(state, cfg)
+	if len(normal.Exchanges) != 3 {
+		t.Fatalf("normal deterministic compaction should be noop, got exchanges=%d", len(normal.Exchanges))
+	}
+	forced, older := forceCompactConversationDeterministic(state, cfg)
+	if len(older) != 2 {
+		t.Fatalf("forced compaction older size=%d, want 2", len(older))
+	}
+	if len(forced.Exchanges) != 1 {
+		t.Fatalf("forced compaction exchanges kept=%d, want 1", len(forced.Exchanges))
+	}
+	if forced.Summary == "" {
+		t.Fatal("expected forced compaction to produce a summary")
+	}
+}
+
 func TestBuildMessagesIncludesSummaryAfterSystem(t *testing.T) {
 	messages := buildMessages(
 		"system prompt",
