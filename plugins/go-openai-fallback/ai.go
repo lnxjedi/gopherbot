@@ -534,6 +534,8 @@ func makeConversationContext(r robot.Robot, args ...string) conversationContext 
 	protocol = strings.ToLower(protocol)
 	user = strings.ToLower(user)
 	if messageID != "" {
+		// Message IDs are only guaranteed unique within a connector, so namespace
+		// with protocol before we store dedupe/process markers.
 		messageID = protocol + ":" + messageID
 	}
 	if channel == "" {
@@ -561,11 +563,14 @@ func makeConversationContext(r robot.Robot, args ...string) conversationContext 
 	}
 
 	if direct {
+		// Direct conversations are intentionally keyed by username (not protocol)
+		// so a user carries one DM context across connectors.
 		ctx.ConversationID = fmt.Sprintf("dm:%s", user)
 		ctx.LegacyMemoryKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryPrefix, protocol, user)
 		ctx.DebugKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryDebugPrefix, protocol, user)
 		ctx.ExclusiveTag = fmt.Sprintf("%s:dm:%s", shortTermMemoryPrefix, user)
 	} else {
+		// Thread IDs are connector-opaque, so thread conversations remain protocol-scoped.
 		ctx.ConversationID = fmt.Sprintf("thread:%s:%s:%s", protocol, strings.ToLower(channel), threadID)
 		ctx.LegacyMemoryKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, protocol, strings.ToLower(channel), threadID)
 		ctx.DebugKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryDebugPrefix, protocol, strings.ToLower(channel), threadID)
@@ -586,6 +591,8 @@ func loadConversationState(r robot.Robot, ctx conversationContext) (conversation
 		return state, true
 	}
 
+	// One-time migration path: read legacy short-term memory payload and persist
+	// into long-term datum storage keyed by hashed conversation ID.
 	encoded := strings.TrimSpace(r.Recall(ctx.LegacyMemoryKey, true))
 	if encoded == "" {
 		return conversationState{}, false
@@ -604,6 +611,7 @@ func saveConversationState(r robot.Robot, ctx conversationContext, state convers
 	if !storeConversationStateDatum(r, ctx.ConversationKey, state) {
 		return
 	}
+	// Maintain an index for background maintenance jobs (prune/compact tooling).
 	upsertConversationIndex(r, ctx.ConversationID, ctx.ConversationKey, state.UpdatedAt)
 }
 
@@ -752,6 +760,7 @@ func appendProcessed(processed []string, messageID string) []string {
 		return processed
 	}
 	processed = append(processed, messageID)
+	// Keep a bounded dedupe window so state does not grow forever.
 	if len(processed) > maxProcessedMessages {
 		return processed[len(processed)-maxProcessedMessages:]
 	}
@@ -870,6 +879,7 @@ func compactConversationDeterministicInternal(state conversationState, cfg aiCon
 	if state.Tokens <= 0 {
 		state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
 	}
+	// Automatic mode waits until near context pressure; manual mode can force compaction.
 	if !force && state.Tokens < trigger {
 		return state, nil
 	}
@@ -908,6 +918,7 @@ func mergeDeterministicSummary(existing string, older []conversationExchange, su
 		lines = append(lines, "Previous summary:")
 		lines = append(lines, clipText(prior, maxChars/2))
 	}
+	// Deterministic summary keeps compaction available even if API calls fail.
 	lines = append(lines, fmt.Sprintf("Compacted %d earlier exchange(s):", len(older)))
 
 	firstIntent := ""
@@ -1153,6 +1164,7 @@ func queryOpenAI(outBot robot.Robot, r robot.Robot, ctx conversationContext, sta
 		payload["model"] = "gpt-5.2-chat-latest"
 	}
 	if userID := strings.TrimSpace(r.GetParameter("GOPHER_USER_ID")); userID != "" {
+		// Pass a hashed stable user id to OpenAI telemetry field without exposing raw ids.
 		payload["user"] = sha1String(userID)
 	}
 	if strings.TrimSpace(r.Recall(ctx.DebugKey, true)) != "" {
@@ -1322,6 +1334,8 @@ func consumeSSEAndEmit(outBot robot.Robot, body io.Reader, uiHints streamUIHints
 			if chunk != "" {
 				full.WriteString(chunk)
 				pending.WriteString(chunk)
+				// Emit readable chunks as punctuation/paragraph boundaries appear while
+				// keeping fenced code blocks intact.
 				emitAvailableChunks(outBot, &pending, progress, uiHints)
 			}
 		}
@@ -1411,6 +1425,7 @@ func emitStreamChunk(outBot robot.Robot, progress *streamProgressState, uiHints 
 			progress.waitShown = true
 		}
 	} else if now.Sub(progress.lastOutputAt) >= streamProgressNoticeDelay {
+		// Minimal progress marker between delayed chunks.
 		outBot.Say("(...)")
 	}
 
@@ -1510,6 +1525,7 @@ func normalizeAIResponseToBasicMarkdown(text string) string {
 			continue
 		}
 		if inFence {
+			// Do not rewrite markdown inside fenced blocks.
 			out = append(out, line)
 			continue
 		}
