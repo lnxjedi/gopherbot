@@ -76,6 +76,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 
 - Shell job scripts: `jobs/logrotate.sh`.
 - Go job entrypoint example: `jobs/updatecfg/updatecfg.go` (func `JobHandler`).
+- AI conversation retention prune job: `jobs/go-openai-prune/go_openai_prune_job.go` (func `JobHandler`).
 - SSH demo welcome trigger job: `jobs/go-welcome-join/welcome_join.go` (func `JobHandler`).
 
 ## lib/
@@ -93,6 +94,7 @@ Entries cite files like `main.go` and symbols like `Start` in `bot/start.go` for
 ## plugins/
 
 - External script plugins and samples: `plugins/README.txt`, `plugins/welcome.lua`, `plugins/welcome.sh`, `plugins/samples/README.txt`.
+- OpenAI fallback plugin: `plugins/go-openai-fallback/ai.go` (func `PluginHandler`).
 
 ## resources/
 

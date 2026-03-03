@@ -430,6 +430,11 @@ func makeConversationContext(r robot.Robot, args ...string) conversationContext 
 	if user == "" {
 		user = "unknown"
 	}
+	protocol = strings.ToLower(protocol)
+	user = strings.ToLower(user)
+	if messageID != "" {
+		messageID = protocol + ":" + messageID
+	}
 	if channel == "" {
 		channel = "default"
 	}
@@ -455,15 +460,15 @@ func makeConversationContext(r robot.Robot, args ...string) conversationContext 
 	}
 
 	if direct {
-		ctx.ConversationID = fmt.Sprintf("dm:%s:%s", strings.ToLower(protocol), strings.ToLower(user))
-		ctx.LegacyMemoryKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(user))
-		ctx.DebugKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryDebugPrefix, strings.ToLower(protocol), strings.ToLower(user))
-		ctx.ExclusiveTag = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(user))
+		ctx.ConversationID = fmt.Sprintf("dm:%s", user)
+		ctx.LegacyMemoryKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryPrefix, protocol, user)
+		ctx.DebugKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryDebugPrefix, protocol, user)
+		ctx.ExclusiveTag = fmt.Sprintf("%s:dm:%s", shortTermMemoryPrefix, user)
 	} else {
-		ctx.ConversationID = fmt.Sprintf("thread:%s:%s:%s", strings.ToLower(protocol), strings.ToLower(channel), threadID)
-		ctx.LegacyMemoryKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(channel), threadID)
-		ctx.DebugKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryDebugPrefix, strings.ToLower(protocol), strings.ToLower(channel), threadID)
-		ctx.ExclusiveTag = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, strings.ToLower(protocol), strings.ToLower(channel), threadID)
+		ctx.ConversationID = fmt.Sprintf("thread:%s:%s:%s", protocol, strings.ToLower(channel), threadID)
+		ctx.LegacyMemoryKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, protocol, strings.ToLower(channel), threadID)
+		ctx.DebugKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryDebugPrefix, protocol, strings.ToLower(channel), threadID)
+		ctx.ExclusiveTag = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, protocol, strings.ToLower(channel), threadID)
 	}
 	ctx.ConversationKey = conversationDatumKey(ctx.ConversationID)
 
