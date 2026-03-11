@@ -66,6 +66,7 @@ Unless explicitly updated in canonical docs, these must hold:
 - permission/policy decisions are username-authoritative
 - message routing order is preserved within a connector
 - configuration precedence is explicit and documented
+- engine-shipped extension defaults remain authoritative; custom robot extension config stays delta-only unless behavior is intentionally redefined
 - multi-connector isolation prevents cascading failure
 
 ## Connector Rules (Critical for Multi-Protocol)

@@ -18,6 +18,13 @@ This document defines compatibility priorities for v3 work.
 - Configuration migration is expected as architecture evolves.
 - Failing fast on invalid/removed config keys is preferred over silently ignoring legacy keys.
 
+## Configuration Layering Contract for Shipped Extensions
+
+- Defaults shipped with the engine are the canonical baseline for included plugins/jobs/tasks.
+- Custom robots should keep extension config override files minimal and local (enable/disable, parameters, environment-specific behavior).
+- Avoid copying full shipped defaults into `custom/conf` unless intentionally redefining behavior.
+- When behavior is intentionally redefined, document the divergence and keep only explicit delta in custom config.
+
 ## Required Contributor Actions for Config Changes
 
 When a change requires config migration, contributors must:
@@ -25,5 +32,6 @@ When a change requires config migration, contributors must:
 1. Update root `UPGRADING-v3.md` in the same change.
 2. Update default config files in `conf/` and robot templates in `robot.skel/`.
 3. Update affected architecture docs in `aidocs/` and connector docs as needed.
+4. Preserve the shipped-extension layering contract above (defaults authoritative; custom configs delta-only).
 
 This keeps migration explicit while preserving runtime behavior for existing extension code.

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/sha1"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,7 +30,6 @@ const (
 	openAIChatCompletionsURL   = "https://api.openai.com/v1/chat/completions"
 	defaultChunkSoftLimit      = 420
 	defaultChunkHardLimit      = 620
-	delayedWaitNoticeDelay     = 900 * time.Millisecond
 	streamProgressNoticeDelay  = 1300 * time.Millisecond
 )
 
@@ -42,7 +40,11 @@ Use these prefixes to identify who is speaking.
 When replying to a specific person, address them as "@username" naturally.
 If users are mainly talking to each other and no bot response is needed, keep your response minimal and non-intrusive, or reply with "(no response)".
 Do not echo speaker prefixes unless it helps clarity.`
-	defaultCustomSystemPrompt = "You are helpful, concise, and collaborative."
+	defaultCustomSystemPrompt         = "You are helpful, concise, and collaborative."
+	defaultMultipartStartNotice       = "_(replying in parts...)_"
+	defaultMultipartContinueNotice    = "_(continuing...)_"
+	defaultMultipartEndNotice         = "_(end reply)_"
+	defaultMultipartInterruptedNotice = "_(reply interrupted)_"
 	// See OpenAI reasoning best practices: "Formatting re-enabled" should be the first
 	// line when markdown formatting is desired from reasoning-capable models.
 	basicMarkdownSystemPrefix = "Formatting re-enabled\n" +
@@ -92,15 +94,15 @@ AdminCommands:
 - compact
 - compact-model
 Config:
-  WaitMessages:
-  - "hold on a moment while I think this through"
-  - "working on that now"
-  - "thinking through the details"
-  - "just a moment while I work on a response"
+  HeardNotice: "_(working on a reply...)_"
   DrawMessages:
   - "working on an image"
   - "drawing now"
   - "rendering your request"
+  MultipartStartNotice: "_(replying in parts...)_"
+  MultipartContinueNotice: "_(continuing...)_"
+  MultipartEndNotice: "_(end reply)_"
+  MultipartInterruptedNotice: "_(reply interrupted)_"
   CompactionTriggerTokens: 6144
   MaxRecentExchanges: 12
   SummaryBudgetTokens: 768
@@ -135,13 +137,18 @@ type aiProfile struct {
 }
 
 type aiConfig struct {
-	WaitMessages            []string             `json:"WaitMessages"`
-	DrawMessages            []string             `json:"DrawMessages"`
-	Profiles                map[string]aiProfile `json:"Profiles"`
-	CompactionTriggerTokens int                  `json:"CompactionTriggerTokens"`
-	MaxRecentExchanges      int                  `json:"MaxRecentExchanges"`
-	SummaryBudgetTokens     int                  `json:"SummaryBudgetTokens"`
-	EnableModelCompaction   bool                 `json:"EnableModelCompaction"`
+	WaitMessages               []string             `json:"WaitMessages"`
+	HeardNotice                string               `json:"HeardNotice"`
+	DrawMessages               []string             `json:"DrawMessages"`
+	MultipartStartNotice       string               `json:"MultipartStartNotice"`
+	MultipartContinueNotice    string               `json:"MultipartContinueNotice"`
+	MultipartEndNotice         string               `json:"MultipartEndNotice"`
+	MultipartInterruptedNotice string               `json:"MultipartInterruptedNotice"`
+	Profiles                   map[string]aiProfile `json:"Profiles"`
+	CompactionTriggerTokens    int                  `json:"CompactionTriggerTokens"`
+	MaxRecentExchanges         int                  `json:"MaxRecentExchanges"`
+	SummaryBudgetTokens        int                  `json:"SummaryBudgetTokens"`
+	EnableModelCompaction      bool                 `json:"EnableModelCompaction"`
 }
 
 type conversationExchange struct {
@@ -150,16 +157,23 @@ type conversationExchange struct {
 }
 
 type streamUIHints struct {
-	WaitNotice      string
-	WaitNoticeReply bool
-	QueuedNotice    string
+	HeardNotice             string
+	QueuedNotice            string
+	MultipartStartNotice    string
+	MultipartContinueNotice string
+	MultipartEndNotice      string
+	MultipartInterrupted    string
 }
 
 type streamProgressState struct {
-	startedAt      time.Time
 	lastOutputAt   time.Time
 	firstOutputSet bool
-	waitShown      bool
+	heardShown     bool
+}
+
+type streamEnvelopeState struct {
+	heldFirstChunk string
+	multipart      bool
 }
 
 type pendingMessage struct {
@@ -191,7 +205,6 @@ type conversationContext struct {
 	Prompt          string
 	ConversationID  string
 	ConversationKey string
-	LegacyMemoryKey string
 	DebugKey        string
 	ExclusiveTag    string
 }
@@ -251,6 +264,18 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 		return robot.Normal
 	}
 
+	heardSent := false
+	if strings.TrimSpace(ctx.Prompt) != "" {
+		if heard := strings.TrimSpace(cfg.HeardNotice); heard != "" {
+			heardBot := r
+			if !ctx.Direct {
+				heardBot = r.Threaded()
+			}
+			heardBot.Reply(heard)
+			heardSent = true
+		}
+	}
+
 	state, _ := loadConversationState(r, ctx)
 	ensureConversationDefaults(&state, ctx)
 	if wasProcessed(state.Processed, ctx.MessageID) {
@@ -285,7 +310,10 @@ func handleConversationEntry(r robot.Robot, command string, args ...string) robo
 		r.Subscribe()
 	}
 
-	uiHints := makeStreamUIHints(r, state, cfg)
+	uiHints := makeStreamUIHints(state, cfg)
+	if heardSent {
+		uiHints.HeardNotice = ""
+	}
 
 	reply := ""
 	if strings.TrimSpace(ctx.Prompt) != "" {
@@ -476,28 +504,23 @@ func isDirectMessage(r robot.Robot) bool {
 	return strings.TrimSpace(msg.Channel) == ""
 }
 
-func randomWaitMessage(r robot.Robot, cfg aiConfig) string {
-	if len(cfg.WaitMessages) == 0 {
-		return ""
+func resolveNotice(value, fallback string) string {
+	if trimmed := strings.TrimSpace(value); trimmed != "" {
+		return trimmed
 	}
-	return r.RandomString(cfg.WaitMessages)
+	return fallback
 }
 
-func makeStreamUIHints(r robot.Robot, state conversationState, cfg aiConfig) streamUIHints {
+func makeStreamUIHints(state conversationState, cfg aiConfig) streamUIHints {
 	hints := streamUIHints{}
-	hold := randomWaitMessage(r, cfg)
-	if hold != "" && len(state.Exchanges) == 0 {
-		hints.WaitNotice = fmt.Sprintf("( %s )", hold)
-		hints.WaitNoticeReply = true
-	} else if len(state.Exchanges) > 0 {
-		hints.WaitNotice = fmt.Sprintf("(%s)", r.RandomString([]string{"pondering", "working", "thinking", "cogitating", "processing", "analyzing"}))
-	} else {
-		hints.WaitNotice = "(thinking...)"
-		hints.WaitNoticeReply = true
-	}
+	hints.HeardNotice = strings.TrimSpace(cfg.HeardNotice)
 	if len(state.Pending) > 0 {
 		hints.QueuedNotice = fmt.Sprintf("(I picked up %d queued messages for context)", len(state.Pending))
 	}
+	hints.MultipartStartNotice = resolveNotice(cfg.MultipartStartNotice, defaultMultipartStartNotice)
+	hints.MultipartContinueNotice = resolveNotice(cfg.MultipartContinueNotice, defaultMultipartContinueNotice)
+	hints.MultipartEndNotice = resolveNotice(cfg.MultipartEndNotice, defaultMultipartEndNotice)
+	hints.MultipartInterrupted = resolveNotice(cfg.MultipartInterruptedNotice, defaultMultipartInterruptedNotice)
 	return hints
 }
 
@@ -566,13 +589,11 @@ func makeConversationContext(r robot.Robot, args ...string) conversationContext 
 		// Direct conversations are intentionally keyed by username (not protocol)
 		// so a user carries one DM context across connectors.
 		ctx.ConversationID = fmt.Sprintf("dm:%s", user)
-		ctx.LegacyMemoryKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryPrefix, protocol, user)
 		ctx.DebugKey = fmt.Sprintf("%s:%s:dm:%s", shortTermMemoryDebugPrefix, protocol, user)
 		ctx.ExclusiveTag = fmt.Sprintf("%s:dm:%s", shortTermMemoryPrefix, user)
 	} else {
 		// Thread IDs are connector-opaque, so thread conversations remain protocol-scoped.
 		ctx.ConversationID = fmt.Sprintf("thread:%s:%s:%s", protocol, strings.ToLower(channel), threadID)
-		ctx.LegacyMemoryKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, protocol, strings.ToLower(channel), threadID)
 		ctx.DebugKey = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryDebugPrefix, protocol, strings.ToLower(channel), threadID)
 		ctx.ExclusiveTag = fmt.Sprintf("%s:%s:%s:%s", shortTermMemoryPrefix, protocol, strings.ToLower(channel), threadID)
 	}
@@ -585,25 +606,81 @@ func makeConversationContext(r robot.Robot, args ...string) conversationContext 
 }
 
 func loadConversationState(r robot.Robot, ctx conversationContext) (conversationState, bool) {
-	state := conversationState{}
-	_, exists, ret := r.CheckoutDatum(ctx.ConversationKey, &state, false)
+	_, raw, exists, ret, panicErr := checkoutDatumRaw(r, ctx.ConversationKey, false)
+	if panicErr != nil {
+		r.Log(robot.Warn, "openai-fallback: panic reading conversation datum id=%s key=%s; will attempt fallback: %v", ctx.ConversationID, ctx.ConversationKey, panicErr)
+	}
 	if ret == robot.Ok && exists {
-		return state, true
+		if state, ok := decodeConversationStateFromRaw(raw); ok {
+			ensureConversationDefaults(&state, ctx)
+			if state.Tokens <= 0 {
+				state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
+			}
+			return state, true
+		}
+		r.Log(robot.Warn, "openai-fallback: unsupported long-term conversation format id=%s key=%s type=%T", ctx.ConversationID, ctx.ConversationKey, raw)
+		// Strict schema mode: malformed conversation payloads are discarded.
+		r.DeleteDatum(ctx.ConversationKey)
+		removeConversationIndex(r, ctx.ConversationID)
+	}
+	return conversationState{}, false
+}
+
+func checkoutDatumRaw(r robot.Robot, key string, rw bool) (locktoken string, raw interface{}, exists bool, ret robot.RetVal, panicErr interface{}) {
+	defer func() {
+		if p := recover(); p != nil {
+			panicErr = p
+			locktoken = ""
+			raw = nil
+			exists = false
+			ret = robot.DataFormatError
+		}
+	}()
+	var payload json.RawMessage
+	locktoken, exists, ret = r.CheckoutDatum(key, &payload, rw)
+	raw = []byte(payload)
+	return locktoken, raw, exists, ret, nil
+}
+
+func decodeConversationStateFromRaw(raw interface{}) (conversationState, bool) {
+	if raw == nil {
+		return conversationState{}, false
+	}
+	blob, ok := rawJSONBytes(raw)
+	if !ok {
+		return conversationState{}, false
 	}
 
-	// One-time migration path: read legacy short-term memory payload and persist
-	// into long-term datum storage keyed by hashed conversation ID.
-	encoded := strings.TrimSpace(r.Recall(ctx.LegacyMemoryKey, true))
-	if encoded == "" {
-		return conversationState{}, false
+	state := conversationState{}
+	if err := json.Unmarshal(blob, &state); err == nil {
+		return state, true
 	}
-	state, err := decodeConversationState(encoded)
-	if err != nil {
-		return conversationState{}, false
+	return conversationState{}, false
+}
+
+func rawJSONBytes(raw interface{}) ([]byte, bool) {
+	if raw == nil {
+		return nil, false
 	}
-	saveConversationState(r, ctx, state)
-	r.Remember(ctx.LegacyMemoryKey, "", true)
-	return state, true
+	var blob []byte
+	switch v := raw.(type) {
+	case json.RawMessage:
+		blob = append([]byte(nil), v...)
+	case []byte:
+		blob = append([]byte(nil), v...)
+	case string:
+		blob = []byte(v)
+	default:
+		encoded, err := json.Marshal(raw)
+		if err != nil {
+			return nil, false
+		}
+		blob = encoded
+	}
+	if len(strings.TrimSpace(string(blob))) == 0 {
+		return nil, false
+	}
+	return blob, true
 }
 
 func saveConversationState(r robot.Robot, ctx conversationContext, state conversationState) {
@@ -615,26 +692,11 @@ func saveConversationState(r robot.Robot, ctx conversationContext, state convers
 	upsertConversationIndex(r, ctx.ConversationID, ctx.ConversationKey, state.UpdatedAt)
 }
 
-func decodeConversationState(encoded string) (conversationState, error) {
-	state := conversationState{}
-	// Support raw JSON state.
-	if err := json.Unmarshal([]byte(encoded), &state); err == nil {
-		return state, nil
-	}
-	// Support legacy base64(JSON) state.
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return conversationState{}, err
-	}
-	if err := json.Unmarshal(decoded, &state); err != nil {
-		return conversationState{}, err
-	}
-	return state, nil
-}
-
 func storeConversationStateDatum(r robot.Robot, key string, state conversationState) bool {
-	existing := conversationState{}
-	locktoken, _, ret := r.CheckoutDatum(key, &existing, true)
+	locktoken, _, _, ret, panicErr := checkoutDatumRaw(r, key, true)
+	if panicErr != nil {
+		r.Log(robot.Warn, "openai-fallback: panic checking out conversation datum for write key=%s: %v", key, panicErr)
+	}
 	if ret != robot.Ok {
 		return false
 	}
@@ -670,11 +732,23 @@ func deleteConversationIndexEntry(idx *conversationIndex, conversationID string)
 }
 
 func upsertConversationIndex(r robot.Robot, conversationID, key, updatedAt string) {
-	idx := conversationIndex{}
-	locktoken, _, ret := r.CheckoutDatum(conversationIndexDatumKey, &idx, true)
+	locktoken, raw, exists, ret, panicErr := checkoutDatumRaw(r, conversationIndexDatumKey, true)
+	if panicErr != nil {
+		r.Log(robot.Warn, "openai-fallback: panic reading conversation index for write key=%s: %v", conversationIndexDatumKey, panicErr)
+	}
 	if ret != robot.Ok {
 		return
 	}
+	idx := conversationIndex{}
+	if exists {
+		decoded, ok := decodeConversationIndexFromRaw(raw)
+		if ok {
+			idx = decoded
+		} else {
+			r.Log(robot.Warn, "openai-fallback: unsupported conversation index format key=%s type=%T; resetting index", conversationIndexDatumKey, raw)
+		}
+	}
+	ensureConversationIndexDefaults(&idx)
 	upsertConversationIndexEntry(&idx, conversationID, key, updatedAt)
 	if ret = r.UpdateDatum(conversationIndexDatumKey, locktoken, idx); ret != robot.Ok {
 		r.CheckinDatum(conversationIndexDatumKey, locktoken)
@@ -682,12 +756,20 @@ func upsertConversationIndex(r robot.Robot, conversationID, key, updatedAt strin
 }
 
 func removeConversationIndex(r robot.Robot, conversationID string) {
-	idx := conversationIndex{}
-	locktoken, exists, ret := r.CheckoutDatum(conversationIndexDatumKey, &idx, true)
+	locktoken, raw, exists, ret, panicErr := checkoutDatumRaw(r, conversationIndexDatumKey, true)
+	if panicErr != nil {
+		r.Log(robot.Warn, "openai-fallback: panic reading conversation index for delete key=%s: %v", conversationIndexDatumKey, panicErr)
+	}
 	if ret != robot.Ok {
 		return
 	}
 	if !exists {
+		r.CheckinDatum(conversationIndexDatumKey, locktoken)
+		return
+	}
+	idx, ok := decodeConversationIndexFromRaw(raw)
+	if !ok {
+		r.Log(robot.Warn, "openai-fallback: unsupported conversation index format key=%s type=%T; skipping index delete", conversationIndexDatumKey, raw)
 		r.CheckinDatum(conversationIndexDatumKey, locktoken)
 		return
 	}
@@ -697,13 +779,25 @@ func removeConversationIndex(r robot.Robot, conversationID string) {
 	}
 }
 
+func decodeConversationIndexFromRaw(raw interface{}) (conversationIndex, bool) {
+	blob, ok := rawJSONBytes(raw)
+	if !ok {
+		return conversationIndex{}, false
+	}
+	idx := conversationIndex{}
+	if err := json.Unmarshal(blob, &idx); err != nil {
+		return conversationIndex{}, false
+	}
+	ensureConversationIndexDefaults(&idx)
+	return idx, true
+}
+
 func deleteConversationState(r robot.Robot, ctx conversationContext) {
 	r.DeleteDatum(ctx.ConversationKey)
 	removeConversationIndex(r, ctx.ConversationID)
-	if ctx.LegacyMemoryKey != "" {
-		r.Remember(ctx.LegacyMemoryKey, "", true)
+	if ctx.DebugKey != "" {
+		r.Remember(ctx.DebugKey, "", true)
 	}
-	r.Remember(ctx.DebugKey, "", true)
 }
 
 func conversationDatumKey(conversationID string) string {
@@ -861,7 +955,16 @@ func compactConversationDeterministicInternal(state conversationState, cfg aiCon
 	if maxRecent <= 0 {
 		maxRecent = defaultMaxRecentExchanges
 	}
-	if len(state.Exchanges) <= maxRecent {
+	keepRecent := maxRecent
+	if keepRecent > len(state.Exchanges) {
+		keepRecent = len(state.Exchanges)
+	}
+	// Manual/admin force should still compact when possible, even if the
+	// conversation has not yet exceeded the steady-state recent window.
+	if force && len(state.Exchanges) > 1 && keepRecent == len(state.Exchanges) {
+		keepRecent = len(state.Exchanges) - 1
+	}
+	if len(state.Exchanges) <= keepRecent {
 		if state.Tokens <= 0 {
 			state.Tokens = estimateConversationTokens(state.Exchanges) + estimateTokens(state.Summary)
 		}
@@ -884,7 +987,7 @@ func compactConversationDeterministicInternal(state conversationState, cfg aiCon
 		return state, nil
 	}
 
-	split := len(state.Exchanges) - maxRecent
+	split := len(state.Exchanges) - keepRecent
 	older := state.Exchanges[:split]
 	recent := state.Exchanges[split:]
 	state.Summary = mergeDeterministicSummary(state.Summary, older, cfg.SummaryBudgetTokens)
@@ -1314,11 +1417,15 @@ func consumeSSEAndEmit(outBot robot.Robot, body io.Reader, uiHints streamUIHints
 	reader := bufio.NewReader(body)
 	var pending strings.Builder
 	var full strings.Builder
-	progress := &streamProgressState{startedAt: time.Now()}
+	progress := &streamProgressState{}
+	envelope := &streamEnvelopeState{}
+	var streamErr error
+	emitHeardNoticeIfNeeded(outBot, progress, uiHints)
 
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil && err != io.EOF {
+			streamErr = err
 			break
 		}
 		line = strings.TrimSpace(line)
@@ -1329,14 +1436,22 @@ func consumeSSEAndEmit(outBot robot.Robot, body io.Reader, uiHints streamUIHints
 			}
 			chunk, payloadError := extractDeltaContent(payload)
 			if payloadError != "" {
-				return strings.TrimSpace(full.String()), fmt.Errorf("%s", payloadError)
+				flushStreamTail(outBot, progress, uiHints, envelope, pending.String(), true)
+				return strings.TrimSpace(normalizeChunkText(full.String())), fmt.Errorf("%s", payloadError)
 			}
 			if chunk != "" {
 				full.WriteString(chunk)
 				pending.WriteString(chunk)
 				// Emit readable chunks as punctuation/paragraph boundaries appear while
 				// keeping fenced code blocks intact.
-				emitAvailableChunks(outBot, &pending, progress, uiHints)
+				for _, ready := range extractAvailableChunks(&pending) {
+					queuePreparedChunk(outBot, progress, uiHints, envelope, ready)
+				}
+				// As soon as any second-chunk content appears, announce multipart and
+				// emit the held first chunk so users can see that more is coming.
+				if !envelope.multipart && strings.TrimSpace(envelope.heldFirstChunk) != "" && strings.TrimSpace(pending.String()) != "" {
+					activateMultipartEnvelope(outBot, progress, uiHints, envelope)
+				}
 			}
 		}
 		if err == io.EOF {
@@ -1344,11 +1459,71 @@ func consumeSSEAndEmit(outBot robot.Robot, body io.Reader, uiHints streamUIHints
 		}
 	}
 
-	rest := strings.TrimSpace(normalizeChunkText(pending.String()))
-	if rest != "" {
-		emitStreamChunk(outBot, progress, uiHints, rest)
+	flushStreamTail(outBot, progress, uiHints, envelope, pending.String(), streamErr != nil)
+	if streamErr != nil {
+		return strings.TrimSpace(normalizeChunkText(full.String())), fmt.Errorf("stream read failed: %w", streamErr)
 	}
 	return strings.TrimSpace(normalizeChunkText(full.String())), nil
+}
+
+func emitHeardNoticeIfNeeded(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints) {
+	if progress.heardShown {
+		return
+	}
+	heard := strings.TrimSpace(uiHints.HeardNotice)
+	if heard != "" {
+		outBot.Reply(heard)
+	}
+	if uiHints.QueuedNotice != "" {
+		outBot.Say(uiHints.QueuedNotice)
+	}
+	if heard != "" || uiHints.QueuedNotice != "" {
+		progress.heardShown = true
+	}
+}
+
+func flushStreamTail(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints, envelope *streamEnvelopeState, remainder string, interrupted bool) {
+	rest := strings.TrimSpace(normalizeChunkText(remainder))
+
+	if envelope.multipart {
+		if strings.TrimSpace(envelope.heldFirstChunk) != "" {
+			emitStreamChunk(outBot, progress, uiHints, envelope.heldFirstChunk, true)
+			envelope.heldFirstChunk = ""
+		}
+		if rest != "" {
+			emitStreamChunk(outBot, progress, uiHints, rest, true)
+		}
+		if interrupted {
+			if uiHints.MultipartInterrupted != "" {
+				outBot.Say(uiHints.MultipartInterrupted)
+			}
+		} else if uiHints.MultipartEndNotice != "" {
+			outBot.Say(uiHints.MultipartEndNotice)
+		}
+		return
+	}
+
+	if strings.TrimSpace(envelope.heldFirstChunk) != "" && rest != "" {
+		activateMultipartEnvelope(outBot, progress, uiHints, envelope)
+		emitStreamChunk(outBot, progress, uiHints, rest, true)
+		if interrupted {
+			if uiHints.MultipartInterrupted != "" {
+				outBot.Say(uiHints.MultipartInterrupted)
+			}
+		} else if uiHints.MultipartEndNotice != "" {
+			outBot.Say(uiHints.MultipartEndNotice)
+		}
+		return
+	}
+
+	if strings.TrimSpace(envelope.heldFirstChunk) != "" {
+		emitStreamChunk(outBot, progress, uiHints, envelope.heldFirstChunk, false)
+		envelope.heldFirstChunk = ""
+		return
+	}
+	if rest != "" {
+		emitStreamChunk(outBot, progress, uiHints, rest, false)
+	}
 }
 
 func extractDeltaContent(payload string) (string, string) {
@@ -1383,7 +1558,8 @@ func extractDeltaContent(payload string) (string, string) {
 	return content, ""
 }
 
-func emitAvailableChunks(outBot robot.Robot, pending *strings.Builder, progress *streamProgressState, uiHints streamUIHints) {
+func extractAvailableChunks(pending *strings.Builder) []string {
+	ready := make([]string, 0, 2)
 	text := pending.String()
 	for {
 		cut := chunkBoundary(text)
@@ -1395,38 +1571,56 @@ func emitAvailableChunks(outBot robot.Robot, pending *strings.Builder, progress 
 		}
 		chunk := strings.TrimSpace(normalizeChunkText(text[:cut]))
 		if chunk != "" {
-			emitStreamChunk(outBot, progress, uiHints, chunk)
+			ready = append(ready, chunk)
 		}
 		text = text[cut:]
 	}
 	pending.Reset()
 	pending.WriteString(text)
+	return ready
 }
 
-func emitStreamChunk(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints, chunk string) {
+func queuePreparedChunk(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints, envelope *streamEnvelopeState, chunk string) {
+	chunk = strings.TrimSpace(chunk)
+	if chunk == "" {
+		return
+	}
+	if envelope.multipart {
+		emitStreamChunk(outBot, progress, uiHints, chunk, true)
+		return
+	}
+	if strings.TrimSpace(envelope.heldFirstChunk) == "" {
+		envelope.heldFirstChunk = chunk
+		return
+	}
+	activateMultipartEnvelope(outBot, progress, uiHints, envelope)
+	emitStreamChunk(outBot, progress, uiHints, chunk, true)
+}
+
+func activateMultipartEnvelope(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints, envelope *streamEnvelopeState) {
+	if envelope.multipart || strings.TrimSpace(envelope.heldFirstChunk) == "" {
+		return
+	}
+	if uiHints.MultipartStartNotice != "" {
+		outBot.Say(uiHints.MultipartStartNotice)
+	}
+	envelope.multipart = true
+	emitStreamChunk(outBot, progress, uiHints, envelope.heldFirstChunk, true)
+	envelope.heldFirstChunk = ""
+}
+
+func emitStreamChunk(outBot robot.Robot, progress *streamProgressState, uiHints streamUIHints, chunk string, multipart bool) {
 	chunk = strings.TrimSpace(chunk)
 	if chunk == "" {
 		return
 	}
 
+	emitHeardNoticeIfNeeded(outBot, progress, uiHints)
 	now := time.Now()
-	if !progress.firstOutputSet {
-		if !progress.waitShown && now.Sub(progress.startedAt) >= delayedWaitNoticeDelay {
-			if uiHints.WaitNotice != "" {
-				if uiHints.WaitNoticeReply {
-					outBot.Reply(uiHints.WaitNotice)
-				} else {
-					outBot.Say(uiHints.WaitNotice)
-				}
-			}
-			if uiHints.QueuedNotice != "" {
-				outBot.Say(uiHints.QueuedNotice)
-			}
-			progress.waitShown = true
+	if progress.firstOutputSet && multipart && now.Sub(progress.lastOutputAt) >= streamProgressNoticeDelay {
+		if uiHints.MultipartContinueNotice != "" {
+			outBot.Say(uiHints.MultipartContinueNotice)
 		}
-	} else if now.Sub(progress.lastOutputAt) >= streamProgressNoticeDelay {
-		// Minimal progress marker between delayed chunks.
-		outBot.Say("(...)")
 	}
 
 	outBot.Say(chunk)

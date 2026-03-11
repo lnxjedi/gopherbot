@@ -41,6 +41,24 @@ Common symptom:
 - `Fatal: Listening on tcp4 port 127.0.0.1:0 ... operation not permitted`
   - means the test process could not open a localhost listener in the current execution environment (sandbox/permissions issue), not necessarily a bot logic regression.
 
+## Live Brain Inspection (Manual Debugging)
+
+For robot-side data shape debugging (for example long-term memory/datum format mismatches), use the robot CLI from a custom robot directory:
+
+- `../gopherbot/gopherbot list`
+- `../gopherbot/gopherbot fetch <full_key>`
+
+Example (`openai-fallback` conversation records):
+
+- `../gopherbot/gopherbot list | rg "openaifallback:conversation|conversation:index"`
+- `../gopherbot/gopherbot fetch openai-fallback:openaifallback:conversation:index:v1`
+- `../gopherbot/gopherbot fetch openai-fallback:openaifallback:conversation:v2:<sha1>`
+
+Notes:
+
+- `list` returns fully namespaced datum keys (for plugins this is typically `<plugin-name>:<datum-key>`).
+- `fetch` returns raw JSON payloads, which is useful for confirming actual stored shape versus expected struct shape.
+
 ## Test case structure
 
 - `testItem` in `test/common_test.go` defines a case as:

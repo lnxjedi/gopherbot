@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"regexp"
 	"testing"
@@ -93,6 +94,126 @@ func TestConversationIndexEntryHelpers(t *testing.T) {
 	}
 }
 
+func TestDecodeConversationStateFromRawState(t *testing.T) {
+	source := conversationState{
+		Profile: defaultProfile,
+		Tokens:  42,
+		Owner:   "alice",
+		Summary: "summary",
+		Exchanges: []conversationExchange{
+			{Human: "alice says: hi", AI: "hello"},
+		},
+	}
+	blob, err := json.Marshal(source)
+	if err != nil {
+		t.Fatalf("marshal source state: %v", err)
+	}
+	var raw interface{}
+	if err := json.Unmarshal(blob, &raw); err != nil {
+		t.Fatalf("unmarshal raw state: %v", err)
+	}
+
+	got, ok := decodeConversationStateFromRaw(raw)
+	if !ok {
+		t.Fatal("expected decodeConversationStateFromRaw to decode state-shaped payload")
+	}
+	if got.Profile != source.Profile || got.Owner != source.Owner || got.Summary != source.Summary {
+		t.Fatalf("decoded state metadata mismatch: got=%+v source=%+v", got, source)
+	}
+	if len(got.Exchanges) != 1 || got.Exchanges[0].Human != "alice says: hi" || got.Exchanges[0].AI != "hello" {
+		t.Fatalf("decoded exchanges mismatch: %+v", got.Exchanges)
+	}
+}
+
+func TestDecodeConversationStateFromRawRejectsExchangesArray(t *testing.T) {
+	exchanges := []conversationExchange{
+		{Human: "alice says: one", AI: "ai: one"},
+		{Human: "alice says: two", AI: "ai: two"},
+	}
+	blob, err := json.Marshal(exchanges)
+	if err != nil {
+		t.Fatalf("marshal exchanges: %v", err)
+	}
+	var raw interface{}
+	if err := json.Unmarshal(blob, &raw); err != nil {
+		t.Fatalf("unmarshal raw exchanges: %v", err)
+	}
+
+	if _, ok := decodeConversationStateFromRaw(raw); ok {
+		t.Fatal("expected decodeConversationStateFromRaw to reject exchange-only payload")
+	}
+}
+
+func TestDecodeConversationStateFromRawBytesState(t *testing.T) {
+	source := conversationState{
+		Profile: defaultProfile,
+		Owner:   "alice",
+		Exchanges: []conversationExchange{
+			{Human: "alice says: hi", AI: "hello"},
+		},
+	}
+	blob, err := json.Marshal(source)
+	if err != nil {
+		t.Fatalf("marshal source: %v", err)
+	}
+
+	got, ok := decodeConversationStateFromRaw(blob)
+	if !ok {
+		t.Fatal("expected decodeConversationStateFromRaw to decode []byte state payload")
+	}
+	if got.Owner != "alice" || len(got.Exchanges) != 1 {
+		t.Fatalf("decoded state mismatch: %+v", got)
+	}
+}
+
+func TestDecodeConversationStateFromRawBytesRejectsExchanges(t *testing.T) {
+	exchanges := []conversationExchange{
+		{Human: "alice says: one", AI: "ai: one"},
+		{Human: "alice says: two", AI: "ai: two"},
+	}
+	blob, err := json.Marshal(exchanges)
+	if err != nil {
+		t.Fatalf("marshal exchanges: %v", err)
+	}
+
+	if _, ok := decodeConversationStateFromRaw(blob); ok {
+		t.Fatal("expected decodeConversationStateFromRaw to reject []byte exchanges payload")
+	}
+}
+
+func TestDecodeConversationIndexFromRawState(t *testing.T) {
+	source := conversationIndex{
+		Version: conversationIndexVersion,
+		Conversations: map[string]conversationIndexEntry{
+			"thread:slack:general:1": {
+				Key:       "openaifallback:conversation:v2:abc",
+				UpdatedAt: "2026-03-04T12:00:00Z",
+			},
+		},
+	}
+	blob, err := json.Marshal(source)
+	if err != nil {
+		t.Fatalf("marshal index: %v", err)
+	}
+
+	got, ok := decodeConversationIndexFromRaw(blob)
+	if !ok {
+		t.Fatal("expected decodeConversationIndexFromRaw to decode []byte payload")
+	}
+	if got.Version != conversationIndexVersion {
+		t.Fatalf("index version = %d, want %d", got.Version, conversationIndexVersion)
+	}
+	if len(got.Conversations) != 1 {
+		t.Fatalf("index conversations len = %d, want 1", len(got.Conversations))
+	}
+}
+
+func TestDecodeConversationIndexFromRawInvalid(t *testing.T) {
+	if _, ok := decodeConversationIndexFromRaw([]byte(`["not","an","index"]`)); ok {
+		t.Fatal("expected invalid index payload to fail decode")
+	}
+}
+
 func TestDeterministicCompactionPreservesRecentWindow(t *testing.T) {
 	state := conversationState{
 		Profile: defaultProfile,
@@ -175,6 +296,40 @@ func TestForceDeterministicCompactionIgnoresTrigger(t *testing.T) {
 	}
 	if len(forced.Exchanges) != 1 {
 		t.Fatalf("forced compaction exchanges kept=%d, want 1", len(forced.Exchanges))
+	}
+	if forced.Summary == "" {
+		t.Fatal("expected forced compaction to produce a summary")
+	}
+}
+
+func TestForceDeterministicCompactionCompactsWhenBelowRecentWindow(t *testing.T) {
+	state := conversationState{
+		Profile: defaultProfile,
+		Exchanges: []conversationExchange{
+			{Human: "alice says: one", AI: "ai: one"},
+			{Human: "alice says: two", AI: "ai: two"},
+			{Human: "alice says: three", AI: "ai: three"},
+			{Human: "alice says: four", AI: "ai: four"},
+		},
+	}
+	state.Tokens = estimateConversationTokens(state.Exchanges)
+	cfg := aiConfig{
+		CompactionTriggerTokens: state.Tokens + 10000, // would block normal compaction
+		MaxRecentExchanges:      12,                   // above current exchange count
+		SummaryBudgetTokens:     200,
+	}
+
+	normal := maybeCompactConversationDeterministic(state, cfg)
+	if len(normal.Exchanges) != 4 {
+		t.Fatalf("normal deterministic compaction should be noop, got exchanges=%d", len(normal.Exchanges))
+	}
+
+	forced, older := forceCompactConversationDeterministic(state, cfg)
+	if len(older) != 1 {
+		t.Fatalf("forced compaction older size=%d, want 1", len(older))
+	}
+	if len(forced.Exchanges) != 3 {
+		t.Fatalf("forced compaction exchanges kept=%d, want 3", len(forced.Exchanges))
 	}
 	if forced.Summary == "" {
 		t.Fatal("expected forced compaction to produce a summary")

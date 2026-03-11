@@ -3,15 +3,18 @@
 ## This file is merged with the plugin's internal defaults and can be
 ## overridden by custom/conf/plugins/openai-fallback.yaml.
 Config:
-  WaitMessages:
-  - "hold on a moment while I think this through"
-  - "working on that now"
-  - "thinking through the details"
-  - "just a moment while I work on a response"
+  ## Immediate acknowledgment that the prompt was received.
+  ## Set to "" to disable.
+  HeardNotice: "_(working on a reply...)_"
   DrawMessages:
   - "working on an image"
   - "drawing now"
   - "rendering your request"
+  ## Streaming markers for multipart replies.
+  MultipartStartNotice: "_(replying in parts...)_"
+  MultipartContinueNotice: "_(continuing...)_"
+  MultipartEndNotice: "_(end reply)_"
+  MultipartInterruptedNotice: "_(reply interrupted)_"
   CompactionTriggerTokens: 6144
   MaxRecentExchanges: 12
   SummaryBudgetTokens: 768

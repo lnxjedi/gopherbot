@@ -212,6 +212,17 @@ Design implication:
 - SSH `ProtocolConfig.UserKeys` is a list of `{UserName, PublicKeys}` entries to avoid default-user key bleed-through during map merge
 - to clear installed default SSH users in custom robots, set `ProtocolConfig.UserKeys: []` (or provide explicit entries)
 
+### Engine-Shipped Extension Config Layering
+
+For extensions shipped with Gopherbot (compiled or default external extensions):
+
+- installed defaults are authoritative (`conf/plugins/*.yaml`, `conf/jobs/*.yaml`, extension `Configure()` defaults)
+- custom robot extension config should be minimal and local: enable/disable, local parameters/secrets, and intentional local behavior deltas
+- avoid copying full default command lists or policy lists (`Commands`, `AdminCommands`, `AuthorizedCommands`, etc.) into `custom/conf` unless behavior is intentionally being redefined
+- prefer `Append*` keys when adding list entries to preserve upstream defaults and reduce drift
+
+This keeps upgrade behavior predictable and prevents stale custom copies from disabling or diverging shipped extension behavior.
+
 ### Identity Mapping Key Compatibility
 
 Identity policy is username-authoritative in engine flows.
